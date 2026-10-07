@@ -1342,6 +1342,9 @@ describe("a film's project", () => {
           'poster',
           '/api/review/frame?ref=out%2Ftoy%2Fscenes%2Fopen%2Fmain.share.mp4&w=960',
         );
+        // Never the browser's controls: its picture plays it, on a clock of its own.
+        yield* countIs(page, `${INSPECTOR} video[controls]`, 0);
+        yield* countIs(page, `${INSPECTOR} [data-act="play-video"] video`, 1);
         yield* inspect(page, render('close'));
         yield* countIs(page, `${INSPECTOR} video`, 0);
         // A render stale by the film's sound alone says so, beside its approval

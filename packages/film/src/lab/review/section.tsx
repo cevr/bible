@@ -9,9 +9,10 @@
 // Info (its notes among it), its approve and unapprove, what was said of it
 // and the comment box, said over the set's route.
 
-import { useAtomValue } from '@bible/atom-solid';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
 import { Effect, Exit, Match, Option, Scope } from 'effect';
+import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
   type Accessor,
@@ -88,8 +89,11 @@ import {
   playsIn,
   reachOf,
   runningOf,
+  spawnSync,
   viewNameOf,
 } from './machine.ts';
+import { makeSync } from './sync.ts';
+import { Actor } from '../actor.tsx';
 import { Loaded, useWrite, writeStatus } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
 import { ReviewPlace as Place } from './place.ts';
@@ -362,9 +366,9 @@ const Zoom = (props: { readonly still: string; readonly alt: string; readonly sh
 };
 
 /**
- * A video in no set: its poster, its captions and its name. Its file (Open
- * the file, Copy link, Info: its size, age and proxy) is its long-press
- * menu's (UR-17).
+ * A video in no set: its poster, its captions and its name, played on a
+ * clock of its own (`PlayedAlone`). Its file (Open the file, Copy link,
+ * Info: its size, age and proxy) is its long-press menu's.
  */
 const LooseVideo = (props: {
   readonly video: ReviewVideo;
@@ -377,17 +381,14 @@ const LooseVideo = (props: {
     <Target of={Selection.cases.File.make({ ref: props.video.ref })} class="rv-card rv-tall">
       <Show when={Option.getOrUndefined(source())} fallback={<ProxyPending video={props.video} />}>
         {(src) => (
-          <video
-            controls
-            preload="none"
-            playsinline
-            poster={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
+          <PlayedAlone
             src={src()}
+            poster={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
           >
             <Show when={Option.getOrUndefined(captions)} keyed>
               {(vtt: ReviewFile) => <track kind="captions" src={reviewFileUrl(vtt.ref)} default />}
             </Show>
-          </video>
+          </PlayedAlone>
         )}
       </Show>
       <div class="rv-cap">
@@ -616,8 +617,6 @@ export const Transport = (props: {
 }) => {
   const { sync } = props;
   const { meta } = useReview();
-  const send = { sync: props.send };
-  const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
   const keys = hubKeys(meta.hub);
   // The header's timecode is this transport's clock.
   useShellTime(() => sync().t);
@@ -626,41 +625,17 @@ export const Transport = (props: {
       ...rateCommands({
         all: Rate.literals,
         now: () => sync().rate,
-        choose: (rate) => send.sync(SyncEvent.RateChosen({ rate })),
+        choose: (rate) => props.send(SyncEvent.RateChosen({ rate })),
       }),
     ),
   );
   return (
-    <section class="rv-transport">
-      <button
-        type="button"
-        class="sh-btn rv-big"
-        data-primary=""
-        data-act="play"
-        title="Play / pause (space)"
-        onClick={() => send.sync(SyncEvent.Toggled)}
-      >
-        {Match.value(playing()).pipe(
-          Match.when(true, () => '❚❚'),
-          Match.orElse(() => '▶'),
-        )}
-      </button>
-      <span class="rv-time" data-state={sync()._tag}>
-        {/* The time: a laptop's header shows it already (`useShellTime`), so its row leaves it out. */}
-        <span class="rv-time-at">{clockParts(sync()).at}</span>
-        {/* The end, and a wait: a phone's row leaves them out (the scrub shows the end). */}
-        <span class="rv-time-rest">{clockParts(sync()).rest}</span>
-      </span>
-      <input
-        type="range"
-        aria-label="Scrub every video"
-        min={sync().start}
-        max={reachOf(sync())}
-        step="0.05"
-        value={sync().t}
-        onInput={(e) => send.sync(SyncEvent.ScrubMoved({ t: Number(e.currentTarget.value) }))}
-        onChange={() => send.sync(SyncEvent.ScrubReleased)}
-      />
+    <TransportRow
+      sync={sync}
+      send={props.send}
+      scrubs="Scrub every video"
+      title="Play / pause (space)"
+    >
       <CommandChip
         hub={meta.hub}
         ids={Rate.literals.map(rateId)}
@@ -670,7 +645,121 @@ export const Transport = (props: {
       >
         <span data-rate={String(sync().rate)}>{rateText(sync().rate)}</span>
       </CommandChip>
+    </TransportRow>
+  );
+};
+
+/**
+ * A synced player's row: play, the clock and a scrub (`scrubs` names what it
+ * moves), then `children` (the docked transport's rate chip).
+ */
+const TransportRow = (
+  props: ParentProps<{
+    readonly sync: Accessor<SyncState>;
+    readonly send: (event: SyncEvent) => void;
+    readonly scrubs: string;
+    readonly title: string;
+    /** Whether it plays one video on a clock of its own (`PlayedAlone`), not the page's. */
+    readonly alone?: boolean;
+  }>,
+) => {
+  const { sync } = props;
+  const send = { sync: props.send };
+  const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
+  return (
+    <section class={['rv-transport', { 'rv-alone': props.alone === true }]}>
+      <button
+        type="button"
+        class="sh-btn rv-big"
+        data-primary=""
+        data-act="play"
+        title={props.title}
+        onClick={() => send.sync(SyncEvent.Toggled)}
+      >
+        {Match.value(playing()).pipe(
+          Match.when(true, () => '❚❚'),
+          Match.orElse(() => '▶'),
+        )}
+      </button>
+      <span class="rv-time" data-state={sync()._tag}>
+        {/* The time: a laptop's header shows the docked one's already (`useShellTime`), so its row leaves it out. */}
+        <span class="rv-time-at">{clockParts(sync()).at}</span>
+        {/* The end, and a wait: a phone's row leaves them out (the scrub shows the end). */}
+        <span class="rv-time-rest">{clockParts(sync()).rest}</span>
+      </span>
+      <input
+        type="range"
+        aria-label={props.scrubs}
+        min={sync().start}
+        max={reachOf(sync())}
+        step="0.05"
+        value={sync().t}
+        onInput={(e) => send.sync(SyncEvent.ScrubMoved({ t: Number(e.currentTarget.value) }))}
+        onChange={() => send.sync(SyncEvent.ScrubReleased)}
+      />
+      {props.children}
     </section>
+  );
+};
+
+/** The one video a lone player plays: its clock and the one heard. */
+const ALONE = 'alone';
+
+/**
+ * A video on a clock of its own (a video in no set, a render in a sheet),
+ * never the browser's controls: at rest its picture is the one control, a
+ * press plays or pauses it; once it has moved, the review's transport row
+ * shows under it (play, the clock, a scrub). It is heard, and its time is
+ * its own, not the page's. `children` are its `<track>`s.
+ */
+export const PlayedAlone = (
+  props: ParentProps<{ readonly src: string; readonly poster: string }>,
+) => {
+  const { meta } = useReview();
+  return (
+    <Actor runtime={meta.runtime} spawn={spawnSync(ALONE, 0)}>
+      {(actor) => {
+        const syncAtom = ActorAtom.make(actor);
+        const sync = useAtomValue(() => syncAtom);
+        const send = useAtomSet(() => syncAtom);
+        const driver = makeSync(ALONE, send, meta.host);
+        onCleanup(driver.stop);
+        createEffect(sync, (state) => driver.apply(state));
+        const moved = () =>
+          runningOf(sync()) || sync()._tag === 'Buffering' || sync().t !== sync().start;
+        return (
+          <>
+            <button
+              type="button"
+              class="rv-alone-picture"
+              data-act="play-video"
+              title="Play / pause"
+              aria-label="Play / pause"
+              onClick={() => send(SyncEvent.Toggled)}
+            >
+              <video
+                preload="metadata"
+                playsinline
+                poster={props.poster}
+                src={props.src}
+                ref={(el: HTMLVideoElement) => driver.attach(ALONE, playableOf(el))}
+              >
+                {props.children}
+              </video>
+            </button>
+            <Show when={moved()}>
+              <TransportRow
+                sync={sync}
+                send={send}
+                scrubs="Scrub the video"
+                title="Play / pause"
+                alone
+              />
+            </Show>
+          </>
+        );
+      }}
+    </Actor>
   );
 };
 

@@ -114,6 +114,17 @@ a.rv-card:hover { background: var(--surface-2); }
   .rv-time-rest { display: none; }
 }
 .rv-time[data-state="Buffering"] { color: var(--accent); }
+/*
+ * A lone video (a video in no set, a render in a sheet): its picture a press
+ * that plays or pauses it, then, once it has moved, its row under it in its
+ * card. Its clock is its own, so the row says its time on a laptop too.
+ */
+.rv-alone-picture { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
+.rv-alone-picture:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.rv-alone { padding: var(--s-2) var(--s-3); }
+@media ${WIDE} {
+  .rv-alone .rv-time-at { display: inline; }
+}
 .rv-lightbox {
   position: fixed; inset: 0; background: var(--backdrop-deep); display: grid; place-items: center;
   z-index: 20; padding: var(--s-4); cursor: zoom-out;

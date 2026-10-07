@@ -29,7 +29,7 @@ import {
 import type { ReviewVideo } from '../../../core/review.ts';
 import { useReview } from '../context.tsx';
 import { APPROVAL_TEXT, POSTER_W, pressed, stateText, videoSource } from '../format.ts';
-import { ProxyPending } from '../section.tsx';
+import { PlayedAlone, ProxyPending } from '../section.tsx';
 import type { Inspected } from '../../../core/field.ts';
 import { ChoiceAct } from './api.ts';
 import { Playing, samePlaying, useAct, useFilm } from './context.tsx';
@@ -230,7 +230,8 @@ export const ApproveButton = (props: {
 
 /**
  * A render's video, kept in place while its file stays the same, showing a
- * still of itself until it plays; while its proxy is being made, says so.
+ * still of itself until it plays, on a clock of its own with the review's
+ * transport row (`PlayedAlone`); while its proxy is being made, says so.
  */
 export const Seen = (props: { readonly video: ReviewVideo }) => {
   const { state } = useReview();
@@ -238,7 +239,7 @@ export const Seen = (props: { readonly video: ReviewVideo }) => {
   const poster = createMemo(() => reviewFrameUrl(props.video.ref, Option.none(), POSTER_W));
   return (
     <Show when={src()} fallback={<ProxyPending video={props.video} />}>
-      {(source) => <video controls preload="none" playsinline poster={poster()} src={source()} />}
+      {(source) => <PlayedAlone src={source()} poster={poster()} />}
     </Show>
   );
 };
