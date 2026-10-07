@@ -204,7 +204,7 @@ apps/egw-search/.deploy/
 apps/animations/lab/
 
 # The design language mocks' stills: frames of a film, fetched from a lab by
-# design-language/mocks/fetch-stills.ts, kept out of git as the film's media is.
+# packages/scripts/src/fetch-stills.ts (`fetch:stills`), kept out of git as the film's media is.
 design-language/mocks/stills/
 
 # Written by the CLI tests (a local .bible home).

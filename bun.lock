@@ -166,6 +166,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@bible/core": "workspace:*",
+        "@bible/film": "workspace:*",
         "@effect/platform-bun": "catalog:",
         "effect": "catalog:",
         "pdf-parse": "^2.4.5",

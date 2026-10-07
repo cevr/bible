@@ -10,10 +10,12 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test src",
     "build:topics": "bun src/topics-compiler/main.ts",
-    "build:vectors": "bun src/vector-compiler/main.ts"
+    "build:vectors": "bun src/vector-compiler/main.ts",
+    "fetch:stills": "bun src/fetch-stills.ts"
   },
   "dependencies": {
     "@bible/core": "workspace:*",
+    "@bible/film": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "effect": "catalog:",
     "pdf-parse": "^2.4.5"
