@@ -146,7 +146,7 @@ function Unmounting(): JSX.Element {
 }
 
 /**
- * A field (with the URL's `format`) whose input, or whole root, the page
+ * A field (with the URL's `format` and `allowExpressions`) whose input, or whole root, the page
  * drops and brings back: `window.__show({ input, root })`, applied at once.
  */
 function UnmountingParts(): JSX.Element {
@@ -169,6 +169,7 @@ function UnmountingParts(): JSX.Element {
       <NumberField.Root
         value={held.value()}
         format={formatParam()}
+        allowExpressions={flagParam('allowExpressions')}
         onValueCommitted={held.onValueCommitted}
       >
         <Show when={input()}>

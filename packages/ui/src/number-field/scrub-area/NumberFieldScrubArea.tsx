@@ -107,7 +107,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
     didMove = true;
     const rawAmount = event.movementX * ctx.getStepAmount(getKeyState(event));
     if (rawAmount !== 0) {
-      ctx.allowInputSyncRef.current = true;
+      ctx.stopTyping();
       ctx.incrementValue(Math.abs(rawAmount), {
         direction: rawAmount >= 0 ? 1 : -1,
         event,

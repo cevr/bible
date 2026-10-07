@@ -18,7 +18,6 @@ import { createGenericEventDetails } from '../../internals/createBaseUIEventDeta
 import { REASONS } from '../../internals/reasons.ts';
 import type { BaseUIComponentProps, HTMLProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
-import { formatNumber } from '../../utils/formatNumber.ts';
 import {
   type NumberFieldRootContextValue,
   useNumberFieldRootContext,
@@ -132,10 +131,10 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
 
   /** Marks the text as typed, keeping the value it was typed over. */
   const startTyping = () => {
-    if (ctx.allowInputSyncRef.current) {
+    if (!ctx.isTyping()) {
       editBase = state.value;
+      ctx.setTypedText(state.inputValue);
     }
-    ctx.allowInputSyncRef.current = false;
   };
 
   // Unmounted mid-typing: the typed edit is dropped, not committed. A browser
@@ -143,7 +142,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
   let unmounted = false;
   onCleanup(() => {
     unmounted = true;
-    if (!ctx.allowInputSyncRef.current) {
+    if (ctx.isTyping()) {
       ctx.discardEdit();
     }
   });
@@ -164,11 +163,11 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     event: Event,
     changeReason: typeof REASONS.inputBlur | typeof REASONS.keyboard,
   ) => {
-    const hadManualInput = !ctx.allowInputSyncRef.current;
+    const hadManualInput = ctx.isTyping();
     const hadPendingChange = ctx.hasPendingCommit();
     const value = state.value;
     const inputValue = state.inputValue;
-    ctx.allowInputSyncRef.current = true;
+    ctx.stopTyping();
 
     if (inputValue.trim() === '') {
       ctx.setValue(null, { reason: REASONS.inputClear, event });
@@ -183,7 +182,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     const parsedValue = readTyped(inputValue);
     // Text that does not read commits nothing: the edit ends, the text stays for fixing.
     if (parsedValue === null) {
-      ctx.discardEdit({ keepText: true });
+      ctx.discardEdit({ keepText: inputValue });
       return;
     }
 
@@ -208,13 +207,9 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
       ctx.setValue(committed, { reason: changeReason, event });
       committedValue = ctx.lastChangedValueRef.current;
     }
+    // The edit ends with the commit, and the input shows the value formatted.
     if (shouldCommit) {
       ctx.onValueCommitted(committedValue, createGenericEventDetails(changeReason, event));
-    }
-
-    const canonicalText = formatNumber(committedValue, ctx.locale, formatOptions);
-    if (inputValue !== canonicalText) {
-      ctx.setInputValue(canonicalText);
     }
   };
 
@@ -225,7 +220,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     startTyping();
 
     if (targetValue.trim() === '') {
-      ctx.setInputValue(targetValue);
+      ctx.setTypedText(targetValue);
       ctx.setValue(null, { reason: REASONS.inputClear, event });
       return;
     }
@@ -249,11 +244,11 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
 
     // An expression waits for its commit to be read.
     if (typedExpression(targetValue)) {
-      ctx.setInputValue(targetValue);
+      ctx.setTypedText(targetValue);
       return;
     }
     const parsedValue = parseNumber(targetValue, ctx.locale, ctx.format);
-    ctx.setInputValue(targetValue);
+    ctx.setTypedText(targetValue);
     if (parsedValue !== null) {
       ctx.setValue(parsedValue, { reason: REASONS.inputChange, event });
     }
@@ -262,7 +257,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
   const onStepKey = (event: InputEvent<KeyboardEvent>) => {
     // Navigation keys and the like return without changing the value, so the
     // dirty state is read here and cleared only by the keys that change it.
-    const hadManualInput = !ctx.allowInputSyncRef.current;
+    const hadManualInput = ctx.isTyping();
     const input = event.currentTarget;
     const inputValue = state.inputValue;
     // Alt + ArrowUp/ArrowDown picks `smallStep`, so Alt does not bypass them.
@@ -315,7 +310,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
 
     let changed = false;
     if (isStepKey || boundaryValue !== null) {
-      ctx.allowInputSyncRef.current = true;
+      ctx.stopTyping();
     }
     if (isStepKey) {
       changed = ctx.incrementValue(amount, {
@@ -366,7 +361,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     if (parsedValue !== null) {
       ctx.setValue(parsedValue, { reason: REASONS.inputPaste, event });
     }
-    ctx.setInputValue(nextText);
+    ctx.setTypedText(nextText);
     // The caret goes just after the inserted text.
     input.value = nextText;
     const caret = selectionStart + pastedData.length;

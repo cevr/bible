@@ -98,33 +98,59 @@ const ROOT_PROPS = [
   'onValueCommitted',
 ] as const;
 
-/** The change an edit (a scrub, typing, a step) holds until it ends. */
-interface Pending {
-  readonly value: number | null;
-}
+/**
+ * What the field holds of its own. `none`: it shows the owner's value.
+ * `editing`: an edit in progress (a scrub, typing, a step), with the change it
+ * holds until it ends (`held`: none yet while typed text has not read as a
+ * number) and the text the person typed (`typed`: none while stepping, the
+ * held value shown formatted). `kept`: typed text that never read, kept after
+ * its edit ended over the owner's value `over`, until that value changes.
+ */
+type Edit =
+  | { readonly kind: 'none' }
+  | {
+      readonly kind: 'editing';
+      readonly held: { readonly value: number | null } | undefined;
+      readonly typed: string | undefined;
+    }
+  | { readonly kind: 'kept'; readonly text: string; readonly over: number | null };
+
+const NO_EDIT: Edit = { kind: 'none' };
 
 export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
   const disabled = () => props.disabled ?? false;
   const minWithDefault = () => props.min ?? Number.MIN_SAFE_INTEGER;
   const maxWithDefault = () => props.max ?? Number.MAX_SAFE_INTEGER;
 
-  const [pending, setPending] = createSignal<Pending | undefined>(undefined, {
-    ownedWrite: true,
-  });
+  // The edit, read by the handlers as written (a write shows in the signal
+  // only at the next flush) and mirrored into a signal for what renders.
+  let edit: Edit = NO_EDIT;
+  const [editShown, setEditShown] = createSignal<Edit>(NO_EDIT, { ownedWrite: true });
+  const setEdit = (next: Edit) => {
+    edit = next;
+    setEditShown(() => next);
+  };
+
   const value = (): number | null => {
-    const held = pending();
-    return held === undefined ? props.value : held.value;
+    const shown = editShown();
+    return shown.kind === 'editing' && shown.held !== undefined ? shown.held.value : props.value;
+  };
+  // The text typed stays as typed; otherwise the input shows the value formatted.
+  const inputValue = (): string => {
+    const shown = editShown();
+    if (shown.kind === 'editing' && shown.typed !== undefined) {
+      return shown.typed;
+    }
+    if (shown.kind === 'kept' && props.value === shown.over) {
+      return shown.text;
+    }
+    return formatNumber(value(), props.locale, props.format);
   };
   const [isScrubbing, setScrubbing] = createSignal(false, { ownedWrite: true });
   const [inputElement, setInputElement] = createSignal<HTMLInputElement | null>(null, {
     ownedWrite: true,
   });
-  const [inputValue, setInputValue] = createSignal(
-    untrack(() => formatNumber(value(), props.locale, props.format)),
-    { ownedWrite: true },
-  );
 
-  const allowInputSyncRef = { current: true };
   const valueRef = { current: untrack(value) };
   const lastChangedValueRef: { current: number | null } = { current: null };
 
@@ -133,23 +159,49 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     valueRef.current = next;
   });
 
-  // Typed text that never read, kept after its edit ended: the owner's value it
-  // was left over, shown again once that value changes.
-  let keptText: { readonly over: number | null } | null = null;
+  // Kept text gives way to the owner's next value for good.
+  createEffect(
+    () => props.value,
+    (ownerValue) => {
+      if (edit.kind === 'kept' && ownerValue !== edit.over) {
+        setEdit(NO_EDIT);
+      }
+    },
+  );
 
-  // Every edit ends here, committed or discarded: its held change goes, and the
-  // field shows the owner's value again.
-  const endEdit = () => {
-    allowInputSyncRef.current = true;
-    keptText = null;
-    setPending(undefined);
+  const isTyping = () => edit.kind === 'editing' && edit.typed !== undefined;
+
+  /** Typed text: the edit becomes (or stays) typing, its held change kept. */
+  const setTypedText = (text: string) => {
+    setEdit({
+      kind: 'editing',
+      held: edit.kind === 'editing' ? edit.held : undefined,
+      typed: text,
+    });
   };
 
-  const discardEdit = (options?: { readonly keepText?: boolean }) => {
-    endEdit();
-    if (options?.keepText) {
-      keptText = { over: untrack(() => props.value) };
+  /** Typing stops (a step, a scrub, a commit begins): the held change shows formatted. */
+  const stopTyping = () => {
+    if (edit.kind !== 'editing' || edit.typed === undefined) {
+      return;
     }
+    setEdit(
+      edit.held === undefined ? NO_EDIT : { kind: 'editing', held: edit.held, typed: undefined },
+    );
+  };
+
+  // Every edit ends here, committed or discarded: what it held goes, and the
+  // field shows the owner's value again.
+  const endEdit = () => {
+    setEdit(NO_EDIT);
+  };
+
+  const discardEdit = (options?: { readonly keepText?: string }) => {
+    if (options?.keepText === undefined) {
+      endEdit();
+      return;
+    }
+    setEdit({ kind: 'kept', text: options.keepText, over: untrack(() => props.value) });
   };
 
   const onValueCommitted = (
@@ -195,18 +247,21 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
       // clamped back to it.
       const changed =
         validatedValue !== current ||
-        (isInputReason && (unvalidatedValue !== current || !allowInputSyncRef.current));
+        (isInputReason && (unvalidatedValue !== current || isTyping()));
 
+      // Step changes show at once (formatted); typed text stays until it is committed.
       if (changed) {
-        setPending({ value: validatedValue });
+        setEdit({
+          kind: 'editing',
+          held: { value: validatedValue },
+          typed: edit.kind === 'editing' ? edit.typed : undefined,
+        });
+      } else if (edit.kind === 'kept') {
+        // A step that changes nothing still shows the value in place of kept text.
+        endEdit();
       }
 
       lastChangedValueRef.current = validatedValue;
-
-      // Step changes show at once; typed text stays until it is committed.
-      if (allowInputSyncRef.current) {
-        setInputValue(formatNumber(validatedValue, props.locale, props.format));
-      }
       return changed;
     });
 
@@ -222,28 +277,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
       direction: params.direction,
     });
   };
-
-  // The input shows the formatted value whenever it changes from outside,
-  // unless the person is typing (the text then waits for blur) or the text
-  // that never read is kept over that same value.
-  createEffect(
-    () => [value(), inputValue(), props.locale, props.format] as const,
-    ([next, text, locale, format]) => {
-      if (!allowInputSyncRef.current) {
-        return;
-      }
-      if (keptText) {
-        if (next === keptText.over) {
-          return;
-        }
-        keptText = null;
-      }
-      const formatted = formatNumber(next, locale, format);
-      if (formatted !== text) {
-        setInputValue(formatted);
-      }
-    },
-  );
 
   // iOS's numeric keyboard has no minus key (and "numeric" no decimal key).
   const inputMode = (): InputMode => {
@@ -316,17 +349,18 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
           minWithDefault: minWithDefault(),
         }),
       ),
-    setInputValue: (text) => setInputValue(text),
+    setTypedText,
+    stopTyping,
+    isTyping,
     setInputElement: (element) => setInputElement(() => element),
     inputElement,
     focusInput,
     setScrubbing: (scrubbing) => setScrubbing(scrubbing),
     onValueCommitted,
     discardEdit,
-    allowInputSyncRef,
     valueRef,
     lastChangedValueRef,
-    hasPendingCommit: () => untrack(pending) !== undefined,
+    hasPendingCommit: () => edit.kind === 'editing' && edit.held !== undefined,
   };
 
   const elementProps = omit(props, ...ROOT_PROPS);

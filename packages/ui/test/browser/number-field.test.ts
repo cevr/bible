@@ -26,6 +26,12 @@ const h = harness('number-field.tsx');
 const open = (fixture: string, query: Record<string, string> = {}) => h.open(fixture, { query });
 const input = (page: Page) => page.locator('#input');
 
+/** The film inspector's format: to the thousandth, without grouping. */
+const INSPECTOR_FORMAT: Intl.NumberFormatOptions = {
+  maximumFractionDigits: 3,
+  useGrouping: false,
+};
+
 /** The commit lines of the page's log. */
 const commitsOf = async (page: Page) =>
   (await logOf(page)).filter((line) => line.startsWith('commit'));
@@ -331,6 +337,24 @@ describe('NumberField.Input: typing', () => {
     await input(page).blur();
     await see(input(page)).toHaveValue('2*(1+');
     expect(await logOf(page)).toEqual([]);
+  });
+
+  it('drops typed arithmetic when it becomes disabled, committing nothing', async () => {
+    const page = await open('field', {
+      value: '5',
+      allowExpressions: 'true',
+      format: JSON.stringify(INSPECTOR_FORMAT),
+    });
+    await input(page).click();
+    await input(page).selectText();
+    await page.keyboard.type('*2');
+    await setDisabled(page, true);
+    await see(input(page)).toHaveValue('5');
+    await setDisabled(page, false);
+    await input(page).focus();
+    await input(page).blur();
+    await see(input(page)).toHaveValue('5');
+    expect(await commitsOf(page)).toEqual([]);
   });
 
   it("follows the owner's later value after a blur on text that does not read, committing nothing stale", async () => {
@@ -711,6 +735,23 @@ describe('NumberField: unmounting mid-edit', () => {
     await input(page).click();
     await input(page).selectText();
     await page.keyboard.type('10');
+    await show(page, { input: false });
+    await see(input(page)).toHaveCount(0);
+    await show(page, { input: true });
+    await see(input(page)).toHaveValue('5');
+    await input(page).focus();
+    await input(page).blur();
+    expect(await commitsOf(page)).toEqual([]);
+  });
+
+  it('drops typed arithmetic when the input unmounts, committing nothing', async () => {
+    const page = await open('unmounting-parts', {
+      allowExpressions: 'true',
+      format: JSON.stringify(INSPECTOR_FORMAT),
+    });
+    await input(page).click();
+    await input(page).selectText();
+    await page.keyboard.type('(1+2)');
     await show(page, { input: false });
     await see(input(page)).toHaveCount(0);
     await show(page, { input: true });

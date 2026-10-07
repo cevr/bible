@@ -42,7 +42,12 @@ export interface NumberFieldRootContextValue {
   getStepAmount: (event?: EventWithOptionalKeyState) => number;
   /** The characters besides digits the input accepts for the locale and format. */
   getAllowedNonNumericKeys: () => Set<string>;
-  setInputValue: (text: string) => void;
+  /** Sets the text the person typed: the edit is typing until it stops or ends. */
+  setTypedText: (text: string) => void;
+  /** Stops typing (a step or a commit begins): the held change shows formatted. */
+  stopTyping: () => void;
+  /** Whether the input holds text the person typed and has not committed. */
+  isTyping: () => boolean;
   setInputElement: (element: HTMLInputElement | null) => void;
   inputElement: () => HTMLInputElement | null;
   /** Focuses the input with the caret at the end. */
@@ -52,12 +57,10 @@ export interface NumberFieldRootContextValue {
   onValueCommitted: (value: number | null, details: NumberFieldRootCommitEventDetails) => void;
   /**
    * Ends the edit with no commit: the field shows the owner's value again, or,
-   * with `keepText`, keeps the typed text until that value changes.
+   * given `keepText`, shows that text until the owner's value changes.
    */
-  discardEdit: (options?: { readonly keepText?: boolean }) => void;
-  /** `false` while the input holds text the person typed and has not committed. */
-  allowInputSyncRef: ValueCell<boolean>;
-  /** The value steps start from: the stored value, or the dirty text just synced. */
+  discardEdit: (options?: { readonly keepText?: string }) => void;
+  /** The value steps start from: the value the field last rendered. */
   valueRef: ValueCell<number | null>;
   /** The value the last applied change stored. */
   lastChangedValueRef: ValueCell<number | null>;
