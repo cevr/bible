@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./api": "./src/core/api.ts",
     "./core": "./src/core/index.ts",
     "./canvas": "./src/canvas/index.ts",
     "./player": "./src/player/index.ts",

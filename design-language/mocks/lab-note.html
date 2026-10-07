@@ -9,651 +9,10 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;650&display=swap"
     />
+    <link rel="stylesheet" href="../../packages/film/src/player/tokens.css" />
+    <link rel="stylesheet" href="kit.css" />
     <style>
-      /* ── Tokens (design-language.md §3) ─────────────────────────────── */
-      :root {
-        color-scheme: dark;
-        --surface-0: #0e0d0c;
-        --surface-1: #161513;
-        --surface-2: #1e1c1a;
-        --surface-3: #292724;
-        --line: #2f2c29;
-        --line-strong: #45413b;
-        --text-1: #e4dfd6;
-        --text-2: #a19b91;
-        --text-3: #6b665f;
-        --accent: #e0ad45;
-        --accent-ink: #17120a;
-        --accent-wash: rgb(224 173 69 / 0.14);
-        --state-rendered: #8aa9c8;
-        --state-stale: #d9874a;
-        --state-approved: #76c09a;
-        --state-findings: #e0705a;
-        --state-warning: #d9b56a;
-        --state-recording: #e5484d;
-        --state-note: #f0609a;
-        --state-agent: #7fc4c0;
-        --state-scratch: var(--text-3);
-        --scene-sat: 30%;
-        --scene-light: 32%;
-        --font: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        --font-features: 'calt' 0;
-        --fs-1: 10px;
-        --lh-1: 14px;
-        --fs-2: 11px;
-        --lh-2: 16px;
-        --fs-3: 12px;
-        --lh-3: 18px;
-        --fs-4: 13px;
-        --lh-4: 20px;
-        --fs-5: 16px;
-        --lh-5: 22px;
-        --fs-read: 18px;
-        --lh-read: 28px;
-        --w-1: 400;
-        --w-2: 500;
-        --w-3: 650;
-        --track-caps: 0.06em;
-        --s-1: 4px;
-        --s-2: 8px;
-        --s-3: 12px;
-        --s-4: 16px;
-        --s-5: 20px;
-        --s-6: 24px;
-        --s-8: 32px;
-        --r-1: 2px;
-        --r-2: 4px;
-        --r-sheet: 12px;
-        --r-dot: 50%;
-        --border: 1px solid var(--line);
-        --shadow-pop: 0 8px 28px rgb(0 0 0 / 0.55);
-        --focus-ring: 0 0 0 1px var(--surface-0), 0 0 0 2px var(--accent);
-        --t-fast: 80ms;
-        --t-base: 140ms;
-        --t-sheet: 220ms;
-        --ease: cubic-bezier(0.2, 0, 0, 1);
-        --control-h: 36px;
-        --hit: 44px;
-        --row-h: 40px;
-        --header-h: 44px;
-        --tabbar-h: 56px;
-        --panel-head-h: 32px;
-        --gutter: 16px;
-        --body-fs: var(--fs-4);
-        --body-lh: var(--lh-4);
-      }
-      @media (min-width: 900px) and (pointer: fine) {
-        :root {
-          --control-h: 24px;
-          --hit: 28px;
-          --row-h: 28px;
-          --header-h: 40px;
-          --panel-head-h: 28px;
-          --gutter: 12px;
-          --body-fs: var(--fs-3);
-          --body-lh: var(--lh-3);
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        :root {
-          --t-fast: 0ms;
-          --t-base: 0ms;
-          --t-sheet: 0ms;
-        }
-      }
-
-      /* ── Kit: shell, page bar, panel, controls (§4, §5) ─────────────── */
-      * {
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        margin: 0;
-      }
-      body {
-        background: var(--surface-0);
-        color: var(--text-1);
-        font-family: var(--font);
-        font-feature-settings: var(--font-features);
-        font-size: var(--body-fs);
-        line-height: var(--body-lh);
-        -webkit-font-smoothing: antialiased;
-        overflow-x: hidden;
-      }
-      button {
-        font: inherit;
-        color: inherit;
-        cursor: pointer;
-      }
-      svg.i {
-        width: 16px;
-        height: 16px;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 1.6;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        flex: none;
-      }
-      svg.i.fill {
-        fill: currentColor;
-        stroke: none;
-      }
-      .hdr {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        height: var(--header-h);
-        display: flex;
-        align-items: center;
-        gap: var(--s-1);
-        padding: 0 calc(var(--gutter) - 4px);
-        background: var(--surface-1);
-        border-bottom: var(--border);
-      }
-      .home {
-        display: inline-grid;
-        place-items: center;
-        width: var(--hit);
-        height: var(--hit);
-        color: var(--text-2);
-        border: 0;
-        background: none;
-        padding: 0;
-      }
-      .switcher {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--s-1);
-        min-width: 0;
-        height: var(--control-h);
-        padding: 0 var(--s-2);
-        border: 0;
-        border-radius: var(--r-2);
-        background: none;
-        font-size: var(--fs-3);
-        font-weight: var(--w-2);
-      }
-      .switcher span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .switcher .i {
-        width: 12px;
-        height: 12px;
-        color: var(--text-3);
-      }
-      .vsep {
-        width: 1px;
-        height: 16px;
-        background: var(--line);
-        flex: none;
-        margin: 0 var(--s-1);
-      }
-      .spacer {
-        flex: 1;
-        min-width: 0;
-      }
-      .tc {
-        font-size: var(--fs-5);
-        line-height: var(--lh-5);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-        padding: 0 var(--s-2);
-      }
-      .tc i {
-        font-style: normal;
-        color: var(--text-3);
-      }
-      .tc .ff {
-        color: var(--text-2);
-      }
-      .icon-btn {
-        display: inline-grid;
-        place-items: center;
-        width: var(--hit);
-        height: var(--hit);
-        border: 0;
-        background: none;
-        color: var(--text-2);
-        border-radius: var(--r-2);
-        padding: 0;
-        flex: none;
-      }
-      .icon-btn[data-disabled] {
-        color: var(--text-3);
-      }
-      .icon-btn[data-pressed] {
-        color: var(--accent);
-      }
-      .cmdk {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--s-2);
-        height: var(--control-h);
-        padding: 0 var(--s-2);
-        border: var(--border);
-        border-radius: var(--r-2);
-        background: var(--surface-2);
-        color: var(--text-3);
-        font-size: var(--fs-2);
-      }
-      kbd {
-        font-family: var(--font);
-        font-size: var(--fs-1);
-        line-height: 14px;
-        padding: 0 4px;
-        border: 1px solid var(--line-strong);
-        border-radius: var(--r-1);
-        color: var(--text-2);
-      }
-      .pagebar {
-        display: flex;
-        align-items: stretch;
-        align-self: stretch;
-      }
-      .pagebar a {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 0 var(--s-3);
-        color: var(--text-2);
-        text-decoration: none;
-        font-size: var(--fs-2);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-      }
-      .pagebar a svg {
-        display: none;
-      }
-      .pagebar a[data-active] {
-        color: var(--text-1);
-      }
-      .pagebar a[data-active]::after {
-        content: '';
-        position: absolute;
-        left: var(--s-3);
-        right: var(--s-3);
-        bottom: -1px;
-        height: 2px;
-        background: var(--accent);
-      }
-      .panel {
-        background: var(--surface-1);
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-      }
-      .phead {
-        height: var(--panel-head-h);
-        flex: none;
-        display: flex;
-        align-items: center;
-        gap: var(--s-2);
-        padding: 0 var(--gutter);
-        border-bottom: var(--border);
-      }
-      .phead h2 {
-        margin: 0;
-        font-size: var(--fs-2);
-        line-height: var(--lh-2);
-        font-weight: var(--w-2);
-        letter-spacing: var(--track-caps);
-        text-transform: uppercase;
-        color: var(--text-2);
-        white-space: nowrap;
-      }
-      .phead .meta {
-        font-size: var(--fs-2);
-        color: var(--text-3);
-        white-space: nowrap;
-      }
-      .phead .icon-btn {
-        width: var(--control-h);
-        height: var(--control-h);
-      }
-      .tab {
-        position: relative;
-        align-self: stretch;
-        display: flex;
-        align-items: center;
-        padding: 0 var(--s-2);
-        border: 0;
-        background: none;
-        color: var(--text-2);
-        font-size: var(--fs-2);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-      }
-      .tab[data-active] {
-        color: var(--text-1);
-      }
-      .tab[data-active]::after {
-        content: '';
-        position: absolute;
-        left: var(--s-2);
-        right: var(--s-2);
-        bottom: -1px;
-        height: 2px;
-        background: var(--accent);
-      }
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--s-2);
-        height: var(--control-h);
-        padding: 0 var(--s-3);
-        border: 1px solid var(--line-strong);
-        border-radius: var(--r-2);
-        background: none;
-        color: var(--text-1);
-        font-size: var(--fs-3);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-      }
-      .btn.primary {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: var(--accent-ink);
-      }
-      .btn[data-disabled] {
-        background: var(--surface-2);
-        border-color: var(--line);
-        color: var(--text-3);
-      }
-      .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        height: 16px;
-        padding: 0 var(--s-1);
-        border: 1px solid currentColor;
-        border-radius: var(--r-1);
-        font-size: var(--fs-1);
-        line-height: var(--lh-1);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-      }
-      .chip[data-state='stale'] {
-        color: var(--state-stale);
-      }
-      .chip[data-state='approved'] {
-        color: var(--state-approved);
-      }
-      .chip[data-state='findings'] {
-        color: var(--state-findings);
-      }
-      .chip[data-state='warning'] {
-        color: var(--state-warning);
-      }
-      .chip[data-state='note'] {
-        color: var(--state-note);
-      }
-      .chip[data-state='rendered'] {
-        color: var(--state-rendered);
-      }
-      .chip[data-state='scratch'] {
-        color: var(--state-scratch);
-      }
-      .chip[data-state='recording'] {
-        color: var(--state-recording);
-      }
-      .dot {
-        display: inline-block;
-        width: 6px;
-        height: 6px;
-        border-radius: var(--r-dot);
-        background: currentColor;
-        flex: none;
-      }
-      @media (max-width: 899px) {
-        .lap {
-          display: none !important;
-        }
-        body {
-          padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
-        }
-        .pagebar {
-          position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          z-index: 30;
-          height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
-          padding-bottom: env(safe-area-inset-bottom);
-          background: var(--surface-2);
-          border-top: var(--border);
-        }
-        .pagebar a {
-          flex: 1;
-          flex-direction: column;
-          justify-content: center;
-          gap: 3px;
-          padding: 0;
-          font-size: var(--fs-1);
-          line-height: var(--lh-1);
-        }
-        .pagebar a svg {
-          display: block;
-          width: 20px;
-          height: 20px;
-        }
-        .pagebar a[data-active] svg {
-          color: var(--accent);
-        }
-        .pagebar a[data-active]::after {
-          display: none;
-        }
-        .pagebar a.films {
-          display: none;
-        }
-      }
-      @media (min-width: 900px) {
-        .ph {
-          display: none !important;
-        }
-      }
-
-      /* ── Kit: transport, tape bar, fields, toast ───────────────────── */
-      .transport {
-        display: flex;
-        align-items: center;
-        gap: var(--s-1);
-        height: calc(var(--control-h) + 12px);
-        padding: 0 calc(var(--gutter) - 4px);
-        background: var(--surface-1);
-      }
-      .transport .play {
-        width: var(--hit);
-        height: var(--hit);
-        display: inline-grid;
-        place-items: center;
-        border: 0;
-        border-radius: var(--r-2);
-        background: none;
-        color: var(--text-1);
-      }
-      .transport .play svg {
-        width: 18px;
-        height: 18px;
-      }
-      .transport .say {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        color: var(--text-2);
-        font-size: var(--fs-2);
-      }
-      .transport .say b {
-        color: var(--text-1);
-        font-weight: var(--w-2);
-      }
-      .ratechip {
-        height: 24px;
-        padding: 0 var(--s-2);
-        border: 1px solid var(--line-strong);
-        border-radius: var(--r-2);
-        background: none;
-        color: var(--text-2);
-        font-size: var(--fs-2);
-      }
-      .tc-s {
-        font-size: var(--fs-3);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-        padding: 0 var(--s-1);
-      }
-      .tc-s i {
-        font-style: normal;
-        color: var(--text-3);
-      }
-      .bands {
-        position: relative;
-        height: 18px;
-        background: var(--surface-2);
-        border-radius: var(--r-1);
-        overflow: hidden;
-      }
-      .bands .seg {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        border-right: 1px solid var(--surface-0);
-      }
-      .bands .seg b {
-        position: absolute;
-        left: 3px;
-        top: 1px;
-        font-size: var(--fs-1);
-        line-height: var(--lh-1);
-        font-weight: var(--w-1);
-        color: var(--text-1);
-        opacity: 0.85;
-        white-space: nowrap;
-        overflow: hidden;
-        max-width: calc(100% - 4px);
-      }
-      .bands .seg[data-current] {
-        box-shadow: inset 0 0 0 1px var(--text-1);
-      }
-      .bands .f {
-        position: absolute;
-        top: 3px;
-        right: 3px;
-        width: 5px;
-        height: 5px;
-        border-radius: var(--r-dot);
-        background: var(--state-findings);
-      }
-      .bands .tick {
-        position: absolute;
-        bottom: 0;
-        height: 3px;
-        background: var(--accent);
-      }
-      .bands .head {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: var(--accent);
-      }
-      .field {
-        display: grid;
-        grid-template-columns: 64px minmax(0, 1fr) 28px;
-        align-items: center;
-        gap: var(--s-2);
-        min-height: var(--row-h);
-      }
-      .field label {
-        font-size: var(--fs-2);
-        color: var(--text-2);
-        cursor: ew-resize;
-        user-select: none;
-      }
-      .field label[data-scrubbing] {
-        color: var(--accent);
-      }
-      .field .in {
-        display: flex;
-        gap: var(--s-1);
-      }
-      .field input {
-        width: 100%;
-        min-width: 0;
-        height: var(--control-h);
-        padding: 0 var(--s-2);
-        background: var(--surface-2);
-        color: var(--text-1);
-        border: 1px solid var(--line-strong);
-        border-radius: var(--r-1);
-        font: inherit;
-        font-size: var(--body-fs);
-        text-align: right;
-      }
-      .field input[data-focused] {
-        box-shadow: var(--focus-ring);
-        border-color: transparent;
-      }
-      .field .unit {
-        font-size: var(--fs-1);
-        color: var(--text-3);
-      }
-      .seg-ctl {
-        display: inline-flex;
-        border: 1px solid var(--line);
-        border-radius: var(--r-2);
-        overflow: hidden;
-      }
-      .seg-ctl button {
-        border: 0;
-        background: none;
-        color: var(--text-2);
-        font-size: var(--fs-2);
-        font-weight: var(--w-2);
-        min-width: var(--hit);
-        min-height: var(--hit);
-        padding: 0 var(--s-2);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--s-1);
-      }
-      .seg-ctl button + button {
-        border-left: 1px solid var(--line);
-      }
-      .seg-ctl button[data-pressed] {
-        background: var(--surface-3);
-        color: var(--text-1);
-      }
-      .toast {
-        position: fixed;
-        z-index: 40;
-        display: flex;
-        align-items: center;
-        gap: var(--s-3);
-        padding: var(--s-2) var(--s-2) var(--s-2) var(--s-3);
-        background: var(--surface-2);
-        border: 1px solid var(--line-strong);
-        border-radius: var(--r-2);
-        box-shadow: var(--shadow-pop);
-        font-size: var(--fs-3);
-      }
-      .toast .to {
-        color: var(--text-2);
-      }
-      .toast .btn {
-        height: 24px;
-        padding: 0 var(--s-2);
-        font-size: var(--fs-2);
-      }
-
-      /* ── Page: Lab, Edit mode ─────────────────────────────────────── */
+      /* ── Page: Lab (the viewer, transport, dock and tray, as in Edit) ── */
       .work {
         display: grid;
         gap: 1px;
@@ -681,26 +40,6 @@
         width: 100%;
         height: 100%;
         object-fit: contain;
-      }
-      .handle {
-        position: absolute;
-        width: 34px;
-        height: 34px;
-        margin: -17px 0 0 -17px;
-        border: 2px solid var(--accent);
-        border-radius: var(--r-dot);
-        background: var(--accent-wash);
-      }
-      .handle::after {
-        content: 'face';
-        position: absolute;
-        left: 38px;
-        top: 7px;
-        font-size: var(--fs-1);
-        color: var(--accent);
-        background: rgb(14 13 12 / 0.7);
-        padding: 0 4px;
-        border-radius: var(--r-1);
       }
       .dock {
         background: var(--surface-1);
@@ -740,6 +79,10 @@
       .cues {
         position: relative;
         background: var(--surface-2);
+      }
+      /* The cue lanes are Edit's (and Motion's on a laptop): Note folds the strip to its words at both widths. */
+      .strip .cues {
+        display: none;
       }
       .cue-row {
         position: relative;
@@ -803,16 +146,6 @@
         letter-spacing: 0;
         font-weight: var(--w-2);
       }
-      .ease button {
-        padding: 0 5px;
-      }
-      .ease svg {
-        width: 22px;
-        height: 14px;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 1.4;
-      }
       .foot {
         margin-top: auto;
         padding: var(--s-2) var(--gutter);
@@ -838,7 +171,7 @@
       }
       @media (min-width: 900px) {
         .work {
-          grid-template-columns: minmax(0, 1fr) 320px;
+          grid-template-columns: minmax(0, 1fr) var(--inspector-w);
           height: calc(100dvh - var(--header-h));
         }
         .main {
@@ -859,16 +192,8 @@
         .insp {
           overflow: auto;
         }
-        .toast {
-          position: absolute;
-          left: 16px;
-          bottom: 16px;
-        }
       }
       @media (max-width: 899px) {
-        .main {
-          padding-bottom: 150px;
-        }
         .bottom {
           position: fixed;
           left: 0;
@@ -876,48 +201,23 @@
           bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
           z-index: 25;
         }
-        .peek {
-          background: var(--surface-1);
-          border-top: 1px solid var(--line-strong);
-          border-radius: var(--r-sheet) var(--r-sheet) 0 0;
-          box-shadow: var(--shadow-pop);
-          padding: 6px var(--gutter) var(--s-2);
-        }
-        .peek .grab {
-          width: 36px;
-          height: 4px;
-          border-radius: 2px;
-          background: var(--line-strong);
-          margin: 0 auto 6px;
-        }
-        .peek .line {
-          display: flex;
-          align-items: center;
-          gap: var(--s-2);
-          font-size: var(--fs-3);
-        }
         .bottom .transport {
           border-top: var(--border);
         }
-
         .strip .scroll {
           max-height: 200px;
         }
-        .toast {
-          position: static;
-          margin: 0 var(--gutter) var(--s-2);
-          justify-content: space-between;
+        /* The panel scrolls clear of the transport docked over the tab bar. */
+        .insp {
+          padding-bottom: var(--dock-h);
         }
       }
+
       /* ── Note mode (the panel's section on both widths) ───────────── */
       .acts {
         display: flex;
         flex-wrap: wrap;
         gap: var(--s-2);
-      }
-      .btn[data-pressed] {
-        background: var(--surface-3);
-        border-color: var(--accent);
       }
       .compose {
         display: grid;
@@ -940,7 +240,7 @@
       }
       .scope .x {
         width: var(--hit);
-        height: var(--control-h);
+        height: var(--hit);
         border: 0;
         background: none;
         color: var(--text-2);
@@ -971,14 +271,6 @@
         margin: -14px 0 0 -14px;
         border: 2px solid var(--accent);
         border-radius: var(--r-dot);
-      }
-      @media (max-width: 899px) {
-        .insp {
-          padding-bottom: calc(var(--control-h) + 12px);
-        }
-        .main {
-          padding-bottom: 0;
-        }
       }
     </style>
   </head>
@@ -1018,7 +310,6 @@
         <circle cx="19" cy="12" r="1.6" />
       </symbol>
       <symbol id="i-chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" /></symbol>
-      <symbol id="i-chevup" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5" /></symbol>
       <symbol id="i-undo" viewBox="0 0 24 24">
         <path d="M9 6l-5 5 5 5" />
         <path d="M4 11h10a6 6 0 0 1 6 6v1" />
@@ -1034,12 +325,6 @@
       <symbol id="i-fwd" viewBox="0 0 24 24">
         <path d="M18 5v14" />
         <path d="M6 5.5l9 6.5-9 6.5z" />
-      </symbol>
-      <symbol id="i-loop" viewBox="0 0 24 24">
-        <path d="M17 3l3 3-3 3" />
-        <path d="M4 12V10a4 4 0 0 1 4-4h12" />
-        <path d="M7 21l-3-3 3-3" />
-        <path d="M20 12v2a4 4 0 0 1-4 4H4" />
       </symbol>
     </svg>
 
@@ -1067,7 +352,7 @@
         <a href="project.html"
           ><svg class="i"><use href="#i-project" /></svg>Project</a
         >
-        <a href="#"
+        <a href="play.html"
           ><svg class="i"><use href="#i-play" /></svg>Play</a
         >
       </nav>
@@ -1113,15 +398,11 @@
           <button class="icon-btn" aria-label="Next frame">
             <svg class="i"><use href="#i-fwd" /></svg>
           </button>
-          <span class="tc-s">09<i>:</i>15 <i>/ 25:06</i></span>
+          <span class="tc-s">00<i>:</i>00<i>:</i>09<i>:</i>15 <i>/ 00:00:25:06</i></span>
           <span class="say"
             ><b>cold</b> · Imagine standing in a courtroom. The evidence is overwhelming. You did
             it. And the judge looks at you and says, righteous.</span
           >
-          <button class="ratechip">1×</button>
-          <button class="icon-btn" aria-label="Loop">
-            <svg class="i"><use href="#i-loop" /></svg>
-          </button>
         </div>
         <div class="dock">
           <div class="bands" id="bands"></div>
@@ -1160,8 +441,8 @@
         <div class="sect">
           <h3>Notes <b>cold</b></h3>
           <p class="empty">
-            No notes yet: click the frame to pin a point, drag to draw a box, or press
-            <kbd>N</kbd> to note the whole frame.
+            No notes yet: tap or click the frame to pin a point, drag for a box, or Note frame
+            (<kbd>N</kbd>) for the whole frame.
           </p>
         </div>
         <div class="foot">
@@ -1184,11 +465,7 @@
           <svg class="i"><use href="#i-fwd" /></svg>
         </button>
         <span class="tc-s">00<i>:</i>00<i>:</i>09<i>:</i>15</span>
-        <span class="spacer"></span>
-        <button class="ratechip">1×</button>
-        <button class="icon-btn" aria-label="Loop">
-          <svg class="i"><use href="#i-loop" /></svg>
-        </button>
+        <span class="say">cold</span>
       </div>
     </div>
 
@@ -1218,6 +495,7 @@
         ['thesis', 465.89, 30],
         ['end', 495.9, 30],
       ];
+      // Each scene's warnings (the check's findings on this film are warnings).
       const FIND = {
         word: 3,
         mirror: 1,
@@ -1245,7 +523,7 @@
         'beforeend',
         `<div class="head" style="left:${(T / DUR) * 100}%"></div>`,
       );
-      // cold's cues (look-book cue edges) and its narration words.
+      // cold's cues (the times each plays in the scene) and its narration words.
       const CUES = [
         ['drop', 2.73, 4.13],
         ['bow', 4.83, 5.17],

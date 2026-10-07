@@ -9,35 +9,16 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;650&display=swap"
     />
+    <link rel="stylesheet" href="../packages/film/src/player/tokens.css" />
     <style>
       /* Every mock at 390 × 844 and 1440 × 900, live in frames scaled to fit; the language itself is design-language.md. */
-      :root {
-        color-scheme: dark;
-        --surface-0: #0e0d0c;
-        --surface-1: #161513;
-        --surface-2: #1e1c1a;
-        --line: #2f2c29;
-        --text-1: #e4dfd6;
-        --text-2: #a19b91;
-        --text-3: #6b665f;
-        --accent: #e0ad45;
-        --font: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        --s-1: 4px;
-        --s-2: 8px;
-        --s-3: 12px;
-        --s-4: 16px;
-        --s-6: 24px;
-        --s-8: 32px;
-      }
       * {
         box-sizing: border-box;
       }
       body {
         margin: 0;
-        background: var(--surface-0);
-        color: var(--text-1);
-        font: 12px/18px var(--font);
-        font-feature-settings: 'calt' 0;
+        font-size: var(--fs-3);
+        line-height: var(--lh-3);
         overflow-x: hidden;
       }
       header {
@@ -50,18 +31,19 @@
         gap: var(--s-1) var(--s-3);
         padding: var(--s-2) var(--s-4);
         background: var(--surface-1);
-        border-bottom: 1px solid var(--line);
+        border-bottom: var(--border);
       }
       header h1 {
         margin: 0;
-        font-size: 13px;
-        font-weight: 650;
+        font-size: var(--fs-4);
+        line-height: var(--lh-4);
+        font-weight: var(--w-3);
       }
       header nav {
         display: flex;
         flex-wrap: wrap;
         gap: var(--s-1) var(--s-3);
-        font-size: 11px;
+        font-size: var(--fs-2);
       }
       a {
         color: var(--text-2);
@@ -80,9 +62,9 @@
         align-items: baseline;
         gap: var(--s-3);
         margin: 0 0 var(--s-1);
-        font-size: 11px;
-        font-weight: 500;
-        letter-spacing: 0.06em;
+        font-size: var(--fs-2);
+        font-weight: var(--w-2);
+        letter-spacing: var(--track-caps);
         text-transform: uppercase;
         color: var(--text-2);
       }
@@ -113,14 +95,14 @@
       }
       figcaption {
         margin-top: var(--s-1);
-        font-size: 10px;
+        font-size: var(--fs-1);
         color: var(--text-3);
       }
       .frame {
         position: relative;
         width: 100%;
         overflow: hidden;
-        border: 1px solid var(--line);
+        border: var(--border);
         background: var(--surface-1);
       }
       .frame iframe {
@@ -159,17 +141,17 @@
         [
           'lab-motion',
           'Lab · Motion',
-          'Onion pressed with its number fields; the rate and loop chips.',
+          'Onion pressed with its number fields; the rate chip and Loop… pressed; the onion on the picture.',
         ],
         [
           'lab-compare',
           'Lab · Compare',
-          'off · wipe · blink · diff as one segmented control; the wipe on the picture.',
+          'With the last commit: off · wipe · blink · diff as one segmented control; the wipe on the picture.',
         ],
         [
           'lab-record',
           'Lab · Record',
-          'Beats as small toggles, the prompter, the mic field, Record in the recording colour.',
+          'Beats as small toggles with their state dots; Record edged in the recording colour; the prompter; Attempts.',
         ],
         ['choices', 'Choices', 'Kinds as tabs; variants as rows with their verbs.'],
         ['project', 'Project', 'Acts as panels of scene cards; the film state band.'],

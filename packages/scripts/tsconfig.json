@@ -1,8 +1,12 @@
 {
   "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  },
   "include": [
     "src/checkpoint.ts",
     "src/ci-verdict.ts",
+    "src/fetch-stills.ts",
     "src/test-gent.ts",
     "src/ci-verdict/**/*.ts",
     "src/checkpoint/**/*.ts",
