@@ -532,6 +532,27 @@ describe('the player', () => {
       }).pipe(Effect.scoped, Effect.runPromise),
   );
 
+  it.live(
+    "Play's HUD on a laptop: once faded, any key brings the controls back, one the keymap binds or not",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: DESK },
+          BAR_READY,
+        );
+        yield* page.clock.hold;
+        yield* page.press('Space');
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        yield* page.clock.runFor(HUD_IDLE_MS + 200);
+        yield* evaluates(page, controls(false), true);
+        // Q is bound to nothing: still the viewer's hand on the keyboard.
+        yield* page.press('q');
+        yield* evaluates(page, controls(true), true);
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
   // Serial: while two fingers are down on one tab, Chrome drops the touches the file's other
   // cases send their own tabs at the same time (a tick's held name never shows).
   test.serial(

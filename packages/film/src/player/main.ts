@@ -568,9 +568,10 @@ export const mountPreview = (
   /**
    * The bar on Play, in `part` (the shell's Play part, the whole window):
    * the HUD hears the viewer there, the page's own elements, and the keys
-   * through the page's keymap, until the returned stop. A pointer moved or
-   * pressed shows it, but a finger on the picture, whose tap toggles it; so
-   * does any command the page runs (a key, a menu, ⌘K), and the keyboard's
+   * through the page's one key listener, until the returned stop. A pointer
+   * moved or pressed shows it, but a finger on the picture, whose tap toggles
+   * it; so does any key pressed (bound or not, `Hub.presses`), any command
+   * the page runs (a menu's, ⌘K's), and the keyboard's
    * focus landing on a control (Tab onto a faded one). The focus leaving a
    * control restarts a shown HUD's wait and never shows it: a tap moves the
    * focus before its click, and its meaning never depends on where the
@@ -593,11 +594,13 @@ export const mountPreview = (
       options,
     );
     part.addEventListener('focusout', () => hud.focusLeft(), options);
+    const unpressed = hub.presses(() => hud.wake());
     const unheard = hub.receipts(() => hud.wake());
     playPage = Option.some(part);
     draw();
     return () => {
       listening.abort();
+      unpressed();
       unheard();
       playPage = Option.none();
       hud.playing(false);
