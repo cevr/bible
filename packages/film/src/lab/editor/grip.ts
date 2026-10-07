@@ -547,7 +547,8 @@ const writeSaid = (w: CueWrite | KnobWrite): string =>
 /**
  * What the receipt says once `write` has landed as `result`: what it moved,
  * before → after, when the page knew (else what the lab wrote), or what an
- * Undo or Redo walked.
+ * Undo or Redo walked. A write that changed nothing (no `change`) says the
+ * value was already so; the lab's own words already do.
  */
 export const wroteNote = (write: Write, result: LabWrite): string =>
   Match.value(write).pipe(
@@ -560,9 +561,16 @@ export const wroteNote = (write: Write, result: LabWrite): string =>
         onNone: () => '',
         onSome: (why) => ` (not resolved: ${why})`,
       });
-      const said = Option.getOrElse(
+      const already = Option.match(Option.fromUndefinedOr(result.change), {
+        onNone: () => ' (already so)',
+        onSome: () => '',
+      });
+      const said = Option.match(
         Option.filter(Option.some(writeSaid(w)), (s) => s !== ''),
-        () => `wrote ${result.file}: ${result.target}`,
+        {
+          onNone: () => `wrote ${result.file}: ${result.target}`,
+          onSome: (s) => `${s}${already}`,
+        },
       );
       return `${said}${unresolved}`;
     }),

@@ -10,7 +10,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import type { SceneEdit } from '../../canvas/film.ts';
-import { RequestId, type ResolvedCue, type SceneSource } from '../../core/schema.ts';
+import { ChangeId, RequestId, type ResolvedCue, type SceneSource } from '../../core/schema.ts';
 import { dragFields, dragPatch } from '../../core/timeline.ts';
 import {
   type CueGrip,
@@ -436,6 +436,19 @@ describe('wroteNote', () => {
     expect(wroteNote(write, { ...result, unresolved: 'no layout' })).toBe(
       'wrote scenes/one.ts: cue rise offset (not resolved: no layout)',
     );
+  });
+  test('a write that changed nothing says the value was already so, not that it moved', () => {
+    // Two nudges that cancel, joined while a write was out.
+    const write = {
+      _tag: 'CueWrite' as const,
+      scene: 'one',
+      cue: 'rise',
+      patch: { offset: 0.433 },
+      said: { offset: { before: '0.433', after: '0.433', unit: 's' } },
+    };
+    const changed = { ...result, change: ChangeId.make('c1') };
+    expect(wroteNote(write, changed)).toBe('cue rise offset 0.433 → 0.433 s');
+    expect(wroteNote(write, result)).toBe('cue rise offset 0.433 → 0.433 s (already so)');
   });
   test('an undo or redo names what it put back', () => {
     const undo = {

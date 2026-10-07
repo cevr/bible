@@ -1148,8 +1148,8 @@ Undo and Redo through `stepWhyNot`) and sends the change's id with the step
 else refuses (`StepNotNewest`, 409). A command with no `fits` acts on no
 single change, so a bound receipt never runs it. There is no unbound Undo
 (`said` takes an `Undoing`, the command with its change): a write that
-made no change (a value already so, whose answer names no change) offers
-none, since a step that names no change steps whatever is newest, an
+made no change (a value already so, whose answer names no change) says so
+(`cue rise offset 0.433 → 0.433 s (already so)`) and offers none, since a step that names no change steps whatever is newest, an
 earlier write's or another film's. A done receipt
 shows 5 s, a refusal 10 s, a busy one until replaced. The lab reloads after
 a scene write; the receipts showing as the page hides are kept in the tab
