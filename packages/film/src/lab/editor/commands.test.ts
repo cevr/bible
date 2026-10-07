@@ -131,4 +131,10 @@ describe('notTaken', () => {
       ),
     ).toEqual(Option.none());
   });
+
+  test('a press is not taken while a write is out, and says when to drag', () => {
+    expect(notTaken(writing, 'press')).toEqual(
+      Option.some('a write is still out; drag once it lands'),
+    );
+  });
 });

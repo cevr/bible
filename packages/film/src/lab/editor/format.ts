@@ -112,17 +112,28 @@ const DOING = { undo: 'undoing', redo: 'redoing' } as const;
 /** Why a grip held takes no write. */
 const HELD = 'a cue or a handle is held; let it go first';
 
+/** What the machine may be asked: a commit, a press on a cue or a handle, or an Undo or Redo. */
+type Asked = 'commit' | 'press' | StepVerb;
+
+/** Each ask as a receipt says when to try it again. */
+const AGAIN: Readonly<Record<Asked, string>> = {
+  commit: 'commit',
+  press: 'drag',
+  undo: 'undo',
+  redo: 'redo',
+};
+
 /**
- * Why the machine in `state` does not take what is `asked` (a commit, or an
- * Undo or Redo), in a receipt's words; none when it does. A grip held takes
- * neither; a write out takes a commit (it waits, shown) but no step.
+ * Why the machine in `state` does not take what is `asked`, in a receipt's
+ * words; none when it does. A grip held takes none; a write out takes a
+ * commit (it waits, shown) but no press and no step.
  */
-export const notTaken = (state: EditState, asked: 'commit' | StepVerb): Option.Option<string> =>
+export const notTaken = (state: EditState, asked: Asked): Option.Option<string> =>
   Match.value(state).pipe(
     Match.tag('Pressed', 'Dragging', () => Option.some(HELD)),
     Match.tag('Writing', 'Checking', () =>
       Option.filter(
-        Option.some(`a write is still out; ${asked} once it lands`),
+        Option.some(`a write is still out; ${AGAIN[asked]} once it lands`),
         () => asked !== 'commit',
       ),
     ),

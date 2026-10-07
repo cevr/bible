@@ -219,9 +219,20 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     if (grabbed) following = Option.some(drag);
   };
 
+  /** Whether the machine takes a press now; when it does not (a write out), the editor's slot says why. */
+  const pressTaken = (): boolean =>
+    Option.match(notTaken(edit(), 'press'), {
+      onSome: (why) => {
+        meta.hub.announce(refused(`not moved: ${why}`), EDIT_SLOT);
+        return false;
+      },
+      onNone: () => true,
+    });
+
   /** The cue `p` presses, selected and grabbed: whether a grip was grabbed. */
   const grabCue = (p: Press): boolean => {
     labActions.select(Option.some(cueOf(p.scene, p.cue)));
+    if (!pressTaken()) return false;
     const timeline = stage.timelineOf(p.scene);
     const fields = Option.match(Option.fromUndefinedOr(timeline[p.cue]), {
       onNone: () => [],
@@ -265,6 +276,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   /** The knob handle `p` presses, selected and grabbed: whether it was grabbed. */
   const grabKnobOf = (p: KnobPress): boolean => {
     labActions.select(Option.some(knobOf(p.scene, p.knob)));
+    if (!pressTaken()) return false;
     const refused = knobRefusal(stripSource(), p.knob);
     if (Option.isSome(refused)) {
       send(EditEvent.Refuse({ message: refused.value }));

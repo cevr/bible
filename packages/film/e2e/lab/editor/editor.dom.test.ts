@@ -680,7 +680,7 @@ describe('one write at a time', () => {
         }).pipe(Effect.scoped),
     );
 
-  it.live('a drag while a write is out is not taken', () =>
+  it.live('a drag while a write is out is not taken, and says why', () =>
     Effect.gen(function* () {
       const { page, asked, errors } = yield* openLab(
         [route('POST', /^\/scenes\/\w+\/cues\//, () => hold)],
@@ -692,8 +692,15 @@ describe('one write at a time', () => {
       yield* dragBar(page, 'rise', 0.5, 60);
       yield* postedReach(asked, 1);
       yield* statusSays(page, 'writing…');
+      // At 1440×900 the receipt lies over the strip's last lane: put it away first.
+      yield* page.click('[data-receipt="edit"] .lab-receipt-close');
+      yield* countIs(page, '[data-receipt="edit"]', 0);
+      const fall = yield* page.box('.lab-cue[data-cue="fall"]');
       yield* dragBar(page, 'fall', 0.5, 40);
       yield* runClock(page, 200);
+      yield* statusSays(page, 'not moved: a write is still out; drag once it lands');
+      // The press is not followed: the bar stays where it was.
+      expect(Math.round((yield* page.box('.lab-cue[data-cue="fall"]')).x)).toBe(Math.round(fall.x));
       expect(posted(asked).map((p) => p.path)).toEqual(['/scenes/one/cues/rise']);
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
