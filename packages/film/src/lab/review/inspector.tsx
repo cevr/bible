@@ -34,6 +34,7 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
+import { type Host, addressOn } from '../../browser/host.ts';
 import type { Viewport } from '../../browser/viewport.ts';
 import type { Hub } from '../../command/hub.ts';
 import type { Selection } from '../../command/selection.ts';
@@ -206,24 +207,34 @@ interface InspectorQuery<A> {
   readonly cleared: (value: A) => A;
 }
 
+/** A sheet's dismissal (`useSheetDismissal`): told of each opening, it closes the sheet by one rule. */
+interface SheetDismissal {
+  /** A tap is about to name `thing` while the sheet is shut: its step is the opening's. */
+  readonly opening: (thing: string) => void;
+  /**
+   * Close the sheet: Back over the entry the opening's tap pushed when that
+   * entry is on screen; else the URL follows to `cleared()`, when it names
+   * one (none: the URL names no sheet, and nothing is written).
+   */
+  readonly dismiss: (cleared: () => Option.Option<string>) => void;
+}
+
 /**
- * Keep the open inspector in the calling page's URL (`InspectorQuery`) for as
- * long as the page lives: a tap names the thing, a step of its own, so Back
- * closes it; a link, Back and Forward open what they name. Dismissing it
- * (Close, Escape, a swipe) adds no entry: the entry a tap here pushed to open
- * it is gone Back over, so a Back after the Close leaves the page's entry
- * before it, not the sheet again; any other (a link's, a reload's, one a
- * Forward landed on after a Close) is replaced by one naming none.
+ * The one rule a sheet a URL keeps open is dismissed by (Close, Escape, a
+ * swipe), for every inspector (`useInspectorPlace`) and Scenes' scene sheet:
+ * a tap that opens it on a shut sheet is a step of its own, and dismissing
+ * it adds none. The entry that tap pushed is gone Back over, so a Back after
+ * the Close leaves the entry before it, not the sheet again; any other entry
+ * (a link's, a reload's, a tap's on a sheet already open, one a Forward
+ * landed on after a Close) is rewritten to name none (`addressOn(host).follow`).
+ * `names` says whether an href names `thing`'s sheet open.
  */
-export const useInspectorPlace = <A,>(query: InspectorQuery<A>): void => {
-  const inspecting = useInspecting();
-  const { meta } = useReview();
-  const at = useAtomValue(() => UrlAtom.place(query.place));
+const useSheetDismissal = (
+  host: Host,
+  names: (href: string, thing: string) => boolean,
+): SheetDismissal => {
   const entry = useAtomValue(() => UrlAtom.entry);
-  // Read once, as the entry lands: what the page holds then (its choices, its variant) names it.
-  const namesOpen = (value: A, key: string) =>
-    untrack(() => Option.exists(query.named(value), (s) => targetAttr(s) === key));
-  // The thing a tap named on a closed sheet and the entry it was named on, until the next
+  // The thing a tap named on a shut sheet and the entry it was named on, until the next
   // entry lands; then, when that entry is a new one naming it, the entry's key. A new entry is
   // known by its key, not by how the entry on screen last arrived: the push may be replaced
   // in the same tick (the player keeping its time), and a replace keeps the key.
@@ -232,45 +243,55 @@ export const useInspectorPlace = <A,>(query: InspectorQuery<A>): void => {
   createEffect(entry, (e) => {
     const pushed =
       e.navigation !== 'traverse' &&
-      Option.exists(opening, (o) => o.from !== e.key) &&
-      Option.exists(Place.decode(query.place, e.href), (v) =>
-        Option.exists(opening, (o) => namesOpen(v, o.thing)),
-      );
+      Option.exists(opening, (o) => o.from !== e.key && untrack(() => names(e.href, o.thing)));
     if (pushed) openedBy = Option.some(e.key);
     opening = Option.none();
   });
-  const name = (selection: Selection) =>
-    Effect.runSyncWith(meta.host)(
-      Effect.gen(function* () {
-        const here = yield* (yield* Location).current;
-        const now = yield* UrlState.get(query.place);
-        for (const value of Option.toArray(now)) {
-          for (const next of Option.toArray(query.naming(value, selection))) {
-            if (Option.isNone(query.named(value)))
-              opening = Option.some({ thing: targetAttr(selection), from: here.key });
-            yield* UrlState.set(query.place, next);
-          }
-        }
-      }),
-    );
+  const here = () => Effect.runSyncWith(host)(Location.use((bar) => bar.current));
+  return {
+    opening: (thing) => {
+      opening = Option.some({ thing, from: here().key });
+    },
+    dismiss: (cleared) => {
+      const ours = Option.contains(openedBy, here().key);
+      openedBy = Option.none();
+      if (ours) return Effect.runSyncWith(host)(Location.use((bar) => bar.back));
+      Option.map(cleared(), addressOn(host).follow);
+    },
+  };
+};
+
+/**
+ * Keep the open inspector in the calling page's URL (`InspectorQuery`) for as
+ * long as the page lives: a tap names the thing, a step of its own, so Back
+ * closes it; a link, Back and Forward open what they name. Dismissing it
+ * (Close, Escape, a swipe) adds no entry (`useSheetDismissal`).
+ */
+export const useInspectorPlace = <A,>(query: InspectorQuery<A>): void => {
+  const inspecting = useInspecting();
+  const { meta } = useReview();
+  const at = useAtomValue(() => UrlAtom.place(query.place));
+  // Read as the entry lands: what the page holds then (its choices, its variant) names it.
+  const dismissal = useSheetDismissal(meta.host, (href, thing) =>
+    Option.exists(Place.decode(query.place, href), (v) =>
+      Option.exists(query.named(v), (s) => targetAttr(s) === thing),
+    ),
+  );
+  const now = () => Effect.runSyncWith(meta.host)(UrlState.get(query.place));
+  const name = (selection: Selection) => {
+    for (const value of Option.toArray(now())) {
+      for (const next of Option.toArray(query.naming(value, selection))) {
+        if (Option.isNone(query.named(value))) dismissal.opening(targetAttr(selection));
+        Effect.runSyncWith(meta.host)(UrlState.set(query.place, next));
+      }
+    }
+  };
   const dismiss = () =>
-    Effect.runSyncWith(meta.host)(
-      Effect.gen(function* () {
-        const location = yield* Location;
-        const here = yield* location.current;
-        const ours = Option.contains(openedBy, here.key);
-        openedBy = Option.none();
-        if (ours) return yield* location.back;
-        const state = yield* UrlState.UrlState;
-        const named = Option.filter(yield* UrlState.get(query.place), (v) =>
-          Option.isSome(query.named(v)),
-        );
-        for (const value of Option.toArray(named))
-          yield* state.navigate(Place.href(query.place, query.cleared(value)), {
-            history: 'replace',
-            throttle: Option.none(),
-          });
-      }),
+    dismissal.dismiss(() =>
+      Option.map(
+        Option.filter(now(), (v) => Option.isSome(query.named(v))),
+        (v) => Place.href(query.place, query.cleared(v)),
+      ),
     );
   onCleanup(
     inspecting.bind({
