@@ -5,7 +5,8 @@
 // design language's "every touch target ≥ --hit through padding": 44 px on
 // the phone (`PHONE_HIT`), 28 px on the laptop (`DESK_HIT`). The area is
 // what a tap reaches (`undersizedTargets`, `fixtures/touch-targets.ts`):
-// padding and a pseudo-element hit-slop count, a covered part does not. A
+// padding and a pseudo-element hit-slop count, a covered part does not, and
+// a hit-slop lying over another control's box fails its target. A
 // failure names each target under it, with what a pointer meets. In each of
 // the same states on both devices, everything drawn is drawn in the tokens
 // (G9, DL-9: `untokened`, `fixtures/drawn-tokens.ts`), a failure naming each
@@ -14,7 +15,8 @@
 // The disclosed states are the fixture film's (`fixtures/studio-film.ts`):
 // Project's panels with their stills and its dock, a scene row's sheet, an
 // act's long-press menu, an inspector, the lab editor's Snap toggle and an
-// `until` cue's End field, the Findings sheet, the command
+// `until` cue's End field, a note begun on a selected cue (its scope and
+// the scope's ×), the Findings sheet, the command
 // menu (⌘K, its Go to…), the context menu, the keys dialog, the lab's modes
 // (Record's with its beats listed and the recorder on one),
 // comment counts on their rows, the Choices transport over a picture, a Set's
@@ -345,6 +347,15 @@ const labCue = (viewport: Viewport) =>
     return page;
   });
 
+/** The Lab's Note mode with a cue selected: a note begun there is scoped to the cue, its × beside it. */
+const labNoteOnCue = (viewport: Viewport) =>
+  Effect.gen(function* () {
+    const href = labAt(10, { selection: { _tag: 'Cue', scene: 'three', name: 'push' } });
+    const { page } = yield* openLab([], { viewport, mode: 'note', href });
+    yield* waitFor(page, '[data-act="note-frame"]');
+    return page;
+  });
+
 /**
  * A film's Lab link (`pageHref.lab`) is the Lab's place only until it opens:
  * the path names the scene under the playhead (`lab/place.ts`), so a film
@@ -463,6 +474,14 @@ const STATES: ByPlace<State> = {
     },
     { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST, budget: LAB_EDIT },
     { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(39, 43) },
+    {
+      name: 'Lab, Note with a scoped composer',
+      open: labNoteOnCue,
+      disclose: opens(
+        '[data-act="note-frame"]',
+        '[data-role="note-scope"] [data-act="clear-scope"]',
+      ),
+    },
     { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(43, 50) },
     { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(41, 48) },
     // Its budget is the resting Record's, with no beats listed.
@@ -535,13 +554,17 @@ const STATES: ByPlace<State> = {
   ],
 };
 
-/** Every shown target in `layer` (the page when none) is `device`'s size, or kept by a principle; else each one under it is named. */
+/**
+ * Every shown target in `layer` (the page when none) is `device`'s size, or
+ * kept by a principle, and its hit-slop lies over no neighbour; else each
+ * one that is not is named.
+ */
 const sized = (page: Tab, device: Device, layer?: string) => {
   const now = undersizedTargets(device.hit, layer);
   return page.until(`${now}.length === 0`, {
     now,
     say: (found) =>
-      `targets under ${device.hit} × ${device.hit} px on ${device.name} (what its pointer meets): ${found}`,
+      `targets under ${device.hit} × ${device.hit} px, or reaching over a neighbour, on ${device.name} (what its pointer meets): ${found}`,
   });
 };
 
@@ -967,6 +990,31 @@ for (const device of DEVICES) {
     );
   });
 }
+
+describe("a note's scope × on a phone", () => {
+  const SCOPE_X = '[data-role="note-scope"] [data-act="clear-scope"]';
+  const FIELD = '.lab-compose textarea';
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
+    "a finger on the note's field, just under the ×, writes in the field and keeps the scope",
+    () =>
+      Effect.gen(function* () {
+        const page = yield* labNoteOnCue(PHONE.viewport);
+        yield* opens('[data-act="note-frame"]', SCOPE_X)(page);
+        yield* page.until(
+          `(() => { document.querySelector('${FIELD}').scrollIntoView({ block: 'center', behavior: 'instant' }); document.activeElement.blur(); return document.activeElement === document.body; })()`,
+        );
+        const x = yield* page.box(SCOPE_X);
+        const field = yield* page.box(FIELD);
+        // The finger lands 1 px inside the field's top edge, under the ×'s middle.
+        yield* page.finger.down(x.x + x.width / 2, field.y + 1);
+        yield* page.finger.up;
+        yield* page.until(`document.activeElement === document.querySelector('${FIELD}')`);
+        yield* evaluates(page, `document.querySelector('${SCOPE_X}') !== null`, true);
+      }).pipe(Effect.scoped, Effect.runPromise),
+    SLOW,
+  );
+});
 
 describe('a finger on a slider', () => {
   // Serial: a finger's touches (`film/touches-serial`).

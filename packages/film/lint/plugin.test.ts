@@ -78,11 +78,11 @@ const MESSAGES = {
   'host-events-through-adapter.ts:12 film/host-events-through-adapter':
     "window.addEventListener('popstate') hears the host directly: use @bible/url-state's Location.",
   'host-events-through-adapter.ts:15 film/host-events-through-adapter':
-    "self.addEventListener('pointercancel') hears the host directly: use Pointer.drag (packages/film/src/browser/pointer.ts).",
+    "self.addEventListener('pointercancel') hears the host directly: use Pointer.press (packages/film/src/browser/pointer.ts).",
   'host-events-through-adapter.ts:19 film/host-events-through-adapter':
-    "document.body.addEventListener('pointercancel') ends a press outside its owner: use Pointer.drag (packages/film/src/browser/pointer.ts).",
+    "document.body.addEventListener('pointercancel') ends a press outside its owner: use Pointer.press (packages/film/src/browser/pointer.ts).",
   'host-events-through-adapter.ts:21 film/host-events-through-adapter':
-    'el.setPointerCapture holds a press outside its owner: use Pointer.drag (packages/film/src/browser/pointer.ts).',
+    'el.setPointerCapture holds a press outside its owner: use Pointer.press (packages/film/src/browser/pointer.ts).',
   'keys-named-as-bound.tsx:9 film/keys-named-as-bound':
     "keysOf reads the keymap once, so a rebound key reads as the old one: name the key as bound now: hubKeys' titled or text in Solid (packages/film/src/lab/command/changes.ts), titledNow on Hub.subscribe outside it (packages/film/src/command/hub.ts).",
   'keys-named-as-bound.tsx:15 film/keys-named-as-bound':

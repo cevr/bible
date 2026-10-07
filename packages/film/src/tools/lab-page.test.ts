@@ -7,6 +7,9 @@
 // else (a render, a note, a take's timings) wakes nothing; a page another lab process served
 // hears at once that it is old; a page that does not build answers the
 // bundler's words, asks again with a pause, and serves again once fixed.
+// Where the box's watch is the question (a save, a rename, a folder made) the
+// app is in a temp folder; where only what a film's pages hear of a mix is,
+// it is in memory, its watches told by the test (`filmsInMemory`).
 
 import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -23,11 +26,12 @@ import {
   Layer,
   Option,
   Path,
+  PubSub,
   Ref,
   Schedule,
   Stream,
 } from 'effect';
-import { HttpServerRequest, HttpServerResponse } from 'effect/http';
+import { HttpPlatform, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { TestClock } from 'effect/testing';
 import { brotliCompressSync, brotliDecompressSync, constants as zlib } from 'node:zlib';
 import { LONGEST_WAIT, LabHttpApi } from '../core/api.ts';
@@ -166,6 +170,97 @@ const app = Effect.gen(function* () {
 
 const buildOf = (text: string) => Number(/name="lab-build" content="(\d+)"/.exec(text)?.[1]);
 const serverOf = (text: string) => /name="lab-server" content="([^"]+)"/.exec(text)?.[1] ?? '';
+
+/** When each film's track in memory was first mixed (ms). */
+const MIXED_AT = 1_900_000_000_000;
+
+/**
+ * The app over files in memory, for what a film's pages hear of its mixes
+ * where how the box's watch reports a save is not the question: films `f`
+ * and `g`, each with its track mixed once at `MIXED_AT`, the pages built by
+ * the test bundler. A watch hears only what the test tells it: `land` mixes
+ * a film's track (a new mtime) unheard, `mix` mixes it and tells the watch;
+ * each answers the track's new mtime. `armed` waits until the watch of a
+ * film's narration folder runs.
+ */
+const filmsInMemory = Effect.gen(function* () {
+  const html = text('<!doctype html><html><head></head><body></body></html>');
+  const files = new Map<string, Uint8Array>([
+    ['/app/review.html', html],
+    ['/app/lab.html', html],
+    ['/app/player.html', html],
+  ]);
+  const mtimes = new Map<string, number>();
+  const trackOf = (film: string) => `/app/films/${film}/narration/full.wav`;
+  for (const film of ['f', 'g']) {
+    files.set(`/app/films/${film}/scenes/index.ts`, text('export {};\n'));
+    files.set(trackOf(film), text(`${film} one`));
+    mtimes.set(trackOf(film), MIXED_AT);
+  }
+  const saves = yield* PubSub.unbounded<string>();
+  const live = yield* Ref.make<ReadonlyArray<string>>([]);
+  const path = yield* Path.Path;
+  const fileSystem = Layer.effect(
+    FileSystem.FileSystem,
+    Effect.map(FileSystem.FileSystem, (fs) =>
+      FileSystem.FileSystem.of({
+        ...fs,
+        // Subscribed before it counts as running, so a save told once it runs is heard.
+        watch: (dir) =>
+          Stream.unwrap(
+            Effect.gen(function* () {
+              const told = yield* PubSub.subscribe(saves);
+              yield* Ref.update(live, (dirs) => [...dirs, dir]);
+              return Stream.fromSubscription(told).pipe(
+                Stream.filter((file) => path.dirname(file) === dir),
+                Stream.map((file): FileSystem.WatchEvent => ({
+                  _tag: 'Update',
+                  path: path.basename(file),
+                })),
+              );
+            }),
+          ).pipe(Stream.ensuring(Ref.update(live, (dirs) => Arr.remove(dirs, dirs.indexOf(dir))))),
+      }),
+    ),
+  ).pipe(Layer.provide(memoryFileSystem(files, new Set(), mtimes)));
+  const memory = yield* Layer.build(
+    Layer.provideMerge(HttpPlatform.layer, Layer.mergeAll(fileSystem, Path.layer)),
+  );
+  const spec = {
+    pages: { review: '/app/review.html', lab: '/app/lab.html', player: '/app/player.html' },
+    servers: {},
+    films: '/app/films',
+  };
+  const { page, ask } = yield* served(spec, PageBundler.layerTest).pipe(
+    Effect.provideContext(memory),
+  );
+  const land = (film: string, mixed: string) =>
+    Effect.sync(() => {
+      const at = (mtimes.get(trackOf(film)) ?? MIXED_AT) + 10_000;
+      files.set(trackOf(film), text(mixed));
+      mtimes.set(trackOf(film), at);
+      return at;
+    });
+  const mix = (film: string, mixed: string) =>
+    Effect.tap(land(film, mixed), () => PubSub.publish(saves, trackOf(film)));
+  const armed = (film: string) =>
+    Ref.get(live).pipe(
+      Effect.repeat({
+        until: (dirs) => dirs.includes(path.dirname(trackOf(film))),
+        schedule: Schedule.spaced('10 millis'),
+      }),
+      Effect.timeout('2 seconds'),
+      Effect.orDie,
+      Effect.asVoid,
+    );
+  return {
+    page,
+    ask: (pathname: string) => ask(pathname).pipe(Effect.provideContext(memory)),
+    land,
+    mix,
+    armed,
+  };
+});
 
 describe('lab pages', () => {
   it.live(
@@ -591,35 +686,22 @@ describe('lab pages', () => {
 
   it.live("one film's mix wakes its own page's wait, never another film's", () =>
     Effect.gen(function* () {
-      const { spec } = yield* appFolder;
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      // Films `f` and `g`, each with a track, each played by a page.
-      for (const name of ['f', 'g']) {
-        const film = path.join(spec.films, name);
-        yield* fs.makeDirectory(path.join(film, 'scenes'), { recursive: true });
-        yield* fs.makeDirectory(path.join(film, 'narration'), { recursive: true });
-        yield* fs.writeFileString(path.join(film, 'scenes', 'index.ts'), 'export {};\n');
-        yield* fs.writeFileString(path.join(film, 'narration', 'full.wav'), `${name} one`);
-      }
-      const { page, ask } = yield* served(spec, PageBundler.layerTest);
+      const { page, ask, mix, armed } = yield* filmsInMemory;
+      // Films `f` and `g`, each played by a page.
       for (const name of ['f', 'g']) {
         yield* ask(`/films/${name}/lab`);
         expect((yield* ask(`/films/${name}/narration/full.wav`)).text).toBe(`${name} one`);
+        yield* armed(name);
       }
       const of = (name: string) => ({ server: Option.none(), film: Option.some(name) });
-      // The first build may count once a save it read in the last second: the build once that is heard.
-      const settled = (yield* page.wait({ since: 0, ...of('f') }, '1 second')).build;
-      const narration = path.join(spec.films, 'g', 'narration');
-      yield* fs.writeFileString(path.join(narration, 'full.wav.partial'), 'g two');
+      const settled = (yield* page.wait({ since: 0, ...of('f') }, 0)).build;
       const forG = yield* Effect.andThen(
-        fs.rename(path.join(narration, 'full.wav.partial'), path.join(narration, 'full.wav')),
-        page.wait({ since: settled, ...of('g') }, '5 seconds'),
+        mix('g', 'g two'),
+        page.wait({ since: settled, ...of('g') }, '2 seconds'),
       );
       expect(forG.build).toBeGreaterThan(settled);
-      // F's page, stamped before g's mix, still waits: its wait holds, and answers nothing newer.
-      const forF = yield* page.wait({ since: settled, ...of('f') }, '1 second');
-      expect(forF.build).toBe(settled);
+      // F's page, stamped before g's mix, which is counted by now, hears nothing newer.
+      expect((yield* page.wait({ since: settled, ...of('f') }, 0)).build).toBe(settled);
     }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
@@ -627,52 +709,24 @@ describe('lab pages', () => {
     "a write's own mix is named by the build its film's pages hear it at, counted at once if no watch has; a later mix is a later build, and the earlier keeps its own",
     () =>
       Effect.gen(function* () {
-        const { spec } = yield* appFolder;
-        const fs = yield* FileSystem.FileSystem;
-        const path = yield* Path.Path;
-        const film = path.join(spec.films, 'f');
-        const narration = path.join(film, 'narration');
-        const track = path.join(narration, 'full.wav');
-        yield* fs.makeDirectory(path.join(film, 'scenes'), { recursive: true });
-        yield* fs.makeDirectory(narration, { recursive: true });
-        yield* fs.writeFileString(path.join(film, 'scenes', 'index.ts'), 'export {};\n');
-        yield* fs.writeFileString(track, 'mix one');
-        const { page, ask } = yield* served(spec, PageBundler.layerTest);
-        const mtime = Effect.map(fs.stat(track), (info) =>
-          Option.getOrElse(
-            Option.map(info.mtime, (at) => at.getTime()),
-            () => 0,
-          ),
-        );
-        /**
-         * The mix lands its track whole, by a rename, as `film mix` does, its
-         * file made at `at` (seconds): each mix its own mtime. Answers it.
-         */
-        const mix = (text: string, at: number) =>
-          Effect.gen(function* () {
-            const partial = path.join(narration, 'full.wav.partial');
-            yield* fs.writeFileString(partial, text);
-            yield* fs.utimes(partial, at, at);
-            yield* fs.rename(partial, track);
-            return yield* mtime;
-          });
+        const { page, ask, land, mix } = yield* filmsInMemory;
         // No page has asked for the track: no mix of it is heard.
-        expect(yield* page.heardAt('f', yield* mtime)).toEqual(Option.none());
+        expect(yield* page.heardAt('f', MIXED_AT)).toEqual(Option.none());
         yield* ask('/films/f/lab');
         yield* ask('/films/f/narration/full.wav');
         const f = { server: Option.none(), film: Option.some('f') };
-        const settled = (yield* page.wait({ since: 0, ...f }, '1 second')).build;
+        const settled = (yield* page.wait({ since: 0, ...f }, 0)).build;
         // The track as it was when asked for was never counted as a mix.
-        expect(yield* page.heardAt('f', yield* mtime)).toEqual(Option.none());
-        // A write asks at once after its mix, before any watch may have heard it.
-        const two = yield* mix('mix two', 1_900_000_000);
+        expect(yield* page.heardAt('f', MIXED_AT)).toEqual(Option.none());
+        // A write asks at once after its mix, which no watch has heard.
+        const two = yield* land('f', 'mix two');
         const ownTwo = yield* page.heardAt('f', two);
         expect(Option.map(ownTwo, (b) => b.build > settled)).toEqual(Option.some(true));
         // The page waiting hears that very build: nothing else changed since.
-        const heard = yield* page.wait({ since: settled, ...f }, '5 seconds');
+        const heard = yield* page.wait({ since: settled, ...f }, '2 seconds');
         expect(Option.some(heard)).toEqual(ownTwo);
         // A later mix is a later build; the earlier mix keeps its own, not the track's now.
-        const three = yield* mix('mix three', 1_900_000_010);
+        const three = yield* mix('f', 'mix three');
         const ownThree = yield* page.heardAt('f', three);
         expect(
           Option.exists(ownThree, (b) => Option.exists(ownTwo, (a) => b.build > a.build)),
@@ -687,25 +741,16 @@ describe('lab pages', () => {
     "a page that waits with its film hears the film's mix, though it never played the track",
     () =>
       Effect.gen(function* () {
-        const { spec } = yield* appFolder;
-        const fs = yield* FileSystem.FileSystem;
-        const path = yield* Path.Path;
-        const film = path.join(spec.films, 'f');
-        const narration = path.join(film, 'narration');
-        yield* fs.makeDirectory(path.join(film, 'scenes'), { recursive: true });
-        yield* fs.makeDirectory(narration, { recursive: true });
-        yield* fs.writeFileString(path.join(film, 'scenes', 'index.ts'), 'export {};\n');
-        yield* fs.writeFileString(path.join(narration, 'full.wav'), 'mix one');
         // A review tab of f's choices: its page loads, its track is never asked for.
-        const { page, ask } = yield* served(spec, PageBundler.layerTest);
+        const { page, ask, mix, armed } = yield* filmsInMemory;
         yield* ask('/films/f/choices');
         const f = { server: Option.none(), film: Option.some('f') };
-        // Its first wait arms the track's watch; the build once a save it read is heard.
-        const settled = (yield* page.wait({ since: 0, ...f }, '1 second')).build;
-        yield* fs.writeFileString(path.join(narration, 'full.wav.partial'), 'mix two');
+        // Its first wait arms the track's watch.
+        const settled = (yield* page.wait({ since: 0, ...f }, 0)).build;
+        yield* armed('f');
         const mixed = yield* Effect.andThen(
-          fs.rename(path.join(narration, 'full.wav.partial'), path.join(narration, 'full.wav')),
-          page.wait({ since: settled, ...f }, '5 seconds'),
+          mix('f', 'mix two'),
+          page.wait({ since: settled, ...f }, '2 seconds'),
         );
         expect(mixed.build).toBeGreaterThan(settled);
       }).pipe(Effect.scoped, Effect.provide(Platform)),
@@ -790,7 +835,7 @@ describe('lab pages', () => {
   );
 
   it.live(
-    'a wedge builds the pages with a file read as other text, served by its id, the file unwritten',
+    'a wedge builds the pages with a file read as other text, served by its id, the file unwritten, and never kept compressed',
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
@@ -799,13 +844,27 @@ describe('lab pages', () => {
         const shared = yield* fs.realPath(
           path.join(path.dirname(spec.pages.review), 'lib', 'shared.ts'),
         );
-        const swapped = new Map([[shared, "export const shared = 'shared swapped';\n"]]);
+        // Long enough to be worth compressing, as a build's script is kept.
+        const swapped = new Map([
+          [shared, `export const shared = 'shared swapped${' swapped'.repeat(200)}';\n`],
+        ]);
         const wedged = yield* page.wedge(swapped);
         expect(wedged.failed).toEqual(Option.none());
         expect(wedged.wedge).not.toBe('');
         const html = (yield* ask(`/?wedge=${wedged.wedge}`)).text;
         expect(html).toContain(`src="/wedge/${wedged.wedge}/`);
         expect(yield* scriptOf(`/?wedge=${wedged.wedge}`)).toContain('shared swapped');
+        // Only the easel's browser on the box asks for a wedge's files: each is sent as
+        // it is, for the server to compress per request, never squeezed at the best.
+        const src = /src="\.?(\/[^"]+\.js)"/.exec(html)?.[1] ?? '';
+        const squeezed = yield* ask(src, 'GET', { 'accept-encoding': 'br' }).pipe(
+          Effect.repeat({
+            until: (sent) => sent.encoding === 'br',
+            schedule: Schedule.spaced('50 millis'),
+          }),
+          Effect.timeoutOption('500 millis'),
+        );
+        expect(squeezed).toEqual(Option.none());
         // The pages as written, and the file, are as they were.
         expect(yield* script).toContain('shared one');
         expect(yield* fs.readFileString(shared)).toContain('shared one');

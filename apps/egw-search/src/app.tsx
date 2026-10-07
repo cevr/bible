@@ -90,12 +90,9 @@ interface WorkspaceState {
 
 const useWorkspace = (): WorkspaceState => {
   const registry = useRegistry();
-  const place = useAtomValue(
-    () => workspace,
-    Option.map((value) => value.query),
-  );
+  const place = useAtomValue(() => workspace);
   return {
-    panes: place,
+    panes: () => Option.map(place(), (value) => value.query),
     update: (update) => {
       Option.map(registry.get(workspace), (current) =>
         registry.set(workspace, { ...current, query: update(current.query) }),
@@ -344,10 +341,8 @@ export const App = () => {
 /** The server answers every unknown path with the app, so the app is what
  *  says a path is nothing. */
 const NotFound = () => {
-  const path = useAtomValue(
-    () => UrlAtom.href,
-    (href) => parseHref(href).pathname,
-  );
+  const href = useAtomValue(() => UrlAtom.href);
+  const path = () => parseHref(href()).pathname;
   return (
     <div class="shell">
       <header class="masthead">

@@ -20,8 +20,7 @@ import { Context, Schema } from 'effect';
 import type { Effect, Stream } from 'effect';
 
 /** How the page arrived at an entry. */
-export const Navigation = Schema.Literals(['load', 'push', 'replace', 'traverse']);
-export type Navigation = typeof Navigation.Type;
+const Navigation = Schema.Literals(['load', 'push', 'replace', 'traverse']);
 
 /** One history entry: where the page is, which entry it is, and how it got there. */
 export const Entry = Schema.Struct({

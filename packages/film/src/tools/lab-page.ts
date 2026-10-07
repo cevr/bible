@@ -1011,7 +1011,10 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * `file`, asked for at `pathname`, there or not: when it is its film's
    * mixed track, it is watched for from now on (through the nearest folder
    * there, before a film's first mix), so the next mix wakes the film's
-   * pages; one that landed before the watch was armed is heard after.
+   * pages; one that landed before the watch was armed is heard after. The
+   * track kept and its check after arming are one step a request that
+   * leaves cannot cut: every later ask finds the track kept and checks
+   * nothing.
    */
   const trackAsked = (pathname: string, file: string) =>
     Effect.gen(function* () {
@@ -1019,8 +1022,12 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       if (pathname !== narrationUrls(filmOf(master)).audio) return;
       if ((yield* Ref.get(masters)).has(master)) return;
       const at = yield* mtimeOf(master);
-      yield* rewatchAfter(Ref.update(masters, (known) => new Map([...known, [master, at]])));
-      yield* landedUnwatched([master]);
+      yield* Effect.uninterruptible(
+        Effect.andThen(
+          rewatchAfter(Ref.update(masters, (known) => new Map([...known, [master, at]]))),
+          landedUnwatched([master]),
+        ),
+      );
     });
 
   /**
@@ -1353,7 +1360,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
         return HttpServerResponse.text(failedPage(built.outcome.reason, stamp, tokens), {
           status: 500,
           contentType: HTML,
-          headers: { 'cache-control': 'no-store' },
+          headers: { 'cache-control': CACHE.none },
         });
       const html = Option.fromUndefinedOr(built.outcome.pages.get(name));
       if (Option.isNone(html)) return NOT_FOUND;
@@ -1363,14 +1370,14 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       if (request.method !== 'GET' || !built.outcome.server.entries.has(name))
         return HttpServerResponse.text(text, {
           contentType: HTML,
-          headers: { 'cache-control': 'no-store' },
+          headers: { 'cache-control': CACHE.none },
         });
       const { read } = yield* PageReads;
       const build = { id: built.kept, bundle: built.outcome.server };
       const body = rendered(name, text, build, urlOf(request), read);
       return HttpServerResponse.stream(Stream.encodeText(body), {
         contentType: HTML,
-        headers: { 'cache-control': 'no-store' },
+        headers: { 'cache-control': CACHE.none },
       });
     });
 
@@ -1422,7 +1429,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       onSome: (file) =>
         HttpServerResponse.uint8Array(file.bytes, {
           contentType: HTML,
-          headers: { 'cache-control': 'no-store' },
+          headers: { 'cache-control': CACHE.none },
         }),
     });
 
@@ -1483,7 +1490,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const moved = (from: string, to: string) =>
     Effect.as(
       Effect.logInfo(`lab.page.moved from=${from} to=${to}`),
-      HttpServerResponse.redirect(to, { status: 302, headers: { 'cache-control': 'no-store' } }),
+      HttpServerResponse.redirect(to, { status: 302, headers: { 'cache-control': CACHE.none } }),
     );
 
   // A narration file by its exact URL, then a built file, then an old link
@@ -1582,14 +1589,15 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
           yield* Effect.log(`lab.page.wedge id=${id} outcome=Failed`);
           return { ...now, failed: Option.some(made.failure.reason), wedge: '' } satisfies Wedged;
         }
+        // A wedge's files are asked for only by the easel's browser on the box, so each
+        // is compressed per request, never squeezed at the best as a build's are.
         const pages = new Map<PageName, BuiltFile>();
-        const asked: Array<readonly [string, BuiltFile]> = [];
+        const files = new Map<string, AssetFile>();
         for (const { path: name, ...file } of made.success.outputs)
           Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
-            onNone: () => asked.push([`${prefix}${name}`, file]),
+            onNone: () => files.set(`${prefix}${name}`, { ...file, best: Option.none() }),
             onSome: (page) => pages.set(page, file),
           });
-        const files = yield* assetsOf(asked);
         yield* Ref.update(wedges, (kept) => [{ id, pages, files }, ...kept].slice(0, KEPT));
         yield* Effect.log(`lab.page.wedge id=${id} outcome=Built swaps=${swaps.size}`);
         return { ...now, wedge: id } satisfies Wedged;

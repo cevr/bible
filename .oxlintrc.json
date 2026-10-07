@@ -777,7 +777,7 @@
           },
           {
             "name": "AudioContext",
-            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media.sound (packages/film/src/browser/media.ts) to play."
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media and a Playable (packages/film/src/browser/media.ts) to play; the compare's panes play through Media's live adapter's one sound context (pageSound, packages/film/src/browser/media-browser.ts)."
           },
           {
             "name": "AudioWorkletNode",
@@ -1002,17 +1002,17 @@
           {
             "object": "window",
             "property": "AudioContext",
-            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media.sound (packages/film/src/browser/media.ts) to play."
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media and a Playable (packages/film/src/browser/media.ts) to play; the compare's panes play through Media's live adapter's one sound context (pageSound, packages/film/src/browser/media-browser.ts)."
           },
           {
             "object": "globalThis",
             "property": "AudioContext",
-            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media.sound (packages/film/src/browser/media.ts) to play."
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media and a Playable (packages/film/src/browser/media.ts) to play; the compare's panes play through Media's live adapter's one sound context (pageSound, packages/film/src/browser/media-browser.ts)."
           },
           {
             "object": "self",
             "property": "AudioContext",
-            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media.sound (packages/film/src/browser/media.ts) to play."
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media and a Playable (packages/film/src/browser/media.ts) to play; the compare's panes play through Media's live adapter's one sound context (pageSound, packages/film/src/browser/media-browser.ts)."
           },
           {
             "object": "window",

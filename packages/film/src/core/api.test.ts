@@ -11,10 +11,12 @@ import {
   declares,
   filmOfPage,
   filmTimeOn,
+  labUrls,
   legacyPlace,
   pageAt,
   pageHref,
   partHref,
+  reviewFileUrl,
 } from './api.ts';
 
 type PlaceName = keyof typeof Places;
@@ -73,6 +75,8 @@ const LINKS: ReadonlyArray<
   ],
   ['/films/rbf/scenes', 'scenes', 'player', '/films/rbf/scenes'],
   ['/films/rbf/scenes/roof', 'scene', 'player', '/films/rbf/scenes/roof'],
+  // A blank time is no time, though `Number` reads it as 0.
+  ['/films/rbf/scenes/roof#t=%20', 'scene', 'player', '/films/rbf/scenes/roof'],
   ['/films/rbf/play', 'play', 'player', '/films/rbf/play'],
   ['/films/rbf/play#t=42', 'play', 'player', '/films/rbf/play#t=42'],
   [
@@ -305,5 +309,19 @@ describe('declared routes', () => {
     ['GET', '/api/films/rbf/notes/extra/segments/here'],
   ])('%s %s is not', (method, pathname) => {
     expect(declared(method, pathname)).toBe(false);
+  });
+
+  test("the API's paths, as the wire has them", () => {
+    expect(labUrls.notes.list({ params: { film: 'f' } })).toBe('/api/films/f/notes');
+    expect(labUrls.scenes.cue({ params: { film: 'f', scene: 's', cue: 'c' } })).toBe(
+      '/api/films/f/scenes/s/cues/c',
+    );
+    expect(labUrls.choices.films()).toBe('/api/films');
+    expect(labUrls.project.get({ params: { film: 'f' }, query: {} })).toBe('/api/films/f/project');
+    expect(labUrls.review.index({ query: {} })).toBe('/api/review/index');
+    expect(labUrls.page.wait({ query: { since: 3, timeout: 9 } })).toBe(
+      '/api/review/build?since=3&timeout=9',
+    );
+    expect(reviewFileUrl('out/a b.mp4')).toBe('/api/review/files/out/a%20b.mp4');
   });
 });
