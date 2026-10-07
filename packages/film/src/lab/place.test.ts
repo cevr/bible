@@ -65,14 +65,23 @@ describe("the lab's place", () => {
 
   test("the studio's beat rides in ?beat=: read back, kept by every write, else the path's scene", () => {
     const at = '/films/f/lab/a?beat=b#t=1';
+    const listed = ['a', 'b'];
     expect(labPlaceOf(at).beat).toEqual(Option.some('b'));
-    expect(beatAt(at)).toEqual(Option.some('b'));
+    expect(beatAt(at, listed)).toEqual(Option.some('b'));
     // With none picked, the studio is on the path's scene.
-    expect(beatAt('/films/f/lab/a#t=1')).toEqual(Option.some('a'));
-    expect(beatAt('/films/f/lab#t=1')).toEqual(Option.none());
+    expect(beatAt('/films/f/lab/a#t=1', listed)).toEqual(Option.some('a'));
+    expect(beatAt('/films/f/lab#t=1', listed)).toEqual(Option.none());
     // Play crossing into b keeps the beat picked in a.
     expect(labHrefWith('f', placed, at, {}, b + 0.5)).toBe('/films/f/lab/b?beat=b#t=0.5');
     expect(labHref('f', placed, none, 1)).not.toContain('beat=');
+  });
+
+  test('a beat the film no longer lists reads as absent: the studio is on the path scene, else none', () => {
+    const listed = ['a', 'b'];
+    // A link made before a scene was renamed: Record opens where the lab is.
+    expect(beatAt('/films/f/lab/a?beat=gone#t=1', listed)).toEqual(Option.some('a'));
+    expect(beatAt('/films/f/lab/gone#t=1', listed)).toEqual(Option.none());
+    expect(beatAt('/films/f/lab?beat=gone#t=1', listed)).toEqual(Option.none());
   });
 
   test("the compare's mode rides in ?view= (PA-9): read back, kept across a scene boundary, off unwritten", () => {

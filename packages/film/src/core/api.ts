@@ -751,14 +751,17 @@ export const prefixesOf = <Id extends string, Groups extends HttpApiGroup.Constr
 /** The app's pages, each one HTML entry: its review, its lab, its player. */
 export type PageName = 'review' | 'lab' | 'player';
 
-/** A value the URL may leave out: the empty text is none, anything else reads by `codec`. */
+/**
+ * A value the URL may leave out: blank text (empty, or only spaces) is none,
+ * though `Number` reads it as 0; anything else reads by `codec`.
+ */
 const maybe = <A>(codec: Schema.Codec<A, string>) =>
   Schema.String.pipe(
     Schema.decodeTo(
       Schema.Option(Schema.toType(codec)),
       SchemaTransformation.transformEffect<Option.Option<A>, string>({
         decode: (text) => {
-          if (text === '') return Effect.succeedNone;
+          if (text.trim() === '') return Effect.succeedNone;
           return Effect.asSome(
             Effect.mapError(Schema.decodeEffect(codec)(text), (error) => error.issue),
           );
@@ -791,15 +794,9 @@ const time = Field.key(maybe(Codec.Finite), {
 });
 const At = Field.struct({ t: time });
 
-/**
- * One end of an A–B loop: a number written there. A blank end (`,2`, `%20,2`)
- * is no point, though `Number` reads it as 0.
- */
+/** One end of an A–B loop: a number written there (`maybe`'s), so a blank end (`,2`, `%20,2`) is no point. */
 const loopPoint = (text: string): Option.Option<number> =>
-  Option.flatMap(
-    Option.liftPredicate(text, (written) => written.trim() !== ''),
-    Schema.decodeOption(Codec.Finite),
-  );
+  Option.flatten(Schema.decodeOption(maybe(Codec.Finite))(text));
 
 /**
  * An A–B loop (`loop=10,14`): film seconds, its in point before its out
@@ -994,8 +991,10 @@ export const pageAt = (pathname: string): Option.Option<PageName> =>
  * How the viewer's move from `from` to `to` enters history, as the place
  * `to` is on declares it (`Place.history`): a new path or a cited key is a
  * step Back walks, a refinement or the time rewrites the entry. The one
- * owner of the policy: a page names why it moves (`addressOn`), never how.
- * An href off every place is a step.
+ * owner of the policy: a page that moves for a reason names the reason
+ * (`addressOn`), never the move, and a page that sets a place's value
+ * (`UrlState.set`/`update`, `UrlAtom.place`) enters history by the same
+ * declaration. An href off every place is a step.
  */
 export const pageMove = (from: string, to: string): 'push' | 'replace' =>
   Option.match(
