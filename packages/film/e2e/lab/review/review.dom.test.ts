@@ -1027,6 +1027,69 @@ describe('the review page', () => {
   );
 
   it.live(
+    'on a laptop a wipe and a difference keep their captions on the first screen: their picture is no taller than the room, and still 16:9',
+    () =>
+      Effect.gen(function* () {
+        // Where `frame` ends, whether it is 16:9, and where the captions under it end.
+        const fits = (frame: string) => `(() => {
+          const r = document.querySelector('${frame}').getBoundingClientRect();
+          const caps = Math.max(...Array.from(document.querySelectorAll('.rv-wipe-caps .rv-cap'), (c) => c.getBoundingClientRect().bottom));
+          return [Math.round(r.height - (r.width * 9) / 16) === 0, caps <= innerHeight, Math.round(r.height), Math.round(caps), innerHeight].join(' ');
+        })()`;
+        const { page, errors } = yield* openReview(routes, {
+          href: `${SET}?view=wipe&other=B`,
+          viewport: { width: 1440, height: 900 },
+        });
+        yield* countIs(page, '[data-role="inspector"]', 0);
+        yield* waitFor(page, '.rv-wipe video');
+        yield* until(page, `${fits('.rv-wipe')}.startsWith('true true ')`);
+        // Each picture fills the frame, as it does at any width.
+        yield* evaluates(
+          page,
+          "Array.from(document.querySelectorAll('.rv-wipe video')).map((v) => Math.round(v.getBoundingClientRect().height - document.querySelector('.rv-wipe').getBoundingClientRect().height))",
+          [0, 0],
+        );
+        yield* page.goto(`${SET}?view=diff&other=B`);
+        yield* waitFor(page, '.rv-diff img.rv-diff-first');
+        yield* countIs(page, '[data-role="inspector"]', 0);
+        yield* until(page, `${fits('.rv-diff')}.startsWith('true true ')`);
+        yield* evaluates(
+          page,
+          "Array.from(document.querySelectorAll('.rv-diff img')).map((v) => Math.round(v.getBoundingClientRect().height - document.querySelector('.rv-diff').getBoundingClientRect().height))",
+          [0, 0],
+        );
+        expect(errors).toEqual([]);
+        // A wipe on WebCodecs panes: its canvases are held to the same room.
+        const fixture = (name: string) => `${import.meta.dir}/../../../src/tools/fixtures/${name}`;
+        const panes = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/files\/out\/art\/roof\.A\.mp4/, () =>
+              file(fixture('segment-a.mp4')),
+            ),
+            route('GET', /^\/api\/review\/files\/out\/art\/roof\.B\.mp4/, () =>
+              file(fixture('segment-b.mp4')),
+            ),
+            ...routes,
+          ],
+          { href: `${SET}?view=wipe&other=B`, viewport: { width: 1440, height: 900 } },
+        );
+        yield* until(
+          panes.page,
+          "document.querySelector('.rv-wipe').dataset.engine === 'webcodecs'",
+        );
+        yield* waitFor(panes.page, '.rv-wipe canvas');
+        yield* until(panes.page, `${fits('.rv-wipe')}.startsWith('true true ')`);
+        yield* evaluates(
+          panes.page,
+          "Array.from(document.querySelectorAll('.rv-wipe canvas')).map((v) => Math.round(v.getBoundingClientRect().height - document.querySelector('.rv-wipe').getBoundingClientRect().height))",
+          [0, 0],
+        );
+        expect(panes.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a version's inspector holds its Info, its approve and its comments, said over the set's route",
     () =>
       Effect.gen(function* () {

@@ -37,16 +37,33 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-card video, .rv-media { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--surface-0); object-fit: contain; }
 .rv-card.rv-tall video { aspect-ratio: auto; max-height: 70vh; }
 /*
- * On a laptop a Set's version picture (one alone takes the page's width) is
- * no taller than the room left under the header, the set's tools row, the
- * docked transport and the gaps between them, less its caption (a hit and
- * its padding): the caption, its speaker and its name stay on the first
- * screen. Contained, so a shorter box letterboxes the frame.
+ * On a laptop a Set's picture is no taller than its view's room on the
+ * first screen (\`--rv-room\`: under the header, the set's tools row, the
+ * docked transport and the gaps between them), less what its view shows
+ * over and under it, so its captions (\`--rv-cap-h\`: a hit and its padding),
+ * their speakers and names stay on the first screen. A version's picture
+ * (one alone takes the page's width) is contained, so a shorter box
+ * letterboxes the frame. A wipe's frame and a difference's (under their
+ * chip rows, \`--rv-pick-h\`; a difference's hint under it) are narrowed to
+ * that height at 16:9, so their pictures still fill them and the divider
+ * splits the picture itself.
  */
 @media ${WIDE} {
-  .rv-grid > .rv-card[data-id] video {
-    max-height: calc(100dvh - var(--header-h) - var(--s-4) - var(--control-h) - 2 * var(--s-1)
-      - 2 * var(--s-3) - var(--dock-h) - var(--hit) - 2 * var(--s-2));
+  .rv-main {
+    --rv-room: calc(100dvh - var(--header-h) - var(--s-4) - var(--control-h) - 2 * var(--s-1)
+      - 2 * var(--s-3) - var(--dock-h));
+    --rv-cap-h: calc(var(--hit) + 2 * var(--s-2));
+    --rv-pick-h: calc(var(--control-h) + var(--s-3));
+  }
+  .rv-grid > .rv-card[data-id] video { max-height: calc(var(--rv-room) - var(--rv-cap-h)); }
+  .rv-wipe {
+    max-width: calc((var(--rv-room) - var(--rv-pick-h) - var(--s-2) - var(--rv-cap-h)) * 16 / 9);
+    margin-inline: auto;
+  }
+  .rv-diff {
+    max-width: calc((var(--rv-room) - 2 * var(--rv-pick-h) - var(--lh-2) - var(--s-2)
+      - var(--rv-cap-h)) * 16 / 9);
+    margin-inline: auto;
   }
 }
 /* A version's picture is its card's to press: a long-press opens the card's menu (its steps,
