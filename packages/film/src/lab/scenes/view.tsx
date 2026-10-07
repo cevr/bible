@@ -51,6 +51,7 @@ import { approveUndo, tookText, undoApprove } from '../review/options/receipt.ts
 import { PHONE, useMatches } from '../viewport.ts';
 import { pressed } from '../review/format.ts';
 import { Sheet, useSheetDismissal } from '../review/inspector.tsx';
+import { Comments, SayBox } from '../review/options/choice.tsx';
 import { useOnScreenFirst } from '../review/options/stills.tsx';
 import { SceneCard, SceneFindings, SceneState, sceneHue } from './card.tsx';
 import { type Said, type ScenesRead, findingsOf, scenesCalls } from './data.ts';
@@ -674,24 +675,26 @@ export const ScenesView = (props: ScenesViewProps) => {
    */
   const Focus = (focus: { readonly scene: string }) => {
     const scene = untrack(() => focus.scene);
-    const [comment, setComment] = createSignal('', fromHost);
     const [saying, setSaying] = createSignal(false, fromHost);
-    const sayComment = () => {
-      const text = comment().trim();
-      if (text === '' || saying()) return;
+    /** Say `text` of the scene, its receipt announced; whether it was said. */
+    const sayComment = (text: string) => {
       setSaying(true);
-      Effect.runFork(
-        Effect.tap(
+      return Effect.runPromise(
+        Effect.map(
           sayOf([scene], () => `commented on ${scene}`, { _tag: 'Comment', text }),
-          (receipt) =>
-            Effect.sync(() => {
-              setSaying(false);
-              if (receipt._tag === 'Said' && receipt.tone === 'done') setComment('');
-              props.hub.announce(receipt, 'scenes.comment');
-            }),
+          (receipt) => {
+            setSaying(false);
+            props.hub.announce(receipt, 'scenes.comment');
+            return receipt._tag === 'Said' && receipt.tone === 'done';
+          },
         ),
       );
     };
+    const comments = () =>
+      Option.getOrElse(
+        Option.map(marks()(scene).render, (r) => r.comments),
+        () => [],
+      );
     return (
       <>
         <SceneCard
@@ -756,42 +759,10 @@ export const ScenesView = (props: ScenesViewProps) => {
         <Show when={!short && Option.isSome(read().project)}>
           <section class="sc-section" data-section="comment">
             <h3>
-              Comments{' '}
-              <span>
-                {Option.getOrElse(
-                  Option.map(marks()(scene).render, (r) => r.comments.length),
-                  () => 0,
-                )}
-              </span>
+              Comments <span>{comments().length}</span>
             </h3>
-            <For
-              each={Option.getOrElse(
-                Option.map(marks()(scene).render, (r) => r.comments),
-                () => [],
-              )}
-            >
-              {(c) => <p class="sc-comment">{c.text}</p>}
-            </For>
-            <textarea
-              class="sc-say"
-              rows="2"
-              placeholder={`Comment on ${scene}…`}
-              value={comment()}
-              disabled={saying()}
-              onInput={(e: InputEvent) => {
-                const box = e.currentTarget;
-                if (box instanceof HTMLTextAreaElement) setComment(box.value);
-              }}
-            />
-            <button
-              type="button"
-              class="sh-btn"
-              data-act="comment"
-              disabled={saying() || comment().trim() === ''}
-              onClick={sayComment}
-            >
-              Comment
-            </button>
+            <Comments comments={comments()} />
+            <SayBox disabled={saying()} say={sayComment} />
           </section>
         </Show>
       </>

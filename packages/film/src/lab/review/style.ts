@@ -157,13 +157,6 @@ a.rv-card:hover { background: var(--surface-2); }
 /* A long name wraps inside its column rather than running under the verbs. */
 .rv-list .rv-take .lab-inspect { max-width: 100%; text-align: start; }
 .rv-list .rv-take .rv-name { white-space: normal; overflow-wrap: anywhere; }
-.rv-comments { margin: var(--s-1) 0; padding-left: var(--s-4); font-size: var(--fs-2); overflow-wrap: anywhere; }
-.rv-say { flex-wrap: nowrap; }
-.rv-say .rv-comment-input {
-  flex: 1; min-width: 0; background: var(--surface-2); color: var(--text-1); min-height: var(--control-h);
-  border: 1px solid var(--line-strong); border-radius: var(--r-1); padding: 0 var(--s-2); font: inherit;
-}
-.rv-say .rv-comment-input::placeholder { color: var(--text-3); }
 .rv-knob input[type="range"] { flex: 1; min-width: 0; max-width: 320px; }
 /*
  * Project (design language §7): the transport docked (over the tab bar on a

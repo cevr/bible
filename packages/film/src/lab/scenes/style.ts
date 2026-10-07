@@ -5,8 +5,9 @@
 // Follow), the wrapped tape (a line's timecode, its cuts and their names,
 // its stills, its state band and the playhead), and the selected scene's card
 // in its sheet (the one sheet, `lab-inspector-sheet` in the command styles),
-// which on a phone peeks over the tab bar with the card in brief. The player
-// page and the review page each inject it with the shell's styles.
+// which on a phone peeks over the tab bar with the card in brief, and the
+// kit's comment section that sheet and the review's inspectors hold. The
+// player page and the review page each inject it with the shell's styles.
 
 import { PHONE } from '../viewport.ts';
 
@@ -116,11 +117,20 @@ body.scenes { display: block; height: auto; }
 .sc-section { display: grid; gap: var(--s-2); padding-top: var(--s-3); border-top: var(--border); }
 .sc-section h3 { display: flex; justify-content: space-between; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-1); }
 .sc-section h3 span { color: var(--text-3); }
-.sc-finding, .sc-comment { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); overflow-wrap: anywhere; }
+/* The kit's comment section (Comments and SayBox, review/options/choice.tsx), on every page that
+   shows one (Scenes' sheet and the review's pages, which all carry these styles): what was said, an
+   earlier version's marked, and the line to say more. */
+.rv-comments { margin: var(--s-1) 0; padding-left: var(--s-4); font-size: var(--fs-2); overflow-wrap: anywhere; }
+.rv-comments .rv-hint { color: var(--text-2); }
+.rv-say { display: flex; flex-wrap: nowrap; gap: var(--s-2); align-items: center; }
+.rv-say .rv-comment-input {
+  flex: 1; min-width: 0; background: var(--surface-2); color: var(--text-1); min-height: var(--control-h);
+  border: 1px solid var(--line-strong); border-radius: var(--r-1); padding: 0 var(--s-2); font: inherit;
+}
+.rv-say .rv-comment-input::placeholder { color: var(--text-3); }
+.sc-finding { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); overflow-wrap: anywhere; }
 .sc-finding b { font-weight: var(--w-2); color: var(--state-findings); }
 .sc-finding[data-level="warning"] b { color: var(--state-warning); }
-.sc-say { width: 100%; min-height: var(--hit); padding: var(--s-2); resize: vertical; background: var(--surface-2);
-  border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--text-1); font: inherit; }
 .sc-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: var(--s-3); }
 .sc-swatch { display: grid; gap: var(--s-1); font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
 .sc-swatch b { font-weight: var(--w-2); color: var(--text-1); }

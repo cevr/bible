@@ -914,6 +914,59 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live(
+    "the scene sheet's comments are the kit's: one said of an earlier version reads (earlier), and Enter says a new one",
+    () =>
+      Effect.gen(function* () {
+        const earlier = {
+          id: 'c1',
+          address: { _tag: 'Scenes', ids: ['two'] },
+          variant: 'main',
+          key: 'older',
+          text: 'the light is late',
+          at: 0,
+          onThis: false,
+        };
+        const project = projectOf(new Map());
+        const read = route('GET', /^\/project$/, () =>
+          json({
+            ...project,
+            project: {
+              ...project.project,
+              scenes: project.project.scenes.map((s) =>
+                Bool.match(s.scene === 'two', {
+                  onTrue: () => ({ ...s, comments: [earlier] }),
+                  onFalse: () => s,
+                }),
+              ),
+            },
+          }),
+        );
+        const { page, asked, errors } = yield* openPlayer(
+          { href: pageHref.scene(PROBE, 'two'), viewport: DESK },
+          '.sc-focus .sc-card',
+          [read, ...projectRoutes()],
+        );
+        const comment = '.sc-focus .rv-comments li[data-comment="c1"]';
+        yield* textHas(page, comment, '(earlier)');
+        yield* textHas(page, comment, 'the light is late');
+        yield* page.fill('.sc-focus .rv-comment-input', 'hold the cut');
+        yield* page.press('Enter');
+        yield* textHas(page, '[data-role="receipt"]', 'commented on two');
+        expect(
+          asked
+            .filter((a) => a.method === 'POST' && a.path === '/project/say')
+            .map((a) => Option.getOrElse(a.body, () => ({}))),
+        ).toEqual([
+          {
+            address: { _tag: 'Scenes', ids: ['two'] },
+            say: { _tag: 'Comment', text: 'hold the cut' },
+          },
+        ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('⇧-click adds scenes to the selection, and ⇧A approves them all in one say (AA-12)', () =>
     Effect.gen(function* () {
       const { page, asked, errors } = yield* openPlayer(
