@@ -12,9 +12,9 @@ import type { ClassProp, ComponentRenderFn, HTMLProps, StyleProp } from '../type
 import { useRenderElement } from '../useRenderElement.tsx';
 import { CompositeList } from './CompositeList.tsx';
 import { CompositeRootContext, type CompositeRootContextValue } from './CompositeRootContext.ts';
-import { type UseCompositeRootParameters, useCompositeRoot } from './useCompositeRoot.ts';
+import { useCompositeRoot } from './useCompositeRoot.ts';
 
-export interface CompositeRootProps<State extends object> extends UseCompositeRootParameters {
+export interface CompositeRootProps<State extends object> {
   class?: ClassProp<State> | undefined;
   style?: StyleProp<State> | undefined;
   render?: ComponentRenderFn<HTMLProps, State> | undefined;
@@ -24,14 +24,7 @@ export interface CompositeRootProps<State extends object> extends UseCompositeRo
 }
 
 export function CompositeRoot<State extends object>(props: CompositeRootProps<State>): JSX.Element {
-  const root = useCompositeRoot({
-    get orientation() {
-      return props.orientation;
-    },
-    get loopFocus() {
-      return props.loopFocus;
-    },
-  });
+  const root = useCompositeRoot();
 
   const context: CompositeRootContextValue = {
     highlightedIndex: root.highlightedIndex,

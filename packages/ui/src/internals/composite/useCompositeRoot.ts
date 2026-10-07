@@ -1,8 +1,8 @@
 // Upstream: packages/react/src/internals/composite/root/useCompositeRoot.ts
 //
 // The roving tab stop of a composite widget. One item (the highlighted one)
-// has `tabindex="0"`, the rest `-1`; arrow keys along the orientation, and
-// Home and End, move it and focus the new item, and the keydown stops there.
+// has `tabindex="0"`, the rest `-1`; the left and right arrows, and Home and
+// End, move it and focus the new item, and the keydown stops there.
 // Disabled items (by the DOM) are skipped, and a key held with a modifier is
 // left alone. When the items change, the tab stop follows its item, or falls
 // back to an enabled one when its item is gone.
@@ -17,18 +17,11 @@ import type { HTMLProps } from '../types.ts';
 import type { CompositeIndexMap } from './CompositeList.tsx';
 import {
   COMPOSITE_KEYS,
-  type CompositeOrientation,
   getCompositeNavigationIndex,
   getFallbackIndex,
   hasModifierKey,
   scrollIntoViewIfNeeded,
 } from './composite.ts';
-
-export interface UseCompositeRootParameters {
-  orientation: CompositeOrientation;
-  /** Whether arrowing past an end wraps to the other. @default true */
-  loopFocus?: boolean | undefined;
-}
 
 export interface UseCompositeRootReturnValue {
   /** The root element's props: its ref and keydown handling. */
@@ -41,7 +34,7 @@ export interface UseCompositeRootReturnValue {
   onMapChange: (map: CompositeIndexMap) => void;
 }
 
-export function useCompositeRoot(params: UseCompositeRootParameters): UseCompositeRootReturnValue {
+export function useCompositeRoot(): UseCompositeRootReturnValue {
   const [highlightedIndex, setHighlightedIndex] = createSignal(0, { ownedWrite: true });
   const elementsRef: { current: Array<HTMLElement | null> } = { current: [] };
   let rootElement: HTMLElement | null = null;
@@ -52,9 +45,7 @@ export function useCompositeRoot(params: UseCompositeRootParameters): UseComposi
     highlightedElement = elementsRef.current[index] ?? null;
     setHighlightedIndex(index);
     if (shouldScrollIntoView) {
-      untrack(() =>
-        scrollIntoViewIfNeeded(rootElement, elementsRef.current[index] ?? null, params.orientation),
-      );
+      untrack(() => scrollIntoViewIfNeeded(rootElement, elementsRef.current[index] ?? null));
     }
   };
 
@@ -108,8 +99,6 @@ export function useCompositeRoot(params: UseCompositeRootParameters): UseComposi
         key: event.key,
         highlightedIndex: current,
         elements: elementsRef.current,
-        orientation: params.orientation,
-        loopFocus: params.loopFocus ?? true,
       });
 
       if (nextIndex === current || isIndexOutOfListBounds(elementsRef.current, nextIndex)) {

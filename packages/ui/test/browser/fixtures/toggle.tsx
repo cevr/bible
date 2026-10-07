@@ -1,6 +1,9 @@
-// Fixtures for Toggle and ToggleGroup: a lone toggle (uncontrolled or
-// controlled), and a toggle group whose orientation, multiple, value
-// ownership, disabled state and cancellation come from URL params.
+// Fixtures for ToggleGroup and its toggles, owned as the lab owns them: the
+// owner holds `value` and takes every offer, unless `owner=keep-one` (the
+// lab's mode trays: one value always pressed, an offered `[]` ignored) or
+// `owner=decline` (it takes none). `value` seeds the owner's value; the
+// `set-value` button sets it to `three`. Every offer is logged as
+// `value [<values>]`.
 import type { JSX } from '@solidjs/web';
 import { createSignal } from 'solid-js';
 
@@ -9,77 +12,28 @@ import { Toggle } from '../../../src/toggle/index.ts';
 import { ToggleGroup } from '../../../src/toggle-group/index.ts';
 import { log, param } from './log.ts';
 
-function LoneToggle() {
-  const cancel = param('cancel') === 'true';
-  const [pressed, setPressed] = createSignal(false);
-  return (
-    <>
-      <Toggle
-        id="uncontrolled"
-        disabled={param('disabled') === 'true'}
-        onPressedChange={(next, details) => {
-          log(`pressed ${next} ${details.reason}`);
-          if (cancel) {
-            details.cancel();
-          }
-        }}
-      >
-        Bold
-      </Toggle>
-      <Toggle
-        id="controlled"
-        pressed={pressed()}
-        onPressedChange={(next) => log(`controlled ${next}`)}
-      >
-        Italic
-      </Toggle>
-      <button id="external" onClick={() => setPressed((value) => !value)}>
-        flip
-      </button>
-    </>
-  );
-}
-
 function Group() {
-  const orientation = param('orientation') === 'vertical' ? 'vertical' : 'horizontal';
-  const controlled = param('controlled') === 'true';
-  const cancel = param('cancel');
-  const disabledItem = param('disabledItem');
-  const defaultValue = param('defaultValue');
-  const [multiple, setMultiple] = createSignal(param('multiple') === 'true');
-  const [value, setValue] = createSignal<readonly string[]>([]);
-  const [disabled, setDisabled] = createSignal(param('disabled') === 'true');
+  const owner = param('owner');
+  const initial = param('value');
+  const [value, setValue] = createSignal<readonly string[]>(initial ? [initial] : []);
   return (
     <>
       <button id="before">before</button>
       <ToggleGroup
         id="group"
-        orientation={orientation}
-        multiple={multiple()}
-        disabled={disabled()}
-        loopFocus={param('loop') !== 'false'}
-        defaultValue={defaultValue ? defaultValue.split(',') : undefined}
-        value={controlled ? value() : undefined}
-        onValueChange={(next, details) => {
-          log(`value [${next.join(',')}] ${details.reason}`);
-          if (cancel === 'group') {
-            details.cancel();
+        value={value()}
+        onValueChange={(next) => {
+          log(`value [${next.join(',')}]`);
+          if (owner === 'decline' || (owner === 'keep-one' && next.length === 0)) {
+            return;
           }
+          setValue(next);
         }}
       >
-        <Toggle id="one" value="one" disabled={disabledItem === 'one'}>
+        <Toggle id="one" value="one">
           One
         </Toggle>
-        <Toggle
-          id="two"
-          value="two"
-          disabled={disabledItem === 'two'}
-          onPressedChange={(_, details) => {
-            if (cancel === 'toggle') {
-              details.cancel();
-            }
-          }}
-        >
+        <Toggle id="two" value="two">
           Two
         </Toggle>
         <Toggle
@@ -93,29 +47,10 @@ function Group() {
       <button id="set-value" onClick={() => setValue(['three'])}>
         set
       </button>
-      <button id="multiple" onClick={() => setMultiple((m) => !m)}>
-        multiple
-      </button>
-      <button id="disable" onClick={() => setDisabled((d) => !d)}>
-        disable
-      </button>
     </>
   );
 }
 
-function MissingValues() {
-  return (
-    <ToggleGroup multiple={param('multiple') === 'true'}>
-      <Toggle id="first">first</Toggle>
-      <Toggle id="second" value="">
-        second
-      </Toggle>
-    </ToggleGroup>
-  );
-}
-
 export const fixtures: Record<string, () => JSX.Element> = {
-  toggle: () => <LoneToggle />,
   group: () => <Group />,
-  'missing-values': () => <MissingValues />,
 };

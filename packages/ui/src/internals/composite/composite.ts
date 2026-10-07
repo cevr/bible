@@ -2,13 +2,13 @@
 // packages/react/src/internals/composite/constants.ts,
 // packages/react/src/internals/composite/root/useCompositeRoot.ts (the key logic)
 //
-// The keys a composite widget (a toggle group) moves
-// its roving tab stop with, and the pure step from one highlighted index to
-// the next: arrow keys per orientation, Home and End, wrapping at the ends,
-// skipping disabled items. Also the scroll that keeps a newly highlighted
-// item in view, and the tab stop's fallback when its item goes away. Grid
-// navigation is not ported: no part here lays items out in a grid. The parts
-// read left to right.
+// The keys a composite widget (a toggle group) moves its roving tab stop
+// with, and the pure step from one highlighted index to the next: the left
+// and right arrows, Home and End, wrapping at the ends, skipping disabled and
+// hidden items. Also the scroll that keeps a newly highlighted item in view,
+// and the tab stop's fallback when its item goes away. Vertical and grid
+// navigation are not ported: the one composite here lays its items out in a
+// row, read left to right.
 import {
   findNonDisabledListIndex,
   getMaxListIndex,
@@ -29,8 +29,6 @@ export const COMPOSITE_KEYS = new Set([ARROW_UP, ARROW_DOWN, ARROW_LEFT, ARROW_R
 
 const MODIFIER_KEYS = ['Shift', 'Control', 'Alt', 'Meta'] as const;
 
-export type CompositeOrientation = 'horizontal' | 'vertical';
-
 type ItemList = ReadonlyArray<HTMLElement | null>;
 
 /** Whether a modifier key is held (a held modifier leaves the key alone). */
@@ -42,8 +40,6 @@ export interface CompositeNavigationParameters {
   key: string;
   highlightedIndex: number;
   elements: ItemList;
-  orientation: CompositeOrientation;
-  loopFocus: boolean;
 }
 
 export interface CompositeNavigationResult {
@@ -57,7 +53,7 @@ export interface CompositeNavigationResult {
 export function getCompositeNavigationIndex(
   params: CompositeNavigationParameters,
 ): CompositeNavigationResult {
-  const { key, highlightedIndex, elements, orientation, loopFocus } = params;
+  const { key, highlightedIndex, elements } = params;
   if (!COMPOSITE_KEYS.has(key)) {
     return { index: highlightedIndex, handled: false };
   }
@@ -65,8 +61,8 @@ export function getCompositeNavigationIndex(
   const minIndex = getMinListIndex(elements);
   const maxIndex = getMaxListIndex(elements);
 
-  const isForwardKey = key === (orientation === 'vertical' ? ARROW_DOWN : ARROW_RIGHT);
-  const isBackwardKey = key === (orientation === 'vertical' ? ARROW_UP : ARROW_LEFT);
+  const isForwardKey = key === ARROW_RIGHT;
+  const isBackwardKey = key === ARROW_LEFT;
 
   let nextIndex = highlightedIndex;
   if (key === HOME) {
@@ -76,9 +72,9 @@ export function getCompositeNavigationIndex(
   }
 
   if (nextIndex === highlightedIndex && (isForwardKey || isBackwardKey)) {
-    if (loopFocus && nextIndex === maxIndex && isForwardKey) {
+    if (nextIndex === maxIndex && isForwardKey) {
       nextIndex = minIndex;
-    } else if (loopFocus && nextIndex === minIndex && isBackwardKey) {
+    } else if (nextIndex === minIndex && isBackwardKey) {
       nextIndex = maxIndex;
     } else {
       nextIndex = findNonDisabledListIndex(elements, {
@@ -103,24 +99,23 @@ export function getFallbackIndex(elements: ItemList): number {
   return Math.max(index, 0);
 }
 
-/** Scrolls `scrollContainer` the least needed to show `element`, honouring scroll margins and padding. */
+/**
+ * Scrolls `scrollContainer` along its row the least needed to show `element`,
+ * honouring scroll margins and padding.
+ */
 export function scrollIntoViewIfNeeded(
   scrollContainer: HTMLElement | null,
   element: HTMLElement | null,
-  orientation: CompositeOrientation,
 ): void {
   if (!scrollContainer || !element || !element.scrollTo) {
     return;
   }
 
   let targetX = scrollContainer.scrollLeft;
-  let targetY = scrollContainer.scrollTop;
-
   const isOverflowingX = scrollContainer.clientWidth < scrollContainer.scrollWidth;
-  const isOverflowingY = scrollContainer.clientHeight < scrollContainer.scrollHeight;
 
-  if (isOverflowingX && orientation !== 'vertical') {
-    const offsetLeft = getOffset(scrollContainer, element, 'left');
+  if (isOverflowingX) {
+    const offsetLeft = getOffset(scrollContainer, element);
     const container = getStyles(scrollContainer);
     const item = getStyles(element);
     const overflowsRight =
@@ -144,35 +139,14 @@ export function scrollIntoViewIfNeeded(
     }
   }
 
-  if (isOverflowingY && orientation !== 'horizontal') {
-    const offsetTop = getOffset(scrollContainer, element, 'top');
-    const container = getStyles(scrollContainer);
-    const item = getStyles(element);
-
-    if (offsetTop - item.scrollMarginTop < scrollContainer.scrollTop + container.scrollPaddingTop) {
-      targetY = offsetTop - item.scrollMarginTop - container.scrollPaddingTop;
-    } else if (
-      offsetTop + element.offsetHeight + item.scrollMarginBottom >
-      scrollContainer.scrollTop + scrollContainer.clientHeight - container.scrollPaddingBottom
-    ) {
-      targetY =
-        offsetTop +
-        element.offsetHeight +
-        item.scrollMarginBottom -
-        scrollContainer.clientHeight +
-        container.scrollPaddingBottom;
-    }
-  }
-
-  scrollContainer.scrollTo({ left: targetX, top: targetY, behavior: 'auto' });
+  scrollContainer.scrollTo({ left: targetX, top: scrollContainer.scrollTop, behavior: 'auto' });
 }
 
-function getOffset(ancestor: HTMLElement, element: HTMLElement, side: 'left' | 'top') {
-  const propName = side === 'left' ? 'offsetLeft' : 'offsetTop';
+function getOffset(ancestor: HTMLElement, element: HTMLElement) {
   let result = 0;
   let current = element;
   while (current.offsetParent) {
-    result += current[propName];
+    result += current.offsetLeft;
     if (current.offsetParent === ancestor) {
       break;
     }
@@ -184,13 +158,9 @@ function getOffset(ancestor: HTMLElement, element: HTMLElement, side: 'left' | '
 function getStyles(element: HTMLElement) {
   const styles = getComputedStyle(element);
   return {
-    scrollMarginTop: parseFloat(styles.scrollMarginTop) || 0,
     scrollMarginRight: parseFloat(styles.scrollMarginRight) || 0,
-    scrollMarginBottom: parseFloat(styles.scrollMarginBottom) || 0,
     scrollMarginLeft: parseFloat(styles.scrollMarginLeft) || 0,
-    scrollPaddingTop: parseFloat(styles.scrollPaddingTop) || 0,
     scrollPaddingRight: parseFloat(styles.scrollPaddingRight) || 0,
-    scrollPaddingBottom: parseFloat(styles.scrollPaddingBottom) || 0,
     scrollPaddingLeft: parseFloat(styles.scrollPaddingLeft) || 0,
   };
 }

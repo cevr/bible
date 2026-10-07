@@ -168,25 +168,22 @@ Two root props are not upstream's. `commitOnEnter` makes Enter commit typed text
 
 `import { Toggle } from '@bible/ui/toggle'`
 
-- `Toggle`: `<button aria-pressed>`, a two-state button; inside a `ToggleGroup` it joins the group's roving focus.
+- `Toggle`: `<button aria-pressed>`, a two-state button, pressed while its `value` is among its `ToggleGroup`'s; it joins the group's roving focus. It renders only inside a group.
 
-| Member   | Attribute       | Present when           |
-| -------- | --------------- | ---------------------- |
-| `Toggle` | `data-pressed`  | the toggle is pressed  |
-| `Toggle` | `data-disabled` | the toggle is disabled |
+Upstream's lone toggle (`pressed`, `defaultPressed`, `onPressedChange`) and `disabled` are left out; an option returns with its first consumer.
+
+| Member   | Attribute      | Present when          |
+| -------- | -------------- | --------------------- |
+| `Toggle` | `data-pressed` | the toggle is pressed |
 
 ### Toggle group
 
 `import { ToggleGroup } from '@bible/ui/toggle-group'`
 
-- `ToggleGroup`: `<div role="group">` sharing a pressed state among the `Toggle`s inside it.
+- `ToggleGroup`: `<div role="group">`, one of its `Toggle`s pressed at a time. Its owner holds `value`; a press offers `onValueChange` the pressed toggle's value alone, or `[]` for the one already pressed. The left and right arrows (wrapping at the ends), Home and End move its one tab stop.
   - `Toggle`: see Toggle.
 
-| Member        | Attribute          | Present when                                             |
-| ------------- | ------------------ | -------------------------------------------------------- |
-| `ToggleGroup` | `data-disabled`    | the group is disabled                                    |
-| `ToggleGroup` | `data-multiple`    | several toggles can be pressed at once (`multiple`)      |
-| `ToggleGroup` | `data-orientation` | always: `horizontal` unless `orientation` says otherwise |
+Upstream's uncontrolled mode (`defaultValue`), `multiple`, `disabled`, `orientation` and `loopFocus` are left out; an option returns with its first consumer. The group carries no attributes.
 
 ## Styling contract
 
