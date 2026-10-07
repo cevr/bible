@@ -81,7 +81,7 @@ export const startOf = (sent: Exit.Exit<NotesFile, LabFailure>): FeedState =>
   });
 
 /** The feed, starting in `initial`. */
-const feedFrom = (initial: FeedState) =>
+export const feedFrom = (initial: FeedState) =>
   Machine.make({ state: FeedState, event: FeedEvent, initial })
     .task(FeedState.Connecting, () => read, { onFailure: dropped })
     .on(FeedState.Connecting, FeedEvent.Synced, ({ event }) =>
@@ -107,9 +107,6 @@ const feedFrom = (initial: FeedState) =>
     .reenter(FeedState.Connecting, FeedEvent.Refresh, ({ state }) =>
       FeedState.Connecting({ notes: state.notes, cursor: state.cursor }),
     );
-
-/** The feed of a page with no notes yet: connecting, from nothing. */
-export const feedMachine = feedFrom(FeedState.Connecting({ notes: [], cursor: 0 }));
 
 /** The feed's actor, started in `initial` (`startOf` the notes the page was sent with). */
 export const spawnFeed = (initial: FeedState) =>

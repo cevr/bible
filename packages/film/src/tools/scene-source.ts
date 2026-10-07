@@ -624,7 +624,7 @@ const valueText = (key: TimingKey, patch: CuePatch): Option.Option<string> => {
     case 'until':
       return Option.map(Option.fromUndefinedOr(patch.until), stringText);
     case 'untilOffset':
-      // 0 is the point itself: the key is taken away (`untilOffsetDrop`), never written.
+      // 0 is the point itself: the key is taken away (`droppedBy`), never written.
       return Option.map(
         Option.filter(Option.fromUndefinedOr(patch.untilOffset), (v) => toMs(v) !== 0),
         numberText,
@@ -972,7 +972,7 @@ const sameSpan = Schema.toEquivalence(Span);
 /**
  * What of a write of `patch` to cue `cue` did not land in `after`, the text
  * written over `before`: none when the span `after` holds, decoded from its
- * text (a value it computes by its stand-in, `spanShape`), is the span
+ * text by `literalSpan` (a value it computes reads as its `STAND_IN`), is the span
  * `patch` makes of the one `before` held (`patchSpan` over `writtenPatch`);
  * else the cue, and the span it holds against the one it was to hold, or that
  * it holds none (it does not decode, as an `until` beside an `ends` would not).

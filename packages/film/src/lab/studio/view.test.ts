@@ -1,7 +1,8 @@
 // What the studio's provider derives from its recorder for the panel, so no
-// component reads the machine's states: the controls each state offers and
-// the commands that press them, the status line, the recording to review, the
-// beat list's counts and badges, the meter, and each attempt's line.
+// component reads the machine's states: the status line, the recording to
+// review, the beat list's counts and badges, the meter, and each attempt's
+// line. The controls each state offers are pressed through its commands
+// (`commands.test.ts`).
 
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
@@ -13,7 +14,6 @@ import {
   attemptLine,
   beatBadge,
   beatCounts,
-  controlsOf,
   eventOf,
   meterOf,
   micOptions,
@@ -36,8 +36,6 @@ const idle = RecorderState.Idle({ beat: 'a', kept: Option.none() });
 const failed = (refusal: TakeMismatch | SttUntimed) =>
   RecorderState.Failed({ beat: 'a', refusal, wav: Option.some(wav) });
 
-const acts = (state: RecorderState) => controlsOf(state).map((c) => c.act);
-
 describe('atRest', () => {
   test('only a recorder with no take to lose is at rest: idle, or refused with none kept', () => {
     expect(atRest(idle)).toBe(true);
@@ -48,34 +46,6 @@ describe('atRest', () => {
     expect(atRest(failed(mismatch))).toBe(false);
     expect(atRest(RecorderState.CountIn({ beat: 'a', n: 2 }))).toBe(false);
     expect(atRest(RecorderState.Review({ beat: 'a', wav }))).toBe(false);
-  });
-});
-
-describe('controlsOf', () => {
-  test('each state offers only what the recorder takes there', () => {
-    expect(acts(idle)).toEqual(['arm']);
-    expect(acts(RecorderState.CountIn({ beat: 'a', n: 2 }))).toEqual(['cancel']);
-    expect(acts(RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 }))).toEqual([
-      'stop',
-      'cancel',
-    ]);
-    expect(acts(RecorderState.Review({ beat: 'a', wav }))).toEqual(['submit', 'arm', 'discard']);
-    expect(acts(RecorderState.Importing({ beat: 'a', work: { _tag: 'Upload', wav } }))).toEqual([]);
-    expect(acts(failed(mismatch))).toEqual(['acceptAnyway', 'arm', 'retry']);
-    expect(acts(failed(SttUntimed.make({ file: 'a.wav', heard: 2 })))).toEqual(['arm', 'retry']);
-  });
-
-  test('each control is pressed by its command, as its key and its button are', () => {
-    expect(controlsOf(RecorderState.Review({ beat: 'a', wav })).map((c) => c.command)).toEqual([
-      'studio.submit',
-      'studio.record',
-      'studio.back',
-    ]);
-    expect(controlsOf(failed(mismatch)).map((c) => c.command)).toEqual([
-      'studio.submit',
-      'studio.record',
-      'studio.back',
-    ]);
   });
 });
 

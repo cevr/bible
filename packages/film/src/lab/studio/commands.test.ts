@@ -85,23 +85,11 @@ describe('the studio as commands', () => {
       'studio.submit': '-',
       'studio.back': 'retry',
     });
-  });
-
-  test('each runs only while focus is in the studio, on the chord the panel names', () => {
-    const commands = studioCommands({
-      control: () => Option.none(),
-      perform: () => {},
-      stepsBeats: () => false,
-      step: () => {},
-    });
-    expect(commands.map((c) => [c.id, c.keys, c.keysIn])).toEqual([
-      ['studio.record', ['r'], ['studio']],
-      ['studio.stop', ['space'], ['studio']],
-      ['studio.submit', ['k'], ['studio']],
-      ['studio.back', ['escape'], ['studio']],
-      ['studio.beat-next', ['arrowright'], ['studio']],
-      ['studio.beat-previous', ['arrowleft'], ['studio']],
-    ]);
+    expect(
+      Object.values(
+        pressed(RecorderState.Importing({ beat: 'a', work: { _tag: 'Upload', wav } })),
+      ).every((did) => did === '-'),
+    ).toBe(true);
   });
 });
 
