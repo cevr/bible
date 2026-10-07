@@ -48,7 +48,13 @@ export interface NumberFieldRootContextValue {
   /** Focuses the input with the caret at the end. */
   focusInput: () => void;
   setScrubbing: (scrubbing: boolean) => void;
+  /** Ends the edit by its commit, which the owner hears. */
   onValueCommitted: (value: number | null, details: NumberFieldRootCommitEventDetails) => void;
+  /**
+   * Ends the edit with no commit: the field shows the owner's value again, or,
+   * with `keepText`, keeps the typed text until that value changes.
+   */
+  discardEdit: (options?: { readonly keepText?: boolean }) => void;
   /** `false` while the input holds text the person typed and has not committed. */
   allowInputSyncRef: ValueCell<boolean>;
   /** The value steps start from: the stored value, or the dirty text just synced. */

@@ -153,8 +153,8 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
     },
   );
 
-  // A scrub stopped without its release: the lock and the scrubbing state go, with no
-  // commit and no click. A later release finds no scrub to end.
+  // A scrub stopped without its release: the lock, the scrubbing state and the scrubbed
+  // value go, with no commit and no click. A later release finds no scrub to end.
   const cancelScrub = (disposing: boolean) => {
     if (!isScrubbingNow) {
       return;
@@ -169,6 +169,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
       setIsScrubbing(false);
     }
     ctx.setScrubbing(false);
+    ctx.discardEdit();
   };
 
   // Disabled mid-scrub.

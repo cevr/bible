@@ -171,7 +171,9 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
 
     const formatOptions = ctx.format;
     const parsedValue = readTyped(inputValue);
+    // Text that does not read commits nothing: the edit ends, the text stays for fixing.
     if (parsedValue === null) {
+      ctx.discardEdit({ keepText: true });
       return;
     }
 

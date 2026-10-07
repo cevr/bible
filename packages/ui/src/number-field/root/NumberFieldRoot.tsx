@@ -4,7 +4,9 @@
 // commits: a change of the field's own (typed, stepped, scrubbed) is
 // validated (clamped, cleaned of float noise), shown and held until its
 // commit, which reports it; the field then shows the owner's value again, so
-// a value the owner takes stays and one it declines goes back. Typed text
+// a value the owner takes stays and one it declines goes back. An edit that
+// ends without a commit (a scrub cancelled or unmounted, the field disabled,
+// typed text that does not read) drops its change the same way. Typed text
 // stays as typed until it is committed on blur; steps (keys, scrub) rewrite
 // it at once.
 // Upstream's uncontrolled mode, `onValueChange`, the hidden
@@ -95,7 +97,7 @@ const ROOT_PROPS = [
   'onValueCommitted',
 ] as const;
 
-/** A change the field holds until its commit. */
+/** The change an edit (a scrub, typing, a step) holds until it ends. */
 interface Pending {
   readonly value: number | null;
 }
@@ -130,13 +132,39 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     valueRef.current = next;
   });
 
+  // Typed text that never read, kept after its edit ended: the owner's value it
+  // was left over, shown again once that value changes.
+  let keptText: { readonly over: number | null } | null = null;
+
+  // Every edit ends here, committed or discarded: its held change goes, and the
+  // field shows the owner's value again.
+  const endEdit = () => {
+    allowInputSyncRef.current = true;
+    keptText = null;
+    setPending(undefined);
+  };
+
+  const discardEdit = (options?: { readonly keepText?: boolean }) => {
+    endEdit();
+    if (options?.keepText) {
+      keptText = { over: untrack(() => props.value) };
+    }
+  };
+
   const onValueCommitted = (
     next: number | null,
     details: NumberFieldRootCommitEventDetails,
   ): void => {
-    setPending(undefined);
+    endEdit();
     untrack(() => props.onValueCommitted)?.(next, details);
   };
+
+  // A field disabled mid-edit drops the edit: a disabled field commits nothing.
+  createEffect(disabled, (isDisabled) => {
+    if (isDisabled) {
+      endEdit();
+    }
+  });
 
   const getStepAmount = (event?: EventWithOptionalKeyState): number =>
     untrack(() => {
@@ -195,12 +223,19 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
   };
 
   // The input shows the formatted value whenever it changes from outside,
-  // unless the person is typing (the text then waits for blur).
+  // unless the person is typing (the text then waits for blur) or the text
+  // that never read is kept over that same value.
   createEffect(
     () => [value(), inputValue(), props.locale, props.format] as const,
     ([next, text, locale, format]) => {
       if (!allowInputSyncRef.current) {
         return;
+      }
+      if (keptText) {
+        if (next === keptText.over) {
+          return;
+        }
+        keptText = null;
       }
       const formatted = formatNumber(next, locale, format);
       if (formatted !== text) {
@@ -286,6 +321,7 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     focusInput,
     setScrubbing: (scrubbing) => setScrubbing(scrubbing),
     onValueCommitted,
+    discardEdit,
     allowInputSyncRef,
     valueRef,
     lastChangedValueRef,

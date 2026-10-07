@@ -72,6 +72,14 @@ const lockedMove = (page: Page, movementX: number, shiftKey = false) =>
     [movementX, shiftKey] as const,
   );
 
+/** Sets the field's `disabled`, applied at once. */
+const setDisabled = (page: Page, disabled: boolean) =>
+  page.evaluate((next) => {
+    (window as unknown as { __set: (flags: { disabled: boolean }) => void }).__set({
+      disabled: next,
+    });
+  }, disabled);
+
 /** Presses the scrub area with the lock refused and drags it `dx` pixels right. */
 const dragScrubArea = async (page: Page, dx: number) => {
   await refusePointerLock(page);
@@ -325,6 +333,20 @@ describe('NumberField.Input: typing', () => {
     expect(await logOf(page)).toEqual([]);
   });
 
+  it("follows the owner's later value after a blur on text that does not read, committing nothing stale", async () => {
+    const page = await open('field', { allowExpressions: 'true', value: '5' });
+    await input(page).click();
+    await input(page).selectText();
+    await page.keyboard.type('10+');
+    await input(page).blur();
+    await see(input(page)).toHaveValue('10+');
+    await page.click('#set-42');
+    await see(input(page)).toHaveValue('42');
+    await input(page).focus();
+    await input(page).blur();
+    expect(await commitsOf(page)).toEqual([]);
+  });
+
   it('blocks characters that are not part of a number', async () => {
     const page = await open('field', { value: '5' });
     await input(page).click();
@@ -555,22 +577,39 @@ describe('NumberField.ScrubArea', () => {
     expect(await logOf(page)).toEqual(['commit 0 scrub', 'scrub-area click']);
   });
 
-  it('stops scrubbing when it becomes disabled mid-scrub', async () => {
-    const page = await open('field', { value: '0' });
+  it('stops scrubbing when it becomes disabled mid-scrub, back on the owner value', async () => {
+    const page = await open('field', { value: '5' });
     const { x, y } = await centerOf(page, 'scrub-area');
     await page.mouse.move(x, y);
     await page.mouse.down();
     await see.poll(() => page.evaluate(() => document.pointerLockElement?.tagName)).toBe('BODY');
-    await page.evaluate(() => {
-      (window as unknown as { __set: (next: { disabled: boolean }) => void }).__set({
-        disabled: true,
-      });
-    });
+    // The move scrubs; Chromium's own recentering moves may scrub on, so only the move is read.
+    expect(await lockedMove(page, 10)).toBe(10);
+    await setDisabled(page, true);
     await see(page.getByTestId('root')).not.toHaveAttribute('data-scrubbing');
     expect(await page.evaluate(() => document.pointerLockElement)).toBe(null);
+    await see(input(page)).toHaveValue('5');
     await page.mouse.up();
     // Canceled, not ended: no commit. (The release may still bring the browser's
     // own click, as the lock is gone by then.)
+    expect(await commitsOf(page)).toEqual([]);
+  });
+
+  it("follows the owner's later value after a scrub its disabling cancelled, committing nothing stale", async () => {
+    const page = await open('field', { value: '5', mirror: 'false' });
+    const { x, y } = await centerOf(page, 'scrub-area');
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await see.poll(() => page.evaluate(() => document.pointerLockElement?.tagName)).toBe('BODY');
+    expect(await lockedMove(page, 10)).toBe(10);
+    await setDisabled(page, true);
+    await page.mouse.up();
+    await setDisabled(page, false);
+    await page.click('#set-42');
+    await see(input(page)).toHaveValue('42');
+    await input(page).focus();
+    await input(page).blur();
+    await see(input(page)).toHaveValue('42');
     expect(await commitsOf(page)).toEqual([]);
   });
 
@@ -637,16 +676,19 @@ describe('NumberField.ScrubArea', () => {
     await page.mouse.up({ button: 'middle' });
   });
 
-  it('clears the scrubbing state when it unmounts mid-scrub', async () => {
+  it("clears the scrubbing state when it unmounts mid-scrub, back on the owner's value", async () => {
     const page = await open('unmounting');
     await refusePointerLock(page);
     const { x, y } = await centerOf(page, 'scrub-area');
     await page.mouse.move(x, y);
     await page.mouse.down();
     await see(page.getByTestId('root')).toHaveAttribute('data-scrubbing', '');
-    await page.mouse.move(x + 2, y);
+    // The move scrubs (10 px) before it drops the scrub area.
+    await page.mouse.move(x + 10, y);
     await see(page.getByTestId('scrub-area')).toHaveCount(0);
     await see(page.getByTestId('root')).not.toHaveAttribute('data-scrubbing');
+    await see(input(page)).toHaveValue('0');
     await page.mouse.up();
+    expect(await commitsOf(page)).toEqual([]);
   });
 });
