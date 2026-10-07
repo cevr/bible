@@ -325,16 +325,17 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   });
   onCleanup(letGo);
 
-  // A write out holds every reload (the rebuild its own scene file starts) until it is
-  // answered, so its receipt and its Undo are said before the page goes, and outlive it.
+  // A grip held holds every reload (an agent's save of any file the build reads), so the
+  // drag is not lost under the finger; a write out holds it (the rebuild its own scene file
+  // starts) until it is answered, so its receipt and its Undo are said before the page goes,
+  // and outlive it.
   const out = createMemo(() => edit()._tag === 'Writing' || edit()._tag === 'Checking');
-  createEffect(out, (writing) => {
-    Effect.runFork(
-      meta.reloads.hold(
-        'edit',
-        Option.liftPredicate('wait for the write’s answer', () => writing),
-      ),
-    );
+  const waitsFor = createMemo((): Option.Option<string> => {
+    if (holding()) return Option.some('let go of the cue or handle');
+    return Option.liftPredicate('wait for the write’s answer', () => out());
+  });
+  createEffect(waitsFor, (why) => {
+    Effect.runFork(meta.reloads.hold('edit', why));
   });
   onCleanup(() => {
     Effect.runFork(meta.reloads.hold('edit', Option.none()));

@@ -490,6 +490,39 @@ describe('the cue strip', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live('a rebuild while a cue is held waits until it is let go', () =>
+    Effect.gen(function* () {
+      const rebuild = Deferred.makeUnsafe<void>();
+      let waits = 0;
+      const { page } = yield* openLab(
+        [
+          route('GET', /^\/api\/review\/build\?/, () => {
+            waits += 1;
+            if (waits > 1) return hold;
+            return later(rebuild, json({ build: 1, server: 'lab' }));
+          }),
+        ],
+        { href: labAt(1), build: { build: 0, server: 'lab' } },
+      );
+      yield* editable(page);
+      yield* page.evaluate('window.loadedOnce = true');
+      const rebuilt = yield* page.nextAnswer((a) => a.url.includes('/api/review/build'));
+      const rise = yield* page.box('.lab-cue[data-cue="rise"]');
+      yield* page.mouse.move(rise.x + rise.width / 2, rise.y + rise.height / 2);
+      yield* page.mouse.down;
+      yield* runClock(page, 50);
+      // An agent's save of a file the build reads lands mid-press.
+      yield* Deferred.done(rebuild, Exit.void);
+      yield* rebuilt;
+      yield* runClock(page, 300);
+      yield* textHas(page, '.lab-reload-waiting', 'once you let go of the cue');
+      yield* evaluates(page, 'window.loadedOnce === true', true);
+      // Let go without a move: nothing to write, and the reload follows.
+      yield* page.mouse.up;
+      yield* evaluates(page, 'window.loadedOnce === true', false);
+    }).pipe(Effect.scoped),
+  );
+
   it.live('a write the server refuses shows its text', () =>
     Effect.gen(function* () {
       const failure = SourceRefused.make({

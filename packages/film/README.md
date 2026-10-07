@@ -900,7 +900,8 @@ recorded and answered from the timings. A reload never takes work only the
 page holds: a take being recorded, under review, refused with its recording
 or on its way, or a note being made, holds every reload (`lab/reload-gate.ts`),
 which runs once it is submitted, discarded or saved; the panel says what it
-waits for. An editor write on its way holds it too: a scene file is page
+waits for. A cue or a knob handle held in the editor holds it (the drag is
+not lost under the finger), and an editor write on its way holds it too: a scene file is page
 code, so the lab rebuilds the page as soon as the write is in, before it
 answers (its check comes first), and the reload waits for that answer, so
 the write's receipt and its Undo are said before the page goes and come back
