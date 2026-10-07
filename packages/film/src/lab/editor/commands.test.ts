@@ -111,7 +111,7 @@ describe('Undo by key or button steps the change its label names', () => {
     return { undo, stepped };
   };
 
-  test('a voice pick from another client since the history was read: the step names the cue, so the lab refuses it rather than undo the pick', () => {
+  test('with the history as the page read it, the label and the step both name its top change', () => {
     const { undo, stepped } = stepsOf(true);
     expect(undo.labelIn?.(ctx)).toBe('Undo cue rise offset');
     expect(Effect.runSync(undo.run(ctx, BY_BUTTON))).toEqual(quiet);
