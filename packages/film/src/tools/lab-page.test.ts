@@ -790,7 +790,7 @@ describe('lab pages', () => {
   );
 
   it.live(
-    'a wedge builds the pages with a file read as other text, served by its id, the file unwritten',
+    'a wedge builds the pages with a file read as other text, served by its id, the file unwritten, and never kept compressed',
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
@@ -799,13 +799,27 @@ describe('lab pages', () => {
         const shared = yield* fs.realPath(
           path.join(path.dirname(spec.pages.review), 'lib', 'shared.ts'),
         );
-        const swapped = new Map([[shared, "export const shared = 'shared swapped';\n"]]);
+        // Long enough to be worth compressing, as a build's script is kept.
+        const swapped = new Map([
+          [shared, `export const shared = 'shared swapped${' swapped'.repeat(200)}';\n`],
+        ]);
         const wedged = yield* page.wedge(swapped);
         expect(wedged.failed).toEqual(Option.none());
         expect(wedged.wedge).not.toBe('');
         const html = (yield* ask(`/?wedge=${wedged.wedge}`)).text;
         expect(html).toContain(`src="/wedge/${wedged.wedge}/`);
         expect(yield* scriptOf(`/?wedge=${wedged.wedge}`)).toContain('shared swapped');
+        // Only the easel's browser on the box asks for a wedge's files: each is sent as
+        // it is, for the server to compress per request, never squeezed at the best.
+        const src = /src="\.?(\/[^"]+\.js)"/.exec(html)?.[1] ?? '';
+        const squeezed = yield* ask(src, 'GET', { 'accept-encoding': 'br' }).pipe(
+          Effect.repeat({
+            until: (sent) => sent.encoding === 'br',
+            schedule: Schedule.spaced('50 millis'),
+          }),
+          Effect.timeoutOption('500 millis'),
+        );
+        expect(squeezed).toEqual(Option.none());
         // The pages as written, and the file, are as they were.
         expect(yield* script).toContain('shared one');
         expect(yield* fs.readFileString(shared)).toContain('shared one');

@@ -1589,14 +1589,15 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
           yield* Effect.log(`lab.page.wedge id=${id} outcome=Failed`);
           return { ...now, failed: Option.some(made.failure.reason), wedge: '' } satisfies Wedged;
         }
+        // A wedge's files are asked for only by the easel's browser on the box, so each
+        // is compressed per request, never squeezed at the best as a build's are.
         const pages = new Map<PageName, BuiltFile>();
-        const asked: Array<readonly [string, BuiltFile]> = [];
+        const files = new Map<string, AssetFile>();
         for (const { path: name, ...file } of made.success.outputs)
           Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
-            onNone: () => asked.push([`${prefix}${name}`, file]),
+            onNone: () => files.set(`${prefix}${name}`, { ...file, best: Option.none() }),
             onSome: (page) => pages.set(page, file),
           });
-        const files = yield* assetsOf(asked);
         yield* Ref.update(wedges, (kept) => [{ id, pages, files }, ...kept].slice(0, KEPT));
         yield* Effect.log(`lab.page.wedge id=${id} outcome=Built swaps=${swaps.size}`);
         return { ...now, wedge: id } satisfies Wedged;
