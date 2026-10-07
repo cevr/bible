@@ -991,8 +991,10 @@ export const pageAt = (pathname: string): Option.Option<PageName> =>
  * How the viewer's move from `from` to `to` enters history, as the place
  * `to` is on declares it (`Place.history`): a new path or a cited key is a
  * step Back walks, a refinement or the time rewrites the entry. The one
- * owner of the policy: a page names why it moves (`addressOn`), never how.
- * An href off every place is a step.
+ * owner of the policy: a page that moves for a reason names the reason
+ * (`addressOn`), never the move, and a page that sets a place's value
+ * (`UrlState.set`/`update`, `UrlAtom.place`) enters history by the same
+ * declaration. An href off every place is a step.
  */
 export const pageMove = (from: string, to: string): 'push' | 'replace' =>
   Option.match(
