@@ -53,7 +53,6 @@
 /* oxlint-disable effect/noNewPromise -- `useAtomSuspense` must hand Solid a real pending promise, and a served atom's server render waits on one. */
 /* oxlint-disable effect/noNullish -- `undefined` is Solid's own uninitialised-signal value and the registry's own optional-option encoding. */
 /* oxlint-disable effect/noRuntimeTypeof -- upstream's setter accepts `W | ((value: R) => W)`; only a runtime check separates an updater from a value. */
-/* oxlint-disable effect/noKnownValueWidening -- the overload pair on `useAtomValue` is the upstream signature. */
 /* oxlint-disable effect/noUnknownParameters -- a served atom's encoded value is its own schema's, opaque to this binding (`Atom.serializable` types it so), and any atom's value may be an `AsyncResult` still reading. */
 
 import * as Cause from 'effect/Cause';
@@ -90,27 +89,11 @@ const seedInitialValue = <A>(
  * Subscribes to an atom in the current Solid registry and returns its value as
  * a Solid accessor.
  */
-export const useAtomValue: {
-  <A>(atom: () => Atom.Atom<A>): Accessor<A>;
-  <A, B>(atom: () => Atom.Atom<A>, f: (_: A) => B): Accessor<B>;
-} = <A, B>(atom: () => Atom.Atom<A>, f?: (_: A) => B): Accessor<A | B> => {
+export const useAtomValue = <A>(atom: () => Atom.Atom<A>): Accessor<A> => {
   const registry = useRegistry();
-  if (f === undefined) return createAtomAccessor<A | B>(registry, atom);
-  // A served atom is adopted as it is, and projected through `f` here.
   const source = untrack(atom);
-  if (Atom.isSerializable(source)) {
-    const served = createServedAccessor(registry, atom, source);
-    return () => f(served());
-  }
-  // `Atom.map` makes a new atom without the source's server value, so the
-  // server value is projected through `f` here.
-  return serverAware(
-    registry,
-    atom,
-    source,
-    () => createLiveAccessor<B>(registry, () => Atom.map(atom(), f)),
-    f,
-  );
+  if (Atom.isSerializable(source)) return createServedAccessor(registry, atom, source);
+  return serverAware(registry, atom, source, () => createLiveAccessor(registry, atom));
 };
 
 const constImmediate = { immediate: true };
@@ -201,16 +184,15 @@ function createLiveAccessor<A>(
  * render effect stands in for the client's subscription, so both sides make
  * the same owners and Solid's hydration keys stay in step.
  */
-const serverAware = <S, A>(
+const serverAware = <A>(
   registry: AtomRegistry.AtomRegistry,
-  atom: () => Atom.Atom<unknown>,
-  source: Atom.Atom<S>,
+  atom: () => Atom.Atom<A>,
+  source: Atom.Atom<A>,
   live: () => Accessor<A>,
-  project: (value: S) => A,
 ): Accessor<A> => {
   if (!(Atom.ServerValueTypeId in source)) return live();
   if (!isServer && !sharedConfig.hydrating) return live();
-  const loadingValue = project(Atom.getServerValue(source, registry));
+  const loadingValue = Atom.getServerValue(source, registry);
   if (isServer) {
     createRenderEffect(atom, noop);
     return createMemo(() => loadingValue, { ssrSource: 'client', loadingValue });
@@ -218,15 +200,6 @@ const serverAware = <S, A>(
   const read = live();
   return createMemo(() => read(), { ssrSource: 'client', loadingValue });
 };
-
-function createAtomAccessor<A>(
-  registry: AtomRegistry.AtomRegistry,
-  atom: () => Atom.Atom<A>,
-): Accessor<A> {
-  const source = untrack(atom);
-  if (Atom.isSerializable(source)) return createServedAccessor(registry, atom, source);
-  return serverAware(registry, atom, source, () => createLiveAccessor(registry, atom), identity);
-}
 
 /** What a served atom's carrier holds where no server value came with the page. */
 const UNSERVED: unique symbol = Symbol('@bible/atom-solid/unserved');
@@ -326,8 +299,6 @@ function createServedAccessor<A>(
     return decoded(carrier());
   };
 }
-
-const identity = <A>(value: A): A => value;
 
 /**
  * Keep `atom` mounted for the calling computation's life. On the server an
@@ -460,21 +431,17 @@ const constUnresolvedPromise = new Promise<never>(() => {});
 /**
  * Subscribes to an `AsyncResult` atom and returns an accessor that follows
  * Solid 2's async convention: it returns the success value once available,
- * returns a pending promise while the result is initial (or waiting, when
- * `suspendOnWaiting` is set) so the nearest `<Loading>` boundary suspends, and
- * throws the squashed cause on failure so the nearest `<Errored>` boundary
- * catches it.
+ * returns a pending promise while the result is initial so the nearest
+ * `<Loading>` boundary suspends, and throws the squashed cause on failure so
+ * the nearest `<Errored>` boundary catches it.
  */
 export const useAtomSuspense = <A, E>(
   atom: () => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
-  options?: { readonly suspendOnWaiting?: boolean | undefined },
 ): Accessor<A> => {
   const result = useAtomValue(atom);
   return createMemo(() => {
     const current = result();
-    if (AsyncResult.isInitial(current) || (options?.suspendOnWaiting === true && current.waiting)) {
-      return constUnresolvedPromise;
-    }
+    if (AsyncResult.isInitial(current)) return constUnresolvedPromise;
     if (AsyncResult.isSuccess(current)) return current.value;
     throw Cause.squash(current.cause);
   });

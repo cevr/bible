@@ -403,6 +403,6 @@ export const compareOn =
  */
 export const panesMediaLayer: Layer.Layer<Media, never, Frames | Viewport> = Layer.unwrap(
   Effect.map(Effect.context<Frames | Viewport>(), (host) =>
-    Media.layerOver(pageAudio, pageSound, compareOn(host, pageSound)),
+    Media.layerOver(pageAudio, compareOn(host, pageSound)),
   ),
 );

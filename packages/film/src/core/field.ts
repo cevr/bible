@@ -95,7 +95,7 @@ export const fieldOf = (schema: Schema.Top, fps: number): FieldSpec => {
 };
 
 /** `spec`'s step for `step`. */
-export const stepOf = (spec: FieldSpec, step: Step): number =>
+const stepOf = (spec: FieldSpec, step: Step): number =>
   ({ normal: spec.step, coarse: spec.coarse, fine: spec.fine })[step];
 
 /** `value` held within `spec`'s bounds, to the thousandth (as the files keep it). */

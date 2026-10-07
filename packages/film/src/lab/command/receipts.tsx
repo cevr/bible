@@ -23,7 +23,7 @@
 
 import { Toast } from '@bible/ui/toast';
 import { For } from '@solidjs/web';
-import { Equal, Option, Schema, SchemaTransformation } from 'effect';
+import { Equal, Option, Schema } from 'effect';
 import { createEffect, createSignal, onCleanup, onSettled } from 'solid-js';
 import { type StoreRuntime, keptJson } from '../../browser/storage.ts';
 import { BY_BUTTON, type Bound, Receipt, Unfit, unfit } from '../../command/command.ts';
@@ -35,22 +35,8 @@ import { hubChanges } from './changes.ts';
 /** How long a receipt shows, by its tone (ms; 0 until replaced). */
 const SHOWN_FOR = { done: 5000, refused: 10000, busy: 0 } as const;
 
-/**
- * An approve's op and its scenes spelled as one change, `<op> <scene>…`, as
- * a tab kept an approve's binding before each id was its own. A change's id
- * (`uniqueId`) never has a space, so it is never spelled so.
- */
-const SPELLED_GAVE = /^[0-9a-z]+(-[0-9a-z]+)* \S/;
-
 /** A receipt bound to a change in the film's history, by its id. */
-const ChangeKept = Schema.Struct({
-  film: Schema.String,
-  change: ChangeId.check(
-    Schema.makeFilter(
-      (change: string) => !SPELLED_GAVE.test(change) || "an approve's op and scenes, not a change",
-    ),
-  ),
-});
+const ChangeKept = Schema.Struct({ film: Schema.String, change: ChangeId });
 
 /** A receipt bound to an approve run's approvals: its op, and the scenes it gave one to. */
 const GaveKept = Schema.Struct({
@@ -58,35 +44,13 @@ const GaveKept = Schema.Struct({
   gave: Schema.Struct({ op: OpId, scenes: Schema.Array(Schema.String) }),
 });
 
-/**
- * An approve's binding as a tab kept it before each id was its own
- * (`SPELLED_GAVE`). Read as the approve's (`GaveKept`), so its Undo still
- * withdraws what that run gave; kept again as today's, since a union
- * encodes by its first member to fit.
- */
-const SpelledGave = Schema.Struct({
-  film: Schema.String,
-  change: Schema.String.check(Schema.isPattern(SPELLED_GAVE)),
-}).pipe(
-  Schema.decodeTo(
-    GaveKept,
-    SchemaTransformation.transform({
-      decode: ({ film, change }): typeof GaveKept.Encoded => {
-        const [op = '', ...scenes] = change.split(' ');
-        return { film, gave: { op, scenes } };
-      },
-      encode: ({ film, gave }) => ({ film, change: [gave.op, ...gave.scenes].join(' ') }),
-    }),
-  ),
-);
-
 /** One receipt as a toast carries it, and as the tab keeps it across a reload. */
 const Kept = Schema.Struct({
   slot: Schema.String,
   said: Schema.String,
   undo: Schema.OptionFromOptionalKey(Schema.String),
   /** The change its Undo acts on, when it names one (`Receipt.Said.bound`). */
-  bound: Schema.OptionFromOptionalKey(Schema.Union([ChangeKept, GaveKept, SpelledGave])),
+  bound: Schema.OptionFromOptionalKey(Schema.Union([ChangeKept, GaveKept])),
   tone: Schema.Literals(['done', 'refused', 'busy']),
   /** Its Undo was pressed when it could not act: why, said until it can. */
   held: Schema.OptionFromOptionalKey(Schema.String),

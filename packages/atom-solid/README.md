@@ -19,24 +19,23 @@ Every hook reads and writes atoms through the current `AtomRegistry`
   `initialValues` seeds atoms before any read (a host's layer, a request's
   `Location`), and `defaultIdleTTL` is 400 ms unless given. The options are
   read once, when the registry is made.
-- With no provider, a page in the browser shares one standalone registry.
-- On the server there is no standalone registry: a hook outside a
-  `RegistryProvider` throws, so two requests never share atoms. Wrap each
-  render in its own provider.
+- A hook outside a `RegistryProvider` throws, in the browser as on the
+  server, so two requests never share atoms. Wrap each page, and each server
+  render, in its own provider.
 
 ## The hooks
 
 - `useAtomValue(() => atom)`: an accessor of the atom's value, subscribed for
-  the owner's life. `useAtomValue(() => atom, f)`: an accessor of `f` over it.
+  the owner's life. A value derived from it is a function at the call site
+  (`() => f(value())`).
 - `useAtomSet(() => atom)`: a setter that takes a value or an updater, without
   subscribing. With `{ mode: 'promiseExit' }`, for an `AsyncResult` atom, the
   setter resolves with the write's `Exit` and never rejects.
 - `useAtomMount(() => atom)`: keeps the atom mounted for the owner's life.
 - `useAtomRefresh(() => atom)`: a callback that refreshes the atom.
-- `useAtomSuspense(() => atom, { suspendOnWaiting? })`: for an `AsyncResult`
-  atom, an accessor that suspends the nearest `<Loading>` while the result is
-  initial (or waiting, if asked) and throws the squashed failure to the
-  nearest `<Errored>`.
+- `useAtomSuspense(() => atom)`: for an `AsyncResult` atom, an accessor that
+  suspends the nearest `<Loading>` while the result is initial and throws the
+  squashed failure to the nearest `<Errored>`.
 
 Each hook takes the atom as a thunk: when the thunk selects another atom, the
 subscription or mount moves to it. A value-carrying accessor holds the atom's
