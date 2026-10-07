@@ -23,7 +23,7 @@ import { ContentStore } from './content-store.ts';
 import { FilmFolder, FilmName } from './film-repo.ts';
 import { notes } from './notes-cli.ts';
 import { NotesStore } from './notes-store.ts';
-import { memoryFileSystem, text } from './testing.ts';
+import { memoryFileSystem, memoryLocks, text } from './testing.ts';
 
 const film = FilmName.make('tiny');
 const LAB = '/lab';
@@ -39,6 +39,7 @@ const World = Layer.unwrap(
       Layer.provide(ContentStore.layer),
       Layer.provideMerge([
         memoryFileSystem(files, new Set()),
+        memoryLocks,
         Path.layer,
         ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_LAB: LAB })),
       ]),

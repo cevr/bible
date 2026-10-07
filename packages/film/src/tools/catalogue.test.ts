@@ -44,7 +44,11 @@ describe('RenderCatalogue', () => {
       const catalogue = yield* (yield* ownCatalogue).read(project);
       expect(catalogue.comments.length).toBe(30);
       expect(new Set(catalogue.comments.map((c) => c.id)).size).toBe(30);
-      expect(yield* fs.readDirectory(out)).toEqual(['catalogue.json']);
+      // The catalogue, and its lock file, which stays; no partial.
+      expect((yield* fs.readDirectory(out)).toSorted()).toEqual([
+        '.catalogue.json.lock',
+        'catalogue.json',
+      ]);
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 

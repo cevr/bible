@@ -605,8 +605,9 @@ under the timings' lock, so a lab's Undo naming a take in another process is nev
 `timings.json` and `sound/manifest.json` are
 Schema-decoded (`@bible/film/core` `schema.ts`: durations and word times are
 non-negative, words run in order, and none ends after its take) and written
-one writer at a time across processes (`ContentStore`: a `<file>.lock` held
-for each change), so takes finishing together never lose entries.
+one writer at a time across processes (`ContentStore`: the operating
+system's lock on `.<file>.lock` beside it, held for each change and let go
+when its process ends), so takes finishing together never lose entries.
 
 **ElevenLabs stages; the owner's voice replaces it.** A film is staged with
 ElevenLabs (`narrate`), then read by a person beat by beat:

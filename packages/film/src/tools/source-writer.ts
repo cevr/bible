@@ -581,10 +581,8 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
         changed: string,
         refused: (reason: string) => E,
       ) =>
-        store.holding(
-          c.file,
+        store.holding({ file: c.file, codec: Schema.String, empty: '' }, (now) =>
           Effect.gen(function* () {
-            const now = yield* store.read({ file: c.file, codec: Schema.String, empty: '' });
             if (now !== from) return yield* Effect.fail(refused(changed));
             yield* Option.match(c.follows, {
               onNone: () => Effect.void,

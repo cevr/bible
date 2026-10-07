@@ -487,10 +487,10 @@ export class CheckFailed extends Schema.TaggedError<CheckFailed>()('CheckFailed'
 
 /** Another writer held a manifest's lock (`ContentStore`) past every try: a slow or stuck writer. */
 export class StoreLocked extends Schema.TaggedError<StoreLocked>()('StoreLocked', {
-  lock: Schema.String,
+  file: Schema.String,
 }) {
   override get message() {
-    return `${this.lock} is held by a running writer; try again once it is done (the lab log names it: store.lock.held), and it is broken only once that writer has exited`;
+    return `${this.file} is being changed by another running writer, which held its lock past every try; try again once it is done (its lock is let go the moment that writer exits)`;
   }
 }
 

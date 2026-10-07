@@ -354,12 +354,11 @@ export const putAwayUnnamed = Effect.fn('putAwayUnnamed')(function* (
   file: string,
 ) {
   const store = yield* ContentStore;
-  const unlessNamed = Effect.flatMap(store.read(paths.timings), (timings) => {
+  yield* store.holding(paths.timings, (timings) => {
     if (Object.values(timings.scenes).some((t) => t.file === file))
       return Effect.log(`takes.put-away.skipped id=${beat} file=${file} reason=named`);
     return putAwayTake(paths, beat, file);
   });
-  yield* store.holding(paths.timings.file, unlessNamed);
 });
 
 /**
@@ -382,8 +381,7 @@ export const sweepNarration = Effect.fn('Narrator.sweep')(function* (paths: Film
   const store = yield* ContentStore;
   const dir = paths.narration;
   if (!(yield* fs.exists(dir))) return;
-  const sweep = Effect.gen(function* () {
-    const timings = yield* store.read(paths.timings);
+  const sweep = Effect.fn('Narrator.sweep.held')(function* (timings: Timings) {
     const named = new Set(Object.values(timings.scenes).map((t) => t.file));
     const names = yield* fs.readDirectory(dir);
     const partials = yield* Effect.filter(
@@ -402,7 +400,7 @@ export const sweepNarration = Effect.fn('Narrator.sweep')(function* (paths: Film
     if (partials.length + stray.length > 0)
       yield* Effect.log(`narrate.sweep removed=${partials.join(',')} put-away=${stray.join(',')}`);
   });
-  yield* store.holding(paths.timings.file, sweep);
+  yield* store.holding(paths.timings, sweep);
 });
 
 /** Put one take into the timings, dropping any recorded under another voice. */
