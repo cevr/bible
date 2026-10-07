@@ -57,41 +57,56 @@ const storeOn = (files: Map<string, Uint8Array>) =>
   );
 
 /**
- * A store over `files` whose first give-back of `lock` fails to remove it (a
- * busy disk, say); the process runs on.
+ * A store over `files` whose file system is the in-memory one with `over`'s
+ * operations in place of its own (each handed the in-memory one).
  */
-const flakyStoreOn = (files: Map<string, Uint8Array>, lock: string) =>
+const storeOver = (
+  files: Map<string, Uint8Array>,
+  over: (memory: FileSystem.FileSystem) => Partial<FileSystem.FileSystem>,
+) =>
   Effect.gen(function* () {
     const memory = yield* Effect.map(
       Layer.build(memoryFileSystem(files)),
       Context.get(FileSystem.FileSystem),
     );
-    let refusals = 1;
-    const flaky = FileSystem.FileSystem.of({
-      ...memory,
-      remove: (file, options) =>
-        Effect.suspend(() => {
-          if (file !== lock || refusals === 0) return memory.remove(file, options);
-          refusals -= 1;
-          return Effect.fail(
-            PlatformError.systemError({
-              _tag: 'Busy',
-              module: 'FileSystem',
-              method: 'remove',
-              pathOrDescriptor: file,
-            }),
-          );
-        }),
-    });
+    const disk = FileSystem.FileSystem.of({ ...memory, ...over(memory) });
     return yield* Effect.map(
       Layer.build(
         ContentStore.layer.pipe(
-          Layer.provide([Layer.succeed(FileSystem.FileSystem, flaky), Path.layer]),
+          Layer.provide([Layer.succeed(FileSystem.FileSystem, disk), Path.layer]),
         ),
       ),
       Context.get(ContentStore),
     );
   });
+
+/**
+ * A store over `files` whose first give-back of `lock` fails to remove it (a
+ * busy disk, say); the process runs on.
+ */
+const flakyStoreOn = (files: Map<string, Uint8Array>, lock: string) => {
+  let refusals = 1;
+  return storeOver(files, (memory) => ({
+    remove: (file, options) =>
+      Effect.suspend(() => {
+        if (file !== lock || refusals === 0) return memory.remove(file, options);
+        refusals -= 1;
+        return Effect.fail(
+          PlatformError.systemError({
+            _tag: 'Busy',
+            module: 'FileSystem',
+            method: 'remove',
+            pathOrDescriptor: file,
+          }),
+        );
+      }),
+  }));
+};
+
+/** An entry `key` added to the assets. */
+const withAsset = (key: string) => (m: typeof Assets.Type) => ({
+  assets: { ...m.assets, [key]: { hash: key, file: `${key}.flac` } },
+});
 
 /** `effect` run while the test clock passes every wait a writer makes for another's lock. */
 const waited = <A, E>(effect: Effect.Effect<A, E>) =>
@@ -243,6 +258,38 @@ describe('ContentStore', () => {
       yield* add('a');
       expect(files.has(lock)).toBe(true);
       yield* waited(add('b'));
+      expect(Object.keys((yield* store.read(assets)).assets)).toEqual(['a', 'b']);
+      expect(files.has(lock)).toBe(false);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect('a give-back whose read fails, not finding the lock gone, keeps it as its own', () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const lock = lockFile(assets.file);
+      // The lock read once more as the change gives it back fails, as EMFILE would.
+      let failRead = false;
+      const store = yield* storeOver(files, (memory) => ({
+        readFileString: (file, encoding) =>
+          Effect.suspend(() => {
+            if (file !== lock || !failRead) return memory.readFileString(file, encoding);
+            failRead = false;
+            return Effect.fail(
+              PlatformError.systemError({
+                _tag: 'Unknown',
+                module: 'FileSystem',
+                method: 'readFileString',
+                pathOrDescriptor: file,
+                description: 'EMFILE: too many open files',
+              }),
+            );
+          }),
+      }));
+      yield* store.update(assets, (m) => {
+        failRead = true;
+        return withAsset('a')(m);
+      });
+      yield* waited(store.update(assets, withAsset('b')));
       expect(Object.keys((yield* store.read(assets)).assets)).toEqual(['a', 'b']);
       expect(files.has(lock)).toBe(false);
     }).pipe(Effect.scoped),

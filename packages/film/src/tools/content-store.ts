@@ -13,9 +13,11 @@
 // its process has), so no two takings write the same lock: a lock whose holder
 // is gone (a pid on this host that no longer runs) was left by a crash, and
 // the next writer breaks it and says so. So is one this store gave back but
-// could not remove (a busy disk): it keeps that lock's path and the very text
-// it wrote there, and its next change breaks the lock at that path only while
-// it holds that text, as its own leftover. A running holder's lock is never
+// could not remove or read back (a busy disk, no file handle left): a lock is
+// lost only on proof, no lock there or another holder's text; else it keeps
+// that lock's path and the very text it wrote there, and its next change
+// breaks the lock at that path only while it holds that text, as its own
+// leftover. A running holder's lock is never
 // broken, however long it is held, nor one held on another host; a writer
 // that waits its whole wait for one fails as StoreLocked and logs who holds it.
 //
@@ -413,26 +415,28 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         );
 
       /**
-       * Give `lock` back, if it still holds the very text this writer wrote (a
-       * lock broken as stale is someone else's now). One whose removal fails is
-       * kept as this store's leftover, its path and that text, for its next
+       * Give `lock` back, if it still holds the very text this writer wrote.
+       * It is lost only on proof: no lock there (NotFound), or another
+       * holder's text. Any other failure, of the read or the removal, keeps
+       * it as this store's leftover, its path and that text, for its next
        * change to take.
        */
       const give = (lock: string, owner: LockOwner) => {
         const written = encodeOwner(owner);
+        const lost = (why: string) =>
+          Effect.logWarning(`store.unlock.lost lock=${lock} reason="${why}"`);
         return Effect.gen(function* () {
-          const held = yield* fs.readFileString(lock).pipe(Effect.option);
-          if (Option.contains(held, written)) return yield* fs.remove(lock);
-          yield* Effect.logWarning(
-            `store.unlock.lost lock=${lock} reason="another writer holds it now"`,
-          );
+          if ((yield* fs.readFileString(lock)) !== written)
+            return yield* lost('another writer holds it now');
+          yield* fs.remove(lock);
         }).pipe(
-          Effect.catchTag('PlatformError', (error) =>
-            Effect.andThen(
+          Effect.catchTag('PlatformError', (error) => {
+            if (error.reason._tag === 'NotFound') return lost('no lock is there');
+            return Effect.andThen(
               Effect.sync(() => void leftovers.set(lock, written)),
               Effect.logWarning(`store.unlock lock=${lock} reason=${error.message}`),
-            ),
-          ),
+            );
+          }),
         );
       };
 
