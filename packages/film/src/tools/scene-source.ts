@@ -16,7 +16,7 @@
 // back on its point), an `ends` once it runs `until` a point. A write is
 // judged by the span its text holds (`cueLanded`), decoded, never rebuilt.
 
-import { Array as Arr, Match, Option, Predicate, Result, Schema } from 'effect';
+import { Array as Arr, Equal, Match, Option, Predicate, Result, Schema } from 'effect';
 import {
   type ArrayExpression,
   type CallExpression,
@@ -776,29 +776,37 @@ const removal = (
   });
 };
 
+/** Every key a span of any kind declares (`Span`'s members together). */
+type SpanKey = Span extends infer S ? (S extends unknown ? keyof S : never) : never;
+
 /**
  * What stands in for a span's value the source computes (`until: MARK`), by
  * its key: a value of the key's type, so the span still decodes and reads the
- * same on both sides of a write that leaves that value be.
+ * same on both sides of a write that leaves that value be. Every key of
+ * `Span` has one, so a key added there is a type error here until it does.
  */
-const STAND_IN: ReadonlyMap<string, string | number | boolean> = new Map<
-  string,
-  string | number | boolean
->([
-  ['mark', ''],
-  ['word', ''],
-  ['after', ''],
-  ['with', ''],
-  ['at', 'start'],
-  ['offset', 0],
-  ['dur', 0],
-  ['ends', true],
-  ['until', ''],
-  ['untilOffset', 0],
-  ['ease', 'linear'],
-  ['stagger', 0],
-  ['silence', true],
-]);
+const STAND_IN = {
+  mark: '',
+  word: '',
+  after: '',
+  with: '',
+  at: 'start',
+  offset: 0,
+  dur: 0,
+  ends: true,
+  until: '',
+  untilOffset: 0,
+  ease: 'linear',
+  stagger: 0,
+  silence: true,
+} satisfies Record<SpanKey, string | number | boolean>;
+
+/** The stand-in for a value under `key`, a key a span declares; none for a key no span has. */
+const standIn = (key: string): Option.Option<string | number | boolean> =>
+  Option.flatMap(
+    Option.liftPredicate(key, (k): k is SpanKey => Object.hasOwn(STAND_IN, k)),
+    (k) => Option.some(STAND_IN[k]),
+  );
 
 /**
  * A span object as a `Span`: every literal value as the source declares it,
@@ -815,9 +823,7 @@ const literalSpan = (span: ObjectExpression): Option.Option<Span> =>
           onSome: (key) =>
             Option.toArray(
               Option.map(
-                Option.orElse(Option.flatMap(valueOf(p), plain), () =>
-                  Option.fromUndefinedOr(STAND_IN.get(key)),
-                ),
+                Option.orElse(Option.flatMap(valueOf(p), plain), () => standIn(key)),
                 (value) => [key, value] as const,
               ),
             ),
@@ -995,7 +1001,7 @@ export const cueLanded = (
       const entries = (s: Span) => new Map(Object.entries(s));
       const [is, ought] = [entries(held.value), entries(meant.value)];
       return Arr.dedupe([...is.keys(), ...ought.keys()])
-        .filter((key) => is.get(key) !== ought.get(key))
+        .filter((key) => !Equal.equals(is.get(key), ought.get(key)))
         .map((key) => `cue ${cue} ${key}`);
     }),
   );
