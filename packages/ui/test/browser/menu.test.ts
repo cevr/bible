@@ -147,6 +147,25 @@ describe('keyboard navigation', () => {
     await see.poll(() => focused(page)).toBe('grid');
   });
 
+  it('arrow keys follow the new order after the items move while the menu is open', async () => {
+    const page = await h.open('sorted');
+    await page.focus('#trigger');
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('alpha');
+    await page.evaluate(() => (window as unknown as { __reverse: () => void }).__reverse());
+    await see(page.locator('[role="menuitem"]').first()).toHaveId('charlie');
+    // The highlight stays on alpha, the item it was on.
+    await see(page.locator('[data-highlighted]')).toHaveId('alpha');
+    // alpha is last now: the next item down wraps to charlie, then bravo.
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('charlie');
+    await see(page.locator('#charlie')).toHaveAttribute('data-highlighted', '');
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('bravo');
+    await page.keyboard.press('Home');
+    await see.poll(() => focused(page)).toBe('charlie');
+  });
+
   it('typeahead wraps the search past the highlighted item', async () => {
     const page = await h.open('menu');
     await page.click('#trigger');

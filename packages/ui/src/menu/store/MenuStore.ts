@@ -3,9 +3,10 @@
 // A menu's state: the popup's (open, mounted, active trigger, elements) plus
 // the highlighted item and how the menu opened. A context menu
 // shares its root id and mouse-up gesture flag with the context menu around it.
-import { type Accessor, createSignal } from 'solid-js';
+import { type Accessor, createSignal, untrack } from 'solid-js';
 
 import type { ContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext.ts';
+import type { CompositeIndexMap } from '../../internals/composite/CompositeList.tsx';
 import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import type { REASONS } from '../../internals/reasons.ts';
 import { createPopupStore, type PopupStore } from '../../utils/popups/popupStore.ts';
@@ -46,6 +47,11 @@ export interface MenuStore extends PopupStore {
   /** The highlighted item's index (`null` for none). */
   activeIndex: Accessor<number | null>;
   setActiveIndex: (index: number | null) => void;
+  /**
+   * Keeps the highlight on its item when the items' indexes change (items
+   * moved in the DOM while the menu is open): the item list's `onMapChange`.
+   */
+  followActiveItem: (map: CompositeIndexMap) => void;
   isActive: (index: number) => boolean;
   instantType: Accessor<MenuInstantType>;
   lastOpenChangeReason: Accessor<MenuChangeEventReason | null>;
@@ -73,6 +79,8 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
 
   const owned = { ownedWrite: true } as const;
   const [activeIndex, setActiveIndex] = createSignal<number | null>(null, owned);
+  // The highlighted item's element, so the highlight follows it when the items move.
+  let activeItem: Element | null = null;
   const [instantType, setInstantType] = createSignal<MenuInstantType>(undefined, owned);
   const [lastOpenChangeReason, setLastOpenChangeReason] =
     createSignal<MenuChangeEventReason | null>(null, owned);
@@ -86,7 +94,16 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
     openMethod: options.openMethod,
     rootId: () => contextMenu?.rootId ?? options.rootId,
     activeIndex,
-    setActiveIndex: (index) => setActiveIndex(index),
+    setActiveIndex(index) {
+      activeItem = index === null ? null : (store.itemDomElements.current[index] ?? null);
+      setActiveIndex(index);
+    },
+    followActiveItem(map) {
+      const index = activeItem ? map.get(activeItem) : undefined;
+      if (index !== undefined && index !== untrack(activeIndex)) {
+        setActiveIndex(index);
+      }
+    },
     isActive: (index) => activeIndex() === index,
     instantType,
     lastOpenChangeReason,

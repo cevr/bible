@@ -133,7 +133,11 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
           cutout={parent.type === undefined ? store.activeTriggerElement() : null}
         />
       </Show>
-      <CompositeList elementsRef={store.itemDomElements} labelsRef={store.itemLabels}>
+      <CompositeList
+        elementsRef={store.itemDomElements}
+        labelsRef={store.itemLabels}
+        onMapChange={store.followActiveItem}
+      >
         {/* Built inside the providers, so the popup and items read them. */}
         {untrack(() =>
           usePositioner(componentProps, state, {
