@@ -137,14 +137,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     store.applyMenuOpenState(nextOpen, eventDetails, { reason, instantType });
   }
 
-  if (parent.type === 'context-menu') {
-    const ctx = parent.context;
-    ctx.actionsRef.current = { setOpen };
-    createEffect(store.positionerElement, (element) => {
-      ctx.positionerRef.current = element;
-    });
-  }
-
   const dismiss = useDismiss(floatingRootContext, {
     outsidePress() {
       if (parent.type !== 'context-menu' || openEvent?.type === 'contextmenu') {

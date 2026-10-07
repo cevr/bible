@@ -22,7 +22,7 @@
 // the touch that opened the menu is cancelled, so the browser's click after
 // it does not choose the item the menu opened under the finger.
 import type { JSX } from '@solidjs/web';
-import { omit, onCleanup, onSettled } from 'solid-js';
+import { omit, onCleanup, onSettled, untrack } from 'solid-js';
 
 import { stopEvent } from '../../floating-ui-solid/utils/event.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
@@ -85,7 +85,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     });
     allowMouseUp = false;
     const details = createChangeEventDetails(REASONS.triggerPress, event);
-    contextMenu.actionsRef.current?.setOpen(true, details);
+    store.setOpen(true, details);
     if (details.isCanceled) {
       return false;
     }
@@ -130,16 +130,13 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
         allowMouseUpTimeout.clear();
         allowMouseUp = false;
         const mouseUpTarget = getTarget(mouseEvent) as Element | null;
-        if (contains(contextMenu.positionerRef.current, mouseUpTarget)) {
+        if (contains(untrack(store.positionerElement), mouseUpTarget)) {
           return;
         }
         if (mouseUpTarget && findRootOwnerId(mouseUpTarget) === contextMenu.rootId) {
           return;
         }
-        contextMenu.actionsRef.current?.setOpen(
-          false,
-          createChangeEventDetails(REASONS.cancelOpen, mouseEvent),
-        );
+        store.setOpen(false, createChangeEventDetails(REASONS.cancelOpen, mouseEvent));
       },
       { once: true, signal: controller.signal },
     );

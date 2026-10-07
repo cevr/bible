@@ -45,8 +45,6 @@ export function ContextMenuRoot(props: ContextMenuRootProps): JSX.Element {
       setAnchor(() => next);
     },
     internalBackdropRef: { current: null },
-    actionsRef: { current: null },
-    positionerRef: { current: null },
     allowMouseUpTriggerRef: { current: true },
     initialCursorPointRef: { current: null },
     rootId: createUniqueId(),
