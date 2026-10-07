@@ -3,26 +3,16 @@
 // packages/react/src/menu/group-label/MenuGroupLabel.tsx
 //
 // A `role="group"` of related items, labelled by its `Menu.GroupLabel`
-// (the label registers its id with the group from an effect, as a dialog's
-// title does, so a server render writes no signal).
+// (the label registers its id with the group as a dialog's title does).
 import type { JSX } from '@solidjs/web';
-import {
-  createContext,
-  createEffect,
-  createSignal,
-  createUniqueId,
-  omit,
-  untrack,
-  useContext,
-} from 'solid-js';
+import { createContext, createSignal, omit, untrack, useContext } from 'solid-js';
 
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
+import { type RegisterId, useRegisteredId } from '../../utils/useRegisteredId.ts';
 
-/** Sets (or, with the previous id, clears) the id labelling the group. */
-export type MenuGroupContextValue = (
-  update: (current: string | undefined) => string | undefined,
-) => void;
+/** Sets the id labelling the group. */
+export type MenuGroupContextValue = RegisterId;
 
 export const MenuGroupContext = createContext<MenuGroupContextValue | null>(null);
 
@@ -73,13 +63,7 @@ export interface MenuGroupLabelProps extends BaseUIComponentProps<'div', MenuGro
 /** The label of a `Menu.Group`; hidden from assistive tech, which reads it as the group's name. */
 export function MenuGroupLabel(componentProps: MenuGroupLabelProps): JSX.Element {
   const elementProps = omit(componentProps, 'class', 'style', 'render', 'id');
-  const fallbackId = createUniqueId();
-  const id = () => componentProps.id || fallbackId;
-  const setLabelId = useMenuGroupRootContext();
-  createEffect(id, (value) => {
-    setLabelId(() => value);
-    return () => setLabelId((current) => (current === value ? undefined : current));
-  });
+  const id = useRegisteredId(componentProps, useMenuGroupRootContext());
   return useRenderElement('div', componentProps, {
     props: [
       {

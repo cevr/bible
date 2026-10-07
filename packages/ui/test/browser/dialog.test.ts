@@ -40,6 +40,16 @@ describe('Dialog.Root', () => {
     expect(await logOf(page)).not.toContainEqual(expect.stringMatching(/^open /));
   });
 
+  it("keeps a newer title's id when an older title unmounts", async () => {
+    const page = await h.open('dialog', { query: { titles: 'two' } });
+    await page.click('#open');
+    const popup = page.locator('#popup');
+    await see(popup).toHaveAttribute('aria-labelledby', 'title-2');
+    await page.evaluate(() => (window as unknown as { __dropTitle: () => void }).__dropTitle());
+    await see(page.locator('#title')).toHaveCount(0);
+    await see(popup).toHaveAttribute('aria-labelledby', 'title-2');
+  });
+
   it('closes from Dialog.Close with reason close-press', async () => {
     const page = await h.open('dialog');
     await page.click('#open');

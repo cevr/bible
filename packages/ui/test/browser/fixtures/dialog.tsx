@@ -4,9 +4,10 @@
 // `modal=false` (a drawer's), `dismissal=disabled` for
 // `disablePointerDismissal`, `backdrop=user` for a `Dialog.Backdrop`,
 // `owner=keep` for an owner that keeps `open` true through a close request,
-// `tall=true` for a page that scrolls.
+// `tall=true` for a page that scrolls, `titles=two` for a second title
+// after the first, which `window.__dropTitle()` unmounts.
 import type { JSX } from '@solidjs/web';
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 
 import { Dialog } from '../../../src/dialog/index.ts';
 import { log, param } from './log.ts';
@@ -24,6 +25,8 @@ function ownerOpen(id: string) {
 
 function BasicDialog(): JSX.Element {
   const owner = ownerOpen('open');
+  const [firstTitle, setFirstTitle] = createSignal(true);
+  (window as unknown as { __dropTitle: () => void }).__dropTitle = () => setFirstTitle(false);
   return (
     <div style={{ padding: '20px', height: param('tall') === 'true' ? '3000px' : undefined }}>
       <button type="button" id="outside">
@@ -45,7 +48,10 @@ function BasicDialog(): JSX.Element {
         <Dialog.Portal id="portal">
           {param('backdrop') === 'user' ? <Dialog.Backdrop id="backdrop" /> : null}
           <Dialog.Popup id="popup">
-            <Dialog.Title id="title">Title</Dialog.Title>
+            <Show when={firstTitle()}>
+              <Dialog.Title id="title">Title</Dialog.Title>
+            </Show>
+            {param('titles') === 'two' ? <Dialog.Title id="title-2">Second</Dialog.Title> : null}
             <Dialog.Description id="description">Description</Dialog.Description>
             <button type="button" id="first">
               first
