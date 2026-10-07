@@ -1188,4 +1188,82 @@ describe('the inspector', () => {
         ]);
       }).pipe(Effect.scoped),
   );
+
+  it.live(
+    'a write this page made while the history was being read again is not covered by that read: Undo names none and steps the newest',
+    () =>
+      Effect.gen(function* () {
+        const mine = {
+          scene: 'one',
+          file: 'scenes/one.ts',
+          target: 'cue fall offset',
+          change: 'k1',
+        };
+        const theirs = { scene: 'one', file: 'scenes/one.ts', target: 'voice b1', change: 'k2' };
+        // The history read again after the refusal answers only once let.
+        const reread = Deferred.makeUnsafe<void>();
+        let reads = 0;
+        const { page, asked } = yield* openLab(
+          [
+            route('GET', /^\/check$/, () => {
+              reads += 1;
+              if (reads === 1) return json({ findings: [], undo: mine });
+              return later(reread, json({ findings: [], undo: theirs }));
+            }),
+            route('POST', /^\/undo$/, (request) => {
+              if (Option.exists(request.body, (b) => Predicate.hasProperty(b, 'change')))
+                return refused(
+                  StepNotNewest.make({
+                    verb: 'undo',
+                    reason: 'voice b1 came after it: undo that first',
+                  }),
+                );
+              return json({
+                ...mine,
+                target: 'undo cue rise offset',
+                change: changeOf('cue'),
+                findings: [],
+              });
+            }),
+          ],
+          { href: labAt(1) },
+        );
+        yield* editable(page);
+        yield* page.waitFor('.sh-header [data-act="undo"]:not([disabled])');
+        // 1. Undo k1 is refused: another client's change came after it.
+        yield* page.click('.sh-header [data-act="undo"]:not([disabled])');
+        yield* statusSays(page, 'voice b1 came after it: undo that first');
+        // 2. The history is read again; its answer, naming k2, is out.
+        yield* Effect.sync(() => reads).pipe(
+          Effect.repeat({
+            until: (n) => n >= 2,
+            schedule: Schedule.spaced('10 millis'),
+            times: 500,
+          }),
+        );
+        // 3. This page's write lands, a change that read cannot hold.
+        yield* dragBar(page, 'rise', 0.5, 60);
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        // 4. The read lands, naming k2: it predates the write, so Undo names none.
+        const landed = yield* page.nextAnswer((a) => a.url.endsWith('/check'));
+        yield* Deferred.done(reread, Exit.void);
+        yield* landed;
+        yield* runClock(page, 100);
+        yield* evaluates(
+          page,
+          `document.querySelector('.sh-header [data-act="undo"]').title.includes('voice b1')`,
+          false,
+        );
+        yield* page.click('.sh-header [data-act="undo"]:not([disabled])');
+        yield* statusSays(page, 'undid cue rise offset');
+        expect(
+          posted(asked)
+            .filter((a) => a.path === '/undo')
+            .map((a) => a.body),
+        ).toEqual([
+          Option.some({ request: expect.any(String), change: 'k1' }),
+          Option.some({ request: expect.any(String) }),
+        ]);
+      }).pipe(Effect.scoped),
+  );
 });

@@ -1162,8 +1162,9 @@ change another client made since (a voice pick, a studio keep) is refused
 (`StepNotNewest`) rather than stepped in its place, and the refusal reads
 the history again, so the label and the change the next press names move to
 the stack as it is now; once the page has
-changed the stack itself, before it reloads onto the new history, the
-label names none and the step is the newest. A done receipt
+changed the stack itself since the history it holds was asked for (each
+read carries the count it was asked at, each change the page made the
+count it landed at), the label names none and the step is the newest. A done receipt
 shows 5 s, a refusal 10 s, a busy one until replaced. The lab reloads after
 a scene write; the receipts showing as the page hides are kept in the tab
 (`film-receipts` in `TabStore`, for the same page: the lab's film, or the

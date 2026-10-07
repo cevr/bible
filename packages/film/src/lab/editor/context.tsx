@@ -158,7 +158,18 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   const sources = Atom.family((scene: string) =>
     runtime.atom(LabApi.use((api) => api.source(scene))),
   );
-  const checkAtom = runtime.atom(LabApi.use((api) => api.check));
+  // One count orders this page's history reads and the changes its writes made: each read
+  // carries the count it was asked at, so it can claim only the changes made before it.
+  let count = 0;
+  const next = () => {
+    count += 1;
+    return count;
+  };
+  const checkAtom = runtime.atom(
+    Effect.flatMap(Effect.sync(next), (asked) =>
+      LabApi.use((api) => Effect.map(api.check, (report) => ({ report, asked }))),
+    ),
+  );
 
   const stripScene = lab.scene;
   const inspected = createMemo(() =>
@@ -169,7 +180,8 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   const stripSource = createMemo(() => knownOf(stripResult()));
   const inspectedSource = createMemo(() => knownOf(inspectedResult()));
   const checked = useAtomValue(() => checkAtom);
-  const report = createMemo(() => AsyncResult.value(checked()));
+  const read = createMemo(() => AsyncResult.value(checked()));
+  const report = createMemo(() => Option.map(read(), (r) => r.report));
 
   const kept = useAtomValue(() => keptSnap);
   const keep = useAtomSet(() => keptSnap);
@@ -356,18 +368,20 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     },
   );
 
-  // The changes this page's writes and steps made since it last read the history: that read predates them.
-  const [madeHere, setMadeHere] = createSignal<ReadonlySet<ChangeId>>(new Set());
+  // The changes this page's writes and steps made, each with the count it landed at.
+  const [made, setMade] = createSignal<ReadonlyMap<ChangeId, number>>(new Map());
   createEffect(
     () => edit(),
     (state) => {
       if (state._tag === 'Written')
-        Option.map(state.change, (c) => setMadeHere((made) => new Set([...made, c])));
+        Option.map(state.change, (c) => setMade((m) => new Map([...m, [c, next()]])));
     },
   );
-  // A history read again holds every change made before it, this page's as well.
-  createEffect(report, () => {
-    setMadeHere(new Set<ChangeId>());
+  // Those the history as read cannot hold: made after that read was asked. A read asked
+  // after a change holds it; one asked before does not, whenever its answer lands.
+  const madeHere = createMemo(() => {
+    const asked = Option.match(read(), { onNone: () => 0, onSome: (r) => r.asked });
+    return new Set([...made()].filter(([, at]) => at > asked).map(([c]) => c));
   });
   // A step refused (another client's change came after the one it named, or the change is
   // gone) reads the history again, so Undo's label and the change it names move together
