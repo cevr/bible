@@ -158,6 +158,20 @@ describe('Drawer.Root', () => {
     ]);
   });
 
+  it('focuses the element initialFocus returns on open', async () => {
+    const page = await h.open('drawer', { query: { initial: 'first' } });
+    await page.click('#open');
+    await see(page.locator('#popup')).toBeVisible();
+    await see.poll(() => focused(page)).toBe('first');
+  });
+
+  it('leaves focus where it was when initialFocus returns false', async () => {
+    const page = await h.open('drawer', { query: { initial: 'false' } });
+    await page.click('#open');
+    await see(page.locator('#popup')).toBeVisible();
+    await see.poll(() => focused(page)).toBe('open');
+  });
+
   it('takes its swipe direction per instance', async () => {
     const page = await h.open('drawer', { query: { direction: 'right' } });
     await openDrawer(page);

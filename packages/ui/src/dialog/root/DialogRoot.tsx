@@ -21,7 +21,6 @@ import {
   createDialogStore,
   type DialogChangeEventDetails,
   type DialogChangeEventReason,
-  type DialogModal,
 } from '../store/DialogStore.ts';
 import { DialogRootContext } from './DialogRootContext.ts';
 
@@ -32,13 +31,11 @@ export interface DialogRootState {}
 export interface DialogRootProps {
   open?: boolean | undefined;
   /**
-   * Whether the open dialog is modal.
-   * - `true`: focus is trapped, page scroll is locked, and outside pointer interaction is blocked.
-   * - `false`: the rest of the page stays interactive.
-   * - `'trap-focus'`: focus is trapped, but page scroll and outside pointer interaction are not blocked.
-   * @default true
+   * Whether the open dialog is modal: focus trapped, page scroll locked and
+   * outside pointer interaction blocked. Otherwise the rest of the page stays
+   * interactive. @default true
    */
-  modal?: DialogModal | undefined;
+  modal?: boolean | undefined;
   onOpenChange?: ((open: boolean, eventDetails: DialogChangeEventDetails) => void) | undefined;
   /** Called after the open or close transition finishes. */
   onOpenChangeComplete?: ((open: boolean) => void) | undefined;
@@ -55,7 +52,7 @@ export interface DialogRootProps {
  * Doesn't render its own HTML element.
  */
 export function DialogRoot(props: DialogRootProps): JSX.Element {
-  const modal = (): DialogModal => props.modal ?? true;
+  const modal = () => props.modal ?? true;
   const disablePointerDismissal = () => props.disablePointerDismissal ?? false;
 
   const store = createDialogStore({
@@ -72,11 +69,7 @@ export function DialogRoot(props: DialogRootProps): JSX.Element {
       if (store.internalBackdropRef.current || store.backdropRef.current) {
         return 'intentional';
       }
-      // A trap-focus dialog drops `aria-hidden` from the page at once on an outside press.
-      return {
-        mouse: untrack(modal) === 'trap-focus' ? 'sloppy' : 'intentional',
-        touch: 'sloppy',
-      };
+      return { mouse: 'intentional', touch: 'sloppy' };
     },
     outsidePress(event) {
       // Only the main button; a touch counts when it is a single finger.
@@ -115,7 +108,7 @@ export function DialogRoot(props: DialogRootProps): JSX.Element {
     },
   });
 
-  useScrollLock(() => store.open() && modal() === true, store.popupElement);
+  useScrollLock(() => store.open() && modal(), store.popupElement);
 
   const context: DialogRootContext = {
     store,

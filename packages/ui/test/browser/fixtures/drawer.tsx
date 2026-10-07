@@ -3,7 +3,8 @@
 // closes reach the owner through `onOpenChange`. URL params for `drawer`:
 // `direction` (the root's `swipeDirection`: `down` by default, or `right`
 // for a side sheet), `modal=false`, `owner=cancel` for an owner that cancels
-// every close. `async-owner` is the studio's shape: an
+// every close, `initial=first|false` for an `initialFocus` that returns the
+// first button or `false`. `async-owner` is the studio's shape: an
 // `open` that stays true, under a page that drops the drawer later.
 //
 // The bottom sheet is 300px tall on an 800x600 page (its top edge at y=300);
@@ -47,6 +48,10 @@ function ownerOpen(id: string) {
 function BasicDrawer(): JSX.Element {
   const owner = ownerOpen('open');
   const direction = directionParam();
+  let first: HTMLElement | undefined;
+  const initial = param('initial');
+  const initialFocus =
+    initial === 'first' ? () => first ?? true : initial === 'false' ? () => false : undefined;
   return (
     <div>
       <style>{STYLES}</style>
@@ -69,10 +74,15 @@ function BasicDrawer(): JSX.Element {
       >
         <Drawer.Portal>
           <Drawer.Viewport id="viewport" class="viewport">
-            <Drawer.Popup id="popup" class="popup">
+            <Drawer.Popup id="popup" class="popup" initialFocus={initialFocus}>
               <Drawer.Title id="title">Sheet</Drawer.Title>
               <Drawer.Content id="content">Selectable text</Drawer.Content>
-              <button type="button" id="first" style={{ height: '100px' }}>
+              <button
+                type="button"
+                id="first"
+                ref={(el) => (first = el)}
+                style={{ height: '100px' }}
+              >
                 first
               </button>
               <Drawer.Close id="close">Close</Drawer.Close>

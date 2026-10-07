@@ -103,7 +103,6 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
       openInteractionType={store.openMethod()}
       modal={isContextMenu}
       disabled={!store.mounted()}
-      returnFocus
       initialFocus
       restoreFocus
       getInsideElements={

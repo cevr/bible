@@ -160,11 +160,6 @@ export interface FloatingFocusManagerProps {
    * popup), `false` nothing, an element, or a function of the open type.
    */
   initialFocus?: FocusTarget | undefined;
-  /**
-   * What takes focus on close: `true` the trigger (or what had focus before),
-   * `false` nothing, an element, or a function of the close type.
-   */
-  returnFocus?: FocusTarget | undefined;
   /** Where focus goes when the focused element inside is removed: `true` a nearby tabbable, `'popup'` the popup. */
   restoreFocus?: boolean | 'popup' | undefined;
   /** Whether focus is trapped inside and the rest of the page hidden from assistive tech. */
@@ -189,27 +184,11 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   const closeOnFocusOut = () => props.closeOnFocusOut ?? true;
   const restoreFocus = () => props.restoreFocus ?? false;
   const initialFocus = () => props.initialFocus ?? true;
-  const returnFocus = () => props.returnFocus ?? true;
   const openInteractionType = () =>
     props.openInteractionType === undefined ? '' : props.openInteractionType;
   const floatingFocusElement = () => getFloatingFocusElement(context.floatingElement());
 
   let preventReturnFocus = false;
-
-  // The return target as it stood while the manager was enabled. A popup derives it from
-  // state its own close clears (a menu returns focus only while its active trigger is
-  // known, and that reads null once unmounted), so the value read at close is the last
-  // one from before the manager was disabled. React gets the same from its unmounted
-  // manager keeping its last props.
-  let enabledReturnFocus = untrack(returnFocus);
-  createEffect(
-    () => [disabled(), returnFocus()] as const,
-    ([isDisabled, value]) => {
-      if (!isDisabled) {
-        enabledReturnFocus = value;
-      }
-    },
-  );
   let isPointerDown = false;
   let pointerDownOutside = false;
   let focusOutHandledByPortal = false;
@@ -614,30 +593,17 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
       };
       events.on('openchange', onOpenChangeLocal);
 
-      const getReturnElement = (type: InteractionType) => {
-        const value = enabledReturnFocus;
-        let resolved = typeof value === 'function' ? value(type) : value;
-        if (resolved === undefined || resolved === false) {
-          return null;
-        }
-        if (resolved === null) {
-          resolved = true;
-        }
+      // The trigger, or what had focus before the popup opened.
+      const getReturnElement = () => {
         const referenceReturnElement = domReference?.isConnected ? domReference : null;
         const previousReturnElement =
           elementFocusedBeforeOpen?.isConnected && getNodeName(elementFocusedBeforeOpen) !== 'body'
             ? elementFocusedBeforeOpen
             : null;
-        let defaultReturnElement = preferPreviousFocus
+        const defaultReturnElement = preferPreviousFocus
           ? previousReturnElement || referenceReturnElement
           : referenceReturnElement || previousReturnElement;
-        if (!defaultReturnElement) {
-          defaultReturnElement = getPreviouslyFocusedElement() || null;
-        }
-        if (typeof resolved === 'boolean') {
-          return defaultReturnElement;
-        }
-        return resolveRef(resolved) || defaultReturnElement || null;
+        return defaultReturnElement || getPreviouslyFocusedElement() || null;
       };
 
       return () => {
@@ -648,8 +614,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
           getResolvedInsideElements().some(
             (element) => element === activeEl || contains(element, activeEl),
           );
-        const returnFocusValue = enabledReturnFocus;
-        const returnElement = getReturnElement(closeType);
+        const returnElement = getReturnElement();
         const job = { cancelled: false };
         pendingReturnFocus = job;
 
@@ -658,17 +623,12 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
             pendingReturnFocus = null;
           }
           const tabbableReturnElement = getFirstTabbableElement(returnElement);
-          // An element or function is an explicit target, returned to even if focus moved elsewhere.
-          const hasExplicitReturnFocus = typeof returnFocusValue !== 'boolean';
           if (
             !job.cancelled &&
-            returnFocusValue &&
             !preventReturnFocus &&
             isHTMLElement(tabbableReturnElement) &&
             // Focus that moved elsewhere after open is respected (floating-ui#2607).
-            (!hasExplicitReturnFocus && tabbableReturnElement !== activeEl && activeEl !== doc.body
-              ? isFocusInside
-              : true)
+            (tabbableReturnElement !== activeEl && activeEl !== doc.body ? isFocusInside : true)
           ) {
             const focusOptions: FocusOptions & { focusVisible?: boolean } = {
               preventScroll: true,

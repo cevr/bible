@@ -68,7 +68,7 @@ The other members set the menu's attributes and CSS variables (see Menu).
       - `Dialog.Description`: `<p>` that describes the popup.
       - `Dialog.Close`: `<button>` that closes the dialog.
 
-Upstream's trigger, `Dialog.Viewport`, nested dialog stacks (`data-nested`, `data-nested-dialog-open`, `--nested-dialogs`, the backdrop's `forceRender`), `defaultOpen`, the portal's `keepMounted` and `actionsRef` are left out; a part returns with its first consumer. Dialogs open side by side close one at a time, newest first.
+Upstream's trigger, `Dialog.Viewport`, nested dialog stacks (`data-nested`, `data-nested-dialog-open`, `--nested-dialogs`, the backdrop's `forceRender`), `defaultOpen`, the portal's `keepMounted` and `actionsRef`, the `'trap-focus'` modal mode (`modal` is a boolean) and the popup's `initialFocus` and `finalFocus` are left out; a part or an option returns with its first consumer. Dialogs open side by side close one at a time, newest first.
 
 | Member     | Attribute                                   | Present when                                             |
 | ---------- | ------------------------------------------- | -------------------------------------------------------- |
@@ -87,11 +87,11 @@ Upstream's trigger, `Dialog.Viewport`, nested dialog stacks (`data-nested`, `dat
 - `Drawer.Root`: no element; a dialog that slides in from an edge (`swipeDirection`, `down` by default) and swipes away.
   - `Drawer.Portal`: the dialog's portal `<div>`.
     - `Drawer.Viewport`: `<div role="presentation">` that carries the swipe.
-      - `Drawer.Popup`: `<div role="dialog">`.
+      - `Drawer.Popup`: `<div role="dialog">` that takes focus on open, or gives it to what its `initialFocus` function returns (`false` for nothing).
         - `Drawer.Content`: `<div data-drawer-content>`, a region where a mouse press never starts a swipe.
         - `Drawer.Title`, `Drawer.Close`: the dialog's `<h2>` and `<button>`.
 
-Upstream's swipe area, backdrop, description, snap points, nested drawer stacks (and a drawer's `data-nested` inside a dialog), `defaultOpen` and the provider's indent are left out; a part returns with its first consumer.
+Upstream's swipe area, backdrop, description, snap points, nested drawer stacks (and a drawer's `data-nested` inside a dialog), `defaultOpen`, the provider's indent, the root's `onOpenChangeComplete` and the popup's `finalFocus` are left out; a part or an option returns with its first consumer.
 
 A swipe released past half the popup (or flicked) calls `onOpenChange(false, details)` with the reason `swipe`. An owner that refuses it calls `details.cancel()`, and the sheet springs back. Otherwise the sheet holds its exit pose (`data-swipe-dismiss`, `data-ending-style`) until the owner closes the drawer, however many frames later. Upstream instead reads `open` still being true a frame later as a refusal. An owner that neither cancels nor closes leaves the sheet held in its exit pose, with no timeout. Every film owner closes.
 

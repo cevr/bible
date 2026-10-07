@@ -55,7 +55,7 @@ export function DialogPortal(props: DialogPortalProps): JSX.Element {
     <Show when={store.mounted()}>
       <DialogPortalContext value={true}>
         <FloatingPortal {...props}>
-          <Show when={store.modal() === true}>
+          <Show when={store.modal()}>
             <ModalBackdrop />
           </Show>
           {props.children}

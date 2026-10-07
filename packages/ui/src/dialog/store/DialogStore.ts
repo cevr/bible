@@ -22,11 +22,9 @@ export type DialogChangeEventReason =
 
 export type DialogChangeEventDetails = BaseUIChangeEventDetails<DialogChangeEventReason>;
 
-export type DialogModal = boolean | 'trap-focus';
-
 export interface DialogStoreOptions {
   openProp: () => boolean | undefined;
-  modal: Accessor<DialogModal>;
+  modal: Accessor<boolean>;
   disablePointerDismissal: Accessor<boolean>;
   floatingId: string;
   onOpenChange: () => ((open: boolean, eventDetails: DialogChangeEventDetails) => void) | undefined;
@@ -34,7 +32,7 @@ export interface DialogStoreOptions {
 }
 
 export interface DialogStore extends PopupStore {
-  modal: Accessor<DialogModal>;
+  modal: Accessor<boolean>;
   disablePointerDismissal: Accessor<boolean>;
   titleElementId: Accessor<string | undefined>;
   setTitleElementId: (id: string | undefined) => void;

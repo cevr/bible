@@ -1,27 +1,15 @@
 // Fixtures for the dialog. Every dialog is opened as a page opens one: its
 // owner holds `open`, a plain button sets it, and the dialog's own closes
-// reach the owner through `onOpenChange`. URL params for `dialog`: `modal`
-// (`true`, `false`, `trap-focus`), `dismissal=disabled` for
-// `disablePointerDismissal`, `initial=input|false|function` and
-// `final=outside|false` for the popup's focus props, `backdrop=user` for a
-// `Dialog.Backdrop`, `owner=keep` for an owner that keeps `open` true
-// through a close request, `tall=true` for a page that scrolls.
+// reach the owner through `onOpenChange`. URL params for `dialog`:
+// `modal=false` (a drawer's), `dismissal=disabled` for
+// `disablePointerDismissal`, `backdrop=user` for a `Dialog.Backdrop`,
+// `owner=keep` for an owner that keeps `open` true through a close request,
+// `tall=true` for a page that scrolls.
 import type { JSX } from '@solidjs/web';
 import { createSignal } from 'solid-js';
 
-import { Dialog, type DialogFocusTarget } from '../../../src/dialog/index.ts';
+import { Dialog } from '../../../src/dialog/index.ts';
 import { log, param } from './log.ts';
-
-function modalParam(): boolean | 'trap-focus' {
-  const value = param('modal');
-  if (value === 'false') {
-    return false;
-  }
-  if (value === 'trap-focus') {
-    return 'trap-focus';
-  }
-  return true;
-}
 
 /** An owner's open state and the plain button that opens it. */
 function ownerOpen(id: string) {
@@ -36,36 +24,15 @@ function ownerOpen(id: string) {
 
 function BasicDialog(): JSX.Element {
   const owner = ownerOpen('open');
-  const inputRef: { current: HTMLElement | null } = { current: null };
-  const outsideRef: { current: HTMLElement | null } = { current: null };
-  const initial = param('initial');
-  const final = param('final');
-  let initialFocus: DialogFocusTarget | undefined;
-  if (initial === 'input') {
-    initialFocus = inputRef;
-  } else if (initial === 'false') {
-    initialFocus = false;
-  } else if (initial === 'function') {
-    initialFocus = (type) => {
-      log(`initialFocus "${type}"`);
-      return inputRef.current;
-    };
-  }
-  let finalFocus: DialogFocusTarget | undefined;
-  if (final === 'outside') {
-    finalFocus = outsideRef;
-  } else if (final === 'false') {
-    finalFocus = false;
-  }
   return (
     <div style={{ padding: '20px', height: param('tall') === 'true' ? '3000px' : undefined }}>
-      <button type="button" id="outside" ref={(el) => (outsideRef.current = el)}>
+      <button type="button" id="outside">
         outside
       </button>
       <owner.Opener>Open</owner.Opener>
       <Dialog.Root
         open={owner.open()}
-        modal={modalParam()}
+        modal={param('modal') !== 'false'}
         disablePointerDismissal={param('dismissal') === 'disabled'}
         onOpenChange={(open, details) => {
           log(`open ${open} ${details.reason}`);
@@ -77,13 +44,13 @@ function BasicDialog(): JSX.Element {
       >
         <Dialog.Portal id="portal">
           {param('backdrop') === 'user' ? <Dialog.Backdrop id="backdrop" /> : null}
-          <Dialog.Popup id="popup" initialFocus={initialFocus} finalFocus={finalFocus}>
+          <Dialog.Popup id="popup">
             <Dialog.Title id="title">Title</Dialog.Title>
             <Dialog.Description id="description">Description</Dialog.Description>
             <button type="button" id="first">
               first
             </button>
-            <input id="input" ref={(el) => (inputRef.current = el)} />
+            <input id="input" />
             <Dialog.Close id="close">Close</Dialog.Close>
           </Dialog.Popup>
         </Dialog.Portal>
