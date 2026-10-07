@@ -48,7 +48,7 @@ import { useLab } from '../shell.tsx';
 import {
   CueGrip,
   KnobGrip,
-  type SourceKnown,
+  SourceKnown,
   type Write,
   cueRefusal,
   fieldsOf,
@@ -56,6 +56,7 @@ import {
   knobRefusal,
   placesFreely,
   snapTargets,
+  unreadFor,
 } from './grip.ts';
 import { type Handle, knobMode } from './handles.ts';
 import { cueDestinations, editorCommands, snapOf, snapText } from './commands.ts';
@@ -142,9 +143,9 @@ export const useEditor = (): EditorContextValue => useContext(EditorContext);
 /** A source read as the editor knows it: no answer yet is still being read. */
 const knownOf = (result: AsyncResult.AsyncResult<SceneSource, unknown>): SourceKnown =>
   AsyncResult.match(result, {
-    onInitial: () => ({ source: Option.none(), reading: true, error: '' }),
-    onFailure: (f) => ({ source: Option.none(), reading: false, error: reasonOf(f.cause) }),
-    onSuccess: (s) => ({ source: Option.some(s.value), reading: false, error: '' }),
+    onInitial: () => SourceKnown.Reading(),
+    onFailure: (f) => unreadFor(reasonOf(f.cause)),
+    onSuccess: (s) => SourceKnown.Read({ source: s.value }),
   });
 
 const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
@@ -384,11 +385,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       Option.fromUndefinedOr(
         [inspectedSource(), stripSource()][[inspected(), stripScene()].indexOf(scene)],
       ),
-      (): SourceKnown => ({
-        source: Option.none(),
-        reading: false,
-        error: `${scene} is neither inspected nor on the strip`,
-      }),
+      () => SourceKnown.Unread({ reason: `${scene} is neither inspected nor on the strip` }),
     );
 
   /** The inspector's fields of `s`, read again with each reload. */

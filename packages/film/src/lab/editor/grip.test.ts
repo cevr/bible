@@ -29,24 +29,21 @@ import {
   cueSaidText,
   joined,
   placesFreely,
-  type SourceKnown,
+  SourceKnown,
   snapEdge,
+  unreadFor,
   stripWindow,
   wroteNote,
 } from './grip.ts';
 
 /** A source the lab has read. */
-const read = (source: SceneSource): SourceKnown => ({
-  source: Option.some(source),
-  reading: false,
-  error: '',
-});
+const read = (source: SceneSource) => SourceKnown.Read({ source });
 
-/** No source, for `error` (the server's reason). */
-const unread = (error: string): SourceKnown => ({ source: Option.none(), reading: false, error });
+/** No source, for `reason` (the server's). */
+const unread = (reason: string) => SourceKnown.Unread({ reason });
 
 /** A source still being read. */
-const READING: SourceKnown = { source: Option.none(), reading: true, error: '' };
+const READING = SourceKnown.Reading();
 
 describe('joined', () => {
   const write = (patch: CueWrite['patch'], said: NonNullable<CueWrite['said']>) =>
@@ -201,7 +198,7 @@ describe("a cue's fields", () => {
         timeline: { rise: span },
         cues: new Map([['rise', cue]]),
         knobs: {},
-        known: { source: Option.none(), reading: false, error: '' },
+        known: unread('no source for this scene'),
         fps: 30,
         commit: (write, edit) => void commits.push({ write, edit }),
       },
@@ -402,7 +399,7 @@ describe('cueRefusal', () => {
     expect(cueRefusal(unread('SceneNotFound: no file'), 'rise', ['offset'])).toEqual(
       Option.some('cannot edit: SceneNotFound: no file'),
     );
-    expect(cueRefusal(unread(''), 'rise', ['offset'])).toEqual(
+    expect(cueRefusal(unreadFor(''), 'rise', ['offset'])).toEqual(
       Option.some('cannot edit: no source for this scene'),
     );
   });

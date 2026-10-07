@@ -553,19 +553,19 @@ const fieldState = (prop: Option.Option<ObjectProperty>, literal: (e: Expression
   });
 
 const editableCue = (file: string, cue: string, span: ObjectExpression): EditableCue => {
-  const state = (key: TimingKey, literal: (e: Expression) => boolean) =>
+  const state = (key: TimingKey) =>
     Result.match(propertyOf(file, cue, span, key), {
       onFailure: (): FieldState => 'computed',
-      onSuccess: (prop) => fieldState(prop, literal),
+      onSuccess: (prop) => fieldState(prop, isLiteralFor(key)),
     });
   return {
     name: cue,
-    offset: state('offset', isNumberLiteral),
-    dur: state('dur', isNumberLiteral),
-    until: state('until', isUntilLiteral),
-    untilOffset: state('untilOffset', isNumberLiteral),
-    ease: state('ease', isStringLiteral),
-    stagger: state('stagger', isNumberLiteral),
+    offset: state('offset'),
+    dur: state('dur'),
+    until: state('until'),
+    untilOffset: state('untilOffset'),
+    ease: state('ease'),
+    stagger: state('stagger'),
   };
 };
 
@@ -636,11 +636,28 @@ const valueText = (key: TimingKey, patch: CuePatch): Option.Option<string> => {
   }
 };
 
-const isLiteralFor = (key: TimingKey) => {
-  if (key === 'until') return isUntilLiteral;
-  if (key === 'ease') return isStringLiteral;
-  return isNumberLiteral;
-};
+/**
+ * The literal each key a cue patch sets is written as: a number, a string,
+ * or an end (`isUntilLiteral`: a mark's name, or an object of literals). One
+ * per key of `CuePatch`, so a key added there is a type error here.
+ */
+const CUE_KIND = {
+  offset: 'number',
+  dur: 'number',
+  until: 'until',
+  untilOffset: 'number',
+  ease: 'string',
+  stagger: 'number',
+} as const satisfies Record<TimingKey, 'number' | 'string' | 'until'>;
+
+/** Whether an expression is the literal `key` is written as (`CUE_KIND`). */
+const isLiteralFor = (key: TimingKey): ((e: Expression) => boolean) =>
+  Match.value(CUE_KIND[key]).pipe(
+    Match.when('number', () => isNumberLiteral),
+    Match.when('string', () => isStringLiteral),
+    Match.when('until', () => isUntilLiteral),
+    Match.exhaustive,
+  );
 
 /** The field a span's other end is: a `dur` written replaces `until`, and the reverse. */
 const otherEnd = (key: TimingKey): Option.Option<TimingKey> => {

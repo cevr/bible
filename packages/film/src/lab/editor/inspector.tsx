@@ -30,7 +30,7 @@ import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY, findingsIn } from './format.ts';
 import { hubKeys } from '../command/changes.ts';
 import { countState } from '../scenes/marks.ts';
-import { cueCommit } from './grip.ts';
+import { cueCommit, sourceIn } from './grip.ts';
 
 /** A small drawing of an ease: 0→1 across, with room for an overshoot. */
 const Curve = (props: { readonly name: EaseName }) => (
@@ -64,7 +64,7 @@ const CueFields = (props: CueFieldsProps) => {
   const fields = createMemo(() => state.fieldsOf(cueOf(scene(), props.name)));
   const field = (id: string) => fields().find((f) => f.id === id);
   const writable = (field: 'ease') =>
-    Option.exists(state.inspectedSource().source, (s) =>
+    Option.exists(sourceIn(state.inspectedSource()), (s) =>
       Option.exists(
         Arr.findFirst(s.cues, (c) => c.name === props.name),
         (c) => c[field] !== 'computed',
