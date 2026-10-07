@@ -8,8 +8,8 @@ import { ProjectView, labUrls } from '../core/api.ts';
 import {
   REVIEW_PROJECT,
   REVIEW_TEST_HOME,
+  ReviewProjectRuns,
   reviewHttpFixture,
-  reviewProjectRuns,
   reviewTestAsk,
   reviewTestBody,
   reviewTestGet,
@@ -24,7 +24,7 @@ describe("a film's project", () => {
 
   it.effect('is read, and said of, in a fresh run of `film project … --json`', () =>
     Effect.gen(function* () {
-      reviewProjectRuns.length = 0;
+      const runs = yield* ReviewProjectRuns;
       const read = yield* reviewTestAsk(
         reviewTestGet(labUrls.project.get({ params: { film: 'f' }, query: {} })),
       );
@@ -55,7 +55,7 @@ describe("a film's project", () => {
         ),
       );
       expect(said.status).toBe(200);
-      expect(reviewProjectRuns).toEqual([
+      expect(runs).toEqual([
         ['f', '--json'],
         ['approve', 'f', '--all', '--json'],
         ['approve', 'f', '--act', 'one', '--json'],
@@ -93,7 +93,7 @@ describe("a film's project", () => {
 
   it.effect('a short is no part of the project tree: its address is a 400, and nothing runs', () =>
     Effect.gen(function* () {
-      reviewProjectRuns.length = 0;
+      const runs = yield* ReviewProjectRuns;
       const short = yield* reviewTestAsk(
         say('{"address":{"_tag":"Short","id":"s"},"say":{"_tag":"Approve"}}'),
       );
@@ -102,13 +102,13 @@ describe("a film's project", () => {
         say('{"address":{"_tag":"Short","id":"s"},"say":{"_tag":"Comment","text":"cut it"}}'),
       );
       expect(said.status).toBe(400);
-      expect(reviewProjectRuns).toEqual([]);
+      expect(runs).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );
 
   it.effect('a comment on more than one scene is a 400, and nothing runs', () =>
     Effect.gen(function* () {
-      reviewProjectRuns.length = 0;
+      const runs = yield* ReviewProjectRuns;
       const said = yield* reviewTestAsk(
         say('{"address":{"_tag":"Scenes","ids":["a","b"]},"say":{"_tag":"Comment","text":"x"}}'),
       );
@@ -117,26 +117,26 @@ describe("a film's project", () => {
         _tag: 'RequestInvalid',
         part: 'Payload',
       });
-      expect(reviewProjectRuns).toEqual([]);
+      expect(runs).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );
 
   it.effect('a variant the CLI would refuse is a 400, and never reaches its argv', () =>
     Effect.gen(function* () {
-      reviewProjectRuns.length = 0;
+      const runs = yield* ReviewProjectRuns;
       const flag = yield* reviewTestAsk(reviewTestGet('/api/films/f/project?variant=--all'));
       expect(flag.status).toBe(400);
       const all = yield* reviewTestAsk(
         say('{"address":{"_tag":"Film"},"say":{"_tag":"Approve"},"variant":"Ink Two"}'),
       );
       expect(all.status).toBe(400);
-      expect(reviewProjectRuns).toEqual([]);
+      expect(runs).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );
 
   it.effect('a scene or an act named like a flag is a 400, and never reaches its argv', () =>
     Effect.gen(function* () {
-      reviewProjectRuns.length = 0;
+      const runs = yield* ReviewProjectRuns;
       for (const address of [
         '{"_tag":"Scenes","ids":["--all"]}',
         '{"_tag":"Scenes","ids":["a","-x"]}',
@@ -154,7 +154,7 @@ describe("a film's project", () => {
         say('{"address":{"_tag":"Film"},"say":{"_tag":"Withdraw","given":"--all"}}'),
       );
       expect(undo.status).toBe(400);
-      expect(reviewProjectRuns).toEqual([]);
+      expect(runs).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );
 });

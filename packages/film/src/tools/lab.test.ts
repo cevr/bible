@@ -67,12 +67,12 @@ import { NotesStore } from './notes-store.ts';
 import { PageRenderer } from './page-render.ts';
 import {
   echoPages,
-  foreignRequests,
   freshFilm,
   memoryFileSystem,
   noReview,
   noSource,
   noStudio,
+  routePath,
   text,
 } from './testing.ts';
 
@@ -814,8 +814,8 @@ describe('lab routes', () => {
         // Every route: a foreign Host (or the bound host without its port), a
         // cross-site or same-site request (a link opened on another site included:
         // a navigation reaches pages only), and every refused write.
-        for (const route of foreignRequests(routes, 'http://127.0.0.1:4401', 'f')) {
-          const path = new URL(route.url).pathname;
+        for (const route of routes) {
+          const path = routePath(route, 'f');
           const refused = [`${route.method} ${path}`, 403, 'RequestRefused'] as const;
           expect(yield* row(json(path, route.method, foreign))).toEqual(refused);
           expect(yield* row(json(path, route.method, { host: '127.0.0.1' }))).toEqual(refused);

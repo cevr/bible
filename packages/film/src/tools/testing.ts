@@ -484,29 +484,16 @@ export const memoryFileSystem = (
   mtimes: ReadonlyMap<string, number> = new Map(),
 ) => FileSystem.layerNoop(memoryOps(files, folders, mtimes));
 
-/**
- * A request for each of `routes` as a page on a foreign Host would send it:
- * every `:film` naming `film`, every other param and a trailing `*` naming
- * `x`, a write with a JSON body; the URL on `origin`.
- */
-export const foreignRequests = (
-  routes: ReadonlyArray<Route>,
-  origin: string,
-  film: string,
-): ReadonlyArray<Request> =>
-  routes.map((route) => {
-    const path = route.path
-      .split('/')
-      .map((segment) => {
-        if (segment === ':film') return film;
-        if (segment.startsWith(':') || segment === '*') return 'x';
-        return segment;
-      })
-      .join('/');
-    const headers = { host: 'evil.example:4401', 'content-type': 'application/json' };
-    if (route.method === 'GET') return new Request(`${origin}${path}`, { headers });
-    return new Request(`${origin}${path}`, { method: route.method, headers, body: '{}' });
-  });
+/** `route`'s path filled in: every `:film` naming `film`, every other param and a trailing `*` naming `x`. */
+export const routePath = (route: Route, film: string): string =>
+  route.path
+    .split('/')
+    .map((segment) => {
+      if (segment === ':film') return film;
+      if (segment.startsWith(':') || segment === '*') return 'x';
+      return segment;
+    })
+    .join('/');
 
 const unusedSource = Effect.die('the scene source is not called here');
 
@@ -1773,8 +1760,11 @@ export const REVIEW_PROJECT: Project = projectOf(
   'main',
 );
 
-/** The `film project` args each fresh run was asked for. */
-export const reviewProjectRuns: Array<ReadonlyArray<string>> = [];
+/** The `film project` args each fresh run of one review fixture was asked for, in order. */
+export class ReviewProjectRuns extends Context.Service<
+  ReviewProjectRuns,
+  ReadonlyArray<ReadonlyArray<string>>
+>()('test/ReviewProjectRuns') {}
 
 /** The pick of `bright`, in `sound.ts` of film `f` under `films`. */
 const reviewPickIn = (films: string): Change => ({
@@ -1793,10 +1783,12 @@ const reviewUnused = Effect.die('not used by the review routes');
 /**
  * Film `f`'s services, faked over a films folder that holds only `f`: its
  * choices, a pick of `bright` that lands, an undo of it, and a check with
- * nothing to say. Every other name is no film of the app's.
+ * nothing to say. Every other name is no film of the app's. Each fresh run
+ * of `film project` is noted in `runs`.
  */
-const reviewFilmServices = (films: string, PICK = reviewPickIn(films)) =>
-  Layer.mergeAll(
+const reviewFilmServices = (films: string, runs: Array<ReadonlyArray<string>>) => {
+  const PICK = reviewPickIn(films);
+  return Layer.mergeAll(
     Layer.succeed(
       Choices,
       Choices.of({
@@ -1818,7 +1810,7 @@ const reviewFilmServices = (films: string, PICK = reviewPickIn(films)) =>
     freshFilm({
       project: (args) =>
         Effect.suspend((): Effect.Effect<Project, SceneNotRendered | VerbRefused> => {
-          reviewProjectRuns.push(args);
+          runs.push(args);
           if (args.includes('b'))
             return Effect.fail(
               VerbRefused.make({
@@ -1861,10 +1853,15 @@ const reviewFilmServices = (films: string, PICK = reviewPickIn(films)) =>
     ),
     FilmFolder.layer(films),
   );
+};
 
 export class ReviewTestRoot extends Context.Service<ReviewTestRoot, string>()('test/Root') {}
 
-/** The review over `out/art` (a set of two), its videos `seconds` long and a frame the video copied. */
+/**
+ * The review over `out/art` (a set of two), its videos `seconds` long and a
+ * frame the video copied; its fresh `film project` runs, its own, are
+ * `ReviewProjectRuns`.
+ */
 export const reviewHttpFixtureLasting = (seconds: number) =>
   Layer.unwrap(
     Effect.gen(function* () {
@@ -1886,6 +1883,7 @@ export const reviewHttpFixtureLasting = (seconds: number) =>
       yield* fs.writeFileString(path.join(films, 'f', 'scenes', 'index.ts'), 'export {};\n');
       yield* fs.makeDirectory(path.join(dir, 'beside', 'scenes'), { recursive: true });
       yield* fs.writeFileString(path.join(dir, 'beside', 'scenes', 'index.ts'), 'export {};\n');
+      const runs: Array<ReadonlyArray<string>> = [];
       return Review.layer({
         roots: [{ label: 'out', path: out }],
         cache: path.join(dir, 'cache'),
@@ -1911,7 +1909,8 @@ export const reviewHttpFixtureLasting = (seconds: number) =>
             ),
           ),
         ),
-        Layer.merge(reviewFilmServices(films)),
+        Layer.merge(reviewFilmServices(films, runs)),
+        Layer.merge(Layer.succeed(ReviewProjectRuns, runs)),
       );
     }),
   ).pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, BunHttpPlatform.layer)));
