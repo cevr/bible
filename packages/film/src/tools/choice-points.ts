@@ -18,6 +18,7 @@
 
 import { Array as Arr, DateTime, Match, Option, Result } from 'effect';
 import { type Address, sceneAddress } from '../core/address.ts';
+import { counted } from '../core/words.ts';
 import type { Catalogue, VariantState } from '../core/catalogue.ts';
 import {
   type ChoiceMark,
@@ -51,10 +52,6 @@ const SCORE_STATE: Record<ScoreOptionState['_tag'], VariantState> = {
   Stale: 'stale',
   Missing: 'missing',
 };
-
-/** `n` and `noun`, plural but for one. */
-export const counted = (n: number, noun: string) =>
-  `${n} ${noun}${Arr.filter(['s'], () => n !== 1).join('')}`;
 
 /** The scenes `ids` name, as one address: the film when none. */
 const scenesAddress = (ids: ReadonlyArray<string>): Address =>

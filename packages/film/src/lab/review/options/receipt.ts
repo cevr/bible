@@ -26,6 +26,7 @@ import type { PartAddress } from '../../../core/address.ts';
 import { type ProjectView, type Say, withdrawSay } from '../../../core/api.ts';
 import type { Took } from '../../../core/catalogue.ts';
 import type { ChoicePoint, ChoiceVerb, FilmChoices, SoundCheck } from '../../../core/choice.ts';
+import { plural } from '../../../core/words.ts';
 import type { LabFailure } from '../../api.ts';
 import { type Words, failedText, sayText } from '../format.ts';
 import type { ChoiceAct, Wrote } from './api.ts';
@@ -45,7 +46,7 @@ export const partText = (address: PartAddress): string =>
   Match.valueTags(address, {
     Film: () => 'the film',
     Act: ({ act }) => `act ${act}`,
-    Scenes: ({ ids }) => `${['scenes', 'scene'][Number(ids.length === 1)]} ${ids.join(', ')}`,
+    Scenes: ({ ids }) => `${plural(ids.length, 'scene')} ${ids.join(', ')}`,
   });
 
 /** What `point` plays: its picked variants' labels, or `nothing`. */

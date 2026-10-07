@@ -43,6 +43,7 @@ import { type ProjectView, type Say, pageHref } from '../../core/api.ts';
 import { sceneAt } from '../../core/layout.ts';
 import { isShortKey } from '../../core/shorts.ts';
 import { timecode, timecodeParts } from '../../core/time.ts';
+import { counted } from '../../core/words.ts';
 import type { Player } from '../../player/main.ts';
 import { makeStills } from '../../player/stills.ts';
 import { onTheMs } from '../../player/t-in-url.ts';
@@ -100,8 +101,7 @@ const lineTime = (t: number, fps: number) => {
 };
 
 /** `n` scenes, in words. */
-const scenesText = (n: number) =>
-  Bool.match(n === 1, { onTrue: () => '1 scene', onFalse: () => `${n} scenes` });
+const scenesText = (n: number) => counted(n, 'scene');
 
 /**
  * What an approve's receipt says: what the catalogue says it gave

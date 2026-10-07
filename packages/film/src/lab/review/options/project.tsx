@@ -56,6 +56,7 @@ import {
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import { FILM_FPS, timecode } from '../../../core/time.ts';
+import { counted } from '../../../core/words.ts';
 import { SceneCard, SceneFindings, StateBand } from '../../scenes/card.tsx';
 import { filmCounts, marksOf, projectPlaced } from '../../scenes/marks.ts';
 import { type LabFailure, served } from '../../api.ts';
@@ -156,13 +157,6 @@ const scenesIn = (view: ProjectView, address: PartAddress): ReadonlyArray<Projec
 /** How many of `scenes` are approved as they are now, of all: `1/2`. */
 const approvedOf = (scenes: ReadonlyArray<ProjectScene>) =>
   `${scenes.filter((s) => s.approval === 'approved').length}/${scenes.length}`;
-
-/** How many of `scenes` are rendered as they are now, of all: `2/4`. */
-const currentOf = (scenes: ReadonlyArray<ProjectScene>) =>
-  `${scenes.filter((s) => s.state === 'current').length}/${scenes.length}`;
-
-/** `n` scenes, in words. */
-const scenesText = (n: number) => `${n} ${['scenes', 'scene'][Number(n === 1)]}`;
 
 /** How long `scenes` run together, when each says (none while one does not). */
 const lengthOf = (scenes: ReadonlyArray<ProjectScene>): Option.Option<number> =>
@@ -493,10 +487,6 @@ const SceneRow = (props: {
   );
 };
 
-/** A part's counts: its scenes, how many are current, how many approved. */
-const countsOf = (scenes: ReadonlyArray<ProjectScene>) =>
-  `${scenesText(scenes.length)} · ${currentOf(scenes)} current · ${approvedOf(scenes)} approved`;
-
 /** What a part's approval buttons say: an act's, or the whole film's. */
 const PART_WORDS = {
   act: { approve: "Approve the act's current scenes", unapprove: "Unapprove the act's scenes" },
@@ -623,7 +613,9 @@ const PartInspector = (props: PartProps) => {
     <Inspector of={props.of} title={props.title}>
       {(box) => (
         <>
-          <p class="rv-hint">{countsOf(props.scenes)}</p>
+          <p class="rv-hint" data-role="counts">
+            {filmCounts(props.scenes)}
+          </p>
           <div class="rv-row">
             <PartApproval
               at={props.at}
@@ -678,7 +670,7 @@ const ActPanel = (props: { readonly at: ProjectValue; readonly act: Act }) => {
   );
   const meta = () =>
     [
-      scenesText(scenes().length),
+      counted(scenes().length, 'scene'),
       ...Option.toArray(Option.map(lengthOf(scenes()), (t) => timecode(t, FILM_FPS))),
       `${approvedOf(scenes())} approved`,
     ].join(' · ');

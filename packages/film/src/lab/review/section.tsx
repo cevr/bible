@@ -63,6 +63,7 @@ import {
   countsText,
   failedText,
   folderTitle,
+  isFilmsFolder,
   isMarkdown,
   POSTER_W,
   pressed,
@@ -238,9 +239,9 @@ const Films = (props: { readonly folders: ReadonlyArray<ReviewFolder> }) => {
       Option.map(AsyncResult.value(state.films()), (f) => f.films),
       () => [],
     );
-  /** The folder a film's renders sit in: the one named for it. */
+  /** The folder a film's renders sit in: the one named for it (`isFilmsFolder`). */
   const folderOf = (film: string) =>
-    Option.fromUndefinedOr(props.folders.find((f) => f.ref === film || f.ref.endsWith(`/${film}`)));
+    Option.fromUndefinedOr(props.folders.find((f) => isFilmsFolder(f.ref, film)));
   return (
     <Section title="Films" count={films().length}>
       <div class="rv-grid rv-films">

@@ -6,6 +6,7 @@ import { Array as Arr, Match, Option } from 'effect';
 import type { ApprovalState, StaleBy, VariantState } from '../../core/catalogue.ts';
 import { type ReviewFile, type ReviewFolder, type ReviewVideo } from '../../core/review.ts';
 import { STALE_BY } from '../../core/choice.ts';
+import { counted } from '../../core/words.ts';
 import { type Say, reviewFileUrl, reviewPhoneUrl } from '../../core/api.ts';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { CommandId, Undoing } from '../../command/command.ts';
@@ -113,16 +114,22 @@ export const videoSource = (video: ReviewVideo, quality: Quality): Option.Option
   return Option.none();
 };
 
-/** `n` things, named in the singular: `1 video`, `3 videos`, none for none. */
-const counted = (n: number, thing: string): Option.Option<string> => {
-  if (n === 0) return Option.none();
-  if (n === 1) return Option.some(`1 ${thing}`);
-  return Option.some(`${n} ${thing}s`);
-};
+/**
+ * Whether the folder at `ref` holds `film`'s renders: its ref is the film's
+ * name, or ends in it (`bible-tools/righteousness-by-faith`).
+ */
+export const isFilmsFolder = (ref: string, film: string): boolean =>
+  ref === film || ref.endsWith(`/${film}`);
+
+/** `n` things (`counted`), none for none. */
+const some = (n: number, thing: string): Option.Option<string> =>
+  Option.map(
+    Option.liftPredicate(n, (k) => k > 0),
+    (k) => counted(k, thing),
+  );
 
 /** How many versions a stack holds: `1 version`, `3 versions`. */
-export const versionsText = (n: number): string =>
-  Option.getOrElse(counted(n, 'version'), () => '0 versions');
+export const versionsText = (n: number): string => counted(n, 'version');
 
 /**
  * What a folder holds, as its card says it: its first kind of thing's count
@@ -132,11 +139,11 @@ export const countsText = (folder: ReviewFolder): string =>
   Option.getOrElse(
     Arr.head(
       Arr.getSomes([
-        counted(folder.sets.length, 'version stack'),
-        counted(folder.videos.length, 'video'),
-        counted(folder.images.length, 'image'),
-        counted(folder.docs.length, 'doc'),
-        counted(folder.downloads?.length ?? 0, 'download'),
+        some(folder.sets.length, 'version stack'),
+        some(folder.videos.length, 'video'),
+        some(folder.images.length, 'image'),
+        some(folder.docs.length, 'doc'),
+        some(folder.downloads?.length ?? 0, 'download'),
       ]),
     ),
     () => 'empty',

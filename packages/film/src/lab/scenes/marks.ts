@@ -11,11 +11,12 @@
 // be read (yet, or at all: a short has no project): the scene then has no
 // such mark, never a wrong one. Pure.
 
-import { Array as Arr, Boolean as Bool, Match, Option, Result } from 'effect';
+import { Array as Arr, Match, Option, Result } from 'effect';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
 import { sceneAt } from '../../core/layout.ts';
 import type { CheckLine } from '../../core/schema.ts';
+import { counted } from '../../core/words.ts';
 import { APPROVAL_TEXT, stateText } from '../review/format.ts';
 
 /** What is known of one scene: its act, its render and its approval, and the findings about it. */
@@ -139,10 +140,6 @@ export const marksOf =
     findings: findings.filter((line) => aboutAny(line, [scene], placed)),
   });
 
-/** `n` of `one`, in words: `1 error`, `3 errors`. */
-const count = (n: number, one: string) =>
-  Bool.match(n === 1, { onTrue: () => `1 ${one}`, onFalse: () => `${n} ${one}s` });
-
 /** A scene's chips, most pressing first: its render's state, its approval, its findings. */
 export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
   const { errors, warnings } = checkCount(marks.findings);
@@ -189,7 +186,7 @@ export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
       .filter((n) => n > 0)
       .map((n): MarkChip => ({
         mark: 'errors',
-        text: count(n, 'error'),
+        text: counted(n, 'error'),
         why: lines('error'),
         state: 'findings',
       })),
@@ -197,7 +194,7 @@ export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
       .filter((n) => n > 0)
       .map((n): MarkChip => ({
         mark: 'warnings',
-        text: count(n, 'warning'),
+        text: counted(n, 'warning'),
         why: lines('warning'),
         state: 'warning',
       })),
@@ -239,7 +236,7 @@ interface LegendLine {
 }
 
 /** A legend line counting `n`, none at 0. */
-const counted = (
+const legendLine = (
   mark: LegendLine['mark'],
   word: string,
   n: number,
@@ -271,13 +268,13 @@ export const legendOf = (
   const theirs = checkCount(lines.filter((l) => aboutAny(l, scenes, placed)));
   const film = lines.filter((l) => filmsOwn(l, placed));
   return [
-    ...counted('stale', 'out of date', stale, 'stale'),
-    ...counted('missing', 'not rendered', missing, 'rendered'),
-    ...counted('approved', 'approved', approved, 'approved'),
-    ...counted('errors', 'errors', theirs.errors, 'findings'),
-    ...counted('warnings', 'warnings', theirs.warnings, 'warning'),
+    ...legendLine('stale', 'out of date', stale, 'stale'),
+    ...legendLine('missing', 'not rendered', missing, 'rendered'),
+    ...legendLine('approved', 'approved', approved, 'approved'),
+    ...legendLine('errors', 'errors', theirs.errors, 'findings'),
+    ...legendLine('warnings', 'warnings', theirs.warnings, 'warning'),
     ...Option.toArray(countState(film)).flatMap((state) =>
-      counted('film', 'film', film.length, state),
+      legendLine('film', 'film', film.length, state),
     ),
     ...Option.toArray(
       Option.map(Result.getFailure(check), (why): LegendLine => ({

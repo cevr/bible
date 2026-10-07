@@ -1457,6 +1457,12 @@ describe("a film's project", () => {
         // The film's and the act's approvals are in their inspectors, not at rest.
         yield* countIs(page, '[data-act="approve-all"]', 0);
         yield* inspect(page, FILM_HEAD);
+        // The part's counts are the film head's words, as a Films card says them.
+        yield* textIs(
+          page,
+          `${INSPECTOR} [data-role="counts"]`,
+          '0/4 approved · 1 out of date · 1 not rendered',
+        );
         yield* click(page, `${INSPECTOR} [data-act="approve-all"]`);
         yield* waitFor(page, `${render('open')} .sc-chip[data-mark="approved"]`);
         yield* waitFor(page, `${render('coda')} .sc-chip[data-mark="approved"]`);

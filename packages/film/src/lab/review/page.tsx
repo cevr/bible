@@ -14,7 +14,7 @@ import { createMemo } from 'solid-js';
 import type { ReviewIndex } from '../../core/review.ts';
 import { Root, useReview } from './context.tsx';
 import { Inspecting } from './inspector.tsx';
-import { folderTitle } from './format.ts';
+import { folderTitle, isFilmsFolder } from './format.ts';
 import { ReviewPlace, placeOf } from './place.ts';
 import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
@@ -52,12 +52,9 @@ const setName = (index: Option.Option<ReviewIndex>, ref: string, point: string):
     () => point,
   );
 
-/**
- * The film a folder of renders is of: the film its ref names in its last
- * segment (`bible-tools/righteousness-by-faith`), when there is one.
- */
+/** The film a folder of renders is of (`isFilmsFolder`), when there is one. */
 const filmOfFolder = (ref: string, films: ReadonlyArray<string>): Option.Option<string> =>
-  Option.fromUndefinedOr(films.find((film) => ref === film || ref.endsWith(`/${film}`)));
+  Option.fromUndefinedOr(films.find((film) => isFilmsFolder(ref, film)));
 
 /** The film a place is about: a film's choices or project, or a set in that film's folder. */
 const filmOf = (place: ReviewPlace, films: ReadonlyArray<string>): Option.Option<string> =>

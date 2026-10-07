@@ -88,10 +88,10 @@ import {
   VersionChanged,
 } from '../core/refusals.ts';
 import { clamp } from '../core/time.ts';
+import { counted } from '../core/words.ts';
 import { CATALOGUE_FILE, type CatalogueError, RenderCatalogue } from './catalogue.ts';
 import { writeWhole } from './content-store.ts';
 import { cacheKey } from './digest.ts';
-import { counted } from './choice-points.ts';
 import { keptWhenMade } from './film-repo.ts';
 import { Media } from './media.ts';
 

@@ -3,7 +3,14 @@
 import { Option } from 'effect';
 import { describe, expect, test } from 'bun:test';
 import type { ReviewFolder, ReviewVideo } from '../../core/review.ts';
-import { agoText, captionsFor, countsText, sizeText, videoSource } from './format.ts';
+import {
+  agoText,
+  captionsFor,
+  countsText,
+  isFilmsFolder,
+  sizeText,
+  videoSource,
+} from './format.ts';
 
 const file = (name: string, size = 10) => ({ ref: `out/f/${name}`, name, size, mtime: 0 });
 const video = (name: string, phone: ReviewVideo['phone']): ReviewVideo => ({
@@ -58,5 +65,12 @@ describe('what a card says', () => {
     // Its card says what it mostly holds; the rest are its page's sections.
     expect(countsText(folder)).toBe('2 videos');
     expect(countsText({ ...folder, videos: [], docs: [] })).toBe('empty');
+  });
+
+  test("a folder holds a film's renders when its ref is the film's name or ends in it", () => {
+    expect(isFilmsFolder('roof', 'roof')).toBe(true);
+    expect(isFilmsFolder('bible-tools/roof', 'roof')).toBe(true);
+    expect(isFilmsFolder('bible-tools/roofs', 'roof')).toBe(false);
+    expect(isFilmsFolder('bible-tools/flat-roof', 'roof')).toBe(false);
   });
 });

@@ -39,6 +39,7 @@ import type { Viewport } from '../../browser/viewport.ts';
 import type { Hub } from '../../command/hub.ts';
 import type { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
+import { counted } from '../../core/words.ts';
 import { Hint } from '../command/inspector.tsx';
 import { PHONE, useMatches } from '../viewport.ts';
 import { useReview } from './context.tsx';
@@ -499,9 +500,6 @@ export const InspectName = (props: {
   );
 };
 
-/** `n` comments, said in full. */
-const commentsText = (n: number) => `${n} ${['comments', 'comment'][Number(n === 1)]}`;
-
 /**
  * How many comments a thing has, a dot that opens its inspector; nothing
  * when none. The dot sits in a box the pointer's target each way (`--hit`),
@@ -515,8 +513,8 @@ const CommentCount = (props: { readonly of: Selection; readonly count: number })
         type="button"
         class="lab-count-hit"
         data-comments={String(props.count)}
-        title={commentsText(props.count)}
-        aria-label={commentsText(props.count)}
+        title={counted(props.count, 'comment')}
+        aria-label={counted(props.count, 'comment')}
         onClick={() => inspecting.open(props.of, 'info')}
       >
         <span class="lab-count">{props.count}</span>
