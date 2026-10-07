@@ -83,6 +83,8 @@ describe("a film's picture faces on the Lab", () => {
           `document.querySelector('.lab-panel').dataset.staged === 'true'`,
           false,
         );
+        // The header's timecode follows the player's time, drawn or not.
+        yield* countIs(page, '.sh-tc', 1);
         yield* until(page, RECORD_FILLS);
         // The face lands: the frame is drawn, every fill with it loaded, and the tools stand.
         yield* Deferred.done(gate, Exit.void);

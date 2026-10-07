@@ -110,6 +110,12 @@ export interface Player {
   /** Called after every frame the preview draws (none while it is not `drawable`), until the returned function is called. */
   onDraw(listener: (T: number) => void): () => void;
   /**
+   * Called with the time shown each time the preview shows it (every move:
+   * a seek, a scrub, play), drawn or not: before the film's faces load no
+   * frame is drawn, yet T moves. Until the returned function is called.
+   */
+  onMove(listener: (T: number) => void): () => void;
+  /**
    * The bar is on a film's Play page, in `part` (the shell's Play part):
    * its HUD fades while the film plays and comes back at the viewer's input,
    * until the returned function is called.
@@ -214,6 +220,7 @@ export const mountPreview = (
   const sceneEl = q<HTMLSpanElement>('.scene');
   const sayEl = q<HTMLSpanElement>('.say');
   const playBtn = q<HTMLButtonElement>('[data-act="play"]');
+  const captionsBtn = q<HTMLButtonElement>('[data-act="captions"]');
   const tip = q<HTMLDivElement>('.tip');
 
   const hue = (i: number) => `hsl(${(i * 47) % 360} var(--scene-sat) var(--scene-light))`;
@@ -307,7 +314,10 @@ export const mountPreview = (
   const nowMs = monotonicMs(host);
   const clock = makeClock(() => nowMs() / 1000);
   let loop: LoopRange | undefined;
-  const listeners: Array<(T: number) => void> = [];
+  /** Hears every frame drawn. */
+  const drawnTo = listenersOf();
+  /** Hears the time each time it is shown, drawn or not (no frame is drawn until the faces load). */
+  const movedTo = listenersOf();
   let reads: KnobRead[] = [];
   /**
    * T in the URL (`time`, the page's own place), so a reload lands on this
@@ -360,9 +370,9 @@ export const mountPreview = (
     if (drawable) {
       reads = [];
       film.render(ctx, T, shownOptions({ knobs: reads }));
-      // As they stand at this frame: a listener that stops listening skips none of the rest.
-      for (const listener of [...listeners]) listener(T);
+      drawnTo.call(T);
     }
+    movedTo.call(T);
     const cur = film.sceneAt(T);
     head.style.left = `${(T / film.duration) * 100}%`;
     const shownRate = rate === 1 ? '' : ` · ${rate}× muted`;
@@ -380,6 +390,8 @@ export const mountPreview = (
     playBtn.textContent = playing ? '❚❚' : '▶︎';
     // On Play the line is the captions' alone while they show (`player.css`).
     bar.dataset['captions'] = captions.on ? 'on' : 'off';
+    // The captions' button is a toggle, its state said to a reader and drawn as the kit's pressed look.
+    captionsBtn.ariaPressed = String(captions.on);
     if (onPlay()) hud.playing(playing);
     url.moved();
   };
@@ -483,8 +495,7 @@ export const mountPreview = (
     );
   });
   playBtn.addEventListener('click', toggle);
-  // The captions' button, on the player's pages; the lab's captions are the view menu's and `c` (UR2-12).
-  const captionsBtn = q<HTMLButtonElement>('[data-act="captions"]');
+  // The captions' button, on the player's pages; the lab's captions are the view menu's and `c`.
   if (page === 'lab') captionsBtn.remove();
   captionsBtn.addEventListener('click', () => {
     captions.on = !captions.on;
@@ -683,11 +694,24 @@ export const mountPreview = (
     },
     knobReads: () => reads,
     playOn,
-    onDraw: (listener) => {
-      listeners.push(listener);
+    onDraw: drawnTo.add,
+    onMove: movedTo.add,
+  };
+};
+
+/** Listeners of T: each heard until its returned stop. */
+const listenersOf = () => {
+  const all: Array<(T: number) => void> = [];
+  return {
+    /** Call each with `T`, as they stand now: a listener that stops listening skips none of the rest. */
+    call: (T: number) => {
+      for (const listener of [...all]) listener(T);
+    },
+    add: (listener: (T: number) => void): (() => void) => {
+      all.push(listener);
       return () => {
-        const at = listeners.indexOf(listener);
-        if (at >= 0) listeners.splice(at, 1);
+        const at = all.indexOf(listener);
+        if (at >= 0) all.splice(at, 1);
       };
     },
   };

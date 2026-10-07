@@ -10,7 +10,7 @@
 
 import { Place } from '@bible/url-state';
 import { Array as Arr, Effect, Match, Option } from 'effect';
-import { type Component, createSignal, onCleanup, onSettled } from 'solid-js';
+import { type Component, onSettled } from 'solid-js';
 import { Places, pageHref } from '../core/api.ts';
 import type { Placed } from '../core/layout.ts';
 import { type Host, addressOn } from '../browser/host.ts';
@@ -18,7 +18,7 @@ import { type Films, type Player, mountPreview, stageFilm } from '../player/main
 import { TIME_MOVE, onTheMs, type TimeInUrl } from '../player/t-in-url.ts';
 import { type FilmBody, PLAY_PAGE, playOn, playPartOf, stagedBody } from './film-page.tsx';
 import { mountStudio } from './page-client.tsx';
-import { useShellTime } from './page-shell.tsx';
+import { usePlayerTime } from './page-shell.tsx';
 import { scenesOpensAt, withTime } from './scenes/place.ts';
 import { ScenesView } from './scenes/view.tsx';
 
@@ -61,13 +61,7 @@ const scenesTime = (host: Host, placed: ReadonlyArray<Placed>): TimeInUrl => {
  * header's timecode.
  */
 const Preview = (props: { readonly player: Player; readonly stage: HTMLElement }) => {
-  const [at, setAt] = createSignal(props.player.now(), { ownedWrite: true });
-  onCleanup(
-    props.player.onDraw((T) => {
-      setAt(T);
-    }),
-  );
-  useShellTime(at, props.player.film.fps);
+  usePlayerTime(props.player);
   let body = Option.none<HTMLElement>();
   onSettled(() =>
     Option.getOrUndefined(

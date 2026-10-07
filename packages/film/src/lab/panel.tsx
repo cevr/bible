@@ -13,7 +13,7 @@ import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import * as UrlAtom from '@bible/url-state/atom';
-import { For, type JSX, Portal, Show, isServer } from '@solidjs/web';
+import { For, Portal, Show, isServer } from '@solidjs/web';
 import { Array as Arr, Effect, Equal, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
@@ -123,20 +123,19 @@ const ModeTray = () => {
   );
 };
 
-/** A tool's section of the panel, shown in its mode: its name, then what the staged lab puts in it. */
+/**
+ * A tool's section of the panel, shown in its mode: what the staged lab puts
+ * in it, under its head line if it has one. The tray above already shows the
+ * mode pressed, so the section's name is for a screen reader only.
+ */
 const Section = (
   props: ParentProps<{
     readonly class: string;
     readonly mode: LabMode;
     readonly title: string;
-    readonly head?: JSX.Element;
   }>,
 ) => (
-  <section class={props.class} data-mode-of={props.mode}>
-    <header>
-      <strong>{props.title}</strong>
-      {props.head}
-    </header>
+  <section class={props.class} data-mode-of={props.mode} aria-label={props.title}>
     {props.children}
   </section>
 );
@@ -167,15 +166,14 @@ const Panel = (props: {
       <Section class="lab-edit" mode="edit" title="Edit">
         {at('edit')}
       </Section>
-      <Section class="lab-motion" mode="motion" title="Motion" head={at('motion-head')}>
+      <Section class="lab-motion" mode="motion" title="Motion">
+        <header>{at('motion-head')}</header>
         {at('motion')}
       </Section>
-      <Section
-        class="lab-compare-tools"
-        mode="compare"
-        title="Compare"
-        head={<span class="lab-edit-key">with last commit</span>}
-      >
+      <Section class="lab-compare-tools" mode="compare" title="Compare">
+        <header>
+          <span class="lab-edit-key">with last commit</span>
+        </header>
         {at('compare')}
       </Section>
       <div class="lab-notes-box" data-mode-of="note">

@@ -14,7 +14,7 @@ import { type Films, type Player, mountPreview, stageFilm } from '../player/main
 import { TIME_MOVE, type TimeInUrl } from '../player/t-in-url.ts';
 import { LabClient } from './api.ts';
 import { labHrefWith, labOpensAt } from './place.ts';
-import { ShellTools, useShellTime } from './page-shell.tsx';
+import { ShellTools, usePlayerTime } from './page-shell.tsx';
 import { type FilmBody, LAB_PAGE, labOn, stagedBody } from './film-page.tsx';
 import { mountStudio } from './page-client.tsx';
 import { Compare } from './compare/index.ts';
@@ -22,12 +22,11 @@ import { Editor } from './editor/index.ts';
 import { Motion } from './motion/index.ts';
 import { Notes } from './notes/index.ts';
 import { Studio } from './studio/index.ts';
-import { Lab, useLab } from './shell.tsx';
+import { Lab } from './shell.tsx';
 
-/** The header's timecode: the lab's playhead, at the film's rate. */
-const LabTime = () => {
-  const { state, meta } = useLab();
-  useShellTime(state.T, meta.film.fps);
+/** The header's timecode: the player's time, as Play's is. */
+const LabTime = (props: { readonly player: Player }) => {
+  usePlayerTime(props.player);
   return <></>;
 };
 
@@ -36,41 +35,43 @@ const LabTime = () => {
  * staged film's player, its controls in its section of the page's panel.
  */
 const LabBody = (props: { readonly player: Player }) => (
-  <Lab.Root player={props.player}>
-    <LabTime />
-    <Editor.Provider>
-      <ShellTools>
-        <Editor.History />
-      </ShellTools>
-      <Motion.Provider>
-        <Compare.Provider>
-          <Notes.Provider>
-            <Motion.Onion />
-            <Compare.Layer />
-            <Lab.Overlay>
-              <Notes.Marks />
-              <Editor.Handles />
-              <Compare.Divider />
-              <Compare.Hold />
-            </Lab.Overlay>
-            <Lab.Strip>
-              <Editor.Strip />
-            </Lab.Strip>
-            <Notes.Pins />
-            <Editor.Section>
-              <Editor.Knobs />
-            </Editor.Section>
-            <Motion.Section />
-            <Compare.Section />
-            <Notes.Section />
-            <Studio.Provider>
-              <Studio.Section />
-            </Studio.Provider>
-          </Notes.Provider>
-        </Compare.Provider>
-      </Motion.Provider>
-    </Editor.Provider>
-  </Lab.Root>
+  <>
+    <LabTime player={props.player} />
+    <Lab.Root player={props.player}>
+      <Editor.Provider>
+        <ShellTools>
+          <Editor.History />
+        </ShellTools>
+        <Motion.Provider>
+          <Compare.Provider>
+            <Notes.Provider>
+              <Motion.Onion />
+              <Compare.Layer />
+              <Lab.Overlay>
+                <Notes.Marks />
+                <Editor.Handles />
+                <Compare.Divider />
+                <Compare.Hold />
+              </Lab.Overlay>
+              <Lab.Strip>
+                <Editor.Strip />
+              </Lab.Strip>
+              <Notes.Pins />
+              <Editor.Section>
+                <Editor.Knobs />
+              </Editor.Section>
+              <Motion.Section />
+              <Compare.Section />
+              <Notes.Section />
+              <Studio.Provider>
+                <Studio.Section />
+              </Studio.Provider>
+            </Notes.Provider>
+          </Compare.Provider>
+        </Motion.Provider>
+      </Editor.Provider>
+    </Lab.Root>
+  </>
 );
 
 /**

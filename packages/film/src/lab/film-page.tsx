@@ -13,11 +13,11 @@
 // (`mount.tsx`, `play-mount.tsx`). Neither side's own adapters are imported
 // here: the page's reads go through the client it is given.
 
-import { RegistryProvider } from '@bible/atom-solid';
+import { RegistryProvider, useAtomValue } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, clientOnly } from '@solidjs/web';
 import type { Component } from 'solid-js';
-import { Effect, type Layer, Option, Schema } from 'effect';
+import { Effect, type Layer, Match, Option, Schema } from 'effect';
 import { type PageName, type Part, filmOfPage } from '../core/api.ts';
 import { type Host, addressOn, hostLayer } from '../browser/host.ts';
 import type { Hub } from '../command/hub.ts';
@@ -26,6 +26,7 @@ import { COMMAND_CSS } from './command/style.ts';
 import { PageShell } from './page-shell.tsx';
 import { SHELL_CSS } from './page-shell-style.ts';
 import { LabPage } from './panel.tsx';
+import { labPlaceOf } from './place.ts';
 import { scenesPlaceOf } from './scenes/place.ts';
 import { SCENES_CSS } from './scenes/style.ts';
 import { StudioFrame, studioOn } from './studio-frame.tsx';
@@ -110,24 +111,39 @@ const Await = (props: { readonly name: Option.Option<string> }) => (
  * neither side builds the browser's own), so they and the time the player
  * writes share one address bar.
  */
-const FilmPage = (props: FilmPageWith) => {
+const FilmPage = (props: FilmPageWith) => (
+  <RegistryProvider initialValues={[[UrlAtom.layer, hostLayer(props.host)]]}>
+    <StudioFrame hub={props.hub} scope={props.scope} legend>
+      <FilmShell {...props} />
+    </StudioFrame>
+  </RegistryProvider>
+);
+
+/** The scene a film page's link selects, which its title names first: the Lab's and the Scenes'. */
+const sceneOf = (part: FilmPart, href: string): Option.Option<string> =>
+  Match.value(part).pipe(
+    Match.when('lab', () => labPlaceOf(href).scene),
+    Match.when('scenes', () => Option.flatMap(scenesPlaceOf(href), (place) => place.scene)),
+    Match.orElse(() => Option.none<string>()),
+  );
+
+/** A film page's shell around its body, its title naming the scene its link selects. */
+const FilmShell = (props: FilmPageWith) => {
   const Body = clientOnly(() => props.body(props.hub));
+  const href = useAtomValue(() => UrlAtom.href);
   return (
-    <RegistryProvider initialValues={[[UrlAtom.layer, hostLayer(props.host)]]}>
-      <StudioFrame hub={props.hub} scope={props.scope} legend>
-        <PageShell
-          part={(): Part => props.part}
-          film={() => props.name}
-          films={() => props.films}
-          hub={props.hub}
-          host={props.host}
-        >
-          {props.around(() => (
-            <Body fallback={<Await name={props.name} />} />
-          ))}
-        </PageShell>
-      </StudioFrame>
-    </RegistryProvider>
+    <PageShell
+      part={(): Part => props.part}
+      film={() => props.name}
+      films={() => props.films}
+      hub={props.hub}
+      host={props.host}
+      subject={() => sceneOf(props.part, href())}
+    >
+      {props.around(() => (
+        <Body fallback={<Await name={props.name} />} />
+      ))}
+    </PageShell>
   );
 };
 

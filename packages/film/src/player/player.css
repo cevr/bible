@@ -52,12 +52,9 @@ body.export .stage canvas {
   gap: var(--s-1) var(--s-2);
   align-items: center;
 }
-/* Play is the row's verb, in the primary ink; the captions' button lights while they show. */
+/* Play is the row's verb, in the primary ink; the captions' button is the kit's toggle, lit while pressed. */
 .row [data-act='play'] {
   color: var(--text-1);
-}
-.bar[data-captions='on'] [data-act='captions'] {
-  color: var(--accent);
 }
 /* The playhead's timecode, the film's length and state (rate, loop), then why
    the narration is not heard: three pieces the row lays out. */
@@ -73,13 +70,17 @@ body.export .stage canvas {
 .bar .narration:empty {
   display: none;
 }
-/* A phone keeps the controls and the timecode on the first row, under the thumb; the length, the scene and the line go after them, wrapping below. */
+/* A phone keeps the controls and the clock (the timecode beside the length)
+   on the first row, under the thumb, then the scene and CC; the line goes
+   last, wrapping below. */
 @media (max-width: 899px) {
-  .row .of,
   .row .narration,
   .row .scene,
-  .row .say {
+  .row [data-act='captions'] {
     order: 1;
+  }
+  .row .say {
+    order: 2;
   }
 }
 .scene {
@@ -669,12 +670,12 @@ body.lab .stage {
   touch-action: pan-y;
 }
 /*
- * The cue lanes and their Snap are Edit's (and Motion's and Compare's on a
- * laptop): in Note and Record, and on a phone in every mode but Edit, the
- * strip folds to its words, so the mode's own controls start on the first
- * screen (UR2-3, SU-4).
+ * The cue lanes and their Snap are Edit's (and Motion's on a laptop, where a
+ * range across a lane sets the loop): in Note, Compare and Record, and on a
+ * phone in every mode but Edit, the strip folds to its words, so the mode's
+ * own controls start on the first screen and the picture keeps its room.
  */
-.lab-strip:is([data-mode='note'], [data-mode='record'])
+.lab-strip:is([data-mode='note'], [data-mode='compare'], [data-mode='record'])
   :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
   display: none;
 }
@@ -752,7 +753,9 @@ body.lab .stage {
 .lab-edit-note {
   color: var(--text-2);
 }
+/* A note is a line in its section's flow, its spacing the section's gap (as a `<p>` or a `<span>`). */
 .lab-edit-note {
+  margin: 0;
   font-size: var(--fs-2);
 }
 /* A number field is the kit's (`.lab-num`, `--hit` tall); a Motion row's buttons are the pointer's target tall too. */
@@ -982,6 +985,12 @@ body.play .sh-body {
 }
 .play-body .stage {
   grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+/* On a phone the picture spans the window's width, as the Lab's does. */
+@media (max-width: 899px) {
+  .play-body .stage {
+    padding: 0;
+  }
 }
 /* Play's HUD (`hud.ts`): the bar, the header and the tab bar fade while the
    film plays with no input, in place, so the picture does not move; the
