@@ -161,6 +161,18 @@ describe('ContextMenu.Trigger: right click', () => {
     await see(page.locator('#popup')).toHaveCount(0);
   });
 
+  it('ArrowLeft closes the opened menu', async () => {
+    const page = await h.open('area');
+    const { x, y } = await areaCentre(page);
+    await page.mouse.click(x, y, { button: 'right' });
+    await see(page.locator('#popup')).toBeVisible();
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('copy');
+    await page.keyboard.press('ArrowLeft');
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await logOf(page)).toContain('open false list-navigation');
+  });
+
   it('an item click runs it and closes the menu', async () => {
     const page = await h.open('area');
     const { x, y } = await areaCentre(page);

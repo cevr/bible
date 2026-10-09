@@ -173,6 +173,27 @@ describe('Drawer.Root', () => {
     await see.poll(() => focused(page)).toBe('open');
   });
 
+  it("the lab's inspector: non-modal, an outside press is ignored, rendered in place", async () => {
+    const page = await h.open('drawer', {
+      query: { modal: 'false', dismissal: 'disabled', portal: 'inline' },
+    });
+    await openDrawer(page);
+    // In place: the popup stays inside the page's own container, not moved to the body.
+    expect(await page.locator('#popup').evaluate((el) => el.closest('body > div') !== null)).toBe(
+      true,
+    );
+    // Non-modal: focus may leave for the page, and neither that nor a press outside closes it.
+    await page.mouse.click(400, 100);
+    await see(page.locator('#popup')).toBeVisible();
+    await page.focus('#outside');
+    await see.poll(() => focused(page)).toBe('outside');
+    await see(page.locator('#popup')).toBeVisible();
+    expect(await logOf(page)).toEqual([]);
+    await page.click('#close');
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await logOf(page)).toEqual(['open false close-press']);
+  });
+
   it('takes its swipe direction per instance', async () => {
     const page = await h.open('drawer', { query: { direction: 'right' } });
     await openDrawer(page);

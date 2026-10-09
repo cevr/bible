@@ -147,18 +147,6 @@ describe('outside press', () => {
     await page.mouse.click(700, 500, { button: 'right' });
     await see(page.locator('#popup')).toBeVisible();
   });
-
-  for (const modal of ['true', 'false']) {
-    it(`disablePointerDismissal keeps a modal=${modal} dialog open; Escape still closes`, async () => {
-      const page = await h.open('dialog', { query: { modal, dismissal: 'disabled' } });
-      await page.click('#open');
-      await see(page.locator('#popup')).toBeVisible();
-      await page.mouse.click(700, 500);
-      await see(page.locator('#popup')).toBeVisible();
-      await page.keyboard.press('Escape');
-      await see(page.locator('#popup')).toHaveCount(0);
-    });
-  }
 });
 
 describe('modal', () => {

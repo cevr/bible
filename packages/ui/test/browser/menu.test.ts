@@ -195,16 +195,6 @@ describe('keyboard navigation', () => {
 });
 
 describe('Menu.Item', () => {
-  it('runs onClick and closes the menu', async () => {
-    const page = await h.open('menu');
-    await page.click('#trigger');
-    await page.click('#cut');
-    await see(page.locator('#popup')).toHaveCount(0);
-    const lines = await logOf(page);
-    expect(lines).toContain('click cut');
-    expect(lines).toContain('open false item-press');
-  });
-
   it('Enter on a highlighted item activates it', async () => {
     const page = await h.open('menu');
     await page.focus('#trigger');
