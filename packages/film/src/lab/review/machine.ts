@@ -4,8 +4,8 @@
 // variants, the first against one other (side by side, or wiped: stacked
 // full width, the other right of a divider), the moments (every variant's
 // frame at a few instants), the first and one other's difference at a moment
-// (PA-8: stills cut at the same instant, so the blend is exact). A version's
-// notes are its Info, in its inspector (UR-34): an old `?view=notes` reads as
+// (stills cut at the same instant, so the blend is exact). A version's
+// notes are its Info, in its inspector: an old `?view=notes` reads as
 // All.
 //
 //   Paused ─Play→ Playing ─Pause→ Paused     Playing ─Stalled→ Buffering ─Resumed→ Playing
@@ -433,7 +433,7 @@ export const playsIn = (view: ViewName): boolean =>
   view === 'all' || view === 'pair' || view === 'wipe';
 
 /**
- * A set's modes, one at a time (UR-21): all its versions, the Compare of
+ * A set's modes, one at a time: all its versions, the Compare of
  * the first against one other (its layouts the pair, the wipe and the
  * difference), and the moments. Each opens on its first view.
  */

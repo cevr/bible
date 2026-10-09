@@ -58,7 +58,7 @@ interface LabState {
   readonly selection: Accessor<Option.Option<LabSelection>>;
   /** The note selected: the URL's (`?note=`). */
   readonly note: Accessor<Option.Option<string>>;
-  /** How the compare meets HEAD: the URL's (`?view=`, PA-9). */
+  /** How the compare meets HEAD: the URL's (`?view=`). */
   readonly view: Accessor<CompareView>;
   /** The Source view: the URL's (`?code=`), shut when none. */
   readonly code: Accessor<Option.Option<CodeOpen>>;
@@ -172,7 +172,7 @@ const Root = (props: RootProps) => {
   // frame resizes (a window's resize, a phone turned: what moves the canvas
   // in its frame resizes one of them). They live in the canvas's own frame
   // (the stage), placed from its corner: as the page scrolls (a phone's lab
-  // is one long page) they move with the picture, never left where it was (LS-7).
+  // is one long page) they move with the picture, never left where it was.
   const frame = pictureFrame(player);
   const pinned = new Set<HTMLElement | SVGElement>();
   const place = () => {
@@ -208,7 +208,7 @@ const Root = (props: RootProps) => {
   const [revision, setRevision] = createSignal(0, fromDraw);
   // Every reload (a write's, a kept take's, the rebuild's) waits while a panel holds
   // unsaved work; the page's panel says what it waits for.
-  // Each reload says it is onto new code, so the page it lands on flashes once (PA-11).
+  // Each reload says it is onto new code, so the page it lands on flashes once.
   const reloads = makeReloadGate(
     Effect.andThen(
       Effect.sync(() => view.patch({ landed: true })),

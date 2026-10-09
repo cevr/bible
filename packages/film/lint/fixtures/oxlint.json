@@ -19,7 +19,10 @@
     "film/host-events-through-adapter": "error",
     "film/keys-through-keymap": "error",
     "film/keys-named-as-bound": "error",
-    "film/one-breakpoint": "error"
+    "film/one-breakpoint": "error",
+    "film/history-through-host": "error",
+    "film/one-clock-epsilon": "error",
+    "film/lock-through-sqlite": "error"
   },
   "overrides": [
     {
@@ -32,6 +35,12 @@
       "files": ["host-events-through-adapter.ts"],
       "rules": {
         "film/keys-through-keymap": "off"
+      }
+    },
+    {
+      "files": ["one-clock-epsilon.ts"],
+      "rules": {
+        "film/no-hand-timed-seconds": "off"
       }
     }
   ]

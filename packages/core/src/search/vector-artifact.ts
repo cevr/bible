@@ -19,53 +19,15 @@
  *  *getting the bytes*, which `VectorIndexBytes` makes a one-method service.
  */
 
-import { Context, Effect, Layer, Option, Schema } from 'effect';
+import { Context, Effect, Layer, Option } from 'effect';
 
 import {
   makeFileCorpusArtifact,
   type FileArtifactRecipeService,
   type FileArtifactInstallerService,
-  type FileArtifactRelease,
-  type ReleaseSourceDeclaration,
 } from '../corpus-supply/file-artifact.js';
 import { vectorUnavailable, type VectorIndexUnavailable } from './model.js';
-import { MODEL_FINGERPRINT, parseVectorIndex, type VectorIndex } from './vector-index.js';
-
-/** The first published vector index: `vectors-v1` on the same GitHub release
- *  channel `BIBLE_ARTIFACT_RELEASE` uses. The digest and size are the whole
- *  trust surface (corpus-supply/CONTEXT.md); both were computed from the
- *  artifact the 2026-08-24 full-corpus build wrote, and the installer rejects
- *  any download that differs before semantic verification runs.
- *
- *  961,253 vectors × 256d int8 over the EGW scope, 605 books — built with
- *  `bun run build:vectors -- --limit 0` under the pinned
- *  `EmbeddingGemma-300M/sentence-embedding/retrieval/256d-mrl/int8-fixed`
- *  fingerprint, which `loadVectorIndex` still checks after install. */
-export const VECTORS_ARTIFACT_RELEASE: Option.Option<FileArtifactRelease> = Option.some({
-  url: 'https://github.com/cevr/bible/releases/download/vectors-v1/vectors.bvi',
-  revision: 'vectors-v1',
-  digest: 'sha256:f4b6fcd9dbce50226c94860b52d61e42a2453754bedc0b109ba71f055674c6e6',
-  size: 264_713_082,
-});
-
-/** The same declaration Topics uses. One shape rather than two that agree:
- *  the release ordinal (§3.6) that keeps startup from re-flooring a newer
- *  runtime artifact is a property of *every* pinned release, not of topics
- *  alone (round-4 F2). */
-export type VectorsReleaseSourceDeclaration = ReleaseSourceDeclaration;
-
-/** The pinned release as a source list: empty while none exists, one entry once
- *  the pin is filled in. Every host spreads this after its local sources, so
- *  publishing the first index wires the release leg in without touching any
- *  host — exactly as `topicsReleaseSource` does. */
-export const vectorsReleaseSource = (): readonly VectorsReleaseSourceDeclaration[] =>
-  Option.match(VECTORS_ARTIFACT_RELEASE, {
-    onNone: (): readonly VectorsReleaseSourceDeclaration[] => [],
-    // `None`: vectors are not on the manifest-driven update surface (§3.6 is
-    // closed to `topics`), so the pin carries no floor ordinal — there is no
-    // runtime generation for it to be compared against.
-    onSome: (release) => [{ kind: 'release', ...release, generation: Option.none() }],
-  });
+import { parseVectorIndex, type VectorIndex } from './vector-index.js';
 
 export class VectorsArtifactRecipe extends Context.Service<
   VectorsArtifactRecipe,
@@ -90,41 +52,6 @@ export const VectorsArtifact = makeFileCorpusArtifact({
   Installer: VectorsArtifactInstaller,
 });
 
-/** The semantic verifier §3.5 requires beside the digest gate.
- *
- *  The digest proves the bytes are the bytes that were published; this proves
- *  the published bytes are an index *this build can use*. Both run before
- *  activation, which is what makes "partial" unobservable: the only states are
- *  a verified index active, the previous verified index active, or none.
- *
- *  Fingerprint is part of the gate rather than only a read-time check, because
- *  §10 asks a mismatch to invalidate the leg — and refusing to install a foreign
- *  index is strictly better than installing it and refusing to read it. Both
- *  happen: an index can also become foreign when the *app* updates its model.
- */
-export const verifyVectorIndexBytes = (
-  buffer: ArrayBuffer,
-): Effect.Effect<number, VectorArtifactRejected> => {
-  const parsed = parseVectorIndex(buffer);
-  if (parsed._tag === 'ok') {
-    if (parsed.index.count === 0) {
-      return VectorArtifactRejected.make({ reason: 'an index with no vectors' });
-    }
-    return Effect.succeed(parsed.index.count);
-  }
-  if (parsed._tag === 'fingerprint') {
-    return VectorArtifactRejected.make({
-      reason: `built for ${parsed.found}, this build embeds ${MODEL_FINGERPRINT}`,
-    });
-  }
-  return VectorArtifactRejected.make({ reason: parsed.detail });
-};
-
-export class VectorArtifactRejected extends Schema.TaggedError<VectorArtifactRejected>()(
-  'Search/VectorArtifactRejected',
-  { reason: Schema.String },
-) {}
-
 // ---------------------------------------------------------------------------
 // The read side
 // ---------------------------------------------------------------------------
@@ -142,7 +69,7 @@ export class VectorArtifactRejected extends Schema.TaggedError<VectorArtifactRej
  *  one degradation and a corrupt index is not a better search than no index.
  *  The distinction survives in the log, not in the result.
  */
-export interface VectorIndexBytesApi {
+interface VectorIndexBytesApi {
   readonly read: Effect.Effect<Option.Option<ArrayBuffer>>;
 }
 

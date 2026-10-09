@@ -176,7 +176,7 @@ export interface Command {
   readonly stepped?: boolean;
   /**
    * How a phone reaches it, for the `?` sheet (`long-press a cue`). Every
-   * command has one (G8, mobile-first): a verb only a key reaches is a gap in
+   * command has one (mobile-first): a verb only a key reaches is a gap in
    * the chrome to fill, not a command to register.
    */
   readonly touch: string;

@@ -30,7 +30,7 @@ export function extractTitleFromMarkdown(markdownContent: string): Option.Option
  * CSS styles for Apple Notes HTML content.
  * Optimized for readability in Apple Notes.
  */
-export const APPLE_NOTES_STYLES = `
+const APPLE_NOTES_STYLES = `
   body {
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 36px;

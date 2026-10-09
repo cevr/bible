@@ -29,6 +29,7 @@ import {
   type Word,
   isCast,
 } from './schema.ts';
+import { heardAtOrAfter } from './time.ts';
 import { unmeasured } from './voiced.ts';
 
 /** Another voice takes the line: `{@name}` before a word. */
@@ -270,7 +271,7 @@ export const wordAfter = (
   word: string,
 ): Option.Option<number> =>
   Option.map(
-    Arr.findFirst(words, (w) => w.start >= from - 1e-3 && readsWord(w.text, word)),
+    Arr.findFirst(words, (w) => heardAtOrAfter(w, from) && readsWord(w.text, word)),
     (w) => w.start,
   );
 

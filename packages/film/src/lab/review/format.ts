@@ -133,7 +133,7 @@ export const versionsText = (n: number): string => counted(n, 'version');
 
 /**
  * What a folder holds, as its card says it: its first kind of thing's count
- * (`20 version stacks`, else `3 videos`…), the rest its page's sections (UR-16).
+ * (`20 version stacks`, else `3 videos`…), the rest its page's sections.
  */
 export const countsText = (folder: ReviewFolder): string =>
   Option.getOrElse(

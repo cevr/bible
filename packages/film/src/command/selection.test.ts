@@ -130,7 +130,7 @@ describe("a selection in the pages' URLs", () => {
     expect(selectionOf('/films/f/choices?point=score&inspect=piano&heard=score')).toEqual(
       Option.some(Variant.make({ film: 'f', point: 'score', variant: 'piano' })),
     );
-    // A card in focus with no sheet open is the choice point itself (US2-2).
+    // A card in focus with no sheet open is the choice point itself.
     expect(selectionOf('/films/f/choices?point=score')).toEqual(
       Option.some(Point.make({ film: 'f', point: 'score' })),
     );

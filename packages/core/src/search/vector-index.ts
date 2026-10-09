@@ -79,7 +79,7 @@ export const DIMENSIONS = 256;
 /** The layout above. Bumped only by a change that makes old bytes unreadable —
  *  which the fingerprint does not cover, because a format break and a model
  *  break are different invalidations with different fixes. */
-export const FORMAT_MAJOR = 1;
+const FORMAT_MAJOR = 1;
 
 const MAGIC = 'BVI1';
 const MAGIC_BYTES = 4;
@@ -118,7 +118,7 @@ export class VectorManifest extends Schema.Class<VectorManifest>('Search/VectorM
  *  mismatch is `fingerprint`, and everything else is `absent` — a file that will
  *  not parse is, for the reader, an index that is not there.
  */
-export type VectorIndexFault =
+type VectorIndexFault =
   | { readonly _tag: 'malformed'; readonly detail: string }
   | { readonly _tag: 'fingerprint'; readonly found: string };
 
@@ -321,7 +321,7 @@ export const encodeVectorIndex = (input: {
 };
 
 /** One neighbor from a scan: the paragraph id and its dot product. */
-export interface VectorNeighbor {
+interface VectorNeighbor {
   readonly paragraphId: string;
   readonly similarity: number;
 }
@@ -338,7 +338,7 @@ export interface VectorNeighbor {
  *  neighbors could have caught it. Counting inside the loop that does the work
  *  is what makes the field un-fakeable.
  */
-export interface VectorScan {
+interface VectorScan {
   readonly neighbors: readonly VectorNeighbor[];
   /** How many index rows this scan computed a dot product for. */
   readonly scanned: number;

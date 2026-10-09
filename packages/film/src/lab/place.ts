@@ -26,7 +26,7 @@ interface LabPlace {
   readonly note: Option.Option<string>;
   /** The studio's beat picked (`?beat=<id>`, a scene's take): none on a film's lab. */
   readonly beat: Option.Option<string>;
-  /** The compare with HEAD (`?view=`, PA-9): off unless the link names a mode. */
+  /** The compare with HEAD (`?view=`): off unless the link names a mode. */
   readonly view: CompareView;
   /** The Source view (`?code=`): shut unless the link opens it, following the frame or held on a line. */
   readonly code: Option.Option<CodeOpen>;

@@ -12,7 +12,7 @@ import { TOPICS_VERIFY_MESSAGES } from './topics-verifier.js';
  *  a string because `meta.value` is a TEXT column: a corrupt version field is a
  *  value the artifact can really hold, and the strict parse only has something
  *  to catch if the fixture can write one. */
-export interface TopicsVerifierFixture {
+interface TopicsVerifierFixture {
   readonly schemaMajor: string;
   readonly topics: number;
   readonly aliases: number;
@@ -21,11 +21,11 @@ export interface TopicsVerifierFixture {
 /** `accepted` carries the page count the verifier must return; `refused` carries
  *  the exact message it must report. Both are asserted, so a case cannot pass by
  *  failing for the wrong reason. */
-export type TopicsVerifierOutcome =
+type TopicsVerifierOutcome =
   | { readonly kind: 'accepted'; readonly installed: number }
   | { readonly kind: 'refused'; readonly message: string };
 
-export interface TopicsVerifierCase {
+interface TopicsVerifierCase {
   readonly name: string;
   readonly fixture: TopicsVerifierFixture;
   readonly outcome: TopicsVerifierOutcome;

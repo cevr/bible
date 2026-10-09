@@ -39,9 +39,9 @@ import { ContentManifestSource } from './service.js';
  *  local fixture without the adapter growing a
  *  test-only branch, and what §12 leaves open ("the exact URL") without leaving
  *  the mechanism open. */
-export const contentManifestUrl: Config.Config<string> = Config.String(
-  'BIBLE_CONTENT_MANIFEST_URL',
-).pipe(Config.withDefault(CONTENT_MANIFEST_URL));
+const contentManifestUrl: Config.Config<string> = Config.String('BIBLE_CONTENT_MANIFEST_URL').pipe(
+  Config.withDefault(CONTENT_MANIFEST_URL),
+);
 
 const decodeManifest = Schema.decodeUnknownEffect(Schema.fromJsonString(ContentManifest));
 

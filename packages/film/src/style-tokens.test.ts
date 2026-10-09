@@ -20,8 +20,8 @@
 // token: it is the family `--font` names first.
 //
 // What a page draws is read back as well (`lab/fixtures/drawn-tokens.ts`, run
-// over every page and disclosed state of `e2e/lab/touch.dom.test.ts` at 390
-// and 1440; G9): a value no rule here spells (a user agent's default, a
+// over every page and disclosed state of `e2e/lab/touch-tokens.dom.test.ts` at 390
+// and 1440): a value no rule here spells (a user agent's default, a
 // `calc`, a style set from data, a weight) is caught by computing it, never
 // by widening these patterns. This guard stays for what only it sees: a
 // canvas painting the chrome (its pixels are no computed style), the `@font-face`

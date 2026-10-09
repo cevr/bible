@@ -506,8 +506,8 @@ const HOT_MIC = `(() => {
 
 /**
  * A page open in a tab of its own: the tab, what it asked of its server, and any
- * page errors, Solid's reactivity diagnostics among them (a `[STRICT_…]`
- * warning is a read or a write the page does not mean).
+ * page errors: what it threw and every console warning or error (Solid's
+ * reactivity diagnostics are warnings), which also fail the case as it ends.
  */
 interface OpenLab {
   readonly page: Tab;
@@ -676,7 +676,7 @@ interface ReviewAt {
   readonly mountedOnly?: boolean;
   /**
    * The UI face's files held until this is done: the page laid out and read
-   * in the face's fallback, then the face landing (G10). None: answered at once.
+   * in the face's fallback, then the face landing. None: answered at once.
    */
   readonly faceHeld?: Deferred.Deferred<void>;
 }
@@ -876,7 +876,7 @@ interface Document {
   readonly pieces: ReadonlyArray<string>;
 }
 
-/** A page served as the lab serves a page it renders (PA-12): what the server read and answered too. */
+/** A page served as the lab serves a page it renders: what the server read and answered too. */
 interface OpenServed extends OpenLab {
   /** The reads the server's renders made, apart from the page's own requests (`asked`). */
   readonly read: ReadonlyArray<Asked>;

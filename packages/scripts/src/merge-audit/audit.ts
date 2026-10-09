@@ -70,7 +70,7 @@ const lostOf = (base: string, side: string, other: string, merged: string): Lost
 };
 
 /** What a merge did to each parent's edits of one file. */
-export interface LostEdits {
+interface LostEdits {
   readonly first: Lost;
   readonly second: Lost;
 }

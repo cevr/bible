@@ -32,8 +32,6 @@ import {
 import { isKeyboardClick } from '../utils/isKeyboardOpen.ts';
 import { MenuRootContext, useMenuRootContextOptional } from './MenuRootContext.ts';
 
-export type { MenuChangeEventDetails, MenuChangeEventReason };
-
 export interface MenuRootProps {
   onOpenChange?: ((open: boolean, eventDetails: MenuChangeEventDetails) => void) | undefined;
   /** Called after the open or close transition finishes. */

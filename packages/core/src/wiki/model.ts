@@ -1,7 +1,7 @@
 import { Schema } from 'effect';
 
 import { BookNumber, ChapterNumber, VerseNumber } from '../bible/model.js';
-import { TOPICS_SCHEMA_MAJOR, TOPICS_SCHEMA_MINOR } from '../corpus-supply/file-artifact.js';
+import { TOPICS_SCHEMA_MAJOR } from '../corpus-supply/file-artifact.js';
 import { CorpusScope } from '../writings/corpus-scope.js';
 
 export const TopicSlug = Schema.NonEmptyString.pipe(Schema.brand('Wiki/TopicSlug'));
@@ -13,7 +13,7 @@ export const topicSlug = Schema.decodeSync(TopicSlug);
  *  the supply lifecycle that owns it. `schema_major` gates the runtime update
  *  path in §3.6: an app never installs an artifact whose major exceeds what it
  *  was built for. */
-export { TOPICS_SCHEMA_MAJOR, TOPICS_SCHEMA_MINOR };
+export { TOPICS_SCHEMA_MAJOR };
 
 // ---------------------------------------------------------------------------
 // Portable AST (§2.2)
@@ -216,8 +216,8 @@ export class WikiPassageRef extends Schema.Class<WikiPassageRef>('Wiki/PassageRe
  *  the entry renders refcode + book title + a get-this-book affordance and no
  *  text. A closed literal rather than a boolean because the reason is what the
  *  UI acts on — `not-installed` is the one a download button resolves. */
-export const WikiSnippetAbsence = Schema.Literals(['not-installed']);
-export type WikiSnippetAbsence = typeof WikiSnippetAbsence.Type;
+const WikiSnippetAbsence = Schema.Literals(['not-installed']);
+type WikiSnippetAbsence = typeof WikiSnippetAbsence.Type;
 
 /** One writings paragraph on a topic page, from FTS (sections 2 and 4) or from
  *  a citation in the authored core (§6.3).

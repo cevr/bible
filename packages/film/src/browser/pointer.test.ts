@@ -22,7 +22,7 @@ class Pressable extends EventTarget {
 
 /** A pointer event of `type`, for pointer `id` at `x`, of a mouse unless said. */
 const pointer = (type: string, id: number, x = 0, pointerType = 'mouse') =>
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Bun has no PointerEvent; the drag reads only these fields
+  // Bun has no PointerEvent; the drag reads only these fields.
   Object.assign(new Event(type, { bubbles: true }), {
     pointerId: id,
     clientX: x,
@@ -43,7 +43,7 @@ const page = () => {
   const ends: Array<Option.Option<number>> = [];
   let drag = Option.none<Fiber.Fiber<void>>();
   element.addEventListener('pointerdown', (e) => {
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- dispatched by `press` below
+    // Dispatched by `press` below.
     const down = e as PointerEvent;
     drag = Option.some(
       Effect.runForkWith(host)(
@@ -174,7 +174,7 @@ const surface = (follow: (id: number) => boolean = () => true) => {
   const moves: Array<string> = [];
   const fibers: Array<Fiber.Fiber<void>> = [];
   element.addEventListener('pointerdown', (e) => {
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- dispatched by `press` below
+    // Dispatched by `press` below.
     const down = e as PointerEvent;
     fibers.push(
       Effect.runForkWith(host)(

@@ -3,7 +3,7 @@
 // timeline and knobs through today's code (`film.render(…, { edits })`, over
 // whatever else the lab previews; one frame, nothing kept), clipped left of
 // the divider in a wipe, shown on HEAD's side of a blink, and laid over the
-// frame in the difference blend in a diff (PA-9: black where nothing moved).
+// frame in the difference blend in a diff (black where nothing moved).
 // On the overlay, the divider drags the wipe, and in a blink a press held on
 // the frame shows HEAD until it lifts (the blink by hand, a phone's way).
 
@@ -116,7 +116,7 @@ export const Layer = () => {
 };
 
 /**
- * The blink by hand, on the overlay (PA-9): while Compare is the tool shown
+ * The blink by hand, on the overlay: while Compare is the tool shown
  * and the blink is on, a press on the frame holds HEAD until it lifts, or
  * until the browser takes it. A finger's press never draws a note here: the
  * overlay never sees it.

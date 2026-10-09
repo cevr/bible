@@ -1,4 +1,4 @@
-// Whether a page fits a phone (G8, the design language's Mobile-first): it
+// Whether a page fits a phone (the design language's Mobile-first): it
 // never scrolls sideways, each of its controls (`[data-act]`) shows inside
 // the window's width, and its chrome (the bars that stay while the page
 // scrolls: a sticky header, a dock, the tab bar) holds at most a quarter of
@@ -7,7 +7,8 @@
 // A control counts where it shows: its box clipped by each ancestor that
 // clips (a strip that scrolls sideways shows a part of its row; what it
 // scrolled away is reached by scrolling it, not cut off), and nothing when
-// that leaves nothing. The chrome is measured where it holds most: at the
+// that leaves nothing, except that a control which a box that only clips
+// (hidden, clip) leaves nothing of is "cut off": no scrolling reaches it. The chrome is measured where it holds most: at the
 // page's top, its middle and its end, each the union of the rows its fixed
 // and stuck (sticky, with an edge set, to the window rather than to a box
 // that scrolls on its own) elements cover in the window; a see-through frame
@@ -17,7 +18,7 @@
 // it in the window, is no chrome: it is shut to go back to the page. Its
 // width and its controls are measured as the page's are.
 
-import { jsonOf } from './tab.ts';
+import { WAIT_MS, jsonOf } from './tab.ts';
 import type { Tab } from './tab.ts';
 
 /** The most of the window's height a page's chrome may hold. */
@@ -39,24 +40,37 @@ export const phoneFit = (layer?: string) => `(() => {
     const s = getComputedStyle(el);
     return s.overflowX !== 'visible' || s.overflowY !== 'visible' || s.contain.includes('paint');
   };
+  // A box that scrolls (auto, scroll) on an axis shows a part of its row and is scrolled to the rest; one that
+  // only clips (hidden, clip, contain: paint) has nothing to scroll with, so what it covers is cut off.
+  const scrolls = (v) => v === 'auto' || v === 'scroll';
+  const wide = (b) => b.right - b.left > 0.5;
+  const high = (b) => b.bottom - b.top > 0.5;
+  const filled = (b) => wide(b) && high(b);
   const shown = (el) => {
-    if (!el.checkVisibility({ visibilityProperty: true, opacityProperty: false })) return null;
+    if (!el.checkVisibility({ visibilityProperty: true, opacityProperty: false })) return { box: null, cut: false };
     const r = el.getBoundingClientRect();
     let box = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+    let cut = false;
     for (let a = el.parentElement; a && a !== document.body && a !== root; a = a.parentElement) {
       if (!clipping(a)) continue;
       const c = a.getBoundingClientRect();
-      box = {
+      const s = getComputedStyle(a);
+      const next = {
         left: Math.max(box.left, c.left),
         right: Math.min(box.right, c.right),
         top: Math.max(box.top, c.top),
         bottom: Math.min(box.bottom, c.bottom),
       };
+      // Each axis is reached by its own scroll: one that scrolls only the other leaves this one cut.
+      if (wide(box) && !wide(next) && !scrolls(s.overflowX)) cut = true;
+      if (high(box) && !high(next) && !scrolls(s.overflowY)) cut = true;
+      box = next;
     }
-    return box.right - box.left > 0.5 && box.bottom - box.top > 0.5 ? box : null;
+    return { box: filled(box) ? box : null, cut };
   };
   const outside = [...document.querySelectorAll('[data-act]')].flatMap((el) => {
-    const b = shown(el);
+    const { box: b, cut } = shown(el);
+    if (cut) return [el.dataset.act + ' cut off'];
     if (b === null || (b.left >= -0.5 && b.right <= innerWidth + 0.5)) return [];
     return [el.dataset.act + ' ' + Math.round(b.left) + '..' + Math.round(b.right)];
   });
@@ -133,10 +147,12 @@ export const fits = (layer?: string) =>
  * Wait until the page fits its window (a phone's: 390 × 844), by `fits`;
  * `layer`, the layer it has open, is no chrome. A timeout fails with what the
  * page answers then (`phoneFit`), so the bar or the control over is named.
+ * `within` is the wait in ms (`Tab.until`): a negative control gives 0.
  */
-export const fitsPhone = (page: Tab, layer?: string) =>
+export const fitsPhone = (page: Tab, layer?: string, within = WAIT_MS) =>
   page.until(fits(layer), {
     now: phoneFit(layer),
+    within,
     say: (found) => `the page does not fit the window (chrome at most ${CHROME_MAX}): ${found}`,
   });
 

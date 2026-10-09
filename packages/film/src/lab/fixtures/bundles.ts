@@ -14,7 +14,7 @@ import { solidPlugin, solidPluginFor } from '../../tools/solid-plugin.ts';
  * A font file a fixture script imports, named from the pages' root as the
  * lab's build names it (`/<file>.woff2`): the fixtures' fake server answers
  * it as the lab's asset route does (`faceFiles`, `harness.ts`), so a test
- * can hold the UI face's file and read the page laid out without it (G10).
+ * can hold the UI face's file and read the page laid out without it.
  */
 const servedFonts: BunPlugin = {
   name: 'served-fonts',
@@ -79,6 +79,8 @@ export const compile = (entry: string) =>
       target: 'browser',
       format: 'iife',
       minify: true,
+      // The host-reach check reads a call's frames back to the files that wrote them.
+      sourcemap: 'inline',
       plugins: [solidPlugin, servedFonts, classicScript],
       conditions: Arr.filter(['development'], () => DEVELOPMENT.has(entry)),
     }),

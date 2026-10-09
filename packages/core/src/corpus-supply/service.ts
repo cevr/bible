@@ -27,7 +27,7 @@ import {
 } from './model.js';
 import { WritingsAssetRecipe, type WritingsAssetRecipeService } from './source.js';
 
-export interface CorpusSupplyService {
+interface CorpusSupplyService {
   readonly ensure: (
     input?: CorpusSupplyInput,
   ) => Effect.Effect<CorpusSupplyReceipt, CorpusSupplyError>;

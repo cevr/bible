@@ -20,7 +20,7 @@ import { Reference } from './model.js';
 /**
  * Options for parsing Bible queries
  */
-export interface ParseBibleQueryOptions {
+interface ParseBibleQueryOptions {
   /**
    * Optional fuzzy matcher function for book names.
    * If provided, will be used as a fallback when exact matching fails.
@@ -267,7 +267,7 @@ export function isSearch(query: ParsedBibleQuery): boolean {
 /**
  * Extracted Bible reference with position in text
  */
-export interface ExtractedReference {
+interface ExtractedReference {
   /** The matched text */
   text: string;
   /** Start position in original text */
@@ -433,39 +433,4 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
   results.sort((a, b) => a.start - b.start);
 
   return results;
-}
-
-/**
- * Segment text with Bible references highlighted
- * Returns segments in order, with type indicating if it's a reference or plain text
- */
-export type TextSegmentWithRefs =
-  | { type: 'text'; text: string }
-  | { type: 'ref'; text: string; ref: VerseReference | VerseRangeReference };
-
-export function segmentTextWithReferences(text: string): TextSegmentWithRefs[] {
-  const refs = extractBibleReferences(text);
-  if (refs.length === 0) {
-    return [{ type: 'text', text }];
-  }
-
-  const segments: TextSegmentWithRefs[] = [];
-  let lastEnd = 0;
-
-  for (const ref of refs) {
-    // Add text before this reference
-    if (ref.start > lastEnd) {
-      segments.push({ type: 'text', text: text.slice(lastEnd, ref.start) });
-    }
-    // Add the reference
-    segments.push({ type: 'ref', text: ref.text, ref: ref.ref });
-    lastEnd = ref.end;
-  }
-
-  // Add remaining text
-  if (lastEnd < text.length) {
-    segments.push({ type: 'text', text: text.slice(lastEnd) });
-  }
-
-  return segments;
 }

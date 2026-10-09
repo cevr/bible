@@ -57,7 +57,13 @@ import {
   soundState,
 } from '../core/sfx.ts';
 import { cueTime, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
-import { CLOCK_EPSILON, DEFAULT_EASE, type Interval, framesOf } from '../core/time.ts';
+import {
+  CLOCK_EPSILON,
+  DEFAULT_EASE,
+  type Interval,
+  framesOf,
+  heardAtOrAfter,
+} from '../core/time.ts';
 import { endsLate } from '../core/timeline.ts';
 import type { PartError } from '../core/acts.ts';
 import type {
@@ -126,7 +132,7 @@ export const farPins = (placed: ReadonlyArray<Placed>): ReadonlyArray<WordPinFar
         );
         return Option.toArray(landed).flatMap(({ word, m, t }) => {
           const sentences = p.voice.words.filter(
-            (w) => w.start >= m - 1e-3 && w.start < t && endsSentence(w.text),
+            (w) => heardAtOrAfter(w, m) && w.start < t && endsSentence(w.text),
           ).length;
           if (sentences <= PIN_REACH) return [];
           return [WordPinFar.make({ scene: p.spec.id, cue, mark, word, sentences })];
@@ -1598,7 +1604,7 @@ type Mark = {
 };
 
 /** Float noise on a box's edges (an edge is a sum, `x + w`), in the box's units, not seconds. */
-const BOX_NOISE = 1e-9;
+const BOX_NOISE = 1e-9; // oxlint-disable-line film/one-clock-epsilon -- a box's units, not a time
 
 /** A mark's box moved no more than `STILL_DRIFT` of its own units, and it faded no more than `STILL_FADE`. */
 const boxAtRest = (a: Mark, b: Mark) =>

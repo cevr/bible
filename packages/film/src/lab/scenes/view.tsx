@@ -42,7 +42,7 @@ import { targetAttr } from '../../command/target.ts';
 import { type ProjectView, type Say, pageHref } from '../../core/api.ts';
 import { sceneAt } from '../../core/layout.ts';
 import { isShortKey } from '../../core/shorts.ts';
-import { onTheMs, timecode, timecodeParts } from '../../core/time.ts';
+import { CLOCK_EPSILON, onTheMs, timecode, timecodeParts } from '../../core/time.ts';
 import { counted } from '../../core/words.ts';
 import type { Player } from '../../player/main.ts';
 import { makeStills } from '../../player/stills.ts';
@@ -515,7 +515,7 @@ export const ScenesView = (props: ScenesViewProps) => {
         }),
     }),
   );
-  const pct = (t: number) => `${(t / Math.max(film.duration, 1e-6)) * 100}%`;
+  const pct = (t: number) => `${(t / Math.max(film.duration, CLOCK_EPSILON)) * 100}%`;
   /** The tape scrubs by one press at a time, on whichever line: a second finger's scrubs nothing. */
   const lines = new Surface('the tape');
 
@@ -558,6 +558,7 @@ export const ScenesView = (props: ScenesViewProps) => {
         }}
       >
         <span class="sc-line-tc">{lineTime(row.from, film.fps)}</span>
+        {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the tape's pointer surface: the transport's keys seek it (← → a frame, [ ] a scene) */}
         <div
           class="sc-line-body"
           ref={(el: HTMLDivElement) => sized.observe(el)}

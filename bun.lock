@@ -169,6 +169,7 @@
         "@bible/film": "workspace:*",
         "@effect/platform-bun": "catalog:",
         "effect": "catalog:",
+        "oxc-parser": "0.152.0",
         "pdf-parse": "^2.4.5",
       },
     },

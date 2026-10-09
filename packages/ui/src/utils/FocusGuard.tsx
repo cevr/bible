@@ -12,7 +12,7 @@ import { createMemo, omit } from 'solid-js';
 import { platform } from './platform.ts';
 import { visuallyHidden } from './visuallyHidden.ts';
 
-export interface FocusGuardProps {
+interface FocusGuardProps {
   ref?: ((el: HTMLSpanElement) => void) | undefined;
   'data-type'?: string | undefined;
   onFocus?: ((event: FocusEvent) => void) | undefined;
@@ -35,7 +35,7 @@ export function FocusGuard(props: FocusGuardProps): JSX.Element {
   );
 }
 
-export interface InternalBackdropProps extends JSX.HTMLAttributes<HTMLDivElement> {
+interface InternalBackdropProps extends JSX.HTMLAttributes<HTMLDivElement> {
   /** An element left uncovered (the trigger), so presses reach it. */
   cutout?: Element | null | undefined;
 }

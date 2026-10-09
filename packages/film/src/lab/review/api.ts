@@ -1,6 +1,6 @@
 // The review's routes as its page calls them, through the page's one client
 // of the lab's API (`LabClient`, `ReviewGroup` in `core/api.ts`): the index, a
-// video's length and a say on a set's version (UI-7) decoded by their
+// video's length and a say on a set's version decoded by their
 // Schemas. A doc's text is the file itself, fetched by its URL (the route's
 // path is the ref, which the derived client does not build). A refusal is
 // the server's own failure; a request that never arrived says so

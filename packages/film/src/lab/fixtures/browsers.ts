@@ -13,10 +13,12 @@
 // case: the renderer's software 2D canvas, media that plays without a
 // gesture, and one fake microphone every case shares (`FAKE_MIC`).
 
+import type { SourceMap } from 'node:module';
 import { BunServices } from '@effect/platform-bun';
 import { Config, Effect, FileSystem, Option, Path, Schema, Scope, Semaphore } from 'effect';
 import { openView, thrownBy } from '../../tools/chrome.ts';
 import { BrowserFailed } from '../../tools/errors.ts';
+import { HOST_REACH, failureOf, mapOf, toldOf } from './host-reach.ts';
 import { type Ask, fromIdle, lease } from './lease.ts';
 import { type Logged, type Request, type Response, type Tab, type View, makeTab } from './tab.ts';
 import { tone } from './tone.ts';
@@ -271,6 +273,8 @@ idle.push(
 );
 
 let tabs = 0;
+/** How many tabs are open in this process now: cases that run at once each hold one. */
+let open = 0;
 
 /** An object a page logged, as Chrome hands it over: its description. */
 const described = Schema.decodeUnknownOption(Schema.Struct({ description: Schema.String }));
@@ -302,7 +306,22 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
     const logged: Array<Logged> = [];
     const errors: Array<string> = [];
     tabs += 1;
+    open += 1;
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => {
+        open -= 1;
+      }),
+    );
     const origin = `https://t${tabs}.${SITE}`;
+    const assets = new Map(options.assets.map((a) => [a.url, a.response]));
+    // The source map each of the case's scripts carries, read once.
+    const maps = new Map<string, Option.Option<SourceMap>>();
+    const mapFor = (url: string): Option.Option<SourceMap> =>
+      Option.getOrElse(Option.fromUndefinedOr(maps.get(url)), () => {
+        const read = Option.flatMap(Option.fromUndefinedOr(assets.get(url)), (a) => mapOf(a.body));
+        maps.set(url, read);
+        return read;
+      });
     const events = new EventTarget();
     events.addEventListener('Runtime.exceptionThrown', (event: Event) => {
       Option.map(thrownBy(event), (thrown) => errors.push(thrown));
@@ -321,12 +340,32 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
               }),
             )
             .join(' ');
+          // A host reach is told by the page's own wrapper on the debug channel;
+          // a warning or an error in its spelling is the page's, and fails below.
+          const told = Option.filter(Option.some(text), () => type === 'debug').pipe(
+            Option.flatMap(toldOf),
+          );
+          if (Option.isSome(told)) {
+            Option.map(failureOf(told.value, mapFor), (failure) => errors.push(failure));
+            return;
+          }
           logged.push({ type, text });
-          // Solid's reactivity diagnostics: a read or a write the page does not mean.
-          if (type.startsWith('warn') && text.startsWith('[STRICT_')) errors.push(text);
+          // A warning or an error at any time is the page doing what it does
+          // not mean: Solid's reactivity diagnostics (`[STRICT_…]`,
+          // `[NO_OWNER_CLEANUP]`) are warnings, and so is a hydration mismatch.
+          if (type.startsWith('warn') || type === 'error') errors.push(`console.${type}: ${text}`);
         },
       },
       { width: options.width, height: options.height, coarse: options.coarse === true },
+    );
+    // A case fails when its page threw, warned or logged an error at any time,
+    // not only where the case looks: checked as the case's scope closes,
+    // before the view goes back to the pool.
+    yield* Effect.addFinalizer(() =>
+      Effect.when(
+        Effect.die(new Error(`the page reported ${errors.length}: ${errors.join(' | ')}`)),
+        Effect.sync(() => errors.length > 0),
+      ),
     );
     // Told through the view the case holds: Chrome drops what a protocol
     // session told it when the session closes, and a pooled view's never
@@ -339,7 +378,6 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
           setting: 'granted',
         }),
       );
-    const assets = new Map(options.assets.map((a) => [a.url, a.response]));
     return yield* makeTab(slot.lent, {
       origin,
       events,
@@ -348,9 +386,10 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
           onNone: () => options.serve(request),
           onSome: Effect.succeedSome,
         }),
-      init: options.init,
+      init: [HOST_REACH, ...options.init],
       logged,
       errors,
+      alone: () => open === 1,
     });
   });
 

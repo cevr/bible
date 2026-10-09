@@ -13,7 +13,7 @@ import { isElementVisible } from '../utils/composite.ts';
 import { contains } from '../../utils/dom.ts';
 import { stopEvent } from '../utils/event.ts';
 
-export interface UseTypeaheadProps {
+interface UseTypeaheadProps {
   /** The items' labels, in list order. */
   listRef: { current: Array<string | null> };
   activeIndex: number | null;

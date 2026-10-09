@@ -73,7 +73,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
         }),
       },
       {
-        // `/` opens the same menu to type a name in (AA-2): its Go to entries
+        // `/` opens the same menu to type a name in: its Go to entries
         // are found by typing. Only from the page: in a field `/` is typed.
         id: GO_TO_COMMAND,
         label: 'Go to…',
@@ -129,6 +129,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
           <div class="lab-command-rows" id="lab-command-rows" role="listbox" aria-label="Commands">
             <For each={rows()} keyed={rowKey}>
               {(row, i) => (
+                // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/interactive-supports-focus -- focus stays in the query, which names this row its active descendant and chooses it on Enter
                 <div
                   class="lab-command-row"
                   id={`lab-command-${i()}`}

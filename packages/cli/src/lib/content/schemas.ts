@@ -1,14 +1,8 @@
 import { Schema } from 'effect';
 
 // Branded ID for Apple Notes
-export const AppleNoteId = Schema.String.pipe(Schema.brand('AppleNoteId'));
-export type AppleNoteId = typeof AppleNoteId.Type;
-
-// Base frontmatter - all content types extend this pattern
-export class BaseFrontmatter extends Schema.Class<BaseFrontmatter>('BaseFrontmatter')({
-  created_at: Schema.String,
-  apple_note_id: Schema.optionalKey(Schema.OptionFromUndefinedOr(AppleNoteId)),
-}) {}
+const AppleNoteId = Schema.String.pipe(Schema.brand('AppleNoteId'));
+type AppleNoteId = typeof AppleNoteId.Type;
 
 // Messages frontmatter
 export class MessageFrontmatter extends Schema.Class<MessageFrontmatter>('MessageFrontmatter')({
@@ -28,17 +22,6 @@ export class StudyFrontmatter extends Schema.Class<StudyFrontmatter>('StudyFront
 export class ReadingFrontmatter extends Schema.Class<ReadingFrontmatter>('ReadingFrontmatter')({
   created_at: Schema.String,
   chapter: Schema.Finite,
-  apple_note_id: Schema.optionalKey(Schema.OptionFromUndefinedOr(AppleNoteId)),
-}) {}
-
-// Analyze frontmatter
-export const AnalyzeDepth = Schema.Literals(['shallow', 'deep']);
-export type AnalyzeDepth = typeof AnalyzeDepth.Type;
-
-export class AnalyzeFrontmatter extends Schema.Class<AnalyzeFrontmatter>('AnalyzeFrontmatter')({
-  created_at: Schema.String,
-  passage: Schema.String,
-  depth: AnalyzeDepth,
   apple_note_id: Schema.optionalKey(Schema.OptionFromUndefinedOr(AppleNoteId)),
 }) {}
 

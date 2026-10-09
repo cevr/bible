@@ -15,8 +15,6 @@
 
 import { Option } from 'effect';
 
-import type { SearchRoute } from './model.js';
-
 /** The query is "wordy" at or above this many words (§9.3).
  *
  *  **The threshold, pinned as one documented constant.** Three, because that is
@@ -92,10 +90,6 @@ export type RoutedQuery =
        *  `wordy` decision without recounting. */
       readonly words: number;
     };
-
-/** The route tag as the wire model spells it. One mapping, so `RoutedQuery` and
- *  `SearchResult.route` cannot drift apart. */
-export const routeOf = (routed: RoutedQuery): SearchRoute => routed._tag;
 
 /** Strips a matched pair of quotes, or `None` when the text is not quoted.
  *

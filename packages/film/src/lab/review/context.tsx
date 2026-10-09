@@ -99,7 +99,7 @@ interface ReviewStateValue {
   readonly lightbox: Accessor<Option.Option<Shown>>;
 }
 
-/** An image the lightbox shows: its source, and the caption under it (what its card no longer says, UR-18). */
+/** An image the lightbox shows: its source, and the caption under it (what its card no longer says). */
 export interface Shown {
   readonly src: string;
   readonly caption: string;
@@ -360,7 +360,7 @@ export const Root = (
   );
 };
 
-/** Open on Choices: a choice off the Choices tab, opened there at its card (UR-65). */
+/** Open on Choices: a choice off the Choices tab, opened there at its card. */
 export const OPEN_ON_CHOICES: CommandId = 'review.open-on-choices';
 
 /**
@@ -368,7 +368,7 @@ export const OPEN_ON_CHOICES: CommandId = 'review.open-on-choices';
  * page selects it): a folder or a set opens in the page; a film's parts
  * open from its card through the studio shell's `filmCommands`; a choice
  * off the Choices tab (a project's card, a scene's Choices in this scene)
- * opens on Choices at its card (UR-65).
+ * opens on Choices at its card.
  */
 const openCommands = (
   go: (place: ReviewPlace) => void,
@@ -417,7 +417,7 @@ const openCommands = (
 const NAMED_VERSIONS = 9;
 
 /**
- * A set card's versions, by name, in its long-press menu (UR-12, UR2-6): the
+ * A set card's versions, by name, in its long-press menu: the
  * card shows its strip and its title, and Open version n · <label> opens
  * the set at that version's sheet.
  */
@@ -460,7 +460,7 @@ const versionCommands = (
 
 /**
  * A loose video's file, from its long-press menu and ⌘K while it is
- * selected (UR-17): Open the file in a tab of its own, and Info, saying its
+ * selected: Open the file in a tab of its own, and Info, saying its
  * size, its age and its proxy, which the card no longer prints at rest. Copy
  * link copies the file's own link (`citeOf`).
  */
@@ -517,8 +517,8 @@ const QUALITY_SAID: Readonly<Record<Quality, string>> = {
 };
 
 /**
- * The review's page-wide commands, in ⌘K and the page's long-press menu
- * (UR-5, UR-6): Refresh walks the roots again; the copy played switches
+ * The review's page-wide commands, in ⌘K and the page's long-press menu:
+ * Refresh walks the roots again; the copy played switches
  * between the Proxy (a 720p copy, made for big videos) and the Original, a
  * per-viewer setting kept in this browser.
  */
@@ -727,7 +727,7 @@ const SetBody = (
     ),
   );
   // The set's modes and Compare's layouts by key and ⌘K, each the next one
-  // round (UR-21); their touch path the segmented controls (`ViewTabs`).
+  // round; their touch path the segmented controls (`ViewTabs`).
   const modes = modesOf(props.set.variants.length);
   onCleanup(
     meta.hub.commands.register(

@@ -122,7 +122,7 @@ const placeOf = (point: ChoicePoint, acts: ReadonlyArray<Act>): Address =>
       }),
   });
 
-/** The film's points the page lists: every one, or only those in `?only=`'s state (AA-14). */
+/** The film's points the page lists: every one, or only those in `?only=`'s state. */
 const useShownPoints = (): Accessor<ReadonlyArray<ChoicePoint>> => {
   const { choices, only } = useFilm();
   return () => choices().points.filter(shownIn(only()));
@@ -256,7 +256,7 @@ const CHOICES_HEAD = {
 } as const satisfies Record<PartAddress['_tag'], string>;
 
 /**
- * A part's choices, in its inspector (UR-65/69): the choices that play in it
+ * A part's choices, in its inspector: the choices that play in it
  * (a scene's: placed in it, or a layer placed elsewhere; an act's or the
  * film's: placed in it), a link each to its card on Choices. A plain click
  * runs Open on Choices (a step Back returns here); a modified one is the
@@ -431,6 +431,7 @@ const SceneRow = (props: {
     />
   );
   return (
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the scene's name is its key path (InspectName's button): a tap on the card widens it
     <div
       class="rv-scene"
       data-scene={props.scene.scene}

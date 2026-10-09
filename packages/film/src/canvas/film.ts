@@ -64,7 +64,7 @@ import {
 } from './grade.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
-import { FILM_FPS, type Key, clamp, ease } from '../core/time.ts';
+import { FILM_FPS, type Key, clamp, ease, heardAtOrAfter, justBefore } from '../core/time.ts';
 
 /** What `f.knob` returns for a knob declared as `V`: a number stays a number, a point a point. */
 type KnobValue<V extends Knob> = V extends number ? number : Point;
@@ -774,7 +774,7 @@ export const createFilm = (spec: FilmSpec): Film => {
         const a = frame.mark(from);
         const b = to === undefined ? p.speechStart + p.voice.duration : frame.mark(to);
         // Progress by words heard, so the text keeps pace with the voice.
-        const inside = words.filter((w) => w.start >= a - 1e-3 && w.start < b - 1e-3);
+        const inside = words.filter((w) => heardAtOrAfter(w, a) && w.start < justBefore(b));
         if (inside.length === 0) return t >= b ? 1 : 0;
         let heard = 0;
         for (const w of inside) heard += clamp((t - w.start) / Math.max(0.05, w.end - w.start));

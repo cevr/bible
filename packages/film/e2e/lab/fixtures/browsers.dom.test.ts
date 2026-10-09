@@ -148,6 +148,87 @@ describe('the pool of views', () => {
     }),
   );
 
+  // The positive control of "a warning at any time fails the case": the case
+  // never looks at its errors, and its scope still closes in failure.
+  for (const [name, script] of [
+    ['a Solid diagnostic', "console.warn('[NO_OWNER_CLEANUP] a cleanup with no owner')"],
+    ['a console error', "console.error('boom')"],
+    [
+      "a warning in the host-reach report's spelling",
+      `console.warn('[host-reach] {"api":"probe","frames":[]}')`,
+    ],
+    [
+      "an error in the host-reach report's spelling",
+      `console.error('[host-reach] {"api":"probe","frames":[]}')`,
+    ],
+    ['an uncaught throw', "setTimeout(() => { throw new Error('late') })"],
+  ] as const)
+    it.live(`fails a case whose page logged ${name}, though the case never looked`, () =>
+      Effect.gen(function* () {
+        const control = page('one');
+        const exit = yield* Effect.exit(
+          Effect.scoped(
+            Effect.gen(function* () {
+              const tab = yield* openTab({
+                width: 500,
+                height: 400,
+                microphone: false,
+                init: [],
+                assets: [control.script],
+                serve: control.serve([]),
+              });
+              yield* tab.goto('/');
+              yield* evaluates(tab, "globalThis.served ?? 'none'", 'one');
+              yield* tab.evaluate(`${script}; true`);
+              // The page's report is an event: wait until the tab has heard it.
+              yield* Effect.repeat(Effect.sleep('10 millis'), {
+                until: () => tab.errors.length > 0,
+              });
+            }),
+          ),
+        );
+        expect(exit._tag).toBe('Failure');
+      }),
+    );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
+    'dies on a finger put down while another tab is open: a touch runs alone, whatever its spelling',
+    () =>
+      Effect.gen(function* () {
+        const phone = {
+          width: 390,
+          height: 844,
+          coarse: true,
+          microphone: false,
+          init: [],
+          assets: [],
+          serve: page('touch').serve([]),
+        };
+        const exit = yield* Effect.exit(
+          Effect.scoped(
+            Effect.gen(function* () {
+              const tab = yield* openTab(phone);
+              yield* openTab({ ...phone, coarse: false });
+              yield* tab.goto('/');
+              yield* tab.finger.down(100, 100);
+            }),
+          ),
+        );
+        expect(exit._tag).toBe('Failure');
+        expect(String(exit)).toContain('a finger went down while another tab was open');
+        // Alone again, the same finger lands.
+        yield* Effect.scoped(
+          Effect.gen(function* () {
+            const tab = yield* openTab(phone);
+            yield* tab.goto('/');
+            yield* tab.finger.down(100, 100);
+            yield* tab.finger.up;
+          }),
+        );
+      }).pipe(Effect.runPromise),
+  );
+
   // Serial: a finger's touches (`film/touches-serial`).
   test.serial(
     "closes a view two fingers were down on at once, and the next case's touch lands",

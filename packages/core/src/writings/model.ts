@@ -15,20 +15,20 @@ export type PublicationId = typeof PublicationId.Type;
 export const PublicationCode = Schema.NonEmptyString.pipe(Schema.brand('Writings/PublicationCode'));
 export type PublicationCode = typeof PublicationCode.Type;
 
-export const PageNumber = Schema.Finite.pipe(
+const PageNumber = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('Writings/PageNumber'),
 );
-export type PageNumber = typeof PageNumber.Type;
+type PageNumber = typeof PageNumber.Type;
 
-export const PublicationOrder = Schema.Finite.pipe(
+const PublicationOrder = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
   Schema.brand('Writings/PublicationOrder'),
 );
-export type PublicationOrder = typeof PublicationOrder.Type;
+type PublicationOrder = typeof PublicationOrder.Type;
 
-export const ParagraphId = Schema.NonEmptyString.pipe(Schema.brand('Writings/ParagraphId'));
-export type ParagraphId = typeof ParagraphId.Type;
+const ParagraphId = Schema.NonEmptyString.pipe(Schema.brand('Writings/ParagraphId'));
+type ParagraphId = typeof ParagraphId.Type;
 
 export class Publication extends Schema.Class<Publication>('Writings/Publication')({
   id: PublicationId,
@@ -59,11 +59,7 @@ export class ParagraphReference extends Schema.TaggedClass<ParagraphReference>(
   paragraphId: ParagraphId,
 }) {}
 
-export const ReferenceSchema = Schema.Union([
-  PublicationReference,
-  PageReference,
-  ParagraphReference,
-]);
+const ReferenceSchema = Schema.Union([PublicationReference, PageReference, ParagraphReference]);
 export type Reference = typeof ReferenceSchema.Type;
 
 export class Paragraph extends Schema.Class<Paragraph>('Writings/Paragraph')({

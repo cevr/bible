@@ -9,7 +9,6 @@
   "jsPlugins": ["oxlint-plugin-effect/plugin", "./packages/film/lint/plugin.ts"],
   "rules": {
     "typescript/no-explicit-any": "error",
-    "typescript/no-unsafe-type-assertion": "error",
     "typescript/no-non-null-assertion": "error",
     "typescript/no-extra-non-null-assertion": "error",
     "typescript/no-non-null-asserted-optional-chain": "error",
@@ -148,7 +147,9 @@
       // `popstate` or `hashchange` listener on the window is the film's
       // `host-events-through-adapter` rule's to refuse; the key and drag
       // events it also refuses name the film's own adapters, so they stay
-      // allowed here.
+      // allowed here. The URL's bans are the film block's URL bans, every
+      // global hop among them (packages/film/lint/config.test.ts probes both
+      // blocks, and holds this one to the film's URL entries).
       "files": [
         "**/packages/url-state/src/**/*.ts",
         "**/packages/url-state/src/**/*.tsx",
@@ -173,18 +174,72 @@
           "error",
           { "name": "history", "message": "Use @bible/url-state's Location." },
           { "name": "location", "message": "Use @bible/url-state's Location." },
-          { "name": "onpopstate", "message": "Use @bible/url-state's Location." }
+          { "name": "onpopstate", "message": "Use @bible/url-state's Location." },
+          { "name": "onhashchange", "message": "Use @bible/url-state's Location." },
+          { "name": "navigation", "message": "Use @bible/url-state's Location." },
+          {
+            "name": "top",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: through `top` every ban after it is passed."
+          },
+          {
+            "name": "parent",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: through `parent` every ban after it is passed."
+          },
+          {
+            "name": "frames",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: through `frames` every ban after it is passed."
+          }
         ],
         "no-restricted-properties": [
           "error",
+          {
+            "object": "document",
+            "property": "location",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "document",
+            "property": "URL",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "document",
+            "property": "documentURI",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "document",
+            "property": "defaultView",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: through `document.defaultView` every ban after it is passed."
+          },
+          {
+            "object": "window",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
           {
             "object": "window",
             "property": "location",
             "message": "Use @bible/url-state's Location."
           },
           {
-            "object": "window",
-            "property": "history",
+            "object": "globalThis",
+            "property": "location",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "location",
             "message": "Use @bible/url-state's Location."
           },
           {
@@ -194,18 +249,148 @@
           },
           {
             "object": "globalThis",
-            "property": "location",
+            "property": "onpopstate",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "onpopstate",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "onhashchange",
             "message": "Use @bible/url-state's Location."
           },
           {
             "object": "globalThis",
-            "property": "history",
+            "property": "onhashchange",
             "message": "Use @bible/url-state's Location."
           },
           {
-            "object": "document",
-            "property": "location",
+            "object": "self",
+            "property": "onhashchange",
             "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "globalThis",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "self",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "window",
+            "property": "window",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "window",
+            "property": "globalThis",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "window",
+            "property": "self",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "window",
+            "property": "top",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "window",
+            "property": "parent",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "window",
+            "property": "frames",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "window",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "globalThis",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "self",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "top",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "parent",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "frames",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "window",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "globalThis",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "self",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "top",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "parent",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "frames",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
           }
         ]
       }
@@ -661,6 +846,158 @@
       }
     },
     {
+      // Every action in the lab has a key path: an element that hears a
+      // click is one a keyboard reaches and works, or says why not.
+      "files": ["**/packages/film/src/lab/**/*.tsx"],
+      "plugins": ["jsx-a11y"],
+      "rules": {
+        "jsx-a11y/click-events-have-key-events": "error",
+        "jsx-a11y/no-static-element-interactions": "error",
+        "jsx-a11y/no-noninteractive-element-interactions": "error",
+        "jsx-a11y/interactive-supports-focus": "error",
+        // The plugin's categories turn more of its rules on. Off: two that
+        // cannot see through Solid (a template's value, a control a component
+        // renders inside its label); and three that ask something other than a
+        // key path (captions on review media, a native tag over a part's role,
+        // a role name used as a test hook).
+        "jsx-a11y/aria-proptypes": "off",
+        "jsx-a11y/label-has-associated-control": "off",
+        "jsx-a11y/media-has-caption": "off",
+        "jsx-a11y/prefer-tag-over-role": "off",
+        "jsx-a11y/aria-role": "off"
+      }
+    },
+    {
+      // A page or a page render is a function of its reads: no module-level
+      // state a second render, or a second request, would share.
+      "files": [
+        "**/packages/film/src/lab/**/*.ts",
+        "**/packages/film/src/lab/**/*.tsx",
+        "**/packages/film/src/player/**/*.ts",
+        "**/packages/film/src/tools/page-*.ts",
+        "**/packages/film/src/tools/page-*.tsx"
+      ],
+      "rules": {
+        "effect/noModuleLevelMutableState": "error"
+      }
+    },
+    {
+      // A page never chooses a history move: a place's field declares its
+      // policy, and the address bar is written in browser/host.ts alone
+      // (packages/film/lint/history-through-host.ts).
+      "files": [
+        "**/packages/film/src/lab/**/*.ts",
+        "**/packages/film/src/lab/**/*.tsx",
+        "**/packages/film/src/player/**/*.ts",
+        "**/packages/film/src/browser/**/*.ts",
+        "**/packages/film/src/command/**/*.ts",
+        "**/apps/animations/src/*.ts"
+      ],
+      "rules": {
+        "film/history-through-host": "error"
+      }
+    },
+    {
+      "files": [
+        "**/packages/film/src/browser/host.ts",
+        "**/packages/film/src/**/fixtures/**",
+        "**/packages/film/src/**/*.test.ts",
+        "**/packages/film/src/**/*.test.tsx"
+      ],
+      "rules": {
+        "film/history-through-host": "off"
+      }
+    },
+    {
+      // A time is put on its grid, and two times judged one, through
+      // core/time.ts alone (packages/film/lint/one-clock-epsilon.ts), over
+      // every module of the film but those below.
+      "files": ["**/packages/film/src/**/*.ts", "**/packages/film/src/**/*.tsx"],
+      "rules": {
+        "film/one-clock-epsilon": "error"
+      }
+    },
+    {
+      // Where a tiny number is no time: the owner itself; the draw path's
+      // geometry; the mix's and the synth's sample arithmetic and the affine
+      // maths (float floors and pivots); the test doubles' tones; and the
+      // tests and fixtures.
+      "files": [
+        "**/packages/film/src/core/time.ts",
+        "**/packages/film/src/canvas/**",
+        "**/packages/film/src/core/audio.ts",
+        "**/packages/film/src/core/dsp.ts",
+        "**/packages/film/src/core/synth/**",
+        "**/packages/film/src/core/affine.ts",
+        "**/packages/film/src/tools/testing.ts",
+        "**/packages/film/src/**/fixtures/**",
+        "**/packages/film/src/**/*.test.ts",
+        "**/packages/film/src/**/*.test.tsx"
+      ],
+      "rules": {
+        "film/one-clock-epsilon": "off"
+      }
+    },
+    {
+      // The one module of the draw path that reads the voice's words: its
+      // times are the clock's.
+      "files": ["**/packages/film/src/canvas/film.ts"],
+      "rules": {
+        "film/one-clock-epsilon": "error"
+      }
+    },
+    {
+      // A manifest's lock file is opened by SQLite alone
+      // (packages/film/lint/lock-through-sqlite.ts).
+      "files": ["**/packages/film/src/**/*.ts", "**/packages/film/src/**/*.tsx"],
+      "rules": {
+        "film/lock-through-sqlite": "error"
+      }
+    },
+    {
+      "files": [
+        "**/packages/film/src/tools/manifest-lock-bun.ts",
+        "**/packages/film/src/**/fixtures/**",
+        "**/packages/film/src/**/*.test.ts",
+        "**/packages/film/src/**/*.test.tsx"
+      ],
+      "rules": {
+        "film/lock-through-sqlite": "off"
+      }
+    },
+    {
+      // A change's, a request's and an approve run's ids are made unique,
+      // never written by hand. A later block that sets
+      // no-restricted-properties replaces this list, so the film's host block
+      // repeats it (packages/film/lint/config.test.ts holds every such block
+      // to these entries).
+      "files": [
+        "**/packages/film/src/**/*.ts",
+        "**/packages/film/src/**/*.tsx",
+        "**/apps/animations/src/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "ChangeId",
+            "property": "make",
+            "message": "Make the id with uniqueId(ChangeId) (packages/film/src/core/unique.ts), or decode one that came over the wire: an id written by hand can be another change's."
+          },
+          {
+            "object": "RequestId",
+            "property": "make",
+            "message": "Make the id with uniqueId(RequestId) (packages/film/src/core/unique.ts), or decode one that came over the wire: an id written by hand can be another request's."
+          },
+          {
+            "object": "OpId",
+            "property": "make",
+            "message": "Make the id with uniqueId(OpId) (packages/film/src/core/unique.ts), or decode one that came over the wire: an id written by hand can be another run's."
+          }
+        ]
+      }
+    },
+    {
       // The host's adapters serve every page and import none of them.
       "files": ["**/packages/film/src/browser/**/*.ts"],
       "rules": {
@@ -770,6 +1107,8 @@
           { "name": "history", "message": "Use @bible/url-state's Location." },
           { "name": "location", "message": "Use @bible/url-state's Location." },
           { "name": "onpopstate", "message": "Use @bible/url-state's Location." },
+          { "name": "onhashchange", "message": "Use @bible/url-state's Location." },
+          { "name": "navigation", "message": "Use @bible/url-state's Location." },
           {
             "name": "localStorage",
             "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
@@ -908,6 +1247,46 @@
           },
           {
             "object": "window",
+            "property": "onhashchange",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "onhashchange",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "onhashchange",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "document",
+            "property": "URL",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "document",
+            "property": "documentURI",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
             "property": "localStorage",
             "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
           },
@@ -1250,6 +1629,21 @@
             "object": "self",
             "property": "frames",
             "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "ChangeId",
+            "property": "make",
+            "message": "Make the id with uniqueId(ChangeId) (packages/film/src/core/unique.ts), or decode one that came over the wire: an id written by hand can be another change's."
+          },
+          {
+            "object": "RequestId",
+            "property": "make",
+            "message": "Make the id with uniqueId(RequestId) (packages/film/src/core/unique.ts), or decode one that came over the wire: an id written by hand can be another request's."
+          },
+          {
+            "object": "OpId",
+            "property": "make",
+            "message": "Make the id with uniqueId(OpId) (packages/film/src/core/unique.ts), or decode one that came over the wire: an id written by hand can be another run's."
           }
         ]
       }
@@ -1270,6 +1664,13 @@
       }
     },
     {
+      // The test doubles and the type tests write a known id by hand.
+      "files": ["**/packages/film/src/tools/testing.ts", "**/packages/film/src/**/*.types.ts"],
+      "rules": {
+        "no-restricted-properties": "off"
+      }
+    },
+    {
       // The dev server: Bun.serve over the app's files.
       "files": ["**/apps/animations/server.ts"],
       "rules": {
@@ -1283,7 +1684,6 @@
       "rules": {
         "typescript/no-non-null-assertion": "off",
         "typescript/no-explicit-any": "off",
-        "typescript/no-unsafe-type-assertion": "off",
         "node/no-process-env": "off",
         "effect/noAs": "off",
         "effect/noChainedTypeAssertions": "off",
@@ -1321,7 +1721,6 @@
         "**/packages/cli/src/commands/**"
       ],
       "rules": {
-        "typescript/no-unsafe-type-assertion": "off",
         "effect/noAs": "off",
         "effect/noChainedTypeAssertions": "off",
         "effect/noWidenThenAssert": "off"
@@ -1337,7 +1736,6 @@
       "files": ["**/packages/ui/**/*.ts", "**/packages/ui/**/*.tsx"],
       "rules": {
         "complexity": "off",
-        "typescript/no-unsafe-type-assertion": "off",
         "effect/maxCognitiveComplexity": "off",
         "effect/maxHalsteadDifficulty": "off",
         "effect/noAs": "off",

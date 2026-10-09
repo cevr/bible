@@ -49,7 +49,7 @@ const escapeByte = (byte: number): string => `_${byte.toString(16).padStart(2, '
  *
  *  Bible's shipped revision `db-v2` is drawn entirely from the literal set, so
  *  its legacy filename derivation is unchanged byte for byte. */
-export const encodeRevision = (revision: string): string =>
+const encodeRevision = (revision: string): string =>
   revision.replace(REVISION_LITERAL, (character) =>
     Array.from(UTF8.encode(character), escapeByte).join(''),
   );
@@ -158,9 +158,3 @@ export const makeCorpusStorageIdentity = <Corpus extends string>(
     ownsGeneration: (filename) => isOwned(names.generationPrefix, separator, filename),
   };
 };
-
-/** Narrowed to the production corpus vocabulary: hosts derive their storage
- *  names from a registered File Corpus and nothing else. */
-export const corpusStorageIdentity = <Corpus extends CorpusFileName>(
-  corpus: Corpus,
-): CorpusStorageIdentity<Corpus> => makeCorpusStorageIdentity(corpus);

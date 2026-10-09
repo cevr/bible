@@ -5,7 +5,7 @@
 // so a press that drifts while releasing still counts as on the element.
 import { ownerWindow } from './dom.ts';
 
-export interface ElementBounds {
+interface ElementBounds {
   left: number;
   right: number;
   top: number;
@@ -25,7 +25,7 @@ export function isMouseWithinBounds(event: MouseEvent, element: HTMLElement): bo
   );
 }
 
-export function getPseudoElementBounds(element: HTMLElement): ElementBounds {
+function getPseudoElementBounds(element: HTMLElement): ElementBounds {
   const elementRect = element.getBoundingClientRect();
   const win = ownerWindow(element);
   const beforeStyles = win.getComputedStyle(element, '::before');

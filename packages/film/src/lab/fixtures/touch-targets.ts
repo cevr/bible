@@ -134,17 +134,18 @@ const SEEN = `${TARGETS}, video, audio, canvas, img`;
 
 /**
  * An expression run in the page: everything the view shows on its first
- * screen, the clutter the at-rest budget holds (UR2-17), as the UI-reduction
+ * screen, the clutter the at-rest budget holds, as the UI-reduction
  * sweep's `count.js` counts it: each control (a target, a picture, a player
  * or a canvas: `C tag.class "text"`) and each text leaf (an element with
  * words of its own, not inside a control: `T …`). A disabled control is
  * still seen, so it counts. Something below the fold, or scrolled out of an
  * inner scroller's box, is not on the first screen and does not count; a
  * visually hidden one (1 px, clipped to nothing) and a backing input never
- * count.
+ * count. Over the `page` (a long view's whole length) the fold and the
+ * scrollers' boxes do not exclude: what a visit scrolls to counts too.
  */
-export const firstScreenItems = (): string => `(() => {
-  const SEEN = ${jsonOf(SEEN)}, OWNERS = ${jsonOf(OWNERS)};
+export const firstScreenItems = (reach: 'screen' | 'page' = 'screen'): string => `(() => {
+  const SEEN = ${jsonOf(SEEN)}, OWNERS = ${jsonOf(OWNERS)}, ONLY_ON_SCREEN = ${reach === 'screen'};
   ${SHOWN}
   const vw = innerWidth, vh = innerHeight;
   const hidden = (el) => {
@@ -174,7 +175,7 @@ export const firstScreenItems = (): string => `(() => {
     const control = el.matches(SEEN);
     const words = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim() !== '');
     if (!control && !words) continue;
-    if (!shown(el) || hidden(el) || !onScreen(el)) continue;
+    if (!shown(el) || hidden(el) || (ONLY_ON_SCREEN && !onScreen(el))) continue;
     items.push((control ? 'C ' : 'T ') + named(el));
   }
   return items;

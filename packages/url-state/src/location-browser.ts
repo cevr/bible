@@ -1,4 +1,3 @@
-/* oxlint-disable effect/noGlobals -- this module is the browser's location: `window`, `history` and `location` are what it wraps, and lint keeps them out of every other module of this package and of its apps. */
 /* oxlint-disable effect/noNullish -- `history.pushState` takes a title argument the platform ignores; `''` is its documented value, and `history.state` is `any`. */
 
 /**

@@ -11,12 +11,12 @@ import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { popupTransitionStateMapping } from '../../utils/popupStateMapping.ts';
 import { useDialogRootContext } from '../root/DialogRootContext.ts';
 
-export interface DialogBackdropState {
+interface DialogBackdropState {
   open: boolean;
   transitionStatus: TransitionStatus;
 }
 
-export interface DialogBackdropProps extends BaseUIComponentProps<'div', DialogBackdropState> {}
+interface DialogBackdropProps extends BaseUIComponentProps<'div', DialogBackdropState> {}
 
 /**
  * An overlay displayed beneath the popup.

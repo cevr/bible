@@ -282,7 +282,7 @@ const edgeCommand = (verbs: EditorVerbs, toward: Toward, label: string, key: str
   run: quietly(() => Option.map(edgeFrom(verbs.edges(), verbs.T(), toward), verbs.seek)),
 });
 
-/** F and ⇧F (AA-7): the film shown where the next or previous finding is. */
+/** F and ⇧F: the film shown where the next or previous finding is. */
 const findingCommand = (
   verbs: EditorVerbs,
   toward: Toward,

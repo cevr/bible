@@ -431,7 +431,7 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm());
-        // No film chosen: no page bar of tabs that cannot act, and no gesture hint on the card (UR2-14).
+        // No film chosen: no page bar of tabs that cannot act, and no gesture hint on the card.
         yield* page.waitFor('.rv-film-card[data-film="toy"]');
         yield* evaluates(page, "document.querySelector('.sh-pagebar').checkVisibility()", false);
         yield* countIs(page, '.rv-film-card .rv-meta', 0);
@@ -449,7 +449,7 @@ describe("a film's choices", () => {
         yield* waitFor(page, '.rv-transport');
         yield* waitFor(page, '.rv-picture video');
         yield* evaluates(page, "document.querySelector('.sh-pagebar').checkVisibility()", true);
-        // The tab's title names the part before the film (SU-9).
+        // The tab's title names the part before the film.
         yield* until(page, "document.title === 'Choices · toy'");
         // The picked option is heard first; the picture's own sound is muted.
         yield* until(
@@ -457,7 +457,7 @@ describe("a film's choices", () => {
           `${MIX}.startsWith('/api/films/toy/choices/mix?point=score&variant=strings')`,
         );
         yield* evaluates(page, "document.querySelector('.rv-picture video').muted", true);
-        // A row says its state only when it is not current, in a word (UR2-2); a take in place
+        // A row says its state only when it is not current, in a word; a take in place
         // says nothing of it: its 🔊 hears it over the picture.
         yield* countIs(page, `${at('score', 'strings')} [data-state]:not([data-variant])`, 0);
         yield* textIs(page, `${at('score', 'piano')} .rv-badge[data-state="stale"]`, 'Out of date');
@@ -508,7 +508,7 @@ describe("a film's choices", () => {
           page,
           `${MIX}.startsWith('/api/films/toy/choices/mix?point=take%3Apaper.page&variant=${WAITING}')`,
         );
-        // Alone: no player bar per take, one ▶ on the film's one alone player (UR-52).
+        // Alone: no player bar per take, one ▶ on the film's one alone player.
         yield* countIs(page, 'audio[controls]', 0);
         yield* click(page, `${at('take:paper.page', WAITING)} [data-act="hear-alone"]`);
         yield* attributeIs(
@@ -533,7 +533,7 @@ describe("a film's choices", () => {
         yield* click(page, '.rv-picture [data-act="hear"]');
         yield* until(page, "document.querySelector('audio.rv-mix') === null");
         yield* until(page, "document.querySelector('.rv-picture video').muted === false");
-        // A mark jumps the clock to it, from its card's menu (UR-45); none at rest.
+        // A mark jumps the clock to it, from its card's menu; none at rest.
         yield* countIs(page, '[data-point="take:paper.page"] button[data-at]', 0);
         yield* rightClick(page, '[data-point="take:paper.page"] > .rv-cap .rv-name');
         yield* click(
@@ -926,7 +926,10 @@ describe("a film's choices", () => {
         yield* countIs(page, '[data-point]', 0);
         const left = asked.length;
         yield* Deferred.done(answer, Exit.void);
-        yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 800))');
+        // The page's clock runs on past any timer it left; a request sent then has reached the
+        // server by the time a later one is answered.
+        yield* page.clock.fastForward(800);
+        yield* page.evaluate("fetch('/favicon.ico').then(() => true, () => true)");
         expect(asked.slice(left).filter((a) => a.path.startsWith('/api/films/toy/'))).toEqual([]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -948,7 +951,7 @@ describe("a film's choices", () => {
         yield* until(page, "location.hash === '#t=2'");
         yield* until(page, `${time}.startsWith('00:00:02:00')`);
         // Past the time's throttle, the entry still keeps its own time.
-        yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
+        yield* page.clock.fastForward(600);
         yield* until(page, "location.hash === '#t=2'");
         yield* until(page, `${time}.startsWith('00:00:02:00')`);
         expect(errors).toEqual([]);
@@ -1047,8 +1050,8 @@ describe("a film's choices", () => {
           verb: 'pick',
         });
         // The sound check runs after the pick: Show findings opens the Findings sheet that
-        // lists it, and F walks the clock to its finding's time (UR-37/38); Choices shows no
-        // check's count at rest (UR2-10).
+        // lists it, and F walks the clock to its finding's time; Choices shows no
+        // check's count at rest.
         yield* countIs(page, '[data-act="findings"]', 0);
         yield* openCommandMenu(page, 'findings');
         yield* click(page, menuEntry('review.findings'));

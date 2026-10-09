@@ -131,8 +131,10 @@ Three layers fill it:
   `traverse` entries. `back` at the tab's first entry leaves the page for the
   tab's previous one, so a page calls it only over an entry it pushed. It is
   the only module that touches `window.location`, `history` or `popstate`,
-  and lint keeps `window.location`, `history`, `onpopstate` and a `popstate`
-  or `hashchange` listener on the window out of every other module of this
+  and lint keeps `window.location`, `history`, `document.URL`, the Navigation
+  API (`navigation`), `onpopstate`, `onhashchange` and a `popstate` or
+  `hashchange` listener on the window (however it is spelled, a bare
+  `addEventListener` among them) out of every other module of this
   package, of egw-search, and of the film's lab, player and browser modules.
 - `layerMemory(href)`: a history stack in memory; `back` at its first entry
   stays there. `LocationHistory` adds `forward` and the stack (`entries`)

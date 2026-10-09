@@ -35,7 +35,7 @@ export const FOCUSABLE_POPUP_PROPS = {
 
 type Ref<T> = { current: T };
 
-export interface PopupStoreOptions {
+interface PopupStoreOptions {
   /** The owner's `open` prop (a dialog's); none, or `undefined`, leaves the popup in charge. */
   openProp?: (() => boolean | undefined) | undefined;
   /** The popup's id when its element sets none. */

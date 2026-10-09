@@ -64,7 +64,7 @@ const WARMUP_QUERY = SearchQuery.make({
 const idleCheckInterval = (idleMillis: number): Duration.Duration =>
   Duration.millis(Math.min(Math.max(idleMillis, 50), 60_000));
 
-export type SearchDaemonOutcome = 'already-running' | 'idle' | 'retired';
+type SearchDaemonOutcome = 'already-running' | 'idle' | 'retired';
 
 /** The daemon's whole life, as one effect: preflight, bind, warm, serve,
  *  retire. Parameterised on nothing it can take from context — `SearchService`

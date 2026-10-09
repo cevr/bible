@@ -83,96 +83,91 @@ const json = Flag.Boolean('json').pipe(
   Flag.withDescription('Emit the manifest as JSON'),
 );
 
-export const buildVectors = Command.make(
-  'build:vectors',
-  { out, writingsDb, limit, json },
-  (args) =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const home = yield* Config.String('HOME');
-      const writingsFile = Option.match(
-        Option.liftPredicate(args.writingsDb, (value) => value.length > 0),
-        {
-          onNone: () => path.join(home, '.bible', 'egw-paragraphs.db'),
-          onSome: (value) => value,
-        },
-      );
+const buildVectors = Command.make('build:vectors', { out, writingsDb, limit, json }, (args) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const home = yield* Config.String('HOME');
+    const writingsFile = Option.match(
+      Option.liftPredicate(args.writingsDb, (value) => value.length > 0),
+      {
+        onNone: () => path.join(home, '.bible', 'egw-paragraphs.db'),
+        onSome: (value) => value,
+      },
+    );
 
-      if (!(yield* fs.exists(writingsFile))) {
-        return yield* CompilerInputError.make({
-          message: `writings database not found at ${writingsFile} — run 'bible egw sync' first`,
-        });
-      }
-
-      const rows = yield* readVectorSource({
-        filename: writingsFile,
-        // `0` is §10's deliberate "whole corpus" act, expressed as the absence
-        // of a cap rather than as a sentinel the reader has to carry.
-        limit: Option.liftPredicate(args.limit, (value) => value > 0),
+    if (!(yield* fs.exists(writingsFile))) {
+      return yield* CompilerInputError.make({
+        message: `writings database not found at ${writingsFile} — run 'bible egw sync' first`,
       });
-      if (rows.length === 0) {
-        return yield* CompilerInputError.make({
-          message: `no EGW-scope paragraphs in ${writingsFile}`,
-        });
-      }
+    }
 
-      // The same adapter the CLI searches with, so the document side and the
-      // query side are embedded by one implementation. An index built by a
-      // separate embedding path would agree with the query embedder only by
-      // luck, and the fingerprint check cannot detect that — both would report
-      // the same pinned string.
-      //
-      // It embeds through `embedDocument`, not `embedQuery`. EmbeddingGemma is
-      // asymmetric: the two sides carry different task prefixes, and a corpus
-      // embedded under the *query* prefix lands in the query region of the
-      // space — every paragraph then sits equally close to every query, and the
-      // ranking degrades to noise with no error anywhere.
-      yield* fs.makeDirectory(path.dirname(args.out), { recursive: true });
-      const vectors = yield* embedAllResumable(rows, args.out);
-
-      const buffer = encodeVectorIndex({
-        fingerprint: MODEL_FINGERPRINT,
-        manifest: VectorManifest.make({
-          books: bookRanges(rows),
-          paragraphIds: paragraphIds(rows),
-        }),
-        vectors,
+    const rows = yield* readVectorSource({
+      filename: writingsFile,
+      // `0` is §10's deliberate "whole corpus" act, expressed as the absence
+      // of a cap rather than as a sentinel the reader has to carry.
+      limit: Option.liftPredicate(args.limit, (value) => value > 0),
+    });
+    if (rows.length === 0) {
+      return yield* CompilerInputError.make({
+        message: `no EGW-scope paragraphs in ${writingsFile}`,
       });
+    }
 
-      yield* fs.writeFile(args.out, new Uint8Array(buffer));
-      yield* clearCheckpoint(args.out);
+    // The same adapter the CLI searches with, so the document side and the
+    // query side are embedded by one implementation. An index built by a
+    // separate embedding path would agree with the query embedder only by
+    // luck, and the fingerprint check cannot detect that — both would report
+    // the same pinned string.
+    //
+    // It embeds through `embedDocument`, not `embedQuery`. EmbeddingGemma is
+    // asymmetric: the two sides carry different task prefixes, and a corpus
+    // embedded under the *query* prefix lands in the query region of the
+    // space — every paragraph then sits equally close to every query, and the
+    // ranking degrades to noise with no error anywhere.
+    yield* fs.makeDirectory(path.dirname(args.out), { recursive: true });
+    const vectors = yield* embedAllResumable(rows, args.out);
 
-      const manifest = {
-        path: args.out,
-        fingerprint: MODEL_FINGERPRINT,
-        dimensions: DIMENSIONS,
-        vectors: rows.length,
-        books: bookRanges(rows).length,
-        bytes: buffer.byteLength,
-        partial: args.limit !== 0,
-      };
-      if (args.json) {
-        yield* Console.log(yield* encodeJson(manifest));
-        return;
-      }
-      yield* Console.log(`✓ ${manifest.path}`);
-      yield* Console.log(`  fingerprint  ${manifest.fingerprint}`);
-      yield* Console.log(
-        `  vectors      ${String(manifest.vectors)} × ${String(DIMENSIONS)}d int8`,
+    const buffer = encodeVectorIndex({
+      fingerprint: MODEL_FINGERPRINT,
+      manifest: VectorManifest.make({
+        books: bookRanges(rows),
+        paragraphIds: paragraphIds(rows),
+      }),
+      vectors,
+    });
+
+    yield* fs.writeFile(args.out, new Uint8Array(buffer));
+    yield* clearCheckpoint(args.out);
+
+    const manifest = {
+      path: args.out,
+      fingerprint: MODEL_FINGERPRINT,
+      dimensions: DIMENSIONS,
+      vectors: rows.length,
+      books: bookRanges(rows).length,
+      bytes: buffer.byteLength,
+      partial: args.limit !== 0,
+    };
+    if (args.json) {
+      yield* Console.log(yield* encodeJson(manifest));
+      return;
+    }
+    yield* Console.log(`✓ ${manifest.path}`);
+    yield* Console.log(`  fingerprint  ${manifest.fingerprint}`);
+    yield* Console.log(`  vectors      ${String(manifest.vectors)} × ${String(DIMENSIONS)}d int8`);
+    yield* Console.log(`  books        ${String(manifest.books)}`);
+    yield* Console.log(`  size         ${String(manifest.bytes)} bytes`);
+    if (manifest.partial) {
+      yield* Console.error(``);
+      yield* Console.error(
+        `⚠ PARTIAL index: ${String(rows.length)} of the EGW scope, from --limit ${String(args.limit)}.`,
       );
-      yield* Console.log(`  books        ${String(manifest.books)}`);
-      yield* Console.log(`  size         ${String(manifest.bytes)} bytes`);
-      if (manifest.partial) {
-        yield* Console.error(``);
-        yield* Console.error(
-          `⚠ PARTIAL index: ${String(rows.length)} of the EGW scope, from --limit ${String(args.limit)}.`,
-        );
-        yield* Console.error(
-          `  Search will find only these paragraphs. Use --limit 0 for a release.`,
-        );
-      }
-    }).pipe(Effect.provide(layerBunEmbedder)),
+      yield* Console.error(
+        `  Search will find only these paragraphs. Use --limit 0 for a release.`,
+      );
+    }
+  }).pipe(Effect.provide(layerBunEmbedder)),
 );
 
 const cli = Command.run(buildVectors, { version: '1.0.0' });

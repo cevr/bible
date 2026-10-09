@@ -64,7 +64,7 @@ const JsonString = Schema.Unknown.pipe(
 
 const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
-export const buildTopics = Command.make(
+const buildTopics = Command.make(
   'build:topics',
   { content, out, bibleDb, writingsDb, json },
   (args) =>

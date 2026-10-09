@@ -1,5 +1,5 @@
-// The "on screen first" order (`useOnScreenFirst`, `review/options/stills.tsx`;
-// RS-5), the one both the Scenes tape and the Project's cards draw their
+// The "on screen first" order (`useOnScreenFirst`, `review/options/stills.tsx`),
+// the one both the Scenes tape and the Project's cards draw their
 // stills by, over a column of forty 100 px rows on a phone's window: it asks
 // for the rows on screen and within 120 px of it, in the page's order, and
 // for no other; scrolled to the end, it asks for the end's rows, not the

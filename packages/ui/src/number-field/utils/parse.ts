@@ -21,18 +21,18 @@ export const PERCENTAGES = ['%', '٪', '％', '﹪'];
 export const PERMILLE = ['‰', '؉'];
 
 // Fullwidth punctuation common in CJK input.
-export const FULLWIDTH_DECIMAL = '．'; // U+FF0E
-export const FULLWIDTH_GROUP = '，'; // U+FF0C
+const FULLWIDTH_DECIMAL = '．'; // U+FF0E
+const FULLWIDTH_GROUP = '，'; // U+FF0C
 
-export const PERCENT_RE = /[%٪％﹪]/;
-export const PERMILLE_RE = /[‰؉]/;
+const PERCENT_RE = /[%٪％﹪]/;
+const PERMILLE_RE = /[‰؉]/;
 const PERCENT_GLOBAL_RE = /[%٪％﹪]/g;
 const PERMILLE_GLOBAL_RE = /[‰؉]/g;
 
 // Detection (non-global, so no `lastIndex` state). Arabic-Indic and Persian
 // share one: both point the heuristic at the `ar` locale.
-export const ARABIC_PERSIAN_DETECT_RE = /[٠-٩۰-۹]/;
-export const HAN_DETECT_RE = /[零〇一二三四五六七八九]/;
+const ARABIC_PERSIAN_DETECT_RE = /[٠-٩۰-۹]/;
+const HAN_DETECT_RE = /[零〇一二三四五六七八九]/;
 
 const ANY_NUMERAL_DETECT_RE = /[0-9٠-٩۰-۹０-９零〇一二三四五六七八九]/;
 
@@ -81,7 +81,7 @@ export function getFormatParts(
   return getFormatter(locale, options).formatToParts(SAMPLE_FORMAT_NUMBER);
 }
 
-export type NumberLocaleDetails = Partial<Record<Intl.NumberFormatPartTypes, string>> & {
+type NumberLocaleDetails = Partial<Record<Intl.NumberFormatPartTypes, string>> & {
   decimal: string;
 };
 

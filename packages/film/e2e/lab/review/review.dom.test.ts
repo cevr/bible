@@ -14,6 +14,7 @@
 import { Effect, Match, Option, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
+import { FILM_FPS, timecode } from '../../../src/core/time.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
 import { tone } from '../../../src/lab/fixtures/tone.ts';
 import { STEP_S } from '../../../src/lab/review/machine.ts';
@@ -247,9 +248,9 @@ describe('the review page', () => {
         yield* page.click(`a.rv-card[href="${FOLDER}"]`);
         yield* until(page, `location.pathname === '${FOLDER}'`);
         yield* textHas(page, '.sh-header [data-role="crumb"]', 'Roofs at dusk');
-        // The tab's title names the Folder first, then its part (SU-9).
+        // The tab's title names the Folder first, then its part.
         yield* until(page, "document.title.startsWith('Roofs at dusk · ')");
-        // A phone's header names the Folder too (SU-10).
+        // A phone's header names the Folder too.
         yield* page.resize(390, 844);
         yield* evaluates(
           page,
@@ -266,7 +267,7 @@ describe('the review page', () => {
         yield* textHas(page, '[data-review-blurb]', '<img src=x onerror=bad()>');
         yield* countIs(page, '[data-review-blurb] img, [data-review-blurb] script', 0);
         // A stack of several says how many; of one, nothing; its versions' names are its
-        // long-press menu's, each opening the set on that version's sheet (UR2-6).
+        // long-press menu's, each opening the set on that version's sheet.
         const roof = `a.rv-card[href="${SET}"]`;
         yield* textHas(page, roof, '3 versions');
         yield* countIs(page, `a.rv-card[href="${SKY}"] .rv-badge`, 0);
@@ -294,7 +295,7 @@ describe('the review page', () => {
         yield* attributeIs(page, '.rv-tall track', 'src', '/api/review/files/out/art/walk.vtt');
         // Never the browser's controls (how it plays: the lone video's own cases below).
         yield* countIs(page, '.rv-tall video[controls]', 0);
-        // A loose video shows its name; its file is its menu's: Open, Copy link, Info (UR-17).
+        // A loose video shows its name; its file is its menu's: Open, Copy link, Info.
         yield* textIs(page, '.rv-tall .rv-cap', 'walk.mp4');
         yield* rightClick(page, '.rv-tall .rv-cap');
         yield* waitFor(page, '[data-role="context-menu"] [data-command="review.file-open"]');
@@ -584,7 +585,7 @@ describe('the review page', () => {
           "Array.from(document.querySelectorAll('.rv-card[data-id]')).filter((c) => !c.querySelector('video').muted).map((c) => c.dataset.id).join()";
         yield* until(page, `${heard} === 'A'`);
         yield* attributeIs(page, '.rv-audible', 'data-id', 'A');
-        // `2` hears version 2, as its 🔊 would (UR-27).
+        // `2` hears version 2, as its 🔊 would.
         yield* page.press('2');
         yield* until(page, `${heard} === 'B'`);
         yield* page.click('.rv-card[data-id="C"] .rv-sound');
@@ -595,16 +596,36 @@ describe('the review page', () => {
         yield* textHas(page, '.rv-big', '❚❚');
         yield* page.press('Space');
         yield* textHas(page, '.rv-big', '▶');
-        yield* page.press('ArrowRight');
-        yield* page.press('ArrowRight');
-        yield* textHas(page, '.rv-time', '00:00:04:00');
-        yield* page.press('ArrowLeft');
-        yield* textHas(page, '.rv-time', '00:00:02:00');
-        // Every video stands where the clock does.
+        // The clock ran for as long as the page took to show ❚❚ and take the
+        // pause (seconds on a loaded box), so the steps are read from where it
+        // stopped, not from zero.
         yield* until(
           page,
-          "Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - 2) < 0.01)",
+          "Array.from(document.querySelectorAll('.rv-card video')).every((v) => v.paused)",
         );
+        // The machine keeps the time it sampled and the videos follow it, so the
+        // label (the machine's time, to the frame) is the count the steps add to:
+        // whole seconds on a whole frame count are exact. The videos agree with
+        // each other, and the clock video stands within a frame of the label.
+        const clockAt = "document.querySelector('.rv-card video').currentTime";
+        const labelFrames = `(() => { const [h, m, s, f] = document.querySelector('.rv-time').textContent.split(' ')[0].split(':').map(Number); return ((h * 60 + m) * 60 + s) * ${FILM_FPS} + f; })()`;
+        const paused = yield* page.evaluate<number>(labelFrames);
+        /** The label shows `frames` and the videos stand there, as the page shows it. */
+        const stoodAt = (frames: number) =>
+          Effect.gen(function* () {
+            yield* textHas(page, '.rv-time', timecode(frames / FILM_FPS));
+            yield* until(
+              page,
+              `Math.abs(${clockAt} - ${frames / FILM_FPS}) <= ${1 / FILM_FPS + 1e-3} && Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - ${clockAt}) < 1e-3)`,
+            );
+          });
+        const step = STEP_S * FILM_FPS;
+        yield* page.press('ArrowRight');
+        yield* stoodAt(paused + step);
+        yield* page.press('ArrowRight');
+        yield* stoodAt(paused + 2 * step);
+        yield* page.press('ArrowLeft');
+        yield* stoodAt(paused + step);
         // The rate chip opens the rates but the one it plays at; J steps one slower.
         yield* page.click('.rv-transport [data-act="rate"]');
         yield* waitFor(page, '[data-role="chip-menu"] [data-command="play.rate-0.5"]');
@@ -669,7 +690,7 @@ describe('the review page', () => {
           yield* until(page, "document.querySelector('.rv-lightbox') === null");
         }
 
-        // The notes are each version's Info (UR-34): an old link to them opens All, the
+        // The notes are each version's Info: an old link to them opens All, the
         // first version's sheet open on its lines and notes, and says so in the URL.
         yield* page.goto(`${SET}?view=notes`);
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
@@ -677,7 +698,7 @@ describe('the review page', () => {
         yield* textHas(page, '[data-role="inspector"] .rv-verdict', 'verdict A');
         yield* waitFor(page, '[data-role="inspector"] i');
         yield* textHas(page, '[data-role="inspector"]', 'Warm reads best.');
-        // The caps say a version's name, not its lines (UR-30).
+        // The caps say a version's name, not its lines.
         yield* countIs(page, '.rv-card .rv-tag', 0);
 
         // A reload opens the view the URL keeps.
@@ -715,7 +736,7 @@ describe('the review page', () => {
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
         yield* textHas(page, '.rv-time', '00:00:04:00');
         // Past the time's throttle, the entry still keeps its own time.
-        yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
+        yield* page.clock.fastForward(600);
         yield* until(page, "location.search === '' && location.hash === '#t=4'");
         yield* textHas(page, '.rv-time', '00:00:04:00');
         expect(errors).toEqual([]);
@@ -852,7 +873,12 @@ describe('the review page', () => {
           ],
           { href: FOLDER },
         );
-        yield* page.click('.rv-doc summary');
+        // Opened until it stays open: a click before the index has settled lands on a doc
+        // the page then draws again, closed.
+        yield* until(
+          page,
+          "(() => { const d = document.querySelector('.rv-doc'); if (d !== null && !d.open) d.open = true; return document.querySelector('.rv-doc .rv-note') !== null; })()",
+        );
         yield* textIs(
           page,
           '.rv-doc .rv-note',
@@ -870,7 +896,7 @@ describe('the review page', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: SET });
         const STALE = 'out of date: its sources changed since it was made';
-        /** The grid's one state badge is C's (UR-29). */
+        /** The grid's one state badge is C's. */
         const onlyCStale = Effect.andThen(
           textsAre(page, '.rv-grid [data-approval="stale"]', ['Out of date']),
           textsAre(page, '.rv-grid [data-id="C"] [data-approval="stale"]', ['Out of date']),
@@ -905,7 +931,7 @@ describe('the review page', () => {
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
         yield* until(page, `location.pathname + location.search === '${SKY}'`);
         // A set of several offers its modes, and in Compare its layouts by their industry
-        // names (UR-21): `v` steps the modes, `⇧V` the layouts.
+        // names: `v` steps the modes, `⇧V` the layouts.
         yield* page.goto(SET);
         yield* textsAre(page, '.rv-views button', ['All', 'Compare', 'Moments']);
         yield* countIs(page, '.rv-layouts', 0);

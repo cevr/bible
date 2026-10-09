@@ -3,7 +3,7 @@
 // BLINK_MS, starting on HEAD: a state timeout, re-entered on each flip, so
 // the timer is the actor's and stops with the state), or diff (HEAD whole
 // over the frame in the difference blend: black where nothing moved, the
-// pixels an edit moved lit; PA-9). A blink is also flipped by hand: held
+// pixels an edit moved lit). A blink is also flipped by hand: held
 // (press and hold on the frame) HEAD shows and the timer waits; let go, now
 // shows and the timer runs again. The divider keeps its place across modes.
 // The mode is the link's (`?view=`); the divider is this viewer's, kept

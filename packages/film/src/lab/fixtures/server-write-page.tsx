@@ -1,5 +1,5 @@
-// Two server entries for the purity guard's own test (`served`, `bundles.ts`;
-// G12): one page that writes a signal while the server renders it, which the
+// Two server entries for the purity guard's own test (`served`, `bundles.ts`):
+// one page that writes a signal while the server renders it, which the
 // guard must fail, and the same page reading its signal only, which it must
 // let through.
 

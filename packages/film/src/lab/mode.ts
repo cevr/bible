@@ -1,4 +1,4 @@
-// The lab's modes (PA-7, LS-1): the inspector shows one tool at a time,
+// The lab's modes: the inspector shows one tool at a time,
 // Edit · Note · Motion · Compare · Record, picked on the mode tray (the
 // inspector's header) or from ⌘K. The mode is a per-viewer convenience kept
 // in the browser (`film-studio.lab-mode`); a note a link cites shows Note as

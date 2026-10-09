@@ -1,4 +1,4 @@
-// Motion's loop as the page's commands (AA-9, UR-95): Loop the selected cue
+// Motion's loop as the page's commands: Loop the selected cue
 // (⇧L, on the cue's context menu too), Loop this scene, Set the in point
 // here (I) and Set the out point here (O: once the out point lies after the
 // in point the range loops, as every editor's in/out points do), and Stop

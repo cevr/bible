@@ -33,7 +33,7 @@ export interface BibleCorpusService {
   ) => Effect.Effect<BibleCorpusInstallResult, SqlError>;
 }
 
-export interface BibleCorpusInstallResult {
+interface BibleCorpusInstallResult {
   readonly kjv: { readonly verses: number; readonly withStrongs: number };
   readonly lexicon: { readonly imported: number; readonly skipped: number };
   readonly openBible: { readonly imported: number; readonly skipped: number };

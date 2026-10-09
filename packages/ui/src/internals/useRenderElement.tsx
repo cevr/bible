@@ -29,7 +29,7 @@ export interface UseRenderElementComponentProps<State> {
   render?: ComponentRenderFn<HTMLProps, State> | undefined;
 }
 
-export interface UseRenderElementParameters<State> {
+interface UseRenderElementParameters<State> {
   /** The state the `data-*` attributes, `class`, `style` and `render` read. */
   state?: State | undefined;
   /** Refs the rendered element is passed to, besides any in `props`. */
@@ -69,7 +69,7 @@ export function propsFromAccessor(read: () => HTMLProps): HTMLProps {
 }
 
 /** The merged props a part's element receives (without rendering it). */
-export function useRenderElementProps<State extends object>(
+function useRenderElementProps<State extends object>(
   componentProps: UseRenderElementComponentProps<State>,
   params: UseRenderElementParameters<State>,
 ): HTMLProps {

@@ -36,7 +36,7 @@ interface Page {
   readonly thing: string;
   /** The query the URL has once the thing's sheet is open, past what `href` has. */
   readonly named: Readonly<Record<string, string>>;
-  /** The row marked while its sheet is open (SU-13). */
+  /** The row marked while its sheet is open. */
   readonly row: string;
 }
 

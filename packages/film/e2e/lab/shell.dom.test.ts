@@ -37,6 +37,7 @@ import {
   labelsClash,
   textHas,
   textIs,
+  until,
 } from '../../src/lab/fixtures/settled.ts';
 
 /** Where the probe film's second scene starts, in film seconds. */
@@ -78,6 +79,25 @@ const T = URL_T;
 
 /** Whether the page does not scroll sideways. */
 const NO_SIDEWAYS = 'document.documentElement.scrollWidth <= document.documentElement.clientWidth';
+
+/**
+ * The Lab's transport as a script reads it: whether its row stands on the
+ * tab bar as the page's dock, and whether play, the frame steps and the
+ * scene's time lie in that order along one line.
+ */
+const LAB_DOCK = `(() => {
+  const row = document.querySelector('.bar > .row');
+  const r = row.getBoundingClientRect();
+  const parts = ['[data-act="play"]', '[data-act="play.frame-previous"]', '[data-act="play.frame-next"]', '.tc'].map(
+    (s) => row.querySelector(s).getBoundingClientRect(),
+  );
+  const mid = (b) => b.top + b.height / 2;
+  return [
+    'on the tabs ' + (Math.round(r.bottom) === Math.round(document.querySelector('.sh-pagebar').getBoundingClientRect().top)),
+    'in order ' + parts.every((b, i) => i === 0 || b.left >= parts[i - 1].right - 0.5),
+    'one line ' + parts.every((b) => Math.abs(mid(b) - mid(r)) < 4),
+  ];
+})()`;
 
 /**
  * Whether the bar says `words` where the viewer sees them: the element that
@@ -294,24 +314,28 @@ describe('the lab shell', () => {
               Effect.andThen(page.finger.down(at.x, at.y), page.finger.up),
           },
         ];
-        for (const hand of hands) {
-          const { page } = yield* openLab([], { href: labAt(0.5), viewport: hand.viewport });
-          yield* page.until('(globalThis.openedWith = history.length) > 0');
-          const track = yield* page.box('.bar .track');
-          const y = track.y + track.height / 2;
-          const at = (share: number) => ({ x: track.x + track.width * share, y });
-          // Pressed in three, dragged back into one: the path follows in place.
-          yield* hand.drag(page, at(0.9), at(0.1));
-          yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
-          yield* evaluates(page, 'history.length - globalThis.openedWith', 0);
-          // A tap in three jumps there, a step Back walks.
-          yield* hand.tap(page, at(0.9));
-          yield* evaluates(page, 'location.pathname', '/films/probe/lab/three');
-          yield* evaluates(page, 'history.length - globalThis.openedWith', 1);
-          yield* page.back;
-          yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
-        }
-      }).pipe(Effect.scoped, Effect.runPromise),
+        // Each hand's lab is closed before the next opens: a finger runs alone.
+        for (const hand of hands)
+          yield* Effect.scoped(
+            Effect.gen(function* () {
+              const { page } = yield* openLab([], { href: labAt(0.5), viewport: hand.viewport });
+              yield* page.until('(globalThis.openedWith = history.length) > 0');
+              const track = yield* page.box('.bar .track');
+              const y = track.y + track.height / 2;
+              const at = (share: number) => ({ x: track.x + track.width * share, y });
+              // Pressed in three, dragged back into one: the path follows in place.
+              yield* hand.drag(page, at(0.9), at(0.1));
+              yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+              yield* evaluates(page, 'history.length - globalThis.openedWith', 0);
+              // A tap in three jumps there, a step Back walks.
+              yield* hand.tap(page, at(0.9));
+              yield* evaluates(page, 'location.pathname', '/films/probe/lab/three');
+              yield* evaluates(page, 'history.length - globalThis.openedWith', 1);
+              yield* page.back;
+              yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+            }),
+          );
+      }).pipe(Effect.runPromise),
   );
 
   it.live(
@@ -365,7 +389,7 @@ describe('the lab shell', () => {
       yield* evaluates(page, 'location.search', '?cue=rise');
       yield* textHas(page, '.bar .time', `${timecode(first)} /`);
       // Past the time's throttle, nothing has written the later frame over it.
-      yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
+      yield* page.clock.fastForward(600);
       yield* evaluates(page, `Math.abs(${T} - ${first}) < 0.002`, true);
       yield* textHas(page, '.bar .time', `${timecode(first)} /`);
     }).pipe(Effect.scoped),
@@ -661,6 +685,12 @@ describe('the lab shell', () => {
         );
         yield* evaluates(page, "document.querySelector('.bar .tc').getClientRects().length", 1);
         yield* evaluates(page, NO_SIDEWAYS, true);
+        // The row is the page's dock, on the tab bar, as the page stands and scrolled to its end.
+        const docked = ['on the tabs true', 'in order true', 'one line true'];
+        yield* evaluates(page, LAB_DOCK, docked);
+        yield* page.evaluate('window.scrollTo(0, document.documentElement.scrollHeight); true');
+        yield* until(page, 'scrollY > 0');
+        yield* evaluates(page, LAB_DOCK, docked);
       }).pipe(Effect.scoped),
   );
 

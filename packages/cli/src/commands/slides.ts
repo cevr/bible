@@ -10,8 +10,6 @@ import { slidesList } from './slides/list.js';
 import { slidesMove } from './slides/move.js';
 import { slidesSwap } from './slides/swap.js';
 
-export { slidesBuild, slidesInsert, slidesInterleave, slidesList, slidesMove, slidesSwap };
-
 export const slides = Command.make('slides', {}, () =>
   Effect.gen(function* () {
     yield* Console.log('Usage: bible slides <build|swap|list> [options]');

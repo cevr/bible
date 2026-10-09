@@ -23,7 +23,7 @@ import {
   scrollIntoViewIfNeeded,
 } from './composite.ts';
 
-export interface UseCompositeRootReturnValue {
+interface UseCompositeRootReturnValue {
   /** The root element's props: its ref and keydown handling. */
   props: HTMLProps;
   highlightedIndex: () => number;

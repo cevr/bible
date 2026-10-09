@@ -14,7 +14,7 @@
 // `<audio>` of the film's whole mix with a variant in place (a score option,
 // a take). Choosing what is heard swaps that one `<audio>`; it joins the
 // clock where it stands. A variant heard alone (its sound with nothing under
-// it, from its own start) plays on one more `<audio>` the film shares (UR-52):
+// it, from its own start) plays on one more `<audio>` the film shares:
 // one at a time, the clock paused while it plays, gone when the clock plays.
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
@@ -209,7 +209,7 @@ interface FilmContextValue {
   readonly sync: Accessor<SyncState>;
   readonly send: (event: SyncEvent) => void;
   readonly driver: SyncDriver;
-  /** The one state the page shows its points in (`?only=`, AA-14), or none: every point. */
+  /** The one state the page shows its points in (`?only=`), or none: every point. */
   readonly only: Accessor<Option.Option<ShownOnly>>;
   /** Show only the points in `only`, or every point. */
   readonly showOnly: (only: Option.Option<ShownOnly>) => void;
@@ -221,7 +221,7 @@ interface FilmContextValue {
 const FilmContext = createContext<FilmContextValue>();
 
 /**
- * The page's Show only… commands (AA-14), in ⌘K and the page's long-press
+ * The page's Show only… commands, in ⌘K and the page's long-press
  * menu: one per state the points are not already shown only in, and Show
  * every point while they are.
  */

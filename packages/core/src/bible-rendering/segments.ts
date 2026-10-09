@@ -44,12 +44,12 @@ export type TextSegment =
  *  point rather than a run. A layer that re-splits a segment narrows to this
  *  first, so the split halves stay the *same* variant by construction instead
  *  of being asserted back into one. */
-export type TextBearingSegment = Exclude<TextSegment, { readonly type: 'margin' }>;
+type TextBearingSegment = Exclude<TextSegment, { readonly type: 'margin' }>;
 
 /** Minimal contract the segmenter needs from a margin note. The full note
  *  shape (type, full text, language) is only needed by the renderer when
  *  building the popover — pass it separately. */
-export interface MarginNoteAnchor {
+interface MarginNoteAnchor {
   readonly noteIndex: number;
   readonly phrase: string;
 }
@@ -179,7 +179,7 @@ const openRedLetter = (text: string, result: TextSegment[]): Option.Option<strin
  *
  *  Notes are anchored in end order so two anchors in one verse stay in reading
  *  order, which is the order `noteIndex` is read in. */
-export const applyMarginAnchors = (
+const applyMarginAnchors = (
   segments: readonly TextSegment[],
   marginNotes: readonly MarginNoteAnchor[],
 ): TextSegment[] => {
@@ -309,7 +309,7 @@ export const applySearchHighlights = (
  *  `slug` is a plain `string` for the same reason: the brand lives in the wiki
  *  model, and a rendering module that had to construct one would need the
  *  schema. The renderer only ever puts it in an `href`. */
-export interface PhraseSpanInput {
+interface PhraseSpanInput {
   readonly start: number;
   readonly end: number;
   readonly slug: string;
@@ -318,7 +318,7 @@ export interface PhraseSpanInput {
 
 /** One span list per segment, aligned by index — the shape `matchSegments`
  *  returns, taken as-is so the two cannot drift. */
-export type SegmentPhraseSpans = readonly (readonly PhraseSpanInput[])[];
+type SegmentPhraseSpans = readonly (readonly PhraseSpanInput[])[];
 
 /** Splits `text` segments on their matched phrase spans, on the same discipline
  *  {@link applySearchHighlights} uses: nothing else is entered.
@@ -435,14 +435,14 @@ export const SEGMENT_APPLICATION_ORDER: readonly SegmentLayer[] = [
  *  other segmentation of the same verse. In the app this closure is
  *  `(segments) => matchSegments(automaton, segments, sectionState)`; in a CLI
  *  formatter it is simply omitted. */
-export type PhraseLayer = (segments: readonly TextSegment[]) => SegmentPhraseSpans;
+type PhraseLayer = (segments: readonly TextSegment[]) => SegmentPhraseSpans;
 
 /** No phrase layer: a host with no dictionary, or a surface the wiki does not
  *  overlay. Every segment gets an empty span list, so the pipeline's last step
  *  is a no-op rather than a branch. */
 const NO_PHRASES: PhraseLayer = () => [];
 
-export interface SegmentComposition {
+interface SegmentComposition {
   readonly text: string;
   readonly marginNotes?: readonly MarginNoteAnchor[];
   readonly searchQuery?: string;

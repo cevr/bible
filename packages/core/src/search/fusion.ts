@@ -80,7 +80,7 @@ export interface FusionList {
 }
 
 /** One document's place in the fused ranking. */
-export interface FusedHit {
+interface FusedHit {
   readonly id: string;
   readonly score: number;
   /** 1-based rank in each input list that carried this document, in the order

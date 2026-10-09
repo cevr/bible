@@ -2,7 +2,7 @@
 // tagged union every primitive reads (the context menu shows its commands,
 // the inspector its fields, ⌘K and the keys act on it). A selection is
 // written in the URL where the pages' places have a key for it (`Places`,
-// core/api.ts; PA-1/PA-4): the lab's cue, knob, note and the studio's beat
+// core/api.ts): the lab's cue, knob, note and the studio's beat
 // (`?cue=`, `?knob=`, `?note=`, `?beat=` in a scene's path), a project's card
 // (`?point=`), a scene on a film's Scenes, a folder and a comparison set
 // (their paths), and the thing whose review inspector is open (a variant on

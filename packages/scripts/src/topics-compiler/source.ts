@@ -4,7 +4,7 @@ import { Effect, Option, Schema, SchemaGetter } from 'effect';
  *  the build on any of them (§3.4): a bad source must never reach the artifact,
  *  and a compile that silently dropped a page would be worse than one that
  *  stopped. */
-export class TopicSourceError extends Schema.TaggedError<TopicSourceError>()('TopicSourceError', {
+class TopicSourceError extends Schema.TaggedError<TopicSourceError>()('TopicSourceError', {
   file: Schema.String,
   message: Schema.String,
 }) {}
@@ -21,7 +21,7 @@ const ScalarString = Schema.Union([Schema.String, Schema.Finite]).pipe(
 );
 
 /** Authored frontmatter, exactly as ticket 010 fixed it. */
-export const TopicFrontmatter = Schema.Struct({
+const TopicFrontmatter = Schema.Struct({
   slug: ScalarString,
   title: ScalarString,
   status: Schema.Literals(['draft', 'approved']),
@@ -31,7 +31,7 @@ export const TopicFrontmatter = Schema.Struct({
    *  against `bible.db` `topics.name`. */
   catalog: Schema.optional(ScalarString),
 });
-export type TopicFrontmatter = typeof TopicFrontmatter.Type;
+type TopicFrontmatter = typeof TopicFrontmatter.Type;
 
 export interface TopicSource {
   readonly file: string;

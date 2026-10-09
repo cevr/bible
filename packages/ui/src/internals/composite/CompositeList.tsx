@@ -36,7 +36,7 @@ interface CompositeListItemEntry {
   registration: CompositeListRegistration;
 }
 
-export interface CompositeListProps {
+interface CompositeListProps {
   children?: JSX.Element;
   /** The items' elements by index: list navigation's `listRef`. */
   elementsRef: { current: Array<HTMLElement | null> };
@@ -213,12 +213,12 @@ export function CompositeList(props: CompositeListProps): JSX.Element {
   return <CompositeListContext value={value}>{props.children}</CompositeListContext>;
 }
 
-export interface UseCompositeListItemParameters {
+interface UseCompositeListItemParameters {
   /** The typeahead label; the element's text when not given. */
   label?: string | null | undefined;
 }
 
-export interface UseCompositeListItemReturnValue {
+interface UseCompositeListItemReturnValue {
   /** Pass to the item element's `ref`. */
   ref: (node: HTMLElement | null) => void;
   index: Accessor<number>;

@@ -101,7 +101,7 @@ export { immutableFileUri as immutableFilename } from '../db/immutable-uri.js';
  *  is the whole artifact-backed decision — the absence check included. A host
  *  that had *no* artifact and then installed the first one must go from
  *  `Absent` to `Live`, which reopening a connection alone could not do. */
-export interface ReloadableArtifactService {
+interface ReloadableArtifactService {
   /** Rebuilds the artifact-backed `WikiService` against whatever is at the path
    *  now. Idempotent, and safe to call when nothing changed — a host that is
    *  unsure has no reason to check first.

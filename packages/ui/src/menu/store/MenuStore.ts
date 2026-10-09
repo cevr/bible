@@ -30,7 +30,7 @@ export type MenuChangeEventDetails = BaseUIChangeEventDetails<MenuChangeEventRea
 
 export type MenuInstantType = 'dismiss' | 'click' | undefined;
 
-export interface MenuStoreOptions {
+interface MenuStoreOptions {
   parent: MenuParent;
   openMethod: Accessor<InteractionType | null>;
   floatingId: string;

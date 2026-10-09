@@ -8,7 +8,7 @@ import { createMemo } from 'solid-js';
 import type { ToastObject } from './types.ts';
 import { useToastProviderContext } from './ToastProviderContext.ts';
 
-export interface UseToastManagerReturnValue<Data extends object = object> {
+interface UseToastManagerReturnValue<Data extends object = object> {
   readonly toasts: ToastObject<Data>[];
 }
 

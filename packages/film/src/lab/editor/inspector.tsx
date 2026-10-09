@@ -220,7 +220,7 @@ const FindingList = (props: { readonly lines: ReadonlyArray<CheckLine> }) => (
 );
 
 /**
- * The inspector's Findings group (UI-6): the film's check (the last write's,
+ * The inspector's Findings group: the film's check (the last write's,
  * else the page's) as it bears on the scene shown, its own, then the film's
  * placeless ones apart (`Film · n`, in their most pressing level's colour,
  * as Scenes' legend counts them: `countState`); the other scenes' are a

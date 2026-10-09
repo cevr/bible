@@ -39,9 +39,7 @@ const identityOf = (row: VectorSourceRow): string =>
 /** Rows between flushes. At ~25 rows/s this is ~20 seconds of exposure. */
 const FLUSH_EVERY = 500;
 
-export class VectorCheckpoint extends Schema.Class<VectorCheckpoint>(
-  'VectorCompiler/VectorCheckpoint',
-)({
+class VectorCheckpoint extends Schema.Class<VectorCheckpoint>('VectorCompiler/VectorCheckpoint')({
   fingerprint: Schema.NonEmptyString,
   dimensions: Schema.Finite.pipe(Schema.check(Schema.isInt(), Schema.isGreaterThan(0))),
   /** Rows fully embedded and flushed to the part file. */
@@ -54,10 +52,9 @@ const CheckpointJson = Schema.fromJsonString(VectorCheckpoint);
 const decodeCheckpoint = Schema.decodeEffect(CheckpointJson);
 const encodeCheckpoint = Schema.encodeEffect(CheckpointJson);
 
-export class CompilerEmbedError extends Schema.TaggedError<CompilerEmbedError>()(
-  'CompilerEmbedError',
-  { message: Schema.String },
-) {}
+class CompilerEmbedError extends Schema.TaggedError<CompilerEmbedError>()('CompilerEmbedError', {
+  message: Schema.String,
+}) {}
 
 export const partPath = (out: string): string => `${out}.part`;
 export const checkpointPath = (out: string): string => `${out}.checkpoint.json`;

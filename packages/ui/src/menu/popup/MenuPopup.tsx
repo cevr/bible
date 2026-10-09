@@ -16,7 +16,7 @@ import { useMenuPositionerContext } from '../positioner/MenuPositioner.tsx';
 import { useMenuRootContext } from '../root/MenuRootContext.ts';
 import type { MenuInstantType } from '../store/MenuStore.ts';
 
-export interface MenuPopupState {
+interface MenuPopupState {
   transitionStatus: TransitionStatus;
   side: Side;
   align: Align;
@@ -24,7 +24,7 @@ export interface MenuPopupState {
   instant: MenuInstantType;
 }
 
-export interface MenuPopupProps extends BaseUIComponentProps<'div', MenuPopupState> {}
+interface MenuPopupProps extends BaseUIComponentProps<'div', MenuPopupState> {}
 
 export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
   const { store, parent, popupProps } = useMenuRootContext();

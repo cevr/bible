@@ -134,11 +134,7 @@ function isScrollable(element: HTMLElement, axis: ScrollAxis): boolean {
 }
 
 /** Whether an element from `target` up to (not including) `root` scrolls on `axis`. */
-export function hasScrollableAncestor(
-  target: HTMLElement,
-  root: HTMLElement,
-  axis: ScrollAxis,
-): boolean {
+function hasScrollableAncestor(target: HTMLElement, root: HTMLElement, axis: ScrollAxis): boolean {
   // `getParentNode` crosses shadow boundaries (and slots).
   let node: Node | null = target;
   while (isHTMLElement(node) && node !== root && !isLastTraversableNode(node)) {
@@ -218,12 +214,12 @@ function safelyChangePointerCapture(
   }
 }
 
-export interface UseSwipeDismissDetails {
+interface UseSwipeDismissDetails {
   nativeEvent: PointerEvent | TouchEvent;
   direction: SwipeDirection | undefined;
 }
 
-export interface UseSwipeDismissReleaseDetails {
+interface UseSwipeDismissReleaseDetails {
   event: PointerEvent | TouchEvent;
   direction: SwipeDirection | undefined;
   deltaX: number;
@@ -235,7 +231,7 @@ export interface UseSwipeDismissReleaseDetails {
 }
 
 /** Options are read live: pass getters for values that change. */
-export interface UseSwipeDismissOptions {
+interface UseSwipeDismissOptions {
   enabled: boolean;
   directions: SwipeDirection[];
   /** The element that is swiped. */
@@ -266,7 +262,7 @@ export interface UseSwipeDismissOptions {
     | undefined;
 }
 
-export interface UseSwipeDismissReturnValue {
+interface UseSwipeDismissReturnValue {
   swiping: Accessor<boolean>;
   getPointerProps: () => {
     onPointerDown?: (event: PointerEvent) => void;

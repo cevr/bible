@@ -42,7 +42,7 @@ export interface CompositeNavigationParameters {
   elements: ItemList;
 }
 
-export interface CompositeNavigationResult {
+interface CompositeNavigationResult {
   /** The index to highlight; `-1` (or the current index) when the key moves nothing. */
   index: number;
   /** Whether the key is one the composite acts on (its default is then prevented). */

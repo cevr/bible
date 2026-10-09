@@ -12,11 +12,11 @@ import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { type RegisterId, useRegisteredId } from '../../utils/useRegisteredId.ts';
 
 /** Sets the id labelling the group. */
-export type MenuGroupContextValue = RegisterId;
+type MenuGroupContextValue = RegisterId;
 
-export const MenuGroupContext = createContext<MenuGroupContextValue | null>(null);
+const MenuGroupContext = createContext<MenuGroupContextValue | null>(null);
 
-export function useMenuGroupRootContext(): MenuGroupContextValue {
+function useMenuGroupRootContext(): MenuGroupContextValue {
   const context = useContext(MenuGroupContext);
   if (context === null) {
     throw new Error(
@@ -33,9 +33,9 @@ function createGroupLabelId() {
   return { labelId, update };
 }
 
-export interface MenuGroupState {}
+interface MenuGroupState {}
 
-export interface MenuGroupProps extends BaseUIComponentProps<'div', MenuGroupState> {}
+interface MenuGroupProps extends BaseUIComponentProps<'div', MenuGroupState> {}
 
 export function MenuGroup(componentProps: MenuGroupProps): JSX.Element {
   const elementProps = omit(componentProps, 'class', 'style', 'render');
@@ -56,9 +56,9 @@ export function MenuGroup(componentProps: MenuGroupProps): JSX.Element {
   return <MenuGroupContext value={update}>{untrack(element)}</MenuGroupContext>;
 }
 
-export interface MenuGroupLabelState {}
+interface MenuGroupLabelState {}
 
-export interface MenuGroupLabelProps extends BaseUIComponentProps<'div', MenuGroupLabelState> {}
+interface MenuGroupLabelProps extends BaseUIComponentProps<'div', MenuGroupLabelState> {}
 
 /** The label of a `Menu.Group`; hidden from assistive tech, which reads it as the group's name. */
 export function MenuGroupLabel(componentProps: MenuGroupLabelProps): JSX.Element {

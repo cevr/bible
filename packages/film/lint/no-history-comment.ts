@@ -4,12 +4,16 @@
 // lives in the ledger and in `git log`, and a comment that tells it goes stale
 // while the code it sits on stays true.
 //
-// Refused in a comment: a pass number (the word pass or passes and a number),
-// a batch id (`p`, a number, a dash and a word), a commit hash (7 to 40 hex
-// digits holding a digit and a letter, not a `#` colour) and "used to" after a
-// word that is not a form of `be` or `get` ("is used to rank" passes, and so
-// does a sentence that opens with it). Only these forms are seen: a comment
-// that tells history in other words is the sweep's to find.
+// Refused in a comment: a pass number (the word pass or passes and a number,
+// or pass, a dash and a number), a batch id (`p`, a number, a dash and a
+// word), a ledger id (a finding's or a decision's: one of the ledger's
+// prefixes, a dash and a number; a guard's `G` and a number with no dash), a
+// commit hash (7 to 40 hex digits holding a digit and a
+// letter, not a `#` colour) and "used to" after a word that is not a form of
+// `be` or `get` ("is used to rank" passes, and so does a sentence that opens
+// with it). A ledger id points into a ledger whose ids repeat across passes:
+// the sentence beside it already says what holds. Only these forms are seen:
+// a comment that tells history in other words is the sweep's to find.
 
 import { Effect } from 'effect';
 import { Diagnostic, Rule, RuleContext, Visitor } from 'oxlint-plugin-effect/rule-bindings';
@@ -20,9 +24,20 @@ interface Tell {
   readonly pattern: RegExp;
 }
 
+/**
+ * The ledger's id prefixes: the sweeps' findings (a sweep's capitals, with its
+ * pass's digit or none), the reviews' (`R`, the pass's digit, and the area's
+ * words), the prior art's and the action audit's, each a prefix, a dash and
+ * a number; and the guards, `G` and one or two digits, written without one.
+ * The fixture holds one of each.
+ */
+const LEDGER_ID =
+  /\b(?:GR|G|UR[23]?|DL3?|RS3?|SU3?|ST3?|US[23]?|SV[23]?|PSH?3?|ET3?|HC|H|PA|AA|UI3?|LS|PL|EA|NS|MC|OG3?|T|R[123](?:-[a-z]+)*)-\d+[a-z]?\b|\bG\d{1,2}\b/gu;
+
 const TELLS: ReadonlyArray<Tell> = [
-  { what: 'a pass number', pattern: /\bpass(?:es)? \d+\b/giu },
+  { what: 'a pass number', pattern: /\bpass(?:es)?[ -]\d+\b/giu },
   { what: 'a batch id', pattern: /\bp\d+-[a-z][a-z0-9]*\b/gu },
+  { what: 'a ledger id', pattern: LEDGER_ID },
   {
     what: 'a commit hash',
     pattern: /(?<![#\w-])(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}(?![\w-])/gu,

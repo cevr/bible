@@ -49,7 +49,7 @@ const toPersisted = (token: AccessToken): typeof PersistedToken.Type => {
   };
 };
 
-export interface EGWTokenStoreService {
+interface EGWTokenStoreService {
   readonly read: Effect.Effect<Option.Option<AccessToken>, Schema.SchemaError | PlatformError>;
   readonly write: (token: AccessToken) => Effect.Effect<void, Schema.SchemaError | PlatformError>;
 }

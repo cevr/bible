@@ -100,11 +100,11 @@ export const findingTime = (
     ),
   );
 
-/** The findings the inspector lists for one scene, and how many sit elsewhere (UI-6). */
+/** The findings the inspector lists for one scene, and how many sit elsewhere. */
 interface SceneFindings {
   /** The scene's own: listed under its name. */
   readonly here: ReadonlyArray<CheckLine>;
-  /** Those with no place on the film (about the whole film): listed apart, as the film's (SU-3). */
+  /** Those with no place on the film (about the whole film): listed apart, as the film's. */
   readonly film: ReadonlyArray<CheckLine>;
   /** How many belong to other scenes: counted, and F walks to them. */
   readonly elsewhere: number;

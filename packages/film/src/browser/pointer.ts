@@ -155,7 +155,7 @@ const pointerOn = (page: EventTarget): PointerOps => {
       // outside it may never be heard, so the press ends as one the browser took. Only
       // a visible page is pressed, so any visibility change mid-press is its hiding.
       for (const left of ['blur', 'visibilitychange'])
-        // oxlint-disable-next-line film/host-events-through-adapter -- Pointer's own: the page the press is on left
+        // Pointer's own: the page the press is on left.
         page.addEventListener(left, () => ended(Option.none()), options);
       return Effect.sync(() => listening.abort());
     });

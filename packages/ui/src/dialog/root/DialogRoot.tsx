@@ -17,18 +17,12 @@ import { createUniqueId, untrack } from 'solid-js';
 import { useDismiss } from '../../floating-ui-solid/hooks/useDismiss.ts';
 import { contains, getTarget } from '../../utils/dom.ts';
 import { useScrollLock } from '../../utils/useScrollLock.ts';
-import {
-  createDialogStore,
-  type DialogChangeEventDetails,
-  type DialogChangeEventReason,
-} from '../store/DialogStore.ts';
+import { createDialogStore, type DialogChangeEventDetails } from '../store/DialogStore.ts';
 import { DialogRootContext } from './DialogRootContext.ts';
 
-export type { DialogChangeEventDetails, DialogChangeEventReason };
+export type { DialogChangeEventDetails };
 
-export interface DialogRootState {}
-
-export interface DialogRootProps {
+interface DialogRootProps {
   open?: boolean | undefined;
   /**
    * Whether the open dialog is modal: focus trapped, page scroll locked and

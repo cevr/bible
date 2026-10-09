@@ -8,6 +8,8 @@ import {
   frameAtOrAfter,
   frameAtOrBefore,
   framesOf,
+  heardAtOrAfter,
+  justBefore,
   keys,
   lerp,
   offTheMs,
@@ -16,6 +18,19 @@ import {
   staggered,
   timecode,
 } from './time.ts';
+
+describe('a word heard at or after a mark', () => {
+  test('is on the mark or within a millisecond before it, and not earlier', () => {
+    expect(heardAtOrAfter({ start: 2 }, 2)).toBe(true);
+    expect(heardAtOrAfter({ start: 1.9995 }, 2)).toBe(true);
+    expect(heardAtOrAfter({ start: 1.998 }, 2)).toBe(false);
+    expect(heardAtOrAfter({ start: 2.5 }, 2)).toBe(true);
+  });
+
+  test('the last instant before an end is a millisecond short of it', () => {
+    expect(justBefore(10)).toBeCloseTo(9.999, 9);
+  });
+});
 
 describe('the time grid', () => {
   test('a time written to #t= or as an in point reads back in its own frame, never before it', () => {

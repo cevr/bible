@@ -17,16 +17,15 @@ import {
   type ContextMenuRootContext as ContextMenuRootContextValue,
 } from './ContextMenuRootContext.ts';
 
-export interface ContextMenuRootProps extends Omit<MenuRootProps, 'onOpenChange'> {
+interface ContextMenuRootProps extends Omit<MenuRootProps, 'onOpenChange'> {
   /** Called when the menu opens or closes. */
   onOpenChange?:
     | ((open: boolean, eventDetails: ContextMenuRootChangeEventDetails) => void)
     | undefined;
 }
 
-export type ContextMenuRootChangeEventReason = MenuChangeEventReason;
-export type ContextMenuRootChangeEventDetails =
-  BaseUIChangeEventDetails<ContextMenuRootChangeEventReason>;
+type ContextMenuRootChangeEventReason = MenuChangeEventReason;
+type ContextMenuRootChangeEventDetails = BaseUIChangeEventDetails<ContextMenuRootChangeEventReason>;
 
 const ORIGIN_ANCHOR: ContextMenuAnchor = {
   getBoundingClientRect() {

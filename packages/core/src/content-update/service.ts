@@ -38,7 +38,7 @@ import {
  *  adapter check), and because a `Config`-resolvable seam is what lets a test
  *  seed a fake manifest without the service growing a test-only branch. It cannot fail — see
  *  `ManifestFetchOutcome`. */
-export interface ContentManifestSourceService {
+interface ContentManifestSourceService {
   readonly read: Effect.Effect<ManifestFetchOutcome>;
 }
 
@@ -126,7 +126,7 @@ const floorFor = (corpus: UpdatableCorpus): ContentFloor => {
  *  A service rather than a callback parameter so a host wires it where it wires
  *  everything else, and so a host that has nothing to reload says so
  *  (`Inert`) rather than by omission. */
-export interface ContentActivationService {
+interface ContentActivationService {
   readonly onActivated: (corpus: UpdatableCorpus) => Effect.Effect<void>;
 }
 
@@ -149,7 +149,7 @@ export class ContentActivation extends Context.Service<
     Layer.succeed(ContentActivation, ContentActivation.of({ onActivated }));
 }
 
-export interface ContentUpdateService {
+interface ContentUpdateService {
   /** What is installed, what the manifest offers, and the decision — with no
    *  mutation of any kind. */
   readonly status: (corpus: UpdatableCorpus) => Effect.Effect<ContentStatus>;

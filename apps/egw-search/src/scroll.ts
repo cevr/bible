@@ -1,4 +1,3 @@
-/* oxlint-disable effect/noGlobals -- this module is the page's scroll position: `window.scrollY`, `scrollTo`, its events and the tab's session storage are what it wraps. */
 /* oxlint-disable effect/noNullish -- `sessionStorage.getItem` returns `string | null`; that is the platform's signature. */
 /* oxlint-disable effect/noNewPromise -- `settled` hands a promise to the traversal below, which waits on it beside a timer; both are plain browser callbacks. */
 

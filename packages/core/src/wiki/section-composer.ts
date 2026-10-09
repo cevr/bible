@@ -71,7 +71,7 @@ import {
  *
  *  Every field is the same `Option<number>` so `capped` below has one signature
  *  and no section is capped by a different mechanism than its neighbours. */
-export interface SectionCaps {
+interface SectionCaps {
   readonly keyVerses: Option.Option<number>;
   readonly egwStatements: Option.Option<number>;
   readonly commentary: Option.Option<number>;
@@ -101,7 +101,7 @@ const capped = <A>(all: readonly A[], cap: Option.Option<number>): CappedItems<A
 /** The corpus scope each FTS-backed section searches under (§6.1 rows 2 and 4).
  *  The same two values feed the §6.2 handoff descriptors, so the search a
  *  reader jumps into is scoped exactly like the section they jumped from. */
-export interface SectionScopes {
+interface SectionScopes {
   readonly egwStatements: CorpusScope;
   readonly pioneerWitnesses: CorpusScope;
 }
@@ -123,7 +123,7 @@ export const SECTION_SCOPES = {
  *  A named constant rather than an inline slice for the same reason
  *  `SECTION_CAPS` is: a bound a caller could pass in is a bound callers could
  *  disagree about. */
-export const PASSAGE_TEXT_CHAPTER_LIMIT = 12;
+const PASSAGE_TEXT_CHAPTER_LIMIT = 12;
 
 /** A capped section's two numbers: the items that survived the cap, and how
  *  many the source produced before it. `total > items.length` is exactly the

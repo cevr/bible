@@ -170,6 +170,7 @@ const Lightbox = () => {
   return (
     <Show when={Option.getOrUndefined(state.lightbox())}>
       {(shown) => (
+        // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Escape closes the image (review.close-image), from a field too: a tap anywhere is the pointer's way
         <figure class="rv-lightbox" onClick={() => actions.show(Option.none())}>
           <img src={shown().src} alt={shown().caption} />
           <figcaption>{shown().caption}</figcaption>

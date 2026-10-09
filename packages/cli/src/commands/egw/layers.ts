@@ -9,7 +9,7 @@ import { FetchHttpClient } from 'effect/http';
 
 const AuthLayer = EGWAuth.layerLiveFs().pipe(Layer.provide(FetchHttpClient.layer));
 
-export const ApiClientLayer = EGWApiClient.Live.pipe(
+const ApiClientLayer = EGWApiClient.Live.pipe(
   Layer.provide(AuthLayer),
   Layer.provide(FetchHttpClient.layer),
 );

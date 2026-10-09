@@ -98,6 +98,20 @@ export const offTheMs = (T: number): number => frameAtOrBefore(T, 1000) / 1000;
  */
 export const CLOCK_EPSILON = 1e-9;
 
+/** The finest time a file keeps. */
+const MILLISECOND = 1e-3;
+
+/**
+ * Whether a word is heard at or after `mark`: its start is on the mark, or
+ * within a millisecond before it (a mark and a word both sit on a file's
+ * milliseconds, so a word aligned to the mark reads as at it).
+ */
+export const heardAtOrAfter = (word: { readonly start: number }, mark: number): boolean =>
+  word.start >= mark - MILLISECOND;
+
+/** The last instant a span ending at `T` still holds: a millisecond before it. */
+export const justBefore = (T: number): number => T - MILLISECOND;
+
 export const clamp = (v: number, lo = 0, hi = 1) => (v < lo ? lo : v > hi ? hi : v);
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export const invLerp = (a: number, b: number, v: number) => (a === b ? 0 : (v - a) / (b - a));

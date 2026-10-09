@@ -3,7 +3,7 @@
 // the lab API only once a mode is on, then once per scene until it is turned
 // off). The section, the
 // HEAD layer and the wipe's divider read this context and act through it.
-// The mode is the link's (`?view=`, PA-9): a mode chosen (a `compare.<mode>`
+// The mode is the link's (`?view=`): a mode chosen (a `compare.<mode>`
 // command, from the section's buttons or ⌘K) is an entry of its own, and a
 // link that names another (Back to an entry made in another mode) chooses it. The view keeps the divider through the reload a write causes.
 

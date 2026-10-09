@@ -1,4 +1,4 @@
-// Copy link (AA-1): the link to what the viewer sees, on every page and in
+// Copy link: the link to what the viewer sees, on every page and in
 // every context menu, so a pasted link opens it (Addressable). With nothing
 // selected, or with the thing the URL already cites, it is the page's own
 // URL: its place, its selection, its time. From a context menu opened on

@@ -31,7 +31,7 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 .sh-switcher .sh-icon { width: 12px; height: 12px; color: var(--text-3); }
 .sh-switcher:hover, .sh-switcher[data-popup-open] { background: var(--surface-3); }
 .sh-pagebar { display: flex; align-items: stretch; align-self: stretch; }
-/* No film chosen (Films): no film tab can act, so the bar is not shown on any device (UR2-14). */
+/* No film chosen (Films): no film tab can act, so the bar is not shown on any device. */
 .sh[data-film="false"] .sh-pagebar { display: none; }
 .sh-tab { position: relative; display: flex; align-items: center; gap: var(--s-1); padding: 0 var(--s-3);
   color: var(--text-2); text-decoration: none; font-size: var(--fs-2); line-height: var(--lh-2);
@@ -82,7 +82,7 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
   .sh-tab .sh-icon { display: block; width: 20px; height: 20px; }
   .sh-tab[data-active="true"] .sh-icon { color: var(--accent); }
   .sh-tab[data-active="true"]::after { display: none; }
-  /* The crumb names the subject on a phone too (a Set's scene, a Folder's), shortened first (SU-10). */
+  /* The crumb names the subject on a phone too (a Set's scene, a Folder's), shortened first. */
   .sh-crumb { flex: 0 1 auto; font-size: var(--fs-1); }
   /* The phone's dock, the one docked row: a page's (\`.sh-dock\`) and the Lab's transport row (\`player.css\`). */
   .sh-dock, body.lab .bar > .row { position: fixed; left: 0; right: 0; z-index: 25; height: var(--dock-h);

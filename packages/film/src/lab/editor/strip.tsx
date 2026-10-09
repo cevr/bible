@@ -1,5 +1,5 @@
 // The cue strip: the scene under the playhead, zoomed (on a phone, a long
-// scene's 8 s around the playhead: `stripWindow`, SU-4), under the film's
+// scene's 8 s around the playhead: `stripWindow`), under the film's
 // timeline: its narration's words and marks, a bar per cue, and the playhead.
 // A press on a bar grabs it (the editor's machine takes it from there); a
 // drag across a cue's lane beside its bar marks the in and out points, shown
@@ -225,8 +225,11 @@ export const Strip = () => {
           });
           Effect.runForkWith(meta.host)(
             Pointer.use((pointer) =>
-              pointer.press(e, strip, () =>
-                Option.some({
+              pointer.press(e, strip, () => {
+                // The drag reads the window it began in, as a scrub does: the film playing on
+                // would move the window under the pointer.
+                setHeld(Option.some(shown()));
+                return Option.some({
                   move: (ev: PointerEvent) =>
                     setMarking(Option.liftPredicate(spanTo(ev), () => far(ev))),
                   end: (lifted: Option.Option<PointerEvent>) => {
@@ -236,9 +239,10 @@ export const Strip = () => {
                       const span = spanTo(ev);
                       return motion.markRange(span.from, span.to);
                     });
+                    setHeld(Option.none());
                   },
-                }),
-              ),
+                });
+              }),
             ),
           );
         };
@@ -260,7 +264,7 @@ export const Strip = () => {
               <span class="lab-strip-name">
                 {`${p().spec.id} · ${timecode(p().dur, meta.film.fps)} · ${file()}`}
               </span>
-              {/* A finger has no Escape: while a grip is held, a tap here lets it go (LS-5). */}
+              {/* A finger has no Escape: while a grip is held, a tap here lets it go. */}
               <Show when={state.holding()}>
                 <button
                   type="button"
@@ -272,7 +276,7 @@ export const Strip = () => {
                   Cancel drag
                 </button>
               </Show>
-              {/* Shift's way for a finger (LS-5): edges snap while it is on; off, they go freely. */}
+              {/* Shift's way for a finger: edges snap while it is on; off, they go freely. */}
               <button
                 type="button"
                 class="sh-btn"

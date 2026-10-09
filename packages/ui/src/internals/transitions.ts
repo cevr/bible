@@ -142,7 +142,7 @@ function useAnimationsFinished(element: Accessor<HTMLElement | null | undefined>
   };
 }
 
-export interface OpenChangeCompleteParameters {
+interface OpenChangeCompleteParameters {
   enabled?: Accessor<boolean> | undefined;
   open: Accessor<boolean>;
   element: Accessor<HTMLElement | null | undefined>;
@@ -167,7 +167,7 @@ export function useOpenChangeComplete(parameters: OpenChangeCompleteParameters) 
   );
 }
 
-export interface UnmountAfterCloseParameters {
+interface UnmountAfterCloseParameters {
   open: Accessor<boolean>;
   element: Accessor<HTMLElement | null | undefined>;
   onUnmount: () => void;

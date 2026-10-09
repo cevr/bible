@@ -1,5 +1,3 @@
-/* oxlint-disable effect/noNullish -- the `HttpApi` leaves each optional query parameter `undefined`, and `??` applies the JSON wire's default at that boundary. */
-
 /**
  * The JSON API's handlers: `/api/search`, `/api/search/batch` and `/health`.
  *

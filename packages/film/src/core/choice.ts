@@ -358,8 +358,8 @@ export const SoundCheck = Schema.Struct({ findings: Schema.Array(CheckLine) });
 export type SoundCheck = typeof SoundCheck.Type;
 
 /**
- * The states a film's choices and project can be shown only in (`?only=`,
- * AA-14): the points with a variant out of date, the points whose pick (or,
+ * The states a film's choices and project can be shown only in (`?only=`):
+ * the points with a variant out of date, the points whose pick (or,
  * with none picked, every variant) awaits approval, and the points someone
  * commented on.
  */

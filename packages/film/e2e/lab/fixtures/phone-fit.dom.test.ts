@@ -1,4 +1,4 @@
-// The phone-fit measure (`fixtures/phone-fit.ts`, G12) over synthetic pages,
+// The phone-fit measure (`fixtures/phone-fit.ts`) over synthetic pages,
 // each one way a page can fail a phone, which it must refuse, beside one
 // that fits: a block wider than the window scrolls sideways, a control the
 // page fixes past the window's side is outside, and a sticky header taller
@@ -74,6 +74,22 @@ describe('the phone-fit measure', () => {
     measured(FAR, false, 'outside.concat(sideways)', ['far 370..414', 0]),
   );
 
+  it.live(
+    'refuses a control wholly clipped by a box that clips and never scrolls, and passes one a strip scrolled away',
+    () =>
+      Effect.gen(function* () {
+        const row = (overflow: string) =>
+          `<div style="overflow:${overflow};width:200px;height:50px"><div style="width:600px"><button data-act="near">near</button><button data-act="away" style="margin-left:300px">away</button></div></div>`;
+        yield* measured(row('hidden'), false, 'outside', ['away cut off']);
+        yield* measured(row('clip'), false, 'outside', ['away cut off']);
+        yield* measured(row('auto'), true, 'outside', []);
+        yield* measured(row('scroll'), true, 'outside', []);
+        // Scrolling on one axis is no way to the other: x clips, only y scrolls.
+        yield* measured(row('hidden auto'), false, 'outside', ['away cut off']);
+        yield* measured(row('auto hidden'), true, 'outside', []);
+      }),
+  );
+
   it.live('refuses a sticky header taller than a quarter of the window', () =>
     measured(TALL, false, 'chrome', 300 / 844),
   );
@@ -113,7 +129,7 @@ describe('fitsPhone', () => {
     'fails a page that does not fit once its wait is out, naming each way it fails',
     () =>
       Effect.gen(function* () {
-        const exit = yield* Effect.exit(fitsPhone(yield* phonePage(`${WIDE}${FAR}${TALL}`)));
+        const exit = yield* Effect.exit(fitsPhone(yield* phonePage(`${WIDE}${FAR}${TALL}`), '', 0));
         const said = Exit.match(exit, {
           onSuccess: () => 'fitsPhone passed it',
           onFailure: (cause) => Cause.pretty(cause),

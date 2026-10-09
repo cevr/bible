@@ -45,14 +45,14 @@ export function dispatchClickWithModifiers(
   );
 }
 
-export interface UseButtonParameters {
+interface UseButtonParameters {
   /** Whether the element is a native `<button>`. */
   native?: boolean | undefined;
   /** Whether the button is an item of a composite widget (Space acts on keydown). */
   composite?: boolean | undefined;
 }
 
-export interface UseButtonReturnValue {
+interface UseButtonReturnValue {
   /** The button's props merged under `externalProps`, whose key handlers it wraps. */
   getButtonProps: (externalProps?: HTMLProps) => HTMLProps;
 }

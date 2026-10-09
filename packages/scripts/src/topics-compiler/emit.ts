@@ -55,7 +55,7 @@ class ArtifactWriteError extends Schema.TaggedError<ArtifactWriteError>()('Artif
   cause: Schema.Unknown,
 }) {}
 
-export interface EmittedArtifact {
+interface EmittedArtifact {
   readonly path: string;
   readonly size: number;
   readonly digest: string;

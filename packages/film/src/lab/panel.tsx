@@ -1,4 +1,4 @@
-// The Lab's page as the server and the browser both render it (PA-12): the
+// The Lab's page as the server and the browser both render it: the
 // lab's place as the URL holds it, the mode the panel shows, and the panel
 // itself, with the mode tray, each tool's section, and the film's notes
 // under the pen and the Note frame button (`notes/list.tsx`).

@@ -83,6 +83,16 @@ const MESSAGES = {
     "document.body.addEventListener('pointercancel') ends a press outside its owner: use Pointer.press (packages/film/src/browser/pointer.ts).",
   'host-events-through-adapter.ts:21 film/host-events-through-adapter':
     'el.setPointerCapture holds a press outside its owner: use Pointer.press (packages/film/src/browser/pointer.ts).',
+  'host-events-through-adapter.ts:33 film/host-events-through-adapter':
+    "addEventListener('popstate') hears the host directly: use @bible/url-state's Location.",
+  'host-events-through-adapter.ts:41 film/host-events-through-adapter':
+    'document.onkeydown hears the host directly: use Keys.listen (packages/film/src/browser/keys.ts).',
+  'host-events-through-adapter.ts:43 film/host-events-through-adapter':
+    'el.onpointerup ends a press outside its owner: use Pointer.press (packages/film/src/browser/pointer.ts).',
+  'host-events-through-adapter.ts:46 film/host-events-through-adapter':
+    'window.addEventListener hears the host with an event this rule cannot read, so it may be one an adapter owns: write the event out, and hear navigation, keys and drags through Location, Keys or Pointer.',
+  'host-events-jsx.tsx:9 film/host-events-through-adapter':
+    "a JSX handler for 'pointerup' ends a press outside its owner: use Pointer.press (packages/film/src/browser/pointer.ts).",
   'keys-named-as-bound.tsx:9 film/keys-named-as-bound':
     "keysOf reads the keymap once, so a rebound key reads as the old one: name the key as bound now: hubKeys' titled or text in Solid (packages/film/src/lab/command/changes.ts), titledNow on Hub.subscribe outside it (packages/film/src/command/hub.ts).",
   'keys-named-as-bound.tsx:15 film/keys-named-as-bound':
@@ -91,6 +101,12 @@ const MESSAGES = {
     'a JSX handler hears keydown on its own: declare a command with its keys (packages/film/src/command/command.ts), registered with the page hub.',
   'keys-through-keymap.tsx:18 film/keys-through-keymap':
     'addEventListener hears contextmenu on its own: open a context menu through @bible/ui ContextMenu over the selection’s commands (packages/film/src/lab/command/).',
+  'history-through-host.ts:11 film/history-through-host':
+    "a history move chosen here: a place's field declares its policy (Place.history, @bible/url-state), and the address bar is written through addressOn (packages/film/src/browser/host.ts).",
+  'one-clock-epsilon.ts:10 film/one-clock-epsilon':
+    'a nudge written beside a time: put the time on its grid through packages/film/src/core/time.ts (frameAtOrAfter, frameAtOrBefore, onTheMs, offTheMs, heardAtOrAfter, justBefore), or judge two times one with CLOCK_EPSILON, so one owner rounds every time.',
+  'lock-through-sqlite.ts:9 film/lock-through-sqlite':
+    "a manifest's lock file named outside its lock: SQLite alone opens it (packages/film/src/tools/manifest-lock-bun.ts), since closing any other handle on it lets go of the process's lock.",
   'one-breakpoint.ts:8 film/one-breakpoint':
     "a breakpoint written out: ask the studio's one breakpoint through PHONE or WIDE (packages/film/src/lab/viewport.ts), so the width is declared once.",
   'framing-is-a-knob.ts:9 film/framing-is-a-knob':

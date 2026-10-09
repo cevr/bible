@@ -11,7 +11,7 @@
 import { Dialog } from '@bible/ui/dialog';
 import { For, Show } from '@solidjs/web';
 import { Option } from 'effect';
-import { createMemo, createSignal, onCleanup } from 'solid-js';
+import { createMemo, createSignal, onCleanup, untrack } from 'solid-js';
 import { type Command, type CommandId, quietly } from '../../command/command.ts';
 import type { Hub } from '../../command/hub.ts';
 import { chordOf, rebind, resetKeys } from '../../command/keymap.ts';
@@ -144,7 +144,10 @@ export const KeysSheet = (props: KeysSheetProps) => {
                             if (Option.contains(waiting(), command.id)) capture(command)(e);
                           }}
                           onBlur={() => {
-                            if (Option.contains(waiting(), command.id)) setWaiting(Option.none());
+                            // A rebind re-lists the rows, and the button leaving the page blurs
+                            // inside that render: the handler reads without tracking.
+                            if (untrack(() => Option.contains(waiting(), command.id)))
+                              setWaiting(Option.none());
                           }}
                         >
                           {LABEL[`${Option.contains(waiting(), command.id)}`]}

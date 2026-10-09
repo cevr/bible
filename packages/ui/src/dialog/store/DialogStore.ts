@@ -12,7 +12,7 @@ import type { REASONS } from '../../internals/reasons.ts';
 import { createPopupStore, type PopupStore } from '../../utils/popups/popupStore.ts';
 import type { RegisterId } from '../../utils/useRegisteredId.ts';
 
-export type DialogChangeEventReason =
+type DialogChangeEventReason =
   | typeof REASONS.outsidePress
   | typeof REASONS.escapeKey
   | typeof REASONS.closeWatcher
@@ -23,7 +23,7 @@ export type DialogChangeEventReason =
 
 export type DialogChangeEventDetails = BaseUIChangeEventDetails<DialogChangeEventReason>;
 
-export interface DialogStoreOptions {
+interface DialogStoreOptions {
   openProp: () => boolean | undefined;
   modal: Accessor<boolean>;
   disablePointerDismissal: Accessor<boolean>;

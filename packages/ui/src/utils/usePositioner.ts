@@ -16,7 +16,7 @@ import {
 } from '../internals/useRenderElement.tsx';
 import { popupStateMapping } from './popupStateMapping.ts';
 
-export interface UsePositionerOptions {
+interface UsePositionerOptions {
   styles: () => JSX.CSSProperties;
   transitionStatus: () => TransitionStatus;
   props?: HTMLProps | undefined;

@@ -38,9 +38,9 @@ const SCRUB_AREA_STYLE: JSX.CSSProperties = {
 // How many pixels the pointer moves before the value changes.
 const PIXEL_SENSITIVITY = 2;
 
-export interface NumberFieldScrubAreaState extends NumberFieldRootState {}
+interface NumberFieldScrubAreaState extends NumberFieldRootState {}
 
-export interface NumberFieldScrubAreaProps extends BaseUIComponentProps<
+interface NumberFieldScrubAreaProps extends BaseUIComponentProps<
   'span',
   NumberFieldScrubAreaState
 > {}

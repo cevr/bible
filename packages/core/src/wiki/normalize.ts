@@ -29,8 +29,7 @@
  *  duplicate alias. Normalizing more than the spec allows is a silent widening
  *  of the matcher, so the set stays closed here rather than growing at a call
  *  site. */
-export const isSoftPunctuation = (character: string): boolean =>
-  character === ',' || character === ';';
+const isSoftPunctuation = (character: string): boolean => character === ',' || character === ';';
 
 /** ECMAScript `\s`, as a predicate over one code point.
  *
@@ -49,7 +48,7 @@ export const isWhitespace = (character: string): boolean => WHITESPACE.test(char
 
 /** True when the character is transparent to §4.3: it collapses to a single
  *  separator rather than contributing a normalized character of its own. */
-export const isSeparator = (character: string): boolean =>
+const isSeparator = (character: string): boolean =>
   isWhitespace(character) || isSoftPunctuation(character);
 
 /** Case folding for one code point.
@@ -74,7 +73,7 @@ export const isSeparator = (character: string): boolean =>
 const FINAL_SIGMA = 'ς';
 const MEDIAL_SIGMA = 'σ';
 
-export const foldCodePoint = (codePoint: string): string => {
+const foldCodePoint = (codePoint: string): string => {
   const lowered = codePoint.toLowerCase();
   if (lowered === FINAL_SIGMA) return MEDIAL_SIGMA;
   return lowered;
@@ -169,7 +168,7 @@ export const normalizeAlias = (alias: string): string => normalizeScan(alias).te
  *  pattern has no per-call construction cost. */
 const WORD_CHARACTER = /^[\p{L}\p{N}\p{M}]/u;
 
-export const isWordCharacter = (character: string): boolean => WORD_CHARACTER.test(character);
+const isWordCharacter = (character: string): boolean => WORD_CHARACTER.test(character);
 
 /** A normalized string as its §4.6 words: the maximal runs of word characters,
  *  with everything else read as the boundary between them.

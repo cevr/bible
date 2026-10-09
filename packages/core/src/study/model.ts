@@ -66,8 +66,8 @@ export const strongsNumber = Schema.decodeSync(StrongsNumber);
 export const StudyLimit = Schema.Int.check(Schema.isGreaterThan(0));
 
 /** Which lexicon a Strong's entry belongs to. */
-export const StrongsLanguage = Schema.Literals(['hebrew', 'greek']);
-export type StrongsLanguage = typeof StrongsLanguage.Type;
+const StrongsLanguage = Schema.Literals(['hebrew', 'greek']);
+type StrongsLanguage = typeof StrongsLanguage.Type;
 
 /** One lexicon entry. The `Option` fields are the columns `bible.db` stores
  *  nullable — transliteration and pronunciation are missing for a minority of
@@ -136,8 +136,8 @@ export class StudyWord extends Schema.Class<StudyWord>('Study/Word')({
   italic: Schema.Boolean,
 }) {}
 
-export const CrossReferenceSource = Schema.Literals(['openbible', 'tske']);
-export type CrossReferenceSource = typeof CrossReferenceSource.Type;
+const CrossReferenceSource = Schema.Literals(['openbible', 'tske']);
+type CrossReferenceSource = typeof CrossReferenceSource.Type;
 
 /** A cross-reference target. Stored rows may name a verse, a verse range, or a
  *  whole chapter, so `verse` and `verseEnd` are both optional — a chapter-level

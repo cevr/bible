@@ -21,7 +21,7 @@
 
 import { Option } from 'effect';
 
-export interface MarkdownBlock {
+interface MarkdownBlock {
   /** Stable slug derived from the heading — used to track the note id across re-exports. */
   slug: string;
   /** Note title (Part-prefixed for numbered sections). */
@@ -30,7 +30,7 @@ export interface MarkdownBlock {
   markdown: string;
 }
 
-export interface SplitMarkdown {
+interface SplitMarkdown {
   /** The H1 text — used as the Apple Notes folder name. */
   folderTitle: string;
   blocks: MarkdownBlock[];
@@ -39,7 +39,7 @@ export interface SplitMarkdown {
 const SLUG_MAX = 60;
 
 /** kebab-case slug, ascii-only, collapsed dashes, capped length. */
-export function slugify(input: string): string {
+function slugify(input: string): string {
   return (
     input
       .toLowerCase()

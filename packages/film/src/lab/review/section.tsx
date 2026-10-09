@@ -186,7 +186,7 @@ const FolderCard = (props: { readonly folder: ReviewFolder }) => {
   );
 };
 
-/** A heading over its things, shown while it has `count` of them; the count itself is not said at rest (UR-7). */
+/** A heading over its things, shown while it has `count` of them; the count itself is not said at rest. */
 const Section = (props: {
   readonly title: string;
   readonly count: number;
@@ -199,7 +199,7 @@ const Section = (props: {
 );
 
 /**
- * A film's state on its card, as its Project's head says it (SU-8): its
+ * A film's state on its card, as its Project's head says it: its
  * length and scenes (`8:46 · 20 scenes`, `filmLength`), the state band and
  * `n/N approved · n out of date`, from the film's project,
  * read for the card (by the server, sent with the page). Its band marks the
@@ -406,8 +406,8 @@ const LooseVideo = (props: {
 
 /**
  * A version stack's card: its strip, its title, and how many versions when
- * there is more than one (UR-15); their names are its long-press menu's
- * (Open version n, UR-12).
+ * there is more than one; their names are its long-press menu's
+ * (Open version n).
  */
 const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoint }) => (
   <Target
@@ -455,7 +455,7 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
           <For each={props.folder.images}>
             {(image) => (
               <div class="rv-card">
-                {/* Its name and age are the lightbox's caption (UR-18). */}
+                {/* Its name and age are the lightbox's caption. */}
                 <Zoom
                   still={reviewFileUrl(image.ref)}
                   alt={image.name}
@@ -568,7 +568,7 @@ const LAYOUT_TITLES = {
 } as const satisfies Record<Layout, string>;
 
 /**
- * The set's modes as one segmented control (UR-21, UR2-5), and in Compare
+ * The set's modes as one segmented control, and in Compare
  * its layouts as a second: the touch path of `v` and `⇧V` (`viewCommands`).
  */
 const ViewTabs = () => {
@@ -612,7 +612,7 @@ const ViewTabs = () => {
 
 /**
  * The synced player's controls, one row: play, the clock, a scrub over every
- * track, and the one rate chip (UR-25), whose rates are the page's commands
+ * track, and the one rate chip, whose rates are the page's commands
  * while the transport is shown (J, K, L; ⌘K). Its keys are in the `?` sheet.
  * A page docks it (`.sh-dock`: over the tab bar on a phone, held under the
  * header on a laptop, design language §4), Choices, a Set and Project alike.
@@ -882,7 +882,7 @@ interface SetSays {
 const SetSaysContext = createContext<SetSays>();
 
 /**
- * The set's says (UI-7): approve, unapprove or comment on a version, over
+ * The set's says: approve, unapprove or comment on a version, over
  * `POST /api/review/sets/<folder>/<point>/say`. A say answers the folder as
  * it leaves it; the versions read the newest answer shown, so the page stays
  * in place (its player plays on) instead of reading the index again.
@@ -942,7 +942,7 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
 /**
  * A version's inspector: its Info (its approval and why it is stale, its
  * lines, its file, its notes), its approve and unapprove, what was said of
- * it and the comment box (UI-7). Its say goes to the folder's catalogue
+ * it and the comment box. Its say goes to the folder's catalogue
  * where the set belongs to a film address; a montage keeps no say.
  */
 const VersionInspector = (props: { readonly version: SeenVariant }) => {
@@ -1042,7 +1042,7 @@ const VersionName = (props: { readonly version: SeenVariant }) => {
 
 /**
  * A version's state on its caption, when its record proves it stale: the
- * short badge (UR-29); why, in its inspector's Info (`StaleTag`).
+ * short badge; why, in its inspector's Info (`StaleTag`).
  */
 const StaleBadge = (props: { readonly variant: SeenVariant }) => (
   <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
@@ -1279,7 +1279,7 @@ const WipePanes = (props: {
 };
 
 /**
- * The pair wiped (PA-8): both videos on the clock, stacked full width, the
+ * The pair wiped: both videos on the clock, stacked full width, the
  * first left of a divider and the other right of it; the divider dragged by
  * its grip, clamped to the frame. The divider is this page's, not the
  * link's: a different split shows the same comparison. Each one's caption
@@ -1510,7 +1510,7 @@ const MomentsView = (props: { readonly index: number }) => {
 };
 
 /**
- * The pair's difference at a moment (PA-8): the first variant's frame, and
+ * The pair's difference at a moment: the first variant's frame, and
  * the other's cut at the same instant laid over it in the difference blend,
  * so what is the same is black and what differs is lit. Stills, never the
  * playing videos: the server cuts both at the one `t`, so the blend is exact.

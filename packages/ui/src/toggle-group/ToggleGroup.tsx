@@ -14,9 +14,9 @@ import { CompositeRoot } from '../internals/composite/CompositeRoot.tsx';
 import type { BaseUIComponentProps, HTMLProps } from '../internals/types.ts';
 import { ToggleGroupContext, type ToggleGroupContextValue } from './ToggleGroupContext.ts';
 
-export interface ToggleGroupState {}
+interface ToggleGroupState {}
 
-export interface ToggleGroupProps<Value extends string = string> extends BaseUIComponentProps<
+interface ToggleGroupProps<Value extends string = string> extends BaseUIComponentProps<
   'div',
   ToggleGroupState
 > {

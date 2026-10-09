@@ -244,7 +244,7 @@ export const mountPreview = (
     track.insertBefore(el, head);
   }
   // A tick's name: shown while a mouse is over it, or once a finger has held
-  // it (UR-115) as long as a long press takes, without moving off into a
+  // it as long as a long press takes, without moving off into a
   // scrub (the press stays free until a drag claims it, `@bible/ui/press`).
   // A lifted finger's name lingers on one hide timer: a name shown since
   // drops it, so an older linger never hides a newer name.
@@ -519,7 +519,7 @@ export const mountPreview = (
     }),
   );
   hub.refine((now) => ({ ...now, playing }));
-  // The lab's transport steps a frame at a time by touch too (AA-8): the
+  // The lab's transport steps a frame at a time by touch too: the
   // frame keys' own commands, as a pair beside play. Its legend, hidden at
   // rest, is ⌘K's and the page's menu's (the keys are the `?` sheet's).
   if (page === 'lab') {
