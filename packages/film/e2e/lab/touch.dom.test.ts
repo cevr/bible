@@ -48,7 +48,8 @@
 // - Spacing (WCAG 2.5.8, at `--hit`): a target 24 px each way or more whose
 //   `--hit` circle reaches no other target cannot be missed for a neighbour.
 
-import { Deferred, Effect, Exit, Option, Schedule, type Scope, Struct } from 'effect';
+import { BunServices } from '@effect/platform-bun';
+import { Deferred, Effect, Exit, FileSystem, Option, Schedule, type Scope, Struct } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { Place } from '@bible/url-state';
 import { Places, pageHref } from '../../src/core/api.ts';
@@ -57,6 +58,7 @@ import { menuEntry, openCommandMenu, rightClick, touch } from '../../src/lab/fix
 import {
   type FakeRoute,
   type Viewport,
+  changeOf,
   json,
   labAt,
   openLab,
@@ -358,6 +360,46 @@ const FINDINGS = '[data-role="findings"]';
 const COMMAND_MENU = '[data-role="command-menu"]';
 const CONTEXT_MENU = '[data-role="context-menu"]';
 const KEYS = '[data-role="keys-sheet"]';
+const CHIP_MENU = '[data-role="chip-menu"]';
+const VIEW_MENU = '[data-role="view-menu"]';
+const RECEIPTS = '[data-role="receipts"]';
+
+/**
+ * The film's check as a film with a step to undo has it, so a receipt of a
+ * write the page made offers Undo (as the editor's cases read it).
+ */
+const UNDO_ROUTES: ReadonlyArray<FakeRoute> = [
+  route('GET', /^\/check$/, () =>
+    json({
+      findings: [],
+      undo: {
+        scene: 'one',
+        file: 'scenes/one.ts',
+        target: 'cue rise offset',
+        change: changeOf('cue'),
+      },
+    }),
+  ),
+];
+
+/** The Lab with a cue dragged and the page read again: its receipt offers Undo. */
+const receipted = (viewport: Viewport) =>
+  Effect.gen(function* () {
+    const { page } = yield* openLab(UNDO_ROUTES, { viewport, mode: 'edit', href: labAt(1) });
+    yield* page.waitFor('.lab-cue[data-cue="rise"]');
+    const bar = yield* page.box('.lab-cue[data-cue="rise"]');
+    const [x, y] = [bar.x + bar.width / 2, bar.y + bar.height / 2];
+    yield* page.mouse.move(x, y);
+    yield* page.mouse.down;
+    for (const step of [1, 2, 3, 4]) yield* page.mouse.move(x + 15 * step, y);
+    yield* page.mouse.up;
+    yield* page.reload;
+    yield* page.waitFor('[data-receipt="edit"] [data-act="receipt-undo"]');
+    // The page's clock held, so the receipt is not put away by its own timer before it is measured.
+    yield* page.clock.hold;
+    return page;
+  });
+
 /** Choices at rest: its picture's transport, a knob, a comment's count. */
 const CHOICES_READY = ['.rv-transport', '.rv-knob input[type="range"]', `${STRINGS} .lab-count`];
 
@@ -491,6 +533,12 @@ const STATES: ByPlace<State, AtRest> = {
       budget: most(27, 28),
     },
     {
+      name: "a Set, the transport's rate chip menu",
+      open: review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video', '[data-comments]'),
+      disclose: opens('.rv-transport [data-act="rate"]', `${CHIP_MENU} [data-command]`),
+      layer: CHIP_MENU,
+    },
+    {
       name: 'a Set, its wipe (the grip a slider)',
       open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=wipe`, '.rv-wipe-grip'),
       disclose: AT_REST,
@@ -568,6 +616,12 @@ const STATES: ByPlace<State, AtRest> = {
       disclose: pressed('?', `${KEYS} [data-command]`),
       layer: KEYS,
     },
+    {
+      name: 'Lab, a receipt with Undo',
+      open: receipted,
+      disclose: AT_REST,
+      layer: RECEIPTS,
+    },
   ],
   scenes: [
     {
@@ -594,6 +648,12 @@ const STATES: ByPlace<State, AtRest> = {
       open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
       disclose: AT_REST,
       budget: most(18, 18),
+    },
+    {
+      name: 'Play, the view menu',
+      open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
+      disclose: opens('[data-act="view-menu"]', `${VIEW_MENU} [data-command]`),
+      layer: VIEW_MENU,
     },
     {
       // Play's ticks, turned on from the view menu: each a target its finger can hold.
@@ -786,6 +846,54 @@ describe('a place named exempt from a guard', () => {
     expect(unmeasured({ ...STATES, home: { measuredAt: 'lab', why: 'planted' } })).toEqual([
       'home',
     ]);
+  });
+});
+
+/** The roles the command surfaces' sources name: `data-role="…"`, or the `role="…-menu"` a menu hands its popup (an ARIA role has no hyphen before `menu`). */
+const ROLE = /(?:data-role="([\w-]+)"|\brole="([\w-]+-menu)")/g;
+
+/** The roles in those sources that are a part of a surface (a toast, a legend, a hint), not one. */
+const PARTS: ReadonlySet<string> = new Set(['receipt', 'keys-legend', 'inspector-hint']);
+
+/** The command surfaces `sources` name, each by its `data-role`. */
+const surfacesOf = (sources: ReadonlyArray<string>): ReadonlyArray<string> =>
+  Array.from(
+    new Set(sources.flatMap((s) => Array.from(s.matchAll(ROLE), (m) => m[1] ?? m[2] ?? ''))),
+  ).filter((role) => role !== '' && !PARTS.has(role));
+
+/** The surfaces among `surfaces` that none of `layers` is: no case opens and measures them. */
+const unopened = (surfaces: ReadonlyArray<string>, layers: ReadonlyArray<string>) =>
+  surfaces.filter((role) => !layers.some((layer) => layer.includes(`data-role="${role}"`)));
+
+describe('the command surfaces', () => {
+  const layers = byPlace(STATES).flatMap(([, state]) =>
+    Option.toArray(Option.fromUndefinedOr(state.layer)),
+  );
+
+  it.live('each has a case that opens and measures it', () =>
+    Effect.gen(function* () {
+      const dir = `${import.meta.dir}/../../src/lab/command`;
+      const fs = yield* FileSystem.FileSystem;
+      const names = (yield* fs.readDirectory(dir)).filter((name) => name.endsWith('.tsx'));
+      const sources = yield* Effect.forEach(names, (name) => fs.readFileString(`${dir}/${name}`));
+      const surfaces = surfacesOf(sources);
+      // The surfaces the lab's command code names today, so a renamed role cannot empty the list.
+      expect(surfaces).toEqual(
+        expect.arrayContaining([
+          'command-menu',
+          'context-menu',
+          'chip-menu',
+          'view-menu',
+          'receipts',
+          'keys-sheet',
+        ]),
+      );
+      expect(unopened(surfaces, layers)).toEqual([]);
+    }).pipe(Effect.provide(BunServices.layer)),
+  );
+
+  test('one no case opens is found', () => {
+    expect(unopened(['receipts', 'chip-menu'], [CONTEXT_MENU, RECEIPTS])).toEqual(['chip-menu']);
   });
 });
 

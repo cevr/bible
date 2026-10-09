@@ -246,8 +246,13 @@ const COMMAND_RULES = `
 }
 @media ${PHONE} {
   .lab-receipts { bottom: calc(var(--cmd-sheet-floor) + var(--s-2)); }
-  .lab-inspector-sheet { anchor-name: --cmd-sheet; }
-  body:has(.lab-inspector-sheet) .lab-receipts { position-anchor: --cmd-sheet; bottom: calc(anchor(top) + var(--s-2)); }
+}
+/* Over an open sheet they stand on its top edge: a browser with no anchor positioning keeps them at the foot. */
+@supports (anchor-name: --a) {
+  @media ${PHONE} {
+    .lab-inspector-sheet { anchor-name: --cmd-sheet; }
+    body:has(.lab-inspector-sheet) .lab-receipts { position-anchor: --cmd-sheet; bottom: calc(anchor(top) + var(--s-2)); }
+  }
 }
 /* A browser with no anchor positioning keeps them at the foot, centred. */
 @supports (anchor-name: --a) {
@@ -274,7 +279,7 @@ const COMMAND_RULES = `
 .lab-receipt-said { flex: 1; min-width: 0; margin: 0; font-size: var(--body-fs); font-weight: normal; overflow-wrap: anywhere; }
 .lab-receipt-undo, .lab-receipt-close {
   font: inherit; font-size: var(--fs-2); cursor: pointer; background: none; color: var(--text-1);
-  border-radius: var(--r-2); padding: var(--cmd-button-pad); min-height: var(--control-h);
+  border-radius: var(--r-2); padding: var(--cmd-button-pad); min-height: var(--hit); min-width: var(--hit);
 }
 .lab-receipt-undo { border: 1px solid var(--line-strong); color: var(--text-1); }
 .lab-receipt-close { border: 0; color: var(--text-2); }
