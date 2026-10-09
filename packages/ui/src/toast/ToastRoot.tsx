@@ -14,7 +14,6 @@
 import type { JSX } from '@solidjs/web';
 import { createEffect, createMemo, createSignal, omit, onCleanup, untrack } from 'solid-js';
 
-import { BASE_UI_SWIPE_IGNORE_SELECTOR } from '../internals/constants.ts';
 import type { StateAttributesMapping } from '../internals/getStateAttributesProps.ts';
 import {
   type TransitionStatus,
@@ -263,10 +262,7 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     }
 
     const target = getTarget(event) as HTMLElement | null;
-    const isInteractiveElement = closest(
-      target,
-      `button,a,input,textarea,[role="button"],${BASE_UI_SWIPE_IGNORE_SELECTOR}`,
-    );
+    const isInteractiveElement = closest(target, 'button,a,input,textarea,[role="button"]');
     if (isInteractiveElement) {
       return;
     }
