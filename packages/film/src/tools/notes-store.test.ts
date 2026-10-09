@@ -5,7 +5,6 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import {
-  Clock,
   ConfigProvider,
   Effect,
   Exit,
@@ -161,7 +160,7 @@ describe('NotesStore', () => {
     },
   );
 
-  it.live('two processes writing one film’s notes at once both land', () =>
+  it.live('two stores (two SQLite connections) writing one film’s notes at once both land', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const dir = yield* fs.makeTempDirectoryScoped();
@@ -183,37 +182,6 @@ describe('NotesStore', () => {
       );
       expect(file.seq).toBe(10);
       expect(new Set(file.notes.map((n) => n.id)).size).toBe(10);
-    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
-  );
-
-  /** A store over the real file system, notes under `dir`. */
-  const storeAt = (dir: string) =>
-    NotesStore.layer.pipe(
-      Layer.provide(ContentStore.layer),
-      Layer.provide([BunServices.layer, labAt(dir)]),
-    );
-
-  /** Add one note through a fresh store over `dir`: another process, as far as the lock knows. */
-  const addAt = (dir: string) =>
-    Effect.flatMap(NotesStore, (n) => n.add(film, draft('after'), png)).pipe(
-      Effect.provide(storeAt(dir)),
-    );
-
-  it.live('what an old store left as its lock is in no write’s way, and is left be', () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const dir = yield* fs.makeTempDirectoryScoped();
-      yield* fs.makeDirectory(`${dir}/${film}`, { recursive: true });
-      // An old store's lock naming this very process, which runs: that store waited on it.
-      const old = `${dir}/${film}/notes.json.lock`;
-      const left = `{"pid":${process.pid},"created":0,"token":"old"}`;
-      yield* fs.writeFileString(old, left);
-      const started = yield* Clock.currentTimeMillis;
-      const note = yield* addAt(dir);
-      expect(note.id).toBe('n1');
-      // At once, not after the 5 s of tries a held lock gets.
-      expect((yield* Clock.currentTimeMillis) - started).toBeLessThan(2000);
-      expect(yield* fs.readFileString(old)).toBe(left);
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 });

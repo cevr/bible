@@ -3,8 +3,11 @@
 // drops the one waiting.
 
 import { describe, expect, test } from 'bun:test';
+import { Effect } from 'effect';
+import { it } from 'effect-bun-test';
+import { TestClock } from 'effect/testing';
 import { fakeTimers } from './fixtures/timers.ts';
-import { throttled } from './throttle.ts';
+import { throttled, timersOn } from './throttle.ts';
 
 describe('throttled', () => {
   test('a frame loop writes at most once per period, and the last request lands', () => {
@@ -37,4 +40,25 @@ describe('throttled', () => {
     expect(writes).toEqual(['throttled']);
     expect(clock.pending()).toBe(0);
   });
+});
+
+describe('timersOn', () => {
+  it.effect(
+    'reads the host Clock: its time in ms, a timer when its sleep ends, a cleared one never',
+    () =>
+      Effect.gen(function* () {
+        const timers = timersOn(yield* Effect.context<never>());
+        const ran: Array<string> = [];
+        const start = timers.now();
+        timers.set(() => ran.push('kept'), 100);
+        const dropped = timers.set(() => ran.push('dropped'), 100);
+        timers.clear(dropped);
+        yield* TestClock.adjust('99 millis');
+        expect([ran, timers.now() - start]).toEqual([[], 99]);
+        yield* TestClock.adjust('1 millis');
+        expect([ran, timers.now() - start]).toEqual([['kept'], 100]);
+        // A timer that has run is gone: clearing it again is no error.
+        timers.clear(dropped);
+      }),
+  );
 });

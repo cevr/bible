@@ -7,7 +7,6 @@ import { describe, expect, test } from 'bun:test';
 import { Effect } from 'effect';
 import { createFilm } from '../canvas/film.ts';
 import { standInDom } from '../canvas/fixtures/stand-in.ts';
-import { timecode } from '../core/time.ts';
 import { composeLookbook, fontFamilyOf, sceneHead } from './lookbook-sheet.ts';
 
 describe('fontFamilyOf', () => {
@@ -60,9 +59,7 @@ describe('composeLookbook', () => {
     const second = film.placed[1];
     expect(second).toBeDefined();
     if (second === undefined) return;
-    expect(sceneHead(second, 30)).toBe(
-      `2. s1 · ${timecode(second.start, 30)}–${timecode(second.start + second.dur, 30)}`,
-    );
+    expect(sceneHead(second, 30)).toBe('2. s1 · 00:00:01:06–00:00:02:12');
   });
 
   test('a film that fits is laid out at full size', async () => {

@@ -932,7 +932,7 @@ const CuePatchFields = {
 /** Every key a cue patch may set, in the order a span writes them: the one list of them. */
 export const CUE_PATCH_KEYS = Struct.keys(CuePatchFields);
 
-/** `POST /lab/:film/cues/:scene/:cue`: the fields to set; a field the span lacks is added. */
+/** `POST /api/films/:film/scenes/:scene/cues/:cue`: the fields to set; a field the span lacks is added. */
 export const CuePatch = Schema.Struct(CuePatchFields)
   .check(
     Schema.makeFilter(
@@ -953,7 +953,7 @@ export const CuePatch = Schema.Struct(CuePatchFields)
   );
 export type CuePatch = typeof CuePatch.Type;
 
-/** `POST /lab/:film/knobs/:scene/:knob`: the knob's new value. */
+/** `POST /api/films/:film/scenes/:scene/knobs/:knob`: the knob's new value. */
 export const KnobPatch = Schema.Struct({ value: Knob });
 
 /** A cue on the scene clock, in scene-local seconds, with the ease `f.at` applies across it. */
@@ -1049,7 +1049,7 @@ export type CheckReport = typeof CheckReport.Type;
 
 const FieldState = Schema.Literals(['literal', 'absent', 'computed']);
 
-/** `GET /lab/:film/scenes/:scene/source`: where the scene's drawing is, and what the lab may rewrite. */
+/** `GET /api/films/:film/scenes/:scene/source`: where the scene's drawing is, and what the lab may rewrite. */
 export const SceneSource = Schema.Struct({
   scene: Schema.String,
   /** The scene file, relative to the film's folder. */
@@ -1079,7 +1079,7 @@ export const SceneSource = Schema.Struct({
 export type SceneSource = typeof SceneSource.Type;
 
 /**
- * `GET /lab/:film/scenes/:scene/head`: the scene's timeline and knobs as the file
+ * `GET /api/films/:film/scenes/:scene/head`: the scene's timeline and knobs as the file
  * declares them at HEAD (literals only), for the lab to draw beside now.
  */
 export const HeadSource = Schema.Struct({

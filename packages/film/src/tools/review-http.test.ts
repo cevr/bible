@@ -5,7 +5,7 @@
 
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { Effect, FileSystem, Option, Path, Schedule, Schema } from 'effect';
 import { ReviewDuration, ReviewIndex } from '../core/review.ts';
 import { SetSayPost, labUrls, reviewFileUrl, reviewPhoneUrl, ServerFailed } from '../core/api.ts';
 import { refFromUrl } from './review-http.ts';
@@ -81,6 +81,34 @@ describe('review routes', () => {
         expect(again.status).toBe(200);
         expect(yield* reviewTestBody(again)).toBe('rendered again');
       }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
+  );
+
+  it.live(
+    'a phone copy is asked again on each load, as its render is: named by the render’s ref, with an ETag',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const art = path.join(yield* ReviewTestRoot, 'out', 'art');
+        yield* fs.writeFileString(path.join(art, 'big.mp4'), 'abcde'.repeat(1000));
+        yield* fs.writeFileString(path.join(art, 'review.json'), '{ "videos": ["big.mp4"] }');
+        // The index finds the big video and queues its phone copy; it is there once made.
+        yield* reviewTestAsk(reviewTestGet('/api/review/index?fresh'));
+        const url = reviewPhoneUrl('out/art/big.mp4');
+        const copy = yield* reviewTestAsk(reviewTestGet(url)).pipe(
+          Effect.repeat({
+            until: (response) => response.status === 200,
+            schedule: Schedule.spaced('20 millis'),
+          }),
+          Effect.timeout('5 seconds'),
+        );
+        expect(copy.headers.get('cache-control')).toBe('no-cache');
+        const tag = copy.headers.get('etag') ?? '';
+        expect(tag).not.toBe('');
+        expect((yield* reviewTestAsk(reviewTestGet(url, { 'if-none-match': tag }))).status).toBe(
+          304,
+        );
+      }).pipe(Effect.scoped, Effect.provide(reviewHttpFixtureLasting(12.5, true))),
   );
 
   it.effect(

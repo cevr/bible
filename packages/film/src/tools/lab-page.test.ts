@@ -264,6 +264,25 @@ const filmsInMemory = Effect.gen(function* () {
 
 describe('lab pages', () => {
   it.live(
+    "the browser build is Solid's development build, whatever NODE_ENV says: its diagnostics are what the served e2e reads",
+    () =>
+      Effect.gen(function* () {
+        const { spec, write } = yield* appFolder;
+        const path = yield* Path.Path;
+        // A page whose script is a Solid one, so the build holds Solid itself.
+        const solid = path.join(import.meta.dir, '../lab/fixtures/on-screen-page.tsx');
+        yield* write(
+          'review.html',
+          html('review', path.relative(path.dirname(spec.pages.review), solid)),
+        );
+        const { ask } = yield* served(spec, PageBundler.layer);
+        const page = (yield* ask('/')).text;
+        const src = /src="\.?(\/[^"]+\.js)"/.exec(page)?.[1] ?? '';
+        expect((yield* ask(src)).text).toContain('STRICT_READ_UNTRACKED');
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
     'a page is built when asked, stamped with its build and server; its script is served, nothing else',
     () =>
       Effect.gen(function* () {

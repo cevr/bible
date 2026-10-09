@@ -194,8 +194,8 @@ leaves a take and its timings disagreeing, and another `narrate`'s sweep
 never puts away a take still being made. The sweep removes a partial write
 only when its writer, named in `<file>.<pid>-<n>.<host tag>.partial`, is a
 pid on this host that no longer runs. It keeps every other partial: another
-host's, and one whose name carries no host (a writer from before partials
-named it) or no writer, since a leftover partial blocks nothing and is
+host's, and one whose name carries no host
+or no writer, since a leftover partial blocks nothing and is
 git-ignored while removing a live one loses its write. A mix landing its
 track meanwhile, here or on another host, keeps its partial. A take's words come from the speech model's alignment and its
 length from the encoded file; a word the alignment puts past the end is held
@@ -1291,6 +1291,9 @@ in an `<img>` or `<audio>` (`stillUrl`, `attemptUrl`, `reviewFileUrl`,
 | ------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `LabHttpApi` | `film lab` (`labHandler`) | `notes`, `scenes` (source, head, cue, knob), `steps` (undo, redo, check, steps), `studio`, `review` (index, file, phone, frame, duration, say), `choices`, `project`, `looks` (take), `page` (wait: the build counter) |
 
+**A HEAD of a GET route** answers as the GET does, with its status and
+headers and no body.
+
 **Failures cross as themselves.** A failure a route answers is one of
 `Refusals` (`core/api.ts`; the classes are `core/refusals.ts` and
 `core/errors.ts`), each annotated with its status (`HttpApiSchema.status`):
@@ -2181,7 +2184,7 @@ A film's page plays its newest whole-film render as the catalogue records it.
 bare path) replaces the app's own roots (every checkout's `out/`);
 `FILM_REVIEW_EXTRA_ROOTS` adds to them. Every route names a file by its ref
 (its root's label, then its path under the root), never a path on the box.
-Derived files (frames, 720p phone copies of big videos, option mixes) are
+Cached files (frames, 720p phone copies of big videos, option mixes) are
 kept in `FILM_REVIEW_CACHE` (`~/.cache/film-review`); `FILM_REVIEW_PHONE=off`
 makes no phone copies.
 
