@@ -303,6 +303,67 @@ describe('the cue strip', () => {
       ),
   );
 
+  /** The scene seconds the strip's left edge stands at, as the playhead's place in the 8 s window says. */
+  const WINDOW_FROM = `(() => {
+    const rows = document.querySelector('.lab-strip-rows').getBoundingClientRect();
+    const head = document.querySelector('.lab-strip-playhead').getBoundingClientRect();
+    return ${URL_T} - ((head.left - rows.left) / rows.width) * 8;
+  })()`;
+
+  it.live(
+    "on a phone a scrub in a long scene reads the window it began in: its left edge seeks to the window's start, and a drag across stays in it",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], {
+          href: pageHref.labScene(LONG, LONG_SCENE, {}, Option.some(15)),
+          viewport: PHONE,
+        });
+        yield* page.waitFor('.lab-cue[data-cue="late"]');
+        // The playhead sits late in the scene: the window is shifted off 0. Kept in the page,
+        // for the scrub moves the playhead.
+        yield* until(page, `(window.shiftedFrom = ${WINDOW_FROM}) > 2`);
+        const rows = yield* page.box('.lab-strip-rows');
+        const words = yield* page.box('.lab-strip-words');
+        const y = words.y + words.height / 2;
+        yield* page.mouse.move(rows.x + 1, y);
+        yield* page.mouse.down;
+        yield* until(page, `Math.abs(${URL_T} - window.shiftedFrom) < 0.2`);
+        yield* page.mouse.move(rows.x + rows.width / 2, y, 6);
+        // Half the window across, in the window it began in, though the playhead moved under it.
+        yield* until(page, `Math.abs(${URL_T} - (window.shiftedFrom + 4)) < 0.3`);
+        yield* page.mouse.up;
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'on a phone a lane drag in a long scene marks the span under the finger while the film plays, the window held',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], {
+          href: pageHref.labScene(LONG, LONG_SCENE, {}, Option.some(12)),
+          viewport: PHONE,
+        });
+        yield* page.waitFor('.lab-cue[data-cue="late"]');
+        const lane = '.lab-strip-row:has([data-cue="late"])';
+        const rows = yield* page.box('.lab-strip-rows');
+        const row = yield* page.box(lane);
+        const y = row.y + row.height / 2;
+        const x = rows.x + 12;
+        yield* page.clock.hold;
+        yield* page.press('Space');
+        yield* page.mouse.move(x, y);
+        yield* page.mouse.down;
+        // The film plays on under the press: the window follows the playhead.
+        yield* page.clock.runFor(3000);
+        yield* page.mouse.move(x + 120, y, 8);
+        yield* page.mouse.up;
+        yield* page.waitFor('[data-role="in-out"]');
+        const band = yield* page.box('[data-role="in-out"]');
+        // The span is the 120 px dragged, not those and the seconds the window moved.
+        expect(Math.abs(band.width - 120)).toBeLessThan(6);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('a drag of a cue body writes its offset once, on release, and selects it', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab([], { href: labAt(1) });
@@ -913,6 +974,35 @@ describe('the inspector', () => {
         { path: '/scenes/one/cues/rise', body: Option.some({ offset: 0.3 }) },
         { path: '/scenes/one/cues/rise', body: Option.some({ ease: 'linear' }) },
       ]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live("a drag across a field's label scrubs its value and writes it once, on release", () =>
+    Effect.gen(function* () {
+      const { page, asked } = yield* openLab([], {
+        href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }),
+      });
+      yield* page.waitFor('.lab-edit-cue input[data-field="offset"]:not([disabled])');
+      const label = yield* page.box('.lab-edit-cue .lab-field-scrub');
+      const [x, y] = [label.x + label.width / 2, label.y + label.height / 2];
+      yield* page.mouse.move(x, y);
+      yield* page.mouse.down;
+      for (const step of [1, 2, 3, 4]) yield* page.mouse.move(x + 10 * step, y);
+      // Held, the field shows the value dragged to and the file is untouched.
+      yield* until(
+        page,
+        "document.querySelector('.lab-edit-cue input[data-field=\"offset\"]').value !== '0'",
+      );
+      expect(posted(asked)).toEqual([]);
+      yield* page.mouse.up;
+      yield* postedReach(asked, 1);
+      yield* statusSays(page, 'cue rise offset 0 → ');
+      const writes = posted(asked);
+      expect(writes).toHaveLength(1);
+      expect(writes[0]?.path).toBe('/scenes/one/cues/rise');
+      expect(Option.getOrThrow(Option.fromUndefinedOr(writes[0])).body).toMatchObject(
+        Option.some({ offset: expect.any(Number) }),
+      );
     }).pipe(Effect.scoped),
   );
 

@@ -219,8 +219,11 @@ export const Strip = () => {
           });
           Effect.runForkWith(meta.host)(
             Pointer.use((pointer) =>
-              pointer.press(e, strip, () =>
-                Option.some({
+              pointer.press(e, strip, () => {
+                // The drag reads the window it began in, as a scrub does: the film playing on
+                // would move the window under the pointer.
+                setHeld(Option.some(shown()));
+                return Option.some({
                   move: (ev: PointerEvent) =>
                     setMarking(Option.liftPredicate(spanTo(ev), () => far(ev))),
                   end: (lifted: Option.Option<PointerEvent>) => {
@@ -230,9 +233,10 @@ export const Strip = () => {
                       const span = spanTo(ev);
                       return motion.markRange(span.from, span.to);
                     });
+                    setHeld(Option.none());
                   },
-                }),
-              ),
+                });
+              }),
             ),
           );
         };
