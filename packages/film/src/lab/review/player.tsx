@@ -22,7 +22,8 @@ import { rateCommands, rateId, rateText, rateTitle } from '../../player/transpor
 import { Actor } from '../actor.tsx';
 import { hubKeys } from '../command/changes.ts';
 import { CommandChip } from '../command/command-chip.tsx';
-import { useShellTime } from '../page-shell.tsx';
+import { HearIcon, useShellTime } from '../page-shell.tsx';
+import { pressed } from '../pressed.ts';
 import { useReview } from './context.tsx';
 import {
   Rate,
@@ -36,6 +37,31 @@ import {
   spawnSync,
 } from './machine.ts';
 import { type SyncDriver, makeSync } from './sync.ts';
+
+/**
+ * The speaker that makes what it names the sound heard: the one hear button
+ * every page draws (a Set's version, a Choices or Project card), pressed
+ * while it is the one heard, named for a reader by `title`.
+ */
+export const HearToggle = (props: {
+  readonly on: boolean;
+  readonly title: string;
+  readonly hear: () => void;
+  readonly disabled?: boolean;
+}) => (
+  <button
+    type="button"
+    class={['sh-tool', 'rv-sound', { on: props.on }]}
+    data-act="hear"
+    title={props.title}
+    aria-label={props.title}
+    aria-pressed={pressed(props.on)}
+    disabled={props.disabled}
+    onClick={() => props.hear()}
+  >
+    <HearIcon />
+  </button>
+);
 
 /**
  * The synced player's controls, one row: play, the clock, a scrub over every

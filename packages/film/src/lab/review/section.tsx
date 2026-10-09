@@ -92,10 +92,9 @@ import {
 import { Loaded, useWrite, writeStatus } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
 import { ReviewPlace as Place } from './place.ts';
-import { PlayedAlone, Transport, useClockMedia } from './player.tsx';
+import { HearToggle, PlayedAlone, Transport, useClockMedia } from './player.tsx';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
-import { HearIcon } from '../page-shell.tsx';
 import { hubKeys } from '../command/changes.ts';
 import { wipeCommands, wipeTitle } from '../wipe-keys.ts';
 
@@ -908,14 +907,11 @@ const VariantCap = (props: { readonly variant: SeenVariant }) => {
       <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
       <VersionName version={props.variant} />
       <StaleBadge variant={props.variant} />
-      <button
-        type="button"
-        class={['sh-tool', 'rv-sound', { on: audible() }]}
+      <HearToggle
+        on={audible()}
         title="Hear this one"
-        onClick={() => send.sync(SyncEvent.HeardChosen({ id: props.variant.id }))}
-      >
-        <HearIcon />
-      </button>
+        hear={() => send.sync(SyncEvent.HeardChosen({ id: props.variant.id }))}
+      />
     </div>
   );
 };

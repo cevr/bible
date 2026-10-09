@@ -30,7 +30,7 @@ import type { ReviewVideo } from '../../../core/review.ts';
 import { useReview } from '../context.tsx';
 import { pressed } from '../../pressed.ts';
 import { APPROVAL_TEXT, POSTER_W, stateText, videoSource } from '../format.ts';
-import { PlayedAlone } from '../player.tsx';
+import { HearToggle, PlayedAlone } from '../player.tsx';
 import { ProxyPending } from '../section.tsx';
 import type { Inspected } from '../../../core/field.ts';
 import { ChoiceAct } from './api.ts';
@@ -47,7 +47,6 @@ import {
 import type { ThingVerb, VerbId } from '../things.ts';
 import { type InPlace, verbTitle } from './keys.ts';
 import { Field } from '../../command/inspector.tsx';
-import { HearIcon } from '../../page-shell.tsx';
 
 /** The approve button's words for an approval. */
 const APPROVE_TITLE = {
@@ -76,17 +75,12 @@ export const HearButton = (props: { readonly playing: Playing; readonly disabled
   const { playing, hear } = useFilm();
   const on = () => samePlaying(playing(), props.playing);
   return (
-    <button
-      type="button"
-      class={['sh-tool', 'rv-sound', { on: on() }]}
-      data-act="hear"
+    <HearToggle
+      on={on()}
       title="Hear this over the picture"
-      aria-pressed={pressed(on())}
       disabled={props.disabled}
-      onClick={() => hear(props.playing)}
-    >
-      <HearIcon />
-    </button>
+      hear={() => hear(props.playing)}
+    />
   );
 };
 
