@@ -55,6 +55,10 @@
         "vite-plugin-solid": "catalog:",
       },
     },
+    "apps/selah": {
+      "name": "@bible/selah",
+      "version": "0.1.0",
+    },
     "apps/triedgold": {
       "name": "@bible/triedgold",
       "version": "0.1.0",
@@ -282,6 +286,8 @@
     "@bible/film": ["@bible/film@workspace:packages/film"],
 
     "@bible/scripts": ["@bible/scripts@workspace:packages/scripts"],
+
+    "@bible/selah": ["@bible/selah@workspace:apps/selah"],
 
     "@bible/triedgold": ["@bible/triedgold@workspace:apps/triedgold"],
 

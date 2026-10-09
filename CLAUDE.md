@@ -10,6 +10,7 @@ bible/
 ├── apps/
 │   ├── animations/     # Narrated cut-paper explainer films (@bible/animations, built on @bible/film)
 │   ├── egw-search/     # EGW search: Solid 2 page over an Effect HttpApi server (@bible/egw-search; Railway, egw.cvr.im)
+│   ├── selah/          # Native macOS Scripture memorization (@bible/selah; SwiftUI, FSRS)
 │   └── triedgold/      # triedgold.com (@bible/triedgold, React Router 8; brand tokens in src/brand.ts; Alchemy → Railway)
 ├── packages/
 │   ├── core/           # Shared business logic: corpora, search, study data (@bible/core)
@@ -33,6 +34,7 @@ bun run typecheck              # Type check all packages
 bun run fmt                    # Format code with oxfmt
 bun run gate                   # What CI runs: lint, format check, typecheck, build, tests
 bun run test:perf              # The CLI's performance budgets (local only; reads packages/core/data/bible.db)
+bun run --filter @bible/selah gate  # Native Swift gate on macOS
 bun run ci [<commit>]          # Wait for a commit's CI run on main and print its verdict
 ```
 

@@ -1,0 +1,24 @@
+name: Selah macOS
+
+on:
+  pull_request:
+    paths: ['apps/selah/**', '.github/workflows/selah.yml']
+  push:
+    branches: [main]
+    paths: ['apps/selah/**', '.github/workflows/selah.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift formatting, compilation, tests and corpus integrity
+        working-directory: apps/selah
+        run: ./scripts/gate.sh
+      - name: Build the packaged application
+        working-directory: apps/selah
+        run: ./scripts/build-app.sh
