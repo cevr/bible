@@ -7,10 +7,25 @@
 import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
-import { PHONE, json, openLab, route } from '../../../src/lab/fixtures/harness.ts';
+import { HeadUnavailable } from '../../../src/core/refusals.ts';
+import { MENU_ITEMS, rightClick } from '../../../src/lab/fixtures/gestures.ts';
+import {
+  PHONE,
+  json,
+  openLab,
+  refused,
+  route,
+  sourceOne,
+} from '../../../src/lab/fixtures/harness.ts';
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
-import { fitsPhone } from '../../../src/lab/fixtures/phone-fit.ts';
-import { attributeIs, countIs, evaluates, textIs } from '../../../src/lab/fixtures/settled.ts';
+import { fitsPhone, noSidewaysBox } from '../../../src/lab/fixtures/phone-fit.ts';
+import {
+  attributeIs,
+  countIs,
+  evaluates,
+  textHas,
+  textIs,
+} from '../../../src/lab/fixtures/settled.ts';
 import { PHONE_HIT, undersizedTargets } from '../../../src/lab/fixtures/touch-targets.ts';
 
 /** The lab on scene `one` (the probe film's first, so its time is the film's) at `T` seconds, with `picked`. */
@@ -35,6 +50,7 @@ const TEXT = [
   "    f.ctx.arc(f.knob('spot')[0], 100 - 80 * lift + 80 * drop, f.knob('size'), 0, 7);",
   '  },',
   '});',
+  `// ${'a long line of the file wraps under its own number rather than scrolling sideways, '.repeat(3)}`,
   '',
 ].join('\n');
 
@@ -68,6 +84,22 @@ const RISE_LINE = TEXT.slice(0, RISE[0]).split('\n').length;
 
 const codeRoute = route('GET', /^\/scenes\/one\/code$/, () => json(CODE));
 
+/** The line (from 1) that writes `needle`. */
+const lineOfText = (needle: string) => TEXT.slice(0, TEXT.indexOf(needle)).split('\n').length;
+const FALL_LINE = lineOfText("fall: { mark: 'fall'");
+const SPOT_LINE = lineOfText('spot: [320, 200]');
+/** The long comment's line: it wraps. */
+const LONG_LINE = lineOfText('// a long line');
+
+/** Scene one's small source answer, as the server gives it: each cue and knob with the line that writes it. */
+const sourceRoute = route('GET', /^\/scenes\/one\/source$/, () =>
+  json({
+    ...sourceOne,
+    cues: sourceOne.cues.map((c, i) => ({ ...c, line: [RISE_LINE, FALL_LINE][i] ?? 0 })),
+    knobs: sourceOne.knobs.map((k) => ({ ...k, line: SPOT_LINE })),
+  }),
+);
+
 /** Scene `one`'s cues in film seconds: where the probe film plays them. */
 const one = probeFilm().placed[0];
 const span = (name: string) => {
@@ -81,11 +113,9 @@ const middle = (name: string) => (span(name).start + span(name).end) / 2;
 const LANES = `[...document.querySelectorAll('.lab-cue[data-live]')].map((e) => e.dataset.cue).sort()`;
 
 /** The names of the cue literals the code view paints as playing: the highlight's ranges, read back as the text they cover. */
-const PAINTED = `(() => {
-  const text = document.querySelector('.lab-source-text code')?.textContent ?? '';
-  const live = CSS.highlights.get('lab-live');
-  return [...(live ?? [])].map((r) => text.slice(r.startOffset, r.endOffset).split(':')[0]).sort();
-})()`;
+const painted = (name: string) =>
+  `(() => [...(CSS.highlights.get('${name}') ?? [])].map((r) => r.toString()).sort())()`;
+const PAINTED = `(() => [...(CSS.highlights.get('lab-live') ?? [])].map((r) => r.toString().split(':')[0]).sort())()`;
 
 describe('the Source view at rest', () => {
   it.live('is closed, reads nothing, and puts no control on the page for it', () =>
@@ -101,12 +131,12 @@ describe('the Source view at rest', () => {
     Effect.gen(function* () {
       const { page } = yield* openLab([codeRoute], { href: labOne(1) });
       yield* page.press('Shift+C');
-      yield* page.waitFor('.lab-source-col .lab-source-text');
+      yield* page.waitFor('.lab-source-col .lab-source-page');
       yield* evaluates(page, `location.search.includes('code=follow')`, true);
       yield* page.back;
       yield* countIs(page, '.lab-source', 0);
       yield* page.forward;
-      yield* page.waitFor('.lab-source-col .lab-source-text');
+      yield* page.waitFor('.lab-source-col .lab-source-page');
       yield* page.click('.lab-source-col [data-act="close-source"]');
       yield* countIs(page, '.lab-source', 0);
     }).pipe(Effect.scoped),
@@ -126,7 +156,7 @@ describe('what is lit', () => {
         const { page } = yield* openLab([codeRoute], {
           href: labOne(T, { code: 'follow', cue: 'rise' }),
         });
-        yield* page.waitFor('.lab-source-col .lab-source-text');
+        yield* page.waitFor('.lab-source-col .lab-source-page');
         yield* evaluates(page, `JSON.stringify(${LANES}) === JSON.stringify(${PAINTED})`, true);
       }).pipe(Effect.scoped),
     );
@@ -138,7 +168,7 @@ describe('what is lit', () => {
         const { page } = yield* openLab([codeRoute], {
           href: labOne(middle('rise'), { code: 'follow' }),
         });
-        yield* page.waitFor('.lab-source-col .lab-source-text');
+        yield* page.waitFor('.lab-source-col .lab-source-page');
         yield* textIs(page, '.lab-source-live', 'rise');
         yield* evaluates(page, PAINTED, ['rise']);
         yield* attributeIs(page, '.lab-source-meter', 'data-cue', 'rise');
@@ -150,17 +180,19 @@ describe('a line held', () => {
   it.live('?code=<line> holds that line, in the column', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([codeRoute], { href: labOne(1, { code: `${RISE_LINE}` }) });
-      yield* page.waitFor('.lab-source-col .lab-source-text');
+      yield* page.waitFor('.lab-source-col .lab-source-page');
       yield* attributeIs(page, '.lab-source-held', 'data-line', String(RISE_LINE));
     }).pipe(Effect.scoped),
   );
 
   it.live('the inspector’s file:line opens the view held on the cue’s line', () =>
     Effect.gen(function* () {
-      const { page } = yield* openLab([codeRoute], { href: labOne(1, { cue: 'rise' }) });
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(1, { cue: 'rise' }),
+      });
       yield* textIs(page, '.lab-source-at', `scenes/one.ts:${RISE_LINE}`);
       yield* page.click('.lab-source-at');
-      yield* page.waitFor('.lab-source-col .lab-source-text');
+      yield* page.waitFor('.lab-source-col .lab-source-page');
       yield* attributeIs(page, '.lab-source-held', 'data-line', String(RISE_LINE));
       yield* evaluates(page, `location.search.includes('code=${RISE_LINE}')`, true);
     }).pipe(Effect.scoped),
@@ -176,7 +208,7 @@ describe('a note cites the line held', () => {
           href: labOne(1, { code: `${RISE_LINE}` }),
           mode: 'note',
         });
-        yield* page.waitFor('.lab-source-col .lab-source-text');
+        yield* page.waitFor('.lab-source-col .lab-source-page');
         yield* page.press('n');
         yield* textIs(
           page,
@@ -194,7 +226,7 @@ describe('a note cites the line held', () => {
         href: labOne(1, { code: 'follow' }),
         mode: 'note',
       });
-      yield* page.waitFor('.lab-source-col .lab-source-text');
+      yield* page.waitFor('.lab-source-col .lab-source-page');
       yield* page.press('n');
       yield* page.waitFor('.lab-compose:not([hidden])');
       yield* countIs(page, '[data-role="note-scope"]', 0);
@@ -211,9 +243,7 @@ describe('on a phone, held to the phone rules', () => {
         href: labOne(middle('rise'), { cue: 'rise', code: 'follow' }),
         viewport: touch,
       });
-      yield* page.waitFor('.lab-selection-sheet');
-      yield* page.click('.lab-selection-sheet [data-act="sheet"]');
-      yield* page.waitFor('.lab-selection-sheet .lab-source-text');
+      yield* page.waitFor('.lab-selection-sheet .lab-source-page');
       yield* fitsPhone(page, '.lab-selection-sheet');
       const now = undersizedTargets(PHONE_HIT, '.lab-selection-sheet');
       yield* page.until(`${now}.length === 0`, { now, say: (found) => `under a finger: ${found}` });
@@ -226,7 +256,7 @@ describe('on a phone, held to the phone rules', () => {
         href: labOne(middle('rise'), { code: 'follow' }),
         viewport: touch,
       });
-      yield* page.waitFor('[data-role="source"] .lab-source-text');
+      yield* page.waitFor('[data-role="source"] .lab-source-page');
       yield* fitsPhone(page, '.lab-source-sheet');
       const now = undersizedTargets(PHONE_HIT, '.lab-source-sheet');
       yield* page.until(`${now}.length === 0`, { now, say: (found) => `under a finger: ${found}` });
@@ -245,7 +275,7 @@ describe('on a phone', () => {
       yield* countIs(page, '.lab-source-col', 0);
       yield* page.click('.lab-selection-sheet [data-act="sheet"]');
       yield* page.click('.lab-selection-sheet [data-face="source"]');
-      yield* page.waitFor('.lab-selection-sheet .lab-source-text');
+      yield* page.waitFor('.lab-selection-sheet .lab-source-page');
       yield* evaluates(page, `location.search.includes('code=follow')`, true);
       yield* page.click('.lab-selection-sheet [data-face="inspect"]');
       yield* countIs(page, '.lab-selection-sheet .lab-source', 0);
@@ -258,10 +288,274 @@ describe('on a phone', () => {
         href: labOne(1, { code: 'follow' }),
         viewport: PHONE,
       });
-      yield* page.waitFor('[data-role="source"] .lab-source-text');
+      yield* page.waitFor('[data-role="source"] .lab-source-page');
       yield* page.click('.lab-source-sheet [data-act="close-inspector"]');
       yield* countIs(page, '[data-role="source"]', 0);
       yield* evaluates(page, `location.search.includes('code=')`, false);
+    }).pipe(Effect.scoped),
+  );
+});
+
+/** Whether the URL names a cue or the Source view. */
+const NAMES_CUE_OR_CODE = `location.search.includes('cue=') || location.search.includes('code=')`;
+
+describe('on a phone, one sheet to close and one place to look', () => {
+  const picked = { cue: 'rise', code: 'follow' } as const;
+
+  it.live('closing the Source face closes the sheet: no second Source sheet opens', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(middle('rise'), picked),
+        viewport: PHONE,
+      });
+      yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+      yield* page.click('.lab-selection-sheet [data-act="close-inspector"]');
+      yield* countIs(page, '[data-role="source"]', 0);
+      yield* countIs(page, '.lab-selection-sheet', 0);
+      yield* evaluates(page, NAMES_CUE_OR_CODE, false);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('switching Edit to Note keeps the open Source view in sight', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(middle('rise'), picked),
+        viewport: PHONE,
+      });
+      yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+      // The sheet lowers to its peek to reach the mode tray, as a hand would.
+      yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+      yield* page.click('.lab-modes [data-mode-pick="note"]');
+      yield* page.waitFor('.lab-panel[data-mode="note"]');
+      yield* page.waitFor('.lab-source-sheet .lab-source-page');
+      yield* evaluates(
+        page,
+        `document.querySelector('.lab-source-sheet .lab-source-page').checkVisibility()`,
+        true,
+      );
+      yield* evaluates(page, `location.search.includes('code=follow')`, true);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a line tapped in the sheet’s own Source selects its cue and opens it whole', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(1, { code: 'follow' }),
+        viewport: PHONE,
+      });
+      yield* page.waitFor('[data-role="source"] .lab-source-page');
+      yield* page.click(`.lab-source-line[data-line="${RISE_LINE}"]`);
+      yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+      yield* evaluates(page, `location.search.includes('cue=rise')`, true);
+      yield* attributeIs(page, '.lab-source-held', 'data-line', String(RISE_LINE));
+      yield* page.click('.lab-selection-sheet [data-act="close-inspector"]');
+      yield* countIs(page, '[data-role="source"]', 0);
+      yield* evaluates(page, NAMES_CUE_OR_CODE, false);
+    }).pipe(Effect.scoped),
+  );
+});
+
+describe('code that wraps rather than scrolls sideways', () => {
+  it.live('on a phone the code scroller holds no more than its width shows', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(1, { code: `${LONG_LINE}` }),
+        viewport: PHONE,
+      });
+      yield* page.waitFor('[data-role="source"] .lab-source-page');
+      yield* fitsPhone(page, '.lab-source-sheet');
+      yield* noSidewaysBox(page, '.lab-source-scroll');
+      // The long line is taller than a line, and its held band and number sit on the whole row.
+      yield* evaluates(
+        page,
+        `(() => {
+          const row = document.querySelector('.lab-source-line[data-line="${LONG_LINE}"]');
+          const held = row.querySelector('.lab-source-held');
+          const lh = parseFloat(getComputedStyle(row).lineHeight);
+          return row.offsetHeight > lh * 1.5 && held.offsetHeight === row.offsetHeight
+            && row.querySelector('.lab-source-n').offsetTop === 0;
+        })()`,
+        true,
+      );
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('on a laptop the column wraps too: one layout', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], { href: labOne(1, { code: 'follow' }) });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* noSidewaysBox(page, '.lab-source-col .lab-source-scroll');
+    }).pipe(Effect.scoped),
+  );
+});
+
+describe('a line of the code', () => {
+  it.live('a tap holds it and selects the cue written there', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(1, { code: 'follow' }),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* page.click(`.lab-source-line[data-line="${FALL_LINE}"]`);
+      yield* attributeIs(page, '.lab-source-held', 'data-line', String(FALL_LINE));
+      yield* evaluates(page, `location.search.includes('cue=fall')`, true);
+      yield* evaluates(page, `location.search.includes('code=${FALL_LINE}')`, true);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a tap on a line that writes nothing holds it and leaves the selection', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(1, { code: 'follow' }),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* page.click('.lab-source-line[data-line="1"]');
+      yield* attributeIs(page, '.lab-source-held', 'data-line', '1');
+      yield* evaluates(page, `location.search.includes('cue=')`, false);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('its context menu offers Note this line and Copy link; Note this line cites it', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(1, { code: 'follow' }),
+        mode: 'note',
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* rightClick(page, `.lab-source-line[data-line="${RISE_LINE}"]`);
+      yield* evaluates(
+        page,
+        `${MENU_ITEMS}.includes('notes.line') && ${MENU_ITEMS}.includes('link.copy')`,
+        true,
+      );
+      yield* page.click('[data-role="context-menu"] [data-command="notes.line"]');
+      yield* textIs(
+        page,
+        '[data-role="note-scope"] .lab-scope-text',
+        `one · scenes/one.ts:${RISE_LINE}`,
+      );
+    }).pipe(Effect.scoped),
+  );
+});
+
+describe('Follow', () => {
+  /** A window short enough that the file scrolls in the column. */
+  const short = { width: 1440, height: 340 };
+  const FOLLOW_BUTTON = '.lab-source-col [data-act="follow-source"]';
+  const HAND = `(() => { const box = document.querySelector('.lab-source-col .lab-source-scroll'); box.scrollTop = box.scrollHeight; })()`;
+
+  it.live('a hand on the scroll suspends it; Follow takes it back', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(middle('rise'), { code: 'follow' }),
+        viewport: short,
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
+      yield* page.evaluate(HAND);
+      yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'false');
+      yield* page.click(FOLLOW_BUTTON);
+      yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('Play takes it back', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(middle('rise'), { code: 'follow' }),
+        viewport: short,
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* page.evaluate(HAND);
+      yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'false');
+      yield* page.click('.bar [data-act="play"]');
+      yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
+      yield* page.click('.bar [data-act="play"]');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a held line is not following; Follow lets go of it', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(1, { code: `${RISE_LINE}` }),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'false');
+      yield* page.click(FOLLOW_BUTTON);
+      yield* evaluates(page, `location.search.includes('code=follow')`, true);
+    }).pipe(Effect.scoped),
+  );
+});
+
+describe('what the selection and the frame’s reads light', () => {
+  it.live('the cue selected is lit where it is written, with nothing playing', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(0.05, { cue: 'fall', code: 'follow' }),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* evaluates(page, painted('lab-picked'), ["fall: { mark: 'fall', dur: 0.4 }"]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('the knobs the frame read are lit as reads', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(middle('rise'), { code: 'follow' }),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* evaluates(
+        page,
+        `${painted('lab-read')}.includes('spot: [320, 200]') && ${painted('lab-read')}.includes("f.knob('spot')")`,
+        true,
+      );
+    }).pipe(Effect.scoped),
+  );
+});
+
+describe('a code view that cannot read', () => {
+  /** The first read is refused; the ones after it are answered. */
+  const flaky = () => {
+    let refusals = 1;
+    return route('GET', /^\/scenes\/one\/code$/, () => {
+      if (refusals > 0) {
+        refusals -= 1;
+        return refused(HeadUnavailable.make({ file: 'scenes/one.ts', reason: 'the file is busy' }));
+      }
+      return json(CODE);
+    });
+  };
+
+  it.live('says why, and Retry reads it again', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([flaky()], { href: labOne(1, { code: 'follow' }) });
+      yield* page.waitFor('.lab-source-col [data-act="retry-source"]');
+      yield* textHas(page, '.lab-source-col .lab-source-note', 'Could not read one');
+      yield* page.click('.lab-source-col [data-act="retry-source"]');
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('Close shuts the refused view', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([flaky()], { href: labOne(1, { code: 'follow' }) });
+      yield* page.click('.lab-source-col [data-act="close-source"]');
+      yield* countIs(page, '.lab-source', 0);
+    }).pipe(Effect.scoped),
+  );
+});
+
+describe('the code is read when the view opens', () => {
+  it.live('selecting a cue cites its file:line from the small answer and reads no code', () =>
+    Effect.gen(function* () {
+      const { page, asked } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(1, { cue: 'rise' }),
+      });
+      yield* textIs(page, '.lab-source-at', `scenes/one.ts:${RISE_LINE}`);
+      expect(asked.filter((a) => a.path.endsWith('/code'))).toEqual([]);
+      yield* page.click('.lab-source-at');
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      expect(asked.filter((a) => a.path.endsWith('/code')).length).toBeGreaterThan(0);
     }).pipe(Effect.scoped),
   );
 });
