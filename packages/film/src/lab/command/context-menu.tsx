@@ -13,8 +13,8 @@
 // closed and focus is back on the page, as ⌘K's do.
 // Its groups and rows are keyed by name and command (`rowKey`): made again
 // each frame a film plays, a row keeps its element under the pointer, and a
-// press and its release are one click. Built on @bible/ui's ContextMenu: `TargetMenu` is the page's one root
-// (`Lab.Root`, the review's page), `Target` a thing's trigger, rendered as
+// press and its release are one click. Built on @bible/ui's ContextMenu: `TargetMenu` is the studio frame's one
+// root (`StudioFrame`, every page in the shell), `Target` a thing's trigger, rendered as
 // the thing's own element (a `div` unless `render` names another).
 
 import { For, Show } from '@solidjs/web';
