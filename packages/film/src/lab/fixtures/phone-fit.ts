@@ -1,6 +1,6 @@
 // Whether a page fits a phone (the design language's Mobile-first): it
-// never scrolls sideways, each of its controls (`[data-act]`) shows inside
-// the window's width, and its chrome (the bars that stay while the page
+// never scrolls sideways, each of its controls (the touch-target check's
+// `TARGETS`, one list) shows inside the window's width, and its chrome (the bars that stay while the page
 // scrolls: a sticky header, a dock, the tab bar) holds at most a quarter of
 // the window's height. One script, so every page is asked the same way.
 //
@@ -20,6 +20,7 @@
 
 import { WAIT_MS, jsonOf } from './tab.ts';
 import type { Tab } from './tab.ts';
+import { CONTROL_WORDS, TARGETS } from './touch-targets.ts';
 
 /** The most of the window's height a page's chrome may hold. */
 const CHROME_MAX = 0.25;
@@ -27,8 +28,8 @@ const CHROME_MAX = 0.25;
 /**
  * A script answering how the page fits: `sideways`, the page's width past
  * the window's in px (0 when it never scrolls sideways); `outside`, the
- * controls shown past the window's sides, each as its `data-act` and its
- * box's sides; `chrome`, the chrome's largest share of the window's height,
+ * controls shown past the window's sides, each as its `data-act` (else its
+ * tag, class and words) and its box's sides; `chrome`, the chrome's largest share of the window's height,
  * 0 to 1; `bars`, the chrome's bars where it holds most, each as its class
  * and its rows. It scrolls the page to measure its chrome, and back to where
  * it was. `layer` (a selector) is the open layer, left out of the chrome.
@@ -36,6 +37,7 @@ const CHROME_MAX = 0.25;
 export const phoneFit = (layer?: string) => `(() => {
   const root = document.documentElement;
   const LAYER = ${jsonOf(layer ?? '')};
+  const TARGETS = ${jsonOf(TARGETS)};${CONTROL_WORDS}
   const clipping = (el) => {
     const s = getComputedStyle(el);
     return s.overflowX !== 'visible' || s.overflowY !== 'visible' || s.contain.includes('paint');
@@ -68,11 +70,13 @@ export const phoneFit = (layer?: string) => `(() => {
     }
     return { box: filled(box) ? box : null, cut };
   };
-  const outside = [...document.querySelectorAll('[data-act]')].flatMap((el) => {
+  // Every control a finger can operate (the touch-target check's selector), named by its data-act when it has one.
+  const outside = [...document.querySelectorAll(TARGETS)].filter((el) => !backing(el)).flatMap((el) => {
     const { box: b, cut } = shown(el);
-    if (cut) return [el.dataset.act + ' cut off'];
+    const who = el.getAttribute('data-act') ?? named(el);
+    if (cut) return [who + ' cut off'];
     if (b === null || (b.left >= -0.5 && b.right <= innerWidth + 0.5)) return [];
-    return [el.dataset.act + ' ' + Math.round(b.left) + '..' + Math.round(b.right)];
+    return [who + ' ' + Math.round(b.left) + '..' + Math.round(b.right)];
   });
   // Sticky inside a box that scrolls on its own (a strip's words) stays in that box, not the window.
   const inScroller = (el) => {

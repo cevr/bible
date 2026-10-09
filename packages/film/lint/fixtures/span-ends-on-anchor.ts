@@ -30,3 +30,6 @@ export const scene = drawing({
   },
   draw: () => {},
 });
+
+// A parameter named like a module const is its own binding: its value is not known.
+export const landing = (LAND: number) => ({ mark: 'true', offset: -LAND, dur: 0.4 });

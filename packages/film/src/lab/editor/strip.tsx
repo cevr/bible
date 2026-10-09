@@ -25,6 +25,7 @@ import { CANCEL_GRIP, SNAP } from './commands.ts';
 import { hubKeys } from '../command/changes.ts';
 import { Target } from '../command/context-menu.tsx';
 import { selectsCue } from '../place.ts';
+import { pressed } from '../pressed.ts';
 import { useLabPage } from '../panel.tsx';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
@@ -281,7 +282,7 @@ export const Strip = () => {
                 type="button"
                 class="sh-btn"
                 data-act="snap"
-                aria-pressed={`${state.snap()}`}
+                aria-pressed={pressed(state.snap())}
                 title={`Snap to words, marks, cue edges and frames (${keys.first(SNAP)}; ⇧ flips it while dragging)`}
                 onPointerDown={(e) => e.preventDefault()}
                 onClick={() => meta.hub.invokeId(SNAP, BY_BUTTON)}

@@ -38,8 +38,9 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { parseSync } from 'oxc-parser';
 import { LabHttpApi } from './core/api.ts';
-import { routesOf } from './core/testing.ts';
+import { declares as declaresRoute, routesOf } from './core/testing.ts';
 
 /** What the docs are read against. */
 interface Code {
@@ -526,17 +527,293 @@ const declaredTokens = (sheet: string) => {
 const tokenNames = (sheet: string): ReadonlySet<string> =>
   new Set(matches(sheet, /(--[\w-]+)\s*:/g).map(firstGroup));
 
-/** What a mock does that the kit owns: writes a token, or wears no tokens.css or kit.css. */
-const mockDrift = (file: string, text: string, tokens: ReadonlySet<string>) => [
-  ...['tokens.css', 'kit.css']
+/** A scale of the player's sheet: the properties it sets, and the px its tokens give. */
+interface Scale {
+  readonly what: string;
+  readonly property: RegExp;
+  readonly steps: ReadonlySet<number>;
+}
+
+/** The px of each token in the sheet whose name `name` matches (`--s-2: 8px` is 8). */
+const stepsOf = (sheet: string, name: RegExp): ReadonlySet<number> =>
+  new Set(
+    matches(declaredTokens(sheet), /(--[\w-]+)\s*:\s*(\d+(?:\.\d+)?)px/g)
+      .filter((m) => name.test(m[1] ?? ''))
+      .map((m) => Number(m[2])),
+  );
+
+/**
+ * The space, type and radius scales of the player's sheet, each over every
+ * property that sets it: a side's or a logical side's margin and padding, a
+ * gap, a corner's radius.
+ */
+const scalesOf = (sheet: string): ReadonlyArray<Scale> => [
+  {
+    what: 'space',
+    property:
+      /^(?:margin|padding)(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?$|^(?:row-|column-)?gap$/,
+    steps: stepsOf(sheet, /^--s-/),
+  },
+  { what: 'type size', property: /^font-size$/, steps: stepsOf(sheet, /^--fs-/) },
+  { what: 'line height', property: /^line-height$/, steps: stepsOf(sheet, /^--lh-/) },
+  {
+    what: 'radius',
+    property: /^border(?:-(?:top|bottom|start|end)-(?:left|right|start|end))?-radius$/,
+    steps: stepsOf(sheet, /^--r-/),
+  },
+];
+
+/**
+ * A value's words as CSS reads them: split at the spaces outside any
+ * parentheses, and a slash outside them a word of its own, so a function
+ * (`calc(var(--lh-2) + 3px)`) is one word, whole.
+ */
+const wordsOf = (value: string): ReadonlyArray<string> => {
+  const words: Array<string> = [];
+  let word = '';
+  let depth = 0;
+  const end = () => {
+    if (word !== '') words.push(word);
+    word = '';
+  };
+  for (const c of value) {
+    if (depth === 0 && /\s/.test(c)) end();
+    else if (depth === 0 && c === '/') {
+      end();
+      words.push('/');
+    } else {
+      if (c === '(') depth += 1;
+      if (c === ')' && depth > 0) depth -= 1;
+      word += c;
+    }
+  }
+  end();
+  return words;
+};
+
+/** A declaration as its longhands: the `font` shorthand's size and line height (`15px/19px mono`), else itself. */
+const longhands = (property: string, value: string): ReadonlyArray<readonly [string, string]> => {
+  if (property !== 'font') return [[property, value]];
+  // The size is all before the slash; the line height, the one word after it, whole.
+  const words = wordsOf(value);
+  const slash = words.indexOf('/');
+  if (slash < 0) return [['font-size', value]];
+  return [
+    ['font-size', words.slice(0, slash).join(' ')],
+    ['line-height', words[slash + 1] ?? ''],
+  ];
+};
+
+/**
+ * Each declaration a mock writes, as longhands: in its sheets' rules and in
+ * its elements' `style` attributes, comments left out.
+ */
+const declarationsOf = (text: string): ReadonlyArray<readonly [string, string]> => {
+  const bare = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+  return [
+    ...matches(bare, /\{([^{}]*)\}/g).map(firstGroup),
+    ...matches(bare, /\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/g).map((m) => m[1] ?? m[2] ?? ''),
+  ].flatMap((body) =>
+    matches(body, /(?<![\w-])([a-z][a-z-]*)\s*:\s*([^;]+)/g).flatMap((declaration) =>
+      longhands(declaration[1] ?? '', declaration[2] ?? ''),
+    ),
+  );
+};
+
+/**
+ * Each px length a mock writes for a space, type or radius that no step of
+ * the scale gives. A length derived from one the rule names (a dot's margin
+ * of half its size, `calc(var(--dot) / -2)`) writes no px of its own.
+ */
+const scaleDrift = (file: string, text: string, scales: ReadonlyArray<Scale>) =>
+  declarationsOf(text).flatMap(([property, value]) =>
+    scales
+      .filter((scale) => scale.property.test(property))
+      .flatMap((scale) =>
+        matches(value, /(-?\d*\.?\d+)px/g)
+          .map((length) => Number(length[1]))
+          .filter((px) => !scale.steps.has(px))
+          .map((px) => `${file}: ${property} ${px}px is no ${scale.what} step`),
+      ),
+  );
+
+/**
+ * What a mock does that the kit owns: writes a token, wears no tokens.css or
+ * kit.css (nor lab.css, a Lab mock), or sets a space, type or radius off the
+ * scales.
+ */
+const mockDrift = (
+  file: string,
+  text: string,
+  tokens: ReadonlySet<string>,
+  scales: ReadonlyArray<Scale>,
+) => [
+  ...['tokens.css', 'kit.css', ...['lab.css'].filter(() => /^lab[-.]/.test(file))]
     .filter((sheet) => file.endsWith('.html') && !new RegExp(`href="[^"]*${sheet}"`).test(text))
     .map((sheet) => `${file}: links no ${sheet}`),
   ...Array.from(new Set(matches(text, /(--[\w-]+)\s*:/g).map(firstGroup)))
     .filter((name) => tokens.has(name))
     .map((name) => `${file}: writes ${name}`),
+  ...scaleDrift(file, text, scales),
 ];
 
+/**
+ * Where a comment names a `METHOD /api/…`: the method, and the path just
+ * after it. A path that starts with no name (`/api/…`) stands for every
+ * route, and names none.
+ */
+const CITED_ROUTE = /\b(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)\s+`?(?=\/api\/[a-z$<:])/g;
+
+/** The bracket that opens each closing one. */
+const OPENER = { ')': '(', ']': '[', '}': '{' } as const;
+
+const closes = (c: string): c is keyof typeof OPENER => c in OPENER;
+
+/** Whether `c` ends a path whose brackets `open` are open: a space, a quote, a backtick, or a bracket the path did not open. */
+const endsPath = (c: string, open: ReadonlyArray<string>) =>
+  /[\s'"`]/.test(c) || (closes(c) && open.at(-1) !== OPENER[c]);
+
+/** Where the `${…}` at `at` in `text` ends: just past the brace that closes it, whatever it holds. */
+const templateEnd = (text: string, at: number): number => {
+  let depth = 0;
+  for (let i = at + 1; i < text.length; i += 1) {
+    depth += Number(text.charAt(i) === '{') - Number(text.charAt(i) === '}');
+    if (depth === 0) return i + 1;
+  }
+  return text.length;
+};
+
+/** A path a comment cites: as written, and as read (each `${…}` in it `${}`). */
+interface Cited {
+  readonly written: string;
+  readonly read: string;
+}
+
+/**
+ * The path written at the start of `text`, whole. It runs to a space, a
+ * quote, a backtick, or a bracket it did not open (a parenthesis around
+ * it); a bracket it opens is its own (`knob(extra)`), a `${…}` is read to
+ * the brace that closes it, and the stops that end a sentence (`.,;:`) are
+ * not its own.
+ */
+const citedPath = (text: string): Cited => {
+  const open: Array<string> = [];
+  let read = '';
+  let at = 0;
+  while (at < text.length && !endsPath(text.charAt(at), open)) {
+    const c = text.charAt(at);
+    if (text.startsWith('${', at)) {
+      at = templateEnd(text, at);
+      read += '${}';
+    } else {
+      if (closes(c)) open.pop();
+      if ('([{'.includes(c)) open.push(c);
+      read += c;
+      at += 1;
+    }
+  }
+  const stops = read.length - read.replace(/[.,;:]+$/, '').length;
+  return {
+    written: text.slice(0, at - stops),
+    read: read.slice(0, read.length - stops),
+  };
+};
+
+/** A cited path as the API matches it: each parameter (`<x>`, `:x`, `${…}`) one segment, no query or hash. */
+const pathOf = (read: string) =>
+  read
+    .replace(/\$\{\}|<[^>\s]+>|(?<=\/):\w+/g, 'x')
+    .split(/[?#]/)
+    .at(0) ?? '';
+
+/**
+ * Each route a comment in `text` names that the API does not declare, with
+ * its file and line: the comments as the parser (oxc) reads them, so a
+ * comment after code or a block's unstarred body is read, and a string that
+ * looks like one is not.
+ */
+const commentRouteDrift = (
+  file: string,
+  text: string,
+  has: (method: string, pathname: string) => boolean,
+): ReadonlyArray<string> => {
+  const parsed = parseSync(file, text);
+  if (parsed.errors.length > 0) return [`${file}: the parser cannot read it`];
+  return parsed.comments.flatMap((comment) =>
+    // A comment's text starts after its `//` or `/*`.
+    matches(comment.value, CITED_ROUTE).flatMap((m) => {
+      const method = firstGroup(m);
+      const cited = citedPath(comment.value.slice(m.index + m[0].length));
+      const line = text.slice(0, comment.start + 2 + m.index).split('\n').length;
+      return Array.of(`${file}:${line}: ${method} ${cited.written} is declared by no API`).filter(
+        () => !has(method, pathOf(cited.read)),
+      );
+    }),
+  );
+};
+
 describe('the docs', () => {
+  it.effect.layer(BunServices.layer)(
+    'let no comment in the film package name a route the API does not declare',
+    () =>
+      Effect.gen(function* () {
+        const root = yield* ROOT;
+        const fs = yield* FileSystem.FileSystem;
+        const has = declaresRoute(LabHttpApi);
+        const files = (yield* fs.readDirectory(`${root}/${FILM_SRC}`, { recursive: true })).filter(
+          (f) => /\.tsx?$/.test(f) && !f.includes('node_modules'),
+        );
+        expect(files.length).toBeGreaterThan(100);
+        const drift = yield* Effect.forEach(files, (file) =>
+          Effect.map(fs.readFileString(`${root}/${FILM_SRC}/${file}`), (text) =>
+            commentRouteDrift(file, text, has),
+          ),
+        );
+        expect(drift.flat()).toEqual([]);
+        // A comment that names a route the API lacks is red, wherever the comment sits: its
+        // own line, after code, a block's unstarred body; HEAD and OPTIONS too. A declared
+        // route is not, its parameters written as `<x>`, `:x` or `${…}`; nor is a string.
+        expect(
+          commentRouteDrift(
+            'red.ts',
+            [
+              '// POST /api/films/<film>/choices/level moved a knob',
+              '/**',
+              ' * GET /api/review/gone',
+              ' */',
+              '// POST /api/films/<film>/choices/knob and GET /api/review/index',
+              "const url = 'GET /api/nowhere';",
+              'const a = 1; // POST /api/films/:film/choices/level after code',
+              '/*',
+              '  GET /api/review/also-gone',
+              '*/',
+              '// HEAD /api/review/index, OPTIONS /api/films/<film>/notes',
+              '// GET /api/films/${encodeURIComponent(film)}/notes/wait, POST /api/films/:film/notes/:id/reply.',
+              '// GET /api/films/${encodeURIComponent({ name: film }.name)}/notes/wait (GET /api/review/index).',
+              '// `POST /api/films/<film>/choices/knob(extra)` takes no knob',
+              'const doc = `',
+              '// GET /api/nowhere/in/a/string',
+              ' * POST /api/never',
+              '`;',
+            ].join('\n'),
+            has,
+          ),
+        ).toEqual([
+          'red.ts:1: POST /api/films/<film>/choices/level is declared by no API',
+          'red.ts:3: GET /api/review/gone is declared by no API',
+          'red.ts:7: POST /api/films/:film/choices/level is declared by no API',
+          'red.ts:9: GET /api/review/also-gone is declared by no API',
+          'red.ts:11: HEAD /api/review/index is declared by no API',
+          'red.ts:11: OPTIONS /api/films/<film>/notes is declared by no API',
+          'red.ts:14: POST /api/films/<film>/choices/knob(extra) is declared by no API',
+        ]);
+        // A file the parser cannot read is red: its comments are not known.
+        expect(commentRouteDrift('broken.ts', 'const = ;', has)).toEqual([
+          'broken.ts: the parser cannot read it',
+        ]);
+      }),
+  );
+
   it.effect.layer(BunServices.layer)(
     'name only routes, rules, scripts, paths, symbols, flags and findings the code has',
     () =>
@@ -634,7 +911,9 @@ describe('the docs', () => {
       Effect.gen(function* () {
         const root = yield* ROOT;
         const fs = yield* FileSystem.FileSystem;
-        const tokens = tokenNames(yield* fs.readFileString(`${root}/${TOKENS_CSS}`));
+        const sheet = yield* fs.readFileString(`${root}/${TOKENS_CSS}`);
+        const tokens = tokenNames(sheet);
+        const scales = scalesOf(sheet);
         const files = (yield* fs.readDirectory(`${root}/${MOCKS}`)).filter((f) =>
           /\.(?:html|css)$/.test(f),
         );
@@ -642,19 +921,60 @@ describe('the docs', () => {
           Effect.map(fs.readFileString(`${root}/${MOCKS}/${file}`), (text) => ({ file, text })),
         );
         expect(mocks.length).toBeGreaterThan(1);
-        expect(mocks.flatMap(({ file, text }) => mockDrift(file, text, tokens))).toEqual([]);
+        expect(scales.every((s) => s.steps.size > 0)).toBe(true);
+        expect(mocks.flatMap(({ file, text }) => mockDrift(file, text, tokens, scales))).toEqual(
+          [],
+        );
         // A mock that writes a token, or wears neither sheet, is red.
         expect(
           mockDrift(
             'red.html',
             '<style>:root { --accent: #f00; } .x { --s-2 : 3px; --own: 1px; }</style>',
             tokens,
+            scales,
           ),
         ).toEqual([
           'red.html: links no tokens.css',
           'red.html: links no kit.css',
           'red.html: writes --accent',
           'red.html: writes --s-2',
+        ]);
+        // A Lab mock wears the Lab's sheet too.
+        expect(
+          mockDrift(
+            'lab-red.html',
+            '<link href="tokens.css"><link href="kit.css">',
+            tokens,
+            scales,
+          ),
+        ).toEqual(['lab-red.html: links no lab.css']);
+        // A space, type or radius off its scale is red, in a rule or a `style` attribute, a
+        // shorthand, a logical side or a corner, with nothing let off: not a 1px, not a negative
+        // margin beside a width. A step, a var and a dot's margin derived from its size are not.
+        expect(
+          mockDrift(
+            'scale.html',
+            `<link href="tokens.css"><link href="kit.css"><style>
+              .a { padding: 6px var(--s-2) 8px; gap: 12px; padding-inline-start: 6px; margin-block-end: 8px; }
+              .b { font: 15px/19px monospace; font-size: 1px; line-height: 1px; border-top-left-radius: 3px; border-radius: 4px; }
+              .panel { width: 34px; height: 100px; margin-bottom: -17px }
+              .dot { --dot: 34px; width: var(--dot); margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2); font: var(--w-3) var(--fs-2) / var(--lh-2) var(--font); }
+              .c { font: 12px/calc(var(--lh-2) + 3px) monospace; }
+            </style><p style="margin:6px; padding: 4px">x</p>`,
+            tokens,
+            scales,
+          ),
+        ).toEqual([
+          'scale.html: padding 6px is no space step',
+          'scale.html: padding-inline-start 6px is no space step',
+          'scale.html: font-size 15px is no type size step',
+          'scale.html: line-height 19px is no line height step',
+          'scale.html: font-size 1px is no type size step',
+          'scale.html: line-height 1px is no line height step',
+          'scale.html: border-top-left-radius 3px is no radius step',
+          'scale.html: margin-bottom -17px is no space step',
+          'scale.html: line-height 3px is no line height step',
+          'scale.html: margin 6px is no space step',
         ]);
       }),
   );

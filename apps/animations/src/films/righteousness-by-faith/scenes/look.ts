@@ -115,7 +115,7 @@ const timeline = {
   // Their hands go up to where the stack comes down into them, and down once it has slid off.
   handsUp: { mark: 'saviour', offset: -0.9, dur: 0.8, ease: 'inOutSine' },
   // The stack slides off one piece at a time, each falling over the rest of the cue.
-  slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear', stagger: 0.41 },
+  slide: { mark: 'saviour', word: 'earns', offset: -0.2, dur: 1.3, ease: 'linear', stagger: 0.41 },
   armsDown: { after: 'slide', dur: 0.5 },
   handsDown: { after: 'slide', dur: 0.8, ease: 'inOutSine' },
   // As the stack goes, their near hand comes down open, and the camera

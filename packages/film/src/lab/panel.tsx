@@ -34,6 +34,7 @@ import type { Hub } from '../command/hub.ts';
 import { type LabClient, labApiLayer } from './api.ts';
 import { LAB_MODES, type LabMode, MODE_TITLE, citedMode, modeCommands, modeOf } from './mode.ts';
 import { labPlaceOf } from './place.ts';
+import { pressed } from './pressed.ts';
 import { PHONE, useMatches } from './viewport.ts';
 import { Frame, List, NotesFeed, Pen, type PageRuntime } from './notes/list.tsx';
 
@@ -149,7 +150,7 @@ const Panel = (props: {
   const page = useLabPage();
   const at = (name: SlotName) => <div class="lab-slot" ref={props.slots(name)} />;
   return (
-    <aside class="lab-panel" data-mode={page.mode()} data-staged={String(props.staged())}>
+    <aside class="lab-panel" data-mode={page.mode()} data-staged={pressed(props.staged())}>
       <Show when={page.reloadWaiting()}>
         {(waiting) => (
           <p class="lab-reload-waiting" role="status">

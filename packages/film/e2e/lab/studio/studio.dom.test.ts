@@ -206,7 +206,7 @@ const BEAT_IN_URL = "new URLSearchParams(location.search).get('beat') ?? ''";
 /** The note the URL selects (`?note=`), or '' for none. */
 const NOTE_IN_URL = "new URLSearchParams(location.search).get('note') ?? ''";
 
-/** The probe film's beats, one a scene, each with one line to record. */
+/** The probe film's beats, one a scene as a film's are, each with one line to record. */
 const SCENE_BEATS: Json = {
   film: PROBE,
   beats: probeFilm().placed.map((p) =>
@@ -300,14 +300,10 @@ describe('the studio', () => {
     () =>
       scoped(
         Effect.gen(function* () {
-          // The probe film's beats are its scenes, as a film's are.
-          const scenes = {
-            film: PROBE,
-            beats: probeFilm().placed.map((p) =>
-              beat(p.spec.id, 'staging', [{ kind: 'line', text: `In ${p.spec.id}.` }]),
-            ),
-          };
-          const routes = [route('GET', /^\/studio\/beats$/, () => json(scenes)), ...studioRoutes];
+          const routes = [
+            route('GET', /^\/studio\/beats$/, () => json(SCENE_BEATS)),
+            ...studioRoutes,
+          ];
           const two = startOf('two');
           const { page } = yield* openLab(routes, {
             href: labAt(two + 0.5),
@@ -342,13 +338,10 @@ describe('the studio', () => {
     () =>
       scoped(
         Effect.gen(function* () {
-          const scenes = {
-            film: PROBE,
-            beats: probeFilm().placed.map((p) =>
-              beat(p.spec.id, 'staging', [{ kind: 'line', text: `In ${p.spec.id}.` }]),
-            ),
-          };
-          const routes = [route('GET', /^\/studio\/beats$/, () => json(scenes)), ...studioRoutes];
+          const routes = [
+            route('GET', /^\/studio\/beats$/, () => json(SCENE_BEATS)),
+            ...studioRoutes,
+          ];
           const two = startOf('two');
           // The viewer's own mode is Edit (nothing kept); the link cites the beat three.
           const { page } = yield* openLab(routes, {
@@ -363,8 +356,10 @@ describe('the studio', () => {
           yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
           // A dead link, citing a beat the film no longer lists, cites none: it opens in their mode too.
           yield* page.goto(labAt(two + 0.5, { beat: 'gone' }));
-          yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
-          yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
+          // Edit is the answer only once the film's list has been read: Record's beats are in
+          // the page (hidden in Edit), then the page's clock runs on so the mode has settled.
+          yield* attached(page, '[data-beat="one"]');
+          yield* page.clock.runFor(100);
           yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
         }),
       ),
@@ -472,14 +467,8 @@ describe('the studio', () => {
     () =>
       scoped(
         Effect.gen(function* () {
-          const scenes = {
-            film: PROBE,
-            beats: probeFilm().placed.map((p) =>
-              beat(p.spec.id, 'staging', [{ kind: 'line', text: `In ${p.spec.id}.` }]),
-            ),
-          };
           const routes = [
-            route('GET', /^\/studio\/beats$/, () => json(scenes)),
+            route('GET', /^\/studio\/beats$/, () => json(SCENE_BEATS)),
             route('POST', /^\/studio\/takes\/one$/, () =>
               refused(TakeMismatch.make({ ...MISMATCH, id: 'one', attempt: 'one.abcd.flac' })),
             ),

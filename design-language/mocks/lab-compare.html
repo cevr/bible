@@ -82,21 +82,23 @@
       }
       /* The wipe's divider, drawn on the picture: white, so it reads on any frame (§8), with its grip. */
       .wipe {
+        --divider: 2px;
         position: absolute;
         top: 0;
         bottom: 0;
-        width: 2px;
-        margin-left: -1px;
+        width: var(--divider);
+        margin-left: calc(var(--divider) / -2);
         background: var(--on-picture);
       }
       .wipe::after {
+        --dot: 20px;
         content: '';
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 20px;
-        height: 20px;
-        margin: -10px 0 0 -10px;
+        width: var(--dot);
+        height: var(--dot);
+        margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2);
         border: 2px solid var(--on-picture);
         border-radius: var(--r-dot);
         background: var(--on-picture-shade);
