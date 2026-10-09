@@ -5,7 +5,7 @@
 // precision, never a capability.
 
 import { describe, expect, test } from 'bun:test';
-import { type BrowserCodecs, type TrackCodecs, engineFor } from './media-choice.ts';
+import { type BrowserCodecs, type TrackCodecs, browserEngine, engineFor } from './media-choice.ts';
 
 const desktop: BrowserCodecs = { videoDecoder: true, audioDecoder: true, phone: false };
 const coded: TrackCodecs = { video: true, audio: 'coded', audioDecodable: true };
@@ -27,6 +27,12 @@ describe('the compare engine', () => {
       engine: 'video',
       why: 'this browser cannot decode the sound',
     });
+  });
+
+  test('the browser alone allows the panes off a phone with a VideoDecoder, before any file is read', () => {
+    expect(browserEngine(desktop)).toEqual({ engine: 'webcodecs' });
+    expect(browserEngine({ ...desktop, phone: true }).engine).toBe('video');
+    expect(browserEngine({ ...desktop, videoDecoder: false }).engine).toBe('video');
   });
 
   test('<video> on a phone, without a decoder, or for a file it cannot decode', () => {
