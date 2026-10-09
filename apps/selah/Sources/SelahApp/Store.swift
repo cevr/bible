@@ -1,0 +1,240 @@
+import AppKit
+import SelahCore
+import SwiftUI
+import UserNotifications
+
+@MainActor @Observable
+final class Store {
+  var library = Library()
+  var corpus = Corpus(verses: [])
+  var readiness: Readiness?
+  var error: String?
+  var notificationStatus = "Reminders are off"
+  var canSave = true
+  var isLoading = true
+  var isSaving = false
+  var queue: [Verse] = []
+  var sessionActive = false
+  var completed = 0
+  var sessionTotal = 0
+  var revealed = false
+  var studying = false
+  var hinted = false
+  var typedRecall = ""
+  let file: ProgressFile
+  private let repository: ProgressRepository
+  private var revision = 0
+
+  init() {
+    let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    file = ProgressFile(url: root.appendingPathComponent("Selah/progress.json"))
+    repository = ProgressRepository(file: file)
+    Task { await load() }
+    Task { [weak self] in
+      while !Task.isCancelled {
+        guard let self else { return }
+        await self.maintainReminders()
+        try? await Task.sleep(for: .seconds(30))
+      }
+    }
+  }
+
+  private func load() async {
+    do {
+      let loadedCorpus = try await Task.detached(priority: .userInitiated) {
+        let packagedBundle = Bundle.main.url(forResource: "Selah_SelahApp", withExtension: "bundle")
+          .flatMap { Bundle(url: $0) }
+        guard
+          let url = (packagedBundle ?? Bundle.module).url(forResource: "kjv", withExtension: "json")
+        else {
+          throw CocoaError(.fileNoSuchFile)
+        }
+        return Corpus(verses: try JSONDecoder().decode([Verse].self, from: Data(contentsOf: url)))
+      }.value
+      let loadedLibrary = try await repository.load()
+      let snapshot = await Task.detached(priority: .userInitiated) {
+        Readiness(library: loadedLibrary, corpus: loadedCorpus, now: Date())
+      }.value
+      corpus = loadedCorpus
+      library = loadedLibrary
+      readiness = snapshot
+      isLoading = false
+      await refreshReminders()
+    } catch {
+      self.error =
+        "Could not load Selah: \(error.localizedDescription). Your saved file has been preserved."
+      canSave = false
+      isLoading = false
+    }
+  }
+
+  var current: Verse? { queue.first }
+  var available: [Verse] { readiness?.queue ?? [] }
+  var dueCount: Int { readiness?.dueCount ?? 0 }
+  var reviewedToday: Int { readiness?.reviewedToday ?? 0 }
+
+  @discardableResult
+  func change(_ operation: @Sendable (inout Library) -> Void) async -> Bool {
+    guard canSave, !isLoading, !isSaving else { return false }
+    isSaving = true
+    defer { isSaving = false }
+    do {
+      let updated = try await repository.update(operation)
+      let corpus = corpus
+      let snapshot = await Task.detached(priority: .userInitiated) {
+        Readiness(library: updated, corpus: corpus, now: Date())
+      }.value
+      library = updated
+      readiness = snapshot
+      revision += 1
+      error = nil
+      return true
+    } catch {
+      self.error =
+        "Could not save progress: \(error.localizedDescription). Try again; this action has not been recorded."
+      return false
+    }
+  }
+
+  @discardableResult
+  func add(_ goal: Goal) async -> Bool {
+    guard await change({ $0.goals.append(goal) }) else { return false }
+    await refreshReminders()
+    return true
+  }
+  func begin() {
+    guard !isLoading, !isSaving else { return }
+    queue = available
+    completed = 0
+    sessionTotal = queue.count
+    sessionActive = true
+    resetRecall()
+  }
+  func resetRecall() {
+    studying = current.map { library.cards[$0.id] == nil } ?? false
+    revealed = studying
+    hinted = false
+    typedRecall = ""
+  }
+  func rate(_ rating: Rating) async {
+    guard let verse = current, revealed, !studying, !isSaving else { return }
+    let usedHint = hinted
+    let now = Date()
+    guard await change({ $0.record(verse, rating: rating, usedHint: usedHint, now: now) }) else {
+      return
+    }
+    queue.removeFirst()
+    completed += 1
+    resetRecall()
+    await refreshReminders()
+  }
+  func preview(_ rating: Rating) -> String {
+    guard let verse = current else { return "" }
+    return Scheduler.intervalLabel(
+      Scheduler.review(library.cards[verse.id] ?? Card(now: Date()), rating: rating, now: Date())
+        .interval)
+  }
+  func configureReminders(enabled: Bool, minutes: Int) async {
+    if enabled {
+      do {
+        let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [
+          .alert, .sound,
+        ])
+        guard granted else {
+          notificationStatus =
+            "Allow Selah in System Settings → Notifications, then enable reminders again."
+          _ = await change { $0.preferences.remindersEnabled = false }
+          return
+        }
+      } catch {
+        notificationStatus = error.localizedDescription
+        return
+      }
+    }
+    if await change({
+      $0.preferences.remindersEnabled = enabled
+      $0.preferences.reminderMinutes = minutes
+    }) {
+      await refreshReminders()
+    }
+  }
+  func maintainReminders() async {
+    guard !isLoading, !isSaving, canSave else { return }
+    let library = library
+    let corpus = corpus
+    let before = revision
+    let snapshot = await Task.detached(priority: .utility) {
+      Readiness(library: library, corpus: corpus, now: Date())
+    }.value
+    guard revision == before, !isSaving else { return }
+    readiness = snapshot
+    guard library.preferences.remindersEnabled else { return }
+    let pending = await UNUserNotificationCenter.current().pendingNotificationRequests()
+    if !pending.contains(where: { $0.identifier == "selah.practice" }) { await refreshReminders() }
+  }
+  func refreshReminders() async {
+    guard !isLoading else { return }
+    let center = UNUserNotificationCenter.current()
+    center.removePendingNotificationRequests(withIdentifiers: ["selah.practice"])
+    guard library.preferences.remindersEnabled else {
+      notificationStatus = "Reminders are off"
+      return
+    }
+    let settings = await center.notificationSettings()
+    guard
+      settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
+    else {
+      notificationStatus = "Notifications are blocked in System Settings."
+      return
+    }
+    let selected = readiness?.selected ?? []
+    guard !selected.isEmpty else {
+      notificationStatus = "Add a goal to begin reminders"
+      return
+    }
+    // One pending invitation. Maintenance renews it after delivery; practice and wake recalculate it.
+    let now = Date()
+    let nextCard = readiness?.nextReview
+    let tomorrow = Calendar.current.date(
+      byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: now))!
+    let hasNew = readiness?.hasNew ?? false
+    let nextReady =
+      !available.isEmpty ? now : min(nextCard ?? .distantFuture, hasNew ? tomorrow : .distantFuture)
+    guard nextReady != .distantFuture else {
+      notificationStatus = "No practice is scheduled"
+      return
+    }
+    let seconds = max(
+      Double(library.preferences.reminderMinutes * 60), nextReady.timeIntervalSince(now))
+    let content = UNMutableNotificationContent()
+    content.title = "A moment for the Word"
+    content.body = "Your next Selah practice is ready. Take a few minutes to recall it."
+    content.sound = .default
+    do {
+      try await center.add(
+        UNNotificationRequest(
+          identifier: "selah.practice", content: content,
+          trigger: UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false)))
+      notificationStatus =
+        "Next invitation \(now.addingTimeInterval(seconds).formatted(date: .abbreviated, time: .shortened))"
+    } catch { notificationStatus = "Could not schedule reminder: \(error.localizedDescription)" }
+  }
+}
+
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
+  var openPractice: (() -> Void)?
+  func applicationDidFinishLaunching(_ notification: Notification) {
+    UNUserNotificationCenter.current().delegate = self
+  }
+  nonisolated func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification
+  ) async -> UNNotificationPresentationOptions { [.banner, .sound] }
+  nonisolated func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse
+  ) async {
+    await MainActor.run { self.openPractice?() }
+  }
+}

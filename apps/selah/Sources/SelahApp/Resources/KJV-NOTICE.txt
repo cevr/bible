@@ -1,0 +1,7 @@
+Authorized King James Version (KJV)
+
+Exported from the user's existing Bible Tools corpus on 2026-10-09.
+Source metadata:
+This Bible is in the Public Domain in most parts of the world. However, in the United Kingdom, it is under perpetual Crown copyright.
+
+31,102 verses, 66 books. Text is preserved verbatim from the local corpus.
