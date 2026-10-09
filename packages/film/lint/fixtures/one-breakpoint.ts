@@ -18,7 +18,14 @@ export const exact = '(width: 56.25em)'; // RED film/one-breakpoint
 
 // Asked through the owner, or built from its one number, passes.
 export const through = `@media ${PHONE} { .x { margin: 0; } } @media ${WIDE} { .x { padding: 0; } }`;
-export const built = `(max-width: ${PHONE_WIDEST}px)`;
+// A width built from a number in the file is a second breakpoint, whichever unit it is in.
+export const built = `(max-width: ${PHONE_WIDEST}px)`; // RED film/one-breakpoint
+export const builtRanged = `(width <= ${PHONE_WIDEST}px)`; // RED film/one-breakpoint
+export const builtFirst = `(${PHONE_WIDEST}px < width)`; // RED film/one-breakpoint
+export const chars = '(max-width: 56ch)'; // RED film/one-breakpoint
+export const viewport = '(min-width: 60vw)'; // RED film/one-breakpoint
+// A template with a value that is no width passes.
+export const colour = `(prefers-color-scheme: ${PHONE_WIDEST})`;
 // A width that is no media query passes.
 export const sized = '.x { max-width: 900px; }';
 // A feature query asks whether a declaration parses, not how wide the window is.

@@ -29,3 +29,12 @@ export const longer = t + 0.01;
 // CLOCK_EPSILON judges two times one.
 export const one = Math.abs(t - from) < CLOCK_EPSILON;
 export const sum = t + CLOCK_EPSILON;
+
+// The same step on the left, as a quotient, or named by a module const.
+const HALF_MS = 0.0005;
+export const onTheLeft = 1e-3 + t; // RED film/one-clock-epsilon
+export const quotient = t - 1 / 1000; // RED film/one-clock-epsilon
+export const named = t + HALF_MS; // RED film/one-clock-epsilon
+export const reversed = HALF_MS - t;
+export const frameStep = t + 1 / 30;
+export const secondsMinus = 1 - t;

@@ -85,7 +85,7 @@ export const useSheetDismissal = (
           Option.match(target, { onNone: () => true, onSome: (to) => samePlace(o.before, to) }),
       );
       openedBy = Option.none();
-      if (ours) return Effect.runSyncWith(host)(Location.use((bar) => bar.back));
+      if (ours) return addressOn(host).back();
       Option.map(target, addressOn(host).follow);
     },
   };

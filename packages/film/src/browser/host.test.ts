@@ -89,6 +89,8 @@ describe('the address bar', () => {
             address.go('/films/p/lab/one#t=0.5');
           }),
         ).toBe('push /films/p/lab/one#t=0.5');
+        // Back over the step lands on the entry before it, as a traversal.
+        expect(yield* entryOf(() => address.back())).toBe('traverse /films/p/lab/three#t=0');
       }).pipe(Effect.provide(Layer.succeedContext(host)));
     },
   );

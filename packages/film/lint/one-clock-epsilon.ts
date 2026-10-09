@@ -12,7 +12,8 @@
 // - a number written out above 0 and below `1e-4` (float noise, not a length
 //   any file keeps, the millisecond being the finest);
 // - a millisecond (or less) added to or taken from a value (`w.start >= m -
-//   1e-3`, `near + 0.001`): a step by hand, which `core/time.ts` owns;
+//   1e-3`, `near + 0.001`, `1e-3 + near`, `near - 1 / 1000`, or a module const
+//   holding one: `near + HALF_MS`): a step by hand, which `core/time.ts` owns;
 // - `CLOCK_EPSILON` added to or taken from the argument of `Math.ceil`,
 //   `floor`, `round` or `trunc`: it judges two times one, and is no grid
 //   nudge (`frameAtOrAfter` and `frameAtOrBefore` are).
@@ -30,7 +31,7 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { memberName } from './nodes.ts';
+import { memberName, numberOf } from './nodes.ts';
 
 /** The largest number a bare nudge is: below it is float noise, at it a tenth of a millisecond. */
 const NOISE = 1e-4;
@@ -45,13 +46,33 @@ const MESSAGE =
 const isNudge = (node: ESTree.Node) =>
   node.type === 'Literal' && Predicate.isNumber(node.value) && node.value > 0 && node.value < NOISE;
 
-/** Whether `node` adds or takes a millisecond, or less, written out. */
+/**
+ * The value of a number written out (`1e-3`), named by a module const
+ * (`HALF_MS`), or folded from a product or quotient of such (`1 / 1000`).
+ */
+const valueOf = (node: ESTree.Node): Option.Option<number> => {
+  if (node.type === 'BinaryExpression' && node.operator === '/')
+    return Option.flatMap(valueOf(node.left), (left) =>
+      Option.map(valueOf(node.right), (right) => left / right),
+    );
+  if (node.type === 'BinaryExpression' && node.operator === '*')
+    return Option.flatMap(valueOf(node.left), (left) =>
+      Option.map(valueOf(node.right), (right) => left * right),
+    );
+  return numberOf(node);
+};
+
+/** Whether `node` is a millisecond or less, but not float noise. */
+const isStep = (node: ESTree.Node) =>
+  Option.exists(valueOf(node), (v) => v >= NOISE && v <= MILLISECOND);
+
+/**
+ * Whether `node` adds or takes a millisecond, or less, written out: on the
+ * right of `+` or `-`, or on the left of `+` (`1e-3 - t` is no step).
+ */
 const stepsByHand = (node: ESTree.BinaryExpression) =>
   (node.operator === '+' || node.operator === '-') &&
-  node.right.type === 'Literal' &&
-  Predicate.isNumber(node.right.value) &&
-  node.right.value >= NOISE &&
-  node.right.value <= MILLISECOND;
+  (isStep(node.right) || (node.operator === '+' && isStep(node.left)));
 
 /** Whether `node` is `CLOCK_EPSILON`. */
 const isEpsilon = (node: ESTree.Node) =>

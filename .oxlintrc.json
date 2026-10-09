@@ -839,8 +839,13 @@
       }
     },
     {
-      // The tests that write widths out to check the breakpoint's value.
-      "files": ["**/packages/film/src/**/fixtures/**", "**/packages/film/src/**/*.test.ts"],
+      // The owner builds `PHONE` and `WIDE` from its one number, and the
+      // tests write widths out to check the breakpoint's value.
+      "files": [
+        "**/packages/film/src/lab/viewport.ts",
+        "**/packages/film/src/**/fixtures/**",
+        "**/packages/film/src/**/*.test.ts"
+      ],
       "rules": {
         "film/one-breakpoint": "off"
       }

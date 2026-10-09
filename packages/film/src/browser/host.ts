@@ -73,6 +73,12 @@ interface AddressBar {
    * rewritten in place, never a step of its own.
    */
   readonly follow: (href: string) => void;
+  /**
+   * Back one entry: the page goes over an entry it pushed itself (a sheet's
+   * open), landing on the entry before it. The caller knows the entry is its
+   * own; the move is the address bar's alone.
+   */
+  readonly back: () => void;
 }
 
 /**
@@ -95,6 +101,9 @@ export const addressOn = (host: Context.Context<UrlState.UrlState | Location>): 
     href: () => Effect.runSyncWith(host)(UrlState.UrlState.use((url) => url.href)),
     go: (to) => navigate(to, (from) => pageMove(from, to)),
     follow: (to) => navigate(to, () => 'replace'),
+    back: () => {
+      Effect.runForkWith(host)(Location.use((bar) => bar.back));
+    },
   };
 };
 
