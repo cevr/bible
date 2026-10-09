@@ -56,6 +56,8 @@ export const compile = (entry: string) =>
       target: 'browser',
       format: 'iife',
       minify: true,
+      // The host-reach check reads a call's frames back to the files that wrote them.
+      sourcemap: 'inline',
       plugins: [solidPlugin, servedFonts],
       conditions: Arr.filter(['development'], () => DEVELOPMENT.has(entry)),
     }),

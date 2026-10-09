@@ -13,10 +13,12 @@
 // case: the renderer's software 2D canvas, media that plays without a
 // gesture, and one fake microphone every case shares (`FAKE_MIC`).
 
+import type { SourceMap } from 'node:module';
 import { BunServices } from '@effect/platform-bun';
 import { Config, Effect, FileSystem, Option, Path, Schema, Scope, Semaphore } from 'effect';
 import { openView, thrownBy } from '../../tools/chrome.ts';
 import { BrowserFailed } from '../../tools/errors.ts';
+import { HOST_REACH, failureOf, mapOf, toldOf } from './host-reach.ts';
 import { type Ask, fromIdle, lease } from './lease.ts';
 import { type Logged, type Request, type Response, type Tab, type View, makeTab } from './tab.ts';
 import { tone } from './tone.ts';
@@ -311,6 +313,15 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
       }),
     );
     const origin = `https://t${tabs}.${SITE}`;
+    const assets = new Map(options.assets.map((a) => [a.url, a.response]));
+    // The source map each of the case's scripts carries, read once.
+    const maps = new Map<string, Option.Option<SourceMap>>();
+    const mapFor = (url: string): Option.Option<SourceMap> =>
+      Option.getOrElse(Option.fromUndefinedOr(maps.get(url)), () => {
+        const read = Option.flatMap(Option.fromUndefinedOr(assets.get(url)), (a) => mapOf(a.body));
+        maps.set(url, read);
+        return read;
+      });
     const events = new EventTarget();
     events.addEventListener('Runtime.exceptionThrown', (event: Event) => {
       Option.map(thrownBy(event), (thrown) => errors.push(thrown));
@@ -329,6 +340,12 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
               }),
             )
             .join(' ');
+          // A host reach is told by the page's own wrapper, not logged by the page.
+          const told = toldOf(text);
+          if (Option.isSome(told)) {
+            Option.map(failureOf(told.value, mapFor), (failure) => errors.push(failure));
+            return;
+          }
           logged.push({ type, text });
           // A warning or an error at any time is the page doing what it does
           // not mean: Solid's reactivity diagnostics (`[STRICT_…]`,
@@ -358,7 +375,6 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
           setting: 'granted',
         }),
       );
-    const assets = new Map(options.assets.map((a) => [a.url, a.response]));
     return yield* makeTab(slot.lent, {
       origin,
       events,
@@ -367,7 +383,7 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
           onNone: () => options.serve(request),
           onSome: Effect.succeedSome,
         }),
-      init: options.init,
+      init: [HOST_REACH, ...options.init],
       logged,
       errors,
       alone: () => open === 1,
