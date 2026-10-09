@@ -186,7 +186,7 @@ export const SayBox = (props: {
  * room for it) says only `Approve` and keeps what it waits on for its title
  * and its name to a screen reader.
  */
-export const ApproveButton = (props: {
+const ApproveButton = (props: {
   readonly approval: ApprovalState;
   readonly approve: () => void;
   readonly disabled?: boolean;

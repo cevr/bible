@@ -207,7 +207,7 @@ export const approveUndoOf = (film: string, op: OpId, scenes: ReadonlyArray<stri
  * What an approve's Undo says it did, from what the catalogue says it took
  * (`Project.took`): nothing, when the approve's approvals were withdrawn since.
  */
-export const tookText = (address: PartAddress, took: Took): string =>
+const tookText = (address: PartAddress, took: Took): string =>
   Match.value(took.scenes.length > 0).pipe(
     Match.when(true, () => `Undid approving ${partText(address)}`),
     Match.orElse(
