@@ -30,8 +30,8 @@ import type { CodeRange, SceneCode } from '../../core/schema.ts';
 import { liveAt } from '../../core/timeline.ts';
 import { Target } from '../command/context-menu.tsx';
 import { useLabPage } from '../panel.tsx';
-import { Sheet } from '../review/inspector.tsx';
 import { useLab } from '../shell.tsx';
+import { Sheet } from '../sheet.tsx';
 import { PHONE, useMatches } from '../viewport.ts';
 import { CodeState, useSource } from './context.tsx';
 import {
@@ -252,9 +252,14 @@ const Text = (props: { readonly code: SceneCode }) => {
               <Show when={Option.contains(held(), row.n)}>
                 <i class="lab-source-held" data-line={row.n} />
               </Show>
-              <For each={metersOn(lit().meters, row.n)}>
+              {/* A meter is its cue's: keyed by the name, its element stays as each frame moves its progress. */}
+              <For each={metersOn(lit().meters, row.n)} keyed={(m) => m.name}>
                 {(m) => (
-                  <i class="lab-source-meter" data-cue={m.name} style={{ '--done': m.progress }} />
+                  <i
+                    class="lab-source-meter"
+                    data-cue={m().name}
+                    style={{ '--done': m().progress }}
+                  />
                 )}
               </For>
             </Target>

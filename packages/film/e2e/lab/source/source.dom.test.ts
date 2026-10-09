@@ -586,6 +586,32 @@ describe('Follow', () => {
       yield* evaluates(page, `window.__reads <= 1`, true);
     }).pipe(Effect.scoped),
   );
+  it.live('a playing cue’s meter is one element its progress moves, not one made each frame', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(span('rise').start + 0.02, { code: 'follow' }),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-meter');
+      yield* page.evaluate(
+        `window.__meterEl = document.querySelector('.lab-source-meter[data-cue="rise"]'); window.__rowEl = window.__meterEl.closest('.lab-source-line'); window.__done = window.__meterEl.style.getPropertyValue('--done');`,
+      );
+      yield* page.click('.bar [data-act="play"]');
+      yield* page.clock.runFor(200);
+      yield* page.click('.bar [data-act="play"]');
+      yield* evaluates(
+        page,
+        `window.__meterEl.style.getPropertyValue('--done') !== window.__done`,
+        true,
+      );
+      // While its line stands, the meter on it is the same element. New code (another case's
+      // write to the probe film, read fresh) draws new lines, and with them new meters.
+      yield* evaluates(
+        page,
+        `!window.__rowEl.isConnected || window.__rowEl.querySelector('.lab-source-meter[data-cue="rise"]') === window.__meterEl`,
+        true,
+      );
+    }).pipe(Effect.scoped),
+  );
 });
 
 describe('what the selection and the frame’s reads light', () => {
