@@ -1544,7 +1544,7 @@ takes none. A view two fingers were down on at once is retired and closed
 when given back: Chrome hears no touch on it after. Every other tab has a mouse's pointer (Blink's fine pointer and
 hover, set as Chrome starts: headless Chrome has none, and `(pointer: none)`
 would give a desk the phone's density). The
-touch-target guard (`e2e/lab/touch.dom.test.ts`) opens every studio page
+touch-target guard (`e2e/lab/touch-targets.dom.test.ts`, its states in `e2e/lab/studio-states.ts`) opens every studio page
 (the Folder with its loose videos among them),
 at rest and with what it discloses open (Project's panels and dock, a
 scene row's sheet, an act's long-press menu, an inspector, the editor's Snap

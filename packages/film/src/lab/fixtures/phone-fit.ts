@@ -18,7 +18,7 @@
 // it in the window, is no chrome: it is shut to go back to the page. Its
 // width and its controls are measured as the page's are.
 
-import { jsonOf } from './tab.ts';
+import { WAIT_MS, jsonOf } from './tab.ts';
 import type { Tab } from './tab.ts';
 
 /** The most of the window's height a page's chrome may hold. */
@@ -143,9 +143,11 @@ export const fits = (layer?: string) =>
  * Wait until the page fits its window (a phone's: 390 × 844), by `fits`;
  * `layer`, the layer it has open, is no chrome. A timeout fails with what the
  * page answers then (`phoneFit`), so the bar or the control over is named.
+ * `within` is the wait in ms (`Tab.until`): a negative control gives 0.
  */
-export const fitsPhone = (page: Tab, layer?: string) =>
+export const fitsPhone = (page: Tab, layer?: string, within = WAIT_MS) =>
   page.until(fits(layer), {
     now: phoneFit(layer),
+    within,
     say: (found) => `the page does not fit the window (chrome at most ${CHROME_MAX}): ${found}`,
   });

@@ -13,7 +13,7 @@ import { BrowserFailed } from '../../tools/errors.ts';
 import { CLOCK, REAL_TIMERS } from './clock.ts';
 
 /** How long a wait or an action waits for the page before it fails. */
-const WAIT_MS = 15_000;
+export const WAIT_MS = 15_000;
 
 /** How many times a wait runs again in a page loaded under it before it gives up. */
 const RUNS = 20;
@@ -69,11 +69,17 @@ export interface Tab {
   readonly evaluate: <A = unknown>(script: string) => Effect.Effect<A>;
   /**
    * Wait until `script`, run in the page, is truthy. A timeout fails saying
-   * `failure.say` of what `failure.now`, run in the page then, answers (as JSON).
+   * `failure.say` of what `failure.now`, run in the page then, answers (as
+   * JSON). The wait is `WAIT_MS` long, or `failure.within` ms: a negative
+   * control, whose page is already as it will be, reads it once (`within: 0`).
    */
   readonly until: (
     script: string,
-    failure?: { readonly now: string; readonly say: (now: string) => string },
+    failure?: {
+      readonly now: string;
+      readonly say: (now: string) => string;
+      readonly within?: number;
+    },
   ) => Effect.Effect<void>;
   /** Wait until `selector` is in the page and shown. */
   readonly waitFor: (selector: string) => Effect.Effect<void>;
@@ -238,12 +244,12 @@ type Waited<A> =
 /**
  * A page-side wait: `ready`, a function expression the page calls until it
  * answers something other than `undefined`, on the page's real timers, for at
- * most `WAIT_MS`.
+ * most `within` ms.
  */
-const waitIn = (ready: string) => `new Promise((done) => {
+const waitIn = (ready: string, within: number) => `new Promise((done) => {
   const timers = globalThis[Symbol.for('${REAL_TIMERS}')] ?? { setTimeout: globalThis.setTimeout.bind(globalThis), perf: performance.now.bind(performance) };
   const ready = ${ready};
-  const end = timers.perf() + ${WAIT_MS};
+  const end = timers.perf() + ${within};
   const look = () => {
     let answer;
     try { answer = ready(); } catch (e) { answer = undefined; }
@@ -460,8 +466,8 @@ export const makeTab = (
       }).pipe(Effect.orDie);
 
     /** A page-side wait, once: a run whose page went answers `Gone` while there are runs left. */
-    const waitOnce = <A>(ready: string, runs: number) => {
-      const once = run<Waited<A>>(waitIn(ready));
+    const waitOnce = <A>(ready: string, runs: number, within: number) => {
+      const once = run<Waited<A>>(waitIn(ready, within));
       if (runs <= 1) return once;
       return Effect.catchDefect(once, () => Effect.succeed<Waited<A>>({ _tag: 'Gone' }));
     };
@@ -475,12 +481,13 @@ export const makeTab = (
       ready: string,
       failure: () => Effect.Effect<string>,
       runs = RUNS,
+      within = WAIT_MS,
     ): Effect.Effect<A> =>
-      Effect.flatMap(waitOnce<A>(ready, runs), (waited) => {
+      Effect.flatMap(waitOnce<A>(ready, runs, within), (waited) => {
         if (waited._tag === 'Answered') return Effect.succeed(waited.answer);
         if (waited._tag === 'TimedOut')
           return Effect.flatMap(failure(), (reason) => Effect.die(BrowserFailed.make({ reason })));
-        return waitFor<A>(ready, failure, runs - 1);
+        return waitFor<A>(ready, failure, runs - 1, within);
       });
 
     const never = (what: string) => () => Effect.succeed(`${what} within ${WAIT_MS} ms`);
@@ -493,6 +500,11 @@ export const makeTab = (
             onNone: () => never(`${script} was never true`),
             onSome: (f) => () =>
               Effect.map(run<string>(`JSON.stringify(${f.now})`), (now) => f.say(now)),
+          }),
+          RUNS,
+          Option.match(Option.fromUndefinedOr(failure), {
+            onNone: () => WAIT_MS,
+            onSome: (f) => Option.getOrElse(Option.fromUndefinedOr(f.within), () => WAIT_MS),
           }),
         ),
       );

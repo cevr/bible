@@ -926,7 +926,10 @@ describe("a film's choices", () => {
         yield* countIs(page, '[data-point]', 0);
         const left = asked.length;
         yield* Deferred.done(answer, Exit.void);
-        yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 800))');
+        // The page's clock runs on past any timer it left; a request sent then has reached the
+        // server by the time a later one is answered.
+        yield* page.clock.fastForward(800);
+        yield* page.evaluate("fetch('/favicon.ico').then(() => true, () => true)");
         expect(asked.slice(left).filter((a) => a.path.startsWith('/api/films/toy/'))).toEqual([]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -948,7 +951,7 @@ describe("a film's choices", () => {
         yield* until(page, "location.hash === '#t=2'");
         yield* until(page, `${time}.startsWith('00:00:02:00')`);
         // Past the time's throttle, the entry still keeps its own time.
-        yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
+        yield* page.clock.fastForward(600);
         yield* until(page, "location.hash === '#t=2'");
         yield* until(page, `${time}.startsWith('00:00:02:00')`);
         expect(errors).toEqual([]);

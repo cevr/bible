@@ -727,7 +727,7 @@ describe('the review page', () => {
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
         yield* textHas(page, '.rv-time', '00:00:04:00');
         // Past the time's throttle, the entry still keeps its own time.
-        yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
+        yield* page.clock.fastForward(600);
         yield* until(page, "location.search === '' && location.hash === '#t=4'");
         yield* textHas(page, '.rv-time', '00:00:04:00');
         expect(errors).toEqual([]);

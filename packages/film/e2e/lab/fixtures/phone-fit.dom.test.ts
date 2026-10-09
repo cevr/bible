@@ -126,7 +126,7 @@ describe('fitsPhone', () => {
     'fails a page that does not fit once its wait is out, naming each way it fails',
     () =>
       Effect.gen(function* () {
-        const exit = yield* Effect.exit(fitsPhone(yield* phonePage(`${WIDE}${FAR}${TALL}`)));
+        const exit = yield* Effect.exit(fitsPhone(yield* phonePage(`${WIDE}${FAR}${TALL}`), '', 0));
         const said = Exit.match(exit, {
           onSuccess: () => 'fitsPhone passed it',
           onFailure: (cause) => Cause.pretty(cause),
