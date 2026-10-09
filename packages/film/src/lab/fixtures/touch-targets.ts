@@ -61,8 +61,12 @@ const SPACED_MIN = 24;
 /** The sampling grid's pitch, in CSS pixels. */
 const STEP = 2;
 
-/** What a finger can operate: the elements, and the roles, a page's touch targets are. */
-const TARGETS = [
+/**
+ * What a finger can operate: the elements, and the roles, a page's touch
+ * targets are, as one selector. The touch-target check and the phone-fit
+ * check ask the same one.
+ */
+export const TARGETS = [
   'button',
   'a[href]',
   'summary',
@@ -86,11 +90,11 @@ const TARGETS = [
 ].join(', ');
 
 /**
- * The page-side words both measures share: `boxOf`; `backing`, a backing
- * input (out of the tree and the tab order, and nothing of it to see or
- * press); `shown`, a target the page shows; `named`, how a failure names one.
+ * The page-side words every measure of the controls shares: `boxOf`;
+ * `backing`, a backing input (out of the tree and the tab order, and nothing
+ * of it to see or press); `named`, how a failure names a control.
  */
-const SHOWN = `
+export const CONTROL_WORDS = `
   const boxOf = (el) => el.getBoundingClientRect();
   const backing = (el) => {
     // A focus guard is in the tab order only to send the focus on at once: nothing to press either.
@@ -100,16 +104,19 @@ const SHOWN = `
     return (r.width <= 1 && r.height <= 1) || /inset\\(50%/.test(s.clipPath) || s.clip === 'rect(0px, 0px, 0px, 0px)' ||
       (Number(s.opacity) === 0 && s.pointerEvents === 'none');
   };
-  const shown = (el) => {
-    if (backing(el)) return false;
-    const r = boxOf(el);
-    return r.width > 0 && r.height > 0 && el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
-  };
   const named = (el) => {
     const cls = typeof el.className === 'string' && el.className.trim() !== '' ? '.' + el.className.trim().split(/\\s+/).join('.') : '';
     const kind = el instanceof HTMLInputElement ? '[type=' + el.type + ']' : '';
     const text = (el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/\\s+/g, ' ').trim().slice(0, 32);
     return el.tagName.toLowerCase() + kind + cls + ' "' + text + '"';
+  };`;
+
+/** `CONTROL_WORDS`, and `shown`: a target the page shows. */
+const SHOWN = `${CONTROL_WORDS}
+  const shown = (el) => {
+    if (backing(el)) return false;
+    const r = boxOf(el);
+    return r.width > 0 && r.height > 0 && el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
   };`;
 
 /**

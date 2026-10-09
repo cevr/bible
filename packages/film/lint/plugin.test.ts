@@ -80,7 +80,7 @@ const MESSAGES = {
   'host-events-through-adapter.ts:15 film/host-events-through-adapter':
     "self.addEventListener('pointercancel') hears the host directly: use Pointer.press (packages/film/src/browser/pointer.ts).",
   'host-events-through-adapter.ts:19 film/host-events-through-adapter':
-    "document.body.addEventListener('pointercancel') ends a press outside its owner: use Pointer.press (packages/film/src/browser/pointer.ts).",
+    "document.body.addEventListener('pointercancel') hears the host directly: use Pointer.press (packages/film/src/browser/pointer.ts).",
   'host-events-through-adapter.ts:21 film/host-events-through-adapter':
     'el.setPointerCapture holds a press outside its owner: use Pointer.press (packages/film/src/browser/pointer.ts).',
   'host-events-through-adapter.ts:33 film/host-events-through-adapter':

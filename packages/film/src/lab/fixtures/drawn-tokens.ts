@@ -2,7 +2,9 @@
 // size, weight, leading, tracking, radius, border and outline width and
 // spacing the studio's chrome is drawn with, and every colour in its
 // gradients, shadows, filters, strokes and stops, in the element and in its
-// `::before` and `::after`, resolves to a token of `player/tokens.css`, as the
+// `::before` and `::after` (and a shown placeholder's `::placeholder`, a list
+// item's `::marker` and a modal's `::backdrop`, the colour each draws),
+// resolves to a token of `player/tokens.css`, as the
 // page's own `:root` resolves it at its width and pointer. Only the tokens
 // that file declares count: a variable a page or a part declares for itself
 // is no token, so a value it carries is read as the literal it is. The
@@ -294,6 +296,14 @@ export const untokened = (tokensCss: string) => `(() => {
       const s = getComputedStyle(el, pseudo);
       if (s.content !== 'none' && s.content !== 'normal') read(el, s, pseudo);
     }
+    // The pseudo-elements that draw a colour of their own: a shown placeholder, a list item's marker, a modal's backdrop.
+    const colourOfPseudo = (pseudo, property, key) => {
+      const value = getComputedStyle(el, pseudo)[property];
+      if (!isColour(value, el)) off(key, value, el, pseudo);
+    };
+    if (el.matches('input, textarea') && el.placeholder !== '' && el.value === '') colourOfPseudo('::placeholder', 'color', 'color');
+    if (getComputedStyle(el).display === 'list-item') colourOfPseudo('::marker', 'color', 'color');
+    if (el.matches(':modal, :popover-open')) colourOfPseudo('::backdrop', 'backgroundColor', 'background-color');
   }
   const SITES = ${arrayOf(Object.keys(SITES))};
   return [...found].filter((line) => !SITES.includes(line)).sort();

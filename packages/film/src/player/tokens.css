@@ -223,6 +223,10 @@ body {
   font-feature-settings: inherit;
   font-variant-numeric: inherit;
 }
+/* A field's hint is the hint colour, not the user agent's grey; weightless like the rule above. */
+:where(input, textarea)::placeholder {
+  color: var(--text-3);
+}
 /* The type scale's own bold and small, not the user agent's (700, `smaller`). */
 :where(b, strong) {
   font-weight: var(--w-3);
