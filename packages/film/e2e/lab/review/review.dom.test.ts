@@ -14,6 +14,7 @@
 import { Effect, Match, Option, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
+import { FILM_FPS, timecode } from '../../../src/core/time.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
 import { tone } from '../../../src/lab/fixtures/tone.ts';
 import { STEP_S } from '../../../src/lab/review/machine.ts';
@@ -595,27 +596,27 @@ describe('the review page', () => {
         yield* textHas(page, '.rv-big', '❚❚');
         yield* page.press('Space');
         yield* textHas(page, '.rv-big', '▶');
-        // The pause lands a few frames in: the steps are counted from where it did.
-        const paused = (yield* page.evaluate<string>(
-          "document.querySelector('.rv-time').textContent.split(' / ')[0]",
-        )).split(':');
-        const secondsLater = (later: number) =>
-          [
-            ...paused.slice(0, 2),
-            String(Number(paused[2]) + later).padStart(2, '0'),
-            paused[3],
-          ].join(':');
-        yield* page.press('ArrowRight');
-        yield* page.press('ArrowRight');
-        yield* textHas(page, '.rv-time', secondsLater(2 * STEP_S));
-        yield* page.press('ArrowLeft');
-        yield* textHas(page, '.rv-time', secondsLater(STEP_S));
-        // Every video stands where the clock does: on one time, a step past the pause.
-        const standing =
-          "Array.from(document.querySelectorAll('.rv-card video')).map((v) => v.currentTime)";
+        // The clock ran for as long as the page took to show ❚❚ and take the
+        // pause (seconds on a loaded box), so the steps are read from where it
+        // stopped, not from zero.
         yield* until(
           page,
-          `(${standing}).every((t, _, all) => Math.abs(t - all[0]) < 0.01 && t >= ${STEP_S})`,
+          "Array.from(document.querySelectorAll('.rv-card video')).every((v) => v.paused)",
+        );
+        const stopped = yield* page.evaluate<string>(
+          "document.querySelector('.rv-time').textContent.split(' ')[0]",
+        );
+        const [h = 0, m = 0, s = 0, ff = 0] = stopped.split(':').map(Number);
+        const t0 = h * 3600 + m * 60 + s + ff / FILM_FPS;
+        yield* page.press('ArrowRight');
+        yield* page.press('ArrowRight');
+        yield* textHas(page, '.rv-time', timecode(t0 + 2 * STEP_S));
+        yield* page.press('ArrowLeft');
+        yield* textHas(page, '.rv-time', timecode(t0 + STEP_S));
+        // Every video stands where the clock does, to a frame.
+        yield* until(
+          page,
+          `Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - ${t0 + STEP_S}) < ${1 / FILM_FPS + 0.01})`,
         );
         // The rate chip opens the rates but the one it plays at; J steps one slower.
         yield* page.click('.rv-transport [data-act="rate"]');
