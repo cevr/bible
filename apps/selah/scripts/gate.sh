@@ -20,5 +20,6 @@ assert len(verses) == 31102
 assert len({v['book'] for v in verses}) == 66
 assert len({(v['book'], v['chapter'], v['number']) for v in verses}) == len(verses)
 assert all(v['text'].strip() for v in verses)
-print('KJV corpus: 66 books, 31,102 unique verses verified')
+assert sum(len(v.get('marginNotes', [])) for v in verses) == 7320
+print('KJV corpus: 66 books, 31,102 unique verses and 7,320 margin notes verified')
 PY

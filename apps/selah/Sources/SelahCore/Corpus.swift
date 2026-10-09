@@ -9,11 +9,16 @@ public struct ChapterKey: Hashable, Sendable {
 public struct Corpus: Sendable {
   public let verses: [Verse]
   public let books: [Verse]
+  private let scripture: [String: Scripture]
+  public func rendering(for verse: Verse) -> Scripture {
+    scripture[verse.id] ?? Scripture(verse: verse)
+  }
   private let byBook: [Int: [Verse]]
   private let byChapter: [ChapterKey: [Verse]]
   private let chapterOrder: [ChapterKey]
   public init(verses: [Verse]) {
     self.verses = verses
+    scripture = Dictionary(uniqueKeysWithValues: verses.map { ($0.id, Scripture(verse: $0)) })
     books = verses.filter { $0.chapter == 1 && $0.number == 1 }
     byBook = Dictionary(grouping: verses, by: \.book)
     byChapter = Dictionary(grouping: verses) { ChapterKey(book: $0.book, chapter: $0.chapter) }

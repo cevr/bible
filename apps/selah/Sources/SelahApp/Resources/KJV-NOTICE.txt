@@ -5,3 +5,5 @@ Source metadata:
 This Bible is in the Public Domain in most parts of the world. However, in the United Kingdom, it is under perpetual Crown copyright.
 
 31,102 verses, 66 books. Text is preserved verbatim from the local corpus.
+
+7,320 KJV margin notes exported read-only from the same corpus. Supplied-word brackets and red-letter markers are interpreted for display; raw source text is retained.

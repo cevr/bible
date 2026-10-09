@@ -8,14 +8,13 @@ struct SelahApp: App {
   var body: some Scene {
     Window("Selah", id: "practice") {
       RootView(store: store, delegate: delegate, compact: false)
-        .frame(minWidth: 480, idealWidth: 560, maxWidth: .infinity, minHeight: 650)
+        .frame(minWidth: 480, idealWidth: 620, maxWidth: .infinity, minHeight: 620)
     }
-    .defaultSize(width: 560, height: 720)
-    .windowStyle(.hiddenTitleBar)
+    .defaultSize(width: 620, height: 760)
     .windowResizability(.contentMinSize)
     MenuBarExtra {
       RootView(store: store, delegate: delegate, compact: true)
-        .frame(width: 400, height: 580)
+        .frame(width: 420, height: 620)
     } label: {
       Image(systemName: "book.closed").accessibilityLabel("Selah Bible memory")
     }

@@ -5,20 +5,16 @@ import SwiftUI
 private let muted = Color(white: 0.66)
 private let surface = Color(white: 0.075)
 
-struct QuietButton: ButtonStyle {
+struct QuietButton: PrimitiveButtonStyle {
   var primary = false
-  @Environment(\.isEnabled) private var isEnabled
   func makeBody(configuration: Configuration) -> some View {
-    configuration.label.font(.system(size: 14, weight: .medium))
-      .padding(.horizontal, 16).padding(.vertical, 12).frame(maxWidth: .infinity)
-      .foregroundStyle(primary ? .black : .white)
-      .background(
-        primary
-          ? Color.white.opacity(configuration.isPressed ? 0.8 : 1)
-          : Color(white: configuration.isPressed ? 0.18 : 0.12), in: Capsule()
-      )
-      .contentShape(Capsule())
-      .opacity(isEnabled ? 1 : 0.45)
+    Group {
+      if primary {
+        Button(configuration).buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
+      } else {
+        Button(configuration).buttonStyle(.bordered)
+      }
+    }.controlSize(.large).frame(maxWidth: .infinity)
   }
 }
 
@@ -26,89 +22,65 @@ struct RootView: View {
   @Bindable var store: Store
   let delegate: AppDelegate
   let compact: Bool
-  @State private var tab = "Today"
   @Environment(\.openWindow) private var openWindow
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @Namespace private var tabHighlight
   var body: some View {
     VStack(spacing: 0) {
-      HStack {
-        Image(systemName: "book.closed").font(.system(size: 17, weight: .medium))
-        Text("selah").font(.system(size: 21, weight: .semibold, design: .rounded)).tracking(-0.7)
+      HStack(spacing: 14) {
+        Label("Selah", systemImage: "book.closed").font(.headline)
         Spacer()
         if compact {
           Button {
             openWindow(id: "practice")
             NSApp.activate(ignoringOtherApps: true)
           } label: {
-            Image(systemName: "arrow.up.left.and.arrow.down.right").frame(width: 30, height: 30)
-          }.buttonStyle(.plain).help("Open practice window").accessibilityLabel(
+            Image(systemName: "arrow.up.left.and.arrow.down.right")
+          }.buttonStyle(.borderless).help("Open practice window").accessibilityLabel(
             "Open practice window")
-        } else {
-          Text("SCRIPTURE, HELD CLOSE").font(.system(size: 9, weight: .medium)).tracking(1.6)
-            .foregroundStyle(muted)
         }
-      }.padding(.bottom, 24)
-      HStack(spacing: 6) {
-        ForEach(["Today", "Library", "Settings"], id: \.self) { name in
-          Button {
-            tab = name
-          } label: {
-            Text(name).font(.system(size: 12, weight: .medium)).frame(maxWidth: .infinity).padding(
-              .vertical, 9
-            )
-            .background {
-              if tab == name {
-                Capsule().fill(Color(white: 0.16)).matchedGeometryEffect(
-                  id: "selectedTab", in: tabHighlight)
-              }
-            }
-          }.buttonStyle(.plain).foregroundStyle(tab == name ? .white : muted)
-        }
-      }.padding(4).background(surface, in: Capsule()).padding(.bottom, 24)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: tab)
+      }.padding(.horizontal, 24).padding(.top, compact ? 20 : 12).padding(.bottom, 16)
+      Picker("Section", selection: $store.section) {
+        Text("Today").tag("Today")
+        Text("Library").tag("Library")
+        Text("Settings").tag("Settings")
+      }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 24).padding(.bottom, 16)
+      Divider()
       if let error = store.error {
-        VStack(alignment: .leading, spacing: 8) {
-          Label(error, systemImage: "exclamationmark.triangle").font(.system(size: 12))
-          Button("Show Progress File") {
-            NSWorkspace.shared.selectFile(store.file.url.path, inFileViewerRootedAtPath: "")
-          }
-        }.padding(12).background(surface, in: RoundedRectangle(cornerRadius: 12)).padding(
-          .bottom, 12)
+        Label(error, systemImage: "exclamationmark.triangle").font(.callout).padding(16)
       }
-      ScrollView {
+      Group {
         if store.isLoading {
-          ProgressView("Opening your Bible…").frame(maxWidth: .infinity).padding(.top, 48)
+          ProgressView("Opening your Bible…").frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if store.section == "Settings" {
+          SettingsView(store: store)
         } else {
-          Group {
-            switch tab {
-            case "Library": LibraryView(store: store)
-            case "Settings": SettingsView(store: store)
-            default:
-              if store.sessionActive {
+          ScrollView {
+            Group {
+              if store.section == "Library" {
+                LibraryView(store: store)
+              } else if store.sessionActive {
                 PracticeView(store: store)
               } else {
-                TodayView(store: store, showLibrary: { tab = "Library" })
+                TodayView(store: store, showLibrary: { store.section = "Library" })
               }
-            }
-          }.frame(maxWidth: .infinity, alignment: .leading).disabled(
-            store.isSaving || !store.canSave)
+            }.frame(maxWidth: 640, alignment: .leading).padding(24).frame(maxWidth: .infinity)
+          }
         }
-      }.scrollIndicators(.hidden)
+      }.disabled(store.isSaving || !store.canSave)
+      Divider()
       HStack {
-        Circle().fill(Color(white: 0.55)).frame(width: 4, height: 4).accessibilityHidden(true)
-        Text("On this Mac · KJV").font(.system(size: 10)).foregroundStyle(muted)
+        Text("KJV · On this Mac").foregroundStyle(.secondary)
         Spacer()
-        Button("Quit") { NSApp.terminate(nil) }.buttonStyle(.plain).font(.system(size: 10))
-          .foregroundStyle(muted)
-      }.padding(.top, 20)
+        if store.isSaving {
+          ProgressView().controlSize(.mini)
+          Text("Saving…")
+        }
+        Button("Quit") { NSApp.terminate(nil) }.buttonStyle(.borderless).foregroundStyle(.secondary)
+      }.font(.caption).padding(.horizontal, 24).padding(.vertical, 12)
     }
-    .padding(compact ? 24 : 32).background(Color.black).foregroundStyle(.white)
-    .preferredColorScheme(.dark)
-    .task { await store.refreshReminders() }
+    .background(Color(nsColor: .windowBackgroundColor)).preferredColorScheme(.dark)
     .onAppear {
       delegate.openPractice = {
-        tab = "Today"
+        store.section = "Today"
         store.begin()
         openWindow(id: "practice")
         NSApp.activate(ignoringOtherApps: true)
@@ -130,14 +102,14 @@ struct TodayView: View {
       Text(Date(), format: .dateTime.weekday(.wide).month(.wide).day()).font(.system(size: 12))
         .foregroundStyle(muted)
       Text("A little each day.\nA lifetime within.")
-        .font(.system(size: 30, weight: .medium, design: .rounded)).tracking(-1).fixedSize(
+        .font(.system(size: 30, weight: .medium, design: .rounded)).tracking(-0.5).fixedSize(
           horizontal: false, vertical: true)
       Text("Read with care. Recall from memory.\nReturn before the words fade.")
         .font(.system(size: 14)).foregroundStyle(muted).lineSpacing(5)
       HStack(alignment: .firstTextBaseline, spacing: 8) {
         Text("\(store.available.count)").font(.system(size: 48, weight: .light, design: .rounded))
           .monospacedDigit()
-        Text("verses ready").font(.system(size: 13)).foregroundStyle(muted)
+        Text("reviews ready").font(.system(size: 13)).foregroundStyle(muted)
         Spacer()
       }.padding(.top, 6)
       if store.library.goals.isEmpty {
@@ -168,7 +140,7 @@ struct TodayView: View {
           ProgressView(value: Double(learned), total: Double(max(1, count))).tint(.white)
           Text("\(learned) of \(count) verses recalled at least twice")
             .font(.system(size: 11)).foregroundStyle(muted)
-        }.padding(18).background(surface, in: RoundedRectangle(cornerRadius: 20))
+        }.padding(18).background(surface, in: RoundedRectangle(cornerRadius: 12))
       }
     }
   }
@@ -191,18 +163,19 @@ struct PracticeView: View {
           -0.5)
         Text(
           store.library.cards[verse.id] == nil
-            ? "NEW VERSE · Read once, then hide and recall."
+            ? "STUDY · Read once, then hide and recall."
             : "RECALL · Say the words before revealing them."
         )
         .font(.system(size: 10, weight: .medium)).foregroundStyle(muted)
         if store.revealed {
-          Text(verse.practiceText).font(.system(size: 21, weight: .regular)).lineSpacing(8)
-            .textSelection(
-              .enabled
-            )
-            .padding(20).frame(maxWidth: .infinity, alignment: .leading).background(
-              surface, in: RoundedRectangle(cornerRadius: 22)
-            )
+          VStack(alignment: .leading, spacing: 18) {
+            ForEach(verse.verses) { item in
+              ScriptureText(
+                verse: item, scripture: store.corpus.rendering(for: item), numbered: verse.isChapter
+              )
+            }
+          }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 12))
             .transition(.opacity)
           if store.studying {
             Button("Hide & Try to Recall") {
@@ -211,13 +184,9 @@ struct PracticeView: View {
             }
             .buttonStyle(QuietButton()).keyboardShortcut(.return, modifiers: [.command])
           } else {
-            if !store.typedRecall.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-              VStack(alignment: .leading, spacing: 6) {
-                Text("YOUR RECALL").font(.system(size: 9, weight: .medium)).tracking(1.2)
-                  .foregroundStyle(muted)
-                Text(store.typedRecall).font(.system(size: 14)).textSelection(.enabled)
-              }
-            }
+            if store.isComparing { ProgressView("Comparing words…").controlSize(.small) }
+            if let comparison = store.comparison { RecallFeedback(comparison: comparison) }
+            if let error = store.feedbackError { Text(error).foregroundStyle(.secondary) }
             Text(
               store.hinted
                 ? "Hints were used. Choose Again or Hard, then try unaided next time."
@@ -256,8 +225,8 @@ struct PracticeView: View {
           .accessibilityLabel("Type your recall, or recite aloud and leave this blank")
           Text("Recite aloud, or type here. Compare your words after revealing.")
             .font(.system(size: 12)).foregroundStyle(muted)
-          Button("Reveal Verse") {
-            store.revealed = true
+          Button(verse.isChapter ? "Reveal Chapter" : "Reveal Verse") {
+            store.reveal()
           }
           .buttonStyle(QuietButton(primary: true)).keyboardShortcut(.return, modifiers: [.command])
           Button("First-letter Hint") { store.hinted = true }.buttonStyle(QuietButton())
@@ -267,7 +236,7 @@ struct PracticeView: View {
           .top, 24)
         Text("Carry it with you.").font(.system(size: 28, weight: .medium, design: .rounded))
         Text(
-          "\(store.completed) verses practiced. Your next reviews are saved. Any missed verses return in 10 minutes."
+          "\(store.completed) reviews completed. Your next FSRS reviews are saved."
         )
         .font(.system(size: 14)).foregroundStyle(muted).lineSpacing(5)
         Button("Back to Today") { store.sessionActive = false }.buttonStyle(
@@ -351,7 +320,7 @@ struct LibraryView: View {
           }
           Spacer()
           Button("Read") { reading = goal }.buttonStyle(.bordered)
-        }.padding(16).background(surface, in: RoundedRectangle(cornerRadius: 18))
+        }.padding(16).background(surface, in: RoundedRectangle(cornerRadius: 12))
       }
     }
     .onChange(of: book) {
@@ -365,12 +334,13 @@ struct LibraryView: View {
     }
     .onChange(of: first) { last = max(first, last) }
     .sheet(item: $reading) { goal in
-      ReadingView(chapters: store.corpus.chapters(for: goal), title: goal.title)
+      ReadingView(store: store, chapters: store.corpus.chapters(for: goal), title: goal.title)
     }
   }
 }
 
 struct ReadingView: View {
+  @Bindable var store: Store
   let chapters: [[Verse]]
   let title: String
   @Environment(\.dismiss) private var dismiss
@@ -409,16 +379,25 @@ struct ReadingView: View {
         } else {
           LazyVStack(alignment: .leading, spacing: 20) {
             ForEach(visible) { verse in
-              Text("\(verse.number)  \(verse.practiceText)").font(.system(size: 19)).lineSpacing(7)
-                .textSelection(.enabled)
+              ScriptureText(verse: verse, scripture: store.corpus.rendering(for: verse))
             }
           }
         }
       }
-      Text("Passage rehearsal does not change individual verse review dates.").font(.caption)
+      if let first = visible.first,
+        visible.count == store.corpus.verses(book: first.book, chapter: first.chapter).count
+      {
+        Button("Practice & Schedule This Chapter") {
+          store.beginChapter(visible)
+          dismiss()
+        }.buttonStyle(.borderedProminent)
+      }
+      Text("Chapter grades schedule the chapter independently of its verses.").font(.caption)
         .foregroundStyle(muted)
-    }.padding(28).frame(minWidth: 480, idealWidth: 560, minHeight: 520).background(.black)
-      .preferredColorScheme(.dark)
+    }.padding(28).frame(minWidth: 480, idealWidth: 620, minHeight: 580).background(
+      Color(nsColor: .windowBackgroundColor)
+    )
+    .preferredColorScheme(.dark)
   }
 }
 

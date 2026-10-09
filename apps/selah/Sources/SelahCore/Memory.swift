@@ -7,23 +7,29 @@ public struct Verse: Codable, Identifiable, Hashable, Sendable {
   public let chapter: Int
   public let number: Int
   public let text: String
+  public let marginNotes: [MarginNote]?
   public var id: String { "\(book):\(chapter):\(number)" }
   public var reference: String { "\(bookName) \(chapter):\(number)" }
   /// Preserve the source text; remove printed paragraph and italic markers for practice.
   public var practiceText: String {
     text.replacingOccurrences(of: "¶", with: "").replacingOccurrences(of: "[", with: "")
-      .replacingOccurrences(of: "]", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+      .replacingOccurrences(of: "]", with: "").replacingOccurrences(of: "‹", with: "")
+      .replacingOccurrences(of: "›", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
   }
-  public init(book: Int, bookName: String, chapter: Int, number: Int, text: String) {
+  public init(
+    book: Int, bookName: String, chapter: Int, number: Int, text: String,
+    marginNotes: [MarginNote]? = nil
+  ) {
     self.book = book
     self.bookName = bookName
     self.chapter = chapter
     self.number = number
     self.text = text
+    self.marginNotes = marginNotes
   }
   public var initials: String {
     practiceText.split(separator: " ").map { word in
-      String(word.prefix(1))
+      String(word.first(where: { $0.isLetter || $0.isNumber }).map { String($0) } ?? "")
         + String(word.reversed().prefix(while: { !$0.isLetter && !$0.isNumber }).reversed())
     }.joined(separator: " ")
   }

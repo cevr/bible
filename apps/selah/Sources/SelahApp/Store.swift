@@ -21,6 +21,11 @@ final class Store {
   var studying = false
   var hinted = false
   var typedRecall = ""
+  var section = "Today"
+  var comparison: RecallComparison?
+  var feedbackError: String?
+  var isComparing = false
+  private var feedbackTask: Task<Void, Never>?
   let file: ProgressFile
   private let repository: ProgressRepository
   private var revision = 0
@@ -110,7 +115,45 @@ final class Store {
     sessionActive = true
     resetRecall()
   }
+  func beginChapter(_ verses: [Verse]) {
+    guard !isLoading, !isSaving, let first = verses.first,
+      verses.count == corpus.verses(book: first.book, chapter: first.chapter).count
+    else { return }
+    queue = [PracticeUnit(verses: verses, isChapter: true)]
+    completed = 0
+    sessionTotal = 1
+    sessionActive = true
+    section = "Today"
+    resetRecall()
+  }
+  func reveal() {
+    revealed = true
+    comparison = nil
+    feedbackError = nil
+    guard let current, !typedRecall.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      return
+    }
+    let expected = current.practiceText
+    let answer = typedRecall
+    feedbackTask?.cancel()
+    isComparing = true
+    feedbackTask = Task {
+      let result = await Task.detached(priority: .userInitiated) {
+        Result { try RecallComparison(expected: expected, recalled: answer) }
+      }.value
+      guard !Task.isCancelled else { return }
+      switch result {
+      case .success(let feedback): comparison = feedback
+      case .failure(let error): feedbackError = error.localizedDescription
+      }
+      isComparing = false
+    }
+  }
   func resetRecall() {
+    feedbackTask?.cancel()
+    comparison = nil
+    feedbackError = nil
+    isComparing = false
     studying = current.map { library.cards[$0.id] == nil } ?? false
     revealed = studying
     hinted = false
