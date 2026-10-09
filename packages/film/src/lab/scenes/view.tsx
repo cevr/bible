@@ -27,7 +27,7 @@ import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Dialog } from '@bible/ui/dialog';
 import { For, Show } from '@solidjs/web';
 import { Array as Arr, Boolean as Bool, Effect, type Layer, Match, Option, Result } from 'effect';
-import { createEffect, createMemo, createSignal, onCleanup, untrack } from 'solid-js';
+import { createEffect, createMemo, createSignal, flush, onCleanup, untrack } from 'solid-js';
 import { type Host, addressOn, monotonicMs, onTraverse } from '../../browser/host.ts';
 import { Frames } from '../../browser/frames.ts';
 import { PageLoad } from '../../browser/page-load.ts';
@@ -52,6 +52,7 @@ import { approveUndo, partSaid, undoApprove } from '../review/options/receipt.ts
 import { PHONE, useMatches } from '../viewport.ts';
 import { pressed } from '../pressed.ts';
 import { Sheet, useSheetDismissal } from '../sheet.tsx';
+import type { InspectorBox } from '../review/inspector.tsx';
 import { Comments, SayBox } from '../review/options/choice.tsx';
 import { useOnScreenFirst } from '../review/options/stills.tsx';
 import { SceneCard, SceneFindings, SceneState, sceneHue } from './card.tsx';
@@ -355,6 +356,41 @@ export const ScenesView = (props: ScenesViewProps) => {
   const sceneIn = (ctx: Context) => Option.map(selected(ctx, 'Scene'), (s) => s.scene);
   const [palette, setPalette] = createSignal(false, fromHost);
   const [info, setInfo] = createSignal(false, fromHost);
+  // A scene's unsent comment outlives its sheet (a tap on another still remakes it), and its
+  // comment box's field is the one `scenes.comment` focuses.
+  const drafts = new Map<string, string>();
+  const fields = new Map<string, HTMLElement>();
+  const [drafted, setDrafted] = createSignal(0, fromHost);
+  const boxOf = (scene: string): InspectorBox => ({
+    input: (el) => {
+      fields.set(scene, el);
+    },
+    draft: {
+      get: () => {
+        drafted();
+        return Option.getOrElse(Option.fromUndefinedOr(drafts.get(scene)), () => '');
+      },
+      set: (text) => {
+        drafts.set(scene, text);
+        setDrafted((n) => n + 1);
+      },
+    },
+  });
+  /** Raise `scene`'s sheet (a lowered one is lifted) and put the cursor in its comment box. */
+  const commentOn = (scene: string) => {
+    select(Option.some(scene));
+    flush();
+    for (const field of Option.toArray(Option.fromUndefinedOr(fields.get(scene)))) {
+      for (const grip of Option.toArray(
+        Option.fromNullishOr(
+          field.closest('[data-peek="true"]')?.querySelector('[data-act="sheet"]'),
+        ),
+      )) {
+        if (grip instanceof HTMLElement) grip.click();
+      }
+      field.focus();
+    }
+  };
   const commands: ReadonlyArray<Command> = [
     {
       id: 'scenes.open-lab',
@@ -365,6 +401,16 @@ export const ScenesView = (props: ScenesViewProps) => {
       touch: 'Open in Lab on the selected scene, or long-press a still',
       when: (ctx) => Option.isSome(sceneIn(ctx)),
       run: quietly((ctx) => Option.map(sceneIn(ctx), openLab)),
+    },
+    {
+      id: 'scenes.comment',
+      label: 'Comment on',
+      group: 'Scene',
+      keys: ['m'],
+      about: ['Scene'],
+      touch: 'Comment on the selected scene, or long-press a still',
+      when: (ctx) => Option.isSome(sceneIn(ctx)),
+      run: quietly((ctx) => Option.map(sceneIn(ctx), commentOn)),
     },
     {
       id: 'scenes.approve',
@@ -728,7 +774,7 @@ export const ScenesView = (props: ScenesViewProps) => {
               Comments <span>{comments().length}</span>
             </h3>
             <Comments comments={comments()} />
-            <SayBox disabled={saying()} say={sayComment} />
+            <SayBox disabled={saying()} say={sayComment} box={boxOf(scene)} />
           </section>
         </Show>
       </>

@@ -1062,6 +1062,37 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live(
+    "a scene's unsent comment outlives its sheet: another still's tap, and back, finds it; M puts the cursor in the box",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          projectRoutes(),
+        );
+        const box = '.sc-focus .rv-comment-input';
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        yield* clickInScene(page, 'two');
+        yield* page.waitFor(box);
+        yield* page.fill(box, 'half a thought');
+        yield* clickInScene(page, 'one');
+        yield* evaluates(page, `document.querySelector('${box}').value`, '');
+        yield* clickInScene(page, 'two');
+        yield* evaluates(page, `document.querySelector('${box}').value`, 'half a thought');
+        // M: the cursor goes to the box of the scene selected.
+        yield* page.evaluate(`document.activeElement.blur()`);
+        yield* evaluates(
+          page,
+          `document.activeElement === document.querySelector('${box}')`,
+          false,
+        );
+        yield* page.press('m');
+        yield* evaluates(page, `document.activeElement === document.querySelector('${box}')`, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('⇧-click adds scenes to the selection, and ⇧A approves them all in one say (AA-12)', () =>
     Effect.gen(function* () {
       const { page, asked, errors } = yield* openPlayer(
