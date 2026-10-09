@@ -194,8 +194,8 @@ leaves a take and its timings disagreeing, and another `narrate`'s sweep
 never puts away a take still being made. The sweep removes a partial write
 only when its writer, named in `<file>.<pid>-<n>.<host tag>.partial`, is a
 pid on this host that no longer runs. It keeps every other partial: another
-host's, and one whose name carries no host (a writer from before partials
-named it) or no writer, since a leftover partial blocks nothing and is
+host's, and one whose name carries no host
+or no writer, since a leftover partial blocks nothing and is
 git-ignored while removing a live one loses its write. A mix landing its
 track meanwhile, here or on another host, keeps its partial. A take's words come from the speech model's alignment and its
 length from the encoded file; a word the alignment puts past the end is held
@@ -2181,7 +2181,7 @@ A film's page plays its newest whole-film render as the catalogue records it.
 bare path) replaces the app's own roots (every checkout's `out/`);
 `FILM_REVIEW_EXTRA_ROOTS` adds to them. Every route names a file by its ref
 (its root's label, then its path under the root), never a path on the box.
-Derived files (frames, 720p phone copies of big videos, option mixes) are
+Cached files (frames, 720p phone copies of big videos, option mixes) are
 kept in `FILM_REVIEW_CACHE` (`~/.cache/film-review`); `FILM_REVIEW_PHONE=off`
 makes no phone copies.
 

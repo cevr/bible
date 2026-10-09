@@ -814,8 +814,7 @@ export const echoPages = Layer.mergeAll(
 /**
  * `files`, whose `nth` write, rename or remove (counting from 1) fails as a
  * crash would, and every one after it: the process is gone, so nothing after
- * it lands, not even a cleanup that catches the failure (a lock given back).
- * Every op before it has landed. `nth` 0 never crashes. `ops()` counts the
+ * it lands, not even a cleanup that catches the failure. Every op before it has landed. `nth` 0 never crashes. `ops()` counts the
  * writes, renames and removes attempted so far.
  */
 export const crashingFileSystem = (files: Map<string, Uint8Array>, nth: number) => {
@@ -830,7 +829,7 @@ export const crashingFileSystem = (files: Map<string, Uint8Array>, nth: number) 
       pathOrDescriptor: path,
       description: 'crash',
     });
-  /** A write the count leaves out (a lock's text, a folder, a link): after the crash it lands no more than the rest. */
+  /** A write the count leaves out (a text file, a folder, a link): after the crash it lands no more than the rest. */
   const after = (method: string, path: string) =>
     Effect.suspend(() => {
       if (gone()) return Effect.fail(crashed(method, path));

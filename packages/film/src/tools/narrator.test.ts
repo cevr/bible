@@ -814,11 +814,11 @@ describe('Narrator', () => {
       ),
     );
 
-    it.effect('a sweep keeps a partial written before partials named their host', () =>
+    it.effect('a sweep keeps a partial whose name carries no host', () =>
       Effect.gen(function* () {
         const files = filed();
         const fs = yield* fileSystemOf(files);
-        // A mix started before the upgrade names only its pid, which runs on some host but not here.
+        // A partial that names only its pid, which runs on some host but not here.
         const partial = `${DIR}/full.wav.4242-7.partial`;
         files.set(partial, text('the mix'));
         yield* sweepElsewhere(fs).pipe(processesOn('here', () => false));

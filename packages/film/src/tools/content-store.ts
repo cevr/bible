@@ -23,9 +23,8 @@
 //    lock again dies naming it, rather than waiting on itself. A value read
 //    before the lock and carried in stays the reviewer's to catch.
 //
-// Every writer holds this lock: a store from before it (a `<file>.lock` it
-// made and judged) is not run beside it, the lab restarting with the code it
-// serves and every child or terminal command starting from it.
+// Every writer holds this lock, whether it is the lab, a child or a terminal
+// command, so no two decide on one manifest at once.
 //
 // A file is written whole (`writeWhole`): beside it under a name of the
 // writer's own (`<file>.<pid>-<n>.<host tag>.partial`), then renamed over it
@@ -86,7 +85,7 @@ interface PartialWriter {
 /**
  * The writer of a partial (`writeWholeWith`), read from its name; none for
  * a name that does not carry both (`<file>.partial`, or
- * `<file>.<pid>-<n>.partial` from before partials named their host).
+ * `<file>.<pid>-<n>.partial`, which names no host).
  */
 const partialWriter = (name: string): Option.Option<PartialWriter> =>
   Option.flatMap(
@@ -183,8 +182,7 @@ export const Processes = Context.Reference<ProcessesService>('@bible/film/tools/
  * Whether the partial `name` was left by a writer that is gone: a pid on
  * this host that no longer runs. Every other partial is kept: one written on
  * another host (its pid means nothing here), and one that names no host
- * (`<file>.<pid>-<n>.partial`, a writer from before partials carried it, on
- * any host) or no writer at all (`<file>.partial`), whose writer cannot be
+ * (`<file>.<pid>-<n>.partial`, on any host) or no writer at all (`<file>.partial`), whose writer cannot be
  * told. A stale partial blocks no writer and is git-ignored, while removing
  * a live one loses its write, so a partial is removed only when its writer
  * is known to be gone.
