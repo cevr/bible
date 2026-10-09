@@ -10,14 +10,18 @@
 // once. The first waits for the faces the film draws in
 // (`pictureFacesWait`), so no still is drawn in a fallback face; a face that
 // will not load leaves the stills undrawn and says so: `ready` and every
-// `all` waiting reject with why. Framework-free.
+// `all` waiting reject with why. A film that reads footage (a talk) has each
+// still's footage decoded first (`footageAt`); a frame the host cannot
+// decode stops the stills the same way, never drawn black. Framework-free.
 
 import { Effect, Option } from 'effect';
-import type { RenderOptions } from '../canvas/film.ts';
+import type { Context } from 'effect';
+import type { Film, RenderOptions } from '../canvas/film.ts';
+import { type Footage, type FootageShown, footageAt, readsFootage } from '../browser/footage.ts';
 import { pictureFacesWait } from './face.ts';
 
-/** What stills are drawn from: a film's frame size, rate and its render. */
-interface StillSource {
+/** What stills are drawn from: a film's frame size, rate, the footage its frames read, and its render. */
+interface StillSource extends Pick<Film, 'footageAt'> {
   readonly width: number;
   readonly height: number;
   readonly fps: number;
@@ -71,6 +75,8 @@ interface StillsOptions {
   readonly turn: () => Promise<unknown>;
   /** The page clock, in ms: what the drawing is timed by. */
   readonly now: () => number;
+  /** The page's footage: what decodes the frames a talk's stills read. */
+  readonly footage: Context.Context<Footage>;
 }
 
 /** A 2D canvas `width` × `height`. */
@@ -102,14 +108,18 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
   let count = 0;
   let ms = 0;
 
-  const draw = (t: number, frame: number) => {
+  /** Why the stills stopped drawing: a frame's footage the host could not decode. */
+  let failed = Option.none<unknown>();
+  const failures = new Set<(why: unknown) => void>();
+
+  const draw = (t: number, frame: number, shown: FootageShown) => {
     const began = options.now();
     const frameCanvas = Option.getOrElse(full, () => {
       const made = canvasOf(film.width, film.height);
       full = Option.some(made);
       return made;
     });
-    film.render(frameCanvas.ctx, t, { captions: options.captions });
+    film.render(frameCanvas.ctx, t, { captions: options.captions, ...shown });
     const still = canvasOf(width, height);
     still.ctx.imageSmoothingQuality = 'high';
     still.ctx.drawImage(frameCanvas.canvas, 0, 0, width, height);
@@ -128,8 +138,21 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
     }
     queue = rest;
     if (kept.has(next.frame)) return step();
-    draw(next.t, next.frame);
-    return options.turn().then(step);
+    if (!readsFootage(film)) {
+      draw(next.t, next.frame, {});
+      return options.turn().then(step);
+    }
+    return Effect.runPromiseWith(options.footage)(footageAt(film, next.t)).then(
+      (shown) => {
+        if (!stopped) draw(next.t, next.frame, shown);
+        return options.turn().then(step);
+      },
+      (why: unknown) => {
+        running = false;
+        failed = Option.some(why);
+        for (const failure of failures) failure(why);
+      },
+    );
   };
   /** The load of the faces the film draws in, asked once: none when there are none to wait for. */
   let faces = Option.none<Option.Option<Promise<void>>>();
@@ -141,7 +164,7 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
     });
   const ready = () => Option.getOrElse(facesLoad(), () => Promise.resolve());
   const run = () => {
-    if (running) return;
+    if (running || Option.isSome(failed)) return;
     running = true;
     Option.match(facesLoad(), {
       onNone: () => void step(),
@@ -184,12 +207,22 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
           resolve(frames.map((f) => kept.get(f)).filter((c) => c !== undefined));
           return true;
         };
-        const stop = () => listeners.delete(heard);
+        const stop = () => {
+          listeners.delete(heard);
+          failures.delete(fail);
+        };
         const heard = () => {
           settle();
         };
+        // A frame whose footage will not decode ends the wait with why.
+        const fail = (why: unknown) => {
+          stop();
+          reject(why);
+        };
         listeners.add(heard);
         if (settle()) return;
+        if (Option.isSome(failed)) return fail(failed.value);
+        failures.add(fail);
         want(times);
         // A face that will not load draws none of them: the wait ends with why.
         ready().catch((why: unknown) => {
@@ -202,6 +235,7 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
       stopped = true;
       queue = [];
       listeners.clear();
+      failures.clear();
     },
   };
 };

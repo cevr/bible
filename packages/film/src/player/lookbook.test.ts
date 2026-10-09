@@ -7,6 +7,8 @@ import { describe, expect, test } from 'bun:test';
 import { Effect } from 'effect';
 import { createFilm } from '../canvas/film.ts';
 import { standInDom } from '../canvas/fixtures/stand-in.ts';
+import { Footage } from '../browser/footage.ts';
+import { hostOf } from '../browser/host.ts';
 import { composeLookbook, fontFamilyOf, sceneHead } from './lookbook-sheet.ts';
 
 describe('fontFamilyOf', () => {
@@ -40,7 +42,9 @@ describe('composeLookbook', () => {
       Effect.scoped(
         Effect.andThen(
           standInDom(),
-          Effect.promise(() => composeLookbook(filmOf(n), { captions: false })),
+          Effect.promise(() =>
+            composeLookbook(filmOf(n), { captions: false, footage: hostOf(Footage.none) }),
+          ),
         ),
       ),
     );

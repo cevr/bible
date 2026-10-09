@@ -2922,6 +2922,26 @@ the browser to adopt), and a film's timings through `loadNarrated`
 given). Every link to a review place is the one `Go` (`review/context.tsx`):
 a plain click goes there in the page, a modified click is the browser's.
 
+**Footage** (`browser/footage.ts`): a film that reads camera frames (a talk)
+says, for each frame, which source frames it reads (`Film.footageAt(T)`,
+pure: a source `<name>/<sha12>` and a second in it, aimed at the middle of
+the source frame); the host decodes them and hands them to the draw as
+`RenderOptions.footage`, so `film.render` stays synchronous and keeps
+nothing between frames. Every caller of `film.render` asks first: a still,
+a seek, a probe, a look or a contact sheet decodes one frame's reads
+(`Footage.ready`), and an export chunk decodes its frames as one run
+(`Footage.run`, each source's packets at most once while its times rise).
+A frame the host cannot decode fails as `FootageFrameMissing`, never drawn
+black. A drawn film has no `footageAt` and is drawn at once, as it always
+was, and its page never loads the decoder. The live adapter
+(`footage-browser.ts`) opens each source with mediabunny over a ranged
+`UrlSource` at `/footage/<name>/<sha12>/<copy>.mp4` (`core/footage.ts`):
+the render page reads the mezzanine, every other page the proxy. The
+server's host, and a test, give frames of their own (`Footage.layerOver`;
+`Footage.none` has none). The browser test `e2e/player/footage-exact.dom.test.ts` holds
+the seam frame-exact over a synthetic numbered clip, a still and an export
+chunk alike.
+
 The lint holds the host to its adapters in the lab, the player, `browser/`,
 `command/` and the app's page entries (`.oxlintrc.json`): `no-restricted-globals` and
 `no-restricted-properties` refuse the host's storage, frames, requests,

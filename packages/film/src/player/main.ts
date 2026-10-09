@@ -14,6 +14,7 @@ import { parseHref } from '@bible/url-state';
 import { TIME_EVERY_MS, filmOfPage } from '../core/api.ts';
 import { addressOn, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
+import { type FootageShown, footageAt, readsFootage } from '../browser/footage.ts';
 import { makeClock } from '../browser/media-clock.ts';
 import { Frames } from '../browser/frames.ts';
 import { LONG_PRESS_DELAY, claimPress } from '@bible/ui/press';
@@ -84,7 +85,8 @@ export interface Player {
    * and the lab's edits, with `over` (an edit per scene) on top of them. The
    * one spelling of "the frame as the lab shows it": a note's still, the
    * onion and the HEAD layer draw through it. Nothing is drawn until the
-   * film's faces have loaded (`drawable`).
+   * film's faces have loaded (`drawable`); a frame that reads footage (a
+   * talk's) is drawn once the host has decoded it.
    */
   renderShown(
     ctx: CanvasRenderingContext2D,
@@ -364,11 +366,40 @@ export const mountPreview = (
   );
   bar.dataset['hud'] = 'shown';
 
+  /** Frame `at`'s footage decoded, then `paint` given it; a frame that will not decode is logged, never drawn black. */
+  const withFootage = (at: number, paint: (shown: FootageShown) => void) =>
+    Effect.runForkWith(host)(
+      footageAt(film, at).pipe(
+        Effect.flatMap((shown) => Effect.sync(() => paint(shown))),
+        Effect.catchTag('FootageFrameMissing', (missing) =>
+          Effect.logWarning(
+            `player.footage.missing source=${missing.source} at=${missing.at} why=${missing.why}`,
+          ),
+        ),
+      ),
+    );
+  /**
+   * The last frame of footage the preview asked for: a decode that lands
+   * after a later ask draws nothing, so the newest wins and the preview
+   * drops frames rather than showing an old one late, as `<video>` would.
+   */
+  let askedFor = 0;
+  /** Frame `at` drawn as the preview shows it, with what its knobs read. */
+  const paintShown = (at: number, shown: FootageShown) => {
+    reads = [];
+    film.render(ctx, at, shownOptions({ knobs: reads, ...shown }));
+    drawnTo.call(at);
+  };
+
   const draw = () => {
-    if (drawable) {
-      reads = [];
-      film.render(ctx, T, shownOptions({ knobs: reads }));
-      drawnTo.call(T);
+    if (drawable && !readsFootage(film)) paintShown(T, {});
+    else if (drawable) {
+      askedFor += 1;
+      const ask = askedFor;
+      const at = T;
+      withFootage(at, (shown) => {
+        if (ask === askedFor) paintShown(at, shown);
+      });
     }
     movedTo.call(T);
     const cur = film.sceneAt(T);
@@ -685,7 +716,11 @@ export const mountPreview = (
       draw();
     },
     renderShown: (into, at, over = new Map()) => {
-      if (drawable) film.render(into, at, shownOptions({ edits: new Map([...edits, ...over]) }));
+      if (!drawable) return;
+      const shown = (footage: FootageShown) =>
+        film.render(into, at, shownOptions({ edits: new Map([...edits, ...over]), ...footage }));
+      if (readsFootage(film)) withFootage(at, shown);
+      else shown({});
     },
     drawable: () => drawable,
     showEdits: (next) => {

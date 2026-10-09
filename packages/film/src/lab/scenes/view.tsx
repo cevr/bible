@@ -255,6 +255,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       captions: captions(),
       turn: () => Effect.runPromiseWith(props.host)(Frames.use((f) => f.next)),
       now: nowMs,
+      footage: props.host,
     });
     // Left, or drawn again, they draw no more: the queue goes, and a still wanted after is not drawn.
     onCleanup(made.stop);

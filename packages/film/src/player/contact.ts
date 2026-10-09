@@ -9,14 +9,15 @@ const TILE_W = 480;
 const GAP = 4;
 
 /**
- * `frames` drawn by `draw` onto `canvas`, one after another, and tiled into a
- * sheet in order, left to right and top to bottom.
+ * `frames` drawn by `draw` onto `canvas` (done once the frame is drawn, its
+ * footage decoded first), one after another, and tiled into a sheet in
+ * order, left to right and top to bottom.
  */
-export const composeContact = (
-  draw: (i: number) => void,
+export const composeContact = async (
+  draw: (i: number) => Promise<void>,
   canvas: HTMLCanvasElement,
   frames: ReadonlyArray<number>,
-): HTMLCanvasElement => {
+): Promise<HTMLCanvasElement> => {
   const tileH = Math.round((TILE_W * canvas.height) / canvas.width);
   const rows = Math.max(1, Math.ceil(frames.length / COLS));
   const sheet = document.createElement('canvas');
@@ -27,11 +28,12 @@ export const composeContact = (
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, sheet.width, sheet.height);
   ctx.imageSmoothingQuality = 'high';
-  frames.forEach((i, k) => {
-    draw(i);
+  await frames.reduce(async (before: Promise<void>, i, k) => {
+    await before;
+    await draw(i);
     const x = (k % COLS) * (TILE_W + GAP);
     const y = Math.floor(k / COLS) * (tileH + GAP);
     ctx.drawImage(canvas, x, y, TILE_W, tileH);
-  });
+  }, Promise.resolve());
   return sheet;
 };
