@@ -58,19 +58,21 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 
 ## `message`
 
-- **10LtMs, Lt 57, 1895, par. 43** · Ellen G. White, _Letter 57, 1895 (to O. A. Olsen, May 1, 1895; printed as TM 91.2)_ (1895). Paraphrased: “Many had lost sight of Jesus. God was sending them a precious message, to turn their eyes back to him”, and “It was the third angel’s message”.
+- **10LtMs, Lt 57, 1895, par. 43** · Ellen G. White, _Letter 57, 1895 (to O. A. Olsen, May 1, 1895; printed as TM 91.2)_ (1895). Supporting, paraphrased with its history left out (the film names no church): the law preached without Christ, “Some hold up the law, and lose sight of Christ.”
 
   > The Lord in His great mercy sent a most precious message to His people through Elders Waggoner and Jones. … Many had lost sight of Jesus. They needed to have their eyes directed to His divine person, His merits, and His changeless love for the human family. … It is the third angel’s message, which is to be proclaimed with a loud voice, and attended with the outpouring of His Spirit in a large measure.
 
-- **10LtMs, Lt 57, 1895, par. 44** · Ellen G. White, _Letter 57, 1895 (printed as TM 92.1, where “preach” reads “teach”)_ (1895). The reputation line, paraphrased with the church unnamed: “they talked the law, the law, but did not preach Christ.”
+- **10LtMs, Lt 57, 1895, par. 44** · Ellen G. White, _Letter 57, 1895 (printed as TM 92.1, where “preach” reads “teach”)_ (1895). Supporting the same line: the law preached, Christ not.
 
   > Christ is pleading for the church in the heavenly courts above … that the world should no longer say, Seventh-day Adventists talk the law, the law, but do not preach or believe Christ.
 
-- **5LtMs, Ms 24, 1888, par. 42** · Ellen G. White, _Manuscript 24, 1888 (her account of the Minneapolis General Conference)_ (1888). The third angel’s message defined; paraphrased: “The law and the gospel, never apart.”
+- **5LtMs, Ms 24, 1888, par. 42** · Ellen G. White, _Manuscript 24, 1888 (her account of the Minneapolis General Conference)_ (1888). The message defined as the commandments of God and the faith of Jesus; paraphrased: “The law and the gospel, never apart.”
 
   > The third angel’s message is the proclamation of the commandments of God and the faith of Jesus Christ. The commandments of God have been proclaimed, but the faith of Jesus Christ has not been proclaimed by Seventh-day Adventists as of equal importance, the law and the gospel going hand in hand.
 
-- **Revelation 14:12** (KJV). Quoted: “the commandments of God, and the faith of Jesus”, the message’s own words (frame: GNT 256.4).
+- **Revelation 14:6–12** (KJV). “an angel carrying God’s last message to the world” (verse 6, the everlasting gospel to every nation, and the angels who follow it); verse 12 quoted: “the commandments of God, and the faith of Jesus”, the message’s own words (frame: GNT 256.4). “Others hold up Christ, and set the law aside” is the film’s own line: the error opposite to the law without Christ, both answered by verse 12.
+
+  > And I saw another angel fly in the midst of heaven, having the everlasting gospel to preach unto them that dwell on the earth, and to every nation, and kindred, and tongue, and people,
 
   > Here is the patience of the saints: here are they that keep the commandments of God, and the faith of Jesus.
 

@@ -1589,777 +1589,768 @@
       ]
     },
     "message": {
-      "hash": "3f015339",
-      "file": "message.0d7eeedb26a9.flac",
-      "duration": 41.95,
+      "hash": "b69ccc56",
+      "file": "message.cff6e1d6c213.flac",
+      "duration": 34.93,
       "words": [
         {
           "text": "So",
           "start": 0,
-          "end": 0.24,
+          "end": 0.18,
           "voiced": {
-            "start": 0.07,
-            "end": 0.24
+            "start": 0.04,
+            "end": 0.18
           }
         },
         {
           "text": "how",
-          "start": 0.56,
-          "end": 0.64,
+          "start": 0.24,
+          "end": 0.613,
           "voiced": {
-            "start": 0.56,
-            "end": 0.64
+            "start": 0.24,
+            "end": 0.613
           }
         },
         {
           "text": "does",
-          "start": 0.72,
-          "end": 0.96,
+          "start": 0.64,
+          "end": 0.84,
           "voiced": {
-            "start": 0.72,
-            "end": 0.92
+            "start": 0.64,
+            "end": 0.84
           }
         },
         {
           "text": "anyone",
-          "start": 1.04,
-          "end": 1.36,
+          "start": 0.88,
+          "end": 1.28,
           "voiced": {
-            "start": 1.04,
-            "end": 1.36
+            "start": 0.88,
+            "end": 1.28
           }
         },
         {
           "text": "become",
-          "start": 1.44,
-          "end": 1.68,
+          "start": 1.36,
+          "end": 1.76,
           "voiced": {
-            "start": 1.44,
-            "end": 1.68
+            "start": 1.36,
+            "end": 1.76
           }
         },
         {
           "text": "righteous?",
-          "start": 1.76,
+          "start": 1.84,
           "end": 2.64,
           "voiced": {
-            "start": 1.76,
-            "end": 2.29
+            "start": 1.84,
+            "end": 2.37
           }
         },
         {
-          "text": "In",
-          "start": 2.96,
-          "end": 3.04,
+          "text": "Christians",
+          "start": 2.88,
+          "end": 3.28,
           "voiced": {
-            "start": 3,
-            "end": 3.04
+            "start": 2.92,
+            "end": 3.28
           }
         },
         {
-          "text": "Minneapolis",
-          "start": 3.12,
+          "text": "have",
+          "start": 3.36,
+          "end": 3.44,
+          "voiced": {
+            "start": 3.36,
+            "end": 3.44
+          }
+        },
+        {
+          "text": "wrestled",
+          "start": 3.48,
           "end": 3.76,
           "voiced": {
-            "start": 3.12,
+            "start": 3.48,
             "end": 3.76
           }
         },
         {
-          "text": "in",
+          "text": "with",
           "start": 3.84,
           "end": 3.92,
           "voiced": {
             "start": 3.84,
-            "end": 3.92
-          }
-        },
-        {
-          "text": "1888,",
-          "start": 4,
-          "end": 5.2,
-          "voiced": {
-            "start": 4,
-            "end": 4.77
-          }
-        },
-        {
-          "text": "two",
-          "start": 5.28,
-          "end": 5.36,
-          "voiced": {
-            "start": 5.28,
-            "end": 5.36
-          }
-        },
-        {
-          "text": "young",
-          "start": 5.44,
-          "end": 5.68,
-          "voiced": {
-            "start": 5.44,
-            "end": 5.68
-          }
-        },
-        {
-          "text": "preachers",
-          "start": 5.76,
-          "end": 6.16,
-          "voiced": {
-            "start": 5.76,
-            "end": 6.15
-          }
-        },
-        {
-          "text": "took",
-          "start": 6.24,
-          "end": 6.32,
-          "voiced": {
-            "start": 6.24,
-            "end": 6.32
+            "end": 3.91
           }
         },
         {
           "text": "that",
+          "start": 4,
+          "end": 4.16,
+          "voiced": {
+            "start": 4,
+            "end": 4.13
+          }
+        },
+        {
+          "text": "for",
+          "start": 4.24,
+          "end": 4.32,
+          "voiced": {
+            "start": 4.24,
+            "end": 4.32
+          }
+        },
+        {
+          "text": "centuries.",
+          "start": 4.48,
+          "end": 5.4,
+          "voiced": {
+            "start": 4.48,
+            "end": 4.91
+          }
+        },
+        {
+          "text": "Some",
+          "start": 5.68,
+          "end": 5.84,
+          "voiced": {
+            "start": 5.68,
+            "end": 5.84
+          }
+        },
+        {
+          "text": "hold",
+          "start": 5.92,
+          "end": 6,
+          "voiced": {
+            "start": 5.92,
+            "end": 6
+          }
+        },
+        {
+          "text": "up",
+          "start": 6.08,
+          "end": 6.16,
+          "voiced": {
+            "start": 6.08,
+            "end": 6.15
+          }
+        },
+        {
+          "text": "the",
+          "start": 6.24,
+          "end": 6.32,
+          "voiced": {
+            "start": 6.25,
+            "end": 6.32
+          }
+        },
+        {
+          "text": "law,",
           "start": 6.4,
-          "end": 6.56,
+          "end": 6.88,
           "voiced": {
-            "start": 6.43,
-            "end": 6.53
+            "start": 6.4,
+            "end": 6.78
           }
         },
         {
-          "text": "question",
-          "start": 6.64,
-          "end": 7.04,
+          "text": "and",
+          "start": 7,
+          "end": 7.12,
           "voiced": {
-            "start": 6.67,
-            "end": 7.04
+            "start": 7,
+            "end": 7.12
           }
         },
         {
-          "text": "head",
+          "text": "lose",
           "start": 7.2,
-          "end": 7.36,
+          "end": 7.44,
           "voiced": {
             "start": 7.2,
-            "end": 7.36
-          }
-        },
-        {
-          "text": "on.",
-          "start": 7.44,
-          "end": 7.96,
-          "voiced": {
-            "start": 7.44,
-            "end": 7.58
-          }
-        },
-        {
-          "text": "Their",
-          "start": 8.24,
-          "end": 8.4,
-          "voiced": {
-            "start": 8.25,
-            "end": 8.38
-          }
-        },
-        {
-          "text": "church",
-          "start": 8.52,
-          "end": 8.64,
-          "voiced": {
-            "start": 8.52,
-            "end": 8.64
-          }
-        },
-        {
-          "text": "had",
-          "start": 8.72,
-          "end": 8.8,
-          "voiced": {
-            "start": 8.72,
-            "end": 8.8
-          }
-        },
-        {
-          "text": "a",
-          "start": 8.84,
-          "end": 8.88,
-          "voiced": {
-            "start": 8.84,
-            "end": 8.88
-          }
-        },
-        {
-          "text": "reputation:",
-          "start": 8.96,
-          "end": 10,
-          "voiced": {
-            "start": 8.96,
-            "end": 9.51
-          }
-        },
-        {
-          "text": "they",
-          "start": 10.08,
-          "end": 10.16,
-          "voiced": {
-            "start": 10.08,
-            "end": 10.15
-          }
-        },
-        {
-          "text": "talked",
-          "start": 10.28,
-          "end": 10.48,
-          "voiced": {
-            "start": 10.28,
-            "end": 10.42
-          }
-        },
-        {
-          "text": "the",
-          "start": 10.56,
-          "end": 10.64,
-          "voiced": {
-            "start": 10.58,
-            "end": 10.64
-          }
-        },
-        {
-          "text": "law,",
-          "start": 10.8,
-          "end": 11.28,
-          "voiced": {
-            "start": 10.8,
-            "end": 11.28
-          }
-        },
-        {
-          "text": "the",
-          "start": 11.32,
-          "end": 11.36,
-          "voiced": {
-            "start": 11.34,
-            "end": 11.36
-          }
-        },
-        {
-          "text": "law,",
-          "start": 11.52,
-          "end": 12.16,
-          "voiced": {
-            "start": 11.52,
-            "end": 11.77
-          }
-        },
-        {
-          "text": "but",
-          "start": 12.24,
-          "end": 12.32,
-          "voiced": {
-            "start": 12.24,
-            "end": 12.31
-          }
-        },
-        {
-          "text": "did",
-          "start": 12.44,
-          "end": 12.56,
-          "voiced": {
-            "start": 12.44,
-            "end": 12.56
-          }
-        },
-        {
-          "text": "not",
-          "start": 12.68,
-          "end": 12.8,
-          "voiced": {
-            "start": 12.68,
-            "end": 12.79
-          }
-        },
-        {
-          "text": "preach",
-          "start": 12.88,
-          "end": 13.12,
-          "voiced": {
-            "start": 12.88,
-            "end": 13.12
-          }
-        },
-        {
-          "text": "Christ.",
-          "start": 13.2,
-          "end": 13.96,
-          "voiced": {
-            "start": 13.2,
-            "end": 13.68
-          }
-        },
-        {
-          "text": "Many",
-          "start": 14.24,
-          "end": 14.48,
-          "voiced": {
-            "start": 14.26,
-            "end": 14.48
-          }
-        },
-        {
-          "text": "had",
-          "start": 14.56,
-          "end": 14.64,
-          "voiced": {
-            "start": 14.56,
-            "end": 14.64
-          }
-        },
-        {
-          "text": "lost",
-          "start": 14.72,
-          "end": 14.96,
-          "voiced": {
-            "start": 14.72,
-            "end": 14.96
+            "end": 7.44
           }
         },
         {
           "text": "sight",
-          "start": 15.12,
-          "end": 15.36,
+          "start": 7.48,
+          "end": 7.6,
           "voiced": {
-            "start": 15.12,
-            "end": 15.36
+            "start": 7.48,
+            "end": 7.6
           }
         },
         {
           "text": "of",
-          "start": 15.4,
-          "end": 15.44,
+          "start": 7.68,
+          "end": 7.76,
           "voiced": {
-            "start": 15.4,
-            "end": 15.44
+            "start": 7.68,
+            "end": 7.73
           }
         },
         {
-          "text": "Jesus.",
-          "start": 15.6,
-          "end": 16.32,
+          "text": "Christ.",
+          "start": 7.84,
+          "end": 8.48,
           "voiced": {
-            "start": 15.6,
-            "end": 16.07
+            "start": 7.84,
+            "end": 8.19
           }
         },
         {
-          "text": "God",
-          "start": 16.56,
-          "end": 16.8,
+          "text": "Others",
+          "start": 8.72,
+          "end": 9.04,
           "voiced": {
-            "start": 16.63,
-            "end": 16.8
+            "start": 8.75,
+            "end": 9.04
           }
         },
         {
-          "text": "was",
-          "start": 16.88,
-          "end": 16.96,
+          "text": "hold",
+          "start": 9.12,
+          "end": 9.2,
           "voiced": {
-            "start": 16.88,
-            "end": 16.96
+            "start": 9.12,
+            "end": 9.2
           }
         },
         {
-          "text": "sending",
-          "start": 17.08,
-          "end": 17.2,
+          "text": "up",
+          "start": 9.28,
+          "end": 9.36,
           "voiced": {
-            "start": 17.08,
-            "end": 17.2
+            "start": 9.28,
+            "end": 9.33
           }
         },
         {
-          "text": "them",
-          "start": 17.28,
-          "end": 17.36,
+          "text": "Christ,",
+          "start": 9.44,
+          "end": 10,
           "voiced": {
-            "start": 17.28,
-            "end": 17.36
-          }
-        },
-        {
-          "text": "a",
-          "start": 17.44,
-          "end": 17.52,
-          "voiced": {
-            "start": 17.44,
-            "end": 17.48
-          }
-        },
-        {
-          "text": "precious",
-          "start": 17.6,
-          "end": 18,
-          "voiced": {
-            "start": 17.6,
-            "end": 18
-          }
-        },
-        {
-          "text": "message,",
-          "start": 18.08,
-          "end": 18.8,
-          "voiced": {
-            "start": 18.08,
-            "end": 18.49
-          }
-        },
-        {
-          "text": "to",
-          "start": 18.88,
-          "end": 18.96,
-          "voiced": {
-            "start": 18.88,
-            "end": 18.94
-          }
-        },
-        {
-          "text": "turn",
-          "start": 19.04,
-          "end": 19.2,
-          "voiced": {
-            "start": 19.04,
-            "end": 19.2
-          }
-        },
-        {
-          "text": "their",
-          "start": 19.28,
-          "end": 19.36,
-          "voiced": {
-            "start": 19.28,
-            "end": 19.36
-          }
-        },
-        {
-          "text": "eyes",
-          "start": 19.44,
-          "end": 19.68,
-          "voiced": {
-            "start": 19.44,
-            "end": 19.68
-          }
-        },
-        {
-          "text": "back",
-          "start": 19.84,
-          "end": 20,
-          "voiced": {
-            "start": 19.84,
-            "end": 20
-          }
-        },
-        {
-          "text": "to",
-          "start": 20.08,
-          "end": 20.16,
-          "voiced": {
-            "start": 20.09,
-            "end": 20.16
-          }
-        },
-        {
-          "text": "him.",
-          "start": 20.24,
-          "end": 20.56,
-          "voiced": {
-            "start": 20.24,
-            "end": 20.46
-          }
-        },
-        {
-          "text": "So",
-          "start": 21.12,
-          "end": 21.36,
-          "voiced": {
-            "start": 21.12,
-            "end": 21.36
-          }
-        },
-        {
-          "text": "what",
-          "start": 21.52,
-          "end": 21.68,
-          "voiced": {
-            "start": 21.52,
-            "end": 21.68
-          }
-        },
-        {
-          "text": "was",
-          "start": 21.76,
-          "end": 21.84,
-          "voiced": {
-            "start": 21.76,
-            "end": 21.84
-          }
-        },
-        {
-          "text": "the",
-          "start": 21.92,
-          "end": 21.96,
-          "voiced": {
-            "start": 21.92,
-            "end": 21.96
-          }
-        },
-        {
-          "text": "message?",
-          "start": 22,
-          "end": 22.64,
-          "voiced": {
-            "start": 22,
-            "end": 22.4
-          }
-        },
-        {
-          "text": "It",
-          "start": 22.88,
-          "end": 22.96,
-          "voiced": {
-            "start": 22.91,
-            "end": 22.96
-          }
-        },
-        {
-          "text": "was",
-          "start": 23.04,
-          "end": 23.12,
-          "voiced": {
-            "start": 23.04,
-            "end": 23.12
-          }
-        },
-        {
-          "text": "the",
-          "start": 23.2,
-          "end": 23.28,
-          "voiced": {
-            "start": 23.2,
-            "end": 23.28
-          }
-        },
-        {
-          "text": "third",
-          "start": 23.44,
-          "end": 23.68,
-          "voiced": {
-            "start": 23.47,
-            "end": 23.68
-          }
-        },
-        {
-          "text": "angel's",
-          "start": 23.8,
-          "end": 24,
-          "voiced": {
-            "start": 23.8,
-            "end": 23.99
-          }
-        },
-        {
-          "text": "message,",
-          "start": 24.08,
-          "end": 24.8,
-          "voiced": {
-            "start": 24.08,
-            "end": 24.5
-          }
-        },
-        {
-          "text": "“the",
-          "start": 24.84,
-          "end": 24.92,
-          "voiced": {
-            "start": 24.9,
-            "end": 24.92
-          }
-        },
-        {
-          "text": "commandments",
-          "start": 24.96,
-          "end": 25.52,
-          "voiced": {
-            "start": 25,
-            "end": 25.52
-          }
-        },
-        {
-          "text": "of",
-          "start": 25.6,
-          "end": 25.68,
-          "voiced": {
-            "start": 25.6,
-            "end": 25.68
-          }
-        },
-        {
-          "text": "God,",
-          "start": 25.76,
-          "end": 26.24,
-          "voiced": {
-            "start": 25.76,
-            "end": 26.1
+            "start": 9.44,
+            "end": 9.92
           }
         },
         {
           "text": "and",
-          "start": 26.28,
-          "end": 26.32,
+          "start": 10.12,
+          "end": 10.24,
           "voiced": {
-            "start": 26.29,
-            "end": 26.32
+            "start": 10.12,
+            "end": 10.24
+          }
+        },
+        {
+          "text": "set",
+          "start": 10.32,
+          "end": 10.48,
+          "voiced": {
+            "start": 10.32,
+            "end": 10.48
           }
         },
         {
           "text": "the",
-          "start": 26.4,
-          "end": 26.52,
+          "start": 10.52,
+          "end": 10.56,
           "voiced": {
-            "start": 26.4,
-            "end": 26.47
-          }
-        },
-        {
-          "text": "faith",
-          "start": 26.64,
-          "end": 26.88,
-          "voiced": {
-            "start": 26.64,
-            "end": 26.85
-          }
-        },
-        {
-          "text": "of",
-          "start": 26.96,
-          "end": 27.04,
-          "voiced": {
-            "start": 26.96,
-            "end": 27.04
-          }
-        },
-        {
-          "text": "Jesus.”",
-          "start": 27.12,
-          "end": 27.84,
-          "voiced": {
-            "start": 27.12,
-            "end": 27.6
-          }
-        },
-        {
-          "text": "The",
-          "start": 28.08,
-          "end": 28.16,
-          "voiced": {
-            "start": 28.14,
-            "end": 28.16
+            "start": 10.55,
+            "end": 10.56
           }
         },
         {
           "text": "law",
-          "start": 28.32,
-          "end": 28.64,
+          "start": 10.64,
+          "end": 10.8,
           "voiced": {
-            "start": 28.32,
-            "end": 28.64
+            "start": 10.64,
+            "end": 10.8
           }
         },
         {
-          "text": "and",
-          "start": 28.8,
-          "end": 29.04,
+          "text": "aside.",
+          "start": 11.04,
+          "end": 11.56,
           "voiced": {
-            "start": 28.85,
-            "end": 29.04
+            "start": 11.04,
+            "end": 11.21
           }
         },
         {
-          "text": "the",
-          "start": 29.12,
-          "end": 29.16,
+          "text": "So",
+          "start": 11.84,
+          "end": 12,
           "voiced": {
-            "start": 29.12,
-            "end": 29.16
+            "start": 11.85,
+            "end": 12
           }
         },
         {
-          "text": "gospel,",
-          "start": 29.2,
-          "end": 30,
+          "text": "what",
+          "start": 12.08,
+          "end": 12.16,
           "voiced": {
-            "start": 29.2,
-            "end": 29.66
-          }
-        },
-        {
-          "text": "never",
-          "start": 30.16,
-          "end": 30.4,
-          "voiced": {
-            "start": 30.16,
-            "end": 30.4
-          }
-        },
-        {
-          "text": "apart.",
-          "start": 30.48,
-          "end": 31.16,
-          "voiced": {
-            "start": 30.48,
-            "end": 30.78
-          }
-        },
-        {
-          "text": "God",
-          "start": 31.44,
-          "end": 31.68,
-          "voiced": {
-            "start": 31.46,
-            "end": 31.68
+            "start": 12.08,
+            "end": 12.16
           }
         },
         {
           "text": "does",
-          "start": 31.76,
-          "end": 31.84,
+          "start": 12.24,
+          "end": 12.32,
           "voiced": {
-            "start": 31.76,
-            "end": 31.84
+            "start": 12.24,
+            "end": 12.32
+          }
+        },
+        {
+          "text": "the",
+          "start": 12.4,
+          "end": 12.48,
+          "voiced": {
+            "start": 12.4,
+            "end": 12.48
+          }
+        },
+        {
+          "text": "Bible",
+          "start": 12.52,
+          "end": 12.8,
+          "voiced": {
+            "start": 12.54,
+            "end": 12.8
+          }
+        },
+        {
+          "text": "say?",
+          "start": 12.88,
+          "end": 13.2,
+          "voiced": {
+            "start": 12.88,
+            "end": 13.09
+          }
+        },
+        {
+          "text": "Revelation",
+          "start": 13.68,
+          "end": 14.24,
+          "voiced": {
+            "start": 13.71,
+            "end": 14.24
+          }
+        },
+        {
+          "text": "pictures",
+          "start": 14.32,
+          "end": 14.64,
+          "voiced": {
+            "start": 14.37,
+            "end": 14.64
+          }
+        },
+        {
+          "text": "an",
+          "start": 14.72,
+          "end": 14.8,
+          "voiced": {
+            "start": 14.72,
+            "end": 14.77
+          }
+        },
+        {
+          "text": "angel",
+          "start": 14.88,
+          "end": 15.28,
+          "voiced": {
+            "start": 14.88,
+            "end": 15.26
+          }
+        },
+        {
+          "text": "carrying",
+          "start": 15.36,
+          "end": 15.68,
+          "voiced": {
+            "start": 15.36,
+            "end": 15.68
+          }
+        },
+        {
+          "text": "God's",
+          "start": 15.76,
+          "end": 16.08,
+          "voiced": {
+            "start": 15.76,
+            "end": 16.08
+          }
+        },
+        {
+          "text": "last",
+          "start": 16.24,
+          "end": 16.4,
+          "voiced": {
+            "start": 16.24,
+            "end": 16.4
+          }
+        },
+        {
+          "text": "message",
+          "start": 16.48,
+          "end": 16.88,
+          "voiced": {
+            "start": 16.48,
+            "end": 16.88
+          }
+        },
+        {
+          "text": "to",
+          "start": 16.92,
+          "end": 16.96,
+          "voiced": {
+            "start": 16.92,
+            "end": 16.96
+          }
+        },
+        {
+          "text": "the",
+          "start": 17.04,
+          "end": 17.08,
+          "voiced": {
+            "start": 17.04,
+            "end": 17.08
+          }
+        },
+        {
+          "text": "world:",
+          "start": 17.12,
+          "end": 17.84,
+          "voiced": {
+            "start": 17.12,
+            "end": 17.41
+          }
+        },
+        {
+          "text": "“the",
+          "start": 17.867,
+          "end": 17.92,
+          "voiced": {
+            "start": 17.92,
+            "end": 17.92
+          }
+        },
+        {
+          "text": "commandments",
+          "start": 18,
+          "end": 18.56,
+          "voiced": {
+            "start": 18.03,
+            "end": 18.56
+          }
+        },
+        {
+          "text": "of",
+          "start": 18.64,
+          "end": 18.72,
+          "voiced": {
+            "start": 18.64,
+            "end": 18.72
+          }
+        },
+        {
+          "text": "God,",
+          "start": 18.8,
+          "end": 19.28,
+          "voiced": {
+            "start": 18.8,
+            "end": 19.13
+          }
+        },
+        {
+          "text": "and",
+          "start": 19.36,
+          "end": 19.44,
+          "voiced": {
+            "start": 19.37,
+            "end": 19.44
+          }
+        },
+        {
+          "text": "the",
+          "start": 19.48,
+          "end": 19.52,
+          "voiced": {
+            "start": 19.48,
+            "end": 19.52
+          }
+        },
+        {
+          "text": "faith",
+          "start": 19.68,
+          "end": 20,
+          "voiced": {
+            "start": 19.68,
+            "end": 19.94
+          }
+        },
+        {
+          "text": "of",
+          "start": 20.08,
+          "end": 20.16,
+          "voiced": {
+            "start": 20.08,
+            "end": 20.16
+          }
+        },
+        {
+          "text": "Jesus.”",
+          "start": 20.24,
+          "end": 21.2,
+          "voiced": {
+            "start": 20.24,
+            "end": 20.73
+          }
+        },
+        {
+          "text": "The",
+          "start": 21.24,
+          "end": 21.28,
+          "voiced": {
+            "start": 21.28,
+            "end": 21.28
+          }
+        },
+        {
+          "text": "law",
+          "start": 21.44,
+          "end": 21.84,
+          "voiced": {
+            "start": 21.44,
+            "end": 21.77
+          }
+        },
+        {
+          "text": "and",
+          "start": 21.96,
+          "end": 22.08,
+          "voiced": {
+            "start": 21.96,
+            "end": 22.08
+          }
+        },
+        {
+          "text": "the",
+          "start": 22.12,
+          "end": 22.16,
+          "voiced": {
+            "start": 22.12,
+            "end": 22.16
+          }
+        },
+        {
+          "text": "gospel,",
+          "start": 22.24,
+          "end": 23.04,
+          "voiced": {
+            "start": 22.24,
+            "end": 22.66
+          }
+        },
+        {
+          "text": "never",
+          "start": 23.2,
+          "end": 23.44,
+          "voiced": {
+            "start": 23.2,
+            "end": 23.44
+          }
+        },
+        {
+          "text": "apart.",
+          "start": 23.52,
+          "end": 23.92,
+          "voiced": {
+            "start": 23.52,
+            "end": 23.77
+          }
+        },
+        {
+          "text": "God",
+          "start": 24.4,
+          "end": 24.56,
+          "voiced": {
+            "start": 24.44,
+            "end": 24.56
+          }
+        },
+        {
+          "text": "does",
+          "start": 24.64,
+          "end": 24.72,
+          "voiced": {
+            "start": 24.64,
+            "end": 24.72
           }
         },
         {
           "text": "not",
-          "start": 31.92,
-          "end": 32,
+          "start": 24.8,
+          "end": 24.88,
           "voiced": {
-            "start": 31.92,
-            "end": 32
+            "start": 24.8,
+            "end": 24.88
           }
         },
         {
           "text": "just",
-          "start": 32.08,
-          "end": 32.16,
+          "start": 24.96,
+          "end": 25.2,
           "voiced": {
-            "start": 32.08,
-            "end": 32.16
+            "start": 24.96,
+            "end": 25.1
           }
         },
         {
           "text": "call",
+          "start": 25.28,
+          "end": 25.52,
+          "voiced": {
+            "start": 25.28,
+            "end": 25.52
+          }
+        },
+        {
+          "text": "us",
+          "start": 25.6,
+          "end": 25.76,
+          "voiced": {
+            "start": 25.6,
+            "end": 25.76
+          }
+        },
+        {
+          "text": "righteous.",
+          "start": 25.88,
+          "end": 26.56,
+          "voiced": {
+            "start": 25.88,
+            "end": 26.25
+          }
+        },
+        {
+          "text": "He",
+          "start": 26.68,
+          "end": 26.8,
+          "voiced": {
+            "start": 26.68,
+            "end": 26.8
+          }
+        },
+        {
+          "text": "makes",
+          "start": 26.88,
+          "end": 27.12,
+          "voiced": {
+            "start": 26.88,
+            "end": 27.12
+          }
+        },
+        {
+          "text": "us",
+          "start": 27.2,
+          "end": 27.36,
+          "voiced": {
+            "start": 27.2,
+            "end": 27.36
+          }
+        },
+        {
+          "text": "righteous,",
+          "start": 27.48,
+          "end": 28.08,
+          "voiced": {
+            "start": 27.48,
+            "end": 27.85
+          }
+        },
+        {
+          "text": "with",
+          "start": 28.2,
+          "end": 28.32,
+          "voiced": {
+            "start": 28.2,
+            "end": 28.29
+          }
+        },
+        {
+          "text": "three",
+          "start": 28.44,
+          "end": 28.56,
+          "voiced": {
+            "start": 28.44,
+            "end": 28.56
+          }
+        },
+        {
+          "text": "gifts:",
+          "start": 28.64,
+          "end": 29.44,
+          "voiced": {
+            "start": 28.64,
+            "end": 29.06
+          }
+        },
+        {
+          "text": "faith,",
+          "start": 29.64,
+          "end": 30.08,
+          "voiced": {
+            "start": 29.64,
+            "end": 29.74
+          }
+        },
+        {
+          "text": "forgiveness,",
+          "start": 30.16,
+          "end": 31.04,
+          "voiced": {
+            "start": 30.19,
+            "end": 30.85
+          }
+        },
+        {
+          "text": "and",
+          "start": 31.12,
+          "end": 31.2,
+          "voiced": {
+            "start": 31.12,
+            "end": 31.2
+          }
+        },
+        {
+          "text": "power.",
+          "start": 31.28,
+          "end": 32,
+          "voiced": {
+            "start": 31.28,
+            "end": 31.63
+          }
+        },
+        {
+          "text": "And",
+          "start": 32.08,
+          "end": 32.24,
+          "voiced": {
+            "start": 32.11,
+            "end": 32.2
+          }
+        },
+        {
+          "text": "every",
           "start": 32.32,
           "end": 32.56,
           "voiced": {
@@ -2368,201 +2359,66 @@
           }
         },
         {
-          "text": "us",
+          "text": "day,",
           "start": 32.64,
-          "end": 32.72,
+          "end": 33.2,
           "voiced": {
             "start": 32.64,
-            "end": 32.72
-          }
-        },
-        {
-          "text": "righteous.",
-          "start": 32.8,
-          "end": 33.44,
-          "voiced": {
-            "start": 32.8,
-            "end": 33.25
-          }
-        },
-        {
-          "text": "He",
-          "start": 33.6,
-          "end": 33.84,
-          "voiced": {
-            "start": 33.61,
-            "end": 33.84
-          }
-        },
-        {
-          "text": "makes",
-          "start": 33.92,
-          "end": 34.16,
-          "voiced": {
-            "start": 33.92,
-            "end": 34.16
-          }
-        },
-        {
-          "text": "us",
-          "start": 34.24,
-          "end": 34.32,
-          "voiced": {
-            "start": 34.24,
-            "end": 34.32
-          }
-        },
-        {
-          "text": "righteous,",
-          "start": 34.4,
-          "end": 35.12,
-          "voiced": {
-            "start": 34.4,
-            "end": 34.89
-          }
-        },
-        {
-          "text": "with",
-          "start": 35.24,
-          "end": 35.36,
-          "voiced": {
-            "start": 35.24,
-            "end": 35.36
-          }
-        },
-        {
-          "text": "three",
-          "start": 35.44,
-          "end": 35.6,
-          "voiced": {
-            "start": 35.44,
-            "end": 35.6
-          }
-        },
-        {
-          "text": "gifts:",
-          "start": 35.68,
-          "end": 36.48,
-          "voiced": {
-            "start": 35.68,
-            "end": 36.11
-          }
-        },
-        {
-          "text": "faith,",
-          "start": 36.56,
-          "end": 37.2,
-          "voiced": {
-            "start": 36.56,
-            "end": 36.8
-          }
-        },
-        {
-          "text": "forgiveness,",
-          "start": 37.32,
-          "end": 38.08,
-          "voiced": {
-            "start": 37.32,
-            "end": 37.9
-          }
-        },
-        {
-          "text": "and",
-          "start": 38.16,
-          "end": 38.24,
-          "voiced": {
-            "start": 38.16,
-            "end": 38.24
-          }
-        },
-        {
-          "text": "power.",
-          "start": 38.32,
-          "end": 39.2,
-          "voiced": {
-            "start": 38.33,
-            "end": 38.7
-          }
-        },
-        {
-          "text": "And",
-          "start": 39.32,
-          "end": 39.44,
-          "voiced": {
-            "start": 39.32,
-            "end": 39.35
-          }
-        },
-        {
-          "text": "every",
-          "start": 39.52,
-          "end": 39.76,
-          "voiced": {
-            "start": 39.52,
-            "end": 39.76
-          }
-        },
-        {
-          "text": "day,",
-          "start": 39.88,
-          "end": 40.24,
-          "voiced": {
-            "start": 39.88,
-            "end": 39.98
+            "end": 33.2
           }
         },
         {
           "text": "we",
-          "start": 40.36,
-          "end": 40.48,
+          "start": 33.28,
+          "end": 33.36,
           "voiced": {
-            "start": 40.36,
-            "end": 40.48
+            "start": 33.28,
+            "end": 33.36
           }
         },
         {
           "text": "choose",
-          "start": 40.64,
-          "end": 40.8,
+          "start": 33.44,
+          "end": 33.76,
           "voiced": {
-            "start": 40.64,
-            "end": 40.8
+            "start": 33.44,
+            "end": 33.76
           }
         },
         {
           "text": "to",
-          "start": 40.88,
-          "end": 40.96,
+          "start": 33.84,
+          "end": 34,
           "voiced": {
-            "start": 40.88,
-            "end": 40.92
+            "start": 33.84,
+            "end": 33.9
           }
         },
         {
           "text": "keep",
-          "start": 41.04,
-          "end": 41.2,
+          "start": 34.12,
+          "end": 34.24,
           "voiced": {
-            "start": 41.04,
-            "end": 41.2
+            "start": 34.12,
+            "end": 34.21
           }
         },
         {
           "text": "receiving",
-          "start": 41.28,
-          "end": 41.68,
+          "start": 34.32,
+          "end": 34.72,
           "voiced": {
-            "start": 41.28,
-            "end": 41.68
+            "start": 34.32,
+            "end": 34.72
           }
         },
         {
           "text": "them.",
-          "start": 41.76,
-          "end": 41.95,
+          "start": 34.8,
+          "end": 34.93,
           "voiced": {
-            "start": 41.77,
-            "end": 41.83
+            "start": 34.81,
+            "end": 34.82
           }
         }
       ]

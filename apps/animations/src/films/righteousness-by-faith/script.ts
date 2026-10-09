@@ -59,8 +59,8 @@
 // opens the act (the chapters in `film.ts`):
 // - `cold`: the hollow stamp over the bench, a cool even page. "How should
 //   man be just with God?"
-// - `roof`: the four faces at the hole in the roof, peach afternoon. "So what
-//   was the message?"
+// - `roof`: the four faces at the hole in the roof, peach afternoon. "So how
+//   does anyone become righteous?"
 // - `spoke`: the gold word of light arcing into the dark, peach to dawn.
 //   "Where does faith come from?"
 // - `exchange`: the cross in silhouette, the valley's one black moment.
@@ -126,11 +126,11 @@ export const script = defineScript([
   {
     id: 'message',
     lead: 0.4,
-    say: "{how}So how does anyone become righteous? {year}In Minneapolis in 1888, {two}two young preachers took that question head on. {rep}Their church had a reputation: they talked the law, the law, but did not preach Christ. {ew}Many had lost sight of Jesus. {precious}God was sending them a precious message, to turn their eyes back to him. {what}So what was the message? {answer}It was {angel}the third angel's message, {banner}“the commandments of God, and the faith of Jesus.” {hand}The law and the gospel, never apart. {three}God does not just call us righteous. {makes}He makes us righteous, {gifts}with three gifts: {faith}faith, {forgiveness}forgiveness, {power}and power. {daily}And every day, we choose to keep receiving them.",
+    say: "{how}So how does anyone become righteous? {year}Christians have wrestled with that for centuries. {two}Some hold up the law, {rep}and lose sight of Christ. {ew}Others hold up Christ, {precious}and set the law aside. {what}So what does the Bible say? {answer}Revelation pictures {angel}an angel carrying God's last message to the world: {banner}“the commandments of God, and the faith of Jesus.” {hand}The law and the gospel, never apart. {three}God does not just call us righteous. {makes}He makes us righteous, {gifts}with three gifts: {faith}faith, {forgiveness}forgiveness, {power}and power. {daily}And every day, we choose to keep receiving them.",
     cite: [
       'Ellen G. White, Letter 57, 1895 (TM 91–92)',
       'Ellen G. White, Ms 24, 1888',
-      'Revelation 14:12',
+      'Revelation 14:6–12',
       'E. J. Waggoner, The Present Truth, October 18, 1894, 659',
       'Ephesians 2:8',
       'Acts 5:31',
@@ -138,7 +138,7 @@ export const script = defineScript([
       'Ellen G. White, Steps to Christ, 70',
     ],
     picture:
-      "STORY: on `how` the scene opens outside a cardboard meeting hall at dusk, one tall window lit warm; the fig-leaf figure from `mirror`, small and screen-left, looks up at it. On `year` the camera pushes through the lit window into the hall of 1888, warm peach light through tall windows. Two men at the front, one with a Bible open, faces toward a crowd of grey figures. On `rep` the crowd splits: half hold small stone tablets up in their hands, half look for something missing; the tablets have no one with them. On `answer` every grey face turns toward a warm gold light rising behind the pulpit. On `angel` the roof lifts away and an angel flies across a teal sky trailing a banner; on `banner` it reads: the commandments of God, and the faith of Jesus. On `hand` a stone tablet and a cross come together into one gold emblem. On `three` push through into IDEA, the parchment page, on the same row. On `makes` the grey figure stands centre, and a warm light rises in their chest. On `gifts` three icons come in left to right, each set into an open hand held palm up (the figure's own hand, pushed into): the gold word-bubble, faith (`faith`); the white robe, forgiveness (`forgiveness`); the heart with two small tablets inside, power (`power`). On `daily` a small sun arcs over the row, rising and setting two or three times, and each time the hand opens again.",
+      "STORY: on `how` the scene opens outside a cardboard meeting hall at dusk, one tall window lit warm; the fig-leaf figure from `mirror`, small and screen-left, looks up at it. On `year` the camera pushes through the lit window into a hall of no time or place in warm peach light: a pulpit with an open Bible at the front and no one in it, a crowd of grey figures in rows. On `two` the camera pushes in on the left half of the crowd as they lift small stone tablets high; on `rep` they look about, puzzled, for something missing: there is no cross among them. On `ew` the right half lift small wooden crosses; on `precious` they set their own tablets down on the floor. On `what` faces turn, curious. On `answer` every grey face turns toward a warm gold light rising behind the pulpit; the tablets and the crosses stay up. On `angel` the roof lifts away and an angel flies across a teal sky trailing a banner; on `banner` it reads: the commandments of God, and the faith of Jesus. On `hand` a stone tablet from the left and a cross from the right come together into one gold emblem. On `three` push through into IDEA, the parchment page, on the same row. On `makes` the grey figure stands centre, and a warm light rises in their chest. On `gifts` three icons come in left to right, each set into an open hand held palm up (the figure's own hand, pushed into): the gold word-bubble, faith (`faith`); the white robe, forgiveness (`forgiveness`); the heart with two small tablets inside, power (`power`). On `daily` a small sun arcs over the row, rising and setting two or three times, and each time the hand opens again.",
   },
   {
     // Mark 2:1–12 told, then counted: faith, forgiveness and power, each lit
