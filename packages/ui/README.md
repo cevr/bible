@@ -76,9 +76,8 @@ Upstream's trigger, `Dialog.Viewport`, nested dialog stacks (`data-nested`, `dat
 | `Backdrop` | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition |
 | `Popup`    | `data-open` / `data-closed`                 | the dialog is open / closed                              |
 | `Popup`    | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition |
-| `Close`    | `data-disabled`                             | the button is disabled                                   |
 
-`Title` and `Description` set none.
+`Close`, `Title` and `Description` set none.
 
 ### Drawer
 
@@ -104,9 +103,8 @@ A swipe released past half the popup (or flicked) calls `onOpenChange(false, det
 | `Popup`    | `data-swipe-direction`                      | always: the direction a swipe dismisses it (`up`, `down`, `left` or `right`)          |
 | `Popup`    | `data-swiping`                              | the drawer is being swiped                                                            |
 | `Popup`    | `data-swipe-dismiss`                        | the drawer is being dismissed by a swipe release                                      |
-| `Close`    | `data-disabled`                             | the button is disabled                                                                |
 
-`Content` and `Title` set none (`data-drawer-content` on `Content` is a fixed marker).
+`Close`, `Content` and `Title` set none (`data-drawer-content` on `Content` is a fixed marker).
 
 CSS variables on `Drawer.Popup`: `--drawer-swipe-movement-x`, `--drawer-swipe-movement-y` (the drag so far, while dragged), `--drawer-swipe-strength` (0.1 to 1, to shorten the exit after a hard flick; `1` otherwise).
 

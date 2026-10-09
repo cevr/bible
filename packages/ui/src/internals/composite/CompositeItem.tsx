@@ -19,7 +19,6 @@ export interface CompositeItemProps<State extends object> {
   props?: ReadonlyArray<PropsInput> | undefined;
   state?: State | undefined;
   stateAttributesMapping?: StateAttributesMapping<State> | undefined;
-  refs?: ReadonlyArray<unknown> | undefined;
   /** @default 'div' */
   tag?: IntrinsicTagName | undefined;
 }
@@ -30,8 +29,7 @@ export function CompositeItem<State extends object>(props: CompositeItemProps<St
     get state() {
       return props.state;
     },
-    // The composite ref first, so an outer item wins when nested items share a node.
-    ref: [item.compositeRef, ...(untrack(() => props.refs) ?? [])],
+    ref: item.compositeRef,
     props: [item.compositeProps, ...(untrack(() => props.props) ?? [])],
     get stateAttributesMapping() {
       return props.stateAttributesMapping;

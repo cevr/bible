@@ -49,7 +49,7 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
   const isOpenedByThisTrigger = () => store.isOpenedByTrigger(triggerId);
   const isMountedByThisTrigger = () => store.isMountedByTrigger(triggerId);
 
-  const { getButtonProps, buttonRef } = useButton();
+  const { getButtonProps } = useButton();
 
   createEffect(isOpenedByThisTrigger, (opened) => {
     if (!opened) {
@@ -103,7 +103,6 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
     stateAttributesMapping: pressableTriggerOpenStateMapping,
     ref: (el: HTMLElement) => {
       setTriggerElement(el);
-      buttonRef(el);
       store.registerTrigger(triggerId, el);
     },
     props: [

@@ -45,7 +45,7 @@ export function MenuItem(componentProps: MenuItemProps): JSX.Element {
   const highlighted = () => store.isActive(listItem.index());
   let itemElement: HTMLElement | null = null;
 
-  const { getButtonProps, buttonRef } = useButton({ native: false, composite: true });
+  const { getButtonProps } = useButton({ native: false, composite: true });
 
   const ownProps = {
     id,
@@ -101,7 +101,6 @@ export function MenuItem(componentProps: MenuItemProps): JSX.Element {
     props: [ownProps, itemProps, elementProps, getButtonProps],
     ref: (el: HTMLElement) => {
       itemElement = el;
-      buttonRef(el);
       listItem.ref(el);
     },
   });
