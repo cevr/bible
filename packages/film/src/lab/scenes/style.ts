@@ -132,17 +132,6 @@ body.scenes { display: block; height: auto; }
 .sc-section { display: grid; gap: var(--s-2); padding-top: var(--s-3); border-top: var(--border); }
 .sc-section h3 { display: flex; justify-content: space-between; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-1); }
 .sc-section h3 span { color: var(--text-3); }
-/* The kit's comment section (Comments and SayBox, review/options/choice.tsx), on every page that
-   shows one (Scenes' sheet and the review's pages, which all carry these styles): what was said, an
-   earlier version's marked, and the line to say more. */
-.rv-comments { margin: var(--s-1) 0; padding-left: var(--s-4); font-size: var(--fs-2); overflow-wrap: anywhere; }
-.rv-comments .rv-hint { color: var(--text-2); }
-.rv-say { display: flex; flex-wrap: nowrap; gap: var(--s-2); align-items: center; }
-.rv-say .rv-comment-input {
-  flex: 1; min-width: 0; background: var(--surface-2); color: var(--text-1); min-height: var(--control-h);
-  border: 1px solid var(--line-strong); border-radius: var(--r-1); padding: 0 var(--s-2); font: inherit;
-}
-.rv-say .rv-comment-input::placeholder { color: var(--text-3); }
 .sc-finding { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); overflow-wrap: anywhere; }
 .sc-finding b { font-weight: var(--w-2); color: var(--state-findings); }
 .sc-finding[data-level="warning"] b { color: var(--state-warning); }

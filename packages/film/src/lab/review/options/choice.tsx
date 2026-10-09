@@ -28,8 +28,10 @@ import {
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import { useReview } from '../context.tsx';
-import { APPROVAL_TEXT, POSTER_W, pressed, stateText, videoSource } from '../format.ts';
-import { PlayedAlone, ProxyPending } from '../section.tsx';
+import { pressed } from '../../pressed.ts';
+import { APPROVAL_TEXT, POSTER_W, stateText, videoSource } from '../format.ts';
+import { PlayedAlone } from '../player.tsx';
+import { ProxyPending } from '../section.tsx';
 import type { Inspected } from '../../../core/field.ts';
 import { ChoiceAct } from './api.ts';
 import { Playing, samePlaying, useAct, useFilm } from './context.tsx';

@@ -45,7 +45,7 @@ import { hubKeys } from './command/changes.ts';
 import { COMMAND_MENU, GO_TO_COMMAND } from './command/command-menu.tsx';
 import { ViewMenu } from './command/view-menu.tsx';
 import { pageTitle } from './page-title.ts';
-import { pressed } from './review/format.ts';
+import { pressed } from './pressed.ts';
 
 /** The film last opened in this browser: where the tabs lead from Films. */
 const lastFilm = keptText(ViewerStore, 'film-studio.film');

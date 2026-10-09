@@ -163,13 +163,6 @@ export const captionsFor = (
   return Option.fromUndefinedOr(docs.find((doc) => names.includes(doc.name)));
 };
 
-/**
- * A state as an ARIA attribute says it (`aria-pressed`, `aria-busy`, a
- * `data-*` flag). A function, not an inline template: it types the value as
- * `'true' | 'false'`.
- */
-export const pressed = (on: boolean) => `${on}` as const;
-
 /** Whether a doc reads as markdown (shown inline); the rest are linked. */
 export const isMarkdown = (doc: ReviewFile): boolean => doc.name.endsWith('.md');
 

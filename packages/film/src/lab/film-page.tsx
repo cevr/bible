@@ -28,6 +28,7 @@ import { SHELL_CSS } from './page-shell-style.ts';
 import { LabPage } from './panel.tsx';
 import { labPlaceOf } from './place.ts';
 import { scenesPlaceOf } from './scenes/place.ts';
+import { COMMENTS_CSS } from './review/comments-style.ts';
 import { SCENES_CSS } from './scenes/style.ts';
 import { StudioFrame, studioOn } from './studio-frame.tsx';
 
@@ -165,7 +166,7 @@ export const LAB_PAGE: FilmPageSpec = {
 export const PLAY_PAGE: FilmPageSpec = {
   bodyClass: 'play',
   rootClass: 'play-root',
-  style: `${SHELL_CSS}${COMMAND_CSS}${SCENES_CSS}`,
+  style: `${SHELL_CSS}${COMMAND_CSS}${SCENES_CSS}${COMMENTS_CSS}`,
 };
 
 /** The Scenes page on a Scenes link (`/films/<film>/scenes…`), else Play. */

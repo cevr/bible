@@ -11,7 +11,7 @@ import { Option } from 'effect';
 import type { Host } from '../browser/host.ts';
 import type { Hub } from '../command/hub.ts';
 import type { Selection } from '../command/selection.ts';
-import { Sheet } from './review/inspector.tsx';
+import { Sheet } from './sheet.tsx';
 import { PHONE, useMatches } from './viewport.ts';
 
 /**

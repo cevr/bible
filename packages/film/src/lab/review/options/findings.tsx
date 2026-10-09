@@ -22,7 +22,7 @@ import { timecode } from '../../../core/time.ts';
 import type { LabFailure } from '../../api.ts';
 import { useReview } from '../context.tsx';
 import { failedText } from '../format.ts';
-import { Sheet } from '../inspector.tsx';
+import { Sheet } from '../../sheet.tsx';
 import { SyncEvent } from '../machine.ts';
 import { useFilm } from './context.tsx';
 import { countState } from '../../scenes/marks.ts';
