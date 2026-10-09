@@ -7,7 +7,7 @@ import type { JSX } from '@solidjs/web';
 import { children, createMemo, omit, Show } from 'solid-js';
 
 import { useButton } from '../internals/useButton.ts';
-import type { BaseUIComponentProps, NativeButtonProps } from '../internals/types.ts';
+import type { BaseUIComponentProps } from '../internals/types.ts';
 import { propsFromAccessor, useRenderElement } from '../internals/useRenderElement.tsx';
 import { useToastRootContext } from './ToastRootContext.ts';
 import { isRenderableNode } from './utils.ts';
@@ -17,8 +17,7 @@ export interface ToastActionState {
   type: string | undefined;
 }
 
-export interface ToastActionProps
-  extends NativeButtonProps, BaseUIComponentProps<'button', ToastActionState> {}
+export interface ToastActionProps extends BaseUIComponentProps<'button', ToastActionState> {}
 
 export function ToastAction(props: ToastActionProps): JSX.Element {
   const { toast } = useToastRootContext();
@@ -26,14 +25,7 @@ export function ToastAction(props: ToastActionProps): JSX.Element {
   const content = children(() => toast().actionProps?.children ?? props.children);
   const shouldRender = createMemo(() => isRenderableNode(content()));
 
-  const { getButtonProps, buttonRef } = useButton({
-    get disabled() {
-      return Boolean(props.disabled);
-    },
-    get native() {
-      return props.nativeButton ?? true;
-    },
-  });
+  const { getButtonProps } = useButton();
 
   const state: ToastActionState = {
     get type() {
@@ -48,10 +40,9 @@ export function ToastAction(props: ToastActionProps): JSX.Element {
 
   function ActionElement() {
     return useRenderElement('button', props, {
-      ref: buttonRef,
       state,
       props: [
-        omit(props, 'class', 'style', 'render', 'disabled', 'nativeButton', 'children'),
+        omit(props, 'class', 'style', 'render', 'children'),
         actionProps,
         getButtonProps,
         {

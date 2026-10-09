@@ -140,10 +140,7 @@ function applyReplacements(input: string, replacements: ReadonlyArray<Replacemen
     if (!regex) {
       continue;
     }
-    out =
-      typeof replacement === 'string'
-        ? out.replace(regex, replacement)
-        : out.replace(regex, replacement);
+    out = out.replace(regex, replacement as string);
   }
   return out;
 }

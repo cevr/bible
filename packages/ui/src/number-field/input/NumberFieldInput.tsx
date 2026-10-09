@@ -205,7 +205,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     let committedValue = committed;
     if (shouldUpdateValue) {
       ctx.setValue(committed, { reason: changeReason, event });
-      committedValue = ctx.lastChangedValueRef.current;
+      committedValue = ctx.currentValue();
     }
     // The edit ends with the commit, and the input shows the value formatted.
     if (shouldCommit) {
@@ -323,12 +323,9 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
       changed = ctx.setValue(boundaryValue, { reason: REASONS.keyboard, event });
     }
 
-    // Commit the stored (clamped, snapped) value.
+    // Commit the stored (clamped) value.
     if (changed) {
-      ctx.onValueCommitted(
-        ctx.lastChangedValueRef.current,
-        createGenericEventDetails(REASONS.keyboard, event),
-      );
+      ctx.onValueCommitted(ctx.currentValue(), createGenericEventDetails(REASONS.keyboard, event));
     }
   };
 

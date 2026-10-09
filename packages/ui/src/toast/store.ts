@@ -1,7 +1,7 @@
 // Upstream: packages/react/src/toast/store.ts
 //
 // The toasts of one `Toast.Provider`: the list (newest first) and each
-// toast's index, visible index and vertical offset, whether the viewport is
+// toast's index and visible index, whether the viewport is
 // hovered or focused, the auto-dismiss timers (paused while the viewport is
 // expanded or the window is blurred, resumed with the time left), the
 // `limit` (the oldest active toasts past it are marked `limited`), and focus
@@ -42,7 +42,6 @@ type ToastMetadata = {
   value: StoredToast;
   domIndex: number;
   visibleIndex: number;
-  offsetY: number;
 };
 
 type InitialState = Omit<State, 'toastMetadata'>;
@@ -50,7 +49,6 @@ type InitialState = Omit<State, 'toastMetadata'>;
 function createToastMetadata(toasts: StoredToast[]) {
   const metadata = new Map<string, ToastMetadata>();
   let visibleIndex = 0;
-  let offsetY = 0;
 
   toasts.forEach((toast, toastIndex) => {
     const isEnding = toast.transitionStatus === 'ending';
@@ -58,10 +56,7 @@ function createToastMetadata(toasts: StoredToast[]) {
       value: toast,
       domIndex: toastIndex,
       visibleIndex: isEnding ? -1 : visibleIndex,
-      offsetY,
     });
-
-    offsetY += toast.height || 0;
 
     if (!isEnding) {
       visibleIndex += 1;
@@ -92,7 +87,6 @@ export const selectors = {
   isEmpty: (state: State) => state.toasts.length === 0,
   toast: (state: State, id: string) => state.toastMetadata.get(id)?.value,
   toastIndex: (state: State, id: string) => state.toastMetadata.get(id)?.domIndex ?? -1,
-  toastOffsetY: (state: State, id: string) => state.toastMetadata.get(id)?.offsetY ?? 0,
   toastVisibleIndex: (state: State, id: string) => state.toastMetadata.get(id)?.visibleIndex ?? -1,
   expanded: (state: State) => state.hovering || state.focused,
   expandedOrOutOfFocus: (state: State) => state.hovering || state.focused || !state.isWindowFocused,
@@ -235,7 +229,8 @@ export class ToastStore {
    * Merges `updates` into a toast. An upsert (`addToast` under an existing id)
    * also bumps its `updateKey` and restarts its auto-dismiss timer from the
    * full timeout, or clears the timer when the toast no longer has one; the
-   * root's height measurement is not an upsert and leaves the timer alone.
+   * root's settling write (its element, the end of `starting`) is not an upsert
+   * and leaves the timer alone.
    */
   updateToastInternal = <Data extends object>(
     id: string,
@@ -248,8 +243,8 @@ export class ToastStore {
       return;
     }
 
-    // Ignore updates for toasts that are already closing (a late height
-    // measurement), so they cannot block a dismissal from completing.
+    // Ignore updates for toasts that are already closing (a late write from
+    // the root), so they cannot block a dismissal from completing.
     if (prevToast.transitionStatus === 'ending') {
       return;
     }
@@ -284,7 +279,7 @@ export class ToastStore {
     this.clearTimer(toastId);
 
     const endingToasts = toasts.map((item) =>
-      item.id === toastId ? { ...item, transitionStatus: 'ending' as const, height: 0 } : item,
+      item.id === toastId ? { ...item, transitionStatus: 'ending' as const } : item,
     );
     const newToasts = applyLimited(endingToasts, limit);
     this.setToasts(newToasts, !newToasts.some((toast) => toast.transitionStatus !== 'ending'));

@@ -1,8 +1,7 @@
 // Upstream: packages/react/src/toast/root/ToastRootContext.ts
 //
 // What a toast's parts read of their root: the toast, where to register
-// the title's id, whether the stack is expanded, the toast's visible index,
-// and how to re-measure its height.
+// the title's id, whether the stack is expanded, and the toast's visible index.
 import { type Accessor, createContext, useContext } from 'solid-js';
 
 import type { ToastObject } from './types.ts';
@@ -12,7 +11,6 @@ export interface ToastRootContextValue {
   setTitleId: (updater: (current: string | undefined) => string | undefined) => void;
   visibleIndex: Accessor<number>;
   expanded: Accessor<boolean>;
-  recalculateHeight: () => void;
 }
 
 export const ToastRootContext = createContext<ToastRootContextValue | null>(null);

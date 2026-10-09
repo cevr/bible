@@ -6,8 +6,6 @@
 // and the element inside a popup that takes focus.
 import { isHTMLElement } from '@floating-ui/utils/dom';
 
-import { platform } from '../../utils/platform.ts';
-
 export const FOCUSABLE_ATTRIBUTE = 'data-base-ui-focusable';
 const TYPEABLE_SELECTOR =
   "input:not([type='hidden']):not([disabled])," +
@@ -41,7 +39,7 @@ export function isTypeableElement(element: unknown): boolean {
 }
 
 export function matchesFocusVisible(element: Element | null) {
-  if (!element || platform.env.jsdom) {
+  if (!element) {
     return true;
   }
   try {

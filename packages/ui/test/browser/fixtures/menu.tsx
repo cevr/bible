@@ -1,9 +1,11 @@
 // Fixtures for the menu: one menu with plain items, a separator and a group
 // with a label. URL param: `animated=true` for a popup that fades out over
 // 300 ms. `sorted` is a menu of keyed rows that reverse while it is open.
+// `in-context-menu` is the full menu inside a context menu's page trigger.
 import type { JSX } from '@solidjs/web';
 import { createSignal, For, Show } from 'solid-js';
 
+import { ContextMenu } from '../../../src/context-menu/index.ts';
 import { Menu } from '../../../src/menu/index.ts';
 import { log, param } from './log.ts';
 
@@ -88,7 +90,22 @@ function SortedMenu(): JSX.Element {
   );
 }
 
+/**
+ * The lab's shape: the full menu inside a context menu's page trigger, as
+ * every lab page wraps its menus.
+ */
+function MenuInContextMenu(): JSX.Element {
+  return (
+    <ContextMenu.Root>
+      <ContextMenu.Trigger id="page" style={{ display: 'contents' }}>
+        <FullMenu />
+      </ContextMenu.Trigger>
+    </ContextMenu.Root>
+  );
+}
+
 export const fixtures: Record<string, () => JSX.Element> = {
   menu: () => <FullMenu />,
+  'in-context-menu': () => <MenuInContextMenu />,
   sorted: () => <SortedMenu />,
 };

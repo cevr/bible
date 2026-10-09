@@ -25,9 +25,6 @@ export function isVirtualClick(event: MouseEvent | PointerEvent): boolean {
 }
 
 export function isVirtualPointerEvent(event: PointerEvent) {
-  if (platform.env.jsdom) {
-    return false;
-  }
   return (
     (!platform.os.android && event.width === 0 && event.height === 0) ||
     (event.type === 'pointerdown' &&
