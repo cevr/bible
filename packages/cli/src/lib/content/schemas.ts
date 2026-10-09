@@ -25,10 +25,6 @@ export class ReadingFrontmatter extends Schema.Class<ReadingFrontmatter>('Readin
   apple_note_id: Schema.optionalKey(Schema.OptionFromUndefinedOr(AppleNoteId)),
 }) {}
 
-// Analyze frontmatter
-const AnalyzeDepth = Schema.Literals(['shallow', 'deep']);
-type AnalyzeDepth = typeof AnalyzeDepth.Type;
-
 // Sabbath School frontmatter
 export class SabbathSchoolFrontmatter extends Schema.Class<SabbathSchoolFrontmatter>(
   'SabbathSchoolFrontmatter',
