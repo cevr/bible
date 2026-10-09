@@ -11,7 +11,7 @@
 // the rest say no state; the view lives in the URL through a reload; and a
 // phone's width folds the grid to one column without scrolling sideways.
 
-import { Effect, Match, Option, Schema } from 'effect';
+import { Deferred, Effect, Exit, Match, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { FILM_FPS, timecode } from '../../../src/core/time.ts';
@@ -24,6 +24,7 @@ import {
   TONE,
   file,
   json,
+  later,
   openReview,
   refused,
   route,
@@ -1217,6 +1218,92 @@ describe('the review page', () => {
           spreadMoments(40, 0).map((t) => timecode(t)),
         );
         expect(measured).toBe(2);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a say's answer a Refresh overtook is not shown over the newer read: the page reads the index again",
+    () =>
+      Effect.gen(function* () {
+        const at = { _tag: 'Scenes', ids: ['roof'] };
+        /** The roof's set, version B `approval` and with `comments`. */
+        const folder = (approval: string, comments: ReadonlyArray<string>): Json => ({
+          ref: 'out/art',
+          title: 'Roofs at dusk',
+          mtime: 0,
+          sets: [
+            {
+              id: 'render:roof',
+              kind: 'render',
+              title: 'The roof',
+              lines: [],
+              start: 0,
+              marks: [],
+              address: at,
+              variants: [
+                variant('A', 'Warm'),
+                variant('B', 'Cold', {
+                  approval,
+                  comments: comments.map((text, i) => ({
+                    id: `c${i + 1}`,
+                    address: at,
+                    point: 'render:roof',
+                    variant: 'B',
+                    key: 'out/art/roof.B.mp4',
+                    text,
+                    at: i,
+                    onThis: true,
+                  })),
+                }),
+              ],
+            },
+          ],
+          videos: [],
+          images: [],
+          docs: [],
+        });
+        // The page's first read: B neither approved nor commented on. A Refresh asked while
+        // the approve is out finds it approved and a comment since; the approve's answer,
+        // let land after, is the folder as the approve left it: without that comment.
+        let reads = 0;
+        const gate = yield* Deferred.make<void>();
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => {
+              reads += 1;
+              if (reads === 1) return json({ folders: [folder('none', [])] });
+              return json({ folders: [folder('approved', ['seen from the street'])] });
+            }),
+            route('POST', /^\/api\/review\/sets\/out%2Fart\/render%3Aroof\/say$/, () =>
+              later(gate, json(folder('approved', []))),
+            ),
+            ...routes.slice(1),
+          ],
+          { href: SET },
+        );
+        const inspector = '[data-role="inspector"]';
+        yield* waitFor(page, '.rv-transport');
+        yield* page.click('.rv-card[data-id="B"] [data-act="inspect"]');
+        yield* page.click(`${inspector} [data-act="approve"]`);
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
+        yield* textIs(page, `${inspector} [data-comment="c1"]`, /seen from the street/);
+        yield* Deferred.done(gate, Exit.void);
+        yield* textHas(page, '[data-receipt="set"] .lab-receipt-said', 'Approved');
+        // The answer landed with its receipt: the newer read's comment is still shown a frame
+        // on, and the page reads the index again.
+        yield* page.evaluate(
+          'new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))',
+        );
+        yield* countIs(page, `${inspector} [data-comment="c1"]`, 1);
+        yield* Effect.sync(() => reads).pipe(
+          Effect.repeat({ until: (n) => n >= 3, schedule: Schedule.spaced('20 millis') }),
+          Effect.timeout('10 seconds'),
+        );
+        yield* textIs(page, `${inspector} [data-comment="c1"]`, /seen from the street/);
+        yield* waitFor(page, `${inspector} [data-act="approve"][data-approval="approved"]`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

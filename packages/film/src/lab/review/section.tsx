@@ -51,7 +51,6 @@ import { StateBand } from '../scenes/card.tsx';
 import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
 import { OptionsApi } from './options/api.ts';
-import { newestAsked } from './asked.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
 import { approvalVerbs } from './things.ts';
@@ -624,10 +623,8 @@ const sceneOf = (set: SeenPoint): Option.Option<string> =>
     ),
   );
 
-/** What the set page's says hold: each version as the newest say left it, and a control's own say. */
+/** The set page's says: a control's own. */
 interface SetSays {
-  /** `version` as the newest say shown left it (its approval, its comments). */
-  readonly now: (version: SeenVariant) => SeenVariant;
   /** A control's own say (`useWrite`): made once, as the control is made. */
   readonly useSay: () => {
     readonly waiting: Accessor<boolean>;
@@ -640,12 +637,14 @@ const SetSaysContext = createContext<SetSays>();
 /**
  * The set's says: approve, unapprove or comment on a version, over
  * `POST /api/review/sets/<folder>/<point>/say`. A say answers the folder as
- * it leaves it; the versions read the newest answer shown, so the page stays
- * in place (its player plays on) instead of reading the index again.
+ * it leaves it, shown in the index in its place, so the page stays in place
+ * (its player plays on). A say is asked in the index's order, with its
+ * reads (`asked.ts`): its answer is not shown over a Refresh asked after
+ * it, and one a Refresh overtook reads the index again.
  */
 const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>) => {
+  const { meta, actions } = useReview();
   const status = writeStatus<ReviewFolder>('set');
-  const asks = newestAsked();
   /** Version `id` as a receipt names it: its letter, its label, and the set's title. */
   const versionText = (id: string) =>
     Option.getOrElse(
@@ -658,28 +657,13 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
   // A project folder's film and a render set of one scene: where an approve names its own run.
   const film = () => props.folder.title;
   const scene = () => sceneOf(props.set);
-  // The newest say's answer, over the set as the index then read it: a newer
-  // read of the index already holds the say, so the answer stands only until then.
-  const [said, setSaid] = createSignal(
-    Option.none<{ readonly over: SeenPoint; readonly answer: SeenPoint }>(),
-  );
-  const pointIn = (folder: ReviewFolder) =>
-    Option.map(Option.fromUndefinedOr(folder.sets.find((s) => s.id === props.set.id)), seenPoint);
   const value: SetSays = {
-    now: (version) =>
-      Option.getOrElse(
-        Option.flatMap(
-          Option.filter(said(), (s) => s.over === props.set),
-          ({ answer }) => Option.fromUndefinedOr(answer.variants.find((v) => v.id === version.id)),
-        ),
-        () => version,
-      ),
     useSay: () => {
       const own = useWrite(
         (asked: SetSayPost) =>
           ReviewApi.use((api) => api.say(props.folder.ref, props.set.id, asked)),
         status,
-        { set: asks },
+        { index: meta.asks },
         (asked) => ({
           doing: 'saying…',
           done: () => sayText(asked.say, versionText(asked.variant)),
@@ -719,9 +703,10 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
               Option.match(landed, {
                 onNone: () => false,
                 onSome: (l) => {
-                  l.show('set', pointIn, (answer) =>
-                    setSaid(Option.some({ over: props.set, answer })),
-                  );
+                  l.show('index', Option.some, actions.answered);
+                  // A Refresh asked after the say may not hold it, nor the say what that
+                  // Refresh found: the index is read again.
+                  if (l.succeeded && l.overtaken('index')) actions.refresh();
                   return l.succeeded;
                 },
               }),
@@ -732,7 +717,6 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
   };
   // An approve's Undo (`undoApprove`): a withdraw of the version that run approved, given the run.
   const undoing = value.useSay();
-  const { meta } = useReview();
   registerWhile(meta.hub, () =>
     Option.toArray(film()).map((of) =>
       undoApprove(of, {
@@ -776,7 +760,6 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
   const { folder, set } = useSet();
   const says = useContext(SetSaysContext);
   const now = useReview().meta.now();
-  const version = () => says.now(props.version);
   // A card is keyed by its version: its selection is fixed for as long as it lives.
   const selection = untrack(() => versionOf(folder(), set(), props.version.id));
   const title = () => `${letterOf(set(), props.version.id)} · ${props.version.label}`;
@@ -793,32 +776,32 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
     selection,
     title,
     commentable: sayable,
-    verbs: () => approvalVerbs(version(), saying, sayable()),
+    verbs: () => approvalVerbs(props.version, saying, sayable()),
   });
   return (
     <Inspector of={selection} kind="version" title={title()}>
       {(box) => (
         <>
           <div class="rv-verdict">
-            {approvalText(version().approval)}
-            <StaleTag variant={version()} />
-            <For each={version().lines}>{(line) => <div class="rv-hint">{line}</div>}</For>
+            {approvalText(props.version.approval)}
+            <StaleTag variant={props.version} />
+            <For each={props.version.lines}>{(line) => <div class="rv-hint">{line}</div>}</For>
           </div>
           <p class="rv-hint">
-            {version().video.ref} · {sizeText(version().video.size)} ·{' '}
-            {agoText(version().video.mtime, now)}
+            {props.version.video.ref} · {sizeText(props.version.video.size)} ·{' '}
+            {agoText(props.version.video.mtime, now)}
           </p>
-          <Show when={Option.getOrUndefined(version().notes)} keyed>
+          <Show when={Option.getOrUndefined(props.version.notes)} keyed>
             {(notes: ReviewFile) => <Markdown file={notes} />}
           </Show>
           <Show when={sayable()}>
             <div class="rv-row">
-              <Approval variant={version()} sayer={sayer} />
+              <Approval variant={props.version} sayer={sayer} />
             </div>
           </Show>
-          <Comments comments={version().comments} />
+          <Comments comments={props.version.comments} />
           <Show when={sayable()}>
-            <CommentBox variant={version()} sayer={sayer} box={box} />
+            <CommentBox variant={props.version} sayer={sayer} box={box} />
           </Show>
         </>
       )}
@@ -829,11 +812,10 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
 /** A version's name, a tap opening its inspector, and the dot counting what was said of it. */
 const VersionName = (props: { readonly version: SeenVariant }) => {
   const { folder, set } = useSet();
-  const says = useContext(SetSaysContext);
   // A card is keyed by its version: its selection is fixed for as long as it lives.
   const selection = untrack(() => versionOf(folder(), set(), props.version.id));
   return (
-    <InspectName of={selection} comments={says.now(props.version).comments.length}>
+    <InspectName of={selection} comments={props.version.comments.length}>
       <span class="rv-name">{props.version.label}</span>
     </InspectName>
   );

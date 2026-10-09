@@ -7,11 +7,11 @@
 // view, spawned on the runtime and stopped with the set), the driver that
 // makes its videos follow the player, and its moments.
 
-import { RegistryProvider, useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { RegistryProvider, useAtomMount, useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, isServer } from '@solidjs/web';
-import { Array as Arr, Clock, Effect, Equal, Layer, Option, Schema } from 'effect';
+import { Array as Arr, Clock, Effect, Equal, Exit, Layer, Option, Schema } from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -84,13 +84,17 @@ import {
   viewOf,
 } from './place.ts';
 import { PlayerKey, type SyncDriver, playerCommands, makeSync, playerEvent } from './sync.ts';
+import { type Asks, newestAsked } from './asked.ts';
 import { hearVersionCommands } from './hear.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
 
 interface ReviewStateValue {
   readonly place: Accessor<ReviewPlace>;
-  /** Every folder with something to review, as last read. */
+  /**
+   * Every folder with something to review, as the newest ask answered it
+   * (`asked.ts`): the first read, a Refresh, or a say's answer for its folder.
+   */
   readonly index: Accessor<AsyncResult.AsyncResult<ReviewIndex, LabFailure>>;
   /** The app's films, each with options to pick from. */
   readonly films: Accessor<AsyncResult.AsyncResult<ReviewFilms, LabFailure>>;
@@ -108,8 +112,14 @@ export interface Shown {
 interface ReviewActions {
   /** Go to `place`, as a link does (Back returns). */
   readonly go: (place: ReviewPlace) => void;
-  /** Walk the roots again now. */
+  /** Walk the roots again now: an ask of the index (`asks`). */
   readonly refresh: () => void;
+  /**
+   * A write's answer, `folder` as the write left it, shown in the index in
+   * its place: only through its `Landed.show` on the index's `asks`, so an
+   * answer a newer read overtook is never shown over it.
+   */
+  readonly answered: (folder: ReviewFolder) => void;
   readonly quality: (quality: Quality) => void;
   /** Open the lightbox on an image, or close it. */
   readonly show: (shown: Option.Option<Shown>) => void;
@@ -119,6 +129,11 @@ interface ReviewActions {
 type Written = Pick<ReviewFile, 'ref' | 'mtime'>;
 
 interface ReviewMeta {
+  /**
+   * The index's asks, in the order they are made: each Refresh, and each
+   * write that answers a folder of the index (a set's say), as it is sent.
+   */
+  readonly asks: Asks;
   /**
    * A video's length, read once per file as the index last saw it: a video
    * written again since is measured afresh.
@@ -194,6 +209,17 @@ const kept = {
   quality: keptText(ViewerStore, 'film-review.quality'),
 };
 
+/** `index` with `folder` in the place of the folder of its ref. */
+const withFolder = (index: ReviewIndex, folder: ReviewFolder): ReviewIndex => ({
+  ...index,
+  folders: index.folders.map((f) =>
+    Option.getOrElse(
+      Option.liftPredicate(folder, (answered) => answered.ref === f.ref),
+      () => f,
+    ),
+  ),
+});
+
 /** The copy the page plays: the kept one, else 720p on a phone's width (`PHONE`). */
 const qualityOf = (stored: Option.Option<string>, narrow: () => boolean): Quality =>
   Option.getOrElse(
@@ -239,19 +265,11 @@ export const Root = (
   const filmsAtom = runtime
     .atom(OptionsApi.use((api) => api.films))
     .pipe(served('review.films', ReviewFilms));
-  // A refresh asks the server to walk its roots again; a first read takes its cache.
-  let fresh = false;
-  const indexAtom = runtime
-    .atom(
-      ReviewApi.use((api) =>
-        Effect.suspend(() => {
-          const asked = fresh;
-          fresh = false;
-          return api.index(asked);
-        }),
-      ),
-    )
+  // A first read takes the server's cache; a refresh asks it to walk its roots again.
+  const firstIndexAtom = runtime
+    .atom(ReviewApi.use((api) => api.index(false)))
     .pipe(served('review.index', ReviewIndex));
+  const againAtom = runtime.fn(() => ReviewApi.use((api) => api.index(true)));
   // A video's length and a doc's text are each keyed by what names the file's
   // content, its ref and when it was written: a refreshed index that saw it
   // written again names a new read.
@@ -302,8 +320,20 @@ export const Root = (
         Option.map(moved, address.follow);
       },
     );
-    const index = useAtomValue(() => indexAtom);
-    const refreshIndex = useAtomRefresh(() => indexAtom);
+    // The index as the newest ask answered it: a Refresh, or a say's answer for its
+    // folder (`asked.ts`); until one has, the first read's: it was asked first, so
+    // any later answer stands over it.
+    const firstIndex = useAtomValue(() => firstIndexAtom);
+    useAtomMount(() => againAtom);
+    const askAgain = useAtomSet(() => againAtom, { mode: 'promiseExit' });
+    const [answered, setAnswered] = createSignal(Option.none<ReviewIndex>());
+    const index = createMemo(() =>
+      Option.match(answered(), {
+        onNone: firstIndex,
+        onSome: (ix) => AsyncResult.success<ReviewIndex, LabFailure>(ix),
+      }),
+    );
+    const asks = newestAsked();
     const films = useAtomValue(() => filmsAtom);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
@@ -323,13 +353,21 @@ export const Root = (
           window.scrollTo(0, 0);
         },
         refresh: () => {
-          fresh = true;
-          refreshIndex();
+          const ask = asks.ask();
+          void askAgain().then((exit) => {
+            if (Exit.isSuccess(exit)) ask.answer(() => setAnswered(Option.some(exit.value)));
+          });
+        },
+        answered: (folder) => {
+          Option.map(AsyncResult.value(untrack(index)), (ix) =>
+            setAnswered(Option.some(withFolder(ix, folder))),
+          );
         },
         quality: keepQuality,
         show: setLightbox,
       },
       meta: {
+        asks,
         duration,
         text,
         runtime,
