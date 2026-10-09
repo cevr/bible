@@ -584,3 +584,61 @@ kbd {
     display: none !important;
   }
 }
+
+/* ── Page rules two or more mocks share ───────────────────────────── */
+.card .pic img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.btn.primary kbd {
+  border-color: var(--accent-ink);
+  color: var(--accent-ink);
+}
+
+.insp .body {
+  padding: var(--s-3) var(--gutter);
+  display: grid;
+  gap: var(--s-3);
+}
+
+.insp .title {
+  font-size: var(--fs-5);
+  line-height: var(--lh-5);
+  font-weight: var(--w-3);
+  margin: 0;
+}
+
+.insp .sub {
+  font-size: var(--fs-2);
+  color: var(--text-2);
+}
+
+.group {
+  border-top: var(--border);
+}
+
+.group summary .n {
+  margin-left: auto;
+  color: var(--text-3);
+}
+
+.group .in {
+  padding: 0 var(--gutter) var(--s-3);
+  font-size: var(--fs-2);
+  color: var(--text-2);
+  display: grid;
+  gap: var(--s-2);
+}
+
+.kv dt {
+  color: var(--text-3);
+}
+
+.sheet {
+  background: var(--surface-2);
+  border-top: 1px solid var(--line-strong);
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+}
