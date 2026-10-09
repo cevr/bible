@@ -6,9 +6,10 @@
 // made with the audio session set to `playback`, so an iPhone's silent
 // switch does not mute it, as it does not a `<video>`.
 
-import { Context, Effect, Layer, Option } from 'effect';
+import { Context, Effect, Exit, Layer, Option } from 'effect';
 import type { Frames } from './frames.ts';
-import { type BrowserCodecs, browserEngine } from './media-choice.ts';
+import { type BrowserCodecs, PANES_NOT_LOADED, browserEngine } from './media-choice.ts';
+import type { compareOn } from './webcodecs-browser.ts';
 import { Media, type Playable, onVideo, playableOf } from './media.ts';
 import { Viewport } from './viewport.ts';
 
@@ -57,6 +58,8 @@ export const browserCodecs = (phone: boolean): BrowserCodecs => ({
 export const isPhone = (host: Context.Context<Viewport>): Effect.Effect<boolean> =>
   Context.get(host, Viewport).matches(COARSE);
 
+const loadPanes = () => import('./webcodecs-browser.ts');
+
 /**
  * The review page's media: the page's own, its compares on WebCodecs panes
  * where the browser and the files allow. The panes' module, with the
@@ -64,18 +67,31 @@ export const isPhone = (host: Context.Context<Viewport>): Effect.Effect<boolean>
  * panes at all: a phone, or a browser with no `VideoDecoder`, plays `<video>`
  * and downloads none of it.
  */
-export const panesMediaLayer: Layer.Layer<Media, never, Frames | Viewport> = Layer.unwrap(
-  Effect.map(Effect.context<Frames | Viewport>(), (host) =>
-    Media.layerOver(pageAudio, (urls) =>
-      Effect.gen(function* () {
-        const allowed = browserEngine(browserCodecs(yield* isPhone(host)));
-        if (allowed.engine === 'video') return onVideo(allowed.why);
-        const { compareOn } = yield* Effect.promise(() => import('./webcodecs-browser.ts'));
-        return yield* compareOn(host, pageSound)(urls);
-      }),
+export const panesMediaLayer: Layer.Layer<Media, never, Frames | Viewport> =
+  panesMediaLayerWith(loadPanes);
+
+/**
+ * `panesMediaLayer` with the panes' module loaded by `load`. A module that
+ * will not load (offline, or gone after a rebuild) plays the compare on
+ * `<video>`, with the reason, as every other fallback does.
+ */
+export function panesMediaLayerWith(
+  load: () => Promise<{ readonly compareOn: typeof compareOn }>,
+): Layer.Layer<Media, never, Frames | Viewport> {
+  return Layer.unwrap(
+    Effect.map(Effect.context<Frames | Viewport>(), (host) =>
+      Media.layerOver(pageAudio, (urls) =>
+        Effect.gen(function* () {
+          const allowed = browserEngine(browserCodecs(yield* isPhone(host)));
+          if (allowed.engine === 'video') return onVideo(allowed.why);
+          const panes = yield* Effect.exit(Effect.tryPromise(load));
+          if (Exit.isFailure(panes)) return onVideo(PANES_NOT_LOADED);
+          return yield* panes.value.compareOn(host, pageSound)(urls);
+        }),
+      ),
     ),
-  ),
-);
+  );
+}
 
 /** The page's media: its narration an `Audio` element, its compares on `<video>`. */
 export const mediaLayer = Media.layerOver(pageAudio);

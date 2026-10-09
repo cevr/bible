@@ -34,6 +34,9 @@ export type Engine =
 
 const video = (why: string): Engine => ({ engine: 'video', why });
 
+/** Why a compare plays on `<video>` when the panes' module will not load (offline, or gone after a rebuild). */
+export const PANES_NOT_LOADED = 'this browser could not load the WebCodecs panes';
+
 /**
  * The engine a browser allows before any file is looked at: the panes only
  * where it is not a phone and has `VideoDecoder`. Asked first, so a browser
