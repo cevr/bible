@@ -6,7 +6,7 @@
 // four-note motif). They share one set of movements, so each turns where the
 // film does: the courtroom's question, the title's first statement of the
 // theme, the law's measure and our coming up short (a bass pedal swells),
-// 1888's message rising, the gifts shown, faith from the word, forgiveness (the
+// the message rising, the gifts shown, faith from the word, forgiveness (the
 // low end thins), the exchange and the accuser (the climax: the bass pedal at
 // its loudest, dark, then dawn), the robe, power, the name, and the landing
 // lifting (`thesis`, music alone) into the credits. The generated music carries
@@ -73,7 +73,7 @@ const movements: ReadonlyArray<Movement> = [
   },
   {
     from: 'message',
-    name: 'The message of 1888',
+    name: 'The message',
     styles: ['hope dawning', 'gentle forward motion', 'rising', 'major key'],
   },
   {
