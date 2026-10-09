@@ -52,7 +52,6 @@
 /* oxlint-disable effect/noThrowStatement -- Solid 2 signals async failure by throwing from a memo, and a rejected promise is produced by throwing; both are the framework's contract. */
 /* oxlint-disable effect/noNewPromise -- `useAtomSuspense` must hand Solid a real pending promise, and a served atom's server render waits on one. */
 /* oxlint-disable effect/noNullish -- `undefined` is Solid's own uninitialised-signal value and the registry's own optional-option encoding. */
-/* oxlint-disable effect/noRuntimeTypeof -- upstream's setter accepts `W | ((value: R) => W)`; only a runtime check separates an updater from a value. */
 /* oxlint-disable effect/noUnknownParameters -- a served atom's encoded value is its own schema's, opaque to this binding (`Atom.serializable` types it so), and any atom's value may be an `AsyncResult` still reading. */
 
 import * as Cause from 'effect/Cause';
@@ -334,7 +333,7 @@ type AtomSetter<R, W, Mode extends SetterMode> = 'promiseExit' extends Mode
   ? (
       value: W,
     ) => Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
-  : (value: W | ((value: R) => W)) => void;
+  : (value: W) => void;
 
 type SetterMode = 'value' | 'promiseExit';
 
@@ -373,18 +372,11 @@ function setAtom<R, W, Mode extends SetterMode>(
     };
     return write as AtomSetter<R, W, Mode>;
   }
-  const write = (value: W | ((value: R) => W)): void => {
-    if (isUpdater<R, W>(value)) {
-      registry.set(memo(), value(registry.get(memo())));
-      return;
-    }
+  const write = (value: W): void => {
     registry.set(memo(), value);
   };
   return write as AtomSetter<R, W, Mode>;
 }
-
-const isUpdater = <R, W>(value: W | ((value: R) => W)): value is (value: R) => W =>
-  typeof value === 'function';
 
 /**
  * The `promiseExit` mode is only offered for `AsyncResult` atoms, which the
