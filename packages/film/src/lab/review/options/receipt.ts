@@ -198,10 +198,24 @@ export const approveUndo = (film: string, after: ProjectView): Option.Option<Und
  * The Undo of the approve run `op` that approved `scenes` of `film`: a set's
  * approve of a scene's render, which named its own run, offers it.
  */
-export const approveUndoOf = (film: string, op: OpId, scenes: ReadonlyArray<string>): Undoing => ({
+export const approveUndoOf = (
+  film: string,
+  op: OpId,
+  scenes: ReadonlyArray<string>,
+  of: Option.Option<SetApproved> = Option.none(),
+): Undoing => ({
   command: UNDO_APPROVE,
-  bound: { film, gave: { op, scenes } },
+  bound: {
+    film,
+    gave: { op, scenes, ...Option.match(of, { onNone: () => ({}), onSome: (o) => ({ of: o }) }) },
+  },
 });
+
+/** The version a set's approve approved: the point it is of, and the version. */
+interface SetApproved {
+  readonly point: string;
+  readonly version: string;
+}
 
 /**
  * What an approve's Undo says it did, from what the catalogue says it took
@@ -285,7 +299,12 @@ export const undoApprove = (
   film: string,
   how: {
     readonly waiting: () => boolean;
-    readonly withdraw: (ids: readonly [string, ...string[]], say: Say) => Effect.Effect<Receipt>;
+    /** `of`: the version a set's approve approved, when the receipt names it. */
+    readonly withdraw: (
+      ids: readonly [string, ...string[]],
+      say: Say,
+      of: Option.Option<SetApproved>,
+    ) => Effect.Effect<Receipt>;
   },
 ): Command => ({
   id: UNDO_APPROVE,
@@ -306,7 +325,8 @@ export const undoApprove = (
       onSome: (gave) =>
         Arr.match(gave.scenes, {
           onEmpty: () => Effect.succeed(refused('that approve gave no approval to take back')),
-          onNonEmpty: (ids) => how.withdraw(ids, withdrawSay(Option.some(gave.op))),
+          onNonEmpty: (ids) =>
+            how.withdraw(ids, withdrawSay(Option.some(gave.op)), Option.fromUndefinedOr(gave.of)),
         }),
     }),
 });

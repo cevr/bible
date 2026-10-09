@@ -51,22 +51,28 @@ const folder = (a: Parameters<FakeRoute['answer']>[0]) => {
   );
 };
 
-/** `value` (a folder or the index) with the version `main` approved as it is, or not. */
-const withApproval = (value: Json, approved: boolean): Json =>
+/** `value` (a folder or the index) with each version's approval as `stateOf` says, where it says. */
+const withApprovals = (value: Json, stateOf: (id: string) => Option.Option<string>): Json =>
   Match.value(value).pipe(
-    Match.when(isList, (all): Json => all.map((one) => withApproval(one, approved))),
+    Match.when(isList, (all): Json => all.map((one) => withApprovals(one, stateOf))),
     Match.when(isFields, (record): Json => {
-      const mapped = Record.map(record, (one) => withApproval(one, approved));
-      return Bool.match(record['id'] === 'main' && 'approval' in record, {
-        onTrue: () => ({
-          ...mapped,
-          approval: Bool.match(approved, { onTrue: () => 'approved', onFalse: () => 'none' }),
-        }),
-        onFalse: () => mapped,
-      });
+      const mapped = Record.map(record, (one) => withApprovals(one, stateOf));
+      const id = record['id'];
+      return Option.match(
+        Option.flatMap(Option.liftPredicate(id, Predicate.isString), (version) =>
+          Option.filter(stateOf(version), () => 'approval' in record),
+        ),
+        { onNone: () => mapped, onSome: (approval) => ({ ...mapped, approval }) },
+      );
     }),
     Match.orElse(() => value),
   );
+
+/** What the server holds besides this page's approve: versions approved before it, and `main` gone stale. */
+interface World {
+  readonly earlier: ReadonlyArray<string>;
+  stale: boolean;
+}
 
 /** The run a withdraw was given. */
 const givenOf = (say: SetSayPost['say']) =>
@@ -83,13 +89,34 @@ const decoded = (body: Parameters<FakeRoute['answer']>[0]['body']) =>
  * withdraw, in the say's answer and in the index a reload reads. Every say
  * posted is pushed to `asked`.
  */
-const approving = (asked: Array<SetSayPost>): ReadonlyArray<FakeRoute> => {
+const approving = (
+  asked: Array<SetSayPost>,
+  world: World = { earlier: [], stale: false },
+): ReadonlyArray<FakeRoute> => {
   const approvedNow = () => Option.exists(Arr.last(asked), (p) => p.say._tag === 'Approve');
+  const stateOf = (id: string) =>
+    Match.value(id).pipe(
+      Match.when('main', () =>
+        Bool.match(approvedNow(), {
+          onTrue: () =>
+            Option.some(
+              Bool.match(world.stale, { onTrue: () => 'stale', onFalse: () => 'approved' }),
+            ),
+          onFalse: () => Option.none<string>(),
+        }),
+      ),
+      Match.orElse((other) =>
+        Bool.match(world.earlier.includes(other), {
+          onTrue: () => Option.some('approved'),
+          onFalse: () => Option.none<string>(),
+        }),
+      ),
+    );
   const stated = (answer: ReturnType<FakeRoute['answer']>) =>
     Option.getOrElse(
       Option.map(
         Option.liftPredicate(answer, (r) => r._tag === 'Json'),
-        (r) => json(withApproval(r.json, approvedNow())),
+        (r) => json(withApprovals(r.json, stateOf)),
       ),
       () => answer,
     );
@@ -151,6 +178,85 @@ describe('a Set approving a scene render', () => {
         expect(asked.map((p) => p.say._tag)).toEqual(['Approve', 'Withdraw']);
         expect(Option.flatMap(Arr.get(asked, 1), (p) => givenOf(p.say))).toEqual(op);
         expect(Arr.get(asked, 1).pipe(Option.map((p) => p.variant))).toEqual(Option.some('main'));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'another version approved earlier stays: the Undo withdraws just the version this run approved, in one withdraw',
+    () =>
+      Effect.gen(function* () {
+        const asked = new Array<SetSayPost>();
+        const { page, errors } = yield* openReview(
+          approving(asked, { earlier: ['warm'], stale: false }),
+          {
+            href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+          },
+        );
+        yield* waitFor(page, '.rv-main [data-act="inspect"]');
+        yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
+        yield* page.click(`${INSPECTOR} [data-act="approve"]`);
+        yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* page.click(`${RECEIPT} [data-act="receipt-undo"]`);
+        yield* textHas(page, `${RECEIPT} .lab-receipt-said`, 'Undid approving');
+        expect(asked.map((p) => [p.say._tag, p.variant])).toEqual([
+          ['Approve', 'main'],
+          ['Withdraw', 'main'],
+        ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a render gone stale since its approve is still undone: the withdraw is of the version the receipt names',
+    () =>
+      Effect.gen(function* () {
+        const asked = new Array<SetSayPost>();
+        const world: World = { earlier: [], stale: false };
+        const { page, errors } = yield* openReview(approving(asked, world), {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+        });
+        yield* waitFor(page, '.rv-main [data-act="inspect"]');
+        yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
+        yield* page.click(`${INSPECTOR} [data-act="approve"]`);
+        yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        world.stale = true;
+        yield* page.reload;
+        yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* page.click(`${RECEIPT} [data-act="receipt-undo"]`);
+        yield* textHas(page, `${RECEIPT} .lab-receipt-said`, 'Undid approving');
+        expect(asked.map((p) => [p.say._tag, p.variant])).toEqual([
+          ['Approve', 'main'],
+          ['Withdraw', 'main'],
+        ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a receipt kept before it named its version still restores, and its Undo says why it cannot run, sending nothing',
+    () =>
+      Effect.gen(function* () {
+        const asked = new Array<SetSayPost>();
+        const { page, errors } = yield* openReview(approving(asked), {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+        });
+        yield* waitFor(page, '.rv-main [data-act="inspect"]');
+        // The tab's kept receipts as an earlier build wrote them: the run and its scenes, no version.
+        // Written after the page's own keep on the way out, so the reload reads this.
+        yield* page.evaluate(
+          `addEventListener('pagehide', () => sessionStorage.setItem('film-receipts', '{"scope":"review","receipts":[{"slot":"set","said":"Approved version main","undo":"project.undo-approve","bound":{"film":"toy","gave":{"op":"mv0rtvgr-hmmvsqak47","scenes":["open"]}},"tone":"done"}]}'))`,
+        );
+        yield* page.reload;
+        yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* page.click(`${RECEIPT} [data-act="receipt-undo"]`);
+        yield* textHas(page, '[data-role="receipts"]', 'before it named');
+        expect(asked).toEqual([]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

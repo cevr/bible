@@ -56,7 +56,7 @@ import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } fro
 import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
 import { approvalVerbs } from './things.ts';
 import { approveUndoOf, undoApprove } from './options/receipt.ts';
-import { quiet } from '../../command/command.ts';
+import { quiet, refused } from '../../command/command.ts';
 import { OpId } from '../../core/catalogue.ts';
 import { uniqueId } from '../../core/unique.ts';
 import { Go, SetProvider, type Shown, useReview, useSet } from './context.tsx';
@@ -678,7 +678,13 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
                 scene,
                 op: Option.fromUndefinedOr(asked.op),
               }),
-              (of) => approveUndoOf(of.film, of.op, [of.scene]),
+              (of) =>
+                approveUndoOf(
+                  of.film,
+                  of.op,
+                  [of.scene],
+                  Option.some({ point: props.set.id, version: asked.variant }),
+                ),
             ),
         }),
       );
@@ -716,17 +722,29 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
       meta.hub.commands.register(
         undoApprove(of, {
           waiting: undoing.waiting,
-          withdraw: (_, say) =>
-            Effect.sync(() => {
-              // The versions approved now, read from the newest state (so a receipt a reload
-              // restored still undoes); a withdraw given the run takes back only that run's.
-              if (say._tag === 'Withdraw') {
-                for (const v of props.set.variants) {
-                  if (value.now(v).approval === 'approved') void undoing.say(v.id, say);
-                }
-              }
-              return quiet;
-            }),
+          // One withdraw, of the version the receipt names, given its run: nothing is read
+          // of the page's state, so a reload or a stale render changes nothing.
+          withdraw: (_, say, approved) =>
+            Option.match(
+              Option.filter(approved, (a) => a.point === props.set.id),
+              {
+                onNone: () =>
+                  Effect.succeed(
+                    refused(
+                      Option.match(approved, {
+                        onNone: () =>
+                          'that approve was kept before it named its version: approve again to undo it',
+                        onSome: () => 'that approve was of another set',
+                      }),
+                    ),
+                  ),
+                onSome: (a) =>
+                  Effect.as(
+                    Effect.promise(() => undoing.say(a.version, say)),
+                    quiet,
+                  ),
+              },
+            ),
         }),
       ),
     );

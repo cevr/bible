@@ -62,7 +62,10 @@ export interface ChangeBound {
 
 interface GaveBound {
   readonly film: string;
-  readonly gave: Pick<Gave, 'op' | 'scenes'>;
+  readonly gave: Pick<Gave, 'op' | 'scenes'> & {
+    /** A set's approve names its version too: the point it is of, and the version approved. */
+    readonly of?: { readonly point: string; readonly version: string };
+  };
 }
 
 /** The history's change `bound` names; none for an approve's. */
