@@ -146,7 +146,7 @@
       .card .meta {
         padding: var(--s-2);
         display: grid;
-        gap: 6px;
+        gap: var(--s-1);
       }
       .card .name {
         display: flex;
@@ -159,7 +159,7 @@
       .card .name .hue {
         width: 8px;
         height: 8px;
-        border-radius: 1px;
+        border-radius: var(--r-1);
         background: hsl(var(--h) var(--scene-sat) var(--scene-light));
         flex: none;
       }
@@ -174,7 +174,7 @@
       }
       @media (max-width: 899px) {
         .main {
-          padding-bottom: 130px;
+          padding-bottom: calc(var(--tabbar-h) + var(--dock-h) + var(--s-3));
         }
         .cards {
           grid-template-columns: minmax(0, 1fr);
@@ -216,25 +216,10 @@
       .main > .transport {
         border-bottom: var(--border);
       }
-      .insp .body {
-        padding: var(--s-3) var(--gutter);
-        display: grid;
-        gap: var(--s-3);
-      }
       .insp .poster {
         aspect-ratio: 16 / 9;
         background: var(--surface-0) center / cover no-repeat;
         border-radius: var(--r-1);
-      }
-      .insp .title {
-        font-size: var(--fs-5);
-        line-height: var(--lh-5);
-        font-weight: var(--w-3);
-        margin: 0;
-      }
-      .insp .sub {
-        font-size: var(--fs-2);
-        color: var(--text-2);
       }
       .insp .row {
         display: flex;
@@ -255,9 +240,6 @@
         font: inherit;
         font-size: var(--body-fs);
       }
-      .group {
-        border-top: var(--border);
-      }
       .group summary {
         list-style: none;
         display: flex;
@@ -269,29 +251,12 @@
         color: var(--text-2);
         cursor: pointer;
       }
-      .group summary::-webkit-details-marker {
-        display: none;
-      }
-      .group summary .n {
-        margin-left: auto;
-        color: var(--text-3);
-      }
-      .group .in {
-        padding: 0 var(--gutter) var(--s-3);
-        font-size: var(--fs-2);
-        color: var(--text-2);
-        display: grid;
-        gap: var(--s-2);
-      }
       .kv {
         display: grid;
         grid-template-columns: auto 1fr;
-        gap: 2px var(--s-3);
+        gap: var(--s-1) var(--s-3);
         font-size: var(--fs-2);
         margin: 0;
-      }
-      .kv dt {
-        color: var(--text-3);
       }
       .kv dd {
         margin: 0;
@@ -348,17 +313,12 @@
         border-top: var(--border);
       }
       /* The selection's sheet, peeking one line above the dock. */
-      .sheet {
-        background: var(--surface-2);
-        border-top: 1px solid var(--line-strong);
-        border-radius: var(--r-sheet) var(--r-sheet) 0 0;
-      }
       .sheet .grab {
         width: 32px;
         height: var(--s-1);
         border-radius: var(--r-1);
         background: var(--line-strong);
-        margin: 6px auto 0;
+        margin: var(--s-2) auto 0;
       }
       .peek {
         display: flex;

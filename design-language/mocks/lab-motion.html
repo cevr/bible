@@ -11,148 +11,14 @@
     />
     <link rel="stylesheet" href="../../packages/film/src/player/tokens.css" />
     <link rel="stylesheet" href="kit.css" />
+    <link rel="stylesheet" href="lab.css" />
     <style>
       /* ── Page: Lab (the viewer, transport, dock and tray, as in Edit) ── */
-      .work {
-        display: grid;
-        gap: 1px;
-        background: var(--surface-0);
-      }
-      .main {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 1px;
-        min-width: 0;
-        align-content: start;
-      }
-      .viewer {
-        background: var(--surface-0);
-        position: relative;
-      }
-      .viewer .pic {
-        position: relative;
-        margin: 0 auto;
-        aspect-ratio: 16 / 9;
-        max-width: 100%;
-      }
-      .viewer img {
-        display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-      }
-      .dock {
-        background: var(--surface-1);
-        padding: var(--s-2) var(--gutter) var(--s-2);
-      }
-      .strip {
-        position: relative;
-        margin-top: var(--s-2);
-        font-size: var(--fs-1);
-        color: var(--text-2);
-      }
-      .strip .scroll {
-        position: relative;
-        padding-left: 72px;
-        max-height: 210px;
-        overflow: hidden;
-      }
-      .words {
-        position: relative;
-        height: 18px;
-        background: var(--surface-2);
-        border-bottom: 1px solid var(--line);
-      }
-      .word {
-        position: absolute;
-        top: 2px;
-        height: 14px;
-        line-height: 14px;
-        overflow: hidden;
-        white-space: nowrap;
-        font-size: var(--fs-1);
-        color: var(--text-1);
-        background: var(--surface-3);
-        border-left: 1px solid var(--line-strong);
-        padding-left: 2px;
-      }
-      .cues {
-        position: relative;
-        background: var(--surface-2);
-      }
       /* The cue lanes stay on a laptop, where a range across a lane sets the loop; a phone folds the strip to its words. */
       @media (max-width: 899px) {
         .strip .cues {
           display: none;
         }
-      }
-      .cue-row {
-        position: relative;
-        height: 15px;
-      }
-      .cue-row label {
-        position: absolute;
-        left: -72px;
-        width: 66px;
-        text-align: right;
-        line-height: 15px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .cue-row[data-selected] label {
-        color: var(--accent);
-      }
-      .cue {
-        position: absolute;
-        top: 3px;
-        height: 9px;
-        min-width: 3px;
-        background: var(--state-rendered);
-        border-left: 3px solid var(--text-2);
-        border-right: 3px solid var(--text-2);
-        border-radius: var(--r-1);
-        opacity: 0.85;
-      }
-      .cue-row[data-selected] .cue {
-        background: var(--accent);
-        border-color: var(--text-1);
-        opacity: 1;
-      }
-      .sp {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 1px;
-        background: var(--accent);
-        z-index: 2;
-      }
-      .insp .sect {
-        padding: var(--s-2) var(--gutter) var(--s-3);
-        border-bottom: var(--border);
-      }
-      .foot {
-        margin-top: auto;
-        padding: var(--s-2) var(--gutter);
-        border-top: var(--border);
-        font-size: var(--fs-1);
-        color: var(--text-3);
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--s-1) var(--s-3);
-      }
-      .tray {
-        display: flex;
-        justify-content: center;
-        padding: var(--s-2) var(--gutter);
-        background: var(--surface-1);
-      }
-      .tray .seg-ctl {
-        width: 100%;
-      }
-      .tray .seg-ctl button {
-        flex: 1;
-        justify-content: center;
       }
       @media (min-width: 900px) {
         .work {

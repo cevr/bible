@@ -83,24 +83,12 @@ describe('createToastManager', () => {
     expect(await logOf(page)).toEqual(['undo 1', 'removed 1']);
   });
 
-  it('newest toast first, with its index and offset variables', async () => {
+  it('newest toast first, the older one marked behind', async () => {
     const page = await openReceipt();
     await page.click('#raise');
     await page.click('#raise');
     await see(roots(page)).toHaveCount(2);
     await see(roots(page).first().getByTestId('title')).toHaveText('Deleted note 2');
-    const vars = await roots(page).evaluateAll((elements) =>
-      elements.map((el) => [
-        (el as HTMLElement).style.getPropertyValue('--toast-index'),
-        (el as HTMLElement).style.getPropertyValue('--toast-offset-y'),
-        (el as HTMLElement).style.getPropertyValue('--toast-height'),
-      ]),
-    );
-    expect(vars).toEqual([
-      ['0', '0px', '60px'],
-      ['1', '60px', '60px'],
-    ]);
-    await see(page.locator('#viewport')).toHaveCSS('--toast-frontmost-height', '60px');
     await see(roots(page).nth(1).getByTestId('content')).toHaveAttribute('data-behind', '');
     await see(roots(page).first().getByTestId('content')).not.toHaveAttribute('data-behind', '');
   });
@@ -178,12 +166,13 @@ describe('keyboard', () => {
     await see(roots(page)).toHaveCount(0);
   });
 
-  it('closes with the close button', async () => {
+  it('closes with the close button, which is named and exposed at rest', async () => {
     const page = await openReceipt();
     await page.click('#raise');
-    const close = roots(page).first().getByTestId('close');
-    // Hidden while the stack is collapsed and the button is unfocused.
-    await see(close).toHaveAttribute('aria-hidden', 'true');
+    // Found by role and name: assistive technology reaches it with the stack collapsed.
+    const close = roots(page).first().getByRole('button', { name: 'Close' });
+    await see(close).toBeVisible();
+    await see(close).not.toHaveAttribute('aria-hidden', 'true');
     await close.click();
     await see(roots(page)).toHaveCount(0);
     expect(await logOf(page)).toEqual(['removed 1']);
@@ -275,7 +264,7 @@ describe('swipe', () => {
   });
 
   it('cancels when the pointer changes its mind', async () => {
-    const page = await openReceipt({ swipe: 'up' });
+    const page = await openReceipt();
     await page.click('#raise');
     const box = await page.locator('[data-testid="title"]').boundingBox();
     if (!box) {
@@ -285,8 +274,8 @@ describe('swipe', () => {
     const y = box.y + 5;
     await page.mouse.move(x, y);
     await page.mouse.down();
-    await page.mouse.move(x, y - 60, { steps: 6 });
-    await page.mouse.move(x, y - 45, { steps: 3 });
+    await page.mouse.move(x, y + 60, { steps: 6 });
+    await page.mouse.move(x, y + 45, { steps: 3 });
     await page.mouse.up();
     await see(roots(page)).toHaveCount(1);
   });

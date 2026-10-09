@@ -67,6 +67,12 @@ const until = <A>(
 const labOf = (registry: AtomRegistry.AtomRegistry) => Option.getOrThrow(registry.get(lab));
 
 describe('UrlAtom', () => {
+  test('a registry that was not seeded with a layer refuses to read the URL, naming the seed', () => {
+    const registry = AtomRegistry.make();
+    expect(() => registry.get(UrlAtom.href)).toThrow(/seed UrlAtom\.layer/);
+    registry.dispose();
+  });
+
   test('a place reads synchronously from the URL', () => {
     const { registry } = memoryRegistry('/films/f/lab/s?cue=c#t=2');
     expect(registry.get(lab)).toEqual(

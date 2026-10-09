@@ -1,7 +1,6 @@
 // Fixtures for Toast: receipts raised through a manager created outside the
 // component tree (the Undo action in its action slot), and listed through
-// `useToastManager`. URL params: `timeout` (each receipt's), `limit`, and
-// `swipe=up`.
+// `useToastManager`. URL params: `timeout` (each receipt's) and `limit`.
 import type { JSX } from '@solidjs/web';
 import { For } from 'solid-js';
 
@@ -64,7 +63,7 @@ function ToastList(): JSX.Element {
         <Toast.Root
           toast={toast() as ToastObject}
           data-testid="root"
-          swipeDirection={param('swipe') === 'up' ? 'up' : ['down', 'right']}
+          swipeDirection={['down', 'right']}
           style={toastBox}
         >
           <Toast.Content data-testid="content" style={contentRow}>

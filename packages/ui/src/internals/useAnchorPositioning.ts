@@ -5,10 +5,9 @@
 // Positions a menu's popup under its anchor (the trigger, or a context menu's
 // point) with Floating UI: an alignment with offsets, the dropdown's
 // collision avoidance (flip to the top, or to the other alignment, and shift
-// along the edge; never to a left or right side), and the CSS variables the
-// popup's styles read (`--available-width/height`, `--anchor-width/height`,
-// `--transform-origin`). It re-positions while the anchor scrolls or
-// resizes. Until the first position is computed the popup is invisible and
+// along the edge; never to a left or right side). Upstream's `--available-*`,
+// `--anchor-*` and `--transform-origin` variables are left out: no stylesheet
+// reads them. It re-positions while the anchor scrolls or resizes. Until the first position is computed the popup is invisible and
 // fixed at 0,0, so focusing into it cannot scroll the page.
 import {
   autoUpdate,
@@ -20,17 +19,15 @@ import {
   offset,
   type Placement,
   shift as floatingShift,
-  size,
   type VirtualElement,
 } from '@floating-ui/dom';
-import { clamp, getAlignment, getSide } from '@floating-ui/utils';
+import { getAlignment, getSide } from '@floating-ui/utils';
 import type { JSX } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
 
 import type { FloatingRootContext } from '../floating-ui-solid/FloatingRootContext.ts';
 import { hide } from '../floating-ui-solid/middleware.ts';
 import { ownerWindow } from '../utils/dom.ts';
-import { CommonPositionerCssVars } from '../utils/popupStateMapping.ts';
 
 /** The side the popup renders on: under its anchor, or over it after a flip. */
 export type Side = 'top' | 'bottom';
@@ -107,9 +104,9 @@ export function useAnchorPositioning(
     const alignOffset = params.alignOffset;
     const common = { boundary: 'clippingAncestors', padding: COLLISION_PADDING } as const;
 
-    // One pixel more than size()'s padding, so a popup capped by --available-height
-    // still flips, and one more on top as a bias to the bottom: on iOS a centered
-    // input with the keyboard open would otherwise flip to the top.
+    // One pixel more than the collision padding, and one more on top as a bias to
+    // the bottom: on iOS a centered input with the keyboard open would otherwise
+    // flip to the top.
     const flipPadding = COLLISION_PADDING + 1;
     const flipMiddleware = flip({
       ...common,
@@ -135,55 +132,6 @@ export function useAnchorPositioning(
     return [
       offset({ mainAxis: sideOffset, crossAxis: alignOffset, alignmentAxis: alignOffset }),
       ...avoidance,
-      size({
-        ...common,
-        apply({ elements: { floating }, availableWidth, availableHeight, rects }) {
-          if (!untrack(() => params.mounted)) {
-            return;
-          }
-          const floatingStyle = floating.style;
-          floatingStyle.setProperty(CommonPositionerCssVars.availableWidth, `${availableWidth}px`);
-          floatingStyle.setProperty(
-            CommonPositionerCssVars.availableHeight,
-            `${availableHeight}px`,
-          );
-          // Snapped to device pixels, so a popup sized to the anchor matches it visually.
-          const dpr = ownerWindow(floating).devicePixelRatio || 1;
-          const { x: rx, y: ry, width, height } = rects.reference;
-          const anchorWidth = (Math.round((rx + width) * dpr) - Math.round(rx * dpr)) / dpr;
-          const anchorHeight = (Math.round((ry + height) * dpr) - Math.round(ry * dpr)) / dpr;
-          floatingStyle.setProperty(CommonPositionerCssVars.anchorWidth, `${anchorWidth}px`);
-          floatingStyle.setProperty(CommonPositionerCssVars.anchorHeight, `${anchorHeight}px`);
-        },
-      }),
-      {
-        name: 'transformOrigin',
-        fn(state) {
-          const { elements, middlewareData: data, placement: rendered, rects } = state;
-          const renderedAlign = getAlignment(rendered);
-          const shiftX = data.shift?.x || 0;
-          const shiftY = data.shift?.y || 0;
-          // An aligned popup grows from its aligned edge until a shift breaks the
-          // alignment; anything else grows from under the anchor's centre.
-          const crossOrigin =
-            renderedAlign && Math.abs(shiftX) <= 1
-              ? renderedAlign === 'start'
-                ? '0%'
-                : '100%'
-              : `${clamp(0, rects.reference.x + rects.reference.width / 2 - state.x, rects.floating.width)}px`;
-          // The anchor-facing edge, or the anchor's centre when a shift moved the popup over it.
-          let sideOrigin =
-            getSide(rendered) === 'top' ? `calc(100% + ${sideOffset}px)` : `${-sideOffset}px`;
-          if (shiftCrossAxis && Math.abs(shiftY) > sideOffset) {
-            sideOrigin = `${rects.reference.y + rects.reference.height / 2 - state.y}px`;
-          }
-          elements.floating.style.setProperty(
-            CommonPositionerCssVars.transformOrigin,
-            `${crossOrigin} ${sideOrigin}`,
-          );
-          return {};
-        },
-      },
       hide,
     ];
   };
@@ -259,9 +207,6 @@ export function useAnchorPositioning(
     } else {
       base['opacity'] = '0';
     }
-    // Seeded so `max-height: var(--available-height)` resolves before size() writes the real value.
-    base[CommonPositionerCssVars.availableWidth] = '100vw';
-    base[CommonPositionerCssVars.availableHeight] = '100vh';
     return base as JSX.CSSProperties;
   });
 

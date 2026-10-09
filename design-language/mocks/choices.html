@@ -87,7 +87,7 @@
         align-items: center;
         gap: var(--s-2);
         min-height: var(--row-h);
-        padding: 2px var(--gutter);
+        padding: var(--s-1) var(--gutter);
         border-top: var(--border);
         position: relative;
       }
@@ -143,7 +143,7 @@
       .var .acts {
         display: flex;
         align-items: center;
-        gap: 2px;
+        gap: var(--s-1);
       }
       .var .acts .btn {
         padding: 0 var(--s-2);
@@ -161,7 +161,7 @@
         align-items: center;
         gap: var(--s-2);
         min-height: var(--row-h);
-        padding: 2px var(--gutter);
+        padding: var(--s-1) var(--gutter);
         border-top: var(--border);
       }
       @media (max-width: 899px) {
@@ -205,12 +205,12 @@
       }
       .slider b {
         position: absolute;
-        top: calc(50% - 7px);
-        width: 4px;
-        height: 14px;
-        margin-left: -2px;
+        top: calc(50% - var(--lh-1) / 2);
+        width: var(--s-1);
+        height: var(--lh-1);
+        margin-left: calc(var(--s-1) / -2);
         background: var(--text-1);
-        border-radius: 1px;
+        border-radius: var(--r-1);
       }
       /* A lone input in a cell, not the kit's label · input · unit row. */
       .level .field,
@@ -225,32 +225,10 @@
       .field input.area {
         text-align: left;
       }
-      .insp .body {
-        padding: var(--s-3) var(--gutter);
-        display: grid;
-        gap: var(--s-3);
-      }
-      .insp .title {
-        font-size: var(--fs-5);
-        line-height: var(--lh-5);
-        font-weight: var(--w-3);
-        margin: 0;
-      }
-      .insp .sub {
-        font-size: var(--fs-2);
-        color: var(--text-2);
-      }
       .insp p {
         margin: 0;
         font-size: var(--fs-2);
         color: var(--text-2);
-      }
-      .btn.primary kbd {
-        border-color: var(--accent-ink);
-        color: var(--accent-ink);
-      }
-      .group {
-        border-top: var(--border);
       }
       .group summary {
         list-style: none;
@@ -263,29 +241,12 @@
         color: var(--text-2);
         cursor: pointer;
       }
-      .group summary::-webkit-details-marker {
-        display: none;
-      }
-      .group summary .n {
-        margin-left: auto;
-        color: var(--text-3);
-      }
-      .group .in {
-        padding: 0 var(--gutter) var(--s-3);
-        font-size: var(--fs-2);
-        color: var(--text-2);
-        display: grid;
-        gap: var(--s-2);
-      }
       .kv {
         display: grid;
         grid-template-columns: auto 1fr;
-        gap: 2px var(--s-3);
+        gap: var(--s-1) var(--s-3);
         font-size: var(--fs-2);
         margin: 0;
-      }
-      .kv dt {
-        color: var(--text-3);
       }
       .kv dd {
         margin: 0;
@@ -303,7 +264,7 @@
       }
       @media (max-width: 899px) {
         .main {
-          padding-bottom: 60px;
+          padding-bottom: calc(var(--tabbar-h) + var(--s-1));
         }
       }
     </style>

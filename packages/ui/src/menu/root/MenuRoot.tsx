@@ -155,7 +155,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     onNavigate(nextActiveIndex) {
       store.setActiveIndex(nextActiveIndex);
     },
-    openOnArrowKeyDown: parent.type !== 'context-menu',
   });
 
   const typeahead = useTypeahead(floatingRootContext, {

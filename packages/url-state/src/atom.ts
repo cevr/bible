@@ -4,9 +4,9 @@
  * A thin binding: every atom reads and writes through the core's services,
  * and holds no URL state of its own.
  *
- * - `layer`: the `Location` layer, one per registry. It is the browser's by
- *   default; seed it through the registry's initial values: the browser with
- *   options at an app's root, `layerServer(requestUrl)` per server render,
+ * - `layer`: the `Location` layer, one per registry. It has no default: seed
+ *   it through the registry's initial values: the browser's `layerBrowser(…)`
+ *   at an app's root, `layerServer(requestUrl)` per server render,
  *   a memory layer in a test, or a host's built `Location` and `UrlState`
  *   (the atoms then write through that `UrlState`, the host's own).
  * - `href`: the URL as the program's writes leave it.
@@ -28,14 +28,20 @@ import { Context, Effect, Exit, Layer, Option, Scheduler, Scope, Stream } from '
 import * as Atom from 'effect/reactivity/Atom';
 
 import { Location, type Entry } from './location.js';
-import { layerBrowser } from './location-browser.js';
 import * as Place from './place.js';
 import { printHref, readHref } from './url-parts.js';
 import * as UrlState from './url-state.js';
 
-/** The `Location` layer for this registry. */
+/**
+ * The `Location` layer for this registry. A registry is seeded with one: a
+ * default would build a `Location` and `UrlState` of its own beside the
+ * host's, a second owner of the history, so reading the URL from an unseeded
+ * registry is a defect that names the seed.
+ */
 export const layer: Atom.Writable<Layer.Layer<Location>> = Atom.keepAlive(
-  Atom.make<Layer.Layer<Location>>(layerBrowser()),
+  Atom.make<Layer.Layer<Location>>(
+    Layer.effect(Location, Effect.die('seed UrlAtom.layer through the registry’s initial values')),
+  ),
 );
 
 /**
