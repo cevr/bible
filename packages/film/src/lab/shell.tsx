@@ -40,6 +40,7 @@ import { type LabPick, labHrefWith, labPlaceOf } from './place.ts';
 import { useSheetDismissal } from './review/inspector.tsx';
 import { Fill, useLabPage } from './panel.tsx';
 import { reloadOnRebuild } from './rebuilt.ts';
+import type { CodeOpen } from './source/open.ts';
 import { type ReloadGate, makeReloadGate } from './reload-gate.ts';
 import { type Stage, type StageOps, makeStage, reloadHere, stageLayer } from './stage.ts';
 
@@ -59,6 +60,8 @@ interface LabState {
   readonly note: Accessor<Option.Option<string>>;
   /** How the compare meets HEAD: the URL's (`?view=`, PA-9). */
   readonly view: Accessor<CompareView>;
+  /** The Source view: the URL's (`?code=`), shut when none. */
+  readonly code: Accessor<Option.Option<CodeOpen>>;
 }
 
 interface LabActions {
@@ -79,6 +82,10 @@ interface LabActions {
   readonly forgetNote: () => void;
   /** Compare with HEAD by `view`, the owner's pick: a new history entry, so Back walks the views. */
   readonly compareBy: (view: CompareView) => void;
+  /** Open the Source view (following the frame, or held on a line), or shut it: a new history entry when it opens on a shut view. */
+  readonly showCode: (code: Option.Option<CodeOpen>) => void;
+  /** Close the Source view (its sheet's Close, Escape, a swipe, a column's Close) by the sheets' one rule. */
+  readonly dismissCode: () => void;
 }
 
 interface LabMeta {
@@ -250,13 +257,17 @@ const Staged = (props: RootProps) => {
   // other entry follows to pick none (the review's sheets' one rule). The cue or
   // knob and the note are picked apart, so each sheet has its own: closing one
   // never goes Back over the other's opening.
-  const sheetOf = (part: 'selection' | 'note') =>
+  const sheetOf = (part: SheetPart) =>
     useSheetDismissal(host, (href, thing) =>
       sheetThings({ [part]: labPlaceOf(href)[part] }).includes(thing),
     );
-  const sheets = { selection: sheetOf('selection'), note: sheetOf('note') } as const;
+  const sheets = {
+    selection: sheetOf('selection'),
+    note: sheetOf('note'),
+    code: sheetOf('code'),
+  } as const;
   /** Go to `pick` of `part`: a step Back walks, its sheet's opening when it picks on a shut one. */
-  const pick = (part: 'selection' | 'note', next: Partial<LabPick>, shut: boolean) => {
+  const pick = (part: SheetPart, next: Partial<LabPick>, shut: boolean) => {
     if (shut) for (const thing of sheetThings(next)) sheets[part].opening(thing);
     address.go(picked(next));
   };
@@ -269,6 +280,7 @@ const Staged = (props: RootProps) => {
       selection: () => here().selection,
       note: () => here().note,
       view: () => here().view,
+      code: () => here().code,
     },
     actions: {
       pin: (layer) => {
@@ -286,6 +298,8 @@ const Staged = (props: RootProps) => {
       compareBy: (view) => {
         if (view !== untrack(() => here().view)) address.go(picked({ view }));
       },
+      showCode: (code) => pick('code', { code }, Option.isNone(untrack(here).code)),
+      dismissCode: () => sheets.code.dismiss(() => Option.some(picked({ code: Option.none() }))),
     },
     meta: {
       name,
@@ -305,16 +319,24 @@ const Staged = (props: RootProps) => {
   return <LabContext value={value}>{props.children}</LabContext>;
 };
 
-/** What a pick keeps a phone's sheet open for (its cue or knob, its note), as a target names it. */
-const sheetThings = (pick: Partial<Pick<LabPick, 'selection' | 'note'>>): ReadonlyArray<string> =>
-  [
+/** The picks a sheet is kept open by: the cue or knob, the note, the Source view. */
+type SheetPart = 'selection' | 'note' | 'code';
+
+/** The thing the Source view's sheet is open for, as the sheets' one rule names it. */
+const SOURCE_THING = 'source';
+
+/** What a pick keeps a sheet open for (its cue or knob, its note, the Source view), as a target names it. */
+const sheetThings = (pick: Partial<Pick<LabPick, SheetPart>>): ReadonlyArray<string> => [
+  ...[
     ...Option.toArray(Option.flatten(Option.fromUndefinedOr(pick.selection))),
     ...Option.toArray(
       Option.map(Option.flatten(Option.fromUndefinedOr(pick.note)), (id) =>
         Selection.cases.Note.make({ id }),
       ),
     ),
-  ].map(targetAttr);
+  ].map(targetAttr),
+  ...Option.toArray(Option.as(Option.flatten(Option.fromUndefinedOr(pick.code)), SOURCE_THING)),
+];
 
 /** How long the picture flashes when new code lands. */
 const LANDED_MS = 900;

@@ -29,6 +29,7 @@ import { Lab, useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY, findingsIn, peekText } from './format.ts';
 import { SelectionSheet } from '../selection-sheet.tsx';
+import { Source } from '../source/index.ts';
 import { hubKeys } from '../command/changes.ts';
 import { countState } from '../scenes/marks.ts';
 import { PHONE, useMatches } from '../viewport.ts';
@@ -81,7 +82,10 @@ const CueFields = (props: CueFieldsProps) => {
     });
   return (
     <div class="lab-edit-cue">
-      <div class="lab-edit-title">{`${scene()} · cue ${props.name}`}</div>
+      <div class="lab-edit-title">
+        {`${scene()} · cue ${props.name}`}
+        <Source.At of="cue" scene={scene()} name={props.name} />
+      </div>
       <div class="lab-edit-grid">
         <Key>anchor</Key>
         <Val>{anchorText(props.span)}</Val>
@@ -302,6 +306,7 @@ export const Section = (props: ParentProps) => {
             of={lab.selection()}
             peek={peek()}
             dismiss={actions.dismissSelection}
+            faces={(inspector) => <Source.Faces>{inspector}</Source.Faces>}
           >
             <Show when={Option.getOrUndefined(cueSelected())} keyed>
               {(s: LabSelection) => <CueInspector selection={s} />}

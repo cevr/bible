@@ -1,5 +1,5 @@
 // The lab's place in the URL (`Places.lab`, `Places.labScene`, core/api.ts):
-// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&beat=<id>&view=<compare>#t=<seconds>&loop=<a>,<b>`.
+// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&beat=<id>&view=<compare>&code=follow|<line>#t=<seconds>&loop=<a>,<b>`.
 // The path's scene is the selection's scene when something is selected, else
 // the scene under the playhead, so the path never names a scene the frame has
 // left; `#t=` is the frame's time in that scene (signed: a selection's scene
@@ -14,6 +14,7 @@ import { type Placed, sceneAt } from '../core/layout.ts';
 import type { Interval } from '../core/time.ts';
 import { onTheMs } from '../player/t-in-url.ts';
 import { type LabSelection as Selection, cueOf, knobOf, labKeysOf } from '../command/selection.ts';
+import { type CodeOpen, codeOpenOf, codeText } from './source/open.ts';
 
 /** What the lab's URL holds beside its film. */
 interface LabPlace {
@@ -27,6 +28,8 @@ interface LabPlace {
   readonly beat: Option.Option<string>;
   /** The compare with HEAD (`?view=`, PA-9): off unless the link names a mode. */
   readonly view: CompareView;
+  /** The Source view (`?code=`): shut unless the link opens it, following the frame or held on a line. */
+  readonly code: Option.Option<CodeOpen>;
   /** `#t=`: seconds into the path's scene, or film seconds on a film's lab. */
   readonly t: Option.Option<number>;
   /** `#loop=`: the A–B loop, film seconds on both. */
@@ -39,6 +42,7 @@ const NOWHERE: LabPlace = {
   note: Option.none(),
   beat: Option.none(),
   view: 'off',
+  code: Option.none(),
   t: Option.none(),
   loop: Option.none(),
 };
@@ -66,6 +70,7 @@ export const labPlaceOf = (href: string): LabPlace =>
         note: named(query.note),
         beat: named(query.beat),
         view: query.view,
+        code: codeOpenOf(query.code),
         t: hash.t,
         loop: hash.loop,
       })),
@@ -132,12 +137,14 @@ export const beatAt = (href: string, listed: ReadonlyArray<string>): Option.Opti
   );
 };
 
-/** What the lab writes beside the frame's time: its pick, its note, the studio's beat, the compare's mode and the loop. */
+/** What the lab writes beside the frame's time: its pick, its note, the studio's beat, the compare's mode, the Source view and the loop. */
 export interface LabPick {
   readonly selection: Option.Option<Selection>;
   readonly note: Option.Option<string>;
   readonly beat: Option.Option<string>;
   readonly view: CompareView;
+  /** The Source view; a pick that says nothing of it leaves it shut. */
+  readonly code?: Option.Option<CodeOpen>;
   readonly loop: Option.Option<Interval>;
 }
 
@@ -171,6 +178,7 @@ export const labHref = (
           note,
           beat: Option.getOrElse(pick.beat, () => ''),
           view: pick.view,
+          code: codeText(Option.flatten(Option.fromUndefinedOr(pick.code))),
         },
         Option.some(onTheMs(T - Option.getOrElse(startOf(placed, id), () => 0))),
         pick.loop,
@@ -190,8 +198,8 @@ export const labHrefWith = (
   change: Partial<LabPick>,
   T: number,
 ): string => {
-  const { selection, note, beat, view, loop } = labPlaceOf(href);
-  return labHref(film, placed, { selection, note, beat, view, loop, ...change }, T);
+  const { selection, note, beat, view, code, loop } = labPlaceOf(href);
+  return labHref(film, placed, { selection, note, beat, view, code, loop, ...change }, T);
 };
 
 /** Whether `selection` is the cue `name` of `scene`. */

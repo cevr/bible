@@ -17,10 +17,11 @@ import { DRAG_PX, Pointer, Surface } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { timecode } from '../../core/time.ts';
-import { endsLate } from '../../core/timeline.ts';
+import { endsLate, liveAt } from '../../core/timeline.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
 import { cueOf } from '../../command/selection.ts';
 import { BY_BUTTON } from '../../command/command.ts';
+import { SOURCE } from '../source/commands.ts';
 import { CANCEL_GRIP, SNAP } from './commands.ts';
 import { hubKeys } from '../command/changes.ts';
 import { Target } from '../command/context-menu.tsx';
@@ -88,6 +89,10 @@ const CueRow = (props: CueRowProps) => {
   const { state: lab, meta } = useLab();
   const { actions } = useEditor();
   const scene = () => props.placed.spec.id;
+  // Lit while the playhead is inside the cue (`liveAt`): the Source view lights the same cues.
+  const live = () =>
+    liveAt(new Map([[props.name, props.cue]]), lab.T() - props.placed.start, meta.film.fps).length >
+    0;
   const title = () =>
     Option.match(Option.fromUndefinedOr(meta.stage.timelineOf(scene())[props.name]), {
       onNone: () => '',
@@ -127,6 +132,7 @@ const CueRow = (props: CueRowProps) => {
           ]}
           data-cue={props.name}
           data-scene={scene()}
+          data-live={Option.getOrUndefined(Option.liftPredicate('', live))}
           style={{
             left: pct(props.window(), props.cue.start),
             width: len(props.window(), props.cue.dur),
@@ -267,6 +273,18 @@ export const Strip = () => {
                   Cancel drag
                 </button>
               </Show>
+              {/* The scene's code, closed at rest: the head is in every mode, so a finger reaches it from any. */}
+              <button
+                type="button"
+                class="sh-btn"
+                data-act="code"
+                aria-pressed={`${Option.isSome(lab.code())}`}
+                title={keys.titled("the scene's code, lit as it plays", SOURCE)}
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => meta.hub.invokeId(SOURCE, BY_BUTTON)}
+              >
+                Code
+              </button>
               {/* Shift's way for a finger (LS-5): edges snap while it is on; off, they go freely. */}
               <button
                 type="button"

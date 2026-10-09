@@ -19,7 +19,8 @@ import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { knobRefusal } from './grip.ts';
 import { type Handle, handleOf, handlesOf, isCameraTarget } from './handles.ts';
-import { knobOf } from '../../command/selection.ts';
+import { type LabSelection, knobOf } from '../../command/selection.ts';
+import { Source } from '../source/index.ts';
 import { Target } from '../command/context-menu.tsx';
 import { Field } from '../command/inspector.tsx';
 
@@ -35,6 +36,12 @@ const useSelected = () => {
       (s) => s._tag === 'Knob' && s.scene === scene && s.name === name,
     );
 };
+
+/** Whether a selection is a knob of `scene`. */
+const isKnobOf =
+  (scene: string) =>
+  (s: LabSelection): s is Extract<LabSelection, { _tag: 'Knob' }> =>
+    s._tag === 'Knob' && s.scene === scene;
 
 /** The inspected scene's knobs, as shown now: previewed, else declared. */
 const useKnobs = () => {
@@ -101,6 +108,7 @@ const Row = (props: { readonly scene: string; readonly name: string; readonly va
 
 /** The inspected scene's knob rows. */
 export const Rows = () => {
+  const { state: lab } = useLab();
   const { state } = useEditor();
   const knobs = useKnobs();
   // Every declared knob, 0 and all: a row per entry, kept by its name.
@@ -108,7 +116,16 @@ export const Rows = () => {
   return (
     <Show when={entries().length > 0}>
       <div class="lab-edit-knobs">
-        <div class="lab-edit-title">{`${state.inspected()} · knobs`}</div>
+        <div class="lab-edit-title">
+          {`${state.inspected()} · knobs`}
+          <Show
+            when={Option.getOrUndefined(
+              Option.filter(lab.selection(), isKnobOf(state.inspected())),
+            )}
+          >
+            {(s) => <Source.At of="knob" scene={s().scene} name={s().name} />}
+          </Show>
+        </div>
         <For each={entries()} keyed={([name]) => name}>
           {(entry) => <Row scene={state.inspected()} name={entry()[0]} value={entry()[1]} />}
         </For>

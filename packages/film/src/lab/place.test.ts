@@ -6,6 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
+import { FOLLOW, lineOpen } from './source/open.ts';
 import { beatAt, labHref, labHrefWith, labOpensAt, labPlaceOf, selectsCue } from './place.ts';
 
 const placed = Result.getOrThrow(
@@ -34,6 +35,7 @@ describe("the lab's place", () => {
       note: Option.some('n3'),
       beat: Option.none(),
       view: 'off',
+      code: Option.none(),
       t: Option.some(1.5),
       loop: Option.none(),
     });
@@ -92,6 +94,20 @@ describe("the lab's place", () => {
     expect(labHref('f', placed, wiping, 1)).toBe('/films/f/lab/a?view=wipe#t=1');
     expect(labPlaceOf(labHref('f', placed, wiping, b + 1)).view).toBe('wipe');
     expect(labHref('f', placed, none, 1)).not.toContain('view=');
+  });
+
+  test('the Source view rides in ?code=: read back, kept by every write, shut when the key is absent', () => {
+    expect(labPlaceOf('/films/f/lab/b?code=follow#t=1').code).toEqual(Option.some(FOLLOW));
+    expect(labPlaceOf('/films/f/lab/b?code=12#t=1').code).toEqual(Option.some(lineOpen(12)));
+    expect(labPlaceOf('/films/f/lab/b?code=0#t=1').code).toEqual(Option.none());
+    expect(labPlaceOf('/films/f/lab/b#t=1').code).toEqual(Option.none());
+    const open = { ...none, code: Option.some(FOLLOW) };
+    expect(labHref('f', placed, open, 1)).toBe('/films/f/lab/a?code=follow#t=1');
+    // Play crossing into b keeps it open; a write that says nothing of it leaves it as the URL holds it.
+    const at = '/films/f/lab/a?code=7#t=1';
+    expect(labHrefWith('f', placed, at, {}, b + 0.5)).toBe('/films/f/lab/b?code=7#t=0.5');
+    expect(labHrefWith('f', placed, at, { code: Option.none() }, 1)).toBe('/films/f/lab/a#t=1');
+    expect(labHref('f', placed, none, 1)).not.toContain('code=');
   });
 
   test('the A–B loop rides in #loop= in film seconds: read back, kept across a scene boundary, none unwritten or ill-formed', () => {

@@ -14,6 +14,7 @@ import { UrlState, layerServer } from '@bible/url-state';
 import { Effect, Layer } from 'effect';
 import { Clipboard, ClipboardRefused } from './clipboard.ts';
 import { Frames } from './frames.ts';
+import { Highlights } from './highlights.ts';
 import type { BrowserServices } from './host.ts';
 import { Keys } from './keys.ts';
 import { Media, PlayRefused, type Playable } from './media.ts';
@@ -63,6 +64,7 @@ export const ServerHost = {
     Layer.mergeAll(
       noClipboard,
       Frames.layerClock,
+      Highlights.none,
       Keys.layerOn(new EventTarget()),
       Media.layerOver(() => unplayable),
       noLoads,
