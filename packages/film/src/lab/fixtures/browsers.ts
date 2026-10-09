@@ -340,8 +340,11 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
               }),
             )
             .join(' ');
-          // A host reach is told by the page's own wrapper, not logged by the page.
-          const told = toldOf(text);
+          // A host reach is told by the page's own wrapper on the debug channel;
+          // a warning or an error in its spelling is the page's, and fails below.
+          const told = Option.filter(Option.some(text), () => type === 'debug').pipe(
+            Option.flatMap(toldOf),
+          );
           if (Option.isSome(told)) {
             Option.map(failureOf(told.value, mapFor), (failure) => errors.push(failure));
             return;

@@ -153,6 +153,14 @@ describe('the pool of views', () => {
   for (const [name, script] of [
     ['a Solid diagnostic', "console.warn('[NO_OWNER_CLEANUP] a cleanup with no owner')"],
     ['a console error', "console.error('boom')"],
+    [
+      "a warning in the host-reach report's spelling",
+      `console.warn('[host-reach] {"api":"probe","frames":[]}')`,
+    ],
+    [
+      "an error in the host-reach report's spelling",
+      `console.error('[host-reach] {"api":"probe","frames":[]}')`,
+    ],
     ['an uncaught throw', "setTimeout(() => { throw new Error('late') })"],
   ] as const)
     it.live(`fails a case whose page logged ${name}, though the case never looked`, () =>
