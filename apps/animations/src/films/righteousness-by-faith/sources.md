@@ -1,6 +1,6 @@
 # Righteousness by Faith: sources
 
-Every quotation the film speaks is verbatim, and every paraphrase stays inside its source’s words. The Ellen G. White and pioneer texts are records in `quotes.jsonl`, checked against the local corpus with `python3 .claude/skills/film/frame/verify-quotes.py apps/animations/src/films/righteousness-by-faith/quotes.jsonl` (48 records, all EXACT, 2026-09-27). The KJV was checked with `bible verse`; its supplied-word brackets are dropped for speech.
+The film is made for every Christian (CRAFT rule 2): it quotes only Scripture, and it never quotes or names Ellen G. White or the pioneers in speech. Their thought is said in the narrator’s own words, and every paraphrase stays inside its source’s words; the credits name them. The Ellen G. White and pioneer texts are records in `quotes.jsonl`, checked against the local corpus with `python3 .claude/skills/film/frame/verify-quotes.py apps/animations/src/films/righteousness-by-faith/quotes.jsonl` (48 records, all EXACT, 2026-09-27). The KJV, the only words the film quotes, was checked with `bible verse`; its supplied-word brackets are dropped for speech.
 
 Doctrine follows [the frame](../../../../../.claude/skills/film/frame/righteousness-by-faith.md): 1889 Principle XVIII, the third angel’s message in its own words, Christ now in the heavenly courts, Zech 3 with the accuser in the day of atonement, the Sabbath as rest by faith, and the latter rain.
 
@@ -26,7 +26,7 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 
   > My tongue shall speak of thy word: for all thy commandments are righteousness.
 
-- **CHR 48.2** · E. J. Waggoner, _Christ and His Righteousness_ (1890). “a transcript of his character”.
+- **CHR 48.2** · E. J. Waggoner, _Christ and His Righteousness_ (1890). Paraphrased: “His law is a portrait of his own character”.
 
   > Since the law is the righteousness of God—a transcript of His character
 
@@ -58,23 +58,25 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 
 ## `message`
 
-- **10LtMs, Lt 57, 1895, par. 43** · Ellen G. White, _Letter 57, 1895 (to O. A. Olsen, May 1, 1895; printed as TM 91.2)_ (1895). “a most precious message” quoted; “It was the third angel’s message” paraphrases it.
+- **10LtMs, Lt 57, 1895, par. 43** · Ellen G. White, _Letter 57, 1895 (to O. A. Olsen, May 1, 1895; printed as TM 91.2)_ (1895). Supporting, paraphrased with its history left out (the film names no church): the law preached without Christ, “Some hold up the law, and lose sight of Christ.”
 
   > The Lord in His great mercy sent a most precious message to His people through Elders Waggoner and Jones. … Many had lost sight of Jesus. They needed to have their eyes directed to His divine person, His merits, and His changeless love for the human family. … It is the third angel’s message, which is to be proclaimed with a loud voice, and attended with the outpouring of His Spirit in a large measure.
 
-- **10LtMs, Lt 57, 1895, par. 44** · Ellen G. White, _Letter 57, 1895 (printed as TM 92.1, where “preach” reads “teach”)_ (1895). The reputation line: “Adventists talk the law, the law, but do not preach Christ.”
+- **10LtMs, Lt 57, 1895, par. 44** · Ellen G. White, _Letter 57, 1895 (printed as TM 92.1, where “preach” reads “teach”)_ (1895). Supporting the same line: the law preached, Christ not.
 
   > Christ is pleading for the church in the heavenly courts above … that the world should no longer say, Seventh-day Adventists talk the law, the law, but do not preach or believe Christ.
 
-- **5LtMs, Ms 24, 1888, par. 42** · Ellen G. White, _Manuscript 24, 1888 (her account of the Minneapolis General Conference)_ (1888). The third angel’s message defined, and “The law and the gospel, hand in hand.”
+- **5LtMs, Ms 24, 1888, par. 42** · Ellen G. White, _Manuscript 24, 1888 (her account of the Minneapolis General Conference)_ (1888). The message defined as the commandments of God and the faith of Jesus; paraphrased: “The law and the gospel, never apart.”
 
   > The third angel’s message is the proclamation of the commandments of God and the faith of Jesus Christ. The commandments of God have been proclaimed, but the faith of Jesus Christ has not been proclaimed by Seventh-day Adventists as of equal importance, the law and the gospel going hand in hand.
 
-- **Revelation 14:12** (KJV). “the commandments of God, and the faith of Jesus”, spoken as the message’s own words (frame: GNT 256.4).
+- **Revelation 14:6–12** (KJV). “an angel carrying God’s last message to the world” (verse 6, the everlasting gospel to every nation, and the angels who follow it); verse 12 quoted: “the commandments of God, and the faith of Jesus”, the message’s own words (frame: GNT 256.4). “Others hold up Christ, and set the law aside” is the film’s own line: the error opposite to the law without Christ, both answered by verse 12.
+
+  > And I saw another angel fly in the midst of heaven, having the everlasting gospel to preach unto them that dwell on the earth, and to every nation, and kindred, and tongue, and people,
 
   > Here is the patience of the saints: here are they that keep the commandments of God, and the faith of Jesus.
 
-- **PTUK October 18, 1894, page 659.3** · E. J. Waggoner, _Studies in Romans, The Present Truth 10 (byline E. J. Waggoner; reprinted SITI March 12, 1896, 165.2 and WOR 94.2)_ (1894). “God does not just call us righteous. He makes us righteous” paraphrases it; quoted in `declared`.
+- **PTUK October 18, 1894, page 659.3** · E. J. Waggoner, _Studies in Romans, The Present Truth 10 (byline E. J. Waggoner; reprinted SITI March 12, 1896, 165.2 and WOR 94.2)_ (1894). “God does not just call us righteous. He makes us righteous” paraphrases it; `declared` quotes the verse it reads, Romans 5:19.
 
   > People are not simply counted righteous, but actually made righteous, by the obedience of Christ, who is as righteous as He ever was, and who lives today in those who yield to Him.
 
@@ -127,11 +129,11 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > And the earth was without form, and void; and darkness was upon the face of the deep. … And God said, Let there be light: and there was light.
 
-- **Psalm 33:9** (KJV). Quoted, its writer named: “The psalm says”.
+- **Psalm 33:9** (KJV). Quoted: “The psalm says”.
 
   > For he spake, and it was done; he commanded, and it stood fast.
 
-- **LOF_ATJ 16.5** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, December 27, 1898, p. 832)_ (1898). “God spoke the word only, and the word itself produced the thing.” The answer “From God’s word” is Romans 10:17, and Jones’s LOF_ATJ 22.9 under `declared`.
+- **LOF_ATJ 16.5** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, December 27, 1898, p. 832)_ (1898). Paraphrased: “God only spoke the word, and the word itself made the thing.” The answer “From God’s word” is Romans 10:17, and Jones’s LOF_ATJ 22.9 under `declared`.
 
   > He spoke the word only, and it was so. The word spoken, itself produced the thing.
 
@@ -141,11 +143,11 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > The centurion answered and said, Lord, I am not worthy that thou shouldest come under my roof: but speak the word only, and my servant shall be healed.
 
-- **LOF_ATJ 14.5** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, December 6, 1898, p. 782)_ (1898). Jones reads the story as the definition of faith.
+- **LOF_ATJ 14.5** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, December 6, 1898, p. 782)_ (1898). The story read as the definition of faith (“That is what faith is.”).
 
   > But when the Lord said, “I will come” and do it, the centurion checked Him, saying, “Speak the word only,” and it shall be done.
 
-- **LOF_ATJ 15.1** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, December 27, 1898, p. 832)_ (1898). Quoted.
+- **LOF_ATJ 15.1** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, December 27, 1898, p. 832)_ (1898). Paraphrased: “It expects God's word to do what it says, and leans on that word alone to do it.”
 
   > Faith is the expecting the word of God to do what it says and the depending upon that word to do what it says.
 
@@ -159,7 +161,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
 ## `look`
 
-- **DA 175.4** · Ellen G. White, _The Desire of Ages_ (1898). “Faith is not our Saviour… It earns nothing. It is the hand that takes hold of Christ.”
+- **DA 175.4** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: “Faith is not our Saviour. It earns nothing. It is only the hand that takes hold of Christ.”
 
   > Through faith we receive the grace of God; but faith is not our Saviour. It earns nothing. It is the hand by which we lay hold upon Christ, and appropriate His merits, the remedy for sin.
 
@@ -167,9 +169,17 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > And the LORD said unto Moses, Make thee a fiery serpent, and set it upon a pole: and it shall come to pass, that every one that is bitten, when he looketh upon it, shall live.
 
-- **7LtMs, Lt 85, 1891, par. 6** · Ellen G. White, _Letter 85, 1891 (printed as 13MR 150.1)_ (1891). Quoted.
+- **7LtMs, Lt 85, 1891, par. 6** · Ellen G. White, _Letter 85, 1891 (printed as 13MR 150.1)_ (1891). Paraphrased: “But no one has to climb the pole. Just look to Christ”.
 
   > The same Jesus has bidden me tell you, Look and live. Do not climb the pole, but only look. I present Christ to you. Look and live.
+
+- **John 3:14–15** (KJV). The serpent lifted up read as Christ: “Just look to Christ”.
+
+  > And as Moses lifted up the serpent in the wilderness, even so must the Son of man be lifted up: That whosoever believeth in him should not perish, but have eternal life.
+
+- **Isaiah 45:22** (KJV). Quoted: “Look unto me, and be ye saved.”
+
+  > Look unto me, and be ye saved, all the ends of the earth: for I am God, and there is none else.
 
 ## `declared`
 
@@ -177,11 +187,15 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > Being justified freely by his grace through the redemption that is in Christ Jesus: Whom God hath set forth to be a propitiation through faith in his blood, to declare his righteousness for the remission of sins that are past, through the forbearance of God;
 
+- **Romans 5:19** (KJV). Quoted: “by the obedience of one shall many be made righteous.” (“But Paul goes further”.)
+
+  > For as by one man's disobedience many were made sinners, so by the obedience of one shall many be made righteous.
+
 - **CHR 65.3** · E. J. Waggoner, _Christ and His Righteousness_ (1890). Supporting: forgiveness is justification, made righteous (quoted under `robe`).
 
   > The forgiveness of sins is a reality; it is something tangible, something that vitally affects the individual. It actually clears him from guilt, and if he is cleared from guilt, is justified, made righteous, he has certainly undergone a radical change.
 
-- **PTUK October 18, 1894, page 659.3** · E. J. Waggoner, _Studies in Romans, The Present Truth 10 (byline E. J. Waggoner; reprinted SITI March 12, 1896, 165.2 and WOR 94.2)_ (1894). Quoted: “People are not simply counted righteous, but actually made righteous.”
+- **PTUK October 18, 1894, page 659.3** · E. J. Waggoner, _Studies in Romans, The Present Truth 10 (byline E. J. Waggoner; reprinted SITI March 12, 1896, 165.2 and WOR 94.2)_ (1894). Supporting: “not simply counted righteous, but actually made righteous”, the reading of Romans 5:19 that `declared` quotes.
 
   > People are not simply counted righteous, but actually made righteous, by the obedience of Christ, who is as righteous as He ever was, and who lives today in those who yield to Him.
 
@@ -207,9 +221,13 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
 ## `exchange`
 
-- **5LtMs, Ms 24, 1888, par. 43** · Ellen G. White, _Manuscript 24, 1888_ (1888). Quoted. The same paragraph calls this “the faith of Jesus that belongs to the third angel’s message.”
+- **5LtMs, Ms 24, 1888, par. 43** · Ellen G. White, _Manuscript 24, 1888_ (1888). Paraphrased: “Jesus was given what we deserve. He took our sins, so that we might take his righteousness.” The same paragraph calls this “the faith of Jesus that belongs to the third angel’s message.”
 
   > What constitutes the faith of Jesus that belongs to the third angel’s message? Jesus becoming our sin-bearer that He might become our sin-pardoning Saviour. He was treated as we deserve to be treated. He came to our world and took our sins that we might take His righteousness.
+
+- **2 Corinthians 5:21** (KJV). The exchange in Paul’s words, behind the paraphrase above.
+
+  > For he hath made him to be sin for us, who knew no sin; that we might be made the righteousness of God in him.
 
 - **1 Peter 2:24** (KJV). “He bore them on the cross.”
 
@@ -219,7 +237,11 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > We have such an high priest, who is set on the right hand of the throne of the Majesty in the heavens; a minister of the sanctuary, and of the true tabernacle, which the Lord pitched, and not man.
 
-- **10LtMs, Lt 57, 1895, par. 44** · Ellen G. White, _Letter 57, 1895 (printed as TM 92.1, where “preach” reads “teach”)_ (1895). “Right now, she wrote, he pleads for us there”: “there” is heaven, named in the sentence before.
+- **10LtMs, Lt 57, 1895, par. 44** · Ellen G. White, _Letter 57, 1895 (printed as TM 92.1, where “preach” reads “teach”)_ (1895). Supporting: Christ pleading “in the heavenly courts above”, now said in Hebrews 7:25’s words.
+
+- **Hebrews 7:25** (KJV). Quoted: “he ever liveth to make intercession” (“And right now, … for us.”).
+
+  > Wherefore he is able also to save them to the uttermost that come unto God by him, seeing he ever liveth to make intercession for them.
 
   > Christ is pleading for the church in the heavenly courts above … that the world should no longer say, Seventh-day Adventists talk the law, the law, but do not preach or believe Christ.
 
@@ -233,13 +255,17 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > He does not claim that Israel are free from fault. In his filthy garments, symbolizing the sins of the people, which he bears as their representative, he stands before the Angel
 
-- **5T 472.2** · Ellen G. White, _Testimonies for the Church, vol. 5, “Joshua and the Angel” (first printed 1885 as T32 228.2)_ (1889). Quoted: “in the closing up of the great day of atonement.”
+- **5T 472.2** · Ellen G. White, _Testimonies for the Church, vol. 5, “Joshua and the Angel” (first printed 1885 as T32 228.2)_ (1889). Paraphrased: “And the vision speaks to God’s people as the great day of atonement closes.”
 
   > Zechariah’s vision of Joshua and the Angel applies with peculiar force to the experience of God’s people in the closing up of the great day of atonement.
 
-- **5T 469.1** · Ellen G. White, _Testimonies for the Church, vol. 5, “Joshua and the Angel”_ (1889). “the Angel, Christ himself, silences the accuser.”
+- **5T 469.1** · Ellen G. White, _Testimonies for the Church, vol. 5, “Joshua and the Angel”_ (1889). Paraphrased: “the Angel, Christ himself, silences the accuser.”
 
   > Then the Angel, who is Christ Himself, the Saviour of sinners, puts to silence the accuser of His people
+
+- **Zechariah 3:2** (KJV). Quoted: “The LORD rebuke thee, O Satan.”
+
+  > And the LORD said unto Satan, The LORD rebuke thee, O Satan; even the LORD that hath chosen Jerusalem rebuke thee: is not this a brand plucked out of the fire?
 
 ## `robe`
 
@@ -251,11 +277,11 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > the command is given, “Take away the filthy garments” from them, and the encouraging words are spoken, “Behold, I have caused thine iniquity to pass from thee, and I will clothe thee with change of raiment.”
 
-- **COL 311.4** · Ellen G. White, _Christ’s Object Lessons_ (1900). Paraphrased: “A robe from heaven’s loom, Ellen White said, not one thread of it ours.”
+- **COL 311.4** · Ellen G. White, _Christ’s Object Lessons_ (1900). Paraphrased: “A robe woven on heaven’s loom, not one thread of it ours.”
 
   > This robe, woven in the loom of heaven, has in it not one thread of human devising.
 
-- **CHR 65.3** · E. J. Waggoner, _Christ and His Righteousness_ (1890). “Christ gives no cloak for sin… He takes it away.” (The corpus prints the page number 66 inside “And so we find”; the ellipsis marks that omission.)
+- **CHR 65.3** · E. J. Waggoner, _Christ and His Righteousness_ (1890). Paraphrased: “Christ gives no cloak for sin. He takes it away.” (The corpus prints the page number 66 inside “And so we find”; the ellipsis marks that omission.)
 
   > Notice in the above account that the taking away of the filthy garments is the same as causing the iniquity to pass from the person. … when Christ covers us with the robe of His own righteousness, He does not furnish a cloak for sin but takes the sin away.
 
@@ -267,9 +293,13 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > It is true that God will by no means clear the guilty. He could not do that and still be a just God. But He does something which is far better. He removes the guilt, so that the one formerly guilty does not need to be cleared—he is justified and counted as though he never had sinned.
 
-- **MB 114.1** · Ellen G. White, _Thoughts From the Mount of Blessing_ (1896). “More than a ruling, she wrote” paraphrases the first sentence (“not merely a judicial act”); the second is quoted.
+- **MB 114.1** · Ellen G. White, _Thoughts From the Mount of Blessing_ (1896). Paraphrased: “It is more than a ruling” (“not merely a judicial act”); its “reclaiming from sin” is said in 1 John 1:9’s words.
 
   > God’s forgiveness is not merely a judicial act by which He sets us free from condemnation. It is not only forgiveness for sin, but reclaiming from sin. It is the outflow of redeeming love that transforms the heart.
+
+- **1 John 1:9** (KJV). Quoted: “he is faithful and just to forgive us our sins, and to cleanse us from all unrighteousness.”
+
+  > If we confess our sins, he is faithful and just to forgive us our sins, and to cleanse us from all unrighteousness.
 
 ## `within`
 
@@ -281,15 +311,15 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > I say unto thee, Arise, and take up thy bed, and go thy way into thine house. And immediately he arose, took up the bed, and went forth before them all;
 
-- **John 1:12** (KJV). “the power to become them”.
+- **John 1:12** (KJV). Quoted: “power to become the sons of God.”
 
   > But as many as received him, to them gave he power to become the sons of God, even to them that believe on his name:
 
-- **PTUK May 9, 1895, page 290.12** · E. J. Waggoner, _“Our Inheritance”, The Present Truth 11, 19 (byline E. J. Waggoner)_ (1895). “Not just the right to be called God’s children, Waggoner said, but the power to become them.” (His “actually” is not spoken.)
+- **PTUK May 9, 1895, page 290.12** · E. J. Waggoner, _“Our Inheritance”, The Present Truth 11, 19 (byline E. J. Waggoner)_ (1895). Paraphrased: “Not just the right to be called God’s children”, the verse then quoted for the rest.
 
   > Those who believe on the name of Christ have the privilege to become the sons of God. It is not simply the right to be called the sons, but the power actually to become sons.
 
-- **FP1889 150.6** · (unsigned; SDA Year Book 1889), _Fundamental Principles XVIII_ (1889). “we depend on Christ first to be justified from our past sins, then for grace to obey his law from now on.”
+- **FP1889 150.6** · (unsigned; SDA Year Book 1889), _Fundamental Principles XVIII_ (1889). Paraphrased, the statement unnamed: “So we depend on Christ for both: first, to be justified from our past sins, then for grace to obey his law from now on.”
 
   > we are dependent on Christ, first, for justification from our past offenses, and, secondly, for grace whereby to render acceptable obedience to his holy law in time to come.
 
@@ -315,15 +345,15 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > God requires the entire surrender of the heart, before justification can take place; and in order for man to retain justification, there must be continual obedience, through active, living faith that works by love and purifies the soul.
 
-- **Joshua 24:15** (KJV). The choice.
+- **Joshua 24:15** (KJV). Quoted: “Choose you this day whom ye will serve.”
 
   > And if it seem evil unto you to serve the LORD, choose you this day whom ye will serve; whether the gods which your fathers served that were on the other side of the flood, or the gods of the Amorites, in whose land ye dwell: but as for me and my house, we will serve the LORD.
 
-- **SC 47.1** · Ellen G. White, _Steps to Christ, ch. 5 “Consecration”_ (1892). “We cannot change our hearts, Ellen White said, but we can choose to give God our will.”
+- **SC 47.1** · Ellen G. White, _Steps to Christ, ch. 5 “Consecration”_ (1892). Paraphrased: “We cannot change our own hearts, but we can choose to give God our will.”
 
   > You cannot change your heart, you cannot of yourself give to God its affections; but you can choose to serve Him. You can give Him your will; He will then work in you to will and to do according to His good pleasure.
 
-- **SC 70.1** · Ellen G. White, _Steps to Christ_ (1892). Quoted: “This is a daily matter.”
+- **SC 70.1** · Ellen G. White, _Steps to Christ_ (1892). Paraphrased: “Every day, again.”
 
   > This is a daily matter. Each morning consecrate yourself to God for that day.
 
@@ -339,7 +369,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > Sanctification is not the work of a moment, an hour, a day, but of a lifetime.
 
-- **GCDB March 8, 1897, page 303.7** · E. J. Waggoner, _“Studies in the Book of Hebrews. - No. 16” (Sunday afternoon, Feb. 28, 1897), General Conference Daily Bulletin, March 8, 1897 (byline at page 297; the corpus author field names the editor, A. T. Jones)_ (1897). “the Sabbath is righteousness by faith”, now reported speech without quotation marks; “we stop our own works, and rest in his” with Hebrews 4:10.
+- **GCDB March 8, 1897, page 303.7** · E. J. Waggoner, _“Studies in the Book of Hebrews. - No. 16” (Sunday afternoon, Feb. 28, 1897), General Conference Daily Bulletin, March 8, 1897 (byline at page 297; the corpus author field names the editor, A. T. Jones)_ (1897). Paraphrased, unattributed: “the Sabbath is righteousness by faith”; “we stop our own works, and rest in his” with Hebrews 4:10.
 
   > for the Sabbath is righteousness by faith; for by it a man comes into God’s works, and those works are perfect. Therefore he gets rest by faith.
 
@@ -349,7 +379,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
 ## `rain`
 
-- **CWCP 124.2** · A. T. Jones, _The Consecrated Way to Christian Perfection, ch. XVI “The Times of Refreshing”_ (1905). The latter rain and the blotting out of sins in the cleansing of the sanctuary.
+- **CWCP 124.2** · A. T. Jones, _The Consecrated Way to Christian Perfection, ch. XVI “The Times of Refreshing”_ (1905). Paraphrased: “To the latter rain, the Spirit poured out. To the blotting out of sins, as the sanctuary is cleansed.”
 
   > we are in the times of refreshing—the time of the latter rain. … And the blotting out of sins is exactly this thing of the cleansing of the sanctuary
 
@@ -357,9 +387,21 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > Repent ye therefore, and be converted, that your sins may be blotted out, when the times of refreshing shall come from the presence of the Lord;
 
-- **10LtMs, Lt 57, 1895, par. 43** · Ellen G. White, _Letter 57, 1895 (to O. A. Olsen, May 1, 1895; printed as TM 91.2)_ (1895). “A message for a loud voice, Ellen White said” (“to be proclaimed with a loud voice”).
+- **Joel 2:23** (KJV). The latter rain.
+
+  > Be glad then, ye children of Zion, and rejoice in the LORD your God: for he hath given you the former rain moderately, and he will cause to come down for you the rain, the former rain, and the latter rain in the first month.
+
+- **Daniel 8:14** (KJV). The sanctuary cleansed.
+
+  > And he said unto me, Unto two thousand and three hundred days; then shall the sanctuary be cleansed.
+
+- **10LtMs, Lt 57, 1895, par. 43** · Ellen G. White, _Letter 57, 1895 (to O. A. Olsen, May 1, 1895; printed as TM 91.2)_ (1895). Supporting: “to be proclaimed with a loud voice”, said in Revelation 14:9’s words.
 
   > The Lord in His great mercy sent a most precious message to His people through Elders Waggoner and Jones. … Many had lost sight of Jesus. They needed to have their eyes directed to His divine person, His merits, and His changeless love for the human family. … It is the third angel’s message, which is to be proclaimed with a loud voice, and attended with the outpouring of His Spirit in a large measure.
+
+- **Revelation 14:9** (KJV). Quoted: “with a loud voice.”
+
+  > And the third angel followed them, saying with a loud voice, If any man worship the beast and his image, and receive his mark in his forehead, or in his hand,
 
 - **CWCP 124.2** (a later clause of the same paragraph). Verified and held in reserve, not spoken: Jones’s own gloss on the blotting out.
 

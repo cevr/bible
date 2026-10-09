@@ -31,7 +31,7 @@ export const look = {
       // The answer's shape, and the two stories that count it.
       from: 'message',
       name: 'message',
-      chapter: 'So what was the message?',
+      chapter: 'So how does anyone become righteous?',
       luma: range({ now: [135, 150], light: [155, 170], lighter: [165, 180] }),
       saturation: range({ now: [0.2, 0.3], light: [0.2, 0.3], lighter: [0.15, 0.25] }),
     },

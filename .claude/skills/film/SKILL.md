@@ -24,7 +24,7 @@ Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (
 
 Generate against the corpus, never against training data. A film's doctrine, its argument's shape, every quote, reference, date and attribution, and every picture that teaches come from the frame ([frame/README.md](frame/README.md) and its topic files) and from what the `bible` CLI printed in this session (`bible egw study <subject> --pioneers --export <file> --full`, verse and EGW lookups). Training data carries mainstream framings (for example, justification as a verdict only, with change coming later) and misremembered wording; the corpus is the pioneer record.
 
-- **Fetch, then write.** Each line a beat speaks or shows as a quote is in `sources.md` and `quotes.jsonl`, verbatim with its refcode, and passes the frame's verifier.
+- **Fetch, then write.** A film quotes only Scripture and names no pioneer in speech ([CRAFT.md](CRAFT.md) rule 2): it is made for every Christian. Each verse a beat speaks or shows is checked with `bible verse` and cited in the beat. Each pioneer line a beat paraphrases is in `sources.md` and `quotes.jsonl`, verbatim with its refcode, and passes the frame's verifier, so the paraphrase stays inside its words; the credits name it.
 - **Frame from the corpus.** The spine of the script (what the doctrine is, what it includes, in what order) is read from the topic file and the pioneers in context, never from a familiar summary. Where they differ, follow the corpus and name the difference in the topic file.
 - **A gap stays a gap.** A claim the corpus does not support is cut or marked unverified; memory never fills it.
 
@@ -35,8 +35,8 @@ Generate against the corpus, never against training data. A film's doctrine, its
 1. **Frame and sources.**
    - Find the film's topic in [frame/README.md](frame/README.md). Read its 1889 principle and the topic file whole.
    - For anything the topic file lacks, build a corpus with `bible egw study <subject> --pioneers --export <file> --full`.
-   - Copy each quote you will use into `src/films/<film>/sources.md`, verbatim and with its refcode. Add each one as a record to `src/films/<film>/quotes.jsonl`, and run the frame's verifier over that file (see **Verify** in the frame).
-   - Done when every quote the script will speak or show verifies, and you can name, for the topic, what the film must show and what it must not say or show.
+   - Copy each pioneer line you will paraphrase into `src/films/<film>/sources.md`, verbatim and with its refcode. Add each one as a record to `src/films/<film>/quotes.jsonl`, and run the frame's verifier over that file (see **Verify** in the frame).
+   - Done when every line the script will paraphrase verifies, and you can name, for the topic, what the film must show and what it must not say or show.
 
 2. **Script.** Write `script.ts`: ordered beats `{ id, say, cite, picture }`. Put a `{mark}` before each word a picture must hit. Marks are stripped before speech, so adding one never re-records.
    - Write to [CRAFT.md](CRAFT.md) rules 2–4, 6, 7 and 11: one quotation per beat at most, each `picture` opening with its register, the motifs listed with their payoffs, the viewer's question at each turn, the landing at 70–84%, and the problem in small doses.
