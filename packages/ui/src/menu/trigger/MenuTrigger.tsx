@@ -6,15 +6,7 @@
 // open, invisible focus guards sit on either side of it so Tab leaves the
 // menu in page order.
 import type { JSX } from '@solidjs/web';
-import {
-  createEffect,
-  createSignal,
-  createUniqueId,
-  omit,
-  onCleanup,
-  Show,
-  untrack,
-} from 'solid-js';
+import { createEffect, createSignal, createUniqueId, omit, Show, untrack } from 'solid-js';
 
 import { useClick } from '../../floating-ui-solid/hooks/useClick.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
@@ -46,12 +38,9 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
     ownedWrite: true,
   });
 
-  const isOpenedByThisTrigger = () => store.isOpenedByTrigger(triggerId);
-  const isMountedByThisTrigger = () => store.isMountedByTrigger(triggerId);
+  const { getButtonProps } = useButton();
 
-  const { getButtonProps, buttonRef } = useButton();
-
-  createEffect(isOpenedByThisTrigger, (opened) => {
+  createEffect(store.open, (opened) => {
     if (!opened) {
       store.allowMouseUpTriggerRef.current = false;
     }
@@ -86,7 +75,7 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
 
   const click = useClick(store.floatingRootContext);
 
-  const rootTriggerProps = propsFromAccessor(() => triggerProps(isMountedByThisTrigger()));
+  const rootTriggerProps = propsFromAccessor(() => triggerProps(store.mounted()));
 
   const { handlePreFocusGuardFocus, handleFocusTargetFocus } = useTriggerFocusGuards(store, () =>
     untrack(triggerElement),
@@ -94,7 +83,7 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
 
   const state: MenuTriggerState = {
     get open() {
-      return isOpenedByThisTrigger();
+      return store.open();
     },
   };
 
@@ -103,8 +92,6 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
     stateAttributesMapping: pressableTriggerOpenStateMapping,
     ref: (el: HTMLElement) => {
       setTriggerElement(el);
-      buttonRef(el);
-      store.registerTrigger(triggerId, el);
     },
     props: [
       click.reference,
@@ -112,7 +99,7 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
       {
         'aria-haspopup': 'menu',
         get 'aria-controls'() {
-          return store.triggerPopupId(triggerId);
+          return store.open() ? store.popupId() : undefined;
         },
         id: triggerId,
         onMouseDown(event: MouseEvent) {
@@ -132,11 +119,9 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
     ],
   });
 
-  onCleanup(() => store.registerTrigger(triggerId, null));
-
   return (
     <>
-      <Show when={isOpenedByThisTrigger()}>
+      <Show when={store.open()}>
         <FocusGuard
           ref={(el) => {
             store.beforeTriggerFocusGuardRef.current = el;
@@ -145,7 +130,7 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
         />
       </Show>
       {element}
-      <Show when={isOpenedByThisTrigger()}>
+      <Show when={store.open()}>
         <FocusGuard
           ref={(el) => {
             store.triggerFocusTargetRef.current = el;

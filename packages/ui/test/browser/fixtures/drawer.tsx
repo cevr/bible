@@ -2,7 +2,8 @@
 // owner holds `open`, a plain button sets it, and the drawer's own opens and
 // closes reach the owner through `onOpenChange`. URL params for `drawer`:
 // `direction` (the root's `swipeDirection`: `down` by default, or `right`
-// for a side sheet), `modal=false`, `owner=cancel` for an owner that cancels
+// for a side sheet), `modal=false`, `dismissal=disabled` (an outside press
+// never closes it), `portal=inline` (in place, not moved to the body), `owner=cancel` for an owner that cancels
 // every close, `initial=first|false` for an `initialFocus` that returns the
 // first button or `false`, `body=tall` for a `Drawer.Content` that scrolls
 // (120px tall over 600px of content, as the phone inspector's body does).
@@ -65,6 +66,7 @@ function BasicDrawer(): JSX.Element {
         open={owner.open()}
         swipeDirection={direction}
         modal={param('modal') !== 'false'}
+        disablePointerDismissal={param('dismissal') === 'disabled'}
         onOpenChange={(open, details) => {
           log(`open ${open} ${details.reason}`);
           if (!open && param('owner') === 'cancel') {
@@ -74,7 +76,7 @@ function BasicDrawer(): JSX.Element {
           owner.setOpen(open);
         }}
       >
-        <Drawer.Portal>
+        <Drawer.Portal inline={param('portal') === 'inline'}>
           <Drawer.Viewport id="viewport" class="viewport">
             <Drawer.Popup id="popup" class="popup" initialFocus={initialFocus}>
               <Drawer.Title id="title">Sheet</Drawer.Title>

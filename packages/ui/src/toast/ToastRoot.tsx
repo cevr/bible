@@ -2,16 +2,18 @@
 // packages/react/src/toast/root/ToastRootCssVars.ts,
 // packages/react/src/toast/root/ToastRootDataAttributes.ts
 //
-// One toast: a non-modal `dialog` labelled by its title. It measures its
-// natural height into the store (the stack's offsets read it), removes
+// One toast: a non-modal `dialog` labelled by its title. It hands its element
+// to the store once mounted (which ends its `starting` status), removes
 // itself once its exit animations finish, closes on Escape while focus is
 // inside, and can be swiped away: a drag in an allowed direction follows
 // the pointer (locked to one axis when both are allowed, damped the wrong
 // way), and releasing past 40px dismisses it; reversing course cancels.
+// Upstream's stack variables (`--toast-index`, `--toast-offset-y`,
+// `--toast-height`) and the height measurement behind them are left out: the
+// receipts are a flat column and no stylesheet reads them.
 import type { JSX } from '@solidjs/web';
 import { createEffect, createMemo, createSignal, omit, onCleanup, untrack } from 'solid-js';
 
-import { BASE_UI_SWIPE_IGNORE_SELECTOR } from '../internals/constants.ts';
 import type { StateAttributesMapping } from '../internals/getStateAttributesProps.ts';
 import {
   type TransitionStatus,
@@ -40,12 +42,6 @@ import { ToastRootContext, type ToastRootContextValue } from './ToastRootContext
 import type { ToastObject } from './types.ts';
 
 const ToastRootCssVars = {
-  /** Indicates the index of the toast in the list. */
-  index: '--toast-index',
-  /** Indicates the vertical pixels offset of the toast in the list when expanded. */
-  offsetY: '--toast-offset-y',
-  /** Indicates the measured natural height of the toast in pixels. */
-  height: '--toast-height',
   /** Indicates the horizontal swipe movement of the toast. */
   swipeMovementX: '--toast-swipe-movement-x',
   /** Indicates the vertical swipe movement of the toast. */
@@ -152,11 +148,9 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
   let isRealSwipe = false;
   let lockedDirection: 'horizontal' | 'vertical' | null = null;
 
-  const domIndex = useToastSelector(context, (state) => selectors.toastIndex(state, toastId()));
   const visibleIndex = useToastSelector(context, (state) =>
     selectors.toastVisibleIndex(state, toastId()),
   );
-  const offsetY = useToastSelector(context, (state) => selectors.toastOffsetY(state, toastId()));
   const expanded = useToastSelector(context, selectors.expanded);
 
   useOpenChangeComplete({
@@ -170,22 +164,14 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     },
   });
 
-  // Measures the toast's natural height into the store. The store ignores
-  // this write while the toast is transitioning out.
-  function recalculateHeight() {
-    const element = rootRef.current;
-    if (!element) {
+  // Hands the toast's element to the store and ends its `starting` status. The
+  // store ignores this write while the toast is transitioning out.
+  function settle() {
+    if (!rootRef.current) {
       return;
     }
-
-    const previousHeight = element.style.height;
-    element.style.height = 'auto';
-    const height = element.offsetHeight;
-    element.style.height = previousHeight;
-
     store.updateToastInternal(untrack(toastId), {
       ref: rootRef,
-      height,
       transitionStatus: undefined,
     });
   }
@@ -203,7 +189,7 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
       if (!element) {
         return;
       }
-      // `recalculateHeight` clears the `starting` status itself, so bail out
+      // `settle` clears the `starting` status itself, so bail out
       // on the resulting re-run and on the later `ending` one.
       if (transitionStatus !== 'starting' && lastToastId === id) {
         return;
@@ -218,7 +204,7 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
       }
 
       lastToastId = id;
-      recalculateHeight();
+      settle();
     },
   );
 
@@ -276,10 +262,7 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     }
 
     const target = getTarget(event) as HTMLElement | null;
-    const isInteractiveElement = closest(
-      target,
-      `button,a,input,textarea,[role="button"],${BASE_UI_SWIPE_IGNORE_SELECTOR}`,
-    );
+    const isInteractiveElement = closest(target, 'button,a,input,textarea,[role="button"]');
     if (isInteractiveElement) {
       return;
     }
@@ -478,15 +461,9 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
       const offset = dragOffset();
       const initial = initialTransform();
       const swiping = isSwiping();
-      const current = toast();
       const style: Record<string, string | number | undefined> = {
         [ToastRootCssVars.swipeMovementX]: `${offset.x - initial.x}px`,
         [ToastRootCssVars.swipeMovementY]: `${offset.y - initial.y}px`,
-        [ToastRootCssVars.index]: String(
-          current.transitionStatus === 'ending' ? domIndex() : visibleIndex(),
-        ),
-        [ToastRootCssVars.offsetY]: `${offsetY()}px`,
-        [ToastRootCssVars.height]: current.height ? `${current.height}px` : undefined,
       };
       if (swiping) {
         // While swiping, freeze the element at its current visual transform
@@ -502,7 +479,6 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
   const contextValue: ToastRootContextValue = {
     toast,
     setTitleId: (updater) => setTitleId(updater),
-    recalculateHeight,
     visibleIndex,
     expanded,
   };

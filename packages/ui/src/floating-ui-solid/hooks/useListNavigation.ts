@@ -25,13 +25,7 @@ import {
   getMinListIndex,
   isIndexOutOfListBounds,
 } from '../utils/composite.ts';
-import {
-  ARROW_DOWN,
-  ARROW_LEFT,
-  ARROW_RIGHT,
-  ARROW_UP,
-  getFloatingFocusElement,
-} from '../utils/element.ts';
+import { ARROW_DOWN, ARROW_LEFT, ARROW_UP, getFloatingFocusElement } from '../utils/element.ts';
 import { enqueueFocus, isVirtualClick, isVirtualPointerEvent, stopEvent } from '../utils/event.ts';
 
 export interface UseListNavigationReturn {
@@ -61,7 +55,6 @@ export interface UseListNavigationProps {
   activeIndex: number | null;
   /** Called when navigation moves the highlight. */
   onNavigate?: ((activeIndex: number | null, event: Event | undefined) => void) | undefined;
-  openOnArrowKeyDown?: boolean | undefined;
   /** Whether the list is nested (upstream's submenu; here a context menu, as upstream marks it). */
   nested?: boolean | undefined;
 }
@@ -73,7 +66,6 @@ export function useListNavigation(
   const listRef = props.listRef;
   const activeIndex = () => props.activeIndex;
   const nested = () => props.nested ?? false;
-  const openOnArrowKeyDown = () => props.openOnArrowKeyDown ?? true;
 
   const floatingFocusElement: Accessor<HTMLElement | null> = () =>
     getFloatingFocusElement(untrack(context.floatingElement));
@@ -185,7 +177,7 @@ export function useListNavigation(
               runs += 1;
             } else {
               index =
-                key == null || isToEndKey(key) || untrack(nested)
+                key == null || isToEndKey(key)
                   ? getMinListIndex(listRef.current)
                   : getMaxListIndex(listRef.current);
               key = null;
@@ -385,41 +377,15 @@ export function useListNavigation(
     onKeyDown(event: KeyboardEvent) {
       const currentOpen = untrack(context.open);
       isPointerModality = false;
-      const isNested = untrack(nested);
 
-      const isArrowKey = event.key.startsWith('Arrow');
-      // A nested list has no parent list, so either arrow axis opens it.
-      const isParentCrossOpenKey = event.key === ARROW_RIGHT || event.key === ARROW_DOWN;
       const isMainKey = isListKey(event.key);
-      const isNavigationKey =
-        (isNested ? isParentCrossOpenKey : isMainKey) ||
-        event.key === 'Enter' ||
-        event.key.trim() === '';
-
-      if (!currentOpen && !untrack(openOnArrowKeyDown) && isArrowKey) {
-        return;
-      }
-
-      if (isNavigationKey) {
-        key = isNested && isArrowKey ? null : event.key;
-      }
-
-      if (isNested) {
-        if (isParentCrossOpenKey) {
-          stopEvent(event);
-          if (currentOpen) {
-            index = getMinListIndex(listRef.current);
-            onNavigate(event);
-          } else {
-            openOnNavigationKeyDown(event);
-          }
-        }
-        return;
+      if (isMainKey || event.key === 'Enter' || event.key.trim() === '') {
+        key = event.key;
       }
 
       if (isMainKey) {
         stopEvent(event);
-        if (!currentOpen && untrack(openOnArrowKeyDown)) {
+        if (!currentOpen) {
           openOnNavigationKeyDown(event);
         } else {
           commonOnKeyDown(event);

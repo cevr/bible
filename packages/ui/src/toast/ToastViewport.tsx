@@ -1,5 +1,4 @@
-// Upstream: packages/react/src/toast/viewport/ToastViewport.tsx,
-// packages/react/src/toast/viewport/ToastViewportCssVars.ts
+// Upstream: packages/react/src/toast/viewport/ToastViewport.tsx
 //
 // The region the toasts live in. Hovering it or moving keyboard focus into
 // it expands the stack and pauses the auto-dismiss timers; leaving resumes
@@ -27,11 +26,6 @@ import { selectors } from './store.ts';
 import { useToastProviderContext, useToastSelector } from './ToastProviderContext.ts';
 import { isFocusVisible } from './utils.ts';
 
-const ToastViewportCssVars = {
-  /** Indicates the height of the frontmost toast. */
-  frontmostHeight: '--toast-frontmost-height',
-} as const;
-
 export interface ToastViewportState {
   /** Whether toasts are expanded in the viewport. */
   expanded: boolean;
@@ -53,7 +47,6 @@ export function ToastViewport(props: ToastViewportProps): JSX.Element {
   const expanded = useToastSelector(context, selectors.expanded);
   const prevFocusElement = useToastSelector(context, selectors.prevFocusElement);
   const viewportElement = useToastSelector(context, (state) => state.viewport);
-  const frontmostHeight = createMemo(() => toasts()[0]?.height);
   const hasTransitioningToasts = createMemo(() =>
     toasts().some((toast) => toast.transitionStatus === 'ending'),
   );
@@ -239,10 +232,6 @@ export function ToastViewport(props: ToastViewportProps): JSX.Element {
     onPointerDown: handlePointerDown,
     onPointerUp: handlePointerEnd,
     onPointerCancel: handlePointerEnd,
-    get style() {
-      const height = frontmostHeight();
-      return height ? { [ToastViewportCssVars.frontmostHeight]: `${height}px` } : undefined;
-    },
   };
 
   const state: ToastViewportState = {

@@ -34,7 +34,4 @@ export const platform = {
     webkit,
     gecko: !webkit && lowerUserAgent.includes('firefox'),
   },
-  env: {
-    jsdom: /jsdom|happydom/.test(lowerUserAgent),
-  },
 } as const;

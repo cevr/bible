@@ -8,7 +8,7 @@ import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
 
 import { CompositeItem } from '../internals/composite/CompositeItem.tsx';
-import type { BaseUIComponentProps, HTMLProps, NativeButtonProps } from '../internals/types.ts';
+import type { BaseUIComponentProps, HTMLProps } from '../internals/types.ts';
 import { useButton } from '../internals/useButton.ts';
 import { useToggleGroupContext } from '../toggle-group/ToggleGroupContext.ts';
 
@@ -17,8 +17,10 @@ export interface ToggleState {
   pressed: boolean;
 }
 
-export interface ToggleProps<Value extends string = string>
-  extends NativeButtonProps, Omit<BaseUIComponentProps<'button', ToggleState>, 'disabled'> {
+export interface ToggleProps<Value extends string = string> extends Omit<
+  BaseUIComponentProps<'button', ToggleState>,
+  'disabled'
+> {
   /** The toggle's value in its group. */
   value: Value;
 }
@@ -27,12 +29,7 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
   const group = useToggleGroupContext();
   const pressed = () => group.value.includes(props.value);
 
-  const { getButtonProps, buttonRef } = useButton({
-    get native() {
-      return props.nativeButton;
-    },
-    composite: true,
-  });
+  const { getButtonProps } = useButton({ composite: true });
 
   const state: ToggleState = {
     get pressed() {
@@ -55,7 +52,6 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
     'style',
     'render',
     'value',
-    'nativeButton',
     // A toggle never submits or joins a form.
     'type',
     'form',
@@ -68,7 +64,6 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
       class={props.class}
       style={props.style}
       state={state}
-      refs={[buttonRef]}
       props={[ownProps, elementProps, getButtonProps]}
     />
   );

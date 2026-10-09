@@ -40,14 +40,6 @@ export type BaseUIComponentProps<
   render?: ComponentRenderFn<RenderFunctionProps, State> | undefined;
 };
 
-export interface NativeButtonProps {
-  /**
-   * Whether the part renders a native `<button>`. Set to `false` when `render`
-   * swaps in another element, so the part adds `role="button"` and key handling.
-   */
-  nativeButton?: boolean | undefined;
-}
-
 export interface FloatingUIOpenChangeDetails {
   open: boolean;
   reason: string;
