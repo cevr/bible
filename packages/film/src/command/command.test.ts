@@ -4,6 +4,7 @@ import { type Command, labelOf, makeCommands, moved, quiet, refused, said } from
 import {
   contextAt,
   focusOf,
+  isField,
   selected,
   selectedAll,
   withFocused,
@@ -153,6 +154,11 @@ describe('the context', () => {
     expect(focusOf(el('A'))).toBe('control');
     expect(focusOf(el('BODY'))).toBe('page');
     expect(focusOf(Option.none())).toBe('page');
+    // Keys inside an open dialog are its own; a press there is a field's only on what is typed into.
+    expect(isField(el('DIV', ['[role="dialog"]']))).toBe(false);
+    expect(isField(el('INPUT', ['[role="dialog"]']))).toBe(true);
+    expect(isField(el('TEXTAREA'))).toBe(true);
+    expect(isField(Option.none())).toBe(false);
   });
 
   test('puts the focused thing first, unless the selection holds one of its kind', () => {

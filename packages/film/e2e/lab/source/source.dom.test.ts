@@ -5,14 +5,16 @@
 // and on a phone it is a face of the selection's sheet, or a sheet of its own.
 
 import { Effect, Option } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { HeadUnavailable } from '../../../src/core/refusals.ts';
-import { MENU_ITEMS, rightClick } from '../../../src/lab/fixtures/gestures.ts';
+import { MENU_ITEMS, rightClick, touch as fingerDown } from '../../../src/lab/fixtures/gestures.ts';
 import {
   PHONE,
   json,
+  labAt,
   openLab,
+  openServed,
   refused,
   route,
   sourceOne,
@@ -789,6 +791,67 @@ describe('a line of the code', () => {
         false,
       );
     }).pipe(Effect.scoped),
+  );
+});
+
+describe('a line of the code in a phone sheet, served', () => {
+  /** Each phone sheet that shows the code: its own (nothing selected), and the selection's Source face. */
+  const SHEETS = [
+    { name: 'the Source sheet', sheet: '.lab-source-sheet', picked: {} },
+    {
+      name: 'the selection sheet’s Source face',
+      sheet: '.lab-selection-sheet',
+      picked: { cue: 'rise' },
+    },
+  ] as const;
+  const NO_MENU = `document.querySelector('[data-role="context-menu"]') === null`;
+
+  // Serial, each case here: a finger's touches (`film/touches-serial`).
+  for (const { name, sheet, picked } of SHEETS) {
+    const line = `${sheet} .lab-source-line[data-line="${RISE_LINE}"]`;
+    test.serial(`in ${name}, a touch held still on a line opens its menu: Copy link`, () =>
+      Effect.gen(function* () {
+        const { page } = yield* openServed('lab', [codeRoute, sourceRoute], {
+          href: labOne(1, { ...picked, code: 'follow' }),
+          viewport: PHONE,
+        });
+        yield* page.waitFor(line);
+        yield* page.clock.hold;
+        yield* fingerDown(page, line, 0);
+        yield* page.clock.runFor(700);
+        yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
+        yield* page.finger.up;
+      }).pipe(Effect.scoped, Effect.runPromise),
+    );
+
+    test.serial(`in ${name}, a right-click on a line opens its menu, not the browser's`, () =>
+      Effect.gen(function* () {
+        const { page } = yield* openServed('lab', [codeRoute, sourceRoute], {
+          href: labOne(1, { ...picked, code: 'follow' }),
+          viewport: PHONE,
+        });
+        yield* page.waitFor(line);
+        expect(yield* rightClick(page, line)).toBe(false);
+        yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
+      }).pipe(Effect.scoped, Effect.runPromise),
+    );
+  }
+
+  test.serial("a field in a sheet keeps the browser's own menu, and opens none of ours", () =>
+    Effect.gen(function* () {
+      const { page } = yield* openServed('lab', [sourceRoute], {
+        href: labAt(1, { selection: { _tag: 'Knob', scene: 'one', name: 'size' } }),
+        viewport: PHONE,
+      });
+      const field = '.lab-selection-sheet .lab-knob[data-knob="size"] input';
+      // The sheet raised whole: its knob's field in sight.
+      yield* page.waitFor('.lab-selection-sheet [data-act="sheet"]');
+      yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+      yield* page.waitFor(field);
+      expect(yield* rightClick(page, field)).toBe(true);
+      yield* page.clock.runFor(100);
+      yield* evaluates(page, NO_MENU, true);
+    }).pipe(Effect.scoped, Effect.runPromise),
   );
 });
 

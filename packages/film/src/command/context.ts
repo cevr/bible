@@ -110,14 +110,30 @@ const CONTROLS = new Set(['BUTTON', 'A', 'SUMMARY']);
 const within = (el: Focusable, selector: string): boolean =>
   Option.isSome(Option.fromNullishOr(el.closest(selector)));
 
-/** Where a press aimed at `target` puts the keyboard: in a field, in the studio, on a slider, on a control, or on the page. */
+/** Whether `el` is what is typed into, or a media element's own controls. */
+const typedInto = (el: Focusable): boolean =>
+  FIELDS.has(el.tagName) || el.isContentEditable === true;
+
+/**
+ * Whether a press aimed at `target` lands on a field: what is typed into, or
+ * media's own controls, which keep the browser's own menu (paste, spelling).
+ * A row inside an open menu or a sheet is no field: it is the thing's.
+ */
+export const isField = (target: Option.Option<EventTarget>): boolean =>
+  Option.exists(Option.filter(target, focusable), typedInto);
+
+/**
+ * Where a press aimed at `target` puts the keyboard: in a field (one typed
+ * into, or an open menu or dialog, whose own keys move through it and close
+ * it), in the studio, on a slider, on a control, or on the page.
+ */
 export const focusOf = (target: Option.Option<EventTarget>): Focus =>
   Option.match(Option.filter(target, focusable), {
     onNone: (): Focus => 'page',
     onSome: (el): Focus =>
       Match.value(el).pipe(
         Match.when(
-          (e) => FIELDS.has(e.tagName) || e.isContentEditable === true || within(e, OVERLAYS),
+          (e) => typedInto(e) || within(e, OVERLAYS),
           (): Focus => 'field',
         ),
         Match.when(
