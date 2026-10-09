@@ -376,6 +376,8 @@ export const ScenesView = (props: ScenesViewProps) => {
       },
     },
   });
+  /** Whether a scene's sheet has a comment box: a film that is not a short, its project read. */
+  const commentable = () => !short && Option.isSome(read().project);
   /** Raise `scene`'s sheet (a lowered one is lifted) and put the cursor in its comment box. */
   const commentOn = (scene: string) => {
     select(Option.some(scene));
@@ -388,6 +390,8 @@ export const ScenesView = (props: ScenesViewProps) => {
       )) {
         if (grip instanceof HTMLElement) grip.click();
       }
+      // The raised sheet shows the comment section; a hidden field takes no focus.
+      flush();
       field.focus();
     }
   };
@@ -409,7 +413,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       keys: ['m'],
       about: ['Scene'],
       touch: 'Comment on the selected scene, or long-press a still',
-      when: (ctx) => Option.isSome(sceneIn(ctx)),
+      when: (ctx) => Option.isSome(sceneIn(ctx)) && commentable(),
       run: quietly((ctx) => Option.map(sceneIn(ctx), commentOn)),
     },
     {
@@ -768,7 +772,7 @@ export const ScenesView = (props: ScenesViewProps) => {
         />
         <SceneState marks={marks()(scene)} />
         <SceneFindings marks={marks()(scene)} />
-        <Show when={!short && Option.isSome(read().project)}>
+        <Show when={commentable()}>
           <section class="sc-section" data-section="comment">
             <h3>
               Comments <span>{comments().length}</span>

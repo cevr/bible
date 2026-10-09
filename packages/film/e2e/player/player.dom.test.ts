@@ -1092,6 +1092,50 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live(
+    'on a phone M raises the lowered sheet and puts the cursor in the comment box: the box is not hidden when it is focused',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: PHONE },
+          STILL_DRAWN,
+          projectRoutes(),
+        );
+        const box = '.sc-focus .rv-comment-input';
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        yield* clickInScene(page, 'two');
+        // It opens lowered: the comment section is out of the card in brief.
+        yield* page.waitFor('.sc-focus[data-peek="true"]');
+        yield* page.press('m');
+        yield* evaluates(page, `document.activeElement === document.querySelector('${box}')`, true);
+        yield* countIs(page, '.sc-focus[data-peek="true"]', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'Comment on is offered only where the sheet has a comment box: not when the project could not be read',
+    () =>
+      Effect.gen(function* () {
+        const unread = route('GET', /^\/project$/, () =>
+          refused(FreshProcessFailed.make({ command: 'film project', reason: 'exit 1' })),
+        );
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          [unread, ...projectRoutes()],
+        );
+        yield* clickInScene(page, 'two');
+        yield* page.waitFor('.sc-focus');
+        yield* countIs(page, '.sc-focus .rv-comment-input', 0);
+        // The command menu lists what the selection can do now.
+        yield* page.press('Control+k');
+        yield* page.waitFor('[data-role="command-menu"] [data-command="scenes.open-lab"]');
+        yield* countIs(page, '[data-role="command-menu"] [data-command="scenes.comment"]', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('⇧-click adds scenes to the selection, and ⇧A approves them all in one say (AA-12)', () =>
     Effect.gen(function* () {
       const { page, asked, errors } = yield* openPlayer(
