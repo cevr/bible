@@ -463,3 +463,81 @@ Waves: A runs now (disjoint files). B starts when the url-state project sweep re
 | p3-review | Done: 18 commits `a1ed8906`..`42aefc55`, fixups `c9d0871d` `c8b7b193` `378891c1` `c1e45949` `741941d4`; merged `741941d4` (fast-forward). Gate 0, film e2e 522/522 on main; 26 frames identical. Also landed the joins p3-shell and p3-editor unblocked: Scenes' client from the page (RS3-7), one finding-placement rule (RS3-9), `onTheMs` from `core/time.ts`, one `plainClick`, one drag threshold. ST3-1 landed, so the README's history paragraph (p3-url) is now true                                                                                                                                                                                                                                                                                                                                                                                                                           | r1: two P2s accepted (a lone video scrubbed to 0 lost its row mid-scrub and stranded the machine; a failed video showed as playing) and two P3s (Wipe's and Difference's pictures uncapped at 1440×900; a playback e2e passed against a 404). Fixed: the row shows whenever the player is not at rest; a `Failed` state shown on the picture; the compare frames held to 16:9 in the room (their captions just below the fold, kept by the at-rest budgets); real media in the e2e. Carried to p3-joins: failure reporting is opt-in (on only for the lone video), and the Scenes header's `usePlayerTime` has no failing test. r2: one P2 accepted: `Failed` was absorbing, so originals after a failed proxy stayed dead. Fixed: a fresh player per source and per retry, the failed picture offers Try again. Carried: a quality switch now restarts at 0 | Lab restarted on main                                                                                                                                                                                                                                 |
 | p3-design | Done: `8b856fd2` `17674d81` `b069d905` `0e33099f`, fixups `572ac70d` `2bdf7cf8` `48ec82ec` `6c15f7b9`; merged `6c15f7b9` (fast-forward). Gate 0 on main. Docs and mocks only (−8,120 lines: copied tokens and replaced mock markup), plus the stills fetcher in `@bible/scripts` and `@bible/film`'s additive `./api` export. §3 equals `tokens.css` byte for byte; all 12 mocks redrawn to the code at 390 and 1440, none with a control under `--hit`; GR-6's 19 drift lines: the code was right in each, so the doc moved; 0 drift left. The Films card's length line (SU3-10's code half) went to p3-joins                                                                                                                                                                                                                                                                                         | r1: one Major accepted (the stills fetcher searched every folder, so two films sharing a scene name mixed pictures) and four Minors (the kind buttons described as filters; §8's mic in `⋯`; four Lab mocks drew lanes the code folds; the laptop Set showed the time twice). r2: one Major accepted: a skipped scene kept its old still. Fixed: the fetcher reads its film's own videos and leaves only the run's stills; moved into `@bible/scripts`, imported by package name                                                                                                                                                                                                                                                                                                                                                                             | none (no page changed)                                                                                                                                                                                                                                |
 | p3-joins  | Done: `b8bab22e` `32345f66` `1a369b70` `32d762c8` `4f1fe05b` `69ac4371` `eff7a09d` `4f36ae95` `d1fe9b78`, fixups `5a83c707` `fc0a29a8` `10dca38c` `55abe894` `f5532630` `ebdebaf1`; merged `ebdebaf1` (fast-forward). Gate 0, film e2e 541/541 on main; 22 frames identical. SU3-1: below 900 px the Lab's selection (a cue's or knob's fields, a note's reply) sits in the shared Sheet, peeking one line above the dock, its open state the URL's selection. One breakpoint (`film/one-breakpoint` lint); Rejected row 21 true of the code; receipts over the viewer on a laptop, first in the phone's bottom stack; pressed wins over hover; every review player reports a failed clock (`tellsFailure` gone) and a new source keeps its place; the Scenes header's `usePlayerTime` tested; the Films card shows `8:46 · 20 scenes`. Item 4 (the `Pointer.drag` test name) was already done on main | r1: three Majors accepted (a 0.28 chrome exception where a one-line peek at the hit height fits the quarter; a retry's play intent reused on a later quality switch; one opening marker shared by the cue and the note, so closing one went Back over the other) and two Minors (the breakpoint lint missed spaced and range forms; a ten-step test clamped at its fixture's end). Fixed: the peek is its 44 px head, the exception deleted; a retry's play request taken once; one recovery mechanism (`MediaReplaced`); one dismissal per selection; the rule widened with red fixtures; 30 s of media. r2: no blocker; one Minor (the lint flags `@supports (width: 900px)`) carried to p3-guards                                                                                                                                                         | Lab restarted on main                                                                                                                                                                                                                                 |
+
+## Pass 4
+
+Opened 2026-10-09 at `52c26995`, at the owner's word (the loop's goal set again, "continue where it left off"), while p3-guards (pass 3's last batch) still applies. Pass 3 cannot be the last: p3-guards closes guard blind spots, so pass 4 sweeps what they reveal, and the owner brought new prior art (the Paper Mono launch studio). Roles (owner, 2026-10-09): Sonnet applies, Opus researches and sweeps, Codex counsels (`okra counsel --deep`). Pass files: `~/.cache/architecture-loop/bible-tools/pass4/` (`sweep-brief.md`, `prompts/`, `triage.md`, `apply-common.md`, `orchestrator-notes.md`).
+
+### Baseline
+
+Pass 3's pathspec, unchanged, counted by `pass4/coverage.ts` into `~/.cache/architecture-loop/bible-tools/coverage-pass4.txt`.
+
+| Package               | Lines  | Files |
+| --------------------- | ------ | ----- |
+| `packages/film` (lab) | 45,002 | 194   |
+| `packages/ui`         | 14,497 | 121   |
+| `packages/url-state`  | 1,429  | 12    |
+| `packages/atom-solid` | 523    | 3     |
+| `apps/animations`     | 359    | 7     |
+| total                 | 61,810 | 337   |
+
+Pass 3 opened at 62,551 lines and 338 files (`121f862d..52c26995`: 156 commits, 315 files, +10,202 −15,244).
+
+### Coverage
+
+No unswept directory. Every area is swept again: pass 3 changed every one.
+
+### Prior art
+
+The Paper Mono launch studio (owner, 2026-10-09: "i like this ui here protrayed, shows the code and everything"; `pass4/prior-art-paper-mono.md`). Adopted, batch p4-source: PM-1 a scene's code over the API with each literal's and reader call's range; PM-2 a pure `liveAt` (lit by the clock, as strudel lights by `hap.isActive(time)`); PM-3 lit cue lanes; PM-4 the Source view (closed at rest, `?code=follow|<line>`, the phone sheet's Inspect · Source face, a 480 px laptop column, the CSS Custom Highlight API behind a `browser/` adapter, Follow, a tap on a line selects its literal); PM-5 the inspector's `file:line` opens it; PM-6 a meter per live literal; PM-7 a note may cite a source line (additive, optional). Rejected or already held: PM-8 inline sliders (Rejected row: precision is capability), PM-9 a free-text editor (Lab-first), PM-10 lights from executed code (Pure frames), PM-11 the shots tree and open-now list as a pane, PM-12 the source switch, PM-13 bars and the step grid (Narration is the clock), PM-14 an engine HUD, PM-15 the nesting breadcrumb, PM-16 stem waveforms (Progressive disclosure, Studio); PM-17 `hold section` and PM-18 the section bands are already held (`motion.loop-scene`, the acts ruler).
+
+### Sweeps (pass 4)
+
+17 read-only sweeps (Opus) at `52c26995`; the guardrails sweep runs after p3-guards merges. Reports in `pass4/`.
+
+| Sweep                       | Verdict                                                     | P1  | P2  | P3  |
+| --------------------------- | ----------------------------------------------------------- | --- | --- | --- |
+| area player-shell           | structural work left                                        | 0   | 2   | 3   |
+| area review-scenes          | structural work left                                        | 1   | 0   | 10  |
+| area editor-timing          | only polish                                                 | 0   | 0   | 4   |
+| area host-commands          | two phone bugs (sent to p3-guards)                          | 0   | 2   | 2   |
+| area server                 | one latent edge                                             | 0   | 1   | 0   |
+| area state                  | one P1                                                      | 1   | 0   | 5   |
+| area ui-port                | reductions (~455 lines)                                     | 0   | 3   | 5   |
+| review film-lab-client      | one edge bug                                                | 0   | 1   | 6   |
+| review film-lab-server      | only polish                                                 | 0   | 0   | 8   |
+| review url-state/atom-solid | only polish                                                 | 0   | 0   | 3   |
+| review ui-a                 | one P1                                                      | 1   | 0   | 2   |
+| review ui-b                 | one P1, reductions                                          | 1   | 2   | 2   |
+| project url state           | done-when not met (US4-1 = ST4-1)                           | 1   | 0   | 0   |
+| project studio ui           | done-when met; structural work left                         | 0   | 3   | 1   |
+| project ui reduction        | done-when met; only polish                                  | 0   | 0   | 3   |
+| project design language     | done-when not met (owner has not seen the mocks; `rv-zoom`) | 0   | 2   | 6   |
+| project one gate            | done-when met; only polish (1,037 requests, 0 deviations)   | 0   | 0   | 1   |
+
+The four P1s, each validated: a Set approves a render Project calls out of date (RS4-1, seen live); closing a sheet rewinds the playhead (ST4-1 = US4-1, seen live on Scenes, the phone Lab and a Set); a press-drag-release on any lab menu picks nothing off macOS (R4-ui-a-1, `MenuItem.tsx:36` against `MenuRoot.tsx:49-55`); a still press on a number field's label commits a stale value, so a tap after Undo redoes the edit (R4-ui-b-1, `NumberFieldScrubArea.tsx:87-90`).
+
+### Decisions (decided by principle)
+
+Recorded in `pass4/triage.md` → Decisions: the Source view closed at rest (Progressive disclosure; the owner may flip it); a sheet's Close goes Back only when Back lands exactly where the Close would write, else replaces (correctness-over-pragmatism; ST4-1's narrower rule rejected); unread CSS variables go, `data-*` attributes stay (subtract-before-you-add); `withServices` deleted (derive-dont-sync); the render's frame count through the one rounding owner (derive-dont-sync); chrome may move, film frames may not. Sent into p3-guards (it owns the files): GR-15 unused disable directives fail lint, GR-16 the never-running type-aware rule dropped, GR-17 the clock-epsilon lint sees `1e-3` spellings, GR-18 every command surface has a touch case, with HC4-1 and HC4-2. Ledger-only closes: AA-16 and AA-17 (reshaped), the Lab half of the compare on `Playable` (it plays no media), "`pressed` written twice", H-5 (refuted).
+
+### Triage
+
+Seven batches from `52c26995` in parallel (rifts `/workspaces/.rifts/bible-tools/p4-*`); the file ownership and every item id are in `pass4/triage.md`. p4-guards follows p3-guards' merge, with the guardrails sweep.
+
+| Batch     | Items (summary)                                                                                                                       |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| p4-source | PM-1..PM-7, SU4-4, DL4-8; SU4-1, SU4-2, ET4-3, ET4-4, UR4-1, UR4-2                                                                    |
+| p4-review | RS4-1..RS4-11, R4-film-lab-client-1, US4-1 = ST4-1, ST4-6, DL4-1, DL4-3 = SU4-3, DL4-7, focus on Close, `command/style.ts:230`        |
+| p4-shell  | PSH4-1..PSH4-5, the render frame count, mediabunny on phones, HC4-3, HC4-4, the `onTheMs` re-export, Rejected row 96                  |
+| p4-server | SV4-1, OG4-1, R4-film-lab-server-2..-8, G-2, G-3, FS contract cases, cache header, lock refusal, `CACHE.fresh`, the dev build, HEAD   |
+| p4-ui     | R4-ui-a-1..3, R4-ui-b-1..5, UI4-1..UI4-7, the receipt's close button, gaps G1, G2                                                     |
+| p4-state  | ST4-2, ST4-4, ST4-5, R4-atom-solid-1, R4-atom-solid-2                                                                                 |
+| p4-design | DL4-2, DL4-4, DL4-5, DL4-6, UI4-8, `rv-zoom` in §8                                                                                    |
+| p4-guards | after p3-guards: routes in comments, paint before faces, one shell look, entry re-exports, `studio.dom`'s beat case, Undo + still tap |
+
+### Batches (pass 4)
+
+| Batch    | Result                                                                                                                                                                                                                                                                                                                                                                       | Counsel                                                                                                                                                                                                                                                  | Live                                                 |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| p4-state | ST4-2, ST4-4, ST4-5, R4-atom-solid-1, R4-atom-solid-2 and the `hooks.test.ts` rename done: the setter takes a value, the provider takes `initialValues` only, `UrlAtom.layer` has no browser default (an unseeded read dies with a message), a hook with no provider throws in the browser too, ADR 0002 true of the code. `52c26995..67973f4f`, merged fast-forward; gate 0 | r1 no blocker, three Minor ADR claims accepted and fixed (the mapped read's lost dedupe, 400 ms as local policy, the missing divergences; `promiseExit` is ported, so only `promise` was recorded); docs-only repair verified by the orchestrator, no r2 | film pages and the review page paint at 390 and 1440 |
