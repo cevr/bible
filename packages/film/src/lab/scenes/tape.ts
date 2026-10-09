@@ -10,6 +10,7 @@
 
 import { Array as Arr, Boolean as Bool, Option } from 'effect';
 import { sceneAt } from '../../core/layout.ts';
+import { justBefore } from '../../core/time.ts';
 
 /** A scene as the tape lays it out: its id, and where it starts and how long it lasts, in film seconds. */
 export interface TapeScene {
@@ -106,7 +107,7 @@ export const tapeOf = (
     const end = Math.min(from + span, duration);
     const stills = Arr.makeBy(Math.max(1, Math.ceil((end - from) / step)), (k): TapeStill => {
       const at = from + k * step;
-      const t = Math.min(at + step / 2, Math.max(at, duration - 1e-3));
+      const t = Math.min(at + step / 2, Math.max(at, justBefore(duration)));
       return {
         t,
         from: at,
@@ -207,7 +208,7 @@ export const placeOf = (tape: Tape, t: number) => {
 /** The film second at `x` of the way along row `row`: never past the film's end. */
 export const timeAt = (tape: Tape, row: number, x: number): number =>
   Math.min(
-    Math.max(0, tape.duration - 1e-3),
+    Math.max(0, justBefore(tape.duration)),
     Math.max(0, row * tape.span + Math.min(1, Math.max(0, x)) * tape.span),
   );
 

@@ -190,7 +190,7 @@ export const make = <
     // The one place the value's type is restored: `fromParts` decodes each
     // part with the very schemas `Params`, `Q` and `H` name, so its output has
     // their types; TypeScript cannot follow a generic struct through it.
-    // oxlint-disable-next-line effect/noAs, typescript/no-unsafe-type-assertion -- see above
+    // oxlint-disable-next-line effect/noAs -- see above
     schema: erased as Schema.Codec<
       Value<{ readonly [K in keyof Params]: Params[K]['Type'] }, Q['Type'], H['Type']>,
       string

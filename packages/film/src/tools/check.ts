@@ -57,7 +57,13 @@ import {
   soundState,
 } from '../core/sfx.ts';
 import { cueTime, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
-import { CLOCK_EPSILON, DEFAULT_EASE, type Interval, framesOf } from '../core/time.ts';
+import {
+  CLOCK_EPSILON,
+  DEFAULT_EASE,
+  type Interval,
+  framesOf,
+  heardAtOrAfter,
+} from '../core/time.ts';
 import { endsLate } from '../core/timeline.ts';
 import type { PartError } from '../core/acts.ts';
 import type {
@@ -126,7 +132,7 @@ export const farPins = (placed: ReadonlyArray<Placed>): ReadonlyArray<WordPinFar
         );
         return Option.toArray(landed).flatMap(({ word, m, t }) => {
           const sentences = p.voice.words.filter(
-            (w) => w.start >= m - 1e-3 && w.start < t && endsSentence(w.text),
+            (w) => heardAtOrAfter(w, m) && w.start < t && endsSentence(w.text),
           ).length;
           if (sentences <= PIN_REACH) return [];
           return [WordPinFar.make({ scene: p.spec.id, cue, mark, word, sentences })];

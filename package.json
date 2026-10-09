@@ -15,7 +15,7 @@
     "build:vectors": "bun run --cwd packages/scripts build:vectors",
     "dev:egw-search": "agent-tail run --log-dir tmp/logs 'web: bun run --cwd apps/egw-search vite:dev' 'api: bun run --cwd apps/egw-search server:dev'",
     "typecheck": "turbo run typecheck",
-    "lint": "oxlint",
+    "lint": "oxlint --report-unused-disable-directives-severity=error",
     "lint:fix": "oxlint --fix",
     "logs": "agent-tail tail --log-dir tmp/logs -n 200",
     "logs:errors": "rg -n -i '\\[console\\.(error|warn)\\]|\\b(ERROR|WARN)\\b|\\[[^]]+\\] [^ ]*(failed|failure)\\b|uncaught|unhandled|defect' tmp/logs/latest/combined.log || true",

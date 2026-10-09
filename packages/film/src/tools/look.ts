@@ -8,7 +8,7 @@
 
 import { Array as Arr, Option, Order, Result } from 'effect';
 import { type Placed, filmEnd } from '../core/layout.ts';
-import { CLOCK_EPSILON } from '../core/time.ts';
+import { CLOCK_EPSILON, frameAtOrAfter } from '../core/time.ts';
 import type { Stretch } from '../core/acts.ts';
 import { type AddressError, resolveAddress } from '../core/address.ts';
 import type { Act } from '../core/schema.ts';
@@ -68,7 +68,7 @@ export const lookSamples = (
   frames: number,
 ): ReadonlyArray<LookSample> =>
   placed.flatMap((p) =>
-    Arr.makeBy(Math.max(1, Math.ceil(p.dur / LOOK_STEP - CLOCK_EPSILON)), (k) => {
+    Arr.makeBy(Math.max(1, frameAtOrAfter(p.dur / LOOK_STEP, 1)), (k) => {
       const T = p.start + k * LOOK_STEP;
       return { scene: p.spec.id, frame: Math.min(frames - 1, Math.round(T * fps)), T };
     }),

@@ -26,7 +26,16 @@ import {
   type Until,
   type Word,
 } from './schema.ts';
-import { CLOCK_EPSILON, DEFAULT_EASE, type Key, ease, keys, progress, toMs } from './time.ts';
+import {
+  CLOCK_EPSILON,
+  DEFAULT_EASE,
+  type Key,
+  ease,
+  keys,
+  onTheMs,
+  progress,
+  toMs,
+} from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
 export const cueProgress = (cue: ResolvedCue, t: number): number =>
@@ -207,7 +216,7 @@ const untilPatch = (
     // Rounded, the end may fall before the start: then it is the first millisecond at or after it.
     // On the start within float noise is on it, as the resolver judges it (`CLOCK_EPSILON`).
     if (point + near >= cue.start - CLOCK_EPSILON) return Option.some({ untilOffset: near });
-    return Option.some({ untilOffset: toMs(near + 0.001) });
+    return Option.some({ untilOffset: onTheMs(cue.start - point) });
   }
   const offset = toMs(Math.min(at.start, cue.end - frame) - anchor);
   if (offset === toMs(span.offset ?? 0)) return Option.none();

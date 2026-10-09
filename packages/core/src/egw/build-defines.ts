@@ -18,17 +18,11 @@ import { Option } from 'effect';
 
 declare global {
   /** Populated by bundler `define`s; absent (undefined) in Node-hosted runs. */
-  // eslint-disable-next-line no-var
   var __EGW_AUTH_BASE_URL__: string;
-  // eslint-disable-next-line no-var
   var __EGW_API_BASE_URL__: string;
-  // eslint-disable-next-line no-var
   var __EGW_CLIENT_ID__: string;
-  // eslint-disable-next-line no-var
   var __EGW_CLIENT_SECRET__: string;
-  // eslint-disable-next-line no-var
   var __EGW_SCOPE__: string;
-  // eslint-disable-next-line no-var
   var __EGW_USER_AGENT__: string;
 }
 
@@ -48,11 +42,8 @@ const baked = (value: string): Option.Option<string> =>
 // `globalThis.process` property read yields `undefined` there instead of the
 // ReferenceError a bare `process.env[...]` read would throw. Use this
 // anywhere the node-side fallback is wanted.
-// The `node/no-process-env` rule fires here by design, so the read carries an
-// inline disable.
 export const envVar = (key: string): Option.Option<string> =>
   Option.fromNullishOr(globalThis.process).pipe(
-    // eslint-disable-next-line node/no-process-env
     Option.flatMap((proc) => Option.fromNullishOr(proc.env[key])),
     Option.flatMap(nonEmpty),
   );

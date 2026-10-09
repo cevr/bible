@@ -103,8 +103,8 @@ const MESSAGES = {
     'addEventListener hears contextmenu on its own: open a context menu through @bible/ui ContextMenu over the selection’s commands (packages/film/src/lab/command/).',
   'history-through-host.ts:11 film/history-through-host':
     "a history move chosen here: a place's field declares its policy (Place.history, @bible/url-state), and the address bar is written through addressOn (packages/film/src/browser/host.ts).",
-  'one-clock-epsilon.ts:8 film/one-clock-epsilon':
-    'a nudge written beside a time: put the time on its grid through packages/film/src/core/time.ts (frameAtOrAfter, frameAtOrBefore, onTheMs, offTheMs), or judge two times one with CLOCK_EPSILON, so one owner rounds every time.',
+  'one-clock-epsilon.ts:10 film/one-clock-epsilon':
+    'a nudge written beside a time: put the time on its grid through packages/film/src/core/time.ts (frameAtOrAfter, frameAtOrBefore, onTheMs, offTheMs, heardAtOrAfter, justBefore), or judge two times one with CLOCK_EPSILON, so one owner rounds every time.',
   'lock-through-sqlite.ts:9 film/lock-through-sqlite':
     "a manifest's lock file named outside its lock: SQLite alone opens it (packages/film/src/tools/manifest-lock-bun.ts), since closing any other handle on it lets go of the process's lock.",
   'one-breakpoint.ts:8 film/one-breakpoint':

@@ -9,7 +9,6 @@
   "jsPlugins": ["oxlint-plugin-effect/plugin", "./packages/film/lint/plugin.ts"],
   "rules": {
     "typescript/no-explicit-any": "error",
-    "typescript/no-unsafe-type-assertion": "error",
     "typescript/no-non-null-assertion": "error",
     "typescript/no-extra-non-null-assertion": "error",
     "typescript/no-non-null-asserted-optional-chain": "error",
@@ -936,6 +935,14 @@
       }
     },
     {
+      // The one module of the draw path that reads the voice's words: its
+      // times are the clock's.
+      "files": ["**/packages/film/src/canvas/film.ts"],
+      "rules": {
+        "film/one-clock-epsilon": "error"
+      }
+    },
+    {
       // A manifest's lock file is opened by SQLite alone
       // (packages/film/lint/lock-through-sqlite.ts).
       "files": ["**/packages/film/src/**/*.ts", "**/packages/film/src/**/*.tsx"],
@@ -1672,7 +1679,6 @@
       "rules": {
         "typescript/no-non-null-assertion": "off",
         "typescript/no-explicit-any": "off",
-        "typescript/no-unsafe-type-assertion": "off",
         "node/no-process-env": "off",
         "effect/noAs": "off",
         "effect/noChainedTypeAssertions": "off",
@@ -1710,7 +1716,6 @@
         "**/packages/cli/src/commands/**"
       ],
       "rules": {
-        "typescript/no-unsafe-type-assertion": "off",
         "effect/noAs": "off",
         "effect/noChainedTypeAssertions": "off",
         "effect/noWidenThenAssert": "off"
@@ -1726,7 +1731,6 @@
       "files": ["**/packages/ui/**/*.ts", "**/packages/ui/**/*.tsx"],
       "rules": {
         "complexity": "off",
-        "typescript/no-unsafe-type-assertion": "off",
         "effect/maxCognitiveComplexity": "off",
         "effect/maxHalsteadDifficulty": "off",
         "effect/noAs": "off",

@@ -1,4 +1,4 @@
-/* oxlint-disable effect/noUnsafeDictionaryType, effect/noAs, effect/noRuntimeTypeof, effect/noDynamicImports, effect/noNewError, effect/noGlobals -- this file is the host boundary for two foreign module systems.
+/* oxlint-disable effect/noUnsafeDictionaryType, effect/noAs, effect/noRuntimeTypeof, effect/noDynamicImports, effect/noGlobals -- this file is the host boundary for two foreign module systems.
  *
  * `bun:ffi` and `WebAssembly.Instance` both hand back untyped symbol tables:
  * the shapes are fixed by the C sources next door, not by anything TypeScript

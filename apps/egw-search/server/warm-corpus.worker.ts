@@ -1,4 +1,3 @@
-/* oxlint-disable effect/noGlobals -- a Worker's entry: `self` and `postMessage` are the thread boundary, and the SQLite client is opened here, on this thread. */
 /**
  * The corpus warm-up, on its own thread. See `WarmCorpusLive` in `./main.ts`
  * for why it warms these pages and why it may not run on the server's thread.

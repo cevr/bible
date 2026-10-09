@@ -159,7 +159,7 @@ export const truncateToMrl = (
  *  specifier is a literal, and the laziness is the point — which is why the
  *  loader is bound to this name rather than written inline.
  */
-// oxlint-disable-next-line effect/noDynamicImports -- lazy by design; declared dependency, literal specifier
+// Lazy by design: a declared dependency, imported by a literal specifier.
 const loadTransformers = () => import('@huggingface/transformers');
 
 /** Loads the tokenizer and model once, on the given device.

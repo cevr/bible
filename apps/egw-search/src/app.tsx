@@ -1,6 +1,5 @@
 /* oxlint-disable effect/noNullish -- the wire shape is JSON (see ../server/api.ts); `null` is what an absent refcode or link arrives as. */
 /* oxlint-disable effect/noTernary -- these are JSX render branches, not domain matches; `Match.value` in an attribute position reads worse and builds a matcher per render. */
-/* oxlint-disable effect/noGlobals -- a new pane's search box takes the caret on the next frame, once it is in the document. */
 
 /**
  * EGW searcher — Solid 2 + Effect 4.
