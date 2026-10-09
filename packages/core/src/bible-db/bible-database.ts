@@ -9,7 +9,7 @@ import { Context, Effect, Layer, Option, Predicate, Schema } from 'effect';
 import * as SqlClient from 'effect/sql/SqlClient';
 import type { SqlError } from 'effect/sql/SqlError';
 
-export class BibleDataIntegrityError extends Schema.TaggedError<BibleDataIntegrityError>()(
+class BibleDataIntegrityError extends Schema.TaggedError<BibleDataIntegrityError>()(
   'BibleDataIntegrityError',
   {
     cause: Schema.Unknown,
@@ -68,26 +68,26 @@ export interface ConcordanceHit {
   readonly word: string;
 }
 
-export interface VerseSearchResult extends BibleVerse {}
+interface VerseSearchResult extends BibleVerse {}
 
-export interface VerseSearchOptions {
+interface VerseSearchOptions {
   readonly books?: readonly number[];
   readonly offset?: number;
   readonly limit?: number;
   readonly versionCode?: string;
 }
 
-export interface VerseSearchWindow {
+interface VerseSearchWindow {
   readonly results: readonly VerseSearchResult[];
   readonly total: number;
 }
 
-export interface StrongsVerse {
+interface StrongsVerse {
   readonly verse: number;
   readonly words: readonly VerseWord[];
 }
 
-export interface StrongsChapter {
+interface StrongsChapter {
   readonly book: number;
   readonly bookName: string;
   readonly chapter: number;

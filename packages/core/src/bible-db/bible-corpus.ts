@@ -16,16 +16,16 @@ import type {
 } from './archive.js';
 import { initializeBibleSchema } from './schema.js';
 
-export type CrossReferenceSource = 'openbible' | 'tske';
+type CrossReferenceSource = 'openbible' | 'tske';
 
-export interface BibleCorpusStatus {
+interface BibleCorpusStatus {
   readonly kjv: boolean;
   readonly crossReferences: boolean;
   readonly marginNotes: boolean;
   readonly topics: boolean;
 }
 
-export interface BibleCorpusService {
+interface BibleCorpusService {
   readonly status: Effect.Effect<BibleCorpusStatus, SqlError>;
   readonly install: (
     archive: BibleCorpusArchive,

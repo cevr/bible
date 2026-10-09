@@ -71,7 +71,7 @@ const OrderedVerseRangeReference = VerseRangeReference.check(
 
 const orderedVerseRange = Schema.decodeSync(OrderedVerseRangeReference);
 
-export const ReferenceSchema = Schema.Union([
+const ReferenceSchema = Schema.Union([
   BookReference,
   ChapterReference,
   VerseReference,
@@ -121,11 +121,6 @@ export class ChapterMarginAnchors extends Schema.Class<ChapterMarginAnchors>(
       anchors: Schema.Array(VerseMarginAnchor),
     }),
   ),
-}) {}
-
-export class Passage extends Schema.Class<Passage>('Bible/Passage')({
-  reference: Schema.Union([VerseReference, VerseRangeReference]),
-  verses: Schema.NonEmptyArray(Verse),
 }) {}
 
 export class SearchHit extends Schema.Class<SearchHit>('Bible/SearchHit')({
