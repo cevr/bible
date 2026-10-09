@@ -36,12 +36,12 @@ const soundContext = () => {
 };
 
 /** The audio at `src`, as the page makes it: an `Audio` element. */
-export const pageAudio = (src: string): Playable =>
+const pageAudio = (src: string): Playable =>
   // oxlint-disable-next-line no-restricted-globals -- Media's live adapter: the audio the page makes
   playableOf(new Audio(src));
 
 /** The page's one sound context: what its compare's panes play through. */
-export const pageSound: () => Option.Option<AudioContext> = soundContext();
+const pageSound: () => Option.Option<AudioContext> = soundContext();
 
 /** A phone or a tablet, as its pointer says: what plays `<video>` until one is measured. */
 const COARSE = '(pointer: coarse)';
