@@ -21,5 +21,3 @@ export const REASONS = {
   cancelOpen: 'cancel-open',
   swipe: 'swipe',
 } as const;
-
-export type BaseUIEventReasons = typeof REASONS;

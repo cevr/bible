@@ -3,7 +3,7 @@
 // An item of a composite widget: it registers in the root's list, holds the
 // tab stop (`tabindex` 0) while highlighted and -1 otherwise, and takes the
 // tab stop when it is focused.
-import { type Accessor, untrack } from 'solid-js';
+import { untrack } from 'solid-js';
 
 import type { HTMLProps } from '../types.ts';
 import { useCompositeListItem } from './CompositeList.tsx';
@@ -13,8 +13,6 @@ export interface UseCompositeItemReturnValue {
   compositeProps: HTMLProps;
   /** Pass to the item element's `ref`. */
   compositeRef: (element: HTMLElement | null) => void;
-  index: Accessor<number>;
-  highlighted: Accessor<boolean>;
 }
 
 export function useCompositeItem(): UseCompositeItemReturnValue {
@@ -42,7 +40,5 @@ export function useCompositeItem(): UseCompositeItemReturnValue {
       element = node;
       listItem.ref(node);
     },
-    index: listItem.index,
-    highlighted,
   };
 }
