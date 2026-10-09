@@ -1,9 +1,9 @@
-// What waits for a film's picture faces on the Lab (PS-1): its loader asks
-// for them and gives the film at once (`narratedFilms`), so the page's bar
-// stands and names where the film is while they load, and only what draws
-// the film waits (`pictureFacesWait`): the stage's canvas stays blank and no
-// tool stands until they have loaded, so no frame is drawn in a fallback
-// face. A face that will not load fails the page as a film that will not
+// What waits for a film's picture faces on the Lab: its loader asks for
+// them and gives the film at once (`narratedFilms`), so the page's bar and
+// its tools stand and name where the film is while they load (on a phone the
+// scene's name is the first thing painted), and only what draws the film
+// waits (`pictureFacesWait`): the stage's canvas stays blank, and a still
+// waits, until they have loaded, so no frame is drawn in a fallback face. A face that will not load fails the page as a film that will not
 // start does: the film stops if it plays, the page ends (no key heard, no
 // feed asking) and says why. A film's Scenes wait the same way, and their
 // header's timecode follows the player's time while they wait. The probe
@@ -74,7 +74,7 @@ const RECORD_FILLS = `(() => {
 
 describe("a film's picture faces on the Lab", () => {
   it.live(
-    "held: the bar stands and names the film's place, the canvas is blank and no tool stands; landed: the first frame is drawn, and every fill on it, with the face loaded",
+    "held: the bar and the strip stand and name the film's place, the canvas is blank; landed: the first frame is drawn, and every fill on it, with the face loaded",
     () =>
       Effect.gen(function* () {
         const gate = yield* Deferred.make<void>();
@@ -84,16 +84,14 @@ describe("a film's picture faces on the Lab", () => {
           // The page's load waits for the face too: the open waits for it to mount.
           { viewport: PHONE, mountedOnly: true },
         );
-        // The face held: the film's bar is up, its canvas blank, the panel not staged.
+        // The face held: the film's bar is up, its canvas blank, and the scene's name and its
+        // strip stand (the phone's first paint is that name, not the picture).
         yield* textIs(page, '.bar .scene', 'one');
         yield* textHas(page, '.bar .say', 'The ball');
+        yield* textHas(page, '.lab-strip-name', 'one');
+        yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
         yield* evaluates(page, FACE_STATUS, 'loading');
         yield* evaluates(page, BLANK, true);
-        yield* evaluates(
-          page,
-          `document.querySelector('.lab-panel').dataset.staged === 'true'`,
-          false,
-        );
         // The header's timecode follows the player's time, drawn or not: a seek on the bar moves
         // it, and the canvas stays blank.
         yield* countIs(page, '.sh-tc', 1);
@@ -102,10 +100,9 @@ describe("a film's picture faces on the Lab", () => {
         yield* until(page, "document.querySelector('.sh-tc').textContent !== window.__tc");
         yield* evaluates(page, BLANK, true);
         yield* until(page, RECORD_FILLS);
-        // The face lands: the frame is drawn, every fill with it loaded, and the tools stand.
+        // The face lands: the frame is drawn, every fill with it loaded.
         yield* Deferred.done(gate, Exit.void);
-        yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
-        yield* evaluates(page, BLANK, false);
+        yield* until(page, `!(${BLANK})`);
         yield* evaluates(page, 'window.__fills.length > 0', true);
         yield* evaluates(page, '[...new Set(window.__fills)]', ['loaded']);
         expect(errors).toEqual([]);
