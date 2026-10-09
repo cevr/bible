@@ -1,13 +1,19 @@
-// The message: Minneapolis, 1888. On "how" the grey figure from `mirror`,
-// small in the rags of their own sewing, looks up at the one lit window of a
-// cardboard meeting hall at dusk; on "year" the camera pushes through the
-// window into the hall in warm peach light, two preachers at the front, the
-// congregation in rows before them. On "reputation" the crowd splits: half hold small stone tablets up,
-// half look about for something missing. On the answer ("It was") every face
-// turns to a gold light rising behind the pulpit; the tablets stay up, the law
-// is not dropped. On "angel" the roof lifts off the diorama and the angel of
-// Rev 14 flies in with a banner that writes the third angel's message in its
-// own words. On "hand" a tablet and a cross meet in one gold emblem; on
+// The message: law without Christ, and Christ without the law. On "how" the
+// grey figure from `mirror`, small in the rags of their own sewing, looks up
+// at the one lit window of a cardboard meeting hall at dusk; on "year" the
+// camera pushes through the window into a hall of no time or place, in warm
+// peach light: a pulpit at the front with an open Bible on it and no one in
+// it, a crowd of grey figures in rows before it. On "two" the camera pushes in
+// on the left half of the crowd as they lift small stone tablets high; on
+// "rep" they look about, puzzled, for something missing: no cross among them.
+// On "ew" the camera crosses to the right half as they lift small wooden
+// crosses, their tablets in the other hand; on "precious" they set the
+// tablets down on the floor. On "what" the camera pulls back to the hall and
+// every face turns, curious, as the Bible on the pulpit glows. On "answer"
+// every face turns to a gold light rising behind the pulpit; the tablets and
+// the crosses stay up. On "angel" the roof lifts off the diorama and an angel
+// flies in with a banner that writes its message in its own words. On "hand"
+// a tablet from the left and a cross from the right meet in one gold emblem; on
 // "three" the camera pushes through it onto the parchment page, where the
 // grey figure stands in their stains and looks up. On "makes" a word of light
 // falls from above into their chest, and from it a warmth spreads that washes
@@ -21,33 +27,30 @@ import {
   type Camera,
   type Frame,
   type Hand,
+  type Posed,
   type Pt,
   at,
   camera,
   drawing,
-  ellipse,
   ellipseShape,
+  ground,
   line,
-  spline,
   multiplane,
-  probePlate,
   pushInto,
+  quad,
   rectShape,
   shotPath,
   stroke,
-  write,
   sub,
   glow,
   knobCamera,
   rounded,
   sky,
-  plate,
   UNMOVED,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
   C,
-  F,
   type GestureAt,
   type HandPush,
   type Hands,
@@ -65,47 +68,74 @@ import {
 import { FIGURE_STAINS, FIGURE_STAIN_SPOTS } from '../court.ts';
 import { apron } from '../garden.ts';
 import { herald } from '../heaven.ts';
-import { arc, flight } from '../spoken.ts';
+import { flight } from '../spoken.ts';
 import { crossShape, tabletShape, tablets } from '../law.ts';
 
-/** The platform's front edge: the preachers stand on it. */
+/** The platform's front edge: the empty pulpit stands on it. */
 const STAGE_Y = 700;
 const WINDOWS = [230, 590, 1330, 1690] as const;
 
-/** The congregation: where each stands, their scale, and which side of the aisle. */
+/**
+ * The congregation: where each stands, their scale, their build (so the rows
+ * are never cloned), which side of the aisle (the left half holds up the
+ * law, the right half Christ), each one's place in their own half (`k`), and
+ * how high they hold it up.
+ */
 interface Seat {
   readonly x: number;
   readonly y: number;
   readonly s: number;
+  readonly build: readonly [number, number];
   readonly side: -1 | 1;
+  readonly k: number;
+  /** How high their hand holds up what they hold, in their units. */
+  readonly lift: number;
 }
+/**
+ * How high each row holds up its tablets or cross: the back row over their
+ * heads, the front row lower, so what they hold never covers a face behind.
+ */
+const BACK_LIFT = -196;
+const FRONT_LIFT = -150;
 const CROWD: ReadonlyArray<Seat> = [
-  { x: 170, y: 975, s: 1.5, side: -1 },
-  { x: 430, y: 975, s: 1.5, side: -1 },
-  { x: 690, y: 975, s: 1.5, side: -1 },
-  { x: 1230, y: 975, s: 1.5, side: 1 },
-  { x: 1490, y: 975, s: 1.5, side: 1 },
-  { x: 1750, y: 975, s: 1.5, side: 1 },
-  { x: 290, y: 1170, s: 1.95, side: -1 },
-  { x: 640, y: 1170, s: 1.95, side: -1 },
-  { x: 1280, y: 1170, s: 1.95, side: 1 },
-  { x: 1630, y: 1170, s: 1.95, side: 1 },
+  { x: 170, y: 975, s: 1.5, build: [1.1, 0.95], side: -1, k: 0, lift: BACK_LIFT },
+  { x: 430, y: 975, s: 1.5, build: [0.9, 1.1], side: -1, k: 2, lift: BACK_LIFT },
+  { x: 690, y: 975, s: 1.5, build: [1, 1], side: -1, k: 4, lift: BACK_LIFT },
+  { x: 1230, y: 975, s: 1.5, build: [0.95, 1.05], side: 1, k: 4, lift: BACK_LIFT },
+  { x: 1490, y: 975, s: 1.5, build: [1.15, 0.9], side: 1, k: 2, lift: BACK_LIFT },
+  { x: 1750, y: 975, s: 1.5, build: [0.9, 1.12], side: 1, k: 0, lift: BACK_LIFT },
+  { x: 290, y: 1170, s: 1.95, build: [1, 1.05], side: -1, k: 1, lift: FRONT_LIFT },
+  { x: 640, y: 1170, s: 1.95, build: [1.12, 0.92], side: -1, k: 3, lift: FRONT_LIFT },
+  { x: 1280, y: 1170, s: 1.95, build: [0.92, 1], side: 1, k: 3, lift: FRONT_LIFT },
+  { x: 1630, y: 1170, s: 1.95, build: [1.05, 1.08], side: 1, k: 1, lift: FRONT_LIFT },
 ];
+/** How many stand in each half. */
+const HALF = 5;
 
 const timeline = {
   // Outside the hall at dusk, the figure from `mirror` looks up at its one
   // lit window; on "year" the camera pushes through the window into the hall.
   lookUp: { mark: 'how', offset: 0.3, dur: 0.8, ease: 'inOutSine' },
   window: { mark: 'year', offset: -0.3, dur: 1.3, ease: 'inCubic' },
-  // Waggoner holds the open Bible from the cut: the hall opens on it.
-  bible: { at: 'start', dur: 0 },
-  placard: { after: 'window', dur: 0.5, ease: 'outBack' },
-  stepUp: { mark: 'two', dur: 0.6 },
-  push: { mark: 'two', offset: 0.3, dur: 1.4, ease: 'inOutSine' },
-  placardOut: { mark: 'two', offset: 0.1, dur: 0.4 },
-  back: { mark: 'rep', dur: 1, ease: 'inOutSine' },
-  split: { mark: 'rep', offset: 0.5, dur: 0.8, ease: 'outBack' },
-  precious: { mark: 'precious', dur: 0.9 },
+  // "Some hold up the law": in on the left half as they lift their tablets.
+  push: { mark: 'two', dur: 1.2, ease: 'inOutSine' },
+  lawUp: { mark: 'two', offset: 0.2, dur: 1.2, ease: 'outCubic', stagger: 0.4 },
+  // "and lose sight of Christ": they look about for what is missing, and the
+  // camera goes in close on one puzzled face.
+  missing: { mark: 'rep', dur: 0.6, ease: 'inOutSine' },
+  closer: { mark: 'rep', offset: 0.2, until: 'ew', ease: 'inOutSine' },
+  // "Others hold up Christ": across to the right half as they lift their
+  // crosses, their tablets in the other hand.
+  across: { mark: 'ew', dur: 1.2, ease: 'inOutSine' },
+  crossUp: { mark: 'ew', offset: 0.2, dur: 1.2, ease: 'outCubic', stagger: 0.4 },
+  // "and set the law aside": the tablets go down to the floor, are let go,
+  // and the hand comes back empty.
+  setDown: { mark: 'precious', dur: 0.8, ease: 'inOutSine' },
+  letGo: { after: 'setDown', dur: 0.25 },
+  handBack: { after: 'letGo', dur: 0.7, ease: 'inOutSine' },
+  // "So what does the Bible say?": back to the hall, every face curious, the
+  // open Bible on the empty pulpit lit.
+  wide: { mark: 'what', until: 'answer', ease: 'inOutSine' },
   curious: { mark: 'what', dur: 0.4 },
   light: { mark: 'answer', offset: -0.2, dur: 1.4 },
   turn: { mark: 'answer', dur: 0.6 },
@@ -128,7 +158,7 @@ const timeline = {
   figureIn: { after: 'through', dur: 0.5, ease: 'outBack' },
   hear: { mark: 'three', offset: 0.9, dur: 0.5 },
   given: { mark: 'makes', offset: -0.6, dur: 0.8, ease: 'inOutSine' },
-  warm: { after: 'given', dur: 1 },
+  warm: { after: 'given', until: 'gifts', untilOffset: -0.3 },
   // The figure lifts its open hand, turns it palm up as it comes, and the
   // camera pushes into it: the insert, the same hand close up.
   offer: { with: 'handIn', dur: 0.6, ends: true },
@@ -146,9 +176,15 @@ const knobs = {
   // The hall at rest.
   rest: [960, 560],
   restZoom: 1.1,
-  // On the two preachers.
-  preach: [960, 520],
-  preachZoom: 1.5,
+  // On the left half of the crowd, the law held up.
+  law: [480, 830],
+  lawZoom: 1.45,
+  // Close on one of them, looking about for what is missing.
+  puzzled: [349, 775],
+  puzzledZoom: 2.3,
+  // On the right half, Christ held up.
+  gospel: [1440, 830],
+  gospelZoom: 1.45,
   // Toward the pulpit's light.
   pulpit: [960, 560],
   pulpitZoom: 1.15,
@@ -326,8 +362,10 @@ export const message = drawing({
       ]);
       const REST = knobCamera(f.knob('rest'), f.knob('restZoom'));
       const cam = shotPath(REST, [
-        [f.at('push'), knobCamera(f.knob('preach'), f.knob('preachZoom'))],
-        [f.at('back'), REST],
+        [f.at('push'), knobCamera(f.knob('law'), f.knob('lawZoom'))],
+        [f.at('closer'), knobCamera(f.knob('puzzled'), f.knob('puzzledZoom'))],
+        [f.at('across'), knobCamera(f.knob('gospel'), f.knob('gospelZoom'))],
+        [f.at('wide'), REST],
         [f.at('toPulpit'), knobCamera(f.knob('pulpit'), f.knob('pulpitZoom'))],
       ]);
       const roof = f.at('roof');
@@ -409,8 +447,12 @@ const NOON_Y = 130;
 const DAYS = 3;
 /** How much of a day the days take to come in and to go: the dusk dims and the hand's close ease in and out over it. */
 const DAYS_EASE = 0.5;
-/** Where the word of light that falls into the figure's chest on "makes" starts, above the page. */
-const MAKES_FROM: Pt = [1320, -120];
+/**
+ * Where the word of light that falls into the figure's chest on "makes"
+ * starts, above the page: it falls at the figure's right and turns in level
+ * with the chest, so its trail never crosses the face.
+ */
+const MAKES_FROM: Pt = [1420, -120];
 /** Each stain's reach from the light in the chest, and one scratch list of their wash. */
 const STAIN_REACH = FIGURE_STAIN_SPOTS.map(([x, y]) => Math.hypot(x, y + 80) / 40);
 const WASH: number[] = FIGURE_STAIN_SPOTS.map(() => 0);
@@ -598,15 +640,22 @@ const pageFigure = (f: MessageFrame, handIn: number) => {
   ctx.restore();
   // The word of light, over the figure as it lands in the chest.
   if (given > 0 && given < 1)
-    flight(ctx, arc(MAKES_FROM, [fx, fy - 80 * FIGURE_S], 60), given, f.hand('given'), 0.4);
+    flight(
+      ctx,
+      quad(MAKES_FROM, [MAKES_FROM[0], fy - 80 * FIGURE_S], [fx, fy - 80 * FIGURE_S], 40),
+      given,
+      f.hand('given'),
+      0.4,
+    );
 };
 
-/** The hall of 1888: wall and windows (which lift away as the roof), the platform, and the crowd. */
+/**
+ * The hall, of no time or place: wall and windows (which lift away as the
+ * roof), the platform with its empty pulpit and the open Bible on it, and the
+ * crowd, the law held up on the left and Christ on the right.
+ */
 const hall = (f: MessageFrame, cam: Camera, roof: number) => {
-  const { ctx, w, h, t } = f;
-  const split = f.at('split');
-  const turn = f.at('turn');
-  const curious = f.at('curious') * (1 - turn);
+  const { ctx, w, h } = f;
   const lift = -1150 * roof;
   multiplane(
     ctx,
@@ -633,7 +682,6 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
               line: 0,
               torn: 3,
             });
-            placard(f);
           });
         },
       },
@@ -665,213 +713,170 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
             kind: 'cut',
             line: 3,
           });
-          preachers(f);
+          openBible(f);
         },
       },
       {
         z: 0.85,
         lift: 1.3,
-        draw: () =>
-          CROWD.forEach((seat, i) => {
-            const holds = seat.side < 0 && split > 0;
-            TABLETS_UP.reach = seat.side < 0 ? split : 0;
-            const wander = seat.side > 0 ? split * (1 - turn) : 0;
-            const toward: Pt = [((960 - seat.x) / 700) * 5, -3];
-            const glance: Pt = [4 * Math.sin(t * 1.7 + i * 1.3), 1];
-            const look: Pt = [
-              lerp(lerp(toward[0], glance[0], wander), (960 - seat.x) / 180, turn),
-              lerp(lerp(toward[1], glance[1], wander), -4, turn),
-            ];
-            const who: Person = {
-              look,
-              tilt: 0.12 * wander * Math.sin(t * 1.1 + i) + turn * ((960 - seat.x) / 4000),
-              browL: 3 * wander + 3 * turn + 2 * curious,
-              browR: 2 * wander + 4 * turn + 3 * curious,
-              browTilt: 0.45 * wander + 0.3 * turn + 0.3 * curious,
-              mouth: 0.6 * turn * (i % 3 === 0 ? 1 : 0),
-              near: TABLETS_UP,
-            };
-            const me = sub(f.hand('crowd'), i);
-            at(ctx, { x: seat.x, y: seat.y, scale: seat.s }, () => {
-              // The tablets first, riding on the hand, so the hand is drawn over their foot.
-              if (holds) {
-                const [hx, hy] = handOf(who, 'near', me);
-                at(ctx, { x: hx, y: hy - TABLETS_ABOVE * split, scale: TABLETS_S * split }, () =>
-                  tablets(ctx, (k) => sub(f.hand(k), i)),
-                );
-              }
-              person(ctx, who, me);
-            });
-          }),
+        draw: () => CROWD.forEach((seat, i) => member(f, seat, i)),
       },
     ],
     { rest: [960, 540], haze: C.peachLow, thickness: 0.4 },
   );
 };
 
-/**
- * Hair hugging a head centred on `c` with radii `r`, sideburn to sideburn,
- * its hairline arched over the brow: `sweep` 1 brushes it up and back
- * (Jones), 0 is a short crop (Waggoner).
- */
-const hairShape = ([cx, cy]: Pt, [rx, ry]: Pt, sweep: number): Pt[] =>
-  spline(
-    [
-      [cx - 0.98 * rx, cy - 0.05 * ry],
-      [cx - 1.04 * rx, cy - 0.5 * ry],
-      [cx - 0.8 * rx, cy - (0.92 + 0.06 * sweep) * ry],
-      [cx - 0.2 * rx, cy - (1.06 + 0.1 * sweep) * ry],
-      [cx + 0.5 * rx, cy - (1.02 + 0.08 * sweep) * ry],
-      [cx + 0.94 * rx, cy - 0.7 * ry],
-      [cx + 1.03 * rx, cy - 0.3 * ry],
-      [cx + 0.98 * rx, cy - 0.05 * ry],
-      [cx + 0.86 * rx, cy - 0.1 * ry],
-      [cx + 0.84 * rx, cy - 0.5 * ry],
-      [cx + 0.4 * rx, cy - (0.72 + 0.04 * sweep) * ry],
-      [cx - 0.2 * rx, cy - (0.74 + 0.04 * sweep) * ry],
-      [cx - 0.8 * rx, cy - 0.5 * ry],
-      [cx - 0.86 * rx, cy - 0.1 * ry],
-    ],
-    6,
-    true,
-  );
+/** One open page of the Bible on the pulpit, its gutter at (0, 0), `side` −1 the left page. */
+const BIBLE_PAGE: ReadonlyArray<Pt> = [
+  [0, 6],
+  [0, -8],
+  [-22, -15],
+  [-50, -13],
+  [-60, -6],
+  [-60, 6],
+];
+const BIBLE_PAGES = [BIBLE_PAGE, BIBLE_PAGE.map(([x, y]): Pt => [-x, y])] as const;
+/** Where the open Bible lies on the pulpit's top, and its scale. */
+const BIBLE_AT: Pt = [960, STAGE_Y - 218];
+const BIBLE_S = 1.2;
 
-/** A crowd member's hand under the tablets they hold up on the split (its reach written per seat). */
-const TABLETS_UP: GestureAt = { to: [70, -150], reach: 0, grip: 'hold' };
+/**
+ * The open Bible on the empty pulpit: no one stands behind it. On "what" ("So
+ * what does the Bible say?") it glows, the word's gold.
+ */
+const openBible = (f: MessageFrame) => {
+  const { ctx } = f;
+  const lit = f.at('curious');
+  const [bx, by] = BIBLE_AT;
+  at(ctx, { x: bx, y: by, scale: BIBLE_S }, () => {
+    if (lit > 0) {
+      glow(ctx, 0, -10, 150, C.glow, 0.8 * lit);
+      glow(ctx, 0, -6, 70, C.gold, 0.45 * lit);
+    }
+    piece(ctx, rounded(0, 4, 128, 10, 3), C.boardDeep, f.hand('bibleCover'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 2.5,
+    });
+    BIBLE_PAGES.forEach((pts, i) =>
+      piece(ctx, pts, C.cream, sub(f.hand('biblePage'), i), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 2.5,
+        shadow: 0.2,
+      }),
+    );
+    for (const side of [-1, 1] as const)
+      for (let r = 0; r < 2; r++)
+        piece(
+          ctx,
+          rounded(side * 30, -8 + 6 * r, 34 - 8 * r, 2.5, 1),
+          C.inkSoft,
+          sub(f.hand('bibleLine'), 2 * r + (side + 1) / 2),
+          { role: 'scenery', kind: 'ink', line: 0, shadow: 0 },
+        );
+  });
+};
+
+/** The left half's hand under the tablets they hold up (its reach written per seat). */
+const TABLETS_UP: GestureAt = { to: [72, -196], reach: 0, grip: 'hold' };
+/** The right half's hand under the cross they hold up. */
+const CROSS_UP: GestureAt = { to: [70, -196], reach: 0, grip: 'hold' };
+/**
+ * The right half's other hand, holding their tablets out at their side,
+ * then down to the floor (`to` written per frame), where it lets them go.
+ */
+const TABLETS_HELD: Posed<GestureAt> = {
+  to: [-80, -100],
+  reach: 0,
+  grip: 'open',
+  was: 'hold',
+  change: 0,
+};
+/** Where the held tablets are carried, and where the hand sets them down on the floor beside the feet. */
+const TABLETS_OUT: Pt = [-80, -100];
+const TABLETS_FLOOR: Pt = [-62, -5];
 /** The tablets they hold: their scale, and how far above the fist their middle rides (half their height, less the fingers over the foot). */
 const TABLETS_S = 0.3;
 const TABLETS_ABOVE = 22;
-/** Waggoner's two hands on the open Bible, and Jones's lifted as he preaches. */
-const ON_BIBLE_FAR: GestureAt = { to: [-10, -86], reach: 0, grip: 'hold' };
-const ON_BIBLE_NEAR: GestureAt = { to: [30, -84], reach: 0, grip: 'hold' };
-const PREACHING: GestureAt = { to: [58, -150], reach: 0, grip: 'open' };
+/** The small wooden cross: its scale (`crossShape`'s), and how far above the fist its middle rides. */
+const CROSS_S = 0.36;
+const CROSS_ABOVE = 26;
+/** A scratch look, rewritten per seat. */
+const LOOK: [number, number] = [0, 0];
 
 /**
- * The two preachers, told apart by silhouette alone (no labels), after their
- * portraits: Waggoner short and stocky, in round spectacles with a trim
- * moustache, holding the open Bible; Jones tall and angular, his hair brushed
- * back and a full handlebar moustache. Each: x, scale and person.
+ * One of the crowd. The left half lift their tablets on "two" and look about
+ * on "rep" for what is missing; the right half lift their crosses on "ew",
+ * holding their tablets in the other hand, and set the tablets down on the
+ * floor on "precious". On "what" every face turns curious toward the
+ * pulpit, and on "answer" to the light behind it; nothing held up comes down.
  */
-const PREACHERS: ReadonlyArray<readonly [x: number, s: number, who: Person]> = [
-  [
-    740,
-    1.75,
-    {
-      body: C.cutDeep,
-      build: [1.05, 0.95],
-      hair: C.cutShade,
-      moustache: 0.35,
-      onHead: (ctx, c, r, hand) => {
-        piece(ctx, hairShape(c, r, 0), C.cutShade, sub(hand, 85), {
-          role: 'figure',
-          line: 2.5,
-          shadow: 0.1,
-        });
-        for (const [i, x] of [-12, 13].entries())
-          stroke(
-            ctx,
-            ellipse(c[0] + x, c[1] - 7, 8, 8, i),
-            { color: C.outline, width: 2, jitter: 0.3, taper: 0, boil: 'crawl' },
-            sub(hand, 80 + i),
-          );
-        stroke(
-          ctx,
-          line([c[0] - 4, c[1] - 8], [c[0] + 5, c[1] - 8]),
-          { color: C.outline, width: 2, jitter: 0.3, taper: 0, boil: 'crawl' },
-          sub(hand, 82),
-        );
-      },
-    },
-  ],
-  [
-    1180,
-    1.85,
-    {
-      body: C.inkSoft,
-      build: [0.9, 1.15],
-      hair: C.cutDeep,
-      moustache: 1,
-      onHead: (ctx, c, r, hand) =>
-        piece(ctx, hairShape(c, r, 1), C.cutDeep, sub(hand, 85), {
-          role: 'figure',
-          line: 2.5,
-          shadow: 0.1,
-        }),
-    },
-  ],
-];
-
-/** Waggoner and Jones on the platform, Waggoner with the Bible open. */
-const preachers = (f: MessageFrame) => {
-  const { ctx } = f;
-  const step = f.at('stepUp');
-  const precious = f.at('precious');
+const member = (f: MessageFrame, seat: Seat, i: number) => {
+  const { ctx, t } = f;
+  const law = seat.side < 0;
   const turn = f.at('turn');
-  ON_BIBLE_FAR.reach = f.at('bible');
-  ON_BIBLE_NEAR.reach = ON_BIBLE_FAR.reach;
-  PREACHING.reach = step;
-  for (const [k, [x, s, who]] of PREACHERS.entries()) {
-    at(ctx, { x, y: STAGE_Y - 8 * step, scale: s }, () => {
-      glow(ctx, 0, -110, 170, C.glow, 0.5 * step);
-      person(
-        ctx,
-        {
-          ...who,
-          shade: C.outline,
-          look: [lerp(k === 0 ? 3 : -3, 0, step), lerp(0, 2, step) - 3 * turn],
-          browL: 2 * step,
-          browR: 2 * step,
-          browTilt: 0.1,
-          far: k === 0 ? ON_BIBLE_FAR : undefined,
-          near: k === 0 ? ON_BIBLE_NEAR : PREACHING,
-        },
-        f.hand(`preacher${k}`),
-      );
-      if (k === 0) {
-        glow(ctx, 10, -92, 90, C.gold, 0.6 * precious);
-        piece(ctx, rounded(-4, -88, 44, 30, 3), C.cream, f.hand('bible'), {
-          role: 'figure',
-          line: 2.5,
-        });
-        piece(ctx, rounded(-4, -88, 3, 30, 1), C.inkSoft, f.hand('spine'), {
-          role: 'figure',
-          kind: 'ink',
-          line: 0,
-          shadow: 0,
-        });
-      }
-    });
+  const front = Math.max(f.at('curious'), turn);
+  const curious = f.at('curious') * (1 - turn);
+  const up = f.stagger(law ? 'lawUp' : 'crossUp', seat.k, HALF);
+  const wander = law ? f.at('missing') * (1 - front) : 0;
+  // Each looks up at what they hold up, until the left half look about for what is missing.
+  const atHeld = up * (1 - wander) * (1 - front);
+  const toward = ((960 - seat.x) / 700) * 5;
+  const glance = 4 * Math.sin(t * 1.7 + i * 1.3);
+  LOOK[0] = lerp(lerp(lerp(toward, glance, wander), 4, atHeld), (960 - seat.x) / 180, front);
+  LOOK[1] = lerp(lerp(lerp(-3, 1, wander), -5, atHeld), -4, front);
+  const held = law ? TABLETS_UP : CROSS_UP;
+  held.reach = up;
+  held.to[1] = seat.lift;
+  const down = law ? 0 : f.at('setDown');
+  const letGo = law ? 0 : f.at('letGo');
+  if (!law) {
+    TABLETS_HELD.to[0] = lerp(TABLETS_OUT[0], TABLETS_FLOOR[0], down);
+    TABLETS_HELD.to[1] = lerp(TABLETS_OUT[1], TABLETS_FLOOR[1], down);
+    TABLETS_HELD.reach = up * (1 - f.at('handBack'));
+    TABLETS_HELD.change = letGo;
   }
-};
-
-/** Minneapolis, 1888: a placard hung on the hall's wall. */
-const placard = (f: MessageFrame) => {
-  const { ctx } = f;
-  const show = f.at('placard') * (1 - f.at('placardOut'));
-  if (show <= 0.01) return;
-  at(ctx, { x: 960, y: 190, scale: show, rot: -0.02 }, () => {
-    const board = plate(0, 0, 620, 110);
-    piece(ctx, board, C.cream, f.hand('placard'), {
-      role: 'scenery',
-      kind: 'cut',
-      line: 3,
-      torn: 2,
-    });
-    probePlate(ctx, board, () =>
-      write(
-        ctx,
-        'Minneapolis, 1888',
-        0,
-        22,
-        { family: F.display, size: 62, weight: 600, color: C.ink, align: 'center' },
-        f.hand('placardText'),
-        {
-          progress: Math.min(1, f.spoken('year', 'two') * 2.2),
-          reveal: 'write',
-          boil: 0.3,
-        },
-      ),
-    );
+  const who: Person = {
+    look: LOOK,
+    build: seat.build,
+    tilt: 0.12 * wander * Math.sin(t * 1.1 + i) + turn * ((960 - seat.x) / 4000),
+    browL: 3 * wander + 3 * turn + 2 * curious,
+    browR: 2 * wander + 4 * turn + 3 * curious,
+    browTilt: 0.45 * wander + 0.25 * atHeld + 0.3 * turn + 0.3 * curious,
+    mouth: 0.6 * turn * (i % 3 === 0 ? 1 : 0),
+    near: held,
+    far: law ? undefined : TABLETS_HELD,
+  };
+  const me = sub(f.hand('crowd'), i);
+  const keyed = (k: string) => sub(f.hand(k), i);
+  at(ctx, { x: seat.x, y: seat.y, scale: seat.s }, () => {
+    // What they hold first, riding on the hand, so the hand is drawn over its foot.
+    if (up > 0) {
+      const [hx, hy] = handOf(who, 'near', me);
+      if (law)
+        at(ctx, { x: hx, y: hy - TABLETS_ABOVE * up, scale: TABLETS_S * up }, () =>
+          tablets(ctx, keyed),
+        );
+      else
+        at(ctx, { x: hx, y: hy - CROSS_ABOVE * up, scale: up }, () =>
+          piece(ctx, crossShape(CROSS_S), C.cutLight, sub(f.hand('heldCross'), i), {
+            role: 'scenery',
+            kind: 'cut',
+            line: 3,
+            shadow: 0.3,
+          }),
+        );
+    }
+    // The right half's tablets: in the other hand, then on the floor once let go.
+    if (!law && up > 0) {
+      const [tx, ty] = letGo > 0 ? TABLETS_FLOOR : handOf(who, 'far', me);
+      if (letGo > 0) ground(ctx, tx, 2, 80);
+      at(ctx, { x: tx, y: ty - TABLETS_ABOVE * up, scale: TABLETS_S * up }, () =>
+        tablets(ctx, keyed),
+      );
+    }
+    person(ctx, who, me);
   });
 };
 
