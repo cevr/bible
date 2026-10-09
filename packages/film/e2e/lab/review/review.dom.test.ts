@@ -1180,6 +1180,64 @@ describe('the review page', () => {
   );
 
   it.live(
+    "a Set on a phone whose first version's proxy is still being made is led by the first that plays: its end and its ending (ARCH5-2)",
+    () =>
+      Effect.gen(function* () {
+        // Version A is too big for a phone and its proxy is still being made; B's video is 3 s.
+        const aPending: Json = {
+          folders: [
+            {
+              ref: 'out/art',
+              title: 'Roofs at dusk',
+              mtime: 0,
+              sets: [
+                {
+                  id: 'render:roof',
+                  kind: 'render',
+                  title: 'The roof',
+                  lines: [],
+                  start: 0,
+                  marks: [],
+                  variants: [
+                    variant('A', 'Warm', {
+                      media: { _tag: 'Seen', video: { ...pendingSky, ref: 'out/art/roof.A.mp4' } },
+                    }),
+                    variant('B', 'Cold'),
+                    variant('C', 'Grey'),
+                  ],
+                },
+              ],
+              videos: [],
+              images: [],
+              docs: [],
+            },
+          ],
+        };
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => json(aPending)),
+            route('GET', /^\/api\/review\/(files|phone)\/out\/art\/roof\.B\.mp4/, () => ({
+              _tag: 'Wav',
+              bytes: tone(3, 0.1),
+            })),
+            ...routes,
+          ],
+          { href: SET, viewport: { width: 390, height: 844 } },
+        );
+        yield* waitFor(page, '.rv-card[data-id="A"] [data-proxy="pending"]');
+        yield* waitFor(page, '.rv-transport');
+        // B leads: the set ends where its video does.
+        yield* textHas(page, '.rv-time-rest', timecode(3));
+        yield* page.press('Space');
+        yield* attributeIs(page, '.rv-time', 'data-state', 'Playing');
+        yield* attributeIs(page, '.rv-time', 'data-state', 'Paused');
+        yield* textIs(page, '.rv-time-at', timecode(3));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a Set's Refresh reads a video's length again when its file was written since: the moments spread over the new length",
     () =>
       Effect.gen(function* () {

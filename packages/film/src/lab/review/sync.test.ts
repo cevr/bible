@@ -260,6 +260,36 @@ describe('the sync driver', () => {
     expect(told).toEqual([SyncEvent.ClockMoved({ end: UNKNOWN_END })]);
   });
 
+  test("while the leading version has no video, the set's time comes from no other: one clock, its time and its events one video's", () => {
+    const frames = manualFrames();
+    const told: Array<SyncEvent> = [];
+    const host = hostOf(
+      Layer.mergeAll(
+        frames.layer,
+        Media.layerOver(() => fakeMedia().media),
+      ),
+    );
+    const driver = makeSync('a', (event) => told.push(event), host);
+    const b = fakeMedia();
+    b.el.finishLoading(6);
+    driver.attach('b', b.media);
+    driver.apply(SyncState.Playing(clock(0)));
+    b.el.currentTime = 2;
+    frames.frame(16);
+    b.el.fire('ended');
+    expect(told.map((e) => e._tag)).toEqual([]);
+    // Led by b, b is the clock: its time, its end and its ending.
+    driver.follow('b');
+    b.el.currentTime = 3;
+    frames.frame(16);
+    b.el.fire('ended');
+    expect(told).toEqual([
+      SyncEvent.ClockMoved({ end: 6 }),
+      SyncEvent.Ticked({ t: 3 }),
+      SyncEvent.Ended,
+    ]);
+  });
+
   test('stopped, every video is paused and no frame is asked for', () => {
     const { frames, driver, a, b } = rig();
     driver.apply(SyncState.Playing(clock(0)));

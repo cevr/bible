@@ -52,7 +52,7 @@ import { served } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
-import { type Quality, fileInfoText } from './format.ts';
+import { type Quality, fileInfoText, videoSource } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
 import { Places, legacyPlace, pageHref, reviewFileUrl } from '../../core/api.ts';
 import { onChoicesTab } from '../../core/point.ts';
@@ -631,6 +631,30 @@ const unmeasured = Atom.make(AsyncResult.initial<number, LabFailure>());
 /** The set's place in the URL: its path, its view in the query, the player's time in the hash. */
 const setPlace = UrlAtom.place(Places.set);
 
+/**
+ * The version whose video is `set`'s clock in `view` at `quality`: the first
+ * of those the view plays (all of them, or a pair's two) whose video plays
+ * here, so a phone's version whose proxy is still being made never holds the
+ * clock; else the view's first.
+ */
+const leaderOf = (set: SeenPoint, view: ViewState, quality: Quality): string => {
+  const head = set.variants[0];
+  const shown = Option.match(otherOf(view), {
+    onNone: () => set.variants,
+    onSome: (o) => set.variants.filter((v) => v === head || v.id === o),
+  });
+  return Option.getOrElse(
+    Option.map(
+      Option.orElse(
+        Arr.findFirst(shown, (v) => Option.isSome(videoSource(v.video, quality))),
+        () => Arr.head(shown),
+      ),
+      (v) => v.id,
+    ),
+    () => '',
+  );
+};
+
 const SetBody = (
   props: ParentProps<{
     readonly folder: ReviewFolder;
@@ -638,21 +662,13 @@ const SetBody = (
     readonly sync: SyncActor;
   }>,
 ) => {
-  const { meta } = useReview();
+  const { meta, state: page } = useReview();
   const syncAtom = ActorAtom.make(props.sync);
   const sync = useAtomValue(() => syncAtom);
   const sendSync = useAtomSet(() => syncAtom);
   const ids = createMemo(() => props.set.variants.map((v) => v.id), { equals: Equal.equals });
   const first = () => Option.getOrElse(Option.fromUndefinedOr(ids()[0]), () => '');
   const other = () => Option.fromUndefinedOr(ids()[1]);
-
-  // The clock is the set's first version as the index last read it: a refresh
-  // that takes that version away moves the clock to the first one left, and
-  // the player plays on.
-  const driver = makeSync(untrack(first), sendSync, meta.host);
-  onCleanup(driver.stop);
-  createEffect(sync, (state) => driver.apply(state));
-  createEffect(first, (id) => driver.follow(id));
 
   // The view is the URL's: a link, a reload, Back and Forward all show what
   // it keeps. A choice of view or of a moment is a new history entry (Back
@@ -668,6 +684,17 @@ const SetBody = (
     // The time moving on is no new view.
     { equals: Equal.equals },
   );
+
+  // The clock is the leading version's video alone (`leaderOf`): its time,
+  // its end and its ending are the set's. A refresh that takes it away, a
+  // view that leaves it out, or a copy played that makes another the first
+  // to play moves the clock (`follow`), and the player plays on.
+  const leader = createMemo(() => leaderOf(props.set, view(), page.quality()));
+  const driver = makeSync(untrack(leader), sendSync, meta.host);
+  onCleanup(driver.stop);
+  createEffect(sync, (state) => driver.apply(state));
+  createEffect(leader, (id) => driver.follow(id));
+
   const address = addressOn(meta.host);
   const sendView = (event: ViewEvent) =>
     Option.map(at(), (v) =>
@@ -711,15 +738,15 @@ const SetBody = (
   );
   // Nothing plays behind the moments or the difference; a pair (or
   // its wipe) hears one of its two, and every view a version the set still
-  // holds: else its first.
+  // holds: else the one leading.
   createEffect(
-    () => [view(), sync().audible, ids()] as const,
-    ([state, audible, all]) => {
+    () => [view(), sync().audible, ids(), leader()] as const,
+    ([state, audible, all, lead]) => {
       if (!playsIn(viewNameOf(state))) sendSync(SyncEvent.PausePressed);
-      Option.map(Option.fromUndefinedOr(all[0]), (lead) => {
+      Option.map(Option.fromUndefinedOr(all[0]), (head) => {
         const heard = Option.match(otherOf(state), {
           onNone: () => all,
-          onSome: (o) => [lead, o],
+          onSome: (o) => [head, o],
         });
         if (!heard.includes(audible)) sendSync(SyncEvent.HeardChosen({ id: lead }));
       });
@@ -857,19 +884,15 @@ const SetBody = (
 export const SetProvider = (
   props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>,
 ) => {
-  const { meta } = useReview();
+  const { meta, state } = useReview();
   // Made once, for the set as the page opened it: the player opens where the
-  // URL's `#t=` says, else at the set's start, hearing its first version.
+  // URL's `#t=` says, else at the set's start, hearing the version that leads it.
   const spawn = untrack(() => {
-    const first = Option.getOrElse(
-      Option.map(Option.fromUndefinedOr(props.set.variants[0]), (v) => v.id),
-      () => '',
-    );
     const at = Option.getOrElse(
       Option.flatMap(Effect.runSyncWith(meta.host)(UrlState.get(Places.set)), (v) => v.hash.t),
       () => props.set.start,
     );
-    return spawnSync(first, props.set.start, at);
+    return spawnSync(leaderOf(props.set, ViewState.All, state.quality()), props.set.start, at);
   });
   return (
     <Actor runtime={meta.runtime} spawn={spawn}>

@@ -2,9 +2,11 @@
 // `<video>`s and `<audio>`s), made to do what the machine's state says, and
 // what they do told back to it as events. It reaches them only through the
 // port (`browser/media.ts`), and plays them through `Media.playOrMute`. The
-// first variant's video is the clock (its time is the set's), and a set that
-// loses that variant `follow`s the first one left (`ClockMoved`); every other
-// that drifts more than DRIFT_S from it is put back on it. Only the audible
+// leading version's video is the clock, and the clock alone: its time, its
+// end, its ending and its failure are the set's, and while it is not
+// attached the set's time stands. The page says which version leads; when
+// that changes the driver `follow`s the new one (`ClockMoved`). Every other
+// video that drifts more than DRIFT_S from it is put back on it. Only the audible
 // one is unmuted. The machine is told when the clock's media cannot play
 // (`MediaFailed`), and when the clock's media is new (`MediaReplaced`: each
 // source, and each retry, is a fresh element attached), so a failure is its
@@ -50,9 +52,10 @@ export interface SyncDriver {
   /** The machine's state, made so. */
   readonly apply: (state: SyncState) => void;
   /**
-   * The clock is `id`'s video from now on (the version it followed left the
-   * set): the machine is told its end, and whether its media failed or
-   * ended already; every media event after is heard against it.
+   * The clock is `id`'s video from now on (another version leads: the one it
+   * followed left the set, or another plays first here): the machine is told
+   * its end, and whether its media failed or ended already; every media
+   * event after is heard against it.
    */
   readonly follow: (id: string) => void;
   /** Every video paused, every listener and the clock's loop stopped. */
@@ -95,11 +98,11 @@ export const reloadOnError = <R>(
 };
 
 /**
- * The driver of a set whose clock is the video of `first` (until it
+ * The driver of a set whose clock is the video of `leader` (until it
  * `follow`s another), telling the machine through `send`.
  */
 export const makeSync = (
-  first: string,
+  leader: string,
   send: (event: SyncEvent) => void,
   host: Context.Context<Frames | Media>,
 ): SyncDriver => {
@@ -110,7 +113,7 @@ export const makeSync = (
   /** The stop of the clock's loop, while it runs. */
   let looping = Option.none<() => void>();
   /** The version whose video is the clock: every media event is heard against it. */
-  let leading = first;
+  let leading = leader;
 
   /**
    * The videos whose media failed (an `error`, a play the browser would not
@@ -119,10 +122,8 @@ export const makeSync = (
   const broken = new Map<Attached, string>();
   const all = () => [...videos.values()];
   const working = () => all().filter((a) => !broken.has(a));
-  const clock = () =>
-    Option.orElse(Option.fromUndefinedOr(videos.get(leading)), () =>
-      Option.fromUndefinedOr(all()[0]),
-    );
+  /** The clock: the leading version's video, none until it is attached. */
+  const clock = () => Option.fromUndefinedOr(videos.get(leading));
 
   /** Do `effect` on the host, without waiting for it. */
   const fork = (effect: Effect.Effect<unknown, never, Frames | Media>) => {

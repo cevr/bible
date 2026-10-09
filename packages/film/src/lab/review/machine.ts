@@ -1,5 +1,5 @@
 // The review's two machines. The synced player: every video of a set on one
-// clock (the first variant's), paused, playing, scrubbed or waiting on a
+// clock (the leading version's video), paused, playing, scrubbed or waiting on a
 // stalled video, at ½× or 1×, with one card's sound heard. The view: all the
 // variants, the first against one other (side by side, or wiped: stacked
 // full width, the other right of a divider), the moments (every variant's
@@ -39,7 +39,7 @@ import { timecode } from '../../core/time.ts';
 /** Seconds a ←/→ step moves. */
 export const STEP_S = 2;
 
-/** An end not known yet: the first video's metadata has not loaded. */
+/** An end not known yet: the clock's video's metadata has not loaded. */
 export const UNKNOWN_END = Number.MAX_SAFE_INTEGER;
 
 /** The rates the player offers. */
@@ -47,11 +47,11 @@ export const Rate = Schema.Literals([0.5, 1]);
 export type Rate = typeof Rate.Type;
 
 const Clock = {
-  /** Where the set is, in seconds on its first video. */
+  /** Where the set is, in seconds on its clock's video. */
   t: Schema.Finite,
   /** Where every video starts (the manifest's `start`). */
   start: Schema.Finite,
-  /** Where the first video ends, once known (`UNKNOWN_END` before). */
+  /** Where the clock's video ends, once known (`UNKNOWN_END` before). */
   end: Schema.Finite,
   rate: Rate,
   /** The variant whose sound is heard. */
@@ -77,7 +77,7 @@ export const SyncEvent = Event({
   PausePressed: {},
   /** Space, or the big button: play when paused, pause otherwise. */
   Toggled: {},
-  /** The first video moved on while playing. */
+  /** The clock's video moved on while playing. */
   Ticked: { t: Schema.Finite },
   ScrubMoved: { t: Schema.Finite },
   ScrubReleased: {},
@@ -87,7 +87,7 @@ export const SyncEvent = Event({
   Stalled: {},
   Resumed: {},
   Ended: {},
-  /** The first video's length, once its metadata loads. */
+  /** The clock's video's length, once its metadata loads. */
   Measured: { end: Schema.Finite },
   HeardChosen: { id: Schema.String },
   RateChosen: { rate: Rate },
@@ -287,7 +287,7 @@ export const clockParts = (state: SyncState) => {
   return { at: timecode(Math.max(0, state.t)), rest: ` / ${end}${waiting}` };
 };
 
-/** The scrub bar's reach: the first video's end once known, else where the clock is. */
+/** The scrub bar's reach: the clock's video's end once known, else where the clock is. */
 export const reachOf = (state: SyncState): number => {
   if (state.end >= UNKNOWN_END) return Math.max(state.t, state.start);
   return state.end;
