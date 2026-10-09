@@ -26,6 +26,12 @@
   },
   "overrides": [
     {
+      "files": ["no-host-alias.ts"],
+      "rules": {
+        "film/no-host-alias": "error"
+      }
+    },
+    {
       "files": ["host-events-allowed.ts"],
       "rules": {
         "film/host-events-through-adapter": ["error", { "allow": ["popstate"] }]

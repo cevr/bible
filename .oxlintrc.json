@@ -1107,6 +1107,7 @@
       "rules": {
         "effect/noReflectGet": "error",
         "film/host-events-through-adapter": "error",
+        "film/no-host-alias": "error",
         "no-restricted-globals": [
           "error",
           { "name": "history", "message": "Use @bible/url-state's Location." },
@@ -1171,6 +1172,22 @@
             "message": "Use the host's Viewport (packages/film/src/browser/viewport.ts; useMatches in a component): a server render answers as a phone."
           },
           {
+            "name": "indexedDB",
+            "message": "Use Effect's KeyValueStore: ViewerStore or TabStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "name": "requestIdleCallback",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "name": "innerWidth",
+            "message": "Ask the window through the studio's one breakpoint: the host's Viewport (packages/film/src/browser/viewport.ts), PHONE and WIDE (packages/film/src/lab/viewport.ts)."
+          },
+          {
+            "name": "outerWidth",
+            "message": "Ask the window through the studio's one breakpoint: the host's Viewport (packages/film/src/browser/viewport.ts), PHONE and WIDE (packages/film/src/lab/viewport.ts)."
+          },
+          {
             "name": "top",
             "message": "Reach the global object as `window`, `globalThis` or `self`, one level: through `top` every ban after it is passed."
           },
@@ -1199,6 +1216,16 @@
             "object": "navigator",
             "property": "mediaDevices",
             "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "navigator",
+            "property": "sendBeacon",
+            "message": "Send through the page's HttpClient, not a beacon the harness cannot see."
+          },
+          {
+            "object": "document",
+            "property": "cookie",
+            "message": "Use Effect's KeyValueStore: ViewerStore or TabStore (packages/film/src/browser/storage.ts)."
           },
           {
             "object": "performance",
@@ -1502,6 +1529,66 @@
           },
           {
             "object": "window",
+            "property": "indexedDB",
+            "message": "Use Effect's KeyValueStore: ViewerStore or TabStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "indexedDB",
+            "message": "Use Effect's KeyValueStore: ViewerStore or TabStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "object": "self",
+            "property": "indexedDB",
+            "message": "Use Effect's KeyValueStore: ViewerStore or TabStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "object": "window",
+            "property": "requestIdleCallback",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "requestIdleCallback",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "object": "self",
+            "property": "requestIdleCallback",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "object": "window",
+            "property": "innerWidth",
+            "message": "Ask the window through the studio's one breakpoint: the host's Viewport (packages/film/src/browser/viewport.ts), PHONE and WIDE (packages/film/src/lab/viewport.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "innerWidth",
+            "message": "Ask the window through the studio's one breakpoint: the host's Viewport (packages/film/src/browser/viewport.ts), PHONE and WIDE (packages/film/src/lab/viewport.ts)."
+          },
+          {
+            "object": "self",
+            "property": "innerWidth",
+            "message": "Ask the window through the studio's one breakpoint: the host's Viewport (packages/film/src/browser/viewport.ts), PHONE and WIDE (packages/film/src/lab/viewport.ts)."
+          },
+          {
+            "object": "window",
+            "property": "outerWidth",
+            "message": "Ask the window through the studio's one breakpoint: the host's Viewport (packages/film/src/browser/viewport.ts), PHONE and WIDE (packages/film/src/lab/viewport.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "outerWidth",
+            "message": "Ask the window through the studio's one breakpoint: the host's Viewport (packages/film/src/browser/viewport.ts), PHONE and WIDE (packages/film/src/lab/viewport.ts)."
+          },
+          {
+            "object": "self",
+            "property": "outerWidth",
+            "message": "Ask the window through the studio's one breakpoint: the host's Viewport (packages/film/src/browser/viewport.ts), PHONE and WIDE (packages/film/src/lab/viewport.ts)."
+          },
+          {
+            "object": "window",
             "property": "document",
             "message": "Reach `document` bare, where its host members (document.location) are banned by name."
           },
@@ -1664,6 +1751,7 @@
       "rules": {
         "effect/noReflectGet": "off",
         "film/host-events-through-adapter": "off",
+        "film/no-host-alias": "off",
         "no-restricted-globals": "off",
         "no-restricted-properties": "off"
       }
