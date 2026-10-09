@@ -30,7 +30,7 @@ import type { HttpPlatform } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
 import { StillUnknown } from '../core/refusals.ts';
-import { type Allowed, type BesideRoutes, answered, serveApi, withServices } from './api-server.ts';
+import { type Allowed, type BesideRoutes, answered, serveApi } from './api-server.ts';
 import { choicesGroup } from './choices-http.ts';
 import { Easel } from './easel.ts';
 import type { Choices } from './choices.ts';
@@ -296,7 +296,6 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
   allowed: Allowed,
   beside: BesideRoutes = Layer.empty,
 ) {
-  const services = yield* Effect.context<LabContext>();
   const routes = HttpApiBuilder.layer(LabHttpApi).pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -311,7 +310,6 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         looksGroup,
       ),
     ),
-    withServices(services),
   );
   const page = (yield* LabPage).answer;
   return yield* serveApi(LabHttpApi, routes, { allowed, page, beside });

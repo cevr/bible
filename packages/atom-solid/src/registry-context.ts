@@ -36,27 +36,23 @@ export const useRegistry = (): AtomRegistry.AtomRegistry =>
       ),
   );
 
-/**
- * The provider forwards the registry options straight through, so its props are
- * `AtomRegistry.make`'s options plus Solid children.
- */
-type RegistryProviderProps = ParentProps<NonNullable<Parameters<typeof AtomRegistry.make>[0]>>;
+/** The provider's props: the atoms to seed, and Solid children. */
+type RegistryProviderProps = ParentProps<
+  Pick<NonNullable<Parameters<typeof AtomRegistry.make>[0]>, 'initialValues'>
+>;
 
 /**
  * Creates an `AtomRegistry` for a Solid subtree, optionally seeding initial atom
- * values and scheduler settings, and disposes the registry when the owner is
- * cleaned up.
+ * values, and disposes the registry when the owner is cleaned up. An atom that
+ * nothing reads stays 400 ms before the registry drops it.
  *
- * Provider options are consumed when the registry is created; they are not
- * reactive updates. A custom `scheduleTask` should return a cancellation
- * function that is safe to call during Solid cleanup.
+ * `initialValues` is consumed when the registry is created; it is not a
+ * reactive update.
  */
 export const RegistryProvider = (props: RegistryProviderProps) => {
   const registry = AtomRegistry.make({
-    scheduleTask: props.scheduleTask,
     initialValues: props.initialValues,
-    timeoutResolution: props.timeoutResolution,
-    defaultIdleTTL: props.defaultIdleTTL ?? 400,
+    defaultIdleTTL: 400,
   });
   onCleanup(() => registry.dispose());
   return createComponent(RegistryContext, {

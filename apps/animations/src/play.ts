@@ -3,7 +3,7 @@
 // over this app's pages (its films and their shorts). The render page
 // (`main.ts`) never loads it.
 
-import { mountPlay } from '@bible/film/lab';
+import { mountPlay } from '@bible/film/play';
 import { pages } from './films/index.ts';
 
 mountPlay(pages);

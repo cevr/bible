@@ -18,11 +18,6 @@ import type {
 
 export type InputMode = 'numeric' | 'decimal' | 'text';
 
-/** A mutable cell, read and written outside the reactive graph. */
-interface ValueCell<T> {
-  current: T;
-}
-
 export interface NumberFieldRootContextValue {
   readonly state: NumberFieldRootState;
   readonly min: number | undefined;
@@ -60,10 +55,8 @@ export interface NumberFieldRootContextValue {
    * given `keepText`, shows that text until the owner's value changes.
    */
   discardEdit: (options?: { readonly keepText?: string }) => void;
-  /** The value steps start from: the value the field last rendered. */
-  valueRef: ValueCell<number | null>;
-  /** The value the last applied change stored. */
-  lastChangedValueRef: ValueCell<number | null>;
+  /** The value the field holds now: the change an edit holds, else the owner's value. */
+  currentValue: () => number | null;
   /** Whether a change was applied that no commit has reported yet. */
   hasPendingCommit: () => boolean;
 }

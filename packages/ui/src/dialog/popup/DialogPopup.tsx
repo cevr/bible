@@ -38,10 +38,10 @@ interface DialogPopupFocusProps {
   store: DialogStore;
   /**
    * What takes focus on open, read as the popup opens: an element, `false`
-   * for nothing, `true` or `null` for the first tabbable element. Without it,
+   * for nothing, `true` for the first tabbable element. Without it,
    * the first tabbable element.
    */
-  initialFocus?: (() => HTMLElement | boolean | null) | undefined;
+  initialFocus?: (() => HTMLElement | boolean) | undefined;
   children: JSX.Element;
 }
 
@@ -62,6 +62,24 @@ export function DialogPopupFocus(props: DialogPopupFocusProps): JSX.Element {
       {props.children}
     </FloatingFocusManager>
   );
+}
+
+/** The element props a dialog or drawer popup shares: its id, labels, role and keys. */
+export function dialogPopupProps(store: DialogStore, componentProps: Pick<DialogPopupProps, 'id'>) {
+  return {
+    get id() {
+      return componentProps.id || store.floatingId;
+    },
+    get 'aria-labelledby'() {
+      return store.titleElementId();
+    },
+    get 'aria-describedby'() {
+      return store.descriptionElementId();
+    },
+    role: 'dialog',
+    ...FOCUSABLE_POPUP_PROPS,
+    onKeyDown: stopCompositeKeys,
+  };
 }
 
 /** Calls the root's `onOpenChangeComplete(true)` once the popup's enter animations finish. */
@@ -103,24 +121,7 @@ export function DialogPopup(componentProps: DialogPopupProps): JSX.Element {
       state,
       ref: (el: HTMLElement) => store.setPopupElement(el),
       stateAttributesMapping: popupTransitionStateMapping,
-      props: [
-        popupProps,
-        {
-          get id() {
-            return componentProps.id || store.floatingId;
-          },
-          get 'aria-labelledby'() {
-            return store.titleElementId();
-          },
-          get 'aria-describedby'() {
-            return store.descriptionElementId();
-          },
-          role: 'dialog',
-          ...FOCUSABLE_POPUP_PROPS,
-          onKeyDown: stopCompositeKeys,
-        },
-        elementProps,
-      ],
+      props: [popupProps, dialogPopupProps(store, componentProps), elementProps],
     });
 
   return <DialogPopupFocus store={store}>{untrack(element)}</DialogPopupFocus>;

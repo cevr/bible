@@ -64,7 +64,6 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
   const elementProps = omit(componentProps, 'class', 'style', 'render', 'sideOffset', 'align');
 
   const contextMenu = parent.type === 'context-menu' ? parent.context : undefined;
-  const props = componentProps;
 
   const positioner = useAnchorPositioning({
     floatingRootContext: store.floatingRootContext,
@@ -76,10 +75,10 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
     },
     positionMethod: contextMenu ? 'fixed' : 'absolute',
     get sideOffset() {
-      return contextMenu ? -5 : (props.sideOffset ?? 0);
+      return contextMenu ? -5 : (componentProps.sideOffset ?? 0);
     },
     get align() {
-      return contextMenu ? 'start' : (props.align ?? 'center');
+      return contextMenu ? 'start' : (componentProps.align ?? 'center');
     },
     alignOffset: contextMenu ? 2 : 0,
     shiftCrossAxis: contextMenu !== undefined,

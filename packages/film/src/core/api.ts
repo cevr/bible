@@ -869,7 +869,8 @@ export type CompareView = (typeof COMPARE_VIEWS)[number];
 
 /**
  * How the lab compares with HEAD: each mode the owner picks is a step Back
- * walks; the compare's own moves are written in place.
+ * walks; the compare's own moves (the wipe's split, a held blink) are the
+ * viewer's, never in the link (`lab/view-state.ts`).
  */
 const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off', history: 'push' });
 

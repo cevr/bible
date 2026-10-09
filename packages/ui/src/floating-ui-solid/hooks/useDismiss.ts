@@ -205,15 +205,6 @@ export function useDismiss(
           ).querySelectorAll(inertSelector),
         );
 
-        const triggers = context.triggerElements;
-        if (
-          target &&
-          (triggers.hasElement(target as Element) ||
-            triggers.hasMatchingElement((trigger) => contains(trigger, target as Element)))
-        ) {
-          return;
-        }
-
         let targetRootAncestor = isElement(target) ? target : null;
         while (targetRootAncestor && !isLastTraversableNode(targetRootAncestor)) {
           const nextParent = getParentNode(targetRootAncestor);

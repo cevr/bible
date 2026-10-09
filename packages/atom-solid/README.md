@@ -15,10 +15,10 @@ Every hook reads and writes atoms through the current `AtomRegistry`
 (`useRegistry()`):
 
 - `RegistryProvider` makes one registry for its subtree and disposes it when
-  the subtree is cleaned up. Its props are `AtomRegistry.make`'s options:
-  `initialValues` seeds atoms before any read (a host's layer, a request's
-  `Location`), and `defaultIdleTTL` is 400 ms unless given. The options are
-  read once, when the registry is made.
+  the subtree is cleaned up. Its one prop is `initialValues`, which seeds
+  atoms before any read (a host's layer, a request's `Location`); it is read
+  once, when the registry is made. An atom nothing reads is dropped after a
+  fixed 400 ms.
 - A hook outside a `RegistryProvider` throws, in the browser as on the
   server, so two requests never share atoms. Wrap each page, and each server
   render, in its own provider.
@@ -28,8 +28,7 @@ Every hook reads and writes atoms through the current `AtomRegistry`
 - `useAtomValue(() => atom)`: an accessor of the atom's value, subscribed for
   the owner's life. A value derived from it is a function at the call site
   (`() => f(value())`).
-- `useAtomSet(() => atom)`: a setter that takes a value or an updater, without
-  subscribing. With `{ mode: 'promiseExit' }`, for an `AsyncResult` atom, the
+- `useAtomSet(() => atom)`: a setter that takes a value, without subscribing. With `{ mode: 'promiseExit' }`, for an `AsyncResult` atom, the
   setter resolves with the write's `Exit` and never rejects.
 - `useAtomMount(() => atom)`: keeps the atom mounted for the owner's life.
 - `useAtomRefresh(() => atom)`: a callback that refreshes the atom.

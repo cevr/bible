@@ -84,10 +84,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
     isScrubbingNow = false;
     scrubSession += 1;
     onScrubbingChange(false);
-    ctx.onValueCommitted(
-      ctx.lastChangedValueRef.current ?? ctx.valueRef.current,
-      createGenericEventDetails(REASONS.scrub, event),
-    );
+    ctx.onValueCommitted(ctx.currentValue(), createGenericEventDetails(REASONS.scrub, event));
     // A press that did not move is a click, sent here only when the browser withheld its own.
     const input = untrack(ctx.inputElement);
     if (clickWithheld && !didMove && pointerDownTarget != null && input) {

@@ -128,31 +128,9 @@
         margin-block: calc((var(--panel-head-h) - var(--hit)) / 2);
         margin-inline-end: calc((var(--s-4) - var(--hit)) / 2);
       }
-      .btn.primary kbd {
-        border-color: var(--accent-ink);
-        color: var(--accent-ink);
-      }
       .insp {
         display: flex;
         flex-direction: column;
-      }
-      .insp .body {
-        padding: var(--s-3) var(--gutter);
-        display: grid;
-        gap: var(--s-3);
-      }
-      .insp .title {
-        font-size: var(--fs-5);
-        line-height: var(--lh-5);
-        font-weight: var(--w-3);
-        margin: 0;
-      }
-      .insp .sub {
-        font-size: var(--fs-2);
-        color: var(--text-2);
-      }
-      .group {
-        border-top: var(--border);
       }
       .group summary {
         list-style: none;
@@ -166,29 +144,12 @@
         color: var(--text-2);
         cursor: pointer;
       }
-      .group summary::-webkit-details-marker {
-        display: none;
-      }
-      .group summary .n {
-        margin-left: auto;
-        color: var(--text-3);
-      }
-      .group .in {
-        padding: 0 var(--gutter) var(--s-3);
-        font-size: var(--fs-2);
-        color: var(--text-2);
-        display: grid;
-        gap: var(--s-2);
-      }
       .kv {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
-        gap: 2px var(--s-3);
+        gap: var(--s-1) var(--s-3);
         font-size: var(--fs-2);
         margin: 0;
-      }
-      .kv dt {
-        color: var(--text-3);
       }
       .kv dd {
         margin: 0;
@@ -205,17 +166,12 @@
       .bottom .transport {
         border-top: var(--border);
       }
-      .sheet {
-        background: var(--surface-2);
-        border-top: 1px solid var(--line-strong);
-        border-radius: var(--r-sheet) var(--r-sheet) 0 0;
-      }
       .sheet .grab {
         width: var(--s-8);
         height: var(--s-1);
         border-radius: var(--r-1);
         background: var(--line-strong);
-        margin: 6px auto 0;
+        margin: var(--s-2) auto 0;
       }
       .peek {
         display: flex;

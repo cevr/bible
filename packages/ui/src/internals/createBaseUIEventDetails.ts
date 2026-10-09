@@ -4,35 +4,25 @@
 // behind it, the trigger involved, and `cancel()` to keep the current state.
 
 /** The details of a change a callback may cancel. */
-export type BaseUIChangeEventDetails<
-  Reason extends string = string,
-  CustomProperties extends object = {},
-> = {
+export type BaseUIChangeEventDetails<Reason extends string = string> = {
   reason: Reason;
   event: Event;
   cancel: () => void;
   readonly isCanceled: boolean;
   trigger: Element | undefined;
-} & CustomProperties;
+};
 
 /** The details of an event a callback only observes. */
-export type BaseUIGenericEventDetails<
-  Reason extends string = string,
-  CustomProperties extends object = {},
-> = {
+export type BaseUIGenericEventDetails<Reason extends string = string> = {
   reason: Reason;
   event: Event;
-} & CustomProperties;
+};
 
-export function createChangeEventDetails<
-  Reason extends string,
-  CustomProperties extends object = {},
->(
+export function createChangeEventDetails<Reason extends string>(
   reason: Reason,
   event?: Event,
   trigger?: Element,
-  customProperties?: CustomProperties,
-): BaseUIChangeEventDetails<Reason, CustomProperties> {
+): BaseUIChangeEventDetails<Reason> {
   let canceled = false;
   const details = {
     reason,
@@ -44,22 +34,13 @@ export function createChangeEventDetails<
       return canceled;
     },
     trigger,
-    ...customProperties,
   };
-  return details as BaseUIChangeEventDetails<Reason, CustomProperties>;
+  return details;
 }
 
-export function createGenericEventDetails<
-  Reason extends string,
-  CustomProperties extends object = {},
->(
+export function createGenericEventDetails<Reason extends string>(
   reason: Reason,
   event?: Event,
-  customProperties?: CustomProperties,
-): BaseUIGenericEventDetails<Reason, CustomProperties> {
-  return {
-    reason,
-    event: event ?? new Event('base-ui'),
-    ...customProperties,
-  } as BaseUIGenericEventDetails<Reason, CustomProperties>;
+): BaseUIGenericEventDetails<Reason> {
+  return { reason, event: event ?? new Event('base-ui') };
 }

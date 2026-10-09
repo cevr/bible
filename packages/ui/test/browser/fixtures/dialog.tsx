@@ -1,8 +1,7 @@
 // Fixtures for the dialog. Every dialog is opened as a page opens one: its
 // owner holds `open`, a plain button sets it, and the dialog's own closes
 // reach the owner through `onOpenChange`. URL params for `dialog`:
-// `modal=false` (a drawer's), `dismissal=disabled` for
-// `disablePointerDismissal`, `backdrop=user` for a `Dialog.Backdrop`,
+// `modal=false` (a drawer's), `backdrop=user` for a `Dialog.Backdrop`,
 // `owner=keep` for an owner that keeps `open` true through a close request,
 // `tall=true` for a page that scrolls, `titles=two` for a second title
 // after the first, which `window.__dropTitle()` unmounts.
@@ -36,7 +35,6 @@ function BasicDialog(): JSX.Element {
       <Dialog.Root
         open={owner.open()}
         modal={param('modal') !== 'false'}
-        disablePointerDismissal={param('dismissal') === 'disabled'}
         onOpenChange={(open, details) => {
           log(`open ${open} ${details.reason}`);
           if (param('owner') !== 'keep') {

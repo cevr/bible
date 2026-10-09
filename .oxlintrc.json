@@ -622,6 +622,7 @@
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
                   "@bible/film/lab",
+                  "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
                   "@bible/film/lab-server"
@@ -654,6 +655,7 @@
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
                   "@bible/film/lab",
+                  "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
                   "@bible/film/lab-server"
@@ -679,6 +681,7 @@
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
                   "@bible/film/lab",
+                  "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
                   "@bible/film/lab-server"
@@ -759,6 +762,7 @@
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
                   "@bible/film/lab",
+                  "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
                   "@bible/film/lab-server"
@@ -1012,6 +1016,7 @@
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
                   "@bible/film/lab",
+                  "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
                   "@bible/film/lab-server"

@@ -14,11 +14,12 @@
 // that fails or is cut short lets them all go. Hidden, the panes stand and
 // let their decoders go (the spike's memory was 2.5–4× `<video>`'s); shown,
 // they draw afresh and play on. The page reaches all of it through `Media`
-// (`compare`): the review page's host is built with `panesMediaLayer`, and
-// every other page's compares play on `<video>`, so no other page loads
-// the decoders.
+// (`compare`): the review page's host is built with `panesMediaLayer`
+// (`media-browser.ts`), which loads this module only where the browser
+// allows the panes, and every other page's compares play on `<video>`, so
+// no other page loads the decoders.
 
-import { Context, Data, Duration, Effect, Exit, Layer, Option, Scope } from 'effect';
+import { Context, Data, Duration, Effect, Exit, Option, Scope } from 'effect';
 import {
   ALL_FORMATS,
   AudioBufferSink,
@@ -42,19 +43,9 @@ import {
 import { monotonicMs } from './host.ts';
 import { type BrowserCodecs, type Engine, type TrackCodecs, engineFor } from './media-choice.ts';
 import { makeClock } from './media-clock.ts';
-import { pageAudio, pageSound } from './media-browser.ts';
-import { type Compare, Media, onVideo } from './media.ts';
-import { Viewport } from './viewport.ts';
-
-/** A phone or a tablet, as its pointer says: what plays `<video>` until one is measured. */
-const COARSE = '(pointer: coarse)';
-
-/** What this browser can decode, and whether it is a phone (`phone`, the host's `Viewport`'s answer). */
-const browserCodecs = (phone: boolean): BrowserCodecs => ({
-  videoDecoder: 'VideoDecoder' in globalThis,
-  audioDecoder: 'AudioDecoder' in globalThis,
-  phone,
-});
+import { browserCodecs, isPhone } from './media-browser.ts';
+import { type Compare, onVideo } from './media.ts';
+import type { Viewport } from './viewport.ts';
 
 /** A render opened for a pane: its input, its tracks, and what they need. */
 interface Opened {
@@ -386,8 +377,7 @@ export const compareOn =
   (host: Context.Context<Frames | Viewport>, sound: () => Option.Option<AudioContext>) =>
   (urls: ReadonlyArray<string>): Effect.Effect<Compare, never, Scope.Scope> =>
     Effect.gen(function* () {
-      const phone = yield* Context.get(host, Viewport).matches(COARSE);
-      const chosen = yield* chooseEngine(urls, browserCodecs(phone));
+      const chosen = yield* chooseEngine(urls, browserCodecs(yield* isPhone(host)));
       // On `<video>`, nothing was opened, so there is nothing to paint or let go.
       if (chosen.engine.engine === 'video') return onVideo(chosen.engine.why);
       const compare: Compare = {
@@ -396,13 +386,3 @@ export const compareOn =
       };
       return compare;
     });
-
-/**
- * The review page's media: the page's own (`media-browser.ts`), its
- * compares on WebCodecs panes where the browser and the files allow.
- */
-export const panesMediaLayer: Layer.Layer<Media, never, Frames | Viewport> = Layer.unwrap(
-  Effect.map(Effect.context<Frames | Viewport>(), (host) =>
-    Media.layerOver(pageAudio, compareOn(host, pageSound)),
-  ),
-);

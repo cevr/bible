@@ -12,7 +12,7 @@
 // Pure.
 
 import { Place } from '@bible/url-state';
-import { Equal, Match, Option, Schema } from 'effect';
+import { Match, Option, Schema } from 'effect';
 import type { Address } from '../core/address.ts';
 import { Places, pageHref, reviewFileUrl } from '../core/api.ts';
 import { PointId, pointIdOf } from '../core/point.ts';
@@ -70,9 +70,6 @@ export const labKeysOf = (
     Match.withReturnType<{ readonly cue?: string; readonly knob?: string }>(),
     Match.tagsExhaustive({ Cue: (s) => ({ cue: s.name }), Knob: (s) => ({ knob: s.name }) }),
   );
-
-/** Whether two selections name the same thing. */
-export const sameSelection = (a: Selection, b: Selection): boolean => Equal.equals(a, b);
 
 /**
  * The selection a page's URL names: a lab scene's cue, knob or note, a

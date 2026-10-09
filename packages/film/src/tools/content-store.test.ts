@@ -108,27 +108,29 @@ describe('ContentStore', () => {
     }).pipe(Effect.provide(storeLayer(new Map()))),
   );
 
-  it.live('two processes updating one manifest on disk lose no write, and leave no partial', () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const dir = yield* fs.makeTempDirectoryScoped();
-      const shared = { ...assets, file: `${dir}/assets.json` };
-      const [a, b] = [yield* storeOnDisk, yield* storeOnDisk];
-      const burst = (store: typeof a, who: string) =>
-        Effect.forEach(Arr.range(1, 20), (i) => store.update(shared, withAsset(`${who}${i}`)), {
-          concurrency: 4,
-        });
-      yield* Effect.all([burst(a, 'a'), burst(b, 'b')], { concurrency: 2 });
-      const stored = yield* Schema.decodeEffect(assets.codec)(
-        yield* fs.readFileString(shared.file),
-      );
-      expect(Object.keys(stored.assets).length).toBe(40);
-      // The manifest, and its lock file, which stays.
-      expect((yield* fs.readDirectory(dir)).toSorted()).toEqual([
-        '.assets.json.lock',
-        'assets.json',
-      ]);
-    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  it.live(
+    'two stores (two SQLite connections) updating one manifest on disk lose no write, and leave no partial',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped();
+        const shared = { ...assets, file: `${dir}/assets.json` };
+        const [a, b] = [yield* storeOnDisk, yield* storeOnDisk];
+        const burst = (store: typeof a, who: string) =>
+          Effect.forEach(Arr.range(1, 20), (i) => store.update(shared, withAsset(`${who}${i}`)), {
+            concurrency: 4,
+          });
+        yield* Effect.all([burst(a, 'a'), burst(b, 'b')], { concurrency: 2 });
+        const stored = yield* Schema.decodeEffect(assets.codec)(
+          yield* fs.readFileString(shared.file),
+        );
+        expect(Object.keys(stored.assets).length).toBe(40);
+        // The manifest, and its lock file, which stays.
+        expect((yield* fs.readDirectory(dir)).toSorted()).toEqual([
+          '.assets.json.lock',
+          'assets.json',
+        ]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
   it.live(

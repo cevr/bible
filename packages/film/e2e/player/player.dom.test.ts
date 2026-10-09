@@ -14,9 +14,8 @@
 import { Boolean as Bool, Effect, Option, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
-import { timecode } from '../../src/core/time.ts';
+import { timecode, onTheMs } from '../../src/core/time.ts';
 import { HUD_IDLE_MS } from '../../src/player/hud.ts';
-import { onTheMs } from '../../src/player/t-in-url.ts';
 import { FreshProcessFailed } from '../../src/core/refusals.ts';
 import { APPROVAL_TEXT } from '../../src/lab/review/format.ts';
 import {

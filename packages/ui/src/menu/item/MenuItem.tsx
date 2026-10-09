@@ -12,7 +12,6 @@
 import type { JSX } from '@solidjs/web';
 import { createUniqueId, omit, untrack } from 'solid-js';
 
-import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext.ts';
 import { useCompositeListItem } from '../../internals/composite/CompositeList.tsx';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
@@ -32,8 +31,10 @@ interface MenuItemProps extends BaseUIComponentProps<'div', MenuItemState> {
 }
 
 export function MenuItem(componentProps: MenuItemProps): JSX.Element {
-  const { store, itemProps } = useMenuRootContext();
-  const contextMenu = useContextMenuRootContext();
+  const { store, parent, itemProps } = useMenuRootContext();
+  // The root decides whether this menu is a context menu's; a menu inside a
+  // context menu's trigger is a plain one.
+  const contextMenu = parent.type === 'context-menu' ? parent.context : null;
   const elementProps = omit(componentProps, 'class', 'style', 'render', 'id', 'label');
   const listItem = useCompositeListItem({
     get label() {
@@ -44,7 +45,7 @@ export function MenuItem(componentProps: MenuItemProps): JSX.Element {
   const highlighted = () => store.isActive(listItem.index());
   let itemElement: HTMLElement | null = null;
 
-  const { getButtonProps, buttonRef } = useButton({ native: false, composite: true });
+  const { getButtonProps } = useButton({ native: false, composite: true });
 
   const ownProps = {
     id,
@@ -100,7 +101,6 @@ export function MenuItem(componentProps: MenuItemProps): JSX.Element {
     props: [ownProps, itemProps, elementProps, getButtonProps],
     ref: (el: HTMLElement) => {
       itemElement = el;
-      buttonRef(el);
       listItem.ref(el);
     },
   });

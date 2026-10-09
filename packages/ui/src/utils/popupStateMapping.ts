@@ -1,9 +1,8 @@
 // Upstream: packages/react/src/utils/popupStateMapping.ts,
 // packages/react/src/utils/CommonPopupDataAttributes.ts,
-// packages/react/src/utils/CommonTriggerDataAttributes.ts,
-// packages/react/src/utils/CommonPositionerCssVars.ts
+// packages/react/src/utils/CommonTriggerDataAttributes.ts
 //
-// The `data-*` attributes and CSS variables every popup part shares: a
+// The `data-*` attributes every popup part shares: a
 // trigger is `data-popup-open` while its popup is open; a popup is
 // `data-open` or `data-closed`, `data-anchor-hidden` when its anchor scrolls
 // away, and carries the transition attributes.
@@ -23,14 +22,6 @@ export const CommonPopupDataAttributes = {
 const CommonTriggerDataAttributes = {
   popupOpen: 'data-popup-open',
   pressed: 'data-pressed',
-} as const;
-
-export const CommonPositionerCssVars = {
-  availableWidth: '--available-width',
-  availableHeight: '--available-height',
-  anchorWidth: '--anchor-width',
-  anchorHeight: '--anchor-height',
-  transformOrigin: '--transform-origin',
 } as const;
 
 const PRESSABLE_TRIGGER_HOOK = {

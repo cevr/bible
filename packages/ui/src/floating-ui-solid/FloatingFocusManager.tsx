@@ -344,9 +344,6 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
             insideElements.some(
               (element) => element === relatedTarget || contains(element, relatedTarget),
             ) ||
-            context.triggerElements.hasMatchingElement((trigger) =>
-              contains(trigger, relatedTarget),
-            ) ||
             isRelatedFocusGuard
           );
 

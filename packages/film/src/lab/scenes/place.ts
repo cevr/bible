@@ -10,7 +10,7 @@
 import { Place } from '@bible/url-state';
 import { Option } from 'effect';
 import { Places, pageHref } from '../../core/api.ts';
-import { onTheMs } from '../../player/t-in-url.ts';
+import { onTheMs } from '../../core/time.ts';
 
 /** What a film's Scenes URL holds: its film, the scene selected, and the playhead. */
 interface ScenesPlace {

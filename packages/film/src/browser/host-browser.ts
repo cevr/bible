@@ -3,7 +3,7 @@
 // `*-browser.ts` beside it; the address bar's is `@bible/url-state`'s
 // (`layerBrowser`, the only module that touches `history` and `location`),
 // with `UrlState` over it. A page whose media does more than the page's own
-// (the review's compares on WebCodecs panes, `webcodecs-browser.ts`) builds
+// (the review's compares on WebCodecs panes, `panesMediaLayer`) builds
 // its host `withMedia` that layer, over the host's frames and viewport, so
 // no other page loads what it needs.
 
@@ -42,6 +42,6 @@ const hostWith = (
 /** The page's host over the browser's own APIs. */
 export const BrowserHost = {
   layer: hostWith(mediaLayer),
-  /** The host with `media` for the page's own (`webcodecs-browser.ts` `panesMediaLayer`). */
+  /** The host with `media` for the page's own (`media-browser.ts` `panesMediaLayer`). */
   withMedia: hostWith,
 };

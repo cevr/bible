@@ -59,7 +59,11 @@ export interface StageOps {
   readonly cueSpan: (scene: string, name: string) => Option.Option<LoopRange>;
   /** Show `T` and play from it. */
   readonly playFrom: (T: number) => Effect.Effect<void>;
-  /** The frame at `T` as the film draws it (no lab marks: they never touch the film), as PNG bytes. */
+  /**
+   * The frame at `T` as the film draws it (no lab marks: they never touch the
+   * film), as PNG bytes. It waits for the film's faces to load, so it is never
+   * taken in a fallback face.
+   */
   readonly still: (T: number) => Effect.Effect<Uint8Array, NoStill>;
 }
 
@@ -71,6 +75,17 @@ class NoStill extends Schema.TaggedError<NoStill>()('NoStill', {
     return `no still of ${this.T.toFixed(2)}s: the canvas gave no image`;
   }
 }
+
+/** Done once `player` draws frames: at once when its faces are in, else when the first frame lands. */
+const drawable = (player: Player): Effect.Effect<void> =>
+  Effect.callback<void>((resume) => {
+    if (player.drawable()) return resume(Effect.void);
+    const off = player.onDraw(() => {
+      off();
+      resume(Effect.void);
+    });
+    return Effect.sync(off);
+  });
 
 export class Stage extends Context.Service<Stage, StageOps>()('@bible/film/lab/Stage') {}
 
@@ -164,7 +179,8 @@ export const makeStage = (
         player.play();
       }),
     still: (T) =>
-      Effect.sync(() => player.renderShown(player.ctx, T)).pipe(
+      drawable(player).pipe(
+        Effect.andThen(Effect.sync(() => player.renderShown(player.ctx, T))),
         Effect.flatMap(() =>
           Effect.callback<Blob, NoStill>((resume) =>
             player.canvas.toBlob((blob) =>

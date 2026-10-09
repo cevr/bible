@@ -5,16 +5,11 @@
 // a dialog's popup.
 //
 // Its swipe arrives as CSS variables for the consumer's transform:
-// `--drawer-swipe-movement-x/y` while dragged, and `--drawer-swipe-strength`
-// to shorten the exit transition after a hard flick.
+// `--drawer-swipe-movement-x/y` while dragged.
 import type { JSX } from '@solidjs/web';
 import { createEffect, omit, untrack } from 'solid-js';
 
-import {
-  DialogPopupFocus,
-  stopCompositeKeys,
-  useDialogOpenChangeComplete,
-} from '../../dialog/popup/DialogPopup.tsx';
+import { DialogPopupFocus, dialogPopupProps } from '../../dialog/popup/DialogPopup.tsx';
 import { useDialogPortalContext } from '../../dialog/portal/DialogPortal.tsx';
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext.ts';
 import type { StateAttributesMapping } from '../../internals/getStateAttributesProps.ts';
@@ -22,7 +17,6 @@ import type { TransitionStatus } from '../../internals/transitions.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { popupTransitionStateMapping } from '../../utils/popupStateMapping.ts';
-import { FOCUSABLE_POPUP_PROPS } from '../../utils/popups/popupStore.ts';
 import { onClientCleanup } from '../../utils/onClientCleanup.ts';
 import { type DrawerSwipeDirection, useDrawerRootContext } from '../root/DrawerRootContext.ts';
 import { DrawerPopupCssVars, DrawerPopupDataAttributes } from '../utils/drawerAttributes.ts';
@@ -46,7 +40,6 @@ function registerSwipeVars() {
   const properties = [
     { name: DrawerPopupCssVars.swipeMovementX, syntax: '<length>', initialValue: '0px' },
     { name: DrawerPopupCssVars.swipeMovementY, syntax: '<length>', initialValue: '0px' },
-    { name: DrawerPopupCssVars.swipeStrength, syntax: '<number>', initialValue: '1' },
   ];
   for (const property of properties) {
     try {
@@ -94,18 +87,7 @@ export function DrawerPopup(componentProps: DrawerPopupProps): JSX.Element {
   useDialogPortalContext();
   const elementProps = omit(componentProps, 'class', 'style', 'render', 'initialFocus', 'id');
 
-  if (!swipe) {
-    console.error(
-      'Base UI: <Drawer.Popup> expected to be rendered within <Drawer.Viewport>. Omitting the ' +
-        'viewport disables drawer swipe handling and touch scroll locking. Wrap ' +
-        '<Drawer.Popup> in <Drawer.Viewport>.',
-    );
-  }
-
-  useDialogOpenChangeComplete(store);
   onClientCleanup(() => store.setPopupElement(null));
-
-  const swiping = () => swipe?.swiping() ?? false;
 
   createEffect(store.popupElement, (popup) => {
     if (popup) {
@@ -124,19 +106,8 @@ export function DrawerPopup(componentProps: DrawerPopupProps): JSX.Element {
       return drawer.swipeDirection();
     },
     get swiping() {
-      return swiping();
+      return swipe.swiping();
     },
-  };
-
-  const style = (): JSX.CSSProperties => {
-    const swipeStrength = swipe?.swipeStrength() ?? null;
-    return {
-      ...(swipe ? swipe.getDragStyles() : {}),
-      [DrawerPopupCssVars.swipeStrength]:
-        swipeStrength !== null && Number.isFinite(swipeStrength) && swipeStrength > 0
-          ? `${swipeStrength}`
-          : '1',
-    };
   };
 
   const element = () =>
@@ -146,21 +117,10 @@ export function DrawerPopup(componentProps: DrawerPopupProps): JSX.Element {
       stateAttributesMapping: drawerPopupStateAttributesMapping,
       props: [
         popupProps,
+        dialogPopupProps(store, componentProps),
         {
-          get id() {
-            return componentProps.id || store.floatingId;
-          },
-          get 'aria-labelledby'() {
-            return store.titleElementId();
-          },
-          get 'aria-describedby'() {
-            return store.descriptionElementId();
-          },
-          role: 'dialog',
-          ...FOCUSABLE_POPUP_PROPS,
-          onKeyDown: stopCompositeKeys,
           get style() {
-            return style();
+            return swipe.getDragStyles();
           },
         },
         elementProps,
@@ -172,7 +132,7 @@ export function DrawerPopup(componentProps: DrawerPopupProps): JSX.Element {
       store={store}
       initialFocus={
         componentProps.initialFocus === undefined
-          ? () => untrack(store.popupElement)
+          ? () => untrack(store.popupElement) ?? true
           : componentProps.initialFocus
       }
     >
