@@ -17,12 +17,17 @@
 // - each `bun run <script>`: a script of the root, this package, or the app
 //   whose scripts run the film commands (its package.json, never its films);
 // - each path written in backticks, in these docs and in NORTH_STAR.md,
-//   PRIOR_ARTS.md, CLAUDE.md and the packages' and apps' READMEs, from the
-//   repo root or from the doc's own package (`lab/page-shell.tsx`, `src/…`),
-//   exists, and each symbol written after it (`tools/review.ts`
-//   `Review.read`) is in its code; an anchor names a symbol, never a
+//   PRIOR_ARTS.md, CLAUDE.md, the design language and the packages' and
+//   apps' READMEs, from the repo root or from the doc's own package
+//   (`lab/page-shell.tsx`, `src/…`), exists, and each symbol written after it
+//   (`tools/review.ts` `Review.read`) is declared in its code (`read` a
+//   member of `Review`'s declaration); an anchor names a symbol, never a
 //   `path:line`, so a moved line keeps it and a renamed symbol fails it
 //   (a receipt `at <commit>` or a path `deleted` names the tree as it was);
+//   in a doc whose every path is under its bases, a first directory under
+//   none of them is a mistyped path;
+// - the design language's §3 block is the player's tokens.css, and no mock
+//   writes a token: each wears tokens.css and the kit;
 // - each `--flag` given to a film command (`bun run render <film> --stills …`)
 //   is declared by a `Flag` in src/tools (`--no-x` by its `x`);
 // - on a command line that runs `check` (`bun run check …  # warns …`), each
@@ -52,6 +57,12 @@ interface Doc {
   readonly text: string;
   /** Where a relative path in it is read from, first match wins; `''` is the repo's root. */
   readonly bases: ReadonlyArray<string>;
+  /**
+   * Every path it writes is under its bases, so a first directory under none
+   * of them is a mistyped path; a doc that writes a film's own paths
+   * (`narration/full.wav`, `scenes/index.ts`) is not whole.
+   */
+  readonly whole: boolean;
 }
 
 const matches = (text: string, pattern: RegExp): ReadonlyArray<RegExpExecArray> =>
@@ -212,15 +223,74 @@ interface Found {
 /** A file's code without its comments, which may still name what the code dropped. */
 const uncommented = (text: string) => text.replace(/\/\*[\s\S]*?\*\/|(?<![:'"`\w])\/\/.*$/gm, '');
 
-/** Whether a file's code has a symbol: each part of `Review.read` as a word, a `'lab'` as written. */
-const declares = (text: string, symbol: string) => {
-  const code = uncommented(text);
-  if (symbol.startsWith("'")) return code.includes(symbol);
-  return symbol
-    .replace(/\(.*\)$/, '')
-    .split('.')
-    .every((part) => new RegExp(`(?<![\\w$])${part.replaceAll('$', '\\$')}(?![\\w$])`).test(code));
+/**
+ * Where code declares `name`: a binding, a function, a class, a type; an
+ * object's key or a class's member; or an export's name. A word used is not
+ * one declared.
+ */
+const declaration = (name: string) => {
+  const n = name.replaceAll('$', '\\$');
+  const end = '(?![\\w$])';
+  const modifiers =
+    '(?:(?:export|readonly|static|async|get|set|public|private|protected|declare|abstract|override)\\s+)*';
+  return new RegExp(
+    [
+      `\\b(?:const|let|var|function\\*?|class|interface|type|enum|namespace)\\s+${n}${end}`,
+      `^\\s*${modifiers}['"]?${n}['"]?\\??\\s*[:(=<]`,
+      `[{,]\\s*['"]?${n}['"]?\\??\\s*[:(]`,
+      `[{,]\\s*${n}\\s*(?=[,}])`,
+      `\\bexport\\s*\\{[^}]*(?<![\\w$])${n}${end}[^}]*\\}`,
+      `\\bexport\\s*\\*\\s*as\\s+${n}${end}`,
+    ].join('|'),
+    'm',
+  );
 };
+
+/** The top-level statement that starts at `at`: up to the next line that starts at the margin. */
+const statementAt = (code: string, at: number) => {
+  const rest = code.slice(at);
+  const next = rest.slice(1).search(/\n(?![\s})\]])/);
+  return Option.match(
+    Option.filter(Option.some(next), (n) => n >= 0),
+    { onNone: () => rest, onSome: (n) => rest.slice(0, n + 1) },
+  );
+};
+
+/**
+ * Whether a file's code declares a symbol: `Review` declared, and for
+ * `Review.read` each later part declared within `Review`'s statement; a
+ * `'lab'` as written.
+ */
+const declares = (text: string, symbol: string) => {
+  // An import names another file's declaration.
+  const code = uncommented(text).replace(/^import\s[\s\S]*?\sfrom\s*['"][^'"]+['"];?/gm, '');
+  if (symbol.startsWith("'")) return code.includes(symbol);
+  const [head = '', ...members] = symbol.replace(/\(.*\)$/, '').split('.');
+  return Option.match(Option.fromNullishOr(declaration(head).exec(code)), {
+    onNone: () => false,
+    onSome: (found) => {
+      const statement = statementAt(code, found.index);
+      return members.every((member) => declaration(member).test(statement));
+    },
+  });
+};
+
+/** A package's name (`@bible/url-state`), written as a path: no file of this tree. */
+const PACKAGE_NAME = /^@[\w-]+\/[\w.-]+/;
+
+/** The directories the repo's root `.gitignore` names (`tmp/`, `**\/test-results/`): output, never in the tree. */
+const ignoredDirectories = (gitignore: string): ReadonlySet<string> =>
+  new Set(
+    gitignore
+      .split('\n')
+      .map((line) =>
+        line
+          .trim()
+          .replace(/^\*\*\//, '')
+          .replace(/\/$/, ''),
+      )
+      .filter((line) => /^[\w.-]+$/.test(line)),
+  );
 
 /**
  * What a doc's anchors name that the tree lacks: a path that is gone, a
@@ -242,7 +312,12 @@ const anchorDrift = (found: ReadonlyArray<Found>) =>
       }),
     ]);
 
-/** Each anchor looked up under the doc's bases: the first base that has its first directory reads it. */
+/**
+ * Each anchor looked up under the doc's bases: the first base that has its
+ * first directory reads it. Under none, it is another tree's path, unless the
+ * doc is whole and it is neither a package's (`@bible/url-state`, an
+ * installed `effect/Schema`) nor ignored output (`tmp/logs`).
+ */
 const findAnchors = Effect.fn('test.docs.findAnchors')(function* (root: string, doc: Doc) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -250,6 +325,12 @@ const findAnchors = Effect.fn('test.docs.findAnchors')(function* (root: string, 
     Effect.map(
       Effect.option(fs.stat(path.join(root, at))),
       Option.exists((info) => info.type === 'Directory'),
+    );
+  const ignored = ignoredDirectories(yield* fs.readFileString(path.join(root, '.gitignore')));
+  const elsewhere = (anchor: Anchor, first: string) =>
+    Effect.map(
+      isDirectory(path.join('node_modules', first)),
+      (installed) => installed || PACKAGE_NAME.test(anchor.path) || ignored.has(first),
     );
   return yield* Effect.forEach(anchorsIn(doc), (anchor) =>
     Effect.gen(function* () {
@@ -265,7 +346,7 @@ const findAnchors = Effect.fn('test.docs.findAnchors')(function* (root: string, 
       const read = Option.filter(file, () => anchor.symbols.length > 0);
       return {
         anchor,
-        ours: bases.length > 0,
+        ours: bases.length > 0 || (doc.whole && !(yield* elsewhere(anchor, first))),
         file,
         text: yield* Option.match(read, {
           onNone: () => Effect.succeed(Option.none<string>()),
@@ -354,6 +435,7 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
 });
 
 const FILM_SRC = 'packages/film/src';
+const DESIGN_LANGUAGE = 'design-language/design-language.md';
 
 /** The docs that teach the framework, read in full against the code. */
 const readDocs = Effect.fn('test.docs.readDocs')(function* (root: string) {
@@ -366,10 +448,11 @@ const readDocs = Effect.fn('test.docs.readDocs')(function* (root: string) {
         files.filter((f) => f.endsWith('.md')).map((f) => [`${dir}/${f}`, ['', FILM_SRC]] as const),
       ),
   );
-  return yield* readEach(root, [
-    ['packages/film/README.md', ['', 'packages/film', FILM_SRC]],
-    ...skills.flat(),
-  ]);
+  return yield* readEach(
+    root,
+    [['packages/film/README.md', ['', 'packages/film', FILM_SRC]], ...skills.flat()],
+    false,
+  );
 });
 
 /** The docs that name the code in passing: their routes and anchors are read. */
@@ -379,22 +462,32 @@ const SPANNED: ReadonlyArray<readonly [string, ReadonlyArray<string>]> = [
   ['apps/animations/README.md', ['', 'apps/animations', 'apps/animations/src', FILM_SRC]],
 ];
 
-/** The docs read for their anchors alone: they teach another package. */
+/**
+ * The docs read for their anchors alone: they teach another package, or the
+ * studio's look. Each is whole: every path it writes is under its bases.
+ */
 const ANCHORED: ReadonlyArray<readonly [string, ReadonlyArray<string>]> = [
-  ['CLAUDE.md', ['']],
+  ['CLAUDE.md', ['', 'packages/core']],
   ['packages/ui/README.md', ['', 'packages/ui']],
   ['packages/url-state/README.md', ['', 'packages/url-state']],
   ['packages/atom-solid/README.md', ['', 'packages/atom-solid']],
   ['apps/egw-search/README.md', ['', 'apps/egw-search']],
+  [DESIGN_LANGUAGE, ['', FILM_SRC]],
 ];
 
 const readEach = Effect.fn('test.docs.readEach')(function* (
   root: string,
   docs: ReadonlyArray<readonly [string, ReadonlyArray<string>]>,
+  whole: boolean,
 ) {
   const fs = yield* FileSystem.FileSystem;
   return yield* Effect.forEach(docs, ([file, bases]) =>
-    Effect.map(fs.readFileString(`${root}/${file}`), (text): Doc => ({ path: file, text, bases })),
+    Effect.map(fs.readFileString(`${root}/${file}`), (text): Doc => ({
+      path: file,
+      text,
+      bases,
+      whole,
+    })),
   );
 });
 
@@ -411,6 +504,37 @@ const anchorsDrift = (root: string, docs: ReadonlyArray<Doc>) =>
 
 const ROOT = Effect.map(Path.Path, (path) => path.join(import.meta.dir, '..', '..', '..'));
 
+const TOKENS_CSS = 'packages/film/src/player/tokens.css';
+const MOCKS = 'design-language/mocks';
+
+/** The design language's §3 block: the css it shows as the tokens. */
+const tokenBlock = (doc: string) =>
+  Option.getOrElse(
+    Option.fromNullishOr(/^## 3\. Tokens\n[\s\S]*?^```css\n([\s\S]*?)^```/m.exec(doc)?.[1]),
+    () => '',
+  );
+
+/** The player's sheet from its tokens (`:root {`) to the end of their queries, before the ground every page stands on. */
+const declaredTokens = (sheet: string) => {
+  const start = sheet.indexOf(':root {');
+  const end = sheet.indexOf('/* The ground every page');
+  return `${sheet.slice(start, end).trimEnd()}\n`;
+};
+
+/** Each custom property the player's sheet declares. */
+const tokenNames = (sheet: string): ReadonlySet<string> =>
+  new Set(matches(sheet, /(--[\w-]+)\s*:/g).map(firstGroup));
+
+/** What a mock does that the kit owns: writes a token, or wears no tokens.css or kit.css. */
+const mockDrift = (file: string, text: string, tokens: ReadonlySet<string>) => [
+  ...['tokens.css', 'kit.css']
+    .filter((sheet) => file.endsWith('.html') && !new RegExp(`href="[^"]*${sheet}"`).test(text))
+    .map((sheet) => `${file}: links no ${sheet}`),
+  ...Array.from(new Set(matches(text, /(--[\w-]+)\s*:/g).map(firstGroup)))
+    .filter((name) => tokens.has(name))
+    .map((name) => `${file}: writes ${name}`),
+];
+
 describe('the docs', () => {
   it.effect.layer(BunServices.layer)(
     'name only routes, rules, scripts, paths, symbols, flags and findings the code has',
@@ -420,8 +544,8 @@ describe('the docs', () => {
         const [code, docs, spanned, anchored] = yield* Effect.all([
           readCode(root),
           readDocs(root),
-          readEach(root, SPANNED),
-          readEach(root, ANCHORED),
+          readEach(root, SPANNED, false),
+          readEach(root, ANCHORED, true),
         ]);
         expect(docs.flatMap((doc) => drift(doc, code))).toEqual([]);
         // The owner's runbook, the prior arts and the app's README name routes too.
@@ -442,6 +566,7 @@ describe('the docs', () => {
       const stale: Doc = {
         path: 'stale.md',
         bases: ['', FILM_SRC],
+        whole: false,
         text: [
           '| `GET /index.json` | the old index |',
           'Mute a take with `film/no-such-rule`, then `bun run nothing`.',
@@ -451,6 +576,8 @@ describe('the docs', () => {
           'Its frame is `/review/frame`; say it with `POST /review/project/<film>/say`.',
           'Every page a Place (`packages/film/src/core/api.ts` `Places`, `pageHrefs`).',
           'The review is read by `tools/review.ts` `Review.write`, the bar at `lab/page-shell.tsx:346`.',
+          'A request is made in `lab/api.ts` `uniqueId`, which it imports and calls.',
+          'Mistyped (`pacakges/film/src/core/time.ts` `frameAtOrAfter`), in a doc that is not whole.',
           'Gone with its links (`player/lookbook.ts` deleted, `packages/ui/src/tabs/TabsRoot.tsx:101` at `4a471dae`).',
           '| `cgwire/kitsu` | its routes in `packages/kitsu/src/router.js` |',
         ].join('\n'),
@@ -469,7 +596,65 @@ describe('the docs', () => {
         'stale.md: packages/film/src/core/api.ts has no pageHrefs',
         'stale.md: packages/film/src/tools/review.ts has no Review.write',
         'stale.md: lab/page-shell.tsx:346: name a symbol, not a line',
+        'stale.md: packages/film/src/lab/api.ts has no uniqueId',
+      ]);
+      // A whole doc: a first directory under no base is a mistyped path,
+      // a package's name, an installed module and ignored output are not.
+      const whole: Doc = {
+        path: 'whole.md',
+        bases: ['', FILM_SRC],
+        whole: true,
+        text: 'Its time (`pacakges/film/src/core/time.ts` `frameAtOrAfter`), through `@bible/url-state`, `effect/Schema` and `tmp/logs/latest`.',
+      };
+      expect(yield* anchorsDrift(root, [whole])).toEqual([
+        'whole.md: path pacakges/film/src/core/time.ts does not exist',
       ]);
     }),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    "show the design language's tokens as the player's sheet declares them",
+    () =>
+      Effect.gen(function* () {
+        const root = yield* ROOT;
+        const fs = yield* FileSystem.FileSystem;
+        const [doc, sheet] = yield* Effect.all([
+          fs.readFileString(`${root}/${DESIGN_LANGUAGE}`),
+          fs.readFileString(`${root}/${TOKENS_CSS}`),
+        ]);
+        expect(tokenBlock(doc)).toEqual(declaredTokens(sheet));
+        expect(tokenBlock(doc).length).toBeGreaterThan(0);
+      }),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    'let no mock write a token: each wears the sheet and the kit',
+    () =>
+      Effect.gen(function* () {
+        const root = yield* ROOT;
+        const fs = yield* FileSystem.FileSystem;
+        const tokens = tokenNames(yield* fs.readFileString(`${root}/${TOKENS_CSS}`));
+        const files = (yield* fs.readDirectory(`${root}/${MOCKS}`)).filter((f) =>
+          /\.(?:html|css)$/.test(f),
+        );
+        const mocks = yield* Effect.forEach(files, (file) =>
+          Effect.map(fs.readFileString(`${root}/${MOCKS}/${file}`), (text) => ({ file, text })),
+        );
+        expect(mocks.length).toBeGreaterThan(1);
+        expect(mocks.flatMap(({ file, text }) => mockDrift(file, text, tokens))).toEqual([]);
+        // A mock that writes a token, or wears neither sheet, is red.
+        expect(
+          mockDrift(
+            'red.html',
+            '<style>:root { --accent: #f00; } .x { --s-2 : 3px; --own: 1px; }</style>',
+            tokens,
+          ),
+        ).toEqual([
+          'red.html: links no tokens.css',
+          'red.html: links no kit.css',
+          'red.html: writes --accent',
+          'red.html: writes --s-2',
+        ]);
+      }),
   );
 });
