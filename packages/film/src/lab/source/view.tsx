@@ -98,6 +98,52 @@ const rowsOf = (text: string): ReadonlyArray<Row> => {
   }));
 };
 
+/** The nearest ancestor of `el` that scrolls: the box a row moves in, in the column and in a sheet alike. */
+const scrollContainerOf = (el: HTMLElement): Option.Option<HTMLElement> =>
+  Option.flatMap(Option.fromNullishOr(el.parentElement), (up) => {
+    const y = getComputedStyle(up).overflowY;
+    return Bool.match(y === 'auto' || y === 'scroll', {
+      onTrue: () => Option.some(up),
+      onFalse: () => scrollContainerOf(up),
+    });
+  });
+
+/** How long after a wheel or a key a scroll is still that input's, in ms (a frame, and the jank of a loaded box). */
+const INPUT_MS = 100;
+
+/**
+ * Tell `moved` when a hand scrolls `box`: a scroll a wheel or a key has just
+ * reached, one under a finger on the box, or one under the box's own scrollbar
+ * (a press that lands on the box itself) until it settles. A scroll with no such
+ * input is the view's own, the layout's or a sheet opening, and is not the
+ * hand's. Returns how to stop watching.
+ */
+const watchHand = (box: HTMLElement, moved: () => void): (() => void) => {
+  let finger = false;
+  let bar = false;
+  let inputAt = Number.NEGATIVE_INFINITY;
+  const input = (e: Event) => {
+    inputAt = e.timeStamp;
+  };
+  const listeners: ReadonlyArray<readonly [string, (e: Event) => void]> = [
+    ['wheel', input],
+    ['keydown', input],
+    ['touchstart', () => (finger = true)],
+    ['touchend', () => (finger = false)],
+    ['touchcancel', () => (finger = false)],
+    ['pointerdown', (e) => (bar = e.target === box)],
+    ['scrollend', () => (bar = false)],
+    [
+      'scroll',
+      (e) => {
+        if (finger || bar || e.timeStamp - inputAt < INPUT_MS) moved();
+      },
+    ],
+  ];
+  listeners.forEach(([name, on]) => box.addEventListener(name, on, { passive: true }));
+  return () => listeners.forEach(([name, on]) => box.removeEventListener(name, on));
+};
+
 /** The file's text, a row to a line, with its lit spans, meters and held line. */
 const Text = (props: { readonly code: SceneCode }) => {
   const { state: lab, actions, meta } = useLab();
@@ -105,11 +151,10 @@ const Text = (props: { readonly code: SceneCode }) => {
   const lit = useLit(() => props.code);
   const rows = createMemo(() => rowsOf(props.code.text));
   const digits = createMemo(() => String(rows().length).length);
+  // The box the rows scroll in: found from the rows (`scrollContainerOf`), so the column and the sheet scroll by one rule.
   let scroller = Option.none<HTMLElement>();
   let page = Option.none<HTMLElement>();
-  let watching = Option.none<ResizeObserver>();
-  // Where the view last put itself by script: a scroll that lands anywhere else was a hand's.
-  let placed = Option.none<number>();
+  const [size, setSize] = createSignal(0);
 
   // The ranges lit, painted on the rows' text; cleared when the view goes.
   const paint = (name: HighlightName, ranges: ReadonlyArray<CodeRange>) =>
@@ -169,9 +214,29 @@ const Text = (props: { readonly code: SceneCode }) => {
       () => 0,
     ),
   );
-  // The scroller's size: a viewport that changes is measured again; a frame that does not move the target is not.
-  const [size, setSize] = createSignal(0);
-  onCleanup(() => Option.map(watching, (o) => o.disconnect()));
+  // The scroll box is the rows' nearest scrolling ancestor, whichever element the layout makes it. Its size: a
+  // viewport that changes is measured again; a frame that does not move the target is not. A hand on it
+  // (`Hand`) takes the view off the frame; a scroll no hand made (the script's, the layout's, a sheet opening) never does.
+  createEffect(
+    () => true,
+    () => {
+      scroller = Option.flatMap(page, scrollContainerOf);
+      return Option.match(scroller, {
+        onNone: () => () => {},
+        onSome: (el) => {
+          const o = new ResizeObserver(() => setSize(el.clientHeight));
+          o.observe(el);
+          const unwatch = watchHand(el, () => {
+            if (source.following()) source.suspend();
+          });
+          return () => {
+            o.disconnect();
+            unwatch();
+          };
+        },
+      });
+    },
+  );
   createEffect(
     () => [looking(), size()] as const,
     ([target]) => {
@@ -188,39 +253,25 @@ const Text = (props: { readonly code: SceneCode }) => {
         const lh = Number.parseFloat(getComputedStyle(row).lineHeight);
         if (Number.isNaN(lh) || lh === 0) return;
         const margin = 2 * lh;
+        // The row's top and bottom in the box's own scroll coordinates, whatever sits between them.
+        const top =
+          row.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+        const bottom = top + row.offsetHeight;
         const inView =
-          row.offsetTop >= box.scrollTop + margin &&
-          row.offsetTop + row.offsetHeight <= box.scrollTop + box.clientHeight - margin;
+          top >= box.scrollTop + margin && bottom <= box.scrollTop + box.clientHeight - margin;
         if (inView) return;
-        box.scrollTo({ top: Math.max(0, row.offsetTop - box.clientHeight / 3) });
-        placed = Option.some(box.scrollTop);
+        box.scrollTo({ top: Math.max(0, top - box.clientHeight / 3) });
       });
     },
   );
 
-  // A hand on the scroll takes the view off the frame; a tap on a line, unless it ends a text selection, holds it.
-  const scrolled = () => {
-    Option.map(scroller, (box) => {
-      if (!source.following()) return;
-      if (Option.exists(placed, (at) => Math.abs(box.scrollTop - at) < 2)) return;
-      source.suspend();
-    });
-  };
+  // A tap on a line, unless it ends a text selection, holds it.
   const tap = (n: number) => {
     if (!(window.getSelection()?.isCollapsed ?? true)) return;
     actions.holdLine(n, selectionAt(props.code, n));
   };
   return (
-    <div
-      class="lab-source-scroll"
-      ref={(el: HTMLDivElement) => {
-        scroller = Option.some(el);
-        const o = new ResizeObserver(() => setSize(el.clientHeight));
-        o.observe(el);
-        watching = Option.some(o);
-      }}
-      onScroll={scrolled}
-    >
+    <div class="lab-source-scroll">
       <div
         class="lab-source-page"
         style={{ '--digits': digits() }}
