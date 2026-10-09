@@ -13,7 +13,7 @@
 import { Option } from 'effect';
 
 /** One file's text in the merge base, in each parent, and in the merge. */
-export interface Versions {
+interface Versions {
   readonly base: string;
   readonly first: string;
   readonly second: string;
@@ -21,7 +21,7 @@ export interface Versions {
 }
 
 /** What the resolution did to one parent's edits of a file. */
-export interface Lost {
+interface Lost {
   /** Lines the parent added over the base that the merge does not have. */
   readonly dropped: ReadonlyArray<string>;
   /** Lines the parent removed from the base (and the other parent did not add) that the merge has. */

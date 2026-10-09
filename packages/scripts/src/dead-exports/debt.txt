@@ -347,13 +347,6 @@ packages/film/src/tools/stamp.ts Keyed
 packages/film/src/tools/stamp.ts importsOf
 packages/film/src/tools/takes.ts ImportOptions
 packages/scripts/src/dead-exports/graph.ts Take
-packages/scripts/src/merge-audit/audit.ts Lost
-packages/scripts/src/merge-audit/audit.ts Versions
-packages/scripts/src/topics-compiler/compile.ts CitationUnverifiedError
-packages/scripts/src/topics-compiler/compile.ts DuplicateAliasError
-packages/scripts/src/topics-compiler/compile.ts DuplicateSlugError
-packages/scripts/src/topics-compiler/compile.ts OverlayAmbiguityError
-packages/scripts/src/topics-compiler/compile.ts UnknownRelatedSlugError
 packages/scripts/src/vector-compiler/checkpoint.ts checkpointPath
 packages/scripts/src/vector-compiler/checkpoint.ts partPath
 packages/scripts/src/vector-compiler/source.ts VectorSourceError

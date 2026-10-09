@@ -8,27 +8,27 @@ import type { TopicSource } from './source.js';
 /** Every way a *set* of authored sources can be rejected. Each is one of §3.4's
  *  named compile errors, kept as a distinct tag so a failing build says which
  *  rule broke rather than "compile failed". */
-export class DuplicateAliasError extends Schema.TaggedError<DuplicateAliasError>()(
-  'DuplicateAliasError',
-  { alias: Schema.String, slugs: Schema.Array(Schema.String) },
-) {}
+class DuplicateAliasError extends Schema.TaggedError<DuplicateAliasError>()('DuplicateAliasError', {
+  alias: Schema.String,
+  slugs: Schema.Array(Schema.String),
+}) {}
 
-export class DuplicateSlugError extends Schema.TaggedError<DuplicateSlugError>()(
-  'DuplicateSlugError',
-  { slug: Schema.String, files: Schema.Array(Schema.String) },
-) {}
+class DuplicateSlugError extends Schema.TaggedError<DuplicateSlugError>()('DuplicateSlugError', {
+  slug: Schema.String,
+  files: Schema.Array(Schema.String),
+}) {}
 
-export class OverlayAmbiguityError extends Schema.TaggedError<OverlayAmbiguityError>()(
+class OverlayAmbiguityError extends Schema.TaggedError<OverlayAmbiguityError>()(
   'OverlayAmbiguityError',
   { slug: Schema.String, name: Schema.String, catalogIds: Schema.Array(Schema.String) },
 ) {}
 
-export class CitationUnverifiedError extends Schema.TaggedError<CitationUnverifiedError>()(
+class CitationUnverifiedError extends Schema.TaggedError<CitationUnverifiedError>()(
   'CitationUnverifiedError',
   { slug: Schema.String, refcode: Schema.String, quote: Schema.String, reason: Schema.String },
 ) {}
 
-export class UnknownRelatedSlugError extends Schema.TaggedError<UnknownRelatedSlugError>()(
+class UnknownRelatedSlugError extends Schema.TaggedError<UnknownRelatedSlugError>()(
   'UnknownRelatedSlugError',
   { slug: Schema.String, related: Schema.String },
 ) {}
