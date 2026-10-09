@@ -1006,6 +1006,54 @@ describe('the inspector', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live("a still tap on a field's label, after an Undo of its drag, writes nothing", () =>
+    Effect.gen(function* () {
+      const { page, asked } = yield* openLab(
+        [
+          route('GET', /^\/check$/, () =>
+            json({
+              findings: [],
+              undo: {
+                scene: 'one',
+                file: 'scenes/one.ts',
+                target: 'cue rise offset',
+                change: changeOf('cue'),
+              },
+            }),
+          ),
+          route('POST', /^\/undo$/, () =>
+            json({
+              scene: 'one',
+              file: 'scenes/one.ts',
+              target: 'undo cue rise offset',
+              findings: [],
+            }),
+          ),
+        ],
+        { href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }) },
+      );
+      const field = '.lab-edit-cue input[data-field="offset"]';
+      yield* page.waitFor(`${field}:not([disabled])`);
+      const label = yield* page.box('.lab-edit-cue .lab-field-scrub');
+      const [x, y] = [label.x + label.width / 2, label.y + label.height / 2];
+      yield* page.mouse.move(x, y);
+      yield* page.mouse.down;
+      for (const step of [1, 2, 3, 4]) yield* page.mouse.move(x + 10 * step, y);
+      yield* page.mouse.up;
+      yield* postedReach(asked, 1);
+      yield* statusSays(page, 'cue rise offset 0 → ');
+      yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
+      yield* postedReach(asked, 2);
+      yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
+      // The drag is undone: a tap that moves nothing writes nothing, however the field held it.
+      yield* page.mouse.move(x, y);
+      yield* page.mouse.down;
+      yield* page.mouse.up;
+      yield* runClock(page, 500);
+      expect(posted(asked).map((a) => a.path)).toEqual(['/scenes/one/cues/rise', '/undo']);
+    }).pipe(Effect.scoped),
+  );
+
   it.live('its eases, on a timeline the lab will not rewrite, are off and say why', () =>
     Effect.gen(function* () {
       const overridden = {
