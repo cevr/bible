@@ -330,7 +330,6 @@ packages/film/src/tools/source-writer.ts FORMAT_LIMIT
 packages/film/src/tools/stamp.ts Keyed
 packages/film/src/tools/stamp.ts importsOf
 packages/film/src/tools/takes.ts ImportOptions
-packages/scripts/src/dead-exports/graph.ts Take
 packages/scripts/src/vector-compiler/checkpoint.ts checkpointPath
 packages/scripts/src/vector-compiler/checkpoint.ts partPath
 packages/scripts/src/vector-compiler/source.ts VectorSourceError

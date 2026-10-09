@@ -1,8 +1,10 @@
 // The export graph the dead-export check reads: each module's exports and
 // what it takes from other modules, as the parser (oxc) reads them, so a
-// comment or a string that looks like code names nothing. A namespace import,
-// an `import()` and an `export * as` take a module whole; an `export * from`
-// passes a name through; a default is the name `default`, taken by a default import.
+// comment or a string that looks like code names nothing. A namespace import
+// and an `import()` take a module whole; a named re-export (`export { x } from`,
+// `export * as ns from`) and an `export * from` pass a take through, so they
+// take only what their own users take; a default is the name `default`, taken
+// by a default import. A take counts only from a module a root reaches.
 
 import { Array as Arr, Option, Order } from 'effect';
 import {
@@ -12,18 +14,27 @@ import {
   parseSync,
 } from 'oxc-parser';
 
-/** What one import or re-export takes from `from`: some of its names, or (None) the module whole. */
-export interface Take {
+/** What one import takes from `from`: some of its names, or (None) the module whole. */
+interface Take {
   readonly from: string;
   readonly names: Option.Option<ReadonlyArray<string>>;
+}
+
+/** An `export { imported as name } from from`, or (`imported` None) `export * as name from from`. */
+interface Reexport {
+  readonly from: string;
+  readonly imported: Option.Option<string>;
+  readonly name: string;
 }
 
 /** A module's imports and exports. */
 export interface ModuleRecord {
   /** The names it exports (as renamed): declarations, `export { … }` and re-exports. */
   readonly exports: ReadonlyArray<string>;
-  /** Its `import`s, `import()`s and `export … from`s. */
+  /** Its `import`s and `import()`s. */
   readonly takes: ReadonlyArray<Take>;
+  /** Its named re-exports: each takes only what its own name's users take. */
+  readonly reexports: ReadonlyArray<Reexport>;
   /** Its `export * from` sources: a name taken from it is taken from them too. */
   readonly stars: ReadonlyArray<string>;
 }
@@ -46,18 +57,22 @@ const importTake = (i: Parsed['staticImports'][number]): Take => {
   };
 };
 
-/** An `export … from` but `export *`: its one name, or the module whole for `export * as`. */
-const reexportTake = (e: Parsed['staticExports'][number]['entries'][number]): ReadonlyArray<Take> =>
+/** An `export … from` but `export *`: the one name it passes on, or the module whole for `export * as`. */
+const reexportOf = (
+  e: Parsed['staticExports'][number]['entries'][number],
+): ReadonlyArray<Reexport> =>
   Option.toArray(
-    Option.map(
+    Option.flatMap(
       Option.filter(
         Option.fromNullishOr(e.moduleRequest),
         () => e.importName.kind !== 'AllButDefault',
       ),
-      (request): Take => ({
-        from: request.value,
-        names: Option.map(nameOf(e.importName), (name) => [name]),
-      }),
+      (request) =>
+        Option.map(nameOf(e.exportName), (name): Reexport => ({
+          from: request.value,
+          imported: nameOf(e.importName),
+          name,
+        })),
     ),
   );
 
@@ -86,9 +101,9 @@ export const recordOf = (file: string, source: string): ModuleRecord => {
     exports: entries.flatMap((e) => Option.toArray(nameOf(e.exportName))),
     takes: [
       ...module.staticImports.map(importTake),
-      ...entries.flatMap(reexportTake),
       ...module.dynamicImports.flatMap((d) => dynamicTake(source, d)),
     ],
+    reexports: entries.flatMap(reexportOf),
     stars: entries.flatMap((e) =>
       Option.toArray(
         Option.filter(
@@ -106,7 +121,7 @@ const WHOLE = '*';
 /** Where a specifier points: a file of the workspace (relative to its root), or none (a dependency). */
 export type Resolve = (user: string, from: string) => Option.Option<string>;
 
-/** The workspace: each file's record, who may consume, what is checked, and what is public. */
+/** The workspace: each file's record, who may consume, what is checked, and where it is run from. */
 export interface Workspace {
   readonly records: ReadonlyMap<string, ModuleRecord>;
   readonly resolve: Resolve;
@@ -114,51 +129,117 @@ export interface Workspace {
   readonly consumes: (file: string) => boolean;
   /** Whether `file`'s exports are checked. */
   readonly checked: (file: string) => boolean;
-  /** A file whose exports are public API, by the reason it is. */
-  readonly entries: ReadonlyMap<string, string>;
+  /**
+   * The files something outside the module graph runs: an app, a bin, a
+   * script, a worker. A root that is not checked has its exports loaded whole.
+   */
+  readonly roots: ReadonlySet<string>;
 }
 
+/** The modules `file` imports, re-exports or passes through; none for a file that is no consumer. */
+const reachesFrom = (workspace: Workspace, file: string): ReadonlyArray<string> => {
+  const { records, resolve, consumes } = workspace;
+  return Option.match(Option.fromUndefinedOr(records.get(file)), {
+    onNone: () => [],
+    onSome: (record) => {
+      if (!consumes(file)) return [];
+      return [
+        ...record.takes.map((t) => t.from),
+        ...record.reexports.map((r) => r.from),
+        ...record.stars,
+      ].flatMap((from) => Option.toArray(resolve(file, from)));
+    },
+  });
+};
+
+/** Every module a consuming module reachable from the roots imports, re-exports or passes through. */
+const reachable = (workspace: Workspace): ReadonlySet<string> => {
+  const reached = new Set<string>();
+  const visit = (file: string): void => {
+    if (reached.has(file)) return;
+    reached.add(file);
+    for (const module of reachesFrom(workspace, file)) visit(module);
+  };
+  for (const root of workspace.roots) visit(root);
+  return reached;
+};
+
+/** What a name taken from `module` also takes from the modules that pass it on. */
+const passedOn = (
+  { records, resolve }: Workspace,
+  module: string,
+  name: string,
+): ReadonlyArray<readonly [module: string, name: string]> =>
+  Option.match(Option.fromUndefinedOr(records.get(module)), {
+    onNone: () => [],
+    onSome: (record) => [
+      ...record.stars.flatMap((star) =>
+        Option.toArray(Option.map(resolve(module, star), (behind) => [behind, name] as const)),
+      ),
+      ...record.reexports
+        .filter((reexport) => name === WHOLE || reexport.name === name)
+        .flatMap((reexport) =>
+          Option.toArray(
+            Option.map(
+              resolve(module, reexport.from),
+              (behind) => [behind, Option.getOrElse(reexport.imported, () => WHOLE)] as const,
+            ),
+          ),
+        ),
+    ],
+  });
+
+/** Each `module, name` that a consuming module in `reached` imports from another module. */
+const importsOf = (
+  workspace: Workspace,
+  reached: ReadonlySet<string>,
+): ReadonlyArray<readonly [module: string, name: string]> =>
+  [...workspace.records]
+    .filter(([user]) => reached.has(user) && workspace.consumes(user))
+    .flatMap(([user, record]) =>
+      record.takes.flatMap(({ names, from }) =>
+        Option.toArray(workspace.resolve(user, from))
+          .filter((module) => module !== user)
+          .flatMap((module) =>
+            Option.getOrElse(names, () => [WHOLE]).map((name) => [module, name] as const),
+          ),
+      ),
+    );
+
 /**
- * Every `module#name` another consuming module takes, a name taken from a
- * module that passes it on (`export *`) taken from the module behind it too,
- * and `module#*` for a module taken whole.
+ * Every `module#name` a consuming module reachable from a root takes, a name
+ * taken from a module that passes it on (`export *`, `export { x } from`)
+ * taken from the module behind it too, and `module#*` for a module taken whole.
  */
 const takenNames = (workspace: Workspace): ReadonlySet<string> => {
-  const { records, resolve, consumes } = workspace;
-  const stars = new Map<string, ReadonlyArray<string>>(
-    [...records].map(([file, record]) => [
-      file,
-      record.stars.flatMap((from) => Option.toArray(resolve(file, from))),
-    ]),
-  );
+  const { consumes, checked, roots } = workspace;
   const used = new Set<string>();
-  const mark = (module: string, name: string, seen: ReadonlySet<string>): void => {
-    used.add(`${module}#${name}`);
-    for (const star of Option.getOrElse(Option.fromUndefinedOr(stars.get(module)), () => []))
-      if (!seen.has(star)) mark(star, name, new Set([...seen, module]));
+  const mark = (module: string, name: string): void => {
+    const key = `${module}#${name}`;
+    if (used.has(key)) return;
+    used.add(key);
+    for (const [behind, taken] of passedOn(workspace, module, name)) mark(behind, taken);
   };
-  for (const [user, record] of records)
-    if (consumes(user))
-      for (const { names, from } of record.takes)
-        for (const module of Option.toArray(resolve(user, from)))
-          if (module !== user)
-            for (const name of Option.getOrElse(names, () => [WHOLE]))
-              mark(module, name, new Set());
+  // What runs a root outside the checked source loads its exports whole: an
+  // app's `lab.server.tsx` is read for its default, a re-export of a framework page.
+  for (const root of roots) if (consumes(root) && !checked(root)) mark(root, WHOLE);
+  for (const [module, name] of importsOf(workspace, reachable(workspace))) mark(module, name);
   return used;
 };
 
 /**
- * Each export of a checked module that no other consuming module takes, as
- * `file name`: a name its own file alone reads, or only a test reads, is
- * not exported. A public entry's names stand for their users beyond the
- * workspace.
+ * Each export of a checked module that no other consuming module reachable
+ * from a root takes, as `file name`: a name its own file alone reads, or only
+ * a test reads, or only an unreachable cycle reads, is not exported. A
+ * package's entry is checked like any module: every package is private, so
+ * its exports have no user beyond the workspace.
  */
 export const deadExports = (workspace: Workspace): ReadonlyArray<string> => {
-  const { records, checked, entries } = workspace;
+  const { records, checked } = workspace;
   const used = takenNames(workspace);
   return Arr.sort(
     [...records]
-      .filter(([file]) => checked(file) && !entries.has(file))
+      .filter(([file]) => checked(file))
       .flatMap(([file, record]) =>
         record.exports
           .filter((name) => !used.has(`${file}#${name}`) && !used.has(`${file}#${WHOLE}`))
