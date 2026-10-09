@@ -71,8 +71,8 @@ subscription or mount to it.
   timeout options upstream forwards are dropped (nothing passed them). Upstream also
   forwards an optional `defaultIdleTTL`, and its registry keeps `undefined`, which is
   no idle TTL; this package fixes the idle time of an unread atom at 400 ms, its own
-  policy. `initialValues` is how pages seed the URL layer: `AtomRegistry.make({
-initialValues })` marks the seeded node to keep its value when it builds
+  policy. `initialValues` is how pages seed the URL layer: `AtomRegistry.make`, given
+  `initialValues`, marks the seeded node to keep its value when it builds
   (`preserveInitialValueOnBuild`, effect 4.0.0 `AtomRegistry.ts`), so each page root
   seeds `UrlAtom.layer` with its host's `Location`; `UrlAtom.layer` has no default.
 
