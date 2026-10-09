@@ -208,10 +208,10 @@ export const untokened = (tokensCss: string) => `(() => {
     const parent = el.parentElement && typeof el.parentElement.className === 'string' && el.parentElement.className.trim() ? el.parentElement.className.trim().split(/\\s+/)[0] + ' > ' : '';
     return parent + el.tagName.toLowerCase() + (cls ? '.' + cls : '');
   };
-  const found = new Map();
+  // Every site of an off-scale value, so an allowed site cannot hide another's.
+  const found = new Set();
   const off = (property, value, el, pseudo) => {
-    const key = property + ' ' + value;
-    if (!found.has(key)) found.set(key, name(el) + pseudo);
+    found.add(property + ' ' + value + ': ' + name(el) + pseudo);
   };
   // A line has no inside to fill: only its stroke is drawn.
   const FILLED = new Set(['path', 'circle', 'rect', 'polyline', 'polygon', 'ellipse', 'text']);
@@ -296,5 +296,5 @@ export const untokened = (tokensCss: string) => `(() => {
     }
   }
   const SITES = ${arrayOf(Object.keys(SITES))};
-  return [...found].map(([key, el]) => key + ': ' + el).filter((line) => !SITES.includes(line)).sort();
+  return [...found].filter((line) => !SITES.includes(line)).sort();
 })()`;

@@ -194,6 +194,14 @@ describe('the drawn-token check reads each scale, every property and the whole p
 
   for (const [name, body, want] of planted) it.live(`names ${name}`, () => drawn(body, want));
 
+  // An allowed site (the review's hint) is no cover for another part with the same value.
+  it.live('names a rogue site that draws what an allowed site draws', () =>
+    drawn(
+      `<div class="rv-main"><p class="rv-hint" style="margin:11px 0 0">allowed</p><p class="rogue" style="margin:11px 0 0">rogue</p></div>`,
+      ['marginTop 11px: rv-main > p.rogue'],
+    ),
+  );
+
   it.live(
     'passes what the scales hold: caps tracking, emphasis, a pseudo in tokens, a swatch hue',
     () =>
