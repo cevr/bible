@@ -34,3 +34,17 @@ export const supportedTemplate = `@supports ( max-width : 899px ) and (display: 
 // A media query after a feature query's block is still a breakpoint.
 export const after =
   '@supports (width: 1px) { .x { margin: 0; } } @media (min-width: 900px) { .x { padding: 0; } }'; // RED film/one-breakpoint
+
+// A feature query's clause runs on across a template's values.
+export const supportedBuilt = `@supports (width: ${PHONE_WIDEST}px) and (min-width: ${PHONE_WIDEST}px) {}`;
+export const supportedWritten = `@supports (width: ${PHONE_WIDEST}px) and (min-width: 900px) {}`;
+// A media query after the feature query's block, in a later part of the template, is a breakpoint.
+export const builtAfter = `@supports (width: ${PHONE_WIDEST}px) {} @media (max-width: ${PHONE_WIDEST}px) {}`; // RED film/one-breakpoint
+export const writtenAfter = `@supports (width: ${PHONE_WIDEST}px) {} @media (max-width: 899px) {}`; // RED film/one-breakpoint
+
+// The root-relative units are lengths too.
+export const rootChars = '(max-width: 56rch)'; // RED film/one-breakpoint
+export const rootEx = '(min-width: 40rex)'; // RED film/one-breakpoint
+export const rootCap = '(max-width: 40rcap)'; // RED film/one-breakpoint
+export const rootIc = '(max-width: 40ric)'; // RED film/one-breakpoint
+export const container = '(max-width: 40cqi)'; // RED film/one-breakpoint

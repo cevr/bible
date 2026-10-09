@@ -11,3 +11,10 @@ export const bound = Effect.gen(function* () {
   yield* bar.push(href); // RED film/history-through-host
 });
 export const used = US.Location.use((bar) => bar.back); // RED film/history-through-host
+
+// Another namespace's `Location` is no address bar.
+declare const domain: { readonly Location: Effect.Effect<{ readonly back: number }> };
+export const unrelated = Effect.gen(function* () {
+  const place = yield* domain.Location;
+  return [(yield* domain.Location).back, place.back];
+});

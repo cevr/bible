@@ -7,7 +7,9 @@
 //
 // Refused: the host's global objects (`window`, `document`, `navigator`,
 // `performance`, `location`, `history`, `globalThis`, `self`) as the value
-// of a declaration or an assignment. A name the file declares itself (a
+// of a declaration or an assignment, bare or under a type wrapper
+// (`performance satisfies Performance`, `window as Window`, `navigator!`,
+// `<Document>document`), which changes no value. A name the file declares itself (a
 // parameter called `self`) is no host global. The config turns the rule on
 // over the pages that reach the host through its adapters and off in the
 // tests and the fixtures.
@@ -23,6 +25,7 @@ import {
   type Variable,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
+import { unwrapped } from './nodes.ts';
 
 /** The host's global objects. */
 const HOSTS: ReadonlyArray<string> = [
@@ -39,9 +42,13 @@ const HOSTS: ReadonlyArray<string> = [
 const MESSAGE =
   'a host global bound to a name of the page\'s own: the host bans read it only under its name, so reach it as itself, or through its adapter (packages/film/README.md, "The host").';
 
-/** Whether `node` is a host global, where it is read: a host name the file declares nowhere. */
-const isHostGlobal = (node: ESTree.Node) => {
-  if (node.type === 'ParenthesizedExpression') return isHostGlobal(node.expression);
+/**
+ * Whether `value` is a host global, where it is read: a host name the file
+ * declares nowhere, under any parentheses and type wrappers (`performance
+ * satisfies Performance`, `window as Window`, `navigator!`).
+ */
+const isHostGlobal = (value: ESTree.Node) => {
+  const node = unwrapped(value);
   if (node.type !== 'Identifier' || !HOSTS.includes(node.name)) return Effect.succeed(false);
   return Effect.map(SourceCode.getScope(node), (scope) =>
     Option.isNone(

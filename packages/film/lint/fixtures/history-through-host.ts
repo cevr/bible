@@ -50,3 +50,17 @@ export const read = Effect.gen(function* () {
   const { current, changes } = yield* Location;
   return [yield* current, changes];
 });
+
+// A move taken under a quoted or computed key is the same move.
+export const quoted = Effect.gen(function* () {
+  // prettier-ignore
+  const { 'back': previous } = yield* Location; // RED film/history-through-host
+  const { ['forward']: next } = yield* Location; // RED film/history-through-host
+  const { [`go`]: jump } = yield* Location; // RED film/history-through-host
+  return [previous, next, jump];
+});
+export const quotedRead = Effect.gen(function* () {
+  // prettier-ignore
+  const { 'current': now } = yield* Location;
+  return yield* now;
+});

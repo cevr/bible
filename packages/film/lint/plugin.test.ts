@@ -103,7 +103,7 @@ const MESSAGES = {
     'addEventListener hears contextmenu on its own: open a context menu through @bible/ui ContextMenu over the selection’s commands (packages/film/src/lab/command/).',
   'no-host-alias.ts:6 film/no-host-alias':
     'a host global bound to a name of the page\'s own: the host bans read it only under its name, so reach it as itself, or through its adapter (packages/film/README.md, "The host").',
-  'booleans-through-pressed.tsx:14 film/booleans-through-pressed':
+  'booleans-through-pressed.tsx:28 film/booleans-through-pressed':
     "a boolean written as a string by hand: pressed(on) (packages/film/src/lab/pressed.ts) types it 'true' | 'false'.",
   'history-through-host.ts:11 film/history-through-host':
     "a history move chosen here: a place's field declares its policy (Place.history, @bible/url-state), and the address bar is written through addressOn (packages/film/src/browser/host.ts).",

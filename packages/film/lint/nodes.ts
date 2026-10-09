@@ -17,12 +17,43 @@ export const ancestors = (node: ESTree.Node): ReadonlyArray<ESTree.Node> => {
   return out;
 };
 
-/** The name a member expression reads: `a.name`, or `a['name']` with a string literal. */
-export const memberName = (node: ESTree.MemberExpression): Option.Option<string> => {
-  if (!node.computed && node.property.type === 'Identifier') return Option.some(node.property.name);
-  if (node.computed && node.property.type === 'Literal' && Predicate.isString(node.property.value))
-    return Option.some(node.property.value);
+/**
+ * The name a key written in the source spells: `name` when not computed, a
+ * string literal (`'name'`, `['name']`), or a template with no value in it
+ * (`` [`name`] ``).
+ */
+export const staticName = (key: ESTree.Node, computed: boolean): Option.Option<string> => {
+  if (!computed && key.type === 'Identifier') return Option.some(key.name);
+  if (key.type === 'Literal' && Predicate.isString(key.value)) return Option.some(key.value);
+  if (computed && key.type === 'TemplateLiteral' && key.expressions.length === 0)
+    return Option.fromNullishOr(key.quasis[0]?.value.cooked);
   return Option.none();
+};
+
+/** The name a member expression reads: `a.name`, `a['name']`, or `` a[`name`] ``. */
+export const memberName = (node: ESTree.MemberExpression): Option.Option<string> =>
+  staticName(node.property, node.computed);
+
+/** The name a property of an object literal or pattern is keyed by: `name`, `'name'`, `['name']`. */
+export const keyName = (node: ESTree.Node): Option.Option<string> => {
+  if (node.type !== 'Property') return Option.none();
+  return staticName(node.key, node.computed);
+};
+
+/**
+ * The value an expression holds under its parentheses and type wrappers:
+ * `(x)`, `x as T`, `x satisfies T`, `x!` and `<T>x` are each `x` at run time.
+ */
+export const unwrapped = (node: ESTree.Node): ESTree.Node => {
+  if (
+    node.type === 'ParenthesizedExpression' ||
+    node.type === 'TSAsExpression' ||
+    node.type === 'TSSatisfiesExpression' ||
+    node.type === 'TSNonNullExpression' ||
+    node.type === 'TSTypeAssertion'
+  )
+    return unwrapped(node.expression);
+  return node;
 };
 
 /** The file a node is in. */
@@ -92,6 +123,39 @@ export const numberOf = (n: ESTree.Node): Option.Option<number> => {
   if (n.type === 'Identifier') return namedNumber(n, n.name);
   return signed(n, numberOf);
 };
+
+/** Whether a declarator is a top-level `const`'s, exported or not. */
+const topLevelConst = (declarator: ESTree.Node): boolean => {
+  const declaration = declarator.parent;
+  if (declaration?.type !== 'VariableDeclaration' || declaration.kind !== 'const') return false;
+  const owner = declaration.parent;
+  return (
+    owner.type === 'Program' ||
+    (owner.type === 'ExportNamedDeclaration' && owner.parent.type === 'Program')
+  );
+};
+
+/**
+ * The number the name `id` holds where it is read, by its lexical binding:
+ * a top-level `const` of a number written out (`HALF_MS` for `const HALF_MS
+ * = 0.0005`). A parameter or a local of the same name is its own binding,
+ * whose value is not known.
+ */
+export const boundNumber = (id: ESTree.Node & { readonly name: string }) =>
+  Effect.map(SourceCode.getScope(id), (scope) =>
+    Option.flatMap(
+      Option.flatMap(Scope.findVariableUp(scope, id.name), (v: Variable) =>
+        Option.fromUndefinedOr(v.defs[0]),
+      ),
+      (def) => {
+        const node = def.node;
+        if (def.type !== 'Variable' || node.type !== 'VariableDeclarator' || !node.init)
+          return Option.none();
+        if (node.id.type !== 'Identifier' || !topLevelConst(node)) return Option.none();
+        return writtenNumber(node.init);
+      },
+    ),
+  );
 
 /** The property `key` of an object literal, by plain name. */
 export const property = (
