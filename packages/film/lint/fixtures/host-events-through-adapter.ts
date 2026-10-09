@@ -59,6 +59,14 @@ el.addEventListener('pointermove', hear);
 el.onpointerdown = hear;
 // Off the host, a name the rule cannot read is not judged.
 el.addEventListener(kind, hear);
+// The body and the root element hear the window's navigation and every key: the host's.
+document.body.addEventListener('popstate', hear); // RED film/host-events-through-adapter
+document.documentElement.addEventListener('keydown', hear); // RED film/host-events-through-adapter
+document.body.onpopstate = hear; // RED film/host-events-through-adapter
+document.body.onhashchange = hear; // RED film/host-events-through-adapter
+document.body.onkeydown = hear; // RED film/host-events-through-adapter
+document.body.addEventListener('click', hear);
+document.body.onclick = hear;
 // A function the file declares is its own, whatever its name.
 export const own = () => {
   const addEventListener = (type: string, f: () => void) => page.addEventListener(type, f);

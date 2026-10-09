@@ -31,6 +31,7 @@ import { hubKeys } from '../command/changes.ts';
 import type { BrowserServices, Host } from '../../browser/host.ts';
 import { SelectionSheet } from '../selection-sheet.tsx';
 import { type LabApi, NotesApi, reasonOf, served } from '../api.ts';
+import { pressed } from '../pressed.ts';
 import { FeedEvent, FeedState, feedText, spawnFeed, startOf } from './feed.ts';
 
 /** What the page's reads run with: the lab's routes for its film, and its host. */
@@ -209,7 +210,7 @@ export const Pen = (props: { readonly hub: Hub }) => {
       type="button"
       data-act="pen"
       class="sh-btn"
-      aria-pressed={`${feed.pen()}`}
+      aria-pressed={pressed(feed.pen())}
       title={keys.titled('draw freehand ink on the frame', PEN)}
       onClick={() => props.hub.invokeId(PEN, BY_BUTTON)}
     >

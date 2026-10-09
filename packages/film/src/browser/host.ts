@@ -73,7 +73,32 @@ interface AddressBar {
    * rewritten in place, never a step of its own.
    */
   readonly follow: (href: string) => void;
+  /**
+   * The viewer dismissed what an opening put on the URL (a sheet's Close,
+   * Escape, a swipe), for `to`, where the dismissal writes (none: the URL
+   * names nothing to dismiss). Back over the entry the opening pushed
+   * (`opened`) when that entry is on screen and Back lands exactly on `to`
+   * (the same path, query in any order, and hash), so a Back after it leaves
+   * the entry before, not the opening again; else the entry on screen is
+   * rewritten to `to`, keeping a time moved since the opening, which Back
+   * would rewind.
+   */
+  readonly dismiss: (opened: Option.Option<Opened>, to: Option.Option<string>) => void;
 }
+
+/** An entry an opening pushed: its key, and the href of the entry it left, where Back lands. */
+export interface Opened {
+  readonly key: string;
+  readonly before: string;
+}
+
+/** Whether two hrefs are one place: the same path, query (in any order) and hash. */
+const samePlace = (a: string, b: string): boolean => {
+  const [x, y] = [new URL(a, 'http://place'), new URL(b, 'http://place')];
+  x.searchParams.sort();
+  y.searchParams.sort();
+  return x.pathname === y.pathname && x.search === y.search && x.hash === y.hash;
+};
 
 /**
  * The address bar of `host`, through its `UrlState`: writes in one tick make
@@ -91,10 +116,25 @@ export const addressOn = (host: Context.Context<UrlState.UrlState | Location>): 
         );
       }),
     );
+  const follow = (to: string) => navigate(to, () => 'replace');
   return {
     href: () => Effect.runSyncWith(host)(UrlState.UrlState.use((url) => url.href)),
     go: (to) => navigate(to, (from) => pageMove(from, to)),
-    follow: (to) => navigate(to, () => 'replace'),
+    follow,
+    dismiss: (opened, to) => {
+      const { key } = Effect.runSyncWith(host)(Location.use((bar) => bar.current));
+      const back = Option.exists(
+        opened,
+        (o) =>
+          o.key === key &&
+          Option.match(to, { onNone: () => true, onSome: (place) => samePlace(o.before, place) }),
+      );
+      if (back) {
+        Effect.runForkWith(host)(Location.use((bar) => bar.back));
+        return;
+      }
+      Option.map(to, follow);
+    },
   };
 };
 

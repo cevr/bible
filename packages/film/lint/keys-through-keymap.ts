@@ -65,6 +65,17 @@ const listened = (call: ESTree.CallExpression): Option.Option<string> => {
   return Option.liftPredicate(first.value, (event) => !onHost || event === 'contextmenu');
 };
 
+/** The event a handler property set on a target not the host's names (`el.onkeydown = …`), or `oncontextmenu` on the host's. */
+const assigned = (assign: ESTree.AssignmentExpression): Option.Option<string> => {
+  const left = assign.left;
+  if (left.type !== 'MemberExpression') return Option.none();
+  const event = Option.flatMap(memberName(left), (name) =>
+    Option.liftPredicate(name.replace(/^on/, ''), (e) => name.startsWith('on') && EVENTS.has(e)),
+  );
+  const onHost = left.object.type === 'Identifier' && HOSTS.has(left.object.name);
+  return Option.filter(event, (e) => !onHost || e === 'contextmenu');
+};
+
 export const keysThroughKeymap = Rule.define({
   name: 'keys-through-keymap',
   meta: Rule.meta({
@@ -91,6 +102,11 @@ export const keysThroughKeymap = Rule.define({
         Option.match(listened(call), {
           onNone: () => Effect.void,
           onSome: (event) => report(call, event, 'addEventListener'),
+        }),
+      AssignmentExpression: (assign: ESTree.AssignmentExpression) =>
+        Option.match(assigned(assign), {
+          onNone: () => Effect.void,
+          onSome: (event) => report(assign, event, 'a handler property'),
         }),
     };
   },

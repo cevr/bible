@@ -17,6 +17,7 @@ import { hubKeys } from '../command/changes.ts';
 import { CommandChip } from '../command/command-chip.tsx';
 import { BY_BUTTON } from '../../command/command.ts';
 import { LOOP_IDS, ONION } from './commands.ts';
+import { pressed } from '../pressed.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useMotion } from './context.tsx';
 
@@ -74,7 +75,7 @@ export const Section = () => {
             type="button"
             data-act="onion"
             class="sh-btn"
-            aria-pressed={`${state.onion().on}`}
+            aria-pressed={pressed(state.onion().on)}
             title={keys.titled('ghost the frames around this one: warm before, cool after', ONION)}
             onClick={() => meta.hub.invokeId(ONION, BY_BUTTON)}
           >

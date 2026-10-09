@@ -147,9 +147,11 @@ export const HOST_REACH = `(() => {
     });
   };
   const always = (api) => () => api;
+  // The host is the window and the document, and the body and root element, which hear the window's navigation and every key.
+  const isHost = (target) => target === window || target === document || target === document.body || target === document.documentElement;
   wrap(EventTarget.prototype, 'addEventListener', (self, [type]) => {
     if (PRESS_END.has(type)) return 'addEventListener(' + type + ')';
-    if ((self === window || self === document) && ON_HOST.has(type)) return 'addEventListener(' + type + ') on the host';
+    if (isHost(self) && ON_HOST.has(type)) return 'addEventListener(' + type + ') on the host';
     return '';
   });
   // The same reach by a handler property: \`window.onkeydown = h\` listens as addEventListener does.
@@ -162,13 +164,14 @@ export const HOST_REACH = `(() => {
       ...d,
       set: function (handler) {
         if (PRESS_END.has(type)) tell(name);
-        else if ((this === window || this === document) && ON_HOST.has(type)) tell(name + ' on the host');
+        else if (isHost(this) && ON_HOST.has(type)) tell(name + ' on the host');
         return set.call(this, handler);
       },
     });
   };
+  // The body and a frameset have the window's event handlers (\`onpopstate\`, \`onhashchange\`) of their own.
   for (const type of ON_HOST)
-    for (const target of [window, Document.prototype, HTMLElement.prototype, SVGElement.prototype])
+    for (const target of [window, Document.prototype, HTMLElement.prototype, SVGElement.prototype, HTMLBodyElement.prototype, HTMLFrameSetElement.prototype])
       wrapSetter(target, type);
   wrap(Element.prototype, 'setPointerCapture', always('setPointerCapture'));
   wrap(Element.prototype, 'releasePointerCapture', always('releasePointerCapture'));
