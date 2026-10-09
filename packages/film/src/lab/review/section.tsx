@@ -777,7 +777,7 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
     ],
   });
   return (
-    <Inspector of={selection} title={title()}>
+    <Inspector of={selection} kind="version" title={title()}>
       {(box) => (
         <>
           <div class="rv-verdict">

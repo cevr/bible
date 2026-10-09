@@ -535,7 +535,7 @@ const VariantInspector = (props: {
 }) => {
   const { selection, title, said } = useVariantThing(props);
   return (
-    <Inspector of={selection} title={title()}>
+    <Inspector of={selection} kind="choice" title={title()}>
       {(box) => (
         <>
           <div class="rv-row">

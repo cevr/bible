@@ -32,7 +32,7 @@ describe('peekText', () => {
         ],
         Option.some('out'),
       ),
-    ).toBe('cue charge · offset 0.40 · dur 0.60 · ease out');
+    ).toBe('charge · offset 0.40 · dur 0.60 · ease out');
   });
 
   test("a knob's peek: a point's x and y, a number bare", () => {
@@ -45,10 +45,10 @@ describe('peekText', () => {
         ],
         Option.none(),
       ),
-    ).toBe('knob spot · x 120.00 · y 340.50');
+    ).toBe('spot · x 120.00 · y 340.50');
     expect(
       peekText({ _tag: 'Knob', name: 'size' }, [{ id: 'value', value: 1.2 }], Option.none()),
-    ).toBe('knob size · 1.20');
+    ).toBe('size · 1.20');
   });
 });
 

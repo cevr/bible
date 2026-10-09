@@ -57,6 +57,11 @@ const COMMAND_RULES = `
   margin: 0 0 var(--s-1); font-size: var(--fs-2); font-weight: var(--w-3); color: var(--text-2);
   text-transform: uppercase; letter-spacing: var(--track-caps);
 }
+/* A sheet about a thing: its kind is the title; its name and values keep their own case (an ease is a literal). */
+.lab-sheet-subject {
+  font-size: var(--fs-3); font-weight: var(--w-2); color: var(--text-1);
+  text-transform: none; letter-spacing: normal;
+}
 .lab-sheet-about { margin: 0 0 var(--s-2); color: var(--text-2); }
 .lab-command-query {
   width: 100%; font: inherit; font-size: var(--fs-5); padding: var(--cmd-row-pad);
@@ -214,16 +219,19 @@ const COMMAND_RULES = `
   body:has(.lab-inspector-sheet:not([data-peek="true"])) .sh-body { padding-bottom: var(--cmd-sheet-height); }
   /*
    * The Lab's selection (a cue, a knob, a note) peeks one line above its
-   * dock, what it is and its values, cut short rather than wrapped: its head
-   * alone, a target tall with no padding above or below it, so the phone's
-   * stack (header, peek, dock, tab bar) stays within a quarter of the
+   * dock, what it is and its values, wrapped onto a second line rather than
+   * cut before the last value: its head alone, a target tall with no padding
+   * above or below it (two lines of the language's leading fit), so the
+   * phone's stack (header, peek, dock, tab bar) stays within a quarter of the
    * screen. The page's foot clears the peek, or the whole sheet, as it
    * clears the dock.
    */
   .lab-selection-sheet .lab-sheet-title {
-    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1; min-width: 0; margin: 0; line-height: var(--lh-1); overflow-wrap: anywhere;
   }
   .lab-selection-sheet[data-peek="true"] { padding-block: 0; }
+  /* The peek is the subject's line alone; raised, the kind heads it. */
+  .lab-selection-sheet[data-peek="true"] .lab-sheet-kind { display: none; }
   .lab-selection-sheet[data-peek="true"] .lab-inspector-grip { top: 0; }
   .lab-selection-sheet[data-peek="true"] .lab-inspector-grip::before { top: var(--s-1); }
   body.lab:has(.lab-selection-sheet) { padding-bottom: calc(var(--cmd-sheet-floor) + var(--cmd-peek-h)); }

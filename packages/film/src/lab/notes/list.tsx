@@ -344,7 +344,7 @@ const Item = (props: ItemProps) => {
           host={props.host}
           hub={props.hub}
           of={Option.as(feed.staged(), of())}
-          peek={`note ${label(props.note, at())} · ${props.note.status}`}
+          peek={`${label(props.note, at())} · ${props.note.status}`}
           dismiss={() => Option.map(feed.staged(), (s) => s.dismiss())}
         >
           <Show when={props.note.status !== 'resolved'}>

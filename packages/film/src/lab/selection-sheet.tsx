@@ -16,8 +16,8 @@ import { PHONE, useMatches } from './viewport.ts';
 
 /**
  * `children`, the inspector of `of` (none: nothing selected): in place, or on
- * a phone while something is selected in the sheet, its peek `peek` (one
- * line naming the selection and its values).
+ * a phone while something is selected in the sheet, headed by its kind and
+ * peeking `peek` (one line naming the selection and its values).
  */
 export const SelectionSheet = (props: {
   readonly host: Host;
@@ -41,6 +41,7 @@ export const SelectionSheet = (props: {
           role="inspector"
           class="lab-selection-sheet"
           peeked
+          kind={of()._tag.toLowerCase()}
           title={props.peek}
           initialFocus={() => false}
           onClose={props.dismiss}

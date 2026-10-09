@@ -121,7 +121,10 @@ export const Sheet = (props: {
   readonly of?: Selection;
   /** Its `data-role`: `inspector`, `scene`, `findings`. */
   readonly role: string;
+  /** What the sheet is about: its name and values, in their own case when `kind` heads them. */
   readonly title: JSX.Element;
+  /** The kind of thing it is about (`cue`, `note`), the head's title in the panel title's caps. */
+  readonly kind?: string;
   /** Its page's class for it, beside the sheet's own. */
   readonly class?: string;
   readonly peeked?: boolean;
@@ -166,7 +169,16 @@ export const Sheet = (props: {
           >
             <header class="lab-inspector-head">
               <SheetGrip peek={peek()} toggle={() => setPeek(!peek())} />
-              <Drawer.Title class="lab-sheet-title">{props.title}</Drawer.Title>
+              <Drawer.Title class="lab-sheet-title">
+                <Show when={props.kind} fallback={props.title}>
+                  {(kind) => (
+                    <>
+                      <span class="lab-sheet-kind">{kind()}</span>{' '}
+                      <span class="lab-sheet-subject">{props.title}</span>
+                    </>
+                  )}
+                </Show>
+              </Drawer.Title>
               <Drawer.Close class="lab-inspector-close" data-act="close-inspector">
                 Close
               </Drawer.Close>

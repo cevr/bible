@@ -266,6 +266,8 @@ export const useInspected = (of: Selection): Accessor<boolean> => {
 export const Inspector = (props: {
   readonly of: Selection;
   readonly title: string;
+  /** The kind of thing it is, when `title` is its name alone (`Sheet`'s head). */
+  readonly kind?: string;
   readonly children: (box: InspectorBox) => JSX.Element;
 }) => {
   const inspecting = useInspecting();
@@ -291,6 +293,7 @@ export const Inspector = (props: {
           hub={inspecting.hub}
           of={props.of}
           role="inspector"
+          kind={props.kind}
           title={props.title}
           initialFocus={() =>
             Option.getOrElse(
