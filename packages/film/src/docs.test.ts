@@ -38,7 +38,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
-import { LabHttpApi, routesOf } from './core/api.ts';
+import { LabHttpApi, declares as declaresRoute, routesOf } from './core/api.ts';
 
 /** What the docs are read against. */
 interface Code {
@@ -535,7 +535,72 @@ const mockDrift = (file: string, text: string, tokens: ReadonlySet<string>) => [
     .map((name) => `${file}: writes ${name}`),
 ];
 
+/** A `METHOD /api/…` a comment names, its path as written (a `<x>` or `:x` is one segment). */
+const CITED_ROUTE = /\b(GET|POST|PUT|PATCH|DELETE)\s+`?(\/api\/[a-z][^\s`'",)]*)/g;
+
+/**
+ * Each route a comment in `text` (a line that is a comment) names that the
+ * API does not declare, with its file and line.
+ */
+const commentRouteDrift = (
+  file: string,
+  text: string,
+  has: (method: string, pathname: string) => boolean,
+) =>
+  text.split('\n').flatMap((line, i) => {
+    const t = line.trim();
+    if (!(t.startsWith('//') || t.startsWith('*') || t.startsWith('/*'))) return [];
+    return matches(t, CITED_ROUTE).flatMap((m) => {
+      const method = Option.getOrElse(Option.fromUndefinedOr(m[1]), () => '');
+      const cited = Option.getOrElse(Option.fromUndefinedOr(m[2]), () => '');
+      const pathname = cited
+        .replace(/[.;:]+$/, '')
+        .replace(/<[^>]+>/g, 'x')
+        .replace(/:\w+/g, 'x')
+        .split('?')[0];
+      return Array.of(`${file}:${i + 1}: ${method} ${cited} is declared by no API`).filter(
+        () => !has(method, pathname ?? ''),
+      );
+    });
+  });
+
 describe('the docs', () => {
+  it.effect.layer(BunServices.layer)(
+    'let no comment in the film package name a route the API does not declare',
+    () =>
+      Effect.gen(function* () {
+        const root = yield* ROOT;
+        const fs = yield* FileSystem.FileSystem;
+        const has = declaresRoute(LabHttpApi);
+        const files = (yield* fs.readDirectory(`${root}/${FILM_SRC}`, { recursive: true })).filter(
+          (f) => /\.tsx?$/.test(f) && !f.includes('node_modules'),
+        );
+        expect(files.length).toBeGreaterThan(100);
+        const drift = yield* Effect.forEach(files, (file) =>
+          Effect.map(fs.readFileString(`${root}/${FILM_SRC}/${file}`), (text) =>
+            commentRouteDrift(file, text, has),
+          ),
+        );
+        expect(drift.flat()).toEqual([]);
+        // A comment that names a route the API lacks is red; code and declared routes are not.
+        expect(
+          commentRouteDrift(
+            'red.ts',
+            [
+              '// POST /api/films/<film>/choices/level moved a knob',
+              ' * GET /api/review/gone',
+              '// POST /api/films/<film>/choices/knob and GET /api/review/index',
+              "const url = 'GET /api/nowhere';",
+            ].join('\n'),
+            has,
+          ),
+        ).toEqual([
+          'red.ts:1: POST /api/films/<film>/choices/level is declared by no API',
+          'red.ts:2: GET /api/review/gone is declared by no API',
+        ]);
+      }),
+  );
+
   it.effect.layer(BunServices.layer)(
     'name only routes, rules, scripts, paths, symbols, flags and findings the code has',
     () =>
