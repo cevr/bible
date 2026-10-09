@@ -2,6 +2,7 @@ import { Command } from 'effect/cli';
 import { Console, Effect, References } from 'effect';
 
 import { concordance, verse } from './bible.js';
+import { check } from './check.js';
 import { egwWithSubcommands } from './egw.js';
 import { exportOutput } from './export.js';
 import { handbook } from './handbook.js';
@@ -28,6 +29,7 @@ Commands:
   verse             Read or search Bible text
   concordance       Search Strong's concordance entries
   egw               Read or search Ellen G. White writings
+  check             Verify a document's quotations against the corpus
   studies           Generate and manage studies
   sabbath-school    Generate Sabbath School outlines
   messages          Generate sermon messages
@@ -51,6 +53,7 @@ export const rootCommand = Command.make('bible', cliOptions, () => Console.log(r
     concordance,
     verse,
     egwWithSubcommands,
+    check,
     slides,
     handbook,
     hymns,
