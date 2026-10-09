@@ -396,6 +396,30 @@ describe('on a phone, one sheet to close and one place to look', () => {
       yield* evaluates(page, NAMES_CUE_OR_CODE, false);
     }).pipe(Effect.scoped),
   );
+
+  // The address bar's dismissal is the one rule: Back over the line's step
+  // would land on the Source view, not where the Close writes (neither), so
+  // the Close rewrites the step and Back is the view again.
+  it.live('the sheet closed after a line held in its own Source: Back is the view', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(1, { code: 'follow' }),
+        viewport: PHONE,
+      });
+      yield* page.waitFor('[data-role="source"] .lab-source-page');
+      yield* page.click(`.lab-source-line[data-line="${RISE_LINE}"]`);
+      yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+      yield* page.click('.lab-selection-sheet [data-act="close-inspector"]');
+      yield* countIs(page, '.lab-selection-sheet', 0);
+      yield* evaluates(page, NAMES_CUE_OR_CODE, false);
+      yield* page.back;
+      yield* evaluates(
+        page,
+        `location.search.includes('code=follow') && !location.search.includes('cue=')`,
+        true,
+      );
+    }).pipe(Effect.scoped),
+  );
 });
 
 describe('on a phone, Close in every mode lets go of the cue with the view', () => {
