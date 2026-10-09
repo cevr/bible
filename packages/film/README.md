@@ -42,9 +42,9 @@ argument. A short's id and an act's name are each declared once (`Shorts`,
 
 ## Tools
 
-`film narrate|takes import|script|score|mix|cues|check|render|lookbook|look|judge|journal|project|chapters|notes|options|read <film>` (and `film doctor`, `film lab` (the lab and the review, every film), `film media …` over the private media store, and `film sfx …` over the app's sound library, `tools/sfx-cli.ts`) runs from the app that holds the
-films. The app owns the entry: it calls `runFilmCli({ films, sounds, folders, previewServer, lab, self, judge })`
-with its films folder, its sound library folder, its own `out` and `lab` folders
+`film narrate|takes import|script|score|mix|cues|check|render|lookbook|look|judge|journal|project|chapters|notes|options|read <film>` (and `film doctor`, `film lab` (the lab and the review, every film), `film media …` over the private media store, `film sfx …` over the app's sound library, `tools/sfx-cli.ts`, and `film footage …` over its footage library, `tools/footage-cli.ts`) runs from the app that holds the
+films. The app owns the entry: it calls `runFilmCli({ films, sounds, footage, folders, previewServer, lab, self, judge })`
+with its films folder, its sound library folder, its footage library folder, its own `out` and `lab` folders
 (where a run writes renders and notes, whatever directory it starts in; `FILMS_OUT` and
 `FILMS_LAB` win when set), a scoped `PreviewServer` layer that serves its
 player page, `lab`: where the lab listens (`at`, a `LabAt`), its pages
@@ -90,6 +90,40 @@ declaration could take). A sound that names no `influence` is made at its
 use's default (`DEFAULT_INFLUENCE`: 0.7 for a one-shot, 0.3 for a bed) and
 as `DEFAULT_CANDIDATES` (6 one-shots, 3 beds), both measured in the sweet-spot
 trials (`apps/animations/sounds/PROMPTING.md`).
+
+`film footage` is the app's camera footage (`FootageLibrary`,
+`tools/footage.ts`, its schema in `core/footage.ts`), shared by its talks.
+`import <file> --as <name> [--take]` keeps an original whole under the
+git-ignored `files/<name>/<sha12><ext>`, by the hash of its bytes, once it is
+probed (`FootageMedia`, `tools/footage-media.ts`: container, codec, displayed
+size, rotation, rate and whether it varies, where its picture starts, its
+sound) and found one the render can conform: HDR fails `FootageHdr`, naming
+the iPhone's setting, and a take with no sound `FootageSilent`; a take whose
+sound is lossy imports with `footage.lossy`. Importing the same bytes again
+answers the name they have; a name holding other bytes fails
+`FootageNameTaken` (a second recording is a second name). Both cameras a talk
+is shot on import as they record: an iPhone's HEVC MOV and a Sony ZV-E10's
+XAVC S (H.264 MP4, landscape, framed to 9:16 by the talk's `frame` knob).
+`make [name…]` derives, under `<FILMS_OUT>/footage/<name>/<sha12>/`, the
+mezzanine (H.264 at the original's size, CRF 16, a key frame every second)
+and the proxy (1280 on its long side, never larger than the original, CRF 26,
+a key frame every half second), each constant-rate at 30, its rotation baked
+in, stamped from its first frame, and remade only when its recipe
+(`FOOTAGE_RECIPES`, recorded in `stamp.json`) changes; a take's voice
+(`voice.flac`, one channel at `MIX_RATE`, levelled by one gain and never
+trimmed, laid on the picture's clock, so a frame and the voice at its time
+are one moment, whatever the camera's rate: `tools/av-sync.test.ts`); and,
+once per take, its transcript (`ElevenLabs.stt`, the one paid call, run only
+when a take has none or `--hear-again` asks): its words, each voiced, and its
+loudness every 10 ms in whole dB, under `transcripts/<name>.<sha12>[.n].json`,
+committed. A second hearing is a second file, which the lock
+(`library.lock.json`) then names; a transcript is never rewritten. The copies
+are made frame by frame, not by a mediabunny `Conversion`, so each copy's
+content hint reaches x264 (`FOOTAGE_HINTS`), which sets its key-frame
+interval itself (`keyint`: node-av clears the key-frame flag mediabunny
+asks for). `push` and `pull` keep the originals in the private store under
+`footage/<name>/<sha12><ext>`, each read back by its hash; `list` prints the
+lock.
 
 Preflights: `film doctor` checks headless Chrome (a page opened and closed
 in Bun.WebView's Chrome: `BUN_CHROME_PATH`, else the Chrome Bun finds, else

@@ -6,6 +6,7 @@
 //   film narrate | takes import | script | score | mix       the voice and the sound
 //   film sfx …        (sfx-cli.ts)     the app's sound library
 //   film media …      (media-cli.ts)   the app's private media store
+//   film footage …    (footage-cli.ts) the app's camera footage, its copies and a take's transcript
 //   film cues | check | doctor                                 read and check a film
 //   film render | lookbook | chapters                          pictures and video
 //   film project …    (project-cli.ts) a film's scenes rendered, approved, commented
@@ -98,6 +99,7 @@ import {
   jobOf,
 } from './render-plan.ts';
 import { media } from './media-cli.ts';
+import { footage } from './footage-cli.ts';
 import { options } from './choices-cli.ts';
 import { answeringCheck, encodeCheckLine } from './fresh-film.ts';
 import { sfx } from './sfx-cli.ts';
@@ -827,6 +829,8 @@ interface FilmApp<E> {
   readonly films: string;
   /** The app's sound library folder (`library.ts`, its lock, `files/`, `public/`), shared by its films. */
   readonly sounds: string;
+  /** The app's footage library folder (its lock, `transcripts/`, `files/`), shared by its talks. */
+  readonly footage: string;
   /**
    * The app's own folders for what a run makes: `out`, its renders, sheets and
    * project folders (`FILMS_OUT`), and `lab`, the lab's notes (`FILMS_LAB`).
@@ -876,6 +880,7 @@ interface FilmApp<E> {
 export const runFilmCli = <E>({
   films,
   sounds,
+  footage: footageAt,
   folders,
   previewServer,
   lab: labApp,
@@ -887,6 +892,7 @@ export const runFilmCli = <E>({
   const Services = filmServices({
     films,
     sounds,
+    footage: footageAt,
     folders,
     self,
     roots: labApp.roots,
@@ -908,6 +914,7 @@ export const runFilmCli = <E>({
       score,
       sfx,
       media,
+      footage,
       mix,
       options,
       read,

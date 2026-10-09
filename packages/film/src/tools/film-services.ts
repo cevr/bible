@@ -18,6 +18,8 @@ import { ContentStore } from './content-store.ts';
 import { Easel } from './easel.ts';
 import type { ElevenLabs } from './elevenlabs.ts';
 import { FilmRepo } from './film-repo.ts';
+import { FootageLibrary } from './footage.ts';
+import { FootageMedia } from './footage-media.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { labHandler } from './lab.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
@@ -44,6 +46,8 @@ interface FilmServicesSpec {
   readonly films: string;
   /** The app's sound library folder (`library.ts`, its lock, `files/`, `public/`). */
   readonly sounds: string;
+  /** The app's footage library folder (its lock, `transcripts/`, `files/`), shared by its talks. */
+  readonly footage: string;
   /**
    * The app's folders for what a run makes (`FILMS_OUT`) and the lab's notes
    * (`FILMS_LAB`); the environment's value wins when it names one.
@@ -69,7 +73,7 @@ interface FilmServicesSpec {
  * The services every `film` command and the lab run with: the films and their
  * notes, a film's source (read, written, stepped, its scenes located fresh
  * for the lab and in process for a command's stamps), the paid tools and the
- * media, the sound library and its private store, the narrator, composer and
+ * media, the sound library, the footage library and their private store, the narrator, composer and
  * mixer, the renders' catalogue and the review over the roots, the choices,
  * the takes and the studio's readings, under the app's folders.
  */
@@ -105,6 +109,12 @@ export const filmServices = (spec: FilmServicesSpec) => {
   const Library = SoundLibrary.layer(spec.sounds).pipe(
     Layer.provide([Store, Tools, Private, Platform]),
   );
+  // The footage library's originals sync with the same private store; its copies are made
+  // over the media service's coders.
+  const Footage = FootageLibrary.layer(spec.footage).pipe(
+    Layer.provide(FootageMedia.layer.pipe(Layer.provide([Tools, Platform]))),
+    Layer.provide([Store, Tools, Private, Platform]),
+  );
   const Reviewed = Review.layerConfig(spec.roots).pipe(
     Layer.provideMerge(BunHttpPlatform.layer),
     // Its lengths, frames and phone copies are the Media service's; a say on a
@@ -122,6 +132,7 @@ export const filmServices = (spec: FilmServicesSpec) => {
             Notes,
             Source,
             Library,
+            Footage,
             Private,
             Store,
             Tools,

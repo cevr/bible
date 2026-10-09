@@ -47,6 +47,7 @@ const world = Layer.unwrap(
     return filmServices({
       films,
       sounds: path.join(root, 'sounds'),
+      footage: path.join(root, 'footage'),
       folders: { out: path.join(root, 'out'), lab: path.join(root, 'lab') },
       self: ['bun', 'cli.ts'],
       roots: Effect.succeed([]),

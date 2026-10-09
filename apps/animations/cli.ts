@@ -11,6 +11,9 @@ import { FILMS, LAB_PAGES, LAB_SERVERS, serve } from './server.ts';
 /** The app's sound library, shared by its films (`sounds/library.ts`). */
 export const SOUNDS = `${import.meta.dir}/sounds`;
 
+/** The app's footage library, shared by its talks (`footage/library.lock.json`). */
+export const FOOTAGE = `${import.meta.dir}/footage`;
+
 /**
  * Where the app's runs put what they make (`out`: renders, sheets, project
  * folders) and the lab's notes (`lab`), whatever directory a run starts in
@@ -74,6 +77,7 @@ export const appCli = (films: string, sounds: string, self: string): void =>
   runFilmCli<Config.ConfigError>({
     films,
     sounds,
+    footage: FOOTAGE,
     folders: FOLDERS,
     previewServer: player(films),
     lab: {

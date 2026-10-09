@@ -30,7 +30,7 @@ import {
 } from '@bible/film/tools';
 import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { FOLDERS, SOUNDS } from './cli.ts';
+import { FOLDERS, FOOTAGE, SOUNDS } from './cli.ts';
 import { FILMS, LAB_PAGES, LAB_SERVERS } from './server.ts';
 
 /** What the fake hears for a beat it is told to mis-hear. */
@@ -151,6 +151,7 @@ const Harness = Layer.unwrap(
         filmServices({
           films: root,
           sounds: SOUNDS,
+          footage: FOOTAGE,
           folders: FOLDERS,
           self: ['bun', cli],
           roots: Effect.succeed([]),
