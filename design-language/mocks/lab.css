@@ -12,14 +12,14 @@
 
 .work {
   display: grid;
-  gap: 1px;
+  gap: var(--hairline);
   background: var(--surface-0);
 }
 
 .main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 1px;
+  gap: var(--hairline);
   min-width: 0;
   align-content: start;
 }

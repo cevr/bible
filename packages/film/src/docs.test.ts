@@ -38,6 +38,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { parseSync } from 'oxc-parser';
 import { LabHttpApi, declares as declaresRoute, routesOf } from './core/api.ts';
 
 /** What the docs are read against. */
@@ -540,50 +541,70 @@ const stepsOf = (sheet: string, name: RegExp): ReadonlySet<number> =>
       .map((m) => Number(m[2])),
   );
 
-/** The space, type and radius scales of the player's sheet. */
+/**
+ * The space, type and radius scales of the player's sheet, each over every
+ * property that sets it: a side's or a logical side's margin and padding, a
+ * gap, a corner's radius.
+ */
 const scalesOf = (sheet: string): ReadonlyArray<Scale> => [
   {
     what: 'space',
-    property: /^(?:margin|padding)(?:-[a-z]+)?$|^(?:row-|column-)?gap$/,
+    property:
+      /^(?:margin|padding)(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?$|^(?:row-|column-)?gap$/,
     steps: stepsOf(sheet, /^--s-/),
   },
+  { what: 'type size', property: /^font-size$/, steps: stepsOf(sheet, /^--fs-/) },
+  { what: 'line height', property: /^line-height$/, steps: stepsOf(sheet, /^--lh-/) },
   {
-    what: 'type',
-    property: /^(?:font-size|line-height)$/,
-    steps: stepsOf(sheet, /^--(?:fs|lh)-/),
+    what: 'radius',
+    property: /^border(?:-(?:top|bottom|start|end)-(?:left|right|start|end))?-radius$/,
+    steps: stepsOf(sheet, /^--r-/),
   },
-  { what: 'radius', property: /^border-radius$/, steps: stepsOf(sheet, /^--r-/) },
 ];
 
-/** A hairline, the `--border`'s own width, is no step of a scale: it is the line between two things. */
-const HAIRLINE_PX = 1;
+/** A declaration as its longhands: the `font` shorthand's size and line height (`15px/19px mono`), else itself. */
+const longhands = (property: string, value: string): ReadonlyArray<readonly [string, string]> => {
+  if (property !== 'font') return [[property, value]];
+  // The size is all before the slash outside a `calc()`; the line height, the word after it.
+  const [size = '', height = ''] = value.split(/\/(?![^(]*\))/);
+  return [
+    ['font-size', size],
+    ['line-height', height.trim().split(/\s+/)[0] ?? ''],
+  ];
+};
+
+/**
+ * Each declaration a mock writes, as longhands: in its sheets' rules and in
+ * its elements' `style` attributes, comments left out.
+ */
+const declarationsOf = (text: string): ReadonlyArray<readonly [string, string]> => {
+  const bare = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+  return [
+    ...matches(bare, /\{([^{}]*)\}/g).map(firstGroup),
+    ...matches(bare, /\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/g).map((m) => m[1] ?? m[2] ?? ''),
+  ].flatMap((body) =>
+    matches(body, /(?<![\w-])([a-z][a-z-]*)\s*:\s*([^;]+)/g).flatMap((declaration) =>
+      longhands(declaration[1] ?? '', declaration[2] ?? ''),
+    ),
+  );
+};
 
 /**
  * Each px length a mock writes for a space, type or radius that no step of
- * the scale gives, but a hairline and a centring margin: a negative margin
- * of half the width its own rule gives (a dot centred on its point).
+ * the scale gives. A length derived from one the rule names (a dot's margin
+ * of half its size, `calc(var(--dot) / -2)`) writes no px of its own.
  */
 const scaleDrift = (file: string, text: string, scales: ReadonlyArray<Scale>) =>
-  matches(text.replace(/\/\*[\s\S]*?\*\//g, ''), /\{([^{}]*)\}/g).flatMap((rule) => {
-    const body = firstGroup(rule);
-    const width = Number(/(?<![\w-])width\s*:\s*(\d+(?:\.\d+)?)px/.exec(body)?.[1]);
-    return matches(body, /(?<![\w-])([a-z][a-z-]*)\s*:\s*([^;]+)/g).flatMap((declaration) => {
-      const property = declaration[1] ?? '';
-      return scales
-        .filter((scale) => scale.property.test(property))
-        .flatMap((scale) =>
-          matches(declaration[2] ?? '', /(-?\d*\.?\d+)px/g)
-            .map((length) => Number(length[1]))
-            .filter(
-              (px) =>
-                Math.abs(px) !== HAIRLINE_PX &&
-                !scale.steps.has(px) &&
-                !(px < 0 && property.startsWith('margin') && -2 * px === width),
-            )
-            .map((px) => `${file}: ${property} ${px}px is no ${scale.what} step`),
-        );
-    });
-  });
+  declarationsOf(text).flatMap(([property, value]) =>
+    scales
+      .filter((scale) => scale.property.test(property))
+      .flatMap((scale) =>
+        matches(value, /(-?\d*\.?\d+)px/g)
+          .map((length) => Number(length[1]))
+          .filter((px) => !scale.steps.has(px))
+          .map((px) => `${file}: ${property} ${px}px is no ${scale.what} step`),
+      ),
+  );
 
 /**
  * What a mock does that the kit owns: writes a token, wears no tokens.css or
@@ -605,34 +626,50 @@ const mockDrift = (
   ...scaleDrift(file, text, scales),
 ];
 
-/** A `METHOD /api/…` a comment names, its path as written (a `<x>` or `:x` is one segment). */
-const CITED_ROUTE = /\b(GET|POST|PUT|PATCH|DELETE)\s+`?(\/api\/[a-z][^\s`'",)]*)/g;
+/**
+ * A `METHOD /api/…` a comment names, its path whole as written: a parameter
+ * is a segment of its own, written `<x>`, `:x` or `${…}` (a template's, its
+ * call's parentheses and all). A path that starts with no name (`/api/…`)
+ * stands for every route, and names none.
+ */
+const CITED_ROUTE =
+  /\b(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)\s+`?(\/api\/(?=[a-z$<:])(?:\$\{[^}]*\}|<[^>\s]+>|[^\s`'",()<>[\]{}])+)/g;
+
+/** A cited path as the API matches it: each parameter one segment, no query or hash. */
+const pathOf = (cited: string) =>
+  cited
+    .replace(/\$\{[^}]*\}|<[^>\s]+>|(?<=\/):\w+/g, 'x')
+    .split(/[?#]/)
+    .at(0) ?? '';
 
 /**
- * Each route a comment in `text` (a line that is a comment) names that the
- * API does not declare, with its file and line.
+ * Each route a comment in `text` names that the API does not declare, with
+ * its file and line: the comments as the parser (oxc) reads them, so a
+ * comment after code or a block's unstarred body is read, and a string that
+ * looks like one is not.
  */
 const commentRouteDrift = (
   file: string,
   text: string,
   has: (method: string, pathname: string) => boolean,
-) =>
-  text.split('\n').flatMap((line, i) => {
-    const t = line.trim();
-    if (!(t.startsWith('//') || t.startsWith('*') || t.startsWith('/*'))) return [];
-    return matches(t, CITED_ROUTE).flatMap((m) => {
+): ReadonlyArray<string> => {
+  const parsed = parseSync(file, text);
+  if (parsed.errors.length > 0) return [`${file}: the parser cannot read it`];
+  return parsed.comments.flatMap((comment) =>
+    // A comment's text starts after its `//` or `/*`.
+    matches(comment.value, CITED_ROUTE).flatMap((m) => {
       const method = Option.getOrElse(Option.fromUndefinedOr(m[1]), () => '');
-      const cited = Option.getOrElse(Option.fromUndefinedOr(m[2]), () => '');
-      const pathname = cited
-        .replace(/[.;:]+$/, '')
-        .replace(/<[^>]+>/g, 'x')
-        .replace(/:\w+/g, 'x')
-        .split('?')[0];
-      return Array.of(`${file}:${i + 1}: ${method} ${cited} is declared by no API`).filter(
-        () => !has(method, pathname ?? ''),
+      const cited = Option.getOrElse(Option.fromUndefinedOr(m[2]), () => '').replace(
+        /[.,;:]+$/,
+        '',
       );
-    });
-  });
+      const line = text.slice(0, comment.start + 2 + m.index).split('\n').length;
+      return Array.of(`${file}:${line}: ${method} ${cited} is declared by no API`).filter(
+        () => !has(method, pathOf(cited)),
+      );
+    }),
+  );
+};
 
 describe('the docs', () => {
   it.effect.layer(BunServices.layer)(
@@ -652,21 +689,43 @@ describe('the docs', () => {
           ),
         );
         expect(drift.flat()).toEqual([]);
-        // A comment that names a route the API lacks is red; code and declared routes are not.
+        // A comment that names a route the API lacks is red, wherever the comment sits: its
+        // own line, after code, a block's unstarred body; HEAD and OPTIONS too. A declared
+        // route is not, its parameters written as `<x>`, `:x` or `${…}`; nor is a string.
         expect(
           commentRouteDrift(
             'red.ts',
             [
               '// POST /api/films/<film>/choices/level moved a knob',
+              '/**',
               ' * GET /api/review/gone',
+              ' */',
               '// POST /api/films/<film>/choices/knob and GET /api/review/index',
               "const url = 'GET /api/nowhere';",
+              'const a = 1; // POST /api/films/:film/choices/level after code',
+              '/*',
+              '  GET /api/review/also-gone',
+              '*/',
+              '// HEAD /api/review/index, OPTIONS /api/films/<film>/notes',
+              '// GET /api/films/${encodeURIComponent(film)}/notes/wait, POST /api/films/:film/notes/:id/reply.',
+              'const doc = `',
+              '// GET /api/nowhere/in/a/string',
+              ' * POST /api/never',
+              '`;',
             ].join('\n'),
             has,
           ),
         ).toEqual([
           'red.ts:1: POST /api/films/<film>/choices/level is declared by no API',
-          'red.ts:2: GET /api/review/gone is declared by no API',
+          'red.ts:3: GET /api/review/gone is declared by no API',
+          'red.ts:7: POST /api/films/:film/choices/level is declared by no API',
+          'red.ts:9: GET /api/review/also-gone is declared by no API',
+          'red.ts:11: HEAD /api/review/index is declared by no API',
+          'red.ts:11: OPTIONS /api/films/<film>/notes is declared by no API',
+        ]);
+        // A file the parser cannot read is red: its comments are not known.
+        expect(commentRouteDrift('broken.ts', 'const = ;', has)).toEqual([
+          'broken.ts: the parser cannot read it',
         ]);
       }),
   );
@@ -805,23 +864,31 @@ describe('the docs', () => {
             scales,
           ),
         ).toEqual(['lab-red.html: links no lab.css']);
-        // A space, type or radius off its scale is red; a hairline, a step, a var and a centred dot are not.
+        // A space, type or radius off its scale is red, in a rule or a `style` attribute, a
+        // shorthand, a logical side or a corner, with nothing let off: not a 1px, not a negative
+        // margin beside a width. A step, a var and a dot's margin derived from its size are not.
         expect(
           mockDrift(
             'scale.html',
             `<link href="tokens.css"><link href="kit.css"><style>
-              .a { margin: -17px 0 0 -17px; width: 40px; padding: 6px var(--s-2) 8px; gap: 1px 12px; }
-              .b { margin: -14px 0 0 -14px; width: 28px; font-size: 15px; line-height: var(--lh-2); border-radius: 3px 4px; }
-            </style>`,
+              .a { padding: 6px var(--s-2) 8px; gap: 12px; padding-inline-start: 6px; margin-block-end: 8px; }
+              .b { font: 15px/19px monospace; font-size: 1px; line-height: 1px; border-top-left-radius: 3px; border-radius: 4px; }
+              .panel { width: 34px; height: 100px; margin-bottom: -17px }
+              .dot { --dot: 34px; width: var(--dot); margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2); font: var(--w-3) var(--fs-2) / var(--lh-2) var(--font); }
+            </style><p style="margin:6px; padding: 4px">x</p>`,
             tokens,
             scales,
           ),
         ).toEqual([
-          'scale.html: margin -17px is no space step',
-          'scale.html: margin -17px is no space step',
           'scale.html: padding 6px is no space step',
-          'scale.html: font-size 15px is no type step',
-          'scale.html: border-radius 3px is no radius step',
+          'scale.html: padding-inline-start 6px is no space step',
+          'scale.html: font-size 15px is no type size step',
+          'scale.html: line-height 19px is no line height step',
+          'scale.html: font-size 1px is no type size step',
+          'scale.html: line-height 1px is no line height step',
+          'scale.html: border-top-left-radius 3px is no radius step',
+          'scale.html: margin-bottom -17px is no space step',
+          'scale.html: margin 6px is no space step',
         ]);
       }),
   );
