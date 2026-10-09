@@ -136,8 +136,8 @@ Three layers fill it:
   `hashchange` listener on the window (however it is spelled, a bare
   `addEventListener` among them) out of every other module of this
   package, of egw-search, and of the film's lab, player and browser modules.
-- `layerMemory(href)`: a history stack in memory; `back` at its first entry
-  stays there. `LocationHistory` adds `forward` and the stack (`entries`)
+- `layerMemory(href)` (`@bible/url-state/testing`): a history stack in memory;
+  `back` at its first entry stays there. `LocationHistory` adds `forward` and the stack (`entries`)
   for a test to drive and read.
 - `layerServer(href)`: the request URL without its hash, read-only. A write
   is ignored and logged at Debug (`location.server.write.ignored`); a `back`

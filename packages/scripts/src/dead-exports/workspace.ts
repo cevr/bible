@@ -1,8 +1,9 @@
 // The workspace the dead-export check reads: every TypeScript file of the
 // packages and apps, how a specifier (a relative path, `@bible/film/canvas`)
-// points at one of them, which files are public entries of their package, and
-// which are tests or their support (which use an export for real no more than
-// its own file does).
+// points at one of them, which files something outside the module graph runs
+// (the roots: apps, bins, scripts a `package.json` runs), and which are tests
+// or their support (which use an export for real no more than its own file
+// does).
 
 import { Array as Arr, Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { type ModuleRecord, type Resolve, type Workspace, recordOf } from './graph.js';
@@ -14,6 +15,7 @@ const PackageJson = Schema.fromJsonString(
     main: Schema.optionalKey(Schema.String),
     bin: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
     exports: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
+    scripts: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
   }),
 );
 
@@ -23,6 +25,8 @@ interface Package {
   readonly name: Option.Option<string>;
   /** `.`, `./canvas`, `main` or `bin:bible` → the file, relative to the root. */
   readonly entries: ReadonlyMap<string, string>;
+  /** The TypeScript files its `bin` and `scripts` run, relative to the root. */
+  readonly runs: ReadonlyArray<string>;
   /** Where `~/` points inside the package, from its tsconfig `paths` (`~/*` → `./app/*`): `packages/cli/`. */
   readonly home: Option.Option<string>;
 }
@@ -59,6 +63,21 @@ const SPECIFIER = /^(@[^/]+\/[^/]+|[^/@][^/]*)(\/.*)?$/;
 /** A tsconfig's `"~/*": ["./app/*"]`: the directory `~/` stands for, captured as `app/`. */
 const TILDE = /"~\/\*"\s*:\s*\[\s*"\.\/([^"*]*)\*"/;
 
+/** A script command that runs a TypeScript file: `bun src/x.ts`, `bun run --cwd . src/x.ts`. */
+const RUNS_FILE = /(?:^|[\s;&|(])(?:bun|node|tsx)\s+(?:(?:run|--\S+)\s+)*(\S+\.tsx?)(?=\s|$)/g;
+
+/** Package files that run without an importer or a script naming them, by what runs them. */
+const RUN_BY_NAME: ReadonlyMap<string, string> = new Map([
+  [
+    'packages/cli/src/main.ts',
+    'the entry packages/cli/scripts/build.ts compiles into the bible bin',
+  ],
+  [
+    'packages/film/src/tools/page-render-worker.ts',
+    'the Worker packages/film/src/tools/page-render.ts spawns',
+  ],
+]);
+
 /** The `package.json` of directory `dir`, read: none for a directory that is no package. */
 const readPackage = (root: string, dir: string) =>
   Effect.gen(function* () {
@@ -82,9 +101,17 @@ const readPackage = (root: string, dir: string) =>
           (file) => [`bin:${file}`, file] as const,
         ),
       ];
+      const commands = Object.values(
+        Option.getOrElse(Option.fromUndefinedOr(pkg.scripts), () => ({})),
+      );
+      const scripted = commands.flatMap((command) =>
+        [...command.matchAll(RUNS_FILE)].flatMap((m) => Option.toArray(Option.fromNullishOr(m[1]))),
+      );
+      const bins = Object.values(Option.getOrElse(Option.fromUndefinedOr(pkg.bin), () => ({})));
       return {
         dir,
         home,
+        runs: [...scripted, ...bins].map((file) => path.join(dir, file)),
         name: Option.fromUndefinedOr(pkg.name),
         entries: new Map(named.map(([key, file]) => [key, path.join(dir, file)])),
       };
@@ -165,26 +192,28 @@ export const readWorkspace = (root: string) =>
     );
     const packages = new Map<string, Package>();
     const byDir = new Map<string, Package>();
-    const entries = new Map<string, string>();
-    for (const dir of dirs) {
+    const runs = new Set<string>(RUN_BY_NAME.keys());
+    for (const dir of [...dirs, '.']) {
       const pkg = yield* readPackage(root, dir);
       for (const found of Option.toArray(pkg)) {
         byDir.set(dir, found);
         for (const name of Option.toArray(found.name)) packages.set(name, found);
-        for (const [key, file] of found.entries)
-          entries.set(
-            file,
-            `a public entry of ${Option.getOrElse(found.name, () => dir)} (${key})`,
-          );
+        for (const file of found.runs) runs.add(file);
       }
     }
+    // What runs without an importer: all that is not package source (an app, a
+    // package's scripts and tests) and the files a bin or a script runs.
+    const roots = new Set(
+      [...records.keys()].filter((file) => !/^packages\/[^/]+\/src\//.test(file) || runs.has(file)),
+    );
+    for (const file of runs) roots.add(file);
     const workspace: Workspace = {
       records,
       resolve: resolver(path, records, packages, byDir),
       consumes: (file) => !isTestCode(file) && !isTypeCheck(file),
       checked: (file) =>
         /^packages\/[^/]+\/src\//.test(file) && !isTestCode(file) && !isTypeCheck(file),
-      entries,
+      roots,
     };
     return workspace;
   });

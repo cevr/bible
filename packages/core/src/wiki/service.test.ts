@@ -14,7 +14,7 @@ import {
   type WikiPageSummary,
 } from './model.js';
 import { WikiSectionSources } from './section-composer.js';
-import { layerBunOrAbsent } from './service-bun.js';
+import { layerBunOrAbsent } from './artifact-fixture.js';
 import { WikiService } from './service.js';
 
 /** Builds a topics artifact on disk with the §2.2 schema and whatever rows a

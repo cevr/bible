@@ -44,7 +44,8 @@ import {
 } from 'effect/http';
 import { brotliDecompressSync } from 'node:zlib';
 import { parseSync } from 'oxc-parser';
-import { LabHttpApi, Places, Refusal, ToolFailure, labUrls, routesOf } from '../core/api.ts';
+import { LabHttpApi, Places, Refusal, ToolFailure, labUrls } from '../core/api.ts';
+import { routesOf } from '../core/testing.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler, labLink } from './lab.ts';

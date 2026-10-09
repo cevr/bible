@@ -5,7 +5,7 @@ import { TestClock } from 'effect/testing';
 import * as Codec from './codec.js';
 import * as Field from './field.js';
 import { Location } from './location.js';
-import { layerMemory, LocationHistory } from './location-memory.js';
+import { layerMemory, LocationHistory } from './testing.js';
 import * as Place from './place.js';
 import * as UrlState from './url-state.js';
 

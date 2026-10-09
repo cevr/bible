@@ -16,7 +16,7 @@ import type { CommentaryEntry, CommentaryResult } from './types.js';
 /**
  * Error types for the commentary service
  */
-export class CommentaryError extends Schema.TaggedError<CommentaryError>()('CommentaryError', {
+class CommentaryError extends Schema.TaggedError<CommentaryError>()('CommentaryError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
@@ -24,7 +24,7 @@ export class CommentaryError extends Schema.TaggedError<CommentaryError>()('Comm
 /**
  * Union of all commentary errors
  */
-export type CommentaryServiceError = CommentaryError;
+type CommentaryServiceError = CommentaryError;
 
 /**
  * Convert EGW paragraph to commentary entry

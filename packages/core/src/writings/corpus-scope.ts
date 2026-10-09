@@ -33,10 +33,7 @@ export const isCorpusScope = Schema.is(CorpusScope);
  *  curated allow-list. A curated list would silently drop every author nobody
  *  remembered to enumerate, and the section it backs is "pioneer witnesses" —
  *  the honest answer to "who else in this library said this" is everyone who is
- *  not Ellen White. The CLI's `PIONEER_AUTHOR_FILTERS`
- *  (`packages/cli/src/commands/egw/pioneer-authors.ts`) is a different thing
- *  and stays one: it curates the *historic* pioneers for corpus authoring, and
- *  deliberately excludes modern secondary works this scope keeps. */
+ *  not Ellen White. */
 export const EGW_SCOPE_AUTHORS: readonly [string, string] = [
   'Ellen Gould White',
   'Ellen G. White Estate',

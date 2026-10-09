@@ -5,7 +5,7 @@
  * Renderer-agnostic - shared by application and command-line hosts.
  */
 
-import { Option, Predicate } from 'effect';
+import { Option } from 'effect';
 
 import { BIBLE_BOOK_ALIASES, BIBLE_BOOKS, getBibleBook } from './canon.js';
 import type {
@@ -83,7 +83,7 @@ export const ParsedBibleQuery = {
 const normalizeBookName = (name: string): string =>
   name.replace(/\.$/, '').replace(/\s+/g, ' ').trim().toLowerCase();
 
-/** Resolve every parser and extractor book token through the same alias rules. */
+/** Resolve every parser book token through the same alias rules. */
 function resolveBook(bookPart: string, options?: ParseBibleQueryOptions): Option.Option<number> {
   const normalized = normalizeBookName(bookPart);
 
@@ -248,189 +248,4 @@ export function parseBibleQuery(query: string, options?: ParseBibleQueryOptions)
 
   // Fallback: search
   return ParsedBibleQuery.search(query);
-}
-
-/**
- * Check if a parsed query is a reference (not a search)
- */
-export function isReference(query: ParsedBibleQuery): boolean {
-  return query._tag !== 'search';
-}
-
-/**
- * Check if a parsed query is a search
- */
-export function isSearch(query: ParsedBibleQuery): boolean {
-  return query._tag === 'search';
-}
-
-/**
- * Extracted Bible reference with position in text
- */
-interface ExtractedReference {
-  /** The matched text */
-  text: string;
-  /** Start position in original text */
-  start: number;
-  /** End position in original text */
-  end: number;
-  /** Parsed reference */
-  ref: VerseReference | VerseRangeReference;
-}
-
-/**
- * Two-phase Bible reference extraction for performance.
- *
- * Phase 1: Simple regex finds candidates (no alternation backtracking)
- * Phase 2: O(1) hash map validates book names
- *
- * This is much faster than a single regex with 120+ book name alternations.
- */
-
-// Phase 1: Simple pattern to find potential references
-// Matches: optional number prefix + word(s) + chapter:verse with optional range
-// Examples: "John 3:16", "1 Cor. 13:1-3", "Song of Solomon 1:1"
-const CANDIDATE_PATTERN =
-  /([123]?\s*[A-Za-z]+(?:\s+of\s+[A-Za-z]+)?\.?)\s*(\d+)\s*:\s*(\d+)(?:\s*[-–]\s*(\d+))?/g;
-
-/**
- * Extract all Bible references from text
- *
- * Uses a two-phase approach for performance:
- * 1. Simple regex finds candidates without alternation backtracking
- * 2. Hash map lookup validates book names in O(1)
- *
- * Matches patterns like:
- * - "John 3:16"
- * - "Gen. 1:1"
- * - "1 Cor. 13:1-3"
- * - "Psalm 23:1, 2"
- * - "Matt. 5:3-12"
- */
-// Continuation pattern: comma followed by verse or verse-range (e.g., ", 15" or ", 15-20")
-// Must NOT be followed by a colon (which would indicate a new chapter:verse reference)
-const CONTINUATION_PATTERN = /^,\s*(\d+)(?:\s*[-–]\s*(\d+))?(?![\s]*:)/;
-
-// "verse 3" or "verses 3-5" pattern — carries forward book+chapter from previous reference
-const VERSE_KEYWORD_PATTERN = /\bverses?\s+(\d+)(?:\s*[-–]\s*(\d+))?\b/gi;
-
-/** Parse an optional verse-end capture group ("-18"). */
-function optionalVerse(match: RegExpMatchArray, group: number): Option.Option<number> {
-  const verseStr = match[group];
-  if (!verseStr) return Option.none();
-  return Option.some(parseInt(verseStr, 10));
-}
-
-/** A single verse, or a range within the same chapter when an end verse is given. */
-function verseOrRange(
-  book: number,
-  chapter: number,
-  verse: number,
-  verseEnd: Option.Option<number>,
-): VerseReference | VerseRangeReference {
-  const start = Reference.verse(book, chapter, verse);
-  if (Option.isNone(verseEnd)) return start;
-  return Reference.range(start, Reference.verse(book, chapter, verseEnd.value));
-}
-
-/** The verse a reference starts at (itself for a single verse). */
-function startVerseOf(ref: VerseReference | VerseRangeReference): VerseReference {
-  if (ref._tag === 'range') return ref.start;
-  return ref;
-}
-
-/** Validate one CANDIDATE_PATTERN match into a reference with a known book and chapter. */
-function extractCandidate(match: RegExpExecArray): Option.Option<ExtractedReference> {
-  const [fullMatch, bookPart, chapterStr, verseStr] = match;
-  const matchIndex = match.index;
-
-  if (!fullMatch || !bookPart || !chapterStr || !verseStr || Predicate.isUndefined(matchIndex)) {
-    return Option.none();
-  }
-
-  return Option.flatMap(resolveBook(bookPart), (bookNum) => {
-    const chapter = parseInt(chapterStr, 10);
-    const verse = parseInt(verseStr, 10);
-    if (!hasChapter(bookNum, chapter)) return Option.none();
-    return Option.some({
-      text: fullMatch,
-      start: matchIndex,
-      end: matchIndex + fullMatch.length,
-      ref: verseOrRange(bookNum, chapter, verse, optionalVerse(match, 4)),
-    });
-  });
-}
-
-/** Scan for comma-separated continuations after a reference: "Eph 4:10, 15, 17-20". */
-function extractContinuations(text: string, anchor: ExtractedReference): ExtractedReference[] {
-  const { book, chapter } = startVerseOf(anchor.ref);
-  const continuations: ExtractedReference[] = [];
-  let pos = anchor.end;
-  while (pos < text.length) {
-    const cont = text.slice(pos).match(CONTINUATION_PATTERN);
-    if (!cont) break;
-
-    const contText = cont[0] ?? '';
-    const contVerse = parseInt(cont[1] ?? '', 10);
-    continuations.push({
-      text: contText,
-      start: pos,
-      end: pos + contText.length,
-      ref: verseOrRange(book, chapter, contVerse, optionalVerse(cont, 2)),
-    });
-
-    pos += contText.length;
-  }
-  return continuations;
-}
-
-/** Resolve "verse 3" / "verses 3-5" using context from the nearest preceding reference. */
-function extractVerseKeyword(
-  match: RegExpExecArray,
-  results: readonly ExtractedReference[],
-): Option.Option<ExtractedReference> {
-  const matchIndex = match.index;
-  if (Predicate.isUndefined(matchIndex)) return Option.none();
-
-  // Skip if this position already overlaps with an existing reference
-  if (results.some((r) => matchIndex >= r.start && matchIndex < r.end)) return Option.none();
-
-  // Find the nearest preceding reference for book+chapter context
-  const context = results.filter((r) => r.end <= matchIndex).at(-1);
-  if (!context) return Option.none();
-
-  const verse = parseInt(match[1] ?? '', 10);
-  const fullMatch = match[0];
-  const { book, chapter } = startVerseOf(context.ref);
-  return Option.some({
-    text: fullMatch,
-    start: matchIndex,
-    end: matchIndex + fullMatch.length,
-    ref: verseOrRange(book, chapter, verse, optionalVerse(match, 2)),
-  });
-}
-
-export function extractBibleReferences(text: string): ExtractedReference[] {
-  const results: ExtractedReference[] = [];
-
-  // Reset lastIndex for reuse (global flag)
-  CANDIDATE_PATTERN.lastIndex = 0;
-
-  for (const match of text.matchAll(CANDIDATE_PATTERN)) {
-    const candidate = extractCandidate(match);
-    if (Option.isNone(candidate)) continue;
-    results.push(candidate.value, ...extractContinuations(text, candidate.value));
-  }
-
-  // Second pass: resolve "verse 3" / "verses 3-5" using context from nearest preceding reference
-  VERSE_KEYWORD_PATTERN.lastIndex = 0;
-  for (const match of text.matchAll(VERSE_KEYWORD_PATTERN)) {
-    const keyword = extractVerseKeyword(match, results);
-    if (Option.isSome(keyword)) results.push(keyword.value);
-  }
-
-  // Sort by position since the second pass may have inserted out of order
-  results.sort((a, b) => a.start - b.start);
-
-  return results;
 }

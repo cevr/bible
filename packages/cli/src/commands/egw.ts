@@ -21,8 +21,6 @@ import { egwSearch, localSearch } from './egw/search.js';
 import { egwStudy } from './egw/study.js';
 import { egwSync } from './egw/sync.js';
 
-export { egwSearch };
-
 const query = Argument.String('query').pipe(Argument.variadic());
 
 export const egwWithSubcommands = Command.make('egw', { query }, (args) =>

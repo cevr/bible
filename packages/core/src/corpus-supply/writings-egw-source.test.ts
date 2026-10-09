@@ -3,13 +3,15 @@ import { describe, expect, it } from 'effect-bun-test';
 import { strToU8, zipSync } from 'fflate';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
-import { EGWApiClient, type EGWApiClientService } from '../egw/client.js';
+import { EGWApiClient } from '../egw/client.js';
 import type { Book, Paragraph, TocItem } from '../egw/schemas.js';
 import type { PublicationArchive } from '../writings/archive.js';
 import { publicationId } from '../writings/model.js';
 import { Target } from './model.js';
 import { CorpusSupply } from './service.js';
 import { layerEgwWritingsAssetSource } from './writings-egw-source.js';
+
+type EGWApiClientService = (typeof EGWApiClient)['Service'];
 
 // Wire-shape fields the schema encodes as `null` when absent.
 const wireNull = Option.getOrNull(Option.none<never>());

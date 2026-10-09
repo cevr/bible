@@ -3,7 +3,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { TestClock } from 'effect/testing';
 
 import { Location, type Entry } from './location.js';
-import { layerMemory, LocationHistory } from './location-memory.js';
+import { layerMemory, LocationHistory } from './testing.js';
 import { layerServer } from './location-server.js';
 
 const hrefs = Effect.gen(function* () {

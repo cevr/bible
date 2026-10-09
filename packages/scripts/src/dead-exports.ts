@@ -2,10 +2,13 @@
 // The dead-export check: an export of `packages/*/src` that no other module
 // of the workspace takes (a module's own use does not count, and neither does
 // a test's or a fixture's) is deleted from its module, not kept "in case". A
-// package's public entries (what its `exports`, `main` and `bin` name) are
-// the one place exports stand for users beyond the workspace, so they are
-// not swept. A default export is swept like any other: a loader's own file
-// is a named entry exemption.
+// package's entries (what its `exports`, `main` and `bin` name) are swept like
+// any module: every package is private, so an entry's export has no user
+// beyond the workspace. A re-export takes only what its own name's users take,
+// and a take counts only from a module the roots reach: the apps, the files a
+// bin or a `package.json` script runs, and the few named in `workspace.ts`.
+// That leaves a cycle nothing reaches dead. A default export is swept like any
+// other.
 //
 // The exports found before the check existed are the debt
 // (`dead-exports/debt.txt`, one `file name` per line): read only by their

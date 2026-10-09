@@ -37,23 +37,3 @@ export const VerseId = Schema.Finite.pipe(
   Schema.brand('VerseId'),
 );
 export type VerseId = typeof VerseId.Type;
-
-// ============================================================================
-// Utility Functions
-// ============================================================================
-
-/**
- * Create a hymn ID from a raw number.
- * Validates that the number is between 1 and 920.
- */
-export const hymnId = (n: number): HymnId => Schema.decodeSync(HymnId)(n);
-
-/**
- * Create a category ID from a raw number.
- */
-export const categoryId = (n: number): CategoryId => Schema.decodeSync(CategoryId)(n);
-
-/**
- * Create a verse ID from a raw number.
- */
-export const verseId = (n: number): VerseId => Schema.decodeSync(VerseId)(n);

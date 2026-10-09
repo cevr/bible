@@ -37,7 +37,7 @@ const unavailable =
 const integrity = (operation: Operation, cause: unknown): BibleDataIntegrityError =>
   BibleDataIntegrityError.make({ operation, cause });
 
-export interface BibleServiceApi {
+interface BibleServiceApi {
   readonly books: Effect.Effect<readonly Book[]>;
   readonly book: (reference: BookReference) => Effect.Effect<Book, BibleBookNotFoundError>;
   readonly chapter: (reference: ChapterReference) => Effect.Effect<Chapter, BibleError>;

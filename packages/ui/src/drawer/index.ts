@@ -4,4 +4,3 @@
 // `Drawer.Root`, `Drawer.Portal`, `Drawer.Viewport`, `Drawer.Popup`,
 // `Drawer.Content`, `Drawer.Title` and `Drawer.Close`.
 export * as Drawer from './index.parts.ts';
-export type { DrawerSwipeDirection } from './root/DrawerRootContext.ts';

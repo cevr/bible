@@ -26,7 +26,8 @@ import {
 } from 'effect';
 import * as PlatformError from 'effect/PlatformError';
 import { TestClock } from 'effect/testing';
-import { LONGEST_WAIT, type PageName } from '../core/api.ts';
+import type { PageName } from '../core/api.ts';
+import { LONGEST_WAIT } from '../core/wait.ts';
 import { PageBundler } from './lab-page.ts';
 import { END_WAIT, PageRenderer, type RenderBuild, type ServerBundle } from './page-render.ts';
 

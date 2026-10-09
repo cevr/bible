@@ -40,7 +40,7 @@ import {
   type WikiWritingsHit,
 } from './model.js';
 import { SECTION_CAPS, SECTION_SCOPES, WikiSectionSources } from './section-composer.js';
-import { layerBunOrAbsent } from './service-bun.js';
+import { layerBunOrAbsent } from './artifact-fixture.js';
 import { WikiService } from './service.js';
 
 // ---------------------------------------------------------------------------

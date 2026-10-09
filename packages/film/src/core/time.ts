@@ -144,22 +144,12 @@ export const ease = {
   outSoft: (t) => 1 - (1 - t) ** 3 * Math.cos(t * Math.PI * 1.1),
 } satisfies Record<string, Ease>;
 
-/** The ease a cue, a `progress`, an `envelope` or a keyframe declares none of. */
+/** The ease a cue, a `progress` or a keyframe declares none of. */
 export const DEFAULT_EASE = 'inOutCubic' satisfies keyof typeof ease;
 
 /** 0→1 over [start, start + dur], eased. Before start: 0. After: 1. */
 export const progress = (t: number, start: number, dur: number, e: Ease = ease[DEFAULT_EASE]) =>
   dur <= 0 ? (t >= start ? 1 : 0) : e(clamp((t - start) / dur));
-
-/** Rises 0→1 over `inDur`, holds, falls 1→0 over `outDur` ending at `end`. */
-export const envelope = (
-  t: number,
-  start: number,
-  end: number,
-  inDur = 0.5,
-  outDur = 0.5,
-  e: Ease = ease[DEFAULT_EASE],
-) => Math.min(progress(t, start, inDur, e), 1 - progress(t, end - outDur, outDur, e));
 
 /**
  * A walker's bob, in units (+ up), while the `walk` span runs and 0 outside

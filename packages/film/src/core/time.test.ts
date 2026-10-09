@@ -3,7 +3,6 @@ import {
   DEFAULT_EASE,
   clamp,
   ease,
-  envelope,
   invLerp,
   frameAtOrAfter,
   frameAtOrBefore,
@@ -124,12 +123,11 @@ describe('time', () => {
     });
   });
 
-  test('lerp, clamp, invLerp, progress, envelope and keys are pinned', () => {
+  test('lerp, clamp, invLerp, progress and keys are pinned', () => {
     expect([lerp(0.1, 0.7, 0.3), lerp(1.3, -2.2, 0.35), clamp(1.2), invLerp(2, 4, 3)]).toEqual([
       0.28, 0.07500000000000018, 1, 0.5,
     ]);
     expect(progress(1.5, 1, 1)).toBe(0.5);
-    expect([0.25, 1, 1.9].map((t) => envelope(t, 0, 2))).toEqual([0.5, 1, 0.03200000000000003]);
     expect(
       [0.1, 0.3, 0.5].map((t) =>
         keys(t, [

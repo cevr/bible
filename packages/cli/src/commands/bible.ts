@@ -284,5 +284,3 @@ export const concordance = Command.make(
       }
     }).pipe(Effect.scoped, Effect.provide(ConcordanceLive)),
 );
-
-export const bible = Command.make('bible').pipe(Command.withSubcommands([verse, concordance]));

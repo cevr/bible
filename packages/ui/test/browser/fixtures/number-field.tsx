@@ -14,7 +14,7 @@ import type { JSX } from '@solidjs/web';
 import { createSignal, flush, Show } from 'solid-js';
 
 import { NumberField } from '../../../src/number-field/index.ts';
-import type { NumberFieldRootCommitEventDetails } from '../../../src/number-field/index.ts';
+import type { NumberFieldRootCommitEventDetails } from '../../../src/number-field/root/NumberFieldRootState.ts';
 import { log, param } from './log.ts';
 
 const numberParam = (name: string): number | undefined => {

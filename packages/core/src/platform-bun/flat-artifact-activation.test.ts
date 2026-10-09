@@ -34,7 +34,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { VectorsArtifact } from '../search/vector-artifact.js';
 import { corpusGeneration } from '../corpus-supply/model.js';
 import { CorpusSupply } from '../corpus-supply/service.js';
-import { layerNativeFileArtifacts, type NativeFileArtifactSource } from './bible-artifact.js';
+import { layerNativeFileArtifacts, type NativeFileArtifactSource } from './file-artifact.js';
 
 const digestOf = (bytes: string): string =>
   `sha256:${bytesToHex(sha256(new TextEncoder().encode(bytes)))}`;

@@ -21,5 +21,3 @@ export const layerBunEmbedder: Layer.Layer<QueryEmbedder> = layerTransformersEmb
   device: 'cpu',
   fallbackCacheDir: bibleHomeModelsFallback,
 });
-
-export const Default = layerBunEmbedder;

@@ -16,7 +16,7 @@ export interface Author {
 }
 
 /** The widest line on the strip, in characters of the body type. */
-export const CREDIT_MEASURE = 38;
+const CREDIT_MEASURE = 38;
 
 /** One line of the roll: its text, its type, and the space above it. */
 export interface Credit {

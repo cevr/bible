@@ -49,5 +49,3 @@ export const layerBunStudy = (input: {
     Layer.orDie,
   );
 };
-
-export const Default = layerBunStudy;

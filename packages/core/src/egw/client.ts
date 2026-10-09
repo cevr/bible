@@ -27,7 +27,7 @@ import * as Schemas from './schemas.js';
 /**
  * EGW API Client Errors
  */
-export class EGWApiError extends Schema.TaggedError<EGWApiError>()('EGWApiError', {
+class EGWApiError extends Schema.TaggedError<EGWApiError>()('EGWApiError', {
   cause: Schema.optional(Schema.Unknown),
   message: Schema.String,
 }) {}
@@ -47,12 +47,12 @@ const encodeJson = Schema.encodeSync(JsonString);
 /**
  * EGW API Client error type (union of possible errors)
  */
-export type EGWApiClientError = EGWApiError | HttpClientError.HttpClientError | Schema.SchemaError;
+type EGWApiClientError = EGWApiError | HttpClientError.HttpClientError | Schema.SchemaError;
 
 /**
  * EGW API Client service interface.
  */
-export interface EGWApiClientService {
+interface EGWApiClientService {
   readonly getLanguages: Effect.Effect<readonly Schemas.Language[], EGWApiClientError>;
   readonly getFoldersByLanguage: (
     languageCode: string,

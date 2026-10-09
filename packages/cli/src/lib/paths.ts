@@ -80,7 +80,7 @@ export const resolveDataPath = (resolution: DataResolution, ...segments: string[
 /** The running executable's directory. For a Bun-compiled binary this is where
  *  its `data/` sits; in dev it is wherever the `bun` binary lives, which is why
  *  the build root is still consulted as a fallback. */
-export const executableDir = (): string =>
+const executableDir = (): string =>
   process.execPath.slice(0, Math.max(0, process.execPath.lastIndexOf('/')));
 
 /** The candidates for one packaged asset in the running process, in resolution

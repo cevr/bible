@@ -461,7 +461,7 @@ interface SegmentComposition {
  *  compiler could fold away, which is the property that makes the constant a
  *  *fact about execution*: delete an element and that layer stops being applied.
  */
-export const composeSegments = (input: SegmentComposition): TextSegment[] => {
+const composeSegments = (input: SegmentComposition): TextSegment[] => {
   const text = input.text.replace(/^¶\s*/, '');
   let segments: TextSegment[] = [{ type: 'text', text }];
   if (Predicate.isNotUndefined(input.searchQuery) && input.searchQuery.length > 0) {

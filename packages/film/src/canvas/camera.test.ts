@@ -10,7 +10,6 @@ import {
   type Drift,
   PLANE_LIFT_MAX,
   PLANE_LIFT_MIN,
-  type Plane,
   type SceneBreath,
   camera,
   driftHeld,
@@ -20,7 +19,6 @@ import {
   knobCamera,
   lerpCamera,
   multiplane,
-  planePoint,
   planeView,
   pushInto,
   shotPath,
@@ -28,6 +26,9 @@ import {
 import { heightOf } from './cutout.ts';
 import { FIBRE_SIZE, PLANE_FIBRE } from './fibre.ts';
 import { type Recorder, isPattern, recorder, withDom } from './fixtures/stand-in.ts';
+
+/** One plane of a `multiplane` shot. */
+type Plane = Parameters<typeof multiplane>[4][number];
 
 describe('knobCamera', () => {
   test('a framing from its knobs: where it looks, how close, and a turn only when given', () => {
@@ -183,23 +184,6 @@ describe('planeView', () => {
     // It may write into the shot it reads.
     const same: Camera = { ...SHOT };
     expect(planeView(same, same, 3, REST)).toEqual(a);
-  });
-});
-
-describe('planePoint', () => {
-  test('lands where the plane is drawn: the multiplane shot puts the point there', () => {
-    const cam: Camera = { x: 1160, y: 440, zoom: 1.44 };
-    const p = [700, 300] as const;
-    const { seen } = shoot(recorder(), cam, { far: 3, focal: 1, near: 0.5 }, p);
-    for (const [name, z] of [
-      ['far', 3],
-      ['focal', 1],
-      ['near', 0.5],
-    ] as const) {
-      const [x, y] = planePoint(cam, z, p, 1920, 1080);
-      expect(x).toBeCloseTo(seen.get(name)?.[0] ?? Number.NaN);
-      expect(y).toBeCloseTo(seen.get(name)?.[1] ?? Number.NaN);
-    }
   });
 });
 

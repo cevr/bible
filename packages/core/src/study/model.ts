@@ -154,8 +154,7 @@ export class StudyCrossReference extends Schema.Class<StudyCrossReference>('Stud
   preview: Schema.Option(Schema.String),
 }) {}
 
-export const MarginNoteKind = Schema.Literals(['hebrew', 'greek', 'alternate', 'name', 'other']);
-export type MarginNoteKind = typeof MarginNoteKind.Type;
+const MarginNoteKind = Schema.Literals(['hebrew', 'greek', 'alternate', 'name', 'other']);
 
 /** One KJV marginal note: the phrase it annotates and the note itself. */
 export class StudyMarginNote extends Schema.Class<StudyMarginNote>('Study/MarginNote')({

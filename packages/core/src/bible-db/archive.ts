@@ -25,12 +25,11 @@ export const KjvAssetFile = Schema.Struct({
 });
 export type KjvAssetFile = typeof KjvAssetFile.Type;
 
-export const StrongsWordAsset = Schema.Struct({
+const StrongsWordAsset = Schema.Struct({
   text: Schema.String,
   strongs: Schema.optional(Schema.Array(Schema.String)),
   italic: Schema.optional(Schema.Boolean),
 });
-export type StrongsWordAsset = typeof StrongsWordAsset.Type;
 
 export const StrongsVerseAsset = Schema.Struct({
   book: Coordinate,
@@ -47,10 +46,9 @@ export const StrongsLexiconAsset = Schema.Struct({
 });
 export type StrongsLexiconAsset = typeof StrongsLexiconAsset.Type;
 
-export const StrongsLexicon = Schema.Record(Schema.String, StrongsLexiconAsset);
-export type StrongsLexicon = typeof StrongsLexicon.Type;
+const StrongsLexicon = Schema.Record(Schema.String, StrongsLexiconAsset);
 
-export const CrossReference = Schema.Struct({
+const CrossReference = Schema.Struct({
   book: Coordinate,
   chapter: Coordinate,
   verse: Schema.optional(Coordinate),

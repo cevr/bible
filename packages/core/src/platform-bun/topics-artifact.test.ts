@@ -5,12 +5,9 @@ import { describe, expect, it as itBase } from 'effect-bun-test';
 
 import { TopicsArtifact } from '../corpus-supply/file-artifact.js';
 import type { CorpusProvenance } from '../corpus-supply/model.js';
-import { TOPICS_VERIFIER_CASES } from '../corpus-supply/topics-verifier-contract.js';
-import {
-  layerNativeTopicsArtifacts,
-  verifyTopicsDatabase,
-  type NativeFileArtifactProvenanceStore,
-} from './bible-artifact.js';
+import { layerNativeTopicsArtifacts } from './bible-artifact.js';
+import { verifyTopicsDatabase } from './corpus-verify.js';
+import type { NativeFileArtifactProvenanceStore } from './file-artifact.js';
 
 /** Writes a topics artifact with the §2.2 tables at `file`. `schemaMajor` is a
  *  string because `meta.value` is a TEXT column: a corrupt version field is a
@@ -132,8 +129,84 @@ describe('native Topics artifact', () => {
     }));
 });
 
-/** The shared contract matrix, run against the production verifier through a
- *  real on-disk artifact. */
+/** `accepted` carries the page count the verifier must return; `refused` carries
+ *  the exact message it must report. Both are asserted, so a case cannot pass by
+ *  failing for the wrong reason. */
+type TopicsVerifierOutcome =
+  | { readonly kind: 'accepted'; readonly installed: number }
+  | { readonly kind: 'refused'; readonly message: string };
+
+interface TopicsVerifierCase {
+  readonly name: string;
+  readonly fixture: {
+    readonly schemaMajor: string;
+    readonly topics: number;
+    readonly aliases: number;
+  };
+  readonly outcome: TopicsVerifierOutcome;
+}
+
+const accepted = (installed: number): TopicsVerifierOutcome => ({ kind: 'accepted', installed });
+const refused = (message: string): TopicsVerifierOutcome => ({ kind: 'refused', message });
+
+/** Every value that must not read as a usable schema major.
+ *
+ *  `Number.parseInt('1junk', 10)` is 1, so a lenient parse reads each of these
+ *  as a version this build can serve and installs a file whose version field is
+ *  nonsense. */
+const UNREADABLE_SCHEMA_MAJORS: readonly string[] = [
+  '1junk',
+  '',
+  ' 1',
+  '1.5',
+  'NaN',
+  '-1',
+  '9'.repeat(30),
+];
+
+const TOPICS_VERIFIER_CASES: readonly TopicsVerifierCase[] = [
+  {
+    name: 'accepts an artifact with pages and a phrase dictionary',
+    fixture: { schemaMajor: '1', topics: 4, aliases: 7 },
+    outcome: accepted(4),
+  },
+  {
+    name: 'accepts a schema major older than this build',
+    fixture: { schemaMajor: '0', topics: 2, aliases: 2 },
+    outcome: accepted(2),
+  },
+  {
+    // A compile where every authored core is still `status: draft` produces this
+    // file honestly, but it can never answer a lookup — so it is refused rather
+    // than swapped over a generation that can.
+    name: 'rejects an empty artifact',
+    fixture: { schemaMajor: '1', topics: 0, aliases: 0 },
+    outcome: refused('Topics Artifact has no pages'),
+  },
+  {
+    name: 'rejects an artifact with no pages',
+    fixture: { schemaMajor: '1', topics: 0, aliases: 3 },
+    outcome: refused('Topics Artifact has no pages'),
+  },
+  {
+    name: 'rejects pages with no phrase dictionary',
+    fixture: { schemaMajor: '1', topics: 4, aliases: 0 },
+    outcome: refused('Topics Artifact has no phrase dictionary'),
+  },
+  {
+    name: 'rejects a schema major beyond this build',
+    fixture: { schemaMajor: '99', topics: 1, aliases: 1 },
+    outcome: refused('Topics Artifact schema_major 99 exceeds 1'),
+  },
+  ...UNREADABLE_SCHEMA_MAJORS.map((schemaMajor): TopicsVerifierCase => ({
+    name: `rejects the schema_major '${schemaMajor}'`,
+    fixture: { schemaMajor, topics: 1, aliases: 1 },
+    outcome: refused('Topics Artifact has no readable schema_major'),
+  })),
+];
+
+/** The verifier's rules, run against the production verifier through a real
+ *  on-disk artifact. */
 describe('Topics semantic verifier — native adapter', () => {
   const it = itBase.scopedLive.layer(BunFileSystem.layer);
 

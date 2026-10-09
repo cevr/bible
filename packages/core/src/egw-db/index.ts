@@ -5,19 +5,5 @@
  * in a local SQLite database, avoiding repeated HTTP calls to the EGW API.
  */
 
-export {
-  EGWParagraphDatabase,
-  FTS_TERM_CONJUNCTION,
-  ftsTermQuery,
-  ParagraphDataIntegrityError,
-  paragraphIdentity,
-  SyncStatus,
-} from './book-database.js';
-export { isChapterHeading } from '../egw/parse.js';
-export type {
-  BookRow,
-  EGWParagraphDatabaseService,
-  ParagraphDatabaseError,
-  ParagraphRow,
-  SyncStatusRow,
-} from './book-database.js';
+export { EGWParagraphDatabase, paragraphIdentity } from './book-database.js';
+export type { BookRow, EGWParagraphDatabaseService } from './book-database.js';

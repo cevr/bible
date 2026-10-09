@@ -29,12 +29,12 @@ import {
 import { vectorUnavailable, type VectorIndexUnavailable } from './model.js';
 import { parseVectorIndex, type VectorIndex } from './vector-index.js';
 
-export class VectorsArtifactRecipe extends Context.Service<
+class VectorsArtifactRecipe extends Context.Service<
   VectorsArtifactRecipe,
   FileArtifactRecipeService
 >()('@bible/core/corpus-supply/VectorsArtifactRecipe') {}
 
-export class VectorsArtifactInstaller extends Context.Service<
+class VectorsArtifactInstaller extends Context.Service<
   VectorsArtifactInstaller,
   FileArtifactInstallerService
 >()('@bible/core/corpus-supply/VectorsArtifactInstaller') {}

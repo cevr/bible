@@ -34,7 +34,8 @@ import {
 import { HttpPlatform, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { TestClock } from 'effect/testing';
 import { brotliCompressSync, brotliDecompressSync, constants as zlib } from 'node:zlib';
-import { LONGEST_WAIT, LabHttpApi } from '../core/api.ts';
+import { LabHttpApi } from '../core/api.ts';
+import { LONGEST_WAIT } from '../core/wait.ts';
 import { PAGE_CUT_MARK } from '../core/page-render.ts';
 import { LabPage, type LabPageSpec, PageBundler, splice } from './lab-page.ts';
 import { PageReads, serveApi } from './api-server.ts';
