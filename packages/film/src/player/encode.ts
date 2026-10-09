@@ -35,7 +35,7 @@ interface Settings {
  * Each encoder's settings. Its qualities are marked pure: built at load
  * but read only by an encode, so a page that loads the player's entry and
  * never encodes (every studio page, through a film's `narratedFilms` and
- * faces) drops this module and mediabunny from its bundle (PS-8).
+ * faces) drops this module and mediabunny from its bundle.
  */
 export const SETTINGS = {
   Hardware: {

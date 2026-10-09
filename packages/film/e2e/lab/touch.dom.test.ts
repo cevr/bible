@@ -9,7 +9,7 @@
 // a hit-slop lying over another control's box fails its target. A
 // failure names each target under it, with what a pointer meets. In each of
 // the same states on both devices, everything drawn is drawn in the tokens
-// (G9, DL-9: `untokened`, `fixtures/drawn-tokens.ts`), a failure naming each
+// (`untokened`, `fixtures/drawn-tokens.ts`), a failure naming each
 // value off them.
 //
 // The disclosed states are the fixture film's (`fixtures/studio-film.ts`):
@@ -26,17 +26,17 @@
 // layer (a sheet, a menu, a dialog) is measured within itself; what lies
 // under it was measured with it closed.
 //
-// Both guards are keyed by place (`Places`, `core/api.ts`; G13): a place
+// Both guards are keyed by place (`Places`, `core/api.ts`): a place
 // added there is opened here by one case at least or named exempt with its
 // reason, or this fails to typecheck, and each case checks its page stands at
 // its place.
 //
-// Every page also fits a phone (G8, `fitsPhone`): no sideways scroll, each
+// Every page also fits a phone (`fitsPhone`): no sideways scroll, each
 // control inside the width, its chrome at most a quarter of the height; a
 // film's Scenes is asked with its tape bar's legend at its fullest, and a
 // selected scene with its sheet open, the sheet a layer and no chrome. And every
 // target stands where the UI face puts it, within 1 px, while the face's file
-// has not landed (G10), on both devices: each page is served as the lab
+// has not landed, on both devices: each page is served as the lab
 // renders it with that file held, measured, then measured again once it
 // lands; the fallback (`--font`, `tokens.css`) is matched to its advance and
 // height.
@@ -116,7 +116,7 @@ const DEVICES: ReadonlyArray<Device> = [PHONE, LAPTOP];
 /**
  * The most things a view shows on its first screen at rest on each device
  * (`firstScreenItems`: its controls, pictures and text leaves, as the
- * UI-reduction sweep's `count.js` counts them; UR2-17, Progressive
+ * UI-reduction sweep's `count.js` counts them; Progressive
  * disclosure: a thing earns a place at rest by being used in most visits).
  * A budget is raised only in the commit that adds the thing, saying why
  * most visits use it.
@@ -388,7 +388,7 @@ const STATES: ByPlace<State> = {
   home: [
     {
       name: 'Films',
-      // At rest once each card shows its film's state (SU-8).
+      // At rest once each card shows its film's state.
       open: review(pageHref.home(), '.rv-film-card [data-role="counts"]'),
       disclose: AT_REST,
       budget: most(8, 8),
@@ -399,7 +399,7 @@ const STATES: ByPlace<State> = {
       name: 'Choices, over a picture, with comment counts',
       open: review(CHOICES, ...CHOICES_READY),
       disclose: AT_REST,
-      // The kinds strip's four tabs (SU-5) are its index on a page this long.
+      // The kinds strip's four tabs are its index on a page this long.
       budget: most(45, 33),
     },
     {
@@ -480,7 +480,7 @@ const STATES: ByPlace<State> = {
       name: 'a Folder, with its set and loose videos',
       open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name'),
       disclose: AT_REST,
-      // A loose video is one card, its file in its menu (UR-17).
+      // A loose video is one card, its file in its menu.
       budget: most(20, 18),
     },
   ],
@@ -852,7 +852,7 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
 });
 
 /**
- * How far, in CSS px, G10 lets a target's edge or size move as the face
+ * How far, in CSS px, the face-fallback check lets a target's edge or size move as the face
  * lands: half a pixel, the most an edge moves without its painted edge
  * jumping a whole pixel, the sub-pixel drift a metric-matched fallback
  * leaves (0.25 px at most across the four pages, on both devices).

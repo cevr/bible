@@ -854,16 +854,16 @@ const inspect = cited;
 
 /**
  * The views of a comparison set (`?view=`): all side by side, a pair, the
- * pair's wipe, the moments, the pair's difference at a moment (PA-8); and
+ * pair's wipe, the moments, the pair's difference at a moment; and
  * `notes`, a view no longer shown, read so an old link opens all with the
- * first version's Info, where its notes now are (UR-34).
+ * first version's Info, where its notes now are.
  */
 export const SET_VIEWS = ['all', 'pair', 'wipe', 'moments', 'diff', 'notes'] as const;
 
 /** A moment's index (`?m=`): a whole number from 0. */
 const MomentIndex = Codec.Int.check(Schema.isGreaterThanOrEqualTo(0));
 
-/** The lab's compare with HEAD (`?view=`, PA-9): off, a wipe, a blink, or the difference. */
+/** The lab's compare with HEAD (`?view=`): off, a wipe, a blink, or the difference. */
 export const COMPARE_VIEWS = ['off', 'wipe', 'blink', 'diff'] as const;
 export type CompareView = (typeof COMPARE_VIEWS)[number];
 
@@ -895,7 +895,7 @@ const FILM_PLAYER = { heard: refined, variant: refined, picture: refined };
 
 /**
  * How a film's choices and its project are shown: only the points in one
- * state (`?only=stale`, `unapproved`, `comments`: `SHOWN_ONLY`, AA-14), every
+ * state (`?only=stale`, `unapproved`, `comments`: `SHOWN_ONLY`), every
  * point when it is empty. The view filtered is a step Back walks, as a set's
  * view is: a move that only shows or hides points (Go to clearing the filter
  * that hid its point) never writes over the filtered view.

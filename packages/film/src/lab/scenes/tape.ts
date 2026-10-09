@@ -52,7 +52,7 @@ const NAME_INSET = 12;
 const NAME_GAP = 4;
 export const NO_CUT_NAME: CutName = { side: 'none', width: 0 };
 /** A width in whole px, rounding a hair of float error up rather than losing a px to it. */
-const wholePx = (px: number): number => Math.floor(px + 1e-6);
+const wholePx = (px: number): number => Math.floor(px + 1e-6); // oxlint-disable-line film/one-clock-epsilon -- px, not a time
 
 /** A stretch of a row in one scene, `x0` to `x1` of the way along it. */
 interface TapeBand {

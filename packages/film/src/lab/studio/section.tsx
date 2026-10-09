@@ -54,7 +54,7 @@ const Prompter = () => {
 };
 
 /**
- * Every beat, each with a dot in its take's state colour and shape (UR2-4): the dots
+ * Every beat, each with a dot in its take's state colour and shape: the dots
  * are the count at a glance, every beat on screen with no list to scroll.
  * The words are disclosed: each beat's in its name (`thesis: scratch`, its
  * title on a pointer), the counts in the list's (`1 recorded · 1 scratch ·
@@ -287,8 +287,10 @@ export const Section = () => {
   };
   return (
     <Lab.Fill at="record">
+      {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- no action of its own: it holds focus for the studio's commands, and a click on a button leaves focus here */}
       <div
         class="studio"
+        // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focusable so the studio's keys are heard while focus is in it
         tabindex="0"
         data-role="studio"
         ref={(el) => {
@@ -300,8 +302,8 @@ export const Section = () => {
           actions.focused(Option.exists(Option.fromNullishOr(e.relatedTarget), within))
         }
       >
-        {/* No heading of its own: the mode tray's Record names the panel (UR-98). */}
-        {/* Record (R) and the meter stand over the prompter, on a phone's first screen (SU-4). */}
+        {/* No heading of its own: the mode tray's Record names the panel. */}
+        {/* Record (R) and the meter stand over the prompter, on a phone's first screen. */}
         <Beats />
         <Controls />
         <Mic />

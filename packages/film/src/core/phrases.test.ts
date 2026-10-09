@@ -9,6 +9,7 @@ import { hashText } from './narration.ts';
 import { PHRASE_HOLD, phraseCues, phrasesOf, quotedWords, shortPhrases } from './phrases.ts';
 import type { Word } from './schema.ts';
 import { resolveShort } from './shorts.ts';
+import { CLOCK_EPSILON } from './time.ts';
 import { voicedAt } from './voiced.ts';
 
 /** Words half a second apart, each 0.4 s long. */
@@ -228,7 +229,7 @@ describe('shortPhrases', () => {
     const first = phrases[0]?.words[0];
     expect(first).toEqual({ text: 'Justified?', start: 0.87, end: 1.9, quoted: false });
     // Shown on the frame nearest the voice, not on the short's first frame.
-    expect(phrases[0]?.start).toBeCloseTo(0.87 - 0.5 / 30 - 1e-6, 6);
+    expect(phrases[0]?.start).toBeCloseTo(0.87 - 0.5 / 30 - CLOCK_EPSILON, 6);
     expect(phrases.flatMap((p) => p.words).map((w) => w.start)).toEqual(
       heardAt.map(([, , on]) => on),
     );

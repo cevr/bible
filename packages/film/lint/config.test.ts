@@ -36,6 +36,9 @@ const URL_NAMES: ReadonlyArray<string> = [
   'navigation',
 ];
 
+/** The ids made unique (`uniqueId`), never by hand: module names, not the host's, so never under a global. */
+const BRANDS: ReadonlyArray<string> = ['ChangeId', 'RequestId', 'OpId'];
+
 /** The URL's events: heard only through Location. */
 const URL_EVENTS: ReadonlyArray<string> = ['popstate', 'hashchange'];
 
@@ -176,15 +179,34 @@ const probeOf = (
   globals: ReadonlyArray<Global>,
   properties: ReadonlyArray<Property>,
 ): ReadonlyArray<string> => {
-  const bareMembers = properties.filter((p) => !QUALIFIERS.includes(p.object));
+  const bareMembers = properties.filter(
+    (p) => !QUALIFIERS.includes(p.object) && !BRANDS.includes(p.object),
+  );
   return [
     ...globals.flatMap(({ name }) => [`${name};`, ...QUALIFIERS.map((q) => `${q}.${name};`)]),
     ...bareMembers.flatMap(({ object, property }) => [
       `${object}.${property};`,
       ...QUALIFIERS.map((q) => `${q}.${object}.${property};`),
     ]),
+    ...brandsMade(properties),
     ...CHAINS,
   ];
+};
+
+/** Each brand a block bans minting, minted by hand. */
+const brandsMade = (properties: ReadonlyArray<Property>): ReadonlyArray<string> =>
+  properties.filter((p) => BRANDS.includes(p.object)).map((p) => `${p.object}.${p.property}('x');`);
+
+/** Whether a block's files reach the film's or the films' source. */
+const overFilmSource = (o: Override) =>
+  o.files.some((f) => f.includes('packages/film/src/') || f.includes('apps/animations/src/'));
+
+/** The brands a block that lists no-restricted-properties over the film's source leaves mintable. */
+const brandsUnbanned = (o: Override): ReadonlyArray<string> => {
+  const held = optionsIn(o, 'no-restricted-properties', Property)
+    .filter((p) => p.property === 'make')
+    .map((p) => p.object);
+  return BRANDS.filter((brand) => !held.includes(brand));
 };
 
 /** The film's host names called and constructed: read as the names are. */
@@ -286,6 +308,45 @@ describe('the lint config', () => {
         }
       }),
     SPAWNS_MS,
+  );
+
+  it.effect.layer(BunServices.layer)(
+    "bans minting a brand by hand in every block that lists the film's property bans",
+    () =>
+      Effect.gen(function* () {
+        const config = yield* readJson('.oxlintrc.json', Config);
+        const listing = config.overrides.filter(
+          (o) => overFilmSource(o) && optionsIn(o, 'no-restricted-properties', Property).length > 0,
+        );
+        // The brands' own block, and the film's host block that replaces it.
+        expect(listing.length).toBeGreaterThan(1);
+        expect(listing.map((o) => [o.files[0], brandsUnbanned(o)])).toEqual(
+          listing.map((o) => [o.files[0], []]),
+        );
+        for (const block of listing) {
+          const properties = optionsIn(block, 'no-restricted-properties', Property);
+          const probe = brandsMade(properties);
+          const reported = reportedLines(yield* lint([], properties, `${probe.join('\n')}\n`));
+          expect(probe.filter((_, i) => !reported.has(i + 1))).toEqual([]);
+        }
+      }),
+    SPAWNS_MS,
+  );
+
+  it.effect('finds a block over the film that leaves a brand mintable', () =>
+    Effect.sync(() => {
+      const block: Override = {
+        files: ['**/packages/film/src/lab/**/*.ts'],
+        rules: {
+          'no-restricted-properties': [
+            'error',
+            { object: 'ChangeId', property: 'make', message: 'uniqueId' },
+          ],
+        },
+      };
+      expect(overFilmSource(block)).toBe(true);
+      expect(brandsUnbanned(block)).toEqual(['RequestId', 'OpId']);
+    }),
   );
 
   it.effect('finds a URL ban the film block holds and another block lacks', () =>

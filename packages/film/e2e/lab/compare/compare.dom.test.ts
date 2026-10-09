@@ -6,7 +6,7 @@
 // HEAD again; a reload keeps the mode. A diff lays HEAD over the frame in
 // the difference blend; the mode rides in the link (`?view=`), each pick an
 // entry Back walks, and a link that names one opens in it; in a blink a press held
-// on the frame holds HEAD until it lifts (PA-9).
+// on the frame holds HEAD until it lifts.
 
 import { Effect, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';

@@ -1,4 +1,4 @@
-// Whether a page fits a phone (G8, the design language's Mobile-first): it
+// Whether a page fits a phone (the design language's Mobile-first): it
 // never scrolls sideways, each of its controls (`[data-act]`) shows inside
 // the window's width, and its chrome (the bars that stay while the page
 // scrolls: a sticky header, a dock, the tab bar) holds at most a quarter of

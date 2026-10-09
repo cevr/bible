@@ -1,4 +1,4 @@
-// What waits for a film's picture faces on the Lab (PS-1): its loader asks
+// What waits for a film's picture faces on the Lab: its loader asks
 // for them and gives the film at once (`narratedFilms`), so the page's bar
 // stands and names where the film is while they load, and only what draws
 // the film waits (`pictureFacesWait`): the stage's canvas stays blank and no

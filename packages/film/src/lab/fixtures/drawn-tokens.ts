@@ -1,5 +1,5 @@
-// What a page draws, read back from the browser (G9, the design language's
-// DL-9): every colour, font family, size, weight, leading, radius and
+// What a page draws, read back from the browser: every colour, font family,
+// size, weight, leading, radius and
 // spacing the studio's chrome is drawn with, and every colour in its
 // gradients and shadows, resolves to a token of `player/tokens.css`, as the
 // page's own `:root` resolves it at its width and pointer. Only the tokens

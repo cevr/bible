@@ -1,4 +1,4 @@
-// The purity guard on a page's server render (`served`, `bundles.ts`; G12):
+// The purity guard on a page's server render (`served`, `bundles.ts`):
 // a render that writes a signal fails, naming the write; the same render
 // reading only ends. Here, with the served pages it guards, since each case
 // bundles a server entry as the lab bundles it.

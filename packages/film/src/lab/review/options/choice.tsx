@@ -89,7 +89,7 @@ export const HearButton = (props: { readonly playing: Playing; readonly disabled
 };
 
 /**
- * A variant's ▶ hear alone (UR-52): its sound with nothing under it, on the
+ * A variant's ▶ hear alone: its sound with nothing under it, on the
  * film's one alone player; pressed again, or the clock played, it stops.
  */
 const AloneButton = (props: { readonly variant: InPlace }) => {
@@ -576,14 +576,14 @@ export const ChoiceSheets = (props: { readonly points: ReadonlyArray<ChoicePoint
   </For>
 );
 
-/** A row's word for a variant's state, when it is not current (UR-49): why is its sheet's. */
+/** A row's word for a variant's state, when it is not current: why is its sheet's. */
 const ROW_STATE = {
   stale: 'Out of date',
   missing: 'Not made yet',
 } as const satisfies Record<Exclude<ChoiceVariant['state'], 'current'>, string>;
 
 /**
- * A variant's state on its row, only when it is not current (UR2-2), and its
+ * A variant's state on its row, only when it is not current, and its
  * approval when it has one; its sheet says the state in full (`StateTags`).
  */
 const RowState = (props: { readonly variant: ChoiceVariant }) => {
@@ -674,7 +674,7 @@ const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob })
 };
 
 /**
- * A knob's value as a field (UR-46): typed to any value its range holds
+ * A knob's value as a field: typed to any value its range holds
  * (arithmetic too, committed on Enter), its arrows stepping the knob's step,
  * Shift ten of them, Alt a tenth; refused while its value is computed or its
  * own write is in flight.

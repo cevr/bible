@@ -13,7 +13,7 @@
 // (a per-viewer convenience kept in this browser, safe to lose). A page
 // with a playhead shows its time in the header as a timecode
 // (`useShellTime`), and a page below a part names its depth in one crumb
-// (`crumb`); a tap on the timecode copies the link to here (AA-1). The
+// (`crumb`); a tap on the timecode copies the link to here. The
 // tab's title names what the page has selected (`subject`) before the rest.
 
 import { Menu } from '@bible/ui/menu';

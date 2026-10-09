@@ -1213,7 +1213,7 @@ describe('the inspector', () => {
       });
       yield* page.waitFor('.lab-finding');
       // The inspector lists the scene shown's findings, then the film's placeless one apart, as
-      // the film's in its level's colour (SU-3); the rest are counted.
+      // the film's in its level's colour; the rest are counted.
       const listed = "[...document.querySelectorAll('.lab-finding b')].map((b) => b.textContent)";
       yield* evaluates(page, listed, ['timed', 'whole']);
       yield* textIs(page, '.lab-findings-group h3 .lab-count', '1');

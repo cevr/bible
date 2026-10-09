@@ -141,7 +141,7 @@ const walkCommand = (
  * The notes' verbs on the page's hub, for as long as the notes are mounted:
  * `n` notes the frame unless a field has the keys; Escape cancels the note
  * being made, wherever it is pressed; ⇧N and ⌥⇧N open the next or previous
- * open note in time (AA-7: `n` alone stays Note this frame).
+ * open note in time (`n` alone stays Note this frame).
  */
 const useCommands = (
   hub: Hub,

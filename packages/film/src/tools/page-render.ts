@@ -1,4 +1,4 @@
-// The server's render of the lab's pages (PA-12). A page with a server entry
+// The server's render of the lab's pages. A page with a server entry
 // (`LabPageSpec.servers`) is rendered by its build's server bundle, which
 // `LabPage` builds beside the browser's from the same sources. Each build's
 // bundle runs in a worker of its own: written to a temp folder of the

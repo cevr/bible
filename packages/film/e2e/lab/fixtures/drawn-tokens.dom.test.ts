@@ -1,4 +1,4 @@
-// The drawn-token check (`fixtures/drawn-tokens.ts`, G9) over a synthetic
+// The drawn-token check (`fixtures/drawn-tokens.ts`) over a synthetic
 // page under the studio's tokens: a literal colour, a user agent's heading
 // size and bold, a padding off the scale, a radius of its own, a value a
 // page declares in a variable of its own, and a colour in a gradient or a

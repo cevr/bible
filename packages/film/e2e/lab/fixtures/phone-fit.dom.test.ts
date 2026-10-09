@@ -1,4 +1,4 @@
-// The phone-fit measure (`fixtures/phone-fit.ts`, G12) over synthetic pages,
+// The phone-fit measure (`fixtures/phone-fit.ts`) over synthetic pages,
 // each one way a page can fail a phone, which it must refuse, beside one
 // that fits: a block wider than the window scrolls sideways, a control the
 // page fixes past the window's side is outside, and a sticky header taller

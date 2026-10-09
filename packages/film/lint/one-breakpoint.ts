@@ -4,7 +4,9 @@
 // so the width is declared once; refused is a media query width written out
 // in a string or a template (`(max-width: 899px)`, `(min-width: 900px )`,
 // `(width >= 900px)`),
-// where a change of the breakpoint would leave it behind. The owner itself
+// where a change of the breakpoint would leave it behind. A feature query's
+// condition (`@supports (width: 900px)`) asks whether a declaration parses,
+// not how wide the window is, and passes. The owner itself
 // builds both from one number, so it writes no width out. The stylesheets that
 // cannot import the owner (`player.css`, `tokens.css`) are held to its value
 // by `lab/viewport.test.ts`.
@@ -36,7 +38,23 @@ const WIDTH = new RegExp(
     String.raw`\(\s*width\s*${COMPARED}\s*${LENGTH}\s*\)`,
     String.raw`\(\s*${LENGTH}\s*${COMPARED}\s*width(?:\s*${COMPARED}\s*${LENGTH})?\s*\)`,
   ].join('|'),
+  'g',
 );
+
+/**
+ * Whether the condition at `at` in `text` is a feature query's: its clause
+ * (back to the last `{`, `}` or `;`) opens with `@supports`, which asks
+ * whether a declaration parses (`(width: 900px)`), not how wide the window is.
+ */
+const inSupports = (text: string, at: number) => {
+  const before = text.slice(0, at);
+  const clause = before.slice(Math.max(...['{', '}', ';'].map((c) => before.lastIndexOf(c))) + 1);
+  return /@supports\b/u.test(clause);
+};
+
+/** Whether `text` writes a media query's width out: a width condition outside every `@supports`. */
+const writesWidth = (text: string) =>
+  Array.from(text.matchAll(WIDTH)).some((m) => !inSupports(text, m.index));
 
 const MESSAGE =
   "a breakpoint written out: ask the studio's one breakpoint through PHONE or WIDE (packages/film/src/lab/viewport.ts), so the width is declared once.";
@@ -54,7 +72,7 @@ export const oneBreakpoint = Rule.define({
       Effect.asVoid(
         Effect.when(
           context.report(Diagnostic.make({ node, message: MESSAGE })),
-          Effect.succeed(WIDTH.test(text)),
+          Effect.succeed(writesWidth(text)),
         ),
       );
     return Visitor.merge(

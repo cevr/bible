@@ -1,9 +1,9 @@
 // The choices' keys over the selected point (the point of a focused or
 // long-pressed variant's row, its card, the project's `?point=`).
-// Audition (AA-13): ⌥→ and ⌥← hear the point's next or previous variant in
+// Audition: ⌥→ and ⌥← hear the point's next or previous variant in
 // place, as its speaker does, and put the focus on that variant's row; Enter
 // picks the variant heard while it is the one selected (a focused Pick on
-// another row keeps its own Enter). The instants the point plays at (UR-45):
+// another row keeps its own Enter). The instants the point plays at:
 // `.` and `,` jump the clock to its next or previous one past the time
 // shown, and each is a `Jump to 00:00:04:00 · evidence in cold` in the card's
 // context menu and in ⌘K once typed, never at rest. A voice's pick refused

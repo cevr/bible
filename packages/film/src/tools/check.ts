@@ -1598,7 +1598,7 @@ type Mark = {
 };
 
 /** Float noise on a box's edges (an edge is a sum, `x + w`), in the box's units, not seconds. */
-const BOX_NOISE = 1e-9;
+const BOX_NOISE = 1e-9; // oxlint-disable-line film/one-clock-epsilon -- a box's units, not a time
 
 /** A mark's box moved no more than `STILL_DRIFT` of its own units, and it faded no more than `STILL_FADE`. */
 const boxAtRest = (a: Mark, b: Mark) =>

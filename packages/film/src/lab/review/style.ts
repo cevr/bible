@@ -46,7 +46,7 @@ a.rv-card:hover { background: var(--surface-2); }
  * and its padding), which stays on the first screen. A wipe's frame and a
  * difference's are narrowed to the room at 16:9, so their pictures still
  * fill them and the divider splits the picture itself; their captions start
- * at the fold, as the at-rest budget (UR2-17) counts those views.
+ * at the fold, as the at-rest budget counts those views.
  */
 @media ${WIDE} {
   .rv-main {
@@ -69,7 +69,7 @@ a.rv-card:hover { background: var(--surface-2); }
 /* A still that opens the lightbox: a bare button around its picture. */
 .rv-zoom { display: block; width: 100%; padding: 0; border: 0; background: none; color: inherit; cursor: zoom-in; }
 .rv-zoom:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-/* The pair wiped (PA-8): both videos stacked full width, the other right of the divider. */
+/* The pair wiped: both videos stacked full width, the other right of the divider. */
 .rv-wipe { position: relative; background: var(--surface-0); overflow: hidden; touch-action: pan-y; }
 .rv-wipe video, .rv-wipe canvas { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
 .rv-wipe .rv-wipe-other { position: absolute; inset: 0; }
@@ -126,7 +126,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-transport { flex: 1; display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s-3); min-width: 0; }
 @media ${WIDE} {
   .rv-main .sh-dock:not(.pj-dock) { margin-bottom: var(--s-3); }
-  /* One timecode on a laptop (SU-12): the header's; the row keeps the length. */
+  /* One timecode on a laptop: the header's; the row keeps the length. */
   .rv-time-at { display: none; }
 }
 /* Play: the kit's primary button, square. */
@@ -193,7 +193,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-pending .rv-row { padding: var(--s-2) var(--s-3); justify-content: space-between; }
 .rv-option .rv-body { display: flex; flex-direction: column; gap: var(--s-2); }
 .rv-take { border-top: var(--border); padding-top: var(--s-2); display: flex; flex-direction: column; gap: var(--s-2); }
-/* The row whose inspector is open (design language §5, List row; SU-13): its left edge in the
+/* The row whose inspector is open (design language §5, List row): its left edge in the
    accent, on Choices' variant rows and a Set's version cards alike (Project's tiles below). */
 :is(.rv-take, .rv-card)[data-selected="true"] { box-shadow: inset 2px 0 var(--accent); }
 .rv-take { padding-left: var(--s-2); }

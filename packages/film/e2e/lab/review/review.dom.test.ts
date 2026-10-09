@@ -247,9 +247,9 @@ describe('the review page', () => {
         yield* page.click(`a.rv-card[href="${FOLDER}"]`);
         yield* until(page, `location.pathname === '${FOLDER}'`);
         yield* textHas(page, '.sh-header [data-role="crumb"]', 'Roofs at dusk');
-        // The tab's title names the Folder first, then its part (SU-9).
+        // The tab's title names the Folder first, then its part.
         yield* until(page, "document.title.startsWith('Roofs at dusk · ')");
-        // A phone's header names the Folder too (SU-10).
+        // A phone's header names the Folder too.
         yield* page.resize(390, 844);
         yield* evaluates(
           page,
@@ -266,7 +266,7 @@ describe('the review page', () => {
         yield* textHas(page, '[data-review-blurb]', '<img src=x onerror=bad()>');
         yield* countIs(page, '[data-review-blurb] img, [data-review-blurb] script', 0);
         // A stack of several says how many; of one, nothing; its versions' names are its
-        // long-press menu's, each opening the set on that version's sheet (UR2-6).
+        // long-press menu's, each opening the set on that version's sheet.
         const roof = `a.rv-card[href="${SET}"]`;
         yield* textHas(page, roof, '3 versions');
         yield* countIs(page, `a.rv-card[href="${SKY}"] .rv-badge`, 0);
@@ -294,7 +294,7 @@ describe('the review page', () => {
         yield* attributeIs(page, '.rv-tall track', 'src', '/api/review/files/out/art/walk.vtt');
         // Never the browser's controls (how it plays: the lone video's own cases below).
         yield* countIs(page, '.rv-tall video[controls]', 0);
-        // A loose video shows its name; its file is its menu's: Open, Copy link, Info (UR-17).
+        // A loose video shows its name; its file is its menu's: Open, Copy link, Info.
         yield* textIs(page, '.rv-tall .rv-cap', 'walk.mp4');
         yield* rightClick(page, '.rv-tall .rv-cap');
         yield* waitFor(page, '[data-role="context-menu"] [data-command="review.file-open"]');
@@ -584,7 +584,7 @@ describe('the review page', () => {
           "Array.from(document.querySelectorAll('.rv-card[data-id]')).filter((c) => !c.querySelector('video').muted).map((c) => c.dataset.id).join()";
         yield* until(page, `${heard} === 'A'`);
         yield* attributeIs(page, '.rv-audible', 'data-id', 'A');
-        // `2` hears version 2, as its 🔊 would (UR-27).
+        // `2` hears version 2, as its 🔊 would.
         yield* page.press('2');
         yield* until(page, `${heard} === 'B'`);
         yield* page.click('.rv-card[data-id="C"] .rv-sound');
@@ -669,7 +669,7 @@ describe('the review page', () => {
           yield* until(page, "document.querySelector('.rv-lightbox') === null");
         }
 
-        // The notes are each version's Info (UR-34): an old link to them opens All, the
+        // The notes are each version's Info: an old link to them opens All, the
         // first version's sheet open on its lines and notes, and says so in the URL.
         yield* page.goto(`${SET}?view=notes`);
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
@@ -677,7 +677,7 @@ describe('the review page', () => {
         yield* textHas(page, '[data-role="inspector"] .rv-verdict', 'verdict A');
         yield* waitFor(page, '[data-role="inspector"] i');
         yield* textHas(page, '[data-role="inspector"]', 'Warm reads best.');
-        // The caps say a version's name, not its lines (UR-30).
+        // The caps say a version's name, not its lines.
         yield* countIs(page, '.rv-card .rv-tag', 0);
 
         // A reload opens the view the URL keeps.
@@ -870,7 +870,7 @@ describe('the review page', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: SET });
         const STALE = 'out of date: its sources changed since it was made';
-        /** The grid's one state badge is C's (UR-29). */
+        /** The grid's one state badge is C's. */
         const onlyCStale = Effect.andThen(
           textsAre(page, '.rv-grid [data-approval="stale"]', ['Out of date']),
           textsAre(page, '.rv-grid [data-id="C"] [data-approval="stale"]', ['Out of date']),
@@ -905,7 +905,7 @@ describe('the review page', () => {
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
         yield* until(page, `location.pathname + location.search === '${SKY}'`);
         // A set of several offers its modes, and in Compare its layouts by their industry
-        // names (UR-21): `v` steps the modes, `⇧V` the layouts.
+        // names: `v` steps the modes, `⇧V` the layouts.
         yield* page.goto(SET);
         yield* textsAre(page, '.rv-views button', ['All', 'Compare', 'Moments']);
         yield* countIs(page, '.rv-layouts', 0);

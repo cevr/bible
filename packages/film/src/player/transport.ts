@@ -46,7 +46,7 @@ const TOUCH_PLAY: Readonly<Record<PageName, string>> = {
   review: 'tap the film',
 };
 
-/** Where a phone turns the captions, by page: the lab's bar has no CC (UR2-12). */
+/** Where a phone turns the captions, by page: the lab's bar has no CC. */
 const TOUCH_CAPTIONS: Readonly<Record<PageName, string>> = {
   player: 'the CC button',
   lab: 'the view menu (⋯), then Captions on or off',
@@ -145,8 +145,8 @@ export const rateTitle = (titled: (title: string, id: string) => string): string
   `The speed: play ${titled('slower', 'play.slower')}, ${titled('faster', 'play.faster')}, or ${titled('at 1×', rateId(1))}`;
 
 /**
- * A transport's rates as commands (UR-25, UR-94: the one rate chip opens
- * them): Play at each rate but the one it plays at, K back to 1×, and J and
+ * A transport's rates as commands (the one rate chip opens them): Play at
+ * each rate but the one it plays at, K back to 1×, and J and
  * L a rate slower or faster (an editor's shuttle keys, stepping the rate:
  * the player never plays backwards).
  */
@@ -193,8 +193,8 @@ interface Ticks {
 }
 
 /**
- * Play's ticks on the track (marks, cues, sounds, music acts), off at rest
- * (UR2-1): the viewer turns them on from the view menu (⋯), and this
+ * Play's ticks on the track (marks, cues, sounds, music acts), off at rest:
+ * the viewer turns them on from the view menu (⋯), and this
  * browser keeps the choice. The Lab and the Scenes always show theirs.
  */
 export const ticksCommand = (ticks: Ticks): Command => ({
@@ -242,8 +242,8 @@ export const legendHtml = (): string =>
 
 /**
  * The lab bar's legend (what the stripes and the ticks mean), hidden at
- * rest (UR-114). It has no key: on every page in the studio's shell `?`
- * opens the keys sheet, the one place the keys are listed (UR2-11), and on
+ * rest. It has no key: on every page in the studio's shell `?`
+ * opens the keys sheet, the one place the keys are listed, and on
  * a film's page the sheet ends on this legend too. ⌘K and the page's
  * long-press menu show it. Play has none: its ticks' legend shows with its
  * ticks (`ticksCommand`).

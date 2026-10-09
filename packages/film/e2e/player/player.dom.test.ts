@@ -782,7 +782,7 @@ describe('the player', () => {
         yield* textIs(page, '.sc-line-tc', '00:00');
         yield* attributeIs(page, TAPE, 'data-step', '5');
         yield* attributeIs(page, TAPE, 'data-line', '60');
-        // The step is said nowhere at rest: Finer and Coarser name the one they go to (UR2-13).
+        // The step is said nowhere at rest: Finer and Coarser name the one they go to.
         yield* countIs(page, '[data-role="step"]', 0);
         yield* openCommandMenu(page, 'tape');
         yield* textHas(page, menuEntry('scenes.finer'), 'Finer tape: 2.5 s a still');
@@ -1083,7 +1083,7 @@ describe('the player', () => {
           .map((a) => SaidOf(Option.getOrElse(a.body, () => ({}))).address.ids),
       ).toEqual([['one', 'three']]);
       yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
-      // The sheet says why under the card, as a chip's title never shows on touch (SU-14).
+      // The sheet says why under the card, as a chip's title never shows on touch.
       yield* textIs(
         page,
         '.sc-focus [data-section="state"] [data-mark="approved"]',

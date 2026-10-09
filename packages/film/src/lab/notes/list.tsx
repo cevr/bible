@@ -1,5 +1,5 @@
 // The film's notes as the Lab's page holds them, on the server and in the
-// browser alike (PA-12): the feed (`feed.ts`), the list with each note's
+// browser alike: the feed (`feed.ts`), the list with each note's
 // thread, a reply and a resolve, and the pen and the Note frame button in the
 // panel's header. None of it reads the film's code. The notes are the
 // page's first read, made by the server that renders it and sent with it

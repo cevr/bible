@@ -1,4 +1,4 @@
-// Show only… (AA-14): `?only=` names one state a page shows its points in
+// Show only… `?only=` names one state a page shows its points in
 // (out of date, awaiting approval, with comments); any other text shows
 // every point. A point awaits approval by its picked variants, or by every
 // variant while none is picked.

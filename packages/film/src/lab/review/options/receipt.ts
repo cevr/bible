@@ -80,7 +80,7 @@ export const findingsText = (name: string, n: number): string =>
   );
 
 /**
- * The sound check's receipt (UR-38) in `result`: busy while it hears the
+ * The sound check's receipt in `result`: busy while it hears the
  * mix, its findings counted once it has, or why it could not run; none
  * before it first runs.
  */

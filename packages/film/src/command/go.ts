@@ -1,4 +1,4 @@
-// Go to… (AA-2): every thing a page can go to by its name (in the lab a
+// Go to… every thing a page can go to by its name (in the lab a
 // scene, a cue of the scene shown, a note; on the review a folder, a set, a
 // film's choices or its project), as a command found only by typing in ⌘K
 // (`Command.typed`): `Go to scene cold`. A page lists its destinations as

@@ -1,5 +1,5 @@
-// The review as the lab serves it once it renders the page on the server
-// (PA-12): each document is the review's server entry rendered at the link
+// The review as the lab serves it once it renders the page on the server:
+// each document is the review's server entry rendered at the link
 // asked, its reads of the lab answered by the test's routes, and the
 // browser's script hydrates it (`openServedReview`). The server's document
 // holds the page's data (Films and its folders, a folder's videos); the
@@ -168,7 +168,7 @@ describe('the review served as the lab renders it', () => {
       Effect.gen(function* () {
         const folder = yield* openServed('review', routes, { href: FOLDER });
         expect(folder.documents[0]?.html ?? '').toContain('walk.mp4');
-        // The served page is titled as the shell titles it, before it hydrates (SU-9).
+        // The served page is titled as the shell titles it, before it hydrates.
         expect(yield* servedTitle(folder.page, folder.documents[0]?.html ?? '')).toBe(
           'Roofs at dusk · Films',
         );

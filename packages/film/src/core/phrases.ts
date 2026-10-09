@@ -172,7 +172,7 @@ const spanPhrases = (
   const quoted = quotedWords(words);
   const offset = p.start + p.speechStart;
   // A span's ends sit on frames, within half a frame of the words they name.
-  const slack = 0.5 / fps + 1e-6;
+  const slack = 0.5 / fps + CLOCK_EPSILON;
   const inside = run(0, words.length).filter((i) =>
     Option.exists(Arr.get(words, i), (w) => {
       const at = offset + w.start;

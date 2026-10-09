@@ -1,5 +1,5 @@
 // A film's own pages, the Lab, Scenes and Play, as the lab serves them once
-// it renders them on the server (PA-12): the server's document is the
+// it renders them on the server: the server's document is the
 // studio's shell (the header, the film switcher, the tab bar on the page's
 // part) with a quiet line where the film lands, and none of the film (no
 // canvas, no tape: the server never imports a film's modules). The Lab's
@@ -141,7 +141,7 @@ describe("a film's pages served as the lab renders them", () => {
           expect(html).toMatch(new RegExp(`data-page="${part}"[^>]*data-active="true"`));
           expect(html).toContain(`Opening ${PROBE}…`);
           for (const film of FILM_PARTS) expect(html).not.toContain(film);
-          // Titled as the shell titles it, before it hydrates (SU-9).
+          // Titled as the shell titles it, before it hydrates.
           expect(yield* servedTitle(page, documents[0]?.html ?? '')).toBe(`${name} · ${PROBE}`);
           // The film, staged in the browser, in the hydrated shell's body.
           yield* waitFor(page, ready);

@@ -810,7 +810,7 @@ another server answers
 with no hand on the page. Every reload onto new code (the rebuild's, a
 write's, a kept take's) marks the view (`landed`, `film-lab-view:<film>`),
 and the page it lands on lights the picture's edge once and fades it
-(`.stage[data-landed]`, PA-11): the eye knows the frame is the new code, not
+(`.stage[data-landed]`): the eye knows the frame is the new code, not
 the old one still standing. A page opened by hand does not flash. The review does not reload itself (a playing set
 is not interrupted); its next load is the new code. A page that does not
 build answers 500 with the bundler's words and reloads once a later build
@@ -821,7 +821,7 @@ bundler may still hold what the failed build read; the failed page asks
 nothing but its wait), and one that then builds is a new build its page hears; the server
 keeps serving.
 
-Every page is rendered on the server (PA-12): its server entry
+Every page is rendered on the server: its server entry
 (`LabPageSpec.servers`, whose default export is a `PageRender`,
 `core/page-render.ts`) runs in a worker of its build (`PageRenderer`,
 `tools/page-render.ts`), retired once a newer build has rendered and its own
@@ -1020,7 +1020,7 @@ a field keeps the browser's own menu. The menus' rows
 they are made again whenever what they read moves (a command's `when` and
 its label read the player, so each frame a film plays), and a row keeps its
 element, so a press and its release on it are one click. Every page has
-**Copy link** (⇧⌘C, AA-1, `src/command/link.ts`): the page's URL (its place,
+**Copy link** (⇧⌘C, `src/command/link.ts`): the page's URL (its place,
 its selection, its time), or from a thing's menu that thing's citation
 (`citeOf`), written whole through the host's `Clipboard`. A choice's card
 cites its Choices link (`?point=`); a part's render, an act and the film
@@ -1033,22 +1033,22 @@ directly; `COMMAND_TOKENS` names only what no studio token holds: the
 paddings and heights the surfaces compose, and their own widths, heights and
 layer. The Play and Scenes pages are the shell's too
 (`lab/play-mount.tsx`), so `?` is the keys sheet on every page, the one
-place the keys are listed (UR2-11): every command a key is bound to, one
+place the keys are listed: every command a key is bound to, one
 found only by typing too. The lab bar's legend (what the stripes and the
-ticks mean, `BAR_LEGEND`) is hidden at rest (UR-114, `legendCommand`, no
+ticks mean, `BAR_LEGEND`) is hidden at rest (`legendCommand`, no
 key): ⌘K or the page's long-press menu shows it (Show the legend), and on a
 film's page the `?` sheet ends on it. Play has no bar legend of its own:
 the ticks' shows with the ticks (⋯ → Show the ticks).
 The lab's transport reads in the scene's time and length while the header
-keeps the film's, and on a laptop Play's one timecode is the header's
-(SU-12); the lab's captions are the view menu's and `c`, Play's its bar's
-CC (UR2-12). No page keeps a line of key hints at rest (UR-26,
-UR-80, UR-98): the keys are the `?` sheet's, each with its touch path (Note
+keeps the film's, and on a laptop Play's one timecode is the header's;
+the lab's captions are the view menu's and `c`, Play's its bar's
+CC. No page keeps a line of key hints at rest:
+the keys are the `?` sheet's, each with its touch path (Note
 this frame's names the click and the drag that mark a frame, and the notes'
 empty list says them too), and the gestures of the selection are the
 inspector's footer.
 
-**Go to** (AA-2, `src/command/go.ts`): every place a page can go to by its
+**Go to** (`src/command/go.ts`): every place a page can go to by its
 name is a command found only by typing (`typed`): ⌘K lists it once a word
 is typed, the `?` sheet never, and a context menu only when the command is
 `about` the thing it opened on (a point's marks, below). `/` opens ⌘K from the
@@ -1126,7 +1126,7 @@ it sends the pick again with `acceptMismatch: true`, which `keepVoice` keeps
 arithmetic committed on Enter, its arrows the knob's step, Shift ten,
 Alt a tenth). On a version stack (`src/lab/review/hear.ts`) `1`…`9` hear
 version n, as its 🔊 does, while the view can play it. A set's version says over
-`POST /api/review/sets/<folder>/<point>/say` (UI-7), its answer shown in
+`POST /api/review/sets/<folder>/<point>/say`, its answer shown in
 place.
 
 A **receipt** is one toast (`Receipts`, `src/lab/command/receipts.tsx`, on
@@ -1563,7 +1563,7 @@ measured within itself. The exceptions are WCAG 2.5.8's: a backing input
 nothing of which can be seen or pressed, a link on a line of text, and a
 target 24 px or more whose `--hit` circle reaches no neighbour's area
 (`e2e/lab/fixtures/touch-targets.dom.test.ts` holds the measure to synthetic
-shapes). Every page also fits a phone (G8, `fitsPhone`,
+shapes). Every page also fits a phone (`fitsPhone`,
 `lab/fixtures/phone-fit.ts`): no sideways scroll, each control inside the
 width, its chrome at most a quarter of the height
 (`e2e/lab/fixtures/phone-fit.dom.test.ts` holds the measure to synthetic
@@ -2305,9 +2305,9 @@ proxies, Play the originals) are the page's commands, in ⌘K and the page's
 long-press menu; a proxy still being made still offers its original in
 place. A Folder's loose video shows its picture and name; its file is its
 long-press menu's (`review.file-open` Open the file, Copy link to the file,
-`review.file-info` Info: its size, age and proxy; UR-17). On a film's choices and its project, Show only… (`review.only-stale`,
+`review.file-info` Info: its size, age and proxy). On a film's choices and its project, Show only… (`review.only-stale`,
 `review.only-unapproved`, `review.only-comments`, and `review.only-all` to
-show every point again; AA-14) keeps the points in one state: out of date (a
+show every point again) keeps the points in one state: out of date (a
 stale variant), awaiting approval (its picked variant, or any while none is
 picked, not approved) or with comments. The state is the link's `?only=`,
 each choice replacing the entry, and while it holds a line over the points

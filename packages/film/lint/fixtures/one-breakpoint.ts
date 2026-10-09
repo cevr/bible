@@ -21,3 +21,9 @@ export const through = `@media ${PHONE} { .x { margin: 0; } } @media ${WIDE} { .
 export const built = `(max-width: ${PHONE_WIDEST}px)`;
 // A width that is no media query passes.
 export const sized = '.x { max-width: 900px; }';
+// A feature query asks whether a declaration parses, not how wide the window is.
+export const supported = '@supports (width: 900px) { .x { padding: 0; } }';
+export const supportedTemplate = `@supports ( max-width : 899px ) and (display: grid) { .x { margin: 0; } }`;
+// A media query after a feature query's block is still a breakpoint.
+export const after =
+  '@supports (width: 1px) { .x { margin: 0; } } @media (min-width: 900px) { .x { padding: 0; } }'; // RED film/one-breakpoint

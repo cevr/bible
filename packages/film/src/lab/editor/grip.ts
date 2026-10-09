@@ -50,7 +50,7 @@ import { StepVerb } from '../api.ts';
 const SNAP_PX = 8;
 /** How wide (screen pixels) a cue's edge is to grab with a mouse or a pen. */
 export const EDGE_PX = 6;
-/** How wide a cue's edge is to grab with a finger, which covers more than 6 px (LS-5). */
+/** How wide a cue's edge is to grab with a finger, which covers more than 6 px. */
 export const EDGE_TOUCH_PX = 14;
 
 /** How wide a cue's edge is to the pointer of `pointerType` (a PointerEvent's). */
@@ -60,7 +60,7 @@ export const edgeFor = (pointerType: string): number =>
     Match.orElse(() => EDGE_PX),
   );
 
-/** How many seconds of a scene the strip shows on a phone (SU-4). */
+/** How many seconds of a scene the strip shows on a phone. */
 const PHONE_WINDOW = 8;
 
 /** The seconds of its scene the strip shows: from `from`, `span` long. */

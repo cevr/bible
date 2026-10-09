@@ -185,7 +185,7 @@ const Mix = (props: { readonly src: string }) => {
 };
 
 /**
- * Undo and Redo of the film's source as the page's commands (UR-35): ⌘Z and
+ * Undo and Redo of the film's source as the page's commands: ⌘Z and
  * ⇧⌘Z, ⌘K, the page's context menu and a receipt's Undo, each naming the
  * change it would step, available while the film's stack has one that way
  * and the last step has answered. A receipt's names the change it acts on:
@@ -286,7 +286,7 @@ const pointDestinations = (
     go: () => focus(point.id),
   }));
 
-/** A heading and a card for each of `points` (how many, the kinds strip says: UR-7). */
+/** A heading and a card for each of `points` (how many, the kinds strip says). */
 const ChoiceSection = (props: {
   readonly title: string;
   readonly points: ReadonlyArray<ChoicePoint>;
@@ -302,7 +302,7 @@ const ChoiceSection = (props: {
 );
 
 /**
- * While the page shows only the points in one state (`?only=`, AA-14), what
+ * While the page shows only the points in one state (`?only=`), what
  * it shows and the way back to every point; nothing while it shows them all.
  */
 export const OnlyShown = () => {

@@ -666,7 +666,8 @@ export const chapters = (
   if (named.length < CHAPTERS_MIN)
     return invalid(`${named.length} acts name a chapter; YouTube needs ${CHAPTERS_MIN} or more`);
   const first = named[0]?.start ?? 0;
-  if (first > 1e-6) return invalid(`the first chapter starts at ${chapterTime(first)}, not 00:00`);
+  if (first > CLOCK_EPSILON)
+    return invalid(`the first chapter starts at ${chapterTime(first)}, not 00:00`);
   const end = filmEnd(placed);
   const short = Arr.findFirst(
     named,

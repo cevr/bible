@@ -247,7 +247,7 @@ export const playerEvent = (key: PlayerKey): SyncEvent =>
 const STEPS_BY: Readonly<Record<Invocation['step'], number>> = { normal: 1, coarse: 10, fine: 1 };
 
 /**
- * Where a step is offered by touch (SU-11): a long-press on a Set's version
+ * Where a step is offered by touch: a long-press on a Set's version
  * (its picture is the version's) or on a page's picture (Choices', the
  * Project's dock), with its ×10 row, as Play's picture offers its frames.
  */

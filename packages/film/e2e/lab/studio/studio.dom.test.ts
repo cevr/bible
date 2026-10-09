@@ -247,7 +247,7 @@ describe('the studio', () => {
           const { page, errors } = yield* withMic({ allowed: true });
           yield* page.waitFor('[data-beat="thesis"]');
           // Each beat is a dot in its take's state colour and shape, its word in its name and the
-          // counts in the list's (UR2-4); the selected beat's word is shown under the list.
+          // counts in the list's; the selected beat's word is shown under the list.
           yield* attributesAre(page, '[data-role="badge"]', 'data-state', [
             'recorded',
             'staging',

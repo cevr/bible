@@ -3,7 +3,7 @@
 // the film's project (its acts, each scene's render state and approval;
 // none for a short, which has no project, or when the lab cannot read it)
 // and the check's findings, or why it failed (a failed check is never read as
-// clean, RS-1; a short runs none), and a say on scenes
+// clean; a short runs none), and a say on scenes
 // (approve, comment), answering the project it leaves or why it was not
 // said. A say on several scenes is one say naming them all, neighbours or
 // not: the project approves them in one run, or refuses the run whole.

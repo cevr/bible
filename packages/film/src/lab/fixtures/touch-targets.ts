@@ -134,7 +134,7 @@ const SEEN = `${TARGETS}, video, audio, canvas, img`;
 
 /**
  * An expression run in the page: everything the view shows on its first
- * screen, the clutter the at-rest budget holds (UR2-17), as the UI-reduction
+ * screen, the clutter the at-rest budget holds, as the UI-reduction
  * sweep's `count.js` counts it: each control (a target, a picture, a player
  * or a canvas: `C tag.class "text"`) and each text leaf (an element with
  * words of its own, not inside a control: `T …`). A disabled control is
