@@ -11,8 +11,11 @@
 // (`dead-exports/debt.txt`, one `file name` per line): read only by their
 // own module's tests, or by nobody. The debt only shrinks: a new dead export
 // fails, a debt line whose export has since been used or removed fails, and so
-// does a debt line the base revision (the merge-base with main) lacks, so a
-// dead export cannot come in with its own line. With no base to read, it fails.
+// does a debt line the base revision lacks, so a dead export cannot come in
+// with its own line. The base is `DEAD_EXPORTS_BASE` when CI names one (the
+// push's pre-push SHA, or the pull request's base SHA), else the merge-base
+// with the newer of main and origin/main. With no base to read, it fails; a
+// base from before this check existed holds nothing (its adoption).
 //
 //   bun run dead-exports    # prints `dead-export <file> <name>` per new one,
 //                           # `stale-debt <file> <name>` per settled one,
@@ -23,9 +26,9 @@
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Array as Arr, Console, Effect, FileSystem, Option, Path } from 'effect';
+import { Array as Arr, Config, Console, Effect, FileSystem, Path } from 'effect';
 
-import { baseRevision, debtAt, debtLines, grownDebt } from './dead-exports/base.js';
+import { debtLines, grownOver } from './dead-exports/base.js';
 import { deadExports } from './dead-exports/graph.js';
 import { readWorkspace } from './dead-exports/workspace.js';
 
@@ -37,19 +40,25 @@ const main = Effect.gen(function* () {
   const debtFile = 'packages/scripts/src/dead-exports/debt.txt';
   const debt = debtLines(yield* fs.readFileString(path.join(root, debtFile)));
   // The debt only shrinks: a line the base revision lacks is debt this change grew.
-  const base = yield* baseRevision(root).pipe(
-    Effect.flatMap((revision) => debtAt(root, revision, debtFile)),
-    Effect.map((lines) => ({ lines, unreadable: false })),
+  // CI names the base (the push's pre-push SHA, or the pull request's base SHA).
+  const named = yield* Config.option(Config.String('DEAD_EXPORTS_BASE'));
+  const base = yield* grownOver(
+    root,
+    { check: 'packages/scripts/src/dead-exports.ts', debt: debtFile },
+    named,
+    debt,
+  ).pipe(
+    Effect.map((grown) => ({ grown, unreadable: false })),
     Effect.catchTag('BaseUnavailable', (e) =>
       Console.log(`base-unavailable ${e.reason}`).pipe(
-        Effect.as({ lines: Option.none<ReadonlyArray<string>>(), unreadable: true }),
+        Effect.as<{ grown: ReadonlyArray<string>; unreadable: boolean }>({
+          grown: [],
+          unreadable: true,
+        }),
       ),
     ),
   );
-  const grown = Option.match(base.lines, {
-    onNone: () => [],
-    onSome: (lines) => grownDebt(debt, lines),
-  });
+  const { grown } = base;
   const fresh = Arr.difference(dead, debt);
   const settled = Arr.difference(debt, dead);
   yield* Effect.forEach(grown, (line) => Console.log(`grown-debt ${line}`), { discard: true });

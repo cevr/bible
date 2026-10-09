@@ -30,8 +30,13 @@ jobs:
   gate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # The dead-export debt is held against what the change started from: the pull
+      # request's base, or the push's pre-push commit (all zeros for a new branch,
+      # which the check reads as no base named).
+      DEAD_EXPORTS_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
     steps:
-      # The whole history: the dead-export check reads the debt at the merge-base with main.
+      # The whole history: the dead-export check reads the debt at its base revision.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
