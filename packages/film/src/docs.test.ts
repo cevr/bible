@@ -38,7 +38,8 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
-import { LabHttpApi, routesOf } from './core/api.ts';
+import { LabHttpApi } from './core/api.ts';
+import { routesOf } from './core/testing.ts';
 
 /** What the docs are read against. */
 interface Code {

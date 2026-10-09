@@ -2,13 +2,10 @@ import { describe, expect, test } from 'bun:test';
 import { Place } from '@bible/url-state';
 import { Duration, Option, Schema } from 'effect';
 import {
-  LONGEST_WAIT,
   LabHttpApi,
   TIME_EVERY_MS,
-  WaitTimeout,
   type PageName,
   Places,
-  declares,
   filmOfPage,
   filmTimeOn,
   labUrls,
@@ -18,6 +15,8 @@ import {
   partHref,
   reviewFileUrl,
 } from './api.ts';
+import { declares } from './testing.ts';
+import { LONGEST_WAIT, WaitTimeout } from './wait.ts';
 
 type PlaceName = keyof typeof Places;
 

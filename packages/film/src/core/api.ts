@@ -48,6 +48,7 @@ import type { Interval } from './time.ts';
 import { isShortKey } from './shorts.ts';
 import { onChoicesTab } from './point.ts';
 import { OpId, Project, RenderVariantName } from './catalogue.ts';
+import { WaitTimeout } from './wait.ts';
 import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
 import {
@@ -354,25 +355,6 @@ export type SetSayPost = typeof SetSayPost.Type;
 const FileBytes = Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array());
 
 const film = { film: Schema.String };
-
-/** The longest a wait holds a request open, in seconds. */
-export const LONGEST_WAIT = 60;
-
-/**
- * A wait's `timeout` query, in seconds: absent, the longest; any other held
- * within 0..`LONGEST_WAIT` as it is decoded, so the server waits as long as
- * the query says and never longer.
- */
-export const WaitTimeout = Schema.Finite.pipe(
-  Schema.decodeTo(
-    Schema.Finite,
-    SchemaTransformation.transform({
-      decode: (seconds) => Math.min(Math.max(seconds, 0), LONGEST_WAIT),
-      encode: (seconds) => seconds,
-    }),
-  ),
-  Schema.withDecodingDefaultKey(Effect.succeed(LONGEST_WAIT)),
-);
 
 /** Where every route of the API lives: no page path starts with it. */
 const API = '/api';
@@ -707,51 +689,17 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(LooksGroup)
   .add(PageGroup) {}
 
-/** A route an API declares: its method and its path, `:param`s and a trailing `*` as declared. */
-export interface Route {
-  readonly method: string;
-  readonly path: string;
-}
-
-/** Every route `api` declares, group by group. */
-export const routesOf = <Id extends string, Groups extends HttpApiGroup.Constraint>(
-  api: HttpApi.HttpApi<Id, Groups>,
-): ReadonlyArray<Route> => {
-  const routes: Array<Route> = [];
-  HttpApi.reflect(api, {
-    onGroup: () => {},
-    onEndpoint: ({ endpoint }) =>
-      void routes.push({ method: endpoint.method, path: endpoint.path }),
-  });
-  return routes;
-};
-
-/** A declared route's path as a matcher: a `:param` is one segment, a trailing `*` the rest. */
-const matcherOf = (path: string): RegExp =>
-  new RegExp(`^${path.replace(/:\w+/g, '[^/]+').replace(/\*$/, '.*')}$`);
-
-/**
- * Whether `api` declares a route that `method pathname` reaches: what a fake
- * server checks before it answers, so a test never vouches for a path the
- * real server does not serve.
- */
-export const declares = <Id extends string, Groups extends HttpApiGroup.Constraint>(
-  api: HttpApi.HttpApi<Id, Groups>,
-): ((method: string, pathname: string) => boolean) => {
-  const routes = routesOf(api).map((route) => ({
-    method: route.method,
-    path: matcherOf(route.path),
-  }));
-  return (method, pathname) =>
-    routes.some((route) => route.method === method && route.path.test(pathname));
-};
-
 /** The first segments `api`'s routes live under (`/api/`): the API's own paths. */
 export const prefixesOf = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,
-): ReadonlyArray<string> => [
-  ...new Set(routesOf(api).map((route) => `/${route.path.split('/')[1] ?? ''}/`)),
-];
+): ReadonlyArray<string> => {
+  const prefixes = new Set<string>();
+  HttpApi.reflect(api, {
+    onGroup: () => {},
+    onEndpoint: ({ endpoint }) => void prefixes.add(`/${endpoint.path.split('/')[1] ?? ''}/`),
+  });
+  return [...prefixes];
+};
 
 // ---------------------------------------------------------------------------
 // The pages: every place a page is at, declared once as `@bible/url-state`

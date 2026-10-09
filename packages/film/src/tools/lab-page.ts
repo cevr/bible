@@ -61,7 +61,8 @@ import {
 } from 'effect';
 import type { BunPlugin } from 'bun';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { LONGEST_WAIT, type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
+import { type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
+import { LONGEST_WAIT } from '../core/wait.ts';
 import type { PageBuild } from '../core/schema.ts';
 import { PAGE_CUT_MARK } from '../core/page-render.ts';
 import { brotliCompress, constants as zlib } from 'node:zlib';

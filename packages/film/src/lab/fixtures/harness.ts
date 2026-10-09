@@ -22,13 +22,13 @@ import {
 import {
   type CompareView,
   LabHttpApi,
-  declares,
   type PageName,
   Refusal,
   pageAt,
   pageHref,
   statusOf,
 } from '../../core/api.ts';
+import { declares } from '../../core/testing.ts';
 import type { PageBuild } from '../../core/schema.ts';
 import type { Interval } from '../../core/time.ts';
 import { PAGE_CUT_MARK, PAGE_MOUNTED, type PageRender } from '../../core/page-render.ts';

@@ -36,7 +36,8 @@ import {
   Stream,
 } from 'effect';
 import * as Worker from 'effect/workers/Worker';
-import { LONGEST_WAIT, type PageName } from '../core/api.ts';
+import type { PageName } from '../core/api.ts';
+import { LONGEST_WAIT } from '../core/wait.ts';
 import { FromRender, ToRender } from './page-render-protocol.ts';
 
 /** A module of a build's server bundle, at its path under the build's root. */

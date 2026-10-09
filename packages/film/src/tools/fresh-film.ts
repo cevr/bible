@@ -27,7 +27,8 @@ import {
   Schema,
 } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
-import { LONGEST_WAIT, ServerFailed } from '../core/api.ts';
+import { ServerFailed } from '../core/api.ts';
+import { LONGEST_WAIT } from '../core/wait.ts';
 import { Project } from '../core/catalogue.ts';
 import { ChoicePoint, type ChoiceVerb } from '../core/choice.ts';
 import { UnknownAct, UnknownScene } from '../core/errors.ts';
