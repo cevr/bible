@@ -42,7 +42,7 @@ const VERB_PAST: Readonly<Record<ChoiceVerb, string>> = {
 };
 
 /** A part of the project as a receipt names it: `the film`, `act opening`, `scene cold`. */
-export const partText = (address: PartAddress): string =>
+const partText = (address: PartAddress): string =>
   Match.valueTags(address, {
     Film: () => 'the film',
     Act: ({ act }) => `act ${act}`,

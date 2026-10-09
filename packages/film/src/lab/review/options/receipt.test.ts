@@ -8,12 +8,14 @@ import { describe, expect, test } from 'bun:test';
 import { Option, Schema } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { busy, refused, said } from '../../../command/command.ts';
+import type { PartAddress } from '../../../core/address.ts';
+import { ProjectView } from '../../../core/api.ts';
 import { FilmChoices, type SoundCheck } from '../../../core/choice.ts';
 import { ChangeId } from '../../../core/schema.ts';
 import { type LabFailure, LabUnreachable } from '../../api.ts';
 import type { Words } from '../format.ts';
 import { ChoiceAct, type Wrote } from './api.ts';
-import { REVIEW_REDO, REVIEW_UNDO, actWords, partText, soundReceipt } from './receipt.ts';
+import { REVIEW_REDO, REVIEW_UNDO, actWords, partSaid, soundReceipt } from './receipt.ts';
 
 /** A variant as the wire carries it. */
 const variant = (id: string, picked: boolean) => ({
@@ -174,10 +176,17 @@ describe('soundReceipt', () => {
   });
 });
 
-describe('partText', () => {
-  test('names a part of the project', () => {
-    expect(partText({ _tag: 'Film' })).toBe('the film');
-    expect(partText({ _tag: 'Act', act: 'opening' })).toBe('act opening');
-    expect(partText({ _tag: 'Scenes', ids: ['cold'] })).toBe('scene cold');
+describe('partSaid', () => {
+  /** A project with nothing given or taken: a comment's receipt is its words alone. */
+  const view = Schema.decodeSync(ProjectView)({
+    project: { film: 'toy', variant: 'main', key: 'k', comments: [], acts: [], scenes: [] },
+    videos: {},
+  });
+  const commented = (address: PartAddress) =>
+    partSaid({ address, say: { _tag: 'Comment', text: 'warmer' } }, Option.none())(view);
+  test('names the part of the project it was said of', () => {
+    expect(commented({ _tag: 'Film' })).toBe('Commented on the film');
+    expect(commented({ _tag: 'Act', act: 'opening' })).toBe('Commented on act opening');
+    expect(commented({ _tag: 'Scenes', ids: ['cold'] })).toBe('Commented on scene cold');
   });
 });
