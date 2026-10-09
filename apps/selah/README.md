@@ -38,6 +38,10 @@ From **Library → Read**, choose **Rehearse [Book]** to start the entire book i
 
 ## Reading and margins
 
+The menu-bar popup is a compact launcher: progress, Practice, Read, Open Selah, and Quit. It never embeds the reader, practice session, Library, or Settings.
+
+The reader opens in its own native window, centered in the active display’s usable area every time you choose Read, including from the menu bar. It remains open independently of the menu-bar popover.
+
 Scripture is selectable, uses a restrained line length and generous leading, and preserves supplied-word italics and red-letter quotations. **Settings → Reading → Show margin notes** defaults off for uninterrupted memorization. Enabling it adds small lettered anchors and collapsed note disclosures; selecting a note opens a native popover. Notes whose phrases do not match the printed verse remain available in the disclosure.
 
 This interpretation follows the deleted Bible Tools web/desktop shared renderer, inspected at commit `a639e74d1^`: `packages/core/src/bible-rendering/segments.ts` and `packages/app/src/reading/verse-segments.tsx`. Selah does not include its wiki/Strong's study features.

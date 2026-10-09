@@ -22,23 +22,13 @@ struct QuietButton: PrimitiveButtonStyle {
 struct RootView: View {
   @Bindable var store: Store
   let delegate: AppDelegate
-  let compact: Bool
   @Environment(\.openWindow) private var openWindow
   var body: some View {
     VStack(spacing: 0) {
       HStack(spacing: 14) {
         Label("Selah", systemImage: "book.closed").font(.headline)
         Spacer()
-        if compact {
-          Button {
-            openWindow(id: "practice")
-            NSApp.activate(ignoringOtherApps: true)
-          } label: {
-            Image(systemName: "arrow.up.left.and.arrow.down.right")
-          }.buttonStyle(.borderless).help("Open practice window").accessibilityLabel(
-            "Open practice window")
-        }
-      }.padding(.horizontal, 24).padding(.top, compact ? 20 : 12).padding(.bottom, 16)
+      }.padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 16)
       Picker("Section", selection: $store.section) {
         Text("Today").tag("Today")
         Text("Library").tag("Library")
@@ -286,7 +276,7 @@ struct LibraryView: View {
   @State private var first = 1
   @State private var last = 1
   @State private var message = ""
-  @State private var reading: Goal?
+  @Environment(\.openWindow) private var openWindow
   private var books: [Verse] { store.corpus.books }
   private var chapters: Int { store.corpus.chapterCount(book: book) }
   private var verseCount: Int {
@@ -350,7 +340,9 @@ struct LibraryView: View {
             ).foregroundStyle(muted)
           }
           Spacer()
-          Button("Read") { reading = goal }.buttonStyle(.bordered)
+          Button("Read") {
+            store.reader.present(store: store, goal: goal) { openWindow(id: "practice") }
+          }.buttonStyle(.bordered)
         }.padding(16).background(surface, in: RoundedRectangle(cornerRadius: 12))
       }
     }
@@ -364,9 +356,6 @@ struct LibraryView: View {
       last = 1
     }
     .onChange(of: first) { last = max(first, last) }
-    .sheet(item: $reading) { goal in
-      ReadingView(store: store, chapters: store.corpus.chapters(for: goal), title: goal.title)
-    }
   }
 }
 
@@ -374,7 +363,8 @@ struct ReadingView: View {
   @Bindable var store: Store
   let chapters: [[Verse]]
   let title: String
-  @Environment(\.dismiss) private var dismiss
+  let close: () -> Void
+  let onPractice: () -> Void
   @State private var chapterIndex = 0
   @State private var hidden = false
   @State private var readerSettings = false
@@ -389,7 +379,7 @@ struct ReadingView: View {
         } label: {
           Image(systemName: "textformat.size")
         }.help("Reader settings").accessibilityLabel("Reader settings")
-        Button("Done") { dismiss() }
+        Button("Done", action: close).keyboardShortcut(.cancelAction)
       }
       if let first = visible.first {
         Text("\(first.bookName) \(first.chapter)").foregroundStyle(muted)
@@ -425,13 +415,15 @@ struct ReadingView: View {
       {
         Button("Practice & Schedule This Chapter") {
           store.beginChapter(visible)
-          dismiss()
+          close()
+          onPractice()
         }.buttonStyle(.borderedProminent)
         Button(
           "Rehearse \(first.bookName) · \(store.corpus.chapterCount(book: first.book)) chapters"
         ) {
           store.beginBook(first.book)
-          dismiss()
+          close()
+          onPractice()
         }
       }
       Text("Chapter grades schedule the chapter independently of its verses.").font(.caption)

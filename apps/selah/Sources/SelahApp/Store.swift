@@ -20,6 +20,7 @@ final class Store {
   var isLoading = true
   var isSaving = false
   let dictation = Dictation()
+  let reader = ReaderWindow()
   var rehearsalBook: String?
   var queue: [PracticeUnit] = []
   var sessionActive = false
