@@ -34,10 +34,24 @@ export type Engine =
 
 const video = (why: string): Engine => ({ engine: 'video', why });
 
-/** The engine for a file with `track`'s codecs in a browser with `browser`'s. */
-export const engineFor = (browser: BrowserCodecs, track: TrackCodecs): Engine => {
+/** Why a compare plays on `<video>` when the panes' module will not load (offline, or gone after a rebuild). */
+export const PANES_NOT_LOADED = 'this browser could not load the WebCodecs panes';
+
+/**
+ * The engine a browser allows before any file is looked at: the panes only
+ * where it is not a phone and has `VideoDecoder`. Asked first, so a browser
+ * that plays `<video>` anyway never loads the panes' decoders.
+ */
+export const browserEngine = (browser: BrowserCodecs): Engine => {
   if (browser.phone) return video('a phone plays <video> until one is measured');
   if (!browser.videoDecoder) return video('this browser has no WebCodecs');
+  return { engine: 'webcodecs' };
+};
+
+/** The engine for a file with `track`'s codecs in a browser with `browser`'s. */
+export const engineFor = (browser: BrowserCodecs, track: TrackCodecs): Engine => {
+  const allowed = browserEngine(browser);
+  if (allowed.engine === 'video') return allowed;
   if (!track.video) return video('this browser cannot decode the picture');
   if (track.audio === 'coded' && !(browser.audioDecoder && track.audioDecodable))
     return video('this browser cannot decode the sound');

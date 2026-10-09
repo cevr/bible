@@ -3,7 +3,7 @@
 // (`mountStudio`): hydrated over the markup the lab rendered it with on the
 // server (`server.tsx`), or rendered anew.
 
-import { panesMediaLayer } from '../../browser/webcodecs-browser.ts';
+import { panesMediaLayer } from '../../browser/media-browser.ts';
 import type { Films } from '../../player/main.ts';
 import { LabClient } from '../api.ts';
 import { mountStudio } from '../page-client.tsx';

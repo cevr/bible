@@ -6,34 +6,8 @@
 // cannot do this: a URL written during it does not reach the reload.
 
 import { describe, expect, test } from 'bun:test';
-import type { Timers } from './throttle.ts';
+import { fakeTimers } from './fixtures/timers.ts';
 import { type TimeCause, tInUrl } from './t-in-url.ts';
-
-const fakeTimers = () => {
-  let now = 0;
-  let next = 1;
-  const due = new Map<number, { at: number; run: () => void }>();
-  const timers: Timers = {
-    now: () => now,
-    set: (run, ms) => {
-      const id = next++;
-      due.set(id, { at: now + ms, run });
-      return id;
-    },
-    clear: (id) => {
-      due.delete(id);
-    },
-  };
-  const advance = (ms: number) => {
-    now += ms;
-    for (const [id, t] of [...due].sort((a, b) => a[1].at - b[1].at))
-      if (t.at <= now) {
-        due.delete(id);
-        t.run();
-      }
-  };
-  return { timers, advance };
-};
 
 /** A player's T, and every `#t=` written, driven on a fake clock. */
 const rig = () => {

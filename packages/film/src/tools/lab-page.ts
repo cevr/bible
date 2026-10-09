@@ -316,6 +316,10 @@ const bunBundle =
             publicPath: how.publicPath,
             plugins: [...swaps, solidPluginFor('dom')],
             target: 'browser',
+            // Solid's development build, whatever NODE_ENV the lab runs under: its
+            // diagnostics (a hydration mismatch, a read outside a tracking scope)
+            // are what the served end-to-end tests read.
+            conditions: ['development'],
             splitting: true,
             minify: true,
             sourcemap: 'linked',

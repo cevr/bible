@@ -26,8 +26,6 @@ export interface ToastObject<Data extends object = object> {
   updateKey?: number | undefined;
   /** Whether the toast was limited because the toast limit was exceeded. */
   limited?: boolean | undefined;
-  /** The measured height of the toast. */
-  height?: number | undefined;
   /** Called when the toast is removed from the list after its exit animations finish. */
   onRemove?: (() => void) | undefined;
   /** The props for the action button (`Toast.Action`); `children` is its label. */
@@ -45,7 +43,7 @@ export type ToastObjectActionProps = Omit<JSX.HTMLAttributes<HTMLButtonElement>,
 
 export interface ToastManagerAddOptions<Data extends object> extends Omit<
   ToastObject<Data>,
-  'id' | 'height' | 'ref' | 'limited' | 'updateKey'
+  'id' | 'ref' | 'limited' | 'updateKey'
 > {
   /**
    * The unique identifier for the toast. Adding a toast with an existing ID

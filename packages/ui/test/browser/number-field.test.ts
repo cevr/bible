@@ -603,6 +603,36 @@ describe('NumberField.ScrubArea', () => {
     expect(await logOf(page)).toEqual(['commit 0 scrub', 'scrub-area click']);
   });
 
+  it("commits the owner's current value when pressed without moving after the owner changed it", async () => {
+    const page = await open('field', { value: '5' });
+    await input(page).focus();
+    await page.keyboard.press('ArrowUp');
+    await see(input(page)).toHaveValue('6');
+    // The owner's value changes on its own (an Undo in the lab).
+    await page.click('#set-42');
+    await see(input(page)).toHaveValue('42');
+    await refusePointerLock(page);
+    const { x, y } = await centerOf(page, 'scrub-area');
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.up();
+    expect(await commitsOf(page)).toEqual(['commit 6 keyboard', 'commit 42 scrub']);
+    await see(input(page)).toHaveValue('42');
+  });
+
+  it("commits the owner's value when pressed without moving after the owner declined a step", async () => {
+    const page = await open('field', { value: '5', mirror: 'false' });
+    await input(page).focus();
+    await page.keyboard.press('ArrowUp');
+    await see(input(page)).toHaveValue('5');
+    await refusePointerLock(page);
+    const { x, y } = await centerOf(page, 'scrub-area');
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.up();
+    expect(await commitsOf(page)).toEqual(['commit 6 keyboard', 'commit 5 scrub']);
+  });
+
   it('stops scrubbing when it becomes disabled mid-scrub, back on the owner value', async () => {
     const page = await open('field', { value: '5' });
     const { x, y } = await centerOf(page, 'scrub-area');

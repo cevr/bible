@@ -7,6 +7,7 @@
 import type { ProbeSink } from '../canvas/probe.ts';
 import type { ExportHandle } from '../core/export-handle.ts';
 import { sceneTimesOf } from '../core/easel.ts';
+import { frameAtOrAfter } from '../core/time.ts';
 import { Effect, Option } from 'effect';
 import { addressOn, hostOf, monotonicMs } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
@@ -76,7 +77,7 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): Expo
       height: film.height,
       fps: film.fps,
       duration: film.duration,
-      frames: Math.ceil(film.duration * film.fps),
+      frames: frameAtOrAfter(film.duration, film.fps),
       audio: film.audio,
     },
     frame: (i, type) => {
