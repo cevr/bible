@@ -4,6 +4,7 @@
 // on for the paths it governs with an `overrides` entry.
 
 import { Plugin } from 'oxlint-plugin-effect/rule-bindings';
+import { booleansThroughPressed } from './booleans-through-pressed.ts';
 import { drawingLiteral } from './drawing-literal.ts';
 import { framingIsAKnob } from './framing-is-a-knob.ts';
 import { historyThroughHost } from './history-through-host.ts';
@@ -28,6 +29,7 @@ import { touchesSerial } from './touches-serial.ts';
 export default Plugin.define({
   name: 'film',
   rules: {
+    'booleans-through-pressed': booleansThroughPressed,
     'drawing-literal': drawingLiteral,
     'framing-is-a-knob': framingIsAKnob,
     'history-through-host': historyThroughHost,

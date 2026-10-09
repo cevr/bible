@@ -851,6 +851,20 @@
       }
     },
     {
+      // A boolean a control shows is written by `pressed(on)`
+      // (packages/film/lint/booleans-through-pressed.ts).
+      "files": ["**/packages/film/src/lab/**/*.tsx"],
+      "rules": {
+        "film/booleans-through-pressed": "error"
+      }
+    },
+    {
+      "files": ["**/packages/film/src/**/fixtures/**", "**/packages/film/src/**/*.test.tsx"],
+      "rules": {
+        "film/booleans-through-pressed": "off"
+      }
+    },
+    {
       // Every action in the lab has a key path: an element that hears a
       // click is one a keyboard reaches and works, or says why not.
       "files": ["**/packages/film/src/lab/**/*.tsx"],
