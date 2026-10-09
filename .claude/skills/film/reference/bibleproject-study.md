@@ -513,7 +513,7 @@ Each direction gives the change for `SKILL.md` or the engine, the evidence, wher
   - At most one quotation per beat.
   - Quoted words make up no more than 20% of the script.
   - A quotation over 25 words is a set piece and gets its own picture sequence, one image per clause (V9).
-  - Keep one pioneer line verbatim where it cannot be paraphrased. Paraphrase the rest and name the writer: "Waggoner saw that…".
+  - Keep one pioneer line verbatim where it cannot be paraphrased. Paraphrase the rest and name the writer: "Waggoner saw that…". (Superseded 2026-10-09 by CRAFT rule 2: a film quotes only Scripture and names no pioneer in speech.)
   - `sources.md` still holds every checked quotation, and the end card lists the sources.
 - **Evidence:** 5–21% quoted (median 13.5%); no reference spoken in any Sermon on the Mount film; sources named by speaker.
 - **Ours:** 41% quoted in 30 quotations. The "within" beat carries 4 of them.
