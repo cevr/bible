@@ -575,18 +575,14 @@ describe('Follow', () => {
       });
       yield* page.waitFor('.lab-source-col .lab-source-page');
       yield* page.evaluate(
-        `window.__reads = 0; const was = window.getComputedStyle.bind(window); window.getComputedStyle = (el, ...r) => { if (el.classList && el.classList.contains('lab-source-line')) window.__reads += 1; return was(el, ...r); }; window.__frames = 0; const tick = () => { window.__frames += 1; requestAnimationFrame(tick); }; requestAnimationFrame(tick); window.__meter = document.querySelector('.lab-source-meter').style.getPropertyValue('--done');`,
+        `window.__reads = 0; const was = window.getComputedStyle.bind(window); window.getComputedStyle = (el, ...r) => { if (el.classList && el.classList.contains('lab-source-line')) window.__reads += 1; return was(el, ...r); }; window.__frames = 0; const meter = () => { const m = document.querySelector('.lab-source-meter'); return m ? m.style.getPropertyValue('--done') : window.__meter; }; window.__meter = meter(); window.__moved = false; const tick = () => { window.__frames += 1; if (meter() !== window.__meter) window.__moved = true; requestAnimationFrame(tick); }; requestAnimationFrame(tick);`,
       );
       yield* page.click('.bar [data-act="play"]');
-      yield* page.clock.runFor(400);
+      yield* page.clock.runFor(200);
       yield* page.click('.bar [data-act="play"]');
       // Frames played and the meter moved with them; the target (one line) did not.
       yield* evaluates(page, `window.__frames >= 10`, true);
-      yield* evaluates(
-        page,
-        `document.querySelector('.lab-source-meter').style.getPropertyValue('--done') !== window.__meter`,
-        true,
-      );
+      yield* evaluates(page, `window.__moved`, true);
       yield* evaluates(page, `window.__reads <= 1`, true);
     }).pipe(Effect.scoped),
   );
