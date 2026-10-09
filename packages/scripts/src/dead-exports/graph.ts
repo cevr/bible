@@ -3,14 +3,18 @@
 // comment or a string that looks like code names nothing. A namespace import
 // and an `import()` take a module whole; a named re-export (`export { x } from`,
 // `export * as ns from`) and an `export * from` pass a take through, so they
-// take only what their own users take; a default is the name `default`, taken
-// by a default import. A take counts only from a module a root reaches.
+// take only what their own users take, and so does an import the module only
+// exports again (`import { x } from …; export { x }`); a default is the name
+// `default`, taken by a default import. A take counts only from a module a
+// root reaches.
 
-import { Array as Arr, Option, Order } from 'effect';
+import { Array as Arr, Equivalence, Option, Order } from 'effect';
 import {
   type ExportExportName,
   type ExportImportName,
   type ImportName,
+  type Program,
+  Visitor,
   parseSync,
 } from 'oxc-parser';
 
@@ -47,15 +51,105 @@ const nameOf = (entry: ImportName | ExportImportName | ExportExportName): Option
   return Option.fromNullishOr(entry.name);
 };
 
-/** An `import … from`: its names, or the module whole for `import * as`. */
-const importTake = (i: Parsed['staticImports'][number]): Take => {
-  if (i.entries.some((e) => e.importName.kind === 'NamespaceObject'))
+type StaticImport = Parsed['staticImports'][number];
+type ImportEntry = StaticImport['entries'][number];
+type ExportEntry = Parsed['staticExports'][number]['entries'][number];
+
+/** Whether a statement only names its bindings to bring them in or pass them on: an import, `export { x }` and `export default x`. */
+const namesOnly = (statement: Program['body'][number]): boolean => {
+  if (statement.type === 'ImportDeclaration') return true;
+  if (statement.type === 'ExportNamedDeclaration')
+    return Option.isNone(Option.fromNullishOr(statement.declaration));
+  if (statement.type === 'ExportDefaultDeclaration')
+    return statement.declaration.type === 'Identifier';
+  return false;
+};
+
+/**
+ * Every name the module's own code mentions: each identifier outside the
+ * statements that only bring a binding in or pass it on. A mention that
+ * shadows an import, or a property of the same name, still counts, so the
+ * check errs toward alive.
+ */
+const mentionsOf = (program: Program): ReadonlySet<string> => {
+  const found = new Set<string>();
+  new Visitor({
+    Identifier: (node) => void found.add(node.name),
+    JSXIdentifier: (node) => void found.add(node.name),
+  }).visit({ ...program, body: program.body.filter((statement) => !namesOnly(statement)) });
+  return found;
+};
+
+/** Whether `exported` passes on the binding `entry` of import `i`: `export { x }` of it, or `export default x`. */
+const passesBinding = (i: StaticImport, entry: ImportEntry, exported: ExportEntry): boolean =>
+  Option.match(Option.fromNullishOr(exported.moduleRequest), {
+    onNone: () => exported.localName.name === entry.localName.value,
+    // The parser reads `import { x } …; export { x }` as `export { x } from …`.
+    onSome: (request) =>
+      request.value === i.moduleRequest.value &&
+      entry.importName.kind !== 'NamespaceObject' &&
+      Option.makeEquivalence(Equivalence.String)(
+        nameOf(exported.importName),
+        nameOf(entry.importName),
+      ),
+  });
+
+/** The names the module's own code mentions, read from its syntax tree only when it exports an import again. */
+const mentionsFor = (parsed: ReturnType<typeof parseSync>): ReadonlySet<string> => {
+  const exported = parsed.module.staticExports.flatMap((e) => e.entries);
+  const passes = parsed.module.staticImports.some((i) =>
+    i.entries.some((entry) => exported.some((e) => passesBinding(i, entry, e))),
+  );
+  if (!passes) return new Set();
+  return mentionsOf(parsed.program);
+};
+
+/**
+ * An `import … from`: the names the module's own code uses, or the module
+ * whole for a used `import * as`. A binding the module only exports again
+ * takes nothing itself: its export passes a take through like `export { x }
+ * from`, so it takes only what its own name's users take.
+ */
+const importTake = (
+  i: StaticImport,
+  exported: ReadonlyArray<ExportEntry>,
+  mentions: ReadonlySet<string>,
+): Take => {
+  const used = i.entries.filter(
+    (entry) =>
+      !exported.some((e) => passesBinding(i, entry, e)) || mentions.has(entry.localName.value),
+  );
+  if (used.some((e) => e.importName.kind === 'NamespaceObject'))
     return { from: i.moduleRequest.value, names: Option.none() };
   return {
     from: i.moduleRequest.value,
-    names: Option.some(i.entries.flatMap((e) => Option.toArray(nameOf(e.importName)))),
+    names: Option.some(used.flatMap((e) => Option.toArray(nameOf(e.importName)))),
   };
 };
+
+/** The re-exports `export { x }` and `export default x` make of an imported binding `x` (the parser keeps them local). */
+const forwardsOf = (
+  imports: ReadonlyArray<StaticImport>,
+  exported: ReadonlyArray<ExportEntry>,
+): ReadonlyArray<Reexport> =>
+  exported
+    .filter((e) => Option.isNone(Option.fromNullishOr(e.moduleRequest)))
+    .flatMap((e) =>
+      imports.flatMap((i) =>
+        i.entries
+          .filter((entry) => passesBinding(i, entry, e))
+          .flatMap((entry) =>
+            Option.toArray(
+              Option.map(nameOf(e.exportName), (name): Reexport => ({
+                from: i.moduleRequest.value,
+                // None for `import * as`: the export passes the module whole.
+                imported: nameOf(entry.importName),
+                name,
+              })),
+            ),
+          ),
+      ),
+    );
 
 /** An `export … from` but `export *`: the one name it passes on, or the module whole for `export * as`. */
 const reexportOf = (
@@ -95,15 +189,17 @@ const dynamicTake = (source: string, d: Parsed['dynamicImports'][number]): Reado
 
 /** `file`'s exports and takes, read from its `source`. */
 export const recordOf = (file: string, source: string): ModuleRecord => {
-  const { module } = parseSync(file, source, { lang: langOf(file), sourceType: 'module' });
+  const parsed = parseSync(file, source, { lang: langOf(file), sourceType: 'module' });
+  const { module } = parsed;
   const entries = module.staticExports.flatMap((e) => e.entries);
+  const mentions = mentionsFor(parsed);
   return {
     exports: entries.flatMap((e) => Option.toArray(nameOf(e.exportName))),
     takes: [
-      ...module.staticImports.map(importTake),
+      ...module.staticImports.map((i) => importTake(i, entries, mentions)),
       ...module.dynamicImports.flatMap((d) => dynamicTake(source, d)),
     ],
-    reexports: entries.flatMap(reexportOf),
+    reexports: [...entries.flatMap(reexportOf), ...forwardsOf(module.staticImports, entries)],
     stars: entries.flatMap((e) =>
       Option.toArray(
         Option.filter(

@@ -101,6 +101,56 @@ describe('the dead-export check', () => {
     expect(found).toEqual(['index.ts n', 'n.ts y']);
   });
 
+  test('an import the module only exports again takes only what its export name passes on', () => {
+    const found = deadExports(
+      workspaceOf(
+        {
+          'm.ts':
+            'export const used = 1; export const unused = 2; export const renamed = 3; export const whole = 4;',
+          'n.ts': 'export const inside = 1;',
+          'd.ts': 'export default 1;',
+          'index.ts': [
+            "import { used, unused, renamed as alias } from './m.ts';",
+            "import * as ns from './n.ts';",
+            "import d from './d.ts';",
+            'export { unused, alias as again, ns };',
+            'export default d;',
+            'export const api = used;',
+          ].join('\n'),
+          'app.ts': "import { api, again } from './index.ts'; console.log(api, again);",
+        },
+        { roots: ['app.ts'] },
+      ),
+    );
+    expect(found).toEqual([
+      'd.ts default',
+      'index.ts default',
+      'index.ts ns',
+      'index.ts unused',
+      'm.ts unused',
+      'm.ts whole',
+      'n.ts inside',
+    ]);
+  });
+
+  test('an import the module both uses and exports again is taken by the use', () => {
+    const found = deadExports(
+      workspaceOf(
+        {
+          'm.ts': 'export const shared = 1; export type Shape = { readonly n: number };',
+          'index.ts': [
+            "import { shared, type Shape } from './m.ts';",
+            'export { shared, type Shape };',
+            'export const api = (shape: Shape) => shared + shape.n;',
+          ].join('\n'),
+          'app.ts': "import { api } from './index.ts'; console.log(api);",
+        },
+        { roots: ['app.ts'] },
+      ),
+    );
+    expect(found).toEqual(['index.ts Shape', 'index.ts shared']);
+  });
+
   test('two modules that take each other, with no root reaching them, are dead', () => {
     const found = deadExports(
       workspaceOf(
