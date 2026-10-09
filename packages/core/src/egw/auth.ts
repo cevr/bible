@@ -38,12 +38,10 @@ import {
 } from './build-defines.js';
 import { EGWTokenStore } from './token-store.js';
 
-export { AccessToken } from './auth-types.js';
-
 /**
  * EGW Auth Errors
  */
-export class EGWAuthError extends Schema.TaggedError<EGWAuthError>()('EGWAuthError', {
+class EGWAuthError extends Schema.TaggedError<EGWAuthError>()('EGWAuthError', {
   cause: Schema.optional(Schema.Unknown),
   message: Schema.String,
 }) {}

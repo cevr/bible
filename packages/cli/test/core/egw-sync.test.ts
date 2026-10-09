@@ -1,8 +1,4 @@
-import {
-  EGWApiClient,
-  type EGWApiClientService,
-  type Schemas as EGWSchemas,
-} from '@bible/core/egw';
+import { EGWApiClient, type Schemas as EGWSchemas } from '@bible/core/egw';
 import { EGWParagraphDatabase, type BookRow } from '@bible/core/egw-db';
 import {
   CorpusActivation,
@@ -17,6 +13,8 @@ import {
 import { publicationId } from '@bible/core/writings';
 import { Effect, Layer, Option, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
+
+type EGWApiClientService = (typeof EGWApiClient)['Service'];
 
 const book = (bookId: number, code: string): EGWSchemas.Book => ({
   book_id: bookId,

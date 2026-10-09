@@ -12,38 +12,38 @@ export const Text = Schema.Struct({
 });
 export type Text = typeof Text.Type;
 
-export const LineBreak = Schema.Struct({
+const LineBreak = Schema.Struct({
   _tag: Schema.tag('LineBreak'),
 });
-export type LineBreak = typeof LineBreak.Type;
+type LineBreak = typeof LineBreak.Type;
 
 // Empty marker — page-break carries the printed page number but no inline
 // content. Renderer typically shows it as a small chip in the margin so reading
 // flow isn't interrupted.
-export const PageBreak = Schema.Struct({
+const PageBreak = Schema.Struct({
   _tag: Schema.tag('PageBreak'),
   page: Schema.Finite,
 });
-export type PageBreak = typeof PageBreak.Type;
+type PageBreak = typeof PageBreak.Type;
 
 // Mutually-recursive types: <em> and the wrapper spans contain inline children.
 // Effect Schema needs explicit `suspend` for recursion.
-export interface Emphasis {
+interface Emphasis {
   readonly _tag: 'Emphasis';
   readonly children: readonly Node[];
 }
-export const Emphasis: Schema.Codec<Emphasis> = Schema.Struct({
+const Emphasis: Schema.Codec<Emphasis> = Schema.Struct({
   _tag: Schema.tag('Emphasis'),
   children: Schema.Array(Schema.suspend((): Schema.Codec<Node> => Node)),
 });
 
 // <span class="non-egw-comment"> — editor/publisher metadata wrapped around the
 // EGW text. Real example: "This chapter is based on <ScriptureRef/>".
-export interface Comment {
+interface Comment {
   readonly _tag: 'Comment';
   readonly children: readonly Node[];
 }
-export const Comment: Schema.Codec<Comment> = Schema.Struct({
+const Comment: Schema.Codec<Comment> = Schema.Struct({
   _tag: Schema.tag('Comment'),
   children: Schema.Array(Schema.suspend((): Schema.Codec<Node> => Node)),
 });
@@ -51,13 +51,13 @@ export const Comment: Schema.Codec<Comment> = Schema.Struct({
 // <span class="egwlink egwlink_bible" title="Genesis 3:1" data-link="1965.119">
 // Linkable reference into a scripture passage; `dataLink` is EGW's internal
 // "bookId.paraId" addressing.
-export interface ScriptureRef {
+interface ScriptureRef {
   readonly _tag: 'ScriptureRef';
   readonly title: string;
   readonly dataLink: string;
   readonly children: readonly Node[];
 }
-export const ScriptureRef: Schema.Codec<ScriptureRef> = Schema.Struct({
+const ScriptureRef: Schema.Codec<ScriptureRef> = Schema.Struct({
   _tag: Schema.tag('ScriptureRef'),
   title: Schema.String,
   dataLink: Schema.String,
@@ -66,13 +66,13 @@ export const ScriptureRef: Schema.Codec<ScriptureRef> = Schema.Struct({
 
 // <span class="egwlink egwlink_book" title="..." data-link="..."> — same shape
 // as ScriptureRef but resolves to another EGW book, not scripture.
-export interface BookRef {
+interface BookRef {
   readonly _tag: 'BookRef';
   readonly title: string;
   readonly dataLink: string;
   readonly children: readonly Node[];
 }
-export const BookRef: Schema.Codec<BookRef> = Schema.Struct({
+const BookRef: Schema.Codec<BookRef> = Schema.Struct({
   _tag: Schema.tag('BookRef'),
   title: Schema.String,
   dataLink: Schema.String,
@@ -83,13 +83,13 @@ export const BookRef: Schema.Codec<BookRef> = Schema.Struct({
 // catalog of `<span class>` values isn't formally documented anywhere — when
 // the parser sees something it doesn't know, it preserves enough to render a
 // best-effort fallback and to surface in debug builds.
-export interface Unknown {
+interface Unknown {
   readonly _tag: 'Unknown';
   readonly tag: string;
   readonly className: string;
   readonly children: readonly Node[];
 }
-export const Unknown: Schema.Codec<Unknown> = Schema.Struct({
+const Unknown: Schema.Codec<Unknown> = Schema.Struct({
   _tag: Schema.tag('Unknown'),
   tag: Schema.String,
   className: Schema.String,

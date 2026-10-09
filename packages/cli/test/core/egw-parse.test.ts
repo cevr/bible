@@ -1,10 +1,4 @@
-import {
-  buildRefcodePattern,
-  formatEGWRef,
-  isReference,
-  isSearchQuery,
-  parseEGWRef,
-} from '@bible/core/egw';
+import { formatEGWRef, isSearchQuery, parseEGWRef } from '@bible/core/egw';
 import { describe, expect, it } from 'bun:test';
 
 describe('EGW reference parser', () => {
@@ -160,24 +154,6 @@ describe('EGW reference parser', () => {
     });
   });
 
-  describe('isReference', () => {
-    it('should return true for paragraph reference', () => {
-      expect(isReference(parseEGWRef('PP 351.1'))).toBe(true);
-    });
-
-    it('should return true for page reference', () => {
-      expect(isReference(parseEGWRef('PP 351'))).toBe(true);
-    });
-
-    it('should return true for book reference', () => {
-      expect(isReference(parseEGWRef('PP'))).toBe(true);
-    });
-
-    it('should return false for search query', () => {
-      expect(isReference(parseEGWRef('faith and works'))).toBe(false);
-    });
-  });
-
   describe('isSearchQuery', () => {
     it('should return true for search query', () => {
       expect(isSearchQuery(parseEGWRef('faith and works'))).toBe(true);
@@ -185,36 +161,6 @@ describe('EGW reference parser', () => {
 
     it('should return false for reference', () => {
       expect(isSearchQuery(parseEGWRef('PP 351.1'))).toBe(false);
-    });
-  });
-
-  describe('buildRefcodePattern', () => {
-    it('should build exact pattern for paragraph', () => {
-      const ref = parseEGWRef('PP 351.1');
-      if (ref._tag !== 'search') {
-        expect(buildRefcodePattern(ref)).toBe('PP 351.1');
-      }
-    });
-
-    it('should build wildcard pattern for page', () => {
-      const ref = parseEGWRef('PP 351');
-      if (ref._tag !== 'search') {
-        expect(buildRefcodePattern(ref)).toBe('PP 351.%');
-      }
-    });
-
-    it('should build wildcard pattern for paragraph range', () => {
-      const ref = parseEGWRef('PP 351.1-5');
-      if (ref._tag !== 'search') {
-        expect(buildRefcodePattern(ref)).toBe('PP 351.%');
-      }
-    });
-
-    it('should build wildcard pattern for book', () => {
-      const ref = parseEGWRef('PP');
-      if (ref._tag !== 'search') {
-        expect(buildRefcodePattern(ref)).toBe('PP %');
-      }
     });
   });
 });

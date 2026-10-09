@@ -60,7 +60,7 @@ const SCHEMA_VERSION = 3;
 // Identity for this service's row in the shared `schema_versions` table.
 const SCHEMA_NAME = 'egw_paragraphs';
 
-export class ParagraphDataIntegrityError extends Schema.TaggedError<ParagraphDataIntegrityError>()(
+class ParagraphDataIntegrityError extends Schema.TaggedError<ParagraphDataIntegrityError>()(
   'ParagraphDataIntegrityError',
   {
     cause: Schema.Unknown,
@@ -98,7 +98,7 @@ const { refcode_long, puborder, element_type, element_subtype } = EGWSchemas.Par
 // `para_id` and `refcode_short` stay as `string | null` on the row (SQLite
 // has no Option type); `paragraphToRow` / `rowToParagraph` translate at the
 // storage boundary.
-export const ParagraphRow = Schema.Struct({
+const ParagraphRow = Schema.Struct({
   para_id: Schema.optional(Schema.NullOr(Schema.String)),
   refcode_short: Schema.optional(Schema.NullOr(Schema.String)),
   refcode_long,
@@ -116,7 +116,7 @@ export const ParagraphRow = Schema.Struct({
   updated_at: Schema.String,
 });
 
-export type ParagraphRow = Schema.Schema.Type<typeof ParagraphRow>;
+type ParagraphRow = Schema.Schema.Type<typeof ParagraphRow>;
 
 export const BibleRefRow = Schema.Struct({
   para_book_id: Schema.Finite,
@@ -141,10 +141,10 @@ type CommentaryVerseRow = Schema.Schema.Type<typeof CommentaryVerseRow>;
 // EGW wire schema fields this database does not persist; the wire type requires `null`.
 const wireNull = Option.getOrNull(Option.none<never>());
 
-export const SyncStatus = Schema.Literals(['pending', 'success', 'failed']);
-export type SyncStatus = typeof SyncStatus.Type;
+const SyncStatus = Schema.Literals(['pending', 'success', 'failed']);
+type SyncStatus = typeof SyncStatus.Type;
 
-export const SyncStatusRow = Schema.Struct({
+const SyncStatusRow = Schema.Struct({
   book_id: Schema.Finite,
   book_code: Schema.String,
   status: SyncStatus,
@@ -156,7 +156,7 @@ export const SyncStatusRow = Schema.Struct({
   digest: Schema.optional(Schema.NullOr(Schema.String)),
 });
 
-export type SyncStatusRow = Schema.Schema.Type<typeof SyncStatusRow>;
+type SyncStatusRow = Schema.Schema.Type<typeof SyncStatusRow>;
 
 // Parse "PP 351.1" -> { page: 351, paragraph: 1 }; "PP 351" -> { page: 351, paragraph: none }
 interface RefcodeNumbers {
@@ -384,9 +384,10 @@ const testSearchMatches = (
  *  have always emitted. Measured on an in-memory FTS5 table: `"alpha" "beta"`
  *  matches only the row containing both; `"alpha" OR "beta"` matches all three.
  *
- *  Both sides import this name, so changing the contract is one edit and cannot
- *  leave the double behind. */
-export const FTS_TERM_CONJUNCTION = ' ';
+ *  The test that holds the double to live FTS5 builds its query with
+ *  `ftsTermQuery`, so changing the contract is one edit and cannot leave the
+ *  double behind. */
+const FTS_TERM_CONJUNCTION = ' ';
 
 /** Reader text as an FTS5 MATCH string: the one sanitizer every caller shares.
  *

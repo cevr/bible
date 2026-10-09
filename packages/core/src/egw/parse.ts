@@ -11,7 +11,7 @@
  * This parser is renderer-agnostic and shared by application and command-line hosts.
  */
 
-import { Effect, Match, Option, Schema } from 'effect';
+import { Match, Option, Schema } from 'effect';
 
 import type * as Schemas from './schemas.js';
 
@@ -68,10 +68,6 @@ export const EGWBookRef = Schema.TaggedStruct('book', {
 
 export type EGWBookRef = Schema.Schema.Type<typeof EGWBookRef>;
 
-/** A single routable location in the EGW corpus. Ranges and searches are queries, not locations. */
-export const EGWLocation = Schema.Union([EGWBookRef, EGWPageRef, EGWParagraphRef]);
-export type EGWLocation = typeof EGWLocation.Type;
-
 /**
  * Search query (not a reference)
  */
@@ -91,14 +87,6 @@ export type EGWParsedRef =
   | EGWPageRangeRef
   | EGWBookRef
   | EGWSearchQuery;
-
-/**
- * Parse error
- */
-export class EGWParseError extends Schema.TaggedError<EGWParseError>()('EGWParseError', {
-  input: Schema.String,
-  message: Schema.String,
-}) {}
 
 /**
  * Reference patterns
@@ -198,16 +186,6 @@ export function parseEGWRef(input: string): EGWParsedRef {
 }
 
 /**
- * Parse an EGW reference string with Effect error handling
- */
-export function parseEGWRefEffect(input: string): Effect.Effect<EGWParsedRef, EGWParseError> {
-  return Effect.try({
-    try: () => parseEGWRef(input),
-    catch: () => EGWParseError.make({ input, message: 'Failed to parse reference' }),
-  });
-}
-
-/**
  * Format a parsed reference back to string
  */
 export function formatEGWRef(ref: EGWParsedRef): string {
@@ -224,27 +202,10 @@ export function formatEGWRef(ref: EGWParsedRef): string {
 }
 
 /**
- * Check if parsed result is a reference (not a search query)
- */
-export function isReference(ref: EGWParsedRef): ref is Exclude<EGWParsedRef, EGWSearchQuery> {
-  return ref._tag !== 'search';
-}
-
-/**
  * Check if parsed result is a search query
  */
 export function isSearchQuery(ref: EGWParsedRef): ref is EGWSearchQuery {
   return ref._tag === 'search';
-}
-
-/**
- * Get the book code from any reference type
- */
-export function getBookCode(ref: EGWParsedRef): Option.Option<string> {
-  if (ref._tag === 'search') {
-    return Option.none();
-  }
-  return Option.some(ref.bookCode);
 }
 
 // ---------------------------------------------------------------------------
@@ -287,29 +248,4 @@ export function chapterIdFromTocItem(toc: Schemas.TocItem): string {
     return match?.[1] ?? String(toc.puborder);
   }
   return String(toc.puborder);
-}
-
-// ---------------------------------------------------------------------------
-// Refcode patterns
-// ---------------------------------------------------------------------------
-
-/**
- * Refcode pattern for database queries
- * Builds a pattern to match refcode_short fields
- *
- * @param ref - Parsed reference
- * @returns Pattern string for LIKE queries
- */
-export function buildRefcodePattern(ref: Exclude<EGWParsedRef, EGWSearchQuery>): string {
-  return Match.value(ref).pipe(
-    Match.tagsExhaustive({
-      paragraph: (r) => `${r.bookCode} ${r.page}.${r.paragraph}`,
-      // Would need to query for each paragraph in range
-      'paragraph-range': (r) => `${r.bookCode} ${r.page}.%`,
-      page: (r) => `${r.bookCode} ${r.page}.%`,
-      // Would need multiple queries for each page
-      'page-range': (r) => `${r.bookCode} %.%`,
-      book: (r) => `${r.bookCode} %`,
-    }),
-  );
 }

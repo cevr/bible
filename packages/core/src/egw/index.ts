@@ -24,42 +24,14 @@
  * ```
  */
 
-export {
-  Node,
-  type Text,
-  type LineBreak,
-  type PageBreak,
-  type Emphasis,
-  type Comment,
-  type ScriptureRef,
-  type BookRef,
-  type Unknown,
-  parseParagraphContent,
-  nodesToText,
-} from './ast.js';
-export {
-  EGWApiClient,
-  type EGWApiClientService,
-  EGWApiError,
-  type EGWApiClientError,
-} from './client.js';
-export { EGWAuth, EGWAuthError, AccessToken } from './auth.js';
-export { EGWTokenStore } from './token-store.js';
+export { nodesToText } from './ast.js';
+export { EGWApiClient } from './client.js';
+export { EGWAuth } from './auth.js';
 export * as Schemas from './schemas.js';
-export { extractScriptureRefs, type ExtractedBibleRef } from './extract.js';
 export {
   parseEGWRef,
-  parseEGWRefEffect,
   formatEGWRef,
-  isReference,
   isSearchQuery,
-  getBookCode,
-  buildRefcodePattern,
-  chapterIdFromTocItem,
-  isChapterHeading,
-  headingLevel,
-  EGWParseError,
-  EGWLocation,
   type EGWParsedRef,
   type EGWParagraphRef,
   type EGWParagraphRangeRef,

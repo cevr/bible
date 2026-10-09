@@ -40,12 +40,7 @@ import {
   publicationId,
   publicationOrder,
 } from '../writings/model.js';
-import {
-  EGWParagraphDatabase,
-  FTS_TERM_CONJUNCTION,
-  paragraphIdentity,
-  ParagraphDataIntegrityError,
-} from './book-database.js';
+import { EGWParagraphDatabase, ftsTermQuery, paragraphIdentity } from './book-database.js';
 import * as EGWDbBun from './book-database-bun.js';
 
 // Wire-shape fields the schema encodes as `null` when absent.
@@ -872,7 +867,7 @@ describe('EGWParagraphDatabase', () => {
           const result = yield* Effect.result(db.getParagraph(102, 'CORRUPT 1.1'));
           expect(Result.isFailure(result)).toBe(true);
           if (Result.isFailure(result)) {
-            expect(result.failure).toBeInstanceOf(ParagraphDataIntegrityError);
+            expect(result.failure._tag).toBe('ParagraphDataIntegrityError');
           }
         }),
       ));
@@ -991,7 +986,7 @@ describe('EGWParagraphDatabase', () => {
       { order: 3, refcode: 'ANDA 1.3', text: 'alpha and beta stand together' },
     ];
     /** The string `search/service.ts`'s `ftsQuery` emits for `alpha beta`. */
-    const bothTerms = `"alpha"${FTS_TERM_CONJUNCTION}"beta"`;
+    const bothTerms = Option.getOrThrow(ftsTermQuery('alpha beta'));
 
     const doubleLayer = EGWParagraphDatabase.Test({
       books: CONJUNCTION_BOOKS,

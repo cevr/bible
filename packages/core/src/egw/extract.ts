@@ -23,7 +23,7 @@ import { parseBibleQuery } from '../bible/parse.js';
 import type { Node } from './ast.js';
 import type { Paragraph } from './schemas.js';
 
-export interface ExtractedBibleRef {
+interface ExtractedBibleRef {
   readonly bookId: number;
   readonly refCode: string;
   readonly bibleBook: number;
