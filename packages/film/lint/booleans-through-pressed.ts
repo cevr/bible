@@ -14,28 +14,29 @@
 //   `data-*`, such a value whose whole expression the source proves a boolean:
 //   a comparison (`a === b`), a negation (`!a`), a boolean literal,
 //   `Boolean(…)`, a logical or a conditional whose every branch is one, a cast
-//   to `boolean`, a call named as a predicate is (`isLive()`, `hasCue()`,
-//   `canUndo()`, `shouldRun()`), or a name whose binding in the file says so
-//   (typed `boolean`, `() => boolean` or `Accessor<boolean>`, a const of a
-//   proven boolean, a `createSignal(false)`, a `createMemo` of one, a function
-//   returning `boolean`, or a member of a binding typed in the file:
+//   to `boolean`, or a name whose binding in the file says so (typed
+//   `boolean`, `() => boolean` or solid's `Accessor<boolean>`, a const of a
+//   proven boolean, solid's `createSignal(false)`, a `createMemo` of one, a
+//   function returning `boolean`, or a member of a binding typed in the file:
 //   `props.staged()` for `props: { staged: Accessor<boolean> }`).
+// A name proves nothing by how it is spelled: `isLive()` is a boolean when its
+// binding says so, and a string when its binding says that. Every name is read
+// by its binding where it is written (a type parameter, a parameter or a local
+// of solid's names is its own binding), and a type's members are a literal's,
+// an interface's or an alias's, with the file's own generics given their
+// arguments, and those of solid's `ParentProps`, `VoidProps` and `FlowProps`
+// and of `Readonly`, whose meaning keeps their argument's members. Any other
+// generic proves nothing of its argument (`AsStrings<{ live: boolean }>` may
+// make `live` a string), nor does an optional member (`live?: boolean` may be
+// `undefined`).
 // A number (`String(rate())`), a value beside a flag (`String(on() &&
 // rate())`), text around a value (`` `${on()} item` ``) and a name proven
 // nothing (`loaded()`) pass. The config turns it on over the lab's components
 // and off in the tests and the fixtures.
 
 import { Effect, Option, Predicate } from 'effect';
-import {
-  Diagnostic,
-  type ESTree,
-  Rule,
-  RuleContext,
-  Scope,
-  SourceCode,
-  type Variable,
-} from 'oxlint-plugin-effect/rule-bindings';
-import { declared, memberName, programOf, staticName } from './nodes.ts';
+import { Diagnostic, type ESTree, Rule, RuleContext } from 'oxlint-plugin-effect/rule-bindings';
+import { definitionOf, importsAs, memberName, type Named, staticName, unwrapped } from './nodes.ts';
 
 const MESSAGE =
   "a boolean written as a string by hand: pressed(on) (packages/film/src/lab/pressed.ts) types it 'true' | 'false'.";
@@ -48,9 +49,6 @@ const BOOLEAN_STATES: ReadonlyArray<string> = [
   'aria-expanded',
   'aria-busy',
 ];
-
-/** A name a predicate goes by: `isLive`, `hasCue`, `canUndo`, `shouldRun`. */
-const PREDICATE_NAME = /^(?:is|has|can|should)[A-Z]/u;
 
 /** The comparisons, each a boolean. */
 const COMPARISONS: ReadonlyArray<string> = [
@@ -66,6 +64,11 @@ const COMPARISONS: ReadonlyArray<string> = [
   'instanceof',
 ];
 
+const SOLID = 'solid-js';
+
+/** Solid's prop wrappers, each its first argument's members and `children`. */
+const SOLID_WRAPPERS: ReadonlyArray<string> = ['ParentProps', 'VoidProps', 'FlowProps'];
+
 /** How a name is used: its value read (`on`), or called (`on()`). */
 type Use = 'read' | 'called';
 
@@ -73,7 +76,7 @@ type Use = 'read' | 'called';
 type Seen = ReadonlySet<ESTree.Node>;
 
 /** An answer read from the scope tree. */
-type Reads = Effect.Effect<boolean, never, Effect.Services<ReturnType<typeof SourceCode.getScope>>>;
+type Reads<A = boolean> = Effect.Effect<A, never, RuleContext>;
 
 const yes: Reads = Effect.succeed(true);
 const no: Reads = Effect.succeed(false);
@@ -86,23 +89,31 @@ const some = (answers: ReadonlyArray<Reads>): Reads =>
 const every = (answers: ReadonlyArray<Reads>): Reads =>
   Effect.map(Effect.all(answers), (all) => all.every((a) => a));
 
+/** Whether `node` is a name the file does not bind: a global (`String`, `Boolean`, `Readonly`). */
+const isGlobal = (node: ESTree.Node, name: string): Reads => {
+  if (node.type !== 'Identifier' || node.name !== name) return no;
+  return Effect.map(definitionOf(node), Option.isNone);
+};
+
+/** Whether `node` is a name bound to solid's import of `name`. */
+const isSolid = (node: ESTree.Node, name: string): Reads =>
+  importsAs(node, (from) => from === SOLID, name);
+
 /** The value a JSX attribute writes by hand: the argument of `String(x)`, or the one value of `` `${x}` ``. */
-const writtenByHand = (attr: ESTree.JSXAttribute): Option.Option<ESTree.Node> => {
-  if (attr.value?.type !== 'JSXExpressionContainer') return Option.none();
+const writtenByHand = (attr: ESTree.JSXAttribute): Reads<Option.Option<ESTree.Node>> => {
+  if (attr.value?.type !== 'JSXExpressionContainer') return Effect.succeedNone;
   const value = attr.value.expression;
-  if (
-    value.type === 'CallExpression' &&
-    value.callee.type === 'Identifier' &&
-    value.callee.name === 'String'
-  )
-    return Option.fromUndefinedOr(value.arguments[0]);
+  if (value.type === 'CallExpression')
+    return Effect.map(isGlobal(value.callee, 'String'), (string) =>
+      Option.filter(Option.fromUndefinedOr(value.arguments[0]), () => string),
+    );
   if (
     value.type === 'TemplateLiteral' &&
     value.expressions.length === 1 &&
     value.quasis.every((q) => q.value.raw === '')
   )
-    return Option.fromUndefinedOr(value.expressions[0]);
-  return Option.none();
+    return Effect.succeed(Option.fromUndefinedOr(value.expressions[0]));
+  return Effect.succeedNone;
 };
 
 // The types the file writes.
@@ -118,91 +129,126 @@ const isBooleanType = (t: ESTree.Node): boolean => {
   return false;
 };
 
-/** A type is a reader of a boolean: `() => boolean`, `Accessor<boolean>`. */
-const isBooleanReader = (t: ESTree.Node): boolean => {
-  if (t.type === 'TSFunctionType') return isBooleanType(t.returnType.typeAnnotation);
+/** A type is a reader of a boolean: `() => boolean`, solid's `Accessor<boolean>`. */
+const isBooleanReader = (t: ESTree.Node): Reads => {
+  if (t.type === 'TSFunctionType')
+    return Effect.succeed(isBooleanType(t.returnType.typeAnnotation));
   if (t.type === 'TSParenthesizedType') return isBooleanReader(t.typeAnnotation);
-  return (
-    t.type === 'TSTypeReference' &&
-    t.typeName.type === 'Identifier' &&
-    t.typeName.name === 'Accessor' &&
-    Option.exists(Option.fromNullishOr(t.typeArguments?.params[0]), isBooleanType)
-  );
+  if (t.type !== 'TSTypeReference') return no;
+  if (!Option.exists(Option.fromNullishOr(t.typeArguments?.params[0]), isBooleanType)) return no;
+  return isSolid(t.typeName, 'Accessor');
 };
 
 /** Whether a type, used as `use`, gives a boolean. */
-const typeGives = (t: ESTree.Node, use: Use): boolean => {
-  if (use === 'read') return isBooleanType(t);
+const typeGives = (t: ESTree.Node, use: Use): Reads => {
+  if (use === 'read') return Effect.succeed(isBooleanType(t));
   return isBooleanReader(t);
 };
 
-/** The interface or type alias `name` declared at the top of the file. */
-const localType = (program: ESTree.Node, name: string): Option.Option<ESTree.Node> => {
-  if (program.type !== 'Program') return Option.none();
-  return Option.fromNullishOr(
-    program.body
-      .map(declared)
-      .find(
-        (d) =>
-          (d?.type === 'TSInterfaceDeclaration' || d?.type === 'TSTypeAliasDeclaration') &&
-          d.id.name === name,
-      ),
-  );
-};
-
 /** The deepest a type is followed through aliases and wrappers. */
-const TYPE_DEPTH = 4;
+const TYPE_DEPTH = 6;
+
+/** The arguments the file's generics are given on the way to a type: each type parameter's declaration to its argument. */
+type Arguments = ReadonlyMap<ESTree.Node, ESTree.Node>;
+
+/** A generic's parameters given the arguments a reference writes. */
+const given = (
+  declaration: ESTree.Node,
+  reference: ESTree.TSTypeReference,
+  args: Arguments,
+): Arguments => {
+  if (
+    declaration.type !== 'TSTypeAliasDeclaration' &&
+    declaration.type !== 'TSInterfaceDeclaration'
+  )
+    return args;
+  const params = declaration.typeParameters?.params ?? [];
+  const written = reference.typeArguments?.params ?? [];
+  const out = new Map(args);
+  params.forEach((p, i) => Option.map(Option.fromUndefinedOr(written[i]), (w) => out.set(p, w)));
+  return out;
+};
 
 /**
- * The members a type declares: a literal's, a local interface's or alias's,
- * an intersection's, and a wrapper's type arguments' (`ParentProps<{ … }>`).
+ * The members a type declares: a literal's, an interface's or an alias's (the
+ * file's generics given their arguments), an intersection's, and the first
+ * argument's of a wrapper that keeps it (`ParentProps<{ … }>`, `Readonly<…>`).
+ * Any other type declares none this rule can know.
  */
-const membersOf = (t: ESTree.Node, depth: number): ReadonlyArray<ESTree.Node> => {
-  if (depth > TYPE_DEPTH) return [];
-  if (t.type === 'TSTypeLiteral') return t.members;
-  if (t.type === 'TSInterfaceDeclaration') return t.body.body;
-  if (t.type === 'TSTypeAliasDeclaration' || t.type === 'TSParenthesizedType')
-    return membersOf(t.typeAnnotation, depth + 1);
-  if (t.type === 'TSIntersectionType') return t.types.flatMap((x) => membersOf(x, depth + 1));
-  if (t.type !== 'TSTypeReference') return [];
-  const named = Option.flatMap(
-    Option.liftPredicate(t.typeName, (n) => n.type === 'Identifier'),
-    (n) => Option.flatMap(Option.fromNullishOr(n.name), (name) => localType(programOf(t), name)),
-  );
-  return [
-    ...Option.match(named, { onNone: () => [], onSome: (d) => membersOf(d, depth + 1) }),
-    ...(t.typeArguments?.params ?? []).flatMap((x) => membersOf(x, depth + 1)),
-  ];
-};
-
-/** Whether the member `name` of the type `t`, used as `use`, gives a boolean (`on: boolean`, `on: () => boolean`, `on(): boolean`). */
-const memberGives = (t: ESTree.Node, name: string, use: Use): boolean =>
-  membersOf(t, 0).some((m) => {
-    if (m.type === 'TSMethodSignature')
-      return (
-        use === 'called' &&
-        Option.contains(staticName(m.key, m.computed), name) &&
-        Option.exists(Option.fromNullOr(m.returnType), (r) => isBooleanType(r.typeAnnotation))
-      );
-    return (
-      m.type === 'TSPropertySignature' &&
-      Option.contains(staticName(m.key, m.computed), name) &&
-      Option.exists(Option.fromNullOr(m.typeAnnotation), (a) => typeGives(a.typeAnnotation, use))
+const membersOf = (
+  t: ESTree.Node,
+  depth: number,
+  args: Arguments,
+): Reads<ReadonlyArray<ESTree.Node>> => {
+  if (depth > TYPE_DEPTH) return Effect.succeed([]);
+  if (t.type === 'TSTypeLiteral') return Effect.succeed(t.members);
+  if (t.type === 'TSParenthesizedType') return membersOf(t.typeAnnotation, depth + 1, args);
+  if (t.type === 'TSIntersectionType')
+    return Effect.map(
+      Effect.forEach(t.types, (x) => membersOf(x, depth + 1, args)),
+      (all) => all.flat(),
+    );
+  if (t.type !== 'TSTypeReference' || t.typeName.type !== 'Identifier') return Effect.succeed([]);
+  const reference = t;
+  const name = t.typeName;
+  const first = Option.fromNullishOr(t.typeArguments?.params[0]);
+  const ofFirst = Option.match(first, {
+    onNone: () => Effect.succeed<ReadonlyArray<ESTree.Node>>([]),
+    onSome: (x) => membersOf(x, depth + 1, args),
+  });
+  return Effect.flatMap(definitionOf(name), (def) => {
+    if (Option.isNone(def)) {
+      if (name.name === 'Readonly') return ofFirst;
+      return Effect.succeed([]);
+    }
+    const declaration = def.value.node;
+    if (declaration.type === 'TSTypeParameter')
+      return Option.match(Option.fromUndefinedOr(args.get(declaration)), {
+        onNone: () => Effect.succeed([]),
+        onSome: (arg) => membersOf(arg, depth + 1, args),
+      });
+    if (declaration.type === 'TSTypeAliasDeclaration')
+      return membersOf(declaration.typeAnnotation, depth + 1, given(declaration, reference, args));
+    if (declaration.type === 'TSInterfaceDeclaration') return Effect.succeed(declaration.body.body);
+    return Effect.flatMap(
+      Effect.forEach(SOLID_WRAPPERS, (w) => isSolid(name, w)),
+      (wrappers): Reads<ReadonlyArray<ESTree.Node>> => {
+        if (wrappers.some((w) => w)) return ofFirst;
+        return Effect.succeed([]);
+      },
     );
   });
+};
 
-// The bindings the file makes.
-
-/** A name, where it is read. */
-type Named = ESTree.Node & { readonly name: string };
-
-/** How `id` is bound where it is read, when the file binds it. */
-const definitionOf = (id: Named) =>
-  Effect.map(SourceCode.getScope(id), (scope) =>
-    Option.flatMap(Scope.findVariableUp(scope, id.name), (v: Variable) =>
-      Option.fromUndefinedOr(v.defs[0]),
+/** Whether the member `name` of the type `t`, used as `use`, gives a boolean (`on: boolean`, `on: () => boolean`, `on(): boolean`); an optional member never does. */
+const memberGives = (t: ESTree.Node, name: string, use: Use): Reads =>
+  Effect.flatMap(membersOf(t, 0, new Map()), (members) =>
+    some(
+      members.map((m) => {
+        if (m.type === 'TSMethodSignature')
+          return Effect.succeed(
+            use === 'called' &&
+              !m.optional &&
+              Option.contains(staticName(m.key, m.computed), name) &&
+              Option.exists(Option.fromNullOr(m.returnType), (r) =>
+                isBooleanType(r.typeAnnotation),
+              ),
+          );
+        if (
+          m.type !== 'TSPropertySignature' ||
+          m.optional ||
+          !Option.contains(staticName(m.key, m.computed), name)
+        )
+          return no;
+        return Option.match(Option.fromNullOr(m.typeAnnotation), {
+          onNone: () => no,
+          onSome: (a) => typeGives(a.typeAnnotation, use),
+        });
+      }),
     ),
   );
+
+// The bindings the file makes.
 
 /** The type a binding's name is annotated with: `const on: () => boolean`, `(props: { … })`. */
 const annotated = (name: ESTree.Node): Option.Option<ESTree.Node> => {
@@ -223,19 +269,25 @@ const returnsBoolean = (fn: ESTree.Node, seen: Seen): Reads => {
   return no;
 };
 
-/** `createSignal(false)`, `createSignal<boolean>(…)`, `createMemo(() => a === b)`: a reader of a boolean. */
+/** Solid's `createSignal(false)`, `createSignal<boolean>(…)`, `createMemo(() => a === b)`: a reader of a boolean. */
 const readerMade = (init: ESTree.Node, seen: Seen): Reads => {
-  if (init.type !== 'CallExpression' || init.callee.type !== 'Identifier') return no;
-  const made = init.callee.name;
-  if (made !== 'createSignal' && made !== 'createMemo') return no;
-  if (Option.exists(Option.fromNullishOr(init.typeArguments?.params[0]), isBooleanType)) return yes;
-  return Option.match(Option.fromUndefinedOr(init.arguments[0]), {
-    onNone: () => no,
-    onSome: (first) => {
-      if (made === 'createSignal') return isBoolean(first, seen);
-      return returnsBoolean(first, seen);
+  if (init.type !== 'CallExpression') return no;
+  const callee = init.callee;
+  return Effect.flatMap(
+    Effect.all([isSolid(callee, 'createSignal'), isSolid(callee, 'createMemo')]),
+    ([signal, memo]) => {
+      if (!signal && !memo) return no;
+      if (Option.exists(Option.fromNullishOr(init.typeArguments?.params[0]), isBooleanType))
+        return yes;
+      return Option.match(Option.fromUndefinedOr(init.arguments[0]), {
+        onNone: () => no,
+        onSome: (first) => {
+          if (signal) return isBoolean(first, seen);
+          return returnsBoolean(first, seen);
+        },
+      });
     },
-  });
+  );
 };
 
 /** What a `const`'s value proves, used as `use`. */
@@ -251,7 +303,7 @@ const bindingGives = (id: Named, use: Use, seen: Seen): Reads =>
     const { type, node, name } = found.value;
     const next = new Set([...seen, node]);
     const typed = annotated(name);
-    if (Option.isSome(typed)) return Effect.succeed(typeGives(typed.value, use));
+    if (Option.isSome(typed)) return typeGives(typed.value, use);
     if (type === 'FunctionName') {
       if (use === 'read') return no;
       return returnsBoolean(node, next);
@@ -269,25 +321,28 @@ const bindingGives = (id: Named, use: Use, seen: Seen): Reads =>
 
 /** Whether `object.name`, used as `use`, gives a boolean by the type `object`'s binding is annotated with. */
 const memberGivesBoolean = (member: ESTree.MemberExpression, use: Use): Reads => {
-  const object = member.object;
+  const object = unwrapped(member.object);
   if (object.type !== 'Identifier') return no;
-  return Effect.map(definitionOf(object), (found) =>
-    Option.exists(
+  return Effect.flatMap(definitionOf(object), (found) =>
+    Option.match(
       Option.all([Option.flatMap(found, (d) => annotated(d.name)), memberName(member)]),
-      ([type, name]) => memberGives(type, name, use),
+      {
+        onNone: () => no,
+        onSome: ([type, name]) => memberGives(type, name, use),
+      },
     ),
   );
 };
 
-/** Whether a call gives a proven boolean: `Boolean(x)`, a predicate's name, a reader the file types or binds. */
+/** Whether a call gives a proven boolean: the global `Boolean(x)`, or a reader the file types or binds. */
 const calledBoolean = (call: ESTree.CallExpression, seen: Seen): Reads => {
   const { callee } = call;
-  if (callee.type === 'Identifier') {
-    if (callee.name === 'Boolean' || PREDICATE_NAME.test(callee.name)) return yes;
-    return bindingGives(callee, 'called', seen);
-  }
+  if (callee.type === 'Identifier')
+    return Effect.flatMap(isGlobal(callee, 'Boolean'), (global) => {
+      if (global) return yes;
+      return bindingGives(callee, 'called', seen);
+    });
   if (callee.type !== 'MemberExpression') return no;
-  if (Option.exists(memberName(callee), (name) => PREDICATE_NAME.test(name))) return yes;
   return memberGivesBoolean(callee, 'called');
 };
 
@@ -327,11 +382,13 @@ const isBoolean = (node: ESTree.Node, seen: Seen): Reads => {
 const writesBoolean = (attr: ESTree.JSXAttribute): Reads => {
   if (attr.name.type !== 'JSXIdentifier') return no;
   const name = attr.name.name;
-  const value = writtenByHand(attr);
-  if (Option.isNone(value)) return no;
-  if (BOOLEAN_STATES.includes(name)) return yes;
-  if (name !== 'aria-current' && !name.startsWith('data-')) return no;
-  return isBoolean(value.value, new Set());
+  if (!BOOLEAN_STATES.includes(name) && name !== 'aria-current' && !name.startsWith('data-'))
+    return no;
+  return Effect.flatMap(writtenByHand(attr), (value) => {
+    if (Option.isNone(value)) return no;
+    if (BOOLEAN_STATES.includes(name)) return yes;
+    return isBoolean(value.value, new Set());
+  });
 };
 
 export const booleansThroughPressed = Rule.define({

@@ -43,3 +43,13 @@ export const scene = drawing({
     ];
   },
 });
+
+// A parameter named like a module const is its own binding: its value is not known.
+export const framed = (
+  ARK_IN: number,
+  JUDGED_ZOOM: readonly [number, number],
+  lean: number,
+): ReadonlyArray<Camera> => [
+  { x: ARK_IN, y: 600, zoom: 1.2 },
+  { ...REST, zoom: lerp(JUDGED_ZOOM[0], JUDGED_ZOOM[1], lean) },
+];

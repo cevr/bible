@@ -64,3 +64,9 @@ export const quotedRead = Effect.gen(function* () {
   const { 'current': now } = yield* Location;
   return yield* now;
 });
+
+// A parameter named `Location` is its own binding, not url-state's.
+export const own = (Location: Effect.Effect<{ readonly back: number }>) =>
+  Effect.gen(function* () {
+    return (yield* Location).back;
+  });

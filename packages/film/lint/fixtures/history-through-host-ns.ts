@@ -18,3 +18,8 @@ export const unrelated = Effect.gen(function* () {
   const place = yield* domain.Location;
   return [(yield* domain.Location).back, place.back];
 });
+// A parameter named like the namespace is its own binding, not url-state's.
+export const shadowed = (US: { readonly Location: Effect.Effect<{ readonly back: number }> }) =>
+  Effect.gen(function* () {
+    return (yield* US.Location).back;
+  });

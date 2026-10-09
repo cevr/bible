@@ -24,3 +24,14 @@ export const here = Context.get(host, Location).current;
 // Another module's `back` is not the bar's.
 declare const deck: { readonly back: () => void };
 export const flipped = () => deck.back();
+
+// The service under a type wrapper is the service.
+const pinned = Context.getUnsafe(host, Location) satisfies { readonly back: unknown };
+export const pinnedBack = pinned.back; // RED film/history-through-host
+export const cast = (Context.get(host, Location) as { readonly back: unknown }).back; // RED film/history-through-host
+
+// A parameter named like the bar's maker, or like effect's `Context`, is its own binding.
+export const ownBar = (barOf: (on: unknown) => { readonly back: () => void }) => barOf(host).back();
+export const ownContext = (Context: {
+  readonly get: (on: unknown, key: unknown) => { readonly back: number };
+}) => Context.get(host, Location).back;
