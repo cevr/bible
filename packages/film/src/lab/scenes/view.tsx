@@ -39,7 +39,7 @@ import { type Context, selected } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
-import { type ProjectView, type Say, pageHref } from '../../core/api.ts';
+import { type Say, pageHref } from '../../core/api.ts';
 import { sceneAt } from '../../core/layout.ts';
 import { isShortKey } from '../../core/shorts.ts';
 import { onTheMs, timecode, timecodeParts } from '../../core/time.ts';
@@ -48,7 +48,7 @@ import type { Player } from '../../player/main.ts';
 import { makeStills } from '../../player/stills.ts';
 import type { LabClient } from '../api.ts';
 import { usePlayerTime } from '../page-shell.tsx';
-import { approveUndo, tookText, undoApprove } from '../review/options/receipt.ts';
+import { approveUndo, partSaid, undoApprove } from '../review/options/receipt.ts';
 import { PHONE, useMatches } from '../viewport.ts';
 import { pressed } from '../pressed.ts';
 import { Sheet, useSheetDismissal } from '../sheet.tsx';
@@ -101,27 +101,6 @@ const lineTime = (t: number, fps: number) => {
 
 /** `n` scenes, in words. */
 const scenesText = (n: number) => counted(n, 'scene');
-
-/**
- * What an approve's receipt says: what the catalogue says it gave
- * (`Project.gave`), not what was asked: `approved two`, `approved 2 scenes`,
- * or, when it gave none (each approved already, by another meanwhile),
- * `approved already`.
- */
-const gaveText = (after: ProjectView): string =>
-  Option.match(
-    Option.flatMap(after.project.gave, (g) =>
-      Arr.match(g.scenes, { onEmpty: Option.none, onNonEmpty: Option.some }),
-    ),
-    {
-      onNone: () => 'approved already',
-      onSome: (scenes) =>
-        Bool.match(scenes.length === 1, {
-          onTrue: () => `approved ${scenes[0]}`,
-          onFalse: () => `approved ${scenesText(scenes.length)}`,
-        }),
-    },
-  );
 
 /** What a step reads as in Info: `5 s a still · a line a minute`. */
 const stepText = (step: number, perRow: number) => {
@@ -316,19 +295,19 @@ export const ScenesView = (props: ScenesViewProps) => {
   };
 
   /**
-   * Say `say` of `ids`, in one say; the receipt says `what` (from the
-   * project it leaves), or why not. An approve's offers its Undo
+   * Say `say` of `ids`, in one say; the receipt says it in the words
+   * Project's does (`partSaid`), or why not. An approve's offers its Undo
    * (`approveUndo`), as Project's does.
    */
-  const sayOf = (
-    ids: readonly [string, ...string[]],
-    what: (after: ProjectView) => string,
-    say: Say,
-  ) =>
+  const sayOf = (ids: readonly [string, ...string[]], say: Say) =>
     Effect.map(calls.say(ids, say), (answer: Said) => {
       if (answer._tag === 'Refused') return refused(answer.reason);
+      const before = read().project;
       setRead({ ...read(), project: Option.some(answer.project) });
-      return said(what(answer.project), approveUndo(props.name, answer.project));
+      return said(
+        partSaid({ address: { _tag: 'Scenes', ids }, say }, before)(answer.project),
+        approveUndo(props.name, answer.project),
+      );
     });
   // An approve's Undo: one withdraw of just the approvals it gave, said in the words of
   // what the catalogue took.
@@ -339,17 +318,7 @@ export const ScenesView = (props: ScenesViewProps) => {
         waiting: undoing,
         withdraw: (ids, say) =>
           Effect.sync(() => setUndoing(true)).pipe(
-            Effect.andThen(
-              sayOf(
-                ids,
-                (after) =>
-                  Option.match(after.project.took, {
-                    onNone: () => `withdrew ${scenesText(ids.length)}`,
-                    onSome: (took) => tookText({ _tag: 'Scenes', ids }, took),
-                  }),
-                say,
-              ),
-            ),
+            Effect.andThen(sayOf(ids, say)),
             Effect.ensuring(Effect.sync(() => setUndoing(false))),
           ),
       }),
@@ -408,7 +377,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       run: (ctx) =>
         Option.match(sceneIn(ctx), {
           onNone: () => Effect.succeed(quiet),
-          onSome: (scene) => sayOf([scene], gaveText, { _tag: 'Approve' }),
+          onSome: (scene) => sayOf([scene], { _tag: 'Approve' }),
         }),
     },
     {
@@ -422,7 +391,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       run: () =>
         Arr.match(picked().filter(approvable), {
           onEmpty: () => Effect.succeed(quiet),
-          onNonEmpty: (ids) => sayOf(ids, gaveText, { _tag: 'Approve' }),
+          onNonEmpty: (ids) => sayOf(ids, { _tag: 'Approve' }),
         }),
     },
     {
@@ -680,14 +649,11 @@ export const ScenesView = (props: ScenesViewProps) => {
     const sayComment = (text: string) => {
       setSaying(true);
       return Effect.runPromise(
-        Effect.map(
-          sayOf([scene], () => `commented on ${scene}`, { _tag: 'Comment', text }),
-          (receipt) => {
-            setSaying(false);
-            props.hub.announce(receipt, 'scenes.comment');
-            return receipt._tag === 'Said' && receipt.tone === 'done';
-          },
-        ),
+        Effect.map(sayOf([scene], { _tag: 'Comment', text }), (receipt) => {
+          setSaying(false);
+          props.hub.announce(receipt, 'scenes.comment');
+          return receipt._tag === 'Said' && receipt.tone === 'done';
+        }),
       );
     };
     const comments = () =>

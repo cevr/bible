@@ -1113,7 +1113,7 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
         yield* click(page, `${render('coda')} [data-act="approve"]`);
         // The receipt and its Undo, read together: the approve gave nothing, so offers nothing back.
-        yield* receiptIs(page, 'Approved scene coda · 0/1 → 1/1 approved', false);
+        yield* receiptIs(page, 'Approved already: scene coda · 0/1 → 1/1 approved', false);
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="approved"]`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

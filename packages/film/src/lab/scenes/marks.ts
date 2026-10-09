@@ -203,18 +203,28 @@ export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
 };
 
 /**
+ * How long `scenes` run, the one rule of a film's and an act's length: from
+ * where the first of the scenes that say where they sit starts to where the
+ * last ends. A scene that does not say is no part of it; none says: none.
+ */
+export const filmSpan = (scenes: ReadonlyArray<ProjectScene>): Option.Option<number> => {
+  const spans = Arr.getSomes(scenes.map((s) => s.span));
+  return Arr.match(spans, {
+    onEmpty: () => Option.none<number>(),
+    onNonEmpty: (all) =>
+      Option.some(
+        Math.max(...all.map((p) => p.start + p.dur)) - Math.min(...all.map((p) => p.start)),
+      ),
+  });
+};
+
+/**
  * A film's length and its scenes, as a Films card says it over its band:
- * `8:46 · 20 scenes`. The length is where its last scene ends (the latest
- * start + dur among the scenes that say where they sit), to the second; a
- * film none of whose scenes says so is its scenes alone.
+ * `8:46 · 20 scenes`. The length is `filmSpan`, to the second; a film none of
+ * whose scenes says where it sits is its scenes alone.
  */
 export const filmLength = (scenes: ReadonlyArray<ProjectScene>): string => {
-  const ends = Arr.getSomes(scenes.map((s) => Option.map(s.span, (p) => p.start + p.dur)));
-  const last = Arr.match(ends, {
-    onEmpty: () => Option.none<number>(),
-    onNonEmpty: (all) => Option.some(Math.max(...all)),
-  });
-  const length = Option.map(last, (end) => {
+  const length = Option.map(filmSpan(scenes), (end) => {
     const seconds = Math.round(end);
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   });

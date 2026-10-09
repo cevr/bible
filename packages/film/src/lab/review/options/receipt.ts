@@ -9,7 +9,7 @@
 // Scenes alike, `undoApprove`) withdraws just the approvals it gave. The
 // sound check after a pick says it is hearing the mix, then what it found.
 
-import { Array as Arr, Effect, Match, Option } from 'effect';
+import { Array as Arr, Boolean as Bool, Effect, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
   type Command,
@@ -24,12 +24,12 @@ import {
 } from '../../../command/command.ts';
 import type { PartAddress } from '../../../core/address.ts';
 import { type ProjectView, type Say, withdrawSay } from '../../../core/api.ts';
-import type { OpId, Took } from '../../../core/catalogue.ts';
+import type { OpId, ProjectScene, Took } from '../../../core/catalogue.ts';
 import type { ChoicePoint, ChoiceVerb, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import { plural } from '../../../core/words.ts';
 import type { LabFailure } from '../../api.ts';
 import { type Words, failedText, sayText } from '../format.ts';
-import type { ChoiceAct, Wrote } from './api.ts';
+import type { ChoiceAct, ProjectSay, Wrote } from './api.ts';
 
 /** The commands that step the film's source back and on (`section.tsx`). */
 export const REVIEW_UNDO: CommandId = 'review.undo';
@@ -214,6 +214,65 @@ export const tookText = (address: PartAddress, took: Took): string =>
       () => `Nothing left to undo: that approval of ${partText(address)} was withdrawn since`,
     ),
   );
+
+/** The scenes `address` holds in `view`, in film order. */
+const scenesIn = (view: ProjectView, address: PartAddress): ReadonlyArray<ProjectScene> =>
+  Match.valueTags(address, {
+    Film: () => view.project.scenes,
+    Act: ({ act }) =>
+      Option.match(
+        Arr.findFirst(view.project.acts, (a) => a.name === act),
+        {
+          onNone: (): ReadonlyArray<ProjectScene> => [],
+          onSome: (a) => view.project.scenes.filter((s) => a.scenes.includes(s.scene)),
+        },
+      ),
+    Scenes: ({ ids }) => view.project.scenes.filter((s) => ids.includes(s.scene)),
+  });
+
+/** How many of `scenes` are approved as they are now, of all: `1/2`. */
+export const approvedOf = (scenes: ReadonlyArray<ProjectScene>) =>
+  `${scenes.filter((s) => s.approval === 'approved').length}/${scenes.length}`;
+
+/**
+ * What a say of a part of the project did, in the words of its receipt, on
+ * every page that sends one (Project and Scenes): what it said of which part
+ * (`sayText`), and for an approve or a withdraw the part's approvals before →
+ * after (`0/2 → 1/2 approved`; `?` when the page had not read the part).
+ * An Undo's words are what the catalogue says it took (`Project.took`); an
+ * approve of named scenes says the scenes it gave (`Project.gave`), not those
+ * asked, or that they were approved already.
+ */
+export const partSaid =
+  (s: ProjectSay, before: Option.Option<ProjectView>) =>
+  (after: ProjectView): string => {
+    const gave = Option.flatMap(after.project.gave, (g) =>
+      Arr.match(g.scenes, { onEmpty: Option.none, onNonEmpty: Option.some }),
+    );
+    const said = Option.match(after.project.took, {
+      onSome: (took) => tookText(s.address, took),
+      onNone: () =>
+        Bool.match(s.say._tag === 'Approve' && s.address._tag === 'Scenes', {
+          onFalse: () => sayText(s.say, partText(s.address)),
+          onTrue: () =>
+            Option.match(gave, {
+              onSome: (ids) => sayText(s.say, partText({ _tag: 'Scenes', ids })),
+              onNone: () => `Approved already: ${partText(s.address)}`,
+            }),
+        }),
+    });
+    const moved = Match.value(s.say._tag).pipe(
+      Match.when('Comment', () => ''),
+      Match.orElse(
+        () =>
+          ` · ${Option.getOrElse(
+            Option.map(before, (v) => approvedOf(scenesIn(v, s.address))),
+            () => '?',
+          )} → ${approvedOf(scenesIn(after, s.address))} approved`,
+      ),
+    );
+    return `${said}${moved}`;
+  };
 
 /**
  * An approve's Undo as a command (`UNDO_APPROVE`), as its page registers it:

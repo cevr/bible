@@ -15,6 +15,7 @@ import {
   chipsOf,
   filmCounts,
   filmLength,
+  filmSpan,
   legendOf,
   marksOf,
 } from './marks.ts';
@@ -193,12 +194,25 @@ describe('marksOf', () => {
   });
 });
 
-describe('filmLength', () => {
-  const placed = (id: string, start: number, dur: number): ProjectScene => ({
-    ...scene(id, 'current'),
-    span: Option.some({ start, dur }),
+const placed = (id: string, start: number, dur: number): ProjectScene => ({
+  ...scene(id, 'current'),
+  span: Option.some({ start, dur }),
+});
+
+describe('filmSpan', () => {
+  test('runs from where the first scene starts to where the last ends, gaps and unplaced scenes included', () => {
+    expect(filmSpan([placed('a', 0, 4), scene('b', 'missing'), placed('c', 6, 2)])).toEqual(
+      Option.some(8),
+    );
+    expect(filmSpan([placed('b', 10, 2), placed('a', 4, 3)])).toEqual(Option.some(8));
   });
 
+  test('none while no scene says where it sits', () => {
+    expect(filmSpan([scene('a', 'current')])).toEqual(Option.none());
+  });
+});
+
+describe('filmLength', () => {
   test("a film's length is where its last scene ends, to the second, then its scenes", () => {
     const scenes = Array.from({ length: 20 }, (_, i) => placed(`s${i}`, i * 26.3, 26.3));
     expect(filmLength(scenes)).toBe('8:46 · 20 scenes');

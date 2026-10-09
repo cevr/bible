@@ -1047,7 +1047,7 @@ describe('the player', () => {
         yield* textHas(page, comment, 'the light is late');
         yield* page.fill('.sc-focus .rv-comment-input', 'hold the cut');
         yield* page.press('Enter');
-        yield* textHas(page, '[data-role="receipt"]', 'commented on two');
+        yield* textHas(page, '[data-role="receipt"]', 'Commented on scene two');
         expect(
           asked
             .filter((a) => a.method === 'POST' && a.path === '/project/say')
@@ -1076,7 +1076,7 @@ describe('the player', () => {
       // The path names the first scene picked; the batch is never in the URL.
       yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
       yield* page.press('Shift+A');
-      yield* textHas(page, '[data-role="receipt"]', 'approved 2 scenes');
+      yield* textHas(page, '[data-role="receipt"]', 'Approved scenes one, three · ');
       // One say names every scene picked, neighbours or not: the project approves them in one run.
       expect(
         asked
@@ -1107,7 +1107,7 @@ describe('the player', () => {
         yield* clickInScene(page, 'one');
         yield* shiftClickInScene(page, 'three');
         yield* page.press('Shift+A');
-        yield* textHas(page, '[data-role="receipt"]', 'approved 2 scenes');
+        yield* textHas(page, '[data-role="receipt"]', 'Approved scenes one, three · ');
         yield* page.click('[data-role="receipt"] [data-act="receipt-undo"]');
         yield* textHas(page, '[data-role="receipt"]', 'Undid approving scenes one, three');
         expect(
@@ -1141,7 +1141,7 @@ describe('the player', () => {
           `window.__said = []; new MutationObserver(() => document.querySelectorAll('[data-role="receipt"] .lab-receipt-said').forEach((e) => { if (!window.__said.includes(e.textContent)) window.__said.push(e.textContent) })).observe(document.body, { subtree: true, childList: true, characterData: true })`,
         );
         yield* page.press('Shift+A');
-        yield* evaluates(page, 'window.__said', ['approved one']);
+        yield* evaluates(page, 'window.__said', ['Approved scene one · 0/2 → 2/2 approved']);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
