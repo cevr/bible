@@ -326,7 +326,7 @@ const toRow = (row: ScoredParagraphRow): SearchParagraphRow => ({
  *  Absolute rather than a fraction of the corpus: a ratio needs the row count,
  *  which is a second query on every search, and the point of the gate is to be
  *  cheaper than the work it avoids. */
-export const NON_SELECTIVE_MATCHES = 750_000;
+const NON_SELECTIVE_MATCHES = 750_000;
 
 /** Whether a term matches too much of the corpus to be worth ranking.
  *

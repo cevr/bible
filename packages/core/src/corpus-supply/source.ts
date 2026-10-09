@@ -1,12 +1,12 @@
-import { Context, Effect, Layer, Option, Result } from 'effect';
+import { Context, Effect, Option, Result } from 'effect';
 
 import type { Publication, PublicationId } from '../writings/model.js';
 import type { CorpusContributionRejectedError, CorpusSourceUnavailableError } from './errors.js';
 import type { WritingsContribution } from './model.js';
 
-export type WritingsAssetSourceKind = 'packaged' | 'provider' | 'archive';
+type WritingsAssetSourceKind = 'packaged' | 'provider' | 'archive';
 
-export interface WritingsAssetSourceService {
+interface WritingsAssetSourceService {
   readonly kind: WritingsAssetSourceKind;
   readonly catalog: Effect.Effect<readonly Publication[], CorpusSourceUnavailableError>;
   readonly acquire: (
@@ -17,10 +17,7 @@ export interface WritingsAssetSourceService {
   >;
 }
 
-export type WritingsAssetSources = readonly [
-  WritingsAssetSourceService,
-  ...WritingsAssetSourceService[],
-];
+type WritingsAssetSources = readonly [WritingsAssetSourceService, ...WritingsAssetSourceService[]];
 
 export interface WritingsAssetRecipeService {
   readonly catalog: Effect.Effect<readonly Publication[], CorpusSourceUnavailableError>;
@@ -84,12 +81,3 @@ export const makeWritingsAssetRecipe = (
       }),
   });
 };
-
-export const layerWritingsAssetRecipe = (
-  sources: WritingsAssetSources,
-): Layer.Layer<WritingsAssetRecipe> =>
-  Layer.succeed(WritingsAssetRecipe, makeWritingsAssetRecipe(sources));
-
-export const layerWritingsAssetSource = (
-  source: WritingsAssetSourceService,
-): Layer.Layer<WritingsAssetRecipe> => layerWritingsAssetRecipe([source]);

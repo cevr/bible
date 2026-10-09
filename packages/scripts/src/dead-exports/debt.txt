@@ -57,7 +57,6 @@ packages/core/src/search/model.ts SearchRoute
 packages/core/src/search/router.ts WORDY_WORD_THRESHOLD
 packages/core/src/search/router.ts countWords
 packages/core/src/search/router.ts parseRefcode
-packages/core/src/search/service.ts NON_SELECTIVE_MATCHES
 packages/core/src/search/service.ts STRONG_SIGNAL_MIN_GAP
 packages/core/src/search/service.ts STRONG_SIGNAL_MIN_SCORE
 packages/core/src/search/service.ts isNonSelective
@@ -67,8 +66,6 @@ packages/core/src/search/vector-accel.ts resetVectorAccel
 packages/core/src/search/vector-accel.ts resolvedFor
 packages/core/src/search/vector-accel.ts vectorAccel
 packages/core/src/search/vector-index.ts QUANTIZATION_SCALE
-packages/core/src/study/model.ts MarginNoteKind
-packages/core/src/study/model.ts MarginNoteKind
 packages/core/src/study/model.ts strongsNumber
 packages/core/src/topics/service.ts TopicUnavailableError
 packages/core/src/wiki/model.ts WikiSectionKind

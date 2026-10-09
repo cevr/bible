@@ -7,13 +7,3 @@ export * from './topics-verifier.js';
 export * from './unavailable.js';
 export * from './egw-sync.js';
 export { layerEgwWritingsAssetSource } from './writings-egw-source.js';
-export {
-  layerWritingsAssetRecipe,
-  layerWritingsAssetSource,
-  makeWritingsAssetRecipe,
-  WritingsAssetRecipe,
-  type WritingsAssetRecipeService,
-  type WritingsAssetSourceKind,
-  type WritingsAssetSources,
-  type WritingsAssetSourceService,
-} from './source.js';

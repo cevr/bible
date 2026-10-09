@@ -5,7 +5,10 @@ import { PublicationArchive } from '../writings/archive.js';
 import { Publication, publicationCode, publicationId } from '../writings/model.js';
 import { CorpusContributionRejectedError, CorpusSourceUnavailableError } from './errors.js';
 import { WritingsContribution, unknownProvenance } from './model.js';
-import { makeWritingsAssetRecipe, type WritingsAssetSourceService } from './source.js';
+import { makeWritingsAssetRecipe } from './source.js';
+
+/** One source the recipe merges. */
+type WritingsAssetSourceService = Parameters<typeof makeWritingsAssetRecipe>[0][number];
 
 const publication = Publication.make({
   id: publicationId(127),
