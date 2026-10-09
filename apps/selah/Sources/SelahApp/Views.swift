@@ -92,6 +92,10 @@ struct RootView: View {
         NSApp.activate(ignoringOtherApps: true)
       }
     }
+    .onChange(of: store.section) { store.dictation.stop() }
+    .onReceive(
+      NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)
+    ) { _ in store.dictation.stop() }
     .onReceive(
       NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
     ) { _ in
@@ -164,9 +168,12 @@ struct PracticeView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
       HStack {
-        Text("\(store.completed) / \(store.sessionTotal)").monospacedDigit()
+        Text(
+          store.rehearsalBook.map { "\($0) · \(store.completed) / \(store.sessionTotal) chapters" }
+            ?? "\(store.completed) / \(store.sessionTotal)"
+        ).monospacedDigit()
         Spacer()
-        Button("End Session") { store.sessionActive = false }.buttonStyle(.plain)
+        Button("End Session") { store.endSession() }.buttonStyle(.plain)
       }.font(.system(size: 12)).foregroundStyle(muted)
       ProgressView(value: Double(store.completed), total: Double(max(1, store.sessionTotal))).tint(
         .white)
@@ -180,16 +187,13 @@ struct PracticeView: View {
         )
         .font(.system(size: 10, weight: .medium)).foregroundStyle(muted)
         if store.revealed {
-          LazyVStack(alignment: .leading, spacing: 18) {
-            ForEach(verse.verses) { item in
-              ScriptureText(
-                verse: item, scripture: store.corpus.rendering(for: item),
-                numbered: verse.isChapter, showMargins: store.library.preferences.showMarginNotes
-              )
-            }
-          }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 12))
-            .transition(.opacity)
+          ScripturePassage(
+            verses: verse.verses, corpus: store.corpus, reader: store.library.preferences.reader,
+            numbered: verse.isChapter, showMargins: store.library.preferences.showMarginNotes
+          )
+          .padding(20).frame(maxWidth: .infinity, alignment: .leading)
+          .background(Color.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 12))
+          .transition(.opacity)
           if store.studying {
             Button("Hide & Try to Recall") {
               store.revealed = false
@@ -228,13 +232,27 @@ struct PracticeView: View {
               .padding(20).frame(maxWidth: .infinity, alignment: .leading).background(
                 surface, in: RoundedRectangle(cornerRadius: 22))
           }
-          TextEditor(text: $store.typedRecall).font(.system(size: 16)).scrollContentBackground(
+          TextEditor(text: $store.typedRecall).font(
+            store.library.preferences.reader.font == .system
+              ? .system(size: store.library.preferences.reader.size)
+              : .custom(
+                store.library.preferences.reader.font.rawValue,
+                size: store.library.preferences.reader.size)
+          ).scrollContentBackground(
             .hidden
           )
           .frame(height: 100).padding(12).background(
             surface, in: RoundedRectangle(cornerRadius: 16)
           )
           .accessibilityLabel("Type your recall, or recite aloud and leave this blank")
+          if store.library.preferences.dictationEnabled {
+            Button(store.dictation.active ? "Stop Dictation" : "Dictate") {
+              if store.dictation.active { store.dictation.stop() } else { store.startDictation() }
+            }.buttonStyle(.bordered)
+            if let message = store.dictation.message {
+              Text(message).font(.caption).foregroundStyle(.secondary)
+            }
+          }
           Text("Recite aloud, or type here. Compare your words after revealing.")
             .font(.system(size: 12)).foregroundStyle(muted)
           Button(verse.isChapter ? "Reveal Chapter" : "Reveal Verse") {
@@ -251,10 +269,11 @@ struct PracticeView: View {
           "\(store.completed) reviews completed. Your next FSRS reviews are saved."
         )
         .font(.system(size: 14)).foregroundStyle(muted).lineSpacing(5)
-        Button("Back to Today") { store.sessionActive = false }.buttonStyle(
+        Button("Back to Today") { store.endSession() }.buttonStyle(
           QuietButton(primary: true))
       }
     }
+    .onDisappear { store.dictation.stop() }
     .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: store.revealed)
   }
 }
@@ -358,12 +377,18 @@ struct ReadingView: View {
   @Environment(\.dismiss) private var dismiss
   @State private var chapterIndex = 0
   @State private var hidden = false
+  @State private var readerSettings = false
   private var visible: [Verse] { chapters.isEmpty ? [] : chapters[chapterIndex] }
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
       HStack {
         Text(title).font(.title2)
         Spacer()
+        Button {
+          readerSettings = true
+        } label: {
+          Image(systemName: "textformat.size")
+        }.help("Reader settings").accessibilityLabel("Reader settings")
         Button("Done") { dismiss() }
       }
       if let first = visible.first {
@@ -389,13 +414,10 @@ struct ReadingView: View {
           )
           .font(.title3).foregroundStyle(muted).padding(.top, 32)
         } else {
-          LazyVStack(alignment: .leading, spacing: 20) {
-            ForEach(visible) { verse in
-              ScriptureText(
-                verse: verse, scripture: store.corpus.rendering(for: verse),
-                showMargins: store.library.preferences.showMarginNotes)
-            }
-          }
+          ScripturePassage(
+            verses: visible, corpus: store.corpus, reader: store.library.preferences.reader,
+            showMargins: store.library.preferences.showMarginNotes)
+
         }
       }
       if let first = visible.first,
@@ -405,6 +427,12 @@ struct ReadingView: View {
           store.beginChapter(visible)
           dismiss()
         }.buttonStyle(.borderedProminent)
+        Button(
+          "Rehearse \(first.bookName) · \(store.corpus.chapterCount(book: first.book)) chapters"
+        ) {
+          store.beginBook(first.book)
+          dismiss()
+        }
       }
       Text("Chapter grades schedule the chapter independently of its verses.").font(.caption)
         .foregroundStyle(muted)
@@ -412,12 +440,14 @@ struct ReadingView: View {
       Color(nsColor: .windowBackgroundColor)
     )
     .preferredColorScheme(.dark)
+    .sheet(isPresented: $readerSettings) { ReaderSettings(store: store) }
   }
 }
 
 struct SettingsView: View {
   @Bindable var store: Store
   @State private var configuring = false
+  @State private var readerSettings = false
   private func quietTime(start: Bool) -> Binding<Date> {
     Binding(
       get: {
@@ -447,12 +477,29 @@ struct SettingsView: View {
             set: { value in
               Task { await store.change { $0.preferences.newPerDay = value } }
             }), in: 1...20)
+        Toggle(
+          "Enable optional dictation",
+          isOn: Binding(
+            get: { store.library.preferences.dictationEnabled },
+            set: { value in
+              store.dictation.stop()
+              Task { await store.change { $0.preferences.dictationEnabled = value } }
+            }))
+        Text(
+          "Dictation starts only when you press Dictate during recall. Speech stays on this Mac; on-device recognition must be available."
+        ).font(.caption).foregroundStyle(.secondary)
         LabeledContent("Scheduler", value: "FSRS 6 · 90% retention")
         Text(
           "Chapters become ready after every verse has been recalled twice. One new chapter is introduced per day. You can also start a chapter from Library."
         ).font(.caption).foregroundStyle(.secondary)
       }
       Section("Reading") {
+        Button("Reader Settings…") { readerSettings = true }
+        LabeledContent(
+          "Typography",
+          value:
+            "\(store.library.preferences.reader.font.rawValue) · \(Int(store.library.preferences.reader.size)) pt"
+        )
         Toggle(
           "Show margin notes",
           isOn: Binding(
@@ -554,5 +601,6 @@ struct SettingsView: View {
         }
       }
     }.formStyle(.grouped).onAppear { store.refreshLoginStatus() }
+      .sheet(isPresented: $readerSettings) { ReaderSettings(store: store) }
   }
 }

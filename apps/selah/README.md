@@ -28,6 +28,14 @@ The scheduler is canonical **FSRS 6**, with default FSRS 6 weights, short-term l
 
 When opening v1 progress, Selah first backs up the original JSON, replays review history into FSRS state, and preserves existing due dates until the next grade. Corrupt or unsupported progress files are preserved and open read-only.
 
+## Reader settings, book rehearsals, and dictation
+
+**Settings → Reading → Reader Settings…**, or the typography button in the reader, opens a native sheet with a live Scripture preview. Apply saves the draft; Cancel leaves saved preferences unchanged. Defaults are Georgia at 22 pt, 1.55× line height, zero character spacing, 8 pt between verses, and an extra 16 pt at source paragraph marks. Choose Georgia, Palatino, Baskerville, or the system font; adjust text size, leading, character spacing, paragraph spacing, verse spacing, verse numbers, and red letters. Supplied-word italics remain intact. Restore Tasteful Defaults resets the preview before applying. Settings persist across launches and apply to reading and practice.
+
+From **Library → Read**, choose **Rehearse [Book]** to start the entire book in canonical chapter order. Each chapter has its own study, recall, word comparison, and grade. Only chapters you actually grade acquire review events; ending early leaves the remaining chapters untouched. Chapter cards remain independent of verse cards.
+
+**Settings → Practice → Enable optional dictation** defaults off. During hidden recall, press **Dictate** to request microphone and speech permission and transcribe English on the device. Existing typed recall is retained as a prefix. Stop Dictation, revealing, advancing, ending practice, leaving practice, or switching apps stops capture. Speech recognition must support on-device English; there is no network fallback. Denied permissions and unavailable recognition show a message and leave typed recall usable. Transcription is optional and never assigns a grade. [Apple documents the on-device requirement](https://developer.apple.com/documentation/speech/sfspeechrecognitionrequest/requiresondevicerecognition).
+
 ## Reading and margins
 
 Scripture is selectable, uses a restrained line length and generous leading, and preserves supplied-word italics and red-letter quotations. **Settings → Reading → Show margin notes** defaults off for uninterrupted memorization. Enabling it adds small lettered anchors and collapsed note disclosures; selecting a note opens a native popover. Notes whose phrases do not match the printed verse remain available in the disclosure.
@@ -59,10 +67,10 @@ Corpus preparation, readiness calculation, comparisons, storage, and backups run
 
 These are core timings, not measured frame or end-to-end launch times. JSON saves rewrite the complete history; an incremental store remains a future scaling option.
 
-The full gate checks formatting, warning-free compilation, 17 behavior tests, and corpus integrity. Tests cover independent FSRS intervals, v1 migration, daily limits, relaunch, independent chapters, hint grading, concurrent storage transactions, corruption preservation, nested italics/red letters, margin anchors, recall alignment, overnight quiet hours, DST gaps, and immutable backup retention, and successful saves when backup storage is unavailable. Packaged app screens and native margin popovers were inspected live.
+The full gate checks formatting, warning-free compilation, 19 behavior tests, and corpus integrity. Tests cover independent FSRS intervals, v1 migration, daily limits, relaunch, independent chapters, hint grading, concurrent storage transactions, corruption preservation, nested italics/red letters, margin anchors, recall alignment, overnight quiet hours, DST gaps, and immutable backup retention, and successful saves when backup storage is unavailable. Packaged app screens, native margin popovers, reader preview resizing, Cancel/Apply, and the Psalms book rehearsal entry were inspected live. No test grades were recorded in user progress.
 
 ## Text provenance
 
 The bundled KJV was exported read-only from `bible-tools/packages/core/data/bible.db`: 31,102 unique verses across 66 books and 7,320 margin notes. Raw source text and Psalm superscriptions are retained; printed markup is interpreted for display. The source metadata notes the KJV's public-domain status in most jurisdictions and perpetual Crown copyright in the United Kingdom. See `Sources/SelahApp/Resources/KJV-NOTICE.txt`.
 
-This build is locally ad-hoc signed. Distribution signing, notarization, cloud sync, and speech recognition are not configured.
+This build is locally ad-hoc signed. Distribution signing, notarization, and cloud sync are not configured. Dictation has the required microphone and speech usage descriptions; actual microphone transcription has not been exercised during verification.

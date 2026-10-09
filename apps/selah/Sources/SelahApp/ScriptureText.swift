@@ -1,9 +1,11 @@
+import AppKit
 import SelahCore
 import SwiftUI
 
 struct ScriptureText: View {
   let verse: Verse
   let scripture: Scripture
+  var reader = ReaderPreferences()
   var numbered = true
   var showMargins = false
   @State private var note: MarginNote?
@@ -12,10 +14,13 @@ struct ScriptureText: View {
     for segment in scripture.segments {
       if segment.noteIndex != nil && !showMargins { continue }
       var text = AttributedString(segment.text)
-      text.font = .custom("Georgia", size: segment.noteIndex == nil ? 21 : 12, relativeTo: .body)
-      if segment.italic { text.font = .custom("Georgia-Italic", size: 21, relativeTo: .body) }
+      let size = segment.noteIndex == nil ? reader.size : reader.size * 0.57
+      let font: Font =
+        reader.font == .system ? .system(size: size) : .custom(reader.font.rawValue, size: size)
+      text.font = segment.italic ? font.italic() : font
       text.foregroundColor =
-        segment.redLetter ? Color(red: 0.96, green: 0.57, blue: 0.48) : .primary
+        segment.redLetter && reader.redLetters
+        ? Color(red: 0.96, green: 0.57, blue: 0.48) : .primary
       if let index = segment.noteIndex {
         text.link = URL(string: "selah-note://\(index)")
         text.baselineOffset = 8
@@ -25,16 +30,25 @@ struct ScriptureText: View {
     }
     return result
   }
+  private var leading: Double {
+    let font =
+      reader.font == .system
+      ? NSFont.systemFont(ofSize: reader.size)
+      : NSFont(name: reader.font.rawValue, size: reader.size)
+        ?? NSFont.systemFont(ofSize: reader.size)
+    return max(0, reader.size * reader.lineHeight - NSLayoutManager().defaultLineHeight(for: font))
+  }
   var body: some View {
     HStack(alignment: .firstTextBaseline, spacing: 12) {
-      if numbered {
+      if numbered && reader.showVerseNumbers {
         Text("\(verse.number)").font(.system(size: 11, weight: .medium)).monospacedDigit()
           .foregroundStyle(.secondary).frame(width: 22, alignment: .trailing).baselineOffset(6)
           .accessibilityLabel("Verse \(verse.number)")
       }
       VStack(alignment: .leading, spacing: 8) {
-        Text(content).lineSpacing(8).textSelection(.enabled).fixedSize(
-          horizontal: false, vertical: true)
+        Text(content).tracking(reader.characterSpacing).lineSpacing(leading).textSelection(.enabled)
+          .fixedSize(
+            horizontal: false, vertical: true)
         if showMargins && !scripture.notes.isEmpty {
           DisclosureGroup("Margin notes") {
             VStack(alignment: .leading, spacing: 8) {

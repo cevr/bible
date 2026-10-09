@@ -19,6 +19,8 @@ final class Store {
   var canSave = true
   var isLoading = true
   var isSaving = false
+  let dictation = Dictation()
+  var rehearsalBook: String?
   var queue: [PracticeUnit] = []
   var sessionActive = false
   var completed = 0
@@ -120,6 +122,7 @@ final class Store {
   }
   func begin() {
     guard !isLoading, !isSaving else { return }
+    rehearsalBook = nil
     queue = available
     completed = 0
     sessionTotal = queue.count
@@ -130,6 +133,7 @@ final class Store {
     guard !isLoading, !isSaving, let first = verses.first,
       verses.count == corpus.verses(book: first.book, chapter: first.chapter).count
     else { return }
+    rehearsalBook = nil
     queue = [PracticeUnit(verses: verses, isChapter: true)]
     completed = 0
     sessionTotal = 1
@@ -137,7 +141,32 @@ final class Store {
     section = "Today"
     resetRecall()
   }
+  func beginBook(_ book: Int) {
+    guard !isLoading, !isSaving else { return }
+    let rehearsal = corpus.bookRehearsal(book: book)
+    guard !rehearsal.isEmpty else { return }
+    queue = rehearsal
+    rehearsalBook = queue.first?.verses.first?.bookName
+    completed = 0
+    sessionTotal = queue.count
+    sessionActive = true
+    section = "Today"
+    resetRecall()
+  }
+  func endSession() {
+    dictation.stop()
+    feedbackTask?.cancel()
+    sessionActive = false
+  }
+  func startDictation() {
+    guard sessionActive, !revealed, library.preferences.dictationEnabled else { return }
+    let prefix = typedRecall.trimmingCharacters(in: .whitespacesAndNewlines)
+    dictation.start { [weak self] text in
+      self?.typedRecall = prefix.isEmpty ? text : prefix + " " + text
+    }
+  }
   func reveal() {
+    dictation.stop()
     revealed = true
     comparison = nil
     feedbackError = nil
@@ -161,6 +190,7 @@ final class Store {
     }
   }
   func resetRecall() {
+    dictation.stop()
     feedbackTask?.cancel()
     comparison = nil
     feedbackError = nil

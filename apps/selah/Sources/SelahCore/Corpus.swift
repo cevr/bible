@@ -42,6 +42,9 @@ public struct Corpus: Sendable {
     if goal.firstVerse == nil && goal.lastVerse == nil { return candidates }
     return candidates.filter { goal.contains($0) }
   }
+  public func bookRehearsal(book: Int) -> [PracticeUnit] {
+    chapters(for: Goal(title: "", book: book)).map { PracticeUnit(verses: $0, isChapter: true) }
+  }
   public func chapters(for goal: Goal) -> [[Verse]] {
     chapterOrder.filter {
       (goal.book == nil || $0.book == goal.book)

@@ -123,13 +123,16 @@ public struct Preferences: Codable, Sendable {
   public var reminderMinutes = 60
   public var remindersEnabled = false
   public var showMarginNotes = false
+  public var reader = ReaderPreferences()
+  public var dictationEnabled = false
   public var backupsEnabled = true
   public var quietHoursEnabled = true
   public var quietStartMinutes = 22 * 60
   public var quietEndMinutes = 8 * 60
   public init() {}
   private enum CodingKeys: String, CodingKey {
-    case newPerDay, reminderMinutes, remindersEnabled, showMarginNotes, backupsEnabled,
+    case reader, dictationEnabled, newPerDay, reminderMinutes, remindersEnabled, showMarginNotes,
+      backupsEnabled,
       quietHoursEnabled,
       quietStartMinutes, quietEndMinutes
   }
@@ -138,6 +141,9 @@ public struct Preferences: Codable, Sendable {
     newPerDay = max(1, min(20, try values.decodeIfPresent(Int.self, forKey: .newPerDay) ?? 3))
     reminderMinutes = max(1, try values.decodeIfPresent(Int.self, forKey: .reminderMinutes) ?? 60)
     remindersEnabled = try values.decodeIfPresent(Bool.self, forKey: .remindersEnabled) ?? false
+    reader =
+      try values.decodeIfPresent(ReaderPreferences.self, forKey: .reader) ?? ReaderPreferences()
+    dictationEnabled = try values.decodeIfPresent(Bool.self, forKey: .dictationEnabled) ?? false
     showMarginNotes = try values.decodeIfPresent(Bool.self, forKey: .showMarginNotes) ?? false
     backupsEnabled = try values.decodeIfPresent(Bool.self, forKey: .backupsEnabled) ?? true
     quietHoursEnabled = try values.decodeIfPresent(Bool.self, forKey: .quietHoursEnabled) ?? true

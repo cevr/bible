@@ -23,6 +23,8 @@ cat > "$SELAH_APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleVersion</key><string>1</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>LSUIElement</key><true/>
+<key>NSMicrophoneUsageDescription</key><string>Dictate your Scripture recall when you choose Dictate.</string>
+<key>NSSpeechRecognitionUsageDescription</key><string>Compare your spoken recall using on-device speech recognition.</string>
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
