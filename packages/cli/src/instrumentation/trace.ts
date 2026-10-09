@@ -87,8 +87,3 @@ export const printSummary = Effect.gen(function* () {
     `cli.trace.summary totalMs=${totalMs.toFixed(2)} entries=${entries.length} slowest=${Inspectable.toStringUnknown(slowest.slice(0, 10), 0)}`,
   );
 });
-
-export const clear = Effect.sync(() => {
-  entries.length = 0;
-  startTime = Option.none();
-});

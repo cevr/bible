@@ -1,9 +1,5 @@
-packages/cli/src/commands/bible.ts bible
 packages/cli/src/commands/bible.ts isStrongsNumber
-packages/cli/src/commands/egw.ts egwSearch
 packages/cli/src/commands/egw/format.ts SNIPPET_LIMIT
-packages/cli/src/commands/egw/pioneer-authors.ts PIONEER_AUTHOR_FILTERS
-packages/cli/src/commands/egw/pioneer-authors.ts authorMatches
 packages/cli/src/commands/egw/search-daemon.ts runSearchDaemon
 packages/cli/src/commands/egw/search-layer.ts SearchLayer
 packages/cli/src/commands/egw/search-layer.ts verifiedVectorIndex
@@ -18,9 +14,7 @@ packages/cli/src/commands/wiki.ts WikiTopicsJson
 packages/cli/src/commands/wiki.ts lookupInput
 packages/cli/src/commands/wiki.ts topicJson
 packages/cli/src/commands/wiki.ts topicsJson
-packages/cli/src/instrumentation/trace.ts clear
 packages/cli/src/lib/paths.ts dataCandidates
-packages/cli/src/lib/paths.ts executableDir
 packages/cli/src/lib/paths.ts getDataPath
 packages/cli/src/lib/paths.ts resolveDataPath
 packages/core/src/bible-rendering/segments.ts SEGMENT_APPLICATION_ORDER
