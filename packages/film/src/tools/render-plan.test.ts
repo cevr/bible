@@ -263,6 +263,13 @@ describe('ranges', () => {
     });
   });
 
+  test('a whole film whose end lies just past a frame keeps that frame', () => {
+    // 30.01 s at 30 fps: frame 900 starts inside the film, so the film has 901 frames.
+    const info = { ...testExportInfo, duration: 30.01, frames: 901 };
+    expect(frameSpan(info, Option.none(), Option.none())).toEqual({ start: 0, end: 901 });
+    expect(frameSpan(info, Option.some(30), Option.some(30.01))).toEqual({ start: 900, end: 901 });
+  });
+
   test('a range from before the film starts at its first frame', () => {
     expect(frameSpan(testExportInfo, Option.some(-1), Option.some(2))).toEqual({
       start: 0,

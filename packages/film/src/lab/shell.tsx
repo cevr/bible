@@ -12,7 +12,7 @@
 // panel (`Fill`, `panel.tsx`). Each tool's own state lives in its own
 // provider; the shell knows none of it.
 
-import { Portal, Show } from '@solidjs/web';
+import { Portal } from '@solidjs/web';
 import { Duration, Effect, Fiber, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
@@ -134,27 +134,14 @@ interface RootProps extends ParentProps {
 }
 
 /**
- * The staged lab, in the Lab's page (`panel.tsx`): every tool's base, once
- * the preview draws its film. Until its faces have loaded (`Player.drawable`)
- * the film's bar shows where it is and no tool stands, so none draws a frame
- * or takes a still in a fallback face.
+ * The staged lab, in the Lab's page (`panel.tsx`): the film on its stage and
+ * every tool's base, standing as soon as the film is staged. Only drawing
+ * waits for the film's faces (`Player.drawable`): the player draws nothing
+ * and a still waits (`StageOps.still`) until they have loaded, so no frame is
+ * drawn or taken in a fallback face, while the scene's name and the tools
+ * paint at once.
  */
 const Root = (props: RootProps) => {
-  const [drawable, setDrawable] = createSignal(props.player.drawable(), { ownedWrite: true });
-  const heard = props.player.onDraw(() => {
-    heard();
-    setDrawable(true);
-  });
-  onCleanup(heard);
-  return (
-    <Show when={drawable()}>
-      <Staged player={props.player}>{props.children}</Staged>
-    </Show>
-  );
-};
-
-/** The staged lab around its tools: the film on its stage, and every tool's base. */
-const Staged = (props: RootProps) => {
   const { player } = props;
   const page = useLabPage();
   const { name, host, hub } = page;
@@ -162,6 +149,8 @@ const Staged = (props: RootProps) => {
   onCleanup(page.staged());
   const [T, setT] = createSignal(player.now(), fromDraw);
   const [drawn, setDrawn] = createSignal(0, fromDraw);
+  // T follows every move, drawn or not: before the faces load nothing is drawn, yet the tools show where the film is.
+  onCleanup(player.onMove(setT));
   onCleanup(
     player.onDraw((t) => {
       setT(t);

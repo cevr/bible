@@ -21,7 +21,7 @@
 // shows in the URL and the strip. Each cue of the strip's scene is also a
 // place ⌘K goes to by its name (`cueDestinations`).
 
-import { Effect, Match, Option } from 'effect';
+import { Effect, Equal, Match, Option } from 'effect';
 import {
   type Bound,
   type Command,
@@ -32,7 +32,7 @@ import {
   refused,
 } from '../../command/command.ts';
 import { type Context, selected } from '../../command/context.ts';
-import { type LabSelection, cueOf, sameSelection, selectionText } from '../../command/selection.ts';
+import { type LabSelection, cueOf, selectionText } from '../../command/selection.ts';
 import { type Inspected, nudged, refusalOf } from '../../core/field.ts';
 import type { ChangeId } from '../../core/schema.ts';
 import type { Destination } from '../../command/go.ts';
@@ -114,7 +114,7 @@ const aboutOf = (ctx: Context): Option.Option<LabSelection> =>
 const toSelect = (verbs: EditorVerbs, ctx: Context): Option.Option<LabSelection> =>
   Option.filter(
     aboutOf(ctx),
-    (s) => !Option.exists(verbs.selected(), (now) => sameSelection(now, s)),
+    (s) => !Option.exists(verbs.selected(), (now) => Equal.equals(now, s)),
   );
 
 /**

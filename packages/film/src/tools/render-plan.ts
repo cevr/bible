@@ -8,6 +8,7 @@ import type { RenderKind, RenderSound } from '../core/catalogue.ts';
 import { Encoder, encoderName, sharesInPage } from '../core/encoder.ts';
 import { FlagsConflict, TooManyEncoders } from './errors.ts';
 import type { Short } from '../core/schema.ts';
+import { frameAtOrAfter } from '../core/time.ts';
 import type { ExportInfo } from '../core/export-handle.ts';
 import { type FilmPiece, shortKey } from '../core/shorts.ts';
 
@@ -397,14 +398,30 @@ interface FrameSpan {
   readonly end: number;
 }
 
-/** Frames `[start, end)` of a video job's seconds `[from, to)`, clipped to the film at both ends. */
+/**
+ * Frames `[start, end)` of a video job's seconds `[from, to)`, clipped to the
+ * film at both ends: the frames that start inside the span (`frameAtOrAfter`,
+ * core/time.ts), which is also how the film's own frames are counted.
+ */
 export const frameSpan = (
   info: ExportInfo,
   from: Option.Option<number>,
   to: Option.Option<number>,
 ): FrameSpan => ({
-  start: Math.max(0, Math.round(Option.getOrElse(from, () => 0) * info.fps)),
-  end: Math.min(info.frames, Math.round(Option.getOrElse(to, () => info.duration) * info.fps)),
+  start: Math.max(
+    0,
+    frameAtOrAfter(
+      Option.getOrElse(from, () => 0),
+      info.fps,
+    ),
+  ),
+  end: Math.min(
+    info.frames,
+    frameAtOrAfter(
+      Option.getOrElse(to, () => info.duration),
+      info.fps,
+    ),
+  ),
 });
 
 /** A contiguous run of frames `[from, to)`, encoded to its own segment. */

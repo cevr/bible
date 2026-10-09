@@ -6,8 +6,12 @@
 // made with the audio session set to `playback`, so an iPhone's silent
 // switch does not mute it, as it does not a `<video>`.
 
-import { Effect, Option } from 'effect';
-import { Media, type Playable, playableOf } from './media.ts';
+import { Context, Effect, Exit, Layer, Option } from 'effect';
+import type { Frames } from './frames.ts';
+import { type BrowserCodecs, PANES_NOT_LOADED, browserEngine } from './media-choice.ts';
+import type { compareOn } from './webcodecs-browser.ts';
+import { Media, type Playable, onVideo, playableOf } from './media.ts';
+import { Viewport } from './viewport.ts';
 
 /** The page's one sound context, made on the first ask and woken on each. */
 const soundContext = () => {
@@ -33,12 +37,61 @@ const soundContext = () => {
 };
 
 /** The audio at `src`, as the page makes it: an `Audio` element. */
-export const pageAudio = (src: string): Playable =>
+const pageAudio = (src: string): Playable =>
   // oxlint-disable-next-line no-restricted-globals -- Media's live adapter: the audio the page makes
   playableOf(new Audio(src));
 
 /** The page's one sound context: what its compare's panes play through. */
-export const pageSound: () => Option.Option<AudioContext> = soundContext();
+const pageSound: () => Option.Option<AudioContext> = soundContext();
+
+/** A phone or a tablet, as its pointer says: what plays `<video>` until one is measured. */
+const COARSE = '(pointer: coarse)';
+
+/** What this browser can decode, and whether it is a phone (`phone`, the host's `Viewport`'s answer). */
+export const browserCodecs = (phone: boolean): BrowserCodecs => ({
+  videoDecoder: 'VideoDecoder' in globalThis,
+  audioDecoder: 'AudioDecoder' in globalThis,
+  phone,
+});
+
+/** Whether the host's window is a phone's or a tablet's. */
+export const isPhone = (host: Context.Context<Viewport>): Effect.Effect<boolean> =>
+  Context.get(host, Viewport).matches(COARSE);
+
+const loadPanes = () => import('./webcodecs-browser.ts');
+
+/**
+ * The review page's media: the page's own, its compares on WebCodecs panes
+ * where the browser and the files allow. The panes' module, with the
+ * decoders (mediabunny) it carries, loads only when the browser allows the
+ * panes at all: a phone, or a browser with no `VideoDecoder`, plays `<video>`
+ * and downloads none of it.
+ */
+export const panesMediaLayer: Layer.Layer<Media, never, Frames | Viewport> =
+  panesMediaLayerWith(loadPanes);
+
+/**
+ * `panesMediaLayer` with the panes' module loaded by `load`. A module that
+ * will not load (offline, or gone after a rebuild) plays the compare on
+ * `<video>`, with the reason, as every other fallback does.
+ */
+export function panesMediaLayerWith(
+  load: () => Promise<{ readonly compareOn: typeof compareOn }>,
+): Layer.Layer<Media, never, Frames | Viewport> {
+  return Layer.unwrap(
+    Effect.map(Effect.context<Frames | Viewport>(), (host) =>
+      Media.layerOver(pageAudio, (urls) =>
+        Effect.gen(function* () {
+          const allowed = browserEngine(browserCodecs(yield* isPhone(host)));
+          if (allowed.engine === 'video') return onVideo(allowed.why);
+          const panes = yield* Effect.exit(Effect.tryPromise(load));
+          if (Exit.isFailure(panes)) return onVideo(PANES_NOT_LOADED);
+          return yield* panes.value.compareOn(host, pageSound)(urls);
+        }),
+      ),
+    ),
+  );
+}
 
 /** The page's media: its narration an `Audio` element, its compares on `<video>`. */
 export const mediaLayer = Media.layerOver(pageAudio);

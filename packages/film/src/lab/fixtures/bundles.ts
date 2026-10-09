@@ -27,6 +27,29 @@ const servedFonts: BunPlugin = {
   },
 };
 
+/**
+ * The fixtures are classic scripts, which cannot name `import.meta`. Effect's
+ * config reader does (`import.meta?.env`); a bundle keeps that module when a
+ * page loads a module lazily (the review's WebCodecs panes keep all of Effect
+ * in the script), so the reader's environment is read as absent.
+ */
+const classicScript: BunPlugin = {
+  name: 'classic-script',
+  setup(build) {
+    build.onLoad({ filter: /effect\/dist\/ConfigProvider\.js$/ }, (args) =>
+      Effect.runPromise(
+        FileSystem.FileSystem.use((fs) => fs.readFileString(args.path)).pipe(
+          Effect.provide(BunServices.layer),
+          Effect.map((source) => ({
+            contents: source.replaceAll('import.meta?.env', 'undefined'),
+            loader: 'js' as const,
+          })),
+        ),
+      ),
+    );
+  },
+};
+
 export const ENTRIES = [
   'lab-page.ts',
   'lab-narrated-page.ts',
@@ -56,7 +79,7 @@ export const compile = (entry: string) =>
       target: 'browser',
       format: 'iife',
       minify: true,
-      plugins: [solidPlugin, servedFonts],
+      plugins: [solidPlugin, servedFonts, classicScript],
       conditions: Arr.filter(['development'], () => DEVELOPMENT.has(entry)),
     }),
   ).pipe(

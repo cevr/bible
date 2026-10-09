@@ -13,8 +13,7 @@
 // made the first time the manifest is changed and never removed: removing a
 // lock file another process holds would let a third take a new one beside
 // it. Beside the manifest, it is on the same disk as what it guards, under a
-// name of its own (an old store's `<name>.lock` is another file, which this
-// store neither reads nor removes), where no tmp cleaner reaches; git ignores
+// name of its own (`.<name>.lock`, not `<name>.lock`), where no tmp cleaner reaches; git ignores
 // it there (`src/films/**/*.lock`, `**/sounds/**/*.lock`, and the whole of
 // `out/` and the lab's `lab/`); and the lab's watch hears only the files a
 // build read and the mixes' tracks, so its making is heard as nothing. No

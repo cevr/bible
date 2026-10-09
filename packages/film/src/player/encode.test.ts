@@ -45,12 +45,15 @@ describe('chooseEncoder', () => {
 
 describe('the encoder config', () => {
   test("each encoder's config takes its own acceleration and the quality it is handed", () => {
-    for (const encoder of [hardware, software]) {
+    for (const [encoder, hardwareAcceleration] of [
+      [hardware, 'prefer-hardware'],
+      [software, 'prefer-software'],
+    ] as const) {
       const quality = SETTINGS[encoder._tag].master;
       expect(config(1920, 1080, 1, encoder, quality)).toMatchObject({
         codec: 'avc',
         quality,
-        hardwareAcceleration: SETTINGS[encoder._tag].hardwareAcceleration,
+        hardwareAcceleration,
       });
     }
   });
@@ -72,7 +75,6 @@ describe('what the page encodes', () => {
   });
 
   test('the software encoder makes no share copy in the page: x264 makes it from the master', () => {
-    expect(SETTINGS.Software.share).toBeNull();
     expect(qualities(software, true)).toEqual([SETTINGS.Software.master]);
   });
 });

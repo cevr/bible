@@ -12,7 +12,7 @@ import { Array as Arr, Option } from 'effect';
 import { type CompareView, Places, pageHref } from '../core/api.ts';
 import { type Placed, sceneAt } from '../core/layout.ts';
 import type { Interval } from '../core/time.ts';
-import { onTheMs } from '../player/t-in-url.ts';
+import { onTheMs } from '../core/time.ts';
 import { type LabSelection as Selection, cueOf, knobOf, labKeysOf } from '../command/selection.ts';
 import { type CodeOpen, codeOpenOf, codeText } from './source/open.ts';
 
