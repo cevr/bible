@@ -371,7 +371,7 @@ const LooseVideo = (props: {
   readonly docs: ReadonlyArray<ReviewFile>;
 }) => {
   const { state } = useReview();
-  const captions = captionsFor(props.video, props.docs);
+  const captions = createMemo(() => captionsFor(props.video, props.docs));
   const source = createMemo(() => videoSource(props.video, state.quality()));
   return (
     <Target of={Selection.cases.File.make({ ref: props.video.ref })} class="rv-card rv-tall">
@@ -381,7 +381,7 @@ const LooseVideo = (props: {
             src={src()}
             poster={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
           >
-            <Show when={Option.getOrUndefined(captions)} keyed>
+            <Show when={Option.getOrUndefined(captions())} keyed>
               {(vtt: ReviewFile) => <track kind="captions" src={reviewFileUrl(vtt.ref)} default />}
             </Show>
           </PlayedAlone>
@@ -421,8 +421,12 @@ const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoi
 const FolderBody = (props: { readonly folder: ReviewFolder }) => {
   const { meta } = useReview();
   const now = meta.now();
-  const markdown = props.folder.docs.filter(isMarkdown);
-  const other = props.folder.docs.filter((d) => !isMarkdown(d) && !d.name.endsWith('.vtt'));
+  // Derived per index value, and the docs keyed by their file: a refreshed index leaves an
+  // open doc open.
+  const markdown = createMemo(() => props.folder.docs.filter(isMarkdown));
+  const other = createMemo(() =>
+    props.folder.docs.filter((d) => !isMarkdown(d) && !d.name.endsWith('.vtt')),
+  );
   return (
     <>
       <Show when={Option.getOrUndefined(props.folder.blurb)}>
@@ -459,14 +463,16 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
           </For>
         </div>
       </Section>
-      <Section title="Docs" count={markdown.length + other.length}>
-        <For each={markdown}>{(doc) => <Doc doc={doc} />}</For>
-        <Show when={other.length > 0}>
+      <Section title="Docs" count={markdown().length + other().length}>
+        <For each={markdown()} keyed={(doc) => doc.ref}>
+          {(doc) => <Doc doc={doc()} />}
+        </For>
+        <Show when={other().length > 0}>
           <p class="rv-row">
-            <For each={other}>
+            <For each={other()} keyed={(doc) => doc.ref}>
               {(doc) => (
-                <a class="sh-btn" href={reviewFileUrl(doc.ref)} target="_blank" rel="noreferrer">
-                  {doc.name}
+                <a class="sh-btn" href={reviewFileUrl(doc().ref)} target="_blank" rel="noreferrer">
+                  {doc().name}
                 </a>
               )}
             </For>
@@ -505,12 +511,12 @@ const Missing = (props: { readonly what: string }) => (
 export const FolderPage = (props: { readonly folder: string }) => (
   <WithIndex>
     {(index) => (
+      // Not keyed: a new index value moves the folder under the page, it does not remake it.
       <Show
         when={Option.getOrUndefined(folderIn(index(), props.folder))}
-        keyed
         fallback={<Missing what="folder" />}
       >
-        {(folder: ReviewFolder) => <FolderBody folder={folder} />}
+        {(folder) => <FolderBody folder={folder()} />}
       </Show>
     )}
   </WithIndex>

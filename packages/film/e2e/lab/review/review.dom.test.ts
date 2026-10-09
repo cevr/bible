@@ -93,14 +93,17 @@ const walkOf = (phone: 'none' | 'ready'): Json => ({
   phone,
 });
 
-/** The index, its loose video `walk`. */
-const indexOf = (walk: Json): Json => ({
+/** The folder's blurb, as the index first gives it. */
+const BLURB =
+  '## Scenes\n1. Cold opening\n2. Message arrives\n3. Mirror answers\n\n**Judge:** Follow the staged order.\n\n<img src=x onerror=bad()>';
+
+/** The index, its loose video `walk` and the folder's `blurb`. */
+const indexOf = (walk: Json, blurb: string = BLURB): Json => ({
   folders: [
     {
       ref: 'out/art',
       title: 'Roofs at dusk',
-      blurb:
-        '## Scenes\n1. Cold opening\n2. Message arrives\n3. Mirror answers\n\n**Judge:** Follow the staged order.\n\n<img src=x onerror=bad()>',
+      blurb,
       mtime: 0,
       sets: [
         {
@@ -861,6 +864,37 @@ describe('the review page', () => {
   );
 
   it.live(
+    'an open doc stays open, and read, when Refresh gives the folder a new index',
+    () =>
+      Effect.gen(function* () {
+        // The first answer is the page's; every later one is a refresh's, with a new blurb.
+        const answers = [index, indexOf(walkOf('none'), 'Refreshed blurb.')];
+        let reads = 0;
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => {
+              const answer = answers[Math.min(reads, 1)] ?? index;
+              reads += 1;
+              return json(answer);
+            }),
+            ...routes,
+          ],
+          { href: FOLDER },
+        );
+        yield* textHas(page, '[data-review-blurb]', 'Follow the staged order');
+        yield* page.click('.rv-doc summary');
+        yield* waitFor(page, '.rv-doc .rv-note li b');
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
+        yield* textHas(page, '[data-review-blurb]', 'Refreshed blurb.');
+        yield* evaluates(page, "document.querySelector('.rv-doc')?.open", true);
+        yield* waitFor(page, '.rv-doc .rv-note li b');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a doc that cannot be read says why as text, the server's words never markup",
     () =>
       Effect.gen(function* () {
@@ -873,12 +907,7 @@ describe('the review page', () => {
           ],
           { href: FOLDER },
         );
-        // Opened until it stays open: a click before the index has settled lands on a doc
-        // the page then draws again, closed.
-        yield* until(
-          page,
-          "(() => { const d = document.querySelector('.rv-doc'); if (d !== null && !d.open) d.open = true; return document.querySelector('.rv-doc .rv-note') !== null; })()",
-        );
+        yield* page.click('.rv-doc summary');
         yield* textIs(
           page,
           '.rv-doc .rv-note',
