@@ -361,6 +361,8 @@ Pass 3 opens with:
 
 Opened 2026-10-07 at `121f862d`, at the owner's word ("continue where it left off"). Pass 2 cannot be the last: its batches moved every area, and three Carried rows stay open.
 
+2026-10-09: the owner set the loop's goal again ("Make the film lab one mobile-first studio for combing, tweaking and sharing every film, by NORTH_STAR.md and PRIOR_ARTS.md"; "continue where it left off"), which lifts the pause after pass 3: p3-guards finishes, pass 3 closes and pass 4 opens. With it came a new prior art, the Paper Mono launch studio ("i like this ui here protrayed, shows the code and everything"): written into `NORTH_STAR.md` → Studio and `PRIOR_ARTS.md` (Other sources, To survey), surveyed as pass 4's prior art (`pass4/prior-art-paper-mono.md`). Roles from the owner: Sonnet applies, Opus researches and sweeps, Codex (`okra counsel --deep`) reviews. The Sabbath pause (Friday 2026-10-09 sundown) stops every agent; work is left resumable.
+
 ### Baseline
 
 - Count: pass 2's pathspec, unchanged. The command and the per-directory table are in `~/.cache/architecture-loop/bible-tools/coverage-pass3.txt`. The sweeps also read the eight files pass 2 changed outside it: `player/player.css`, `player/tokens.css`, and `tools/{content-store,narrator,project-cli,testing,check,film-check}.ts`.
