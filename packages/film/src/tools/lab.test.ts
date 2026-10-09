@@ -33,6 +33,7 @@ import {
 } from 'effect';
 import { Base64 } from 'effect/encoding';
 import {
+  Etag,
   FetchHttpClient,
   HttpBody,
   HttpClient,
@@ -53,6 +54,7 @@ import {
   MAX_REQUEST_BODY,
   PageReads,
   labServer,
+  serveApi,
   serveLab,
 } from './api-server.ts';
 import { STUDIO_IMPORT_WAIT_S, STUDIO_MAX_BODY } from '../core/studio.ts';
@@ -706,6 +708,77 @@ describe('lab routes', () => {
       expect(refused.status).toBe(404);
     }).pipe(Effect.scoped, Effect.provide(labLayer(files(), echoPages))),
   );
+
+  it.live(
+    'a HEAD of a streamed GET route leaves no unhandled rejection when its stream cancels badly',
+    () =>
+      Effect.gen(function* () {
+        const unhandled: Array<unknown> = [];
+        // oxlint-disable-next-line effect/noUnknownParameters -- the process's own event hands any reason; only that one came is counted
+        const heard = (reason: unknown) => void unhandled.push(reason);
+        process.on('unhandledRejection', heard);
+        yield* Effect.addFinalizer(() =>
+          Effect.sync(() => void process.off('unhandledRejection', heard)),
+        );
+        const beside = HttpRouter.add(
+          'GET',
+          '/api/beside-stream',
+          Effect.succeed(
+            HttpServerResponse.raw(
+              new Response(
+                new ReadableStream({
+                  pull: (controller) => controller.enqueue(new TextEncoder().encode('x')),
+                  // oxlint-disable-next-line effect/noNewPromise, effect/noNewError -- a web stream whose cancel rejects, as a failing source does
+                  cancel: () => Promise.reject(new Error('cancel refused')),
+                }),
+              ),
+            ),
+          ),
+        );
+        const lab = yield* labHandler(LOOPBACK, beside);
+        const head = yield* Effect.promise(() =>
+          lab(new Request(at('/api/beside-stream'), { method: 'HEAD' }), bound),
+        );
+        expect([head.status, yield* Effect.promise(() => head.text())]).toEqual([200, '']);
+        // oxlint-disable-next-line effect/noFixedWaitInTests -- an event that must not happen cannot be awaited; a rejection lands within a tick of the cancel
+        yield* Effect.sleep('50 millis');
+        expect(unhandled).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), echoPages))),
+  );
+
+  it.live("a global middleware that needs a service runs on the caller's services", () => {
+    class Label extends Context.Service<Label, string>()('@bible/film/tools/lab.test/Label') {}
+    const labelled = HttpRouter.middleware(
+      (served) =>
+        Effect.gen(function* () {
+          const label = yield* Label;
+          return HttpServerResponse.setHeader(yield* served, 'x-label', label);
+        }),
+      { global: true },
+    ).pipe(Layer.build, Layer.effectDiscard);
+    const served = serveApi(LabHttpApi, labelled, {
+      allowed: LOOPBACK,
+      page: Effect.succeed(HttpServerResponse.text('page')),
+      beside: Layer.empty,
+    });
+    // The handler's own type names the service its global middleware needs
+    // (a type error here when it does not).
+    const names: Label extends Effect.Services<typeof served> ? true : false = true;
+    expect(names).toBe(true);
+    return Effect.gen(function* () {
+      const lab = yield* served;
+      const answered = yield* Effect.promise(() => lab(get('/'), bound));
+      expect([answered.status, answered.headers.get('x-label')]).toEqual([200, 'caller']);
+    }).pipe(
+      Effect.scoped,
+      Effect.provideService(Label, 'caller'),
+      Effect.provide(
+        Layer.mergeAll(HttpPlatform.layer, Etag.layerWeak).pipe(
+          Layer.provideMerge(BunServices.layer),
+        ),
+      ),
+    );
+  });
 
   it.live(
     "a page is sent compressed by the request's Accept-Encoding, br first; a streamed page's shell arrives before its render ends",

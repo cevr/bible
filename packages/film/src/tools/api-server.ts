@@ -574,7 +574,11 @@ export const serveApi = <
   },
 ) =>
   Effect.gen(function* () {
-    const services = yield* Effect.context<ServedBy | HttpRouter.Request.Only<'Requires', Needs>>();
+    const services = yield* Effect.context<
+      | ServedBy
+      | HttpRouter.Request.Only<'Requires', Needs>
+      | HttpRouter.Request.Only<'GlobalRequires', Needs>
+    >();
     // The handler itself, for a page's reads as it renders (`PageReads`): known once made.
     const self = yield* Deferred.make<OwnHandler>();
     const app = Layer.mergeAll(
@@ -590,7 +594,7 @@ export const serveApi = <
       Effect.sync(() => HttpRouter.toWebHandler(app, { disableLogger: true })),
       (opened) => Effect.promise(() => opened.dispose()),
     );
-    // oxlint-disable-next-line effect/noAs -- the context the handler takes is the router's markers over a generic `Needs`, which the checker cannot reduce
+    // oxlint-disable-next-line effect/noAs -- the handler's context is `Needs`' Requires and GlobalRequires markers, all in `services` above, over a generic `Needs` the checker cannot reduce to `Connection`
     const handler = web.handler as OwnHandler;
     yield* Deferred.succeed(self, handler);
     const own = prefixesOf(api);
@@ -609,7 +613,9 @@ export const serveApi = <
         signal: request.signal,
       });
       return handler(asked, context).then((response) => {
-        Option.map(Option.fromNullishOr(response.body), (body) => body.cancel());
+        // The body is never sent, as Effect's own server omits it for a HEAD:
+        // dropped unread, and a stream that fails to cancel is no failure of the answer.
+        Option.map(Option.fromNullishOr(response.body), (body) => body.cancel().catch(() => false));
         return new Response('', {
           status: response.status,
           statusText: response.statusText,
