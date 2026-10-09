@@ -1077,9 +1077,18 @@ export const SceneSource = Schema.Struct({
       untilOffset: Schema.optionalKey(FieldState),
       ease: FieldState,
       stagger: FieldState,
-    } satisfies Record<keyof CuePatch | 'name', Schema.Top>),
+      /** Additive: the line (from 1) that writes the cue; an answer without it (a server before it) has the inspector wait for the code. */
+      line: Schema.optionalKey(Schema.Int),
+    } satisfies Record<keyof CuePatch | 'name' | 'line', Schema.Top>),
   ),
-  knobs: Schema.Array(Schema.Struct({ name: Schema.String, state: FieldState })),
+  knobs: Schema.Array(
+    Schema.Struct({
+      name: Schema.String,
+      state: FieldState,
+      /** Additive: the line (from 1) that writes the knob, likewise. */
+      line: Schema.optionalKey(Schema.Int),
+    }),
+  ),
   /**
    * A field the lab will not write, and why: the scene reads a timeline or
    * knobs no literal declares (the registry overrides it), or one other

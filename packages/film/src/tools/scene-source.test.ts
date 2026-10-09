@@ -94,6 +94,21 @@ describe('scene source', () => {
     expect(readSpans(FILE, timed, 'hand')['bare']).toEqual({ at: 'speech', offset: 0.25, dur: 1 });
   });
 
+  it('lists the line that writes each cue and knob, so the inspector can cite it before the code is read', () => {
+    const found = ok(editable(FILE, scene, 'hand'));
+    expect(found.cues.map((c) => [c.name, c.line])).toEqual([
+      ['topple', 10],
+      ['shine', 11],
+      ['late', 12],
+      ['bare', 13],
+    ]);
+    expect(found.knobs.map((k) => [k.name, k.line])).toEqual([
+      ['palm', 16],
+      ['tilt', 17],
+      ['half', 18],
+    ]);
+  });
+
   it('adds an offset to a word pin after its word, which it keeps', () => {
     const pinned = scene.replace(
       "bare: { at: 'speech' },",
@@ -108,6 +123,7 @@ describe('scene source', () => {
     expect(marked).toBe(scene.replace('offset: 0.1, dur: 1.8 }', "offset: 0.1, until: 'gift' }"));
     expect(ok(editable(FILE, marked, 'hand')).cues[0]).toEqual({
       name: 'topple',
+      line: 10,
       offset: 'literal',
       dur: 'absent',
       until: 'literal',
@@ -479,6 +495,7 @@ export const hand = drawing({
     expect(found.cues).toEqual([
       {
         name: 'topple',
+        line: 10,
         offset: 'literal',
         dur: 'literal',
         until: 'absent',
@@ -488,6 +505,7 @@ export const hand = drawing({
       },
       {
         name: 'shine',
+        line: 11,
         offset: 'literal',
         dur: 'literal',
         until: 'absent',
@@ -497,6 +515,7 @@ export const hand = drawing({
       },
       {
         name: 'late',
+        line: 12,
         offset: 'computed',
         dur: 'absent',
         until: 'absent',
@@ -506,6 +525,7 @@ export const hand = drawing({
       },
       {
         name: 'bare',
+        line: 13,
         offset: 'absent',
         dur: 'absent',
         until: 'absent',
@@ -515,9 +535,9 @@ export const hand = drawing({
       },
     ]);
     expect(found.knobs).toEqual([
-      { name: 'palm', state: 'literal' },
-      { name: 'tilt', state: 'literal' },
-      { name: 'half', state: 'computed' },
+      { name: 'palm', state: 'literal', line: 16 },
+      { name: 'tilt', state: 'literal', line: 17 },
+      { name: 'half', state: 'computed', line: 18 },
     ]);
   });
 

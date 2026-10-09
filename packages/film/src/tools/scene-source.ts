@@ -61,13 +61,15 @@ export interface DrawingSite {
 type FieldState = 'literal' | 'absent' | 'computed';
 
 /** A cue, and what each field a patch may set holds in its source. */
-type EditableCue = { readonly name: string } & {
+type EditableCue = { readonly name: string; readonly line: number } & {
   readonly [K in keyof CuePatch]-?: FieldState;
 };
 
 interface EditableKnob {
   readonly name: string;
   readonly state: FieldState;
+  /** The line (from 1) that writes it: the inspector's `file:line`, before the code is read. */
+  readonly line: number;
 }
 
 /** Which of a drawing's cues and knobs the lab can rewrite. */
@@ -567,7 +569,15 @@ const fieldState = (prop: Option.Option<ObjectProperty>, literal: (e: Expression
     },
   });
 
-const editableCue = (file: string, cue: string, span: ObjectExpression): EditableCue => {
+/** The line (from 1) that offset `at` of `source` falls on. */
+const lineAt = (source: string, at: number): number => source.slice(0, at).split('\n').length;
+
+const editableCue = (
+  file: string,
+  cue: string,
+  span: ObjectExpression,
+  line: number,
+): EditableCue => {
   const state = (key: TimingKey) =>
     Result.match(propertyOf(file, cue, span, key), {
       onFailure: (): FieldState => 'computed',
@@ -575,6 +585,7 @@ const editableCue = (file: string, cue: string, span: ObjectExpression): Editabl
     });
   return {
     name: cue,
+    line,
     offset: state('offset'),
     dur: state('dur'),
     until: state('until'),
@@ -606,7 +617,7 @@ export const editable = (
           onNone: (): ReadonlyArray<EditableCue> => [],
           onSome: ({ cue, span }): ReadonlyArray<EditableCue> => {
             if (span.type !== 'ObjectExpression') return [];
-            return [editableCue(file, cue, span)];
+            return [editableCue(file, cue, span, lineAt(source, p.start))];
           },
         },
       ),
@@ -614,7 +625,13 @@ export const editable = (
     knobs: literalProperties(site.knobs).flatMap((p) =>
       Option.match(keyName(p), {
         onNone: () => [],
-        onSome: (knob) => [{ name: knob, state: fieldState(Option.some(p), isKnobLiteral) }],
+        onSome: (knob) => [
+          {
+            name: knob,
+            state: fieldState(Option.some(p), isKnobLiteral),
+            line: lineAt(source, p.start),
+          },
+        ],
       }),
     ),
   }));
