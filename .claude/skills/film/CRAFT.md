@@ -24,7 +24,7 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 - **At most one quotation per beat.** Quoted words make up 20% of the script or less; BibleProject's median is 13.5%, ours was 41%.
 - **A quotation over 25 words is a set piece.** It gets one picture per clause, in the order spoken, or one shot held throughout.
 - **Quote only Scripture.** A film speaks to every Christian: its doctrine and its message are the frame's, but its authority is the Bible's. A quotation spoken or shown is KJV, verbatim (supplied-word brackets dropped). Ellen White and the pioneers are never quoted and never named in speech: say their thought in the narrator's own words, inside their words, as a plain claim ("Faith is not our Saviour. It earns nothing."), never "Ellen White said…". Their works are credited in the roll (`cite`), so the sources stay one look away. Name Bible writers freely ("Paul goes further", "The psalm says").
-- **History without its names.** A scene from church history tells what happened, not who said it ("two young preachers took that question head on"), and no denomination's name stands in for the audience's.
+- **No denomination, no church history.** These films never mention Adventism: no church history (no 1888, no Minneapolis), no denomination's name, no pioneer drawn or named, in speech or in the picture. The doctrine stays; it is argued from Scripture. Adventist history and doctrine belong to their own series. Only the credits name the works a paraphrase came from.
 - **Never speak chapter and verse.** The credits list the sources.
 - **Check:** divide the words inside quotation marks in `script.ts` by all its words.
 
