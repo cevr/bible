@@ -877,7 +877,7 @@ describe('Follow', () => {
       });
       yield* page.waitFor('.lab-source-col .lab-source-meter');
       yield* page.evaluate(
-        `window.__meterEl = document.querySelector('.lab-source-meter[data-cue="rise"]'); window.__rowEl = window.__meterEl.closest('.lab-source-line'); window.__done = window.__meterEl.style.getPropertyValue('--done');`,
+        `window.__meterEl = document.querySelector('.lab-source-meter[data-cue="rise"]'); window.__done = window.__meterEl.style.getPropertyValue('--done'); window.__made = 0; new MutationObserver((records) => { for (const r of records) for (const n of r.addedNodes) if (n instanceof Element && (n.matches('.lab-source-meter[data-cue="rise"]') || n.querySelector('.lab-source-meter[data-cue="rise"]'))) window.__made++; }).observe(document.querySelector('.lab-source-col'), { childList: true, subtree: true });`,
       );
       yield* page.click('.bar [data-act="play"]');
       yield* page.clock.runFor(200);
@@ -887,13 +887,10 @@ describe('Follow', () => {
         `window.__meterEl.style.getPropertyValue('--done') !== window.__done`,
         true,
       );
-      // While its line stands, the meter on it is the same element. New code (another case's
-      // write to the probe film, read fresh) draws new lines, and with them new meters.
-      yield* evaluates(
-        page,
-        `!window.__rowEl.isConnected || window.__rowEl.querySelector('.lab-source-meter[data-cue="rise"]') === window.__meterEl`,
-        true,
-      );
+      // A meter made each frame is added a dozen times in 200 ms; the kept one is added never. One
+      // allowed: new code (another case's write to the probe film, read fresh) draws new lines and
+      // their meters once. The cue ending under a slow box takes its meter away, adding none.
+      yield* evaluates(page, `window.__made <= 1`, true);
     }).pipe(Effect.scoped),
   );
 });
