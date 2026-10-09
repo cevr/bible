@@ -228,6 +228,7 @@ const Text = (props: { readonly code: SceneCode }) => {
           .meters.map((m) => m.line)
           .join(' ')}
         role="region"
+        // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scrolling region the keyboard reaches (arrows, Page keys) is WCAG 2.1.1; the rows are its content
         tabindex="0"
         aria-label={`${props.code.file}, the scene's code`}
         ref={(el: HTMLDivElement) => {
