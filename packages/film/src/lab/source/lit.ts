@@ -117,6 +117,10 @@ export const litNow = (code: SceneCode, live: Live, picks: Picks = NO_PICKS): Li
   };
 };
 
+/** Every meter of the playing literals written on `line`: a line that writes two playing cues wears both. */
+export const metersOn = (meters: ReadonlyArray<Meter>, line: number): ReadonlyArray<Meter> =>
+  meters.filter((m) => m.line === line);
+
 /**
  * The cue or knob whose literal `code` writes on `line`: what a tap on that
  * line selects. A cue wins a line a knob shares; none for any other line.

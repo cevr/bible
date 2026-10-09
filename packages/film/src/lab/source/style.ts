@@ -13,7 +13,7 @@ import { PHONE, WIDE } from '../viewport.ts';
 /** What no studio token holds: the column's width, and the colour of what plays. */
 const SOURCE_TOKENS = `
 :root {
-  --source-w: 400px;
+  --source-w: 480px;
   --state-live: var(--text-1); /* a cue playing at the frame: its lane, its literal, its meter */
 }
 `;

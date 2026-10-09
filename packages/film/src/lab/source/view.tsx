@@ -22,7 +22,7 @@ import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, type JSX, Portal, Show } from '@solidjs/web';
 import { Array as Arr, Boolean as Bool, Effect, Match, Option, Result } from 'effect';
-import { createEffect, createMemo, onCleanup } from 'solid-js';
+import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import { Highlights, type HighlightName } from '../../browser/highlights.ts';
 import { type LabSelection, Selection } from '../../command/selection.ts';
 import { sceneOf } from '../../core/layout.ts';
@@ -34,7 +34,15 @@ import { Sheet } from '../review/inspector.tsx';
 import { useLab } from '../shell.tsx';
 import { PHONE, useMatches } from '../viewport.ts';
 import { CodeState, useSource } from './context.tsx';
-import { type Lit, type Picks, followLine, lineStarts, litNow, selectionAt } from './lit.ts';
+import {
+  type Lit,
+  type Picks,
+  followLine,
+  lineStarts,
+  litNow,
+  metersOn,
+  selectionAt,
+} from './lit.ts';
 import { FOLLOW } from './open.ts';
 
 /** The name of the selection when it is a `tag` of `scene`. */
@@ -99,6 +107,7 @@ const Text = (props: { readonly code: SceneCode }) => {
   const digits = createMemo(() => String(rows().length).length);
   let scroller = Option.none<HTMLElement>();
   let page = Option.none<HTMLElement>();
+  let watching = Option.none<ResizeObserver>();
   // Where the view last put itself by script: a scroll that lands anywhere else was a hand's.
   let placed = Option.none<number>();
 
@@ -147,17 +156,26 @@ const Text = (props: { readonly code: SceneCode }) => {
       ),
     ),
   );
+  // The projection is the line number, so the memo settles on a still target
+  // (Option.some(n) is a new object every frame; n is not).
   const looking = createMemo(() =>
-    Option.orElse(held(), () =>
-      Option.flatMap(
-        Option.filter(Option.some(source.following()), (on) => on),
-        () => followLine(props.code, lit()),
+    Option.getOrElse(
+      Option.orElse(held(), () =>
+        Option.flatMap(
+          Option.filter(Option.some(source.following()), (on) => on),
+          () => followLine(props.code, lit()),
+        ),
       ),
+      () => 0,
     ),
   );
+  // The scroller's size: a viewport that changes is measured again; a frame that does not move the target is not.
+  const [size, setSize] = createSignal(0);
+  onCleanup(() => Option.map(watching, (o) => o.disconnect()));
   createEffect(
-    () => looking(),
-    (line) => {
+    () => [looking(), size()] as const,
+    ([target]) => {
+      const line = Option.liftPredicate(target, (n) => n > 0);
       const found = Option.flatMap(Option.all({ line, box: scroller, root: page }), (at) =>
         Option.map(
           Option.fromNullishOr(
@@ -197,6 +215,9 @@ const Text = (props: { readonly code: SceneCode }) => {
       class="lab-source-scroll"
       ref={(el: HTMLDivElement) => {
         scroller = Option.some(el);
+        const o = new ResizeObserver(() => setSize(el.clientHeight));
+        o.observe(el);
+        watching = Option.some(o);
       }}
       onScroll={scrolled}
     >
@@ -230,17 +251,11 @@ const Text = (props: { readonly code: SceneCode }) => {
               <Show when={Option.contains(held(), row.n)}>
                 <i class="lab-source-held" data-line={row.n} />
               </Show>
-              <Show
-                when={Option.getOrUndefined(Arr.findFirst(lit().meters, (m) => m.line === row.n))}
-              >
+              <For each={metersOn(lit().meters, row.n)}>
                 {(m) => (
-                  <i
-                    class="lab-source-meter"
-                    data-cue={m().name}
-                    style={{ '--done': m().progress }}
-                  />
+                  <i class="lab-source-meter" data-cue={m.name} style={{ '--done': m.progress }} />
                 )}
-              </Show>
+              </For>
             </Target>
           )}
         </For>
@@ -388,7 +403,7 @@ export const OwnSheet = () => {
         class="lab-source-sheet"
         title={`Source · ${scene()}`}
         initialFocus={() => false}
-        onClose={actions.dismissCode}
+        onClose={actions.dismissSheet}
       >
         <Body close={false} />
       </Sheet>
@@ -405,6 +420,7 @@ type Face = 'inspect' | 'source';
  */
 export const Faces = (props: { readonly children: JSX.Element }) => {
   const { state, actions } = useLab();
+  const page = useLabPage();
   const face = (): Face =>
     Bool.match(Option.isSome(state.code()), {
       onTrue: (): Face => 'source',
@@ -432,7 +448,10 @@ export const Faces = (props: { readonly children: JSX.Element }) => {
         </Toggle>
       </ToggleGroup>
       <Show when={face() === 'source'} fallback={props.children}>
-        <Body close={false} />
+        {/* Out of Edit the view is the sheet of its own: one text mounted, one owner of the highlights. */}
+        <Show when={page.mode() === 'edit'}>
+          <Body close={false} />
+        </Show>
       </Show>
     </>
   );

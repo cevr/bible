@@ -7,7 +7,7 @@ import { describe, expect, test } from 'effect-bun-test';
 import type { ResolvedCue, SceneCode } from '../../core/schema.ts';
 import { liveAt } from '../../core/timeline.ts';
 import { cueOf, knobOf } from '../../command/selection.ts';
-import { followLine, lineOf, lineSite, lineStarts, litNow, selectionAt } from './lit.ts';
+import { followLine, lineOf, lineSite, lineStarts, litNow, metersOn, selectionAt } from './lit.ts';
 import { FOLLOW, codeOpenOf, codeText, lineOpen } from './open.ts';
 
 const TEXT = [
@@ -83,6 +83,38 @@ describe('what is lit at a frame', () => {
   test('the view follows to the playing cue’s line, else to nothing', () => {
     expect(followLine(code, litNow(code, liveAt(cues, 1.5, 30)))).toEqual(Option.some(4));
     expect(followLine(code, litNow(code, liveAt(cues, 5, 30)))).toEqual(Option.none());
+  });
+});
+
+describe('the meters a line wears', () => {
+  const ONE = 'timeline: { rise: { dur: 1 }, fall: { dur: 2 } }\nf.at("rise");';
+  const at = (needle: string): readonly [number, number] => {
+    const i = ONE.indexOf(needle);
+    return [i, i + needle.length];
+  };
+  const both: SceneCode = {
+    ...code,
+    text: ONE,
+    cues: [
+      { name: 'rise', at: at('rise: { dur: 1 }'), reads: [] },
+      { name: 'fall', at: at('fall: { dur: 2 }'), reads: [] },
+    ],
+  };
+
+  test('two cues playing from one line each keep their meter there', () => {
+    const lit = litNow(
+      both,
+      liveAt(
+        new Map([
+          ['rise', cue(0, 1)],
+          ['fall', cue(0, 2)],
+        ]),
+        0.5,
+        30,
+      ),
+    );
+    expect(metersOn(lit.meters, 1).map((m) => m.name)).toEqual(['rise', 'fall']);
+    expect(metersOn(lit.meters, 2)).toEqual([]);
   });
 });
 

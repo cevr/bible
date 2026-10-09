@@ -315,6 +315,11 @@ const Root = (props: RootProps) => {
         sheets.selection.dismiss(() => Option.some(picked({ selection: Option.none() }))),
       dismissSheet: () => {
         const closed = picked({ selection: Option.none(), code: Option.none() });
+        // No cue or knob to let go of: the view's own sheet, closed by its own rule.
+        if (Option.isNone(untrack(here).selection)) {
+          sheets.code.dismiss(() => Option.some(picked({ code: Option.none() })));
+          return;
+        }
         // Back only over the step that opened the sheet when it lands exactly where Close writes.
         if (Option.exists(selectionFrom, (from) => sameSheets(from, closed)))
           sheets.selection.dismiss(() => Option.some(closed));

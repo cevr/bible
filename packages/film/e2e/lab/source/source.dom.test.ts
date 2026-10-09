@@ -355,6 +355,50 @@ describe('on a phone, one sheet to close and one place to look', () => {
   );
 });
 
+describe('on a phone, Close in every mode lets go of the cue with the view', () => {
+  for (const mode of ['note', 'motion', 'compare', 'record'] as const)
+    it.live(
+      `in ${mode} the Source sheet's Close leaves neither the view nor the cue in the address`,
+      () =>
+        Effect.gen(function* () {
+          const { page } = yield* openLab([codeRoute, sourceRoute], {
+            href: labOne(middle('rise'), { cue: 'rise', code: 'follow' }),
+            viewport: PHONE,
+          });
+          yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+          yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+          yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
+          yield* page.waitFor('.lab-source-sheet .lab-source-page');
+          yield* page.click('.lab-source-sheet [data-act="close-inspector"]');
+          yield* countIs(page, '[data-role="source"]', 0);
+          yield* evaluates(page, NAMES_CUE_OR_CODE, false);
+        }).pipe(Effect.scoped),
+    );
+});
+
+describe('on a phone, the highlights stay with the one text that is shown', () => {
+  it.live('paused: Edit to Note and back to Edit keeps what was lit', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(middle('rise'), { cue: 'rise', code: 'follow' }),
+        viewport: PHONE,
+      });
+      yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+      const lit = `JSON.stringify([${painted('lab-live')}, ${painted('lab-read')}, ${painted('lab-picked')}].map((r) => r.length > 0))`;
+      yield* evaluates(page, lit, '[true,true,true]');
+      yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+      yield* page.click('.lab-modes [data-mode-pick="note"]');
+      yield* page.waitFor('.lab-source-sheet .lab-source-page');
+      yield* evaluates(page, lit, '[true,true,true]');
+      yield* page.click('.lab-source-sheet [data-act="sheet"]');
+      yield* page.click('.lab-modes [data-mode-pick="edit"]');
+      yield* page.waitFor('.lab-selection-sheet');
+      yield* evaluates(page, `document.querySelectorAll('.lab-source-page').length`, 1);
+      yield* evaluates(page, lit, '[true,true,true]');
+    }).pipe(Effect.scoped),
+  );
+});
+
 describe('code that wraps rather than scrolls sideways', () => {
   it.live('on a phone the code scroller holds no more than its width shows', () =>
     Effect.gen(function* () {
@@ -436,6 +480,44 @@ describe('a line of the code', () => {
       );
     }).pipe(Effect.scoped),
   );
+
+  it.live('a menu opened in one scene never notes the same-numbered line of the next', () =>
+    Effect.gen(function* () {
+      const TWO = {
+        scene: 'two',
+        file: 'scenes/two.ts',
+        text: ['// two', 'a', 'b', 'c', 'const d = 4;', 'e'].join('\n'),
+        cues: [],
+        knobs: [],
+        marks: [],
+        refused: [],
+      };
+      const twoRoute = route('GET', /^\/scenes\/two\/code$/, () => json(TWO));
+      const secondScene = probeFilm().placed[1]?.start ?? 0;
+      const { page } = yield* openLab([codeRoute, twoRoute], {
+        href: labOne(secondScene - 0.3, { code: 'follow' }),
+        mode: 'note',
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* rightClick(page, `.lab-source-line[data-line="${RISE_LINE}"]`);
+      yield* evaluates(page, `${MENU_ITEMS}.includes('notes.line')`, true);
+      // Playback crosses into scene two while the menu is still open.
+      yield* page.evaluate(`document.querySelector('.bar [data-act="play"]').click()`);
+      yield* page.clock.runFor(600);
+      yield* page.waitFor('[data-role="source"][data-scene="two"] .lab-source-page');
+      // The line the menu was opened on is scene one's: the command is no longer offered for it.
+      yield* evaluates(page, `${MENU_ITEMS}.includes('notes.line')`, false);
+      yield* page.evaluate(
+        `(() => { const item = document.querySelector('[data-role="context-menu"] [data-command="notes.line"]'); if (item) item.click(); })()`,
+      );
+      yield* page.evaluate(`document.querySelector('.bar [data-act="play"]').click()`);
+      yield* evaluates(
+        page,
+        `[...document.querySelectorAll('[data-role="note-scope"] .lab-scope-text')].some((e) => e.textContent.includes('two.ts'))`,
+        false,
+      );
+    }).pipe(Effect.scoped),
+  );
 });
 
 describe('Follow', () => {
@@ -483,6 +565,29 @@ describe('Follow', () => {
       yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'false');
       yield* page.click(FOLLOW_BUTTON);
       yield* evaluates(page, `location.search.includes('code=follow')`, true);
+    }).pipe(Effect.scoped),
+  );
+  it.live('a still target costs no layout read however many frames play', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(span('rise').start + 0.02, { code: 'follow' }),
+        viewport: short,
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* page.evaluate(
+        `window.__reads = 0; const was = window.getComputedStyle.bind(window); window.getComputedStyle = (el, ...r) => { if (el.classList && el.classList.contains('lab-source-line')) window.__reads += 1; return was(el, ...r); }; window.__frames = 0; const tick = () => { window.__frames += 1; requestAnimationFrame(tick); }; requestAnimationFrame(tick); window.__meter = document.querySelector('.lab-source-meter').style.getPropertyValue('--done');`,
+      );
+      yield* page.click('.bar [data-act="play"]');
+      yield* page.clock.runFor(400);
+      yield* page.click('.bar [data-act="play"]');
+      // Frames played and the meter moved with them; the target (one line) did not.
+      yield* evaluates(page, `window.__frames >= 10`, true);
+      yield* evaluates(
+        page,
+        `document.querySelector('.lab-source-meter').style.getPropertyValue('--done') !== window.__meter`,
+        true,
+      );
+      yield* evaluates(page, `window.__reads <= 1`, true);
     }).pipe(Effect.scoped),
   );
 });

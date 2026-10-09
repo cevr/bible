@@ -146,6 +146,10 @@ const walkCommand = (
  * being made, wherever it is pressed; ⇧N and ⌥⇧N open the next or previous
  * open note in time (AA-7: `n` alone stays Note this frame).
  */
+/** The Line target `ctx` holds, when it is a line of the scene `sceneNow` names. */
+const lineHere = (ctx: Context, sceneNow: () => string) =>
+  Option.filter(selectedOf(ctx, 'Line'), (at) => at.scene === sceneNow());
+
 const useCommands = (
   hub: Hub,
   actions: NotesActions,
@@ -153,6 +157,7 @@ const useCommands = (
   noteOf: (ctx: Context) => Option.Option<Note>,
   walk: (toward: Toward) => Option.Option<Note>,
   hold: (line: number) => void,
+  sceneNow: () => string,
 ) =>
   onCleanup(
     hub.commands.register(
@@ -162,9 +167,12 @@ const useCommands = (
         group: 'Notes',
         about: ['Line'],
         touch: 'long-press the line in the code, then Note this line',
-        when: (ctx) => Option.isSome(selectedOf(ctx, 'Line')),
+        // A note is about the frame shown, so only a line of the scene shown can be noted: a target
+        // the clock has since left (a menu open as playback crossed a scene) is refused, never
+        // read as the same-numbered line of the scene now playing.
+        when: (ctx) => Option.isSome(lineHere(ctx, sceneNow)),
         run: quietly((ctx) =>
-          Option.map(selectedOf(ctx, 'Line'), (at) => {
+          Option.map(lineHere(ctx, sceneNow), (at) => {
             hold(at.line);
             actions.noteFrame();
           }),
@@ -324,6 +332,7 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
         toward,
       ),
     (line) => labActions.showCode(Option.some(lineOpen(line))),
+    source.scene,
   );
   // Every note is a place ⌘K goes to by its id and its words.
   registerWhile(meta.hub, () =>
