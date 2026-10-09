@@ -11,13 +11,15 @@
     "test": "bun test src",
     "build:topics": "bun src/topics-compiler/main.ts",
     "build:vectors": "bun src/vector-compiler/main.ts",
-    "fetch:stills": "bun src/fetch-stills.ts"
+    "fetch:stills": "bun src/fetch-stills.ts",
+    "dead-exports": "bun src/dead-exports.ts"
   },
   "dependencies": {
     "@bible/core": "workspace:*",
     "@bible/film": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "effect": "catalog:",
+    "oxc-parser": "0.152.0",
     "pdf-parse": "^2.4.5"
   }
 }
