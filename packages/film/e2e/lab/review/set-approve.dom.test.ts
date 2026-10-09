@@ -3,14 +3,27 @@
 // project calls out of date is refused by the server, and the refusal says so
 // in the receipt, with no Undo.
 
-import { Array as Arr, Effect, Match, Option, Schema } from 'effect';
+import {
+  Array as Arr,
+  Boolean as Bool,
+  Effect,
+  Match,
+  Option,
+  Predicate,
+  Record,
+  Schema,
+} from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { VerbRefused } from '../../../src/core/refusals.ts';
 import { json, openReview, refused, route } from '../../../src/lab/fixtures/harness.ts';
-import type { FakeRoute } from '../../../src/lab/fixtures/harness.ts';
+import type { FakeRoute, Json } from '../../../src/lab/fixtures/harness.ts';
 import { STUDIO_FOLDER, STUDIO_SET, studioRoutes } from '../../../src/lab/fixtures/studio-film.ts';
 import { countIs, textHas, waitFor } from '../../../src/lab/fixtures/settled.ts';
+
+const isFields = (value: Json): value is { readonly [key: string]: Json } =>
+  Predicate.isObject(value);
+const isList = (value: Json): value is ReadonlyArray<Json> => Arr.isArray(value);
 
 const SLOW = 30_000;
 const SAY = /^\/api\/review\/sets\/out%2Ftoy\/render%3Ascenes%3Aopen\/say$/;
@@ -38,6 +51,23 @@ const folder = (a: Parameters<FakeRoute['answer']>[0]) => {
   );
 };
 
+/** `value` (a folder or the index) with the version `main` approved as it is, or not. */
+const withApproval = (value: Json, approved: boolean): Json =>
+  Match.value(value).pipe(
+    Match.when(isList, (all): Json => all.map((one) => withApproval(one, approved))),
+    Match.when(isFields, (record): Json => {
+      const mapped = Record.map(record, (one) => withApproval(one, approved));
+      return Bool.match(record['id'] === 'main' && 'approval' in record, {
+        onTrue: () => ({
+          ...mapped,
+          approval: Bool.match(approved, { onTrue: () => 'approved', onFalse: () => 'none' }),
+        }),
+        onFalse: () => mapped,
+      });
+    }),
+    Match.orElse(() => value),
+  );
+
 /** The run a withdraw was given. */
 const givenOf = (say: SetSayPost['say']) =>
   Match.value(say).pipe(
@@ -48,19 +78,38 @@ const givenOf = (say: SetSayPost['say']) =>
 const decoded = (body: Parameters<FakeRoute['answer']>[0]['body']) =>
   Option.flatMap(body, Schema.decodeUnknownOption(SetSayPost));
 
+/**
+ * The studio as a server keeps it: `main` is approved from the approve to the
+ * withdraw, in the say's answer and in the index a reload reads. Every say
+ * posted is pushed to `asked`.
+ */
+const approving = (asked: Array<SetSayPost>): ReadonlyArray<FakeRoute> => {
+  const approvedNow = () => Option.exists(Arr.last(asked), (p) => p.say._tag === 'Approve');
+  const stated = (answer: ReturnType<FakeRoute['answer']>) =>
+    Option.getOrElse(
+      Option.map(
+        Option.liftPredicate(answer, (r) => r._tag === 'Json'),
+        (r) => json(withApproval(r.json, approvedNow())),
+      ),
+      () => answer,
+    );
+  return [
+    route('POST', SAY, (a) => {
+      Option.map(decoded(a.body), (post) => asked.push(post));
+      return stated(folder(a));
+    }),
+    route('GET', /^\/api\/review\/index/, (a) => stated(index.answer(a))),
+    ...studioRoutes,
+  ];
+};
+
 describe('a Set approving a scene render', () => {
   it.live(
     'names its run, offers its Undo, and the Undo withdraws exactly that run',
     () =>
       Effect.gen(function* () {
         const asked = new Array<SetSayPost>();
-        const routes: ReadonlyArray<FakeRoute> = [
-          route('POST', SAY, (a) => {
-            Option.map(decoded(a.body), (post) => asked.push(post));
-            return folder(a);
-          }),
-          ...studioRoutes,
-        ];
+        const routes = approving(asked);
         const { page, errors } = yield* openReview(routes, {
           href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
         });
@@ -75,6 +124,33 @@ describe('a Set approving a scene render', () => {
         yield* textHas(page, `${RECEIPT} .lab-receipt-said`, 'Undid approving');
         expect(asked.map((p) => p.say._tag)).toEqual(['Approve', 'Withdraw']);
         expect(Option.flatMap(Arr.get(asked, 1), (p) => givenOf(p.say))).toEqual(op);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "an approve's receipt restored by a reload still undoes it: the withdraw names the run and the version approved",
+    () =>
+      Effect.gen(function* () {
+        const asked = new Array<SetSayPost>();
+        const routes = approving(asked);
+        const { page, errors } = yield* openReview(routes, {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+        });
+        yield* waitFor(page, '.rv-main [data-act="inspect"]');
+        yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
+        yield* page.click(`${INSPECTOR} [data-act="approve"]`);
+        yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        const op = Option.flatMap(Arr.head(asked), (p) => Option.fromUndefinedOr(p.op));
+        yield* page.reload;
+        yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* page.click(`${RECEIPT} [data-act="receipt-undo"]`);
+        yield* textHas(page, `${RECEIPT} .lab-receipt-said`, 'Undid approving');
+        expect(asked.map((p) => p.say._tag)).toEqual(['Approve', 'Withdraw']);
+        expect(Option.flatMap(Arr.get(asked, 1), (p) => givenOf(p.say))).toEqual(op);
+        expect(Arr.get(asked, 1).pipe(Option.map((p) => p.variant))).toEqual(Option.some('main'));
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

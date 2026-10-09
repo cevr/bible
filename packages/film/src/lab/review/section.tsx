@@ -650,8 +650,6 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
   // A project folder's film and a render set of one scene: where an approve names its own run.
   const film = props.folder.title;
   const scene = sceneOf(props.set);
-  /** The version each approve run named was of, for its Undo. */
-  const runs = new Map<string, string>();
   const [said, setSaid] = createSignal(Option.none<SeenPoint>());
   const pointIn = (folder: ReviewFolder) =>
     Option.map(Option.fromUndefinedOr(folder.sets.find((s) => s.id === props.set.id)), seenPoint);
@@ -691,7 +689,6 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
           const run = Option.filter(Option.all({ film, scene }), () => say._tag === 'Approve').pipe(
             Option.map(() => Effect.runSync(uniqueId(OpId))),
           );
-          for (const op of Option.toArray(run)) runs.set(op, version);
           return own
             .write({
               variant: version,
@@ -721,11 +718,12 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
           waiting: undoing.waiting,
           withdraw: (_, say) =>
             Effect.sync(() => {
+              // The versions approved now, read from the newest state (so a receipt a reload
+              // restored still undoes); a withdraw given the run takes back only that run's.
               if (say._tag === 'Withdraw') {
-                const version = Option.flatMap(say.given, (op) =>
-                  Option.fromUndefinedOr(runs.get(op)),
-                );
-                for (const v of Option.toArray(version)) void undoing.say(v, say);
+                for (const v of props.set.variants) {
+                  if (value.now(v).approval === 'approved') void undoing.say(v.id, say);
+                }
               }
               return quiet;
             }),
