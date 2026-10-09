@@ -14,6 +14,7 @@ import { type Accessor, createMemo, createSignal, onCleanup, untrack } from 'sol
 import { monotonicMs } from '../../../browser/host.ts';
 import { Frames } from '../../../browser/frames.ts';
 import type { makeStills } from '../../../player/stills.ts';
+import { pressed } from '../../pressed.ts';
 import { useReview } from '../context.tsx';
 
 /** A film's scenes' stills, as its Project's cards show them. */
@@ -193,7 +194,7 @@ export const Still = (props: {
   return (
     <div
       class="pj-still"
-      data-drawn={String(Option.isSome(still()))}
+      data-drawn={pressed(Option.isSome(still()))}
       ref={(el: HTMLDivElement) => {
         // A card's scene is fixed for its life: watched once.
         unwatched = untrack(() => props.stills.watch(props.scene, el));

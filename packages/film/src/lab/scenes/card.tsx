@@ -14,6 +14,7 @@ import { Selection } from '../../command/selection.ts';
 import type { ProjectScene, SceneSpan } from '../../core/catalogue.ts';
 import { timecode } from '../../core/time.ts';
 import { Target } from '../command/context-menu.tsx';
+import { pressed } from '../pressed.ts';
 import { type SceneMarks, bandState, chipsOf } from './marks.ts';
 
 /** Scene `i`'s hue, as every band, dot and rule of it is drawn: from the tokens' saturation and lightness. */
@@ -81,7 +82,7 @@ export const SceneCard = (props: SceneCardProps) => (
     class="sc-card"
     data-size={props.size}
     data-scene={props.scene}
-    data-selected={String(props.selected === true)}
+    data-selected={pressed(props.selected === true)}
   >
     <div class="sc-card-picture">
       {props.picture}

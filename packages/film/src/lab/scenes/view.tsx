@@ -566,8 +566,8 @@ export const ScenesView = (props: ScenesViewProps) => {
                 <span
                   class="sc-cut"
                   data-scene={cut().scene}
-                  data-flip={String(nameOf(cut().scene).side === 'before')}
-                  data-named={String(nameOf(cut().scene).side !== 'none')}
+                  data-flip={pressed(nameOf(cut().scene).side === 'before')}
+                  data-named={pressed(nameOf(cut().scene).side !== 'none')}
                   style={{ left: x(cut().at) }}
                 >
                   <i
@@ -601,9 +601,9 @@ export const ScenesView = (props: ScenesViewProps) => {
                     class="sc-still"
                     data-t={String(still().t)}
                     data-scene={still().scene}
-                    data-drawn={String(Option.isSome(canvas()))}
-                    data-selected={String(Option.contains(chosen(), still().scene))}
-                    data-picked={String(picked().includes(still().scene))}
+                    data-drawn={pressed(Option.isSome(canvas()))}
+                    data-selected={pressed(Option.contains(chosen(), still().scene))}
+                    data-picked={pressed(picked().includes(still().scene))}
                     data-target={targetAttr(
                       Selection.cases.Scene.make({ film: props.name, scene: still().scene }),
                     )}
@@ -742,7 +742,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   document.body.classList.add('scenes');
   onCleanup(() => document.body.classList.remove('scenes'));
   return (
-    <div class="sc" data-selected={String(Option.isSome(chosen()))}>
+    <div class="sc" data-selected={pressed(Option.isSome(chosen()))}>
       {/* With no scene selected the tape takes the page: the picture waits here, unseen, for the scene's sheet. */}
       <div
         class="sc-park"
