@@ -95,11 +95,16 @@ class FakeElement extends EventTarget implements MediaElement {
   }
 
   /** It has loaded `seconds` of media and can play: `loadedmetadata` and `canplay`. */
-  load(seconds: number) {
+  finishLoading(seconds: number) {
     this.duration = seconds;
     this.readyState = LOADED;
     this.fire('loadedmetadata');
     this.fire('canplay');
+  }
+
+  /** It was asked to load its media again. */
+  load() {
+    this.asked.push('load');
   }
 
   fire(type: string) {

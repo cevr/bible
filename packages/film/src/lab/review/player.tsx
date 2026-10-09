@@ -17,7 +17,7 @@ import {
   onSettled,
   untrack,
 } from 'solid-js';
-import { playableOf } from '../../browser/media.ts';
+import { type Playable, playableOf } from '../../browser/media.ts';
 import { rateCommands, rateId, rateText, rateTitle } from '../../player/transport.ts';
 import { Actor } from '../actor.tsx';
 import { hubKeys } from '../command/changes.ts';
@@ -196,13 +196,20 @@ interface Try {
  * The `ref` of a media element that joins `driver` as `id`, for as long as
  * the calling owner lives: a page makes a fresh element for each source (and
  * each retry), so the driver knows the clock's media is new, and lets this
- * one go as it leaves, whatever replaced it since.
+ * one go as it leaves, whatever replaced it since. `joined`, when given, is
+ * told the element's `Playable` as it joins.
  */
-export const useClockMedia = (driver: SyncDriver, id: string) => {
+export const useClockMedia = (
+  driver: SyncDriver,
+  id: string,
+  joined?: (media: Playable) => void,
+) => {
   let release = Option.none<() => void>();
   onCleanup(() => Option.map(release, (letGo) => letGo()));
   return (el: HTMLMediaElement) => {
-    release = Option.some(driver.attach(id, playableOf(el)));
+    const media = playableOf(el);
+    release = Option.some(driver.attach(id, media));
+    Option.map(Option.fromUndefinedOr(joined), (told) => told(media));
   };
 };
 

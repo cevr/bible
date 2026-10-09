@@ -34,6 +34,7 @@ const unplayable: Playable = {
   pause: Effect.void,
   mute: () => {},
   rate: () => {},
+  reload: () => {},
   on: () => {},
 };
 

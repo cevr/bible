@@ -15,7 +15,7 @@
 // ends. The player's transport (space, ←/→) is declared here too, as the
 // page's commands, for every page with a synced player.
 
-import { type Context, Data, Effect, Option } from 'effect';
+import { type Context, Data, type Duration, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
 import { Media, type Playable } from '../../browser/media.ts';
 import { type Command, type Invocation, quietly } from '../../command/command.ts';
@@ -56,6 +56,35 @@ interface Attached {
   /** Aborted when the video is let go: its listeners, and its seeks and plays, end. */
   readonly held: AbortController;
 }
+
+/**
+ * Ask for `video`'s media again, after `wait`, each time it fails to load, up
+ * to `tries` times: a mix that renders for long enough that the connection
+ * drops finds the server's render made. It hears the failure through the
+ * port, and waits on `host`'s clock. What it gives stops it.
+ */
+export const reloadOnError = <R>(
+  video: Playable,
+  host: Context.Context<R>,
+  wait: Duration.Duration,
+  tries: number,
+): (() => void) => {
+  const held = new AbortController();
+  let left = tries;
+  video.on(
+    'error',
+    () => {
+      if (left <= 0) return;
+      left -= 1;
+      Effect.runForkWith(host)(
+        Effect.sleep(wait).pipe(Effect.andThen(Effect.sync(() => video.reload()))),
+        { signal: held.signal },
+      );
+    },
+    held.signal,
+  );
+  return () => held.abort();
+};
 
 /**
  * The driver of a set whose clock is the video of `first`, telling the

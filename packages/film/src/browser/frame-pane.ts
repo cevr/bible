@@ -472,6 +472,8 @@ export const paneOver = ({ source, clock, together, audio }: PaneOptions): Pane 
       speed = rate;
       hear();
     },
+    // Its frames are decoded once: there is no media of its own to ask for again.
+    reload: () => {},
     on: (event, listener, signal) => events.addEventListener(event, listener, { signal }),
     hide: () => {
       hidden = true;

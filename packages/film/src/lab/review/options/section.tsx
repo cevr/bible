@@ -18,7 +18,7 @@ import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
-import { Array as Arr, Duration, Effect, Fiber, Option } from 'effect';
+import { Array as Arr, Duration, Option } from 'effect';
 import { type Command, type CommandId, boundChange, quietly } from '../../../command/command.ts';
 import { type Destination, goToCommands } from '../../../command/go.ts';
 import { Selection } from '../../../command/selection.ts';
@@ -40,6 +40,7 @@ import { sizeText, videoSource } from '../format.ts';
 import { useInspectorPlace } from '../inspector.tsx';
 import { Transport, useClockMedia } from '../player.tsx';
 import { ProxyPending } from '../section.tsx';
+import { reloadOnError } from '../sync.ts';
 import { ChoiceAct } from './api.ts';
 import { ChoiceCard, ChoiceSheets, HearButton, focusPoint } from './choice.tsx';
 import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
@@ -164,26 +165,14 @@ const MIX_TRIES = 6;
  */
 const Mix = (props: { readonly src: string }) => {
   const { driver } = useFilm();
+  const { meta } = useReview();
   const src = props.src;
-  let tries = 0;
-  let waiting = Option.none<Fiber.Fiber<void>>();
-  onCleanup(() => Option.map(waiting, (f) => Effect.runFork(Fiber.interrupt(f))));
-  const join = useClockMedia(driver, src);
-  const attach = (el: HTMLAudioElement) => {
-    el.addEventListener('error', () => {
-      if (tries >= MIX_TRIES) return;
-      tries += 1;
-      waiting = Option.some(
-        Effect.runFork(
-          Effect.sleep(Duration.millis(MIX_RETRY_MS)).pipe(
-            Effect.andThen(Effect.sync(() => el.load())),
-          ),
-        ),
-      );
-    });
-    join(el);
-  };
-  return <audio class="rv-mix" preload="auto" src={src} ref={attach} />;
+  let stopRetrying = () => {};
+  onCleanup(() => stopRetrying());
+  const join = useClockMedia(driver, src, (media) => {
+    stopRetrying = reloadOnError(media, meta.host, Duration.millis(MIX_RETRY_MS), MIX_TRIES);
+  });
+  return <audio class="rv-mix" preload="auto" src={src} ref={join} />;
 };
 
 /**
