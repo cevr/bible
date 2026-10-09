@@ -16,8 +16,8 @@
 
 import { For, Show } from '@solidjs/web';
 import { Option } from 'effect';
-import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
-import { type Say, reviewFrameUrl, withdrawSay } from '../../../core/api.ts';
+import { createEffect, createMemo, createSignal, untrack } from 'solid-js';
+import { reviewFrameUrl, withdrawSay } from '../../../core/api.ts';
 import type { ApprovalState, SaidComment } from '../../../core/catalogue.ts';
 import {
   type ChoiceKnob,
@@ -44,22 +44,15 @@ import {
   useInspected,
   useThing,
 } from '../inspector.tsx';
-import type { ThingVerb, VerbId } from '../things.ts';
+import {
+  APPROVE_TITLE,
+  type OwnSay,
+  type ThingVerb,
+  type VerbId,
+  approvalVerbs,
+} from '../things.ts';
 import { type InPlace, verbTitle } from './keys.ts';
 import { Field } from '../../command/inspector.tsx';
-
-/** The approve button's words for an approval. */
-const APPROVE_TITLE = {
-  none: 'Approve',
-  approved: 'Approved',
-  stale: 'Approve again',
-} as const satisfies Record<ApprovalState, string>;
-
-/** One control's say: whether its own is in flight, and the say, answering whether it was said. */
-interface OwnSay {
-  readonly waiting: Accessor<boolean>;
-  readonly say: (variant: ChoiceVariant, say: Say) => Promise<boolean>;
-}
 
 /**
  * Where a card's says go: a choice's to the film's choices (the default), a
@@ -387,17 +380,6 @@ const variantVerbs = (
   saying: OwnSay,
   verbing: ReturnType<typeof useAct>,
 ): ReadonlyArray<ThingVerb> => {
-  const said = Option.isSome(point.address) && !saying.waiting();
-  const approve: ThingVerb = {
-    id: 'approve',
-    label: APPROVE_TITLE[variant.approval],
-    run: () => saying.say(variant, { _tag: 'Approve' }),
-  };
-  const unapprove: ThingVerb = {
-    id: 'unapprove',
-    label: 'Unapprove',
-    run: () => saying.say(variant, withdrawSay()),
-  };
   const rare = variant.verbs
     .filter(isRare)
     .filter(() => !verbing.waiting())
@@ -406,13 +388,7 @@ const variantVerbs = (
       label: verbTitle(point.kind, verb),
       run: () => verbing.write(ChoiceAct.Verb({ point: point.id, variant: variant.id, verb })),
     }));
-  return [
-    ...[approve].filter(
-      () => said && variant.state === 'current' && variant.approval !== 'approved',
-    ),
-    ...[unapprove].filter(() => said && variant.approval !== 'none'),
-    ...rare,
-  ];
+  return [...approvalVerbs(variant, saying, Option.isSome(point.address)), ...rare];
 };
 
 /** A variant as a thing of the page: what its row, its card and its inspector read of it. */

@@ -44,7 +44,6 @@ import {
   pageHref,
   reviewFileUrl,
   reviewFrameUrl,
-  withdrawSay,
 } from '../../core/api.ts';
 import { served } from '../api.ts';
 import { pressed } from '../pressed.ts';
@@ -54,12 +53,12 @@ import { ReviewApi } from './api.ts';
 import { OptionsApi } from './options/api.ts';
 import { newestAsked } from './asked.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
-import { ApproveButton, Comments, SayBox } from './options/choice.tsx';
+import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
+import { approvalVerbs } from './things.ts';
 import { approveUndoOf, undoApprove } from './options/receipt.ts';
 import { quiet } from '../../command/command.ts';
 import { OpId } from '../../core/catalogue.ts';
 import { uniqueId } from '../../core/unique.ts';
-import type { ThingVerb } from './things.ts';
 import { Go, SetProvider, type Shown, useReview, useSet } from './context.tsx';
 import {
   agoText,
@@ -752,28 +751,19 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
   const selection = untrack(() => versionOf(folder, set, props.version.id));
   const title = () => `${letterOf(set, props.version.id)} · ${props.version.label}`;
   const sayable = Option.isSome(set.address);
-  const saying = says.useSay();
-  const approve: ThingVerb = {
-    id: 'approve',
-    label: 'Approve',
-    run: () => saying.say(props.version.id, { _tag: 'Approve' }),
+  // The set's says as a card's `Sayer` (a version is a variant, said by its id).
+  const sayer: Sayer = {
+    use: () => {
+      const own = says.useSay();
+      return { waiting: own.waiting, say: (v, say) => own.say(v.id, say) };
+    },
   };
-  const unapprove: ThingVerb = {
-    id: 'unapprove',
-    label: 'Unapprove',
-    run: () => saying.say(props.version.id, withdrawSay()),
-  };
-  const free = () => sayable && !saying.waiting();
+  const saying = sayer.use();
   useThing({
     selection,
     title,
     commentable: () => sayable,
-    verbs: () => [
-      ...[approve].filter(
-        () => free() && version().state === 'current' && version().approval !== 'approved',
-      ),
-      ...[unapprove].filter(() => free() && version().approval !== 'none'),
-    ],
+    verbs: () => approvalVerbs(version(), saying, sayable),
   });
   return (
     <Inspector of={selection} kind="version" title={title()}>
@@ -793,31 +783,12 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
           </Show>
           <Show when={sayable}>
             <div class="rv-row">
-              <ApproveButton
-                approval={version().approval}
-                disabled={version().state !== 'current' || saying.waiting()}
-                approve={() => void saying.say(props.version.id, { _tag: 'Approve' })}
-              />
-              <Show when={version().approval !== 'none'}>
-                <button
-                  type="button"
-                  class="sh-btn"
-                  data-act="unapprove"
-                  disabled={saying.waiting()}
-                  onClick={() => void saying.say(props.version.id, withdrawSay())}
-                >
-                  Unapprove
-                </button>
-              </Show>
+              <Approval variant={version()} sayer={sayer} />
             </div>
           </Show>
           <Comments comments={version().comments} />
           <Show when={sayable}>
-            <SayBox
-              disabled={saying.waiting()}
-              box={box}
-              say={(text) => saying.say(props.version.id, { _tag: 'Comment', text })}
-            />
+            <CommentBox variant={version()} sayer={sayer} box={box} />
           </Show>
         </>
       )}

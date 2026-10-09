@@ -17,6 +17,9 @@ import { type Command, quiet, quietly } from '../../command/command.ts';
 import type { Context } from '../../command/context.ts';
 import type { Selection } from '../../command/selection.ts';
 import type { Target } from '../../command/target.ts';
+import { type Say, withdrawSay } from '../../core/api.ts';
+import type { ApprovalState } from '../../core/catalogue.ts';
+import type { ChoiceVariant } from '../../core/choice.ts';
 
 /** What may be said of a thing beside a comment. */
 export type VerbId = 'approve' | 'approve-part' | 'unapprove' | 'reject' | 'unkeep';
@@ -27,6 +30,50 @@ export interface ThingVerb {
   readonly label: string;
   readonly run: () => Promise<boolean>;
 }
+
+/** The approve button's words for an approval. */
+export const APPROVE_TITLE = {
+  none: 'Approve',
+  approved: 'Approved',
+  stale: 'Approve again',
+} as const satisfies Record<ApprovalState, string>;
+
+/** One control's say: whether its own is in flight, and the say, answering whether it was said. */
+export interface OwnSay {
+  readonly waiting: () => boolean;
+  readonly say: (variant: ChoiceVariant, say: Say) => Promise<boolean>;
+}
+
+/**
+ * A variant's approve and unapprove as commands, on every page that says of
+ * variants (a choice's variant, a project's scene, a set's version): approve
+ * while it is current and not approved as it is (`Approve again` once it has
+ * changed), unapprove while it is approved at all; none where it is not said
+ * of (`said`) or while the control's own say is in flight.
+ */
+export const approvalVerbs = (
+  variant: ChoiceVariant,
+  saying: OwnSay,
+  said: boolean,
+): ReadonlyArray<ThingVerb> => {
+  const free = said && !saying.waiting();
+  const approve: ThingVerb = {
+    id: 'approve',
+    label: APPROVE_TITLE[variant.approval],
+    run: () => saying.say(variant, { _tag: 'Approve' }),
+  };
+  const unapprove: ThingVerb = {
+    id: 'unapprove',
+    label: 'Unapprove',
+    run: () => saying.say(variant, withdrawSay()),
+  };
+  return [
+    ...[approve].filter(
+      () => free && variant.state === 'current' && variant.approval !== 'approved',
+    ),
+    ...[unapprove].filter(() => free && variant.approval !== 'none'),
+  ];
+};
 
 /** A thing on a review page, as its own row knows it now. */
 export interface Thing {
