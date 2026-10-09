@@ -1,5 +1,7 @@
 import AppKit
+import CoreServices
 import SelahCore
+import ServiceManagement
 import SwiftUI
 import UserNotifications
 
@@ -9,6 +11,10 @@ final class Store {
   var corpus = Corpus(verses: [])
   var readiness: Readiness?
   var error: String?
+  var backupStatus = "Daily backups are enabled"
+  var loginEnabled = SMAppService.mainApp.status == .enabled
+  var loginNeedsApproval = SMAppService.mainApp.status == .requiresApproval
+  var loginMessage: String?
   var notificationStatus = "Reminders are off"
   var canSave = true
   var isLoading = true
@@ -29,6 +35,8 @@ final class Store {
   let file: ProgressFile
   private let repository: ProgressRepository
   private var revision = 0
+  private var refreshingReminders = false
+  private var remindersDirty = false
 
   init() {
     let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -64,6 +72,8 @@ final class Store {
       library = loadedLibrary
       readiness = snapshot
       isLoading = false
+      await maintainBackup()
+      refreshLoginStatus()
       await refreshReminders()
     } catch {
       self.error =
@@ -93,6 +103,7 @@ final class Store {
       readiness = snapshot
       revision += 1
       error = nil
+      await maintainBackup()
       return true
     } catch {
       self.error =
@@ -191,6 +202,7 @@ final class Store {
           notificationStatus =
             "Allow Selah in System Settings → Notifications, then enable reminders again."
           _ = await change { $0.preferences.remindersEnabled = false }
+          await refreshReminders()
           return
         }
       } catch {
@@ -215,12 +227,50 @@ final class Store {
     }.value
     guard revision == before, !isSaving else { return }
     readiness = snapshot
+    await maintainBackup()
     guard library.preferences.remindersEnabled else { return }
     let pending = await UNUserNotificationCenter.current().pendingNotificationRequests()
     if !pending.contains(where: { $0.identifier == "selah.practice" }) { await refreshReminders() }
   }
+  func maintainBackup() async {
+    do {
+      if let day = try await repository.dailyBackup() {
+        backupStatus = "Daily snapshot saved · \(day.formatted(date: .abbreviated, time: .omitted))"
+      } else {
+        backupStatus = "Daily backups are off"
+      }
+    } catch { backupStatus = "Backup could not be saved: \(error.localizedDescription)" }
+  }
+  func updateQuietHours(_ operation: @Sendable (inout Preferences) -> Void) async {
+    if await change({ operation(&$0.preferences) }) { await refreshReminders() }
+  }
+  func refreshLoginStatus() {
+    loginEnabled = SMAppService.mainApp.status == .enabled
+    loginNeedsApproval = SMAppService.mainApp.status == .requiresApproval
+  }
+  func configureLogin(enabled: Bool) {
+    do {
+      if enabled {
+        try SMAppService.mainApp.register()
+      } else {
+        try SMAppService.mainApp.unregister()
+      }
+      loginMessage = nil
+    } catch { loginMessage = error.localizedDescription }
+    refreshLoginStatus()
+  }
   func refreshReminders() async {
     guard !isLoading else { return }
+    remindersDirty = true
+    guard !refreshingReminders else { return }
+    refreshingReminders = true
+    defer { refreshingReminders = false }
+    while remindersDirty {
+      remindersDirty = false
+      await scheduleReminder()
+    }
+  }
+  private func scheduleReminder() async {
     let center = UNUserNotificationCenter.current()
     center.removePendingNotificationRequests(withIdentifiers: ["selah.practice"])
     guard library.preferences.remindersEnabled else {
@@ -251,8 +301,9 @@ final class Store {
       notificationStatus = "No practice is scheduled"
       return
     }
-    let seconds = max(
-      Double(library.preferences.reminderMinutes * 60), nextReady.timeIntervalSince(now))
+    let invitation = ReminderSchedule.invitation(
+      now: now, readyAt: nextReady, preferences: library.preferences)
+    let seconds = max(1, invitation.timeIntervalSince(now))
     let content = UNMutableNotificationContent()
     content.title = "A moment for the Word"
     content.body = "Your next Selah practice is ready. Take a few minutes to recall it."
@@ -271,8 +322,22 @@ final class Store {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
   var openPractice: (() -> Void)?
+  private var loginLaunch = false
+  func applicationWillFinishLaunching(_ notification: Notification) {
+    let event = NSAppleEventManager.shared().currentAppleEvent
+    loginLaunch =
+      event?.eventID == kAEOpenApplication
+      && event?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue
+        == keyAELaunchedAsLogInItem
+  }
   func applicationDidFinishLaunching(_ notification: Notification) {
     UNUserNotificationCenter.current().delegate = self
+    if loginLaunch {
+      Task { @MainActor in
+        await Task.yield()
+        for window in NSApp.windows where window.title == "Selah" { window.orderOut(nil) }
+      }
+    }
   }
   nonisolated func userNotificationCenter(
     _ center: UNUserNotificationCenter,

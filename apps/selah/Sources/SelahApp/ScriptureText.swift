@@ -5,13 +5,15 @@ struct ScriptureText: View {
   let verse: Verse
   let scripture: Scripture
   var numbered = true
+  var showMargins = false
   @State private var note: MarginNote?
   private var content: AttributedString {
     var result = AttributedString()
     for segment in scripture.segments {
+      if segment.noteIndex != nil && !showMargins { continue }
       var text = AttributedString(segment.text)
-      text.font = .system(size: segment.noteIndex == nil ? 21 : 12, design: .serif)
-      if segment.italic { text.font = .system(size: 21, design: .serif).italic() }
+      text.font = .custom("Georgia", size: segment.noteIndex == nil ? 21 : 12, relativeTo: .body)
+      if segment.italic { text.font = .custom("Georgia-Italic", size: 21, relativeTo: .body) }
       text.foregroundColor =
         segment.redLetter ? Color(red: 0.96, green: 0.57, blue: 0.48) : .primary
       if let index = segment.noteIndex {
@@ -33,7 +35,7 @@ struct ScriptureText: View {
       VStack(alignment: .leading, spacing: 8) {
         Text(content).lineSpacing(8).textSelection(.enabled).fixedSize(
           horizontal: false, vertical: true)
-        if !scripture.notes.isEmpty {
+        if showMargins && !scripture.notes.isEmpty {
           DisclosureGroup("Margin notes") {
             VStack(alignment: .leading, spacing: 8) {
               ForEach(scripture.notes) { item in
@@ -59,7 +61,8 @@ struct ScriptureText: View {
       VStack(alignment: .leading, spacing: 8) {
         Text("\(verse.reference) · \(item.label)").font(.caption).foregroundStyle(.secondary)
         Text(item.phrase).font(.headline)
-        Text(item.text).font(.system(size: 16, design: .serif)).textSelection(.enabled)
+        Text(item.text).font(.custom("Georgia", size: 16, relativeTo: .body)).textSelection(
+          .enabled)
       }.padding(20).frame(width: 280, alignment: .leading)
     }
   }

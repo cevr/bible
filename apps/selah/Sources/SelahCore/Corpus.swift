@@ -96,6 +96,7 @@ public struct Readiness: Sendable {
 public actor ProgressRepository {
   private let file: ProgressFile
   private var library: Library?
+  private var backupDay: Date?
   public init(file: ProgressFile) { self.file = file }
   public func load() throws -> Library {
     if let library { return library }
@@ -103,7 +104,18 @@ public actor ProgressRepository {
     library = loaded
     return loaded
   }
+  public func dailyBackup(now: Date = Date(), calendar: Calendar = .current) throws -> Date? {
+    let current = try load()
+    guard current.preferences.backupsEnabled else { return nil }
+    let day = calendar.startOfDay(for: now)
+    guard backupDay != day else { return day }
+    if !FileManager.default.fileExists(atPath: file.url.path) { try file.save(current) }
+    try file.backup(now: now, calendar: calendar)
+    backupDay = day
+    return day
+  }
   public func update(_ operation: @Sendable (inout Library) throws -> Void) throws -> Library {
+    _ = try? dailyBackup()
     var updated = try load()
     try operation(&updated)
     try file.save(updated)

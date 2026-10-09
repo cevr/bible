@@ -17,6 +17,15 @@ import SelahCore
         verses[n % verses.count], rating: .good, usedHint: false,
         now: date.addingTimeInterval(Double(n)))
     }
+    let longestChapter = corpus.verses(book: 19, chapter: 119).map(\.practiceText).joined(
+      separator: " ")
+    let recallStart = clock.now
+    let comparison = try RecallComparison(
+      expected: longestChapter,
+      recalled: longestChapter.replacingOccurrences(of: " thy ", with: " "))
+    print(
+      "Psalm 119 word alignment: \(recallStart.duration(to: clock.now)); \(comparison.missingCount) omissions"
+    )
     let began = clock.now
     var checksum = 0
     for _ in 0..<50 {

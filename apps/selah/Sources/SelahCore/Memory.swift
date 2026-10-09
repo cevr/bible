@@ -77,7 +77,6 @@ public struct MemoryCard: Codable, Sendable {
   public var memory: Card?
   public var due: Date
   public var interval: Double = 0
-  public var ease: Double = 2.5
   public var repetitions: Int = 0
   public var lapses: Int = 0
   public let introduced: Date
@@ -120,10 +119,33 @@ public enum Scheduler {
 }
 
 public struct Preferences: Codable, Sendable {
-  public var newPerDay: Int = 3
-  public var reminderMinutes: Int = 60
-  public var remindersEnabled: Bool = false
+  public var newPerDay = 3
+  public var reminderMinutes = 60
+  public var remindersEnabled = false
+  public var showMarginNotes = false
+  public var backupsEnabled = true
+  public var quietHoursEnabled = true
+  public var quietStartMinutes = 22 * 60
+  public var quietEndMinutes = 8 * 60
   public init() {}
+  private enum CodingKeys: String, CodingKey {
+    case newPerDay, reminderMinutes, remindersEnabled, showMarginNotes, backupsEnabled,
+      quietHoursEnabled,
+      quietStartMinutes, quietEndMinutes
+  }
+  public init(from decoder: any Decoder) throws {
+    let values = try decoder.container(keyedBy: CodingKeys.self)
+    newPerDay = max(1, min(20, try values.decodeIfPresent(Int.self, forKey: .newPerDay) ?? 3))
+    reminderMinutes = max(1, try values.decodeIfPresent(Int.self, forKey: .reminderMinutes) ?? 60)
+    remindersEnabled = try values.decodeIfPresent(Bool.self, forKey: .remindersEnabled) ?? false
+    showMarginNotes = try values.decodeIfPresent(Bool.self, forKey: .showMarginNotes) ?? false
+    backupsEnabled = try values.decodeIfPresent(Bool.self, forKey: .backupsEnabled) ?? true
+    quietHoursEnabled = try values.decodeIfPresent(Bool.self, forKey: .quietHoursEnabled) ?? true
+    quietStartMinutes = max(
+      0, min(1439, try values.decodeIfPresent(Int.self, forKey: .quietStartMinutes) ?? 22 * 60))
+    quietEndMinutes = max(
+      0, min(1439, try values.decodeIfPresent(Int.self, forKey: .quietEndMinutes) ?? 8 * 60))
+  }
 }
 
 public struct Library: Codable, Sendable {
@@ -165,15 +187,7 @@ public struct Library: Codable, Sendable {
   public mutating func record(_ verse: Verse, rating: RecallRating, usedHint: Bool, now: Date)
     throws
   {
-    let effective =
-      usedHint && rating.rawValue > RecallRating.hard.rawValue ? RecallRating.hard : rating
-    let updated = try Scheduler.review(
-      cards[verse.id] ?? MemoryCard(now: now), rating: effective, now: now)
-    cards[verse.id] = updated
-    reviews.append(
-      Review(
-        verseID: verse.id, date: now, rating: effective, usedHint: usedHint,
-        interval: updated.interval))
+    try record(PracticeUnit(verses: [verse]), rating: rating, usedHint: usedHint, now: now)
   }
 }
 
@@ -230,7 +244,10 @@ public struct ProgressFile: Sendable {
     let snapshots = try FileManager.default.contentsOfDirectory(
       at: backupDirectory, includingPropertiesForKeys: nil
     )
-    .filter { $0.pathExtension == "json" && $0.lastPathComponent.count == 15 }
+    .filter {
+      $0.lastPathComponent.range(of: #"^\d{4}-\d{2}-\d{2}\.json$"#, options: .regularExpression)
+        != nil
+    }
     .sorted { $0.lastPathComponent > $1.lastPathComponent }
     for old in snapshots.dropFirst(30) { try FileManager.default.removeItem(at: old) }
   }

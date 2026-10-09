@@ -1,6 +1,6 @@
 # Selah
 
-A native, offline macOS menu bar app for memorizing Scripture. SwiftUI, SF typography, near-black surfaces, rounded controls, and short focused sessions. Requires macOS 14 or later.
+An offline SwiftUI menu bar app for memorizing Scripture on macOS 14+. Dark native controls, Georgia Scripture typography, verse-number gutters, supplied-word italics, and red-letter text.
 
 ## Run
 
@@ -10,59 +10,57 @@ A native, offline macOS menu bar app for memorizing Scripture. SwiftUI, SF typog
 open dist/Selah.app
 ```
 
-The build uses only Apple's installed tools; no third-party packages are required. The build script selects the installed macOS 26.5 SDK when using Command Line Tools because CLT's macOS 27 SDK references a SwiftUI macro plugin that only ships with full Xcode. It does not change `xcode-select` or system settings.
+For launch at login, keep the packaged app in a stable location such as `~/Applications/Selah.app` and enable **Settings → Automation → Launch at login**. Selah uses Apple's `SMAppService.mainApp`; its control reflects the actual registration status and exposes Login Items settings if macOS needs approval. Login launches hide the practice window and leave the menu bar app available. Actual login execution has not been tested by logging out.
+
+The build uses Apple's tools and the maintained [Swift FSRS package](https://github.com/open-spaced-repetition/swift-fsrs), pinned to revision `4fbaf20184d62f82a9f44f343337c61a2c5483e9`. It selects the installed macOS 26.5 SDK when using Command Line Tools because CLT's macOS 27 SDK references a SwiftUI macro plugin that requires full Xcode. It does not change `xcode-select`.
 
 ## Practice
 
-1. Open **Library** and choose verses, a chapter, a book, or the whole Bible.
-2. Open **Today** and begin a session of up to 10 verses. Due reviews come first, then new verses in canonical order. The default is 3 new verses per calendar day, shared across all goals.
-3. Read a new verse, hide it, then recite aloud or type from memory. Reveal and compare. Optional first-letter hints limit the rating to Hard.
-4. Rate Again, Hard, Good, or Easy. Ratings save immediately. Again returns in 10 minutes. Successful recalls begin at 1 day, then 6 days, then grow with the verse's ease factor. Keyboard: Command-Return hides/reveals; 1–4 select the visible ratings. Return begins practice from Today.
-5. Use **Library → Read → Hide & Recite** to rehearse entire passages and the transitions between verses. This rehearsal does not change verse review dates.
+1. Choose verses, a chapter, a book, or the whole Bible in **Library**. Overlapping goals share verse progress. New verses arrive in canonical order, defaulting to three per local calendar day.
+2. Begin in **Today**. Read a new passage, hide it, then recite aloud or type from memory. Command-Return hides or reveals it.
+3. Reveal to see word-level feedback. Missing reference words and extra or changed recalled words are underlined; alignment preserves later matches after omissions. Case and punctuation are ignored. Comparison runs after reveal, away from the UI thread. Input is limited to one chapter, up to 6,000 words.
+4. Choose Again, Hard, Good, or Easy (keys 1–4). First-letter hints restrict grades to Again or Hard. Feedback informs your own grade; it does not grade automatically.
+5. Chapter review becomes eligible after every verse has two consecutive successful recalls. Selah introduces at most one new chapter per day automatically. **Library → Read → Practice & Schedule This Chapter** also starts a full chapter manually. Chapter grades have independent FSRS cards and never change individual verse dates. Partial-verse goals do not create whole-chapter reviews.
 
-In **Settings**, opt into native notifications and choose a 30-minute, 1-hour, 2-hour, or 4-hour rhythm. macOS may ask for notification permission. Selah keeps one pending invitation and avoids reminders before practice is ready. Clicking an invitation opens practice. Reminders are renewed while Selah is running; quitting stops renewal, though the already pending notification may still arrive. Opening the app or waking the Mac refreshes the schedule. Focus settings and macOS notification preferences affect delivery. Launch at login is not yet implemented.
+The scheduler is canonical **FSRS 6**, with default FSRS 6 weights, short-term learning steps, 90% target retention, and no interval fuzz so previews match saved schedules. Target retention is an algorithm setting, not a promise of Bible-specific performance. New-card learning steps are 1 and 10 minutes; graduated intervals adapt to elapsed time and grades. Relearning uses the package's 10-minute step. Raw review events are retained. The reference FSRS 6 interval sequence is checked independently in tests.
 
-Progress is stored atomically at `~/Library/Application Support/Selah/progress.json`. Goals, per-verse scheduling, settings, and review history survive relaunch. Overlapping goals share verse progress. A file that cannot be decoded is preserved and puts the app into read-only mode; inspect or restore the file using **Show Progress File**, then relaunch. There is no cloud sync or automatic backup yet.
+When opening v1 progress, Selah first backs up the original JSON, replays review history into FSRS state, and preserves existing due dates until the next grade. Corrupt or unsupported progress files are preserved and open read-only.
 
-## Learning design and limits
+## Reading and margins
 
-Retrieval practice and spacing underpin the flow. The first-letter scaffold and chapter rehearsal are product choices, not a claim that a Bible-specific optimal method has been established.
+Scripture is selectable, uses a restrained line length and generous leading, and preserves supplied-word italics and red-letter quotations. **Settings → Reading → Show margin notes** defaults off for uninterrupted memorization. Enabling it adds small lettered anchors and collapsed note disclosures; selecting a note opens a native popover. Notes whose phrases do not match the printed verse remain available in the disclosure.
 
-- [Karpicke & Roediger, The Critical Importance of Retrieval for Learning (2008)](https://doi.org/10.1126/science.1152408)
-- [Research on retrieval and spacing (2016)](https://www.psychologicalscience.org/journals/psychological-science/0956797615617778/)
-- [SuperMemo SM-2 source](https://www.super-memory.org/archive/english/ol/sm2source.htm)
-- [Anki's current algorithms and FSRS](https://faqs.ankiweb.net/what-spaced-repetition-algorithm)
-- [Apple MenuBarExtra](https://developer.apple.com/documentation/swiftui/menubarextra)
+This interpretation follows the deleted Bible Tools web/desktop shared renderer, inspected at commit `a639e74d1^`: `packages/core/src/bible-rendering/segments.ts` and `packages/app/src/reading/verse-segments.tsx`. Selah does not include its wiki/Strong's study features.
 
-The initial scheduler is an **SM-2-derived baseline, not FSRS or an Anki clone**. Four ratings and a 10-minute lapse interval are adaptations. Review events retain the actual time, grade, hint use, and interval for a future FSRS migration. No automatic scoring or speech recognition: the user compares and grades their recall. “Recalled at least twice” is a progress signal, not a guarantee of memorization.
+## Automations and storage
 
-The whole Bible is a selectable long-term goal; it does not mean the app optimizes years of chapter/book-level retention yet. Chapter recitation currently supplements verse review without its own scheduling. Priorities for the next iteration: FSRS with independent reference fixtures, scored word-level feedback, and scheduled passage/transition reviews.
+- **Launch at login:** native macOS registration for the installed app. [Apple's service API](https://developer.apple.com/documentation/servicemanagement/smappservice/mainapp) and [login launch event](https://developer.apple.com/documentation/coreservices/keyaelaunchedasloginitem).
+- **Daily backups:** on by default. Save the first valid snapshot of each local day, retain the latest 30 daily snapshots, and never overwrite that day's first snapshot. Backups occur at launch, during maintenance, and before the day's first progress mutation while Selah is running. Backup failures are shown in Settings and do not discard a successful grade.
+- **Quiet-hour reminders:** default quiet window 10 PM–8 AM, adjustable or disabled. An invitation waits until both practice readiness and the chosen cadence, then moves past quiet hours. Scheduling handles overnight windows, time-zone changes, and DST gaps. Equal start/end times mean no quiet window. Native notification permission and Focus determine delivery.
 
-## Structure
+Progress is written atomically to `~/Library/Application Support/Selah/progress.json`; backups are in the adjacent `Backups` folder. **Show Progress File** and **Show Backups** open Finder. To restore a backup, quit Selah, preserve the current file, copy the chosen snapshot to `progress.json`, then relaunch.
 
-- `SelahCore`: indexed corpus, goals, review queue, scheduler, cached readiness, and serialized storage transactions.
-- `SelahApp`: SwiftUI scenes, state, native notification lifecycle, practice and reading views.
-- `Tests/SelahCoreTests`: behavior tests for relaunch, daily limits, overlapping goals, hints, spacing, corrupt storage, and concurrent transactions.
-- `scripts/gate.sh`: Swift formatting lint, compilation with warnings treated as errors, behavior tests, and corpus integrity checks.
+Selah keeps one pending notification. It renews invitations while running; quitting stops renewal, though an already scheduled invitation can still arrive. Opening the app and waking the Mac refresh the schedule. Clicking a notification opens practice. Native scheduling and authorization were inspected live; actual banner delivery has not been verified.
 
-This build is locally ad-hoc signed. Distribution signing, notarization, and App Store packaging are not configured.
+## Responsiveness and validation
 
-## Responsiveness
+Corpus preparation, readiness calculation, comparisons, storage, and backups run away from the main UI actor. Views use immutable indexes and cached readiness; typing does not scan Scripture or review history. Ratings advance only after an atomic save succeeds. Reveal motion honors Reduce Motion.
 
-Corpus decoding/indexing, readiness calculation, and atomic progress writes run away from the main UI actor. Views consume cached readiness and direct book/chapter indexes. Typing does not rescan the Bible or review log. Chapter rehearsal navigates pre-grouped chapters. Successful saves publish the next card; failures retain the current card and error state. Tab movement is 180 ms; verse reveal is 150 ms; both honor Reduce Motion.
+`./scripts/benchmark.sh` uses the real corpus, all 31,102 verse cards, and 50,000 review events. On this Mac, an optimized build measured:
 
-Run `./scripts/benchmark.sh` for the full-size core workload: all 31,102 verses introduced, 50,000 review events, 50 queries of the same due queue, and one atomic save. On this Mac, before/after matched optimized builds measured approximately:
+| Operation                                            |              Time |
+| ---------------------------------------------------- | ----------------: |
+| Corpus decoding, indexes, and rendering plans        | 477 ms at startup |
+| Psalm 119 word alignment with 197 omissions          |              3 ms |
+| Average whole-Bible verse/chapter queue calculation  |           11.6 ms |
+| Atomic JSON save with 50,000 reviews and FSRS states |            210 ms |
 
-| Core operation                          | Original |  Current |
-| --------------------------------------- | -------: | -------: |
-| Average whole-Bible queue calculation   |  38.8 ms |   7.5 ms |
-| Corpus decoding / decoding plus indexes |  35.4 ms |  37.0 ms |
-| Atomic JSON save, 50,000 reviews        | 142.7 ms | 116.9 ms |
+These are core timings, not measured frame or end-to-end launch times. JSON saves rewrite the complete history; an incremental store remains a future scaling option.
 
-These are core timings, not measured UI frame times or end-to-end launch times. The key change is removing calculation and I/O from the UI thread. A save still must finish before a rating advances. The JSON format rewrites the complete history; an incremental SQLite store is a future scaling improvement for substantially larger histories.
-
-Validation: formatting lint, warning-free Swift compilation, 8 passing behavioral tests, and corpus integrity checks. A locally signed application process was launched. The live practice window has been visually inspected, including onboarding, study/recall, hints, and passage selection. Native notification delivery remains unverified. Notifications are off until enabled in Settings.
+The full gate checks formatting, warning-free compilation, 17 behavior tests, and corpus integrity. Tests cover independent FSRS intervals, v1 migration, daily limits, relaunch, independent chapters, hint grading, concurrent storage transactions, corruption preservation, nested italics/red letters, margin anchors, recall alignment, overnight quiet hours, DST gaps, and immutable backup retention, and successful saves when backup storage is unavailable. Packaged app screens and native margin popovers were inspected live.
 
 ## Text provenance
 
-The bundled KJV was exported read-only from the existing Bible Tools corpus at `bible-tools/packages/core/data/bible.db`, with 31,102 unique verses across 66 books. Practice removes printed paragraph signs and italic brackets while retaining the original source text and supplied Psalm superscriptions. The source's version metadata states: “This Bible is in the Public Domain in most parts of the world. However, in the United Kingdom, it is under perpetual Crown copyright.” See `Sources/SelahApp/Resources/KJV-NOTICE.txt`. No other Bible Tools data is included.
+The bundled KJV was exported read-only from `bible-tools/packages/core/data/bible.db`: 31,102 unique verses across 66 books and 7,320 margin notes. Raw source text and Psalm superscriptions are retained; printed markup is interpreted for display. The source metadata notes the KJV's public-domain status in most jurisdictions and perpetual Crown copyright in the United Kingdom. See `Sources/SelahApp/Resources/KJV-NOTICE.txt`.
+
+This build is locally ad-hoc signed. Distribution signing, notarization, cloud sync, and speech recognition are not configured.

@@ -1,5 +1,6 @@
 import AppKit
 import SelahCore
+import ServiceManagement
 import SwiftUI
 
 private let muted = Color(white: 0.66)
@@ -10,7 +11,7 @@ struct QuietButton: PrimitiveButtonStyle {
   func makeBody(configuration: Configuration) -> some View {
     Group {
       if primary {
-        Button(configuration).buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black)
+        Button(configuration).buttonStyle(.borderedProminent)
       } else {
         Button(configuration).buttonStyle(.bordered)
       }
@@ -45,7 +46,12 @@ struct RootView: View {
       }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 24).padding(.bottom, 16)
       Divider()
       if let error = store.error {
-        Label(error, systemImage: "exclamationmark.triangle").font(.callout).padding(16)
+        VStack(alignment: .leading, spacing: 8) {
+          Label(error, systemImage: "exclamationmark.triangle").font(.callout)
+          Button("Show Progress File") {
+            NSWorkspace.shared.selectFile(store.file.url.path, inFileViewerRootedAtPath: "")
+          }
+        }.padding(16)
       }
       Group {
         if store.isLoading {
@@ -63,7 +69,7 @@ struct RootView: View {
                 TodayView(store: store, showLibrary: { store.section = "Library" })
               }
             }.frame(maxWidth: 640, alignment: .leading).padding(24).frame(maxWidth: .infinity)
-          }
+          }.id(store.current?.id ?? store.section)
         }
       }.disabled(store.isSaving || !store.canSave)
       Divider()
@@ -89,6 +95,12 @@ struct RootView: View {
     .onReceive(
       NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
     ) { _ in
+      Task {
+        await store.maintainReminders()
+        await store.refreshReminders()
+      }
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
       Task { await store.refreshReminders() }
     }
   }
@@ -168,10 +180,11 @@ struct PracticeView: View {
         )
         .font(.system(size: 10, weight: .medium)).foregroundStyle(muted)
         if store.revealed {
-          VStack(alignment: .leading, spacing: 18) {
+          LazyVStack(alignment: .leading, spacing: 18) {
             ForEach(verse.verses) { item in
               ScriptureText(
-                verse: item, scripture: store.corpus.rendering(for: item), numbered: verse.isChapter
+                verse: item, scripture: store.corpus.rendering(for: item),
+                numbered: verse.isChapter, showMargins: store.library.preferences.showMarginNotes
               )
             }
           }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
@@ -202,9 +215,8 @@ struct PracticeView: View {
                     VStack(spacing: 5) {
                       Text(rating.title).font(.system(size: 12, weight: .medium))
                       Text(store.preview(rating)).font(.system(size: 10)).foregroundStyle(muted)
-                    }.padding(.vertical, 13).frame(maxWidth: .infinity).background(
-                      surface, in: RoundedRectangle(cornerRadius: 12))
-                  }.buttonStyle(.plain).keyboardShortcut(
+                    }.padding(.vertical, 4).frame(maxWidth: .infinity)
+                  }.buttonStyle(.bordered).controlSize(.large).keyboardShortcut(
                     KeyEquivalent(Character(String(rating.rawValue))), modifiers: [])
                 }
               }
@@ -379,7 +391,9 @@ struct ReadingView: View {
         } else {
           LazyVStack(alignment: .leading, spacing: 20) {
             ForEach(visible) { verse in
-              ScriptureText(verse: verse, scripture: store.corpus.rendering(for: verse))
+              ScriptureText(
+                verse: verse, scripture: store.corpus.rendering(for: verse),
+                showMargins: store.library.preferences.showMarginNotes)
             }
           }
         }
@@ -404,63 +418,141 @@ struct ReadingView: View {
 struct SettingsView: View {
   @Bindable var store: Store
   @State private var configuring = false
+  private func quietTime(start: Bool) -> Binding<Date> {
+    Binding(
+      get: {
+        let minute =
+          start
+          ? store.library.preferences.quietStartMinutes : store.library.preferences.quietEndMinutes
+        return Calendar.current.date(
+          bySettingHour: minute / 60, minute: minute % 60, second: 0, of: Date())!
+      },
+      set: { date in
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+        let minute = parts.hour! * 60 + parts.minute!
+        Task {
+          await store.updateQuietHours {
+            if start { $0.quietStartMinutes = minute } else { $0.quietEndMinutes = minute }
+          }
+        }
+      })
+  }
   var body: some View {
-    VStack(alignment: .leading, spacing: 22) {
-      Text("A rhythm you can keep.").font(.system(size: 24, weight: .medium, design: .rounded))
-      Stepper(
-        "\(store.library.preferences.newPerDay) new verses per day",
-        value: Binding(
-          get: { store.library.preferences.newPerDay },
-          set: { value in Task { await store.change { $0.preferences.newPerDay = value } } }
-        ), in: 1...20)
-      Toggle(
-        "Practice reminders",
-        isOn: Binding(
-          get: { store.library.preferences.remindersEnabled },
-          set: { enabled in
-            configuring = true
-            Task {
-              await store.configureReminders(
-                enabled: enabled, minutes: store.library.preferences.reminderMinutes)
-              configuring = false
-            }
-          })
-      ).disabled(configuring)
-      Picker(
-        "Invite me every",
-        selection: Binding(
-          get: { store.library.preferences.reminderMinutes },
-          set: { minutes in
-            Task {
-              await store.configureReminders(
-                enabled: store.library.preferences.remindersEnabled, minutes: minutes)
-            }
-          })
-      ) {
-        Text("30 minutes").tag(30)
-        Text("1 hour").tag(60)
-        Text("2 hours").tag(120)
-        Text("4 hours").tag(240)
+    Form {
+      Section("Practice") {
+        Stepper(
+          "\(store.library.preferences.newPerDay) new verses per day",
+          value: Binding(
+            get: { store.library.preferences.newPerDay },
+            set: { value in
+              Task { await store.change { $0.preferences.newPerDay = value } }
+            }), in: 1...20)
+        LabeledContent("Scheduler", value: "FSRS 6 · 90% retention")
+        Text(
+          "Chapters become ready after every verse has been recalled twice. One new chapter is introduced per day. You can also start a chapter from Library."
+        ).font(.caption).foregroundStyle(.secondary)
       }
-      Text(store.notificationStatus).font(.system(size: 12)).foregroundStyle(muted)
-      Text(
-        "Reminders invite you to practice when there’s work ready. They never interrupt you with an automatic window."
-      )
-      .font(.system(size: 13)).foregroundStyle(muted).lineSpacing(5)
-      Divider()
-      Text("Recall first. Then reveal.").font(.system(size: 16, weight: .medium))
-      Text(
-        "Be honest about recall. Again returns in 10 minutes; successful recalls move to 1 day, 6 days, then longer intervals. First-letter hints limit the grade to Hard."
-      )
-      .font(.system(size: 13)).foregroundStyle(muted).lineSpacing(5)
-      Text(
-        "Progress stays on this Mac. No account, subscription, or network connection is required."
-      )
-      .font(.system(size: 13)).foregroundStyle(muted).lineSpacing(5)
-      Button("Show Progress File") {
-        NSWorkspace.shared.selectFile(store.file.url.path, inFileViewerRootedAtPath: "")
+      Section("Reading") {
+        Toggle(
+          "Show margin notes",
+          isOn: Binding(
+            get: { store.library.preferences.showMarginNotes },
+            set: { value in
+              Task { await store.change { $0.preferences.showMarginNotes = value } }
+            }))
+        Text(
+          "Notes stay collapsed until you open them. Keep them off for uninterrupted reading and recall."
+        ).font(.caption).foregroundStyle(.secondary)
       }
-      .buttonStyle(QuietButton())
-    }.font(.system(size: 14))
+      Section("Reminders") {
+        Toggle(
+          "Practice reminders",
+          isOn: Binding(
+            get: { store.library.preferences.remindersEnabled },
+            set: { enabled in
+              configuring = true
+              Task {
+                await store.configureReminders(
+                  enabled: enabled, minutes: store.library.preferences.reminderMinutes)
+                configuring = false
+              }
+            })
+        ).disabled(configuring)
+        Picker(
+          "Remind me every",
+          selection: Binding(
+            get: { store.library.preferences.reminderMinutes },
+            set: { minutes in
+              Task {
+                await store.configureReminders(
+                  enabled: store.library.preferences.remindersEnabled, minutes: minutes)
+              }
+            })
+        ) {
+          Text("30 minutes").tag(30)
+          Text("1 hour").tag(60)
+          Text("2 hours").tag(120)
+          Text("4 hours").tag(240)
+        }
+        Toggle(
+          "Quiet hours",
+          isOn: Binding(
+            get: { store.library.preferences.quietHoursEnabled },
+            set: { value in
+              Task { await store.updateQuietHours { $0.quietHoursEnabled = value } }
+            }))
+        if store.library.preferences.quietHoursEnabled {
+          DatePicker("From", selection: quietTime(start: true), displayedComponents: .hourAndMinute)
+          DatePicker(
+            "Until", selection: quietTime(start: false), displayedComponents: .hourAndMinute)
+          if store.library.preferences.quietStartMinutes
+            == store.library.preferences.quietEndMinutes
+          {
+            Text("Choose different start and end times to pause reminders.").font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+        Text(store.notificationStatus).font(.caption).foregroundStyle(.secondary)
+        Text(
+          "Invitations wait until practice is ready and quiet hours have ended. Selah never opens a window automatically for a reminder."
+        ).font(.caption).foregroundStyle(.secondary)
+      }
+      Section("Automation") {
+        Toggle(
+          "Launch at login",
+          isOn: Binding(
+            get: { store.loginEnabled || store.loginNeedsApproval },
+            set: { store.configureLogin(enabled: $0) }))
+        if store.loginNeedsApproval {
+          Text("macOS needs approval for Selah in Login Items.").font(.caption).foregroundStyle(
+            .secondary)
+          Button("Open Login Items Settings") { SMAppService.openSystemSettingsLoginItems() }
+        }
+        if let message = store.loginMessage {
+          Text(message).font(.caption).foregroundStyle(.secondary)
+        }
+        Toggle(
+          "Daily progress backups",
+          isOn: Binding(
+            get: { store.library.preferences.backupsEnabled },
+            set: { value in
+              Task {
+                if await store.change({ $0.preferences.backupsEnabled = value }) {
+                  await store.maintainBackup()
+                }
+              }
+            }))
+        Text(store.backupStatus).font(.caption).foregroundStyle(.secondary)
+        Text("Keep the first snapshot each day for 30 days while Selah is running.").font(.caption)
+          .foregroundStyle(.secondary)
+        Button("Show Backups") { NSWorkspace.shared.open(store.file.backupDirectory) }
+      }
+      Section("Your data") {
+        Text("Your Bible and progress stay on this Mac. No account is required.").font(.callout)
+        Button("Show Progress File") {
+          NSWorkspace.shared.selectFile(store.file.url.path, inFileViewerRootedAtPath: "")
+        }
+      }
+    }.formStyle(.grouped).onAppear { store.refreshLoginStatus() }
   }
 }
