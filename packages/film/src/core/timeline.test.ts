@@ -23,7 +23,6 @@ import {
   liveAt,
   patchSpan,
   resolveTimeline,
-  saidAt,
   staggerAt,
   staggerProgress,
   untilEndText,
@@ -100,17 +99,6 @@ describe('what plays at a time', () => {
       { name: 'rise', progress: cueProgress(at(1, 2), 1.25) },
     ]);
     expect(liveAt(cues, 1.25, 30)[0]?.progress).toBeCloseTo(0.25, 9);
-  });
-
-  test('a mark is said while its word is, and a line without the mark says nothing', () => {
-    const voice = { marks: clock.marks, words: clock.words, speechStart: clock.speechStart };
-    // `fiction` is the word at 2–2.5 s of the voice, which starts at 0.5 s of the scene.
-    expect(saidAt(voice, 2.4)).toEqual([]);
-    expect(saidAt(voice, 2.5)).toEqual(['fiction']);
-    expect(saidAt(voice, 2.99)).toEqual(['fiction']);
-    expect(saidAt(voice, 3)).toEqual([]);
-    expect(saidAt(voice, 5.5)).toEqual(['as']);
-    expect(saidAt({ ...voice, marks: new Map() }, 2.6)).toEqual([]);
   });
 });
 

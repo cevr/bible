@@ -11,8 +11,8 @@ import { selected } from '../../command/context.ts';
 import { type CodeOpen, FOLLOW, lineOpen } from './open.ts';
 
 /** The ids of the Source view's commands. */
-export const SOURCE = 'lab.source';
-export const SOURCE_CUE = 'lab.source.cue';
+const SOURCE = 'lab.source';
+const SOURCE_CUE = 'lab.source.cue';
 
 /** What the commands drive: the view as the URL holds it, and where a cue is written. */
 interface SourceVerbs {

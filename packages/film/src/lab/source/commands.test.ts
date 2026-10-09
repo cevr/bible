@@ -7,7 +7,11 @@ import { describe, expect, test } from 'effect-bun-test';
 import { BY_BUTTON } from '../../command/command.ts';
 import { contextAt, withSelection } from '../../command/context.ts';
 import { cueOf, knobOf } from '../../command/selection.ts';
-import { SOURCE, SOURCE_CUE, sourceCommands } from './commands.ts';
+import { sourceCommands } from './commands.ts';
+
+/** The ids of the Source view's commands, as the palette and the keymap name them. */
+const SOURCE = 'lab.source';
+const SOURCE_CUE = 'lab.source.cue';
 import { codeText } from './open.ts';
 
 const here = contextAt('lab', '/films/f/lab/robe#t=1');

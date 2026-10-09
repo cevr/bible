@@ -65,23 +65,6 @@ export const liveAt = (
   });
 
 /**
- * The marks whose word is being said at scene time `t`: a mark is the start
- * of the word it precedes, and is said until that word ends. `voice` is the
- * scene's narration (`SceneClock`'s marks, words and where it starts).
- */
-export const saidAt = (
-  voice: Pick<SceneClock, 'marks' | 'words' | 'speechStart'>,
-  t: number,
-): ReadonlyArray<string> => {
-  const heard = t - voice.speechStart;
-  return [...voice.marks].flatMap(([name, at]) => {
-    const word = voice.words.find((w) => w.start === at);
-    if (word === undefined || heard < at || heard >= word.end) return [];
-    return [name];
-  });
-};
-
-/**
  * 0→1 for the item at `at` (0 the first, 1 the last) across a staggered cue
  * at scene time `t`, eased by the cue's ease: the items' starts spread over
  * the cue's `stagger` share and each lasts the rest, the last ending with
