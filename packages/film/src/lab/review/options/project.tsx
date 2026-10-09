@@ -15,7 +15,7 @@
 // the URL (`?point=`, its render point) so a link opens it and Back closes
 // it: its render
 // or its still, its Approve and Unapprove, its findings, what was said of it
-// and the comment box, Info, Open in Lab and Versions, and the choices that
+// and the comment box, State, Open in Lab and Versions, and the choices that
 // play in it, each a link to its card on Choices. An act's and the film's
 // approvals and comments are in their inspectors, their context menus (a
 // long press or a right-click on the panel) and ⌘K. The film's transport is
@@ -57,14 +57,13 @@ import {
 import type { ReviewVideo } from '../../../core/review.ts';
 import { FILM_FPS, timecode } from '../../../core/time.ts';
 import { counted } from '../../../core/words.ts';
-import { SceneCard, SceneFindings, StateBand } from '../../scenes/card.tsx';
+import { SceneCard, SceneFindings, SceneState, StateBand } from '../../scenes/card.tsx';
 import { filmCounts, filmSpan, marksOf, projectPlaced } from '../../scenes/marks.ts';
 import { type LabFailure, served } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
 import { plainClick } from '../../../browser/pointer.ts';
 import { Go, OPEN_ON_CHOICES, useReview } from '../context.tsx';
 import { pressed } from '../../pressed.ts';
-import { APPROVAL_TEXT, stateText } from '../format.ts';
 import { Loaded, useWrite, writeStatus } from '../loaded.tsx';
 import { ReviewPlace } from '../place.ts';
 import { OptionsApi, type ProjectSay } from './api.ts';
@@ -309,20 +308,6 @@ const videoOf = (variant: ChoiceVariant): Option.Option<ReviewVideo> =>
 /** What a scene waits on before it is approved: its render. */
 const RENDER_FIRST = 'render first';
 
-/**
- * A scene's Info in its sheet: its render's state (why it is out of date),
- * its approval, and every line of what it is (the command that renders a
- * missing one).
- */
-const SceneInfo = (props: { readonly scene: ProjectScene; readonly variant: ChoiceVariant }) => (
-  <section class="rv-group" data-section="info">
-    <h3>Info</h3>
-    <p class="rv-hint">{stateText(props.scene.state, props.scene.staleBy)}</p>
-    <p class="rv-hint">{APPROVAL_TEXT[props.scene.approval]}</p>
-    <For each={props.variant.lines}>{(line) => <p class="rv-hint">{line}</p>}</For>
-  </section>
-);
-
 /** Whether a tap at `target` was on a control of its own (a button, a link, a field, a video's bar). */
 const onControl = (event: MouseEvent): boolean =>
   Option.exists(
@@ -340,7 +325,7 @@ const onControl = (event: MouseEvent): boolean =>
  * inspects it), its marks, its comment dot and, on a laptop, its Approve; a
  * tap anywhere on it that is not a control opens its sheet: the same card
  * at full size (its render's video, else its still), its approve and
- * unapprove, its findings, what was said of it and the comment box, Info,
+ * unapprove, its findings, what was said of it and the comment box, State,
  * Open in Lab and Versions, and the choices that play in it. Its menu and
  * keys are its render's (`useVariantThing`).
  */
@@ -436,7 +421,7 @@ const SceneRow = (props: {
             <SceneFindings marks={marks()} />
             <Comments comments={variant().comments} />
             <CommentBox variant={variant()} sayer={sayer} box={box} />
-            <SceneInfo scene={props.scene} variant={variant()} />
+            <SceneState marks={marks()} lines={variant().lines} />
             <div class="rv-row">
               <a
                 class="sh-btn"
