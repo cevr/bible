@@ -82,7 +82,7 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
             if (componentProps['aria-labelledby'] != null || componentProps['aria-label']) {
               return componentProps['aria-labelledby'];
             }
-            return store.activeTriggerElement()?.id || store.activeTriggerId() || undefined;
+            return store.activeTriggerElement()?.id || undefined;
           },
           get style() {
             return store.transitionStatus() === 'starting' ? { transition: 'none' } : undefined;

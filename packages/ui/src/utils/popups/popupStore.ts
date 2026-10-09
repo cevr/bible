@@ -26,7 +26,6 @@ import {
 } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
 import { createUnmountAfterClose, type TransitionStatus } from '../../internals/transitions.ts';
-import { PopupTriggerMap } from './popupTriggerMap.ts';
 
 /** The props that make a popup element the focus manager's target. */
 export const FOCUSABLE_POPUP_PROPS = {
@@ -52,24 +51,16 @@ export interface PopupStore {
   open: Accessor<boolean>;
   mounted: Accessor<boolean>;
   transitionStatus: Accessor<TransitionStatus>;
-  activeTriggerId: Accessor<string | null>;
   /** The trigger that opened the popup, while it is mounted. */
   activeTriggerElement: Accessor<Element | null>;
   popupElement: Accessor<HTMLElement | null>;
   setPopupElement: (element: HTMLElement | null) => void;
   positionerElement: Accessor<HTMLElement | null>;
   setPositionerElement: (element: HTMLElement | null) => void;
-  triggerElements: PopupTriggerMap;
   floatingRootContext: FloatingRootContext;
   floatingId: string;
   /** The popup's rendered id (its element's, else `floatingId`). */
   popupId: () => string | undefined;
-  isOpenedByTrigger: (triggerId: string | undefined) => boolean;
-  isMountedByTrigger: (triggerId: string | undefined) => boolean;
-  /** The popup id for the trigger's `aria-controls`: set while that trigger owns the open popup. */
-  triggerPopupId: (triggerId: string | undefined) => string | undefined;
-  /** Registers a trigger element (`null` unregisters it). */
-  registerTrigger: (triggerId: string, element: Element | null) => void;
   /** Applies an accepted open change; `trigger` becomes the active trigger. */
   applyOpenState: (open: boolean, trigger: Element | undefined) => void;
   readonly onOpenChangeComplete: (open: boolean) => void;
@@ -81,9 +72,6 @@ export interface PopupStore {
 export function createPopupStore(options: PopupStoreOptions): PopupStore {
   const [ownOpen, setOwnOpen] = createSignal(false, { ownedWrite: true });
   const open = () => options.openProp?.() ?? ownOpen();
-  const [activeTriggerId, setActiveTriggerId] = createSignal<string | null>(null, {
-    ownedWrite: true,
-  });
   const [activeTrigger, setActiveTrigger] = createSignal<Element | null>(null, {
     ownedWrite: true,
   });
@@ -93,7 +81,6 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
   const [positionerElement, setPositionerElement] = createSignal<HTMLElement | null>(null, {
     ownedWrite: true,
   });
-  const triggerElements = new PopupTriggerMap();
 
   const onOpenChangeComplete = (isOpen: boolean) => {
     untrack(() => options.onOpenChangeComplete?.())?.(isOpen);
@@ -103,7 +90,6 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
     open,
     element: popupElement,
     onUnmount() {
-      setActiveTriggerId(null);
       setActiveTrigger(null);
       onOpenChangeComplete(false);
     },
@@ -116,53 +102,25 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
     referenceElement: activeTriggerElement as Accessor<ReferenceType | null>,
     floatingElement: options.popupIsFloatingElement ? popupElement : positionerElement,
     onOpenChange: (next, details) => options.onOpenChange(next, details),
-    triggerElements,
   });
 
   const popupId = () => popupElement()?.id || options.floatingId || undefined;
-
-  const ownsOpenPopup = (triggerId: string | undefined) =>
-    triggerId !== undefined && open() && activeTriggerId() === triggerId;
 
   return {
     open,
     mounted: status.mounted,
     transitionStatus: status.transitionStatus,
-    activeTriggerId,
     activeTriggerElement,
     popupElement,
     setPopupElement: (element) => setPopupElement(() => element),
     positionerElement,
     setPositionerElement: (element) => setPositionerElement(() => element),
-    triggerElements,
     floatingRootContext,
     floatingId: options.floatingId,
     popupId,
-    isOpenedByTrigger: ownsOpenPopup,
-    isMountedByTrigger: (triggerId) =>
-      triggerId !== undefined && activeTriggerId() === triggerId && status.mounted(),
-    triggerPopupId: (triggerId) => (ownsOpenPopup(triggerId) ? popupId() : undefined),
-    registerTrigger(triggerId, element) {
-      const registered = triggerElements.getById(triggerId);
-      if (element === null) {
-        if (registered) {
-          triggerElements.delete(triggerId);
-        }
-        return;
-      }
-      if (registered === element) {
-        return;
-      }
-      triggerElements.add(triggerId, element);
-      if (untrack(activeTriggerId) === triggerId) {
-        setActiveTrigger(() => element);
-      }
-    },
     applyOpenState(nextOpen, trigger) {
       // A close without a trigger keeps the old one, so focus returns to it and exits animate from it.
-      const triggerId = trigger?.id || null;
-      if (triggerId || nextOpen) {
-        setActiveTriggerId(triggerId);
+      if (trigger || nextOpen) {
         setActiveTrigger(() => trigger ?? null);
       }
       setOwnOpen(nextOpen);

@@ -14,7 +14,6 @@ import { type Accessor, createSignal, untrack } from 'solid-js';
 
 import type { BaseUIChangeEventDetails } from '../internals/createBaseUIEventDetails.ts';
 import type { FloatingUIOpenChangeDetails } from '../internals/types.ts';
-import { PopupTriggerMap } from '../utils/popups/popupTriggerMap.ts';
 import { createEventEmitter, type FloatingEvents, isClickLikeEvent } from './utils/event.ts';
 
 export type ReferenceType = Element | VirtualElement;
@@ -39,7 +38,6 @@ export interface FloatingRootContext {
   dispatchOpenChange(open: boolean, eventDetails: BaseUIChangeEventDetails): void;
   readonly dataRef: { current: ContextData };
   readonly events: FloatingEvents;
-  readonly triggerElements: PopupTriggerMap;
 }
 
 export interface FloatingRootContextOptions {
@@ -48,7 +46,6 @@ export interface FloatingRootContextOptions {
   referenceElement: Accessor<ReferenceType | null>;
   floatingElement: Accessor<HTMLElement | null>;
   onOpenChange(open: boolean, eventDetails: BaseUIChangeEventDetails): void;
-  triggerElements?: PopupTriggerMap | undefined;
 }
 
 export function createFloatingRootContext(
@@ -89,7 +86,6 @@ export function createFloatingRootContext(
     },
     dataRef,
     events,
-    triggerElements: options.triggerElements ?? new PopupTriggerMap(),
   };
   return context;
 }
