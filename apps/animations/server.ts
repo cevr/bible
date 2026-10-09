@@ -3,7 +3,7 @@
 // the pages the lab builds (`LAB_PAGES`). The lab's own server is the
 // framework's (`labServer`): `bun run lab`, the box's unit.
 
-import { narrationFile } from '@bible/film/tools';
+import { CACHE, narrationFile } from '@bible/film/tools';
 import { BunServices } from '@effect/platform-bun';
 import { Effect, Option } from 'effect';
 import { join } from 'node:path';
@@ -66,7 +66,7 @@ export const narration = (films: string) => (pathname: string) =>
         Option.match({
           onNone: () => new Response('not found', { status: 404 }),
           onSome: (file) =>
-            new Response(Bun.file(file), { headers: { 'Cache-Control': 'no-cache' } }),
+            new Response(Bun.file(file), { headers: { 'Cache-Control': CACHE.fresh } }),
         }),
       ),
       Effect.provide(BunServices.layer),
