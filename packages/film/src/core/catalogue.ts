@@ -422,10 +422,19 @@ export const withdrawScenes = (
     { catalogue, took: [] },
   );
 
-/** `catalogue` after `say` on `subject` (as it is now) at `at`: the one change a say makes. */
-export const said = (catalogue: Catalogue, subject: Subject, say: Say, at: number): Catalogue =>
+/**
+ * `catalogue` after `say` on `subject` (as it is now) at `at`: the one change
+ * a say makes; an approve is of the run `op`, when it names one.
+ */
+export const said = (
+  catalogue: Catalogue,
+  subject: Subject,
+  say: Say,
+  at: number,
+  op: Option.Option<OpId> = Option.none(),
+): Catalogue =>
   Match.valueTags(say, {
-    Approve: () => approve(catalogue, subject, at),
+    Approve: () => approve(catalogue, subject, at, op),
     Withdraw: ({ given }) => withdraw(catalogue, subject, given),
     Comment: ({ text }) => comment(catalogue, subject, text, at),
   });
@@ -529,6 +538,8 @@ export const Project = Schema.Struct({
   variant: Schema.String,
   /** The key the whole film's sources have now. */
   key: Schema.String,
+  /** The mix the film makes now (none when it has no track yet or its plan does not build). */
+  sound: maybe(Schema.String),
   comments: Schema.Array(SaidComment),
   acts: Schema.Array(ProjectAct),
   scenes: Schema.Array(ProjectScene),
@@ -536,6 +547,37 @@ export const Project = Schema.Struct({
   took: maybe(Took),
 });
 export type Project = typeof Project.Type;
+
+/**
+ * What the render at `address` is measured against in `project`, as the film
+ * stands now: the key its sources have and the mix the film makes. None for
+ * an address the project does not list (a short, several scenes at once).
+ * The one rule a render's currency is judged by, in the project and in a
+ * set's approve alike.
+ */
+export const projectNow = (project: Project, address: Address): Option.Option<RenderNow> => {
+  const keyed = (key: string): RenderNow => ({ key, sound: project.sound });
+  return Match.value(address).pipe(
+    Match.tag('Film', () => Option.some(keyed(project.key))),
+    Match.tag('Act', ({ act }) =>
+      Option.map(
+        Arr.findFirst(project.acts, (a) => a.name === act),
+        (a) => keyed(a.key),
+      ),
+    ),
+    Match.tag('Scenes', ({ ids }) =>
+      Option.flatMap(
+        Option.liftPredicate(ids, (i) => i.length === 1),
+        ([id]) =>
+          Option.map(
+            Arr.findFirst(project.scenes, (s) => s.scene === id),
+            (s) => keyed(s.key),
+          ),
+      ),
+    ),
+    Match.orElse(() => Option.none()),
+  );
+};
 
 /** A scene of the film, with the key its sources have now. */
 export interface SceneKey {
@@ -581,6 +623,7 @@ export const projectOf = (catalogue: Catalogue, keyed: Keyed, variant: string): 
   film: catalogue.film,
   variant,
   key: keyed.key,
+  sound: keyed.sound,
   comments: saidOn(catalogue, partSubject({ _tag: 'Film' }, variant, keyed.key)),
   acts: keyed.acts.map((act): ProjectAct => ({
     name: act.act,

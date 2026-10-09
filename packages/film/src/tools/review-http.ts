@@ -4,14 +4,17 @@
 // and a length, and a say on a version of a set. Every route names a file or
 // a folder by its ref (`Review`), never a path on the box.
 
-import { Effect, Option, Result } from 'effect';
+import { Effect, Option, Path, Result } from 'effect';
 import type { HttpServerRequest } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { REVIEW_FILES, REVIEW_PHONE, LabHttpApi } from '../core/api.ts';
+import type { Project } from '../core/catalogue.ts';
 import { PhoneCopyUnmade, ReviewFileUnknown } from '../core/refusals.ts';
 import { answered } from './api-server.ts';
+import { FilmFolder } from './film-repo.ts';
+import { FreshFilm } from './fresh-film.ts';
 import { CACHE, serveFile, urlPath } from './review-file.ts';
-import { Review } from './review.ts';
+import { type ProjectRead, Review } from './review.ts';
 
 /** The ref a `/api/review/files/<ref>` URL names: its path after `prefix`, each segment decoded. */
 export const refFromUrl = (url: string, prefix: string): Option.Option<string> => {
@@ -81,7 +84,21 @@ export const reviewGroup = HttpApiBuilder.group(LabHttpApi, 'review', (handlers)
     )
     .handle('say', ({ params, payload }) =>
       answered(
-        Effect.flatMap(Review, (review) => review.say(params.folder, params.point, payload)),
+        Effect.gen(function* () {
+          const review = yield* Review;
+          const fresh = yield* FreshFilm;
+          const folders = yield* FilmFolder;
+          const path = yield* Path.Path;
+          // An approve is judged by the film's sources now, read in a fresh process: only for a
+          // folder that is this checkout's own for the film, the one whose sources are here.
+          const project: ProjectRead = (film, out) =>
+            Effect.gen(function* () {
+              if (path.resolve(folders.paths(film).out) !== path.resolve(out))
+                return Option.none<Project>();
+              return Option.some(yield* fresh.project([film, '--json']));
+            }).pipe(Effect.mapError((failure) => failure.message));
+          return yield* review.say(params.folder, params.point, payload, project);
+        }),
       ),
     ),
 );

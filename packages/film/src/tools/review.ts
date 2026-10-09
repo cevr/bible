@@ -53,8 +53,10 @@ import {
   CatalogueJson,
   MAIN_VARIANT,
   type Render,
+  type Project,
   approvalState,
   commentsOn,
+  projectNow,
   recordedNow,
   said,
   renderState,
@@ -496,6 +498,18 @@ const walked = (rel: string): boolean => {
   return !dirs.some((d) => d.startsWith('.') || SKIP_DIRS.includes(d));
 };
 
+/**
+ * How an approve reads the film's project as it stands now: the project of
+ * the film `film`, whose catalogue is in the folder `out`, read in a fresh
+ * process; none for a folder that is not this checkout's own for the film
+ * (its sources are not here to judge by: its record judges); or why it could
+ * not be read.
+ */
+export type ProjectRead = (
+  film: string,
+  out: string,
+) => Effect.Effect<Option.Option<Project>, string>;
+
 interface ReviewService {
   readonly roots: ReadonlyArray<ReviewRoot>;
   /** Every folder under the roots with something to review, newest first; read again when `fresh` or stale. */
@@ -519,12 +533,16 @@ interface ReviewService {
    * own catalogue, answered with the folder as the say leaves it. A montage
    * keeps no say (its manifest is written by hand). The version is checked
    * again inside the catalogue's write: one made again since the index showed
-   * it is `VersionChanged`, and an approval is refused by its state then.
+   * it is `VersionChanged`, and an approval is refused by its state then:
+   * against the film's sources as `project` reads them now, the rule the
+   * project's own approve judges by, else (a folder not this checkout's, an
+   * address the project does not list) against its record.
    */
   readonly say: (
     folder: string,
     point: string,
     asked: SetSayPost,
+    project: ProjectRead,
   ) => Effect.Effect<
     ReviewFolder,
     | ReviewFileUnknown
@@ -945,6 +963,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           ref: string,
           point: string,
           asked: SetSayPost,
+          project: ProjectRead,
         ) {
           const unknown = ReviewFileUnknown.make({ ref });
           const dir = pathOf(roots, ref, path);
@@ -979,6 +998,16 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           const at = yield* Clock.currentTimeMillis;
           const subject = subjectAt(set.ref, address, variant);
           const { film } = yield* catalogues.read({ name: ref, out: dir.value });
+          // An approve is of a version as the film's sources make it now: read once, here,
+          // beside the write's own check of the version.
+          const sourcesNow = yield* Option.match(
+            Option.liftPredicate(asked.say, (s) => s._tag === 'Approve'),
+            {
+              onNone: () => Effect.succeed(Option.none<Project>()),
+              onSome: () =>
+                Effect.mapError(project(film, dir.value), (reason) => refused('approve', reason)),
+            },
+          );
           // The index may be up to INDEX_FRESH old: the version is checked
           // against the catalogue as the write reads it, and the say written
           // only of the version that was shown. A refusal fails the write before
@@ -1002,14 +1031,23 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
                 () =>
                   approvalRefused(
                     set.kind,
-                    Option.match(recordedNow(catalogue, address), {
-                      onNone: () => ({ state: 'current' as const, staleBy: Option.none() }),
-                      onSome: (latest) => renderState(render, latest),
-                    }),
+                    Option.match(
+                      Option.orElse(
+                        Option.flatMap(sourcesNow, (p) => projectNow(p, address)),
+                        () => recordedNow(catalogue, address),
+                      ),
+                      {
+                        onNone: () => ({ state: 'current' as const, staleBy: Option.none() }),
+                        onSome: (now) => renderState(render, now),
+                      },
+                    ),
                   ),
               );
               if (Option.isSome(stale)) return Result.fail(refused('approve', stale.value));
-              return Result.succeed([variant.id, said(catalogue, subject, asked.say, at)] as const);
+              return Result.succeed([
+                variant.id,
+                said(catalogue, subject, asked.say, at, Option.fromUndefinedOr(asked.op)),
+              ] as const);
             })
             .pipe(
               // The index reads the folder again on its next ask: it changed, or

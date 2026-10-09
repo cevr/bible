@@ -55,6 +55,10 @@ import { OptionsApi } from './options/api.ts';
 import { newestAsked } from './asked.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { ApproveButton, Comments, SayBox } from './options/choice.tsx';
+import { approveUndoOf, undoApprove } from './options/receipt.ts';
+import { quiet } from '../../command/command.ts';
+import { OpId } from '../../core/catalogue.ts';
+import { uniqueId } from '../../core/unique.ts';
 import type { ThingVerb } from './things.ts';
 import { Go, SetProvider, type Shown, useReview, useSet } from './context.tsx';
 import {
@@ -600,6 +604,20 @@ const ViewTabs = () => {
 
 const letterOf = (set: SeenPoint, id: string) => set.variants.findIndex((v) => v.id === id) + 1;
 
+/** The scene a set's render is of, when it is one scene's alone: the one an approve's Undo names. */
+const sceneOf = (set: SeenPoint): Option.Option<string> =>
+  Option.flatMap(set.address, (address) =>
+    Match.value(address).pipe(
+      Match.tag('Scenes', ({ ids }) =>
+        Option.map(
+          Option.liftPredicate(ids, (i) => i.length === 1),
+          ([id]) => id,
+        ),
+      ),
+      Match.orElse(() => Option.none<string>()),
+    ),
+  );
+
 /** What the set page's says hold: each version as the newest say left it, and a control's own say. */
 interface SetSays {
   /** `version` as the newest say shown left it (its approval, its comments). */
@@ -631,6 +649,11 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
       ),
       () => id,
     );
+  // A project folder's film and a render set of one scene: where an approve names its own run.
+  const film = props.folder.title;
+  const scene = sceneOf(props.set);
+  /** The version each approve run named was of, for its Undo. */
+  const runs = new Map<string, string>();
   const [said, setSaid] = createSignal(Option.none<SeenPoint>());
   const pointIn = (folder: ReviewFolder) =>
     Option.map(Option.fromUndefinedOr(folder.sets.find((s) => s.id === props.set.id)), seenPoint);
@@ -651,23 +674,67 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
         (asked) => ({
           doing: 'saying…',
           done: () => sayText(asked.say, versionText(asked.variant)),
+          // An approve of a scene's render offers its Undo, bound to the run it named.
+          undo: () =>
+            Option.map(
+              Option.all({
+                film,
+                scene,
+                op: Option.fromUndefinedOr(asked.op),
+              }),
+              (of) => approveUndoOf(of.film, of.op, [of.scene]),
+            ),
         }),
       );
       return {
         waiting: own.waiting,
-        say: (version, say) =>
-          own.write({ variant: version, say }).then((landed) =>
-            Option.match(landed, {
-              onNone: () => false,
-              onSome: (l) => {
-                l.show('set', pointIn, (p) => setSaid(Option.some(p)));
-                return l.succeeded;
-              },
-            }),
-          ),
+        say: (version, say) => {
+          // A scene's approve names its own run, so its Undo takes back just that approval.
+          const run = Option.filter(Option.all({ film, scene }), () => say._tag === 'Approve').pipe(
+            Option.map(() => Effect.runSync(uniqueId(OpId))),
+          );
+          for (const op of Option.toArray(run)) runs.set(op, version);
+          return own
+            .write({
+              variant: version,
+              say,
+              ...Option.match(run, { onNone: () => ({}), onSome: (op) => ({ op }) }),
+            })
+            .then((landed) =>
+              Option.match(landed, {
+                onNone: () => false,
+                onSome: (l) => {
+                  l.show('set', pointIn, (p) => setSaid(Option.some(p)));
+                  return l.succeeded;
+                },
+              }),
+            );
+        },
       };
     },
   };
+  // An approve's Undo (`undoApprove`): a withdraw of the version that run approved, given the run.
+  const undoing = value.useSay();
+  const { meta } = useReview();
+  for (const of of Option.toArray(film)) {
+    onCleanup(
+      meta.hub.commands.register(
+        undoApprove(of, {
+          waiting: undoing.waiting,
+          withdraw: (_, say) =>
+            Effect.sync(() => {
+              if (say._tag === 'Withdraw') {
+                const version = Option.flatMap(say.given, (op) =>
+                  Option.fromUndefinedOr(runs.get(op)),
+                );
+                for (const v of Option.toArray(version)) void undoing.say(v, say);
+              }
+              return quiet;
+            }),
+        }),
+      ),
+    );
+  }
   return <SetSaysContext value={value}>{props.children}</SetSaysContext>;
 };
 

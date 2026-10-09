@@ -14,13 +14,16 @@ import { type Address, sceneAddress } from '../core/address.ts';
 import {
   type Catalogue,
   CatalogueJson,
+  OpId,
   type Render,
   approve,
   comment,
   emptyCatalogue,
+  projectOf,
   recordRender,
   subjectOf,
 } from '../core/catalogue.ts';
+import { withdrawSay } from '../core/api.ts';
 import { type ChoiceVariant, VariantMedia } from '../core/choice.ts';
 import { type ReviewFolder, type ReviewIndex, ReviewManifestJson } from '../core/review.ts';
 import { RenderCatalogue } from './catalogue.ts';
@@ -29,6 +32,7 @@ import { Media } from './media.ts';
 import { reviewMedia } from './testing.ts';
 import {
   type Found,
+  type ProjectRead,
   Review,
   montageFolder,
   namesInMontage,
@@ -509,6 +513,9 @@ const fixture = (phoneCopies: boolean) =>
 const writeText = (file: string, text: string) =>
   Effect.flatMap(FileSystem.FileSystem, (fs) => fs.writeFileString(file, text));
 
+/** A say judged by the record alone: no project is read (a folder that is not this checkout's own). */
+const byRecord: ProjectRead = () => Effect.succeedNone;
+
 describe('the review service', () => {
   it.effect('indexes the roots by their records: a montage, and a project by its catalogue', () =>
     Effect.gen(function* () {
@@ -566,10 +573,12 @@ describe('the review service', () => {
         const projectIn = (index: ReviewIndex) =>
           Option.fromUndefinedOr(index.folders.find((f) => f.ref === 'out/f'));
         const film = Option.getOrThrow(projectIn(yield* review.index(false))).sets[0]?.id ?? '';
-        const answered = yield* review.say('out/f', film, {
-          variant: 'main',
-          say: { _tag: 'Comment', text: 'warmer' },
-        });
+        const answered = yield* review.say(
+          'out/f',
+          film,
+          { variant: 'main', say: { _tag: 'Comment', text: 'warmer' } },
+          byRecord,
+        );
         expect(answered.ref).toBe('out/f');
         expect(commentsOf(Option.some(answered), film)).toEqual(['warmer']);
         const onDisk = yield* Schema.decodeEffect(CatalogueJson)(
@@ -580,7 +589,7 @@ describe('the review service', () => {
         expect(commentsOf(projectIn(yield* review.index(false)), film)).toEqual(['warmer']);
         const tagOf = (ref: string, point: string, variant: string) =>
           Effect.map(
-            Effect.flip(review.say(ref, point, { variant, say: { _tag: 'Approve' } })),
+            Effect.flip(review.say(ref, point, { variant, say: { _tag: 'Approve' } }, byRecord)),
             (e) => e._tag,
           );
         // A montage keeps no say; a set, a version or a folder that is not there is named.
@@ -623,22 +632,96 @@ describe('the review service', () => {
         ]);
         const before = yield* asItIs;
         const refused = yield* Effect.flip(
-          review.say('out/f', film, { variant: 'main', say: { _tag: 'Approve' } }),
+          review.say('out/f', film, { variant: 'main', say: { _tag: 'Approve' } }, byRecord),
         );
         expect(refused._tag).toBe('VersionChanged');
         expect(yield* asItIs).toEqual(before);
         // Read again, the version now shown is approved as it is.
-        const now = yield* review.say('out/f', film, { variant: 'main', say: { _tag: 'Approve' } });
+        const now = yield* review.say(
+          'out/f',
+          film,
+          { variant: 'main', say: { _tag: 'Approve' } },
+          byRecord,
+        );
         const main = now.sets.find((s) => s.id === film)?.variants.find((v) => v.id === 'main');
         expect([main?.key, main?.approval]).toEqual(['k2', 'approved']);
         // wide, drawn from k1, is stale beside main's k2: its approval is refused, the file untouched.
         const approved = yield* asItIs;
         const wide = yield* Effect.flip(
-          review.say('out/f', film, { variant: 'wide', say: { _tag: 'Approve' } }),
+          review.say('out/f', film, { variant: 'wide', say: { _tag: 'Approve' } }, byRecord),
         );
         expect(wide._tag).toBe('VerbRefused');
         expect(wide.message).toContain('stale');
         expect(yield* asItIs).toEqual(approved);
+      }).pipe(Effect.provide(fixture(false))),
+  );
+
+  it.effect(
+    "an approve is judged by the film's sources now, as the project judges it, not by the record",
+    () =>
+      Effect.gen(function* () {
+        const review = yield* Review;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const file = path.join(yield* Root, 'out', 'f', 'catalogue.json');
+        const shown = Option.getOrThrow(
+          Option.fromUndefinedOr(
+            (yield* review.index(false)).folders.find((f) => f.ref === 'out/f'),
+          ),
+        );
+        const scene = shown.sets.find((s) => s.title === 'scene a')?.id ?? '';
+        // The film's sources now: scene `a` carries `key`; the record's newest render says k1.
+        const readAs =
+          (key: string): ProjectRead =>
+          () =>
+            Effect.succeedSome(
+              projectOf(
+                PROJECT,
+                { key: 'film-now', sound: Option.none(), acts: [], scenes: [{ scene: 'a', key }] },
+                'main',
+              ),
+            );
+        const before = yield* fs.readFileString(file);
+        // Drawn from k1, the scene's sources are k2 now: the record knows no better, the project does.
+        const refused = yield* Effect.flip(
+          review.say('out/f', scene, { variant: 'main', say: { _tag: 'Approve' } }, readAs('k2')),
+        );
+        expect(refused._tag).toBe('VerbRefused');
+        expect(refused.message).toContain('stale');
+        expect(yield* fs.readFileString(file)).toBe(before);
+        // A project that cannot be read judges nothing: the approve is refused, not let through.
+        const unread = yield* Effect.flip(
+          review.say('out/f', scene, { variant: 'main', say: { _tag: 'Approve' } }, () =>
+            Effect.fail('the film did not load'),
+          ),
+        );
+        expect(unread._tag).toBe('VerbRefused');
+        expect(unread.message).toContain('the film did not load');
+        expect(yield* fs.readFileString(file)).toBe(before);
+        // Current against the sources now, it is approved by the run the page named, so its Undo is exact.
+        const op = OpId.make('op-1');
+        const now = yield* review.say(
+          'out/f',
+          scene,
+          { variant: 'main', say: { _tag: 'Approve' }, op },
+          readAs('k1'),
+        );
+        expect(
+          now.sets.find((s) => s.id === scene)?.variants.find((v) => v.id === 'main')?.approval,
+        ).toBe('approved');
+        const onDisk = yield* Schema.decodeEffect(CatalogueJson)(yield* fs.readFileString(file));
+        expect(onDisk.approvals.map((a) => a.op)).toEqual([Option.some(op)]);
+        // A withdraw given that op takes just that approval.
+        const withdrawn = yield* review.say(
+          'out/f',
+          scene,
+          { variant: 'main', say: withdrawSay(Option.some(op)) },
+          readAs('k1'),
+        );
+        expect(
+          withdrawn.sets.find((s) => s.id === scene)?.variants.find((v) => v.id === 'main')
+            ?.approval,
+        ).toBe('none');
       }).pipe(Effect.provide(fixture(false))),
   );
 

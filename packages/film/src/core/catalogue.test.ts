@@ -16,6 +16,7 @@ import {
   type SceneKey,
   renderNeed,
   partSubject,
+  projectNow,
   projectOf,
   recordRender,
   renderIn,
@@ -413,4 +414,35 @@ test('catalogue.json round-trips through its schema', () => {
   const catalogue = comment(approve(withRenders(render), of(render), 1), of(render), 'ok', 2);
   const text = Schema.encodeSync(CatalogueJson)(catalogue);
   expect(Schema.decodeSync(CatalogueJson)(text)).toEqual(catalogue);
+});
+
+describe("what a part is measured against in the project's read", () => {
+  const project = projectOf(
+    emptyCatalogue('f'),
+    {
+      key: 'film-k',
+      sound: Option.some('mix-1'),
+      acts: [{ act: 'one', scenes: ['a'], key: 'act-k' }],
+      scenes: [{ scene: 'a', key: 'k-a' }],
+    },
+    'main',
+  );
+
+  test('the film, an act and one scene each carry their key and the film mix', () => {
+    expect(projectNow(project, { _tag: 'Film' })).toEqual(
+      Option.some({ key: 'film-k', sound: Option.some('mix-1') }),
+    );
+    expect(projectNow(project, { _tag: 'Act', act: 'one' })).toEqual(
+      Option.some({ key: 'act-k', sound: Option.some('mix-1') }),
+    );
+    expect(projectNow(project, sceneAddress('a'))).toEqual(
+      Option.some({ key: 'k-a', sound: Option.some('mix-1') }),
+    );
+  });
+
+  test('a part the project does not list, or several scenes at once, is judged by none', () => {
+    expect(projectNow(project, sceneAddress('zzz'))).toEqual(Option.none());
+    expect(projectNow(project, { _tag: 'Act', act: 'nope' })).toEqual(Option.none());
+    expect(projectNow(project, { _tag: 'Scenes', ids: ['a', 'b'] })).toEqual(Option.none());
+  });
 });

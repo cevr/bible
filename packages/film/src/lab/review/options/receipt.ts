@@ -24,7 +24,7 @@ import {
 } from '../../../command/command.ts';
 import type { PartAddress } from '../../../core/address.ts';
 import { type ProjectView, type Say, withdrawSay } from '../../../core/api.ts';
-import type { Took } from '../../../core/catalogue.ts';
+import type { OpId, Took } from '../../../core/catalogue.ts';
 import type { ChoicePoint, ChoiceVerb, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import { plural } from '../../../core/words.ts';
 import type { LabFailure } from '../../api.ts';
@@ -191,8 +191,17 @@ const UNDO_APPROVE: CommandId = 'project.undo-approve';
 export const approveUndo = (film: string, after: ProjectView): Option.Option<Undoing> =>
   Option.map(
     Option.filter(after.project.gave, (g) => g.scenes.length > 0),
-    ({ op, scenes }) => ({ command: UNDO_APPROVE, bound: { film, gave: { op, scenes } } }),
+    ({ op, scenes }) => approveUndoOf(film, op, scenes),
   );
+
+/**
+ * The Undo of the approve run `op` that approved `scenes` of `film`: a set's
+ * approve of a scene's render, which named its own run, offers it.
+ */
+export const approveUndoOf = (film: string, op: OpId, scenes: ReadonlyArray<string>): Undoing => ({
+  command: UNDO_APPROVE,
+  bound: { film, gave: { op, scenes } },
+});
 
 /**
  * What an approve's Undo says it did, from what the catalogue says it took

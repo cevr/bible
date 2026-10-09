@@ -336,8 +336,17 @@ export const withdrawSay = (given: Option.Option<OpId> = Option.none()): Say => 
 export const SayPost = Schema.Struct({ point: Schema.String, variant: Schema.String, say: Say });
 export type SayPost = typeof SayPost.Type;
 
-/** `POST /api/review/sets/<folder>/<point>/say`: a say on one version of a set, as it is now. */
-export const SetSayPost = Schema.Struct({ variant: Schema.String, say: Say });
+/**
+ * `POST /api/review/sets/<folder>/<point>/say`: a say on one version of a set,
+ * as it is now. An approve may name the run it is (`op`), as a scene's approve
+ * does: the approval then carries it, and a withdraw given it takes back just
+ * that one.
+ */
+export const SetSayPost = Schema.Struct({
+  variant: Schema.String,
+  say: Say,
+  op: Schema.optionalKey(OpId),
+});
 export type SetSayPost = typeof SetSayPost.Type;
 
 /** A file answered as it lies (a still, a take, a render, a mix): its type is the file's. */

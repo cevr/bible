@@ -39,6 +39,7 @@ const VIEW: ProjectView = {
     film: 'toy',
     variant: 'main',
     key: 'k',
+    sound: Option.none(),
     comments: [],
     acts: [{ name: 'open', scenes: ['one', 'two'], key: 'k', comments: [] }],
     scenes: [scene('one', 'stale'), scene('two', 'current', 'approved'), scene('three', 'missing')],
