@@ -30,7 +30,7 @@ export interface Picks {
 }
 
 /** Nothing picked, nothing read. */
-export const NO_PICKS: Picks = { cue: Option.none(), knob: Option.none(), read: [] };
+const NO_PICKS: Picks = { cue: Option.none(), knob: Option.none(), read: [] };
 
 /** What is lit at a frame. */
 export interface Lit {

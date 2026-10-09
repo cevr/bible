@@ -146,7 +146,7 @@ export const fitsPhone = (page: Tab, layer?: string) =>
  * own scroll, which a box that scrolls on its own hides): a code view's inner
  * scroller, not a strip that scrolls on purpose. Empty when none does.
  */
-export const sidewaysBoxes = (selector: string) => `(() => {
+const sidewaysBoxes = (selector: string) => `(() => {
   const roots = [...document.querySelectorAll(${jsonOf(selector)})];
   const boxes = roots.flatMap((r) => [r, ...r.querySelectorAll('*')]);
   return boxes
