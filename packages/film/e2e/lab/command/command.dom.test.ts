@@ -193,6 +193,7 @@ describe("a cue's context menu", () => {
         'edit.nudge-down',
         'edit.nudge-down',
         'edit.cue-next',
+        'lab.source.cue',
         'link.copy',
         'app.command-menu',
       ]);
