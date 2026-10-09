@@ -94,7 +94,7 @@ import { ReviewPlace as Place } from './place.ts';
 import { HearToggle, PlayedAlone, Transport, useClockMedia } from './player.tsx';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
-import { hubKeys } from '../command/changes.ts';
+import { hubKeys, registerWhile } from '../command/changes.ts';
 import { wipeCommands, wipeTitle } from '../wipe-keys.ts';
 
 /** A version of `set` in `folder`, as a selection: what a version's card is. */
@@ -319,16 +319,18 @@ const Doc = (props: { readonly doc: ReviewFile }) => {
         <b>{props.doc.name}</b> <span class="rv-hint">{agoText(props.doc.mtime, now)}</span>
       </summary>
       <Show when={open()}>
-        <Markdown file={props.doc.ref} />
+        <Markdown file={props.doc} />
       </Show>
     </details>
   );
 };
 
-/** A markdown file's text, shown as HTML (every character of it escaped first). */
-const Markdown = (props: { readonly file: string }) => {
+/**
+ * A markdown file's text, shown as HTML (every character of it escaped
+ * first): the file as the index names it, so a file written again is read again.
+ */
+const Markdown = (props: { readonly file: ReviewFile }) => {
   const { meta } = useReview();
-
   const read = useAtomValue(() => meta.text(props.file));
   return (
     <div
@@ -573,7 +575,7 @@ const ViewTabs = () => {
   return (
     <>
       <div class="sh-seg rv-views">
-        <For each={modesOf(set.variants.length)}>
+        <For each={modesOf(set().variants.length)}>
           {(mode) => (
             <button
               type="button"
@@ -654,16 +656,21 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
       () => id,
     );
   // A project folder's film and a render set of one scene: where an approve names its own run.
-  const film = props.folder.title;
-  const scene = sceneOf(props.set);
-  const [said, setSaid] = createSignal(Option.none<SeenPoint>());
+  const film = () => props.folder.title;
+  const scene = () => sceneOf(props.set);
+  // The newest say's answer, over the set as the index then read it: a newer
+  // read of the index already holds the say, so the answer stands only until then.
+  const [said, setSaid] = createSignal(
+    Option.none<{ readonly over: SeenPoint; readonly answer: SeenPoint }>(),
+  );
   const pointIn = (folder: ReviewFolder) =>
     Option.map(Option.fromUndefinedOr(folder.sets.find((s) => s.id === props.set.id)), seenPoint);
   const value: SetSays = {
     now: (version) =>
       Option.getOrElse(
-        Option.flatMap(said(), (p) =>
-          Option.fromUndefinedOr(p.variants.find((v) => v.id === version.id)),
+        Option.flatMap(
+          Option.filter(said(), (s) => s.over === props.set),
+          ({ answer }) => Option.fromUndefinedOr(answer.variants.find((v) => v.id === version.id)),
         ),
         () => version,
       ),
@@ -680,8 +687,8 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
           undo: () =>
             Option.map(
               Option.all({
-                film,
-                scene,
+                film: film(),
+                scene: scene(),
                 op: Option.fromUndefinedOr(asked.op),
               }),
               (of) =>
@@ -698,9 +705,10 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
         waiting: own.waiting,
         say: (version, say) => {
           // A scene's approve names its own run, so its Undo takes back just that approval.
-          const run = Option.filter(Option.all({ film, scene }), () => say._tag === 'Approve').pipe(
-            Option.map(() => Effect.runSync(uniqueId(OpId))),
-          );
+          const run = Option.filter(
+            Option.all({ film: film(), scene: scene() }),
+            () => say._tag === 'Approve',
+          ).pipe(Option.map(() => Effect.runSync(uniqueId(OpId))));
           return own
             .write({
               variant: version,
@@ -711,7 +719,9 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
               Option.match(landed, {
                 onNone: () => false,
                 onSome: (l) => {
-                  l.show('set', pointIn, (p) => setSaid(Option.some(p)));
+                  l.show('set', pointIn, (answer) =>
+                    setSaid(Option.some({ over: props.set, answer })),
+                  );
                   return l.succeeded;
                 },
               }),
@@ -723,38 +733,36 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
   // An approve's Undo (`undoApprove`): a withdraw of the version that run approved, given the run.
   const undoing = value.useSay();
   const { meta } = useReview();
-  for (const of of Option.toArray(film)) {
-    onCleanup(
-      meta.hub.commands.register(
-        undoApprove(of, {
-          waiting: undoing.waiting,
-          // One withdraw, of the version the receipt names, given its run: nothing is read
-          // of the page's state, so a reload or a stale render changes nothing.
-          withdraw: (_, say, approved) =>
-            Option.match(
-              Option.filter(approved, (a) => a.point === props.set.id),
-              {
-                onNone: () =>
-                  Effect.succeed(
-                    refused(
-                      Option.match(approved, {
-                        onNone: () =>
-                          'that approve was kept before it named its version: approve again to undo it',
-                        onSome: () => 'that approve was of another set',
-                      }),
-                    ),
+  registerWhile(meta.hub, () =>
+    Option.toArray(film()).map((of) =>
+      undoApprove(of, {
+        waiting: undoing.waiting,
+        // One withdraw, of the version the receipt names, given its run: nothing is read
+        // of the page's state, so a reload or a stale render changes nothing.
+        withdraw: (_, say, approved) =>
+          Option.match(
+            Option.filter(approved, (a) => a.point === props.set.id),
+            {
+              onNone: () =>
+                Effect.succeed(
+                  refused(
+                    Option.match(approved, {
+                      onNone: () =>
+                        'that approve was kept before it named its version: approve again to undo it',
+                      onSome: () => 'that approve was of another set',
+                    }),
                   ),
-                onSome: (a) =>
-                  Effect.as(
-                    Effect.promise(() => undoing.say(a.version, say)),
-                    quiet,
-                  ),
-              },
-            ),
-        }),
-      ),
-    );
-  }
+                ),
+              onSome: (a) =>
+                Effect.as(
+                  Effect.promise(() => undoing.say(a.version, say)),
+                  quiet,
+                ),
+            },
+          ),
+      }),
+    ),
+  );
   return <SetSaysContext value={value}>{props.children}</SetSaysContext>;
 };
 
@@ -770,9 +778,9 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
   const now = useReview().meta.now();
   const version = () => says.now(props.version);
   // A card is keyed by its version: its selection is fixed for as long as it lives.
-  const selection = untrack(() => versionOf(folder, set, props.version.id));
-  const title = () => `${letterOf(set, props.version.id)} · ${props.version.label}`;
-  const sayable = Option.isSome(set.address);
+  const selection = untrack(() => versionOf(folder(), set(), props.version.id));
+  const title = () => `${letterOf(set(), props.version.id)} · ${props.version.label}`;
+  const sayable = () => Option.isSome(set().address);
   // The set's says as a card's `Sayer` (a version is a variant, said by its id).
   const sayer: Sayer = {
     use: () => {
@@ -784,8 +792,8 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
   useThing({
     selection,
     title,
-    commentable: () => sayable,
-    verbs: () => approvalVerbs(version(), saying, sayable),
+    commentable: sayable,
+    verbs: () => approvalVerbs(version(), saying, sayable()),
   });
   return (
     <Inspector of={selection} kind="version" title={title()}>
@@ -801,15 +809,15 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
             {agoText(version().video.mtime, now)}
           </p>
           <Show when={Option.getOrUndefined(version().notes)} keyed>
-            {(notes: ReviewFile) => <Markdown file={notes.ref} />}
+            {(notes: ReviewFile) => <Markdown file={notes} />}
           </Show>
-          <Show when={sayable}>
+          <Show when={sayable()}>
             <div class="rv-row">
               <Approval variant={version()} sayer={sayer} />
             </div>
           </Show>
           <Comments comments={version().comments} />
-          <Show when={sayable}>
+          <Show when={sayable()}>
             <CommentBox variant={version()} sayer={sayer} box={box} />
           </Show>
         </>
@@ -823,7 +831,7 @@ const VersionName = (props: { readonly version: SeenVariant }) => {
   const { folder, set } = useSet();
   const says = useContext(SetSaysContext);
   // A card is keyed by its version: its selection is fixed for as long as it lives.
-  const selection = untrack(() => versionOf(folder, set, props.version.id));
+  const selection = untrack(() => versionOf(folder(), set(), props.version.id));
   return (
     <InspectName of={selection} comments={says.now(props.version).comments.length}>
       <span class="rv-name">{props.version.label}</span>
@@ -865,6 +873,8 @@ const StaleTag = (props: { readonly variant: SeenVariant }) => (
 const VariantVideo = (props: { readonly variant: SeenVariant; readonly class?: string }) => {
   const { state } = useReview();
   const { driver } = useSet();
+  // A card is kept by its version (`EachVersion`): its place on the clock is that version's for as long as it lives.
+  const id = untrack(() => props.variant.id);
   const source = createMemo(() => videoSource(props.variant.video, state.quality()));
   return (
     <Show
@@ -880,7 +890,7 @@ const VariantVideo = (props: { readonly variant: SeenVariant; readonly class?: s
           playsinline
           muted
           src={src}
-          ref={useClockMedia(driver, props.variant.id)}
+          ref={useClockMedia(driver, id)}
         />
       )}
     </Show>
@@ -897,7 +907,7 @@ const VariantCap = (props: { readonly variant: SeenVariant }) => {
   const audible = () => sync().audible === props.variant.id;
   return (
     <div class="rv-cap">
-      <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
+      <span class="rv-letter">{letterOf(set(), props.variant.id)}</span>
       <VersionName version={props.variant} />
       <StaleBadge variant={props.variant} />
       <HearToggle
@@ -920,7 +930,7 @@ const VersionCard = (
 ) => {
   const { folder, set, sync } = useSet();
   // A card is keyed by its version: its selection is fixed for as long as it lives.
-  const of = untrack(() => versionOf(folder, set, props.version));
+  const of = untrack(() => versionOf(folder(), set(), props.version));
   const inspected = useInspected(of);
   return (
     <Target
@@ -950,11 +960,27 @@ const gridClass = (count: number) => {
   return 'rv-grid rv-wide';
 };
 
+/**
+ * The set's versions, each drawn by `children` and kept by its id: a
+ * refreshed index moves a version's data under its card (its video, its
+ * caption), a version gone takes its card with it.
+ */
+const EachVersion = (props: {
+  readonly of: ReadonlyArray<SeenVariant>;
+  readonly children: (variant: Accessor<SeenVariant>) => JSX.Element;
+}) => (
+  <For each={props.of} keyed={(v) => v.id}>
+    {(variant) => props.children(variant)}
+  </For>
+);
+
 const AllView = () => {
   const { set } = useSet();
   return (
-    <div class={gridClass(set.variants.length)}>
-      <For each={set.variants}>{(variant) => <VariantCard variant={variant} />}</For>
+    <div class={gridClass(set().variants.length)}>
+      <EachVersion of={set().variants}>
+        {(variant) => <VariantCard variant={variant()} />}
+      </EachVersion>
     </div>
   );
 };
@@ -972,41 +998,42 @@ const OtherPick = (props: { readonly other: string }) => {
     <div class="rv-row rv-pick">
       <span class="rv-hint">
         {Option.getOrElse(
-          Option.map(Option.fromUndefinedOr(set.variants[0]), (v) => v.label),
+          Option.map(Option.fromUndefinedOr(set().variants[0]), (v) => v.label),
           () => '',
         )}{' '}
         against:
       </span>
-      <For each={set.variants.slice(1)}>
+      <EachVersion of={set().variants.slice(1)}>
         {(variant) => (
           <button
             type="button"
             class="sh-btn"
-            data-other={variant.id}
-            aria-pressed={pressed(variant.id === props.other)}
-            onClick={() => send.view(ViewEvent.OtherChosen({ id: variant.id }))}
+            data-other={variant().id}
+            aria-pressed={pressed(variant().id === props.other)}
+            onClick={() => send.view(ViewEvent.OtherChosen({ id: variant().id }))}
           >
-            {variant.label}
+            {variant().label}
           </button>
         )}
-      </For>
+      </EachVersion>
     </div>
   );
 };
 
+/** The pair's versions there are, the first then the other. */
+const bothOf = (pair: ReturnType<typeof pairOf>): ReadonlyArray<SeenVariant> =>
+  [pair.first, pair.other].flatMap(Option.toArray);
+
 const PairView = (props: { readonly other: string }) => {
   const { set } = useSet();
-  const pair = () => pairOf(set, props.other);
+  const pair = () => pairOf(set(), props.other);
   return (
     <>
       <OtherPick other={props.other} />
       <div class="rv-grid rv-two">
-        <Show when={Option.getOrUndefined(pair().first)} keyed>
-          {(variant: SeenVariant) => <VariantCard variant={variant} />}
-        </Show>
-        <Show when={Option.getOrUndefined(pair().other)} keyed>
-          {(variant: SeenVariant) => <VariantCard variant={variant} />}
-        </Show>
+        <EachVersion of={bothOf(pair())}>
+          {(variant) => <VariantCard variant={variant()} />}
+        </EachVersion>
       </div>
     </>
   );
@@ -1026,20 +1053,27 @@ const engineWhy = (chosen: Option.Option<Compare>) =>
     return Option.none();
   });
 
+/** The wipe's panes: the player chosen for the pair's masters, and the pair's ids. */
+interface Panes {
+  readonly chosen: Compare;
+  readonly first: string;
+  readonly other: string;
+}
+
+/** The same panes: the same player for the same pair. */
+const samePanes = Option.makeEquivalence<Panes>(
+  (a, b) => a.chosen === b.chosen && a.first === b.first && a.other === b.other,
+);
+
 /**
  * The pair as the compare's WebCodecs panes (`Media.compare`): each master
  * painted on a canvas, both on one clock, held by the set's clock in place
  * of the videos; let go when the wipe closes.
  */
-const WipePanes = (props: {
-  readonly chosen: Compare;
-  readonly first: SeenVariant;
-  readonly other: SeenVariant;
-  readonly at: () => string;
-}) => {
+const WipePanes = (props: Panes & { readonly at: () => string }) => {
   const { driver } = useSet();
   const canvases: Array<HTMLCanvasElement> = [];
-  const ids = [props.first.id, props.other.id];
+  const ids = [props.first, props.other];
   let made = Option.none<ComparePanes>();
   const releases: Array<() => void> = [];
   // Once both canvases are in the page; let go with the wipe (a cleanup inside `onSettled` is refused).
@@ -1058,9 +1092,9 @@ const WipePanes = (props: {
   );
   return (
     <>
-      <canvas class="rv-wipe-first" data-id={props.first.id} ref={(el) => canvases.push(el)} />
+      <canvas class="rv-wipe-first" data-id={props.first} ref={(el) => canvases.push(el)} />
       <div class="rv-wipe-other" style={{ 'clip-path': `inset(0 0 0 ${props.at()})` }}>
-        <canvas data-id={props.other.id} ref={(el) => canvases.push(el)} />
+        <canvas data-id={props.other} ref={(el) => canvases.push(el)} />
       </div>
     </>
   );
@@ -1076,7 +1110,7 @@ const WipePanes = (props: {
 const WipeView = (props: { readonly other: string }) => {
   const { meta } = useReview();
   const { set } = useSet();
-  const pair = () => pairOf(set, props.other);
+  const pair = () => pairOf(set(), props.other);
   const [split, setSplit] = createSignal(WIPE_AT, { ownedWrite: true });
   let frame = Option.none<HTMLElement>();
   /** The divider follows one press at a time: a second finger's moves nothing. */
@@ -1136,12 +1170,17 @@ const WipeView = (props: { readonly other: string }) => {
       };
     },
   );
-  const panes = () =>
-    Option.all({
-      chosen: Option.filter(chosen(), (c) => c.engine.engine === 'webcodecs'),
-      first: pair().first,
-      other: pair().other,
-    });
+  // The panes are the player chosen for the pair's masters: a refreshed index
+  // that leaves the masters as they were keeps them (a new master asks again).
+  const panes = createMemo(
+    (): Option.Option<Panes> =>
+      Option.all({
+        chosen: Option.filter(chosen(), (c) => c.engine.engine === 'webcodecs'),
+        first: Option.map(pair().first, (v) => v.id),
+        other: Option.map(pair().other, (v) => v.id),
+      }),
+    { equals: samePanes },
+  );
   return (
     <>
       <OtherPick other={props.other} />
@@ -1159,22 +1198,20 @@ const WipeView = (props: { readonly other: string }) => {
           keyed
           fallback={
             <>
-              <Show when={Option.getOrUndefined(pair().first)} keyed>
-                {(variant: SeenVariant) => <VariantVideo variant={variant} class="rv-wipe-first" />}
-              </Show>
-              <Show when={Option.getOrUndefined(pair().other)} keyed>
-                {(variant: SeenVariant) => (
+              <EachVersion of={Option.toArray(pair().first)}>
+                {(variant) => <VariantVideo variant={variant()} class="rv-wipe-first" />}
+              </EachVersion>
+              <EachVersion of={Option.toArray(pair().other)}>
+                {(variant) => (
                   <div class="rv-wipe-other" style={{ 'clip-path': `inset(0 0 0 ${at()})` }}>
-                    <VariantVideo variant={variant} />
+                    <VariantVideo variant={variant()} />
                   </div>
                 )}
-              </Show>
+              </EachVersion>
             </>
           }
         >
-          {(p: { chosen: Compare; first: SeenVariant; other: SeenVariant }) => (
-            <WipePanes chosen={p.chosen} first={p.first} other={p.other} at={at} />
-          )}
+          {(p: Panes) => <WipePanes chosen={p.chosen} first={p.first} other={p.other} at={at} />}
         </Show>
         <div class="rv-wipe-line" style={{ left: at() }}>
           {/* A slider: dragged, or ←/→ a hundredth of the frame (⇧ ten), Home and End to its edges. */}
@@ -1197,13 +1234,13 @@ const WipeView = (props: { readonly other: string }) => {
         </div>
       </div>
       <div class="rv-grid rv-two rv-wipe-caps">
-        <For each={[pair().first, pair().other].flatMap(Option.toArray)}>
+        <EachVersion of={bothOf(pair())}>
           {(variant) => (
-            <VersionCard version={variant.id} audible>
-              <VariantCap variant={variant} />
+            <VersionCard version={variant().id} audible>
+              <VariantCap variant={variant()} />
             </VersionCard>
           )}
-        </For>
+        </EachVersion>
       </div>
     </>
   );
@@ -1236,7 +1273,7 @@ const StillCap = (props: { readonly variant: SeenVariant }) => {
   const { set } = useSet();
   return (
     <div class="rv-cap">
-      <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
+      <span class="rv-letter">{letterOf(set(), props.variant.id)}</span>
       <VersionName version={props.variant} />
       <StaleBadge variant={props.variant} />
     </div>
@@ -1259,7 +1296,7 @@ const WithMoments = (props: {
         props.children(ms, () =>
           Option.getOrElse(
             Option.fromUndefinedOr(ms[Math.min(props.index, ms.length - 1)]),
-            () => set.start,
+            () => set().start,
           ),
         )
       }
@@ -1274,22 +1311,22 @@ const MomentsView = (props: { readonly index: number }) => {
       {(ms, at) => (
         <>
           <MomentPick moments={ms} index={props.index} />
-          <div class={gridClass(set.variants.length)}>
-            <For each={set.variants}>
+          <div class={gridClass(set().variants.length)}>
+            <EachVersion of={set().variants}>
               {(variant) => (
-                <VersionCard version={variant.id}>
+                <VersionCard version={variant().id}>
                   <Zoom
-                    still={reviewFrameUrl(variant.video.ref, Option.some(at()), MOMENT_W)}
-                    alt={`${variant.label} at ${timecode(at())}`}
+                    still={reviewFrameUrl(variant().video.ref, Option.some(at()), MOMENT_W)}
+                    alt={`${variant().label} at ${timecode(at())}`}
                     shown={{
-                      src: reviewFrameUrl(variant.video.ref, Option.some(at()), LIGHTBOX_W),
-                      caption: `${variant.label} at ${timecode(at())}`,
+                      src: reviewFrameUrl(variant().video.ref, Option.some(at()), LIGHTBOX_W),
+                      caption: `${variant().label} at ${timecode(at())}`,
                     }}
                   />
-                  <StillCap variant={variant} />
+                  <StillCap variant={variant()} />
                 </VersionCard>
               )}
-            </For>
+            </EachVersion>
           </div>
         </>
       )}
@@ -1305,7 +1342,7 @@ const MomentsView = (props: { readonly index: number }) => {
  */
 const DiffView = (props: { readonly other: string; readonly index: number }) => {
   const { set } = useSet();
-  const pair = () => pairOf(set, props.other);
+  const pair = () => pairOf(set(), props.other);
   const frameOf = (variant: SeenVariant, t: number) =>
     reviewFrameUrl(variant.video.ref, Option.some(t), MOMENT_W);
   return (
@@ -1315,36 +1352,36 @@ const DiffView = (props: { readonly other: string; readonly index: number }) => 
           <OtherPick other={props.other} />
           <MomentPick moments={ms} index={props.index} />
           <div class="rv-diff">
-            <Show when={Option.getOrUndefined(pair().first)} keyed>
-              {(variant: SeenVariant) => (
+            <EachVersion of={Option.toArray(pair().first)}>
+              {(variant) => (
                 <img
                   class="rv-diff-first"
-                  data-id={variant.id}
-                  src={frameOf(variant, at())}
-                  alt={`${variant.label} at ${timecode(at())}`}
+                  data-id={variant().id}
+                  src={frameOf(variant(), at())}
+                  alt={`${variant().label} at ${timecode(at())}`}
                 />
               )}
-            </Show>
-            <Show when={Option.getOrUndefined(pair().other)} keyed>
-              {(variant: SeenVariant) => (
+            </EachVersion>
+            <EachVersion of={Option.toArray(pair().other)}>
+              {(variant) => (
                 <img
                   class="rv-diff-other"
-                  data-id={variant.id}
-                  src={frameOf(variant, at())}
-                  alt={`the difference from ${variant.label}`}
+                  data-id={variant().id}
+                  src={frameOf(variant(), at())}
+                  alt={`the difference from ${variant().label}`}
                 />
               )}
-            </Show>
+            </EachVersion>
           </div>
           <p class="rv-hint">Black where the two are the same; lit where they differ.</p>
           <div class="rv-grid rv-two rv-wipe-caps">
-            <For each={[pair().first, pair().other].flatMap(Option.toArray)}>
+            <EachVersion of={bothOf(pair())}>
               {(variant) => (
-                <VersionCard version={variant.id}>
-                  <StillCap variant={variant} />
+                <VersionCard version={variant().id}>
+                  <StillCap variant={variant()} />
                 </VersionCard>
               )}
-            </For>
+            </EachVersion>
           </div>
         </>
       )}
@@ -1367,14 +1404,14 @@ const SetBody = () => {
     place: Places.set,
     named: (v) =>
       Option.map(
-        Option.liftPredicate(v.query.inspect, (id) => set.variants.some((x) => x.id === id)),
-        (id) => versionOf(folder, set, id),
+        Option.liftPredicate(v.query.inspect, (id) => set().variants.some((x) => x.id === id)),
+        (id) => versionOf(folder(), set(), id),
       ),
     naming: (v, s) =>
       Option.map(
         Option.filter(
           Option.liftPredicate(s, Selection.guards.Version),
-          (x) => x.folder === folder.ref && x.point === set.id,
+          (x) => x.folder === folder().ref && x.point === set().id,
         ),
         (x) => ({ ...v, query: { ...v.query, inspect: x.version } }),
       ),
@@ -1396,35 +1433,43 @@ const SetBody = () => {
           Diff: (s) => <DiffView other={s.other} index={s.index} />,
         }),
       )}
-      <For each={set.variants}>{(variant) => <VersionInspector version={variant} />}</For>
+      <EachVersion of={set().variants}>
+        {(variant) => <VersionInspector version={variant()} />}
+      </EachVersion>
     </>
   );
 };
 
+/**
+ * A set's page while the index holds it. A page is one set's (a new place is
+ * a new page), so neither Show is keyed: a refreshed index moves the folder
+ * and the set under the page, and its player plays on (`SetProvider`).
+ */
 export const SetPage = (props: { readonly folder: string; readonly point: string }) => (
   <WithIndex>
     {(index) => (
       <Show
         when={Option.getOrUndefined(folderIn(index(), props.folder))}
-        keyed
         fallback={<Missing what="folder" />}
       >
-        {(folder: ReviewFolder) => (
+        {(folder) => (
           <Show
-            when={folder.sets.find((s) => s.id === props.point)}
-            keyed
+            when={folder().sets.find((s) => s.id === props.point)}
             fallback={<Missing what="version stack" />}
           >
-            {(set: ChoicePoint) => (
-              <SetProvider folder={folder} set={seenPoint(set)}>
-                <Saying folder={folder} set={seenPoint(set)}>
-                  <div class="rv-tools rv-set-tools">
-                    <ViewTabs />
-                  </div>
-                  <SetBody />
-                </Saying>
-              </SetProvider>
-            )}
+            {(point) => {
+              const set = createMemo(() => seenPoint(point()));
+              return (
+                <SetProvider folder={folder()} set={set()}>
+                  <Saying folder={folder()} set={set()}>
+                    <div class="rv-tools rv-set-tools">
+                      <ViewTabs />
+                    </div>
+                    <SetBody />
+                  </Saying>
+                </SetProvider>
+              );
+            }}
           </Show>
         )}
       </Show>

@@ -97,8 +97,15 @@ const walkOf = (phone: 'none' | 'ready'): Json => ({
 const BLURB =
   '## Scenes\n1. Cold opening\n2. Message arrives\n3. Mirror answers\n\n**Judge:** Follow the staged order.\n\n<img src=x onerror=bad()>';
 
-/** The index, its loose video `walk` and the folder's `blurb`. */
-const indexOf = (walk: Json, blurb: string = BLURB): Json => ({
+/** What a later read of the index finds changed: the folder's blurb, when `why.md` was written, version B's name. */
+interface Changed {
+  readonly blurb?: string;
+  readonly whyAt?: number;
+  readonly cold?: string;
+}
+
+/** The index, its loose video `walk`, as first read or as `changed` since. */
+const indexOf = (walk: Json, { blurb = BLURB, whyAt = 0, cold = 'Cold' }: Changed = {}): Json => ({
   folders: [
     {
       ref: 'out/art',
@@ -117,7 +124,7 @@ const indexOf = (walk: Json, blurb: string = BLURB): Json => ({
             variant('A', 'Warm', {
               notes: { ref: 'out/art/roof.A.md', name: 'roof.A.md', size: 10, mtime: 0 },
             }),
-            variant('B', 'Cold'),
+            variant('B', cold),
             // Drawn before a newer render at its address, of other sources.
             variant('C', 'Grey', { state: 'stale', staleBy: 'sources' }),
           ],
@@ -140,7 +147,7 @@ const indexOf = (walk: Json, blurb: string = BLURB): Json => ({
       ],
       docs: [
         { ref: 'out/art/walk.vtt', name: 'walk.vtt', size: 10, mtime: 0 },
-        { ref: 'out/art/why.md', name: 'why.md', size: 10, mtime: 0 },
+        { ref: 'out/art/why.md', name: 'why.md', size: 10, mtime: whyAt },
       ],
     },
     {
@@ -155,6 +162,9 @@ const indexOf = (walk: Json, blurb: string = BLURB): Json => ({
 });
 
 const index = indexOf(walkOf('none'));
+
+/** `why.md`'s text as first read, and once written again. */
+const WHY_TEXTS = ['# Why\n- **warm** first', '# Why\n- **cold** now'];
 
 const routes: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/api\/review\/index/, () => json(index)),
@@ -864,11 +874,15 @@ describe('the review page', () => {
   );
 
   it.live(
-    'an open doc stays open, and read, when Refresh gives the folder a new index',
+    'an open doc stays open, and reads its new text, when Refresh gives the folder a new index',
     () =>
       Effect.gen(function* () {
-        // The first answer is the page's; every later one is a refresh's, with a new blurb.
-        const answers = [index, indexOf(walkOf('none'), 'Refreshed blurb.')];
+        // The first answer is the page's; every later one is a refresh's, with a new blurb
+        // and the doc written again since: its file then holds new text.
+        const answers = [
+          index,
+          indexOf(walkOf('none'), { blurb: 'Refreshed blurb.', whyAt: 60_000 }),
+        ];
         let reads = 0;
         const { page, errors } = yield* openReview(
           [
@@ -877,18 +891,25 @@ describe('the review page', () => {
               reads += 1;
               return json(answer);
             }),
+            // Read once the index is: the first index's text, then the refreshed one's.
+            route('GET', /^\/api\/review\/files\/out\/art\/why\.md$/, () =>
+              text(WHY_TEXTS[Math.min(Math.max(reads - 1, 0), 1)] ?? '', 200),
+            ),
             ...routes,
           ],
           { href: FOLDER },
         );
         yield* textHas(page, '[data-review-blurb]', 'Follow the staged order');
         yield* page.click('.rv-doc summary');
-        yield* waitFor(page, '.rv-doc .rv-note li b');
+        yield* textIs(page, '.rv-doc .rv-note li b', 'warm');
+        // The doc's element is marked, so the one shown after is known to be the same.
+        yield* page.evaluate("document.querySelector('.rv-doc').dataset.kept = 'yes'");
         yield* page.click('.sh-header [data-act="view-menu"]');
         yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
         yield* textHas(page, '[data-review-blurb]', 'Refreshed blurb.');
+        yield* textIs(page, '.rv-doc .rv-note li b', 'cold');
         yield* evaluates(page, "document.querySelector('.rv-doc')?.open", true);
-        yield* waitFor(page, '.rv-doc .rv-note li b');
+        yield* evaluates(page, "document.querySelector('.rv-doc')?.dataset.kept", 'yes');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -1028,6 +1049,61 @@ describe('the review page', () => {
         yield* page.click('button[data-other="C"]');
         yield* until(page, `${stacked} === 'A,C'`);
         yield* until(page, "location.search === '?view=wipe&other=C'");
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a Set's Refresh keeps its player: its time, rate, version heard and wipe stay, and the set's new names show",
+    () =>
+      Effect.gen(function* () {
+        // The first answer is the page's; every later one is a refresh's, version B renamed.
+        const answers = [index, indexOf(walkOf('none'), { cold: 'Cold blue' })];
+        let reads = 0;
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => {
+              const answer = answers[Math.min(reads, 1)] ?? index;
+              reads += 1;
+              return json(answer);
+            }),
+            ...routes,
+          ],
+          { href: `${SET}?view=wipe&other=B` },
+        );
+        yield* until(page, "document.querySelector('.rv-wipe')?.dataset.engine === 'video'");
+        yield* waitFor(page, '.rv-transport');
+        // B heard, the time stepped on, the rate one slower, the divider moved.
+        yield* page.press('2');
+        yield* waitFor(page, '.rv-wipe-caps .rv-card[data-id="B"].rv-audible');
+        yield* page.press('ArrowRight');
+        yield* page.press('ArrowRight');
+        yield* until(page, "location.hash === '#t=4'");
+        yield* page.press('j');
+        yield* waitFor(page, '.rv-transport [data-act="rate"] [data-rate="0.5"]');
+        const clip = "document.querySelector('.rv-wipe-other').style.clipPath";
+        yield* page.pressIn('.rv-wipe-grip', 'Shift+ArrowRight');
+        yield* until(page, `${clip} === 'inset(0px 0px 0px 60%)'`);
+        const labelFrames = `(() => { const [h, m, s, f] = document.querySelector('.rv-time').textContent.split(' ')[0].split(':').map(Number); return ((h * 60 + m) * 60 + s) * ${FILM_FPS} + f; })()`;
+        const before = yield* page.evaluate<number>(labelFrames);
+        // The videos are marked, so the ones shown after are known to be the same elements.
+        yield* page.evaluate(
+          "document.querySelectorAll('.rv-wipe video').forEach((v) => { v.dataset.kept = 'yes'; })",
+        );
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
+        yield* textIs(page, '.rv-wipe-caps .rv-card[data-id="B"] .rv-name', 'Cold blue');
+        yield* until(page, `Math.abs(${labelFrames} - ${before}) <= 1`);
+        yield* countIs(page, '.rv-transport [data-act="rate"] [data-rate="0.5"]', 1);
+        yield* evaluates(
+          page,
+          "Array.from(document.querySelectorAll('.rv-wipe video')).map((v) => `${v.dataset.id}:${v.dataset.kept}:${v.playbackRate}`)",
+          ['A:yes:0.5', 'B:yes:0.5'],
+        );
+        yield* attributesAre(page, '.rv-wipe-caps .rv-audible', 'data-id', ['B']);
+        yield* evaluates(page, clip, 'inset(0px 0px 0px 60%)');
+        yield* evaluates(page, 'location.hash', '#t=4');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
