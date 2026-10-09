@@ -39,7 +39,7 @@ describe('the drawn-token check', () => {
     drawn(
       `<div style="padding: var(--s-2); margin-left: calc(-1 * var(--gutter)); border-radius: var(--r-2); background: var(--surface-2)">token</div>
        <div class="names">named</div>
-       <span style="display:block;background:hsl(140 var(--scene-sat) var(--scene-light))">hue</span>
+       <span data-scene="a" style="display:block;background:hsl(140 var(--scene-sat) var(--scene-light))">hue</span>
        <input type="range" style="display:block">
        <div style="margin-left:-3.5px;gap:1px;display:flex"><i>mark</i></div>`,
       [],
@@ -71,9 +71,9 @@ describe('the drawn-token check', () => {
 
   it.live('names a colour a page declares in a variable of its own', () =>
     drawn(
-      `<style>.bad { --rogue: crimson; --wide: 5px; color: var(--rogue); padding-left: var(--wide); }</style>
+      `<style>.bad { --rogue: crimson; --wide: 9px; color: var(--rogue); padding-left: var(--wide); }</style>
        <p class="bad" style="margin:0">rogue</p>`,
-      ['color rgb(220, 20, 60): p.bad', 'paddingLeft 5px: p.bad'],
+      ['color rgb(220, 20, 60): p.bad', 'paddingLeft 9px: p.bad'],
     ),
   );
 
@@ -95,18 +95,118 @@ describe('the drawn-token check', () => {
     drawn(
       `<p style="margin:0;color:#123456">ink</p>
        <h1 style="margin:0">title</h1>
-       <div style="padding:5px">off</div>
+       <div style="padding:9px">off</div>
        <div style="border-radius:3px">round</div>`,
       [
         'border-radius 3px: div',
         'color rgb(18, 52, 86): p',
         'font-size 26px: h1',
         'font-weight 700: h1',
-        'paddingBottom 5px: div',
-        'paddingLeft 5px: div',
-        'paddingRight 5px: div',
-        'paddingTop 5px: div',
+        'paddingBottom 9px: div',
+        'paddingLeft 9px: div',
+        'paddingRight 9px: div',
+        'paddingTop 9px: div',
       ],
     ),
+  );
+});
+
+// Each case plants one value the older check passed: a size from another
+// scale, a property it never read, a pseudo-element, a swatch's hue on
+// chrome, a part far below the fold or past the window's side.
+describe('the drawn-token check reads each scale, every property and the whole page', () => {
+  const planted: ReadonlyArray<readonly [string, string, ReadonlyArray<string>]> = [
+    [
+      'k1 a font size and leading that equal a layout token',
+      `<p style="margin:0;font-size:56px;line-height:56px">k1</p>`,
+      ['font-size 56px: p', 'line-height 56px: p'],
+    ],
+    [
+      'k2 a padding that equals a layout token',
+      `<div style="padding-left:320px"><p style="margin:0">k2</p></div>`,
+      ['paddingLeft 320px: div'],
+    ],
+    [
+      'k3 a focus outline in a named colour, off the scale in width and gap',
+      `<p style="margin:0;outline:9px solid gold;outline-offset:7px">k3</p>`,
+      ['outline-color rgb(255, 215, 0): p', 'outline-offset 7px: p', 'outline-width 9px: p'],
+    ],
+    [
+      'k4 a pseudo-element in a named colour and a size of its own',
+      `<style>.k4::after { content: 'x'; color: gold; background: crimson; font-size: 31px }</style><p class="k4" style="margin:0">k4</p>`,
+      [
+        'background-color rgb(220, 20, 60): p.k4::after',
+        'color rgb(255, 215, 0): p.k4::after',
+        'font-size 31px: p.k4::after',
+      ],
+    ],
+    [
+      'k5 tracking off the caps token, and uppercase without it',
+      `<p style="margin:0;letter-spacing:3px;text-transform:uppercase">k5</p>`,
+      ['letter-spacing 3px: p', 'text-transform uppercase: p'],
+    ],
+    [
+      'k6 decoration, caret and accent colours',
+      `<p style="margin:0;text-decoration:underline 3px;text-decoration-color:gold;caret-color:gold;accent-color:gold">k6</p>`,
+      [
+        'accent-color rgb(255, 215, 0): p',
+        'caret-color rgb(255, 215, 0): p',
+        'text-decoration-color rgb(255, 215, 0): p',
+      ],
+    ],
+    [
+      'k7 a hue at the scenes saturation and lightness, used as chrome',
+      `<div style="background:hsl(120 30% 32%)"><p style="margin:0">k7</p></div>`,
+      ['background-color rgb(57, 106, 57): div'],
+    ],
+    [
+      'k8 a drop-shadow filter in a named colour',
+      `<p style="margin:0;filter:drop-shadow(0 0 2px gold)">k8</p>`,
+      ['filter rgb(255, 215, 0): p'],
+    ],
+    [
+      'k9 a border width off the scale',
+      `<div style="border:7px solid var(--line)"><p style="margin:0">k9</p></div>`,
+      ['border-width 7px: div'],
+    ],
+    [
+      'k10 far below the fold',
+      `<div style="height:5000px"></div><p style="margin:0;color:orchid">k10</p>`,
+      ['color rgb(218, 112, 214): p'],
+    ],
+    [
+      'k11 an SVG gradient stop',
+      `<svg width="40" height="40"><defs><linearGradient id="gr"><stop offset="0" stop-color="gold"/></linearGradient></defs><rect width="40" height="40" fill="url(#gr)"/></svg>`,
+      ['stop-color rgb(255, 215, 0): stop'],
+    ],
+    [
+      'k12 right of the window',
+      `<p style="margin:0;position:absolute;left:3000px;top:0;color:tomato">k12</p>`,
+      ['color rgb(255, 99, 71): p'],
+    ],
+    ['k13 opacity as a colour', `<p style="margin:0;opacity:0.37">k13</p>`, ['opacity 0.37: p']],
+    [
+      'k14 italic on a part that is not emphasis',
+      `<p style="margin:0;font-style:italic">k14</p>`,
+      ['font-style italic: p'],
+    ],
+  ];
+
+  for (const [name, body, want] of planted) it.live(`names ${name}`, () => drawn(body, want));
+
+  it.live(
+    'passes what the scales hold: caps tracking, emphasis, a pseudo in tokens, a swatch hue',
+    () =>
+      drawn(
+        `<style>.caps { text-transform: uppercase; letter-spacing: var(--track-caps); font-size: var(--fs-2); line-height: var(--lh-2) }
+        .tip::before { content: 'x'; color: var(--accent); padding-left: var(--s-1) }
+        .dim { opacity: 0.55 }</style>
+       <p class="caps" style="margin:0">caps</p>
+       <p style="margin:0"><em>stressed</em></p>
+       <p class="tip" style="margin:0">tip</p>
+       <div class="dim" style="border:var(--border);outline:1px solid var(--accent)">dim</div>
+       <span data-scene="a" style="display:block;background:hsl(140 var(--scene-sat) var(--scene-light))">hue</span>`,
+        [],
+      ),
   );
 });

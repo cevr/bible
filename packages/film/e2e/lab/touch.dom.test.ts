@@ -71,7 +71,7 @@ import {
 import { untokened } from '../../src/lab/fixtures/drawn-tokens.ts';
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { evaluates, until, waitFor } from '../../src/lab/fixtures/settled.ts';
+import { evaluates, textHas, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import {
   STUDIO_FILM,
   STUDIO_FOLDER,
@@ -387,12 +387,17 @@ const receipted = (viewport: Viewport) =>
   Effect.gen(function* () {
     const { page } = yield* openLab(UNDO_ROUTES, { viewport, mode: 'edit', href: labAt(1) });
     yield* page.waitFor('.lab-cue[data-cue="rise"]');
+    // The strip names the scene's file once the page can write to it: a drag before then writes nothing.
+    yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
     const bar = yield* page.box('.lab-cue[data-cue="rise"]');
     const [x, y] = [bar.x + bar.width / 2, bar.y + bar.height / 2];
     yield* page.mouse.move(x, y);
     yield* page.mouse.down;
     for (const step of [1, 2, 3, 4]) yield* page.mouse.move(x + 15 * step, y);
     yield* page.mouse.up;
+    // The write has landed once its receipt names the change ("writing…" before): a reload
+    // before then loses the write, and with it the receipt.
+    yield* textHas(page, '[data-receipt="edit"] .lab-receipt-said', 'cue rise offset');
     yield* page.reload;
     yield* page.waitFor('[data-receipt="edit"] [data-act="receipt-undo"]');
     // The page's clock held, so the receipt is not put away by its own timer before it is measured.
