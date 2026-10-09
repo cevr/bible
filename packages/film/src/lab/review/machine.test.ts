@@ -239,6 +239,32 @@ describe('the synced player', () => {
       }),
   );
 
+  it.effect(
+    "on a clock moved to another video, ends at that one's end, unknown until measured; a failed clock's player stands paused",
+    () =>
+      Effect.gen(function* () {
+        const result = yield* simulate(player, [
+          SyncEvent.Measured({ end: 10 }),
+          SyncEvent.PlayPressed,
+          SyncEvent.Ticked({ t: 8 }),
+          SyncEvent.ClockMoved({ end: 3 }),
+          SyncEvent.ClockMoved({ end: UNKNOWN_END }),
+          SyncEvent.MediaFailed({ reason: 'error' }),
+          SyncEvent.ClockMoved({ end: 6 }),
+        ]);
+        expect(result.states.map((s) => [s._tag, s.t, s.end])).toEqual([
+          ['Paused', 1, UNKNOWN_END],
+          ['Paused', 1, 10],
+          ['Playing', 1, 10],
+          ['Playing', 8, 10],
+          ['Playing', 3, 3],
+          ['Playing', 3, UNKNOWN_END],
+          ['Failed', 3, UNKNOWN_END],
+          ['Paused', 3, 6],
+        ]);
+      }),
+  );
+
   test('is at rest only paused where it opens: a scrub, even back to the start, is not', () => {
     expect(atRest(SyncState.Paused(clock))).toBe(true);
     expect(atRest(SyncState.Paused({ ...clock, t: 2 }))).toBe(false);

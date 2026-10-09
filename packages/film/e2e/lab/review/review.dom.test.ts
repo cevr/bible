@@ -17,7 +17,7 @@ import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { FILM_FPS, timecode } from '../../../src/core/time.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
 import { tone } from '../../../src/lab/fixtures/tone.ts';
-import { STEP_S } from '../../../src/lab/review/machine.ts';
+import { STEP_S, spreadMoments } from '../../../src/lab/review/machine.ts';
 import {
   type FakeRoute,
   type Json,
@@ -97,15 +97,36 @@ const walkOf = (phone: 'none' | 'ready'): Json => ({
 const BLURB =
   '## Scenes\n1. Cold opening\n2. Message arrives\n3. Mirror answers\n\n**Judge:** Follow the staged order.\n\n<img src=x onerror=bad()>';
 
-/** What a later read of the index finds changed: the folder's blurb, when `why.md` was written, version B's name. */
+/**
+ * What a later read of the index finds changed: the folder's blurb, when
+ * `why.md` was written, when version A's video was, version B's name, the
+ * roof's versions (A, B and C).
+ */
 interface Changed {
   readonly blurb?: string;
   readonly whyAt?: number;
+  readonly warmAt?: number;
   readonly cold?: string;
+  readonly roof?: ReadonlyArray<string>;
 }
 
+/** The roof's video of version `id`, written at `mtime`. */
+const roofVideo = (id: string, mtime: number): Json => ({
+  _tag: 'Seen',
+  video: {
+    ref: `out/art/roof.${id}.mp4`,
+    name: `roof.${id}.mp4`,
+    size: 2048,
+    mtime,
+    phone: 'none',
+  },
+});
+
 /** The index, its loose video `walk`, as first read or as `changed` since. */
-const indexOf = (walk: Json, { blurb = BLURB, whyAt = 0, cold = 'Cold' }: Changed = {}): Json => ({
+const indexOf = (
+  walk: Json,
+  { blurb = BLURB, whyAt = 0, warmAt = 0, cold = 'Cold', roof = ['A', 'B', 'C'] }: Changed = {},
+): Json => ({
   folders: [
     {
       ref: 'out/art',
@@ -123,11 +144,12 @@ const indexOf = (walk: Json, { blurb = BLURB, whyAt = 0, cold = 'Cold' }: Change
           variants: [
             variant('A', 'Warm', {
               notes: { ref: 'out/art/roof.A.md', name: 'roof.A.md', size: 10, mtime: 0 },
+              media: roofVideo('A', warmAt),
             }),
             variant('B', cold),
             // Drawn before a newer render at its address, of other sources.
             variant('C', 'Grey', { state: 'stale', staleBy: 'sources' }),
-          ],
+          ].filter((_, i) => roof.includes(['A', 'B', 'C'][i] ?? '')),
         },
         {
           id: 'render:sky',
@@ -1104,6 +1126,97 @@ describe('the review page', () => {
         yield* attributesAre(page, '.rv-wipe-caps .rv-audible', 'data-id', ['B']);
         yield* evaluates(page, clip, 'inset(0px 0px 0px 60%)');
         yield* evaluates(page, 'location.hash', '#t=4');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a Set's Refresh that takes away its first version moves the clock to the first left: its sound, its end and its ending",
+    () =>
+      Effect.gen(function* () {
+        // The first answer is the page's; a refresh's has lost version A. B's video is 3 s,
+        // the others the tone's 10 s.
+        const answers = [index, indexOf(walkOf('none'), { roof: ['B', 'C'] })];
+        let reads = 0;
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => {
+              const answer = answers[Math.min(reads, 1)] ?? index;
+              reads += 1;
+              return json(answer);
+            }),
+            route('GET', /^\/api\/review\/(files|phone)\/out\/art\/roof\.B\.mp4/, () => ({
+              _tag: 'Wav',
+              bytes: tone(3, 0.1),
+            })),
+            ...routes,
+          ],
+          { href: SET },
+        );
+        yield* waitFor(page, '.rv-transport');
+        yield* textHas(page, '.rv-time-rest', timecode(10));
+        yield* attributesAre(page, '.rv-card.rv-audible', 'data-id', ['A']);
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
+        yield* countIs(page, '.rv-card[data-id="A"]', 0);
+        // B leads now: it is heard, and the set ends where its video does.
+        yield* attributesAre(page, '.rv-card.rv-audible', 'data-id', ['B']);
+        yield* evaluates(
+          page,
+          `document.querySelector('.rv-card video[data-id="B"]').muted`,
+          false,
+        );
+        yield* textHas(page, '.rv-time-rest', timecode(3));
+        // Played, it stops at B's end, as the set's clock.
+        yield* page.press('Space');
+        yield* attributeIs(page, '.rv-time', 'data-state', 'Playing');
+        yield* attributeIs(page, '.rv-time', 'data-state', 'Paused');
+        yield* textIs(page, '.rv-time-at', timecode(3));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a Set's Refresh reads a video's length again when its file was written since: the moments spread over the new length",
+    () =>
+      Effect.gen(function* () {
+        // The first answer is the page's; a refresh's finds version A's video written again,
+        // and the server measures it 40 s long now.
+        const answers = [index, indexOf(walkOf('none'), { warmAt: 60_000 })];
+        let reads = 0;
+        const lengths = [20, 40];
+        let measured = 0;
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => {
+              const answer = answers[Math.min(reads, 1)] ?? index;
+              reads += 1;
+              return json(answer);
+            }),
+            route('GET', /^\/api\/review\/duration/, () => {
+              const seconds = lengths[Math.min(measured, 1)] ?? 20;
+              measured += 1;
+              return json({ seconds });
+            }),
+            ...routes,
+          ],
+          { href: `${SET}?view=moments` },
+        );
+        yield* textsAre(
+          page,
+          'button[data-moment]',
+          spreadMoments(20, 0).map((t) => timecode(t)),
+        );
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
+        yield* textsAre(
+          page,
+          'button[data-moment]',
+          spreadMoments(40, 0).map((t) => timecode(t)),
+        );
+        expect(measured).toBe(2);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

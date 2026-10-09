@@ -13,7 +13,7 @@ import { manualFrames } from '../../browser/fixtures/frames.ts';
 import { fakeMedia } from '../../browser/fixtures/media.ts';
 import { hostOf } from '../../browser/host.ts';
 import { Media } from '../../browser/media.ts';
-import { SyncEvent, SyncState } from './machine.ts';
+import { SyncEvent, SyncState, UNKNOWN_END } from './machine.ts';
 import { makeSync, reloadOnError } from './sync.ts';
 
 /** Let the forked plays settle: their answers heard, and what came of them told. */
@@ -234,6 +234,31 @@ describe('the sync driver', () => {
       expect(asked).toEqual([]);
     }),
   );
+
+  test("a clock that follows another version tells that one's end, failure and ending, and hears only it after", () => {
+    const { driver, a, b, told, tags } = rig();
+    b.el.finishLoading(6);
+    driver.follow('b');
+    expect(told).toEqual([SyncEvent.ClockMoved({ end: 6 })]);
+    // The version it followed before is heard no more; this one is.
+    a.el.fire('ended');
+    a.el.fire('error');
+    expect(tags()).toEqual(['ClockMoved']);
+    b.el.fire('ended');
+    expect(tags()).toEqual(['ClockMoved', 'Ended']);
+    // Following one whose media failed, or that ended already, says so; following the same, nothing.
+    a.el.ended = true;
+    driver.follow('a');
+    expect(tags()).toEqual(['ClockMoved', 'Ended', 'ClockMoved', 'MediaFailed', 'Ended']);
+    driver.follow('a');
+    expect(tags()).toHaveLength(5);
+  });
+
+  test('a clock that follows a version not attached yet says its end is not known', () => {
+    const { driver, told } = rig();
+    driver.follow('c');
+    expect(told).toEqual([SyncEvent.ClockMoved({ end: UNKNOWN_END })]);
+  });
 
   test('stopped, every video is paused and no frame is asked for', () => {
     const { frames, driver, a, b } = rig();

@@ -115,14 +115,20 @@ interface ReviewActions {
   readonly show: (shown: Option.Option<Shown>) => void;
 }
 
+/** A file as the index last saw it: its ref, and when it was written. */
+type Written = Pick<ReviewFile, 'ref' | 'mtime'>;
+
 interface ReviewMeta {
-  /** A video's length, read once per ref. */
-  readonly duration: (ref: string) => Loaded<number>;
+  /**
+   * A video's length, read once per file as the index last saw it: a video
+   * written again since is measured afresh.
+   */
+  readonly duration: (video: Written) => Loaded<number>;
   /**
    * A doc's text, read once per file as the index last saw it (its ref and
    * when it was written): a doc written again since is read afresh.
    */
-  readonly text: (file: Pick<ReviewFile, 'ref' | 'mtime'>) => Loaded<string>;
+  readonly text: (file: Written) => Loaded<string>;
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
   /** The page's one client of the lab's API: what a read of its own (a feed) goes through. */
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
@@ -246,19 +252,21 @@ export const Root = (
       ),
     )
     .pipe(served('review.index', ReviewIndex));
-  const duration = Atom.family((ref: string) =>
+  // A video's length and a doc's text are each keyed by what names the file's
+  // content, its ref and when it was written: a refreshed index that saw it
+  // written again names a new read.
+  const durationOf = Atom.family((file: Written) =>
     runtime
-      .atom(ReviewApi.use((api) => api.duration(ref)))
-      .pipe(served(`review.duration:${ref}`, Schema.Finite)),
+      .atom(ReviewApi.use((api) => api.duration(file.ref)))
+      .pipe(served(`review.duration:${file.ref}@${file.mtime}`, Schema.Finite)),
   );
-  // Keyed by what names a doc's content: a refreshed index that saw it written again names a new read.
-  const textOf = Atom.family((file: { readonly ref: string; readonly mtime: number }) =>
+  const textOf = Atom.family((file: Written) =>
     runtime
       .atom(ReviewApi.use((api) => api.text(file.ref)))
       .pipe(served(`review.text:${file.ref}@${file.mtime}`, Schema.String)),
   );
-  const text = (file: Pick<ReviewFile, 'ref' | 'mtime'>) =>
-    textOf({ ref: file.ref, mtime: file.mtime });
+  const duration = (file: Written) => durationOf({ ref: file.ref, mtime: file.mtime });
+  const text = (file: Written) => textOf({ ref: file.ref, mtime: file.mtime });
   const servedAtAtom = Atom.make(Clock.currentTimeMillis).pipe(served(SERVED_AT, Schema.Finite));
 
   const address = addressOn(props.host);
@@ -600,10 +608,13 @@ const SetBody = (
   const first = () => Option.getOrElse(Option.fromUndefinedOr(ids()[0]), () => '');
   const other = () => Option.fromUndefinedOr(ids()[1]);
 
-  // The clock follows the version first when the set was opened, as the player was made for it.
+  // The clock is the set's first version as the index last read it: a refresh
+  // that takes that version away moves the clock to the first one left, and
+  // the player plays on.
   const driver = makeSync(untrack(first), sendSync, meta.host);
   onCleanup(driver.stop);
   createEffect(sync, (state) => driver.apply(state));
+  createEffect(first, (id) => driver.follow(id));
 
   // The view is the URL's: a link, a reload, Back and Forward all show what
   // it keeps. A choice of view or of a moment is a new history entry (Back
@@ -661,24 +672,28 @@ const SetBody = (
     ),
   );
   // Nothing plays behind the moments or the difference; a pair (or
-  // its wipe) hears one of its two.
+  // its wipe) hears one of its two, and every view a version the set still
+  // holds: else its first.
   createEffect(
-    () => [view(), sync().audible, first()] as const,
-    ([state, audible, lead]) => {
+    () => [view(), sync().audible, ids()] as const,
+    ([state, audible, all]) => {
       if (!playsIn(viewNameOf(state))) sendSync(SyncEvent.PausePressed);
-      if (Option.exists(otherOf(state), (o) => audible !== lead && audible !== o))
-        sendSync(SyncEvent.HeardChosen({ id: lead }));
+      Option.map(Option.fromUndefinedOr(all[0]), (lead) => {
+        const heard = Option.match(otherOf(state), {
+          onNone: () => all,
+          onSome: (o) => [lead, o],
+        });
+        if (!heard.includes(audible)) sendSync(SyncEvent.HeardChosen({ id: lead }));
+      });
     },
   );
 
   const length = useAtomValue(() => {
     if (Option.isSome(props.set.moments)) return unmeasured;
-    return meta.duration(
-      Option.getOrElse(
-        Option.map(Option.fromUndefinedOr(props.set.variants[0]), (v) => v.video.ref),
-        () => '',
-      ),
-    );
+    return Option.match(Option.fromUndefinedOr(props.set.variants[0]), {
+      onNone: () => unmeasured,
+      onSome: (v) => meta.duration(v.video),
+    });
   });
   // The same instants read again are no new moments: the views over them stay.
   const moments = createMemo(
