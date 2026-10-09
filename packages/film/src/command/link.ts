@@ -5,19 +5,19 @@
 // another thing, it is that thing's citation (`citeOf`). The link goes on
 // the page's clipboard (`Clipboard`), whole.
 
-import { Effect, Option } from 'effect';
+import { Effect, Equal, Option } from 'effect';
 import type { Context as Services } from 'effect';
 import { Clipboard } from '../browser/clipboard.ts';
 import { type Command, refused, said } from './command.ts';
 import type { Context } from './context.ts';
-import { citeOf, sameSelection, selectionOf, selectionText } from './selection.ts';
+import { citeOf, selectionOf, selectionText } from './selection.ts';
 import { EVERYWHERE } from './target.ts';
 
 /** The thing a link from `ctx` cites, when it is not what the URL already cites. */
 const other = (ctx: Context) =>
   Option.filter(
     Option.fromUndefinedOr(ctx.selection[0]),
-    (s) => !Option.exists(selectionOf(ctx.href), (cited) => sameSelection(cited, s)),
+    (s) => !Option.exists(selectionOf(ctx.href), (cited) => Equal.equals(cited, s)),
   );
 
 /** The link from `ctx`: the page's URL, or the citation of the other thing it is about. */

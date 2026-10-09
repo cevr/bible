@@ -14,9 +14,6 @@
 
 import { type Throttled, type Timers, throttled } from './throttle.ts';
 
-/** `T` as `#t=` keeps it: to the millisecond, rounded up (core/time.ts `onTheMs`). */
-export { onTheMs } from '../core/time.ts';
-
 /**
  * Why T is written: it moved on its own or under a drag, or came to rest
  * there (`'play'`), or it was sent somewhere (`'jump'`: `]`, `[`, a frame

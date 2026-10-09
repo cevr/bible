@@ -79,8 +79,6 @@ export interface Player {
   setRate(rate: number): void;
   /** Repeat `range` while playing (none to stop repeating). */
   setLoop(range: LoopRange | undefined): void;
-  /** Draw the frame shown now again. */
-  redraw(): void;
   /**
    * Draw the frame at `T` into `ctx` as the preview shows it: its captions
    * and the lab's edits, with `over` (an edit per scene) on top of them. The
@@ -686,7 +684,6 @@ export const mountPreview = (
       loop = range === undefined || range.to <= range.from ? undefined : range;
       draw();
     },
-    redraw: draw,
     renderShown: (into, at, over = new Map()) => {
       if (drawable) film.render(into, at, shownOptions({ edits: new Map([...edits, ...over]) }));
     },
