@@ -357,7 +357,6 @@ packages/scripts/src/topics-compiler/compile.ts UnknownRelatedSlugError
 packages/scripts/src/vector-compiler/checkpoint.ts checkpointPath
 packages/scripts/src/vector-compiler/checkpoint.ts partPath
 packages/scripts/src/vector-compiler/source.ts VectorSourceError
-packages/ui/src/drawer/root/DrawerRoot.tsx DrawerSwipeDirection
 packages/ui/src/internals/composite/composite.ts CompositeNavigationParameters
 packages/ui/src/number-field/utils/validate.ts NumberFormatOptionsWithRounding
 packages/ui/src/utils/useSwipeDismiss.ts parseTransform

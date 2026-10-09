@@ -4,7 +4,8 @@
 import type { JSX } from '@solidjs/web';
 import { For } from 'solid-js';
 
-import { Toast, type ToastObject } from '../../../src/toast/index.ts';
+import { Toast } from '../../../src/toast/index.ts';
+import type { ToastObject } from '../../../src/toast/types.ts';
 import { log, param } from './log.ts';
 
 interface Receipt {

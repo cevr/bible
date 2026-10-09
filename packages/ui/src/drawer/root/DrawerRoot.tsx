@@ -15,8 +15,6 @@ import { addEventListener, NOOP, ownerWindow } from '../../utils/dom.ts';
 import { platform } from '../../utils/platform.ts';
 import { DrawerRootContext, type DrawerSwipeDirection } from './DrawerRootContext.ts';
 
-export type { DrawerSwipeDirection };
-
 type DrawerRootChangeEventDetails = DialogChangeEventDetails;
 
 interface DrawerRootProps {

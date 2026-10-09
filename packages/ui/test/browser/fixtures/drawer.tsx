@@ -18,7 +18,7 @@ import type { JSX } from '@solidjs/web';
 import { createSignal, Show } from 'solid-js';
 
 import { Drawer } from '../../../src/drawer/index.ts';
-import type { DrawerSwipeDirection } from '../../../src/drawer/index.ts';
+import type { DrawerSwipeDirection } from '../../../src/drawer/root/DrawerRootContext.ts';
 import { log, param } from './log.ts';
 
 const STYLES = `
