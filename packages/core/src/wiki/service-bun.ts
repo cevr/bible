@@ -8,60 +8,19 @@ import { EGWCommentaryService } from '../egw-commentary/service.js';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { TopicService } from '../topics/service.js';
 import { WritingsService } from '../writings/service.js';
-import {
-  immutableFilename,
-  layerArtifact,
-  layerArtifactOrAbsent,
-  layerReloadableArtifact,
-  type ArtifactSqlClientLayer,
-  type ReloadableArtifact,
-} from './service-artifact.js';
+import { bunArtifactDriver } from './driver-bun.js';
+import { immutableFilename, layerArtifactOrAbsent } from './service-artifact.js';
 import { LookupService } from './lookup-service.js';
 import { WikiSectionSources } from './section-composer.js';
 import { WikiService } from './service.js';
 
-/** The artifact is immutable at rest — only the supply pipeline's atomic swap
- *  ever replaces it — so it opens read-only with WAL disabled, exactly as
- *  `bible.db` does. `create: false` is what keeps the driver from manufacturing
- *  a missing artifact behind the existence check's back. */
-const bunArtifactDriver: ArtifactSqlClientLayer = (filename) =>
-  SqliteBun.layer({
-    filename: immutableFilename(filename),
-    readonly: true,
-    readwrite: false,
-    create: false,
-    disableWAL: true,
-  });
-
-/** Reads an installed `topics.db` through Bun's driver. The three-state mapping
- *  lives in `service-artifact.ts`; only the driver is Bun's. */
-export const layerBun = (
-  filename: string,
-): Layer.Layer<WikiService, never, TopicService | WikiSectionSources> =>
-  layerArtifact(bunArtifactDriver, filename);
-
 /** The layer a host actually wants: the installed artifact when there is one,
- *  and the typed-absence service when there is not. */
-export const layerBunOrAbsent = (
+ *  and the typed-absence service when there is not. The three-state mapping
+ *  lives in `service-artifact.ts`; only the driver is Bun's. */
+const layerBunOrAbsent = (
   filename: string,
 ): Layer.Layer<WikiService, never, FileSystem.FileSystem | TopicService | WikiSectionSources> =>
   layerArtifactOrAbsent(bunArtifactDriver, filename);
-
-/** The same wiki, plus the handle that reopens it after §3.6 installs a new
- *  artifact (round-3 F3).
- *
- *  Not what the CLI wants — a command's next read is a new process, so
- *  `layerBunOrAbsent` is the honest composition there. This is for a *long-lived*
- *  Bun host, and for the suites that prove the reopen over a real driver: the
- *  `immutable=1` connection above holds an inode, so the atomic rename an
- *  install ends with is invisible without it. */
-export const layerBunReloadable = (
-  filename: string,
-): Layer.Layer<
-  WikiService | ReloadableArtifact,
-  never,
-  FileSystem.FileSystem | TopicService | WikiSectionSources
-> => layerReloadableArtifact(bunArtifactDriver, filename);
 
 /** The four §6 section sources, from the two corpora on disk.
  *
@@ -74,7 +33,7 @@ export const layerBunReloadable = (
  *  cannot open the EGW library should still print a topic's authored core. It
  *  still provides `WikiSectionSources` — as `NotWired` — so the page carries
  *  the reason rather than six sections nobody can account for. */
-export const layerBunSectionSources = (input: {
+const layerBunSectionSources = (input: {
   readonly bible: string;
   readonly writings: string;
 }): Layer.Layer<WikiSectionSources> => {
@@ -107,7 +66,7 @@ export const layerBunSectionSources = (input: {
 
 /** The catalog half alone. Always available: `bible.db` is the verified
  *  bootstrap corpus and ships the topic tables §3.5's fallback depends on. */
-export const layerBunCatalog = (bible: string): Layer.Layer<TopicService> =>
+const layerBunCatalog = (bible: string): Layer.Layer<TopicService> =>
   TopicService.Live.pipe(Layer.provide(readOnlySqlite(bible)));
 
 const readOnlySqlite = (filename: string) =>
@@ -173,5 +132,3 @@ export const layerBunLookup = (input: {
   );
   return LookupService.Live.pipe(Layer.provide(wiki), Layer.provide(sections));
 };
-
-export const Default = layerBunOrAbsent;

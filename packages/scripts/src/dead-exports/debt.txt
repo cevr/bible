@@ -86,7 +86,6 @@ packages/core/src/wiki/phrase-matcher.ts matchSection
 packages/core/src/wiki/phrase-matcher.ts matchSegments
 packages/core/src/wiki/section-composer.ts SECTION_CAPS
 packages/core/src/wiki/section-composer.ts SECTION_SCOPES
-packages/core/src/wiki/service-artifact.ts layerReloadableWiki
 packages/core/src/wiki/service.ts WikiUnavailableError
 packages/core/src/writings/corpus-class.ts isUnfiltered
 packages/core/src/writings/model.ts paragraphId

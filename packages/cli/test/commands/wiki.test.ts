@@ -37,9 +37,9 @@ import {
   wikiPageFixtureRows,
   WIKI_PAGE_FIXTURE_SOURCES,
   wikiSectionIdentities,
+  layerBunOrAbsent as layerBun,
 } from '@bible/core/wiki/testing';
 import { BunFileSystem } from '@effect/platform-bun';
-import { layerBun } from '@bible/core/wiki/bun';
 import { Database } from 'bun:sqlite';
 import { Effect, Exit, FileSystem, Layer, Option, Schema, SchemaGetter } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -327,7 +327,11 @@ const writeDictionaryArtifact = (file: string): string => {
 /** The installed-artifact path, through the same `layerBun` the production
  *  command resolves — only the filename moved. */
 const dictionaryWiki = (file: string): Layer.Layer<WikiService> =>
-  layerBun(file).pipe(Layer.provide(catalog), Layer.provide(WikiSectionSources.NotWired));
+  layerBun(file).pipe(
+    Layer.provide(catalog),
+    Layer.provide(WikiSectionSources.NotWired),
+    Layer.provide(BunFileSystem.layer),
+  );
 
 describe('bible wiki matches', () => {
   const test = it.scopedLive.layer(BunFileSystem.layer);
@@ -592,6 +596,7 @@ const populatedWiki = (file: string): Layer.Layer<WikiService> =>
   layerBun(file).pipe(
     Layer.provide(WIKI_PAGE_FIXTURE_CATALOG),
     Layer.provide(WIKI_PAGE_FIXTURE_SOURCES),
+    Layer.provide(BunFileSystem.layer),
   );
 
 describe('bible wiki topic --json over a populated page', () => {
