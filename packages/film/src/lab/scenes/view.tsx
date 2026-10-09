@@ -248,7 +248,8 @@ export const ScenesView = (props: ScenesViewProps) => {
     }),
   );
 
-  // What the lab knows of each scene: read once, and again after each say.
+  // What the lab knows of each scene: the project and the check, read once; a say's answer
+  // carries the project alone.
   const [read, setRead] = createSignal<ScenesRead>(
     { project: Option.none(), check: Result.succeed([]) },
     fromHost,

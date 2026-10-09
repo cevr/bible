@@ -8,7 +8,7 @@
 // (`<InspectName>`), its comment count beside it, Inspect (`i`) or
 // Comment on (`m`), from its context menu or ⌘K; a Project scene's row opens
 // it on a tap anywhere off its controls (`useInspect`). It stands in the
-// one sheet (`Sheet`, Scenes' scene sheet's too), not over the page (it
+// one sheet (`Sheet`, `lab/sheet.tsx`, Scenes' scene sheet's too), not over the page (it
 // stays live, a tap outside keeps it open): beside it on a laptop, swiped
 // away to the right; on a phone a bottom sheet standing on the tab bar and
 // the dock (design language §7), swiped down, whose grip lowers it to a peek

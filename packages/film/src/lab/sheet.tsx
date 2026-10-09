@@ -75,7 +75,8 @@ export const useSheetDismissal = (
 
 /**
  * The sheet of the selected thing (design language §7), the one frame an
- * inspector and Scenes' scene sheet stand in: hosted in @bible/ui's Drawer,
+ * inspector, Scenes' scene sheet, the Lab's selection sheet and Findings
+ * stand in: hosted in @bible/ui's Drawer,
  * not over the page (it stays live, a tap outside keeps it open); beside the
  * page on a laptop, swiped away to the right; on a phone a bottom sheet
  * standing on the tab bar (and the dock), swiped down, whose grip lowers it
