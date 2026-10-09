@@ -130,6 +130,7 @@ packages/film/src/canvas/piece.ts kindOf
 packages/film/src/canvas/piece.ts lineOf
 packages/film/src/canvas/short-captions.ts breakLines
 packages/film/src/canvas/short.ts createShort
+packages/film/src/command/command.ts ChangeBound
 packages/film/src/command/go.ts GO_TO
 packages/film/src/command/keymap.ts parseChord
 packages/film/src/command/link.ts linkOf
@@ -262,6 +263,7 @@ packages/film/src/tools/choice-points.ts lookPoints
 packages/film/src/tools/choice-points.ts scorePoint
 packages/film/src/tools/choice-points.ts takePoints
 packages/film/src/tools/choice-points.ts voicePoints
+packages/film/src/tools/choices.ts ChoicesNeeds
 packages/film/src/tools/composer.ts ScoreOptions
 packages/film/src/tools/composer.ts musicCredits
 packages/film/src/tools/content-store.ts Processes
@@ -287,6 +289,7 @@ packages/film/src/tools/journal.ts entriesOf
 packages/film/src/tools/journal.ts entryLine
 packages/film/src/tools/journal.ts pageOf
 packages/film/src/tools/lab-page.ts splice
+packages/film/src/tools/lab.ts LabContext
 packages/film/src/tools/library.ts channelsFor
 packages/film/src/tools/library.ts pcmFromS16
 packages/film/src/tools/look.ts FACE_SHARE

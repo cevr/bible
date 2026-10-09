@@ -2,7 +2,7 @@
 // what it takes from other modules, as the parser (oxc) reads them, so a
 // comment or a string that looks like code names nothing. A namespace import,
 // an `import()` and an `export * as` take a module whole; an `export * from`
-// passes a name through; a default export is its loader's and is not swept.
+// passes a name through; a default is the name `default`, taken by a default import.
 
 import { Array as Arr, Option, Order } from 'effect';
 import {
@@ -151,7 +151,7 @@ const takenNames = (workspace: Workspace): ReadonlySet<string> => {
  * Each export of a checked module that no other consuming module takes, as
  * `file name`: a name its own file alone reads, or only a test reads, is
  * not exported. A public entry's names stand for their users beyond the
- * workspace, and a default export is its loader's.
+ * workspace.
  */
 export const deadExports = (workspace: Workspace): ReadonlyArray<string> => {
   const { records, checked, entries } = workspace;
@@ -161,10 +161,7 @@ export const deadExports = (workspace: Workspace): ReadonlyArray<string> => {
       .filter(([file]) => checked(file) && !entries.has(file))
       .flatMap(([file, record]) =>
         record.exports
-          .filter(
-            (name) =>
-              name !== 'default' && !used.has(`${file}#${name}`) && !used.has(`${file}#${WHOLE}`),
-          )
+          .filter((name) => !used.has(`${file}#${name}`) && !used.has(`${file}#${WHOLE}`))
           .map((name) => `${file} ${name}`),
       ),
     Order.String,

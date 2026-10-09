@@ -181,7 +181,7 @@ export const readWorkspace = (root: string) =>
     const workspace: Workspace = {
       records,
       resolve: resolver(path, records, packages, byDir),
-      consumes: (file) => !isTestCode(file),
+      consumes: (file) => !isTestCode(file) && !isTypeCheck(file),
       checked: (file) =>
         /^packages\/[^/]+\/src\//.test(file) && !isTestCode(file) && !isTypeCheck(file),
       entries,

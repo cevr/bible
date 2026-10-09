@@ -60,7 +60,21 @@ describe('the dead-export check', () => {
     expect(found).toEqual(['a.ts alone']);
   });
 
-  test("a namespace import and an import() take a module whole; a default export is its loader's", () => {
+  test('a default export is dead unless a default import takes it', () => {
+    const found = deadExports(
+      workspaceOf({
+        'a.ts': 'export default 1;',
+        'b.ts': 'export default 2;',
+        'c.ts': "import two from './b.ts'; console.log(two);",
+        'd.ts': 'const three = 3; export { three as default };',
+        'e.ts': "export { default } from './d.ts';",
+        'f.ts': "import three from './e.ts'; console.log(three);",
+      }),
+    );
+    expect(found).toEqual(['a.ts default']);
+  });
+
+  test('a namespace import and an import() take a module whole', () => {
     const found = deadExports(
       workspaceOf({
         'a.ts': 'export const one = 1; export default 2;',
