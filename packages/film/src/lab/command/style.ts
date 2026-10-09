@@ -44,6 +44,10 @@ body {
 }
 `;
 
+/** The Lab's selection sheets the mode shows: Edit's cue or knob, Note's note (the others are hidden). */
+const STANDING =
+  ":is(.lab-panel[data-mode='edit'] [data-mode-of='edit'], .lab-panel[data-mode='note'] [data-mode-of='note']) .lab-selection-sheet";
+
 const COMMAND_RULES = `
 .lab-sheet-backdrop { position: fixed; inset: 0; background: var(--backdrop); z-index: var(--cmd-layer); }
 .lab-command-menu, .lab-keys-sheet {
@@ -234,8 +238,9 @@ const COMMAND_RULES = `
   .lab-selection-sheet[data-peek="true"] .lab-sheet-kind { display: none; }
   .lab-selection-sheet[data-peek="true"] .lab-inspector-grip { top: 0; }
   .lab-selection-sheet[data-peek="true"] .lab-inspector-grip::before { top: var(--s-1); }
-  body.lab:has(.lab-selection-sheet) { padding-bottom: calc(var(--cmd-sheet-floor) + var(--cmd-peek-h)); }
-  body.lab:has(.lab-selection-sheet:not([data-peek="true"])) {
+  /* Only a sheet the mode shows keeps its room: the other mode's is hidden with its section. */
+  body.lab:has(${STANDING}) { padding-bottom: calc(var(--cmd-sheet-floor) + var(--cmd-peek-h)); }
+  body.lab:has(${STANDING}:not([data-peek="true"])) {
     padding-bottom: calc(var(--cmd-sheet-floor) + var(--cmd-sheet-height));
   }
 }
