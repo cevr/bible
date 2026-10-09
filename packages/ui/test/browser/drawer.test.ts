@@ -179,9 +179,7 @@ describe('Drawer.Root', () => {
     });
     await openDrawer(page);
     // In place: the popup stays inside the page's own container, not moved to the body.
-    expect(await page.locator('#popup').evaluate((el) => el.closest('body > div') !== null)).toBe(
-      true,
-    );
+    await see(page.locator('#root #popup')).toHaveCount(1);
     // Non-modal: focus may leave for the page, and neither that nor a press outside closes it.
     await page.mouse.click(400, 100);
     await see(page.locator('#popup')).toBeVisible();
