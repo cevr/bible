@@ -128,7 +128,6 @@ interface Budget {
 
 /** A view's budget: at most `phone` things on a phone, `laptop` on a laptop. */
 const most = (phone: number, laptop: number): Budget => ({ phone, laptop });
-
 /** The Lab's Edit: its budget, which a planted button or a planted line of text passes (the budget's positive controls). */
 const LAB_EDIT = most(50, 54);
 
@@ -137,38 +136,63 @@ interface State {
   readonly name: string;
   readonly open: (viewport: Viewport) => Effect.Effect<Tab, never, Scope.Scope>;
   readonly disclose: (page: Tab) => Effect.Effect<void>;
-  /** A view at rest: the most targets it shows (`Budget`). */
+  /** A view at rest: the most things it shows on its first screen (`Budget`). */
   readonly budget?: Budget;
+  /** The most things its whole length shows, below the fold too (`Budget`): on a long view. */
+  readonly page?: Budget;
   /** The layer the state opens, measured within itself; none: the whole page. */
   readonly layer?: string;
+}
+
+/** A place's first case, the place as it opens: the budget of what it shows is not optional. */
+interface AtRest extends State {
+  readonly budget: Budget;
 }
 
 /** Every place a page is at (`Places`, `core/api.ts`). */
 type PlaceName = keyof typeof Places;
 
-/** A place a guard here does not open, and why. */
+/** A place a guard here does not open itself: the place whose cases measure it, and why. */
 interface Exempt {
-  readonly exempt: string;
+  readonly measuredAt: PlaceName;
+  readonly why: string;
 }
 
 /**
  * What a guard opens at each place: a place added to `Places` is opened here
- * by one case at least or named exempt with its reason, or this fails to
- * typecheck (an empty list too); and each case checks its page is at the
- * place it is keyed by (`isAt`).
+ * by one case at least or named exempt, with the place that measures it and
+ * why, or this fails to typecheck (an empty list too); `First` is the kind of
+ * the first case, which for the touch guard's table is the place at rest, its
+ * budget required; and each case checks its page is at the place it is keyed
+ * by (`isAt`).
  */
-type ByPlace<A> = Readonly<Record<PlaceName, readonly [A, ...ReadonlyArray<A>] | Exempt>>;
+type ByPlace<A, First extends A = A> = Readonly<
+  Record<PlaceName, readonly [First, ...ReadonlyArray<A>] | Exempt>
+>;
 
 // The type's own probe: a place given an empty list fails to typecheck.
 // @ts-expect-error: an empty list neither opens a place nor names it exempt
 void ([] satisfies ByPlace<State>[PlaceName]);
 
+// The table's own probe: a place at rest without a budget fails to typecheck.
+void ([
+  // @ts-expect-error: the first case of a place is the place at rest, and carries its budget
+  { name: 'a place', open: () => Effect.die('x'), disclose: () => Effect.void },
+] satisfies ByPlace<State, AtRest>[PlaceName]);
+
 /** Each case of `cases` with the place it is keyed by; an exempt place has none. */
 const byPlace = <A>(cases: ByPlace<A>): ReadonlyArray<readonly [PlaceName, A]> =>
   Struct.keys(cases).flatMap((place) => {
     const at = cases[place];
-    if ('exempt' in at) return [];
+    if ('measuredAt' in at) return [];
     return at.map((one) => [place, one] as const);
+  });
+
+/** The exempt places of `cases` whose measuring place is exempt itself: measured nowhere. */
+const unmeasured = <A>(cases: ByPlace<A>): ReadonlyArray<PlaceName> =>
+  Struct.keys(cases).filter((place) => {
+    const at = cases[place];
+    return 'measuredAt' in at && 'measuredAt' in cases[at.measuredAt];
   });
 
 /** Dies unless the page is at `place`: its path and query decode as that place's. */
@@ -380,10 +404,11 @@ const labNoteOnCue = (viewport: Viewport) =>
  * with a scene stands at `labScene`, where its Lab is measured.
  */
 const LAB_MOVES: Exempt = {
-  exempt: "a film's Lab moves to the scene under its playhead as it opens: measured at labScene",
+  measuredAt: 'labScene',
+  why: "a film's Lab moves to the scene under its playhead as it opens",
 };
 
-const STATES: ByPlace<State> = {
+const STATES: ByPlace<State, AtRest> = {
   lab: LAB_MOVES,
   home: [
     {
@@ -401,6 +426,8 @@ const STATES: ByPlace<State> = {
       disclose: AT_REST,
       // The kinds strip's four tabs are its index on a page this long.
       budget: most(45, 33),
+      // Its levels, kinds and rows below the fold: a state word back on every row lands here.
+      page: most(99, 100),
     },
     {
       name: "Choices, a variant's inspector",
@@ -438,6 +465,7 @@ const STATES: ByPlace<State> = {
       open: review(PROJECT, ...PROJECT_READY),
       disclose: AT_REST,
       budget: most(38, 30),
+      page: most(39, 44),
     },
     {
       name: "Project, a scene row's sheet",
@@ -482,6 +510,7 @@ const STATES: ByPlace<State> = {
       disclose: AT_REST,
       // A loose video is one card, its file in its menu.
       budget: most(20, 18),
+      page: most(20, 18),
     },
   ],
   labScene: [
@@ -554,6 +583,8 @@ const STATES: ByPlace<State> = {
       name: "Scenes, a scene selected (its sheet, the Project's scene inspector's)",
       open: player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
       disclose: AT_REST,
+      // The tape under the sheet and the sheet's own fields, counted as the page shows them.
+      budget: most(27, 34),
       layer: '[data-role="scene"]',
     },
   ],
@@ -665,21 +696,49 @@ for (const device of DEVICES) {
   );
 }
 
-/** What `view` shows on its first screen (`firstScreenItems`) is at most `budget` things; else each one is named, `C` a control, `T` text. */
-const withinBudget = (page: Tab, budget: number, view: string) => {
-  const now = firstScreenItems();
-  return page.until(`${now}.length <= ${budget}`, {
-    now,
-    say: (found) =>
-      `${view} shows more than ${budget} things on its first screen at rest: ${found}`,
+/**
+ * How far the page's clock runs on before a view is counted: what a view
+ * brings in after its ready selector (a timer, a later still, a legend read)
+ * is on the page by then, so the count is the settled page's, not the first
+ * moment it is within its budget.
+ */
+const SETTLE_MS = 5_000;
+
+/** What a count's reach is called in a failure. */
+const WHERE = { screen: 'first screen', page: 'page' } as const;
+
+/**
+ * The settled view shows at most `budget` things on its first screen, or over
+ * its whole length when `reach` is the `page` (`firstScreenItems`); else each
+ * one is named, `C` a control, `T` text.
+ */
+const withinBudget = (
+  page: Tab,
+  budget: number,
+  view: string,
+  reach: 'screen' | 'page' = 'screen',
+) =>
+  Effect.gen(function* () {
+    yield* page.clock.fastForward(SETTLE_MS);
+    const now = firstScreenItems(reach);
+    yield* page.until(`${now}.length <= ${budget}`, {
+      now,
+      say: (found) =>
+        `${view} shows more than ${budget} things on its ${WHERE[reach]} at rest: ${found}`,
+    });
   });
-};
+
+/** The script that puts a `tag` saying "planted", fixed on the first screen, over the page. */
+const PLANT = (tag: 'button' | 'p') =>
+  `const el = document.createElement('${tag}'); el.textContent = 'planted'; Object.assign(el.style, { position: 'fixed', top: '120px', left: '16px', zIndex: '999' }); document.body.append(el);`;
 
 /** Put `tag` saying "planted" on the first screen, over the page. */
 const plant = (page: Tab, tag: 'button' | 'p') =>
-  page.evaluate(
-    `(() => { const el = document.createElement('${tag}'); el.textContent = 'planted'; Object.assign(el.style, { position: 'fixed', top: '120px', left: '16px', zIndex: '999' }); document.body.append(el); return true; })()`,
-  );
+  page.evaluate(`(() => { ${PLANT(tag)} return true; })()`);
+
+/** Put `tag` saying "planted" on the page 2 s from now, on the page's own clock: a thing that lands after the view is ready. */
+const plantLater = (page: Tab, tag: 'button' | 'p') =>
+  page.evaluate(`(() => { setTimeout(() => { ${PLANT(tag)} }, 2000); return true; })()`);
 
 for (const device of DEVICES) {
   describe(`the targets each view shows at rest on ${device.name} (UR2-17)`, () => {
@@ -696,10 +755,81 @@ for (const device of DEVICES) {
         SLOW,
       );
     }
+    // A long view's whole length: what comes back on the rows below the fold is counted too.
+    for (const [state, page] of byPlace(STATES).flatMap(([, s]) =>
+      Option.toArray(Option.map(Option.fromUndefinedOr(s.page), (b) => [s, b] as const)),
+    )) {
+      it.live(
+        `${state.name}: at most ${page[device.budget]} over its whole length`,
+        () =>
+          Effect.gen(function* () {
+            const opened = yield* state.open(device.viewport);
+            yield* withinBudget(
+              opened,
+              page[device.budget],
+              `${state.name} on ${device.name}`,
+              'page',
+            );
+          }).pipe(Effect.scoped),
+        SLOW,
+      );
+    }
   });
 }
 
+describe('a place named exempt from a guard', () => {
+  test('is measured at a place that has cases, in every table', () => {
+    expect(unmeasured(STATES)).toEqual([]);
+  });
+
+  test('is found when the place measuring it is exempt itself', () => {
+    expect(unmeasured({ ...STATES, home: { measuredAt: 'lab', why: 'planted' } })).toEqual([
+      'home',
+    ]);
+  });
+});
+
 describe('the at-rest budget (UR2-17)', () => {
+  for (const [tag, what] of [
+    ['button', 'a button'],
+    ['p', 'a line of text'],
+  ] as const) {
+    it.live(
+      `fails the Lab's Edit on a phone with ${what} landing 2 s after the view is ready`,
+      () =>
+        Effect.gen(function* () {
+          const page = yield* lab('edit')(PHONE.viewport);
+          yield* withinBudget(page, LAB_EDIT.phone, 'the Lab');
+          yield* plantLater(page, tag);
+          const exit = yield* Effect.exit(
+            withinBudget(page, LAB_EDIT.phone, 'the Lab, a thing landing late'),
+          );
+          expect(Exit.isFailure(exit)).toBe(true);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+  }
+  it.live(
+    'fails a long view on a phone with a line of text planted below the first screen',
+    () =>
+      Effect.gen(function* () {
+        const page = yield* review(CHOICES, ...CHOICES_READY)(PHONE.viewport);
+        const choices = byPlace(STATES).filter(([place]) => place === 'choices')[0]?.[1];
+        const ceiling = choices?.page?.phone ?? 0;
+        const screen = choices?.budget?.phone ?? 0;
+        yield* withinBudget(page, screen, 'Choices');
+        yield* withinBudget(page, ceiling, 'Choices', 'page');
+        // A line far below the fold: the first screen counts none of it, the page counts it.
+        yield* page.evaluate(
+          `(() => { const el = document.createElement('p'); el.textContent = 'planted'; el.style.marginTop = '5000px'; document.body.append(el); return true; })()`,
+        );
+        yield* withinBudget(page, screen, 'Choices, planted');
+        const exit = yield* Effect.exit(withinBudget(page, ceiling, 'Choices, planted', 'page'));
+        expect(Exit.isFailure(exit)).toBe(true);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
   for (const [tag, what] of [
     ['button', 'a button'],
     ['p', 'a line of text'],

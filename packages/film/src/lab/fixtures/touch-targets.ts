@@ -141,10 +141,11 @@ const SEEN = `${TARGETS}, video, audio, canvas, img`;
  * still seen, so it counts. Something below the fold, or scrolled out of an
  * inner scroller's box, is not on the first screen and does not count; a
  * visually hidden one (1 px, clipped to nothing) and a backing input never
- * count.
+ * count. Over the `page` (a long view's whole length) the fold and the
+ * scrollers' boxes do not exclude: what a visit scrolls to counts too.
  */
-export const firstScreenItems = (): string => `(() => {
-  const SEEN = ${jsonOf(SEEN)}, OWNERS = ${jsonOf(OWNERS)};
+export const firstScreenItems = (reach: 'screen' | 'page' = 'screen'): string => `(() => {
+  const SEEN = ${jsonOf(SEEN)}, OWNERS = ${jsonOf(OWNERS)}, ONLY_ON_SCREEN = ${reach === 'screen'};
   ${SHOWN}
   const vw = innerWidth, vh = innerHeight;
   const hidden = (el) => {
@@ -174,7 +175,7 @@ export const firstScreenItems = (): string => `(() => {
     const control = el.matches(SEEN);
     const words = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim() !== '');
     if (!control && !words) continue;
-    if (!shown(el) || hidden(el) || !onScreen(el)) continue;
+    if (!shown(el) || hidden(el) || (ONLY_ON_SCREEN && !onScreen(el))) continue;
     items.push((control ? 'C ' : 'T ') + named(el));
   }
   return items;

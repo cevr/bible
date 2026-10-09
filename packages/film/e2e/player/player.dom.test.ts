@@ -916,7 +916,6 @@ describe('the player', () => {
         yield* page.resize(PHONE.width, PHONE.height);
         yield* attributeIs(page, TAPE, 'data-line', '30');
         yield* page.waitFor(STILL_DRAWN);
-        expect(page.logged.filter((m) => m.text.includes('NO_OWNER_CLEANUP'))).toEqual([]);
       }).pipe(Effect.scoped),
   );
 

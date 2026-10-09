@@ -61,7 +61,7 @@ interface Point {
 }
 
 export interface Tab {
-  /** What the page threw, and every `[STRICT_…]` reactivity warning it logged. */
+  /** What the page threw, and every console warning and error it logged (Solid's diagnostics are warnings). */
   readonly errors: ReadonlyArray<string>;
   /** Every console message, in order. */
   readonly logged: ReadonlyArray<Logged>;

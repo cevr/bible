@@ -362,7 +362,6 @@ describe('marking a frame', () => {
         yield* page.reload;
         yield* attached(page, '.track .tick.note');
         yield* waitFor(page, '.lab-overlay');
-        expect(page.logged.filter((m) => m.text.includes('NO_OWNER_CLEANUP'))).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );

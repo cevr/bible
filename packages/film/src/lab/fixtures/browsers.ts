@@ -322,11 +322,22 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
             )
             .join(' ');
           logged.push({ type, text });
-          // Solid's reactivity diagnostics: a read or a write the page does not mean.
-          if (type.startsWith('warn') && text.startsWith('[STRICT_')) errors.push(text);
+          // A warning or an error at any time is the page doing what it does
+          // not mean: Solid's reactivity diagnostics (`[STRICT_…]`,
+          // `[NO_OWNER_CLEANUP]`) are warnings, and so is a hydration mismatch.
+          if (type.startsWith('warn') || type === 'error') errors.push(`console.${type}: ${text}`);
         },
       },
       { width: options.width, height: options.height, coarse: options.coarse === true },
+    );
+    // A case fails when its page threw, warned or logged an error at any time,
+    // not only where the case looks: checked as the case's scope closes,
+    // before the view goes back to the pool.
+    yield* Effect.addFinalizer(() =>
+      Effect.when(
+        Effect.die(new Error(`the page reported ${errors.length}: ${errors.join(' | ')}`)),
+        Effect.sync(() => errors.length > 0),
+      ),
     );
     // Told through the view the case holds: Chrome drops what a protocol
     // session told it when the session closes, and a pooled view's never

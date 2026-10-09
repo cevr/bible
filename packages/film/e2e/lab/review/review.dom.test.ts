@@ -595,15 +595,27 @@ describe('the review page', () => {
         yield* textHas(page, '.rv-big', '❚❚');
         yield* page.press('Space');
         yield* textHas(page, '.rv-big', '▶');
+        // The pause lands a few frames in: the steps are counted from where it did.
+        const paused = (yield* page.evaluate<string>(
+          "document.querySelector('.rv-time').textContent.split(' / ')[0]",
+        )).split(':');
+        const secondsLater = (later: number) =>
+          [
+            ...paused.slice(0, 2),
+            String(Number(paused[2]) + later).padStart(2, '0'),
+            paused[3],
+          ].join(':');
         yield* page.press('ArrowRight');
         yield* page.press('ArrowRight');
-        yield* textHas(page, '.rv-time', '00:00:04:00');
+        yield* textHas(page, '.rv-time', secondsLater(2 * STEP_S));
         yield* page.press('ArrowLeft');
-        yield* textHas(page, '.rv-time', '00:00:02:00');
-        // Every video stands where the clock does.
+        yield* textHas(page, '.rv-time', secondsLater(STEP_S));
+        // Every video stands where the clock does: on one time, a step past the pause.
+        const standing =
+          "Array.from(document.querySelectorAll('.rv-card video')).map((v) => v.currentTime)";
         yield* until(
           page,
-          "Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - 2) < 0.01)",
+          `(${standing}).every((t, _, all) => Math.abs(t - all[0]) < 0.01 && t >= ${STEP_S})`,
         );
         // The rate chip opens the rates but the one it plays at; J steps one slower.
         yield* page.click('.rv-transport [data-act="rate"]');

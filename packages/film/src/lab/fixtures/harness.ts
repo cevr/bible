@@ -506,8 +506,8 @@ const HOT_MIC = `(() => {
 
 /**
  * A page open in a tab of its own: the tab, what it asked of its server, and any
- * page errors, Solid's reactivity diagnostics among them (a `[STRICT_…]`
- * warning is a read or a write the page does not mean).
+ * page errors: what it threw and every console warning or error (Solid's
+ * reactivity diagnostics are warnings), which also fail the case as it ends.
  */
 interface OpenLab {
   readonly page: Tab;
