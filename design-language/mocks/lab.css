@@ -4,6 +4,12 @@
  * keeps only its own rules in its <style>.
  */
 
+/* Geometry of the cue lanes, named once as player.css names its own: the label column and its text. */
+:root {
+  --cue-names: 72px;
+  --cue-label-w: 66px;
+}
+
 .work {
   display: grid;
   gap: 1px;
@@ -51,7 +57,7 @@
 
 .strip .scroll {
   position: relative;
-  padding-left: 72px;
+  padding-left: var(--cue-names);
   max-height: 210px;
   overflow: hidden;
 }
@@ -66,15 +72,15 @@
 .word {
   position: absolute;
   top: 2px;
-  height: 14px;
-  line-height: 14px;
+  height: var(--lh-1);
+  line-height: var(--lh-1);
   overflow: hidden;
   white-space: nowrap;
   font-size: var(--fs-1);
   color: var(--text-1);
   background: var(--surface-3);
   border-left: 1px solid var(--line-strong);
-  padding-left: 2px;
+  padding-left: var(--s-1);
 }
 
 .cues {
@@ -89,10 +95,10 @@
 
 .cue-row label {
   position: absolute;
-  left: -72px;
-  width: 66px;
+  left: calc(-1 * var(--cue-names));
+  width: var(--cue-label-w);
   text-align: right;
-  line-height: 15px;
+  line-height: var(--lh-1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

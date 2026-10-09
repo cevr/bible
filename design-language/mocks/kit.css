@@ -4,6 +4,9 @@
  * first (`packages/film/src/player/tokens.css`); this sheet holds none of its
  * own. Every control a finger takes is at least `--hit` (44 px on the phone,
  * 28 px with a fine pointer), as the studio's touch check measures the code.
+ * Every gap, padding, margin, leading and radius is a step of the token
+ * scales (`--s-*`, `--lh-*`, `--r-*`); a 1 px hairline stays 1 px, and other
+ * geometry is named once where it lives (`lab.css` names the cue lanes').
  * A page keeps only its own rules in its <style>.
  */
 
@@ -91,7 +94,7 @@ svg.i.fill {
 .crumb {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--s-1);
   font-size: var(--fs-2);
   color: var(--text-2);
   white-space: nowrap;
@@ -181,7 +184,7 @@ kbd {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--s-1);
   padding: 0 var(--s-3);
   color: var(--text-2);
   text-decoration: none;
@@ -283,7 +286,7 @@ kbd {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--s-1);
   height: var(--s-4);
   padding: 0 var(--s-1);
   border: 1px solid currentColor;
@@ -559,7 +562,7 @@ kbd {
     flex: 1;
     flex-direction: column;
     justify-content: center;
-    gap: 3px;
+    gap: var(--s-1);
     padding: 0;
     font-size: var(--fs-1);
     line-height: var(--lh-1);

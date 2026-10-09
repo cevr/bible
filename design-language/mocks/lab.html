@@ -58,7 +58,7 @@
       }
       .eases .btn {
         flex-direction: column;
-        gap: 2px;
+        gap: var(--s-1);
         min-height: calc(var(--hit) + var(--s-3));
         padding: var(--s-1) 0;
         font-size: var(--fs-1);
@@ -106,7 +106,7 @@
       }
       @media (max-width: 899px) {
         .main {
-          padding-bottom: 170px;
+          padding-bottom: calc(var(--tabbar-h) + var(--dock-h) + var(--hit) + var(--s-2));
         }
         .bottom {
           position: fixed;
@@ -121,12 +121,12 @@
           border-top: 1px solid var(--line-strong);
           border-radius: var(--r-sheet) var(--r-sheet) 0 0;
           box-shadow: var(--shadow-pop);
-          padding: 6px var(--gutter) 0;
+          padding: var(--s-2) var(--gutter) 0;
         }
         .peek .grab {
           width: 36px;
           height: var(--s-1);
-          border-radius: 2px;
+          border-radius: var(--r-1);
           background: var(--line-strong);
           margin: 0 auto;
         }

@@ -116,12 +116,12 @@
         font-size: var(--fs-1);
         line-height: var(--lh-1);
         color: var(--text-3);
-        padding-top: 16px;
+        padding-top: var(--s-4);
         text-align: right;
       }
       .strip {
         position: relative;
-        padding-top: 15px;
+        padding-top: var(--s-4);
         overflow: hidden;
       }
       .labels {
@@ -136,12 +136,12 @@
         top: 0;
         display: inline-flex;
         align-items: center;
-        gap: 3px;
+        gap: var(--s-1);
         font-size: var(--fs-1);
         line-height: var(--lh-1);
         color: var(--text-2);
         white-space: nowrap;
-        padding-left: 3px;
+        padding-left: var(--s-1);
       }
       .labels span .dot {
         width: 5px;
@@ -209,7 +209,7 @@
         width: 8px;
         height: var(--s-1);
         background: var(--accent);
-        border-radius: 1px;
+        border-radius: var(--r-1);
       }
       /* focus panel (laptop) / sheet (phone) */
       .focus .body {
@@ -258,7 +258,7 @@
       .kv {
         display: grid;
         grid-template-columns: auto 1fr;
-        gap: 2px var(--s-3);
+        gap: var(--s-1) var(--s-3);
         font-size: var(--fs-2);
       }
       .kv dd {
@@ -322,7 +322,7 @@
         border-top: 1px solid var(--line-strong);
         border-radius: var(--r-sheet) var(--r-sheet) 0 0;
         box-shadow: var(--shadow-pop);
-        padding: 6px var(--gutter) var(--s-3);
+        padding: var(--s-2) var(--gutter) var(--s-3);
       }
       .peek .grab {
         width: 36px;
@@ -356,7 +356,7 @@
       }
       @media (max-width: 899px) {
         .rows {
-          padding-bottom: 120px;
+          padding-bottom: calc(var(--tabbar-h) + var(--dock-h) + var(--s-1));
         }
       }
     </style>
@@ -481,7 +481,7 @@
           </div>
           <div>
             <p class="title">word</p>
-            <dl class="kv" style="margin: 6px 0 0">
+            <dl class="kv" style="margin: var(--s-2) 0 0">
               <dt>act</dt>
               <dd>cold open</dd>
               <dt>in</dt>
@@ -648,7 +648,7 @@
               const x = ((st - r0) / rowDur) * 100;
               const at =
                 x > 78
-                  ? `right:${100 - x}%;flex-direction:row-reverse;padding:0 3px 0 0`
+                  ? `right:${100 - x}%;flex-direction:row-reverse;padding:0 var(--s-1) 0 0`
                   : `left:${x}%`;
               // A scene too short to hold its name before the next boundary shows only its dot; the name is on hover and in the focus panel.
               const next = S[i + 1],
