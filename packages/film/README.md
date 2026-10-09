@@ -1648,7 +1648,7 @@ at the same frame and pick, kept in its place (`/films/<film>/lab/hand?cue=toppl
 `?knob=palm`); review the
 change with `git diff`.
 
-The Source view shows a scene's file (`GET /films/<film>/scenes/<scene>/code`)
+The Source view shows a scene's file (`GET /api/films/<film>/scenes/<scene>/code`)
 a row to a line, with the cues playing at the frame lit where the code writes
 them and reads them, the cue or knob selected lit where it is written, the
 knobs the frame read lit (`player.knobReads()`), a meter on each playing
