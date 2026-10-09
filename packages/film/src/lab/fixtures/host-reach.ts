@@ -152,6 +152,24 @@ export const HOST_REACH = `(() => {
     if ((self === window || self === document) && ON_HOST.has(type)) return 'addEventListener(' + type + ') on the host';
     return '';
   });
+  // The same reach by a handler property: \`window.onkeydown = h\` listens as addEventListener does.
+  const wrapSetter = (target, type) => {
+    const name = 'on' + type;
+    const d = Object.getOwnPropertyDescriptor(target, name);
+    if (!d || typeof d.set !== 'function') return;
+    const set = d.set;
+    Object.defineProperty(target, name, {
+      ...d,
+      set: function (handler) {
+        if (PRESS_END.has(type)) tell(name);
+        else if ((this === window || this === document) && ON_HOST.has(type)) tell(name + ' on the host');
+        return set.call(this, handler);
+      },
+    });
+  };
+  for (const type of ON_HOST)
+    for (const target of [window, Document.prototype, HTMLElement.prototype, SVGElement.prototype])
+      wrapSetter(target, type);
   wrap(Element.prototype, 'setPointerCapture', always('setPointerCapture'));
   wrap(Element.prototype, 'releasePointerCapture', always('releasePointerCapture'));
   for (const name of ['pushState', 'replaceState', 'go', 'back', 'forward'])

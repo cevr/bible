@@ -82,6 +82,10 @@ describe('the host-reach check', () => {
       'addEventListener(pointerup)',
       "document.getElementById('a').addEventListener('pointerup', () => {})",
     ],
+    ['onkeydown on the host', "window[['on', 'keydown'].join('')] = () => {}"],
+    ['onpopstate on the host', 'window.onpopstate = () => {}'],
+    ['onpointermove on the host', 'document.onpointermove = () => {}'],
+    ['onpointerup', "document.getElementById('a').onpointerup = () => {}"],
     ['setPointerCapture', "document.getElementById('a').setPointerCapture(1)"],
   ] as const)
     it.live(`fails a case whose film file calls ${api}`, () =>
@@ -107,6 +111,13 @@ describe('the host-reach check', () => {
         writtenBy("document.getElementById('a').addEventListener('keydown', () => {})", FILM_FILE),
       );
       expect(element).not.toContain('host reach');
+      const handler = yield* outcome(
+        writtenBy(
+          "document.getElementById('a').onkeydown = () => {};window.onclick = () => {}",
+          FILM_FILE,
+        ),
+      );
+      expect(handler).not.toContain('host reach');
     }),
   );
 });
