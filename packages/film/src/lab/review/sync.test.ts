@@ -87,6 +87,28 @@ describe('the sync driver', () => {
   });
 
   it.effect(
+    'a set waiting on its videos does not wait on one whose media failed, and leaves it where it is',
+    () =>
+      Effect.gen(function* () {
+        const { frames, driver, a, b, tags } = rig({ b: 'NotSupportedError' });
+        driver.apply(SyncState.Playing(clock(0)));
+        yield* b.answered;
+        yield* settle;
+        // The failed video can never play on: the set waits on the ones that can.
+        b.el.readyState = 1;
+        driver.apply(SyncState.Buffering(clock(0)));
+        frames.frame(16);
+        expect(tags()).toEqual(['Resumed']);
+        // Nor is it pulled to the clock, or told to play again.
+        driver.apply(SyncState.Playing(clock(0)));
+        b.asked.length = 0;
+        a.el.currentTime = 2;
+        frames.frame(32);
+        expect(b.asked).toEqual([]);
+      }),
+  );
+
+  it.effect(
     'a play the browser refuses sound for plays muted; only the audible video is unmuted',
     () =>
       Effect.gen(function* () {
