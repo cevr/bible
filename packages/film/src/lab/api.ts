@@ -33,6 +33,7 @@ import {
   type NotesFile,
   type NotesWait,
   RequestId,
+  type SceneCode,
   type SceneSource,
 } from '../core/schema.ts';
 
@@ -155,6 +156,8 @@ export const stepWhyNot =
 export interface LabCalls {
   /** A scene's file and what of it the lab may rewrite. */
   readonly source: (scene: string) => Effect.Effect<SceneSource, LabFailure>;
+  /** A scene's file text now, and where its cues, knobs and marks are written and read. */
+  readonly code: (scene: string) => Effect.Effect<SceneCode, LabFailure>;
   /** A scene's timeline and knobs at HEAD. */
   readonly head: (scene: string) => Effect.Effect<HeadSource, LabFailure>;
   /** `film check --static` now, the latest change, and what Undo and Redo would do. */
@@ -257,6 +260,7 @@ const makeLabApi = Effect.fn('lab.api.make')(function* (film: string) {
   const client = yield* LabClient;
   const api: LabCalls = {
     source: (scene) => called(client.scenes.source({ params: { film, scene } })),
+    code: (scene) => called(client.scenes.code({ params: { film, scene } })),
     head: (scene) => called(client.scenes.head({ params: { film, scene } })),
     check: called(client.steps.check({ params: { film } })),
     writeCue: (scene, cue, patch) =>

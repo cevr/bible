@@ -32,6 +32,46 @@ import { CLOCK_EPSILON, DEFAULT_EASE, type Key, ease, keys, progress, toMs } fro
 export const cueProgress = (cue: ResolvedCue, t: number): number =>
   progress(t, cue.start, cue.dur, ease[cue.ease]);
 
+/** A cue the playhead is inside, and how far through it (`cueProgress`). */
+interface LiveCue {
+  readonly name: string;
+  readonly progress: number;
+}
+
+/**
+ * The cues playing at scene time `t`, in `cues`' order: one is live from its
+ * start up to its end, and a cue with no length on its one frame (of a film
+ * at `fps`). Pure in the time and the shown cues, so a link with `#t=` lights
+ * what the sender saw; nothing is read from drawing.
+ */
+export const liveAt = (
+  cues: ReadonlyMap<string, ResolvedCue>,
+  t: number,
+  fps: number,
+): ReadonlyArray<LiveCue> =>
+  [...cues].flatMap(([name, cue]) => {
+    const end = cue.dur > 0 ? cue.end : cue.start + 1 / fps;
+    if (t < cue.start || t >= end) return [];
+    return [{ name, progress: cueProgress(cue, t) }];
+  });
+
+/**
+ * The marks whose word is being said at scene time `t`: a mark is the start
+ * of the word it precedes, and is said until that word ends. `voice` is the
+ * scene's narration (`SceneClock`'s marks, words and where it starts).
+ */
+export const saidAt = (
+  voice: Pick<SceneClock, 'marks' | 'words' | 'speechStart'>,
+  t: number,
+): ReadonlyArray<string> => {
+  const heard = t - voice.speechStart;
+  return [...voice.marks].flatMap(([name, at]) => {
+    const word = voice.words.find((w) => w.start === at);
+    if (word === undefined || heard < at || heard >= word.end) return [];
+    return [name];
+  });
+};
+
 /**
  * 0→1 for the item at `at` (0 the first, 1 the last) across a staggered cue
  * at scene time `t`, eased by the cue's ease: the items' starts spread over

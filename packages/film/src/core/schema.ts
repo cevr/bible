@@ -1078,6 +1078,45 @@ export const SceneSource = Schema.Struct({
 });
 export type SceneSource = typeof SceneSource.Type;
 
+/** A stretch of a scene file's text: `[start, end)` as offsets into `SceneCode.text` (UTF-16 units, so `text.slice(start, end)`). */
+export const CodeRange = Schema.Tuple([Schema.Int, Schema.Int]);
+export type CodeRange = typeof CodeRange.Type;
+
+/** A cue or a knob in a scene's code: where its literal is written, and every call that reads it by name. */
+const CodeSite = Schema.Struct({
+  name: Schema.String,
+  /** Its property in the `timeline` or `knobs` literal: `lift: { mark: 'take', dur: 1.5 }`. */
+  at: CodeRange,
+  reads: Schema.Array(CodeRange),
+});
+
+/**
+ * `GET /api/films/<film>/scenes/<scene>/code`: the scene file as it stands, and
+ * where in it each cue and knob is written and read, for the Source view to
+ * light what plays. The ranges come from the parse the writes use
+ * (`tools/scene-source.ts`). A read is matched by name: a call of a
+ * frame's reader (`at`, `cue`, `keys`, `stagger`, `staggerAt`, `knob`,
+ * `mark`) whose first argument is a string naming a cue or knob the scene
+ * declares, or any mark; a wrong match lights the wrong span and writes
+ * nothing. A cue's or a knob's literal the lab cannot locate is not listed,
+ * and `refused` says why.
+ */
+export const SceneCode = Schema.Struct({
+  scene: Schema.String,
+  /** The scene file, relative to the film's folder. */
+  file: Schema.String,
+  /** The file's text now. */
+  text: Schema.String,
+  cues: Schema.Array(CodeSite),
+  knobs: Schema.Array(CodeSite),
+  /** Narration marks the code reads (`f.mark('take')`), or anchors a cue at (`mark: 'take'`). */
+  marks: Schema.Array(Schema.Struct({ name: Schema.String, reads: Schema.Array(CodeRange) })),
+  refused: Schema.Array(
+    Schema.Struct({ field: Schema.Literals(['timeline', 'knobs']), reason: Schema.String }),
+  ),
+});
+export type SceneCode = typeof SceneCode.Type;
+
 /**
  * `GET /lab/:film/scenes/:scene/head`: the scene's timeline and knobs as the file
  * declares them at HEAD (literals only), for the lab to draw beside now.

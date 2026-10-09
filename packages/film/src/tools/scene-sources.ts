@@ -19,7 +19,16 @@
 // written); a literal two scenes read (both spread one drawing) is refused for
 // both, since a write for one would move the other.
 
-import { Array as Arr, Cache, Context, Effect, FileSystem, Layer, Option } from 'effect';
+import {
+  Array as Arr,
+  Cache,
+  Context,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  type Result,
+} from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import {
   type FilmUnknown,
@@ -30,7 +39,7 @@ import {
 import type { FilmModuleInvalid } from './errors.ts';
 import { FilmFolder, Stamped, filmNamed, keptWhenMade } from './film-repo.ts';
 import { type FreshError, FreshFilm, type SceneSite } from './fresh-film.ts';
-import { type Editable, editable } from './scene-source.ts';
+import { type Editable, editable, sceneCode } from './scene-source.ts';
 
 export type { SceneSite } from './fresh-film.ts';
 
@@ -73,6 +82,20 @@ interface SceneSourcesService {
       readonly refused: ReadonlyArray<{ readonly field: Field; readonly reason: string }>;
       readonly site: SceneSite;
     },
+    LocateError | SceneNotLocated | SourceRefused
+  >;
+  /**
+   * One scene's file as it stands now, and where in it each cue, knob and mark
+   * is written and read (`sceneCode`); read-only, so a field the lab may not
+   * write is listed all the same.
+   */
+  readonly code: (
+    film: string,
+    scene: string,
+  ) => Effect.Effect<
+    ReturnType<typeof sceneCode> extends Result.Result<infer R, unknown>
+      ? R & { readonly text: string; readonly site: SceneSite }
+      : never,
     LocateError | SceneNotLocated | SourceRefused
   >;
 }
@@ -142,7 +165,14 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
       };
     });
 
-    return SceneSources.of({ locate, site, writable, editable: readEditable });
+    const readCode = Effect.fn('SceneSources.code')(function* (film: string, scene: string) {
+      const at = yield* site(film, scene);
+      const text = yield* fs.readFileString(at.file);
+      const found = yield* Effect.fromResult(sceneCode(at.shown, text, at.exportName));
+      return { ...found, text, site: at };
+    });
+
+    return SceneSources.of({ locate, site, writable, editable: readEditable, code: readCode });
   });
 
   /**

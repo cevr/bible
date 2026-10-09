@@ -98,6 +98,13 @@ describe('scene sources', () => {
         ['topple', 'literal'],
         ['late', 'computed'],
       ]);
+      // The code view: the file's text now, and each cue's literal as a range of it.
+      const code = yield* sources.code('f', 'hand');
+      expect(code.site.shown).toBe('scenes/hand.ts');
+      expect(code.cues.map((c) => [c.name, code.text.slice(...c.at).split(':')[0]])).toEqual([
+        ['topple', 'topple'],
+        ['late', 'late'],
+      ]);
     }).pipe(Effect.provide(fixture)),
   );
 

@@ -678,6 +678,7 @@ export const noScenes = Layer.mergeAll(
       site: () => unusedSource,
       writable: () => unusedSource,
       editable: () => unusedSource,
+      code: () => unusedSource,
     }),
   ),
   Layer.succeed(

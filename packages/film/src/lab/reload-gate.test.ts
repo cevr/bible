@@ -51,6 +51,7 @@ const gated = () => {
   };
   const api: LabCalls = {
     source: () => Effect.die('not asked'),
+    code: () => Effect.die('not asked'),
     head: () => Effect.die('not asked'),
     check: Effect.die('not asked'),
     writeCue: () => Effect.die('not asked'),

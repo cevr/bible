@@ -28,7 +28,15 @@ import {
   Visitor,
   parseSync,
 } from 'oxc-parser';
-import { CUE_PATCH_KEYS, type CuePatch, type Knob, Span, Until } from '../core/schema.ts';
+import {
+  CUE_PATCH_KEYS,
+  type CodeRange,
+  type CuePatch,
+  type Knob,
+  type SceneCode,
+  Span,
+  Until,
+} from '../core/schema.ts';
 import { SourceRefused } from '../core/refusals.ts';
 import { toMs } from '../core/time.ts';
 import { patchSpan, writtenPatch } from '../core/timeline.ts';
@@ -447,22 +455,29 @@ export const unlocatable = (source: string, program: Program): ReadonlyArray<Unl
   return [...found, ...bare].sort((a, b) => a.start - b.start);
 };
 
+/** The drawing `program` (the parse of `source`) exports as `name`. */
+const siteIn = (
+  file: string,
+  source: string,
+  program: Program,
+  name: string,
+): Result.Result<DrawingSite, SourceRefused> =>
+  Option.match(
+    Arr.findFirst(drawingSites(source, program), (s) => s.exports.includes(name)),
+    {
+      onNone: () =>
+        refuse(file, `drawing ${name}`, `the module exports no drawing({...}) named ${name}`),
+      onSome: Result.succeed,
+    },
+  );
+
 /** The drawing a module exports as `name`, read from its source now. */
 const siteNamed = (
   file: string,
   source: string,
   name: string,
 ): Result.Result<DrawingSite, SourceRefused> =>
-  Result.flatMap(parseModule(file, source), (program) =>
-    Option.match(
-      Arr.findFirst(drawingSites(source, program), (s) => s.exports.includes(name)),
-      {
-        onNone: () =>
-          refuse(file, `drawing ${name}`, `the module exports no drawing({...}) named ${name}`),
-        onSome: Result.succeed,
-      },
-    ),
-  );
+  Result.flatMap(parseModule(file, source), (program) => siteIn(file, source, program, name));
 
 const matchSlot = Match.type<Slot>();
 
@@ -1098,6 +1113,121 @@ export const readKnobs = (
         ),
       ),
   });
+
+/** What a frame's reader names by its first argument: a cue, a knob or a narration mark. */
+type Reads = 'cue' | 'knob' | 'mark';
+
+const READERS: ReadonlyMap<string, Reads> = new Map([
+  ['at', 'cue'],
+  ['cue', 'cue'],
+  ['keys', 'cue'],
+  ['stagger', 'cue'],
+  ['staggerAt', 'cue'],
+  ['knob', 'knob'],
+  ['mark', 'mark'],
+]);
+
+interface Read {
+  readonly of: Reads;
+  readonly name: string;
+  readonly at: CodeRange;
+}
+
+/**
+ * Every call in the module of a frame's reader (`f.at('lift')`, `f.knob(…)`,
+ * `f.mark(…)`) whose first argument is a string literal, wherever the call
+ * stands: a scene's helpers read the frame too. Matched by the member's name,
+ * so a lookalike on another object (`list.at('x')`) is a wrong guess the Source
+ * view only lights, never writes.
+ */
+const readsIn = (program: Program): ReadonlyArray<Read> => {
+  const found: Array<Read> = [];
+  new Visitor({
+    CallExpression: (call) => {
+      const callee = call.callee;
+      if (callee.type !== 'MemberExpression' || callee.computed) return;
+      if (callee.property.type !== 'Identifier') return;
+      const of = Option.fromUndefinedOr(READERS.get(callee.property.name));
+      const arg = Arr.head(call.arguments);
+      if (Option.isNone(of) || Option.isNone(arg) || arg.value.type === 'SpreadElement') return;
+      Option.map(stringOf(arg.value), (name) =>
+        found.push({ of: of.value, name, at: [call.start, call.end] }),
+      );
+    },
+  }).visit(program);
+  return found;
+};
+
+/** A literal's properties as the code view lists them: the property's own range (key to value), by name. */
+const writtenIn = (slot: Slot) =>
+  literalProperties(slot).flatMap((p) =>
+    Option.match(keyName(p), {
+      onNone: () => [],
+      onSome: (name) => [{ name, at: [p.start, p.end] satisfies CodeRange, value: p.value }],
+    }),
+  );
+
+/** The ranges of `reads` of one kind, by name, in the order they stand. */
+const readsOf = (reads: ReadonlyArray<Read>, of: Reads, name: string): ReadonlyArray<CodeRange> =>
+  reads.filter((r) => r.of === of && r.name === name).map((r) => r.at);
+
+/** Where in the module the drawing exported as `name` writes and reads its cues, knobs and marks. */
+type SceneRanges = Pick<SceneCode, 'cues' | 'knobs' | 'marks' | 'refused'>;
+
+/**
+ * Where the drawing exported as `name` writes each cue (in its `timeline`
+ * literal) and each knob (in its `knobs`), and every call in the module that
+ * reads one by name, as the Source view lights them (`GET …/scenes/<scene>/code`):
+ * positions from the same parse the writes splice by, so an offset is a text
+ * range as the file now stands. A cue or knob read by a name the scene does not
+ * declare, or an array's `.at(0)`, is left out. Narration marks are not
+ * declared in the file: a mark is listed where the code reads it, or where a
+ * cue anchors at it (`mark: 'take'`). A `timeline` or `knobs` that is not an
+ * object literal lists nothing, and says why.
+ */
+export const sceneCode = (
+  file: string,
+  source: string,
+  name: string,
+): Result.Result<SceneRanges, SourceRefused> =>
+  Result.flatMap(parseModule(file, source), (program) =>
+    Result.map(siteIn(file, source, program, name), (site): SceneRanges => {
+      const reads = readsIn(program);
+      const cues = writtenIn(site.timeline);
+      const anchors = cues.flatMap(({ value }) => {
+        if (value.type !== 'ObjectExpression') return [];
+        return value.properties.flatMap((p) => {
+          if (p.type === 'SpreadElement' || !Option.contains(keyName(p), 'mark')) return [];
+          return Option.match(stringOf(p.value), {
+            onNone: () => [],
+            onSome: (mark): ReadonlyArray<Read> => [
+              { of: 'mark', name: mark, at: [p.value.start, p.value.end] },
+            ],
+          });
+        });
+      });
+      const marked = [...reads.filter((r) => r.of === 'mark'), ...anchors].sort(
+        (a, b) => a.at[0] - b.at[0],
+      );
+      return {
+        cues: cues.map((c) => ({ name: c.name, at: c.at, reads: readsOf(reads, 'cue', c.name) })),
+        knobs: writtenIn(site.knobs).map((k) => ({
+          name: k.name,
+          at: k.at,
+          reads: readsOf(reads, 'knob', k.name),
+        })),
+        marks: [...new Set(marked.map((m) => m.name))].map((mark) => ({
+          name: mark,
+          reads: marked.filter((m) => m.name === mark).map((m) => m.at),
+        })),
+        refused: (['timeline', 'knobs'] as const).flatMap((field) => {
+          const slot = site[field];
+          if (slot._tag !== 'Computed') return [];
+          return [{ field, reason: `it is \`${slot.text}\`, not an object literal` }];
+        }),
+      };
+    }),
+  );
 
 /**
  * The module's code apart from the drawing's data: the source with the

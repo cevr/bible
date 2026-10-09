@@ -120,6 +120,7 @@ import {
   PageBuild,
   ReplyPost,
   RequestId,
+  SceneCode,
   SceneSource,
 } from './schema.ts';
 import { KeepPost, StudioAttempts, StudioBeats, StudioTake, TakePost } from './studio.ts';
@@ -415,6 +416,12 @@ class ScenesGroup extends HttpApiGroup.make('scenes').add(
   HttpApiEndpoint.get('source', `${FILM}/scenes/:scene/source`, {
     params: { ...film, scene: Schema.String },
     success: SceneSource,
+    error: Refusals,
+  }),
+  /** The scene file's text now, and where its cues, knobs and marks are written and read (the Source view). */
+  HttpApiEndpoint.get('code', `${FILM}/scenes/:scene/code`, {
+    params: { ...film, scene: Schema.String },
+    success: SceneCode,
     error: Refusals,
   }),
   HttpApiEndpoint.get('head', `${FILM}/scenes/:scene/head`, {
