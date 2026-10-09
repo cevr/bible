@@ -27,22 +27,23 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
 .lab-source-live[data-empty='true'] { color: var(--text-3); }
 .lab-source-head > .sh-btn { flex: none; min-height: var(--hit); }
 .lab-source-note { margin: 0; padding: var(--s-3) var(--gutter); color: var(--text-2); font-size: var(--fs-3); }
-.lab-source-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
-.lab-source-page { --source-lh: var(--body-lh); position: relative; display: grid; grid-template-columns: auto max-content;
-  min-width: 100%; font-size: var(--body-fs); line-height: var(--source-lh); }
-.lab-source-numbers, .lab-source-text { margin: 0; font: inherit; line-height: var(--source-lh); tab-size: 2; }
-.lab-source-numbers { position: sticky; left: 0; z-index: 1; padding: 0 var(--s-2) 0 var(--gutter); text-align: right;
-  color: var(--text-3); background: var(--surface-1); user-select: none; }
-.lab-source-text { padding: 0 var(--gutter) 0 var(--s-2); white-space: pre; color: var(--text-1); }
-.lab-source-text code { font: inherit; }
-.lab-source-text:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.lab-source-follow { flex: none; }
+.lab-source-follow[aria-pressed='true'] { color: var(--accent); }
+.lab-source-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.lab-source-page { --source-lh: var(--body-lh); position: relative; font-size: var(--body-fs); line-height: var(--source-lh);
+  tab-size: 2; color: var(--text-1); }
+.lab-source-page:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+/* A row to a line: the number beside the text, a long line wrapping under its own number (one layout, phone and laptop). */
+.lab-source-line { position: relative; display: grid; min-height: var(--source-lh);
+  grid-template-columns: calc(var(--digits) * 1ch + var(--gutter) + var(--s-2)) minmax(0, 1fr); cursor: pointer; }
+.lab-source-n { padding: 0 var(--s-2) 0 var(--gutter); text-align: right; color: var(--text-3); user-select: none; }
+.lab-source-t { padding: 0 var(--gutter) 0 var(--s-2); white-space: pre-wrap; overflow-wrap: anywhere; }
 ::highlight(lab-live) { background-color: color-mix(in srgb, var(--state-live) 26%, transparent); color: var(--text-1); }
 ::highlight(lab-read) { background-color: color-mix(in srgb, var(--state-live) 11%, transparent); }
+::highlight(lab-picked) { background-color: var(--accent-wash); color: var(--text-1); text-decoration: underline var(--accent); }
 .lab-source-held, .lab-source-meter { position: absolute; left: 0; pointer-events: none; }
-.lab-source-held { right: 0; top: calc((var(--line) - 1) * var(--source-lh)); height: var(--source-lh);
-  background: var(--accent-wash); box-shadow: inset 2px 0 var(--accent); }
-.lab-source-meter { z-index: 2; top: calc(var(--line) * var(--source-lh) - 2px); height: 2px;
-  width: calc(var(--done) * 100%); background: var(--state-live); }
+.lab-source-held { right: 0; top: 0; bottom: 0; background: var(--accent-wash); box-shadow: inset 2px 0 var(--accent); }
+.lab-source-meter { z-index: 2; bottom: 0; height: 2px; width: calc(var(--done) * 100%); background: var(--state-live); }
 .lab-source-at { display: inline-flex; align-items: center; min-height: var(--hit); margin-left: var(--s-2); padding: 0;
   border: 0; background: none; font: inherit; color: var(--accent); cursor: pointer; }
 .lab-source-at:hover { text-decoration: underline; }

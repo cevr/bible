@@ -6,7 +6,8 @@ import { Option } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import type { ResolvedCue, SceneCode } from '../../core/schema.ts';
 import { liveAt } from '../../core/timeline.ts';
-import { followLine, lineOf, lineSite, lineStarts, litNow } from './lit.ts';
+import { cueOf, knobOf } from '../../command/selection.ts';
+import { followLine, lineOf, lineSite, lineStarts, litNow, selectionAt } from './lit.ts';
 import { FOLLOW, codeOpenOf, codeText, lineOpen } from './open.ts';
 
 const TEXT = [
@@ -82,6 +83,54 @@ describe('what is lit at a frame', () => {
   test('the view follows to the playing cue’s line, else to nothing', () => {
     expect(followLine(code, litNow(code, liveAt(cues, 1.5, 30)))).toEqual(Option.some(4));
     expect(followLine(code, litNow(code, liveAt(cues, 5, 30)))).toEqual(Option.none());
+  });
+});
+
+/** `code` with a knob `size` written on the first line and read by the `fall` call. */
+const knobbed: SceneCode = {
+  ...code,
+  knobs: [{ name: 'size', at: range('const lift = 1;'), reads: [range('f.at("fall")')] }],
+};
+
+describe('what the selection and the frame’s reads light', () => {
+  const none = liveAt(new Map(), 0, 30);
+
+  test('the cue selected lights its literal, with nothing playing', () => {
+    const lit = litNow(knobbed, none, { cue: Option.some('fall'), knob: Option.none(), read: [] });
+    expect(lit.picked).toEqual([range('fall: { after: "rise", dur: 1 }')]);
+    expect(lit.literals).toEqual([]);
+  });
+
+  test('the knob selected lights its literal', () => {
+    const lit = litNow(knobbed, none, { cue: Option.none(), knob: Option.some('size'), read: [] });
+    expect(lit.picked).toEqual([range('const lift = 1;')]);
+  });
+
+  test('a selection the code does not write lights nothing', () => {
+    const lit = litNow(knobbed, none, {
+      cue: Option.some('unwritten'),
+      knob: Option.some('gone'),
+      read: [],
+    });
+    expect(lit.picked).toEqual([]);
+  });
+
+  test('a knob the frame read lights its literal and its calls, as a read', () => {
+    const lit = litNow(knobbed, none, { cue: Option.none(), knob: Option.none(), read: ['size'] });
+    expect(lit.reads).toEqual([range('const lift = 1;'), range('f.at("fall")')]);
+    expect(lit.names).toEqual([]);
+    const gone = { cue: Option.none<string>(), knob: Option.none<string>(), read: ['gone'] };
+    expect(litNow(knobbed, none, gone).reads).toEqual([]);
+  });
+});
+
+describe('what a tap on a line selects', () => {
+  test('the cue written on it, else the knob, else nothing', () => {
+    expect(selectionAt(knobbed, 3)).toEqual(Option.some(cueOf('robe', 'rise')));
+    expect(selectionAt(knobbed, 4)).toEqual(Option.some(cueOf('robe', 'fall')));
+    expect(selectionAt(knobbed, 1)).toEqual(Option.some(knobOf('robe', 'size')));
+    expect(selectionAt(knobbed, 2)).toEqual(Option.none());
+    expect(selectionAt(knobbed, 99)).toEqual(Option.none());
   });
 });
 

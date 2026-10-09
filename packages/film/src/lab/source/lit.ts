@@ -6,6 +6,7 @@
 
 import { Array as Arr, Option } from 'effect';
 import type { CodeRange, NoteSource, SceneCode } from '../../core/schema.ts';
+import { type LabSelection, cueOf, knobOf } from '../../command/selection.ts';
 import type { liveAt } from '../../core/timeline.ts';
 
 /** The cues playing, as `liveAt` answers. */
@@ -18,12 +19,27 @@ interface Meter {
   readonly progress: number;
 }
 
+/** What the lab has picked or the frame read, besides what plays: the Source view lights these too. */
+export interface Picks {
+  /** The cue selected, by name. */
+  readonly cue: Option.Option<string>;
+  /** The knob selected, by name. */
+  readonly knob: Option.Option<string>;
+  /** The knobs the frame shown read, by name (`player.knobReads()`). */
+  readonly read: ReadonlyArray<string>;
+}
+
+/** Nothing picked, nothing read. */
+export const NO_PICKS: Picks = { cue: Option.none(), knob: Option.none(), read: [] };
+
 /** What is lit at a frame. */
 export interface Lit {
   /** The playing cues' literals in the `timeline`. */
   readonly literals: ReadonlyArray<CodeRange>;
-  /** The calls that read a playing cue by name. */
+  /** The calls that read a playing cue by name, and the literals and calls of the knobs the frame read. */
   readonly reads: ReadonlyArray<CodeRange>;
+  /** The selected cue's or knob's literal. */
+  readonly picked: ReadonlyArray<CodeRange>;
   /** One meter per playing cue the code writes as a literal. */
   readonly meters: ReadonlyArray<Meter>;
   /** The playing cues' names the code writes, in the order they play: what the view says is live. */
@@ -64,8 +80,12 @@ export const lineSite = (code: SceneCode, line: number): Option.Option<NoteSourc
   );
 };
 
-/** What `live` lights in `code`. A cue the code does not write as a literal lights nothing. */
-export const litNow = (code: SceneCode, live: Live): Lit => {
+/**
+ * What `live` lights in `code`, and `picks` besides: the selection's literal,
+ * and the knobs the frame read. A cue the code does not write as a literal
+ * lights nothing.
+ */
+export const litNow = (code: SceneCode, live: Live, picks: Picks = NO_PICKS): Lit => {
   const starts = lineStarts(code.text);
   const found = live.flatMap((l) =>
     Option.match(
@@ -73,9 +93,21 @@ export const litNow = (code: SceneCode, live: Live): Lit => {
       { onNone: () => [], onSome: (site) => [{ site, progress: l.progress }] },
     ),
   );
+  const readKnobs = code.knobs.filter((k) => picks.read.includes(k.name));
   return {
     literals: found.map(({ site }) => site.at),
-    reads: found.flatMap(({ site }) => site.reads),
+    reads: [
+      ...found.flatMap(({ site }) => site.reads),
+      ...readKnobs.flatMap((k) => [k.at, ...k.reads]),
+    ],
+    picked: [
+      ...Option.toArray(
+        Option.flatMap(picks.cue, (name) => Arr.findFirst(code.cues, (c) => c.name === name)),
+      ),
+      ...Option.toArray(
+        Option.flatMap(picks.knob, (name) => Arr.findFirst(code.knobs, (k) => k.name === name)),
+      ),
+    ].map((site) => site.at),
     meters: found.map(({ site, progress }) => ({
       name: site.name,
       line: lineOf(starts, site.at[0]),
@@ -83,6 +115,19 @@ export const litNow = (code: SceneCode, live: Live): Lit => {
     })),
     names: found.map(({ site }) => site.name),
   };
+};
+
+/**
+ * The cue or knob whose literal `code` writes on `line`: what a tap on that
+ * line selects. A cue wins a line a knob shares; none for any other line.
+ */
+export const selectionAt = (code: SceneCode, line: number): Option.Option<LabSelection> => {
+  const starts = lineStarts(code.text);
+  const on = (site: { readonly at: CodeRange }) => lineOf(starts, site.at[0]) === line;
+  return Option.orElse(
+    Option.map(Arr.findFirst(code.cues, on), (c) => cueOf(code.scene, c.name)),
+    () => Option.map(Arr.findFirst(code.knobs, on), (k) => knobOf(code.scene, k.name)),
+  );
 };
 
 /**

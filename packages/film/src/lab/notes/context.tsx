@@ -47,6 +47,7 @@ import {
 import { NO_SCOPE, type Scope, draftOf, scopeText, whenText, whereText } from './draft.ts';
 import { useMotion } from '../motion/context.tsx';
 import { useSource } from '../source/context.tsx';
+import { lineOpen } from '../source/open.ts';
 import { feedText } from './feed.ts';
 import { type ThreadWrite, useNotesFeed } from './list.tsx';
 
@@ -151,9 +152,24 @@ const useCommands = (
   composing: () => boolean,
   noteOf: (ctx: Context) => Option.Option<Note>,
   walk: (toward: Toward) => Option.Option<Note>,
+  hold: (line: number) => void,
 ) =>
   onCleanup(
     hub.commands.register(
+      {
+        id: 'notes.line',
+        label: 'Note this line',
+        group: 'Notes',
+        about: ['Line'],
+        touch: 'long-press the line in the code, then Note this line',
+        when: (ctx) => Option.isSome(selectedOf(ctx, 'Line')),
+        run: quietly((ctx) =>
+          Option.map(selectedOf(ctx, 'Line'), (at) => {
+            hold(at.line);
+            actions.noteFrame();
+          }),
+        ),
+      },
       walkCommand(actions, walk, 'next', 'Next open note', 'shift+n'),
       walkCommand(actions, walk, 'previous', 'Previous open note', 'alt+shift+n'),
       {
@@ -307,6 +323,7 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
         player.now(),
         toward,
       ),
+    (line) => labActions.showCode(Option.some(lineOpen(line))),
   );
   // Every note is a place ⌘K goes to by its id and its words.
   registerWhile(meta.hub, () =>

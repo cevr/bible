@@ -29,6 +29,8 @@ export const SelectionSheet = (props: {
   readonly children: JSX.Element;
   /** The sheet's further faces around `children` (the editor's: Inspect · Source); without it the sheet shows `children` alone. */
   readonly faces?: (children: JSX.Element) => JSX.Element;
+  /** Whether the sheet opens peeked (one line above the dock); false opens it whole. Defaults to peeked. */
+  readonly peeked?: boolean;
 }) => {
   const phone = useMatches(props.host, PHONE);
   return (
@@ -43,7 +45,7 @@ export const SelectionSheet = (props: {
           of={of()}
           role="inspector"
           class="lab-selection-sheet"
-          peeked
+          peeked={props.peeked ?? true}
           title={props.peek}
           initialFocus={() => false}
           onClose={props.dismiss}

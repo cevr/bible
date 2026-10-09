@@ -305,7 +305,8 @@ export const Section = (props: ParentProps) => {
             hub={meta.hub}
             of={lab.selection()}
             peek={peek()}
-            dismiss={actions.dismissSelection}
+            dismiss={actions.dismissSheet}
+            peeked={Option.isNone(lab.code())}
             faces={(inspector) => <Source.Faces>{inspector}</Source.Faces>}
           >
             <Show when={Option.getOrUndefined(cueSelected())} keyed>
