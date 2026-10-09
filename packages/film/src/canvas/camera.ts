@@ -364,7 +364,7 @@ export const camera = (
 ) => shoot(ctx, drifted(ctx, breathing, cam, drift), w, h, draw, cam);
 
 /** One plane of a multiplane shot. */
-export interface Plane {
+interface Plane {
   /**
    * Distance from the camera, in units of the focal plane's: 1 moves exactly
    * as `camera` does, 2 is twice as far (half the pan, a fainter zoom),
@@ -438,25 +438,6 @@ export const planeView = (
   out.zoom = (cam.zoom ?? 1) ** (1 / d);
   out.rot = cam.rot ?? 0;
   return out;
-};
-
-/**
- * Where world point `p` on a plane at depth `z` lands in the `w` × `h` frame
- * when the shot looks through `cam` (unturned): what joins planes on screen,
- * a shaft of light from a far window to a near floor, a sun's rays from the
- * sky plane drawn over the nearer ones.
- */
-export const planePoint = (
-  cam: Camera,
-  z: number,
-  p: readonly [number, number],
-  w: number,
-  h: number,
-  rest: readonly [number, number] = [w / 2, h / 2],
-): readonly [number, number] => {
-  const view = planeView({ x: 0, y: 0 }, cam, z, rest);
-  const zoom = view.zoom ?? 1;
-  return [w / 2 + (p[0] - view.x) * zoom, h / 2 + (p[1] - view.y) * zoom];
 };
 
 /** How much of a plane at `z` shows through the haze in front of it. */

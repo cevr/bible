@@ -2826,31 +2826,13 @@ scene); `layout()` carries them into `Placed.knobs`. With `drawing(...)`,
 stays `number`, a point `readonly [number, number]`). Promoting a constant to
 a knob draws the same frame; it is what lets the lab tweak it.
 
-## Painted plates
+## Plates at depth
 
-A shot can be a moving painting rather than a cutout: plates at depth in a
-`multiplane`, each painted once, and a slow eased camera through them.
+A shot can be plates at depth in a `multiplane` with a slow eased camera
+through them, rather than a flat cutout.
 
-- `canvas/paint.ts`: `drawPainting(ctx, painting, x, y)` paints a `Painting`
-  (a `guide` drawn flat, then brushed over by its `Brush`: stroke layers from
-  coarse to fine, laid along the guide's edges or the brush's `flow`, a
-  `hatch` in the deep shade). Seeded and cached per declaration, so a frame
-  only draws the finished plate.
-- `canvas/atmosphere.ts`: `motes` (dust, embers: seeded, drifting, twinkling)
-  and `rays` (soft light shafts from a point), plus seeded `rain` streaks and
-  `stars`. Each is computed from the current time, with no frame history.
-- `canvas/figure.ts`: `figure` dresses a posed skeleton, shades it with a
-  warm key and cool shadow, and rims its silhouette on an isolated sheet.
-  Robe folds, head coverings, facial expressions and arm targets vary a
-  person; targets beyond the arm's reach are clamped. `figurePoint` locates
-  the head, chest or a local point. `crowd` scatters varied figures without
-  rows and returns them far to near for painting.
-- `canvas/build.ts`: `house` and `column` draw lit architecture; a column
-  casts its ground shadow away from the key. Both preserve caller state.
-  These volumes and figures can move live over the cached plates.
 - `canvas/camera.ts`: `planeView` is the view a plane at `z` sees through the
-  shot; `planePoint` is where a point on that plane lands on screen, so a
-  shaft or a sun's rays can join planes at different depths. A `multiplane`'s
+  shot. A `multiplane`'s
   `haze` takes a sky of stops as well as one colour.
 - `canvas/grade.ts`, through `finish` in `createFilm`: `bloom` (bright parts
   bleed light) and `grade` (an S curve, split toning of the shadows and the

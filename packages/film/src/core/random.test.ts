@@ -1,9 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import { fbm, hash, hash2, noise1, noise2, rng, seedOf } from './random.ts';
+import { fbm, hash, hash2, noise1, rng, seedOf } from './random.ts';
 
 // What a film relies on: the same input gives the same number on every run,
 // numbers stay in their range, and another seed gives other numbers. The
 // numbers themselves are not pinned: a change to random.ts shows in its diff.
+
+/** The 2D value noise `fbm` stacks: one octave of it. */
+const noise2 = (x: number, y: number, seed: number) => fbm(x, y, seed, 1);
 
 /** Evenly spread sample points, negative and fractional included. */
 const XS = Array.from({ length: 200 }, (_, i) => (i - 100) * 0.37);
@@ -21,14 +24,13 @@ describe('random', () => {
     expect(new Set([0, 1, 2, 3, 4].map(hash)).size).toBe(5);
   });
 
-  test('noise1, noise2 and fbm are functions of their input, in [-1, 1]', () => {
+  test('noise1 and fbm are functions of their input, in [-1, 1]', () => {
     for (const x of XS) {
-      for (const v of [noise1(x, 4), noise2(x, x * 0.5, 9), fbm(x, -x, 9)]) {
+      for (const v of [noise1(x, 4), fbm(x, -x, 9)]) {
         expect(v).toBeGreaterThanOrEqual(-1);
         expect(v).toBeLessThanOrEqual(1);
       }
       expect(noise1(x, 4)).toBe(noise1(x, 4));
-      expect(noise2(x, x * 0.5, 9)).toBe(noise2(x, x * 0.5, 9));
       expect(fbm(x, -x, 9)).toBe(fbm(x, -x, 9));
     }
   });

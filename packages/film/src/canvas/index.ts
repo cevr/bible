@@ -29,10 +29,8 @@ export { type PieceStyle, piece } from './piece.ts';
 export { ground } from './ground.ts';
 export { type Hex, clearOf, mix } from './colour.ts';
 export { glow, sky, wash } from './glow.ts';
-export { type Brush, type Painting, drawPainting } from './paint.ts';
-export { motes, rays, rain, stars } from './atmosphere.ts';
 export { type Posed, reset } from './scratch.ts';
-export { type Author, type Credit, CREDIT_MEASURE, creditRoll } from './credits.ts';
+export { type Author, type Credit, creditRoll } from './credits.ts';
 export { type WriteOptions, measure, write } from './type.ts';
 export { probeFace, probePlate, probesFaces, probesHands, unprobed } from './probe.ts';
 export {
@@ -55,8 +53,6 @@ export {
   inset,
   knobCamera,
   multiplane,
-  type Plane,
-  planePoint,
   pushInto,
   pushOn,
   shotPath,
@@ -65,19 +61,3 @@ export {
 export { scenesOf } from './scenes.ts';
 export { type Film, type Frame, type Light, type SceneSpec, createFilm, drawing } from './film.ts';
 export { shortPages } from './short.ts';
-
-export {
-  type Figure,
-  type FigureArm,
-  type FigureFace,
-  type FigureGrip,
-  type FigureHead,
-  type FigureLight,
-  type FigureMark,
-  type FigurePt,
-  type CrowdSpec,
-  figure,
-  figurePoint,
-  crowd,
-} from './figure.ts';
-export { type BuildLight, type Opening, type House, type Column, house, column } from './build.ts';

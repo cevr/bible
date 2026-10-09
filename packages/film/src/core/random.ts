@@ -55,7 +55,7 @@ export const noise1 = (x: number, seed = 0): number => {
 };
 
 /** Smooth 2D value noise in [-1, 1]. */
-export const noise2 = (x: number, y: number, seed = 0): number => {
+const noise2 = (x: number, y: number, seed = 0): number => {
   const xi = Math.floor(x);
   const yi = Math.floor(y);
   const xf = smooth(x - xi);
