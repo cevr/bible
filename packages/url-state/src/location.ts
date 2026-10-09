@@ -6,8 +6,8 @@
  *
  * - `./location-browser.ts`: the tab's `window.history`, the only module
  *   allowed to touch `window.location`, `history` or `popstate`;
- * - `./location-memory.ts`: a history stack in memory, with Back and Forward,
- *   for tests and for anything without a tab;
+ * - `./testing.ts` (`@bible/url-state/testing`): a history stack in memory,
+ *   with Back and Forward, for tests;
  * - `./location-server.ts`: the request URL, read-only, for server rendering.
  *
  * An entry is a path-relative href (`/films/a/lab/b?cue=c#t=1`) with a key that
@@ -30,7 +30,7 @@ export const Entry = Schema.Struct({
 });
 export type Entry = typeof Entry.Type;
 
-export interface LocationService {
+interface LocationService {
   /** The entry on screen. */
   readonly current: Effect.Effect<Entry>;
   /** The entry on screen, then every entry after it: each push, replace and

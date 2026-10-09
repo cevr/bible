@@ -1,6 +1,5 @@
 /**
- * A history stack in memory: the `Location` for tests, and for anything that
- * has no tab. Back is `Location`'s own; `LocationHistory` adds what only a
+ * A history stack in memory: the `Location` for tests. Back is `Location`'s own; `LocationHistory` adds what only a
  * reader's browser does, Forward, and shows the stack for assertions.
  */
 

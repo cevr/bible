@@ -20,7 +20,7 @@ import { Effect, Layer, Option, Schema, SubscriptionRef } from 'effect';
 import { makeEntryKeys } from './entry-key.js';
 import { Location, parseHref, relativeHref, type Entry } from './location.js';
 
-export interface BrowserOptions {
+interface BrowserOptions {
   /** `'manual'` when the app restores scroll positions itself; left as the
    *  browser has it when absent. */
   readonly scrollRestoration?: ScrollRestoration;
