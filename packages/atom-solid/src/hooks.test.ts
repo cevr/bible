@@ -160,6 +160,12 @@ describe('useAtomRefresh', () => {
 describe('RegistryProvider', () => {
   const test = it.scoped;
 
+  test('a hook with no provider throws in the browser build too', () =>
+    Effect.sync(() => {
+      const counter = Atom.make(0);
+      expect(() => createRoot(() => useAtomValue(() => counter))).toThrow(/RegistryProvider/);
+    }));
+
   test("hooks under two providers each use their own provider's registry", () =>
     Effect.gen(function* () {
       const counter = Atom.make(0);
