@@ -287,6 +287,9 @@ export const script = defineScript([
   {
     id: 'rain',
     lead: 0.4,
+    // The angel's flight (`fly`, 3 s from `loud`) outlasts the short last
+    // line: a held breath lets the banner cross before `name` cuts in.
+    tail: 0.5,
     say: 'Where was all this heading? {big}Somewhere big. {spirit}To the latter rain, the Spirit poured out. {blot}To the blotting out of sins, as the sanctuary is cleansed. {loud}A message cried “with a loud voice.”',
     cite: [
       'A. T. Jones, The Consecrated Way to Christian Perfection, 124',
