@@ -749,8 +749,9 @@ to the card in brief. It holds the live frame, in, out and length in
 timecode, its marks, Open in Lab (E), Approve (A), its findings
 (`SceneFindings`, the Project's too) and a comment; its Close (Escape, a
 swipe) clears the selection and adds no entry, by the inspectors' rule
-(`useSheetDismissal`): it goes Back over the tap that opened the sheet, else
-the entry is rewritten to the tape. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
+(`useSheetDismissal`): it goes Back over the tap that opened the sheet only when
+the entry before it is exactly where the Close would write (a scene's tap moves
+the playhead, so Close keeps that time), else the entry is rewritten to the tape. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
 say; an approve's receipt offers Undo (`project.undo-approve`), as
 Project's does. The palette and the film's counts are in
 the view menu (⋯). A short's Open goes to its play page, as the lab opens
@@ -1647,8 +1648,9 @@ above the dock (`cue rise · offset 0.00 · dur 0.60 · ease inOutCubic`,
 `peekText` in `lab/editor/format.ts`; `note n1 · one · … · open`), opens
 whole on a tap of its head, and its open state is the selection: Back closes
 it as it unpicks, and Close, Escape or a swipe unpick by the review sheets'
-one rule (`useSheetDismissal`: Back over a tap's pick, else the URL follows
-to pick none).
+one rule (`useSheetDismissal`: Back over a tap's pick when the entry before it
+is where the Close would write, so a time moved since is kept; else the URL
+follows to pick none).
 
 | Route                                              | What it does                                                                                                                                                                                                                 |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

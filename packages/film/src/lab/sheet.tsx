@@ -24,8 +24,10 @@ interface SheetDismissal {
   readonly opening: (thing: string) => void;
   /**
    * Close the sheet: Back over the entry the opening's tap pushed when that
-   * entry is on screen; else the URL follows to `cleared()`, when it names
-   * one (none: the URL names no sheet, and nothing is written).
+   * entry is on screen and the entry before it is exactly where the Close
+   * would write (`cleared()`: the same path, query and hash); else the URL
+   * follows to `cleared()`, when it names one (none: the URL names no sheet,
+   * and nothing is written).
    */
   readonly dismiss: (cleared: () => Option.Option<string>) => void;
 }
@@ -36,10 +38,12 @@ interface SheetDismissal {
  * the Lab's selection sheet: a tap that opens it on a shut sheet is a step of
  * its own, and dismissing it adds none. The entry that tap pushed is gone Back
  * over, so a Back after the Close leaves the entry before it, not the sheet
- * again; any other entry (a link's, a reload's, a tap's on a sheet already
- * open, one a Forward landed on after a Close) is rewritten to name none
- * (`addressOn(host).follow`). `names` says whether an href names `thing`'s
- * sheet open.
+ * again, when that entry is where the Close would write: time moved while the
+ * sheet was open lives in the entry it is on, and Back would rewind it. Any
+ * other entry (a link's, a reload's, a tap's on a sheet already open, one a
+ * Forward landed on after a Close, one whose time moved) is rewritten to name
+ * none (`addressOn(host).follow`). `names` says whether an href names
+ * `thing`'s sheet open.
  */
 export const useSheetDismissal = (
   host: Host,
@@ -50,27 +54,49 @@ export const useSheetDismissal = (
   // entry lands; then, when that entry is a new one naming it, the entry's key. A new entry is
   // known by its key, not by how the entry on screen last arrived: the push may be replaced
   // in the same tick (the player keeping its time), and a replace keeps the key.
-  let opening = Option.none<{ readonly thing: string; readonly from: string }>();
-  let openedBy = Option.none<string>();
+  let opening = Option.none<{
+    readonly thing: string;
+    readonly from: string;
+    readonly before: string;
+  }>();
+  // The pushed entry's key, and the href of the entry the tap left, which Back would land on.
+  let openedBy = Option.none<{ readonly key: string; readonly before: string }>();
   createEffect(entry, (e) => {
     const pushed =
       e.navigation !== 'traverse' &&
       Option.exists(opening, (o) => o.from !== e.key && untrack(() => names(e.href, o.thing)));
-    if (pushed) openedBy = Option.some(e.key);
+    if (pushed) openedBy = Option.map(opening, (o) => ({ key: e.key, before: o.before }));
     opening = Option.none();
   });
   const here = () => Effect.runSyncWith(host)(Location.use((bar) => bar.current));
   return {
     opening: (thing) => {
-      opening = Option.some({ thing, from: here().key });
+      const at = here();
+      opening = Option.some({ thing, from: at.key, before: at.href });
     },
     dismiss: (cleared) => {
-      const ours = Option.contains(openedBy, here().key);
+      const target = cleared();
+      // Back lands on the entry before the tap, so it is the right move only when that
+      // entry is exactly where the Close would write: a time moved since the tap is kept.
+      const ours = Option.exists(
+        openedBy,
+        (o) =>
+          o.key === here().key &&
+          Option.match(target, { onNone: () => true, onSome: (to) => samePlace(o.before, to) }),
+      );
       openedBy = Option.none();
       if (ours) return Effect.runSyncWith(host)(Location.use((bar) => bar.back));
-      Option.map(cleared(), addressOn(host).follow);
+      Option.map(target, addressOn(host).follow);
     },
   };
+};
+
+/** Whether two hrefs are one place: the same path, query (in any order) and hash. */
+const samePlace = (a: string, b: string): boolean => {
+  const [x, y] = [new URL(a, 'http://place'), new URL(b, 'http://place')];
+  x.searchParams.sort();
+  y.searchParams.sort();
+  return x.pathname === y.pathname && x.search === y.search && x.hash === y.hash;
 };
 
 /**

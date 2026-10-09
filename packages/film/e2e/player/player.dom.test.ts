@@ -820,25 +820,26 @@ describe('the player', () => {
           STILL_DRAWN,
         );
         const start = Number(yield* page.evaluate(at));
-        // A tap opens the sheet, a step of its own; Close goes Back over it.
+        // A tap opens the sheet, a step of its own, and moves the playhead to the scene: Close
+        // keeps that time, so it rewrites the tap's entry to the tape rather than go Back over it.
         yield* clickInScene(page, 'one');
         yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
         yield* evaluates(page, at, start + 1);
         yield* page.click('.sc-focus [data-act="close-inspector"]');
         yield* countIs(page, '.sc-focus', 0);
         yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
-        yield* evaluates(page, at, start);
+        yield* evaluates(page, at, start + 1);
         // A second tap moves the open sheet, a step Back walks; Close then rewrites that
         // entry, so Back lands on the first scene, not on a sheet it closed.
         yield* clickInScene(page, 'one');
         yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
         yield* clickInScene(page, 'two');
         yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'two'));
-        yield* evaluates(page, at, start + 2);
+        yield* evaluates(page, at, start + 3);
         yield* page.click('.sc-focus [data-act="close-inspector"]');
         yield* countIs(page, '.sc-focus', 0);
         yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
-        yield* evaluates(page, at, start + 2);
+        yield* evaluates(page, at, start + 3);
         yield* page.evaluate('history.back()');
         yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
         yield* textIs(page, '.sc-focus .sc-card-name', 'one');
