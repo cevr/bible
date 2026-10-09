@@ -168,6 +168,41 @@ describe('a line held', () => {
   );
 });
 
+describe('a note cites the line held', () => {
+  it.live(
+    'the composer’s scope chip names file:line, and its × writes the note about the frame',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([codeRoute], {
+          href: labOne(1, { code: `${RISE_LINE}` }),
+          mode: 'note',
+        });
+        yield* page.waitFor('.lab-source-col .lab-source-text');
+        yield* page.press('n');
+        yield* textIs(
+          page,
+          '[data-role="note-scope"] .lab-scope-text',
+          `one · scenes/one.ts:${RISE_LINE}`,
+        );
+        yield* page.click('[data-role="note-scope"] [data-act="clear-scope"]');
+        yield* countIs(page, '[data-role="note-scope"]', 0);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('a view that only follows cites no line', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(1, { code: 'follow' }),
+        mode: 'note',
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-text');
+      yield* page.press('n');
+      yield* page.waitFor('.lab-compose:not([hidden])');
+      yield* countIs(page, '[data-role="note-scope"]', 0);
+    }).pipe(Effect.scoped),
+  );
+});
+
 describe('on a phone, held to the phone rules', () => {
   const touch = { ...PHONE, coarse: true };
 

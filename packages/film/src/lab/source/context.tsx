@@ -19,10 +19,10 @@ import {
   onCleanup,
   useContext,
 } from 'solid-js';
-import type { SceneCode } from '../../core/schema.ts';
+import type { NoteSource, SceneCode } from '../../core/schema.ts';
 import { LabApi } from '../api.ts';
 import { useLab } from '../shell.tsx';
-import { lineOf, lineStarts } from './lit.ts';
+import { lineOf, lineSite, lineStarts } from './lit.ts';
 import { sourceCommands } from './commands.ts';
 import { type CodeOpen } from './open.ts';
 
@@ -37,6 +37,8 @@ interface SourceContextValue {
   readonly lineOfCue: (scene: string, name: string) => Option.Option<number>;
   /** The line that writes knob `name`, likewise. */
   readonly lineOfKnob: (scene: string, name: string) => Option.Option<number>;
+  /** The line the view is held on, as a note cites it, with the scene whose file it is: none while it follows or is shut. */
+  readonly heldSite: () => Option.Option<{ readonly scene: string; readonly source: NoteSource }>;
 }
 
 const SourceContext = createContext<SourceContextValue>();
@@ -92,7 +94,30 @@ export const Provider = (props: ParentProps) => {
       }),
     ),
   );
-  const value: SourceContextValue = { scene, code, open: lab.code, lineOfCue, lineOfKnob };
+  // The line the view is held on, as a note cites it: of the code read, once it is.
+  const cited = createMemo(() =>
+    Option.flatMap(Option.all({ c: code(), o: lab.code() }), ({ c, o }) =>
+      Option.map(
+        Option.filter(
+          Option.some(o),
+          (x): x is Extract<CodeOpen, { _tag: 'Line' }> => x._tag === 'Line',
+        ),
+        (held) => ({ scene: c.scene, line: held.line, code: c }),
+      ),
+    ),
+  );
+  const heldSite = () =>
+    Option.flatMap(cited(), ({ scene: of, line, code: c }) =>
+      Option.map(lineSite(c, line), (source) => ({ scene: of, source })),
+    );
+  const value: SourceContextValue = {
+    scene,
+    code,
+    open: lab.code,
+    lineOfCue,
+    lineOfKnob,
+    heldSite,
+  };
   return (
     <SourceContext value={value}>
       <Show when={wanted()}>

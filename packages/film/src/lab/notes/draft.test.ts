@@ -119,6 +119,7 @@ describe('the scope', () => {
   const scope: Scope = {
     cue: Option.some({ scene: 'one', name: 'fall' }),
     range: Option.some({ from: 1.2, to: 6 }),
+    source: Option.none(),
   };
 
   test('its chip names the scene, the cue selected and the range in timecode', () => {
@@ -135,8 +136,24 @@ describe('the scope', () => {
     const elsewhere: Scope = {
       cue: Option.some({ scene: 'two', name: 'fall' }),
       range: Option.some({ from: 9, to: 10 }),
+      source: Option.some({ scene: 'two', source: { file: 'scenes/two.ts', line: 4, text: 'x' } }),
     };
     expect(scopeText(film.placed, elsewhere, film.fps, 1.5)).toEqual(Option.none());
+  });
+
+  test('a line of the scene’s file joins the chip and the draft, with its text', () => {
+    const line = { file: 'scenes/one.ts', line: 118, text: 'fall: { after: rise, dur: 0.4 },' };
+    const cited: Scope = { ...scope, source: Option.some({ scene: 'one', source: line }) };
+    expect(scopeText(film.placed, cited, film.fps, 1.5)).toEqual(
+      Option.some('one · fall · scenes/one.ts:118 · 00:00:01:06–00:00:04:21'),
+    );
+    const draft = Option.getOrThrow(draftOf(film.placed, film.fps, composed, cited));
+    expect(draft.source).toEqual(line);
+    expect(Schema.is(NoteDraft)(draft)).toBe(true);
+    const alone: Scope = { ...NO_SCOPE, source: cited.source };
+    expect(scopeText(film.placed, alone, film.fps, 1.5)).toEqual(
+      Option.some('one · scenes/one.ts:118'),
+    );
   });
 
   test('the draft carries the selected cue’s nearer edge and the range cut to its scene', () => {
@@ -151,6 +168,7 @@ describe('the scope', () => {
     const draft = Option.getOrThrow(draftOf(film.placed, film.fps, composed, NO_SCOPE));
     expect(draft.cue).toEqual({ name: 'rise', edge: 'start' });
     expect('range' in draft).toBe(false);
+    expect('source' in draft).toBe(false);
   });
 });
 

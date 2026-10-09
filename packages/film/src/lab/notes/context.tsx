@@ -46,6 +46,7 @@ import {
 } from './composer.ts';
 import { NO_SCOPE, type Scope, draftOf, scopeText, whenText, whereText } from './draft.ts';
 import { useMotion } from '../motion/context.tsx';
+import { useSource } from '../source/context.tsx';
 import { feedText } from './feed.ts';
 import { type ThreadWrite, useNotesFeed } from './list.tsx';
 
@@ -74,8 +75,9 @@ interface NotesState {
   readonly where: Accessor<string>;
   /**
    * The scope chip of the note being made (`scene · cue · 00:00:03:06–00:00:04:00`, in timecode): the
-   * cue selected and the in and out points marked, while it has them and
-   * its × has not cleared them.
+   * cue selected, the in and out points marked and the line of the scene's
+   * file the Source view is held on (`scenes/robe.ts:118`), while it has them
+   * and its × has not cleared them.
    */
   readonly scope: Accessor<Option.Option<string>>;
   /** What the composer's status line says. */
@@ -231,6 +233,7 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
   // What the note being made is about beside its frame: the cue selected and
   // the in and out points, until its chip's × clears them; each note starts scoped.
   const motion = useMotion();
+  const source = useSource();
   const [scoped, setScoped] = createSignal(true);
   createEffect(
     () => composerOpen(composer()),
@@ -243,7 +246,11 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
       Option.liftPredicate(scoped(), (on) => on),
       {
         onNone: () => NO_SCOPE,
-        onSome: (): Scope => ({ cue: motion.state.cue(), range: motion.state.inOut() }),
+        onSome: (): Scope => ({
+          cue: motion.state.cue(),
+          range: motion.state.inOut(),
+          source: source.heldSite(),
+        }),
       },
     );
   const scopeChip = createMemo(() =>

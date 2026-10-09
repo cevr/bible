@@ -823,6 +823,17 @@ export const NoteRange = Schema.Struct({ from: Seconds, to: Seconds }).check(
 );
 export type NoteRange = typeof NoteRange.Type;
 
+/**
+ * A line of a scene's file a note is about: the file, the line (from 1) and
+ * the line's text as it stood, so a reader finds it after the file moves.
+ */
+export const NoteSource = Schema.Struct({
+  file: Schema.String,
+  line: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+  text: Schema.String,
+});
+export type NoteSource = typeof NoteSource.Type;
+
 /** What the lab sends for a new note: the frame, where it was marked, and what it says. */
 export const NoteDraft = Schema.Struct({
   scene: Schema.String,
@@ -845,6 +856,8 @@ export const NoteDraft = Schema.Struct({
    * Optional and additive: a note without one is about its frame.
    */
   range: Schema.optionalKey(NoteRange),
+  /** The line of its scene's file it is about (written with the Source view held on a line). Optional and additive. */
+  source: Schema.optionalKey(NoteSource),
   box: Schema.optionalKey(NoteBox),
   ink: Schema.optionalKey(Schema.Array(InkStroke)),
   text: Schema.String.check(Schema.isNonEmpty()),

@@ -6,7 +6,7 @@ import { Option } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import type { ResolvedCue, SceneCode } from '../../core/schema.ts';
 import { liveAt } from '../../core/timeline.ts';
-import { followLine, lineOf, lineStarts, litNow } from './lit.ts';
+import { followLine, lineOf, lineSite, lineStarts, litNow } from './lit.ts';
 import { FOLLOW, codeOpenOf, codeText, lineOpen } from './open.ts';
 
 const TEXT = [
@@ -82,6 +82,23 @@ describe('what is lit at a frame', () => {
   test('the view follows to the playing cue’s line, else to nothing', () => {
     expect(followLine(code, litNow(code, liveAt(cues, 1.5, 30)))).toEqual(Option.some(4));
     expect(followLine(code, litNow(code, liveAt(cues, 5, 30)))).toEqual(Option.none());
+  });
+});
+
+describe('a line a note cites', () => {
+  test('is the file, the number and the line’s text without its indent', () => {
+    expect(lineSite(code, 3)).toEqual(
+      Option.some({ file: 'scenes/robe.ts', line: 3, text: 'rise: { dur: 1 },' }),
+    );
+    expect(lineSite(code, 6)).toEqual(
+      Option.some({ file: 'scenes/robe.ts', line: 6, text: 'f.at("rise"); f.at("fall");' }),
+    );
+  });
+
+  test('is none for a line the file lacks, or a blank one', () => {
+    expect(lineSite(code, 7)).toEqual(Option.none());
+    expect(lineSite(code, 0)).toEqual(Option.none());
+    expect(lineSite({ ...code, text: 'a\n\nb' }, 2)).toEqual(Option.none());
   });
 });
 

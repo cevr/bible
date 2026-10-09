@@ -1622,6 +1622,9 @@ seconds into its scene, which an earlier scene's re-take does not move: the
 note's frame now is the scene's `start=` (`film cues <film> <scene>`) plus
 `local`. `range=3.20-4.00` (on a note that has one, its scope chip's range)
 is the stretch of its scene the note is about, in the same scene seconds.
+`source=scenes/hand.ts:118 line="…"` (on a note written with the Source view
+held on a line) is the line of the scene's file the note is about, with its
+text as it stood, so the line is found after the file moves.
 
 `--watch` prints each new note, and each reply from the user (`reply id=…
 by=user … still=… text="…"`), once per run, starting past the current cursor

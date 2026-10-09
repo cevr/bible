@@ -1,9 +1,10 @@
 // A note's draft, pure: where the moment noted sits (its scene, the time
 // into the scene, and the cue edge and mark nearest it), when a made note
 // shows (its scene's time, or the film's, named, once its scene is gone), what it
-// is about beside its frame (its scope: the cue selected and the in and out
-// points, shown as a chip the owner can clear), the draft the composer posts
-// (the box, the ink and the range only when there are any), and the frame's
+// is about beside its frame (its scope: the cue selected, the in and out
+// points and the line of the scene's file the Source view is held on, shown as
+// a chip the owner can clear), the draft the composer posts
+// (the box, the ink, the range and the line only when there are any), and the frame's
 // pixels a pointer is over.
 
 import { Option } from 'effect';
@@ -16,6 +17,7 @@ import type {
   NoteCue,
   NoteDraft,
   NoteRange,
+  NoteSource,
   Point,
   ResolvedCue,
 } from '../../core/schema.ts';
@@ -68,16 +70,19 @@ export const whenText = (
 export interface Scope {
   readonly cue: Option.Option<{ readonly scene: string; readonly name: string }>;
   readonly range: Option.Option<{ readonly from: number; readonly to: number }>;
+  /** The line of a scene's file the Source view is held on. */
+  readonly source: Option.Option<{ readonly scene: string; readonly source: NoteSource }>;
 }
 
 /** No scope: a note about its frame alone (its chip's × clears to it). */
-export const NO_SCOPE: Scope = { cue: Option.none(), range: Option.none() };
+export const NO_SCOPE: Scope = { cue: Option.none(), range: Option.none(), source: Option.none() };
 
-/** A scope as a note at `T` carries it: the cue if it is in the note's scene, the range cut to that scene. */
+/** A scope as a note at `T` carries it: the cue and the line if they are in the note's scene, the range cut to that scene. */
 interface Scoped {
   readonly scene: string;
   readonly cue: Option.Option<NoteCue>;
   readonly range: Option.Option<NoteRange>;
+  readonly source: Option.Option<NoteSource>;
 }
 
 /** The edge of `cue` nearest `local`: an instant has one. */
@@ -111,6 +116,10 @@ const scopedAt = (placed: ReadonlyArray<Placed>, scope: Scope, T: number): Optio
         })),
         (r) => r.to > r.from,
       ),
+      source: Option.map(
+        Option.filter(scope.source, (s) => s.scene === p.spec.id),
+        (s) => s.source,
+      ),
     };
   });
 
@@ -128,13 +137,14 @@ export const scopeText = (
   Option.flatMap(
     Option.filter(
       scopedAt(placed, scope, T),
-      (s) => Option.isSome(s.cue) || Option.isSome(s.range),
+      (s) => Option.isSome(s.cue) || Option.isSome(s.range) || Option.isSome(s.source),
     ),
     (s) =>
       Option.some(
         [
           s.scene,
           ...Option.toArray(Option.map(s.cue, (c) => c.name)),
+          ...Option.toArray(Option.map(s.source, (c) => `${c.file}:${c.line}`)),
           ...Option.toArray(
             Option.map(s.range, (r) => `${timecode(r.from, fps)}–${timecode(r.to, fps)}`),
           ),
@@ -170,6 +180,10 @@ export const draftOf = (
     ...Option.match(
       inScope((s) => s.range),
       { onNone: () => ({}), onSome: (range) => ({ range }) },
+    ),
+    ...Option.match(
+      inScope((s) => s.source),
+      { onNone: () => ({}), onSome: (source) => ({ source }) },
     ),
     ...Option.match(m.mark, { onNone: () => ({}), onSome: (mark) => ({ mark }) }),
     ...Option.match(composed.box, { onNone: () => ({}), onSome: (box) => ({ box }) }),

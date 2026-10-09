@@ -5,7 +5,7 @@
 // (`browser/highlights.ts`) and the view scrolls to `followLine`.
 
 import { Array as Arr, Option } from 'effect';
-import type { CodeRange, SceneCode } from '../../core/schema.ts';
+import type { CodeRange, NoteSource, SceneCode } from '../../core/schema.ts';
 import type { liveAt } from '../../core/timeline.ts';
 
 /** The cues playing, as `liveAt` answers. */
@@ -40,6 +40,29 @@ export const lineStarts = (text: string): ReadonlyArray<number> => {
 /** The line (from 1) `offset` falls on, given where the lines `starts`. */
 export const lineOf = (starts: ReadonlyArray<number>, offset: number): number =>
   Math.max(1, starts.findLastIndex((s) => s <= offset) + 1);
+
+/**
+ * The line (from 1) `line` of `code`, as a note cites it: its file, its
+ * number and its text trimmed of the indent; none for a line the file does
+ * not have or one that is blank.
+ */
+export const lineSite = (code: SceneCode, line: number): Option.Option<NoteSource> => {
+  const starts = lineStarts(code.text);
+  return Option.flatMap(Option.fromUndefinedOr(starts[line - 1]), (from) =>
+    Option.map(
+      Option.liftPredicate(
+        code.text
+          .slice(
+            from,
+            Option.getOrElse(Option.fromUndefinedOr(starts[line]), () => code.text.length),
+          )
+          .trim(),
+        (text) => text !== '',
+      ),
+      (text): NoteSource => ({ file: code.file, line, text }),
+    ),
+  );
+};
 
 /** What `live` lights in `code`. A cue the code does not write as a literal lights nothing. */
 export const litNow = (code: SceneCode, live: Live): Lit => {
