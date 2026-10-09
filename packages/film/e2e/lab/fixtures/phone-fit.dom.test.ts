@@ -84,6 +84,9 @@ describe('the phone-fit measure', () => {
         yield* measured(row('clip'), false, 'outside', ['away cut off']);
         yield* measured(row('auto'), true, 'outside', []);
         yield* measured(row('scroll'), true, 'outside', []);
+        // Scrolling on one axis is no way to the other: x clips, only y scrolls.
+        yield* measured(row('hidden auto'), false, 'outside', ['away cut off']);
+        yield* measured(row('auto hidden'), true, 'outside', []);
       }),
   );
 

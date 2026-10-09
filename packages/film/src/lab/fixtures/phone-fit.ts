@@ -40,10 +40,12 @@ export const phoneFit = (layer?: string) => `(() => {
     const s = getComputedStyle(el);
     return s.overflowX !== 'visible' || s.overflowY !== 'visible' || s.contain.includes('paint');
   };
-  // A box that scrolls (auto, scroll) shows a part of its row and is scrolled to the rest; one that
+  // A box that scrolls (auto, scroll) on an axis shows a part of its row and is scrolled to the rest; one that
   // only clips (hidden, clip, contain: paint) has nothing to scroll with, so what it covers is cut off.
   const scrolls = (v) => v === 'auto' || v === 'scroll';
-  const filled = (b) => b.right - b.left > 0.5 && b.bottom - b.top > 0.5;
+  const wide = (b) => b.right - b.left > 0.5;
+  const high = (b) => b.bottom - b.top > 0.5;
+  const filled = (b) => wide(b) && high(b);
   const shown = (el) => {
     if (!el.checkVisibility({ visibilityProperty: true, opacityProperty: false })) return { box: null, cut: false };
     const r = el.getBoundingClientRect();
@@ -59,7 +61,9 @@ export const phoneFit = (layer?: string) => `(() => {
         top: Math.max(box.top, c.top),
         bottom: Math.min(box.bottom, c.bottom),
       };
-      if (filled(box) && !filled(next) && !scrolls(s.overflowX) && !scrolls(s.overflowY)) cut = true;
+      // Each axis is reached by its own scroll: one that scrolls only the other leaves this one cut.
+      if (wide(box) && !wide(next) && !scrolls(s.overflowX)) cut = true;
+      if (high(box) && !high(next) && !scrolls(s.overflowY)) cut = true;
       box = next;
     }
     return { box: filled(box) ? box : null, cut };
