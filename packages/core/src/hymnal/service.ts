@@ -40,7 +40,7 @@ const summarizeHymn = (hymn: Hymn): HymnSummary => {
   });
 };
 
-export interface HymnalServiceApi {
+interface HymnalServiceApi {
   readonly getHymn: (id: HymnId) => Effect.Effect<Hymn, HymnalError | HymnNotFoundError>;
   readonly getCategories: Effect.Effect<readonly Category[], HymnalError>;
   readonly getHymnsByCategory: (

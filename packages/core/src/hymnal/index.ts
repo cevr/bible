@@ -4,10 +4,7 @@
  * Provides access to the SDA Hymnal (920 hymns, 68 categories).
  */
 
-export { HymnalError, HymnalService, HymnNotFoundError, type HymnalServiceApi } from './service.js';
-
-// Schemas and types
-export { Category, Hymn, HymnSummary, HymnVerse } from './schemas.js';
+export { HymnalService } from './service.js';
 
 // Re-export ID types
-export { CategoryId, HymnId, VerseId, categoryId, hymnId, verseId } from '../types/ids.js';
+export { CategoryId, HymnId } from '../types/ids.js';
