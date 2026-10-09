@@ -171,8 +171,9 @@ import * as UrlAtom from '@bible/url-state/atom';
 const lab = UrlAtom.place(Lab); // Writable<Option<Lab value>, Lab value>, one per place, at module level
 ```
 
-- `UrlAtom.layer`: the registry's `Location` layer; the browser's unless
-  seeded through the registry's initial values.
+- `UrlAtom.layer`: the registry's `Location` layer. It has no default: seed
+  it through the registry's initial values (`layerBrowser()` in a browser),
+  or reading the URL fails naming the seed.
 - `UrlAtom.place(place)`: the place's value; writing a value navigates to it.
   Every place atom derives from `UrlAtom.href`, so all of them agree within a
   tick, before the entry flushes.
