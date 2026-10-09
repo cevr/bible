@@ -1648,14 +1648,26 @@ at the same frame and pick, kept in its place (`/films/<film>/lab/hand?cue=toppl
 change with `git diff`.
 
 The Source view shows a scene's file (`GET /films/<film>/scenes/<scene>/code`)
-with the cues playing at the frame lit where the code writes them and reads
-them, a meter on each playing literal's line, and a held line. It is closed at
-rest: `?code=follow` opens it following the playhead, `?code=<line>` holds a
-line, and the inspector's `file:line` opens it on that cue's or knob's line.
-On a laptop it is a column beside the picture; on a phone it is the selection
-sheet's second face (Inspect · Source), or a sheet of its own. ⇧C and the
-command menu (⌘K, and a phone's menu button) open and close it; nothing stands
-for it at rest.
+a row to a line, with the cues playing at the frame lit where the code writes
+them and reads them, the cue or knob selected lit where it is written, the
+knobs the frame read lit (`player.knobReads()`), a meter on each playing
+literal's line, and a held line. A long line wraps under its own number, on a
+phone and on a laptop alike (one layout; the view never scrolls sideways). It
+is closed at rest and reads nothing: `?code=follow` opens it following the
+playhead, `?code=<line>` holds a line, and the inspector's `file:line` (from the
+small `…/scenes/<scene>/source` answer, which names each cue's and knob's `line`,
+so selecting reads no code) opens it on that cue's or knob's line. Inside the
+open view a tap on a line holds it and selects the cue or knob written there; a
+long press or right-click on it opens the page's menu with Note this line (the
+note's scope chip cites `file:line`) and Copy link; Follow in its head says
+whether the view scrolls with the frame, a hand on the scroll lets go of it, and
+Play or pressing Follow takes it back. A read the server refuses says why, with
+Retry and Close. On a laptop it is a column beside the picture; on a phone it
+is the selection sheet's second face (Inspect · Source) in Edit, or a sheet of
+its own while nothing is selected and in every other mode; closing the sheet
+closes the selection and the view in one history step. ⇧C and the command menu
+(⌘K, and a phone's menu button) open and close it; nothing stands for it at
+rest.
 
 On a phone (below 900 px) the selected cue's or knob's fields, and the
 selected note's reply, stand in the selection's sheet
@@ -1669,7 +1681,7 @@ to pick none).
 
 | Route                                              | What it does                                                                                                                                                                                                                 |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`                                                                                                                             |
+| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`, and the `line` that writes each cue and knob                                                                               |
 | `GET /api/films/<film>/scenes/:scene/code`         | the scene file's text now and, as `[start, end)` ranges of it, where each cue and knob is written and every call that reads a cue, knob or narration mark by name (`SceneCode`; read-only, the Source view's lit spans)      |
 | `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `untilOffset?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                                                                                          |
 | `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                                                                                                    |
