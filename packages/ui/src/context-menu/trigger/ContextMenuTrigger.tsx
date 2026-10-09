@@ -42,15 +42,12 @@ import {
 import { useTimeout } from '../../utils/timers.ts';
 import { useContextMenuRootContextStrict } from '../root/ContextMenuRootContext.ts';
 
-export interface ContextMenuTriggerState {
+interface ContextMenuTriggerState {
   /** Whether the context menu is open. */
   open: boolean;
 }
 
-export interface ContextMenuTriggerProps extends BaseUIComponentProps<
-  'div',
-  ContextMenuTriggerState
-> {}
+interface ContextMenuTriggerProps extends BaseUIComponentProps<'div', ContextMenuTriggerState> {}
 
 export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX.Element {
   const contextMenu = useContextMenuRootContextStrict();

@@ -183,7 +183,7 @@ const singleVerse = (input: string) => {
   return Effect.succeed(parsed.ref);
 };
 
-export const studyVerse = Command.make('verse', { reference, json }, (args) =>
+const studyVerse = Command.make('verse', { reference, json }, (args) =>
   Effect.gen(function* () {
     const target = yield* singleVerse(args.reference);
     const bundle = yield* studyService(
@@ -246,7 +246,7 @@ const number = Argument.String('number').pipe(
   Argument.withDescription("A Strong's number, e.g. H8548"),
 );
 
-export const studyStrongs = Command.make('strongs', { number, limit, json }, (args) =>
+const studyStrongs = Command.make('strongs', { number, limit, json }, (args) =>
   Effect.gen(function* () {
     // Decoded through the branded schema the RPC payload declares, and through
     // *only* it: the schema normalizes case itself, so uppercasing here would

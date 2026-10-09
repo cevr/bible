@@ -12,8 +12,8 @@ export type CorpusFileName = typeof CorpusFileName.Type;
 
 /** The corpora installed per publication through a SQL transaction rather than
  *  as a replaceable file. */
-export const CorpusStreamName = Schema.Literals(['writings']);
-export type CorpusStreamName = typeof CorpusStreamName.Type;
+const CorpusStreamName = Schema.Literals(['writings']);
+type CorpusStreamName = typeof CorpusStreamName.Type;
 
 /** The closed set of corpora the supply pipeline can install. Extending the
  *  pipeline with a new corpus artifact starts by adding its name to one of the
@@ -25,20 +25,20 @@ export type CorpusName = typeof CorpusName.Type;
 /** What one Activation or skip refers to: the sole artifact of a File Corpus
  *  or one Writings publication. A File Corpus installs a single artifact, so
  *  `canonical` identifies it whichever corpus it belongs to. */
-export const CorpusIdentity = Schema.Union([Schema.Literal('canonical'), PublicationId]);
-export type CorpusIdentity = typeof CorpusIdentity.Type;
+const CorpusIdentity = Schema.Union([Schema.Literal('canonical'), PublicationId]);
+type CorpusIdentity = typeof CorpusIdentity.Type;
 
-export const AssetSourceId = Schema.NonEmptyString.pipe(Schema.brand('CorpusSupply/AssetSourceId'));
-export type AssetSourceId = typeof AssetSourceId.Type;
+const AssetSourceId = Schema.NonEmptyString.pipe(Schema.brand('CorpusSupply/AssetSourceId'));
+type AssetSourceId = typeof AssetSourceId.Type;
 
 export const CorpusRevision = Schema.NonEmptyString.pipe(Schema.brand('CorpusSupply/Revision'));
 export type CorpusRevision = typeof CorpusRevision.Type;
 
-export const CorpusDigest = Schema.String.pipe(
+const CorpusDigest = Schema.String.pipe(
   Schema.check(Schema.isPattern(/^sha256:[a-f0-9]{64}$/)),
   Schema.brand('CorpusSupply/Digest'),
 );
-export type CorpusDigest = typeof CorpusDigest.Type;
+type CorpusDigest = typeof CorpusDigest.Type;
 
 /** The monotonic ordinal of one published content version (§3.6).
  *
@@ -89,7 +89,7 @@ export class BootstrapTarget extends Schema.TaggedClass<BootstrapTarget>(
 
 /** Ensure one File Corpus. The corpus name is a field rather than a tag so a
  *  new file corpus widens `CorpusFileName` alone. */
-export class FileCorpusTarget extends Schema.TaggedClass<FileCorpusTarget>(
+class FileCorpusTarget extends Schema.TaggedClass<FileCorpusTarget>(
   'CorpusSupply/FileCorpusTarget',
 )('file', {
   corpus: CorpusFileName,
@@ -101,8 +101,8 @@ export class WritingsTarget extends Schema.TaggedClass<WritingsTarget>(
   publications: Schema.optional(Schema.Array(PublicationId)),
 }) {}
 
-export const CorpusTarget = Schema.Union([BootstrapTarget, FileCorpusTarget, WritingsTarget]);
-export type CorpusTarget = typeof CorpusTarget.Type;
+const CorpusTarget = Schema.Union([BootstrapTarget, FileCorpusTarget, WritingsTarget]);
+type CorpusTarget = typeof CorpusTarget.Type;
 
 export class CorpusSupplyInput extends Schema.Class<CorpusSupplyInput>('CorpusSupply/Input')({
   target: Schema.optional(CorpusTarget),

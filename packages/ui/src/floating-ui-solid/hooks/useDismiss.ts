@@ -33,13 +33,13 @@ import { isVirtualClick } from '../utils/event.ts';
 
 type PressType = 'intentional' | 'sloppy';
 
-export interface ElementProps {
+interface ElementProps {
   reference: HTMLProps;
   floating: HTMLProps;
   trigger: HTMLProps;
 }
 
-export interface UseDismissProps {
+interface UseDismissProps {
   /** Whether an outside press closes it, or a function deciding per event. */
   outsidePress?: boolean | ((event: MouseEvent | TouchEvent) => boolean) | undefined;
   /**

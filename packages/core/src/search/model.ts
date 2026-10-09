@@ -40,7 +40,7 @@ import { TopicSlug, TopicStatus } from '../wiki/model.js';
  *  `hybrid` — everything else: lexical, plus the vector leg when §9.3's two
  *  conditions hold.
  */
-export const SearchRoute = Schema.Literals(['phrase', 'locate', 'hybrid']);
+const SearchRoute = Schema.Literals(['phrase', 'locate', 'hybrid']);
 export type SearchRoute = typeof SearchRoute.Type;
 
 /** Why the vector leg did not contribute to this result (§9.6).
@@ -276,7 +276,7 @@ export type SearchResultJson = typeof SearchResultJson.Encoded;
  *  A results-page cap rather than §7's glance cap, which is why it is 20 rather
  *  than `LOOKUP_HIT_LIMIT`'s 8: this surface is the thing the reader came for,
  *  not one group among five. */
-export const SEARCH_HIT_LIMIT = 20;
+const SEARCH_HIT_LIMIT = 20;
 
 /** How many topic pages the pinned group carries.
  *
@@ -290,7 +290,7 @@ export const SEARCH_TOPIC_LIMIT = 5;
  *  lexically and 3rd by vector belongs in the top 20 of the fused list, and a
  *  leg truncated at 20 could never propose it. qmd's 30 is what §9.4's "no
  *  cross-encoder rerank over 30 candidates" sizes its budget against. */
-export const SEARCH_CANDIDATE_LIMIT = 30;
+const SEARCH_CANDIDATE_LIMIT = 30;
 
 /** How many candidates each leg fetches for a query asking for `limit` hits.
  *
@@ -315,7 +315,7 @@ export const candidateLimit = (limit: number): number =>
  *  cannot contribute, and a default that silently ran lexical-only would make
  *  the milestone's headline behavior opt-in. A reader who wants the pioneers
  *  asks for them. */
-export const SEARCH_DEFAULT_SCOPE: CorpusScope = 'egw';
+const SEARCH_DEFAULT_SCOPE: CorpusScope = 'egw';
 
 /** What a caller asks for. Scope and book are the two narrowings §10's UI
  *  parity shares through URL state; `limit` is the client's page size. */

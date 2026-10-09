@@ -262,7 +262,7 @@ const saveDryRun = Flag.Boolean('dry-run').pipe(
   Flag.withDefault(false),
 );
 
-export const handbookSave = Command.make(
+const handbookSave = Command.make(
   'save',
   { dir: saveDir, out: saveOut, manifest: saveManifest, dryRun: saveDryRun },
   (args) =>

@@ -37,7 +37,7 @@ export interface ToastObject<Data extends object = object> {
 }
 
 /** The action button's props carried on a toast: any button attribute or handler, and its label. */
-export type ToastObjectActionProps = Omit<JSX.HTMLAttributes<HTMLButtonElement>, 'children'> & {
+type ToastObjectActionProps = Omit<JSX.HTMLAttributes<HTMLButtonElement>, 'children'> & {
   children?: JSX.Element;
   disabled?: boolean | undefined;
   [key: string]: unknown;

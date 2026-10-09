@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from 'effect';
 
-export interface CliProcessService {
+interface CliProcessService {
   readonly exitFailure: Effect.Effect<never>;
   /** The running process id — what the search daemon reports over its status
    *  procedure, and the one process fact no Effect service already carries. */

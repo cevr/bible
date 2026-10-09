@@ -22,11 +22,11 @@ import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { platform } from '../../utils/platform.ts';
 import { useMenuRootContext } from '../root/MenuRootContext.ts';
 
-export interface MenuItemState {
+interface MenuItemState {
   highlighted: boolean;
 }
 
-export interface MenuItemProps extends BaseUIComponentProps<'div', MenuItemState> {
+interface MenuItemProps extends BaseUIComponentProps<'div', MenuItemState> {
   /** The text typeahead matches; the item's text content when not given. */
   label?: string | undefined;
 }

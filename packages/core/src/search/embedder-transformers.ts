@@ -32,7 +32,7 @@ import { QueryEmbedder, QueryEmbedderUnavailable, type QueryEmbedderApi } from '
 import { DIMENSIONS, MODEL_FINGERPRINT, quantize } from './vector-index.js';
 
 /** The model id the fingerprint names, as the loader asks for it. */
-export const MODEL_ID = 'onnx-community/embeddinggemma-300m-ONNX';
+const MODEL_ID = 'onnx-community/embeddinggemma-300m-ONNX';
 
 /** The retrieval prefixes the model card pins, verbatim.
  *
@@ -51,7 +51,7 @@ export const DOCUMENT_PREFIX = 'title: none | text: ';
  *
  *  `cpu` under Bun: §9.5 measures the native CPU path at tens of milliseconds
  *  with the model resident. */
-export type EmbedderDevice = 'cpu';
+type EmbedderDevice = 'cpu';
 
 /** The dtype the model card permits and this build pins.
  *
@@ -71,7 +71,7 @@ const MODEL_CONTEXT_TOKENS = 2048;
  *  Config rather than a constant: §10 requires weights not to be committed, so
  *  they are resolved at runtime (the CLI from `~/.bible`). Absent means "use
  *  the library's default cache". */
-export const modelCacheDir: Config.Config<Option.Option<string>> = Config.option(
+const modelCacheDir: Config.Config<Option.Option<string>> = Config.option(
   Config.String('BIBLE_MODEL_CACHE'),
 );
 

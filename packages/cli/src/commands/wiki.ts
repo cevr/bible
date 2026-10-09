@@ -154,7 +154,7 @@ export const topicsJson = (result: {
     unavailable: result.unavailable,
   });
 
-export const wikiTopics = Command.make('topics', { query, json }, (args) =>
+const wikiTopics = Command.make('topics', { query, json }, (args) =>
   Effect.gen(function* () {
     const result = yield* wikiService(
       Effect.gen(function* () {
@@ -215,7 +215,7 @@ export const topicJson = (page: WikiPage): Effect.Effect<WikiPageJson, Schema.Sc
 
 const slug = Argument.String('slug').pipe(Argument.withDescription('The topic page slug'));
 
-export const wikiTopic = Command.make('topic', { slug, json }, (args) =>
+const wikiTopic = Command.make('topic', { slug, json }, (args) =>
   Effect.gen(function* () {
     const page = yield* wikiService(
       Effect.gen(function* () {
@@ -254,7 +254,7 @@ export const wikiTopic = Command.make('topic', { slug, json }, (args) =>
  *  a renderer would decode. Nothing here names `start`, `end`, `slug`, or
  *  `alias` — the schema is the wire contract for spans exactly as
  *  `WikiPageJson` is for pages. */
-export const matchesJson = (
+const matchesJson = (
   spans: readonly PhraseSpan[],
 ): Effect.Effect<PhraseSpansJson, Schema.SchemaError> =>
   Schema.encodeEffect(PhraseSpansJson)(spans);
@@ -274,7 +274,7 @@ const text = Argument.String('text').pipe(
   Argument.withDescription('The text to match against the phrase dictionary'),
 );
 
-export const wikiMatches = Command.make('matches', { text, json }, (args) =>
+const wikiMatches = Command.make('matches', { text, json }, (args) =>
   Effect.gen(function* () {
     const dictionary = yield* wikiService(Effect.flatMap(WikiService, (wiki) => wiki.dictionary));
     const spans = matchRun(PhraseAutomaton.make(dictionary), args.text);
@@ -334,9 +334,7 @@ const lookupService = <A, E>(use: Effect.Effect<A, E, LookupService>): Effect.Ef
 /** The `--json` payload for one lookup: the core schema's own encoding rather
  *  than a parallel projection of it — the same `…Json` alias discipline the
  *  page and the study bundle follow. */
-export const lookupJson = (
-  result: LookupResult,
-): Effect.Effect<LookupResultJson, Schema.SchemaError> =>
+const lookupJson = (result: LookupResult): Effect.Effect<LookupResultJson, Schema.SchemaError> =>
   Schema.encodeEffect(LookupResultJson)(result);
 
 const lookupText = Argument.String('text').pipe(
@@ -408,7 +406,7 @@ export const lookupInput = (args: {
     ),
   );
 
-export const wikiLookup = Command.make(
+const wikiLookup = Command.make(
   'lookup',
   { text: lookupText, context: contextFlag, json },
   (args) =>

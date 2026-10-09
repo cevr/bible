@@ -34,14 +34,14 @@ export interface EgwSyncProgress {
   readonly status: 'installed' | 'failed';
 }
 
-export interface EgwSyncOptions {
+interface EgwSyncOptions {
   readonly lang: string;
   readonly concurrency: number;
   readonly refresh: boolean;
   readonly onProgress: (progress: EgwSyncProgress) => Effect.Effect<void>;
 }
 
-export interface EgwSyncFailure {
+interface EgwSyncFailure {
   readonly id: number;
   readonly code: string;
   readonly title: string;
@@ -52,7 +52,7 @@ export interface EgwSyncFailure {
   readonly expected: boolean;
 }
 
-export interface EgwSyncReport {
+interface EgwSyncReport {
   readonly remote: number;
   readonly installedBefore: number;
   readonly attempted: number;
@@ -73,10 +73,9 @@ export interface EgwSyncReport {
   readonly failures: readonly EgwSyncFailure[];
 }
 
-export class EgwSyncInputError extends Schema.TaggedError<EgwSyncInputError>()(
-  'EgwSyncInputError',
-  { message: Schema.String },
-) {}
+class EgwSyncInputError extends Schema.TaggedError<EgwSyncInputError>()('EgwSyncInputError', {
+  message: Schema.String,
+}) {}
 
 const hasContent = (book: Option.Option<BookRow>): boolean =>
   Option.exists(book, (value) => value.paragraph_count > 0);

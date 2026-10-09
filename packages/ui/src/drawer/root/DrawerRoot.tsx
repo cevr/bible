@@ -7,11 +7,7 @@
 import type { JSX } from '@solidjs/web';
 import { createEffect, untrack } from 'solid-js';
 
-import {
-  type DialogChangeEventDetails,
-  type DialogChangeEventReason,
-  DialogRoot,
-} from '../../dialog/root/DialogRoot.tsx';
+import { type DialogChangeEventDetails, DialogRoot } from '../../dialog/root/DialogRoot.tsx';
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
@@ -21,12 +17,9 @@ import { DrawerRootContext, type DrawerSwipeDirection } from './DrawerRootContex
 
 export type { DrawerSwipeDirection };
 
-export type DrawerRootChangeEventReason = DialogChangeEventReason;
-export type DrawerRootChangeEventDetails = DialogChangeEventDetails;
+type DrawerRootChangeEventDetails = DialogChangeEventDetails;
 
-export interface DrawerRootState {}
-
-export interface DrawerRootProps {
+interface DrawerRootProps {
   open?: boolean | undefined;
   /**
    * Whether the open drawer is modal: focus trapped, page scroll locked and

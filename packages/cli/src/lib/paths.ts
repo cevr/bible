@@ -42,7 +42,7 @@ export const getDataPath = (cliRoot: string, ...segments: string[]): string =>
  *  in a stale checkout. The build root is the fallback, which is what makes
  *  `bun src/main.ts` in the workspace keep working — there `process.execPath` is
  *  the Bun binary itself, and no `data/` sits beside it. */
-export interface DataResolution {
+interface DataResolution {
   /** Directory of the running executable — `path.dirname(process.execPath)`. */
   readonly executableDir: string;
   /** The build-time root, absent in dev. */
@@ -97,7 +97,7 @@ export const packagedDataCandidates = (...segments: string[]): readonly string[]
  *  argument. Derived from `process.execPath` because that is the one path
  *  guaranteed to name the currently running executable — a `bible` found on
  *  `PATH` could be a different install than the one the user just ran. */
-export interface SelfInvocation {
+interface SelfInvocation {
   readonly command: string;
   readonly args: readonly string[];
 }

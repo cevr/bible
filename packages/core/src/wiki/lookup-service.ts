@@ -68,7 +68,7 @@ import {
 } from './section-composer.js';
 import { WikiService, type WikiServiceApi } from './service.js';
 
-export interface LookupServiceApi {
+interface LookupServiceApi {
   /** The five resolver groups for one selection, in one call (§7).
    *
    *  One call rather than five: the panel always draws all five groups, so

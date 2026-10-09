@@ -57,7 +57,7 @@ function registerSwipeVars() {
   }
 }
 
-export interface DrawerPopupState {
+interface DrawerPopupState {
   open: boolean;
   transitionStatus: TransitionStatus;
   /** The direction a swipe dismisses the drawer in. */
@@ -66,7 +66,7 @@ export interface DrawerPopupState {
   swiping: boolean;
 }
 
-export interface DrawerPopupProps extends BaseUIComponentProps<'div', DrawerPopupState> {
+interface DrawerPopupProps extends BaseUIComponentProps<'div', DrawerPopupState> {
   /**
    * What takes focus on open, read as the drawer opens: an element, `false`
    * for nothing, `true` for the first tabbable element. The popup itself by

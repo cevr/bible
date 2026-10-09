@@ -1,7 +1,7 @@
 import { Flag } from 'effect/cli';
 import { Context } from 'effect';
 
-export interface CliOptionsService {
+interface CliOptionsService {
   readonly verbose: boolean;
 }
 
@@ -9,7 +9,7 @@ export class CliOptions extends Context.Service<CliOptions, CliOptionsService>()
   '@bible/cli/services/cli-options/CliOptions',
 ) {}
 
-export const verbose = Flag.Boolean('verbose').pipe(
+const verbose = Flag.Boolean('verbose').pipe(
   Flag.withDescription('Enable verbose logging'),
   Flag.withDefault(false),
 );

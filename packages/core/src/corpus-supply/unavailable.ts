@@ -44,9 +44,9 @@
 import { Option } from 'effect';
 
 /** Why a publication cannot be fetched, as far as we can tell from outside. */
-export type UnavailableReason = 'subscription' | 'third-party-licence';
+type UnavailableReason = 'subscription' | 'third-party-licence';
 
-export interface UnavailablePublication {
+interface UnavailablePublication {
   readonly bookId: number;
   /** The code at the time of measurement, for reading the list. Not the key. */
   readonly code: string;

@@ -63,10 +63,10 @@ import {
  *  and every empty list. §8.4's sparseness makes emptiness the common case, and
  *  a pane that failed whenever a verse had no margin notes would fail on most
  *  verses. */
-export const StudySourceName = Schema.Literals(['bible', 'writings']);
-export type StudySourceName = typeof StudySourceName.Type;
+const StudySourceName = Schema.Literals(['bible', 'writings']);
+type StudySourceName = typeof StudySourceName.Type;
 
-export class StudyUnavailableError extends Schema.TaggedError<StudyUnavailableError>()(
+class StudyUnavailableError extends Schema.TaggedError<StudyUnavailableError>()(
   'StudyUnavailableError',
   {
     operation: Schema.NonEmptyString,
@@ -104,21 +104,21 @@ export class StudyCorpusDataError extends Schema.TaggedError<StudyCorpusDataErro
   },
 ) {}
 
-export type StudyError = StudyUnavailableError | StudyCorpusDataError;
+type StudyError = StudyUnavailableError | StudyCorpusDataError;
 
-export interface StudyVerseOptions {
+interface StudyVerseOptions {
   /** How many parallel writings to carry. Defaults to
    *  `DEFAULT_PARALLEL_WRITINGS_LIMIT`. */
   readonly parallelWritingsLimit?: number;
 }
 
-export interface StudyStrongsOptions {
+interface StudyStrongsOptions {
   /** How many concordance occurrences to carry. Defaults to
    *  `DEFAULT_CONCORDANCE_LIMIT`. */
   readonly limit?: number;
 }
 
-export interface StudyServiceApi {
+interface StudyServiceApi {
   /** The whole bundle for one verse, in one call (§8.2). Every section the pane
    *  draws comes back together because the pane always wants all of it. */
   readonly verse: (

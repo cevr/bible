@@ -59,8 +59,8 @@ class AccelUnavailable extends Data.TaggedError('AccelUnavailable')<{
 }> {}
 
 /** Which vector unit answered, for the one log line that says so. */
-export const VectorAccelKind = Schema.Literals(['neon', 'avx2', 'wasm']);
-export type VectorAccelKind = typeof VectorAccelKind.Type;
+const VectorAccelKind = Schema.Literals(['neon', 'avx2', 'wasm']);
+type VectorAccelKind = typeof VectorAccelKind.Type;
 
 /** What the C sources return from `vector_scan_isa`.
  *
@@ -82,7 +82,7 @@ const kindForIsa = (isa: number): Option.Option<VectorAccelKind> => {
  *  ranges and skips the rest, and this preserves that rather than forcing a
  *  whole-index scan to use SIMD.
  */
-export interface VectorAccel {
+interface VectorAccel {
   readonly kind: VectorAccelKind;
   /** Scores `count` rows from `offset`, writing `count` dot products into
    *  `out`. Returns how many it wrote, which the caller checks. */
@@ -90,7 +90,7 @@ export interface VectorAccel {
 }
 
 /** What an accelerator needs to know about the index it will score. */
-export interface AccelTarget {
+interface AccelTarget {
   readonly vectors: Int8Array;
   readonly dimensions: number;
   readonly count: number;

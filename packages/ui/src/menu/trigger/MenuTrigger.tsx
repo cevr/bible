@@ -31,12 +31,12 @@ import { useTimeout } from '../../utils/timers.ts';
 import { useMenuRootContext } from '../root/MenuRootContext.ts';
 import { findRootOwnerId } from '../utils/isKeyboardOpen.ts';
 
-export interface MenuTriggerState {
+interface MenuTriggerState {
   /** Whether the menu is open and was opened by this trigger. */
   open: boolean;
 }
 
-export interface MenuTriggerProps extends BaseUIComponentProps<'button', MenuTriggerState> {}
+interface MenuTriggerProps extends BaseUIComponentProps<'button', MenuTriggerState> {}
 
 export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
   const { store, triggerProps } = useMenuRootContext();

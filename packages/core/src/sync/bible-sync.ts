@@ -17,7 +17,7 @@ import {
 import { BibleCorpus, decodeBibleCorpusArchive } from '../bible-db/index.js';
 import type { BibleCorpusArchive } from '../bible-db/index.js';
 
-export interface BibleSyncPaths {
+interface BibleSyncPaths {
   readonly assetsDirectory: string;
   readonly database: string;
   readonly runtimeDatabase?: string;

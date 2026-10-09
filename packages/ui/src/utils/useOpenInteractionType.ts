@@ -15,7 +15,7 @@ import { platform } from './platform.ts';
 export type { InteractionType };
 
 /** Calls `handler` with the pointer type of each click (`keyboard` for a keyboard click). */
-export function useEnhancedClickHandler(
+function useEnhancedClickHandler(
   handler: (event: MouseEvent | PointerEvent, interactionType: InteractionType) => void,
 ) {
   let lastClickInteractionType: InteractionType = '';
@@ -43,7 +43,7 @@ export function useEnhancedClickHandler(
 }
 
 /** The trigger props that record how a closed popup was opened. */
-export function useOpenMethodTriggerProps(
+function useOpenMethodTriggerProps(
   open: Accessor<boolean>,
   setOpenMethod: (interactionType: InteractionType | null) => void,
 ): HTMLProps {

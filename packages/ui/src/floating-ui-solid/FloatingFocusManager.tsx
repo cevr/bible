@@ -149,7 +149,7 @@ type FocusTarget =
   | MaybeRef<HTMLElement | null>
   | ((interactionType: InteractionType) => boolean | HTMLElement | null | void);
 
-export interface FloatingFocusManagerProps {
+interface FloatingFocusManagerProps {
   children?: JSX.Element;
   context: FloatingRootContext;
   /** How the popup was opened; `null` means programmatically (focus returns to what had it). */

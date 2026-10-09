@@ -14,7 +14,7 @@ import { CompositeList } from './CompositeList.tsx';
 import { CompositeRootContext, type CompositeRootContextValue } from './CompositeRootContext.ts';
 import { useCompositeRoot } from './useCompositeRoot.ts';
 
-export interface CompositeRootProps<State extends object> {
+interface CompositeRootProps<State extends object> {
   class?: ClassProp<State> | undefined;
   style?: StyleProp<State> | undefined;
   render?: ComponentRenderFn<HTMLProps, State> | undefined;

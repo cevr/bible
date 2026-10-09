@@ -16,7 +16,7 @@ export class AIError extends Schema.TaggedError<AIError>()('AIError', {
 
 type Quality = 'high' | 'low';
 
-export type ModelService = {
+type ModelService = {
   high: LanguageModel;
   low: LanguageModel;
 };

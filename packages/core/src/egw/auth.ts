@@ -90,7 +90,7 @@ const decodeOAuthToAccessToken = (
 /**
  * EGW Auth service interface.
  */
-export interface EGWAuthService {
+interface EGWAuthService {
   readonly getToken: Effect.Effect<AccessToken>;
 }
 

@@ -25,7 +25,7 @@ import { useMenuPortalContext } from '../portal/MenuPortal.tsx';
 import { useMenuRootContext } from '../root/MenuRootContext.ts';
 import type { MenuInstantType } from '../store/MenuStore.ts';
 
-export interface MenuPositionerContextValue {
+interface MenuPositionerContextValue {
   side: () => Side;
   align: () => Align;
 }
@@ -42,7 +42,7 @@ export function useMenuPositionerContext(): MenuPositionerContextValue {
   return context;
 }
 
-export interface MenuPositionerState {
+interface MenuPositionerState {
   open: boolean;
   side: Side;
   align: Align;

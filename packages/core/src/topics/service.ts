@@ -16,12 +16,11 @@ export class TopicUnavailableError extends Schema.TaggedError<TopicUnavailableEr
   { operation: Schema.NonEmptyString, cause: Schema.Unknown },
 ) {}
 
-export class TopicNotFoundError extends Schema.TaggedError<TopicNotFoundError>()(
-  'TopicNotFoundError',
-  { id: TopicId },
-) {}
+class TopicNotFoundError extends Schema.TaggedError<TopicNotFoundError>()('TopicNotFoundError', {
+  id: TopicId,
+}) {}
 
-export type TopicError = TopicUnavailableError | TopicNotFoundError;
+type TopicError = TopicUnavailableError | TopicNotFoundError;
 
 interface TopicRow {
   readonly id: string;

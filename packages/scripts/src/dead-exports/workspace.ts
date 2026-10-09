@@ -23,12 +23,16 @@ interface Package {
   readonly name: Option.Option<string>;
   /** `.`, `./canvas`, `main` or `bin:bible` → the file, relative to the root. */
   readonly entries: ReadonlyMap<string, string>;
+  /** Where `~/` points inside the package, from its tsconfig `paths` (`~/*` → `./app/*`): `packages/cli/`. */
+  readonly home: Option.Option<string>;
 }
 
-/** A test, a fixture or its support, or a type-level check: code that runs to prove, not to ship. */
+/** A type-level check (`x.types.ts`): it uses the types it pins, and its own names are read by the compiler. */
+const isTypeCheck = (file: string) => file.endsWith('.types.ts');
+
+/** A test, a fixture or its support: code that runs to prove, not to ship. */
 const isTestCode = (file: string) =>
   /\.(test|spec)\.tsx?$/.test(file) ||
-  file.endsWith('.types.ts') ||
   /(^|\/)testing\.tsx?$/.test(file) ||
   /-fixture\.tsx?$/.test(file) ||
   /\/(fixtures|e2e|__tests__)\//.test(file) ||
@@ -52,6 +56,9 @@ const candidates = (base: string): ReadonlyArray<string> => [
 /** A package specifier: its name (`@bible/film`, `effect`) and the entry after it (`/canvas`). */
 const SPECIFIER = /^(@[^/]+\/[^/]+|[^/@][^/]*)(\/.*)?$/;
 
+/** A tsconfig's `"~/*": ["./app/*"]`: the directory `~/` stands for, captured as `app/`. */
+const TILDE = /"~\/\*"\s*:\s*\[\s*"\.\/([^"*]*)\*"/;
+
 /** The `package.json` of directory `dir`, read: none for a directory that is no package. */
 const readPackage = (root: string, dir: string) =>
   Effect.gen(function* () {
@@ -59,6 +66,12 @@ const readPackage = (root: string, dir: string) =>
     const path = yield* Path.Path;
     const text = yield* Effect.option(fs.readFileString(path.join(root, dir, 'package.json')));
     const json = Option.flatMap(text, Schema.decodeUnknownOption(PackageJson));
+    const tsconfig = yield* Effect.option(fs.readFileString(path.join(root, dir, 'tsconfig.json')));
+    const home = Option.flatMap(tsconfig, (config) =>
+      Option.flatMap(Option.fromNullishOr(TILDE.exec(config)), (m) =>
+        Option.map(Option.fromNullishOr(m[1]), (to) => path.join(dir, to)),
+      ),
+    );
     return Option.map(json, (pkg): Package => {
       const named = [
         ...Object.entries(Option.getOrElse(Option.fromUndefinedOr(pkg.exports), () => ({}))),
@@ -71,6 +84,7 @@ const readPackage = (root: string, dir: string) =>
       ];
       return {
         dir,
+        home,
         name: Option.fromUndefinedOr(pkg.name),
         entries: new Map(named.map(([key, file]) => [key, path.join(dir, file)])),
       };
@@ -113,10 +127,19 @@ const resolver =
     path: Path.Path,
     records: ReadonlyMap<string, ModuleRecord>,
     packages: ReadonlyMap<string, Package>,
+    byDir: ReadonlyMap<string, Package>,
   ): Resolve =>
   (user, from) => {
     const exists = (base: string) => Arr.findFirst(candidates(base), (c) => records.has(c));
     if (from.startsWith('.')) return exists(path.join(path.dirname(user), from));
+    if (from.startsWith('~/'))
+      return Option.flatMap(
+        Option.flatMap(
+          Option.fromUndefinedOr(byDir.get(user.split('/').slice(0, 2).join('/'))),
+          (p) => p.home,
+        ),
+        (home) => exists(path.join(home, from.slice(2))),
+      );
     const named = Option.fromNullishOr(SPECIFIER.exec(from));
     const packageName = Option.flatMap(named, (m) => Option.fromNullishOr(m[1]));
     const entry = `.${Option.getOrElse(
@@ -141,10 +164,12 @@ export const readWorkspace = (root: string) =>
       (yield* Effect.forEach(dirs, (dir) => readModules(root, dir))).flat(),
     );
     const packages = new Map<string, Package>();
+    const byDir = new Map<string, Package>();
     const entries = new Map<string, string>();
     for (const dir of dirs) {
       const pkg = yield* readPackage(root, dir);
       for (const found of Option.toArray(pkg)) {
+        byDir.set(dir, found);
         for (const name of Option.toArray(found.name)) packages.set(name, found);
         for (const [key, file] of found.entries)
           entries.set(
@@ -155,9 +180,10 @@ export const readWorkspace = (root: string) =>
     }
     const workspace: Workspace = {
       records,
-      resolve: resolver(path, records, packages),
+      resolve: resolver(path, records, packages, byDir),
       consumes: (file) => !isTestCode(file),
-      checked: (file) => /^packages\/[^/]+\/src\//.test(file) && !isTestCode(file),
+      checked: (file) =>
+        /^packages\/[^/]+\/src\//.test(file) && !isTestCode(file) && !isTypeCheck(file),
       entries,
     };
     return workspace;

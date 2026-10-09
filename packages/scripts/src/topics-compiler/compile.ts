@@ -33,13 +33,6 @@ export class UnknownRelatedSlugError extends Schema.TaggedError<UnknownRelatedSl
   { slug: Schema.String, related: Schema.String },
 ) {}
 
-export type CompileError =
-  | DuplicateAliasError
-  | DuplicateSlugError
-  | OverlayAmbiguityError
-  | CitationUnverifiedError
-  | UnknownRelatedSlugError;
-
 /** Resolves one refcode to the paragraphs that carry it. Injected rather than
  *  imported so the compile core stays free of the writings database and the
  *  tests can supply synthetic approved pages. */
@@ -54,7 +47,7 @@ export interface CatalogLookup {
   readonly idsForName: (name: string) => Effect.Effect<readonly string[]>;
 }
 
-export interface CompiledTopic {
+interface CompiledTopic {
   readonly slug: string;
   readonly title: string;
   readonly thesis: readonly Block[];
@@ -62,21 +55,21 @@ export interface CompiledTopic {
   readonly position: number;
 }
 
-export interface CompiledAlias {
+interface CompiledAlias {
   readonly alias: string;
   readonly display: string;
   readonly slug: string;
   readonly canonical: boolean;
 }
 
-export interface CompiledEdge {
+interface CompiledEdge {
   readonly from: string;
   readonly to: string;
   readonly kind: 'authored' | 'backlink';
   readonly position: number;
 }
 
-export interface CompiledCatalogKey {
+interface CompiledCatalogKey {
   readonly slug: string;
   readonly catalogId: string;
   readonly matchedBy: 'override' | 'name';

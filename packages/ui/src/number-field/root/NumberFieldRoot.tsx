@@ -38,7 +38,7 @@ import type {
   NumberFieldRootState,
 } from './NumberFieldRootState.ts';
 
-export interface NumberFieldRootProps extends Omit<
+interface NumberFieldRootProps extends Omit<
   BaseUIComponentProps<'div', NumberFieldRootState>,
   'onChange'
 > {

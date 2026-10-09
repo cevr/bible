@@ -45,7 +45,7 @@ export function dispatchClickWithModifiers(
   );
 }
 
-export interface UseFocusableWhenDisabledParameters {
+interface UseFocusableWhenDisabledParameters {
   /** Whether a disabled element stays focusable; composite items are by default. */
   focusableWhenDisabled?: boolean | undefined;
   disabled: boolean;
@@ -54,7 +54,7 @@ export interface UseFocusableWhenDisabledParameters {
 }
 
 /** The disabled-state props: `disabled` or `aria-disabled`, and the tabindex. */
-export function useFocusableWhenDisabled(params: UseFocusableWhenDisabledParameters): HTMLProps {
+function useFocusableWhenDisabled(params: UseFocusableWhenDisabledParameters): HTMLProps {
   const composite = () => params.composite ?? false;
   return {
     // Tab still leaves a focusable disabled element.
@@ -92,7 +92,7 @@ export function useFocusableWhenDisabled(params: UseFocusableWhenDisabledParamet
   };
 }
 
-export interface UseButtonParameters {
+interface UseButtonParameters {
   disabled?: boolean | undefined;
   focusableWhenDisabled?: boolean | undefined;
   /** Whether the element is a native `<button>`. */
@@ -101,7 +101,7 @@ export interface UseButtonParameters {
   composite?: boolean | undefined;
 }
 
-export interface UseButtonReturnValue {
+interface UseButtonReturnValue {
   /** The button's props merged under `externalProps`, whose handlers it wraps. */
   getButtonProps: (externalProps?: HTMLProps) => HTMLProps;
   /** Pass to the element's `ref`. */

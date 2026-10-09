@@ -47,17 +47,17 @@ export class SearchDaemonStatus extends Schema.Class<SearchDaemonStatus>(
   fingerprint: Schema.NonEmptyString,
 }) {}
 
-export const SearchDaemonStatusRpc = Rpc.make('daemon.status', {
+const SearchDaemonStatusRpc = Rpc.make('daemon.status', {
   success: SearchDaemonStatus,
 });
 
 /** Fire-and-forget retirement: the daemon acknowledges, then exits. */
-export const SearchDaemonShutdownRpc = Rpc.make('daemon.shutdown', {});
+const SearchDaemonShutdownRpc = Rpc.make('daemon.shutdown', {});
 
 /** The query, answered by the daemon's `SearchService`. It does not fail:
  *  every leg degrades, and the vector leg's degradation is a typed field on
  *  the result rather than an error. */
-export const SearchQueryRpc = Rpc.make('search.query', {
+const SearchQueryRpc = Rpc.make('search.query', {
   payload: SearchQuery,
   success: SearchResult,
 });

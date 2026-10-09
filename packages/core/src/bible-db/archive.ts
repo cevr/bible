@@ -4,7 +4,7 @@ const Coordinate = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
 );
 
-export const KjvVerseAsset = Schema.Struct({
+const KjvVerseAsset = Schema.Struct({
   book_name: Schema.String,
   book: Coordinate,
   chapter: Coordinate,
@@ -63,7 +63,7 @@ export const CrossReferenceAsset = Schema.Record(
 );
 export type CrossReferenceAsset = typeof CrossReferenceAsset.Type;
 
-export const MarginNoteAsset = Schema.Struct({
+const MarginNoteAsset = Schema.Struct({
   type: Schema.Literals(['hebrew', 'greek', 'alternate', 'name', 'other']),
   phrase: Schema.String,
   text: Schema.String,

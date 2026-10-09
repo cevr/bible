@@ -36,8 +36,8 @@ import { isWhitespace } from './normalize.js';
  *
  *  A `VerseReference` rather than three loose numbers, because the branded
  *  schema is what makes callers' agreement checkable rather than conventional. */
-export const LookupContext = VerseReference;
-export type LookupContext = typeof LookupContext.Type;
+const LookupContext = VerseReference;
+type LookupContext = typeof LookupContext.Type;
 
 /** What a host asks about: the selected text, plus where it was selected.
  *
@@ -112,8 +112,8 @@ export const lookupInputOf = (input: {
  *  order within it — exact before fuzzy — is the ranking. Two arrays would make
  *  the caller concatenate them to draw one list, and a caller that concatenates
  *  is a caller that can concatenate in the wrong order. */
-export const TopicMatchKind = Schema.Literals(['exact', 'fuzzy']);
-export type TopicMatchKind = typeof TopicMatchKind.Type;
+const TopicMatchKind = Schema.Literals(['exact', 'fuzzy']);
+type TopicMatchKind = typeof TopicMatchKind.Type;
 
 /** One topic the selection might mean.
  *

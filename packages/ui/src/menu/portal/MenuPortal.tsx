@@ -22,9 +22,7 @@ export function useMenuPortalContext(): void {
   }
 }
 
-export interface MenuPortalState {}
-
-export interface MenuPortalProps extends FloatingPortalProps {}
+interface MenuPortalProps extends FloatingPortalProps {}
 
 export function MenuPortal(props: MenuPortalProps): JSX.Element {
   const { store } = useMenuRootContext();

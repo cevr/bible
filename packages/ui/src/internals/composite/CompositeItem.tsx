@@ -11,7 +11,7 @@ import type { ClassProp, ComponentRenderFn, HTMLProps, StyleProp } from '../type
 import { type IntrinsicTagName, useRenderElement } from '../useRenderElement.tsx';
 import { useCompositeItem } from './useCompositeItem.ts';
 
-export interface CompositeItemProps<State extends object> {
+interface CompositeItemProps<State extends object> {
   class?: ClassProp<State> | undefined;
   style?: StyleProp<State> | undefined;
   render?: ComponentRenderFn<HTMLProps, State> | undefined;

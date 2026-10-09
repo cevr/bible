@@ -28,20 +28,6 @@ export const publicationJson = (publication: Publication) => ({
   paragraphCount: Option.getOrNull(publication.paragraphCount),
 });
 
-export const paragraphJson = (paragraph: Paragraph) => ({
-  reference: {
-    publication: paragraph.publicationCode,
-    order: paragraph.order,
-    page: Option.getOrNull(paragraph.page),
-    number: Option.getOrNull(paragraph.number),
-    refcode: Option.getOrNull(paragraph.refcode),
-  },
-  paragraphId: paragraph.reference.paragraphId,
-  nodes: paragraph.nodes,
-  elementType: Option.getOrNull(paragraph.elementType),
-  elementSubtype: Option.getOrNull(paragraph.elementSubtype),
-});
-
 /** How much of a hit's paragraph the printer shows.
  *
  *  The corpus already carries the whole paragraph on every hit — `snippet` is
@@ -106,7 +92,7 @@ export const formatRemoteHit = (hit: EGWSchemas.SearchHit, index: number): strin
  *  silent degradation, and the point of that decision is lost if the CLI prints
  *  the same output whether or not half the search ran. Each reason maps to a
  *  different remedy, so each gets its own sentence. */
-export const formatVectorAbsence = (reason: VectorAbsenceReason): string => {
+const formatVectorAbsence = (reason: VectorAbsenceReason): string => {
   if (reason === 'absent') {
     return 'lexical only — no vector index installed (build one with `bun run build:vectors`)';
   }

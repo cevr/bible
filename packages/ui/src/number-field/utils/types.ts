@@ -5,11 +5,11 @@
 // the root to apply.
 import type { REASONS } from '../../internals/reasons.ts';
 
-export type Direction = -1 | 1;
+type Direction = -1 | 1;
 
-export type DirectionalChangeReason = typeof REASONS.scrub | typeof REASONS.keyboard;
+type DirectionalChangeReason = typeof REASONS.scrub | typeof REASONS.keyboard;
 
-export type ChangeReason =
+type ChangeReason =
   | typeof REASONS.inputChange
   | typeof REASONS.inputClear
   | typeof REASONS.inputBlur

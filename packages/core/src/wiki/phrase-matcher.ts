@@ -62,7 +62,7 @@ export class PhraseSpan extends Schema.Class<PhraseSpan>('Wiki/PhraseSpan')({
  *  supplied. Parallel to the input rather than flattened, because each span's
  *  offsets are local to its own run and a flat list would lose which run they
  *  index into. */
-export type SectionSpans = readonly (readonly PhraseSpan[])[];
+type SectionSpans = readonly (readonly PhraseSpan[])[];
 
 // ---------------------------------------------------------------------------
 // Normalized projection of a run

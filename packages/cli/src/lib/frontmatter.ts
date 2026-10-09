@@ -4,14 +4,14 @@ import matter from 'gray-matter';
  * The value shape YAML frontmatter can carry once parsed. Nullable YAML values
  * are not part of the contract — absent keys model absence.
  */
-export type FrontmatterValue =
+type FrontmatterValue =
   | string
   | number
   | boolean
   | ReadonlyArray<FrontmatterValue>
   | { readonly [key: string]: FrontmatterValue };
 
-export type Frontmatter = Record<string, FrontmatterValue>;
+type Frontmatter = Record<string, FrontmatterValue>;
 
 export interface MessageFrontmatter {
   created_at: string;
@@ -19,7 +19,7 @@ export interface MessageFrontmatter {
   apple_note_id?: string;
 }
 
-export interface ParsedMarkdown<T = Frontmatter> {
+interface ParsedMarkdown<T = Frontmatter> {
   frontmatter: T;
   content: string;
 }
@@ -39,15 +39,8 @@ export function parseFrontmatter<T = Frontmatter>(markdown: string): ParsedMarkd
 /**
  * Stringify frontmatter and content back to markdown.
  */
-export function stringifyFrontmatter(frontmatter: Frontmatter, content: string): string {
+function stringifyFrontmatter(frontmatter: Frontmatter, content: string): string {
   return matter.stringify(content, frontmatter);
-}
-
-/**
- * Check if markdown content has frontmatter.
- */
-export function hasFrontmatter(markdown: string): boolean {
-  return markdown.trimStart().startsWith('---');
 }
 
 /**

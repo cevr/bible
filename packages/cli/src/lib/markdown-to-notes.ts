@@ -19,7 +19,7 @@ export class MarkdownParseError extends Data.TaggedError(
 /**
  * Options for creating the Apple Note.
  */
-export interface CreateSimpleNoteOptions {
+interface CreateSimpleNoteOptions {
   /** Override the title automatically extracted from Markdown H1. Defaults to 'Untitled Note' if no H1 found. */
   title?: string;
   /** Set to true to bring the Notes application to the foreground after creation. Defaults to false. */
@@ -132,7 +132,7 @@ export const makeAppleNoteFromMarkdown = Effect.fn('makeAppleNoteFromMarkdown')(
 /**
  * Options for updating an existing Apple Note.
  */
-export interface UpdateNoteOptions {
+interface UpdateNoteOptions {
   /** Override the title. If not provided, uses the H1 from markdown or keeps existing title. */
   title?: string;
   /** Set to true to bring the Notes application to the foreground after update. Defaults to false. */

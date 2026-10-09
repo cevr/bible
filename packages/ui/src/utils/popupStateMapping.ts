@@ -20,7 +20,7 @@ export const CommonPopupDataAttributes = {
   align: 'data-align',
 } as const;
 
-export const CommonTriggerDataAttributes = {
+const CommonTriggerDataAttributes = {
   popupOpen: 'data-popup-open',
   pressed: 'data-pressed',
 } as const;

@@ -66,7 +66,7 @@ const HTML_COMMENT = /<!--[\s\S]*?-->/gu;
  *  the source having said anything. It is reported rather than dropped:
  *  silently discarding it would turn an authoring mistake into a page that
  *  cites nothing, so the compiler fails the build on it (§3.4 step 6). */
-export interface BlankCitation {
+interface BlankCitation {
   readonly refcode: string;
   readonly quote: string;
 }

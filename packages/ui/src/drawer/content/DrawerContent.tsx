@@ -10,9 +10,9 @@ import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { DRAWER_CONTENT_ATTRIBUTE } from '../utils/drawerAttributes.ts';
 
-export interface DrawerContentState {}
+interface DrawerContentState {}
 
-export interface DrawerContentProps extends BaseUIComponentProps<'div', DrawerContentState> {}
+interface DrawerContentProps extends BaseUIComponentProps<'div', DrawerContentState> {}
 
 /**
  * A container for the drawer contents.

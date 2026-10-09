@@ -51,7 +51,7 @@ export type UpdatableCorpus = typeof UpdatableCorpus.Type;
  *  The Type stays a `string`: what an installer is handed is an address to
  *  fetch, and a decoded `URL` object would be re-serialized at every seam that
  *  passes it on. The parse is the *check*, not the representation. */
-export const ContentUrl = Schema.NonEmptyString.check(
+const ContentUrl = Schema.NonEmptyString.check(
   Schema.makeFilter<string>((url) => {
     const parsed = URL.parse(url);
     if (Predicate.isNull(parsed)) return 'Content URL must be a URL this build can parse';
@@ -59,7 +59,7 @@ export const ContentUrl = Schema.NonEmptyString.check(
     return true;
   }),
 );
-export type ContentUrl = typeof ContentUrl.Type;
+type ContentUrl = typeof ContentUrl.Type;
 
 /** One artifact's entry in the runtime manifest: the exact bytes one content
  *  version consists of, in the shape `FileArtifactRelease` already pins.
@@ -174,8 +174,8 @@ export class ContentFloor extends Schema.Class<ContentFloor>('ContentUpdate/Floo
 }) {}
 
 /** Why a runtime version was refused. Closed, because a client renders it. */
-export const ContentRefusalReason = Schema.Literals(['schema-major']);
-export type ContentRefusalReason = typeof ContentRefusalReason.Type;
+const ContentRefusalReason = Schema.Literals(['schema-major']);
+type ContentRefusalReason = typeof ContentRefusalReason.Type;
 
 /** The decision, as a host renders it.
  *

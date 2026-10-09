@@ -58,7 +58,7 @@ export const TOPICS_ARTIFACT_GENERATION: Option.Option<CorpusGeneration> = Optio
  *  one entry once `TOPICS_ARTIFACT_RELEASE` is filled in. Every host spreads
  *  this after its local sources, so publishing the first content version wires
  *  the release leg in without touching any host. */
-export interface ReleaseSourceDeclaration extends FileArtifactRelease {
+interface ReleaseSourceDeclaration extends FileArtifactRelease {
   readonly kind: 'release';
   /** The release ordinal this pin was published under (§3.6), when the build
    *  states one.
@@ -78,7 +78,7 @@ export const topicsReleaseSource = (): readonly ReleaseSourceDeclaration[] =>
     onSome: (release) => [{ kind: 'release', ...release, generation: TOPICS_ARTIFACT_GENERATION }],
   });
 
-export interface FileArtifact {
+interface FileArtifact {
   readonly kind: FileArtifactSourceKind;
   readonly provenance: CorpusProvenance;
   /** The exact byte count a pinned release manifest promises. Both installers
@@ -88,7 +88,7 @@ export interface FileArtifact {
   readonly bytes: Stream.Stream<Uint8Array, CorpusSourceUnavailableError>;
 }
 
-export interface FileArtifactSourceService {
+interface FileArtifactSourceService {
   readonly kind: FileArtifactSourceKind;
   readonly acquire: Effect.Effect<FileArtifact, CorpusSourceUnavailableError>;
 }
@@ -302,7 +302,7 @@ export const TOPICS_SCHEMA_MINOR = 0;
  *
  *  The semantic verifier calls this so the gate is one rule with one
  *  definition. */
-export const TopicsSchemaMajor = Schema.String.check(Schema.isPattern(/^\d+$/)).pipe(
+const TopicsSchemaMajor = Schema.String.check(Schema.isPattern(/^\d+$/)).pipe(
   Schema.decodeTo(
     Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER })),
     SchemaTransformation.numberFromString,

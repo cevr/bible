@@ -46,7 +46,7 @@ export function resolveRef<T extends Element | null | undefined>(maybeRef: Maybe
   return typeof maybeRef === 'object' && 'current' in maybeRef ? maybeRef.current : maybeRef;
 }
 
-export interface FocusManagerState {
+interface FocusManagerState {
   modal: boolean;
   open: boolean;
   onOpenChange(open: boolean, eventDetails: BaseUIChangeEventDetails): void;
@@ -54,7 +54,7 @@ export interface FocusManagerState {
   closeOnFocusOut: boolean;
 }
 
-export interface PortalContextValue {
+interface PortalContextValue {
   portalNode: Accessor<HTMLElement | null>;
   setFocusManagerState(state: FocusManagerState | null): void;
   beforeInsideRef: { current: HTMLSpanElement | null };
@@ -71,7 +71,7 @@ export function usePortalContext(): PortalContextValue | null {
 
 const attr = createAttribute('portal');
 
-export interface FloatingPortalState {}
+interface FloatingPortalState {}
 
 export interface FloatingPortalProps extends BaseUIComponentProps<'div', FloatingPortalState> {
   /**

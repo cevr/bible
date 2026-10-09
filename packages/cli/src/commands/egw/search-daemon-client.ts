@@ -90,7 +90,7 @@ export const searchDaemonClientLayer = (socketPath: string): Layer.Layer<SearchS
     Layer.orDie,
   );
 
-export class SearchDaemonSpawnError extends Schema.TaggedError<SearchDaemonSpawnError>()(
+class SearchDaemonSpawnError extends Schema.TaggedError<SearchDaemonSpawnError>()(
   'SearchDaemonSpawnError',
   { message: Schema.String },
 ) {}

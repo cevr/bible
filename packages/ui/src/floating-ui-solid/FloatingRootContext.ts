@@ -19,7 +19,7 @@ import { createEventEmitter, type FloatingEvents, isClickLikeEvent } from './uti
 
 export type ReferenceType = Element | VirtualElement;
 
-export interface ContextData {
+interface ContextData {
   /** The event that opened the popup, kept while it is open. */
   openEvent?: Event | undefined;
 }
@@ -42,7 +42,7 @@ export interface FloatingRootContext {
   readonly triggerElements: PopupTriggerMap;
 }
 
-export interface FloatingRootContextOptions {
+interface FloatingRootContextOptions {
   open: Accessor<boolean>;
   /** The trigger, or a virtual element (a context menu's pointer position). */
   referenceElement: Accessor<ReferenceType | null>;

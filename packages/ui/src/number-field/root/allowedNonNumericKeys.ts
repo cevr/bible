@@ -15,7 +15,7 @@ import {
   SPACE_SEPARATOR_RE,
 } from '../utils/parse.ts';
 
-export interface AllowedNonNumericKeysOptions {
+interface AllowedNonNumericKeysOptions {
   locale: Intl.LocalesArgument | undefined;
   format: Intl.NumberFormatOptions | undefined;
   minWithDefault: number;

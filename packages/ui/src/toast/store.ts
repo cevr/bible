@@ -25,7 +25,7 @@ const DEFAULT_TIMEOUT = 5000;
  * A toast once it lives in the store. `addToast` is the only way in and it always
  * assigns `updateKey`, so unlike the public `ToastObject` it is never missing.
  */
-export type StoredToast<Data extends object = object> = ToastObject<Data> & { updateKey: number };
+type StoredToast<Data extends object = object> = ToastObject<Data> & { updateKey: number };
 
 export type State = {
   toasts: StoredToast[];

@@ -20,12 +20,12 @@ import { useDialogPortalContext } from '../portal/DialogPortal.tsx';
 import { useDialogRootContext } from '../root/DialogRootContext.ts';
 import type { DialogStore } from '../store/DialogStore.ts';
 
-export interface DialogPopupState {
+interface DialogPopupState {
   open: boolean;
   transitionStatus: TransitionStatus;
 }
 
-export interface DialogPopupProps extends BaseUIComponentProps<'div', DialogPopupState> {}
+interface DialogPopupProps extends BaseUIComponentProps<'div', DialogPopupState> {}
 
 /** Stops the composite navigation keys from reaching a widget around the popup. */
 export function stopCompositeKeys(event: KeyboardEvent) {
@@ -34,7 +34,7 @@ export function stopCompositeKeys(event: KeyboardEvent) {
   }
 }
 
-export interface DialogPopupFocusProps {
+interface DialogPopupFocusProps {
   store: DialogStore;
   /**
    * What takes focus on open, read as the popup opens: an element, `false`

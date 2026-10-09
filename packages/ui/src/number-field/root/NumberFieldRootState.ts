@@ -17,7 +17,7 @@ export interface NumberFieldRootState {
   scrubbing: boolean;
 }
 
-export type NumberFieldRootCommitEventReason =
+type NumberFieldRootCommitEventReason =
   | typeof REASONS.inputBlur
   | typeof REASONS.inputClear
   | typeof REASONS.keyboard

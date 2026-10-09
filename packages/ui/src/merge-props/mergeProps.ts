@@ -21,13 +21,13 @@ import { $PROXY, createMemo, untrack } from 'solid-js';
 
 import type { BaseUIEvent, HTMLProps } from '../internals/types.ts';
 
-export type PropsGetter = (merged: HTMLProps) => HTMLProps;
+type PropsGetter = (merged: HTMLProps) => HTMLProps;
 export type PropsInput = HTMLProps | PropsGetter | null | undefined | false;
 
 type Handler = (...args: Array<unknown>) => unknown;
 
 /** Whether `key` names an event handler prop (`onClick`, `onKeyDown`, …). */
-export function isEventHandlerKey(key: string): boolean {
+function isEventHandlerKey(key: string): boolean {
   const code2 = key.charCodeAt(2);
   return key.charCodeAt(0) === 111 && key.charCodeAt(1) === 110 && code2 >= 65 && code2 <= 90;
 }
@@ -106,7 +106,7 @@ function runHandlers(handlers: ReadonlyArray<unknown>, args: Array<unknown>): un
 const STYLE_DECLARATION = /([\w-]+)\s*:\s*([^;]*)/g;
 
 /** A `style` string as Solid's object form. */
-export function styleToObject(style: string): Record<string, string> {
+function styleToObject(style: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const match of style.matchAll(STYLE_DECLARATION)) {
     const [, name, value] = match;
@@ -265,7 +265,7 @@ function createView(read: () => ReadonlyArray<HTMLProps>): HTMLProps {
 }
 
 /** Calls a Solid ref (a callback, or an array of them) with `el`. */
-export function applyRef(ref: unknown, el: unknown): void {
+function applyRef(ref: unknown, el: unknown): void {
   if (typeof ref === 'function') {
     (ref as (el: unknown) => void)(el);
     return;

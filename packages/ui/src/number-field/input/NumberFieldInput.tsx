@@ -47,12 +47,9 @@ const NAVIGATE_KEYS = new Set([
   'Escape',
 ]);
 
-export interface NumberFieldInputState extends NumberFieldRootState {}
+interface NumberFieldInputState extends NumberFieldRootState {}
 
-export interface NumberFieldInputProps extends BaseUIComponentProps<
-  'input',
-  NumberFieldInputState
-> {
+interface NumberFieldInputProps extends BaseUIComponentProps<'input', NumberFieldInputState> {
   /**
    * The role description assistive technology announces (not the accessible
    * name: give it a label or `aria-label`).

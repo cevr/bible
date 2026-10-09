@@ -90,12 +90,12 @@ interface TouchScrollState {
   drawerAxisAttributed: boolean;
 }
 
-export interface DrawerViewportState {
+interface DrawerViewportState {
   open: boolean;
   transitionStatus: TransitionStatus;
 }
 
-export interface DrawerViewportProps extends BaseUIComponentProps<'div', DrawerViewportState> {}
+interface DrawerViewportProps extends BaseUIComponentProps<'div', DrawerViewportState> {}
 
 /**
  * A positioning container for the drawer popup that can be made scrollable.

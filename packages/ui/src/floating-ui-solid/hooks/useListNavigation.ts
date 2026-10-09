@@ -34,7 +34,7 @@ import {
 } from '../utils/element.ts';
 import { enqueueFocus, isVirtualClick, isVirtualPointerEvent, stopEvent } from '../utils/event.ts';
 
-export interface UseListNavigationReturn {
+interface UseListNavigationReturn {
   floating: HTMLProps;
   item: HTMLProps;
   trigger: HTMLProps;
@@ -54,7 +54,7 @@ function isToEndKey(key: string) {
   return key === ARROW_DOWN || key === 'Enter' || key === ' ' || key === '';
 }
 
-export interface UseListNavigationProps {
+interface UseListNavigationProps {
   /** The items in DOM order; the list owner keeps it current. */
   listRef: { current: Array<HTMLElement | null> };
   /** The highlighted index (`null` for none). Read live. */

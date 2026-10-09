@@ -39,7 +39,7 @@ export type Align = 'start' | 'center' | 'end';
 /** The space kept between the popup and the edges it must stay inside. */
 const COLLISION_PADDING = 5;
 
-export interface UseAnchorPositioningParameters {
+interface UseAnchorPositioningParameters {
   floatingRootContext: FloatingRootContext;
   mounted: boolean;
   /** What the popup is positioned against in place of the trigger. */
@@ -55,7 +55,7 @@ export interface UseAnchorPositioningParameters {
   shiftCrossAxis: boolean;
 }
 
-export interface UseAnchorPositioningReturnValue {
+interface UseAnchorPositioningReturnValue {
   positionerStyles: Accessor<JSX.CSSProperties>;
   side: Accessor<Side>;
   align: Accessor<Align>;

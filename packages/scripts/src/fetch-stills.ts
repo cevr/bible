@@ -35,14 +35,14 @@ const STEP = 5;
 const BIG = [['cold', 9.5, 'big-cold.jpg']] as const;
 
 /** A scene's video in its own film's project: the ref of its render, none when it has none. */
-export const sceneVideo = (view: ProjectView, scene: string): Option.Option<string> =>
+const sceneVideo = (view: ProjectView, scene: string): Option.Option<string> =>
   Option.map(Record.get(view.videos, scene), (video) => video.ref);
 
 /** A file this script writes: a tape still, a poster or a large frame. */
 const isStill = (file: string) => /^(?:tape|poster|big)-[\w-]+\.jpg$/.test(file);
 
 /** What one fetch reads and writes: the lab's address, the film, the folder written. */
-export interface StillsArgs {
+interface StillsArgs {
   readonly lab: string;
   readonly film: string;
   readonly out: string;

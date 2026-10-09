@@ -19,7 +19,7 @@ import type {
 export type InputMode = 'numeric' | 'decimal' | 'text';
 
 /** A mutable cell, read and written outside the reactive graph. */
-export interface ValueCell<T> {
+interface ValueCell<T> {
   current: T;
 }
 

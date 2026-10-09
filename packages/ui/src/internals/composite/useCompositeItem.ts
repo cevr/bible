@@ -9,7 +9,7 @@ import type { HTMLProps } from '../types.ts';
 import { useCompositeListItem } from './CompositeList.tsx';
 import { useCompositeRootContext } from './CompositeRootContext.ts';
 
-export interface UseCompositeItemReturnValue {
+interface UseCompositeItemReturnValue {
   compositeProps: HTMLProps;
   /** Pass to the item element's `ref`. */
   compositeRef: (element: HTMLElement | null) => void;

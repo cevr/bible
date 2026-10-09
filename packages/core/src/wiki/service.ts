@@ -40,13 +40,13 @@ import {
  *  A closed set because this error is destined for the wire: Milestone 3 puts
  *  `WikiService` behind RPC, and `Schema.Unknown` has no stable encoding a
  *  client could depend on. */
-export const WikiErrorCategory = Schema.Literals([
+const WikiErrorCategory = Schema.Literals([
   'open-failed',
   'corrupt',
   'decode-failed',
   'query-failed',
 ]);
-export type WikiErrorCategory = typeof WikiErrorCategory.Type;
+type WikiErrorCategory = typeof WikiErrorCategory.Type;
 
 /** The topics artifact is installed but could not be read. Distinct from the
  *  artifact simply being absent, which is a typed value on the page rather than
@@ -62,7 +62,7 @@ export class WikiUnavailableError extends Schema.TaggedError<WikiUnavailableErro
   },
 ) {}
 
-export type WikiError = WikiUnavailableError;
+type WikiError = WikiUnavailableError;
 
 export interface WikiServiceApi {
   /** Every topic that has a page: the authored flagship pages the artifact

@@ -1,17 +1,7 @@
-import {
-  Clock,
-  Config,
-  Effect,
-  Exit,
-  Inspectable,
-  Option,
-  Predicate,
-  Schema,
-  SchemaGetter,
-} from 'effect';
+import { Clock, Config, Effect, Exit, Inspectable, Option, Predicate } from 'effect';
 
 /** Flat key/value context attached to a trace entry. */
-export type TraceMetadata = Readonly<Record<string, string | number | boolean>>;
+type TraceMetadata = Readonly<Record<string, string | number | boolean>>;
 
 interface TraceEntry {
   readonly label: string;
@@ -26,15 +16,6 @@ const enabled = Config.Boolean('TRACE').pipe(
 );
 const entries: TraceEntry[] = [];
 let startTime: Option.Option<number> = Option.none();
-
-const JsonString = Schema.Unknown.pipe(
-  Schema.encodeTo(Schema.String, {
-    decode: SchemaGetter.parseJson(),
-    encode: SchemaGetter.stringifyJson({ space: 2 }),
-  }),
-);
-
-const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 const elapsed = Effect.gen(function* () {
   const current = yield* Clock.currentTimeMillis;
@@ -106,13 +87,6 @@ export const printSummary = Effect.gen(function* () {
     `cli.trace.summary totalMs=${totalMs.toFixed(2)} entries=${entries.length} slowest=${Inspectable.toStringUnknown(slowest.slice(0, 10), 0)}`,
   );
 });
-
-export const getTraceJson = Effect.gen(function* () {
-  const totalMs = yield* elapsed;
-  return yield* encodeJson({ totalMs, entries });
-});
-
-export const isEnabled = enabled;
 
 export const clear = Effect.sync(() => {
   entries.length = 0;

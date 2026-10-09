@@ -16,9 +16,9 @@ export interface DialogTitleState {}
 
 export interface DialogTitleProps extends BaseUIComponentProps<'h2', DialogTitleState> {}
 
-export interface DialogDescriptionState {}
+interface DialogDescriptionState {}
 
-export interface DialogDescriptionProps extends BaseUIComponentProps<'p', DialogDescriptionState> {}
+interface DialogDescriptionProps extends BaseUIComponentProps<'p', DialogDescriptionState> {}
 
 /**
  * A heading that labels the dialog.

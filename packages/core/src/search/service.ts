@@ -59,7 +59,7 @@ import {
 import { primeVectorAccel, readyVectorAccel } from './vector-accel.js';
 import { scanVectorIndex, type VectorIndex } from './vector-index.js';
 
-export interface SearchServiceApi {
+interface SearchServiceApi {
   /** One query, answered whole (§9). Never fails: every source degrades, and
    *  every degradation of the vector leg is on the result as §9.6's typed
    *  absence. */
@@ -162,7 +162,7 @@ export const isStrongLexicalHit = (scores: readonly number[]): boolean =>
  *  the fusion ranks: the two legs return different row shapes over the same
  *  corpus, and fusing them requires one identity both agree on.
  */
-export interface SearchParagraphRow {
+interface SearchParagraphRow {
   readonly paragraphId: string;
   /** The route's own inputs, carried from the row rather than derived — see
    *  `SearchParagraphHit.publicationId` (round-2 B2). */
@@ -195,11 +195,11 @@ export interface SearchParagraphRow {
  *  bare service, so a host wires it once and a host that wires nothing says so
  *  with `NotWired` rather than by omission.
  */
-export interface SearchSources {
+interface SearchSources {
   readonly paragraphs: EGWParagraphDatabaseService;
 }
 
-export type SearchSourcing =
+type SearchSourcing =
   | { readonly _tag: 'wired'; readonly sources: SearchSources }
   | { readonly _tag: 'not-wired' };
 
