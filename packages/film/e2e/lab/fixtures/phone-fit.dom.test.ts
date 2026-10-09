@@ -74,6 +74,19 @@ describe('the phone-fit measure', () => {
     measured(FAR, false, 'outside.concat(sideways)', ['far 370..414', 0]),
   );
 
+  it.live(
+    'refuses a control wholly clipped by a box that clips and never scrolls, and passes one a strip scrolled away',
+    () =>
+      Effect.gen(function* () {
+        const row = (overflow: string) =>
+          `<div style="overflow:${overflow};width:200px;height:50px"><div style="width:600px"><button data-act="near">near</button><button data-act="away" style="margin-left:300px">away</button></div></div>`;
+        yield* measured(row('hidden'), false, 'outside', ['away cut off']);
+        yield* measured(row('clip'), false, 'outside', ['away cut off']);
+        yield* measured(row('auto'), true, 'outside', []);
+        yield* measured(row('scroll'), true, 'outside', []);
+      }),
+  );
+
   it.live('refuses a sticky header taller than a quarter of the window', () =>
     measured(TALL, false, 'chrome', 300 / 844),
   );

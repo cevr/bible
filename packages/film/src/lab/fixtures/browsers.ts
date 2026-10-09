@@ -271,6 +271,8 @@ idle.push(
 );
 
 let tabs = 0;
+/** How many tabs are open in this process now: cases that run at once each hold one. */
+let open = 0;
 
 /** An object a page logged, as Chrome hands it over: its description. */
 const described = Schema.decodeUnknownOption(Schema.Struct({ description: Schema.String }));
@@ -302,6 +304,12 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
     const logged: Array<Logged> = [];
     const errors: Array<string> = [];
     tabs += 1;
+    open += 1;
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => {
+        open -= 1;
+      }),
+    );
     const origin = `https://t${tabs}.${SITE}`;
     const events = new EventTarget();
     events.addEventListener('Runtime.exceptionThrown', (event: Event) => {
@@ -362,6 +370,7 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
       init: options.init,
       logged,
       errors,
+      alone: () => open === 1,
     });
   });
 

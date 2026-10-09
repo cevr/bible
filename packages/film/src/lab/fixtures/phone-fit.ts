@@ -7,7 +7,8 @@
 // A control counts where it shows: its box clipped by each ancestor that
 // clips (a strip that scrolls sideways shows a part of its row; what it
 // scrolled away is reached by scrolling it, not cut off), and nothing when
-// that leaves nothing. The chrome is measured where it holds most: at the
+// that leaves nothing, except that a control which a box that only clips
+// (hidden, clip) leaves nothing of is "cut off": no scrolling reaches it. The chrome is measured where it holds most: at the
 // page's top, its middle and its end, each the union of the rows its fixed
 // and stuck (sticky, with an edge set, to the window rather than to a box
 // that scrolls on its own) elements cover in the window; a see-through frame
@@ -39,24 +40,33 @@ export const phoneFit = (layer?: string) => `(() => {
     const s = getComputedStyle(el);
     return s.overflowX !== 'visible' || s.overflowY !== 'visible' || s.contain.includes('paint');
   };
+  // A box that scrolls (auto, scroll) shows a part of its row and is scrolled to the rest; one that
+  // only clips (hidden, clip, contain: paint) has nothing to scroll with, so what it covers is cut off.
+  const scrolls = (v) => v === 'auto' || v === 'scroll';
+  const filled = (b) => b.right - b.left > 0.5 && b.bottom - b.top > 0.5;
   const shown = (el) => {
-    if (!el.checkVisibility({ visibilityProperty: true, opacityProperty: false })) return null;
+    if (!el.checkVisibility({ visibilityProperty: true, opacityProperty: false })) return { box: null, cut: false };
     const r = el.getBoundingClientRect();
     let box = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+    let cut = false;
     for (let a = el.parentElement; a && a !== document.body && a !== root; a = a.parentElement) {
       if (!clipping(a)) continue;
       const c = a.getBoundingClientRect();
-      box = {
+      const s = getComputedStyle(a);
+      const next = {
         left: Math.max(box.left, c.left),
         right: Math.min(box.right, c.right),
         top: Math.max(box.top, c.top),
         bottom: Math.min(box.bottom, c.bottom),
       };
+      if (filled(box) && !filled(next) && !scrolls(s.overflowX) && !scrolls(s.overflowY)) cut = true;
+      box = next;
     }
-    return box.right - box.left > 0.5 && box.bottom - box.top > 0.5 ? box : null;
+    return { box: filled(box) ? box : null, cut };
   };
   const outside = [...document.querySelectorAll('[data-act]')].flatMap((el) => {
-    const b = shown(el);
+    const { box: b, cut } = shown(el);
+    if (cut) return [el.dataset.act + ' cut off'];
     if (b === null || (b.left >= -0.5 && b.right <= innerWidth + 0.5)) return [];
     return [el.dataset.act + ' ' + Math.round(b.left) + '..' + Math.round(b.right)];
   });

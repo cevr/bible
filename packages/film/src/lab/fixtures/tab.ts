@@ -383,10 +383,12 @@ export const makeTab = (
     readonly logged: ReadonlyArray<Logged>;
     /** What the page has done wrong so far. */
     readonly errors: ReadonlyArray<string>;
+    /** Whether this is the only tab open in the process now: a finger goes down on no other terms. */
+    readonly alone: () => boolean;
   },
 ): Effect.Effect<Tab, never, Scope.Scope> =>
   Effect.gen(function* () {
-    const { origin, events, serve, init, logged, errors } = page;
+    const { origin, events, serve, init, logged, errors, alone } = page;
     const send = (method: string, params: { readonly [key: string]: Wire } = {}) =>
       Effect.tryPromise(() => view.cdp(method, params));
     const call = (method: string, params: { readonly [key: string]: Wire } = {}) =>
@@ -631,6 +633,14 @@ export const makeTab = (
     const fingerOf = (id: number) => ({
       down: (x: number, y: number) =>
         Effect.suspend(() => {
+          // While one tab's touches are under way Chrome drops, or lands as a bare click, the
+          // touches another tab's case sends at the same time: a case that touches runs alone.
+          if (!alone())
+            return Effect.die(
+              new Error(
+                'a finger went down while another tab was open in this process: a case that sends touches runs as test.serial, so no other case has a tab open then',
+              ),
+            );
           fingers.set(id, { x, y });
           // Two down at once leave the view deaf to touch once they lift: it is not lent again.
           if (fingers.size > 1) view.retire();
