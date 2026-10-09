@@ -562,14 +562,44 @@ const scalesOf = (sheet: string): ReadonlyArray<Scale> => [
   },
 ];
 
+/**
+ * A value's words as CSS reads them: split at the spaces outside any
+ * parentheses, and a slash outside them a word of its own, so a function
+ * (`calc(var(--lh-2) + 3px)`) is one word, whole.
+ */
+const wordsOf = (value: string): ReadonlyArray<string> => {
+  const words: Array<string> = [];
+  let word = '';
+  let depth = 0;
+  const end = () => {
+    if (word !== '') words.push(word);
+    word = '';
+  };
+  for (const c of value) {
+    if (depth === 0 && /\s/.test(c)) end();
+    else if (depth === 0 && c === '/') {
+      end();
+      words.push('/');
+    } else {
+      if (c === '(') depth += 1;
+      if (c === ')' && depth > 0) depth -= 1;
+      word += c;
+    }
+  }
+  end();
+  return words;
+};
+
 /** A declaration as its longhands: the `font` shorthand's size and line height (`15px/19px mono`), else itself. */
 const longhands = (property: string, value: string): ReadonlyArray<readonly [string, string]> => {
   if (property !== 'font') return [[property, value]];
-  // The size is all before the slash outside a `calc()`; the line height, the word after it.
-  const [size = '', height = ''] = value.split(/\/(?![^(]*\))/);
+  // The size is all before the slash; the line height, the one word after it, whole.
+  const words = wordsOf(value);
+  const slash = words.indexOf('/');
+  if (slash < 0) return [['font-size', value]];
   return [
-    ['font-size', size],
-    ['line-height', height.trim().split(/\s+/)[0] ?? ''],
+    ['font-size', words.slice(0, slash).join(' ')],
+    ['line-height', words[slash + 1] ?? ''],
   ];
 };
 
@@ -627,18 +657,71 @@ const mockDrift = (
 ];
 
 /**
- * A `METHOD /api/…` a comment names, its path whole as written: a parameter
- * is a segment of its own, written `<x>`, `:x` or `${…}` (a template's, its
- * call's parentheses and all). A path that starts with no name (`/api/…`)
- * stands for every route, and names none.
+ * Where a comment names a `METHOD /api/…`: the method, and the path just
+ * after it. A path that starts with no name (`/api/…`) stands for every
+ * route, and names none.
  */
-const CITED_ROUTE =
-  /\b(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)\s+`?(\/api\/(?=[a-z$<:])(?:\$\{[^}]*\}|<[^>\s]+>|[^\s`'",()<>[\]{}])+)/g;
+const CITED_ROUTE = /\b(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)\s+`?(?=\/api\/[a-z$<:])/g;
 
-/** A cited path as the API matches it: each parameter one segment, no query or hash. */
-const pathOf = (cited: string) =>
-  cited
-    .replace(/\$\{[^}]*\}|<[^>\s]+>|(?<=\/):\w+/g, 'x')
+/** The bracket that opens each closing one. */
+const OPENER = { ')': '(', ']': '[', '}': '{' } as const;
+
+const closes = (c: string): c is keyof typeof OPENER => c in OPENER;
+
+/** Whether `c` ends a path whose brackets `open` are open: a space, a quote, a backtick, or a bracket the path did not open. */
+const endsPath = (c: string, open: ReadonlyArray<string>) =>
+  /[\s'"`]/.test(c) || (closes(c) && open.at(-1) !== OPENER[c]);
+
+/** Where the `${…}` at `at` in `text` ends: just past the brace that closes it, whatever it holds. */
+const templateEnd = (text: string, at: number): number => {
+  let depth = 0;
+  for (let i = at + 1; i < text.length; i += 1) {
+    depth += Number(text.charAt(i) === '{') - Number(text.charAt(i) === '}');
+    if (depth === 0) return i + 1;
+  }
+  return text.length;
+};
+
+/** A path a comment cites: as written, and as read (each `${…}` in it `${}`). */
+interface Cited {
+  readonly written: string;
+  readonly read: string;
+}
+
+/**
+ * The path written at the start of `text`, whole. It runs to a space, a
+ * quote, a backtick, or a bracket it did not open (a parenthesis around
+ * it); a bracket it opens is its own (`knob(extra)`), a `${…}` is read to
+ * the brace that closes it, and the stops that end a sentence (`.,;:`) are
+ * not its own.
+ */
+const citedPath = (text: string): Cited => {
+  const open: Array<string> = [];
+  let read = '';
+  let at = 0;
+  while (at < text.length && !endsPath(text.charAt(at), open)) {
+    const c = text.charAt(at);
+    if (text.startsWith('${', at)) {
+      at = templateEnd(text, at);
+      read += '${}';
+    } else {
+      if (closes(c)) open.pop();
+      if ('([{'.includes(c)) open.push(c);
+      read += c;
+      at += 1;
+    }
+  }
+  const stops = read.length - read.replace(/[.,;:]+$/, '').length;
+  return {
+    written: text.slice(0, at - stops),
+    read: read.slice(0, read.length - stops),
+  };
+};
+
+/** A cited path as the API matches it: each parameter (`<x>`, `:x`, `${…}`) one segment, no query or hash. */
+const pathOf = (read: string) =>
+  read
+    .replace(/\$\{\}|<[^>\s]+>|(?<=\/):\w+/g, 'x')
     .split(/[?#]/)
     .at(0) ?? '';
 
@@ -658,14 +741,11 @@ const commentRouteDrift = (
   return parsed.comments.flatMap((comment) =>
     // A comment's text starts after its `//` or `/*`.
     matches(comment.value, CITED_ROUTE).flatMap((m) => {
-      const method = Option.getOrElse(Option.fromUndefinedOr(m[1]), () => '');
-      const cited = Option.getOrElse(Option.fromUndefinedOr(m[2]), () => '').replace(
-        /[.,;:]+$/,
-        '',
-      );
+      const method = firstGroup(m);
+      const cited = citedPath(comment.value.slice(m.index + m[0].length));
       const line = text.slice(0, comment.start + 2 + m.index).split('\n').length;
-      return Array.of(`${file}:${line}: ${method} ${cited} is declared by no API`).filter(
-        () => !has(method, pathOf(cited)),
+      return Array.of(`${file}:${line}: ${method} ${cited.written} is declared by no API`).filter(
+        () => !has(method, pathOf(cited.read)),
       );
     }),
   );
@@ -708,6 +788,8 @@ describe('the docs', () => {
               '*/',
               '// HEAD /api/review/index, OPTIONS /api/films/<film>/notes',
               '// GET /api/films/${encodeURIComponent(film)}/notes/wait, POST /api/films/:film/notes/:id/reply.',
+              '// GET /api/films/${encodeURIComponent({ name: film }.name)}/notes/wait (GET /api/review/index).',
+              '// `POST /api/films/<film>/choices/knob(extra)` takes no knob',
               'const doc = `',
               '// GET /api/nowhere/in/a/string',
               ' * POST /api/never',
@@ -722,6 +804,7 @@ describe('the docs', () => {
           'red.ts:9: GET /api/review/also-gone is declared by no API',
           'red.ts:11: HEAD /api/review/index is declared by no API',
           'red.ts:11: OPTIONS /api/films/<film>/notes is declared by no API',
+          'red.ts:14: POST /api/films/<film>/choices/knob(extra) is declared by no API',
         ]);
         // A file the parser cannot read is red: its comments are not known.
         expect(commentRouteDrift('broken.ts', 'const = ;', has)).toEqual([
@@ -875,6 +958,7 @@ describe('the docs', () => {
               .b { font: 15px/19px monospace; font-size: 1px; line-height: 1px; border-top-left-radius: 3px; border-radius: 4px; }
               .panel { width: 34px; height: 100px; margin-bottom: -17px }
               .dot { --dot: 34px; width: var(--dot); margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2); font: var(--w-3) var(--fs-2) / var(--lh-2) var(--font); }
+              .c { font: 12px/calc(var(--lh-2) + 3px) monospace; }
             </style><p style="margin:6px; padding: 4px">x</p>`,
             tokens,
             scales,
@@ -888,6 +972,7 @@ describe('the docs', () => {
           'scale.html: line-height 1px is no line height step',
           'scale.html: border-top-left-radius 3px is no radius step',
           'scale.html: margin-bottom -17px is no space step',
+          'scale.html: line-height 3px is no line height step',
           'scale.html: margin 6px is no space step',
         ]);
       }),
