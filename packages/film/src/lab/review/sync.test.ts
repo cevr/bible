@@ -7,13 +7,14 @@
 // play is told, and so is its new media after.
 
 import { describe, expect, it, test } from 'effect-bun-test';
-import { Effect, Layer } from 'effect';
+import { Duration, Effect, Layer } from 'effect';
+import { TestClock } from 'effect/testing';
 import { manualFrames } from '../../browser/fixtures/frames.ts';
 import { fakeMedia } from '../../browser/fixtures/media.ts';
 import { hostOf } from '../../browser/host.ts';
 import { Media } from '../../browser/media.ts';
 import { SyncEvent, SyncState } from './machine.ts';
-import { makeSync } from './sync.ts';
+import { makeSync, reloadOnError } from './sync.ts';
 
 /** Let the forked plays settle: their answers heard, and what came of them told. */
 const settle = Effect.repeat(Effect.yieldNow, { times: 10 });
@@ -41,8 +42,8 @@ const rig = (refuse?: { readonly a?: string; readonly b?: string }) => {
   const driver = makeSync('a', (event) => told.push(event), host);
   const a = fakeMedia(refuse?.a);
   const b = fakeMedia(refuse?.b);
-  a.el.load(10);
-  b.el.load(10);
+  a.el.finishLoading(10);
+  b.el.finishLoading(10);
   const release = { a: driver.attach('a', a.media), b: driver.attach('b', b.media) };
   return { frames, told, driver, a, b, release, tags: () => told.map((e) => e._tag) };
 };
@@ -87,6 +88,28 @@ describe('the sync driver', () => {
   });
 
   it.effect(
+    'a set waiting on its videos does not wait on one whose media failed, and leaves it where it is',
+    () =>
+      Effect.gen(function* () {
+        const { frames, driver, a, b, tags } = rig({ b: 'NotSupportedError' });
+        driver.apply(SyncState.Playing(clock(0)));
+        yield* b.answered;
+        yield* settle;
+        // The failed video can never play on: the set waits on the ones that can.
+        b.el.readyState = 1;
+        driver.apply(SyncState.Buffering(clock(0)));
+        frames.frame(16);
+        expect(tags()).toEqual(['Resumed']);
+        // Nor is it pulled to the clock, or told to play again.
+        driver.apply(SyncState.Playing(clock(0)));
+        b.asked.length = 0;
+        a.el.currentTime = 2;
+        frames.frame(32);
+        expect(b.asked).toEqual([]);
+      }),
+  );
+
+  it.effect(
     'a play the browser refuses sound for plays muted; only the audible video is unmuted',
     () =>
       Effect.gen(function* () {
@@ -106,7 +129,7 @@ describe('the sync driver', () => {
     Effect.gen(function* () {
       const { driver, a, b, release } = rig();
       const c = fakeMedia();
-      c.el.load(10);
+      c.el.finishLoading(10);
       for (const v of [a, b, c]) v.el.holdsSeeks = true;
       driver.attach('c', c.media);
       driver.apply(SyncState.Paused(clock(3, 1)));
@@ -129,7 +152,7 @@ describe('the sync driver', () => {
   test('a video let go after another took its place leaves the one in its place', () => {
     const { driver, a, release } = rig();
     const next = fakeMedia();
-    next.el.load(10);
+    next.el.finishLoading(10);
     driver.attach('a', next.media);
     release.a();
     driver.apply(SyncState.Paused(clock(4, 1)));
@@ -164,7 +187,7 @@ describe('the sync driver', () => {
     const { driver, tags } = rig();
     const media = () => {
       const v = fakeMedia();
-      v.el.load(10);
+      v.el.finishLoading(10);
       return v.media;
     };
     driver.apply(SyncState.Playing(clock(2)));
@@ -176,6 +199,41 @@ describe('the sync driver', () => {
     driver.attach('a', media());
     expect(tags()).toEqual(['MediaReplaced']);
   });
+
+  it.effect(
+    'a media that fails to load is asked for again after the wait, up to its tries, until stopped',
+    () =>
+      Effect.gen(function* () {
+        const host = yield* Effect.context<never>();
+        const { el, media, asked } = fakeMedia();
+        const stop = reloadOnError(media, host, Duration.seconds(5), 2);
+        el.fire('error');
+        expect(asked).toEqual([]);
+        yield* TestClock.adjust('5 seconds');
+        expect(asked).toEqual(['load']);
+        el.fire('error');
+        yield* TestClock.adjust('5 seconds');
+        expect(asked).toEqual(['load', 'load']);
+        // Out of tries: a third failure is left.
+        el.fire('error');
+        yield* TestClock.adjust('5 seconds');
+        expect(asked).toEqual(['load', 'load']);
+        stop();
+        expect(el.listening('error')).toBe(0);
+      }),
+  );
+
+  it.effect('a retry waiting when the media is let go never asks', () =>
+    Effect.gen(function* () {
+      const host = yield* Effect.context<never>();
+      const { el, media, asked } = fakeMedia();
+      const stop = reloadOnError(media, host, Duration.seconds(5), 2);
+      el.fire('error');
+      stop();
+      yield* TestClock.adjust('10 seconds');
+      expect(asked).toEqual([]);
+    }),
+  );
 
   test('stopped, every video is paused and no frame is asked for', () => {
     const { frames, driver, a, b } = rig();

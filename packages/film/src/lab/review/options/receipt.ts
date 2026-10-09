@@ -9,7 +9,7 @@
 // Scenes alike, `undoApprove`) withdraws just the approvals it gave. The
 // sound check after a pick says it is hearing the mix, then what it found.
 
-import { Array as Arr, Effect, Match, Option } from 'effect';
+import { Array as Arr, Boolean as Bool, Effect, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
   type Command,
@@ -24,12 +24,12 @@ import {
 } from '../../../command/command.ts';
 import type { PartAddress } from '../../../core/address.ts';
 import { type ProjectView, type Say, withdrawSay } from '../../../core/api.ts';
-import type { Took } from '../../../core/catalogue.ts';
+import type { OpId, ProjectScene, Took } from '../../../core/catalogue.ts';
 import type { ChoicePoint, ChoiceVerb, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import { plural } from '../../../core/words.ts';
 import type { LabFailure } from '../../api.ts';
 import { type Words, failedText, sayText } from '../format.ts';
-import type { ChoiceAct, Wrote } from './api.ts';
+import type { ChoiceAct, ProjectSay, Wrote } from './api.ts';
 
 /** The commands that step the film's source back and on (`section.tsx`). */
 export const REVIEW_UNDO: CommandId = 'review.undo';
@@ -191,20 +191,102 @@ const UNDO_APPROVE: CommandId = 'project.undo-approve';
 export const approveUndo = (film: string, after: ProjectView): Option.Option<Undoing> =>
   Option.map(
     Option.filter(after.project.gave, (g) => g.scenes.length > 0),
-    ({ op, scenes }) => ({ command: UNDO_APPROVE, bound: { film, gave: { op, scenes } } }),
+    ({ op, scenes }) => approveUndoOf(film, op, scenes),
   );
+
+/**
+ * The Undo of the approve run `op` that approved `scenes` of `film`: a set's
+ * approve of a scene's render, which named its own run, offers it.
+ */
+export const approveUndoOf = (
+  film: string,
+  op: OpId,
+  scenes: ReadonlyArray<string>,
+  of: Option.Option<SetApproved> = Option.none(),
+): Undoing => ({
+  command: UNDO_APPROVE,
+  bound: {
+    film,
+    gave: { op, scenes, ...Option.match(of, { onNone: () => ({}), onSome: (o) => ({ of: o }) }) },
+  },
+});
+
+/** The version a set's approve approved: the point it is of, and the version. */
+interface SetApproved {
+  readonly point: string;
+  readonly version: string;
+}
 
 /**
  * What an approve's Undo says it did, from what the catalogue says it took
  * (`Project.took`): nothing, when the approve's approvals were withdrawn since.
  */
-export const tookText = (address: PartAddress, took: Took): string =>
+const tookText = (address: PartAddress, took: Took): string =>
   Match.value(took.scenes.length > 0).pipe(
     Match.when(true, () => `Undid approving ${partText(address)}`),
     Match.orElse(
       () => `Nothing left to undo: that approval of ${partText(address)} was withdrawn since`,
     ),
   );
+
+/** The scenes `address` holds in `view`, in film order. */
+const scenesIn = (view: ProjectView, address: PartAddress): ReadonlyArray<ProjectScene> =>
+  Match.valueTags(address, {
+    Film: () => view.project.scenes,
+    Act: ({ act }) =>
+      Option.match(
+        Arr.findFirst(view.project.acts, (a) => a.name === act),
+        {
+          onNone: (): ReadonlyArray<ProjectScene> => [],
+          onSome: (a) => view.project.scenes.filter((s) => a.scenes.includes(s.scene)),
+        },
+      ),
+    Scenes: ({ ids }) => view.project.scenes.filter((s) => ids.includes(s.scene)),
+  });
+
+/** How many of `scenes` are approved as they are now, of all: `1/2`. */
+export const approvedOf = (scenes: ReadonlyArray<ProjectScene>) =>
+  `${scenes.filter((s) => s.approval === 'approved').length}/${scenes.length}`;
+
+/**
+ * What a say of a part of the project did, in the words of its receipt, on
+ * every page that sends one (Project and Scenes): what it said of which part
+ * (`sayText`), and for an approve or a withdraw the part's approvals before →
+ * after (`0/2 → 1/2 approved`; `?` when the page had not read the part).
+ * An Undo's words are what the catalogue says it took (`Project.took`); an
+ * approve of named scenes says the scenes it gave (`Project.gave`), not those
+ * asked, or that they were approved already.
+ */
+export const partSaid =
+  (s: ProjectSay, before: Option.Option<ProjectView>) =>
+  (after: ProjectView): string => {
+    const gave = Option.flatMap(after.project.gave, (g) =>
+      Arr.match(g.scenes, { onEmpty: Option.none, onNonEmpty: Option.some }),
+    );
+    const said = Option.match(after.project.took, {
+      onSome: (took) => tookText(s.address, took),
+      onNone: () =>
+        Bool.match(s.say._tag === 'Approve' && s.address._tag === 'Scenes', {
+          onFalse: () => sayText(s.say, partText(s.address)),
+          onTrue: () =>
+            Option.match(gave, {
+              onSome: (ids) => sayText(s.say, partText({ _tag: 'Scenes', ids })),
+              onNone: () => `Approved already: ${partText(s.address)}`,
+            }),
+        }),
+    });
+    const moved = Match.value(s.say._tag).pipe(
+      Match.when('Comment', () => ''),
+      Match.orElse(
+        () =>
+          ` · ${Option.getOrElse(
+            Option.map(before, (v) => approvedOf(scenesIn(v, s.address))),
+            () => '?',
+          )} → ${approvedOf(scenesIn(after, s.address))} approved`,
+      ),
+    );
+    return `${said}${moved}`;
+  };
 
 /**
  * An approve's Undo as a command (`UNDO_APPROVE`), as its page registers it:
@@ -217,7 +299,12 @@ export const undoApprove = (
   film: string,
   how: {
     readonly waiting: () => boolean;
-    readonly withdraw: (ids: readonly [string, ...string[]], say: Say) => Effect.Effect<Receipt>;
+    /** `of`: the version a set's approve approved, when the receipt names it. */
+    readonly withdraw: (
+      ids: readonly [string, ...string[]],
+      say: Say,
+      of: Option.Option<SetApproved>,
+    ) => Effect.Effect<Receipt>;
   },
 ): Command => ({
   id: UNDO_APPROVE,
@@ -238,7 +325,8 @@ export const undoApprove = (
       onSome: (gave) =>
         Arr.match(gave.scenes, {
           onEmpty: () => Effect.succeed(refused('that approve gave no approval to take back')),
-          onNonEmpty: (ids) => how.withdraw(ids, withdrawSay(Option.some(gave.op))),
+          onNonEmpty: (ids) =>
+            how.withdraw(ids, withdrawSay(Option.some(gave.op)), Option.fromUndefinedOr(gave.of)),
         }),
     }),
 });

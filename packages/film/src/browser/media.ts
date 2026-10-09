@@ -41,6 +41,8 @@ export interface Playable {
   readonly pause: Effect.Effect<void>;
   readonly mute: (muted: boolean) => void;
   readonly rate: (rate: number) => void;
+  /** Ask for its media again, from the start (an element's `load()`): what a load that failed is retried with. */
+  readonly reload: () => void;
   /** Hear `event` until `signal` aborts. */
   readonly on: (event: MediaEvent, listener: () => void, signal: AbortSignal) => void;
 }
@@ -81,6 +83,7 @@ export type MediaElement = Pick<
   | 'play'
   | 'pause'
   | 'addEventListener'
+  | 'load'
 >;
 
 /** `el` (a `<video>` or an `<audio>`) as a `Playable`. */
@@ -118,6 +121,7 @@ export const playableOf = (el: MediaElement): Playable => {
     rate: (rate) => {
       el.playbackRate = rate;
     },
+    reload: () => el.load(),
     on: (event, listener, signal) => el.addEventListener(EVENTS[event], listener, { signal }),
   };
 };

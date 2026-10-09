@@ -14,6 +14,7 @@ import { Selection } from '../../command/selection.ts';
 import type { ProjectScene, SceneSpan } from '../../core/catalogue.ts';
 import { timecode } from '../../core/time.ts';
 import { Target } from '../command/context-menu.tsx';
+import { pressed } from '../pressed.ts';
 import { type SceneMarks, bandState, chipsOf } from './marks.ts';
 
 /** Scene `i`'s hue, as every band, dot and rule of it is drawn: from the tokens' saturation and lightness. */
@@ -81,7 +82,7 @@ export const SceneCard = (props: SceneCardProps) => (
     class="sc-card"
     data-size={props.size}
     data-scene={props.scene}
-    data-selected={String(props.selected === true)}
+    data-selected={pressed(props.selected === true)}
   >
     <div class="sc-card-picture">
       {props.picture}
@@ -142,14 +143,19 @@ export const SceneCard = (props: SceneCardProps) => (
 /**
  * Why a scene's render and approval chips say what they say, as Scenes'
  * sheet prints it under its card: a chip's `title` never shows on touch.
- * Its findings chips' lines are `SceneFindings`'. The Project's sheet says
- * the same in its Info.
+ * Its findings chips' lines are `SceneFindings`'. The Project's sheet prints
+ * the same section, and passes the lines of what the render is (the command
+ * that renders a missing one) as `lines`, which follow the chips'.
  */
-export const SceneState = (props: { readonly marks: SceneMarks }) => {
+export const SceneState = (props: {
+  readonly marks: SceneMarks;
+  readonly lines?: ReadonlyArray<string>;
+}) => {
   const said = () =>
     chipsOf(props.marks).filter((c) => c.mark !== 'errors' && c.mark !== 'warnings');
+  const lines = () => Option.getOrElse(Option.fromUndefinedOr(props.lines), () => []);
   return (
-    <Show when={said().length > 0}>
+    <Show when={said().length + lines().length > 0}>
       <section class="sc-section" data-section="state">
         <h3>State</h3>
         <For each={said()} keyed={(c) => c.mark}>
@@ -159,6 +165,7 @@ export const SceneState = (props: { readonly marks: SceneMarks }) => {
             </p>
           )}
         </For>
+        <For each={lines()}>{(line) => <p class="sc-finding">{line}</p>}</For>
       </section>
     </Show>
   );

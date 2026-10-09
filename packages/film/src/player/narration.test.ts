@@ -46,7 +46,7 @@ describe('the narration', () => {
 
   test('a master the element cannot play goes missing on its first play, once', async () => {
     const { el, n, asked, answered } = narrated('/a.wav', 'NotSupportedError');
-    el.load(3);
+    el.finishLoading(3);
     expect(n.ready()).toBe(true);
     n.play(() => 0);
     await Effect.runPromise(answered);
@@ -57,7 +57,7 @@ describe('the narration', () => {
 
   test('a play refused until a click is blocked, and the next play tries again', async () => {
     const { el, n, asked, answered } = narrated('/a.wav', 'NotAllowedError');
-    el.load(3);
+    el.finishLoading(3);
     n.play(() => 0);
     await Effect.runPromise(answered);
     expect(n.state()._tag).toBe('Blocked');
@@ -73,7 +73,7 @@ describe('the narration', () => {
     expect(asked).toEqual([]);
     // The picture ran on its own clock while the master loaded.
     T = 2.5;
-    el.load(3);
+    el.finishLoading(3);
     expect(asked).toEqual(['seek 2.5', 'play']);
     expect(n.playingAt()).toBe(2.5);
   });
@@ -82,13 +82,13 @@ describe('the narration', () => {
     const { el, n, asked } = narrated('/a.wav');
     n.play(() => 1);
     n.pause();
-    el.load(3);
+    el.finishLoading(3);
     expect(asked).toEqual(['pause']);
   });
 
   test('a play cut short by a pause is no failure', async () => {
     const { el, n, answered } = narrated('/a.wav', 'AbortError');
-    el.load(3);
+    el.finishLoading(3);
     n.play(() => 0);
     await Effect.runPromise(answered);
     expect(n.state()._tag).toBe('Ready');

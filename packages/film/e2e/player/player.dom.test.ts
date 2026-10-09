@@ -819,25 +819,26 @@ describe('the player', () => {
           STILL_DRAWN,
         );
         const start = Number(yield* page.evaluate(at));
-        // A tap opens the sheet, a step of its own; Close goes Back over it.
+        // A tap opens the sheet, a step of its own, and moves the playhead to the scene: Close
+        // keeps that time, so it rewrites the tap's entry to the tape rather than go Back over it.
         yield* clickInScene(page, 'one');
         yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
         yield* evaluates(page, at, start + 1);
         yield* page.click('.sc-focus [data-act="close-inspector"]');
         yield* countIs(page, '.sc-focus', 0);
         yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
-        yield* evaluates(page, at, start);
+        yield* evaluates(page, at, start + 1);
         // A second tap moves the open sheet, a step Back walks; Close then rewrites that
         // entry, so Back lands on the first scene, not on a sheet it closed.
         yield* clickInScene(page, 'one');
         yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
         yield* clickInScene(page, 'two');
         yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'two'));
-        yield* evaluates(page, at, start + 2);
+        yield* evaluates(page, at, start + 3);
         yield* page.click('.sc-focus [data-act="close-inspector"]');
         yield* countIs(page, '.sc-focus', 0);
         yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
-        yield* evaluates(page, at, start + 2);
+        yield* evaluates(page, at, start + 3);
         yield* page.evaluate('history.back()');
         yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
         yield* textIs(page, '.sc-focus .sc-card-name', 'one');
@@ -1044,7 +1045,7 @@ describe('the player', () => {
         yield* textHas(page, comment, 'the light is late');
         yield* page.fill('.sc-focus .rv-comment-input', 'hold the cut');
         yield* page.press('Enter');
-        yield* textHas(page, '[data-role="receipt"]', 'commented on two');
+        yield* textHas(page, '[data-role="receipt"]', 'Commented on scene two');
         expect(
           asked
             .filter((a) => a.method === 'POST' && a.path === '/project/say')
@@ -1055,6 +1056,81 @@ describe('the player', () => {
             say: { _tag: 'Comment', text: 'hold the cut' },
           },
         ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a scene's unsent comment outlives its sheet: another still's tap, and back, finds it; M puts the cursor in the box",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          projectRoutes(),
+        );
+        const box = '.sc-focus .rv-comment-input';
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        yield* clickInScene(page, 'two');
+        yield* page.waitFor(box);
+        yield* page.fill(box, 'half a thought');
+        yield* clickInScene(page, 'one');
+        yield* evaluates(page, `document.querySelector('${box}').value`, '');
+        yield* clickInScene(page, 'two');
+        yield* evaluates(page, `document.querySelector('${box}').value`, 'half a thought');
+        // M: the cursor goes to the box of the scene selected.
+        yield* page.evaluate(`document.activeElement.blur()`);
+        yield* evaluates(
+          page,
+          `document.activeElement === document.querySelector('${box}')`,
+          false,
+        );
+        yield* page.press('m');
+        yield* evaluates(page, `document.activeElement === document.querySelector('${box}')`, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'on a phone M raises the lowered sheet and puts the cursor in the comment box: the box is not hidden when it is focused',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: PHONE },
+          STILL_DRAWN,
+          projectRoutes(),
+        );
+        const box = '.sc-focus .rv-comment-input';
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        yield* clickInScene(page, 'two');
+        // It opens lowered: the comment section is out of the card in brief.
+        yield* page.waitFor('.sc-focus[data-peek="true"]');
+        yield* page.press('m');
+        yield* evaluates(page, `document.activeElement === document.querySelector('${box}')`, true);
+        yield* countIs(page, '.sc-focus[data-peek="true"]', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'Comment on is offered only where the sheet has a comment box: not when the project could not be read',
+    () =>
+      Effect.gen(function* () {
+        const unread = route('GET', /^\/project$/, () =>
+          refused(FreshProcessFailed.make({ command: 'film project', reason: 'exit 1' })),
+        );
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          [unread, ...projectRoutes()],
+        );
+        yield* clickInScene(page, 'two');
+        yield* page.waitFor('.sc-focus');
+        yield* countIs(page, '.sc-focus .rv-comment-input', 0);
+        // The command menu lists what the selection can do now.
+        yield* page.press('Control+k');
+        yield* page.waitFor('[data-role="command-menu"] [data-command="scenes.open-lab"]');
+        yield* countIs(page, '[data-role="command-menu"] [data-command="scenes.comment"]', 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
@@ -1073,7 +1149,7 @@ describe('the player', () => {
       // The path names the first scene picked; the batch is never in the URL.
       yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
       yield* page.press('Shift+A');
-      yield* textHas(page, '[data-role="receipt"]', 'approved 2 scenes');
+      yield* textHas(page, '[data-role="receipt"]', 'Approved scenes one, three · ');
       // One say names every scene picked, neighbours or not: the project approves them in one run.
       expect(
         asked
@@ -1104,7 +1180,7 @@ describe('the player', () => {
         yield* clickInScene(page, 'one');
         yield* shiftClickInScene(page, 'three');
         yield* page.press('Shift+A');
-        yield* textHas(page, '[data-role="receipt"]', 'approved 2 scenes');
+        yield* textHas(page, '[data-role="receipt"]', 'Approved scenes one, three · ');
         yield* page.click('[data-role="receipt"] [data-act="receipt-undo"]');
         yield* textHas(page, '[data-role="receipt"]', 'Undid approving scenes one, three');
         expect(
@@ -1138,7 +1214,7 @@ describe('the player', () => {
           `window.__said = []; new MutationObserver(() => document.querySelectorAll('[data-role="receipt"] .lab-receipt-said').forEach((e) => { if (!window.__said.includes(e.textContent)) window.__said.push(e.textContent) })).observe(document.body, { subtree: true, childList: true, characterData: true })`,
         );
         yield* page.press('Shift+A');
-        yield* evaluates(page, 'window.__said', ['approved one']);
+        yield* evaluates(page, 'window.__said', ['Approved scene one · 0/2 → 2/2 approved']);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );

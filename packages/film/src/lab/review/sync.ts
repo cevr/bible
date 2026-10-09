@@ -7,14 +7,15 @@
 // one is unmuted. The machine is told when the clock's media cannot play
 // (`MediaFailed`), and when the clock's media is new (`MediaReplaced`: each
 // source, and each retry, is a fresh element attached), so a failure is its
-// media's alone; another video that fails is left out of the comparison. A
-// seek moves every video; a stall pauses them all until each has enough to
-// play on (`Buffering`). A seek or a play it sets going on a video lasts
+// media's alone; another video that fails is left out: of the drift pull,
+// of the seeks and plays, and of what a stalled set waits on, until its media
+// is measured again. A seek moves every video that can play; a stall pauses
+// them all until each has enough to play on (`Buffering`). A seek or a play it sets going on a video lasts
 // only while that video is attached: replaced, released or stopped, it
 // ends. The player's transport (space, ←/→) is declared here too, as the
 // page's commands, for every page with a synced player.
 
-import { type Context, Data, Effect, Option } from 'effect';
+import { type Context, Data, type Duration, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
 import { Media, type Playable } from '../../browser/media.ts';
 import { type Command, type Invocation, quietly } from '../../command/command.ts';
@@ -57,6 +58,35 @@ interface Attached {
 }
 
 /**
+ * Ask for `video`'s media again, after `wait`, each time it fails to load, up
+ * to `tries` times: a mix that renders for long enough that the connection
+ * drops finds the server's render made. It hears the failure through the
+ * port, and waits on `host`'s clock. What it gives stops it.
+ */
+export const reloadOnError = <R>(
+  video: Playable,
+  host: Context.Context<R>,
+  wait: Duration.Duration,
+  tries: number,
+): (() => void) => {
+  const held = new AbortController();
+  let left = tries;
+  video.on(
+    'error',
+    () => {
+      if (left <= 0) return;
+      left -= 1;
+      Effect.runForkWith(host)(
+        Effect.sleep(wait).pipe(Effect.andThen(Effect.sync(() => video.reload()))),
+        { signal: held.signal },
+      );
+    },
+    held.signal,
+  );
+  return () => held.abort();
+};
+
+/**
  * The driver of a set whose clock is the video of `first`, telling the
  * machine through `send`.
  */
@@ -72,7 +102,10 @@ export const makeSync = (
   /** The stop of the clock's loop, while it runs. */
   let looping = Option.none<() => void>();
 
+  /** The videos whose media failed (an `error`, a play the browser would not start): out of the set's way. */
+  const broken = new Set<Attached>();
   const all = () => [...videos.values()];
+  const working = () => all().filter((a) => !broken.has(a));
   const clock = () =>
     Option.orElse(Option.fromUndefinedOr(videos.get(first)), () =>
       Option.fromUndefinedOr(all()[0]),
@@ -87,7 +120,8 @@ export const makeSync = (
     Effect.runForkWith(host)(effect, { signal: a.held.signal });
   };
   /** `id`'s media cannot play, for `reason`: the machine told, when it is the clock's. */
-  const failed = (id: string, reason: string) => {
+  const failed = (id: string, a: Attached, reason: string) => {
+    broken.add(a);
     if (id === first) send(Events.MediaFailed({ reason }));
   };
   /**
@@ -101,7 +135,7 @@ export const makeSync = (
       Media.use((media) => media.playOrMute(a.video)).pipe(
         Effect.tap((played) =>
           Effect.sync(() => {
-            if (played._tag === 'Failed') failed(id, played.name);
+            if (played._tag === 'Failed') failed(id, a, played.name);
           }),
         ),
       ),
@@ -124,14 +158,14 @@ export const makeSync = (
       Option.map(clock(), (master) => {
         const t = master.video.time();
         if (state._tag === 'Buffering') {
-          if (all().every((a) => a.video.ready())) send(Events.Resumed);
+          if (working().every((a) => a.video.ready())) send(Events.Resumed);
           return;
         }
         if (Math.abs(t - told) >= TICK_S) {
           told = t;
           send(Events.Ticked({ t }));
         }
-        for (const a of all()) {
+        for (const a of working()) {
           const video = a.video;
           if (a === master || video.seeking() || video.ended()) continue;
           if (t < video.duration() && drifted(video.time(), t)) seekTo(a, t);
@@ -164,10 +198,10 @@ export const makeSync = (
     if (state.seek !== seek) {
       seek = state.seek;
       told = state.t;
-      for (const a of all()) seekTo(a, state.t);
+      for (const a of working()) seekTo(a, state.t);
     }
     if (runningOf(state)) {
-      for (const [id, a] of videos) if (!a.video.playing()) play(id, a);
+      for (const [id, a] of videos) if (!broken.has(a) && !a.video.playing()) play(id, a);
       run();
       return;
     }
@@ -185,10 +219,14 @@ export const makeSync = (
     a.held.abort();
     fork(a.video.pause);
     videos.delete(id);
+    broken.delete(a);
   };
 
   const attach = (id: string, video: Playable) => {
-    Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => old.held.abort());
+    Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => {
+      old.held.abort();
+      broken.delete(old);
+    });
     const attached: Attached = { video, held: new AbortController() };
     const signal = attached.held.signal;
     videos.set(id, attached);
@@ -198,6 +236,8 @@ export const makeSync = (
     video.on(
       'measured',
       () => {
+        // Measured, it plays: a failure before was another try's.
+        broken.delete(attached);
         if (id === first && Number.isFinite(video.duration()))
           send(Events.Measured({ end: video.duration() }));
         Option.map(current, (state) => seekTo(attached, state.t));
@@ -205,7 +245,7 @@ export const makeSync = (
       signal,
     );
     video.on('stalled', () => send(Events.Stalled), signal);
-    video.on('error', () => failed(id, 'error'), signal);
+    video.on('error', () => failed(id, attached, 'error'), signal);
     video.on(
       'ended',
       () => {

@@ -15,7 +15,7 @@
 // the URL (`?point=`, its render point) so a link opens it and Back closes
 // it: its render
 // or its still, its Approve and Unapprove, its findings, what was said of it
-// and the comment box, Info, Open in Lab and Versions, and the choices that
+// and the comment box, State, Open in Lab and Versions, and the choices that
 // play in it, each a link to its card on Choices. An act's and the film's
 // approvals and comments are in their inspectors, their context menus (a
 // long press or a right-click on the panel) and ⌘K. The film's transport is
@@ -57,13 +57,13 @@ import {
 import type { ReviewVideo } from '../../../core/review.ts';
 import { FILM_FPS, timecode } from '../../../core/time.ts';
 import { counted } from '../../../core/words.ts';
-import { SceneCard, SceneFindings, StateBand } from '../../scenes/card.tsx';
-import { filmCounts, marksOf, projectPlaced } from '../../scenes/marks.ts';
+import { SceneCard, SceneFindings, SceneState, StateBand } from '../../scenes/card.tsx';
+import { filmCounts, filmSpan, marksOf, projectPlaced } from '../../scenes/marks.ts';
 import { type LabFailure, served } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
 import { plainClick } from '../../../browser/pointer.ts';
 import { Go, OPEN_ON_CHOICES, useReview } from '../context.tsx';
-import { APPROVAL_TEXT, pressed, sayText, stateText } from '../format.ts';
+import { pressed } from '../../pressed.ts';
 import { Loaded, useWrite, writeStatus } from '../loaded.tsx';
 import { ReviewPlace } from '../place.ts';
 import { OptionsApi, type ProjectSay } from './api.ts';
@@ -78,8 +78,8 @@ import {
   useVariantThing,
 } from './choice.tsx';
 import { FilmProvider, useFilm } from './context.tsx';
-import { Findings } from './findings.tsx';
-import { approveUndo, partText, tookText, undoApprove } from './receipt.ts';
+import { Findings, useFindingsPlace } from './findings.tsx';
+import { approveUndo, approvedOf, partSaid, undoApprove } from './receipt.ts';
 import { Still, type SceneStills, useSceneStills } from './stills.tsx';
 import { Selection, projectPartOf, projectPointOf } from '../../../command/selection.ts';
 import { BY_BUTTON, type Undoing, quiet } from '../../../command/command.ts';
@@ -138,31 +138,6 @@ const playingIn = (points: ReadonlyArray<ChoicePoint>, acts: ReadonlyArray<Act>,
     (p) =>
       Option.exists(p.address, (at) => at._tag === 'Scenes' && at.ids.includes(scene)) &&
       addressKey(placeOf(p, acts)) !== addressKey(sceneAddress(scene)),
-  );
-
-/** The scenes `address` holds in `view`, in film order. */
-const scenesIn = (view: ProjectView, address: PartAddress): ReadonlyArray<ProjectScene> =>
-  Match.valueTags(address, {
-    Film: () => view.project.scenes,
-    Act: ({ act }) =>
-      Option.match(
-        Arr.findFirst(view.project.acts, (a) => a.name === act),
-        {
-          onNone: (): ReadonlyArray<ProjectScene> => [],
-          onSome: (a) => view.project.scenes.filter((s) => a.scenes.includes(s.scene)),
-        },
-      ),
-    Scenes: ({ ids }) => view.project.scenes.filter((s) => ids.includes(s.scene)),
-  });
-
-/** How many of `scenes` are approved as they are now, of all: `1/2`. */
-const approvedOf = (scenes: ReadonlyArray<ProjectScene>) =>
-  `${scenes.filter((s) => s.approval === 'approved').length}/${scenes.length}`;
-
-/** How long `scenes` run together, when each says (none while one does not). */
-const lengthOf = (scenes: ReadonlyArray<ProjectScene>): Option.Option<number> =>
-  Option.map(Option.all(scenes.map((s) => s.span)), (spans) =>
-    spans.reduce((t, s) => t + s.dur, 0),
   );
 
 /** A scene's render as its card shows it: the project's say on it, its state, and the video recorded for it. */
@@ -333,20 +308,6 @@ const videoOf = (variant: ChoiceVariant): Option.Option<ReviewVideo> =>
 /** What a scene waits on before it is approved: its render. */
 const RENDER_FIRST = 'render first';
 
-/**
- * A scene's Info in its sheet: its render's state (why it is out of date),
- * its approval, and every line of what it is (the command that renders a
- * missing one).
- */
-const SceneInfo = (props: { readonly scene: ProjectScene; readonly variant: ChoiceVariant }) => (
-  <section class="rv-group" data-section="info">
-    <h3>Info</h3>
-    <p class="rv-hint">{stateText(props.scene.state, props.scene.staleBy)}</p>
-    <p class="rv-hint">{APPROVAL_TEXT[props.scene.approval]}</p>
-    <For each={props.variant.lines}>{(line) => <p class="rv-hint">{line}</p>}</For>
-  </section>
-);
-
 /** Whether a tap at `target` was on a control of its own (a button, a link, a field, a video's bar). */
 const onControl = (event: MouseEvent): boolean =>
   Option.exists(
@@ -364,7 +325,7 @@ const onControl = (event: MouseEvent): boolean =>
  * inspects it), its marks, its comment dot and, on a laptop, its Approve; a
  * tap anywhere on it that is not a control opens its sheet: the same card
  * at full size (its render's video, else its still), its approve and
- * unapprove, its findings, what was said of it and the comment box, Info,
+ * unapprove, its findings, what was said of it and the comment box, State,
  * Open in Lab and Versions, and the choices that play in it. Its menu and
  * keys are its render's (`useVariantThing`).
  */
@@ -461,7 +422,7 @@ const SceneRow = (props: {
             <SceneFindings marks={marks()} />
             <Comments comments={variant().comments} />
             <CommentBox variant={variant()} sayer={sayer} box={box} />
-            <SceneInfo scene={props.scene} variant={variant()} />
+            <SceneState marks={marks()} lines={variant().lines} />
             <div class="rv-row">
               <a
                 class="sh-btn"
@@ -673,7 +634,7 @@ const ActPanel = (props: { readonly at: ProjectValue; readonly act: Act }) => {
   const meta = () =>
     [
       counted(scenes().length, 'scene'),
-      ...Option.toArray(Option.map(lengthOf(scenes()), (t) => timecode(t, FILM_FPS))),
+      ...Option.toArray(Option.map(filmSpan(scenes()), (t) => timecode(t, FILM_FPS))),
       `${approvedOf(scenes())} approved`,
     ].join(' · ');
   return (
@@ -719,6 +680,7 @@ const FilmBand = (props: { readonly at: ProjectValue }) => {
 const FilmPanel = (props: { readonly at: ProjectValue }) => {
   const project = () => props.at.view().project;
   const film = untrack(() => Selection.cases.Film.make({ film: props.at.film }));
+  const findings = useFindingsPlace(Places.project);
   return (
     <Target
       of={film}
@@ -731,13 +693,13 @@ const FilmPanel = (props: { readonly at: ProjectValue }) => {
         <InspectName of={film} comments={project().comments.length}>
           {props.at.film}
         </InspectName>
-        <Show when={Option.getOrUndefined(lengthOf(project().scenes))}>
+        <Show when={Option.getOrUndefined(filmSpan(project().scenes))}>
           {(t) => <span class="pj-film-length">{timecode(t(), FILM_FPS)}</span>}
         </Show>
         <span class="pj-film-counts" data-role="counts">
           {filmCounts(project().scenes)}
         </span>
-        <Findings chips />
+        <Findings chips sheet={findings} />
       </div>
       <FilmBand at={props.at} />
       <PartInspector
@@ -778,34 +740,14 @@ const staleSinceRead = (failure: Option.Option<LabFailure>): boolean =>
   Option.exists(failure, (e) => e._tag === 'VerbRefused');
 
 /**
- * What a say of the project did, as its receipt says it (`Words`): what it
- * said of which part, and for an approve or a withdraw the part's approvals
- * before → after (`0/2 → 1/2 approved`). An approve's Undo takes back
- * exactly what the catalogue says it gave (`approveUndo`).
+ * What a say of the project did, as its receipt says it (`Words`,
+ * `partSaid`). An approve's Undo takes back exactly what the catalogue says
+ * it gave (`approveUndo`).
  */
 const sayWords = (film: string, before: Option.Option<ProjectView>) => (s: ProjectSay) => {
-  const was = Option.map(before, (v) => scenesIn(v, s.address));
-  const moved = (after: ProjectView) =>
-    Match.value(s.say._tag).pipe(
-      Match.when('Comment', () => ''),
-      Match.orElse(
-        () =>
-          ` · ${Option.getOrElse(Option.map(was, approvedOf), () => '?')} → ${approvedOf(scenesIn(after, s.address))} approved`,
-      ),
-    );
   const undo = (after: ProjectView): Option.Option<Undoing> =>
     Option.filter(approveUndo(film, after), () => s.say._tag === 'Approve');
-  // An Undo's words are what the catalogue says it took (`Project.took`).
-  const said = (after: ProjectView) =>
-    Option.match(after.project.took, {
-      onNone: () => sayText(s.say, partText(s.address)),
-      onSome: (took) => tookText(s.address, took),
-    });
-  return {
-    doing: 'saying…',
-    done: (after: ProjectView) => `${said(after)}${moved(after)}`,
-    undo,
-  };
+  return { doing: 'saying…', done: partSaid(s, before), undo };
 };
 
 /**

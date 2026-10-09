@@ -38,6 +38,11 @@ interface Page {
   readonly named: Readonly<Record<string, string>>;
   /** The row marked while its sheet is open. */
   readonly row: string;
+  /**
+   * Where a Close leaves the page, from where it rested: Back over the tap when that lands
+   * exactly there, else the tap's entry rewritten to it (Choices keeps the card in focus).
+   */
+  readonly closed: (rest: string) => string;
 }
 
 /** The rows marked as the open sheet's, as a script reads them. */
@@ -52,6 +57,7 @@ const PAGES: ReadonlyArray<Page> = [
     // The card in focus moves to the variant's point with it, in the same step.
     named: { point: 'score', inspect: 'piano' },
     row: '[data-point="score"] [data-variant="piano"]',
+    closed: () => pageHref.choices(STUDIO_FILM, 'score'),
   },
   {
     name: 'a Set',
@@ -61,6 +67,7 @@ const PAGES: ReadonlyArray<Page> = [
     // The set's first version.
     named: { inspect: 'main' },
     row: '.rv-card[data-id="main"]',
+    closed: (rest) => rest,
   },
 ];
 
@@ -99,11 +106,12 @@ for (const p of PAGES) {
           yield* page.forward;
           yield* waitFor(page, CLOSE);
           yield* at(page, named);
-          // Close, then Escape: each goes Back over the tap's entry, so the page is where it was.
+          // Close, then Escape: each goes Back over the tap's entry when that lands where the
+          // Close would write, else rewrites it there; the page is where it closes either way.
           for (const dismiss of [page.click(CLOSE), page.press('Escape')]) {
             yield* dismiss;
             yield* countIs(page, INSPECTOR, 0);
-            yield* at(page, rest);
+            yield* at(page, p.closed(rest));
             yield* page.click(p.thing);
             yield* waitFor(page, CLOSE);
             yield* at(page, named);
@@ -140,9 +148,9 @@ for (const p of PAGES) {
           const y = sheet.y + sheet.height / 2;
           yield* page.finger.drag({ x, y }, { x, y: y + 400 });
           yield* countIs(page, INSPECTOR, 0);
-          yield* at(page, rest);
+          yield* at(page, p.closed(rest));
           yield* evaluates(page, QUERY, [
-            new URL(`http://x${rest}`).searchParams.get('point') ?? '',
+            new URL(`http://x${p.closed(rest)}`).searchParams.get('point') ?? '',
             '',
           ]);
           expect(errors).toEqual([]);

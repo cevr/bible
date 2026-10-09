@@ -336,8 +336,17 @@ export const withdrawSay = (given: Option.Option<OpId> = Option.none()): Say => 
 export const SayPost = Schema.Struct({ point: Schema.String, variant: Schema.String, say: Say });
 export type SayPost = typeof SayPost.Type;
 
-/** `POST /api/review/sets/<folder>/<point>/say`: a say on one version of a set, as it is now. */
-export const SetSayPost = Schema.Struct({ variant: Schema.String, say: Say });
+/**
+ * `POST /api/review/sets/<folder>/<point>/say`: a say on one version of a set,
+ * as it is now. An approve may name the run it is (`op`), as a scene's approve
+ * does: the approval then carries it, and a withdraw given it takes back just
+ * that one.
+ */
+export const SetSayPost = Schema.Struct({
+  variant: Schema.String,
+  say: Say,
+  op: Schema.optionalKey(OpId),
+});
 export type SetSayPost = typeof SetSayPost.Type;
 
 /** A file answered as it lies (a still, a take, a render, a mix): its type is the file's. */
@@ -899,9 +908,14 @@ const FILM_PLAYER = { heard: refined, variant: refined, picture: refined };
  * state (`?only=stale`, `unapproved`, `comments`: `SHOWN_ONLY`), every
  * point when it is empty. The view filtered is a step Back walks, as a set's
  * view is: a move that only shows or hides points (Go to clearing the filter
- * that hid its point) never writes over the filtered view.
+ * that hid its point) never writes over the filtered view. The findings
+ * sheet is shown or not (`?findings=1`): a view a reviewer cites, and a step
+ * Back closes, as every other sheet is.
  */
-const FILM_SHOWN = { only: Field.key(Codec.Text, { default: '', history: 'push' }) };
+const FILM_SHOWN = {
+  only: Field.key(Codec.Text, { default: '', history: 'push' }),
+  findings: Field.key(Codec.Flag, { default: false, history: 'push' }),
+};
 
 /** `?heard=` for the picture's own sound. */
 export const OWN_SOUND = 'own';
@@ -1027,7 +1041,7 @@ export const filmOfPage = (href: string): Option.Option<string> =>
 const START = { t: Option.none<number>() };
 
 /** A film player's keys and how its points are shown, at the page's defaults. */
-const NOTHING_HEARD = { heard: '', variant: '', picture: '', only: '' };
+const NOTHING_HEARD = { heard: '', variant: '', picture: '', only: '', findings: false };
 
 /** The lab's selection keys, none set. */
 const NOTHING_SELECTED = { cue: '', knob: '', note: '', beat: '', view: 'off' as const };

@@ -37,7 +37,7 @@ import type { Hub } from '../command/hub.ts';
 import { type LabSelection, Selection } from '../command/selection.ts';
 import { targetAttr } from '../command/target.ts';
 import { type LabPick, labHrefWith, labPlaceOf } from './place.ts';
-import { useSheetDismissal } from './review/inspector.tsx';
+import { useSheetDismissal } from './sheet.tsx';
 import { Fill, useLabPage } from './panel.tsx';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { type ReloadGate, makeReloadGate } from './reload-gate.ts';

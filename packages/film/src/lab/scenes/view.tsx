@@ -27,7 +27,7 @@ import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Dialog } from '@bible/ui/dialog';
 import { For, Show } from '@solidjs/web';
 import { Array as Arr, Boolean as Bool, Effect, type Layer, Match, Option, Result } from 'effect';
-import { createEffect, createMemo, createSignal, onCleanup, untrack } from 'solid-js';
+import { createEffect, createMemo, createSignal, flush, onCleanup, untrack } from 'solid-js';
 import { type Host, addressOn, monotonicMs, onTraverse } from '../../browser/host.ts';
 import { Frames } from '../../browser/frames.ts';
 import { PageLoad } from '../../browser/page-load.ts';
@@ -39,7 +39,7 @@ import { type Context, selected } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
-import { type ProjectView, type Say, pageHref } from '../../core/api.ts';
+import { type Say, pageHref } from '../../core/api.ts';
 import { sceneAt } from '../../core/layout.ts';
 import { isShortKey } from '../../core/shorts.ts';
 import { CLOCK_EPSILON, onTheMs, timecode, timecodeParts } from '../../core/time.ts';
@@ -48,10 +48,11 @@ import type { Player } from '../../player/main.ts';
 import { makeStills } from '../../player/stills.ts';
 import type { LabClient } from '../api.ts';
 import { usePlayerTime } from '../page-shell.tsx';
-import { approveUndo, tookText, undoApprove } from '../review/options/receipt.ts';
+import { approveUndo, partSaid, undoApprove } from '../review/options/receipt.ts';
 import { PHONE, useMatches } from '../viewport.ts';
-import { pressed } from '../review/format.ts';
-import { Sheet, useSheetDismissal } from '../review/inspector.tsx';
+import { pressed } from '../pressed.ts';
+import { Sheet, useSheetDismissal } from '../sheet.tsx';
+import type { InspectorBox } from '../review/inspector.tsx';
 import { Comments, SayBox } from '../review/options/choice.tsx';
 import { useOnScreenFirst } from '../review/options/stills.tsx';
 import { SceneCard, SceneFindings, SceneState, sceneHue } from './card.tsx';
@@ -101,27 +102,6 @@ const lineTime = (t: number, fps: number) => {
 
 /** `n` scenes, in words. */
 const scenesText = (n: number) => counted(n, 'scene');
-
-/**
- * What an approve's receipt says: what the catalogue says it gave
- * (`Project.gave`), not what was asked: `approved two`, `approved 2 scenes`,
- * or, when it gave none (each approved already, by another meanwhile),
- * `approved already`.
- */
-const gaveText = (after: ProjectView): string =>
-  Option.match(
-    Option.flatMap(after.project.gave, (g) =>
-      Arr.match(g.scenes, { onEmpty: Option.none, onNonEmpty: Option.some }),
-    ),
-    {
-      onNone: () => 'approved already',
-      onSome: (scenes) =>
-        Bool.match(scenes.length === 1, {
-          onTrue: () => `approved ${scenes[0]}`,
-          onFalse: () => `approved ${scenesText(scenes.length)}`,
-        }),
-    },
-  );
 
 /** What a step reads as in Info: `5 s a still · a line a minute`. */
 const stepText = (step: number, perRow: number) => {
@@ -248,7 +228,8 @@ export const ScenesView = (props: ScenesViewProps) => {
     }),
   );
 
-  // What the lab knows of each scene: read once, and again after each say.
+  // What the lab knows of each scene: the project and the check, read once; a say's answer
+  // carries the project alone.
   const [read, setRead] = createSignal<ScenesRead>(
     { project: Option.none(), check: Result.succeed([]) },
     fromHost,
@@ -315,19 +296,19 @@ export const ScenesView = (props: ScenesViewProps) => {
   };
 
   /**
-   * Say `say` of `ids`, in one say; the receipt says `what` (from the
-   * project it leaves), or why not. An approve's offers its Undo
+   * Say `say` of `ids`, in one say; the receipt says it in the words
+   * Project's does (`partSaid`), or why not. An approve's offers its Undo
    * (`approveUndo`), as Project's does.
    */
-  const sayOf = (
-    ids: readonly [string, ...string[]],
-    what: (after: ProjectView) => string,
-    say: Say,
-  ) =>
+  const sayOf = (ids: readonly [string, ...string[]], say: Say) =>
     Effect.map(calls.say(ids, say), (answer: Said) => {
       if (answer._tag === 'Refused') return refused(answer.reason);
+      const before = read().project;
       setRead({ ...read(), project: Option.some(answer.project) });
-      return said(what(answer.project), approveUndo(props.name, answer.project));
+      return said(
+        partSaid({ address: { _tag: 'Scenes', ids }, say }, before)(answer.project),
+        approveUndo(props.name, answer.project),
+      );
     });
   // An approve's Undo: one withdraw of just the approvals it gave, said in the words of
   // what the catalogue took.
@@ -338,17 +319,7 @@ export const ScenesView = (props: ScenesViewProps) => {
         waiting: undoing,
         withdraw: (ids, say) =>
           Effect.sync(() => setUndoing(true)).pipe(
-            Effect.andThen(
-              sayOf(
-                ids,
-                (after) =>
-                  Option.match(after.project.took, {
-                    onNone: () => `withdrew ${scenesText(ids.length)}`,
-                    onSome: (took) => tookText({ _tag: 'Scenes', ids }, took),
-                  }),
-                say,
-              ),
-            ),
+            Effect.andThen(sayOf(ids, say)),
             Effect.ensuring(Effect.sync(() => setUndoing(false))),
           ),
       }),
@@ -385,6 +356,45 @@ export const ScenesView = (props: ScenesViewProps) => {
   const sceneIn = (ctx: Context) => Option.map(selected(ctx, 'Scene'), (s) => s.scene);
   const [palette, setPalette] = createSignal(false, fromHost);
   const [info, setInfo] = createSignal(false, fromHost);
+  // A scene's unsent comment outlives its sheet (a tap on another still remakes it), and its
+  // comment box's field is the one `scenes.comment` focuses.
+  const drafts = new Map<string, string>();
+  const fields = new Map<string, HTMLElement>();
+  const [drafted, setDrafted] = createSignal(0, fromHost);
+  const boxOf = (scene: string): InspectorBox => ({
+    input: (el) => {
+      fields.set(scene, el);
+    },
+    draft: {
+      get: () => {
+        drafted();
+        return Option.getOrElse(Option.fromUndefinedOr(drafts.get(scene)), () => '');
+      },
+      set: (text) => {
+        drafts.set(scene, text);
+        setDrafted((n) => n + 1);
+      },
+    },
+  });
+  /** Whether a scene's sheet has a comment box: a film that is not a short, its project read. */
+  const commentable = () => !short && Option.isSome(read().project);
+  /** Raise `scene`'s sheet (a lowered one is lifted) and put the cursor in its comment box. */
+  const commentOn = (scene: string) => {
+    select(Option.some(scene));
+    flush();
+    for (const field of Option.toArray(Option.fromUndefinedOr(fields.get(scene)))) {
+      for (const grip of Option.toArray(
+        Option.fromNullishOr(
+          field.closest('[data-peek="true"]')?.querySelector('[data-act="sheet"]'),
+        ),
+      )) {
+        if (grip instanceof HTMLElement) grip.click();
+      }
+      // The raised sheet shows the comment section; a hidden field takes no focus.
+      flush();
+      field.focus();
+    }
+  };
   const commands: ReadonlyArray<Command> = [
     {
       id: 'scenes.open-lab',
@@ -397,6 +407,16 @@ export const ScenesView = (props: ScenesViewProps) => {
       run: quietly((ctx) => Option.map(sceneIn(ctx), openLab)),
     },
     {
+      id: 'scenes.comment',
+      label: 'Comment on',
+      group: 'Scene',
+      keys: ['m'],
+      about: ['Scene'],
+      touch: 'Comment on the selected scene, or long-press a still',
+      when: (ctx) => Option.isSome(sceneIn(ctx)) && commentable(),
+      run: quietly((ctx) => Option.map(sceneIn(ctx), commentOn)),
+    },
+    {
       id: 'scenes.approve',
       label: 'Approve',
       group: 'Scene',
@@ -407,7 +427,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       run: (ctx) =>
         Option.match(sceneIn(ctx), {
           onNone: () => Effect.succeed(quiet),
-          onSome: (scene) => sayOf([scene], gaveText, { _tag: 'Approve' }),
+          onSome: (scene) => sayOf([scene], { _tag: 'Approve' }),
         }),
     },
     {
@@ -421,7 +441,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       run: () =>
         Arr.match(picked().filter(approvable), {
           onEmpty: () => Effect.succeed(quiet),
-          onNonEmpty: (ids) => sayOf(ids, gaveText, { _tag: 'Approve' }),
+          onNonEmpty: (ids) => sayOf(ids, { _tag: 'Approve' }),
         }),
     },
     {
@@ -597,8 +617,8 @@ export const ScenesView = (props: ScenesViewProps) => {
                 <span
                   class="sc-cut"
                   data-scene={cut().scene}
-                  data-flip={String(nameOf(cut().scene).side === 'before')}
-                  data-named={String(nameOf(cut().scene).side !== 'none')}
+                  data-flip={pressed(nameOf(cut().scene).side === 'before')}
+                  data-named={pressed(nameOf(cut().scene).side !== 'none')}
                   style={{ left: x(cut().at) }}
                 >
                   <i
@@ -632,9 +652,9 @@ export const ScenesView = (props: ScenesViewProps) => {
                     class="sc-still"
                     data-t={String(still().t)}
                     data-scene={still().scene}
-                    data-drawn={String(Option.isSome(canvas()))}
-                    data-selected={String(Option.contains(chosen(), still().scene))}
-                    data-picked={String(picked().includes(still().scene))}
+                    data-drawn={pressed(Option.isSome(canvas()))}
+                    data-selected={pressed(Option.contains(chosen(), still().scene))}
+                    data-picked={pressed(picked().includes(still().scene))}
                     data-target={targetAttr(
                       Selection.cases.Scene.make({ film: props.name, scene: still().scene }),
                     )}
@@ -680,14 +700,11 @@ export const ScenesView = (props: ScenesViewProps) => {
     const sayComment = (text: string) => {
       setSaying(true);
       return Effect.runPromise(
-        Effect.map(
-          sayOf([scene], () => `commented on ${scene}`, { _tag: 'Comment', text }),
-          (receipt) => {
-            setSaying(false);
-            props.hub.announce(receipt, 'scenes.comment');
-            return receipt._tag === 'Said' && receipt.tone === 'done';
-          },
-        ),
+        Effect.map(sayOf([scene], { _tag: 'Comment', text }), (receipt) => {
+          setSaying(false);
+          props.hub.announce(receipt, 'scenes.comment');
+          return receipt._tag === 'Said' && receipt.tone === 'done';
+        }),
       );
     };
     const comments = () =>
@@ -756,13 +773,13 @@ export const ScenesView = (props: ScenesViewProps) => {
         />
         <SceneState marks={marks()(scene)} />
         <SceneFindings marks={marks()(scene)} />
-        <Show when={!short && Option.isSome(read().project)}>
+        <Show when={commentable()}>
           <section class="sc-section" data-section="comment">
             <h3>
               Comments <span>{comments().length}</span>
             </h3>
             <Comments comments={comments()} />
-            <SayBox disabled={saying()} say={sayComment} />
+            <SayBox disabled={saying()} say={sayComment} box={boxOf(scene)} />
           </section>
         </Show>
       </>
@@ -776,7 +793,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   document.body.classList.add('scenes');
   onCleanup(() => document.body.classList.remove('scenes'));
   return (
-    <div class="sc" data-selected={String(Option.isSome(chosen()))}>
+    <div class="sc" data-selected={pressed(Option.isSome(chosen()))}>
       {/* With no scene selected the tape takes the page: the picture waits here, unseen, for the scene's sheet. */}
       <div
         class="sc-park"

@@ -867,9 +867,8 @@ describe("a film's project", () => {
           `document.elementFromPoint(innerWidth / 2, ${rect('.sh-pagebar')}.top + 20)?.closest('.sh-pagebar') !== null`,
           true,
         );
-        // It holds what the row does not: the comment box, Info, Versions and Open in Lab, the choices in the scene.
+        // It holds what the row does not: the comment box, Versions and Open in Lab, the choices in the scene.
         yield* waitFor(page, `${INSPECTOR} .rv-comment-input`);
-        yield* waitFor(page, `${INSPECTOR} [data-section="info"]`);
         yield* waitFor(page, `${INSPECTOR} [data-act="open-lab"]`);
         yield* waitFor(page, `${INSPECTOR} [data-plays="take:paper.page"]`);
         // Its grip lowers it to a peek: its title and the grip, standing on the dock; and raises it again.
@@ -1113,7 +1112,7 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
         yield* click(page, `${render('coda')} [data-act="approve"]`);
         // The receipt and its Undo, read together: the approve gave nothing, so offers nothing back.
-        yield* receiptIs(page, 'Approved scene coda · 0/1 → 1/1 approved', false);
+        yield* receiptIs(page, 'Approved already: scene coda · 0/1 → 1/1 approved', false);
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="approved"]`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -1255,12 +1254,12 @@ describe("a film's project", () => {
         yield* evaluates(page, redder('open'), true);
         yield* evaluates(page, redder('close'), false);
         yield* textIs(page, `${render('close')} .sc-card-length`, '00:00:06:00');
-        // A missing scene's card shows its still too: the command that renders it is in its sheet's Info.
+        // A missing scene's card shows its still too: the command that renders it is in its sheet's State.
         yield* countIs(page, `${render('end')} .rv-meta`, 0);
         yield* inspect(page, render('end'));
         yield* textHas(
           page,
-          `${INSPECTOR} [data-section="info"]`,
+          `${INSPECTOR} [data-section="state"]`,
           'film project render toy --scene end',
         );
         // A scene with no render recorded shows its still in its sheet, a copy of the card's.

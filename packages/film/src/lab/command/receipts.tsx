@@ -41,7 +41,12 @@ const ChangeKept = Schema.Struct({ film: Schema.String, change: ChangeId });
 /** A receipt bound to an approve run's approvals: its op, and the scenes it gave one to. */
 const GaveKept = Schema.Struct({
   film: Schema.String,
-  gave: Schema.Struct({ op: OpId, scenes: Schema.Array(Schema.String) }),
+  gave: Schema.Struct({
+    op: OpId,
+    scenes: Schema.Array(Schema.String),
+    /** A set's approve: its point and the version approved; absent in receipts kept before it was named. */
+    of: Schema.optionalKey(Schema.Struct({ point: Schema.String, version: Schema.String })),
+  }),
 });
 
 /** One receipt as a toast carries it, and as the tab keeps it across a reload. */

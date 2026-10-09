@@ -17,7 +17,7 @@ body.rv {
   font-family: var(--font); font-size: var(--body-fs); line-height: var(--body-lh);
 }
 .rv *, .rv *::before, .rv *::after { box-sizing: border-box; }
-.rv a { color: inherit; }
+:where(.rv) a { color: inherit; }
 .rv-main { padding: var(--s-4) var(--gutter) var(--s-8); padding-bottom: max(var(--s-8), env(safe-area-inset-bottom)); max-width: 1900px; margin: 0 auto; }
 .rv-h {
   font-size: var(--fs-2); line-height: var(--lh-2); text-transform: uppercase; letter-spacing: var(--track-caps);
@@ -187,7 +187,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-doc summary { padding: var(--s-3) var(--s-4); cursor: pointer; }
 .rv-doc .rv-note { border-top: var(--border); }
 .rv .empty { color: var(--text-2); padding: var(--s-8) 0; text-align: center; }
-.rv button:disabled { color: var(--text-3); cursor: default; }
+:where(.rv) button:disabled { color: var(--text-3); cursor: default; }
 .rv-picture { margin-bottom: var(--s-3); }
 .rv-picture video { max-height: 62vh; }
 .rv-pending .rv-row { padding: var(--s-2) var(--s-3); justify-content: space-between; }

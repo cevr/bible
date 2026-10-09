@@ -18,7 +18,7 @@ import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
-import { Array as Arr, Duration, Effect, Fiber, Option } from 'effect';
+import { Array as Arr, Duration, Option } from 'effect';
 import { type Command, type CommandId, boundChange, quietly } from '../../../command/command.ts';
 import { type Destination, goToCommands } from '../../../command/go.ts';
 import { Selection } from '../../../command/selection.ts';
@@ -32,12 +32,15 @@ import {
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { ChangeId } from '../../../core/schema.ts';
-import { Findings } from './findings.tsx';
+import { Findings, useFindingsPlace } from './findings.tsx';
 import { stepWhyNot } from '../../api.ts';
 import { useReview } from '../context.tsx';
-import { pressed, sizeText, videoSource } from '../format.ts';
+import { pressed } from '../../pressed.ts';
+import { sizeText, videoSource } from '../format.ts';
 import { useInspectorPlace } from '../inspector.tsx';
-import { ProxyPending, Transport, useClockMedia } from '../section.tsx';
+import { Transport, useClockMedia } from '../player.tsx';
+import { ProxyPending } from '../section.tsx';
+import { reloadOnError } from '../sync.ts';
 import { ChoiceAct } from './api.ts';
 import { ChoiceCard, ChoiceSheets, HearButton, focusPoint } from './choice.tsx';
 import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
@@ -162,26 +165,14 @@ const MIX_TRIES = 6;
  */
 const Mix = (props: { readonly src: string }) => {
   const { driver } = useFilm();
+  const { meta } = useReview();
   const src = props.src;
-  let tries = 0;
-  let waiting = Option.none<Fiber.Fiber<void>>();
-  onCleanup(() => Option.map(waiting, (f) => Effect.runFork(Fiber.interrupt(f))));
-  const join = useClockMedia(driver, src);
-  const attach = (el: HTMLAudioElement) => {
-    el.addEventListener('error', () => {
-      if (tries >= MIX_TRIES) return;
-      tries += 1;
-      waiting = Option.some(
-        Effect.runFork(
-          Effect.sleep(Duration.millis(MIX_RETRY_MS)).pipe(
-            Effect.andThen(Effect.sync(() => el.load())),
-          ),
-        ),
-      );
-    });
-    join(el);
-  };
-  return <audio class="rv-mix" preload="auto" src={src} ref={attach} />;
+  let stopRetrying = () => {};
+  onCleanup(() => stopRetrying());
+  const join = useClockMedia(driver, src, (media) => {
+    stopRetrying = reloadOnError(media, meta.host, Duration.millis(MIX_RETRY_MS), MIX_TRIES);
+  });
+  return <audio class="rv-mix" preload="auto" src={src} ref={join} />;
 };
 
 /**
@@ -354,6 +345,7 @@ const variantKeys = (film: string, selection: Selection) =>
 
 const FilmBody = () => {
   const { film, choices, only, reading } = useFilm();
+  const findings = useFindingsPlace(Places.choices);
   // The open sheet is the URL's (`?inspect=`, a variant of the card in focus): a tap on a
   // variant's name names both in one step (Back closes it); Close, Escape and a swipe name
   // none, the card staying in focus; a link, Back and Forward open what they name.
@@ -421,7 +413,7 @@ const FilmBody = () => {
     // The page's own box (`display: contents`): says while the film is read again.
     <div class="rv-choices" data-reading={pressed(reading())}>
       <StepCommands />
-      <Findings />
+      <Findings sheet={findings} />
       <Player />
       <OnlyShown />
       <KindsStrip

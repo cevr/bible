@@ -9,10 +9,9 @@
 // Info (its notes among it), its approve and unapprove, what was said of it
 // and the comment box, said over the set's route.
 
-import { useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
 import { Effect, Exit, Match, Option, Scope } from 'effect';
-import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
   type Accessor,
@@ -33,7 +32,7 @@ import {
   seenPoint,
   seenVariants,
 } from '../../core/choice.ts';
-import { type Compare, type ComparePanes, Media, playableOf } from '../../browser/media.ts';
+import { type Compare, type ComparePanes, Media } from '../../browser/media.ts';
 import { Pointer, Surface } from '../../browser/pointer.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { timecode } from '../../core/time.ts';
@@ -45,17 +44,21 @@ import {
   pageHref,
   reviewFileUrl,
   reviewFrameUrl,
-  withdrawSay,
 } from '../../core/api.ts';
 import { served } from '../api.ts';
+import { pressed } from '../pressed.ts';
 import { StateBand } from '../scenes/card.tsx';
 import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
 import { OptionsApi } from './options/api.ts';
 import { newestAsked } from './asked.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
-import { ApproveButton, Comments, SayBox } from './options/choice.tsx';
-import type { ThingVerb } from './things.ts';
+import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
+import { approvalVerbs } from './things.ts';
+import { approveUndoOf, undoApprove } from './options/receipt.ts';
+import { quiet, refused } from '../../command/command.ts';
+import { OpId } from '../../core/catalogue.ts';
+import { uniqueId } from '../../core/unique.ts';
 import { Go, SetProvider, type Shown, useReview, useSet } from './context.tsx';
 import {
   agoText,
@@ -67,7 +70,6 @@ import {
   isFilmsFolder,
   isMarkdown,
   POSTER_W,
-  pressed,
   recordedStaleText,
   sayText,
   sizeText,
@@ -77,35 +79,23 @@ import {
 import {
   LAYOUTS,
   type Layout,
-  Rate,
   type SetMode,
   SyncEvent,
-  type SyncState,
   ViewEvent,
-  atRest,
-  clockParts,
-  failureOf,
   modeOf,
   modeView,
   modesOf,
   playsIn,
-  reachOf,
-  runningOf,
-  spawnSync,
   viewNameOf,
 } from './machine.ts';
-import { makeSync, type SyncDriver } from './sync.ts';
-import { Actor } from '../actor.tsx';
 import { Loaded, useWrite, writeStatus } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
 import { ReviewPlace as Place } from './place.ts';
+import { HearToggle, PlayedAlone, Transport, useClockMedia } from './player.tsx';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
-import { CommandChip } from '../command/command-chip.tsx';
-import { HearIcon, useShellTime } from '../page-shell.tsx';
 import { hubKeys } from '../command/changes.ts';
 import { wipeCommands, wipeTitle } from '../wipe-keys.ts';
-import { rateCommands, rateId, rateText, rateTitle } from '../../player/transport.ts';
 
 /** A version of `set` in `folder`, as a selection: what a version's card is. */
 const versionOf = (folder: ReviewFolder, set: { readonly id: string }, version: string) =>
@@ -610,263 +600,21 @@ const ViewTabs = () => {
   );
 };
 
-/**
- * The synced player's controls, one row: play, the clock, a scrub over every
- * track, and the one rate chip, whose rates are the page's commands
- * while the transport is shown (J, K, L; ⌘K). Its keys are in the `?` sheet.
- * A page docks it (`.sh-dock`: over the tab bar on a phone, held under the
- * header on a laptop, design language §4), Choices, a Set and Project alike.
- */
-export const Transport = (props: {
-  readonly sync: Accessor<SyncState>;
-  readonly send: (event: SyncEvent) => void;
-}) => {
-  const { sync } = props;
-  const { meta } = useReview();
-  const keys = hubKeys(meta.hub);
-  // The header's timecode is this transport's clock.
-  useShellTime(() => sync().t);
-  onCleanup(
-    meta.hub.commands.register(
-      ...rateCommands({
-        all: Rate.literals,
-        now: () => sync().rate,
-        choose: (rate) => props.send(SyncEvent.RateChosen({ rate })),
-      }),
-    ),
-  );
-  return (
-    <TransportRow
-      sync={sync}
-      send={props.send}
-      scrubs="Scrub every video"
-      title="Play / pause (space)"
-    >
-      <CommandChip
-        hub={meta.hub}
-        ids={Rate.literals.map(rateId)}
-        act="rate"
-        class="sh-btn"
-        title={rateTitle(keys.titled)}
-      >
-        <span data-rate={String(sync().rate)}>{rateText(sync().rate)}</span>
-      </CommandChip>
-    </TransportRow>
-  );
-};
-
-/** What a page's player whose clock cannot play says, in its row, in place of the scrub. */
-const CANNOT_PLAY_CLOCK = 'Can’t play this video';
-
-/**
- * A synced player's row: play, the clock and a scrub (`scrubs` names what it
- * moves), then `children` (the docked transport's rate chip). Once its
- * clock's media cannot play (`Failed`) the row says so in place of the
- * scrub, and play is off: there is nothing to play or scrub until the page
- * gives the clock new media (another quality, another picture).
- */
-const TransportRow = (
-  props: ParentProps<{
-    readonly sync: Accessor<SyncState>;
-    readonly send: (event: SyncEvent) => void;
-    readonly scrubs: string;
-    readonly title: string;
-    /** Whether it plays one video on a clock of its own (`PlayedAlone`), not the page's. */
-    readonly alone?: boolean;
-  }>,
-) => {
-  const { sync } = props;
-  const send = { sync: props.send };
-  const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
-  const failure = () => failureOf(sync());
-  return (
-    <section class={['rv-transport', { 'rv-alone-row': props.alone === true }]}>
-      <button
-        type="button"
-        class="sh-btn rv-big"
-        data-primary=""
-        data-act="play"
-        title={props.title}
-        disabled={Option.isSome(failure())}
-        onClick={() => send.sync(SyncEvent.Toggled)}
-      >
-        {Match.value(playing()).pipe(
-          Match.when(true, () => '❚❚'),
-          Match.orElse(() => '▶'),
-        )}
-      </button>
-      <span class="rv-time" data-state={sync()._tag}>
-        {/* The time: a laptop's header shows the docked one's already (`useShellTime`), so its row leaves it out. */}
-        <span class="rv-time-at">{clockParts(sync()).at}</span>
-        {/* The end, and a wait: a phone's row leaves them out (the scrub shows the end). */}
-        <span class="rv-time-rest">{clockParts(sync()).rest}</span>
-      </span>
-      <Show
-        when={Option.getOrUndefined(failure())}
-        fallback={
-          <input
-            type="range"
-            aria-label={props.scrubs}
-            min={sync().start}
-            max={reachOf(sync())}
-            step="0.05"
-            value={sync().t}
-            onInput={(e) => send.sync(SyncEvent.ScrubMoved({ t: Number(e.currentTarget.value) }))}
-            onChange={() => send.sync(SyncEvent.ScrubReleased)}
-          />
-        }
-      >
-        {(reason) => (
-          <span class="rv-failed" data-role="failed" data-reason={reason()}>
-            {CANNOT_PLAY_CLOCK}
-          </span>
-        )}
-      </Show>
-      {props.children}
-    </section>
-  );
-};
-
-/** The one video a lone player plays: its clock and the one heard. */
-const ALONE = 'alone';
-
-/** What a lone video whose media cannot play says, on its picture, which tries it again. */
-const CANNOT_PLAY = 'Can’t play this video · Try again';
-
-/** One try at a lone video's source: the `n`th (0: the first; later ones are retries). */
-interface Try {
-  readonly src: string;
-  readonly n: number;
-}
-
-/**
- * The `ref` of a media element that joins `driver` as `id`, for as long as
- * the calling owner lives: a page makes a fresh element for each source (and
- * each retry), so the driver knows the clock's media is new, and lets this
- * one go as it leaves, whatever replaced it since.
- */
-export const useClockMedia = (driver: SyncDriver, id: string) => {
-  let release = Option.none<() => void>();
-  onCleanup(() => Option.map(release, (letGo) => letGo()));
-  return (el: HTMLMediaElement) => {
-    release = Option.some(driver.attach(id, playableOf(el)));
-  };
-};
-
-/**
- * A video on a clock of its own (a video in no set, a render in a sheet),
- * never the browser's controls: at rest (`atRest`) its picture is the one
- * control, a press plays or pauses it; once it has moved (playing, scrubbed,
- * paused past its start) the review's transport row shows under it (play,
- * the clock, a scrub), for the whole of a scrub. A failure is its media's:
- * each try at a source (a new source, or a retry of a failed one) is a fresh
- * element on the same clock, so a new source stands where the last stood,
- * playing if it played, and nothing of a failed try outlives it. Once its
- * media cannot play (`Failed`) its picture says so and no row shows (there
- * is nothing to play or scrub); a press on the picture then tries again,
- * from where the failure left it, and plays as it starts (the press asked
- * for it). It is heard, and its time is its own, not the page's. `children`
- * are its `<track>`s.
- */
-export const PlayedAlone = (
-  props: ParentProps<{ readonly src: string; readonly poster: string }>,
-) => {
-  const { meta } = useReview();
-  const [retried, setRetried] = createSignal<Option.Option<Try>>(Option.none());
-  // The play a press on a failed picture asked for: the retry's element's alone, taken once
-  // as that element starts (a source switched away and back is a new try, which plays only
-  // if the clock plays).
-  let asked = Option.none<Try>();
-  const takeAsked = (at: Try) => {
-    const mine = Option.exists(asked, (a) => a.src === at.src && a.n === at.n);
-    if (mine) asked = Option.none();
-    return mine;
-  };
-  // A new source is its first try; the same source keeps its retries.
-  const current = createMemo((): Try => ({
-    src: props.src,
-    n: Option.getOrElse(
-      Option.map(
-        Option.filter(retried(), (r) => r.src === props.src),
-        (r) => r.n,
-      ),
-      () => 0,
-    ),
-  }));
-  return (
-    <Actor runtime={meta.runtime} spawn={spawnSync(ALONE, 0)}>
-      {(actor) => {
-        const syncAtom = ActorAtom.make(actor);
-        const sync = useAtomValue(() => syncAtom);
-        const send = useAtomSet(() => syncAtom);
-        const driver = makeSync(ALONE, send, meta.host);
-        onCleanup(driver.stop);
-        createEffect(sync, (state) => driver.apply(state));
-        const failure = () => failureOf(sync());
-        const failed = () => Option.isSome(failure());
-        const label = () =>
-          Option.match(failure(), { onNone: () => 'Play / pause', onSome: () => CANNOT_PLAY });
-        return (
-          <>
-            <button
-              type="button"
-              class="rv-alone-picture"
-              data-act="play-video"
-              title={label()}
-              aria-label={label()}
-              onClick={() => {
-                if (!failed()) return send(SyncEvent.Toggled);
-                const at = untrack(current);
-                const next = { src: at.src, n: at.n + 1 };
-                asked = Option.some(next);
-                setRetried(Option.some(next));
-              }}
-            >
-              <Show when={current()} keyed>
-                {(at: Try) => {
-                  const ref = useClockMedia(driver, ALONE);
-                  // A retry plays as it starts: the press asked for it, once.
-                  if (takeAsked(at)) onSettled(() => send(SyncEvent.Toggled));
-                  return (
-                    <video
-                      preload="metadata"
-                      playsinline
-                      poster={props.poster}
-                      src={at.src}
-                      ref={ref}
-                    >
-                      {props.children}
-                    </video>
-                  );
-                }}
-              </Show>
-              <Show when={failed()}>
-                <span
-                  class="rv-failed"
-                  data-role="failed"
-                  data-reason={Option.getOrElse(failure(), () => '')}
-                >
-                  {CANNOT_PLAY}
-                </span>
-              </Show>
-            </button>
-            <Show when={!atRest(sync()) && !failed()}>
-              <TransportRow
-                sync={sync}
-                send={send}
-                scrubs="Scrub the video"
-                title="Play / pause"
-                alone
-              />
-            </Show>
-          </>
-        );
-      }}
-    </Actor>
-  );
-};
-
 const letterOf = (set: SeenPoint, id: string) => set.variants.findIndex((v) => v.id === id) + 1;
+
+/** The scene a set's render is of, when it is one scene's alone: the one an approve's Undo names. */
+const sceneOf = (set: SeenPoint): Option.Option<string> =>
+  Option.flatMap(set.address, (address) =>
+    Match.value(address).pipe(
+      Match.tag('Scenes', ({ ids }) =>
+        Option.map(
+          Option.liftPredicate(ids, (i) => i.length === 1),
+          ([id]) => id,
+        ),
+      ),
+      Match.orElse(() => Option.none<string>()),
+    ),
+  );
 
 /** What the set page's says hold: each version as the newest say left it, and a control's own say. */
 interface SetSays {
@@ -899,6 +647,9 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
       ),
       () => id,
     );
+  // A project folder's film and a render set of one scene: where an approve names its own run.
+  const film = props.folder.title;
+  const scene = sceneOf(props.set);
   const [said, setSaid] = createSignal(Option.none<SeenPoint>());
   const pointIn = (folder: ReviewFolder) =>
     Option.map(Option.fromUndefinedOr(folder.sets.find((s) => s.id === props.set.id)), seenPoint);
@@ -919,23 +670,85 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
         (asked) => ({
           doing: 'saying…',
           done: () => sayText(asked.say, versionText(asked.variant)),
+          // An approve of a scene's render offers its Undo, bound to the run it named.
+          undo: () =>
+            Option.map(
+              Option.all({
+                film,
+                scene,
+                op: Option.fromUndefinedOr(asked.op),
+              }),
+              (of) =>
+                approveUndoOf(
+                  of.film,
+                  of.op,
+                  [of.scene],
+                  Option.some({ point: props.set.id, version: asked.variant }),
+                ),
+            ),
         }),
       );
       return {
         waiting: own.waiting,
-        say: (version, say) =>
-          own.write({ variant: version, say }).then((landed) =>
-            Option.match(landed, {
-              onNone: () => false,
-              onSome: (l) => {
-                l.show('set', pointIn, (p) => setSaid(Option.some(p)));
-                return l.succeeded;
-              },
-            }),
-          ),
+        say: (version, say) => {
+          // A scene's approve names its own run, so its Undo takes back just that approval.
+          const run = Option.filter(Option.all({ film, scene }), () => say._tag === 'Approve').pipe(
+            Option.map(() => Effect.runSync(uniqueId(OpId))),
+          );
+          return own
+            .write({
+              variant: version,
+              say,
+              ...Option.match(run, { onNone: () => ({}), onSome: (op) => ({ op }) }),
+            })
+            .then((landed) =>
+              Option.match(landed, {
+                onNone: () => false,
+                onSome: (l) => {
+                  l.show('set', pointIn, (p) => setSaid(Option.some(p)));
+                  return l.succeeded;
+                },
+              }),
+            );
+        },
       };
     },
   };
+  // An approve's Undo (`undoApprove`): a withdraw of the version that run approved, given the run.
+  const undoing = value.useSay();
+  const { meta } = useReview();
+  for (const of of Option.toArray(film)) {
+    onCleanup(
+      meta.hub.commands.register(
+        undoApprove(of, {
+          waiting: undoing.waiting,
+          // One withdraw, of the version the receipt names, given its run: nothing is read
+          // of the page's state, so a reload or a stale render changes nothing.
+          withdraw: (_, say, approved) =>
+            Option.match(
+              Option.filter(approved, (a) => a.point === props.set.id),
+              {
+                onNone: () =>
+                  Effect.succeed(
+                    refused(
+                      Option.match(approved, {
+                        onNone: () =>
+                          'that approve was kept before it named its version: approve again to undo it',
+                        onSome: () => 'that approve was of another set',
+                      }),
+                    ),
+                  ),
+                onSome: (a) =>
+                  Effect.as(
+                    Effect.promise(() => undoing.say(a.version, say)),
+                    quiet,
+                  ),
+              },
+            ),
+        }),
+      ),
+    );
+  }
   return <SetSaysContext value={value}>{props.children}</SetSaysContext>;
 };
 
@@ -954,31 +767,22 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
   const selection = untrack(() => versionOf(folder, set, props.version.id));
   const title = () => `${letterOf(set, props.version.id)} · ${props.version.label}`;
   const sayable = Option.isSome(set.address);
-  const saying = says.useSay();
-  const approve: ThingVerb = {
-    id: 'approve',
-    label: 'Approve',
-    run: () => saying.say(props.version.id, { _tag: 'Approve' }),
+  // The set's says as a card's `Sayer` (a version is a variant, said by its id).
+  const sayer: Sayer = {
+    use: () => {
+      const own = says.useSay();
+      return { waiting: own.waiting, say: (v, say) => own.say(v.id, say) };
+    },
   };
-  const unapprove: ThingVerb = {
-    id: 'unapprove',
-    label: 'Unapprove',
-    run: () => saying.say(props.version.id, withdrawSay()),
-  };
-  const free = () => sayable && !saying.waiting();
+  const saying = sayer.use();
   useThing({
     selection,
     title,
     commentable: () => sayable,
-    verbs: () => [
-      ...[approve].filter(
-        () => free() && version().state === 'current' && version().approval !== 'approved',
-      ),
-      ...[unapprove].filter(() => free() && version().approval !== 'none'),
-    ],
+    verbs: () => approvalVerbs(version(), saying, sayable),
   });
   return (
-    <Inspector of={selection} title={title()}>
+    <Inspector of={selection} kind="version" title={title()}>
       {(box) => (
         <>
           <div class="rv-verdict">
@@ -995,31 +799,12 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
           </Show>
           <Show when={sayable}>
             <div class="rv-row">
-              <ApproveButton
-                approval={version().approval}
-                disabled={version().state !== 'current' || saying.waiting()}
-                approve={() => void saying.say(props.version.id, { _tag: 'Approve' })}
-              />
-              <Show when={version().approval !== 'none'}>
-                <button
-                  type="button"
-                  class="sh-btn"
-                  data-act="unapprove"
-                  disabled={saying.waiting()}
-                  onClick={() => void saying.say(props.version.id, withdrawSay())}
-                >
-                  Unapprove
-                </button>
-              </Show>
+              <Approval variant={version()} sayer={sayer} />
             </div>
           </Show>
           <Comments comments={version().comments} />
           <Show when={sayable}>
-            <SayBox
-              disabled={saying.waiting()}
-              box={box}
-              say={(text) => saying.say(props.version.id, { _tag: 'Comment', text })}
-            />
+            <CommentBox variant={version()} sayer={sayer} box={box} />
           </Show>
         </>
       )}
@@ -1109,14 +894,11 @@ const VariantCap = (props: { readonly variant: SeenVariant }) => {
       <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
       <VersionName version={props.variant} />
       <StaleBadge variant={props.variant} />
-      <button
-        type="button"
-        class={['sh-tool', 'rv-sound', { on: audible() }]}
+      <HearToggle
+        on={audible()}
         title="Hear this one"
-        onClick={() => send.sync(SyncEvent.HeardChosen({ id: props.variant.id }))}
-      >
-        <HearIcon />
-      </button>
+        hear={() => send.sync(SyncEvent.HeardChosen({ id: props.variant.id }))}
+      />
     </div>
   );
 };
