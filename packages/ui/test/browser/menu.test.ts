@@ -42,29 +42,34 @@ describe('Menu.Trigger', () => {
     expect(await logOf(page)).toContain('open false trigger-press');
   });
 
-  it('a press held on the trigger, dragged to an item and released there picks it', async () => {
-    const page = await h.open('menu');
-    await page.clock.install();
-    const at = async (selector: string) => {
-      const box = await page.locator(selector).boundingBox();
-      expect(box).not.toBeNull();
-      return {
-        x: (box?.x ?? 0) + (box?.width ?? 0) / 2,
-        y: (box?.y ?? 0) + (box?.height ?? 0) / 2,
+  // The second fixture is the lab's shape: every lab page wraps its menus in a
+  // context menu's page trigger, and the menu is still a plain one.
+  it.each(['menu', 'in-context-menu'])(
+    'a press held on the trigger, dragged to an item and released there picks it (%s)',
+    async (fixture) => {
+      const page = await h.open(fixture);
+      await page.clock.install();
+      const at = async (selector: string) => {
+        const box = await page.locator(selector).boundingBox();
+        expect(box).not.toBeNull();
+        return {
+          x: (box?.x ?? 0) + (box?.width ?? 0) / 2,
+          y: (box?.y ?? 0) + (box?.height ?? 0) / 2,
+        };
       };
-    };
-    const trigger = await at('#trigger');
-    await page.mouse.move(trigger.x, trigger.y);
-    await page.mouse.down();
-    await see(page.locator('#popup')).toBeVisible();
-    // Held past the trigger's 200 ms, so the release is a pick, not the press's own end.
-    await page.clock.runFor(250);
-    const grid = await at('#grid');
-    await page.mouse.move(grid.x, grid.y, { steps: 5 });
-    await page.mouse.up();
-    await see(page.locator('#popup')).toHaveCount(0);
-    expect(await logOf(page)).toContain('click grid');
-  });
+      const trigger = await at('#trigger');
+      await page.mouse.move(trigger.x, trigger.y);
+      await page.mouse.down();
+      await see(page.locator('#popup')).toBeVisible();
+      // Held past the trigger's 200 ms, so the release is a pick, not the press's own end.
+      await page.clock.runFor(250);
+      const grid = await at('#grid');
+      await page.mouse.move(grid.x, grid.y, { steps: 5 });
+      await page.mouse.up();
+      await see(page.locator('#popup')).toHaveCount(0);
+      expect(await logOf(page)).toContain('click grid');
+    },
+  );
 });
 
 describe('Menu.Root', () => {
