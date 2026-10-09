@@ -14,7 +14,7 @@
 import { Effect, Match, Option, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
-import { FILM_FPS, timecode } from '../../../src/core/time.ts';
+import { FILM_FPS } from '../../../src/core/time.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
 import { tone } from '../../../src/lab/fixtures/tone.ts';
 import { STEP_S } from '../../../src/lab/review/machine.ts';
@@ -603,21 +603,25 @@ describe('the review page', () => {
           page,
           "Array.from(document.querySelectorAll('.rv-card video')).every((v) => v.paused)",
         );
-        const stopped = yield* page.evaluate<string>(
-          "document.querySelector('.rv-time').textContent.split(' ')[0]",
-        );
-        const [h = 0, m = 0, s = 0, ff = 0] = stopped.split(':').map(Number);
-        const t0 = h * 3600 + m * 60 + s + ff / FILM_FPS;
+        // The first variant's video is the clock: where it stands is where the pause stopped.
+        const clockAt = "document.querySelector('.rv-card video').currentTime";
+        const t0 = yield* page.evaluate<number>(clockAt);
+        // The label shown, in whole frames: it is rounded to the frame, so it may sit a frame
+        // from the clock's own time.
+        const labelFrames = `(() => { const [h, m, s, f] = document.querySelector('.rv-time').textContent.split(' ')[0].split(':').map(Number); return ((h * 60 + m) * 60 + s) * ${FILM_FPS} + f; })()`;
+        // Pausing snaps the clock to a frame, so the steps land within a frame of `t0`'s multiples.
+        /** The clock video within a frame of `t`, the label within a frame of the clock, every video within a frame of the clock. */
+        const stoodAt = (t: number) =>
+          until(
+            page,
+            `Math.abs(${clockAt} - ${t}) <= ${1 / FILM_FPS + 1e-3} && Math.abs(${labelFrames} - Math.round(${clockAt} * ${FILM_FPS})) <= 1 && Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - ${clockAt}) < ${1 / FILM_FPS + 1e-3})`,
+          );
         yield* page.press('ArrowRight');
+        yield* stoodAt(t0 + STEP_S);
         yield* page.press('ArrowRight');
-        yield* textHas(page, '.rv-time', timecode(t0 + 2 * STEP_S));
+        yield* stoodAt(t0 + 2 * STEP_S);
         yield* page.press('ArrowLeft');
-        yield* textHas(page, '.rv-time', timecode(t0 + STEP_S));
-        // Every video stands where the clock does, to a frame.
-        yield* until(
-          page,
-          `Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - ${t0 + STEP_S}) < ${1 / FILM_FPS + 0.01})`,
-        );
+        yield* stoodAt(t0 + STEP_S);
         // The rate chip opens the rates but the one it plays at; J steps one slower.
         yield* page.click('.rv-transport [data-act="rate"]');
         yield* waitFor(page, '[data-role="chip-menu"] [data-command="play.rate-0.5"]');
