@@ -117,6 +117,49 @@ const painted = (name: string) =>
   `(() => [...(CSS.highlights.get('${name}') ?? [])].map((r) => r.toString()).sort())()`;
 const PAINTED = `(() => [...(CSS.highlights.get('lab-live') ?? [])].map((r) => r.toString().split(':')[0]).sort())()`;
 
+/** A screen of comment lines, to put a literal below a box's first screen. */
+const FILLER = Array.from({ length: 60 }, (_, i) => `// filler ${i + 1}`).join('\n');
+/** Scene one's code answer for `text`: `TEXT`'s cues and knob, found where `text` writes them. */
+const codeOf = (text: string) => {
+  const at = (needle: string): readonly [number, number] => {
+    const from = text.indexOf(needle);
+    return [from, from + needle.length];
+  };
+  return {
+    ...CODE,
+    text,
+    cues: [
+      { name: 'rise', at: at("rise: { mark: 'rise', dur: 0.6 }"), reads: [at("f.at('rise')")] },
+      { name: 'fall', at: at("fall: { mark: 'fall', dur: 0.4 }"), reads: [at("f.at('fall')")] },
+    ],
+    knobs: [{ name: 'spot', at: at('spot: [320, 200]'), reads: [at("f.knob('spot')")] }],
+  };
+};
+/** The line (from 1) of `text` that writes `needle`. */
+const lineIn = (text: string, needle: string) =>
+  text.slice(0, text.indexOf(needle)).split('\n').length;
+/** `rise`'s literal near the end of the file, below its first screen. */
+const LONG_TEXT = `${FILLER}\n${TEXT}`;
+const LONG_RISE_LINE = lineIn(LONG_TEXT, "rise: { mark: 'rise'");
+const longRoute = route('GET', /^\/scenes\/one\/code$/, () => json(codeOf(LONG_TEXT)));
+/**
+ * The timeline at the top, the knobs and the draw a screen below it, and a
+ * screen after them: before any cue Follow looks at the knob the frame read,
+ * mid-file, and a cue edge takes it to the top.
+ */
+const TEXT_LINES = TEXT.split('\n');
+const KNOBS_AT = TEXT_LINES.findIndex((l) => l.includes('knobs:'));
+const SPLIT_TEXT = [
+  ...TEXT_LINES.slice(0, KNOBS_AT),
+  FILLER,
+  ...TEXT_LINES.slice(KNOBS_AT),
+  FILLER,
+].join('\n');
+const splitRoute = route('GET', /^\/scenes\/one\/code$/, () => json(codeOf(SPLIT_TEXT)));
+const SPLIT_SPOT_LINE = lineIn(SPLIT_TEXT, 'spot: [320, 200]');
+/** Two animation frames: a scroll's event and a resize's observation are both in. */
+const FRAMES = `new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))`;
+
 describe('the Source view at rest', () => {
   it.live('is closed, reads nothing, and puts no control on the page for it', () =>
     Effect.gen(function* () {
@@ -435,37 +478,8 @@ describe('code that wraps rather than scrolls sideways', () => {
 
 describe('on a phone, the sheet’s code scrolls to its line', () => {
   const touch = { ...PHONE, coarse: true };
-  /** A file long enough that the sheet's box scrolls: `rise`'s literal sits well below its first screen. */
-  const FILLER = Array.from({ length: 60 }, (_, i) => `// filler ${i + 1}`).join('\n');
-  const LONG_TEXT = `${FILLER}\n${TEXT}`;
-  const longRange = (needle: string): readonly [number, number] => {
-    const from = LONG_TEXT.indexOf(needle);
-    return [from, from + needle.length];
-  };
-  const LONG_CODE = {
-    ...CODE,
-    text: LONG_TEXT,
-    cues: [
-      {
-        name: 'rise',
-        at: longRange("rise: { mark: 'rise', dur: 0.6 }"),
-        reads: [longRange("f.at('rise')")],
-      },
-      {
-        name: 'fall',
-        at: longRange("fall: { mark: 'fall', dur: 0.4 }"),
-        reads: [longRange("f.at('fall')")],
-      },
-    ],
-    knobs: [
-      { name: 'spot', at: longRange('spot: [320, 200]'), reads: [longRange("f.knob('spot')")] },
-    ],
-  };
-  const LONG_RISE_LINE = LONG_TEXT.slice(0, longRange("rise: { mark: 'rise'")[0]).split(
-    '\n',
-  ).length;
-  const longRoute = route('GET', /^\/scenes\/one\/code$/, () => json(LONG_CODE));
   const FOLLOW_SHEET = '.lab-source-sheet [data-act="follow-source"]';
+  const BOX = `document.querySelector('.lab-source-sheet .lab-source-scroll')`;
 
   /** Whether line `n` of the sheet's code shows inside the box that scrolls it (the nearest ancestor of the rows that scrolls). */
   const showing = (n: number) => `(() => {
@@ -501,23 +515,8 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live('a command key (the next cue edge) with the code focused leaves Follow pressed', () =>
-    Effect.gen(function* () {
-      const { page } = yield* openLab([longRoute], {
-        href: labOne(0.05, { code: 'follow' }),
-        viewport: touch,
-      });
-      yield* page.waitFor('.lab-source-sheet .lab-source-page');
-      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-      yield* page.evaluate(`document.querySelector('.lab-source-sheet .lab-source-page').focus()`);
-      yield* page.press('.');
-      yield* evaluates(page, showing(LONG_RISE_LINE), true);
-      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-    }).pipe(Effect.scoped),
-  );
-
   it.live(
-    'a press and release on the box with no scroll, then a resize, leaves Follow pressed',
+    'a press and release on the box with no scroll, then a resize that hides the line, places it again and leaves Follow pressed',
     () =>
       Effect.gen(function* () {
         const { page } = yield* openLab([longRoute], {
@@ -526,16 +525,138 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
         });
         yield* page.waitFor('.lab-source-sheet .lab-source-page');
         yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+        yield* page.evaluate(`window.__before = ${BOX}.scrollTop`);
         yield* page.evaluate(
-          `(() => { const box = document.querySelector('.lab-source-sheet .lab-source-scroll'); box.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' })); box.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'mouse' })); })()`,
+          `(() => { const box = ${BOX}; box.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' })); box.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'mouse' })); })()`,
         );
-        yield* page.resize(390, 480);
-        yield* page.evaluate(
-          `new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))`,
-        );
-        yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+        yield* page.resize(390, 360);
+        yield* page.evaluate(FRAMES);
+        // The shorter box left the line below its edge: the view placed it again.
+        yield* evaluates(page, `${BOX}.scrollTop !== window.__before`, true);
         yield* evaluates(page, showing(LONG_RISE_LINE), true);
+        yield* page.evaluate(FRAMES);
+        yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
       }).pipe(Effect.scoped),
+  );
+
+  it.live('code that grows above the line (a font arriving, a re-wrap) places it again', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([splitRoute], {
+        href: labOne(0.05, { code: 'follow' }),
+        viewport: touch,
+      });
+      yield* page.waitFor('.lab-source-sheet .lab-source-page');
+      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+      yield* evaluates(page, showing(SPLIT_SPOT_LINE), true);
+      yield* page.evaluate(`window.__before = ${BOX}.scrollTop`);
+      // A row above the line takes a screen more room; the box keeps its size.
+      yield* page.evaluate(
+        `document.querySelector('.lab-source-sheet .lab-source-line[data-line="1"]').style.minHeight = '600px'`,
+      );
+      yield* page.evaluate(FRAMES);
+      yield* evaluates(page, `${BOX}.scrollTop > window.__before`, true);
+      yield* evaluates(page, showing(SPLIT_SPOT_LINE), true);
+      yield* page.evaluate(FRAMES);
+      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a resize that clamps the box’s scroll leaves Follow pressed', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([longRoute], {
+        href: labOne(middle('rise'), { code: 'follow' }),
+        viewport: { ...touch, height: 480 },
+      });
+      yield* page.waitFor('.lab-source-sheet .lab-source-page');
+      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+      yield* evaluates(page, showing(LONG_RISE_LINE), true);
+      yield* page.evaluate(`window.__before = ${BOX}.scrollTop`);
+      yield* page.resize(390, 1400);
+      yield* page.evaluate(FRAMES);
+      // The taller box shows the file's end: layout clamped the scroll up to it.
+      yield* evaluates(page, `${BOX}.scrollTop < window.__before`, true);
+      yield* evaluates(
+        page,
+        `Math.abs(${BOX}.scrollTop - (${BOX}.scrollHeight - ${BOX}.clientHeight)) <= 1`,
+        true,
+      );
+      yield* page.evaluate(FRAMES);
+      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('twenty half-pixel scrolls add up to a reader’s and suspend Follow', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([splitRoute], {
+        href: labOne(0.05, { code: 'follow' }),
+        viewport: touch,
+      });
+      yield* page.waitFor('.lab-source-sheet .lab-source-page');
+      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+      yield* evaluates(page, showing(SPLIT_SPOT_LINE), true);
+      // The box drawn at two device pixels to its pixel, as a phone's screen draws the page, so
+      // half a pixel is a step it can take (at one, Chrome snaps the scroll to whole pixels).
+      yield* page.evaluate(`${BOX}.style.zoom = '2'`);
+      yield* page.evaluate(FRAMES);
+      yield* page.evaluate(FRAMES);
+      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+      yield* page.evaluate(
+        `(async () => { const box = ${BOX}; const from = box.scrollTop; window.__from = from; window.__steps = []; for (let i = 1; i <= 20; i += 1) { box.scrollTop = from + i * 0.5; await ${FRAMES}; window.__steps.push(box.scrollTop); } })()`,
+      );
+      // Each step moved the box by half a pixel, and the steps add up to ten.
+      yield* evaluates(page, `window.__steps.some((s) => !Number.isInteger(s))`, true);
+      yield* evaluates(page, `Math.round(${BOX}.scrollTop - window.__from)`, 10);
+      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'false');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'Follow taken back with its line in sight measures the reader’s next scroll from where the box stands',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([splitRoute], {
+          href: labOne(0.05, { code: 'follow' }),
+          viewport: touch,
+        });
+        yield* page.waitFor('.lab-source-sheet .lab-source-page');
+        yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+        yield* evaluates(page, showing(SPLIT_SPOT_LINE), true);
+        yield* page.evaluate(`window.__placed = ${BOX}.scrollTop; ${BOX}.scrollTop -= 3`);
+        yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'false');
+        yield* page.click(FOLLOW_SHEET);
+        yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+        // The line still shows three pixels up, so Follow took the box where it stood.
+        yield* page.evaluate(FRAMES);
+        yield* evaluates(
+          page,
+          `${BOX}.scrollTop`,
+          yield* page.evaluate<number>('window.__placed - 3'),
+        );
+        // Two pixels on is the reader's, though it lands within a pixel of where the view first put the box.
+        yield* page.evaluate(`${BOX}.scrollTop += 2`);
+        yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'false');
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('a resize that moves nothing, then a reader’s jump, suspends Follow', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([splitRoute], {
+        href: labOne(0.05, { code: 'follow' }),
+        viewport: touch,
+      });
+      yield* page.waitFor('.lab-source-sheet .lab-source-page');
+      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+      yield* evaluates(page, showing(SPLIT_SPOT_LINE), true);
+      yield* page.evaluate(`window.__box = [${BOX}.scrollTop, ${BOX}.clientHeight]`);
+      yield* page.resize(390, 900);
+      yield* page.evaluate(FRAMES);
+      // The box grew, and nothing scrolled: no event told the view.
+      yield* evaluates(page, `${BOX}.clientHeight > window.__box[1]`, true);
+      yield* evaluates(page, `${BOX}.scrollTop === window.__box[0]`, true);
+      yield* page.evaluate(FRAMES);
+      yield* page.evaluate(`${BOX}.scrollTop = window.__box[0] + 200`);
+      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'false');
+    }).pipe(Effect.scoped),
   );
 
   it.live(
@@ -682,6 +803,41 @@ describe('Follow', () => {
       yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
       yield* page.click('.bar [data-act="play"]');
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a command key (the next cue edge) with the code focused scrolls it to the cue, and Follow stays pressed',
+    () =>
+      Effect.gen(function* () {
+        // The column, not a phone's sheet: a sheet is a dialog, whose focus takes its own keys
+        // (`command/context.ts` focusOf), so `.` seeks only with the column's code focused.
+        const COL_BOX = `document.querySelector('.lab-source-col .lab-source-scroll')`;
+        const inBox = (n: number) =>
+          `(() => { const r = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]').getBoundingClientRect(); const b = ${COL_BOX}.getBoundingClientRect(); return r.top >= b.top && r.bottom <= b.bottom; })()`;
+        const { page } = yield* openLab([splitRoute], {
+          href: labOne(0.05, { code: 'follow' }),
+          viewport: short,
+        });
+        yield* page.waitFor('.lab-source-col .lab-source-page');
+        yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
+        // Before any cue the view follows the knob the frame read, a screen down the file.
+        yield* evaluates(page, inBox(SPLIT_SPOT_LINE), true);
+        yield* evaluates(page, `${COL_BOX}.scrollTop > 0`, true);
+        yield* page.evaluate(`window.__before = ${COL_BOX}.scrollTop`);
+        yield* page.focus('.lab-source-col .lab-source-page');
+        yield* page.press('.');
+        // The edge plays a cue written at the top: the view scrolled there itself.
+        yield* evaluates(
+          page,
+          `Math.abs(Number(location.hash.slice('#t='.length)) - ${span('rise').start}) < 0.02`,
+          true,
+        );
+        yield* evaluates(page, inBox(RISE_LINE), true);
+        yield* evaluates(page, `${COL_BOX}.scrollTop < window.__before`, true);
+        yield* page.evaluate(FRAMES);
+        yield* page.evaluate(FRAMES);
+        yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
+      }).pipe(Effect.scoped),
   );
 
   it.live('a held line is not following; Follow lets go of it', () =>
