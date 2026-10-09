@@ -7,7 +7,7 @@ import { Drawer } from '@bible/ui/drawer';
 import { Location } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, Show } from '@solidjs/web';
-import { Boolean as Bool, type Context, Effect, Option } from 'effect';
+import { Boolean as Bool, type Context, Effect, Match, Option } from 'effect';
 import { createEffect, createSignal, untrack } from 'solid-js';
 import { type Host, addressOn } from '../browser/host.ts';
 import type { Viewport } from '../browser/viewport.ts';
@@ -134,6 +134,7 @@ export const Sheet = (props: {
 }) => {
   // Whether the page is a phone's width now, followed as the window changes.
   const phone = useMatches(props.host, PHONE);
+  let popup = Option.none<HTMLElement>();
   const [peek, setPeek] = createSignal(
     untrack(() => props.peeked === true && phone()),
     { ownedWrite: true },
@@ -165,7 +166,17 @@ export const Sheet = (props: {
               Option.map(Option.fromUndefinedOr(props.of), targetAttr),
             )}
             data-peek={pressed(peek())}
-            initialFocus={props.initialFocus}
+            tabindex="-1"
+            ref={(el: HTMLElement) => {
+              popup = Option.some(el);
+            }}
+            initialFocus={() =>
+              Match.value(props.initialFocus()).pipe(
+                // The sheet itself, not its first control: that is Close, which Space would press.
+                Match.when(true, () => Option.getOrElse(popup, () => true)),
+                Match.orElse((asked) => asked),
+              )
+            }
           >
             <header class="lab-inspector-head">
               <SheetGrip peek={peek()} toggle={() => setPeek(!peek())} />
