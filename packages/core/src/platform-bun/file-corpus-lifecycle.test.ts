@@ -19,7 +19,7 @@ import {
   layerNativeFileArtifacts,
   type NativeFileArtifactProvenanceStore,
   type NativeFileArtifactSource,
-} from './bible-artifact.js';
+} from './file-artifact.js';
 
 /** A second File Corpus declared exactly the way a real third corpus will be:
  *  its own corpus name, its own two service keys, its own label, its own

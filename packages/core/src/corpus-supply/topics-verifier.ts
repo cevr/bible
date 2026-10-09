@@ -1,7 +1,7 @@
 /** The Topics semantic verifier (§3.5), written against a three-read reader
  *  rather than against a SQLite driver.
  *
- *  The rules here are driver-free; `platform-bun/bible-artifact.ts` supplies
+ *  The rules here are driver-free; `platform-bun/corpus-verify.ts` supplies
  *  the `bun:sqlite` reader. Keeping the driver out means the gate a candidate
  *  must pass is one portable function, and the adapter carries only how to run
  *  a statement.
@@ -38,10 +38,8 @@ export interface TopicsArtifactReader {
 }
 
 /** Every way the Topics verifier refuses a candidate, as the exact message an
- *  adapter reports. Held here rather than written out at each call site so the
- *  wording cannot drift — a difference in what an operator is told is a
- *  difference in the gate. */
-export const TOPICS_VERIFY_MESSAGES = {
+ *  adapter reports. */
+const TOPICS_VERIFY_MESSAGES = {
   integrity: 'SQLite integrity check failed',
   unreadableSchemaMajor: 'Topics Artifact has no readable schema_major',
   schemaTooNew: (major: number): string =>

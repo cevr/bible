@@ -43,7 +43,6 @@ packages/core/src/content-update/model.ts isAllowedManifestOrigin
 packages/core/src/content-update/service.ts compiledFloor
 packages/core/src/corpus-supply/file-artifact.ts makeUnregisteredFileCorpusArtifact
 packages/core/src/corpus-supply/model.ts unknownProvenance
-packages/core/src/corpus-supply/topics-verifier-contract.ts TOPICS_VERIFIER_CASES
 packages/core/src/corpus-supply/unavailable.ts KNOWN_UNAVAILABLE
 packages/core/src/corpus-supply/unavailable.ts unavailableReason
 packages/core/src/egw-db/book-database.ts BibleRefRow

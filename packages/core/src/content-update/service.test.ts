@@ -32,7 +32,7 @@ import {
   layerNativeFileArtifacts,
   type NativeFileArtifactProvenanceStore,
   type NativeFileArtifactSource,
-} from '../platform-bun/bible-artifact.js';
+} from '../platform-bun/file-artifact.js';
 import {
   ContentManifest,
   ContentManifestEntry,

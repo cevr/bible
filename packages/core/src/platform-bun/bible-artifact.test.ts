@@ -4,11 +4,8 @@ import { describe, expect, it } from 'effect-bun-test';
 
 import type { CorpusProvenance, CorpusSupplyReceipt } from '../corpus-supply/model.js';
 import { CorpusSupply } from '../corpus-supply/service.js';
-import {
-  layerNativeBibleArtifacts,
-  type NativeFileArtifactProvenanceStore,
-  type NativeFileArtifactSource,
-} from './bible-artifact.js';
+import { layerNativeBibleArtifacts, type NativeFileArtifactSource } from './bible-artifact.js';
+import type { NativeFileArtifactProvenanceStore } from './file-artifact.js';
 
 const makeProvenanceStore = (): NativeFileArtifactProvenanceStore => {
   let current = Option.none<CorpusProvenance>();

@@ -32,9 +32,8 @@ import {
   CorpusSupply,
   type CorpusProvenance,
   TOPICS_SCHEMA_MAJOR,
-  TopicsArtifact,
 } from '@bible/core/corpus-supply';
-import { layerNativeFileArtifacts } from '@bible/core/corpus-supply/bun';
+import { layerNativeTopicsArtifacts } from '@bible/core/corpus-supply/bun';
 import { BunFileSystem } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Layer, Option, Schema } from 'effect';
@@ -88,8 +87,7 @@ const OFFERED_REVISION = corpusRevision('content-v4');
 const makeOfferingHost = (destination: string) => {
   const fetches: string[] = [];
   let provenance = Option.none<CorpusProvenance>();
-  const artifacts = layerNativeFileArtifacts({
-    artifact: TopicsArtifact,
+  const artifacts = layerNativeTopicsArtifacts({
     destination,
     // A provenance store that actually remembers, so a second run over this
     // host reads the generation the first one installed. The shipped SQLite
