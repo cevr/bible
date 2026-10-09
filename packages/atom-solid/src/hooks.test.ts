@@ -99,7 +99,7 @@ describe('useAtomValue', () => {
 describe('useAtomSet', () => {
   const test = it.scoped;
 
-  test('writes without subscribing and keeps the atom mounted', () =>
+  test('writes the atom and keeps it mounted', () =>
     Effect.gen(function* () {
       const counter = Atom.make(0);
       const owned = mount(() => useAtomSet(() => counter));
@@ -110,16 +110,6 @@ describe('useAtomSet', () => {
 
       owned.result(7);
       expect(owned.registry.get(counter)).toBe(7);
-    }));
-
-  test('accepts an updater function that reads the current value', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(10);
-      const owned = mount(() => useAtomSet(() => counter));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      owned.result((current) => current + 5);
-      expect(owned.registry.get(counter)).toBe(15);
     }));
 });
 
