@@ -681,6 +681,35 @@ export const robe = drawing({ timeline: make(), knobs: { size: 1 }, draw: (f) =>
     expect(found.knobs.map((k) => k.name)).toEqual(['size']);
   });
 
+  it('lights no literal the writer would refuse: a spread, a computed key or a key twice', () => {
+    const shadowed = (timeline: string) =>
+      ok(
+        sceneCode(
+          FILE,
+          `import { drawing } from 'k';
+export const robe = drawing({ timeline: ${timeline}, knobs: { size: 1 }, draw: (f) => f.at('lift') });
+`,
+          'robe',
+        ),
+      );
+    for (const [timeline, reason] of [
+      [
+        '{ lift: { dur: 1 }, ...overrides }',
+        'its object has a spread, so the value in effect is not provable',
+      ],
+      [
+        '{ lift: { dur: 1 }, [key]: { dur: 9 } }',
+        'its object has a computed key, so the value is not provable',
+      ],
+      ['{ lift: { dur: 1 }, lift: { dur: 9 } }', '"lift" is declared 2 times'],
+    ] as const) {
+      const found = shadowed(timeline);
+      expect(found.cues).toEqual([]);
+      expect(found.refused).toEqual([{ field: 'timeline', reason }]);
+      expect(found.knobs.map((k) => k.name)).toEqual(['size']);
+    }
+  });
+
   it('refuses a module with no such drawing, and one that does not parse', () => {
     expect(Result.isFailure(sceneCode(FILE, reading, 'nope'))).toBe(true);
     expect(Result.isFailure(sceneCode(FILE, 'export const = ;', 'robe'))).toBe(true);

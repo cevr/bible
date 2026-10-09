@@ -1158,14 +1158,32 @@ const readsIn = (program: Program): ReadonlyArray<Read> => {
   return found;
 };
 
-/** A literal's properties as the code view lists them: the property's own range (key to value), by name. */
-const writtenIn = (slot: Slot) =>
-  literalProperties(slot).flatMap((p) =>
+/**
+ * Why a literal's values are not provable, by the writer's own rule
+ * (`propertyOf`): a spread or a computed key could hide any of them, a key
+ * written twice hides one. None for a literal whose every property stands as written.
+ */
+const unprovable = (file: string, slot: Slot): Option.Option<string> => {
+  if (slot._tag !== 'Literal') return Option.none();
+  const names = literalProperties(slot).flatMap((p) => Option.toArray(keyName(p)));
+  return Arr.head(
+    ['', ...names].flatMap((name) => {
+      const found = propertyOf(file, 'the literal', slot.node, name);
+      return Result.match(found, { onSuccess: () => [], onFailure: (e) => [e.reason] });
+    }),
+  );
+};
+
+/** A literal's properties as the code view lists them: the property's own range (key to value), by name; none while the literal is not provable. */
+const writtenIn = (file: string, slot: Slot) => {
+  if (Option.isSome(unprovable(file, slot))) return [];
+  return literalProperties(slot).flatMap((p) =>
     Option.match(keyName(p), {
       onNone: () => [],
       onSome: (name) => [{ name, at: [p.start, p.end] satisfies CodeRange, value: p.value }],
     }),
   );
+};
 
 /** The ranges of `reads` of one kind, by name, in the order they stand. */
 const readsOf = (reads: ReadonlyArray<Read>, of: Reads, name: string): ReadonlyArray<CodeRange> =>
@@ -1193,7 +1211,7 @@ export const sceneCode = (
   Result.flatMap(parseModule(file, source), (program) =>
     Result.map(siteIn(file, source, program, name), (site): SceneRanges => {
       const reads = readsIn(program);
-      const cues = writtenIn(site.timeline);
+      const cues = writtenIn(file, site.timeline);
       const anchors = cues.flatMap(({ value }) => {
         if (value.type !== 'ObjectExpression') return [];
         return value.properties.flatMap((p) => {
@@ -1211,7 +1229,7 @@ export const sceneCode = (
       );
       return {
         cues: cues.map((c) => ({ name: c.name, at: c.at, reads: readsOf(reads, 'cue', c.name) })),
-        knobs: writtenIn(site.knobs).map((k) => ({
+        knobs: writtenIn(file, site.knobs).map((k) => ({
           name: k.name,
           at: k.at,
           reads: readsOf(reads, 'knob', k.name),
@@ -1222,8 +1240,11 @@ export const sceneCode = (
         })),
         refused: (['timeline', 'knobs'] as const).flatMap((field) => {
           const slot = site[field];
-          if (slot._tag !== 'Computed') return [];
-          return [{ field, reason: `it is \`${slot.text}\`, not an object literal` }];
+          if (slot._tag === 'Computed')
+            return [{ field, reason: `it is \`${slot.text}\`, not an object literal` }];
+          return Option.toArray(
+            Option.map(unprovable(file, slot), (reason) => ({ field, reason })),
+          );
         }),
       };
     }),
