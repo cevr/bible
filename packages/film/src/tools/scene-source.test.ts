@@ -16,6 +16,7 @@ import {
   readKnobs,
   readSpans,
   codeOf,
+  sceneCode,
   unlocatable,
 } from './scene-source.ts';
 
@@ -93,6 +94,21 @@ describe('scene source', () => {
     expect(readSpans(FILE, timed, 'hand')['bare']).toEqual({ at: 'speech', offset: 0.25, dur: 1 });
   });
 
+  it('lists the line that writes each cue and knob, so the inspector can cite it before the code is read', () => {
+    const found = ok(editable(FILE, scene, 'hand'));
+    expect(found.cues.map((c) => [c.name, c.line])).toEqual([
+      ['topple', 10],
+      ['shine', 11],
+      ['late', 12],
+      ['bare', 13],
+    ]);
+    expect(found.knobs.map((k) => [k.name, k.line])).toEqual([
+      ['palm', 16],
+      ['tilt', 17],
+      ['half', 18],
+    ]);
+  });
+
   it('adds an offset to a word pin after its word, which it keeps', () => {
     const pinned = scene.replace(
       "bare: { at: 'speech' },",
@@ -107,6 +123,7 @@ describe('scene source', () => {
     expect(marked).toBe(scene.replace('offset: 0.1, dur: 1.8 }', "offset: 0.1, until: 'gift' }"));
     expect(ok(editable(FILE, marked, 'hand')).cues[0]).toEqual({
       name: 'topple',
+      line: 10,
       offset: 'literal',
       dur: 'absent',
       until: 'literal',
@@ -478,6 +495,7 @@ export const hand = drawing({
     expect(found.cues).toEqual([
       {
         name: 'topple',
+        line: 10,
         offset: 'literal',
         dur: 'literal',
         until: 'absent',
@@ -487,6 +505,7 @@ export const hand = drawing({
       },
       {
         name: 'shine',
+        line: 11,
         offset: 'literal',
         dur: 'literal',
         until: 'absent',
@@ -496,6 +515,7 @@ export const hand = drawing({
       },
       {
         name: 'late',
+        line: 12,
         offset: 'computed',
         dur: 'absent',
         until: 'absent',
@@ -505,6 +525,7 @@ export const hand = drawing({
       },
       {
         name: 'bare',
+        line: 13,
         offset: 'absent',
         dur: 'absent',
         until: 'absent',
@@ -514,9 +535,9 @@ export const hand = drawing({
       },
     ]);
     expect(found.knobs).toEqual([
-      { name: 'palm', state: 'literal' },
-      { name: 'tilt', state: 'literal' },
-      { name: 'half', state: 'computed' },
+      { name: 'palm', state: 'literal', line: 16 },
+      { name: 'tilt', state: 'literal', line: 17 },
+      { name: 'half', state: 'computed', line: 18 },
     ]);
   });
 
@@ -590,5 +611,136 @@ export const bare = { timeline: a, draw: () => {} };
       'K.drawing({ timeline: a, draw: () => {} })',
       '{ timeline: a, draw: () => {} }',
     ]);
+  });
+});
+
+describe('a scene’s code', () => {
+  const reading = `import { drawing } from '@bible/film/canvas';
+
+const timeline = {
+  /** The robe lifts. */
+  lift: { mark: 'take', offset: 0.33, dur: 1.5 },
+  carry: { after: 'lift', dur: 2, ease: 'inQuad' },
+  rest: { at: 'speechEnd' },
+};
+
+export const robe = drawing({
+  timeline,
+  knobs: { atLoom: [960, 800], woven: 0.5, spare },
+  draw: (f) => {
+    const lift = f.at('lift');
+    const bob = f.cue('carry');
+    if (f.mark('take') > 1) f.knob('woven');
+    f.keys('lift', [[0, 1]]) + f.knob('woven') + f.staggerAt('carry', 0.5);
+    f.at('ghost');
+    f.knob('ghost');
+    [1, 2].at(0);
+    helper(f);
+  },
+});
+
+const helper = (f: Frame) => f.stagger('carry', 1, 3) + f.mark('later');
+`;
+
+  const code = () => ok(sceneCode(FILE, reading, 'robe'));
+  const texts = (ranges: ReadonlyArray<readonly [number, number]>) =>
+    ranges.map(([s, e]) => reading.slice(s, e));
+
+  it('locates each cue and knob where it is written, as the property of its literal', () => {
+    const { cues, knobs } = code();
+    expect(cues.map((c) => [c.name, reading.slice(...c.at)])).toEqual([
+      ['lift', "lift: { mark: 'take', offset: 0.33, dur: 1.5 }"],
+      ['carry', "carry: { after: 'lift', dur: 2, ease: 'inQuad' }"],
+      ['rest', "rest: { at: 'speechEnd' }"],
+    ]);
+    expect(knobs.map((k) => [k.name, reading.slice(...k.at)])).toEqual([
+      ['atLoom', 'atLoom: [960, 800]'],
+      ['woven', 'woven: 0.5'],
+      ['spare', 'spare'],
+    ]);
+  });
+
+  it('lists every call that reads a cue or knob by name, in the file, a helper’s too', () => {
+    const { cues, knobs } = code();
+    const readsOf = (name: string) => texts(cues.find((c) => c.name === name)?.reads ?? []);
+    expect(readsOf('lift')).toEqual(["f.at('lift')", "f.keys('lift', [[0, 1]])"]);
+    expect(readsOf('carry')).toEqual([
+      "f.cue('carry')",
+      "f.staggerAt('carry', 0.5)",
+      "f.stagger('carry', 1, 3)",
+    ]);
+    expect(readsOf('rest')).toEqual([]);
+    expect(texts(knobs.find((k) => k.name === 'woven')?.reads ?? [])).toEqual([
+      "f.knob('woven')",
+      "f.knob('woven')",
+    ]);
+  });
+
+  it('matches a name the scene declares: a read of one it does not, or of an array, lights nothing', () => {
+    const { cues, knobs } = code();
+    const all = [...cues, ...knobs].flatMap((s) => texts(s.reads));
+    expect(all.some((t) => t.includes('ghost') || t.includes('.at(0)'))).toBe(false);
+  });
+
+  it('lists the marks the code reads or anchors a cue at', () => {
+    expect(code().marks.map((m) => [m.name, texts(m.reads)])).toEqual([
+      ['take', ["'take'", "f.mark('take')"]],
+      ['later', ["f.mark('later')"]],
+    ]);
+  });
+
+  it('says why a timeline that is not a literal has no cues, and still lists the knobs', () => {
+    const computed = `import { drawing } from 'k';
+export const robe = drawing({ timeline: make(), knobs: { size: 1 }, draw: (f) => f.at('lift') });
+`;
+    const found = ok(sceneCode(FILE, computed, 'robe'));
+    expect(found.cues).toEqual([]);
+    expect(found.refused).toEqual([
+      { field: 'timeline', reason: 'it is `make()`, not an object literal' },
+    ]);
+    expect(found.knobs.map((k) => k.name)).toEqual(['size']);
+  });
+
+  it('lights no literal the writer would refuse: a spread, a computed key or a key twice', () => {
+    const shadowed = (timeline: string) =>
+      ok(
+        sceneCode(
+          FILE,
+          `import { drawing } from 'k';
+export const robe = drawing({ timeline: ${timeline}, knobs: { size: 1 }, draw: (f) => f.at('lift') });
+`,
+          'robe',
+        ),
+      );
+    for (const [timeline, reason] of [
+      [
+        '{ lift: { dur: 1 }, ...overrides }',
+        'its object has a spread, so the value in effect is not provable',
+      ],
+      [
+        '{ lift: { dur: 1 }, [key]: { dur: 9 } }',
+        'its object has a computed key, so the value is not provable',
+      ],
+      ['{ lift: { dur: 1 }, lift: { dur: 9 } }', '"lift" is declared 2 times'],
+    ] as const) {
+      const found = shadowed(timeline);
+      expect(found.cues).toEqual([]);
+      expect(found.refused).toEqual([{ field: 'timeline', reason }]);
+      expect(found.knobs.map((k) => k.name)).toEqual(['size']);
+    }
+  });
+
+  it('refuses a module with no such drawing, and one that does not parse', () => {
+    expect(Result.isFailure(sceneCode(FILE, reading, 'nope'))).toBe(true);
+    expect(Result.isFailure(sceneCode(FILE, 'export const = ;', 'robe'))).toBe(true);
+  });
+
+  it('keeps its ranges true after the file moves: the same text, read again, is the same ranges', () => {
+    const moved = `// a line more\n${reading}`;
+    const before = code();
+    const after = ok(sceneCode(FILE, moved, 'robe'));
+    expect(after.cues.map((c) => moved.slice(...c.at))).toEqual(
+      before.cues.map((c) => reading.slice(...c.at)),
+    );
   });
 });

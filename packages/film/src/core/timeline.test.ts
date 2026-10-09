@@ -20,6 +20,7 @@ import {
   cueProgress,
   dragPatch,
   endsLate,
+  liveAt,
   patchSpan,
   resolveTimeline,
   staggerAt,
@@ -62,6 +63,42 @@ describe('endsLate', () => {
     expect(endsLate(ending(4), 4)).toBe(false);
     expect(endsLate(ending(4 + CLOCK_EPSILON / 2), 4)).toBe(false);
     expect(endsLate(ending(4 + CLOCK_EPSILON * 10), 4)).toBe(true);
+  });
+});
+
+describe('what plays at a time', () => {
+  const at = (start: number, end: number): ResolvedCue => ({
+    start,
+    end,
+    dur: end - start,
+    ease: 'linear',
+    stagger: 0,
+  });
+  const cues = new Map<string, ResolvedCue>([
+    ['rise', at(1, 2)],
+    ['fall', at(2, 3)],
+    ['beat', at(2, 2)],
+  ]);
+  const names = (t: number) => liveAt(cues, t, 30).map((l) => l.name);
+
+  test('a cue is live from its start up to its end, and not at its end', () => {
+    expect(names(0.5)).toEqual([]);
+    expect(names(1)).toEqual(['rise']);
+    expect(names(1.999)).toEqual(['rise']);
+    expect(names(3)).toEqual([]);
+  });
+
+  test('a cue with no length is live on its frame only', () => {
+    expect(names(2)).toEqual(['fall', 'beat']);
+    expect(names(2 + 1 / 30 - 1e-6)).toEqual(['fall', 'beat']);
+    expect(names(2 + 1 / 30)).toEqual(['fall']);
+  });
+
+  test('a live cue carries how far through it the playhead is, as the frame reads it', () => {
+    expect(liveAt(cues, 1.25, 30)).toEqual([
+      { name: 'rise', progress: cueProgress(at(1, 2), 1.25) },
+    ]);
+    expect(liveAt(cues, 1.25, 30)[0]?.progress).toBeCloseTo(0.25, 9);
   });
 });
 

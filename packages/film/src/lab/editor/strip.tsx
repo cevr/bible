@@ -5,9 +5,10 @@
 // drag across a cue's lane beside its bar marks the in and out points, shown
 // as a band (a tap there seeks); a press elsewhere on the strip scrubs within
 // the scene. Its head holds the Snap toggle (S), and Cancel drag while a
-// grip is held: a finger's Shift and Escape. The cue lanes are Edit's: in
-// Note and Record, and on a phone in every mode but Edit, the strip folds
-// to its words (`player.css`, by the panel's mode on `data-mode`).
+// grip is held: a finger's Shift and Escape. The cue lanes are Edit's (and
+// Motion's on a laptop, for its loop): in Note, Compare and Record, and on a
+// phone in every mode but Edit, the strip folds to its words (`player.css`,
+// by the panel's mode on `data-mode`).
 
 import { For, Show } from '@solidjs/web';
 import { Effect, Option, Result } from 'effect';
@@ -16,7 +17,7 @@ import { DRAG_PX, Pointer, Surface } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { timecode } from '../../core/time.ts';
-import { endsLate } from '../../core/timeline.ts';
+import { endsLate, liveAt } from '../../core/timeline.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
 import { cueOf } from '../../command/selection.ts';
 import { BY_BUTTON } from '../../command/command.ts';
@@ -87,6 +88,10 @@ const CueRow = (props: CueRowProps) => {
   const { state: lab, meta } = useLab();
   const { actions } = useEditor();
   const scene = () => props.placed.spec.id;
+  // Lit while the playhead is inside the cue (`liveAt`): the Source view lights the same cues.
+  const live = () =>
+    liveAt(new Map([[props.name, props.cue]]), lab.T() - props.placed.start, meta.film.fps).length >
+    0;
   const title = () =>
     Option.match(Option.fromUndefinedOr(meta.stage.timelineOf(scene())[props.name]), {
       onNone: () => '',
@@ -126,6 +131,7 @@ const CueRow = (props: CueRowProps) => {
           ]}
           data-cue={props.name}
           data-scene={scene()}
+          data-live={Option.getOrUndefined(Option.liftPredicate('', live))}
           style={{
             left: pct(props.window(), props.cue.start),
             width: len(props.window(), props.cue.dur),

@@ -1,5 +1,5 @@
 // The page's host: the browser APIs a page reaches (animation frames, the
-// pointer, the keyboard, the clipboard, media elements, the address bar and
+// pointer, the keyboard, the clipboard, text highlights, media elements, the address bar and
 // a page load) as Effect services, built once at each page's root
 // (`mountRender`, `mountPlay`, `mountLab`, `mountReview`) from `BrowserHost.layer`
 // (`host-browser.ts`) and handed to everything on the page: the player's own
@@ -14,6 +14,7 @@ import type { Context } from 'effect';
 import { pageMove } from '../core/api.ts';
 import type { Clipboard } from './clipboard.ts';
 import type { Frames } from './frames.ts';
+import type { Highlights } from './highlights.ts';
 import type { Keys } from './keys.ts';
 import type { Media } from './media.ts';
 import { PageLoad } from './page-load.ts';
@@ -29,6 +30,7 @@ import type { Viewport } from './viewport.ts';
 export type BrowserServices =
   | Clipboard
   | Frames
+  | Highlights
   | Keys
   | Location
   | Media

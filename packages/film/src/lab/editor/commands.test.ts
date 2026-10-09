@@ -9,7 +9,7 @@ import { BY_BUTTON, Unfit, quiet, refused } from '../../command/command.ts';
 import { contextAt, withSelection } from '../../command/context.ts';
 import { cueOf, selectionText } from '../../command/selection.ts';
 import { ChangeId, RequestId } from '../../core/schema.ts';
-import { editorCommands } from './commands.ts';
+import { editorCommands, stepNamed } from './commands.ts';
 import { CueWrite, StepWrite, type CueGrip } from './grip.ts';
 import { EditState } from './machine.ts';
 import { notTaken } from './format.ts';
@@ -118,11 +118,33 @@ describe('Undo by key or button steps the change its label names', () => {
     expect(stepped).toEqual(['undo c-rise']);
   });
 
+  test("the header's title and the command read the one rule: the top change while the history is current, none once the page has changed it", () => {
+    const top = { target: 'cue rise offset', change: ChangeId.make('c-rise') };
+    const steps = (stackCurrent: boolean) => ({
+      undoable: () => Option.some(top),
+      stackCurrent: () => stackCurrent,
+    });
+    expect(stepNamed(steps(true), 'undo')).toEqual(Option.some(top));
+    expect(stepNamed(steps(false), 'undo')).toEqual(Option.none());
+    expect(stepNamed({ ...steps(true), undoable: () => Option.none() }, 'redo')).toEqual(
+      Option.none(),
+    );
+  });
+
   test('a change this page made since it read the history: the label names none, and the step is the newest', () => {
     const { undo, stepped } = stepsOf(false);
     expect(undo.labelIn?.(ctx)).toBe('Undo');
     Effect.runSync(undo.run(ctx, BY_BUTTON));
     expect(stepped).toEqual(['undo newest']);
+  });
+});
+
+describe("the findings' walk on a phone", () => {
+  test("names the command menu's row, since the Lab's findings carry no time to tap", () => {
+    const { commands } = commandsIn(EditState.Idle({ note: '' }));
+    const touch = (id: string) => commands.find((c) => c.id === id)?.touch;
+    expect(touch('check.finding-next')).toBe('the command menu, then Next finding');
+    expect(touch('check.finding-previous')).toBe('the command menu, then Previous finding');
   });
 });
 

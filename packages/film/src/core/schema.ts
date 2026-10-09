@@ -823,6 +823,17 @@ export const NoteRange = Schema.Struct({ from: Seconds, to: Seconds }).check(
 );
 export type NoteRange = typeof NoteRange.Type;
 
+/**
+ * A line of a scene's file a note is about: the file, the line (from 1) and
+ * the line's text as it stood, so a reader finds it after the file moves.
+ */
+export const NoteSource = Schema.Struct({
+  file: Schema.String,
+  line: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+  text: Schema.String,
+});
+export type NoteSource = typeof NoteSource.Type;
+
 /** What the lab sends for a new note: the frame, where it was marked, and what it says. */
 export const NoteDraft = Schema.Struct({
   scene: Schema.String,
@@ -845,6 +856,8 @@ export const NoteDraft = Schema.Struct({
    * Optional and additive: a note without one is about its frame.
    */
   range: Schema.optionalKey(NoteRange),
+  /** The line of its scene's file it is about (written with the Source view held on a line). Optional and additive. */
+  source: Schema.optionalKey(NoteSource),
   box: Schema.optionalKey(NoteBox),
   ink: Schema.optionalKey(Schema.Array(InkStroke)),
   text: Schema.String.check(Schema.isNonEmpty()),
@@ -1064,9 +1077,18 @@ export const SceneSource = Schema.Struct({
       untilOffset: Schema.optionalKey(FieldState),
       ease: FieldState,
       stagger: FieldState,
-    } satisfies Record<keyof CuePatch | 'name', Schema.Top>),
+      /** Additive: the line (from 1) that writes the cue; an answer without it (a server before it) has the inspector wait for the code. */
+      line: Schema.optionalKey(Schema.Int),
+    } satisfies Record<keyof CuePatch | 'name' | 'line', Schema.Top>),
   ),
-  knobs: Schema.Array(Schema.Struct({ name: Schema.String, state: FieldState })),
+  knobs: Schema.Array(
+    Schema.Struct({
+      name: Schema.String,
+      state: FieldState,
+      /** Additive: the line (from 1) that writes the knob, likewise. */
+      line: Schema.optionalKey(Schema.Int),
+    }),
+  ),
   /**
    * A field the lab will not write, and why: the scene reads a timeline or
    * knobs no literal declares (the registry overrides it), or one other
@@ -1077,6 +1099,45 @@ export const SceneSource = Schema.Struct({
   ),
 });
 export type SceneSource = typeof SceneSource.Type;
+
+/** A stretch of a scene file's text: `[start, end)` as offsets into `SceneCode.text` (UTF-16 units, so `text.slice(start, end)`). */
+export const CodeRange = Schema.Tuple([Schema.Int, Schema.Int]);
+export type CodeRange = typeof CodeRange.Type;
+
+/** A cue or a knob in a scene's code: where its literal is written, and every call that reads it by name. */
+const CodeSite = Schema.Struct({
+  name: Schema.String,
+  /** Its property in the `timeline` or `knobs` literal: `lift: { mark: 'take', dur: 1.5 }`. */
+  at: CodeRange,
+  reads: Schema.Array(CodeRange),
+});
+
+/**
+ * `GET /api/films/<film>/scenes/<scene>/code`: the scene file as it stands, and
+ * where in it each cue and knob is written and read, for the Source view to
+ * light what plays. The ranges come from the parse the writes use
+ * (`tools/scene-source.ts`). A read is matched by name: a call of a
+ * frame's reader (`at`, `cue`, `keys`, `stagger`, `staggerAt`, `knob`,
+ * `mark`) whose first argument is a string naming a cue or knob the scene
+ * declares, or any mark; a wrong match lights the wrong span and writes
+ * nothing. A cue's or a knob's literal the lab cannot locate is not listed,
+ * and `refused` says why.
+ */
+export const SceneCode = Schema.Struct({
+  scene: Schema.String,
+  /** The scene file, relative to the film's folder. */
+  file: Schema.String,
+  /** The file's text now. */
+  text: Schema.String,
+  cues: Schema.Array(CodeSite),
+  knobs: Schema.Array(CodeSite),
+  /** Narration marks the code reads (`f.mark('take')`), or anchors a cue at (`mark: 'take'`). */
+  marks: Schema.Array(Schema.Struct({ name: Schema.String, reads: Schema.Array(CodeRange) })),
+  refused: Schema.Array(
+    Schema.Struct({ field: Schema.Literals(['timeline', 'knobs']), reason: Schema.String }),
+  ),
+});
+export type SceneCode = typeof SceneCode.Type;
 
 /**
  * `GET /api/films/:film/scenes/:scene/head`: the scene's timeline and knobs as the file

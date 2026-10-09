@@ -4,7 +4,8 @@
 // while something is selected, peeking one line above the dock, opened whole
 // by a tap on its head. Its open state is the selection, which the URL keeps
 // (`?cue=`, `?knob=`, `?note=`): Back closes it as it unpicks, and its
-// Close, Escape or a swipe unpicks by the sheets' one rule (`dismiss`).
+// Close, Escape or a swipe unpicks by the sheets' one rule (`dismiss`). The
+// sheet has a second face, the scene's code (Inspect · Source, `?code=`).
 
 import { type JSX, Show } from '@solidjs/web';
 import { Option } from 'effect';
@@ -26,6 +27,10 @@ export const SelectionSheet = (props: {
   readonly peek: string;
   readonly dismiss: () => void;
   readonly children: JSX.Element;
+  /** The sheet's further faces around `children` (the editor's: Inspect · Source); without it the sheet shows `children` alone. */
+  readonly faces?: (children: JSX.Element) => JSX.Element;
+  /** Whether the sheet opens peeked (one line above the dock); false opens it whole. Defaults to peeked. */
+  readonly peeked?: boolean;
 }) => {
   const phone = useMatches(props.host, PHONE);
   return (
@@ -40,13 +45,16 @@ export const SelectionSheet = (props: {
           of={of()}
           role="inspector"
           class="lab-selection-sheet"
-          peeked
+          peeked={props.peeked ?? true}
           kind={of()._tag.toLowerCase()}
           title={props.peek}
           initialFocus={() => false}
           onClose={props.dismiss}
         >
-          {props.children}
+          {Option.match(Option.fromUndefinedOr(props.faces), {
+            onNone: () => props.children,
+            onSome: (faces) => faces(props.children),
+          })}
         </Sheet>
       )}
     </Show>

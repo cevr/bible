@@ -167,6 +167,25 @@ describe('film notes, as an agent reads it', () => {
     }).pipe(Effect.provide(Fresh)),
   );
 
+  it.live('prints the line of the scene’s file a note cites, with its text as it stood', () =>
+    Effect.gen(function* () {
+      yield* (yield* NotesStore).add(
+        film,
+        {
+          scene: 'turn',
+          T: 5.35,
+          frame: 160,
+          source: { file: 'scenes/turn.ts', line: 118, text: 'if (f.at("push") > 0.5) {' },
+          text: 'this branch fires late',
+        },
+        png,
+      );
+      expect((yield* cli('tiny')).lines[0]).toBe(
+        `note id=n1 seq=1 status=open scene=turn T=5.35 frame=160 source=scenes/turn.ts:118 line="if (f.at(\\"push\\") > 0.5) {" replies=0 still=${LAB}/tiny/stills/n1.png text="this branch fires late"`,
+      );
+    }).pipe(Effect.provide(Fresh)),
+  );
+
   it.live(
     'a reply prints what the user said since the agent last replied: new notes and user replies',
     () =>

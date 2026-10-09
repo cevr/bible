@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Lab · Source · cold · righteousness-by-faith</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;650&display=swap"
+    />
+    <link rel="stylesheet" href="../../packages/film/src/player/tokens.css" />
+    <link rel="stylesheet" href="kit.css" />
+    <style>
+      /* ── Source: the scene's code, lit by the clock (design language §5, §7) ── */
+      :root {
+        --source-w: 480px;
+        --state-live: var(
+          --text-1
+        ); /* a cue playing at the frame: its lane, its literal, its meter */
+      }
+      body {
+        margin: 0;
+        background: var(--surface-0);
+        color: var(--text-1);
+        font-family: var(--font);
+      }
+      .work {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1px;
+        background: var(--surface-0);
+      }
+      .pic {
+        aspect-ratio: 16 / 9;
+        background: var(--surface-0);
+        display: grid;
+        place-items: center;
+        color: var(--text-3);
+        font-size: var(--fs-2);
+      }
+      .strip {
+        background: var(--surface-1);
+        padding: var(--s-2) var(--gutter);
+        display: grid;
+        gap: var(--s-1);
+        font-size: var(--fs-1);
+        color: var(--text-2);
+      }
+      .lane {
+        height: 14px;
+        position: relative;
+        background: var(--surface-2);
+      }
+      .lane i {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        background: var(--surface-3);
+      }
+      .lane i[data-live] {
+        background: var(--state-live);
+      }
+      .lane b {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--accent);
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: var(--surface-1);
+      }
+      .inspector {
+        background: var(--surface-1);
+        padding: var(--s-3) var(--gutter);
+        font-size: var(--fs-2);
+        color: var(--text-2);
+      }
+      .lab-source {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        background: var(--surface-1);
+      }
+      .lab-source-head {
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+        min-height: var(--panel-head-h);
+        padding: 0 var(--gutter);
+        border-bottom: var(--border);
+        font-size: var(--fs-2);
+        line-height: var(--lh-2);
+        color: var(--text-2);
+      }
+      .lab-source-live {
+        flex: 1;
+        text-align: right;
+        color: var(--state-live);
+      }
+      .lab-source-scroll {
+        overflow: auto;
+        max-height: 55dvh;
+      }
+      .lab-source-page {
+        --source-lh: var(--body-lh);
+        position: relative;
+        display: grid;
+        grid-template-columns: auto max-content;
+        min-width: 100%;
+        font-size: var(--body-fs);
+        line-height: var(--source-lh);
+      }
+      .lab-source-numbers,
+      .lab-source-text {
+        margin: 0;
+        font: inherit;
+        line-height: var(--source-lh);
+      }
+      .lab-source-numbers {
+        position: sticky;
+        left: 0;
+        padding: 0 var(--s-2) 0 var(--gutter);
+        text-align: right;
+        color: var(--text-3);
+        background: var(--surface-1);
+      }
+      .lab-source-text {
+        padding: 0 var(--gutter) 0 var(--s-2);
+        white-space: pre;
+      }
+      .lit {
+        background: color-mix(in srgb, var(--state-live) 26%, transparent);
+      }
+      .read {
+        background: color-mix(in srgb, var(--state-live) 11%, transparent);
+      }
+      .held,
+      .meter {
+        position: absolute;
+        left: 0;
+        pointer-events: none;
+      }
+      .held {
+        right: 0;
+        height: var(--source-lh);
+        background: var(--accent-wash);
+        box-shadow: inset 2px 0 var(--accent);
+      }
+      .meter {
+        height: 2px;
+        background: var(--state-live);
+      }
+      .face {
+        display: flex;
+        width: 100%;
+        margin-bottom: var(--s-2);
+      }
+      .sheet {
+        background: var(--surface-1);
+        border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+        box-shadow: var(--shadow-pop);
+        padding: var(--s-3) var(--gutter) 0;
+      }
+      .at {
+        color: var(--accent);
+        margin-left: var(--s-2);
+      }
+      .phone-only {
+        display: none;
+      }
+      @media (max-width: 899px) {
+        .laptop-only {
+          display: none;
+        }
+        .phone-only {
+          display: block;
+        }
+      }
+      @media (min-width: 900px) {
+        .work {
+          grid-template-columns: minmax(0, 1fr) var(--source-w) var(--inspector-w);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="work">
+      <div class="main">
+        <div class="pic">the picture</div>
+        <div class="strip" aria-label="Strip">
+          <span>cold · 00:00:02:07</span>
+          <div class="lane">
+            <i style="left: 8%; width: 26%" data-live></i><i style="left: 40%; width: 18%"></i
+            ><b style="left: 21%"></b>
+          </div>
+          <span>rise (playing) · fall</span>
+        </div>
+      </div>
+
+      <aside class="col laptop-only" aria-label="Source">
+        <section class="lab-source" data-role="source">
+          <header class="lab-source-head">
+            <span>scenes/cold.ts</span>
+            <span class="lab-source-live">rise</span>
+            <button type="button" class="sh-btn" aria-pressed="true">Follow</button>
+            <button type="button" class="sh-btn">Close</button>
+          </header>
+          <div class="lab-source-scroll">
+            <div class="lab-source-page">
+              <pre class="lab-source-numbers">
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11</pre>
+              <pre class="lab-source-text"><code>import { drawing } from './drawing.ts';
+
+export const cold = drawing({
+  timeline: {
+    <span class="lit">rise: { mark: 'rise', dur: 0.6 }</span>,
+    fall: { mark: 'fall', dur: 0.4 },
+  },
+  draw: (f) => {
+    const lift = <span class="read">f.at('rise')</span>;
+  },
+});</code></pre>
+              <i class="held" style="top: calc(8 * var(--source-lh))"></i>
+              <i class="meter" style="top: calc(5 * var(--source-lh) - 2px); width: 52%"></i>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <aside class="inspector">
+        <div>cold · cue rise <span class="at">scenes/cold.ts:5</span></div>
+      </aside>
+    </div>
+
+    <div class="sheet phone-only" aria-label="Selection">
+      <div class="sh-seg face">
+        <button type="button" class="sh-btn" aria-pressed="false">Inspect</button>
+        <button type="button" class="sh-btn" aria-pressed="true">Source</button>
+      </div>
+      <section class="lab-source" data-role="source">
+        <header class="lab-source-head">
+          <span>scenes/cold.ts</span>
+          <span class="lab-source-live">rise</span>
+          <button type="button" class="sh-btn" aria-pressed="true">Follow</button>
+        </header>
+        <div class="lab-source-scroll">
+          <div class="lab-source-page">
+            <pre class="lab-source-numbers">
+3
+4
+5
+6
+7</pre>
+            <pre class="lab-source-text"><code>export const cold = drawing({
+  timeline: {
+    <span class="lit">rise: { mark: 'rise', dur: 0.6 }</span>,
+    fall: { mark: 'fall', dur: 0.4 },
+  },</code></pre>
+            <i class="meter" style="top: calc(3 * var(--source-lh) - 2px); width: 52%"></i>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

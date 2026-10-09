@@ -155,3 +155,28 @@ export const fitsPhone = (page: Tab, layer?: string, within = WAIT_MS) =>
     within,
     say: (found) => `the page does not fit the window (chrome at most ${CHROME_MAX}): ${found}`,
   });
+
+/**
+ * A script naming each box at or inside `selector` that holds more than its
+ * width shows and scrolls sideways to reach it (`fitsPhone` reads the page's
+ * own scroll, which a box that scrolls on its own hides): a code view's inner
+ * scroller, not a strip that scrolls on purpose. Empty when none does.
+ */
+const sidewaysBoxes = (selector: string) => `(() => {
+  const roots = [...document.querySelectorAll(${jsonOf(selector)})];
+  const boxes = roots.flatMap((r) => [r, ...r.querySelectorAll('*')]);
+  return boxes
+    .filter((el) => {
+      const s = getComputedStyle(el);
+      const reaches = s.overflowX === 'auto' || s.overflowX === 'scroll' || s.overflowX === 'hidden';
+      return reaches && el.checkVisibility() && el.scrollWidth > el.clientWidth + 1;
+    })
+    .map((el) => el.className + ' ' + el.scrollWidth + '>' + el.clientWidth);
+})()`;
+
+/** Wait until nothing at or inside `selector` holds more than its width shows. */
+export const noSidewaysBox = (page: Tab, selector: string) =>
+  page.until(`${sidewaysBoxes(selector)}.length === 0`, {
+    now: sidewaysBoxes(selector),
+    say: (found) => `a box scrolls sideways inside ${selector}: ${found}`,
+  });

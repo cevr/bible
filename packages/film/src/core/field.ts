@@ -47,6 +47,19 @@ export const inspected = (annotation: FieldAnnotation) => ({
   field: annotation,
 });
 
+/** How a field prints its value: to the thousandth, as the files keep it, without grouping. */
+export const FIELD_FORMAT: Intl.NumberFormatOptions = {
+  maximumFractionDigits: 3,
+  useGrouping: false,
+};
+
+/** The scene files' notation, whatever the browser's language: `0.42`, never `0,42`. */
+export const FIELD_LOCALE = 'en-US';
+
+/** `value` as a field prints it (`0.433`, `120`, `-0.004`): the one rule of the field, the peek and the receipts' neighbours. */
+export const printField = (value: number): string =>
+  new Intl.NumberFormat(FIELD_LOCALE, FIELD_FORMAT).format(value);
+
 /** Which step a control takes: Shift's coarse, Alt's fine, or the plain one. */
 type Step = 'normal' | 'coarse' | 'fine';
 

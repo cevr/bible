@@ -10,7 +10,7 @@ import { Context, Effect, FileSystem, Layer, Path, Schema } from 'effect';
 import { HttpPlatform } from 'effect/http';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { labUrls } from '../core/api.ts';
-import { HeadSource, LabWrite, SceneSource } from '../core/schema.ts';
+import { HeadSource, LabWrite, SceneCode, SceneSource } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmModuleInvalid } from './errors.ts';
 import { FilmFolder, FilmRepo } from './film-repo.ts';
@@ -99,6 +99,28 @@ const read = Effect.fn('test.read')(function* () {
 });
 
 describe('lab source routes', () => {
+  it.effect('the code route answers the file text and where each cue and knob is written', () =>
+    Effect.gen(function* () {
+      const lab = yield* labHandler({ hosts: [] });
+      const res = yield* Effect.promise(() =>
+        lab(new Request(at(labUrls.scenes.code({ params: { film: 'f', scene: 'hand' } }))), bound),
+      );
+      expect(res.status).toBe(200);
+      const code = yield* Schema.decodeUnknownEffect(SceneCode)(
+        yield* Effect.promise(() => res.json()),
+      );
+      expect(code.file).toBe('scenes/hand.ts');
+      expect(code.text).toBe(yield* read());
+      const written = (range: ReadonlyArray<number>) => code.text.slice(range[0], range[1]);
+      expect(code.cues.map((c) => written(c.at).split(':')[0])).toEqual(['topple', 'late']);
+      expect(code.knobs.map((k) => written(k.at).split(':')[0])).toEqual(['palm']);
+      const missing = yield* Effect.promise(() =>
+        lab(new Request(at(labUrls.scenes.code({ params: { film: 'f', scene: 'nope' } }))), bound),
+      );
+      expect(missing.status).toBe(404);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
   it.effect(
     'a cue write lands in the file and answers with the span, its timing and the check',
     () =>

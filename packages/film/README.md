@@ -1246,8 +1246,9 @@ so a key rebound in `?` reads as rebound.
 - **Mode tray**: the segmented toolbar at the head of the lab's inspector,
   Edit · Note · Motion · Compare · Record (`lab/mode.ts`): one pressed, and
   the inspector shows that tool only, under no heading repeating it. Kept
-  per viewer in the browser; a cited note opens on Note, and a cited beat
-  the film lists on Record.
+  per viewer in the browser; a cited note opens on Note, a cited beat
+  the film lists on Record, and a cited cue or knob on Edit (when the mode
+  kept does not show it already: Motion does, on a laptop).
 - **HUD**: the readout laid over or beside the picture: the player's bar
   (scene, time; its keys legend hidden until asked for).
 - **Inspector**: the panel that shows and edits the selected thing: in the
@@ -1625,6 +1626,9 @@ seconds into its scene, which an earlier scene's re-take does not move: the
 note's frame now is the scene's `start=` (`film cues <film> <scene>`) plus
 `local`. `range=3.20-4.00` (on a note that has one, its scope chip's range)
 is the stretch of its scene the note is about, in the same scene seconds.
+`source=scenes/hand.ts:118 line="…"` (on a note written with the Source view
+held on a line) is the line of the scene's file the note is about, with its
+text as it stood, so the line is found after the file moves.
 
 `--watch` prints each new note, and each reply from the user (`reply id=…
 by=user … still=… text="…"`), once per run, starting past the current cursor
@@ -1644,11 +1648,33 @@ at the same frame and pick, kept in its place (`/films/<film>/lab/hand?cue=toppl
 `?knob=palm`); review the
 change with `git diff`.
 
+The Source view shows a scene's file (`GET /films/<film>/scenes/<scene>/code`)
+a row to a line, with the cues playing at the frame lit where the code writes
+them and reads them, the cue or knob selected lit where it is written, the
+knobs the frame read lit (`player.knobReads()`), a meter on each playing
+literal's line, and a held line. A long line wraps under its own number, on a
+phone and on a laptop alike (one layout; the view never scrolls sideways). It
+is closed at rest and reads nothing: `?code=follow` opens it following the
+playhead, `?code=<line>` holds a line, and the inspector's `file:line` (from the
+small `…/scenes/<scene>/source` answer, which names each cue's and knob's `line`,
+so selecting reads no code) opens it on that cue's or knob's line. Inside the
+open view a tap on a line holds it and selects the cue or knob written there; a
+long press or right-click on it opens the page's menu with Note this line (the
+note's scope chip cites `file:line`) and Copy link; Follow in its head says
+whether the view scrolls with the frame, a hand on the scroll lets go of it, and
+Play or pressing Follow takes it back. A read the server refuses says why, with
+Retry and Close. On a laptop it is a column beside the picture; on a phone it
+is the selection sheet's second face (Inspect · Source) in Edit, or a sheet of
+its own while nothing is selected and in every other mode; closing the sheet
+closes the selection and the view in one history step. ⇧C and the command menu
+(⌘K, and a phone's menu button) open and close it; nothing stands for it at
+rest.
+
 On a phone (below 900 px) the selected cue's or knob's fields, and the
 selected note's reply, stand in the selection's sheet
 (`lab/selection-sheet.tsx`, over the review's `Sheet`): it peeks one line
-above the dock (`cue rise · offset 0.00 · dur 0.60 · ease inOutCubic`,
-`peekText` in `lab/editor/format.ts`; `note n1 · one · … · open`), opens
+above the dock (`cue rise · offset 0 · dur 0.6 · ease inOutCubic`, each
+value as its field prints it; `peekText` in `lab/editor/format.ts`; `note n1 · one · … · open`), opens
 whole on a tap of its head, and its open state is the selection: Back closes
 it as it unpicks, and Close, Escape or a swipe unpick by the review sheets'
 one rule (`useSheetDismissal`: Back over a tap's pick when the entry before it
@@ -1657,7 +1683,8 @@ follows to pick none).
 
 | Route                                              | What it does                                                                                                                                                                                                                 |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`                                                                                                                             |
+| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`, and the `line` that writes each cue and knob                                                                               |
+| `GET /api/films/<film>/scenes/:scene/code`         | the scene file's text now and, as `[start, end)` ranges of it, where each cue and knob is written and every call that reads a cue, knob or narration mark by name (`SceneCode`; read-only, the Source view's lit spans)      |
 | `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `untilOffset?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                                                                                          |
 | `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                                                                                                    |
 | `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under; `{change?}`: that change only, while it is the newest, else a 409 `StepNotNewest`) |

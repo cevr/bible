@@ -120,6 +120,7 @@ import {
   PageBuild,
   ReplyPost,
   RequestId,
+  SceneCode,
   SceneSource,
 } from './schema.ts';
 import { KeepPost, StudioAttempts, StudioBeats, StudioTake, TakePost } from './studio.ts';
@@ -424,6 +425,12 @@ class ScenesGroup extends HttpApiGroup.make('scenes').add(
   HttpApiEndpoint.get('source', `${FILM}/scenes/:scene/source`, {
     params: { ...film, scene: Schema.String },
     success: SceneSource,
+    error: Refusals,
+  }),
+  /** The scene file's text now, and where its cues, knobs and marks are written and read (the Source view). */
+  HttpApiEndpoint.get('code', `${FILM}/scenes/:scene/code`, {
+    params: { ...film, scene: Schema.String },
+    success: SceneCode,
     error: Refusals,
   }),
   HttpApiEndpoint.get('head', `${FILM}/scenes/:scene/head`, {
@@ -885,7 +892,9 @@ const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off', h
 
 /**
  * The lab's selection keys: a cue or a knob of the path's scene, a note, and
- * the studio's beat (a scene's take; with none the studio is on the path's).
+ * the studio's beat (a scene's take; with none the studio is on the path's),
+ * and the Source view open (`code`: `follow`, or a line of the scene's file;
+ * `lab/source/open.ts`), shut with the key absent.
  */
 const LabSelection = Field.struct({
   cue: cited,
@@ -893,6 +902,7 @@ const LabSelection = Field.struct({
   note: cited,
   beat: cited,
   view: compareView,
+  code: cited,
 });
 
 /**
@@ -1044,7 +1054,7 @@ const START = { t: Option.none<number>() };
 const NOTHING_HEARD = { heard: '', variant: '', picture: '', only: '', findings: false };
 
 /** The lab's selection keys, none set. */
-const NOTHING_SELECTED = { cue: '', knob: '', note: '', beat: '', view: 'off' as const };
+const NOTHING_SELECTED = { cue: '', knob: '', note: '', beat: '', view: 'off' as const, code: '' };
 
 /** What the lab has selected in a scene: a cue or a knob by name, a note by id, the studio's beat. */
 interface LabPicked {
@@ -1053,6 +1063,8 @@ interface LabPicked {
   readonly note?: string;
   readonly beat?: string;
   readonly view?: CompareView;
+  /** The Source view open (`?code=`): `follow` or a line. */
+  readonly code?: string;
 }
 
 /** A time for the hash, when there is one. */

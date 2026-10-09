@@ -7,7 +7,7 @@
 // receipt it lands with (the page's toast, `lab/command/receipts.tsx`).
 
 import { For, Show } from '@solidjs/web';
-import { Option, Result } from 'effect';
+import { Boolean as Bool, Option, Result } from 'effect';
 import type { ParentProps } from 'solid-js';
 import { createMemo } from 'solid-js';
 import type { SceneSpec } from '../../canvas/film.ts';
@@ -29,8 +29,11 @@ import { Lab, useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY, findingsIn, peekText } from './format.ts';
 import { SelectionSheet } from '../selection-sheet.tsx';
+import { Source } from '../source/index.ts';
 import { hubKeys } from '../command/changes.ts';
 import { countState } from '../scenes/marks.ts';
+import { PHONE, useMatches } from '../viewport.ts';
+import { stepNamed } from './commands.ts';
 import { cueCommit, cueRefusal } from './grip.ts';
 
 /** A small drawing of an ease: 0→1 across, with room for an overshoot. */
@@ -79,7 +82,10 @@ const CueFields = (props: CueFieldsProps) => {
     });
   return (
     <div class="lab-edit-cue">
-      <div class="lab-edit-title">{`${scene()} · cue ${props.name}`}</div>
+      <div class="lab-edit-title">
+        {`${scene()} · cue ${props.name}`}
+        <Source.At of="cue" scene={scene()} name={props.name} />
+      </div>
       <div class="lab-edit-grid">
         <Key>anchor</Key>
         <Val>{anchorText(props.span)}</Val>
@@ -165,20 +171,17 @@ export const History = () => {
     Option.flatMap(state.report(), (r) => Option.fromUndefinedOr(r[verb]));
   // Each names its key as bound now: a rebound key reads as rebound.
   const keys = hubKeys(meta.hub);
-  // It names what the step will take: the stack's top as the page read it, the newest once
-  // the page has changed the stack since (`edit.undo`'s label says the same).
+  // It names what the step will take (`stepNamed`, the rule `edit.undo`'s label reads too).
+  const steps = { undoable: stepOf, stackCurrent: state.stackCurrent };
   const title = (verb: 'undo' | 'redo') =>
     keys.titled(
       Option.match(stepOf(verb), {
         onNone: () => `${verb} (nothing to ${verb})`,
-        onSome: (s) =>
-          Option.match(
-            Option.liftPredicate(s.target, () => state.stackCurrent()),
-            {
-              onNone: () => verb,
-              onSome: (target) => `${verb} ${target}`,
-            },
-          ),
+        onSome: () =>
+          Option.match(stepNamed(steps, verb), {
+            onNone: () => verb,
+            onSome: (s) => `${verb} ${s.target}`,
+          }),
       }),
       `edit.${verb}`,
     );
@@ -228,6 +231,13 @@ const Findings = () => {
   const { state } = useEditor();
   const keys = hubKeys(meta.hub);
   const shown = createMemo(() => findingsIn(state.findings(), meta.film.placed, lab.scene()));
+  // A phone has no F: its walk is the command menu's row.
+  const phone = useMatches(meta.host, PHONE);
+  const walk = () =>
+    Bool.match(phone(), {
+      onTrue: () => 'Next finding in the command menu',
+      onFalse: () => keys.first('check.finding-next'),
+    });
   return (
     <section
       class="lab-group lab-findings-group"
@@ -247,7 +257,7 @@ const Findings = () => {
       </Show>
       <Show when={shown().elsewhere > 0}>
         <p class="lab-findings-elsewhere">
-          {`${shown().elsewhere} in other scenes · ${keys.first('check.finding-next')} walks to them`}
+          {`${shown().elsewhere} in other scenes · ${walk()} walks to them`}
         </p>
       </Show>
     </section>
@@ -283,11 +293,7 @@ export const Section = (props: ParentProps) => {
       onNone: () => '',
       onSome: (s) => {
         lab.revision();
-        return peekText(
-          s,
-          state.fieldsOf(s),
-          Option.map(Option.fromUndefinedOr(meta.stage.cuesOf(s.scene).get(s.name)), (c) => c.ease),
-        );
+        return peekText(s, state.fieldsOf(s), meta.stage.cuesOf(s.scene));
       },
     });
   return (
@@ -299,7 +305,9 @@ export const Section = (props: ParentProps) => {
             hub={meta.hub}
             of={lab.selection()}
             peek={peek()}
-            dismiss={actions.dismissSelection}
+            dismiss={actions.dismissSheet}
+            peeked={Option.isNone(lab.code())}
+            faces={(inspector) => <Source.Faces>{inspector}</Source.Faces>}
           >
             <Show when={Option.getOrUndefined(cueSelected())} keyed>
               {(s: LabSelection) => <CueInspector selection={s} />}

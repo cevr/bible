@@ -20,6 +20,11 @@ const fields = (note: Note) => {
     Option.fromNullishOr(note.range),
     (r) => ` range=${r.from.toFixed(2)}-${r.to.toFixed(2)}`,
   );
+  // The line of the scene's file the note is about, and its text as it stood (the file may have moved since).
+  const source = Option.map(
+    Option.fromNullishOr(note.source),
+    (s) => ` source=${s.file}:${s.line} line=${quoted(s.text)}`,
+  );
   const box = Option.map(
     Option.fromNullishOr(note.box),
     (b) => ` box=${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.w)}x${Math.round(b.h)}`,
@@ -33,14 +38,14 @@ const fields = (note: Note) => {
   });
   return [
     `scene=${note.scene} T=${note.T.toFixed(2)}${local} frame=${note.frame}`,
-    ...[cue, mark, range, box, ink].map((field) => Option.getOrElse(field, () => '')),
+    ...[cue, mark, range, source, box, ink].map((field) => Option.getOrElse(field, () => '')),
   ].join('');
 };
 
 /**
  * A note as of change `seq` (it was made then, or last changed then):
  * `note id=n3 seq=3 status=open scene=hand T=230.38 local=4.12 frame=6911 cue=topple:end ... still=/…/n3.png text="…"`
- * (`local=` and `range=3.20-4.00` only on a note that has them).
+ * (`local=`, `range=3.20-4.00` and `source=scenes/hand.ts:118 line="…"` only on a note that has them).
  */
 export const noteLine = (at: NotesPaths, note: Note, seq: number) =>
   `note id=${note.id} seq=${seq} status=${note.status} ${fields(note)} replies=${note.thread.length} still=${at.stills}/${note.still} text=${quoted(note.text)}`;

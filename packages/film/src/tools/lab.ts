@@ -152,6 +152,15 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
         }),
       ),
     )
+    .handle('code', ({ params }) =>
+      answered(
+        Effect.gen(function* () {
+          const film = yield* filmNamed(params.film);
+          const { site, ...found } = yield* (yield* SceneSources).code(film, params.scene);
+          return { scene: params.scene, file: site.shown, ...found };
+        }),
+      ),
+    )
     .handle('head', ({ params }) =>
       answered(
         Effect.gen(function* () {

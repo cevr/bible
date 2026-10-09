@@ -1158,7 +1158,7 @@ describe('the inspector', () => {
           yield* textIs(
             page,
             `${SELECTION_SHEET} .lab-sheet-title`,
-            `cue rise · offset 0.00 · dur 0.60 · ease ${DEFAULT_EASE}`,
+            `cue rise · offset 0 · dur 0.6 · ease ${DEFAULT_EASE}`,
           );
           yield* evaluates(page, onScreenOverDock(head), 'over the dock');
           yield* evaluates(page, `document.querySelector('${offset}').checkVisibility()`, false);
@@ -1198,7 +1198,7 @@ describe('the inspector', () => {
       yield* attributeIs(page, SELECTION_SHEET, 'data-peek', 'true');
       yield* until(
         page,
-        `/^knob pole · x -?\\d+\\.\\d\\d · y -?\\d+\\.\\d\\d$/.test(document.querySelector('${SELECTION_SHEET} .lab-sheet-title').textContent)`,
+        `/^knob pole · x -?\\d+(\\.\\d+)? · y -?\\d+(\\.\\d+)?$/.test(document.querySelector('${SELECTION_SHEET} .lab-sheet-title').textContent)`,
       );
       yield* evaluates(
         page,

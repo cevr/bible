@@ -29,6 +29,8 @@ export const Selection = Schema.TaggedUnion({
   Cue: { scene: Schema.String, name: Schema.String },
   /** A knob of a scene, by its name. */
   Knob: { scene: Schema.String, name: Schema.String },
+  /** A line of a scene's code in the Source view, from 1 (a press on it: not a place of its own, `?code=` holds it). */
+  Line: { scene: Schema.String, line: Schema.Finite },
   /** A note of the lab's feed, by its id. */
   Note: { id: Schema.String },
   /** A folder of renders (its card on the index). */
@@ -196,7 +198,7 @@ export const citeOf = (selection: Selection, href: string): string => {
   );
   const inLab = (
     scene: string,
-    keys: { cue?: string; knob?: string; note?: string; beat?: string },
+    keys: { cue?: string; knob?: string; note?: string; beat?: string; code?: string },
   ) =>
     Option.match(lab, {
       onNone: () => href,
@@ -248,6 +250,8 @@ export const citeOf = (selection: Selection, href: string): string => {
       ),
     Cue: (s) => inLab(s.scene, { cue: s.name }),
     Knob: (s) => inLab(s.scene, { knob: s.name }),
+    // A line of the scene's code is cited as the view held on it.
+    Line: (s) => inLab(s.scene, { code: String(s.line) }),
     Note: (s) =>
       Option.match(lab, {
         onNone: () => href,
@@ -308,6 +312,7 @@ export const selectionText = (selection: Selection): string =>
     Scene: (s) => `scene ${s.scene}`,
     Cue: (s) => `cue ${s.name} in ${s.scene}`,
     Knob: (s) => `knob ${s.name} in ${s.scene}`,
+    Line: (s) => `line ${s.line} of ${s.scene}`,
     Note: (s) => `note ${s.id}`,
     Folder: (s) => `folder ${s.folder}`,
     Set: (s) => `set ${s.point}`,

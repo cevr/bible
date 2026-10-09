@@ -21,6 +21,7 @@ import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
 import { Motion } from './motion/index.ts';
 import { Notes } from './notes/index.ts';
+import { Source } from './source/index.ts';
 import { Studio } from './studio/index.ts';
 import { Lab } from './shell.tsx';
 
@@ -39,36 +40,40 @@ const LabBody = (props: { readonly player: Player }) => (
     <LabTime player={props.player} />
     <Lab.Root player={props.player}>
       <Editor.Provider>
-        <ShellTools>
-          <Editor.History />
-        </ShellTools>
-        <Motion.Provider>
-          <Compare.Provider>
-            <Notes.Provider>
-              <Motion.Onion />
-              <Compare.Layer />
-              <Lab.Overlay>
-                <Notes.Marks />
-                <Editor.Handles />
-                <Compare.Divider />
-                <Compare.Hold />
-              </Lab.Overlay>
-              <Lab.Strip>
-                <Editor.Strip />
-              </Lab.Strip>
-              <Notes.Pins />
-              <Editor.Section>
-                <Editor.Knobs />
-              </Editor.Section>
-              <Motion.Section />
-              <Compare.Section />
-              <Notes.Section />
-              <Studio.Provider>
-                <Studio.Section />
-              </Studio.Provider>
-            </Notes.Provider>
-          </Compare.Provider>
-        </Motion.Provider>
+        <Source.Provider>
+          <Source.Column />
+          <Source.Sheet />
+          <ShellTools>
+            <Editor.History />
+          </ShellTools>
+          <Motion.Provider>
+            <Compare.Provider>
+              <Notes.Provider>
+                <Motion.Onion />
+                <Compare.Layer />
+                <Lab.Overlay>
+                  <Notes.Marks />
+                  <Editor.Handles />
+                  <Compare.Divider />
+                  <Compare.Hold />
+                </Lab.Overlay>
+                <Lab.Strip>
+                  <Editor.Strip />
+                </Lab.Strip>
+                <Notes.Pins />
+                <Editor.Section>
+                  <Editor.Knobs />
+                </Editor.Section>
+                <Motion.Section />
+                <Compare.Section />
+                <Notes.Section />
+                <Studio.Provider>
+                  <Studio.Section />
+                </Studio.Provider>
+              </Notes.Provider>
+            </Compare.Provider>
+          </Motion.Provider>
+        </Source.Provider>
       </Editor.Provider>
     </Lab.Root>
   </>

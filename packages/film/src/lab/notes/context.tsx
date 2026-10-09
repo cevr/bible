@@ -46,6 +46,8 @@ import {
 } from './composer.ts';
 import { NO_SCOPE, type Scope, draftOf, scopeText, whenText, whereText } from './draft.ts';
 import { useMotion } from '../motion/context.tsx';
+import { useSource } from '../source/context.tsx';
+import { lineOpen } from '../source/open.ts';
 import { feedText } from './feed.ts';
 import { type ThreadWrite, useNotesFeed } from './list.tsx';
 
@@ -73,9 +75,10 @@ interface NotesState {
   /** Where the note being made sits: scene, time, frame, nearest cue edge and mark. */
   readonly where: Accessor<string>;
   /**
-   * The scope chip of the note being made (`scene · cue · t 3.2–4.0 s`): the
-   * cue selected and the in and out points marked, while it has them and
-   * its × has not cleared them.
+   * The scope chip of the note being made (`scene · cue · 00:00:03:06–00:00:04:00`, in timecode): the
+   * cue selected, the in and out points marked and the line of the scene's
+   * file the Source view is held on (`scenes/robe.ts:118`), while it has them
+   * and its × has not cleared them.
    */
   readonly scope: Accessor<Option.Option<string>>;
   /** What the composer's status line says. */
@@ -143,15 +146,38 @@ const walkCommand = (
  * being made, wherever it is pressed; ⇧N and ⌥⇧N open the next or previous
  * open note in time (`n` alone stays Note this frame).
  */
+/** The Line target `ctx` holds, when it is a line of the scene `sceneNow` names. */
+const lineHere = (ctx: Context, sceneNow: () => string) =>
+  Option.filter(selectedOf(ctx, 'Line'), (at) => at.scene === sceneNow());
+
 const useCommands = (
   hub: Hub,
   actions: NotesActions,
   composing: () => boolean,
   noteOf: (ctx: Context) => Option.Option<Note>,
   walk: (toward: Toward) => Option.Option<Note>,
+  hold: (line: number) => void,
+  sceneNow: () => string,
 ) =>
   onCleanup(
     hub.commands.register(
+      {
+        id: 'notes.line',
+        label: 'Note this line',
+        group: 'Notes',
+        about: ['Line'],
+        touch: 'long-press the line in the code, then Note this line',
+        // A note is about the frame shown, so only a line of the scene shown can be noted: a target
+        // the clock has since left (a menu open as playback crossed a scene) is refused, never
+        // read as the same-numbered line of the scene now playing.
+        when: (ctx) => Option.isSome(lineHere(ctx, sceneNow)),
+        run: quietly((ctx) =>
+          Option.map(lineHere(ctx, sceneNow), (at) => {
+            hold(at.line);
+            actions.noteFrame();
+          }),
+        ),
+      },
       walkCommand(actions, walk, 'next', 'Next open note', 'shift+n'),
       walkCommand(actions, walk, 'previous', 'Previous open note', 'alt+shift+n'),
       {
@@ -231,6 +257,7 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
   // What the note being made is about beside its frame: the cue selected and
   // the in and out points, until its chip's × clears them; each note starts scoped.
   const motion = useMotion();
+  const source = useSource();
   const [scoped, setScoped] = createSignal(true);
   createEffect(
     () => composerOpen(composer()),
@@ -243,7 +270,11 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
       Option.liftPredicate(scoped(), (on) => on),
       {
         onNone: () => NO_SCOPE,
-        onSome: (): Scope => ({ cue: motion.state.cue(), range: motion.state.inOut() }),
+        onSome: (): Scope => ({
+          cue: motion.state.cue(),
+          range: motion.state.inOut(),
+          source: source.heldSite(),
+        }),
       },
     );
   const scopeChip = createMemo(() =>
@@ -300,6 +331,8 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
         player.now(),
         toward,
       ),
+    (line) => labActions.showCode(Option.some(lineOpen(line))),
+    source.scene,
   );
   // Every note is a place ⌘K goes to by its id and its words.
   registerWhile(meta.hub, () =>

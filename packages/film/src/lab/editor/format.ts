@@ -4,6 +4,7 @@
 import { Match, Option } from 'effect';
 import { type Receipt, busy, refused, said } from '../../command/command.ts';
 import type { CheckLine, CheckReport, EaseName, Span } from '../../core/schema.ts';
+import { printField } from '../../core/field.ts';
 import { ease } from '../../core/time.ts';
 import type { StepVerb } from '../api.ts';
 import { findingScenes } from '../scenes/marks.ts';
@@ -23,25 +24,34 @@ export const anchorText = (span: Span): string => {
 
 /**
  * The selection in one line, as a phone's sheet peeks it (design language
- * §7) after its kind (`cue`, `knob`: the sheet's title): its name, each of its
- * fields' values (to two places, a number knob's bare), then a cue's ease:
- * `rise · offset 0.00 · dur 0.60 · ease inOutCubic`, `spot · x 120.00 · y 340.00`,
- * `size · 1.20`.
+ * §7) after its kind (`cue`, `knob`: the sheet's title): its name, each of
+ * its fields' values as the field prints it (to the thousandth, trimmed; a
+ * number knob's bare), then a cue's ease from `cues` (the stage's cues of its
+ * scene; a knob has none, whatever a cue is called): `rise · offset 0 · dur
+ * 0.6 · ease inOutCubic`, `spot · x 120 · y 340`, `size · 1.2`.
  */
 export const peekText = (
   selection: { readonly _tag: 'Cue' | 'Knob'; readonly name: string },
   fields: ReadonlyArray<{ readonly id: string; readonly value: number }>,
-  ease: Option.Option<string>,
+  cues: ReadonlyMap<string, { readonly ease: string }>,
 ): string =>
   [
     selection.name,
     ...fields.map((f) =>
       [
         ...Option.toArray(Option.liftPredicate(f.id, (id) => id !== 'value')),
-        f.value.toFixed(2),
+        printField(f.value),
       ].join(' '),
     ),
-    ...Option.toArray(Option.map(ease, (e) => `ease ${e}`)),
+    ...Option.toArray(
+      Option.map(
+        Option.flatMap(
+          Option.liftPredicate(selection, (s) => s._tag === 'Cue'),
+          (s) => Option.fromUndefinedOr(cues.get(s.name)),
+        ),
+        (c) => `ease ${c.ease}`,
+      ),
+    ),
   ].join(' · ');
 
 /** An ease drawing's box: 0→1 across, with room for an overshoot. */

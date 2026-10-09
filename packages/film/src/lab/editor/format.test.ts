@@ -22,7 +22,9 @@ const early: CheckLine = { level: 'error', tag: 'early', message: 'fall starts b
 const report: CheckReport = { findings: [early] };
 
 describe('peekText', () => {
-  test("a cue's peek: its name, its offset and dur to two places, its ease", () => {
+  const cues = new Map([['charge', { ease: 'out' }]]);
+
+  test("a cue's peek: its name, its offset and dur as the field prints them, its ease", () => {
     expect(
       peekText(
         { _tag: 'Cue', name: 'charge' },
@@ -30,9 +32,22 @@ describe('peekText', () => {
           { id: 'offset', value: 0.4 },
           { id: 'dur', value: 0.6 },
         ],
-        Option.some('out'),
+        cues,
       ),
-    ).toBe('charge · offset 0.40 · dur 0.60 · ease out');
+    ).toBe('charge · offset 0.4 · dur 0.6 · ease out');
+  });
+
+  test('a time prints to the millisecond the lab writes, a small negative one with its sign', () => {
+    expect(
+      peekText(
+        { _tag: 'Cue', name: 'charge' },
+        [
+          { id: 'offset', value: 0.433 },
+          { id: 'dur', value: -0.004 },
+        ],
+        cues,
+      ),
+    ).toBe('charge · offset 0.433 · dur -0.004 · ease out');
   });
 
   test("a knob's peek: a point's x and y, a number bare", () => {
@@ -43,12 +58,18 @@ describe('peekText', () => {
           { id: 'x', value: 120 },
           { id: 'y', value: 340.5 },
         ],
-        Option.none(),
+        cues,
       ),
-    ).toBe('spot · x 120.00 · y 340.50');
-    expect(
-      peekText({ _tag: 'Knob', name: 'size' }, [{ id: 'value', value: 1.2 }], Option.none()),
-    ).toBe('size · 1.20');
+    ).toBe('spot · x 120 · y 340.5');
+    expect(peekText({ _tag: 'Knob', name: 'size' }, [{ id: 'value', value: 1.2 }], cues)).toBe(
+      'size · 1.2',
+    );
+  });
+
+  test("a knob named like a cue prints no ease: only a cue's is its", () => {
+    expect(peekText({ _tag: 'Knob', name: 'charge' }, [{ id: 'value', value: 1 }], cues)).toBe(
+      'charge · 1',
+    );
   });
 });
 

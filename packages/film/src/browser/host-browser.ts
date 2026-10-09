@@ -15,6 +15,7 @@ import type { Media } from './media.ts';
 import type { Viewport } from './viewport.ts';
 import { clipboardLayer } from './clipboard-browser.ts';
 import { framesLayer } from './frames-browser.ts';
+import { highlightsLayer } from './highlights-browser.ts';
 import { keysLayer } from './keys-browser.ts';
 import { mediaLayer } from './media-browser.ts';
 import { pageLoadLayer } from './page-load-browser.ts';
@@ -31,6 +32,7 @@ const hostWith = (
   Layer.mergeAll(
     clipboardLayer,
     framesLayer,
+    highlightsLayer,
     keysLayer,
     media.pipe(Layer.provide(Layer.merge(framesLayer, viewportLayer))),
     pageLoadLayer,

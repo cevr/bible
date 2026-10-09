@@ -21,15 +21,9 @@ import type { Hub } from '../../command/hub.ts';
 import { contextRows } from '../../command/menu.ts';
 import type { Selection } from '../../command/selection.ts';
 import { EVERYWHERE } from '../../command/target.ts';
-import { type Inspected, refusalOf } from '../../core/field.ts';
+import { FIELD_FORMAT, FIELD_LOCALE, type Inspected, refusalOf } from '../../core/field.ts';
 import { toMs } from '../../core/time.ts';
 import { hubChanges, hubKeys } from './changes.ts';
-
-/** How a field prints its value: to the thousandth, as the files keep it, without grouping. */
-const FORMAT: Intl.NumberFormatOptions = { maximumFractionDigits: 3, useGrouping: false };
-
-/** The scene files' notation, whatever the browser's language: `0.42`, never `0,42`. */
-const LOCALE = 'en-US';
 
 /**
  * One field: `label`, when given, is its scrubby label (drag it across to
@@ -48,8 +42,8 @@ export const Field = (props: { readonly field: Inspected; readonly label?: JSX.E
       min={Option.getOrUndefined(props.field.spec.min)}
       max={Option.getOrUndefined(props.field.spec.max)}
       disabled={Option.isSome(refusal())}
-      format={FORMAT}
-      locale={LOCALE}
+      format={FIELD_FORMAT}
+      locale={FIELD_LOCALE}
       allowExpressions
       commitOnEnter
       onValueCommitted={(next) => {

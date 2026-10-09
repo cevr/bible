@@ -122,15 +122,16 @@ const toSelect = (verbs: EditorVerbs, ctx: Context): Option.Option<LabSelection>
  * stack as the page read it would step, so the lab steps it or refuses
  * (another client's change came after it); none once the page has changed
  * the stack since, when the step is the newest and its label names none.
+ * The header's buttons title themselves by it too.
  */
-const named = (verbs: EditorVerbs, verb: StepVerb) =>
-  Option.filter(verbs.undoable(verb), () => verbs.stackCurrent());
+export const stepNamed = (steps: Pick<EditorVerbs, 'undoable' | 'stackCurrent'>, verb: StepVerb) =>
+  Option.filter(steps.undoable(verb), () => steps.stackCurrent());
 
 const stepCommand = (verbs: EditorVerbs, verb: StepVerb, label: string, key: string): Command => ({
   id: `edit.${verb}`,
   label,
   labelIn: () =>
-    Option.match(named(verbs, verb), {
+    Option.match(stepNamed(verbs, verb), {
       onNone: () => label,
       onSome: (s) => `${label} ${s.target}`,
     }),
@@ -154,7 +155,7 @@ const stepCommand = (verbs: EditorVerbs, verb: StepVerb, label: string, key: str
           verbs.step(
             verb,
             Option.orElse(Option.flatMap(Option.fromUndefinedOr(how.bound), boundChange), () =>
-              Option.map(named(verbs, verb), (s) => s.change),
+              Option.map(stepNamed(verbs, verb), (s) => s.change),
             ),
           );
           return quiet;
@@ -292,7 +293,7 @@ const findingCommand = (
   label,
   group: 'Check',
   keys: [key],
-  touch: "tap a finding's time in the findings",
+  touch: `the command menu, then ${label}`,
   when: () => Option.isSome(edgeFrom(verbs.findingTimes(), verbs.T(), toward)),
   run: quietly(() => Option.map(edgeFrom(verbs.findingTimes(), verbs.T(), toward), verbs.seek)),
 });
