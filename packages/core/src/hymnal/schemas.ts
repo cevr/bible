@@ -13,12 +13,23 @@ import { CategoryId, HymnId, VerseId } from '../types/ids.js';
 // ============================================================================
 
 /**
- * A single verse within a hymn
+ * A single verse within a hymn: a stanza, or a refrain (negative id)
  */
 export class HymnVerse extends Schema.Class<HymnVerse>('HymnVerse')({
   id: VerseId,
   text: Schema.String,
 }) {}
+
+export const isRefrain = (verse: HymnVerse): boolean => verse.id < 0;
+
+/** A hymn's first sung line, from its opening stanza rather than its refrain,
+ *  cut to 60 characters for summaries. */
+export const hymnFirstLine = (verses: readonly HymnVerse[]): string => {
+  const opening = verses.find((verse) => !isRefrain(verse)) ?? verses[0];
+  const line = opening?.text.split('\n')[0]?.trim() ?? '';
+  if (line.length > 60) return `${line.slice(0, 60)}...`;
+  return line;
+};
 
 /**
  * A hymn from the SDA Hymnal

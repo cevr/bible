@@ -30,10 +30,9 @@ export const CategoryId = Schema.Finite.pipe(
 export type CategoryId = typeof CategoryId.Type;
 
 /**
- * Verse ID within a hymn (0-indexed)
+ * Verse ID within a hymn. Stanzas count up from 0; refrains count down from
+ * -1 (-1 is the first refrain, -2 a second). The hymnal stores 199 refrains,
+ * so a non-negative bound made every hymn with a chorus undecodable.
  */
-export const VerseId = Schema.Finite.pipe(
-  Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
-  Schema.brand('VerseId'),
-);
+export const VerseId = Schema.Finite.pipe(Schema.check(Schema.isInt()), Schema.brand('VerseId'));
 export type VerseId = typeof VerseId.Type;

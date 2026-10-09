@@ -8,7 +8,7 @@ import { Context, Effect, Layer, Predicate, Schema } from 'effect';
 
 import type { CategoryId, HymnId } from '../types/ids.js';
 import type { Category, Hymn } from './schemas.js';
-import { HymnSummary } from './schemas.js';
+import { HymnSummary, hymnFirstLine } from './schemas.js';
 
 export class HymnalError extends Schema.TaggedError<HymnalError>()('HymnalError', {
   cause: Schema.Unknown,
@@ -21,24 +21,13 @@ export class HymnNotFoundError extends Schema.TaggedError<HymnNotFoundError>()(
   { id: Schema.Finite },
 ) {}
 
-const truncateFirstLine = (text: string): string => {
-  const firstLine = text.split('\n')[0] ?? '';
-  let suffix = '';
-  if (firstLine.length > 60) suffix = '...';
-  return firstLine.slice(0, 60) + suffix;
-};
-
-const summarizeHymn = (hymn: Hymn): HymnSummary => {
-  let firstLine = '';
-  const firstVerse = hymn.verses[0];
-  if (Predicate.isNotUndefined(firstVerse)) firstLine = truncateFirstLine(firstVerse.text);
-  return HymnSummary.make({
+const summarizeHymn = (hymn: Hymn): HymnSummary =>
+  HymnSummary.make({
     id: hymn.id,
     name: hymn.name,
     category: hymn.category,
-    firstLine,
+    firstLine: hymnFirstLine(hymn.verses),
   });
-};
 
 interface HymnalServiceApi {
   readonly getHymn: (id: HymnId) => Effect.Effect<Hymn, HymnalError | HymnNotFoundError>;
