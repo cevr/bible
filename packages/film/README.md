@@ -1648,7 +1648,7 @@ at the same frame and pick, kept in its place (`/films/<film>/lab/hand?cue=toppl
 `?knob=palm`); review the
 change with `git diff`.
 
-The Source view shows a scene's file (`GET /films/<film>/scenes/<scene>/code`)
+The Source view shows a scene's file (`GET /api/films/<film>/scenes/<scene>/code`)
 a row to a line, with the cues playing at the frame lit where the code writes
 them and reads them, the cue or knob selected lit where it is written, the
 knobs the frame read lit (`player.knobReads()`), a meter on each playing
@@ -1661,8 +1661,9 @@ so selecting reads no code) opens it on that cue's or knob's line. Inside the
 open view a tap on a line holds it and selects the cue or knob written there; a
 long press or right-click on it opens the page's menu with Note this line (the
 note's scope chip cites `file:line`) and Copy link; Follow in its head says
-whether the view scrolls with the frame, a hand on the scroll lets go of it, and
-Play or pressing Follow takes it back. A read the server refuses says why, with
+whether the view scrolls with the frame; any scroll the view did not make and
+layout did not clamp (a wheel, a finger, keys, the scrollbar, find-in-page) lets
+go of it, and Play or pressing Follow takes it back. A read the server refuses says why, with
 Retry and Close. On a laptop it is a column beside the picture; on a phone it
 is the selection sheet's second face (Inspect · Source) in Edit, or a sheet of
 its own while nothing is selected and in every other mode; closing the sheet

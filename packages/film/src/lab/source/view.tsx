@@ -98,6 +98,19 @@ const rowsOf = (text: string): ReadonlyArray<Row> => {
   }));
 };
 
+/** The nearest ancestor of `el` that scrolls: the box a row moves in, in the column and in a sheet alike. */
+const scrollContainerOf = (el: HTMLElement): Option.Option<HTMLElement> =>
+  Option.flatMap(Option.fromNullishOr(el.parentElement), (up) => {
+    const y = getComputedStyle(up).overflowY;
+    return Bool.match(y === 'auto' || y === 'scroll', {
+      onTrue: () => Option.some(up),
+      onFalse: () => scrollContainerOf(up),
+    });
+  });
+
+/** How far a scroll may land from where the view put the box and still be the view's: rounding to the device's pixels. */
+const SLACK = 1;
+
 /** The file's text, a row to a line, with its lit spans, meters and held line. */
 const Text = (props: { readonly code: SceneCode }) => {
   const { state: lab, actions, meta } = useLab();
@@ -105,11 +118,14 @@ const Text = (props: { readonly code: SceneCode }) => {
   const lit = useLit(() => props.code);
   const rows = createMemo(() => rowsOf(props.code.text));
   const digits = createMemo(() => String(rows().length).length);
+  // The box the rows scroll in: found from the rows (`scrollContainerOf`), so the column and the sheet scroll by one rule.
   let scroller = Option.none<HTMLElement>();
   let page = Option.none<HTMLElement>();
-  let watching = Option.none<ResizeObserver>();
-  // Where the view last put itself by script: a scroll that lands anywhere else was a hand's.
-  let placed = Option.none<number>();
+  // Where the view last authored the box: the scroll it wrote, read back (so clamping and rounding are in it), or
+  // the clamp layout made of it. A reader's scroll is measured from here, so steps too small to tell one by one add up.
+  let anchor = 0;
+  // Each resize of the box or its content: the view measures its target again.
+  const [laidOut, setLaidOut] = createSignal(0);
 
   // The ranges lit, painted on the rows' text; cleared when the view goes.
   const paint = (name: HighlightName, ranges: ReadonlyArray<CodeRange>) =>
@@ -169,11 +185,54 @@ const Text = (props: { readonly code: SceneCode }) => {
       () => 0,
     ),
   );
-  // The scroller's size: a viewport that changes is measured again; a frame that does not move the target is not.
-  const [size, setSize] = createSignal(0);
-  onCleanup(() => Option.map(watching, (o) => o.disconnect()));
+  // The scroll box is the rows' nearest scrolling ancestor, whichever element the layout makes it. A resize of
+  // the box or its content measures the target again; a frame that does not move the target is not measured.
+  // A scroll is the view's when it lands on the anchor, and layout's when it lands where the box's geometry
+  // now clamps the anchor (read as the scroll arrives, so no resize, scrolled or not, leaves it stale). Any
+  // other scroll is the reader's, however it came (wheel, finger and its momentum, keys, scrollbar,
+  // find-in-page, assistive tech), and suspends Follow.
   createEffect(
-    () => [looking(), size()] as const,
+    () => true,
+    () => {
+      scroller = Option.flatMap(page, scrollContainerOf);
+      return Option.match(scroller, {
+        onNone: () => () => {},
+        onSome: (el) => {
+          anchor = el.scrollTop;
+          const o = new ResizeObserver(() => setLaidOut((n) => n + 1));
+          o.observe(el);
+          Option.map(page, (p) => o.observe(p));
+          const scrolled = () => {
+            const at = el.scrollTop;
+            if (Math.abs(at - anchor) <= SLACK) return;
+            const clamped = Math.min(anchor, el.scrollHeight - el.clientHeight);
+            if (Math.abs(at - clamped) <= SLACK) {
+              anchor = clamped;
+              return;
+            }
+            if (source.following()) source.suspend();
+          };
+          el.addEventListener('scroll', scrolled, { passive: true });
+          return () => {
+            o.disconnect();
+            el.removeEventListener('scroll', scrolled);
+          };
+        },
+      });
+    },
+  );
+  // Follow taken back (Follow, Play) takes the box where it stands as the view's, then places it as its target needs.
+  createEffect(
+    () => source.following(),
+    (on) => {
+      if (!on) return;
+      Option.map(scroller, (box) => {
+        anchor = box.scrollTop;
+      });
+    },
+  );
+  createEffect(
+    () => [looking(), laidOut()] as const,
     ([target]) => {
       const line = Option.liftPredicate(target, (n) => n > 0);
       const found = Option.flatMap(Option.all({ line, box: scroller, root: page }), (at) =>
@@ -181,46 +240,35 @@ const Text = (props: { readonly code: SceneCode }) => {
           Option.fromNullishOr(
             at.root.querySelector<HTMLElement>(`.lab-source-line[data-line="${at.line}"]`),
           ),
-          (row) => ({ box: at.box, row }),
+          (row) => ({ box: at.box, root: at.root, row }),
         ),
       );
-      Option.map(found, ({ box, row }) => {
-        const lh = Number.parseFloat(getComputedStyle(row).lineHeight);
+      Option.map(found, ({ box, root, row }) => {
+        // A line's height, read off the page the rows inherit it from: the row itself is asked once, for its place.
+        const lh = Number.parseFloat(getComputedStyle(root).lineHeight);
         if (Number.isNaN(lh) || lh === 0) return;
         const margin = 2 * lh;
+        // The row's top and bottom in the box's own scroll coordinates, whatever sits between them.
+        const top =
+          row.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+        const bottom = top + row.offsetHeight;
         const inView =
-          row.offsetTop >= box.scrollTop + margin &&
-          row.offsetTop + row.offsetHeight <= box.scrollTop + box.clientHeight - margin;
+          top >= box.scrollTop + margin && bottom <= box.scrollTop + box.clientHeight - margin;
         if (inView) return;
-        box.scrollTo({ top: Math.max(0, row.offsetTop - box.clientHeight / 3) });
-        placed = Option.some(box.scrollTop);
+        // Instant, so the move is one scroll that lands on the anchor, never a smooth run of them.
+        box.scrollTo({ top: Math.max(0, top - box.clientHeight / 3), behavior: 'instant' });
+        anchor = box.scrollTop;
       });
     },
   );
 
-  // A hand on the scroll takes the view off the frame; a tap on a line, unless it ends a text selection, holds it.
-  const scrolled = () => {
-    Option.map(scroller, (box) => {
-      if (!source.following()) return;
-      if (Option.exists(placed, (at) => Math.abs(box.scrollTop - at) < 2)) return;
-      source.suspend();
-    });
-  };
+  // A tap on a line, unless it ends a text selection, holds it.
   const tap = (n: number) => {
     if (!(window.getSelection()?.isCollapsed ?? true)) return;
     actions.holdLine(n, selectionAt(props.code, n));
   };
   return (
-    <div
-      class="lab-source-scroll"
-      ref={(el: HTMLDivElement) => {
-        scroller = Option.some(el);
-        const o = new ResizeObserver(() => setSize(el.clientHeight));
-        o.observe(el);
-        watching = Option.some(o);
-      }}
-      onScroll={scrolled}
-    >
+    <div class="lab-source-scroll">
       <div
         class="lab-source-page"
         style={{ '--digits': digits() }}
