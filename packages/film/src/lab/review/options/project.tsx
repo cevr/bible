@@ -79,7 +79,7 @@ import {
   useVariantThing,
 } from './choice.tsx';
 import { FilmProvider, useFilm } from './context.tsx';
-import { Findings } from './findings.tsx';
+import { Findings, useFindingsPlace } from './findings.tsx';
 import { approveUndo, partText, tookText, undoApprove } from './receipt.ts';
 import { Still, type SceneStills, useSceneStills } from './stills.tsx';
 import { Selection, projectPartOf, projectPointOf } from '../../../command/selection.ts';
@@ -719,6 +719,7 @@ const FilmBand = (props: { readonly at: ProjectValue }) => {
 const FilmPanel = (props: { readonly at: ProjectValue }) => {
   const project = () => props.at.view().project;
   const film = untrack(() => Selection.cases.Film.make({ film: props.at.film }));
+  const findings = useFindingsPlace(Places.project);
   return (
     <Target
       of={film}
@@ -737,7 +738,7 @@ const FilmPanel = (props: { readonly at: ProjectValue }) => {
         <span class="pj-film-counts" data-role="counts">
           {filmCounts(project().scenes)}
         </span>
-        <Findings chips />
+        <Findings chips sheet={findings} />
       </div>
       <FilmBand at={props.at} />
       <PartInspector

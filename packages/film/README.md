@@ -2350,7 +2350,9 @@ count. No chip counts them at rest on Choices (Project's film panel has
 them): Show findings (⌘K, the page's long-press menu) opens the
 **Findings** sheet (`options/findings.tsx`, `review.findings`): each
 check's findings grouped, a timed one with its timecode, which seeks the
-picture there; F and ⇧F walk the timed findings forward and back. A write is
+picture there. On Choices and Project the sheet is the URL's (`?findings=1`):
+raising it is a step Back closes, and Close, Escape and a swipe go Back over it
+by the sheets' one rule (`useSheetDismissal`); F and ⇧F walk the timed findings forward and back. A write is
 shown from its answer: the page reads nothing again but the undo and redo
 (`GET …/steps`, no check) and, after an undo or a redo, the choices. The
 answer updates the player in place: the picture's `<video>` stays the same

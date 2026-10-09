@@ -11,10 +11,13 @@
 // its group say it is checking, with no count, and a check that failed says
 // so: only an answer counts as clean.
 
+import { useAtomValue } from '@bible/atom-solid';
+import { Place, UrlState } from '@bible/url-state';
+import * as UrlAtom from '@bible/url-state/atom';
 import { For, Show } from '@solidjs/web';
-import { Boolean as Bool, Match, Option } from 'effect';
+import { Boolean as Bool, Effect, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { createSignal, onCleanup } from 'solid-js';
+import { type Accessor, createSignal, onCleanup } from 'solid-js';
 import { type Command, quietly } from '../../../command/command.ts';
 import { type Toward, walkFrom } from '../../../command/walk.ts';
 import type { CheckLine } from '../../../core/schema.ts';
@@ -22,7 +25,7 @@ import { timecode } from '../../../core/time.ts';
 import type { LabFailure } from '../../api.ts';
 import { useReview } from '../context.tsx';
 import { failedText } from '../format.ts';
-import { Sheet } from '../../sheet.tsx';
+import { Sheet, useSheetDismissal } from '../../sheet.tsx';
 import { SyncEvent } from '../machine.ts';
 import { useFilm } from './context.tsx';
 import { countState } from '../../scenes/marks.ts';
@@ -104,14 +107,68 @@ const chipText = (check: Check) =>
     onNone: () => countText(check.name, foundBy(check).length),
   });
 
+/** Where the Findings sheet's open state lives, and how it is raised and dropped. */
+interface FindingsSheet {
+  readonly open: Accessor<boolean>;
+  readonly show: () => void;
+  readonly close: () => void;
+}
+
+/** The open state of a sheet no URL keeps (the lab's): the page's own. */
+const useFindingsLocal = (): FindingsSheet => {
+  const [open, setOpen] = createSignal(false, { ownedWrite: true });
+  return { open, show: () => setOpen(true), close: () => setOpen(false) };
+};
+
+/**
+ * The Findings sheet kept in the page's URL (`?findings=1`), as every other
+ * sheet is: raising it is a step of its own, so Back closes it, and Close,
+ * Escape and a swipe drop it by the one rule (`useSheetDismissal`); a link
+ * naming it opens it.
+ */
+export const useFindingsPlace = <A extends { readonly query: { readonly findings: boolean } }>(
+  place: Place.Place<A>,
+): FindingsSheet => {
+  const { meta } = useReview();
+  const at = useAtomValue(() => UrlAtom.place(place));
+  const dismissal = useSheetDismissal(meta.host, (href) =>
+    Option.exists(Place.decode(place, href), (v) => v.query.findings),
+  );
+  const now = () => Effect.runSyncWith(meta.host)(UrlState.get(place));
+  const write = (findings: boolean) => {
+    for (const v of Option.toArray(now()))
+      Effect.runSyncWith(meta.host)(UrlState.set(place, { ...v, query: { ...v.query, findings } }));
+  };
+  const open = () => Option.exists(at(), (v) => v.query.findings);
+  return {
+    open,
+    show: () => {
+      if (open()) return;
+      dismissal.opening('findings');
+      write(true);
+    },
+    close: () =>
+      dismissal.dismiss(() =>
+        Option.map(
+          Option.filter(now(), (v) => v.query.findings),
+          (v) => Place.href(place, { ...v, query: { ...v.query, findings: false } }),
+        ),
+      ),
+  };
+};
+
 /**
  * The film's findings sheet, Show findings and F/⇧F; with `chips`, the
- * count chips that open the sheet too (the film panel's on Project).
+ * count chips that open the sheet too (the film panel's on Project). Its open
+ * state is the page's URL's when the page passes `sheet` (`useFindingsPlace`),
+ * else its own.
  */
-export const Findings = (props: { readonly chips?: boolean }) => {
+export const Findings = (props: { readonly chips?: boolean; readonly sheet?: FindingsSheet }) => {
   const { meta } = useReview();
   const { findings, soundCheck, picture, sync, send } = useFilm();
-  const [open, setOpen] = createSignal(false, { ownedWrite: true });
+  const local = useFindingsLocal();
+  const kept = (): FindingsSheet => props.sheet ?? local;
+  const open = () => kept().open();
   // The sound check shows once it has found something (it runs after a pick or a knob; its
   // receipt says while it runs, and why it failed).
   const checks = (): ReadonlyArray<Check> => [
@@ -150,7 +207,7 @@ export const Findings = (props: { readonly chips?: boolean }) => {
         about: ['Page'],
         touch: "long-press the page, then Show findings; on Project, tap a check's count",
         when: () => !open(),
-        run: quietly(() => setOpen(true)),
+        run: quietly(() => kept().show()),
       },
       walkCommand('next', 'Next finding', 'f'),
       walkCommand('previous', 'Previous finding', 'shift+f'),
@@ -168,7 +225,7 @@ export const Findings = (props: { readonly chips?: boolean }) => {
               data-check={check().name}
               data-findings={Option.getOrUndefined(countOf(check()))}
               data-state={stateOf(check())}
-              onClick={() => setOpen(true)}
+              onClick={() => kept().show()}
             >
               {chipText(check())}
             </button>
@@ -182,7 +239,7 @@ export const Findings = (props: { readonly chips?: boolean }) => {
           role="findings"
           title="Findings"
           initialFocus={() => true}
-          onClose={() => setOpen(false)}
+          onClose={() => kept().close()}
         >
           <For each={checks()} keyed={(c) => c.name}>
             {(check) => (

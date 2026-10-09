@@ -32,7 +32,7 @@ import {
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { ChangeId } from '../../../core/schema.ts';
-import { Findings } from './findings.tsx';
+import { Findings, useFindingsPlace } from './findings.tsx';
 import { stepWhyNot } from '../../api.ts';
 import { useReview } from '../context.tsx';
 import { pressed } from '../../pressed.ts';
@@ -356,6 +356,7 @@ const variantKeys = (film: string, selection: Selection) =>
 
 const FilmBody = () => {
   const { film, choices, only, reading } = useFilm();
+  const findings = useFindingsPlace(Places.choices);
   // The open sheet is the URL's (`?inspect=`, a variant of the card in focus): a tap on a
   // variant's name names both in one step (Back closes it); Close, Escape and a swipe name
   // none, the card staying in focus; a link, Back and Forward open what they name.
@@ -423,7 +424,7 @@ const FilmBody = () => {
     // The page's own box (`display: contents`): says while the film is read again.
     <div class="rv-choices" data-reading={pressed(reading())}>
       <StepCommands />
-      <Findings />
+      <Findings sheet={findings} />
       <Player />
       <OnlyShown />
       <KindsStrip
