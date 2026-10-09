@@ -12,6 +12,16 @@ import {
   updateAppleNoteFromMarkdown,
 } from '~/src/lib/markdown-to-notes';
 import { splitMarkdownIntoSections } from '~/src/lib/split-markdown';
+import { formatProblem, Quotations } from '~/src/services/quotations';
+
+/** A document that misquotes its sources is never exported; see `bible check`. */
+class ExportRefusedError extends Schema.TaggedError<ExportRefusedError>()('ExportRefusedError', {
+  problems: Schema.Finite,
+}) {
+  override get message() {
+    return `Export refused: ${this.problems} quotation problem(s). Fix them until \`bible check\` reports 0 problems.`;
+  }
+}
 
 const forceCreate = Flag.Boolean('force-create').pipe(
   Flag.withDefault(false),
@@ -43,6 +53,20 @@ const promoteHeading = (markdown: string, title: string): string => {
   return `# ${title}\n\n${withoutHeading.trim()}`.trim();
 };
 
+/** Check every document before exporting any, so a refusal leaves Notes untouched. */
+const refuseMisquoted = Effect.fn('refuseMisquoted')(function* (
+  documents: ReadonlyArray<{ readonly filePath: string; readonly rawContent: string }>,
+) {
+  const quotations = yield* Quotations;
+  const reports = yield* Effect.forEach(documents, (document) =>
+    quotations.check(document.filePath, document.rawContent),
+  );
+  const problems = reports.flatMap((report) => report.problems);
+  if (problems.length === 0) return;
+  for (const problem of problems) yield* Effect.logError(formatProblem(problem));
+  return yield* ExportRefusedError.make({ problems: problems.length });
+});
+
 export const exportOutput = Command.make(
   'export',
   { files, folder, forceCreate, split, dryRun },
@@ -54,6 +78,13 @@ export const exportOutput = Command.make(
         yield* Effect.logError('No files specified. Use --files or -f to specify files to export.');
         return;
       }
+
+      const documents = yield* Effect.forEach(args.files, (filePath) =>
+        fileSystem
+          .readFile(filePath)
+          .pipe(Effect.map((bytes) => ({ filePath, rawContent: new TextDecoder().decode(bytes) }))),
+      );
+      yield* refuseMisquoted(documents);
 
       const targetFolder = args.folder;
 
@@ -67,11 +98,7 @@ export const exportOutput = Command.make(
         `${exportVerb} ${args.files.length} file(s) to Apple Notes${splitSummary}${folderSummary}...`,
       );
 
-      for (const filePath of args.files) {
-        const rawContent = yield* fileSystem
-          .readFile(filePath)
-          .pipe(Effect.map((i) => new TextDecoder().decode(i)));
-
+      for (const { filePath, rawContent } of documents) {
         if (args.split) {
           yield* exportSplit(
             fileSystem,

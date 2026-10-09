@@ -22,7 +22,8 @@ export type ServiceCall =
   | { _tag: 'AppleScript.exec'; script: string }
   | { _tag: 'AppleScript.execJxa'; script: string }
   | { _tag: 'Console.log'; message: string }
-  | { _tag: 'Chime.play' };
+  | { _tag: 'Chime.play' }
+  | { _tag: 'Quotations.check'; path: string };
 
 /**
  * Context tag for the call sequence Ref.

@@ -14,6 +14,7 @@ import { printSummary, trace, traceEffect } from './instrumentation/trace.js';
 import { AppleScriptLive } from './services/apple-script.js';
 import { ChimeLive } from './services/chime.js';
 import { CliLoggerLive } from './services/logger.js';
+import { QuotationsLive } from './services/quotations.js';
 
 const cli = Command.run(rootCommand, {
   version: 'v1.0.0',
@@ -24,6 +25,7 @@ const ChimeLayer = ChimeLive.pipe(Layer.provide(BunServices.layer));
 const ServicesLayer = Layer.mergeAll(
   AppleScriptLayer,
   ChimeLayer,
+  QuotationsLive,
   CliLoggerLive,
   BunServices.layer,
   FetchHttpClient.layer,
