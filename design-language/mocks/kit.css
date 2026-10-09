@@ -645,3 +645,7 @@ kbd {
   border-top: 1px solid var(--line-strong);
   border-radius: var(--r-sheet) var(--r-sheet) 0 0;
 }
+
+.group summary::-webkit-details-marker {
+  display: none;
+}
