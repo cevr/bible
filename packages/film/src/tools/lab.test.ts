@@ -28,6 +28,7 @@ import {
   Ref,
   Schedule,
   Schema,
+  Scope,
   Stream,
 } from 'effect';
 import { Base64 } from 'effect/encoding';
@@ -633,6 +634,49 @@ describe('lab routes', () => {
       const stopped = yield* Deferred.await(ended).pipe(Effect.timeoutOption('2 seconds'));
       expect(Option.isSome(stopped)).toBe(true);
     }).pipe(Effect.scoped, Effect.provide(labLayer(files(), givingUpPages))),
+  );
+
+  it.live(
+    "a handler's finalizer runs when its request ends, as a route's beside the API does",
+    () => {
+      const ended: Array<string> = [];
+      const finishing = (name: string) =>
+        Effect.addFinalizer(() => Effect.sync(() => void ended.push(name)));
+      const waiting = Layer.effect(
+        LabPage,
+        Effect.map(LabPage, (echo) =>
+          LabPage.of({
+            ...echo,
+            // The service needs nothing, as the real one does; the finalizer
+            // lands on the Scope in the fiber's context, the handler's.
+            wait: () =>
+              Effect.withFiber((fiber) =>
+                Option.match(Context.getOption(fiber.context, Scope.Scope), {
+                  onNone: () => Effect.die('the handler has no scope'),
+                  onSome: (scope) =>
+                    Scope.addFinalizer(
+                      scope,
+                      Effect.sync(() => void ended.push('wait')),
+                    ).pipe(Effect.as({ build: 0, server: 'x' })),
+                }),
+              ),
+          }),
+        ),
+      ).pipe(Layer.provideMerge(echoPages));
+      return Effect.gen(function* () {
+        const beside = HttpRouter.add(
+          'GET',
+          '/beside',
+          Effect.andThen(finishing('beside'), Effect.succeed(HttpServerResponse.empty())),
+        );
+        const lab = yield* labHandler(LOOPBACK, beside);
+        yield* Effect.promise(() => lab(get('/beside'), bound));
+        yield* Effect.promise(() =>
+          lab(get(labUrls.page.wait({ query: { since: 0, timeout: 1 } })), bound),
+        );
+        expect(ended.toSorted()).toEqual(['beside', 'wait']);
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), waiting)));
+    },
   );
 
   it.live(

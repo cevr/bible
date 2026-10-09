@@ -5,7 +5,8 @@
 // The gate is the only place a request is admitted (`admit`): the Host (or,
 // where no header is sent, the URL's host) must be the bound port on a
 // loopback name, or one the server is told (`FILM_LAB_HOSTS`); a
-// browser's `Sec-Fetch-Site` must be same-origin; a write must come from no
+// browser's `Sec-Fetch-Site` must be same-origin or none, except a link
+// opened on another site to one of the pages (`isNavigation`); a write must come from no
 // Origin (a tool, like curl) or one of those hosts', with a JSON body (a
 // cross-site form can post text/plain without a preflight; JSON cannot) of
 // at most `STUDIO_MAX_BODY` bytes, counted as it streams. A new route is
@@ -517,7 +518,6 @@ const compressed = <E, R>(
 const pageRoute = (
   page: PageAnswer,
   own: ReadonlyArray<string>,
-  platform: Context.Context<FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform>,
   self: Deferred.Deferred<OwnHandler>,
 ) =>
   HttpRouter.add(
@@ -536,21 +536,13 @@ const pageRoute = (
       const reads = readsOf(self, own, request, yield* Connection);
       return yield* compressed(
         page.pipe(Effect.provideContext(reads)),
-        Context.get(platform, HttpPlatform.HttpPlatform),
+        yield* HttpPlatform.HttpPlatform,
       );
     }),
   );
 
-/** An API's routes (`HttpApiBuilder.layer(api)` over its groups' handlers), their services provided. */
-type ApiRoutes = Layer.Layer<
-  never,
-  never,
-  | HttpRouter.HttpRouter
-  | Etag.Generator
-  | FileSystem.FileSystem
-  | Path.Path
-  | HttpPlatform.HttpPlatform
->;
+/** What an API's routes and the pages are served with beyond the caller's own services. */
+type ServedBy = FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform;
 
 /** Routes beside an API's, outside its prefixes: a fixture's own (the studio harness's control). */
 export type BesideRoutes = Layer.Layer<never, never, HttpRouter.HttpRouter>;
@@ -559,13 +551,22 @@ export type BesideRoutes = Layer.Layer<never, never, HttpRouter.HttpRouter>;
  * `api`'s routes served as one web handler: the gate with `allowed` in
  * front of every path, then the routes (and any `beside` them), then `page`
  * for the paths no route takes outside the API's own. Every request runs
- * on the caller's services, the gate's included, so each line it logs goes
- * through the caller's logging (the CLI's, to stderr). Closed when the
- * scope closes.
+ * on the caller's services (the router marks the ones `routes`' handlers
+ * need as `Requires`, and the caller's context provides them), the gate's
+ * included, so each line it logs goes through the caller's logging (the
+ * CLI's, to stderr). A handler runs on its request's scope, never the
+ * caller's. Closed when the scope closes.
  */
-export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constraint>(
+export const serveApi = <
+  Id extends string,
+  Groups extends HttpApiGroup.Constraint,
+  Needs extends HttpRouter.Request<
+    'Requires' | 'Error' | 'GlobalRequires' | 'GlobalError',
+    unknown
+  >,
+>(
   api: HttpApi.HttpApi<Id, Groups>,
-  routes: ApiRoutes,
+  routes: Layer.Layer<never, never, HttpRouter.HttpRouter | Etag.Generator | ServedBy | Needs>,
   options: {
     readonly allowed: Allowed;
     readonly page: PageAnswer;
@@ -573,36 +574,30 @@ export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constrai
   },
 ) =>
   Effect.gen(function* () {
-    const platform = yield* Effect.context<
-      FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform
-    >();
+    const services = yield* Effect.context<ServedBy | HttpRouter.Request.Only<'Requires', Needs>>();
     // The handler itself, for a page's reads as it renders (`PageReads`): known once made.
     const self = yield* Deferred.make<OwnHandler>();
     const app = Layer.mergeAll(
       routes,
       options.beside,
       gate(options.allowed),
-      pageRoute(options.page, prefixesOf(api), platform, self),
-    ).pipe(Layer.provide(Etag.layerWeak), Layer.provideMerge(Layer.succeedContext(platform)));
-    const { handler } = yield* Effect.acquireRelease(
+      pageRoute(options.page, prefixesOf(api), self),
+    ).pipe(Layer.provide(Etag.layerWeak), Layer.provideMerge(Layer.succeedContext(services)));
+    // What is left of `routes`' requirements is the router's markers; the
+    // services they name are in the app (`services`). Over a generic `Needs`
+    // the checker cannot reduce that, so the handler is typed as it is called.
+    const web = yield* Effect.acquireRelease(
       Effect.sync(() => HttpRouter.toWebHandler(app, { disableLogger: true })),
-      (web) => Effect.promise(() => web.dispose()),
+      (opened) => Effect.promise(() => opened.dispose()),
     );
+    // oxlint-disable-next-line effect/noAs -- the context the handler takes is the router's markers over a generic `Needs`, which the checker cannot reduce
+    const handler = web.handler as OwnHandler;
     yield* Deferred.succeed(self, handler);
     const answer: LabHandler = (request, server) =>
       handler(request, Context.make(Connection, connectionOf(server)));
 
     return answer;
   });
-
-/**
- * An API's routes (`HttpApiBuilder.layer(api)` over its groups) with the
- * services their handlers run with, for every request: the caller's.
- */
-export const withServices =
-  <R>(services: Context.Context<R>) =>
-  <A, E, RIn>(groups: Layer.Layer<A, E, RIn>) =>
-    groups.pipe(HttpRouter.provideRequest(Layer.succeedContext(services)));
 
 /**
  * How long a connection stays open with nothing sent: Bun's longest. A
