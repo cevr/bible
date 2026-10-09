@@ -5,9 +5,10 @@
 // drag across a cue's lane beside its bar marks the in and out points, shown
 // as a band (a tap there seeks); a press elsewhere on the strip scrubs within
 // the scene. Its head holds the Snap toggle (S), and Cancel drag while a
-// grip is held: a finger's Shift and Escape. The cue lanes are Edit's: in
-// Note and Record, and on a phone in every mode but Edit, the strip folds
-// to its words (`player.css`, by the panel's mode on `data-mode`).
+// grip is held: a finger's Shift and Escape. The cue lanes are Edit's (and
+// Motion's on a laptop, for its loop): in Note, Compare and Record, and on a
+// phone in every mode but Edit, the strip folds to its words (`player.css`,
+// by the panel's mode on `data-mode`).
 
 import { For, Show } from '@solidjs/web';
 import { Effect, Option, Result } from 'effect';

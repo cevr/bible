@@ -73,7 +73,7 @@ interface NotesState {
   /** Where the note being made sits: scene, time, frame, nearest cue edge and mark. */
   readonly where: Accessor<string>;
   /**
-   * The scope chip of the note being made (`scene · cue · t 3.2–4.0 s`): the
+   * The scope chip of the note being made (`scene · cue · 00:00:03:06–00:00:04:00`, in timecode): the
    * cue selected and the in and out points marked, while it has them and
    * its × has not cleared them.
    */

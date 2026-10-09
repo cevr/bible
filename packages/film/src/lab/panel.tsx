@@ -32,8 +32,9 @@ import { keptText } from '../browser/storage.ts';
 import { ViewerStore } from '../browser/storage-browser.ts';
 import type { Hub } from '../command/hub.ts';
 import { type LabClient, labApiLayer } from './api.ts';
-import { LAB_MODES, type LabMode, MODE_TITLE, modeCommands, modeOf } from './mode.ts';
+import { LAB_MODES, type LabMode, MODE_TITLE, citedMode, modeCommands, modeOf } from './mode.ts';
 import { labPlaceOf } from './place.ts';
+import { PHONE, useMatches } from './viewport.ts';
 import { Frame, List, NotesFeed, Pen, type PageRuntime } from './notes/list.tsx';
 
 /** What the lab has picked, and how it compares with HEAD, as the URL at `href` holds it. */
@@ -219,6 +220,7 @@ export const LabPage = (
       () => modeOf(kept()),
     ),
   );
+  const phone = useMatches(props.host, PHONE);
   /** Whether the viewer has picked a mode since the link last cited another beat or note. */
   let picked = false;
   const showMode = (m: LabMode) => {
@@ -233,7 +235,10 @@ export const LabPage = (
   // studio's list are known: a beat the film no longer lists, a list never
   // read, or a mode the viewer picked on the entry before then leaves the
   // mode as it is. The path's scene alone never opens Record; the
-  // recorder's own beat is the studio's (`beatAt`).
+  // recorder's own beat is the studio's (`beatAt`). The page's first entry
+  // (a reload or a pasted link) that names a cue or a knob, and no note or
+  // listed beat, shows Edit unless the mode shown shows it already
+  // (`citedMode`); a pick made on the page later never moves the mode.
   const [listed, setListed] = createSignal(Option.none<ReadonlyArray<string>>(), {
     ownedWrite: true,
   });
@@ -241,21 +246,35 @@ export const LabPage = (
     () => `${Option.getOrElse(here().beat, () => '')}?${Option.getOrElse(here().note, () => '')}`,
   );
   let entry = Option.none<string>();
+  let landing = Option.none<unknown>();
   let decided = false;
   createEffect(
     () => [cited(), listed()] as const,
     ([cite, beats]) => {
       if (!Option.contains(entry, cite)) {
+        landing = Option.match(entry, {
+          onNone: () => untrack(here).selection,
+          onSome: () => Option.none(),
+        });
         entry = Option.some(cite);
         decided = false;
         picked = false;
       }
-      if (decided || Option.isNone(beats)) return;
-      decided = true;
       const at = untrack(here);
-      const listedBeat = Option.filter(at.beat, (b) => beats.value.includes(b));
-      if (!picked && Option.isNone(at.note) && Option.isSome(listedBeat))
-        setChosen(Option.some<LabMode>('record'));
+      // A cited beat waits for the studio's list.
+      if (decided || (Option.isSome(at.beat) && Option.isNone(beats))) return;
+      decided = true;
+      const listedBeat = Option.filter(at.beat, (b) =>
+        Option.exists(beats, (listedIds) => listedIds.includes(b)),
+      );
+      if (!picked)
+        Option.map(
+          citedMode(
+            { note: at.note, beat: listedBeat, selection: landing },
+            { now: untrack(mode), phone: untrack(phone) },
+          ),
+          (m) => setChosen(Option.some(m)),
+        );
     },
   );
   const beatsListed = (beats: ReadonlyArray<string>) => {
@@ -263,8 +282,10 @@ export const LabPage = (
   };
   // A note picked (a link, a pin, Back) shows the Note mode on this page, the
   // only one that shows notes, and leaves the viewer's own mode as it was (a
-  // pasted link is not their pick); a cue or a knob shows on the strip in
-  // every mode.
+  // pasted link is not their pick). A cue or a knob is shown in Edit, and in
+  // Motion's lanes on a laptop (the strip folds to its words elsewhere), so a
+  // link that cites one lands in Edit on its first entry, above, unless the
+  // mode kept shows it.
   createEffect(
     () => here().note,
     (note) => {

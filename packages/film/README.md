@@ -1245,8 +1245,9 @@ so a key rebound in `?` reads as rebound.
 - **Mode tray**: the segmented toolbar at the head of the lab's inspector,
   Edit · Note · Motion · Compare · Record (`lab/mode.ts`): one pressed, and
   the inspector shows that tool only, under no heading repeating it. Kept
-  per viewer in the browser; a cited note opens on Note, and a cited beat
-  the film lists on Record.
+  per viewer in the browser; a cited note opens on Note, a cited beat
+  the film lists on Record, and a cited cue or knob on Edit (when the mode
+  kept does not show it already: Motion does, on a laptop).
 - **HUD**: the readout laid over or beside the picture: the player's bar
   (scene, time; its keys legend hidden until asked for).
 - **Inspector**: the panel that shows and edits the selected thing: in the
@@ -1643,8 +1644,8 @@ change with `git diff`.
 On a phone (below 900 px) the selected cue's or knob's fields, and the
 selected note's reply, stand in the selection's sheet
 (`lab/selection-sheet.tsx`, over the review's `Sheet`): it peeks one line
-above the dock (`cue rise · offset 0.00 · dur 0.60 · ease inOutCubic`,
-`peekText` in `lab/editor/format.ts`; `note n1 · one · … · open`), opens
+above the dock (`cue rise · offset 0 · dur 0.6 · ease inOutCubic`, each
+value as its field prints it; `peekText` in `lab/editor/format.ts`; `note n1 · one · … · open`), opens
 whole on a tap of its head, and its open state is the selection: Back closes
 it as it unpicks, and Close, Escape or a swipe unpick by the review sheets'
 one rule (`useSheetDismissal`: Back over a tap's pick, else the URL follows

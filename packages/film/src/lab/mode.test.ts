@@ -5,13 +5,52 @@ import { Effect, Option } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import { BY_BUTTON } from '../command/command.ts';
 import { contextAt } from '../command/context.ts';
-import { FIRST_MODE, LAB_MODES, type LabMode, modeCommands, modeOf } from './mode.ts';
+import { FIRST_MODE, LAB_MODES, type LabMode, citedMode, modeCommands, modeOf } from './mode.ts';
 
 describe('the mode kept', () => {
   test('names its mode; nothing kept, or an old value, is the first mode', () => {
     expect(modeOf(Option.some('motion'))).toBe('motion');
     expect(modeOf(Option.none())).toBe(FIRST_MODE);
     expect(modeOf(Option.some('Lab'))).toBe(FIRST_MODE);
+  });
+});
+
+describe('the mode a link cites', () => {
+  const none = { note: Option.none(), beat: Option.none(), selection: Option.none() };
+
+  const kept = (now: LabMode, phone = false) => ({ now, phone });
+
+  test('a note shows Note, a beat the film lists Record, a cue or a knob Edit', () => {
+    expect(citedMode({ ...none, note: Option.some('n1') }, kept('edit'))).toEqual(
+      Option.some('note'),
+    );
+    expect(citedMode({ ...none, beat: Option.some('two') }, kept('edit'))).toEqual(
+      Option.some('record'),
+    );
+    for (const now of ['note', 'compare', 'record'] as const)
+      expect(citedMode({ ...none, selection: Option.some('cue charge') }, kept(now))).toEqual(
+        Option.some('edit'),
+      );
+  });
+
+  test('a cue or a knob stays in a mode that shows it: Edit, and Motion on a laptop', () => {
+    const cue = { ...none, selection: Option.some('cue charge') };
+    expect(citedMode(cue, kept('edit'))).toEqual(Option.none());
+    expect(citedMode(cue, kept('motion'))).toEqual(Option.none());
+    expect(citedMode(cue, kept('motion', true))).toEqual(Option.some('edit'));
+  });
+
+  test('a link citing nothing leaves the mode alone; the note outranks a beat, a beat a selection', () => {
+    expect(citedMode(none, kept('record'))).toEqual(Option.none());
+    expect(
+      citedMode(
+        { note: Option.some('n1'), beat: Option.some('two'), selection: Option.some('x') },
+        kept('edit'),
+      ),
+    ).toEqual(Option.some('note'));
+    expect(
+      citedMode({ ...none, beat: Option.some('two'), selection: Option.some('x') }, kept('edit')),
+    ).toEqual(Option.some('record'));
   });
 });
 
