@@ -21,7 +21,6 @@ import { endsLate, liveAt } from '../../core/timeline.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
 import { cueOf } from '../../command/selection.ts';
 import { BY_BUTTON } from '../../command/command.ts';
-import { SOURCE } from '../source/commands.ts';
 import { CANCEL_GRIP, SNAP } from './commands.ts';
 import { hubKeys } from '../command/changes.ts';
 import { Target } from '../command/context-menu.tsx';
@@ -273,18 +272,6 @@ export const Strip = () => {
                   Cancel drag
                 </button>
               </Show>
-              {/* The scene's code, closed at rest: the head is in every mode, so a finger reaches it from any. */}
-              <button
-                type="button"
-                class="sh-btn"
-                data-act="code"
-                aria-pressed={`${Option.isSome(lab.code())}`}
-                title={keys.titled("the scene's code, lit as it plays", SOURCE)}
-                onPointerDown={(e) => e.preventDefault()}
-                onClick={() => meta.hub.invokeId(SOURCE, BY_BUTTON)}
-              >
-                Code
-              </button>
               {/* Shift's way for a finger (LS-5): edges snap while it is on; off, they go freely. */}
               <button
                 type="button"

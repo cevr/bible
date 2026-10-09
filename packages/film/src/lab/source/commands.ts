@@ -1,8 +1,9 @@
 // The Source view as the page's commands: Show the code (⇧C, on the Lab's
 // context menu and ⌘K; the view follows the frame), Hide the code (the same
 // key while it is open), and on a cue's context menu Show the code for this
-// cue (the view held on the line that writes it). The panel's Code button runs
-// the first, so a phone reaches every one of them.
+// cue (the view held on the line that writes it). Nothing stands at rest for
+// them: a phone reaches each through the command menu, a cue's long-press or
+// its file line in the inspector.
 
 import { Boolean as Bool, Option } from 'effect';
 import { type Command, quietly } from '../../command/command.ts';
@@ -36,7 +37,7 @@ export const sourceCommands = (verbs: SourceVerbs): ReadonlyArray<Command> => [
     group: 'Source',
     keys: ['shift+c'],
     about: ['Page'],
-    touch: 'the Code button above the panel',
+    touch: 'the command menu, then Show the code',
     when: () => true,
     run: quietly(() =>
       Bool.match(verbs.open(), { onTrue: verbs.hide, onFalse: () => verbs.show(FOLLOW) }),

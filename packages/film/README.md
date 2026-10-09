@@ -1650,8 +1650,9 @@ them, a meter on each playing literal's line, and a held line. It is closed at
 rest: `?code=follow` opens it following the playhead, `?code=<line>` holds a
 line, and the inspector's `file:line` opens it on that cue's or knob's line.
 On a laptop it is a column beside the picture; on a phone it is the selection
-sheet's second face (Inspect · Source), or a sheet of its own. Code button,
-⇧C and ⌘K open and close it.
+sheet's second face (Inspect · Source), or a sheet of its own. ⇧C and the
+command menu (⌘K, and a phone's menu button) open and close it; nothing stands
+for it at rest.
 
 On a phone (below 900 px) the selected cue's or knob's fields, and the
 selected note's reply, stand in the selection's sheet

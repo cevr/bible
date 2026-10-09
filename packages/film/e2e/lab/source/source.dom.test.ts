@@ -1,5 +1,5 @@
 // The Source view in a browser over the probe film: closed at rest and reading
-// nothing; opened by the Code button (a step Back walks) or by `?code=follow`
+// nothing; opened by ⇧C (a step Back walks) or by `?code=follow`
 // and `?code=<line>`; the cues lit in the code are the cues lit on the strip at
 // every settled frame; the inspector's `file:line` opens it held on that line;
 // and on a phone it is a face of the selection's sheet, or a sheet of its own.
@@ -88,21 +88,20 @@ const PAINTED = `(() => {
 })()`;
 
 describe('the Source view at rest', () => {
-  it.live('is closed, reads nothing, and the Code button offers it', () =>
+  it.live('is closed, reads nothing, and puts no control on the page for it', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab([codeRoute], { href: labOne(1) });
       yield* countIs(page, '.lab-source', 0);
-      yield* attributeIs(page, '.lab-strip [data-act="code"]', 'aria-pressed', 'false');
+      yield* countIs(page, '[data-act="code"]', 0);
       expect(asked.filter((a) => a.path.endsWith('/code'))).toEqual([]);
     }).pipe(Effect.scoped),
   );
 
-  it.live('the Code button opens the view as a step Back walks, and Close shuts it', () =>
+  it.live('⇧C opens the view as a step Back walks, and Close shuts it', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([codeRoute], { href: labOne(1) });
-      yield* page.click('.lab-strip [data-act="code"]');
+      yield* page.press('Shift+C');
       yield* page.waitFor('.lab-source-col .lab-source-text');
-      yield* attributeIs(page, '.lab-strip [data-act="code"]', 'aria-pressed', 'true');
       yield* evaluates(page, `location.search.includes('code=follow')`, true);
       yield* page.back;
       yield* countIs(page, '.lab-source', 0);

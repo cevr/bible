@@ -39,10 +39,10 @@ const LabBody = (props: { readonly player: Player }) => (
   <>
     <LabTime player={props.player} />
     <Lab.Root player={props.player}>
-      <Source.Provider>
-        <Source.Column />
-        <Source.Sheet />
-        <Editor.Provider>
+      <Editor.Provider>
+        <Source.Provider>
+          <Source.Column />
+          <Source.Sheet />
           <ShellTools>
             <Editor.History />
           </ShellTools>
@@ -73,8 +73,8 @@ const LabBody = (props: { readonly player: Player }) => (
               </Notes.Provider>
             </Compare.Provider>
           </Motion.Provider>
-        </Editor.Provider>
-      </Source.Provider>
+        </Source.Provider>
+      </Editor.Provider>
     </Lab.Root>
   </>
 );
