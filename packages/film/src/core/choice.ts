@@ -332,7 +332,7 @@ export const PickPost = Schema.Struct({
 });
 export type PickPost = typeof PickPost.Type;
 
-/** `POST /api/films/<film>/choices/level`: a level point's knob set. */
+/** `POST /api/films/<film>/choices/knob`: a level point's knob set. */
 export const KnobPost = Schema.Struct({ point: Schema.String, value: Schema.Finite });
 export type KnobPost = typeof KnobPost.Type;
 

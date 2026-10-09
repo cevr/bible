@@ -11,8 +11,11 @@
 // Refused, in the film's clock code:
 // - a number written out above 0 and below `1e-4` (float noise, not a length
 //   any file keeps, the millisecond being the finest);
-// - a millisecond (or less) added to or taken from a value (`w.start >= m -
-//   1e-3`, `near + 0.001`): a step by hand, which `core/time.ts` owns;
+// - a millisecond or less, down to any fraction of it, added to or taken from
+//   a value (`w.start >= m - 1e-3`, `near + 0.001`, `1e-3 + near`, `near - 1
+//   / 1000`, `near - 1 / 1_000_000`, `near + -0.001`, or a top-level const
+//   holding one, by the name's own binding: `near + HALF_MS`, but not a
+//   parameter called `HALF_MS`): a step by hand, which `core/time.ts` owns;
 // - `CLOCK_EPSILON` added to or taken from the argument of `Math.ceil`,
 //   `floor`, `round` or `trunc`: it judges two times one, and is no grid
 //   nudge (`frameAtOrAfter` and `frameAtOrBefore` are).
@@ -30,7 +33,7 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { memberName } from './nodes.ts';
+import { memberName, type NumberOf, topLevel } from './nodes.ts';
 
 /** The largest number a bare nudge is: below it is float noise, at it a tenth of a millisecond. */
 const NOISE = 1e-4;
@@ -45,13 +48,65 @@ const MESSAGE =
 const isNudge = (node: ESTree.Node) =>
   node.type === 'Literal' && Predicate.isNumber(node.value) && node.value > 0 && node.value < NOISE;
 
-/** Whether `node` adds or takes a millisecond, or less, written out. */
-const stepsByHand = (node: ESTree.BinaryExpression) =>
-  (node.operator === '+' || node.operator === '-') &&
-  node.right.type === 'Literal' &&
-  Predicate.isNumber(node.right.value) &&
-  node.right.value >= NOISE &&
-  node.right.value <= MILLISECOND;
+/** The value of `x op y`, when both are known. */
+const folded = (
+  numberOf: NumberOf,
+  node: ESTree.BinaryExpression,
+  op: (x: number, y: number) => number,
+): Option.Option<number> =>
+  Option.map(Option.all([valueOf(numberOf, node.left), valueOf(numberOf, node.right)]), ([a, b]) =>
+    op(a, b),
+  );
+
+/**
+ * The value of a number written out (`1e-3`, `-1e-3`), named by a top-level
+ * const by its lexical binding (`HALF_MS`, not a parameter of that name), or
+ * folded from a product or quotient of such (`1 / 1000`). A const holding a
+ * nudge (`const NUDGE = 5e-5`) has no value here: its literal is judged where
+ * it is written, refused or said there to be no time.
+ */
+const valueOf = (numberOf: NumberOf, node: ESTree.Node): Option.Option<number> => {
+  if (node.type === 'BinaryExpression' && node.operator === '/')
+    return folded(numberOf, node, (x, y) => x / y);
+  if (node.type === 'BinaryExpression' && node.operator === '*')
+    return folded(numberOf, node, (x, y) => x * y);
+  if (node.type === 'ParenthesizedExpression') return valueOf(numberOf, node.expression);
+  if (node.type === 'UnaryExpression' && node.operator === '-')
+    return Option.map(valueOf(numberOf, node.argument), (v) => -v);
+  if (node.type === 'UnaryExpression' && node.operator === '+')
+    return valueOf(numberOf, node.argument);
+  if (node.type === 'Literal' && Predicate.isNumber(node.value)) return Option.some(node.value);
+  if (node.type === 'Identifier') return Option.filter(numberOf(node), (v) => Math.abs(v) >= NOISE);
+  return Option.none();
+};
+
+/** Whether `node` writes a nudge out anywhere in it: the `Literal` visit reports that one. */
+const holdsNudge = (node: ESTree.Node): boolean => {
+  if (isNudge(node)) return true;
+  if (node.type === 'ParenthesizedExpression') return holdsNudge(node.expression);
+  if (node.type === 'UnaryExpression') return holdsNudge(node.argument);
+  if (node.type === 'BinaryExpression') return holdsNudge(node.left) || holdsNudge(node.right);
+  return false;
+};
+
+/** Whether `node` is a step of a millisecond or less, either way, that no nudge written in it already reports. */
+const isStep = (numberOf: NumberOf, node: ESTree.Node): boolean => {
+  if (holdsNudge(node)) return false;
+  return Option.exists(
+    valueOf(numberOf, node),
+    (v) => Math.abs(v) > 0 && Math.abs(v) <= MILLISECOND,
+  );
+};
+
+/**
+ * Whether `node` adds or takes a millisecond, or less, written out: on the
+ * right of `+` or `-`, or on the left of `+` (`1e-3 - t` is no step).
+ */
+const stepsByHand = (numberOf: NumberOf, node: ESTree.BinaryExpression): boolean => {
+  if (node.operator !== '+' && node.operator !== '-') return false;
+  if (node.operator === '-') return isStep(numberOf, node.right);
+  return isStep(numberOf, node.right) || isStep(numberOf, node.left);
+};
 
 /** Whether `node` is `CLOCK_EPSILON`. */
 const isEpsilon = (node: ESTree.Node) =>
@@ -84,6 +139,7 @@ export const oneClockEpsilon = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
+    const { numberOf } = yield* topLevel;
     const report = (node: ESTree.Node, when: boolean) =>
       Effect.asVoid(
         Effect.when(
@@ -94,7 +150,7 @@ export const oneClockEpsilon = Rule.define({
     return Visitor.merge(
       Visitor.on('Literal', (node) => report(node, isNudge(node))),
       Visitor.merge(
-        Visitor.on('BinaryExpression', (node) => report(node, stepsByHand(node))),
+        Visitor.on('BinaryExpression', (node) => report(node, stepsByHand(numberOf, node))),
         Visitor.on('CallExpression', (node) => report(node, roundsWithEpsilon(node))),
       ),
     );

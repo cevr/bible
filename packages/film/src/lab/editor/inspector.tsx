@@ -25,6 +25,7 @@ import { BY_BUTTON } from '../../command/command.ts';
 import { type LabSelection, cueOf } from '../../command/selection.ts';
 import { Field, Hint } from '../command/inspector.tsx';
 import { HeaderTool } from '../page-shell.tsx';
+import { pressed } from '../pressed.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY, findingsIn, peekText } from './format.ts';
@@ -114,7 +115,7 @@ const CueFields = (props: CueFieldsProps) => {
             <button
               type="button"
               class="sh-btn lab-ease"
-              aria-pressed={`${e === props.cue.ease}`}
+              aria-pressed={pressed(e === props.cue.ease)}
               data-ease={e}
               title={Option.getOrElse(easeRefusal(), () => e)}
               disabled={Option.isSome(easeRefusal())}

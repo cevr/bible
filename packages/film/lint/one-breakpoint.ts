@@ -3,11 +3,14 @@
 // `WIDE`). A style written in TypeScript asks the window through those two,
 // so the width is declared once; refused is a media query width written out
 // in a string or a template (`(max-width: 899px)`, `(min-width: 900px )`,
-// `(width >= 900px)`),
-// where a change of the breakpoint would leave it behind. A feature query's
+// `(width >= 900px)`, in any length unit: `(max-width: 56ch)`), or built from a
+// number in a template (`(max-width: ${LIMIT}px)`), where a change of the
+// breakpoint would leave it behind. A feature query's
 // condition (`@supports (width: 900px)`) asks whether a declaration parses,
-// not how wide the window is, and passes. The owner itself
-// builds both from one number, so it writes no width out. The stylesheets that
+// not how wide the window is, and passes, its clause running on across a
+// template's values (`@supports (width: ${w}px) and (min-width: ${m}px)`) up
+// to its block. The owner itself
+// builds both from one number, so the config lets it be. The stylesheets that
 // cannot import the owner (`player.css`, `tokens.css`) are held to its value
 // by `lab/viewport.test.ts`.
 
@@ -20,8 +23,21 @@ import {
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
 
-/** A length written out: `900px`, `56.25em`. */
-const LENGTH = String.raw`\d+(?:\.\d+)?(?:px|em|rem)`;
+/**
+ * A length written out, in any CSS length unit (CSS Values 4 and the
+ * container units): `900px`, `56.25em`, `56ch`, `56rch`, `40rex`, `60vw`,
+ * `40cqi`.
+ */
+const LENGTH = String.raw`\d+(?:\.\d+)?(?:px|r?(?:em|ex|ch|cap|ic|lh)|[sld]?v(?:w|h|i|b|min|max)|cq(?:w|h|i|b|min|max)|cm|mm|q|in|pt|pc)`;
+
+/** A media query's width condition that ends open at an interpolation: `(max-width: `, `(width <= `. */
+const WIDTH_THEN_VALUE = new RegExp(
+  String.raw`\(\s*(?:(?:max-|min-)?width\s*:|width\s*(?:[<>]=?|=))\s*$`,
+  'u',
+);
+
+/** What follows an interpolation that begins a width condition: `px < width)`, `px <= width <= …`. */
+const VALUE_THEN_WIDTH = new RegExp(String.raw`^[a-z]*\s*(?:[<>]=?|=)\s*width\b`, 'u');
 
 /** A range comparison: `<`, `<=`, `>`, `>=`, `=`. */
 const COMPARED = String.raw`(?:[<>]=?|=)`;
@@ -52,9 +68,44 @@ const inSupports = (text: string, at: number) => {
   return /@supports\b/u.test(clause);
 };
 
-/** Whether `text` writes a media query's width out: a width condition outside every `@supports`. */
-const writesWidth = (text: string) =>
-  Array.from(text.matchAll(WIDTH)).some((m) => !inSupports(text, m.index));
+/**
+ * Whether `text` writes a media query's width out: a width condition outside
+ * every `@supports`, judged with `lead` (the text before it in its template)
+ * in front, so a clause opened before a template's value runs on after it.
+ */
+const writesWidth = (text: string, lead: string) =>
+  Array.from(text.matchAll(WIDTH)).some((m) => !inSupports(lead + text, lead.length + m.index));
+
+/** A template's value, as the text around it is read: a number, which opens and closes no clause. */
+const VALUE = '0';
+
+/** The text of a template's part. */
+const partText = (part: ESTree.TemplateElement) => part.value.cooked ?? part.value.raw;
+
+/** The text in front of a template's part `index`: every part before it, each value read as `VALUE`. */
+const leadOf = (template: ESTree.TemplateLiteral, index: number) =>
+  template.quasis
+    .slice(0, index)
+    .map((part) => partText(part) + VALUE)
+    .join('');
+
+/** The text in front of `part` in its template: none when it stands in no template literal (a type's). */
+const leadOfPart = (part: ESTree.TemplateElement) => {
+  const template = part.parent;
+  if (template.type !== 'TemplateLiteral') return '';
+  return leadOf(template, template.quasis.indexOf(part));
+};
+
+/** Whether a template builds a media query's width from a value: the text before the value, or after it, is a width condition. */
+const buildsWidth = (template: ESTree.TemplateLiteral) =>
+  template.expressions.some((_, i) => {
+    const before = template.quasis[i]?.value.cooked ?? '';
+    const after = template.quasis[i + 1]?.value.cooked ?? '';
+    const opens =
+      WIDTH_THEN_VALUE.test(before) || (VALUE_THEN_WIDTH.test(after) && /\(\s*$/u.test(before));
+    const lead = leadOf(template, i);
+    return opens && !inSupports(lead + before, lead.length + before.length);
+  });
 
 const MESSAGE =
   "a breakpoint written out: ask the studio's one breakpoint through PHONE or WIDE (packages/film/src/lab/viewport.ts), so the width is declared once.";
@@ -68,19 +119,27 @@ export const oneBreakpoint = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
-    const report = (node: ESTree.Node, text: string) =>
+    const report = (node: ESTree.Node, text: string, lead: string) =>
       Effect.asVoid(
         Effect.when(
           context.report(Diagnostic.make({ node, message: MESSAGE })),
-          Effect.succeed(writesWidth(text)),
+          Effect.succeed(writesWidth(text, lead)),
         ),
       );
     return Visitor.merge(
       Visitor.on('Literal', (node) => {
         if (!Predicate.isString(node.value)) return Effect.void;
-        return report(node, node.value);
+        return report(node, node.value, '');
       }),
-      Visitor.on('TemplateElement', (node) => report(node, node.value.cooked ?? node.value.raw)),
+      Visitor.on('TemplateElement', (node) => report(node, partText(node), leadOfPart(node))),
+      Visitor.on('TemplateLiteral', (node) =>
+        Effect.asVoid(
+          Effect.when(
+            context.report(Diagnostic.make({ node, message: MESSAGE })),
+            Effect.succeed(buildsWidth(node)),
+          ),
+        ),
+      ),
     );
   },
 });

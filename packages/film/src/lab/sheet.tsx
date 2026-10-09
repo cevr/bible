@@ -9,7 +9,7 @@ import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, Show } from '@solidjs/web';
 import { Boolean as Bool, type Context, Effect, Match, Option } from 'effect';
 import { createEffect, createSignal, untrack } from 'solid-js';
-import { type Host, addressOn } from '../browser/host.ts';
+import { type Host, type Opened, addressOn } from '../browser/host.ts';
 import type { Viewport } from '../browser/viewport.ts';
 import type { Hub } from '../command/hub.ts';
 import type { Selection } from '../command/selection.ts';
@@ -23,11 +23,10 @@ interface SheetDismissal {
   /** A tap is about to name `thing` while the sheet is shut: its step is the opening's. */
   readonly opening: (thing: string) => void;
   /**
-   * Close the sheet: Back over the entry the opening's tap pushed when that
-   * entry is on screen and the entry before it is exactly where the Close
-   * would write (`cleared()`: the same path, query and hash); else the URL
-   * follows to `cleared()`, when it names one (none: the URL names no sheet,
-   * and nothing is written).
+   * Close the sheet, for `cleared()`, where the Close writes (none: the URL
+   * names no sheet): the address bar's dismissal (`addressOn(host).dismiss`)
+   * is handed the entry the opening's tap pushed, and says whether the Close
+   * goes Back over it or rewrites the entry on screen.
    */
   readonly dismiss: (cleared: () => Option.Option<string>) => void;
 }
@@ -36,14 +35,11 @@ interface SheetDismissal {
  * The one rule a sheet a URL keeps open is dismissed by (Close, Escape, a
  * swipe), for every inspector (`useInspectorPlace`), Scenes' scene sheet and
  * the Lab's selection sheet: a tap that opens it on a shut sheet is a step of
- * its own, and dismissing it adds none. The entry that tap pushed is gone Back
- * over, so a Back after the Close leaves the entry before it, not the sheet
- * again, when that entry is where the Close would write: time moved while the
- * sheet was open lives in the entry it is on, and Back would rewind it. Any
- * other entry (a link's, a reload's, a tap's on a sheet already open, one a
- * Forward landed on after a Close, one whose time moved) is rewritten to name
- * none (`addressOn(host).follow`). `names` says whether an href names
- * `thing`'s sheet open.
+ * its own, and dismissing it adds none. The sheet knows which entry that tap
+ * pushed (an entry a link, a reload or a tap on a sheet already open made is
+ * no opening's); the address bar (`addressOn(host).dismiss`) says whether its
+ * Close goes Back over that entry or rewrites the entry on screen to name
+ * none. `names` says whether an href names `thing`'s sheet open.
  */
 export const useSheetDismissal = (
   host: Host,
@@ -60,7 +56,7 @@ export const useSheetDismissal = (
     readonly before: string;
   }>();
   // The pushed entry's key, and the href of the entry the tap left, which Back would land on.
-  let openedBy = Option.none<{ readonly key: string; readonly before: string }>();
+  let openedBy = Option.none<Opened>();
   createEffect(entry, (e) => {
     const pushed =
       e.navigation !== 'traverse' &&
@@ -75,28 +71,11 @@ export const useSheetDismissal = (
       opening = Option.some({ thing, from: at.key, before: at.href });
     },
     dismiss: (cleared) => {
-      const target = cleared();
-      // Back lands on the entry before the tap, so it is the right move only when that
-      // entry is exactly where the Close would write: a time moved since the tap is kept.
-      const ours = Option.exists(
-        openedBy,
-        (o) =>
-          o.key === here().key &&
-          Option.match(target, { onNone: () => true, onSome: (to) => samePlace(o.before, to) }),
-      );
+      const opened = openedBy;
       openedBy = Option.none();
-      if (ours) return Effect.runSyncWith(host)(Location.use((bar) => bar.back));
-      Option.map(target, addressOn(host).follow);
+      addressOn(host).dismiss(opened, cleared());
     },
   };
-};
-
-/** Whether two hrefs are one place: the same path, query (in any order) and hash. */
-const samePlace = (a: string, b: string): boolean => {
-  const [x, y] = [new URL(a, 'http://place'), new URL(b, 'http://place')];
-  x.searchParams.sort();
-  y.searchParams.sort();
-  return x.pathname === y.pathname && x.search === y.search && x.hash === y.hash;
 };
 
 /**

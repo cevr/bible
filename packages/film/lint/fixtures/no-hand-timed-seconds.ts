@@ -79,3 +79,10 @@ export const scene = drawing({
     ];
   },
 });
+
+// A parameter named like a module const is its own binding: its value is not known.
+export const passed = (t: number, HOLD: number, LATE: number) => [
+  clamp(t / HOLD),
+  t > LATE,
+  { mark: 'go', offset: LATE, dur: 0.4 },
+];

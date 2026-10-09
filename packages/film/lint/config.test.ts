@@ -291,6 +291,26 @@ describe('the lint config', () => {
   );
 
   it.effect.layer(BunServices.layer)(
+    "bans the host's storage, idle and width names a page has an adapter for, each under every global",
+    () =>
+      Effect.gen(function* () {
+        const { banned } = hostBlocks(yield* readJson('.oxlintrc.json', Config));
+        const globals = optionsIn(banned, 'no-restricted-globals', Global);
+        const properties = optionsIn(banned, 'no-restricted-properties', Property);
+        expect(globals.map((g) => g.name)).toEqual(
+          expect.arrayContaining(['indexedDB', 'requestIdleCallback', 'innerWidth', 'outerWidth']),
+        );
+        const members = properties.map((p) => `${p.object}.${p.property}`);
+        expect(members).toEqual(
+          expect.arrayContaining(['document.cookie', 'navigator.sendBeacon']),
+        );
+        // A bare name is also a member of each global, so a page cannot reach it through one.
+        for (const name of ['indexedDB', 'requestIdleCallback', 'innerWidth', 'outerWidth'])
+          expect(members).toEqual(expect.arrayContaining(QUALIFIERS.map((q) => `${q}.${name}`)));
+      }),
+  );
+
+  it.effect.layer(BunServices.layer)(
     "bans the URL in every block that bans it as the film's block does, every form red",
     () =>
       Effect.gen(function* () {

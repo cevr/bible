@@ -15,10 +15,11 @@
     <style>
       /* ── Page: Lab, Edit mode ─────────────────────────────────────── */
       .handle {
+        --dot: 34px;
         position: absolute;
-        width: 34px;
-        height: 34px;
-        margin: -17px 0 0 -17px;
+        width: var(--dot);
+        height: var(--dot);
+        margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2);
         border: 2px solid var(--accent);
         border-radius: var(--r-dot);
         background: var(--accent-wash);

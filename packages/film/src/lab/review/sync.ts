@@ -2,7 +2,8 @@
 // `<video>`s and `<audio>`s), made to do what the machine's state says, and
 // what they do told back to it as events. It reaches them only through the
 // port (`browser/media.ts`), and plays them through `Media.playOrMute`. The
-// first variant's video is the clock (its time is the set's); every other
+// first variant's video is the clock (its time is the set's), and a set that
+// loses that variant `follow`s the first one left (`ClockMoved`); every other
 // that drifts more than DRIFT_S from it is put back on it. Only the audible
 // one is unmuted. The machine is told when the clock's media cannot play
 // (`MediaFailed`), and when the clock's media is new (`MediaReplaced`: each
@@ -25,6 +26,7 @@ import {
   SyncEvent as Events,
   STEP_S,
   type SyncState,
+  UNKNOWN_END,
   runningOf,
 } from './machine.ts';
 
@@ -47,6 +49,12 @@ export interface SyncDriver {
   readonly attach: (id: string, video: Playable) => () => void;
   /** The machine's state, made so. */
   readonly apply: (state: SyncState) => void;
+  /**
+   * The clock is `id`'s video from now on (the version it followed left the
+   * set): the machine is told its end, and whether its media failed or
+   * ended already; every media event after is heard against it.
+   */
+  readonly follow: (id: string) => void;
   /** Every video paused, every listener and the clock's loop stopped. */
   readonly stop: () => void;
 }
@@ -87,8 +95,8 @@ export const reloadOnError = <R>(
 };
 
 /**
- * The driver of a set whose clock is the video of `first`, telling the
- * machine through `send`.
+ * The driver of a set whose clock is the video of `first` (until it
+ * `follow`s another), telling the machine through `send`.
  */
 export const makeSync = (
   first: string,
@@ -101,13 +109,18 @@ export const makeSync = (
   let told = -1;
   /** The stop of the clock's loop, while it runs. */
   let looping = Option.none<() => void>();
+  /** The version whose video is the clock: every media event is heard against it. */
+  let leading = first;
 
-  /** The videos whose media failed (an `error`, a play the browser would not start): out of the set's way. */
-  const broken = new Set<Attached>();
+  /**
+   * The videos whose media failed (an `error`, a play the browser would not
+   * start), each with why: out of the set's way.
+   */
+  const broken = new Map<Attached, string>();
   const all = () => [...videos.values()];
   const working = () => all().filter((a) => !broken.has(a));
   const clock = () =>
-    Option.orElse(Option.fromUndefinedOr(videos.get(first)), () =>
+    Option.orElse(Option.fromUndefinedOr(videos.get(leading)), () =>
       Option.fromUndefinedOr(all()[0]),
     );
 
@@ -121,8 +134,8 @@ export const makeSync = (
   };
   /** `id`'s media cannot play, for `reason`: the machine told, when it is the clock's. */
   const failed = (id: string, a: Attached, reason: string) => {
-    broken.add(a);
-    if (id === first) send(Events.MediaFailed({ reason }));
+    broken.set(a, reason);
+    if (id === leading) send(Events.MediaFailed({ reason }));
   };
   /**
    * Play `id`'s video `a`; a browser that will not play sound unasked plays it
@@ -231,14 +244,14 @@ export const makeSync = (
     const signal = attached.held.signal;
     videos.set(id, attached);
     // The clock's new media, while its last failed: the failure was that media's.
-    if (id === first && Option.exists(current, (state) => state._tag === 'Failed'))
+    if (id === leading && Option.exists(current, (state) => state._tag === 'Failed'))
       send(Events.MediaReplaced);
     video.on(
       'measured',
       () => {
         // Measured, it plays: a failure before was another try's.
         broken.delete(attached);
-        if (id === first && Number.isFinite(video.duration()))
+        if (id === leading && Number.isFinite(video.duration()))
           send(Events.Measured({ end: video.duration() }));
         Option.map(current, (state) => seekTo(attached, state.t));
       },
@@ -249,7 +262,7 @@ export const makeSync = (
     video.on(
       'ended',
       () => {
-        if (id === first) send(Events.Ended);
+        if (id === leading) send(Events.Ended);
       },
       signal,
     );
@@ -261,12 +274,36 @@ export const makeSync = (
     return () => release(id, attached);
   };
 
+  const follow = (id: string) => {
+    if (id === leading) return;
+    leading = id;
+    told = -1;
+    const now = Option.fromUndefinedOr(videos.get(id));
+    send(
+      Events.ClockMoved({
+        end: Option.getOrElse(
+          Option.filter(
+            Option.map(now, (a) => a.video.duration()),
+            Number.isFinite,
+          ),
+          () => UNKNOWN_END,
+        ),
+      }),
+    );
+    Option.map(now, (a) => {
+      Option.map(Option.fromUndefinedOr(broken.get(a)), (reason) =>
+        send(Events.MediaFailed({ reason })),
+      );
+      if (a.video.ended()) send(Events.Ended);
+    });
+  };
+
   const stop = () => {
     halt();
     for (const [id, a] of [...videos]) release(id, a);
   };
 
-  return { attach, apply, stop };
+  return { attach, apply, follow, stop };
 };
 
 /** What a synced player is asked: play or pause, or a step back or on (`by` steps). */

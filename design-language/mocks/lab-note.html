@@ -125,10 +125,11 @@
       }
       /* A point being noted: the draft's ring in the accent; a saved note's pin is --state-note. */
       .pin {
+        --dot: 28px;
         position: absolute;
-        width: 28px;
-        height: 28px;
-        margin: -14px 0 0 -14px;
+        width: var(--dot);
+        height: var(--dot);
+        margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2);
         border: 2px solid var(--accent);
         border-radius: var(--r-dot);
       }

@@ -18,6 +18,7 @@ import { Option } from 'effect';
 import type { Part } from '../../core/sheet.ts';
 import { BY_BUTTON } from '../../command/command.ts';
 import { hubKeys, registerWhile } from '../command/changes.ts';
+import { pressed } from '../pressed.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { micCommands, studioCommands } from './commands.ts';
 import { type AttemptRow, useStudio } from './context.tsx';
@@ -73,7 +74,7 @@ const Beats = () => {
                 type="button"
                 data-beat={beat.id}
                 class={['sh-btn', { selected: beat.id === state.beat() }]}
-                aria-pressed={`${beat.id === state.beat()}`}
+                aria-pressed={pressed(beat.id === state.beat())}
                 aria-label={`${beat.id}: ${beatBadge(beat)}`}
                 title={`${beat.id}: ${beatBadge(beat)}`}
                 onClick={() => actions.select(beat.id)}

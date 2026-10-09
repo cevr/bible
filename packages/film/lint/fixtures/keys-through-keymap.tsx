@@ -18,7 +18,13 @@ el.addEventListener('keydown', hear); // RED film/keys-through-keymap
 el.addEventListener('contextmenu', hear); // RED film/keys-through-keymap
 document.addEventListener('contextmenu', hear); // RED film/keys-through-keymap
 
+// A handler property is a listener too.
+el.onkeydown = hear; // RED film/keys-through-keymap
+el.oncontextmenu = hear; // RED film/keys-through-keymap
+document.oncontextmenu = hear; // RED film/keys-through-keymap
+
 // A click, a pointer and an input are not keys.
+el.onclick = hear;
 el.addEventListener('click', hear);
 el.addEventListener('input', hear);
 // The host's key events are film/host-events-through-adapter's, not this rule's.

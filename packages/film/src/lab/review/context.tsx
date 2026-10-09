@@ -7,11 +7,11 @@
 // view, spawned on the runtime and stopped with the set), the driver that
 // makes its videos follow the player, and its moments.
 
-import { RegistryProvider, useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { RegistryProvider, useAtomMount, useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, isServer } from '@solidjs/web';
-import { Array as Arr, Clock, Effect, Equal, Layer, Option, Schema } from 'effect';
+import { Array as Arr, Clock, Effect, Equal, Exit, Layer, Option, Schema } from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -30,7 +30,7 @@ import {
 } from 'solid-js';
 import { type SeenPoint, seenVariants } from '../../core/choice.ts';
 import type { DrawStills } from './options/stills.tsx';
-import { ReviewFilms, type ReviewFolder, ReviewIndex } from '../../core/review.ts';
+import { type ReviewFile, ReviewFilms, type ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import { Viewport } from '../../browser/viewport.ts';
 import { plainClick } from '../../browser/pointer.ts';
 import { PHONE } from '../viewport.ts';
@@ -84,13 +84,17 @@ import {
   viewOf,
 } from './place.ts';
 import { PlayerKey, type SyncDriver, playerCommands, makeSync, playerEvent } from './sync.ts';
+import { type Asks, newestAsked } from './asked.ts';
 import { hearVersionCommands } from './hear.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
 
 interface ReviewStateValue {
   readonly place: Accessor<ReviewPlace>;
-  /** Every folder with something to review, as last read. */
+  /**
+   * Every folder with something to review, as the newest ask answered it
+   * (`asked.ts`): the first read, a Refresh, or a say's answer for its folder.
+   */
   readonly index: Accessor<AsyncResult.AsyncResult<ReviewIndex, LabFailure>>;
   /** The app's films, each with options to pick from. */
   readonly films: Accessor<AsyncResult.AsyncResult<ReviewFilms, LabFailure>>;
@@ -108,18 +112,38 @@ export interface Shown {
 interface ReviewActions {
   /** Go to `place`, as a link does (Back returns). */
   readonly go: (place: ReviewPlace) => void;
-  /** Walk the roots again now. */
+  /** Walk the roots again now: an ask of the index (`asks`). */
   readonly refresh: () => void;
+  /**
+   * A write's answer, `folder` as the write left it, shown in the index in
+   * its place: only through its `Landed.show` on the index's `asks`, so an
+   * answer a newer read overtook is never shown over it.
+   */
+  readonly answered: (folder: ReviewFolder) => void;
   readonly quality: (quality: Quality) => void;
   /** Open the lightbox on an image, or close it. */
   readonly show: (shown: Option.Option<Shown>) => void;
 }
 
+/** A file as the index last saw it: its ref, and when it was written. */
+type Written = Pick<ReviewFile, 'ref' | 'mtime'>;
+
 interface ReviewMeta {
-  /** A video's length, read once per ref. */
-  readonly duration: (ref: string) => Loaded<number>;
-  /** A doc's text, read once per ref. */
-  readonly text: (ref: string) => Loaded<string>;
+  /**
+   * The index's asks, in the order they are made: each Refresh, and each
+   * write that answers a folder of the index (a set's say), as it is sent.
+   */
+  readonly asks: Asks;
+  /**
+   * A video's length, read once per file as the index last saw it: a video
+   * written again since is measured afresh.
+   */
+  readonly duration: (video: Written) => Loaded<number>;
+  /**
+   * A doc's text, read once per file as the index last saw it (its ref and
+   * when it was written): a doc written again since is read afresh.
+   */
+  readonly text: (file: Written) => Loaded<string>;
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
   /** The page's one client of the lab's API: what a read of its own (a feed) goes through. */
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
@@ -185,6 +209,17 @@ const kept = {
   quality: keptText(ViewerStore, 'film-review.quality'),
 };
 
+/** `index` with `folder` in the place of the folder of its ref. */
+const withFolder = (index: ReviewIndex, folder: ReviewFolder): ReviewIndex => ({
+  ...index,
+  folders: index.folders.map((f) =>
+    Option.getOrElse(
+      Option.liftPredicate(folder, (answered) => answered.ref === f.ref),
+      () => f,
+    ),
+  ),
+});
+
 /** The copy the page plays: the kept one, else 720p on a phone's width (`PHONE`). */
 const qualityOf = (stored: Option.Option<string>, narrow: () => boolean): Quality =>
   Option.getOrElse(
@@ -230,29 +265,26 @@ export const Root = (
   const filmsAtom = runtime
     .atom(OptionsApi.use((api) => api.films))
     .pipe(served('review.films', ReviewFilms));
-  // A refresh asks the server to walk its roots again; a first read takes its cache.
-  let fresh = false;
-  const indexAtom = runtime
-    .atom(
-      ReviewApi.use((api) =>
-        Effect.suspend(() => {
-          const asked = fresh;
-          fresh = false;
-          return api.index(asked);
-        }),
-      ),
-    )
+  // A first read takes the server's cache; a refresh asks it to walk its roots again.
+  const firstIndexAtom = runtime
+    .atom(ReviewApi.use((api) => api.index(false)))
     .pipe(served('review.index', ReviewIndex));
-  const duration = Atom.family((ref: string) =>
+  const againAtom = runtime.fn(() => ReviewApi.use((api) => api.index(true)));
+  // A video's length and a doc's text are each keyed by what names the file's
+  // content, its ref and when it was written: a refreshed index that saw it
+  // written again names a new read.
+  const durationOf = Atom.family((file: Written) =>
     runtime
-      .atom(ReviewApi.use((api) => api.duration(ref)))
-      .pipe(served(`review.duration:${ref}`, Schema.Finite)),
+      .atom(ReviewApi.use((api) => api.duration(file.ref)))
+      .pipe(served(`review.duration:${file.ref}@${file.mtime}`, Schema.Finite)),
   );
-  const text = Atom.family((ref: string) =>
+  const textOf = Atom.family((file: Written) =>
     runtime
-      .atom(ReviewApi.use((api) => api.text(ref)))
-      .pipe(served(`review.text:${ref}`, Schema.String)),
+      .atom(ReviewApi.use((api) => api.text(file.ref)))
+      .pipe(served(`review.text:${file.ref}@${file.mtime}`, Schema.String)),
   );
+  const duration = (file: Written) => durationOf({ ref: file.ref, mtime: file.mtime });
+  const text = (file: Written) => textOf({ ref: file.ref, mtime: file.mtime });
   const servedAtAtom = Atom.make(Clock.currentTimeMillis).pipe(served(SERVED_AT, Schema.Finite));
 
   const address = addressOn(props.host);
@@ -288,8 +320,20 @@ export const Root = (
         Option.map(moved, address.follow);
       },
     );
-    const index = useAtomValue(() => indexAtom);
-    const refreshIndex = useAtomRefresh(() => indexAtom);
+    // The index as the newest ask answered it: a Refresh, or a say's answer for its
+    // folder (`asked.ts`); until one has, the first read's: it was asked first, so
+    // any later answer stands over it.
+    const firstIndex = useAtomValue(() => firstIndexAtom);
+    useAtomMount(() => againAtom);
+    const askAgain = useAtomSet(() => againAtom, { mode: 'promiseExit' });
+    const [answered, setAnswered] = createSignal(Option.none<ReviewIndex>());
+    const index = createMemo(() =>
+      Option.match(answered(), {
+        onNone: firstIndex,
+        onSome: (ix) => AsyncResult.success<ReviewIndex, LabFailure>(ix),
+      }),
+    );
+    const asks = newestAsked();
     const films = useAtomValue(() => filmsAtom);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
@@ -309,13 +353,21 @@ export const Root = (
           window.scrollTo(0, 0);
         },
         refresh: () => {
-          fresh = true;
-          refreshIndex();
+          const ask = asks.ask();
+          void askAgain().then((exit) => {
+            if (Exit.isSuccess(exit)) ask.answer(() => setAnswered(Option.some(exit.value)));
+          });
+        },
+        answered: (folder) => {
+          Option.map(AsyncResult.value(untrack(index)), (ix) =>
+            setAnswered(Option.some(withFolder(ix, folder))),
+          );
         },
         quality: keepQuality,
         show: setLightbox,
       },
       meta: {
+        asks,
         duration,
         text,
         runtime,
@@ -553,8 +605,9 @@ const pageCommands = (review: ReviewContextValue): ReadonlyArray<Command> => [
 // One comparison set
 
 interface SetContextValue {
-  readonly folder: ReviewFolder;
-  readonly set: SeenPoint;
+  /** The set's folder and the set, as the index last read them: a refresh moves them under the player. */
+  readonly folder: Accessor<ReviewFolder>;
+  readonly set: Accessor<SeenPoint>;
   /** The synced player's state. */
   readonly sync: Accessor<SyncState>;
   readonly view: Accessor<ViewState>;
@@ -589,13 +642,17 @@ const SetBody = (
   const syncAtom = ActorAtom.make(props.sync);
   const sync = useAtomValue(() => syncAtom);
   const sendSync = useAtomSet(() => syncAtom);
-  const ids = props.set.variants.map((v) => v.id);
-  const first = Option.getOrElse(Option.fromUndefinedOr(ids[0]), () => '');
-  const other = Option.fromUndefinedOr(ids[1]);
+  const ids = createMemo(() => props.set.variants.map((v) => v.id), { equals: Equal.equals });
+  const first = () => Option.getOrElse(Option.fromUndefinedOr(ids()[0]), () => '');
+  const other = () => Option.fromUndefinedOr(ids()[1]);
 
-  const driver = makeSync(first, sendSync, meta.host);
+  // The clock is the set's first version as the index last read it: a refresh
+  // that takes that version away moves the clock to the first one left, and
+  // the player plays on.
+  const driver = makeSync(untrack(first), sendSync, meta.host);
   onCleanup(driver.stop);
   createEffect(sync, (state) => driver.apply(state));
+  createEffect(first, (id) => driver.follow(id));
 
   // The view is the URL's: a link, a reload, Back and Forward all show what
   // it keeps. A choice of view or of a moment is a new history entry (Back
@@ -606,7 +663,7 @@ const SetBody = (
     () =>
       viewOf(
         Option.match(at(), { onSome: (v) => v.query, onNone: () => queryOfView(ViewState.All) }),
-        ids,
+        ids(),
       ),
     // The time moving on is no new view.
     { equals: Equal.equals },
@@ -617,7 +674,7 @@ const SetBody = (
       address[causeOf(event)](
         Place.href(Places.set, {
           ...v,
-          query: { ...v.query, ...queryOfView(stepView(view(), other, event)) },
+          query: { ...v.query, ...queryOfView(stepView(view(), other(), event)) },
         }),
       ),
     );
@@ -627,7 +684,7 @@ const SetBody = (
   createEffect(
     () =>
       Option.map(at(), (v) =>
-        Place.href(Places.set, { ...v, query: shownQuery(v.query, view(), first) }),
+        Place.href(Places.set, { ...v, query: shownQuery(v.query, view(), first()) }),
       ),
     (shown) => {
       Option.map(shown, address.follow);
@@ -653,29 +710,38 @@ const SetBody = (
     ),
   );
   // Nothing plays behind the moments or the difference; a pair (or
-  // its wipe) hears one of its two.
+  // its wipe) hears one of its two, and every view a version the set still
+  // holds: else its first.
   createEffect(
-    () => [view(), sync().audible] as const,
-    ([state, audible]) => {
+    () => [view(), sync().audible, ids()] as const,
+    ([state, audible, all]) => {
       if (!playsIn(viewNameOf(state))) sendSync(SyncEvent.PausePressed);
-      if (Option.exists(otherOf(state), (o) => audible !== first && audible !== o))
-        sendSync(SyncEvent.HeardChosen({ id: first }));
+      Option.map(Option.fromUndefinedOr(all[0]), (lead) => {
+        const heard = Option.match(otherOf(state), {
+          onNone: () => all,
+          onSome: (o) => [lead, o],
+        });
+        if (!heard.includes(audible)) sendSync(SyncEvent.HeardChosen({ id: lead }));
+      });
     },
   );
 
   const length = useAtomValue(() => {
     if (Option.isSome(props.set.moments)) return unmeasured;
-    return meta.duration(
-      Option.getOrElse(
-        Option.map(Option.fromUndefinedOr(props.set.variants[0]), (v) => v.video.ref),
-        () => '',
-      ),
-    );
+    return Option.match(Option.fromUndefinedOr(props.set.variants[0]), {
+      onNone: () => unmeasured,
+      onSome: (v) => meta.duration(v.video),
+    });
   });
-  const moments = createMemo(() =>
-    Option.orElse(props.set.moments, () =>
-      Option.map(AsyncResult.value(length()), (seconds) => spreadMoments(seconds, props.set.start)),
-    ),
+  // The same instants read again are no new moments: the views over them stay.
+  const moments = createMemo(
+    () =>
+      Option.orElse(props.set.moments, () =>
+        Option.map(AsyncResult.value(length()), (seconds) =>
+          spreadMoments(seconds, props.set.start),
+        ),
+      ),
+    { equals: Equal.equals },
   );
 
   // The moments (and the difference at a moment) step on ←/→; the playing views take the player's transport.
@@ -703,7 +769,7 @@ const SetBody = (
     if (!playsIn(viewNameOf(shown))) return false;
     return Option.match(otherOf(shown), {
       onNone: () => true,
-      onSome: (o) => id === first || id === o,
+      onSome: (o) => id === first() || id === o,
     });
   };
   // A version of this set heard alone, from its context menu (as its speaker does).
@@ -716,19 +782,18 @@ const SetBody = (
         v.version !== sync().audible &&
         hearable(v.version),
     );
-  onCleanup(
-    meta.hub.commands.register(
-      ...hearVersionCommands({
-        versions: props.set.variants,
-        heard: () => sync().audible,
-        hearable,
-        hear: (id) => sendSync(SyncEvent.HeardChosen({ id })),
-      }),
-    ),
+  // `1`…`9` hear the versions as the index last named them.
+  registerWhile(meta.hub, () =>
+    hearVersionCommands({
+      versions: props.set.variants,
+      heard: () => sync().audible,
+      hearable,
+      hear: (id) => sendSync(SyncEvent.HeardChosen({ id })),
+    }),
   );
   // The set's modes and Compare's layouts by key and ⌘K, each the next one
   // round; their touch path the segmented controls (`ViewTabs`).
-  const modes = modesOf(props.set.variants.length);
+  const modes = () => modesOf(props.set.variants.length);
   onCleanup(
     meta.hub.commands.register(
       {
@@ -737,9 +802,9 @@ const SetBody = (
         group: 'Review',
         keys: ['v'],
         touch: "tap one of the set's modes",
-        when: () => modes.length > 1,
+        when: () => modes().length > 1,
         run: quietly(() => {
-          sendView(ViewEvent.ViewChosen({ view: nextModeView(viewNameOf(view()), modes) }));
+          sendView(ViewEvent.ViewChosen({ view: nextModeView(viewNameOf(view()), modes()) }));
         }),
       },
       {
@@ -772,8 +837,8 @@ const SetBody = (
   );
 
   const value: SetContextValue = {
-    folder: props.folder,
-    set: props.set,
+    folder: () => props.folder,
+    set: () => props.set,
     sync,
     view,
     moments,
@@ -783,22 +848,31 @@ const SetBody = (
   return <SetContext value={value}>{props.children}</SetContext>;
 };
 
-/** One version stack's player, view and moments, for its page; a stack of one has no side by side. */
+/**
+ * One version stack's player, view and moments, for its page; a stack of one
+ * has no side by side. Its player is the set's for as long as the page shows
+ * it: a refreshed index moves `folder` and `set` under it, so it plays on
+ * with its time, rate, version heard and the view's own state.
+ */
 export const SetProvider = (
   props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>,
 ) => {
   const { meta } = useReview();
-  const first = Option.getOrElse(
-    Option.map(Option.fromUndefinedOr(props.set.variants[0]), (v) => v.id),
-    () => '',
-  );
-  // The player opens where the URL's `#t=` says, else at the set's start.
-  const at = Option.getOrElse(
-    Option.flatMap(Effect.runSyncWith(meta.host)(UrlState.get(Places.set)), (v) => v.hash.t),
-    () => props.set.start,
-  );
+  // Made once, for the set as the page opened it: the player opens where the
+  // URL's `#t=` says, else at the set's start, hearing its first version.
+  const spawn = untrack(() => {
+    const first = Option.getOrElse(
+      Option.map(Option.fromUndefinedOr(props.set.variants[0]), (v) => v.id),
+      () => '',
+    );
+    const at = Option.getOrElse(
+      Option.flatMap(Effect.runSyncWith(meta.host)(UrlState.get(Places.set)), (v) => v.hash.t),
+      () => props.set.start,
+    );
+    return spawnSync(first, props.set.start, at);
+  });
   return (
-    <Actor runtime={meta.runtime} spawn={spawnSync(first, props.set.start, at)}>
+    <Actor runtime={meta.runtime} spawn={spawn}>
       {(sync) => (
         <SetBody folder={props.folder} set={props.set} sync={sync}>
           {props.children}

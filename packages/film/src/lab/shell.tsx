@@ -40,7 +40,7 @@ import { type LabPick, labHrefWith, labPlaceOf } from './place.ts';
 import { useSheetDismissal } from './sheet.tsx';
 import { Fill, useLabPage } from './panel.tsx';
 import { reloadOnRebuild } from './rebuilt.ts';
-import { type CodeOpen, codeText, lineOpen } from './source/open.ts';
+import { type CodeOpen, lineOpen } from './source/open.ts';
 import { type ReloadGate, makeReloadGate } from './reload-gate.ts';
 import { type Stage, type StageOps, makeStage, reloadHere, stageLayer } from './stage.ts';
 
@@ -78,10 +78,11 @@ interface LabActions {
   readonly dismissSelection: () => void;
   /**
    * Close the phone's selection sheet with the Source view it holds as its
-   * second face: the cue or knob and the view go in one history operation.
-   * Back over the step that opened the sheet only when that lands exactly
-   * where Close would write (the view was shut before it); else the entry is
-   * rewritten to name neither.
+   * second face: the cue or knob and the view go in one history operation,
+   * by the sheets' one rule (`useSheetDismissal`, deciding through
+   * `addressOn(host).dismiss`): Back over the step that opened the sheet only
+   * when that lands exactly where Close would write (the view was shut before
+   * it); else the entry is rewritten to name neither.
    */
   readonly dismissSheet: () => void;
   /** Hold `line` of the Source view, selecting `selection` (the cue or knob written there) with it: one step. */
@@ -265,8 +266,6 @@ const Root = (props: RootProps) => {
     note: sheetOf('note'),
     code: sheetOf('code'),
   } as const;
-  // The address the selection's sheet was opened from: what Back over its opening would land on.
-  let selectionFrom = Option.none<string>();
   /** Go to `pick` of `part`: a step Back walks, its sheet's opening when it picks on a shut one. */
   const pick = (part: SheetPart, next: Partial<LabPick>, shut: boolean) => {
     if (shut) for (const thing of sheetThings(next)) sheets[part].opening(thing);
@@ -290,9 +289,7 @@ const Root = (props: RootProps) => {
         return () => pinned.delete(layer);
       },
       select: (selection) => {
-        const shut = Option.isNone(untrack(here).selection);
-        if (shut) selectionFrom = Option.some(address.href());
-        pick('selection', { selection }, shut);
+        pick('selection', { selection }, Option.isNone(untrack(here).selection));
       },
       holdLine: (line, selection) => {
         const now = untrack(here);
@@ -303,10 +300,8 @@ const Root = (props: RootProps) => {
             selection: Option.some(s),
           }),
         });
-        if (Option.isSome(selection) && Option.isNone(now.selection)) {
-          selectionFrom = Option.some(address.href());
+        if (Option.isSome(selection) && Option.isNone(now.selection))
           sheets.selection.opening(targetAttr(selection.value));
-        }
         if (Option.isNone(now.code)) sheets.code.opening(SOURCE_THING);
         address.go(picked(next));
       },
@@ -314,16 +309,16 @@ const Root = (props: RootProps) => {
       dismissSelection: () =>
         sheets.selection.dismiss(() => Option.some(picked({ selection: Option.none() }))),
       dismissSheet: () => {
-        const closed = picked({ selection: Option.none(), code: Option.none() });
         // No cue or knob to let go of: the view's own sheet, closed by its own rule.
         if (Option.isNone(untrack(here).selection)) {
           sheets.code.dismiss(() => Option.some(picked({ code: Option.none() })));
           return;
         }
-        // Back only over the step that opened the sheet when it lands exactly where Close writes.
-        if (Option.exists(selectionFrom, (from) => sameSheets(from, closed)))
-          sheets.selection.dismiss(() => Option.some(closed));
-        else address.follow(closed);
+        // The cue or knob and the view in one operation, by the selection sheet's rule: the
+        // address bar goes Back over its opening only when Back lands where this Close writes.
+        sheets.selection.dismiss(() =>
+          Option.some(picked({ selection: Option.none(), code: Option.none() })),
+        );
       },
       dismissNote: () => sheets.note.dismiss(() => Option.some(picked({ note: Option.none() }))),
       forgetNote: () => address.follow(picked({ note: Option.none() })),
@@ -369,15 +364,6 @@ const sheetThings = (pick: Partial<Pick<LabPick, SheetPart>>): ReadonlyArray<str
   ].map(targetAttr),
   ...Option.toArray(Option.as(Option.flatten(Option.fromUndefinedOr(pick.code)), SOURCE_THING)),
 ];
-
-/** Whether the lab places `a` and `b` keep the same sheets open: the same cue or knob, note and Source view. */
-const sameSheets = (a: string, b: string): boolean => {
-  const key = (href: string) => {
-    const place = labPlaceOf(href);
-    return [sheetThings(place).join(' '), codeText(place.code)].join('|');
-  };
-  return key(a) === key(b);
-};
 
 /** How long the picture flashes when new code lands. */
 const LANDED_MS = 900;

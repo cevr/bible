@@ -14,8 +14,8 @@
 //
 // The rule reads an object literal with an `offset` that is minus its `dur`;
 // and a `{ with: P, offset?: a, dur: b }` in a timeline literal whose sibling
-// `P` has a `dur` d with a + b = d. Each number is written out or a module
-// const holding one. A span that already says `ends` or `until` is left alone.
+// `P` has a `dur` d with a + b = d. Each number is written out or a top-level
+// const holding one, by the name's binding where it is read. A span that already says `ends` or `until` is left alone.
 
 import { Effect, Option, Predicate } from 'effect';
 import {
@@ -25,13 +25,16 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { numberOf, property } from './nodes.ts';
+import { type NumberOf, property, topLevel } from './nodes.ts';
 
 /** How far apart two sums of written seconds may be and still be the same point. */
 const SAME = 1e-9;
 
 /** The `offset` of a span written as `offset: -d, dur: d` (d over 0), when it is one. */
-const endsByHand = (n: ESTree.ObjectExpression): Option.Option<ESTree.ObjectProperty> => {
+const endsByHand = (
+  numberOf: NumberOf,
+  n: ESTree.ObjectExpression,
+): Option.Option<ESTree.ObjectProperty> => {
   if (Option.isSome(property(n, 'ends'))) return Option.none();
   const dur = Option.flatMap(property(n, 'dur'), (p) => numberOf(p.value));
   return Option.filter(property(n, 'offset'), (p) =>
@@ -46,14 +49,18 @@ const stringOf = (n: ESTree.Node): Option.Option<string> => {
 };
 
 /** A span's `offset` in seconds: 0 when it has none, none when it is not a number written out. */
-const offsetOf = (n: ESTree.ObjectExpression): Option.Option<number> =>
+const offsetOf = (numberOf: NumberOf, n: ESTree.ObjectExpression): Option.Option<number> =>
   Option.match(property(n, 'offset'), {
     onNone: () => Option.some(0),
     onSome: (p) => numberOf(p.value),
   });
 
 /** The `dur` of the cue `name` in the timeline literal `span` sits in, when it is written out. */
-const siblingDur = (span: ESTree.ObjectExpression, name: string): Option.Option<number> => {
+const siblingDur = (
+  numberOf: NumberOf,
+  span: ESTree.ObjectExpression,
+  name: string,
+): Option.Option<number> => {
   const entry = span.parent;
   if (entry.type !== 'Property' || entry.parent.type !== 'ObjectExpression') return Option.none();
   return Option.flatMap(property(entry.parent, name), (p) => {
@@ -63,14 +70,17 @@ const siblingDur = (span: ESTree.ObjectExpression, name: string): Option.Option<
 };
 
 /** The `dur` of a `with` part whose offset and dur add up to its parent's dur, when it is one. */
-const endsWithParent = (n: ESTree.ObjectExpression): Option.Option<ESTree.ObjectProperty> => {
+const endsWithParent = (
+  numberOf: NumberOf,
+  n: ESTree.ObjectExpression,
+): Option.Option<ESTree.ObjectProperty> => {
   if (Option.isSome(property(n, 'ends')) || Option.isSome(property(n, 'until')))
     return Option.none();
   const parent = Option.flatMap(property(n, 'with'), (p) => stringOf(p.value));
-  const length = Option.flatMap(parent, (name) => siblingDur(n, name));
+  const length = Option.flatMap(parent, (name) => siblingDur(numberOf, n, name));
   return Option.filter(property(n, 'dur'), (p) =>
     Option.exists(
-      Option.all([offsetOf(n), numberOf(p.value), length]),
+      Option.all([offsetOf(numberOf, n), numberOf(p.value), length]),
       ([a, b, d]) => d > 0 && Math.abs(a + b - d) < SAME,
     ),
   );
@@ -85,6 +95,7 @@ export const spanEndsOnAnchor = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
+    const { numberOf } = yield* topLevel;
     const report = (found: Option.Option<ESTree.Node>, message: string) =>
       Option.match(found, {
         onNone: () => Effect.void,
@@ -93,11 +104,11 @@ export const spanEndsOnAnchor = Rule.define({
     return Visitor.on('ObjectExpression', (node) =>
       Effect.andThen(
         report(
-          endsByHand(node),
+          endsByHand(numberOf, node),
           'a span that ends on its anchor writes its length twice (offset: -d, dur: d): drop the offset and add `ends: true`, so a dur edit keeps the landing.',
         ),
         report(
-          endsWithParent(node),
+          endsWithParent(numberOf, node),
           "a part that ends on its parent's end only because its offset and dur add up to the parent's dur: write `{ after: parent, dur, ends: true }` (keeps its length) or `{ with: parent, until: { cue: parent } }` (keeps its start), so a drag of the parent carries it.",
         ),
       ),

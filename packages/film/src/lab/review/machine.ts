@@ -15,6 +15,8 @@
 //   any ─MediaFailed→ Failed (where it stood; it hears nothing more of that media)
 //   Failed ─MediaReplaced→ Paused (where it stood: a failure is its media's, and the
 //     clock's new media, another source or a retry of the same, starts there afresh)
+//   any ─ClockMoved→ the same, on the new clock's end (Failed → Paused: the failure was
+//     the old clock's media)
 //
 //   All | Pair | Wipe | Moments | Diff ─ViewChosen→ any (Pair, Wipe, Diff only with a second version)
 //   Pair | Wipe | Diff ─OtherChosen→ the same, against that other
@@ -93,6 +95,11 @@ export const SyncEvent = Event({
   MediaFailed: { reason: Schema.String },
   /** The clock's media is new: another source, or a retry of the same, in a fresh element. */
   MediaReplaced: {},
+  /**
+   * The clock is another version's video now (the version it followed left
+   * the set): its end is that video's, `UNKNOWN_END` until it is measured.
+   */
+  ClockMoved: { end: Schema.Finite },
 });
 export type SyncEvent = typeof SyncEvent.Type;
 
@@ -131,6 +138,12 @@ const withClock = (state: SyncState, clock: SyncClock): SyncState =>
 
 /** How near the end a play starts over from the start. */
 const AT_END_S = 0.05;
+
+/** The clock ending at `end` (never before its start): a time past it (a link's `#t=`) stands at the end. */
+const endingAt = (state: SyncState, end: number): SyncClock => {
+  const at = Math.max(state.start, end);
+  return { ...clockOf(state), end: at, t: Math.min(state.t, at) };
+};
 
 /** Play from where the clock is, or from the start when it stands at the end. */
 const played = (state: SyncState): SyncState => {
@@ -215,11 +228,7 @@ export const syncMachine = (audible: string, start: number, at: number = start) 
       const clock = clockOf(state);
       return withClock(state, { ...clock, t: clamp(clock, event.t), seek: clock.seek + 1 });
     })
-    .on(ANY, SyncEvent.Measured, ({ state, event }) => {
-      // A time opened past the end (a link's `#t=`) stands at the end.
-      const end = Math.max(state.start, event.end);
-      return withClock(state, { ...clockOf(state), end, t: Math.min(state.t, end) });
-    })
+    .on(ANY, SyncEvent.Measured, ({ state, event }) => withClock(state, endingAt(state, event.end)))
     .on(ANY, SyncEvent.HeardChosen, ({ state, event }) =>
       withClock(state, { ...clockOf(state), audible: event.id }),
     )
@@ -229,7 +238,13 @@ export const syncMachine = (audible: string, start: number, at: number = start) 
     .on(ANY, SyncEvent.MediaFailed, ({ state, event }) =>
       SyncState.Failed({ ...clockOf(state), reason: event.reason }),
     )
-    .on(SyncState.Failed, SyncEvent.MediaReplaced, ({ state }) => SyncState.Paused(clockOf(state)));
+    .on(SyncState.Failed, SyncEvent.MediaReplaced, ({ state }) => SyncState.Paused(clockOf(state)))
+    .on(ANY, SyncEvent.ClockMoved, ({ state, event }) =>
+      withClock(state, endingAt(state, event.end)),
+    )
+    .on(SyncState.Failed, SyncEvent.ClockMoved, ({ state, event }) =>
+      SyncState.Paused(endingAt(state, event.end)),
+    );
 
 /** The synced player's actor, started. */
 export const spawnSync = (audible: string, start: number, at: number = start) =>

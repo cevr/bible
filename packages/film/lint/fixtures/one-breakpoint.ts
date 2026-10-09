@@ -18,7 +18,14 @@ export const exact = '(width: 56.25em)'; // RED film/one-breakpoint
 
 // Asked through the owner, or built from its one number, passes.
 export const through = `@media ${PHONE} { .x { margin: 0; } } @media ${WIDE} { .x { padding: 0; } }`;
-export const built = `(max-width: ${PHONE_WIDEST}px)`;
+// A width built from a number in the file is a second breakpoint, whichever unit it is in.
+export const built = `(max-width: ${PHONE_WIDEST}px)`; // RED film/one-breakpoint
+export const builtRanged = `(width <= ${PHONE_WIDEST}px)`; // RED film/one-breakpoint
+export const builtFirst = `(${PHONE_WIDEST}px < width)`; // RED film/one-breakpoint
+export const chars = '(max-width: 56ch)'; // RED film/one-breakpoint
+export const viewport = '(min-width: 60vw)'; // RED film/one-breakpoint
+// A template with a value that is no width passes.
+export const colour = `(prefers-color-scheme: ${PHONE_WIDEST})`;
 // A width that is no media query passes.
 export const sized = '.x { max-width: 900px; }';
 // A feature query asks whether a declaration parses, not how wide the window is.
@@ -27,3 +34,17 @@ export const supportedTemplate = `@supports ( max-width : 899px ) and (display: 
 // A media query after a feature query's block is still a breakpoint.
 export const after =
   '@supports (width: 1px) { .x { margin: 0; } } @media (min-width: 900px) { .x { padding: 0; } }'; // RED film/one-breakpoint
+
+// A feature query's clause runs on across a template's values.
+export const supportedBuilt = `@supports (width: ${PHONE_WIDEST}px) and (min-width: ${PHONE_WIDEST}px) {}`;
+export const supportedWritten = `@supports (width: ${PHONE_WIDEST}px) and (min-width: 900px) {}`;
+// A media query after the feature query's block, in a later part of the template, is a breakpoint.
+export const builtAfter = `@supports (width: ${PHONE_WIDEST}px) {} @media (max-width: ${PHONE_WIDEST}px) {}`; // RED film/one-breakpoint
+export const writtenAfter = `@supports (width: ${PHONE_WIDEST}px) {} @media (max-width: 899px) {}`; // RED film/one-breakpoint
+
+// The root-relative units are lengths too.
+export const rootChars = '(max-width: 56rch)'; // RED film/one-breakpoint
+export const rootEx = '(min-width: 40rex)'; // RED film/one-breakpoint
+export const rootCap = '(max-width: 40rcap)'; // RED film/one-breakpoint
+export const rootIc = '(max-width: 40ric)'; // RED film/one-breakpoint
+export const container = '(max-width: 40cqi)'; // RED film/one-breakpoint

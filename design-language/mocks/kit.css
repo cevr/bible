@@ -2,13 +2,20 @@
  * The mocks' shell and kit (design-language.md §4, §5), shared by every mock
  * page. Values come only from the one token file, which each page links
  * first (`packages/film/src/player/tokens.css`); this sheet holds none of its
- * own. Every control a finger takes is at least `--hit` (44 px on the phone,
- * 28 px with a fine pointer), as the studio's touch check measures the code.
- * Every gap, padding, margin, leading and radius is a step of the token
- * scales (`--s-*`, `--lh-*`, `--r-*`); a 1 px hairline stays 1 px, and other
- * geometry is named once where it lives (`lab.css` names the cue lanes').
+ * own but the hairline's width. Every control a finger takes is at least
+ * `--hit` (44 px on the phone, 28 px with a fine pointer), as the studio's
+ * touch check measures the code. Every gap, padding, margin, leading and
+ * radius is a step of the token scales (`--s-*`, `--fs-*`, `--lh-*`,
+ * `--r-*`); a hairline a gap or a margin draws is `--hairline`, and other
+ * geometry is named once where it lives (`lab.css` names the cue lanes', a
+ * dot its size, its centring margin half of it).
  * A page keeps only its own rules in its <style>.
  */
+
+/* A hairline: `--border`'s width, for the line a gap or a margin draws between two things. */
+:root {
+  --hairline: 1px;
+}
 
 /* ── Shell: header, page bar, panel (§4) ───────────────────────────── */
 * {

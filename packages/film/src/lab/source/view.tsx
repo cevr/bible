@@ -30,6 +30,7 @@ import type { CodeRange, SceneCode } from '../../core/schema.ts';
 import { liveAt } from '../../core/timeline.ts';
 import { Target } from '../command/context-menu.tsx';
 import { useLabPage } from '../panel.tsx';
+import { pressed } from '../pressed.ts';
 import { useLab } from '../shell.tsx';
 import { Sheet } from '../sheet.tsx';
 import { PHONE, useMatches } from '../viewport.ts';
@@ -331,7 +332,7 @@ const Head = (props: { readonly code: SceneCode; readonly close: boolean }) => {
   return (
     <header class="lab-source-head">
       <span class="lab-source-file">{props.code.file}</span>
-      <span class="lab-source-live" data-empty={String(lit().names.length === 0)}>
+      <span class="lab-source-live" data-empty={pressed(lit().names.length === 0)}>
         {Bool.match(lit().names.length === 0, {
           onTrue: () => 'nothing playing',
           onFalse: () => lit().names.join(' · '),
@@ -341,7 +342,7 @@ const Head = (props: { readonly code: SceneCode; readonly close: boolean }) => {
         type="button"
         class="sh-btn lab-source-follow"
         data-act="follow-source"
-        aria-pressed={`${source.following()}`}
+        aria-pressed={pressed(source.following())}
         title="Scroll with the frame"
         onClick={follow}
       >

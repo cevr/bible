@@ -45,3 +45,9 @@ export const scene = drawing({
     ];
   },
 });
+
+// A parameter named like a module const is its own binding: its value is not known.
+export const split = (f: { readonly at: (cue: string) => number }, SHARE: number) => [
+  clamp(f.at('answer') / SHARE),
+  f.at('answer') > SHARE,
+];

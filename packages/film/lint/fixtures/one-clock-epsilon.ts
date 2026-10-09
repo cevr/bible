@@ -11,6 +11,7 @@ export const first = Math.ceil(t * fps - 1e-6); // RED film/one-clock-epsilon
 export const slack = 0.5 / fps + 0.000001; // RED film/one-clock-epsilon
 export const same = Math.abs(t - from) < 1e-9; // RED film/one-clock-epsilon
 const NUDGE = 5e-5; // RED film/one-clock-epsilon
+// A nudge named by a const is judged where it is written, once.
 export const nudged = t + NUDGE;
 
 // A millisecond taken from a time by hand, in a comparison and in a step.
@@ -29,3 +30,24 @@ export const longer = t + 0.01;
 // CLOCK_EPSILON judges two times one.
 export const one = Math.abs(t - from) < CLOCK_EPSILON;
 export const sum = t + CLOCK_EPSILON;
+
+// The same step on the left, as a quotient, or named by a module const.
+const HALF_MS = 0.0005;
+export const onTheLeft = 1e-3 + t; // RED film/one-clock-epsilon
+export const quotient = t - 1 / 1000; // RED film/one-clock-epsilon
+export const named = t + HALF_MS; // RED film/one-clock-epsilon
+export const reversed = HALF_MS - t;
+export const frameStep = t + 1 / 30;
+export const secondsMinus = 1 - t;
+
+// A step below a tenth of a millisecond, folded, is a step too: a microsecond, a nanosecond.
+export const micro = t - 1 / 1_000_000; // RED film/one-clock-epsilon
+export const nano = t + 1 / 1e9; // RED film/one-clock-epsilon
+export const negated = t + -HALF_MS; // RED film/one-clock-epsilon
+
+// A parameter or a local named like a module const holds its own value.
+export const shadowedParam = (HALF_MS: number) => t + HALF_MS;
+export const shadowedLocal = () => {
+  const HALF_MS = 2;
+  return t + HALF_MS;
+};

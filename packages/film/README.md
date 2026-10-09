@@ -686,8 +686,12 @@ that moves for a reason names only the reason (`addressOn`,
 `browser/host.ts`): the viewer went somewhere (`go`, entered as the place
 declares), or the URL follows what the page did on its own (`follow`: play,
 a drag, a ←/→ step through the moments, a correction, a note gone from the
-feed, an old link's redirect), which always rewrites the entry. The review
-pages also set a place's value directly (`UrlState.set` and `update`,
+feed, an old link's redirect), which always rewrites the entry. The one
+traversal a page makes is the bar's too (`dismiss`, a sheet's Close, Escape
+or swipe): it goes Back over the entry the opening pushed only when that
+entry is on screen and Back lands exactly where the Close writes (the same
+path, query and hash), else it rewrites the entry; no page goes Back or
+Forward itself (`film/history-through-host`). The review pages also set a place's value directly (`UrlState.set` and `update`,
 `UrlAtom.place`'s setter: a sheet opened, the synced players' time).
 
 | Place                            | Page   | Query                                                                                                                   | Hash                                 |

@@ -69,8 +69,22 @@ const CAPTURES = new Set(['setPointerCapture', 'releasePointerCapture']);
 /** The host's own targets. */
 const HOSTS = new Set(['window', 'document', 'globalThis', 'self']);
 
-/** The names the global object reaches itself, or its document, by. */
-const HOPS = new Set(['window', 'self', 'globalThis', 'top', 'parent', 'frames', 'document']);
+/**
+ * The names the global object reaches itself, its document, or the document's
+ * body and root element by: the body hears the window's navigation, and every
+ * key bubbles to it.
+ */
+const HOPS = new Set([
+  'window',
+  'self',
+  'globalThis',
+  'top',
+  'parent',
+  'frames',
+  'document',
+  'body',
+  'documentElement',
+]);
 
 const Options = Schema.UndefinedOr(
   Schema.Struct({ allow: Schema.optionalKey(Schema.Array(Schema.String)) }),

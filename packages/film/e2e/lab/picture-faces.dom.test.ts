@@ -50,6 +50,21 @@ const BLANK = `(() => {
   return data.every((v) => v === 0);
 })()`;
 
+/**
+ * Whether the element `selector` names is painted: it has a box, and the
+ * point at that box's centre is the element or inside it, so nothing hides
+ * or covers it (a name in the DOM with no box, or under another layer, is not
+ * on the screen).
+ */
+const PAINTED = (selector: string) => `(() => {
+  const el = document.querySelector('${selector}');
+  if (el === null) return false;
+  const box = el.getBoundingClientRect();
+  if (box.width <= 0 || box.height <= 0) return false;
+  const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+  return hit !== null && el.contains(hit);
+})()`;
+
 /** The probe face's status in the page's fonts. */
 const FACE_STATUS = `[...document.fonts].find((f) => f.family.replaceAll('"', '') === 'Probe Face')?.status ?? 'none'`;
 
@@ -89,6 +104,8 @@ describe("a film's picture faces on the Lab", () => {
         yield* textIs(page, '.bar .scene', 'one');
         yield* textHas(page, '.bar .say', 'The ball');
         yield* textHas(page, '.lab-strip-name', 'one');
+        yield* evaluates(page, PAINTED('.bar .scene'), true);
+        yield* evaluates(page, PAINTED('.lab-strip-name'), true);
         yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
         yield* evaluates(page, FACE_STATUS, 'loading');
         yield* evaluates(page, BLANK, true);
