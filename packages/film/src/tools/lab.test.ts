@@ -679,6 +679,34 @@ describe('lab routes', () => {
     },
   );
 
+  it.effect('a HEAD of a GET route answers as the GET does, without its body', () =>
+    Effect.gen(function* () {
+      const lab = yield* labHandler(LOOPBACK);
+      const notes = labUrls.notes.list({ params: { film: 'f' } });
+      const got = yield* Effect.promise(() => lab(get(notes), bound));
+      const body = yield* Effect.promise(() => got.text());
+      expect(got.status).toBe(200);
+      expect(body).not.toBe('');
+      const head = yield* Effect.promise(() =>
+        lab(new Request(at(notes), { method: 'HEAD' }), bound),
+      );
+      expect([head.status, head.headers.get('content-type')]).toEqual([
+        200,
+        got.headers.get('content-type'),
+      ]);
+      expect(Number(head.headers.get('content-length'))).toBe(
+        new TextEncoder().encode(body).length,
+      );
+      expect(yield* Effect.promise(() => head.text())).toBe('');
+      // A route that takes no GET takes no HEAD either.
+      const added = labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'topple' } });
+      const refused = yield* Effect.promise(() =>
+        lab(new Request(at(added), { method: 'HEAD' }), bound),
+      );
+      expect(refused.status).toBe(404);
+    }).pipe(Effect.scoped, Effect.provide(labLayer(files(), echoPages))),
+  );
+
   it.live(
     "a page is sent compressed by the request's Accept-Encoding, br first; a streamed page's shell arrives before its render ends",
     () => {

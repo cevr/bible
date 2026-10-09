@@ -593,8 +593,30 @@ export const serveApi = <
     // oxlint-disable-next-line effect/noAs -- the context the handler takes is the router's markers over a generic `Needs`, which the checker cannot reduce
     const handler = web.handler as OwnHandler;
     yield* Deferred.succeed(self, handler);
-    const answer: LabHandler = (request, server) =>
-      handler(request, Context.make(Connection, connectionOf(server)));
+    const own = prefixesOf(api);
+    const answer: LabHandler = (request, server) => {
+      const context = Context.make(Connection, connectionOf(server));
+      // A HEAD of an API path is its GET's answer without the body (the pages
+      // answer HEAD themselves): the router takes a route by one method.
+      if (
+        request.method !== 'HEAD' ||
+        !own.some((prefix) => new URL(request.url).pathname.startsWith(prefix))
+      )
+        return handler(request, context);
+      const asked = new Request(request.url, {
+        method: 'GET',
+        headers: request.headers,
+        signal: request.signal,
+      });
+      return handler(asked, context).then((response) => {
+        Option.map(Option.fromNullishOr(response.body), (body) => body.cancel());
+        return new Response('', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        });
+      });
+    };
 
     return answer;
   });
