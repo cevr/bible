@@ -4,6 +4,9 @@
  * first (`packages/film/src/player/tokens.css`); this sheet holds none of its
  * own. Every control a finger takes is at least `--hit` (44 px on the phone,
  * 28 px with a fine pointer), as the studio's touch check measures the code.
+ * Every gap, padding, margin, leading and radius is a step of the token
+ * scales (`--s-*`, `--lh-*`, `--r-*`); a 1 px hairline stays 1 px, and other
+ * geometry is named once where it lives (`lab.css` names the cue lanes').
  * A page keeps only its own rules in its <style>.
  */
 
@@ -91,7 +94,7 @@ svg.i.fill {
 .crumb {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--s-1);
   font-size: var(--fs-2);
   color: var(--text-2);
   white-space: nowrap;
@@ -181,7 +184,7 @@ kbd {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--s-1);
   padding: 0 var(--s-3);
   color: var(--text-2);
   text-decoration: none;
@@ -283,7 +286,7 @@ kbd {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--s-1);
   height: var(--s-4);
   padding: 0 var(--s-1);
   border: 1px solid currentColor;
@@ -559,7 +562,7 @@ kbd {
     flex: 1;
     flex-direction: column;
     justify-content: center;
-    gap: 3px;
+    gap: var(--s-1);
     padding: 0;
     font-size: var(--fs-1);
     line-height: var(--lh-1);
@@ -583,4 +586,66 @@ kbd {
   .ph {
     display: none !important;
   }
+}
+
+/* ── Page rules two or more mocks share ───────────────────────────── */
+.card .pic img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.btn.primary kbd {
+  border-color: var(--accent-ink);
+  color: var(--accent-ink);
+}
+
+.insp .body {
+  padding: var(--s-3) var(--gutter);
+  display: grid;
+  gap: var(--s-3);
+}
+
+.insp .title {
+  font-size: var(--fs-5);
+  line-height: var(--lh-5);
+  font-weight: var(--w-3);
+  margin: 0;
+}
+
+.insp .sub {
+  font-size: var(--fs-2);
+  color: var(--text-2);
+}
+
+.group {
+  border-top: var(--border);
+}
+
+.group summary .n {
+  margin-left: auto;
+  color: var(--text-3);
+}
+
+.group .in {
+  padding: 0 var(--gutter) var(--s-3);
+  font-size: var(--fs-2);
+  color: var(--text-2);
+  display: grid;
+  gap: var(--s-2);
+}
+
+.kv dt {
+  color: var(--text-3);
+}
+
+.sheet {
+  background: var(--surface-2);
+  border-top: 1px solid var(--line-strong);
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+}
+
+.group summary::-webkit-details-marker {
+  display: none;
 }

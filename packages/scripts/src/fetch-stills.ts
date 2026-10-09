@@ -21,7 +21,7 @@
 
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { LabHttpApi, type ProjectView } from '@bible/film/api';
-import { Array as Arr, Cause, Console, Effect, FileSystem, Layer, Option, Record } from 'effect';
+import { Array as Arr, Console, Effect, FileSystem, Layer, Option, Record } from 'effect';
 import { Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
@@ -35,14 +35,14 @@ const STEP = 5;
 const BIG = [['cold', 9.5, 'big-cold.jpg']] as const;
 
 /** A scene's video in its own film's project: the ref of its render, none when it has none. */
-export const sceneVideo = (view: ProjectView, scene: string): Option.Option<string> =>
+const sceneVideo = (view: ProjectView, scene: string): Option.Option<string> =>
   Option.map(Record.get(view.videos, scene), (video) => video.ref);
 
 /** A file this script writes: a tape still, a poster or a large frame. */
 const isStill = (file: string) => /^(?:tape|poster|big)-[\w-]+\.jpg$/.test(file);
 
 /** What one fetch reads and writes: the lab's address, the film, the folder written. */
-export interface StillsArgs {
+interface StillsArgs {
   readonly lab: string;
   readonly film: string;
   readonly out: string;
@@ -103,15 +103,6 @@ const fetchStills = Effect.fn('scripts.fetchStills')(function* ({ lab, film, out
 
 /** The platform one fetch runs on: the fetch API for the lab, Bun for the files. */
 const platform = Layer.mergeAll(FetchHttpClient.layer, BunServices.layer);
-
-/** One fetch as a promise, for a caller outside Effect (the in-memory proof); a failure is printed, then rejects. */
-export const run = (args: StillsArgs) =>
-  Effect.runPromise(
-    fetchStills(args).pipe(
-      Effect.tapCause((cause) => Console.error(Cause.pretty(cause))),
-      Effect.provide(platform),
-    ),
-  );
 
 const command = Command.make(
   'fetch-stills',
