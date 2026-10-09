@@ -80,6 +80,15 @@ describe("a selection in the pages' URLs", () => {
     );
   });
 
+  test('cites a line of the code as the Source view held on it, at the time of the scene', () => {
+    const here = pageHref.labScene('f', 'one', {}, Option.some(1.5));
+    const line = Selection.cases.Line.make({ scene: 'one', line: 42 });
+    expect(citeOf(line, here)).toBe(
+      pageHref.labScene('f', 'one', { code: '42' }, Option.some(1.5)),
+    );
+    expect(selectionText(line)).toBe('line 42 of one');
+  });
+
   test("cites the studio's beat in the lab's scene at its time (?beat=), else in the beat's own scene", () => {
     const here = pageHref.labScene('f', 'one', {}, Option.some(1.5));
     expect(citeOf(Beat.make({ beat: 'two' }), here)).toBe(
