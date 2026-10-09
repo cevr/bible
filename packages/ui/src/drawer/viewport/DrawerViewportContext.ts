@@ -12,6 +12,12 @@ export interface DrawerViewportContext {
 
 export const DrawerViewportContext = createContext<DrawerViewportContext | null>(null);
 
-export function useDrawerViewportContext(): DrawerViewportContext | null {
-  return useContext(DrawerViewportContext);
+export function useDrawerViewportContext(): DrawerViewportContext {
+  const context = useContext(DrawerViewportContext);
+  if (context === null) {
+    throw new Error(
+      'Base UI: DrawerViewportContext is missing. Drawer.Popup must be placed within <Drawer.Viewport>.',
+    );
+  }
+  return context;
 }

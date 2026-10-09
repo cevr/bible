@@ -5,8 +5,6 @@
 // The `data-*` attributes and CSS variables of the drawer's parts. The popup
 // carries its swipe as CSS variables (the movement so far) for the consumer's
 // transform.
-import { CommonPopupDataAttributes } from '../../utils/popupStateMapping.ts';
-
 export const DrawerPopupCssVars = {
   /** The swipe movement on the X axis. */
   swipeMovementX: '--drawer-swipe-movement-x',
@@ -15,10 +13,6 @@ export const DrawerPopupCssVars = {
 } as const;
 
 export const DrawerPopupDataAttributes = {
-  open: CommonPopupDataAttributes.open,
-  closed: CommonPopupDataAttributes.closed,
-  startingStyle: CommonPopupDataAttributes.startingStyle,
-  endingStyle: CommonPopupDataAttributes.endingStyle,
   /** Present when the drawer is dismissed by swiping. */
   swipeDismiss: 'data-swipe-dismiss',
   /** The swipe direction: `up`, `down`, `left` or `right`. */
