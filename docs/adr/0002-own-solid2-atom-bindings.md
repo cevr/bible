@@ -41,16 +41,25 @@ subscription or mount to it.
   resource tuple, so call sites must change when upstream's Solid 2 bindings land, and
   a name collision would hide that. It has no `suspendOnWaiting` option; a refresh of a
   settled result does not suspend.
-- **`useAtom`, `useAtomSubscribe`, `useAtomRef` and `useAtomRefPropValue` are not
-  ported.** No product caller needs them; a component that wants both halves calls
-  `useAtomValue` and `useAtomSet`. Add one back, upstream-shaped, with its first
-  caller.
+- **`useAtom`, `useAtomSubscribe`, `useAtomRef`, `useAtomRefProp`,
+  `useAtomRefPropValue` and `useAtomInitialValues` are not ported.** No product caller
+  needs them; a component that wants both halves calls `useAtomValue` and
+  `useAtomSet`, and a page seeds atoms through `RegistryProvider`'s `initialValues`.
+  Add one back, upstream-shaped, with its first caller.
 - **`useAtomValue` takes the atom alone.** Upstream's mapped overload
   `useAtomValue(atom, f)` is dropped; a value derived from the atom is a function at
-  the call site (`() => f(value())`). The registry compares a node's new value with
-  `atom.equals` before it notifies, so the derived read loses no dedupe.
-- **`useAtomSet`'s setter takes a value, not an updater function.** No caller passed
-  one.
+  the call site (`() => f(value())`). The two are not equivalent: upstream subscribes
+  to an `Atom.map` projection, so a source change that leaves `f`'s result equal does
+  not notify, while the derived read re-runs whenever the atom changes, even if `f`'s
+  result does not. A caller that needs that dedupe wraps the read in a memo or builds
+  the projection with `Atom.map` itself.
+- **`useAtomSet`'s setter takes a value, not an updater function, and has no
+  `promise` mode.** No caller passed an updater or used `promise`. The `value` and
+  `promiseExit` modes are ported.
+- **The registry context is private; `useRegistry` is the public read.** Upstream
+  exports `RegistryContext`, holding a default registry. Here the context is a module
+  constant that only `RegistryProvider` sets, and `useRegistry` returns the current
+  tree's registry or throws, for the same reason as the next entry.
 - **There is no registry without a provider.** Upstream's context holds a default
   registry. Here a hook outside a `RegistryProvider` throws, in the browser as on the
   server: a server module is loaded once and renders every request, so a registry of
@@ -59,8 +68,13 @@ subscription or mount to it.
   page's, whose URL layer would build a second `UrlState`. The browser half is pinned
   by `hooks.test.ts`, the server half by `test/ssr/server.test.ts`.
 - **`RegistryProvider` takes `initialValues` and children only.** The scheduler and
-  timeout options upstream forwards are dropped (nothing passed them), and the idle
-  time of an unread atom is a fixed 400 ms, upstream's default.
+  timeout options upstream forwards are dropped (nothing passed them). Upstream also
+  forwards an optional `defaultIdleTTL`, and its registry keeps `undefined`, which is
+  no idle TTL; this package fixes the idle time of an unread atom at 400 ms, its own
+  policy. `initialValues` is how pages seed the URL layer: `AtomRegistry.make({
+initialValues })` marks the seeded node to keep its value when it builds
+  (`preserveInitialValueOnBuild`, effect 4.0.0 `AtomRegistry.ts`), so each page root
+  seeds `UrlAtom.layer` with its host's `Location`; `UrlAtom.layer` has no default.
 
 ## Additions upstream does not have
 
@@ -73,10 +87,6 @@ subscription or mount to it.
   the URL's hash). The server render and the client's hydration pass show the server
   value, so their markup matches, and the live value follows. The server never runs
   the atom.
-- **`initialValues` seeds the root.** `AtomRegistry.make({ initialValues })` marks the
-  seeded node to keep its value when it builds (`preserveInitialValueOnBuild`, effect
-  4.0.0 `AtomRegistry.ts`), so the provider's `initialValues` is how each page root
-  seeds `UrlAtom.layer` with its host's `Location`; `UrlAtom.layer` has no default.
 
 ## Solid 2 adaptation, and why it is shaped this way
 
