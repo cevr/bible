@@ -19,7 +19,7 @@
 // selected never starts a swipe.
 import { isElement } from '@floating-ui/utils/dom';
 import type { JSX } from '@solidjs/web';
-import { createEffect, createSignal, omit, untrack } from 'solid-js';
+import { createEffect, omit, untrack } from 'solid-js';
 
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext.ts';
 import {
@@ -34,7 +34,6 @@ import {
 } from '../../internals/transitions.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
-import { clamp } from '../../utils/clamp.ts';
 import {
   activeElement,
   addEventListener,
@@ -51,7 +50,6 @@ import {
   getElementAtPoint,
   type ScrollAxis,
   type SwipeDirection,
-  type UseSwipeDismissReleaseDetails,
   useSwipeDismiss,
 } from '../../utils/useSwipeDismiss.ts';
 import { useDrawerRootContext } from '../root/DrawerRootContext.ts';
@@ -64,12 +62,6 @@ import { DrawerViewportContext } from './DrawerViewportContext.ts';
 
 const MIN_SWIPE_THRESHOLD = 10;
 const FAST_SWIPE_VELOCITY = 0.5;
-const MIN_SWIPE_RELEASE_VELOCITY = 0.2;
-const MAX_SWIPE_RELEASE_VELOCITY = 4;
-const MIN_SWIPE_RELEASE_DURATION_MS = 80;
-const MAX_SWIPE_RELEASE_DURATION_MS = 360;
-const MIN_SWIPE_RELEASE_SCALAR = 0.1;
-const MAX_SWIPE_RELEASE_SCALAR = 1;
 const AXIS_LOCK_SLOP = 6;
 const AXIS_LOCK_BIAS = 2;
 const DRAWER_CONTENT_SELECTOR = `[${DRAWER_CONTENT_ATTRIBUTE}]`;
@@ -111,8 +103,6 @@ export function DrawerViewport(componentProps: DrawerViewportProps): JSX.Element
   const crossScrollAxis = (): ScrollAxis =>
     scrollAxis() === 'vertical' ? 'horizontal' : 'vertical';
 
-  const [swipeRelease, setSwipeRelease] = createSignal<number | null>(null, { ownedWrite: true });
-
   let lastPointerType = '';
   let ignoreNextTouchStartFromPen = false;
   let ignoreTouchSwipe = false;
@@ -125,53 +115,6 @@ export function DrawerViewport(componentProps: DrawerViewportProps): JSX.Element
   function clearSwipeRelease() {
     setSwipeDismissed(false);
     untrack(store.popupElement)?.removeAttribute(TransitionStatusDataAttributes.endingStyle);
-    setSwipeRelease(null);
-  }
-
-  /** How hard the release was, as a scalar of the exit transition's duration (0.1-1). */
-  function resolveSwipeRelease(
-    popup: HTMLElement,
-    direction: SwipeDirection,
-    details: UseSwipeDismissReleaseDetails,
-  ): number | null {
-    const size = getBaseSwipeSize(popup, direction);
-    if (size <= 0) {
-      return null;
-    }
-    const translation = getDisplacement(direction, details.deltaX, details.deltaY);
-    const remainingDistance = Math.max(0, size - translation);
-    if (remainingDistance <= 0) {
-      return null;
-    }
-    const releaseVelocity = getDisplacement(
-      direction,
-      details.releaseVelocityX,
-      details.releaseVelocityY,
-    );
-    const directionalVelocity =
-      Math.abs(releaseVelocity) > 0
-        ? releaseVelocity
-        : getDisplacement(direction, details.velocityX, details.velocityY);
-    if (directionalVelocity <= MIN_SWIPE_RELEASE_VELOCITY) {
-      return null;
-    }
-    const clampedVelocity = clamp(
-      directionalVelocity,
-      MIN_SWIPE_RELEASE_VELOCITY,
-      MAX_SWIPE_RELEASE_VELOCITY,
-    );
-    const durationMs = clamp(
-      remainingDistance / clampedVelocity,
-      MIN_SWIPE_RELEASE_DURATION_MS,
-      MAX_SWIPE_RELEASE_DURATION_MS,
-    );
-    const normalizedDuration =
-      (durationMs - MIN_SWIPE_RELEASE_DURATION_MS) /
-      (MAX_SWIPE_RELEASE_DURATION_MS - MIN_SWIPE_RELEASE_DURATION_MS);
-    return (
-      MIN_SWIPE_RELEASE_SCALAR +
-      normalizedDuration * (MAX_SWIPE_RELEASE_SCALAR - MIN_SWIPE_RELEASE_SCALAR)
-    );
   }
 
   const swipe = useSwipeDismiss({
@@ -251,7 +194,6 @@ export function DrawerViewport(componentProps: DrawerViewportProps): JSX.Element
       setSwipeDismissed(true);
       popup.style.removeProperty('transition');
       popup.setAttribute(TransitionStatusDataAttributes.endingStyle, '');
-      setSwipeRelease(resolveSwipeRelease(popup, direction, details));
       return true;
     },
     onDismiss(event) {
@@ -518,7 +460,6 @@ export function DrawerViewport(componentProps: DrawerViewportProps): JSX.Element
   const context: DrawerViewportContext = {
     swiping: swipe.swiping,
     getDragStyles: swipe.getDragStyles,
-    swipeStrength: swipeRelease,
   };
 
   const state: DrawerViewportState = {

@@ -40,7 +40,7 @@ Upstream's hover opening, submenus, arrow (and `arrowPadding`), backdrop, link, 
 
 `Group`, `GroupLabel` and `Separator` set none.
 
-CSS variables on `Menu.Positioner`: `--anchor-width`, `--anchor-height` (the anchor's size, snapped to device pixels), `--available-width`, `--available-height` (the room before the collision boundary; `100vw` and `100vh` until measured), `--transform-origin` (the anchor's side, for a scale from the anchor).
+Upstream's positioner CSS variables (`--anchor-width`, `--anchor-height`, `--available-width`, `--available-height` and `--transform-origin`) are left out: no stylesheet reads them. A variable returns with its first stylesheet reader.
 
 ### Context menu
 
@@ -106,7 +106,7 @@ A swipe released past half the popup (or flicked) calls `onOpenChange(false, det
 
 `Close`, `Content` and `Title` set none (`data-drawer-content` on `Content` is a fixed marker).
 
-CSS variables on `Drawer.Popup`: `--drawer-swipe-movement-x`, `--drawer-swipe-movement-y` (the drag so far, while dragged), `--drawer-swipe-strength` (0.1 to 1, to shorten the exit after a hard flick; `1` otherwise).
+CSS variables on `Drawer.Popup`: `--drawer-swipe-movement-x`, `--drawer-swipe-movement-y` (the drag so far, while dragged). Upstream's `--drawer-swipe-strength` is left out: no stylesheet reads it.
 
 ### Toast
 
@@ -136,10 +136,7 @@ A manager has `add` and `close(id)`; an `add` with an existing `id` updates that
 | `Content`                  | `data-behind`                               | the toast is behind the frontmost one                         |
 | `Title`, `Action`, `Close` | `data-type`                                 | the toast has a `type`: its value                             |
 
-CSS variables:
-
-- `Toast.Viewport`: `--toast-frontmost-height` (the frontmost toast's height, once measured).
-- `Toast.Root`: `--toast-index` (its place in the stack, 0 frontmost), `--toast-offset-y` (the summed heights in front of it), `--toast-height` (its measured height), `--toast-swipe-movement-x`, `--toast-swipe-movement-y` (the swipe so far).
+CSS variables on `Toast.Root`: `--toast-swipe-movement-x`, `--toast-swipe-movement-y` (the swipe so far). Upstream's stack variables (`--toast-index`, `--toast-offset-y`, `--toast-height` and the viewport's `--toast-frontmost-height`) and the height measurement behind them are left out: the receipts are a flat column. `Toast.Close` is always exposed to assistive technology (upstream hides it while the stack is collapsed).
 
 ### Number field
 

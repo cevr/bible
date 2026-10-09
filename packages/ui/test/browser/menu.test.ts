@@ -234,7 +234,7 @@ describe('Menu.Group + Menu.GroupLabel', () => {
 });
 
 describe('Menu.Positioner', () => {
-  it('places the popup under the trigger and sets the positioning CSS variables', async () => {
+  it('places the popup under the trigger', async () => {
     const page = await h.open('menu');
     await page.click('#trigger');
     await see(page.locator('body > [data-base-ui-portal] #popup')).toHaveCount(1);
@@ -243,20 +243,6 @@ describe('Menu.Positioner', () => {
     const positioner = (await page.locator('#positioner').boundingBox())!;
     expect(Math.round(positioner.y)).toBe(Math.round(trigger.y + trigger.height + 4));
     expect(Math.round(positioner.x)).toBe(Math.round(trigger.x));
-    const vars = await page
-      .locator('#positioner')
-      .evaluate((el) => [
-        el.style.getPropertyValue('--anchor-width'),
-        el.style.getPropertyValue('--available-height'),
-        el.style.getPropertyValue('--transform-origin'),
-      ]);
-    // The width snaps to device pixels, as Base UI does, so a fractional text width reads whole.
-    const dpr = await page.evaluate(() => window.devicePixelRatio || 1);
-    const snapped =
-      (Math.round((trigger.x + trigger.width) * dpr) - Math.round(trigger.x * dpr)) / dpr;
-    expect(vars[0]).toBe(`${snapped}px`);
-    expect(vars[1]).toMatch(/px$/);
-    expect(vars[2]).toBe('0% -4px');
   });
 });
 

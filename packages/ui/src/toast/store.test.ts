@@ -21,17 +21,13 @@ function createStore(toasts: ToastObject[]) {
 
 function expectToastMetadataToMatchToasts(store: ToastStore) {
   let visibleIndex = 0;
-  let offsetY = 0;
 
   store.state.toasts.forEach((toast, index) => {
     const isEnding = toast.transitionStatus === 'ending';
 
     expect(selectors.toast(store.state, toast.id)).toBe(toast);
     expect(selectors.toastIndex(store.state, toast.id)).toBe(index);
-    expect(selectors.toastOffsetY(store.state, toast.id)).toBe(offsetY);
     expect(selectors.toastVisibleIndex(store.state, toast.id)).toBe(isEnding ? -1 : visibleIndex);
-
-    offsetY += toast.height || 0;
 
     if (!isEnding) {
       visibleIndex += 1;
@@ -44,15 +40,11 @@ const statusOf = (store: ToastStore, id: string) =>
 
 describe('ToastStore', () => {
   it('keeps toast metadata synchronized after mutations', () => {
-    const store = createStore([
-      { id: 'newest', height: 30 },
-      { id: 'middle', height: 40 },
-      { id: 'oldest', height: 50 },
-    ]);
+    const store = createStore([{ id: 'newest' }, { id: 'middle' }, { id: 'oldest' }]);
 
     expectToastMetadataToMatchToasts(store);
 
-    store.updateToastInternal('middle', { height: 45 });
+    store.updateToastInternal('middle', { title: 'Middle' });
     expectToastMetadataToMatchToasts(store);
 
     store.closeToast('middle');
@@ -80,19 +72,19 @@ describe('ToastStore', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
-  it('ignores height recalculations while a toast is transitioning out', () => {
-    const store = createStore([{ id: 'a', height: 40 }]);
+  it('ignores the root settling write while a toast is transitioning out', () => {
+    const store = createStore([{ id: 'a' }]);
 
     store.closeToast('a');
     expect(statusOf(store, 'a')).toBe('ending');
 
-    // The write `recalculateHeight` makes when a content observer fires always
-    // includes `transitionStatus: undefined`; the ending toast must stay ending.
-    store.updateToastInternal('a', { height: 80, transitionStatus: undefined });
+    // The write the root makes once mounted always includes
+    // `transitionStatus: undefined`; the ending toast must stay ending.
+    store.updateToastInternal('a', { title: 'late', transitionStatus: undefined });
 
     const toast = selectors.toast(store.state, 'a');
     expect(toast?.transitionStatus).toBe('ending');
-    expect(toast?.height).toBe(0);
+    expect(toast?.title).toBe(undefined);
 
     store.removeToast('a', true);
     expect(selectors.toast(store.state, 'a')).toBe(undefined);
@@ -104,7 +96,7 @@ describe('ToastStore', () => {
 
     store.removeToast('missing');
     store.closeToast('missing');
-    store.updateToastInternal('missing', { height: 10 });
+    store.updateToastInternal('missing', { title: 'missing' });
 
     expect(store.state.toasts).toBe(toastsBefore);
     expect(statusOf(store, 'a')).toBe(undefined);

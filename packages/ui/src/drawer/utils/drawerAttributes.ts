@@ -3,8 +3,8 @@
 // packages/react/src/drawer/content/drawerContentAttribute.ts
 //
 // The `data-*` attributes and CSS variables of the drawer's parts. The popup
-// carries its swipe as CSS variables (the movement so far, how hard the
-// release was) for the consumer's transform and transition.
+// carries its swipe as CSS variables (the movement so far) for the consumer's
+// transform.
 import { CommonPopupDataAttributes } from '../../utils/popupStateMapping.ts';
 
 export const DrawerPopupCssVars = {
@@ -12,8 +12,6 @@ export const DrawerPopupCssVars = {
   swipeMovementX: '--drawer-swipe-movement-x',
   /** The swipe movement on the Y axis. */
   swipeMovementY: '--drawer-swipe-movement-y',
-  /** A scalar (0.1-1) to scale the swipe release transition's duration by. */
-  swipeStrength: '--drawer-swipe-strength',
 } as const;
 
 export const DrawerPopupDataAttributes = {

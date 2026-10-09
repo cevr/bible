@@ -119,7 +119,7 @@ describe('ContextMenu.Trigger: right click', () => {
     expect(await logOf(page)).toContain('open true trigger-press');
   });
 
-  it('shifted to stay on screen, the menu grows from the pointer', async () => {
+  it('shifted to stay on screen, the menu keeps clear of the viewport edge', async () => {
     const page = await h.open('area');
     await page.addStyleTag({ content: '#popup { width: 200px; }' });
     const area = await page.locator('#area').boundingBox();
@@ -136,11 +136,6 @@ describe('ContextMenu.Trigger: right click', () => {
     await see(page.locator('#positioner')).not.toHaveCSS('opacity', '0');
     const box = await page.locator('#positioner').boundingBox();
     expect(Math.round((box?.x ?? 0) + (box?.width ?? 0))).toBe(width - 5);
-    const origin = await page
-      .locator('#positioner')
-      .evaluate((el) => el.style.getPropertyValue('--transform-origin'));
-    const [originX] = origin.split(' ');
-    expect(Math.round(Number.parseFloat(originX ?? '') + (box?.x ?? 0))).toBe(x);
   });
 
   it('a second right click elsewhere in the area moves the menu there', async () => {

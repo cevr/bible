@@ -5,8 +5,7 @@
 // a dialog's popup.
 //
 // Its swipe arrives as CSS variables for the consumer's transform:
-// `--drawer-swipe-movement-x/y` while dragged, and `--drawer-swipe-strength`
-// to shorten the exit transition after a hard flick.
+// `--drawer-swipe-movement-x/y` while dragged.
 import type { JSX } from '@solidjs/web';
 import { createEffect, omit, untrack } from 'solid-js';
 
@@ -46,7 +45,6 @@ function registerSwipeVars() {
   const properties = [
     { name: DrawerPopupCssVars.swipeMovementX, syntax: '<length>', initialValue: '0px' },
     { name: DrawerPopupCssVars.swipeMovementY, syntax: '<length>', initialValue: '0px' },
-    { name: DrawerPopupCssVars.swipeStrength, syntax: '<number>', initialValue: '1' },
   ];
   for (const property of properties) {
     try {
@@ -128,16 +126,7 @@ export function DrawerPopup(componentProps: DrawerPopupProps): JSX.Element {
     },
   };
 
-  const style = (): JSX.CSSProperties => {
-    const swipeStrength = swipe?.swipeStrength() ?? null;
-    return {
-      ...(swipe ? swipe.getDragStyles() : {}),
-      [DrawerPopupCssVars.swipeStrength]:
-        swipeStrength !== null && Number.isFinite(swipeStrength) && swipeStrength > 0
-          ? `${swipeStrength}`
-          : '1',
-    };
-  };
+  const style = (): JSX.CSSProperties => (swipe ? swipe.getDragStyles() : {});
 
   const element = () =>
     useRenderElement('div', componentProps, {
