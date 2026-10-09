@@ -80,6 +80,21 @@ describe('WritingsService', () => {
       expect(filtered.map((publication) => String(publication.code))).toEqual(['PP']);
     }).pipe(Effect.provide(TestLayer)));
 
+  test('resolves a refcode to its paragraphs, each with its publication', () =>
+    Effect.gen(function* () {
+      const writings = yield* WritingsService;
+      const page = yield* writings.paragraphsByRefcode('pp  102');
+      const none = yield* writings.paragraphsByRefcode('PP 101.1');
+
+      expect(
+        page.map((match) => [match.publication.title, Option.getOrNull(match.paragraph.refcode)]),
+      ).toEqual([
+        ['Patriarchs and Prophets', 'PP 102.1'],
+        ['Patriarchs and Prophets', 'PP 102.2'],
+      ]);
+      expect(none).toEqual([]);
+    }).pipe(Effect.provide(TestLayer)));
+
   test('rejects ambiguous publication-code aliases instead of guessing identity', () => {
     const ambiguousLayer = WritingsService.Live.pipe(
       Layer.provide(

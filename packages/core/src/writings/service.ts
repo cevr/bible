@@ -28,6 +28,7 @@ import {
   Publication,
   type PublicationReference,
   Reference,
+  RefcodeMatch,
   SearchHit,
   publicationCode,
   publicationId,
@@ -130,6 +131,13 @@ export interface WritingsServiceApi {
     reference: PublicationReference,
     refcode: string,
   ) => Effect.Effect<Option.Option<Paragraph>, WritingsError>;
+  /** Every paragraph in the corpus that `refcode` cites — books, periodicals,
+   *  letters — as typed, spacing and case aside: the paragraph it names, and
+   *  the paragraphs under it when it names a page or a letter (`PP 351`,
+   *  `11LtMs, Lt 1a, 1896`). Empty when nothing matches. */
+  readonly paragraphsByRefcode: (
+    refcode: string,
+  ) => Effect.Effect<readonly RefcodeMatch[], WritingsError>;
   readonly paragraph: (reference: ParagraphReference) => Effect.Effect<Paragraph, WritingsError>;
   readonly page: (reference: PageReference) => Effect.Effect<Page, WritingsError>;
   readonly openingPage: (reference: PublicationReference) => Effect.Effect<Page, WritingsError>;
@@ -251,6 +259,24 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
             onSome: (value) =>
               makeParagraph(foundPublication, value, 'read-paragraphs').pipe(Effect.asSome),
           });
+        });
+
+      const paragraphsByRefcode: WritingsServiceApi['paragraphsByRefcode'] = (refcode) =>
+        Effect.gen(function* () {
+          const rows = yield* database
+            .getParagraphsByRefcode(refcode)
+            .pipe(Effect.mapError(unavailable('read-paragraphs')));
+          return yield* Effect.forEach(rows, (row) =>
+            Effect.gen(function* () {
+              const foundPublication = yield* publication(Reference.publication(row.bookId));
+              const found = yield* makeParagraph(
+                foundPublication,
+                row.paragraph,
+                'read-paragraphs',
+              );
+              return RefcodeMatch.make({ publication: foundPublication, paragraph: found });
+            }),
+          );
         });
 
       const paragraph = (reference: ParagraphReference): Effect.Effect<Paragraph, WritingsError> =>
@@ -457,6 +483,7 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
         publicationByCode,
         paragraphs,
         paragraphByRefcode,
+        paragraphsByRefcode,
         paragraph,
         page,
         openingPage,

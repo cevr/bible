@@ -60,6 +60,34 @@ const SCHEMA_VERSION = 3;
 // Identity for this service's row in the shared `schema_versions` table.
 const SCHEMA_NAME = 'egw_paragraphs';
 
+/**
+ * A refcode as typed, reduced to the form `idx_paragraphs_refcode_key`
+ * indexes: lower case, whitespace runs collapsed to one space.
+ *
+ * The corpus stores periodical refcodes with two spaces after the day's
+ * comma (`PTUK February 4,  1897, page 70.2`) and nobody types them that way.
+ * The SQL side, `REFCODE_KEY_SQL`, collapses only a double space: no stored
+ * refcode has a longer run (checked over all 3,012,004 paragraphs).
+ */
+const refcodeKey = (refcode: string): string => refcode.trim().replace(/\s+/g, ' ').toLowerCase();
+
+// Must stay textually identical in the index and in every query, or SQLite
+// will not use the index for the comparison.
+const REFCODE_KEY_SQL = `lower(replace(refcode_short, '  ', ' '))`;
+
+// Sorts after every character a refcode contains, so `key >= p AND key < p ||
+// REFCODE_KEY_END` is "starts with p" as an index range.
+const REFCODE_KEY_END = '\u{10FFFF}';
+
+/** The separators that end a refcode's parent: `PP 351` → `PP 351.1`,
+ *  `11LtMs, Lt 1a, 1896` → `11LtMs, Lt 1a, 1896, par. 3`. */
+const REFCODE_CHILD_SEPARATORS = ['.', ', '] as const;
+
+interface RefcodeRow {
+  readonly bookId: number;
+  readonly paragraph: EGWSchemas.Paragraph;
+}
+
 class ParagraphDataIntegrityError extends Schema.TaggedError<ParagraphDataIntegrityError>()(
   'ParagraphDataIntegrityError',
   {
@@ -605,6 +633,16 @@ export interface EGWParagraphDatabaseService {
   readonly getParagraphsByBook: (
     bookId: number,
   ) => Stream.Stream<EGWSchemas.Paragraph, ParagraphDatabaseError>;
+  /**
+   * Every paragraph, in any publication, cited by `refcode` or by a refcode
+   * under it — see `refcodeKey` for how the match is made. `PP 351.1` names a
+   * paragraph; `PP 351` a page, `PTUK February 4, 1897, page 70` an issue
+   * page, `11LtMs, Lt 1a, 1896` a letter (its heading and every paragraph).
+   * In publication order.
+   */
+  readonly getParagraphsByRefcode: (
+    refcode: string,
+  ) => Effect.Effect<readonly RefcodeRow[], ParagraphDatabaseError>;
   readonly getParagraphsByAuthor: (
     author: string,
   ) => Stream.Stream<EGWSchemas.Paragraph, ParagraphDatabaseError>;
@@ -1135,6 +1173,14 @@ export class EGWParagraphDatabase extends Context.Service<
       // Not covered by `sqlite_autoindex_paragraphs_1`: that serves the primary
       // key, and `para_id` is the library's own identifier rather than ours.
       yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_paragraphs_para_id ON paragraphs(para_id)`);
+      // A refcode is how a citation is looked up across the whole corpus,
+      // periodicals and letters included — not only `CODE page.para` books.
+      // An expression index rather than a column so an existing 3M-row file
+      // gains it in place (a one-time build on first open) instead of a
+      // SCHEMA_VERSION bump that would drop and re-sync every paragraph.
+      yield* sql.unsafe(
+        `CREATE INDEX IF NOT EXISTS idx_paragraphs_refcode_key ON paragraphs(${REFCODE_KEY_SQL})`,
+      );
       yield* sql.unsafe(
         `CREATE INDEX IF NOT EXISTS idx_paragraphs_page ON paragraphs(book_id, page_number)`,
       );
@@ -1470,6 +1516,29 @@ export class EGWParagraphDatabase extends Context.Service<
             ),
           ),
         );
+
+      const toRefcodeRows = (rows: readonly ParagraphRow[]) =>
+        Effect.forEach(rows, (row) =>
+          rowToParagraph(row).pipe(
+            Effect.map((paragraph): RefcodeRow => ({ bookId: row.book_id, paragraph })),
+          ),
+        );
+
+      const refcodeKeyColumn = sql.literal(REFCODE_KEY_SQL);
+      const getParagraphsByRefcode = (refcode: string) =>
+        Effect.gen(function* () {
+          const key = refcodeKey(refcode);
+          if (key.length === 0) return [];
+          const [dot, comma] = REFCODE_CHILD_SEPARATORS.map((separator) => key + separator);
+          const rows = yield* sql<ParagraphRow>`
+            SELECT * FROM paragraphs
+            WHERE ${refcodeKeyColumn} = ${key}
+               OR (${refcodeKeyColumn} >= ${dot} AND ${refcodeKeyColumn} < ${dot + REFCODE_KEY_END})
+               OR (${refcodeKeyColumn} >= ${comma} AND ${refcodeKeyColumn} < ${comma + REFCODE_KEY_END})
+            ORDER BY book_id, puborder
+          `;
+          return yield* toRefcodeRows(rows);
+        });
 
       const getParagraphsByBook = (bookId: number) =>
         Stream.fromIterableEffect(
@@ -2262,6 +2331,7 @@ export class EGWParagraphDatabase extends Context.Service<
         storeParagraphsBatch,
         getParagraph,
         getParagraphsByBook,
+        getParagraphsByRefcode,
         getParagraphsByAuthor,
         getParagraphsByPage,
         getChapterHeadings,
@@ -2348,6 +2418,25 @@ export class EGWParagraphDatabase extends Context.Service<
               ),
             ),
           );
+        },
+        getParagraphsByRefcode: (refcode) => {
+          const key = refcodeKey(refcode);
+          const keyed = (config.paragraphs ?? []).flatMap((paragraph) => {
+            const book = config.books?.find(
+              (candidate) => candidate.book_code === paragraph.bookCode,
+            );
+            const stored = Option.getOrUndefined(paragraph.refcode_short);
+            if (Predicate.isUndefined(book) || Predicate.isUndefined(stored)) return [];
+            const row: RefcodeRow = { bookId: book.book_id, paragraph };
+            return [{ row, key: refcodeKey(stored) }];
+          });
+          if (key.length === 0) return Effect.succeed([]);
+          const matches = keyed.filter(
+            (entry) =>
+              entry.key === key ||
+              REFCODE_CHILD_SEPARATORS.some((separator) => entry.key.startsWith(key + separator)),
+          );
+          return Effect.succeed(matches.map((entry) => entry.row));
         },
         getParagraphsByBook: (bookId) => {
           const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;

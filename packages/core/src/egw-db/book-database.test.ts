@@ -1039,4 +1039,105 @@ describe('EGWParagraphDatabase', () => {
         }),
       ));
   });
+
+  /** A refcode is looked up as it is cited, across every publication shape:
+   *  books, periodicals (stored with two spaces after the day's comma),
+   *  letters, and codes with an underscore. The live database and the test
+   *  double must give the same answers, so the double cannot drift. */
+  describe('getParagraphsByRefcode', () => {
+    const corpus: ReadonlyArray<{ readonly book: Book; readonly refcodes: readonly string[] }> = [
+      { book: mockBook(501, 'PP'), refcodes: ['PP 35.1', 'PP 351.1', 'PP 351.2', 'PP 352.1'] },
+      {
+        book: mockBook(502, 'PTUK'),
+        refcodes: ['PTUK February 4,  1897, page 70.1', 'PTUK February 4,  1897, page 70.2'],
+      },
+      {
+        book: mockBook(503, '11LtMs'),
+        refcodes: [
+          '11LtMs, Lt 1a, 1896',
+          '11LtMs, Lt 1a, 1896, par. 1',
+          '11LtMs, Lt 1a, 1896, par. 2',
+        ],
+      },
+      { book: mockBook(504, 'LOF_ATJ'), refcodes: ['LOF_ATJ 104.3'] },
+    ];
+
+    const cases: ReadonlyArray<{ readonly typed: string; readonly cites: readonly string[] }> = [
+      {
+        typed: 'PTUK February 4, 1897, page 70.2',
+        cites: ['PTUK February 4,  1897, page 70.2'],
+      },
+      {
+        typed: 'ptuk  february 4, 1897, PAGE 70.2',
+        cites: ['PTUK February 4,  1897, page 70.2'],
+      },
+      {
+        typed: 'PTUK February 4, 1897, page 70',
+        cites: ['PTUK February 4,  1897, page 70.1', 'PTUK February 4,  1897, page 70.2'],
+      },
+      {
+        typed: '11LtMs, Lt 1a, 1896',
+        cites: [
+          '11LtMs, Lt 1a, 1896',
+          '11LtMs, Lt 1a, 1896, par. 1',
+          '11LtMs, Lt 1a, 1896, par. 2',
+        ],
+      },
+      { typed: 'LOF_ATJ 104.3', cites: ['LOF_ATJ 104.3'] },
+      { typed: 'PP 351', cites: ['PP 351.1', 'PP 351.2'] },
+      { typed: 'PP 35', cites: ['PP 35.1'] },
+      { typed: 'PP 351.1', cites: ['PP 351.1'] },
+      { typed: 'PP 999.1', cites: [] },
+      { typed: '   ', cites: [] },
+    ];
+
+    const lookUpAll = Effect.flatMap(EGWParagraphDatabase, (db) =>
+      Effect.forEach(cases, ({ typed }) =>
+        db
+          .getParagraphsByRefcode(typed)
+          .pipe(
+            Effect.map((rows) =>
+              rows.map((row) => Option.getOrElse(row.paragraph.refcode_short, () => '')),
+            ),
+          ),
+      ),
+    );
+
+    const doubleLayer = EGWParagraphDatabase.Test({
+      books: corpus.map(({ book }) => ({
+        book_id: book.book_id,
+        book_code: book.code,
+        book_title: book.title,
+        book_author: book.author,
+        paragraph_count: 0,
+        created_at: '2026-01-01T00:00:00.000Z',
+      })),
+      paragraphs: corpus.flatMap(({ book, refcodes }) =>
+        refcodes.map((refcode, index) => ({
+          ...mockParagraph(index + 1, refcode),
+          bookCode: book.code,
+        })),
+      ),
+    });
+
+    /** The double's answers at its own boundary, so the provide is not nested
+     *  inside the live test's generator. */
+    const doubleLookUpAll = lookUpAll.pipe(Effect.provide(doubleLayer));
+
+    test('resolves every shape, spacing and case aside, the same live and in the double', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          for (const { book, refcodes } of corpus) {
+            yield* db.storeParagraphsBatch(
+              refcodes.map((refcode, index) => mockParagraph(index + 1, refcode)),
+              book,
+            );
+          }
+          const live = yield* lookUpAll;
+          expect(live).toEqual(cases.map(({ cites }) => [...cites]));
+          expect(yield* doubleLookUpAll).toEqual(live);
+        }),
+      ));
+  });
 });

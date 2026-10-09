@@ -99,6 +99,14 @@ export class SearchHit extends Schema.Class<SearchHit>('Writings/SearchHit')({
   paragraph: Paragraph,
 }) {}
 
+/** A paragraph a refcode cites, with its publication. One refcode can cite
+ *  paragraphs in more than one publication (a Publication Code is not an
+ *  identity), so a lookup returns every match rather than choosing one. */
+export class RefcodeMatch extends Schema.Class<RefcodeMatch>('Writings/RefcodeMatch')({
+  publication: Publication,
+  paragraph: Paragraph,
+}) {}
+
 export const publicationId = Schema.decodeSync(PublicationId);
 export const publicationCode = Schema.decodeSync(PublicationCode);
 export const pageNumber = Schema.decodeSync(PageNumber);
