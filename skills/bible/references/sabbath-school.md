@@ -158,14 +158,15 @@ Example: `2026-Q2-W5.md`.
 ## Export
 
 ```bash
-bible export -f outputs/sabbath-school/2026-Q2-W5.md --folder sabbath-school
+bible check outputs/sabbath-school/2026-Q2-W5.md     # must report 0 problems
+bible export -f outputs/sabbath-school/2026-Q2-W5.md --folder "sabbath school"   # the existing Notes folder; never create another
 ```
 
 ## Updates
 
 ```bash
-# edit file in place
-bible sync -f outputs/sabbath-school/2026-Q2-W5.md
+# edit file in place, then re-export: it re-checks and updates the linked note
+bible export -f outputs/sabbath-school/2026-Q2-W5.md
 ```
 
 ## Anti-patterns
