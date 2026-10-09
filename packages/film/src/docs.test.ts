@@ -525,14 +525,84 @@ const declaredTokens = (sheet: string) => {
 const tokenNames = (sheet: string): ReadonlySet<string> =>
   new Set(matches(sheet, /(--[\w-]+)\s*:/g).map(firstGroup));
 
-/** What a mock does that the kit owns: writes a token, or wears no tokens.css or kit.css. */
-const mockDrift = (file: string, text: string, tokens: ReadonlySet<string>) => [
-  ...['tokens.css', 'kit.css']
+/** A scale of the player's sheet: the properties it sets, and the px its tokens give. */
+interface Scale {
+  readonly what: string;
+  readonly property: RegExp;
+  readonly steps: ReadonlySet<number>;
+}
+
+/** The px of each token in the sheet whose name `name` matches (`--s-2: 8px` is 8). */
+const stepsOf = (sheet: string, name: RegExp): ReadonlySet<number> =>
+  new Set(
+    matches(declaredTokens(sheet), /(--[\w-]+)\s*:\s*(\d+(?:\.\d+)?)px/g)
+      .filter((m) => name.test(m[1] ?? ''))
+      .map((m) => Number(m[2])),
+  );
+
+/** The space, type and radius scales of the player's sheet. */
+const scalesOf = (sheet: string): ReadonlyArray<Scale> => [
+  {
+    what: 'space',
+    property: /^(?:margin|padding)(?:-[a-z]+)?$|^(?:row-|column-)?gap$/,
+    steps: stepsOf(sheet, /^--s-/),
+  },
+  {
+    what: 'type',
+    property: /^(?:font-size|line-height)$/,
+    steps: stepsOf(sheet, /^--(?:fs|lh)-/),
+  },
+  { what: 'radius', property: /^border-radius$/, steps: stepsOf(sheet, /^--r-/) },
+];
+
+/** A hairline, the `--border`'s own width, is no step of a scale: it is the line between two things. */
+const HAIRLINE_PX = 1;
+
+/**
+ * Each px length a mock writes for a space, type or radius that no step of
+ * the scale gives, but a hairline and a centring margin: a negative margin
+ * of half the width its own rule gives (a dot centred on its point).
+ */
+const scaleDrift = (file: string, text: string, scales: ReadonlyArray<Scale>) =>
+  matches(text.replace(/\/\*[\s\S]*?\*\//g, ''), /\{([^{}]*)\}/g).flatMap((rule) => {
+    const body = firstGroup(rule);
+    const width = Number(/(?<![\w-])width\s*:\s*(\d+(?:\.\d+)?)px/.exec(body)?.[1]);
+    return matches(body, /(?<![\w-])([a-z][a-z-]*)\s*:\s*([^;]+)/g).flatMap((declaration) => {
+      const property = declaration[1] ?? '';
+      return scales
+        .filter((scale) => scale.property.test(property))
+        .flatMap((scale) =>
+          matches(declaration[2] ?? '', /(-?\d*\.?\d+)px/g)
+            .map((length) => Number(length[1]))
+            .filter(
+              (px) =>
+                Math.abs(px) !== HAIRLINE_PX &&
+                !scale.steps.has(px) &&
+                !(px < 0 && property.startsWith('margin') && -2 * px === width),
+            )
+            .map((px) => `${file}: ${property} ${px}px is no ${scale.what} step`),
+        );
+    });
+  });
+
+/**
+ * What a mock does that the kit owns: writes a token, wears no tokens.css or
+ * kit.css (nor lab.css, a Lab mock), or sets a space, type or radius off the
+ * scales.
+ */
+const mockDrift = (
+  file: string,
+  text: string,
+  tokens: ReadonlySet<string>,
+  scales: ReadonlyArray<Scale>,
+) => [
+  ...['tokens.css', 'kit.css', ...['lab.css'].filter(() => /^lab[-.]/.test(file))]
     .filter((sheet) => file.endsWith('.html') && !new RegExp(`href="[^"]*${sheet}"`).test(text))
     .map((sheet) => `${file}: links no ${sheet}`),
   ...Array.from(new Set(matches(text, /(--[\w-]+)\s*:/g).map(firstGroup)))
     .filter((name) => tokens.has(name))
     .map((name) => `${file}: writes ${name}`),
+  ...scaleDrift(file, text, scales),
 ];
 
 /** A `METHOD /api/…` a comment names, its path as written (a `<x>` or `:x` is one segment). */
@@ -698,7 +768,9 @@ describe('the docs', () => {
       Effect.gen(function* () {
         const root = yield* ROOT;
         const fs = yield* FileSystem.FileSystem;
-        const tokens = tokenNames(yield* fs.readFileString(`${root}/${TOKENS_CSS}`));
+        const sheet = yield* fs.readFileString(`${root}/${TOKENS_CSS}`);
+        const tokens = tokenNames(sheet);
+        const scales = scalesOf(sheet);
         const files = (yield* fs.readDirectory(`${root}/${MOCKS}`)).filter((f) =>
           /\.(?:html|css)$/.test(f),
         );
@@ -706,19 +778,50 @@ describe('the docs', () => {
           Effect.map(fs.readFileString(`${root}/${MOCKS}/${file}`), (text) => ({ file, text })),
         );
         expect(mocks.length).toBeGreaterThan(1);
-        expect(mocks.flatMap(({ file, text }) => mockDrift(file, text, tokens))).toEqual([]);
+        expect(scales.every((s) => s.steps.size > 0)).toBe(true);
+        expect(mocks.flatMap(({ file, text }) => mockDrift(file, text, tokens, scales))).toEqual(
+          [],
+        );
         // A mock that writes a token, or wears neither sheet, is red.
         expect(
           mockDrift(
             'red.html',
             '<style>:root { --accent: #f00; } .x { --s-2 : 3px; --own: 1px; }</style>',
             tokens,
+            scales,
           ),
         ).toEqual([
           'red.html: links no tokens.css',
           'red.html: links no kit.css',
           'red.html: writes --accent',
           'red.html: writes --s-2',
+        ]);
+        // A Lab mock wears the Lab's sheet too.
+        expect(
+          mockDrift(
+            'lab-red.html',
+            '<link href="tokens.css"><link href="kit.css">',
+            tokens,
+            scales,
+          ),
+        ).toEqual(['lab-red.html: links no lab.css']);
+        // A space, type or radius off its scale is red; a hairline, a step, a var and a centred dot are not.
+        expect(
+          mockDrift(
+            'scale.html',
+            `<link href="tokens.css"><link href="kit.css"><style>
+              .a { margin: -17px 0 0 -17px; width: 40px; padding: 6px var(--s-2) 8px; gap: 1px 12px; }
+              .b { margin: -14px 0 0 -14px; width: 28px; font-size: 15px; line-height: var(--lh-2); border-radius: 3px 4px; }
+            </style>`,
+            tokens,
+            scales,
+          ),
+        ).toEqual([
+          'scale.html: margin -17px is no space step',
+          'scale.html: margin -17px is no space step',
+          'scale.html: padding 6px is no space step',
+          'scale.html: font-size 15px is no type step',
+          'scale.html: border-radius 3px is no radius step',
         ]);
       }),
   );
