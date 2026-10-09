@@ -225,8 +225,8 @@ struct PracticeView: View {
             )
             .font(.system(size: 12)).foregroundStyle(muted)
             HStack(spacing: 6) {
-              ForEach(Rating.allCases, id: \.rawValue) { rating in
-                if !store.hinted || rating.rawValue <= Rating.hard.rawValue {
+              ForEach(RecallRating.allCases, id: \.rawValue) { rating in
+                if !store.hinted || rating.rawValue <= RecallRating.hard.rawValue {
                   Button {
                     Task { await store.rate(rating) }
                   } label: {

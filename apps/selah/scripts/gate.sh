@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "${0:A:h:h}"
 source scripts/toolchain.sh
-swift format lint --strict --recursive Package.swift Sources Tests
+swift format lint --strict --recursive Package.swift Sources Tests Benchmarks
 swift build "${SELAH_SWIFT_ARGS[@]}" -Xswiftc -warnings-as-errors
 SELAH_TEST_ARGS=()
 if [[ "$(xcode-select -p)" == /Library/Developer/CommandLineTools ]]; then

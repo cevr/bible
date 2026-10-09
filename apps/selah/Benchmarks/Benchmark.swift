@@ -1,4 +1,5 @@
 import Foundation
+import SelahCore
 
 @main struct Benchmark {
   static func main() throws {
@@ -12,14 +13,14 @@ import Foundation
     library.goals = [Goal(title: "Whole Bible")]
     let date = Date(timeIntervalSince1970: 1_800_000_000)
     for n in 0..<50000 {
-      library.record(
+      try library.record(
         verses[n % verses.count], rating: .good, usedHint: false,
         now: date.addingTimeInterval(Double(n)))
     }
     let began = clock.now
     var checksum = 0
     for _ in 0..<50 {
-      checksum += library.queue(in: corpus, now: date.addingTimeInterval(365 * 86400)).count
+      checksum += library.practiceQueue(in: corpus, now: date.addingTimeInterval(365 * 86400)).count
     }
     precondition(checksum == 500)
     print(

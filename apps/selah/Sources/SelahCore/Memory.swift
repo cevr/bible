@@ -1,3 +1,4 @@
+import FSRS
 import Foundation
 
 public struct Verse: Codable, Identifiable, Hashable, Sendable {
@@ -53,7 +54,7 @@ public struct Goal: Codable, Identifiable, Sendable {
   }
 }
 
-public enum Rating: Int, Codable, CaseIterable, Sendable {
+public enum RecallRating: Int, Codable, CaseIterable, Sendable {
   case again = 1
   case hard, good, easy
   public var title: String {
@@ -66,7 +67,8 @@ public enum Rating: Int, Codable, CaseIterable, Sendable {
   }
 }
 
-public struct Card: Codable, Sendable {
+public struct MemoryCard: Codable, Sendable {
+  public var memory: Card?
   public var due: Date
   public var interval: Double = 0
   public var ease: Double = 2.5
@@ -82,38 +84,32 @@ public struct Card: Codable, Sendable {
 public struct Review: Codable, Sendable {
   public let verseID: String
   public let date: Date
-  public let rating: Rating
+  public let rating: RecallRating
   public let usedHint: Bool
   public let interval: Double
 }
 
-/// SM-2-derived baseline. Minute-scale relearning and four UI grades are deliberate adaptations.
-/// This is not FSRS. Keep raw review events so a future scheduler can learn from the history.
+/// Canonical FSRS 6, fixed 90% retention, no interval fuzz so previews match saved schedules.
 public enum Scheduler {
-  public static func review(_ original: Card, rating: Rating, now: Date) -> Card {
-    var card = original
-    let quality: Double =
-      switch rating {
-      case .again: 1
-      case .hard: 3
-      case .good: 4
-      case .easy: 5
-      }
-    card.ease = max(1.3, card.ease + 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
-    if rating == .again {
-      card.repetitions = 0
-      card.lapses += 1
-      card.interval = 10.0 / 1440
-    } else {
-      card.interval =
-        card.repetitions == 0 ? 1 : (card.repetitions == 1 ? 6 : ceil(card.interval * card.ease))
-      card.repetitions += 1
-    }
-    card.due = now.addingTimeInterval(card.interval * 86400)
-    return card
+  public static func review(_ original: MemoryCard, rating: RecallRating, now: Date) throws
+    -> MemoryCard
+  {
+    let scheduler = FSRS(parameters: FSRSParameters(w: FSRSDefaults.defaultWv6, enableFuzz: false))
+    let grade = Rating(rawValue: rating.rawValue)!
+    let result = try scheduler.next(card: original.memory ?? Card(due: now), now: now, grade: grade)
+    var updated = original
+    updated.memory = result.card
+    updated.due = result.card.due
+    updated.interval = result.card.due.timeIntervalSince(now) / 86400
+    updated.repetitions = rating == .again ? 0 : original.repetitions + 1
+    updated.lapses = result.card.lapses
+    return updated
   }
   public static func intervalLabel(_ days: Double) -> String {
-    days < 1 ? "10 min" : "\(Int(days))d"
+    let minutes = max(1, Int((days * 1440).rounded()))
+    if minutes < 60 { return "\(minutes) min" }
+    if minutes < 1440 { return "\(minutes / 60) hr" }
+    return "\(Int(days.rounded()))d"
   }
 }
 
@@ -125,9 +121,9 @@ public struct Preferences: Codable, Sendable {
 }
 
 public struct Library: Codable, Sendable {
-  public var schemaVersion: Int = 1
+  public var schemaVersion: Int = 2
   public var goals: [Goal] = []
-  public var cards: [String: Card] = [:]
+  public var cards: [String: MemoryCard] = [:]
   public var reviews: [Review] = []
   public var preferences = Preferences()
   public init() {}
@@ -151,17 +147,22 @@ public struct Library: Codable, Sendable {
       return (verse, card.due)
     }.sorted { $0.1 < $1.1 }.prefix(limit).map { $0.0 }
     let day = calendar.dateInterval(of: .day, for: now)!
-    let introducedToday = cards.values.filter {
-      $0.introduced >= day.start && $0.introduced < day.end
+    let introducedToday = cards.filter {
+      !$0.key.hasPrefix("chapter:") && $0.value.introduced >= day.start
+        && $0.value.introduced < day.end
     }.count
     let allowance = max(0, preferences.newPerDay - introducedToday)
     let new = selected.lazy.filter { cards[$0.id] == nil }.prefix(
       min(allowance, max(0, limit - due.count)))
     return due + Array(new)
   }
-  public mutating func record(_ verse: Verse, rating: Rating, usedHint: Bool, now: Date) {
-    let effective = usedHint && rating.rawValue > Rating.hard.rawValue ? Rating.hard : rating
-    let updated = Scheduler.review(cards[verse.id] ?? Card(now: now), rating: effective, now: now)
+  public mutating func record(_ verse: Verse, rating: RecallRating, usedHint: Bool, now: Date)
+    throws
+  {
+    let effective =
+      usedHint && rating.rawValue > RecallRating.hard.rawValue ? RecallRating.hard : rating
+    let updated = try Scheduler.review(
+      cards[verse.id] ?? MemoryCard(now: now), rating: effective, now: now)
     cards[verse.id] = updated
     reviews.append(
       Review(
@@ -183,8 +184,49 @@ public struct ProgressFile: Sendable {
   public func load() throws -> Library {
     guard FileManager.default.fileExists(atPath: url.path) else { return Library() }
     let library = try JSONDecoder().decode(Library.self, from: Data(contentsOf: url))
-    guard library.schemaVersion == 1 else { throw LibraryError.unsupportedVersion }
+    guard (1...2).contains(library.schemaVersion) else { throw LibraryError.unsupportedVersion }
+    if library.schemaVersion == 1 {
+      try backup(now: Date())
+      var migrated = library
+      let history = Dictionary(grouping: library.reviews, by: \.verseID)
+      for (id, original) in library.cards {
+        var card = MemoryCard(now: original.introduced)
+        for review in (history[id] ?? []).sorted(by: { $0.date < $1.date }) {
+          card = try Scheduler.review(card, rating: review.rating, now: review.date)
+        }
+        // Existing invitations stay valid; subsequent reviews use the reconstructed FSRS state.
+        card.due = original.due
+        card.interval = original.interval
+        migrated.cards[id] = card
+      }
+      migrated.schemaVersion = 2
+      try save(migrated)
+      return migrated
+    }
     return library
+  }
+  public var backupDirectory: URL {
+    url.deletingLastPathComponent().appendingPathComponent("Backups")
+  }
+  /// The first valid snapshot each day is immutable. Keep the last 30 daily snapshots.
+  public func backup(now: Date, calendar: Calendar = .current) throws {
+    guard FileManager.default.fileExists(atPath: url.path) else { return }
+    let bytes = try Data(contentsOf: url)
+    _ = try JSONDecoder().decode(Library.self, from: bytes)
+    let components = calendar.dateComponents([.year, .month, .day], from: now)
+    let name = String(
+      format: "%04d-%02d-%02d.json", components.year!, components.month!, components.day!)
+    try FileManager.default.createDirectory(at: backupDirectory, withIntermediateDirectories: true)
+    let destination = backupDirectory.appendingPathComponent(name)
+    if !FileManager.default.fileExists(atPath: destination.path) {
+      try bytes.write(to: destination, options: .atomic)
+    }
+    let snapshots = try FileManager.default.contentsOfDirectory(
+      at: backupDirectory, includingPropertiesForKeys: nil
+    )
+    .filter { $0.pathExtension == "json" && $0.lastPathComponent.count == 15 }
+    .sorted { $0.lastPathComponent > $1.lastPathComponent }
+    for old in snapshots.dropFirst(30) { try FileManager.default.removeItem(at: old) }
   }
   public func save(_ library: Library) throws {
     try FileManager.default.createDirectory(

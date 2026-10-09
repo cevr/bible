@@ -13,7 +13,7 @@ final class Store {
   var canSave = true
   var isLoading = true
   var isSaving = false
-  var queue: [Verse] = []
+  var queue: [PracticeUnit] = []
   var sessionActive = false
   var completed = 0
   var sessionTotal = 0
@@ -68,13 +68,13 @@ final class Store {
     }
   }
 
-  var current: Verse? { queue.first }
-  var available: [Verse] { readiness?.queue ?? [] }
+  var current: PracticeUnit? { queue.first }
+  var available: [PracticeUnit] { readiness?.queue ?? [] }
   var dueCount: Int { readiness?.dueCount ?? 0 }
   var reviewedToday: Int { readiness?.reviewedToday ?? 0 }
 
   @discardableResult
-  func change(_ operation: @Sendable (inout Library) -> Void) async -> Bool {
+  func change(_ operation: @Sendable (inout Library) throws -> Void) async -> Bool {
     guard canSave, !isLoading, !isSaving else { return false }
     isSaving = true
     defer { isSaving = false }
@@ -116,11 +116,12 @@ final class Store {
     hinted = false
     typedRecall = ""
   }
-  func rate(_ rating: Rating) async {
+  func rate(_ rating: RecallRating) async {
     guard let verse = current, revealed, !studying, !isSaving else { return }
     let usedHint = hinted
     let now = Date()
-    guard await change({ $0.record(verse, rating: rating, usedHint: usedHint, now: now) }) else {
+    guard await change({ try $0.record(verse, rating: rating, usedHint: usedHint, now: now) })
+    else {
       return
     }
     queue.removeFirst()
@@ -128,11 +129,14 @@ final class Store {
     resetRecall()
     await refreshReminders()
   }
-  func preview(_ rating: Rating) -> String {
+  func preview(_ rating: RecallRating) -> String {
     guard let verse = current else { return "" }
-    return Scheduler.intervalLabel(
-      Scheduler.review(library.cards[verse.id] ?? Card(now: Date()), rating: rating, now: Date())
-        .interval)
+    return
+      (try? Scheduler.intervalLabel(
+        Scheduler.review(
+          library.cards[verse.id] ?? MemoryCard(now: Date()), rating: rating, now: Date()
+        )
+        .interval)) ?? "—"
   }
   func configureReminders(enabled: Bool, minutes: Int) async {
     if enabled {

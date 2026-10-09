@@ -50,7 +50,7 @@ public struct Corpus: Sendable {
 }
 
 public struct Readiness: Sendable {
-  public let queue: [Verse]
+  public let queue: [PracticeUnit]
   public let dueCount: Int
   public let reviewedToday: Int
   public let selected: [Verse]
@@ -60,10 +60,17 @@ public struct Readiness: Sendable {
   public let hasNew: Bool
   public init(library: Library, corpus: Corpus, now: Date) {
     selected = library.selectedVerses(in: corpus)
-    queue = library.queue(in: corpus, now: now, selected: selected)
-    dueCount = selected.filter { library.cards[$0.id].map { $0.due <= now } ?? false }.count
-    nextReview = selected.compactMap { library.cards[$0.id]?.due }.min()
-    hasNew = selected.contains { library.cards[$0.id] == nil }
+    queue = library.practiceQueue(in: corpus, now: now, selected: selected)
+    let chapters = library.chapterUnits(in: corpus, selected: selected)
+    dueCount =
+      (selected.map { PracticeUnit(verses: [$0]) } + chapters).filter {
+        library.cards[$0.id].map { $0.due <= now } ?? false
+      }.count
+    nextReview = (selected.map(\.id) + chapters.map(\.id)).compactMap { library.cards[$0]?.due }
+      .min()
+    hasNew =
+      selected.contains { library.cards[$0.id] == nil }
+      || chapters.contains { library.cards[$0.id] == nil && library.chapterEligible($0) }
     let day = Calendar.current.dateInterval(of: .day, for: now)!
     reviewedToday =
       Set(library.reviews.filter { $0.date >= day.start && $0.date < day.end }.map(\.verseID)).count
@@ -91,9 +98,9 @@ public actor ProgressRepository {
     library = loaded
     return loaded
   }
-  public func update(_ operation: @Sendable (inout Library) -> Void) throws -> Library {
+  public func update(_ operation: @Sendable (inout Library) throws -> Void) throws -> Library {
     var updated = try load()
-    operation(&updated)
+    try operation(&updated)
     try file.save(updated)
     library = updated
     return updated
