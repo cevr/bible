@@ -501,8 +501,23 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live('a command key (the next cue edge) with the code focused leaves Follow pressed', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([longRoute], {
+        href: labOne(0.05, { code: 'follow' }),
+        viewport: touch,
+      });
+      yield* page.waitFor('.lab-source-sheet .lab-source-page');
+      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+      yield* page.evaluate(`document.querySelector('.lab-source-sheet .lab-source-page').focus()`);
+      yield* page.press('.');
+      yield* evaluates(page, showing(LONG_RISE_LINE), true);
+      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+    }).pipe(Effect.scoped),
+  );
+
   it.live(
-    'a scroll no hand made (layout, anchoring, the sheet opening) leaves Follow pressed',
+    'a press and release on the box with no scroll, then a resize, leaves Follow pressed',
     () =>
       Effect.gen(function* () {
         const { page } = yield* openLab([longRoute], {
@@ -512,32 +527,36 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
         yield* page.waitFor('.lab-source-sheet .lab-source-page');
         yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
         yield* page.evaluate(
-          `(() => { const box = document.querySelector('.lab-source-sheet .lab-source-scroll'); box.scrollTop = 0; })()`,
+          `(() => { const box = document.querySelector('.lab-source-sheet .lab-source-scroll'); box.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' })); box.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'mouse' })); })()`,
         );
+        yield* page.resize(390, 480);
         yield* page.evaluate(
           `new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))`,
         );
         yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+        yield* evaluates(page, showing(LONG_RISE_LINE), true);
       }).pipe(Effect.scoped),
   );
 
-  it.live('a hand on the sheet’s scroll suspends Follow; Follow takes it back', () =>
-    Effect.gen(function* () {
-      const { page } = yield* openLab([longRoute], {
-        href: labOne(middle('rise'), { code: 'follow' }),
-        viewport: touch,
-      });
-      yield* page.waitFor('.lab-source-sheet .lab-source-page');
-      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-      yield* evaluates(page, showing(LONG_RISE_LINE), true);
-      yield* page.evaluate(
-        `(() => { const box = document.querySelector('.lab-source-sheet .lab-source-scroll'); box.dispatchEvent(new WheelEvent('wheel', { deltaY: -100 })); box.scrollTop = 0; })()`,
-      );
-      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'false');
-      yield* page.click(FOLLOW_SHEET);
-      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-      yield* evaluates(page, showing(LONG_RISE_LINE), true);
-    }).pipe(Effect.scoped),
+  it.live(
+    'a scroll with no input event (find-in-page, assistive tech) suspends Follow; Follow takes it back',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([longRoute], {
+          href: labOne(middle('rise'), { code: 'follow' }),
+          viewport: touch,
+        });
+        yield* page.waitFor('.lab-source-sheet .lab-source-page');
+        yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+        yield* evaluates(page, showing(LONG_RISE_LINE), true);
+        yield* page.evaluate(
+          `(() => { const box = document.querySelector('.lab-source-sheet .lab-source-scroll'); box.scrollTop = 0; })()`,
+        );
+        yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'false');
+        yield* page.click(FOLLOW_SHEET);
+        yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+        yield* evaluates(page, showing(LONG_RISE_LINE), true);
+      }).pipe(Effect.scoped),
   );
 });
 
@@ -632,8 +651,8 @@ describe('Follow', () => {
   /** A window short enough that the file scrolls in the column. */
   const short = { width: 1440, height: 340 };
   const FOLLOW_BUTTON = '.lab-source-col [data-act="follow-source"]';
-  /** A wheel reaches the box, and it scrolls to its end in the same turn. */
-  const HAND = `(() => { const box = document.querySelector('.lab-source-col .lab-source-scroll'); box.dispatchEvent(new WheelEvent('wheel', { deltaY: 100 })); box.scrollTop = box.scrollHeight; })()`;
+  /** A scroll to the box's end that no event but the scroll announces: what find-in-page or assistive tech does. */
+  const HAND = `(() => { const box = document.querySelector('.lab-source-col .lab-source-scroll'); box.scrollTop = box.scrollHeight; })()`;
 
   it.live('a hand on the scroll suspends it; Follow takes it back', () =>
     Effect.gen(function* () {
@@ -684,7 +703,7 @@ describe('Follow', () => {
       });
       yield* page.waitFor('.lab-source-col .lab-source-page');
       yield* page.evaluate(
-        `window.__reads = 0; const was = window.getComputedStyle.bind(window); window.getComputedStyle = (el, ...r) => { if (el.classList && el.classList.contains('lab-source-line')) window.__reads += 1; return was(el, ...r); }; window.__frames = 0; const meter = () => { const m = document.querySelector('.lab-source-meter'); return m ? m.style.getPropertyValue('--done') : window.__meter; }; window.__meter = meter(); window.__moved = false; const tick = () => { window.__frames += 1; if (meter() !== window.__meter) window.__moved = true; requestAnimationFrame(tick); }; requestAnimationFrame(tick);`,
+        `window.__reads = 0; const rect = Element.prototype.getBoundingClientRect; Element.prototype.getBoundingClientRect = function (...r) { if (this.classList.contains('lab-source-line')) window.__reads += 1; return rect.apply(this, r); }; const was = window.getComputedStyle.bind(window); window.getComputedStyle = (el, ...r) => { if (el.classList && el.classList.contains('lab-source-line')) window.__reads += 1; return was(el, ...r); }; window.__frames = 0; const meter = () => { const m = document.querySelector('.lab-source-meter'); return m ? m.style.getPropertyValue('--done') : window.__meter; }; window.__meter = meter(); window.__moved = false; const tick = () => { window.__frames += 1; if (meter() !== window.__meter) window.__moved = true; requestAnimationFrame(tick); }; requestAnimationFrame(tick);`,
       );
       yield* page.click('.bar [data-act="play"]');
       yield* page.clock.runFor(200);

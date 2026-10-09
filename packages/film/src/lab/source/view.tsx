@@ -108,41 +108,8 @@ const scrollContainerOf = (el: HTMLElement): Option.Option<HTMLElement> =>
     });
   });
 
-/** How long after a wheel or a key a scroll is still that input's, in ms (a frame, and the jank of a loaded box). */
-const INPUT_MS = 100;
-
-/**
- * Tell `moved` when a hand scrolls `box`: a scroll a wheel or a key has just
- * reached, one under a finger on the box, or one under the box's own scrollbar
- * (a press that lands on the box itself) until it settles. A scroll with no such
- * input is the view's own, the layout's or a sheet opening, and is not the
- * hand's. Returns how to stop watching.
- */
-const watchHand = (box: HTMLElement, moved: () => void): (() => void) => {
-  let finger = false;
-  let bar = false;
-  let inputAt = Number.NEGATIVE_INFINITY;
-  const input = (e: Event) => {
-    inputAt = e.timeStamp;
-  };
-  const listeners: ReadonlyArray<readonly [string, (e: Event) => void]> = [
-    ['wheel', input],
-    ['keydown', input],
-    ['touchstart', () => (finger = true)],
-    ['touchend', () => (finger = false)],
-    ['touchcancel', () => (finger = false)],
-    ['pointerdown', (e) => (bar = e.target === box)],
-    ['scrollend', () => (bar = false)],
-    [
-      'scroll',
-      (e) => {
-        if (finger || bar || e.timeStamp - inputAt < INPUT_MS) moved();
-      },
-    ],
-  ];
-  listeners.forEach(([name, on]) => box.addEventListener(name, on, { passive: true }));
-  return () => listeners.forEach(([name, on]) => box.removeEventListener(name, on));
-};
+/** The box's size and its content's, as layout leaves them: a change in either moves the scroll by layout, not by a hand. */
+const sizeOf = (box: HTMLElement): string => `${box.clientHeight}x${box.scrollHeight}`;
 
 /** The file's text, a row to a line, with its lit spans, meters and held line. */
 const Text = (props: { readonly code: SceneCode }) => {
@@ -154,6 +121,8 @@ const Text = (props: { readonly code: SceneCode }) => {
   // The box the rows scroll in: found from the rows (`scrollContainerOf`), so the column and the sheet scroll by one rule.
   let scroller = Option.none<HTMLElement>();
   let page = Option.none<HTMLElement>();
+  // Where the view last put the box, and where each scroll left it: a scroll that lands on it is the view's own.
+  let placed = Option.none<number>();
   const [size, setSize] = createSignal(0);
 
   // The ranges lit, painted on the rows' text; cleared when the view goes.
@@ -215,8 +184,9 @@ const Text = (props: { readonly code: SceneCode }) => {
     ),
   );
   // The scroll box is the rows' nearest scrolling ancestor, whichever element the layout makes it. Its size: a
-  // viewport that changes is measured again; a frame that does not move the target is not. A hand on it
-  // (`Hand`) takes the view off the frame; a scroll no hand made (the script's, the layout's, a sheet opening) never does.
+  // viewport that changes is measured again; a frame that does not move the target is not. Every scroll the
+  // view did not place and layout did not make (the box or its content resized, clamping the scroll) is the
+  // reader's, however it came: wheel, finger and its momentum, keys, scrollbar, find-in-page, assistive tech.
   createEffect(
     () => true,
     () => {
@@ -226,12 +196,19 @@ const Text = (props: { readonly code: SceneCode }) => {
         onSome: (el) => {
           const o = new ResizeObserver(() => setSize(el.clientHeight));
           o.observe(el);
-          const unwatch = watchHand(el, () => {
-            if (source.following()) source.suspend();
-          });
+          let laidOut = sizeOf(el);
+          const scrolled = () => {
+            const at = el.scrollTop;
+            const now = sizeOf(el);
+            const ours = now !== laidOut || Option.exists(placed, (p) => Math.abs(at - p) < 1);
+            laidOut = now;
+            placed = Option.some(at);
+            if (!ours && source.following()) source.suspend();
+          };
+          el.addEventListener('scroll', scrolled, { passive: true });
           return () => {
             o.disconnect();
-            unwatch();
+            el.removeEventListener('scroll', scrolled);
           };
         },
       });
@@ -246,11 +223,12 @@ const Text = (props: { readonly code: SceneCode }) => {
           Option.fromNullishOr(
             at.root.querySelector<HTMLElement>(`.lab-source-line[data-line="${at.line}"]`),
           ),
-          (row) => ({ box: at.box, row }),
+          (row) => ({ box: at.box, root: at.root, row }),
         ),
       );
-      Option.map(found, ({ box, row }) => {
-        const lh = Number.parseFloat(getComputedStyle(row).lineHeight);
+      Option.map(found, ({ box, root, row }) => {
+        // A line's height, read off the page the rows inherit it from: the row itself is asked once, for its place.
+        const lh = Number.parseFloat(getComputedStyle(root).lineHeight);
         if (Number.isNaN(lh) || lh === 0) return;
         const margin = 2 * lh;
         // The row's top and bottom in the box's own scroll coordinates, whatever sits between them.
@@ -261,6 +239,7 @@ const Text = (props: { readonly code: SceneCode }) => {
           top >= box.scrollTop + margin && bottom <= box.scrollTop + box.clientHeight - margin;
         if (inView) return;
         box.scrollTo({ top: Math.max(0, top - box.clientHeight / 3) });
+        placed = Option.some(box.scrollTop);
       });
     },
   );
