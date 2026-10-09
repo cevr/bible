@@ -6,7 +6,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Context, Effect, FileSystem, Layer, Predicate } from 'effect';
+import { Context, Effect, FileSystem, Layer, Predicate, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { memoryFileSystem, text } from './testing.ts';
 
@@ -102,6 +102,13 @@ type Operation = (
  */
 const START = { files: { 'a.txt': 'a', 'sub/inner.txt': 'i' }, folders: ['sub', 'empty'] };
 
+/** What a stream of bytes holds once read to its end, as text. */
+const streamed = (bytes: Stream.Stream<Uint8Array, PlatformError>) =>
+  Effect.map(
+    Stream.runCollect(bytes),
+    (chunks) => `stream ${chunks.map((chunk) => new TextDecoder().decode(chunk)).join('')}`,
+  );
+
 /** Each operation the tools lean on, at the edges a disk refuses. */
 const CASES: ReadonlyArray<readonly [string, Operation]> = [
   ['writes into a folder never made', (fs, at) => fs.writeFileString(at('nope/b.txt'), 'b')],
@@ -116,6 +123,16 @@ const CASES: ReadonlyArray<readonly [string, Operation]> = [
   ['reads a file', (fs, at) => fs.readFileString(at('a.txt'))],
   ['reads a folder', (fs, at) => fs.readFileString(at('sub'))],
   ['reads a file not there', (fs, at) => fs.readFileString(at('nope.txt'))],
+  ['reads a file as bytes', (fs, at) => fs.readFile(at('a.txt'))],
+  ['reads a folder as bytes', (fs, at) => fs.readFile(at('sub'))],
+  ['reads a file not there as bytes', (fs, at) => fs.readFile(at('nope.txt'))],
+  ['asks for a file', (fs, at) => fs.exists(at('a.txt'))],
+  ['asks for a folder', (fs, at) => fs.exists(at('sub'))],
+  ['asks for a path not there', (fs, at) => fs.exists(at('nope'))],
+  ['asks for a path below a file', (fs, at) => fs.exists(at('a.txt/b'))],
+  ['streams a file', (fs, at) => streamed(fs.stream(at('a.txt')))],
+  ['streams a folder', (fs, at) => streamed(fs.stream(at('sub')))],
+  ['streams a file not there', (fs, at) => streamed(fs.stream(at('nope.txt')))],
   ['renames a file over another', (fs, at) => fs.rename(at('a.txt'), at('sub/inner.txt'))],
   ['renames a file into a folder never made', (fs, at) => fs.rename(at('a.txt'), at('no/b.txt'))],
   ['renames a file over a folder', (fs, at) => fs.rename(at('a.txt'), at('empty'))],
@@ -162,6 +179,8 @@ const outcomeOf = (operation: Effect.Effect<unknown, PlatformError>) =>
     onSuccess: (value) => {
       if (Array.isArray(value)) return `answered ${value.toSorted().join(',')}`;
       if (Predicate.isString(value)) return `answered ${value}`;
+      if (Predicate.isUint8Array(value)) return `answered bytes ${value.join(',')}`;
+      if (Predicate.isBoolean(value)) return `answered ${value}`;
       return 'answered';
     },
   });

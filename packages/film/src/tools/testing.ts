@@ -317,7 +317,14 @@ const memoryOps = (
     });
   const bytesAt = (method: string, path: string) => keyed(path, (key) => fileAt(method, key));
   return {
-    exists: (path) => keyed(path, (key) => Effect.succeed(tree.holds(key) !== 'nothing')),
+    // Whether a path is there; a path below a file is refused (ENOTDIR), as Node's stat does.
+    exists: (path) =>
+      keyed(path, (key) => {
+        if (tree.holds(key) !== 'nothing') return Effect.succeed(true);
+        const below = [...files.keys()].some((file) => key.startsWith(`${file}/`));
+        if (below) return Effect.fail(refusal('BadResource', 'exists', key, 'ENOTDIR'));
+        return Effect.succeed(false);
+      }),
     readFile: (path) => bytesAt('readFile', path),
     readFileString: (path) =>
       Effect.map(bytesAt('readFileString', path), (bytes) => new TextDecoder().decode(bytes)),
@@ -1881,9 +1888,10 @@ export class ReviewTestRoot extends Context.Service<ReviewTestRoot, string>()('t
 /**
  * The review over `out/art` (a set of two), its videos `seconds` long and a
  * frame the video copied; its fresh `film project` runs, its own, are
- * `ReviewProjectRuns`.
+ * `ReviewProjectRuns`. With `phoneCopies`, a video over 1,000 bytes gets its
+ * phone copy made in the background, as the index finds it.
  */
-export const reviewHttpFixtureLasting = (seconds: number) =>
+export const reviewHttpFixtureLasting = (seconds: number, phoneCopies = false) =>
   Layer.unwrap(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -1910,7 +1918,7 @@ export const reviewHttpFixtureLasting = (seconds: number) =>
         cache: path.join(dir, 'cache'),
         phoneOver: 1000,
         maxVideo: 10_000,
-        phoneCopies: false,
+        phoneCopies,
       }).pipe(
         Layer.provide(reviewMedia([], seconds)),
         Layer.provide(RenderCatalogue.layer.pipe(Layer.provide(ContentStore.layer))),
