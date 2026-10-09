@@ -11,9 +11,9 @@ import { useButton } from '../../internals/useButton.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { useDialogRootContext } from '../root/DialogRootContext.ts';
 
-export interface DialogCloseState {}
+interface DialogCloseState {}
 
-export interface DialogCloseProps extends BaseUIComponentProps<'button', DialogCloseState> {}
+interface DialogCloseProps extends BaseUIComponentProps<'button', DialogCloseState> {}
 
 /**
  * A button that closes the dialog.

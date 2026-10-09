@@ -12,9 +12,9 @@ import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { useRegisteredId } from '../../utils/useRegisteredId.ts';
 import { useDialogRootContext } from '../root/DialogRootContext.ts';
 
-export interface DialogTitleState {}
+interface DialogTitleState {}
 
-export interface DialogTitleProps extends BaseUIComponentProps<'h2', DialogTitleState> {}
+interface DialogTitleProps extends BaseUIComponentProps<'h2', DialogTitleState> {}
 
 interface DialogDescriptionState {}
 

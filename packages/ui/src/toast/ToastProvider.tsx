@@ -11,9 +11,7 @@ import type { ToastManager } from './createToastManager.ts';
 import { ToastStore } from './store.ts';
 import { ToastContext, type ToastContextValue } from './ToastProviderContext.ts';
 
-export interface ToastProviderState {}
-
-export interface ToastProviderProps {
+interface ToastProviderProps {
   children?: JSX.Element;
   /**
    * The maximum number of toasts that can be displayed at once.

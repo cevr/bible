@@ -12,12 +12,12 @@ import type { BaseUIComponentProps, HTMLProps } from '../internals/types.ts';
 import { useButton } from '../internals/useButton.ts';
 import { useToggleGroupContext } from '../toggle-group/ToggleGroupContext.ts';
 
-export interface ToggleState {
+interface ToggleState {
   /** Whether the toggle is pressed. */
   pressed: boolean;
 }
 
-export interface ToggleProps<Value extends string = string> extends Omit<
+interface ToggleProps<Value extends string = string> extends Omit<
   BaseUIComponentProps<'button', ToggleState>,
   'disabled'
 > {

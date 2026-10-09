@@ -12,12 +12,12 @@ import { propsFromAccessor, useRenderElement } from '../internals/useRenderEleme
 import { useToastRootContext } from './ToastRootContext.ts';
 import { isRenderableNode } from './utils.ts';
 
-export interface ToastActionState {
+interface ToastActionState {
   /** The type of the toast. */
   type: string | undefined;
 }
 
-export interface ToastActionProps extends BaseUIComponentProps<'button', ToastActionState> {}
+interface ToastActionProps extends BaseUIComponentProps<'button', ToastActionState> {}
 
 export function ToastAction(props: ToastActionProps): JSX.Element {
   const { toast } = useToastRootContext();

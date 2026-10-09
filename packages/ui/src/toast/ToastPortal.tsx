@@ -7,9 +7,7 @@ import type { JSX } from '@solidjs/web';
 
 import { FloatingPortal, type FloatingPortalProps } from '../floating-ui-solid/FloatingPortal.tsx';
 
-export interface ToastPortalState {}
-
-export interface ToastPortalProps extends FloatingPortalProps {}
+interface ToastPortalProps extends FloatingPortalProps {}
 
 export function ToastPortal(props: ToastPortalProps): JSX.Element {
   return <FloatingPortal {...props} />;

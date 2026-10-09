@@ -12,12 +12,12 @@ import { useRenderElement } from '../internals/useRenderElement.tsx';
 import { useToastRootContext } from './ToastRootContext.ts';
 import { isRenderableNode } from './utils.ts';
 
-export interface ToastTitleState {
+interface ToastTitleState {
   /** The type of the toast. */
   type: string | undefined;
 }
 
-export interface ToastTitleProps extends BaseUIComponentProps<'h2', ToastTitleState> {}
+interface ToastTitleProps extends BaseUIComponentProps<'h2', ToastTitleState> {}
 
 export function ToastTitle(props: ToastTitleProps): JSX.Element {
   const root = useToastRootContext();

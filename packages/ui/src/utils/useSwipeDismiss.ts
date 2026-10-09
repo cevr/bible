@@ -219,7 +219,7 @@ interface UseSwipeDismissDetails {
   direction: SwipeDirection | undefined;
 }
 
-export interface UseSwipeDismissReleaseDetails {
+interface UseSwipeDismissReleaseDetails {
   event: PointerEvent | TouchEvent;
   direction: SwipeDirection | undefined;
   deltaX: number;

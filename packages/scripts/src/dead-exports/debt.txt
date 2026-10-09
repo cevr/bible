@@ -92,10 +92,8 @@ packages/core/src/wiki/service.ts WikiUnavailableError
 packages/core/src/writings/corpus-class.ts isUnfiltered
 packages/core/src/writings/model.ts paragraphId
 packages/film/src/browser/frames.ts Ask
+packages/film/src/browser/media-browser.ts panesMediaLayerWith
 packages/film/src/browser/media.ts MediaElement
-packages/film/src/browser/webcodecs-browser.ts compareOn
-packages/film/src/browser/webcodecs-browser.ts openRenders
-packages/film/src/browser/webcodecs-browser.ts standWhileHidden
 packages/film/src/canvas/camera.ts PLANE_LIFT_MAX
 packages/film/src/canvas/camera.ts PLANE_LIFT_MIN
 packages/film/src/canvas/camera.ts SceneBreath
@@ -346,7 +344,6 @@ packages/film/src/tools/stamp.ts Keyed
 packages/film/src/tools/stamp.ts importsOf
 packages/film/src/tools/takes.ts ImportOptions
 packages/scripts/src/dead-exports/graph.ts Take
-packages/scripts/src/fetch-stills.ts run
 packages/scripts/src/merge-audit/audit.ts Lost
 packages/scripts/src/merge-audit/audit.ts Versions
 packages/scripts/src/topics-compiler/compile.ts CitationUnverifiedError

@@ -26,12 +26,12 @@ import { selectors } from './store.ts';
 import { useToastProviderContext, useToastSelector } from './ToastProviderContext.ts';
 import { isFocusVisible } from './utils.ts';
 
-export interface ToastViewportState {
+interface ToastViewportState {
   /** Whether toasts are expanded in the viewport. */
   expanded: boolean;
 }
 
-export interface ToastViewportProps extends BaseUIComponentProps<'div', ToastViewportState> {}
+interface ToastViewportProps extends BaseUIComponentProps<'div', ToastViewportState> {}
 
 export function ToastViewport(props: ToastViewportProps): JSX.Element {
   const context = useToastProviderContext();

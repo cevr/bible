@@ -9,7 +9,7 @@
 import type { StateAttributesMapping } from '../internals/getStateAttributesProps.ts';
 import { type TransitionStatus, transitionStatusMapping } from '../internals/transitions.ts';
 
-export const CommonPopupDataAttributes = {
+const CommonPopupDataAttributes = {
   open: 'data-open',
   closed: 'data-closed',
   startingStyle: 'data-starting-style',

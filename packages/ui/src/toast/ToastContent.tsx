@@ -11,14 +11,14 @@ import type { BaseUIComponentProps } from '../internals/types.ts';
 import { useRenderElement } from '../internals/useRenderElement.tsx';
 import { useToastRootContext } from './ToastRootContext.ts';
 
-export interface ToastContentState {
+interface ToastContentState {
   /** Whether the toast viewport is expanded. */
   expanded: boolean;
   /** Whether the toast is behind the frontmost toast in the stack. */
   behind: boolean;
 }
 
-export interface ToastContentProps extends BaseUIComponentProps<'div', ToastContentState> {}
+interface ToastContentProps extends BaseUIComponentProps<'div', ToastContentState> {}
 
 export function ToastContent(props: ToastContentProps): JSX.Element {
   const { visibleIndex, expanded } = useToastRootContext();

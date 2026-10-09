@@ -8,7 +8,7 @@
 import type { ToastManagerAddOptions, ToastObject } from './types.ts';
 import { generateToastId } from './utils.ts';
 
-export type ToastManagerEvent =
+type ToastManagerEvent =
   | { action: 'add'; options: ToastObject<object> }
   | { action: 'close'; options: { id: string } };
 

@@ -25,9 +25,7 @@ export function useDialogPortalContext(): void {
   }
 }
 
-export interface DialogPortalState {}
-
-export interface DialogPortalProps extends FloatingPortalProps {}
+interface DialogPortalProps extends FloatingPortalProps {}
 
 /**
  * A portal element that moves the popup to a different part of the DOM.

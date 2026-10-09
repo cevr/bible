@@ -65,7 +65,7 @@ const ToastRootDataAttributes = {
   endingStyle: 'data-ending-style',
 } as const;
 
-export interface ToastRootState {
+interface ToastRootState {
   /** The transition status of the component. */
   transitionStatus: TransitionStatus;
   /** Whether the toasts in the viewport are expanded. */
@@ -87,9 +87,9 @@ const toastRootStateAttributesMapping: StateAttributesMapping<ToastRootState> = 
   },
 };
 
-export type ToastRootToastObject<Data extends object = object> = ToastObject<Data>;
+type ToastRootToastObject<Data extends object = object> = ToastObject<Data>;
 
-export interface ToastRootProps extends BaseUIComponentProps<'div', ToastRootState> {
+interface ToastRootProps extends BaseUIComponentProps<'div', ToastRootState> {
   /** The toast to render. */
   toast: ToastRootToastObject;
   /**

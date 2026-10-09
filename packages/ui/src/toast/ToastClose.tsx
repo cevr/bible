@@ -12,12 +12,12 @@ import { useRenderElement } from '../internals/useRenderElement.tsx';
 import { useToastProviderContext } from './ToastProviderContext.ts';
 import { useToastRootContext } from './ToastRootContext.ts';
 
-export interface ToastCloseState {
+interface ToastCloseState {
   /** The type of the toast. */
   type: string | undefined;
 }
 
-export interface ToastCloseProps extends BaseUIComponentProps<'button', ToastCloseState> {}
+interface ToastCloseProps extends BaseUIComponentProps<'button', ToastCloseState> {}
 
 export function ToastClose(props: ToastCloseProps): JSX.Element {
   const { store } = useToastProviderContext();

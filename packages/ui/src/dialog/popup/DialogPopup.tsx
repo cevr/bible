@@ -28,7 +28,7 @@ interface DialogPopupState {
 interface DialogPopupProps extends BaseUIComponentProps<'div', DialogPopupState> {}
 
 /** Stops the composite navigation keys from reaching a widget around the popup. */
-export function stopCompositeKeys(event: KeyboardEvent) {
+function stopCompositeKeys(event: KeyboardEvent) {
   if (COMPOSITE_KEYS.has(event.key)) {
     event.stopPropagation();
   }
@@ -83,7 +83,7 @@ export function dialogPopupProps(store: DialogStore, componentProps: Pick<Dialog
 }
 
 /** Calls the root's `onOpenChangeComplete(true)` once the popup's enter animations finish. */
-export function useDialogOpenChangeComplete(store: DialogStore) {
+function useDialogOpenChangeComplete(store: DialogStore) {
   useOpenChangeComplete({
     open: store.open,
     element: store.popupElement,
