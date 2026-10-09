@@ -1,12 +1,13 @@
 // Upstream: packages/react/src/toast/close/ToastClose.tsx
 //
-// Closes the toast when clicked. Hidden from assistive technology while the
-// stack is collapsed, unless it has focus. Renders a `<button>` element.
+// Closes the toast when clicked. Always exposed to assistive technology: the
+// receipts draw it visible at rest, so upstream's `aria-hidden` while the
+// stack is collapsed is left out. Renders a `<button>` element.
 import type { JSX } from '@solidjs/web';
-import { createSignal, omit, untrack } from 'solid-js';
+import { omit, untrack } from 'solid-js';
 
 import { useButton } from '../internals/useButton.ts';
-import type { BaseUIComponentProps, NativeButtonProps } from '../internals/types.ts';
+import type { BaseUIComponentProps } from '../internals/types.ts';
 import { useRenderElement } from '../internals/useRenderElement.tsx';
 import { useToastProviderContext } from './ToastProviderContext.ts';
 import { useToastRootContext } from './ToastRootContext.ts';
@@ -16,22 +17,13 @@ export interface ToastCloseState {
   type: string | undefined;
 }
 
-export interface ToastCloseProps
-  extends NativeButtonProps, BaseUIComponentProps<'button', ToastCloseState> {}
+export interface ToastCloseProps extends BaseUIComponentProps<'button', ToastCloseState> {}
 
 export function ToastClose(props: ToastCloseProps): JSX.Element {
   const { store } = useToastProviderContext();
-  const { toast, expanded } = useToastRootContext();
-  const [hasFocus, setHasFocus] = createSignal(false);
+  const { toast } = useToastRootContext();
 
-  const { getButtonProps, buttonRef } = useButton({
-    get disabled() {
-      return Boolean(props.disabled);
-    },
-    get native() {
-      return props.nativeButton ?? true;
-    },
-  });
+  const { getButtonProps } = useButton();
 
   const state: ToastCloseState = {
     get type() {
@@ -40,24 +32,14 @@ export function ToastClose(props: ToastCloseProps): JSX.Element {
   };
 
   return useRenderElement('button', props, {
-    ref: buttonRef,
     state,
     props: [
       {
-        get 'aria-hidden'() {
-          return !expanded() && !hasFocus() ? 'true' : 'false';
-        },
         onClick() {
           store.closeToast(untrack(toast).id);
         },
-        onFocus() {
-          setHasFocus(true);
-        },
-        onBlur() {
-          setHasFocus(false);
-        },
       },
-      omit(props, 'class', 'style', 'render', 'disabled', 'nativeButton'),
+      omit(props, 'class', 'style', 'render'),
       getButtonProps,
     ],
   });

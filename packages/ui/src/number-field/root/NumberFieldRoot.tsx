@@ -131,10 +131,12 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     setEditShown(() => next);
   };
 
-  const value = (): number | null => {
-    const shown = editShown();
-    return shown.kind === 'editing' && shown.held !== undefined ? shown.held.value : props.value;
-  };
+  const valueOf = (of: Edit): number | null =>
+    of.kind === 'editing' && of.held !== undefined ? of.held.value : props.value;
+  const value = (): number | null => valueOf(editShown());
+  // The value the field holds now, as the handlers last wrote it: the change
+  // an edit holds, else the owner's value.
+  const currentValue = (): number | null => untrack(() => valueOf(edit));
   // The text typed stays as typed; otherwise the input shows the value formatted.
   const inputValue = (): string => {
     const shown = editShown();
@@ -149,14 +151,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
   const [isScrubbing, setScrubbing] = createSignal(false, { ownedWrite: true });
   const [inputElement, setInputElement] = createSignal<HTMLInputElement | null>(null, {
     ownedWrite: true,
-  });
-
-  const valueRef = { current: untrack(value) };
-  const lastChangedValueRef: { current: number | null } = { current: null };
-
-  // Steps start from the value the field last rendered.
-  createEffect(value, (next) => {
-    valueRef.current = next;
   });
 
   // Kept text gives way to the owner's next value for good.
@@ -233,7 +227,7 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
   const setValue = (unvalidatedValue: number | null, change: ValueChange): boolean =>
     untrack(() => {
       const isInputReason = change.reason.startsWith('input-');
-      const current = value();
+      const current = currentValue();
 
       const validatedValue = toValidatedNumber(
         unvalidatedValue,
@@ -261,12 +255,11 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
         endEdit();
       }
 
-      lastChangedValueRef.current = validatedValue;
       return changed;
     });
 
   const incrementValue = (amount: number, params: IncrementValueParameters): boolean => {
-    const prevValue = params.currentValue == null ? valueRef.current : params.currentValue;
+    const prevValue = params.currentValue == null ? currentValue() : params.currentValue;
     if (typeof prevValue !== 'number') {
       // An empty field is seeded with 0, clamped into range; the seed is not a step.
       return setValue(0, { reason: params.reason, event: params.event });
@@ -358,8 +351,7 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     setScrubbing: (scrubbing) => setScrubbing(scrubbing),
     onValueCommitted,
     discardEdit,
-    valueRef,
-    lastChangedValueRef,
+    currentValue,
     hasPendingCommit: () => edit.kind === 'editing' && edit.held !== undefined,
   };
 
