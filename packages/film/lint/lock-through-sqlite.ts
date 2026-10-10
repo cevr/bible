@@ -6,8 +6,9 @@
 // handle or a copy made elsewhere in the process drops the store's lock
 // while the store still believes it holds it, and two writers go in.
 //
-// Refused outside that module: a call of `lockFile` (the lock file's path),
-// and a string or template that names a lock file (`.catalogue.json.lock`,
+// Refused outside that module: a call of its `lockFile` (the lock file's
+// path: imported, under an alias, or read off the module imported whole; a
+// parameter called `lockFile` is its own binding), and a string or template that names a lock file (`.catalogue.json.lock`,
 // `` `.${name}.lock` ``). A test that reads a lock's name back (a folder's
 // listing) is the host's side and is let off by the config.
 
@@ -19,6 +20,10 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
+import { type Bindings, bindings, type Module } from './nodes.ts';
+
+/** The lock's module, `tools/manifest-lock-bun.ts`, which exports `lockFile`. */
+const isLock: Module = (from) => /(?:^|\/)manifest-lock-bun(?:\.ts)?$/u.test(from);
 
 /** A lock file's name: a dot, a name, `.lock`, at the end of a path or a name's piece. */
 const LOCK_NAME = /(?:^|\/)\.[^/]*\.lock$/u;
@@ -38,12 +43,10 @@ const buildsLockName = (node: ESTree.TemplateLiteral) =>
   );
 
 /** Whether a node names a lock file, or asks for one's path. */
-const namesLock = (node: ESTree.Node): boolean => {
+const namesLock = (b: Bindings, node: ESTree.Node): boolean => {
   if (node.type === 'Literal') return Predicate.isString(node.value) && LOCK_NAME.test(node.value);
   if (node.type === 'TemplateLiteral') return buildsLockName(node);
-  if (node.type === 'CallExpression')
-    return node.callee.type === 'Identifier' && node.callee.name === 'lockFile';
-  return false;
+  return b.callsImport(node, isLock, 'lockFile');
 };
 
 export const lockThroughSqlite = Rule.define({
@@ -55,11 +58,12 @@ export const lockThroughSqlite = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
+    const b = yield* bindings;
     const report = (node: ESTree.Node) =>
       Effect.asVoid(
         Effect.when(
           context.report(Diagnostic.make({ node, message: MESSAGE })),
-          Effect.succeed(namesLock(node)),
+          Effect.succeed(namesLock(b, node)),
         ),
       );
     return Visitor.merge(

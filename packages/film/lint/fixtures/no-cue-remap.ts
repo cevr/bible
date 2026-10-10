@@ -1,7 +1,8 @@
 // Fixture for film/no-cue-remap: each line marked RED fires the rule, and
 // nothing else does.
-import { drawing } from '@bible/film/canvas';
-import { clamp } from '@bible/film/core';
+import { type Frame, drawing } from '@bible/film/canvas';
+import * as Core from '@bible/film/core';
+import { clamp, clamp as cap } from '@bible/film/core';
 
 /** A share of a cue, in a module const. */
 const SHARE = 0.6;
@@ -47,7 +48,38 @@ export const scene = drawing({
 });
 
 // A parameter named like a module const is its own binding: its value is not known.
-export const split = (f: { readonly at: (cue: string) => number }, SHARE: number) => [
+export const split = (f: Frame<'answer'>, SHARE: number) => [
   clamp(f.at('answer') / SHARE),
   f.at('answer') > SHARE,
 ];
+
+// clamp is film's under an alias or off the module whole; the cue is the
+// frame's however it is reached: a helper typed by the frame, `at` taken
+// apart from it.
+export const reached = (f: Frame<'answer'>) => {
+  const { at } = f;
+  return [
+    cap(f.at('answer') * 4), // RED film/no-cue-remap
+    Core.clamp(f.at('answer') * 4), // RED film/no-cue-remap
+    clamp(at('answer') * 4), // RED film/no-cue-remap
+    at('answer') > 0.5, // RED film/no-cue-remap
+  ];
+};
+
+// An `.at` read off anything but the frame is no cue (Array.prototype.at);
+// a parameter named `Math` or `clamp` is the page's own.
+declare const widths: ReadonlyArray<number>;
+export const notCues = (f: Frame<'answer'>, Math: { min: (a: number, b: number) => number }) => [
+  clamp(widths.at(0) * 4),
+  widths.at(-1) > 0.5,
+  Math.min(1, f.at('answer') * 4),
+];
+export const ownClamp = (clamp: (x: number) => number, f: Frame<'answer'>) =>
+  clamp(f.at('answer') * 4);
+export const notAFrame = (g: { readonly at: (cue: string) => number }) => clamp(g.at('answer') * 4);
+// A progress kept in a `let` may be written again before it is read: it is not traced.
+export const kept = (f: Frame<'answer'>) => {
+  let p = f.at('answer');
+  p = 1 - p;
+  return clamp(p * 4);
+};

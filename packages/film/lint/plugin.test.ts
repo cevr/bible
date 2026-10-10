@@ -57,13 +57,13 @@ const MESSAGES = {
     "a part that ends on its parent's end only because its offset and dur add up to the parent's dur: write `{ after: parent, dur, ends: true }` (keeps its length) or `{ with: parent, until: { cue: parent } }` (keeps its start), so a drag of the parent carries it.",
   'no-point-free-log.ts:8 film/no-point-free-log':
     'Console.log passed point-free: it is variadic, and this call passes the index too, which it prints after each line. Write (line) => Console.log(line).',
-  'no-ease-on-cue.ts:12 film/no-ease-on-cue':
+  'no-ease-on-cue.ts:15 film/no-ease-on-cue':
     "a cue's progress eased a second time: f.at(cue) is already eased by the span's `ease`, which the lab sets. A camera push is a shotPath stop with pushInto; another curve is its own cue or f.keys.",
-  'no-ease-on-cue.ts:15 film/no-cue-remap':
+  'no-ease-on-cue.ts:20 film/no-cue-remap':
     'a cue split by a fraction written in the draw: declare the part as its own cue ({ with: cue, dur }, or { after: cue, dur, ends: true } for its last part) and read it with f.at, where the lab can reach it.',
-  'no-cue-remap.ts:23 film/no-cue-remap':
+  'no-cue-remap.ts:24 film/no-cue-remap':
     "a cue's last part split by a fraction written in the draw: declare it as its own cue that lands on the cue's end ({ after: cue, dur, ends: true }) and read it with f.at, so a drag of the cue carries it.",
-  'no-cue-remap.ts:35 film/no-cue-remap':
+  'no-cue-remap.ts:36 film/no-cue-remap':
     "a step part way through a cue, written in the draw: declare the instant as its own cue ({ with: cue, offset, dur: 0 }) and read f.at(instant) > 0, where the lab can reach it and a sound can follow it; an instant the drawing's own shape makes is read from that shape (Math.cos(f.at('flip') * Math.PI) < 0).",
   'touches-serial.ts:17 film/touches-serial':
     "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case as test.serial.",
@@ -107,19 +107,19 @@ const MESSAGES = {
     "a boolean written as a string by hand: pressed(on) (packages/film/src/lab/pressed.ts) types it 'true' | 'false'.",
   'history-through-host.ts:11 film/history-through-host':
     "a history move chosen here: a place's field declares its policy (Place.history, @bible/url-state), and the address bar is written through addressOn (packages/film/src/browser/host.ts).",
-  'one-clock-epsilon.ts:10 film/one-clock-epsilon':
+  'one-clock-epsilon.ts:12 film/one-clock-epsilon':
     'a nudge written beside a time: put the time on its grid through packages/film/src/core/time.ts (frameAtOrAfter, frameAtOrBefore, onTheMs, offTheMs, heardAtOrAfter, justBefore), or judge two times one with CLOCK_EPSILON, so one owner rounds every time.',
-  'lock-through-sqlite.ts:9 film/lock-through-sqlite':
+  'lock-through-sqlite.ts:11 film/lock-through-sqlite':
     "a manifest's lock file named outside its lock: SQLite alone opens it (packages/film/src/tools/manifest-lock-bun.ts), since closing any other handle on it lets go of the process's lock.",
   'one-breakpoint.ts:8 film/one-breakpoint':
     "a breakpoint written out: ask the studio's one breakpoint through PHONE or WIDE (packages/film/src/lab/viewport.ts), so the width is declared once.",
-  'framing-is-a-knob.ts:9 film/framing-is-a-knob':
+  'framing-is-a-knob.ts:10 film/framing-is-a-knob':
     'a framing written in the scene: make it knobs (a point and a zoom, read with knobCamera), a move between framings a shotPath of them, and a push that keeps going pushOn with a number knob, so the lab can reach it.',
   'no-history-comment.ts:4 film/no-history-comment':
     'a pass number in a comment tells history: say what the code does today and why; how it got here lives in the ledger and git log.',
-  'no-hand-timed-seconds.ts:22 film/no-hand-timed-seconds':
+  'no-hand-timed-seconds.ts:23 film/no-hand-timed-seconds':
     "an offset over 1 s from its mark or scene landmark: a hand-timed second. Declare a cue in the drawing's timeline and read f.at / f.keys / f.stagger / f.cue, anchored to a mark, a word ({ mark, word }), another cue or the voice's end.",
-  'no-hand-timed-seconds.ts:33 film/no-hand-timed-seconds':
+  'no-hand-timed-seconds.ts:34 film/no-hand-timed-seconds':
     "an untilOffset over 1 s from its until point: a hand-timed second. Declare a cue in the drawing's timeline and read f.at / f.keys / f.stagger / f.cue, anchored to a mark, a word ({ mark, word }), another cue or the voice's end.",
 } as const satisfies Readonly<Record<string, string>>;
 

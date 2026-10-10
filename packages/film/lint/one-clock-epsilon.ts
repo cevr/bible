@@ -16,9 +16,13 @@
 //   / 1000`, `near - 1 / 1_000_000`, `near + -0.001`, or a top-level const
 //   holding one, by the name's own binding: `near + HALF_MS`, but not a
 //   parameter called `HALF_MS`): a step by hand, which `core/time.ts` owns;
-// - `CLOCK_EPSILON` added to or taken from the argument of `Math.ceil`,
-//   `floor`, `round` or `trunc`: it judges two times one, and is no grid
-//   nudge (`frameAtOrAfter` and `frameAtOrBefore` are).
+// - `CLOCK_EPSILON` (`core/time.ts`'s: imported, under an alias, or read off
+//   the module imported whole) added or taken anywhere in the arithmetic of
+//   the argument of the global `Math`'s `ceil`, `floor`, `round` or `trunc`
+//   (`Math.ceil(x - EPS)`, `Math.floor((x + CLOCK_EPSILON) * fps)`): it
+//   judges two times one, and is no grid nudge (`frameAtOrAfter` and
+//   `frameAtOrBefore` are). A parameter called `CLOCK_EPSILON` or `Math` is
+//   its own binding.
 // The config turns it on over the code that computes times and off where a
 // tiny number is no time: `core/time.ts` (the owner), the draw path's
 // geometry (`canvas/`), the mix's and the synth's sample arithmetic, the
@@ -33,7 +37,7 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { memberName, type NumberOf, topLevel } from './nodes.ts';
+import { type Bindings, bindings, isFilmTime, memberName, type NumberOf } from './nodes.ts';
 
 /** The largest number a bare nudge is: below it is float noise, at it a tenth of a millisecond. */
 const NOISE = 1e-4;
@@ -108,25 +112,33 @@ const stepsByHand = (numberOf: NumberOf, node: ESTree.BinaryExpression): boolean
   return isStep(numberOf, node.right) || isStep(numberOf, node.left);
 };
 
-/** Whether `node` is `CLOCK_EPSILON`. */
-const isEpsilon = (node: ESTree.Node) =>
-  node.type === 'Identifier' && node.name === 'CLOCK_EPSILON';
+/** Whether `node` reads `core/time.ts`'s `CLOCK_EPSILON`: by its name, an alias, or off the module whole. */
+const isEpsilon = (b: Bindings, node: ESTree.Node) =>
+  b.readsImport(node, isFilmTime, 'CLOCK_EPSILON');
+
+/** Whether `CLOCK_EPSILON` is added or taken anywhere in `node`'s arithmetic: `(x + CLOCK_EPSILON) * fps`. */
+const nudgedByEpsilon = (b: Bindings, node: ESTree.Node): boolean => {
+  if (node.type === 'ParenthesizedExpression') return nudgedByEpsilon(b, node.expression);
+  if (node.type === 'UnaryExpression') return nudgedByEpsilon(b, node.argument);
+  if (node.type !== 'BinaryExpression') return false;
+  if (
+    (node.operator === '+' || node.operator === '-') &&
+    (isEpsilon(b, node.left) || isEpsilon(b, node.right))
+  )
+    return true;
+  return nudgedByEpsilon(b, node.left) || nudgedByEpsilon(b, node.right);
+};
+
+/** The global `Math`'s roundings. */
+const ROUNDINGS: ReadonlyArray<string> = ['ceil', 'floor', 'round', 'trunc'];
 
 /** Whether `call` rounds a value that has `CLOCK_EPSILON` added or taken: `Math.ceil(x - CLOCK_EPSILON)`. */
-const roundsWithEpsilon = (call: ESTree.CallExpression) => {
+const roundsWithEpsilon = (b: Bindings, call: ESTree.CallExpression) => {
   const { callee } = call;
-  if (callee.type !== 'MemberExpression') return false;
-  const on = callee.object;
-  const rounds = Option.exists(memberName(callee), (n) =>
-    ['ceil', 'floor', 'round', 'trunc'].includes(n),
-  );
-  if (!(rounds && on.type === 'Identifier' && on.name === 'Math')) return false;
-  return Option.exists(
-    Option.fromUndefinedOr(call.arguments[0]),
-    (first) =>
-      first.type === 'BinaryExpression' &&
-      (first.operator === '+' || first.operator === '-') &&
-      (isEpsilon(first.left) || isEpsilon(first.right)),
+  if (callee.type !== 'MemberExpression' || !b.isGlobal(callee.object, 'Math')) return false;
+  if (!Option.exists(memberName(callee), (n) => ROUNDINGS.includes(n))) return false;
+  return Option.exists(Option.fromUndefinedOr(call.arguments[0]), (first) =>
+    nudgedByEpsilon(b, first),
   );
 };
 
@@ -139,7 +151,8 @@ export const oneClockEpsilon = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
-    const { numberOf } = yield* topLevel;
+    const b = yield* bindings;
+    const { numberOf } = b;
     const report = (node: ESTree.Node, when: boolean) =>
       Effect.asVoid(
         Effect.when(
@@ -151,7 +164,7 @@ export const oneClockEpsilon = Rule.define({
       Visitor.on('Literal', (node) => report(node, isNudge(node))),
       Visitor.merge(
         Visitor.on('BinaryExpression', (node) => report(node, stepsByHand(numberOf, node))),
-        Visitor.on('CallExpression', (node) => report(node, roundsWithEpsilon(node))),
+        Visitor.on('CallExpression', (node) => report(node, roundsWithEpsilon(b, node))),
       ),
     );
   },

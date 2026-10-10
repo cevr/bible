@@ -1,7 +1,8 @@
 // Fixture for film/framing-is-a-knob: each line marked RED fires the rule, and
 // nothing else does.
 import { type Camera, drawing, knobCamera, pushOn, shotPath } from '@bible/film/canvas';
-import { lerp } from '@bible/film/core';
+import * as Core from '@bible/film/core';
+import { lerp, lerp as mix } from '@bible/film/core';
 
 /** The unmoved frame. */
 const REST: Camera = { x: 960, y: 540, zoom: 1 };
@@ -53,3 +54,15 @@ export const framed = (
   { x: ARK_IN, y: 600, zoom: 1.2 },
   { ...REST, zoom: lerp(JUDGED_ZOOM[0], JUDGED_ZOOM[1], lean) },
 ];
+
+// lerp is film's under an alias or off the module whole; a parameter named
+// `lerp` is the page's own.
+export const blended = (lean: number): ReadonlyArray<Camera> => [
+  { x: 960, y: 540, zoom: mix(1, 1.12, lean) }, // RED film/framing-is-a-knob
+  { x: 960, y: 540, zoom: Core.lerp(1, 1.12, lean) }, // RED film/framing-is-a-knob
+];
+export const ownBlend = (lerp: (a: number, b: number, t: number) => number, lean: number) => ({
+  x: 960,
+  y: 540,
+  zoom: lerp(1, 1.12, lean),
+});

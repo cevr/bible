@@ -8,8 +8,8 @@
 // 1. `clamp(x / 0.3)` or `clamp(x * 4)` over the scene clock: a progress
 //    rolled by hand;
 // 2. `(t - cue.start) / 0.5` or `(t - 3) / 2` anywhere: the same, unclamped;
-// 3. `progress(t, …)` or `envelope(t, …)` with a literal start, length or
-//    `± literal` among its times;
+// 3. `progress(t, …)` with a literal start, length or `± literal` among its
+//    times;
 // 4. `keys(t, …)`: keyframes on the scene clock (`keys(t - cue.start, …)`,
 //    a motion's shape inside a cue, is fine; `f.keys(cue, …)` is better);
 // 5. `cue.end + 0.5`, `f.mark('x') - 0.4`, `f.dur - 1.5`, `t - 4.2`: a
@@ -30,22 +30,26 @@
 //    `untilOffset` over 1 s, unless the point is the voice's end, after which
 //    no word is left to pin it to.
 //
-// The clock is `t` or `T` (`f.t`, `f.T`). A literal is a number written out,
-// or a top-level `const` holding one (`const HOLD = 0.5`), by the name's
-// binding where it is read: a parameter `HOLD` is not the const.
+// Each name is read by its binding where it is written (`nodes.ts`). The
+// clock is the frame's `t` or `T`: read off the frame a draw is handed
+// (`f.t`, `f.T`), taken apart from it (`const { t } = f`), or a `const`
+// bound to either (`const now = f.t`); a parameter `t` of a curve or a share
+// is no clock. `clamp`, `progress` and `keys` are film's (`core/time.ts`:
+// imported, under an alias, or read off the module imported whole). A
+// literal is a number written out, or a top-level `const` holding one
+// (`const HOLD = 0.5`): a parameter `HOLD` is not the const.
 //
 // A rate (`Math.sin(t * 7)`, a phase `t * 2 + 1.3`), an item's stagger across
 // a cue (`f.stagger`) and a small lead-in before a word (`offset: -0.3`) are
 // not times.
 //
-// Limits, read by syntax alone: a product is taken for a rate, so
-// `Math.min(1, (t - c.start) * 2)` (a 0.5 s length as its reciprocal) passes
-// unless `clamp` wraps it alone; and these need scope or type information the
-// rule does not use, so pass: a local alias of the clock (`const now = f.t`),
-// a const declared inside a function, an offset spread in (`{ mark, ...LATE }`),
-// a helper that hides the subtraction (`since(t, c.start) / 0.5`), and any
-// member named `start`, `end` or `dur` read as a time (geometry such as
-// `seg.end + 20` is flagged, though none is in a film today).
+// Limits: a product is taken for a rate, so `Math.min(1, (t - c.start) * 2)`
+// (a 0.5 s length as its reciprocal) passes unless `clamp` wraps it alone;
+// the clock handed on as a helper's parameter, a const declared inside a
+// function, an offset spread in (`{ mark, ...LATE }`) and a helper that hides
+// the subtraction (`since(t, c.start) / 0.5`) pass; and any member named
+// `start`, `end` or `dur` is read as a time (geometry such as `seg.end + 20`
+// is flagged, though none is in a film today).
 
 import { Effect, Option, Predicate } from 'effect';
 import {
@@ -55,23 +59,25 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { ancestors, memberName, type NumberOf, property, topLevel } from './nodes.ts';
+import { ancestors, type Bindings, bindings, isFilmTime, memberName, property } from './nodes.ts';
 
 /** The most a span may sit off its mark or scene landmark before it skips words: 1 s. */
 const MAX_OFFSET = 1;
 
 /** Whether a number is written as a literal, or named by a top-level const holding one. */
 const isNumber =
-  (numberOf: NumberOf) =>
+  (b: Bindings) =>
   (n: ESTree.Node): boolean =>
-    Option.isSome(numberOf(n));
+    Option.isSome(b.numberOf(n));
 
-/** The clocks: the scene's `t` (`t`, `f.t`) and the film's `T` (`f.T`). */
+/** The clocks: the scene's `t` and the film's `T`, members of the frame. */
 const CLOCKS: ReadonlySet<string> = new Set(['t', 'T']);
 
-const isTime = (n: ESTree.Node): boolean =>
-  (n.type === 'Identifier' && CLOCKS.has(n.name)) ||
-  (n.type === 'MemberExpression' && Option.exists(memberName(n), (name) => CLOCKS.has(name)));
+/** Whether `n` is a clock: the frame's `t` or `T`, by its binding. */
+const isTime =
+  (b: Bindings) =>
+  (n: ESTree.Node): boolean =>
+    Option.exists(b.framePart(n), (part) => CLOCKS.has(part));
 
 /** A cue edge, a length or a mark: `x.start`, `x.end`, `f.dur`, `f.cue('c').end`, `f.mark('m')`. */
 const isAnchor = (n: ESTree.Node): boolean =>
@@ -90,9 +96,9 @@ const terms = (n: ESTree.Node): ReadonlyArray<ESTree.Node> => {
 };
 
 /** `t - 3`: the clock itself, a term of a sum with a literal (`t * 2 + 1.3`, a phase, is not). */
-const clockOffset = (numberOf: NumberOf, n: ESTree.Node): boolean => {
+const clockOffset = (b: Bindings, n: ESTree.Node): boolean => {
   const all = terms(n);
-  return all.some(isTime) && all.some(isNumber(numberOf));
+  return all.some(isTime(b)) && all.some(isNumber(b));
 };
 
 /** Whether `n` or an operand inside its arithmetic satisfies `p`. */
@@ -105,61 +111,51 @@ const within = (n: ESTree.Node, p: (x: ESTree.Node) => boolean): boolean => {
 };
 
 /** `a + 0.8`, `x - 0.2 - y`: a sum or difference with a literal among its terms. */
-const literalOffset = (numberOf: NumberOf, n: ESTree.Node): boolean =>
+const literalOffset = (b: Bindings, n: ESTree.Node): boolean =>
   n.type === 'BinaryExpression' &&
   (n.operator === '+' || n.operator === '-') &&
-  (isNumber(numberOf)(n.left) ||
-    isNumber(numberOf)(n.right) ||
-    literalOffset(numberOf, n.left) ||
-    literalOffset(numberOf, n.right));
+  (isNumber(b)(n.left) ||
+    isNumber(b)(n.right) ||
+    literalOffset(b, n.left) ||
+    literalOffset(b, n.right));
 
 /** `x / 0.3` or `x * 4` (either side literal): a length in seconds, or its rate. */
-const scaledByLiteral = (numberOf: NumberOf, n: ESTree.Node): Option.Option<ESTree.Node> => {
+const scaledByLiteral = (b: Bindings, n: ESTree.Node): Option.Option<ESTree.Node> => {
   if (n.type !== 'BinaryExpression' || (n.operator !== '/' && n.operator !== '*'))
     return Option.none();
-  if (isNumber(numberOf)(n.right)) return Option.some(n.left);
-  if (isNumber(numberOf)(n.left)) return Option.some(n.right);
-  return Option.none();
-};
-
-/** The name a call is made by: `clamp(…)`, `Core.clamp(…)`. */
-const calleeName = (n: ESTree.CallExpression): Option.Option<string> => {
-  if (n.callee.type === 'Identifier') return Option.some(n.callee.name);
-  if (n.callee.type === 'MemberExpression') return memberName(n.callee);
+  if (isNumber(b)(n.right)) return Option.some(n.left);
+  if (isNumber(b)(n.left)) return Option.some(n.right);
   return Option.none();
 };
 
 /** Why a call keeps a hand-timed second, when it does (shapes 1, 3 and 4). */
-const handTimedCall = (numberOf: NumberOf, n: ESTree.CallExpression): Option.Option<string> =>
+const handTimedCall = (b: Bindings, n: ESTree.CallExpression): Option.Option<string> =>
   Option.flatMap(
     Option.filter(Option.fromUndefinedOr(n.arguments[0]), (a) => a.type !== 'SpreadElement'),
-    (first) => handTimedArgs(numberOf, n, first),
+    (first) => handTimedArgs(b, n, first),
   );
 
 /** `handTimedCall` once the call has a first argument that is not a spread. */
 const handTimedArgs = (
-  numberOf: NumberOf,
+  b: Bindings,
   n: ESTree.CallExpression,
   first: ESTree.Node,
 ): Option.Option<string> => {
-  const name = calleeName(n);
   const rest = n.arguments.slice(1);
-  if (Option.contains(name, 'clamp') && n.arguments.length === 1)
+  if (b.callsImport(n, isFilmTime, 'clamp') && n.arguments.length === 1)
     return Option.map(
-      Option.filter(scaledByLiteral(numberOf, first), (x) => within(x, isTime)),
+      Option.filter(scaledByLiteral(b, first), (x) => within(x, isTime(b))),
       () => 'clamp over a literal length',
     );
-  if (Option.exists(name, (c) => c === 'progress' || c === 'envelope') && isTime(first))
+  if (b.callsImport(n, isFilmTime, 'progress') && isTime(b)(first))
     return Option.map(
-      Option.liftPredicate(rest.slice(0, 3), (times) =>
-        times.some(
-          (x) =>
-            x.type !== 'SpreadElement' && (isNumber(numberOf)(x) || literalOffset(numberOf, x)),
-        ),
+      Option.liftPredicate(rest.slice(0, 2), (times) =>
+        times.some((x) => x.type !== 'SpreadElement' && (isNumber(b)(x) || literalOffset(b, x))),
       ),
-      () => `${Option.getOrElse(name, () => 'progress')} with a literal start or length`,
+      () => 'progress with a literal start or length',
     );
-  if (Option.contains(name, 'keys') && isTime(first)) return Option.some('keys on the scene clock');
+  if (b.callsImport(n, isFilmTime, 'keys') && isTime(b)(first))
+    return Option.some('keys on the scene clock');
   return Option.none();
 };
 
@@ -168,33 +164,33 @@ const handTimedArgs = (
  * cue or mark. Only a division: `(t - cue.start) * 7` is a rate (a step, a
  * wobble), not a length.
  */
-const handTimedRate = (numberOf: NumberOf, n: ESTree.Node): boolean =>
+const handTimedRate = (b: Bindings, n: ESTree.Node): boolean =>
   n.type === 'BinaryExpression' &&
   n.operator === '/' &&
   Option.exists(
-    scaledByLiteral(numberOf, n),
-    (x) => within(x, isTime) && (within(x, isAnchor) || clockOffset(numberOf, x)),
+    scaledByLiteral(b, n),
+    (x) => within(x, isTime(b)) && (within(x, isAnchor) || clockOffset(b, x)),
   );
 
 /** The comparisons: `<`, `<=`, `>`, `>=`. */
 const COMPARE: ReadonlySet<string> = new Set(['<', '<=', '>', '>=']);
 
 /** A number other than 0: `t > 0` asks whether the clock has started, not when. */
-const isSecond = (numberOf: NumberOf, n: ESTree.Node): boolean =>
-  Option.exists(numberOf(n), (v) => v !== 0);
+const isSecond = (b: Bindings, n: ESTree.Node): boolean =>
+  Option.exists(b.numberOf(n), (v) => v !== 0);
 
 /** Shape 7: `t > 3.5`, `t - cue.start > 0.5`: the clock, or a time on it, compared with a literal second. */
-const comparedToSecond = (numberOf: NumberOf, n: ESTree.BinaryExpression): boolean =>
+const comparedToSecond = (b: Bindings, n: ESTree.BinaryExpression): boolean =>
   COMPARE.has(n.operator) &&
-  ((within(n.left, isTime) && isSecond(numberOf, n.right)) ||
-    (within(n.right, isTime) && isSecond(numberOf, n.left)));
+  ((within(n.left, isTime(b)) && isSecond(b, n.right)) ||
+    (within(n.right, isTime(b)) && isSecond(b, n.left)));
 
 /** Whether an ancestor already reports this time (shapes 1-4), so shape 5 stays quiet. */
-const reportedAbove = (numberOf: NumberOf, n: ESTree.Node): boolean =>
+const reportedAbove = (b: Bindings, n: ESTree.Node): boolean =>
   ancestors(n).some(
     (a) =>
-      (a.type === 'CallExpression' && Option.isSome(handTimedCall(numberOf, a))) ||
-      (a.type === 'BinaryExpression' && handTimedRate(numberOf, a)),
+      (a.type === 'CallExpression' && Option.isSome(handTimedCall(b, a))) ||
+      (a.type === 'BinaryExpression' && handTimedRate(b, a)),
   );
 
 /** The string a property holds, when it is a string literal. */
@@ -206,13 +202,13 @@ const stringOf = (p: ESTree.ObjectProperty): Option.Option<string> => {
 
 /** Whether a property holds a literal second over `MAX_OFFSET` either way. */
 const far =
-  (numberOf: NumberOf) =>
+  (b: Bindings) =>
   (p: ESTree.ObjectProperty): boolean =>
-    Option.exists(numberOf(p.value), (v) => Math.abs(v) > MAX_OFFSET);
+    Option.exists(b.numberOf(p.value), (v) => Math.abs(v) > MAX_OFFSET);
 
 /** Shape 6: a span's literal offset over `MAX_OFFSET` from a mark or the scene's start or voice. */
 const farOffset = (
-  numberOf: NumberOf,
+  b: Bindings,
   n: ESTree.ObjectExpression,
 ): Option.Option<ESTree.ObjectProperty> => {
   const anchored =
@@ -222,7 +218,7 @@ const farOffset = (
       (s) => s === 'start' || s === 'speech',
     );
   if (!anchored) return Option.none();
-  return Option.filter(property(n, 'offset'), far(numberOf));
+  return Option.filter(property(n, 'offset'), far(b));
 };
 
 /** `until: { at: 'speechEnd' }`: a span that ends off the voice's end. */
@@ -232,12 +228,12 @@ const untilVoiceEnd = (p: ESTree.ObjectProperty): boolean =>
 
 /** Shape 6, the end: a span's literal `untilOffset` over `MAX_OFFSET` from its `until` point, but the voice's end. */
 const farUntilOffset = (
-  numberOf: NumberOf,
+  b: Bindings,
   n: ESTree.ObjectExpression,
 ): Option.Option<ESTree.ObjectProperty> =>
   Option.flatMap(
     Option.filter(property(n, 'until'), (until) => !untilVoiceEnd(until)),
-    () => Option.filter(property(n, 'untilOffset'), far(numberOf)),
+    () => Option.filter(property(n, 'untilOffset'), far(b)),
   );
 
 const advice =
@@ -252,20 +248,20 @@ export const noHandTimedSeconds = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
-    const { numberOf } = yield* topLevel;
+    const b = yield* bindings;
     const report = (node: ESTree.Node, what: string) =>
       context.report(Diagnostic.make({ node, message: `${what}: ${advice}` }));
     return Visitor.merge(
       Visitor.on('CallExpression', (node) =>
-        Option.match(handTimedCall(numberOf, node), {
+        Option.match(handTimedCall(b, node), {
           onNone: () => Effect.void,
           onSome: (what) => report(node, what),
         }),
       ),
       Visitor.on('BinaryExpression', (node) => {
-        if (comparedToSecond(numberOf, node))
+        if (comparedToSecond(b, node))
           return report(node, 'the clock compared with a literal second');
-        if (handTimedRate(numberOf, node) && !reportedAbove(numberOf, node))
+        if (handTimedRate(b, node) && !reportedAbove(b, node))
           return report(node, 'a progress over a literal length');
         if (node.operator !== '+' && node.operator !== '-') return Effect.void;
         // The outermost sum only, once.
@@ -275,21 +271,21 @@ export const noHandTimedSeconds = Rule.define({
         )
           return Effect.void;
         if (
-          !literalOffset(numberOf, node) ||
-          !(within(node, isAnchor) || clockOffset(numberOf, node)) ||
-          reportedAbove(numberOf, node)
+          !literalOffset(b, node) ||
+          !(within(node, isAnchor) || clockOffset(b, node)) ||
+          reportedAbove(b, node)
         )
           return Effect.void;
         return report(node, 'a literal offset from a cue edge or mark');
       }),
       Visitor.on('ObjectExpression', (node) =>
         Effect.andThen(
-          Option.match(farOffset(numberOf, node), {
+          Option.match(farOffset(b, node), {
             onNone: () => Effect.void,
             onSome: (offset) =>
               report(offset, `an offset over ${MAX_OFFSET} s from its mark or scene landmark`),
           }),
-          Option.match(farUntilOffset(numberOf, node), {
+          Option.match(farUntilOffset(b, node), {
             onNone: () => Effect.void,
             onSome: (offset) =>
               report(offset, `an untilOffset over ${MAX_OFFSET} s from its until point`),
