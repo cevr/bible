@@ -53,7 +53,8 @@ Propose nothing against these.
 - A recorded take is never overwritten; ElevenLabs stages only (owner voiceover).
 - Art direction beats performance: a change that moves pixels needs the owner's OK and stills identical to the eye (2026-09-27).
 - Paid runs (ElevenLabs voice, score, sounds) only with the owner's go-ahead; budgets are generous once approved.
-- Commit to `main` locally; push, publish and deploy only on the owner's ask. The box's units (`film-lab.service`) may be restarted to pick up merged server code.
+- Commit to `main` locally; publish and deploy only on the owner's ask. The box's units (`film-lab.service`) may be restarted to pick up merged server code.
+- Push: `main` to `origin` after each commit, fast-forward only; never a rift branch, never force; the orchestrator pushes, batch agents do not (owner, 2026-10-03).
 - No persisted-format change unless additive and optional: notes files, `catalogue.json`, timings, `library.lock.json`, `review.json`.
 - On a Sabbath pause (Friday sundown to Saturday sundown) stop every background agent, workflow and loop.
 

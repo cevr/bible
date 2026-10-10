@@ -38,6 +38,15 @@ bun run --filter @bible/selah gate  # Native Swift gate on macOS
 bun run ci [<commit>]          # Wait for a commit's CI run on main and print its verdict
 ```
 
+## Workspaces
+
+- Work on `main` directly, unless the work runs in parallel with other work.
+- **Parallel work:** each unit gets its own workspace.
+  - On the workbox, the warm source is `/workspaces/bible-tools`. Run `workrift create <branch>` inside it. Run `workrift deps` when `bun.lock` changed. After the merge, run `workrift remove <path>`. `workrift prune --dry-run` lists stale ones; run it before any `git status` inside a rift, which marks the rift recent.
+  - On the laptop, run `rift create --name <name> --copy-all ~/Developer/personal/bible-tools`.
+- **The film e2e** (`bun run test:e2e`) is heavy, and two at once on one machine time each other out. On the workbox, run it as `flock /tmp/bible-tools-e2e.lock bun run test:e2e`, so parallel workspaces queue.
+- **Renders:** a workspace's renders are found through `out/<film>/catalogue.json`. Moving render files without their catalogue records loses them.
+
 ## Runtime observability
 
 The EGW search dev servers run through Agent Tail and keep one plain-text
