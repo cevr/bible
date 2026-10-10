@@ -136,8 +136,9 @@ export interface Staged {
 }
 
 /**
- * The film the page at `href` is on: its path's (`/films/<film>/…`), else an
- * export page's `?film=<name>`, else the registry's first.
+ * The film the page at `href` is on: its path's (`/films/<film>/…`, a film's
+ * export page on the lab among them), else the PreviewServer's render page's
+ * `?film=<name>`, else the registry's first.
  */
 const filmName = (href: string, films: Films): string =>
   Option.getOrElse(

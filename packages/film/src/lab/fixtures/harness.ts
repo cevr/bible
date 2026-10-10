@@ -22,7 +22,7 @@ import {
 import {
   type CompareView,
   LabHttpApi,
-  type PageName,
+  type AppPage,
   Refusal,
   pageAt,
   pageHref,
@@ -466,7 +466,7 @@ const fakeServer =
 
 /** What `answer` makes of each request for `name`, on every path the real server serves it on (`pageAt`, `core/api.ts`). */
 const servedBy =
-  (name: PageName, answer: (request: Request) => Effect.Effect<Response>) =>
+  (name: AppPage, answer: (request: Request) => Effect.Effect<Response>) =>
   (request: Request): Option.Option<Effect.Effect<Response>> =>
     Option.as(
       Option.filter(pageAt(request.url.pathname), (page) => page === name),
@@ -474,7 +474,7 @@ const servedBy =
     );
 
 /** `html` on every path the real server serves `name` on. */
-const servedAs = (name: PageName, html: Response) => servedBy(name, () => Effect.succeed(html));
+const servedAs = (name: AppPage, html: Response) => servedBy(name, () => Effect.succeed(html));
 
 /**
  * `canvas.toBlob` encoding at once, from `toDataURL`: the same image in the
@@ -648,6 +648,40 @@ export const openPlayer = Effect.fn('lab.fixture.player')(function* (
   });
   yield* page.goto(at.href);
   yield* page.waitFor(ready);
+  const open: OpenLab = { page, asked, errors: page.errors };
+  return open;
+});
+
+/** The render page's script over the probe and crowd films: built the first time a case asks for it. */
+const renderScript = Effect.runSync(Effect.cached(scriptAsset('render-page.ts', 'render.js')));
+
+/**
+ * Open a film's export page (`fixtures/render-page.ts`, the real
+ * `mountRender`) at `href`, served on the place the lab serves the render
+ * page on and nowhere else, as the easel's own Chrome opens it (its window,
+ * 1920 × 1080), and wait until its handle is on `window.__film`.
+ */
+export const openRender = Effect.fn('lab.fixture.render')(function* (href: string) {
+  const script = yield* renderScript;
+  const asked: Array<Asked> = [];
+  const page = yield* openTab({
+    width: 1920,
+    height: 1080,
+    microphone: false,
+    init: [CLOCK_SCRIPT],
+    assets: [script],
+    serve: fakeServer(
+      servedAs('render', respond(playerPage(css, script), 'text/html')),
+      API,
+      defaults,
+      asked,
+    ),
+  });
+  yield* page.goto(href);
+  yield* page.until('window.__film !== undefined', {
+    now: `document.body.innerText.slice(0, 200)`,
+    say: (now) => `the export page at ${href} installed no handle: it shows ${now}`,
+  });
   const open: OpenLab = { page, asked, errors: page.errors };
   return open;
 });

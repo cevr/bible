@@ -26,7 +26,7 @@ import {
 } from 'effect';
 import * as PlatformError from 'effect/PlatformError';
 import { TestClock } from 'effect/testing';
-import type { PageName } from '../core/api.ts';
+import type { AppPage } from '../core/api.ts';
 import { LONGEST_WAIT } from '../core/wait.ts';
 import { PageBundler } from './lab-page.ts';
 import { END_WAIT, PageRenderer, type RenderBuild, type ServerBundle } from './page-render.ts';
@@ -47,7 +47,7 @@ const fixtureBundle = Effect.gen(function* () {
   });
   return {
     files: built.server,
-    entries: new Map<PageName, string>([['review', 'page.server.js']]),
+    entries: new Map<AppPage, string>([['review', 'page.server.js']]),
   } satisfies ServerBundle;
 });
 
@@ -67,7 +67,7 @@ const nestedBundle = Effect.gen(function* () {
   });
   return {
     files: built.server,
-    entries: new Map<PageName, string>([['review', 'render/page.server.js']]),
+    entries: new Map<AppPage, string>([['review', 'render/page.server.js']]),
   } satisfies ServerBundle;
 });
 
@@ -134,7 +134,7 @@ export default {
 /** A server bundle of one module, `code`, the review's entry. */
 const moduleBundle = (code: string): ServerBundle => ({
   files: [{ path: 'page.js', bytes: new TextEncoder().encode(code) }],
-  entries: new Map<PageName, string>([['review', 'page.js']]),
+  entries: new Map<AppPage, string>([['review', 'page.js']]),
 });
 
 /**
@@ -275,7 +275,7 @@ describe("a page's server render", () => {
       Effect.gen(function* () {
         const bundle: ServerBundle = {
           files: [{ path: 'gives-up.js', bytes: new TextEncoder().encode(GIVES_UP) }],
-          entries: new Map<PageName, string>([['review', 'gives-up.js']]),
+          entries: new Map<AppPage, string>([['review', 'gives-up.js']]),
         };
         const givenUpAsked = yield* Deferred.make<void>();
         const givenUpStopped = yield* Deferred.make<void>();
@@ -421,7 +421,7 @@ describe("a page's server render", () => {
     Effect.gen(function* () {
       const bundle: ServerBundle = {
         files: [{ path: 'none.js', bytes: new TextEncoder().encode('export default 1;\n') }],
-        entries: new Map<PageName, string>([['review', 'none.js']]),
+        entries: new Map<AppPage, string>([['review', 'none.js']]),
       };
       const failed = yield* Effect.flip(renderOf({ id: 1, bundle }, answering('a')));
       expect(failed.reason).toContain('exports no PageRender');

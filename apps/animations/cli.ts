@@ -78,8 +78,8 @@ export const appCli = (films: string, sounds: string, self: string): void =>
     previewServer: player(films),
     lab: {
       at: labAt,
-      // The lab's pages, this app's entries: its review, its lab and its player, and
-      // the server entries of those the server renders.
+      // The lab's pages, this app's entries: its review, its lab, its player and its
+      // render page, and the server entries of those the server renders.
       pages: { pages: LAB_PAGES, servers: LAB_SERVERS },
       roots: checkoutRoots,
     },

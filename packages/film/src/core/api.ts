@@ -712,8 +712,15 @@ export const prefixesOf = <Id extends string, Groups extends HttpApiGroup.Constr
 // rewritten to their place by `legacyPlace`, on the server as a redirect and
 // on a page already loaded as a replace.
 
-/** The app's pages, each one HTML entry: its review, its lab, its player. */
+/** The studio's pages, each one HTML entry: its review, its lab, its player. */
 export type PageName = 'review' | 'lab' | 'player';
+
+/**
+ * The pages the lab serves, each one HTML entry: the studio's, and the
+ * render page (a film with no chrome, whose handle the renderer and the
+ * easel drive).
+ */
+export type AppPage = PageName | 'render';
 
 /**
  * A value the URL may leave out: blank text (empty, or only spaces) is none,
@@ -888,6 +895,10 @@ export const OWN_SOUND = 'own';
  * `/films/<film>/play#t=`. Lab: a film
  * `/films/<film>/lab#t=` (film time) or one of its scenes
  * `/films/<film>/lab/<scene>?cue=#t=` (scene time), with the selection.
+ * Render: a film's export page `/films/<film>/export`, the film staged with
+ * no chrome and its handle on `window.__film` (`mountRender`), which the
+ * easel opens on the lab (`film look`); no reviewer's view, so it holds no
+ * time and no selection.
  */
 export const Places = {
   home: Place.make({ path: '/' }),
@@ -937,10 +948,11 @@ export const Places = {
     query: LabSelection,
     hash: LabAt,
   }),
+  export: Place.make({ path: '/films/:film/export', params: filmParams }),
 };
 
 /** The page each place is served by, the first that holds a path winning. */
-const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, PageName]> = [
+const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, AppPage]> = [
   [Places.home, 'review'],
   [Places.folder, 'review'],
   [Places.set, 'review'],
@@ -951,10 +963,11 @@ const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, PageName]> = [
   [Places.play, 'player'],
   [Places.lab, 'lab'],
   [Places.labScene, 'lab'],
+  [Places.export, 'render'],
 ];
 
 /** The page `pathname` serves, if any: a path no place declares (a chunk, a typo, an old `/lab`) serves none. */
-export const pageAt = (pathname: string): Option.Option<PageName> =>
+export const pageAt = (pathname: string): Option.Option<AppPage> =>
   Option.map(
     Arr.findFirst(PAGES, ([place]) => Option.isSome(Place.decode(place, pathname))),
     ([, page]) => page,
@@ -987,6 +1000,7 @@ const FILM_PLACES: ReadonlyArray<Place.Place<{ readonly path: { readonly film: s
   Places.play,
   Places.lab,
   Places.labScene,
+  Places.export,
 ];
 
 /** The film `href`'s path names (`/films/<film>/…`), if it names one. */
@@ -1055,6 +1069,9 @@ export const pageHref = {
     Place.href(Places.scene, { path: { film, scene }, query: {}, hash: timeOf(t) }),
   play: (film: string, t: Option.Option<number> = Option.none()): string =>
     Place.href(Places.play, { path: { film }, query: {}, hash: timeOf(t) }),
+  /** A film's export page: the render page, staged for the easel's stills. */
+  export: (film: string): string =>
+    Place.href(Places.export, { path: { film }, query: {}, hash: {} }),
   /** The lab on `film`, at film time `t`, comparing with HEAD by `view`, looping `loop`. */
   lab: (
     film: string,
@@ -1170,9 +1187,38 @@ const setOfQuery = (folder: string, point: string, query: URLSearchParams): stri
   );
 };
 
+/**
+ * The export page an old render link names: Play's with `?export`
+ * (`/films/<f>/play?export`, the easel's before the render page had a
+ * place) or the root's (`/?film=<f>&export`, the PreviewServer's form), the
+ * rest of its query (the build or wedge it pins, captions) kept.
+ */
+const exportOfQuery = (pathname: string, query: URLSearchParams): Option.Option<string> => {
+  const film = Option.orElse(
+    Option.map(Place.decode(Places.play, pathname), (value) => value.path.film),
+    () =>
+      Option.flatMap(
+        Option.liftPredicate(pathname, (p) => p === '/'),
+        () => param(query, 'film'),
+      ),
+  );
+  return Option.map(film, (f) => {
+    const kept = new URLSearchParams(query);
+    kept.delete('export');
+    kept.delete('film');
+    return Option.match(
+      Option.liftPredicate(kept.toString(), (search) => search !== ''),
+      {
+        onNone: () => pageHref.export(f),
+        onSome: (search) => `${pageHref.export(f)}?${search}`,
+      },
+    );
+  });
+};
+
 /** The place an old link's path and query name, if they name one. */
 const legacyPath = (pathname: string, query: URLSearchParams): Option.Option<string> => {
-  if (query.has('export')) return Option.none();
+  if (query.has('export')) return exportOfQuery(pathname, query);
   const film = param(query, 'film');
   const lookbook = query.has('lookbook');
   const lab = query.has('lab');
@@ -1268,13 +1314,14 @@ const choiceOffProject = (href: string): Option.Option<string> =>
 /**
  * The place an old link names, if `href` is one: `/lab?film=<f>[&sel=…]`,
  * `/player?film=<f>[&lookbook|&lab]`, `/?project=<f>`,
- * `/?film=<f>[&lookbook|&lab]`, `/?folder=<ref>[&set=<point>…]`, a bare
+ * `/?film=<f>[&lookbook|&lab]`, `/?folder=<ref>[&set=<point>…]`, a render
+ * link (`/films/<f>/play?export`, `/?film=<f>&export`, now the film's export
+ * page `/films/<f>/export`), a bare
  * `#<seconds>` on a place that reads film time (`/films/<f>/play`, the Scenes, a lab with
  * no scene), a project card's anchor (`#point-<id>`, now `?point=<id>`), and
  * a project link to a choice's card (on Choices now). The server sends the browser on with a redirect (the browser
  * keeps the hash, which the server never sees); a page already loaded
- * replaces its entry. A renderer's export page (`&export`) is not old. A
- * scene's lab reads a bare `#<seconds>` as film time itself.
+ * replaces its entry. A scene's lab reads a bare `#<seconds>` as film time itself.
  */
 export const legacyPlace = (href: string): Option.Option<string> => {
   const url = parseHref(href);
