@@ -780,32 +780,6 @@ describe('the review page', () => {
     SLOW,
   );
 
-  it.live(
-    "shows one timecode: a laptop's in the header, the row its length; a phone's in the row (SU-12)",
-    () =>
-      Effect.gen(function* () {
-        /** The timecodes the page shows, as read (a hidden one is not). */
-        const SHOWN = `[...document.querySelectorAll('.sh-tc, .rv-time')].filter((e) => e.getClientRects().length > 0).map((e) => e.innerText.replace(/\\s+/g, ' ').trim()).filter((t) => t !== '')`;
-        const { page, errors } = yield* openReview(routes, { href: `${SET}#t=4` });
-        yield* textHas(page, '.rv-time', '00:00:04:00');
-        yield* until(
-          page,
-          `${SHOWN}.length === 2 && ${SHOWN}[0] === '00:00:04:00' && ${SHOWN}[1].startsWith('/ ')`,
-        );
-        const phone = yield* openReview(routes, {
-          href: `${SET}#t=4`,
-          viewport: { width: 390, height: 844 },
-        });
-        yield* textHas(phone.page, '.rv-time', '00:00:04:00');
-        yield* phone.page.until(`${SHOWN}.join() === '00:00:04:00'`, {
-          now: SHOWN,
-          say: (shown) => `a phone shows the timecodes ${shown}`,
-        });
-        expect([...errors, ...phone.errors]).toEqual([]);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
-
   // Serial: a finger's touches (`film/touches-serial`).
   test.serial(
     "a long-press on a version's picture steps the set on or back, one step or ten (SU-11)",

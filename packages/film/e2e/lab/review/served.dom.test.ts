@@ -23,6 +23,7 @@ import {
   servedTitle,
 } from '../../../src/lab/fixtures/harness.ts';
 import { PAGE_CUT_MARK, PAGE_ROOT } from '../../../src/core/page-render.ts';
+import { timecode } from '../../../src/core/time.ts';
 import { TOY } from '../../../src/lab/fixtures/toy-film.ts';
 import {
   STUDIO_FILM,
@@ -126,6 +127,23 @@ const NAMING_NOTHING: ReadonlyArray<{
     ready: 'data-point="look:ground"',
   },
 ];
+
+/** Pages whose player opens where the link's `#t=` says: a Set, Choices and Project. */
+const LANDING_AT_A_TIME: ReadonlyArray<{ readonly name: string; readonly href: string }> = [
+  { name: 'a Set', href: pageHref.set(STUDIO_FOLDER, STUDIO_SET) },
+  { name: 'Choices', href: pageHref.choices(STUDIO_FILM) },
+  { name: 'Project', href: pageHref.project(STUDIO_FILM) },
+];
+
+/**
+ * Where a link at a time (`#t=`) opens them: between two frames, as a shared
+ * link's time is, and inside the served media (`TONE`'s ten seconds), which
+ * the clock never passes.
+ */
+const AT = 6.35;
+
+/** The timecodes the page shows, as read (a hidden one is not). */
+const SHOWN = `[...document.querySelectorAll('.sh-tc, .rv-time')].filter((e) => e.getClientRects().length > 0).map((e) => e.innerText.replace(/\\s+/g, ' ').trim()).filter((t) => t !== '')`;
 
 /** The reads among `read` that are the browser's alone: a check, the steps, a wait on a build. */
 const browserOnly = (read: ReadonlyArray<Asked>) =>
@@ -319,6 +337,41 @@ describe('the review served as the lab renders it', () => {
           yield* textHas(served.page, `${SHEET} .lab-sheet-title`, link.title);
           expect(mismatches(served.page.logged)).toEqual([]);
           expect(served.errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+  for (const link of LANDING_AT_A_TIME)
+    it.live(
+      `${link.name}'s link at a time shows that time once hydrated, though the server never saw it: a phone's in the row, a laptop's in the header (SU-12)`,
+      () =>
+        Effect.gen(function* () {
+          const at = timecode(AT);
+          // The phone's timecode and its scrub read the one clock.
+          const phoneShows = `${SHOWN}.join() === '${at}' && document.querySelector('.rv-transport input[type=range]')?.value === '${AT}'`;
+          const phone = yield* openServed('review', studioRoutes, {
+            href: `${link.href}#t=${AT}`,
+            viewport: PHONE,
+          });
+          // The server never sees `#t=`: its document stands at the start.
+          expect(painted(phone.documents[0]?.html ?? '')).not.toContain(at);
+          yield* phone.page.until(phoneShows, {
+            now: SHOWN,
+            say: (shown) => `a phone shows the timecodes ${shown}`,
+          });
+          // A reload lands there again.
+          yield* phone.reload;
+          yield* phone.page.until(phoneShows, {
+            now: SHOWN,
+            say: (shown) => `a phone, reloaded, shows the timecodes ${shown}`,
+          });
+          const desk = yield* openServed('review', studioRoutes, { href: `${link.href}#t=${AT}` });
+          yield* desk.page.until(
+            `${SHOWN}.length === 2 && ${SHOWN}[0] === '${at}' && ${SHOWN}[1].startsWith('/ ')`,
+            { now: SHOWN, say: (shown) => `a laptop shows the timecodes ${shown}` },
+          );
+          expect(mismatches([...phone.page.logged, ...desk.page.logged])).toEqual([]);
+          expect([...phone.errors, ...desk.errors]).toEqual([]);
         }).pipe(Effect.scoped),
       SLOW,
     );
