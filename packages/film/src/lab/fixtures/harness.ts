@@ -882,6 +882,16 @@ interface OpenServed extends OpenLab {
   readonly read: ReadonlyArray<Asked>;
   /** Each document the server answered, in order. */
   readonly documents: ReadonlyArray<Document>;
+  /**
+   * Land on `href` as a pasted link does: a new document the server
+   * renders, which the browser hydrates (what the viewer kept in this
+   * browser stays). Done once the page says it is mounted, as the open is.
+   * An `href` that differs from the page's URL only in its hash is no new
+   * document (the browser only moves to the hash): `reload` lands there.
+   */
+  readonly land: (href: string) => Effect.Effect<void>;
+  /** Reload the page: a new document of the same URL, served and hydrated as `land`'s is. */
+  readonly reload: Effect.Effect<void>;
 }
 
 /**
@@ -958,25 +968,36 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
       Option.fromUndefinedOr(at.faceHeld),
     ),
   });
+  // A page served cut (its document carries the mark) is rendered anew; any other,
+  // a render that ended before `at.cut` among them, hydrates the server's markup.
+  const mounted = Effect.suspend(() => {
+    const servedCut = Option.exists(Arr.last(documents), (served) =>
+      served.html.includes(PAGE_CUT_MARK),
+    );
+    const how = Option.match(Option.liftPredicate(servedCut, Boolean), {
+      onNone: () => 'hydrated',
+      onSome: () => 'rendered',
+    });
+    return Effect.raceFirst(
+      page.until(`document.body.getAttribute('${PAGE_MOUNTED}') === '${how}'`, {
+        now: `document.body.getAttribute('${PAGE_MOUNTED}')`,
+        say: (now) => `the ${name} page was not ${how}: its body says it was mounted ${now}`,
+      }),
+      Deferred.await(failed),
+    );
+  });
   const going = page.goto(at.href ?? spec.home);
   if (at.mountedOnly === true) yield* Effect.forkScoped(going);
   else yield* going;
-  // A page served cut (its document carries the mark) is rendered anew; any other,
-  // a render that ended before `at.cut` among them, hydrates the server's markup.
-  const servedCut = Option.exists(Arr.last(documents), (served) =>
-    served.html.includes(PAGE_CUT_MARK),
-  );
-  const mounted = Option.match(Option.liftPredicate(servedCut, Boolean), {
-    onNone: () => 'hydrated',
-    onSome: () => 'rendered',
-  });
-  yield* Effect.raceFirst(
-    page.until(`document.body.getAttribute('${PAGE_MOUNTED}') === '${mounted}'`, {
-      now: `document.body.getAttribute('${PAGE_MOUNTED}')`,
-      say: (now) => `the ${name} page was not ${mounted}: its body says it was mounted ${now}`,
-    }),
-    Deferred.await(failed),
-  );
-  const open: OpenServed = { page, asked, errors: page.errors, read, documents };
+  yield* mounted;
+  const open: OpenServed = {
+    page,
+    asked,
+    errors: page.errors,
+    read,
+    documents,
+    land: (href) => Effect.andThen(page.goto(href), mounted),
+    reload: Effect.andThen(page.reload, mounted),
+  };
   return open;
 });
