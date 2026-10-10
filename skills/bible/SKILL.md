@@ -32,7 +32,8 @@ What is the user asking for?
 │  analysis (one format; `kind` is just a tag)     → references/teachings.md
 ├─ Keynote deck for a teaching document
 │  (paintings + verses, full-bleed/split rhythm)   → references/decks.md
-└─ Sabbath School week outline (PDF-driven medium) → references/sabbath-school.md
+└─ Sabbath School week (guided session on one
+   present-truth theme, from the lesson PDFs)      → references/sabbath-school.md
 ```
 
 Both references contain: when-to-use, source-material commands, output shape,
