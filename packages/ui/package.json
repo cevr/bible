@@ -1,7 +1,7 @@
 {
   "name": "@bible/ui",
   "private": true,
-  "license": "MIT",
+  "license": "MIT AND Apache-2.0",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -10,6 +10,7 @@
     "./press": "./src/press/index.ts",
     "./dialog": "./src/dialog/index.ts",
     "./drawer": "./src/drawer/index.ts",
+    "./sheet": "./src/sheet/index.ts",
     "./toast": "./src/toast/index.ts",
     "./number-field": "./src/number-field/index.ts",
     "./toggle": "./src/toggle/index.ts",

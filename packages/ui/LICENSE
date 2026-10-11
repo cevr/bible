@@ -7,6 +7,16 @@ https://github.com/mui/base-ui, packages/react/src and packages/utils/src)
 from React to Solid 2. Each ported file names its upstream path in a header
 comment. The ported code keeps Base UI's copyright and this license.
 
+The code under src/sheet/ is not covered by this license: it is a port of
+React Aria's Sheet (react-aria-components 1.22.1 and react-aria 3.53.1,
+https://github.com/adobe/react-spectrum), Copyright 2020-2026 Adobe, under
+the Apache License 2.0 in src/sheet/LICENSE. Each file there names its
+upstream path and copyright and states that it was ported to Solid 2 and
+changed, as does test/browser/sheet.test.ts (from upstream's Sheet tests).
+The parts it
+reuses from the rest of src/ (the dialog's root, store, portal, title and
+close) stay under this license.
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights

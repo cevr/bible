@@ -1,6 +1,6 @@
 # @bible/ui
 
-Base UI's unstyled parts, ported to Solid 2 (the `2.0.0-rc` line of `solid-js` and `@solidjs/web`). No part ships a style: each part shows its state as `data-*` attributes (and, where a value has to reach CSS, as CSS custom properties), and the consumer styles it through those attributes and its own `class`. Each part is imported from its subpath, for example `import { Menu } from '@bible/ui/menu'`; there is no root entry. The package keeps only the parts a page draws: a part upstream has and this list lacks returns with its first consumer, and the attribute names below are the styling contract (no `*DataAttributes` constants are exported). Unit tests run with `bun run test` and the browser tests with `bun run test:browser` (Playwright, `test/browser`), both from `packages/ui`.
+Base UI's unstyled parts, and React Aria's sheet (see Sheet), ported to Solid 2 (the `2.0.0-rc` line of `solid-js` and `@solidjs/web`). No part ships a style: each part shows its state as `data-*` attributes (and, where a value has to reach CSS, as CSS custom properties), and the consumer styles it through those attributes and its own `class`. Each part is imported from its subpath, for example `import { Menu } from '@bible/ui/menu'`; there is no root entry. The package keeps only the parts a page draws: a part upstream has and this list lacks returns with its first consumer, and the attribute names below are the styling contract (no `*DataAttributes` constants are exported). Unit tests run with `bun run test` and the browser tests with `bun run test:browser` (Playwright, `test/browser`), both from `packages/ui`.
 
 Every part takes `class` and `style` (a value or a function of the part's state) and `render` (a function of the merged props and the state that replaces the default element). A part's state becomes attributes by one rule unless the part maps it otherwise: `true` becomes a bare `data-<key>` attribute (the key lowercased), another truthy value its string, and a falsy value nothing. Attributes named `data-base-ui-*`, `data-rootownerid`, `data-tabindex`, `data-type="inside"` and `data-type="outside"` (the focus guards) are internal markers, not styling hooks. Every `Portal` takes `inline`: with it its `<div>` renders where it is written instead of at the end of `<body>`, the same in the server's render and the browser's, so a popup open at the first render is in the server's markup (for a `position: fixed` popup under no transform, filter or `contain`); without it, a server render leaves the portal out.
 
@@ -111,6 +111,44 @@ A swipe released past half the popup (or flicked) calls `onOpenChange(false, det
 `Close`, `Content` and `Title` set none (`data-drawer-content` on `Content` is a fixed marker).
 
 CSS variables on `Drawer.Popup`: `--drawer-swipe-movement-x`, `--drawer-swipe-movement-y` (the drag so far, while dragged). Upstream's `--drawer-swipe-strength` is left out: no stylesheet reads it.
+
+### Sheet
+
+`import { Sheet } from '@bible/ui/sheet'`
+
+React Aria's Sheet (`react-aria-components` 1.22.1, with `useViewportSize` from `react-aria` 3.53.1), not Base UI's: Copyright 2020-2026 Adobe, under the Apache License 2.0 in `src/sheet/LICENSE`. Each file names its upstream path and says what changed. It is built on the dialog above (its root, store, portal, title and close), as upstream's is built on its Modal and Dialog.
+
+- `Sheet.Root`: no element; a dialog that rests on an edge (`position`: `bottom` by default, `top`, `left`, `right` or `center`) and is swiped away (`swipeDirection`: the position's by default, `vertical` for `center`; also `horizontal`). Its owner opens it through `open`; `onOpenChange(open, details)`, `onOpenChangeComplete(open)` (after it has scrolled in, and after it has scrolled out and unmounted), `modal` (`true` by default), `disablePointerDismissal`, `preventDismissal` and `snapPoints`.
+  - `Sheet.Portal`: the dialog's portal `<div>`.
+    - `Sheet.Overlay`: `<div>` over the viewport, clipped, that owns the sheet's motion and its keyboard variables.
+      - `Sheet.Backdrop`: `<div role="presentation">`; a press on it is the sheet's outside press.
+      - `Sheet.Popup`: the panel, a `<div>` inside two of the sheet's own (the scroll container and the stage); `swipeAnimation`, `swipeAnimationRange`, `stackAnimation`, `overscrollPadding`.
+        - `Sheet.Content`: `<div role="dialog" data-sheet-content>` that fills the panel and takes focus once the sheet has scrolled in, or gives it to what its `initialFocus` function returns (`false` for nothing).
+          - `Sheet.Title`, `Sheet.Description`, `Sheet.Close`: the dialog's `<h2>`, `<p>` and `<button>`.
+
+A swipe is the browser's own scrolling. The panel sits in a scroll container two viewports long along the swipe axis (three when it leaves by either edge), with scroll snapping: resting open is scrolled in, gone is scrolled out, and each snap point (the amount of the panel showing: a number of pixels or a CSS length, a percentage of the panel) is a 1 px marker in the panel whose viewport-long `scroll-margin` rests it at the viewport's edge. Opening scrolls the sheet in smoothly (to its first snap point when it has some); focus moves in, and a modal sheet hides the page, only once it has. Closing (Escape, an outside press, `Sheet.Close`, the owner) scrolls it out the way it leaves, and it unmounts once the scroll settles (`scrollend`, or 150 ms without a scroll event where the browser has no `scrollend`). An IntersectionObserver watches the content: all of it showing is `data-expanded`, and once it has shown and then left the screen (the user scrolled it away) the sheet calls `onOpenChange(false, details)` with the reason `swipe`. An owner that cancels scrolls it back in; an owner that closes later (an address's Back) finds it still out of view. A scroll inside the content scrolls the content first and chains to the sheet at its end, as the browser chains any scroll. `preventDismissal` turns down Escape, an outside press and a focus out, and clamps the scroll so the sheet stops at its first snap point (or a pixel short of fully open); its own `Close` and its owner still close it.
+
+`swipeAnimation` (on the panel and the backdrop) names `@keyframes` authored from gone to open, which run along the sheet's view timeline (`--sheet-timeline-<stack index>`, on the content), limited by `swipeAnimationRange` to snap point indices. `stackAnimation` names `@keyframes` the panel runs for each sheet opened in front of it, along that sheet's timeline, composed one onto the next (`animation-composition: accumulate`); the timelines reach the sheets behind through a `timeline-scope` on `<html>`, which the sheets own while any is mounted. A browser without scroll-driven animations (Firefox today) plays `swipeAnimation` over 300 ms while the sheet scrolls in or out, does not run `stackAnimation`, and still opens, snaps, closes and is swiped away. `overscrollPadding` continues the panel a viewport past the edge it rests on, for the browser's bounce.
+
+A sheet that is not modal (the lab's) stands fixed over a page that stays live: the overlay takes presses only over the panel's resting rect, grown by `--sheet-clip-margin` (set on the overlay; room for the panel's shadow), and clips the sheet there. The browser scrolls only a container a press lands on, so the container cannot let presses through to the page around the panel. A modal sheet stands on the page at its origin, over a page whose scroll is locked.
+
+Upstream's `SheetTrigger`, `DismissButton`, the reveal held back until a software keyboard has opened, `usePreventScroll`'s iOS handling (the dialog's scroll lock stands in), `UNSTABLE_deferUntilEntered` (always on here), the render-prop children and right-to-left placement (`start` and `end`) are left out; a part or an option returns with its first consumer. A sheet open at the first render is in the server's markup scrolled out, and scrolls in once the browser has mounted it.
+
+| Member                         | Attribute                                   | Present when                                                  |
+| ------------------------------ | ------------------------------------------- | ------------------------------------------------------------- |
+| `Overlay`, `Backdrop`, `Popup` | `data-position`                             | always: the edge it rests on                                  |
+| `Overlay`, `Backdrop`, `Popup` | `data-swipe-direction`                      | always: the way a swipe dismisses it                          |
+| `Overlay`, `Backdrop`, `Popup` | `data-stack-index`                          | always: its place among the mounted sheets, `0` for the first |
+| `Overlay`, `Backdrop`, `Popup` | `data-has-descendants`                      | another sheet stands in front of it                           |
+| `Overlay`, `Backdrop`, `Popup` | `data-expanded`                             | all of the content shows                                      |
+| `Overlay`, `Backdrop`, `Popup` | `data-entering`                             | it is scrolling in                                            |
+| `Overlay`, `Backdrop`, `Popup` | `data-exiting`                              | it is scrolling out, closed                                   |
+| `Content`                      | `data-open` / `data-closed`                 | the sheet is open / closed                                    |
+| `Content`                      | `data-starting-style` / `data-ending-style` | the first frame open / closed until it unmounts               |
+
+`Close`, `Title` and `Description` set none (`data-sheet-content` on `Content` is a fixed marker).
+
+CSS variables on `Sheet.Overlay`: `--visual-viewport-width` and `--visual-viewport-height` (the visual viewport, which a software keyboard shrinks; set once the browser has measured it), `--sheet-scroll-padding-x` and `--sheet-scroll-padding-y` (how much of the layout viewport the keyboard covers: pad the content's end by it), `--page-width` and `--page-height` (a modal sheet's page size).
 
 ### Toast
 
