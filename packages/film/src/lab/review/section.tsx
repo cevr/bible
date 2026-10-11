@@ -56,7 +56,7 @@ import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx
 import { approvalVerbs } from './things.ts';
 import { approveUndoOf, undoApprove } from './options/receipt.ts';
 import { quiet, refused } from '../../command/command.ts';
-import { OpId } from '../../core/catalogue.ts';
+import { OpId, type Project, projectNow, versionState } from '../../core/catalogue.ts';
 import { uniqueId } from '../../core/unique.ts';
 import { Go, SetProvider, type Shown, useReview, useSet } from './context.tsx';
 import {
@@ -70,7 +70,7 @@ import {
   isMarkdown,
   pathIn,
   POSTER_W,
-  recordedStaleText,
+  staleText,
   sayText,
   sizeText,
   versionsText,
@@ -823,11 +823,11 @@ const VersionName = (props: { readonly version: SeenVariant }) => {
 };
 
 /**
- * A version's state on its caption, when its record proves it stale: the
+ * A version's state on its caption, when it is judged stale (`judged`): the
  * short badge; why, in its inspector's Info (`StaleTag`).
  */
 const StaleBadge = (props: { readonly variant: SeenVariant }) => (
-  <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
+  <Show when={Option.getOrUndefined(staleText(props.variant))}>
     {(words) => (
       <span class="rv-badge" data-approval="stale" title={words()}>
         Out of date
@@ -836,9 +836,9 @@ const StaleBadge = (props: { readonly variant: SeenVariant }) => (
   </Show>
 );
 
-/** Why a variant is stale, when its record proves it; nothing otherwise (`recordedStaleText`). */
+/** Why a variant is stale, when it is judged so (`judged`); nothing otherwise (`staleText`). */
 const StaleTag = (props: { readonly variant: SeenVariant }) => (
-  <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
+  <Show when={Option.getOrUndefined(staleText(props.variant))}>
     {(words) => (
       <span class="rv-tag" data-state="stale">
         {words()}
@@ -1424,6 +1424,48 @@ const SetBody = () => {
 };
 
 /**
+ * The film's project, which an approve's write judges a set's versions by
+ * (`Review.say`): read for a folder that is the film's own (its sources are
+ * the checkout's); none for any other folder, which the record alone judges.
+ * None while it is read: the record's judgement stands, and the write decides.
+ */
+const useSourcesNow = (folder: ReviewFolder): Accessor<Option.Option<Project>> => {
+  const { meta } = useReview();
+  return Option.match(
+    Option.filter(folder.title, (film) => isFilmsFolder(folder.ref, film)),
+    {
+      onNone: () => () => Option.none(),
+      onSome: (film) => {
+        const readAtom = meta.runtime
+          .atom(OptionsApi.use((api) => api.project(film)))
+          .pipe(served(`review.project:${film}`, ProjectView));
+        const read = useAtomValue(() => readAtom);
+        return () => Option.map(AsyncResult.value(read()), (view) => view.project);
+      },
+    },
+  );
+};
+
+/**
+ * `set` with each version judged as the write judges its approve: against
+ * the film's sources now, where `project` says them for the set's address
+ * (`projectNow`, `versionState`); as its record says, elsewhere.
+ */
+const judged = (set: SeenPoint, project: Option.Option<Project>): SeenPoint =>
+  Option.match(
+    Option.flatMap(Option.all({ project, address: set.address }), (at) =>
+      projectNow(at.project, at.address),
+    ),
+    {
+      onNone: () => set,
+      onSome: (now) => ({
+        ...set,
+        variants: set.variants.map((v) => ({ ...v, ...versionState(v.key, now) })),
+      }),
+    },
+  );
+
+/**
  * A set's page while the index holds it. A page is one set's (a new place is
  * a new page), so neither Show is keyed: a refreshed index moves the folder
  * and the set under the page, and its player plays on (`SetProvider`).
@@ -1441,7 +1483,9 @@ export const SetPage = (props: { readonly folder: string; readonly point: string
             fallback={<Missing what="version stack" />}
           >
             {(point) => {
-              const set = createMemo(() => seenPoint(point()));
+              // The folder is the page's: whether its film's sources judge it is fixed with it.
+              const sourcesNow = untrack(() => useSourcesNow(folder()));
+              const set = createMemo(() => judged(seenPoint(point()), sourcesNow()));
               return (
                 <SetProvider folder={folder()} set={set()}>
                   <Saying folder={folder()} set={set()}>

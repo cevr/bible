@@ -19,7 +19,7 @@ import { VerbRefused } from '../../../src/core/refusals.ts';
 import { json, openReview, refused, route } from '../../../src/lab/fixtures/harness.ts';
 import type { FakeRoute, Json } from '../../../src/lab/fixtures/harness.ts';
 import { STUDIO_FOLDER, STUDIO_SET, studioRoutes } from '../../../src/lab/fixtures/studio-film.ts';
-import { countIs, textHas, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import { countIs, evaluates, textHas, waitFor } from '../../../src/lab/fixtures/settled.ts';
 
 const isFields = (value: Json): value is { readonly [key: string]: Json } =>
   Predicate.isObject(value);
@@ -64,6 +64,20 @@ const withApprovals = (value: Json, stateOf: (id: string) => Option.Option<strin
         ),
         { onNone: () => mapped, onSome: (approval) => ({ ...mapped, approval }) },
       );
+    }),
+    Match.orElse(() => value),
+  );
+
+/** `value` (the project) with each scene's sources keyed `key`, as after an edit. */
+const withSceneKey = (value: Json, key: string): Json =>
+  Match.value(value).pipe(
+    Match.when(isList, (all): Json => all.map((one) => withSceneKey(one, key))),
+    Match.when(isFields, (record): Json => {
+      const mapped = Record.map(record, (one) => withSceneKey(one, key));
+      return Bool.match(Predicate.isString(record['scene']) && 'key' in record, {
+        onTrue: (): Json => ({ ...mapped, key }),
+        onFalse: () => mapped,
+      });
     }),
     Match.orElse(() => value),
   );
@@ -256,6 +270,46 @@ describe('a Set approving a scene render', () => {
         yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
         yield* page.click(`${RECEIPT} [data-act="receipt-undo"]`);
         yield* textHas(page, '[data-role="receipts"]', 'before it named');
+        expect(asked).toEqual([]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a version drawn from sources the film has moved past offers no Approve: judged by the project, as the write judges it',
+    () =>
+      Effect.gen(function* () {
+        const asked = new Array<SetSayPost>();
+        // The index's record calls every version current; the film's sources now carry another key.
+        const projectRoute = Option.getOrThrow(
+          Arr.findFirst(studioRoutes, (r) => r.path.test('/api/films/toy/project')),
+        );
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/films\/toy\/project$/, (a) => {
+              const answer = projectRoute.answer(a);
+              return Option.getOrElse(
+                Option.map(
+                  Option.liftPredicate(answer, (r) => r._tag === 'Json'),
+                  (r) => json(withSceneKey(r.json, 'k2')),
+                ),
+                () => answer,
+              );
+            }),
+            ...approving(asked),
+          ],
+          { href: pageHref.set(STUDIO_FOLDER, STUDIO_SET) },
+        );
+        yield* waitFor(page, '.rv-main [data-act="inspect"]');
+        yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
+        yield* evaluates(
+          page,
+          `document.querySelector('${INSPECTOR} [data-act="approve"]').disabled`,
+          true,
+        );
+        yield* textHas(page, `${INSPECTOR} .rv-verdict`, 'out of date');
         expect(asked).toEqual([]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

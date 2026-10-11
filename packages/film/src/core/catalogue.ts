@@ -257,37 +257,53 @@ interface RenderNow {
   readonly sound: Option.Option<string>;
 }
 
-/** Whether `render` carries the film's mix now (always, when there is none to judge by). */
-const soundsNow = (render: Render, sound: Option.Option<string>): boolean =>
-  Option.match(sound, {
+/**
+ * Why a render whose version is `version` (`renderVersion`) is stale against
+ * `now`, or none while it is current: drawn from other sources (its stamp's
+ * key is not the key now), or not carrying the film's mix now (when there is
+ * one to judge by). The one rule a render's currency is judged by.
+ */
+const versionStaleBy = (version: string, now: RenderNow): Option.Option<StaleBy> => {
+  if (version !== now.key && !version.startsWith(`${now.key}+`)) return Option.some('sources');
+  const carried = Option.match(now.sound, {
     onNone: () => true,
-    onSome: (now) => Option.exists(render.sound, (s) => Option.contains(s.mix, now)),
+    onSome: (mix) => version === `${now.key}+${mix}`,
   });
-
-/** Why `render` is stale against `now`, or none while it is current. */
-const staleBy = (render: Render, now: RenderNow): Option.Option<StaleBy> => {
-  if (render.stamp.key !== now.key) return Option.some('sources');
-  if (!soundsNow(render, now.sound)) return Option.some('sound');
+  if (!carried) return Option.some('sound');
   return Option.none();
 };
 
-/** `render` against `now`: its state, and why it is stale. */
-export const renderState = (
-  render: Option.Option<Render>,
-  now: RenderNow,
-): { readonly state: VariantState; readonly staleBy: Option.Option<StaleBy> } =>
+/** Why `render` is stale against `now`, or none while it is current (`versionStaleBy`). */
+const staleBy = (render: Render, now: RenderNow): Option.Option<StaleBy> =>
+  versionStaleBy(renderVersion(render), now);
+
+/** A render judged against the sources and mix now: its state, and why it is stale. */
+interface Judgement {
+  readonly state: VariantState;
+  readonly staleBy: Option.Option<StaleBy>;
+}
+
+/**
+ * A render's version (`renderVersion`, all a set's version carries on the
+ * wire) against `now`: its state, and why it is stale. A page judges its
+ * versions by it as the write judges an approve (`renderState`).
+ */
+export const versionState = (version: string, now: RenderNow): Judgement => {
+  const why = versionStaleBy(version, now);
+  return {
+    state: Option.match(why, {
+      onNone: (): VariantState => 'current',
+      onSome: (): VariantState => 'stale',
+    }),
+    staleBy: why,
+  };
+};
+
+/** `render` against `now`: its state, and why it is stale (`versionState`, of its version). */
+export const renderState = (render: Option.Option<Render>, now: RenderNow): Judgement =>
   Option.match(render, {
-    onNone: () => ({ state: 'missing' as const, staleBy: Option.none() }),
-    onSome: (r) => {
-      const why = staleBy(r, now);
-      return {
-        state: Option.match(why, {
-          onNone: (): VariantState => 'current',
-          onSome: (): VariantState => 'stale',
-        }),
-        staleBy: why,
-      };
-    },
+    onNone: (): Judgement => ({ state: 'missing', staleBy: Option.none() }),
+    onSome: (r) => versionState(renderVersion(r), now),
   });
 
 /** The newest of `renders` (by when each was recorded). */

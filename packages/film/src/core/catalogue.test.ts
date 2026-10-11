@@ -15,6 +15,8 @@ import {
   type Keyed,
   type SceneKey,
   renderNeed,
+  renderState,
+  renderVersion,
   partSubject,
   projectNow,
   projectOf,
@@ -23,6 +25,7 @@ import {
   sceneSlot,
   subjectOf,
   tookOf,
+  versionState,
   withdraw,
   withdrawScenes,
 } from './catalogue.ts';
@@ -111,6 +114,39 @@ describe('a scene render against its sources', () => {
 const sounding = (render: Render, mix: string): Render => ({
   ...render,
   sound: Option.some({ mix: Option.some(mix), pieces: [{ start: 0, duration: 4 }] }),
+});
+
+describe('versionState', () => {
+  test("judges a render's version (its key alone) as renderState judges the render, for every now", () => {
+    const renders = [
+      sceneRender('a', 'k1'),
+      sceneRender('a', 'k2'),
+      sounding(sceneRender('a', 'k1'), 'm1'),
+      sounding(sceneRender('a', 'k1'), 'm2'),
+      sounding(sceneRender('a', 'k2'), 'm1'),
+      { ...sceneRender('a', 'k1'), sound: Option.some({ mix: Option.none(), pieces: [] }) },
+    ];
+    const nows = ['k1', 'k2', 'k'].flatMap((key) =>
+      [Option.none(), Option.some('m1'), Option.some('m2')].map((sound) => ({ key, sound })),
+    );
+    for (const render of renders)
+      for (const now of nows)
+        expect([renderVersion(render), now, versionState(renderVersion(render), now)]).toEqual([
+          renderVersion(render),
+          now,
+          renderState(Option.some(render), now),
+        ]);
+    // A version by its key: other sources, then another mix, then current.
+    const now = { key: 'k1', sound: Option.some('m1') };
+    expect(versionState('k2+m1', now)).toEqual({ state: 'stale', staleBy: Option.some('sources') });
+    expect(versionState('k1+m2', now)).toEqual({ state: 'stale', staleBy: Option.some('sound') });
+    expect(versionState('k1', now)).toEqual({ state: 'stale', staleBy: Option.some('sound') });
+    expect(versionState('k1+m1', now)).toEqual({ state: 'current', staleBy: Option.none() });
+    // A key that only begins like the key now is other sources.
+    expect(versionState('k10', { key: 'k1', sound: Option.none() }).staleBy).toEqual(
+      Option.some('sources'),
+    );
+  });
 });
 
 /** The film keyed now with the film's mix key `sound`. */
