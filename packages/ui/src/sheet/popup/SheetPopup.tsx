@@ -21,7 +21,7 @@
 // `swipeAnimation` names `@keyframes` (from exited to entered) the panel runs
 // along the swipe; `stackAnimation` names ones it runs for each sheet opened
 // in front of it, composed one onto the next.
-import type { JSX } from '@solidjs/web';
+import { isServer, type JSX } from '@solidjs/web';
 import { createEffect, createSignal, For, omit, Show, untrack } from 'solid-js';
 
 import type { BaseUIComponentProps } from '../../internals/types.ts';
@@ -325,9 +325,10 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
   const scrollerStyle = (): JSX.CSSProperties => {
     const { axis, containerOffset } = config();
     // A modal sheet's overlay stands on the page at its origin: the container sits at the
-    // page's scroll position (locked while it is open). Another's overlay is fixed.
-    const scrollX = store.modal() ? untrack(() => window.scrollX) : 0;
-    const scrollY = store.modal() ? untrack(() => window.scrollY) : 0;
+    // page's scroll position (locked while it is open; the origin on the server). Another's
+    // overlay is fixed.
+    const scrollX = store.modal() && !isServer ? untrack(() => window.scrollX) : 0;
+    const scrollY = store.modal() && !isServer ? untrack(() => window.scrollY) : 0;
     return {
       position: 'absolute',
       top: axis === 'y' ? `calc(${scrollY}px + ${containerOffset}dvh)` : `${scrollY}px`,

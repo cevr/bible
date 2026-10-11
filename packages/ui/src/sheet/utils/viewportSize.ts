@@ -7,7 +7,6 @@
 //
 // The visual viewport's size, without the scrollbar and unaffected by pinch
 // zoom: its height shrinks while a software keyboard covers the page.
-import { isServer } from '@solidjs/web';
 import { type Accessor, createSignal, onSettled } from 'solid-js';
 
 export interface ViewportSize {
@@ -37,19 +36,18 @@ export function useViewportSize(): Accessor<ViewportSize | undefined> {
     ownedWrite: true,
     equals: (a, b) => a?.width === b?.width && a?.height === b?.height,
   });
-  if (isServer) {
-    return size;
-  }
-  const visual = window.visualViewport;
-  const target: EventTarget = visual ?? window;
-  const onResize = () => {
-    // A pinch-zoomed page keeps the size it had.
-    if (visual && visual.scale > 1) {
-      return;
-    }
-    setSize(measure());
-  };
+  // Called on the server too, where it never runs: it takes a hydration id there as on the
+  // client, so the server's ids for what follows match the client's.
   onSettled(() => {
+    const visual = window.visualViewport;
+    const target: EventTarget = visual ?? window;
+    const onResize = () => {
+      // A pinch-zoomed page keeps the size it had.
+      if (visual && visual.scale > 1) {
+        return;
+      }
+      setSize(measure());
+    };
     setSize(measure());
     target.addEventListener('resize', onResize);
     return () => target.removeEventListener('resize', onResize);
