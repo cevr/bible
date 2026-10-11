@@ -205,10 +205,11 @@ const VALUED = '--cwd|--filter|-F|--env-file|--config|-c|--preload|-r';
  * Each `bun run` a text writes, its options before what it runs (runtime
  * flags, `--bun`, `--watch`, among them): the package it runs in (`--cwd`),
  * what it runs (a script, a binary, or a file, `./cli.ts`), and the rest of
- * its command up to a `#` comment or the span's end.
+ * its command up to a `#` comment, the span's end or the line's (the next
+ * line, the next fence's, the next heading's, holds a run of its own).
  */
 const BUN_RUN = new RegExp(
-  `\\bbun run((?:\\s+(?:(?:${VALUED})[= ]\\S+|--?[a-z][\\w-]*))*)\\s+((?:\\.{1,2}/)?[a-z][\\w.:/-]*)([^#\`]*)`,
+  `\\bbun run((?:\\s+(?:(?:${VALUED})[= ]\\S+|--?[a-z][\\w-]*))*)\\s+((?:\\.{1,2}/)?[a-z][\\w.:/-]*)([^#\`\\n]*)`,
   'g',
 );
 
@@ -1270,6 +1271,22 @@ describe('the docs', () => {
           '```',
           'Write the rule in `packages/film/src/gone-fenced.ts`.',
           '```',
+          // A run ends at its line: the next fence's, the next heading's, the next line's is its own.
+          '',
+          '```sh',
+          'bun run lint',
+          '```',
+          '',
+          '```sh',
+          'bun run nothing-fenced',
+          '```',
+          '',
+          '## Test',
+          '',
+          '```sh',
+          'bun run nothing-headed',
+          'bun run nothing-next',
+          '```',
         ].join('\n'),
       };
       expect(drift(stale, code)).toEqual([
@@ -1281,6 +1298,9 @@ describe('the docs', () => {
         'stale.md: bun run nothing: no such script',
         'stale.md: bun run nothing-here: no such script',
         'stale.md: bun run nothing-bin: no such script',
+        'stale.md: bun run nothing-fenced: no such script',
+        'stale.md: bun run nothing-headed: no such script',
+        'stale.md: bun run nothing-next: no such script',
         'stale.md: bun run render --tag: no command declares the flag',
         'stale.md: VoiceLevel is no finding',
         'stale.md: film check --frobnicate: no command declares the flag',
