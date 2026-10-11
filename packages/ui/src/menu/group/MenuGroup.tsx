@@ -14,7 +14,7 @@ import { type RegisterId, useRegisteredId } from '../../utils/useRegisteredId.ts
 /** Sets the id labelling the group. */
 type MenuGroupContextValue = RegisterId;
 
-const MenuGroupContext = createContext<MenuGroupContextValue | null>(null);
+export const MenuGroupContext = createContext<MenuGroupContextValue | null>(null);
 
 function useMenuGroupRootContext(): MenuGroupContextValue {
   const context = useContext(MenuGroupContext);
@@ -27,7 +27,7 @@ function useMenuGroupRootContext(): MenuGroupContextValue {
 }
 
 /** The label id a group's label registers. */
-function createGroupLabelId() {
+export function createGroupLabelId() {
   const [labelId, setLabelId] = createSignal<string | undefined>(undefined, { ownedWrite: true });
   const update: MenuGroupContextValue = (fn) => setLabelId((current) => fn(current));
   return { labelId, update };
