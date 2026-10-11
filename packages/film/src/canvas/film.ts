@@ -63,6 +63,7 @@ import {
   makeBloom,
 } from './grade.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
+import { type CardSpec, type CardWord, cardWords, floodBox } from './card.ts';
 import { seedOf } from '../core/random.ts';
 import { FILM_FPS, type Key, clamp, ease, heardAtOrAfter, justBefore } from '../core/time.ts';
 
@@ -188,6 +189,13 @@ export interface SceneSpec extends Timed {
    * come up or go down on a cue. Unlit when it names none.
    */
   readonly light?: Light | ((f: Frame) => Light);
+  /**
+   * The scene's full-screen card (`canvas/card.ts`, CRAFT rule 1): over its
+   * cue the card is the frame, drawn on the bare frame in place of the scene
+   * (no light or vignette on it, the film's finish over it); over its flood's
+   * cue it grows from the highlight over the lit scene.
+   */
+  readonly card?: CardSpec<string, Frame>;
 }
 
 /**
@@ -227,11 +235,12 @@ type NoKnobs = Record<never, Knob>;
  * the result is an ordinary scene drawing.
  */
 export const drawing = <const T extends Timeline, const K extends Knobs = NoKnobs>(
-  d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'knobs' | 'draw' | 'light'> & {
+  d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'knobs' | 'draw' | 'light' | 'card'> & {
     readonly timeline: T & Closed<T>;
     readonly knobs?: K;
     readonly draw: (f: Frame<keyof T & string, K>) => void;
     readonly light?: Light | ((f: Frame<keyof T & string, K>) => Light);
+    readonly card?: CardSpec<keyof T & string, Frame<keyof T & string, K>>;
   },
 ) => d;
 
@@ -570,6 +579,19 @@ export const createFilm = (spec: FilmSpec): Film => {
   );
   const captions = spec.captions === undefined ? undefined : captionOf(spec.captions);
   const short = shortOf(spec.short, spec.shade);
+  /**
+   * Each card's words, set once from its scene's take (`cardWords`): a card
+   * that names a mark its line lacks, or a payoff it never says, stops the
+   * film here, as a timeline that does not resolve does.
+   */
+  const cards = new Map<string, ReadonlyArray<CardWord>>();
+  for (const p of placed) {
+    const card = p.spec.card;
+    if (card === undefined) continue;
+    const words = cardWords(p.spec.id, p.voice, p.speechStart, card);
+    if (Result.isFailure(words)) throw new Error(words.failure);
+    cards.set(p.spec.id, words.success);
+  }
 
   // Built lazily: the film must lay out where there is no DOM (tools, tests).
   let assets:
@@ -702,26 +724,22 @@ export const createFilm = (spec: FilmSpec): Film => {
     ]),
   );
 
-  const drawScene = (
+  /**
+   * Scene `p`'s frame at film time `T`, drawn on `ctx`: its clock, cues,
+   * knobs and words. A knob read outside every camera is noted in `unframed`
+   * (its place in `reads`), for the next camera to frame.
+   */
+  const frameOf = (
     ctx: CanvasRenderingContext2D,
     p: Placed<SceneSpec>,
     T: number,
     boil: number,
     reads: Reads | undefined,
     edits: ReadonlyMap<string, ShownEdit> | undefined,
-  ) => {
+    unframed: number[],
+  ): Frame => {
     const t = T - p.start;
     const words = localWords.get(p) ?? [];
-    // The reads made outside every camera and not yet framed by one: the next camera frames them.
-    const unframed: number[] = [];
-    const frameReads = (list: KnobRead[], inside: DOMMatrix, aimed: DOMMatrix) => {
-      for (const i of unframed) {
-        const read = list[i];
-        if (read !== undefined)
-          list[i] = { ...read, framed: affineOf(inside), aimed: affineOf(aimed) };
-      }
-      unframed.length = 0;
-    };
     const shown = shownOf(p, edits);
     const frame: Frame = {
       ctx,
@@ -781,6 +799,29 @@ export const createFilm = (spec: FilmSpec): Film => {
         return heard / inside.length;
       },
     };
+    return frame;
+  };
+
+  const drawScene = (
+    ctx: CanvasRenderingContext2D,
+    p: Placed<SceneSpec>,
+    T: number,
+    boil: number,
+    reads: Reads | undefined,
+    edits: ReadonlyMap<string, ShownEdit> | undefined,
+  ) => {
+    // The reads made outside every camera and not yet framed by one: the next camera frames them.
+    const unframed: number[] = [];
+    const frameReads = (list: KnobRead[], inside: DOMMatrix, aimed: DOMMatrix) => {
+      for (const i of unframed) {
+        const read = list[i];
+        if (read !== undefined)
+          list[i] = { ...read, framed: affineOf(inside), aimed: affineOf(aimed) };
+      }
+      unframed.length = 0;
+    };
+    const frame = frameOf(ctx, p, T, boil, reads, edits, unframed);
+    drawnFrame = frame;
     ctx.save();
     const heard =
       reads?.direct === true
@@ -798,9 +839,92 @@ export const createFilm = (spec: FilmSpec): Film => {
   let drawnLight: Light | undefined;
   /** Whether that light is fixed, not read per frame. */
   let drawnFixed = true;
+  /** The frame the last scene drawn was drawn on: what its card's flood reads. */
+  let drawnFrame: Frame | undefined;
 
   /** The breath each scene draw is given: one, rewritten per draw, never made per frame. */
   const breath: BreathNow = { through: 0, drift: DRIFT, outer: false, width, height };
+  /** No breath: a card holds still. */
+  const still: BreathNow = { through: 0, drift: 0, outer: false, width, height };
+
+  /** Whether cue `name` of scene `p` (as `edits` show it) holds at film time `T`: from its start, up to its end. */
+  const holds = (
+    p: Placed<SceneSpec>,
+    name: string,
+    T: number,
+    edits: ReadonlyMap<string, ShownEdit> | undefined,
+  ) => {
+    const c = shownOf(p, edits).cues.get(name);
+    if (c === undefined) throw new Error(`scene ${p.spec.id} has no cue "${name}"`);
+    const t = T - p.start;
+    return t >= c.start && t < c.end;
+  };
+
+  /** Whether scene `p`'s card is the frame at `T`. */
+  const carded = (
+    p: Placed<SceneSpec>,
+    T: number,
+    edits: ReadonlyMap<string, ShownEdit> | undefined,
+  ) => p.spec.card !== undefined && holds(p, p.spec.card.cue, T, edits);
+
+  /** Scene `p`'s card on `ctx` as frame `f` draws it, probed as the scene's own text. */
+  const drawCard = (
+    ctx: CanvasRenderingContext2D,
+    p: Placed<SceneSpec>,
+    f: Frame,
+    probe: Probe | undefined,
+  ) => {
+    const card = p.spec.card;
+    if (card === undefined) return;
+    const words = cards.get(p.spec.id) ?? [];
+    ctx.save();
+    probing(ctx, probe, () => hearingCameras(ctx, undefined, still, () => card.draw(f, words)));
+    ctx.restore();
+  };
+
+  /**
+   * Scene `p`'s card in place of its picture at `T`: on the bare frame, the
+   * film's paper and the scene's light and vignette left off, so nothing
+   * dims or tints it.
+   */
+  const cardFrame = (
+    ctx: CanvasRenderingContext2D,
+    p: Placed<SceneSpec>,
+    T: number,
+    boil: number,
+    probe: Probe | undefined,
+    reads: Reads | undefined,
+    edits: ReadonlyMap<string, ShownEdit> | undefined,
+  ) => drawCard(ctx, p, frameOf(ctx, p, T, boil, reads, edits, []), probe);
+
+  /**
+   * Scene `p`'s card flooding in over its lit frame at `T`, when its flood's
+   * cue holds: grown from the highlight's box toward the whole frame.
+   */
+  const floodOver = (
+    ctx: CanvasRenderingContext2D,
+    p: Placed<SceneSpec>,
+    T: number,
+    probe: Probe | undefined,
+    edits: ReadonlyMap<string, ShownEdit> | undefined,
+  ) => {
+    const flood = p.spec.card?.flood;
+    const f = drawnFrame;
+    if (flood === undefined || f === undefined || !holds(p, flood.cue, T, edits)) return;
+    // The box is in the canvas's own pixels (`verse` gives it so, through the
+    // transform it drew under), so the clip is laid with none, whatever scale
+    // the frame is drawn at, and the card drawn under the frame's.
+    const frame = ctx.getTransform();
+    const box = floodBox(flood.from(f), ctx.canvas.width, ctx.canvas.height, f.at(flood.cue));
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.beginPath();
+    ctx.rect(box.x, box.y, box.w, box.h);
+    ctx.clip();
+    ctx.setTransform(frame);
+    drawCard(ctx, p, f, probe);
+    ctx.restore();
+  };
 
   /**
    * Scenes whose last frame framed no shot of their own: the first guess for
@@ -899,10 +1023,14 @@ export const createFilm = (spec: FilmSpec): Film => {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    if (prev === undefined || enter === undefined || enter.kind === 'cut' || local >= tr) {
+    if (carded(cur, T, edits)) {
+      // A full-screen card: the frame is the card alone, cut to and from.
+      cardFrame(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), edits);
+    } else if (prev === undefined || enter === undefined || enter.kind === 'cut' || local >= tr) {
       sheet(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), edits);
       // The scene's light over its page and all on it, with the vignette.
       lightAndVignette(ctx, drawnLight, drawnFixed);
+      floodOver(ctx, cur, T, probe(cur, 0, 1), edits);
     } else {
       const p = ease.inOutCubic(clamp(local / tr));
       // The incoming sheet covers the outgoing one as it arrives.
