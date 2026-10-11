@@ -56,6 +56,10 @@ interface Code {
   readonly routes: ReadonlySet<string>;
   readonly registered: ReadonlySet<string>;
   readonly enabled: ReadonlySet<string>;
+  /** The film package's entries and its src's (`lint`, `lab`): `film/lab` names a directory, never a rule. */
+  readonly entries: ReadonlySet<string>;
+  /** The binaries installed for the root and each workspace (`vite`, `tsc`): `bun run` runs one that no script names. */
+  readonly bins: ReadonlySet<string>;
   /** The scripts of the root, the app and this package: where the docs run scripts from. */
   readonly scripts: ReadonlySet<string>;
   /** Each workspace package's scripts, by its directory (`apps/animations`), for a run in it (`--cwd`). */
@@ -66,7 +70,11 @@ interface Code {
   readonly commands: ReadonlySet<string>;
   readonly flags: ReadonlySet<string>;
   readonly tags: ReadonlySet<string>;
-  /** Every capitalised name src declares (`SoundCheck`, `HandBody`): a type, a class, a schema. */
+  /**
+   * Every capitalised name src's code has (`SoundCheck`, `PageShell`,
+   * `Schema.TaggedError`): one it declares (a type, a class, a schema, a
+   * component), imports, or reads off a module.
+   */
   readonly names: ReadonlySet<string>;
 }
 
@@ -165,40 +173,51 @@ const spanDrift = (doc: Doc, code: Code) => {
   );
 };
 
+/**
+ * Each rule a doc names, in the form the plugin registers (`film/no-read-once`,
+ * a name of lowercase words joined by hyphens): a `film/<entry>` of the film
+ * package or its src (`film/lint`, `film/lab`) names a directory, not a rule.
+ */
 const ruleDrift = (doc: Doc, code: Code) =>
   matches(doc.text, /`film\/([a-z]+(?:-[a-z]+)*)`/g)
     .map(firstGroup)
-    .filter((rule) => !code.registered.has(rule))
+    .filter((rule) => !code.registered.has(rule) && !code.entries.has(rule))
     .map((rule) => `rule film/${rule} is not registered`);
 
 /** `bun run`'s options that take a value (`--cwd apps/animations`); any other is a switch. */
 const VALUED = '--cwd|--filter|-F|--env-file|--config|-c|--preload|-r';
 
 /**
- * Each `bun run` a text writes, its options before the script's name: the
- * package it runs in (`--cwd`), the script, and the rest of its command up
- * to a `#` comment or the span's end.
+ * Each `bun run` a text writes, its options before what it runs (runtime
+ * flags, `--bun`, `--watch`, among them): the package it runs in (`--cwd`),
+ * what it runs (a script, a binary, or a file, `./cli.ts`), and the rest of
+ * its command up to a `#` comment or the span's end.
  */
 const BUN_RUN = new RegExp(
-  `\\bbun run((?:\\s+(?:(?:${VALUED})[= ]\\S+|--?[a-z][\\w-]*))*)\\s+([a-z][\\w:-]*)([^#\`]*)`,
+  `\\bbun run((?:\\s+(?:(?:${VALUED})[= ]\\S+|--?[a-z][\\w-]*))*)\\s+((?:\\.{1,2}/)?[a-z][\\w.:/-]*)([^#\`]*)`,
   'g',
 );
 
 interface Run {
   /** Where it runs (`--cwd`); none, from any of the places the docs run scripts from. */
   readonly cwd: Option.Option<string>;
+  /** A script's name, or a binary's: a file is no script, and is not read. */
   readonly script: string;
   readonly rest: string;
 }
 
+/** Each `bun run` of a script or a binary a text writes; one that runs a file (`cli.ts`, `src/x.ts`) names neither. */
 const runsIn = (text: string): ReadonlyArray<Run> =>
-  matches(text, BUN_RUN).map((m) => ({
-    cwd: Option.map(Option.fromNullOr(/--cwd[= ](\S+)/.exec(group(m, 1))), (cwd) =>
-      group(cwd, 1).replace(/\/$/, ''),
-    ),
-    script: group(m, 2),
-    rest: group(m, 3),
-  }));
+  matches(text, BUN_RUN)
+    .map((m) => ({
+      cwd: Option.map(Option.fromNullOr(/--cwd[= ](\S+)/.exec(group(m, 1))), (cwd) =>
+        group(cwd, 1).replace(/\/$/, ''),
+      ),
+      // A sentence's stop after it is not its own.
+      script: group(m, 2).replace(/[.:]+$/, ''),
+      rest: group(m, 3),
+    }))
+    .filter((run) => !/[./]/.test(run.script));
 
 /** The scripts a run can name: its package's (`--cwd`), else those of the places the docs run from. */
 const scriptsFor = (run: Run, code: Code): ReadonlySet<string> =>
@@ -207,9 +226,10 @@ const scriptsFor = (run: Run, code: Code): ReadonlySet<string> =>
     onSome: (cwd) => code.scriptsAt.get(cwd) ?? new Set<string>(),
   });
 
+/** Each `bun run` that names a script no package has, nor an installed binary (`bun run --bun vite build`). */
 const scriptDrift = (doc: Doc, code: Code) =>
   runsIn(doc.text)
-    .filter((run) => !scriptsFor(run, code).has(run.script))
+    .filter((run) => !scriptsFor(run, code).has(run.script) && !code.bins.has(run.script))
     .map((run) => `bun run ${run.script}: no such script`);
 
 /**
@@ -235,13 +255,43 @@ interface Anchor {
  */
 const ANOTHER_REPO = /^\| `(?!film\/)[\w-]+\/[\w.-]+` +\|/;
 
+/** A line of a doc, and whether it is code: in a fenced block, or the fence itself. */
+interface Line {
+  readonly text: string;
+  readonly fenced: boolean;
+}
+
+/** A fence that opens or closes a code block (` ``` `, `~~~`). */
+const FENCE = /^\s*(?:```|~~~)/;
+
+const linesOf = (text: string): ReadonlyArray<Line> => {
+  let fenced = false;
+  return text.split('\n').map((line) => {
+    if (!FENCE.test(line)) return { text: line, fenced };
+    fenced = !fenced;
+    return { text: line, fenced: true };
+  });
+};
+
+/** A line's code spans (`` `xs[0](y)` ``, ``` `` a`b `` ```): their text. */
+const SPAN = /(`+)(.*?)\1/g;
+
+/** A doc's prose: its lines outside the fenced blocks, each code span left out. */
+const proseOf = (text: string) =>
+  linesOf(text)
+    .filter((line) => !line.fenced)
+    .map((line) => line.text.replace(SPAN, ''))
+    .join('\n');
+
 /**
  * Each relative link a doc writes (`[x](reference/vision.md#part)`), its
- * target without the part: a URL, a link within the doc (`#part`) and a
- * site's path (`/…`) name no file of this tree.
+ * target without the part: a markdown link in its prose, not code that
+ * looks like one (`handlers[i](event)`) in a span or a fenced block. A URL,
+ * a link within the doc (`#part`) and a site's path (`/…`) name no file of
+ * this tree.
  */
 const linksIn = (doc: Doc): ReadonlyArray<Anchor> =>
-  matches(doc.text, /\]\(([^)\s]+)\)/g)
+  matches(proseOf(doc.text), /\]\(([^)\s]+)\)/g)
     .map((m) => firstGroup(m).replace(/[#?].*$/, ''))
     .filter((target) => target !== '' && !/^(?:[a-z][\w+.-]*:|\/)/i.test(target))
     .map((target) => ({
@@ -300,11 +350,12 @@ interface Found {
 /** A file's code without its comments, which may still name what the code dropped. */
 const uncommented = (text: string) => text.replace(/\/\*[\s\S]*?\*\/|(?<![:'"`\w])\/\/.*$/gm, '');
 
-/** A name code declares, where it starts, and whether it binds: an object literal's key does not. */
+/** A name code declares, and where it starts. */
 interface Declared {
   readonly name: string;
   readonly at: number;
-  readonly binds: boolean;
+  /** A declaration's (a binding's) span, where its members are; none for a member or a key, which binds nothing. */
+  readonly spans: Option.Option<{ readonly start: number; readonly end: number }>;
 }
 
 /** The name an identifier or a string writes (`read`, `'read'`); none for a computed key or a private one. */
@@ -330,31 +381,31 @@ const boundBy = (pattern: Node): ReadonlyArray<string> => {
 /**
  * Each name a program declares, read by the parser: a binding (`const`,
  * `let`, a destructure, a function, a class, an interface, a type, an enum
- * and its members, a namespace), a member of a class or of a type, and an
- * export's name bind; an object literal's keys do not. A call names nothing,
- * and a comment is no code.
+ * and its members, a namespace, an export's name), each with its span; a
+ * member of a class or of a type, and an object literal's key, which bind
+ * nothing. A call names nothing, and a comment is no code.
  */
 const declaredIn = (program: Program): ReadonlyArray<Declared> => {
   const out: Array<Declared> = [];
-  const add = (names: ReadonlyArray<string>, at: number, binds: boolean) =>
-    names.forEach((name) => out.push({ name, at, binds }));
-  /** A declaration's own name, when it has one (`class {}` has none). */
-  const id = (name: Option.Option<Node>, at: number) =>
-    add(Option.toArray(name).flatMap(nameOf), at, true);
+  const add = (names: ReadonlyArray<string>, at: number, spans: Declared['spans']) =>
+    names.forEach((name) => out.push({ name, at, spans }));
+  /** A declaration's own name, when it has one (`class {}` has none), over the declaration's span. */
+  const id = (name: Option.Option<Node>, node: { readonly start: number; readonly end: number }) =>
+    add(Option.toArray(name).flatMap(nameOf), node.start, Option.some(node));
   /** A member's name, written as an identifier or a string (`[key]` names none). */
   const member = (key: Node, computed: boolean, at: number) => {
-    if (!computed) add(nameOf(key), at, true);
+    if (!computed) add(nameOf(key), at, Option.none());
   };
   new Visitor({
-    VariableDeclarator: (node) => add(boundBy(node.id), node.start, true),
-    FunctionDeclaration: (node) => id(Option.fromNullOr(node.id), node.start),
-    ClassDeclaration: (node) => id(Option.fromNullOr(node.id), node.start),
-    ClassExpression: (node) => id(Option.fromNullOr(node.id), node.start),
-    TSInterfaceDeclaration: (node) => id(Option.some(node.id), node.start),
-    TSTypeAliasDeclaration: (node) => id(Option.some(node.id), node.start),
-    TSEnumDeclaration: (node) => id(Option.some(node.id), node.start),
-    TSEnumMember: (node) => id(Option.some(node.id), node.start),
-    TSModuleDeclaration: (node) => id(Option.some(node.id), node.start),
+    VariableDeclarator: (node) => add(boundBy(node.id), node.start, Option.some(node)),
+    FunctionDeclaration: (node) => id(Option.fromNullOr(node.id), node),
+    ClassDeclaration: (node) => id(Option.fromNullOr(node.id), node),
+    ClassExpression: (node) => id(Option.fromNullOr(node.id), node),
+    TSInterfaceDeclaration: (node) => id(Option.some(node.id), node),
+    TSTypeAliasDeclaration: (node) => id(Option.some(node.id), node),
+    TSEnumDeclaration: (node) => id(Option.some(node.id), node),
+    TSEnumMember: (node) => id(Option.some(node.id), node),
+    TSModuleDeclaration: (node) => id(Option.some(node.id), node),
     MethodDefinition: (node) => member(node.key, node.computed, node.start),
     PropertyDefinition: (node) => member(node.key, node.computed, node.start),
     AccessorProperty: (node) => member(node.key, node.computed, node.start),
@@ -363,44 +414,66 @@ const declaredIn = (program: Program): ReadonlyArray<Declared> => {
     TSAbstractAccessorProperty: (node) => member(node.key, node.computed, node.start),
     TSPropertySignature: (node) => member(node.key, node.computed, node.start),
     TSMethodSignature: (node) => member(node.key, node.computed, node.start),
-    ExportSpecifier: (node) => id(Option.some(node.exported), node.start),
-    ExportAllDeclaration: (node) => id(Option.fromNullOr(node.exported), node.start),
+    ExportSpecifier: (node) => id(Option.some(node.exported), node),
+    ExportAllDeclaration: (node) => id(Option.fromNullOr(node.exported), node),
     ObjectExpression: (node) =>
       node.properties.forEach((p) => {
-        if (p.type === 'Property' && !p.computed) add(nameOf(p.key), p.start, false);
+        if (p.type === 'Property' && !p.computed) add(nameOf(p.key), p.start, Option.none());
       }),
   }).visit(program);
   return out;
 };
 
+/** A file's code as `declares` reads it: its text, and its declarations as the parser reads them, once. */
+interface Source {
+  readonly text: string;
+  /** None when the parser cannot read it. */
+  readonly declared: Option.Option<ReadonlyArray<Declared>>;
+}
+
+const sourceOf = (text: string, file: string): Source => {
+  const { program, errors } = parseSync(file, text);
+  return {
+    text,
+    declared: Option.liftPredicate(declaredIn(program), () => errors.length === 0),
+  };
+};
+
 /**
- * Whether a file's code declares a symbol: `Review` bound in it (a key of an
- * object it hands a call, `use({ Review })`, is no declaration), and for
- * `Review.read` each later part declared within the top-level statement that
- * binds `Review`: a binding, a member, or a key of an object literal of its
- * own (`Schema.Struct({ read })`); a `'lab'` as written. `file` names the
- * dialect (`.tsx`).
+ * Whether a file's code declares a symbol: `Review` bound in it by a
+ * declaration (a key of an object it hands a call, `use({ Review })`, or a
+ * member of a type, `interface Deps { Review }`, binds nothing), and for
+ * `Review.read` each later part declared within one declaration that binds
+ * `Review`, any of them (a local of an earlier function named the same is
+ * not the one): a binding, a member, or a key of an object literal of its
+ * own (`Schema.Struct({ read })`); a `'lab'` as written.
  */
-const declares = (text: string, symbol: string, file = 'code.ts') => {
+const declaresIn = (source: Source, symbol: string) => {
   if (symbol.startsWith("'")) {
     // An import names another file's declaration.
-    const code = uncommented(text).replace(/^import\s[\s\S]*?\sfrom\s*['"][^'"]+['"];?/gm, '');
+    const code = uncommented(source.text).replace(
+      /^import\s[\s\S]*?\sfrom\s*['"][^'"]+['"];?/gm,
+      '',
+    );
     return code.includes(symbol);
   }
-  const { program, errors } = parseSync(file, text);
-  if (errors.length > 0) return false;
-  const declared = declaredIn(program);
   const [head = '', ...members] = symbol.replace(/\(.*\)$/, '').split('.');
-  const statement = Option.flatMap(
-    Arr.findFirst(declared, (d) => d.binds && d.name === head),
-    (bound) => Arr.findFirst(program.body, (s) => s.start <= bound.at && bound.at < s.end),
-  );
-  return Option.exists(statement, (s) =>
-    members.every((name) =>
-      declared.some((d) => d.name === name && s.start <= d.at && d.at < s.end),
-    ),
+  return Option.exists(source.declared, (declared) =>
+    declared
+      .filter((d) => d.name === head)
+      .some((d) =>
+        Option.exists(d.spans, (span) =>
+          members.every((name) =>
+            declared.some((m) => m.name === name && span.start <= m.at && m.at < span.end),
+          ),
+        ),
+      ),
   );
 };
+
+/** `declaresIn` over a text; `file` names the dialect (`.tsx`). */
+const declares = (text: string, symbol: string, file = 'code.ts') =>
+  declaresIn(sourceOf(text, file), symbol);
 
 /** A package's name (`@bible/url-state`), written as a path: no file of this tree. */
 const PACKAGE_NAME = /^@[\w-]+\/[\w.-]+/;
@@ -425,7 +498,10 @@ const ignoredDirectories = (gitignore: string): ReadonlySet<string> =>
  * an edit and still resolves; a symbol fails when it is renamed). A receipt
  * at a commit or of a deletion names the tree as it was, so it is not read.
  */
-const anchorDrift = (found: ReadonlyArray<Found>) =>
+const anchorDrift = (
+  found: ReadonlyArray<Found>,
+  sourceAt: (file: string, text: string) => Source,
+) =>
   found
     .filter(({ anchor, ours }) => ours && !anchor.receipt)
     .flatMap(({ anchor, file, text }) => [
@@ -434,7 +510,7 @@ const anchorDrift = (found: ReadonlyArray<Found>) =>
         onNone: () => [`path ${anchor.path} does not exist`],
         onSome: (at) =>
           anchor.symbols
-            .filter((symbol) => !Option.exists(text, (t) => declares(t, symbol, at)))
+            .filter((symbol) => !Option.exists(text, (t) => declaresIn(sourceAt(at, t), symbol)))
             .map((symbol) => `${at} has no ${symbol}`),
       }),
     ]);
@@ -501,23 +577,36 @@ const undeclaredFlags = (words: string, code: Code) =>
     .map(firstGroup)
     .filter((flag) => !code.flags.has(flag.replace(/^no-/, '')));
 
-/** A film command run by the CLI's own name (`film check --static --json`), up to a `#` comment or the span's end. */
-const FILM_BIN = /(?:^|[\s`(])film ([a-z][\w-]*)([^#`]*)/g;
+/** A film command run by the CLI's own name (`film check --static --json`), up to a `#` comment. */
+const FILM_BIN = /(?:^|[\s(])film ([a-z][\w-]*)([^#]*)/g;
+
+/**
+ * Where a line writes a command: each of its code spans, a fenced block's
+ * line whole, and a line that starts with the bin (`film check …`) up to its
+ * first span. A sentence that says "film" is no command.
+ */
+const commandsIn = (line: Line): ReadonlyArray<string> => {
+  if (line.fenced) return [line.text];
+  const spans = matches(line.text, SPAN).map((m) => group(m, 2));
+  if (!/^\s*film /.test(line.text)) return spans;
+  return [line.text.split('`')[0] ?? '', ...spans];
+};
 
 /**
  * Each `--flag` given to a film command on a line, before its `#` comment:
  * by its script (`bun run render <film> --stills`) or by the CLI's name
- * (`film check --static`).
+ * (`film check --static`), written as a command.
  */
-const flagDrift = (line: string, code: Code) => [
-  ...runsIn(line)
+const flagDrift = (line: Line, code: Code) => [
+  ...runsIn(line.text)
     .filter((run) => code.filmCommands.has(run.script))
     .flatMap((run) =>
       undeclaredFlags(run.rest, code).map(
         (flag) => `bun run ${run.script} --${flag}: no command declares the flag`,
       ),
     ),
-  ...matches(line, FILM_BIN)
+  ...commandsIn(line)
+    .flatMap((command) => matches(command, FILM_BIN))
     .filter((m) => code.commands.has(firstGroup(m)))
     .flatMap((m) =>
       undeclaredFlags(group(m, 2), code).map(
@@ -533,8 +622,9 @@ const FINDING = /\b([A-Z][a-z]+(?:[A-Z][a-z]+)+)\b/g;
  * On a line that runs `check`, each finding it names: every name on a
  * command line (`bun run check <film>  # warns VoiceLevel`); on a line that
  * names the run in passing (`` `bun run check <film> --sound` adds
- * `DeadAir` ``), each name in a span the code declares as nothing else (a
- * type beside it, `SoundCheck`, is not a finding named).
+ * `DeadAir` ``), each name in a span the code has as nothing else (a type
+ * beside it, `SoundCheck`, a component, `PageShell`, or a name read off a
+ * module, `TaggedError`, is not a finding named).
  */
 const findingDrift = (line: string, code: Code) => {
   const commandLine = /^\s*(?:bun run|film) check\b/.test(line);
@@ -553,9 +643,10 @@ const drift = (doc: Doc, code: Code): ReadonlyArray<string> =>
     ...spanDrift(doc, code),
     ...ruleDrift(doc, code),
     ...scriptDrift(doc, code),
-    ...doc.text
-      .split('\n')
-      .flatMap((line) => [...flagDrift(line, code), ...findingDrift(line, code)]),
+    ...linesOf(doc.text).flatMap((line) => [
+      ...flagDrift(line, code),
+      ...findingDrift(line.text, code),
+    ]),
   ].map((what) => `${doc.path}: ${what}`);
 
 /** Every declared route documented: the declared routes no table row names. */
@@ -577,9 +668,14 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
   const sources = (dir: string) =>
     Effect.flatMap(fs.readDirectory(at(dir), { recursive: true }), (files) =>
       Effect.forEach(
-        files.filter((f) => f.endsWith('.ts') && !f.includes('node_modules')),
+        files.filter((f) => /\.tsx?$/.test(f) && !f.includes('node_modules')),
         (f) => read(dir, f),
       ),
+    );
+  /** A directory's entries; none for a directory that is not there (a package with no binaries). */
+  const entriesOf = (dir: string) =>
+    Effect.map(Effect.option(fs.readDirectory(at(dir))), (names) =>
+      Option.getOrElse(names, (): ReadonlyArray<string> => []),
     );
   const scriptsOf = (dir: string) =>
     Effect.flatMap(read(dir, 'package.json'), Schema.decodeUnknownEffect(Scripts));
@@ -597,11 +693,20 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
   const plugin = yield* read('packages/film/lint/plugin.ts');
   const oxlintrc = yield* read('.oxlintrc.json');
   const tools = (yield* sources('packages/film/src/tools')).join('\n');
-  const src = (yield* sources('packages/film/src')).join('\n');
+  const srcFiles = yield* sources('packages/film/src');
+  const src = srcFiles.join('\n');
+  // Each file's comments left out on its own, so a `/*` in one file's string ends in it.
+  const srcCode = srcFiles.map(uncommented).join('\n');
+  const entries = yield* Effect.forEach(['packages/film', FILM_SRC], entriesOf);
+  const bins = yield* Effect.forEach(['', ...workspaces.flat()], (dir) =>
+    entriesOf(path.join(dir, 'node_modules', '.bin')),
+  );
   return {
     routes: new Set(routesOf(LabHttpApi).map((r) => `${r.method} ${r.path}`)),
     registered: new Set(matches(plugin, /^ {4}'([a-z-]+)': /gm).map(firstGroup)),
     enabled: new Set(matches(oxlintrc, /"film\/([a-z-]+)": "error"/g).map(firstGroup)),
+    entries: new Set(entries.flat()),
+    bins: new Set(bins.flat()),
     scripts: new Set(scripts.map(([name]) => name)),
     scriptsAt,
     filmCommands: new Set(
@@ -615,7 +720,13 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
     flags: new Set(matches(tools, /Flag\.\w+\(\s*'([a-z][a-z-]*)'/g).map(firstGroup)),
     tags: new Set(matches(src, /TaggedError<(\w+)>/g).map(firstGroup)),
     names: new Set(
-      matches(src, /\b(?:interface|type|class|const|enum|function)\s+([A-Z]\w*)/g).map(firstGroup),
+      [
+        ...matches(srcCode, /\b(?:interface|type|class|const|enum|function)\s+([A-Z]\w*)/g),
+        ...matches(srcCode, /\.([A-Z]\w*)\b/g),
+        ...matches(srcCode, /^import\s+(?:type\s+)?\{([^}]*)\}/gm).flatMap((m) =>
+          matches(firstGroup(m), /(?:^|[\s,])(?:type\s+)?([A-Z]\w*)/g),
+        ),
+      ].map(firstGroup),
     ),
   } satisfies Code;
 });
@@ -677,16 +788,24 @@ const readEach = Effect.fn('test.docs.readEach')(function* (
   );
 });
 
-/** What each doc's anchors name that the tree lacks, one line each. */
-const anchorsDrift = (root: string, docs: ReadonlyArray<Doc>) =>
-  Effect.map(
+/** What each doc's anchors name that the tree lacks, one line each: each file they name parsed once. */
+const anchorsDrift = (root: string, docs: ReadonlyArray<Doc>) => {
+  const sources = new Map<string, Source>();
+  const sourceAt = (file: string, text: string) =>
+    Option.getOrElse(Option.fromUndefinedOr(sources.get(file)), () => {
+      const source = sourceOf(text, file);
+      sources.set(file, source);
+      return source;
+    });
+  return Effect.map(
     Effect.forEach(docs, (doc) =>
       Effect.map(findAnchors(root, doc), (found) =>
-        anchorDrift(found).map((what) => `${doc.path}: ${what}`),
+        anchorDrift(found, sourceAt).map((what) => `${doc.path}: ${what}`),
       ),
     ),
     (each) => each.flat(),
   );
+};
 
 const ROOT = Effect.map(Path.Path, (path) => path.join(import.meta.dir, '..', '..', '..'));
 
@@ -707,15 +826,37 @@ const declaredTokens = (sheet: string) => {
   return `${sheet.slice(start, end).trimEnd()}\n`;
 };
 
-/** Each custom property the player's sheet declares. */
-const tokenNames = (sheet: string): ReadonlySet<string> =>
-  new Set(matches(sheet, /(--[\w-]+)\s*:/g).map(firstGroup));
+/** A css text without its comments, a sheet's or a page's. */
+const bareCss = (text: string) =>
+  text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+
+/** Each custom property a body declares (`--pad: 6px`), with its value. */
+const localsIn = (body: string): ReadonlyArray<readonly [string, string]> =>
+  matches(body, /(--[\w-]+)\s*:\s*([^;]+)/g).map((m) => [group(m, 1), group(m, 2).trim()] as const);
+
+/** Each name's values, first to last, as `pairs` give them. */
+const valuesByName = (
+  pairs: ReadonlyArray<readonly [string, string]>,
+): ReadonlyMap<string, ReadonlyArray<string>> => {
+  const out = new Map<string, ReadonlyArray<string>>();
+  for (const [name, value] of pairs) out.set(name, [...(out.get(name) ?? []), value]);
+  return out;
+};
+
+/** Each custom property the player's sheet declares, with every value it gives it (a density's query gives a second). */
+const tokensOf = (sheet: string): ReadonlyMap<string, ReadonlyArray<string>> =>
+  valuesByName(localsIn(bareCss(sheet)));
+
+/** The token a gap or a margin takes whole to draw a line between two things (§3): no step, and no padding's. */
+const HAIRLINE = '--hairline';
 
 /** A scale of the player's sheet: the properties it sets, and the px its tokens give. */
 interface Scale {
   readonly what: string;
   readonly property: RegExp;
   readonly steps: ReadonlySet<number>;
+  /** The tokens its properties take whole, off its steps (`--hairline`, a gap's or a margin's). */
+  readonly named: ReadonlySet<string>;
 }
 
 /** The px of each token in the sheet whose name `name` matches (`--s-2: 8px` is 8). */
@@ -728,24 +869,40 @@ const stepsOf = (sheet: string, name: RegExp): ReadonlySet<number> =>
 
 /**
  * The space, type and radius scales of the player's sheet, each over every
- * property that sets it: a side's or a logical side's margin and padding, a
- * gap, a corner's radius.
+ * property that sets it: a side's or a logical side's padding and margin
+ * (a margin's and a gap's the hairline too), a gap, a corner's radius.
  */
-const scalesOf = (sheet: string): ReadonlyArray<Scale> => [
-  {
-    what: 'space',
-    property:
-      /^(?:margin|padding)(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?$|^(?:row-|column-)?gap$/,
-    steps: stepsOf(sheet, /^--s-/),
-  },
-  { what: 'type size', property: /^font-size$/, steps: stepsOf(sheet, /^--fs-/) },
-  { what: 'line height', property: /^line-height$/, steps: stepsOf(sheet, /^--lh-/) },
-  {
-    what: 'radius',
-    property: /^border(?:-(?:top|bottom|start|end)-(?:left|right|start|end))?-radius$/,
-    steps: stepsOf(sheet, /^--r-/),
-  },
-];
+const scalesOf = (sheet: string): ReadonlyArray<Scale> => {
+  const sides = '(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?';
+  const space = stepsOf(sheet, /^--s-/);
+  return [
+    { what: 'space', property: new RegExp(`^padding${sides}$`), steps: space, named: new Set() },
+    {
+      what: 'space',
+      property: new RegExp(`^margin${sides}$|^(?:row-|column-)?gap$`),
+      steps: space,
+      named: new Set([HAIRLINE]),
+    },
+    {
+      what: 'type size',
+      property: /^font-size$/,
+      steps: stepsOf(sheet, /^--fs-/),
+      named: new Set(),
+    },
+    {
+      what: 'line height',
+      property: /^line-height$/,
+      steps: stepsOf(sheet, /^--lh-/),
+      named: new Set(),
+    },
+    {
+      what: 'radius',
+      property: /^border(?:-(?:top|bottom|start|end)-(?:left|right|start|end))?-radius$/,
+      steps: stepsOf(sheet, /^--r-/),
+      named: new Set(),
+    },
+  ];
+};
 
 /**
  * A value's words as CSS reads them: split at the spaces outside any
@@ -789,83 +946,95 @@ const longhands = (property: string, value: string): ReadonlyArray<readonly [str
 };
 
 /**
- * Each rule's own body in a sheet, read through nesting: a rule nested in
- * another (`.outer { padding: 6px; .inner { … } }`) is a body of its own,
- * and its parent's declarations around it are the parent's.
+ * A rule of a mock (or an element's `style` attribute): its own body, and
+ * the rules it is nested in, the nearest first (a query, `@media { .h { … } }`,
+ * is a rule around its own).
  */
-const bodiesOf = (css: string): ReadonlyArray<string> => {
+interface Rule {
+  readonly body: string;
+  readonly within: ReadonlyArray<number>;
+}
+
+/**
+ * Each rule in a sheet, read through nesting: a rule nested in another
+ * (`.outer { padding: 6px; .inner { … } }`) is a body of its own, and its
+ * parent's declarations around it are the parent's.
+ */
+const rulesIn = (css: string): ReadonlyArray<Rule> => {
   const bodies: Array<string> = [];
+  const within: Array<ReadonlyArray<number>> = [];
+  const open: Array<number> = [];
   const parents: Array<string> = [];
   let body = '';
   for (const c of css) {
     if (c === '{') {
       // What the parent wrote since its last declaration is the nested rule's selector.
       parents.push(body.slice(0, body.lastIndexOf(';') + 1));
+      within.push([...open].reverse());
+      open.push(bodies.push('') - 1);
       body = '';
     } else if (c === '}') {
-      bodies.push(body);
+      for (const at of Option.toArray(Option.fromUndefinedOr(open.pop()))) bodies[at] = body;
       body = parents.pop() ?? '';
     } else body += c;
   }
-  return bodies;
+  return bodies.map((own, at) => ({ body: own, within: within[at] ?? [] }));
 };
 
 /** A property a script names (`paddingTop`) as its sheet writes it (`padding-top`). */
 const kebab = (name: string) => name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 
+/** Each declaration a body writes, as longhands; a custom property is a local (`localsIn`). */
+const declarationsIn = (body: string): ReadonlyArray<readonly [string, string]> =>
+  matches(body, /(?<![\w-])([a-z][a-z-]*)\s*:\s*([^;]+)/g).flatMap((declaration) =>
+    longhands(group(declaration, 1), group(declaration, 2)),
+  );
+
 /**
- * Each declaration a mock writes, as longhands, comments left out: its
- * rules (a sheet whole, a page's `<style>` elements), its elements' `style`
- * attributes, and a length its scripts set (`el.style.gap = '7px'`,
- * `style.setProperty('gap', '7px')`). A custom property is a local, read by
- * `localsOf`.
+ * A mock as its scale is read, comments left out: its rules (a sheet whole,
+ * a page's `<style>` elements; each element's `style` attribute a rule of
+ * its own), and each length its scripts set (`el.style.gap = '7px'`,
+ * `style.setProperty('gap', '7px')`), which no rule holds.
  */
-const declarationsOf = (file: string, text: string): ReadonlyArray<readonly [string, string]> => {
-  const bare = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+interface Mock {
+  readonly rules: ReadonlyArray<Rule>;
+  readonly scripted: ReadonlyArray<readonly [string, string]>;
+}
+
+const mockOf = (file: string, text: string): Mock => {
+  const bare = bareCss(text);
   const scripts = matches(bare, /<script\b[^>]*>([\s\S]*?)<\/script>/g)
     .map(firstGroup)
     .join('\n');
-  return [
-    ...[...rulesOf(file, bare), ...attributesOf(bare)].flatMap((body) =>
-      matches(body, /(?<![\w-])([a-z][a-z-]*)\s*:\s*([^;]+)/g).flatMap((declaration) =>
-        longhands(group(declaration, 1), group(declaration, 2)),
+  const attributes = matches(bare, /\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/g).map((m): Rule => ({
+    body: m[1] ?? m[2] ?? '',
+    within: [],
+  }));
+  return {
+    rules: [...rulesIn(sheetOf(file, bare)), ...attributes],
+    scripted: [
+      ...matches(scripts, /\.style\.([a-zA-Z]+)\s*=\s*(['"`])([^'"`]*)\2/g).map(
+        (m) => [kebab(group(m, 1)), group(m, 3)] as const,
       ),
-    ),
-    ...matches(scripts, /\.style\.([a-zA-Z]+)\s*=\s*(['"`])([^'"`]*)\2/g).map(
-      (m) => [kebab(group(m, 1)), group(m, 3)] as const,
-    ),
-    ...matches(
-      scripts,
-      /\.style\.setProperty\(\s*(['"`])([a-z-]+)\1\s*,\s*(['"`])([^'"`]*)\3/g,
-    ).map((m) => [group(m, 2), group(m, 4)] as const),
-  ];
+      ...matches(
+        scripts,
+        /\.style\.setProperty\(\s*(['"`])([a-z-]+)\1\s*,\s*(['"`])([^'"`]*)\3/g,
+      ).map((m) => [group(m, 2), group(m, 4)] as const),
+    ],
+  };
 };
 
-/** A mock's rule bodies: a sheet's whole, a page's `<style>` elements'. */
-const rulesOf = (file: string, bare: string) => {
-  if (file.endsWith('.css')) return bodiesOf(bare);
-  return bodiesOf(
-    matches(bare, /<style\b[^>]*>([\s\S]*?)<\/style>/g)
-      .map(firstGroup)
-      .join('\n'),
-  );
+/** A mock's css: a sheet's whole, a page's `<style>` elements'. */
+const sheetOf = (file: string, bare: string) => {
+  if (file.endsWith('.css')) return bare;
+  return matches(bare, /<style\b[^>]*>([\s\S]*?)<\/style>/g)
+    .map(firstGroup)
+    .join('\n');
 };
 
-/** A page's elements' `style` attributes. */
-const attributesOf = (bare: string) =>
-  matches(bare, /\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/g).map((m) => m[1] ?? m[2] ?? '');
-
-/** The lengths a mock names as its own (`--pad: 6px`), by name: each custom property its rules and attributes declare. */
-const localsOf = (file: string, text: string): ReadonlyMap<string, string> => {
-  const bare = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
-  return new Map(
-    [...rulesOf(file, bare), ...attributesOf(bare)].flatMap((body) =>
-      matches(body, /(--[\w-]+)\s*:\s*([^;]+)/g).map(
-        (m) => [group(m, 1), group(m, 2).trim()] as const,
-      ),
-    ),
-  );
-};
+/** The lengths a mock names as its own (`--pad: 6px`): each custom property its rules and attributes declare, with its value, first to last. */
+const localsOf = (file: string, text: string): ReadonlyArray<readonly [string, string]> =>
+  mockOf(file, text).rules.flatMap((rule) => localsIn(rule.body));
 
 /**
  * A mock's geometry that is not spacing, named once where it lives
@@ -890,52 +1059,101 @@ const varOf = (word: string): Option.Option<string> =>
 /**
  * Each length a mock writes for a space, type or radius that no step of the
  * scale gives: a px off the steps, a rem or an em, and a custom property a
- * value names whole (`padding: var(--pad)`) read as the length the mock or
- * a sheet it links gives it, or red when none does. A token is a step's own,
- * and so is the geometry named as such (`GEOMETRY`); a length derived from
- * one the rule names (a dot's margin of half its size,
- * `calc(var(--dot) / -2)`) writes no length of its own.
+ * value names whole (`padding: var(--pad)`) read as each length it can be,
+ * or red when nothing gives it. A local is its rule's and its nested
+ * rules': a rule reads the value its own rule, or the nearest rule around
+ * it, gives (each, when that rule gives it twice); a rule (or a script) that
+ * names one no rule around it gives reads every value the mock or a sheet
+ * it links gives it, first and later, as an element can inherit any. A
+ * token is read as its values in the player's sheet, so a step of another
+ * scale (`font-size: var(--s-2)`) is red; the tokens a scale takes whole
+ * (`--hairline`, a gap's or a margin's), a token the sheet computes from
+ * steps (`--dock-h`) and the geometry named as such (`GEOMETRY`) are not. A length derived from one the rule names (a dot's
+ * margin of half its size, `calc(var(--dot) / -2)`) writes no length of its
+ * own.
  */
 const scaleDrift = (
   file: string,
   text: string,
-  tokens: ReadonlySet<string>,
+  tokens: ReadonlyMap<string, ReadonlyArray<string>>,
   scales: ReadonlyArray<Scale>,
-  linked: ReadonlyMap<string, string>,
+  linked: ReadonlyMap<string, ReadonlyArray<string>>,
 ) => {
-  const locals = new Map([...linked, ...localsOf(file, text)]);
-  /** What a local stands for, read through a local it names in turn. */
-  const lengthOf = (name: string, depth = 0): Option.Option<string> =>
-    Option.map(Option.fromUndefinedOr(locals.get(name)), (value) =>
-      Option.match(
-        Option.filter(varOf(value), (next) => depth < 4 && locals.has(next)),
-        {
-          onNone: () => value,
-          onSome: (next) => Option.getOrElse(lengthOf(next, depth + 1), () => value),
-        },
+  const mock = mockOf(file, text);
+  const own = mock.rules.map((rule) => valuesByName(localsIn(rule.body)));
+  const given = valuesByName([
+    ...mock.rules.flatMap((rule) => localsIn(rule.body)),
+    ...Array.from(linked).flatMap(([name, values]) =>
+      values.map((value) => [name, value] as const),
+    ),
+  ]);
+  /** The values `rule` reads a local as: its own or the nearest rule's around it, else every value given. */
+  const valuesAt = (name: string, rule: Option.Option<number>): ReadonlyArray<string> => {
+    const scope = Option.match(rule, {
+      onNone: (): ReadonlyArray<number> => [],
+      onSome: (at) => [at, ...(mock.rules[at]?.within ?? [])],
+    });
+    return Option.getOrElse(
+      Arr.findFirst(scope, (at) => Option.fromUndefinedOr(own[at]?.get(name))),
+      () => given.get(name) ?? [],
+    );
+  };
+  /** The lengths a property on `scale` reads a custom property as, through each it names in turn; none when nothing gives it. */
+  const lengthsOf = (
+    name: string,
+    rule: Option.Option<number>,
+    scale: Scale,
+    depth = 0,
+  ): Option.Option<ReadonlyArray<string>> => {
+    if (scale.named.has(name) || GEOMETRY.has(name)) return Option.some([]);
+    const values = Option.match(Option.fromUndefinedOr(tokens.get(name)), {
+      onNone: () => valuesAt(name, rule),
+      // A token the sheet computes (`--dock-h: calc(…)`, a docked bar's height) is its geometry, a sum of steps.
+      onSome: (given) => given.map((value) => value.replace(/^calc\(.*\)$/, '')),
+    });
+    if (values.length === 0) return Option.none();
+    return Option.some(
+      values.flatMap((value) =>
+        Option.match(
+          Option.filter(varOf(value), () => depth < 4),
+          {
+            onNone: () => [value],
+            onSome: (next) =>
+              Option.getOrElse(lengthsOf(next, rule, scale, depth + 1), () => [value]),
+          },
+        ),
       ),
     );
-  const off = (property: string, scale: Scale, word: string): ReadonlyArray<string> =>
+  };
+  const off = (
+    property: string,
+    scale: Scale,
+    word: string,
+    rule: Option.Option<number>,
+  ): ReadonlyArray<string> =>
     Option.match(varOf(word), {
       onNone: () =>
         offScale(word, scale).map(
           (length) => `${file}: ${property} ${length} is no ${scale.what} step`,
         ),
-      onSome: (name) => {
-        if (tokens.has(name) || GEOMETRY.has(name)) return [];
-        return Option.match(lengthOf(name), {
+      onSome: (name) =>
+        Option.match(lengthsOf(name, rule, scale), {
           onNone: () => [`${file}: ${property} ${word} is no token, and no length the mock gives`],
-          onSome: (length) =>
-            offScale(length, scale).map(
+          onSome: (lengths) =>
+            Array.from(new Set(lengths.flatMap((length) => offScale(length, scale)))).map(
               (length) => `${file}: ${property} ${word} is ${length}, no ${scale.what} step`,
             ),
-        });
-      },
+        }),
     });
-  return declarationsOf(file, text).flatMap(([property, value]) =>
+  return [
+    ...mock.rules.flatMap((rule, at) =>
+      declarationsIn(rule.body).map((d) => [...d, Option.some(at)] as const),
+    ),
+    ...mock.scripted.map((d) => [...d, Option.none<number>()] as const),
+  ].flatMap(([property, value, rule]) =>
     scales
       .filter((scale) => scale.property.test(property))
-      .flatMap((scale) => wordsOf(value).flatMap((word) => off(property, scale, word))),
+      .flatMap((scale) => wordsOf(value).flatMap((word) => off(property, scale, word, rule))),
   );
 };
 
@@ -948,9 +1166,9 @@ const scaleDrift = (
 const mockDrift = (
   file: string,
   text: string,
-  tokens: ReadonlySet<string>,
+  tokens: ReadonlyMap<string, ReadonlyArray<string>>,
   scales: ReadonlyArray<Scale>,
-  shared: ReadonlyMap<string, string> = new Map(),
+  shared: ReadonlyMap<string, ReadonlyArray<string>> = new Map(),
 ) => [
   ...['tokens.css', 'kit.css', ...['lab.css'].filter(() => /^lab[-.]/.test(file))]
     .filter((sheet) => file.endsWith('.html') && !new RegExp(`href="[^"]*${sheet}"`).test(text))
@@ -1079,17 +1297,15 @@ const apiOf = (api: typeof LabHttpApi): Api => {
 const commentRouteDrift = (file: string, text: string, api: Api): ReadonlyArray<string> => {
   const parsed = parseSync(file, text);
   if (parsed.errors.length > 0) return [`${file}: the parser cannot read it`];
-  /** The file's code, its comments left out: read only for a bare path the API lacks. */
-  const code = () => {
-    const parts: Array<string> = [];
-    let at = 0;
-    for (const comment of parsed.comments) {
-      parts.push(text.slice(at, comment.start));
-      at = comment.end;
-    }
-    parts.push(text.slice(at));
-    return parts.join('');
-  };
+  /** The file's code, its comments left out, joined once: read for a bare path the API lacks. */
+  const parts: Array<string> = [];
+  let after = 0;
+  for (const comment of parsed.comments) {
+    parts.push(text.slice(after, comment.start));
+    after = comment.end;
+  }
+  parts.push(text.slice(after));
+  const code = parts.join('');
   // A comment's text starts after its `//` or `/*`.
   const lineAt = (comment: { readonly start: number }, at: number) =>
     text.slice(0, comment.start + 2 + at).split('\n').length;
@@ -1111,7 +1327,7 @@ const commentRouteDrift = (file: string, text: string, api: Api): ReadonlyArray<
         ).filter(
           () =>
             !api.reaches(pathname.replace(/\/\*?$/, '')) &&
-            !code().includes(pathname.replace(/\/$/, '')),
+            !code.includes(pathname.replace(/\/$/, '')),
         );
       }),
   ]);
@@ -1240,6 +1456,10 @@ describe('the docs', () => {
           'After a mix, `bun run check <film> --sound` adds `NoSuchFinding`.',
           'See [the gone tool](tools/gone.ts), [a gone reference](reference/none.md#its-part),',
           'and [the README](packages/film/README.md#the-lab), [a site](https://example.com), [here](#here).',
+          'Then `bun run --watch nothing-bin`, and read `xs[0](y)` in [the gone guide](guide/gone.md).',
+          '```sh',
+          'film check <film> --frob-fence',
+          '```',
         ].join('\n'),
       };
       expect(drift(stale, code)).toEqual([
@@ -1250,10 +1470,12 @@ describe('the docs', () => {
         'stale.md: rule film/frobnicate is not registered',
         'stale.md: bun run nothing: no such script',
         'stale.md: bun run nothing-here: no such script',
+        'stale.md: bun run nothing-bin: no such script',
         'stale.md: bun run render --tag: no command declares the flag',
         'stale.md: VoiceLevel is no finding',
         'stale.md: film check --frobnicate: no command declares the flag',
         'stale.md: NoSuchFinding is no finding',
+        'stale.md: film check --frob-fence: no command declares the flag',
       ]);
       expect(yield* anchorsDrift(root, [stale])).toEqual([
         'stale.md: path packages/film/src/tools/gone.ts does not exist',
@@ -1263,7 +1485,30 @@ describe('the docs', () => {
         'stale.md: packages/film/src/lab/api.ts has no uniqueId',
         'stale.md: path tools/gone.ts does not exist',
         'stale.md: path reference/none.md does not exist',
+        'stale.md: path guide/gone.md does not exist',
       ]);
+      // What names no rule, script, link, flag or finding is not read as one: a directory of the
+      // film package, a binary or a file `bun run` runs, a call in code, a name the code has, and
+      // a sentence that says "film" before a flag.
+      const correct: Doc = {
+        path: 'correct.md',
+        bases: ['', FILM_SRC],
+        whole: false,
+        text: [
+          'The rules live in `film/lint`, the lab in `film/lab`.',
+          'Build with `bun run --bun vite build`.',
+          'Watch it: `bun run --watch cli.ts lab`.',
+          '```ts',
+          'handlers[i](event);',
+          '```',
+          'Index it with `xs[0](y)`.',
+          'After `bun run check <film>`, the `PageShell` shows `DeadAir`.',
+          '`film check <film>` reports each finding as a `TaggedError`.',
+          'The film render pass has no bearing on --fix, which belongs to oxlint.',
+        ].join('\n'),
+      };
+      expect(drift(correct, code)).toEqual([]);
+      expect(yield* anchorsDrift(root, [correct])).toEqual([]);
       // A symbol is declared by a binding, a class's or a type's member, or a key of its own
       // statement's object; a line that calls it, or a key handed to a call, declares nothing.
       expect(
@@ -1276,8 +1521,24 @@ describe('the docs', () => {
           ['interface Api {\n  readonly read: number;\n}\n', 'Api.read'],
           ['export const api = { read: 1, write };\n', 'api.write'],
           ['export const Store = Schema.Struct({ mtime: Schema.Number });\n', 'Store.mtime'],
+          // The head is a declaration that binds it, any of them: a member of a type, or a
+          // local of another function, named the same, is not the one that holds the member;
+          // a member of a type and a key handed to a call bind nothing.
+          [
+            'interface Deps {\n  readonly Review: unknown;\n}\nexport class Review {\n  static read() {}\n}\n',
+            'Review.read',
+          ],
+          [
+            'const f = () => {\n  const Review = 1;\n};\nexport class Review {\n  static read() {}\n}\n',
+            'Review.read',
+          ],
+          [
+            'interface Deps {\n  readonly Review: { read: 1 };\n}\nexport class Review {}\n',
+            'Review.read',
+          ],
+          ['use({ Review: { read: 1 } });\n', 'Review.read'],
         ].map(([text = '', symbol = '']) => declares(text, symbol)),
-      ).toEqual([false, false, false, true, true, true, true, true]);
+      ).toEqual([false, false, false, true, true, true, true, true, true, true, false, false]);
       // A whole doc: a first directory under no base is a mistyped path,
       // a package's name, an installed module and ignored output are not.
       const whole: Doc = {
@@ -1314,7 +1575,7 @@ describe('the docs', () => {
         const root = yield* ROOT;
         const fs = yield* FileSystem.FileSystem;
         const sheet = yield* fs.readFileString(`${root}/${TOKENS_CSS}`);
-        const tokens = tokenNames(sheet);
+        const tokens = tokensOf(sheet);
         const scales = scalesOf(sheet);
         const files = (yield* fs.readDirectory(`${root}/${MOCKS}`)).filter((f) =>
           /\.(?:html|css)$/.test(f),
@@ -1325,10 +1586,10 @@ describe('the docs', () => {
         expect(mocks.length).toBeGreaterThan(1);
         expect(scales.every((s) => s.steps.size > 0)).toBe(true);
         // The lengths the mocks' own sheets name are every page's: a page links them.
-        const shared = new Map(
+        const shared = valuesByName(
           mocks
             .filter(({ file }) => file.endsWith('.css'))
-            .flatMap(({ file, text }) => [...localsOf(file, text)]),
+            .flatMap(({ file, text }) => localsOf(file, text)),
         );
         expect(
           mocks.flatMap(({ file, text }) => mockDrift(file, text, tokens, scales, shared)),
@@ -1408,6 +1669,55 @@ describe('the docs', () => {
           'units.html: padding 6px is no space step',
           'units.html: margin var(--nowhere) is no token, and no length the mock gives',
           'units.html: gap 7px is no space step',
+        ]);
+        // A local is its rule's, and its nested rules': a rule that names one its own rule or a
+        // rule around it gives reads that value. A rule that names one it does not give reads
+        // every value the mock gives it, the first and the later, wherever each is given (an
+        // element inherits it from any of them).
+        expect(
+          mockDrift(
+            'scoped.html',
+            `<link href="tokens.css"><link href="kit.css"><style>
+              .a { --pad: 8px; padding: var(--pad); } .b { --pad: 6px; width: var(--pad); }
+              .f { --m: 8px; .g { margin: var(--m); } } .f2 { --m: 6px; width: var(--m); }
+              @media (min-width: 900px) { .h { --p: 6px; } } .i { --p: 8px; padding: var(--p); }
+            </style>`,
+            tokens,
+            scales,
+          ),
+        ).toEqual([]);
+        expect(
+          mockDrift(
+            'scoped-red.html',
+            `<link href="tokens.css"><link href="kit.css"><style>
+              .c { --gap: 6px; } .d { --gap: 8px; } .e { gap: var(--gap); }
+              .k { --p2: 8px; } @media (min-width: 900px) { .k { --p2: 6px; } } .l { padding: var(--p2); }
+              .m { --q: 6px; padding: var(--q); } .n { --q: 8px; }
+            </style>`,
+            tokens,
+            scales,
+          ),
+        ).toEqual([
+          'scoped-red.html: gap var(--gap) is 6px, no space step',
+          'scoped-red.html: padding var(--p2) is 6px, no space step',
+          'scoped-red.html: padding var(--q) is 6px, no space step',
+        ]);
+        // A token is a step of its own scale only: a space token sets no type size, and the
+        // hairline (`--hairline`) is a gap's or a margin's, never a padding's or a corner's.
+        expect(
+          mockDrift(
+            'tokens.html',
+            `<link href="tokens.css"><link href="kit.css"><style>
+              .t { font-size: var(--s-2); padding: var(--hairline); border-radius: var(--hairline); }
+              .u { gap: var(--hairline); margin-top: var(--hairline); font-size: var(--body-fs); padding: var(--gutter); }
+            </style>`,
+            tokens,
+            scales,
+          ),
+        ).toEqual([
+          'tokens.html: font-size var(--s-2) is 8px, no type size step',
+          'tokens.html: padding var(--hairline) is 1px, no space step',
+          'tokens.html: border-radius var(--hairline) is 1px, no radius step',
         ]);
       }),
   );
