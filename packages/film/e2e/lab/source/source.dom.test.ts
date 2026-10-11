@@ -423,6 +423,31 @@ describe('on a phone', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live(
+    'a press on Source from the sheet’s Close keeps focus in the sheet, so Tab moves in it and the cue stays',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([codeRoute, sourceRoute], {
+          href: labOne(1, { cue: 'rise' }),
+          viewport: PHONE,
+        });
+        yield* page.waitFor('.lab-selection-sheet');
+        yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+        const inSheet = "document.activeElement.closest('.lab-selection-sheet') !== null";
+        yield* page.focus('.lab-selection-sheet [data-act="close-inspector"]');
+        // A press on chrome inside the sheet moves focus to the sheet, as the platform does, never off it.
+        yield* page.click('.lab-selection-sheet [data-face="source"]');
+        yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+        yield* evaluates(page, inSheet, true);
+        // Tab is the sheet's (it moves through its controls), not the Lab's "next cue".
+        yield* page.press('Tab');
+        yield* evaluates(page, "document.activeElement.matches('[role=dialog]')", false);
+        yield* evaluates(page, inSheet, true);
+        yield* evaluates(page, "new URLSearchParams(location.search).get('cue')", 'rise');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('opened from a selected cue with nothing playing, it shows the cue’s literal', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([splitRoute, sourceRoute], {

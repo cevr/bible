@@ -166,6 +166,24 @@ export function isTabbable(element: Element | null): element is FocusableElement
   return isFocusableElement(element) && getTabIndex(element) >= 0;
 }
 
+/**
+ * The nearest ancestor of `element` that takes focus (a dialog's popup, a
+ * sheet): where the platform moves focus on a press on content that takes
+ * none. `null` when there is none, and focus then leaves every control.
+ */
+export function getFocusableAncestor(element: Element): FocusableElement | null {
+  for (
+    let candidate = element.parentElement?.closest(CANDIDATE_SELECTOR) ?? null;
+    candidate !== null;
+    candidate = candidate.parentElement?.closest(CANDIDATE_SELECTOR) ?? null
+  ) {
+    if (isFocusableElement(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
 export function focusable(container: Element): FocusableElement[] {
   const candidates: FocusableElement[] = [];
   appendCandidates(container, candidates);

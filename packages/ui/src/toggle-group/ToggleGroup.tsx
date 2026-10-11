@@ -4,15 +4,18 @@
 // `value`: pressing a toggle offers `[its value]`, pressing the pressed one
 // offers `[]`, and the toggles show what the owner keeps. It is a composite
 // with one tab stop (the left and right arrows, wrapping at the ends; Home
-// and End), which starts on the pressed toggle (the first when none is). A
-// mouse press from outside the group takes no focus: it blurs whatever had
-// it, as a click on the page does; the pressed toggle takes the tab stop
-// either way (see Toggle).
+// and End), which starts on the toggle drawn pressed (`aria-pressed`; the
+// first when none is). A mouse press from outside the group takes no focus:
+// focus goes where the platform sends it for a press on content that takes
+// none, the nearest focusable ancestor (a sheet's popup) or else nowhere;
+// the pressed toggle takes the tab stop either way (see Toggle).
 // Upstream's uncontrolled mode, `multiple`, `disabled`, `orientation` and
 // `loopFocus` are left out.
+import { isHTMLElement } from '@floating-ui/utils/dom';
 import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
 
+import { getFocusableAncestor } from '../floating-ui-solid/utils/tabbable.ts';
 import { CompositeRoot } from '../internals/composite/CompositeRoot.tsx';
 import type { BaseUIComponentProps, HTMLProps } from '../internals/types.ts';
 import { ToggleGroupContext, type ToggleGroupContextValue } from './ToggleGroupContext.ts';
@@ -31,19 +34,14 @@ interface ToggleGroupProps<Value extends string = string> extends BaseUIComponen
 
 const STATE: ToggleGroupState = {};
 
+/** The toggle drawn pressed, among the group's first toggles (-1: none). */
+const pressedIndex = (elements: ReadonlyArray<HTMLElement | null>) =>
+  elements.findIndex((el) => el?.getAttribute('aria-pressed') === 'true');
+
 export function ToggleGroup<Value extends string = string>(
   props: ToggleGroupProps<Value>,
 ): JSX.Element {
   let element: HTMLElement | null = null;
-  // Each toggle's value by its element: the tab stop starts on the pressed one.
-  const toggles = new WeakMap<Element, Value>();
-  const pressedIndex = (elements: ReadonlyArray<HTMLElement | null>) => {
-    const pressed = untrack(() => props.value);
-    return elements.findIndex((el) => {
-      const value = el ? toggles.get(el) : undefined;
-      return value !== undefined && pressed.includes(value);
-    });
-  };
   const context: ToggleGroupContextValue<Value> = {
     get value() {
       return props.value;
@@ -54,8 +52,19 @@ export function ToggleGroup<Value extends string = string>(
     holdsFocus() {
       return element?.contains(element.ownerDocument.activeElement) ?? false;
     },
-    registerToggle(node, value) {
-      toggles.set(node, value);
+    releaseFocus() {
+      if (element === null) {
+        return;
+      }
+      const ancestor = getFocusableAncestor(element);
+      if (ancestor !== null) {
+        ancestor.focus({ preventScroll: true });
+        return;
+      }
+      const active = element.ownerDocument.activeElement;
+      if (isHTMLElement(active) && active !== element.ownerDocument.body) {
+        active.blur();
+      }
     },
   };
 

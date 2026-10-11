@@ -3,11 +3,12 @@
 // A two-state button (`aria-pressed`), an item of a toggle group: pressed
 // while its `value` is among the group's, and an item of the group's roving
 // focus. A mouse press takes no focus unless focus is already in the group
-// (upstream focuses the toggle): it blurs whatever had focus, which then
-// rests on the page, and still moves the group's tab stop to the toggle.
+// (upstream focuses the toggle): focus goes where the platform sends it for
+// a press on content that takes none, the group's nearest focusable ancestor
+// (a sheet's popup) or else nowhere, and the press still moves the group's
+// tab stop to the toggle.
 // Upstream's lone toggle (`pressed`, `defaultPressed`,
 // `onPressedChange`) and `disabled` are left out.
-import { isHTMLElement } from '@floating-ui/utils/dom';
 import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
 
@@ -45,27 +46,18 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
     get 'aria-pressed'() {
       return pressed() ? 'true' : 'false';
     },
-    ref(node: HTMLElement | null) {
-      if (node) {
-        group.registerToggle(
-          node,
-          untrack(() => props.value),
-        );
-      }
-    },
     onMouseDown(event: MouseEvent) {
-      // A mouse press from outside the group takes no focus: whatever had it
-      // is blurred (a field commits on its own blur, before the press's
-      // change) and the page keeps its keys (Space, the arrows). A keyboard
-      // user already in the group keeps it, on the pressed toggle.
+      // A mouse press from outside the group takes no focus. Focus moves to
+      // the group's focusable ancestor or leaves every control, so a field
+      // commits on its own blur before the press's change, a sheet keeps the
+      // keyboard, and on the page the page keeps its keys (Space, the
+      // arrows). A keyboard user already in the group keeps it, on the
+      // pressed toggle.
       if (group.holdsFocus()) {
         return;
       }
       event.preventDefault();
-      const active = (event.currentTarget as HTMLElement).ownerDocument.activeElement;
-      if (isHTMLElement(active) && active !== active.ownerDocument.body) {
-        active.blur();
-      }
+      group.releaseFocus();
     },
     onClick() {
       untrack(() => group.setGroupValue(props.value, !pressed()));

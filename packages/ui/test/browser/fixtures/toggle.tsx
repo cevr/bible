@@ -4,8 +4,10 @@
 // `owner=decline` (it takes none). `value` seeds the owner's value; the
 // `set-value` button sets it to `three`. Every offer is logged as
 // `value [<values>]`; the field after the group logs `field blur`.
+// `in-dialog` puts all of it in a popup that takes focus (`tabindex="-1"`),
+// as the lab's sheets are; `later` mounts it when `#show` is pressed.
 import type { JSX } from '@solidjs/web';
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 
 import type { HTMLProps } from '../../../src/internals/types.ts';
 import { Toggle } from '../../../src/toggle/index.ts';
@@ -52,6 +54,26 @@ function Group() {
   );
 }
 
+function Later() {
+  const [shown, setShown] = createSignal(false);
+  return (
+    <>
+      <button id="show" onClick={() => setShown(true)}>
+        show
+      </button>
+      <Show when={shown()}>
+        <Group />
+      </Show>
+    </>
+  );
+}
+
 export const fixtures: Record<string, () => JSX.Element> = {
   group: () => <Group />,
+  'in-dialog': () => (
+    <div id="dialog" role="dialog" aria-label="sheet" tabindex="-1">
+      <Group />
+    </div>
+  ),
+  later: () => <Later />,
 };
