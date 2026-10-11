@@ -372,7 +372,7 @@ spawn('ffmpeg', [
   ms/frame, and `--stills` renders full-resolution PNGs. The model looked at its own
   sheets to iterate. That is worth copying as a first-class command.
 - Chrome flags: `--ignore-gpu-blocklist --enable-gpu-rasterization
---use-angle=d3d11` (Windows). On macOS, use `--use-angle=metal`. p5.brush
+  --use-angle=d3d11` (Windows). On macOS, use `--use-angle=metal`. p5.brush
   watercolour fills are GPU-heavy, about 1–4 s per frame, and far slower in
   software GL.
 - Their `ANIMATION_GUIDE.md` rules are worth adopting as-is: _one read at a time_,
@@ -400,12 +400,12 @@ agent-friendly (fast contact sheets).
 
 - **[perfect-freehand](https://github.com/steveruizok/perfect-freehand)**: turns a
   point list with pressure into a tapered outline polygon (`getStroke(points,
-{size, thinning, smoothing, streamline, simulatePressure})`). It is pure and
+  {size, thinning, smoothing, streamline, simulatePressure})`). It is pure and
   deterministic. **Best choice for ink strokes and write-on handwriting:** feed it a
   growing prefix of points for draw-on animation.
 - **[Rough.js](https://roughjs.com)**: sketchy lines, fills and hachure. Pass
   `seed: n` (non-zero) for repeatability. For a boil, use `seed = baseSeed +
-Math.floor(t * 12)`. Good for diagrams (arrows, boxes, underlines), and it has a
+  Math.floor(t * 12)`. Good for diagrams (arrows, boxes, underlines), and it has a
   `roughness`/`bowing` look. `rc.generator` returns drawables without drawing.
 - **Own `wobble(pts, amp, seed)`**: displace each vertex along its normal by value
   noise sampled at `(arcLength * freq, boilFrame)`. Use low frequency for the line
@@ -441,7 +441,7 @@ stream (the ClaudeAnimationBase fix).
 - Driver: **Playwright or puppeteer-core** plus system Chrome, with N parallel
   pages, a resumable `out/frames/f%05d.png`, and `--sheet` and `--stills` modes.
   Encode with `ffmpeg -framerate 30 -i f%05d.png -i narration.wav -c:v libx264
--crf 17 -pix_fmt yuv420p -movflags +faststart`. For a fast preview, pipe JPEG
+  -crf 17 -pix_fmt yuv420p -movflags +faststart`. For a fast preview, pipe JPEG
   through `image2pipe`.
 - Frame rates: render at **30 fps** for smooth camera and light, with the boil at
   **12 fps** and character poses held on twos (`floor(t * 12) / 12`) for the

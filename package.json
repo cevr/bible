@@ -44,7 +44,7 @@
     "effect": "catalog:",
     "effect-bun-test": "0.4.0",
     "lefthook": "^2.1.15",
-    "oxfmt": "^0.71.0",
+    "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
     "oxlint-plugin-effect": "0.28.1",
     "railway": "^3.12.0",

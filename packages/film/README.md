@@ -1362,7 +1362,7 @@ reads the API through the server's own handler on the page's connection
    `LabHttpApi`.
 2. Handle it in the group's `HttpApiBuilder.group(api, name, …)` in tools:
    `.handle(name, ({ params, query, payload, request }) =>
-answered(Effect.gen(…)))`, naming the film with `filmNamed(params.film)` (`tools/film-repo.ts`).
+   answered(Effect.gen(…)))`, naming the film with `filmNamed(params.film)` (`tools/film-repo.ts`).
    Return the success value (the API encodes it), or an
    `HttpServerResponse` for a file (`serveFile` answers byte ranges). A new
    group's layer joins `labHandler`, and a service its handlers need joins
@@ -1408,7 +1408,7 @@ quotation set apart with who said it, marks stripped), and records it:
 - **Capture** (`capture-browser.ts`, behind the `Capture` service in
   `capture.ts`): `getUserMedia` with echo cancelling, noise suppression and
   gain control off, one channel, the microphone picked from ⌘K (`Choose
-microphone: …`, `micCommands`; named in the panel when it is not the
+  microphone: …`, `micCommands`; named in the panel when it is not the
   default; `enumerateDevices`;
   the choice is remembered in this browser as `film-lab-mic`, a `keptText` in
   `ViewerStore`, `browser/storage.ts`), into an
@@ -1421,9 +1421,9 @@ microphone: …`, `micCommands`; named in the panel when it is not the
   (`audio/wav`). A microphone refused is `MicDenied`, shown in the panel in
   the owner's words.
 - **The recorder** (`machine.ts`) is one machine: `Idle | CountIn | Recording
-| Review | Importing | Checking | Failed` on `SelectBeat | Arm | Tick | CountDone |
-Cancel | Stop | MicLost | Submit | Discard | Imported | Refused |
-ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and opens the
+  | Review | Importing | Checking | Failed` on `SelectBeat | Arm | Tick | CountDone |
+  Cancel | Stop | MicLost | Submit | Discard | Imported | Refused |
+  ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and opens the
   microphone; the 3 s count-in is a state timeout; Stop encodes the WAV to
   review (play it back before submitting); Submit posts it as the state's
   task; the answer is the take kept (what was heard, its word error) or the
@@ -2589,7 +2589,7 @@ the film second it starts at; a finding about the whole film has neither).
   work: `floatingHand(ctx, root, g, style, hand, { over, body })`, given
   whether it is drawn over its figure and the figure's silhouette (`HandBody`),
   calls `probeHand(ctx, { side, shoulder, at, to, size, radius, reach, grip,
-formed, over, body })` from what it knows (its side from `root.away`, where it is, where
+  formed, over, body })` from what it knows (its side from `root.away`, where it is, where
   it works (its rest, with no work), its mitten's size, the figure's reach
   radius, how far it has travelled, the grip it works with as shares of each
   grip (`GripShares`: `grip`, or `was` changing into it) and how far that

@@ -199,7 +199,7 @@ every type, every prophetic figure must pass them:
 - **Spirit of Prophecy (Ellen G. White)** — prophetic voice; a confirming
   witness _in harmony with_ Scripture (Isaiah 8:20), never an independent
   authority. Quote `paragraphs[].text` from `bible egw lookup` / `egw
-commentary`.
+  commentary`.
 - **SDA pioneers — including William Miller**, plus Uriah Smith, J.N. Andrews,
   James White, J.N. Loughborough, and the broader Millerite/early-Advent
   corpus. Use for historicist framing, prophetic chronology, and the pioneer
