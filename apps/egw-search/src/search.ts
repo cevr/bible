@@ -34,9 +34,20 @@ export type ContextParagraph = Hit['before'][number];
  *  is generous: the budget this guards is a hung socket, not a slow query. */
 const REQUEST_TIMEOUT = '30 seconds';
 
-/** How long a batch waits for the other panes' searches. Panes that start
- *  together start within a few milliseconds of each other. */
-const BATCH_WINDOW = '10 millis';
+/** How long a batch of searches waits after its latest search before it goes
+ *  out: for the reader to stop changing one (a superseded search leaves its
+ *  batch and takes its input with it), and for the other panes' searches. The
+ *  URL changes at once, for links and history; the request waits this quiet
+ *  period so rapid filter changes share one request, and no search the reader
+ *  has changed again goes out.
+ *
+ *  A search joins its batch as its pane renders, with no wait before it, and
+ *  each one in moves the send to this period after it. So the panes of one
+ *  render join one batch however long the render takes on a slow machine,
+ *  and every search in it has had this much quiet since the last one joined.
+ *  The cost: a pane changed again and again keeps the other panes' searches
+ *  waiting in its batch until it rests. */
+const QUIET = '100 millis';
 
 /** The failure a pane renders: the server's word for one search, or the
  *  transport's for the whole batch. */
@@ -64,7 +75,7 @@ const slotExit = (slot: SearchSlot): Exit.Exit<SearchResponse, SearchError> => {
  * of the request, only of that slot.
  */
 const batcher = makeBatcher<SearchRequest, SearchResponse, SearchError>({
-  window: BATCH_WINDOW,
+  window: QUIET,
   maxSize: MAX_BATCH,
   run: (requests) =>
     client.pipe(

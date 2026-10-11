@@ -12,7 +12,7 @@ import { describe, expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { FilmUnknown } from '../../src/core/refusals.ts';
 import { timecode } from '../../src/core/time.ts';
-import type { Tab } from '../../src/lab/fixtures/tab.ts';
+import { type Tab, WAIT_MS } from '../../src/lab/fixtures/tab.ts';
 import {
   DESK,
   PHONE,
@@ -46,6 +46,13 @@ const TWO = probeFilm().placed[1]?.start ?? Number.NaN;
 /** The probe film's first and second scenes' lengths, in seconds. */
 const ONE_LENGTH = probeFilm().placed[0]?.dur ?? Number.NaN;
 const TWO_LENGTH = probeFilm().placed[1]?.dur ?? Number.NaN;
+
+/**
+ * Long enough for a case that opens the lab twice (5.6 to 16.9 s in CI's runs,
+ * against the suite's 20 s): twice a wait's own bound (`WAIT_MS`), so a wait
+ * that fails says what it waited for before the case runs out of time.
+ */
+const TWO_LABS = 2 * WAIT_MS;
 
 /** Each match's box as the page placed it: its rect, or for a pinned layer its inline box from its frame's corner (a hidden layer has no rect). */
 const rects = (sel: string) =>
@@ -730,6 +737,7 @@ describe('the lab shell', () => {
         yield* page.click('.bar [data-act="play"]');
         yield* evaluates(page, narrationShown('narration waits for a click'), true);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    TWO_LABS,
   );
 
   for (const ended of ['pointercancel', 'lostpointercapture'])

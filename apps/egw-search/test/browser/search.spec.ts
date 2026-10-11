@@ -151,6 +151,34 @@ test('runs the real batched workflow with identity and URL receipts', async ({ p
   expect(errors).toEqual([]);
 });
 
+test('panes that start together go out as one batch on a slow machine', async ({ page }) => {
+  const errors = pageErrors(page);
+  const batchRequests: string[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === BATCH_PATH) batchRequests.push(request.url());
+  });
+  // A slow machine: a render takes 30 ms between one pane's start and the
+  // next's (CI's two batches went out 10 ms apart). So a wait the page sets
+  // starts 30 ms later for each wait set before it in the same task.
+  await page.addInitScript(() => {
+    const set = window.setTimeout.bind(window);
+    let earlier = 0;
+    const slowed = (handler: TimerHandler, delay?: number, ...rest: unknown[]): number => {
+      if ((delay ?? 0) < 10) return set(handler, delay, ...rest);
+      if (earlier === 0) set(() => (earlier = 0), 0);
+      earlier += 1;
+      return set(handler, (delay ?? 0) + 30 * (earlier - 1), ...rest);
+    };
+    window.setTimeout = slowed as typeof window.setTimeout;
+  });
+  await resetFixture(page);
+  await page.goto('/?q=alpha&q2=beta');
+  await waitForTwoResults(page);
+  expect(batchRequests).toHaveLength(1);
+  expect((await receipts(page)).lastBatch.toSorted()).toEqual(['alpha', 'beta']);
+  expect(errors).toEqual([]);
+});
+
 test('renders a typed query failure and recovers through the real transport', async ({ page }) => {
   const errors = pageErrors(page);
   const failedRequests: string[] = [];
@@ -265,6 +293,36 @@ test('Back returns to the position the reader left', async ({ page }) => {
 
   await input.fill('gamma');
   await input.press('Enter');
+  await expect(secondPane.locator('.text')).toHaveText('gamma');
+  await page.evaluate(() => window.scrollTo(0, 0));
+
+  await page.goBack();
+  await expect(secondPane.locator('.text')).toHaveText('beta');
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(left);
+  expect(errors).toEqual([]);
+});
+
+test('Back returns to a position the search left before the page told of its scroll', async ({
+  page,
+}) => {
+  const errors = pageErrors(page);
+  await page.setViewportSize({ width: 390, height: 640 });
+  await resetFixture(page);
+  await page.goto('/?q=alpha&q2=beta');
+  await waitForTwoResults(page);
+  const secondPane = page.locator('.pane').nth(1);
+  const input = secondPane.locator('input');
+  await input.fill('gamma');
+  // The scroll and the search in one task: the browser tells of a scroll at
+  // its next frame, so the search's new entry lands before the scroll event,
+  // as on a machine whose frames lag its input.
+  const left = await page.evaluate(() => {
+    const field = document.querySelectorAll<HTMLInputElement>('.pane input')[1];
+    field?.scrollIntoView({ block: 'center' });
+    field?.form?.requestSubmit();
+    return window.scrollY;
+  });
+  expect(left).toBeGreaterThan(0);
   await expect(secondPane.locator('.text')).toHaveText('gamma');
   await page.evaluate(() => window.scrollTo(0, 0));
 

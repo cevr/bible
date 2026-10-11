@@ -15,7 +15,8 @@
  *
  * Entries are told apart by the key `@bible/url-state` gives each one
  * (`UrlAtom.entry`): a push makes a new key, a replace keeps it. The position
- * of the entry on screen is kept as the reader scrolls, and once more at the
+ * of the entry on screen is kept as the reader scrolls, once more at the
+ * moment the page writes the URL (a search, a filter), and once more at the
  * moment Back or Forward leaves it. The positions live in the tab's session
  * storage, so a reload lands where the reader was, and Back after a reload
  * still finds the older entries' positions.
@@ -128,10 +129,17 @@ export const useScrollMemory = (): void => {
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('pagehide', onPageHide);
 
+  // The page's own write (a search, a filter) changes the href at once,
+  // inside the reader's act and before the page redraws, so `scrollY` is
+  // where the reader leaves the entry on screen. The push it makes lands a
+  // tick later, after that redraw, so the position is read here and not
+  // there; and not from the scroll events alone, which the browser fires at
+  // its next frame, on a slow machine after the push has landed.
+  const unsubscribeWrites = registry.subscribe(UrlAtom.href, () => keep(onScreen, window.scrollY));
+
   // Back and Forward land here synchronously, inside `popstate`, so the page
   // has not been redrawn yet and `scrollY` is still where the reader left the
-  // entry. A push lands after its first redraw, so its position comes from
-  // the scroll events instead.
+  // entry.
   const unsubscribe = registry.subscribe(UrlAtom.entry, (entry) => {
     if (entry.key === onScreen) return;
     if (entry.navigation === 'traverse') keep(onScreen, window.scrollY);
@@ -144,6 +152,7 @@ export const useScrollMemory = (): void => {
   if (positions.has(onScreen)) restore(onScreen);
 
   onCleanup(() => {
+    unsubscribeWrites();
     unsubscribe();
     window.removeEventListener('scroll', onScroll);
     window.removeEventListener('pagehide', onPageHide);
