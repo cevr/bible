@@ -75,9 +75,9 @@ const ITEMS: ReadonlyArray<Item> = (() => {
 
 /** Where the people stand. */
 const ACCUSED = new Vector3(-1.3, 0, 0.5);
-const JUDGE = new Vector3(0, 1.5, -5.9);
+const JUDGE = new Vector3(0, 1.5, -5.45);
 /** The verdict plate's place on the bench front. */
-const PLATE = new Vector3(0, 1.62, -4.16);
+const PLATE = new Vector3(-0.05, 1.62, -4.16);
 
 interface Set {
   readonly scene: Scene;
@@ -158,7 +158,7 @@ const build = (r: Rig): Set => {
   at(box(6.8, 0.14, 1.5, 0.8), bench, 0, 2.37, -4.8);
   for (const x of [-2.1, 2.1]) at(box(1.6, 1.3, 0.06, 1.2), trim, x, 1.2, -4.18);
   // The gavel's block, under the judge's gavel hand.
-  at(post(0.16, 0.18, 0.07, 6), bench, 0.36, 2.48, -4.78);
+  at(post(0.16, 0.18, 0.07, 6), bench, 0.36, 2.48, -4.4);
 
   // The bar: a rail on posts between the well and the gallery.
   for (const s of [-1, 1]) {
@@ -206,7 +206,7 @@ const build = (r: Rig): Set => {
   word.magFilter = NearestFilter;
   word.minFilter = NearestFilter;
   word.generateMipmaps = false;
-  put(plate, sheet(3.6, 0.9), ps1(w, { map: word, emissive: 0.55 }), 0, 0, 0);
+  put(plate, sheet(2.4, 0.6), ps1(w, { map: word, emissive: 0.55 }), 0, 0, 0);
   plate.position.copy(PLATE);
   scene.add(plate);
 
@@ -238,7 +238,7 @@ const build = (r: Rig): Set => {
   scene.add(judge.root);
   // The gavel in his hand: a turned head on a handle, set at the angle that
   // lays it flat on the block when the arm comes down.
-  judge.grip.rotation.x = 1.15;
+  judge.grip.rotation.x = 1.5;
   const wood = ps1(w, { map: t.desk });
   put(judge.grip, post(0.025, 0.025, 0.42, 5), wood, 0, 0, 0.18).rotation.x = Math.PI / 2;
   put(judge.grip, post(0.075, 0.075, 0.26, 7), wood, 0, 0, 0.38).rotation.z = Math.PI / 2;
@@ -309,12 +309,12 @@ const SHOTS: ReadonlyArray<Shot> = [
     lookTo: [-1.3, 1.5, 0.5],
     fov: 50,
   },
-  // Up at the judge from where the accused stands, pushing in.
+  // At the judge across the bench top, the block in view, pushing in.
   {
-    from: [-0.6, 2.1, 0.0],
-    to: [-0.45, 2.2, -0.8],
-    look: [0.1, 2.85, -5.6],
-    lookTo: [0.1, 2.9, -5.6],
+    from: [-0.6, 2.75, 0.0],
+    to: [-0.45, 2.85, -0.8],
+    look: [0.1, 2.75, -5.2],
+    lookTo: [0.1, 2.8, -5.2],
     fov: 32,
   },
   // The verdict, over the accused's shoulder, easing in.
@@ -329,11 +329,11 @@ const SHOTS: ReadonlyArray<Shot> = [
 
 /** The gavel's arc across `gavel`: raised, down hard on the block, a bounce, at rest on it. */
 const SWING: ReadonlyArray<Key> = [
-  [0, 0.7],
-  [0.373, 2.5],
-  [0.627, 0.95, 'inCubic'],
-  [0.797, 1.25, 'outQuad'],
-  [1, 0.97],
+  [0, 1.25],
+  [0.373, 2.6],
+  [0.627, 1.32, 'inCubic'],
+  [0.797, 1.6, 'outQuad'],
+  [1, 1.35],
 ];
 /** The plate's scale across `stamp`: in large, a give, settled. */
 const STAMP_POP: ReadonlyArray<Key> = [
