@@ -31,7 +31,7 @@
 // the page reads it from there, and `stepView` runs one event through the
 // view machine to the state the page writes back.
 
-import { Effect, Match, Option, Schema } from 'effect';
+import { Effect, Match, Option, Predicate, Schema } from 'effect';
 import { Event, Machine, State, simulate } from 'effect-machine';
 import type { SET_VIEWS } from '../../core/api.ts';
 import { FILM_FPS, frameRead, timecode } from '../../core/time.ts';
@@ -269,6 +269,12 @@ export type SyncActor = Effect.Success<ReturnType<typeof spawnSync>>;
 
 /** Whether the videos should be running: only while playing (a stall holds them all). */
 export const runningOf = (state: SyncState): boolean => state._tag === 'Playing';
+
+/** Whether the player plays, or waits on its videos to play on (`MOVING`). */
+export const movingOf: (state: SyncState) => boolean = Predicate.or(
+  Predicate.isTagged('Playing'),
+  Predicate.isTagged('Buffering'),
+);
 
 /**
  * Whether the player is at rest: paused where it opens. A scrub is never at

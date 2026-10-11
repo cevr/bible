@@ -30,6 +30,7 @@ import {
   SyncEvent as Events,
   type SyncState,
   UNKNOWN_END,
+  movingOf,
   runningOf,
 } from './machine.ts';
 
@@ -232,7 +233,7 @@ export const makeSync = (
           if (t < video.duration() && drifted(video.time(), t)) forkOn(a, video.seek(t));
         }
       });
-      return Option.exists(current, (now) => runningOf(now) || now._tag === 'Buffering');
+      return Option.exists(current, movingOf);
     });
 
   const run = () => {
@@ -257,10 +258,11 @@ export const makeSync = (
     current = Option.some(state);
     hear(state);
     // A seek, or the clock's rate read while still (its frames are not the
-    // ones the videos landed on). Read while playing, it lands none: a landing
-    // at the last tick's time would put each back; they play on, and the next
-    // seek lands them on the new frames.
-    const regrid = state.fps !== grid && !runningOf(state);
+    // ones the videos landed on). Read while playing, or while the set waits
+    // on a video to play on, it lands none: a landing at the last tick's time
+    // would put each back (and give the wait more to load); they play on, and
+    // the next seek lands them on the new frames.
+    const regrid = state.fps !== grid && !movingOf(state);
     grid = state.fps;
     if (state.seek !== seek || regrid) {
       seek = state.seek;

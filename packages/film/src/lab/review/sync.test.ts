@@ -173,6 +173,16 @@ describe('the sync driver', () => {
     expect([...a.asked, ...b.asked].filter((asked) => asked.startsWith('seek'))).toEqual([]);
   });
 
+  test("the clock's rate read while the set waits on a video seeks none either: it is about to play on", () => {
+    const { driver, a, b } = rig();
+    driver.apply(SyncState.Playing({ ...clock(1.042, 1), fps: 30 }));
+    driver.apply(SyncState.Buffering({ ...clock(1.042, 1), fps: 30 }));
+    a.asked.length = 0;
+    b.asked.length = 0;
+    driver.apply(SyncState.Buffering({ ...clock(1.042, 1), fps: 24 }));
+    expect([...a.asked, ...b.asked].filter((asked) => asked.startsWith('seek'))).toEqual([]);
+  });
+
   test('a set waiting on a stalled video resumes once every video can play on', () => {
     const { frames, driver, b, tags } = rig();
     driver.apply(SyncState.Playing(clock(0)));
