@@ -210,6 +210,13 @@ describe('swipe to dismiss', () => {
     await openSheet(page);
     await page.mouse.click(20, 10);
     await see.poll(() => focused(page)).toBe('outside');
+    // The sheet takes presses over its panel exactly (its left edge at x=500).
+    expect(
+      await page.evaluate(() => [
+        document.elementFromPoint(495, 300)?.closest('#overlay') ?? null,
+        document.elementFromPoint(505, 300)?.closest('#panel')?.id,
+      ]),
+    ).toEqual([null, 'panel']);
     await page.mouse.move(650, 500);
     // 600px of the sheet's 800px travel toward the exit: the nearer snap is the exit.
     await page.mouse.wheel(-600, 0);

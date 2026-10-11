@@ -325,19 +325,18 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
   const page = createMemo(() => (viewport() && store.modal() ? pageSize() : undefined));
 
   // A sheet that is not modal stands fixed over a page that stays live: it takes presses (and
-  // so the swipe) only where its panel rests, grown by `--sheet-clip-margin` (room for the
-  // panel's shadow), and it is clipped there. A clip that followed the panel would leave the
-  // container out of the hit test, and the browser does not scroll a container a press misses.
+  // so the swipe) exactly where its panel rests, and it is clipped there, its panel's shadow
+  // with it. A clip that followed the panel would leave the container out of the hit test, and
+  // the browser does not scroll a container a press misses.
   const looseStyle = (): JSX.CSSProperties => {
     const rect = restRect();
     if (!rect) {
       return { position: 'fixed', inset: '0', 'pointer-events': 'none' };
     }
-    const edge = (px: number) => `calc(${px}px - var(--sheet-clip-margin, 0px))`;
     return {
       position: 'fixed',
       inset: '0',
-      'clip-path': `inset(${edge(rect.top)} ${edge(rect.right)} ${edge(rect.bottom)} ${edge(rect.left)})`,
+      'clip-path': `inset(${rect.top}px ${rect.right}px ${rect.bottom}px ${rect.left}px)`,
     };
   };
 
