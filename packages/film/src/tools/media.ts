@@ -200,7 +200,7 @@ export const PHONE_COPY = entriesOf(PHONE_ENCODE);
  * rate over the video's length and a full buffer), so the copy averages
  * `PHONE_RATE` at most however short it is.
  */
-export const phoneRateFor = (seconds: number) =>
+const phoneRateFor = (seconds: number) =>
   Math.max(1, Math.floor((PHONE_RATE * seconds) / (seconds + PHONE_ENCODE.bufferSeconds)));
 
 /** How long one still may take, and one phone copy. */
