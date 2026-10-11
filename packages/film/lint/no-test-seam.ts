@@ -5,7 +5,8 @@
 // as test code, so a product import of one is a take it does not see.
 //
 // Refused: a module of the repo's own named `testing` (`testing.ts`,
-// `testing.tsx`, or a package's `…/testing` export), reached by a relative
+// `testing.tsx`, the `.js` spelling `packages/core` writes, which resolves to
+// the `.ts` file, or a package's `…/testing` export), reached by a relative
 // path or a `@bible/` package, from an import, a re-export (`export … from`,
 // `export * from`), a type import, or a dynamic `import('…')` of a literal.
 // Another package's `testing` (`effect/testing`) is no seam of the repo's.
@@ -23,7 +24,7 @@ import {
 } from 'oxlint-plugin-effect/rule-bindings';
 
 /** A test seam of the repo's own: a relative path or a `@bible/` export whose last piece is `testing`. */
-const SEAM = /^(?:\.{1,2}\/|@bible\/)(?:.*\/)?testing(?:\.tsx?)?$/u;
+const SEAM = /^(?:\.{1,2}\/|@bible\/)(?:.*\/)?testing(?:\.[cm]?[jt]sx?)?$/u;
 
 const MESSAGE =
   "a test seam imported by product code: a testing.ts module holds a package's test-only doubles and fixtures, so a shipped import never reaches one. Move what this file needs out of the seam, into the module it belongs to.";

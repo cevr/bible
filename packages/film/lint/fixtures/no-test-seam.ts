@@ -9,6 +9,9 @@ export { routesOf as routes } from '../../src/core/testing.ts'; // RED film/no-t
 export * from '../../src/tools/testing.ts'; // RED film/no-test-seam
 
 export const later = () => import('../../src/core/testing.ts'); // RED film/no-test-seam
+// `packages/core` spells its relative imports `.js`, which resolve to the `.ts` file.
+export * from './search/testing.js'; // RED film/no-test-seam
+export { seam } from '../../src/core/testing.mjs'; // RED film/no-test-seam
 
 // Another package's `testing`, a module only named like one, and a product module pass.
 import { TestClock } from 'effect/testing';
