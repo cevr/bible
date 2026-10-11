@@ -289,6 +289,7 @@ describe('the mock length check, on planted pages', () => {
         `.ps2 { --pad: 8px; padding: var(--pad); } .ps2::before { --pad: 3px; content: 'x'; left: var(--pad); }
          .card .title { --pad: 8px; padding: var(--pad); } .toast .title { --pad: 5px; height: var(--pad); }
          .a3 { --pad: 8px; padding: var(--pad); } .a3 .b3 { --pad: 6px; width: var(--pad); }
+         .m3a { --pad: 8px; padding: var(--pad); } .m3b { --pad: 6px; width: var(--pad); }
          .a4 { --pad: 8px; padding: var(--pad); } .a4-b { --pad: 6px; } .a4b { --pad: 6px; }
          .a5 { --pad: 8px; padding: var(--pad); } :where(.a5) { --pad: 6px; }
          .a8 { --b: var(--s-2); --a: var(--b); & .c8 { padding: var(--a); } }
@@ -307,7 +308,7 @@ describe('the mock length check, on planted pages', () => {
          <p class="a10">.</p><p class="b10">.</p><p class="a11" data-k="x">.</p><p class="b11" data-k="a">.</p>
          <p class="m4">.</p><p class="m4card">.</p><div class="k2"><p class="k2c">.</p></div>
          <div class="f1"><p class="g1">.</p></div><p class="f2">.</p><p class="h1">.</p><p class="i1">.</p>
-         <p class="lose2">.</p>`,
+         <p class="lose2">.</p><p class="m3a">.</p><p class="m3b">.</p>`,
         [],
       ),
     SLOW,
