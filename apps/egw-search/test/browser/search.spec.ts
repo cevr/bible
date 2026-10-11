@@ -274,6 +274,36 @@ test('Back returns to the position the reader left', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('Back returns to a position the search left before the page told of its scroll', async ({
+  page,
+}) => {
+  const errors = pageErrors(page);
+  await page.setViewportSize({ width: 390, height: 640 });
+  await resetFixture(page);
+  await page.goto('/?q=alpha&q2=beta');
+  await waitForTwoResults(page);
+  const secondPane = page.locator('.pane').nth(1);
+  const input = secondPane.locator('input');
+  await input.fill('gamma');
+  // The scroll and the search in one task: the browser tells of a scroll at
+  // its next frame, so the search's new entry lands before the scroll event,
+  // as on a machine whose frames lag its input.
+  const left = await page.evaluate(() => {
+    const field = document.querySelectorAll<HTMLInputElement>('.pane input')[1];
+    field?.scrollIntoView({ block: 'center' });
+    field?.form?.requestSubmit();
+    return window.scrollY;
+  });
+  expect(left).toBeGreaterThan(0);
+  await expect(secondPane.locator('.text')).toHaveText('gamma');
+  await page.evaluate(() => window.scrollTo(0, 0));
+
+  await page.goBack();
+  await expect(secondPane.locator('.text')).toHaveText('beta');
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(left);
+  expect(errors).toEqual([]);
+});
+
 test('a reload keeps the position, and Back after it still finds the older one', async ({
   page,
 }) => {
