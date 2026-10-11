@@ -15,7 +15,7 @@ import { LabClient, type LabFailure, called } from '../api.ts';
 interface ReviewCalls {
   /** Every folder with something to review; `fresh` walks the roots again now. */
   readonly index: (fresh: boolean) => Effect.Effect<ReviewIndex, LabFailure>;
-  /** A video's length, in seconds, and its frame rate as its own frames say (none when it names none). */
+  /** A video's length, in seconds, and its frames a second as its own packets give them (never rounded; none when it has no video). */
   readonly duration: (ref: string) => Effect.Effect<ReviewDuration, LabFailure>;
   /** A doc's text (a variant's notes, a folder's markdown). */
   readonly text: (ref: string) => Effect.Effect<string, LabFailure>;

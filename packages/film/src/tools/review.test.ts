@@ -463,7 +463,7 @@ const projectCatalogue = [
  * with its catalogue; a stand-in Media (`reviewMedia`) giving every video
  * 12.5 s and making a still or a phone copy by copying the video whole.
  */
-const fixture = (phoneCopies: boolean) =>
+const fixture = (phoneCopies: boolean, fps: Option.Option<number> = Option.none()) =>
   Layer.unwrap(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -502,7 +502,7 @@ const fixture = (phoneCopies: boolean) =>
         maxVideo: 1000,
         phoneCopies,
       }).pipe(
-        Layer.provideMerge(reviewMedia(spawned)),
+        Layer.provideMerge(reviewMedia(spawned, 12.5, fps)),
         Layer.provide(RenderCatalogue.layer.pipe(Layer.provide(ContentStore.layer))),
         Layer.merge(Layer.succeed(Spawned, spawned)),
         Layer.merge(Layer.succeed(Root, dir)),
@@ -825,10 +825,10 @@ describe('the review service', () => {
     Effect.gen(function* () {
       const review = yield* Review;
       const spawned = yield* Spawned;
-      // A fake video, which no frame rate is read from.
+      // The video's length and its own frame rate, as one read of it by the media gives them.
       expect(yield* review.duration('out/art/roof.A.mp4')).toEqual({
         seconds: 12.5,
-        fps: Option.none(),
+        fps: Option.some(30000 / 1001),
       });
       const [a, b] = yield* Effect.all(
         [
@@ -839,13 +839,13 @@ describe('the review service', () => {
       );
       expect(a).toBe(b);
       expect(yield* (yield* FileSystem.FileSystem).readFileString(a)).toBe('a'.repeat(10));
-      expect(spawned.filter((c) => c.startsWith('duration'))).toHaveLength(1);
+      expect(spawned.filter((c) => c.startsWith('timing'))).toHaveLength(1);
       const frames = spawned.filter((c) => c.startsWith('still'));
       expect(frames).toHaveLength(1);
       expect(frames[0]).toEndWith('roof.A.mp4 1.25 640');
       yield* review.frame('out/art/roof.A.mp4', Option.some(3), 640);
       expect(spawned.filter((c) => c.startsWith('still'))).toHaveLength(2);
-    }).pipe(Effect.provide(fixture(false))),
+    }).pipe(Effect.provide(fixture(false, Option.some(30000 / 1001)))),
   );
 
   it.effect('a time before the start is the first frame, made and kept once', () =>

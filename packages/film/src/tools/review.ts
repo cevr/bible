@@ -98,7 +98,7 @@ import { CATALOGUE_FILE, type CatalogueError, RenderCatalogue } from './catalogu
 import { writeWhole } from './content-store.ts';
 import { cacheKey } from './digest.ts';
 import { keptWhenMade } from './film-repo.ts';
-import { Media, frameRate } from './media.ts';
+import { Media } from './media.ts';
 
 /** A folder the review reads, and the label its refs start with. */
 export interface ReviewRoot {
@@ -701,14 +701,14 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           });
 
         /**
-         * Each video's length and frame rate (its own: none for a file with no
-         * video), by path and mtime, the newest kept; a failed read is not.
+         * Each video's length and frame rate, one read of it (`Media.timing`:
+         * its own, never rounded; none for a file with no video), by path and
+         * mtime, the newest kept; a failed read is not.
          */
-        const lengths = yield* Cache.makeWith(
-          (at: AtMtime) =>
-            Effect.all({ seconds: media.duration(at.file), fps: frameRate(at.file) }),
-          { capacity: LENGTHS_KEPT, timeToLive: keptWhenMade },
-        );
+        const lengths = yield* Cache.makeWith((at: AtMtime) => media.timing(at.file), {
+          capacity: LENGTHS_KEPT,
+          timeToLive: keptWhenMade,
+        });
 
         const duration = Effect.fn('Review.duration')(function* (ref: string) {
           const file = yield* resolve(ref);

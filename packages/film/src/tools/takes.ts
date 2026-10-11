@@ -316,7 +316,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         yield* store.writeFile(at, audio);
         const reply = yield* elevenLabs.stt(at);
         const heard = yield* Effect.fromResult(heardWords(reply, source.file));
-        const duration = yield* media.duration(at);
+        const { seconds: duration } = yield* media.timing(at);
         const wer = lineError(beat.text, reply.text, film.heardAs);
         const made: Attempt = {
           beat: beat.id,

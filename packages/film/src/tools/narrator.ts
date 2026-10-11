@@ -507,7 +507,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         yield* fs.writeFile(take, audio);
         const heard = yield* elevenLabs.stt(take);
         const wer = lineError(beat.text, heard.text, film.heardAs);
-        const duration = yield* media.duration(take);
+        const { seconds: duration } = yield* media.timing(take);
         const overrun = Math.max(0, ...words.map((w) => w.end)) - duration;
         if (overrun > TAKE_TOLERANCE)
           yield* Effect.logWarning(

@@ -43,6 +43,7 @@ import {
   Layer,
   Match,
   Option,
+  Order,
   Stream,
 } from 'effect';
 import {
@@ -81,6 +82,12 @@ import { jpegOf } from './jpeg.ts';
 import { resample } from './resample.ts';
 import { X264Encoder } from './x264.ts';
 
+/** How long a media file plays, in seconds, and its frames a second (none for a file with no video). */
+export interface Timing {
+  readonly seconds: number;
+  readonly fps: Option.Option<number>;
+}
+
 export interface MediaService {
   /**
    * A recording (WAV, FLAC, AIFF, M4A, MP3), mixed down to one channel and
@@ -90,10 +97,13 @@ export interface MediaService {
   /** `pcm` as a 24-bit FLAC master: a person's take, lossless. */
   readonly encodeFlac: (pcm: Pcm) => Effect.Effect<Uint8Array, MediaFailed>;
   /**
-   * How long `file` plays, in seconds: an MP3 or FLAC as decoded (an MP3's
-   * encoder padding trimmed), anything else by its container.
+   * How long `file` plays, in seconds (an MP3 or FLAC as decoded, its
+   * encoder padding trimmed; anything else by its container), and its
+   * frames a second as its own packets say (`rateOf`: a whole or 1000/1001
+   * rate within float noise, else as measured), none for a file with no
+   * video: one read of the file.
    */
-  readonly duration: (file: string) => Effect.Effect<number, MediaFailed>;
+  readonly timing: (file: string) => Effect.Effect<Timing, MediaFailed>;
   /** `file`'s first audio track (MP3, FLAC, WAV, AIFF, M4A) decoded to planar PCM at its own rate, from its first frame. */
   readonly decode: (file: string) => Effect.Effect<Pcm, MediaFailed>;
   /** `pcm` written to `file` as a 16-bit WAV. */
@@ -537,23 +547,40 @@ const videoTrackOf = (op: MediaFailed['op'], file: string, input: Input) =>
 /** The packets a video's frame rate is counted over: a few seconds of a film. */
 const RATE_PACKETS = 120;
 
+/** How near a measured rate must be to a broadcast rate to be taken for it: float noise only. */
+const RATE_NOISE = 1e-3;
+
 /**
- * `file`'s frame rate, read where it lies: its video track's frames a second
- * (mediabunny's count over its first packets), to the nearest whole frame, as
- * a film renders at. None for a file with no video track, or none readable.
+ * `measured` (frames a second over a span of packets) as the rate it is: a
+ * whole rate (30) or its 1000/1001 rate (30000/1001, NTSC's 29.97) when it
+ * lies within float noise of one, else as measured. Never rounded to a whole
+ * rate it is not: a 29.97 video steps on its own grid.
  */
-export const frameRate = (file: string): Effect.Effect<Option.Option<number>> =>
-  Effect.scoped(
-    Effect.gen(function* () {
-      const input = yield* openInPlace(file);
-      const track = yield* videoTrackOf('read', file, input);
-      const stats = yield* attempt('read', file, () => track.computePacketStats(RATE_PACKETS));
-      return Option.liftPredicate(
-        Math.round(stats.averagePacketRate),
-        (rate) => Number.isFinite(rate) && rate > 0,
-      );
-    }),
-  ).pipe(Effect.orElseSucceed(() => Option.none<number>()));
+const rateOf = (measured: number): number => {
+  const whole = Math.round(measured);
+  const ntsc = (Math.round((measured * 1001) / 1000) * 1000) / 1001;
+  const off = (rate: number) => Math.abs(rate - measured);
+  const near = Arr.filter([whole, ntsc], (rate) => off(rate) < RATE_NOISE * measured);
+  return Option.getOrElse(
+    Arr.head(Arr.sort(near, Order.mapInput(Order.Number, off))),
+    () => measured,
+  );
+};
+
+/**
+ * The frame rate of the video in `input` (`file` opened), as its own packets
+ * say (mediabunny's count over its first packets, `rateOf`). None for a file
+ * with no video track, or none readable.
+ */
+const frameRateIn = (file: string, input: Input): Effect.Effect<Option.Option<number>> =>
+  Effect.gen(function* () {
+    const track = yield* videoTrackOf('read', file, input);
+    const stats = yield* attempt('read', file, () => track.computePacketStats(RATE_PACKETS));
+    return Option.map(
+      Option.liftPredicate(stats.averagePacketRate, (rate) => Number.isFinite(rate) && rate > 0),
+      rateOf,
+    );
+  }).pipe(Effect.orElseSucceed(() => Option.none<number>()));
 
 /** An even count of pixels, as H.264's 4:2:0 wants. */
 const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
@@ -716,7 +743,7 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
        * for a file it cannot open there (an AIFF, or a file on a test's
        * in-memory disk): those are read through `fs` as before.
        */
-      const indexedLength = (file: string) =>
+      const indexedTiming = (file: string) =>
         Effect.scoped(
           Effect.gen(function* () {
             const input = yield* Effect.acquireRelease(
@@ -727,21 +754,27 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
             );
             const format = yield* Effect.option(attempt('read', file, () => input.getFormat()));
             if (Option.isNone(format) || format.value === MP3 || format.value === FLAC)
-              return Option.none<number>();
-            return Option.some(yield* attempt('read', file, () => input.computeDuration()));
+              return Option.none<Timing>();
+            const seconds = yield* attempt('read', file, () => input.computeDuration());
+            const timing: Timing = { seconds, fps: yield* frameRateIn(file, input) };
+            return Option.some(timing);
           }),
         );
 
-      const duration = Effect.fn('Media.duration')(function* (file: string) {
-        const indexed = yield* indexedLength(file);
+      const timing = Effect.fn('Media.timing')(function* (file: string) {
+        const indexed = yield* indexedTiming(file);
         if (Option.isSome(indexed)) return indexed.value;
         return yield* Effect.scoped(
           Effect.gen(function* () {
             const opened = yield* open(file);
-            if (opened.codec === 'other')
-              return yield* attempt('read', file, () => opened.input.computeDuration());
+            if (opened.codec === 'other') {
+              const seconds = yield* attempt('read', file, () => opened.input.computeDuration());
+              const read: Timing = { seconds, fps: yield* frameRateIn(file, opened.input) };
+              return read;
+            }
             const pcm = yield* decodeOpened(opened);
-            return pcm.frames / pcm.rate;
+            const decoded: Timing = { seconds: pcm.frames / pcm.rate, fps: Option.none() };
+            return decoded;
           }),
         );
       });
@@ -922,7 +955,7 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
       });
 
       return Media.of({
-        duration,
+        timing,
         decode,
         writeWav,
         encodeAac,
