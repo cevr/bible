@@ -1889,6 +1889,24 @@
       }
     },
     {
+      // A package's test-only doubles live in its testing.ts seam: product
+      // code never imports one (packages/film/lint/no-test-seam.ts). Off where
+      // a seam is the point: the tests, the fixtures, the seams, the type tests.
+      "files": ["**/packages/*/src/**/*.ts", "**/packages/*/src/**/*.tsx"],
+      "excludeFiles": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/fixtures/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/testing.ts",
+        "**/*.types.ts"
+      ],
+      "rules": {
+        "film/no-test-seam": "error"
+      }
+    },
+    {
       // The film plugin's rules read every name by its binding through one
       // reader, packages/film/lint/nodes.ts: a rule that reads the scope tree
       // itself is how names came to be read by their spelling, rule by rule.

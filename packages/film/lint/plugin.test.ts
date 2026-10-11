@@ -69,6 +69,8 @@ const MESSAGES = {
     "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case as test.serial.",
   'spawn-budget.ts:15 film/spawn-budget':
     "this test spawns a process and has no timeout: a cold start's time is the machine's, so give it its budget in milliseconds as the last argument.",
+  'no-test-seam.ts:3 film/no-test-seam':
+    "a test seam imported by product code: a testing.ts module holds a package's test-only doubles and fixtures, so a shipped import never reaches one. Move what this file needs out of the seam, into the module it belongs to.",
   'no-read-once.ts:23 film/no-read-once':
     'evaluate reads the page once, whatever it had drawn at that instant: wait for the value instead (textIs, textHas, valueIs, attributeIs, countIs, evaluates or until in lab/fixtures/settled.ts).',
   'drawing-literal.ts:18 film/drawing-literal':
