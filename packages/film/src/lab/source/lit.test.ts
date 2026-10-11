@@ -76,6 +76,24 @@ describe('what is lit at a frame', () => {
     expect(followLine(code, litNow(code, liveAt(cues, 5, 30)))).toEqual(Option.none());
   });
 
+  test('with nothing playing it follows to the selection’s literal, else to a knob the frame read', () => {
+    const withKnob: SceneCode = {
+      ...code,
+      knobs: [{ name: 'lift', at: range('lift = 1'), reads: [] }],
+    };
+    const still = liveAt(cues, 5, 30);
+    const read = { cue: Option.none(), knob: Option.none(), read: ['lift'] };
+    // Nothing selected: the knob the frame read, on line 1.
+    expect(followLine(withKnob, litNow(withKnob, still, read))).toEqual(Option.some(1));
+    // The cue selected, on line 4, before the knob read.
+    const fall = { ...read, cue: Option.some('fall') };
+    expect(followLine(withKnob, litNow(withKnob, still, fall))).toEqual(Option.some(4));
+    // What plays, on line 3, before the selection.
+    expect(followLine(withKnob, litNow(withKnob, liveAt(cues, 0.5, 30), fall))).toEqual(
+      Option.some(3),
+    );
+  });
+
   test('the head names what plays; else why the code lights none; else that nothing plays', () => {
     expect(liveWords(code, litNow(code, liveAt(cues, 0.5, 30)))).toBe('rise');
     expect(liveWords(code, litNow(code, liveAt(cues, 5, 30)))).toBe('nothing playing');

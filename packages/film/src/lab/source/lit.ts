@@ -5,7 +5,7 @@
 // (`browser/highlights.ts`) and the view scrolls to `followLine`.
 
 import { Array as Arr, Option } from 'effect';
-import { lineOf, lineStarts } from '../../core/lines.ts';
+import { lastLineOf, lineOf, lineStarts } from '../../core/lines.ts';
 import type { CodeRange, NoteSource, SceneCode } from '../../core/schema.ts';
 import { type LabSelection, cueOf, knobOf } from '../../command/selection.ts';
 import type { liveAt } from '../../core/timeline.ts';
@@ -60,6 +60,9 @@ export const startsOf = (code: SceneCode): ReadonlyArray<number> =>
 
 /** The line (from 1) of `code` that offset `at` falls on. */
 export const lineAt = (code: SceneCode, at: number): number => lineOf(startsOf(code), at);
+
+/** The last line (from 1) of `code`'s file: what a held line past it holds. */
+export const lastLine = (code: SceneCode): number => lastLineOf(code.text, startsOf(code));
 
 /**
  * The line (from 1) `line` of `code`, as a note cites it: its file, its
@@ -156,11 +159,16 @@ export const selectionAt = (code: SceneCode, line: number): Option.Option<LabSel
 };
 
 /**
- * The line the view follows to: where the first playing cue is written, else
- * the first call that reads one. None when nothing playing is in the code.
+ * The line the view follows to: where the first playing cue is written; else,
+ * with nothing playing, where the selected cue or knob is written; else the
+ * first range lit as a read (with nothing playing, a knob the frame read,
+ * where it is written or read). None when the code lights nothing.
  */
 export const followLine = (code: SceneCode, lit: Lit): Option.Option<number> =>
   Option.map(
-    Option.orElse(Arr.head(lit.literals), () => Arr.head(lit.reads)),
+    Option.orElse(
+      Option.orElse(Arr.head(lit.literals), () => Arr.head(lit.picked)),
+      () => Arr.head(lit.reads),
+    ),
     (range) => lineAt(code, range[0]),
   );

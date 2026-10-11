@@ -91,6 +91,8 @@ const FALL_LINE = lineOfText("fall: { mark: 'fall'");
 const SPOT_LINE = lineOfText('spot: [320, 200]');
 /** The long comment's line: it wraps. */
 const LONG_LINE = lineOfText('// a long line');
+/** The file's last line: the long comment, before the newline that ends the file. */
+const LAST_LINE = LONG_LINE;
 
 /** Scene one's small source answer, as the server gives it: each cue and knob with the line that writes it. */
 const sourceRoute = route('GET', /^\/scenes\/one\/source$/, () =>
@@ -158,6 +160,14 @@ const SPLIT_TEXT = [
 ].join('\n');
 const splitRoute = route('GET', /^\/scenes\/one\/code$/, () => json(codeOf(SPLIT_TEXT)));
 const SPLIT_SPOT_LINE = lineIn(SPLIT_TEXT, 'spot: [320, 200]');
+const SPLIT_FALL_LINE = lineIn(SPLIT_TEXT, "fall: { mark: 'fall'");
+/** Whether line `n` of the code in the selection's sheet shows inside the box that scrolls it. */
+const inSheet = (n: number) => `(() => {
+  const row = document.querySelector('.lab-selection-sheet .lab-source-line[data-line="${n}"]');
+  const box = document.querySelector('.lab-selection-sheet .lab-source-scroll').getBoundingClientRect();
+  const r = row.getBoundingClientRect();
+  return r.top >= box.top && r.bottom <= box.bottom && r.bottom <= window.innerHeight;
+})()`;
 /** Two animation frames: a scroll's event and a resize's observation are both in. */
 const FRAMES = `new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))`;
 
@@ -281,6 +291,24 @@ describe('a note cites the line held', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live('a line past the file’s end holds its last line, and the note cites that one', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(1, { code: '999' }),
+        mode: 'note',
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      // The file ends in a newline, which ends its last line and opens none.
+      yield* attributeIs(page, '.lab-source-held', 'data-line', String(LAST_LINE));
+      yield* page.press('n');
+      yield* textIs(
+        page,
+        '[data-role="note-scope"] .lab-scope-text',
+        `one · scenes/one.ts:${LAST_LINE}`,
+      );
+    }).pipe(Effect.scoped),
+  );
+
   it.live('a view that only follows cites no line', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([codeRoute], {
@@ -338,8 +366,40 @@ describe('on a phone', () => {
       yield* page.click('.lab-selection-sheet [data-face="source"]');
       yield* page.waitFor('.lab-selection-sheet .lab-source-page');
       yield* evaluates(page, `location.search.includes('code=follow')`, true);
+      // The pressed face wears the kit's pressed segment (`.sh-seg`): the raised surface, the brightest ink.
+      yield* evaluates(
+        page,
+        `(() => {
+          const tab = getComputedStyle(document.querySelector('.lab-selection-sheet [data-face="source"]'));
+          const kit = document.createElement('i');
+          kit.style.background = 'var(--surface-3)';
+          kit.style.color = 'var(--text-1)';
+          document.body.append(kit);
+          const want = getComputedStyle(kit);
+          const same = tab.backgroundColor === want.backgroundColor && tab.color === want.color;
+          kit.remove();
+          return same;
+        })()`,
+        true,
+      );
       yield* page.click('.lab-selection-sheet [data-face="inspect"]');
       yield* countIs(page, '.lab-selection-sheet .lab-source', 0);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('opened from a selected cue with nothing playing, it shows the cue’s literal', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([splitRoute, sourceRoute], {
+        href: labOne(0.05, { cue: 'fall' }),
+        viewport: { ...PHONE, coarse: true },
+      });
+      yield* page.waitFor('.lab-selection-sheet');
+      yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+      yield* page.click('.lab-selection-sheet [data-face="source"]');
+      yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+      // The frame read a knob a screen down the file; the selection's literal is at its top, and it is shown.
+      yield* evaluates(page, inSheet(SPLIT_FALL_LINE), true);
+      yield* evaluates(page, inSheet(SPLIT_SPOT_LINE), false);
     }).pipe(Effect.scoped),
   );
 
@@ -554,6 +614,24 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
       });
       yield* page.waitFor('.lab-source-sheet .lab-source-page');
       yield* evaluates(page, showing(LONG_RISE_LINE), true);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a reader who scrolls away from the held line keeps the box through a resize', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([longRoute], {
+        href: labOne(1, { code: `${LONG_RISE_LINE}` }),
+        viewport: touch,
+      });
+      yield* page.waitFor('.lab-source-sheet .lab-source-page');
+      yield* evaluates(page, showing(LONG_RISE_LINE), true);
+      yield* page.evaluate(`${BOX}.scrollTop = 0`);
+      yield* page.evaluate(FRAMES);
+      // The sheet lowered: the box resizes, and the reader's place stands.
+      yield* page.resize(390, 600);
+      yield* page.evaluate(FRAMES);
+      yield* page.evaluate(FRAMES);
+      yield* evaluates(page, `${BOX}.scrollTop`, 0);
     }).pipe(Effect.scoped),
   );
 
@@ -824,19 +902,22 @@ describe('a line of the code in a phone sheet, served', () => {
   // Serial, each case here: a finger's touches (`film/touches-serial`).
   for (const { name, sheet, picked } of SHEETS) {
     const line = `${sheet} .lab-source-line[data-line="${RISE_LINE}"]`;
-    test.serial(`in ${name}, a touch held still on a line opens its menu: Copy link`, () =>
-      Effect.gen(function* () {
-        const { page } = yield* openServed('lab', [codeRoute, sourceRoute], {
-          href: labOne(1, { ...picked, code: 'follow' }),
-          viewport: PHONE,
-        });
-        yield* page.waitFor(line);
-        yield* page.clock.hold;
-        yield* fingerDown(page, line, 0);
-        yield* page.clock.runFor(700);
-        yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
-        yield* page.finger.up;
-      }).pipe(Effect.scoped, Effect.runPromise),
+    test.serial(
+      `in ${name}, a touch held still on a line opens its menu: Note this line, Copy link`,
+      () =>
+        Effect.gen(function* () {
+          const { page } = yield* openServed('lab', [codeRoute, sourceRoute], {
+            href: labOne(1, { ...picked, code: 'follow' }),
+            viewport: PHONE,
+          });
+          yield* page.waitFor(line);
+          yield* page.clock.hold;
+          yield* fingerDown(page, line, 0);
+          yield* page.clock.runFor(700);
+          yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
+          yield* evaluates(page, `${MENU_ITEMS}.includes('notes.line')`, true);
+          yield* page.finger.up;
+        }).pipe(Effect.scoped, Effect.runPromise),
     );
 
     test.serial(`in ${name}, a right-click on a line opens its menu, not the browser's`, () =>

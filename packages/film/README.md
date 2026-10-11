@@ -1664,15 +1664,22 @@ knobs the frame read lit (`player.knobReads()`), a meter on each playing
 literal's line, and a held line. A long line wraps under its own number, on a
 phone and on a laptop alike (one layout; the view never scrolls sideways). It
 is closed at rest and reads nothing: `?code=follow` opens it following the
-playhead, `?code=<line>` holds a line, and the inspector's `file:line` (from the
+playhead (to the first playing cue's literal; with nothing playing, the
+selected cue's or knob's; else a knob the frame read), `?code=<line>` holds a
+line (one past the file's end holds its last line, and that is the line lit
+and cited), and the inspector's `file:line` (from the
 small `…/scenes/<scene>/source` answer, which names each cue's and knob's `line`,
 so selecting reads no code) opens it on that cue's or knob's line. Inside the
 open view a tap on a line holds it and selects the cue or knob written there; a
 long press or right-click on it opens the page's menu with Note this line (the
 note's scope chip cites `file:line`) and Copy link; Follow in its head says
-whether the view scrolls with the frame; any scroll the view did not make and
-layout did not clamp (a wheel, a finger, keys, the scrollbar, find-in-page) lets
-go of it, and Play or pressing Follow takes it back. A read the server refuses says why, with
+whether the view scrolls with the frame. It scrolls by the lab's one Follow
+rule (`lab/follow.ts`, which the cue strip's rows keep too): any scroll the
+view did not make and layout did not clamp (a wheel, a finger, keys, the
+scrollbar, find-in-page) lets go of it, following or held, and Play or
+pressing Follow takes it back (a held line, holding a line again). When the
+code lists no literal for its `timeline` (a computed one), the head says why
+in place of "nothing playing". A read the server refuses says why, with
 Retry and Close. On a laptop it is a column beside the picture; on a phone it
 is the selection sheet's second face (Inspect · Source) in Edit, or a sheet of
 its own while nothing is selected and in every other mode; closing the sheet
@@ -1691,15 +1698,15 @@ one rule (`useSheetDismissal`: Back over a tap's pick when the entry before it
 is where the Close would write, so a time moved since is kept; else the URL
 follows to pick none).
 
-| Route                                              | What it does                                                                                                                                                                                                                 |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`, and the `line` that writes each cue and knob                                                                               |
-| `GET /api/films/<film>/scenes/:scene/code`         | the scene file's text now and, as `[start, end)` ranges of it, where each cue and knob is written and every call that reads a cue, knob or narration mark by name (`SceneCode`; read-only, the Source view's lit spans)      |
-| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `untilOffset?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                                                                                          |
-| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                                                                                                    |
-| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under; `{change?}`: that change only, while it is the newest, else a 409 `StepNotNewest`) |
-| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do (each with its `change` id), and the steps `landed` by request id                                                                                  |
-| `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                                                                                                                                             |
+| Route                                              | What it does                                                                                                                                                                                                                        |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`, and the `line` that writes each cue and knob                                                                                      |
+| `GET /api/films/<film>/scenes/:scene/code`         | the scene file's text now and, as `[start, end)` ranges of it, where each cue and knob is written and every call that reads a cue or knob by name, and why a field lists none (`SceneCode`; read-only, the Source view's lit spans) |
+| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `untilOffset?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                                                                                                 |
+| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                                                                                                           |
+| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under; `{change?}`: that change only, while it is the newest, else a 409 `StepNotNewest`)        |
+| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do (each with its `change` id), and the steps `landed` by request id                                                                                         |
+| `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                                                                                                                                                    |
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
@@ -1778,7 +1785,10 @@ error finding, `FreshProcessFailed`, in its words.
 current scene zoomed, its words and marks, and one row per cue. On a phone a
 scene longer than 8 s shows the 8 s around the playhead, held inside the scene
 (`stripWindow`, `lab/editor/grip.ts`), so a cue is a finger wide; a scrub keeps
-the window it began in, and a cue's bar is clipped to it. Drag a cue's
+the window it began in, and a cue's bar is clipped to it. The rows scroll in
+their own box, which keeps the lanes the playhead is inside in sight by the
+Source view's Follow rule (`lab/follow.ts`): a hand's scroll lets go of it
+until Play, and a press on the strip holds it still. Drag a cue's
 body to move its offset, its left edge to move its start (offset and dur),
 its right edge to move its end (dur): an edge is the bar's outer 6 px, 14 px
 under a finger (`edgeFor`, `lab/editor/grip.ts`). A finger has no

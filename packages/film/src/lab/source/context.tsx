@@ -26,9 +26,9 @@ import { LabApi, reasonOf } from '../api.ts';
 import { useEditor } from '../editor/context.tsx';
 import { SourceKnown } from '../editor/grip.ts';
 import { useLab } from '../shell.tsx';
-import { lineAt, lineSite } from './lit.ts';
+import { lastLine, lineAt, lineSite } from './lit.ts';
 import { sourceCommands } from './commands.ts';
-import { type CodeOpen } from './open.ts';
+import { type CodeOpen, codeText } from './open.ts';
 
 /** The code as the view knows it: not asked for, being read, read, or refused (with the server's words). */
 export type CodeState = Data.TaggedEnum<{
@@ -56,11 +56,19 @@ interface SourceContextValue {
   readonly retry: () => void;
   /** The view as the URL holds it. */
   readonly open: Accessor<Option.Option<CodeOpen>>;
-  /** Whether the view scrolls with the frame: it is open to follow and no hand has scrolled it since. */
+  /**
+   * The line the view is held on, against the code read: `?code=<n>`, or the
+   * file's last line for an `n` past it. None while it follows, is shut, or
+   * reads. The view lights it and a note cites it: one line.
+   */
+  readonly held: Accessor<Option.Option<number>>;
+  /** Whether the view places its scroll: no hand has scrolled it since it opened, was held on a line, or was taken back. */
+  readonly placing: Accessor<boolean>;
+  /** Whether the view scrolls with the frame: it is open to follow and placing. */
   readonly following: Accessor<boolean>;
-  /** A hand scrolled the view: it stops following until `resume`. */
+  /** A hand scrolled the view: it stops placing until `resume`, or until a line is held. */
   readonly suspend: () => void;
-  /** Follow the frame again. */
+  /** Place the view again: follow the frame, or show the held line. */
   readonly resume: () => void;
   /** The file and line that write cue `name` of `scene`: from the code read, else from the small source answer. */
   readonly whereCue: (scene: string, name: string) => Option.Option<Where>;
@@ -127,11 +135,28 @@ export const Provider = (props: ParentProps) => {
   // Read while the view is open: the file's text is its payload, and a lab at rest reads nothing.
   const wanted = () => Option.isSome(lab.code());
 
+  // A hand's scroll holds until the view is opened, shut or held anew (`?code=` changes), or taken back.
   const [suspended, setSuspended] = createSignal(false, { ownedWrite: true });
-  createEffect(wanted, (open) => {
-    if (!open) setSuspended(false);
-  });
-  const following = () => Option.exists(lab.code(), (o) => o._tag === 'Follow') && !suspended();
+  createEffect(
+    () => codeText(lab.code()),
+    () => {
+      setSuspended(false);
+    },
+  );
+  const placing = () => !suspended();
+  const following = () => Option.exists(lab.code(), (o) => o._tag === 'Follow') && placing();
+  // The held line, clamped once against the code read: the view and the note read this one.
+  const held = createMemo(() =>
+    Option.flatMap(Option.all({ c: code(), o: lab.code() }), ({ c, o }) =>
+      Option.map(
+        Option.filter(
+          Option.some(o),
+          (x): x is Extract<CodeOpen, { _tag: 'Line' }> => x._tag === 'Line',
+        ),
+        (x) => Math.min(x.line, lastLine(c)),
+      ),
+    ),
+  );
 
   // Where a cue or knob is written: the code read, else the small answer the editor holds for the scene shown.
   const whereIn =
@@ -179,20 +204,9 @@ export const Provider = (props: ParentProps) => {
     ),
   );
   // The line the view is held on, as a note cites it: of the code read, once it is.
-  const cited = createMemo(() =>
-    Option.flatMap(Option.all({ c: code(), o: lab.code() }), ({ c, o }) =>
-      Option.map(
-        Option.filter(
-          Option.some(o),
-          (x): x is Extract<CodeOpen, { _tag: 'Line' }> => x._tag === 'Line',
-        ),
-        (held) => ({ scene: c.scene, line: held.line, code: c }),
-      ),
-    ),
-  );
   const heldSite = () =>
-    Option.flatMap(cited(), ({ scene: of, line, code: c }) =>
-      Option.map(lineSite(c, line), (source) => ({ scene: of, source })),
+    Option.flatMap(Option.all({ c: code(), line: held() }), ({ c, line }) =>
+      Option.map(lineSite(c, line), (source) => ({ scene: c.scene, source })),
     );
   const value: SourceContextValue = {
     scene,
@@ -200,6 +214,8 @@ export const Provider = (props: ParentProps) => {
     state,
     retry: () => retrying(),
     open: lab.code,
+    held,
+    placing,
     following,
     suspend: () => setSuspended(true),
     resume: () => setSuspended(false),

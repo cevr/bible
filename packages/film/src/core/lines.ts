@@ -11,6 +11,10 @@ export const lineStarts = (text: string): ReadonlyArray<number> => {
   return starts;
 };
 
+/** The last line (from 1) of `text`, whose lines `starts`: a final newline ends that line and opens none. */
+export const lastLineOf = (text: string, starts: ReadonlyArray<number>): number =>
+  Math.max(1, starts.length - Number(text.endsWith('\n')));
+
 /** The line (from 1) `offset` falls on, given where the lines `starts`: the last that starts at or before it. */
 export const lineOf = (starts: ReadonlyArray<number>, offset: number): number => {
   // Halving: line `lo` starts at or before `offset`; no line from `hi` on does.

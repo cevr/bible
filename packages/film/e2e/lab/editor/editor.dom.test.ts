@@ -16,6 +16,7 @@ import { pageHref } from '../../../src/core/api.ts';
 import { DEFAULT_EASE } from '../../../src/core/time.ts';
 import { SourceRefused, StepNotNewest } from '../../../src/core/refusals.ts';
 import { LONG, LONG_SCENE } from '../../../src/lab/fixtures/long-film.ts';
+import { probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   type Asked,
   type Json,
@@ -1565,5 +1566,70 @@ describe('the inspector', () => {
           Option.some({ request: expect.any(String) }),
         ]);
       }).pipe(Effect.scoped),
+  );
+});
+
+describe('the strip follows the playhead down its rows', () => {
+  /** Scene one's cues in film seconds: the middle of each, where the probe film plays it. */
+  const one = probeFilm().placed[0];
+  const middle = (name: string) => {
+    const cue = one?.cues.get(name);
+    return (one?.start ?? 0) + ((cue?.start ?? 0) + (cue?.end ?? 0)) / 2;
+  };
+  const BOX = `document.querySelector('.lab-strip-scroll')`;
+  /** The rows' box a row and the words high: the probe film's two lanes overflow it, as roof's 35 overflow 240 px. */
+  const SHORT = `(() => { const s = document.createElement('style'); s.textContent = '.lab-strip-scroll { max-height: calc(18px + 16px) !important; }'; document.head.append(s); return true; })()`;
+  /** Whether every lit lane's row stands inside the rows' box, under the words held at its top. */
+  const LIT_IN_SIGHT = `(() => {
+    const box = ${BOX}.getBoundingClientRect();
+    const words = document.querySelector('.lab-strip-words').getBoundingClientRect();
+    const lit = [...document.querySelectorAll('.lab-cue[data-live]')].map((c) => c.closest('.lab-strip-row').getBoundingClientRect());
+    return lit.length > 0 && lit.every((r) => r.top >= words.bottom - 0.5 && r.bottom <= box.bottom + 0.5)
+      ? 'in sight'
+      : 'lit rows ' + JSON.stringify(lit.map((r) => [Math.round(r.top), Math.round(r.bottom)])) + ' in a box ' + Math.round(words.bottom) + '-' + Math.round(box.bottom);
+  })()`;
+  const seek = (t: number) => `(location.hash = '#t=${t}', true)`;
+  /** Two animation frames: a scroll's event and a frame's draw are both in. */
+  const FRAMES = `new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))`;
+
+  for (const [name, viewport] of [
+    ['on a phone', PHONE],
+    ['on a laptop', { width: 1440, height: 900 }],
+  ] as const) {
+    it.live(`${name}, a lane lit below the box is scrolled into sight`, () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(middle('rise')), viewport });
+        yield* page.waitFor('.lab-cue[data-cue="fall"]');
+        yield* evaluates(page, SHORT, true);
+        yield* until(page, `${LIT_IN_SIGHT} === 'in sight'`);
+        yield* page.evaluate(seek(middle('fall')));
+        yield* until(
+          page,
+          `document.querySelector('.lab-cue[data-cue="fall"][data-live]') !== null`,
+        );
+        yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      }).pipe(Effect.scoped),
+    );
+  }
+
+  it.live('a hand on the rows lets go of them until Play takes them back', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(middle('fall')), viewport: PHONE });
+      yield* page.waitFor('.lab-cue[data-cue="fall"][data-live]');
+      yield* evaluates(page, SHORT, true);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      // The reader scrolls back to the top: the lit lane leaves the box, and a frame moved since leaves it there.
+      yield* page.evaluate(`${BOX}.scrollTop = 0`);
+      yield* page.evaluate(seek(middle('rise')));
+      yield* until(page, `document.querySelector('.lab-cue[data-cue="rise"][data-live]') !== null`);
+      yield* page.evaluate(seek(middle('fall')));
+      yield* until(page, `document.querySelector('.lab-cue[data-cue="fall"][data-live]') !== null`);
+      yield* page.evaluate(FRAMES);
+      yield* evaluates(page, `${BOX}.scrollTop`, 0);
+      // Play takes the rows back to the lit lane.
+      yield* page.click('.bar [data-act="play"]');
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      yield* page.click('.bar [data-act="play"]');
+    }).pipe(Effect.scoped),
   );
 });

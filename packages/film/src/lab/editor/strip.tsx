@@ -5,7 +5,9 @@
 // drag across a cue's lane beside its bar marks the in and out points, shown
 // as a band (a tap there seeks); a press elsewhere on the strip scrubs within
 // the scene. Its head holds the Snap toggle (S), and Cancel drag while a
-// grip is held: a finger's Shift and Escape. The cue lanes are Edit's (and
+// grip is held: a finger's Shift and Escape. The rows scroll in their own box,
+// which follows the lanes the playhead is inside by the Source view's rule
+// (`lab/follow.ts`) until a hand scrolls it, and Play takes it back. The cue lanes are Edit's (and
 // Motion's on a laptop, for its loop): in Note, Compare and Record, and on a
 // phone in every mode but Edit, the strip folds to its words (`player.css`,
 // by the panel's mode on `data-mode`).
@@ -27,6 +29,7 @@ import { Target } from '../command/context-menu.tsx';
 import { selectsCue } from '../place.ts';
 import { pressed } from '../pressed.ts';
 import { useLabPage } from '../panel.tsx';
+import { useFollow } from '../follow.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { anchorText } from './format.ts';
@@ -159,6 +162,7 @@ export const Strip = () => {
     return [...meta.stage.cuesOf(state.stripScene())];
   });
   let rows = Option.none<HTMLElement>();
+  let scroller = Option.none<HTMLElement>();
   const { state: motionState, actions: motion } = useMotion();
   const [marking, setMarking] = createSignal(Option.none<LoopRange>());
   const file = () =>
@@ -247,6 +251,51 @@ export const Strip = () => {
             ),
           );
         };
+        // The lanes the playhead is inside, in the strip's order, as one key: what the rows follow.
+        const live = createMemo(() => {
+          const now = new Set(
+            liveAt(new Map(cues()), lab.T() - p().start, meta.film.fps).map((l) => l.name),
+          );
+          return cues()
+            .map(([name]) => name)
+            .filter((name) => now.has(name))
+            .join(' ');
+        });
+        const laneRow = (name: string) =>
+          Option.flatMap(rows, (r) =>
+            Option.fromNullishOr(
+              r
+                .querySelector(`.lab-cue[data-cue="${CSS.escape(name)}"]`)
+                ?.closest<HTMLElement>('.lab-strip-row'),
+            ),
+          );
+        // The lab's one Follow rule (`lab/follow.ts`): the live lanes kept in the rows' box, below the words held at
+        // its top. A hand's scroll lets go until Play; a press on the strip (a grip, a scrub, a range) holds it still.
+        const [readerHas, setReaderHas] = createSignal(false);
+        useFollow({
+          box: () => scroller,
+          content: () => rows,
+          target: live,
+          span: (key) => {
+            const names = key.split(' ');
+            return Option.all({
+              first: laneRow(names[0] ?? ''),
+              last: laneRow(names.at(-1) ?? ''),
+            });
+          },
+          clear: () => ({
+            top: Option.match(
+              Option.flatMap(rows, (r) =>
+                Option.fromNullishOr(r.querySelector<HTMLElement>('.lab-strip-words')),
+              ),
+              { onNone: () => 0, onSome: (w) => w.offsetHeight },
+            ),
+            bottom: 0,
+          }),
+          placing: () => !readerHas() && !state.holding() && Option.isNone(held()),
+          reader: () => setReaderHas(true),
+          played: () => setReaderHas(false),
+        });
         // The in and out points over this scene's window: as a lane drag marks them, else as marked.
         const band = () =>
           Option.filter(
@@ -291,7 +340,12 @@ export const Strip = () => {
               </button>
             </div>
             {/* The rows scroll in their own box, the words held at its top, so the film keeps its row. */}
-            <div class="lab-strip-scroll">
+            <div
+              class="lab-strip-scroll"
+              ref={(el: HTMLDivElement) => {
+                scroller = Option.some(el);
+              }}
+            >
               <div
                 class="lab-strip-rows"
                 ref={(el: HTMLDivElement) => {
