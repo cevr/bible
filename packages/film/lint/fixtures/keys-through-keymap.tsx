@@ -29,5 +29,7 @@ el.addEventListener('click', hear);
 el.addEventListener('input', hear);
 // The host's key events are film/host-events-through-adapter's, not this rule's.
 window.addEventListener('resize', hear);
+// A parameter called `window` is the page's own element, not the host: its keys are this rule's.
+export const own = (window: HTMLElement) => window.addEventListener('keydown', hear); // RED film/keys-through-keymap
 // A name the rule cannot read is not judged.
 el.addEventListener(kind, hear);

@@ -2783,8 +2783,9 @@ takes whatever the page had drawn at that instant, and
 is refused. An `evaluate` run for what it does is an action, and so is one
 whose kept answer only a wait reads (a baseline the page keeps).
 `film/spawn-budget` (`lint/spawn-budget.ts`) holds every test of
-`packages/film`: a test whose body spawns a process (`ChildProcess.make`,
-`Bun.spawn`, `Bun.spawnSync`, or a function of the same file that does) gives
+`packages/film`: a test whose body spawns a process (effect's
+`ChildProcess.make`, the global `Bun`'s `spawn` or `spawnSync`, `spawn`
+imported from `bun`, or a function of the same file that does) gives
 its timeout in milliseconds as its last argument: a cold start's time is the
 machine's, and bun's default 5 s fails a loaded one.
 A spawn inside a service the test provides is not seen.
@@ -2800,11 +2801,74 @@ today and why, and how it got here lives in the ledger and `git log`. It
 refuses the forms history takes on its face: a loop pass by number, a batch
 id, a commit hash, and "used to" said of what the code did (not "is used
 to"). History told in other words is the sweep's to find.
+`film/drawing-literal` and `film/no-unprobed-ink` hold a film's scenes to
+what the lab can locate and what `film check` can probe; the films' README
+(`apps/animations/README.md`, **Lint**) says what each refuses.
+`film/one-breakpoint` (`lint/one-breakpoint.ts`) holds the pages' TypeScript
+(`lab/`, `player/`, `browser/`, `command/`) to the studio's one breakpoint: a
+media query width written out
+(`(max-width: 899px)`, `(width >= 900px)`, in any unit, or built from a number
+in a template) is refused, and the window is asked through `PHONE` or `WIDE`
+(`lab/viewport.ts`). A feature query (`@supports (width: 900px)`) passes.
+`film/booleans-through-pressed` (`lint/booleans-through-pressed.ts`) holds
+the lab's components: a boolean a control shows (`aria-pressed`,
+`aria-expanded`, a `data-*` flag the source proves a boolean) is written by
+`pressed(on)` (`lab/pressed.ts`), never by hand as `String(x)`,
+`x.toString()`, `JSON.stringify(x)` or `` `${x}` ``. The player, which may
+not import the lab, is outside its reach.
+`film/no-host-alias` (`lint/no-host-alias.ts`) holds the pages that reach the
+host through its adapters: a host global (`window`, `document`, `navigator`,
+`performance`, `location`, `history`, `globalThis`, `self`) is never held
+under a name or a place of the page's own (`const perf = performance`,
+`{ w: window }`, `(w = window) =>`, `[document]`, `() => performance`), since
+the host bans of **The purity rule** read it only under its own name. Handing
+it to a call builds an adapter, and passes.
+`film/one-clock-epsilon` (`lint/one-clock-epsilon.ts`) holds the code that
+computes times to one owner of the grid, `core/time.ts`: a nudge written
+beside a time (`Math.ceil(t * fps - 1e-6)`, `m - 1e-3`, a const holding one)
+is refused, and so is `CLOCK_EPSILON` inside a rounding call, which judges two
+times one and puts none on a grid (`frameAtOrAfter`, `frameAtOrBefore`,
+`onTheMs`, `offTheMs`, `heardAtOrAfter` and `justBefore` do).
+`film/lock-through-sqlite` (`lint/lock-through-sqlite.ts`) holds all of `src`
+but the lock itself, the tests and the fixtures: a manifest's lock file is
+opened by SQLite alone
+(`tools/manifest-lock-bun.ts`), so its `lockFile` is called, and a lock
+file's name (`.catalogue.json.lock`) written, nowhere else; closing any other
+handle on the file lets go of the process's lock.
+`film/no-test-seam` (`lint/no-test-seam.ts`) holds every package's `src`: a
+package's test-only doubles live in its `testing.ts` seam (`core/testing.ts`,
+`tools/testing.ts`, `@bible/url-state/testing`, `@bible/core/<area>/testing`),
+and product code imports none, by a relative path, a package export, a type
+import, a re-export or a dynamic `import('…')`. The tests, the fixtures, the
+seams and the type tests are let off.
+
+Every name a rule reads a meaning into is read by its binding where it is
+written, through one reader, `lint/nodes.ts` (`bindings`: `definitionOf`,
+`importsAs`, `readsImport`, `callsImport`, `isGlobal`, `framePart`,
+`readsCue`, `takenFrom`, `readsOf`, `isRunner`): an import
+under an alias or read off its module imported whole (`clamp as cap`,
+`Core.clamp`) is the import, and a parameter or a local of the same spelling
+(`Math`, `t`, `window`, `test`) is its own name. A module is told by the path
+a relative specifier resolves to from the importing file, so core's own
+`./time.ts` is `core/time.ts` as `../core/time.ts` is. A global is the global only
+where the file binds that name nowhere; the frame's `t`, `T` and `at` are the
+frame's only when read off the parameter a drawing's `draw` or `light` is
+handed, or one typed `Frame`. A member read off
+a value handed in (`page.finger`, `page.evaluate`, `hub.keysOf`) is read by
+its member's name, since the rule cannot type the value. `.oxlintrc.json`
+refuses the scope tree's own readers to every module of `lint/` but
+`nodes.ts`: the imports (`Scope`, `SourceCode`, `Variable`, `sourceCode` and
+their kin, from `oxlint-plugin-effect/rule-bindings` or from the package root,
+whose `ruleBindings` is refused too) and, through a rule's own context, the
+properties `getScope`, `getDeclaredVariables`, `scopeManager`,
+`isGlobalReference` and `markVariableAsUsed`, so a rule cannot grow a second
+reader.
 `lint/plugin.test.ts` runs oxlint over the marked fixtures: every RED
-location must report its rule, with no extra findings. Representative
-diagnostics for all thirteen rules also assert the corrective message,
-including the distinct anchor-end and cue-part repairs, so a rule that
-fires but gives the wrong advice fails the fixture suite.
+location must report its rule, with no extra findings. Each of the plugin's
+twenty-two rules (`lint/plugin.ts`) also has a diagnostic whose corrective
+message is asserted, including the distinct anchor-end and cue-part repairs,
+so a rule that fires but gives the wrong advice fails the fixture suite; the
+test holds that list to the plugin's rules.
 
 The package's `test` script runs the unit tests under `src/` and `lint/`.
 The root `test` and `gate`, including the CI gate, run this browser-free

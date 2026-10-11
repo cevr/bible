@@ -111,3 +111,21 @@ export const Panel = (props: {
     <span data-maybe={String(props.maybe)} />
   </aside>
 );
+
+/** `x.toString()` and `JSON.stringify(x)` are the same hand write as `String(x)`. */
+export const Spelled = () => (
+  <div>
+    <button aria-pressed={on().toString()} /> {/* // RED film/booleans-through-pressed */}
+    <button aria-expanded={JSON.stringify(on())} /> {/* // RED film/booleans-through-pressed */}
+    <div data-ready={ready.toString()} /> {/* // RED film/booleans-through-pressed */}
+    <div data-open={JSON.stringify(open())} /> {/* // RED film/booleans-through-pressed */}
+    {/* A number, a radix, and a JSON of the file's own pass. */}
+    <div data-rate={rate().toString()} />
+    <button aria-pressed={rate().toString(2)} />
+    <div data-open={Own.JSON.stringify(open())} />
+  </div>
+);
+export const OwnJSON = (JSON: { readonly stringify: (v: unknown) => string }) => (
+  <button aria-pressed={JSON.stringify(on())} />
+);
+declare const Own: { readonly JSON: { readonly stringify: (v: unknown) => string } };

@@ -2,6 +2,8 @@
 // nothing else does.
 import * as Canvas from '@bible/film/canvas';
 import { stroke, unprobed, unprobed as texture } from '@bible/film/canvas';
+import * as other from '../../src/lab/pressed.ts';
+import { unprobed as notKit } from '../../src/lab/pressed.ts';
 
 declare const ctx: CanvasRenderingContext2D;
 
@@ -29,4 +31,10 @@ export const draw = () => {
 export const shadowed = () => {
   const unprobed = (draw: () => void) => draw();
   unprobed(() => ctx.stroke()); // RED film/no-unprobed-ink
+};
+
+// Another module's `unprobed` is not the kit's: it exempts nothing.
+export const elsewhere = () => {
+  other.unprobed(ctx, () => ctx.stroke()); // RED film/no-unprobed-ink
+  notKit(ctx, () => ctx.stroke()); // RED film/no-unprobed-ink
 };

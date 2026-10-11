@@ -10,7 +10,10 @@
 // `Array` module's, under any name), and `Effect.forEach`, `Effect.filter` and
 // `Effect.partition`. The other members of `Effect`, `Stream`, `Option`,
 // `Result` and `Layer` pass one value, so `Effect.flatMap(x, Console.log)`
-// passes.
+// passes. Each module is read by its binding (`nodes.ts`): `Console`,
+// `Effect` and the others are effect's (`import { Console as C } from
+// 'effect'`, `import * as Effect from 'effect/Effect'`), and `console` is the
+// global; a name of the file's own, of the same spelling, is neither.
 
 import { Effect, Option } from 'effect';
 import {
@@ -20,7 +23,7 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { memberName } from './nodes.ts';
+import { type Bindings, bindings, memberName } from './nodes.ts';
 
 /** Methods that pass their callback the element's index after it. */
 const INDEXED = new Set([
@@ -36,26 +39,33 @@ const INDEXED = new Set([
 ]);
 
 /** Effect modules whose callbacks take one value, but for the members in `indexedIn`. */
-const ONE_VALUE = new Set(['Effect', 'Stream', 'Option', 'Result', 'Layer']);
+const ONE_VALUE: ReadonlyArray<string> = ['Effect', 'Stream', 'Option', 'Result', 'Layer'];
 const indexedIn = new Set(['forEach', 'filter', 'partition']);
 
+/** Whether `node` is effect's module `name`: `import { Effect } from 'effect'` (or an alias), or `effect/Effect` imported whole. */
+const isEffectModule = (b: Bindings, node: ESTree.Node, name: string): boolean =>
+  b.importsAs(node, (from) => from === 'effect', name) ||
+  b.importsAs(node, (from) => from === `effect/${name}`, '*');
+
 /** `Console.log`, `console.error`, `Effect.logInfo`: the logger an argument names, when it is one. */
-const loggerOf = (n: ESTree.Node): Option.Option<string> => {
-  if (n.type !== 'MemberExpression' || n.object.type !== 'Identifier') return Option.none();
-  const owner = n.object.name;
+const loggerOf = (b: Bindings, n: ESTree.Node): Option.Option<string> => {
+  if (n.type !== 'MemberExpression') return Option.none();
+  const owner = n.object;
   return Option.flatMap(memberName(n), (name) => {
-    if (owner === 'Console' || owner === 'console') return Option.some(`${owner}.${name}`);
-    if (owner === 'Effect' && name.startsWith('log')) return Option.some(`Effect.${name}`);
+    if (isEffectModule(b, owner, 'Console')) return Option.some(`Console.${name}`);
+    if (b.isGlobal(owner, 'console')) return Option.some(`console.${name}`);
+    if (isEffectModule(b, owner, 'Effect') && name.startsWith('log'))
+      return Option.some(`Effect.${name}`);
     return Option.none();
   });
 };
 
 /** Whether a call passes its callback an index: `xs.forEach(f)`, `Effect.forEach(xs, f)`, not `Effect.flatMap(x, f)`. */
-const passesIndex = (call: ESTree.CallExpression): boolean => {
+const passesIndex = (b: Bindings, call: ESTree.CallExpression): boolean => {
   const callee = call.callee;
   if (callee.type !== 'MemberExpression') return false;
   return Option.exists(memberName(callee), (name) => {
-    if (callee.object.type === 'Identifier' && ONE_VALUE.has(callee.object.name))
+    if (ONE_VALUE.some((module) => isEffectModule(b, callee.object, module)))
       return indexedIn.has(name);
     return INDEXED.has(name);
   });
@@ -70,11 +80,14 @@ export const noPointFreeLog = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
+    const b = yield* bindings;
     return Visitor.on('CallExpression', (node) =>
       Effect.asVoid(
         Effect.when(
           Effect.forEach(
-            node.arguments.flatMap((a) => Option.toArray(loggerOf(a)).map((name) => ({ a, name }))),
+            node.arguments.flatMap((a) =>
+              Option.toArray(loggerOf(b, a)).map((name) => ({ a, name })),
+            ),
             ({ a, name }) =>
               context.report(
                 Diagnostic.make({
@@ -83,7 +96,7 @@ export const noPointFreeLog = Rule.define({
                 }),
               ),
           ),
-          Effect.succeed(passesIndex(node)),
+          Effect.succeed(passesIndex(b, node)),
         ),
       ),
     );

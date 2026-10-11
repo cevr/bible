@@ -1,10 +1,12 @@
 // Fixture for film/one-clock-epsilon: each line marked RED fires the rule, and
 // nothing else does.
 
+import { CLOCK_EPSILON, CLOCK_EPSILON as EPS } from '../../src/core/time.ts';
+import * as time from '../../src/core/time.ts';
+
 declare const t: number;
 declare const fps: number;
 declare const from: number;
-declare const CLOCK_EPSILON: number;
 declare const words: ReadonlyArray<{ readonly start: number }>;
 
 export const first = Math.ceil(t * fps - 1e-6); // RED film/one-clock-epsilon
@@ -51,3 +53,13 @@ export const shadowedLocal = () => {
   const HALF_MS = 2;
   return t + HALF_MS;
 };
+
+// CLOCK_EPSILON under an alias, off the module whole, and anywhere in the rounding's arithmetic.
+export const aliased = Math.ceil(t * fps - EPS); // RED film/one-clock-epsilon
+export const whole = Math.ceil(t * fps - time.CLOCK_EPSILON); // RED film/one-clock-epsilon
+export const deep = Math.ceil(CLOCK_EPSILON + t * fps - 1); // RED film/one-clock-epsilon
+export const scaledUp = Math.floor((t + CLOCK_EPSILON) * fps); // RED film/one-clock-epsilon
+// A parameter named `CLOCK_EPSILON` or `Math` is its own binding.
+export const ownEpsilon = (CLOCK_EPSILON: number) => Math.ceil(t * fps - CLOCK_EPSILON);
+export const ownMath = (Math: { readonly ceil: (x: number) => number }) =>
+  Math.ceil(t * fps - time.CLOCK_EPSILON);

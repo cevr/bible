@@ -32,3 +32,18 @@ const document2 = { title: '' };
 export const local = document2;
 // Reading a member of a host name is no alias of it (the host bans read the members).
 export const title = make() + document.title.length;
+
+// A host global held by a place of the page's own is the same alias.
+declare const mine: Window | undefined;
+declare const take: (w: Window) => number;
+export const held = { w: window }; // RED film/no-host-alias
+export const answered = () => performance; // RED film/no-host-alias
+export const defaulted = (w = window) => w.name; // RED film/no-host-alias
+export const listed = [document]; // RED film/no-host-alias
+export const either = mine ?? window; // RED film/no-host-alias
+export function returned() {
+  return navigator; // RED film/no-host-alias
+}
+// Handing the host to a call builds an adapter; a key named like a host is no host.
+export const adapted = take(window);
+export const keyed = { window: 1, document: mine };

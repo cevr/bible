@@ -1,6 +1,6 @@
 // Fixture for film/touches-serial: each line marked RED fires the rule, and
 // nothing else does.
-import { describe, test } from 'bun:test';
+import { describe, test, test as serialTest } from 'bun:test';
 import { it } from 'effect-bun-test';
 import { Effect } from 'effect';
 import * as gestures from '../../src/lab/fixtures/gestures.ts';
@@ -75,3 +75,19 @@ describe('cases made serial from a table that touches', () => {
 });
 
 it.live('a mouse beside its siblings', () => page.mouse.click(1, 1));
+
+// A name of the case's own, spelled like a touch or a touching helper, touches nothing.
+it.live('a local touch and a shadowed helper', () => {
+  const touch = (_tab: Tab) => Effect.void;
+  const run = (pinch: () => Effect.Effect<void>) => pinch();
+  return Effect.andThen(
+    touch(page),
+    run(() => Effect.void),
+  );
+});
+// A `test` of the file's own is no runner's: what it calls is no case, and stands in its declaration.
+export const helpers = (test: (run: () => unknown) => void) => test(() => press(page, 'button', 0));
+// The runner's `test` under an alias is the runner's: its serial case runs alone.
+serialTest.serial('the touch gesture alone, through an aliased runner', () =>
+  press(page, 'button', 0),
+);

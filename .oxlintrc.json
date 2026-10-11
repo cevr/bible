@@ -1891,6 +1891,101 @@
           }
         ]
       }
+    },
+    {
+      // A package's test-only doubles live in its testing.ts seam: product
+      // code never imports one (packages/film/lint/no-test-seam.ts). Off where
+      // a seam is the point: the tests, the fixtures, the seams, the type tests.
+      "files": ["**/packages/*/src/**/*.ts", "**/packages/*/src/**/*.tsx"],
+      "excludeFiles": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/fixtures/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/testing.ts",
+        "**/*.types.ts"
+      ],
+      "rules": {
+        "film/no-test-seam": "error"
+      }
+    },
+    {
+      // The film plugin's rules read every name by its binding through one
+      // reader, packages/film/lint/nodes.ts: a rule that reads the scope tree
+      // itself is how names came to be read by their spelling, rule by rule.
+      // Last of the overrides, so no later block replaces it.
+      "files": ["**/packages/film/lint/**/*.ts"],
+      "excludeFiles": ["**/packages/film/lint/nodes.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "oxlint-plugin-effect/rule-bindings",
+                "importNames": [
+                  "Definition",
+                  "DefinitionType",
+                  "OxlintScope",
+                  "OxlintSourceCode",
+                  "Reference",
+                  "Scope",
+                  "ScopeManager",
+                  "SourceCode",
+                  "Variable",
+                  "sourceCode"
+                ],
+                "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts (bindings, definitionOf, importsAs), never the scope tree itself."
+              },
+              {
+                // The package root exports the same names, and `ruleBindings`
+                // holds the whole of `/rule-bindings`.
+                "name": "oxlint-plugin-effect",
+                "importNames": [
+                  "Definition",
+                  "DefinitionType",
+                  "OxlintScope",
+                  "OxlintSourceCode",
+                  "Reference",
+                  "Scope",
+                  "ScopeManager",
+                  "SourceCode",
+                  "Variable",
+                  "sourceCode",
+                  "ruleBindings"
+                ],
+                "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts (bindings, definitionOf, importsAs), never the scope tree itself."
+              }
+            ]
+          }
+        ],
+        // The same tree reached through the rule's own context
+        // (`context.sourceCode.getScope`): its readers are refused by name.
+        "no-restricted-properties": [
+          "error",
+          {
+            "property": "getScope",
+            "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
+          },
+          {
+            "property": "getDeclaredVariables",
+            "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
+          },
+          {
+            "property": "scopeManager",
+            "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
+          },
+          {
+            "property": "isGlobalReference",
+            "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
+          },
+          {
+            "property": "markVariableAsUsed",
+            "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
+          }
+        ]
+      }
     }
   ]
 }

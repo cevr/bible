@@ -11,6 +11,7 @@ export const bound = Effect.gen(function* () {
   yield* bar.push(href); // RED film/history-through-host
 });
 export const used = US.Location.use((bar) => bar.back); // RED film/history-through-host
+export const navigated = US.UrlState.UrlState.use((u) => u.navigate(href)); // RED film/history-through-host
 
 // Another namespace's `Location` is no address bar.
 declare const domain: { readonly Location: Effect.Effect<{ readonly back: number }> };

@@ -9,9 +9,11 @@
 // The rule reads the ink method off any object, however it is spelled:
 // `ctx.stroke`, `ctx['stroke']`, `ctx.fillText.call(…)`, or destructured
 // (`const { fillText } = ctx`). A namespace import (`Canvas.stroke(ctx)`) is the
-// kit, not a context. The exemption is an `unprobed` imported by name (aliases
-// included) or read off a namespace import, resolved through scope: a local
-// function that happens to be called `unprobed` exempts nothing.
+// kit, not a context. The exemption is the kit's `unprobed`
+// (`@bible/film/canvas`), by its binding (`nodes.ts`): imported by name,
+// under an alias, or read off the kit imported whole. A local function, or
+// another module's export, that happens to be called `unprobed` exempts
+// nothing.
 //
 // Raw `fill`/`fillRect` are left out on purpose: they are backdrops and eyes,
 // which cover text rather than cross it.
@@ -22,80 +24,25 @@ import {
   type ESTree,
   Rule,
   RuleContext,
-  Scope,
-  SourceCode,
-  type Variable,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { ancestors, memberName } from './nodes.ts';
+import { ancestors, type Bindings, bindings, isCanvas, memberName } from './nodes.ts';
 
 /** The context methods that put ink on the frame as a line: a stroke or text. */
 const INK: ReadonlySet<string> = new Set(['stroke', 'strokeRect', 'fillText', 'strokeText']);
 
-/** The kit's exemption, by its exported name. */
-const UNPROBED = 'unprobed';
+/** Any module, imported whole: a namespace is a module, never a context. */
+const anyModule = () => true;
 
-/** How `name` is bound where `node` sits, when it is an import (`import * as X`, `import { a as X }`). */
-const importBinding = (node: ESTree.Node, name: string) =>
-  Effect.map(SourceCode.getScope(node), (scope) =>
-    Option.filter(
-      Option.flatMap(Scope.findVariableUp(scope, name), (v: Variable) =>
-        Option.map(Option.fromUndefinedOr(v.defs[0]), (def) => def.node),
-      ),
-      (bound) => bound.type === 'ImportNamespaceSpecifier' || bound.type === 'ImportSpecifier',
-    ),
-  );
-
-/** `name` is bound by `import * as name`. */
-const isNamespace = (node: ESTree.Node, name: string) =>
-  Effect.map(
-    importBinding(node, name),
-    Option.exists((i) => i.type === 'ImportNamespaceSpecifier'),
-  );
-
-/** `name` is bound by `import { unprobed }` or `import { unprobed as name }`. */
-const isImportedUnprobed = (node: ESTree.Node, name: string) =>
-  Effect.map(
-    importBinding(node, name),
-    Option.exists(
-      (i) =>
-        i.type === 'ImportSpecifier' &&
-        i.imported.type === 'Identifier' &&
-        i.imported.name === UNPROBED,
-    ),
-  );
-
-/** A call to the kit's `unprobed`: `unprobed(…)`, an alias of it, or `Canvas.unprobed(…)`. */
-const callsUnprobed = (node: ESTree.Node): Effect.Effect<boolean, never, RuleContext> => {
-  if (node.type !== 'CallExpression') return Effect.succeed(false);
-  const callee = node.callee;
-  if (callee.type === 'Identifier') return isImportedUnprobed(node, callee.name);
-  if (
-    callee.type === 'MemberExpression' &&
-    callee.object.type === 'Identifier' &&
-    Option.contains(memberName(callee), UNPROBED)
-  )
-    return isNamespace(node, callee.object.name);
-  return Effect.succeed(false);
-};
-
-/** `node` sits inside a call to the kit's `unprobed`. */
-const insideUnprobed = (node: ESTree.Node) =>
-  Effect.map(Effect.forEach(ancestors(node), callsUnprobed), (hits) => hits.includes(true));
+/** `node` sits inside a call of the kit's `unprobed`. */
+const insideUnprobed = (b: Bindings, node: ESTree.Node) =>
+  ancestors(node).some((a) => b.callsImport(a, isCanvas, 'unprobed'));
 
 /** The ink method a member expression reads (`ctx.fillText`, `ctx['stroke']`), off anything but a namespace import. */
-const inkRead = (node: ESTree.MemberExpression) =>
-  Option.match(
-    Option.filter(memberName(node), (name) => INK.has(name)),
-    {
-      onNone: () => Effect.succeedNone,
-      onSome: (name) => {
-        if (node.object.type !== 'Identifier') return Effect.succeedSome(name);
-        return Effect.map(isNamespace(node, node.object.name), (ns) =>
-          Option.filter(Option.some(name), () => !ns),
-        );
-      },
-    },
+const inkRead = (b: Bindings, node: ESTree.MemberExpression): Option.Option<string> =>
+  Option.filter(
+    memberName(node),
+    (name) => INK.has(name) && !b.importsAs(node.object, anyModule, '*'),
   );
 
 /** `const { fillText } = ctx`: the ink methods an object pattern takes off its value. */
@@ -118,26 +65,16 @@ export const noUnprobedInk = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
-    const reportUnlessUnprobed = (node: ESTree.Node, name: string) =>
-      Effect.flatMap(insideUnprobed(node), (exempt) => {
-        if (exempt) return Effect.void;
-        return context.report(Diagnostic.make({ node, message: message(name) }));
-      });
+    const b = yield* bindings;
+    const report = (node: ESTree.Node, names: ReadonlyArray<string>) =>
+      Effect.forEach(
+        names.filter(() => !insideUnprobed(b, node)),
+        (name) => context.report(Diagnostic.make({ node, message: message(name) })),
+        { discard: true },
+      );
     return Visitor.merge(
-      Visitor.on('MemberExpression', (node) =>
-        Effect.flatMap(
-          inkRead(node),
-          Option.match({
-            onNone: () => Effect.void,
-            onSome: (name) => reportUnlessUnprobed(node, name),
-          }),
-        ),
-      ),
-      Visitor.on('ObjectPattern', (node) =>
-        Effect.forEach(inkTaken(node), (name) => reportUnlessUnprobed(node, name), {
-          discard: true,
-        }),
-      ),
+      Visitor.on('MemberExpression', (node) => report(node, Option.toArray(inkRead(b, node)))),
+      Visitor.on('ObjectPattern', (node) => report(node, inkTaken(node))),
     );
   },
 });

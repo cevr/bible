@@ -15,7 +15,9 @@
 // 2. such a literal, or one spread from another camera that writes any of
 //    `x`, `y` or `zoom` over it (`{ ...cam, zoom: lerp(cam.zoom, 1, roof) }`),
 //    with any of them blended by hand,
-//    `lerp(a, b, …)` whose `a` or `b` is a number (the unmoved frame's
+//    `lerp(a, b, …)` (film's, `core/time.ts`: imported, under an alias, or
+//    read off the module imported whole, `Core.lerp`) whose `a` or `b` is a
+//    number (the unmoved frame's
 //    included: a blend from it is a `shotPath` from `REST`) or an element of
 //    a top-level const's number tuple (`JUDGED_ZOOM[0]`, not a parameter of
 //    that name);
@@ -35,7 +37,7 @@ import {
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
 import { UNMOVED } from '../src/canvas/camera.ts';
-import { memberName, property, type TopLevel, topLevel } from './nodes.ts';
+import { type Bindings, bindings, isFilmTime, memberName, property } from './nodes.ts';
 
 /** The unmoved frame's `x`, `y` and `zoom`: the engine's `UNMOVED`, the canvas itself. */
 const UNMOVED_AT: Readonly<Record<'x' | 'y' | 'zoom', number>> = {
@@ -48,7 +50,7 @@ const KEYS = ['x', 'y', 'zoom'] as const;
 type Key = (typeof KEYS)[number];
 
 /** A number written out or a top-level const naming one, other than the unmoved frame's `key`. */
-const handWritten = (top: TopLevel, n: ESTree.Node, key: Key): boolean =>
+const handWritten = (top: Bindings, n: ESTree.Node, key: Key): boolean =>
   Option.exists(top.numberOf(n), (v) => v !== UNMOVED_AT[key]);
 
 /** An array literal of numbers only. */
@@ -61,7 +63,7 @@ const numbersOnly = (n: ESTree.Node): boolean =>
  * included (a blend from it is a `shotPath` from `REST`): written out, a
  * top-level const, or read off a top-level const's number tuple.
  */
-const handEnd = (top: TopLevel, n: ESTree.Node): boolean => {
+const handEnd = (top: Bindings, n: ESTree.Node): boolean => {
   if (Option.isSome(top.numberOf(n))) return true;
   return (
     n.type === 'MemberExpression' &&
@@ -72,11 +74,11 @@ const handEnd = (top: TopLevel, n: ESTree.Node): boolean => {
 };
 
 /** A `lerp(a, b, …)` call anywhere in `n` with a hand-written end. */
-const handBlend = (top: TopLevel, n: ESTree.Node): boolean => {
+const handBlend = (top: Bindings, n: ESTree.Node): boolean => {
   switch (n.type) {
     case 'CallExpression': {
-      const isLerp = n.callee.type === 'Identifier' && n.callee.name === 'lerp';
-      if (isLerp && n.arguments.slice(0, 2).some((a) => handEnd(top, a))) return true;
+      const blend = top.callsImport(n, isFilmTime, 'lerp');
+      if (blend && n.arguments.slice(0, 2).some((a) => handEnd(top, a))) return true;
       return n.arguments.some((a) => handBlend(top, a));
     }
     case 'BinaryExpression':
@@ -90,7 +92,7 @@ const handBlend = (top: TopLevel, n: ESTree.Node): boolean => {
 
 /** Whether a camera literal's fields are a hand framing: a point written out, or a blend by hand. */
 const handFraming = (
-  top: TopLevel,
+  top: Bindings,
   fields: ReadonlyArray<readonly [Key, ESTree.Node]>,
 ): boolean => {
   if (fields.some(([, value]) => handBlend(top, value))) return true;
@@ -125,13 +127,13 @@ const cameraFields = (n: ESTree.ObjectExpression): Option.Option<CameraFields> =
  * written out or a blend by hand; spread from another camera, a blend by hand
  * of what it writes over it (its point is the other camera's, so derived).
  */
-const handCamera = (top: TopLevel, { fields, whole }: CameraFields): boolean => {
+const handCamera = (top: Bindings, { fields, whole }: CameraFields): boolean => {
   if (whole) return handFraming(top, fields);
   return fields.some(([, value]) => handBlend(top, value));
 };
 
 /** `cam.zoom = lerp(…, 2.75, …)`: a scratch camera's zoom blended by hand. */
-const zoomBlend = (top: TopLevel, n: ESTree.AssignmentExpression): boolean =>
+const zoomBlend = (top: Bindings, n: ESTree.AssignmentExpression): boolean =>
   n.left.type === 'MemberExpression' &&
   Option.contains(memberName(n.left), 'zoom') &&
   handBlend(top, n.right);
@@ -148,7 +150,7 @@ export const framingIsAKnob = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
-    const top = yield* topLevel;
+    const top = yield* bindings;
     const report = (node: ESTree.Node) =>
       context.report(Diagnostic.make({ node, message: MESSAGE }));
     return Visitor.merge(

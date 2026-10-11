@@ -7,9 +7,11 @@
 // another curve reads its own cue (`with` the first, its own `ease`) or
 // `f.keys(cue, …)`, whose keys name their ease.
 //
-// The rule reads `ease.<name>(x)` where `x` is a call to `.at(…)` or a name
-// bound (by `const`, anywhere in scope) to one. A progress passed in as a
-// parameter is not traced.
+// The rule reads `ease.<name>(x)`, `ease` film's curves (`core/time.ts`:
+// imported, under an alias, or read off the module imported whole,
+// `Core.ease.inCubic(x)`), where `x` is a call of the frame's `.at(…)` or a
+// name bound by `const`, anywhere in scope, to one. A progress passed in as
+// a parameter is not traced.
 
 import { Effect, Option } from 'effect';
 import {
@@ -19,15 +21,14 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { readsCue } from './nodes.ts';
+import { type Bindings, bindings, isFilmTime, unwrapped } from './nodes.ts';
 
-/** `ease.inCubic(x)`: the one argument of a call on `ease`, when it is one. */
-const easedArgument = (n: ESTree.CallExpression): Option.Option<ESTree.Node> => {
-  const callee = n.callee;
+/** `ease.inCubic(x)`, `ease` film's curves: the one argument, when it is one. */
+const easedArgument = (b: Bindings, n: ESTree.CallExpression): Option.Option<ESTree.Node> => {
+  const callee = unwrapped(n.callee);
   if (
     callee.type !== 'MemberExpression' ||
-    callee.object.type !== 'Identifier' ||
-    callee.object.name !== 'ease' ||
+    !b.readsImport(callee.object, isFilmTime, 'ease') ||
     n.arguments.length !== 1
   )
     return Option.none();
@@ -43,23 +44,20 @@ export const noEaseOnCue = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
+    const b = yield* bindings;
     return Visitor.on('CallExpression', (node) =>
-      Option.match(easedArgument(node), {
-        onNone: () => Effect.void,
-        onSome: (x) =>
-          Effect.asVoid(
-            Effect.when(
-              context.report(
-                Diagnostic.make({
-                  node,
-                  message:
-                    "a cue's progress eased a second time: f.at(cue) is already eased by the span's `ease`, which the lab sets. A camera push is a shotPath stop with pushInto; another curve is its own cue or f.keys.",
-                }),
-              ),
-              readsCue(x),
-            ),
+      Effect.asVoid(
+        Effect.when(
+          context.report(
+            Diagnostic.make({
+              node,
+              message:
+                "a cue's progress eased a second time: f.at(cue) is already eased by the span's `ease`, which the lab sets. A camera push is a shotPath stop with pushInto; another curve is its own cue or f.keys.",
+            }),
           ),
-      }),
+          Effect.succeed(Option.exists(easedArgument(b, node), b.readsCue)),
+        ),
+      ),
     );
   },
 });

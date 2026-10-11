@@ -7,7 +7,10 @@
 //
 // The tab (`lab/fixtures/tab.ts`) reads the page one way only, `evaluate`;
 // so refused in a `*.dom.test.ts` is an `evaluate(…)` (the tab's, or a
-// helper of that name) whose answer `expect` asserts or a matcher compares
+// helper of that name: the tab is a value handed in, so its method is read by
+// its member's name) whose answer the runner's `expect` (`bun:test`'s,
+// `effect-bun-test`'s or bun's global, by its binding in `nodes.ts`; an
+// `expect` of the file's own asserts nothing) asserts or a matcher compares
 // with: directly, through a `const` bound to it (each read of the name), a
 // local helper whose arrow answers it (each call), a part of it
 // (`box.canvas`), a literal that holds it (`{ canvas }`) or a value computed
@@ -22,10 +25,9 @@ import {
   type ESTree,
   Rule,
   RuleContext,
-  SourceCode,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { memberName } from './nodes.ts';
+import { type Bindings, bindings, memberName } from './nodes.ts';
 
 /** A call to `evaluate`: `page.evaluate(…)`, or a local helper by that name. */
 const isEvaluate = (call: ESTree.CallExpression): boolean => {
@@ -34,14 +36,15 @@ const isEvaluate = (call: ESTree.CallExpression): boolean => {
   return callee.type === 'MemberExpression' && Option.contains(memberName(callee), 'evaluate');
 };
 
-const isExpect = (call: ESTree.CallExpression): boolean =>
-  call.callee.type === 'Identifier' && call.callee.name === 'expect';
+/** A call of the test runner's `expect` (`bun:test`'s, `effect-bun-test`'s, or bun's global), by its binding. */
+const isExpect = (b: Bindings, call: ESTree.CallExpression): boolean =>
+  b.isRunner(call.callee, 'expect');
 
 /** A matcher on an expectation: `expect(…).toBe(…)`, `expect(…).not.toEqual(…)`. */
-const isMatcher = (call: ESTree.CallExpression): boolean => {
+const isMatcher = (b: Bindings, call: ESTree.CallExpression): boolean => {
   let at: ESTree.Node = call.callee;
   while (at.type === 'MemberExpression') at = at.object;
-  return at.type === 'CallExpression' && isExpect(at);
+  return at.type === 'CallExpression' && isExpect(b, at);
 };
 
 /** Nodes that hand the value they wrap on unchanged: `yield*`, `await`, a cast. */
@@ -91,14 +94,10 @@ const readsOf = (
   seen: ReadonlySet<ESTree.Node>,
   helper: boolean,
 ): Asserted =>
-  Effect.flatMap(SourceCode.getDeclaredVariables(declarator), (variables) => {
+  Effect.flatMap(bindings, (b) => {
     if (seen.has(declarator)) return Effect.succeed(false);
     const next = new Set([...seen, declarator]);
-    const names = variables
-      .flatMap((v) => v.references)
-      .filter((ref) => ref.isRead())
-      .map((ref): ESTree.Node => ref.identifier);
-    const reads = names.flatMap((id) => {
+    const reads = b.readsOf(declarator).flatMap((id) => {
       if (helper) return callOf(id);
       return [id];
     });
@@ -126,8 +125,10 @@ const callTakes = (
 ): Asserted => {
   if (up.callee === n) return asserted(up, seen);
   if (!up.arguments.some((a) => a === n)) return Effect.succeed(false);
-  if (isExpect(up) || isMatcher(up)) return Effect.succeed(true);
-  return asserted(up, seen);
+  return Effect.flatMap(bindings, (b) => {
+    if (isExpect(b, up) || isMatcher(b, up)) return Effect.succeed(true);
+    return asserted(up, seen);
+  });
 };
 
 /**
