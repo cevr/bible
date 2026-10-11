@@ -19,7 +19,7 @@ import { VerbRefused } from '../../../src/core/refusals.ts';
 import { json, openReview, refused, route } from '../../../src/lab/fixtures/harness.ts';
 import type { FakeRoute, Json } from '../../../src/lab/fixtures/harness.ts';
 import { STUDIO_FOLDER, STUDIO_SET, studioRoutes } from '../../../src/lab/fixtures/studio-film.ts';
-import { countIs, evaluates, textHas, until, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import { countIs, evaluates, textHas, waitFor } from '../../../src/lab/fixtures/settled.ts';
 
 const isFields = (value: Json): value is { readonly [key: string]: Json } =>
   Predicate.isObject(value);
@@ -107,6 +107,38 @@ const movedOn = (own: string): FakeRoute => {
     );
   });
 };
+
+/** `value` with the studio's folder (`STUDIO_FOLDER`) and the refs under it named under `label`. */
+const relabel = (value: Json, label: string): Json =>
+  Match.value(value).pipe(
+    Match.when(isList, (all): Json => all.map((one) => relabel(one, label))),
+    Match.when(isFields, (record): Json => Record.map(record, (one) => relabel(one, label))),
+    Match.when(
+      (s: Json): s is string => Predicate.isString(s) && s === STUDIO_FOLDER,
+      (): Json => label,
+    ),
+    Match.when(
+      (s: Json): s is string => Predicate.isString(s) && s.startsWith(`${STUDIO_FOLDER}/`),
+      (s): Json => `${label}${s.slice(STUDIO_FOLDER.length)}`,
+    ),
+    Match.orElse(() => value),
+  );
+
+/**
+ * The index with the film's own folder under a root of another label, as
+ * `FILM_REVIEW_ROOTS=rbf=…/out/toy` names it: a ref not ending in the film's name.
+ */
+const underLabel = (label: string): FakeRoute =>
+  route('GET', /^\/api\/review\/index/, (a) => {
+    const answer = index.answer(a);
+    return Option.getOrElse(
+      Option.map(
+        Option.liftPredicate(answer, (r) => r._tag === 'Json'),
+        (r) => json(relabel(r.json, label)),
+      ),
+      () => answer,
+    );
+  });
 
 /** What the server holds besides this page's approve: versions approved before it, and `main` gone stale. */
 interface World {
@@ -428,6 +460,52 @@ describe('a Set approving a scene render', () => {
   );
 
   it.live(
+    "the film's own folder under a root of another label is judged by the project, as the write judges it: the project names it, not its name",
+    () =>
+      Effect.gen(function* () {
+        const asked = new Array<SetSayPost>();
+        // `rbf=…/out/toy`: the checkout's own folder for the film, its ref not the film's name.
+        const { page, errors } = yield* openReview(
+          [underLabel('rbf'), movedOn('rbf'), ...approving(asked)],
+          { href: pageHref.set('rbf', STUDIO_SET) },
+        );
+        yield* waitFor(page, '.rv-main [data-act="inspect"]');
+        yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
+        yield* evaluates(
+          page,
+          `document.querySelector('${INSPECTOR} [data-act="approve"]').disabled`,
+          true,
+        );
+        yield* textHas(page, `${INSPECTOR} .rv-verdict`, 'out of date');
+        expect(asked).toEqual([]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "the film's project is one read for the page: a Set's judgement and the Project it opens share it",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openReview(
+          [movedOn(STUDIO_FOLDER), ...studioRoutes],
+          { href: pageHref.set(STUDIO_FOLDER, STUDIO_SET) },
+        );
+        yield* waitFor(page, '.rv-set-tools[data-sources="project"]');
+        // Project, from the Set's own tab: the page moves on, the project's read with it.
+        yield* page.click('a.sh-tab[data-page="project"]');
+        yield* waitFor(page, '[data-scene="open"]');
+        const projectReads = asked.filter(
+          (a) => a.method === 'GET' && a.path === '/api/films/toy/project',
+        );
+        expect(projectReads).toHaveLength(1);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a folder of the film under another root is judged by its record, as the write judges it: the project's sources are its own folder's",
     () =>
       Effect.gen(function* () {
@@ -440,11 +518,8 @@ describe('a Set approving a scene render', () => {
         yield* waitFor(page, '.rv-main [data-act="inspect"]');
         yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
         yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
-        // The project answered, and the version still reads as its record says.
-        yield* until(
-          page,
-          `performance.getEntriesByType('resource').some((e) => e.name.endsWith('/api/films/toy/project'))`,
-        );
+        // The project answered and was applied: the folder is not its own, so the record judges.
+        yield* waitFor(page, '.rv-set-tools[data-sources="record"]');
         yield* evaluates(
           page,
           `document.querySelector('${INSPECTOR} [data-act="approve"]').disabled`,

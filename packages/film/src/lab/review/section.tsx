@@ -13,7 +13,6 @@ import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
 import { Effect, Exit, Match, Option, Scope, Struct } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import * as Atom from 'effect/reactivity/Atom';
 import {
   type Accessor,
   type ParentProps,
@@ -39,7 +38,7 @@ import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../c
 import { timecode } from '../../core/time.ts';
 import {
   Places,
-  ProjectView,
+  type ProjectView,
   type Say,
   type SetSaid,
   type SetSayPost,
@@ -47,12 +46,10 @@ import {
   reviewFileUrl,
   reviewFrameUrl,
 } from '../../core/api.ts';
-import { type LabFailure, served } from '../api.ts';
 import { pressed } from '../pressed.ts';
 import { StateBand } from '../scenes/card.tsx';
 import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
-import { OptionsApi } from './options/api.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
 import { approvalVerbs } from './things.ts';
@@ -199,11 +196,7 @@ const Section = (props: {
  */
 const FilmState = (props: { readonly film: string }) => {
   const { meta } = useReview();
-  const readAtom = untrack(() =>
-    meta.runtime
-      .atom(OptionsApi.use((api) => api.project(props.film)))
-      .pipe(served(`review.project:${props.film}`, ProjectView)),
-  );
+  const readAtom = untrack(() => meta.project(props.film));
   const read = useAtomValue(() => readAtom);
   return (
     <Show when={Option.getOrUndefined(AsyncResult.value(read()))}>
@@ -1421,34 +1414,53 @@ const SetBody = () => {
  * The film's project, which an approve's write judges a set's versions by
  * (`Review.say`), when the folder is the film's own: the project names its
  * own folder (`ProjectView.folder`, the server's ref of the checkout's out
- * folder), and the write judges by the project only there. Any other folder,
- * one of the film's under another root among them, the record alone judges.
- * Read by the page once it runs, never by the server: the record's
- * judgement stands while it is read (and in the server's render), and the
- * write decides.
+ * folder), and the write judges by the project only there. That alone
+ * decides, never the folder's name: the film's own folder under a root of
+ * another label is judged by the project, and a copy of it under another
+ * root by the record alone. Read by the page once it runs, never by the
+ * server (`projectHere`, the one node every reader of the film's project
+ * shares): the record's judgement stands while it is read (and in the
+ * server's render), and the write decides.
  */
-const useSourcesNow = (folder: ReviewFolder): Accessor<Option.Option<Project>> => {
+const useSourcesNow = (folder: ReviewFolder): SourcesNow => {
   const { meta } = useReview();
-  return Option.match(
-    Option.filter(folder.title, (film) => isFilmsFolder(folder.ref, film)),
-    {
-      onNone: () => () => Option.none(),
-      onSome: (film) => {
-        const readAtom = meta.runtime
-          .atom(OptionsApi.use((api) => api.project(film)))
-          .pipe(Atom.withServerValue(() => AsyncResult.initial<ProjectView, LabFailure>()));
-        const read = useAtomValue(() => readAtom);
-        return () =>
-          Option.map(
-            Option.filter(AsyncResult.value(read()), (view) =>
-              Option.contains(view.folder, folder.ref),
+  return Option.match(folder.title, {
+    onNone: () => ({ project: () => Option.none(), by: (): JudgedBy => 'record' }),
+    onSome: (film) => {
+      const read = useAtomValue(() => meta.projectHere(film));
+      const own = () =>
+        Option.filter(AsyncResult.value(read()), (view) =>
+          Option.contains(view.folder, folder.ref),
+        );
+      return {
+        project: () => Option.map(own(), (view) => view.project),
+        by: () =>
+          Match.value(read()).pipe(
+            Match.tag('Initial', (): JudgedBy => 'reading'),
+            Match.orElse((): JudgedBy =>
+              Option.match(own(), { onNone: () => 'record', onSome: () => 'project' }),
             ),
-            (view) => view.project,
-          );
-      },
+          ),
+      };
     },
-  );
+  });
 };
+
+/**
+ * What judges a set's versions: its record while the film's project is read
+ * (`reading`; and in the server's render), then the project (`project`, the
+ * folder is its own) or the record (`record`, any other folder, a project
+ * that could not be read, a folder of no film).
+ */
+type JudgedBy = 'reading' | 'record' | 'project';
+
+/** The film's sources now as a Set page judges by them (`useSourcesNow`), and what judges. */
+interface SourcesNow {
+  /** The film's project, where it judges the folder. */
+  readonly project: Accessor<Option.Option<Project>>;
+  /** Shown as the Set's `data-sources`. */
+  readonly by: Accessor<JudgedBy>;
+}
 
 /**
  * `set` with each version judged as the write judges its approve: against
@@ -1489,11 +1501,11 @@ export const SetPage = (props: { readonly folder: string; readonly point: string
             {(point) => {
               // The folder is the page's: whether its film's sources judge it is fixed with it.
               const sourcesNow = untrack(() => useSourcesNow(folder()));
-              const set = createMemo(() => judged(seenPoint(point()), sourcesNow()));
+              const set = createMemo(() => judged(seenPoint(point()), sourcesNow.project()));
               return (
                 <SetProvider folder={folder()} set={set()}>
                   <Saying folder={folder()} set={set()}>
-                    <div class="rv-tools rv-set-tools">
+                    <div class="rv-tools rv-set-tools" data-sources={sourcesNow.by()}>
                       <ViewTabs />
                     </div>
                     <SetBody />

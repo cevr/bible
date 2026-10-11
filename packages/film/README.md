@@ -2205,12 +2205,16 @@ another mix (`ChoiceVariant.staleBy`; whether the newest is current against
 the sources now is `film project`'s). The set page (Versions) judges each
 version again as an approve's write does: in the checkout's own folder for
 the film (the project's `folder`, the server's ref of its out folder, names
-the set's), once the film's project answers, against the film's sources now
-(`projectNow`, `versionState`, the rule `renderState` keeps), so Approve is
-offered for just the versions the write would take. Anywhere else, a copy of
-the film's folder under another root among them, and until the project
-answers, it judges as the record says. The page reads the project itself, once it runs;
-the server's render never waits on it. It says it in every view, beside the
+the set's; that alone decides, never the folder's name, so the film's own
+folder under a root of another label is judged by it too), once the film's
+project answers, against the film's sources now (`projectNow`,
+`versionState`, the rule `renderState` keeps), so Approve is offered for
+just the versions the write would take. Anywhere else, a copy of the film's
+folder under another root among them, and until the project answers, it
+judges as the record says; the Set's tools say which judges (`data-sources`:
+`reading`, `project`, `record`). The page reads the project itself, once it
+runs, on the one node every reader of the film's project shares; the
+server's render never waits on it. It says it in every view, beside the
 variant's label: why a variant is stale (`staleText`), and no state word
 otherwise, never "current". A montage folder (say a
 look explored by hand) holds `review.json` (`ReviewManifest`), which names its

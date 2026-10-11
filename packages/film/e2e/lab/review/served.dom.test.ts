@@ -252,8 +252,11 @@ describe('the review served as the lab renders it', () => {
         const html = set.documents[0]?.html ?? '';
         expect(html).not.toContain(PAGE_CUT_MARK);
         expect(painted(html)).toContain('data-act="inspect"');
+        // The record judges while the project is read, and it is never answered.
+        expect(painted(html)).toContain('data-sources="reading"');
         yield* countIs(set.page, `[${PAGE_ROOT}]`, 1);
         yield* waitFor(set.page, '.rv-main [data-act="inspect"]');
+        yield* waitFor(set.page, '.rv-set-tools[data-sources="reading"]');
         expect(set.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
