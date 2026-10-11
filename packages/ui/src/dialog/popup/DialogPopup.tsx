@@ -43,8 +43,9 @@ interface DialogPopupFocusProps {
    */
   initialFocus?: (() => HTMLElement | boolean) | undefined;
   /**
-   * Whether focus and a modal's hiding of the page wait: a sheet's while it
-   * scrolls in. Once it turns false, focus moves in.
+   * Whether focus moving in, its trap and a modal's hiding of the page wait: a
+   * sheet's while it scrolls in. Once it turns false, focus moves in. Where
+   * focus returns on close is recorded at open regardless.
    */
   deferred?: boolean | undefined;
   children: JSX.Element;
@@ -58,7 +59,8 @@ export function DialogPopupFocus(props: DialogPopupFocusProps): JSX.Element {
       context={store.floatingRootContext}
       // The owner's `open` opens it: a programmatic open, so focus returns to what had it.
       openInteractionType={null}
-      disabled={!store.mounted() || (props.deferred ?? false)}
+      disabled={!store.mounted()}
+      deferred={props.deferred ?? false}
       closeOnFocusOut={!store.disablePointerDismissal()}
       initialFocus={props.initialFocus}
       modal={store.modal()}

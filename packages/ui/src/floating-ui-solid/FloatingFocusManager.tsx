@@ -156,6 +156,12 @@ interface FloatingFocusManagerProps {
   openInteractionType?: InteractionType | null | undefined;
   disabled?: boolean | undefined;
   /**
+   * Whether it waits to move focus in, trap it, guard it and hide the page (a
+   * sheet's while it scrolls in). Where focus returns on close is recorded at
+   * open all the same, so a field focused meanwhile is not taken for it.
+   */
+  deferred?: boolean | undefined;
+  /**
    * What takes focus on open: `true` the first tabbable element (else the
    * popup), `false` nothing, an element, or a function of the open type.
    */
@@ -179,7 +185,9 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   const { events, dataRef } = context;
   const portalContext = usePortalContext();
 
-  const disabled = () => props.disabled ?? false;
+  // Off altogether, or holding back what moves or guards focus (see `deferred`).
+  const disabled = () => (props.disabled ?? false) || (props.deferred ?? false);
+  const unrecorded = () => props.disabled ?? false;
   const modal = () => props.modal ?? true;
   const closeOnFocusOut = () => props.closeOnFocusOut ?? true;
   const restoreFocus = () => props.restoreFocus ?? false;
@@ -550,9 +558,10 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
     },
   );
 
-  // Records where focus returns to, and returns it when the popup closes or unmounts.
+  // Records where focus returns to, and returns it when the popup closes or unmounts. A
+  // deferred popup records it too: at open, before anything inside can take focus.
   createEffect(
-    () => [disabled(), context.floatingElement(), context.domReferenceElement()] as const,
+    () => [unrecorded(), context.floatingElement(), context.domReferenceElement()] as const,
     ([isDisabled, floating, domReference]) => {
       // Resolved here, once the popup's content is in the DOM.
       const focusElement = getFloatingFocusElement(floating);

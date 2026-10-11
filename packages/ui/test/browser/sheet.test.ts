@@ -237,7 +237,7 @@ describe('Sheet.Root', () => {
     await see(page.locator('#root')).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('keeps the focus given to a field while it scrolled in', async () => {
+  it('keeps the focus given to a field while it scrolled in, and returns it to the opener on close', async () => {
     const kept = await Promise.all(
       ([{}, { modal: 'false', dismissal: 'disabled', portal: 'inline' }] as const).map(
         async (query: Readonly<Record<string, string>>) => {
@@ -250,11 +250,19 @@ describe('Sheet.Root', () => {
           // its initial focus is queued for a frame.
           await see(page.locator('#panel [data-type="inside"]:not([hidden])')).toHaveCount(2);
           await frames(page);
-          return focused(page);
+          const inside = await focused(page);
+          // Where focus returns was recorded as the sheet opened, not when it had entered.
+          await page.keyboard.press('Escape');
+          await see(page.locator('#popup')).toHaveCount(0);
+          await frames(page);
+          return { inside, after: await focused(page) };
         },
       ),
     );
-    expect(kept).toEqual(['first', 'first']);
+    expect(kept).toEqual([
+      { inside: 'first', after: 'open' },
+      { inside: 'first', after: 'open' },
+    ]);
   });
 
   it('scrolls on to rest when a scroll into view stops it as it scrolls in', async () => {
