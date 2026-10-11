@@ -168,7 +168,8 @@ describe('a crop and a format', () => {
     expect(Result.getOrThrow(wedgeVariant(Option.none(), { style: 'ps1', ground: 'light' }))).toBe(
       'ground-light-style-ps1',
     );
-    expect(Result.getOrThrow(wedgeVariant(Option.some('main'), { style: 'ps1' }))).toBe('main');
+    expect(failureTag(wedgeVariant(Option.some('main'), { style: 'ps1' }))).toBe('LookInvalid');
+    expect(Result.getOrThrow(wedgeVariant(Option.some('main'), {}))).toBe('main');
     expect(Result.getOrThrow(wedgeVariant(Option.some('try-2'), { style: 'ps1' }))).toBe('try-2');
     expect(failureTag(wedgeVariant(Option.none(), { style: 'PS 1' }))).toBe('LookInvalid');
   });

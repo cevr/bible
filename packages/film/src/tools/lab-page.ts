@@ -353,11 +353,30 @@ const bunBundle =
     });
 
 /**
+ * Every package a build imports left out of it, pinned to the file it
+ * resolves to from the module importing it: the output imports each by its
+ * absolute path, so wherever the output is put it runs the very modules the
+ * source would (the engine and three this process runs), not whatever a
+ * folder near the output resolves. A runtime's own (`node:`, `bun:`) stays
+ * as written.
+ */
+const pinPackages = (path: Path.Path): BunPlugin => ({
+  name: 'film-pin-packages',
+  setup(build) {
+    build.onResolve({ filter: /^[^./]/ }, (args) => {
+      if (args.path.includes(':')) return { path: args.path, external: true };
+      return { path: Bun.resolveSync(args.path, path.dirname(args.importer)), external: true };
+    });
+  },
+});
+
+/**
  * The module `file` built for this process (Bun's `bun` target), with each
- * of `swaps` read as its text there, and every package it imports left
- * for the runtime to resolve where the output is put (the engine and three
- * stay the very modules this process runs): the output, or why not. A build
- * that reads none of `swaps` cannot draw them changed, and is refused.
+ * of `swaps` read as its text there, and every package it imports pinned to
+ * the file the source resolves it to (`pinPackages`), so the output runs the
+ * same engine and three as this process wherever it is put: the output, or
+ * why not. A build that reads none of `swaps` cannot draw them changed, and
+ * is refused.
  */
 export const bunModule = (path: Path.Path, file: string, swaps: ReadonlyMap<string, string>) =>
   Effect.gen(function* () {
@@ -365,8 +384,7 @@ export const bunModule = (path: Path.Path, file: string, swaps: ReadonlyMap<stri
     const built = yield* bunBuild(path, {
       entrypoints: [file],
       target: 'bun',
-      packages: 'external',
-      plugins: [swapPlugin(swaps, read)],
+      plugins: [pinPackages(path), swapPlugin(swaps, read)],
     });
     const unread = [...swaps.keys()].filter((swapped) => !read.has(swapped));
     if (unread.length > 0)

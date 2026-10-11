@@ -9,20 +9,16 @@ import { PagesBroken } from '../core/easel.ts';
 import { importFilmModule } from './film-repo.ts';
 import { bunModule } from './lab-page.ts';
 
-/** The folder, in a film's output folder, a wedge's modules are built into for one check (`wedgedModule`). */
-export const WEDGE_DIR = '.wedge';
-
 /**
  * The module `file` as this process imports it for `swaps`: as written, for
- * none; for a wedge, built with each of `swaps` read as its text
- * (`bunModule`), written into a fresh folder under `dir` (inside the app, so
- * the packages it imports resolve from there as they do from the film),
- * imported, and the folder removed when the scope closes. A build that
- * fails, or reads none of `swaps`, is `PagesBroken`.
+ * none; for a wedge, built with each of `swaps` read as its text and its
+ * packages pinned to the files the film resolves them to (`bunModule`), so
+ * it runs this process's engine wherever it is written: into a temporary
+ * directory, imported, and the directory removed when the scope closes. A
+ * build that fails, or reads none of `swaps`, is `PagesBroken`.
  */
 export const wedgedModule = Effect.fn('wedge.module')(function* (
   file: string,
-  dir: string,
   swaps: ReadonlyMap<string, string>,
 ) {
   const broken = (reason: string) => PagesBroken.make({ reason });
@@ -36,17 +32,16 @@ export const wedgedModule = Effect.fn('wedge.module')(function* (
   const outputs = yield* bunModule(path, file, swaps).pipe(
     Effect.mapError((failed) => broken(failed.reason)),
   );
-  const into = yield* fs.makeDirectory(dir, { recursive: true }).pipe(
-    Effect.andThen(fs.makeTempDirectoryScoped({ directory: dir, prefix: 'check-' })),
-    Effect.mapError((error) => broken(error.message)),
-  );
+  const into = yield* fs
+    .makeTempDirectoryScoped({ prefix: 'film-wedge-' })
+    .pipe(Effect.mapError((error) => broken(error.message)));
   yield* Effect.forEach(outputs, (out) => fs.writeFile(path.join(into, out.path), out.bytes)).pipe(
     Effect.mapError((error) => broken(error.message)),
   );
   const entry = Arr.findFirst(outputs, (out) => out.path.endsWith('.js'));
   if (Option.isNone(entry)) return yield* broken(`the build of ${file} made no module`);
   yield* Effect.log(
-    `check.wedge.built module=${path.basename(file)} swaps=${[...swaps.keys()].map((f) => path.basename(f)).join(',')}`,
+    `check.wedge.built module=${path.basename(file)} into=${into} swaps=${[...swaps.keys()].map((f) => path.basename(f)).join(',')}`,
   );
   return yield* Effect.tryPromise({
     try: (): Promise<unknown> => importFilmModule(path.join(into, entry.value.path)),

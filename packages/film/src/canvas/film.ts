@@ -2,7 +2,7 @@
 // drawing; the film lays them end to end, sizes each to its voice, and draws
 // any instant T — the same function serves the preview player and the export.
 
-import { Option, Predicate, Result, Schema } from 'effect';
+import { Predicate, Result, Schema } from 'effect';
 import { type Hand, boilTick } from './ink.ts';
 import type { Hex } from './colour.ts';
 import { DRIFT, type Drift, breathes, hearingCameras, insideCamera } from './camera.ts';
@@ -18,7 +18,7 @@ import {
   sceneOf,
   transitionDur,
 } from '../core/layout.ts';
-import type { UnknownScene } from '../core/errors.ts';
+import { FloodInTransition, type UnknownScene } from '../core/errors.ts';
 import {
   type Knob,
   Knobs,
@@ -29,11 +29,13 @@ import {
   type Timed,
   Timeline,
   type Timings,
+  type Transition,
   type Word,
 } from '../core/schema.ts';
 import {
   cueKeys,
   cueProgress,
+  endsLate,
   type TimelineError,
   resolveTimeline,
   staggerAt,
@@ -226,7 +228,16 @@ export interface Light {
   readonly color: Hex;
   readonly edge?: Hex;
   readonly amount?: number;
+  /**
+   * How much of the film's vignette the scene's frame takes: 1 all of it (when
+   * it names none), 0 none (a look whose medium has none: a print), or between.
+   * A transition eases from the outgoing scene's share to the incoming one's.
+   */
+  readonly vignette?: number;
 }
+
+/** The share of the film's vignette a scene lit by `light` takes (`Light.vignette`). */
+const vignetteOf = (light: Light | undefined) => clamp(light?.vignette ?? 1);
 
 /** A span whose `after` or `with` names one of the cues `K`. */
 type SpanOf<K extends string> = Span extends infer S
@@ -429,8 +440,11 @@ export interface ShownEdit {
   readonly knobs: ReadonlyMap<string, Knob>;
 }
 
-/** Why an edit does not resolve: the film has no such scene, or its timeline names what the scene lacks. */
-export type EditError = UnknownScene | TimelineError;
+/**
+ * Why an edit does not resolve: the film has no such scene, its timeline
+ * names what the scene lacks, or it moves the card's flood into a transition.
+ */
+export type EditError = UnknownScene | TimelineError | FloodInTransition;
 
 export interface RenderOptions {
   readonly captions?: boolean;
@@ -578,31 +592,38 @@ interface BreathNow {
 }
 
 /**
- * Why scene `p`'s card flood would fall inside a transition, when it would:
- * a flood is drawn over its scene's own frame alone, never over a transition's
- * two layers, so one that starts inside the scene's way in (`enter`, not a
- * cut) or runs past its end into the next scene's way in is refused where
- * the film is made, rather than silently not drawn.
+ * Scene `p`'s cues (`cues`: its own, or an edit's) unless its card's flood
+ * would fall inside a transition: a flood is drawn over its scene's own frame
+ * alone, never over a transition's two layers, so one that starts inside the
+ * scene's way in (`enter`, not a cut) or runs past its end (`endsLate`, the
+ * one judgement of a late end) into the next scene's way in is refused, where
+ * the film is made and where an edit is, rather than silently not drawn. A
+ * flood naming a cue the scene lacks is the frame's to refuse (`holds`).
  */
 const floodInTransition = (
   p: Placed<SceneSpec>,
   next: Placed<SceneSpec> | undefined,
-): Option.Option<string> => {
+  cues: ReadonlyMap<string, ResolvedCue>,
+): Result.Result<ReadonlyMap<string, ResolvedCue>, FloodInTransition> => {
   const flood = p.spec.card?.flood;
-  if (flood === undefined) return Option.none();
-  const c = p.cues.get(flood.cue);
-  if (c === undefined)
-    return Option.some(`scene ${p.spec.id}: its card floods over "${flood.cue}", a cue it lacks`);
+  const c = flood === undefined ? undefined : cues.get(flood.cue);
+  if (flood === undefined || c === undefined) return Result.succeed(cues);
   const enter = transitionDur(p.spec.enter);
-  if (p.index > 0 && c.start < enter)
-    return Option.some(
-      `scene ${p.spec.id}: its card's flood "${flood.cue}" starts at ${c.start.toFixed(2)} s, inside the scene's ${enter} s way in; a flood is drawn over the scene alone: start it after ${enter} s, or enter on a cut`,
+  const refused = (side: 'into' | 'out', at: number, edge: number) =>
+    Result.fail(
+      FloodInTransition.make({
+        scene: p.spec.id,
+        cue: flood.cue,
+        side,
+        next: next?.spec.id ?? '',
+        at,
+        edge,
+      }),
     );
-  if (next !== undefined && transitionDur(next.spec.enter) > 0 && c.end > p.dur)
-    return Option.some(
-      `scene ${p.spec.id}: its card's flood "${flood.cue}" runs past the scene's end into ${next.spec.id}'s way in; a flood is drawn over the scene alone: end it by ${p.dur.toFixed(2)} s`,
-    );
-  return Option.none();
+  if (p.index > 0 && c.start < enter) return refused('into', c.start, enter);
+  if (next !== undefined && transitionDur(next.spec.enter) > 0 && endsLate(c, p.dur))
+    return refused('out', c.end, p.dur);
+  return Result.succeed(cues);
 };
 
 export const createFilm = (spec: FilmSpec): Film => {
@@ -634,8 +655,8 @@ export const createFilm = (spec: FilmSpec): Film => {
     const words = cardWords(p.spec.id, p.voice, p.speechStart, card);
     if (Result.isFailure(words)) throw new Error(words.failure);
     cards.set(p.spec.id, words.success);
-    const flooded = floodInTransition(p, placed[p.index + 1]);
-    if (Option.isSome(flooded)) throw new Error(flooded.value);
+    const flooded = floodInTransition(p, placed[p.index + 1], p.cues);
+    if (Result.isFailure(flooded)) throw new Error(flooded.failure.message);
   }
 
   // Built lazily: the film must lay out where there is no DOM (tools, tests).
@@ -691,7 +712,9 @@ export const createFilm = (spec: FilmSpec): Film => {
   /**
    * The light and the vignette over a whole frame: one multiply by their
    * product for a fixed light, the two in turn for a light read per frame
-   * (its amount moves, so a product would be a new sheet each frame).
+   * (its amount moves, so a product would be a new sheet each frame). The
+   * vignette at the light's share of it (`Light.vignette`): the product only
+   * for the whole of it.
    */
   const lightAndVignette = (
     ctx: CanvasRenderingContext2D,
@@ -699,11 +722,48 @@ export const createFilm = (spec: FilmSpec): Film => {
     fixed: boolean,
   ) => {
     const amount = clamp(light?.amount ?? 1);
-    if (light === undefined || amount <= 0) shadeBy(ctx, getAssets().vignette);
-    else if (fixed) shadeBy(ctx, litVignette(light, amount));
+    const share = vignetteOf(light);
+    if (light === undefined || amount <= 0) vignetteAt(ctx, share);
+    else if (fixed && share === 1) shadeBy(ctx, litVignette(light, amount));
     else {
       lightUp(ctx, light);
-      shadeBy(ctx, getAssets().vignette);
+      vignetteAt(ctx, share);
+    }
+  };
+
+  /** The film's vignette over `ctx` at `share` of it; none at none. */
+  const vignetteAt = (ctx: CanvasRenderingContext2D, share: number) => {
+    if (share > 0) shadeBy(ctx, getAssets().vignette, share);
+  };
+
+  /**
+   * The vignette over a transition's composite: the outgoing side's share
+   * (`from`; none for a card) to the incoming side's (`to`). One share, as
+   * ever, when they are the same; across a pan each side's share over the
+   * part of the frame it holds (`out` from `outX`, the incoming from `inX`),
+   * and otherwise eased between them by the transition's progress `p`.
+   */
+  const transitionVignette = (
+    ctx: CanvasRenderingContext2D,
+    pan: boolean,
+    p: number,
+    from: number,
+    to: number,
+    outX: number,
+    inX: number,
+  ) => {
+    if (from === to) return vignetteAt(ctx, from);
+    if (!pan) return vignetteAt(ctx, from + (to - from) * p);
+    for (const [x, share] of [
+      [outX, from],
+      [inX, to],
+    ] as const) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, 0, width, height);
+      ctx.clip();
+      vignetteAt(ctx, share);
+      ctx.restore();
     }
   };
 
@@ -736,9 +796,14 @@ export const createFilm = (spec: FilmSpec): Film => {
   const edit = (scene: string, e: SceneEdit): Result.Result<ShownEdit, EditError> =>
     Result.flatMap(sceneOf(placed, scene), (p) =>
       Result.map(
-        e.timeline === undefined
-          ? Result.succeed(p.cues)
-          : resolveTimeline(e.timeline, sceneClock(p)),
+        Result.flatMap(
+          e.timeline === undefined
+            ? Result.succeed(p.cues)
+            : resolveTimeline(e.timeline, sceneClock(p)),
+          // An edit is refused a flood it would move into a transition, as the source is.
+          (cues): Result.Result<ReadonlyMap<string, ResolvedCue>, EditError> =>
+            floodInTransition(p, placed[p.index + 1], cues),
+        ),
         (cues): ShownEdit => ({
           edit: e,
           cues,
@@ -989,7 +1054,9 @@ export const createFilm = (spec: FilmSpec): Film => {
     ctx: CanvasRenderingContext2D,
     p: Placed<SceneSpec>,
     T: number,
+    boil: number,
     probe: Probe | undefined,
+    reads: Reads | undefined,
     edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
     const flood = p.spec.card?.flood;
@@ -1004,7 +1071,28 @@ export const createFilm = (spec: FilmSpec): Film => {
     // transform it drew under), so the clip is laid with none, whatever scale
     // the frame is drawn at, and the card drawn under the frame's.
     const frame = ctx.getTransform();
-    const box = floodBox(from, ctx.canvas.width, ctx.canvas.height, f.at(flood.cue));
+    const at = f.at(flood.cue);
+    const box = floodBox(from, ctx.canvas.width, ctx.canvas.height, at);
+    const mask = flood.mask;
+    if (mask !== undefined) {
+      // The look's own edge: the card on a layer of its own, kept where the look paints.
+      const { b } = getAssets();
+      b.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      b.ctx.globalAlpha = 1;
+      b.ctx.globalCompositeOperation = 'source-over';
+      b.ctx.clearRect(0, 0, width, height);
+      b.ctx.setTransform(frame);
+      drawCard(b.ctx, p, frameOf(b.ctx, p, T, boil, reads, edits, []), probe);
+      b.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      b.ctx.globalCompositeOperation = 'destination-in';
+      mask(b.ctx, box, at, f);
+      b.ctx.globalCompositeOperation = 'source-over';
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(b.c, 0, 0);
+      ctx.restore();
+      return;
+    }
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.beginPath();
@@ -1106,6 +1194,37 @@ export const createFilm = (spec: FilmSpec): Film => {
     );
   };
 
+  /**
+   * A transition's two layers onto `ctx` at progress `p`: the incoming one
+   * fading in over, panning in beside (`dx` across, `dir` its way), or wiped
+   * in over the outgoing one.
+   */
+  const composite = (
+    ctx: CanvasRenderingContext2D,
+    enter: Exclude<Transition, { readonly kind: 'cut' }>,
+    out: HTMLCanvasElement,
+    inn: HTMLCanvasElement,
+    p: number,
+    dx: number,
+    dir: number,
+  ) => {
+    switch (enter.kind) {
+      case 'fade':
+        ctx.drawImage(out, 0, 0);
+        ctx.globalAlpha = p;
+        ctx.drawImage(inn, 0, 0);
+        break;
+      case 'pan':
+        ctx.drawImage(out, dx, 0);
+        ctx.drawImage(inn, dx + dir * width, 0);
+        break;
+      case 'ink':
+        ctx.drawImage(out, 0, 0);
+        inkWipe(ctx, inn, p, width, height, enter.color ?? spec.shade);
+        break;
+    }
+  };
+
   const render = (ctx: CanvasRenderingContext2D, T: number, opts: RenderOptions = {}) => {
     const { a, b } = getAssets();
     const boil = boilTick(T);
@@ -1134,7 +1253,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       sheet(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), edits);
       // The scene's light over its page and all on it, with the vignette.
       lightAndVignette(ctx, drawnLight, drawnFixed);
-      floodOver(ctx, cur, T, probe(cur, 0, 1), edits);
+      floodOver(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), edits);
     } else {
       const p = ease.inOutCubic(clamp(local / tr));
       // The incoming sheet covers the outgoing one as it arrives.
@@ -1142,8 +1261,11 @@ export const createFilm = (spec: FilmSpec): Film => {
       const dx = enter.kind === 'pan' ? -dir * p * width : 0;
       const fading = enter.kind === 'pan' ? 0 : 1;
       // A card held to its scene's end leaves as the card, not the picture under it.
-      const outgoing = cardToEnd(prev, edits) ? cardLayer : layer;
+      const leavesCard = cardToEnd(prev, edits);
+      const outgoing = leavesCard ? cardLayer : layer;
       const out = outgoing(a, prev, T, boil, probe(prev, dx, 1 - fading * p), reads(false), edits);
+      // A card takes no vignette; a scene its light's share of it (read as its layer is drawn).
+      const from = leavesCard ? 0 : vignetteOf(drawnLight);
       const inn = layer(
         b,
         cur,
@@ -1153,22 +1275,9 @@ export const createFilm = (spec: FilmSpec): Film => {
         reads(false),
         edits,
       );
-      switch (enter.kind) {
-        case 'fade':
-          ctx.drawImage(out, 0, 0);
-          ctx.globalAlpha = p;
-          ctx.drawImage(inn, 0, 0);
-          break;
-        case 'pan':
-          ctx.drawImage(out, dx, 0);
-          ctx.drawImage(inn, dx + dir * width, 0);
-          break;
-        case 'ink':
-          ctx.drawImage(out, 0, 0);
-          inkWipe(ctx, inn, p, width, height, enter.color ?? spec.shade);
-          break;
-      }
-      shadeBy(ctx, getAssets().vignette);
+      composite(ctx, enter, out, inn, p, dx, dir);
+      const to = vignetteOf(drawnLight);
+      transitionVignette(ctx, enter.kind === 'pan', p, from, to, dx, dx + dir * width);
     }
 
     finishFrame(ctx, boil);

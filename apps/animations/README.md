@@ -339,13 +339,16 @@ port of its own while the render runs, in place of the app's player, so a
 render needs no lab. The render's stamp carries the levels, so a wedge's
 render is never taken for the film as written, and its files are named for
 the levels (`style-ps1.mp4`, look by look in order) unless `--variant` names
-them, so a wedge never writes over `main`.
+them; `--variant main` with a `--level` is refused, so a wedge never writes
+over `main`.
 
 `check` takes it too (`check <film> --draw --level style=ps1`): the page legs
 draw on that same loopback build, and `--draw`, which draws in its own
-process, imports the film's module built once with the swapped palette
-(under `out/<film>/.wedge/`, removed when the check ends), so a look the
-film does not play is checked before it is picked.
+process, imports the film's module built once with the swapped palette (into
+a temporary directory, removed when the check ends; its packages are pinned
+to the ones the film itself resolves, so the build shares `@bible/film` with
+the check wherever `FILMS_OUT` points), so a look the film does not play is
+checked before it is picked.
 
 ### A second opinion: the judge
 

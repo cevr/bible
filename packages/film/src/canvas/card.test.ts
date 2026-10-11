@@ -492,6 +492,116 @@ describe('a scene with a card', () => {
     ).toThrow('way in');
   });
 
+  test('refuses an edit that moves the flood into its way in, as the film is refused it', () => {
+    const job = drawing({
+      timeline: {
+        flood: { mark: 'job', dur: 0.3 },
+        card: { mark: 'job', until: { at: 'end' } },
+      },
+      draw: () => ({ x: 0, y: 0, w: 10, h: 10 }),
+      card: {
+        cue: 'card',
+        from: 'job',
+        payoff: 'just',
+        flood: { cue: 'flood' },
+        draw: () => undefined,
+      },
+    });
+    const first = drawing({ timeline: {}, draw: () => undefined });
+    const film = createFilm({
+      title: 'card',
+      paper: { base: '#fff', tone: '#000', seed: 1 },
+      shade: '#000',
+      scenes: [
+        { id: 'first', say: 'First a line.', ...first },
+        { id: 'job', say: LINE, enter: { kind: 'fade', dur: 1 }, ...job },
+      ],
+    });
+    expect(Result.isSuccess(film.edit('job', {}))).toBe(true);
+    const moved = film.edit('job', { timeline: { flood: { at: 'start', dur: 0.3 } } });
+    expect(Result.isFailure(moved) && moved.failure._tag).toBe('FloodInTransition');
+    expect(Result.isFailure(moved) && moved.failure.message).toContain('way in');
+  });
+
+  test('eases the vignette in out of a card, which has none, rather than laying it on at once', () => {
+    const job = drawing({
+      timeline: { card: { mark: 'job', until: { at: 'end' } } },
+      draw: () => undefined,
+      card: {
+        cue: 'card',
+        from: 'job',
+        payoff: 'just',
+        draw: (f) => void f.ctx.fillRect(10, 10, 5, 5),
+      },
+    });
+    const next = drawing({ timeline: {}, draw: () => undefined });
+    const film = createFilm({
+      title: 'card',
+      paper: { base: '#fff', tone: '#000', seed: 1 },
+      shade: '#000',
+      scenes: [
+        { id: 'job', say: LINE, ...job },
+        { id: 'next', say: 'And then the next.', enter: { kind: 'fade', dur: 1 }, ...next },
+      ],
+    });
+    const at = film.placed[1]?.start ?? Number.NaN;
+    /** The alpha of each multiply over the whole frame at `T`. */
+    const shades = (T: number) => {
+      const r = recorder(1920, 1080);
+      withDom(() => film.render(r.ctx, T));
+      return r.ops.flatMap((op) =>
+        op._tag === 'Image' && op.comp === 'multiply' && op.image.width === 1920 ? [op.alpha] : [],
+      );
+    };
+    expect(shades(at - 0.02)).toEqual([]);
+    for (const a of shades(at + 0.01)) expect(a).toBeLessThan(0.01);
+    const mid = shades(at + 0.5);
+    expect(mid.length).toBeGreaterThan(0);
+    for (const a of mid) expect(a).toBeCloseTo(0.5, 2);
+    expect(shades(at + 1.5)).toEqual([1]);
+  });
+
+  test("draws its flood within the look's own edge where it names one, at the box the flood has grown to", () => {
+    const masks: Array<readonly [{ x: number; y: number; w: number; h: number }, number]> = [];
+    const ran: string[] = [];
+    const scene = drawing({
+      timeline: {
+        flood: { mark: 'job', dur: 0.6, ends: true },
+        card: { mark: 'job', until: { at: 'speechEnd' }, untilOffset: 0.4 },
+      },
+      draw: () => ({ x: 100, y: 500, w: 300, h: 50 }),
+      card: {
+        cue: 'card',
+        from: 'job',
+        payoff: 'just',
+        flood: {
+          cue: 'flood',
+          mask: (ctx, box, at) => {
+            masks.push([box, at]);
+            ran.push(`mask:${ctx.globalCompositeOperation}`);
+          },
+        },
+        draw: () => void ran.push('card'),
+      },
+    });
+    const film = createFilm({
+      title: 'card',
+      paper: { base: '#fff', tone: '#000', seed: 1 },
+      shade: '#000',
+      scenes: [{ id: 'job', say: LINE, ...scene }],
+    });
+    const flood = film.placed[0]?.cues.get('flood') ?? { start: Number.NaN, end: Number.NaN };
+    withDom(() => film.render(recorder(1920, 1080).ctx, (flood.start + flood.end) / 2), {
+      record: false,
+    });
+    // The card first, then the look's edge keeping it (destination-in).
+    expect(ran).toEqual(['card', 'mask:destination-in']);
+    const [box, at] = masks[0] ?? [{ x: 0, y: 0, w: 0, h: 0 }, Number.NaN];
+    expect(at).toBeGreaterThan(0);
+    expect(at).toBeLessThan(1);
+    expect(box).toEqual(floodBox({ x: 100, y: 500, w: 300, h: 50 }, 1920, 1080, at));
+  });
+
   test('stops the film where the card names a payoff its line never says', () => {
     const scene = drawing({
       timeline: { card: { mark: 'job', dur: 1 } },

@@ -14,9 +14,14 @@
 // Keys are one namespace for the whole page, which the lab and a render share
 // across films: a look names its key for its film and look (`cold-studies/ps1`),
 // so two films never draw into one canvas. A key holds one canvas, at the size
-// last asked for; a few keys are kept live at once, the longest unused one let
-// go past that, so a long lab session stays under the browser's cap on live
-// contexts.
+// last asked for; a few keys are kept live at once (`KEPT`, 8), the longest
+// unused one let go past that, so a long lab session stays under the browser's
+// cap on live contexts.
+//
+// So a look asks for at most 8 keys in one frame, and composites a canvas into
+// the frame (`drawImage`) before it asks for another key, or for the same key
+// at another size: the ninth key lets the first go, and a new size clears the
+// canvas, so a canvas held across either may be blank when it is drawn.
 
 /** A canvas off the page and its WebGL 2 context. */
 interface Gl {

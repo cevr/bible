@@ -108,33 +108,58 @@ describe('a wedge', () => {
     }).pipe(Effect.scoped, Effect.provide(layer)),
   );
 
-  it.live('builds a module with the palette swapped for this process, its folder gone after', () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const palette = yield* paletteFile;
-      const film = path.join(path.dirname(palette), 'film.ts');
-      yield* fs.writeFileString(
-        film,
-        "import { looks } from './palette.ts';\nexport const play = looks.style.play;\n",
-      );
-      const out = path.join(path.dirname(palette), 'out');
-      const swaps = yield* paletteSwaps(fs, palette, { style: 'ps1' });
-      const wedged = yield* Effect.scoped(
-        Effect.gen(function* () {
-          const module = yield* wedgedModule(film, out, swaps);
-          // Built and imported while the scope holds: one folder under `out`.
-          expect(yield* fs.readDirectory(out)).toHaveLength(1);
-          return module;
-        }),
-      );
-      expect(wedged).toMatchObject({ play: 'ps1' });
-      expect(yield* fs.readDirectory(out)).toEqual([]);
-      // No swaps: the module as written.
-      expect(yield* Effect.scoped(wedgedModule(film, out, new Map()))).toMatchObject({
-        play: 'cutpaper',
-      });
-      expect(yield* fs.readFileString(palette)).toBe(PALETTE);
-    }).pipe(Effect.scoped, Effect.provide(layer)),
+  it.live(
+    'builds a module with the palette swapped for this process, sharing the packages the film resolves, its folder gone after',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const palette = yield* paletteFile;
+        const dir = path.dirname(palette);
+        // A package only the film's folder resolves, as the app's `@bible/film` is.
+        const pkg = path.join(dir, 'node_modules', 'film-engine');
+        yield* fs.makeDirectory(pkg, { recursive: true });
+        yield* fs.writeFileString(
+          path.join(pkg, 'package.json'),
+          '{ "name": "film-engine", "type": "module", "main": "index.js" }',
+        );
+        yield* fs.writeFileString(path.join(pkg, 'index.js'), 'export const engine = {};\n');
+        const film = path.join(dir, 'film.ts');
+        yield* fs.writeFileString(
+          film,
+          [
+            "import { looks } from './palette.ts';",
+            "import { engine } from 'film-engine';",
+            "import { sep } from 'node:path';",
+            'export const play = looks.style.play;',
+            'export const same = engine;',
+            'export const where = import.meta.dir;',
+            'export const slash = sep;',
+            '',
+          ].join('\n'),
+        );
+        const swaps = yield* paletteSwaps(fs, palette, { style: 'ps1' });
+        const wedged = yield* Effect.scoped(
+          Effect.gen(function* () {
+            const module = yield* wedgedModule(film, swaps);
+            // Built and imported while the scope holds, outside the film's folder.
+            expect(module).toMatchObject({ play: 'ps1', slash: '/' });
+            return module;
+          }),
+        );
+        const direct = yield* Effect.promise(
+          (): Promise<unknown> => import(path.join(pkg, 'index.js')),
+        );
+        // The very module the film's folder resolves, not a copy of it.
+        expect(Reflect.get(Object(wedged), 'same')).toBe(Reflect.get(Object(direct), 'engine'));
+        const where = String(Reflect.get(Object(wedged), 'where'));
+        expect(where.startsWith(dir)).toBe(false);
+        expect(yield* fs.exists(where)).toBe(false);
+        // No swaps: the module as written.
+        expect(yield* Effect.scoped(wedgedModule(film, new Map()))).toMatchObject({
+          play: 'cutpaper',
+        });
+        expect(yield* fs.readFileString(palette)).toBe(PALETTE);
+      }).pipe(Effect.scoped, Effect.provide(layer)),
   );
 });

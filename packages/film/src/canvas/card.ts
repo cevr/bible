@@ -60,7 +60,18 @@ export interface CardSpec<C extends string, F> {
    * over the lit scene. A draw that returns no box while the flood holds
    * stops the frame.
    */
-  readonly flood?: { readonly cue: C };
+  readonly flood?: {
+    readonly cue: C;
+    /**
+     * The flood's edge as the look draws it, in place of the box's straight
+     * one: called on the card's own layer, in the canvas's pixels (no
+     * transform), with the box grown so far (`floodBox`), the cue's eased
+     * progress `at` and the scene's frame, it paints where the card shows
+     * (its alpha is the card's: a ragged edge, a soft wash). The engine keeps
+     * the card only there and lays it over the lit scene.
+     */
+    readonly mask?: (ctx: CanvasRenderingContext2D, box: Box, at: number, f: F) => void;
+  };
   /** The card, over the film's paper: the look's ground and typography (`fullCard`, or its own). */
   readonly draw: (f: F, words: ReadonlyArray<CardWord>) => void;
 }

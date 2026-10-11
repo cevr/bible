@@ -19,7 +19,7 @@ import type { SafeZoneName } from '../core/shorts.ts';
 import { mixFindings, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
 import { type LoadedFilm, masterFile } from './film-repo.ts';
-import { WEDGE_DIR, wedgedModule } from './wedge-module.ts';
+import { wedgedModule } from './wedge-module.ts';
 import { lookFindings } from './look.ts';
 import { Looker } from './looker.ts';
 import { Media } from './media.ts';
@@ -143,7 +143,7 @@ export const drawLeg = Effect.fn('check.draw')(function* (
     FilmModuleInvalid.make({ film: film.paths.name, module: 'film.ts', reason });
   return yield* Effect.scoped(
     Effect.gen(function* () {
-      const module = yield* wedgedModule(file, path.join(film.paths.out, WEDGE_DIR), swaps).pipe(
+      const module = yield* wedgedModule(file, swaps).pipe(
         Effect.mapError((error) => invalid(error.reason)),
       );
       const { film: build } = yield* Schema.decodeUnknownEffect(FilmFile)(module).pipe(

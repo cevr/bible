@@ -31,6 +31,8 @@ const lights: ReadonlyArray<readonly [string, SceneSpec['light']]> = [
   ['even', { color: '#808080' }],
   ['pool', { color: '#ffffff', edge: '#000000' }],
   ['rising', rising],
+  ['print', { color: '#808080', vignette: 0 }],
+  ['half', { color: '#808080', vignette: 0.5 }],
 ];
 
 const film = withDom(() =>
@@ -112,6 +114,15 @@ describe('a scene is lit by its light', () => {
     expect(multiplies('rising', 0.5)).toHaveLength(2);
     // Unlit, the vignette alone.
     expect(multiplies('unlit', 0.5)).toHaveLength(1);
+  });
+
+  test("takes its light's share of the vignette: none for a print, half at a half", () => {
+    const print = multiplies('print', 0.5);
+    expect(print).toHaveLength(1);
+    expect(print.every(isLight)).toBe(true);
+    const half = multiplies('half', 0.5);
+    expect(half.filter(isLight).map((d) => d.alpha)).toEqual([1]);
+    expect(half.filter((d) => !isLight(d)).map((d) => d.alpha)).toEqual([0.5]);
   });
 
   test('keeps a few light sheets, however many colours a light moves through', () => {

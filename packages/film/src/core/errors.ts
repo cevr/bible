@@ -144,6 +144,31 @@ export class UntilBeforeStart extends Schema.TaggedError<UntilBeforeStart>()('Un
   }
 }
 
+/**
+ * A card's flood that would fall inside a transition, where it is never
+ * drawn (a flood is drawn over its scene's own frame alone): starting inside
+ * the scene's way in (`into`), or running past its end into the next scene's
+ * way in (`out`, `next` that scene). `at` is the flood's start or end, `edge`
+ * where it would have to start after or end by.
+ */
+export class FloodInTransition extends Schema.TaggedError<FloodInTransition>()(
+  'FloodInTransition',
+  {
+    scene: Schema.String,
+    cue: Schema.String,
+    side: Schema.Literals(['into', 'out']),
+    next: Schema.String,
+    at: Schema.Finite,
+    edge: Schema.Finite,
+  },
+) {
+  override get message() {
+    if (this.side === 'into')
+      return `scene "${this.scene}": its card's flood "${this.cue}" starts at ${this.at.toFixed(2)} s, inside the scene's ${this.edge.toFixed(2)} s way in; a flood is drawn over the scene alone: start it after ${this.edge.toFixed(2)} s, or enter on a cut`;
+    return `scene "${this.scene}": its card's flood "${this.cue}" runs to ${this.at.toFixed(2)} s, past the scene's end into ${this.next}'s way in; a flood is drawn over the scene alone: end it by ${this.edge.toFixed(2)} s`;
+  }
+}
+
 /** Two scenes of a film share an id. */
 export class DuplicateScene extends Schema.TaggedError<DuplicateScene>()('DuplicateScene', {
   scene: Schema.String,

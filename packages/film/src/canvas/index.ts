@@ -68,6 +68,7 @@ export {
   type CardWord,
   type Verse,
   type VerseStyle,
+  floodBox,
   fullCard,
   verse,
 } from './card.ts';
