@@ -4,7 +4,8 @@
 // what the lab answers. A look is one still of the scene as its sources stand,
 // drawn by a page the lab holds warm (`tools/easel.ts`): no render. Pure.
 
-import { Array as Arr, Match, Option, Result, Schema } from 'effect';
+import { Array as Arr, Match, Option, Order, Result, Schema } from 'effect';
+import { MAIN_VARIANT, RenderVariantName } from './catalogue.ts';
 import type { Placed } from './layout.ts';
 import { framesOf } from './time.ts';
 
@@ -289,6 +290,27 @@ export const levelsOf = (
       );
     },
   );
+
+/**
+ * The variant a render writes: the one `--variant` names; else, for a wedge
+ * (`levels`), one named for its levels, look by look in order
+ * (`style-ps1`, `ground-light-style-ps1`), so a wedge never writes over the
+ * film's `main`; else `main`. A level whose name would not make a variant's
+ * is `LookInvalid`, to be named with `--variant`.
+ */
+export const wedgeVariant = (
+  variant: Option.Option<string>,
+  levels: Readonly<Record<string, string>>,
+): Result.Result<string, LookInvalid> => {
+  if (Option.isSome(variant)) return Result.succeed(variant.value);
+  const pairs = Arr.sortWith(Object.entries(levels), ([look]) => look, Order.String);
+  if (pairs.length === 0) return Result.succeed(MAIN_VARIANT);
+  const named = pairs.map(([look, level]) => `${look}-${level}`).join('-');
+  if (Schema.is(RenderVariantName)(named)) return Result.succeed(named);
+  return invalid(
+    `--level ${named} makes no variant's name (lower case, digits, . _ -): name it with --variant`,
+  );
+};
 
 /** The longest side a look is asked at. */
 export const LOOK_MAX_SIZE = 4096;

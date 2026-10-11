@@ -18,7 +18,8 @@ import type { Short } from '../core/schema.ts';
 import type { SafeZoneName } from '../core/shorts.ts';
 import { mixFindings, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
-import { type LoadedFilm, importFilmModule, masterFile } from './film-repo.ts';
+import { type LoadedFilm, masterFile } from './film-repo.ts';
+import { WEDGE_DIR, wedgedModule } from './wedge-module.ts';
 import { lookFindings } from './look.ts';
 import { Looker } from './looker.ts';
 import { Media } from './media.ts';
@@ -32,6 +33,9 @@ export const CHECK_RULES: ReadonlyArray<FlagRule> = [
   ['draw', 'excludes', 'static', '--static draws nothing, --draw draws every scene'],
   ['draw', 'excludes', 'sound', '--sound hears the mix, --draw draws the scenes'],
   ['draw', 'excludes', 'short', 'a short is drawn by its page'],
+  ['level', 'excludes', 'static', '--static draws nothing, --level changes what is drawn'],
+  ['level', 'excludes', 'sound', '--sound hears the mix, --level changes only what is drawn'],
+  ['level', 'excludes', 'short', "a short's page is drawn as the film plays"],
 ];
 
 /** The film laid out, and the part of it a check covers. */
@@ -108,9 +112,10 @@ export const layoutLeg = Effect.fn('check.layout')(function* (
   film: LoadedFilm,
   scope: Scope,
   workers: number,
+  server: Option.Option<string>,
 ) {
-  const layout = yield* (yield* Checker).layout(film, { workers, scope });
-  const looked = yield* (yield* Looker).look(film, workers, scope);
+  const layout = yield* (yield* Checker).layout(film, { workers, scope, server });
+  const looked = yield* (yield* Looker).look(film, workers, scope, server);
   return [...layout, ...lookFindings(looked, scope.acts)];
 });
 
@@ -123,23 +128,32 @@ const FilmFile = Schema.Struct({
  * `check --draw`: the film as its page builds it (its `film.ts`, from the
  * committed timings), every moment of the scenes `scope` covers drawn in this
  * process into the stand-in context (`draw-check.ts`): a scene that throws, a
- * frame that is not pure, ink over a face. No browser.
+ * frame that is not pure, ink over a face. No browser. With `swaps` (a wedge,
+ * `check --level`), the film is the one those files build (`wedgedModule`),
+ * so a look the film does not play is drawn and checked.
  */
-export const drawLeg = Effect.fn('check.draw')(function* (film: LoadedFilm, scope: Scope) {
+export const drawLeg = Effect.fn('check.draw')(function* (
+  film: LoadedFilm,
+  scope: Scope,
+  swaps: ReadonlyMap<string, string>,
+) {
   const path = yield* Path.Path;
   const file = path.join(film.paths.dir, 'film.ts');
   const invalid = (reason: string) =>
     FilmModuleInvalid.make({ film: film.paths.name, module: 'film.ts', reason });
-  const module = yield* Effect.tryPromise({
-    try: () => importFilmModule(file),
-    catch: (cause) => invalid(String(cause)),
-  });
-  const { film: build } = yield* Schema.decodeUnknownEffect(FilmFile)(module).pipe(
-    Effect.mapError((error) => invalid(error.message)),
+  return yield* Effect.scoped(
+    Effect.gen(function* () {
+      const module = yield* wedgedModule(file, path.join(film.paths.out, WEDGE_DIR), swaps).pipe(
+        Effect.mapError((error) => invalid(error.reason)),
+      );
+      const { film: build } = yield* Schema.decodeUnknownEffect(FilmFile)(module).pipe(
+        Effect.mapError((error) => invalid(error.message)),
+      );
+      const narrated = { timings: film.timings, audio: narrationUrls(film.paths.name).audio };
+      const scenes = new Set(scope.scenes.map((p) => p.spec.id));
+      return yield* drawFindings(() => build(narrated), scenes);
+    }),
   );
-  const narrated = { timings: film.timings, audio: narrationUrls(film.paths.name).audio };
-  const scenes = new Set(scope.scenes.map((p) => p.spec.id));
-  return yield* Effect.scoped(drawFindings(() => build(narrated), scenes));
 });
 
 /**

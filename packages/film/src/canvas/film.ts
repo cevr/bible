@@ -2,7 +2,7 @@
 // drawing; the film lays them end to end, sizes each to its voice, and draws
 // any instant T — the same function serves the preview player and the export.
 
-import { Predicate, Result, Schema } from 'effect';
+import { Option, Predicate, Result, Schema } from 'effect';
 import { type Hand, boilTick } from './ink.ts';
 import type { Hex } from './colour.ts';
 import { DRIFT, type Drift, breathes, hearingCameras, insideCamera } from './camera.ts';
@@ -65,7 +65,15 @@ import {
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { type Box, type CardSpec, type CardWord, cardWords, floodBox } from './card.ts';
 import { seedOf } from '../core/random.ts';
-import { FILM_FPS, type Key, clamp, ease, heardAtOrAfter, justBefore } from '../core/time.ts';
+import {
+  CLOCK_EPSILON,
+  FILM_FPS,
+  type Key,
+  clamp,
+  ease,
+  heardAtOrAfter,
+  justBefore,
+} from '../core/time.ts';
 
 /** What `f.knob` returns for a knob declared as `V`: a number stays a number, a point a point. */
 type KnobValue<V extends Knob> = V extends number ? number : Point;
@@ -196,9 +204,11 @@ export interface SceneSpec extends Timed {
   readonly light?: Light | ((f: Frame) => Light);
   /**
    * The scene's full-screen card (`canvas/card.ts`, CRAFT rule 1): over its
-   * cue the card is the frame, drawn on the bare frame in place of the scene
-   * (no light or vignette on it, the film's finish over it); over its flood's
-   * cue it grows from the highlight over the lit scene.
+   * cue the card is the frame, drawn on the film's paper in place of the
+   * scene (no light or vignette on it, the film's finish over it, no caption:
+   * the card is the words); over its flood's cue it grows from the box the
+   * scene's draw returns, over the lit scene. A card held to the scene's end
+   * leaves as the card into a transition; a flood inside one stops the film.
    */
   readonly card?: CardSpec<string, Frame>;
 }
@@ -567,6 +577,34 @@ interface BreathNow {
   readonly height: number;
 }
 
+/**
+ * Why scene `p`'s card flood would fall inside a transition, when it would:
+ * a flood is drawn over its scene's own frame alone, never over a transition's
+ * two layers, so one that starts inside the scene's way in (`enter`, not a
+ * cut) or runs past its end into the next scene's way in is refused where
+ * the film is made, rather than silently not drawn.
+ */
+const floodInTransition = (
+  p: Placed<SceneSpec>,
+  next: Placed<SceneSpec> | undefined,
+): Option.Option<string> => {
+  const flood = p.spec.card?.flood;
+  if (flood === undefined) return Option.none();
+  const c = p.cues.get(flood.cue);
+  if (c === undefined)
+    return Option.some(`scene ${p.spec.id}: its card floods over "${flood.cue}", a cue it lacks`);
+  const enter = transitionDur(p.spec.enter);
+  if (p.index > 0 && c.start < enter)
+    return Option.some(
+      `scene ${p.spec.id}: its card's flood "${flood.cue}" starts at ${c.start.toFixed(2)} s, inside the scene's ${enter} s way in; a flood is drawn over the scene alone: start it after ${enter} s, or enter on a cut`,
+    );
+  if (next !== undefined && transitionDur(next.spec.enter) > 0 && c.end > p.dur)
+    return Option.some(
+      `scene ${p.spec.id}: its card's flood "${flood.cue}" runs past the scene's end into ${next.spec.id}'s way in; a flood is drawn over the scene alone: end it by ${p.dur.toFixed(2)} s`,
+    );
+  return Option.none();
+};
+
 export const createFilm = (spec: FilmSpec): Film => {
   const width = spec.width ?? 1920;
   const height = spec.height ?? 1080;
@@ -596,6 +634,8 @@ export const createFilm = (spec: FilmSpec): Film => {
     const words = cardWords(p.spec.id, p.voice, p.speechStart, card);
     if (Result.isFailure(words)) throw new Error(words.failure);
     cards.set(p.spec.id, words.success);
+    const flooded = floodInTransition(p, placed[p.index + 1]);
+    if (Option.isSome(flooded)) throw new Error(flooded.value);
   }
 
   // Built lazily: the film must lay out where there is no DOM (tools, tests).
@@ -893,9 +933,11 @@ export const createFilm = (spec: FilmSpec): Film => {
   };
 
   /**
-   * Scene `p`'s card in place of its picture at `T`: on the bare frame, the
-   * film's paper and the scene's light and vignette left off, so nothing
-   * dims or tints it.
+   * Scene `p`'s card in place of its picture at `T`: on the film's paper
+   * alone, opaque, so the frame is the same whatever was drawn on the canvas
+   * before it (a look's card may paint a ground with alpha, or none); the
+   * scene's picture, light and vignette are left off, so nothing dims or
+   * tints it.
    */
   const cardFrame = (
     ctx: CanvasRenderingContext2D,
@@ -905,7 +947,39 @@ export const createFilm = (spec: FilmSpec): Film => {
     probe: Probe | undefined,
     reads: Reads | undefined,
     edits: ReadonlyMap<string, ShownEdit> | undefined,
-  ) => drawCard(ctx, p, frameOf(ctx, p, T, boil, reads, edits, []), probe);
+  ) => {
+    ctx.drawImage(getAssets().paper, 0, 0);
+    drawCard(ctx, p, frameOf(ctx, p, T, boil, reads, edits, []), probe);
+  };
+
+  /**
+   * Whether scene `p`'s card holds to its scene's end (as `edits` show it):
+   * the card is then what the scene leaves on screen, so a transition out of
+   * it carries the card, never the picture under it.
+   */
+  const cardToEnd = (p: Placed<SceneSpec>, edits: ReadonlyMap<string, ShownEdit> | undefined) => {
+    const card = p.spec.card;
+    if (card === undefined) return false;
+    const c = shownOf(p, edits).cues.get(card.cue);
+    return c !== undefined && p.dur - c.end <= CLOCK_EPSILON;
+  };
+
+  /** Scene `p`'s card at `T` into a layer, on the film's paper: the outgoing side of a transition out of a card. */
+  const cardLayer = (
+    target: Offscreen,
+    p: Placed<SceneSpec>,
+    T: number,
+    boil: number,
+    probe: Probe | undefined,
+    reads: Reads | undefined,
+    edits: ReadonlyMap<string, ShownEdit> | undefined,
+  ) => {
+    target.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    target.ctx.globalAlpha = 1;
+    target.ctx.globalCompositeOperation = 'source-over';
+    cardFrame(target.ctx, p, T, boil, probe, reads, edits);
+    return target.c;
+  };
 
   /**
    * Scene `p`'s card flooding in over its lit frame at `T`, when its flood's
@@ -1018,6 +1092,20 @@ export const createFilm = (spec: FilmSpec): Film => {
     grain(ctx, getAssets().grain, boil, width, height, finish.grain);
   };
 
+  /** Scene `cur`'s caption at scene time `local`, when the film captions, probed as a caption. */
+  const captionOver = (
+    ctx: CanvasRenderingContext2D,
+    cur: Placed<SceneSpec>,
+    local: number,
+    voice: Probe | undefined,
+  ) => {
+    if (captions === undefined) return;
+    const style = captions;
+    probing(ctx, voice === undefined ? undefined : { ...voice, caption: true }, () =>
+      caption(ctx, captionsOf?.get(cur) ?? [], local - cur.speechStart, width, height, style),
+    );
+  };
+
   const render = (ctx: CanvasRenderingContext2D, T: number, opts: RenderOptions = {}) => {
     const { a, b } = getAssets();
     const boil = boilTick(T);
@@ -1038,7 +1126,8 @@ export const createFilm = (spec: FilmSpec): Film => {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    if (carded(cur, T, edits)) {
+    const isCard = carded(cur, T, edits);
+    if (isCard) {
       // A full-screen card: the frame is the card alone, cut to and from.
       cardFrame(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), edits);
     } else if (prev === undefined || enter === undefined || enter.kind === 'cut' || local >= tr) {
@@ -1052,7 +1141,9 @@ export const createFilm = (spec: FilmSpec): Film => {
       const dir = enter.kind === 'pan' ? (enter.dir ?? 1) : 1;
       const dx = enter.kind === 'pan' ? -dir * p * width : 0;
       const fading = enter.kind === 'pan' ? 0 : 1;
-      const out = layer(a, prev, T, boil, probe(prev, dx, 1 - fading * p), reads(false), edits);
+      // A card held to its scene's end leaves as the card, not the picture under it.
+      const outgoing = cardToEnd(prev, edits) ? cardLayer : layer;
+      const out = outgoing(a, prev, T, boil, probe(prev, dx, 1 - fading * p), reads(false), edits);
       const inn = layer(
         b,
         cur,
@@ -1081,13 +1172,9 @@ export const createFilm = (spec: FilmSpec): Film => {
     }
 
     finishFrame(ctx, boil);
-    if (opts.captions === true && captions !== undefined) {
-      const style = captions;
-      const voice = probe(cur, 0, 1);
-      probing(ctx, voice === undefined ? undefined : { ...voice, caption: true }, () =>
-        caption(ctx, captionsOf?.get(cur) ?? [], local - cur.speechStart, width, height, style),
-      );
-    }
+    // No caption over a card: the card is the words (CRAFT rule 1), set as they are
+    // said; the caption track (`.vtt`) keeps the line.
+    if (opts.captions === true && !isCard) captionOver(ctx, cur, local, probe(cur, 0, 1));
     ctx.restore();
   };
 

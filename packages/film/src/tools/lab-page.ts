@@ -352,6 +352,31 @@ const bunBundle =
       } satisfies Bundled;
     });
 
+/**
+ * The module `file` built for this process (Bun's `bun` target), with each
+ * of `swaps` read as its text there, and every package it imports left
+ * for the runtime to resolve where the output is put (the engine and three
+ * stay the very modules this process runs): the output, or why not. A build
+ * that reads none of `swaps` cannot draw them changed, and is refused.
+ */
+export const bunModule = (path: Path.Path, file: string, swaps: ReadonlyMap<string, string>) =>
+  Effect.gen(function* () {
+    const read = new Set<string>();
+    const built = yield* bunBuild(path, {
+      entrypoints: [file],
+      target: 'bun',
+      packages: 'external',
+      plugins: [swapPlugin(swaps, read)],
+    });
+    const unread = [...swaps.keys()].filter((swapped) => !read.has(swapped));
+    if (unread.length > 0)
+      return yield* Effect.fail<BundleFailed>({
+        reason: `the build read none of ${unread.join(', ')}, so it cannot draw them changed`,
+        files: unread,
+      });
+    return built.outputs;
+  });
+
 /** A file as the test bundler answers it: a page's HTML, or a module. */
 const typeOf = (file: string): string => {
   if (file.endsWith('.html')) return 'text/html;charset=utf-8';

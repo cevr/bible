@@ -4,7 +4,7 @@
 // mode, the format a look takes unless told, and a still's file name.
 
 import { describe, expect, test } from 'bun:test';
-import { Result } from 'effect';
+import { Option, Result } from 'effect';
 import {
   type SceneTimes,
   type StillView,
@@ -15,6 +15,7 @@ import {
   lookFileName,
   momentOf,
   viewBox,
+  wedgeVariant,
 } from './easel.ts';
 
 /** A scene 10 s long from film second 4.01, a mark at 2 s, a cue from 1 to 3 s. */
@@ -159,6 +160,17 @@ describe('a crop and a format', () => {
     for (const flags of [['style'], ['=ps1'], ['style='], ['style=ps1=x']])
       expect(failureTag(levelsOf(flags))).toBe('LookInvalid');
     expect(failureTag(levelsOf(['style=ps1', 'style=bold']))).toBe('LookInvalid');
+  });
+
+  test("a wedge's render is named for its levels unless --variant names it, never main", () => {
+    expect(Result.getOrThrow(wedgeVariant(Option.none(), {}))).toBe('main');
+    expect(Result.getOrThrow(wedgeVariant(Option.none(), { style: 'ps1' }))).toBe('style-ps1');
+    expect(Result.getOrThrow(wedgeVariant(Option.none(), { style: 'ps1', ground: 'light' }))).toBe(
+      'ground-light-style-ps1',
+    );
+    expect(Result.getOrThrow(wedgeVariant(Option.some('main'), { style: 'ps1' }))).toBe('main');
+    expect(Result.getOrThrow(wedgeVariant(Option.some('try-2'), { style: 'ps1' }))).toBe('try-2');
+    expect(failureTag(wedgeVariant(Option.none(), { style: 'PS 1' }))).toBe('LookInvalid');
   });
 
   test('a crop is lossless; a whole frame is JPEG', () => {

@@ -8,6 +8,8 @@ import { lookOf } from '../looks/index.ts';
 
 export const court = drawing({
   timeline: {
+    // The first sentence, up to the evidence: a look that builds its room (or its tension) over it.
+    build: { at: 'speech', until: 'evidence' },
     drop: { mark: 'evidence', dur: 1.4, ease: 'inCubic', stagger: 0.857 },
     bow: { mark: 'did', dur: 0.35 },
     // The judge leans in, his hand going to the gavel.

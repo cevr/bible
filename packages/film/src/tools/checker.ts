@@ -59,6 +59,8 @@ interface LayoutCheckOptions {
   readonly workers: number;
   /** The part of the film probed (`resolveAddress`): every scene for the whole film. */
   readonly scope: Scope;
+  /** The server its pages draw on: a wedge's (`check --level`, `wedgeServer`), or none for the PreviewServer. */
+  readonly server: Option.Option<string>;
 }
 
 type ProbeFrame = (
@@ -207,7 +209,7 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
             const pool = yield* pages.open(film.paths.name, {
               workers,
               captions: true,
-              server: Option.none(),
+              server: options.server,
             });
             const info = pool.info;
             const chosen = new Set(options.scope.scenes.map((p) => p.spec.id));

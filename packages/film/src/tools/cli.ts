@@ -80,7 +80,7 @@ import { labAllowed, labLink } from './lab.ts';
 import type { LabAt } from './api-server.ts';
 import { type LabPageSpec, PageBundler } from './lab-page.ts';
 import { PALETTE_FILE, paletteSwaps, wedgeServer } from './wedge.ts';
-import { levelsOf } from '../core/easel.ts';
+import { levelsOf, wedgeVariant } from '../core/easel.ts';
 import { filmServices, labPages, startLab } from './film-services.ts';
 import { look } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
@@ -105,7 +105,7 @@ import { answeringCheck, encodeCheckLine } from './fresh-film.ts';
 import { sfx } from './sfx-cli.ts';
 import { SoundLibrary } from './library.ts';
 import { type EncoderReadyError, Renderer, encoderReady } from './renderer.ts';
-import { project, renderAndRecord, variantFlag } from './project-cli.ts';
+import { project, renderAndRecord, renderVariantFlag, variantFlag } from './project-cli.ts';
 import { Stamps, stampOf } from './stamp.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
 
@@ -526,14 +526,25 @@ const cues = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
   );
 };
 
-const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
-  const layout = Effect.fn('film.check.layout')(function* (
-    loaded: LoadedFilm,
-    scope: Scope,
-    workers: number,
-  ) {
-    return yield* layoutLeg(loaded, scope, workers);
-  }, Effect.provide(checkLayer));
+const check = <E, R>(
+  checkLayer: Layer.Layer<Checker | Looker, E, R>,
+  renderPage: string,
+  films: string,
+) => {
+  // A wedge's pages draw on its own server (`--level`), held while the leg runs.
+  const layout = Effect.fn('film.check.layout')(
+    function* (
+      loaded: LoadedFilm,
+      scope: Scope,
+      workers: number,
+      swaps: ReadonlyMap<string, string>,
+    ) {
+      const server = yield* wedgeServer(renderPage, films, swaps);
+      return yield* layoutLeg(loaded, scope, workers, server);
+    },
+    Effect.scoped,
+    Effect.provide(Layer.merge(checkLayer, PageBundler.layer)),
+  );
   const onShort = Effect.fn('film.check.short')(function* (
     loaded: LoadedFilm,
     declared: Short,
@@ -588,6 +599,12 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
           "the platform's safe zone a short's text is held to: default (the feed) or ads (the bottom 35% covered)",
         ),
       ),
+      level: Flag.String('level').pipe(
+        Flag.atLeast(0),
+        Flag.withDescription(
+          "look=level: draw that look (palette.ts's looks) at that level, not the one it plays, the pick unwritten (a wedge), in --draw and the page legs; repeat for more looks",
+        ),
+      ),
     },
     Effect.fn('film.check')(function* (input) {
       yield* Effect.fromResult(
@@ -597,12 +614,19 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
             sound: Option.liftPredicate(input.sound, Boolean),
             draw: Option.liftPredicate(input.draw, Boolean),
             short: input.short,
+            level: Arr.head(input.level),
           }),
           CHECK_RULES,
         ),
       );
       const options = { allowStale: input.allowStale };
       const loaded = yield* (yield* FilmRepo).load(input.film);
+      // `--level`: the palette as the picks would write it, for the legs that draw.
+      const swaps = yield* paletteSwaps(
+        yield* FileSystem.FileSystem,
+        (yield* Path.Path).join(loaded.paths.dir, PALETTE_FILE),
+        yield* Effect.fromResult(levelsOf(input.level)),
+      );
       const address = yield* Effect.fromResult(addressOf(input));
       // A film that does not lay out, or a misspelt act, scene or short, is the
       // one finding: reported at its scene, rather than probing nothing.
@@ -616,10 +640,10 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
         return yield* printReport(declared.id, 'short', report(found, options), input.json);
       }
       const found: Array<Finding> = [...(yield* staticLeg(loaded, placed))];
-      if (input.draw) found.push(...(yield* drawLeg(loaded, scope)));
+      if (input.draw) found.push(...(yield* drawLeg(loaded, scope, swaps)));
       if (!input.static && !input.draw) found.push(...(yield* soundLeg(loaded, placed)));
       if (!input.static && !input.sound && !input.draw)
-        found.push(...(yield* layout(loaded, scope, input.workers)));
+        found.push(...(yield* layout(loaded, scope, input.workers, swaps)));
       yield* printReport(input.film, 'film', report(found, options), input.json);
     }, answeringCheck),
   ).pipe(
@@ -691,7 +715,7 @@ const render = <E, R>(
         Flag.withDefault(true),
         Flag.withDescription('burn the captions in (--no-captions to leave them out)'),
       ),
-      variant: variantFlag,
+      variant: renderVariantFlag,
       out: Flag.String('out').pipe(
         Flag.optional,
         Flag.withDescription(
@@ -719,7 +743,7 @@ const render = <E, R>(
       level: Flag.String('level').pipe(
         Flag.atLeast(0),
         Flag.withDescription(
-          "look=level: render that look (palette.ts's looks) at that level, not the one it plays, the pick unwritten (a wedge); repeat for more looks; --variant names the file",
+          "look=level: render that look (palette.ts's looks) at that level, not the one it plays, the pick unwritten (a wedge); repeat for more looks; the file is named for the levels (style-ps1) unless --variant names it",
         ),
       ),
     },
@@ -735,6 +759,7 @@ const render = <E, R>(
         });
         // `--level`: the palette as the picks would write it, built and served for this render alone.
         const levels = yield* Effect.fromResult(levelsOf(input.level));
+        const variant = yield* Effect.fromResult(wedgeVariant(input.variant, levels));
         const path = yield* Path.Path;
         const swaps = yield* paletteSwaps(
           yield* FileSystem.FileSystem,
@@ -746,7 +771,7 @@ const render = <E, R>(
         const stamp = stampOf(yield* (yield* Stamps).scenes(loaded, placed), scope, levels);
         const job = yield* Effect.fromResult(
           jobOf({
-            variant: input.variant,
+            variant,
             captions: input.captions,
             workers: input.workers,
             stills,
@@ -803,7 +828,7 @@ const lookbook = <E, R>(lookLayer: Layer.Layer<Renderer | Looker, E, R>) =>
         }),
         stamp,
       );
-      const looked = yield* (yield* Looker).look(loaded, DRAW_WORKERS, whole);
+      const looked = yield* (yield* Looker).look(loaded, DRAW_WORKERS, whole, Option.none());
       for (const line of lookLines(looked.looks, whole.acts)) yield* Console.log(line);
     }, Effect.provide(lookLayer)),
   ).pipe(
@@ -944,7 +969,7 @@ export const runFilmCli = <E>({
       options,
       read,
       cues(checkLayer),
-      check(checkLayer),
+      check(checkLayer, labApp.pages.pages.render, films),
       render(renderLayer, labApp.pages.pages.render, films),
       project(renderLayer),
       lookbook(lookLayer),

@@ -12,6 +12,7 @@ import { Effect, FileSystem, Layer, Option, Path } from 'effect';
 import { FetchHttpClient, HttpClient } from 'effect/http';
 import { PageBundler } from './lab-page.ts';
 import { PALETTE_FILE, paletteSwaps, wedgeServer } from './wedge.ts';
+import { wedgedModule } from './wedge-module.ts';
 
 const PALETTE = `export const looks = {
   style: {
@@ -104,6 +105,36 @@ describe('a wedge', () => {
       const after = yield* Effect.exit(HttpClient.get(url));
       expect(after._tag).toBe('Failure');
       expect(yield* fs.readFileString(page)).toBe('<p>as written</p>');
+    }).pipe(Effect.scoped, Effect.provide(layer)),
+  );
+
+  it.live('builds a module with the palette swapped for this process, its folder gone after', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const palette = yield* paletteFile;
+      const film = path.join(path.dirname(palette), 'film.ts');
+      yield* fs.writeFileString(
+        film,
+        "import { looks } from './palette.ts';\nexport const play = looks.style.play;\n",
+      );
+      const out = path.join(path.dirname(palette), 'out');
+      const swaps = yield* paletteSwaps(fs, palette, { style: 'ps1' });
+      const wedged = yield* Effect.scoped(
+        Effect.gen(function* () {
+          const module = yield* wedgedModule(film, out, swaps);
+          // Built and imported while the scope holds: one folder under `out`.
+          expect(yield* fs.readDirectory(out)).toHaveLength(1);
+          return module;
+        }),
+      );
+      expect(wedged).toMatchObject({ play: 'ps1' });
+      expect(yield* fs.readDirectory(out)).toEqual([]);
+      // No swaps: the module as written.
+      expect(yield* Effect.scoped(wedgedModule(film, out, new Map()))).toMatchObject({
+        play: 'cutpaper',
+      });
+      expect(yield* fs.readFileString(palette)).toBe(PALETTE);
     }).pipe(Effect.scoped, Effect.provide(layer)),
   );
 });

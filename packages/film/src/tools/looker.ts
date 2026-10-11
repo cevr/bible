@@ -5,7 +5,7 @@
 // `HandJump`, `HandFar`, `HandHidden`); `film lookbook` prints it. The pages
 // are a pool of `Pages`, in the look's scope, as in a render.
 
-import { Array as Arr, Context, Effect, Layer, Option } from 'effect';
+import { Array as Arr, Context, Effect, Layer, type Option } from 'effect';
 import type { Scope } from '../core/address.ts';
 import type { PageOpenError } from './browser.ts';
 import type { FrameFailed, PageCrashed, PageError } from './errors.ts';
@@ -36,12 +36,14 @@ const HANDS_THUMB = 1;
 interface LookerService {
   /**
    * Draw the scenes `scope` covers (`resolveAddress`: every one for the whole
-   * film) at 2 fps, small, on `workers` pages, and measure each.
+   * film) at 2 fps, small, on `workers` pages drawing on `server` (a wedge's,
+   * `check --level`; none for the PreviewServer), and measure each.
    */
   readonly look: (
     film: LoadedFilm,
     workers: number,
     scope: Scope,
+    server: Option.Option<string>,
   ) => Effect.Effect<Looked, LookError>;
 }
 
@@ -55,6 +57,7 @@ export class Looker extends Context.Service<Looker, LookerService>()('@bible/fil
         film: LoadedFilm,
         workers: number,
         scope: Scope,
+        server: Option.Option<string>,
       ) {
         const placed = scope.scenes;
         return yield* Effect.scoped(
@@ -64,7 +67,7 @@ export class Looker extends Context.Service<Looker, LookerService>()('@bible/fil
             const pool = yield* pages.open(film.paths.name, {
               workers: size,
               captions: true,
-              server: Option.none(),
+              server,
             });
             const info = pool.info;
             /** `samples` drawn on the pool, each as a `w` × `h` thumb, in order. */

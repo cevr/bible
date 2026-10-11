@@ -12,9 +12,10 @@
 // frame over. The scene's draw returns where on the frame the highlight
 // stands (`verse` returns it so), and the flood grows from that box: the
 // same frame's, never one an earlier frame left. The film draws the card in
-// place of the scene, on the bare frame, so no act light or vignette dims it
-// (`film.ts`); a flood is drawn over the lit scene, after its light and
-// vignette. What the card looks like is the look's: `fullCard` sets the words
+// place of the scene, on the film's paper (opaque, so the frame is the same
+// whatever was drawn before it), so no act light or vignette dims it, and no
+// caption is set over it: the card is the words (`film.ts`); a flood is drawn
+// over the lit scene, after its light and vignette. What the card looks like is the look's: `fullCard` sets the words
 // in a `CardStyle` (its ground, face, sizes, case and the payoff's colour and
 // treatment), or a look draws them its own way from the same `CardWord`s.
 
@@ -60,7 +61,7 @@ export interface CardSpec<C extends string, F> {
    * stops the frame.
    */
   readonly flood?: { readonly cue: C };
-  /** The card on the bare frame: the look's typography (`fullCard`, or its own). */
+  /** The card, over the film's paper: the look's ground and typography (`fullCard`, or its own). */
   readonly draw: (f: F, words: ReadonlyArray<CardWord>) => void;
 }
 
@@ -292,6 +293,13 @@ export interface VerseStyle {
   readonly highlight: string;
   /** The ink of the words the highlight covers, where the type's would not read on it (the card's ink). */
   readonly lit?: string;
+  /**
+   * How far the highlight reaches past each word, px in the drawing's space:
+   * `x` each side (0.12 of the type's size when unset), `y` above and below
+   * (none when unset). Bars on one line that meet are filled as one, so an
+   * `x` of half a space or more joins a line's highlight into one bar.
+   */
+  readonly pad?: { readonly x?: number; readonly y?: number };
 }
 
 /** A verse set: its lines, and the phrase's words as boxes in reading order. */
@@ -317,7 +325,14 @@ const verseLayout = (
 ): VerseSet => {
   const words = verse.text.split(/\s+/).filter((s) => s.length > 0);
   const phrase = verse.phrase.split(/\s+/).filter((s) => s.length > 0);
-  const first = Option.getOrElse(phraseAt(words, phrase), () => -1);
+  // A phrase that is not a run of the verse's words (a typo, other punctuation) would
+  // highlight nothing and flood from nowhere: Scripture is set verbatim, so it stops here.
+  const found = Option.filter(phraseAt(words, phrase), () => phrase.length > 0);
+  if (Option.isNone(found))
+    throw new Error(
+      `verse: the phrase "${verse.phrase}" is no run of the words of "${verse.text}" (set both verbatim)`,
+    );
+  const first = found.value;
   const s = style.type;
   const tall = (s.leading ?? 1.3) * s.size;
   const space = measure(ctx, ' ', s);
@@ -335,7 +350,7 @@ const verseLayout = (
       row++;
     }
     const at = line.length === 0 ? 0 : lx + space;
-    if (first >= 0 && i >= first && i < first + phrase.length)
+    if (i >= first && i < first + phrase.length)
       boxes.push({ x: x + at, y: y + row * tall - s.size * 0.95, w: ww, h: s.size * 1.25 });
     line = line.length === 0 ? word : `${line} ${word}`;
     lx = at + ww;
@@ -344,13 +359,25 @@ const verseLayout = (
   return { lines, phrase: boxes };
 };
 
-/** A box widened by `pad` px each way. */
-const padded = (b: Box, pad: number): Box => ({
-  x: b.x - pad,
-  y: b.y,
-  w: b.w + 2 * pad,
-  h: b.h,
+/** A box widened by `x` px each side and `y` px above and below. */
+const padded = (b: Box, x: number, y: number): Box => ({
+  x: b.x - x,
+  y: b.y - y,
+  w: b.w + 2 * x,
+  h: b.h + 2 * y,
 });
+
+/** `bars` in reading order, each run of them on one line that meets or overlaps filled as one bar. */
+const joined = (bars: ReadonlyArray<Box>): ReadonlyArray<Box> =>
+  bars.reduce<Array<Box>>((out, b) => {
+    const prev = out.at(-1);
+    if (prev !== undefined && prev.y === b.y && b.x <= prev.x + prev.w) {
+      out[out.length - 1] = { ...prev, w: Math.max(prev.x + prev.w, b.x + b.w) - prev.x };
+      return out;
+    }
+    out.push(b);
+    return out;
+  }, []);
 
 /** The smallest box round `boxes` (an empty box at the origin when there are none). */
 const boxAround = (boxes: ReadonlyArray<Box>): Box => {
@@ -397,16 +424,18 @@ export const verse = (
   hand: Hand,
 ): Box => {
   const set = verseLayout(ctx, v, style, at.x, at.y);
-  const pad = style.type.size * 0.12;
-  const total = set.phrase.reduce((sum, b) => sum + b.w + 2 * pad, 0);
+  const padX = style.pad?.x ?? style.type.size * 0.12;
+  const padY = style.pad?.y ?? 0;
+  const total = set.phrase.reduce((sum, b) => sum + b.w + 2 * padX, 0);
   let left = clamp(at.highlight) * total;
-  const lit: Box[] = [];
+  const swept: Box[] = [];
   for (const b of set.phrase) {
     if (left <= 0) break;
-    const p = padded(b, pad);
-    lit.push({ ...p, w: Math.min(p.w, left) });
+    const p = padded(b, padX, padY);
+    swept.push({ ...p, w: Math.min(p.w, left) });
     left -= p.w;
   }
+  const lit = joined(swept);
   ctx.save();
   ctx.fillStyle = style.highlight;
   for (const r of lit) ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -427,6 +456,6 @@ export const verse = (
     ctx.restore();
   }
   const last = set.phrase.at(-1)?.y;
-  const end = set.phrase.filter((b) => b.y === last).map((b) => padded(b, pad));
+  const end = set.phrase.filter((b) => b.y === last).map((b) => padded(b, padX, padY));
   return onFrame(ctx, boxAround(end));
 };

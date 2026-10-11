@@ -11,14 +11,22 @@ import { type CardStyle, cardWords, floodBox, fullCard, verse } from './card.ts'
 import { createFilm, drawing } from './film.ts';
 import { recorder, withDom } from './fixtures/stand-in.ts';
 import { type ProbeSink, probing } from './probe.ts';
+import { filmCaptions } from '../core/captions.ts';
 import { estimate } from '../core/narration.ts';
-import { unmeasured } from '../core/voiced.ts';
+import { voicedAt } from '../core/voiced.ts';
 
 const LINE = 'Job asked it: {job}How should man be just with God?';
 
-/** The line's words as an estimate times them, heard over their spans, and its one mark. */
+/**
+ * The line's words as an estimate times them, each heard 0.15 s into its span
+ * (as a take's are, its aligned start leading the voice), and its one mark at
+ * the aligned start.
+ */
 const voice = () => {
-  const words = unmeasured(estimate('Job asked it: How should man be just with God?'));
+  const words = estimate('Job asked it: How should man be just with God?').map((w) => ({
+    ...w,
+    voiced: voicedAt(w.start + 0.15, w.end),
+  }));
   return { words, marks: new Map([['job', words[3]?.start ?? 0]]) };
 };
 
@@ -51,7 +59,8 @@ describe('cardWords', () => {
       'God?',
     ]);
     expect(words.filter((w) => w.payoff).map((w) => w.text)).toEqual(['just']);
-    expect(words[0]?.at).toBeCloseTo(0.5 + (v.words[3]?.voiced.start ?? 0), 9);
+    // At the voice's onset, not the aligned start that leads it.
+    expect(words[0]?.at).toBeCloseTo(0.5 + (v.words[3]?.start ?? 0) + 0.15, 9);
   });
 
   test('names the mark or the payoff the line lacks', () => {
@@ -199,6 +208,37 @@ describe('verse', () => {
     expect(plain.length).toBeGreaterThan(1);
     expect(lines(0.5)).toEqual([...plain, ...plain]);
   });
+
+  test("joins a line's highlight into one bar when its pad meets across the spaces, and pads it above and below", () => {
+    const { ctx, fills } = context();
+    // A space is 20 px at this size: 10 each side meets the next word's.
+    const box = verse(
+      ctx,
+      v,
+      { ...style, pad: { x: 10, y: 6 } },
+      { x: 0, y: 40, highlight: 1 },
+      hand(),
+    );
+    const lit = fills.filter((f) => f.style === '#a7d7e8');
+    expect(lit).toHaveLength(2);
+    for (const f of lit) expect(f.rect[3]).toBeCloseTo(40 * 1.25 + 12, 9);
+    // The flood's box is the joined bar of the last line.
+    const last = lit.at(-1)?.rect ?? [0, 0, 0, 0];
+    expect([box.x, box.y, box.w, box.h]).toEqual([...last]);
+  });
+
+  test('stops the frame where the phrase is not a run of the verse as printed', () => {
+    const { ctx } = context();
+    expect(() =>
+      verse(
+        ctx,
+        { ...v, phrase: 'how shall man be just' },
+        style,
+        { x: 0, y: 40, highlight: 1 },
+        hand(),
+      ),
+    ).toThrow('"how shall man be just"');
+  });
 });
 
 test('a flood grows from its box to the whole frame', () => {
@@ -298,16 +338,19 @@ describe('a scene with a card', () => {
       },
       { record: false },
     );
-    return log[log.indexOf('card') - 1];
+    return { clip: log[log.indexOf('card') - 1], flood };
   };
 
   test("grows its flood from the box the scene's draw returned on the same frame, whatever was drawn before", () => {
     const mid = (c: { start: number; end: number }) => (c.start + c.end) / 2;
     const early = (c: { start: number; end: number }) => c.start + 0.05;
-    const alone = floodAt(mid, []);
+    const alone = floodAt(mid, []).clip;
     expect(alone).toBeDefined();
-    expect(floodAt(mid, [0.1, 3, 1.2])).toEqual(alone);
-    expect(floodAt(early, [])).not.toEqual(alone);
+    expect(floodAt(mid, [0.1, 3, 1.2]).clip).toEqual(alone);
+    expect(floodAt(early, []).clip).not.toEqual(alone);
+    // At the flood's start the clip is the box this frame's draw returned, exactly.
+    const { clip, flood } = floodAt((c) => c.start, [2.5]);
+    expect(clip).toEqual([100 + 400 * flood.start, 500, 300, 50]);
   });
 
   test('stops the frame where a flood holds but the scene drew no box to grow it from', () => {
@@ -332,6 +375,121 @@ describe('a scene with a card', () => {
     expect(() =>
       withDom(() => film.render(recorder().ctx, flood.start + flood.dur / 2), { record: false }),
     ).toThrow('no box to flood from');
+  });
+
+  /** A captioned film of one scene whose card holds to its end and paints only a 5 px mark, no ground. */
+  const bare = () => {
+    const scene = drawing({
+      timeline: { card: { mark: 'job', until: { at: 'end' } } },
+      draw: (f) => void f.ctx.fillRect(0, 0, 1920, 1080),
+      card: {
+        cue: 'card',
+        from: 'job',
+        payoff: 'just',
+        draw: (f) => void f.ctx.fillRect(10, 10, 5, 5),
+      },
+    });
+    return createFilm({
+      title: 'card',
+      paper: { base: '#fff', tone: '#000', seed: 1 },
+      shade: '#000',
+      scenes: [{ id: 'job', say: LINE, ...scene }],
+      captions: { font: '500 38px "x"', color: '#000', plate: '#fff' },
+    });
+  };
+
+  test("lays the film's paper under the card, so a card frame is the same whatever was drawn before it", () => {
+    const at = (film: ReturnType<typeof bare>, before: ReadonlyArray<number>) => {
+      const card = film.placed[0]?.cues.get('card') ?? { start: Number.NaN };
+      const r = recorder(1920, 1080);
+      withDom(() => {
+        for (const T of before) film.render(r.ctx, T);
+        r.ops.length = 0;
+        film.render(r.ctx, card.start + 0.2);
+      });
+      // Canvases told apart by size, not by the order they were made.
+      return r.ops.map((op) =>
+        op._tag === 'Image' ? { ...op, image: [op.image.width, op.image.height] } : op,
+      );
+    };
+    const fresh = at(bare(), []);
+    // First the paper, whole and opaque, at the identity: then the look's card.
+    expect(fresh[0]).toMatchObject({
+      _tag: 'Image',
+      image: [1920, 1080],
+      alpha: 1,
+      comp: 'source-over',
+    });
+    expect(fresh[1]).toMatchObject({ _tag: 'Fill', rect: [10, 10, 5, 5] });
+    expect(at(bare(), [0.1, 0.4])).toEqual(fresh);
+  });
+
+  test('draws no caption over a card, the caption track keeping the line', () => {
+    const film = bare();
+    const card = film.placed[0]?.cues.get('card') ?? { start: Number.NaN };
+    const captioned = (T: number) => {
+      const sink: ProbeSink = { texts: [], inks: [] };
+      withDom(() => film.render(recorder().ctx, T, { captions: true, probe: sink }), {
+        record: false,
+      });
+      return sink.texts.filter((x) => x.caption === true).map((x) => x.text);
+    };
+    expect(captioned(card.start - 0.1).length).toBeGreaterThan(0);
+    expect(captioned(card.start + 0.1)).toEqual([]);
+    expect(captioned(card.start + 1)).toEqual([]);
+    const track = filmCaptions(film.placed, { from: 0, to: film.duration });
+    expect(track.some((c) => c.text.includes('just') && c.end > card.start)).toBe(true);
+  });
+
+  test('leaves as the card when it holds to its scene end and the next scene enters on a transition', () => {
+    const ran: string[] = [];
+    const job = drawing({
+      timeline: { card: { mark: 'job', until: { at: 'end' } } },
+      draw: () => void ran.push('job'),
+      card: { cue: 'card', from: 'job', payoff: 'just', draw: () => void ran.push('card') },
+    });
+    const next = drawing({ timeline: {}, draw: () => void ran.push('next') });
+    const film = createFilm({
+      title: 'card',
+      paper: { base: '#fff', tone: '#000', seed: 1 },
+      shade: '#000',
+      scenes: [
+        { id: 'job', say: LINE, ...job },
+        { id: 'next', say: 'And then the next.', enter: { kind: 'fade', dur: 1 }, ...next },
+      ],
+    });
+    const at = film.placed[1]?.start ?? Number.NaN;
+    withDom(() => film.render(recorder().ctx, at + 0.5), { record: false });
+    expect(new Set(ran)).toEqual(new Set(['card', 'next']));
+  });
+
+  test('stops the film where a flood would fall inside its way in, where it is never drawn', () => {
+    const job = drawing({
+      timeline: {
+        flood: { at: 'start', dur: 0.3 },
+        card: { mark: 'job', until: { at: 'end' } },
+      },
+      draw: () => ({ x: 0, y: 0, w: 10, h: 10 }),
+      card: {
+        cue: 'card',
+        from: 'job',
+        payoff: 'just',
+        flood: { cue: 'flood' },
+        draw: () => undefined,
+      },
+    });
+    const first = drawing({ timeline: {}, draw: () => undefined });
+    expect(() =>
+      createFilm({
+        title: 'card',
+        paper: { base: '#fff', tone: '#000', seed: 1 },
+        shade: '#000',
+        scenes: [
+          { id: 'first', say: 'First a line.', ...first },
+          { id: 'job', say: LINE, enter: { kind: 'fade', dur: 1 }, ...job },
+        ],
+      }),
+    ).toThrow('way in');
   });
 
   test('stops the film where the card names a payoff its line never says', () => {

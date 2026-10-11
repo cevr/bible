@@ -36,10 +36,11 @@ export interface Look {
    */
   readonly job: (f: JobFrame) => Box;
   /**
-   * The full-screen card over its cue, on the bare frame: "How should man be
-   * just with God?", each word from `word.at` (scene seconds), "just" the
-   * payoff. The engine's `fullCard` sets them in a `CardStyle`, or the look
-   * sets them its own way.
+   * The full-screen card over its cue, over the film's paper (the look paints
+   * its own ground on it), with no caption: "How should man be just with
+   * God?", each word from `word.at` (scene seconds), "just" the payoff (the
+   * `payoff` cue starts on it). The engine's `fullCard` sets them in a
+   * `CardStyle`, or the look sets them its own way.
    */
   readonly card: (f: JobFrame, words: ReadonlyArray<CardWord>) => void;
   /** The light over both scenes (the act light, CRAFT rule 11); none leaves the film's vignette alone. */
