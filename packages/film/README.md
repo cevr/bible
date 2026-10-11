@@ -764,7 +764,10 @@ sheet): it goes Back over the tap that opened the sheet only when
 the entry before it is exactly where the Close would write (a scene's tap moves
 the playhead, so Close keeps that time), else the entry is rewritten to the tape. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
 say; M puts the cursor in the selected scene's comment box (an unsent comment is kept per scene); an approve's receipt offers Undo (`project.undo-approve`), as
-Project's does. The palette and the film's counts are in
+Project's does. A say may go out while another is in flight: the project
+shows the newest asked of the answers (`lab/review/asked.ts`, the first read
+its first ask), so an older approve's answer landing last never hides a newer
+one, and an answer a later ask overtook reads the project again. The palette and the film's counts are in
 the view menu (⋯). A short's Open goes to its play page, as the lab opens
 films.
 
@@ -2251,10 +2254,26 @@ folder under another root among them, and until the project answers, it
 judges as the record says; the Set's tools say which judges (`data-sources`:
 `reading`, `project`, `record`). The page reads the project itself, once it
 runs and only for a folder whose title is one of the app's films (a
-montage's title is none, so its Set asks for no project); the server's
-render never waits on it. Each page reads the project as it mounts, so a
-Set and then its Project tab read it twice, and Project shows what a Set's
-approve wrote. It says it in every view, beside the
+montage's title is none, so its Set asks for no project; Refresh reads the
+films again, so a film added while the page is open is one from then on);
+the server's render never waits on it. The page has one owner of each film's project
+(`FilmProject`, `meta.project` in `lab/review/context.tsx`), kept for the
+page's life, which every page that shows it reads (`useProject`: a Films
+card, a Set's judgement, Project): a Set and then its Project tab read it
+once, however long Project takes to open. A say's answer lands on it in the
+order asked (`asked.ts`); a Set's say, a source write and Refresh read it
+again, now while a page shows it, else when one next does. A version's
+approval and comments are the index's (`useIndexOwner`,
+`lab/review/index-owner.ts`): a say on Project reads the index again
+(`indexChanged`), and a Set's say puts its folder into the index's newest
+answer, so a read again and a say landing together both stand. After any
+project say (Project's or Scenes', `Review.written`), as after a set's, the
+server drops its cached index, and a walk that began before the say keeps
+nothing, so its next read walks every root again and a Set opened after a
+say shows it. A change made elsewhere shows at once
+after a Refresh. A reload shows another tab's say at once; the CLI writes
+without telling the server, so a reload shows a CLI change once the
+server's last index read is older than its 15 s cache (`INDEX_FRESH`). It says it in every view, beside the
 variant's label: why a variant is stale (`staleText`), and no state word
 otherwise, never "current". A montage folder (say a
 look explored by hand) holds `review.json` (`ReviewManifest`), which names its
@@ -2419,15 +2438,38 @@ a finding names an address, not a point. A set's page holds one effect-machine a
 leading version's video (the first shown whose video plays here), whose ←/→
 step is one frame of that video's own (its timecode counts them; Shift ten):
 the rate `GET /api/review/duration` reads from the video's own packets
-(`fps`, `Media.timing`: frames a second over its first 120 packets, taken
-for the whole or 1000/1001 rate it lies within its timestamps' precision
-of, 0.04%, under half the gap between 30 and 29.97, else as measured,
-never rounded to a whole rate, so a 29.97 video steps on its own grid),
+(`fps`, `Media.timing`: read from the start times of its first 120 frames,
+on the clock those times sit on (the coarsest step each is a whole count
+of, so a millisecond clock's times copied onto a finer timescale tell no
+more than before); when that clock is half the frame of the whole or
+1000/1001 rate near them or coarser (the frames' own spacing, as an exactly
+timed 0.5 or 1.25 fps file's, or one's with frames dropped), it cannot tell
+that rate from its neighbours and no rate is claimed: as measured, below;
+else the whole or 1000/1001 rate whose frame grid alone holds
+every start within one step of its time, with some two consecutive starts on
+adjacent lines of it (a grid that holds them by skipping lines, as 1 fps's
+holds 0.5 fps's, is none of theirs) (strictly within first; a whole step
+apart, as halfway times rounded either way leave them, only when no grid
+holds them strictly; a millisecond clock tells 30 from
+29.97 over a second, not over a third of one; a last frame's own duration
+names no rate), else as measured, frames over their span, never rounded to a
+whole rate, so a 29.97 video steps on its own grid),
 the film rate (`FILM_FPS`) only while that answer is pending or the video
-names none; the clock stands on the frame's start, and every video seeks a
-quarter of a frame into it (`intoFrame`; Chrome keeps some frames' starts a
-microsecond short, which shows the frame before), so it shows that frame's
-picture, and a time further into the frame (a scrub, `#t=`) as it is; one sound heard;
+names none; a seek (a step, a scrub, a `#t=`), or the clock's rate read
+while the player is still (the clock's rate read while it plays or waits on
+a video puts none back: they play on; the leading version's own rate read,
+below, still lands the leader), lands every video at the
+frame the clock's timecode reads, each a quarter of one of its own frames
+into its own frame that holds that frame's start (`landing`, by the
+rate each version's video as it is now is read at, the clock's while that
+read is pending or names none, so a file written again with no rate forgets
+its old one; that version's own rate read, or forgotten, lands its video
+again in any state; Chrome
+keeps some frames' starts a microsecond short, which shows the frame
+before), so each shows its own frame's picture at the clock's time, at any
+rate of either, and the picture is the timecode's (on a laptop the
+header's, read at the clock's rate, `useShellTime`); a drifter is put back
+on the clock's time itself; one sound heard;
 opened at the URL's `#t=`, which follows it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
 `Wipe`, `Moments`, `Diff` shown as Difference, `Notes`; a set of one version has
 no pair, wipe or difference, and a link asking for one opens All; the pair,
@@ -2516,7 +2558,10 @@ bar on a phone, under the header on a laptop); while the film has no
 render, the dock says "No render of the whole film yet" (its scenes'
 renders may all be there: what is missing is the film's). Each say answers the fresh `ProjectView`, which the page
 shows in place (a playing clip plays on, a half-typed comment stays); a
-source write reads it again (`data-reading` on the film while it does). The
+source write, a Set's say and Refresh read it again (`data-reading` on the
+film while it does). The page shows the film's one project owner
+(`FilmProject`), which a Set and a Films card read too, so it opens on the
+project as the review last knew it, unread again. The
 answers land in any order, so the page shows the newest asked
 (`lab/review/asked.ts`): a read asked before a say and answered after it is
 dropped, a say answered after a read asked later reads the project again, and

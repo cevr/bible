@@ -39,7 +39,7 @@ import { type Context, selected } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
-import { type Say, pageHref } from '../../core/api.ts';
+import { type ProjectView, type Say, pageHref } from '../../core/api.ts';
 import { sceneAt } from '../../core/layout.ts';
 import { isShortKey } from '../../core/shorts.ts';
 import { CLOCK_EPSILON, onTheMs, timecode, timecodeParts } from '../../core/time.ts';
@@ -52,6 +52,7 @@ import { approveUndo, partSaid, undoApprove } from '../review/options/receipt.ts
 import { PHONE, useMatches } from '../viewport.ts';
 import { pressed } from '../pressed.ts';
 import { Sheet, useSheetDismissal } from '../sheet.tsx';
+import { type Ask, newestAsked } from '../review/asked.ts';
 import { draftBook } from '../review/draft-book.ts';
 import type { InspectorBox } from '../review/inspector.tsx';
 import { Comments, SayBox } from '../review/options/choice.tsx';
@@ -229,13 +230,34 @@ export const ScenesView = (props: ScenesViewProps) => {
     }),
   );
 
-  // What the lab knows of each scene: the project and the check, read once; a say's answer
-  // carries the project alone.
+  // What the lab knows of each scene: the project and the check, each the newest ask's answer
+  // (`asked.ts`). The project's asks are the first read, each say and each read again; the
+  // check's, each read. Answers land in any order, so an older one landing late is dropped.
+  // Each answer is written over the value as it then stands, so two landing before the page
+  // flushes (a read's check, then its project) both hold.
   const [read, setRead] = createSignal<ScenesRead>(
     { project: Option.none(), check: Result.succeed([]) },
     fromHost,
   );
-  Effect.runFork(Effect.tap(calls.read, (r) => Effect.sync(() => setRead(r))));
+  const asks = newestAsked();
+  const checks = newestAsked();
+  /** Show `project`, `ask`'s answer, unless an answer asked after it is shown. */
+  const showProject = (ask: Ask, project: ProjectView) =>
+    ask.answer(() => setRead((r) => ({ ...r, project: Option.some(project) })));
+  /** Read the check and the project: each shown as `asked.ts` orders it. */
+  const readNow = () => {
+    const project = asks.ask();
+    const check = checks.ask();
+    Effect.runFork(
+      Effect.tap(calls.read, (r) =>
+        Effect.sync(() => {
+          check.answer(() => setRead((was) => ({ ...was, check: r.check })));
+          Option.map(r.project, (view) => showProject(project, view));
+        }),
+      ),
+    );
+  };
+  readNow();
   const marks = createMemo(() => marksOf(read().project, findingsOf(read()), scenes));
 
   // The tape: its step kept per viewer, its line length the window's.
@@ -297,19 +319,26 @@ export const ScenesView = (props: ScenesViewProps) => {
   };
 
   /**
-   * Say `say` of `ids`, in one say; the receipt says it in the words
-   * Project's does (`partSaid`), or why not. An approve's offers its Undo
-   * (`approveUndo`), as Project's does.
+   * Say `say` of `ids`, in one say, asked of the project as it is sent: its
+   * answer shows unless an answer asked after it is shown, and one a later
+   * ask overtook reads the project again (neither may hold the other). The
+   * receipt says it in the words Project's does (`partSaid`, from the part as
+   * the page showed it when it was sent), or why not. An approve's offers its
+   * Undo (`approveUndo`), as Project's does.
    */
   const sayOf = (ids: readonly [string, ...string[]], say: Say) =>
-    Effect.map(calls.say(ids, say), (answer: Said) => {
-      if (answer._tag === 'Refused') return refused(answer.reason);
+    Effect.suspend(() => {
+      const ask = asks.ask();
       const before = read().project;
-      setRead({ ...read(), project: Option.some(answer.project) });
-      return said(
-        partSaid({ address: { _tag: 'Scenes', ids }, say }, before)(answer.project),
-        approveUndo(props.name, answer.project),
-      );
+      return Effect.map(calls.say(ids, say), (answer: Said) => {
+        if (answer._tag === 'Refused') return refused(answer.reason);
+        showProject(ask, answer.project);
+        if (ask.overtaken()) readNow();
+        return said(
+          partSaid({ address: { _tag: 'Scenes', ids }, say }, before)(answer.project),
+          approveUndo(props.name, answer.project),
+        );
+      });
     });
   // An approve's Undo: one withdraw of just the approvals it gave, said in the words of
   // what the catalogue took.

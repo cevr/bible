@@ -751,6 +751,7 @@ export const noRenders = Layer.succeed(
   Review.of({
     roots: [],
     index: () => unreviewed('index'),
+    written: unreviewed('written'),
     pictures: () => unreviewed('pictures'),
     renderVideo: () => unreviewed('renderVideo'),
     resolve: () => unreviewed('resolve'),

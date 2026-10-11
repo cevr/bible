@@ -63,17 +63,24 @@ const ShellContext = createContext<Option.Option<(time: Option.Option<ShellTime>
 );
 
 /**
- * Show `at` (seconds, at `fps`) as the header's timecode for as long as the
- * calling component is mounted: its values are written to the shell as they
- * change (the shell holds no accessor of the component's, which would read
- * stale once the component is gone). The server's render writes none, not
- * even as it lets the component go: nothing it renders runs again.
+ * Show `at` (seconds, at `fps`, which may change as a review's clock reads
+ * its rate) as the header's timecode for as long as the calling component is
+ * mounted: its values are written to the shell as they change (the shell
+ * holds no accessor of the component's, which would read stale once the
+ * component is gone). The server's render writes none, not even as it lets
+ * the component go: nothing it renders runs again.
  */
-export const useShellTime = (at: Accessor<number>, fps: number = FILM_FPS): void => {
+export const useShellTime = (
+  at: Accessor<number>,
+  fps: Accessor<number> = () => FILM_FPS,
+): void => {
   Option.map(useContext(ShellContext), (write) => {
-    createEffect(at, (t) => {
-      write(Option.some({ t, fps }));
-    });
+    createEffect(
+      () => ({ t: at(), fps: fps() }),
+      (time) => {
+        write(Option.some(time));
+      },
+    );
     if (!isServer) onCleanup(() => write(Option.none()));
   });
 };
@@ -90,7 +97,7 @@ export const usePlayerTime = (player: Pick<Player, 'now' | 'onMove' | 'film'>): 
       setAt(T);
     }),
   );
-  useShellTime(at, player.film.fps);
+  useShellTime(at, () => player.film.fps);
 };
 
 /** The header's slot for a page's own tools, before the timecode: none until the page is the client's. */
