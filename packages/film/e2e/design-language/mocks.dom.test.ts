@@ -1,6 +1,7 @@
 // Every design-language mock sets its lengths on the scales, read in the
 // browser as the page it is (`mock-lengths.ts`): each mock is one case, read
-// at each width its queries name, on the desk's pointer and the phone's. A
+// at each width its queries name, on the phone's pointer and the desk's; one
+// more case reads every mock for the selectors of the sheets they share. A
 // planted page of each shape a length can take shows the check catches it.
 
 import { BunServices } from '@effect/platform-bun';
@@ -8,7 +9,8 @@ import { Effect, FileSystem } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { openTab, respond, servePaths } from '../../src/lab/fixtures/browsers.ts';
 import { evaluates } from '../../src/lab/fixtures/settled.ts';
-import { mockLengths } from './mock-lengths.ts';
+import type { Tab } from '../../src/lab/fixtures/tab.ts';
+import { type Raw, mockLengths } from './mock-lengths.ts';
 
 const ROOT = `${import.meta.dir}/../../../..`;
 const MOCKS = '/design-language/mocks';
@@ -37,13 +39,18 @@ const serve = (pages: Readonly<Record<string, string>>) =>
     return servePaths(Object.fromEntries([...repo, ...planted]));
   }).pipe(Effect.provide(BunServices.layer));
 
-/** What the check finds on the page at `path`, named `file`, read at each width on one pointer: `want`. */
-const readOn = (
-  file: string,
-  path: string,
-  pages: Readonly<Record<string, string>>,
+/** A page to read: its name in the findings, its path, and the planted pages served beside the repo's. */
+interface Page {
+  readonly file: string;
+  readonly path: string;
+  readonly pages: Readonly<Record<string, string>>;
+}
+
+/** The page read on one pointer, at each width its queries name, then `then` on the tab. */
+const visit = <A, E, R>(
+  page: Page,
   coarse: boolean,
-  want: ReadonlyArray<string>,
+  then: (tab: Tab, script: ReturnType<typeof mockLengths>) => Effect.Effect<A, E, R>,
 ) =>
   Effect.gen(function* () {
     const tab = yield* openTab({
@@ -52,46 +59,60 @@ const readOn = (
       microphone: false,
       init: [],
       assets: [],
-      serve: yield* serve(pages),
+      serve: yield* serve(page.pages),
       coarse,
     });
-    yield* tab.goto(path);
-    const script = mockLengths(file);
+    yield* tab.goto(page.path);
+    const script = mockLengths(page.file);
     const widths = yield* tab.evaluate<ReadonlyArray<number>>(script.pass);
     for (const width of widths) {
       yield* tab.resize(width, 900);
       yield* tab.evaluate(script.pass);
     }
-    yield* evaluates(tab, script.found, want);
+    return yield* then(tab, script);
   }).pipe(Effect.scoped);
 
-/** What a page is found to set off the scales on the desk's pointer and on the phone's. */
-interface Sides {
-  readonly desk: ReadonlyArray<string>;
-  readonly phone: ReadonlyArray<string>;
-}
+/** What one pointer found, read once the passes are done (each pass is synchronous, so nothing is left to settle). */
+const rawOf = (page: Page, coarse: boolean) =>
+  visit(page, coarse, (tab, script) => tab.evaluate<Raw>(script.raw));
 
-/** What a page is found to set off the scales: the same on both pointers, or each side's. */
-type Want = ReadonlyArray<string> | Sides;
+/**
+ * What the check finds on a page, read on the phone's pointer and then the
+ * desk's: every red either finds, and each of the page's own selectors that
+ * reaches no element on either: `want`.
+ */
+const read = (page: Page, want: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const phone = yield* rawOf(page, true);
+    yield* visit(page, false, (tab, script) => evaluates(tab, script.found(phone), want));
+  });
 
-const sidesOf = (want: Want): Sides => {
-  if ('desk' in want) return want;
-  return { desk: want, phone: want };
-};
+/** The selectors of the shared sheets no page reaches on either pointer. */
+const sharedUnreached = (pages: ReadonlyArray<Page>) =>
+  Effect.gen(function* () {
+    const each = yield* Effect.forEach(pages, (page) =>
+      Effect.map(Effect.all([rawOf(page, true), rawOf(page, false)]), ([phone, desk]) =>
+        phone.shared.filter((line) => desk.shared.includes(line)),
+      ),
+    );
+    const [first = [], ...rest] = each;
+    return first.filter((line) => rest.every((here) => here.includes(line)));
+  });
 
-/** What the check finds on a page, on the desk's pointer and then the phone's: `want`. */
-const read = (file: string, path: string, pages: Readonly<Record<string, string>>, want: Want) =>
-  Effect.andThen(
-    readOn(file, path, pages, false, sidesOf(want).desk),
-    readOn(file, path, pages, true, sidesOf(want).phone),
-  );
+const wears = `<link rel="stylesheet" href="${TOKENS}"><link rel="stylesheet" href="${MOCKS}/kit.css">`;
 
-/** A planted mock, `case.html` (or `file`): wearing the tokens and the kit, its own `css` over `body`. */
-const planted = (css: string, body: string, want: Want, file = 'case.html', head = '') => {
-  const wears = `<link rel="stylesheet" href="${TOKENS}"><link rel="stylesheet" href="${MOCKS}/kit.css">`;
-  const page = `<!doctype html><html><head>${head || wears}<style>${css}</style></head><body>${body}</body></html>`;
-  return read(file, `/${file}`, { [`/${file}`]: page }, want);
-};
+/** A planted page's html: `head` (the tokens and the kit), its own `css` over `body`. */
+const pageOf = (css: string, body: string, head = wears) =>
+  `<!doctype html><html><head>${head}<style>${css}</style></head><body>${body}</body></html>`;
+
+/** A planted mock, `case.html` (or `file`): wearing the tokens and the kit (or `head`), its own `css` over `body`. */
+const planted = (
+  css: string,
+  body: string,
+  want: ReadonlyArray<string>,
+  file = 'case.html',
+  head = wears,
+) => read({ file, path: `/${file}`, pages: { [`/${file}`]: pageOf(css, body, head) } }, want);
 
 const SLOW = 30_000;
 
@@ -125,7 +146,7 @@ describe('the design-language mocks', () => {
   for (const file of MOCK_PAGES)
     it.live(
       `${file} sets each space, type size, leading and radius on its scale`,
-      () => read(file, `${MOCKS}/${file}`, {}, []),
+      () => read({ file, path: `${MOCKS}/${file}`, pages: {} }, []),
       SLOW,
     );
 });
@@ -183,9 +204,11 @@ describe('the mock length check, on planted pages', () => {
     SLOW,
   );
 
-  it.live('passes a step, a token, a zero and a dot centred on its size', () =>
-    planted(
-      `.a { padding: 0 var(--s-2) 8px; gap: var(--hairline); margin-top: var(--hairline); }
+  it.live(
+    'passes a step, a token, a zero and a dot centred on its size',
+    () =>
+      planted(
+        `.a { padding: 0 var(--s-2) 8px; gap: var(--hairline); margin-top: var(--hairline); }
        .b { font: var(--w-3) var(--fs-2) / var(--lh-2) var(--font); border-radius: var(--r-2); }
        .c { font-size: var(--body-fs); padding: var(--gutter); --step: var(--s-2); margin: var(--step); }
        .dot { --dot: 34px; width: var(--dot); margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2); }
@@ -193,10 +216,11 @@ describe('the mock length check, on planted pages', () => {
        .wipe::after { --dot: 20px; content: ''; width: var(--dot); margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2); }
        .lanes { --cue-names: 72px; padding-left: var(--cue-names); }
        .centred { margin-block: calc((var(--panel-head-h) - var(--hit)) / 2); }`,
-      `<p class="a">a</p><p class="b">b</p><p class="c">c</p><i class="dot"></i>
+        `<p class="a">a</p><p class="b">b</p><p class="c">c</p><i class="dot"></i>
        <div class="wipe"></div><div class="lanes">l</div><p class="centred">c</p>`,
-      [],
-    ),
+        [],
+      ),
+    SLOW,
   );
 
   it.live(
@@ -206,15 +230,24 @@ describe('the mock length check, on planted pages', () => {
         `.four { padding: calc(2px * 2); } .six { padding: calc(2px * 3); }
          .loc4 { --pad: calc(2px * 2); padding: var(--pad); } .loc6 { --pad: calc(3px * 2); padding: var(--pad); }
          .sum { font: 12px/calc(var(--lh-2) + 3px) monospace; }
-         .half { --half: calc(var(--s-1) + 2px); padding: var(--half); }`,
+         .half { --half: calc(var(--s-1) + 2px); padding: var(--half); }
+         .pc { padding-left: calc(100% - 7px); gap: min(100%, 7px); } .vw { margin-top: calc(50vw - 8px); margin-bottom: calc(50vw - 7px); }
+         @keyframes slide { from { padding: 6px; } }`,
         `<p class="four">a</p><p class="six">b</p><p class="loc4">c</p><p class="loc6">d</p><p class="sum">e</p><p class="half">f</p>
+         <p class="pc">g</p><p class="vw">h</p>
          <script>document.body.style.gap = '7px'; document.body.style.setProperty('padding-top', '8px');</script>`,
         [
           'case.html: padding 6px is no space step (.six)',
           'case.html: line-height 3px is no line height step (.sum)',
+          // A function with a percentage or a viewport's length computes no length of its own:
+          // the px written in it are read, once (`calc(50vw - 8px)`'s 8px, a step at every width).
+          'case.html: gap 7px is no space step (.pc)',
+          'case.html: padding-left 7px is no space step (.pc)',
+          'case.html: margin-bottom 7px is no space step (.vw)',
+          'case.html: padding 6px is no space step (@keyframes slide 0%)',
           'case.html: gap 7px is no space step (body[style])',
           'case.html: padding var(--pad) is 6px, no space step (.loc6)',
-          // A sum that computes with a token is a composition (a hit area centred, a bar
+          // So is a sum that computes with a token, a composition (a hit area centred, a bar
           // cleared): the lengths written in it are read, never the sum.
           'case.html: padding var(--half) is 2px, no space step (.half)',
         ],
@@ -326,29 +359,19 @@ describe('the mock length check, on planted pages', () => {
          .h2 { --rule-w: var(--hairline); padding: var(--rule-w); } .t3 { --pad: var(--fs-1); padding: var(--pad); }`,
         `<p class="d1">.</p><p class="d2">.</p><p class="d3">.</p><p class="d5">.</p><p class="d4">.</p>
          <p class="h1">.</p><p class="d6">.</p><p class="d7">.</p><p class="d8">.</p><p class="h2">.</p><p class="t3">.</p>`,
-        {
-          // The dock is 45 px on the desk's density, 61 px on the phone's.
-          desk: [
-            'case.html: gap var(--dock-h) is 45px, no space step (.d6)',
-            'case.html: margin-bottom var(--dock-h) is 45px, no space step (.d7)',
-            'case.html: border-radius var(--dock-h) is 45px, no radius step (.d8)',
-            'case.html: font-size var(--dock-h) is 45px, no type size step (.d8)',
-            'case.html: padding var(--rule-w) is 1px, no space step (.h2)',
-            'case.html: padding var(--pad) is 10px, no space step (.t3)',
-            'case.html: gap var(--dock-h) is 61px, no space step (.d6)',
-            'case.html: margin-bottom var(--dock-h) is 61px, no space step (.d7)',
-            'case.html: border-radius var(--dock-h) is 61px, no radius step (.d8)',
-            'case.html: font-size var(--dock-h) is 61px, no type size step (.d8)',
-          ],
-          phone: [
-            'case.html: gap var(--dock-h) is 61px, no space step (.d6)',
-            'case.html: margin-bottom var(--dock-h) is 61px, no space step (.d7)',
-            'case.html: border-radius var(--dock-h) is 61px, no radius step (.d8)',
-            'case.html: font-size var(--dock-h) is 61px, no type size step (.d8)',
-            'case.html: padding var(--rule-w) is 1px, no space step (.h2)',
-            'case.html: padding var(--pad) is 10px, no space step (.t3)',
-          ],
-        },
+        [
+          // The dock is 45 px on the desk's density (900 px wide and over), 61 px on the phone's.
+          'case.html: gap var(--dock-h) is 45px, no space step (.d6)',
+          'case.html: margin-bottom var(--dock-h) is 45px, no space step (.d7)',
+          'case.html: border-radius var(--dock-h) is 45px, no radius step (.d8)',
+          'case.html: font-size var(--dock-h) is 45px, no type size step (.d8)',
+          'case.html: padding var(--rule-w) is 1px, no space step (.h2)',
+          'case.html: padding var(--pad) is 10px, no space step (.t3)',
+          'case.html: gap var(--dock-h) is 61px, no space step (.d6)',
+          'case.html: margin-bottom var(--dock-h) is 61px, no space step (.d7)',
+          'case.html: border-radius var(--dock-h) is 61px, no radius step (.d8)',
+          'case.html: font-size var(--dock-h) is 61px, no type size step (.d8)',
+        ],
       ),
     SLOW,
   );
@@ -369,5 +392,76 @@ describe('the mock length check, on planted pages', () => {
         ],
       ),
     SLOW,
+  );
+
+  it.live(
+    'reads each selector of a list on its own reach, a pointer query on the pointer it names, every width a query names, and a container query on the page as laid out',
+    () =>
+      planted(
+        `.p1 { --pad: 8px; padding: var(--pad); } .p1:hover, .p1b { --pad: 6px; }
+         .p6 { --pad: 8px; padding: var(--pad); } @media (pointer: coarse) { .p6 { --pad: var(--s-3); } }
+         .p7 { --pad: 8px; padding: var(--pad); } @media (pointer: coarse) { .p7 { --pad: 6px; } }
+         .r1 { --pad: 8px; padding: var(--pad); } @media (width >= 1700px) { .r1 { --pad: 6px; } }
+         .r2 { --pad: 8px; padding: var(--pad); } @media (max-width: 30em) { .r2 { --pad: 6px; } }
+         .r3 { --pad: 8px; padding: var(--pad); } @media (500px <= width <= 700px) { .r3 { --pad: 6px; } }
+         .p9box { container-type: inline-size; width: calc(var(--s-1) * 50); }
+         .p9 { --pad: 8px; padding: var(--pad); } @container (max-width: 300px) { .p9 { --pad: 6px; } }
+         .p10box { container-type: inline-size; width: calc(var(--s-1) * 100); }
+         .p10 { --pad: 8px; padding: var(--pad); } @container (max-width: 300px) { .p10 { --pad: 6px; } }`,
+        `<p class="p1">.</p><p class="p1b">.</p><p class="p6">.</p><p class="p7">.</p>
+         <p class="r1">.</p><p class="r2">.</p><p class="r3">.</p>
+         <div class="p9box"><p class="p9">.</p></div><div class="p10box"><p class="p10">.</p></div>`,
+        [
+          // The desk's, then the phone's.
+          'case.html: padding var(--pad) is 6px, no space step (.p9)',
+          'case.html: padding var(--pad) is 6px, no space step (.r2)',
+          'case.html: padding var(--pad) is 6px, no space step (.r3)',
+          'case.html: padding var(--pad) is 6px, no space step (.r1)',
+          'case.html: padding var(--pad) is 6px, no space step (.p7)',
+          // A selector no element matches on either pointer, at any width.
+          'case.html: --pad is given on no element the mock shows (.p1:hover)',
+          'case.html: --pad is given on no element the mock shows (.p10)',
+        ],
+      ),
+    SLOW,
+  );
+
+  it.live(
+    "names a shared sheet's selector no mock reaches, and passes one some mock reaches",
+    () =>
+      Effect.gen(function* () {
+        const shared = '/planted/shared.css';
+        const head = `${wears}<link rel="stylesheet" href="${shared}">`;
+        const sheet =
+          '.only-a { --pad: 8px; padding: var(--pad); } .only-b, .nowhere { --gap: 8px; gap: var(--gap); }';
+        const pages = {
+          [shared]: sheet,
+          '/a.html': pageOf('', '<p class="only-a">.</p>', head),
+          '/b.html': pageOf('', '<p class="only-b">.</p>', head),
+        };
+        const unreached = yield* sharedUnreached([
+          { file: 'a.html', path: '/a.html', pages },
+          { file: 'b.html', path: '/b.html', pages },
+        ]);
+        expect(unreached).toEqual([
+          'shared.css: --gap is given on no element any mock shows (.nowhere)',
+          'shared.css: gap var(--gap) is read on no element any mock shows (.nowhere)',
+        ]);
+      }),
+    SLOW,
+  );
+});
+
+describe("the mocks' shared sheets", () => {
+  it.live(
+    'reach each selector that gives or reads a local on some mock',
+    () =>
+      Effect.gen(function* () {
+        const unreached = yield* sharedUnreached(
+          MOCK_PAGES.map((file) => ({ file, path: `${MOCKS}/${file}`, pages: {} })),
+        );
+        expect(unreached).toEqual([]);
+      }),
+    60_000,
   );
 });

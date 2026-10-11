@@ -1,33 +1,45 @@
 // How a design-language mock's lengths are read: in the browser, as the page
-// it is. Each space, type size, leading and radius the mock's own sheets
-// (kit.css, lab.css, its `<style>` elements) and its elements' `style`
-// attributes set is read against its scale, the steps of the player's sheet
-// (`player/tokens.css`):
+// it is. Each space, type size, leading and radius the mock's sheets (its
+// `<style>` elements, and the sheets it shares with the other mocks, kit.css
+// and lab.css) and its elements' `style` attributes set is read against its
+// scale, the steps of the player's sheet (`player/tokens.css`):
 //
 // - a length written in the declaration (`padding: 6px`) is read as written:
-//   a px on a step, never a rem or an em; a function of lengths alone
-//   (`calc(2px * 2)`) is read as the one length it computes;
-// - a function that computes with a variable (`calc(var(--dot) / -2)`, a
-//   dot's margin of half its size) writes no length of its own: only the
-//   lengths written in it are read;
+//   a px on a step, never a rem or an em; a function whose every length is
+//   in px (`calc(2px * 2)`) is read as the one length it computes;
+// - a function that computes with a variable, a percentage or another unit
+//   (`calc(var(--dot) / -2)`, a dot's margin of half its size;
+//   `calc(100% - 7px)`) writes no length of its own: only the px written in
+//   it are read;
 // - a variable a value names whole (`padding: var(--pad)`) is read on each
 //   element and pseudo-element the declaration applies to, at each viewport
-//   the page's queries name and on both pointers, as the browser resolves it
-//   there: which rule gives the variable, a nesting, an `:is()`, a compound,
-//   a query, an alias, a pseudo-element's own value and a declaration that
-//   always loses are the browser's cascade, never this file's. A token keeps
-//   its name through that resolution (every token is set to a stand-in on
-//   every element while the variables are read), so the value resolved is
-//   the token whole, lengths the mock gives (read as written), or a sum that
-//   computes with tokens (its written lengths read). A token whole is read as
-//   its px on the page: a step of the property's scale, or a token the scale
-//   takes whole (`--hairline`, a gap's or a margin's; `--dock-h`, a
-//   padding's). A token that is no length (a weight), and the geometry the
-//   mocks name once (`GEOMETRY`), set nothing on a scale.
+//   width the page's queries name, as the browser resolves it there: which
+//   rule gives the variable, a nesting, an `:is()`, a compound, a query, a
+//   container query, an alias, a pseudo-element's own value and a
+//   declaration that always loses are the browser's cascade, never this
+//   file's. Each local the mock gives has a shadow (`--film-shadow--pad`),
+//   given in the same declaration block with the tokens it names written as
+//   their names (`token--s-2`), so the shadow resolves through the same
+//   cascade to the token whole, lengths the mock gives (read as written), or
+//   a sum that computes with tokens (its written px read); the page's own
+//   properties are untouched, so its layout, and the container queries that
+//   read it, are the page's. A token whole is read as its px on the page: a
+//   step of the property's scale, or a token the scale takes whole
+//   (`--hairline`, a gap's or a margin's; `--dock-h`, a padding's). A token
+//   that is no length (a weight), and the geometry the mocks name once
+//   (`GEOMETRY`), set nothing on a scale. A keyframe's locals are not read.
 //
-// A declaration is read where it applies, so a rule for a state the mock
-// never shows (a hover, a class no element carries) has no element to read
-// its variable on: it is reported as reaching none, never passed unread.
+// A block that gives or reads a local is read where it applies, each
+// selector of a list on its own, so a selector for a state the mock never
+// shows (a hover, a class no element carries) is named as reaching no
+// element, never passed unread. The page is read on a phone's pointer and
+// a desk's: a red found on either is a red, and a selector is unreached only
+// when it reaches no element on both. A selector of a shared sheet (kit.css,
+// lab.css) is unreached only when no mock reaches it (`raw`'s `shared`, which
+// the test intersects across the mocks). The widths read are 390, 1440, and
+// each width a media query names (px, em or rem; `min-`, `max-` or a range),
+// with one px either side. Other media features (reduced motion, colour
+// scheme) are not varied: a selector only they reach is named as unreached.
 // The page's scripts run before the read, so a length a script sets is read
 // in the `style` it set; one set only on an event is not.
 
@@ -87,31 +99,60 @@ const GEOMETRY: ReadonlyArray<string> = ['--cue-names'];
 
 const json = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
+/** What one pointer's read of a page found: its reds, its own selectors unreached, and its shared sheets' selectors unreached. */
+export interface Raw {
+  readonly reds: ReadonlyArray<string>;
+  readonly unreached: ReadonlyArray<string>;
+  readonly shared: ReadonlyArray<string>;
+}
+
 /**
  * The scripts that read the page `file` is. `pass`, run once a viewport, reads
  * it there (keeping what it finds on the page) and answers the widths the
- * page's queries name; `found` answers every finding, one line each, in the
- * order found: a sheet it does not wear, a token it writes, a length off its
- * scale, a variable read on no element.
+ * page's queries name. `raw` answers what this pointer found (`Raw`).
+ * `found(other)`, given the other pointer's `raw`, answers every finding,
+ * one line each: a sheet it does not wear, a token it writes, a length off
+ * its scale (on either pointer), and a selector of the page's own that
+ * reaches no element on either.
  */
 export const mockLengths = (file: string) => {
   const input = json({ file, scales: SCALES, geometry: GEOMETRY });
-  return { pass: `(${PAGE})(${input}, 'pass')`, found: `(${PAGE})(${input}, 'found')` };
+  return {
+    pass: `(${PAGE})(${input}, 'pass')`,
+    raw: `(${PAGE})(${input}, 'raw')`,
+    found: (other: Raw) => `(${PAGE})(${input}, 'found', ${json(other)})`,
+  };
 };
 
 /** The page's side. */
-const PAGE = `(input, step) => {
+const PAGE = `(input, step, other) => {
   const KEY = Symbol.for('film.mockLengths');
   const state = window[KEY] ?? (window[KEY] = setup());
+  if (step === 'raw') return raw();
   if (step === 'found') {
-    const unreached = state.probed.filter((r) => !r.reached).flatMap((r) => [
-      ...r.gives.map((name) => input.file + ': ' + name + ' is given on no element the mock shows (' + r.label + ')'),
-      ...r.probes.map((p) => input.file + ': ' + p.property + ' ' + p.word + ' is read on no element the mock shows (' + r.label + ')'),
-    ]);
-    return [...new Set([...state.found, ...unreached])];
+    const mine = raw();
+    const theirs = new Set(other.unreached);
+    return [...new Set([...mine.reds, ...other.reds])].concat(mine.unreached.filter((m) => theirs.has(m)));
   }
   pass();
   return state.widths;
+
+  function raw() {
+    const unreached = [];
+    const shared = [];
+    for (const r of state.probed)
+      for (const reach of r.reaches) {
+        if (reach.reached) continue;
+        const where = r.shared ? r.sheet : input.file;
+        const none = r.shared ? 'any mock shows' : 'the mock shows';
+        const lines = [
+          ...r.gives.map((name) => where + ': ' + name + ' is given on no element ' + none + ' (' + reach.label + ')'),
+          ...r.probes.map((p) => where + ': ' + p.property + ' ' + p.word + ' is read on no element ' + none + ' (' + reach.label + ')'),
+        ];
+        (r.shared ? shared : unreached).push(...lines);
+      }
+    return { reds: [...new Set(state.found)], unreached: [...new Set(unreached)], shared: [...new Set(shared)] };
+  }
 
   function setup() {
     const probe = document.createElement('i');
@@ -126,7 +167,7 @@ const PAGE = `(input, step) => {
     for (const wear of ['tokens.css', 'kit.css', ...(/^lab[-.]/.test(input.file) ? ['lab.css'] : [])])
       if (!linked.includes(wear)) found.push(input.file + ': links no ' + wear);
     const walk = (rules, each) => {
-      for (const rule of rules) { each(rule); if (rule.cssRules) walk(rule.cssRules, each); }
+      for (const rule of Array.from(rules)) { each(rule); if (rule.cssRules) walk(rule.cssRules, each); }
     };
     const tokens = new Set();
     const widths = new Set([390, 1440]);
@@ -134,26 +175,42 @@ const PAGE = `(input, step) => {
       walk(sheet.cssRules, (rule) => {
         if (sheet === tokenSheet && rule.style)
           for (const name of Array.from(rule.style)) if (name.startsWith('--')) tokens.add(name);
-        if (rule.media)
-          for (const m of rule.media.mediaText.matchAll(/(min|max)-width:\\s*([\\d.]+)px/g)) {
-            widths.add(Number(m[2]));
-            widths.add(Number(m[2]) + (m[1] === 'min' ? -1 : 1));
+        // Each width a media query names, in px or (at the initial 16 px) em or rem, and one px either side.
+        if (rule.media && /width/.test(rule.media.mediaText))
+          for (const m of rule.media.mediaText.matchAll(/([\\d.]+)(px|r?em)\\b/g)) {
+            const at = Math.round(Number(m[1]) * (m[2] === 'px' ? 1 : 16));
+            for (const w of [at - 1, at, at + 1]) if (w >= 200 && w <= 4000) widths.add(w);
           }
       });
-    // Each declaration block of the mock's own sheets (a nested one's
-    // labelled by its rule), and each element's style attribute.
+    // Each declaration block of the mock's sheets (a nested one's labelled by
+    // its rule; a keyframe's by its animation), and each element's style
+    // attribute. A linked sheet other than the tokens is shared by the mocks.
     const own = [];
-    for (const sheet of sheets.filter((s) => s !== tokenSheet))
+    for (const sheet of sheets.filter((s) => s !== tokenSheet)) {
+      const shared = sheet.ownerNode?.localName === 'link';
       walk(sheet.cssRules, (rule) => {
         if (!rule.style) return;
+        if (rule.keyText !== undefined) {
+          own.push({ rule, style: rule.style, label: '@keyframes ' + rule.parentRule.name + ' ' + rule.keyText, keyframe: true, shared, sheet: nameOf(sheet.href ?? '') });
+          return;
+        }
         let at = rule;
         while (at && at.selectorText === undefined) at = at.parentRule;
-        own.push({ style: rule.style, label: at ? at.selectorText : '' });
+        own.push({ rule, style: rule.style, label: at ? at.selectorText : '', keyframe: false, shared, sheet: nameOf(sheet.href ?? '') });
       });
+    }
     for (const el of document.querySelectorAll('[style]'))
-      if (el !== probe) own.push({ style: el.style, label: el.localName + '[style]' });
+      if (el !== probe) own.push({ rule: null, style: el.style, label: el.localName + '[style]', keyframe: false, shared: false, sheet: '' });
     for (const { style } of own)
       for (const name of Array.from(style)) if (tokens.has(name)) found.push(input.file + ': writes ' + name);
+    const isLocal = (name) => name.startsWith('--') && !tokens.has(name) && !input.geometry.includes(name) && !name.startsWith('--film-');
+    // Each local's shadow, in the block that gives the local, its value with
+    // each token written as its name: the shadow resolves as the local does.
+    for (const block of own) {
+      if (block.keyframe) continue;
+      for (const name of Array.from(block.style).filter(isLocal))
+        block.style.setProperty(shadowOf(name), shadowed(block.style.getPropertyValue(name), tokens), block.style.getPropertyPriority(name));
+    }
     const longhands = new Map();
     const longhandsOf = (name) => {
       if (!longhands.has(name)) {
@@ -189,13 +246,15 @@ const PAGE = `(input, step) => {
     };
     // A word that names a token whole is the token on every element (the
     // root gives it, and no mock writes one). A word that names a local whole
-    // is read through a probe of its own, set beside it in its block: a
-    // property no element inherits, so it is on just the elements the block
-    // applies to, resolved there. Another word is read as written.
+    // is read through a probe of its own, set beside it in its block to the
+    // local's shadow: a property no element inherits, so it is on just the
+    // elements the block applies to, resolved there. Another word is read as
+    // written.
     const probed = [];
     const literals = [];
     const named = [];
     let n = 0;
+    const register = (name) => { CSS.registerProperty({ name, syntax: '*', inherits: false }); return name; };
     for (const block of own) {
       const probes = [];
       for (const [property, value] of declarationsOf(block.style)) {
@@ -205,33 +264,86 @@ const PAGE = `(input, step) => {
           const name = wholeVar(word) ? /--[\\w-]+/.exec(word)[0] : '';
           if (tokens.has(name)) named.push({ property, word, scale, label: block.label, value: 'token' + name });
           else if (input.geometry.includes(name)) continue;
-          else if (name !== '') probes.push({ property, word, scale, name: '--film-probe-' + n++ });
-          else literals.push({ property, word, scale, label: block.label });
+          else if (name !== '' && !block.keyframe) probes.push({ property, word, scale, name: '--film-probe-' + n++ });
+          else if (name === '') literals.push({ property, word, scale, label: block.label });
         }
       }
-      // A block that gives a local or reads one is read where it applies: one
-      // that applies to no element is named, never passed unread.
-      const gives = Array.from(block.style).filter((name) =>
-        name.startsWith('--') && !tokens.has(name) && !input.geometry.includes(name));
+      // A block that gives a local or reads one is read where it applies, and
+      // each selector of its list is reached on its own: one that applies to
+      // no element is named, never passed unread.
+      const gives = block.keyframe ? [] : Array.from(block.style).filter((name) => isLocal(name) && !name.startsWith('--film-'));
       if (probes.length === 0 && gives.length === 0) continue;
-      const on = '--film-probe-' + n++;
-      for (const name of [on, ...probes.map((p) => p.name)])
-        CSS.registerProperty({ name, syntax: '*', inherits: false });
+      const on = register('--film-probe-' + n++);
       block.style.setProperty(on, '1');
-      for (const p of probes) block.style.setProperty(p.name, p.word);
-      probed.push({ label: block.label, on, probes, gives, reached: false });
+      for (const p of probes) {
+        register(p.name);
+        block.style.setProperty(p.name, shadowed(p.word, tokens));
+      }
+      const members = block.rule?.selectorText !== undefined ? listOf(block.rule.selectorText) : [];
+      const reaches = members.length > 1
+        ? members.map((member, k) => {
+            const name = register('--film-reach-' + n++);
+            const parent = block.rule.parentRule ?? block.rule.parentStyleSheet;
+            const index = Array.from(parent.cssRules).indexOf(block.rule);
+            try {
+              parent.insertRule(member + ' { ' + name + ': 1 }', index + 1 + k);
+              return { label: member, name, reached: false };
+            } catch {
+              return { label: member, name: on, reached: false };
+            }
+          })
+        : [{ label: block.label, name: on, reached: false }];
+      probed.push({ label: block.label, on, probes, gives, reaches, shared: block.shared, sheet: block.sheet });
     }
-    const standIns = document.createElement('style');
-    standIns.textContent = ':root, *, ::before, ::after { ' + [
-      ...Array.from(tokens, (t) => t + ': token' + t + ' !important;'),
-      ...input.geometry.map((g) => g + ': named' + g + ' !important;'),
-    ].join(' ') + ' }';
-    document.head.append(standIns);
     const pseudos = ['', ...new Set(own.flatMap((b) => Array.from(b.label.matchAll(/::[\\w-]+/g), (m) => m[0])))];
-    return { probe, found, tokens, widths: [...widths].sort((a, b) => a - b), probed, literals, named, standIns, pseudos, steps: new Map(), px: new Map() };
+    return { probe, found, tokens, widths: [...widths].sort((a, b) => a - b), probed, literals, named, pseudos, steps: new Map(), px: new Map() };
   }
 
   function nameOf(href) { return href.split(/[?#]/)[0].split('/').pop(); }
+
+  function shadowOf(name) { return '--film-shadow' + name; }
+
+  /** A value with each token it names written as its name (\`token--s-2\`), the geometry as \`named--x\`, and each local as its shadow. */
+  function shadowed(value, tokens) {
+    let out = '';
+    let i = 0;
+    for (;;) {
+      const at = value.indexOf('var(', i);
+      if (at < 0) return out + value.slice(i);
+      out += value.slice(i, at);
+      let depth = 0;
+      let end = at + 3;
+      let comma = -1;
+      for (; end < value.length; end += 1) {
+        if (value[end] === '(') depth += 1;
+        else if (value[end] === ')') { depth -= 1; if (depth === 0) break; }
+        else if (value[end] === ',' && depth === 1 && comma < 0) comma = end;
+      }
+      const name = value.slice(at + 4, comma < 0 ? end : comma).trim();
+      if (tokens.has(name)) out += 'token' + name;
+      else if (input.geometry.includes(name)) out += 'named' + name;
+      else out += 'var(' + shadowOf(name) + (comma < 0 ? '' : ',' + shadowed(value.slice(comma + 1, end), tokens)) + ')';
+      i = end + 1;
+    }
+  }
+
+  /** A selector list's members: split at the commas outside parentheses, brackets and quotes. */
+  function listOf(selector) {
+    const members = [];
+    let member = '';
+    let depth = 0;
+    let quote = '';
+    for (const c of selector) {
+      if (quote !== '') { if (c === quote) quote = ''; member += c; continue; }
+      if (c === '"' || c === "'") quote = c;
+      if (c === '(' || c === '[') depth += 1;
+      if (c === ')' || c === ']') depth -= 1;
+      if (c === ',' && depth === 0) { members.push(member.trim()); member = ''; continue; }
+      member += c;
+    }
+    members.push(member.trim());
+    return members.filter((m) => m !== '');
+  }
 
   /** A value's words: split at the spaces outside any parentheses; a slash outside them a word of its own. */
   function wordsOf(value) {
@@ -270,15 +382,20 @@ const PAGE = `(input, step) => {
 
   /**
    * The lengths a value the mock writes sets off \`scale\`: each rem or em, and
-   * each px off a step; a function of lengths alone as the one length it
-   * computes, but in one that computes with a variable or a token, only the
-   * lengths written in it.
+   * each px off a step; a function whose every length is in px as the one
+   * length it computes, but in one that computes with a variable, a token, a
+   * percentage or another unit, only the px written in it.
    */
   function off(value, scale) {
     const ems = Array.from(value.matchAll(/-?\\d*\\.?\\d+r?em\\b/g), (m) => m[0]);
     if (ems.length > 0) return ems;
-    const computed = value.includes('(') && !/var\\(|token--|named--/.test(value) && /\\dpx/.test(value);
-    const lengths = computed ? [pxOf(value)] : Array.from(value.matchAll(/(-?\\d*\\.?\\d+)px/g), (m) => Number(m[1]));
+    const others = value.replace(/-?\\d*\\.?\\d+px/g, '');
+    const computed = value.includes('(') && /\\dpx/.test(value) && !/var\\(|token--|named--/.test(value) && !/\\d(?:%|[a-z])/i.test(others);
+    // In a function a sign is the sum's (the page writes \`calc(50vw - 8px)\` as
+    // \`calc(-8px + 50vw)\`): a length written in one is read as its size.
+    const lengths = computed
+      ? [pxOf(value)]
+      : Array.from(value.matchAll(/(-?\\d*\\.?\\d+)px/g), (m) => (value.includes('(') ? Math.abs(Number(m[1])) : Number(m[1])));
     const steps = stepsOf(scale);
     return [...new Set(lengths.filter((px) => px !== null && px !== 0 && !steps.has(px)).map((px) => px + 'px'))];
   }
@@ -302,11 +419,9 @@ const PAGE = `(input, step) => {
 
   /** One viewport: the tokens' px as the page has them there, each written length, then every probe on every element it applies to. */
   function pass() {
-    state.standIns.disabled = true;
     const root = getComputedStyle(document.documentElement);
     state.px = new Map(Array.from(state.tokens, (t) => [t, pxOf(root.getPropertyValue(t).trim())]));
     state.steps = new Map();
-    state.standIns.disabled = false;
     for (const l of state.literals)
       for (const length of off(l.word, l.scale))
         state.found.push(input.file + ': ' + l.property + ' ' + length + ' is no ' + l.scale.what + ' step (' + l.label + ')');
@@ -317,8 +432,8 @@ const PAGE = `(input, step) => {
       for (const pseudo of state.pseudos) {
         const style = getComputedStyle(el, pseudo || null);
         for (const r of state.probed) {
+          for (const reach of r.reaches) if (style.getPropertyValue(reach.name) !== '') reach.reached = true;
           if (style.getPropertyValue(r.on) === '') continue;
-          r.reached = true;
           for (const p of r.probes) {
             const value = style.getPropertyValue(p.name).trim();
             const at = ' (' + r.label + ')';
