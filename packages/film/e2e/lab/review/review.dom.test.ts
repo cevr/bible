@@ -1912,8 +1912,12 @@ describe('the review page', () => {
         yield* textHas(page, `${inspector} .lab-sheet-title`, '2 · Cold');
         yield* textHas(page, inspector, 'Cold look');
         yield* textHas(page, inspector, 'out/art/roof.B.mp4');
-        yield* page.click(`${inspector} [data-act="approve"]`);
+        // Pressed twice in one tick, the verb sends once: its own write is in flight.
+        yield* page.evaluate(
+          `(() => { const verb = document.querySelector('${inspector} [data-act="approve"]'); verb.click(); verb.click(); })()`,
+        );
         yield* waitFor(page, `${inspector} [data-act="approve"][data-approval="approved"]`);
+        expect(asked).toHaveLength(1);
         expect(asked[0]).toMatchObject({ variant: 'B', say: { _tag: 'Approve' } });
         yield* attributeIs(page, `${inspector} .rv-comment-input`, 'aria-label', 'Comment');
         yield* page.fill(`${inspector} .rv-comment-input`, 'colder at the edge');
