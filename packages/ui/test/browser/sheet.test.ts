@@ -239,11 +239,22 @@ describe('Sheet.Root', () => {
     await page.click('#open');
     await see(page.locator('#panel')).toHaveAttribute('data-entering', '');
     expect(await focused(page)).toBe('open');
-    expect(await page.locator('#root').getAttribute('aria-hidden')).toBeNull();
+    expect(await page.locator('#root').getAttribute('inert')).toBeNull();
     await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
     await see.poll(() => focused(page)).toBe('popup');
-    // Modal once in: the page outside is hidden from assistive technology.
-    await see(page.locator('#root')).toHaveAttribute('aria-hidden', 'true');
+    // Modal once in: the page outside is inert, as upstream's (hidden from assistive technology,
+    // and out of reach of a script's focus and of find in page), and not aria-hidden besides.
+    await see(page.locator('#root')).toHaveAttribute('inert', '');
+    expect(await page.locator('#root').getAttribute('aria-hidden')).toBeNull();
+    await page.locator('#open').evaluate((el: HTMLElement) => el.focus());
+    expect(await focused(page)).toBe('popup');
+    // Its own backdrop is no outside: a press on it still closes the sheet, and the page is live.
+    await page.mouse.click(400, 50);
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await page.locator('#root').getAttribute('inert')).toBeNull();
+    expect((await logOf(page)).filter((line) => line.startsWith('open'))).toEqual([
+      'open false outside-press',
+    ]);
   });
 
   it('keeps the focus given to a field while it scrolled in, and returns it to the opener on close', async () => {
@@ -381,12 +392,21 @@ describe('Sheet.Root', () => {
     await openSheet(page, 'first');
   });
 
-  it('leaves focus where it was when initialFocus returns false', async () => {
-    const page = await h.open('sheet', { query: { initial: 'false' } });
-    await page.click('#open');
-    await see(page.locator('#panel')).toHaveAttribute('data-expanded', '');
-    await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
-    expect(await focused(page)).toBe('open');
+  it('moves no focus in when initialFocus returns false: it stays where it was, unless a modal sheet makes the page inert', async () => {
+    const left = await Promise.all(
+      ([{}, { modal: 'false', dismissal: 'disabled', portal: 'inline' }] as const).map(
+        async (query: Readonly<Record<string, string>>) => {
+          const page = await h.open('sheet', { query: { ...query, initial: 'false' } });
+          await page.click('#open');
+          await see(page.locator('#panel')).toHaveAttribute('data-expanded', '');
+          await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
+          await frames(page);
+          return focused(page);
+        },
+      ),
+    );
+    // Modal: the opener is inert now, and no inert element keeps focus. Not modal: the page is live.
+    expect(left).toEqual(['body', 'open']);
   });
 
   it("the lab's inspector: non-modal, an outside press is ignored, rendered in place", async () => {

@@ -162,6 +162,13 @@ interface FloatingFocusManagerProps {
    */
   deferred?: boolean | undefined;
   /**
+   * Whether a modal popup makes the page outside it `inert` in place of
+   * `aria-hidden` (React Aria's sheet): out of reach of a script's focus and of
+   * find in page too. What stays live is its whole portal, so a backdrop there
+   * still takes its outside press.
+   */
+  inertOutside?: boolean | undefined;
+  /**
    * What takes focus on open: `true` the first tabbable element (else the
    * popup), `false` nothing, an element, or a function of the open type.
    */
@@ -462,8 +469,18 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         // the compute half has an owner for.
         untrack(() => props.previousFocusableElement),
         untrack(() => props.nextFocusableElement),
+        untrack(() => props.inertOutside ?? false),
       ] as const,
-    ([isDisabled, floating, open, isModal, portalNode, previousFocusable, nextFocusable]) => {
+    ([
+      isDisabled,
+      floating,
+      open,
+      isModal,
+      portalNode,
+      previousFocusable,
+      nextFocusable,
+      inertOutside,
+    ]) => {
       if (isDisabled || !floating || !open) {
         return undefined;
       }
@@ -482,10 +499,11 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         resolveRef(previousFocusable ?? null),
         resolveRef(nextFocusable ?? null),
       ].filter((x): x is Element => x != null);
-      const ariaHiddenCleanup = markOthers(insideElements, {
-        ariaHidden: isModal,
-        mark: false,
-      });
+      const inert = isModal && inertOutside;
+      const ariaHiddenCleanup = markOthers(
+        inert && portalNode ? [portalNode, ...insideElements] : insideElements,
+        { ariaHidden: isModal, inert, mark: false },
+      );
       const markerCleanup = markOthers(
         [floating, ...portalNodes].filter((x): x is Element => x != null),
       );

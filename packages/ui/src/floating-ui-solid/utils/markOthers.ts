@@ -1,9 +1,11 @@
 // Upstream: packages/react/src/floating-ui-react/utils/markOthers.ts
 //
 // While a modal popup is open, everything outside it is hidden from
-// assistive tech (`aria-hidden`) and marked `data-base-ui-inert` so outside
-// presses can be told apart. Counted per element, so stacked popups undo in
-// any order and an element hidden by the page stays hidden.
+// assistive tech (`aria-hidden`, or `inert`, which also keeps a script's
+// focus and find in page out, as React Aria's sheet does) and marked
+// `data-base-ui-inert` so outside presses can be told apart. Counted per
+// element and per attribute, so stacked popups undo in any order and an
+// element hidden by the page stays hidden.
 import { getNodeName, isShadowRoot } from '@floating-ui/utils/dom';
 
 import { ownerDocument } from '../../utils/dom.ts';
@@ -12,15 +14,34 @@ type Undo = () => void;
 
 interface MarkOthersOptions {
   ariaHidden?: boolean | undefined;
+  /** Hide them with `inert` in place of `aria-hidden`. */
+  inert?: boolean | undefined;
   mark?: boolean | undefined;
 }
 
+type ControlAttribute = 'aria-hidden' | 'inert';
+
 const markerName = 'data-base-ui-inert';
 
-let ariaHiddenCounterMap = new WeakMap<Element, number>();
-let uncontrolledElementsSet = new WeakSet<Element>();
+const newCounters = () => ({
+  'aria-hidden': new WeakMap<Element, number>(),
+  inert: new WeakMap<Element, number>(),
+});
+const newUncontrolled = () => ({
+  'aria-hidden': new WeakSet<Element>(),
+  inert: new WeakSet<Element>(),
+});
+
+let controlCounters = newCounters();
+let uncontrolledElements = newUncontrolled();
 let markerCounterMap = new WeakMap<Element, number>();
 let lockCount = 0;
+
+/** Whether `node` is hidden by `attribute` already (the page's own, or another popup's). */
+const hiddenBy = (node: Element, attribute: ControlAttribute) => {
+  const value = node.getAttribute(attribute);
+  return attribute === 'inert' ? value !== null : value !== null && value !== 'false';
+};
 
 function unwrapHost(node: Node | null): Element | null {
   if (!node) {
@@ -83,7 +104,7 @@ const collectOutsideElements = (
 function applyAttributeToOthers(
   uncorrectedAvoidElements: Element[],
   body: HTMLElement,
-  ariaHidden: boolean,
+  controlAttribute: ControlAttribute | null,
   mark: boolean,
 ): Undo {
   const avoidElements = correctElements(body, uncorrectedAvoidElements);
@@ -92,8 +113,10 @@ function applyAttributeToOthers(
     : [];
   const hiddenElements: Element[] = [];
   const markedElements: Element[] = [];
+  const counters = controlAttribute ? controlCounters[controlAttribute] : null;
+  const uncontrolled = controlAttribute ? uncontrolledElements[controlAttribute] : null;
 
-  if (ariaHidden) {
+  if (controlAttribute && counters && uncontrolled) {
     const ariaLiveElements = correctElements(
       body,
       Array.from(body.querySelectorAll('[aria-live]')),
@@ -105,16 +128,15 @@ function applyAttributeToOthers(
       new Set<Node>(controlElements),
     );
     for (const node of controlTargets) {
-      const attr = node.getAttribute('aria-hidden');
-      const alreadyHidden = attr !== null && attr !== 'false';
-      const counterValue = (ariaHiddenCounterMap.get(node) || 0) + 1;
-      ariaHiddenCounterMap.set(node, counterValue);
+      const alreadyHidden = hiddenBy(node, controlAttribute);
+      const counterValue = (counters.get(node) || 0) + 1;
+      counters.set(node, counterValue);
       hiddenElements.push(node);
       if (counterValue === 1 && alreadyHidden) {
-        uncontrolledElementsSet.add(node);
+        uncontrolled.add(node);
       }
       if (!alreadyHidden) {
-        node.setAttribute('aria-hidden', 'true');
+        node.setAttribute(controlAttribute, controlAttribute === 'inert' ? '' : 'true');
       }
     }
   }
@@ -133,14 +155,19 @@ function applyAttributeToOthers(
   lockCount += 1;
 
   return () => {
-    for (const element of hiddenElements) {
-      const counterValue = (ariaHiddenCounterMap.get(element) || 0) - 1;
-      ariaHiddenCounterMap.set(element, counterValue);
-      if (!counterValue) {
-        if (!uncontrolledElementsSet.has(element)) {
-          element.removeAttribute('aria-hidden');
+    if (controlAttribute) {
+      // Read again: the last undo of all may have started the counts afresh.
+      const liveCounters = controlCounters[controlAttribute];
+      const liveUncontrolled = uncontrolledElements[controlAttribute];
+      for (const element of hiddenElements) {
+        const counterValue = (liveCounters.get(element) || 0) - 1;
+        liveCounters.set(element, counterValue);
+        if (!counterValue) {
+          if (!liveUncontrolled.has(element)) {
+            element.removeAttribute(controlAttribute);
+          }
+          liveUncontrolled.delete(element);
         }
-        uncontrolledElementsSet.delete(element);
       }
     }
     if (mark) {
@@ -154,16 +181,20 @@ function applyAttributeToOthers(
     }
     lockCount -= 1;
     if (!lockCount) {
-      ariaHiddenCounterMap = new WeakMap();
-      uncontrolledElementsSet = new WeakSet();
+      controlCounters = newCounters();
+      uncontrolledElements = newUncontrolled();
       markerCounterMap = new WeakMap();
     }
   };
 }
 
-/** Marks (and with `ariaHidden`, hides) every element outside `avoidElements`; returns the undo. */
+/**
+ * Marks (and with `ariaHidden` or `inert`, hides) every element outside
+ * `avoidElements`; returns the undo.
+ */
 export function markOthers(avoidElements: Element[], options: MarkOthersOptions = {}): Undo {
-  const { ariaHidden = false, mark = true } = options;
+  const { ariaHidden = false, inert = false, mark = true } = options;
   const body = ownerDocument(avoidElements[0]).body;
-  return applyAttributeToOthers(avoidElements, body, ariaHidden, mark);
+  const controlAttribute = inert ? 'inert' : ariaHidden ? 'aria-hidden' : null;
+  return applyAttributeToOthers(avoidElements, body, controlAttribute, mark);
 }

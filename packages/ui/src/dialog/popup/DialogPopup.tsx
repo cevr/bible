@@ -48,6 +48,8 @@ interface DialogPopupFocusProps {
    * focus returns on close is recorded at open regardless.
    */
   deferred?: boolean | undefined;
+  /** Whether a modal one makes the page `inert`, not `aria-hidden`: a sheet's, as React Aria's. */
+  inertOutside?: boolean | undefined;
   children: JSX.Element;
 }
 
@@ -61,6 +63,7 @@ export function DialogPopupFocus(props: DialogPopupFocusProps): JSX.Element {
       openInteractionType={null}
       disabled={!store.mounted()}
       deferred={props.deferred ?? false}
+      inertOutside={props.inertOutside ?? false}
       closeOnFocusOut={!store.disablePointerDismissal()}
       initialFocus={props.initialFocus}
       modal={store.modal()}

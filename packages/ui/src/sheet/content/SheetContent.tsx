@@ -104,6 +104,7 @@ export function SheetContent(componentProps: SheetContentProps): JSX.Element {
     <DialogPopupFocus
       store={store}
       deferred={scrollingIn()}
+      inertOutside
       initialFocus={
         componentProps.initialFocus === undefined
           ? () => untrack(store.popupElement) ?? true
