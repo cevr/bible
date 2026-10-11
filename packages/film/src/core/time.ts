@@ -22,21 +22,36 @@ interface TimecodeParts {
 }
 
 /**
+ * Whether `fps` is a rate a timecode counts in whole seconds of frames: a
+ * whole rate (24, 30), or its 1000/1001 rate (30000/1001, NTSC's 29.97),
+ * counted as a whole one (non-drop-frame, NDF, as editors count 29.97), so
+ * its timecode runs behind the wall clock by a frame in a thousand.
+ */
+const countedWhole = (fps: number): boolean =>
+  [fps, (fps * 1001) / 1000].some((rate) => Math.abs(rate - Math.round(rate)) < GRID_NUDGE);
+
+/**
  * Seconds as a timecode's fields at `fps`: the nearest frame to that time (a
  * clock a hair short of a frame, as a video's reads, says that frame), each
- * field two digits.
+ * field two digits. A whole or 1000/1001 rate counts `round(fps)` frames a
+ * second (`countedWhole`); any other (12.5, a phone's 29.6) says the wall
+ * second the frame starts in and the frame within it, so its timecode keeps
+ * to the clock.
  */
 export const timecodeParts = (seconds: number, fps: number = FILM_FPS): TimecodeParts => {
   const frames = Math.round(Math.abs(seconds) * fps);
   const perSecond = Math.max(1, Math.round(fps));
-  const whole = Math.floor(frames / perSecond);
+  const whole = countedWhole(fps)
+    ? Math.floor(frames / perSecond)
+    : frameAtOrBefore(frames / fps, 1);
+  const within = countedWhole(fps) ? frames % perSecond : frames - frameAtOrAfter(whole, fps);
   const two = (n: number) => String(n).padStart(2, '0');
   return {
     negative: seconds < 0 && frames > 0,
     hh: two(Math.floor(whole / 3600)),
     mm: two(Math.floor((whole % 3600) / 60)),
     ss: two(whole % 60),
-    ff: two(frames % perSecond),
+    ff: two(within),
   };
 };
 

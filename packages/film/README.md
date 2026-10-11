@@ -1235,7 +1235,10 @@ so a key rebound in `?` reads as rebound.
   its Scenes, a long press its other parts, `filmCommands`), then the
   review's folders (Versions, Renders).
 - **Timecode**: a time written `HH:MM:SS:FF`, hours, minutes, seconds and
-  frames (`timecode`, `core/time.ts`; 30 fps), in a monospaced face so the
+  frames (`timecode`, `core/time.ts`; 30 fps, or a video's own rate: a
+  1000/1001 rate such as 29.97 counts its whole rate's frames a second,
+  non-drop-frame (NDF), and a rate that is neither, such as 12.5, counts
+  the frame within its wall second), in a monospaced face so the
   digits never shift. The studio shows its times this way: the header's
   (film time on every page with a playhead; a tap copies the link to that
   frame), the lab's transport (scene time), a cue's start and length, a
