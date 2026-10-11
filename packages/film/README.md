@@ -2371,7 +2371,8 @@ and links), the index, the films and the quality (Proxy or Original). A
 still opens full size in a lightbox, the kit's Dialog over every layer of
 the page, titled by its caption; the URL keeps it open (`?still=`), so a
 link opens it, Back closes it, and Escape or a tap closes it by the
-sheets' rule (`useSheetDismissal`). The header is the studio's shell (`PageShell`,
+sheets' one rule, the address bar's dismissal (`addressOn(host).dismiss`;
+`useSheetDismissal` tracks the opening). The header is the studio's shell (`PageShell`,
 `lab/page-shell.tsx`): Films, the film switcher, the page bar, a drill-down
 crumb and Go to… (⌘K: Go to finds a folder, a set, or a film's choices or
 project by name, `destinationsOf`, and on a film's choices each choice
