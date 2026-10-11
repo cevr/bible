@@ -69,15 +69,16 @@ const PAINTED = (selector: string) => `(() => {
 const FACE_STATUS = `[...document.fonts].find((f) => f.family.replaceAll('"', '') === 'Probe Face')?.status ?? 'none'`;
 
 /**
- * From now on, the probe face's status at every fill on the stage's canvas,
- * kept on `window.__fills`: what each frame drawn there was drawn with. Run
- * again, it keeps recording as it was.
+ * From now on, the probe face's status at every mark made on the stage's
+ * canvas, a fill or a stroke (a cutout's edge, a word's outline), kept on
+ * `window.__fills`: what each frame drawn there was drawn with. Run again, it
+ * keeps recording as it was.
  */
 const RECORD_FILLS = `(() => {
   if ('__fills' in window) return true;
   window.__fills = [];
   const proto = CanvasRenderingContext2D.prototype;
-  for (const name of ['fill', 'fillRect', 'fillText', 'drawImage']) {
+  for (const name of ['fill', 'fillRect', 'fillText', 'drawImage', 'stroke', 'strokeText']) {
     const own = proto[name];
     proto[name] = function (...args) {
       if (this.canvas === document.querySelector('.stage canvas')) window.__fills.push(${FACE_STATUS});
@@ -86,6 +87,12 @@ const RECORD_FILLS = `(() => {
   }
   return true;
 })()`;
+
+/** A Scenes card's still. */
+const STILL = '.sc-still';
+
+/** The Scenes cards' stills drawn, each by its time. */
+const STILLS_DRAWN = `[...document.querySelectorAll('${STILL}[data-drawn="true"]')].map((s) => s.dataset.t)`;
 
 describe("a film's picture faces on the Lab", () => {
   it.live(
@@ -128,7 +135,7 @@ describe("a film's picture faces on the Lab", () => {
   );
 
   it.live(
-    "held on a film's Scenes: the header's timecode follows a seek though no frame is drawn",
+    "held on a film's Scenes: the header's timecode follows a seek though no frame is drawn, and no card's still is drawn until the face lands",
     () =>
       Effect.gen(function* () {
         const gate = yield* Deferred.make<void>();
@@ -143,11 +150,16 @@ describe("a film's picture faces on the Lab", () => {
         yield* page.evaluate(`(location.hash = '#t=${SEEK_S}', 0)`);
         yield* textIs(page, '.sh-tc', timecode(SEEK_S));
         yield* evaluates(page, FACE_STATUS, 'loading');
-        // The face lands, and the page with it, standing where the seek left it.
+        // The cards stand, each still undrawn (`player/stills.ts` waits for the faces): a still
+        // drawn now would be drawn in a fallback face.
+        yield* until(page, `document.querySelectorAll('${STILL}').length > 0`);
+        yield* evaluates(page, STILLS_DRAWN, []);
+        // The face lands, and the page with it, standing where the seek left it, its stills drawn.
         yield* Deferred.done(gate, Exit.void);
         yield* evaluates(page, FACE_STATUS, 'loaded');
         yield* evaluates(page, "document.readyState === 'complete'", true);
         yield* textIs(page, '.sh-tc', timecode(SEEK_S));
+        yield* until(page, `${STILLS_DRAWN}.length > 0`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
