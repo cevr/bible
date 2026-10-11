@@ -43,7 +43,6 @@ import {
   Layer,
   Match,
   Option,
-  Order,
   Stream,
 } from 'effect';
 import {
@@ -100,7 +99,7 @@ export interface MediaService {
    * How long `file` plays, in seconds (an MP3 or FLAC as decoded, its
    * encoder padding trimmed; anything else by its container), and its
    * frames a second as its own packets say (`rateOf`: a whole or 1000/1001
-   * rate within float noise, else as measured), none for a file with no
+   * rate within its timestamps' precision, else as measured), none for a file with no
    * video: one read of the file.
    */
   readonly timing: (file: string) => Effect.Effect<Timing, MediaFailed>;
@@ -547,22 +546,27 @@ const videoTrackOf = (op: MediaFailed['op'], file: string, input: Input) =>
 /** The packets a video's frame rate is counted over: a few seconds of a film. */
 const RATE_PACKETS = 120;
 
-/** How near a measured rate must be to a broadcast rate to be taken for it: float noise only. */
-const RATE_NOISE = 1e-3;
+/**
+ * How far, as a share of it, a rate measured over a video's timestamps may
+ * lie from the broadcast rate it was made at: their precision (a millisecond
+ * timescale errs by up to a millisecond over the 4 s of `RATE_PACKETS` at 30
+ * fps, 0.025%). Under half the gap between a whole rate and its 1000/1001
+ * rate (0.1%), so a measure is near one of 30 and 29.97 at most, never both.
+ */
+const RATE_PRECISION = 4e-4;
 
 /**
  * `measured` (frames a second over a span of packets) as the rate it is: a
  * whole rate (30) or its 1000/1001 rate (30000/1001, NTSC's 29.97) when it
- * lies within float noise of one, else as measured. Never rounded to a whole
- * rate it is not: a 29.97 video steps on its own grid.
+ * lies within its timestamps' precision of one (`RATE_PRECISION`), else as
+ * measured. Never rounded to a whole rate it is not: a 29.97 video steps on
+ * its own grid.
  */
 const rateOf = (measured: number): number => {
   const whole = Math.round(measured);
   const ntsc = (Math.round((measured * 1001) / 1000) * 1000) / 1001;
-  const off = (rate: number) => Math.abs(rate - measured);
-  const near = Arr.filter([whole, ntsc], (rate) => off(rate) < RATE_NOISE * measured);
   return Option.getOrElse(
-    Arr.head(Arr.sort(near, Order.mapInput(Order.Number, off))),
+    Arr.findFirst([whole, ntsc], (rate) => Math.abs(rate - measured) < RATE_PRECISION * measured),
     () => measured,
   );
 };

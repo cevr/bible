@@ -113,7 +113,7 @@ export type ReviewIndex = typeof ReviewIndex.Type;
 /**
  * `GET /api/review/duration`: a video's length, and its frames a second as
  * its own packets give them (`Media.timing`: the whole or 1000/1001 rate the
- * measure lies within float noise of, else as measured; never rounded, so
+ * measure lies within its timestamps' precision of, else as measured; never rounded, so
  * 29.97 is 30000/1001), which a review's clock steps and counts by. None for
  * a file with no video, or an older server's answer.
  */

@@ -462,6 +462,30 @@ describe.concurrent('Media', () => {
       ),
   );
 
+  it.effect.layer(MediaOnDisk)(
+    "a measured rate is taken for 30 or 29.97 only within its timestamps' precision: halfway between, it is neither",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* tempDir;
+          const rateAt = Effect.fn('Media.test.rateAt')(function* (fps: number) {
+            const file = `${dir}/rated-${fps}.mp4`;
+            yield* fs.writeFile(file, yield* ratedVideo(fps, 8));
+            return Option.getOrThrow((yield* media.timing(file)).fps);
+          });
+          const ntsc = 30000 / 1001;
+          // 0.03% off: inside the precision (0.04%), so taken for the broadcast rate.
+          expect(yield* rateAt(30 * (1 - 3e-4))).toBe(30);
+          expect(yield* rateAt(ntsc * (1 + 3e-4))).toBe(ntsc);
+          // Halfway (0.05% from each, past the precision): kept as measured, taken for neither.
+          const halfway = (30 + ntsc) / 2;
+          expect(yield* rateAt(halfway)).toBeCloseTo(halfway, 6);
+        }),
+      ),
+  );
+
   it.effect.layer(MediaOnDisk)('a share copy that fails leaves no file behind', () =>
     Effect.scoped(
       Effect.gen(function* () {
