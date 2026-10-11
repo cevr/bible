@@ -11,7 +11,7 @@
 
 import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Effect, Exit, Match, Option, Scope } from 'effect';
+import { Effect, Exit, Match, Option, Scope, Struct } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import {
@@ -692,7 +692,12 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
               Option.match(landed, {
                 onNone: () => false,
                 onSome: (l) => {
-                  l.show('index', Option.some, actions.answered);
+                  // The index holds the folder; what the say gave or took is the receipt's.
+                  l.show(
+                    'index',
+                    (said) => Option.some(Struct.omit(said, ['gave', 'took'])),
+                    actions.answered,
+                  );
                   // A Refresh asked after the say may not hold it, nor the say what that
                   // Refresh found: the index is read again.
                   if (l.succeeded && l.overtaken('index')) actions.refresh();
