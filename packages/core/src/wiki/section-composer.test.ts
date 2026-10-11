@@ -1086,9 +1086,9 @@ describe('section composer', () => {
   // degradation state's clothes.
   // -------------------------------------------------------------------------
 
-  /** The real shape of an absent corpus on this stack: `bun:sqlite` throws from
-   *  its constructor, so a missing file arrives as a died `SQLITE_CANTOPEN` and
-   *  never as a typed failure. */
+  /** The real shape of an absent corpus on this stack: the SQLite client
+   *  reports a missing file as a typed `SqlError` (since effect 4.0.1; before,
+   *  `bun:sqlite`'s constructor throw arrived as a died `SQLITE_CANTOPEN`). */
   const unopenableCorpus = WikiSectionSources.NotWiredOnCorpusAbsence(
     WikiSectionSources.Live.pipe(
       Layer.provide(TopicService.Test([])),

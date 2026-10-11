@@ -111,7 +111,10 @@ interface Fixture {
 
 const makeFixture = (): Fixture => {
   const calls = { value: 0 };
-  const layer = Layer.merge(searchLayer, SqliteClient.layer({ filename: ':memory:' }));
+  const layer = Layer.merge(
+    searchLayer,
+    SqliteClient.layer({ filename: ':memory:' }).pipe(Layer.orDie),
+  );
   return { calls, layer };
 };
 
