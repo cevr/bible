@@ -85,7 +85,7 @@ interface SceneSourcesService {
     LocateError | SceneNotLocated | SourceRefused
   >;
   /**
-   * One scene's file as it stands now, and where in it each cue, knob and mark
+   * One scene's file as it stands now, and where in it each cue and knob
    * is written and read (`sceneCode`); read-only, so a field the lab may not
    * write is listed all the same.
    */
