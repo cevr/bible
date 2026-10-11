@@ -156,7 +156,7 @@ export const stepWhyNot =
 export interface LabCalls {
   /** A scene's file and what of it the lab may rewrite. */
   readonly source: (scene: string) => Effect.Effect<SceneSource, LabFailure>;
-  /** A scene's file text now, and where its cues, knobs and marks are written and read. */
+  /** A scene's file text now, and where its cues and knobs are written and read. */
   readonly code: (scene: string) => Effect.Effect<SceneCode, LabFailure>;
   /** A scene's timeline and knobs at HEAD. */
   readonly head: (scene: string) => Effect.Effect<HeadSource, LabFailure>;

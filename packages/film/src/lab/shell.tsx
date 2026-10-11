@@ -95,6 +95,8 @@ interface LabActions {
   readonly compareBy: (view: CompareView) => void;
   /** Open the Source view (following the frame, or held on a line), or shut it: a new history entry when it opens on a shut view. */
   readonly showCode: (code: Option.Option<CodeOpen>) => void;
+  /** Settle the open Source view on `code` in place (what it was opened for, now known): no entry of its own. */
+  readonly settleCode: (code: CodeOpen) => void;
   /** Close the Source view (its sheet's Close, Escape, a swipe, a column's Close) by the sheets' one rule. */
   readonly dismissCode: () => void;
 }
@@ -326,6 +328,7 @@ const Root = (props: RootProps) => {
         if (view !== untrack(() => here().view)) address.go(picked({ view }));
       },
       showCode: (code) => pick('code', { code }, Option.isNone(untrack(here).code)),
+      settleCode: (code) => address.follow(picked({ code: Option.some(code) })),
       dismissCode: () => sheets.code.dismiss(() => Option.some(picked({ code: Option.none() }))),
     },
     meta: {

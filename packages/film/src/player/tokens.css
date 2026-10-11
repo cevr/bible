@@ -121,6 +121,7 @@
   --state-note: #f0609a; /* a note pin and its ink */
   --state-agent: #7fc4c0; /* the agent's reply, a sound tick */
   --state-scratch: var(--text-3); /* a staging take: Scratch */
+  --state-live: var(--text-1); /* a cue playing at the frame: its lane, its literal, its meter */
 
   /* Content colour: each scene's hue on bands, like a DAW's track colours. */
   --scene-sat: 30%;

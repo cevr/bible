@@ -106,6 +106,27 @@ const snapCommand = (verbs: EditorVerbs): Command => ({
   run: quietly(() => verbs.setSnap(!verbs.snap())),
 });
 
+/** The strip's rows as Follow reads them: whether a reader's scroll has let them go, and taking them back. */
+interface StripRows {
+  readonly letGo: () => boolean;
+  readonly follow: () => void;
+}
+
+/**
+ * Take the strip's rows back to the lanes the playhead is inside, where it
+ * stands: the paused way back after a hand scrolled them (Play is the other).
+ * On the strip's menu and ⌘K only while they are let go; nothing at rest.
+ */
+export const stripFollowCommand = (rows: StripRows): Command => ({
+  id: 'edit.strip-follow',
+  label: 'Follow the playhead on the strip',
+  group: 'Edit',
+  about: ['Page', 'Cue'],
+  touch: 'hold a cue’s lane beside its bar, or the command menu',
+  when: rows.letGo,
+  run: quietly(rows.follow),
+});
+
 /** The cue or knob `ctx` is about. */
 const aboutOf = (ctx: Context): Option.Option<LabSelection> =>
   Option.firstSomeOf<LabSelection>([selected(ctx, 'Cue'), selected(ctx, 'Knob')]);

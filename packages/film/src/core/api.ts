@@ -424,7 +424,7 @@ class ScenesGroup extends HttpApiGroup.make('scenes').add(
     success: SceneSource,
     error: Refusals,
   }),
-  /** The scene file's text now, and where its cues, knobs and marks are written and read (the Source view). */
+  /** The scene file's text now, and where its cues and knobs are written and read (the Source view). */
   HttpApiEndpoint.get('code', `${FILM}/scenes/:scene/code`, {
     params: { ...film, scene: Schema.String },
     success: SceneCode,

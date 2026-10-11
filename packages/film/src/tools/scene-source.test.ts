@@ -682,13 +682,6 @@ const helper = (f: Frame) => f.stagger('carry', 1, 3) + f.mark('later');
     expect(all.some((t) => t.includes('ghost') || t.includes('.at(0)'))).toBe(false);
   });
 
-  it('lists the marks the code reads or anchors a cue at', () => {
-    expect(code().marks.map((m) => [m.name, texts(m.reads)])).toEqual([
-      ['take', ["'take'", "f.mark('take')"]],
-      ['later', ["f.mark('later')"]],
-    ]);
-  });
-
   it('says why a timeline that is not a literal has no cues, and still lists the knobs', () => {
     const computed = `import { drawing } from 'k';
 export const robe = drawing({ timeline: make(), knobs: { size: 1 }, draw: (f) => f.at('lift') });

@@ -12,17 +12,18 @@
 //
 // Closed at rest; opened by `?code=follow` (the view scrolls to what plays
 // until a hand scrolls it; Play or Follow takes it back) or `?code=<line>`
-// (held there). A tap on a line holds it and selects the cue or knob written
+// (held there, until a hand scrolls it; holding a line takes it back), by the
+// lab's one Follow rule (`lab/follow.ts`). A tap on a line holds it and selects the cue or knob written
 // there; a long press or a right-click on it opens the page's context menu
 // (Note this line, Copy link). On a laptop it is a column beside the picture;
 // on a phone it is a face of the selection's sheet (Inspect · Source) in Edit,
-// or a sheet of its own in every other mode and while nothing is selected.
+// held on the selection's line, or a sheet of its own in every other mode and while nothing is selected.
 
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, type JSX, Portal, Show } from '@solidjs/web';
-import { Array as Arr, Boolean as Bool, Effect, Match, Option, Result } from 'effect';
-import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
+import { Array as Arr, Boolean as Bool, Effect, Equal, Option, Result } from 'effect';
+import { type Accessor, createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import { Highlights, type HighlightName } from '../../browser/highlights.ts';
 import { type LabSelection, Selection } from '../../command/selection.ts';
 import { sceneOf } from '../../core/layout.ts';
@@ -31,6 +32,7 @@ import { liveAt } from '../../core/timeline.ts';
 import { Target } from '../command/context-menu.tsx';
 import { useLabPage } from '../panel.tsx';
 import { pressed } from '../pressed.ts';
+import { useFollow } from '../follow.ts';
 import { useLab } from '../shell.tsx';
 import { Sheet } from '../sheet.tsx';
 import { PHONE, useMatches } from '../viewport.ts';
@@ -39,12 +41,14 @@ import {
   type Lit,
   type Picks,
   followLine,
-  lineStarts,
   litNow,
+  liveWords,
   metersOn,
+  rowsOf,
   selectionAt,
 } from './lit.ts';
-import { FOLLOW } from './open.ts';
+import { type Asked, FaceIntent, intentOf } from './intent.ts';
+import { FOLLOW, lineOpen } from './open.ts';
 
 /** The name of the selection when it is a `tag` of `scene`. */
 const pickedIn = (
@@ -80,25 +84,6 @@ const useLit = (code: () => SceneCode) => {
   });
 };
 
-/** One row of the file: its number, its text, and where the text starts in the whole. */
-interface Row {
-  readonly n: number;
-  readonly from: number;
-  readonly text: string;
-}
-
-const rowsOf = (text: string): ReadonlyArray<Row> => {
-  const starts = lineStarts(text);
-  return starts.map((from, i) => ({
-    n: i + 1,
-    from,
-    text: text.slice(
-      from,
-      Option.getOrElse(Option.fromUndefinedOr(starts[i + 1]), () => text.length + 1) - 1,
-    ),
-  }));
-};
-
 /** The nearest ancestor of `el` that scrolls: the box a row moves in, in the column and in a sheet alike. */
 const scrollContainerOf = (el: HTMLElement): Option.Option<HTMLElement> =>
   Option.flatMap(Option.fromNullishOr(el.parentElement), (up) => {
@@ -109,24 +94,21 @@ const scrollContainerOf = (el: HTMLElement): Option.Option<HTMLElement> =>
     });
   });
 
-/** How far a scroll may land from where the view put the box and still be the view's: rounding to the device's pixels. */
-const SLACK = 1;
-
 /** The file's text, a row to a line, with its lit spans, meters and held line. */
-const Text = (props: { readonly code: SceneCode }) => {
-  const { state: lab, actions, meta } = useLab();
+const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) => {
+  const { actions, meta } = useLab();
   const source = useSource();
-  const lit = useLit(() => props.code);
-  const rows = createMemo(() => rowsOf(props.code.text));
+  const lit = props.lit;
+  const rows = createMemo(() => rowsOf(props.code));
   const digits = createMemo(() => String(rows().length).length);
-  // The box the rows scroll in: found from the rows (`scrollContainerOf`), so the column and the sheet scroll by one rule.
-  let scroller = Option.none<HTMLElement>();
   let page = Option.none<HTMLElement>();
-  // Where the view last authored the box: the scroll it wrote, read back (so clamping and rounding are in it), or
-  // the clamp layout made of it. A reader's scroll is measured from here, so steps too small to tell one by one add up.
-  let anchor = 0;
-  // Each resize of the box or its content: the view measures its target again.
-  const [laidOut, setLaidOut] = createSignal(0);
+  // The box the rows scroll in: found from the rows (`scrollContainerOf`), once they stand, so the column and the
+  // sheet scroll by one rule.
+  let scroller = Option.none<HTMLElement>();
+  const box = () => {
+    if (Option.isNone(scroller)) scroller = Option.flatMap(page, scrollContainerOf);
+    return scroller;
+  };
 
   // The ranges lit, painted on the rows' text; cleared when the view goes.
   const paint = (name: HighlightName, ranges: ReadonlyArray<CodeRange>) =>
@@ -152,120 +134,54 @@ const Text = (props: { readonly code: SceneCode }) => {
     ),
   );
 
-  // Play takes the view back to following the frame.
-  let wasPlaying = false;
-  createEffect(
-    () => lab.drawn(),
-    () => {
-      const playing = meta.player.playing();
-      if (playing && !wasPlaying) source.resume();
-      wasPlaying = playing;
-    },
-  );
-
-  // The line the view looks at: the held line, else what plays while it follows.
-  const held = createMemo(() =>
-    Option.flatMap(source.open(), (o) =>
-      Match.value(o).pipe(
-        Match.tag('Follow', () => Option.none<number>()),
-        Match.tag('Line', ({ line }) => Option.some(Math.min(line, rows().length))),
-        Match.exhaustive,
-      ),
-    ),
-  );
-  // The projection is the line number, so the memo settles on a still target
-  // (Option.some(n) is a new object every frame; n is not).
+  // The line the view looks at: the held line, else what plays while it follows. The projection is the line
+  // number as a key, so the memo settles on a still target (Option.some(n) is a new object every frame; n is not).
   const looking = createMemo(() =>
-    Option.getOrElse(
-      Option.orElse(held(), () =>
+    Option.match(
+      Option.orElse(source.held(), () =>
         Option.flatMap(
           Option.filter(Option.some(source.following()), (on) => on),
           () => followLine(props.code, lit()),
         ),
       ),
-      () => 0,
+      { onNone: () => '', onSome: String },
     ),
   );
-  // The scroll box is the rows' nearest scrolling ancestor, whichever element the layout makes it. A resize of
-  // the box or its content measures the target again; a frame that does not move the target is not measured.
-  // A scroll is the view's when it lands on the anchor, and layout's when it lands where the box's geometry
-  // now clamps the anchor (read as the scroll arrives, so no resize, scrolled or not, leaves it stale). Any
-  // other scroll is the reader's, however it came (wheel, finger and its momentum, keys, scrollbar,
-  // find-in-page, assistive tech), and suspends Follow.
-  createEffect(
-    () => true,
-    () => {
-      scroller = Option.flatMap(page, scrollContainerOf);
-      return Option.match(scroller, {
-        onNone: () => () => {},
-        onSome: (el) => {
-          anchor = el.scrollTop;
-          const o = new ResizeObserver(() => setLaidOut((n) => n + 1));
-          o.observe(el);
-          Option.map(page, (p) => o.observe(p));
-          const scrolled = () => {
-            const at = el.scrollTop;
-            if (Math.abs(at - anchor) <= SLACK) return;
-            const clamped = Math.min(anchor, el.scrollHeight - el.clientHeight);
-            if (Math.abs(at - clamped) <= SLACK) {
-              anchor = clamped;
-              return;
-            }
-            if (source.following()) source.suspend();
-          };
-          el.addEventListener('scroll', scrolled, { passive: true });
-          return () => {
-            o.disconnect();
-            el.removeEventListener('scroll', scrolled);
-          };
-        },
-      });
-    },
-  );
-  // Follow taken back (Follow, Play) takes the box where it stands as the view's, then places it as its target needs.
-  createEffect(
-    () => source.following(),
-    (on) => {
-      if (!on) return;
-      Option.map(scroller, (box) => {
-        anchor = box.scrollTop;
-      });
-    },
-  );
-  createEffect(
-    () => [looking(), laidOut()] as const,
-    ([target]) => {
-      const line = Option.liftPredicate(target, (n) => n > 0);
-      const found = Option.flatMap(Option.all({ line, box: scroller, root: page }), (at) =>
-        Option.map(
+  // The lab's one Follow rule (`lab/follow.ts`): a reader's scroll leaves the view where the hand put it until a
+  // line is held, or, while it follows, until Follow or Play takes it back. Play leaves a held view where it is.
+  useFollow({
+    box,
+    content: () => page,
+    target: looking,
+    span: (line) =>
+      Option.map(
+        Option.flatMap(page, (root) =>
           Option.fromNullishOr(
-            at.root.querySelector<HTMLElement>(`.lab-source-line[data-line="${at.line}"]`),
+            root.querySelector<HTMLElement>(`.lab-source-line[data-line="${line}"]`),
           ),
-          (row) => ({ box: at.box, root: at.root, row }),
         ),
-      );
-      Option.map(found, ({ box, root, row }) => {
-        // A line's height, read off the page the rows inherit it from: the row itself is asked once, for its place.
-        const lh = Number.parseFloat(getComputedStyle(root).lineHeight);
-        if (Number.isNaN(lh) || lh === 0) return;
-        const margin = 2 * lh;
-        // The row's top and bottom in the box's own scroll coordinates, whatever sits between them.
-        const top =
-          row.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
-        const bottom = top + row.offsetHeight;
-        const inView =
-          top >= box.scrollTop + margin && bottom <= box.scrollTop + box.clientHeight - margin;
-        if (inView) return;
-        // Instant, so the move is one scroll that lands on the anchor, never a smooth run of them.
-        box.scrollTo({ top: Math.max(0, top - box.clientHeight / 3), behavior: 'instant' });
-        anchor = box.scrollTop;
+        (row) => ({ first: row, last: row }),
+      ),
+    // Two lines clear of each edge. A line's height is read off the page the rows inherit it from, so the row is
+    // the span's one element, asked once for its place.
+    clear: () => {
+      const lh = Option.match(page, {
+        onNone: () => 0,
+        onSome: (root) => Number.parseFloat(getComputedStyle(root).lineHeight) || 0,
       });
+      return { top: 2 * lh, bottom: 2 * lh };
     },
-  );
+    placing: source.placing,
+    reader: source.suspend,
+    played: () => {
+      if (Option.exists(source.open(), (o) => o._tag === 'Follow')) source.resume();
+    },
+  });
 
-  // A tap on a line, unless it ends a text selection, holds it.
+  // A tap on a line, unless it ends a text selection, holds it: held again, the view places it again.
   const tap = (n: number) => {
     if (!(window.getSelection()?.isCollapsed ?? true)) return;
+    source.resume();
     actions.holdLine(n, selectionAt(props.code, n));
   };
   return (
@@ -298,7 +214,7 @@ const Text = (props: { readonly code: SceneCode }) => {
               <span class="lab-source-t" data-from={row.from}>
                 {row.text}
               </span>
-              <Show when={Option.contains(held(), row.n)}>
+              <Show when={Option.contains(source.held(), row.n)}>
                 <i class="lab-source-held" data-line={row.n} />
               </Show>
               {/* A meter is its cue's: keyed by the name, its element stays as each frame moves its progress. */}
@@ -320,10 +236,14 @@ const Text = (props: { readonly code: SceneCode }) => {
 };
 
 /** The view's head: the file it shows, the cues playing in it, and Follow. */
-const Head = (props: { readonly code: SceneCode; readonly close: boolean }) => {
+const Head = (props: {
+  readonly code: SceneCode;
+  readonly lit: Accessor<Lit>;
+  readonly close: boolean;
+}) => {
   const { actions } = useLab();
   const source = useSource();
-  const lit = useLit(() => props.code);
+  const lit = props.lit;
   const follow = () => {
     source.resume();
     if (Option.exists(source.open(), (o) => o._tag === 'Line'))
@@ -333,10 +253,7 @@ const Head = (props: { readonly code: SceneCode; readonly close: boolean }) => {
     <header class="lab-source-head">
       <span class="lab-source-file">{props.code.file}</span>
       <span class="lab-source-live" data-empty={pressed(lit().names.length === 0)}>
-        {Bool.match(lit().names.length === 0, {
-          onTrue: () => 'nothing playing',
-          onFalse: () => lit().names.join(' · '),
-        })}
+        {liveWords(props.code, lit())}
       </span>
       <button
         type="button"
@@ -412,12 +329,16 @@ const Body = (props: { readonly close: boolean }) => {
           </>
         }
       >
-        {(c) => (
-          <>
-            <Head code={c()} close={props.close} />
-            <Text code={c()} />
-          </>
-        )}
+        {(c) => {
+          // What the code lights, once per frame for the head and the text alike.
+          const lit = useLit(c);
+          return (
+            <>
+              <Head code={c()} lit={lit} close={props.close} />
+              <Text code={c()} lit={lit} />
+            </>
+          );
+        }}
       </Show>
     </section>
   );
@@ -471,11 +392,62 @@ type Face = 'inspect' | 'source';
 /**
  * A phone's selection sheet with the Source view as its second face: the tabs
  * (Inspect · Source) are the view's open state in the URL, so Back, Close and a
- * reload each leave the face they left.
+ * reload each leave the face they left. The Source face is the selection's:
+ * it opens held on the line that writes the cue or knob, as its `file:line`
+ * does, and follows the frame only while that line is not known yet: once a
+ * read names it, the view settles on it in place, unless the view or the
+ * selection has moved on meanwhile.
  */
 export const Faces = (props: { readonly children: JSX.Element }) => {
   const { state, actions } = useLab();
+  const source = useSource();
   const page = useLabPage();
+  /** The line that writes `s`, once a read names it. */
+  const lineOf = (s: LabSelection): Option.Option<number> =>
+    Option.map(
+      { Cue: source.whereCue, Knob: source.whereKnob }[s._tag](s.scene, s.name),
+      (w) => w.line,
+    );
+  // The selection the face was opened for before its line was known, and whether the view has been seen following
+  // for it since: the intent the view settles once the line is known.
+  const [asked, setAsked] = createSignal(Option.none<Asked>());
+  const open = () => {
+    const selection = state.selection();
+    const line = Option.flatMap(selection, lineOf);
+    actions.showCode(Option.some(Option.match(line, { onNone: () => FOLLOW, onSome: lineOpen })));
+    setAsked(
+      Option.map(
+        Option.filter(selection, () => Option.isNone(line)),
+        (s) => ({ selection: s, seen: false }),
+      ),
+    );
+  };
+  // Where the intent stands (`intent.ts`), settling only on a change of it.
+  const intent = createMemo(
+    () =>
+      intentOf(asked(), {
+        selection: state.selection(),
+        following: source.following(),
+        lineOf,
+      }),
+    { equals: Equal.equals },
+  );
+  createEffect(intent, (now) =>
+    FaceIntent.$match(now, {
+      Idle: () => {},
+      Opening: () => {},
+      Waiting: () => {
+        setAsked((a) => Option.map(a, (x) => ({ ...x, seen: true })));
+      },
+      Gone: () => {
+        setAsked(Option.none());
+      },
+      Ready: ({ line }) => {
+        setAsked(Option.none());
+        actions.settleCode(lineOpen(line));
+      },
+    }),
+  );
   const face = (): Face =>
     Bool.match(Option.isSome(state.code()), {
       onTrue: (): Face => 'source',
@@ -490,7 +462,7 @@ export const Faces = (props: { readonly children: JSX.Element }) => {
         onValueChange={(pressed) => {
           Option.map(Arr.head(pressed), (next) => {
             if (next === face()) return;
-            if (next === 'source') actions.showCode(Option.some(FOLLOW));
+            if (next === 'source') open();
             else actions.dismissCode();
           });
         }}
