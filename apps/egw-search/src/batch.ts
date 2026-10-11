@@ -44,7 +44,7 @@ interface Batch<I, O, E> {
   waiting: number;
   /** Whether its inputs have gone out; until then a caller that leaves takes its slot. */
   sent: boolean;
-  /** When it goes out, on the clock its fiber runs on: a window after its latest input. */
+  /** When it goes out, in monotonic ms on the clock its fiber runs on: a window after its latest input. */
   due: number;
   fiber: Option.Option<Fiber.Fiber<void>>;
 }
@@ -59,10 +59,12 @@ export const makeBatcher = <I, O, E>(options: {
 }): Batcher<I, O, E> => {
   let open = Option.none<Batch<I, O, E>>();
   const window = Duration.toMillis(options.window);
+  /** Monotonic time in ms: a step of the wall clock (NTP, a hand) moves no batch. */
+  const elapsed = Effect.map(Clock.monotonicTimeNanos, (nanos) => Number(nanos / 1_000_000n));
 
   /** Sleep until the batch is due; an input that joined meanwhile moved it on. */
   const quiet = (batch: Batch<I, O, E>): Effect.Effect<void> =>
-    Effect.flatMap(Clock.currentTimeMillis, (at) => {
+    Effect.flatMap(elapsed, (at) => {
       if (at >= batch.due) return Effect.void;
       return Effect.andThen(Effect.sleep(batch.due - at), quiet(batch));
     });
@@ -125,7 +127,7 @@ export const makeBatcher = <I, O, E>(options: {
     submit: (input) =>
       Effect.uninterruptibleMask((restore) =>
         Effect.gen(function* () {
-          const at = yield* Clock.currentTimeMillis;
+          const at = yield* elapsed;
           const batch = yield* Option.match(open, {
             onNone: () => start(at),
             onSome: Effect.succeed,
