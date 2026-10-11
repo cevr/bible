@@ -261,7 +261,8 @@ const probeKey = (
   platform: string,
 ): string => {
   const asked = Option.match(job.encoder, { onNone: () => 'any', onSome: (e) => e._tag });
-  return `${page}|captions=${job.captions}|scale=${job.scale}|share=${job.share}|encoder=${asked}|${platform}`;
+  const server = Option.getOrElse(job.server, () => 'preview');
+  return `${page}|captions=${job.captions}|scale=${job.scale}|share=${job.share}|encoder=${asked}|server=${server}|${platform}`;
 };
 
 /** Each video its own probe and its own pages, closed with it. */
@@ -394,7 +395,11 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           made,
           Effect.scoped(
             Effect.gen(function* () {
-              const first = yield* pages.open(page, { workers: 1, captions: job.captions });
+              const first = yield* pages.open(page, {
+                workers: 1,
+                captions: job.captions,
+                server: job.server,
+              });
               const found = yield* shortOn(placed, job.cut, first.info.fps);
               // A short's page is 9:16 at the film's density: it encodes down to 1080 × 1920.
               const k = Option.match(found, {
@@ -464,7 +469,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         );
         const pool = yield* drawing.pool(
           `${made}|workers=${workers}`,
-          pages.open(page, { workers, captions: job.captions }),
+          pages.open(page, { workers, captions: job.captions, server: job.server }),
         );
 
         // The track, cut and encoded once beside the pages; both joins copy its packets.
@@ -712,7 +717,11 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             Effect.scoped(
               Effect.gen(function* () {
                 yield* fs.makeDirectory(dir, { recursive: true });
-                const pool = yield* pages.open(page, { workers, captions: job.captions });
+                const pool = yield* pages.open(page, {
+                  workers,
+                  captions: job.captions,
+                  server: job.server,
+                });
                 // A short's spans must resolve on the page's frames, as a video's do.
                 yield* shortOn(placed, cut, pool.info.fps);
                 return yield* run(pool);
