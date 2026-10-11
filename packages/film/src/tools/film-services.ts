@@ -67,6 +67,15 @@ interface FilmServicesSpec {
    * its line).
    */
   readonly elevenLabs: Layer.Layer<ElevenLabs, never, FilmRepo | Media | BunServices.BunServices>;
+  /**
+   * The private store the sound and footage libraries keep their originals
+   * in: none given, the one the app's `sounds/library.ts` declares (built
+   * here, `PrivateStore.layer`); a test gives a folder of its own, so it
+   * never builds the live one.
+   */
+  readonly privateStore: Option.Option<
+    Layer.Layer<PrivateStore, never, FileSystem.FileSystem | Path.Path>
+  >;
 }
 
 /**
@@ -103,9 +112,10 @@ export const filmServices = (spec: FilmServicesSpec) => {
   ).pipe(Layer.provideMerge(SourceWriter.layer), Layer.provide([Repo, Store, Fresh, Platform]));
   // Each film's project folder: its renders, and the owner's approvals and comments on them.
   const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
-  const Private = PrivateStore.layer(spec.sounds).pipe(
-    Layer.provide([FetchHttpClient.layer, Platform]),
-  );
+  const Private = Option.match(spec.privateStore, {
+    onNone: () => PrivateStore.layer(spec.sounds).pipe(Layer.provide(FetchHttpClient.layer)),
+    onSome: (given) => given,
+  }).pipe(Layer.provide(Platform));
   const Library = SoundLibrary.layer(spec.sounds).pipe(
     Layer.provide([Store, Tools, Private, Platform]),
   );

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { Option, Result, Schema } from 'effect';
 import { CUT_FADE } from './align.ts';
 import { type Pcm, slice } from './audio.ts';
+import { VOICE_RECIPE } from './footage.ts';
 import { syntheticTake } from './fixtures/talk-take.ts';
 import { layout } from './layout.ts';
 import { hashText, parse, takeScript } from './narration.ts';
@@ -79,6 +80,7 @@ const take = (sound: Pcm, secs: number) => ({
   from: 0,
   dur: Option.none<number>(),
   fade: 0,
+  content: Option.none<string>(),
 });
 
 describe('renderMix', () => {
@@ -578,6 +580,7 @@ describe('mixKey', () => {
         from: 0,
         dur: Option.none(),
         fade: 0,
+        content: Option.none(),
       },
     ],
     score: Option.some({
@@ -691,19 +694,23 @@ describe("a talk's voice, played in pieces", () => {
   const cut = Result.getOrThrow(talkCut(talk, { a: take }));
   const placed = Result.getOrThrow(layout(cut.scenes, cut.timings));
   const pieces = cut.sections[0]?.pieces ?? [];
-  const planned = Result.getOrThrow(
-    mixPlan({
-      film: 'talk',
-      placed,
-      manifest: {},
-      sounds: NO_SOUNDS,
-      sound: Option.none(),
-      narration: 'n',
-      soundDir: 's',
-      play: Option.none(),
-      pieces: new Map([['claim', { file: take.voice, pieces }]]),
-    }),
-  );
+  /** The plan with the section's voice at `file`, known by `content`. */
+  const planOf = (file: string, content: string) =>
+    Result.getOrThrow(
+      mixPlan({
+        film: 'talk',
+        placed,
+        manifest: {},
+        sounds: NO_SOUNDS,
+        sound: Option.none(),
+        narration: 'n',
+        soundDir: 's',
+        play: Option.none(),
+        pieces: new Map([['claim', { file, content, pieces }]]),
+      }),
+    );
+  const VOICE = `/out/footage/${take.source}/voice.flac`;
+  const planned = planOf(VOICE, `${take.source} ${VOICE_RECIPE}`);
   /** The take's voice: `level(i)` at its `i`th sample, with a click (1) at each second of `clicks`. */
   const voiceOf = (level: (i: number) => number, clicks: ReadonlyArray<number>): Pcm => {
     const frames = Math.round(take.envelope.length * 0.01 * RATE);
@@ -764,5 +771,22 @@ describe("a talk's voice, played in pieces", () => {
       changed({ fade: 0.01 }),
     ];
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  test('keys the voice by what it is, not by its file name: another take, or its voice made another way, is mixed again', () => {
+    // Every take's voice file is `voice.flac`: two takes cut alike, and one voice remade, differ only in what they are.
+    const other = `/out/footage/take.other/ffffffffffff/voice.flac`;
+    const keys = [
+      mixKey(planned),
+      mixKey(planOf(other, `take.other/ffffffffffff ${VOICE_RECIPE}`)),
+      mixKey(planOf(VOICE, `${take.source} mono 48000 level-once picture-clock`)),
+    ];
+    expect(new Set(keys).size).toBe(keys.length);
+    // Where the box keeps it is not what it is: the same voice elsewhere keys the same.
+    expect(
+      mixKey(
+        planOf(`/elsewhere/footage/${take.source}/voice.flac`, `${take.source} ${VOICE_RECIPE}`),
+      ),
+    ).toBe(mixKey(planned));
   });
 });

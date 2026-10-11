@@ -52,14 +52,22 @@ export const SHORT_LAYOUT = {
 /**
  * What a platform's buttons, names and progress bar cover on a vertical
  * short: a margin from each edge, in 1080 × 1920 px. Text past one is under
- * the platform's own furniture. Data, so `film check --short` and the lab
- * read one set of zones.
+ * the platform's own furniture, and so is text past a column of buttons on
+ * the right (`ButtonColumn`), which takes more than the margin from its top
+ * down. Data, so `film check --short` and the lab read one set of zones.
  */
-interface SafeZone {
+export interface SafeZone {
   readonly top: number;
   readonly bottom: number;
   readonly left: number;
   readonly right: number;
+  readonly columns: ReadonlyArray<ButtonColumn>;
+}
+
+/** A column of buttons on the right: `right` px wide, from `from` px down to the foot. */
+interface ButtonColumn {
+  readonly right: number;
+  readonly from: number;
 }
 
 /** `share` of `size` px, rounded up to a whole pixel: a margin given as a share of the frame. */
@@ -79,7 +87,7 @@ export const PLATFORM_ZONES = {
     // (support.google.com/google-ads/answer/9128498): its 1080 × 1920 safe-zone image marks
     // 288 px at the top, 672 at the bottom, 48 on the left and 192 on the right (the
     // figures as upload-post.com/tools/safe-zone-checker transcribes them).
-    zone: { top: 288, bottom: 672, left: 48, right: 192 },
+    zone: { top: 288, bottom: 672, left: 48, right: 192, columns: [] },
   },
   reels: {
     title: 'Instagram Reels',
@@ -90,6 +98,7 @@ export const PLATFORM_ZONES = {
       bottom: shareOf(0.35, SHORT_HEIGHT),
       left: shareOf(0.06, SHORT_WIDTH),
       right: shareOf(0.06, SHORT_WIDTH),
+      columns: [],
     },
   },
   tiktok: {
@@ -97,17 +106,19 @@ export const PLATFORM_ZONES = {
     // TikTok Ads Manager Help, "TikTok Auction In-Feed Ads"
     // (ads.tiktok.com/help/article/tiktok-auction-in-feed-ads), whose safe-zone file
     // "In-Feed Standard Version LTR" at 1080 × 1920 keeps 240 px at the top, 660 at the bottom
-    // and 120 on each side (as upload-post.com/tools/safe-zone-checker measures it).
-    zone: { top: 240, bottom: 660, left: 120, right: 120 },
+    // and 120 on each side, and 300 px on the right from 840 px down, where its like, comment
+    // and share buttons stand (as upload-post.com/tools/safe-zone-checker measures it).
+    zone: { top: 240, bottom: 660, left: 120, right: 120, columns: [{ right: 300, from: 840 }] },
   },
 } as const satisfies Record<string, { readonly title: string; readonly zone: SafeZone }>;
 
-/** The zone inside every one of `zones`: each edge the widest of theirs. */
+/** The zone inside every one of `zones`: each edge the widest of theirs, and every one's button columns. */
 const unionOf = (zones: ReadonlyArray<SafeZone>): SafeZone => ({
   top: Math.max(...zones.map((z) => z.top)),
   bottom: Math.max(...zones.map((z) => z.bottom)),
   left: Math.max(...zones.map((z) => z.left)),
   right: Math.max(...zones.map((z) => z.right)),
+  columns: zones.flatMap((z) => z.columns),
 });
 
 /**
@@ -118,8 +129,8 @@ const unionOf = (zones: ReadonlyArray<SafeZone>): SafeZone => ({
  * (`PLATFORM_ZONES`): where a talk sets its words.
  */
 export const SAFE_ZONES = {
-  default: { top: 270, bottom: 520, left: 65, right: 140 },
-  ads: { top: 270, bottom: Math.round(0.35 * SHORT_HEIGHT), left: 65, right: 140 },
+  default: { top: 270, bottom: 520, left: 65, right: 140, columns: [] },
+  ads: { top: 270, bottom: Math.round(0.35 * SHORT_HEIGHT), left: 65, right: 140, columns: [] },
   platforms: unionOf(Object.values(PLATFORM_ZONES).map((p) => p.zone)),
 } as const satisfies Record<string, SafeZone>;
 export type SafeZoneName = keyof typeof SAFE_ZONES;
@@ -129,13 +140,29 @@ export const SAFE_ZONE_NAMES = [
   'platforms',
 ] as const satisfies ReadonlyArray<SafeZoneName>;
 
-/** The rectangle inside `zone`'s margins, in 1080 × 1920 px: where text is safe. */
+/**
+ * The rectangle inside `zone`'s margins, in 1080 × 1920 px: where text is
+ * safe above its button columns (`roomAcross` the rows a line takes).
+ */
 export const safeRect = (zone: SafeZone) => ({
   left: zone.left,
   top: zone.top,
   right: SHORT_WIDTH - zone.right,
   bottom: SHORT_HEIGHT - zone.bottom,
 });
+
+/**
+ * How far across a line whose foot is at row `bottom` may reach in `zone`,
+ * in 1080 × 1920 px: inside its margins, and short of every button column
+ * the line runs down into (a column runs to the frame's foot).
+ */
+export const roomAcross = (zone: SafeZone, bottom: number) => {
+  const under = zone.columns.filter((c) => bottom > c.from);
+  return {
+    left: zone.left,
+    right: SHORT_WIDTH - Math.max(zone.right, ...under.map((c) => c.right)),
+  };
+};
 
 /**
  * The numbers `film check --short` holds a short to: the first word by

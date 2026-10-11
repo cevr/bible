@@ -26,11 +26,19 @@ import {
   type FootageLock,
   FootageLockJson,
   FootageTranscriptJson,
-  derivedFile,
+  VOICE_RECIPE,
+  copiesIn,
 } from '../core/footage.ts';
 import { type LayoutError, type Placed, layout } from '../core/layout.ts';
 import type { VoicePieces } from '../core/mix.ts';
-import { Talk, type TalkCut, type TalkTake, talkCut } from '../core/talk.ts';
+import {
+  Talk,
+  type TalkCut,
+  type TalkTake,
+  talkCut,
+  talkTakes,
+  talkTranscripts,
+} from '../core/talk.ts';
 import { Library, type Lock, LockJson, NO_SOUNDS, type Sounds } from '../core/sfx.ts';
 import { StoreConfig } from '../core/store.ts';
 import {
@@ -91,25 +99,43 @@ export interface LoadedFilm {
   readonly talk: Option.Option<LoadedTalk>;
 }
 
-/** A talk as the tools read it: its edit, its takes' transcripts (by the talk's take keys), and its cut. */
+/**
+ * A talk as the tools read it: its edit, its takes (by the talk's take keys,
+ * `talkTakes`), its cut, and the folder of copies its takes' voices are in
+ * (`<FILMS_OUT>/footage`).
+ */
 export interface LoadedTalk {
   readonly talk: Talk;
   readonly takes: Readonly<Record<string, TalkTake>>;
   readonly cut: TalkCut;
+  readonly copies: string;
 }
 
 /** Who reads `film` (`voice.ts`), or `TalkUnvoiced` for a talk, which is recorded on camera. */
 export const readerOf = (film: LoadedFilm): Result.Result<Voice, TalkUnvoiced> =>
   Result.fromOption(film.voice, () => TalkUnvoiced.make({ film: film.paths.name }));
 
-/** The voice each of a talk's sections plays, in pieces of its take's (`mixPlan`); none for a drawn film. */
+/**
+ * The voice each of a talk's sections plays, in pieces of its take's
+ * (`mixPlan`), known by its take's source and the recipe its voice is made
+ * by; none for a drawn film.
+ */
 export const voicePiecesOf = (film: LoadedFilm): ReadonlyMap<string, VoicePieces> =>
   new Map(
     Option.match(film.talk, {
       onNone: () => [],
-      onSome: ({ cut }) =>
-        cut.sections.map(
-          (section) => [section.id, { file: section.voice.file, pieces: section.pieces }] as const,
+      onSome: ({ cut, takes, copies }) =>
+        cut.sections.flatMap((section) =>
+          Option.toArray(
+            Option.map(Option.fromUndefinedOr(takes[section.take]), (take) => [
+              section.id,
+              {
+                file: `${copies}/${section.voice.file}`,
+                content: `${take.source} ${VOICE_RECIPE}`,
+                pieces: section.pieces,
+              },
+            ]),
+          ),
         ),
     }),
   );
@@ -415,55 +441,39 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             }),
           );
 
-        /** A talk's take, its transcript and its voice, as the footage library keeps them. */
-        const takeOf = (film: string, key: string, footageName: string) =>
-          Effect.gen(function* () {
-            const invalid = (reason: string) =>
-              FilmModuleInvalid.make({
-                film,
-                module: 'talk.ts',
-                reason: `take "${key}" plays footage "${footageName}", ${reason}`,
-              });
-            const dir = yield* Effect.fromOption(footageDir, () =>
-              invalid('but the app keeps no footage library'),
-            );
-            const lock = yield* store.read(footageLockManifest(dir));
-            const entry = yield* Effect.fromOption(
-              Option.fromUndefinedOr(lock.footage[footageName]),
-              () => invalid('which the footage library does not have (film footage import)'),
-            );
-            const file = yield* Effect.fromOption(Option.fromUndefinedOr(entry.transcript), () =>
-              invalid(`which has not been heard (film footage make ${footageName})`),
-            );
-            const heard = yield* fs.readFileString(path.join(dir, 'transcripts', file)).pipe(
-              Effect.flatMap(Schema.decodeEffect(FootageTranscriptJson)),
-              Effect.mapError((error) =>
-                invalid(`whose transcript ${file} does not read: ${error.message}`),
-              ),
-            );
-            const take: TalkTake = {
-              words: heard.words,
-              envelope: heard.envelope,
-              voice: derivedFile(outputs, footageName, entry.sha256, 'voice.flac'),
-            };
-            return [key, take] as const;
-          });
-
-        /** A talk: its edit, cut on its takes' transcripts, laid out as a film's scenes are. */
+        /**
+         * A talk: its edit, its takes as the footage library keeps them
+         * (`talkTakes`, over the lock and the transcripts it names, as the
+         * page reads them through the footage route), cut, and laid out as a
+         * film's scenes are.
+         */
         const loadTalk = (name: string, at: FilmPaths) =>
           Effect.gen(function* () {
+            const invalid = (reason: string) =>
+              FilmModuleInvalid.make({ film: name, module: 'talk.ts', reason });
             const { talk } = yield* loadModule(name, path.join(at.dir, 'talk.ts'), TalkModule);
-            const takes = Object.fromEntries(
-              yield* Effect.forEach(Object.entries(talk.takes), ([key, footageName]) =>
-                takeOf(name, key, footageName),
+            const dir = yield* Effect.fromOption(footageDir, () =>
+              invalid('it plays footage, but the app keeps no footage library'),
+            );
+            const lock = yield* store.read(footageLockManifest(dir));
+            const transcripts = new Map(
+              yield* Effect.forEach(talkTranscripts(talk, lock), (file) =>
+                fs.readFileString(path.join(dir, 'transcripts', file)).pipe(
+                  Effect.flatMap(Schema.decodeEffect(FootageTranscriptJson)),
+                  Effect.map((heard) => [file, heard] as const),
+                  Effect.mapError((error) =>
+                    invalid(`its transcript ${file} does not read: ${error.message}`),
+                  ),
+                ),
               ),
+            );
+            const takes = yield* Effect.fromResult(talkTakes(talk, lock, transcripts)).pipe(
+              Effect.mapError((error) => invalid(error.message)),
             );
             const cut = yield* Effect.fromResult(talkCut(talk, takes)).pipe(
-              Effect.mapError((error) =>
-                FilmModuleInvalid.make({ film: name, module: 'talk.ts', reason: error.message }),
-              ),
+              Effect.mapError((error) => invalid(error.message)),
             );
-            const loaded: LoadedTalk = { talk, takes, cut };
+            const loaded: LoadedTalk = { talk, takes, cut, copies: copiesIn(outputs) };
             return loaded;
           });
 

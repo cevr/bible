@@ -7,12 +7,12 @@
 // plays as it did; and the derived timings lay out as a film's do.
 
 import { describe, expect, it } from 'bun:test';
-import { Array as Arr, Result, Schema } from 'effect';
-import { SYNTHETIC_VOICE, syntheticTake } from './fixtures/talk-take.ts';
+import { Array as Arr, Option, Result, Schema } from 'effect';
+import { SYNTHETIC_SOURCE, syntheticTake } from './fixtures/talk-take.ts';
 import { layout } from './layout.ts';
 import { noteT } from './notes.ts';
 import { Timings } from './schema.ts';
-import { SAFE_ZONES, safeRect } from './shorts.ts';
+import { SAFE_ZONES, roomAcross, safeRect } from './shorts.ts';
 import {
   TALK_FORMATS,
   TALK_FPS,
@@ -23,6 +23,8 @@ import {
   type TalkTake,
   talkCut,
   talkPhrases,
+  talkTakes,
+  talkTranscripts,
 } from './talk.ts';
 
 const WORDS = ['Is', 'the', 'um', 'verdict', 'a', 'cover', 'up', 'No', 'it', 'is', 'not'];
@@ -134,14 +136,18 @@ describe('a talk cut on its transcript', () => {
     expect(joined.sections).toEqual(edges.sections);
     // A section ending on the take's last word, which stops voicing 10 ms
     // before the take ends (4.71 s of 4.72 s, no frame boundary between),
-    // never plays past the take's end, and still ends on a frame.
+    // plays that word whole: its piece ends on the first frame past its
+    // voice, under a frame past the take's end (silent there, the picture on
+    // its last frame), never inside the word.
     const short = syntheticTake(WORDS, [0.11]);
     const clipped = { ...short, envelope: short.envelope.slice(0, 472) };
     const tail = cutOf(talkOf([{ id: 'tail', take: 'a', from: last - 1, to: last }]), clipped);
-    for (const piece of tail.sections[0]?.pieces ?? []) {
-      expect(piece.to).toBeLessThanOrEqual(4.72 + 1e-9);
-      expect(onFrame(piece.from) && onFrame(piece.to)).toBe(true);
-    }
+    seamsHold(tail, clipped);
+    const end = Option.getOrThrow(Arr.last(tail.sections[0]?.pieces ?? [])).to;
+    const voicedEnd = clipped.words[last]?.voiced.end ?? Infinity;
+    expect(voicedEnd).toBeCloseTo(4.71, 9);
+    expect(end).toBeGreaterThanOrEqual(voicedEnd);
+    expect(end).toBeLessThan(4.72 + 1 / TALK_FPS);
   });
 
   it("adds its pieces up to the section's length, which lays out as its scene's", () => {
@@ -149,7 +155,7 @@ describe('a talk cut on its transcript', () => {
     const [section] = cut.sections;
     const total = (section?.pieces ?? []).reduce((sum, p) => sum + (p.to - p.from), 0);
     expect(section?.voice.duration).toBeCloseTo(total, 9);
-    expect(section?.voice.file).toBe(SYNTHETIC_VOICE);
+    expect(section?.voice.file).toBe(`${SYNTHETIC_SOURCE}/voice.flac`);
     const placed = Result.getOrThrow(layout(cut.scenes, cut.timings));
     expect(placed[0]?.dur).toBeCloseTo(total, 9);
     expect(placed[0]?.voice.recorded).toBe(true);
@@ -251,6 +257,26 @@ describe('a talk cut on its transcript', () => {
     expect(placed[0]?.cues.get('tablets')?.start).toBeCloseTo(word?.start ?? -1, 9);
   });
 
+  it('writes every mark on a word that carries two, and a cue on either resolves', () => {
+    const cut = cutOf(
+      talkOf([
+        {
+          id: 'claim',
+          take: 'a',
+          from: 0,
+          to: 6,
+          marks: { charge: 5, verdict: 5 },
+          timeline: { tablets: { mark: 'charge', dur: 1 }, seal: { mark: 'verdict', dur: 1 } },
+        },
+      ]),
+    );
+    expect(cut.scenes[0]?.say).toBe('Is the um verdict a {charge}{verdict}cover up');
+    const placed = Result.getOrThrow(layout(cut.scenes, cut.timings));
+    const word = cut.sections[0]?.voice.words[5];
+    expect(placed[0]?.cues.get('tablets')?.start).toBeCloseTo(word?.start ?? -1, 9);
+    expect(placed[0]?.cues.get('seal')?.start).toBeCloseTo(word?.start ?? -1, 9);
+  });
+
   it('derives timings a film would keep: recorded, in order, inside the take', () => {
     const cut = cutOf(
       talkOf([
@@ -318,6 +344,84 @@ describe('a talk cut on its transcript', () => {
   });
 });
 
+describe("a talk's takes, from the footage library", () => {
+  const SHA = `0123456789ab${'0'.repeat(52)}`;
+  const heard = syntheticTake(WORDS, [], 'take.why/0123456789ab', { width: 720, height: 1280 });
+  const entry = (transcript: Option.Option<string>, kind: 'take' | 'clip' = 'take') => ({
+    kind,
+    sha256: SHA,
+    bytes: 1,
+    ext: '.mov',
+    probe: {
+      container: 'MP4',
+      duration: 5,
+      picture: {
+        codec: 'hevc',
+        width: 720,
+        height: 1280,
+        rotation: 0 as const,
+        fps: 30,
+        variable: false,
+        start: 0,
+      },
+    },
+    ...Option.match(transcript, {
+      onNone: () => ({}),
+      onSome: (file) => ({ transcript: file }),
+    }),
+  });
+  const lockOf = (of: ReturnType<typeof entry>) => ({
+    version: 1 as const,
+    footage: { 'take.why': of },
+  });
+  const FILE = 'take.why.0123456789ab.2.json';
+  const transcripts = new Map([
+    [
+      FILE,
+      { source: 'take.why/0123456789ab', text: '', words: heard.words, envelope: heard.envelope },
+    ],
+  ]);
+  const talk = talkOf([{ id: 'claim', take: 'a', from: 0, to: 6 }]);
+  const reason = (result: ReturnType<typeof talkTakes>) =>
+    Result.match(result, { onSuccess: () => '', onFailure: (e) => e.message });
+
+  it('gives each take its source, its picture size and the words of the transcript the lock names', () => {
+    expect(talkTranscripts(talk, lockOf(entry(Option.some(FILE))))).toEqual([FILE]);
+    const takes = Result.getOrThrow(talkTakes(talk, lockOf(entry(Option.some(FILE))), transcripts));
+    expect(takes).toEqual({ a: heard });
+    expect(cutOf(talk, takes['a'])).toEqual(cutOf(talk, heard));
+  });
+
+  it("refuses a take the library lacks, has not heard, keeps as a clip, or whose transcript is another's or not here", () => {
+    expect(reason(talkTakes(talk, { version: 1, footage: {} }, transcripts))).toContain(
+      'does not have',
+    );
+    expect(reason(talkTakes(talk, lockOf(entry(Option.none())), transcripts))).toContain(
+      'film footage make take.why',
+    );
+    expect(
+      reason(talkTakes(talk, lockOf(entry(Option.some(FILE), 'clip')), transcripts)),
+    ).toContain('a clip');
+    expect(
+      reason(
+        talkTakes(talk, lockOf(entry(Option.some('take.why.0123456789ab.json'))), transcripts),
+      ),
+    ).toContain('is not here');
+    const other = new Map([
+      [
+        FILE,
+        {
+          ...Option.getOrThrow(Option.fromUndefinedOr(transcripts.get(FILE))),
+          source: 'take.why/ffffffffffff',
+        },
+      ],
+    ]);
+    expect(reason(talkTakes(talk, lockOf(entry(Option.some(FILE))), other))).toContain(
+      'heard from take.why/ffffffffffff',
+    );
+  });
+});
+
 describe("a talk's captions", () => {
   /** Two sections of one take: the second plays words 7 to 10, its "No" quoted. */
   const talk = talkOf(
@@ -363,13 +467,21 @@ describe("a talk's captions", () => {
     ]);
   });
 
-  it("sets its words inside every platform's zone", () => {
+  it("sets its words inside every platform's zone, its captions beside TikTok's buttons", () => {
     const room = safeRect(SAFE_ZONES.platforms);
-    for (const { y, width } of [TALK_LAYOUT.hook, TALK_LAYOUT.caption]) {
-      expect(TALK_LAYOUT.centre - width / 2).toBeGreaterThanOrEqual(room.left);
-      expect(TALK_LAYOUT.centre + width / 2).toBeLessThanOrEqual(room.right);
-      expect(y).toBeGreaterThan(room.top);
-      expect(y).toBeLessThan(room.bottom);
-    }
+    const { centre, hook, caption } = TALK_LAYOUT;
+    // The hook, above every button column, centred on the frame.
+    const high = roomAcross(SAFE_ZONES.platforms, room.top + 1);
+    expect(centre - hook.width / 2).toBeGreaterThanOrEqual(high.left);
+    expect(centre + hook.width / 2).toBeLessThanOrEqual(high.right);
+    expect(hook.y).toBeGreaterThan(room.top);
+    // The captions, down to the room's foot, beside the buttons.
+    const low = roomAcross(SAFE_ZONES.platforms, room.bottom);
+    expect(caption.centre - caption.width / 2).toBeGreaterThanOrEqual(low.left);
+    expect(caption.centre + caption.width / 2).toBeLessThanOrEqual(low.right);
+    expect(caption.y).toBeLessThan(room.bottom);
+    // The captions take the whole room beside TikTok's buttons: 120 to 780 px.
+    expect(caption).toEqual({ centre: 450, y: 1128, width: 660 });
+    expect(hook.width).toBe(696);
   });
 });

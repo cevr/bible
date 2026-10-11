@@ -330,5 +330,25 @@ describe('a talk, checked as a vertical film', () => {
     );
     expect(right?.side).toBe('right');
     expect(right?.message).toContain('the platforms (YouTube Shorts) safe zone');
+    // Below 840 px, TikTok's buttons take 300 px on the right: a caption reaching 888 px runs under them.
+    const [buttons] = unsafeTexts(
+      'why-the-law',
+      'platforms',
+      1,
+      frame(own(box('caption', 700, 1000, 188, 40))),
+      1,
+    );
+    expect(buttons?.side).toBe('right');
+    expect(buttons?.by).toBeCloseTo(888 - 780);
+    expect(buttons?.zone).toBe('platforms (TikTok)');
+    // A box reaching down into the column from above it is under it too; one ending above it is not.
+    expect(
+      unsafeTexts('why-the-law', 'platforms', 1, frame(own(box('high', 800, 800, 50, 60))), 1).map(
+        (f) => [f.side, f.zone],
+      ),
+    ).toEqual([['right', 'platforms (TikTok)']]);
+    expect(
+      unsafeTexts('why-the-law', 'platforms', 1, frame(own(box('above', 700, 700, 150, 100))), 1),
+    ).toEqual([]);
   });
 });

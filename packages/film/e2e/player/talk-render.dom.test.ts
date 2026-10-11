@@ -17,7 +17,13 @@ import { TALK_FPS, talkCut, talkPhrases } from '../../src/core/talk.ts';
 import { numberedClip, numbersIn } from '../../src/lab/fixtures/numbered-clip.ts';
 import { BITS, numberOf } from '../../src/lab/fixtures/numbered-frames.ts';
 import { openRender } from '../../src/lab/fixtures/render-harness.ts';
-import { TALK, TALK_CLIP, TALK_EDIT, TALK_TAKE } from '../../src/lab/fixtures/talk-film.ts';
+import {
+  TALK,
+  TALK_CLIP,
+  TALK_EDIT,
+  TALK_LIBRARY,
+  TALK_TAKE,
+} from '../../src/lab/fixtures/talk-film.ts';
 
 const cut = Result.getOrThrow(talkCut(TALK_EDIT, { a: TALK_TAKE }));
 const placed = Result.getOrThrow(layout(cut.scenes, cut.timings));
@@ -47,7 +53,10 @@ const SEAMS = cut.sections.flatMap((section, k) =>
 /** The take's clip: every frame the cut reads, and a second past them. */
 const CLIP_FRAMES = Math.max(...SHOWN) + TALK_FPS;
 
-/** The render page on the talk, its clip served as the mezzanine the render reads. */
+/**
+ * The render page on the talk, its clip served as the mezzanine the render
+ * reads, and the footage library's lock and transcript the page cuts on.
+ */
 const opened = Effect.gen(function* () {
   const clip = yield* numberedClip({
     frames: CLIP_FRAMES,
@@ -55,7 +64,10 @@ const opened = Effect.gen(function* () {
     keyEvery: 1,
     size: TALK_CLIP,
   });
-  return yield* openRender(TALK, { [footageHref(TALK_TAKE.source, 'mezzanine')]: clip });
+  return yield* openRender(TALK, {
+    ...(yield* TALK_LIBRARY),
+    [footageHref(TALK_TAKE.source, 'mezzanine')]: clip,
+  });
 });
 
 /** One sample per bar across the page's middle row, where the take's bars run and no word is set. */
@@ -151,8 +163,8 @@ describe('a talk renders frame-exact', () => {
     () =>
       Effect.scoped(
         Effect.gen(function* () {
-          // The page with no mezzanine served: every read of the take is a 404.
-          const page = yield* openRender(TALK);
+          // The page with its library and no mezzanine served: every read of the take is a 404.
+          const page = yield* openRender(TALK, yield* TALK_LIBRARY);
           const choice = yield* page.call('encoder', 1, false, [
             { _tag: 'Hardware' },
             { _tag: 'Software' },

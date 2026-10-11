@@ -6,8 +6,8 @@
 import type { TalkTake } from '../talk.ts';
 import { voicedAt } from '../voiced.ts';
 
-/** The voice file a synthetic take names. */
-export const SYNTHETIC_VOICE = '/out/footage/take.why/0123456789ab/voice.flac';
+/** The footage source a synthetic take is, unless it names another. */
+export const SYNTHETIC_SOURCE = 'take.why/0123456789ab';
 
 /** How long each word of a synthetic take is voiced, in seconds. */
 const VOICED = 0.3;
@@ -15,12 +15,14 @@ const VOICED = 0.3;
 /**
  * A take of `texts`, the first word after 0.3 s of room, each word voiced
  * `VOICED` s after a pause of `pauses[i]` (0.1 s where none is given), with
- * 0.5 s of room after the last.
+ * 0.5 s of room after the last: the source `source`, a phone's 1080 × 1920
+ * picture unless `size` says otherwise.
  */
 export const syntheticTake = (
   texts: ReadonlyArray<string>,
   pauses: ReadonlyArray<number> = [],
-  voice: string = SYNTHETIC_VOICE,
+  source: string = SYNTHETIC_SOURCE,
+  size: { readonly width: number; readonly height: number } = { width: 1080, height: 1920 },
 ): TalkTake => {
   let t = 0.3;
   const words = texts.map((text, i) => {
@@ -35,5 +37,5 @@ export const syntheticTake = (
     const at = k * 0.01 + 0.005;
     return [-80, -20][Number(words.some((w) => at > w.voiced.start && at < w.voiced.end))] ?? -80;
   });
-  return { words, envelope, voice };
+  return { source, words, envelope, ...size };
 };

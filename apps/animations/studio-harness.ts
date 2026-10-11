@@ -161,6 +161,7 @@ const Harness = Layer.unwrap(
           self: ['bun', cli],
           roots: Effect.succeed([]),
           elevenLabs: harnessElevenLabs(film, misheard),
+          privateStore: Option.none(),
         }),
       ),
     );

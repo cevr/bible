@@ -4,14 +4,16 @@
 // `VideoSampleSink`. A frame asked for alone (`ready`) is decoded from its
 // key frame (`getSample`) and copied onto a canvas of the host's, a few kept
 // by (source, second) so a still and a seek on the same frame decode it
-// once; a run (`run`) feeds each source's times to `samplesAtTimestamps`,
-// which decodes each packet at most once while they rise, and holds each
-// frame only until the next. mediabunny loads with the first read, so a page
+// once, each answer holding its own frames whatever is decoded after; a
+// run (`run`) feeds each source's times to `samplesAtTimestamps`, which
+// decodes each packet at most once while they rise, holds each frame only
+// until the next, and lets every decoder it made go when its scope closes. mediabunny loads with the first read, so a page
 // whose film reads no footage never downloads it. Which copy a page reads is
 // its own (`urlOf`): the lab the proxy, the render the mezzanine. Every
 // source stays open for the page's life, and is let go with it.
 
 import { Effect, Layer, Option, Scope, Semaphore } from 'effect';
+import type * as MediabunnyModule from 'mediabunny';
 import type { Input, VideoSample, VideoSampleSink } from 'mediabunny';
 import type { FootageFrames, FootageRead } from '../canvas/film.ts';
 import { Footage, FootageFrameMissing } from './footage.ts';
@@ -25,7 +27,13 @@ const KEPT = 8;
 /** How many sources a frame's reads are decoded from at once. */
 const AT_ONCE = 4;
 
-const loadMediabunny = () => import('mediabunny');
+/** What the host uses of mediabunny. */
+type Mediabunny = Pick<
+  typeof MediabunnyModule,
+  'Input' | 'UrlSource' | 'ALL_FORMATS' | 'VideoSampleSink'
+>;
+
+const loadMediabunny = (): Promise<Mediabunny> => import('mediabunny');
 
 /** A read's key in the kept frames. */
 const keyOf = (read: FootageRead) => `${read.source}@${read.at}`;
@@ -69,12 +77,18 @@ const copied = (sample: VideoSample): Effect.Effect<HTMLCanvasElement> =>
     Effect.ensuring(Effect.sync(() => sample.close())),
   );
 
-/** The live footage of a page that reads each source's copy at `urlOf(source)`. */
-export const footageLayer = (urlOf: (source: string) => string): Layer.Layer<Footage> =>
+/**
+ * The live footage of a page that reads each source's copy at `urlOf(source)`,
+ * through mediabunny (`load`, a stand-in's in a test).
+ */
+export const footageLayer = (
+  urlOf: (source: string) => string,
+  load: () => Promise<Mediabunny> = loadMediabunny,
+): Layer.Layer<Footage> =>
   Layer.effect(
     Footage,
     Effect.gen(function* () {
-      const library = yield* Effect.cached(ask(loadMediabunny));
+      const library = yield* Effect.cached(ask(load));
       const inputs: Array<Input> = [];
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => inputs.forEach((input) => input.dispose())),
@@ -115,9 +129,12 @@ export const footageLayer = (urlOf: (source: string) => string): Layer.Layer<Foo
           kept.delete(old);
         }
       };
-      const decodeOne = (read: FootageRead): Effect.Effect<void, FootageFrameMissing> =>
+      /** `read`'s frame, by its key: the one kept, else decoded and kept. */
+      const decodeOne = (
+        read: FootageRead,
+      ): Effect.Effect<readonly [string, HTMLCanvasElement], FootageFrameMissing> =>
         Option.match(Option.fromUndefinedOr(kept.get(keyOf(read))), {
-          onSome: () => Effect.void,
+          onSome: (canvas) => Effect.succeed([keyOf(read), canvas] as const),
           onNone: () =>
             Effect.gen(function* () {
               const sink = yield* sinkOf(read.source);
@@ -125,10 +142,11 @@ export const footageLayer = (urlOf: (source: string) => string): Layer.Layer<Foo
                 ask(() => sink.getSample(read.at)),
                 'it starts after that time',
               );
-              keep(keyOf(read), yield* copied(sample));
+              const canvas = yield* copied(sample);
+              keep(keyOf(read), canvas);
+              return [keyOf(read), canvas] as const;
             }).pipe(Effect.mapError(missing(read))),
         });
-      const lookup: FootageFrames = { frame: (read) => kept.get(keyOf(read)) };
 
       /** A run over `frames`: each source's samples at the times the run reads it, in order. */
       const runOf = (frames: ReadonlyArray<ReadonlyArray<FootageRead>>) =>
@@ -160,14 +178,17 @@ export const footageLayer = (urlOf: (source: string) => string): Layer.Layer<Foo
             held.forEach((frame) => frame.close());
             held = [];
           });
+          // Each source's samples made by the time the run ends, read then: the run makes them as it goes.
           yield* Scope.addFinalizer(
             scope,
             Effect.andThen(
               letGo,
-              Effect.forEach(
-                [...iterators.values()],
-                (it) => Effect.ignore(ask(() => it.return())),
-                { concurrency: AT_ONCE, discard: true },
+              Effect.suspend(() =>
+                Effect.forEach(
+                  [...iterators.values()],
+                  (it) => Effect.ignore(ask(() => it.return())),
+                  { concurrency: AT_ONCE, discard: true },
+                ),
               ),
             ),
           );
@@ -197,10 +218,14 @@ export const footageLayer = (urlOf: (source: string) => string): Layer.Layer<Foo
         });
 
       return Footage.of({
+        // Its own reads' frames, held: a later `ready` may let them out of the kept ones before this frame draws.
         ready: (reads) =>
-          Effect.as(
-            Effect.forEach(reads, decodeOne, { concurrency: AT_ONCE, discard: true }),
-            lookup,
+          Effect.map(
+            Effect.forEach(reads, decodeOne, { concurrency: AT_ONCE }),
+            (decoded): FootageFrames => {
+              const byKey = new Map<string, CanvasImageSource>(decoded);
+              return { frame: (read) => byKey.get(keyOf(read)) };
+            },
           ),
         run: runOf,
       });

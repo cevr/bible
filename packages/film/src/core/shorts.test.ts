@@ -12,6 +12,7 @@ import {
   SHORT_PREROLL,
   hookAlpha,
   resolveShort,
+  roomAcross,
   isShortKey,
   shortKey,
   shortPage,
@@ -205,7 +206,15 @@ describe('shorts', () => {
       bottom: Math.max(...zones.map((z) => z.bottom)),
       left: Math.max(...zones.map((z) => z.left)),
       right: Math.max(...zones.map((z) => z.right)),
+      // TikTok's button column, as its safe-zone file gives it: 300 px from 840 px down.
+      columns: [{ right: 300, from: 840 }],
     });
+    expect(PLATFORM_ZONES.tiktok.zone.columns).toEqual([{ right: 300, from: 840 }]);
+    // The room a line has beside the column: the whole width above it, short of it below.
+    expect(roomAcross(SAFE_ZONES.platforms, 600)).toEqual({ left: 120, right: 888 });
+    expect(roomAcross(SAFE_ZONES.platforms, 840)).toEqual({ left: 120, right: 888 });
+    expect(roomAcross(SAFE_ZONES.platforms, 900)).toEqual({ left: 120, right: 780 });
+    expect(roomAcross(SAFE_ZONES.platforms, 1100)).toEqual({ left: 120, right: 780 });
     // No platform's own zone reaches past it, and each edge is some platform's.
     for (const side of ['top', 'bottom', 'left', 'right'] as const) {
       for (const z of zones) expect(z[side]).toBeLessThanOrEqual(SAFE_ZONES.platforms[side]);
@@ -213,8 +222,8 @@ describe('shorts', () => {
     }
     // The feed's zones are as they were.
     expect([SAFE_ZONES.default, SAFE_ZONES.ads]).toEqual([
-      { top: 270, bottom: 520, left: 65, right: 140 },
-      { top: 270, bottom: 672, left: 65, right: 140 },
+      { top: 270, bottom: 520, left: 65, right: 140, columns: [] },
+      { top: 270, bottom: 672, left: 65, right: 140, columns: [] },
     ]);
     expect(SAFE_ZONE_NAMES).toEqual(['default', 'ads', 'platforms']);
   });

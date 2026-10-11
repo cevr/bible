@@ -4,7 +4,7 @@
 // are answered by path, by byte range as the lab's routes answer media
 // (`tab.ts`), so mediabunny reads them as it reads them live.
 
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 import type { Scope } from 'effect';
 import type { CallArgs, ExportCall, WireAnswers } from '../../core/export-handle.ts';
 import { asset, openTab, respond, scriptOf, servePaths } from './browsers.ts';
@@ -30,14 +30,24 @@ interface RenderPage {
   readonly errors: ReadonlyArray<string>;
 }
 
+/** A served file's type, by its extension: JSON (the footage library's lock and transcripts), else video. */
+const typeOf = (path: string): string =>
+  Option.match(
+    Option.liftPredicate(path, (p) => p.endsWith('.json')),
+    {
+      onNone: () => 'video/mp4',
+      onSome: () => 'application/json',
+    },
+  );
+
 /**
  * The render page open on `film` (`?film=<film>&export`), with `files`
- * answered at their paths (a footage source's copies) and anything else a
- * 404, once its handle is up.
+ * answered at their paths (a footage source's copies, the footage library's
+ * lock and transcripts) and anything else a 404, once its handle is up.
  */
 export const openRender = (
   film: string,
-  files: Readonly<Record<string, Uint8Array>> = {},
+  files: Readonly<Record<string, Uint8Array | string>> = {},
 ): Effect.Effect<RenderPage, never, Scope.Scope> =>
   Effect.gen(function* () {
     const script = yield* renderScript;
@@ -50,7 +60,7 @@ export const openRender = (
       assets: [script],
       serve: servePaths({
         ...Object.fromEntries(
-          Object.entries(files).map(([path, bytes]) => [path, respond(bytes, 'video/mp4')]),
+          Object.entries(files).map(([path, body]) => [path, respond(body, typeOf(path))]),
         ),
         '/': respond(html, 'text/html'),
       }),

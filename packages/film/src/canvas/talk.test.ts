@@ -6,13 +6,13 @@
 
 import { Array as Arr, Effect, Result } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { SYNTHETIC_VOICE, syntheticTake } from '../core/fixtures/talk-take.ts';
-import { SAFE_ZONES, SHORT_LAYOUT, safeRect } from '../core/shorts.ts';
+import { syntheticTake } from '../core/fixtures/talk-take.ts';
+import { SAFE_ZONES, SHORT_LAYOUT, roomAcross, safeRect } from '../core/shorts.ts';
 import { TALK_FPS, type Talk, talkCut, talkPhrases } from '../core/talk.ts';
 import type { Film, FootageRead } from './film.ts';
 import { recorder, withDom } from './fixtures/stand-in.ts';
 import type { ProbeSink } from './probe.ts';
-import { talkFilms } from './talk.ts';
+import { createTalk } from './talk.ts';
 
 const SOURCE = 'take.why/0123456789ab';
 const WORDS = [
@@ -32,16 +32,13 @@ const WORDS = [
 ];
 
 /** The take, its picture `width` × `height`: one long pause, before word 8. */
-const takeOf = (width: number, height: number) => ({
-  ...syntheticTake(
+const takeOf = (width: number, height: number) =>
+  syntheticTake(
     WORDS,
     WORDS.map((_, i) => [0.1, 0.9][Number(i === 8)] ?? 0.1),
-    SYNTHETIC_VOICE,
-  ),
-  source: SOURCE,
-  width,
-  height,
-});
+    SOURCE,
+    { width, height },
+  );
 
 const HOOK = 'Why give a law no one keeps?';
 
@@ -60,22 +57,19 @@ const TALK: Talk = {
 
 const TAKE = takeOf(1080, 1920);
 
-/** The talk as the films index loads it, made afresh, its narration at `/full.wav`. */
+/** The talk's page over `take`, made afresh (the page reads its takes and cuts on them: `player/talks.ts`). */
 const talkOf = (take = TAKE, talk: Talk = TALK): Effect.Effect<Film> =>
-  Effect.map(
-    Effect.promise(() =>
-      talkFilms({
-        why: () => Effect.runPromise(Effect.succeed({ talk, takes: { a: take } })),
-      }).why(),
-    ),
-    (loaded) => loaded.film({ audio: '/full.wav' }),
-  );
+  Effect.sync(() => createTalk(talk, { a: take }, Result.getOrThrow(talkCut(talk, { a: take }))));
 
 /** A font's box, as a canvas measures it: the stand-in measures widths alone. */
 const FONT_BOX = { fontBoundingBoxAscent: 48, fontBoundingBoxDescent: 14 };
 
-/** A stand-in page, every call it is asked to make logged with its arguments. */
-const page = () => {
+/**
+ * A stand-in page, every call it is asked to make logged with its arguments,
+ * its host decoding each read as a picture of `decoded` px (the take's own
+ * size, as the mezzanine is, unless a proxy's is given).
+ */
+const page = (decoded: { readonly width: number; readonly height: number } = TAKE) => {
   const log: Array<string> = [];
   const images = new Map<unknown, string>();
   const named = new Map<string, HTMLCanvasElement>();
@@ -94,7 +88,14 @@ const page = () => {
   /** A picture for each read, named by it, as the host would decode it. */
   const frame = (read: FootageRead) => {
     const name = `${read.source}@${read.at.toFixed(4)}`;
-    const image = named.get(name) ?? withDom(() => document.createElement('canvas'));
+    const image =
+      named.get(name) ??
+      withDom(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = decoded.width;
+        canvas.height = decoded.height;
+        return canvas;
+      });
     images.set(image, name);
     named.set(name, image);
     return image;
@@ -103,19 +104,16 @@ const page = () => {
 };
 
 describe('a talk', () => {
-  it.effect(
-    'is 9:16 at 1080 × 1920, at the talk rate, as long as its sections, playing its mixed narration',
-    () =>
-      Effect.gen(function* () {
-        const film = yield* talkOf();
-        expect([film.width, film.height, film.fps]).toEqual([1080, 1920, TALK_FPS]);
-        expect(film.placed.map((p) => p.spec.id)).toEqual(['law', 'need']);
-        expect(film.duration).toBeCloseTo(
-          film.placed.reduce((n, p) => n + p.dur, 0),
-          9,
-        );
-        expect(film.audio).toBe('/full.wav');
-      }),
+  it.effect('is 9:16 at 1080 × 1920, at the talk rate, as long as its sections', () =>
+    Effect.gen(function* () {
+      const film = yield* talkOf();
+      expect([film.width, film.height, film.fps]).toEqual([1080, 1920, TALK_FPS]);
+      expect(film.placed.map((p) => p.spec.id)).toEqual(['law', 'need']);
+      expect(film.duration).toBeCloseTo(
+        film.placed.reduce((n, p) => n + p.dur, 0),
+        9,
+      );
+    }),
   );
 
   it.effect(
@@ -151,8 +149,8 @@ describe('a talk', () => {
     () =>
       Effect.gen(function* () {
         const wide = yield* talkOf(takeOf(1920, 1080));
-        const drawn = (film: Film, T: number) => {
-          const { ctx, log, footage } = page();
+        const drawn = (film: Film, T: number, decoded = { width: 1920, height: 1080 }) => {
+          const { ctx, log, footage } = page(decoded);
           film.render(ctx, T, { footage, captions: false });
           return log.filter((l) => l.startsWith('drawImage('));
         };
@@ -171,6 +169,40 @@ describe('a talk', () => {
           sections: [{ ...TALK.sections[0], knobs: { frame: [10, 10], zoom: 1.5 } }],
         });
         expect(drawn(edge, 0.05)[0]).toMatch(/,0,0,405,720,0,0,1080,1920\)$/);
+      }),
+  );
+
+  it.effect(
+    "crops the picture the host decoded in its own px: a proxy half the take's size shows what the take's full size does",
+    () =>
+      Effect.gen(function* () {
+        const wide = yield* talkOf(takeOf(1920, 1080));
+        const need = (wide.placed[1]?.start ?? 0) + 0.05;
+        const drawn = (T: number, decoded: { width: number; height: number }) => {
+          const { ctx, log, footage } = page(decoded);
+          wide.render(ctx, T, { footage, captions: false });
+          return log.filter((l) => l.startsWith('drawImage('));
+        };
+        // The knobs are in the take's px; the proxy's rectangle is the same part of its picture.
+        expect(drawn(0.05, { width: 960, height: 540 })[0]).toMatch(
+          new RegExp(`,${(1920 - 607.5) / 4},0,303.75,540,0,0,1080,1920\\)$`),
+        );
+        expect(drawn(need, { width: 960, height: 540 })[0]).toMatch(
+          /,224\.0625,135,151\.875,270,0,0,1080,1920\)$/,
+        );
+      }),
+  );
+
+  it.effect(
+    'fails loud when the host it is given has no picture for a frame it reads, never drawing it black',
+    () =>
+      Effect.gen(function* () {
+        const film = yield* talkOf();
+        const { ctx } = page();
+        const read = film.footageAt?.(0.05)[0];
+        expect(() => film.render(ctx, 0.05, { footage: { frame: () => undefined } })).toThrow(
+          `footage ${read?.source} has no frame at ${read?.at}`,
+        );
       }),
   );
 
@@ -195,8 +227,10 @@ describe('a talk', () => {
         expect(said).not.toContain('hour');
         const room = safeRect(SAFE_ZONES.platforms);
         for (const t of captions) {
-          expect(t.x).toBeGreaterThanOrEqual(room.left);
-          expect(t.x + t.w).toBeLessThanOrEqual(room.right);
+          // Beside any platform's buttons the line runs down into.
+          const across = roomAcross(SAFE_ZONES.platforms, t.y + t.h);
+          expect(t.x).toBeGreaterThanOrEqual(across.left);
+          expect(t.x + t.w).toBeLessThanOrEqual(across.right);
           expect(t.y).toBeGreaterThanOrEqual(room.top);
           expect(t.y + t.h).toBeLessThanOrEqual(room.bottom);
         }

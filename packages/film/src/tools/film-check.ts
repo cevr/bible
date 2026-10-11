@@ -4,8 +4,12 @@
 // every write. The sound leg renders the mix the film makes now (Mixer). The
 // layout leg draws frames (Checker, Looker). The draw leg draws every scene
 // in this process, into the stand-in context, at its moments (no browser).
-// The short leg checks one short (Checker). Each hands back its findings; `report` levels and addresses them
-// as one Report.
+// The short leg checks one short (Checker). A talk is a vertical film of its
+// own: what its words tell (`talkWords`: its length against its format's,
+// its first word, its loop's silence) goes with the static leg, and the
+// layout leg probes its page for text past every platform's zone and a still
+// open. Each hands back its findings; `report` levels and addresses them as
+// one Report.
 
 import { Effect, FileSystem, Option, Path, Predicate, Result, Schema } from 'effect';
 import type { Film } from '../canvas/film.ts';
@@ -13,12 +17,21 @@ import { type Narrated, narrationUrls } from '../player/narrated.ts';
 import { drawFindings } from './draw-check.ts';
 import { FilmModuleInvalid } from './errors.ts';
 import { type Address, type AddressError, type Scope, resolveAddress } from '../core/address.ts';
-import { type LayoutError, type Placed, everyTakeRecorded, layout } from '../core/layout.ts';
+import {
+  type LayoutError,
+  type Placed,
+  everyTakeRecorded,
+  filmEnd,
+  layout,
+} from '../core/layout.ts';
 import type { Short } from '../core/schema.ts';
 import type { SafeZoneName } from '../core/shorts.ts';
+import { talkPhrases } from '../core/talk.ts';
 import { mixFindings, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
-import { type LoadedFilm, importFilmModule, masterFile } from './film-repo.ts';
+import type { ShortFinding, StaticFinding } from './findings.ts';
+import { type LoadedFilm, importFilmModule, masterFile, placeFilm } from './film-repo.ts';
+import { type TalkVertical, shortStaticFindings } from './short-check.ts';
 import { lookFindings } from './look.ts';
 import { Looker } from './looker.ts';
 import { Media } from './media.ts';
@@ -61,11 +74,33 @@ export const laidOut = (
     ),
   );
 
+/** `film` as a vertical film, when it is a talk: its length held to its format's, its phrases as its captions show them. */
+const talkVertical = (
+  film: LoadedFilm,
+  placed: ReadonlyArray<Placed>,
+): Option.Option<TalkVertical> =>
+  Option.map(film.talk, ({ talk, cut }) => ({
+    film: { id: film.paths.name, duration: filmEnd(placed), format: talk.format },
+    phrases: talkPhrases(talk, cut, placed),
+  }));
+
+/**
+ * What a talk's words tell, from its files alone: its length against its
+ * format's (`TALK_FORMATS`), its first word, its loop's silence. None for a
+ * film that is not a talk.
+ */
+const talkWords = (film: LoadedFilm, placed: ReadonlyArray<Placed>): ReadonlyArray<ShortFinding> =>
+  Option.match(talkVertical(film, placed), {
+    onNone: () => [],
+    onSome: (talk) => shortStaticFindings(talk.film, talk.phrases),
+  });
+
 /**
  * What the film's files tell without a mix or a frame: cues, takes, sounds,
  * the ending, and the master on disk (its length and the plan it was mixed
  * for, against the plan the film mixes to now), named by its place in the
- * film's folder with `/` whatever the platform's separator.
+ * film's folder with `/` whatever the platform's separator; and a talk's
+ * words held to its format (`talkWords`).
  */
 export const staticLeg = Effect.fn('check.static')(function* (
   film: LoadedFilm,
@@ -76,7 +111,11 @@ export const staticLeg = Effect.fn('check.static')(function* (
   const master = yield* readMaster(fs, yield* Media, film.paths);
   const key = yield* planKey(film, placed);
   const file = path.relative(film.paths.dir, masterFile(film.paths)).split(path.sep).join('/');
-  return staticFindings(film, placed, { master, key, file });
+  const found: ReadonlyArray<StaticFinding | ShortFinding> = [
+    ...staticFindings(film, placed, { master, key, file }),
+    ...talkWords(film, placed),
+  ];
+  return found;
 });
 
 /**
@@ -102,16 +141,22 @@ export const soundLeg = Effect.fn('check.sound')(function* (
  * the layout at every sampled frame of the scenes `scope` covers, then the
  * look pass over them. Each act the scope covers whole is judged against its
  * colour script; a misnamed act fails in `resolveAddress`, before any page
- * opens.
+ * opens. A talk's page is then probed as a vertical film (`Checker.talk`):
+ * its text against every platform's zone, its open for motion.
  */
 export const layoutLeg = Effect.fn('check.layout')(function* (
   film: LoadedFilm,
   scope: Scope,
   workers: number,
 ) {
-  const layout = yield* (yield* Checker).layout(film, { workers, scope });
+  const checker = yield* Checker;
+  const layout = yield* checker.layout(film, { workers, scope });
   const looked = yield* (yield* Looker).look(film, workers, scope);
-  return [...layout, ...lookFindings(looked, scope.acts)];
+  const talk = yield* Effect.forEach(
+    Option.toArray(talkVertical(film, yield* placeFilm(film))),
+    (vertical) => checker.talk(film, vertical, workers),
+  );
+  return [...layout, ...lookFindings(looked, scope.acts), ...talk.flat()];
 });
 
 /** A film's `film.ts` as the draw leg reads it: the film, built from its narration. */

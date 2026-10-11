@@ -626,7 +626,7 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
     }, answeringCheck),
   ).pipe(
     Command.withDescription(
-      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds and a master mixed for the film as it is, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s; no dead air in the mix the film makes now, and warnings where a scene holds still for most of its seconds, no face reaches human scale, an act misses its colour script, or the ending leaves no room for end screens. With --short <id>, check that short instead: text inside the platform's safe zone (--zone), a hook in the first ${SHORT_RULES.motionBy} s, a clean loop and a length of at most ${SHORT_RULES.length.max} s`,
+      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds and a master mixed for the film as it is, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s; no dead air in the mix the film makes now, and warnings where a scene holds still for most of its seconds, no face reaches human scale, an act misses its colour script, or the ending leaves no room for end screens. With --short <id>, check that short instead: text inside the platform's safe zone (--zone), a hook in the first ${SHORT_RULES.motionBy} s, a clean loop and a length of at most ${SHORT_RULES.length.max} s. A talk is checked as a vertical film as well: its length against its format's, its first word and its loop's silence, and (on the full check, in the browser) its text inside every platform's zone and its open moving`,
     ),
   );
 };
@@ -896,7 +896,8 @@ export const runFilmCli = <E>({
   judge: judging,
 }: FilmApp<E>): void => {
   // The film's services, the lab's included (`film-services.ts`), over the app's folders,
-  // reading a film fresh through this CLI, with the real ElevenLabs.
+  // reading a film fresh through this CLI, with the real ElevenLabs and the private store
+  // the app's sound library declares.
   const Services = filmServices({
     films,
     sounds,
@@ -905,6 +906,7 @@ export const runFilmCli = <E>({
     self,
     roots: labApp.roots,
     elevenLabs: ElevenLabs.layer,
+    privateStore: Option.none(),
   });
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Layer.mergeAll(Checker.layer, Looker.layer).pipe(

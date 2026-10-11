@@ -23,6 +23,7 @@ import { FilmUnknown } from '../core/refusals.ts';
 import { options } from './choices-cli.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import { filmServices } from './film-services.ts';
+import { privateFolder } from './testing.ts';
 
 /** The console a run prints to: each line it logs, offered to `lines`. */
 const printingTo = (lines: Queue.Queue<string>): Console.Console => ({
@@ -52,6 +53,7 @@ const world = Layer.unwrap(
       self: ['bun', 'cli.ts'],
       roots: Effect.succeed([]),
       elevenLabs: Layer.mock(ElevenLabs)({}),
+      privateStore: Option.some(privateFolder(path.join(root, 'store'))),
     });
   }),
 ).pipe(Layer.provideMerge(BunServices.layer));

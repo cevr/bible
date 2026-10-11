@@ -84,7 +84,18 @@ export const Layer = () => {
       const shown = Option.filter(state.edit(), () => shows !== 'hidden');
       l.el.hidden = Option.isNone(shown) || shows !== 'head';
       Option.map(shown, (edit) => {
-        player.renderShown(l.ctx, player.now(), new Map([[state.scene(), edit]]));
+        // Drawn once its frame is painted; one that will not decode is the preview's to say.
+        Effect.runForkWith(meta.host)(
+          player
+            .renderShown(l.ctx, player.now(), new Map([[state.scene(), edit]]))
+            .pipe(
+              Effect.catchTag('FootageFrameMissing', (missing) =>
+                Effect.logWarning(
+                  `lab.compare.footage.missing source=${missing.source} at=${missing.at}`,
+                ),
+              ),
+            ),
+        );
         // Clipped left of the divider in a wipe; whole otherwise; in the difference blend in a diff.
         l.el.style.mixBlendMode = state.blend();
         l.el.style.clipPath = Option.match(state.split(), {

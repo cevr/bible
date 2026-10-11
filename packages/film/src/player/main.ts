@@ -14,7 +14,12 @@ import { parseHref } from '@bible/url-state';
 import { TIME_EVERY_MS, filmOfPage } from '../core/api.ts';
 import { addressOn, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
-import { type FootageShown, footageAt, readsFootage } from '../browser/footage.ts';
+import {
+  type FootageFrameMissing,
+  type FootageShown,
+  paintedAt,
+  readsFootage,
+} from '../browser/footage.ts';
 import { makeClock } from '../browser/media-clock.ts';
 import { Frames } from '../browser/frames.ts';
 import { LONG_PRESS_DELAY, claimPress } from '@bible/ui/press';
@@ -86,13 +91,15 @@ export interface Player {
    * one spelling of "the frame as the lab shows it": a note's still, the
    * onion and the HEAD layer draw through it. Nothing is drawn until the
    * film's faces have loaded (`drawable`); a frame that reads footage (a
-   * talk's) is drawn once the host has decoded it.
+   * talk's) is drawn once the host has decoded it. It resolves once the frame
+   * is painted, so a reader of `ctx`'s canvas after it reads this frame; a
+   * frame whose footage will not decode fails, never drawn black.
    */
   renderShown(
     ctx: CanvasRenderingContext2D,
     T: number,
     over?: ReadonlyMap<string, ShownEdit>,
-  ): void;
+  ): Effect.Effect<void, FootageFrameMissing>;
   /**
    * Draw with `edits` (`RenderOptions.edits`) from now on, starting with the
    * frame shown now: none until the lab shows some; the lab holds them, and
@@ -369,14 +376,24 @@ export const mountPreview = (
   );
   bar.dataset['hud'] = 'shown';
 
-  /** Frame `at`'s footage decoded, then `paint` given it; a frame that will not decode is logged, never drawn black. */
+  /**
+   * Frame `at`'s footage decoded, then `paint` given it. A frame that will
+   * not decode is never drawn black: the film stops, and the page says why in
+   * its place (`fail`), as it does for a face that will not load.
+   */
   const withFootage = (at: number, paint: (shown: FootageShown) => void) =>
     Effect.runForkWith(host)(
-      footageAt(film, at).pipe(
-        Effect.flatMap((shown) => Effect.sync(() => paint(shown))),
+      paintedAt(film, at, paint).pipe(
         Effect.catchTag('FootageFrameMissing', (missing) =>
           Effect.logWarning(
             `player.footage.missing source=${missing.source} at=${missing.at} why=${missing.why}`,
+          ).pipe(
+            Effect.andThen(
+              Effect.sync(() => {
+                if (playing) toggle();
+              }),
+            ),
+            Effect.andThen(fail(missing.message)),
           ),
         ),
       ),
@@ -722,13 +739,13 @@ export const mountPreview = (
       loop = range === undefined || range.to <= range.from ? undefined : range;
       draw();
     },
-    renderShown: (into, at, over = new Map()) => {
-      if (!drawable) return;
-      const shown = (footage: FootageShown) =>
-        film.render(into, at, shownOptions({ edits: new Map([...edits, ...over]), ...footage }));
-      if (readsFootage(film)) withFootage(at, shown);
-      else shown({});
-    },
+    renderShown: (into, at, over = new Map()) =>
+      Effect.suspend(() => {
+        if (!drawable) return Effect.void;
+        return paintedAt(film, at, (footage) =>
+          film.render(into, at, shownOptions({ edits: new Map([...edits, ...over]), ...footage })),
+        ).pipe(Effect.provideContext(host));
+      }),
     drawable: () => drawable,
     showEdits: (next) => {
       edits = next;

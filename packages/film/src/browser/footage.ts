@@ -122,3 +122,16 @@ export const footageAt = (
         (footage): FootageShown => ({ footage }),
       ),
   });
+
+/**
+ * Frame `T` of `film` painted by `paint`, with its footage decoded first (at
+ * once for a film that reads none): it resolves once the frame is painted,
+ * so whatever reads the canvas after it (a note's still, the onion) reads
+ * this frame.
+ */
+export const paintedAt = (
+  film: Pick<Film, 'footageAt'>,
+  T: number,
+  paint: (shown: FootageShown) => void,
+): Effect.Effect<void, FootageFrameMissing, Footage> =>
+  Effect.flatMap(footageAt(film, T), (shown) => Effect.sync(() => paint(shown)));

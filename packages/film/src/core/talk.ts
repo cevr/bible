@@ -28,15 +28,27 @@
 // A talk's page (`canvas/talk.ts`) plays at `TALK_FPS`, its words set inside
 // every platform's zone (`TALK_LAYOUT`), its captions the kept words as they
 // are heard, spelt as the talk fixes them, a quoted word gold (`talkPhrases`).
+//
+// The takes a talk is cut on come from the footage library by one
+// derivation (`talkTakes`): the lock names each take's source and current
+// transcript, and the transcript gives its words and loudness. The page
+// (over the footage route) and the tools (over the disk) read the same files
+// and cut with it, so the picture and the sound play the same pieces.
 
 import { Array as Arr, Option, Order, Result, Schema } from 'effect';
 import { PartId } from './address-schema.ts';
 import { DuplicateScene } from './errors.ts';
-import { FOOTAGE_RECIPES } from './footage.ts';
+import {
+  FOOTAGE_RECIPES,
+  type FootageLock,
+  type FootageTranscript,
+  sourceFile,
+  sourceOf,
+} from './footage.ts';
 import type { Placed } from './layout.ts';
 import { hashText } from './narration.ts';
 import { type Phrase, phrasesOf } from './phrases.ts';
-import { SAFE_ZONES, SHORT_LAYOUT, safeRect } from './shorts.ts';
+import { SAFE_ZONES, SHORT_LAYOUT, roomAcross, safeRect } from './shorts.ts';
 import {
   Knobs,
   Seconds,
@@ -81,19 +93,31 @@ const ROOM = safeRect(SAFE_ZONES.platforms);
 /** How far above the room's foot a talk's captions are centred: two lines of caption clear it. */
 const CAPTION_LIFT = 120;
 
-/** The widest line centred on `centre` that stays inside the room. */
-const lineRoom = (centre: number) => 2 * Math.min(centre - ROOM.left, ROOM.right - centre);
+/** The room across the hook's rows: a block centred where a short's is, no taller than the room above its centre. */
+const HOOK_ACROSS = roomAcross(SAFE_ZONES.platforms, 2 * SHORT_LAYOUT.hook.y - ROOM.top);
+
+/** The room across the captions' rows, down to the room's foot: beside TikTok's buttons. */
+const CAPTION_ACROSS = roomAcross(SAFE_ZONES.platforms, ROOM.bottom);
 
 /**
  * Where a talk sets its words, in 1080 × 1920 px, inside every platform's
- * zone: each line centred on the frame's middle and no wider than the room
- * either side of it allows; the hook where a short's is (inside the top), the
- * captions `CAPTION_LIFT` above the room's foot.
+ * zone: the hook where a short's is (inside the top, above every button
+ * column), centred on the frame's middle and no wider than the room either
+ * side of it allows; the captions `CAPTION_LIFT` above the room's foot,
+ * centred in the room beside the buttons and as wide as it.
  */
 export const TALK_LAYOUT = {
   centre: SHORT_LAYOUT.centre,
-  hook: { y: SHORT_LAYOUT.hook.y, width: lineRoom(SHORT_LAYOUT.centre) },
-  caption: { y: ROOM.bottom - CAPTION_LIFT, width: lineRoom(SHORT_LAYOUT.centre) },
+  hook: {
+    y: SHORT_LAYOUT.hook.y,
+    width:
+      2 * Math.min(SHORT_LAYOUT.centre - HOOK_ACROSS.left, HOOK_ACROSS.right - SHORT_LAYOUT.centre),
+  },
+  caption: {
+    centre: (CAPTION_ACROSS.left + CAPTION_ACROSS.right) / 2,
+    y: ROOM.bottom - CAPTION_LIFT,
+    width: CAPTION_ACROSS.right - CAPTION_ACROSS.left,
+  },
 };
 
 /** The longest pause a talk keeps between two words when it names none (seconds). */
@@ -224,14 +248,97 @@ export const Talk = Schema.Struct({
 );
 export type Talk = typeof Talk.Type;
 
-/** What a section is cut from: its take's transcript (words, and loudness every 10 ms) and its voice. */
+/**
+ * What a section is cut from, as the footage library keeps the take
+ * (`talkTakes`): the footage source it is (`<name>/<sha12>`: the copies the
+ * page decodes, the voice the mix plays), its current transcript's words and
+ * loudness every 10 ms, and its picture's size as displayed.
+ */
 export interface TalkTake {
+  readonly source: string;
   readonly words: ReadonlyArray<TakeWord>;
   /** The voice's loudness every `ENVELOPE_STEP` (10 ms), in whole dB. */
   readonly envelope: ReadonlyArray<number>;
-  /** The take's voice file (`voice.flac`), which its pieces play. */
-  readonly voice: string;
+  /** Its picture as displayed, in px: what a section's `frame` knob is given in. */
+  readonly width: number;
+  readonly height: number;
 }
+
+/** A take a talk plays that the footage library cannot give it yet. */
+class TalkTakeUnready extends Schema.TaggedError<TalkTakeUnready>()('TalkTakeUnready', {
+  take: Schema.String,
+  footage: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `talk: take "${this.take}" plays footage "${this.footage}", ${this.reason}`;
+  }
+}
+
+/**
+ * The transcript files `talk`'s takes are cut on, as `lock` names them: what
+ * a reader fetches before `talkTakes` (a take the lock has not heard names
+ * none, and `talkTakes` says so).
+ */
+export const talkTranscripts = (talk: Talk, lock: FootageLock): ReadonlyArray<string> =>
+  Arr.dedupe(
+    Object.values(talk.takes).flatMap((name) =>
+      Option.toArray(
+        Option.flatMap(Option.fromUndefinedOr(lock.footage[name]), (entry) =>
+          Option.fromUndefinedOr(entry.transcript),
+        ),
+      ),
+    ),
+  );
+
+/**
+ * `talk`'s takes, by its keys for them, as the footage library keeps each:
+ * its source, its picture's size, and the words and loudness of the
+ * transcript the lock names, read from `transcripts` (by file). The one
+ * derivation the page and the tools both cut on, so the picture's pieces and
+ * the sound's are the same. Pure.
+ */
+export const talkTakes = (
+  talk: Talk,
+  lock: FootageLock,
+  transcripts: ReadonlyMap<string, FootageTranscript>,
+): Result.Result<Readonly<Record<string, TalkTake>>, TalkTakeUnready> =>
+  Result.gen(function* () {
+    const takes: Record<string, TalkTake> = {};
+    for (const [key, name] of Object.entries(talk.takes)) {
+      const unready = (reason: string) => () =>
+        TalkTakeUnready.make({ take: key, footage: name, reason });
+      const entry = yield* Result.fromOption(
+        Option.fromUndefinedOr(lock.footage[name]),
+        unready('which the footage library does not have (film footage import)'),
+      );
+      if (entry.kind !== 'take')
+        return yield* Result.fail(
+          unready('which is a clip: a talk is cut on a take (film footage import --take)')(),
+        );
+      const file = yield* Result.fromOption(
+        Option.fromUndefinedOr(entry.transcript),
+        unready(`which has not been heard (film footage make ${name})`),
+      );
+      const heard = yield* Result.fromOption(
+        Option.fromUndefinedOr(transcripts.get(file)),
+        unready(`whose transcript ${file} is not here`),
+      );
+      const source = sourceOf(name, entry.sha256);
+      if (heard.source !== source)
+        return yield* Result.fail(
+          unready(`whose transcript ${file} was heard from ${heard.source}, not ${source}`)(),
+        );
+      takes[key] = {
+        source,
+        words: heard.words,
+        envelope: heard.envelope,
+        width: entry.probe.picture.width,
+        height: entry.probe.picture.height,
+      };
+    }
+    return takes;
+  });
 
 /** One stretch of a take a section plays: take seconds `from`–`to`, at `at` section seconds. */
 export interface Piece {
@@ -380,7 +487,10 @@ interface Run {
  * two words are under a frame apart and no boundary falls between them, the
  * seam takes the boundary just past the kept word's edge: the kept word
  * plays whole, and under a frame of its struck neighbour is faded out with
- * the piece. A run never plays past the take's end.
+ * the piece. A last word voiced to within a frame of the take's end plays
+ * whole too: its run ends on the first frame past its voice, under a frame
+ * past the take's end, where the voice is silent and the picture holds the
+ * take's last frame.
  */
 const runsOf = (take: TalkTake, kept: ReadonlyArray<KeptWord>, gaps: number): Array<Run> => {
   const { words, envelope } = take;
@@ -403,9 +513,7 @@ const runsOf = (take: TalkTake, kept: ReadonlyArray<KeptWord>, gaps: number): Ar
         Math.min(word.voiced.end + gaps / 2, voicedStartOf(words, index + 1, end)),
         word.voiced.end,
       ),
-      () =>
-        Math.min(frameAtOrAfter(word.voiced.end, TALK_FPS), frameAtOrBefore(end, TALK_FPS)) /
-        TALK_FPS,
+      () => frameAtOrAfter(word.voiced.end, TALK_FPS) / TALK_FPS,
     );
   const grouped: Array<Arr.NonEmptyArray<KeptWord>> = [];
   for (const next of kept) {
@@ -506,20 +614,22 @@ export const talkCut = (
       const fixes = talk.fixes?.[section.take] ?? {};
       const spelt = (i: number, text: string) => fixes[String(i)] ?? text;
       const words = retimed(runs, spelt);
-      const marked = new Map(Object.entries(section.marks ?? {}).map(([name, i]) => [i, name]));
+      // Every mark a word carries, in the order the edit names them.
+      const marksOn = (i: number) =>
+        Object.entries(section.marks ?? {}).flatMap(([name, at]) =>
+          Option.toArray(Option.liftPredicate(name, () => at === i)),
+        );
       const say = kept
         .map(({ index: i }, k) =>
-          [
-            ...Option.toArray(Option.fromUndefinedOr(marked.get(i))).map((m) => `{${m}}`),
-            words[k]?.text ?? '',
-          ].join(''),
+          [...marksOn(i).map((m) => `{${m}}`), words[k]?.text ?? ''].join(''),
         )
         .join(' ');
       const spoken = words.map((w) => w.text).join(' ');
       const duration = pieces.reduce((sum, p) => sum + (p.to - p.from), 0);
       const voice: VoiceTiming = {
         hash: hashText(spoken),
-        file: take.voice,
+        // The take's voice, under the folder of copies: the tools play it from there.
+        file: sourceFile(take.source, 'voice.flac'),
         duration,
         words,
         source: 'recorded',

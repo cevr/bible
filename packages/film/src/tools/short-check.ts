@@ -16,7 +16,9 @@ import {
   type ResolvedShort,
   SAFE_ZONES,
   SHORT_RULES,
+  type SafeZone,
   type SafeZoneName,
+  roomAcross,
   safeRect,
 } from '../core/shorts.ts';
 import { TALK_FORMATS } from '../core/talk.ts';
@@ -103,6 +105,12 @@ export const shortStaticFindings = (
   ...Option.toArray(loopGap(short, phrases)),
 ];
 
+/** A talk as the vertical checks read it: the film, held to its format, and the phrases its captions show. */
+export interface TalkVertical {
+  readonly film: Vertical;
+  readonly phrases: ReadonlyArray<Phrase>;
+}
+
 /** The mean absolute per-cell difference of two luma grids of one size, 0 to 1. */
 export const lumaDiff = (a: ReadonlyArray<number>, b: ReadonlyArray<number>): number => {
   const n = Math.min(a.length, b.length);
@@ -142,14 +150,21 @@ const SEEN = 0.05;
 
 const byReach = Order.mapInput(Order.Number, (f: ShortUnsafeText) => f.by);
 
-/** How far the page box `b` runs past each side of `safe`, in 1080 × 1920 px (`k` page px per px); only the sides it crosses. */
-const pastSides = (safe: ReturnType<typeof safeRect>, b: ReturnType<typeof boxOf>, k: number) =>
-  [
+/**
+ * How far the page box `b` runs past each side of `zone`, in 1080 × 1920 px
+ * (`k` page px per px), its right short of any button column it runs down
+ * into (`roomAcross`); only the sides it crosses.
+ */
+const pastSides = (zone: SafeZone, b: ReturnType<typeof boxOf>, k: number) => {
+  const safe = safeRect(zone);
+  const across = roomAcross(zone, b.bottom / k);
+  return [
     { side: 'top' as const, by: safe.top - b.top / k },
     { side: 'bottom' as const, by: b.bottom / k - safe.bottom },
-    { side: 'left' as const, by: safe.left - b.left / k },
-    { side: 'right' as const, by: b.right / k - safe.right },
+    { side: 'left' as const, by: across.left - b.left / k },
+    { side: 'right' as const, by: b.right / k - across.right },
   ].filter((p) => p.by > 0.5);
+};
 
 /**
  * The zone a finding names: the zone, and for `platforms` the platforms
@@ -164,7 +179,7 @@ const zoneLabel = (
 ): string => {
   if (zone !== 'platforms') return zone;
   const under = Object.values(PLATFORM_ZONES)
-    .filter((p) => pastSides(safeRect(p.zone), b, k).some((s) => s.side === side))
+    .filter((p) => pastSides(p.zone, b, k).some((s) => s.side === side))
     .map((p) => p.title);
   return `${zone} (${under.join(', ')})`;
 };
@@ -179,13 +194,12 @@ export const unsafeTexts = (
   at: number,
   probed: Probed,
   k: number,
-): ReadonlyArray<ShortUnsafeText> => {
-  const safe = safeRect(SAFE_ZONES[zone]);
-  return probed.texts
+): ReadonlyArray<ShortUnsafeText> =>
+  probed.texts
     .filter((t) => t.alpha > SEEN && t.text.trim() !== '')
     .flatMap((t) => {
       const b = boxOf(t);
-      const past = pastSides(safe, b, k).map((p) =>
+      const past = pastSides(SAFE_ZONES[zone], b, k).map((p) =>
         ShortUnsafeText.make({
           short,
           zone: zoneLabel(zone, p.side, b, k),
@@ -202,7 +216,6 @@ export const unsafeTexts = (
         onNonEmpty: (some) => [Arr.max(some, byReach)],
       });
     });
-};
 
 /**
  * One finding per line of the film's and side, and one per side for all the
@@ -281,11 +294,11 @@ export const titleOpen = (
 
 /**
  * The frames the zone check probes: every half second, and each phrase's
- * first frame, so every line the short sets and every moment of the band is
- * seen at least once.
+ * first frame, so every line the film sets (a short's, a talk's) and every
+ * moment of its picture is seen at least once.
  */
 export const zoneFrames = (
-  short: ResolvedShort,
+  short: Pick<ResolvedShort, 'duration' | 'fps'>,
   phrases: ReadonlyArray<Phrase>,
 ): ReadonlyArray<number> => {
   const frames = Math.round(short.duration * short.fps);

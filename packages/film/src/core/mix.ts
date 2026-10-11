@@ -106,15 +106,26 @@ export interface Take<A> extends Placement<A> {
   readonly dur: Option.Option<number>;
   /** Seconds each end fades over. */
   readonly fade: number;
+  /**
+   * What its sound is, for the key, when its file's name does not say: a
+   * talk's voice (every take's is `voice.flac`) is its source and the
+   * recipe it was made by. None for a file named by its content.
+   */
+  readonly content: Option.Option<string>;
 }
 
 /** Whether `take` plays its sound whole, from its start, unfaded: a scene's take. */
 const playsWhole = <A>(take: Take<A>): boolean =>
   take.from === 0 && Option.isNone(take.dur) && take.fade === 0;
 
-/** A talk's section's voice: its take's voice file, and the stretches of it the section plays (`talk.ts`). */
+/**
+ * A talk's section's voice: its take's voice file, what that voice is (its
+ * source and the recipe it was made by: the key reads this, not the file's
+ * name), and the stretches of it the section plays (`talk.ts`).
+ */
 export interface VoicePieces {
   readonly file: string;
+  readonly content: string;
   readonly pieces: ReadonlyArray<Piece>;
 }
 
@@ -316,7 +327,7 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
     const voice = placed.flatMap((p): ReadonlyArray<Take<SoundSource>> =>
       Option.match(Option.fromUndefinedOr(input.pieces.get(p.spec.id)), {
         // A talk's section: the pieces of its take's voice, back to back.
-        onSome: ({ file, pieces }) =>
+        onSome: ({ file, content, pieces }) =>
           pieces.map((piece) => ({
             name: p.spec.id,
             sound: fileSource(file),
@@ -327,6 +338,7 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
             from: piece.from,
             dur: Option.some(piece.to - piece.from),
             fade: CUT_FADE,
+            content: Option.some(content),
           })),
         onNone: () =>
           Option.match(
@@ -344,6 +356,7 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
                   from: 0,
                   dur: Option.none(),
                   fade: 0,
+                  content: Option.none(),
                 },
               ],
             },
@@ -439,7 +452,7 @@ export const mixKey = (plan: MixPlan<SoundSource>): string =>
       seconds: plan.seconds,
       voice: plan.voice.map((t) => [
         t.name,
-        soundKey(t.sound),
+        Option.getOrElse(t.content, () => soundKey(t.sound)),
         t.at,
         t.gain,
         t.pitch,

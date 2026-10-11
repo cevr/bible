@@ -22,7 +22,7 @@ import { mixKey } from '../core/mix.ts';
 import { voiceKey } from '../core/narration.ts';
 import type { Timed, Timings } from '../core/schema.ts';
 import { laidOut, staticLeg } from './film-check.ts';
-import { type StaticFinding, lineOf, report } from './findings.ts';
+import { type ShortFinding, type StaticFinding, lineOf, report } from './findings.ts';
 import type { Media } from './media.ts';
 import { type LoadedFilm, masterFile } from './film-repo.ts';
 import { MasterStampJson, planOf, stampFile } from './mixer.ts';
@@ -58,7 +58,7 @@ const run = (
   paths: Layer.Layer<Path.Path> = BunPath.layerPosix,
 ) => {
   const leg: Effect.Effect<
-    ReadonlyArray<StaticFinding>,
+    ReadonlyArray<StaticFinding | ShortFinding>,
     unknown,
     FileSystem.FileSystem | Media | Path.Path
   > = staticLeg(of, placed);
@@ -67,7 +67,7 @@ const run = (
 
 /** The master's findings: missing, or stale. */
 const isMaster = Predicate.or(Predicate.isTagged('AudioMissing'), Predicate.isTagged('AudioStale'));
-const masterTags = (found: ReadonlyArray<StaticFinding>) =>
+const masterTags = (found: ReadonlyArray<StaticFinding | ShortFinding>) =>
   found.filter(isMaster).map((f) => f._tag);
 
 describe('the static leg', () => {
@@ -79,7 +79,7 @@ describe('the static leg', () => {
 
   it.effect("names the master by its place in the film's folder, on either path layer", () =>
     Effect.gen(function* () {
-      const named = (found: ReadonlyArray<StaticFinding>) =>
+      const named = (found: ReadonlyArray<StaticFinding | ShortFinding>) =>
         found.flatMap((f) =>
           Match.value(f).pipe(
             Match.tags({ AudioMissing: (m) => [[m.file, m.message]] }),

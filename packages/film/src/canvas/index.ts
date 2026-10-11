@@ -61,4 +61,3 @@ export {
 export { scenesOf } from './scenes.ts';
 export { type Film, type Frame, type Light, type SceneSpec, createFilm, drawing } from './film.ts';
 export { shortPages } from './short.ts';
-export { talkFilms } from './talk.ts';
