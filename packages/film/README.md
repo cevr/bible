@@ -1589,7 +1589,16 @@ shapes). Every page also fits a phone (`fitsPhone`,
 `lab/fixtures/phone-fit.ts`): no sideways scroll, each control inside the
 width, its chrome at most a quarter of the height
 (`e2e/lab/fixtures/phone-fit.dom.test.ts` holds the measure to synthetic
-pages). The tab answers the page's requests itself (the
+pages). Every design-language mock wears `tokens.css` and the kit, writes no
+token, and sets each space, type size, line height and radius on its scale
+(`e2e/design-language/mocks.dom.test.ts`, one case a mock, and planted pages
+of each shape; the reader is `e2e/design-language/mock-lengths.ts`
+`mockLengths`). The page is read as the browser resolves it, at each width
+its queries name and on both pointers: a variable is read on each element
+and pseudo-element its declaration applies to, so the cascade (nesting,
+`:is()`, a compound, a query, an alias, a losing declaration) is Chrome's,
+and a rule that reaches no element the mock shows (a hover) is named, never
+passed unread. The tab answers the page's requests itself (the
 protocol's `Fetch`), types and clicks with native input events, and waits in
 the page on its real timers, so a file's cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
 worker (`--max-concurrency=3` in the E2E script: at most eight workers, one
