@@ -32,6 +32,7 @@ import {
   studioRoutes,
 } from '../../../src/lab/fixtures/studio-film.ts';
 import { countIs, textHas, until, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import { jsonOf } from '../../../src/lab/fixtures/tab.ts';
 
 /** Long enough to bundle the server entry once, render, open and hydrate. */
 const SLOW = 60_000;
@@ -253,6 +254,30 @@ describe('the review served as the lab renders it', () => {
         expect(painted(html)).toContain('data-act="inspect"');
         yield* countIs(set.page, `[${PAGE_ROOT}]`, 1);
         yield* waitFor(set.page, '.rv-main [data-act="inspect"]');
+        expect(set.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a Set's video length is read once, by the server: the hydrated page times its clock by the length it was sent",
+    () =>
+      Effect.gen(function* () {
+        const set = yield* openServed('review', studioRoutes, {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+        });
+        const timings = (asked: ReadonlyArray<Asked>) =>
+          asked.filter((a) => a.method === 'GET' && a.path.startsWith('/api/review/duration'))
+            .length;
+        expect(timings(set.read)).toBe(1);
+        // Hydrated and live: the clock has measured its video, and a step moves it.
+        yield* textHas(set.page, '.rv-transport .rv-time', `/ ${timecode(10)}`);
+        const at = "document.querySelector('.rv-transport .rv-time').textContent.split(' ')[0]";
+        const before = yield* set.page.evaluate<string>(at);
+        yield* set.page.press('ArrowRight');
+        yield* until(set.page, `${at} !== ${jsonOf(before)}`);
+        expect(timings(set.asked)).toBe(0);
+        expect(mismatches(set.page.logged)).toEqual([]);
         expect(set.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

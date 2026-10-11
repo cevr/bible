@@ -143,7 +143,7 @@ interface ReviewMeta {
   readonly asks: Asks;
   /**
    * A video's length and its frame rate (its own, as the server reads its
-   * frames), read once per file as the index last saw it: a video written
+   * packets: never rounded, so a 29.97 video steps on its own grid), read once per file as the index last saw it: a video written
    * again since is measured afresh.
    */
   readonly timing: (video: Written) => Loaded<ReviewDuration>;
@@ -657,8 +657,8 @@ const untimed = unmeasured.pipe(
 
 /**
  * Tell a clock (`send`) the frame rate of its video (`video`, none when it
- * has none): the rate the server reads from the video's own frames, once it
- * answers; the film rate (`FILM_FPS`) while the answer is pending, or when
+ * has none): the rate the server reads from the video's own packets
+ * (`ReviewDuration.fps`, as measured), once it answers; the film rate (`FILM_FPS`) while the answer is pending, or when
  * the video names none. Read in the page only (`timedHere`): nothing the
  * server renders counts frames past the clock's start, so its render never
  * waits on it.
@@ -747,15 +747,6 @@ const SetBody = (
   onCleanup(driver.stop);
   createEffect(sync, (state) => driver.apply(state));
   createEffect(leader, (id) => driver.follow(id));
-  // It steps and counts by that video's own frames.
-  useClockRate(
-    () =>
-      Option.map(
-        Option.fromUndefinedOr(props.set.variants.find((v) => v.id === leader())),
-        (v) => v.video,
-      ),
-    sendSync,
-  );
 
   const address = addressOn(meta.host);
   const sendView = (event: ViewEvent) =>
@@ -822,6 +813,18 @@ const SetBody = (
       onSome: (v) => meta.timing(v.video),
     });
   });
+  // The clock steps and counts by the leading video's own frames. Read after
+  // `length`: hydrating, that read takes the timing the server sent, so the
+  // clock's page-only read of the same video finds it there and asks again
+  // for nothing.
+  useClockRate(
+    () =>
+      Option.map(
+        Option.fromUndefinedOr(props.set.variants.find((v) => v.id === leader())),
+        (v) => v.video,
+      ),
+    sendSync,
+  );
   // The same instants read again are no new moments: the views over them stay.
   const moments = createMemo(
     () =>
