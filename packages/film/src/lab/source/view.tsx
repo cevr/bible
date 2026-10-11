@@ -22,7 +22,7 @@
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, type JSX, Portal, Show } from '@solidjs/web';
-import { Array as Arr, Boolean as Bool, Effect, Option, Result } from 'effect';
+import { Array as Arr, Boolean as Bool, Effect, Equal, Option, Result } from 'effect';
 import { type Accessor, createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import { Highlights, type HighlightName } from '../../browser/highlights.ts';
 import { type LabSelection, Selection } from '../../command/selection.ts';
@@ -47,6 +47,7 @@ import {
   rowsOf,
   selectionAt,
 } from './lit.ts';
+import { type Asked, FaceIntent, intentOf } from './intent.ts';
 import { FOLLOW, lineOpen } from './open.ts';
 
 /** The name of the selection when it is a `tag` of `scene`. */
@@ -407,38 +408,46 @@ export const Faces = (props: { readonly children: JSX.Element }) => {
       { Cue: source.whereCue, Knob: source.whereKnob }[s._tag](s.scene, s.name),
       (w) => w.line,
     );
-  // The selection the face was opened for before its line was known: the intent the view settles once it is.
-  const [asked, setAsked] = createSignal(Option.none<LabSelection>());
+  // The selection the face was opened for before its line was known, and whether the view has been seen following
+  // for it since: the intent the view settles once the line is known.
+  const [asked, setAsked] = createSignal(Option.none<Asked>());
   const open = () => {
     const selection = state.selection();
     const line = Option.flatMap(selection, lineOf);
     actions.showCode(Option.some(Option.match(line, { onNone: () => FOLLOW, onSome: lineOpen })));
-    setAsked(Option.filter(selection, () => Option.isNone(line)));
+    setAsked(
+      Option.map(
+        Option.filter(selection, () => Option.isNone(line)),
+        (s) => ({ selection: s, seen: false }),
+      ),
+    );
   };
-  // Where the intent stands, as a key: none asked (''), moved on ('gone': the view no longer follows, or another
-  // thing is selected), still waiting ('wait'), or the line now known (its number).
-  const intent = createMemo(() =>
-    Option.match(asked(), {
-      onNone: () => '',
-      onSome: (s) =>
-        Bool.match(
-          Option.exists(state.code(), (o) => o._tag === 'Follow') &&
-            Option.exists(
-              state.selection(),
-              (now) => now._tag === s._tag && now.scene === s.scene && now.name === s.name,
-            ),
-          {
-            onFalse: () => 'gone',
-            onTrue: () => Option.match(lineOf(s), { onNone: () => 'wait', onSome: String }),
-          },
-        ),
+  // Where the intent stands (`intent.ts`), settling only on a change of it.
+  const intent = createMemo(
+    () =>
+      intentOf(asked(), {
+        selection: state.selection(),
+        following: source.following(),
+        lineOf,
+      }),
+    { equals: Equal.equals },
+  );
+  createEffect(intent, (now) =>
+    FaceIntent.$match(now, {
+      Idle: () => {},
+      Opening: () => {},
+      Waiting: () => {
+        setAsked((a) => Option.map(a, (x) => ({ ...x, seen: true })));
+      },
+      Gone: () => {
+        setAsked(Option.none());
+      },
+      Ready: ({ line }) => {
+        setAsked(Option.none());
+        actions.settleCode(lineOpen(line));
+      },
     }),
   );
-  createEffect(intent, (key) => {
-    if (key === '' || key === 'wait') return;
-    setAsked(Option.none());
-    if (key !== 'gone') actions.settleCode(lineOpen(Number(key)));
-  });
   const face = (): Face =>
     Bool.match(Option.isSome(state.code()), {
       onTrue: (): Face => 'source',

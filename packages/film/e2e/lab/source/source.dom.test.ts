@@ -408,6 +408,44 @@ describe('on a phone', () => {
   );
 
   it.live(
+    'a reader’s scroll before the selection’s line is known keeps the view where the hand put it',
+    () =>
+      Effect.gen(function* () {
+        // The code read answers first and writes no `fall` (as a spread timeline lists none); the reader scrolls;
+        // only then does the small read name `fall`'s line. The hand has the view: it stays following, unsettled.
+        const gate = yield* Deferred.make<void>();
+        const noFall = route('GET', /^\/scenes\/one\/code$/, () =>
+          json({
+            ...codeOf(LONG_TEXT),
+            cues: codeOf(LONG_TEXT).cues.filter((c) => c.name !== 'fall'),
+          }),
+        );
+        const { page } = yield* openLab([noFall, sourceLater(gate)], {
+          href: labOne(middle('rise'), { cue: 'fall' }),
+          viewport: PHONE,
+        });
+        yield* page.waitFor('.lab-selection-sheet');
+        yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+        yield* page.click('.lab-selection-sheet [data-face="source"]');
+        yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+        yield* evaluates(page, `new URLSearchParams(location.search).get('code')`, 'follow');
+        const box = `(() => { let up = document.querySelector('.lab-selection-sheet .lab-source-page').parentElement; while (up && !['auto', 'scroll'].includes(getComputedStyle(up).overflowY)) up = up.parentElement; return up; })()`;
+        // Follow placed the playing line, a screen down the file; the reader scrolls back to the top.
+        yield* page.until(`${box}.scrollTop > 0`);
+        yield* page.evaluate(`${box}.scrollTop = 0`);
+        yield* page.evaluate(FRAMES);
+        const landed = yield* page.nextAnswer((a) => a.url.endsWith('/scenes/one/source'));
+        yield* Deferred.done(gate, Exit.void);
+        yield* landed;
+        yield* page.evaluate(FRAMES);
+        yield* page.evaluate(FRAMES);
+        // The answer has landed and two frames have passed: a settle would have written its line by now.
+        yield* evaluates(page, `new URLSearchParams(location.search).get('code')`, 'follow');
+        yield* evaluates(page, `${box}.scrollTop`, 0);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     'opened before the selection’s line is known, it holds that line once a read answers',
     () =>
       Effect.gen(function* () {
