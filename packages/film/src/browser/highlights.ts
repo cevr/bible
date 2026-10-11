@@ -3,7 +3,8 @@
 // costs no element. The browser's CSS Custom
 // Highlight API is the live adapter (`highlights-browser.ts`); a browser
 // without it paints nothing, and the view's gutter still says which lines are
-// lit. A test reads what was painted from `Highlights.memory`.
+// lit. A server render paints nothing (`Highlights.none`); a test reads what
+// was painted where it is painted, in the browser (`CSS.highlights`).
 
 import { Context, Effect, Layer } from 'effect';
 import type { CodeRange } from '../core/schema.ts';
@@ -31,24 +32,6 @@ interface HighlightsOps {
 export class Highlights extends Context.Service<Highlights, HighlightsOps>()(
   '@bible/film/browser/Highlights',
 ) {
-  /** Highlights in memory: what each name paints now is in `painted`. */
-  static readonly memory = (
-    painted: Map<HighlightName, ReadonlyArray<CodeRange>>,
-  ): Layer.Layer<Highlights> =>
-    Layer.succeed(
-      Highlights,
-      Highlights.of({
-        paint: (name, _node, ranges) =>
-          Effect.sync(() => {
-            painted.set(name, ranges);
-          }),
-        clear: (name) =>
-          Effect.sync(() => {
-            painted.delete(name);
-          }),
-      }),
-    );
-
   /** Highlights that paint nothing: a server render's. */
   static readonly none: Layer.Layer<Highlights> = Layer.succeed(
     Highlights,

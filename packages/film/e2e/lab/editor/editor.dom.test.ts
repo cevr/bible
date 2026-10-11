@@ -16,6 +16,8 @@ import { pageHref } from '../../../src/core/api.ts';
 import { DEFAULT_EASE } from '../../../src/core/time.ts';
 import { SourceRefused, StepNotNewest } from '../../../src/core/refusals.ts';
 import { LONG, LONG_SCENE } from '../../../src/lab/fixtures/long-film.ts';
+import { MENU_ITEMS, menuOffers, rightClick } from '../../../src/lab/fixtures/gestures.ts';
+import { probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   type Asked,
   type Json,
@@ -25,6 +27,7 @@ import {
   labAt,
   later,
   openLab,
+  openServed,
   PHONE,
   refused,
   URL_T,
@@ -1565,5 +1568,189 @@ describe('the inspector', () => {
           Option.some({ request: expect.any(String) }),
         ]);
       }).pipe(Effect.scoped),
+  );
+});
+
+describe('the strip follows the playhead down its rows', () => {
+  /** Scene one's cues in film seconds: the middle of each, where the probe film plays it. */
+  const one = probeFilm().placed[0];
+  const middle = (name: string) => {
+    const cue = one?.cues.get(name);
+    return (one?.start ?? 0) + ((cue?.start ?? 0) + (cue?.end ?? 0)) / 2;
+  };
+  /** The strip's Follow command: offered only while a reader has the rows. */
+  const STRIP_FOLLOW = 'edit.strip-follow';
+  const BOX = `document.querySelector('.lab-strip-scroll')`;
+  /** The rows' box a row and the words high: the probe film's two lanes overflow it, as roof's 35 overflow 240 px. */
+  const SHORT = `(() => { const s = document.createElement('style'); s.textContent = '.lab-strip-scroll { max-height: calc(18px + 16px) !important; }'; document.head.append(s); return true; })()`;
+  /** Whether every lit lane's row stands inside the rows' box, under the words held at its top. */
+  const LIT_IN_SIGHT = `(() => {
+    const box = ${BOX}.getBoundingClientRect();
+    const words = document.querySelector('.lab-strip-words').getBoundingClientRect();
+    const lit = [...document.querySelectorAll('.lab-cue[data-live]')].map((c) => c.closest('.lab-strip-row').getBoundingClientRect());
+    return lit.length > 0 && lit.every((r) => r.top >= words.bottom - 0.5 && r.bottom <= box.bottom + 0.5)
+      ? 'in sight'
+      : 'lit rows ' + JSON.stringify(lit.map((r) => [Math.round(r.top), Math.round(r.bottom)])) + ' in a box ' + Math.round(words.bottom) + '-' + Math.round(box.bottom);
+  })()`;
+  const seek = (t: number) => `(location.hash = '#t=${t}', true)`;
+  /** Two animation frames: a scroll's event and a frame's draw are both in. */
+  const FRAMES = `new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))`;
+
+  for (const [name, viewport] of [
+    ['on a phone', PHONE],
+    ['on a laptop', { width: 1440, height: 900 }],
+  ] as const) {
+    it.live(`${name}, a lane lit below the box is scrolled into sight`, () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(middle('rise')), viewport });
+        yield* page.waitFor('.lab-cue[data-cue="fall"]');
+        yield* evaluates(page, SHORT, true);
+        yield* until(page, `${LIT_IN_SIGHT} === 'in sight'`);
+        yield* page.evaluate(seek(middle('fall')));
+        yield* until(
+          page,
+          `document.querySelector('.lab-cue[data-cue="fall"][data-live]') !== null`,
+        );
+        yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      }).pipe(Effect.scoped),
+    );
+  }
+
+  it.live('a hand on the rows lets go of them until Play takes them back', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(middle('fall')), viewport: PHONE });
+      yield* page.waitFor('.lab-cue[data-cue="fall"][data-live]');
+      yield* evaluates(page, SHORT, true);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      // The reader scrolls back to the top: the lit lane leaves the box, and a frame moved since leaves it there.
+      yield* page.evaluate(`${BOX}.scrollTop = 0`);
+      yield* page.evaluate(seek(middle('rise')));
+      yield* until(page, `document.querySelector('.lab-cue[data-cue="rise"][data-live]') !== null`);
+      yield* page.evaluate(seek(middle('fall')));
+      yield* until(page, `document.querySelector('.lab-cue[data-cue="fall"][data-live]') !== null`);
+      yield* page.evaluate(FRAMES);
+      yield* evaluates(page, `${BOX}.scrollTop`, 0);
+      // Play takes the rows back to the lit lane.
+      yield* page.click('.bar [data-act="play"]');
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      yield* page.click('.bar [data-act="play"]');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('what grows above the lit row moves no scroll by itself: Follow keeps the rows', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(middle('fall')), viewport: PHONE });
+      yield* page.waitFor('.lab-cue[data-cue="fall"][data-live]');
+      yield* evaluates(page, SHORT, true);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      yield* page.evaluate(
+        `(() => { const pad = document.createElement('div'); pad.id = 'o5-pad'; pad.style.height = '40px'; const words = document.querySelector('.lab-strip-words'); words.after(pad); return true; })()`,
+      );
+      yield* page.evaluate(FRAMES);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      // What stands above the lit row grows: the browser keeps its hands off the box (no scroll anchoring), so
+      // no scroll comes that Follow would read as a reader's.
+      yield* page.evaluate(
+        `(() => { document.getElementById('o5-pad').style.height = '52px'; return true; })()`,
+      );
+      yield* page.evaluate(FRAMES);
+      yield* page.evaluate(FRAMES);
+      // Still following: a seek away and back brings the lit lane into sight.
+      yield* page.evaluate(seek(middle('rise')));
+      yield* until(page, `document.querySelector('.lab-cue[data-cue="rise"][data-live]') !== null`);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      yield* page.evaluate(seek(middle('fall')));
+      yield* until(page, `document.querySelector('.lab-cue[data-cue="fall"][data-live]') !== null`);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a hand’s scroll whose event has not come yet is still the hand’s', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(middle('fall')), viewport: PHONE });
+      yield* page.waitFor('.lab-cue[data-cue="fall"][data-live]');
+      yield* evaluates(page, SHORT, true);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      // The rows' scroll events are held back, as a busy page delivers them late.
+      yield* page.evaluate(
+        `(() => { window.__late = []; window.__hold = (e) => { if (e.target === ${BOX}) { e.stopImmediatePropagation(); window.__late.push(e); } }; document.addEventListener('scroll', window.__hold, true); return true; })()`,
+      );
+      // The reader scrolls to the top; before its event is heard, the rows are laid out again.
+      yield* page.evaluate(`${BOX}.scrollTop = 0`);
+      yield* page.evaluate(
+        `(() => { const r = document.querySelector('.lab-strip-rows'); r.style.minHeight = (r.getBoundingClientRect().height + 1) + 'px'; return true; })()`,
+      );
+      yield* page.evaluate(FRAMES);
+      yield* page.evaluate(
+        `(() => { document.removeEventListener('scroll', window.__hold, true); ${BOX}.dispatchEvent(new Event('scroll')); return true; })()`,
+      );
+      yield* page.evaluate(FRAMES);
+      // The box stays where the hand put it.
+      yield* evaluates(page, `${BOX}.scrollTop`, 0);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'let go while paused, Follow on the strip’s menu takes the rows back where the playhead stands',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], {
+          href: labAt(middle('fall')),
+          viewport: { width: 1440, height: 900 },
+        });
+        yield* page.waitFor('.lab-cue[data-cue="fall"][data-live]');
+        yield* evaluates(page, SHORT, true);
+        yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+        // Followed, the strip offers nothing new: no Follow on its menu, none in the command menu.
+        yield* menuOffers(page, 'follow', STRIP_FOLLOW, false);
+        yield* rightClick(page, '.lab-strip-words');
+        yield* evaluates(page, `${MENU_ITEMS}.length > 0`, true);
+        yield* evaluates(page, `${MENU_ITEMS}.includes('${STRIP_FOLLOW}')`, false);
+        yield* page.press('Escape');
+        yield* countIs(page, '[data-role="context-menu"]', 0);
+        // The reader scrolls away; the strip's menu and the command menu now offer Follow.
+        yield* page.evaluate(`${BOX}.scrollTop = 0`);
+        yield* page.evaluate(FRAMES);
+        yield* evaluates(page, `${LIT_IN_SIGHT}.startsWith('lit rows')`, true);
+        yield* menuOffers(page, 'follow', STRIP_FOLLOW, true);
+        const at = yield* page.evaluate<string>('location.hash');
+        yield* rightClick(page, '.lab-strip-words');
+        yield* page.click(`[data-role="context-menu"] [data-command="${STRIP_FOLLOW}"]`);
+        // The rows come back to the lit lane, and the playhead stays where the editor left it.
+        yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+        yield* evaluates(page, 'location.hash', at);
+      }).pipe(Effect.scoped),
+  );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
+    'on a phone, a finger held on a cue’s lane beside its bar reaches Follow and leaves the playhead',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openServed('lab', [], {
+          href: labAt(middle('fall')),
+          viewport: PHONE,
+        });
+        yield* page.waitFor('.lab-cue[data-cue="fall"][data-live]');
+        yield* evaluates(page, SHORT, true);
+        yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+        yield* page.evaluate(`${BOX}.scrollTop = 0`);
+        yield* page.evaluate(FRAMES);
+        yield* evaluates(page, `${LIT_IN_SIGHT}.startsWith('lit rows')`, true);
+        const at = yield* page.evaluate<string>('location.hash');
+        // A point on `rise`'s lane, beside its bar: the hold the command's touch hint names.
+        const spot = yield* page.evaluate<{ readonly x: number; readonly y: number }>(
+          `(() => { const bar = document.querySelector('.lab-cue[data-cue="rise"]'); const lane = bar.closest('.lab-cue-lane').getBoundingClientRect(); const b = bar.getBoundingClientRect(); const right = lane.right - b.right; return { x: right > b.left - lane.left ? (b.right + lane.right) / 2 : (lane.left + b.left) / 2, y: lane.top + lane.height / 2 }; })()`,
+        );
+        yield* page.clock.hold;
+        yield* page.finger.down(spot.x, spot.y);
+        yield* page.clock.runFor(700);
+        yield* page.waitFor(`[data-role="context-menu"] [data-command="${STRIP_FOLLOW}"]`);
+        yield* page.finger.up;
+        yield* page.clock.release;
+        yield* page.click(`[data-role="context-menu"] [data-command="${STRIP_FOLLOW}"]`);
+        yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+        yield* evaluates(page, 'location.hash', at);
+      }).pipe(Effect.scoped, Effect.runPromise),
   );
 });
