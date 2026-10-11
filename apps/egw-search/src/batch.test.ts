@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { Deferred, Effect, Exit, Fiber } from 'effect';
+import { Clock, Deferred, Effect, Exit, Fiber } from 'effect';
 import { TestClock } from 'effect/testing';
 
 import { makeBatcher } from './batch.js';
@@ -123,13 +123,15 @@ describe('makeBatcher', () => {
   test('a batch goes out a window after its latest input, so a pane still changing sends only its last', () =>
     run(
       Effect.gen(function* () {
-        const batches: string[][] = [];
+        // Each batch and when it went out, in ms on the test's clock since the start.
+        const batches: { readonly at: number; readonly inputs: string[] }[] = [];
+        const start = yield* Clock.currentTimeMillis;
         const batcher = makeBatcher<string, string, never>({
           window: '100 millis',
           maxSize: 8,
           run: (inputs) =>
-            Effect.sync(() => {
-              batches.push([...inputs]);
+            Effect.map(Clock.currentTimeMillis, (now) => {
+              batches.push({ at: now - start, inputs: [...inputs] });
               return inputs.map((input) => Exit.succeed(input));
             }),
         });
@@ -151,7 +153,8 @@ describe('makeBatcher', () => {
         yield* TestClock.adjust('1 millis');
         expect(yield* Fiber.join(a)).toBe('a');
         expect(yield* Fiber.join(b)).toBe('b-final');
-        expect(batches).toEqual([['a', 'b-final']]);
+        // One batch, a window after b-final joined at 140 ms, on the clock the test moves.
+        expect(batches).toEqual([{ at: 240, inputs: ['a', 'b-final'] }]);
       }).pipe(Effect.provide(TestClock.layer())),
     ));
 
