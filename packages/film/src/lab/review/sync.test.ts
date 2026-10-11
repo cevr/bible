@@ -78,6 +78,16 @@ describe('the sync driver', () => {
     expect(b.asked.slice(-2)).toEqual(['seek 3', 'pause']);
   });
 
+  test("a seek to a frame's start lands on it on the element's microsecond clock, never the microsecond before", () => {
+    const { driver, a } = rig();
+    driver.apply(SyncState.Paused(clock(1 / 24, 1)));
+    expect(a.asked.slice(-2)).toEqual(['seek 0.041667', 'pause']);
+    driver.apply(SyncState.Paused(clock(1001 / 30000, 2)));
+    expect(a.asked.slice(-2)).toEqual(['seek 0.033367', 'pause']);
+    driver.apply(SyncState.Paused(clock(0.1 + 0.2, 3)));
+    expect(a.asked.slice(-2)).toEqual(['seek 0.3', 'pause']);
+  });
+
   test('a set waiting on a stalled video resumes once every video can play on', () => {
     const { frames, driver, b, tags } = rig();
     driver.apply(SyncState.Playing(clock(0)));

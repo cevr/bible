@@ -20,6 +20,7 @@
 
 import { type Context, Data, type Duration, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
+import { frameAtOrAfter } from '../../core/time.ts';
 import { Media, type Playable } from '../../browser/media.ts';
 import { type Command, type Invocation, quietly } from '../../command/command.ts';
 import type { Target } from '../../command/target.ts';
@@ -36,6 +37,17 @@ const DRIFT_S = 0.2;
 
 /** How far the clock moves before the machine hears of it, in seconds. */
 const TICK_S = 0.05;
+
+/** The ticks a second of a media element's clock: it keeps whole microseconds. */
+const MICROSECONDS = 1e6;
+
+/**
+ * `t` on a media element's clock (Chrome truncates a time it is given to the
+ * microsecond): rounded up, so a seek to a frame's start (`n / fps`, a step)
+ * lands on that frame and shows its picture, not on the microsecond before
+ * it, which shows the frame before.
+ */
+const onElementClock = (t: number): number => frameAtOrAfter(t, MICROSECONDS) / MICROSECONDS;
 
 /** Whether `video` has drifted from the clock at `t` far enough to be put back. */
 export const drifted = (video: number, t: number): boolean => Math.abs(video - t) > DRIFT_S;
@@ -153,7 +165,7 @@ export const makeSync = (
         ),
       ),
     );
-  const seekTo = (a: Attached, t: number) => forkOn(a, a.video.seek(t));
+  const seekTo = (a: Attached, t: number) => forkOn(a, a.video.seek(onElementClock(t)));
 
   const hear = (state: SyncState) => {
     for (const [id, a] of videos) {

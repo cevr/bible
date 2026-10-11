@@ -12,11 +12,13 @@
 // phone's width folds the grid to one column without scrolling sideways.
 
 import { BunServices } from '@effect/platform-bun';
-import { Deferred, Effect, Exit, FileSystem, Match, Option, Schedule, Schema } from 'effect';
+import { Deferred, Effect, Exit, FileSystem, Layer, Match, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { FILM_FPS, timecode } from '../../../src/core/time.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
+import { ReviewDuration } from '../../../src/core/review.ts';
+import { Media } from '../../../src/tools/media.ts';
 import { ratedVideo } from '../../../src/lab/fixtures/rated-video.ts';
 import { tone } from '../../../src/lab/fixtures/tone.ts';
 import { spreadMoments } from '../../../src/lab/review/machine.ts';
@@ -28,6 +30,7 @@ import {
   json,
   later,
   openReview,
+  openServed,
   refused,
   route,
   text,
@@ -54,8 +57,20 @@ import {
 /** Long enough to open the page, walk to a set and play with it. */
 const SLOW = 30_000;
 
-/** A video's own frame rate, other than the films' (`FILM_FPS`). */
-const RATED_FPS = 24;
+/**
+ * Videos at their own frame rates, other than the films' (`FILM_FPS`): a
+ * whole one, and NTSC's 29.97 (30000/1001), which no whole rate steps;
+ * opened in the page, and once as the lab serves it (`served`).
+ */
+const RATED: ReadonlyArray<{
+  readonly rate: string;
+  readonly fps: number;
+  readonly served: string;
+}> = [
+  { rate: '24', fps: 24, served: '' },
+  { rate: '29.97', fps: 30000 / 1001, served: '' },
+  { rate: '29.97', fps: 30000 / 1001, served: ', served' },
+];
 
 /** A seen variant of the roof's render set, as the server encodes it. */
 const variant = (id: string, label: string, extra: Readonly<Record<string, Json>> = {}): Json => ({
@@ -655,43 +670,52 @@ describe('the review page', () => {
     SLOW,
   );
 
-  it.live(
-    'steps a video by its own frames: at 24 fps, → moves the clock one frame of 24, and the end reads in its frames',
-    () =>
-      Effect.gen(function* () {
-        // A real video, made at 24 fps, and the rate its server reads from it.
-        const fs = yield* FileSystem.FileSystem;
-        const rated = `${yield* fs.makeTempDirectoryScoped()}/rated.mp4`;
-        yield* fs.writeFile(rated, yield* ratedVideo(RATED_FPS, 4));
-        const seconds = 60 / RATED_FPS;
-        const { page, errors } = yield* openReview(
-          [
-            route('GET', /^\/api\/review\/duration/, () => json({ seconds, fps: RATED_FPS })),
+  for (const { rate, fps, served } of RATED) {
+    it.live(
+      `steps a video by its own frames${served}: at ${rate} fps, → shows its next picture, and the end reads in its frames`,
+      () =>
+        Effect.gen(function* () {
+          // A real video made at `fps`, timed as the server times it (`Media.timing`), sent as the route encodes it.
+          const fs = yield* FileSystem.FileSystem;
+          const rated = `${yield* fs.makeTempDirectoryScoped()}/rated.mp4`;
+          yield* fs.writeFile(rated, yield* ratedVideo(fps, 4));
+          const timed = yield* Schema.encodeEffect(ReviewDuration)(
+            yield* (yield* Media).timing(rated),
+          );
+          const ratedRoutes = [
+            route('GET', /^\/api\/review\/duration/, () => json(timed)),
             route('GET', /^\/api\/review\/files\/out\/art\/roof\.[A-C]\.mp4/, () => file(rated)),
             ...routes,
-          ],
-          { href: SET },
-        );
-        yield* waitFor(page, '.rv-transport');
-        const clockAt = "document.querySelector('.rv-card video').currentTime";
-        // The end is read in the video's frames: 2.5 s is 2 s and 12 of 24.
-        yield* textHas(page, '.rv-transport .rv-time', timecode(seconds, RATED_FPS));
-        /** The clock and every video stand on frame `n` of 24. */
-        const onFrame = (n: number) =>
-          until(
-            page,
-            `Math.abs(${clockAt} - ${n / RATED_FPS}) < 1e-3 && Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - ${clockAt}) < 1e-3)`,
+          ];
+          const { page, errors } = yield* Match.value(served).pipe(
+            Match.when('', () => openReview(ratedRoutes, { href: SET })),
+            Match.orElse(() => openServed('review', ratedRoutes, { href: SET })),
           );
-        yield* page.press('ArrowRight');
-        yield* onFrame(1);
-        yield* page.press('ArrowRight');
-        yield* onFrame(2);
-        yield* page.press('ArrowLeft');
-        yield* onFrame(1);
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
-    SLOW,
-  );
+          yield* waitFor(page, '.rv-transport');
+          // The end is read in the video's frames (60 of them: 2.5 s is 2 s and 12 of 24).
+          yield* textHas(page, '.rv-transport .rv-time', timecode(60 / fps, fps));
+          // Each video keeps the time of the picture it last showed (`requestVideoFrameCallback`).
+          const videos = "Array.from(document.querySelectorAll('.rv-card video'))";
+          yield* page.evaluate(
+            `${videos}.forEach((v) => { const shown = (_, frame) => { v.dataset.shown = String(frame.mediaTime); v.requestVideoFrameCallback(shown); }; v.requestVideoFrameCallback(shown); })`,
+          );
+          /** The clock and every video stand on frame `n`, and each shows that frame's picture. */
+          const onFrame = (n: number) =>
+            until(
+              page,
+              `${videos}.every((v) => Math.abs(v.currentTime - ${n / fps}) < 1e-3 && Math.abs(Number(v.dataset.shown) - ${n / fps}) < ${0.5 / fps})`,
+            );
+          yield* page.press('ArrowRight');
+          yield* onFrame(1);
+          yield* page.press('ArrowRight');
+          yield* onFrame(2);
+          yield* page.press('ArrowLeft');
+          yield* onFrame(1);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped, Effect.provide(Layer.provideMerge(Media.layer, BunServices.layer))),
+      SLOW,
+    );
+  }
 
   it.live(
     'plays every variant on one clock: space, ←/→ and the 🔊',

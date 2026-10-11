@@ -198,6 +198,26 @@ describe('the synced player', () => {
       }),
   );
 
+  it.effect('steps a 29.97 video (30000/1001) on its own grid, never a whole rate', () =>
+    Effect.gen(function* () {
+      const fps = 30000 / 1001;
+      const step = playerEvent(PlayerKey.Step({ by: 1 }));
+      const result = yield* simulate(player, [
+        SyncEvent.Measured({ end: 60 }),
+        SyncEvent.Timed({ fps }),
+        SyncEvent.Landed({ t: 30 / fps }),
+        step,
+        SyncEvent.Landed({ t: 1000 / fps }),
+        step,
+        step,
+      ]);
+      // Each step lands on a frame's own start: n of 30000/1001, the picture's time.
+      const frames = result.states.slice(-5).map((s) => Math.round(s.t * 30000) / 1001);
+      expect(frames).toEqual([30, 31, 1000, 1001, 1002]);
+      expect(clockParts(result.finalState).at).toBe('00:00:33:12');
+    }),
+  );
+
   it.effect('Back landing on an entry seeks to its time, playing on as it was', () =>
     Effect.gen(function* () {
       const result = yield* simulate(player, [
