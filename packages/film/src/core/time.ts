@@ -31,17 +31,24 @@ const countedWhole = (fps: number): boolean =>
   [fps, (fps * 1001) / 1000].some((rate) => Math.abs(rate - Math.round(rate)) < GRID_NUDGE);
 
 /**
- * Seconds as a timecode's fields at `fps`: the nearest frame to that time (a
- * clock a hair short of a frame, as a video's reads, says that frame), each
- * field two digits. Its second is the last whose first frame is at or before
- * that frame, and its frame field counts from that first frame, so the field
- * stays under `ceil(fps)` and the timecode never runs back. A whole or
- * 1000/1001 rate counts `round(fps)` frames a second (`countedWhole`); any
- * other (12.5, a phone's 29.6) counts wall seconds, a second's first frame
- * the first to start in it, so its timecode keeps to the clock.
+ * The frame a clock at `seconds` reads at `fps`, the one its timecode says:
+ * the nearest (a clock a hair short of a frame, as a video's reads, says
+ * that frame).
+ */
+export const frameRead = (seconds: number, fps: number): number => Math.round(seconds * fps);
+
+/**
+ * Seconds as a timecode's fields at `fps`: the frame that time reads
+ * (`frameRead`), each field two digits. Its second is the last whose first
+ * frame is at or before that frame, and its frame field counts from that
+ * first frame, so the field stays under `ceil(fps)` and the timecode never
+ * runs back. A whole or 1000/1001 rate counts `round(fps)` frames a second
+ * (`countedWhole`); any other (12.5, a phone's 29.6) counts wall seconds, a
+ * second's first frame the first to start in it, so its timecode keeps to
+ * the clock.
  */
 export const timecodeParts = (seconds: number, fps: number = FILM_FPS): TimecodeParts => {
-  const frames = Math.round(Math.abs(seconds) * fps);
+  const frames = frameRead(Math.abs(seconds), fps);
   const perSecond = Math.max(1, Math.round(fps));
   const counted = countedWhole(fps);
   const firstFrameOf = (second: number) =>

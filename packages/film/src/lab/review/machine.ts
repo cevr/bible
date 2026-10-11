@@ -34,7 +34,7 @@
 import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State, simulate } from 'effect-machine';
 import type { SET_VIEWS } from '../../core/api.ts';
-import { FILM_FPS, timecode } from '../../core/time.ts';
+import { FILM_FPS, frameRead, timecode } from '../../core/time.ts';
 
 /** An end not known yet: the clock's video's metadata has not loaded. */
 export const UNKNOWN_END = Number.MAX_SAFE_INTEGER;
@@ -228,8 +228,8 @@ export const syncMachine = (audible: string, start: number, at: number = start) 
     })
     .on(ANY, SyncEvent.Stepped, ({ state, event }) => {
       const clock = clockOf(state);
-      // From the frame its timecode reads (`timecodeParts`: the nearest), onto the frame grid: no drift.
-      const frame = Math.round(clock.t * clock.fps);
+      // From the frame its timecode reads (`frameRead`), onto the frame grid: no drift.
+      const frame = frameRead(clock.t, clock.fps);
       return withClock(state, {
         ...clock,
         t: clamp(clock, (frame + event.frames) / clock.fps),

@@ -684,6 +684,32 @@ export const useClockRate = (
   );
 };
 
+/**
+ * Tell a set's driver the frame rate of each version's video (`timed`), its
+ * own as the server reads it, once each answers: each video lands in its own
+ * frames (`landing`), whatever the clock's rate. Read in the page only
+ * (`timedHere`), as the clock's is.
+ */
+const useVersionRates = (variants: Accessor<SeenPoint['variants']>, driver: SyncDriver) => {
+  const { meta } = useReview();
+  const rates = useAtomValue(() => {
+    const each = variants();
+    return Atom.make((get) =>
+      Arr.getSomes(
+        each.map((v) =>
+          Option.map(
+            Option.flatMap(AsyncResult.value(get(meta.timedHere(v.video))), (t) => t.fps),
+            (fps) => ({ id: v.id, fps }),
+          ),
+        ),
+      ),
+    );
+  });
+  createEffect(rates, (known) => {
+    for (const { id, fps } of known) driver.timed(id, fps);
+  });
+};
+
 /** The set's place in the URL: its path, its view in the query, the player's time in the hash. */
 const setPlace = UrlAtom.place(Places.set);
 
@@ -828,6 +854,8 @@ const SetBody = (
       ),
     sendSync,
   );
+  // Each version's video lands in its own frames at the clock's.
+  useVersionRates(() => props.set.variants, driver);
   // The same instants read again are no new moments: the views over them stay.
   const moments = createMemo(
     () =>

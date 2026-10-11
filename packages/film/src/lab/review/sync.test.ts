@@ -66,8 +66,32 @@ describe('the sync driver', () => {
     a.el.currentTime = 2;
     a.asked.length = 0;
     frames.frame(32);
-    expect(b.asked).toEqual([`seek ${60.25 / 30}`]);
+    // Put back on the clock's video's time itself: a playing picture needs no quarter in.
+    expect(b.asked).toEqual(['seek 2']);
     expect(told.at(-1)).toMatchObject({ _tag: 'Ticked', t: 2 });
+  });
+
+  test('a drifter on a slow clock (1 or 1.25 frames a second) is put back once, never again as the clock plays on', () => {
+    for (const fps of [1, 1.25]) {
+      const { frames, driver, a, b } = rig();
+      // The clock's video just past its frame 3's start; the follower 0.3 s ahead of it.
+      let at = 3 / fps + 0.01;
+      let follower = at + 0.3;
+      driver.apply(SyncState.Playing({ ...clock(at), fps }));
+      const seeks: Array<string> = [];
+      // Ten frames of the page (a sixtieth of a second each), both playing on.
+      for (let n = 1; n <= 10; n++) {
+        a.el.currentTime = at;
+        b.el.currentTime = follower;
+        a.asked.length = 0;
+        b.asked.length = 0;
+        frames.frame(16 * n);
+        seeks.push(...b.asked);
+        follower = b.el.currentTime + 1 / 60;
+        at += 1 / 60;
+      }
+      expect({ fps, seeks }).toEqual({ fps, seeks: [`seek ${3 / fps + 0.01}`] });
+    }
   });
 
   test('a paused set asks for no frame; a seek moves every video', () => {
@@ -78,7 +102,7 @@ describe('the sync driver', () => {
     expect(b.asked.slice(-2)).toEqual([`seek ${90.25 / 30}`, 'pause']);
   });
 
-  test("a seek lands a quarter of a frame into the frame its time lies in, at the clock's rate: a time past that stays", () => {
+  test('a seek lands a quarter of a frame into the frame its timecode reads', () => {
     const { driver, a } = rig();
     const at = (t: number, fps: number, seek: number) =>
       driver.apply(SyncState.Paused({ ...clock(t, seek), fps }));
@@ -92,9 +116,45 @@ describe('the sync driver', () => {
     // A start with float noise in it (0.1 + 0.2 is frame 9 at 30), the same.
     at(0.1 + 0.2, 30, 4);
     expect(a.asked.slice(-2)).toEqual([`seek ${9.25 / 30}`, 'pause']);
-    // A scrub's time already past the quarter is sought as it is.
+    // A scrub's time is the frame its timecode reads (the nearest), so the
+    // picture and the timecode agree: 0.52 s at 24 reads frame 12, 0.53 s frame 13.
     at(0.52, 24, 5);
-    expect(a.asked.slice(-2)).toEqual(['seek 0.52', 'pause']);
+    expect(a.asked.slice(-2)).toEqual([`seek ${12.25 / 24}`, 'pause']);
+    at(0.53, 24, 6);
+    expect(a.asked.slice(-2)).toEqual([`seek ${13.25 / 24}`, 'pause']);
+  });
+
+  test("each video lands in its own frame at the clock's, once its rate is told, and is put there as it is told", () => {
+    const { driver, a, b } = rig();
+    // A 24 fps clock at its frame 3 (0.125 s): its own video a quarter into that frame.
+    driver.apply(SyncState.Paused({ ...clock(3 / 24, 1), fps: 24 }));
+    expect(a.asked.slice(-2)).toEqual([`seek ${3.25 / 24}`, 'pause']);
+    // A 30 fps follower, told its rate: a quarter into its own frame 3 (0.1 s to 0.133 s), not its 4.
+    b.asked.length = 0;
+    driver.timed('b', 30);
+    expect(b.asked).toEqual([`seek ${3.25 / 30}`]);
+    // The same rate told again moves nothing.
+    driver.timed('b', 30);
+    expect(b.asked).toEqual([`seek ${3.25 / 30}`]);
+    // Every seek after lands it in its own frames: a 30 fps clock at its frame 3
+    // (0.1 s) over a 29.97 follower, whose frame 3 starts at 0.1001 s: its frame 2.
+    const ntsc = 30000 / 1001;
+    driver.timed('b', ntsc);
+    driver.apply(SyncState.Paused({ ...clock(3 / 30, 2), fps: 30 }));
+    expect(a.asked.slice(-2)).toEqual([`seek ${3.25 / 30}`, 'pause']);
+    expect(b.asked.slice(-2)).toEqual([`seek ${2.25 / ntsc}`, 'pause']);
+  });
+
+  test("the clock's rate read puts every video on its frames again, where the clock's timecode reads", () => {
+    const { driver, a, b } = rig();
+    // A link's `#t=` at frame 25 of a 24 fps video, read while the rate is the film's (30).
+    driver.apply(SyncState.Paused({ ...clock(1.042, 1), fps: 30 }));
+    a.asked.length = 0;
+    b.asked.length = 0;
+    // The video's rate is read: no seek, but each lands in frame 25 at 24 fps.
+    driver.apply(SyncState.Paused({ ...clock(1.042, 1), fps: 24 }));
+    expect(a.asked).toEqual([`seek ${25.25 / 24}`, 'pause']);
+    expect(b.asked).toEqual([`seek ${25.25 / 24}`, 'pause']);
   });
 
   test('a set waiting on a stalled video resumes once every video can play on', () => {

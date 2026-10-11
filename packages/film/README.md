@@ -2401,10 +2401,14 @@ timescale tells 30 from 29.97 over 4 s, not over a third of a second)
 when that is the only one, else as measured, never rounded to a whole
 rate, so a 29.97 video steps on its own grid),
 the film rate (`FILM_FPS`) only while that answer is pending or the video
-names none; the clock stands on the frame's start, and every video seeks a
-quarter of a frame into it (`intoFrame`; Chrome keeps some frames' starts a
-microsecond short, which shows the frame before), so it shows that frame's
-picture, and a time further into the frame (a scrub, `#t=`) as it is; one sound heard;
+names none; a seek (a step, a scrub, a `#t=`) lands every video at the
+frame the clock's timecode reads, each a quarter of one of its own frames
+into its own frame that holds that frame's start (`landing`, by the
+rate each version's video is read at, the clock's until it is; Chrome
+keeps some frames' starts a microsecond short, which shows the frame
+before), so each shows its own frame's picture at the clock's time, at any
+rate of either, and the picture is the timecode's; a drifter is put back
+on the clock's time itself; one sound heard;
 opened at the URL's `#t=`, which follows it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
 `Wipe`, `Moments`, `Diff` shown as Difference, `Notes`; a set of one version has
 no pair, wipe or difference, and a link asking for one opens All; the pair,
