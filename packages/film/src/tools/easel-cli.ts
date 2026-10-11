@@ -30,6 +30,7 @@ import {
   ToolFailed,
   cropOf,
   formatFor,
+  levelsOf,
   lookLine,
 } from '../core/easel.ts';
 
@@ -86,17 +87,6 @@ export const takeLook = (url: string, film: string, post: LookPost) =>
         ),
     }),
   );
-
-/** `--level look=level` flags as a wedge's levels; a flag of another shape is `LookInvalid`. */
-const levelsOf = (flags: ReadonlyArray<string>) =>
-  Effect.forEach(flags, (flag) => {
-    const [look = '', level = '', ...rest] = flag.split('=');
-    if (look === '' || level === '' || rest.length > 0)
-      return Effect.fail(
-        LookInvalid.make({ reason: `--level ${flag}: a look and its level, look=level` }),
-      );
-    return Effect.succeed([look, level] as const);
-  }).pipe(Effect.map((pairs) => Object.fromEntries(pairs)));
 
 /** `film look`, its films folder `films` sent so a lab serving another checkout refuses. */
 export const look = (films: string) =>
@@ -174,7 +164,7 @@ export const look = (films: string) =>
             Effect.fail(LookInvalid.make({ reason: 'no --at: say where in the scene' })),
           onSome: (first) => Effect.succeed(Arr.prepend(Arr.drop(input.at, 1), first)),
         });
-        const levels = yield* levelsOf(input.level);
+        const levels = yield* Effect.fromResult(levelsOf(input.level));
         const post: LookPost = { scene: input.scene, at, view, from: path.resolve(films), levels };
         const taken = yield* takeLook(url, input.film, post);
         if (input.json) return yield* Console.log(takenJson(taken));
