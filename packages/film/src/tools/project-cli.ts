@@ -454,6 +454,7 @@ const renderScenes = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
               out: Option.none(),
               share: Option.some(input.share),
               encoder: input.encoder,
+              server: Option.none(),
             }),
           );
           const output = yield* recordOutput(

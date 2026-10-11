@@ -50,6 +50,7 @@ bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/film/m
 bun run render <film> --scene id[,id] ...      # a video or contact sheet over those adjacent scenes in out/<film>/scenes/<id>[+<id>]/ (not --stills); --act name for one act (acts/<act>/)
 bun run render <film> --short <id> ...         # out/<film>/shorts/<id>/main.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
 bun run render <film> ... --variant <name>     # another render of the same address beside main (<name>.mp4, <name>/stills/…): a look or score option, lab-<id>
+bun run render <film> ... --level <look>=<level> --variant <name>  # a wedge render: that look at that level instead of the one it plays, the pick left unwritten; --variant names the file
 bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
 bun run look <film> --scene <id> --at <place> [--at …]  # stills of the scene as its sources stand, from the running lab's warm page in about a second (no render): out/<film>/look/<scene>/…, one line per still; a place is seconds into the scene, mark:<name> or cue:<name>[@0..1] (FILM_LAB_URL, else :8229)
 bun run look <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer, or its failure as the route answers it (`ToolFailure`), as one line
@@ -330,6 +331,13 @@ Choices view's **Pick** makes), serves that build beside its own, and draws
 from it. The file on disk never changes. A look or level the palette lacks
 is `LookLevelUnknown`; a wedge's stills carry its levels in their names
 (`….wground-light.b<build>.jpg`).
+
+`render` takes the same `--level` (`render <film> --level style=ps1 --variant
+ps1`): the render page alone is built with the swapped palette and served on
+a loopback port of its own while the render runs, in place of the app's
+player, so a render needs no lab. The render's stamp carries the levels, so a
+wedge's render is never taken for the film as written; `--variant` names its
+files.
 
 ### A second opinion: the judge
 
