@@ -9,9 +9,10 @@
  * paragraphs once per radius (`runSearchBatch` in `../server/search.ts`).
  *
  * A batch is shared, so its lifetime is its callers'. A caller that is
- * interrupted (a superseded query, a closed pane) leaves the batch; when the
- * last caller leaves, the batch itself is interrupted, which aborts its HTTP
- * request. A batch with a caller still waiting runs to the end.
+ * interrupted (a superseded query, a closed pane) leaves the batch, and takes
+ * its input out of it if the batch has not gone out yet; when the last caller
+ * leaves, the batch itself is interrupted, which aborts its HTTP request. A
+ * batch with a caller still waiting runs to the end.
  *
  * Effect's own `RequestResolver` batches the same way, but once a batch has
  * started it no longer hears its callers leave, so a closed pane's request
@@ -35,6 +36,8 @@ interface Batch<I, O, E> {
   readonly slots: Slot<I, O, E>[];
   /** Callers still waiting on this batch. */
   waiting: number;
+  /** Whether its inputs have gone out; until then a caller that leaves takes its slot. */
+  sent: boolean;
   fiber: Option.Option<Fiber.Fiber<void>>;
 }
 
@@ -55,6 +58,7 @@ export const makeBatcher = <I, O, E>(options: {
   const send = (batch: Batch<I, O, E>) =>
     Effect.gen(function* () {
       close(batch);
+      batch.sent = true;
       const exit = yield* Effect.exit(options.run(batch.slots.map((slot) => slot.input)));
       batch.slots.forEach((slot, index) => {
         if (Exit.isFailure(exit)) {
@@ -72,7 +76,7 @@ export const makeBatcher = <I, O, E>(options: {
     });
 
   const start = (): Batch<I, O, E> => {
-    const batch: Batch<I, O, E> = { slots: [], waiting: 0, fiber: Option.none() };
+    const batch: Batch<I, O, E> = { slots: [], waiting: 0, sent: false, fiber: Option.none() };
     open = Option.some(batch);
     batch.fiber = Option.some(
       Effect.runFork(Effect.andThen(Effect.sleep(options.window), send(batch))),
@@ -80,7 +84,8 @@ export const makeBatcher = <I, O, E>(options: {
     return batch;
   };
 
-  const leave = (batch: Batch<I, O, E>): void => {
+  const leave = (batch: Batch<I, O, E>, slot: Slot<I, O, E>): void => {
+    if (!batch.sent) batch.slots.splice(batch.slots.indexOf(slot), 1);
     batch.waiting -= 1;
     if (batch.waiting > 0) return;
     close(batch);
@@ -91,12 +96,12 @@ export const makeBatcher = <I, O, E>(options: {
     submit: (input) =>
       Effect.suspend(() => {
         const batch = Option.getOrElse(open, start);
-        const deferred = Deferred.makeUnsafe<O, E>();
-        batch.slots.push({ input, deferred });
+        const slot: Slot<I, O, E> = { input, deferred: Deferred.makeUnsafe<O, E>() };
+        batch.slots.push(slot);
         batch.waiting += 1;
         if (batch.slots.length >= options.maxSize) close(batch);
-        return Deferred.await(deferred).pipe(
-          Effect.onInterrupt(() => Effect.sync(() => leave(batch))),
+        return Deferred.await(slot.deferred).pipe(
+          Effect.onInterrupt(() => Effect.sync(() => leave(batch, slot))),
         );
       }),
   };

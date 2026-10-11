@@ -94,6 +94,31 @@ describe('makeBatcher', () => {
       }),
     ));
 
+  test('a caller that leaves before its batch goes out takes its input out of it', () =>
+    run(
+      Effect.gen(function* () {
+        const batches: string[][] = [];
+        const batcher = makeBatcher<string, string, never>({
+          window: '5 millis',
+          maxSize: 8,
+          run: (inputs) =>
+            Effect.sync(() => {
+              batches.push([...inputs]);
+              return inputs.map((input) => Exit.succeed(input));
+            }),
+        });
+        const superseded = yield* Effect.forkChild(batcher.submit('superseded'), {
+          startImmediately: true,
+        });
+        const staying = yield* Effect.forkChild(batcher.submit('staying'), {
+          startImmediately: true,
+        });
+        yield* Fiber.interrupt(superseded);
+        expect(yield* Fiber.join(staying)).toBe('staying');
+        expect(batches).toEqual([['staying']]);
+      }),
+    ));
+
   test('a batch with a caller still waiting runs to the end', () =>
     run(
       Effect.gen(function* () {
