@@ -106,6 +106,38 @@ describe('ToggleGroup', () => {
     await see(page.locator('#one')).toHaveAttribute('tabindex', '0');
   });
 
+  it('leaves focus where it was after a pointer press, and gives the pressed toggle the tab stop', async () => {
+    // A toolbar's button: the page keeps its keys after a click.
+    const page = await h.open('group');
+    await page.click('#two');
+    await see(page.locator('#two')).toHaveAttribute('aria-pressed', 'true');
+    expect(await focused(page)).toBe('body');
+    await page.focus('#before');
+    await page.click('#three');
+    await see(page.locator('#three')).toHaveAttribute('aria-pressed', 'true');
+    expect(await focused(page)).toBe('before');
+    // The press moved the tab stop: Tab lands on the pressed toggle, its arrows and Space work.
+    await see(page.locator('#three')).toHaveAttribute('tabindex', '0');
+    await see(page.locator('#one')).toHaveAttribute('tabindex', '-1');
+    await page.keyboard.press('Tab');
+    await see.poll(() => focused(page)).toBe('three');
+    await page.keyboard.press('ArrowLeft');
+    await see.poll(() => focused(page)).toBe('two');
+    await page.keyboard.press('Space');
+    await see(page.locator('#two')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('moves focus to a pressed toggle when the keyboard is already in the group', async () => {
+    const page = await h.open('group');
+    await page.focus('#before');
+    await page.keyboard.press('Tab');
+    await see.poll(() => focused(page)).toBe('one');
+    await page.click('#three');
+    await see.poll(() => focused(page)).toBe('three');
+    await page.keyboard.press('ArrowLeft');
+    await see.poll(() => focused(page)).toBe('two');
+  });
+
   for (const key of ['Enter', 'Space']) {
     it(`toggles the focused toggle with ${key}`, async () => {
       const page = await h.open('group');

@@ -180,6 +180,7 @@ Upstream's lone toggle (`pressed`, `defaultPressed`, `onPressedChange`) and `dis
 `import { ToggleGroup } from '@bible/ui/toggle-group'`
 
 - `ToggleGroup`: `<div role="group">`, one of its `Toggle`s pressed at a time. Its owner holds `value`; a press offers `onValueChange` the pressed toggle's value alone, or `[]` for the one already pressed. The left and right arrows (wrapping at the ends), Home and End move its one tab stop.
+  - A mouse press leaves focus where it was, as a toolbar's button does, so the page keeps its keys (Space, the arrows) after a click; the pressed toggle still takes the tab stop. When focus is already in the group, the press moves it to the pressed toggle. Upstream focuses the toggle on every press.
   - `Toggle`: see Toggle.
 
 Upstream's uncontrolled mode (`defaultValue`), `multiple`, `disabled`, `orientation` and `loopFocus` are left out; an option returns with its first consumer. The group carries no attributes.

@@ -844,9 +844,6 @@ describe('the review page', () => {
         const frames =
           "Array.from(document.querySelectorAll('.rv-card img')).map((i) => new URL(i.src).searchParams.get('t')).join()";
         yield* until(page, `${frames} === '1,1,1'`);
-        // In the views' toggle group the arrows move along the views; out of it, the page's
-        // arrows step the moments.
-        yield* page.evaluate('document.activeElement.blur()');
         yield* page.press('ArrowRight');
         yield* until(page, `${frames} === '5,5,5'`);
         yield* page.press('ArrowLeft');
@@ -942,6 +939,39 @@ describe('the review page', () => {
   );
 
   it.live(
+    'a view or a moment picked with the mouse leaves the page its keys: Space plays, → steps one frame, → steps the moments',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: SET });
+        yield* waitFor(page, '.rv-transport');
+        yield* page.click('.rv-views button[data-view="compare"]');
+        yield* until(page, "location.search === '?view=pair&other=B'");
+        yield* page.press('Space');
+        yield* textHas(page, '.rv-big', '❚❚');
+        yield* page.press('Space');
+        yield* textHas(page, '.rv-big', '▶');
+        yield* until(
+          page,
+          "Array.from(document.querySelectorAll('.rv-card video')).every((v) => v.paused)",
+        );
+        const labelFrames = `(() => { const [h, m, s, f] = document.querySelector('.rv-time').textContent.split(' ')[0].split(':').map(Number); return ((h * 60 + m) * 60 + s) * ${FILM_FPS} + f; })()`;
+        const paused = yield* page.evaluate<number>(labelFrames);
+        yield* page.press('ArrowRight');
+        yield* textHas(page, '.rv-time', timecode((paused + 1) / FILM_FPS));
+        yield* evaluates(page, 'location.search', '?view=pair&other=B');
+        // A moment picked with the mouse: → steps on to the next.
+        yield* page.click('.rv-views button[data-view="moments"]');
+        yield* page.click('button[data-moment="1"]');
+        yield* until(page, "new URLSearchParams(location.search).get('m') === '1'");
+        yield* page.press('ArrowRight');
+        yield* until(page, "new URLSearchParams(location.search).get('m') === '2'");
+        yield* attributeIs(page, 'button[data-moment="2"]', 'aria-pressed', 'true');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a still opens full size in the kit's dialog, over the phone's tab bar: titled by its caption, focus in it and back on the still, Escape, a tap and Back close it, a link opens it (SH5-1)",
     () =>
       Effect.gen(function* () {
@@ -1005,9 +1035,7 @@ describe('the review page', () => {
         yield* until(page, "location.hash === '#t=0.067'");
         yield* page.click('.rv-views button[data-view="compare"]');
         yield* until(page, "location.search === '?view=pair&other=B'");
-        // The time moves on in the pair's entry (the page's arrows, out of the views' group);
-        // all's keeps its two frames.
-        yield* page.evaluate('document.activeElement.blur()');
+        // The time moves on in the pair's entry; all's keeps its two frames.
         yield* page.press('ArrowRight');
         yield* textHas(page, '.rv-time', '00:00:00:03');
         yield* until(page, "location.hash === '#t=0.1'");
@@ -1681,9 +1709,7 @@ describe('the review page', () => {
           "getComputedStyle(document.querySelector('.rv-diff-other')).mixBlendMode",
           'difference',
         );
-        // ←/→ step its moment, as in the moments, keeping the other (the page's arrows, out
-        // of the layouts' toggle group).
-        yield* page.evaluate('document.activeElement.blur()');
+        // ←/→ step its moment, as in the moments, keeping the other.
         yield* page.press('ArrowRight');
         yield* until(page, `${stills} === 'A@5,B@5'`);
         yield* until(page, "location.search === '?view=diff&other=B&m=1'");

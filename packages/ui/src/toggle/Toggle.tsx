@@ -2,7 +2,9 @@
 //
 // A two-state button (`aria-pressed`), an item of a toggle group: pressed
 // while its `value` is among the group's, and an item of the group's roving
-// focus. Upstream's lone toggle (`pressed`, `defaultPressed`,
+// focus. A mouse press leaves focus where it was unless focus is already in
+// the group (upstream focuses the toggle); the press still moves the group's
+// tab stop to it. Upstream's lone toggle (`pressed`, `defaultPressed`,
 // `onPressedChange`) and `disabled` are left out.
 import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
@@ -40,6 +42,14 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
   const ownProps: HTMLProps = {
     get 'aria-pressed'() {
       return pressed() ? 'true' : 'false';
+    },
+    onMouseDown(event: MouseEvent) {
+      // A mouse press leaves focus where it was, so the page keeps its keys
+      // (Space, the arrows) after a click; a keyboard user already in the
+      // group keeps it, on the pressed toggle.
+      if (!group.holdsFocus()) {
+        event.preventDefault();
+      }
     },
     onClick() {
       untrack(() => group.setGroupValue(props.value, !pressed()));

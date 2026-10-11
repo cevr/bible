@@ -4,7 +4,9 @@
 // `value`: pressing a toggle offers `[its value]`, pressing the pressed one
 // offers `[]`, and the toggles show what the owner keeps. It is a composite
 // with one tab stop (the left and right arrows, wrapping at the ends; Home
-// and End).
+// and End). A mouse press leaves focus where it was, as a toolbar's button
+// does, unless focus is already in the group; the pressed toggle takes the
+// tab stop either way (see Toggle).
 // Upstream's uncontrolled mode, `multiple`, `disabled`, `orientation` and
 // `loopFocus` are left out.
 import type { JSX } from '@solidjs/web';
@@ -31,6 +33,7 @@ const STATE: ToggleGroupState = {};
 export function ToggleGroup<Value extends string = string>(
   props: ToggleGroupProps<Value>,
 ): JSX.Element {
+  let element: HTMLElement | null = null;
   const context: ToggleGroupContextValue<Value> = {
     get value() {
       return props.value;
@@ -38,9 +41,17 @@ export function ToggleGroup<Value extends string = string>(
     setGroupValue(newValue, nextPressed) {
       untrack(() => props.onValueChange)(nextPressed ? [newValue] : []);
     },
+    holdsFocus() {
+      return element?.contains(element.ownerDocument.activeElement) ?? false;
+    },
   };
 
-  const defaultProps: HTMLProps = { role: 'group' };
+  const defaultProps: HTMLProps = {
+    role: 'group',
+    ref(node: HTMLElement | null) {
+      element = node;
+    },
+  };
   const elementProps = omit(
     props,
     'class',

@@ -430,6 +430,22 @@ describe('the lab shell', () => {
   );
 
   it.live(
+    'a mode picked with the mouse leaves the Lab its transport keys: → steps one frame, Space plays',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([], { href: labAt(1) });
+        yield* page.click('.lab-modes [data-mode-pick="motion"]');
+        yield* attributeIs(page, '.lab-modes [data-mode-pick="motion"]', 'aria-pressed', 'true');
+        yield* page.press('ArrowRight');
+        yield* evaluates(page, `Math.round(${T} * 30)`, 31);
+        yield* attributeIs(page, '.lab-modes [data-mode-pick="motion"]', 'aria-pressed', 'true');
+        yield* page.press(' ');
+        yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Pause');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     "the mode tray is the kit's segmented control: its labels in the tray's size and weight, over the page's ground",
     () =>
       Effect.gen(function* () {
