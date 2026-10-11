@@ -161,16 +161,15 @@ export interface MediaService {
  */
 const SHARE_CRF = 22;
 
-/** A phone copy's height, in pixels. */
+/** A phone copy's height at most, in pixels. */
 const PHONE_HEIGHT = 720;
 
 /**
- * The most bits a second a phone plays smoothly, several videos at once on a
- * compare page: the review serves a video over it as its phone copy
- * (`review.ts`), and a copy is capped at it. Measured on the looks study
- * (2026-10-11): its 2D renders at 7.1 and 7.8 Mbps played smoothly, its 3D
- * ones at 14, 21 and 27 Mbps choppily (packages/film/README.md, "Phone
- * copies").
+ * The most bits a second a phone is taken to play smoothly: the review
+ * serves a video over it as its phone copy (`review.ts`), and a copy is
+ * capped at it. Seen on the looks study (2026-10-11): its 2D renders at 7.1
+ * and 7.8 Mbps played as made, its 3D ones at 14 and 21 Mbps choppily
+ * (packages/film/README.md, "Phone copies").
  */
 export const PHONE_RATE = 8_000_000;
 
