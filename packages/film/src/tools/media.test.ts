@@ -13,7 +13,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Array as Arr, Duration, Effect, FileSystem, Layer, Option, Stream } from 'effect';
+import { Array as Arr, Duration, Effect, FileSystem, Layer, Option, Order, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import {
   ALL_FORMATS,
@@ -22,9 +22,15 @@ import {
   BufferSource,
   BufferTarget,
   EncodedPacketSink,
+  FilePathSource,
+  FilePathTarget,
   Input,
   Mp4OutputFormat,
   Output,
+  Quality,
+  VideoSample,
+  VideoSampleSink,
+  VideoSampleSource,
 } from 'mediabunny';
 import { type Pcm, toInt16 } from '../core/audio.ts';
 import { ratedVideo } from '../lab/fixtures/rated-video.ts';
@@ -142,6 +148,96 @@ const aiff16 = (rate: number, samples: Int16Array) => {
   view.setUint32(42, 8 + samples.length * 2);
   for (const [i, s] of samples.entries()) view.setInt16(54 + i * 2, s);
   return bytes;
+};
+
+/** The phone copy's height: a clip this high keeps its size, so its frames compare pixel for pixel. */
+const PHONE_TALL = 720;
+/** Its width: narrow, so x264 has little to encode and the case stays quick. */
+const PHONE_NARROW = 64;
+
+/**
+ * A clip `PHONE_NARROW` × `PHONE_TALL` whose every frame holds detail of its
+ * own, as a render's grain, dither or crawling hatching does: one seeded
+ * texture under grain drawn fresh each frame, and a bar moving down it,
+ * `frames` at 30 a second, encoded by x264 near losslessly (quantizer 8).
+ * Its frames follow on from one another (no cut), so an encoder places its
+ * key frames by its own rhythm.
+ */
+const grainyClip = (file: string, frames: number) =>
+  Effect.gen(function* () {
+    const output = new Output({ format: new Mp4OutputFormat(), target: new FilePathTarget(file) });
+    const source = new VideoSampleSource({ codec: 'avc', quality: new Quality({ quantizer: 8 }) });
+    output.addVideoTrack(source, { frameRate: 30 });
+    yield* Effect.promise(() => output.start());
+    let seed = 7;
+    const next = () => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    };
+    const luma = PHONE_NARROW * PHONE_TALL;
+    const texture = Uint8Array.from({ length: luma }, () => 48 + Math.floor(next() * 160));
+    for (const k of Arr.range(0, frames - 1)) {
+      const data = new Uint8Array(luma * 1.5).fill(128);
+      for (const i of Arr.range(0, luma - 1)) {
+        const row = Math.floor(i / PHONE_NARROW);
+        const grain = Math.floor((next() - 0.5) * 80);
+        // The bar is white (255), above any grain on the texture (248 at most).
+        const bar = Number(Math.abs(row - k * 8) < 24) * 255;
+        data[i] = Math.max(bar, (texture[i] ?? 128) + grain);
+      }
+      const sample = new VideoSample(data, {
+        format: 'I420',
+        codedWidth: PHONE_NARROW,
+        codedHeight: PHONE_TALL,
+        timestamp: k / 30,
+        duration: 1 / 30,
+      });
+      yield* Effect.promise(() => source.add(sample));
+      sample.close();
+    }
+    yield* Effect.promise(() => output.finalize());
+  });
+
+/** Each frame of `file`'s video, in order of showing, as its luma plane (`PHONE_NARROW` wide), and its key frames' times. */
+const lumas = Effect.fn('test.lumas')(function* (file: string) {
+  const input = new Input({ source: new FilePathSource(file), formats: ALL_FORMATS });
+  const track = yield* Effect.flatMap(
+    Effect.promise(() => input.getPrimaryVideoTrack()),
+    (found) => Effect.orDie(Effect.fromOption(Option.fromNullishOr(found))),
+  );
+  const pictures = yield* Stream.fromAsyncIterable(
+    new VideoSampleSink(track).samples(),
+    String,
+  ).pipe(
+    Stream.mapEffect((sample) =>
+      Effect.gen(function* () {
+        const bytes = new Uint8Array(sample.allocationSize());
+        const [plane] = yield* Effect.promise(() => sample.copyTo(bytes));
+        sample.close();
+        const { offset = 0, stride = PHONE_NARROW } = plane ?? {};
+        return Uint8Array.from({ length: PHONE_NARROW * PHONE_TALL }, (_, i) => {
+          const row = Math.floor(i / PHONE_NARROW);
+          return bytes[offset + row * stride + (i % PHONE_NARROW)] ?? 0;
+        });
+      }),
+    ),
+    Stream.runCollect,
+    Effect.orDie,
+  );
+  const keys = yield* Stream.fromAsyncIterable(new EncodedPacketSink(track).packets(), String).pipe(
+    Stream.filter((packet) => packet.type === 'key'),
+    Stream.map((packet) => packet.timestamp),
+    Stream.runCollect,
+    Effect.orDie,
+  );
+  input.dispose();
+  return { pictures: [...pictures], keys: Arr.sort([...keys], Order.Number) };
+});
+
+/** How near picture `a` is to `b`: the PSNR of their lumas, in dB. */
+const psnr = (a: Uint8Array, b: Uint8Array) => {
+  const squared = a.reduce((sum, v, i) => sum + (v - (b[i] ?? 0)) ** 2, 0) / a.length;
+  return 10 * Math.log10((255 * 255) / Math.max(squared, 1e-9));
 };
 
 /** A directory that is gone once the scope closes. */
@@ -415,19 +511,62 @@ describe.concurrent('Media', () => {
       ),
   );
 
-  it.effect.layer(MediaOnDisk)("a review's still is a JPEG, and its phone copy an MP4", () =>
-    Effect.scoped(
-      Effect.gen(function* () {
-        const media = yield* Media;
-        const fs = yield* FileSystem.FileSystem;
-        const dir = yield* tempDir;
-        yield* media.still(fixture('segment-a.mp4'), 0.2, 32, `${dir}/still.jpg`);
-        expect([...(yield* fs.readFile(`${dir}/still.jpg`)).subarray(0, 2)]).toEqual([0xff, 0xd8]);
-        yield* media.phoneCopy(fixture('segment-a.mp4'), `${dir}/phone.mp4`);
-        const [video] = yield* readBack(`${dir}/phone.mp4`);
-        expect([video?.type, video?.codec]).toEqual(['video', 'avc']);
-      }),
-    ),
+  it.effect.layer(MediaOnDisk)(
+    "a review's still is a JPEG, and its phone copy an MP4 its source's size or less",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* tempDir;
+          yield* media.still(fixture('segment-a.mp4'), 0.2, 32, `${dir}/still.jpg`);
+          expect([...(yield* fs.readFile(`${dir}/still.jpg`)).subarray(0, 2)]).toEqual([
+            0xff, 0xd8,
+          ]);
+          yield* media.phoneCopy(fixture('segment-a.mp4'), `${dir}/phone.mp4`);
+          const [video] = yield* readBack(`${dir}/phone.mp4`);
+          expect([video?.type, video?.codec]).toEqual(['video', 'avc']);
+          // A 64-pixel video under the copy's 720 lines keeps its own size.
+          const copy = new Input({
+            source: new FilePathSource(`${dir}/phone.mp4`),
+            formats: ALL_FORMATS,
+          });
+          const track = yield* Effect.promise(() => copy.getPrimaryVideoTrack());
+          expect([track?.displayWidth, track?.displayHeight]).toEqual([64, 64]);
+        }),
+      ),
+  );
+
+  it.effect.layer(MediaOnDisk)(
+    "a phone copy shows every frame's own picture however fine its detail, and a seek in it decodes at most a second",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const dir = yield* tempDir;
+          const frames = 60;
+          yield* grainyClip(`${dir}/grain.mp4`, frames);
+          yield* (yield* Media).phoneCopy(`${dir}/grain.mp4`, `${dir}/phone.mp4`);
+          const made = yield* lumas(`${dir}/grain.mp4`);
+          const copy = yield* lumas(`${dir}/phone.mp4`);
+          expect(copy.pictures.length).toBe(frames);
+          // A frame the encode starved shows the picture before it (or a blend
+          // of its neighbours): nearer the frame before than its own.
+          const behind = Arr.range(1, frames - 1).filter((k) => {
+            const shown = copy.pictures[k] ?? new Uint8Array();
+            const own = psnr(shown, made.pictures[k] ?? new Uint8Array());
+            return own <= psnr(shown, made.pictures[k - 1] ?? new Uint8Array());
+          });
+          expect(behind).toEqual([]);
+          // A seek starts decoding at the key frame at or before it.
+          const spans = Arr.zipWith(
+            [...copy.keys, frames / 30],
+            [-1, ...copy.keys],
+            (b, a) => b - a,
+          );
+          expect(copy.keys[0]).toBe(0);
+          expect(spans.filter((span) => span > 1 + 1e-6)).toEqual([]);
+        }),
+      ),
   );
 
   it.effect.layer(MediaOnDisk)('a video measures by its container, read where it lies', () =>
