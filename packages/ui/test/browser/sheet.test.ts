@@ -53,18 +53,24 @@ const opens = async (page: Page) => (await logOf(page)).filter((line) => line.st
  * hidden: observers are told in one task, in the order they were made, so the
  * sheet's (made first) has been told by then.
  */
-const reportedHidden = (page: Page) =>
+const reportedHidden = (page: Page) => reported(page, false);
+
+/** As `reportedHidden`, once the content is reported showing. */
+const reportedShown = (page: Page) => reported(page, true);
+
+const reported = (page: Page, showing: boolean) =>
   page.locator('#popup').evaluate(
-    (content) =>
+    (content, showing) =>
       new Promise<void>((resolve) => {
         const observer = new IntersectionObserver((entries) => {
-          if (entries.some((entry) => !entry.isIntersecting)) {
+          if (entries.some((entry) => entry.isIntersecting === showing)) {
             observer.disconnect();
             resolve();
           }
         });
         observer.observe(content);
       }),
+    showing,
   );
 
 /** Resolves after the page's next two frames. */
@@ -89,6 +95,9 @@ describe('its layout changing under it (hidden with what holds it, a window resi
     await hideSection(page, false);
     await see.poll(() => box(page, '#panel')).toEqual(REST);
     expect(await opens(page)).toEqual([]);
+    // Shown again as the sheet's observer has it, before the swipe: one seen only after it is
+    // no swipe of a sheet shown.
+    await reportedShown(page);
     await scrollSheet(page, { top: 0 });
     await see(page.locator('#popup')).toHaveCount(0);
     expect(await opens(page)).toEqual(['open false swipe']);
@@ -400,6 +409,35 @@ describe('Sheet.Root', () => {
     expect((await logOf(page)).filter((line) => line.startsWith('open'))).toEqual([
       'open false close-press',
     ]);
+  });
+
+  it('a non-modal right sheet on a page with a classic scrollbar takes presses over all its panel', async () => {
+    const page = await h.open('sheet', {
+      scrollbars: true,
+      viewport: { width: 1440, height: 900 },
+      query: { position: 'right', modal: 'false', dismissal: 'disabled', portal: 'inline' },
+    });
+    // A page long enough to scroll, with a scrollbar that takes room (Windows, Linux), which
+    // `100vw` counts in (the root's overflow is `auto`); the panel stands off it, as the lab's
+    // does.
+    await page.addStyleTag({
+      content: `html { overflow-y: auto; } body { min-height: 3000px; }
+        #panel { right: var(--sheet-scroll-padding-x, 0px); }`,
+    });
+    expect(await page.evaluate(() => innerWidth - document.documentElement.clientWidth)).toBe(15);
+    await openSheet(page);
+    const reach = await page.evaluate(() => {
+      const panel = document.getElementById('panel')!.getBoundingClientRect();
+      const y = panel.y + panel.height / 2;
+      const hit = (x: number) => document.elementFromPoint(x, y)?.closest('#panel') !== null;
+      return {
+        right: Math.round(panel.right),
+        nearRight: hit(panel.right - 3),
+        nearLeft: hit(panel.left + 3),
+        pastLeft: hit(panel.left - 3),
+      };
+    });
+    expect(reach).toEqual({ right: 1425, nearRight: true, nearLeft: true, pastLeft: false });
   });
 });
 

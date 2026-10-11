@@ -71,16 +71,16 @@ interface SheetOverlayContext {
   state: SheetState;
   /** The popup registers its scroll container. */
   setScroller: (element: HTMLElement | null) => void;
-  /** The popup reports where a sheet that is not modal rests: its panel's insets in the viewport. */
+  /** The popup reports where a sheet that is not modal rests: its panel's box in the viewport. */
   setRestRect: (rect: RestRect | null) => void;
 }
 
-/** A panel's resting insets from the viewport's edges, in pixels. */
+/** A panel's resting box in the viewport, in pixels. */
 interface RestRect {
   readonly top: number;
-  readonly right: number;
-  readonly bottom: number;
   readonly left: number;
+  readonly width: number;
+  readonly height: number;
 }
 
 const SheetOverlayContext = createContext<SheetOverlayContext | null>(null);
@@ -204,10 +204,20 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       (!!a &&
         !!b &&
         a.top === b.top &&
-        a.right === b.right &&
-        a.bottom === b.bottom &&
-        a.left === b.left),
+        a.left === b.left &&
+        a.width === b.width &&
+        a.height === b.height),
   });
+  // The overlay's own box (the viewport less a classic scrollbar's gutter), for a sheet that is
+  // not modal: its clip is inset from these edges.
+  const [overlayElement, setOverlayElement] = createSignal<HTMLElement | null>(null, owned);
+  const [overlaySize, setOverlaySize] = createSignal<{ width: number; height: number } | null>(
+    null,
+    {
+      ...owned,
+      equals: (a, b) => a === b || (!!a && !!b && a.width === b.width && a.height === b.height),
+    },
+  );
   const [expanded, setExpanded] = createSignal(false, owned);
   const [entered, setEntered] = createSignal(false, owned);
 
@@ -496,15 +506,36 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
   // the browser does not scroll a container a press misses.
   const looseStyle = (): JSX.CSSProperties => {
     const rect = restRect();
-    if (!rect) {
+    const box = overlaySize();
+    if (!rect || !box) {
       return { position: 'fixed', inset: '0', 'pointer-events': 'none' };
     }
+    const right = box.width - rect.left - rect.width;
+    const bottom = box.height - rect.top - rect.height;
     return {
       position: 'fixed',
       inset: '0',
-      'clip-path': `inset(${rect.top}px ${rect.right}px ${rect.bottom}px ${rect.left}px)`,
+      'clip-path': `inset(${rect.top}px ${right}px ${bottom}px ${rect.left}px)`,
     };
   };
+
+  createEffect(
+    () => [overlayElement(), store.modal()] as const,
+    ([element, modal]) => {
+      if (!element || modal) {
+        return undefined;
+      }
+      const measure = () =>
+        setOverlaySize({ width: element.clientWidth, height: element.clientHeight });
+      measure();
+      const observer = new ResizeObserver(measure);
+      observer.observe(element);
+      return () => {
+        observer.disconnect();
+        setOverlaySize(null);
+      };
+    },
+  );
 
   const style = (): JSX.CSSProperties => {
     const size = viewport();
@@ -548,6 +579,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
     <SheetOverlayContext value={context}>
       {useRenderElement('div', componentProps, {
         state,
+        ref: (element: HTMLElement) => setOverlayElement(() => element),
         stateAttributesMapping: sheetStateAttributesMapping,
         props: [
           {

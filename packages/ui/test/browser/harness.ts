@@ -63,6 +63,11 @@ export interface OpenOptions {
   /** A touch device: `hasTouch` and `isMobile`, as a phone's browser reports. */
   readonly touch?: boolean;
   readonly viewport?: { width: number; height: number };
+  /**
+   * Scrollbars that take room, as on Windows and Linux: the page opens in a
+   * Chromium launched without `--hide-scrollbars` (headless hides them).
+   */
+  readonly scrollbars?: boolean;
 }
 
 /**
@@ -79,6 +84,8 @@ export interface OpenOptions {
 export const harness = (fixtureFile: string): Harness => {
   let server: ReturnType<typeof Bun.serve> | undefined;
   let browser: Browser | undefined;
+  // Launched for the first page that asks for scrollbars that take room.
+  let scrollbarBrowser: Promise<Browser> | undefined;
   let contexts: Array<BrowserContext> = [];
   let problems: Array<string> = [];
 
@@ -110,6 +117,7 @@ export const harness = (fixtureFile: string): Harness => {
 
   afterAll(async () => {
     await browser?.close();
+    await (await scrollbarBrowser)?.close();
     await server?.stop(true);
   });
 
@@ -118,7 +126,11 @@ export const harness = (fixtureFile: string): Harness => {
       if (!browser || !server) {
         throw new Error('harness: open a fixture inside a case');
       }
-      const context = await browser.newContext({
+      if (options.scrollbars) {
+        scrollbarBrowser ??= chromium.launch({ ignoreDefaultArgs: ['--hide-scrollbars'] });
+      }
+      const from = options.scrollbars ? await scrollbarBrowser! : browser;
+      const context = await from.newContext({
         hasTouch: options.touch ?? false,
         isMobile: options.touch ?? false,
         viewport: options.viewport ?? { width: 800, height: 600 },
