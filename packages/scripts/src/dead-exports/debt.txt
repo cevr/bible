@@ -133,7 +133,6 @@ packages/film/src/core/mix.ts LIMIT
 packages/film/src/core/mix.ts loopFill
 packages/film/src/core/narration.ts estimate
 packages/film/src/core/phrases.ts PHRASE_HOLD
-packages/film/src/core/phrases.ts phrasesOf
 packages/film/src/core/phrases.ts quotedWords
 packages/film/src/core/recording.ts TAKE_PAD
 packages/film/src/core/recording.ts TAKE_TAIL_SLACK

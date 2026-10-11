@@ -51,9 +51,12 @@ describe("the render page's code", () => {
         const films = yield* fs.makeTempDirectoryScoped({ prefix: 'film-page-graph-' });
         const page = Context.get(
           yield* Layer.build(
-            LabPage.layer({ pages: LAB_PAGES, servers: LAB_SERVERS, films }).pipe(
-              Layer.provide([PageBundler.layer, PageRenderer.layer]),
-            ),
+            LabPage.layer({
+              pages: LAB_PAGES,
+              servers: LAB_SERVERS,
+              films,
+              footage: { dir: `${films}/footage`, out: `${films}/out` },
+            }).pipe(Layer.provide([PageBundler.layer, PageRenderer.layer])),
           ),
           LabPage,
         );

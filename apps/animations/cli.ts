@@ -21,14 +21,22 @@ export const FOOTAGE = `${import.meta.dir}/footage`;
  */
 export const FOLDERS = { out: `${import.meta.dir}/out`, lab: `${import.meta.dir}/lab` };
 
-/** The player on any free port (nobody opens it by hand), its narration from `films`, stopped with the command's scope. */
+/**
+ * The player on any free port (nobody opens it by hand), its narration from
+ * `films` and its talks' footage from the library's copies under the
+ * outputs (FILMS_OUT, else the app's), stopped with the command's scope.
+ */
 const player = (films: string) =>
   Layer.effect(
     PreviewServer,
-    Effect.acquireRelease(
-      Effect.sync(() => serve(0, films)),
-      (server) => Effect.promise(() => server.stop(true)),
-    ).pipe(Effect.map((server) => PreviewServer.of({ url: server.url.href }))),
+    Effect.gen(function* () {
+      const out = yield* Config.String('FILMS_OUT').pipe(Config.withDefault(FOLDERS.out));
+      const server = yield* Effect.acquireRelease(
+        Effect.sync(() => serve(0, films, { dir: FOOTAGE, out })),
+        (running) => Effect.promise(() => running.stop(true)),
+      );
+      return PreviewServer.of({ url: server.url.href });
+    }),
   );
 
 /**

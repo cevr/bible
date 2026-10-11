@@ -73,7 +73,7 @@ import {
   PreviewServerFailed,
   SoundMissing,
 } from './errors.ts';
-import { FilmFolder, FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
+import { FilmFolder, FilmRepo, type LoadedFilm, filmsOut, placeFilm } from './film-repo.ts';
 import { Mixer } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
@@ -798,7 +798,7 @@ const chaptersCommand = Command.make(
   ),
 );
 
-const lab = <E>(app: FilmApp<E>['lab'], films: string) =>
+const lab = <E>(app: FilmApp<E>['lab'], films: string, footage: string) =>
   Command.make(
     'lab',
     {},
@@ -819,7 +819,13 @@ const lab = <E>(app: FilmApp<E>['lab'], films: string) =>
   ).pipe(
     // The pages, built from the app's entries and watched while the lab runs,
     // and the easel's warm pages over them, in this process's Chrome.
-    Command.provide(labPages({ ...app.pages, films })),
+    Command.provide(
+      Layer.unwrap(
+        Effect.map(filmsOut, (out) =>
+          labPages({ ...app.pages, films, footage: { dir: footage, out } }),
+        ),
+      ),
+    ),
     Command.withDescription(
       "Serve the lab for every film: the player with notes on frames, cues and knobs that write back to the scene files and the studio, beside every render under the roots, compared in sync, and each film's choices and scenes to approve (Ctrl-C stops it)",
     ),
@@ -850,7 +856,7 @@ interface FilmApp<E> {
    */
   readonly lab: {
     readonly at: Effect.Effect<LabAt, E>;
-    readonly pages: Omit<LabPageSpec, 'films'>;
+    readonly pages: Omit<LabPageSpec, 'films' | 'footage'>;
     readonly roots: Effect.Effect<
       ReadonlyArray<ReviewRoot>,
       never,
@@ -928,7 +934,7 @@ export const runFilmCli = <E>({
       lookbook(lookLayer),
       chaptersCommand,
       doctor(previewServer),
-      lab(labApp, films),
+      lab(labApp, films, footageAt),
       look(films),
       journal,
       judge(films, judging.rules),

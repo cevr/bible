@@ -23,13 +23,20 @@
 // A talk declares its format: "One Question" (45 to 65 s, the speaker on
 // screen 40 to 55% of it) or "Episode" (2:15 to 2:50, 20 to 30%). The
 // numbers are data (`TALK_FORMATS`): `film talk words` sets a talk's length
-// against its format's; the cut never reads them.
+// against its format's, as the short checks do; the cut never reads them.
+//
+// A talk's page (`canvas/talk.ts`) plays at `TALK_FPS`, its words set inside
+// every platform's zone (`TALK_LAYOUT`), its captions the kept words as they
+// are heard, spelt as the talk fixes them, a quoted word gold (`talkPhrases`).
 
 import { Array as Arr, Option, Order, Result, Schema } from 'effect';
 import { PartId } from './address-schema.ts';
 import { DuplicateScene } from './errors.ts';
 import { FOOTAGE_RECIPES } from './footage.ts';
+import type { Placed } from './layout.ts';
 import { hashText } from './narration.ts';
+import { type Phrase, phrasesOf } from './phrases.ts';
+import { SAFE_ZONES, SHORT_LAYOUT, safeRect } from './shorts.ts';
 import {
   Knobs,
   Seconds,
@@ -40,7 +47,7 @@ import {
   type VoiceTiming,
 } from './schema.ts';
 import { frameAtOrAfter, frameAtOrBefore } from './time.ts';
-import { voicedAt } from './voiced.ts';
+import { heard, voicedAt } from './voiced.ts';
 
 /** The two formats a talk is cut to, by the study's benchmarks. */
 const TalkFormat = Schema.Literals(['question', 'episode']);
@@ -66,7 +73,28 @@ export const TALK_FORMATS = {
 >;
 
 /** The rate a talk plays at: its mezzanine's, so a seam falls on a frame of both. */
-const TALK_FPS = FOOTAGE_RECIPES.mezzanine.fps;
+export const TALK_FPS = FOOTAGE_RECIPES.mezzanine.fps;
+
+/** Where every platform's buttons leave a talk's words room (`SAFE_ZONES.platforms`), in 1080 × 1920 px. */
+const ROOM = safeRect(SAFE_ZONES.platforms);
+
+/** How far above the room's foot a talk's captions are centred: two lines of caption clear it. */
+const CAPTION_LIFT = 120;
+
+/** The widest line centred on `centre` that stays inside the room. */
+const lineRoom = (centre: number) => 2 * Math.min(centre - ROOM.left, ROOM.right - centre);
+
+/**
+ * Where a talk sets its words, in 1080 × 1920 px, inside every platform's
+ * zone: each line centred on the frame's middle and no wider than the room
+ * either side of it allows; the hook where a short's is (inside the top), the
+ * captions `CAPTION_LIFT` above the room's foot.
+ */
+export const TALK_LAYOUT = {
+  centre: SHORT_LAYOUT.centre,
+  hook: { y: SHORT_LAYOUT.hook.y, width: lineRoom(SHORT_LAYOUT.centre) },
+  caption: { y: ROOM.bottom - CAPTION_LIFT, width: lineRoom(SHORT_LAYOUT.centre) },
+};
 
 /** The longest pause a talk keeps between two words when it names none (seconds). */
 const DEFAULT_GAPS = 0.25;
@@ -526,3 +554,42 @@ export const talkCut = (
       timings: { voice: '', scenes: Object.fromEntries(sections.map((s) => [s.id, s.voice])) },
     };
   });
+
+/** Whether `talk` quotes word `index` of its take `take` (`quotes`): it is gold in the captions. */
+const quotedAt = (talk: Talk, take: string, index: number) =>
+  (talk.quotes ?? []).some((q) => q.take === take && index >= q.from && index <= q.to);
+
+/**
+ * A talk's captions on its clock: each section's words (spelt as the talk
+ * fixes them) phrased apart (`phrasesOf`), so no phrase crosses a section,
+ * each shown when it is heard and ended by its section's end; a word inside
+ * one of the talk's `quotes` is quoted (gold). `placed` is the cut laid out
+ * (`layout(cut.scenes, cut.timings)`).
+ */
+export const talkPhrases = (
+  talk: Talk,
+  cut: TalkCut,
+  placed: ReadonlyArray<Placed>,
+): ReadonlyArray<Phrase> =>
+  cut.sections.flatMap((section) =>
+    Option.match(
+      Arr.findFirst(placed, (p) => p.spec.id === section.id),
+      {
+        onNone: () => [],
+        onSome: (p) => {
+          const offset = p.start + p.speechStart;
+          const end = p.start + p.dur;
+          const local = heard(p.voice.words).map((w) => ({
+            text: w.text,
+            start: w.start + offset,
+            end: w.end + offset,
+          }));
+          const quoted = section.kept.map((index) => quotedAt(talk, section.take, index));
+          return phrasesOf(local, new Set(), quoted).map((phrase) => ({
+            ...phrase,
+            end: Math.min(phrase.end, end),
+          }));
+        },
+      },
+    ),
+  );

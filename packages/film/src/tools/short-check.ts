@@ -1,21 +1,25 @@
-// What `film check --short` looks for, as pure functions over a resolved
-// short, its phrases (`shortPhrases`) and what its probed frames report: text
-// past the safe zone (`SAFE_ZONES`), an open that does not hook (a late first
-// word, nothing moving, the film's title card), a loop that shows its seam (a
-// last frame far from the first, or a long silence round the loop), and a
-// length outside what holds. The numbers are `SHORT_RULES`. Every finding is
-// collected; none stops the others.
+// What `film check --short` looks for, as pure functions over a vertical
+// film (a resolved short, or a talk), its phrases (`shortPhrases`) and what
+// its probed frames report: text past the safe zone (`SAFE_ZONES`; a talk's
+// is `platforms`, inside every platform's own), an open that does not hook
+// (a late first word, nothing moving, its footage included, the film's title
+// card), a loop that shows its seam (a last frame far from the first, or a
+// long silence round the loop), and a length outside what holds. The
+// numbers are `SHORT_RULES`, and a talk's length its format's
+// (`TALK_FORMATS`). Every finding is collected; none stops the others.
 
 import { Array as Arr, Match, Option, Order } from 'effect';
 import type { Phrase } from '../core/phrases.ts';
 import type { Probed, TextBox } from '../core/export-handle.ts';
 import {
+  PLATFORM_ZONES,
   type ResolvedShort,
   SAFE_ZONES,
   SHORT_RULES,
   type SafeZoneName,
   safeRect,
 } from '../core/shorts.ts';
+import { TALK_FORMATS } from '../core/talk.ts';
 import { CLOCK_EPSILON, frameAtOrAfter } from '../core/time.ts';
 import { heldStill } from './check.ts';
 import {
@@ -26,11 +30,31 @@ import {
   ShortUnsafeText,
 } from './findings.ts';
 
-/** A short over the most it may run, or outside the lengths that hold best. */
-export const shortLength = (short: ResolvedShort): Option.Option<ShortLength> => {
-  const { max, from, to } = SHORT_RULES.length;
+/**
+ * A vertical film the checks read: a short cut from a film (`ResolvedShort`),
+ * or a talk, which names the format it is cut to (`TALK_FORMATS`).
+ */
+interface Vertical {
+  readonly id: string;
+  readonly duration: number;
+  readonly format?: keyof typeof TALK_FORMATS;
+}
+
+/** The lengths `film` is held to: a talk's format's, else a short's (`SHORT_RULES`). */
+const lengthsOf = (film: Vertical) =>
+  Option.match(Option.fromUndefinedOr(film.format), {
+    onNone: () => SHORT_RULES.length,
+    onSome: (format) => {
+      const { min, max } = TALK_FORMATS[format].seconds;
+      return { max, from: min, to: max };
+    },
+  });
+
+/** A vertical film over the most it may run, or outside the lengths that hold best. */
+export const shortLength = (film: Vertical): Option.Option<ShortLength> => {
+  const { max, from, to } = lengthsOf(film);
   return Option.liftPredicate(
-    ShortLength.make({ short: short.id, length: short.duration, max, from, to }),
+    ShortLength.make({ short: film.id, length: film.duration, max, from, to }),
     (f) => f.length > to + CLOCK_EPSILON || f.length < from - CLOCK_EPSILON,
   );
 };
@@ -40,7 +64,7 @@ const wordsOf = (phrases: ReadonlyArray<Phrase>) => phrases.flatMap((p) => p.wor
 
 /** A first word later than the rule, or none at all. */
 export const hookWord = (
-  short: ResolvedShort,
+  short: Vertical,
   phrases: ReadonlyArray<Phrase>,
 ): Option.Option<ShortHook> => {
   const at = Option.match(Arr.head(wordsOf(phrases)), {
@@ -55,7 +79,7 @@ export const hookWord = (
 
 /** The silence from the last word to the end, and from the start to the first word, over the rule. */
 export const loopGap = (
-  short: ResolvedShort,
+  short: Vertical,
   phrases: ReadonlyArray<Phrase>,
 ): Option.Option<ShortLoop> => {
   const words = wordsOf(phrases);
@@ -71,7 +95,7 @@ export const loopGap = (
 
 /** What the short's words alone tell: its length, its first word, its loop's silence. */
 export const shortStaticFindings = (
-  short: ResolvedShort,
+  short: Vertical,
   phrases: ReadonlyArray<Phrase>,
 ): ReadonlyArray<ShortFinding> => [
   ...Option.toArray(shortLength(short)),
@@ -118,6 +142,33 @@ const SEEN = 0.05;
 
 const byReach = Order.mapInput(Order.Number, (f: ShortUnsafeText) => f.by);
 
+/** How far the page box `b` runs past each side of `safe`, in 1080 × 1920 px (`k` page px per px); only the sides it crosses. */
+const pastSides = (safe: ReturnType<typeof safeRect>, b: ReturnType<typeof boxOf>, k: number) =>
+  [
+    { side: 'top' as const, by: safe.top - b.top / k },
+    { side: 'bottom' as const, by: b.bottom / k - safe.bottom },
+    { side: 'left' as const, by: safe.left - b.left / k },
+    { side: 'right' as const, by: b.right / k - safe.right },
+  ].filter((p) => p.by > 0.5);
+
+/**
+ * The zone a finding names: the zone, and for `platforms` the platforms
+ * whose own zone (`PLATFORM_ZONES`) the box runs past on `side`, so the
+ * finding says whose buttons cover it.
+ */
+const zoneLabel = (
+  zone: SafeZoneName,
+  side: 'top' | 'bottom' | 'left' | 'right',
+  b: ReturnType<typeof boxOf>,
+  k: number,
+): string => {
+  if (zone !== 'platforms') return zone;
+  const under = Object.values(PLATFORM_ZONES)
+    .filter((p) => pastSides(safeRect(p.zone), b, k).some((s) => s.side === side))
+    .map((p) => p.title);
+  return `${zone} (${under.join(', ')})`;
+};
+
 /**
  * The lines of a probed frame at short second `at` that cross `zone`, each
  * past its worst side, in 1080 × 1920 px; `k` is page px per such px.
@@ -134,25 +185,18 @@ export const unsafeTexts = (
     .filter((t) => t.alpha > SEEN && t.text.trim() !== '')
     .flatMap((t) => {
       const b = boxOf(t);
-      const past = [
-        { side: 'top' as const, by: safe.top - b.top / k },
-        { side: 'bottom' as const, by: b.bottom / k - safe.bottom },
-        { side: 'left' as const, by: safe.left - b.left / k },
-        { side: 'right' as const, by: b.right / k - safe.right },
-      ]
-        .filter((p) => p.by > 0.5)
-        .map((p) =>
-          ShortUnsafeText.make({
-            short,
-            zone,
-            text: t.text,
-            at,
-            side: p.side,
-            by: p.by,
-            own: t.caption === true,
-            others: 0,
-          }),
-        );
+      const past = pastSides(safe, b, k).map((p) =>
+        ShortUnsafeText.make({
+          short,
+          zone: zoneLabel(zone, p.side, b, k),
+          text: t.text,
+          at,
+          side: p.side,
+          by: p.by,
+          own: t.caption === true,
+          others: 0,
+        }),
+      );
       return Arr.match(past, {
         onEmpty: () => [],
         onNonEmpty: (some) => [Arr.max(some, byReach)],

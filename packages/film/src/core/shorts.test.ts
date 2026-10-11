@@ -4,7 +4,10 @@ import { type Placed, layout } from './layout.ts';
 import { hashText } from './narration.ts';
 import { Shorts, type Short, type Timings } from './schema.ts';
 import {
+  PLATFORM_ZONES,
   type ResolvedShort,
+  SAFE_ZONES,
+  SAFE_ZONE_NAMES,
   SHORT_LAYOUT,
   SHORT_PREROLL,
   hookAlpha,
@@ -188,6 +191,32 @@ describe('shorts', () => {
       false,
       false,
     ]);
+  });
+
+  test("the platforms' zone is each edge's widest of YouTube Shorts', Instagram Reels' and TikTok's", () => {
+    const zones = Object.values(PLATFORM_ZONES).map((p) => p.zone);
+    expect(Object.values(PLATFORM_ZONES).map((p) => p.title)).toEqual([
+      'YouTube Shorts',
+      'Instagram Reels',
+      'TikTok',
+    ]);
+    expect(SAFE_ZONES.platforms).toEqual({
+      top: Math.max(...zones.map((z) => z.top)),
+      bottom: Math.max(...zones.map((z) => z.bottom)),
+      left: Math.max(...zones.map((z) => z.left)),
+      right: Math.max(...zones.map((z) => z.right)),
+    });
+    // No platform's own zone reaches past it, and each edge is some platform's.
+    for (const side of ['top', 'bottom', 'left', 'right'] as const) {
+      for (const z of zones) expect(z[side]).toBeLessThanOrEqual(SAFE_ZONES.platforms[side]);
+      expect(zones.map((z) => z[side])).toContain(SAFE_ZONES.platforms[side]);
+    }
+    // The feed's zones are as they were.
+    expect([SAFE_ZONES.default, SAFE_ZONES.ads]).toEqual([
+      { top: 270, bottom: 520, left: 65, right: 140 },
+      { top: 270, bottom: 672, left: 65, right: 140 },
+    ]);
+    expect(SAFE_ZONE_NAMES).toEqual(['default', 'ads', 'platforms']);
   });
 
   test('shorts.ts decodes: ids are unique slugs and every short has a span', () => {

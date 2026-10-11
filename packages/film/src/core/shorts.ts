@@ -62,18 +62,72 @@ interface SafeZone {
   readonly right: number;
 }
 
+/** `share` of `size` px, rounded up to a whole pixel: a margin given as a share of the frame. */
+const shareOf = (share: number, size: number) => Math.ceil(share * size);
+
+/**
+ * Each platform's own safe zone for a 9:16 video, in 1080 × 1920 px, as each
+ * publishes it (read 2026-10-11). Only YouTube and Meta publish numbers in
+ * their help text, and both for their ads; TikTok publishes its zone as a
+ * downloadable file. A talk is published to all three (one render), so its
+ * text keeps inside every one of them (`SAFE_ZONES.platforms`).
+ */
+export const PLATFORM_ZONES = {
+  youtube: {
+    title: 'YouTube Shorts',
+    // Google Ads Help, "Use square and vertical video to engage mobile customers"
+    // (support.google.com/google-ads/answer/9128498): its 1080 × 1920 safe-zone image marks
+    // 288 px at the top, 672 at the bottom, 48 on the left and 192 on the right (the
+    // figures as upload-post.com/tools/safe-zone-checker transcribes them).
+    zone: { top: 288, bottom: 672, left: 48, right: 192 },
+  },
+  reels: {
+    title: 'Instagram Reels',
+    // Meta Ads Guide, Instagram Reels video (facebook.com/business/ads-guide/update/video/instagram-reels):
+    // keep text, logos and other key elements out of the top 14%, the bottom 35% and 6% of each side.
+    zone: {
+      top: shareOf(0.14, SHORT_HEIGHT),
+      bottom: shareOf(0.35, SHORT_HEIGHT),
+      left: shareOf(0.06, SHORT_WIDTH),
+      right: shareOf(0.06, SHORT_WIDTH),
+    },
+  },
+  tiktok: {
+    title: 'TikTok',
+    // TikTok Ads Manager Help, "TikTok Auction In-Feed Ads"
+    // (ads.tiktok.com/help/article/tiktok-auction-in-feed-ads), whose safe-zone file
+    // "In-Feed Standard Version LTR" at 1080 × 1920 keeps 240 px at the top, 660 at the bottom
+    // and 120 on each side (as upload-post.com/tools/safe-zone-checker measures it).
+    zone: { top: 240, bottom: 660, left: 120, right: 120 },
+  },
+} as const satisfies Record<string, { readonly title: string; readonly zone: SafeZone }>;
+
+/** The zone inside every one of `zones`: each edge the widest of theirs. */
+const unionOf = (zones: ReadonlyArray<SafeZone>): SafeZone => ({
+  top: Math.max(...zones.map((z) => z.top)),
+  bottom: Math.max(...zones.map((z) => z.bottom)),
+  left: Math.max(...zones.map((z) => z.left)),
+  right: Math.max(...zones.map((z) => z.right)),
+});
+
 /**
  * The zones `film check --short --zone` knows: `default` the organic feed's
  * (the like, comment and share buttons on the right, the name and caption
  * above the bottom), `ads` a paid placement's, whose call to action covers
- * the bottom 35%.
+ * the bottom 35%, and `platforms` the zone inside every platform's own
+ * (`PLATFORM_ZONES`): where a talk sets its words.
  */
 export const SAFE_ZONES = {
   default: { top: 270, bottom: 520, left: 65, right: 140 },
   ads: { top: 270, bottom: Math.round(0.35 * SHORT_HEIGHT), left: 65, right: 140 },
+  platforms: unionOf(Object.values(PLATFORM_ZONES).map((p) => p.zone)),
 } as const satisfies Record<string, SafeZone>;
 export type SafeZoneName = keyof typeof SAFE_ZONES;
-export const SAFE_ZONE_NAMES = ['default', 'ads'] as const satisfies ReadonlyArray<SafeZoneName>;
+export const SAFE_ZONE_NAMES = [
+  'default',
+  'ads',
+  'platforms',
+] as const satisfies ReadonlyArray<SafeZoneName>;
 
 /** The rectangle inside `zone`'s margins, in 1080 × 1920 px: where text is safe. */
 export const safeRect = (zone: SafeZone) => ({

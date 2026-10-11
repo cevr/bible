@@ -163,6 +163,23 @@ words are named by what they say; `--take <key>` prints that take's whole
 transcript, every word the edit could play. A film that is not a talk fails
 `NotATalk`.
 
+A talk's page is `canvas/talk.ts`: a `Film` of 1080×1920 at `TALK_FPS`,
+built from the talk and its takes (`TalkFootage`: a take's transcript and
+voice, its footage source `<name>/<sha12>` and its picture's displayed
+size), each section a scene. Each frame reads the frame of the take its cut
+names (`footageAt`: the piece of its section playing, as many frames on from
+the piece's in-point as the frame is from the piece's start, read mid-frame),
+and draws what the host decoded, cropped 9:16 about the section's `frame`
+knob (a point in the take's pixels; the picture's middle unless set) and
+`zoom` times in from the largest 9:16 crop the picture holds, kept inside
+the picture; the lab drags both. Over it, the hook (`canvas/vertical.ts`,
+the same hook a short sets) and the burned captions: each section's kept
+words as they are heard, spelt as the talk's `fixes` spell them, a word
+inside one of its `quotes` gold (`talkPhrases`), all set inside every
+platform's zone (`TALK_LAYOUT`). The app's films index lists its talks with
+`talkFilms`, beside its drawn films in `narratedFilms`, so the player, the
+render and the checks open a talk as they open a film.
+
 The words a talk is made in:
 
 - **talk**: a film cut from the speaker's own take, not drawn.
@@ -698,7 +715,7 @@ untouched: they time each line by the aligner (`sceneCaptions`), and timing
 them by the voice is one line in `core/captions.ts` (`filmCaptionTimes = heard`),
 left for the owner since it moves burned-in pixels. `render --short --no-captions` leaves them out.
 
-`film check <film> --short <id> [--zone default|ads]` holds a short to
+`film check <film> --short <id> [--zone default|ads|platforms]` holds a short to
 `SHORT_RULES` (`core/shorts.ts`) instead of checking the film
 (`tools/short-check.ts`, pure; `Checker.short` probes the page):
 
@@ -706,7 +723,11 @@ left for the owner since it moves burned-in pixels. `render --short --no-caption
   second and at each phrase's first frame. `SAFE_ZONES` (exported from
   `core/shorts.ts` with `safeRect`, so the lab draws the same zones) holds
   the margins in 1080×1920 px: `default` top 270, bottom 520, right 140,
-  left 65; `ads` the same with the bottom 35% (672). The short's own lines
+  left 65; `ads` the same with the bottom 35% (672); `platforms` the zone
+  inside every platform's own, each edge the widest of YouTube Shorts',
+  Instagram Reels' and TikTok's (`PLATFORM_ZONES`, each value with its
+  source: top 288, bottom 672, left 120, right 192), where a talk sets its
+  words, a finding naming the platforms a line runs under. The short's own lines
   (hook, captions; probed with the `caption` tag) are an error and fold into
   one finding per side; the film's lines in the band are a warning each,
   since the band is the film's frame and only another span moves them.
@@ -725,6 +746,12 @@ left for the owner since it moves burned-in pixels. `render --short --no-caption
   film's aspect; a read with no value for every cell (no canvas to sample on)
   fails as `FrameFailed` (`lumaGrid`), never compared as clean.
 - `ShortLength`: over 90 s is an error; outside 45–75 s a warning.
+
+A talk is held to the same checks as a vertical film: its length is its
+format's (`TALK_FORMATS`: over its most an error, under its least a
+warning), and its open is still only while the take's frame holds too (the
+probe records each footage frame a frame draws, `FootageMark`, so a talking
+head is motion read from the edit, not the pixels).
 
 A short resolves on its page's frame rate (`Checker.cut`: the rate the film
 declares, read from the page's `info.fps`, as the renderer does), so
@@ -3194,11 +3221,19 @@ black. A drawn film has no `footageAt` and is drawn at once, as it always
 was, and its page never loads the decoder. The live adapter
 (`footage-browser.ts`) opens each source with mediabunny over a ranged
 `UrlSource` at `/footage/<name>/<sha12>/<copy>.mp4` (`core/footage.ts`):
-the render page reads the mezzanine, every other page the proxy. The
-server's host, and a test, give frames of their own (`Footage.layerOver`;
-`Footage.none` has none). The browser test `e2e/player/footage-exact.dom.test.ts` holds
+the render page reads the mezzanine, every other page the proxy. One module
+answers that URL for the render's server (the app's player) and the lab's
+alike (`tools/footage-route.ts`): a copy of a name the footage library's lock
+lists now, of its original's hash, made and on disk under the outputs
+folder, whole or by the byte range asked; anything else under `/footage/` is
+a 404. The server's host, and a test, give frames of their own (`Footage.layerOver`;
+`Footage.none` has none). A footage film's probe also records each footage
+frame it drew (`FootageMark`: its source and second), and a drawn film's
+probe has no such field, as before. The browser test `e2e/player/footage-exact.dom.test.ts` holds
 the seam frame-exact over a synthetic numbered clip, a still and an export
-chunk alike.
+chunk alike; `e2e/player/talk-render.dom.test.ts` holds a talk's page so over
+every seam of its cut, its probe captions to its phrases, and fails a chunk
+whose mezzanine cannot be fetched.
 
 The lint holds the host to its adapters in the lab, the player, `browser/`,
 `command/` and the app's page entries (`.oxlintrc.json`): `no-restricted-globals` and

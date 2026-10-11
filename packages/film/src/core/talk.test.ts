@@ -7,23 +7,23 @@
 // plays as it did; and the derived timings lay out as a film's do.
 
 import { describe, expect, it } from 'bun:test';
-import { Result, Schema } from 'effect';
-import { FOOTAGE_RECIPES } from './footage.ts';
+import { Array as Arr, Result, Schema } from 'effect';
 import { SYNTHETIC_VOICE, syntheticTake } from './fixtures/talk-take.ts';
 import { layout } from './layout.ts';
 import { noteT } from './notes.ts';
 import { Timings } from './schema.ts';
+import { SAFE_ZONES, safeRect } from './shorts.ts';
 import {
   TALK_FORMATS,
+  TALK_FPS,
+  TALK_LAYOUT,
   type Talk,
   Talk as TalkSchema,
   type TalkCut,
   type TalkTake,
   talkCut,
+  talkPhrases,
 } from './talk.ts';
-
-/** The rate a talk plays at: its mezzanine's. */
-const TALK_FPS = FOOTAGE_RECIPES.mezzanine.fps;
 
 const WORDS = ['Is', 'the', 'um', 'verdict', 'a', 'cover', 'up', 'No', 'it', 'is', 'not'];
 
@@ -315,5 +315,61 @@ describe('a talk cut on its transcript', () => {
     expect(Object.keys(TALK_FORMATS)).toEqual(['question', 'episode']);
     expect(TALK_FORMATS.question.seconds).toEqual({ min: 45, max: 65 });
     expect(TALK_FORMATS.episode.seconds).toEqual({ min: 135, max: 170 });
+  });
+});
+
+describe("a talk's captions", () => {
+  /** Two sections of one take: the second plays words 7 to 10, its "No" quoted. */
+  const talk = talkOf(
+    [
+      { id: 'claim', take: 'a', from: 0, to: 6, cut: [[2, 2]] },
+      { id: 'answer', take: 'a', from: 7, to: 10 },
+    ],
+    { fixes: { a: { '3': 'verdict,' } }, quotes: [{ take: 'a', from: 7, to: 7 }] },
+  );
+  const cut = cutOf(talk);
+  const placed = Result.getOrThrow(layout(cut.scenes, cut.timings));
+  const phrases = talkPhrases(talk, cut, placed);
+
+  it('says each kept word once, as the talk spells it, in order, and never a struck one', () => {
+    expect(phrases.flatMap((p) => p.words.map((w) => w.text))).toEqual([
+      'Is',
+      'the',
+      'verdict,',
+      'a',
+      'cover',
+      'up',
+      'No',
+      'it',
+      'is',
+      'not',
+    ]);
+  });
+
+  it('shows each word when it is heard on the talk clock, and keeps every phrase inside its section', () => {
+    for (const [section, p] of Arr.zip(cut.sections, placed)) {
+      const offset = p.start + p.speechStart;
+      const inside = phrases.filter((ph) => ph.start >= p.start && ph.start < p.start + p.dur);
+      expect(inside.flatMap((ph) => ph.words.map((w) => w.start))).toEqual(
+        section.voice.words.map((w) => w.voiced.start + offset),
+      );
+      for (const ph of inside) expect(ph.end).toBeLessThanOrEqual(p.start + p.dur + 1e-9);
+    }
+  });
+
+  it('golds the words the talk quotes, and no other', () => {
+    expect(phrases.flatMap((p) => p.words.filter((w) => w.quoted).map((w) => w.text))).toEqual([
+      'No',
+    ]);
+  });
+
+  it("sets its words inside every platform's zone", () => {
+    const room = safeRect(SAFE_ZONES.platforms);
+    for (const { y, width } of [TALK_LAYOUT.hook, TALK_LAYOUT.caption]) {
+      expect(TALK_LAYOUT.centre - width / 2).toBeGreaterThanOrEqual(room.left);
+      expect(TALK_LAYOUT.centre + width / 2).toBeLessThanOrEqual(room.right);
+      expect(y).toBeGreaterThan(room.top);
+      expect(y).toBeLessThan(room.bottom);
+    }
   });
 });

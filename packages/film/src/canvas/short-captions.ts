@@ -1,5 +1,6 @@
-// A short's burned-in captions: its phrases (`shortPhrases`), one at a time,
-// centred under the film's frame with no plate. A quoted word takes a gold
+// A vertical film's burned-in captions: a short's phrases (`shortPhrases`),
+// or a talk's (`talkPhrases`), one at a time, centred where its layout puts
+// them (under a short's band) with no plate. A quoted word takes a gold
 // marker stroke behind it, swept across it as it is read, so a quotation
 // lights word by word and plain narration stays plain. Every phrase is set
 // once (its lines, each word's place); a frame only looks one up and draws it.
@@ -114,11 +115,22 @@ const phraseAt = (phrases: ReadonlyArray<SetPhrase>, s: number) => {
   return -1;
 };
 
-/** The captions of a short whose phrases are `phrases`, set in `style`, drawn `k` page px per px. */
+/** Where a vertical film sets its captions, in 1080 × 1920 px: every line centred on `centre`. */
+interface CaptionLayout {
+  readonly centre: number;
+  readonly caption: { readonly y: number; readonly width: number };
+}
+
+/**
+ * The captions of a vertical film whose phrases are `phrases`, set in
+ * `style` where `layout` puts them (a short's `SHORT_LAYOUT` unless given),
+ * drawn `k` page px per px.
+ */
 export const burnedCaptions = (
   phrases: ReadonlyArray<Phrase>,
   style: ShortLook['caption'],
   k: number,
+  layout: CaptionLayout = SHORT_LAYOUT,
 ) => {
   let set: ReadonlyArray<SetPhrase> | undefined;
   let ascent = 0;
@@ -133,7 +145,7 @@ export const burnedCaptions = (
     descent = m.fontBoundingBoxDescent;
     const step = (ascent + descent) * 1.08;
     const space = ctx.measureText(' ').width;
-    const { centre, caption } = SHORT_LAYOUT;
+    const { centre, caption } = layout;
     const all = phrases.map((phrase) => {
       const widths = phrase.words.map((w) => ctx.measureText(w.text).width);
       const lines = breakLines(widths, space, caption.width);

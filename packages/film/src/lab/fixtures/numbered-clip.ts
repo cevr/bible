@@ -31,24 +31,35 @@ const registered = Effect.runSync(
   Effect.cached(Effect.scoped(Layer.build(Layer.provide(Media.layer, BunServices.layer)))),
 );
 
-/** Frame `n`'s picture, as I420: its bars in the luma plane, the chroma grey. */
-const picture = (n: number): Uint8Array => {
-  const luma = CLIP_W * CLIP_H;
+/** A clip's picture size, in px. */
+interface ClipSize {
+  readonly width: number;
+  readonly height: number;
+}
+
+/** Frame `n`'s picture at `size`, as I420: its bars in the luma plane, the chroma grey. */
+const picture = (n: number, { width, height }: ClipSize): Uint8Array => {
+  const luma = width * height;
   const bytes = new Uint8Array(luma * 1.5).fill(128);
-  const bar = CLIP_W / BITS;
-  for (let y = 0; y < CLIP_H; y += 1)
-    for (let x = 0; x < CLIP_W; x += 1)
-      bytes[y * CLIP_W + x] = LUMA[(n >> (BITS - 1 - Math.floor(x / bar))) & 1] ?? LUMA[0];
+  const bar = width / BITS;
+  for (let y = 0; y < height; y += 1)
+    for (let x = 0; x < width; x += 1)
+      bytes[y * width + x] = LUMA[(n >> (BITS - 1 - Math.floor(x / bar))) & 1] ?? LUMA[0];
   return bytes;
 };
 
-/** A clip of `frames` numbered frames at `fps`, a key frame every `keyEvery` seconds: its MP4 bytes. */
+/**
+ * A clip of `frames` numbered frames at `fps`, a key frame every `keyEvery`
+ * seconds, `size` px (`CLIP_W` × `CLIP_H` unless given): its MP4 bytes.
+ */
 export const numberedClip = (options: {
   readonly frames: number;
   readonly fps: number;
   readonly keyEvery: number;
+  readonly size?: ClipSize;
 }): Effect.Effect<Uint8Array> =>
   Effect.gen(function* () {
+    const size = options.size ?? { width: CLIP_W, height: CLIP_H };
     yield* registered;
     const target = new BufferTarget();
     const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target });
@@ -65,10 +76,10 @@ export const numberedClip = (options: {
         Effect.acquireUseRelease(
           Effect.sync(
             () =>
-              new VideoSample(picture(n), {
+              new VideoSample(picture(n, size), {
                 format: 'I420',
-                codedWidth: CLIP_W,
-                codedHeight: CLIP_H,
+                codedWidth: size.width,
+                codedHeight: size.height,
                 timestamp: n / options.fps,
                 duration: 1 / options.fps,
               }),

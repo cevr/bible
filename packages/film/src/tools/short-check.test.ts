@@ -281,3 +281,54 @@ describe('the open', () => {
     ).toBe(true);
   });
 });
+
+describe('a talk, checked as a vertical film', () => {
+  const talk = (duration: number, format: 'question' | 'episode') => ({
+    id: 'why-the-law',
+    duration,
+    fps: 30,
+    format,
+  });
+
+  test("its length is held to its format's, not a short's", () => {
+    expect(Option.isNone(shortLength(talk(50, 'question')))).toBe(true);
+    const short = Option.getOrThrow(shortLength(talk(50, 'episode')));
+    expect(short.message).toContain('outside the 135–170s');
+    expect(Option.isNone(shortLength(talk(150, 'episode')))).toBe(true);
+    expect(Option.isSome(shortLength(talk(70, 'question')))).toBe(true);
+  });
+
+  /** A frame of the take's footage at source second `at`, with the same line of text. */
+  const shot = (at: number): Probed => ({
+    texts: [box('word', 100, 100, 100, 40)],
+    inks: [],
+    footage: [{ source: 'take.why/0123456789ab', at }],
+  });
+
+  test('its footage moving is motion: a still open is one whose source time holds', () => {
+    expect(Option.isNone(stillOpen('why-the-law', [shot(1), shot(1 + 1 / 30)], 0.5))).toBe(true);
+    expect(Option.isSome(stillOpen('why-the-law', [shot(1), shot(1)], 0.5))).toBe(true);
+    const other = { ...shot(1), footage: [{ source: 'take.why/ba9876543210', at: 1 }] };
+    expect(Option.isNone(stillOpen('why-the-law', [shot(1), other], 0.5))).toBe(true);
+  });
+
+  test("its text is held to every platform's zone, naming the platforms a line runs under", () => {
+    // Inside the feed's zone (it ends at 1400 px), past the platforms' bottom (1248 px).
+    const low = frame(own(box('one two', 300, 1300, 400, 80)));
+    expect(unsafeTexts('why-the-law', 'default', 1, low, 1)).toEqual([]);
+    const [under] = unsafeTexts('why-the-law', 'platforms', 1, low, 1);
+    expect(under?.side).toBe('bottom');
+    expect(under?.by).toBeCloseTo(1380 - 1248);
+    expect(under?.zone).toBe('platforms (YouTube Shorts, Instagram Reels, TikTok)');
+    // Past YouTube's right (888 px) alone.
+    const [right] = unsafeTexts(
+      'why-the-law',
+      'platforms',
+      1,
+      frame(own(box('three four', 500, 700, 400, 80))),
+      1,
+    );
+    expect(right?.side).toBe('right');
+    expect(right?.message).toContain('the platforms (YouTube Shorts) safe zone');
+  });
+});

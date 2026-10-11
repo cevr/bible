@@ -125,7 +125,11 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): Expo
       return canvasBase64(canvas, type);
     },
     probe: async (i) => {
-      const sink: ProbeSink = { texts: [], inks: [] };
+      // A film that reads footage records each frame of it drawn; a drawn film's probe is as it was.
+      const sink: ProbeSink = Option.match(footageReads(film), {
+        onNone: () => ({ texts: [], inks: [] }),
+        onSome: () => ({ texts: [], inks: [], footage: [] }),
+      });
       drawWith(i, await footageOf(i), { probe: sink });
       return sink;
     },

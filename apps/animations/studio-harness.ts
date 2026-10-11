@@ -146,7 +146,12 @@ const Harness = Layer.unwrap(
     // The lab's own services and pages (`filmServices`, `labPages`, as `film lab` runs them)
     // over the copy, read fresh through the CLI over the copy, reviewing no render roots, with
     // an ElevenLabs that only hears.
-    const Services = labPages({ pages: LAB_PAGES, servers: LAB_SERVERS, films: root }).pipe(
+    const Services = labPages({
+      pages: LAB_PAGES,
+      servers: LAB_SERVERS,
+      films: root,
+      footage: { dir: FOOTAGE, out: FOLDERS.out },
+    }).pipe(
       Layer.provideMerge(
         filmServices({
           films: root,
