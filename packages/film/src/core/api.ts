@@ -1161,14 +1161,21 @@ const bareTime = (hash: string): Option.Option<number> =>
 const param = (query: URLSearchParams, key: string): Option.Option<string> =>
   Option.filter(Option.fromNullishOr(query.get(key)), (value) => value !== '');
 
+/** `text` as a path holds it (`Codec.Segment`): none for a name no path can hold (`.`, `..`). */
+const asSegment = Schema.decodeOption(Codec.Segment);
+
+/** A query key's value that an old link moves into a path: none when no path can hold it. */
+const segmentParam = (query: URLSearchParams, key: string): Option.Option<string> =>
+  Option.flatMap(param(query, key), asSegment);
+
 /** The lab's place an old `sel=<cue|knob>:<scene>:<name>` named, on `film`. */
 const labOfSelection = (film: string, sel: Option.Option<string>): string =>
   Option.getOrElse(
     Option.flatMap(sel, (raw) => {
       const [kind = '', scene = '', ...rest] = raw.split(':');
       const name = rest.join(':');
-      if ((kind !== 'cue' && kind !== 'knob') || scene === '' || name === '') return Option.none();
-      return Option.some(pageHref.labScene(film, scene, { [kind]: name }));
+      if ((kind !== 'cue' && kind !== 'knob') || name === '') return Option.none();
+      return Option.map(asSegment(scene), (s) => pageHref.labScene(film, s, { [kind]: name }));
     }),
     () => pageHref.lab(film),
   );
@@ -1193,13 +1200,17 @@ const setOfQuery = (folder: string, point: string, query: URLSearchParams): stri
  * place) or the root's (`/?film=<f>&export`, the PreviewServer's form), the
  * rest of its query (the build or wedge it pins, captions) kept.
  */
-const exportOfQuery = (pathname: string, query: URLSearchParams): Option.Option<string> => {
+const exportOfQuery = (
+  pathname: string,
+  rootFilm: Option.Option<string>,
+  query: URLSearchParams,
+): Option.Option<string> => {
   const film = Option.orElse(
     Option.map(Place.decode(Places.play, pathname), (value) => value.path.film),
     () =>
       Option.flatMap(
         Option.liftPredicate(pathname, (p) => p === '/'),
-        () => param(query, 'film'),
+        () => rootFilm,
       ),
   );
   return Option.map(film, (f) => {
@@ -1218,8 +1229,10 @@ const exportOfQuery = (pathname: string, query: URLSearchParams): Option.Option<
 
 /** The place an old link's path and query name, if they name one. */
 const legacyPath = (pathname: string, query: URLSearchParams): Option.Option<string> => {
-  if (query.has('export')) return exportOfQuery(pathname, query);
-  const film = param(query, 'film');
+  // Each value an old link moves into a path is read once, as the path holds it: a name no path
+  // can hold (`.`, `..`) names nothing.
+  const film = segmentParam(query, 'film');
+  if (query.has('export')) return exportOfQuery(pathname, film, query);
   const lookbook = query.has('lookbook');
   const lab = query.has('lab');
   if (pathname === '/lab')
@@ -1241,16 +1254,16 @@ const legacyPath = (pathname: string, query: URLSearchParams): Option.Option<str
       }),
     );
   if (pathname !== '/') return Option.none();
-  const project = param(query, 'project');
+  const project = segmentParam(query, 'project');
   if (Option.isSome(project)) return Option.some(pageHref.project(project.value));
   if (Option.isSome(film)) {
     if (lookbook) return Option.some(pageHref.scenes(film.value));
     if (lab) return Option.some(pageHref.lab(film.value));
     return Option.some(pageHref.choices(film.value));
   }
-  return Option.flatMap(param(query, 'folder'), (folder) =>
+  return Option.flatMap(segmentParam(query, 'folder'), (folder) =>
     Option.some(
-      Option.match(param(query, 'set'), {
+      Option.match(segmentParam(query, 'set'), {
         onNone: () => pageHref.folder(folder),
         onSome: (point) => setOfQuery(folder, point, query),
       }),

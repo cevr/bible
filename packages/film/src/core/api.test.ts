@@ -232,6 +232,10 @@ const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/lab?film=rbf&sel=knob:roof:sway', '/films/rbf/lab/roof?knob=sway'],
   ['/lab?film=rbf&sel=cue:render:scenes:x', '/films/rbf/lab/render?cue=scenes%3Ax'],
   ['/lab?film=rbf&sel=nonsense', '/films/rbf/lab'],
+  // A name no path can hold (a URL resolves `.` and `..` away) names nothing.
+  ['/lab?film=rbf&sel=cue:..:lower', '/films/rbf/lab'],
+  ['/lab?film=..', '/'],
+  ['/?folder=f&set=..', '/sets/f'],
   ['/lab', '/'],
   ['/player?film=rbf', '/films/rbf/play'],
   ['/player?film=rbf#42.000', '/films/rbf/play#t=42'],
@@ -290,6 +294,12 @@ describe('old links', () => {
     '/films/rbf/project?point=render%3Ascenes%3Aroof',
     '/sets/f/p?view=pair',
     '/nowhere?film=rbf',
+    // A film no path can hold (a URL resolves `.` and `..` away) names no film.
+    '/?film=..',
+    '/?film=..&export',
+    '/?film=.&export',
+    '/?project=..',
+    '/?folder=..',
   ])('%s is not old', (href) => {
     expect(legacyPlace(href)).toEqual(Option.none());
   });
