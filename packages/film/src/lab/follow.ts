@@ -117,20 +117,19 @@ export const useFollow = (options: FollowOptions): void => {
       }),
   );
 
-  // Taken back (Follow, Play, a line held again): the box where it stands is the view's, then placed as its target needs.
-  createEffect(
-    () => options.placing(),
-    (on) => {
-      if (!on) return;
-      Option.map(options.box(), (box) => {
-        anchor = box.scrollTop;
-      });
-    },
-  );
-
+  // One effect places the box, and first takes it back when placing turns on (Follow, Play, a line held again): the
+  // box where it stands is the view's from then. In one effect, the take-back comes before the placement's own check
+  // for a reader's scroll by the code's order, not by the scheduler's.
+  let wasPlacing = false;
   createEffect(
     () => [options.target(), laidOut(), options.placing()] as const,
     ([key, , on]) => {
+      const takenBack = on && !wasPlacing;
+      wasPlacing = on;
+      if (takenBack)
+        Option.map(options.box(), (box) => {
+          anchor = box.scrollTop;
+        });
       if (!on || key === '') return;
       Option.map(
         Option.flatMap(options.box(), (box) =>
