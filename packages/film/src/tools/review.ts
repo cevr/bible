@@ -17,9 +17,10 @@
 // so a route never takes a path on the box, and a ref answers only a file the
 // index lists. Besides a say on a version of a set, written to its project
 // folder's own catalogue (`say`, through `RenderCatalogue`), the only files
-// the review writes are derived ones (a frame, a
-// 720p phone copy of a big video, a score option's mix) in its cache, keyed
-// by the source's path and mtime (or, for a mix, its plan), each made once,
+// the review writes are derived ones (a frame, a phone copy of a video too
+// big or too dense to play as made, a score option's mix) in its cache, keyed
+// by the source's path and mtime (a phone copy by its encode too; a mix by
+// its plan), each made once,
 // whole or not at all (`writeWhole`: a partial of its own beside its name,
 // renamed into place; the maker names its format, never the file's name).
 // Lengths, frames and phone copies are the Media service's (`media.ts`).
@@ -96,7 +97,7 @@ import { counted } from '../core/words.ts';
 import { CATALOGUE_FILE, type CatalogueError, RenderCatalogue } from './catalogue.ts';
 import { writeWhole } from './content-store.ts';
 import { AtMtime, fileCache, madeFromName } from './file-cache.ts';
-import { Media } from './media.ts';
+import { Media, PHONE_COPY, PHONE_RATE } from './media.ts';
 
 /** A folder the review reads, and the label its refs start with. */
 export interface ReviewRoot {
@@ -108,11 +109,13 @@ interface ReviewConfig {
   readonly roots: ReadonlyArray<ReviewRoot>;
   /** Where derived files are kept. */
   readonly cache: string;
-  /** A video over this many bytes gets a 720p phone copy. */
+  /** A video over this many bytes gets a phone copy (`Media.phoneCopy`). */
   readonly phoneOver: number;
+  /** So does a video over this many bits a second (`PHONE_RATE` unless given). */
+  readonly phoneRate?: number;
   /** A video over this many bytes is not played inline; an authored download may still name it. */
   readonly maxVideo: number;
-  /** Whether phone copies are made in the background as the index finds big videos. */
+  /** Whether phone copies are made in the background as the index finds videos that need one. */
   readonly phoneCopies: boolean;
 }
 
@@ -570,7 +573,7 @@ interface ReviewService {
     at: Option.Option<number>,
     width: number,
   ) => Effect.Effect<string, ReviewFileUnknown | ReviewToolFailed | MediaFailed>;
-  /** The video's 720p phone copy, when it is made. */
+  /** The video's phone copy, when it is made. */
   readonly phone: (ref: string) => Effect.Effect<Option.Option<string>, ReviewFileUnknown>;
   /**
    * A derived file in the cache at `name` (`mix/<key>.m4a`): there already, or
@@ -626,6 +629,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         const media = yield* Media;
         const catalogues = yield* RenderCatalogue;
         const roots = config.roots.map((root) => ({ ...root, path: path.resolve(root.path) }));
+        const phoneRate = config.phoneRate ?? PHONE_RATE;
         const cacheFailed = (name: string) => (error: { readonly message: string }) =>
           ReviewToolFailed.make({ tool: 'cache', ref: name, reason: error.message });
 
@@ -748,8 +752,11 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           );
         });
 
+        // By the encode too (`PHONE_COPY`): a copy made with other settings is never served.
         const phonePath = (file: string) =>
-          Effect.map(sourceKey(file, []), (key) => path.join(config.cache, 'phone', `${key}.mp4`));
+          Effect.map(sourceKey(file, PHONE_COPY), (key) =>
+            path.join(config.cache, 'phone', `${key}.mp4`),
+          );
 
         const isFile = (file: string) => fs.exists(file).pipe(Effect.orElseSucceed(() => false));
 
@@ -759,8 +766,23 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           return Option.liftPredicate(out, () => there);
         });
 
+        /**
+         * Whether `video` plays as its phone copy: too big to stream whole, or
+         * too dense to play as made (its bytes over its own length, a read of
+         * it kept by `lengths`, over `phoneRate`; a video whose length cannot
+         * be read is judged by its size alone).
+         */
+        const copied = (video: Found) => {
+          if (video.size > config.phoneOver) return Effect.succeed(true);
+          const at = new AtMtime({ file: video.path, mtime: video.mtime });
+          return Cache.get(lengths, at).pipe(
+            Effect.map(({ seconds }) => seconds > 0 && (video.size * 8) / seconds > phoneRate),
+            Effect.orElseSucceed(() => false),
+          );
+        };
+
         const phoneState = Effect.fn('Review.phoneState')(function* (video: Found) {
-          if (video.size <= config.phoneOver) return 'none' satisfies PhoneState;
+          if (!(yield* copied(video))) return 'none' satisfies PhoneState;
           const there = yield* isFile(yield* phonePath(video.path));
           if (there) return 'ready' satisfies PhoneState;
           return 'pending' satisfies PhoneState;

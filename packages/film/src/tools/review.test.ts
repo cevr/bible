@@ -40,6 +40,7 @@ import { type ChoiceVariant, VariantMedia } from '../core/choice.ts';
 import { type ReviewFolder, type ReviewIndex, ReviewManifestJson } from '../core/review.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
+import { AtMtime, madeFromName } from './file-cache.ts';
 import { Media } from './media.ts';
 import { reviewMedia } from './testing.ts';
 import {
@@ -474,12 +475,15 @@ const projectCatalogue = [
  * lone video, a variant from `out/elsewhere`); `out/f`, a project folder
  * with its catalogue; a stand-in Media (`reviewMedia`) giving every video
  * 12.5 s and making a still or a phone copy by copying the video whole.
- * The review reads the files through `files` (the file system as is, by default).
+ * The review reads the files through `files` (the file system as is, by
+ * default), and copies a video over 100 bytes or over `phoneRate` bits a
+ * second (the review's own by default).
  */
 const fixture = (
   phoneCopies: boolean,
   fps: Option.Option<number> = Option.none(),
   files: (fs: FileSystem.FileSystem) => FileSystem.FileSystem = Function.identity,
+  phoneRate?: number,
 ) =>
   Layer.unwrap(
     Effect.gen(function* () {
@@ -516,6 +520,7 @@ const fixture = (
         roots: [{ label: 'out', path: out }],
         cache: path.join(dir, 'cache'),
         phoneOver: 100,
+        phoneRate,
         maxVideo: 1000,
         phoneCopies,
       }).pipe(
@@ -857,7 +862,10 @@ describe('the review service', () => {
       );
       expect(a).toBe(b);
       expect(yield* (yield* FileSystem.FileSystem).readFileString(a)).toBe('a'.repeat(10));
-      expect(spawned.filter((c) => c.startsWith('timing'))).toHaveLength(1);
+      // One read of it, whoever asked: the index's phone test (its bits a second) among them.
+      expect(
+        spawned.filter((c) => c.startsWith('timing') && c.endsWith('roof.A.mp4')),
+      ).toHaveLength(1);
       const frames = spawned.filter((c) => c.startsWith('still'));
       expect(frames).toHaveLength(1);
       expect(frames[0]).toEndWith('roof.A.mp4 1.25 640');
@@ -932,6 +940,44 @@ describe('the review service', () => {
       const ready = again.folders.flatMap((f) => f.videos).find((v) => v.name === 'big.mp4');
       expect(ready?.phone).toBe('ready');
     }).pipe(Effect.provide(fixture(true))),
+  );
+
+  it.effect(
+    'copies a video too dense to play as made, however small: its bits a second over the rate',
+    () =>
+      Effect.gen(function* () {
+        const { folders } = yield* (yield* Review).index(false);
+        const roof = folders.find((f) => f.ref === 'out/art')?.sets[0];
+        // Ten bytes over 12.5 s: 6.4 bits a second, over the rate of 6 and under the size of 100.
+        expect(roof?.variants.map(phoneOf)).toEqual([
+          Option.some('pending'),
+          Option.some('pending'),
+          Option.some('pending'),
+        ]);
+      }).pipe(Effect.provide(fixture(false, Option.none(), Function.identity, 6))),
+  );
+
+  it.effect(
+    'never serves a phone copy made with other settings: one named by its source alone',
+    () =>
+      Effect.gen(function* () {
+        const review = yield* Review;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const big = path.join(yield* Root, 'out', 'art', 'big.mp4');
+        const mtime = Option.match((yield* fs.stat(big)).mtime, {
+          onNone: () => 0,
+          onSome: (at) => at.getTime(),
+        });
+        const cache = path.join(yield* Root, 'cache', 'phone');
+        yield* fs.makeDirectory(cache, { recursive: true });
+        const before = madeFromName(new AtMtime({ file: big, mtime }), []);
+        yield* writeText(path.join(cache, `${before}.mp4`), 'an earlier encode');
+        const { folders } = yield* review.index(false);
+        const video = folders.flatMap((f) => f.videos).find((v) => v.name === 'big.mp4');
+        expect(video?.phone).toBe('pending');
+        expect(yield* review.phone('out/art/big.mp4')).toEqual(Option.none());
+      }).pipe(Effect.provide(fixture(false))),
   );
 
   it.effect('answers the index from memory until it is asked fresh', () =>
