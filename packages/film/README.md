@@ -2849,10 +2849,12 @@ handed, or one typed `Frame`. A member read off
 a value handed in (`page.finger`, `page.evaluate`, `hub.keysOf`) is read by
 its member's name, since the rule cannot type the value. `.oxlintrc.json`
 refuses the scope tree's own readers to every module of `lint/` but
-`nodes.ts`: the imports (`Scope`, `SourceCode`, `Variable`, `sourceCode` from
-`oxlint-plugin-effect/rule-bindings`) and, through a rule's own context, the
-properties `getScope`, `getDeclaredVariables`, `scopeManager` and
-`isGlobalReference`, so a rule cannot grow a second reader.
+`nodes.ts`: the imports (`Scope`, `SourceCode`, `Variable`, `sourceCode` and
+their kin, from `oxlint-plugin-effect/rule-bindings` or from the package root,
+whose `ruleBindings` is refused too) and, through a rule's own context, the
+properties `getScope`, `getDeclaredVariables`, `scopeManager`,
+`isGlobalReference` and `markVariableAsUsed`, so a rule cannot grow a second
+reader.
 `lint/plugin.test.ts` runs oxlint over the marked fixtures: every RED
 location must report its rule, with no extra findings. Each of the plugin's
 twenty-two rules (`lint/plugin.ts`) also has a diagnostic whose corrective

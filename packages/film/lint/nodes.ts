@@ -4,8 +4,11 @@
 // the frame a draw is handed), a number written out or named by a top-level
 // const, an object literal's property by name, and whether an expression is
 // a cue's progress. No rule reads a file's scope tree but through this module
-// (`.oxlintrc.json` refuses `Scope`, `SourceCode` and `Variable`, and the
-// context's `getScope` and `getDeclaredVariables`, to the others).
+// (`.oxlintrc.json` refuses `Scope`, `SourceCode`, `Variable` and their kin
+// from `oxlint-plugin-effect/rule-bindings` and from the package root, with
+// the root's `ruleBindings`, and the context's `getScope`,
+// `getDeclaredVariables`, `scopeManager`, `isGlobalReference` and
+// `markVariableAsUsed`, to the others).
 
 import { Effect, Option, Predicate } from 'effect';
 import {

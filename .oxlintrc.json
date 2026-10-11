@@ -1937,6 +1937,25 @@
                   "sourceCode"
                 ],
                 "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts (bindings, definitionOf, importsAs), never the scope tree itself."
+              },
+              {
+                // The package root exports the same names, and `ruleBindings`
+                // holds the whole of `/rule-bindings`.
+                "name": "oxlint-plugin-effect",
+                "importNames": [
+                  "Definition",
+                  "DefinitionType",
+                  "OxlintScope",
+                  "OxlintSourceCode",
+                  "Reference",
+                  "Scope",
+                  "ScopeManager",
+                  "SourceCode",
+                  "Variable",
+                  "sourceCode",
+                  "ruleBindings"
+                ],
+                "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts (bindings, definitionOf, importsAs), never the scope tree itself."
               }
             ]
           }
@@ -1959,6 +1978,10 @@
           },
           {
             "property": "isGlobalReference",
+            "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
+          },
+          {
+            "property": "markVariableAsUsed",
             "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
           }
         ]

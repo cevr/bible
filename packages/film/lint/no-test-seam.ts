@@ -4,9 +4,10 @@
 // so a shipped import cannot reach them. The dead-export check counts a seam
 // as test code, so a product import of one is a take it does not see.
 //
-// Refused: a module of the repo's own named `testing` (`testing.ts`,
-// `testing.tsx`, the `.js` spelling `packages/core` writes, which resolves to
-// the `.ts` file, or a package's `…/testing` export), reached by a relative
+// Refused: a module of the repo's own named `testing`, with no extension or
+// any JS or TS one (`.ts`, `.tsx`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs`,
+// `.cjs`: `packages/core` writes `.js`, which resolves to the `.ts` file), or
+// a package's `…/testing` export, reached by a relative
 // path or a `@bible/` package, from an import, a re-export (`export … from`,
 // `export * from`), a type import, or a dynamic `import('…')` of a literal.
 // Another package's `testing` (`effect/testing`) is no seam of the repo's.
