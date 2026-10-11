@@ -11,7 +11,7 @@
 
 import { Effect, Option, Predicate, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
-import type { Tab } from '../../../src/lab/fixtures/tab.ts';
+import { type Tab, WAIT_MS } from '../../../src/lab/fixtures/tab.ts';
 import {
   type Asked,
   type FakeRoute,
@@ -41,8 +41,13 @@ import { RETRY_MS } from '../../../src/lab/notes/feed.ts';
 import { cueOf } from '../../../src/command/selection.ts';
 import type { Note, Reply } from '../../../src/core/schema.ts';
 
-/** Long enough to open the lab, draw, save and read the list back. */
-const SLOW = 15_000;
+/**
+ * Long enough to open the lab, draw, save and read the list back, and for a
+ * case's further page loads (a reload, Back across one, a link opened):
+ * twice a wait's own bound (`WAIT_MS`), so a wait that fails says what it
+ * waited for before the case runs out of time.
+ */
+const SLOW = 2 * WAIT_MS;
 
 type JsonObject = { readonly [key: string]: Json };
 
