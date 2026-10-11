@@ -158,6 +158,17 @@ a.rv-card:hover { background: var(--surface-2); }
   font-size: var(--fs-2); line-height: var(--lh-2); text-align: left;
 }
 .rv-alone-row { padding: var(--s-2) var(--s-3); }
+/*
+ * In a scene's card (Project's sheet) the picture is the card's frame, 16:9
+ * and cropped as the card crops any picture, and the row stands under it,
+ * outside the clip: the card's picture slot holds both and frames neither,
+ * as wide as the card. The row is a phone's at any width (the card is a
+ * sheet's width): the time where the clock is, the scrub showing the end.
+ */
+.sc-card-picture:has(> .rv-alone-picture) { min-width: 0; aspect-ratio: auto; overflow: visible; background: none; border-radius: 0; }
+.sc-card-picture > .rv-alone-picture { aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-0); border-radius: var(--r-1); }
+.sc-card-picture > .rv-alone-row { gap: var(--s-2); }
+.sc-card-picture > .rv-alone-row .rv-time-rest { display: none; }
 @media ${WIDE} {
   .rv-alone-row .rv-time-at { display: inline; }
 }

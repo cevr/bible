@@ -39,6 +39,7 @@ import {
   type Json,
   json,
   later,
+  TONE,
   openReview,
   refused,
   route,
@@ -1011,6 +1012,62 @@ describe("a film's project", () => {
         yield* until(page, `location.pathname + location.search === '${PROJECT}'`);
         yield* evaluates(page, 'history.length === window.__entries', true);
         expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a scene's sheet plays its render with its transport under the picture, each control in reach, at a phone's width and a laptop's",
+    () =>
+      Effect.gen(function* () {
+        for (const viewport of [PHONE, LAPTOP]) {
+          const { page, errors } = yield* openReview(
+            [
+              route(
+                'GET',
+                /^\/api\/review\/files\/out\/toy\/scenes\/open\/main\.share\.mp4/,
+                () => TONE,
+              ),
+              ...fakeProject(),
+            ],
+            { href: pageHref.project('toy', 'render:scenes:open'), viewport },
+          );
+          const picture = `${INSPECTOR} [data-act="play-video"]`;
+          yield* waitFor(page, `${picture} video`);
+          yield* click(page, picture);
+          const row = `${INSPECTOR} .rv-alone-row`;
+          yield* waitFor(page, row);
+          // Each control is what a press at its middle lands on: none is clipped by the picture's
+          // frame. The sheet is scrolled to the card's top, never the row itself into view: the
+          // frame is a scroll box of its own, which would scroll a clipped row into its window.
+          yield* page.evaluate(
+            `document.querySelector('${INSPECTOR} .sc-card').scrollIntoView({ block: 'start' })`,
+          );
+          for (const control of ['[data-act="play"]', '.rv-time', 'input[type="range"]']) {
+            yield* until(
+              page,
+              `(() => {
+                const el = document.querySelector('${row} ${control}');
+                const r = el.getBoundingClientRect();
+                const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+                return r.width > 0 && r.height > 0 && hit !== null && (hit === el || el.contains(hit));
+              })()`,
+            );
+          }
+          // The picture keeps its frame: 16:9, the card's width, the video filling it.
+          yield* evaluates(
+            page,
+            `(() => {
+              const r = document.querySelector('${picture}').getBoundingClientRect();
+              const card = document.querySelector('${INSPECTOR} .sc-card-head').getBoundingClientRect();
+              const v = document.querySelector('${picture} video').getBoundingClientRect();
+              return Math.abs(r.width / r.height - 16 / 9) < 0.02 && Math.abs(r.width - card.width) < 1
+                && Math.abs(v.width - r.width) < 1 && Math.abs(v.height - r.height) < 1;
+            })()`,
+            true,
+          );
+          expect(errors).toEqual([]);
+        }
       }).pipe(Effect.scoped),
     SLOW,
   );
