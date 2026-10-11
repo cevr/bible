@@ -18,7 +18,7 @@
 # install. The runtime stage keeps the production-only install and takes the
 # built `dist/` from it. Both install layers are keyed by the manifests and the
 # pruned lockfile alone, so a change to the code reuses them.
-FROM oven/bun:1.4.2 AS client
+FROM oven/bun:1.4.3 AS client
 WORKDIR /app/out
 
 COPY json/ ./
@@ -32,7 +32,7 @@ COPY tsconfig.json ./tsconfig.json
 RUN bun run --filter @bible/egw-search build
 
 # The `/app/out` layout is Railpack's, which the start command still uses.
-FROM oven/bun:1.4.2
+FROM oven/bun:1.4.3
 WORKDIR /app/out
 
 COPY json/ ./
