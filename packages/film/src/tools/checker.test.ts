@@ -314,7 +314,7 @@ describe('Checker.talk', () => {
       };
       const talk = { film: { id: 'why', duration: 2, format: 'question' as const }, phrases: [] };
       const check = Effect.gen(function* () {
-        return yield* (yield* Checker).talk(film, talk, 2);
+        return yield* (yield* Checker).talk(film, talk, { workers: 2, span: Option.none() });
       }).pipe(Effect.provide(Checker.layer.pipe(Layer.provide(fakeRenderHost(ledger, host)))));
       return Effect.gen(function* () {
         const findings = yield* check;

@@ -21,6 +21,7 @@ import {
   Layer,
   Option,
   Path,
+  Predicate,
   Queue,
   References,
   Result,
@@ -36,15 +37,16 @@ import {
   sourceFile,
 } from '../core/footage.ts';
 import { fileSource } from '../core/sfx.ts';
-import { filmEnd } from '../core/layout.ts';
+import { sceneAddress } from '../core/address.ts';
+import { filmEnd, sceneAt } from '../core/layout.ts';
 import { TALK_FPS, Talk } from '../core/talk.ts';
 import { talkFilms } from '../player/talks.ts';
 import { Checker } from './checker.ts';
 import { sceneReport } from './cues.ts';
-import { laidOut, layoutLeg, staticLeg } from './film-check.ts';
+import { drawLeg, laidOut, layoutLeg, staticLeg } from './film-check.ts';
 import { FilmRepo, placeFilm } from './film-repo.ts';
 import { filmServices } from './film-services.ts';
-import { ShortLength } from './findings.ts';
+import { ShortLength, addressOf } from './findings.ts';
 import { footageHandler } from './footage-route.ts';
 import { Looker } from './looker.ts';
 import { planOf } from './mixer.ts';
@@ -59,6 +61,12 @@ import {
   privateFolder,
   textBox,
 } from './testing.ts';
+
+/** A vertical finding at a second of the talk: a line of text, or its hook. */
+const atASecond = Predicate.or(
+  Predicate.isTagged('ShortUnsafeText'),
+  Predicate.isTagged('ShortHook'),
+);
 
 /** What the speaker says. */
 const WORDS = 'The law was given to show us our need of a Saviour'.split(' ');
@@ -267,7 +275,14 @@ describe('a talk through the tools', () => {
         // `film check` holds it to its format: its five seconds are short of a question's 45.
         const checked = yield* staticLeg(loaded, placed);
         expect(checked.filter((f) => f._tag === 'ShortLength')).toEqual([
-          ShortLength.make({ short: 'why', length: filmEnd(placed), max: 65, from: 45, to: 65 }),
+          ShortLength.make({
+            short: 'why',
+            length: filmEnd(placed),
+            max: 65,
+            from: 45,
+            to: 65,
+            talk: true,
+          }),
         ]);
 
         const unvoiced = yield* run(read, ['voice', 'why']);
@@ -351,6 +366,57 @@ describe('a talk through the tools', () => {
             zone: 'platforms (TikTok)',
           }),
         );
+        // Each is the talk's, at the film's scene and second: the talk is no short.
+        const placed = yield* placeFilm(loaded);
+        const vertical = found.filter(atASecond);
+        expect(vertical.length).toBeGreaterThan(0);
+        for (const f of vertical) {
+          const { part, time } = addressOf(f);
+          const at = Option.getOrThrow(Option.fromUndefinedOr(time));
+          const scene = Option.getOrThrow(sceneAt(placed, at)).spec.id;
+          expect(part).toEqual(sceneAddress(scene));
+          expect(f.message).toStartWith('talk "why"');
+        }
+        // Its open holds still on the page here, said at the film's first frame.
+        expect(found.filter((f) => f._tag === 'ShortHook').map((f) => addressOf(f))).toEqual([
+          { part: sceneAddress('law'), time: 0 },
+        ]);
       }).pipe(Effect.provide(Layer.mergeAll(pages, world))),
+  );
+
+  it.live('is checked on the scenes `--scene` names only, and not on its open past them', () =>
+    Effect.gen(function* () {
+      const loaded = yield* (yield* FilmRepo).load('why');
+      const placed = yield* placeFilm(loaded);
+      const need = Option.getOrThrow(Arr.findFirst(placed, (p) => p.spec.id === 'need'));
+      const { scope } = Result.getOrThrow(laidOut(loaded, sceneAddress('need')));
+      const found = yield* layoutLeg(loaded, scope, 2);
+      const unsafe = found.filter((f) => f._tag === 'ShortUnsafeText');
+      expect(unsafe.length).toBeGreaterThan(0);
+      for (const f of unsafe) {
+        expect(f.at).toBeGreaterThanOrEqual(need.start);
+        expect(addressOf(f).part).toEqual(sceneAddress('need'));
+      }
+      expect(found.filter((f) => f._tag === 'ShortHook')).toEqual([]);
+    }).pipe(Effect.provide(Layer.mergeAll(pages, world))),
+  );
+
+  it.live(
+    'is drawn by `film check --draw` as its page builds it, and its length is said of the whole talk',
+    () =>
+      Effect.gen(function* () {
+        const loaded = yield* (yield* FilmRepo).load('why');
+        const { scope } = Result.getOrThrow(laidOut(loaded, { _tag: 'Film' }));
+        const drawn = yield* drawLeg(loaded, scope);
+        expect(drawn.filter((f) => f._tag === 'DrawThrew')).toEqual([]);
+        const placed = yield* placeFilm(loaded);
+        const length = (yield* staticLeg(loaded, placed)).filter((f) => f._tag === 'ShortLength');
+        expect(length.map((f) => [addressOf(f), f.message])).toEqual([
+          [
+            { part: { _tag: 'Film' } },
+            `talk "why" is ${filmEnd(placed).toFixed(1)}s, outside the 45–65s that hold best`,
+          ],
+        ]);
+      }).pipe(Effect.provide(world)),
   );
 });

@@ -216,7 +216,12 @@ player cannot decode stops the film and says why in its place.
 static leg holds its length to its format's and reads its first word and
 its loop's silence; the full check probes its page every half second and at
 each phrase's first frame for text past every platform's zone
-(`platforms`), and its open for motion (its footage moving is motion).
+(`platforms`), and its open for motion (its footage moving is motion), over
+only the seconds `--scene` or `--act` name when given (the open only where
+it lies in them). Each finding is the talk's, named `talk "<id>"`: a line of
+text or a hook at the film's scene and second, its length or loop of the
+whole film; a talk is no short. `--draw` draws the talk as its page builds it
+(`createTalk` over its edit, takes and cut, its footage left undrawn).
 
 The words a talk is made in:
 
