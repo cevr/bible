@@ -239,6 +239,7 @@ One `:root` block, in one stylesheet, `packages/film/src/player/tokens.css`, lin
   --s-5: 20px;
   --s-6: 24px;
   --s-8: 32px;
+  --hairline: 1px; /* a gap or a margin that draws a line between two things: --border's width */
 
   /* Shape. */
   --r-1: 2px; /* fields, chips, stills, cue bars */
