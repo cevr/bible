@@ -256,10 +256,14 @@ export const makeSync = (
   const apply = (state: SyncState) => {
     current = Option.some(state);
     hear(state);
-    // A seek, or the clock's rate read (its frames are not the ones the videos landed on).
-    if (state.seek !== seek || state.fps !== grid) {
+    // A seek, or the clock's rate read while still (its frames are not the
+    // ones the videos landed on). Read while playing, it lands none: a landing
+    // at the last tick's time would put each back; they play on, and the next
+    // seek lands them on the new frames.
+    const regrid = state.fps !== grid && !runningOf(state);
+    grid = state.fps;
+    if (state.seek !== seek || regrid) {
       seek = state.seek;
-      grid = state.fps;
       told = state.t;
       for (const [id, a] of videos) if (!broken.has(a)) land(id, a, state);
     }
