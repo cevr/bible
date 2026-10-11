@@ -312,6 +312,48 @@ describe('Sheet.Root', () => {
     expect(rested).toEqual([[], [], []]);
   });
 
+  it('stays open when a scroll into view stops it once it has shown, short of its snap midpoint', async () => {
+    // On an 800×400 page a 300 px panel shows past a scroll of 100, and its snap midpoint is 200:
+    // stopped between, its snapping carries it back out of view, which is no swipe of the user's.
+    const cases = [
+      { at: 110, how: 'focus' },
+      { at: 150, how: 'focus' },
+      { at: 110, how: 'scrollIntoView' },
+      { at: 150, how: 'scrollIntoView' },
+    ] as const;
+    const rested = await Promise.all(
+      cases.map(async ({ at, how }) => {
+        const page = await h.open('sheet', {
+          viewport: { width: 800, height: 400 },
+          query: { modal: 'false', dismissal: 'disabled', portal: 'inline' },
+        });
+        await page.evaluate(
+          ({ at, how }) => {
+            const stop = (event: Event) => {
+              const scroller = event.target as Element;
+              if (scroller.hasAttribute?.('data-sheet-scroll') && scroller.scrollTop >= at) {
+                document.removeEventListener('scroll', stop, true);
+                const first = document.getElementById('first');
+                if (how === 'focus') {
+                  first?.focus();
+                } else {
+                  first?.scrollIntoView({ block: 'nearest' });
+                }
+              }
+            };
+            document.addEventListener('scroll', stop, true);
+          },
+          { at, how },
+        );
+        await page.click('#open');
+        await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
+        await see(page.locator('#panel')).toBeInViewport({ ratio: 1 });
+        return { at, how, opens: await opens(page) };
+      }),
+    );
+    expect(rested).toEqual(cases.map((c) => ({ ...c, opens: [] })));
+  });
+
   it('traps Tab inside a modal sheet', async () => {
     const page = await h.open('sheet');
     await openSheet(page);
@@ -777,6 +819,28 @@ describe('a finger', () => {
     expect((await logOf(page)).filter((line) => line.startsWith('open'))).toEqual([
       'open false swipe',
     ]);
+  });
+
+  it('swipes the sheet away as it scrolls in, taking its entrance over', async () => {
+    const swept = await Promise.all(
+      ([{}, { modal: 'false', dismissal: 'disabled', portal: 'inline' }] as const).map(
+        async (query: Readonly<Record<string, string>>) => {
+          const page = await h.open('sheet', { touch: true, query });
+          await page.click('#open');
+          // The finger lands on the panel's head once it shows, and drags it down.
+          await page.waitForFunction(() => {
+            const panel = document.getElementById('panel');
+            return panel !== null && panel.getBoundingClientRect().y < innerHeight - 60;
+          });
+          expect(await page.locator('#panel').getAttribute('data-entering')).toBe('');
+          const panel = await box(page, '#panel');
+          await fingerDown(page, { x: panel.x + 100, y: panel.y + 10 }, 400, 10);
+          await see(page.locator('#popup')).toHaveCount(0);
+          return (await logOf(page)).filter((line) => line.startsWith('open'));
+        },
+      ),
+    );
+    expect(swept).toEqual([['open false swipe'], ['open false swipe']]);
   });
 
   it('swipes a non-modal sheet away from its panel, and leaves the page around it to the page', async () => {

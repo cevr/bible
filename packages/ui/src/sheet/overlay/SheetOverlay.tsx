@@ -132,8 +132,45 @@ const settledAt = (scrollElement: HTMLElement, axis: SwipeConfig['axis'], target
     () => !laidOut(scrollElement) || reached(scrollElement, axis, target),
   );
 
-/** How many times a sheet scrolls in, stopped on its way by a scroll into view, before it stands where it stopped. */
+/**
+ * How many times a sheet scrolls in smoothly, stopped on its way by a scroll
+ * into view, before it is put at rest at once.
+ */
 const SCROLL_IN_TRIES = 4;
+
+/**
+ * Whether a scroll by `delta` along `axis` from `target` is taken by something
+ * inside the sheet that scrolls of its own (a long list not yet at its end),
+ * not by the sheet: the browser scrolls that first, and chains to the sheet
+ * only from its end.
+ */
+function takenInside(
+  target: EventTarget | null,
+  scroller: HTMLElement,
+  axis: SwipeConfig['axis'],
+  delta: number,
+) {
+  for (
+    let element = target instanceof Element ? target : null;
+    element && element !== scroller;
+    element = element.parentElement
+  ) {
+    const style = getComputedStyle(element);
+    const overflow = axis === 'y' ? style.overflowY : style.overflowX;
+    if (overflow !== 'auto' && overflow !== 'scroll') {
+      continue;
+    }
+    const at = axis === 'y' ? element.scrollTop : element.scrollLeft;
+    const end =
+      axis === 'y'
+        ? element.scrollHeight - element.clientHeight
+        : element.scrollWidth - element.clientWidth;
+    if ((delta > 0 && at < end - 1) || (delta < 0 && at > 0)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -208,6 +245,17 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
 
   // Whether any of the content shows now, as the observer last reported.
   let visible = false;
+  // The entrance under way, if any, and whether the user's swipe has taken it over.
+  let entrance: { taken: boolean } | null = null;
+
+  /** Asks to close as swiped away; an owner that cancels has it scrolled back in. */
+  const swipedAway = (scrollElement: HTMLElement, config: SwipeConfig) => {
+    const details = createChangeEventDetails(REASONS.swipe);
+    store.setOpen(false, details);
+    if (details.isCanceled) {
+      scrollToRest(scrollElement, config, true);
+    }
+  };
 
   // Mounted: watch the content, and join the stack.
   createEffect(
@@ -268,12 +316,10 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
           setExpanded(ratio >= 1);
           visible = ratio > 0;
           shown ||= visible;
-          if (shown && !visible && untrack(store.open)) {
-            const details = createChangeEventDetails(REASONS.swipe);
-            store.setOpen(false, details);
-            if (details.isCanceled) {
-              scrollToRest(scrollElement, config, true);
-            }
+          // Gone as it scrolls in is a swipe only when the user took the entrance over;
+          // otherwise a scroll into view stopped it, and the entrance carries it on to rest.
+          if (shown && !visible && untrack(store.open) && !(entrance && !entrance.taken)) {
+            swipedAway(scrollElement, config);
           }
         },
         // iOS draws past the reported viewport (behind its toolbar): the sheet is gone only past that too.
@@ -315,39 +361,67 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         return undefined;
       }
       let live = true;
-      // Scrolling in is the sheet's own motion: only the user's swipe (a finger's move, a
-      // wheel, its scrollbar) takes it over. A scroll into view inside it (a focus, a caret
-      // revealed, the page's own) stops it where it is, out of view as like as not: once it
-      // has stood, it scrolls on to rest, a few times at most.
-      let taken = false;
-      const take = () => {
-        taken = true;
-      };
-      const takeAtBar = (event: PointerEvent) => {
-        if (event.target === scrollElement) {
-          take();
+      // Scrolling in is the sheet's own motion: only the user's swipe (a finger's move or a
+      // wheel on the sheet, not on a list in it that scrolls of its own) takes it over. A
+      // scroll into view inside it (a focus, a caret revealed, the page's own) stops it where
+      // it is, and its snapping may carry it out of view: that is no swipe, and once it has
+      // stood it scrolls on to rest. It has entered only once it rests, or the user took it.
+      const run = { taken: false };
+      entrance = run;
+      const take = (target: EventTarget | null, delta: number) => {
+        if (delta !== 0 && !takenInside(target, scrollElement, config.axis, delta)) {
+          run.taken = true;
         }
       };
+      const along = (point: { clientX: number; clientY: number }) =>
+        config.axis === 'y' ? point.clientY : point.clientX;
+      let finger: number | null = null;
+      const onTouchStart = (event: TouchEvent) => {
+        const touch = event.touches[0];
+        finger = touch ? along(touch) : null;
+      };
+      const onTouchMove = (event: TouchEvent) => {
+        const touch = event.touches[0];
+        if (!touch) {
+          return;
+        }
+        const now = along(touch);
+        // A finger moving down scrolls up.
+        take(event.target, finger === null ? 0 : finger - now);
+        finger = now;
+      };
+      const onWheel = (event: WheelEvent) =>
+        take(event.target, config.axis === 'y' ? event.deltaY : event.deltaX);
       const passive = { passive: true } as const;
-      scrollElement.addEventListener('touchmove', take, passive);
-      scrollElement.addEventListener('wheel', take, passive);
-      scrollElement.addEventListener('pointerdown', takeAtBar, passive);
+      scrollElement.addEventListener('touchstart', onTouchStart, passive);
+      scrollElement.addEventListener('touchmove', onTouchMove, passive);
+      scrollElement.addEventListener('wheel', onWheel, passive);
       const release = () => {
-        scrollElement.removeEventListener('touchmove', take);
-        scrollElement.removeEventListener('wheel', take);
-        scrollElement.removeEventListener('pointerdown', takeAtBar);
+        scrollElement.removeEventListener('touchstart', onTouchStart);
+        scrollElement.removeEventListener('touchmove', onTouchMove);
+        scrollElement.removeEventListener('wheel', onWheel);
+        if (entrance === run) {
+          entrance = null;
+        }
       };
       const comeIn = (tries: number): Promise<void> => {
         const target = scrollToRest(scrollElement, config, true);
         return settledAt(scrollElement, config.axis, target).then(() => {
           const stopped =
             live &&
-            !taken &&
-            tries > 1 &&
+            !run.taken &&
             untrack(store.open) &&
             laidOut(scrollElement) &&
             !reached(scrollElement, config.axis, target);
-          return stopped ? comeIn(tries - 1) : undefined;
+          if (!stopped) {
+            return undefined;
+          }
+          if (tries > 1) {
+            return comeIn(tries - 1);
+          }
+          // Stopped each time: it is put at rest at once.
+          scrollToRest(scrollElement, config, false);
+          return undefined;
         });
       };
       let start = Promise.resolve();
@@ -370,8 +444,13 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         })
         .then(() => {
           release();
-          if (live && untrack(store.open)) {
-            setEntered(true);
+          if (!live || !untrack(store.open)) {
+            return;
+          }
+          setEntered(true);
+          // The user's swipe took the entrance over and carried it out of view: a swipe away.
+          if (run.taken && !visible && laidOut(scrollElement)) {
+            swipedAway(scrollElement, config);
           }
         });
       if (content) {
