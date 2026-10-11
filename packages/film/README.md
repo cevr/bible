@@ -1681,11 +1681,12 @@ pressing Follow takes it back (a held line, holding a line again). When the
 code lists no literal for its `timeline` (a computed one), the head says why
 in place of "nothing playing". A read the server refuses says why, with
 Retry and Close. On a laptop it is a column beside the picture; on a phone it
-is the selection sheet's second face (Inspect · Source) in Edit, or a sheet of
-its own while nothing is selected and in every other mode; closing the sheet
-closes the selection and the view in one history step. ⇧C and the command menu
-(⌘K, and a phone's menu button) open and close it; nothing stands for it at
-rest.
+is the selection sheet's second face (Inspect · Source) in Edit, held on the
+line that writes the selected cue or knob (following the frame only while that
+line is not known yet), or a sheet of its own while nothing is selected and in
+every other mode; closing the sheet closes the selection and the view in one
+history step. ⇧C and the command menu (⌘K, and a phone's menu button) open and
+close it; nothing stands for it at rest.
 
 On a phone (below 900 px) the selected cue's or knob's fields, and the
 selected note's reply, stand in the selection's sheet

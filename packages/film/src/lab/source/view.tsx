@@ -17,7 +17,7 @@
 // there; a long press or a right-click on it opens the page's context menu
 // (Note this line, Copy link). On a laptop it is a column beside the picture;
 // on a phone it is a face of the selection's sheet (Inspect · Source) in Edit,
-// or a sheet of its own in every other mode and while nothing is selected.
+// held on the selection's line, or a sheet of its own in every other mode and while nothing is selected.
 
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
@@ -47,7 +47,7 @@ import {
   selectionAt,
   startsOf,
 } from './lit.ts';
-import { FOLLOW } from './open.ts';
+import { type CodeOpen, FOLLOW, lineOpen } from './open.ts';
 
 /** The name of the selection when it is a `tag` of `scene`. */
 const pickedIn = (
@@ -166,8 +166,8 @@ const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
       { onNone: () => '', onSome: String },
     ),
   );
-  // The lab's one Follow rule (`lab/follow.ts`): a reader's scroll leaves the view where the hand put it, following
-  // or held, until Follow or Play takes it back or a line is held.
+  // The lab's one Follow rule (`lab/follow.ts`): a reader's scroll leaves the view where the hand put it until a
+  // line is held, or, while it follows, until Follow or Play takes it back. Play leaves a held view where it is.
   useFollow({
     box,
     content: () => page,
@@ -181,8 +181,8 @@ const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
         ),
         (row) => ({ first: row, last: row }),
       ),
-    // Two lines clear of each edge. A line's height is read off the page the rows inherit it from: the row itself
-    // is asked once, for its place.
+    // Two lines clear of each edge. A line's height is read off the page the rows inherit it from, so the row is
+    // the span's one element, asked once for its place.
     clear: () => {
       const lh = Option.match(page, {
         onNone: () => 0,
@@ -411,11 +411,21 @@ type Face = 'inspect' | 'source';
 /**
  * A phone's selection sheet with the Source view as its second face: the tabs
  * (Inspect · Source) are the view's open state in the URL, so Back, Close and a
- * reload each leave the face they left.
+ * reload each leave the face they left. The Source face is the selection's:
+ * it opens held on the line that writes the cue or knob, as its `file:line`
+ * does, and follows the frame only while that line is not known yet.
  */
 export const Faces = (props: { readonly children: JSX.Element }) => {
   const { state, actions } = useLab();
+  const source = useSource();
   const page = useLabPage();
+  const opening = (): CodeOpen =>
+    Option.match(
+      Option.flatMap(state.selection(), (s) =>
+        ({ Cue: source.whereCue, Knob: source.whereKnob })[s._tag](s.scene, s.name),
+      ),
+      { onNone: () => FOLLOW, onSome: (w) => lineOpen(w.line) },
+    );
   const face = (): Face =>
     Bool.match(Option.isSome(state.code()), {
       onTrue: (): Face => 'source',
@@ -430,7 +440,7 @@ export const Faces = (props: { readonly children: JSX.Element }) => {
         onValueChange={(pressed) => {
           Option.map(Arr.head(pressed), (next) => {
             if (next === face()) return;
-            if (next === 'source') actions.showCode(Option.some(FOLLOW));
+            if (next === 'source') actions.showCode(Option.some(opening()));
             else actions.dismissCode();
           });
         }}

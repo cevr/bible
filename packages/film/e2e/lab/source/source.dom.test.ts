@@ -356,7 +356,7 @@ describe('on a phone, held to the phone rules', () => {
 describe('on a phone', () => {
   it.live('is a face of the selection’s sheet, and Inspect gives the inspector back', () =>
     Effect.gen(function* () {
-      const { page } = yield* openLab([codeRoute], {
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
         href: labOne(1, { cue: 'rise' }),
         viewport: PHONE,
       });
@@ -365,7 +365,7 @@ describe('on a phone', () => {
       yield* page.click('.lab-selection-sheet [data-act="sheet"]');
       yield* page.click('.lab-selection-sheet [data-face="source"]');
       yield* page.waitFor('.lab-selection-sheet .lab-source-page');
-      yield* evaluates(page, `location.search.includes('code=follow')`, true);
+      yield* evaluates(page, `new URLSearchParams(location.search).get('code')`, `${RISE_LINE}`);
       // The pressed face wears the kit's pressed segment (`.sh-seg`): the raised surface, the brightest ink.
       yield* evaluates(
         page,
@@ -400,6 +400,27 @@ describe('on a phone', () => {
       // The frame read a knob a screen down the file; the selection's literal is at its top, and it is shown.
       yield* evaluates(page, inSheet(SPLIT_FALL_LINE), true);
       yield* evaluates(page, inSheet(SPLIT_SPOT_LINE), false);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('opened from a selected cue while another plays, it holds the selection’s line', () =>
+    Effect.gen(function* () {
+      // `rise` plays at its middle; `fall` is selected: the face is the selection's, as its `file:line` door is.
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(middle('rise'), { cue: 'fall' }),
+        viewport: PHONE,
+      });
+      yield* page.waitFor('.lab-selection-sheet');
+      yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+      yield* page.click('.lab-selection-sheet [data-face="source"]');
+      yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+      yield* evaluates(page, `new URLSearchParams(location.search).get('code')`, `${FALL_LINE}`);
+      yield* attributeIs(
+        page,
+        '.lab-selection-sheet .lab-source-held',
+        'data-line',
+        `${FALL_LINE}`,
+      );
     }).pipe(Effect.scoped),
   );
 
