@@ -31,6 +31,8 @@ export interface Build {
   /** The body's cloth, its tint, and the legs' colour (hidden under a robe). */
   readonly cloth: keyof Textures;
   readonly clothTint?: string;
+  /** The sleeves' cloth, where it differs from the body's (a stain that stops at the shoulders). */
+  readonly sleeve?: keyof Textures;
   readonly legs: string;
   /** A robe to the floor in place of legs. */
   readonly robe?: boolean;
@@ -69,6 +71,8 @@ export const person = (w: World, tex: Textures, b: Build): Person => {
   const skin = ps1(w, { tint: b.skin });
   const hair = ps1(w, { tint: b.hair });
   const cloth = ps1(w, { map: tex[b.cloth], tint: b.clothTint ?? '#ffffff' });
+  const sleeve =
+    b.sleeve === undefined ? cloth : ps1(w, { map: tex[b.sleeve], tint: b.clothTint ?? '#ffffff' });
   const ink = ps1(w, { tint: '#16141c' });
   const browInk = ps1(w, { tint: b.browColor ?? '#2a2018' });
   const glint = ps1(w, { tint: '#ffffff', emissive: 0.7 });
@@ -82,8 +86,12 @@ export const person = (w: World, tex: Textures, b: Build): Person => {
 
   if (b.robe === true) put(root, post(0.25, 0.32, 0.62, 7), cloth, 0, 0.31, 0);
   else for (const x of [-0.1, 0.1]) put(root, box(0.15, 0.6, 0.17), legs, x, 0.3, 0);
-  // The body: a drum, narrow at the shoulders.
-  put(body, post(0.2, 0.25, 0.6, 7, 2, 1), cloth, 0, 0.3, 0);
+  // The body: a drum, narrow at the shoulders. Its sides wear the cloth and
+  // its caps the sleeves' (a cap samples the texture's middle, and a dyed
+  // panel there would show as flecks at the collar).
+  const torso = new Mesh(post(0.2, 0.25, 0.6, 7, 2, 1), [cloth, sleeve, sleeve]);
+  torso.position.set(0, 0.3, 0);
+  body.add(torso);
   put(body, post(0.07, 0.07, 0.1, 5), skin, 0, 0.64, 0);
   if (b.bands === true)
     for (const x of [-0.035, 0.035]) put(body, box(0.05, 0.14, 0.02), glint, x, 0.53, 0.19);
@@ -125,7 +133,7 @@ export const person = (w: World, tex: Textures, b: Build): Person => {
     const arm = new Group();
     arm.position.set(s * 0.27, 0.56, 0);
     body.add(arm);
-    put(arm, box(0.11, 0.5, 0.12), cloth, 0, -0.25, 0);
+    put(arm, box(0.11, 0.5, 0.12), sleeve, 0, -0.25, 0);
     put(arm, box(0.11, 0.11, 0.11), skin, 0, -0.55, 0.01);
     return arm;
   });

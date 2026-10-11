@@ -217,6 +217,7 @@ const build = (r: Rig): Set => {
     fringe: 5,
     recede: 0,
     cloth: 'tunic',
+    sleeve: 'linen',
     legs: '#4a4038',
   });
   accused.root.position.copy(ACCUSED);

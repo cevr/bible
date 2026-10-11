@@ -112,34 +112,33 @@ const weave = (size: number, dark: string, light: string, seed: number) => {
   });
 };
 
-/** The accused's tunic: pale cloth with scarlet blots soaked in (scarlet is sin, on the one who carries it). */
+/** The tunic's cloth: the pale weave its stain is dyed into, and the sleeves' plain cloth. */
+const TUNIC: readonly [string, string] = ['#8f8a7c', '#e2dccb'];
+
+/**
+ * The accused's tunic: pale cloth with one broad scarlet panel dyed into it,
+ * collar to hem (scarlet is sin, on the one who carries it). The panel is
+ * flat colour with straight edges and a one-texel hem a shade deeper, the
+ * weave's ribs faint across it: cloth dyed through, never a spatter. The
+ * body's drum wraps the texture twice with its front at u = 0, so the panel
+ * hangs down the front and, the same, down the back, like a tabard.
+ */
 const tunic = (size: number, seed: number) => {
-  const cloth: [Rgb, Rgb] = [hex('#8f8a7c'), hex('#e2dccb')];
+  const [d, l] = [hex(TUNIC[0]), hex(TUNIC[1])];
   const scarlet = hex('#ce0914');
-  const deep = hex('#7c0610');
-  const blots: ReadonlyArray<readonly [number, number, number]> = [
-    [0.22, 0.38, 0.11],
-    [0.31, 0.62, 0.07],
-    [0.68, 0.3, 0.09],
-    [0.6, 0.72, 0.13],
-    [0.84, 0.55, 0.06],
-  ];
+  const weft = hex('#bc0812');
+  const hem = hex('#94060f');
+  const half = Math.round(size * 0.21);
+  const [low, high] = [Math.round(size * 0.04), Math.round(size * 0.9)];
   return texture(size, (x, y) => {
-    const rib = (x + y) % 3 === 0 ? -0.2 : 0;
-    const base = posterise(
-      cloth[0],
-      cloth[1],
-      0.62 + rib + 0.3 * (tiled(x / 4, y / 3, size / 4, seed) - 0.5),
-    );
-    for (const [bx, by, r] of blots) {
-      const dx = x / size - bx;
-      const dy = y / size - by;
-      const edge = r * (0.75 + 0.5 * tiled(x / 3, y / 3, size / 3, seed + 5));
-      const d = Math.hypot(dx, dy * 0.8);
-      if (d < edge * 0.55) return deep;
-      if (d < edge) return scarlet;
+    const rib = (x + y) % 3 === 0;
+    const across = Math.abs(((x + size / 2) % size) - size / 2 + 0.5);
+    if (across < half && y >= low && y < high) {
+      const edge = across >= half - 1 || y === low || y === high - 1;
+      return edge ? hem : rib ? weft : scarlet;
     }
-    return base;
+    const tone = 0.62 + (rib ? -0.2 : 0) + 0.3 * (tiled(x / 4, y / 3, size / 4, seed) - 0.5);
+    return posterise(d, l, tone);
   });
 };
 
@@ -176,6 +175,8 @@ export interface Textures {
   readonly carpet: DataTexture;
   readonly robe: DataTexture;
   readonly tunic: DataTexture;
+  /** The tunic's cloth without its stain: the accused's sleeves. */
+  readonly linen: DataTexture;
   readonly coat: DataTexture;
   readonly paper: DataTexture;
   readonly box: DataTexture;
@@ -191,6 +192,7 @@ export const textures = (): Textures => ({
   carpet: weave(16, '#2c4a4a', '#4f7a74', 15),
   robe: weave(16, '#121318', '#3a3d48', 16),
   tunic: tunic(64, 17),
+  linen: weave(16, TUNIC[0], TUNIC[1], 22),
   coat: weave(16, '#2d3c5c', '#5a6e94', 18),
   paper: paper(32, 19),
   box: cardboard(32, 20),
