@@ -420,6 +420,13 @@ describe("a talk's takes, from the footage library", () => {
       'heard from take.why/ffffffffffff',
     );
   });
+
+  it("finds a take only among the lock's own names: `constructor`, which every object answers to, is one the library lacks", () => {
+    const played = { ...talk, takes: { a: 'constructor' } };
+    const lock = lockOf(entry(Option.some(FILE)));
+    expect(talkTranscripts(played, lock)).toEqual([]);
+    expect(reason(talkTakes(played, lock, transcripts))).toContain('does not have');
+  });
 });
 
 describe("a talk's captions", () => {

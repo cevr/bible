@@ -4,7 +4,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Path, Schema } from 'effect';
+import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 import {
   EMPTY_FOOTAGE_LOCK,
   FOOTAGE_LOCK_HREF,
@@ -94,10 +94,29 @@ describe('the footage route', () => {
           `/footage/%2e%2e/${sha12}/mezzanine.mp4`,
           `/footage/.take/${sha12}/mezzanine.mp4`,
           `/footage/take.why/${sha12}/mezzanine.mp4/`,
+          // A footage name every object answers to, which the lock does not list.
+          `/footage/constructor/${sha12}/mezzanine.mp4`,
         ];
         expect(yield* Effect.forEach(urls, served)).toEqual(urls.map((url, i) => [url, i === 0]));
         expect(urls.map(isFootageUrl)).toEqual(urls.map(() => true));
         expect(isFootageUrl('/films/f/narration/full.wav')).toBe(false);
+        // Each answered, as a page asks: every URL not served is a 404, never a failure of the route's.
+        const handler = footageHandler(root);
+        const statuses = yield* Effect.forEach(urls, (url) =>
+          Effect.map(
+            Effect.promise(() => handler(new Request(`http://player${url}`))),
+            (response) => [url, response.status] as const,
+          ),
+        );
+        const status = (i: number) =>
+          Option.match(
+            Option.liftPredicate(i, (k) => k === 0),
+            {
+              onNone: () => 404,
+              onSome: () => 200,
+            },
+          );
+        expect(statuses).toEqual(urls.map((url, i) => [url, status(i)] as const));
         // A library with no lock yet serves nothing.
         const copy = `/footage/take.why/${sha12}/mezzanine.mp4`;
         const unlisted = servedFrom({ ...root, dir: `${root.dir}/none` });

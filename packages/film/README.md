@@ -120,11 +120,17 @@ loudness every 10 ms in whole dB, under `transcripts/<name>.<sha12>[.n].json`,
 committed. A second hearing is a second file, which the lock
 (`library.lock.json`) then names; a transcript is never rewritten, and its
 name is chosen and its file put in place under the library's lock, so two
-`make` runs at once never take one name. A footage name (`--as`, and every
-key and transcript the lock names, read or written) is a lower-case slug,
-so no copy or transcript lands outside the library: `--as` refuses one
-that is not (`FootageNameInvalid`), and a lock naming one is not read and
-never written. The copies
+`make` runs at once never take one name. Every field of the lock a path is
+made of is checked, read and written, so no original, copy or transcript
+lands outside the library: a footage name (`--as`, and every key) is a
+lower-case slug, a transcript one file under `transcripts/`, an original's
+`sha256` 64 lower-case hex digits and its `ext` none or a dot and lower-case
+letters and digits. `--as` refuses a name that is not one
+(`FootageNameInvalid`), an import a file whose extension is not one
+(`FootageExtInvalid`), and a lock that breaks any of them is not read
+(`FileInvalid`, so `make`, `pull` and `push` stop before they write) and
+never written. A name is found only among the lock's own: `constructor`,
+which every object answers to, is unknown until it is imported. The copies
 are made frame by frame, not by a mediabunny `Conversion`, so each copy's
 content hint reaches x264 (`FOOTAGE_HINTS`), which sets its key-frame
 interval itself (`keyint`: node-av clears the key-frame flag mediabunny

@@ -19,14 +19,26 @@
 // `push` and `pull` keep the originals in the private store
 // (`footage/<name>/<sha12><ext>`), each read back by its hash.
 
-import { Console, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import {
+  Console,
+  Context,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Record as Rec,
+  Schema,
+} from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { gain } from '../core/audio.ts';
 import {
   FOOTAGE_COPIES,
+  FOOTAGE_EXT_RULE,
   FOOTAGE_RECIPES,
   type FootageCopy,
   type FootageEntry,
+  FootageExt,
   type FootageKind,
   type FootageLock,
   FootageName,
@@ -50,6 +62,7 @@ import { ContentStore, type StoreError, writeWhole } from './content-store.ts';
 import { sha256OfFile } from './digest.ts';
 import { ElevenLabs, heardWords } from './elevenlabs.ts';
 import {
+  FootageExtInvalid,
   FootageHdr,
   FootageNameInvalid,
   FootageNameTaken,
@@ -109,6 +122,7 @@ interface FootageSynced {
 /** Why an import fails. */
 type FootageImportError =
   | FootageNameInvalid
+  | FootageExtInvalid
   | FootageHdr
   | FootageSilent
   | FootageNameTaken
@@ -205,9 +219,10 @@ export class FootageLibrary extends Context.Service<FootageLibrary, FootageLibra
         const manifest = footageLockManifest(dir);
         const lock = store.read(manifest);
 
+        // A name the lock lists itself: `constructor`, which every object answers to, is no entry.
         const entry = (name: string) =>
           Effect.flatMap(lock, (current) =>
-            Effect.fromOption(Option.fromUndefinedOr(current.footage[name]), () =>
+            Effect.fromOption(Rec.get(current.footage, name), () =>
               FootageUnknown.make({ name, known: Object.keys(current.footage).toSorted() }),
             ),
           );
@@ -232,6 +247,11 @@ export class FootageLibrary extends Context.Service<FootageLibrary, FootageLibra
             Effect.mapError((error) =>
               FootageNameInvalid.make({ name: options.name, file, reason: error.message }),
             ),
+          );
+          // Its extension, as the library keeps it (lower case): one its paths can end in, or nothing is kept.
+          const ext = path.extname(file).toLowerCase();
+          yield* Schema.decodeEffect(FootageExt)(ext).pipe(
+            Effect.mapError(() => FootageExtInvalid.make({ file, ext, rule: FOOTAGE_EXT_RULE })),
           );
           const sha256 = yield* sha256OfFile(fs, file);
           const before = yield* lock;
@@ -259,7 +279,7 @@ export class FootageLibrary extends Context.Service<FootageLibrary, FootageLibra
             kind: options.kind,
             sha256,
             bytes,
-            ext: path.extname(file).toLowerCase(),
+            ext,
             probe,
             ...termsOf(options),
           };
@@ -370,7 +390,7 @@ export class FootageLibrary extends Context.Service<FootageLibrary, FootageLibra
             Effect.gen(function* () {
               const kept = transcriptFile(name, of.sha256, yield* nextHearing(name, of.sha256));
               yield* store.writeFile(path.join(dir, 'transcripts', kept), text);
-              const now = Option.fromUndefinedOr(locked.footage[name]);
+              const now = Rec.get(locked.footage, name);
               const heardMeanwhile = Option.filter(
                 Option.flatMap(now, (e) => Option.fromUndefinedOr(e.transcript)),
                 () => !options.hearAgain,

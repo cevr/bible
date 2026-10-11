@@ -69,6 +69,32 @@ const TranscriptFile = Schema.String.check(
 /** Whether `file` is a transcript's file name (`TranscriptFile`). */
 export const isTranscriptFile = (file: string): boolean => TRANSCRIPT_FILE.test(file);
 
+/**
+ * An original's sha256, as the lock records it: 64 lower-case hex digits.
+ * Its head names the copies' folder and the original's file, so nothing
+ * else may stand there.
+ */
+const FootageHash = Schema.String.check(
+  Schema.isPattern(/^[0-9a-f]{64}$/, {
+    message: "an original's sha256 is 64 lower-case hex digits",
+  }),
+);
+
+/** Why an extension is none the library keeps, as a refusal says it. */
+export const FOOTAGE_EXT_RULE = 'a dot, then lower-case letters and digits';
+
+/**
+ * An original's extension, as the lock records it: none, or a dot, then
+ * lower-case letters and digits. Its file under `files/<name>/` and its key
+ * in the private store end in it, so it holds no separator: the original
+ * stays where its name and hash put it.
+ */
+export const FootageExt = Schema.String.check(
+  Schema.isPattern(/^(\.[a-z0-9]+)?$/, {
+    message: `an original's extension is none, or ${FOOTAGE_EXT_RULE}`,
+  }),
+);
+
 /** How many hex digits of an original's hash name its source. */
 const SHA12 = 12;
 
@@ -139,10 +165,15 @@ export type FootageProbe = typeof FootageProbe.Type;
 /** One name's original, as the lock records it. */
 export const FootageEntry = Schema.Struct({
   kind: FootageKind,
-  /** The original's bytes: their sha256, their size and the extension they were imported with. */
-  sha256: Schema.String,
+  /**
+   * The original's bytes: their sha256, their size and the extension they
+   * were imported with. The hash and the extension are checked, read and
+   * written, as the name is: every path to the original and its copies is
+   * made of them.
+   */
+  sha256: FootageHash,
   bytes: Schema.Int,
-  ext: Schema.String,
+  ext: FootageExt,
   probe: FootageProbe,
   /** The take's current transcript, under `transcripts/` (a take only, once made). */
   transcript: Schema.optionalKey(TranscriptFile),

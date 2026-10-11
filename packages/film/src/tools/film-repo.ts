@@ -18,6 +18,7 @@ import {
   Layer,
   Option,
   Path,
+  Record as Rec,
   Result,
   Schema,
 } from 'effect';
@@ -127,7 +128,7 @@ export const voicePiecesOf = (film: LoadedFilm): ReadonlyMap<string, VoicePieces
       onSome: ({ cut, takes, copies }) =>
         cut.sections.flatMap((section) =>
           Option.toArray(
-            Option.map(Option.fromUndefinedOr(takes[section.take]), (take) => [
+            Option.map(Rec.get(takes, section.take), (take) => [
               section.id,
               {
                 file: `${copies}/${section.voice.file}`,

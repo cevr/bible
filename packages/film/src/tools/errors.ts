@@ -624,6 +624,24 @@ export class FootageNameInvalid extends Schema.TaggedError<FootageNameInvalid>()
   }
 }
 
+/**
+ * A file whose extension the library cannot keep (`core/footage.ts`
+ * `FootageExt`): its original's file and its key in the private store end
+ * in it. Nothing was written.
+ */
+export class FootageExtInvalid extends Schema.TaggedError<FootageExtInvalid>()(
+  'FootageExtInvalid',
+  {
+    file: Schema.String,
+    ext: Schema.String,
+    rule: Schema.String,
+  },
+) {
+  override get message() {
+    return `${this.file} ends "${this.ext}", which is no extension the library keeps (${this.rule}); rename it and import it again`;
+  }
+}
+
 /** A name the footage library does not have. */
 export class FootageUnknown extends Schema.TaggedError<FootageUnknown>()('FootageUnknown', {
   name: Schema.String,

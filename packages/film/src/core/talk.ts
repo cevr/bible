@@ -35,7 +35,7 @@
 // (over the footage route) and the tools (over the disk) read the same files
 // and cut with it, so the picture and the sound play the same pieces.
 
-import { Array as Arr, Option, Order, Result, Schema } from 'effect';
+import { Array as Arr, Option, Order, Record as Rec, Result, Schema } from 'effect';
 import { PartId } from './address-schema.ts';
 import { DuplicateScene } from './errors.ts';
 import {
@@ -284,7 +284,7 @@ export const talkTranscripts = (talk: Talk, lock: FootageLock): ReadonlyArray<st
   Arr.dedupe(
     Object.values(talk.takes).flatMap((name) =>
       Option.toArray(
-        Option.flatMap(Option.fromUndefinedOr(lock.footage[name]), (entry) =>
+        Option.flatMap(Rec.get(lock.footage, name), (entry) =>
           Option.fromUndefinedOr(entry.transcript),
         ),
       ),
@@ -308,8 +308,9 @@ export const talkTakes = (
     for (const [key, name] of Object.entries(talk.takes)) {
       const unready = (reason: string) => () =>
         TalkTakeUnready.make({ take: key, footage: name, reason });
+      // A name the lock lists itself: `constructor`, which every object answers to, is none.
       const entry = yield* Result.fromOption(
-        Option.fromUndefinedOr(lock.footage[name]),
+        Rec.get(lock.footage, name),
         unready('which the footage library does not have (film footage import)'),
       );
       if (entry.kind !== 'take')
@@ -591,7 +592,7 @@ export const talkCut = (
       if (ids.has(section.id))
         return yield* Result.fail(DuplicateScene.make({ scene: section.id }));
       ids.add(section.id);
-      const given = Option.fromUndefinedOr(takes[section.take]);
+      const given = Rec.get(takes, section.take);
       if (Option.isNone(given))
         return yield* Result.fail(
           TalkTakeMissing.make({ section: section.id, take: section.take }),
@@ -611,8 +612,14 @@ export const talkCut = (
         return yield* Result.fail(TalkSectionSilent.make({ section: section.id }));
       const runs = runsOf(take, kept, gaps);
       const pieces = runs.map((run) => run.piece);
-      const fixes = talk.fixes?.[section.take] ?? {};
-      const spelt = (i: number, text: string) => fixes[String(i)] ?? text;
+      const fixes = Option.flatMap(Option.fromUndefinedOr(talk.fixes), (all) =>
+        Rec.get(all, section.take),
+      );
+      const spelt = (i: number, text: string) =>
+        Option.getOrElse(
+          Option.flatMap(fixes, (fixed) => Rec.get(fixed, String(i))),
+          () => text,
+        );
       const words = retimed(runs, spelt);
       // Every mark a word carries, in the order the edit names them.
       const marksOn = (i: number) =>

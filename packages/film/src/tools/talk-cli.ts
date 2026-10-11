@@ -7,7 +7,7 @@
 //
 //   film talk words <talk> [--take key]
 
-import { Console, Effect, Option } from 'effect';
+import { Console, Effect, Option, Record as Rec } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
 import { type CutSection, TALK_FORMATS, type TalkTake } from '../core/talk.ts';
 import { NotATalk } from './errors.ts';
@@ -51,7 +51,7 @@ const sectionLines = (talk: LoadedTalk, section: CutSection): ReadonlyArray<stri
   const to = edit?.to ?? -1;
   const kept = new Set(section.kept);
   const all = Array.from({ length: Math.max(0, to - from + 1) }, (_, k) => from + k);
-  const take = talk.takes[section.take];
+  const take = Rec.get(talk.takes, section.take);
   const head = [
     section.id.padEnd(16),
     `take ${section.take}`,
@@ -61,7 +61,7 @@ const sectionLines = (talk: LoadedTalk, section: CutSection): ReadonlyArray<stri
   ].join('  ');
   return [
     head,
-    ...Option.match(Option.fromUndefinedOr(take), {
+    ...Option.match(take, {
       onNone: () => [],
       onSome: (words) => wordLines(words, all, (i) => !kept.has(i)),
     }),
@@ -90,10 +90,11 @@ const words = Command.make(
         ...talk.cut.sections.flatMap((section) => sectionLines(talk, section)),
       ],
       onSome: (key) =>
-        Option.match(Option.fromUndefinedOr(talk.takes[key]), {
+        // A key the talk names itself: `constructor`, which every object answers to, is none.
+        Option.match(Rec.get(talk.takes, key), {
           onNone: () => [`no take "${key}" (the takes: ${Object.keys(talk.takes).join(', ')})`],
           onSome: (take) => [
-            `take ${key}  ${talk.talk.takes[key] ?? ''}  ${take.words.length} words`,
+            `take ${key}  ${Option.getOrElse(Rec.get(talk.talk.takes, key), () => '')}  ${take.words.length} words`,
             ...wordLines(
               take,
               take.words.map((_, i) => i),

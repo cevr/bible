@@ -367,7 +367,7 @@ describe('the footage library', () => {
   );
 
   it.effect(
-    'a lock naming footage, or a transcript, by a name that is not one neither reads nor writes',
+    'a lock naming footage, or a transcript, by a name that is not one, or giving an original a hash or an extension that is not one, neither reads nor writes',
     () =>
       Effect.gen(function* () {
         const entry = {
@@ -382,26 +382,141 @@ describe('the footage library', () => {
           ...['../../evil.json', 'why/x.json', 'why.aaaaaaaaaaaa.txt'].map((transcript) => ({
             why: { ...entry, transcript },
           })),
+          // Every other field a path is made of: the hash (the copies' folder, the original's name) and the extension.
+          ...['../../../../../../evil', 'A'.repeat(64), 'a'.repeat(63), `${'a'.repeat(64)}/x`].map(
+            (sha256) => ({ why: { ...entry, sha256 } }),
+          ),
+          ...[
+            '/../../../../evil.mov',
+            '/../../../transcripts/why.aaaaaaaaaaaa.json',
+            'mov',
+            '.MOV',
+            '.m/v',
+            '.',
+          ].map((ext) => ({ why: { ...entry, ext } })),
         ];
         for (const footage of locks) {
           const lock = { version: 1 as const, footage };
-          expect(
-            Exit.isFailure(yield* Effect.exit(Schema.encodeEffect(FootageLockJson)(lock))),
-          ).toBe(true);
+          const wrote = yield* Effect.exit(Schema.encodeEffect(FootageLockJson)(lock));
+          expect([footage, Exit.isFailure(wrote)]).toEqual([footage, true]);
           const written = yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Json))(lock);
-          expect(
-            Exit.isFailure(yield* Effect.exit(Schema.decodeEffect(FootageLockJson)(written))),
-          ).toBe(true);
+          const read = yield* Effect.exit(Schema.decodeEffect(FootageLockJson)(written));
+          expect([footage, Exit.isFailure(read)]).toEqual([footage, true]);
         }
         const fine = {
           version: 1 as const,
           footage: {
             'why-the-law.2': { ...entry, transcript: 'why-the-law.2.aaaaaaaaaaaa.2.json' },
+            // An original imported with no extension keeps none.
+            bare: { ...entry, sha256: '0123456789abcdef'.repeat(4), ext: '' },
           },
         };
         const text = yield* Schema.encodeEffect(FootageLockJson)(fine);
         expect(yield* Schema.decodeEffect(FootageLockJson)(text)).toEqual(fine);
       }),
+  );
+
+  /** A lock entry as a hand might edit it, before anything checks it. */
+  const handEdited = {
+    kind: 'take',
+    sha256: 'a'.repeat(64),
+    bytes: 12,
+    ext: '.mov',
+    probe: TAKE_PROBE,
+  };
+  for (const [what, why] of [
+    ['a hash that is a path', { ...handEdited, sha256: '../../../../../../evil' }],
+    ['an extension that is a path', { ...handEdited, ext: '/../../../../evil.mov' }],
+    // Pulled there, an original would be written over a committed transcript.
+    [
+      "an extension that is a transcript's path",
+      { ...handEdited, ext: '/../../../transcripts/why.aaaaaaaaaaaa.json' },
+    ],
+  ] as const) {
+    it.effect(
+      `make and pull refuse a lock, edited by hand, giving an original ${what}, and write nothing`,
+      () => {
+        const lock = new TextEncoder().encode(
+          Schema.encodeSync(Schema.fromJsonString(Schema.Json))({ version: 1, footage: { why } }),
+        );
+        const files = new Map([
+          [`${DIR}/library.lock.json`, lock],
+          [`${DIR}/transcripts/why.aaaaaaaaaaaa.json`, text('{"words":[]}')],
+          // The store holds bytes at every key the crafted lock could name.
+          [`${STORE}/footage/why/../../../../../../evil.mov`, text('a phone take')],
+          [`${STORE}/footage/why/aaaaaaaaaaaa/../../../../evil.mov`, text('a phone take')],
+          [
+            `${STORE}/footage/why/aaaaaaaaaaaa/../../../transcripts/why.aaaaaaaaaaaa.json`,
+            text('a phone take'),
+          ],
+        ]);
+        const before = new Map(files);
+        const said = (
+          failure: Option.Option<{ readonly _tag: string; readonly message: string }>,
+        ) =>
+          Option.map(failure, (e) => [
+            e._tag,
+            e.message.startsWith(`${DIR}/library.lock.json is invalid`),
+          ]);
+        return Effect.gen(function* () {
+          const library = yield* FootageLibrary;
+          expect([
+            said(failureOf(yield* Effect.exit(library.make('why', { hearAgain: false })))),
+            said(failureOf(yield* Effect.exit(library.pull))),
+          ]).toEqual([Option.some(['FileInvalid', true]), Option.some(['FileInvalid', true])]);
+          expect(files).toEqual(before);
+        }).pipe(Effect.provide(world(files, emptyCalls(), ['mezzanine', 'proxy'])));
+      },
+    );
+  }
+
+  it.effect(
+    'refuses a file whose extension the library cannot keep, before anything is written',
+    () => {
+      const files = new Map([
+        ['/in/take.m_v', text('a phone take')],
+        ['/in/take.MOV', text('another phone take')],
+      ]);
+      return Effect.gen(function* () {
+        const library = yield* FootageLibrary;
+        const refused = failureOf(
+          yield* Effect.exit(library.importFile('/in/take.m_v', asTake('why'))),
+        );
+        expect(Option.map(refused, (e) => [e._tag, e.message])).toEqual(
+          Option.some([
+            'FootageExtInvalid',
+            '/in/take.m_v ends ".m_v", which is no extension the library keeps (a dot, then lower-case letters and digits); rename it and import it again',
+          ]),
+        );
+        expect([...files.keys()].toSorted()).toEqual(['/in/take.MOV', '/in/take.m_v']);
+        // A capital is lowered, as the library keeps it.
+        const { entry } = yield* library.importFile('/in/take.MOV', asTake('why'));
+        expect(entry.ext).toBe('.mov');
+      }).pipe(Effect.provide(world(files, emptyCalls(), [])));
+    },
+  );
+
+  it.effect(
+    "knows a name only as the lock's own: `constructor`, a footage name every object answers to, is unknown until imported",
+    () => {
+      const files = new Map([['/in/take.mov', text('a phone take')]]);
+      return Effect.gen(function* () {
+        const library = yield* FootageLibrary;
+        yield* library.importFile('/in/take.mov', asTake('why'));
+        const unknown = (exit: Exit.Exit<unknown, { readonly _tag: string }>) =>
+          Option.map(failureOf(exit), (e) => e._tag);
+        expect(unknown(yield* Effect.exit(library.entry('constructor')))).toEqual(
+          Option.some('FootageUnknown'),
+        );
+        expect(
+          unknown(yield* Effect.exit(library.make('constructor', { hearAgain: false }))),
+        ).toEqual(Option.some('FootageUnknown'));
+        // Once imported, it is a name like any other.
+        files.set('/in/other.mov', text('another phone take'));
+        yield* library.importFile('/in/other.mov', asTake('constructor'));
+        expect((yield* library.entry('constructor')).kind).toBe('take');
+      }).pipe(Effect.provide(world(files, emptyCalls(), [])));
+    },
   );
 
   it.effect(

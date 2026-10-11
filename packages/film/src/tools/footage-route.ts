@@ -13,7 +13,7 @@
 // (`/footage/transcripts/<file>`), never another file under the library.
 
 import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
-import { Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import { Effect, FileSystem, Layer, Option, Path, Record as Rec, Schema } from 'effect';
 import { HttpEffect, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import {
   derivedFile,
@@ -102,7 +102,8 @@ const footageFile = Effect.fn('footageFile')(function* (root: FootageRoot, pathn
   if (Option.isSome(library)) return library;
   for (const { name, sha12, copy } of Option.toArray(named(pathname)))
     for (const lock of Option.toArray(yield* lockOf(root.dir)))
-      for (const entry of Option.toArray(Option.fromUndefinedOr(lock.footage[name]))) {
+      // A name the lock lists itself: `constructor`, which every object answers to, is none.
+      for (const entry of Option.toArray(Rec.get(lock.footage, name))) {
         if (!entry.sha256.startsWith(sha12)) continue;
         const file = derivedFile(root.out, name, entry.sha256, `${copy}.mp4`);
         if (yield* fs.exists(file).pipe(Effect.orElseSucceed(() => false)))

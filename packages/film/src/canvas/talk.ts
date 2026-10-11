@@ -11,7 +11,7 @@
 // to the next: the words are measured once, as a short's are, and the rest
 // is the frame's own.
 
-import { Data, Option, Schema } from 'effect';
+import { Data, Option, Record as Rec, Schema } from 'effect';
 import { Knob, Point } from '../core/schema.ts';
 import {
   TALK_FPS,
@@ -142,10 +142,7 @@ export const createTalk = (
   const sections = new Map(
     cut.sections.flatMap((section) =>
       Option.toArray(
-        Option.map(Option.fromUndefinedOr(takes[section.take]), (take) => [
-          section.id,
-          { section, take },
-        ]),
+        Option.map(Rec.get(takes, section.take), (take) => [section.id, { section, take }]),
       ),
     ),
   );
