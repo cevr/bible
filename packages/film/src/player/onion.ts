@@ -73,20 +73,34 @@ const ghostInto = (
   }
 };
 
+/** The layer the onion paints into, `ONION_SCALE` × the film's size: a canvas's context. */
+interface OnionLayer<D extends { readonly data: Uint8ClampedArray }> {
+  createImageData(w: number, h: number): D;
+  putImageData(data: D, dx: number, dy: number): void;
+  clearRect(x: number, y: number, w: number, h: number): void;
+}
+
 /** Paints `player`'s onion skin into a layer `ONION_SCALE` × the film's size. */
 interface OnionPainter {
   /**
    * Paint the onion into `into`, once each frame it ghosts is painted (a
    * talk's after its footage decodes). One paint at a time; a paint asked for
-   * while another runs wins, and the other paints nothing.
+   * while another runs wins, and the other paints nothing. A ghost whose
+   * footage will not decode takes the onion off `into` (none is better than
+   * one of another frame), and the paint fails with why.
    */
-  paint(
-    into: CanvasRenderingContext2D,
+  paint<D extends { readonly data: Uint8ClampedArray }>(
+    into: OnionLayer<D>,
     spread: OnionSpread,
   ): Effect.Effect<void, FootageFrameMissing>;
 }
 
-export const makeOnion = (player: Player): OnionPainter => {
+/** What of the player the onion reads: the film's size and pace, the frame shown, and frames drawn as shown. */
+type OnionPlayer = Pick<Player, 'canvas' | 'now' | 'renderShown'> & {
+  readonly film: Pick<Player['film'], 'width' | 'height' | 'fps' | 'duration'>;
+};
+
+export const makeOnion = (player: OnionPlayer): OnionPainter => {
   const { film } = player;
   const w = Math.round(film.width * ONION_SCALE);
   const h = Math.round(film.height * ONION_SCALE);
@@ -140,7 +154,16 @@ export const makeOnion = (player: Player): OnionPainter => {
             }
           }
           into.putImageData(out, 0, 0);
-        }),
+        }).pipe(
+          Effect.catchTag('FootageFrameMissing', (missing) =>
+            Effect.suspend(() => {
+              // A paint no longer the last asked for leaves the layer to the one that is.
+              if (!current()) return Effect.void;
+              into.clearRect(0, 0, w, h);
+              return Effect.fail(missing);
+            }),
+          ),
+        ),
       );
     },
   };

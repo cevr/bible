@@ -21,6 +21,7 @@ import {
   loopText,
   inOutOf,
   loopView,
+  motionStatus,
   rangeOf,
 } from './loop.ts';
 
@@ -190,6 +191,20 @@ describe('what the panel says', () => {
       'looping in 00:00:01:00 – out 00:00:03:00',
     );
     expect(said(LoopState.Cue({ scene: 'one', name: 'rise' }))).toBe('looping rise');
+  });
+
+  test('the loop, a muting speed, and why the onion is off its layer while it is on', () => {
+    const why = Option.some('footage take has no frame at 4.933 s: gone');
+    const base = { loop: 'looping rise', rate: 1, onion: true, onionWhy: Option.none<string>() };
+    expect(motionStatus(base)).toBe('looping rise');
+    expect(motionStatus({ ...base, rate: 0.5, onionWhy: why })).toBe(
+      'looping rise · 0.5×: narration muted · onion off: footage take has no frame at 4.933 s: gone',
+    );
+    expect(motionStatus({ ...base, loop: '', onionWhy: why })).toBe(
+      'onion off: footage take has no frame at 4.933 s: gone',
+    );
+    // Turned off, the onion has nothing to show, so nothing to say.
+    expect(motionStatus({ ...base, onion: false, onionWhy: why })).toBe('looping rise');
   });
 });
 

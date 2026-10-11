@@ -36,6 +36,7 @@ import {
   loopAt,
   loopText,
   loopView,
+  motionStatus,
   rangeOf,
   spawnLoop,
 } from './loop.ts';
@@ -52,7 +53,10 @@ interface MotionState {
   readonly cue: Accessor<Option.Option<LabSelection>>;
   /** The in and out points marked as a range, if they are: what a note written now is about. */
   readonly inOut: Accessor<Option.Option<LoopRange>>;
-  /** What the section says: the loop, and the speed when it mutes the narration. */
+  /**
+   * What the section says: the loop, the speed when it mutes the narration,
+   * and why the onion is off its layer when a ghost would not decode.
+   */
   readonly status: Accessor<string>;
 }
 
@@ -67,6 +71,8 @@ interface MotionActions {
   readonly stopLoop: () => void;
   readonly setRate: (rate: Rate) => void;
   readonly setOnion: (change: Partial<OnionView>) => void;
+  /** Why the onion's last paint took it off its layer (a ghost that would not decode), or none once one paints. */
+  readonly onionFailed: (why: Option.Option<string>) => void;
 }
 
 interface MotionContextValue {
@@ -139,15 +145,17 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
   });
   const [onion, setOnionSignal] = createSignal<OnionView>(view.get().onion);
   createEffect(onion, (o) => view.patch({ onion: o }));
+  const [onionWhy, setOnionWhy] = createSignal(Option.none<string>());
 
   const cue = createMemo(() => Option.filter(lab.selection(), (s) => s._tag === 'Cue'));
-  const status = createMemo(() => {
-    const r = rate();
-    const muted = Option.liftPredicate(`${r}×: narration muted`, () => r !== 1);
-    return [loopText(loop(), meta.film.fps), ...Option.toArray(muted)]
-      .filter((s) => s !== '')
-      .join(' · ');
-  });
+  const status = createMemo(() =>
+    motionStatus({
+      loop: loopText(loop(), meta.film.fps),
+      rate: rate(),
+      onion: onion().on,
+      onionWhy: onionWhy(),
+    }),
+  );
 
   const actions: MotionActions = {
     markA: () => send(LoopEvent.MarkA({ t: player.now() })),
@@ -161,6 +169,7 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
     stopLoop: () => send(LoopEvent.Stop),
     setRate: (r) => setRateSignal(r),
     setOnion: (change) => setOnionSignal((o) => ({ ...o, ...change })),
+    onionFailed: (why) => setOnionWhy(why),
   };
   // The rate, the loop and the onion as the page's commands: keys, ⌘K, the
   // cue's menu and the section's chips and button.
