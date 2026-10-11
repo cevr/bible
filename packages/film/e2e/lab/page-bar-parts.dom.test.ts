@@ -7,7 +7,10 @@
 // link's `color`, a `font`, a margin) shows here as the part and the property
 // it moved. The Lab draws every part, and a page draws each its place has
 // (the timecode where it has a playhead), so no part goes unmatched by being
-// missing from either; each state is checked to hold before it is read.
+// missing from either. Each state is checked to hold before it is read: the
+// Lab's is the reference, so a state it never took, or a control its pointer
+// cannot reach, is a failure, and so is a control the page draws (and does
+// not leave out by its own state) that a layer keeps from the pointer.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -184,11 +187,14 @@ interface Point {
 
 /**
  * Where a viewer can hold each control on a page: its middle, for each one
- * drawn, not left out by the page's own state, and not under a sheet over it;
- * and `rest`, a point on the header over none, for the pointer to wait on.
+ * drawn and not left out by the page's own state (`LEFT_OUT`); `covered`, each
+ * such control the pointer cannot reach at its middle (a layer over it), which
+ * is a failure, never a control skipped; and `rest`, a point on the header
+ * over none, for the pointer to wait on.
  */
 interface Holds {
   readonly at: { readonly [part: string]: Point };
+  readonly covered: ReadonlyArray<Part>;
   readonly rest: Point;
 }
 
@@ -201,20 +207,22 @@ const HOLDS = `(() => {
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2, r };
   };
-  const at = Object.fromEntries(controls.flatMap((part) => {
+  const drawn = controls.flatMap((part) => {
     if (part in leftOut && document.querySelector(leftOut[part]) !== null) return [];
     const el = document.querySelector(parts[part]);
     if (el === null) return [];
     const { x, y, r } = middle(el);
     if (r.width === 0 || r.height === 0) return [];
     const hit = document.elementFromPoint(x, y);
-    return hit !== null && el.contains(hit) ? [[part, { x, y }]] : [];
-  }));
+    return [{ part, x, y, reached: hit !== null && el.contains(hit) }];
+  });
+  const at = Object.fromEntries(drawn.filter((d) => d.reached).map((d) => [d.part, { x: d.x, y: d.y }]));
+  const covered = drawn.filter((d) => !d.reached).map((d) => d.part);
   const anyControl = controls.map((part) => parts[part]).join(', ');
   const header = document.querySelector(parts.header).getBoundingClientRect();
   const rest = Array.from({ length: Math.floor(header.width / 4) }, (_, i) => ({ x: header.x + i * 4 + 2, y: header.y + header.height / 2 }))
     .find((p) => { const hit = document.elementFromPoint(p.x, p.y); return hit !== null && hit.closest(anyControl) === null; });
-  return { at, rest };
+  return { at, covered, rest };
 })()`;
 
 /**
@@ -287,7 +295,9 @@ const heldOff = (name: string, mine: Look, theirs: Look): ReadonlyArray<string> 
  * Each control a viewer can hold both on `page` and on the Lab (`lab`),
  * focused and under the pointer, read against the Lab's held the same way.
  * The Lab holds every control (a control it cannot is a sentence); a page
- * holds those its own state leaves out from under a sheet.
+ * holds each it draws but those its own state leaves out (`LEFT_OUT`), and a
+ * control it draws that the pointer cannot reach is a sentence, never one
+ * skipped.
  */
 const heldDifferences = (lab: Tab, page: Tab) =>
   Effect.gen(function* () {
@@ -300,6 +310,7 @@ const heldDifferences = (lab: Tab, page: Tab) =>
       ...CONTROLS.filter((part) => !(part in labHolds.at)).map(
         (part) => `${part}: the Lab's cannot be held`,
       ),
+      ...pageHolds.covered.map((part) => `${part}: the page's cannot be held`),
       ...held.flatMap((part) => [
         ...heldOff(`${part} focus`, mine.focus[part] ?? {}, theirs.focus[part] ?? {}),
         ...heldOff(`${part} hover`, mine.hover[part] ?? {}, theirs.hover[part] ?? {}),
@@ -437,6 +448,16 @@ describe("the shell guard's own probe", () => {
         expect((yield* heldDifferences(lab, page)).filter((d) => d.startsWith('goto'))).toEqual([
           "goto: the Lab's cannot be held",
         ]);
+        // Nor is a control of the page's a stray layer covers: the planted hover rule goes
+        // unread under it, so each covered control is the sentence, never one skipped.
+        yield* page.evaluate(
+          `(() => { const layer = document.createElement('div'); layer.style.cssText = 'position: fixed; inset: 0; z-index: 2147483647; background: transparent'; document.body.append(layer); return true; })()`,
+        );
+        expect(
+          (yield* heldDifferences(lab, page)).filter((d) =>
+            d.endsWith("the page's cannot be held"),
+          ),
+        ).toEqual(CONTROLS.map((part) => `${part}: the page's cannot be held`));
       }).pipe(Effect.scoped),
     SLOW,
   );
