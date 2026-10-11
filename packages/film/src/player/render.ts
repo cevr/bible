@@ -1,6 +1,7 @@
-// The render page, framework-free: an app's `index.html`
-// (`?film=<name>&export`) calls `mountRender(films)`: the film with no chrome,
-// and `window.__film` for the renderer. Its own module, so the encoder
+// The render page, framework-free: an app's `index.html` (the lab's export
+// place `/films/<name>/export`, or the PreviewServer's `/?film=<name>&export`) calls
+// `mountRender(films)`: the film with no chrome, and `window.__film` for the
+// renderer and the easel. Its own module, so the encoder
 // (`encode.ts`, mediabunny) is the render page's alone: the studio's pages,
 // which mount the preview (`main.ts`), never load it.
 
@@ -28,7 +29,7 @@ declare global {
 }
 
 /**
- * Mount the render page for `films` (`?film=<name>&export`): the film
+ * Mount the render page for `films` (the film its address names): the film
  * staged with no chrome and no UI face, drawing only the film's own faces,
  * and, once they have loaded, the handle the renderer drives on
  * `window.__film`.

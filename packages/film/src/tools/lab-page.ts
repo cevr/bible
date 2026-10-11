@@ -61,7 +61,7 @@ import {
 } from 'effect';
 import type { BunPlugin } from 'bun';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
+import { type AppPage, labUrls, legacyPlace, pageAt } from '../core/api.ts';
 import { LONGEST_WAIT } from '../core/wait.ts';
 import type { PageBuild } from '../core/schema.ts';
 import { PAGE_CUT_MARK } from '../core/page-render.ts';
@@ -80,14 +80,14 @@ import type { Remade } from './source-writer.ts';
 
 /** What the app builds its pages from. */
 export interface LabPageSpec {
-  /** Each page's HTML entry; the paths each is served at are the framework's (`PAGE_PATHS`). */
-  readonly pages: Readonly<Record<PageName, string>>;
+  /** Each page's HTML entry; the places each is served at are the framework's (`Places`, `pageAt`). */
+  readonly pages: Readonly<Record<AppPage, string>>;
   /**
    * Each page the server renders: its server entry (`*.server.tsx`), the
    * same components as its HTML entry's script, compiled for the server
    * (`solidPluginFor('ssr')`). A page with none is drawn in the browser alone.
    */
-  readonly servers: Partial<Readonly<Record<PageName, string>>>;
+  readonly servers: Partial<Readonly<Record<AppPage, string>>>;
   /** The films folder, whose narration the pages play (`/films/<film>/narration/<file>`). */
   readonly films: string;
 }
@@ -430,7 +430,7 @@ interface Built {
   readonly outcome:
     | {
         readonly _tag: 'Built';
-        readonly pages: ReadonlyMap<PageName, BuiltFile>;
+        readonly pages: ReadonlyMap<AppPage, BuiltFile>;
         readonly files: ReadonlyMap<string, AssetFile>;
         /** Its server bundle: its modules by their paths from the root, and each rendered page's entry. */
         readonly server: ServerBundle;
@@ -582,7 +582,7 @@ const WEDGE_PATH = '/wedge/';
 /** A wedge built: its id, its pages' HTML by page, and its files by the path they are asked for. */
 interface WedgeBuilt {
   readonly id: string;
-  readonly pages: ReadonlyMap<PageName, BuiltFile>;
+  readonly pages: ReadonlyMap<AppPage, BuiltFile>;
   readonly files: ReadonlyMap<string, AssetFile>;
 }
 
@@ -709,7 +709,7 @@ const failureOf = (built: Built): Option.Option<string> => {
 };
 
 /** A build's pages' HTML; a failed one has none. */
-const pagesOf = (built: Built): ReadonlyMap<PageName, BuiltFile> => {
+const pagesOf = (built: Built): ReadonlyMap<AppPage, BuiltFile> => {
   if (built.outcome._tag === 'Built') return built.outcome.pages;
   return new Map();
 };
@@ -1176,7 +1176,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
             ),
             started,
           );
-          const pages = new Map<PageName, BuiltFile>();
+          const pages = new Map<AppPage, BuiltFile>();
           const made: Array<readonly [string, BuiltFile]> = [];
           for (const { path: name, ...built } of outputs)
             Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
@@ -1316,7 +1316,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * a cut (`PAGE_CUT_MARK`), and the browser renders that page anew too.
    */
   const rendered = (
-    name: PageName,
+    name: AppPage,
     html: string,
     build: RenderBuild,
     url: string,
@@ -1357,7 +1357,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     );
 
   /** A page's HTML as the sources stand, built now if they changed: asked again each load. */
-  const page = (name: PageName) =>
+  const page = (name: AppPage) =>
     Effect.gen(function* () {
       const built = yield* current;
       const stamp = { build: built.build, server };
@@ -1439,7 +1439,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     });
 
   /** A wedge's page (`?wedge=<id>`) as it was built; a wedge no longer kept is a 404. */
-  const wedgePage = (name: PageName, id: string) =>
+  const wedgePage = (name: AppPage, id: string) =>
     Effect.map(Ref.get(wedges), (kept) =>
       asMade(
         Option.flatMap(
@@ -1454,7 +1454,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * the build a look was answered, whatever was built since; a build no
    * longer kept, or one that failed, is a 404.
    */
-  const keptPage = (name: PageName, id: string) =>
+  const keptPage = (name: AppPage, id: string) =>
     Effect.map(Ref.get(builds), (kept) =>
       asMade(
         Option.flatMap(
@@ -1596,7 +1596,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
         }
         // A wedge's files are asked for only by the easel's browser on the box, so each
         // is compressed per request, never squeezed at the best as a build's are.
-        const pages = new Map<PageName, BuiltFile>();
+        const pages = new Map<AppPage, BuiltFile>();
         const files = new Map<string, AssetFile>();
         for (const { path: name, ...file } of made.success.outputs)
           Option.match(Option.fromUndefinedOr(pageOf.get(name)), {

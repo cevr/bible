@@ -5,6 +5,7 @@ import type { HttpClient } from 'effect/http';
 import type { AI } from '../../src/services/ai.js';
 import type { AppleScript } from '../../src/services/apple-script.js';
 import type { Chime } from '../../src/services/chime.js';
+import type { Quotations } from '../../src/services/quotations.js';
 
 import { createMockAILayer, type MockAIConfig } from './mock-ai.js';
 import {
@@ -15,6 +16,11 @@ import {
 import { createMockChimeLayer, type MockChimeState } from './mock-chime.js';
 import { createMockFileSystemLayer, type MockFileSystemConfig } from './mock-filesystem.js';
 import { createMockHttpLayer, type MockHttpConfig } from './mock-http.js';
+import {
+  createMockQuotationsLayer,
+  type MockQuotationsConfig,
+  type MockQuotationsState,
+} from './mock-quotations.js';
 import { CallSequenceLayer, type CallSequence, type ServiceCall } from './sequence-recorder.js';
 
 /**
@@ -29,6 +35,8 @@ export interface TestLayerConfig {
   http?: MockHttpConfig;
   /** Mock AppleScript configuration */
   appleScript?: MockAppleScriptConfig;
+  /** Quotation problems `bible check`/`bible export` should see */
+  quotations?: MockQuotationsConfig;
 }
 
 /**
@@ -44,6 +52,7 @@ export interface TestLayerState {
     | AI
     | AppleScript
     | Chime
+    | Quotations
     | CallSequence
   >;
   /** Get all calls recorded (from services and external) */
@@ -60,6 +69,7 @@ export const createTestLayer = (config: TestLayerConfig = {}): TestLayerState =>
   // Shared state for service calls
   const appleScriptState: MockAppleScriptState = { calls: [] };
   const chimeState: MockChimeState = { calls: [] };
+  const quotationsState: MockQuotationsState = { calls: [] };
   const mockHttp = createMockHttpLayer(config.http ?? { responses: {} });
 
   // Create mock file system
@@ -85,6 +95,7 @@ export const createTestLayer = (config: TestLayerConfig = {}): TestLayerState =>
     mockAI.layer,
     mockAppleScript,
     mockChime,
+    createMockQuotationsLayer(config.quotations ?? {}, quotationsState),
     mockHttp.layer,
     mockPath,
   ).pipe(Layer.provideMerge(CallSequenceLayer));
@@ -95,6 +106,7 @@ export const createTestLayer = (config: TestLayerConfig = {}): TestLayerState =>
       // Service layer calls (recorded via Effect context)
       ...appleScriptState.calls,
       ...chimeState.calls,
+      ...quotationsState.calls,
       // External calls (recorded outside Effect context)
       ...mockAI.state.calls,
       ...mockHttp.state.calls,

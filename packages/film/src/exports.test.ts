@@ -15,7 +15,8 @@
 //
 // The entries guarded, and who uses them:
 //   canvas    films, their kits and the framework's tests: the draw kit
-//   player    the app's page, its film registry, a film's `Narrated` type
+//   player    the app's film registry and faces, a film's `Narrated` type
+//   render    the app's render page (`mountRender`)
 //   stand-in  the framework's tests, and `check --draw`'s leg
 //             (tools/draw-check.ts), which draws every scene into it
 //   core      films, their kits, the app's sound library and the framework's
@@ -79,6 +80,7 @@ const PackageExports = Schema.fromJsonString(
 const ENTRIES = [
   { entry: 'canvas', file: 'src/canvas/index.ts' },
   { entry: 'player', file: 'src/player/index.ts' },
+  { entry: 'render', file: 'src/player/render.ts' },
   { entry: 'stand-in', file: 'src/canvas/fixtures/stand-in.ts' },
   { entry: 'core', file: 'src/core/index.ts' },
 ] as const;

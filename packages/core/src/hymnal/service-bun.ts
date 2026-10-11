@@ -8,6 +8,7 @@ import {
   Hymn,
   HymnSummary,
   HymnVerse,
+  hymnFirstLine,
   type CategoryRow,
   type HymnRow,
 } from './schemas.js';
@@ -16,18 +17,7 @@ import { HymnalError, HymnalService, HymnNotFoundError } from './service.js';
 const HymnVersesJson = Schema.fromJsonString(Schema.Array(HymnVerse));
 const decodeHymnVerses = Schema.decodeUnknownSync(HymnVersesJson);
 
-const truncateFirstLine = (text: string): string => {
-  const firstLine = text.split('\n')[0] ?? '';
-  let suffix = '';
-  if (firstLine.length > 60) suffix = '...';
-  return firstLine.slice(0, 60) + suffix;
-};
-
-const firstLineFromJson = (json: string): string => {
-  const first = decodeHymnVerses(json)[0];
-  if (Predicate.isUndefined(first)) return '';
-  return truncateFirstLine(first.text);
-};
+const firstLineFromJson = (json: string): string => hymnFirstLine(decodeHymnVerses(json));
 
 export const layerHymnalBun: Layer.Layer<
   HymnalService,
