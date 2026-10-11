@@ -58,9 +58,9 @@ import {
 const SLOW = 30_000;
 
 /**
- * Videos at their own frame rates, other than the films' (`FILM_FPS`): a
- * whole one, and NTSC's 29.97 (30000/1001), which no whole rate steps;
- * opened in the page, and once as the lab serves it (`served`).
+ * Videos at their own frame rates: 24, the films' 30 (`FILM_FPS`), and
+ * NTSC's 29.97 (30000/1001), which no whole rate steps; opened in the page,
+ * and once as the lab serves it (`served`).
  */
 const RATED: ReadonlyArray<{
   readonly rate: string;
@@ -68,9 +68,16 @@ const RATED: ReadonlyArray<{
   readonly served: string;
 }> = [
   { rate: '24', fps: 24, served: '' },
+  { rate: '30', fps: 30, served: '' },
   { rate: '29.97', fps: 30000 / 1001, served: '' },
   { rate: '29.97', fps: 30000 / 1001, served: ', served' },
 ];
+
+/** The passes of a rated video's fifteen frames (`ratedVideo`): 120 frames to step through. */
+const RATED_PASSES = 8;
+
+/** Long enough to step a rated video frame by frame, over a hundred times. */
+const SWEEP = 120_000;
 
 /** A seen variant of the roof's render set, as the server encodes it. */
 const variant = (id: string, label: string, extra: Readonly<Record<string, Json>> = {}): Json => ({
@@ -672,13 +679,13 @@ describe('the review page', () => {
 
   for (const { rate, fps, served } of RATED) {
     it.live(
-      `steps a video by its own frames${served}: at ${rate} fps, → shows its next picture, and the end reads in its frames`,
+      `steps a video by its own frames${served}: at ${rate} fps, each → shows its next picture, frame after frame, and the end reads in its frames`,
       () =>
         Effect.gen(function* () {
           // A real video made at `fps`, timed as the server times it (`Media.timing`), sent as the route encodes it.
           const fs = yield* FileSystem.FileSystem;
           const rated = `${yield* fs.makeTempDirectoryScoped()}/rated.mp4`;
-          yield* fs.writeFile(rated, yield* ratedVideo(fps, 4));
+          yield* fs.writeFile(rated, yield* ratedVideo(fps, RATED_PASSES));
           const timed = yield* Schema.encodeEffect(ReviewDuration)(
             yield* (yield* Media).timing(rated),
           );
@@ -692,28 +699,34 @@ describe('the review page', () => {
             Match.orElse(() => openServed('review', ratedRoutes, { href: SET })),
           );
           yield* waitFor(page, '.rv-transport');
-          // The end is read in the video's frames (60 of them: 2.5 s is 2 s and 12 of 24).
-          yield* textHas(page, '.rv-transport .rv-time', timecode(60 / fps, fps));
+          // The end is read in the video's frames (120: `00:00:05:00` at 24, `00:00:04:00` at 30 and, non-drop-frame, at 29.97).
+          const frames = 15 * RATED_PASSES;
+          yield* textHas(page, '.rv-transport .rv-time', timecode(frames / fps, fps));
           // Each video keeps the time of the picture it last showed (`requestVideoFrameCallback`).
           const videos = "Array.from(document.querySelectorAll('.rv-card video'))";
           yield* page.evaluate(
             `${videos}.forEach((v) => { const shown = (_, frame) => { v.dataset.shown = String(frame.mediaTime); v.requestVideoFrameCallback(shown); }; v.requestVideoFrameCallback(shown); })`,
           );
-          /** The clock and every video stand on frame `n`, and each shows that frame's picture. */
+          /**
+           * The clock reads frame `n`, and every video stands inside it and
+           * shows its picture (a picture's time is its frame's start).
+           */
           const onFrame = (n: number) =>
             until(
               page,
-              `${videos}.every((v) => Math.abs(v.currentTime - ${n / fps}) < 1e-3 && Math.abs(Number(v.dataset.shown) - ${n / fps}) < ${0.5 / fps})`,
+              `document.querySelector('.rv-transport .rv-time-at').textContent === '${timecode(n / fps, fps)}' && ${videos}.every((v) => v.currentTime >= ${n / fps} && v.currentTime < ${(n + 1) / fps} && Math.abs(Number(v.dataset.shown) - ${n / fps}) < ${0.5 / fps})`,
             );
-          yield* page.press('ArrowRight');
-          yield* onFrame(1);
-          yield* page.press('ArrowRight');
-          yield* onFrame(2);
+          // Frame after frame (Chrome's clock falls a microsecond short of
+          // some frames' starts, frame 25 at 24 fps, 62 at 30), then back one.
+          for (let n = 1; n < frames - 1; n++) {
+            yield* page.press('ArrowRight');
+            yield* onFrame(n);
+          }
           yield* page.press('ArrowLeft');
-          yield* onFrame(1);
+          yield* onFrame(frames - 3);
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped, Effect.provide(Layer.provideMerge(Media.layer, BunServices.layer))),
-      SLOW,
+      SWEEP,
     );
   }
 

@@ -20,7 +20,7 @@
 
 import { type Context, Data, type Duration, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
-import { frameAtOrAfter } from '../../core/time.ts';
+import { frameAtOrBefore } from '../../core/time.ts';
 import { Media, type Playable } from '../../browser/media.ts';
 import { type Command, type Invocation, quietly } from '../../command/command.ts';
 import type { Target } from '../../command/target.ts';
@@ -38,16 +38,21 @@ const DRIFT_S = 0.2;
 /** How far the clock moves before the machine hears of it, in seconds. */
 const TICK_S = 0.05;
 
-/** The ticks a second of a media element's clock: it keeps whole microseconds. */
-const MICROSECONDS = 1e6;
+/** How far into its frame a seek lands, in frames. */
+const INTO_FRAME = 0.25;
 
 /**
- * `t` on a media element's clock (Chrome truncates a time it is given to the
- * microsecond): rounded up, so a seek to a frame's start (`n / fps`, a step)
- * lands on that frame and shows its picture, not on the microsecond before
- * it, which shows the frame before.
+ * Where a seek to `t` lands on a media element: a quarter of a frame (at the
+ * clock's `fps`) into the frame `t` lies in, or `t` when it is further in
+ * already. A step's time is its frame's start (`n / fps`), and Chrome keeps
+ * an element's time a microsecond short of some frames' starts (frame 25 at
+ * 24 fps, 62 at 30), which shows the frame before; inside the frame, it
+ * shows that frame's picture. The clock's own time stays on the frame
+ * (the machine's `t`). A video at over four times the clock's rate would
+ * show its frame after the one at `t`.
  */
-const onElementClock = (t: number): number => frameAtOrAfter(t, MICROSECONDS) / MICROSECONDS;
+const intoFrame = (t: number, fps: number): number =>
+  Math.max(t, (frameAtOrBefore(t, fps) + INTO_FRAME) / fps);
 
 /** Whether `video` has drifted from the clock at `t` far enough to be put back. */
 export const drifted = (video: number, t: number): boolean => Math.abs(video - t) > DRIFT_S;
@@ -165,7 +170,8 @@ export const makeSync = (
         ),
       ),
     );
-  const seekTo = (a: Attached, t: number) => forkOn(a, a.video.seek(onElementClock(t)));
+  const seekTo = (a: Attached, t: number, fps: number) =>
+    forkOn(a, a.video.seek(intoFrame(t, fps)));
 
   const hear = (state: SyncState) => {
     for (const [id, a] of videos) {
@@ -193,7 +199,7 @@ export const makeSync = (
         for (const a of working()) {
           const video = a.video;
           if (a === master || video.seeking() || video.ended()) continue;
-          if (t < video.duration() && drifted(video.time(), t)) seekTo(a, t);
+          if (t < video.duration() && drifted(video.time(), t)) seekTo(a, t, state.fps);
         }
       });
       return Option.exists(current, (now) => runningOf(now) || now._tag === 'Buffering');
@@ -223,7 +229,7 @@ export const makeSync = (
     if (state.seek !== seek) {
       seek = state.seek;
       told = state.t;
-      for (const a of working()) seekTo(a, state.t);
+      for (const a of working()) seekTo(a, state.t, state.fps);
     }
     if (runningOf(state)) {
       for (const [id, a] of videos) if (!broken.has(a) && !a.video.playing()) play(id, a);
@@ -272,7 +278,7 @@ export const makeSync = (
         // Measured, it plays: a failure before was another try's.
         broken.delete(attached);
         measure(id, video);
-        Option.map(current, (state) => seekTo(attached, state.t));
+        Option.map(current, (state) => seekTo(attached, state.t, state.fps));
       },
       signal,
     );
@@ -287,7 +293,7 @@ export const makeSync = (
     );
     Option.map(current, (state) => {
       hear(state);
-      seekTo(attached, state.t);
+      seekTo(attached, state.t, state.fps);
       if (runningOf(state)) play(id, attached);
     });
     return () => release(id, attached);

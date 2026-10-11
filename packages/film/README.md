@@ -2392,11 +2392,14 @@ leading version's video (the first shown whose video plays here), whose ←/→
 step is one frame of that video's own (its timecode counts them; Shift ten):
 the rate `GET /api/review/duration` reads from the video's own packets
 (`fps`, `Media.timing`: frames a second over its first 120 packets, taken
-for the whole or 1000/1001 rate it lies within float noise of, else as
-measured, never rounded to a whole rate, so a 29.97 video steps on its own
-grid), the film rate (`FILM_FPS`) only while that answer is pending or the
-video names none; a step seeks to its frame's start rounded up to the
-microsecond, the element's clock, so it shows that frame's picture; one sound heard;
+for the whole or 1000/1001 rate it lies within its timestamps' precision
+of, 0.04%, under half the gap between 30 and 29.97, else as measured,
+never rounded to a whole rate, so a 29.97 video steps on its own grid),
+the film rate (`FILM_FPS`) only while that answer is pending or the video
+names none; the clock stands on the frame's start, and every video seeks a
+quarter of a frame into it (`intoFrame`; Chrome keeps some frames' starts a
+microsecond short, which shows the frame before), so it shows that frame's
+picture, and a time further into the frame (a scrub, `#t=`) as it is; one sound heard;
 opened at the URL's `#t=`, which follows it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
 `Wipe`, `Moments`, `Diff` shown as Difference, `Notes`; a set of one version has
 no pair, wipe or difference, and a link asking for one opens All; the pair,
