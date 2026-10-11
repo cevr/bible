@@ -283,7 +283,7 @@ const INK = rgb(P.ink);
 export const oil = (ctx: CanvasRenderingContext2D, o: Oil): boolean => {
   const { width, height } = ctx.canvas;
   if (width <= 0 || height <= 0) return false;
-  const made = glCanvas('painterly-oil', width, height);
+  const made = glCanvas('cold-studies/painterly-oil', width, height);
   if (made === undefined) return false;
   const { gl, canvas } = made;
   let pass = passes.get(gl);

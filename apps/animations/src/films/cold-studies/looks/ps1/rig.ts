@@ -29,7 +29,7 @@ const rigs = new WeakMap<WebGL2RenderingContext, Rig>();
 
 /** The rig, made the first time; none where no WebGL 2 context can be made (`check --draw`'s stand-in). */
 export const rigOf = (): Rig | undefined => {
-  const gl = glCanvas('ps1', LOW.w, LOW.h);
+  const gl = glCanvas('cold-studies/ps1', LOW.w, LOW.h);
   if (gl === undefined) return undefined;
   const have = rigs.get(gl.gl);
   if (have !== undefined) return have;

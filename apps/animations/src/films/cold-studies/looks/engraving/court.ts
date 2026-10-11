@@ -211,7 +211,11 @@ export const court = (f: CourtFrame) => {
       layPaper(ctx, w, h);
       const m = ctx.getTransform();
       const s = Math.hypot(m.a, m.b) || 1;
-      const gl = glCanvas('engraving', Math.round(PICTURE.w * s), Math.round(PICTURE.h * s));
+      const gl = glCanvas(
+        'cold-studies/engraving',
+        Math.round(PICTURE.w * s),
+        Math.round(PICTURE.h * s),
+      );
       if (gl !== undefined) {
         let r = rigs.get(gl.gl);
         if (r === undefined) {
