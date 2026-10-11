@@ -563,7 +563,12 @@ const gcd = (a: number, b: number): number => {
  * - their clock is the coarsest step every start is a whole count of (their
  *   greatest common divisor), not the timescale that keeps them: a
  *   millisecond clock's times copied onto a 16000 timescale tell no more
- *   than they did on a 1000 one;
+ *   than they did on a 1000 one. That holds only while the step is under
+ *   half a candidate rate's frame: a coarser one is the frames' own spacing
+ *   (an exactly timed file, whose starts all lie on its frames, at 1.25 fps
+ *   or with frames dropped), which would let a whole rate's grid put two
+ *   starts on one of its frames and still hold them, so against that rate
+ *   they are judged by one tick of the timescale;
  * - a whole rate (30) or its 1000/1001 rate (30000/1001, NTSC's 29.97) is
  *   taken when its frame grid puts every start within one step of its time
  *   and the other's does not. Each start is its frame's time put on the
@@ -597,7 +602,13 @@ const rateOfTicks = (ticks: ReadonlyArray<number>, resolution: number): Option.O
       const spreadOf = (num: number, den: number) => {
         const period = resolution * den;
         const offsets = ticks.map((at) => at * num - Math.round((at * num) / period) * period);
-        return { spread: Math.max(...offsets) - Math.min(...offsets), step: step * num };
+        // A step of half this grid's frame or more is no clock its frames were
+        // put on, but frames themselves: judged by one tick.
+        const judged = Option.getOrElse(
+          Option.filter(Option.some(step), (each) => each * num * 2 < period),
+          () => 1,
+        );
+        return { spread: Math.max(...offsets) - Math.min(...offsets), step: judged * num };
       };
       const whole = Math.round(measured);
       const ntsc = Math.round((measured * 1001) / 1000);

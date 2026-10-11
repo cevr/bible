@@ -521,6 +521,37 @@ describe.concurrent('Media', () => {
           // 0.666 s (1⅓ ms short): their starts drift 0.63 ms from 30's grid on
           // top of the truncation, past a millisecond, so 29.97 alone holds them.
           expect(yield* rateAt(ntsc, 20, { ...ms, grid: 0.001, last: 0.033 })).toBe(ntsc);
+          // Exactly timed starts at a rate just past a whole one sit a frame
+          // apart on their clock, as coarse as the whole rate's frame: the whole
+          // grid holds them only by putting two on one line, so the clock is
+          // judged by its tick, and each reads its own rate.
+          for (const [fps, timescale] of [
+            [1.25, 1000],
+            [4 / 3, 1000],
+            [2.4, 90000],
+            [6.25, 1000],
+            [6.4, 16000],
+            [12.4, 12.4],
+          ] as const)
+            expect(yield* rateAt(fps, 60, { timescale })).toBeCloseTo(fps, 9);
+          // An exactly timed file with three frames dropped from its first 120
+          // (its 120 starts span 122 frames) tells no whole or 1000/1001 rate a
+          // frame short: kept as measured, never 29 (or 23, 59, 28.97).
+          for (const [fps, timescales] of [
+            [30, [15360, 90000]],
+            [24, [15360, 90000]],
+            [60, [15360, 90000]],
+            [ntsc, [30000, 90000]],
+          ] as const)
+            for (const timescale of timescales) {
+              const read = yield* rateAt(fps, 133, { timescale, drop: [30, 60, 90] });
+              expect(read).toBeCloseTo((119 * fps) / 122, 9);
+            }
+          // One dropped frame leaves every other start on 30's (29.97's) grid:
+          // its own rate, exactly timed as on a rounding millisecond clock.
+          expect(yield* rateAt(30, 131, { timescale: 15360, drop: [50] })).toBe(30);
+          expect(yield* rateAt(30, 131, { timescale: 1000, drop: [50] })).toBe(30);
+          expect(yield* rateAt(ntsc, 131, { timescale: 30000, drop: [50] })).toBe(ntsc);
         }),
       ),
   );

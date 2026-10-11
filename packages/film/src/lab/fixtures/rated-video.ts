@@ -41,6 +41,8 @@ export interface RatedTiming {
   readonly grid?: number;
   /** The last frame's own duration (s), as a whole clip's is written apart; a frame's by default. */
   readonly last?: number;
+  /** Frames left out, their places kept empty, as a capture drops frames under load. */
+  readonly drop?: ReadonlyArray<number>;
 }
 
 /**
@@ -50,7 +52,7 @@ export interface RatedTiming {
 export const ratedVideo = (
   fps: number,
   frames: number,
-  { timescale = fps, grid, last }: RatedTiming = {},
+  { timescale = fps, grid, last, drop = [] }: RatedTiming = {},
 ) =>
   Effect.scoped(
     Effect.gen(function* () {
@@ -91,9 +93,12 @@ export const ratedVideo = (
             Option.filter(Option.fromUndefinedOr(last), () => frame === frames - 1),
             () => at(frame + 1) - at(frame),
           );
-          return packet.clone({ timestamp: at(frame), duration });
+          return { frame, packet: packet.clone({ timestamp: at(frame), duration }) };
         }),
-      ).slice(0, frames);
+      )
+        .slice(0, frames)
+        .filter(({ frame }) => !drop.includes(frame))
+        .map(({ packet }) => packet);
       // The first packet carries the track's config.
       for (const [i, packet] of laid.entries())
         yield* Effect.promise(() =>
