@@ -30,7 +30,13 @@ import {
 } from 'solid-js';
 import { type SeenPoint, seenVariants } from '../../core/choice.ts';
 import type { DrawStills } from './options/stills.tsx';
-import { type ReviewFile, ReviewFilms, type ReviewFolder, ReviewIndex } from '../../core/review.ts';
+import {
+  ReviewDuration,
+  type ReviewFile,
+  ReviewFilms,
+  type ReviewFolder,
+  ReviewIndex,
+} from '../../core/review.ts';
 import { Viewport } from '../../browser/viewport.ts';
 import { plainClick } from '../../browser/pointer.ts';
 import { PHONE } from '../viewport.ts';
@@ -55,6 +61,7 @@ import { ReviewApi, reviewApiLayer } from './api.ts';
 import { type Quality, fileInfoText, videoSource } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
 import { Places, legacyPlace, pageHref, reviewFileUrl } from '../../core/api.ts';
+import { FILM_FPS } from '../../core/time.ts';
 import { onChoicesTab } from '../../core/point.ts';
 import {
   type SyncActor,
@@ -135,10 +142,11 @@ interface ReviewMeta {
    */
   readonly asks: Asks;
   /**
-   * A video's length, read once per file as the index last saw it: a video
-   * written again since is measured afresh.
+   * A video's length and its frame rate (its own, as the server reads its
+   * frames), read once per file as the index last saw it: a video written
+   * again since is measured afresh.
    */
-  readonly duration: (video: Written) => Loaded<number>;
+  readonly timing: (video: Written) => Loaded<ReviewDuration>;
   /**
    * A doc's text, read once per file as the index last saw it (its ref and
    * when it was written): a doc written again since is read afresh.
@@ -273,17 +281,17 @@ export const Root = (
   // A video's length and a doc's text are each keyed by what names the file's
   // content, its ref and when it was written: a refreshed index that saw it
   // written again names a new read.
-  const durationOf = Atom.family((file: Written) =>
+  const timingOf = Atom.family((file: Written) =>
     runtime
       .atom(ReviewApi.use((api) => api.duration(file.ref)))
-      .pipe(served(`review.duration:${file.ref}@${file.mtime}`, Schema.Finite)),
+      .pipe(served(`review.duration:${file.ref}@${file.mtime}`, ReviewDuration)),
   );
   const textOf = Atom.family((file: Written) =>
     runtime
       .atom(ReviewApi.use((api) => api.text(file.ref)))
       .pipe(served(`review.text:${file.ref}@${file.mtime}`, Schema.String)),
   );
-  const duration = (file: Written) => durationOf({ ref: file.ref, mtime: file.mtime });
+  const timing = (file: Written) => timingOf({ ref: file.ref, mtime: file.mtime });
   const text = (file: Written) => textOf({ ref: file.ref, mtime: file.mtime });
   const servedAtAtom = Atom.make(Clock.currentTimeMillis).pipe(served(SERVED_AT, Schema.Finite));
 
@@ -368,7 +376,7 @@ export const Root = (
       },
       meta: {
         asks,
-        duration,
+        timing,
         text,
         runtime,
         client: props.client,
@@ -626,7 +634,35 @@ const SetContext = createContext<SetContextValue>();
 /** A set's context: only inside `<SetProvider>`. */
 export const useSet = (): SetContextValue => useContext(SetContext);
 
-const unmeasured = Atom.make(AsyncResult.initial<number, LabFailure>());
+const unmeasured = Atom.make(AsyncResult.initial<ReviewDuration, LabFailure>());
+
+/**
+ * Tell a clock (`send`) the frame rate of its video (`video`, none when it
+ * has none): the rate the server reads from the video's own frames, once it
+ * answers; the film rate (`FILM_FPS`) while the answer is pending, or when
+ * the video names none. Read in the page only: nothing the server renders
+ * counts frames past the clock's start, so its render never waits on it.
+ */
+export const useClockRate = (
+  video: Accessor<Option.Option<Written>>,
+  send: (event: SyncEvent) => void,
+) => {
+  const { meta } = useReview();
+  const timed = useAtomValue(() =>
+    Option.match(
+      Option.filter(video(), () => !isServer),
+      { onNone: () => unmeasured, onSome: meta.timing },
+    ),
+  );
+  createEffect(
+    () =>
+      Option.getOrElse(
+        Option.flatMap(AsyncResult.value(timed()), (t) => t.fps),
+        () => FILM_FPS,
+      ),
+    (fps) => send(SyncEvent.Timed({ fps })),
+  );
+};
 
 /** The set's place in the URL: its path, its view in the query, the player's time in the hash. */
 const setPlace = UrlAtom.place(Places.set);
@@ -694,6 +730,15 @@ const SetBody = (
   onCleanup(driver.stop);
   createEffect(sync, (state) => driver.apply(state));
   createEffect(leader, (id) => driver.follow(id));
+  // It steps and counts by that video's own frames.
+  useClockRate(
+    () =>
+      Option.map(
+        Option.fromUndefinedOr(props.set.variants.find((v) => v.id === leader())),
+        (v) => v.video,
+      ),
+    sendSync,
+  );
 
   const address = addressOn(meta.host);
   const sendView = (event: ViewEvent) =>
@@ -757,14 +802,14 @@ const SetBody = (
     if (Option.isSome(props.set.moments)) return unmeasured;
     return Option.match(Option.fromUndefinedOr(props.set.variants[0]), {
       onNone: () => unmeasured,
-      onSome: (v) => meta.duration(v.video),
+      onSome: (v) => meta.timing(v.video),
     });
   });
   // The same instants read again are no new moments: the views over them stay.
   const moments = createMemo(
     () =>
       Option.orElse(props.set.moments, () =>
-        Option.map(AsyncResult.value(length()), (seconds) =>
+        Option.map(AsyncResult.value(length()), ({ seconds }) =>
           spreadMoments(seconds, props.set.start),
         ),
       ),

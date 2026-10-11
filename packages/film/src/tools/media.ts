@@ -534,6 +534,27 @@ const videoTrackOf = (op: MediaFailed['op'], file: string, input: Input) =>
     (track) => present(op, file, 'video track', track),
   );
 
+/** The packets a video's frame rate is counted over: a few seconds of a film. */
+const RATE_PACKETS = 120;
+
+/**
+ * `file`'s frame rate, read where it lies: its video track's frames a second
+ * (mediabunny's count over its first packets), to the nearest whole frame, as
+ * a film renders at. None for a file with no video track, or none readable.
+ */
+export const frameRate = (file: string): Effect.Effect<Option.Option<number>> =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const input = yield* openInPlace(file);
+      const track = yield* videoTrackOf('read', file, input);
+      const stats = yield* attempt('read', file, () => track.computePacketStats(RATE_PACKETS));
+      return Option.liftPredicate(
+        Math.round(stats.averagePacketRate),
+        (rate) => Number.isFinite(rate) && rate > 0,
+      );
+    }),
+  ).pipe(Effect.orElseSucceed(() => Option.none<number>()));
+
 /** An even count of pixels, as H.264's 4:2:0 wants. */
 const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
 

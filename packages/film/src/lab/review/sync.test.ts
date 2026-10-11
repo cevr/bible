@@ -24,6 +24,7 @@ const clock = (t: number, seek = 0) => ({
   t,
   start: 0,
   end: 10,
+  fps: 30,
   rate: 1 as const,
   audible: 'a',
   seek,

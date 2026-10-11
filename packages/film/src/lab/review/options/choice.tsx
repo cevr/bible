@@ -229,7 +229,7 @@ export const Seen = (props: { readonly video: ReviewVideo }) => {
   const poster = createMemo(() => reviewFrameUrl(props.video.ref, Option.none(), POSTER_W));
   return (
     <Show when={src()} fallback={<ProxyPending video={props.video} />}>
-      {(source) => <PlayedAlone src={source()} poster={poster()} />}
+      {(source) => <PlayedAlone src={source()} poster={poster()} video={props.video} />}
     </Show>
   );
 };

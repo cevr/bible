@@ -35,7 +35,7 @@ import { PlayerKey, drifted, playerEvent } from './sync.ts';
 
 const player = syncMachine('A', 1);
 
-const clock = { t: 1, start: 1, end: 10, rate: 1, audible: 'A', seek: 0 } as const;
+const clock = { t: 1, start: 1, end: 10, fps: FILM_FPS, rate: 1, audible: 'A', seek: 0 } as const;
 
 describe('the synced player', () => {
   it.effect('plays and pauses, by the button and by space', () =>
@@ -167,6 +167,34 @@ describe('the synced player', () => {
           ...Array.from({ length: 10 }, () => step(1)),
         ]);
         expect(tens.finalState.t).toBe(40 / FILM_FPS);
+      }),
+  );
+
+  it.effect(
+    "steps and counts by the clock's video's own rate once it is known, the film rate until then",
+    () =>
+      Effect.gen(function* () {
+        const step = playerEvent(PlayerKey.Step({ by: 1 }));
+        const result = yield* simulate(player, [
+          SyncEvent.Measured({ end: 10 }),
+          step,
+          SyncEvent.Timed({ fps: 24 }),
+          step,
+          step,
+        ]);
+        // At the film rate (30): frame 31; at 24, from the frame it reads (24.8, so 25) on.
+        expect(result.states.map((s) => [s.fps, s.t])).toEqual([
+          [FILM_FPS, 1],
+          [FILM_FPS, 1],
+          [FILM_FPS, 31 / 30],
+          [24, 31 / 30],
+          [24, 26 / 24],
+          [24, 27 / 24],
+        ]);
+        expect(clockParts(result.finalState)).toEqual({
+          at: '00:00:01:03',
+          rest: ' / 00:00:10:00',
+        });
       }),
   );
 

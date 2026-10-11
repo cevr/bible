@@ -27,7 +27,8 @@ import {
   Output,
 } from 'mediabunny';
 import { type Pcm, toInt16 } from '../core/audio.ts';
-import { Media } from './media.ts';
+import { ratedVideo } from '../lab/fixtures/rated-video.ts';
+import { Media, frameRate } from './media.ts';
 import { collectWithin } from './process.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
@@ -432,6 +433,21 @@ describe.concurrent('Media', () => {
     Effect.gen(function* () {
       expect(yield* (yield* Media).duration(fixture('segment-a.mp4'))).toBeCloseTo(0.5, 2);
     }),
+  );
+
+  it.effect.layer(MediaOnDisk)(
+    "a video's frame rate is its own, read where it lies: none for a file with no video",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const file = `${yield* tempDir}/rated.mp4`;
+          yield* (yield* FileSystem.FileSystem).writeFile(file, yield* ratedVideo(24, 4));
+          expect(yield* frameRate(file)).toEqual(Option.some(24));
+          expect(yield* frameRate(fixture('segment-a.mp4'))).toEqual(Option.some(30));
+          expect(yield* frameRate(fixture('tone.mp3'))).toEqual(Option.none());
+          expect(yield* frameRate(fixture('no-such.mp4'))).toEqual(Option.none());
+        }),
+      ),
   );
 
   it.effect.layer(MediaOnDisk)('a share copy that fails leaves no file behind', () =>

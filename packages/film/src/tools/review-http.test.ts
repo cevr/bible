@@ -49,7 +49,7 @@ describe('review routes', () => {
         yield* Schema.decodeUnknownEffect(ReviewDuration)(
           yield* Effect.promise(() => length.json()),
         ),
-      ).toEqual({ seconds: 12.5 });
+      ).toEqual({ seconds: 12.5, fps: Option.none() });
       const frame = yield* reviewTestAsk(
         reviewTestGet(labUrls.review.frame({ query: { ref: 'out/art/roof.A.mp4', t: 2, w: 320 } })),
       );

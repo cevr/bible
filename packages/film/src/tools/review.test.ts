@@ -825,7 +825,11 @@ describe('the review service', () => {
     Effect.gen(function* () {
       const review = yield* Review;
       const spawned = yield* Spawned;
-      expect(yield* review.duration('out/art/roof.A.mp4')).toBe(12.5);
+      // A fake video, which no frame rate is read from.
+      expect(yield* review.duration('out/art/roof.A.mp4')).toEqual({
+        seconds: 12.5,
+        fps: Option.none(),
+      });
       const [a, b] = yield* Effect.all(
         [
           review.frame('out/art/roof.A.mp4', Option.none(), 640),

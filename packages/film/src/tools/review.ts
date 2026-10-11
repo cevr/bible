@@ -75,6 +75,7 @@ import {
 } from '../core/choice.ts';
 import { Say, type SetSaid, type SetSayPost } from '../core/api.ts';
 import type {
+  ReviewDuration,
   ReviewFile,
   ReviewFolder,
   ReviewIndex,
@@ -97,7 +98,7 @@ import { CATALOGUE_FILE, type CatalogueError, RenderCatalogue } from './catalogu
 import { writeWhole } from './content-store.ts';
 import { cacheKey } from './digest.ts';
 import { keptWhenMade } from './film-repo.ts';
-import { Media } from './media.ts';
+import { Media, frameRate } from './media.ts';
 
 /** A folder the review reads, and the label its refs start with. */
 export interface ReviewRoot {
@@ -555,8 +556,10 @@ interface ReviewService {
     | VersionChanged
     | CatalogueError
   >;
-  /** A video's length in seconds (its container's index), kept per path and mtime. */
-  readonly duration: (ref: string) => Effect.Effect<number, ReviewFileUnknown | MediaFailed>;
+  /** A video's length in seconds (its container's index) and its frame rate, kept per path and mtime. */
+  readonly duration: (
+    ref: string,
+  ) => Effect.Effect<ReviewDuration, ReviewFileUnknown | MediaFailed>;
   /** A JPEG of the video at `at` seconds (10% in when none), `width` wide, from the cache. */
   readonly frame: (
     ref: string,
@@ -697,11 +700,15 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             return out;
           });
 
-        /** Each video's length, by path and mtime, the newest kept; a failed read is not. */
-        const lengths = yield* Cache.makeWith((at: AtMtime) => media.duration(at.file), {
-          capacity: LENGTHS_KEPT,
-          timeToLive: keptWhenMade,
-        });
+        /**
+         * Each video's length and frame rate (its own: none for a file with no
+         * video), by path and mtime, the newest kept; a failed read is not.
+         */
+        const lengths = yield* Cache.makeWith(
+          (at: AtMtime) =>
+            Effect.all({ seconds: media.duration(at.file), fps: frameRate(at.file) }),
+          { capacity: LENGTHS_KEPT, timeToLive: keptWhenMade },
+        );
 
         const duration = Effect.fn('Review.duration')(function* (ref: string) {
           const file = yield* resolve(ref);
@@ -725,7 +732,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         ) {
           const file = yield* resolve(ref);
           // A time outside the video is its first or last frame: one key, one still.
-          const length = yield* duration(ref);
+          const { seconds: length } = yield* duration(ref);
           let t = 0;
           if (Option.isSome(at)) t = clamp(at.value, 0, length);
           else t = length * 0.1;

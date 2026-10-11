@@ -110,8 +110,15 @@ export type ReviewFolder = typeof ReviewFolder.Type;
 export const ReviewIndex = Schema.Struct({ folders: Schema.Array(ReviewFolder) });
 export type ReviewIndex = typeof ReviewIndex.Type;
 
-/** `GET /api/review/duration`: a video's length. */
-export const ReviewDuration = Schema.Struct({ seconds: Seconds });
+/**
+ * `GET /api/review/duration`: a video's length, and its frame rate as its
+ * own frames say (none for a file with no video, or an older server's
+ * answer), which a review's clock steps and counts by.
+ */
+export const ReviewDuration = Schema.Struct({
+  seconds: Seconds,
+  fps: maybe(Schema.Finite.check(Schema.isGreaterThan(0))),
+});
 export type ReviewDuration = typeof ReviewDuration.Type;
 
 /** `GET /api/films`: the app's films, by name. */

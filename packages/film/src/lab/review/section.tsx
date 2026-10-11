@@ -382,6 +382,7 @@ const LooseVideo = (props: {
         {(src) => (
           <PlayedAlone
             src={src()}
+            video={props.video}
             poster={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
           >
             <Show when={Option.getOrUndefined(captions())} keyed>

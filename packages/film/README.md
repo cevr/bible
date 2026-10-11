@@ -2243,7 +2243,7 @@ makes no phone copies.
 | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/review/index[?fresh]`                                                 | `ReviewIndex`: every folder with something to review, newest first                                                                                                                                                                                          |
 | `GET /api/review/files/<ref>`, `/api/review/phone/<ref>`                        | the file, or its phone copy, byte ranges answered 206                                                                                                                                                                                                       |
-| `GET /api/review/frame?ref=&t=&w=`, `/api/review/duration?ref=`                 | a JPEG of a video at `t` s, `w` px wide; its length                                                                                                                                                                                                         |
+| `GET /api/review/frame?ref=&t=&w=`, `/api/review/duration?ref=`                 | a JPEG of a video at `t` s, `w` px wide; its length and its own frame rate (`fps`, none for a file with no video)                                                                                                                                           |
 | `POST /api/review/sets/<folder>/<point>/say`                                    | `SetSayPost` `{variant, say, op?}` → `SetSaid` (the `ReviewFolder`, with `gave?` and `took?` as a project say answers them), written to the folder's `catalogue.json` (a montage refused; a version made again since it was shown is `VersionChanged`, 409) |
 | `GET /api/films`                                                                | `ReviewFilms`: the app's films                                                                                                                                                                                                                              |
 | `GET /api/films/<film>/choices`                                                 | `FilmChoices`: the film's renders (the pictures) and its points                                                                                                                                                                                             |
@@ -2369,7 +2369,10 @@ says so with Show every point. A point with a finding is not one of them:
 a finding names an address, not a point. A set's page holds one effect-machine actor, the synced player
 (`machine.ts`: `Paused`, `Playing`, `Scrubbing`, `Buffering`; one clock, the
 leading version's video (the first shown whose video plays here), whose ←/→
-step is one frame of its timecode (`CLOCK_FPS`, Shift ten); one sound heard;
+step is one frame of that video's own (its timecode counts them; Shift ten):
+the rate `GET /api/review/duration` reads from the video's frames (`fps`),
+the film rate (`FILM_FPS`) only while that answer is pending or the video
+names none; one sound heard;
 opened at the URL's `#t=`, which follows it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
 `Wipe`, `Moments`, `Diff` shown as Difference, `Notes`; a set of one version has
 no pair, wipe or difference, and a link asking for one opens All; the pair,

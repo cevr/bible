@@ -75,12 +75,7 @@ export const reviewGroup = HttpApiBuilder.group(LabHttpApi, 'review', (handlers)
       ),
     )
     .handle('duration', ({ query }) =>
-      answered(
-        Effect.map(
-          Effect.flatMap(Review, (review) => review.duration(query.ref)),
-          (seconds) => ({ seconds }),
-        ),
-      ),
+      answered(Effect.flatMap(Review, (review) => review.duration(query.ref))),
     )
     .handle('say', ({ params, payload }) =>
       answered(
