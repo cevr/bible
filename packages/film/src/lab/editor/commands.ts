@@ -122,7 +122,7 @@ export const stripFollowCommand = (rows: StripRows): Command => ({
   label: 'Follow the playhead on the strip',
   group: 'Edit',
   about: ['Page', 'Cue'],
-  touch: 'hold the strip, or the command menu',
+  touch: 'hold a cue’s lane beside its bar, or the command menu',
   when: rows.letGo,
   run: quietly(rows.follow),
 });

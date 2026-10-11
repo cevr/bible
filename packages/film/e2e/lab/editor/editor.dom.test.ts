@@ -27,6 +27,7 @@ import {
   labAt,
   later,
   openLab,
+  openServed,
   PHONE,
   refused,
   URL_T,
@@ -1691,5 +1692,37 @@ describe('the strip follows the playhead down its rows', () => {
         yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
         yield* evaluates(page, 'location.hash', at);
       }).pipe(Effect.scoped),
+  );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
+    'on a phone, a finger held on a cue’s lane beside its bar reaches Follow and leaves the playhead',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openServed('lab', [], {
+          href: labAt(middle('fall')),
+          viewport: PHONE,
+        });
+        yield* page.waitFor('.lab-cue[data-cue="fall"][data-live]');
+        yield* evaluates(page, SHORT, true);
+        yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+        yield* page.evaluate(`${BOX}.scrollTop = 0`);
+        yield* page.evaluate(FRAMES);
+        yield* evaluates(page, `${LIT_IN_SIGHT}.startsWith('lit rows')`, true);
+        const at = yield* page.evaluate<string>('location.hash');
+        // A point on `rise`'s lane, beside its bar: the hold the command's touch hint names.
+        const spot = yield* page.evaluate<{ readonly x: number; readonly y: number }>(
+          `(() => { const bar = document.querySelector('.lab-cue[data-cue="rise"]'); const lane = bar.closest('.lab-cue-lane').getBoundingClientRect(); const b = bar.getBoundingClientRect(); const right = lane.right - b.right; return { x: right > b.left - lane.left ? (b.right + lane.right) / 2 : (lane.left + b.left) / 2, y: lane.top + lane.height / 2 }; })()`,
+        );
+        yield* page.clock.hold;
+        yield* page.finger.down(spot.x, spot.y);
+        yield* page.clock.runFor(700);
+        yield* page.waitFor(`[data-role="context-menu"] [data-command="${STRIP_FOLLOW}"]`);
+        yield* page.finger.up;
+        yield* page.clock.release;
+        yield* page.click(`[data-role="context-menu"] [data-command="${STRIP_FOLLOW}"]`);
+        yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+        yield* evaluates(page, 'location.hash', at);
+      }).pipe(Effect.scoped, Effect.runPromise),
   );
 });
