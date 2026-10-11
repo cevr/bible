@@ -37,6 +37,7 @@ import {
 } from '../core/catalogue.ts';
 import { type SetSayPost, withdrawSay } from '../core/api.ts';
 import { type ChoiceVariant, VariantMedia } from '../core/choice.ts';
+import { MediaFailed } from '../core/refusals.ts';
 import { type ReviewFolder, type ReviewIndex, ReviewManifestJson } from '../core/review.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
@@ -475,15 +476,17 @@ const projectCatalogue = [
  * lone video, a variant from `out/elsewhere`); `out/f`, a project folder
  * with its catalogue; a stand-in Media (`reviewMedia`) giving every video
  * 12.5 s and making a still or a phone copy by copying the video whole.
- * The review reads the files through `files` (the file system as is, by
- * default), and copies a video over 100 bytes or over `phoneRate` bits a
- * second (the review's own by default).
+ * The montage names an image, a doc and a variant's notes beside its videos,
+ * and the project each render's captions. The review reads the files
+ * through `files` (the file system as is, by default), and copies a video
+ * over 100 bytes or over `phoneRate` bits a second (the review's own by
+ * default); the media cannot read the length of a file named `unreadable`.
  */
 const fixture = (
   phoneCopies: boolean,
   fps: Option.Option<number> = Option.none(),
   files: (fs: FileSystem.FileSystem) => FileSystem.FileSystem = Function.identity,
-  phoneRate?: number,
+  tune: { readonly phoneRate?: number; readonly unreadable?: string } = {},
 ) =>
   Layer.unwrap(
     Effect.gen(function* () {
@@ -505,8 +508,11 @@ const fixture = (
       yield* fs.writeFileString(path.join(dir, 'secret.mp4'), 's');
       yield* write(
         'art/review.json',
-        '{ "title": "Art", "videos": ["big.mp4"], "sets": { "roof": { "order": ["A", "B"], "variants": { "D": { "file": "../elsewhere/roof.D.mp4" } } } } }',
+        '{ "title": "Art", "videos": ["big.mp4"], "images": ["sheet.png"], "docs": ["brief.md"], "sets": { "roof": { "order": ["A", "B"], "variants": { "A": { "notes": "roof.A.md" }, "D": { "file": "../elsewhere/roof.D.mp4" } } } } }',
       );
+      yield* write('art/sheet.png', 'png');
+      yield* write('art/brief.md', '# brief');
+      yield* write('art/roof.A.md', 'notes');
       // A log beside the renders: named by no record, never served.
       yield* write('art/render.log', 'a log');
       for (const name of ['film/main', 'film/wide', 'scenes/a/main']) {
@@ -516,16 +522,36 @@ const fixture = (
       }
       yield* write('f/catalogue.json', yield* Schema.encodeEffect(CatalogueJson)(projectCatalogue));
       const spawned: Array<string> = [];
+      // The stand-in, but a file named `unreadable` is counted, then fails as an unreadable one does.
+      const media = Layer.effect(
+        Media,
+        Effect.gen(function* () {
+          const standIn = yield* Media;
+          return Media.of({
+            ...standIn,
+            timing: (file) =>
+              Effect.flatMap(standIn.timing(file), (timing) =>
+                Effect.as(
+                  Effect.when(
+                    Effect.fail(MediaFailed.make({ op: 'read', file, reason: 'not media' })),
+                    Effect.succeed(path.basename(file) === tune.unreadable),
+                  ),
+                  timing,
+                ),
+              ),
+          });
+        }),
+      ).pipe(Layer.provide(reviewMedia(spawned, 12.5, fps)));
       return Review.layer({
         roots: [{ label: 'out', path: out }],
         cache: path.join(dir, 'cache'),
         phoneOver: 100,
-        phoneRate,
+        phoneRate: tune.phoneRate,
         maxVideo: 1000,
         phoneCopies,
       }).pipe(
         Layer.provide(Layer.succeed(FileSystem.FileSystem, files(fs))),
-        Layer.provideMerge(reviewMedia(spawned, 12.5, fps)),
+        Layer.provideMerge(media),
         Layer.provide(RenderCatalogue.layer.pipe(Layer.provide(ContentStore.layer))),
         Layer.merge(Layer.succeed(Spawned, spawned)),
         Layer.merge(Layer.succeed(Root, dir)),
@@ -954,7 +980,54 @@ describe('the review service', () => {
           Option.some('pending'),
           Option.some('pending'),
         ]);
-      }).pipe(Effect.provide(fixture(false, Option.none(), Function.identity, 6))),
+      }).pipe(Effect.provide(fixture(false, Option.none(), Function.identity, { phoneRate: 6 }))),
+  );
+
+  it.effect(
+    'reads the length of the videos it plays alone: never an image, a doc, notes or captions',
+    () =>
+      Effect.gen(function* () {
+        yield* (yield* Review).index(false);
+        const read = (yield* Spawned)
+          .filter((c) => c.startsWith('timing '))
+          .map((c) => c.split('/').slice(-2).join('/'))
+          .toSorted();
+        // A render plays its share copy, or its master where there is none: both are read.
+        expect(read).toEqual([
+          'a/main.mp4',
+          'a/main.share.mp4',
+          'art/roof.A.mp4',
+          'art/roof.B.mp4',
+          'elsewhere/roof.D.mp4',
+          'film/main.mp4',
+          'film/main.share.mp4',
+          'film/wide.mp4',
+          'film/wide.share.mp4',
+        ]);
+      }).pipe(Effect.provide(fixture(false))),
+  );
+
+  it.effect(
+    'reads a video whose length cannot be read once while it stands, and plays it as made',
+    () =>
+      Effect.gen(function* () {
+        const review = yield* Review;
+        yield* review.index(true);
+        const { folders } = yield* review.index(true);
+        const roof = folders.find((f) => f.ref === 'out/art')?.sets[0];
+        expect(roof?.variants.map(phoneOf)[0]).toEqual(Option.some('none'));
+        const reads = (yield* Spawned).filter(
+          (c) => c.startsWith('timing') && c.endsWith('roof.A.mp4'),
+        );
+        expect(reads).toHaveLength(1);
+      }).pipe(
+        Effect.provide(
+          fixture(false, Option.none(), Function.identity, {
+            phoneRate: 6,
+            unreadable: 'roof.A.mp4',
+          }),
+        ),
+      ),
   );
 
   it.effect(

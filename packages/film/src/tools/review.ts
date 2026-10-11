@@ -266,6 +266,10 @@ const playedFiles = (render: Render) => [
   ...Option.toArray(render.files.clip),
 ];
 
+/** Every file a catalogue's renders play as video, relative to its project folder. */
+const playedInProject = (catalogue: Catalogue): ReadonlyArray<string> =>
+  Arr.dedupe(catalogue.renders.flatMap(playedFiles));
+
 /** A render's video as the review plays it: its share copy, standing in for its master. */
 const renderVideo = (parts: FolderParts<Catalogue>, render: Render) =>
   videoOf(parts, playedFiles(render));
@@ -419,6 +423,15 @@ export const namesInMontage = (manifest: ReviewManifest): ReadonlyArray<string> 
         ...variantNames(clip, id, set),
         ...Option.toArray(Option.flatMap(Rec.get(set.variants, id), (v) => v.notes)),
       ]),
+    ),
+  ]);
+
+/** Every file a manifest plays as video (its videos and its sets' variants), relative to its folder. */
+const playedInMontage = (manifest: ReviewManifest): ReadonlyArray<string> =>
+  Arr.dedupe([
+    ...manifest.videos,
+    ...Object.entries(manifest.sets).flatMap(([clip, set]) =>
+      variantIds(set).flatMap((id) => variantNames(clip, id, set)),
     ),
   ]);
 
@@ -716,12 +729,17 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         /**
          * Each video's length and frame rate, one read of it (`Media.timing`:
          * its own, never rounded; none for a file with no video), by path and
-         * mtime, the newest kept; a failed read is not.
+         * mtime, the newest kept; a failed read is kept too, so a file that
+         * cannot be read is read once while it stands.
          */
-        const lengths = yield* fileCache((at) => media.timing(at.file), LENGTHS_KEPT);
+        const lengths = yield* fileCache(
+          (at) => Effect.result(media.timing(at.file)),
+          LENGTHS_KEPT,
+        );
+        const lengthOf = (at: AtMtime) => Effect.flatMap(Cache.get(lengths, at), Effect.fromResult);
 
         const duration = Effect.fn('Review.duration')(function* (ref: string) {
-          return yield* Cache.get(lengths, yield* standing(yield* resolve(ref)));
+          return yield* lengthOf(yield* standing(yield* resolve(ref)));
         });
 
         /** The frames being made, by name: a scrub that asks for one twice makes it once. */
@@ -775,7 +793,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         const copied = (video: Found) => {
           if (video.size > config.phoneOver) return Effect.succeed(true);
           const at = new AtMtime({ file: video.path, mtime: video.mtime });
-          return Cache.get(lengths, at).pipe(
+          return lengthOf(at).pipe(
             Effect.map(({ seconds }) => seconds > 0 && (video.size * 8) / seconds > phoneRate),
             Effect.orElseSucceed(() => false),
           );
@@ -846,11 +864,15 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             ),
           );
 
-        /** The named files and phone state for the subset eligible for previews; download-only files get none. */
+        /**
+         * The named files, and the phone state of those among them the review
+         * plays as video (`played`); any other (an image, captions, notes, a
+         * download) is never read for its length and has none.
+         */
         const lookIn = Effect.fn('Review.lookIn')(function* (
           dir: string,
           names: ReadonlyArray<string>,
-          phoneNames: ReadonlyArray<string> = names,
+          played: ReadonlyArray<string>,
         ) {
           const byName = new Map<string, Found>();
           for (const name of names) {
@@ -858,7 +880,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             if (Option.isSome(at)) byName.set(name, at.value);
           }
           const phones = new Map<string, PhoneState>();
-          for (const file of phoneNames.flatMap((name) =>
+          for (const file of played.flatMap((name) =>
             Option.toArray(Option.fromUndefinedOr(byName.get(name))),
           ))
             if (!phones.has(file.path)) phones.set(file.path, yield* phoneState(file));
@@ -885,7 +907,11 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             const catalogue = yield* decodeRecord(file, CatalogueJson);
             if (Option.isNone(catalogue)) return Option.none();
             const record = catalogue.value;
-            const { parts, pending } = yield* lookIn(dir, namesInProject(record));
+            const { parts, pending } = yield* lookIn(
+              dir,
+              namesInProject(record),
+              playedInProject(record),
+            );
             const pictures = record.renders
               .filter((r) => r.kind === 'video' && r.address._tag === 'Film')
               .flatMap((r) =>
@@ -914,7 +940,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           const { parts, pending } = yield* lookIn(
             dir,
             namesInMontage(record),
-            namesInMontage({ ...record, downloads: [] }),
+            playedInMontage(record),
           );
           return Option.some({
             folder: montageFolder({ ...parts, record }),
@@ -1143,7 +1169,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           render: Render,
         ) {
           const names = playedFiles(render);
-          const { parts } = yield* lookIn(dir, names);
+          const { parts } = yield* lookIn(dir, names, names);
           return videoOf({ ...parts, record: render }, names);
         });
 
