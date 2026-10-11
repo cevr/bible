@@ -56,12 +56,14 @@ import {
   type Project,
   approvalState,
   commentsOn,
+  gaveOf,
   projectNow,
   recordedNow,
   said,
   renderState,
   saidOn,
   subjectOf,
+  tookOf,
 } from '../core/catalogue.ts';
 import {
   type ChoicePoint,
@@ -71,8 +73,9 @@ import {
   seenVariants,
   subjectAt,
 } from '../core/choice.ts';
-import type { SetSayPost } from '../core/api.ts';
+import { Say, type SetSaid, type SetSayPost } from '../core/api.ts';
 import type {
+  ReviewDuration,
   ReviewFile,
   ReviewFolder,
   ReviewIndex,
@@ -530,8 +533,9 @@ interface ReviewService {
   /**
    * Say `asked.say` of version `asked.variant` of the set `point` in the
    * project folder `folder` (a ref), as it is now: written to that folder's
-   * own catalogue, answered with the folder as the say leaves it. A montage
-   * keeps no say (its manifest is written by hand). The version is checked
+   * own catalogue, answered with the folder as the say leaves it and what
+   * it gave or took (`SetSaid`: a scene's run, as a project's say answers
+   * it). A montage keeps no say (its manifest is written by hand). The version is checked
    * again inside the catalogue's write: one made again since the index showed
    * it is `VersionChanged`, and an approval is refused by its state then:
    * against the film's sources as `project` reads them now, the rule the
@@ -544,7 +548,7 @@ interface ReviewService {
     asked: SetSayPost,
     project: ProjectRead,
   ) => Effect.Effect<
-    ReviewFolder,
+    SetSaid,
     | ReviewFileUnknown
     | ChoiceUnknown
     | VariantUnknown
@@ -552,8 +556,10 @@ interface ReviewService {
     | VersionChanged
     | CatalogueError
   >;
-  /** A video's length in seconds (its container's index), kept per path and mtime. */
-  readonly duration: (ref: string) => Effect.Effect<number, ReviewFileUnknown | MediaFailed>;
+  /** A video's length in seconds (its container's index) and its frame rate, kept per path and mtime. */
+  readonly duration: (
+    ref: string,
+  ) => Effect.Effect<ReviewDuration, ReviewFileUnknown | MediaFailed>;
   /** A JPEG of the video at `at` seconds (10% in when none), `width` wide, from the cache. */
   readonly frame: (
     ref: string,
@@ -694,8 +700,12 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             return out;
           });
 
-        /** Each video's length, by path and mtime, the newest kept; a failed read is not. */
-        const lengths = yield* Cache.makeWith((at: AtMtime) => media.duration(at.file), {
+        /**
+         * Each video's length and frame rate, one read of it (`Media.timing`:
+         * its own, never rounded; none for a file with no video), by path and
+         * mtime, the newest kept; a failed read is not.
+         */
+        const lengths = yield* Cache.makeWith((at: AtMtime) => media.timing(at.file), {
           capacity: LENGTHS_KEPT,
           timeToLive: keptWhenMade,
         });
@@ -722,7 +732,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         ) {
           const file = yield* resolve(ref);
           // A time outside the video is its first or last frame: one key, one still.
-          const length = yield* duration(ref);
+          const { seconds: length } = yield* duration(ref);
           let t = 0;
           if (Option.isSome(at)) t = clamp(at.value, 0, length);
           else t = length * 0.1;
@@ -1012,7 +1022,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           // against the catalogue as the write reads it, and the say written
           // only of the version that was shown. A refusal fails the write before
           // anything is encoded, so the file stays as it was, byte for byte.
-          yield* catalogues
+          const answer = yield* catalogues
             .attempt({ name: film, out: dir.value }, (catalogue) => {
               const render = Arr.findFirst(
                 catalogue.renders,
@@ -1044,10 +1054,38 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
                   ),
               );
               if (Option.isSome(stale)) return Result.fail(refused('approve', stale.value));
-              return Result.succeed([
-                variant.id,
-                said(catalogue, subject, asked.say, at, Option.fromUndefinedOr(asked.op)),
-              ] as const);
+              const next = said(
+                catalogue,
+                subject,
+                asked.say,
+                at,
+                Option.fromUndefinedOr(asked.op),
+              );
+              // The scene a scene's set is of, when the say moved its approval: what a run gave
+              // or took, as a project's say names it (a film's or an act's set names none).
+              const moved = Arr.filter(
+                Option.match(
+                  Option.liftPredicate(
+                    address,
+                    (a): a is Extract<typeof address, { readonly _tag: 'Scenes' }> =>
+                      a._tag === 'Scenes',
+                  ),
+                  { onNone: (): ReadonlyArray<string> => [], onSome: (a) => a.ids },
+                ),
+                () => next.approvals.length !== catalogue.approvals.length,
+              );
+              const answer: Pick<SetSaid, 'gave' | 'took'> = {
+                gave: Option.flatMap(
+                  Option.filter(Option.fromUndefinedOr(asked.op), () =>
+                    Say.guards.Approve(asked.say),
+                  ),
+                  (op) => gaveOf(moved, at, op),
+                ),
+                took: Option.flatMap(Option.liftPredicate(asked.say, Say.guards.Withdraw), (w) =>
+                  tookOf(w.given, moved),
+                ),
+              };
+              return Result.succeed([answer, next] as const);
             })
             .pipe(
               // The index reads the folder again on its next ask: it changed, or
@@ -1059,7 +1097,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           );
           const built = yield* folderAt(file);
           return yield* Effect.fromOption(
-            Option.map(built, (b) => b.folder),
+            Option.map(built, (b): SetSaid => ({ ...b.folder, ...answer })),
             () => unknown,
           );
         });

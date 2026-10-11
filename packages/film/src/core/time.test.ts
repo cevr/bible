@@ -81,6 +81,26 @@ describe('time', () => {
     expect(timecode(-0.5)).toBe('−00:00:00:15');
   });
 
+  test('a timecode is right at any rate a video keeps: whole, 1000/1001 counted non-drop-frame, or neither', () => {
+    // Whole rates: a second holds that many frames.
+    expect(timecode(2, 24)).toBe('00:00:02:00');
+    expect(timecode(25 / 24, 24)).toBe('00:00:01:01');
+    expect(timecode(10, 30)).toBe('00:00:10:00');
+    expect(timecode(62 / 30, 30)).toBe('00:00:02:02');
+    // 29.97 (30000/1001) counts 30 frames a second, non-drop-frame (NDF), so it
+    // runs behind the wall clock: frame 1000 is 33 s and 10 frames in its count.
+    const ntsc = 30000 / 1001;
+    expect(timecode(1000 / ntsc, ntsc)).toBe('00:00:33:10');
+    expect(timecode(1000, ntsc)).toBe('00:16:39:00');
+    // A rate that is neither (12.5, a phone's 29.6): the frame within its wall second.
+    expect(timecode(2, 12.5)).toBe('00:00:02:00');
+    expect(timecode(10, 12.5)).toBe('00:00:10:00');
+    expect(timecode(24 / 12.5, 12.5)).toBe('00:00:01:11');
+    expect(timecode(13 / 12.5, 12.5)).toBe('00:00:01:00');
+    expect(timecode(12 / 12.5, 12.5)).toBe('00:00:00:12');
+    expect(timecode(60, 29.6)).toBe('00:01:00:00');
+  });
+
   test("a set's stagger spreads its items' starts over a share of the progress", () => {
     // Three tiles over the first 2/7: the middle one starts at 1/7 and lasts 5/7,
     // what `clamp(p * 1.4 - i * 0.2)` drew by hand.

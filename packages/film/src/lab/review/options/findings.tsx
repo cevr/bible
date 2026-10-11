@@ -17,7 +17,7 @@ import * as UrlAtom from '@bible/url-state/atom';
 import { For, Show } from '@solidjs/web';
 import { Boolean as Bool, Effect, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { type Accessor, createSignal, onCleanup } from 'solid-js';
+import { type Accessor, onCleanup } from 'solid-js';
 import { type Command, quietly } from '../../../command/command.ts';
 import { type Toward, walkFrom } from '../../../command/walk.ts';
 import type { CheckLine } from '../../../core/schema.ts';
@@ -114,12 +114,6 @@ interface FindingsSheet {
   readonly close: () => void;
 }
 
-/** The open state of a sheet no URL keeps (the lab's): the page's own. */
-const useFindingsLocal = (): FindingsSheet => {
-  const [open, setOpen] = createSignal(false, { ownedWrite: true });
-  return { open, show: () => setOpen(true), close: () => setOpen(false) };
-};
-
 /**
  * The Findings sheet kept in the page's URL (`?findings=1`), as every other
  * sheet is: raising it is a step of its own, so Back closes it, and Close,
@@ -160,15 +154,12 @@ export const useFindingsPlace = <A extends { readonly query: { readonly findings
 /**
  * The film's findings sheet, Show findings and F/⇧F; with `chips`, the
  * count chips that open the sheet too (the film panel's on Project). Its open
- * state is the page's URL's when the page passes `sheet` (`useFindingsPlace`),
- * else its own.
+ * state is the page's URL's (`sheet`: `useFindingsPlace`), its one owner.
  */
-export const Findings = (props: { readonly chips?: boolean; readonly sheet?: FindingsSheet }) => {
+export const Findings = (props: { readonly chips?: boolean; readonly sheet: FindingsSheet }) => {
   const { meta } = useReview();
   const { findings, soundCheck, picture, sync, send } = useFilm();
-  const local = useFindingsLocal();
-  const kept = (): FindingsSheet => props.sheet ?? local;
-  const open = () => kept().open();
+  const open = () => props.sheet.open();
   // The sound check shows once it has found something (it runs after a pick or a knob; its
   // receipt says while it runs, and why it failed).
   const checks = (): ReadonlyArray<Check> => [
@@ -207,7 +198,7 @@ export const Findings = (props: { readonly chips?: boolean; readonly sheet?: Fin
         about: ['Page'],
         touch: "long-press the page, then Show findings; on Project, tap a check's count",
         when: () => !open(),
-        run: quietly(() => kept().show()),
+        run: quietly(() => props.sheet.show()),
       },
       walkCommand('next', 'Next finding', 'f'),
       walkCommand('previous', 'Previous finding', 'shift+f'),
@@ -225,7 +216,7 @@ export const Findings = (props: { readonly chips?: boolean; readonly sheet?: Fin
               data-check={check().name}
               data-findings={Option.getOrUndefined(countOf(check()))}
               data-state={stateOf(check())}
-              onClick={() => kept().show()}
+              onClick={() => props.sheet.show()}
             >
               {chipText(check())}
             </button>
@@ -239,7 +230,7 @@ export const Findings = (props: { readonly chips?: boolean; readonly sheet?: Fin
           role="findings"
           title="Findings"
           initialFocus={() => true}
-          onClose={() => kept().close()}
+          onClose={() => props.sheet.close()}
         >
           <For each={checks()} keyed={(c) => c.name}>
             {(check) => (

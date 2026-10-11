@@ -30,7 +30,13 @@ import {
 } from 'solid-js';
 import { type SeenPoint, seenVariants } from '../../core/choice.ts';
 import type { DrawStills } from './options/stills.tsx';
-import { type ReviewFile, ReviewFilms, type ReviewFolder, ReviewIndex } from '../../core/review.ts';
+import {
+  ReviewDuration,
+  type ReviewFile,
+  ReviewFilms,
+  type ReviewFolder,
+  ReviewIndex,
+} from '../../core/review.ts';
 import { Viewport } from '../../browser/viewport.ts';
 import { plainClick } from '../../browser/pointer.ts';
 import { PHONE } from '../viewport.ts';
@@ -52,9 +58,10 @@ import { served } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
-import { type Quality, fileInfoText } from './format.ts';
+import { type Quality, fileInfoText, videoSource } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
 import { Places, legacyPlace, pageHref, reviewFileUrl } from '../../core/api.ts';
+import { FILM_FPS } from '../../core/time.ts';
 import { onChoicesTab } from '../../core/point.ts';
 import {
   type SyncActor,
@@ -135,10 +142,20 @@ interface ReviewMeta {
    */
   readonly asks: Asks;
   /**
-   * A video's length, read once per file as the index last saw it: a video
-   * written again since is measured afresh.
+   * A video's length and its frame rate (its own, as the server reads its
+   * packets: never rounded, so a 29.97 video steps on its own grid), read once per file as the index last saw it: a video written
+   * again since is measured afresh.
    */
-  readonly duration: (video: Written) => Loaded<number>;
+  readonly timing: (video: Written) => Loaded<ReviewDuration>;
+  /**
+   * The same read in the page alone (`Atom.withServerValue`): the server's
+   * render never waits on it, nor shows it, and while the page hydrates it
+   * is pending; it then takes the timing the server sent, if it sent one,
+   * else reads it once.
+   */
+  readonly timedHere: (video: Written) => Loaded<ReviewDuration>;
+  /** The app's films, the read `state.films` gives: for a read of a page's own that waits on them. */
+  readonly films: Loaded<ReviewFilms>;
   /**
    * A doc's text, read once per file as the index last saw it (its ref and
    * when it was written): a doc written again since is read afresh.
@@ -273,17 +290,23 @@ export const Root = (
   // A video's length and a doc's text are each keyed by what names the file's
   // content, its ref and when it was written: a refreshed index that saw it
   // written again names a new read.
-  const durationOf = Atom.family((file: Written) =>
+  const timingOf = Atom.family((file: Written) =>
     runtime
       .atom(ReviewApi.use((api) => api.duration(file.ref)))
-      .pipe(served(`review.duration:${file.ref}@${file.mtime}`, Schema.Finite)),
+      .pipe(served(`review.duration:${file.ref}@${file.mtime}`, ReviewDuration)),
   );
   const textOf = Atom.family((file: Written) =>
     runtime
       .atom(ReviewApi.use((api) => api.text(file.ref)))
       .pipe(served(`review.text:${file.ref}@${file.mtime}`, Schema.String)),
   );
-  const duration = (file: Written) => durationOf({ ref: file.ref, mtime: file.mtime });
+  const timing = (file: Written) => timingOf({ ref: file.ref, mtime: file.mtime });
+  const timedHereOf = Atom.family((file: Written) =>
+    Atom.make((get) => get(timingOf(file))).pipe(
+      Atom.withServerValue(() => AsyncResult.initial<ReviewDuration, LabFailure>()),
+    ),
+  );
+  const timedHere = (file: Written) => timedHereOf({ ref: file.ref, mtime: file.mtime });
   const text = (file: Written) => textOf({ ref: file.ref, mtime: file.mtime });
   const servedAtAtom = Atom.make(Clock.currentTimeMillis).pipe(served(SERVED_AT, Schema.Finite));
 
@@ -368,7 +391,9 @@ export const Root = (
       },
       meta: {
         asks,
-        duration,
+        timing,
+        timedHere,
+        films: filmsAtom,
         text,
         runtime,
         client: props.client,
@@ -626,10 +651,65 @@ const SetContext = createContext<SetContextValue>();
 /** A set's context: only inside `<SetProvider>`. */
 export const useSet = (): SetContextValue => useContext(SetContext);
 
-const unmeasured = Atom.make(AsyncResult.initial<number, LabFailure>());
+const unmeasured = Atom.make(AsyncResult.initial<ReviewDuration, LabFailure>());
+
+/** No video to time, as a page-only read is (`timedHere`): the same kind of atom on either side. */
+const untimed = unmeasured.pipe(
+  Atom.withServerValue(() => AsyncResult.initial<ReviewDuration, LabFailure>()),
+);
+
+/**
+ * Tell a clock (`send`) the frame rate of its video (`video`, none when it
+ * has none): the rate the server reads from the video's own packets
+ * (`ReviewDuration.fps`, as measured), once it answers; the film rate (`FILM_FPS`) while the answer is pending, or when
+ * the video names none. Read in the page only (`timedHere`): nothing the
+ * server renders counts frames past the clock's start, so its render never
+ * waits on it.
+ */
+export const useClockRate = (
+  video: Accessor<Option.Option<Written>>,
+  send: (event: SyncEvent) => void,
+) => {
+  const { meta } = useReview();
+  const timed = useAtomValue(() =>
+    Option.match(video(), { onNone: () => untimed, onSome: meta.timedHere }),
+  );
+  createEffect(
+    () =>
+      Option.getOrElse(
+        Option.flatMap(AsyncResult.value(timed()), (t) => t.fps),
+        () => FILM_FPS,
+      ),
+    (fps) => send(SyncEvent.Timed({ fps })),
+  );
+};
 
 /** The set's place in the URL: its path, its view in the query, the player's time in the hash. */
 const setPlace = UrlAtom.place(Places.set);
+
+/**
+ * The version whose video is `set`'s clock in `view` at `quality`: the first
+ * of those the view plays (all of them, or a pair's two) whose video plays
+ * here, so a phone's version whose proxy is still being made never holds the
+ * clock; else the view's first.
+ */
+const leaderOf = (set: SeenPoint, view: ViewState, quality: Quality): string => {
+  const head = set.variants[0];
+  const shown = Option.match(otherOf(view), {
+    onNone: () => set.variants,
+    onSome: (o) => set.variants.filter((v) => v === head || v.id === o),
+  });
+  return Option.getOrElse(
+    Option.map(
+      Option.orElse(
+        Arr.findFirst(shown, (v) => Option.isSome(videoSource(v.video, quality))),
+        () => Arr.head(shown),
+      ),
+      (v) => v.id,
+    ),
+    () => '',
+  );
+};
 
 const SetBody = (
   props: ParentProps<{
@@ -638,21 +718,13 @@ const SetBody = (
     readonly sync: SyncActor;
   }>,
 ) => {
-  const { meta } = useReview();
+  const { meta, state: page } = useReview();
   const syncAtom = ActorAtom.make(props.sync);
   const sync = useAtomValue(() => syncAtom);
   const sendSync = useAtomSet(() => syncAtom);
   const ids = createMemo(() => props.set.variants.map((v) => v.id), { equals: Equal.equals });
   const first = () => Option.getOrElse(Option.fromUndefinedOr(ids()[0]), () => '');
   const other = () => Option.fromUndefinedOr(ids()[1]);
-
-  // The clock is the set's first version as the index last read it: a refresh
-  // that takes that version away moves the clock to the first one left, and
-  // the player plays on.
-  const driver = makeSync(untrack(first), sendSync, meta.host);
-  onCleanup(driver.stop);
-  createEffect(sync, (state) => driver.apply(state));
-  createEffect(first, (id) => driver.follow(id));
 
   // The view is the URL's: a link, a reload, Back and Forward all show what
   // it keeps. A choice of view or of a moment is a new history entry (Back
@@ -668,6 +740,17 @@ const SetBody = (
     // The time moving on is no new view.
     { equals: Equal.equals },
   );
+
+  // The clock is the leading version's video alone (`leaderOf`): its time,
+  // its end and its ending are the set's. A refresh that takes it away, a
+  // view that leaves it out, or a copy played that makes another the first
+  // to play moves the clock (`follow`), and the player plays on.
+  const leader = createMemo(() => leaderOf(props.set, view(), page.quality()));
+  const driver = makeSync(untrack(leader), sendSync, meta.host);
+  onCleanup(driver.stop);
+  createEffect(sync, (state) => driver.apply(state));
+  createEffect(leader, (id) => driver.follow(id));
+
   const address = addressOn(meta.host);
   const sendView = (event: ViewEvent) =>
     Option.map(at(), (v) =>
@@ -711,15 +794,15 @@ const SetBody = (
   );
   // Nothing plays behind the moments or the difference; a pair (or
   // its wipe) hears one of its two, and every view a version the set still
-  // holds: else its first.
+  // holds: else the one leading.
   createEffect(
-    () => [view(), sync().audible, ids()] as const,
-    ([state, audible, all]) => {
+    () => [view(), sync().audible, ids(), leader()] as const,
+    ([state, audible, all, lead]) => {
       if (!playsIn(viewNameOf(state))) sendSync(SyncEvent.PausePressed);
-      Option.map(Option.fromUndefinedOr(all[0]), (lead) => {
+      Option.map(Option.fromUndefinedOr(all[0]), (head) => {
         const heard = Option.match(otherOf(state), {
           onNone: () => all,
-          onSome: (o) => [lead, o],
+          onSome: (o) => [head, o],
         });
         if (!heard.includes(audible)) sendSync(SyncEvent.HeardChosen({ id: lead }));
       });
@@ -730,14 +813,26 @@ const SetBody = (
     if (Option.isSome(props.set.moments)) return unmeasured;
     return Option.match(Option.fromUndefinedOr(props.set.variants[0]), {
       onNone: () => unmeasured,
-      onSome: (v) => meta.duration(v.video),
+      onSome: (v) => meta.timing(v.video),
     });
   });
+  // The clock steps and counts by the leading video's own frames. Read after
+  // `length`: hydrating, that read takes the timing the server sent, so the
+  // clock's page-only read of the same video finds it there and asks again
+  // for nothing.
+  useClockRate(
+    () =>
+      Option.map(
+        Option.fromUndefinedOr(props.set.variants.find((v) => v.id === leader())),
+        (v) => v.video,
+      ),
+    sendSync,
+  );
   // The same instants read again are no new moments: the views over them stay.
   const moments = createMemo(
     () =>
       Option.orElse(props.set.moments, () =>
-        Option.map(AsyncResult.value(length()), (seconds) =>
+        Option.map(AsyncResult.value(length()), ({ seconds }) =>
           spreadMoments(seconds, props.set.start),
         ),
       ),
@@ -857,19 +952,15 @@ const SetBody = (
 export const SetProvider = (
   props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>,
 ) => {
-  const { meta } = useReview();
+  const { meta, state } = useReview();
   // Made once, for the set as the page opened it: the player opens where the
-  // URL's `#t=` says, else at the set's start, hearing its first version.
+  // URL's `#t=` says, else at the set's start, hearing the version that leads it.
   const spawn = untrack(() => {
-    const first = Option.getOrElse(
-      Option.map(Option.fromUndefinedOr(props.set.variants[0]), (v) => v.id),
-      () => '',
-    );
     const at = Option.getOrElse(
       Option.flatMap(Effect.runSyncWith(meta.host)(UrlState.get(Places.set)), (v) => v.hash.t),
       () => props.set.start,
     );
-    return spawnSync(first, props.set.start, at);
+    return spawnSync(leaderOf(props.set, ViewState.All, state.quality()), props.set.start, at);
   });
   return (
     <Actor runtime={meta.runtime} spawn={spawn}>

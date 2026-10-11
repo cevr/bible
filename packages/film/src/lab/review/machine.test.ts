@@ -9,7 +9,6 @@ import { Effect, Match, Option } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { assertPath, simulate } from 'effect-machine';
 import {
-  STEP_S,
   SyncEvent,
   SyncState,
   UNKNOWN_END,
@@ -31,11 +30,12 @@ import {
   viewMachine,
   wrapped,
 } from './machine.ts';
-import { drifted } from './sync.ts';
+import { FILM_FPS } from '../../core/time.ts';
+import { PlayerKey, drifted, playerEvent } from './sync.ts';
 
 const player = syncMachine('A', 1);
 
-const clock = { t: 1, start: 1, end: 10, rate: 1, audible: 'A', seek: 0 } as const;
+const clock = { t: 1, start: 1, end: 10, fps: FILM_FPS, rate: 1, audible: 'A', seek: 0 } as const;
 
 describe('the synced player', () => {
   it.effect('plays and pauses, by the button and by space', () =>
@@ -134,23 +134,87 @@ describe('the synced player', () => {
     }),
   );
 
-  it.effect('steps 2 s either way inside the set, as it stands', () =>
+  it.effect(
+    'steps one frame of the clock either way inside the set, as it stands, onto the frame grid',
+    () =>
+      Effect.gen(function* () {
+        const step = (by: number) => playerEvent(PlayerKey.Step({ by }));
+        const frameOf = (t: number) => Math.round(t * FILM_FPS * 1e6) / 1e6;
+        const result = yield* simulate(player, [
+          SyncEvent.Measured({ end: 10 }),
+          // A clock between frames (a video's time) steps from the frame its timecode reads.
+          SyncEvent.Landed({ t: 1.0101 }),
+          step(1),
+          step(10),
+          SyncEvent.PlayPressed,
+          step(-1),
+          step(-100),
+        ]);
+        expect(result.states.map((s) => [s._tag, frameOf(s.t), s.seek])).toEqual([
+          ['Paused', 30, 0],
+          ['Paused', 30, 0],
+          ['Paused', 30.303, 1],
+          ['Paused', 31, 2],
+          ['Paused', 41, 3],
+          ['Playing', 41, 3],
+          ['Playing', 40, 4],
+          // Never before the set's start.
+          ['Playing', 30, 5],
+        ]);
+        // On the grid: ten single steps land where one ×10 does, with no drift.
+        const tens = yield* simulate(player, [
+          SyncEvent.Measured({ end: 10 }),
+          ...Array.from({ length: 10 }, () => step(1)),
+        ]);
+        expect(tens.finalState.t).toBe(40 / FILM_FPS);
+      }),
+  );
+
+  it.effect(
+    "steps and counts by the clock's video's own rate once it is known, the film rate until then",
+    () =>
+      Effect.gen(function* () {
+        const step = playerEvent(PlayerKey.Step({ by: 1 }));
+        const result = yield* simulate(player, [
+          SyncEvent.Measured({ end: 10 }),
+          step,
+          SyncEvent.Timed({ fps: 24 }),
+          step,
+          step,
+        ]);
+        // At the film rate (30): frame 31; at 24, from the frame it reads (24.8, so 25) on.
+        expect(result.states.map((s) => [s.fps, s.t])).toEqual([
+          [FILM_FPS, 1],
+          [FILM_FPS, 1],
+          [FILM_FPS, 31 / 30],
+          [24, 31 / 30],
+          [24, 26 / 24],
+          [24, 27 / 24],
+        ]);
+        expect(clockParts(result.finalState)).toEqual({
+          at: '00:00:01:03',
+          rest: ' / 00:00:10:00',
+        });
+      }),
+  );
+
+  it.effect('steps a 29.97 video (30000/1001) on its own grid, never a whole rate', () =>
     Effect.gen(function* () {
+      const fps = 30000 / 1001;
+      const step = playerEvent(PlayerKey.Step({ by: 1 }));
       const result = yield* simulate(player, [
-        SyncEvent.Measured({ end: 10 }),
-        SyncEvent.Stepped({ by: STEP_S }),
-        SyncEvent.Stepped({ by: STEP_S }),
-        SyncEvent.PlayPressed,
-        SyncEvent.Stepped({ by: -STEP_S * 4 }),
+        SyncEvent.Measured({ end: 60 }),
+        SyncEvent.Timed({ fps }),
+        SyncEvent.Landed({ t: 30 / fps }),
+        step,
+        SyncEvent.Landed({ t: 1000 / fps }),
+        step,
+        step,
       ]);
-      expect(result.states.map((s) => [s._tag, s.t, s.seek])).toEqual([
-        ['Paused', 1, 0],
-        ['Paused', 1, 0],
-        ['Paused', 3, 1],
-        ['Paused', 5, 2],
-        ['Playing', 5, 2],
-        ['Playing', 1, 3],
-      ]);
+      // Each step lands on a frame's own start: n of 30000/1001, the picture's time.
+      const frames = result.states.slice(-5).map((s) => Math.round(s.t * 30000) / 1001);
+      expect(frames).toEqual([30, 31, 1000, 1001, 1002]);
+      expect(clockParts(result.finalState).at).toBe('00:00:33:12');
     }),
   );
 
@@ -206,7 +270,7 @@ describe('the synced player', () => {
         SyncEvent.MediaFailed({ reason: 'NotSupportedError' }),
         SyncEvent.Toggled,
         SyncEvent.ScrubMoved({ t: 5 }),
-        SyncEvent.Stepped({ by: STEP_S }),
+        SyncEvent.Stepped({ frames: 1 }),
       ]);
       expect(result.finalState).toEqual(
         SyncState.Failed({ ...clock, t: 3, reason: 'NotSupportedError' }),

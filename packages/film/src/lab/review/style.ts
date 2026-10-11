@@ -158,6 +158,14 @@ a.rv-card:hover { background: var(--surface-2); }
   font-size: var(--fs-2); line-height: var(--lh-2); text-align: left;
 }
 .rv-alone-row { padding: var(--s-2) var(--s-3); }
+/*
+ * In a scene's card (Project's sheet; the card's player picture frames the
+ * picture and stands the row under it) the row is a phone's at any width
+ * (the card is a sheet's width): the time where the clock is, the scrub
+ * showing the end.
+ */
+.sc-card-picture > .rv-alone-row { gap: var(--s-2); }
+.sc-card-picture > .rv-alone-row .rv-time-rest { display: none; }
 @media ${WIDE} {
   .rv-alone-row .rv-time-at { display: inline; }
 }

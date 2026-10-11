@@ -257,37 +257,84 @@ interface RenderNow {
   readonly sound: Option.Option<string>;
 }
 
-/** Whether `render` carries the film's mix now (always, when there is none to judge by). */
-const soundsNow = (render: Render, sound: Option.Option<string>): boolean =>
-  Option.match(sound, {
-    onNone: () => true,
-    onSome: (now) => Option.exists(render.sound, (s) => Option.contains(s.mix, now)),
-  });
+/** What a render drew: its stamp's key, and the mix it carries (none when it carries none). */
+interface Drawn {
+  readonly key: string;
+  readonly mix: Option.Option<string>;
+}
 
-/** Why `render` is stale against `now`, or none while it is current. */
-const staleBy = (render: Render, now: RenderNow): Option.Option<StaleBy> => {
-  if (render.stamp.key !== now.key) return Option.some('sources');
-  if (!soundsNow(render, now.sound)) return Option.some('sound');
+/**
+ * Why a render that drew `drawn` is stale against `now`, or none while it is
+ * current: drawn from other sources (its stamp's key is not the key now), or
+ * not carrying the film's mix now (when there is one to judge by). The one
+ * rule a render's currency is judged by.
+ */
+const drawnStaleBy = (drawn: Drawn, now: RenderNow): Option.Option<StaleBy> => {
+  if (drawn.key !== now.key) return Option.some('sources');
+  const carried = Option.match(now.sound, {
+    onNone: () => true,
+    onSome: (mix) => Option.contains(drawn.mix, mix),
+  });
+  if (!carried) return Option.some('sound');
   return Option.none();
 };
 
-/** `render` against `now`: its state, and why it is stale. */
-export const renderState = (
-  render: Option.Option<Render>,
-  now: RenderNow,
-): { readonly state: VariantState; readonly staleBy: Option.Option<StaleBy> } =>
+/** What `render` drew, as its record says. */
+const drawnBy = (render: Render): Drawn => ({
+  key: render.stamp.key,
+  mix: Option.flatMap(render.sound, (s) => s.mix),
+});
+
+/**
+ * What a render whose version is `version` (`renderVersion`) drew, read
+ * against `now`: the key now when the version is it or extends it with a mix
+ * (`<key>+<mix>`), else a key of other sources. Exact while a key holds no
+ * `+` (a stamp's key is a hex digest, `tools/digest.ts`); the version alone
+ * cannot say where a key that holds one ends.
+ */
+const drawnOf = (version: string, now: RenderNow): Drawn =>
+  Match.value(version).pipe(
+    Match.when(now.key, (): Drawn => ({ key: now.key, mix: Option.none() })),
+    Match.when(
+      (v) => v.startsWith(`${now.key}+`),
+      (v): Drawn => ({ key: now.key, mix: Option.some(v.slice(now.key.length + 1)) }),
+    ),
+    Match.orElse((v): Drawn => ({ key: v, mix: Option.none() })),
+  );
+
+/** Why `render` is stale against `now`, or none while it is current (`drawnStaleBy`). */
+const staleBy = (render: Render, now: RenderNow): Option.Option<StaleBy> =>
+  drawnStaleBy(drawnBy(render), now);
+
+/** A render judged against the sources and mix now: its state, and why it is stale. */
+interface Judgement {
+  readonly state: VariantState;
+  readonly staleBy: Option.Option<StaleBy>;
+}
+
+/** A judgement from why a render is stale: stale for a reason, else current. */
+const judgedBy = (why: Option.Option<StaleBy>): Judgement => ({
+  state: Option.match(why, {
+    onNone: (): VariantState => 'current',
+    onSome: (): VariantState => 'stale',
+  }),
+  staleBy: why,
+});
+
+/**
+ * A render's version (`renderVersion`, all a set's version carries on the
+ * wire) against `now`: its state, and why it is stale, by the rule the write
+ * judges an approve by (`renderState`), over what the version says it drew
+ * (`drawnOf`).
+ */
+export const versionState = (version: string, now: RenderNow): Judgement =>
+  judgedBy(drawnStaleBy(drawnOf(version, now), now));
+
+/** `render` against `now`: its state, and why it is stale, by its stamp and mix as recorded. */
+export const renderState = (render: Option.Option<Render>, now: RenderNow): Judgement =>
   Option.match(render, {
-    onNone: () => ({ state: 'missing' as const, staleBy: Option.none() }),
-    onSome: (r) => {
-      const why = staleBy(r, now);
-      return {
-        state: Option.match(why, {
-          onNone: (): VariantState => 'current',
-          onSome: (): VariantState => 'stale',
-        }),
-        staleBy: why,
-      };
-    },
+    onNone: (): Judgement => ({ state: 'missing', staleBy: Option.none() }),
+    onSome: (r) => judgedBy(staleBy(r, now)),
   });
 
 /** The newest of `renders` (by when each was recorded). */

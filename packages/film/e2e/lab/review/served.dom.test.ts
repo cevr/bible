@@ -32,6 +32,7 @@ import {
   studioRoutes,
 } from '../../../src/lab/fixtures/studio-film.ts';
 import { countIs, textHas, until, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import { jsonOf } from '../../../src/lab/fixtures/tab.ts';
 
 /** Long enough to bundle the server entry once, render, open and hydrate. */
 const SLOW = 60_000;
@@ -234,6 +235,58 @@ describe('the review served as the lab renders it', () => {
         expect(reads(film.asked, `/api/films/${TOY}/choices`)).toBe(0);
         expect(mismatches(film.page.logged)).toEqual([]);
         expect(film.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a Set's server render shows the record's versions without waiting on the film's project: the project is the page's own read",
+    () =>
+      Effect.gen(function* () {
+        // The film's project never answers, to the server or the page.
+        const stuck = [route('GET', /^\/api\/films\/toy\/project$/, () => hold), ...studioRoutes];
+        const set = yield* openServed('review', stuck, {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+          cut: '2 seconds',
+        });
+        const html = set.documents[0]?.html ?? '';
+        expect(html).not.toContain(PAGE_CUT_MARK);
+        expect(painted(html)).toContain('data-act="inspect"');
+        // The record judges while the project is read, and it is never answered.
+        expect(painted(html)).toContain('data-sources="reading"');
+        yield* countIs(set.page, `[${PAGE_ROOT}]`, 1);
+        yield* waitFor(set.page, '.rv-main [data-act="inspect"]');
+        yield* waitFor(set.page, '.rv-set-tools[data-sources="reading"]');
+        expect(set.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a Set's video length is read once, by the server: the hydrated page times its clock by the length it was sent",
+    () =>
+      Effect.gen(function* () {
+        const set = yield* openServed('review', studioRoutes, {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+        });
+        const timings = (asked: ReadonlyArray<Asked>) =>
+          asked.filter((a) => a.method === 'GET' && a.path.startsWith('/api/review/duration'))
+            .length;
+        expect(timings(set.read)).toBe(1);
+        // Hydrated and live: the clock has measured its video, and a step moves it.
+        yield* textHas(set.page, '.rv-transport .rv-time', `/ ${timecode(10)}`);
+        const at = "document.querySelector('.rv-transport .rv-time').textContent.split(' ')[0]";
+        const before = yield* set.page.evaluate<string>(at);
+        yield* set.page.press('ArrowRight');
+        yield* until(set.page, `${at} !== ${jsonOf(before)}`);
+        expect(timings(set.asked)).toBe(0);
+        // The film's project is the page's own read, once it knows from the films it was sent
+        // that the folder's title is a film: the films are not asked again.
+        yield* waitFor(set.page, '.rv-set-tools[data-sources="project"]');
+        expect(reads(set.asked, '/api/films')).toBe(0);
+        expect(reads(set.asked, `/api/films/${TOY}/project`)).toBe(1);
+        expect(mismatches(set.page.logged)).toEqual([]);
+        expect(set.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );

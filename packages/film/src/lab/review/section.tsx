@@ -11,8 +11,9 @@
 
 import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Effect, Exit, Match, Option, Scope } from 'effect';
+import { Effect, Exit, Match, Option, Scope, Struct } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import * as Atom from 'effect/reactivity/Atom';
 import {
   type Accessor,
   type ParentProps,
@@ -40,12 +41,13 @@ import {
   Places,
   ProjectView,
   type Say,
+  type SetSaid,
   type SetSayPost,
   pageHref,
   reviewFileUrl,
   reviewFrameUrl,
 } from '../../core/api.ts';
-import { served } from '../api.ts';
+import { type LabFailure, served } from '../api.ts';
 import { pressed } from '../pressed.ts';
 import { StateBand } from '../scenes/card.tsx';
 import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
@@ -54,9 +56,9 @@ import { OptionsApi } from './options/api.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
 import { approvalVerbs } from './things.ts';
-import { approveUndoOf, undoApprove } from './options/receipt.ts';
+import { setApproveUndo, setSaidText, undoApprove } from './options/receipt.ts';
 import { quiet, refused } from '../../command/command.ts';
-import { OpId } from '../../core/catalogue.ts';
+import { OpId, type Project, projectNow, versionState } from '../../core/catalogue.ts';
 import { uniqueId } from '../../core/unique.ts';
 import { Go, SetProvider, type Shown, useReview, useSet } from './context.tsx';
 import {
@@ -68,9 +70,9 @@ import {
   folderTitle,
   isFilmsFolder,
   isMarkdown,
+  pathIn,
   POSTER_W,
-  recordedStaleText,
-  sayText,
+  staleText,
   sizeText,
   versionsText,
   videoSource,
@@ -380,6 +382,7 @@ const LooseVideo = (props: {
         {(src) => (
           <PlayedAlone
             src={src()}
+            video={props.video}
             poster={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
           >
             <Show when={Option.getOrUndefined(captions())} keyed>
@@ -450,13 +453,13 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
           <For each={props.folder.images}>
             {(image) => (
               <div class="rv-card">
-                {/* Its name and age are the lightbox's caption. */}
+                {/* Its path in the folder and its age are the lightbox's caption, and its name. */}
                 <Zoom
                   still={reviewFileUrl(image.ref)}
                   alt={image.name}
                   shown={{
                     src: reviewFileUrl(image.ref),
-                    caption: `${image.name} · ${agoText(image.mtime, now)}`,
+                    caption: `${pathIn(props.folder, image)} · ${agoText(image.mtime, now)}`,
                   }}
                 />
               </div>
@@ -644,7 +647,7 @@ const SetSaysContext = createContext<SetSays>();
  */
 const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>) => {
   const { meta, actions } = useReview();
-  const status = writeStatus<ReviewFolder>('set');
+  const status = writeStatus<SetSaid>('set');
   /** Version `id` as a receipt names it: its letter, its label, and the set's title. */
   const versionText = (id: string) =>
     Option.getOrElse(
@@ -666,23 +669,10 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
         { index: meta.asks },
         (asked) => ({
           doing: 'saying…',
-          done: () => sayText(asked.say, versionText(asked.variant)),
-          // An approve of a scene's render offers its Undo, bound to the run it named.
-          undo: () =>
-            Option.map(
-              Option.all({
-                film: film(),
-                scene: scene(),
-                op: Option.fromUndefinedOr(asked.op),
-              }),
-              (of) =>
-                approveUndoOf(
-                  of.film,
-                  of.op,
-                  [of.scene],
-                  Option.some({ point: props.set.id, version: asked.variant }),
-                ),
-            ),
+          // What the catalogue says the say gave or took, never what was asked.
+          done: (answer) => setSaidText(asked, answer, versionText(asked.variant)),
+          // An approve of a scene's render offers its Undo, bound to what it gave.
+          undo: (answer) => setApproveUndo(film(), asked, props.set.id, answer),
         }),
       );
       return {
@@ -703,7 +693,12 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
               Option.match(landed, {
                 onNone: () => false,
                 onSome: (l) => {
-                  l.show('index', Option.some, actions.answered);
+                  // The index holds the folder; what the say gave or took is the receipt's.
+                  l.show(
+                    'index',
+                    (said) => Option.some(Struct.omit(said, ['gave', 'took'])),
+                    actions.answered,
+                  );
                   // A Refresh asked after the say may not hold it, nor the say what that
                   // Refresh found: the index is read again.
                   if (l.succeeded && l.overtaken('index')) actions.refresh();
@@ -822,11 +817,11 @@ const VersionName = (props: { readonly version: SeenVariant }) => {
 };
 
 /**
- * A version's state on its caption, when its record proves it stale: the
+ * A version's state on its caption, when it is judged stale (`judged`): the
  * short badge; why, in its inspector's Info (`StaleTag`).
  */
 const StaleBadge = (props: { readonly variant: SeenVariant }) => (
-  <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
+  <Show when={Option.getOrUndefined(staleText(props.variant))}>
     {(words) => (
       <span class="rv-badge" data-approval="stale" title={words()}>
         Out of date
@@ -835,9 +830,9 @@ const StaleBadge = (props: { readonly variant: SeenVariant }) => (
   </Show>
 );
 
-/** Why a variant is stale, when its record proves it; nothing otherwise (`recordedStaleText`). */
+/** Why a variant is stale, when it is judged so (`judged`); nothing otherwise (`staleText`). */
 const StaleTag = (props: { readonly variant: SeenVariant }) => (
-  <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
+  <Show when={Option.getOrUndefined(staleText(props.variant))}>
     {(words) => (
       <span class="rv-tag" data-state="stale">
         {words()}
@@ -1423,6 +1418,99 @@ const SetBody = () => {
 };
 
 /**
+ * The film's project, which an approve's write judges a set's versions by
+ * (`Review.say`), when the folder is the film's own: the project names its
+ * own folder (`ProjectView.folder`, the server's ref of the checkout's out
+ * folder), and the write judges by the project only there. That alone
+ * decides, never the folder's name: the film's own folder under a root of
+ * another label is judged by the project, and a copy of it under another
+ * root by the record alone. Read by the page once it runs, never by the
+ * server (`Atom.withServerValue`), as the page mounts, and only when the
+ * folder's title is one of the app's films (a montage's title is none):
+ * the record's judgement stands while it is read (and in the server's
+ * render), and the write decides.
+ */
+const useSourcesNow = (folder: ReviewFolder): SourcesNow => {
+  const { meta } = useReview();
+  return Option.match(folder.title, {
+    onNone: () => ({ project: () => Option.none(), by: (): JudgedBy => 'record' }),
+    onSome: (title) => {
+      const projectAtom = meta.runtime.atom(OptionsApi.use((api) => api.project(title)));
+      // The project, once the films say the title is one of theirs; none for any other title.
+      const readAtom = Atom.make(
+        (get): AsyncResult.AsyncResult<Option.Option<ProjectView>, LabFailure> =>
+          Match.value(get(meta.films)).pipe(
+            Match.tag('Initial', () =>
+              AsyncResult.initial<Option.Option<ProjectView>, LabFailure>(),
+            ),
+            Match.orElse((films) =>
+              Option.match(
+                Option.filter(AsyncResult.value(films), (f) => f.films.includes(title)),
+                {
+                  onNone: () => AsyncResult.success(Option.none<ProjectView>()),
+                  onSome: () => AsyncResult.map(get(projectAtom), Option.some),
+                },
+              ),
+            ),
+          ),
+      ).pipe(
+        Atom.withServerValue(() => AsyncResult.initial<Option.Option<ProjectView>, LabFailure>()),
+      );
+      const read = useAtomValue(() => readAtom);
+      const own = () =>
+        Option.filter(Option.flatten(AsyncResult.value(read())), (view) =>
+          Option.contains(view.folder, folder.ref),
+        );
+      return {
+        project: () => Option.map(own(), (view) => view.project),
+        by: () =>
+          Match.value(read()).pipe(
+            Match.tag('Initial', (): JudgedBy => 'reading'),
+            Match.orElse((): JudgedBy =>
+              Option.match(own(), { onNone: () => 'record', onSome: () => 'project' }),
+            ),
+          ),
+      };
+    },
+  });
+};
+
+/**
+ * What judges a set's versions: its record while the film's project is read
+ * (`reading`; and in the server's render), then the project (`project`, the
+ * folder is its own) or the record (`record`, any other folder, a project
+ * that could not be read, a folder of no film).
+ */
+type JudgedBy = 'reading' | 'record' | 'project';
+
+/** The film's sources now as a Set page judges by them (`useSourcesNow`), and what judges. */
+interface SourcesNow {
+  /** The film's project, where it judges the folder. */
+  readonly project: Accessor<Option.Option<Project>>;
+  /** Shown as the Set's `data-sources`. */
+  readonly by: Accessor<JudgedBy>;
+}
+
+/**
+ * `set` with each version judged as the write judges its approve: against
+ * the film's sources now, where `project` says them for the set's address
+ * (`projectNow`, `versionState`); as its record says, elsewhere.
+ */
+const judged = (set: SeenPoint, project: Option.Option<Project>): SeenPoint =>
+  Option.match(
+    Option.flatMap(Option.all({ project, address: set.address }), (at) =>
+      projectNow(at.project, at.address),
+    ),
+    {
+      onNone: () => set,
+      onSome: (now) => ({
+        ...set,
+        variants: set.variants.map((v) => ({ ...v, ...versionState(v.key, now) })),
+      }),
+    },
+  );
+
+/**
  * A set's page while the index holds it. A page is one set's (a new place is
  * a new page), so neither Show is keyed: a refreshed index moves the folder
  * and the set under the page, and its player plays on (`SetProvider`).
@@ -1440,11 +1528,13 @@ export const SetPage = (props: { readonly folder: string; readonly point: string
             fallback={<Missing what="version stack" />}
           >
             {(point) => {
-              const set = createMemo(() => seenPoint(point()));
+              // The folder is the page's: whether its film's sources judge it is fixed with it.
+              const sourcesNow = untrack(() => useSourcesNow(folder()));
+              const set = createMemo(() => judged(seenPoint(point()), sourcesNow.project()));
               return (
                 <SetProvider folder={folder()} set={set()}>
                   <Saying folder={folder()} set={set()}>
-                    <div class="rv-tools rv-set-tools">
+                    <div class="rv-tools rv-set-tools" data-sources={sourcesNow.by()}>
                       <ViewTabs />
                     </div>
                     <SetBody />

@@ -58,6 +58,18 @@ export const sayText = (say: Say, subject: string): string =>
     }),
   );
 
+/**
+ * A file's name in `folder`: its path under the folder (`watercolor/contact.jpg`),
+ * so two files of one name in two stacks read as two; its ref when it lies elsewhere.
+ */
+export const pathIn = (folder: Pick<ReviewFolder, 'ref'>, file: ReviewFile): string =>
+  Option.getOrElse(
+    Option.liftPredicate(file.ref.slice(folder.ref.length + 1), () =>
+      file.ref.startsWith(`${folder.ref}/`),
+    ),
+    () => file.ref,
+  );
+
 /** A size in bytes as a card says it: `812 KB`, `2.4 GB`. */
 export const sizeText = (bytes: number): string => {
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -195,12 +207,13 @@ export const stateText = (state: VariantState, staleBy: Option.Option<StaleBy>):
   );
 
 /**
- * What the review's index can say of a variant's state: why it is stale when
- * the record proves it (a newer render at its address drew other sources, or
- * carries another mix), else nothing. Never "current": whether the newest is
- * current against the film's sources now only `film project` can say.
+ * Why a set's version is stale, when it is judged so, else nothing: by the
+ * film's sources now where its project answers (the judge an approve's write
+ * uses), else by the record (a newer render at its address drew other
+ * sources, or carries another mix). Never "current", which the record alone
+ * cannot say.
  */
-export const recordedStaleText = (variant: {
+export const staleText = (variant: {
   readonly state: VariantState;
   readonly staleBy: Option.Option<StaleBy>;
 }): Option.Option<string> =>

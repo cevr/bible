@@ -1,5 +1,5 @@
 // The review's two machines. The synced player: every video of a set on one
-// clock (the first variant's), paused, playing, scrubbed or waiting on a
+// clock (the leading version's video), paused, playing, scrubbed or waiting on a
 // stalled video, at ½× or 1×, with one card's sound heard. The view: all the
 // variants, the first against one other (side by side, or wiped: stacked
 // full width, the other right of a divider), the moments (every variant's
@@ -34,12 +34,9 @@
 import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State, simulate } from 'effect-machine';
 import type { SET_VIEWS } from '../../core/api.ts';
-import { timecode } from '../../core/time.ts';
+import { FILM_FPS, timecode } from '../../core/time.ts';
 
-/** Seconds a ←/→ step moves. */
-export const STEP_S = 2;
-
-/** An end not known yet: the first video's metadata has not loaded. */
+/** An end not known yet: the clock's video's metadata has not loaded. */
 export const UNKNOWN_END = Number.MAX_SAFE_INTEGER;
 
 /** The rates the player offers. */
@@ -47,12 +44,19 @@ export const Rate = Schema.Literals([0.5, 1]);
 export type Rate = typeof Rate.Type;
 
 const Clock = {
-  /** Where the set is, in seconds on its first video. */
+  /** Where the set is, in seconds on its clock's video. */
   t: Schema.Finite,
   /** Where every video starts (the manifest's `start`). */
   start: Schema.Finite,
-  /** Where the first video ends, once known (`UNKNOWN_END` before). */
+  /** Where the clock's video ends, once known (`UNKNOWN_END` before). */
   end: Schema.Finite,
+  /**
+   * The frames a second the clock counts, its timecode's and a ←/→ step's:
+   * its video's own (`Timed`, as the server reads it from the file), the
+   * film rate (`FILM_FPS`) only while that is not known yet or the video
+   * names none.
+   */
+  fps: Schema.Finite,
   rate: Rate,
   /** The variant whose sound is heard. */
   audible: Schema.String,
@@ -77,17 +81,20 @@ export const SyncEvent = Event({
   PausePressed: {},
   /** Space, or the big button: play when paused, pause otherwise. */
   Toggled: {},
-  /** The first video moved on while playing. */
+  /** The clock's video moved on while playing. */
   Ticked: { t: Schema.Finite },
   ScrubMoved: { t: Schema.Finite },
   ScrubReleased: {},
-  Stepped: { by: Schema.Finite },
+  /** A ←/→ step: `frames` on (back when negative) from the frame the clock reads. */
+  Stepped: { frames: Schema.Int },
   /** Back or Forward landed on an entry whose `#t=` (or the set's start) is `t`. */
   Landed: { t: Schema.Finite },
   Stalled: {},
   Resumed: {},
   Ended: {},
-  /** The first video's length, once its metadata loads. */
+  /** The clock's video's frame rate, once known (`FILM_FPS` until it is, or when it names none). */
+  Timed: { fps: Schema.Finite },
+  /** The clock's video's length, once its metadata loads. */
   Measured: { end: Schema.Finite },
   HeardChosen: { id: Schema.String },
   RateChosen: { rate: Rate },
@@ -108,6 +115,7 @@ interface SyncClock {
   readonly t: number;
   readonly start: number;
   readonly end: number;
+  readonly fps: number;
   readonly rate: Rate;
   readonly audible: string;
   readonly seek: number;
@@ -117,6 +125,7 @@ const clockOf = (state: SyncState): SyncClock => ({
   t: state.t,
   start: state.start,
   end: state.end,
+  fps: state.fps,
   rate: state.rate,
   audible: state.audible,
   seek: state.seek,
@@ -179,6 +188,7 @@ export const syncAt = (audible: string, start: number, at: number = start): Sync
     t: Math.max(start, at),
     start,
     end: UNKNOWN_END,
+    fps: FILM_FPS,
     rate: 1,
     audible,
     seek: 0,
@@ -218,9 +228,11 @@ export const syncMachine = (audible: string, start: number, at: number = start) 
     })
     .on(ANY, SyncEvent.Stepped, ({ state, event }) => {
       const clock = clockOf(state);
+      // From the frame its timecode reads (`timecodeParts`: the nearest), onto the frame grid: no drift.
+      const frame = Math.round(clock.t * clock.fps);
       return withClock(state, {
         ...clock,
-        t: clamp(clock, clock.t + event.by),
+        t: clamp(clock, (frame + event.frames) / clock.fps),
         seek: clock.seek + 1,
       });
     })
@@ -229,6 +241,9 @@ export const syncMachine = (audible: string, start: number, at: number = start) 
       return withClock(state, { ...clock, t: clamp(clock, event.t), seek: clock.seek + 1 });
     })
     .on(ANY, SyncEvent.Measured, ({ state, event }) => withClock(state, endingAt(state, event.end)))
+    .on([...ANY, SyncState.Failed], SyncEvent.Timed, ({ state, event }) =>
+      withClock(state, { ...clockOf(state), fps: event.fps }),
+    )
     .on(ANY, SyncEvent.HeardChosen, ({ state, event }) =>
       withClock(state, { ...clockOf(state), audible: event.id }),
     )
@@ -278,16 +293,16 @@ export const failureOf = (state: SyncState): Option.Option<string> =>
 export const clockParts = (state: SyncState) => {
   const end = Match.value(state.end >= UNKNOWN_END).pipe(
     Match.when(true, () => '…'),
-    Match.orElse(() => timecode(state.end)),
+    Match.orElse(() => timecode(state.end, state.fps)),
   );
   const waiting = Match.value(state._tag).pipe(
     Match.when('Buffering', () => ' · waiting'),
     Match.orElse(() => ''),
   );
-  return { at: timecode(Math.max(0, state.t)), rest: ` / ${end}${waiting}` };
+  return { at: timecode(Math.max(0, state.t), state.fps), rest: ` / ${end}${waiting}` };
 };
 
-/** The scrub bar's reach: the first video's end once known, else where the clock is. */
+/** The scrub bar's reach: the clock's video's end once known, else where the clock is. */
 export const reachOf = (state: SyncState): number => {
   if (state.end >= UNKNOWN_END) return Math.max(state.t, state.start);
   return state.end;

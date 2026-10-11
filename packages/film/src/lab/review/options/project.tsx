@@ -371,7 +371,12 @@ const SceneRow = (props: {
       Option.getOrElse(AsyncResult.value(findings()), () => []),
       projectPlaced(props.at.view()),
     )(props.scene.scene);
-  const card = (size: 'tile' | 'focus', picture: JSX.Element, verb: JSX.Element) => (
+  const card = (
+    size: 'tile' | 'focus',
+    picture: JSX.Element,
+    verb: JSX.Element,
+    picturing: () => 'still' | 'player' = () => 'still',
+  ) => (
     <SceneCard
       film={props.at.film}
       scene={props.scene.scene}
@@ -382,6 +387,7 @@ const SceneRow = (props: {
       marks={marks()}
       size={size}
       picture={picture}
+      picturing={picturing()}
       name={
         <InspectName of={thing.selection} comments={variant().comments.length}>
           {props.scene.scene}
@@ -418,6 +424,12 @@ const SceneRow = (props: {
                 {(video) => <Seen video={video()} />}
               </Show>,
               <Approval variant={variant()} sayer={sayer} first={RENDER_FIRST} />,
+              // Its render plays with its own transport; with none, the still the card frames.
+              () =>
+                Option.match(videoOf(variant()), {
+                  onNone: () => 'still' as const,
+                  onSome: () => 'player' as const,
+                }),
             )}
             <SceneFindings marks={marks()} />
             <Comments comments={variant().comments} />

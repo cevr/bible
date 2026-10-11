@@ -27,6 +27,7 @@ import {
   Output,
 } from 'mediabunny';
 import { type Pcm, toInt16 } from '../core/audio.ts';
+import { ratedVideo } from '../lab/fixtures/rated-video.ts';
 import { Media } from './media.ts';
 import { collectWithin } from './process.ts';
 import { memoryFileSystem, text } from './testing.ts';
@@ -161,7 +162,7 @@ describe.concurrent('Media', () => {
         const back = yield* media.decode('/out.wav');
         expect([back.rate, back.frames, back.channels.length]).toEqual([44100, frames, 2]);
         expect(toInt16(back)).toEqual(toInt16(pcm));
-        expect(yield* media.duration('/out.wav')).toBeCloseTo(frames / 44100, 9);
+        expect((yield* media.timing('/out.wav')).seconds).toBeCloseTo(frames / 44100, 9);
       }),
   );
 
@@ -170,7 +171,7 @@ describe.concurrent('Media', () => {
       const media = yield* Media;
       const tone = yield* media.decode('/tone.mp3');
       expect([tone.rate, tone.frames, tone.channels.length]).toEqual([44100, 22050, 1]);
-      expect(yield* media.duration('/tone.mp3')).toBe(0.5);
+      expect((yield* media.timing('/tone.mp3')).seconds).toBe(0.5);
       const peak = Math.max(...(tone.channels[0] ?? []).map(Math.abs));
       expect(peak).toBeGreaterThan(0.1);
     }),
@@ -290,7 +291,7 @@ describe.concurrent('Media', () => {
         const plane = back.channels[0] ?? new Float32Array();
         const worst = wave.reduce((m, s, i) => Math.max(m, Math.abs(s - (plane[i] ?? 0))), 0);
         expect(worst).toBeLessThan(2 ** -22);
-        expect(yield* media.duration('/take.flac')).toBeCloseTo(30000 / 44100, 6);
+        expect((yield* media.timing('/take.flac')).seconds).toBeCloseTo(30000 / 44100, 6);
       }),
   );
 
@@ -401,7 +402,7 @@ describe.concurrent('Media', () => {
           const [track, ...rest] = yield* readBack(file);
           expect(rest).toEqual([]);
           expect([track?.type, track?.codec]).toEqual(['audio', 'aac']);
-          expect(yield* media.duration(file)).toBeCloseTo(1, 1);
+          expect((yield* media.timing(file)).seconds).toBeCloseTo(1, 1);
           // Fast start: the index (moov) comes before the samples (mdat).
           const head = new TextDecoder('latin1').decode(
             (yield* (yield* FileSystem.FileSystem).readFile(file)).subarray(0, 4096),
@@ -430,8 +431,59 @@ describe.concurrent('Media', () => {
 
   it.effect.layer(MediaOnDisk)('a video measures by its container, read where it lies', () =>
     Effect.gen(function* () {
-      expect(yield* (yield* Media).duration(fixture('segment-a.mp4'))).toBeCloseTo(0.5, 2);
+      expect((yield* (yield* Media).timing(fixture('segment-a.mp4'))).seconds).toBeCloseTo(0.5, 2);
     }),
+  );
+
+  it.effect.layer(MediaOnDisk)(
+    "a video's timing is its length and its own frame rate, never rounded: none for a file with no video",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* tempDir;
+          const rateAt = Effect.fn('Media.test.rateAt')(function* (fps: number) {
+            const file = `${dir}/rated-${fps}.mp4`;
+            yield* fs.writeFile(file, yield* ratedVideo(fps, 4));
+            return (yield* media.timing(file)).fps;
+          });
+          expect(yield* rateAt(24)).toEqual(Option.some(24));
+          expect(yield* rateAt(30000 / 1001)).toEqual(Option.some(30000 / 1001));
+          expect(yield* rateAt(24000 / 1001)).toEqual(Option.some(24000 / 1001));
+          expect(yield* rateAt(12.5)).toEqual(Option.some(12.5));
+          const film = yield* media.timing(fixture('segment-a.mp4'));
+          expect(film.fps).toEqual(Option.some(30));
+          expect(film.seconds).toBeCloseTo(0.5, 2);
+          expect((yield* media.timing(fixture('tone.mp3'))).fps).toEqual(Option.none());
+          const missing = yield* Effect.flip(media.timing(fixture('no-such.mp4')));
+          expect(missing._tag).toBe('MediaFailed');
+        }),
+      ),
+  );
+
+  it.effect.layer(MediaOnDisk)(
+    "a measured rate is taken for 30 or 29.97 only within its timestamps' precision: halfway between, it is neither",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* tempDir;
+          const rateAt = Effect.fn('Media.test.rateAt')(function* (fps: number) {
+            const file = `${dir}/rated-${fps}.mp4`;
+            yield* fs.writeFile(file, yield* ratedVideo(fps, 8));
+            return Option.getOrThrow((yield* media.timing(file)).fps);
+          });
+          const ntsc = 30000 / 1001;
+          // 0.03% off: inside the precision (0.04%), so taken for the broadcast rate.
+          expect(yield* rateAt(30 * (1 - 3e-4))).toBe(30);
+          expect(yield* rateAt(ntsc * (1 + 3e-4))).toBe(ntsc);
+          // Halfway (0.05% from each, past the precision): kept as measured, taken for neither.
+          const halfway = (30 + ntsc) / 2;
+          expect(yield* rateAt(halfway)).toBeCloseTo(halfway, 6);
+        }),
+      ),
   );
 
   it.effect.layer(MediaOnDisk)('a share copy that fails leaves no file behind', () =>

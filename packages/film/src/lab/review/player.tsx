@@ -17,6 +17,7 @@ import {
   onSettled,
   untrack,
 } from 'solid-js';
+import type { ReviewFile } from '../../core/review.ts';
 import { type Playable, playableOf } from '../../browser/media.ts';
 import { rateCommands, rateId, rateText, rateTitle } from '../../player/transport.ts';
 import { Actor } from '../actor.tsx';
@@ -24,7 +25,7 @@ import { hubKeys } from '../command/changes.ts';
 import { CommandChip } from '../command/command-chip.tsx';
 import { HearIcon, useShellTime } from '../page-shell.tsx';
 import { pressed } from '../pressed.ts';
-import { useReview } from './context.tsx';
+import { useClockRate, useReview } from './context.tsx';
 import {
   Rate,
   SyncEvent,
@@ -238,7 +239,12 @@ export const useClockMedia = (
  * are its `<track>`s.
  */
 export const PlayedAlone = (
-  props: ParentProps<{ readonly src: string; readonly poster: string }>,
+  props: ParentProps<{
+    readonly src: string;
+    readonly poster: string;
+    /** The video it plays, whose own frames its clock counts. */
+    readonly video: Pick<ReviewFile, 'ref' | 'mtime'>;
+  }>,
 ) => {
   const { meta } = useReview();
   const [retried, setRetried] = createSignal<Option.Option<Try>>(Option.none());
@@ -269,6 +275,7 @@ export const PlayedAlone = (
         const sync = useAtomValue(() => syncAtom);
         const send = useAtomSet(() => syncAtom);
         const driver = makeSync(ALONE, send, meta.host);
+        useClockRate(() => Option.some(props.video), send);
         onCleanup(driver.stop);
         createEffect(sync, (state) => driver.apply(state));
         const failure = () => failureOf(sync());

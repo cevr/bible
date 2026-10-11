@@ -24,6 +24,7 @@ const clock = (t: number, seek = 0) => ({
   t,
   start: 0,
   end: 10,
+  fps: 30,
   rate: 1 as const,
   audible: 'a',
   seek,
@@ -45,6 +46,9 @@ const rig = (refuse?: { readonly a?: string; readonly b?: string }) => {
   a.el.finishLoading(10);
   b.el.finishLoading(10);
   const release = { a: driver.attach('a', a.media), b: driver.attach('b', b.media) };
+  // The clock joined measured: the machine knows its end before any test begins.
+  expect(told).toEqual([SyncEvent.Measured({ end: 10 })]);
+  told.length = 0;
   return { frames, told, driver, a, b, release, tags: () => told.map((e) => e._tag) };
 };
 
@@ -62,7 +66,7 @@ describe('the sync driver', () => {
     a.el.currentTime = 2;
     a.asked.length = 0;
     frames.frame(32);
-    expect(b.asked).toEqual(['seek 2']);
+    expect(b.asked).toEqual([`seek ${60.25 / 30}`]);
     expect(told.at(-1)).toMatchObject({ _tag: 'Ticked', t: 2 });
   });
 
@@ -70,8 +74,27 @@ describe('the sync driver', () => {
     const { frames, driver, a, b } = rig();
     driver.apply(SyncState.Paused(clock(3, 1)));
     expect(frames.pending()).toBe(0);
-    expect(a.asked.slice(-2)).toEqual(['seek 3', 'pause']);
-    expect(b.asked.slice(-2)).toEqual(['seek 3', 'pause']);
+    expect(a.asked.slice(-2)).toEqual([`seek ${90.25 / 30}`, 'pause']);
+    expect(b.asked.slice(-2)).toEqual([`seek ${90.25 / 30}`, 'pause']);
+  });
+
+  test("a seek lands a quarter of a frame into the frame its time lies in, at the clock's rate: a time past that stays", () => {
+    const { driver, a } = rig();
+    const at = (t: number, fps: number, seek: number) =>
+      driver.apply(SyncState.Paused({ ...clock(t, seek), fps }));
+    // A step's frame start (frame 25 at 24, 62 at 30, 1 at 29.97): a quarter of a frame in.
+    at(25 / 24, 24, 1);
+    expect(a.asked.slice(-2)).toEqual([`seek ${25.25 / 24}`, 'pause']);
+    at(62 / 30, 30, 2);
+    expect(a.asked.slice(-2)).toEqual([`seek ${62.25 / 30}`, 'pause']);
+    at(1001 / 30000, 30000 / 1001, 3);
+    expect(a.asked.slice(-2)).toEqual([`seek ${1.25 / (30000 / 1001)}`, 'pause']);
+    // A start with float noise in it (0.1 + 0.2 is frame 9 at 30), the same.
+    at(0.1 + 0.2, 30, 4);
+    expect(a.asked.slice(-2)).toEqual([`seek ${9.25 / 30}`, 'pause']);
+    // A scrub's time already past the quarter is sought as it is.
+    at(0.52, 24, 5);
+    expect(a.asked.slice(-2)).toEqual(['seek 0.52', 'pause']);
   });
 
   test('a set waiting on a stalled video resumes once every video can play on', () => {
@@ -156,8 +179,8 @@ describe('the sync driver', () => {
     driver.attach('a', next.media);
     release.a();
     driver.apply(SyncState.Paused(clock(4, 1)));
-    expect(next.asked.slice(-2)).toEqual(['seek 4', 'pause']);
-    expect(a.asked).not.toContain('seek 4');
+    expect(next.asked.slice(-2)).toEqual([`seek ${120.25 / 30}`, 'pause']);
+    expect(a.asked).not.toContain(`seek ${120.25 / 30}`);
   });
 
   it.effect('a player says its clock cannot play: a play refused as unsupported', () =>
@@ -185,11 +208,8 @@ describe('the sync driver', () => {
 
   test("the clock's new media, after its last failed, is told; another's, or over a clock that plays, is not", () => {
     const { driver, tags } = rig();
-    const media = () => {
-      const v = fakeMedia();
-      v.el.finishLoading(10);
-      return v.media;
-    };
+    // Not measured yet, as a fresh element is: only the replacement is told.
+    const media = () => fakeMedia().media;
     driver.apply(SyncState.Playing(clock(2)));
     driver.attach('a', media());
     expect(tags()).toEqual([]);
@@ -258,6 +278,57 @@ describe('the sync driver', () => {
     const { driver, told } = rig();
     driver.follow('c');
     expect(told).toEqual([SyncEvent.ClockMoved({ end: UNKNOWN_END })]);
+  });
+
+  test("while the leading version has no video, the set's time comes from no other: one clock, its time and its events one video's", () => {
+    const frames = manualFrames();
+    const told: Array<SyncEvent> = [];
+    const host = hostOf(
+      Layer.mergeAll(
+        frames.layer,
+        Media.layerOver(() => fakeMedia().media),
+      ),
+    );
+    const driver = makeSync('a', (event) => told.push(event), host);
+    const b = fakeMedia();
+    b.el.finishLoading(6);
+    driver.attach('b', b.media);
+    driver.apply(SyncState.Playing(clock(0)));
+    b.el.currentTime = 2;
+    frames.frame(16);
+    b.el.fire('ended');
+    expect(told.map((e) => e._tag)).toEqual([]);
+    // Led by b, b is the clock: its time, its end and its ending.
+    driver.follow('b');
+    b.el.currentTime = 3;
+    frames.frame(16);
+    b.el.fire('ended');
+    expect(told).toEqual([
+      SyncEvent.ClockMoved({ end: 6 }),
+      SyncEvent.Ticked({ t: 3 }),
+      SyncEvent.Ended,
+    ]);
+  });
+
+  test("the clock's video measured before it joins the set is told: its end is known, not waited on", () => {
+    const frames = manualFrames();
+    const told: Array<SyncEvent> = [];
+    const host = hostOf(
+      Layer.mergeAll(
+        frames.layer,
+        Media.layerOver(() => fakeMedia().media),
+      ),
+    );
+    const driver = makeSync('a', (event) => told.push(event), host);
+    // Its `loadedmetadata` fired before it was attached: no `measured` is heard after.
+    const a = fakeMedia();
+    a.el.finishLoading(8);
+    const b = fakeMedia();
+    b.el.finishLoading(6);
+    driver.attach('b', b.media);
+    expect(told).toEqual([]);
+    driver.attach('a', a.media);
+    expect(told).toEqual([SyncEvent.Measured({ end: 8 })]);
   });
 
   test('stopped, every video is paused and no frame is asked for', () => {

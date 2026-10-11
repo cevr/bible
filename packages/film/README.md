@@ -1137,7 +1137,10 @@ arithmetic committed on Enter, its arrows the knob's step, Shift ten,
 Alt a tenth). On a version stack (`src/lab/review/hear.ts`) `1`…`9` hear
 version n, as its speaker does, while the view can play it. A set's version says over
 `POST /api/review/sets/<folder>/<point>/say`, its answer shown in
-place.
+place. Its receipt says what the catalogue answers it gave or took
+(`SetSaid`): an approve of a version approved already since says so and
+offers no Undo, and an Undo whose approval was withdrawn since says
+nothing was left to undo.
 
 A **receipt** is one toast (`Receipts`, `src/lab/command/receipts.tsx`, on
 @bible/ui's Toast) over every page in the shell, in place of the
@@ -1232,7 +1235,10 @@ so a key rebound in `?` reads as rebound.
   its Scenes, a long press its other parts, `filmCommands`), then the
   review's folders (Versions, Renders).
 - **Timecode**: a time written `HH:MM:SS:FF`, hours, minutes, seconds and
-  frames (`timecode`, `core/time.ts`; 30 fps), in a monospaced face so the
+  frames (`timecode`, `core/time.ts`; 30 fps, or a video's own rate: a
+  1000/1001 rate such as 29.97 counts its whole rate's frames a second,
+  non-drop-frame (NDF), and a rate that is neither, such as 12.5, counts
+  the frame within its wall second), in a monospaced face so the
   digits never shift. The studio shows its times this way: the header's
   (film time on every page with a playhead; a tap copies the link to that
   frame), the lab's transport (scene time), a cue's start and length, a
@@ -2212,9 +2218,23 @@ master), each with its stamp, the owner's approval, and its state as the
 record says it (`recordedNow`): stale by its `sources` when a newer render at
 its address drew other sources, by its `sound` when a newer video carries
 another mix (`ChoiceVariant.staleBy`; whether the newest is current against
-the sources now is `film project`'s). The set page (Versions)
-says it in every view, beside the variant's label: why a variant is stale
-when its record proves it (`recordedStaleText`), and no state word
+the sources now is `film project`'s). The set page (Versions) judges each
+version again as an approve's write does: in the checkout's own folder for
+the film (the project's `folder`, the server's ref of its out folder, names
+the set's; that alone decides, never the folder's name, so the film's own
+folder under a root of another label is judged by it too), once the film's
+project answers, against the film's sources now (`projectNow`,
+`versionState`, the rule `renderState` keeps), so Approve is offered for
+just the versions the write would take. Anywhere else, a copy of the film's
+folder under another root among them, and until the project answers, it
+judges as the record says; the Set's tools say which judges (`data-sources`:
+`reading`, `project`, `record`). The page reads the project itself, once it
+runs and only for a folder whose title is one of the app's films (a
+montage's title is none, so its Set asks for no project); the server's
+render never waits on it. Each page reads the project as it mounts, so a
+Set and then its Project tab read it twice, and Project shows what a Set's
+approve wrote. It says it in every view, beside the
+variant's label: why a variant is stale (`staleText`), and no state word
 otherwise, never "current". A montage folder (say a
 look explored by hand) holds `review.json` (`ReviewManifest`), which names its
 files: `videos` and `images` (loose files to show), `docs`, and per set a title,
@@ -2242,23 +2262,23 @@ Cached files (frames, 720p phone copies of big videos, option mixes) are
 kept in `FILM_REVIEW_CACHE` (`~/.cache/film-review`); `FILM_REVIEW_PHONE=off`
 makes no phone copies.
 
-| Route                                                                           | What it answers                                                                                                                                                                     |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/review/index[?fresh]`                                                 | `ReviewIndex`: every folder with something to review, newest first                                                                                                                  |
-| `GET /api/review/files/<ref>`, `/api/review/phone/<ref>`                        | the file, or its phone copy, byte ranges answered 206                                                                                                                               |
-| `GET /api/review/frame?ref=&t=&w=`, `/api/review/duration?ref=`                 | a JPEG of a video at `t` s, `w` px wide; its length                                                                                                                                 |
-| `POST /api/review/sets/<folder>/<point>/say`                                    | `SetSayPost` `{variant, say, op?}` → `ReviewFolder`, written to the folder's `catalogue.json` (a montage refused; a version made again since it was shown is `VersionChanged`, 409) |
-| `GET /api/films`                                                                | `ReviewFilms`: the app's films                                                                                                                                                      |
-| `GET /api/films/<film>/choices`                                                 | `FilmChoices`: the film's renders (the pictures) and its points                                                                                                                     |
-| `POST /api/films/<film>/choices/pick`                                           | `PickPost` `{point, variant, verb, acceptMismatch?}` → `ChoiceWrite`                                                                                                                |
-| `POST /api/films/<film>/choices/knob`                                           | `KnobPost` `{point, value}` → `ChoiceWrite`: the level written                                                                                                                      |
-| `POST /api/films/<film>/choices/say`                                            | `SayPost` `{point, variant, say}` → `FilmChoices`, the say recorded                                                                                                                 |
-| `GET /api/films/<film>/choices/alone?point=&variant=`                           | the variant's own file (a take, a voice attempt)                                                                                                                                    |
-| `GET /api/films/<film>/choices/mix?point=&variant=`                             | the film's whole mix with that variant in place (m4a)                                                                                                                               |
-| `GET /api/films/<film>/choices/check`                                           | `SoundCheck`: `film check --sound` as the film now stands                                                                                                                           |
-| `GET /api/films/<film>/project`; `POST …/say`                                   | `ProjectView`, read or written by a fresh `film project` (above)                                                                                                                    |
-| `GET /api/review/build?since=&server=&film=&timeout=`                           | `PageBuild`: the pages' build, once past `since`, a mix of `film` among the changes (at most 60 s)                                                                                  |
-| `POST /api/films/<film>/undo`, `/redo`; `GET /api/films/<film>/check`, `/steps` | the lab's own, for the film named; `steps` its undo and redo alone                                                                                                                  |
+| Route                                                                           | What it answers                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/review/index[?fresh]`                                                 | `ReviewIndex`: every folder with something to review, newest first                                                                                                                                                                                          |
+| `GET /api/review/files/<ref>`, `/api/review/phone/<ref>`                        | the file, or its phone copy, byte ranges answered 206                                                                                                                                                                                                       |
+| `GET /api/review/frame?ref=&t=&w=`, `/api/review/duration?ref=`                 | a JPEG of a video at `t` s, `w` px wide; its length and its frames a second as its packets give them (`fps`, never rounded; none for a file with no video)                                                                                                  |
+| `POST /api/review/sets/<folder>/<point>/say`                                    | `SetSayPost` `{variant, say, op?}` → `SetSaid` (the `ReviewFolder`, with `gave?` and `took?` as a project say answers them), written to the folder's `catalogue.json` (a montage refused; a version made again since it was shown is `VersionChanged`, 409) |
+| `GET /api/films`                                                                | `ReviewFilms`: the app's films                                                                                                                                                                                                                              |
+| `GET /api/films/<film>/choices`                                                 | `FilmChoices`: the film's renders (the pictures) and its points                                                                                                                                                                                             |
+| `POST /api/films/<film>/choices/pick`                                           | `PickPost` `{point, variant, verb, acceptMismatch?}` → `ChoiceWrite`                                                                                                                                                                                        |
+| `POST /api/films/<film>/choices/knob`                                           | `KnobPost` `{point, value}` → `ChoiceWrite`: the level written                                                                                                                                                                                              |
+| `POST /api/films/<film>/choices/say`                                            | `SayPost` `{point, variant, say}` → `FilmChoices`, the say recorded                                                                                                                                                                                         |
+| `GET /api/films/<film>/choices/alone?point=&variant=`                           | the variant's own file (a take, a voice attempt)                                                                                                                                                                                                            |
+| `GET /api/films/<film>/choices/mix?point=&variant=`                             | the film's whole mix with that variant in place (m4a)                                                                                                                                                                                                       |
+| `GET /api/films/<film>/choices/check`                                           | `SoundCheck`: `film check --sound` as the film now stands                                                                                                                                                                                                   |
+| `GET /api/films/<film>/project`; `POST …/say`                                   | `ProjectView`, read or written by a fresh `film project` (above)                                                                                                                                                                                            |
+| `GET /api/review/build?since=&server=&film=&timeout=`                           | `PageBuild`: the pages' build, once past `since`, a mix of `film` among the changes (at most 60 s)                                                                                                                                                          |
+| `POST /api/films/<film>/undo`, `/redo`; `GET /api/films/<film>/check`, `/steps` | the lab's own, for the film named; `steps` its undo and redo alone                                                                                                                                                                                          |
 
 **How a pick lands.** Every write goes through the one `SourceWriter`
 (`source-writer.ts`), the lab's knob and cue writes included: it reads the
@@ -2371,8 +2391,19 @@ each choice replacing the entry, and while it holds a line over the points
 says so with Show every point. A point with a finding is not one of them:
 a finding names an address, not a point. A set's page holds one effect-machine actor, the synced player
 (`machine.ts`: `Paused`, `Playing`, `Scrubbing`, `Buffering`; one clock, the
-first variant's; one sound heard; opened at the URL's `#t=`, which follows
-it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
+leading version's video (the first shown whose video plays here), whose ←/→
+step is one frame of that video's own (its timecode counts them; Shift ten):
+the rate `GET /api/review/duration` reads from the video's own packets
+(`fps`, `Media.timing`: frames a second over its first 120 packets, taken
+for the whole or 1000/1001 rate it lies within its timestamps' precision
+of, 0.04%, under half the gap between 30 and 29.97, else as measured,
+never rounded to a whole rate, so a 29.97 video steps on its own grid),
+the film rate (`FILM_FPS`) only while that answer is pending or the video
+names none; the clock stands on the frame's start, and every video seeks a
+quarter of a frame into it (`intoFrame`; Chrome keeps some frames' starts a
+microsecond short, which shows the frame before), so it shows that frame's
+picture, and a time further into the frame (a scrub, `#t=`) as it is; one sound heard;
+opened at the URL's `#t=`, which follows it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
 `Wipe`, `Moments`, `Diff` shown as Difference, `Notes`; a set of one version has
 no pair, wipe or difference, and a link asking for one opens All; the pair,
 its wipe and its difference share the other chosen, and the moments and the

@@ -52,7 +52,7 @@ const writingMedia = (
     Media,
     Media.of({
       ...noRecording,
-      duration: () => Effect.succeed(5),
+      timing: () => Effect.succeed({ seconds: 5, fps: Option.none() }),
       decode: () => Effect.succeed(silence(rate, rate, 1)),
       encodeAac: () => Effect.succeed({ packets: [], meta: {} }),
       writeWav: (file, pcm) =>

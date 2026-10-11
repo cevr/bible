@@ -65,6 +65,12 @@ interface SceneCardProps {
   readonly size: 'tile' | 'focus';
   /** The card's picture. */
   readonly picture: JSX.Element;
+  /**
+   * What the picture is: a still the card frames (the default), or a player
+   * whose first child is its picture, which the card frames, and whose
+   * transport stands under it, outside the frame.
+   */
+  readonly picturing?: 'still' | 'player';
   /** The scene's name as the card shows it (a page may make it a button): its plain name when none. */
   readonly name?: JSX.Element;
   /** The card's verb (Open in Lab, Approve). */
@@ -84,7 +90,10 @@ export const SceneCard = (props: SceneCardProps) => (
     data-scene={props.scene}
     data-selected={pressed(props.selected === true)}
   >
-    <div class="sc-card-picture">
+    <div
+      class="sc-card-picture"
+      data-picture={Option.getOrElse(Option.fromUndefinedOr(props.picturing), () => 'still')}
+    >
       {props.picture}
       <Show when={Option.getOrUndefined(Option.filter(props.span, () => props.size === 'tile'))}>
         {(span) => <span class="sc-card-length">{timecode(span().dur, props.fps)}</span>}

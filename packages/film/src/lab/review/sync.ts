@@ -2,9 +2,11 @@
 // `<video>`s and `<audio>`s), made to do what the machine's state says, and
 // what they do told back to it as events. It reaches them only through the
 // port (`browser/media.ts`), and plays them through `Media.playOrMute`. The
-// first variant's video is the clock (its time is the set's), and a set that
-// loses that variant `follow`s the first one left (`ClockMoved`); every other
-// that drifts more than DRIFT_S from it is put back on it. Only the audible
+// leading version's video is the clock, and the clock alone: its time, its
+// end, its ending and its failure are the set's, and while it is not
+// attached the set's time stands. The page says which version leads; when
+// that changes the driver `follow`s the new one (`ClockMoved`). Every other
+// video that drifts more than DRIFT_S from it is put back on it. Only the audible
 // one is unmuted. The machine is told when the clock's media cannot play
 // (`MediaFailed`), and when the clock's media is new (`MediaReplaced`: each
 // source, and each retry, is a fresh element attached), so a failure is its
@@ -18,13 +20,13 @@
 
 import { type Context, Data, type Duration, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
+import { frameAtOrBefore } from '../../core/time.ts';
 import { Media, type Playable } from '../../browser/media.ts';
 import { type Command, type Invocation, quietly } from '../../command/command.ts';
 import type { Target } from '../../command/target.ts';
 import {
   type SyncEvent,
   SyncEvent as Events,
-  STEP_S,
   type SyncState,
   UNKNOWN_END,
   runningOf,
@@ -35,6 +37,22 @@ const DRIFT_S = 0.2;
 
 /** How far the clock moves before the machine hears of it, in seconds. */
 const TICK_S = 0.05;
+
+/** How far into its frame a seek lands, in frames. */
+const INTO_FRAME = 0.25;
+
+/**
+ * Where a seek to `t` lands on a media element: a quarter of a frame (at the
+ * clock's `fps`) into the frame `t` lies in, or `t` when it is further in
+ * already. A step's time is its frame's start (`n / fps`), and Chrome keeps
+ * an element's time a microsecond short of some frames' starts (frame 25 at
+ * 24 fps, 62 at 30), which shows the frame before; inside the frame, it
+ * shows that frame's picture. The clock's own time stays on the frame
+ * (the machine's `t`). A video at over four times the clock's rate would
+ * show its frame after the one at `t`.
+ */
+const intoFrame = (t: number, fps: number): number =>
+  Math.max(t, (frameAtOrBefore(t, fps) + INTO_FRAME) / fps);
 
 /** Whether `video` has drifted from the clock at `t` far enough to be put back. */
 export const drifted = (video: number, t: number): boolean => Math.abs(video - t) > DRIFT_S;
@@ -50,9 +68,10 @@ export interface SyncDriver {
   /** The machine's state, made so. */
   readonly apply: (state: SyncState) => void;
   /**
-   * The clock is `id`'s video from now on (the version it followed left the
-   * set): the machine is told its end, and whether its media failed or
-   * ended already; every media event after is heard against it.
+   * The clock is `id`'s video from now on (another version leads: the one it
+   * followed left the set, or another plays first here): the machine is told
+   * its end, and whether its media failed or ended already; every media
+   * event after is heard against it.
    */
   readonly follow: (id: string) => void;
   /** Every video paused, every listener and the clock's loop stopped. */
@@ -95,11 +114,11 @@ export const reloadOnError = <R>(
 };
 
 /**
- * The driver of a set whose clock is the video of `first` (until it
+ * The driver of a set whose clock is the video of `leader` (until it
  * `follow`s another), telling the machine through `send`.
  */
 export const makeSync = (
-  first: string,
+  leader: string,
   send: (event: SyncEvent) => void,
   host: Context.Context<Frames | Media>,
 ): SyncDriver => {
@@ -110,7 +129,7 @@ export const makeSync = (
   /** The stop of the clock's loop, while it runs. */
   let looping = Option.none<() => void>();
   /** The version whose video is the clock: every media event is heard against it. */
-  let leading = first;
+  let leading = leader;
 
   /**
    * The videos whose media failed (an `error`, a play the browser would not
@@ -119,10 +138,8 @@ export const makeSync = (
   const broken = new Map<Attached, string>();
   const all = () => [...videos.values()];
   const working = () => all().filter((a) => !broken.has(a));
-  const clock = () =>
-    Option.orElse(Option.fromUndefinedOr(videos.get(leading)), () =>
-      Option.fromUndefinedOr(all()[0]),
-    );
+  /** The clock: the leading version's video, none until it is attached. */
+  const clock = () => Option.fromUndefinedOr(videos.get(leading));
 
   /** Do `effect` on the host, without waiting for it. */
   const fork = (effect: Effect.Effect<unknown, never, Frames | Media>) => {
@@ -153,7 +170,8 @@ export const makeSync = (
         ),
       ),
     );
-  const seekTo = (a: Attached, t: number) => forkOn(a, a.video.seek(t));
+  const seekTo = (a: Attached, t: number, fps: number) =>
+    forkOn(a, a.video.seek(intoFrame(t, fps)));
 
   const hear = (state: SyncState) => {
     for (const [id, a] of videos) {
@@ -181,7 +199,7 @@ export const makeSync = (
         for (const a of working()) {
           const video = a.video;
           if (a === master || video.seeking() || video.ended()) continue;
-          if (t < video.duration() && drifted(video.time(), t)) seekTo(a, t);
+          if (t < video.duration() && drifted(video.time(), t)) seekTo(a, t, state.fps);
         }
       });
       return Option.exists(current, (now) => runningOf(now) || now._tag === 'Buffering');
@@ -211,7 +229,7 @@ export const makeSync = (
     if (state.seek !== seek) {
       seek = state.seek;
       told = state.t;
-      for (const a of working()) seekTo(a, state.t);
+      for (const a of working()) seekTo(a, state.t, state.fps);
     }
     if (runningOf(state)) {
       for (const [id, a] of videos) if (!broken.has(a) && !a.video.playing()) play(id, a);
@@ -235,6 +253,12 @@ export const makeSync = (
     broken.delete(a);
   };
 
+  /** The machine told the clock's end, when `id` leads and its video is measured. */
+  const measure = (id: string, video: Playable) => {
+    if (id === leading && Number.isFinite(video.duration()))
+      send(Events.Measured({ end: video.duration() }));
+  };
+
   const attach = (id: string, video: Playable) => {
     Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => {
       old.held.abort();
@@ -246,14 +270,15 @@ export const makeSync = (
     // The clock's new media, while its last failed: the failure was that media's.
     if (id === leading && Option.exists(current, (state) => state._tag === 'Failed'))
       send(Events.MediaReplaced);
+    // Measured before it joined (its `loadedmetadata` came first): no `measured` follows.
+    measure(id, video);
     video.on(
       'measured',
       () => {
         // Measured, it plays: a failure before was another try's.
         broken.delete(attached);
-        if (id === leading && Number.isFinite(video.duration()))
-          send(Events.Measured({ end: video.duration() }));
-        Option.map(current, (state) => seekTo(attached, state.t));
+        measure(id, video);
+        Option.map(current, (state) => seekTo(attached, state.t, state.fps));
       },
       signal,
     );
@@ -268,7 +293,7 @@ export const makeSync = (
     );
     Option.map(current, (state) => {
       hear(state);
-      seekTo(attached, state.t);
+      seekTo(attached, state.t, state.fps);
       if (runningOf(state)) play(id, attached);
     });
     return () => release(id, attached);
@@ -306,21 +331,21 @@ export const makeSync = (
   return { attach, apply, follow, stop };
 };
 
-/** What a synced player is asked: play or pause, or a step back or on (`by` steps). */
+/** What a synced player is asked: play or pause, or a step back or on (`by` frames). */
 export type PlayerKey = Data.TaggedEnum<{
   Toggle: {};
   Step: { readonly by: number };
 }>;
 export const PlayerKey = Data.taggedEnum<PlayerKey>();
 
-/** The machine's event for a player's ask: a toggle, or a step of `by` × STEP_S seconds. */
+/** The machine's event for a player's ask: a toggle, or a step of `by` frames. */
 export const playerEvent = (key: PlayerKey): SyncEvent =>
   PlayerKey.$match(key, {
     Toggle: () => Events.Toggled,
-    Step: ({ by }) => Events.Stepped({ by: by * STEP_S }),
+    Step: ({ by }) => Events.Stepped({ frames: by }),
   });
 
-/** The steps a ←/→ moves by: one, ten with Shift (the coarse step), one with Alt. */
+/** The frames a ←/→ moves by: one, ten with Shift (the coarse step), one with Alt. */
 const STEPS_BY: Readonly<Record<Invocation['step'], number>> = { normal: 1, coarse: 10, fine: 1 };
 
 /**

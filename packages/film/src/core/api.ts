@@ -47,7 +47,7 @@ import { PartAddress } from './address.ts';
 import type { Interval } from './time.ts';
 import { isShortKey } from './shorts.ts';
 import { onChoicesTab } from './point.ts';
-import { OpId, Project, RenderVariantName } from './catalogue.ts';
+import { Gave, OpId, Project, RenderVariantName, Took } from './catalogue.ts';
 import { WaitTimeout } from './wait.ts';
 import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
@@ -351,6 +351,21 @@ export const SetSayPost = Schema.Struct({
 });
 export type SetSayPost = typeof SetSayPost.Type;
 
+/**
+ * What a set's say answers: the folder as the say leaves it; an approve
+ * that named its run (`op`), what it `gave` (the scene whose approval it
+ * added; none when the version was approved already); a withdraw given a
+ * run, what it `took` (none of it when the approval was withdrawn since), as
+ * a project's say answers (`Project.gave`, `Project.took`). Each optional on
+ * the wire: any other say carries neither.
+ */
+export const SetSaid = Schema.Struct({
+  ...ReviewFolder.fields,
+  gave: Schema.OptionFromOptionalKey(Gave),
+  took: Schema.OptionFromOptionalKey(Took),
+});
+export type SetSaid = typeof SetSaid.Type;
+
 /** A file answered as it lies (a still, a take, a render, a mix): its type is the file's. */
 const FileBytes = Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array());
 
@@ -527,12 +542,12 @@ class ReviewGroup extends HttpApiGroup.make('review').add(
   /**
    * A say on a version of a set in a film's project folder (its ref written
    * `%2F` for each `/`), written to that folder's `catalogue.json`: the
-   * folder as the say leaves it.
+   * folder as the say leaves it, and what it gave or took (`SetSaid`).
    */
   HttpApiEndpoint.post('say', `${REVIEW}/sets/:folder/:point/say`, {
     params: { folder: Schema.String, point: Schema.String },
     payload: SetSayPost,
-    success: ReviewFolder,
+    success: SetSaid,
     error: Refusals,
   }),
 ) {}

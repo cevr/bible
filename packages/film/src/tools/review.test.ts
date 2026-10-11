@@ -23,7 +23,7 @@ import {
   recordRender,
   subjectOf,
 } from '../core/catalogue.ts';
-import { withdrawSay } from '../core/api.ts';
+import { type SetSayPost, withdrawSay } from '../core/api.ts';
 import { type ChoiceVariant, VariantMedia } from '../core/choice.ts';
 import { type ReviewFolder, type ReviewIndex, ReviewManifestJson } from '../core/review.ts';
 import { RenderCatalogue } from './catalogue.ts';
@@ -463,7 +463,7 @@ const projectCatalogue = [
  * with its catalogue; a stand-in Media (`reviewMedia`) giving every video
  * 12.5 s and making a still or a phone copy by copying the video whole.
  */
-const fixture = (phoneCopies: boolean) =>
+const fixture = (phoneCopies: boolean, fps: Option.Option<number> = Option.none()) =>
   Layer.unwrap(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -502,7 +502,7 @@ const fixture = (phoneCopies: boolean) =>
         maxVideo: 1000,
         phoneCopies,
       }).pipe(
-        Layer.provideMerge(reviewMedia(spawned)),
+        Layer.provideMerge(reviewMedia(spawned, 12.5, fps)),
         Layer.provide(RenderCatalogue.layer.pipe(Layer.provide(ContentStore.layer))),
         Layer.merge(Layer.succeed(Spawned, spawned)),
         Layer.merge(Layer.succeed(Root, dir)),
@@ -725,6 +725,67 @@ describe('the review service', () => {
       }).pipe(Effect.provide(fixture(false))),
   );
 
+  it.effect(
+    "a set's say answers what the catalogue gave and took, as a project's does: never what was asked",
+    () =>
+      Effect.gen(function* () {
+        const review = yield* Review;
+        const shown = Option.getOrThrow(
+          Option.fromUndefinedOr(
+            (yield* review.index(false)).folders.find((f) => f.ref === 'out/f'),
+          ),
+        );
+        const scene = shown.sets.find((s) => s.title === 'scene a')?.id ?? '';
+        const film = shown.sets.find((s) => s.title === 'film')?.id ?? '';
+        const asNow: ProjectRead = () =>
+          Effect.succeedSome(
+            projectOf(
+              PROJECT,
+              {
+                key: 'k1',
+                sound: Option.none(),
+                acts: [],
+                scenes: [{ scene: 'a', key: 'k1' }],
+              },
+              'main',
+            ),
+          );
+        const say = (point: string, asked: SetSayPost) => review.say('out/f', point, asked, asNow);
+        const approve = (op: OpId): SetSayPost => ({
+          variant: 'main',
+          say: { _tag: 'Approve' },
+          op,
+        });
+        const withdrawn = (given: Option.Option<OpId>): SetSayPost => ({
+          variant: 'main',
+          say: withdrawSay(given),
+        });
+        const OP_1 = OpId.make('op-1');
+        const OP_2 = OpId.make('op-2');
+        // The run that approved gave the scene; one after it, the scene approved already, gave none.
+        const first = yield* say(scene, approve(OP_1));
+        expect(Option.map(first.gave, (g) => [g.op, g.scenes])).toEqual(Option.some([OP_1, ['a']]));
+        expect(first.took).toEqual(Option.none());
+        expect((yield* say(scene, approve(OP_2))).gave).toEqual(Option.none());
+        // Its Undo took the scene back; again, there was nothing left to take.
+        expect((yield* say(scene, withdrawn(Option.some(OP_1)))).took).toEqual(
+          Option.some({ op: OP_1, scenes: ['a'] }),
+        );
+        expect((yield* say(scene, withdrawn(Option.some(OP_1)))).took).toEqual(
+          Option.some({ op: OP_1, scenes: [] }),
+        );
+        // A plain approve or unapprove, or a comment, answers neither.
+        const plain = [
+          yield* say(film, { variant: 'main', say: { _tag: 'Approve' } }),
+          yield* say(film, withdrawn(Option.none())),
+          yield* say(film, { variant: 'main', say: { _tag: 'Comment', text: 'hm' } }),
+        ];
+        expect(plain.map((a) => [a.gave, a.took])).toEqual(
+          plain.map(() => [Option.none(), Option.none()]),
+        );
+      }).pipe(Effect.provide(fixture(false))),
+  );
+
   it.effect('resolves a ref inside its root that the index lists, and nothing else', () =>
     Effect.gen(function* () {
       const review = yield* Review;
@@ -764,7 +825,11 @@ describe('the review service', () => {
     Effect.gen(function* () {
       const review = yield* Review;
       const spawned = yield* Spawned;
-      expect(yield* review.duration('out/art/roof.A.mp4')).toBe(12.5);
+      // The video's length and its own frame rate, as one read of it by the media gives them.
+      expect(yield* review.duration('out/art/roof.A.mp4')).toEqual({
+        seconds: 12.5,
+        fps: Option.some(30000 / 1001),
+      });
       const [a, b] = yield* Effect.all(
         [
           review.frame('out/art/roof.A.mp4', Option.none(), 640),
@@ -774,13 +839,13 @@ describe('the review service', () => {
       );
       expect(a).toBe(b);
       expect(yield* (yield* FileSystem.FileSystem).readFileString(a)).toBe('a'.repeat(10));
-      expect(spawned.filter((c) => c.startsWith('duration'))).toHaveLength(1);
+      expect(spawned.filter((c) => c.startsWith('timing'))).toHaveLength(1);
       const frames = spawned.filter((c) => c.startsWith('still'));
       expect(frames).toHaveLength(1);
       expect(frames[0]).toEndWith('roof.A.mp4 1.25 640');
       yield* review.frame('out/art/roof.A.mp4', Option.some(3), 640);
       expect(spawned.filter((c) => c.startsWith('still'))).toHaveLength(2);
-    }).pipe(Effect.provide(fixture(false))),
+    }).pipe(Effect.provide(fixture(false, Option.some(30000 / 1001)))),
   );
 
   it.effect('a time before the start is the first frame, made and kept once', () =>

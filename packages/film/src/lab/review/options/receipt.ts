@@ -23,7 +23,13 @@ import {
   said,
 } from '../../../command/command.ts';
 import type { PartAddress } from '../../../core/address.ts';
-import { type ProjectView, type Say, withdrawSay } from '../../../core/api.ts';
+import {
+  type ProjectView,
+  type Say,
+  type SetSaid,
+  type SetSayPost,
+  withdrawSay,
+} from '../../../core/api.ts';
 import type { OpId, ProjectScene, Took } from '../../../core/catalogue.ts';
 import type { ChoicePoint, ChoiceVerb, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import { plural } from '../../../core/words.ts';
@@ -198,7 +204,7 @@ export const approveUndo = (film: string, after: ProjectView): Option.Option<Und
  * The Undo of the approve run `op` that approved `scenes` of `film`: a set's
  * approve of a scene's render, which named its own run, offers it.
  */
-export const approveUndoOf = (
+const approveUndoOf = (
   film: string,
   op: OpId,
   scenes: ReadonlyArray<string>,
@@ -218,15 +224,52 @@ interface SetApproved {
 }
 
 /**
- * What an approve's Undo says it did, from what the catalogue says it took
- * (`Project.took`): nothing, when the approve's approvals were withdrawn since.
+ * What an approve's Undo says it did of `subject`, from what the catalogue
+ * says it took (`Project.took`, `SetSaid.took`): nothing, when the
+ * approve's approvals were withdrawn since.
  */
-const tookText = (address: PartAddress, took: Took): string =>
+const tookText = (subject: string, took: Took): string =>
   Match.value(took.scenes.length > 0).pipe(
-    Match.when(true, () => `Undid approving ${partText(address)}`),
-    Match.orElse(
-      () => `Nothing left to undo: that approval of ${partText(address)} was withdrawn since`,
-    ),
+    Match.when(true, () => `Undid approving ${subject}`),
+    Match.orElse(() => `Nothing left to undo: that approval of ${subject} was withdrawn since`),
+  );
+
+/**
+ * What a set's say did, in the words of its receipt, of the version
+ * `subject` names: an Undo's from what the catalogue says it took (nothing,
+ * when the approval was withdrawn since), an approve that named its run from
+ * what it gave (nothing, when the version was approved already), any other
+ * say as it was asked (`sayText`).
+ */
+export const setSaidText = (asked: SetSayPost, answer: SetSaid, subject: string): string =>
+  Option.match(answer.took, {
+    onSome: (took) => tookText(subject, took),
+    onNone: () =>
+      Bool.match(
+        asked.say._tag === 'Approve' &&
+          Option.isSome(Option.fromUndefinedOr(asked.op)) &&
+          Option.isNone(answer.gave),
+        {
+          onTrue: () => `Approved already: ${subject}`,
+          onFalse: () => sayText(asked.say, subject),
+        },
+      ),
+  });
+
+/**
+ * A set's approve's Undo, bound to exactly what the catalogue says it gave
+ * (`SetSaid.gave`) and to the version it approved; none when it gave none.
+ */
+export const setApproveUndo = (
+  film: Option.Option<string>,
+  asked: SetSayPost,
+  point: string,
+  answer: SetSaid,
+): Option.Option<Undoing> =>
+  Option.map(
+    Option.all({ film, gave: Option.filter(answer.gave, (g) => g.scenes.length > 0) }),
+    ({ film: of, gave }) =>
+      approveUndoOf(of, gave.op, gave.scenes, Option.some({ point, version: asked.variant })),
   );
 
 /** The scenes `address` holds in `view`, in film order. */
@@ -264,7 +307,7 @@ export const partSaid =
       Arr.match(g.scenes, { onEmpty: Option.none, onNonEmpty: Option.some }),
     );
     const said = Option.match(after.project.took, {
-      onSome: (took) => tookText(s.address, took),
+      onSome: (took) => tookText(partText(s.address), took),
       onNone: () =>
         Bool.match(s.say._tag === 'Approve' && s.address._tag === 'Scenes', {
           onFalse: () => sayText(s.say, partText(s.address)),

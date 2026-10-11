@@ -102,7 +102,15 @@ body.scenes { display: block; height: auto; }
   border: var(--border); border-radius: var(--r-2); }
 .sc-card[data-size="tile"][data-selected="true"] { border-color: var(--accent); }
 .sc-card[data-size="tile"] > :not(.sc-card-picture) { padding: 0 var(--s-2); }
-.sc-card-picture { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-0); border-radius: var(--r-1); }
+/*
+ * A card's picture is framed 16:9 and cropped: a still in its slot; a player
+ * (a picture with its own transport) in its first child, its row standing
+ * under it outside the clip, the slot no wider than the card.
+ */
+.sc-card-picture { position: relative; }
+.sc-card-picture[data-picture="player"] { min-width: 0; }
+.sc-card-picture[data-picture="still"],
+.sc-card-picture[data-picture="player"] > :first-child { aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-0); border-radius: var(--r-1); }
 .sc-card-picture img, .sc-card-picture video, .sc-card-picture > canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
 .sc-live, .sc-live .stage { width: 100%; height: 100%; padding: 0; }
 .sc-card-length { position: absolute; right: var(--s-1); bottom: var(--s-1); padding: 0 var(--s-1); border-radius: var(--r-1);

@@ -215,7 +215,8 @@ const renderSetOf = (versions: ReadonlyArray<string>): Json => ({
     picked: false,
     verbs: [],
     media: { _tag: 'Seen', video: videoOf('open') },
-    key: id,
+    // Each drawn from the sources the project has now (open's `k`), with no mix: current.
+    key: 'k',
     approval: 'none',
     comments: [id]
       .filter((v) => v === 'main')
