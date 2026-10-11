@@ -176,6 +176,11 @@ describe('Dialog.Portal inline', () => {
     expect(
       await page.evaluate(() => (window as unknown as { __removed: Array<string> }).__removed),
     ).toEqual([]);
+    // The order they keep: back out of the dialog is the trigger, and on again is the dialog.
+    await page.keyboard.press('Shift+Tab');
+    await see.poll(() => focused(page)).toBe('open');
+    await page.keyboard.press('Tab');
+    await see.poll(() => focused(page)).toBe('first');
   });
 });
 

@@ -28,7 +28,10 @@ export function FocusGuard(props: FocusGuardProps): JSX.Element {
       ref={props.ref}
       hidden={props.hidden || undefined}
       data-type={props['data-type']}
-      onFocus={(event) => props.onFocus?.(event)}
+      // `focusin`, as React's `onFocus` is: it reaches the guard after a portal's own capture
+      // listener has put the portal's content back in the Tab order, so the next tabbable the
+      // guard sends focus to can be inside it.
+      onFocusIn={(event) => props.onFocus?.(event)}
       style={visuallyHidden}
       aria-hidden={role ? undefined : 'true'}
       tabindex={0}
