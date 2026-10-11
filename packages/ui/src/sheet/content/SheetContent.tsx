@@ -96,10 +96,14 @@ export function SheetContent(componentProps: SheetContentProps): JSX.Element {
       ],
     });
 
+  // Named, not written in the prop: the focus manager reads it from effect callbacks too, where
+  // a compiled condition's memo may not be made.
+  const scrollingIn = () => store.open() && !sheet.entered();
+
   return (
     <DialogPopupFocus
       store={store}
-      deferred={store.open() && !sheet.entered()}
+      deferred={scrollingIn()}
       initialFocus={
         componentProps.initialFocus === undefined
           ? () => untrack(store.popupElement) ?? true

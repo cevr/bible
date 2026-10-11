@@ -197,8 +197,19 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   let lastInteractionType: InteractionType = '';
   let pendingReturnFocus: { cancelled: boolean } | null = null;
 
+  const shouldRenderGuards = () => !disabled() && (!!portalContext || modal());
+
   const beforeGuardRef: { current: HTMLSpanElement | null } = { current: null };
-  const afterGuardRef: { current: HTMLSpanElement | null } = { current: null };
+  // The after guard stays rendered (see the render): it is the guard only while guarding.
+  let afterGuardElement: HTMLSpanElement | null = null;
+  const afterGuardRef: { current: HTMLSpanElement | null } = {
+    get current() {
+      return untrack(shouldRenderGuards) ? afterGuardElement : null;
+    },
+    set current(element) {
+      afterGuardElement = element;
+    },
+  };
 
   const blurTimeout = useTimeout();
   const pointerDownTimeout = useTimeout();
@@ -702,8 +713,6 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
     pendingReturnFocus = null;
   });
 
-  const shouldRenderGuards = () => !disabled() && (!!portalContext || modal());
-
   return (
     <>
       <Show when={shouldRenderGuards()}>
@@ -739,36 +748,38 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         />
       </Show>
       {props.children}
-      <Show when={shouldRenderGuards()}>
-        <FocusGuard
-          data-type="inside"
-          ref={(el) => {
-            afterGuardRef.current = el;
-            if (portalContext) {
-              portalContext.afterInsideRef.current = el;
-            }
-          }}
-          onFocus={(event) => {
-            if (modal()) {
-              enqueueFocus(getTabbableContent()[0]);
-            } else {
-              const portalNode = portalContext?.portalNode();
-              if (portalNode) {
-                if (closeOnFocusOut()) {
-                  preventReturnFocus = true;
-                }
-                if (isOutsideEvent(event, portalNode)) {
-                  getPreviousTabbable(untrack(context.domReferenceElement))?.focus();
-                } else {
-                  resolveRef(
-                    props.nextFocusableElement ?? portalContext?.afterOutsideRef ?? null,
-                  )?.focus();
-                }
+      {/* Always rendered (hidden while not guarding): were the guards on both sides of the
+          content to appear at once (a sheet's focus manager enabled once it has scrolled in),
+          Solid would move the content, and a move blurs the field focused in it. */}
+      <FocusGuard
+        data-type="inside"
+        hidden={!shouldRenderGuards()}
+        ref={(el) => {
+          afterGuardRef.current = el;
+          if (portalContext) {
+            portalContext.afterInsideRef.current = el;
+          }
+        }}
+        onFocus={(event) => {
+          if (modal()) {
+            enqueueFocus(getTabbableContent()[0]);
+          } else {
+            const portalNode = portalContext?.portalNode();
+            if (portalNode) {
+              if (closeOnFocusOut()) {
+                preventReturnFocus = true;
+              }
+              if (isOutsideEvent(event, portalNode)) {
+                getPreviousTabbable(untrack(context.domReferenceElement))?.focus();
+              } else {
+                resolveRef(
+                  props.nextFocusableElement ?? portalContext?.afterOutsideRef ?? null,
+                )?.focus();
               }
             }
-          }}
-        />
-      </Show>
+          }
+        }}
+      />
     </>
   );
 }

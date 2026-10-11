@@ -67,6 +67,15 @@ const reportedHidden = (page: Page) =>
       }),
   );
 
+/** Resolves after the page's next two frames. */
+const frames = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+
 describe('hidden with what holds it', () => {
   const LAB = { modal: 'false', dismissal: 'disabled', portal: 'inline' };
   const REST = { x: 0, y: 300, width: 800, height: 300 };
@@ -174,6 +183,26 @@ describe('Sheet.Root', () => {
     await see.poll(() => focused(page)).toBe('popup');
     // Modal once in: the page outside is hidden from assistive technology.
     await see(page.locator('#root')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('keeps the focus given to a field while it scrolled in', async () => {
+    const kept = await Promise.all(
+      ([{}, { modal: 'false', dismissal: 'disabled', portal: 'inline' }] as const).map(
+        async (query: Readonly<Record<string, string>>) => {
+          const page = await h.open('sheet', { query });
+          await page.click('#open');
+          await see(page.locator('#panel')).toHaveAttribute('data-entering', '');
+          await page.locator('#first').focus();
+          await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
+          // Once in, its focus manager takes over: its guards come in round the content, and
+          // its initial focus is queued for a frame.
+          await see(page.locator('#panel [data-type="inside"]:not([hidden])')).toHaveCount(2);
+          await frames(page);
+          return focused(page);
+        },
+      ),
+    );
+    expect(kept).toEqual(['first', 'first']);
   });
 
   it('traps Tab inside a modal sheet', async () => {
