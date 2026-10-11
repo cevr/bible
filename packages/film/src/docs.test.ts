@@ -15,32 +15,44 @@
 //   route or bare API path a comment cites in the film package's code, its
 //   browser tests and the app's;
 // - each `film/<rule>` named: registered in the `film` lint plugin, and each
-//   registered rule turned on in .oxlintrc.json;
+//   registered rule turned on in .oxlintrc.json; a `film/<entry>` of the
+//   package or its src (`film/lint`, `film/lab`) is a directory, no rule;
 // - each `bun run <script>`, its options before the name: a script of the
 //   root, this package, or the app whose scripts run the film commands (its
-//   package.json, never its films), or of the package `--cwd` names;
+//   package.json, never its films), or of the package `--cwd` names; a run
+//   of a file (`cli.ts`) or of an installed binary (`vite`) names no script;
 // - each path written in backticks, in these docs and in NORTH_STAR.md,
 //   PRIOR_ARTS.md, CLAUDE.md, the design language and the packages' and
 //   apps' READMEs, from the repo root or from the doc's own package
 //   (`lab/page-shell.tsx`, `src/…`), exists, and each symbol written after it
 //   (`tools/review.ts` `Review.read`) is declared in its code, as the parser
-//   reads it (`Review` bound, `read` a member or a key within the statement
-//   that binds it; a call declares nothing); an anchor names a symbol, never
-//   a `path:line`, so a moved line keeps it and a renamed symbol fails it
-//   (a receipt `at <commit>` or a path `deleted` names the tree as it was);
-//   in a doc whose every path is under its bases, a first directory under
-//   none of them is a mistyped path; and each file a relative link names
-//   (`[CRAFT](../CRAFT.md)`) is there beside the doc. A symbol written with
-//   no path (`Name.member`) names no file, and is left to the sweeps;
+//   reads it (`Review` bound by a declaration, a function's local among
+//   them, and `read` a member or a key within that declaration's span; a
+//   type's member, a key handed to a call and a call declare nothing); an
+//   anchor names a symbol, never a `path:line`, so a moved line keeps it and
+//   a renamed symbol fails it (a receipt `at <commit>` or a path `deleted`
+//   names the tree as it was); in a doc whose every path is under its bases,
+//   a first directory under none of them is a mistyped path; and each file a
+//   markdown link in the prose names (`[CRAFT](../CRAFT.md)`; not code in a
+//   span or a fence that looks like one) is there beside the doc. A symbol
+//   written with no path (`Name.member`) names no file, and is left to the
+//   sweeps;
 // - the design language's §3 block is the player's tokens.css, and no mock
 //   writes a token: each wears tokens.css and the kit, and sets each space,
 //   type size, leading and radius on its scale, in its sheets, attributes and
-//   scripts, through any length it names itself;
-// - each `--flag` given to a film command (`bun run render <film> --stills …`,
-//   `film check --static`) is declared by a `Flag` in src/tools (`--no-x` by
-//   its `x`);
+//   scripts, through any length it names itself (a local read in the scope
+//   of its rule, with every value a query or a compound selector gives the
+//   same element) and any token it names (read as its value, but those a
+//   scale takes whole: the hairline a margin's or a gap's, the dock a
+//   padding's);
+// - each `--flag` given to a film command written as a command (a span, a
+//   fenced line or a line that starts with the bin, after a `$`, a list's or
+//   a quote's mark), `bun run render <film> --stills …` or `film check
+//   --static`, is declared by a `Flag` in src/tools (`--no-x` by its `x`);
 // - on a line that runs `check` (`bun run check …  # warns …`, or one that
-//   names the run in a span), each finding named is a tagged error in src.
+//   names the run in a span), each finding named is a tagged error in src,
+//   or, named in a span mid-line, a name the code (.ts and .tsx) has as
+//   nothing else: declares, imports, or reads off a module.
 //
 // What a sentence claims about the code stays with the sweep's reading.
 
@@ -73,7 +85,8 @@ interface Code {
   /**
    * Every capitalised name src's code has (`SoundCheck`, `PageShell`,
    * `Schema.TaggedError`): one it declares (a type, a class, a schema, a
-   * component), imports, or reads off a module.
+   * component), imports (named, a namespace or a default), or reads off a
+   * module.
    */
   readonly names: ReadonlySet<string>;
 }
@@ -199,25 +212,25 @@ const BUN_RUN = new RegExp(
 );
 
 interface Run {
-  /** Where it runs (`--cwd`); none, from any of the places the docs run scripts from. */
+  /** Where it runs (`--cwd`, the root's `.` as `''`); none, from any of the places the docs run scripts from. */
   readonly cwd: Option.Option<string>;
-  /** A script's name, or a binary's: a file is no script, and is not read. */
+  /** What it runs: a script's name, a binary's, or a file's (`cli.ts`). */
   readonly script: string;
   readonly rest: string;
 }
 
-/** Each `bun run` of a script or a binary a text writes; one that runs a file (`cli.ts`, `src/x.ts`) names neither. */
+/** Each `bun run` a text writes. */
 const runsIn = (text: string): ReadonlyArray<Run> =>
-  matches(text, BUN_RUN)
-    .map((m) => ({
-      cwd: Option.map(Option.fromNullOr(/--cwd[= ](\S+)/.exec(group(m, 1))), (cwd) =>
-        group(cwd, 1).replace(/\/$/, ''),
-      ),
-      // A sentence's stop after it is not its own.
-      script: group(m, 2).replace(/[.:]+$/, ''),
-      rest: group(m, 3),
-    }))
-    .filter((run) => !/[./]/.test(run.script));
+  matches(text, BUN_RUN).map((m) => ({
+    cwd: Option.map(Option.fromNullOr(/--cwd[= ](\S+)/.exec(group(m, 1))), (cwd) =>
+      group(cwd, 1)
+        .replace(/^\.(?:\/|$)/, '')
+        .replace(/\/$/, ''),
+    ),
+    // A sentence's stop after it is not its own.
+    script: group(m, 2).replace(/[.:]+$/, ''),
+    rest: group(m, 3),
+  }));
 
 /** The scripts a run can name: its package's (`--cwd`), else those of the places the docs run from. */
 const scriptsFor = (run: Run, code: Code): ReadonlySet<string> =>
@@ -226,10 +239,19 @@ const scriptsFor = (run: Run, code: Code): ReadonlySet<string> =>
     onSome: (cwd) => code.scriptsAt.get(cwd) ?? new Set<string>(),
   });
 
-/** Each `bun run` that names a script no package has, nor an installed binary (`bun run --bun vite build`). */
+/**
+ * Each `bun run` that names a script no package has: not an installed binary
+ * (`bun run --bun vite build`), nor a file (`cli.ts`, `src/x.ts`; a name with
+ * a dot or a slash that no script has).
+ */
 const scriptDrift = (doc: Doc, code: Code) =>
   runsIn(doc.text)
-    .filter((run) => !scriptsFor(run, code).has(run.script) && !code.bins.has(run.script))
+    .filter(
+      (run) =>
+        !scriptsFor(run, code).has(run.script) &&
+        !code.bins.has(run.script) &&
+        !/[./]/.test(run.script),
+    )
     .map((run) => `bun run ${run.script}: no such script`);
 
 /**
@@ -261,14 +283,32 @@ interface Line {
   readonly fenced: boolean;
 }
 
-/** A fence that opens or closes a code block (` ``` `, `~~~`). */
-const FENCE = /^\s*(?:```|~~~)/;
+/** A fence (` ``` `, `~~~`, or longer) and what follows it on its line. */
+const FENCE = /^\s*(`{3,}|~{3,})(.*)$/;
 
+/**
+ * A doc's lines, each marked as code or not, as CommonMark reads fences: a
+ * block opened by a fence closes only at a fence of the same character, at
+ * least as long, with nothing after it, so a four-backtick block can show a
+ * three-backtick example whole.
+ */
 const linesOf = (text: string): ReadonlyArray<Line> => {
-  let fenced = false;
+  /** The fence that opened the block the line is in; `''` outside one. */
+  let open = '';
   return text.split('\n').map((line) => {
-    if (!FENCE.test(line)) return { text: line, fenced };
-    fenced = !fenced;
+    const fence = Option.fromNullOr(FENCE.exec(line));
+    if (open === '') {
+      for (const m of Option.toArray(fence)) open = group(m, 1);
+      return { text: line, fenced: open !== '' };
+    }
+    const closes = Option.exists(
+      fence,
+      (m) =>
+        group(m, 1).charAt(0) === open.charAt(0) &&
+        group(m, 1).length >= open.length &&
+        group(m, 2).trim() === '',
+    );
+    if (closes) open = '';
     return { text: line, fenced: true };
   });
 };
@@ -580,15 +620,21 @@ const undeclaredFlags = (words: string, code: Code) =>
 /** A film command run by the CLI's own name (`film check --static --json`), up to a `#` comment. */
 const FILM_BIN = /(?:^|[\s(])film ([a-z][\w-]*)([^#]*)/g;
 
+/** A line that starts with the bin, after a shell's prompt (`$ `), or a list's or a quote's mark (`- `, `* `, `1. `, `> `). */
+const AT_BIN = /^\s*(?:(?:[-*>]|\d+\.)\s+)*(?:\$\s+)?film /;
+
 /**
- * Where a line writes a command: each of its code spans, a fenced block's
- * line whole, and a line that starts with the bin (`film check …`) up to its
- * first span. A sentence that says "film" is no command.
+ * Where a line writes a command: each of its code spans, and a line that
+ * starts with the bin (`film check …`, `$ film check …`, `- film check …`)
+ * up to its first span; in a fenced block, only a line that starts with the
+ * bin (a block's comment, `// the film render pass …`, is none). A sentence
+ * that says "film" is no command.
  */
 const commandsIn = (line: Line): ReadonlyArray<string> => {
-  if (line.fenced) return [line.text];
+  const atBin = AT_BIN.test(line.text);
+  if (line.fenced) return [line.text].filter(() => atBin);
   const spans = matches(line.text, SPAN).map((m) => group(m, 2));
-  if (!/^\s*film /.test(line.text)) return spans;
+  if (!atBin) return spans;
   return [line.text.split('`')[0] ?? '', ...spans];
 };
 
@@ -723,9 +769,12 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
       [
         ...matches(srcCode, /\b(?:interface|type|class|const|enum|function)\s+([A-Z]\w*)/g),
         ...matches(srcCode, /\.([A-Z]\w*)\b/g),
-        ...matches(srcCode, /^import\s+(?:type\s+)?\{([^}]*)\}/gm).flatMap((m) =>
+        ...matches(srcCode, /^import\s+(?:type\s+)?(?:\w+\s*,\s*)?\{([^}]*)\}/gm).flatMap((m) =>
           matches(firstGroup(m), /(?:^|[\s,])(?:type\s+)?([A-Z]\w*)/g),
         ),
+        // A namespace's or a default's binding (`import * as UrlAtom`, `import Foo from`).
+        ...matches(srcCode, /^import\s+(?:type\s+)?(?:\w+\s*,\s*)?\*\s+as\s+([A-Z]\w*)/gm),
+        ...matches(srcCode, /^import\s+(?:type\s+)?([A-Z]\w*)\s*(?:,|from\b)/gm),
       ].map(firstGroup),
     ),
   } satisfies Code;
@@ -850,12 +899,19 @@ const tokensOf = (sheet: string): ReadonlyMap<string, ReadonlyArray<string>> =>
 /** The token a gap or a margin takes whole to draw a line between two things (§3): no step, and no padding's. */
 const HAIRLINE = '--hairline';
 
+/**
+ * The transport docked over the tab bar, its height a sum the sheet computes
+ * (`calc(var(--hit) + 2 * var(--s-2) + 1px)`): a page's padding clears it
+ * (player.css's `padding-bottom`), and nothing else takes it as a length.
+ */
+const DOCK = '--dock-h';
+
 /** A scale of the player's sheet: the properties it sets, and the px its tokens give. */
 interface Scale {
   readonly what: string;
   readonly property: RegExp;
   readonly steps: ReadonlySet<number>;
-  /** The tokens its properties take whole, off its steps (`--hairline`, a gap's or a margin's). */
+  /** The tokens its properties take whole, off its steps (`--hairline`, a gap's or a margin's; `--dock-h`, a padding's). */
   readonly named: ReadonlySet<string>;
 }
 
@@ -870,13 +926,19 @@ const stepsOf = (sheet: string, name: RegExp): ReadonlySet<number> =>
 /**
  * The space, type and radius scales of the player's sheet, each over every
  * property that sets it: a side's or a logical side's padding and margin
- * (a margin's and a gap's the hairline too), a gap, a corner's radius.
+ * (a padding's the dock too; a margin's and a gap's the hairline), a gap, a
+ * corner's radius.
  */
 const scalesOf = (sheet: string): ReadonlyArray<Scale> => {
   const sides = '(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?';
   const space = stepsOf(sheet, /^--s-/);
   return [
-    { what: 'space', property: new RegExp(`^padding${sides}$`), steps: space, named: new Set() },
+    {
+      what: 'space',
+      property: new RegExp(`^padding${sides}$`),
+      steps: space,
+      named: new Set([DOCK]),
+    },
     {
       what: 'space',
       property: new RegExp(`^margin${sides}$|^(?:row-|column-)?gap$`),
@@ -946,14 +1008,33 @@ const longhands = (property: string, value: string): ReadonlyArray<readonly [str
 };
 
 /**
- * A rule of a mock (or an element's `style` attribute): its own body, and
- * the rules it is nested in, the nearest first (a query, `@media { .h { … } }`,
- * is a rule around its own).
+ * A rule of a mock (or an element's `style` attribute): its own body, the
+ * rules it is nested in, the nearest first (a query, `@media { .h { … } }`,
+ * is a rule around its own), and the selectors of the element it styles,
+ * whole (`.a .child` for `.a { & .child { … } }`; a query's are its
+ * parent's, an attribute's none).
  */
 interface Rule {
   readonly body: string;
   readonly within: ReadonlyArray<number>;
+  readonly selectors: ReadonlyArray<string>;
 }
+
+/** A rule's selectors whole: its own written under each of its parent's (`&` standing for the parent), a query its parent's. */
+const selectorsUnder = (written: string, parent: ReadonlyArray<string>): ReadonlyArray<string> => {
+  if (written.startsWith('@')) return parent;
+  const own = written
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '');
+  if (parent.length === 0) return own.map((s) => s.replaceAll('&', '').trim());
+  return parent.flatMap((p) =>
+    own.map((s) => {
+      if (s.includes('&')) return s.replaceAll('&', p);
+      return `${p} ${s}`;
+    }),
+  );
+};
 
 /**
  * Each rule in a sheet, read through nesting: a rule nested in another
@@ -963,14 +1044,23 @@ interface Rule {
 const rulesIn = (css: string): ReadonlyArray<Rule> => {
   const bodies: Array<string> = [];
   const within: Array<ReadonlyArray<number>> = [];
+  const selectors: Array<ReadonlyArray<string>> = [];
   const open: Array<number> = [];
   const parents: Array<string> = [];
   let body = '';
   for (const c of css) {
     if (c === '{') {
       // What the parent wrote since its last declaration is the nested rule's selector.
-      parents.push(body.slice(0, body.lastIndexOf(';') + 1));
-      within.push([...open].reverse());
+      const cut = body.lastIndexOf(';') + 1;
+      parents.push(body.slice(0, cut));
+      const around = [...open].reverse();
+      within.push(around);
+      selectors.push(
+        selectorsUnder(
+          body.slice(cut).trim(),
+          Option.getOrElse(Option.fromUndefinedOr(selectors[around[0] ?? -1]), () => []),
+        ),
+      );
       open.push(bodies.push('') - 1);
       body = '';
     } else if (c === '}') {
@@ -978,8 +1068,31 @@ const rulesIn = (css: string): ReadonlyArray<Rule> => {
       body = parents.pop() ?? '';
     } else body += c;
   }
-  return bodies.map((own, at) => ({ body: own, within: within[at] ?? [] }));
+  return bodies.map((own, at) => ({
+    body: own,
+    within: within[at] ?? [],
+    selectors: selectors[at] ?? [],
+  }));
 };
+
+/** A selector's last compound: the element it styles (`.a.big` of `.x > .a.big`). */
+const lastCompound = (selector: string) => selector.split(/\s*[\s>+~]\s*/).at(-1) ?? '';
+
+/**
+ * Whether `other` styles an element `rule` styles, as the same element: the
+ * same compound (`.a` in a query), or one that compounds it (`.a.big`,
+ * `.a:hover`, `.a[data-x]`).
+ */
+const stylesSame = (rule: Rule, other: Rule) =>
+  other.selectors.some((o) =>
+    rule.selectors.some((r) => {
+      const [mine, theirs] = [lastCompound(r), lastCompound(o)];
+      return (
+        mine !== '' &&
+        (theirs === mine || (theirs.startsWith(mine) && /[.:#[]/.test(theirs.charAt(mine.length))))
+      );
+    }),
+  );
 
 /** A property a script names (`paddingTop`) as its sheet writes it (`padding-top`). */
 const kebab = (name: string) => name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
@@ -1009,6 +1122,7 @@ const mockOf = (file: string, text: string): Mock => {
   const attributes = matches(bare, /\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/g).map((m): Rule => ({
     body: m[1] ?? m[2] ?? '',
     within: [],
+    selectors: [],
   }));
   return {
     rules: [...rulesIn(sheetOf(file, bare)), ...attributes],
@@ -1061,14 +1175,19 @@ const varOf = (word: string): Option.Option<string> =>
  * scale gives: a px off the steps, a rem or an em, and a custom property a
  * value names whole (`padding: var(--pad)`) read as each length it can be,
  * or red when nothing gives it. A local is its rule's and its nested
- * rules': a rule reads the value its own rule, or the nearest rule around
- * it, gives (each, when that rule gives it twice); a rule (or a script) that
- * names one no rule around it gives reads every value the mock or a sheet
- * it links gives it, first and later, as an element can inherit any. A
- * token is read as its values in the player's sheet, so a step of another
- * scale (`font-size: var(--s-2)`) is red; the tokens a scale takes whole
- * (`--hairline`, a gap's or a margin's), a token the sheet computes from
- * steps (`--dock-h`) and the geometry named as such (`GEOMETRY`) are not. A length derived from one the rule names (a dot's
+ * rules': a rule reads the values the nearest rule that gives it (its own,
+ * or one around it) gives, and each value a rule styling that same element
+ * gives too (the same selector in a query, `@media { .a { --pad: 6px } }`,
+ * or a compound of it, `.a.big`); a rule (or a script) that names one no
+ * rule around it gives reads every value the mock or a sheet it links gives
+ * it, as an element can inherit any. Every value is read, first and later,
+ * and a value that names another local (`--a: var(--b)`) is read where the
+ * rule that gives it stands, as the browser computes it there. A token is
+ * read as its values in the player's sheet, so a step of another scale
+ * (`font-size: var(--s-2)`) is red, and so is a token the sheet computes
+ * (its sum's px); the tokens a scale takes whole (`--hairline`, a gap's or
+ * a margin's; `--dock-h`, a padding's) and the geometry named as such
+ * (`GEOMETRY`) are not. A length derived from one the rule names (a dot's
  * margin of half its size, `calc(var(--dot) / -2)`) writes no length of its
  * own.
  */
@@ -1081,49 +1200,86 @@ const scaleDrift = (
 ) => {
   const mock = mockOf(file, text);
   const own = mock.rules.map((rule) => valuesByName(localsIn(rule.body)));
-  const given = valuesByName([
-    ...mock.rules.flatMap((rule) => localsIn(rule.body)),
-    ...Array.from(linked).flatMap(([name, values]) =>
-      values.map((value) => [name, value] as const),
+  /** A value a local is given, and the rule that gives it (none for a token's or a linked sheet's). */
+  interface Given {
+    readonly value: string;
+    readonly rule: Option.Option<number>;
+  }
+  /** Every value the mock (each with its rule) and the sheets it links give a local, first to last. */
+  const givenAll = (name: string): ReadonlyArray<Given> => [
+    ...own.flatMap((values, at) =>
+      (values.get(name) ?? []).map((value) => ({ value, rule: Option.some(at) })),
     ),
-  ]);
-  /** The values `rule` reads a local as: its own or the nearest rule's around it, else every value given. */
-  const valuesAt = (name: string, rule: Option.Option<number>): ReadonlyArray<string> => {
+    ...(linked.get(name) ?? []).map((value) => ({ value, rule: Option.none<number>() })),
+  ];
+  /** The values `rule` reads a local as: the nearest giving rule's and those of each rule styling its element; else every value given. */
+  const valuesAt = (name: string, rule: Option.Option<number>): ReadonlyArray<Given> => {
     const scope = Option.match(rule, {
       onNone: (): ReadonlyArray<number> => [],
       onSome: (at) => [at, ...(mock.rules[at]?.within ?? [])],
     });
-    return Option.getOrElse(
-      Arr.findFirst(scope, (at) => Option.fromUndefinedOr(own[at]?.get(name))),
-      () => given.get(name) ?? [],
+    return Option.match(
+      Arr.findFirst(scope, (at) => own[at]?.has(name) ?? false),
+      {
+        onNone: () => givenAll(name),
+        onSome: (nearest) =>
+          givenAll(name).filter((given) =>
+            Option.exists(
+              given.rule,
+              (at) =>
+                at === nearest ||
+                Option.exists(
+                  Option.all([
+                    Option.fromUndefinedOr(mock.rules[nearest]),
+                    Option.fromUndefinedOr(mock.rules[at]),
+                  ]),
+                  ([mine, theirs]) => stylesSame(mine, theirs),
+                ),
+            ),
+          ),
+      },
     );
   };
-  /** The lengths a property on `scale` reads a custom property as, through each it names in turn; none when nothing gives it. */
+  /** Each (scale, local, rule) read once: an alias's fan-out is read once per distinct pair. */
+  const read = new Map<string, Option.Option<ReadonlyArray<string>>>();
+  /**
+   * The lengths a property on `scale` reads a custom property as, read where
+   * `rule` stands, through each local it names in turn; none when nothing
+   * gives it. A local that names itself, in a loop, names no length.
+   */
   const lengthsOf = (
     name: string,
     rule: Option.Option<number>,
     scale: Scale,
-    depth = 0,
+    open: ReadonlySet<string> = new Set(),
   ): Option.Option<ReadonlyArray<string>> => {
     if (scale.named.has(name) || GEOMETRY.has(name)) return Option.some([]);
-    const values = Option.match(Option.fromUndefinedOr(tokens.get(name)), {
-      onNone: () => valuesAt(name, rule),
-      // A token the sheet computes (`--dock-h: calc(…)`, a docked bar's height) is its geometry, a sum of steps.
-      onSome: (given) => given.map((value) => value.replace(/^calc\(.*\)$/, '')),
-    });
-    if (values.length === 0) return Option.none();
-    return Option.some(
-      values.flatMap((value) =>
-        Option.match(
-          Option.filter(varOf(value), () => depth < 4),
-          {
-            onNone: () => [value],
-            onSome: (next) =>
-              Option.getOrElse(lengthsOf(next, rule, scale, depth + 1), () => [value]),
-          },
+    const key = `${scale.what}|${scale.property.source}|${name}|${Option.getOrElse(rule, () => -1)}`;
+    if (open.has(key)) return Option.some([]);
+    return Option.getOrElse(Option.fromUndefinedOr(read.get(key)), () => {
+      const values = Option.match(Option.fromUndefinedOr(tokens.get(name)), {
+        onNone: () => valuesAt(name, rule),
+        onSome: (given) => given.map((value): Given => ({ value, rule: Option.none() })),
+      });
+      const within = new Set([...open, key]);
+      const lengths = Option.liftPredicate(
+        Array.from(
+          new Set(
+            values.flatMap((given) =>
+              Option.match(varOf(given.value), {
+                onNone: () => [given.value],
+                // Read where the rule that gives the value stands.
+                onSome: (next) =>
+                  Option.getOrElse(lengthsOf(next, given.rule, scale, within), () => [given.value]),
+              }),
+            ),
+          ),
         ),
-      ),
-    );
+        () => values.length > 0,
+      );
+      read.set(key, lengths);
+      return lengths;
+    });
   };
   const off = (
     property: string,
@@ -1460,6 +1616,14 @@ describe('the docs', () => {
           '```sh',
           'film check <film> --frob-fence',
           '```',
+          '$ film check <film> --frob-prompt',
+          '- film check <film> --frob-item',
+          '````md',
+          '```ts',
+          'handlers[i](event);',
+          '```',
+          '````',
+          'Read [the gone page](guide/gone-too.md) after the block.',
         ].join('\n'),
       };
       expect(drift(stale, code)).toEqual([
@@ -1476,6 +1640,8 @@ describe('the docs', () => {
         'stale.md: film check --frobnicate: no command declares the flag',
         'stale.md: NoSuchFinding is no finding',
         'stale.md: film check --frob-fence: no command declares the flag',
+        'stale.md: film check --frob-prompt: no command declares the flag',
+        'stale.md: film check --frob-item: no command declares the flag',
       ]);
       expect(yield* anchorsDrift(root, [stale])).toEqual([
         'stale.md: path packages/film/src/tools/gone.ts does not exist',
@@ -1486,6 +1652,7 @@ describe('the docs', () => {
         'stale.md: path tools/gone.ts does not exist',
         'stale.md: path reference/none.md does not exist',
         'stale.md: path guide/gone.md does not exist',
+        'stale.md: path guide/gone-too.md does not exist',
       ]);
       // What names no rule, script, link, flag or finding is not read as one: a directory of the
       // film package, a binary or a file `bun run` runs, a call in code, a name the code has, and
@@ -1505,6 +1672,16 @@ describe('the docs', () => {
           'After `bun run check <film>`, the `PageShell` shows `DeadAir`.',
           '`film check <film>` reports each finding as a `TaggedError`.',
           'The film render pass has no bearing on --fix, which belongs to oxlint.',
+          '```ts',
+          '// the film render pass ignores --fix; oxlint owns it',
+          '```',
+          '````md',
+          '```ts',
+          'handlers[i](event);',
+          '```',
+          '````',
+          'After `film check <film>`, `UrlAtom` exposes the selected route.',
+          '`bun run --cwd . lint` lints the repo.',
         ].join('\n'),
       };
       expect(drift(correct, code)).toEqual([]);
@@ -1702,6 +1879,31 @@ describe('the docs', () => {
           'scoped-red.html: padding var(--p2) is 6px, no space step',
           'scoped-red.html: padding var(--q) is 6px, no space step',
         ]);
+        // A rule that styles the same element gives it its own value too: the same selector
+        // in a query, or a compound of it. An alias is read where the rule that gives it
+        // stands: a child that gives `--b` again leaves the parent's `--a` as it was.
+        expect(
+          mockDrift(
+            'override.html',
+            `<link href="tokens.css"><link href="kit.css"><style>
+              .a { --pad: 8px; padding: var(--pad); } @media (max-width: 600px) { .a { --pad: 6px; } }
+              .b { --pad: 8px; padding: var(--pad); } .b.big { --pad: 6px; }
+              .c { --gap: 8px; gap: var(--gap); } @supports (display: grid) { .x .c:hover { --gap: 6px; } }
+              .d { --pad: 8px; padding: var(--pad); &.wide { --pad: 6px; } }
+              .e { --b: 8px; --a: var(--b); & .child { --b: 6px; padding: var(--a); } }
+              .f { --b: 8px; & .child { --b: 6px; --a: var(--b); padding: var(--a); } }
+              .g { --pad: 8px; padding: var(--pad); } .gx { --pad: 6px; } .h .g2 { --pad: 6px; }
+            </style>`,
+            tokens,
+            scales,
+          ),
+        ).toEqual([
+          'override.html: padding var(--pad) is 6px, no space step',
+          'override.html: padding var(--pad) is 6px, no space step',
+          'override.html: gap var(--gap) is 6px, no space step',
+          'override.html: padding var(--pad) is 6px, no space step',
+          'override.html: padding var(--a) is 6px, no space step',
+        ]);
         // A token is a step of its own scale only: a space token sets no type size, and the
         // hairline (`--hairline`) is a gap's or a margin's, never a padding's or a corner's.
         expect(
@@ -1718,6 +1920,25 @@ describe('the docs', () => {
           'tokens.html: font-size var(--s-2) is 8px, no type size step',
           'tokens.html: padding var(--hairline) is 1px, no space step',
           'tokens.html: border-radius var(--hairline) is 1px, no radius step',
+        ]);
+        // A token the sheet computes is read as its sum's px: the dock clears a page's
+        // padding, no other length; and a computed token no scale names is read too.
+        expect(
+          mockDrift(
+            'computed.html',
+            `<link href="tokens.css"><link href="kit.css"><style>
+              .p { padding-bottom: var(--dock-h); }
+              .q { font-size: var(--dock-h); border-radius: var(--dock-h); margin-top: var(--dock-h); }
+              .r { padding: var(--half); }
+            </style>`,
+            new Map([...tokens, ['--half', ['calc(var(--s-1) + 2px)']]]),
+            scales,
+          ),
+        ).toEqual([
+          'computed.html: font-size var(--dock-h) is 1px, no type size step',
+          'computed.html: border-radius var(--dock-h) is 1px, no radius step',
+          'computed.html: margin-top var(--dock-h) is 1px, no space step',
+          'computed.html: padding var(--half) is 2px, no space step',
         ]);
       }),
   );
