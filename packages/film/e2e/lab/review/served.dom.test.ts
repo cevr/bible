@@ -239,6 +239,26 @@ describe('the review served as the lab renders it', () => {
   );
 
   it.live(
+    "a Set's server render shows the record's versions without waiting on the film's project: the project is the page's own read",
+    () =>
+      Effect.gen(function* () {
+        // The film's project never answers, to the server or the page.
+        const stuck = [route('GET', /^\/api\/films\/toy\/project$/, () => hold), ...studioRoutes];
+        const set = yield* openServed('review', stuck, {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+          cut: '2 seconds',
+        });
+        const html = set.documents[0]?.html ?? '';
+        expect(html).not.toContain(PAGE_CUT_MARK);
+        expect(painted(html)).toContain('data-act="inspect"');
+        yield* countIs(set.page, `[${PAGE_ROOT}]`, 1);
+        yield* waitFor(set.page, '.rv-main [data-act="inspect"]');
+        expect(set.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a page whose render was cut while a read was held still settles: the server's markup dropped, the page rendered anew reads the choices itself",
     () =>
       Effect.gen(function* () {

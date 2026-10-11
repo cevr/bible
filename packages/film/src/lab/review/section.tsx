@@ -13,6 +13,7 @@ import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
 import { Effect, Exit, Match, Option, Scope } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import * as Atom from 'effect/reactivity/Atom';
 import {
   type Accessor,
   type ParentProps,
@@ -46,7 +47,7 @@ import {
   reviewFileUrl,
   reviewFrameUrl,
 } from '../../core/api.ts';
-import { served } from '../api.ts';
+import { type LabFailure, served } from '../api.ts';
 import { pressed } from '../pressed.ts';
 import { StateBand } from '../scenes/card.tsx';
 import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
@@ -1412,9 +1413,13 @@ const SetBody = () => {
 
 /**
  * The film's project, which an approve's write judges a set's versions by
- * (`Review.say`): read for a folder that is the film's own (its sources are
- * the checkout's); none for any other folder, which the record alone judges.
- * None while it is read: the record's judgement stands, and the write decides.
+ * (`Review.say`), when the folder is the film's own: the project names its
+ * own folder (`ProjectView.folder`, the server's ref of the checkout's out
+ * folder), and the write judges by the project only there. Any other folder,
+ * one of the film's under another root among them, the record alone judges.
+ * Read by the page once it runs, never by the server: the record's
+ * judgement stands while it is read (and in the server's render), and the
+ * write decides.
  */
 const useSourcesNow = (folder: ReviewFolder): Accessor<Option.Option<Project>> => {
   const { meta } = useReview();
@@ -1425,9 +1430,15 @@ const useSourcesNow = (folder: ReviewFolder): Accessor<Option.Option<Project>> =
       onSome: (film) => {
         const readAtom = meta.runtime
           .atom(OptionsApi.use((api) => api.project(film)))
-          .pipe(served(`review.project:${film}`, ProjectView));
+          .pipe(Atom.withServerValue(() => AsyncResult.initial<ProjectView, LabFailure>()));
         const read = useAtomValue(() => readAtom);
-        return () => Option.map(AsyncResult.value(read()), (view) => view.project);
+        return () =>
+          Option.map(
+            Option.filter(AsyncResult.value(read()), (view) =>
+              Option.contains(view.folder, folder.ref),
+            ),
+            (view) => view.project,
+          );
       },
     },
   );
