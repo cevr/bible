@@ -28,7 +28,15 @@ export const job = drawing({
     cue: 'card',
     from: 'job',
     payoff: 'just',
-    flood: { cue: 'flood' },
+    flood: {
+      cue: 'flood',
+      // The look's own edge, or the box's straight one.
+      mask: (ctx, box, at, f) => {
+        const edge = lookOf().floodEdge;
+        if (edge === undefined) ctx.fillRect(box.x, box.y, box.w, box.h);
+        else edge(ctx, box, at, f);
+      },
+    },
     draw: (f, words) => lookOf().card(f, words),
   },
 });

@@ -43,7 +43,19 @@ export interface Look {
    * `CardStyle`, or the look sets them its own way.
    */
   readonly card: (f: JobFrame, words: ReadonlyArray<CardWord>) => void;
-  /** The light over both scenes (the act light, CRAFT rule 11); none leaves the film's vignette alone. */
+  /**
+   * The flood's edge, where the look draws its own (a ragged brushed front, a
+   * wash): on the card's layer, in the canvas's pixels, it paints where the
+   * card shows, given the box the flood has grown to (`floodBox`) and the
+   * flood's eased progress (`CardSpec.flood.mask`). The box's straight edge
+   * where it names none.
+   */
+  readonly floodEdge?: (ctx: CanvasRenderingContext2D, box: Box, at: number, f: JobFrame) => void;
+  /**
+   * The light over both scenes (the act light, CRAFT rule 11); none leaves the
+   * film's vignette alone. Its `vignette` is the share of the film's vignette
+   * the scenes take: 0 for a medium that has none (a print).
+   */
   readonly light?: Light;
 }
 

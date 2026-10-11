@@ -13,11 +13,12 @@ import {
   type CardStyle,
   type CardWord,
   type VerseStyle,
+  floodBox,
   fullCard,
   verse,
   write,
 } from '@bible/film/canvas';
-import { clamp, ease, hash2, lerp } from '@bible/film/core';
+import { clamp, hash2, lerp } from '@bible/film/core';
 import { VERSE } from '../../look.ts';
 import type { JobFrame } from '../../scenes/job.ts';
 import { BRUSH_PX, type Easel, curve, glow, oval, paint, pool, rect, shade } from './brush.ts';
@@ -174,18 +175,12 @@ const print = (e: Easel, f: JobFrame) => {
  * The flood's brushed edge: teal strokes dragged out past the box the card
  * floods in through, so its edge reads as paint pushed across the page, not a
  * cut. The engine clips the card to `floodBox(box, …, f.at('flood'))`; this
- * grows the same box by the same ease (it is not exported), in canvas px.
+ * fringes that same box, in canvas px.
  */
 const fringe = (ctx: CanvasRenderingContext2D, from: Box, flood: number) => {
   if (flood <= 0 || flood >= 1) return;
   const { width: W, height: H } = ctx.canvas;
-  const k = ease.inOutCubic(flood);
-  const b: Box = {
-    x: lerp(from.x, 0, k),
-    y: lerp(from.y, 0, k),
-    w: lerp(from.w, W, k),
-    h: lerp(from.h, H, k),
-  };
+  const b = floodBox(from, W, H, flood);
   const unit = W / 1920;
   const reach = 46 * unit * clamp(flood * 8);
   ctx.save();
