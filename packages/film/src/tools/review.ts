@@ -516,6 +516,12 @@ interface ReviewService {
   /** Every folder under the roots with something to review, newest first; read again when `fresh` or stale. */
   readonly index: (fresh: boolean) => Effect.Effect<ReviewIndex>;
   /**
+   * A catalogue under the roots was written by another than `say` (a
+   * project's say, in its own run): the index reads it again on its next
+   * ask, as after a set's say.
+   */
+  readonly written: Effect.Effect<void>;
+  /**
    * `film`'s whole-film renders under the roots, newest first, by its
    * project folders' catalogues: the pictures its options are heard against.
    */
@@ -1110,6 +1116,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         return Review.of({
           roots,
           index,
+          written: Ref.set(cached, Option.none()),
           pictures,
           renderVideo: videoOfRender,
           resolve,
