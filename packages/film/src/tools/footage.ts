@@ -13,6 +13,9 @@
 // loudness every 10 ms are its transcript, a file of its own under
 // `transcripts/`, pinned to its original. A second hearing is a second file,
 // and the lock names which one is current: a transcript is never rewritten.
+// A hearing's file is numbered, written whole and named in the lock while
+// the lock is held, so two hearings at once keep two files. A name is a
+// footage name (`FootageName`), checked before anything is written.
 // `push` and `pull` keep the originals in the private store
 // (`footage/<name>/<sha12><ext>`), each read back by its hash.
 
@@ -26,6 +29,7 @@ import {
   type FootageEntry,
   type FootageKind,
   type FootageLock,
+  FootageName,
   type FootageStamp,
   FootageStampJson,
   FootageTranscriptJson,
@@ -47,6 +51,7 @@ import { sha256OfFile } from './digest.ts';
 import { ElevenLabs, heardWords } from './elevenlabs.ts';
 import {
   FootageHdr,
+  FootageNameInvalid,
   FootageNameTaken,
   FootageOriginalMissing,
   FootageSilent,
@@ -103,6 +108,7 @@ interface FootageSynced {
 
 /** Why an import fails. */
 type FootageImportError =
+  | FootageNameInvalid
   | FootageHdr
   | FootageSilent
   | FootageNameTaken
@@ -221,6 +227,12 @@ export class FootageLibrary extends Context.Service<FootageLibrary, FootageLibra
           file: string,
           options: FootageImport,
         ) {
+          // The name first, before anything is read or written: a footage name, or nothing is kept.
+          yield* Schema.decodeEffect(FootageName)(options.name).pipe(
+            Effect.mapError((error) =>
+              FootageNameInvalid.make({ name: options.name, file, reason: error.message }),
+            ),
+          );
           const sha256 = yield* sha256OfFile(fs, file);
           const before = yield* lock;
           // The same bytes again: the name they have, and nothing done.
@@ -331,8 +343,10 @@ export class FootageLibrary extends Context.Service<FootageLibrary, FootageLibra
             );
             voice = Option.some(levelled);
           }
+          // The lock as it is now, not as it was before the copies were made: a
+          // transcript another run named meanwhile is not heard again.
           const transcript = Option.filter(
-            Option.fromUndefinedOr(of.transcript),
+            Option.fromUndefinedOr((yield* entry(name)).transcript),
             () => !options.hearAgain,
           );
           if (Option.isSome(transcript)) return { name, made, transcript };
@@ -340,29 +354,43 @@ export class FootageLibrary extends Context.Service<FootageLibrary, FootageLibra
           // Heard once (the one paid call), into a file of its own.
           const reply = yield* elevenLabs.stt(at.voice);
           const words = yield* Effect.fromResult(heardWords(reply, at.voice));
-          const file = transcriptFile(name, of.sha256, yield* nextHearing(name, of.sha256));
-          const text = yield* Schema.encodeEffect(FootageTranscriptJson)({
-            source: sourceOf(name, of.sha256),
-            text: reply.text,
-            words: voicedWords(words, levelled),
-            envelope: envelopeOf(levelled),
-          });
-          yield* store.writeFile(
-            path.join(dir, 'transcripts', file),
-            new TextEncoder().encode(text),
+          const text = new TextEncoder().encode(
+            yield* Schema.encodeEffect(FootageTranscriptJson)({
+              source: sourceOf(name, of.sha256),
+              text: reply.text,
+              words: voicedWords(words, levelled),
+              envelope: envelopeOf(levelled),
+            }),
           );
-          yield* store.update(manifest, (current) =>
-            Option.match(Option.fromUndefinedOr(current.footage[name]), {
-              onNone: () => current,
-              onSome: (now) => ({
-                ...current,
-                footage: { ...current.footage, [name]: { ...now, transcript: file } },
-              }),
+          // Named, written whole and put in the lock under the lock: two
+          // hearings at once take two numbers, and neither lands on the other.
+          // A hearing that lands after another run named a transcript keeps its
+          // file, and the lock keeps the one it names, unless asked to hear again.
+          const [file, named] = yield* store.transact(manifest, (locked) =>
+            Effect.gen(function* () {
+              const kept = transcriptFile(name, of.sha256, yield* nextHearing(name, of.sha256));
+              yield* store.writeFile(path.join(dir, 'transcripts', kept), text);
+              const now = Option.fromUndefinedOr(locked.footage[name]);
+              const heardMeanwhile = Option.filter(
+                Option.flatMap(now, (e) => Option.fromUndefinedOr(e.transcript)),
+                () => !options.hearAgain,
+              );
+              const names = Option.getOrElse(heardMeanwhile, () => kept);
+              const next = Option.match(now, {
+                onNone: () => locked,
+                onSome: (was) => ({
+                  ...locked,
+                  footage: { ...locked.footage, [name]: { ...was, transcript: names } },
+                }),
+              });
+              return [[kept, names] as const, next] as const;
             }),
           );
           made.push('transcript');
-          yield* Effect.log(`footage.make.heard name=${name} words=${words.length} file=${file}`);
-          return { name, made, transcript: Option.some(file) };
+          yield* Effect.log(
+            `footage.make.heard name=${name} words=${words.length} file=${file} named=${named}`,
+          );
+          return { name, made, transcript: Option.some(named) };
         });
 
         const everyOriginal = Effect.flatMap(lock, (current) =>

@@ -1,11 +1,17 @@
 // The footage route names only a copy the footage library's lock lists, made
-// and on disk, and answers it by range: on a library and outputs folder made
-// here.
+// and on disk, and answers it by range; and the lock, and a transcript it
+// names, for a talk's page: on a library and outputs folder made here.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Path, Schema } from 'effect';
-import { EMPTY_FOOTAGE_LOCK, type FootageEntry, FootageLockJson } from '../core/footage.ts';
+import {
+  EMPTY_FOOTAGE_LOCK,
+  FOOTAGE_LOCK_HREF,
+  type FootageEntry,
+  FootageLockJson,
+  transcriptHref,
+} from '../core/footage.ts';
 import { type FootageRoot, footageHandler, isFootageUrl } from './footage-route.ts';
 
 const SHA = '0123456789ab'.padEnd(64, 'c');
@@ -96,6 +102,53 @@ describe('the footage route', () => {
         const copy = `/footage/take.why/${sha12}/mezzanine.mp4`;
         const unlisted = servedFrom({ ...root, dir: `${root.dir}/none` });
         expect(yield* unlisted(copy)).toEqual([copy, false]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
+  it.live(
+    "serves the library's lock, and a transcript only when the lock names it: never another file under the library",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const root = yield* library;
+        const named = 'take.why.0123456789ab.json';
+        const lock = {
+          ...EMPTY_FOOTAGE_LOCK,
+          footage: { 'take.why': { ...ENTRY, transcript: named } },
+        };
+        const lockText = yield* Schema.encodeEffect(FootageLockJson)(lock);
+        yield* fs.writeFileString(path.join(root.dir, 'library.lock.json'), lockText);
+        yield* fs.makeDirectory(path.join(root.dir, 'transcripts'));
+        for (const file of [named, 'take.why.0123456789ab.2.json'])
+          yield* fs.writeFileString(path.join(root.dir, 'transcripts', file), `{"file":"${file}"}`);
+        yield* fs.makeDirectory(path.join(root.dir, 'files'));
+        yield* fs.writeFileString(path.join(root.dir, 'files', 'secret.json'), BYTES);
+        const handler = footageHandler(root);
+        const answer = (url: string) =>
+          Effect.gen(function* () {
+            const response = yield* Effect.promise(() =>
+              handler(new Request(`http://player${url}`)),
+            );
+            return [response.status, yield* Effect.promise(() => response.text())] as const;
+          });
+        expect(yield* answer(FOOTAGE_LOCK_HREF)).toEqual([200, lockText]);
+        expect(yield* answer(transcriptHref(named))).toEqual([200, `{"file":"${named}"}`]);
+        for (const url of [
+          transcriptHref('take.why.0123456789ab.2.json'),
+          '/footage/transcripts/..%2ffiles%2fsecret.json',
+          '/footage/transcripts/%2e%2e%2ffiles%2fsecret.json',
+          '/footage/transcripts/../files/secret.json',
+          '/footage/files/secret.json',
+          '/footage/transcripts/',
+        ])
+          expect([url, (yield* answer(url))[0]]).toEqual([url, 404]);
+        // A library with no lock yet answers none.
+        const bare = footageHandler({ ...root, dir: `${root.dir}/none` });
+        const none = yield* Effect.promise(() =>
+          bare(new Request(`http://player${FOOTAGE_LOCK_HREF}`)),
+        );
+        expect(none.status).toBe(404);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 

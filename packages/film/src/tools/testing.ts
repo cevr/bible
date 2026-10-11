@@ -87,6 +87,8 @@ import { cueOf, locateHere } from './read-cli.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
 import type { FootageCopy, FootageProbe } from '../core/footage.ts';
 import { FootageMedia } from './footage-media.ts';
+import { folderStore } from './media-store.ts';
+import { PrivateStore } from './private-store.ts';
 import { StudioReadings } from './studio.ts';
 import { PreviewServer } from './preview-server.ts';
 import { SceneHead } from './scene-head.ts';
@@ -1158,6 +1160,17 @@ export const fakeFootageMedia = (
         }),
       voice: (file, _picture, rate) =>
         Effect.succeed(fakeRecording(new TextDecoder().decode(files.get(file)).trim(), rate)),
+    }),
+  );
+
+/** A private store in the folder `root`, on whatever disk the test gives: nothing reaches a bucket. */
+export const privateFolder = (root: string) =>
+  Layer.effect(
+    PrivateStore,
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      return PrivateStore.of({ store: Effect.succeed(folderStore(fs, path, root)) });
     }),
   );
 

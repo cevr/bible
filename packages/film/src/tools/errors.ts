@@ -606,6 +606,24 @@ export class FootageNameTaken extends Schema.TaggedError<FootageNameTaken>()('Fo
   }
 }
 
+/**
+ * A name that is no footage name (`core/footage.ts` `FootageName`): its
+ * files would land outside the library's folders, or where the footage route
+ * never serves them. Nothing was written.
+ */
+export class FootageNameInvalid extends Schema.TaggedError<FootageNameInvalid>()(
+  'FootageNameInvalid',
+  {
+    name: Schema.String,
+    file: Schema.String,
+    reason: Schema.String,
+  },
+) {
+  override get message() {
+    return `"${this.name}" is no footage name (${this.reason}); ${this.file} was not imported (give --as a name such as why-the-law)`;
+  }
+}
+
 /** A name the footage library does not have. */
 export class FootageUnknown extends Schema.TaggedError<FootageUnknown>()('FootageUnknown', {
   name: Schema.String,

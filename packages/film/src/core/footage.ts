@@ -32,12 +32,42 @@ export type FootageCopy = (typeof FOOTAGE_COPIES)[number];
 export const footageHref = (source: string, copy: FootageCopy): string =>
   `/footage/${source}/${copy}.mp4`;
 
-/** A footage name: lower case, digits, dots and dashes, as a take or clip is called. */
-const FootageName = Schema.String.check(
-  Schema.isPattern(/^[a-z0-9][a-z0-9.-]*$/, {
-    message: 'a footage name is lower case letters, digits, dots and dashes',
+/** What a footage name is: a lower-case letter or digit, then lower-case letters, digits, dots and dashes. */
+const FOOTAGE_NAME = /^[a-z0-9][a-z0-9.-]*$/;
+
+/** Why a name is no footage name, as a refusal says it. */
+const FOOTAGE_NAME_RULE =
+  'a footage name is lower case letters, digits, dots and dashes, starting with a letter or digit';
+
+/**
+ * A footage name, as a take or clip is called: one path segment, so its
+ * original stays under `files/<name>/`, its copies under
+ * `<out>/footage/<name>/`, and the footage route (`/footage/<name>/…`)
+ * serves them. No separator, no capital, nothing starting with a dot.
+ */
+export const FootageName = Schema.String.check(
+  Schema.isPattern(FOOTAGE_NAME, { message: FOOTAGE_NAME_RULE }),
+);
+
+/** Whether `name` is a footage name (`FootageName`). */
+const isFootageName = (name: string): boolean => FOOTAGE_NAME.test(name);
+
+/** What a transcript's file is called: a footage name's characters, ending `.json` (`transcriptFile`). */
+const TRANSCRIPT_FILE = /^[a-z0-9][a-z0-9.-]*\.json$/;
+
+/**
+ * A transcript's file under `transcripts/`, as the lock names it: one path
+ * segment, so a lock can never name a file outside the folder for the tools
+ * to read or the footage route to serve.
+ */
+const TranscriptFile = Schema.String.check(
+  Schema.isPattern(TRANSCRIPT_FILE, {
+    message: 'a transcript is a file under transcripts/: <name>.<sha12>.json',
   }),
 );
+
+/** Whether `file` is a transcript's file name (`TranscriptFile`). */
+export const isTranscriptFile = (file: string): boolean => TRANSCRIPT_FILE.test(file);
 
 /** How many hex digits of an original's hash name its source. */
 const SHA12 = 12;
@@ -49,13 +79,25 @@ export const sourceOf = (name: string, sha256: string): string =>
 /** The files `film footage make` derives from an original. */
 type DerivedFile = 'mezzanine.mp4' | 'proxy.mp4' | 'voice.flac' | 'stamp.json';
 
+/** `source`'s derived `file`, as a path under the folder of copies (`copiesIn`): `<name>/<sha12>/<file>`. */
+export const sourceFile = (source: string, file: DerivedFile): string => `${source}/${file}`;
+
+/** The folder `make` keeps every source's derived files in, under the outputs folder: `<out>/footage`. */
+export const copiesIn = (outputs: string): string => `${outputs}/footage`;
+
 /** Where `make` keeps `file` of `name`'s original of hash `sha256`, under the outputs folder: `<out>/footage/<name>/<sha12>/<file>`. */
 export const derivedFile = (
   outputs: string,
   name: string,
   sha256: string,
   file: DerivedFile,
-): string => `${outputs}/footage/${sourceOf(name, sha256)}/${file}`;
+): string => `${copiesIn(outputs)}/${sourceFile(sourceOf(name, sha256), file)}`;
+
+/** Where a page reads the footage library's lock: the footage route answers it. */
+export const FOOTAGE_LOCK_HREF = '/footage/library.lock.json';
+
+/** Where a page reads a take's transcript, `transcripts/<file>`: the footage route answers it. */
+export const transcriptHref = (file: string): string => `/footage/transcripts/${file}`;
 
 /** A take (the owner's own recording, which a talk is cut on) or a clip (B-roll). */
 export const FootageKind = Schema.Literals(['take', 'clip']);
@@ -103,7 +145,7 @@ export const FootageEntry = Schema.Struct({
   ext: Schema.String,
   probe: FootageProbe,
   /** The take's current transcript, under `transcripts/` (a take only, once made). */
-  transcript: Schema.optionalKey(Schema.String),
+  transcript: Schema.optionalKey(TranscriptFile),
   /** A clip's terms: its licence, whom to credit, where it came from, and tags to find it by. */
   licence: Schema.optionalKey(Schema.String),
   credit: Schema.optionalKey(Schema.String),
@@ -112,11 +154,22 @@ export const FootageEntry = Schema.Struct({
 });
 export type FootageEntry = typeof FootageEntry.Type;
 
-/** `library.lock.json`: every name's original. */
+/**
+ * `library.lock.json`: every name's original. Each key is a footage name
+ * (`FootageName`), read and written. The lock checks its keys itself: a
+ * record keyed by a checked string drops a key that fails the check when it
+ * reads, so a bad name would vanish from the lock rather than refuse it.
+ */
 export const FootageLock = Schema.Struct({
   version: Schema.Literal(1),
-  footage: Schema.Record(FootageName, FootageEntry),
-});
+  footage: Schema.Record(Schema.String, FootageEntry),
+}).check(
+  Schema.makeFilter((lock) =>
+    Object.keys(lock.footage)
+      .filter((name) => !isFootageName(name))
+      .map((name) => ({ path: ['footage', name], issue: `"${name}": ${FOOTAGE_NAME_RULE}` })),
+  ),
+);
 export type FootageLock = typeof FootageLock.Type;
 
 /** The lock as it is written: two-space JSON, ending in a newline. */
@@ -217,6 +270,7 @@ const FootageTranscript = Schema.Struct({
   /** The voice's loudness every `ENVELOPE_STEP` seconds, in whole dB (`envelopeOf`). */
   envelope: Schema.Array(Schema.Int),
 });
+export type FootageTranscript = typeof FootageTranscript.Type;
 export const FootageTranscriptJson = repoJson(FootageTranscript);
 
 /** A take's `hearing`th transcript's file under `transcripts/`: `<name>.<sha12>.json`, then `<name>.<sha12>.2.json`. */

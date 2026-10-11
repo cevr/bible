@@ -8,12 +8,20 @@
 // never a dotfile. Any other URL under `/footage/` names none, a 404. A copy
 // is answered whole or by the byte range asked (206), as a decoder seeks it;
 // it is remade in place when its recipe changes, so the browser asks again
-// on every load.
+// on every load. A talk's page reads its takes through the route too: the
+// lock (`/footage/library.lock.json`) and each transcript the lock names now
+// (`/footage/transcripts/<file>`), never another file under the library.
 
 import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import { Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { HttpEffect, HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { derivedFile, FOOTAGE_COPIES, FootageLockJson } from '../core/footage.ts';
+import {
+  derivedFile,
+  FOOTAGE_COPIES,
+  FOOTAGE_LOCK_HREF,
+  FootageLockJson,
+  isTranscriptFile,
+} from '../core/footage.ts';
 import { CACHE, serveFile } from './review-file.ts';
 
 /** Where a server finds footage: the library (`dir`, its lock) and the outputs folder its copies are made under (`out`). */
@@ -58,9 +66,40 @@ const lockOf = (dir: string) =>
       .pipe(Effect.flatMap(Schema.decodeEffect(FootageLockJson)), Effect.option);
   });
 
+/** A transcript's URL: `/footage/transcripts/<file>`. */
+const TRANSCRIPT_URL = /^\/footage\/transcripts\/([^/]+)$/;
+
+/**
+ * The library file `pathname` names, if the route serves it: the lock, or a
+ * transcript the lock names now (one path segment, `isTranscriptFile`),
+ * on disk.
+ */
+const libraryFile = Effect.fn('libraryFile')(function* (root: FootageRoot, pathname: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const onDisk = (file: string) =>
+    Effect.map(fs.exists(file).pipe(Effect.orElseSucceed(() => false)), (there) =>
+      Option.liftPredicate(file, () => there),
+    );
+  if (pathname === FOOTAGE_LOCK_HREF)
+    return yield* onDisk(path.join(root.dir, 'library.lock.json'));
+  const asked = Option.flatMap(Option.fromNullishOr(TRANSCRIPT_URL.exec(pathname)), (m) =>
+    Option.fromUndefinedOr(m[1]),
+  );
+  for (const file of Option.toArray(asked))
+    for (const lock of Option.toArray(yield* lockOf(root.dir))) {
+      const listed = Object.values(lock.footage).some((entry) => entry.transcript === file);
+      if (listed && isTranscriptFile(file))
+        return yield* onDisk(path.join(root.dir, 'transcripts', file));
+    }
+  return Option.none<string>();
+});
+
 /** The copy `pathname` names under `root`, if it is one the route serves: listed, made and on disk. */
 const footageFile = Effect.fn('footageFile')(function* (root: FootageRoot, pathname: string) {
   const fs = yield* FileSystem.FileSystem;
+  const library = yield* libraryFile(root, pathname);
+  if (Option.isSome(library)) return library;
   for (const { name, sha12, copy } of Option.toArray(named(pathname)))
     for (const lock of Option.toArray(yield* lockOf(root.dir)))
       for (const entry of Option.toArray(Option.fromUndefinedOr(lock.footage[name]))) {

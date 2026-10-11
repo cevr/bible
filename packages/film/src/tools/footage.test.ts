@@ -9,6 +9,7 @@
 import {
   Cause,
   ConfigProvider,
+  Deferred,
   Effect,
   Exit,
   FileSystem,
@@ -27,10 +28,9 @@ import {
   recipeKey,
 } from '../core/footage.ts';
 import { ContentStore } from './content-store.ts';
+import { ElevenLabs } from './elevenlabs.ts';
 import { FootageHdr, FootageNameTaken, FootageOriginalMissing, FootageSilent } from './errors.ts';
 import { FootageLibrary } from './footage.ts';
-import { folderStore } from './media-store.ts';
-import { PrivateStore } from './private-store.ts';
 import {
   type ElevenLabsCalls,
   emptyCalls,
@@ -39,6 +39,7 @@ import {
   fakeMedia,
   memoryFileSystem,
   memoryLocks,
+  privateFolder,
   text,
 } from './testing.ts';
 
@@ -75,28 +76,79 @@ const probeOf = (said: string) => {
   };
 };
 
+/**
+ * A disk that lets every other fiber run before each step it takes: two
+ * runs at once interleave at every read and write, as two processes would.
+ */
+const sharedDisk = (files: Map<string, Uint8Array>) =>
+  Layer.effect(
+    FileSystem.FileSystem,
+    Effect.map(FileSystem.FileSystem, (fs) =>
+      FileSystem.FileSystem.of({
+        ...fs,
+        exists: (file) => Effect.andThen(Effect.yieldNow, fs.exists(file)),
+        writeFile: (file, bytes, options) =>
+          Effect.andThen(Effect.yieldNow, fs.writeFile(file, bytes, options)),
+        rename: (from, to) => Effect.andThen(Effect.yieldNow, fs.rename(from, to)),
+      }),
+    ),
+  ).pipe(Layer.provide(memoryFileSystem(files, new Set())));
+
+/**
+ * The fake hearing, each held until `together` are under way: that many
+ * `make`s hear at once, and land their transcripts at once.
+ */
+const hearingTogether = (
+  files: Map<string, Uint8Array>,
+  calls: ElevenLabsCalls,
+  together: number,
+) =>
+  Layer.effect(
+    ElevenLabs,
+    Effect.gen(function* () {
+      const fake = yield* ElevenLabs;
+      const all = yield* Deferred.make<void>();
+      const under = { count: 0 };
+      return ElevenLabs.of({
+        ...fake,
+        stt: (file) =>
+          Effect.gen(function* () {
+            under.count += 1;
+            if (under.count === together) yield* Deferred.done(all, Exit.void);
+            yield* Deferred.await(all);
+            return yield* fake.stt(file);
+          }),
+      });
+    }),
+  ).pipe(Layer.provide(fakeElevenLabs(files, calls)));
+
 /** The library's world: one disk, its media faked, a folder for its private store. */
 const world = (
   files: Map<string, Uint8Array>,
   calls: ElevenLabsCalls,
   made: Array<FootageCopy>,
+  options: {
+    readonly disk?: Layer.Layer<FileSystem.FileSystem>;
+    readonly hearing?: Layer.Layer<ElevenLabs>;
+  } = {},
 ) => {
-  const Disk = Layer.mergeAll(memoryFileSystem(files, new Set()), Path.layer);
-  const Faked = fakeFootageMedia(files, probeOf, made);
-  const Private = Layer.effect(
-    PrivateStore,
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      return PrivateStore.of({ store: Effect.succeed(folderStore(fs, path, STORE)) });
-    }),
+  const Disk = Layer.mergeAll(
+    Option.getOrElse(Option.fromUndefinedOr(options.disk), () =>
+      memoryFileSystem(files, new Set()),
+    ),
+    Path.layer,
   );
+  const Hearing = Option.getOrElse(Option.fromUndefinedOr(options.hearing), () =>
+    fakeElevenLabs(files, calls),
+  );
+  const Faked = fakeFootageMedia(files, probeOf, made);
+  const Private = privateFolder(STORE);
   return FootageLibrary.layer(DIR).pipe(
     Layer.provide([
       ContentStore.layer.pipe(Layer.provide(memoryLocks)),
       fakeMedia(files),
       Faked,
-      fakeElevenLabs(files, calls),
+      Hearing,
       Private,
       ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_OUT: OUT })),
     ]),
@@ -238,6 +290,119 @@ describe('the footage library', () => {
       expect(calls.stt.length).toBe(2);
     }).pipe(Effect.provide(world(files, calls, [])));
   });
+
+  it.effect('two hearings at once keep two files: neither is renamed over the other', () => {
+    const files = new Map([['/in/take.mov', text('a phone take')]]);
+    const calls = emptyCalls();
+    return Effect.gen(function* () {
+      const library = yield* FootageLibrary;
+      const { entry } = yield* library.importFile('/in/take.mov', asTake('why'));
+      const sha12 = entry.sha256.slice(0, 12);
+      const both = yield* Effect.all(
+        [library.make('why', { hearAgain: true }), library.make('why', { hearAgain: true })],
+        { concurrency: 2 },
+      );
+      const heard = both.map((made) => Option.getOrThrow(made.transcript)).toSorted();
+      expect(heard).toEqual([`why.${sha12}.2.json`, `why.${sha12}.json`]);
+      expect(
+        [...files.keys()].filter((file) => file.startsWith(`${DIR}/transcripts/`)).toSorted(),
+      ).toEqual([`${DIR}/transcripts/why.${sha12}.2.json`, `${DIR}/transcripts/why.${sha12}.json`]);
+      const named = (yield* lockIn(files)).footage['why']?.transcript;
+      expect(heard.filter((file) => file === named).length).toBe(1);
+      expect(calls.stt.length).toBe(2);
+    }).pipe(
+      Effect.provide(
+        world(files, calls, [], {
+          disk: sharedDisk(files),
+          hearing: hearingTogether(files, calls, 2),
+        }),
+      ),
+    );
+  });
+
+  it.effect(
+    'a hearing that lands after another named a transcript keeps its file, and the lock keeps the first',
+    () => {
+      const files = new Map([['/in/take.mov', text('a phone take')]]);
+      const calls = emptyCalls();
+      return Effect.gen(function* () {
+        const library = yield* FootageLibrary;
+        const { entry } = yield* library.importFile('/in/take.mov', asTake('why'));
+        const sha12 = entry.sha256.slice(0, 12);
+        const both = yield* Effect.all(
+          [library.make('why', { hearAgain: false }), library.make('why', { hearAgain: false })],
+          { concurrency: 2 },
+        );
+        const named = Option.fromUndefinedOr((yield* lockIn(files)).footage['why']?.transcript);
+        expect(both.map((made) => made.transcript)).toEqual([named, named]);
+        expect(Option.isSome(named)).toBe(true);
+        expect(files.has(`${DIR}/transcripts/why.${sha12}.json`)).toBe(true);
+        expect(files.has(`${DIR}/transcripts/why.${sha12}.2.json`)).toBe(true);
+      }).pipe(
+        Effect.provide(
+          world(files, calls, [], {
+            disk: sharedDisk(files),
+            hearing: hearingTogether(files, calls, 2),
+          }),
+        ),
+      );
+    },
+  );
+
+  it.effect(
+    'refuses a name that is not a footage name before anything is written: no separator, no capital, no dot first',
+    () => {
+      const files = new Map([['/in/take.mov', text('a phone take')]]);
+      return Effect.gen(function* () {
+        const library = yield* FootageLibrary;
+        for (const name of ['../x', '../../evil', 'Why-The-Law', 'a/b', '.hidden', '']) {
+          const refused = failureOf(
+            yield* Effect.exit(library.importFile('/in/take.mov', asTake(name))),
+          );
+          expect(Option.map(refused, (e) => e._tag)).toEqual(Option.some('FootageNameInvalid'));
+        }
+        expect([...files.keys()].filter((f) => f !== '/in/take.mov')).toEqual([]);
+      }).pipe(Effect.provide(world(files, emptyCalls(), [])));
+    },
+  );
+
+  it.effect(
+    'a lock naming footage, or a transcript, by a name that is not one neither reads nor writes',
+    () =>
+      Effect.gen(function* () {
+        const entry = {
+          kind: 'take' as const,
+          sha256: 'a'.repeat(64),
+          bytes: 1,
+          ext: '.mov',
+          probe: TAKE_PROBE,
+        };
+        const locks = [
+          ...['../../evil', 'Why-The-Law'].map((name) => ({ [name]: entry })),
+          ...['../../evil.json', 'why/x.json', 'why.aaaaaaaaaaaa.txt'].map((transcript) => ({
+            why: { ...entry, transcript },
+          })),
+        ];
+        for (const footage of locks) {
+          const lock = { version: 1 as const, footage };
+          expect(
+            Exit.isFailure(yield* Effect.exit(Schema.encodeEffect(FootageLockJson)(lock))),
+          ).toBe(true);
+          const written = yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Json))(lock);
+          expect(
+            Exit.isFailure(yield* Effect.exit(Schema.decodeEffect(FootageLockJson)(written))),
+          ).toBe(true);
+        }
+        const fine = {
+          version: 1 as const,
+          footage: {
+            'why-the-law.2': { ...entry, transcript: 'why-the-law.2.aaaaaaaaaaaa.2.json' },
+          },
+        };
+        const text = yield* Schema.encodeEffect(FootageLockJson)(fine);
+        expect(yield* Schema.decodeEffect(FootageLockJson)(text)).toEqual(fine);
+      }),
+  );
 
   it.effect(
     'pushes each original to the private store once, and pulls one this machine lacks, read back by its hash',
