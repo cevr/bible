@@ -62,12 +62,12 @@
     "@effect/platform-node-shared": "4.0.2",
     "@effect/sql-sqlite-bun": "4.0.2",
     "@effect/vitest": "4.0.2",
-    "@solidjs/compiler": "2.0.0-rc.11",
-    "@solidjs/web": "2.0.0-rc.11",
+    "@solidjs/compiler": "2.0.0-rc.14",
+    "@solidjs/web": "2.0.0-rc.14",
     "effect": "4.0.2",
     "effect-bun-test": "0.4.0",
     "effect-machine": "0.29.0",
-    "solid-js": "2.0.0-rc.11",
+    "solid-js": "2.0.0-rc.14",
     "vite-plugin-solid": "3.0.0-next.27"
   }
 }
