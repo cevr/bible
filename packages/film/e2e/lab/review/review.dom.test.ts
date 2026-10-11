@@ -1860,6 +1860,7 @@ describe('the review page', () => {
         yield* page.click(`${inspector} [data-act="approve"]`);
         yield* waitFor(page, `${inspector} [data-act="approve"][data-approval="approved"]`);
         expect(asked[0]).toMatchObject({ variant: 'B', say: { _tag: 'Approve' } });
+        yield* attributeIs(page, `${inspector} .rv-comment-input`, 'aria-label', 'Comment');
         yield* page.fill(`${inspector} .rv-comment-input`, 'colder at the edge');
         yield* page.click(`${inspector} [data-act="comment"]`);
         yield* waitFor(page, `${inspector} [data-comment="c1"]`);

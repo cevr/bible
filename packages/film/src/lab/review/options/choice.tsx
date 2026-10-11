@@ -161,6 +161,7 @@ export const SayBox = (props: {
         ref={(el: HTMLInputElement) => {
           Option.map(Option.fromUndefinedOr(props.box), (b) => b.input(el));
         }}
+        aria-label="Comment"
         placeholder="Add a comment"
         value={text()}
         onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>

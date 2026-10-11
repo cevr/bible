@@ -153,7 +153,13 @@ const Meter = () => {
 /** The controls that start or end a take, edged in the recording's colour (design language §5, §7); the rest are quiet. */
 const STATE: Partial<Record<Act, 'recording'>> = { arm: 'recording', stop: 'recording' };
 
-/** What the owner can do now, and where the recorder stands. */
+/** The tones whose line is said to assistive tech: a take refused or kept, once each; never the line that ticks while recording. */
+const SAID: ReadonlySet<string> = new Set(['refused', 'kept']);
+
+/**
+ * What the owner can do now, and where the recorder stands: its line, and the
+ * same line said politely (`.sh-sr`) when a take is refused or kept.
+ */
 const Controls = () => {
   const { state } = useStudio();
   const { meta } = useLab();
@@ -178,6 +184,12 @@ const Controls = () => {
       </div>
       <p class="studio-status" data-role="status" data-tone={state.tone()}>
         {state.status()}
+      </p>
+      <p class="sh-sr" role="status" data-role="said">
+        {Option.getOrElse(
+          Option.liftPredicate(state.status(), () => SAID.has(state.tone())),
+          () => '',
+        )}
       </p>
       <Show when={Option.getOrUndefined(state.review())}>
         {(src) => <audio class="studio-review" data-role="review" controls src={src()} />}

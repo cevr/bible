@@ -1686,6 +1686,8 @@ describe("a film's choices", () => {
         yield* page.press('Space');
         // The requested play is kept while the missing mix buffers.
         yield* textIs(page, '.rv-transport [data-act="play"]', '❚❚');
+        yield* attributeIs(page, '.rv-transport [data-act="play"]', 'aria-label', 'Pause');
+        yield* attributeIs(page, '.rv-transport [data-act="play"] > span', 'aria-hidden', 'true');
         // Fire the retry deadline once; intermediate picture frames aren't asserted.
         yield* page.clock.fastForward(5_000);
         yield* until(page, "document.querySelector('audio.rv-mix').readyState >= 1");

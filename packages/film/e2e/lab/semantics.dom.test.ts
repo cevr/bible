@@ -6,10 +6,23 @@
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { pageHref } from '../../src/core/api.ts';
-import { DESK, openLab, openPlayer } from '../../src/lab/fixtures/harness.ts';
+import { ServerFailed, pageHref } from '../../src/core/api.ts';
+import {
+  DESK,
+  openLab,
+  openPlayer,
+  openReview,
+  refused,
+  route,
+} from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { FOCUS_SHOWN, attributeIs, evaluates, waitFor } from '../../src/lab/fixtures/settled.ts';
+import {
+  FOCUS_SHOWN,
+  attributeIs,
+  evaluates,
+  textIs,
+  waitFor,
+} from '../../src/lab/fixtures/settled.ts';
 
 const SLOW = 30_000;
 
@@ -44,6 +57,23 @@ describe("the shell's header", () => {
           0,
         );
         expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+describe('a read that fails', () => {
+  it.live(
+    'on the review, a read refused says why in a polite live region, where it said it was reading',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openReview([
+          route('GET', /^\/api\/review\/index/, () =>
+            refused(ServerFailed.make({ tag: 'IndexFailed', reason: 'the renders are locked' })),
+          ),
+        ]);
+        yield* textIs(page, '.rv-main .empty', 'the renders are locked');
+        yield* attributeIs(page, '.rv-main .empty', 'role', 'status');
       }).pipe(Effect.scoped),
     SLOW,
   );

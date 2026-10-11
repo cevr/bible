@@ -498,6 +498,9 @@ describe('the studio', () => {
           yield* focusStudio(page);
           yield* press(page, 'r');
           yield* statusIs(page, /^recording in [123]…$/);
+          // The count-in ticks on its line, unsaid: the polite region holds nothing.
+          yield* attributeIs(page, '[data-role="said"]', 'role', 'status');
+          yield* textIs(page, '[data-role="said"]', '');
           yield* nextScene;
           yield* evaluates(page, 'location.pathname', `/films/${PROBE}/lab/two`);
           yield* countIs(page, '[data-beat="one"].selected', 1);
@@ -515,6 +518,8 @@ describe('the studio', () => {
           yield* statusIs(page, /^review /);
           yield* press(page, 'k');
           yield* statusIs(page, /^take one says something else/);
+          // The refusal is said, once, in the polite region.
+          yield* textIs(page, '[data-role="said"]', /^take one says something else/);
           yield* nextScene;
           yield* evaluates(page, 'location.pathname', `/films/${PROBE}/lab/two`);
           yield* textHas(page, '[data-role="receipt"]', 'Record stays on one');

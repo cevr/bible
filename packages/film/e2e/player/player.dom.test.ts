@@ -477,9 +477,13 @@ describe('the player', () => {
         yield* page.clock.runFor(HUD_IDLE_MS * 3);
         yield* evaluates(page, controls(true), true);
         yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        // Named by its word, the glyph hidden from a reader.
+        yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Pause');
+        yield* attributeIs(page, '.bar [data-act="play"] > span', 'aria-hidden', 'true');
         // Enter on it is its click: the film pauses.
         yield* page.press('Enter');
         yield* textIs(page, '.bar [data-act="play"]', '▶︎');
+        yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Play');
         yield* evaluates(page, controls(true), true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -521,6 +525,7 @@ describe('the player', () => {
         yield* tap;
         yield* page.click('.bar [data-act="play"]');
         yield* textIs(page, '.bar [data-act="play"]', '▶︎');
+        yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Play');
         yield* evaluates(page, controls(true), true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.runPromise),

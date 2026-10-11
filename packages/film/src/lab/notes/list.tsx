@@ -280,6 +280,7 @@ const ReplyForm = (props: { readonly note: Note }) => {
     >
       <input
         class="lab-reply-input"
+        aria-label="Reply"
         placeholder="Reply…"
         ref={(el: HTMLInputElement) => {
           input = Option.some(el);

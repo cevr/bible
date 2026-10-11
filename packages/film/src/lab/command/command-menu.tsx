@@ -49,6 +49,10 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
     );
   });
 
+  // The row the query names as its active descendant: one that exists, else none (no row matches).
+  const active = () =>
+    Option.getOrUndefined(Option.liftPredicate(`lab-command-${at()}`, () => at() < rows().length));
+
   const show = (ctx: Context) => {
     run.open({ ...ctx, focus: 'page' });
     setQuery('');
@@ -118,7 +122,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
             placeholder="Type a command"
             aria-label="Command"
             aria-controls="lab-command-rows"
-            aria-activedescendant={`lab-command-${at()}`}
+            aria-activedescendant={active()}
             value={query()}
             onInput={(e) => {
               setQuery(e.currentTarget.value);
@@ -145,10 +149,11 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
                 </div>
               )}
             </For>
-            <Show when={rows().length === 0}>
-              <p class="lab-command-none">No command matches.</p>
-            </Show>
           </div>
+          {/* Beside the list, not in it: a listbox holds options alone. */}
+          <Show when={rows().length === 0}>
+            <p class="lab-command-none">No command matches.</p>
+          </Show>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

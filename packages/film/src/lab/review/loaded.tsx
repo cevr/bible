@@ -121,7 +121,8 @@ export const useWrite = <Arg, A, K extends string>(
 /**
  * `children` over `value` once there is one, kept in place as it changes
  * (the value is an accessor); before, what `result` is `reading`, or why it
- * failed.
+ * failed, in a polite live region: the reading line is there as the page
+ * mounts, so only a failure that replaces it is said.
  */
 export const Loaded = <A,>(props: {
   readonly value: Option.Option<A>;
@@ -132,7 +133,7 @@ export const Loaded = <A,>(props: {
   <Show
     when={Option.getOrUndefined(props.value)}
     fallback={
-      <p class="empty">
+      <p class="empty" role="status">
         {Match.value(AsyncResult.isFailure(props.result)).pipe(
           Match.when(true, () => failedText(props.result)),
           Match.orElse(() => props.reading),

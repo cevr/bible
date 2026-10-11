@@ -68,6 +68,7 @@ export const Section = () => {
         </Show>
         <textarea
           rows="3"
+          aria-label="Note"
           placeholder="What should change on this frame?"
           ref={(el: HTMLTextAreaElement) => {
             area = Option.some(el);
@@ -80,7 +81,9 @@ export const Section = () => {
           <button type="button" class="sh-btn" data-act="cancel" onClick={actions.cancel}>
             Cancel
           </button>
-          <span class="lab-status">{state.status()}</span>
+          <span class="lab-status" role="status">
+            {state.status()}
+          </span>
         </div>
       </form>
     </Lab.Fill>
