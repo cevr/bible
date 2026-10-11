@@ -10,7 +10,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { openTab, respond, servePaths } from '../../src/lab/fixtures/browsers.ts';
 import { evaluates } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
-import { type Raw, mockLengths } from './mock-lengths.ts';
+import { type Raw, type Unreached, mockLengths } from './mock-lengths.ts';
 
 const ROOT = `${import.meta.dir}/../../../..`;
 const MOCKS = '/design-language/mocks';
@@ -87,16 +87,40 @@ const read = (page: Page, want: ReadonlyArray<string>) =>
     yield* visit(page, false, (tab, script) => evaluates(tab, script.found(phone), want));
   });
 
-/** The selectors of the shared sheets no page reaches on either pointer. */
+/** A page's read for the sheets it shares: the selectors it reaches on neither pointer, by their place, and the sheets it wears. */
+interface Wearer {
+  readonly unreached: ReadonlyMap<string, Unreached>;
+  readonly wears: ReadonlyArray<string>;
+}
+
+/**
+ * The selectors of the shared sheets that no page wearing their sheet
+ * reaches on either pointer (a selector of lab.css is judged on the pages
+ * that link lab.css), each named once.
+ */
 const sharedUnreached = (pages: ReadonlyArray<Page>) =>
   Effect.gen(function* () {
-    const each = yield* Effect.forEach(pages, (page) =>
-      Effect.map(Effect.all([rawOf(page, true), rawOf(page, false)]), ([phone, desk]) =>
-        phone.shared.filter((line) => desk.shared.includes(line)),
-      ),
+    const wearers = yield* Effect.forEach(
+      pages,
+      (page) =>
+        Effect.map(
+          Effect.all([rawOf(page, true), rawOf(page, false)]),
+          ([phone, desk]): Wearer => ({
+            unreached: new Map(
+              phone.shared
+                .filter((u) => desk.shared.some((d) => d.id === u.id))
+                .map((u) => [u.id, u] as const),
+            ),
+            wears: desk.wears,
+          }),
+        ),
+      // Four pages at once: each read is its own pooled tab, as the file's cases are.
+      { concurrency: 4 },
     );
-    const [first = [], ...rest] = each;
-    return first.filter((line) => rest.every((here) => here.includes(line)));
+    const candidates = new Map(wearers.flatMap((w) => [...w.unreached]));
+    return [...candidates.values()]
+      .filter((u) => wearers.every((w) => !w.wears.includes(u.sheet) || w.unreached.has(u.id)))
+      .flatMap((u) => u.lines);
   });
 
 const wears = `<link rel="stylesheet" href="${TOKENS}"><link rel="stylesheet" href="${MOCKS}/kit.css">`;
@@ -402,32 +426,38 @@ describe('the mock length check, on planted pages', () => {
          .p6 { --pad: 8px; padding: var(--pad); } @media (pointer: coarse) { .p6 { --pad: var(--s-3); } }
          .p7 { --pad: 8px; padding: var(--pad); } @media (pointer: coarse) { .p7 { --pad: 6px; } }
          .r1 { --pad: 8px; padding: var(--pad); } @media (width >= 1700px) { .r1 { --pad: 6px; } }
-         .r2 { --pad: 8px; padding: var(--pad); } @media (max-width: 30em) { .r2 { --pad: 6px; } }
+         .r2 { --pad: 8px; padding: var(--pad); } @media (min-width: 40em) and (max-width: 41em) { .r2 { --pad: 6px; } }
          .r3 { --pad: 8px; padding: var(--pad); } @media (500px <= width <= 700px) { .r3 { --pad: 6px; } }
          .p9box { container-type: inline-size; width: calc(var(--s-1) * 50); }
          .p9 { --pad: 8px; padding: var(--pad); } @container (max-width: 300px) { .p9 { --pad: 6px; } }
          .p10box { container-type: inline-size; width: calc(var(--s-1) * 100); }
-         .p10 { --pad: 8px; padding: var(--pad); } @container (max-width: 300px) { .p10 { --pad: 6px; } }`,
+         .p10 { --pad: 8px; padding: var(--pad); } @container (max-width: 300px) { .p10 { --pad: 6px; } }
+         @media (pointer: coarse) { .both { --pad: 8px; padding: var(--pad); } }
+         @media (pointer: fine) { .both { --pad: var(--s-2); padding: var(--pad); } }
+         .gx { --pad: 8px; padding: var(--pad); } .gx:hover, .gshown { @media (min-width: 1px) { --pad: 6px; } }`,
         `<p class="p1">.</p><p class="p1b">.</p><p class="p6">.</p><p class="p7">.</p>
          <p class="r1">.</p><p class="r2">.</p><p class="r3">.</p>
-         <div class="p9box"><p class="p9">.</p></div><div class="p10box"><p class="p10">.</p></div>`,
+         <div class="p9box"><p class="p9">.</p></div><div class="p10box"><p class="p10">.</p></div>
+         <p class="both">.</p><p class="gx">.</p><p class="gshown">.</p>`,
         [
-          // The desk's, then the phone's.
+          // The desk's, then the phone's, each in the order of the widths read.
           'case.html: padding var(--pad) is 6px, no space step (.p9)',
-          'case.html: padding var(--pad) is 6px, no space step (.r2)',
           'case.html: padding var(--pad) is 6px, no space step (.r3)',
+          'case.html: padding var(--pad) is 6px, no space step (.r2)',
           'case.html: padding var(--pad) is 6px, no space step (.r1)',
           'case.html: padding var(--pad) is 6px, no space step (.p7)',
-          // A selector no element matches on either pointer, at any width.
+          // A selector no element matches on either pointer, at any width: a member of a list
+          // alone, a nested query's too. `.both`'s two blocks are each reached on their own pointer.
           'case.html: --pad is given on no element the mock shows (.p1:hover)',
           'case.html: --pad is given on no element the mock shows (.p10)',
+          'case.html: --pad is given on no element the mock shows (.gx:hover)',
         ],
       ),
     SLOW,
   );
 
   it.live(
-    "names a shared sheet's selector no mock reaches, and passes one some mock reaches",
+    "names a shared sheet's selector no mock that wears the sheet reaches, and passes one some mock reaches",
     () =>
       Effect.gen(function* () {
         const shared = '/planted/shared.css';
@@ -438,14 +468,17 @@ describe('the mock length check, on planted pages', () => {
           [shared]: sheet,
           '/a.html': pageOf('', '<p class="only-a">.</p>', head),
           '/b.html': pageOf('', '<p class="only-b">.</p>', head),
+          // A page that wears no shared.css (as a mock that is no Lab's wears no lab.css) judges none of it.
+          '/c.html': pageOf('', '<p class="nowhere">.</p>'),
         };
         const unreached = yield* sharedUnreached([
           { file: 'a.html', path: '/a.html', pages },
           { file: 'b.html', path: '/b.html', pages },
+          { file: 'c.html', path: '/c.html', pages },
         ]);
         expect(unreached).toEqual([
-          'shared.css: --gap is given on no element any mock shows (.nowhere)',
-          'shared.css: gap var(--gap) is read on no element any mock shows (.nowhere)',
+          'shared.css: --gap is given on no element any mock that wears it shows (.nowhere)',
+          'shared.css: gap var(--gap) is read on no element any mock that wears it shows (.nowhere)',
         ]);
       }),
     SLOW,

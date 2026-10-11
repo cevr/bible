@@ -10,7 +10,8 @@
 // - a function that computes with a variable, a percentage or another unit
 //   (`calc(var(--dot) / -2)`, a dot's margin of half its size;
 //   `calc(100% - 7px)`) writes no length of its own: only the px written in
-//   it are read;
+//   it are read, never the variable's value (a dot's size, a tab bar's
+//   height, a composition's part, is no length of the scale);
 // - a variable a value names whole (`padding: var(--pad)`) is read on each
 //   element and pseudo-element the declaration applies to, at each viewport
 //   width the page's queries name, as the browser resolves it there: which
@@ -30,16 +31,19 @@
 //   (`GEOMETRY`), set nothing on a scale. A keyframe's locals are not read.
 //
 // A block that gives or reads a local is read where it applies, each
-// selector of a list on its own, so a selector for a state the mock never
-// shows (a hover, a class no element carries) is named as reaching no
-// element, never passed unread. The page is read on a phone's pointer and
-// a desk's: a red found on either is a red, and a selector is unreached only
-// when it reaches no element on both. A selector of a shared sheet (kit.css,
-// lab.css) is unreached only when no mock reaches it (`raw`'s `shared`, which
-// the test intersects across the mocks). The widths read are 390, 1440, and
-// each width a media query names (px, em or rem; `min-`, `max-` or a range),
-// with one px either side. Other media features (reduced motion, colour
-// scheme) are not varied: a selector only they reach is named as unreached.
+// selector of its list on its own (a nested query's declarations by the list
+// of the rule they sit in, under the same query), so a selector for a state
+// the mock never shows (a hover, a class no element carries) is named as
+// reaching no element, never passed unread. The page is read on a phone's
+// pointer and a desk's: a red found on either is a red, and a selector is
+// unreached only when the same selector of the same block reaches no element
+// on both. A selector of a shared sheet (kit.css, lab.css) is unreached only
+// when no mock that wears the sheet reaches it (`raw`'s `shared` and `wears`,
+// which the test joins across the mocks). The widths read are 390, 1440, and
+// each width from 200 to 4000 px a media query names (px, em or rem; `min-`,
+// `max-` or a range), with one px either side; a `media` attribute is not
+// read. Other media features (reduced motion, colour scheme) are not varied:
+// a selector only they reach is named as unreached.
 // The page's scripts run before the read, so a length a script sets is read
 // in the `style` it set; one set only on an event is not.
 
@@ -99,11 +103,27 @@ const GEOMETRY: ReadonlyArray<string> = ['--cue-names'];
 
 const json = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
-/** What one pointer's read of a page found: its reds, its own selectors unreached, and its shared sheets' selectors unreached. */
+/**
+ * A selector that reaches no element: which one (its block's place in its
+ * sheet, and its place in the block's list, the same on every page that
+ * wears the sheet), the sheet, and the lines that name it.
+ */
+export interface Unreached {
+  readonly id: string;
+  readonly sheet: string;
+  readonly lines: ReadonlyArray<string>;
+}
+
+/**
+ * What one pointer's read of a page found: its reds, its own selectors
+ * unreached, its shared sheets' selectors unreached, and the shared sheets it
+ * wears.
+ */
 export interface Raw {
   readonly reds: ReadonlyArray<string>;
-  readonly unreached: ReadonlyArray<string>;
-  readonly shared: ReadonlyArray<string>;
+  readonly unreached: ReadonlyArray<Unreached>;
+  readonly shared: ReadonlyArray<Unreached>;
+  readonly wears: ReadonlyArray<string>;
 }
 
 /**
@@ -113,7 +133,7 @@ export interface Raw {
  * `found(other)`, given the other pointer's `raw`, answers every finding,
  * one line each: a sheet it does not wear, a token it writes, a length off
  * its scale (on either pointer), and a selector of the page's own that
- * reaches no element on either.
+ * reaches no element on either (the same selector of the same block).
  */
 export const mockLengths = (file: string) => {
   const input = json({ file, scales: SCALES, geometry: GEOMETRY });
@@ -131,8 +151,9 @@ const PAGE = `(input, step, other) => {
   if (step === 'raw') return raw();
   if (step === 'found') {
     const mine = raw();
-    const theirs = new Set(other.unreached);
-    return [...new Set([...mine.reds, ...other.reds])].concat(mine.unreached.filter((m) => theirs.has(m)));
+    const theirs = new Set(other.unreached.map((u) => u.id));
+    const unreached = mine.unreached.filter((u) => theirs.has(u.id)).flatMap((u) => u.lines);
+    return [...new Set([...mine.reds, ...other.reds, ...unreached])];
   }
   pass();
   return state.widths;
@@ -144,14 +165,14 @@ const PAGE = `(input, step, other) => {
       for (const reach of r.reaches) {
         if (reach.reached) continue;
         const where = r.shared ? r.sheet : input.file;
-        const none = r.shared ? 'any mock shows' : 'the mock shows';
+        const none = r.shared ? 'any mock that wears it shows' : 'the mock shows';
         const lines = [
           ...r.gives.map((name) => where + ': ' + name + ' is given on no element ' + none + ' (' + reach.label + ')'),
           ...r.probes.map((p) => where + ': ' + p.property + ' ' + p.word + ' is read on no element ' + none + ' (' + reach.label + ')'),
         ];
-        (r.shared ? shared : unreached).push(...lines);
+        (r.shared ? shared : unreached).push({ id: reach.id, sheet: r.sheet, lines });
       }
-    return { reds: [...new Set(state.found)], unreached: [...new Set(unreached)], shared: [...new Set(shared)] };
+    return { reds: [...new Set(state.found)], unreached, shared, wears: state.wears };
   }
 
   function setup() {
@@ -183,24 +204,32 @@ const PAGE = `(input, step, other) => {
           }
       });
     // Each declaration block of the mock's sheets (a nested one's labelled by
-    // its rule; a keyframe's by its animation), and each element's style
-    // attribute. A linked sheet other than the tokens is shared by the mocks.
+    // the nearest rule with a selector, its anchor; a keyframe's by its
+    // animation), and each element's style attribute, each with its place: a
+    // shared sheet's (a linked one other than the tokens) by the sheet's name
+    // and the block's place in it, the same on every mock that wears it.
     const own = [];
+    let styles = 0;
     for (const sheet of sheets.filter((s) => s !== tokenSheet)) {
       const shared = sheet.ownerNode?.localName === 'link';
+      const name = shared ? nameOf(sheet.href ?? '') : 'style ' + styles++;
+      let i = 0;
       walk(sheet.cssRules, (rule) => {
         if (!rule.style) return;
+        const id = name + '#' + i++;
         if (rule.keyText !== undefined) {
-          own.push({ rule, style: rule.style, label: '@keyframes ' + rule.parentRule.name + ' ' + rule.keyText, keyframe: true, shared, sheet: nameOf(sheet.href ?? '') });
+          own.push({ id, rule, anchor: null, style: rule.style, label: '@keyframes ' + rule.parentRule.name + ' ' + rule.keyText, keyframe: true, shared, sheet: name });
           return;
         }
         let at = rule;
         while (at && at.selectorText === undefined) at = at.parentRule;
-        own.push({ rule, style: rule.style, label: at ? at.selectorText : '', keyframe: false, shared, sheet: nameOf(sheet.href ?? '') });
+        own.push({ id, rule, anchor: at ?? null, style: rule.style, label: at ? at.selectorText : '', keyframe: false, shared, sheet: name });
       });
     }
+    const wears = sheets.filter((s) => s !== tokenSheet && s.ownerNode?.localName === 'link').map((s) => nameOf(s.href ?? ''));
+    let attributes = 0;
     for (const el of document.querySelectorAll('[style]'))
-      if (el !== probe) own.push({ rule: null, style: el.style, label: el.localName + '[style]', keyframe: false, shared: false, sheet: '' });
+      if (el !== probe) own.push({ id: 'style attribute #' + attributes++, rule: null, anchor: null, style: el.style, label: el.localName + '[style]', keyframe: false, shared: false, sheet: '' });
     for (const { style } of own)
       for (const name of Array.from(style)) if (tokens.has(name)) found.push(input.file + ': writes ' + name);
     const isLocal = (name) => name.startsWith('--') && !tokens.has(name) && !input.geometry.includes(name) && !name.startsWith('--film-');
@@ -279,24 +308,35 @@ const PAGE = `(input, step, other) => {
         register(p.name);
         block.style.setProperty(p.name, shadowed(p.word, tokens));
       }
-      const members = block.rule?.selectorText !== undefined ? listOf(block.rule.selectorText) : [];
-      const reaches = members.length > 1
-        ? members.map((member, k) => {
+      // Each member of the anchor's list is reached through a rule of its own,
+      // set beside the anchor under the same conditions as the block (a
+      // nested \`@media\`'s declarations under that \`@media\`): \`member {
+      // @media (…) { --film-reach-N: 1 } }\`. A member the browser takes in a
+      // list but not alone is named, and read with its block.
+      const members = block.anchor ? listOf(block.anchor.selectorText) : [];
+      const whole = { id: block.id, label: block.label, name: on, reached: false };
+      const reaches = members.length < 2
+        ? [whole]
+        : members.map((member, k) => {
+            const id = block.id + '.' + k;
             const name = register('--film-reach-' + n++);
-            const parent = block.rule.parentRule ?? block.rule.parentStyleSheet;
-            const index = Array.from(parent.cssRules).indexOf(block.rule);
+            const parent = block.anchor.parentRule ?? block.anchor.parentStyleSheet;
+            const index = Array.from(parent.cssRules).indexOf(block.anchor);
+            let text = name + ': 1';
+            for (let at = block.rule; at !== block.anchor; at = at.parentRule)
+              if (at.cssRules) text = at.cssText.slice(0, at.cssText.indexOf('{')).trim() + ' { ' + text + ' }';
             try {
-              parent.insertRule(member + ' { ' + name + ': 1 }', index + 1 + k);
-              return { label: member, name, reached: false };
+              parent.insertRule(member + ' { ' + text + ' }', index + 1);
+              return { id, label: member, name, reached: false };
             } catch {
-              return { label: member, name: on, reached: false };
+              found.push((block.shared ? block.sheet : input.file) + ': ' + member + ' is no selector the browser reads alone (' + block.label + ')');
+              return { ...whole, id, label: member };
             }
-          })
-        : [{ label: block.label, name: on, reached: false }];
+          });
       probed.push({ label: block.label, on, probes, gives, reaches, shared: block.shared, sheet: block.sheet });
     }
     const pseudos = ['', ...new Set(own.flatMap((b) => Array.from(b.label.matchAll(/::[\\w-]+/g), (m) => m[0])))];
-    return { probe, found, tokens, widths: [...widths].sort((a, b) => a - b), probed, literals, named, pseudos, steps: new Map(), px: new Map() };
+    return { probe, found, tokens, wears, widths: [...widths].sort((a, b) => a - b), probed, literals, named, pseudos, steps: new Map(), px: new Map() };
   }
 
   function nameOf(href) { return href.split(/[?#]/)[0].split('/').pop(); }
