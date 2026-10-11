@@ -132,6 +132,9 @@ const settledAt = (scrollElement: HTMLElement, axis: SwipeConfig['axis'], target
     () => !laidOut(scrollElement) || reached(scrollElement, axis, target),
   );
 
+/** How many times a sheet scrolls in, stopped on its way by a scroll into view, before it stands where it stopped. */
+const SCROLL_IN_TRIES = 4;
+
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
@@ -312,6 +315,41 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         return undefined;
       }
       let live = true;
+      // Scrolling in is the sheet's own motion: only the user's swipe (a finger's move, a
+      // wheel, its scrollbar) takes it over. A scroll into view inside it (a focus, a caret
+      // revealed, the page's own) stops it where it is, out of view as like as not: once it
+      // has stood, it scrolls on to rest, a few times at most.
+      let taken = false;
+      const take = () => {
+        taken = true;
+      };
+      const takeAtBar = (event: PointerEvent) => {
+        if (event.target === scrollElement) {
+          take();
+        }
+      };
+      const passive = { passive: true } as const;
+      scrollElement.addEventListener('touchmove', take, passive);
+      scrollElement.addEventListener('wheel', take, passive);
+      scrollElement.addEventListener('pointerdown', takeAtBar, passive);
+      const release = () => {
+        scrollElement.removeEventListener('touchmove', take);
+        scrollElement.removeEventListener('wheel', take);
+        scrollElement.removeEventListener('pointerdown', takeAtBar);
+      };
+      const comeIn = (tries: number): Promise<void> => {
+        const target = scrollToRest(scrollElement, config, true);
+        return settledAt(scrollElement, config.axis, target).then(() => {
+          const stopped =
+            live &&
+            !taken &&
+            tries > 1 &&
+            untrack(store.open) &&
+            laidOut(scrollElement) &&
+            !reached(scrollElement, config.axis, target);
+          return stopped ? comeIn(tries - 1) : undefined;
+        });
+      };
       let start = Promise.resolve();
       if (config.enteredScroll === 0) {
         // Jump to the exit, then scroll in on the next frame: both in one task can leave the
@@ -328,9 +366,10 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
           if (!live) {
             return undefined;
           }
-          return settledAt(scrollElement, config.axis, scrollToRest(scrollElement, config, true));
+          return comeIn(SCROLL_IN_TRIES);
         })
         .then(() => {
+          release();
           if (live && untrack(store.open)) {
             setEntered(true);
           }
@@ -340,6 +379,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       }
       return () => {
         live = false;
+        release();
       };
     },
   );

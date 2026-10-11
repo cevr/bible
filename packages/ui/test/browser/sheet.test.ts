@@ -257,6 +257,53 @@ describe('Sheet.Root', () => {
     expect(kept).toEqual(['first', 'first']);
   });
 
+  it('scrolls on to rest when a scroll into view stops it as it scrolls in', async () => {
+    const cases = [
+      { position: 'bottom', how: 'focus', times: 1 },
+      { position: 'right', how: 'focus', times: 1 },
+      { position: 'bottom', how: 'scrollIntoView', times: 2 },
+    ] as const;
+    const rested = await Promise.all(
+      cases.map(async ({ position, how, times }) => {
+        const page = await h.open('sheet', {
+          query: { position, modal: 'false', dismissal: 'disabled', portal: 'inline' },
+        });
+        // On the sheet's first scroll (and on its first again once it scrolls on), the field
+        // is focused or scrolled into view: the browser scrolls the field into view, which
+        // stops the sheet's own scroll a few pixels in, and its snapping takes it back out.
+        await page.evaluate(
+          ({ how, times }) => {
+            let left = times;
+            let last = -Infinity;
+            const stop = (event: Event) => {
+              const now = performance.now();
+              if (
+                !(event.target as Element).hasAttribute?.('data-sheet-scroll') ||
+                now - last < 200
+              ) {
+                return;
+              }
+              last = now;
+              left -= 1;
+              if (left === 0) {
+                document.removeEventListener('scroll', stop, true);
+              }
+              document.getElementById('first')?.[how]();
+            };
+            document.addEventListener('scroll', stop, true);
+          },
+          { how, times },
+        );
+        await page.click('#open');
+        await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
+        await see(page.locator('#first')).toBeInViewport({ ratio: 1 });
+        await see(page.locator('#panel')).toBeInViewport({ ratio: 1 });
+        return opens(page);
+      }),
+    );
+    expect(rested).toEqual([[], [], []]);
+  });
+
   it('traps Tab inside a modal sheet', async () => {
     const page = await h.open('sheet');
     await openSheet(page);

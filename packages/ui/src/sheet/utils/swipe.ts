@@ -225,14 +225,15 @@ export function reached(scroller: HTMLElement, axis: Axis, target: number): bool
 
 /**
  * Resolves once `scroller` stops scrolling. Sent somewhere (`arrived` says
- * whether it stands there): on its `scrollend`, on a frame where it has
- * arrived, or, stopped elsewhere (another scroll took it over, a focus or a
- * swipe, which may end with no `scrollend`, as with none at all in Safari
- * before 26.2), once it has moved and then stood still for 5 frames and
- * 300 ms; one that has not moved in 60 frames goes nowhere. A page too busy
- * to start the scroll at once does not settle it before it moves. Not sent anywhere (a swipe's momentum running out): on its
- * `scrollend`, or once no `scroll` event has come for 150 ms. Upstream waits
- * on `scrollend` alone.
+ * whether it stands there): on a frame or a `scrollend` where it has arrived,
+ * or, stopped elsewhere (a swipe took it over), once it has moved and then
+ * stood still for 5 frames and 300 ms; one that has not moved in 60 frames
+ * goes nowhere. A `scrollend` short of there is not one: it ends a scroll a
+ * focus stopped on its way, which the sheet sends on again, and Safari before
+ * 26.2 has none. A page too busy to start the scroll at once does not settle
+ * it before it moves. Not sent
+ * anywhere (a swipe's momentum running out): on its `scrollend`, or once no
+ * `scroll` event has come for 150 ms. Upstream waits on `scrollend` alone.
  */
 export function scrollSettled(scroller: HTMLElement, arrived?: () => boolean): Promise<void> {
   return new Promise((resolve) => {
@@ -248,18 +249,25 @@ export function scrollSettled(scroller: HTMLElement, arrived?: () => boolean): P
       cancelAnimationFrame(frame);
       scroller.removeEventListener('scroll', quiet);
       scroller.removeEventListener('scrollend', done);
+      scroller.removeEventListener('scrollend', ended);
       resolve();
     };
     const quiet = () => {
       clearTimeout(timer);
       timer = setTimeout(done, SETTLE_QUIET_MS);
     };
-    scroller.addEventListener('scrollend', done);
+    const ended = () => {
+      if (arrived?.()) {
+        done();
+      }
+    };
     if (!arrived) {
+      scroller.addEventListener('scrollend', done);
       scroller.addEventListener('scroll', quiet, { passive: true });
       quiet();
       return;
     }
+    scroller.addEventListener('scrollend', ended);
     const position = () => `${scroller.scrollLeft},${scroller.scrollTop}`;
     let last = position();
     let moved = false;
