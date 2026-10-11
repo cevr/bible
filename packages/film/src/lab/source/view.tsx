@@ -44,8 +44,8 @@ import {
   litNow,
   liveWords,
   metersOn,
+  rowsOf,
   selectionAt,
-  startsOf,
 } from './lit.ts';
 import { type CodeOpen, FOLLOW, lineOpen } from './open.ts';
 
@@ -81,26 +81,6 @@ const useLit = (code: () => SceneCode) => {
     };
     return litNow(c, liveAt(meta.stage.cuesOf(c.scene), state.T() - start, meta.film.fps), picks);
   });
-};
-
-/** One row of the file: its number, its text, and where the text starts in the whole. */
-interface Row {
-  readonly n: number;
-  readonly from: number;
-  readonly text: string;
-}
-
-const rowsOf = (code: SceneCode): ReadonlyArray<Row> => {
-  const text = code.text;
-  const starts = startsOf(code);
-  return starts.map((from, i) => ({
-    n: i + 1,
-    from,
-    text: text.slice(
-      from,
-      Option.getOrElse(Option.fromUndefinedOr(starts[i + 1]), () => text.length + 1) - 1,
-    ),
-  }));
 };
 
 /** The nearest ancestor of `el` that scrolls: the box a row moves in, in the column and in a sheet alike. */

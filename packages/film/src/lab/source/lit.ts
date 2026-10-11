@@ -51,7 +51,7 @@ export interface Lit {
 const STARTS = new WeakMap<SceneCode, ReadonlyArray<number>>();
 
 /** Where each line of `code`'s text starts, as offsets (line 1 first): counted once per code read. */
-export const startsOf = (code: SceneCode): ReadonlyArray<number> =>
+const startsOf = (code: SceneCode): ReadonlyArray<number> =>
   Option.getOrElse(Option.fromUndefinedOr(STARTS.get(code)), () => {
     const starts = lineStarts(code.text);
     STARTS.set(code, starts);
@@ -63,6 +63,27 @@ export const lineAt = (code: SceneCode, at: number): number => lineOf(startsOf(c
 
 /** The last line (from 1) of `code`'s file: what a held line past it holds. */
 export const lastLine = (code: SceneCode): number => lastLineOf(code.text, startsOf(code));
+
+/** One row of the file: its number, its text, and where the text starts in the whole. */
+interface Row {
+  readonly n: number;
+  readonly from: number;
+  readonly text: string;
+}
+
+/** `code`'s file a row to a line, to its `lastLine`: the newline that ends the file starts no row. */
+export const rowsOf = (code: SceneCode): ReadonlyArray<Row> => {
+  const text = code.text;
+  const starts = startsOf(code);
+  return starts.slice(0, lastLine(code)).map((from, i) => ({
+    n: i + 1,
+    from,
+    text: text.slice(
+      from,
+      Option.getOrElse(Option.fromUndefinedOr(starts[i + 1]), () => text.length + 1) - 1,
+    ),
+  }));
+};
 
 /**
  * The line (from 1) `line` of `code`, as a note cites it: its file, its

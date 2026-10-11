@@ -7,7 +7,7 @@ import { describe, expect, test } from 'effect-bun-test';
 import type { ResolvedCue, SceneCode } from '../../core/schema.ts';
 import { liveAt } from '../../core/timeline.ts';
 import { cueOf, knobOf } from '../../command/selection.ts';
-import { followLine, lineSite, litNow, liveWords, metersOn, selectionAt } from './lit.ts';
+import { followLine, lineSite, litNow, liveWords, metersOn, rowsOf, selectionAt } from './lit.ts';
 import { FOLLOW, codeOpenOf, codeText, lineOpen } from './open.ts';
 
 const TEXT = [
@@ -105,6 +105,16 @@ describe('what is lit at a frame', () => {
     expect(liveWords(computed, litNow(computed, liveAt(cues, 0.5, 30)))).toBe(
       'timeline not lit: it is `make()`, not an object literal',
     );
+  });
+});
+
+describe('the rows the view draws', () => {
+  test('a row to a line, and none after the newline that ends the file', () => {
+    const of = (text: string) => rowsOf({ ...code, text }).map((r) => r.text);
+    expect(of('a\nb\n')).toStrictEqual(['a', 'b']);
+    expect(of('a\nb')).toStrictEqual(['a', 'b']);
+    expect(of('a\n\n')).toStrictEqual(['a', '']);
+    expect(of('')).toStrictEqual(['']);
   });
 });
 
