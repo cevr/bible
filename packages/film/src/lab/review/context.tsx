@@ -28,7 +28,6 @@ import {
   createContext,
   createEffect,
   createMemo,
-  createSignal,
   isHydrating,
   omit,
   onCleanup,
@@ -99,6 +98,7 @@ import {
 } from './place.ts';
 import { PlayerKey, type SyncDriver, playerCommands, makeSync, playerEvent } from './sync.ts';
 import { type Asks, newestAsked } from './asked.ts';
+import { useIndexOwner } from './index-owner.ts';
 import { hearVersionCommands } from './hear.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
@@ -181,9 +181,10 @@ interface ReviewActions {
    */
   readonly indexChanged: () => void;
   /**
-   * A write's answer, `folder` as the write left it, shown in the index in
-   * its place: only through its `Landed.show` on the index's `asks`, so an
-   * answer a newer read overtook is never shown over it.
+   * A write's answer, `folder` as the write left it, put in its place in the
+   * index's newest answer, shown or not yet (`useIndexOwner`): only through
+   * its `Landed.show` on the index's `asks`, so an answer a newer read
+   * overtook is never shown over it.
    */
   readonly answered: (folder: ReviewFolder) => void;
   readonly quality: (quality: Quality) => void;
@@ -310,17 +311,6 @@ const kept = {
   quality: keptText(ViewerStore, 'film-review.quality'),
 };
 
-/** `index` with `folder` in the place of the folder of its ref. */
-const withFolder = (index: ReviewIndex, folder: ReviewFolder): ReviewIndex => ({
-  ...index,
-  folders: index.folders.map((f) =>
-    Option.getOrElse(
-      Option.liftPredicate(folder, (answered) => answered.ref === f.ref),
-      () => f,
-    ),
-  ),
-});
-
 /** The copy the page plays: the kept one, else 720p on a phone's width (`PHONE`). */
 const qualityOf = (stored: Option.Option<string>, narrow: () => boolean): Quality =>
   Option.getOrElse(
@@ -426,20 +416,14 @@ export const Root = (
         Option.map(moved, address.follow);
       },
     );
-    // The index as the newest ask answered it: a Refresh, or a say's answer for its
-    // folder (`asked.ts`); until one has, the first read's: it was asked first, so
-    // any later answer stands over it.
+    // The index as the newest ask answered it (`useIndexOwner`): a walk of the roots
+    // again, or a say's answer for its folder (`asked.ts`); until one has, the first
+    // read's: it was asked first, so any later answer stands over it.
     const firstIndex = useAtomValue(() => firstIndexAtom);
     useAtomMount(() => againAtom);
     const askAgain = useAtomSet(() => againAtom, { mode: 'promiseExit' });
-    const [answered, setAnswered] = createSignal(Option.none<ReviewIndex>());
-    const index = createMemo(() =>
-      Option.match(answered(), {
-        onNone: firstIndex,
-        onSome: (ix) => AsyncResult.success<ReviewIndex, LabFailure>(ix),
-      }),
-    );
-    const asks = newestAsked();
+    const indexOwner = useIndexOwner(firstIndex, () => askAgain());
+    const { index, asks } = indexOwner;
     const films = useAtomValue(() => filmsAtom);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
@@ -502,13 +486,6 @@ export const Root = (
         projects.set(film, made);
         return made;
       });
-    /** Walk the roots again: the index as the newest ask answers it. */
-    const indexAgain = () => {
-      const ask = asks.ask();
-      void askAgain().then((exit) => {
-        if (Exit.isSuccess(exit)) ask.answer(() => setAnswered(Option.some(exit.value)));
-      });
-    };
     const value: ReviewContextValue = {
       state: { place, index, films, quality },
       actions: {
@@ -517,16 +494,12 @@ export const Root = (
           window.scrollTo(0, 0);
         },
         refresh: () => {
-          indexAgain();
+          indexOwner.again();
           // Every project the page has read is read again (now where it shows).
           for (const p of projects.values()) p.changed();
         },
-        indexChanged: indexAgain,
-        answered: (folder) => {
-          Option.map(AsyncResult.value(untrack(index)), (ix) =>
-            setAnswered(Option.some(withFolder(ix, folder))),
-          );
-        },
+        indexChanged: indexOwner.again,
+        answered: indexOwner.answered,
         quality: keepQuality,
       },
       meta: {
