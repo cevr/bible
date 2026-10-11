@@ -1116,10 +1116,16 @@ describe('Follow', () => {
       yield* page.evaluate(
         `window.__reads = 0; const rect = Element.prototype.getBoundingClientRect; Element.prototype.getBoundingClientRect = function (...r) { if (this.classList.contains('lab-source-line')) window.__reads += 1; return rect.apply(this, r); };`,
       );
+      // Two frames for any resize still on its way to land, then the count starts: it covers one placement only.
+      const frames = `new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))`;
+      yield* page.evaluate(frames);
+      yield* page.evaluate(`window.__reads = 0`);
       // The content grows a pixel: a resize, so the view measures its target again, once.
       yield* page.evaluate(
         `(() => { const p = document.querySelector('.lab-source-col .lab-source-page'); p.style.minHeight = (p.getBoundingClientRect().height + 1) + 'px'; })()`,
       );
+      yield* evaluates(page, `window.__reads`, 1);
+      yield* page.evaluate(frames);
       yield* evaluates(page, `window.__reads`, 1);
     }).pipe(Effect.scoped),
   );
