@@ -33,6 +33,7 @@ bun run media pull <key…> [--to dir]           # renders back out (default out
 bun run media list [prefix]                    # what the private store holds under a prefix (default renders/)
 bun run plan | deploy                          # the private store's Cloudflare stack (alchemy.run.ts), prod stage; deploy is the owner's call
 bun run store:keys                             # the deployed store's key pair into ./.env (git-ignored)
+bun run seed-look [--seed n] [--count k] [--out dir]  # new art directions for the looks study, drawn from a seed, as style briefs (see New art directions)
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time and sound, and each bed's span
@@ -459,6 +460,34 @@ or the always-on lab on 8229 when that is unset. `bun run test:gent`
 typechecks and tests the extension against a local gent checkout:
 `~/Developer/personal/gent`, or the one named in `GENT_CHECKOUT`. It runs
 only on your machine, like `test:perf`, and the gate never runs it.
+
+### New art directions: the seeder
+
+`bun run seed-look [--seed n] [--count k] [--out dir]` (`art/seed-look.ts`)
+draws new looks for the `cold-studies` looks study from a seed and prints each
+as a markdown style brief: its picks on every axis of the deck, what each asks
+of the engine and the implementor, its cost (the Canvas 2D kit, or WebGL
+through `glCanvas`), the existing look it is nearest, and the series' standing
+rules (the colour script, human scale, the card). The deck is data
+(`art/deck.ts`): a first-class dimension (2D or 3D), about forty media tagged
+with the dimensions they allow, and an era, a palette family (each keeping the
+colour script), light, character design, camera and motion, texture, verse
+page and card typography, each option naming what it is never drawn with
+(`excludes`) or only with (`requires`). The existing looks are profiled there
+too, so a draw keeps its distance from them (`minDistance`, and never one's
+medium).
+
+A brief cites its seed and the deck's version, and the same seed draws the
+same brief forever: each option is scored by its own id, so an option added to
+an axis changes only the attempts it wins. To add options (the BibleProject
+style survey's catalogue among them), append them with new ids; removing an
+option or renaming one raises the deck's `version`. A batch (`--count` over 1)
+takes seed after seed, keeping a draw only when it is far enough from the
+batch's earlier draws and its dimension has room (half 2D, half 3D), and
+lists the seeds it passed over. The draw itself is the framework's
+(`drawBatch` and `artBrief` from `@bible/film/tools`, `core/art-seed.ts`); the
+deck is this app's, which is why the command is an app script, not a `film`
+command.
 
 ## How a film is built
 

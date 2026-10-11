@@ -36,6 +36,7 @@ export * from './fresh-film.ts';
 export * from './choice-points.ts';
 export type { ReviewRoot } from './review.ts';
 export { pageHref } from '../core/api.ts';
+export { type ArtAxis, type ArtDeck, artBrief, conflicts, drawBatch } from '../core/art-seed.ts';
 export * from './notes-lines.ts';
 export * from './scene-source.ts';
 export * from './scene-head.ts';

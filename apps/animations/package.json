@@ -26,6 +26,7 @@
     "plan": "alchemy plan alchemy.run.ts --stage prod",
     "deploy": "alchemy deploy alchemy.run.ts --stage prod",
     "store:keys": "bun infra/keys.ts --stage prod",
+    "seed-look": "bun art/seed-look.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
