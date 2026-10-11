@@ -136,16 +136,7 @@ const COMMAND_RULES = `
   font-family: var(--font); font-size: var(--fs-2); color: var(--text-1); padding: var(--cmd-key-pad);
   border: 1px solid var(--line-strong); border-radius: var(--r-1);
 }
-/*
- * The sheet (@bible/ui's Sheet): its overlay is fixed over the window and
- * takes presses only over the panel, which it clips to where the panel rests,
- * so nothing outside that rect shows (no shadow). On a laptop the panel stands
- * against the right edge, the window's height; the sheet (\`Sheet.Content\`)
- * fills it and scrolls inside itself. The overlay spans the window with the
- * page's scrollbar in it: the panel stands off that scrollbar
- * (\`--sheet-scroll-padding-x\`, what of the window the page does not lay out
- * into), against the page's edge, as the page's own room for it is.
- */
+/* @bible/ui's Sheet: clipped to its panel (so no shadow), which stands off the page's scrollbar. */
 .lab-inspector-overlay { z-index: var(--cmd-layer); }
 .lab-inspector-panel {
   position: relative; right: var(--sheet-scroll-padding-x, 0px);
@@ -214,7 +205,6 @@ const COMMAND_RULES = `
     --cmd-sheet-floor: calc(var(--tabbar-h) + var(--dock-h) + env(safe-area-inset-bottom));
   }
   body:has(.sh[data-film="false"] .sh-dock) { --cmd-sheet-floor: calc(var(--dock-h) + env(safe-area-inset-bottom)); }
-  /* The panel stands on the floor (lifted off the window's foot), the page's width (the scrollbar's off it), as tall as the sheet in it. */
   .lab-inspector-panel {
     right: auto; bottom: var(--cmd-sheet-floor); align-self: flex-start;
     width: var(--visual-viewport-width, 100%); height: auto;
