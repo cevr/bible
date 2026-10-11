@@ -1636,6 +1636,31 @@ describe('the strip follows the playhead down its rows', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live('a hand’s scroll whose event has not come yet is still the hand’s', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(middle('fall')), viewport: PHONE });
+      yield* page.waitFor('.lab-cue[data-cue="fall"][data-live]');
+      yield* evaluates(page, SHORT, true);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      // The rows' scroll events are held back, as a busy page delivers them late.
+      yield* page.evaluate(
+        `(() => { window.__late = []; window.__hold = (e) => { if (e.target === ${BOX}) { e.stopImmediatePropagation(); window.__late.push(e); } }; document.addEventListener('scroll', window.__hold, true); return true; })()`,
+      );
+      // The reader scrolls to the top; before its event is heard, the rows are laid out again.
+      yield* page.evaluate(`${BOX}.scrollTop = 0`);
+      yield* page.evaluate(
+        `(() => { const r = document.querySelector('.lab-strip-rows'); r.style.minHeight = (r.getBoundingClientRect().height + 1) + 'px'; return true; })()`,
+      );
+      yield* page.evaluate(FRAMES);
+      yield* page.evaluate(
+        `(() => { document.removeEventListener('scroll', window.__hold, true); ${BOX}.dispatchEvent(new Event('scroll')); return true; })()`,
+      );
+      yield* page.evaluate(FRAMES);
+      // The box stays where the hand put it.
+      yield* evaluates(page, `${BOX}.scrollTop`, 0);
+    }).pipe(Effect.scoped),
+  );
+
   it.live(
     'let go while paused, Follow on the strip’s menu takes the rows back where the playhead stands',
     () =>

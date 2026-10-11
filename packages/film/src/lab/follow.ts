@@ -10,7 +10,9 @@
 // layout's when it lands where the box's geometry now clamps that; any other
 // scroll is a reader's, however it came (wheel, finger and its momentum,
 // keys, the scrollbar, find-in-page, assistive tech), and `reader` is told,
-// so the view stops placing until it is taken back. Play is told too.
+// so the view stops placing until it is taken back. A placement asks the same
+// before it scrolls, so a reader's scroll whose event is still on its way is
+// not undone. Play is told too.
 
 import { Option } from 'effect';
 import { type Accessor, createEffect, createSignal, untrack } from 'solid-js';
@@ -68,6 +70,17 @@ export const useFollow = (options: FollowOptions): void => {
   let anchor = 0;
   // Each resize of the box or its content: the view measures its target again.
   const [laidOut, setLaidOut] = createSignal(0);
+  // Whether the box stands where a reader put it: off the anchor, and off the clamp layout made of it (that clamp
+  // becomes the anchor). Asked by each scroll event and before each placement, since a busy page may deliver a
+  // reader's scroll event only after the view has measured again.
+  const readerMoved = (box: HTMLElement): boolean => {
+    const at = box.scrollTop;
+    if (Math.abs(at - anchor) <= SLACK) return false;
+    const clamped = Math.min(anchor, box.scrollHeight - box.clientHeight);
+    if (Math.abs(at - clamped) > SLACK) return true;
+    anchor = clamped;
+    return false;
+  };
 
   // Play takes the view back.
   let wasPlaying = false;
@@ -93,14 +106,7 @@ export const useFollow = (options: FollowOptions): void => {
           o.observe(box);
           o.observe(content);
           const scrolled = () => {
-            const at = box.scrollTop;
-            if (Math.abs(at - anchor) <= SLACK) return;
-            const clamped = Math.min(anchor, box.scrollHeight - box.clientHeight);
-            if (Math.abs(at - clamped) <= SLACK) {
-              anchor = clamped;
-              return;
-            }
-            options.reader();
+            if (readerMoved(box)) options.reader();
           };
           box.addEventListener('scroll', scrolled, { passive: true });
           return () => {
@@ -133,6 +139,8 @@ export const useFollow = (options: FollowOptions): void => {
         ({ box, span }) => {
           // A row with no box (its lane folded away in this mode) has no place to scroll to.
           if (span.first.getClientRects().length === 0) return;
+          // A reader's scroll not heard yet is the reader's all the same: the view lets go rather than undo it.
+          if (readerMoved(box)) return options.reader();
           const clear = options.clear(box);
           const { top, bottom } = extentOf(box, span);
           const inView =
