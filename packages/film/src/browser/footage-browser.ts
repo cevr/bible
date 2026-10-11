@@ -7,12 +7,14 @@
 // once, each answer holding its own frames whatever is decoded after; a
 // run (`run`) feeds each source's times to `samplesAtTimestamps`, which
 // decodes each packet at most once while they rise, holds each frame only
-// until the next, and lets every decoder it made go when its scope closes. mediabunny loads with the first read, so a page
-// whose film reads no footage never downloads it. Which copy a page reads is
+// until the next, and lets every decoder it made go when its scope closes; a
+// read that outlives its run makes nothing. mediabunny loads with the first
+// read (`FootageDecoders`), so a page whose film reads no footage never
+// downloads it. Which copy a page reads is
 // its own (`urlOf`): the lab the proxy, the render the mezzanine. Every
 // source stays open for the page's life, and is let go with it.
 
-import { Effect, Layer, Option, Scope, Semaphore } from 'effect';
+import { Context, Effect, Layer, Option, Scope, Semaphore } from 'effect';
 import type * as MediabunnyModule from 'mediabunny';
 import type { Input, VideoSample, VideoSampleSink } from 'mediabunny';
 import type { FootageFrames, FootageRead } from '../canvas/film.ts';
@@ -34,6 +36,24 @@ type Mediabunny = Pick<
 >;
 
 const loadMediabunny = (): Promise<Mediabunny> => import('mediabunny');
+
+/**
+ * mediabunny for the footage host, loaded with its first read: the page's
+ * own (`FootageDecoders.layer`, which imports the module), provided where the
+ * host is built (`host-browser.ts`).
+ */
+export class FootageDecoders extends Context.Service<
+  FootageDecoders,
+  { readonly load: () => Promise<Mediabunny> }
+>()('@bible/film/browser/FootageDecoders') {
+  static readonly layer = Layer.succeed(
+    FootageDecoders,
+    FootageDecoders.of({ load: loadMediabunny }),
+  );
+}
+
+/** Why a run's read failed when its run had ended first. */
+const RUN_ENDED = 'its run had ended';
 
 /** A read's key in the kept frames. */
 const keyOf = (read: FootageRead) => `${read.source}@${read.at}`;
@@ -79,15 +99,15 @@ const copied = (sample: VideoSample): Effect.Effect<HTMLCanvasElement> =>
 
 /**
  * The live footage of a page that reads each source's copy at `urlOf(source)`,
- * through mediabunny (`load`, a stand-in's in a test).
+ * through the mediabunny it is given (`FootageDecoders`).
  */
 export const footageLayer = (
   urlOf: (source: string) => string,
-  load: () => Promise<Mediabunny> = loadMediabunny,
-): Layer.Layer<Footage> =>
+): Layer.Layer<Footage, never, FootageDecoders> =>
   Layer.effect(
     Footage,
     Effect.gen(function* () {
+      const { load } = yield* FootageDecoders;
       const library = yield* Effect.cached(ask(load));
       const inputs: Array<Input> = [];
       yield* Effect.addFinalizer(() =>
@@ -158,19 +178,28 @@ export const footageLayer = (
               ...Option.getOrElse(Option.fromUndefinedOr(times.get(read.source)), () => []),
               read.at,
             ]);
-          /** Each source's samples, made when the run first reads it. */
+          /**
+           * Whether the run's scope has closed. A read may outlive it (the
+           * render runs each frame's on a fiber of its own): what it would
+           * make after, nothing would let go, so it makes nothing and fails.
+           */
+          let ended = false;
+          /** Each source's samples, made when the run first reads it, never once the run has ended. */
           const iterators = new Map<string, Samples>();
           const iteratorOf = (source: string): Effect.Effect<Samples, string> =>
             Option.match(Option.fromUndefinedOr(iterators.get(source)), {
               onSome: (it) => Effect.succeed(it),
               onNone: () =>
-                Effect.map(sinkOf(source), (sink) => {
-                  const it = sink.samplesAtTimestamps(
-                    Option.getOrElse(Option.fromUndefinedOr(times.get(source)), () => []),
-                  );
-                  iterators.set(source, it);
-                  return it;
-                }),
+                Effect.flatMap(sinkOf(source), (sink) =>
+                  Effect.suspend(() => {
+                    if (ended) return Effect.fail(RUN_ENDED);
+                    const it = sink.samplesAtTimestamps(
+                      Option.getOrElse(Option.fromUndefinedOr(times.get(source)), () => []),
+                    );
+                    iterators.set(source, it);
+                    return Effect.succeed(it);
+                  }),
+                ),
             });
           /** The frames the last `next` handed out: let go at the next, or when the run ends. */
           let held: Array<VideoFrame> = [];
@@ -182,7 +211,12 @@ export const footageLayer = (
           yield* Scope.addFinalizer(
             scope,
             Effect.andThen(
-              letGo,
+              Effect.andThen(
+                Effect.sync(() => {
+                  ended = true;
+                }),
+                letGo,
+              ),
               Effect.suspend(() =>
                 Effect.forEach(
                   [...iterators.values()],
@@ -197,6 +231,11 @@ export const footageLayer = (
               const it = yield* iteratorOf(read.source);
               const got = yield* ask(() => it.next());
               const sample = yield* Effect.fromOption(sampleIn(got), () => 'no frame at that time');
+              // A sample decoded after the run ended is let go, not handed out held.
+              if (ended) {
+                sample.close();
+                return yield* Effect.fail(RUN_ENDED);
+              }
               const frame = sample.toVideoFrame();
               sample.close();
               held.push(frame);

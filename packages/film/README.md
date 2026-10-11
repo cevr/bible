@@ -3331,7 +3331,10 @@ source with mediabunny over a ranged `UrlSource` at
 `/footage/<name>/<sha12>/<copy>.mp4` (`core/footage.ts`): the render page
 reads the mezzanine, every other page the proxy. Every decoder it opens is
 closed when its run ends, however it ends (done, stopped partway, failed,
-interrupted). One module answers that URL for the render's server (the
+interrupted), and a read that outlives its run (each frame's runs on a
+fiber of its own) opens no decoder and holds no frame. It is given
+mediabunny as a service (`FootageDecoders`, the page's own provided where
+its host is built, `host-browser.ts`), loaded with the first read. One module answers that URL for the render's server (the
 app's player) and the lab's alike (`tools/footage-route.ts`): a copy of a
 name the footage library's lock lists now, of its original's hash, made and
 on disk under the outputs folder, whole or by the byte range asked; the

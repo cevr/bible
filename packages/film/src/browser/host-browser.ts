@@ -17,7 +17,7 @@ import type { Frames } from './frames.ts';
 import type { Media } from './media.ts';
 import type { Viewport } from './viewport.ts';
 import { clipboardLayer } from './clipboard-browser.ts';
-import { footageLayer } from './footage-browser.ts';
+import { FootageDecoders, footageLayer } from './footage-browser.ts';
 import { framesLayer } from './frames-browser.ts';
 import { highlightsLayer } from './highlights-browser.ts';
 import { keysLayer } from './keys-browser.ts';
@@ -36,7 +36,7 @@ const hostWith = (
 ): Layer.Layer<BrowserServices> =>
   Layer.mergeAll(
     clipboardLayer,
-    footageLayer((source) => footageHref(source, copy)),
+    footageLayer((source) => footageHref(source, copy)).pipe(Layer.provide(FootageDecoders.layer)),
     framesLayer,
     highlightsLayer,
     keysLayer,
