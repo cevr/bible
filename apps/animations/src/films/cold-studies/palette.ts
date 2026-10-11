@@ -13,7 +13,7 @@ import type { Looks } from '@bible/film/core';
 
 export const looks = {
   style: {
-    options: { cutpaper: 0, ps1: 1, painterly: 2, engraving: 3, bold: 4 },
+    options: { cutpaper: 0, ps1: 1, painterly: 2, engraving: 3, bold: 4, rive: 5, rivegl: 6 },
     play: 'cutpaper',
   },
 } as const satisfies Looks;

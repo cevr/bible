@@ -9,8 +9,17 @@ import { cutpaper } from './cutpaper/index.ts';
 import { engraving } from './engraving/index.ts';
 import { painterly } from './painterly/index.ts';
 import { ps1 } from './ps1/index.ts';
+import { rive, rivegl } from './rive/index.ts';
 
-const LOOKS: Readonly<Record<Style, Look>> = { cutpaper, ps1, painterly, engraving, bold };
+const LOOKS: Readonly<Record<Style, Look>> = {
+  cutpaper,
+  ps1,
+  painterly,
+  engraving,
+  bold,
+  rive,
+  rivegl,
+};
 
 /** The look the study plays. */
 export const lookOf = (): Look => LOOKS[STYLE];

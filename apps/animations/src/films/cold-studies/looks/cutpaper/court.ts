@@ -52,10 +52,8 @@ const SWING: ReadonlyArray<Key> = [
 /** The verdict, rewritten each frame (scratch, so the draw allocates none). */
 const VERDICT = { fill: 1, shown: 0 } satisfies Stamp;
 
-export const court = (f: CourtFrame) => {
-  const { ctx, w, h } = f;
-
-  // The accused's face: head down on "you did it", up at the verdict.
+/** The accused as the control draws them: the kit's paper person, head down on "you did it", up at the verdict. */
+export const paperAccused = (f: CourtFrame) => {
   const bow = f.at('bow') * (1 - f.at('lift'));
   const face = {
     tilt: 0.2 * bow,
@@ -63,6 +61,16 @@ export const court = (f: CourtFrame) => {
     look: [-2 * bow, 3 * bow] as const,
     stains: FIGURE_STAINS,
   };
+  person(f.ctx, face, f.hand('accused'));
+};
+
+/**
+ * The court with its accused drawn by `accused`, feet at the origin (the
+ * control's paper person, or a rig: `looks/rive/`): everything else is the
+ * control's own.
+ */
+export const courtWith = (accused: (f: CourtFrame) => void) => (f: CourtFrame) => {
+  const { ctx, w, h } = f;
 
   VERDICT.fill = 1;
   VERDICT.shown = f.at('stamp');
@@ -186,10 +194,12 @@ export const court = (f: CourtFrame) => {
               }),
             );
           });
-          at(ctx, { x: ACCUSED[0], y: ACCUSED[1] }, () => person(ctx, face, f.hand('accused')));
+          at(ctx, { x: ACCUSED[0], y: ACCUSED[1] }, () => accused(f));
         },
       },
     ],
     { rest: [REST.x, REST.y], haze: C.paper, thickness: 0.6 },
   );
 };
+
+export const court = courtWith(paperAccused);
