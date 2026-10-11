@@ -844,6 +844,9 @@ describe('the review page', () => {
         const frames =
           "Array.from(document.querySelectorAll('.rv-card img')).map((i) => new URL(i.src).searchParams.get('t')).join()";
         yield* until(page, `${frames} === '1,1,1'`);
+        // In the views' toggle group the arrows move along the views; out of it, the page's
+        // arrows step the moments.
+        yield* page.evaluate('document.activeElement.blur()');
         yield* page.press('ArrowRight');
         yield* until(page, `${frames} === '5,5,5'`);
         yield* page.press('ArrowLeft');
@@ -891,6 +894,54 @@ describe('the review page', () => {
   );
 
   it.live(
+    "a set's views, layouts, others and moments are toggle groups: named, one tab stop, the arrows move along, Enter or Space picks, the address keeps it",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: SET });
+        yield* waitFor(page, '.rv-transport');
+        const views = '.rv-views[role="group"][aria-label="View"]';
+        yield* attributeIs(page, `${views} [data-view="all"]`, 'aria-pressed', 'true');
+        yield* attributeIs(page, `${views} [data-view="all"]`, 'tabindex', '0');
+        yield* attributeIs(page, `${views} [data-view="compare"]`, 'tabindex', '-1');
+        // → moves along the views without picking; the address stays.
+        yield* page.focus(`${views} [data-view="all"]`);
+        yield* page.press('ArrowRight');
+        yield* until(page, "document.activeElement.dataset.view === 'compare'");
+        yield* evaluates(page, 'location.search', '');
+        yield* page.press('Enter');
+        yield* until(page, "location.search === '?view=pair&other=B'");
+        // In Compare, its layouts and the version it is against are groups of their own.
+        const layouts = '.rv-layouts[role="group"][aria-label="Layout"]';
+        yield* attributeIs(page, `${layouts} [data-view="pair"]`, 'aria-pressed', 'true');
+        yield* attributeIs(
+          page,
+          '.rv-pick[role="group"][aria-label="Against"] [data-other="B"]',
+          'aria-pressed',
+          'true',
+        );
+        yield* page.focus(`${layouts} [data-view="pair"]`);
+        yield* page.press('ArrowRight');
+        yield* until(page, "document.activeElement.dataset.view === 'wipe'");
+        yield* page.press(' ');
+        yield* until(page, "new URLSearchParams(location.search).get('view') === 'wipe'");
+        yield* attributeIs(page, `${layouts} [data-view="wipe"]`, 'aria-pressed', 'true');
+        // Back walks the address, and the groups show what it holds.
+        yield* page.back;
+        yield* until(page, "new URLSearchParams(location.search).get('view') === 'pair'");
+        yield* attributeIs(page, `${layouts} [data-view="pair"]`, 'aria-pressed', 'true');
+        yield* page.click(`${views} [data-view="moments"]`);
+        yield* attributeIs(
+          page,
+          '.rv-pick[role="group"][aria-label="Moment"] [data-moment="0"]',
+          'aria-pressed',
+          'true',
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'Back lands the player on the time its entry keeps, and nothing writes the later time over it',
     () =>
       Effect.gen(function* () {
@@ -901,7 +952,9 @@ describe('the review page', () => {
         yield* until(page, "location.hash === '#t=0.067'");
         yield* page.click('.rv-views button[data-view="compare"]');
         yield* until(page, "location.search === '?view=pair&other=B'");
-        // The time moves on in the pair's entry; all's keeps its two frames.
+        // The time moves on in the pair's entry (the page's arrows, out of the views' group);
+        // all's keeps its two frames.
+        yield* page.evaluate('document.activeElement.blur()');
         yield* page.press('ArrowRight');
         yield* textHas(page, '.rv-time', '00:00:00:03');
         yield* until(page, "location.hash === '#t=0.1'");
@@ -1087,10 +1140,10 @@ describe('the review page', () => {
         const STALE = 'out of date: its sources changed since it was made';
         /** The grid's one state badge is C's. */
         const onlyCStale = Effect.andThen(
-          textsAre(page, '.rv-grid [data-approval="stale"]', ['Out of date']),
-          textsAre(page, '.rv-grid [data-id="C"] [data-approval="stale"]', ['Out of date']),
+          textsAre(page, '.rv-grid .sh-badge[data-state="stale"]', ['Out of date']),
+          textsAre(page, '.rv-grid [data-id="C"] .sh-badge[data-state="stale"]', ['Out of date']),
         );
-        yield* waitFor(page, '.rv-card[data-id="C"] [data-approval="stale"]');
+        yield* waitFor(page, '.rv-card[data-id="C"] .sh-badge[data-state="stale"]');
         yield* onlyCStale;
         yield* page.click('.rv-views button[data-view="moments"]');
         yield* waitFor(page, '.rv-card[data-id="C"] img');
@@ -1575,7 +1628,9 @@ describe('the review page', () => {
           "getComputedStyle(document.querySelector('.rv-diff-other')).mixBlendMode",
           'difference',
         );
-        // ←/→ step its moment, as in the moments, keeping the other.
+        // ←/→ step its moment, as in the moments, keeping the other (the page's arrows, out
+        // of the layouts' toggle group).
+        yield* page.evaluate('document.activeElement.blur()');
         yield* page.press('ArrowRight');
         yield* until(page, `${stills} === 'A@5,B@5'`);
         yield* until(page, "location.search === '?view=diff&other=B&m=1'");
@@ -1602,7 +1657,7 @@ describe('the review page', () => {
           viewport: { width: 390, height: 844 },
         });
         // The caps fit, C's saying Out of date; why, and its lines, are its Info, in full.
-        yield* waitFor(page, '.rv-card[data-id="C"] [data-approval="stale"]');
+        yield* waitFor(page, '.rv-card[data-id="C"] .sh-badge[data-state="stale"]');
         yield* evaluates(
           page,
           `Array.from(document.querySelectorAll('.rv-card[data-id] .rv-cap')).every((t) => t.scrollWidth <= t.clientWidth)`,

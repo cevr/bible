@@ -10,8 +10,10 @@
 // and the comment box, said over the set's route.
 
 import { useAtomValue } from '@bible/atom-solid';
+import { Toggle } from '@bible/ui/toggle';
+import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Effect, Exit, Match, Option, Scope, Struct } from 'effect';
+import { Array as Arr, Effect, Exit, Match, Option, Scope, Struct } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import {
@@ -570,41 +572,52 @@ const LAYOUT_TITLES = {
 /**
  * The set's modes as one segmented control, and in Compare
  * its layouts as a second: the touch path of `v` and `⇧V` (`viewCommands`).
+ * Each is a toggle group (the arrows move between its choices); a choice
+ * sends the view, which the address owns, and the pressed one is the view
+ * the address shows (a press on it offers nothing).
  */
 const ViewTabs = () => {
   const { set, view, send } = useSet();
   const name = () => viewNameOf(view());
   return (
     <>
-      <div class="sh-seg rv-views">
+      <ToggleGroup<SetMode>
+        class="sh-seg rv-views"
+        aria-label="View"
+        value={[modeOf(name())]}
+        onValueChange={(chosen) => {
+          Option.map(Arr.head(chosen), (mode) =>
+            send.view(ViewEvent.ViewChosen({ view: modeView(mode, name()) })),
+          );
+        }}
+      >
         <For each={modesOf(set().variants.length)}>
           {(mode) => (
-            <button
-              type="button"
-              data-view={mode}
-              aria-pressed={pressed(modeOf(name()) === mode)}
-              onClick={() => send.view(ViewEvent.ViewChosen({ view: modeView(mode, name()) }))}
-            >
+            <Toggle<SetMode> value={mode} data-view={mode}>
               {MODE_TITLES[mode]}
-            </button>
+            </Toggle>
           )}
         </For>
-      </div>
+      </ToggleGroup>
       <Show when={modeOf(name()) === 'compare'}>
-        <div class="sh-seg rv-layouts">
+        <ToggleGroup<Layout>
+          class="sh-seg rv-layouts"
+          aria-label="Layout"
+          value={Arr.filter(LAYOUTS, (layout) => layout === name())}
+          onValueChange={(chosen) => {
+            Option.map(Arr.head(chosen), (layout) =>
+              send.view(ViewEvent.ViewChosen({ view: layout })),
+            );
+          }}
+        >
           <For each={LAYOUTS}>
             {(layout) => (
-              <button
-                type="button"
-                data-view={layout}
-                aria-pressed={pressed(name() === layout)}
-                onClick={() => send.view(ViewEvent.ViewChosen({ view: layout }))}
-              >
+              <Toggle<Layout> value={layout} data-view={layout}>
                 {LAYOUT_TITLES[layout]}
-              </button>
+              </Toggle>
             )}
           </For>
-        </div>
+        </ToggleGroup>
       </Show>
     </>
   );
@@ -972,7 +985,14 @@ const pairOf = (set: SeenPoint, other: string) => ({
 const OtherPick = (props: { readonly other: string }) => {
   const { set, send } = useSet();
   return (
-    <div class="rv-row rv-pick">
+    <ToggleGroup
+      class="rv-row rv-pick"
+      aria-label="Against"
+      value={[props.other]}
+      onValueChange={(chosen) => {
+        Option.map(Arr.head(chosen), (id) => send.view(ViewEvent.OtherChosen({ id })));
+      }}
+    >
       <span class="rv-hint">
         {Option.getOrElse(
           Option.map(Option.fromUndefinedOr(set().variants[0]), (v) => v.label),
@@ -982,18 +1002,12 @@ const OtherPick = (props: { readonly other: string }) => {
       </span>
       <EachVersion of={set().variants.slice(1)}>
         {(variant) => (
-          <button
-            type="button"
-            class="sh-btn"
-            data-other={variant().id}
-            aria-pressed={pressed(variant().id === props.other)}
-            onClick={() => send.view(ViewEvent.OtherChosen({ id: variant().id }))}
-          >
+          <Toggle class="sh-btn" value={variant().id} data-other={variant().id}>
             {variant().label}
-          </button>
+          </Toggle>
         )}
       </EachVersion>
-    </div>
+    </ToggleGroup>
   );
 };
 
@@ -1223,25 +1237,28 @@ const WipeView = (props: { readonly other: string }) => {
   );
 };
 
-/** The moments' chips, the one shown pressed; ←/→ step through them. */
+/** The moments' chips, a toggle group, the one shown pressed: the page's ←/→ step the moment, and in the group they move its focus. */
 const MomentPick = (props: { readonly moments: ReadonlyArray<number>; readonly index: number }) => {
   const { send } = useSet();
   return (
-    <div class="rv-row rv-pick">
+    <ToggleGroup
+      class="rv-row rv-pick"
+      aria-label="Moment"
+      value={[String(props.index)]}
+      onValueChange={(chosen) => {
+        Option.map(Arr.head(chosen), (index) =>
+          send.view(ViewEvent.MomentChosen({ index: Number(index) })),
+        );
+      }}
+    >
       <For each={props.moments.map((t, i) => ({ t, i }))}>
         {(m) => (
-          <button
-            type="button"
-            class="sh-btn"
-            data-moment={String(m.i)}
-            aria-pressed={pressed(m.i === props.index)}
-            onClick={() => send.view(ViewEvent.MomentChosen({ index: m.i }))}
-          >
+          <Toggle class="sh-btn" value={String(m.i)} data-moment={String(m.i)}>
             {timecode(m.t)}
-          </button>
+          </Toggle>
         )}
       </For>
-    </div>
+    </ToggleGroup>
   );
 };
 

@@ -1707,6 +1707,52 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    'the pictures to play over are a toggle group: the arrows move along it, Enter picks, the address keeps it',
+    () =>
+      Effect.gen(function* () {
+        const picture = (ref: string, name: string): Json => ({
+          ref,
+          name,
+          size: 2048,
+          mtime: 0,
+          phone: 'none',
+        });
+        const two = route('GET', /^\/api\/films\/toy\/choices$/, () =>
+          json({
+            ...(choices(freshToy()) as Record<string, Json>),
+            pictures: [
+              picture('out/toy/toy.mp4', 'toy.mp4'),
+              picture('out/toy/warm.mp4', 'warm.mp4'),
+            ],
+          }),
+        );
+        const { page, errors } = yield* openReview([two, ...fakeFilm()], { href: FILM });
+        const group = '.rv-pick[aria-label="Picture"]';
+        const first = `${group} [data-picture="out/toy/toy.mp4"]`;
+        const warm = `${group} [data-picture="out/toy/warm.mp4"]`;
+        yield* attributeIs(page, group, 'role', 'group');
+        yield* attributeIs(page, first, 'aria-pressed', 'true');
+        yield* attributeIs(page, warm, 'aria-pressed', 'false');
+        // One tab stop, the pressed one; → moves along without picking.
+        yield* attributeIs(page, first, 'tabindex', '0');
+        yield* attributeIs(page, warm, 'tabindex', '-1');
+        yield* page.focus(first);
+        yield* page.press('ArrowRight');
+        yield* until(page, "document.activeElement.dataset.picture === 'out/toy/warm.mp4'");
+        yield* attributeIs(page, first, 'aria-pressed', 'true');
+        // Enter picks it; the address holds the pick.
+        yield* page.press('Enter');
+        yield* attributeIs(page, warm, 'aria-pressed', 'true');
+        yield* until(
+          page,
+          "new URLSearchParams(location.search).get('picture') === 'out/toy/warm.mp4'",
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'on a phone, a picture whose proxy is still being made says so and streams nothing',
     () =>
       Effect.gen(function* () {
