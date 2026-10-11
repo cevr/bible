@@ -58,6 +58,18 @@ export const sayText = (say: Say, subject: string): string =>
     }),
   );
 
+/**
+ * A file's name in `folder`: its path under the folder (`watercolor/contact.jpg`),
+ * so two files of one name in two stacks read as two; its ref when it lies elsewhere.
+ */
+export const pathIn = (folder: Pick<ReviewFolder, 'ref'>, file: ReviewFile): string =>
+  Option.getOrElse(
+    Option.liftPredicate(file.ref.slice(folder.ref.length + 1), () =>
+      file.ref.startsWith(`${folder.ref}/`),
+    ),
+    () => file.ref,
+  );
+
 /** A size in bytes as a card says it: `812 KB`, `2.4 GB`. */
 export const sizeText = (bytes: number): string => {
   const units = ['B', 'KB', 'MB', 'GB'];

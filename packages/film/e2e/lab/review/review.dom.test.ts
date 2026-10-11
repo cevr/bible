@@ -443,6 +443,47 @@ describe('the review page', () => {
   );
 
   it.live(
+    "a folder's sheets of one name, in two stacks, open by two names: each its path in the folder",
+    () =>
+      Effect.gen(function* () {
+        const sheet = (stack: string): Json => ({
+          ref: `out/sheets/${stack}/contact.jpg`,
+          name: 'contact.jpg',
+          size: 10,
+          mtime: 0,
+        });
+        const sheets: Json = {
+          folders: [
+            {
+              ref: 'out/sheets',
+              mtime: 0,
+              sets: [],
+              videos: [],
+              images: [sheet('watercolor'), sheet('ink')],
+              docs: [],
+            },
+          ],
+        };
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => json(sheets)),
+            route('GET', /^\/api\/review\/files\/out\/sheets\//, () => text('', 200)),
+            ...routes,
+          ],
+          { href: pageHref.folder('out/sheets') },
+        );
+        // Each name, up to its age.
+        yield* evaluates(
+          page,
+          "Array.from(document.querySelectorAll('.rv-zoom')).map((b) => b.getAttribute('aria-label').split(' · ')[0])",
+          ['Open watercolor/contact.jpg', 'Open ink/contact.jpg'],
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'a loose video whose proxy fails plays its original once the page plays the originals: a failure is its source’s',
     () =>
       Effect.gen(function* () {

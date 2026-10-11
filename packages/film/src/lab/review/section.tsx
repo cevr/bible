@@ -68,6 +68,7 @@ import {
   folderTitle,
   isFilmsFolder,
   isMarkdown,
+  pathIn,
   POSTER_W,
   recordedStaleText,
   sayText,
@@ -450,13 +451,13 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
           <For each={props.folder.images}>
             {(image) => (
               <div class="rv-card">
-                {/* Its name and age are the lightbox's caption. */}
+                {/* Its path in the folder and its age are the lightbox's caption, and its name. */}
                 <Zoom
                   still={reviewFileUrl(image.ref)}
                   alt={image.name}
                   shown={{
                     src: reviewFileUrl(image.ref),
-                    caption: `${image.name} · ${agoText(image.mtime, now)}`,
+                    caption: `${pathIn(props.folder, image)} · ${agoText(image.mtime, now)}`,
                   }}
                 />
               </div>
