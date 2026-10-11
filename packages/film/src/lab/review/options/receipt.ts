@@ -204,7 +204,7 @@ export const approveUndo = (film: string, after: ProjectView): Option.Option<Und
  * The Undo of the approve run `op` that approved `scenes` of `film`: a set's
  * approve of a scene's render, which named its own run, offers it.
  */
-export const approveUndoOf = (
+const approveUndoOf = (
   film: string,
   op: OpId,
   scenes: ReadonlyArray<string>,
