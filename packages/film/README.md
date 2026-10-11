@@ -2437,8 +2437,9 @@ names no rate), else as measured, frames over their span, never rounded to a
 whole rate, so a 29.97 video steps on its own grid),
 the film rate (`FILM_FPS`) only while that answer is pending or the video
 names none; a seek (a step, a scrub, a `#t=`), or the clock's rate read
-while the player is still (read while it plays or waits on a video, none
-is put back: they play on), lands every video at the
+while the player is still (the clock's rate read while it plays or waits on
+a video puts none back: they play on; the leading version's own rate read,
+below, still lands the leader), lands every video at the
 frame the clock's timecode reads, each a quarter of one of its own frames
 into its own frame that holds that frame's start (`landing`, by the
 rate each version's video as it is now is read at, the clock's while that
