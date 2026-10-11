@@ -1,7 +1,7 @@
 // The `film` oxlint plugin, run for real: oxlint lints each fixture in
 // `fixtures/` with only this plugin on, and what it reports must be exactly the
 // lines a fixture marks `// RED film/<rule>`, with corrective advice pinned
-// for each rule. no-unprobed-ink resolves names
+// for every rule the plugin defines. Every rule resolves names
 // through scope, which only a real oxlint run provides, so its fixture is its
 // test. drawing-literal has its fixture here too, and the lab locator it runs
 // (`unlocatable`) is tested on source in src/tools/scene-source.test.ts.
@@ -10,6 +10,7 @@ import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import plugin from './plugin.ts';
 
 /** The timeout of a test here that spawns (oxlint): a cold start's time is the machine's (film/spawn-budget). */
 const SPAWNS_MS = 30_000;
@@ -146,6 +147,13 @@ const lintFixtures = Effect.fn('test.lintFixtures')(function* () {
 });
 
 describe('film oxlint plugin', () => {
+  it.effect('pins a corrective message for every rule it defines', () =>
+    Effect.sync(() => {
+      const pinned = new Set(Object.keys(MESSAGES).map((site) => site.split(' film/')[1]));
+      expect([...pinned].sort()).toEqual(Object.keys(plugin.rules).sort());
+    }),
+  );
+
   it.effect.layer(BunServices.layer)(
     'fires on every RED fixture line and gives the corrective advice',
     () =>
