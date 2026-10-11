@@ -11,7 +11,12 @@ import {
   type EGWParsedRef,
   type EGWSearchQuery,
 } from '@bible/core/egw';
-import { Reference, type Paragraph, type Publication } from '@bible/core/writings';
+import {
+  Reference,
+  type Paragraph,
+  type Publication,
+  type RefcodeMatch,
+} from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
 import { Array as Arr, Console, Effect, Option } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
@@ -116,6 +121,32 @@ const printBook = (book: Publication, parsed: EGWBookRef) =>
       }
     }
   });
+
+const printRefcodeMatches = (matches: readonly RefcodeMatch[]) =>
+  Effect.forEach(
+    matches,
+    (match, index) =>
+      Effect.gen(function* () {
+        // A heading wherever the publication changes; matches arrive grouped.
+        if (index === 0 || matches[index - 1]?.publication.id !== match.publication.id) {
+          const { title, code, author } = match.publication;
+          yield* Console.log(`${title} (${code}) — ${author}\n`);
+        }
+        yield* printParagraphs([match.paragraph]);
+      }),
+    { discard: true },
+  );
+
+const refcodeMatchesJson = (refStr: string, matches: readonly RefcodeMatch[]) => ({
+  ref: refStr,
+  found: true as const,
+  kind: 'refcode' as const,
+  paragraphs: matches.map((match) => ({
+    refcode: Option.getOrElse(match.paragraph.refcode, () => ''),
+    text: nodesToText(match.paragraph.nodes),
+    book: publicationJson(match.publication),
+  })),
+});
 
 export const lookupReference = (parsed: LookupReference) =>
   Effect.gen(function* () {
@@ -253,13 +284,33 @@ export const egwLookup = Command.make('lookup', { ref, json }, (args) =>
       yield* Console.log('  bible egw lookup "PP 351"       # Full page');
       yield* Console.log('  bible egw lookup "PP 351-355"   # Page range');
       yield* Console.log('  bible egw lookup "PP"           # Book info + TOC');
+      yield* Console.log('  bible egw lookup "PTUK February 4, 1897, page 70.2"  # Periodical');
+      yield* Console.log('  bible egw lookup "11LtMs, Lt 1a, 1896"               # Whole letter');
       return;
     }
 
+    // A bare publication code (`PP`) asks for the table of contents and a
+    // page range (`PP 351-355`) for pages; neither is how a paragraph is
+    // cited. Everything else is a refcode, resolved against the whole corpus
+    // as it is cited: books, periodicals (`PTUK February 4, 1897, page 70.2`),
+    // letters (`11LtMs, Lt 1a, 1896, par. 14`).
     const parsed = parseEGWRef(refStr);
+    if (parsed._tag !== 'book' && parsed._tag !== 'page-range') {
+      const service = yield* WritingsService;
+      const matches = yield* service.paragraphsByRefcode(refStr);
+      if (matches.length > 0) {
+        if (args.json) {
+          yield* Console.log(yield* encodeJson(refcodeMatchesJson(refStr, matches)));
+          return;
+        }
+        yield* printRefcodeMatches(matches);
+        return;
+      }
+    }
+
     if (isSearchQuery(parsed)) {
-      yield* Console.error(`Not a valid EGW refcode: "${refStr}"`);
-      yield* Console.error('Use `bible egw search <query>` for FTS instead.');
+      yield* Console.error(`No paragraph in the corpus is cited as "${refStr}".`);
+      yield* Console.error('Use `bible egw search <query>` to find a passage by its words.');
       const cliProcess = yield* CliProcess;
       return yield* cliProcess.exitFailure;
     }

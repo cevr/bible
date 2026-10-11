@@ -138,4 +138,55 @@ Body.`;
       }),
     );
   });
+
+  describe('refuses a document that misquotes', () => {
+    it.effect('exports nothing when any file has a quotation problem', () =>
+      Effect.gen(function* () {
+        const result = yield* runCli(
+          exportOutput,
+          ['--files', '/path/to/clean.md', '--files', '/path/to/misquoted.md'],
+          {
+            files: {
+              files: {
+                '/path/to/clean.md': '# Clean\n\nBody.',
+                '/path/to/misquoted.md': '# Misquoted\n\n[SOP DA 25.2] "a ... b" — gloss',
+              },
+            },
+            quotations: {
+              problems: {
+                '/path/to/misquoted.md': [{ line: 3, kind: 'witness-spliced', detail: 'DA 25.2' }],
+              },
+            },
+            appleScript: {
+              success: true,
+            },
+          },
+        );
+
+        expect(result.success).toBe(false);
+        expectCallCount(result.calls, 'Quotations.check', 2);
+        expectNoCalls(result.calls, 'AppleScript.exec');
+        expectNoCalls(result.calls, 'FileSystem.writeFile');
+      }),
+    );
+
+    it.effect('exports a file that checks clean', () =>
+      Effect.gen(function* () {
+        const result = yield* runCli(exportOutput, ['--files', '/path/to/message.md'], {
+          files: {
+            files: {
+              '/path/to/message.md': '# Test Message\n\nThis is a test message.',
+            },
+          },
+          appleScript: {
+            success: true,
+          },
+        });
+
+        expect(result.success).toBe(true);
+        expectCallCount(result.calls, 'Quotations.check', 1);
+        expectCallCount(result.calls, 'AppleScript.exec', 1);
+      }),
+    );
+  });
 });
