@@ -112,11 +112,6 @@ const CONTEXT = 3;
 /** Paragraphs shown on each side before the reader asks for more. */
 const CONTEXT_SHOWN = 1;
 
-/** How long a pane's request waits for the reader to stop changing it. The
- *  URL changes at once, for links and history; the request waits for a short
- *  quiet period so rapid filter changes share one request. */
-const QUIET = '100 millis';
-
 const EXAMPLES: readonly string[] = [
   'walk through the fire',
   'time of trouble',
@@ -278,7 +273,8 @@ const SearchProvider = (props: { readonly pane: number; readonly children: Eleme
   /** The request. An async memo is Solid 2's resource: it re-runs when this
    *  pane's own request changes — by a submit, a filter toggle or the back
    *  button — and a superseded or disposed run aborts its read, which leaves
-   *  the batch it was in (see `./batch.ts`).
+   *  the batch it was in (see `./batch.ts`). The read joins its batch here,
+   *  as the memo runs, and waits there for the quiet period (`./search.ts`).
    *
    *  An answer this page has already seen is drawn at once, without the
    *  quiet period; that is what lets Back and Forward land on their rows. */
@@ -292,7 +288,7 @@ const SearchProvider = (props: { readonly pane: number; readonly children: Eleme
     if (Option.isSome(known)) return { _tag: 'Ready', response: known.value };
     const controller = new AbortController();
     onCleanup(() => controller.abort());
-    const read = Effect.andThen(Effect.sleep(QUIET), search(request)).pipe(
+    const read = search(request).pipe(
       Effect.match({
         onFailure: (error): Outcome => ({ _tag: 'Failed', message: error.message }),
         onSuccess: (response): Outcome => ({ _tag: 'Ready', response }),

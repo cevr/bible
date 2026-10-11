@@ -40,6 +40,7 @@ import {
   route,
   text,
 } from '../../../src/lab/fixtures/harness.ts';
+import { CLOCK } from '../../../src/lab/fixtures/clock.ts';
 import { menuEntry, openCommandMenu } from '../../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
@@ -161,14 +162,39 @@ const runClock = (page: Tab, ms: number) => page.clock.runFor(ms);
 
 const press = (page: Tab, key: string) => page.press(key);
 
-/** The count-in, each second of it moved on by the page's clock, until the take records. */
-const countedIn = (page: Tab) =>
+/** The status line's text, read in the page. */
+const STATUS = `(document.querySelector('[data-role="status"]')?.textContent ?? '')`;
+
+/**
+ * Wait until `script`, read in the page, is true, while the held clock runs
+ * what is due at the time it stands at, and no further: the page's work
+ * after a key or a second (its fibers' hops are timers due at once) runs,
+ * and no second of the count-in passes.
+ */
+const heldUntil = (page: Tab, script: string, wanted: string) =>
+  page.until(`(globalThis[Symbol.for('${CLOCK}')].runFor(0), ${script})`, {
+    now: STATUS,
+    say: (now) => `the status line never read ${wanted}; it read ${now}`,
+  });
+
+/**
+ * Arm the recorder with `arm` (its key, or the Record button) and count in,
+ * each second of it moved on by the page's clock, until the take records.
+ * The clock is held through the count-in, so each number stays until the
+ * test moves the clock on: a clock that runs on with real time would let a
+ * loaded machine count past a number before the test reads it. Once the
+ * take records, the clock runs on again, as the recording's does.
+ */
+const countedIn = (page: Tab, arm: Effect.Effect<void>) =>
   Effect.gen(function* () {
+    yield* page.clock.hold;
+    yield* arm;
     for (let n = COUNT_IN; n > 0; n--) {
-      yield* statusIs(page, new RegExp(`^recording in ${n}…$`));
-      yield* page.clock.fastForward(1000);
+      yield* heldUntil(page, `${STATUS} === 'recording in ${n}…'`, `recording in ${n}…`);
+      yield* page.clock.runFor(1000);
     }
-    yield* statusIs(page, /^recording · /);
+    yield* heldUntil(page, `/^recording · /.test(${STATUS})`, 'recording · …');
+    yield* page.clock.release;
   });
 
 /** Focus the studio, as a click into it does. */
@@ -511,8 +537,7 @@ describe('the studio', () => {
           yield* page.goto(labAt(0.5));
           yield* page.waitFor('[data-beat="one"].selected');
           yield* focusStudio(page);
-          yield* press(page, 'r');
-          yield* countedIn(page);
+          yield* countedIn(page, press(page, 'r'));
           yield* recorded(page, 0.5);
           yield* press(page, ' ');
           yield* statusIs(page, /^review /);
@@ -553,8 +578,7 @@ describe('the studio', () => {
           yield* page.waitFor('[data-beat="thesis"]');
           yield* page.click('[data-beat="thesis"]');
           yield* focusStudio(page);
-          yield* press(page, 'r');
-          yield* countedIn(page);
+          yield* countedIn(page, press(page, 'r'));
           // The meter reads its floor until the tone's chunks arrive: wait for the tone's level.
           yield* textIs(page, '[data-role="peak"]', /^peak −[5-7]\.\d dBFS$/);
           yield* recorded(page, 1.2);
@@ -714,8 +738,7 @@ describe('the studio', () => {
           const { page, errors } = yield* withMic({ allowed: true });
           yield* page.waitFor('[data-beat="thesis"]');
           yield* page.click('[data-beat="thesis"]');
-          yield* page.click('[data-act="arm"]');
-          yield* countedIn(page);
+          yield* countedIn(page, page.click('[data-act="arm"]'));
           yield* recorded(page, 0.6);
           yield* press(page, ' ');
           yield* statusIs(page, /^review \d\d:\d\d:\d\d:\d\d: hear it, then submit$/);
