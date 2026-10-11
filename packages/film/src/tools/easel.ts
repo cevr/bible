@@ -1,6 +1,7 @@
 // The easel: a still of a scene as its sources stand, in about a second, with
 // no render (`film look`). The lab holds one export page per film warm in
-// this process's Chrome (`Browser`) on its own server, and a look seeks it
+// this process's Chrome (`Browser`) on its own server (the app's render page,
+// at the film's export place, `pageHref.export`), and a look seeks it
 // to the frame and takes the canvas as the view asks (`still`, the export
 // handle's call). Never a stale image: every look first asks the pages'
 // build as it stands (`LabPage.built`, which hears a save the watch missed
@@ -45,6 +46,7 @@ import {
   viewBox,
   wedgeName,
 } from '../core/easel.ts';
+import { pageHref } from '../core/api.ts';
 import { UnknownScene } from '../core/errors.ts';
 import type { SourceRefused } from '../core/refusals.ts';
 import { Browser, type FramePage } from './browser.ts';
@@ -100,7 +102,7 @@ const easelUrl = (origin: string, film: string, kept: number, wedge: string): st
       onNonEmpty: ([w]) => `wedge=${encodeURIComponent(w)}`,
     },
   );
-  return new URL(`films/${encodeURIComponent(film)}/play?export&${pinned}`, reachable(origin)).href;
+  return new URL(`${pageHref.export(film)}?${pinned}`, reachable(origin)).href;
 };
 
 /** A page's failure, said as the look's. */

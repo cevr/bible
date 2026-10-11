@@ -1,7 +1,7 @@
-// The export page's handle, declared once: what the player in export mode
-// (`?export`) hands out on `window.__film`, and what crosses the page
+// The export page's handle, declared once: what the render page
+// (`mountRender`) hands out on `window.__film`, and what crosses the page
 // boundary for each call. The page implements `ExportHandle`
-// (player/main.ts); the tools call it through one typed path that decodes
+// (player/render.ts); the tools call it through one typed path that decodes
 // every answer with its schema here (`FramePage.call`, tools/browser.ts), and
 // the test fake answers the same calls in memory (tools/testing.ts). A new
 // capability is a row in `CallArgs` and in `Answers`, and a type error in
@@ -12,7 +12,7 @@ import { SceneTimes, type StillView } from './easel.ts';
 import { type Encoder, EncoderChoice } from './encoder.ts';
 import { Point } from './schema.ts';
 
-/** What the player's `?export` handle reports about the film it loaded. */
+/** What the render page's handle reports about the film it loaded. */
 export const ExportInfo = Schema.Struct({
   width: Schema.Int,
   height: Schema.Int,

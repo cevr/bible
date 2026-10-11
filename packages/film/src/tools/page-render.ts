@@ -36,7 +36,7 @@ import {
   Stream,
 } from 'effect';
 import * as Worker from 'effect/workers/Worker';
-import type { PageName } from '../core/api.ts';
+import type { AppPage } from '../core/api.ts';
 import { LONGEST_WAIT } from '../core/wait.ts';
 import { FromRender, ToRender } from './page-render-protocol.ts';
 
@@ -49,7 +49,7 @@ interface BundledModule {
 /** A build's server bundle: its modules, and each server-rendered page's entry among them. */
 export interface ServerBundle {
   readonly files: ReadonlyArray<BundledModule>;
-  readonly entries: ReadonlyMap<PageName, string>;
+  readonly entries: ReadonlyMap<AppPage, string>;
 }
 
 /** A build as a render names it: its number among the builds, and its server bundle. */
@@ -89,7 +89,7 @@ interface PageRendererService {
    */
   readonly render: (
     build: RenderBuild,
-    page: PageName,
+    page: AppPage,
     url: string,
     read: Read,
   ) => Effect.Effect<RenderedPage, RenderFailed, Scope.Scope>;

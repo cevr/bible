@@ -406,13 +406,19 @@ const drivenPages = (
         ['/app/review.html', page('review')],
         ['/app/lab.html', page('lab')],
         ['/app/sub/player.html', page('player')],
+        ['/app/index.html', page('render')],
         ...SOURCES.map((file) => [file, text('export {};\n')] as const),
         ...Option.toArray(
           Option.map(server, (code) => ['/app/review.server.js', text(code)] as const),
         ),
       ]);
       const spec: LabPageSpec = {
-        pages: { review: '/app/review.html', lab: '/app/lab.html', player: '/app/sub/player.html' },
+        pages: {
+          review: '/app/review.html',
+          lab: '/app/lab.html',
+          player: '/app/sub/player.html',
+          render: '/app/index.html',
+        },
         servers: Option.match(server, {
           onNone: () => ({}),
           onSome: () => ({ review: '/app/review.server.js' }),
@@ -508,7 +514,7 @@ const trackPages = (
   armed: Deferred.Deferred<void>,
 ) => {
   const page = text('<!doctype html><html><head></head><body></body></html>');
-  for (const name of ['review', 'lab', 'player']) files.set(`/app/${name}.html`, page);
+  for (const name of ['review', 'lab', 'player', 'index']) files.set(`/app/${name}.html`, page);
   files.set('/app/films/f/scenes/index.ts', text('export {};\n'));
   files.set(TRACK, text('mix one'));
   mtimes.set(TRACK, MIXED_AT);
@@ -528,7 +534,12 @@ const trackPages = (
     ),
   ).pipe(Layer.provide(memoryFileSystem(files, new Set(), mtimes)));
   const spec: LabPageSpec = {
-    pages: { review: '/app/review.html', lab: '/app/lab.html', player: '/app/player.html' },
+    pages: {
+      review: '/app/review.html',
+      lab: '/app/lab.html',
+      player: '/app/player.html',
+      render: '/app/index.html',
+    },
     servers: {},
     films: '/app/films',
   };

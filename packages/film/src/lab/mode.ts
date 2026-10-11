@@ -45,8 +45,9 @@ const showsSelection = (mode: LabMode, phone: boolean): boolean =>
  * The mode a link's citation shows, if it cites anything: a note shows Note
  * (the only mode that shows notes), a beat the film lists Record (the only
  * one that shows beats), else a cue or a knob shows Edit, unless the mode
- * shown (`now`, on a `phone` or not) shows it already. One rule, in that
- * order: the citation shows the mode that shows it.
+ * the page shows without it (`now`: the kept one, on a `phone` or not)
+ * shows it already. One rule, in that order: the citation shows the mode
+ * that shows it.
  */
 export const citedMode = (
   cited: {

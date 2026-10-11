@@ -35,6 +35,7 @@ import {
   reachOf,
   runningOf,
   spawnSync,
+  syncAt,
 } from './machine.ts';
 import { type SyncDriver, makeSync } from './sync.ts';
 
@@ -128,7 +129,15 @@ const TransportRow = (
     readonly alone?: boolean;
   }>,
 ) => {
-  const { sync } = props;
+  // The clock as the server opened it: at its start, as a page whose link
+  // says where (`#t=`) opens there only in the browser, the server never
+  // seeing the hash. The server's render and the client's hydration show it,
+  // so both write the same markup; the page's own clock follows once
+  // hydrated (a hydration adopts the server's text and writes it again only
+  // when the value next changes, so a clock read live as it hydrates would
+  // keep the server's time).
+  const opened = untrack(() => syncAt(props.sync().audible, props.sync().start));
+  const sync = createMemo(() => props.sync(), { ssrSource: 'client', loadingValue: opened });
   const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
   const failure = () => failureOf(sync());

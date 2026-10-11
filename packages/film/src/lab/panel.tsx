@@ -19,7 +19,6 @@ import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
   createContext,
-  createEffect,
   createMemo,
   createSignal,
   onCleanup,
@@ -47,6 +46,9 @@ const pickOf = (href: string) => {
 /** The lab's place: the cue or knob picked, the note, the studio's beat a link cites, the compare's view, the Source view. */
 type LabPick = ReturnType<typeof pickOf>;
 
+/** What an entry's link cites (`citedMode`): its note, its beat, and the cue or knob it landed on. */
+type Entry = Pick<LabPick, 'note' | 'beat' | 'selection'>;
+
 /** The places in the panel the staged lab fills: each tool's controls, by section. */
 type SlotName = 'edit' | 'motion-head' | 'motion' | 'compare' | 'compose' | 'record';
 
@@ -65,7 +67,7 @@ interface LabPageValue {
   readonly showMode: (mode: LabMode) => void;
   /**
    * The beats the film lists, as the studio read them (its one read): with
-   * them the panel decides, once an entry, whether its `?beat=` opens Record.
+   * them a `?beat=` the film lists opens Record.
    */
   readonly beatsListed: (beats: ReadonlyArray<string>) => void;
   /** What a reload held by the owner's unsaved work waits for; empty while none waits. */
@@ -210,89 +212,69 @@ export const LabPage = (
   );
   const href = useAtomValue(() => UrlAtom.href);
   const here = createMemo(() => pickOf(href()), { equals: Equal.equals });
-  // The mode: the one shown on this page (picked, or a cited note's or
-  // beat's), else Note on a link that names a note, else the viewer's kept one.
+  // The mode, derived (`lab/mode.ts`): the one the viewer picked on this
+  // entry, else the one the entry's citation shows, else the viewer's kept
+  // one. An entry is each time the link comes to cite another beat or note
+  // (a reload, a pasted link, a beat picked, Back). It cites its note, its
+  // beat (`?beat=`) once the studio's list has it (a beat the film no longer
+  // lists, or a list never read, cites none; the path's scene alone never
+  // opens Record, the recorder's own beat being the studio's `beatAt`), and,
+  // on the page's first entry (a reload or a pasted link), the cue or knob it
+  // names; a cue picked on the page later cites nothing. The citation is
+  // weighed against the kept mode as it is now (`citedMode`), so a kept mode
+  // that reaches the page only as it hydrates (the server never sees it)
+  // still meets the link. A cited note or beat leaves the kept mode as it
+  // was: a pasted link is not the viewer's pick, and an entry without a
+  // citation (Back) shows the kept mode again.
   const kept = useAtomValue(() => keptMode);
   const keep = useAtomSet(() => keptMode);
-  const [chosen, setChosen] = createSignal(Option.none<LabMode>(), { ownedWrite: true });
-  const mode = createMemo(() =>
-    Option.getOrElse(
-      Option.orElse(chosen(), () => Option.map(here().note, (): LabMode => 'note')),
-      () => modeOf(kept()),
-    ),
-  );
   const phone = useMatches(props.host, PHONE);
-  /** Whether the viewer has picked a mode since the link last cited another beat or note. */
-  let picked = false;
-  const showMode = (m: LabMode) => {
-    picked = true;
-    setChosen(Option.some(m));
-    keep(m);
-  };
-  // Each time the link comes to cite another beat or note (an entry: a
-  // reload, a pasted link, a beat picked, Back), one that names a beat
-  // (`?beat=`) the film lists, and no note, shows Record (the only mode that
-  // shows beats). It is decided once an entry, when both the entry and the
-  // studio's list are known: a beat the film no longer lists, a list never
-  // read, or a mode the viewer picked on the entry before then leaves the
-  // mode as it is. The path's scene alone never opens Record; the
-  // recorder's own beat is the studio's (`beatAt`). The page's first entry
-  // (a reload or a pasted link) that names a cue or a knob, and no note or
-  // listed beat, shows Edit unless the mode shown shows it already
-  // (`citedMode`); a pick made on the page later never moves the mode.
   const [listed, setListed] = createSignal(Option.none<ReadonlyArray<string>>(), {
     ownedWrite: true,
   });
-  const cited = createMemo(
+  const cites = createMemo(
     () => `${Option.getOrElse(here().beat, () => '')}?${Option.getOrElse(here().note, () => '')}`,
   );
-  let entry = Option.none<string>();
-  let landing = Option.none<unknown>();
-  let decided = false;
-  createEffect(
-    () => [cited(), listed()] as const,
-    ([cite, beats]) => {
-      if (!Option.contains(entry, cite)) {
-        landing = Option.match(entry, {
-          onNone: () => untrack(here).selection,
-          onSome: () => Option.none(),
-        });
-        entry = Option.some(cite);
-        decided = false;
-        picked = false;
-      }
-      const at = untrack(here);
-      // A cited beat waits for the studio's list.
-      if (decided || (Option.isSome(at.beat) && Option.isNone(beats))) return;
-      decided = true;
-      const listedBeat = Option.filter(at.beat, (b) =>
-        Option.exists(beats, (listedIds) => listedIds.includes(b)),
-      );
-      if (!picked)
-        Option.map(
-          citedMode(
-            { note: at.note, beat: listedBeat, selection: landing },
-            { now: untrack(mode), phone: untrack(phone) },
-          ),
-          (m) => setChosen(Option.some(m)),
-        );
-    },
+  /** The cue or knob the page landed on, which only its first entry cites. */
+  let landing = untrack(here).selection;
+  const entry = createMemo((): Entry => {
+    cites();
+    const at = untrack(here);
+    const selection = landing;
+    landing = Option.none();
+    return { note: at.note, beat: at.beat, selection };
+  });
+  const [picked, setPicked] = createSignal(
+    Option.none<{ readonly on: Entry; readonly mode: LabMode }>(),
+    { ownedWrite: true },
   );
+  const mode = createMemo(() => {
+    const at = entry();
+    const own = modeOf(kept());
+    const cited = citedMode(
+      {
+        note: at.note,
+        beat: Option.filter(at.beat, (b) => Option.exists(listed(), (ids) => ids.includes(b))),
+        selection: at.selection,
+      },
+      { now: own, phone: phone() },
+    );
+    const pick = Option.map(
+      Option.filter(picked(), (p) => p.on === at),
+      (p) => p.mode,
+    );
+    return Option.getOrElse(
+      Option.orElse(pick, () => cited),
+      () => own,
+    );
+  });
+  const showMode = (m: LabMode) => {
+    setPicked(Option.some({ on: untrack(entry), mode: m }));
+    keep(m);
+  };
   const beatsListed = (beats: ReadonlyArray<string>) => {
     setListed(Option.some(beats));
   };
-  // A note picked (a link, a pin, Back) shows the Note mode on this page, the
-  // only one that shows notes, and leaves the viewer's own mode as it was (a
-  // pasted link is not their pick). A cue or a knob is shown in Edit, and in
-  // Motion's lanes on a laptop (the strip folds to its words elsewhere), so a
-  // link that cites one lands in Edit on its first entry, above, unless the
-  // mode kept shows it.
-  createEffect(
-    () => here().note,
-    (note) => {
-      Option.map(note, () => setChosen(Option.some<LabMode>('note')));
-    },
-  );
   onCleanup(props.hub.commands.register(...modeCommands(mode, showMode)));
   const [reloadWaiting, setReloadWaiting] = createSignal('', { ownedWrite: true });
   const [staged, setStaged] = createSignal(false, { ownedWrite: true });

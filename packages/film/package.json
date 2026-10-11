@@ -8,6 +8,7 @@
     "./core": "./src/core/index.ts",
     "./canvas": "./src/canvas/index.ts",
     "./player": "./src/player/index.ts",
+    "./render": "./src/player/render.ts",
     "./player.css": "./src/player/player.css",
     "./tokens.css": "./src/player/tokens.css",
     "./tools": "./src/tools/index.ts",
