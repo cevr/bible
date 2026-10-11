@@ -764,7 +764,10 @@ sheet): it goes Back over the tap that opened the sheet only when
 the entry before it is exactly where the Close would write (a scene's tap moves
 the playhead, so Close keeps that time), else the entry is rewritten to the tape. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
 say; M puts the cursor in the selected scene's comment box (an unsent comment is kept per scene); an approve's receipt offers Undo (`project.undo-approve`), as
-Project's does. The palette and the film's counts are in
+Project's does. A say may go out while another is in flight: the project
+shows the newest asked of the answers (`lab/review/asked.ts`, the first read
+its first ask), so an older approve's answer landing last never hides a newer
+one, and an answer a later ask overtook reads the project again. The palette and the film's counts are in
 the view menu (⋯). A short's Open goes to its play page, as the lab opens
 films.
 

@@ -11,7 +11,16 @@
 // The tape bar's scene names never overlap, and where a scene has room its
 // name reads whole.
 
-import { Boolean as Bool, Effect, Option, Schema } from 'effect';
+import {
+  Array as Arr,
+  Boolean as Bool,
+  Deferred,
+  Effect,
+  Exit,
+  Option,
+  Schedule,
+  Schema,
+} from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode, onTheMs } from '../../src/core/time.ts';
@@ -23,6 +32,7 @@ import {
   type Json,
   URL_T,
   json,
+  later,
   openPlayer,
   refused,
   route,
@@ -156,6 +166,43 @@ const projectRoutes = (meanwhile: ReadonlyArray<string> = []): ReadonlyArray<Fak
     }),
   ];
 };
+
+/**
+ * The project's routes, each approve answered as the project stood when it
+ * landed on the server, but delivered once its gate (`gates`, in the order the
+ * approves are posted; none: at once) opens: so an approve posted first can
+ * be answered last, holding only what it approved. Every read after the
+ * first is held until `again` opens, so what shows meanwhile is the answers'
+ * own order.
+ */
+const heldApproves = (
+  gates: ReadonlyArray<Deferred.Deferred<void>>,
+  again: Deferred.Deferred<void>,
+): ReadonlyArray<FakeRoute> => {
+  const approved = new Map<string, string>();
+  let runs = 0;
+  let reads = 0;
+  return [
+    route('GET', /^\/project$/, () => {
+      reads += 1;
+      const answer = json(projectOf(approved));
+      return Bool.match(reads === 1, { onTrue: () => answer, onFalse: () => later(again, answer) });
+    }),
+    route('POST', /^\/project\/say$/, (asked) => {
+      const said = SaidOf(Option.getOrElse(asked.body, () => ({})));
+      const gate = Arr.get(gates, runs);
+      runs += 1;
+      const op = `op-${runs}`;
+      const made = said.address.ids.filter((s) => !approved.has(s));
+      made.forEach((s) => approved.set(s, op));
+      const answer = json(projectOf(approved, { gave: { op, at: 0, scenes: made } }));
+      return Option.match(gate, { onNone: () => answer, onSome: (g) => later(g, answer) });
+    }),
+  ];
+};
+
+/** Each scene's band state on the tape, in the film's order. */
+const BANDS = `['one', 'two', 'three'].map((s) => document.querySelector('.sc-band [data-scene="' + s + '"]')?.dataset.state)`;
 
 /** Play's ticks turned on, as a viewer does: the view menu (⋯), then Show the ticks. */
 const ticksOn = (page: Tab) =>
@@ -1231,6 +1278,86 @@ describe('the player', () => {
         yield* evaluates(page, 'window.__said', ['Approved scene one · 0/2 → 2/2 approved']);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "approves answered out of order: the first approve's older answer landing last hides neither (CP5-1)",
+    () =>
+      Effect.gen(function* () {
+        const first = yield* Deferred.make<void>();
+        const again = yield* Deferred.make<void>();
+        const { page, asked, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          heldApproves([first], again),
+        );
+        const posts = () => asked.filter((a) => a.method === 'POST' && a.path === '/project/say');
+        const reads = () => asked.filter((a) => a.method === 'GET' && a.path === '/project');
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        // A: its answer (one approved) is held.
+        yield* clickInScene(page, 'one');
+        yield* page.press('a');
+        yield* Effect.repeat(Effect.sync(posts), {
+          until: (p) => p.length === 1,
+          schedule: Schedule.spaced('20 millis'),
+        });
+        // B: posted after A was approved, its answer (one and two) lands first.
+        yield* clickInScene(page, 'two');
+        yield* page.press('a');
+        yield* textHas(page, '[data-role="receipt"]', 'Approved scene two');
+        yield* evaluates(page, BANDS, ['approved', 'approved', 'none']);
+        const readsBefore = reads().length;
+        // A's answer lands last, holding only one: it shows nothing over B's.
+        yield* Deferred.done(first, Exit.void);
+        yield* textHas(page, '[data-role="receipt"]', 'Approved scene one');
+        yield* evaluates(page, BANDS, ['approved', 'approved', 'none']);
+        // An answer a later ask overtook reads the project again; until it answers, B's shows.
+        yield* Effect.repeat(Effect.sync(reads), {
+          until: (r) => r.length === readsBefore + 1,
+          schedule: Schedule.spaced('20 millis'),
+        }).pipe(Effect.timeout('5 seconds'));
+        yield* evaluates(page, BANDS, ['approved', 'approved', 'none']);
+        yield* Deferred.done(again, Exit.void);
+        yield* evaluates(page, BANDS, ['approved', 'approved', 'none']);
+        expect(posts().length).toBe(2);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('two approves answered together, the newer first: neither answer is lost (CP5-1)', () =>
+    Effect.gen(function* () {
+      const older = yield* Deferred.make<void>();
+      const newer = yield* Deferred.make<void>();
+      const again = yield* Deferred.make<void>();
+      const { page, asked, errors } = yield* openPlayer(
+        { href: pageHref.scenes(PROBE), viewport: DESK },
+        STILL_DRAWN,
+        heldApproves([older, newer], again),
+      );
+      const posts = () => asked.filter((a) => a.method === 'POST' && a.path === '/project/say');
+      yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+      yield* clickInScene(page, 'one');
+      yield* page.press('a');
+      yield* Effect.repeat(Effect.sync(posts), {
+        until: (p) => p.length === 1,
+        schedule: Schedule.spaced('20 millis'),
+      });
+      yield* clickInScene(page, 'three');
+      yield* page.press('a');
+      yield* Effect.repeat(Effect.sync(posts), {
+        until: (p) => p.length === 2,
+        schedule: Schedule.spaced('20 millis'),
+      });
+      // Both answers released at once, the newer first; a read again stays held, so what
+      // shows is theirs.
+      yield* Deferred.done(newer, Exit.void);
+      yield* Deferred.done(older, Exit.void);
+      yield* textHas(page, '[data-role="receipt"]', 'Approved scene');
+      yield* evaluates(page, BANDS, ['approved', 'none', 'approved']);
+      yield* Deferred.done(again, Exit.void);
+      yield* evaluates(page, BANDS, ['approved', 'none', 'approved']);
+      expect(errors).toEqual([]);
+    }).pipe(Effect.scoped),
   );
 
   // Serial: a finger's touches (`film/touches-serial`).
