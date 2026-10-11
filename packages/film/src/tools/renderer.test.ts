@@ -629,7 +629,7 @@ describe.concurrent('Renderer', () => {
       Effect.gen(function* () {
         const { ledger, files, render } = setup({
           info,
-          aac: Effect.sleep('10 seconds'),
+          aac: Effect.never,
           frame: (i) =>
             Effect.when(
               Effect.fail(PageError.make({ reason: 'boom' })),

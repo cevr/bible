@@ -3,15 +3,14 @@
 // lab cancels while its server entry is still loading never starts, so once
 // the entry has loaded it sends no head and makes no read.
 
-import { BunServices, BunWorker } from '@effect/platform-bun';
+import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Exit, FileSystem, Layer, Path, Queue, Random } from 'effect';
 import * as Worker from 'effect/workers/Worker';
+import { renderWorkers } from './page-render-bun.ts';
 import { type FromRender, ToRender } from './page-render-protocol.ts';
 
-const Services = BunWorker.layer(
-  () => new globalThis.Worker(new URL('./page-render-worker.ts', import.meta.url)),
-).pipe(Layer.provideMerge(BunServices.layer));
+const Services = renderWorkers.pipe(Layer.provideMerge(BunServices.layer));
 
 const URL_ASKED = 'http://127.0.0.1:8229/films/toy/choices';
 

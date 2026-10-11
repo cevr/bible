@@ -1,13 +1,14 @@
-import { Effect, Layer, Option, Stream } from 'effect';
+import { BunCrypto } from '@effect/platform-bun';
+import { Crypto, Effect, Layer, Option, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { strToU8, zipSync } from 'fflate';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { EGWApiClient } from '../egw/client.js';
 import type { Book, Paragraph, TocItem } from '../egw/schemas.js';
-import type { PublicationArchive } from '../writings/archive.js';
-import { publicationId } from '../writings/model.js';
-import { Target } from './model.js';
+import { PublicationArchive } from '../writings/archive.js';
+import { Publication, publicationCode, publicationId } from '../writings/model.js';
+import { provenanceForArchive, Target } from './model.js';
 import { CorpusSupply } from './service.js';
 import { layerEgwWritingsAssetSource } from './writings-egw-source.js';
 
@@ -81,10 +82,10 @@ const api: EGWApiClientService = {
 /** The supply round at its own boundary. Each test composes its own layer from
  *  that test's API double, so the provide belongs here rather than to a block
  *  nested inside the test's generator. */
-const ensureWritings = (layer: Layer.Layer<CorpusSupply>) =>
+const ensureWritings = (layer: Layer.Layer<CorpusSupply, never, Crypto.Crypto>) =>
   Effect.flatMap(CorpusSupply, (supply) =>
     supply.ensure({ target: Target.writings([publicationId(127)]), refresh: true }),
-  ).pipe(Effect.provide(layer));
+  ).pipe(Effect.provide(layer.pipe(Layer.provide(BunCrypto.layer))));
 
 describe('direct EGW Writings asset source', () => {
   it.effect('installs a provider download archive without chapter requests', () =>
@@ -269,5 +270,31 @@ describe('direct EGW Writings asset source', () => {
 
       expect(installed[0]?.paragraphs[0]?.refcode).toBe('stable-provider-id');
     }),
+  );
+
+  it.effect("names a contribution by the SHA-256 of its archive's JSON", () =>
+    Effect.gen(function* () {
+      const archive = PublicationArchive.make({
+        publication: Publication.make({
+          id: publicationId(127),
+          code: publicationCode('PP'),
+          title: 'Patriarchs and Prophets',
+          author: 'Ellen G. White',
+          paragraphCount: Option.some(0),
+        }),
+        paragraphs: [],
+        bibleReferences: [],
+      });
+      const provenance = yield* provenanceForArchive(
+        yield* Crypto.Crypto,
+        'egw-api',
+        '1890',
+        archive,
+      );
+      // The digest the stored provenance has always carried for this archive.
+      expect(Option.getOrElse(provenance.digest, () => 'none')).toBe(
+        'sha256:f13f93a6bd222d91e597b0e9490940ff7262812822d4a097baed48e474a31f9f',
+      );
+    }).pipe(Effect.provide(BunCrypto.layer)),
   );
 });
