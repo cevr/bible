@@ -8,8 +8,8 @@
 
 import { Context, Effect, Layer } from 'effect';
 import { HttpClient, HttpClientResponse } from 'effect/http';
-import { Refusal, type SetSayPost, reviewFileUrl } from '../../core/api.ts';
-import type { ReviewFolder, ReviewIndex } from '../../core/review.ts';
+import { Refusal, type SetSaid, type SetSayPost, reviewFileUrl } from '../../core/api.ts';
+import type { ReviewIndex } from '../../core/review.ts';
 import { LabClient, type LabFailure, called } from '../api.ts';
 
 interface ReviewCalls {
@@ -19,12 +19,12 @@ interface ReviewCalls {
   readonly duration: (ref: string) => Effect.Effect<number, LabFailure>;
   /** A doc's text (a variant's notes, a folder's markdown). */
   readonly text: (ref: string) => Effect.Effect<string, LabFailure>;
-  /** A say on a version of the set `point` in `folder`: the folder as the say leaves it. */
+  /** A say on a version of the set `point` in `folder`: the folder as it leaves it, what it gave or took. */
   readonly say: (
     folder: string,
     point: string,
     said: SetSayPost,
-  ) => Effect.Effect<ReviewFolder, LabFailure>;
+  ) => Effect.Effect<SetSaid, LabFailure>;
 }
 
 export class ReviewApi extends Context.Service<ReviewApi, ReviewCalls>()(

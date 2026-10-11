@@ -40,6 +40,7 @@ import {
   Places,
   ProjectView,
   type Say,
+  type SetSaid,
   type SetSayPost,
   pageHref,
   reviewFileUrl,
@@ -54,7 +55,7 @@ import { OptionsApi } from './options/api.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
 import { approvalVerbs } from './things.ts';
-import { approveUndoOf, undoApprove } from './options/receipt.ts';
+import { setApproveUndo, setSaidText, undoApprove } from './options/receipt.ts';
 import { quiet, refused } from '../../command/command.ts';
 import { OpId, type Project, projectNow, versionState } from '../../core/catalogue.ts';
 import { uniqueId } from '../../core/unique.ts';
@@ -71,7 +72,6 @@ import {
   pathIn,
   POSTER_W,
   staleText,
-  sayText,
   sizeText,
   versionsText,
   videoSource,
@@ -645,7 +645,7 @@ const SetSaysContext = createContext<SetSays>();
  */
 const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>) => {
   const { meta, actions } = useReview();
-  const status = writeStatus<ReviewFolder>('set');
+  const status = writeStatus<SetSaid>('set');
   /** Version `id` as a receipt names it: its letter, its label, and the set's title. */
   const versionText = (id: string) =>
     Option.getOrElse(
@@ -667,23 +667,10 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
         { index: meta.asks },
         (asked) => ({
           doing: 'saying…',
-          done: () => sayText(asked.say, versionText(asked.variant)),
-          // An approve of a scene's render offers its Undo, bound to the run it named.
-          undo: () =>
-            Option.map(
-              Option.all({
-                film: film(),
-                scene: scene(),
-                op: Option.fromUndefinedOr(asked.op),
-              }),
-              (of) =>
-                approveUndoOf(
-                  of.film,
-                  of.op,
-                  [of.scene],
-                  Option.some({ point: props.set.id, version: asked.variant }),
-                ),
-            ),
+          // What the catalogue says the say gave or took, never what was asked.
+          done: (answer) => setSaidText(asked, answer, versionText(asked.variant)),
+          // An approve of a scene's render offers its Undo, bound to what it gave.
+          undo: (answer) => setApproveUndo(film(), asked, props.set.id, answer),
         }),
       );
       return {

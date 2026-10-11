@@ -86,7 +86,33 @@ const withSceneKey = (value: Json, key: string): Json =>
 interface World {
   readonly earlier: ReadonlyArray<string>;
   stale: boolean;
+  /** Another approved `main` since the page read it: this page's approve gives nothing. */
+  approvedSince?: boolean;
+  /** Another withdrew `main`'s approval since: an Undo takes nothing. */
+  withdrawnSince?: boolean;
 }
+
+/** `answer` (a folder) with `fields` beside it, as a set's say answers it (`SetSaid`). */
+const withSaid = (answer: ReturnType<FakeRoute['answer']>, fields: Json) =>
+  Option.getOrElse(
+    Option.map(
+      Option.liftPredicate(answer, (r) => r._tag === 'Json'),
+      (r) =>
+        json(
+          Match.value(r.json).pipe(
+            Match.when(isFields, (folder): Json => ({
+              ...folder,
+              ...Match.value(fields).pipe(
+                Match.when(isFields, (f) => f),
+                Match.orElse(() => ({})),
+              ),
+            })),
+            Match.orElse((other) => other),
+          ),
+        ),
+    ),
+    () => answer,
+  );
 
 /** The run a withdraw was given. */
 const givenOf = (say: SetSayPost['say']) =>
@@ -136,8 +162,39 @@ const approving = (
     );
   return [
     route('POST', SAY, (a) => {
-      Option.map(decoded(a.body), (post) => asked.push(post));
-      return stated(folder(a));
+      const had = approvedNow() || world.approvedSince === true;
+      const post = decoded(a.body);
+      Option.map(post, (p) => asked.push(p));
+      // What the catalogue gave or took, as the server answers it: open's approval, when it moved.
+      const said = Option.getOrElse(
+        Option.map(post, (p): Json =>
+          Match.value(p.say).pipe(
+            Match.tag('Approve', (): Json =>
+              Option.getOrElse(
+                Option.map(
+                  Option.filter(Option.fromUndefinedOr(p.op), () => !had),
+                  (op): Json => ({ gave: { op, at: 0, scenes: ['open'] } }),
+                ),
+                () => ({}),
+              ),
+            ),
+            Match.tag('Withdraw', (w): Json =>
+              Option.getOrElse(
+                Option.map(w.given, (op): Json => ({
+                  took: {
+                    op,
+                    scenes: Arr.filter(['open'], () => had && world.withdrawnSince !== true),
+                  },
+                })),
+                () => ({}),
+              ),
+            ),
+            Match.orElse((): Json => ({})),
+          ),
+        ),
+        (): Json => ({}),
+      );
+      return withSaid(stated(folder(a)), said);
     }),
     route('GET', /^\/api\/review\/index/, (a) => stated(index.answer(a))),
     ...studioRoutes,
@@ -165,6 +222,50 @@ describe('a Set approving a scene render', () => {
         yield* textHas(page, `${RECEIPT} .lab-receipt-said`, 'Undid approving');
         expect(asked.map((p) => p.say._tag)).toEqual(['Approve', 'Withdraw']);
         expect(Option.flatMap(Arr.get(asked, 1), (p) => givenOf(p.say))).toEqual(op);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'an approve the catalogue says gave nothing (approved since by another) says so, and offers no Undo',
+    () =>
+      Effect.gen(function* () {
+        const asked = new Array<SetSayPost>();
+        const { page, errors } = yield* openReview(
+          approving(asked, { earlier: [], stale: false, approvedSince: true }),
+          { href: pageHref.set(STUDIO_FOLDER, STUDIO_SET) },
+        );
+        yield* waitFor(page, '.rv-main [data-act="inspect"]');
+        yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
+        yield* page.click(`${INSPECTOR} [data-act="approve"]`);
+        yield* textHas(page, `${RECEIPT} .lab-receipt-said`, 'Approved already');
+        yield* countIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 0);
+        expect(asked.map((p) => p.say._tag)).toEqual(['Approve']);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'an Undo the catalogue says took nothing (withdrawn since by another) says nothing was left to undo',
+    () =>
+      Effect.gen(function* () {
+        const asked = new Array<SetSayPost>();
+        const world: World = { earlier: [], stale: false };
+        const { page, errors } = yield* openReview(approving(asked, world), {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+        });
+        yield* waitFor(page, '.rv-main [data-act="inspect"]');
+        yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
+        yield* page.click(`${INSPECTOR} [data-act="approve"]`);
+        yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        world.withdrawnSince = true;
+        yield* page.click(`${RECEIPT} [data-act="receipt-undo"]`);
+        yield* textHas(page, `${RECEIPT} .lab-receipt-said`, 'Nothing left to undo');
+        expect(asked.map((p) => p.say._tag)).toEqual(['Approve', 'Withdraw']);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

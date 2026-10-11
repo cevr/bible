@@ -23,7 +23,7 @@ import {
   recordRender,
   subjectOf,
 } from '../core/catalogue.ts';
-import { withdrawSay } from '../core/api.ts';
+import { type SetSayPost, withdrawSay } from '../core/api.ts';
 import { type ChoiceVariant, VariantMedia } from '../core/choice.ts';
 import { type ReviewFolder, type ReviewIndex, ReviewManifestJson } from '../core/review.ts';
 import { RenderCatalogue } from './catalogue.ts';
@@ -722,6 +722,67 @@ describe('the review service', () => {
           withdrawn.sets.find((s) => s.id === scene)?.variants.find((v) => v.id === 'main')
             ?.approval,
         ).toBe('none');
+      }).pipe(Effect.provide(fixture(false))),
+  );
+
+  it.effect(
+    "a set's say answers what the catalogue gave and took, as a project's does: never what was asked",
+    () =>
+      Effect.gen(function* () {
+        const review = yield* Review;
+        const shown = Option.getOrThrow(
+          Option.fromUndefinedOr(
+            (yield* review.index(false)).folders.find((f) => f.ref === 'out/f'),
+          ),
+        );
+        const scene = shown.sets.find((s) => s.title === 'scene a')?.id ?? '';
+        const film = shown.sets.find((s) => s.title === 'film')?.id ?? '';
+        const asNow: ProjectRead = () =>
+          Effect.succeedSome(
+            projectOf(
+              PROJECT,
+              {
+                key: 'k1',
+                sound: Option.none(),
+                acts: [],
+                scenes: [{ scene: 'a', key: 'k1' }],
+              },
+              'main',
+            ),
+          );
+        const say = (point: string, asked: SetSayPost) => review.say('out/f', point, asked, asNow);
+        const approve = (op: OpId): SetSayPost => ({
+          variant: 'main',
+          say: { _tag: 'Approve' },
+          op,
+        });
+        const withdrawn = (given: Option.Option<OpId>): SetSayPost => ({
+          variant: 'main',
+          say: withdrawSay(given),
+        });
+        const OP_1 = OpId.make('op-1');
+        const OP_2 = OpId.make('op-2');
+        // The run that approved gave the scene; one after it, the scene approved already, gave none.
+        const first = yield* say(scene, approve(OP_1));
+        expect(Option.map(first.gave, (g) => [g.op, g.scenes])).toEqual(Option.some([OP_1, ['a']]));
+        expect(first.took).toEqual(Option.none());
+        expect((yield* say(scene, approve(OP_2))).gave).toEqual(Option.none());
+        // Its Undo took the scene back; again, there was nothing left to take.
+        expect((yield* say(scene, withdrawn(Option.some(OP_1)))).took).toEqual(
+          Option.some({ op: OP_1, scenes: ['a'] }),
+        );
+        expect((yield* say(scene, withdrawn(Option.some(OP_1)))).took).toEqual(
+          Option.some({ op: OP_1, scenes: [] }),
+        );
+        // A plain approve or unapprove, or a comment, answers neither.
+        const plain = [
+          yield* say(film, { variant: 'main', say: { _tag: 'Approve' } }),
+          yield* say(film, withdrawn(Option.none())),
+          yield* say(film, { variant: 'main', say: { _tag: 'Comment', text: 'hm' } }),
+        ];
+        expect(plain.map((a) => [a.gave, a.took])).toEqual(
+          plain.map(() => [Option.none(), Option.none()]),
+        );
       }).pipe(Effect.provide(fixture(false))),
   );
 
