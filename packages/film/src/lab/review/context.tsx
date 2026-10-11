@@ -7,7 +7,13 @@
 // view, spawned on the runtime and stopped with the set), the driver that
 // makes its videos follow the player, and its moments.
 
-import { RegistryProvider, useAtomMount, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import {
+  RegistryProvider,
+  useAtomMount,
+  useAtomRefresh,
+  useAtomSet,
+  useAtomValue,
+} from '@bible/atom-solid';
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, isServer } from '@solidjs/web';
@@ -119,7 +125,7 @@ export interface Shown {
 interface ReviewActions {
   /** Go to `place`, as a link does (Back returns). */
   readonly go: (place: ReviewPlace) => void;
-  /** Walk the roots again now: an ask of the index (`asks`). */
+  /** Walk the roots again now: an ask of the index (`asks`), and a read of the films. */
   readonly refresh: () => void;
   /**
    * A write's answer, `folder` as the write left it, shown in the index in
@@ -358,6 +364,8 @@ export const Root = (
     );
     const asks = newestAsked();
     const films = useAtomValue(() => filmsAtom);
+    // A Refresh reads the films again too: a film added since is one from then on.
+    const refreshFilms = useAtomRefresh(() => filmsAtom);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
     const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(PHONE)));
@@ -376,6 +384,7 @@ export const Root = (
           window.scrollTo(0, 0);
         },
         refresh: () => {
+          refreshFilms();
           const ask = asks.ask();
           void askAgain().then((exit) => {
             if (Exit.isSuccess(exit)) ask.answer(() => setAnswered(Option.some(exit.value)));
