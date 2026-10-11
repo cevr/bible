@@ -1,7 +1,7 @@
 // Fixtures for the dialog. Every dialog is opened as a page opens one: its
 // owner holds `open`, a plain button sets it, and the dialog's own closes
 // reach the owner through `onOpenChange`. URL params for `dialog`:
-// `modal=false` (a drawer's), `backdrop=user` for a `Dialog.Backdrop`,
+// `modal=false` (the lab's sheets'), `backdrop=user` for a `Dialog.Backdrop`,
 // `owner=keep` for an owner that keeps `open` true through a close request,
 // `tall=true` for a page that scrolls, `titles=two` for a second title
 // after the first, which `window.__dropTitle()` unmounts, `portal=inline`

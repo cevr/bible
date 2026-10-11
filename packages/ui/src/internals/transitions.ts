@@ -18,7 +18,7 @@ import type { StateAttributesMapping } from './getStateAttributesProps.ts';
 
 export type TransitionStatus = 'starting' | 'ending' | undefined;
 
-export const TransitionStatusDataAttributes = {
+const TransitionStatusDataAttributes = {
   startingStyle: 'data-starting-style',
   endingStyle: 'data-ending-style',
 } as const;

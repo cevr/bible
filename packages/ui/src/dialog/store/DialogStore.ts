@@ -2,7 +2,7 @@
 //
 // A dialog's state: the popup's (open, mounted, elements) plus whether it
 // is modal, whether outside presses dismiss it, the ids of its title and
-// description, and its viewport (a drawer is a dialog here). Opening and
+// description (a sheet is a dialog here, closed by a swipe too). Opening and
 // closing go through `setOpen`: `onOpenChange` first (which may cancel),
 // then the interactions hear of it, then the state changes.
 import { type Accessor, createSignal, untrack } from 'solid-js';
@@ -39,8 +39,6 @@ export interface DialogStore extends PopupStore {
   setTitleElementId: RegisterId;
   descriptionElementId: Accessor<string | undefined>;
   setDescriptionElementId: RegisterId;
-  viewportElement: Accessor<HTMLElement | null>;
-  setViewportElement: (element: HTMLElement | null) => void;
   readonly backdropRef: { current: HTMLElement | null };
   readonly internalBackdropRef: { current: HTMLElement | null };
   /** Asks the dialog to open or close (through `onOpenChange`, which may cancel). */
@@ -62,7 +60,6 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
     undefined,
     owned,
   );
-  const [viewportElement, setViewportElement] = createSignal<HTMLElement | null>(null, owned);
 
   function setOpen(nextOpen: boolean, eventDetails: BaseUIChangeEventDetails) {
     const details = eventDetails as DialogChangeEventDetails;
@@ -82,8 +79,6 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
     setTitleElementId: (update) => setTitleElementId(update),
     descriptionElementId,
     setDescriptionElementId: (update) => setDescriptionElementId(update),
-    viewportElement,
-    setViewportElement: (element) => setViewportElement(() => element),
     backdropRef: { current: null },
     internalBackdropRef: { current: null },
     setOpen,

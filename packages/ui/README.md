@@ -83,40 +83,11 @@ Upstream's trigger, `Dialog.Viewport`, nested dialog stacks (`data-nested`, `dat
 
 `Close`, `Title` and `Description` set none.
 
-### Drawer
-
-`import { Drawer } from '@bible/ui/drawer'`
-
-- `Drawer.Root`: no element; a dialog that slides in from an edge (`swipeDirection`, `down` by default) and swipes away.
-  - `Drawer.Portal`: the dialog's portal `<div>`.
-    - `Drawer.Viewport`: `<div role="presentation">` that carries the swipe.
-      - `Drawer.Popup`: `<div role="dialog">` that takes focus on open, or gives it to what its `initialFocus` function returns (`false` for nothing).
-        - `Drawer.Content`: `<div data-drawer-content>`, a region where a mouse press never starts a swipe.
-        - `Drawer.Title`, `Drawer.Close`: the dialog's `<h2>` and `<button>`.
-
-Upstream's swipe area, backdrop, description, snap points, nested drawer stacks (and a drawer's `data-nested` inside a dialog), `defaultOpen`, the provider's indent, the root's `onOpenChangeComplete` and the popup's `finalFocus` are left out; a part or an option returns with its first consumer.
-
-A swipe released past half the popup (or flicked) calls `onOpenChange(false, details)` with the reason `swipe`. An owner that refuses it calls `details.cancel()`, and the sheet springs back. Otherwise the sheet holds its exit pose (`data-swipe-dismiss`, `data-ending-style`) until the owner closes the drawer, however many frames later. Upstream instead reads `open` still being true a frame later as a refusal. An owner that neither cancels nor closes leaves the sheet held in its exit pose, with no timeout. Every film owner closes.
-
-| Member     | Attribute                                   | Present when                                                                          |
-| ---------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `Viewport` | `data-open` / `data-closed`                 | the drawer is open / closed                                                           |
-| `Viewport` | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition                              |
-| `Popup`    | `data-open` / `data-closed`                 | the drawer is open / closed                                                           |
-| `Popup`    | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition (also after a swipe dismiss) |
-| `Popup`    | `data-swipe-direction`                      | always: the direction a swipe dismisses it (`up`, `down`, `left` or `right`)          |
-| `Popup`    | `data-swiping`                              | the drawer is being swiped                                                            |
-| `Popup`    | `data-swipe-dismiss`                        | the drawer is being dismissed by a swipe release                                      |
-
-`Close`, `Content` and `Title` set none (`data-drawer-content` on `Content` is a fixed marker).
-
-CSS variables on `Drawer.Popup`: `--drawer-swipe-movement-x`, `--drawer-swipe-movement-y` (the drag so far, while dragged). Upstream's `--drawer-swipe-strength` is left out: no stylesheet reads it.
-
 ### Sheet
 
 `import { Sheet } from '@bible/ui/sheet'`
 
-React Aria's Sheet (`react-aria-components` 1.22.1, with `useViewportSize` from `react-aria` 3.53.1), not Base UI's: Copyright 2020-2026 Adobe, under the Apache License 2.0 in `src/sheet/LICENSE`. Each file names its upstream path and says what changed. It is built on the dialog above (its root, store, portal, title and close), as upstream's is built on its Modal and Dialog.
+React Aria's Sheet (`react-aria-components` 1.22.1, with `useViewportSize` from `react-aria` 3.53.1), in place of Base UI's Drawer, which is left out: Copyright 2020-2026 Adobe, under the Apache License 2.0 in `src/sheet/LICENSE`. Each file names its upstream path and says what changed. It is built on the dialog above (its root, store, portal, title and close), as upstream's is built on its Modal and Dialog.
 
 - `Sheet.Root`: no element; a dialog that rests on an edge (`position`: `bottom` by default, `top`, `left`, `right` or `center`) and is swiped away (`swipeDirection`: the position's by default, `vertical` for `center`; also `horizontal`). Its owner opens it through `open`; `onOpenChange(open, details)`, `onOpenChangeComplete(open)` (after it has scrolled in, and after it has scrolled out and unmounted), `modal` (`true` by default), `disablePointerDismissal`, `preventDismissal` and `snapPoints`.
   - `Sheet.Portal`: the dialog's portal `<div>`.
@@ -235,4 +206,4 @@ Upstream's uncontrolled mode (`defaultValue`), `multiple`, `disabled`, `orientat
 
 ## Styling contract
 
-The studio styles these parts through its tokens (`packages/film/src/player/tokens.css`), in rules that select on the `data-*` attributes above and on its own class names. The menus, dialogs, drawers and toasts are styled in `packages/film/src/lab/command/style.ts`; the toggle group (`.sh-seg`, its toggles' `data-pressed`) and the number field's input (`.lab-num`) in `packages/film/src/lab/page-shell-style.ts`. No part writes a colour, a size or a font family; the only inline styles a part sets are mechanics (position, `pointer-events`, `user-select`, `touch-action`, a transition turned off for a frame or during a drag, an opacity held at 0 until the first position, `will-change: transform` at a device pixel ratio of 1.5 or more) and the CSS variables listed above. A part that needs a visual state exposes it as a `data-*` attribute rather than styling it.
+The studio styles these parts through its tokens (`packages/film/src/player/tokens.css`), in rules that select on the `data-*` attributes above and on its own class names. The menus, dialogs, sheets and toasts are styled in `packages/film/src/lab/command/style.ts`; the toggle group (`.sh-seg`, its toggles' `data-pressed`) and the number field's input (`.lab-num`) in `packages/film/src/lab/page-shell-style.ts`. No part writes a colour, a size or a font family; the only inline styles a part sets are mechanics (position, `pointer-events`, `user-select`, `touch-action`, a transition turned off for a frame or during a drag, an opacity held at 0 until the first position, `will-change: transform` at a device pixel ratio of 1.5 or more; the sheet's overlay, scroll container, stage and snap markers, their clip, snapping and scroll-driven motion) and the CSS variables listed above. A part that needs a visual state exposes it as a `data-*` attribute rather than styling it.
