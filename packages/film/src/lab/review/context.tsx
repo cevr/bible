@@ -10,6 +10,7 @@
 import {
   RegistryProvider,
   useAtomMount,
+  useAtomRefresh,
   useAtomSet,
   useAtomValue,
   useRegistry,
@@ -170,8 +171,9 @@ interface ReviewActions {
   /** Go to `place`, as a link does (Back returns). */
   readonly go: (place: ReviewPlace) => void;
   /**
-   * Walk the roots again now (an ask of the index, `asks`), and read every
-   * film's project the page has read again (`FilmProject.changed`).
+   * Walk the roots again now (an ask of the index, `asks`), read the films
+   * again, and read every film's project the page has read again
+   * (`FilmProject.changed`).
    */
   readonly refresh: () => void;
   /**
@@ -425,6 +427,8 @@ export const Root = (
     const indexOwner = useIndexOwner(firstIndex, () => askAgain());
     const { index, asks } = indexOwner;
     const films = useAtomValue(() => filmsAtom);
+    // A Refresh reads the films again too: a film added since is one from then on.
+    const refreshFilms = useAtomRefresh(() => filmsAtom);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
     const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(PHONE)));
@@ -494,6 +498,7 @@ export const Root = (
           window.scrollTo(0, 0);
         },
         refresh: () => {
+          refreshFilms();
           indexOwner.again();
           // Every project the page has read is read again (now where it shows).
           for (const p of projects.values()) p.changed();
@@ -799,6 +804,31 @@ export const useClockRate = (
   );
 };
 
+/**
+ * Tell a set's driver the frame rate of each version's video (`timed`), its
+ * own as the server reads it for the file it is now: each video lands in its
+ * own frames (`landing`), whatever the clock's rate. Derived as the clock's
+ * rate is (`useClockRate`): none while its file's answer is pending, or when
+ * it names none, so a file written again with no rate its frames tell lands
+ * by the clock's rate, never by its old file's. Read in the page only
+ * (`timedHere`), as the clock's is.
+ */
+const useVersionRates = (variants: Accessor<SeenPoint['variants']>, driver: SyncDriver) => {
+  const { meta } = useReview();
+  const rates = useAtomValue(() => {
+    const each = variants();
+    return Atom.make((get) =>
+      each.map((v) => ({
+        id: v.id,
+        fps: Option.flatMap(AsyncResult.value(get(meta.timedHere(v.video))), (t) => t.fps),
+      })),
+    );
+  });
+  createEffect(rates, (known) => {
+    for (const { id, fps } of known) driver.timed(id, fps);
+  });
+};
+
 /** The set's place in the URL: its path, its view in the query, the player's time in the hash. */
 const setPlace = UrlAtom.place(Places.set);
 
@@ -949,6 +979,8 @@ const SetBody = (
       ),
     sendSync,
   );
+  // Each version's video lands in its own frames at the clock's.
+  useVersionRates(() => props.set.variants, driver);
   // The same instants read again are no new moments: the views over them stay.
   const moments = createMemo(
     () =>

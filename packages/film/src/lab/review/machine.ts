@@ -31,10 +31,10 @@
 // the page reads it from there, and `stepView` runs one event through the
 // view machine to the state the page writes back.
 
-import { Effect, Match, Option, Schema } from 'effect';
+import { Effect, Match, Option, Predicate, Schema } from 'effect';
 import { Event, Machine, State, simulate } from 'effect-machine';
 import type { SET_VIEWS } from '../../core/api.ts';
-import { FILM_FPS, timecode } from '../../core/time.ts';
+import { FILM_FPS, frameRead, timecode } from '../../core/time.ts';
 
 /** An end not known yet: the clock's video's metadata has not loaded. */
 export const UNKNOWN_END = Number.MAX_SAFE_INTEGER;
@@ -228,8 +228,8 @@ export const syncMachine = (audible: string, start: number, at: number = start) 
     })
     .on(ANY, SyncEvent.Stepped, ({ state, event }) => {
       const clock = clockOf(state);
-      // From the frame its timecode reads (`timecodeParts`: the nearest), onto the frame grid: no drift.
-      const frame = Math.round(clock.t * clock.fps);
+      // From the frame its timecode reads (`frameRead`), onto the frame grid: no drift.
+      const frame = frameRead(clock.t, clock.fps);
       return withClock(state, {
         ...clock,
         t: clamp(clock, (frame + event.frames) / clock.fps),
@@ -269,6 +269,12 @@ export type SyncActor = Effect.Success<ReturnType<typeof spawnSync>>;
 
 /** Whether the videos should be running: only while playing (a stall holds them all). */
 export const runningOf = (state: SyncState): boolean => state._tag === 'Playing';
+
+/** Whether the player plays, or waits on its videos to play on (`MOVING`). */
+export const movingOf: (state: SyncState) => boolean = Predicate.or(
+  Predicate.isTagged('Playing'),
+  Predicate.isTagged('Buffering'),
+);
 
 /**
  * Whether the player is at rest: paused where it opens. A scrub is never at

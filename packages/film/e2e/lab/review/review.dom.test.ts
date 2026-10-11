@@ -15,7 +15,7 @@ import { BunServices } from '@effect/platform-bun';
 import { Deferred, Effect, Exit, FileSystem, Layer, Match, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
-import { FILM_FPS, timecode } from '../../../src/core/time.ts';
+import { FILM_FPS, frameAtOrBefore, timecode } from '../../../src/core/time.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
 import { ReviewDuration } from '../../../src/core/review.ts';
 import { Media } from '../../../src/tools/media.ts';
@@ -73,8 +73,20 @@ const RATED: ReadonlyArray<{
   { rate: '29.97', fps: 30000 / 1001, served: ', served' },
 ];
 
-/** The passes of a rated video's fifteen frames (`ratedVideo`): 120 frames to step through. */
-const RATED_PASSES = 8;
+/** A rated video's frames (`ratedVideo`): 120 to step through. */
+const RATED_FRAMES = 120;
+
+/**
+ * Sets whose versions differ in rate: the first version's video (the
+ * clock) at `clock` frames a second, the others at `other`, slower and
+ * faster, and 29.97 against 30 either way.
+ */
+const MIXED: ReadonlyArray<{ readonly clock: number; readonly other: number }> = [
+  { clock: 24, other: 30 },
+  { clock: 30, other: 24 },
+  { clock: 30000 / 1001, other: 30 },
+  { clock: 30, other: 30000 / 1001 },
+];
 
 /** Long enough to step a rated video frame by frame, over a hundred times. */
 const SWEEP = 120_000;
@@ -685,7 +697,7 @@ describe('the review page', () => {
           // A real video made at `fps`, timed as the server times it (`Media.timing`), sent as the route encodes it.
           const fs = yield* FileSystem.FileSystem;
           const rated = `${yield* fs.makeTempDirectoryScoped()}/rated.mp4`;
-          yield* fs.writeFile(rated, yield* ratedVideo(fps, RATED_PASSES));
+          yield* fs.writeFile(rated, yield* ratedVideo(fps, RATED_FRAMES));
           const timed = yield* Schema.encodeEffect(ReviewDuration)(
             yield* (yield* Media).timing(rated),
           );
@@ -700,7 +712,7 @@ describe('the review page', () => {
           );
           yield* waitFor(page, '.rv-transport');
           // The end is read in the video's frames (120: `00:00:05:00` at 24, `00:00:04:00` at 30 and, non-drop-frame, at 29.97).
-          const frames = 15 * RATED_PASSES;
+          const frames = RATED_FRAMES;
           yield* textHas(page, '.rv-transport .rv-time', timecode(frames / fps, fps));
           // Each video keeps the time of the picture it last showed (`requestVideoFrameCallback`).
           const videos = "Array.from(document.querySelectorAll('.rv-card video'))";
@@ -724,6 +736,167 @@ describe('the review page', () => {
           }
           yield* page.press('ArrowLeft');
           yield* onFrame(frames - 3);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped, Effect.provide(Layer.provideMerge(Media.layer, BunServices.layer))),
+      SWEEP,
+    );
+  }
+
+  it.live(
+    "a version whose video is written again with no rate its frames tell lands by the clock's rate, never by its old file's",
+    () =>
+      Effect.gen(function* () {
+        // Every version's video at 24 fps; a Refresh finds version A's (the
+        // clock's) written again, and the server reads no rate from it now.
+        // 125 frames (5.21 s): its end reads 5 s 5 frames at 24, 5 s 6 at 30.
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped();
+        yield* fs.writeFile(`${dir}/roof.mp4`, yield* ratedVideo(24, 125));
+        const timed = yield* Schema.encodeEffect(ReviewDuration)(
+          yield* (yield* Media).timing(`${dir}/roof.mp4`),
+        );
+        const unrated = yield* Schema.encodeEffect(ReviewDuration)(
+          yield* (yield* Media)
+            .timing(`${dir}/roof.mp4`)
+            .pipe(Effect.map((t) => ({ ...t, fps: Option.none<number>() }))),
+        );
+        const answers = [index, indexOf(walkOf('none'), { warmAt: 60_000 })];
+        let reads = 0;
+        const timings: ReadonlyArray<Json> = [timed, unrated];
+        let timedA = 0;
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => {
+              const answer = answers[Math.min(reads, 1)] ?? index;
+              reads += 1;
+              return json(answer);
+            }),
+            route('GET', /^\/api\/review\/duration\?ref=out%2Fart%2Froof\.A\.mp4/, () => {
+              const answer = timings[Math.min(timedA, 1)] ?? timed;
+              timedA += 1;
+              return json(answer);
+            }),
+            route('GET', /^\/api\/review\/duration/, () => json(timed)),
+            route('GET', /^\/api\/review\/files\/out\/art\/roof\.[A-C]\.mp4/, () =>
+              file(`${dir}/roof.mp4`),
+            ),
+            ...routes,
+          ],
+          { href: SET },
+        );
+        const video = (id: string) => `document.querySelector('.rv-card video[data-id="${id}"]')`;
+        const at = (id: string, seconds: number) =>
+          `Math.abs(${video(id)}.currentTime - ${seconds}) < 1e-4`;
+        // The clock counts 24 fps, and each video stands a quarter into its
+        // first 24 fps frame: every rate is known.
+        yield* textHas(page, '.rv-transport .rv-time', `/ ${timecode(125 / 24, 24)}`);
+        yield* until(page, ['A', 'B', 'C'].map((id) => at(id, 0.25 / 24)).join(' && '));
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
+        // A's new video is read, naming no rate: the clock counts the film rate.
+        yield* textHas(page, '.rv-transport .rv-time', `/ ${timecode(125 / 24, FILM_FPS)}`);
+        yield* page.press('ArrowRight');
+        // The clock reads its frame 1 at 30 fps: A, rated as the clock now, lands
+        // a quarter into that frame; B and C, still 24 fps, in their frame 0.
+        yield* until(
+          page,
+          [
+            `document.querySelector('.rv-transport .rv-time-at').textContent === '${timecode(1 / FILM_FPS, FILM_FPS)}'`,
+            at('A', 1.25 / FILM_FPS),
+            at('B', 0.25 / 24),
+            at('C', 0.25 / 24),
+          ].join(' && '),
+        );
+        expect(timedA).toBe(2);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide(Layer.provideMerge(Media.layer, BunServices.layer))),
+    SLOW,
+  );
+
+  for (const { clock, other } of MIXED) {
+    it.live(
+      `steps a Set of videos at other rates (a ${clock.toFixed(2)} fps clock, ${other.toFixed(2)} fps versions): each shows its own frame at the clock's, one seek a step, and the timecode never runs back`,
+      () =>
+        Effect.gen(function* () {
+          // Each version's video made at its rate, timed as the server times it, sent as the route encodes it.
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* fs.makeTempDirectoryScoped();
+          const rates = { A: clock, B: other, C: other };
+          // Long enough at either rate for every frame of the clock stepped.
+          const frames = (fps: number) => Math.ceil((RATED_FRAMES * fps) / clock) + 2;
+          const timings: Record<string, Json> = {};
+          for (const [id, fps] of Object.entries(rates)) {
+            yield* fs.writeFile(`${dir}/${id}.mp4`, yield* ratedVideo(fps, frames(fps)));
+            timings[id] = yield* Schema.encodeEffect(ReviewDuration)(
+              yield* (yield* Media).timing(`${dir}/${id}.mp4`),
+            );
+          }
+          /** The version (`A`…`C`) whose video an asked path names. */
+          const idOf = (path: string) => decodeURIComponent(path).match(/roof\.([A-C])\.mp4/)?.[1];
+          const { page, errors } = yield* openReview(
+            [
+              route('GET', /^\/api\/review\/duration/, (asked) =>
+                json(timings[idOf(asked.path) ?? 'A'] ?? {}),
+              ),
+              route('GET', /^\/api\/review\/files\/out\/art\/roof\.[A-C]\.mp4/, (asked) =>
+                file(`${dir}/${idOf(asked.path) ?? 'A'}.mp4`),
+              ),
+              ...routes,
+            ],
+            { href: SET },
+          );
+          yield* waitFor(page, '.rv-transport');
+          const video = (id: string) => `document.querySelector('.rv-card video[data-id="${id}"]')`;
+          // The clock's rate is read (its end reads in its frames), and each
+          // video stands a quarter into its own first frame: its rate is known.
+          yield* textHas(
+            page,
+            '.rv-transport .rv-time',
+            `/ ${timecode(frames(clock) / clock, clock)}`,
+          );
+          yield* until(
+            page,
+            Object.entries(rates)
+              .map(
+                ([id, fps]) =>
+                  `Math.abs(${video(id)}.currentTime - ${0.25 / fps}) < 1e-4 && !${video(id)}.seeking && ${video(id)}.readyState >= 2`,
+              )
+              .join(' && '),
+          );
+          // From here each video counts its seeks, and keeps the time of the picture it last showed:
+          // the one it holds now (sought, and its frame there loaded), until it presents another. A
+          // step that keeps a video in its frame presents none (its picture is the one already shown).
+          yield* page.evaluate(
+            `Array.from(document.querySelectorAll('.rv-card video')).forEach((v) => { v.dataset.seeks = '0'; v.dataset.shown = String(v.currentTime); v.addEventListener('seeking', () => { v.dataset.seeks = String(Number(v.dataset.seeks) + 1); }); const shown = (_, frame) => { v.dataset.shown = String(frame.mediaTime); v.requestVideoFrameCallback(shown); }; v.requestVideoFrameCallback(shown); })`,
+          );
+          /**
+           * The clock reads its frame `n`, in the transport and in the
+           * header (the one a laptop shows), and every video stands inside
+           * its own frame that holds the clock's time, shows its picture,
+           * and was sought once for each step.
+           */
+          const onFrame = (n: number, steps: number) =>
+            until(
+              page,
+              [
+                `document.querySelector('.rv-transport .rv-time-at').textContent === '${timecode(n / clock, clock)}'`,
+                `document.querySelector('.sh-header .sh-timecode').textContent === '${timecode(n / clock, clock)}'`,
+                ...Object.entries(rates).map(([id, fps]) => {
+                  const own = frameAtOrBefore(n / clock, fps);
+                  return `(${video(id)}.currentTime >= ${own / fps} && ${video(id)}.currentTime < ${(own + 1) / fps} && Math.abs(Number(${video(id)}.dataset.shown) - ${own / fps}) < ${0.5 / fps} && ${video(id)}.dataset.seeks === '${steps}')`;
+                }),
+              ].join(' && '),
+            );
+          let before = timecode(0, clock);
+          for (let n = 1; n < RATED_FRAMES - 1; n++) {
+            // The timecode the step lands on comes after the one before it.
+            expect(timecode(n / clock, clock) > before).toBe(true);
+            before = timecode(n / clock, clock);
+            yield* page.press('ArrowRight');
+            yield* onFrame(n, n);
+          }
+          yield* page.press('ArrowLeft');
+          yield* onFrame(RATED_FRAMES - 3, RATED_FRAMES - 1);
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped, Effect.provide(Layer.provideMerge(Media.layer, BunServices.layer))),
       SWEEP,
@@ -1492,7 +1665,8 @@ describe('the review page', () => {
     () =>
       Effect.gen(function* () {
         // The first answer is the page's; a refresh's finds version A's video written again,
-        // and the server measures it 40 s long now.
+        // and the server measures it 40 s long now. (The other versions' videos are read
+        // too, for their own frame rates: those reads are not counted.)
         const answers = [index, indexOf(walkOf('none'), { warmAt: 60_000 })];
         let reads = 0;
         const lengths = [20, 40];
@@ -1504,7 +1678,7 @@ describe('the review page', () => {
               reads += 1;
               return json(answer);
             }),
-            route('GET', /^\/api\/review\/duration/, () => {
+            route('GET', /^\/api\/review\/duration\?ref=out%2Fart%2Froof\.A\.mp4/, () => {
               const seconds = lengths[Math.min(measured, 1)] ?? 20;
               measured += 1;
               return json({ seconds });

@@ -12,7 +12,8 @@
 // source, and each retry, is a fresh element attached), so a failure is its
 // media's alone; another video that fails is left out: of the drift pull,
 // of the seeks and plays, and of what a stalled set waits on, until its media
-// is measured again. A seek moves every video that can play; a stall pauses
+// is measured again. A seek moves every video that can play, each onto its
+// own frame at the clock's (`landing`, by its own rate once `timed`); a stall pauses
 // them all until each has enough to play on (`Buffering`). A seek or a play it sets going on a video lasts
 // only while that video is attached: replaced, released or stopped, it
 // ends. The player's transport (space, ←/→) is declared here too, as the
@@ -20,7 +21,7 @@
 
 import { type Context, Data, type Duration, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
-import { frameAtOrBefore } from '../../core/time.ts';
+import { frameAtOrBefore, frameRead } from '../../core/time.ts';
 import { Media, type Playable } from '../../browser/media.ts';
 import { type Command, type Invocation, quietly } from '../../command/command.ts';
 import type { Target } from '../../command/target.ts';
@@ -29,6 +30,7 @@ import {
   SyncEvent as Events,
   type SyncState,
   UNKNOWN_END,
+  movingOf,
   runningOf,
 } from './machine.ts';
 
@@ -42,19 +44,26 @@ const TICK_S = 0.05;
 const INTO_FRAME = 0.25;
 
 /**
- * Where a seek to `t` lands on a media element: a quarter of a frame (at the
- * clock's `fps`) into the frame `t` lies in, or `t` when it is further in
- * already. A step's time is its frame's start (`n / fps`), and Chrome keeps
- * an element's time a microsecond short of some frames' starts (frame 25 at
- * 24 fps, 62 at 30), which shows the frame before; inside the frame, it
- * shows that frame's picture. The clock's own time stays on the frame
- * (the machine's `t`). A video at over four times the clock's rate would
- * show its frame after the one at `t`.
+ * Where a seek of the clock to `t` (counting `fps` frames a second) lands on
+ * a video at `own` frames a second: the clock's frame is the one its
+ * timecode reads (`frameRead`), and the video lands a quarter of one of its
+ * own frames into its frame that holds that frame's start. A step's time is
+ * its frame's start (`n / fps`), and Chrome keeps an element's time a
+ * microsecond short of some frames' starts (frame 25 at 24 fps, 62 at 30),
+ * which shows the frame before; inside the frame, it shows that frame's
+ * picture. So each video shows its own frame at the clock's frame, at any
+ * rate of either, and a scrub or a `#t=` shows the frame its timecode reads.
+ * The clock's own time stays as the machine has it (`t`).
  */
-const intoFrame = (t: number, fps: number): number =>
-  Math.max(t, (frameAtOrBefore(t, fps) + INTO_FRAME) / fps);
+const landing = (t: number, fps: number, own: number): number =>
+  (frameAtOrBefore(frameRead(t, fps) / fps, own) + INTO_FRAME) / own;
 
-/** Whether `video` has drifted from the clock at `t` far enough to be put back. */
+/**
+ * Whether `video` has drifted from the clock's video at `t` far enough to be
+ * put back on it: the drift pull seeks it to `t` itself (a playing picture
+ * needs no quarter in), so a video put back is never found drifted again by
+ * where it landed, at any rate.
+ */
 export const drifted = (video: number, t: number): boolean => Math.abs(video - t) > DRIFT_S;
 
 export interface SyncDriver {
@@ -74,6 +83,14 @@ export interface SyncDriver {
    * event after is heard against it.
    */
   readonly follow: (id: string) => void;
+  /**
+   * `id`'s video runs at `fps` frames a second, its own (`Media.timing`, as
+   * the server reads it for the file it is now): each seek lands it in its
+   * own frames (`landing`); none (not read yet, or no rate its frames tell)
+   * lands it by the clock's rate, as the clock itself then counts. It is put
+   * on its frame again now. For any video that joins as `id`, from now on.
+   */
+  readonly timed: (id: string, fps: Option.Option<number>) => void;
   /** Every video paused, every listener and the clock's loop stopped. */
   readonly stop: () => void;
 }
@@ -123,8 +140,12 @@ export const makeSync = (
   host: Context.Context<Frames | Media>,
 ): SyncDriver => {
   const videos = new Map<string, Attached>();
+  /** Each version's video's own frames a second, once told (`timed`). */
+  const rates = new Map<string, number>();
   let current = Option.none<SyncState>();
   let seek = -1;
+  /** The clock's rate the videos last landed by: a new one puts them on its frames again. */
+  let grid = -1;
   let told = -1;
   /** The stop of the clock's loop, while it runs. */
   let looping = Option.none<() => void>();
@@ -170,8 +191,18 @@ export const makeSync = (
         ),
       ),
     );
-  const seekTo = (a: Attached, t: number, fps: number) =>
-    forkOn(a, a.video.seek(intoFrame(t, fps)));
+  /** `id`'s video `a` put where the clock at `state` stands, in its own frames (`landing`). */
+  const land = (id: string, a: Attached, state: SyncState) =>
+    forkOn(
+      a,
+      a.video.seek(
+        landing(
+          state.t,
+          state.fps,
+          Option.getOrElse(Option.fromUndefinedOr(rates.get(id)), () => state.fps),
+        ),
+      ),
+    );
 
   const hear = (state: SyncState) => {
     for (const [id, a] of videos) {
@@ -199,10 +230,10 @@ export const makeSync = (
         for (const a of working()) {
           const video = a.video;
           if (a === master || video.seeking() || video.ended()) continue;
-          if (t < video.duration() && drifted(video.time(), t)) seekTo(a, t, state.fps);
+          if (t < video.duration() && drifted(video.time(), t)) forkOn(a, video.seek(t));
         }
       });
-      return Option.exists(current, (now) => runningOf(now) || now._tag === 'Buffering');
+      return Option.exists(current, movingOf);
     });
 
   const run = () => {
@@ -226,10 +257,17 @@ export const makeSync = (
   const apply = (state: SyncState) => {
     current = Option.some(state);
     hear(state);
-    if (state.seek !== seek) {
+    // A seek, or the clock's rate read while still (its frames are not the
+    // ones the videos landed on). Read while playing, or while the set waits
+    // on a video to play on, it lands none: a landing at the last tick's time
+    // would put each back (and give the wait more to load); they play on, and
+    // the next seek lands them on the new frames.
+    const regrid = state.fps !== grid && !movingOf(state);
+    grid = state.fps;
+    if (state.seek !== seek || regrid) {
       seek = state.seek;
       told = state.t;
-      for (const a of working()) seekTo(a, state.t, state.fps);
+      for (const [id, a] of videos) if (!broken.has(a)) land(id, a, state);
     }
     if (runningOf(state)) {
       for (const [id, a] of videos) if (!broken.has(a) && !a.video.playing()) play(id, a);
@@ -278,7 +316,7 @@ export const makeSync = (
         // Measured, it plays: a failure before was another try's.
         broken.delete(attached);
         measure(id, video);
-        Option.map(current, (state) => seekTo(attached, state.t, state.fps));
+        Option.map(current, (state) => land(id, attached, state));
       },
       signal,
     );
@@ -293,7 +331,7 @@ export const makeSync = (
     );
     Option.map(current, (state) => {
       hear(state);
-      seekTo(attached, state.t, state.fps);
+      land(id, attached, state);
       if (runningOf(state)) play(id, attached);
     });
     return () => release(id, attached);
@@ -323,12 +361,23 @@ export const makeSync = (
     });
   };
 
+  const timed = (id: string, fps: Option.Option<number>) => {
+    if (rates.get(id) === Option.getOrUndefined(fps)) return;
+    Option.match(fps, {
+      onNone: () => rates.delete(id),
+      onSome: (rate) => rates.set(id, rate),
+    });
+    Option.map(Option.fromUndefinedOr(videos.get(id)), (a) => {
+      if (!broken.has(a)) Option.map(current, (state) => land(id, a, state));
+    });
+  };
+
   const stop = () => {
     halt();
     for (const [id, a] of [...videos]) release(id, a);
   };
 
-  return { attach, apply, follow, stop };
+  return { attach, apply, follow, timed, stop };
 };
 
 /** What a synced player is asked: play or pause, or a step back or on (`by` frames). */

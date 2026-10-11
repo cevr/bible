@@ -725,6 +725,34 @@ describe('a Set approving a scene render', () => {
   );
 
   it.live(
+    'a film added while its Set is open is judged by its project once Refresh reads the films again: until then, by its record',
+    () =>
+      Effect.gen(function* () {
+        // The app has no film of the folder's title when the page loads; a later read has it.
+        const answers = [[], ['toy']];
+        let reads = 0;
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/films$/, () => {
+              const films = answers[Math.min(reads, 1)] ?? [];
+              reads += 1;
+              return json({ films });
+            }),
+            ...studioRoutes,
+          ],
+          { href: pageHref.set(STUDIO_FOLDER, STUDIO_SET) },
+        );
+        yield* waitFor(page, '.rv-set-tools[data-sources="record"]');
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
+        yield* waitFor(page, '.rv-set-tools[data-sources="project"]');
+        expect(reads).toBe(2);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'a render the project calls out of date is refused in the receipt, with no Undo',
     () =>
       Effect.gen(function* () {

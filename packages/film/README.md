@@ -2253,8 +2253,9 @@ folder under another root among them, and until the project answers, it
 judges as the record says; the Set's tools say which judges (`data-sources`:
 `reading`, `project`, `record`). The page reads the project itself, once it
 runs and only for a folder whose title is one of the app's films (a
-montage's title is none, so its Set asks for no project); the server's
-render never waits on it. The page has one owner of each film's project
+montage's title is none, so its Set asks for no project; Refresh reads the
+films again, so a film added while the page is open is one from then on);
+the server's render never waits on it. The page has one owner of each film's project
 (`FilmProject`, `meta.project` in `lab/review/context.tsx`), kept for the
 page's life, which every page that shows it reads (`useProject`: a Films
 card, a Set's judgement, Project): a Set and then its Project tab read it
@@ -2436,15 +2437,38 @@ a finding names an address, not a point. A set's page holds one effect-machine a
 leading version's video (the first shown whose video plays here), whose ←/→
 step is one frame of that video's own (its timecode counts them; Shift ten):
 the rate `GET /api/review/duration` reads from the video's own packets
-(`fps`, `Media.timing`: frames a second over its first 120 packets, taken
-for the whole or 1000/1001 rate it lies within its timestamps' precision
-of, 0.04%, under half the gap between 30 and 29.97, else as measured,
-never rounded to a whole rate, so a 29.97 video steps on its own grid),
+(`fps`, `Media.timing`: read from the start times of its first 120 frames,
+on the clock those times sit on (the coarsest step each is a whole count
+of, so a millisecond clock's times copied onto a finer timescale tell no
+more than before); when that clock is half the frame of the whole or
+1000/1001 rate near them or coarser (the frames' own spacing, as an exactly
+timed 0.5 or 1.25 fps file's, or one's with frames dropped), it cannot tell
+that rate from its neighbours and no rate is claimed: as measured, below;
+else the whole or 1000/1001 rate whose frame grid alone holds
+every start within one step of its time, with some two consecutive starts on
+adjacent lines of it (a grid that holds them by skipping lines, as 1 fps's
+holds 0.5 fps's, is none of theirs) (strictly within first; a whole step
+apart, as halfway times rounded either way leave them, only when no grid
+holds them strictly; a millisecond clock tells 30 from
+29.97 over a second, not over a third of one; a last frame's own duration
+names no rate), else as measured, frames over their span, never rounded to a
+whole rate, so a 29.97 video steps on its own grid),
 the film rate (`FILM_FPS`) only while that answer is pending or the video
-names none; the clock stands on the frame's start, and every video seeks a
-quarter of a frame into it (`intoFrame`; Chrome keeps some frames' starts a
-microsecond short, which shows the frame before), so it shows that frame's
-picture, and a time further into the frame (a scrub, `#t=`) as it is; one sound heard;
+names none; a seek (a step, a scrub, a `#t=`), or the clock's rate read
+while the player is still (the clock's rate read while it plays or waits on
+a video puts none back: they play on; the leading version's own rate read,
+below, still lands the leader), lands every video at the
+frame the clock's timecode reads, each a quarter of one of its own frames
+into its own frame that holds that frame's start (`landing`, by the
+rate each version's video as it is now is read at, the clock's while that
+read is pending or names none, so a file written again with no rate forgets
+its old one; that version's own rate read, or forgotten, lands its video
+again in any state; Chrome
+keeps some frames' starts a microsecond short, which shows the frame
+before), so each shows its own frame's picture at the clock's time, at any
+rate of either, and the picture is the timecode's (on a laptop the
+header's, read at the clock's rate, `useShellTime`); a drifter is put back
+on the clock's time itself; one sound heard;
 opened at the URL's `#t=`, which follows it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
 `Wipe`, `Moments`, `Diff` shown as Difference, `Notes`; a set of one version has
 no pair, wipe or difference, and a link asking for one opens All; the pair,
