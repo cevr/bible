@@ -4,7 +4,7 @@
 // every settled frame; the inspector's `file:line` opens it held on that line;
 // and on a phone it is a face of the selection's sheet, or a sheet of its own.
 
-import { Effect, Option } from 'effect';
+import { Deferred, Effect, Exit, Option } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { HeadUnavailable } from '../../../src/core/refusals.ts';
@@ -13,6 +13,7 @@ import {
   PHONE,
   json,
   labAt,
+  later,
   openLab,
   openServed,
   refused,
@@ -95,13 +96,16 @@ const LONG_LINE = lineOfText('// a long line');
 const LAST_LINE = LONG_LINE;
 
 /** Scene one's small source answer, as the server gives it: each cue and knob with the line that writes it. */
-const sourceRoute = route('GET', /^\/scenes\/one\/source$/, () =>
+const sourceAnswer = () =>
   json({
     ...sourceOne,
     cues: sourceOne.cues.map((c, i) => ({ ...c, line: [RISE_LINE, FALL_LINE][i] ?? 0 })),
     knobs: sourceOne.knobs.map((k) => ({ ...k, line: SPOT_LINE })),
-  }),
-);
+  });
+const sourceRoute = route('GET', /^\/scenes\/one\/source$/, sourceAnswer);
+/** Scene one's small source answer, landing once `gate` is done. */
+const sourceLater = (gate: Deferred.Deferred<void>) =>
+  route('GET', /^\/scenes\/one\/source$/, () => later(gate, sourceAnswer()));
 
 /** Scene `one`'s cues in film seconds: where the probe film plays them. */
 const one = probeFilm().placed[0];
@@ -401,6 +405,34 @@ describe('on a phone', () => {
       yield* evaluates(page, inSheet(SPLIT_FALL_LINE), true);
       yield* evaluates(page, inSheet(SPLIT_SPOT_LINE), false);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'opened before the selection’s line is known, it holds that line once a read answers',
+    () =>
+      Effect.gen(function* () {
+        // The small source read is still out at the tap: the face follows, then holds `fall`'s line once the code
+        // read names it, the follow it wrote rewritten rather than a step of its own.
+        const gate = yield* Deferred.make<void>();
+        const { page } = yield* openLab([codeRoute, sourceLater(gate)], {
+          href: labOne(middle('rise'), { cue: 'fall' }),
+          viewport: PHONE,
+        });
+        yield* page.waitFor('.lab-selection-sheet');
+        yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+        yield* page.click('.lab-selection-sheet [data-face="source"]');
+        yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+        yield* evaluates(page, `new URLSearchParams(location.search).get('code')`, `${FALL_LINE}`);
+        yield* attributeIs(
+          page,
+          '.lab-selection-sheet .lab-source-held',
+          'data-line',
+          `${FALL_LINE}`,
+        );
+        yield* Deferred.done(gate, Exit.void);
+        yield* page.back;
+        yield* evaluates(page, `new URLSearchParams(location.search).has('code')`, false);
+      }).pipe(Effect.scoped),
   );
 
   it.live('opened from a selected cue while another plays, it holds the selection’s line', () =>

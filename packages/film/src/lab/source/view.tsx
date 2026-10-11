@@ -23,7 +23,7 @@ import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, type JSX, Portal, Show } from '@solidjs/web';
 import { Array as Arr, Boolean as Bool, Effect, Option, Result } from 'effect';
-import { type Accessor, createEffect, createMemo, onCleanup } from 'solid-js';
+import { type Accessor, createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import { Highlights, type HighlightName } from '../../browser/highlights.ts';
 import { type LabSelection, Selection } from '../../command/selection.ts';
 import { sceneOf } from '../../core/layout.ts';
@@ -47,7 +47,7 @@ import {
   rowsOf,
   selectionAt,
 } from './lit.ts';
-import { type CodeOpen, FOLLOW, lineOpen } from './open.ts';
+import { FOLLOW, lineOpen } from './open.ts';
 
 /** The name of the selection when it is a `tag` of `scene`. */
 const pickedIn = (
@@ -393,19 +393,52 @@ type Face = 'inspect' | 'source';
  * (Inspect · Source) are the view's open state in the URL, so Back, Close and a
  * reload each leave the face they left. The Source face is the selection's:
  * it opens held on the line that writes the cue or knob, as its `file:line`
- * does, and follows the frame only while that line is not known yet.
+ * does, and follows the frame only while that line is not known yet: once a
+ * read names it, the view settles on it in place, unless the view or the
+ * selection has moved on meanwhile.
  */
 export const Faces = (props: { readonly children: JSX.Element }) => {
   const { state, actions } = useLab();
   const source = useSource();
   const page = useLabPage();
-  const opening = (): CodeOpen =>
-    Option.match(
-      Option.flatMap(state.selection(), (s) =>
-        ({ Cue: source.whereCue, Knob: source.whereKnob })[s._tag](s.scene, s.name),
-      ),
-      { onNone: () => FOLLOW, onSome: (w) => lineOpen(w.line) },
+  /** The line that writes `s`, once a read names it. */
+  const lineOf = (s: LabSelection): Option.Option<number> =>
+    Option.map(
+      { Cue: source.whereCue, Knob: source.whereKnob }[s._tag](s.scene, s.name),
+      (w) => w.line,
     );
+  // The selection the face was opened for before its line was known: the intent the view settles once it is.
+  const [asked, setAsked] = createSignal(Option.none<LabSelection>());
+  const open = () => {
+    const selection = state.selection();
+    const line = Option.flatMap(selection, lineOf);
+    actions.showCode(Option.some(Option.match(line, { onNone: () => FOLLOW, onSome: lineOpen })));
+    setAsked(Option.filter(selection, () => Option.isNone(line)));
+  };
+  // Where the intent stands, as a key: none asked (''), moved on ('gone': the view no longer follows, or another
+  // thing is selected), still waiting ('wait'), or the line now known (its number).
+  const intent = createMemo(() =>
+    Option.match(asked(), {
+      onNone: () => '',
+      onSome: (s) =>
+        Bool.match(
+          Option.exists(state.code(), (o) => o._tag === 'Follow') &&
+            Option.exists(
+              state.selection(),
+              (now) => now._tag === s._tag && now.scene === s.scene && now.name === s.name,
+            ),
+          {
+            onFalse: () => 'gone',
+            onTrue: () => Option.match(lineOf(s), { onNone: () => 'wait', onSome: String }),
+          },
+        ),
+    }),
+  );
+  createEffect(intent, (key) => {
+    if (key === '' || key === 'wait') return;
+    setAsked(Option.none());
+    if (key !== 'gone') actions.settleCode(lineOpen(Number(key)));
+  });
   const face = (): Face =>
     Bool.match(Option.isSome(state.code()), {
       onTrue: (): Face => 'source',
@@ -420,7 +453,7 @@ export const Faces = (props: { readonly children: JSX.Element }) => {
         onValueChange={(pressed) => {
           Option.map(Arr.head(pressed), (next) => {
             if (next === face()) return;
-            if (next === 'source') actions.showCode(Option.some(opening()));
+            if (next === 'source') open();
             else actions.dismissCode();
           });
         }}
