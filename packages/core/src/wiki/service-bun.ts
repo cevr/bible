@@ -2,16 +2,14 @@
 
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { Cause, Layer, type FileSystem } from 'effect';
+import type { SqlError } from 'effect/sql/SqlError';
 
-import { BibleDatabase } from '../bible-db/bible-database.js';
-import { EGWCommentaryService } from '../egw-commentary/service.js';
-import { EGWParagraphDatabase } from '../egw-db/book-database.js';
-import { TopicService } from '../topics/service.js';
-import { WritingsService } from '../writings/service.js';
+import type { TopicService } from '../topics/service.js';
 import { bunArtifactDriver } from './driver-bun.js';
 import { immutableFilename, layerArtifactOrAbsent } from './service-artifact.js';
 import { LookupService } from './lookup-service.js';
-import { WikiSectionSources } from './section-composer.js';
+import type { WikiSectionSources } from './section-composer.js';
+import { catalogOver, sectionSourcesOver } from './section-sources.js';
 import { WikiService } from './service.js';
 
 /** The layer a host actually wants: the installed artifact when there is one,
@@ -22,53 +20,27 @@ const layerBunOrAbsent = (
 ): Layer.Layer<WikiService, never, FileSystem.FileSystem | TopicService | WikiSectionSources> =>
   layerArtifactOrAbsent(bunArtifactDriver, filename);
 
-/** The four §6 section sources, from the two corpora on disk.
+/** The four §6 section sources, from the two corpora on disk
+ *  (`sectionSourcesOver` holds the composition and its degradation posture).
  *
  *  `bible.db` opens read-only and immutable; the writings database opens
  *  read-write because `EGWParagraphDatabase.layerCore` initializes its schema
- *  on construction — the same way every other Bun consumer of it opens it.
- *
- *  A failure to open either file makes this layer *degraded* rather than fatal:
- *  §3.5's degradation posture applies to the sections too, and a CLI that
- *  cannot open the EGW library should still print a topic's authored core. It
- *  still provides `WikiSectionSources` — as `NotWired` — so the page carries
- *  the reason rather than six sections nobody can account for. */
+ *  on construction — the same way every other Bun consumer of it opens it. */
 const layerBunSectionSources = (input: {
   readonly bible: string;
   readonly writings: string;
-}): Layer.Layer<WikiSectionSources> => {
-  const writingsDatabase = EGWParagraphDatabase.layerCore.pipe(
-    Layer.provide(SqliteBun.layer({ filename: input.writings, create: false })),
-  );
-  return WikiSectionSources.Live.pipe(
-    Layer.provide(layerBunCatalog(input.bible)),
-    Layer.provide(BibleDatabase.layer.pipe(Layer.provide(readOnlySqlite(input.bible)))),
-    Layer.provide(WritingsService.Live.pipe(Layer.provide(writingsDatabase))),
-    Layer.provide(EGWCommentaryService.Live.pipe(Layer.provide(writingsDatabase))),
-    // Degraded rather than fatal, and *stated* rather than absent: corpora that
-    // will not open still leave the CLI printing authored cores, and the page
-    // now says `sections-not-wired` so the empty lineup is legible as a host
-    // state rather than as an empty library.
-    //
-    // Only corpora that will not open. A blanket `catchCause` here also caught
-    // defects and interruption, so a genuine construction fault reached the
-    // reader as a degradation state — the same hiding this milestone's first
-    // review round removed one level down. The shared combinator draws the
-    // line and logs the cause it accepts.
-    WikiSectionSources.NotWiredOnCorpusAbsence,
-    // What survives the combinator is a `SqlError` the combinator refused —
-    // one arriving alongside a cause that is not a corpus absence. That is a
-    // fault, not a degradation, so it dies rather than being folded back into
-    // the same `NotWired` the combinator just declined to give it.
-    Layer.orDie,
-  );
-};
+}): Layer.Layer<WikiSectionSources> =>
+  sectionSourcesOver({
+    bible: readOnlySqlite(input.bible),
+    catalog: readOnlySqlite(input.bible),
+    writings: SqliteBun.layer({ filename: input.writings, create: false }),
+  });
 
-/** The catalog half alone. Always available: `bible.db` is the verified
- *  bootstrap corpus and ships the topic tables §3.5's fallback depends on, so
- *  a `bible.db` that will not open is a defect. */
-const layerBunCatalog = (bible: string): Layer.Layer<TopicService> =>
-  TopicService.Live.pipe(Layer.provide(readOnlySqlite(bible)), Layer.orDie);
+/** The catalog half alone, from `bible.db`'s topic tables. `bible.db` is the
+ *  verified bootstrap corpus, so it opening is the expected case; when it does
+ *  not, the typed `SqlError` reaches each consumer's own recovery. */
+const layerBunCatalog = (bible: string): Layer.Layer<TopicService, SqlError> =>
+  catalogOver(readOnlySqlite(bible));
 
 const readOnlySqlite = (filename: string) =>
   SqliteBun.layer({
