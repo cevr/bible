@@ -1037,6 +1037,11 @@ describe("a film's project", () => {
           yield* click(page, picture);
           const row = `${INSPECTOR} .rv-alone-row`;
           yield* waitFor(page, row);
+          // The card frames a player by its own variant: the row is the player's, under its picture.
+          yield* waitFor(
+            page,
+            `${INSPECTOR} .sc-card-picture[data-picture="player"] > ${row.split(' ').at(-1)}`,
+          );
           // Each control is what a press at its middle lands on: none is clipped by the picture's
           // frame. The sheet is scrolled to the card's top, never the row itself into view: the
           // frame is a scroll box of its own, which would scroll a clipped row into its window.
