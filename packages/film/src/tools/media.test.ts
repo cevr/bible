@@ -13,7 +13,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Duration, Effect, FileSystem, Layer, Option, Stream } from 'effect';
+import { Array as Arr, Duration, Effect, FileSystem, Layer, Option, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import {
   ALL_FORMATS,
@@ -538,6 +538,16 @@ describe.concurrent('Media', () => {
             [12.4, 12.4],
           ] as const)
             expect(yield* rateAt(fps, 30, { timescale })).toBeCloseTo(fps, 9);
+          // 0.5 fps with a start a tick late (or every inner start a tick early):
+          // the clock is one tick, and 1 fps's grid holds every start within it,
+          // but only on every other line of its own; a grid no two consecutive
+          // starts sit on adjacent lines of is no frame grid of theirs: 0.5.
+          for (const [timescale, nudge] of [
+            [1000, [[7, 0.001]]],
+            [90000, [[7, 1 / 90000]]],
+            [1000, Arr.range(1, 28).map((frame) => [frame, -0.001] as const)],
+          ] as const)
+            expect(yield* rateAt(0.5, 30, { timescale, nudge })).toBeCloseTo(0.5, 9);
           // An exactly timed file with three frames dropped from its first 120
           // (its 120 starts span 122 frames), on a clock of a tick a frame too
           // (mediabunny's for a whole rate), names no whole or 1000/1001 rate a

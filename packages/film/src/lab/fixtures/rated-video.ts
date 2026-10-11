@@ -43,10 +43,13 @@ export interface RatedTiming {
   readonly last?: number;
   /**
    * Frames left out, their places kept empty, as a capture drops frames under
-   * load: a file for its timing only, since a dropped frame's pictures after
-   * it (or all, with frame 0, the one key frame) no longer decode.
+   * load: a file for its timing only, since the pictures after a dropped
+   * frame no longer decode up to the next key frame (each pass of the
+   * segment starts with one).
    */
   readonly drop?: ReadonlyArray<number>;
+  /** Frames whose time is moved, each by its seconds, before it is put on the timescale. */
+  readonly nudge?: ReadonlyArray<readonly [frame: number, by: number]>;
 }
 
 /**
@@ -56,7 +59,7 @@ export interface RatedTiming {
 export const ratedVideo = (
   fps: number,
   frames: number,
-  { timescale = fps, grid, last, drop = [] }: RatedTiming = {},
+  { timescale = fps, grid, last, drop = [], nudge = [] }: RatedTiming = {},
 ) =>
   Effect.scoped(
     Effect.gen(function* () {
@@ -84,12 +87,13 @@ export const ratedVideo = (
       // The track's timestamps snap to whole ticks of `1 / timescale`.
       output.addVideoTrack(source, { frameRate: timescale });
       yield* Effect.promise(() => output.start());
-      /** Frame `frame`'s time: on the coarser clock, when there is one, truncated. */
+      const moved = new Map(nudge);
+      /** Frame `frame`'s time: on the coarser clock, when there is one, truncated; then nudged. */
       const at = (frame: number) =>
         Option.match(Option.fromUndefinedOr(grid), {
           onNone: () => frame / fps,
           onSome: (step) => Math.floor(frame / fps / step + 1e-9) * step,
-        });
+        }) + Option.getOrElse(Option.fromUndefinedOr(moved.get(frame)), () => 0);
       const laid = Arr.flatMap(Arr.range(0, Math.ceil(frames / packets.length) - 1), (pass) =>
         packets.map((packet) => {
           const frame = pass * packets.length + Math.round(packet.timestamp * SEGMENT_FPS);

@@ -2427,7 +2427,9 @@ more than before); when that clock is half the frame of the whole or
 timed 0.5 or 1.25 fps file's, or one's with frames dropped), it cannot tell
 that rate from its neighbours and no rate is claimed: as measured, below;
 else the whole or 1000/1001 rate whose frame grid alone holds
-every start within one step of its time (strictly within first; a whole step
+every start within one step of its time, with some two consecutive starts on
+adjacent lines of it (a grid that holds them by skipping lines, as 1 fps's
+holds 0.5 fps's, is none of theirs) (strictly within first; a whole step
 apart, as halfway times rounded either way leave them, only when no grid
 holds them strictly; a millisecond clock tells 30 from
 29.97 over a second, not over a third of one; a last frame's own duration

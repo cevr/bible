@@ -564,15 +564,23 @@ const gcd = (a: number, b: number): number => {
  *   greatest common divisor), not the timescale that keeps them: a
  *   millisecond clock's times copied onto a 16000 timescale tell no more
  *   than they did on a 1000 one;
- * - a clock of half a candidate rate's frame or more cannot tell that rate
- *   from its neighbours: it is the frames' own spacing (an exactly timed
- *   file, whose starts all lie on its frames, at 0.5 or 1.25 fps or with
- *   frames dropped), and a grid of the rate near it could hold the starts
- *   only by putting two on one of its frames. Then no rate is claimed: as
- *   measured, below, which is exact for an exactly timed file;
- * - a whole rate (30) or its 1000/1001 rate (30000/1001, NTSC's 29.97) is
- *   taken when its frame grid puts every start within one step of its time
- *   and the other's does not. Each start is its frame's time put on the
+ * - the candidates are the whole rate (30) and its 1000/1001 rate
+ *   (30000/1001, NTSC's 29.97) nearest the measured one;
+ * - a clock of half a candidate's frame or more cannot tell that rate from
+ *   its neighbours: it is the frames' own spacing (an exactly timed file,
+ *   whose starts all lie on its frames, at 0.5 or 1.25 fps or with frames
+ *   dropped), and a grid of the rate near it could hold the starts by
+ *   putting two on one of its frames (1.25 fps on 1 fps's grid), or by
+ *   skipping every other frame of its own (0.5 fps on 1 fps's). When either
+ *   candidate's frame is that coarse, neither is claimed (the two are a
+ *   thousandth apart: a clock that cannot tell one cannot tell them apart):
+ *   as measured, below, which is exact for an exactly timed file;
+ * - a grid holds the starts only if some two consecutive starts sit on
+ *   adjacent lines of it, so a grid that holds them by skipping lines (0.5
+ *   fps a tick off its frames on 1 fps's grid, on a clock fine enough to
+ *   tell) names no rate;
+ * - a candidate is taken when its frame grid puts every start within one
+ *   step of its time and the other's does not. Each start is its frame's time put on the
  *   clock, truncated or rounded, so the made rate's offsets from its grid lie
  *   within a step of each other: strictly, unless a time lay halfway between
  *   two ticks and was rounded the other way from another, when they lie a
@@ -598,15 +606,22 @@ const rateOfTicks = (ticks: ReadonlyArray<number>, resolution: number): Option.O
       /**
        * How far apart `num / den` frames a second's grid puts the starts'
        * offsets from it, and the step they are judged against, both in ticks
-       * times `num`: whole counts, so a bound is met or not, exactly. The
-       * clock tells this grid only while its step is under half the grid's
-       * frame.
+       * times `num`: whole counts, so a bound is met or not, exactly. A grid
+       * no two consecutive starts sit on adjacent lines of holds them by
+       * skipping lines, so it is no frame grid of theirs: it holds nothing.
+       * The clock tells this grid only while its step is under half the
+       * grid's frame.
        */
       const spreadOf = (num: number, den: number) => {
         const period = resolution * den;
-        const offsets = ticks.map((at) => at * num - Math.round((at * num) / period) * period);
+        const lines = ticks.map((at) => Math.round((at * num) / period));
+        const offsets = Arr.zipWith(ticks, lines, (at, line) => at * num - line * period);
+        const adjacent = Arr.zip(lines, Arr.drop(lines, 1)).some(([from, to]) => to - from === 1);
         return {
-          spread: Math.max(...offsets) - Math.min(...offsets),
+          spread: Match.value(adjacent).pipe(
+            Match.when(true, () => Math.max(...offsets) - Math.min(...offsets)),
+            Match.orElse(() => Infinity),
+          ),
           step: step * num,
           tells: step * num * 2 < period,
         };
