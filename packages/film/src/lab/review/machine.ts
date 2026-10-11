@@ -41,7 +41,7 @@ import { FILM_FPS, timecode } from '../../core/time.ts';
  * Every film renders at `FILM_FPS` (none names a rate of its own), so it is
  * the rate of the videos a set compares.
  */
-export const CLOCK_FPS = FILM_FPS;
+const CLOCK_FPS = FILM_FPS;
 
 /** An end not known yet: the clock's video's metadata has not loaded. */
 export const UNKNOWN_END = Number.MAX_SAFE_INTEGER;
