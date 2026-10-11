@@ -722,6 +722,14 @@ body.lab .stage {
 .lab-cue.late {
   outline: 1px solid var(--state-findings);
 }
+/* A cue the playhead is inside: the same cues the Source view lights in the code. */
+.lab-cue[data-live] {
+  background: var(--state-live);
+}
+.lab-cue.selected[data-live] {
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--state-live);
+}
 .lab-strip-playhead {
   position: absolute;
   z-index: 2;

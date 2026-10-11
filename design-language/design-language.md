@@ -203,6 +203,7 @@ One `:root` block, in one stylesheet, `packages/film/src/player/tokens.css`, lin
   --state-note: #f0609a; /* a note pin and its ink */
   --state-agent: #7fc4c0; /* the agent's reply, a sound tick */
   --state-scratch: var(--text-3); /* a staging take: Scratch */
+  --state-live: var(--text-1); /* a cue playing at the frame: its lane, its literal, its meter */
 
   /* Content colour: each scene's hue on bands, like a DAW's track colours. */
   --scene-sat: 30%;
@@ -409,7 +410,7 @@ The scene's code as a part of the studio (`packages/film/src/lab/source/`, mock 
 | Face tabs      | `.sh-seg.lab-source-tabs` | Inspect · Source, on a phone's selection sheet; the pressed face is the URL's                                                 | `aria-pressed`                                                                                                     |
 | Cue lane, live | `.lab-cue[data-live]`     | the strip's lane in `--state-live` while the playhead is inside the cue: the same cues the code lights                        | `data-live`, with `.selected` keeps its accent                                                                     |
 
-`--state-live` is the one new token and lives with the Source part's styles (`lab/source/style.ts`, `SOURCE_TOKENS`) beside `--source-w` (the laptop column's 480 px); it is `--text-1` today, so playing reads as the brightest ink and never as a state colour (§8's one meaning per colour). Laptop: a column between the picture and the inspector. Phone: a face of the selection's sheet in Edit, or a sheet of its own while nothing is selected and in every other mode (the selection's sheet lives in Edit's section, which the other modes hide; the view never goes with it). Close and swipe by the sheets' one rule, and closing the sheet closes the selection and the view in one step: Back over the step that opened it only when that lands exactly where Close would write, else the entry is rewritten to name neither. A selection sheet opened while the view is open opens whole, not peeked.
+`--state-live` lives with the state family in `player/tokens.css`, and the strip's live lane is drawn by the strip's own styles (`player.css`); the Source part keeps only `--source-w` (the laptop column's 480 px, `lab/source/style.ts`, `SOURCE_TOKENS`). `--state-live` is `--text-1` today, so playing reads as the brightest ink and never as a state colour (§8's one meaning per colour). Laptop: a column between the picture and the inspector. Phone: a face of the selection's sheet in Edit, or a sheet of its own while nothing is selected and in every other mode (the selection's sheet lives in Edit's section, which the other modes hide; the view never goes with it). Close and swipe by the sheets' one rule, and closing the sheet closes the selection and the view in one step: Back over the step that opened it only when that lands exactly where Close would write, else the entry is rewritten to name neither. A selection sheet opened while the view is open opens whole, not peeked.
 
 ## 5a. Phone Lab: the transport docks
 
