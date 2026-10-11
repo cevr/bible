@@ -8,14 +8,15 @@
 // Refused: a JSX `onKeyDown`, `onKeyUp`, `onKeyPress` or `onContextMenu`
 // attribute (and their `on:` and lowercase forms), and an
 // `.addEventListener` naming `keydown`, `keyup`, `keypress` or `contextmenu`
-// on any target but the host's own (`window`, `document`: those key events
+// on any target but the host's own (the globals `window`, `document`,
+// `globalThis`, `self`, bound nowhere in the file: those key events
 // are `film/host-events-through-adapter`'s; their `contextmenu` is this
 // rule's). The config turns it off where the keymap and the menus are made:
 // the `Keys` adapter and `src/lab/command/`.
 
 import { Effect, Option, Predicate } from 'effect';
 import { Diagnostic, type ESTree, Rule, RuleContext } from 'oxlint-plugin-effect/rule-bindings';
-import { memberName } from './nodes.ts';
+import { type Bindings, bindings, memberName } from './nodes.ts';
 
 const KEYS =
   'declare a command with its keys (packages/film/src/command/command.ts), registered with the page hub';
@@ -31,7 +32,11 @@ const EVENTS: ReadonlyMap<string, string> = new Map([
 ]);
 
 /** The host's own targets: their key events are another rule's. */
-const HOSTS = new Set(['window', 'document', 'globalThis', 'self']);
+const HOSTS: ReadonlyArray<string> = ['window', 'document', 'globalThis', 'self'];
+
+/** Whether a target is the host's own: one of its globals, bound nowhere in the file (`nodes.ts`). */
+const isHost = (b: Bindings, target: ESTree.Node): boolean =>
+  HOSTS.some((name) => b.isGlobal(target, name));
 
 /** A JSX attribute's name as written: `onKeyDown`, or `on:keydown` for a namespaced one. */
 const attrName = (attr: ESTree.JSXAttribute): string => {
@@ -50,7 +55,7 @@ const handled = (attr: ESTree.JSXAttribute): Option.Option<string> => {
 };
 
 /** The event an `.addEventListener` call names on a target not the host's, or `contextmenu` on the host's. */
-const listened = (call: ESTree.CallExpression): Option.Option<string> => {
+const listened = (b: Bindings, call: ESTree.CallExpression): Option.Option<string> => {
   const callee = call.callee;
   const first = call.arguments.at(0);
   if (
@@ -61,18 +66,18 @@ const listened = (call: ESTree.CallExpression): Option.Option<string> => {
     !EVENTS.has(first.value)
   )
     return Option.none();
-  const onHost = callee.object.type === 'Identifier' && HOSTS.has(callee.object.name);
+  const onHost = isHost(b, callee.object);
   return Option.liftPredicate(first.value, (event) => !onHost || event === 'contextmenu');
 };
 
 /** The event a handler property set on a target not the host's names (`el.onkeydown = …`), or `oncontextmenu` on the host's. */
-const assigned = (assign: ESTree.AssignmentExpression): Option.Option<string> => {
+const assigned = (b: Bindings, assign: ESTree.AssignmentExpression): Option.Option<string> => {
   const left = assign.left;
   if (left.type !== 'MemberExpression') return Option.none();
   const event = Option.flatMap(memberName(left), (name) =>
     Option.liftPredicate(name.replace(/^on/, ''), (e) => name.startsWith('on') && EVENTS.has(e)),
   );
-  const onHost = left.object.type === 'Identifier' && HOSTS.has(left.object.name);
+  const onHost = isHost(b, left.object);
   return Option.filter(event, (e) => !onHost || e === 'contextmenu');
 };
 
@@ -85,6 +90,7 @@ export const keysThroughKeymap = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
+    const b = yield* bindings;
     const report = (node: ESTree.Node, event: string, form: string) =>
       context.report(
         Diagnostic.make({
@@ -99,12 +105,12 @@ export const keysThroughKeymap = Rule.define({
           onSome: (event) => report(attr, event, 'a JSX handler'),
         }),
       CallExpression: (call: ESTree.CallExpression) =>
-        Option.match(listened(call), {
+        Option.match(listened(b, call), {
           onNone: () => Effect.void,
           onSome: (event) => report(call, event, 'addEventListener'),
         }),
       AssignmentExpression: (assign: ESTree.AssignmentExpression) =>
-        Option.match(assigned(assign), {
+        Option.match(assigned(b, assign), {
           onNone: () => Effect.void,
           onSome: (event) => report(assign, event, 'a handler property'),
         }),

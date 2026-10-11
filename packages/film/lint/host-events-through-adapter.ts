@@ -37,12 +37,9 @@ import {
   type ESTree,
   Rule,
   RuleContext,
-  Scope,
-  SourceCode,
-  type Variable,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { memberName } from './nodes.ts';
+import { definitionOf, isGlobal, memberName, type Named } from './nodes.ts';
 
 const URL = "use @bible/url-state's Location";
 const KEYS = 'use Keys.listen (packages/film/src/browser/keys.ts)';
@@ -110,19 +107,12 @@ const whoOf = (receiver: Option.Option<ESTree.Node>) => (name: string) =>
     onSome: (r) => `${receiverText(r)}.${name}`,
   });
 
-/** The declarator a name is bound by, where `at` sits: none for a name the file never declares. */
-const binding = (at: ESTree.Node, name: string) =>
-  Effect.map(SourceCode.getScope(at), (scope) =>
-    Option.map(
-      Option.flatMap(Scope.findVariableUp(scope, name), (v: Variable) =>
-        Option.fromUndefinedOr(v.defs[0]),
-      ),
-      (def) => def.node,
-    ),
+/** The declarator a name is bound by where it is read: none for a name the file never declares. */
+const binding = (id: Named) =>
+  Effect.map(
+    definitionOf(id),
+    Option.map((def) => def.node),
   );
-
-/** Whether a name, where `at` sits, is the global's: declared nowhere in the file. */
-const isGlobal = (at: ESTree.Node, name: string) => Effect.map(binding(at, name), Option.isNone);
 
 /** The value a `const` declarator binds. */
 const constInit = (node: ESTree.Node): Option.Option<ESTree.Node> => {
@@ -170,7 +160,7 @@ const eventsNamed = (node: ESTree.Node): Effect.Effect<Events, never, RuleContex
   const written = writtenString(node);
   if (Option.isSome(written)) return Effect.succeedSome([written.value]);
   if (node.type !== 'Identifier') return Effect.succeedNone;
-  return Effect.flatMap(binding(node, node.name), (declarator) =>
+  return Effect.flatMap(binding(node), (declarator) =>
     Option.match(declarator, {
       onNone: () => Effect.succeedNone,
       onSome: (d) =>
@@ -199,7 +189,7 @@ const isHost = (node: ESTree.Node): Effect.Effect<boolean, never, RuleContext> =
       },
     });
   if (node.type !== 'Identifier') return Effect.succeed(false);
-  return Effect.flatMap(binding(node, node.name), (declarator) =>
+  return Effect.flatMap(binding(node), (declarator) =>
     Option.match(declarator, {
       onNone: () => Effect.succeed(HOSTS.has(node.name)),
       onSome: (d) =>
@@ -309,7 +299,8 @@ const callRefusal = (call: ESTree.CallExpression, allowed: ReadonlySet<string>) 
       return Option.some(`${who(method)} holds a press outside its owner: ${DRAG}.`);
     if (method !== 'addEventListener') return Option.none<string>();
     // A bare `addEventListener` is the global object's, unless the file declares its own.
-    if (Option.isNone(receiver) && !(yield* isGlobal(call, method))) return Option.none<string>();
+    if (Option.isNone(receiver) && !(yield* isGlobal(call.callee, method)))
+      return Option.none<string>();
     return yield* listenRefusal(
       {
         receiver,
@@ -345,7 +336,7 @@ const handlerRefusal = (assign: ESTree.AssignmentExpression, allowed: ReadonlySe
       Option.fromNullishOr(/^on([a-z]+)$/.exec(n)?.[1]),
     );
     if (Option.isNone(event) || !THROUGH.has(event.value)) return Option.none<string>();
-    if (left.type === 'Identifier' && !(yield* isGlobal(assign, left.name)))
+    if (left.type === 'Identifier' && !(yield* isGlobal(left, left.name)))
       return Option.none<string>();
     const receiver = targetOf(left);
     const who = whoOf(receiver);

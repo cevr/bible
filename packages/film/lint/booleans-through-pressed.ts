@@ -36,7 +36,15 @@
 
 import { Effect, Option, Predicate } from 'effect';
 import { Diagnostic, type ESTree, Rule, RuleContext } from 'oxlint-plugin-effect/rule-bindings';
-import { definitionOf, importsAs, memberName, type Named, staticName, unwrapped } from './nodes.ts';
+import {
+  definitionOf,
+  importsAs,
+  isGlobal,
+  memberName,
+  type Named,
+  staticName,
+  unwrapped,
+} from './nodes.ts';
 
 const MESSAGE =
   "a boolean written as a string by hand: pressed(on) (packages/film/src/lab/pressed.ts) types it 'true' | 'false'.";
@@ -88,12 +96,6 @@ const some = (answers: ReadonlyArray<Reads>): Reads =>
 /** Whether every answer is yes. */
 const every = (answers: ReadonlyArray<Reads>): Reads =>
   Effect.map(Effect.all(answers), (all) => all.every((a) => a));
-
-/** Whether `node` is a name the file does not bind: a global (`String`, `Boolean`, `Readonly`). */
-const isGlobal = (node: ESTree.Node, name: string): Reads => {
-  if (node.type !== 'Identifier' || node.name !== name) return no;
-  return Effect.map(definitionOf(node), Option.isNone);
-};
 
 /** Whether `node` is a name bound to solid's import of `name`. */
 const isSolid = (node: ESTree.Node, name: string): Reads =>
@@ -308,7 +310,7 @@ const bindingGives = (id: Named, use: Use, seen: Seen): Reads =>
       if (use === 'read') return no;
       return returnsBoolean(node, next);
     }
-    if (type !== 'Variable' || node.type !== 'VariableDeclarator' || !node.init) return no;
+    if (node.type !== 'VariableDeclarator' || !node.init) return no;
     if (node.parent.type !== 'VariableDeclaration' || node.parent.kind !== 'const') return no;
     // `const [on] = createSignal(false)`: the pattern's first name reads the signal.
     if (node.id.type === 'ArrayPattern') {

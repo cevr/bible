@@ -1,5 +1,6 @@
 // Fixture for film/no-read-once: each line marked RED fires the rule, and
 // nothing else does.
+import { expect } from 'bun:test';
 
 /** The lab's tab (`lab/fixtures/tab.ts`), as far as the rule reads it. */
 interface Tab {
@@ -18,7 +19,6 @@ export const actions = [
   page.evaluate("document.body.getAttribute('class')"),
 ];
 
-declare const expect: (value: unknown) => { toBe: (want: unknown) => void };
 declare const promise: <A>(run: () => Promise<A>) => A;
 const evaluate = <A>(script: string) => page.evaluate<A>(script); // RED film/no-read-once
 
@@ -54,4 +54,11 @@ export async function kept() {
   // A kept answer handed only to a wait, as its baseline: no read is asserted.
   const before = await page.evaluate('document.title');
   await page.until(`document.title !== ${JSON.stringify(before)}`);
+}
+
+// An `expect` of the file's own is no assertion of the runner's.
+export async function ownExpect(
+  expect: (value: unknown) => { readonly toBe: (want: unknown) => void },
+) {
+  expect(await page.evaluate('document.title')).toBe('lab');
 }

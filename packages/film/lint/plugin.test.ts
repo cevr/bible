@@ -49,13 +49,13 @@ const marked = (file: string, source: string): ReadonlyArray<string> =>
 
 /** Corrective advice users receive for each rule, including the two timing repairs. */
 const MESSAGES = {
-  'no-unprobed-ink.ts:9 film/no-unprobed-ink':
+  'no-unprobed-ink.ts:11 film/no-unprobed-ink':
     "ctx.stroke bypasses the probe, so film check cannot see it cross text. Draw it with the kit's stroke/write, or wrap it in the kit's unprobed(ctx, () => …) to say it is texture.",
   'span-ends-on-anchor.ts:10 film/span-ends-on-anchor':
     'a span that ends on its anchor writes its length twice (offset: -d, dur: d): drop the offset and add `ends: true`, so a dur edit keeps the landing.',
   'span-ends-on-anchor.ts:19 film/span-ends-on-anchor':
     "a part that ends on its parent's end only because its offset and dur add up to the parent's dur: write `{ after: parent, dur, ends: true }` (keeps its length) or `{ with: parent, until: { cue: parent } }` (keeps its start), so a drag of the parent carries it.",
-  'no-point-free-log.ts:8 film/no-point-free-log':
+  'no-point-free-log.ts:10 film/no-point-free-log':
     'Console.log passed point-free: it is variadic, and this call passes the index too, which it prints after each line. Write (line) => Console.log(line).',
   'no-ease-on-cue.ts:15 film/no-ease-on-cue':
     "a cue's progress eased a second time: f.at(cue) is already eased by the span's `ease`, which the lab sets. A camera push is a shotPath stop with pushInto; another curve is its own cue or f.keys.",
@@ -67,7 +67,7 @@ const MESSAGES = {
     "a step part way through a cue, written in the draw: declare the instant as its own cue ({ with: cue, offset, dur: 0 }) and read f.at(instant) > 0, where the lab can reach it and a sound can follow it; an instant the drawing's own shape makes is read from that shape (Math.cos(f.at('flip') * Math.PI) < 0).",
   'touches-serial.ts:17 film/touches-serial':
     "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case as test.serial.",
-  'spawn-budget.ts:14 film/spawn-budget':
+  'spawn-budget.ts:15 film/spawn-budget':
     "this test spawns a process and has no timeout: a cold start's time is the machine's, so give it its budget in milliseconds as the last argument.",
   'no-read-once.ts:23 film/no-read-once':
     'evaluate reads the page once, whatever it had drawn at that instant: wait for the value instead (textIs, textHas, valueIs, attributeIs, countIs, evaluates or until in lab/fixtures/settled.ts).',
@@ -102,7 +102,7 @@ const MESSAGES = {
   'keys-through-keymap.tsx:18 film/keys-through-keymap':
     'addEventListener hears contextmenu on its own: open a context menu through @bible/ui ContextMenu over the selection’s commands (packages/film/src/lab/command/).',
   'no-host-alias.ts:6 film/no-host-alias':
-    'a host global bound to a name of the page\'s own: the host bans read it only under its name, so reach it as itself, or through its adapter (packages/film/README.md, "The host").',
+    'a host global held under a name of the page\'s own: the host bans read it only under its name, so reach it as itself, or through its adapter (packages/film/README.md, "The purity rule": The host).',
   'booleans-through-pressed.tsx:28 film/booleans-through-pressed':
     "a boolean written as a string by hand: pressed(on) (packages/film/src/lab/pressed.ts) types it 'true' | 'false'.",
   'history-through-host.ts:11 film/history-through-host':

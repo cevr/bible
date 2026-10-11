@@ -7,17 +7,21 @@
 //
 // A touch is a tab's finger (`page.finger`, its `second` among them,
 // `lab/fixtures/tab.ts`), read off the tab or taken apart from it
-// (`const { finger } = page`), or the touch gesture (`touch`,
-// `lab/fixtures/gestures.ts`, under whatever name it is imported, or read
-// off the module imported whole). A name the file declares whose value
-// touches only inside a function (a helper, a table of steps), or that a
-// finger is taken apart into, touches too, however deep. An initializer that
-// touches outside any function of its own runs where it is declared, so its
-// touch stands where the declaration does. Every touch, and every use of a
-// name that touches, is inside the body of a `test.serial(…)`, or inside a
-// declaration that is itself used only there; one inside any other test, or
-// outside every test and declaration (a loop over a table that touches), is
-// reported where it is.
+// (`const { finger } = page`): the tab is a value handed in, so its finger is
+// read by its member's name. Or it is the touch gesture (`touch`,
+// `lab/fixtures/gestures.ts`), by its binding (`nodes.ts`): imported, under
+// an alias, or read off the module imported whole. A name the file declares
+// whose value touches only inside a function (a helper, a table of steps), or
+// that a finger is taken apart into, touches too, however deep, at each read
+// of that binding (a parameter or a local of the same spelling is another
+// name). An initializer that touches outside any function of its own runs
+// where it is declared, so its touch stands where the declaration does.
+// Every touch, and every use of a name that touches, is inside the body of a
+// `test.serial(…)`, or inside a declaration that is itself used only there;
+// one inside any other test, or outside every test and declaration (a loop
+// over a table that touches), is reported where it is. A test is a call of
+// the runner's `it` or `test` (`bun:test`'s, `effect-bun-test`'s or bun's
+// global, by its binding), and `test.serial` is the runner's `test`'s.
 
 import { Effect, Option } from 'effect';
 import {
@@ -27,65 +31,33 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { ancestors, memberName, programOf } from './nodes.ts';
+import { ancestors, type Bindings, bindings, memberName, type Module } from './nodes.ts';
 
 /** The module the touch gesture is exported from. */
-const GESTURES = /(?:^|\/)fixtures\/gestures(?:\.ts)?$/;
+const isGestures: Module = (from) => /(?:^|\/)fixtures\/gestures(?:\.ts)?$/u.test(from);
 
-/** The specifiers a file imports from the gestures module (`fixtures/gestures.ts`). */
-const gestureImports = (program: ESTree.Node) => {
-  if (program.type !== 'Program') return [];
-  return program.body.flatMap((statement) => {
-    if (statement.type !== 'ImportDeclaration' || !GESTURES.test(statement.source.value)) return [];
-    return statement.specifiers;
-  });
-};
-
-/** The names a file imports the touch gesture (`touch`) under. */
-const gestureNames = (program: ESTree.Node): ReadonlyArray<string> =>
-  gestureImports(program).flatMap((s) => {
-    if (s.type !== 'ImportSpecifier' || s.imported.type !== 'Identifier') return [];
-    if (s.imported.name !== 'touch') return [];
-    return [s.local.name];
-  });
-
-/** `<gestures>.touch`: the gesture read off its module, imported whole. */
-const isModuleTouch = (n: ESTree.Node) => {
-  if (n.type !== 'Identifier' || n.name !== 'touch') return false;
-  const p = n.parent;
-  if (p.type !== 'MemberExpression' || p.property !== n || p.computed) return false;
-  const module = p.object;
-  return (
-    module.type === 'Identifier' &&
-    gestureImports(programOf(n)).some(
-      (s) => s.type === 'ImportNamespaceSpecifier' && s.local.name === module.name,
-    )
-  );
-};
-
-/** The identifier a callee chain starts at: `it` for `it.effect.layer(x)(…)`. */
-const rootName = (n: ESTree.Node): Option.Option<string> => {
-  if (n.type === 'Identifier') return Option.some(n.name);
-  if (n.type === 'MemberExpression') return rootName(n.object);
-  if (n.type === 'CallExpression') return rootName(n.callee);
+/** The node a callee chain starts at: `it` for `it.effect.layer(x)(…)`. */
+const rootOf = (n: ESTree.Node): Option.Option<ESTree.Node> => {
+  if (n.type === 'Identifier') return Option.some(n);
+  if (n.type === 'MemberExpression') return rootOf(n.object);
+  if (n.type === 'CallExpression') return rootOf(n.callee);
   return Option.none();
 };
 
 const isFunction = (n: ESTree.Node) =>
   n.type === 'ArrowFunctionExpression' || n.type === 'FunctionExpression';
 
-/** A call to `test.serial(…)`. */
-const isSerialTest = (n: ESTree.Node) =>
+/** A call of the runner's `test.serial(…)`. */
+const isSerialTest = (b: Bindings, n: ESTree.Node) =>
   n.type === 'CallExpression' &&
   n.callee.type === 'MemberExpression' &&
-  n.callee.object.type === 'Identifier' &&
-  n.callee.object.name === 'test' &&
-  Option.contains(memberName(n.callee), 'serial');
+  Option.contains(memberName(n.callee), 'serial') &&
+  b.isRunner(n.callee.object, 'test');
 
-/** A test: `it…(name, body, …)` or `test…(name, body, …)`. */
-const isTest = (n: ESTree.Node) =>
+/** A test: the runner's `it…(name, body, …)` or `test…(name, body, …)`. */
+const isTest = (b: Bindings, n: ESTree.Node) =>
   n.type === 'CallExpression' &&
-  Option.exists(rootName(n.callee), (name) => name === 'it' || name === 'test') &&
+  Option.exists(rootOf(n.callee), (root) => b.isRunner(root, 'it') || b.isRunner(root, 'test')) &&
   n.arguments.some(isFunction);
 
 /** `<x>.finger`: the identifier `finger` read off a tab. */
@@ -96,12 +68,21 @@ const isFinger = (n: ESTree.Node) =>
   n.parent.property === n &&
   !n.parent.computed;
 
+/** The touch gesture: `touch` (or its alias) where it is used, or the `touch` of `gestures.touch`. */
+const isGesture = (b: Bindings, n: ESTree.Node) => {
+  if (n.type !== 'Identifier') return false;
+  const p = n.parent;
+  if (p.type === 'MemberExpression' && p.property === n && !p.computed)
+    return b.readsImport(p, isGestures, 'touch');
+  return isUse(n) && b.importsAs(n, isGestures, 'touch');
+};
+
 /**
  * `{ finger }` or `{ finger: tip }` taken apart from a tab: the `finger` key
  * of a pattern, with the name it binds (none when it binds no one name, as
  * a pattern within the pattern).
  */
-const fingerTakenApart = (n: ESTree.Node): Option.Option<Option.Option<string>> => {
+const fingerTakenApart = (n: ESTree.Node): Option.Option<Option.Option<ESTree.Node>> => {
   if (n.type !== 'Identifier' || n.name !== 'finger') return Option.none();
   const p = n.parent;
   if (p.type !== 'Property' || p.key !== n || p.computed) return Option.none();
@@ -110,8 +91,8 @@ const fingerTakenApart = (n: ESTree.Node): Option.Option<Option.Option<string>> 
 };
 
 /** The one name a pattern binds (`tip`, `tip = x`), or none. */
-const boundName = (b: ESTree.Node): Option.Option<string> => {
-  if (b.type === 'Identifier') return Option.some(b.name);
+const boundName = (b: ESTree.Node): Option.Option<ESTree.Node> => {
+  if (b.type === 'Identifier') return Option.some(b);
   if (b.type === 'AssignmentPattern') return boundName(b.left);
   return Option.none();
 };
@@ -137,11 +118,11 @@ const usedIn = (n: ESTree.Node, p: ESTree.Node) => {
   );
 };
 
-/** Where a touch or a use stands: a serial test's body, another test's, a named declaration, or none. */
+/** Where a touch or a use stands: a serial test's body, another test's, a declaration (by the name it binds), or none. */
 type Host =
   | { readonly _tag: 'Serial' }
   | { readonly _tag: 'Test' }
-  | { readonly _tag: 'Declared'; readonly name: string }
+  | { readonly _tag: 'Declared'; readonly binding: ESTree.Node }
   | { readonly _tag: 'Loose' };
 
 /**
@@ -150,66 +131,66 @@ type Host =
  * that reaches `n` with no function between runs as it is declared, so `n`
  * stands where the declaration does.
  */
-const hostOf = (n: ESTree.Node): Host => {
+const hostOf = (b: Bindings, n: ESTree.Node): Host => {
   const up = ancestors(n);
-  if (up.some(isSerialTest)) return { _tag: 'Serial' };
+  if (up.some((a) => isSerialTest(b, a))) return { _tag: 'Serial' };
   let deferred = false;
   for (const a of up) {
-    if (isTest(a)) return { _tag: 'Test' };
+    if (isTest(b, a)) return { _tag: 'Test' };
     if (a.type === 'VariableDeclarator' && a.id.type === 'Identifier' && deferred)
-      return { _tag: 'Declared', name: a.id.name };
+      return { _tag: 'Declared', binding: a.id };
     if (a.type === 'FunctionDeclaration')
       return Option.match(Option.fromNullOr(a.id), {
         onNone: (): Host => ({ _tag: 'Loose' }),
-        onSome: (id): Host => ({ _tag: 'Declared', name: id.name }),
+        onSome: (id): Host => ({ _tag: 'Declared', binding: id }),
       });
     if (isFunction(a)) deferred = true;
   }
   return { _tag: 'Loose' };
 };
 
-/** A touch, or a use of a name, outside a serial test's body. */
+/** A touch, or a use of a name the file binds, outside a serial test's body. */
 interface Seen {
   readonly node: ESTree.Node;
-  /** The name used; none for a finger, which touches whatever it is called. */
-  readonly name: Option.Option<string>;
+  /** The binding of the name used; none for a touch, which touches whatever it is called. */
+  readonly used: Option.Option<ESTree.Node>;
   readonly host: Exclude<Host, { readonly _tag: 'Serial' }>;
-  readonly program: ESTree.Node;
 }
 
-const seen = (n: ESTree.Node): Option.Option<Seen> => {
-  if (n.type !== 'Identifier') return Option.none();
-  const takenApart = fingerTakenApart(n);
-  // A finger taken apart into one name declares that name, which touches wherever it is used.
-  const declares = Option.flatten(takenApart);
-  const touch = isFinger(n) || isModuleTouch(n) || Option.isSome(takenApart);
-  if (!touch && !isUse(n)) return Option.none();
-  const host = Option.match(declares, {
-    onNone: () => hostOf(n),
-    onSome: (name): Host => ({ _tag: 'Declared', name }),
-  });
-  if (host._tag === 'Serial') return Option.none();
-  return Option.some({
-    node: n,
-    name: Option.liftPredicate(n.name, () => !touch),
-    host,
-    program: programOf(n),
-  });
-};
+const seen =
+  (b: Bindings) =>
+  (n: ESTree.Node): Option.Option<Seen> => {
+    if (n.type !== 'Identifier') return Option.none();
+    const takenApart = fingerTakenApart(n);
+    // A finger taken apart into one name declares that name, which touches wherever it is used.
+    const declares = Option.flatten(takenApart);
+    const touch = isFinger(n) || isGesture(b, n) || Option.isSome(takenApart);
+    const used = Option.map(
+      Option.filter(b.definitionOf(n), () => !touch && isUse(n)),
+      (def) => def.name,
+    );
+    if (!touch && Option.isNone(used)) return Option.none();
+    const host = Option.match(declares, {
+      onNone: () => hostOf(b, n),
+      onSome: (binding): Host => ({ _tag: 'Declared', binding }),
+    });
+    if (host._tag === 'Serial') return Option.none();
+    return Option.some({ node: n, used, host });
+  };
 
-/** Whether a sighting touches, given the names that do. */
-const touches = (s: Seen, touching: ReadonlySet<string>) =>
-  Option.match(s.name, { onNone: () => true, onSome: (name) => touching.has(name) });
+/** Whether a sighting touches, given the bindings that do. */
+const touches = (s: Seen, touching: ReadonlySet<ESTree.Node>) =>
+  Option.match(s.used, { onNone: () => true, onSome: (binding) => touching.has(binding) });
 
-/** The names that touch: the gesture's, and each declaration whose value touches or uses one that does. */
-const touchingNames = (all: ReadonlyArray<Seen>) => {
-  const touching = new Set(all.slice(0, 1).flatMap((s) => gestureNames(s.program)));
+/** The bindings that touch: each declaration whose value touches or uses one that does. */
+const touchingBindings = (all: ReadonlyArray<Seen>) => {
+  const touching = new Set<ESTree.Node>();
   let grew = true;
   while (grew) {
     grew = false;
     for (const s of all)
-      if (s.host._tag === 'Declared' && !touching.has(s.host.name) && touches(s, touching)) {
-        touching.add(s.host.name);
+      if (s.host._tag === 'Declared' && !touching.has(s.host.binding) && touches(s, touching)) {
+        touching.add(s.host.binding);
         grew = true;
       }
   }
@@ -228,8 +209,9 @@ export const touchesSerial = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
-    return yield* Visitor.accumulate('Identifier', seen, (all) => {
-      const touching = touchingNames(all);
+    const b = yield* bindings;
+    return yield* Visitor.accumulate('Identifier', seen(b), (all) => {
+      const touching = touchingBindings(all);
       return Effect.forEach(
         all.filter((s) => s.host._tag !== 'Declared' && touches(s, touching)),
         (s) => context.report(Diagnostic.make({ node: s.node, message: MESSAGE })),

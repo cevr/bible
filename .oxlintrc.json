@@ -1887,6 +1887,39 @@
           }
         ]
       }
+    },
+    {
+      // The film plugin's rules read every name by its binding through one
+      // reader, packages/film/lint/nodes.ts: a rule that reads the scope tree
+      // itself is how names came to be read by their spelling, rule by rule.
+      // Last of the overrides, so no later block replaces it.
+      "files": ["**/packages/film/lint/**/*.ts"],
+      "excludeFiles": ["**/packages/film/lint/nodes.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "oxlint-plugin-effect/rule-bindings",
+                "importNames": [
+                  "Definition",
+                  "DefinitionType",
+                  "OxlintScope",
+                  "OxlintSourceCode",
+                  "Reference",
+                  "Scope",
+                  "ScopeManager",
+                  "SourceCode",
+                  "Variable",
+                  "sourceCode"
+                ],
+                "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts (bindings, definitionOf, importsAs), never the scope tree itself."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

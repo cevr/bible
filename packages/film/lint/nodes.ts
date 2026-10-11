@@ -68,13 +68,6 @@ export const unwrapped = (node: ESTree.Node): ESTree.Node => {
   return node;
 };
 
-/** The file a node is in. */
-export const programOf = (n: ESTree.Node): ESTree.Node => {
-  let at = n;
-  while (at.type !== 'Program') at = at.parent;
-  return at;
-};
-
 // Bindings. Every name a rule reads a meaning into (a const's value, an
 // import, a global, a type, the frame) is resolved by the file's scope tree
 // where it is read, so a parameter, a local or a type parameter of the same
@@ -212,7 +205,7 @@ export type NumberOf = (n: ESTree.Node) => Option.Option<number>;
 // `const` holding such a read (`const now = f.t`).
 
 /** The module film's `Frame` and `drawing` are exported from. */
-const isCanvas: Module = (from) =>
+export const isCanvas: Module = (from) =>
   from === '@bible/film/canvas' || /(?:^|\/)canvas\/(?:index|film)\.ts$/u.test(from);
 
 /** How far a type or a value is followed through aliases before the reader gives up. */
@@ -360,6 +353,40 @@ const readsCueIn = (code: OxlintSourceCode, x: ESTree.Node): boolean => {
   return Option.exists(constValueIn(code, n), (init) => isCueProgressIn(code, unwrapped(init)));
 };
 
+/**
+ * The key `id` is taken apart under and the value it is taken from, when its
+ * binding is a `const` pattern: `spawnSync` and `Bun` for `const { spawnSync }
+ * = Bun`, `go` and `url` for `const { navigate: go } = url`.
+ */
+const takenFromIn = (
+  code: OxlintSourceCode,
+  id: Named,
+): Option.Option<{ readonly key: string; readonly value: ESTree.Node }> =>
+  Option.flatMap(definitionIn(code, id), (def) => {
+    const declarator = def.node;
+    if (def.type !== 'Variable' || !isConst(declarator) || !declarator.init) return Option.none();
+    const value = declarator.init;
+    return Option.flatMap(
+      Option.filter(takenApart(def.name), ({ pattern }) => pattern === declarator.id),
+      ({ key }) => Option.some({ key, value }),
+    );
+  });
+
+/** Every read of a name `node` declares (a declarator's, a function's), where it is read. */
+const readsOfIn = (code: OxlintSourceCode, node: ESTree.Node): ReadonlyArray<ESTree.Node> =>
+  code
+    .getDeclaredVariables(node)
+    .flatMap((v) => v.references)
+    .filter((ref) => ref.isRead())
+    .map((ref): ESTree.Node => ref.identifier);
+
+/** The modules a test is run with: `it`, `test`, `describe` and `expect` are theirs. */
+const isRunner: Module = (from) => from === 'bun:test' || from === 'effect-bun-test';
+
+/** Whether `node` is the test runner's `name`: imported from it (or an alias), or bun's global of that name. */
+const isRunnerIn = (code: OxlintSourceCode, node: ESTree.Node, name: string) =>
+  importsAsIn(code, node, isRunner, name) || isGlobalIn(code, node, name);
+
 /** What a file's bindings give a rule, each read where the name is written. */
 export interface Bindings {
   /** How a name is bound: its first definition, none for a name the file binds nowhere. */
@@ -378,6 +405,14 @@ export interface Bindings {
   readonly framePart: (node: ESTree.Node) => Option.Option<string>;
   /** Whether an expression is a cue's progress: `f.at(…)`, or a `const` bound to one. */
   readonly readsCue: (node: ESTree.Node) => boolean;
+  /** The key a name is taken apart under and the value it is taken from: `const { key: id } = value`. */
+  readonly takenFrom: (
+    id: Named,
+  ) => Option.Option<{ readonly key: string; readonly value: ESTree.Node }>;
+  /** Every read of a name a declaration declares, where it is read. */
+  readonly readsOf: (declaration: ESTree.Node) => ReadonlyArray<ESTree.Node>;
+  /** Whether a name is the test runner's `name` (`it`, `test`, `expect`): its import, an alias, or bun's global. */
+  readonly isRunner: (node: ESTree.Node, name: string) => boolean;
   /** The value a name holds where it is read, when its binding is a top-level const. */
   readonly valueOf: (id: Named) => Option.Option<ESTree.Node>;
   /** A number written out, or named by a top-level const holding one. */
@@ -400,6 +435,9 @@ const bindingsIn = (code: OxlintSourceCode): Bindings => {
     isFrame: (node) => isFrameIn(code, node, 0),
     framePart: (node) => framePartIn(code, node, 0),
     readsCue: (node) => readsCueIn(code, node),
+    takenFrom: (id) => takenFromIn(code, id),
+    readsOf: (declaration) => readsOfIn(code, declaration),
+    isRunner: (node, name) => isRunnerIn(code, node, name),
     valueOf: (id) => topLevelValueIn(code, id),
     numberOf,
   };
@@ -417,6 +455,10 @@ export const definitionOf = (id: Named) => Effect.map(bindings, (b) => b.definit
 /** `Bindings.importsAs`, as an answer read through the rule's context. */
 export const importsAs = (node: ESTree.Node, from: Module, name: string) =>
   Effect.map(bindings, (b) => b.importsAs(node, from, name));
+
+/** `Bindings.isGlobal`, as an answer read through the rule's context. */
+export const isGlobal = (node: ESTree.Node, name: string) =>
+  Effect.map(bindings, (b) => b.isGlobal(node, name));
 
 /** The module of film's clock and easing helpers: `lerp`, `clamp`, `ease`, `CLOCK_EPSILON` (`core/time.ts`). */
 export const isFilmTime: Module = (from) =>
