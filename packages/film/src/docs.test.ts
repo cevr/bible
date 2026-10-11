@@ -24,8 +24,9 @@
 // - a doc is read as GitHub shows it, through Bun's CommonMark and GFM parser
 //   (`Bun.markdown`): its prose (paragraphs, headings, list items, quotes,
 //   table rows) apart from its code blocks, wherever a block sits;
-// - each path written in a code span of the prose, in these docs and in NORTH_STAR.md,
-//   PRIOR_ARTS.md, CLAUDE.md, the design language and the packages' and
+// - each path written in backticks (a code span of the prose, or in a code
+//   block: a template an agent pastes names real paths too), in these docs
+//   and in NORTH_STAR.md, PRIOR_ARTS.md, CLAUDE.md, the design language and the packages' and
 //   apps' READMEs, from the repo root or from the doc's own package
 //   (`lab/page-shell.tsx`, `src/…`), exists, and each symbol written after it
 //   (`tools/review.ts` `Review.read`) is declared in its code, as the parser
@@ -383,10 +384,14 @@ const linksIn = (doc: Doc): ReadonlyArray<Anchor> =>
       link: true,
     }));
 
-/** Each path a doc's prose writes in a code span, with the symbols after it: `path` `A`, `B`. */
+/**
+ * Each path a doc writes in backticks, with the symbols after it: `path`
+ * `A`, `B`; in its prose's code spans and in its code blocks' lines alike (a
+ * fenced template an agent pastes names the tree as surely as a sentence).
+ */
 const spannedIn = (doc: Doc): ReadonlyArray<Anchor> =>
-  proseOf(markdownOf(doc.text))
-    .split('\n')
+  markdownOf(doc.text)
+    .lines.map((line) => line.text)
     .filter((line) => !ANOTHER_REPO.test(line))
     .flatMap((line) =>
       matches(
@@ -665,19 +670,25 @@ const AT_BIN = /^\s*(?:\$\s+)?film /;
 
 /**
  * Where a line writes a command. In a code block: each command of the line
- * that starts with the bin, the line split at `&&`, `||`, `;` and `|`
+ * that starts with the bin, the line cut at its shell comment (` # warns; …`)
+ * and split at `&&`, `||`, `;` and `|`
  * (`cd apps/animations && film check …`); a block's comment
  * (`// the film render pass …`) starts with none. In prose (a paragraph's
  * line, a list item's or a quote's, its mark the parser's): each code span,
  * and a line that starts with the bin up to its first span, unless it holds
- * a `;`, a sentence's (`film render writes stills; Vite takes --host`). A
+ * a sentence's `;` or `, ` (`film render writes stills; Vite takes --host`;
+ * a command's list is written `--scene a,b`, no space). A
  * sentence that says "film" elsewhere is no command.
  */
 const commandsIn = (line: Line): ReadonlyArray<string> => {
-  if (line.code) return line.text.split(/&&|\|\|?|;/).filter((command) => AT_BIN.test(command));
+  if (line.code)
+    return line.text
+      .replace(/(?:^|\s)#.*$/, '')
+      .split(/&&|\|\|?|;/)
+      .filter((command) => AT_BIN.test(command));
   const spans = matches(line.text, SPAN).map((m) => group(m, 2));
   const head = line.text.split('`')[0] ?? '';
-  if (!AT_BIN.test(head) || head.includes(';')) return spans;
+  if (!AT_BIN.test(head) || /;|,\s/.test(head)) return spans;
   return [head, ...spans];
 };
 
@@ -1254,6 +1265,11 @@ describe('the docs', () => {
           '```',
           '~~~',
           'Read [the gone tilde](guide/gone-tilde.md).',
+          '',
+          // A path in a code block is the tree's too: a template an agent pastes names it.
+          '```',
+          'Write the rule in `packages/film/src/gone-fenced.ts`.',
+          '```',
         ].join('\n'),
       };
       expect(drift(stale, code)).toEqual([
@@ -1285,6 +1301,7 @@ describe('the docs', () => {
         'stale.md: packages/film/src/tools/review.ts has no Review.write',
         'stale.md: lab/page-shell.tsx:346: name a symbol, not a line',
         'stale.md: packages/film/src/lab/api.ts has no uniqueId',
+        'stale.md: path packages/film/src/gone-fenced.ts does not exist',
         'stale.md: path tools/gone.ts does not exist',
         'stale.md: path reference/none.md does not exist',
         'stale.md: path guide/gone.md does not exist',
@@ -1328,6 +1345,11 @@ describe('the docs', () => {
           // or a list item's block, a command in a table, and a link GitHub shows as no link (in
           // an HTML comment, or in a code block that a fence with an info string does not close).
           '- film render writes stills; Vite takes --host, not the CLI.',
+          '- film render writes stills, and Vite takes --host, not the CLI.',
+          '',
+          '```sh',
+          'bun run check <film>  # warns; film check --frob is wrong',
+          '```',
           '',
           '> ```ts',
           '> handlers[i](event);',
