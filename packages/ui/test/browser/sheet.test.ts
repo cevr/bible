@@ -823,7 +823,9 @@ describe('without scroll-driven animations', () => {
 
 /**
  * A finger pressed at `from` and moved `distance` px down in `steps` moves,
- * then lifted: the browser's own touches (CDP), so it scrolls natively.
+ * then lifted: the browser's own touches (CDP), so it scrolls natively. Each
+ * touch carries its time, a move every 8 ms: the fling a lift starts is the
+ * same however slowly a busy machine delivers them.
  */
 async function fingerDown(
   page: Page,
@@ -832,17 +834,21 @@ async function fingerDown(
   steps: number,
 ) {
   const cdp = await page.context().newCDPSession(page);
-  const at = (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) =>
+  const start = Date.now() / 1000;
+  const at = (type: 'touchStart' | 'touchMove' | 'touchEnd', step: number, y: number) =>
     cdp.send('Input.dispatchTouchEvent', {
       type,
-      touchPoints: type === 'touchEnd' ? [] : [{ x, y }],
+      touchPoints: type === 'touchEnd' ? [] : [{ x: from.x, y }],
+      timestamp: start + step * 0.008,
     });
-  await at('touchStart', from.x, from.y);
+  await at('touchStart', 0, from.y);
   // One move after another, in order.
-  await Array.from({ length: steps }, (_, i) => from.y + (distance * (i + 1)) / steps).reduce<
-    Promise<unknown>
-  >((previous, moveY) => previous.then(() => at('touchMove', from.x, moveY)), Promise.resolve());
-  await at('touchEnd', from.x, from.y + distance);
+  await Array.from({ length: steps }, (_, i) => i + 1).reduce<Promise<unknown>>(
+    (previous, step) =>
+      previous.then(() => at('touchMove', step, from.y + (distance * step) / steps)),
+    Promise.resolve(),
+  );
+  await at('touchEnd', steps + 1, from.y + distance);
 }
 
 const bodyScrollTop = (page: Page) => page.locator('#body').evaluate((el) => el.scrollTop);
@@ -879,6 +885,53 @@ describe('a finger', () => {
       ),
     );
     expect(swept).toEqual([['open false swipe'], ['open false swipe']]);
+  });
+
+  it('swipes a non-modal sheet away by a wheel or a finger, its shadow drawn round the clip by a wrapper that takes no presses', async () => {
+    const LOOSE = { modal: 'false', dismissal: 'disabled', portal: 'inline' };
+    const swept = await Promise.all(
+      (['wheel', 'finger'] as const).map(async (by) => {
+        const page = await h.open('sheet', {
+          touch: by === 'finger',
+          query: by === 'wheel' ? { ...LOOSE, position: 'right' } : LOOSE,
+        });
+        // The lab's: the inline portal, fixed over the window, draws the shadow and takes no
+        // presses; the overlay inside takes the panel's.
+        await page.addStyleTag({
+          content: `div:has(> #overlay) {
+            position: fixed; inset: 0; pointer-events: none;
+            filter: drop-shadow(0 8px 28px rgb(0 0 0 / 0.55));
+          }`,
+        });
+        await openSheet(page);
+        const panel = await box(page, '#panel');
+        // Just past the panel's inner edge (its left, or its top) and just inside it.
+        const [dx, dy] = by === 'wheel' ? [5, 0] : [0, 5];
+        const edge =
+          by === 'wheel'
+            ? { x: panel.x, y: panel.y + panel.height / 2 }
+            : { x: panel.x + panel.width / 2, y: panel.y };
+        const reach = await page.evaluate(
+          ({ x, y, dx, dy }) => [
+            document.elementFromPoint(x - dx, y - dy)?.closest('#overlay') ?? null,
+            document.elementFromPoint(x + dx, y + dy)?.closest('#panel')?.id,
+          ],
+          { ...edge, dx, dy },
+        );
+        if (by === 'wheel') {
+          await page.mouse.move(panel.x + 150, panel.y + 200);
+          await page.mouse.wheel(-600, 0);
+        } else {
+          await fingerDown(page, { x: panel.x + 100, y: panel.y + 20 }, 260, 12);
+        }
+        await see(page.locator('#popup')).toHaveCount(0);
+        return [reach, (await logOf(page)).filter((line) => line.startsWith('open'))];
+      }),
+    );
+    expect(swept).toEqual([
+      [[null, 'panel'], ['open false swipe']],
+      [[null, 'panel'], ['open false swipe']],
+    ]);
   });
 
   it('swipes a non-modal sheet away from its panel, and leaves the page around it to the page', async () => {

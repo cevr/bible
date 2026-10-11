@@ -502,8 +502,9 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
 
   // A sheet that is not modal stands fixed over a page that stays live: it takes presses (and
   // so the swipe) exactly where its panel rests, and it is clipped there, its panel's shadow
-  // with it. A clip that followed the panel would leave the container out of the hit test, and
-  // the browser does not scroll a container a press misses.
+  // with it (an owner draws one round the overlay). A clip that followed the panel would leave
+  // the container out of the hit test, and Chromium does not scroll a container a wheel misses.
+  // It takes presses even inside an element that takes none (that owner's wrapper).
   const looseStyle = (): JSX.CSSProperties => {
     const rect = restRect();
     const box = overlaySize();
@@ -515,6 +516,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
     return {
       position: 'fixed',
       inset: '0',
+      'pointer-events': 'auto',
       'clip-path': `inset(${rect.top}px ${right}px ${bottom}px ${rect.left}px)`,
     };
   };
