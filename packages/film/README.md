@@ -2396,8 +2396,10 @@ step is one frame of that video's own (its timecode counts them; Shift ten):
 the rate `GET /api/review/duration` reads from the video's own packets
 (`fps`, `Media.timing`: frames a second over its first 120 packets, taken
 for the whole or 1000/1001 rate it lies within its timestamps' precision
-of, 0.04%, under half the gap between 30 and 29.97, else as measured,
-never rounded to a whole rate, so a 29.97 video steps on its own grid),
+of (a tick of the track's timescale over the span measured: a millisecond
+timescale tells 30 from 29.97 over 4 s, not over a third of a second)
+when that is the only one, else as measured, never rounded to a whole
+rate, so a 29.97 video steps on its own grid),
 the film rate (`FILM_FPS`) only while that answer is pending or the video
 names none; the clock stands on the frame's start, and every video seeks a
 quarter of a frame into it (`intoFrame`; Chrome keeps some frames' starts a

@@ -547,42 +547,57 @@ const videoTrackOf = (op: MediaFailed['op'], file: string, input: Input) =>
 const RATE_PACKETS = 120;
 
 /**
- * How far, as a share of it, a rate measured over a video's timestamps may
- * lie from the broadcast rate it was made at: their precision (a millisecond
- * timescale errs by up to a millisecond over the 4 s of `RATE_PACKETS` at 30
- * fps, 0.025%). Under half the gap between a whole rate and its 1000/1001
- * rate (0.1%), so a measure is near one of 30 and 29.97 at most, never both.
+ * How far off, in ticks of its track's timescale, the span a rate is
+ * measured over may be: its first and last timestamps are each a time put
+ * on the tick grid, so their difference errs by up to a tick.
  */
-const RATE_PRECISION = 4e-4;
+const SPAN_TICKS = 1;
+
+/**
+ * How far, as a share of it, a rate measured as `packets` frames over a
+ * track whose timestamps are whole ticks of `1 / resolution` s may lie from
+ * the rate the video was made at: a tick (`SPAN_TICKS`) over the span
+ * measured. A millisecond timescale tells 30 from 29.97 (0.1% apart) over
+ * 4 s of 30 fps; over 23 frames (0.77 s, 0.13%) it does not.
+ */
+const precisionOf = (measured: number, packets: number, resolution: number): number =>
+  (SPAN_TICKS * measured) / (packets * resolution);
 
 /**
  * `measured` (frames a second over a span of packets) as the rate it is: a
  * whole rate (30) or its 1000/1001 rate (30000/1001, NTSC's 29.97) when it
- * lies within its timestamps' precision of one (`RATE_PRECISION`), else as
+ * lies within `precision` (a share of it, `precisionOf`) of that one alone;
+ * else, near both (the timestamps cannot tell them apart) or neither, as
  * measured. Never rounded to a whole rate it is not: a 29.97 video steps on
  * its own grid.
  */
-const rateOf = (measured: number): number => {
+const rateOf = (measured: number, precision: number): number => {
   const whole = Math.round(measured);
   const ntsc = (Math.round((measured * 1001) / 1000) * 1000) / 1001;
+  const near = Arr.filter(
+    [whole, ntsc],
+    (rate) => rate > 0 && Math.abs(rate - measured) <= precision * measured,
+  );
   return Option.getOrElse(
-    Arr.findFirst([whole, ntsc], (rate) => Math.abs(rate - measured) < RATE_PRECISION * measured),
+    Option.filter(Arr.head(near), () => near.length === 1),
     () => measured,
   );
 };
 
 /**
  * The frame rate of the video in `input` (`file` opened), as its own packets
- * say (mediabunny's count over its first packets, `rateOf`). None for a file
- * with no video track, or none readable.
+ * say (mediabunny's count over its first packets, `rateOf`, within what its
+ * timestamps can tell, `precisionOf`). None for a file with no video track,
+ * or none readable.
  */
 const frameRateIn = (file: string, input: Input): Effect.Effect<Option.Option<number>> =>
   Effect.gen(function* () {
     const track = yield* videoTrackOf('read', file, input);
+    const resolution = yield* attempt('read', file, () => track.getTimeResolution());
     const stats = yield* attempt('read', file, () => track.computePacketStats(RATE_PACKETS));
     return Option.map(
       Option.liftPredicate(stats.averagePacketRate, (rate) => Number.isFinite(rate) && rate > 0),
-      rateOf,
+      (measured) => rateOf(measured, precisionOf(measured, stats.packetCount, resolution)),
     );
   }).pipe(Effect.orElseSucceed(() => Option.none<number>()));
 

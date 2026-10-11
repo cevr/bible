@@ -73,8 +73,8 @@ const RATED: ReadonlyArray<{
   { rate: '29.97', fps: 30000 / 1001, served: ', served' },
 ];
 
-/** The passes of a rated video's fifteen frames (`ratedVideo`): 120 frames to step through. */
-const RATED_PASSES = 8;
+/** A rated video's frames (`ratedVideo`): 120 to step through. */
+const RATED_FRAMES = 120;
 
 /** Long enough to step a rated video frame by frame, over a hundred times. */
 const SWEEP = 120_000;
@@ -685,7 +685,7 @@ describe('the review page', () => {
           // A real video made at `fps`, timed as the server times it (`Media.timing`), sent as the route encodes it.
           const fs = yield* FileSystem.FileSystem;
           const rated = `${yield* fs.makeTempDirectoryScoped()}/rated.mp4`;
-          yield* fs.writeFile(rated, yield* ratedVideo(fps, RATED_PASSES));
+          yield* fs.writeFile(rated, yield* ratedVideo(fps, RATED_FRAMES));
           const timed = yield* Schema.encodeEffect(ReviewDuration)(
             yield* (yield* Media).timing(rated),
           );
@@ -700,7 +700,7 @@ describe('the review page', () => {
           );
           yield* waitFor(page, '.rv-transport');
           // The end is read in the video's frames (120: `00:00:05:00` at 24, `00:00:04:00` at 30 and, non-drop-frame, at 29.97).
-          const frames = 15 * RATED_PASSES;
+          const frames = RATED_FRAMES;
           yield* textHas(page, '.rv-transport .rv-time', timecode(frames / fps, fps));
           // Each video keeps the time of the picture it last showed (`requestVideoFrameCallback`).
           const videos = "Array.from(document.querySelectorAll('.rv-card video'))";

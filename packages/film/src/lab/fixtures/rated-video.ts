@@ -1,8 +1,9 @@
 // A real video at a frame rate of its own, made with mediabunny: the
 // fifteen H.264 frames of `tools/fixtures/segment-a.mp4` (30 fps, encoded in
-// headless Chromium as a render encodes a chunk) laid `fps` a second, `times`
-// over, re-muxed as they are (no frame is encoded again), as an MP4 that
-// starts fast. A review's clock steps such a video by its own frames.
+// headless Chromium as a render encodes a chunk) laid `fps` a second, over
+// and over for as many frames as asked, re-muxed as they are (no frame is
+// encoded again), as an MP4 that starts fast. A review's clock steps such a
+// video by its own frames.
 
 import { Array as Arr, Effect, Option, Stream } from 'effect';
 import {
@@ -28,8 +29,13 @@ const present = <A>(what: string, value: A) =>
     onSome: Effect.succeed,
   });
 
-/** The segment's frames at `fps` a second, `times` over: `15 × times` frames, `15 × times / fps` seconds. */
-export const ratedVideo = (fps: number, times: number) =>
+/**
+ * `frames` of the segment's frames, laid over and over, at `fps` a second:
+ * `frames / fps` seconds, its timestamps whole ticks of `1 / timescale` s
+ * (the rate's own by default; 1000 is a millisecond timescale, as a WebM's
+ * or a re-mux's).
+ */
+export const ratedVideo = (fps: number, frames: number, timescale: number = fps) =>
   Effect.scoped(
     Effect.gen(function* () {
       const input = yield* Effect.acquireRelease(
@@ -53,14 +59,15 @@ export const ratedVideo = (fps: number, times: number) =>
         target,
       });
       const source = new EncodedVideoPacketSource('avc');
-      output.addVideoTrack(source, { frameRate: fps });
+      // The track's timestamps snap to whole ticks of `1 / timescale`.
+      output.addVideoTrack(source, { frameRate: timescale });
       yield* Effect.promise(() => output.start());
-      const laid = Arr.flatMap(Arr.range(0, times - 1), (pass) =>
+      const laid = Arr.flatMap(Arr.range(0, Math.ceil(frames / packets.length) - 1), (pass) =>
         packets.map((packet) => {
           const frame = pass * packets.length + Math.round(packet.timestamp * SEGMENT_FPS);
           return packet.clone({ timestamp: frame / fps, duration: 1 / fps });
         }),
-      );
+      ).slice(0, frames);
       // The first packet carries the track's config.
       for (const [i, packet] of laid.entries())
         yield* Effect.promise(() =>

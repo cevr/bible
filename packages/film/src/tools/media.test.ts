@@ -445,7 +445,7 @@ describe.concurrent('Media', () => {
           const dir = yield* tempDir;
           const rateAt = Effect.fn('Media.test.rateAt')(function* (fps: number) {
             const file = `${dir}/rated-${fps}.mp4`;
-            yield* fs.writeFile(file, yield* ratedVideo(fps, 4));
+            yield* fs.writeFile(file, yield* ratedVideo(fps, 60));
             return (yield* media.timing(file)).fps;
           });
           expect(yield* rateAt(24)).toEqual(Option.some(24));
@@ -463,25 +463,39 @@ describe.concurrent('Media', () => {
   );
 
   it.effect.layer(MediaOnDisk)(
-    "a measured rate is taken for 30 or 29.97 only within its timestamps' precision: halfway between, it is neither",
+    'a measured rate is taken for a whole or 1000/1001 rate only as far as its timestamps can tell: a tick over the span measured',
     () =>
       Effect.scoped(
         Effect.gen(function* () {
           const media = yield* Media;
           const fs = yield* FileSystem.FileSystem;
           const dir = yield* tempDir;
-          const rateAt = Effect.fn('Media.test.rateAt')(function* (fps: number) {
-            const file = `${dir}/rated-${fps}.mp4`;
-            yield* fs.writeFile(file, yield* ratedVideo(fps, 8));
+          /** The rate read from `frames` frames made at `fps`, their timestamps whole ticks of `1 / timescale` s. */
+          const rateAt = Effect.fn('Media.test.rateAt')(function* (
+            fps: number,
+            frames: number,
+            timescale?: number,
+          ) {
+            const file = `${dir}/rated.mp4`;
+            yield* fs.writeFile(file, yield* ratedVideo(fps, frames, timescale));
             return Option.getOrThrow((yield* media.timing(file)).fps);
           });
           const ntsc = 30000 / 1001;
-          // 0.03% off: inside the precision (0.04%), so taken for the broadcast rate.
-          expect(yield* rateAt(30 * (1 - 3e-4))).toBe(30);
-          expect(yield* rateAt(ntsc * (1 + 3e-4))).toBe(ntsc);
-          // Halfway (0.05% from each, past the precision): kept as measured, taken for neither.
+          // A millisecond timescale: 23 frames at 30 measure 30.026 (0.09% off),
+          // a tick over 0.766 s is 0.13%, and 29.97 is 0.19% off, so it is 30.
+          expect(yield* rateAt(30, 23, 1000)).toBe(30);
+          // At 60 fps the 120 frames span 2 s: a tick is 0.05%, half the gap to 59.94.
+          expect(yield* rateAt(60, 120, 1000)).toBe(60);
+          expect(yield* rateAt(60000 / 1001, 120, 1000)).toBe(60000 / 1001);
+          // 29.97 and 30 over a long clip, each its own.
+          expect(yield* rateAt(30, 200, 1000)).toBe(30);
+          expect(yield* rateAt(ntsc, 200, 1000)).toBe(ntsc);
+          // Eight frames (0.27 s) cannot tell 30 from 29.97: kept as measured, taken for neither.
+          expect(yield* rateAt(30, 8, 1000)).toBeCloseTo(8 / 0.266, 9);
+          // A fine timescale tells a rate 0.03% off 30, or halfway to 29.97, from either.
+          expect(yield* rateAt(30 * (1 - 3e-4), 120)).toBeCloseTo(30 * (1 - 3e-4), 6);
           const halfway = (30 + ntsc) / 2;
-          expect(yield* rateAt(halfway)).toBeCloseTo(halfway, 6);
+          expect(yield* rateAt(halfway, 120)).toBeCloseTo(halfway, 6);
         }),
       ),
   );
