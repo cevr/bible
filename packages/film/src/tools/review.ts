@@ -17,9 +17,10 @@
 // so a route never takes a path on the box, and a ref answers only a file the
 // index lists. Besides a say on a version of a set, written to its project
 // folder's own catalogue (`say`, through `RenderCatalogue`), the only files
-// the review writes are derived ones (a frame, a
-// 720p phone copy of a big video, a score option's mix) in its cache, keyed
-// by the source's path and mtime (or, for a mix, its plan), each made once,
+// the review writes are derived ones (a frame, a phone copy of a video too
+// big or too dense to play as made, a score option's mix) in its cache, keyed
+// by the source's path and mtime (a phone copy by its encode too; a mix by
+// its plan), each made once,
 // whole or not at all (`writeWhole`: a partial of its own beside its name,
 // renamed into place; the maker names its format, never the file's name).
 // Lengths, frames and phone copies are the Media service's (`media.ts`).
@@ -96,7 +97,7 @@ import { counted } from '../core/words.ts';
 import { CATALOGUE_FILE, type CatalogueError, RenderCatalogue } from './catalogue.ts';
 import { writeWhole } from './content-store.ts';
 import { AtMtime, fileCache, madeFromName } from './file-cache.ts';
-import { Media } from './media.ts';
+import { Media, PHONE_COPY, PHONE_RATE } from './media.ts';
 
 /** A folder the review reads, and the label its refs start with. */
 export interface ReviewRoot {
@@ -108,11 +109,13 @@ interface ReviewConfig {
   readonly roots: ReadonlyArray<ReviewRoot>;
   /** Where derived files are kept. */
   readonly cache: string;
-  /** A video over this many bytes gets a 720p phone copy. */
+  /** A video over this many bytes gets a phone copy (`Media.phoneCopy`). */
   readonly phoneOver: number;
+  /** So does a video over this many bits a second (`PHONE_RATE` unless given). */
+  readonly phoneRate?: number;
   /** A video over this many bytes is not played inline; an authored download may still name it. */
   readonly maxVideo: number;
-  /** Whether phone copies are made in the background as the index finds big videos. */
+  /** Whether phone copies are made in the background as the index finds videos that need one. */
   readonly phoneCopies: boolean;
 }
 
@@ -262,6 +265,10 @@ const playedFiles = (render: Render) => [
   ...Option.toArray(render.files.share),
   ...Option.toArray(render.files.clip),
 ];
+
+/** Every file a catalogue's renders play as video, relative to its project folder. */
+const playedInProject = (catalogue: Catalogue): ReadonlyArray<string> =>
+  Arr.dedupe(catalogue.renders.flatMap(playedFiles));
 
 /** A render's video as the review plays it: its share copy, standing in for its master. */
 const renderVideo = (parts: FolderParts<Catalogue>, render: Render) =>
@@ -419,6 +426,15 @@ export const namesInMontage = (manifest: ReviewManifest): ReadonlyArray<string> 
     ),
   ]);
 
+/** Every file a manifest plays as video (its videos and its sets' variants), relative to its folder. */
+const playedInMontage = (manifest: ReviewManifest): ReadonlyArray<string> =>
+  Arr.dedupe([
+    ...manifest.videos,
+    ...Object.entries(manifest.sets).flatMap(([clip, set]) =>
+      variantIds(set).flatMap((id) => variantNames(clip, id, set)),
+    ),
+  ]);
+
 /**
  * A montage as the review lists it, from its manifest: its sets (in clip
  * order) as render choice points at no address of a film, each variant it
@@ -570,7 +586,7 @@ interface ReviewService {
     at: Option.Option<number>,
     width: number,
   ) => Effect.Effect<string, ReviewFileUnknown | ReviewToolFailed | MediaFailed>;
-  /** The video's 720p phone copy, when it is made. */
+  /** The video's phone copy, when it is made. */
   readonly phone: (ref: string) => Effect.Effect<Option.Option<string>, ReviewFileUnknown>;
   /**
    * A derived file in the cache at `name` (`mix/<key>.m4a`): there already, or
@@ -626,6 +642,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         const media = yield* Media;
         const catalogues = yield* RenderCatalogue;
         const roots = config.roots.map((root) => ({ ...root, path: path.resolve(root.path) }));
+        const phoneRate = config.phoneRate ?? PHONE_RATE;
         const cacheFailed = (name: string) => (error: { readonly message: string }) =>
           ReviewToolFailed.make({ tool: 'cache', ref: name, reason: error.message });
 
@@ -712,12 +729,17 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         /**
          * Each video's length and frame rate, one read of it (`Media.timing`:
          * its own, never rounded; none for a file with no video), by path and
-         * mtime, the newest kept; a failed read is not.
+         * mtime, the newest kept; a failed read is kept too, so a file that
+         * cannot be read is read once while it stands.
          */
-        const lengths = yield* fileCache((at) => media.timing(at.file), LENGTHS_KEPT);
+        const lengths = yield* fileCache(
+          (at) => Effect.result(media.timing(at.file)),
+          LENGTHS_KEPT,
+        );
+        const lengthOf = (at: AtMtime) => Effect.flatMap(Cache.get(lengths, at), Effect.fromResult);
 
         const duration = Effect.fn('Review.duration')(function* (ref: string) {
-          return yield* Cache.get(lengths, yield* standing(yield* resolve(ref)));
+          return yield* lengthOf(yield* standing(yield* resolve(ref)));
         });
 
         /** The frames being made, by name: a scrub that asks for one twice makes it once. */
@@ -748,8 +770,11 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           );
         });
 
+        // By the encode too (`PHONE_COPY`): a copy made with other settings is never served.
         const phonePath = (file: string) =>
-          Effect.map(sourceKey(file, []), (key) => path.join(config.cache, 'phone', `${key}.mp4`));
+          Effect.map(sourceKey(file, PHONE_COPY), (key) =>
+            path.join(config.cache, 'phone', `${key}.mp4`),
+          );
 
         const isFile = (file: string) => fs.exists(file).pipe(Effect.orElseSucceed(() => false));
 
@@ -759,8 +784,23 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           return Option.liftPredicate(out, () => there);
         });
 
+        /**
+         * Whether `video` plays as its phone copy: too big to stream whole, or
+         * too dense to play as made (its bytes over its own length, a read of
+         * it kept by `lengths`, over `phoneRate`; a video whose length cannot
+         * be read is judged by its size alone).
+         */
+        const copied = (video: Found) => {
+          if (video.size > config.phoneOver) return Effect.succeed(true);
+          const at = new AtMtime({ file: video.path, mtime: video.mtime });
+          return lengthOf(at).pipe(
+            Effect.map(({ seconds }) => seconds > 0 && (video.size * 8) / seconds > phoneRate),
+            Effect.orElseSucceed(() => false),
+          );
+        };
+
         const phoneState = Effect.fn('Review.phoneState')(function* (video: Found) {
-          if (video.size <= config.phoneOver) return 'none' satisfies PhoneState;
+          if (!(yield* copied(video))) return 'none' satisfies PhoneState;
           const there = yield* isFile(yield* phonePath(video.path));
           if (there) return 'ready' satisfies PhoneState;
           return 'pending' satisfies PhoneState;
@@ -824,11 +864,15 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             ),
           );
 
-        /** The named files and phone state for the subset eligible for previews; download-only files get none. */
+        /**
+         * The named files, and the phone state of those among them the review
+         * plays as video (`played`); any other (an image, captions, notes, a
+         * download) is never read for its length and has none.
+         */
         const lookIn = Effect.fn('Review.lookIn')(function* (
           dir: string,
           names: ReadonlyArray<string>,
-          phoneNames: ReadonlyArray<string> = names,
+          played: ReadonlyArray<string>,
         ) {
           const byName = new Map<string, Found>();
           for (const name of names) {
@@ -836,7 +880,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             if (Option.isSome(at)) byName.set(name, at.value);
           }
           const phones = new Map<string, PhoneState>();
-          for (const file of phoneNames.flatMap((name) =>
+          for (const file of played.flatMap((name) =>
             Option.toArray(Option.fromUndefinedOr(byName.get(name))),
           ))
             if (!phones.has(file.path)) phones.set(file.path, yield* phoneState(file));
@@ -863,7 +907,11 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             const catalogue = yield* decodeRecord(file, CatalogueJson);
             if (Option.isNone(catalogue)) return Option.none();
             const record = catalogue.value;
-            const { parts, pending } = yield* lookIn(dir, namesInProject(record));
+            const { parts, pending } = yield* lookIn(
+              dir,
+              namesInProject(record),
+              playedInProject(record),
+            );
             const pictures = record.renders
               .filter((r) => r.kind === 'video' && r.address._tag === 'Film')
               .flatMap((r) =>
@@ -892,7 +940,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           const { parts, pending } = yield* lookIn(
             dir,
             namesInMontage(record),
-            namesInMontage({ ...record, downloads: [] }),
+            playedInMontage(record),
           );
           return Option.some({
             folder: montageFolder({ ...parts, record }),
@@ -1121,7 +1169,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           render: Render,
         ) {
           const names = playedFiles(render);
-          const { parts } = yield* lookIn(dir, names);
+          const { parts } = yield* lookIn(dir, names, names);
           return videoOf({ ...parts, record: render }, names);
         });
 

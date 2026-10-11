@@ -37,9 +37,11 @@ import {
 } from '../core/catalogue.ts';
 import { type SetSayPost, withdrawSay } from '../core/api.ts';
 import { type ChoiceVariant, VariantMedia } from '../core/choice.ts';
+import { MediaFailed } from '../core/refusals.ts';
 import { type ReviewFolder, type ReviewIndex, ReviewManifestJson } from '../core/review.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
+import { AtMtime, madeFromName } from './file-cache.ts';
 import { Media } from './media.ts';
 import { reviewMedia } from './testing.ts';
 import {
@@ -474,12 +476,17 @@ const projectCatalogue = [
  * lone video, a variant from `out/elsewhere`); `out/f`, a project folder
  * with its catalogue; a stand-in Media (`reviewMedia`) giving every video
  * 12.5 s and making a still or a phone copy by copying the video whole.
- * The review reads the files through `files` (the file system as is, by default).
+ * The montage names an image, a doc and a variant's notes beside its videos,
+ * and the project each render's captions. The review reads the files
+ * through `files` (the file system as is, by default), and copies a video
+ * over 100 bytes or over `phoneRate` bits a second (the review's own by
+ * default); the media cannot read the length of a file named `unreadable`.
  */
 const fixture = (
   phoneCopies: boolean,
   fps: Option.Option<number> = Option.none(),
   files: (fs: FileSystem.FileSystem) => FileSystem.FileSystem = Function.identity,
+  tune: { readonly phoneRate?: number; readonly unreadable?: string } = {},
 ) =>
   Layer.unwrap(
     Effect.gen(function* () {
@@ -501,8 +508,11 @@ const fixture = (
       yield* fs.writeFileString(path.join(dir, 'secret.mp4'), 's');
       yield* write(
         'art/review.json',
-        '{ "title": "Art", "videos": ["big.mp4"], "sets": { "roof": { "order": ["A", "B"], "variants": { "D": { "file": "../elsewhere/roof.D.mp4" } } } } }',
+        '{ "title": "Art", "videos": ["big.mp4"], "images": ["sheet.png"], "docs": ["brief.md"], "sets": { "roof": { "order": ["A", "B"], "variants": { "A": { "notes": "roof.A.md" }, "D": { "file": "../elsewhere/roof.D.mp4" } } } } }',
       );
+      yield* write('art/sheet.png', 'png');
+      yield* write('art/brief.md', '# brief');
+      yield* write('art/roof.A.md', 'notes');
       // A log beside the renders: named by no record, never served.
       yield* write('art/render.log', 'a log');
       for (const name of ['film/main', 'film/wide', 'scenes/a/main']) {
@@ -512,15 +522,36 @@ const fixture = (
       }
       yield* write('f/catalogue.json', yield* Schema.encodeEffect(CatalogueJson)(projectCatalogue));
       const spawned: Array<string> = [];
+      // The stand-in, but a file named `unreadable` is counted, then fails as an unreadable one does.
+      const media = Layer.effect(
+        Media,
+        Effect.gen(function* () {
+          const standIn = yield* Media;
+          return Media.of({
+            ...standIn,
+            timing: (file) =>
+              Effect.flatMap(standIn.timing(file), (timing) =>
+                Effect.as(
+                  Effect.when(
+                    Effect.fail(MediaFailed.make({ op: 'read', file, reason: 'not media' })),
+                    Effect.succeed(path.basename(file) === tune.unreadable),
+                  ),
+                  timing,
+                ),
+              ),
+          });
+        }),
+      ).pipe(Layer.provide(reviewMedia(spawned, 12.5, fps)));
       return Review.layer({
         roots: [{ label: 'out', path: out }],
         cache: path.join(dir, 'cache'),
         phoneOver: 100,
+        phoneRate: tune.phoneRate,
         maxVideo: 1000,
         phoneCopies,
       }).pipe(
         Layer.provide(Layer.succeed(FileSystem.FileSystem, files(fs))),
-        Layer.provideMerge(reviewMedia(spawned, 12.5, fps)),
+        Layer.provideMerge(media),
         Layer.provide(RenderCatalogue.layer.pipe(Layer.provide(ContentStore.layer))),
         Layer.merge(Layer.succeed(Spawned, spawned)),
         Layer.merge(Layer.succeed(Root, dir)),
@@ -857,7 +888,10 @@ describe('the review service', () => {
       );
       expect(a).toBe(b);
       expect(yield* (yield* FileSystem.FileSystem).readFileString(a)).toBe('a'.repeat(10));
-      expect(spawned.filter((c) => c.startsWith('timing'))).toHaveLength(1);
+      // One read of it, whoever asked: the index's phone test (its bits a second) among them.
+      expect(
+        spawned.filter((c) => c.startsWith('timing') && c.endsWith('roof.A.mp4')),
+      ).toHaveLength(1);
       const frames = spawned.filter((c) => c.startsWith('still'));
       expect(frames).toHaveLength(1);
       expect(frames[0]).toEndWith('roof.A.mp4 1.25 640');
@@ -932,6 +966,91 @@ describe('the review service', () => {
       const ready = again.folders.flatMap((f) => f.videos).find((v) => v.name === 'big.mp4');
       expect(ready?.phone).toBe('ready');
     }).pipe(Effect.provide(fixture(true))),
+  );
+
+  it.effect(
+    'copies a video too dense to play as made, however small: its bits a second over the rate',
+    () =>
+      Effect.gen(function* () {
+        const { folders } = yield* (yield* Review).index(false);
+        const roof = folders.find((f) => f.ref === 'out/art')?.sets[0];
+        // Ten bytes over 12.5 s: 6.4 bits a second, over the rate of 6 and under the size of 100.
+        expect(roof?.variants.map(phoneOf)).toEqual([
+          Option.some('pending'),
+          Option.some('pending'),
+          Option.some('pending'),
+        ]);
+      }).pipe(Effect.provide(fixture(false, Option.none(), Function.identity, { phoneRate: 6 }))),
+  );
+
+  it.effect(
+    'reads the length of the videos it plays alone: never an image, a doc, notes or captions',
+    () =>
+      Effect.gen(function* () {
+        yield* (yield* Review).index(false);
+        const read = (yield* Spawned)
+          .filter((c) => c.startsWith('timing '))
+          .map((c) => c.split('/').slice(-2).join('/'))
+          .toSorted();
+        // A render plays its share copy, or its master where there is none: both are read.
+        expect(read).toEqual([
+          'a/main.mp4',
+          'a/main.share.mp4',
+          'art/roof.A.mp4',
+          'art/roof.B.mp4',
+          'elsewhere/roof.D.mp4',
+          'film/main.mp4',
+          'film/main.share.mp4',
+          'film/wide.mp4',
+          'film/wide.share.mp4',
+        ]);
+      }).pipe(Effect.provide(fixture(false))),
+  );
+
+  it.effect(
+    'reads a video whose length cannot be read once while it stands, and plays it as made',
+    () =>
+      Effect.gen(function* () {
+        const review = yield* Review;
+        yield* review.index(true);
+        const { folders } = yield* review.index(true);
+        const roof = folders.find((f) => f.ref === 'out/art')?.sets[0];
+        expect(roof?.variants.map(phoneOf)[0]).toEqual(Option.some('none'));
+        const reads = (yield* Spawned).filter(
+          (c) => c.startsWith('timing') && c.endsWith('roof.A.mp4'),
+        );
+        expect(reads).toHaveLength(1);
+      }).pipe(
+        Effect.provide(
+          fixture(false, Option.none(), Function.identity, {
+            phoneRate: 6,
+            unreadable: 'roof.A.mp4',
+          }),
+        ),
+      ),
+  );
+
+  it.effect(
+    'never serves a phone copy made with other settings: one named by its source alone',
+    () =>
+      Effect.gen(function* () {
+        const review = yield* Review;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const big = path.join(yield* Root, 'out', 'art', 'big.mp4');
+        const mtime = Option.match((yield* fs.stat(big)).mtime, {
+          onNone: () => 0,
+          onSome: (at) => at.getTime(),
+        });
+        const cache = path.join(yield* Root, 'cache', 'phone');
+        yield* fs.makeDirectory(cache, { recursive: true });
+        const before = madeFromName(new AtMtime({ file: big, mtime }), []);
+        yield* writeText(path.join(cache, `${before}.mp4`), 'an earlier encode');
+        const { folders } = yield* review.index(false);
+        const video = folders.flatMap((f) => f.videos).find((v) => v.name === 'big.mp4');
+        expect(video?.phone).toBe('pending');
+        expect(yield* review.phone('out/art/big.mp4')).toEqual(Option.none());
+      }).pipe(Effect.provide(fixture(false))),
   );
 
   it.effect('answers the index from memory until it is asked fresh', () =>

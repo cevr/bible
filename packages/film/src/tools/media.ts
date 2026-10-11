@@ -14,9 +14,10 @@
 //
 // The review's stills and phone copies of a render are made here too: a
 // still is the frame at a time, decoded by mediabunny and written as a JPEG
-// (`jpeg.ts`); a phone copy is a mediabunny conversion to 720p H.264 through
-// x264 at its own settings (CRF 23 at preset medium, capped, on two threads:
-// `x264.ts`), its track copied.
+// (`jpeg.ts`); a phone copy is a mediabunny conversion to H.264 at 720p at
+// most (a smaller video keeps its size) through x264 at its own settings
+// (CRF 23 at preset medium, averaging `PHONE_RATE` at most, a key frame
+// every second, on two threads: `x264.ts` `PHONE_ENCODE`), its track copied.
 //
 // A person's recording comes in whatever a recorder wrote (WAV, FLAC, AIFF,
 // M4A, MP3) at whatever rate its microphone ran, and loads in-process,
@@ -44,6 +45,7 @@ import {
   Match,
   Option,
   Order,
+  Predicate,
   Stream,
 } from 'effect';
 import {
@@ -81,7 +83,7 @@ import { writeWhole } from './content-store.ts';
 import { MediaFailed } from '../core/refusals.ts';
 import { jpegOf } from './jpeg.ts';
 import { resample } from './resample.ts';
-import { X264Encoder } from './x264.ts';
+import { PHONE_ENCODE, X264Encoder } from './x264.ts';
 
 /** How long a media file plays, in seconds, and its frames a second (none for a file with no video). */
 interface Timing {
@@ -144,8 +146,12 @@ export interface MediaService {
   ) => Effect.Effect<void, MediaFailed>;
   /**
    * The copy of `video` a phone streams, written to `out` (an MP4 whatever
-   * its name): `PHONE_HEIGHT` pixels high, H.264 capped at `PHONE_BITRATE`
-   * (`x264.ts`, `PHONE_X264`), its track copied. The review makes one of every big render.
+   * its name, the index at its head): 720 lines high at most (a shorter
+   * video keeps its size, made even), H.264 at CRF 23 averaging `PHONE_RATE`
+   * at most (`phoneRateFor`), a key frame every second at its own frame rate
+   * (`x264.ts`, `PHONE_ENCODE`), its track copied. The review makes one of
+   * every render too big or too dense to play as made, and names it by
+   * `PHONE_COPY`.
    */
   readonly phoneCopy: (video: string, out: string) => Effect.Effect<void, MediaFailed>;
 }
@@ -157,9 +163,45 @@ export interface MediaService {
  */
 const SHARE_CRF = 22;
 
-/** A phone copy's height, in pixels, and the bitrate its video is capped at. */
-const PHONE_HEIGHT = 720;
-const PHONE_BITRATE = 3_000_000;
+/**
+ * The most bits a second a phone is taken to play smoothly: the review
+ * serves a video over it as its phone copy (`review.ts`), and a copy
+ * averages it at most. Seen on the looks study (2026-10-11): its 2D renders
+ * at 7.1 and 7.8 Mbps played as made, its 3D ones at 14 and 21 Mbps
+ * choppily (packages/film/README.md, "Phone copies").
+ */
+export const PHONE_RATE = PHONE_ENCODE.rate;
+
+/** Settings by name: a value, or more settings. */
+interface Settings {
+  readonly [key: string]: string | number | Settings;
+}
+
+/** Every entry of `settings`, nested ones by their key, in order: what a cache name is made from. */
+const entriesOf = (settings: Settings): ReadonlyArray<string> =>
+  Object.entries(settings).flatMap(([key, value]) =>
+    Match.value(value).pipe(
+      Match.when(Predicate.isString, (plain) => [key, plain]),
+      Match.when(Predicate.isNumber, (plain) => [key, String(plain)]),
+      Match.orElse((nested) => [key, ...entriesOf(nested)]),
+    ),
+  );
+
+/**
+ * Everything a phone copy is made with (`PHONE_ENCODE`, every entry): the
+ * review names its copies by it beside their source (`review.ts`), so a
+ * copy made any other way is never served.
+ */
+export const PHONE_COPY = entriesOf(PHONE_ENCODE);
+
+/**
+ * The rate a phone copy of a `seconds`-long video asks x264 for: under
+ * `PHONE_RATE` by as much as its buffer could add (x264 spends at most the
+ * rate over the video's length and a full buffer), so the copy averages
+ * `PHONE_RATE` at most however short it is.
+ */
+const phoneRateFor = (seconds: number) =>
+  Math.max(1, Math.floor((PHONE_RATE * seconds) / (seconds + PHONE_ENCODE.bufferSeconds)));
 
 /** How long one still may take, and one phone copy. */
 const STILL_LIMIT = Duration.minutes(1);
@@ -711,22 +753,26 @@ const frameRateIn = (file: string, input: Input): Effect.Effect<Option.Option<nu
 /** An even count of pixels, as H.264's 4:2:0 wants. */
 const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
 
+/** An even count of pixels no more than `n`. */
+const evenDown = (n: number) => Math.max(2, Math.floor(n / 2) * 2);
+
 /**
  * `video` converted by mediabunny into an MP4 at `out`: its picture decoded,
  * sized by `size` from its own (none: as it is) and encoded again to H.264
- * at `quality` (x264, `x264.ts`), its track copied, the index at the head.
- * Cancelled when interrupted.
+ * at the `quality` its length asks (x264, `x264.ts`), its track copied, the
+ * index at the head. Cancelled when interrupted.
  */
 const reencode = (
   video: string,
   out: string,
-  quality: Quality,
+  qualityFor: (seconds: number) => Quality,
   size: (width: number, height: number) => Option.Option<{ width: number; height: number }>,
 ) =>
   Effect.scoped(
     Effect.gen(function* () {
       const input = yield* openInPlace(video);
       const track = yield* videoTrackOf('encode', video, input);
+      const quality = qualityFor(yield* attempt('encode', video, () => input.computeDuration()));
       const output = new Output({
         format: new Mp4OutputFormat({ fastStart: 'in-memory' }),
         target: new FilePathTarget(out),
@@ -1030,8 +1076,23 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
       });
 
       const phoneCopy = Effect.fn('Media.phoneCopy')(function* (video: string, out: string) {
-        const phone = reencode(video, out, new Quality({ bitrate: PHONE_BITRATE }), (w, h) =>
-          Option.some({ width: even((PHONE_HEIGHT * w) / h), height: PHONE_HEIGHT }),
+        // A video no taller than the copy keeps its size, made even by a line
+        // at most: a copy never scales up.
+        const { height } = PHONE_ENCODE;
+        const phone = reencode(
+          video,
+          out,
+          (seconds) => new Quality({ bitrate: phoneRateFor(seconds) }),
+          (w, h) =>
+            Option.some(
+              Option.match(
+                Option.liftPredicate(h, (tall) => tall > height),
+                {
+                  onSome: (tall) => ({ width: even((height * w) / tall), height }),
+                  onNone: () => ({ width: evenDown(w), height: evenDown(h) }),
+                },
+              ),
+            ),
         );
         yield* within('encode', video, PHONE_LIMIT, phone);
       });
@@ -1039,7 +1100,12 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
       const shareCopy = Effect.fn('Media.shareCopy')(function* (master: string, out: string) {
         // Written whole, so a failed or cut-off encode leaves no share behind.
         yield* mediaWhole(out, (partial) =>
-          reencode(master, partial, new Quality({ quantizer: SHARE_CRF }), () => Option.none()),
+          reencode(
+            master,
+            partial,
+            () => new Quality({ quantizer: SHARE_CRF }),
+            () => Option.none(),
+          ),
         );
       });
 

@@ -135,9 +135,11 @@ ElevenLabs sends. mediabunny picks the first coder registered that can, so
 the AAC and FLAC encoders and x264 (`tools/x264.ts`) register before
 `@mediabunny/server`'s FFmpeg ones, which it registers with no hardware
 context. Video is converted by mediabunny too: a software render's share
-copy (x264, below) and the review's phone copy (720p, x264 at CRF 23,
-preset medium, capped at 3 Mbps, on two threads so the review answers while
-it encodes) re-encode the film with its track copied, and a review's still is a
+copy (x264, below) and the review's phone copy of a video over 40 MiB or
+8 Mbps, drawn 2D renders too (720p at most, x264 at CRF 23, preset medium,
+averaging 8 Mbps at most, a key frame every second, on two threads so the
+review answers while it encodes: "Phone copies", below) re-encode the
+film with its track copied, and a review's still is a
 frame mediabunny decodes, scaled by libswscale and written by FFmpeg's MJPEG
 encoder (`tools/jpeg.ts`, through NodeAV).
 
@@ -549,6 +551,66 @@ the one-pass render timed above (6 pages, a fresh screen grain): righteousness-b
 8 pages (pages and join about 142 s, x264 151.8 s), the master 765 MB at
 13.4 Mbps and the share 126 MB at 2.2 Mbps, keeping 0.57–0.85 (master) and
 0.56–0.80 (share) of the lossless stills' grain.
+
+### Phone copies
+
+On a phone the review plays a phone copy (`Media.phoneCopy`) in place of a
+video it plays (a set's variant, a folder's video, a render's share copy or
+master; never an image, captions or notes, which are never read for their
+length) over 40 MiB or over 8 Mbps (`PHONE_RATE`, its bytes over its
+length); a desktop plays the originals. 8 Mbps lies between what a phone was
+seen to play and what it was not: of the looks study's 14.5 s cold opens
+played as made on the owner's phone (2026-10-11), the 2D ones at 7.1 (cut
+paper) and 7.8 Mbps (bold), both 1080p, were not reported choppy, and the 3D
+ones at 14.0 (painterly, 540p) and 20.8 Mbps (ps1, 720p), both under 40 MiB,
+were. The third 3D one, engraving (1080p, 27.4 Mbps, 50 MB), was already
+copied.
+
+The line is the rate, not the picture: a drawn 2D render over it plays as
+its copy on a phone too. Decided for the owner's own concern, choppy phone
+playback, on the five-up compare page and on a one-video page alike: a 21 or
+28 Mbps master is the kind of file seen to stutter. On 2026-10-11 these
+renders under 40 MiB crossed it (all 1080p): righteousness-by-faith's scenes
+`declared` 8.07, `within` 8.52, `word` 8.66, `exchange` 10.06, `spoke` 10.16,
+`cold` 10.37, `look` 11.50, `accuser` 12.60, `mirror` 13.38, `daily` 14.13,
+`rain` 21.10 and `title` 28.10 Mbps, and `art3/declared.A-current` at 8.19.
+
+A copy keeps a key frame every second at the video's own frame rate
+(`PHONE_ENCODE`; at 25 frames a second, every 25). The review's player puts
+a video that drifts 0.2 s from its clock back on it by a seek, and a seek
+decodes from the key frame before it: the 3 Mbps copies before kept one every
+145–250 frames (5–8 s), since NodeAV clears the picture type a frame carries
+and mediabunny's key-frame requests never reached x264. x264 caps the copy
+over a two-second buffer, and a copy asks under 8 Mbps by as much as that
+buffer could add over its length (`phoneRateFor`: 7.0 Mbps for 14.5 s,
+2.7 Mbps for 1 s), so even a short copy averages 8 Mbps at most. Where the
+cap binds, x264 spreads the bits over every frame: no copy measured shows a
+frame closer to the source's frame before it than to its own (luma PSNR
+against the source scaled to the copy's size, still frames left out). A
+copy's cache name carries every entry of `PHONE_ENCODE`, a `recipe` number
+among them for what the code decides (the size rule, the rate and key-frame
+sums), so a copy made any other way is never served.
+
+The copies of the three study files over the rate and two drawn scenes
+(x264 core 165, two threads, on a 16-core box at a load of 45–80 from other
+work, so the times are loose):
+
+| file          | source                | copy           | key frames | PSNR mean / min | encode |
+| ------------- | --------------------- | -------------- | ---------- | --------------- | ------ |
+| engraving     | 1080p, 27.4 Mbps      | 720p, 5.5 Mbps | every 30   | 38.4 / 29.8     | 75.7 s |
+| ps1           | 720p, 20.8 Mbps       | 720p, 3.4 Mbps | every 30   | 42.6 / 36.6     | 50.4 s |
+| painterly     | 540p, 14.0 Mbps       | 540p, 1.9 Mbps | every 30   | 40.2 / 35.3     | 26.3 s |
+| scene `rain`  | 1080p, 21.1 Mbps      | 720p, 2.1 Mbps | every 30   | 44.2 / 41.6     | 77.9 s |
+| scene `title` | 1080p, 28.1 Mbps, 3 s | 720p, 1.6 Mbps | every 30   | 43.2 / 41.3     | 18.1 s |
+
+The 3 Mbps copy of the engraving was 2.6 Mbps at 36.2 / 27.5, a key frame
+every 145 frames at most. A copy is never taller than 720 lines, and a
+shorter video keeps its size.
+
+A drawn film, copied for its size: righteousness-by-faith's share (1080p,
+526 s, 185 MB at 2.8 Mbps) became a 92 MB copy at 1.4 Mbps, a key frame every
+second, in 551 s; the 3 Mbps copy before was 68 MB at 1.0 Mbps, a key frame
+every 8.3 s at most, in 624 s (one after the other, the box under other load).
 
 ## Shorts
 
@@ -2194,8 +2256,9 @@ own names, and the stored and wire words stay as they are.
 - **Comment**: a note on a version, kept in the catalogue (a `say`).
 - **Out of date**: a version made for earlier sources or an earlier mix (the
   state `stale`).
-- **Proxy / Original**: what a video plays. The proxy is a light 720p copy
-  of a big video (the quality `phone`); the original is the file itself
+- **Proxy / Original**: what a video plays. The proxy is a light copy (720p at most)
+  of a video too big or too dense for a phone to play as made (over 40 MiB, or
+  over 8 Mbps, a drawn 2D render too: the quality `phone`); the original is the file itself
   (`full`). While a proxy is still being made the page says so and offers
   the original; it never streams the original unasked.
 - **Needs review / Approved**: a version's approval (`none` / `approved`);
@@ -2298,7 +2361,7 @@ A film's page plays its newest whole-film render as the catalogue records it.
 bare path) replaces the app's own roots (every checkout's `out/`);
 `FILM_REVIEW_EXTRA_ROOTS` adds to them. Every route names a file by its ref
 (its root's label, then its path under the root), never a path on the box.
-Cached files (frames, 720p phone copies of big videos, option mixes) are
+Cached files (frames, phone copies, option mixes) are
 kept in `FILM_REVIEW_CACHE` (`~/.cache/film-review`); `FILM_REVIEW_PHONE=off`
 makes no phone copies.
 
