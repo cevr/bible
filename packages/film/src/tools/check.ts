@@ -457,7 +457,8 @@ export const staleTakes = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
 ): ReadonlyArray<TakeStale> => {
-  const voice = voiceKey(film.voice);
+  // A talk's takes are all recorded: no staging voice's key decides them.
+  const voice = Option.match(film.voice, { onNone: () => '', onSome: voiceKey });
   return placed.flatMap((p) => {
     if (p.voice.spoken.length === 0) return [];
     const state = takeState(p.spec.id, takeScript(p.voice), film.timings, voice);
@@ -471,12 +472,17 @@ export const unknownVoices = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
 ): ReadonlyArray<UnknownVoice> =>
-  placed.flatMap((p) =>
-    Result.match(linesOf(p.spec.id, p.voice, film.voice), {
-      onFailure: (error) => [error],
-      onSuccess: () => [],
-    }),
-  );
+  // A talk has no cast to hand a line to.
+  Option.match(film.voice, {
+    onNone: () => [],
+    onSome: (voice) =>
+      placed.flatMap((p) =>
+        Result.match(linesOf(p.spec.id, p.voice, voice), {
+          onFailure: (error) => [error],
+          onSuccess: () => [],
+        }),
+      ),
+  });
 
 /**
  * Each score option's movements: each names a scene, and each runs in film

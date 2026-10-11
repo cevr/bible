@@ -84,7 +84,7 @@ export const filmServices = (spec: FilmServicesSpec) => {
     ConfigProvider.fromUnknown({ FILMS_OUT: spec.folders.out, FILMS_LAB: spec.folders.lab }),
   );
   const Store = ContentStore.layer.pipe(Layer.provide(Platform));
-  const Repo = FilmRepo.layer(spec.films, Option.some(spec.sounds)).pipe(
+  const Repo = FilmRepo.layer(spec.films, Option.some(spec.sounds), Option.some(spec.footage)).pipe(
     Layer.provide([Store, Platform]),
   );
   const Tools = spec.elevenLabs.pipe(

@@ -20,18 +20,17 @@ import { Console, Context, Effect, FileSystem, Layer, Option, Path, Schema } fro
 import type { PlatformError } from 'effect/PlatformError';
 import { gain } from '../core/audio.ts';
 import {
-  EMPTY_FOOTAGE_LOCK,
   FOOTAGE_COPIES,
   FOOTAGE_RECIPES,
   type FootageCopy,
   type FootageEntry,
   type FootageKind,
   type FootageLock,
-  FootageLockJson,
   type FootageStamp,
   FootageStampJson,
   FootageTranscriptJson,
   VOICE_RECIPE,
+  derivedFile,
   envelopeOf,
   originalKey,
   originalPath,
@@ -43,7 +42,7 @@ import { MIX_RATE } from '../core/mix.ts';
 import { takeLift } from '../core/recording.ts';
 import type { ElevenLabsFailed, MediaFailed, SttUntimed } from '../core/refusals.ts';
 import { voicedWords } from '../core/voiced.ts';
-import { ContentStore, type Manifest, type StoreError, writeWhole } from './content-store.ts';
+import { ContentStore, type StoreError, writeWhole } from './content-store.ts';
 import { sha256OfFile } from './digest.ts';
 import { ElevenLabs, heardWords } from './elevenlabs.ts';
 import {
@@ -55,7 +54,7 @@ import {
   StoreCopyFailed,
   StoreKeyTaken,
 } from './errors.ts';
-import { filmsOut } from './film-repo.ts';
+import { filmsOut, footageLockManifest } from './film-repo.ts';
 import { FootageMedia } from './footage-media.ts';
 import { Media } from './media.ts';
 import { PrivateStore, type StoreUnavailable } from './private-store.ts';
@@ -159,13 +158,6 @@ interface FootageLibraryService {
 /** A sound's codec that keeps every sample: anything else has already lost what it drops. */
 const LOSSLESS = /^(pcm-|flac$|alac$)/;
 
-/** The lock of the library in `dir`. */
-const footageLock = (dir: string): Manifest<FootageLock> => ({
-  file: `${dir}/library.lock.json`,
-  codec: FootageLockJson,
-  empty: EMPTY_FOOTAGE_LOCK,
-});
-
 /** `entry`'s terms, as the import gave them: only those given are kept. */
 const termsOf = (options: FootageImport) => ({
   ...Option.match(options.licence, { onNone: () => ({}), onSome: (licence) => ({ licence }) }),
@@ -204,7 +196,7 @@ export class FootageLibrary extends Context.Service<FootageLibrary, FootageLibra
         const footageMedia = yield* FootageMedia;
         const elevenLabs = yield* ElevenLabs;
         const privateStore = yield* PrivateStore;
-        const manifest = footageLock(dir);
+        const manifest = footageLockManifest(dir);
         const lock = store.read(manifest);
 
         const entry = (name: string) =>
@@ -216,17 +208,14 @@ export class FootageLibrary extends Context.Service<FootageLibrary, FootageLibra
 
         const outputs = yield* Effect.orDie(filmsOut);
         const files = (name: string, of: FootageEntry) =>
-          Effect.sync((): FootageFiles => {
-            const derived = path.join(outputs, 'footage', sourceOf(name, of.sha256));
-            return {
-              original: path.join(dir, 'files', originalPath(name, of)),
-              dir: derived,
-              mezzanine: path.join(derived, 'mezzanine.mp4'),
-              proxy: path.join(derived, 'proxy.mp4'),
-              voice: path.join(derived, 'voice.flac'),
-              stamp: path.join(derived, 'stamp.json'),
-            };
-          });
+          Effect.sync((): FootageFiles => ({
+            original: path.join(dir, 'files', originalPath(name, of)),
+            dir: path.dirname(derivedFile(outputs, name, of.sha256, 'stamp.json')),
+            mezzanine: derivedFile(outputs, name, of.sha256, 'mezzanine.mp4'),
+            proxy: derivedFile(outputs, name, of.sha256, 'proxy.mp4'),
+            voice: derivedFile(outputs, name, of.sha256, 'voice.flac'),
+            stamp: derivedFile(outputs, name, of.sha256, 'stamp.json'),
+          }));
 
         const importFile = Effect.fn('FootageLibrary.import')(function* (
           file: string,

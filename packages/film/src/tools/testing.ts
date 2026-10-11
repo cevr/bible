@@ -1532,7 +1532,7 @@ export const testFilm = (
     },
   },
   scenes,
-  voice,
+  voice: Option.some(voice),
   sound: Option.none(),
   shorts: [],
   timings,
@@ -1541,6 +1541,7 @@ export const testFilm = (
   look: Option.none(),
   looks: {},
   sounds: NO_SOUNDS,
+  talk: Option.none(),
 });
 
 /**

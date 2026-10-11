@@ -43,7 +43,7 @@ argument. A short's id and an act's name are each declared once (`Shorts`,
 
 ## Tools
 
-`film narrate|takes import|script|score|mix|cues|check|render|lookbook|look|judge|journal|project|chapters|notes|options|read <film>` (and `film doctor`, `film lab` (the lab and the review, every film), `film media …` over the private media store, `film sfx …` over the app's sound library, `tools/sfx-cli.ts`, and `film footage …` over its footage library, `tools/footage-cli.ts`) runs from the app that holds the
+`film narrate|takes import|script|score|mix|cues|check|render|lookbook|look|judge|journal|project|chapters|notes|options|read <film>` (and `film doctor`, `film lab` (the lab and the review, every film), `film media …` over the private media store, `film sfx …` over the app's sound library, `tools/sfx-cli.ts`, and `film footage …` over its footage library, `tools/footage-cli.ts`, and `film talk words <talk>` over a talk's edit, `tools/talk-cli.ts`) runs from the app that holds the
 films. The app owns the entry: it calls `runFilmCli({ films, sounds, footage, folders, previewServer, lab, self, judge })`
 with its films folder, its sound library folder, its footage library folder, its own `out` and `lab` folders
 (where a run writes renders and notes, whatever directory it starts in; `FILMS_OUT` and
@@ -125,6 +125,59 @@ interval itself (`keyint`: node-av clears the key-frame flag mediabunny
 asks for). `push` and `pull` keep the originals in the private store under
 `footage/<name>/<sha12><ext>`, each read back by its hash; `list` prints the
 lock.
+
+A talk is a film cut from a take, not drawn: its folder holds `talk.ts`
+(`export const talk = { … } satisfies Talk`, `core/talk.ts`) and no
+`scenes/index.ts`. Its `takes` name
+takes in the footage library by a key of the talk's own; each of its
+`sections` plays words `from`–`to` of one take, but those its `cut` strikes
+(`[i, j]`, both ends struck), and is one scene of the film. Its
+`format` is `question` (45–65 s, the speaker on screen 40–55% of it) or
+`episode` (135–170 s, 20–30%), as `TALK_FORMATS` holds them. `talkCut`, pure
+and shared by the page and the tools, derives what the edit plays: each
+section's kept words; its pieces of the take's voice, a new one after each
+strike and each pause longer than the talk's `gaps` (0.25 s unless it says),
+every seam on a frame of `TALK_FPS` (the mezzanine's 30) at the quietest
+frame boundary in the silence around it and never inside a kept word's
+voice (where that silence holds no boundary, the kept word plays whole and
+its piece ends on the frame past it, under a frame of the struck word
+faded out, and never past the take's end); the retimed `VoiceTiming` and
+`Timed` of each section; and the film's `Timings`. A section that strikes
+every word fails `TalkSectionSilent`, a word or a take the transcripts lack
+`TalkWordMissing` or `TalkTakeMissing`. `FilmRepo.load` reads a talk's takes'
+transcripts through the footage lock, plays the take's derived `voice.flac`,
+and lays its sections out as a film's scenes, so `film cues` lists them.
+A talk has no narrator (`LoadedFilm.voice` is none): what needs one (`narrate`,
+`takes import`, `read voice`, the studio) refuses it with `TalkUnvoiced`.
+`film mix` plays each section's voice as its pieces of the take
+(`VoicePieces`; a `Take` played `from` a second of its sound for `dur`
+seconds, each end faded over `fade`), each faded `CUT_FADE` (5 ms) at its
+seams so a cut never clicks, and decodes each voice file once; a drawn
+film's takes play whole and key its mix as before.
+
+`film talk words <talk>` prints a talk as its edit plays it (`tools/talk-cli.ts`):
+how long it plays against its format's length (under, within or over), then
+each section's head (its take, its word range, its length and its pieces),
+then its words with their indices, `[33]law`, a struck one `[34]~um~`, so
+words are named by what they say; `--take <key>` prints that take's whole
+transcript, every word the edit could play. A film that is not a talk fails
+`NotATalk`.
+
+The words a talk is made in:
+
+- **talk**: a film cut from the speaker's own take, not drawn.
+- **take**: one recording of the speaker, kept whole in the footage library; a talk is cut on its transcript.
+- **A-roll**: the speaker on camera, the take the talk's voice comes from.
+- **B-roll**: footage cut in over the speaker (a clip, in the library's words), the voice running on.
+- **paper edit**: the edit made on the words, not the picture: `talk.ts`'s sections and strikes, read with `film talk words`.
+- **seam**: where one piece of a take meets the next, on a frame, in a silence.
+- **jump cut**: a seam that shows: the same framing on both sides, the speaker jumping.
+- **punch-in**: the framing moved closer at a seam, so a jump cut reads as a new shot.
+- **cutaway**: a shot of something else laid over a seam, which hides it.
+- **mezzanine**: the high-quality constant-rate copy a render reads (`make`'s H.264 at the original's size).
+- **proxy**: the small copy the lab plays while editing.
+- **conform**: bringing every original to one rate, way up and clock, as the mezzanine does.
+- **media pool**: every original a film may draw on: the footage library.
 
 Preflights: `film doctor` checks headless Chrome (a page opened and closed
 in Bun.WebView's Chrome: `BUN_CHROME_PATH`, else the Chrome Bun finds, else

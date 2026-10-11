@@ -42,7 +42,7 @@ import {
   requestKey,
 } from '../core/sfx.ts';
 import { type ScoreOptionState, cueTime, scoreOptionState, scoreOptions } from '../core/sound.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import { type LoadedFilm, voicePiecesOf } from './film-repo.ts';
 import type { Attempt } from './takes.ts';
 import { type LevelWritten, readLevel } from './choice-source.ts';
 
@@ -181,6 +181,7 @@ const planOf = (
           narration: loaded.paths.narration,
           soundDir: loaded.paths.sound,
           play: Option.none(),
+          pieces: voicePiecesOf(loaded),
         }),
         Option.some,
       ),

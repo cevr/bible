@@ -627,3 +627,21 @@ export class FootageOriginalMissing extends Schema.TaggedError<FootageOriginalMi
     return `footage "${this.name}": its original ${this.file} is not on disk; run film footage pull`;
   }
 }
+
+/** A talk asked for what only a narrated film has: its voice is its takes, recorded on camera. */
+export class TalkUnvoiced extends Schema.TaggedError<TalkUnvoiced>()('TalkUnvoiced', {
+  film: Schema.String,
+}) {
+  override get message() {
+    return `${this.film} is a talk: its voice is its takes, recorded on camera (film footage import, film footage make), so it has no voice to narrate or stage`;
+  }
+}
+
+/** A command for a talk run on a drawn film. */
+export class NotATalk extends Schema.TaggedError<NotATalk>()('NotATalk', {
+  film: Schema.String,
+}) {
+  override get message() {
+    return `${this.film} is not a talk: it has no talk.ts`;
+  }
+}

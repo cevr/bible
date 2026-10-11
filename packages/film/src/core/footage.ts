@@ -46,6 +46,17 @@ const SHA12 = 12;
 export const sourceOf = (name: string, sha256: string): string =>
   `${name}/${sha256.slice(0, SHA12)}`;
 
+/** The files `film footage make` derives from an original. */
+type DerivedFile = 'mezzanine.mp4' | 'proxy.mp4' | 'voice.flac' | 'stamp.json';
+
+/** Where `make` keeps `file` of `name`'s original of hash `sha256`, under the outputs folder: `<out>/footage/<name>/<sha12>/<file>`. */
+export const derivedFile = (
+  outputs: string,
+  name: string,
+  sha256: string,
+  file: DerivedFile,
+): string => `${outputs}/footage/${sourceOf(name, sha256)}/${file}`;
+
 /** A take (the owner's own recording, which a talk is cut on) or a clip (B-roll). */
 export const FootageKind = Schema.Literals(['take', 'clip']);
 export type FootageKind = typeof FootageKind.Type;

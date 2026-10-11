@@ -6,8 +6,9 @@
 // (`variable`, a phone's variable rate, on no lattice); its sound is AAC with the encoder's
 // priming before zero, which the edit list skips. It is either camera's file
 // (`camera`): an iPhone's, HEVC in a MOV and upright (9:16), or a Sony
-// ZV-E10's, XAVC S, which is H.264 in an MP4, and landscape (16:9). No real
-// footage is ever used.
+// ZV-E10's, XAVC S, which is H.264 in an MP4, and landscape (16:9). A talk's
+// take (`talk.test.ts`) adds a tone where someone speaks. No real footage is
+// ever used.
 
 import { Effect, Option } from 'effect';
 import {
@@ -54,6 +55,13 @@ export interface SyncClip {
   readonly pictureStart: number;
   /** Whether frames fall off their lattice, each by up to three tenths of a frame, irregularly. */
   readonly variable: boolean;
+  /**
+   * Where someone speaks, as `[from, to]` seconds on the sound's clock (where
+   * the click is put): a tone at a speaking level stands for the voice, so a
+   * talk's take can be cut on it. None by default: a clapper's clip is silent
+   * but for its click.
+   */
+  readonly speech?: ReadonlyArray<readonly [number, number]>;
 }
 
 /** When frame `n` of `clip` shows, on the file's clock. */
@@ -67,10 +75,13 @@ const picture = (clip: SyncClip, n: number): Uint8Array => {
   return bytes;
 };
 
-/** The sound: a quiet hiss, and a 5 ms click when the flash shows. */
+/** The sound: a quiet hiss, a 220 Hz tone at 0.1 where `speech` says, and a 5 ms click when the flash shows. */
 const sound = (clip: SyncClip, seconds: number): Float32Array => {
   const out = new Float32Array(Math.round(seconds * RATE));
   for (let i = 0; i < out.length; i += 1) out[i] = 0.001 * Math.sin(i * 0.37);
+  for (const [from, to] of clip.speech ?? [])
+    for (let i = Math.round(from * RATE); i < Math.min(out.length, Math.round(to * RATE)); i += 1)
+      out[i] = 0.1 * Math.sin((2 * Math.PI * 220 * i) / RATE);
   const at = Math.round(frameTime(clip, clip.flash) * RATE);
   for (let i = 0; i < Math.round(0.005 * RATE); i += 1) out[at + i] = 0.9 * (1 - 2 * (i % 2));
   return out;

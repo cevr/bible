@@ -7,6 +7,7 @@
 //   film sfx …        (sfx-cli.ts)     the app's sound library
 //   film media …      (media-cli.ts)   the app's private media store
 //   film footage …    (footage-cli.ts) the app's camera footage, its copies and a take's transcript
+//   film talk …       (talk-cli.ts)    a talk's edit, read as it plays (its words by index)
 //   film cues | check | doctor                                 read and check a film
 //   film render | lookbook | chapters                          pictures and video
 //   film project …    (project-cli.ts) a film's scenes rendered, approved, commented
@@ -100,6 +101,7 @@ import {
 } from './render-plan.ts';
 import { media } from './media-cli.ts';
 import { footage } from './footage-cli.ts';
+import { talk } from './talk-cli.ts';
 import { options } from './choices-cli.ts';
 import { answeringCheck, encodeCheckLine } from './fresh-film.ts';
 import { sfx } from './sfx-cli.ts';
@@ -915,6 +917,7 @@ export const runFilmCli = <E>({
       sfx,
       media,
       footage,
+      talk,
       mix,
       options,
       read,

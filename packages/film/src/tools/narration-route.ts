@@ -1,6 +1,6 @@
 // The narration route, `/films/<film>/narration/<file>`, for the player, the
 // lab and the review page alike: which file a URL names. The film is one of
-// the films now (its `filmMark` exists, read per request, so a film made
+// the films now (one of its `filmMarks` exists, read per request, so a film made
 // while the server runs is served), the file one directly in its
 // `narration/` (never `attempts/`, never a path, never a dotfile) and on
 // disk. Any other URL names none, a 404. The app's server answers the file;
@@ -8,7 +8,7 @@
 // so it serves them uncached.
 
 import { Effect, FileSystem, Option, Path } from 'effect';
-import { filmMark } from './film-repo.ts';
+import { filmMarks } from './film-repo.ts';
 
 /** A narration URL: `/films/<film>/narration/<file>`, the file directly in the folder. */
 const NARRATION_URL = /^\/films\/([^/]+)\/narration\/([^/]+)$/;
@@ -44,7 +44,7 @@ export const narrationPath = Effect.fn('narrationPath')(function* (
 ) {
   const path = yield* Path.Path;
   for (const [film, name] of Option.toArray(named(pathname)))
-    for (const mark of Option.toArray(filmMark(films, film)))
+    for (const mark of filmMarks(films, film))
       if (yield* exists(mark)) return Option.some(path.join(films, film, 'narration', name));
   return Option.none<string>();
 });

@@ -60,7 +60,8 @@ import { ContentStore, type StoreError, partialAbandoned } from './content-store
 import { sha256Hex } from './digest.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import { ElevenLabsFailed, type MediaFailed, TakeMismatch } from '../core/refusals.ts';
-import type { FilmPaths, LoadedFilm } from './film-repo.ts';
+import { type FilmPaths, type LoadedFilm, readerOf } from './film-repo.ts';
+import type { TalkUnvoiced } from './errors.ts';
 import { Media } from './media.ts';
 import { settleAll } from './settle.ts';
 
@@ -121,6 +122,8 @@ export interface NarrationPlan {
   readonly orphaned: ReadonlyArray<Orphan>;
   /** `voiceKey(voice)`: the key every take is recorded under. */
   readonly voice: string;
+  /** Who reads the takes it records. */
+  readonly reader: Voice;
 }
 
 type NarrateError = TakeMismatch | AlignmentMismatch | ElevenLabsFailed | MediaFailed | StoreError;
@@ -135,14 +138,14 @@ const currentTakes = (timings: Timings, voice: string): Timings['scenes'] => {
 };
 
 /** One beat's lines, or the voice a turn names that the film does not have. */
-const beatOf = (film: LoadedFilm, scene: LoadedFilm['scenes'][number]) =>
+const beatOf = (voice: Voice, scene: LoadedFilm['scenes'][number]) =>
   Result.flatMap(
     parse(
       scene.id,
       Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
     ),
     (parsed) =>
-      Result.map(linesOf(scene.id, parsed, film.voice), (lines): ReadBeat => ({
+      Result.map(linesOf(scene.id, parsed, voice), (lines): ReadBeat => ({
         id: scene.id,
         text: parsed.spoken,
         script: takeScript(parsed),
@@ -153,8 +156,10 @@ const beatOf = (film: LoadedFilm, scene: LoadedFilm['scenes'][number]) =>
 /** Every beat's lines, in film order, or the voice a turn names that the film does not have. */
 export const beatsOf = (
   film: LoadedFilm,
-): Result.Result<ReadonlyArray<ReadBeat>, UnknownVoice | LineError> =>
-  Result.all(film.scenes.map((scene) => beatOf(film, scene)));
+): Result.Result<ReadonlyArray<ReadBeat>, UnknownVoice | LineError | TalkUnvoiced> =>
+  Result.flatMap(readerOf(film), (voice) =>
+    Result.all(film.scenes.map((scene) => beatOf(voice, scene))),
+  );
 
 /**
  * A film as a take is kept against it: where its narration lives, its voice,
@@ -171,13 +176,17 @@ export interface VoicedFilm {
 }
 
 /** The film as a take is kept against it, or the voice a turn names that the film does not have. */
-export const voicedOf = (film: LoadedFilm): Result.Result<VoicedFilm, UnknownVoice | LineError> =>
-  Result.map(beatsOf(film), (beats) => ({
-    paths: film.paths,
-    voice: film.voice,
-    heardAs: film.heardAs,
-    beats,
-  }));
+export const voicedOf = (
+  film: LoadedFilm,
+): Result.Result<VoicedFilm, UnknownVoice | LineError | TalkUnvoiced> =>
+  Result.flatMap(readerOf(film), (voice) =>
+    Result.map(beatsOf(film), (beats) => ({
+      paths: film.paths,
+      voice,
+      heardAs: film.heardAs,
+      beats,
+    })),
+  );
 
 /** Whether the options ask staging for this beat, before a person's take has its say. */
 const asked = (options: NarrateOptions, take: BeatTake): boolean =>
@@ -198,28 +207,30 @@ const keptBy = (options: NarrateOptions, state: TakeState): Option.Option<Kept['
 export const planNarration = (
   film: LoadedFilm,
   options: NarrateOptions,
-): Result.Result<NarrationPlan, UnknownVoice | LineError> => {
-  const voice = voiceKey(film.voice);
-  return Result.map(beatsOf(film), (beats): NarrationPlan => {
-    const spoken = beats.filter((b) => b.text.length > 0);
-    const states = spoken.map((b) => ({
-      id: b.id,
-      state: takeState(b.id, b.script, film.timings, voice),
-    }));
-    const wanted = Arr.zip(spoken, states).filter(([, take]) => asked(options, take));
-    const verdicts = wanted.map(([beat, take]) => ({ beat, kept: keptBy(options, take.state) }));
-    return {
-      beats,
-      states,
-      stale: verdicts.filter((v) => Option.isNone(v.kept)).map((v) => v.beat),
-      kept: verdicts.flatMap((v) =>
-        Option.toArray(Option.map(v.kept, (why): Kept => ({ id: v.beat.id, why }))),
-      ),
-      orphaned: orphansOf(film.timings, beats),
-      voice,
-    };
+): Result.Result<NarrationPlan, UnknownVoice | LineError | TalkUnvoiced> =>
+  Result.flatMap(readerOf(film), (reader) => {
+    const voice = voiceKey(reader);
+    return Result.map(beatsOf(film), (beats): NarrationPlan => {
+      const spoken = beats.filter((b) => b.text.length > 0);
+      const states = spoken.map((b) => ({
+        id: b.id,
+        state: takeState(b.id, b.script, film.timings, voice),
+      }));
+      const wanted = Arr.zip(spoken, states).filter(([, take]) => asked(options, take));
+      const verdicts = wanted.map(([beat, take]) => ({ beat, kept: keptBy(options, take.state) }));
+      return {
+        beats,
+        states,
+        stale: verdicts.filter((v) => Option.isNone(v.kept)).map((v) => v.beat),
+        kept: verdicts.flatMap((v) =>
+          Option.toArray(Option.map(v.kept, (why): Kept => ({ id: v.beat.id, why }))),
+        ),
+        orphaned: orphansOf(film.timings, beats),
+        voice,
+        reader,
+      };
+    });
   });
-};
 
 /**
  * One line of `narrate --dry-run`: the beat's take `recorded` (a person read
@@ -453,8 +464,8 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
        * The beat read aloud: one voice through text-to-speech, a cast as one
        * dialogue. `breaks` is where each line starts in the alignment.
        */
-      const read = (film: LoadedFilm, plan: NarrationPlan, beat: ReadBeat) => {
-        const { voice } = film;
+      const read = (plan: NarrationPlan, beat: ReadBeat) => {
+        const voice = plan.reader;
         if (isCast(voice))
           return Effect.map(elevenLabs.dialogue({ lines: beat.lines, cast: voice }), (reply) => ({
             ...reply,
@@ -483,7 +494,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         options: NarrateOptions,
         beat: ReadBeat,
       ) {
-        const reply = yield* read(film, plan, beat);
+        const reply = yield* read(plan, beat);
         const { alignment } = reply;
         const words = yield* Effect.fromResult(
           wordsFromAlignment(

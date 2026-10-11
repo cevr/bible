@@ -121,7 +121,6 @@ packages/film/src/command/link.ts linkOf
 packages/film/src/command/menu.ts byGroup
 packages/film/src/core/address.ts Addressable
 packages/film/src/core/affine.ts IDENTITY
-packages/film/src/core/align.ts CUT_FADE
 packages/film/src/core/captions.ts captionCues
 packages/film/src/core/captions.ts vttTime
 packages/film/src/core/catalogue.ts approve
@@ -149,7 +148,6 @@ packages/film/src/core/spoken.ts spokenWords
 packages/film/src/core/synth/recipes.ts SYNTH_PEAK
 packages/film/src/core/synth/recipes.ts noteHz
 packages/film/src/core/time.ts invLerp
-packages/film/src/core/voiced.ts voicedAt
 packages/film/src/core/voiced.ts voicedSpan
 packages/film/src/lab/api.ts LabCalls
 packages/film/src/lab/api.ts NotesCalls
