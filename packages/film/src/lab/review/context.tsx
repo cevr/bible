@@ -17,7 +17,7 @@ import {
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, isServer } from '@solidjs/web';
-import { Array as Arr, Clock, Effect, Equal, Exit, Layer, Option, Schema } from 'effect';
+import { Array as Arr, Clock, Effect, Equal, Exit, Function, Layer, Option, Schema } from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -122,11 +122,10 @@ interface FilmProject {
   /** The newest later answer (a say's, a read again's): none until one lands. */
   readonly answered: Atom.Atom<Option.Option<ProjectView>>;
   /**
-   * The project as shown (`shownProject`), in the page alone
-   * (`Atom.withServerValue`): pending while the server renders and while the
-   * page hydrates; for a reader's own atom (a Set's judgement).
+   * The project as shown (`shownProject`), as an atom: for a reader's own
+   * atom (a Set's judgement, which keeps its own server value).
    */
-  readonly here: Loaded<ProjectView>;
+  readonly shown: Loaded<ProjectView>;
   /** Whether a read again is out. */
   readonly reading: Atom.Atom<boolean>;
   /** Its asks, in the order made: a say takes one as it is sent (`useWrite`'s orders). */
@@ -170,8 +169,17 @@ interface ReviewStateValue {
 interface ReviewActions {
   /** Go to `place`, as a link does (Back returns). */
   readonly go: (place: ReviewPlace) => void;
-  /** Walk the roots again now: an ask of the index (`asks`). */
+  /**
+   * Walk the roots again now (an ask of the index, `asks`), and read every
+   * film's project the page has read again (`FilmProject.changed`).
+   */
   readonly refresh: () => void;
+  /**
+   * A write the index does not answer (a say on Project) moved what it lists
+   * (a version's approval, a comment): walk the roots again now, an ask of
+   * the index (`asks`), so a Set shows the say.
+   */
+  readonly indexChanged: () => void;
   /**
    * A write's answer, `folder` as the write left it, shown in the index in
    * its place: only through its `Landed.show` on the index's `asks`, so an
@@ -392,8 +400,8 @@ export const Root = (
       .atom(OptionsApi.use((api) => api.project(film)))
       .pipe(served(`review.project:${film}`, ProjectView), Atom.keepAlive),
   );
-  const projectAgainOf = Atom.family((_film: string) =>
-    runtime.fn((film: string) => OptionsApi.use((api) => api.project(film))).pipe(Atom.keepAlive),
+  const projectAgainOf = Atom.family((film: string) =>
+    runtime.fn(() => OptionsApi.use((api) => api.project(film))).pipe(Atom.keepAlive),
   );
   const projectAnsweredOf = Atom.family((_film: string) =>
     Atom.make(Option.none<ProjectView>()).pipe(Atom.keepAlive),
@@ -452,13 +460,13 @@ export const Root = (
       const answered = projectAnsweredOf(film);
       const projectAsks = newestAsked();
       // How many pages show it now; whether one ever has; a change heard since one last did.
-      let shown = 0;
+      let holders = 0;
       let held = false;
       let stale = false;
       const answer = (view: ProjectView) => registry.set(answered, Option.some(view));
       const readAgain = () => {
         const ask = projectAsks.ask();
-        registry.set(again, film);
+        registry.set(again, Function.constVoid());
         void Effect.runPromiseExit(
           AtomRegistry.getResult(registry, again, { suspendOnWaiting: true }),
         ).then((exit) => {
@@ -468,24 +476,22 @@ export const Root = (
       return {
         first,
         answered,
-        here: Atom.make((get) => shownProject(get(answered), get(first))).pipe(
-          Atom.withServerValue(() => AsyncResult.initial<ProjectView, LabFailure>()),
-        ),
+        shown: Atom.make((get) => shownProject(get(answered), get(first))),
         reading: Atom.make((get) => get(again).waiting),
         asks: projectAsks,
         answer,
         // A project never shown is read fresh when one first shows it.
         changed: () => {
-          if (shown > 0) readAgain();
+          if (holders > 0) readAgain();
           else stale = held;
         },
         hold: () => {
-          shown += 1;
+          holders += 1;
           held = true;
           if (stale) readAgain();
           stale = false;
           return () => {
-            shown -= 1;
+            holders -= 1;
           };
         },
       };
@@ -496,6 +502,13 @@ export const Root = (
         projects.set(film, made);
         return made;
       });
+    /** Walk the roots again: the index as the newest ask answers it. */
+    const indexAgain = () => {
+      const ask = asks.ask();
+      void askAgain().then((exit) => {
+        if (Exit.isSuccess(exit)) ask.answer(() => setAnswered(Option.some(exit.value)));
+      });
+    };
     const value: ReviewContextValue = {
       state: { place, index, films, quality },
       actions: {
@@ -504,13 +517,11 @@ export const Root = (
           window.scrollTo(0, 0);
         },
         refresh: () => {
-          const ask = asks.ask();
-          void askAgain().then((exit) => {
-            if (Exit.isSuccess(exit)) ask.answer(() => setAnswered(Option.some(exit.value)));
-          });
+          indexAgain();
           // Every project the page has read is read again (now where it shows).
           for (const p of projects.values()) p.changed();
         },
+        indexChanged: indexAgain,
         answered: (folder) => {
           Option.map(AsyncResult.value(untrack(index)), (ix) =>
             setAnswered(Option.some(withFolder(ix, folder))),
@@ -725,7 +736,8 @@ const QUALITY_SAID: Readonly<Record<Quality, string>> = {
 
 /**
  * The review's page-wide commands, in ⌘K and the page's long-press menu:
- * Refresh walks the roots again; the copy played switches
+ * Refresh walks the roots again and reads every film's project the page has
+ * read again; the copy played switches
  * between the Proxy (a 720p copy, made for big videos) and the Original, a
  * per-viewer setting kept in this browser.
  */

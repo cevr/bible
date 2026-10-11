@@ -2243,7 +2243,11 @@ page's life, which every page that shows it reads (`useProject`: a Films
 card, a Set's judgement, Project): a Set and then its Project tab read it
 once, however long Project takes to open. A say's answer lands on it in the
 order asked (`asked.ts`); a Set's say, a source write and Refresh read it
-again, now while a page shows it, else when one next does. A change made
+again, now while a page shows it, else when one next does. A version's
+approval and comments are the index's: a say on Project reads the index
+again (`indexChanged`), and the server's index reads a folder's catalogue
+again after any project say (Project's or Scenes', `Review.written`), as
+after a set's, so a Set opened after a say shows it. A change made
 elsewhere (another tab, the CLI) shows after a Refresh or a reload. It says it in every view, beside the
 variant's label: why a variant is stale (`staleText`), and no state word
 otherwise, never "current". A montage folder (say a

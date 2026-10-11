@@ -184,6 +184,24 @@ const projectSays = (catalogue: { approved: boolean }): ReadonlyArray<FakeRoute>
   ];
 };
 
+/** The index as the catalogue holds it: the set's `main` approved once a say on Project approved open. */
+const indexSays = (catalogue: { approved: boolean }): FakeRoute =>
+  route('GET', /^\/api\/review\/index/, (a) => {
+    const answer = index.answer(a);
+    return Option.getOrElse(
+      Option.map(
+        Option.liftPredicate(answer, (r) => r._tag === 'Json'),
+        (r) =>
+          json(
+            withApprovals(r.json, (id) =>
+              Option.filter(Option.some('approved'), () => id === 'main' && catalogue.approved),
+            ),
+          ),
+      ),
+      () => answer,
+    );
+  });
+
 /** How many times the page read the film's project. */
 const projectReads = (
   requests: ReadonlyArray<{ readonly method: string; readonly path: string }>,
@@ -615,7 +633,7 @@ describe('a Set approving a scene render', () => {
   );
 
   it.live(
-    "Project's approve, then the Set, then Project again: each shows the approve's answer, and nothing reads the project again",
+    "Project's approve, then the Set, then Project again: each shows the approve, the project read once and the index again (Back onto the Set warns nothing)",
     () =>
       Effect.gen(function* () {
         const catalogue = { approved: false };
@@ -623,9 +641,10 @@ describe('a Set approving a scene render', () => {
           page,
           asked: requests,
           errors,
-        } = yield* openReview([slowChoices, ...projectSays(catalogue), ...studioRoutes], {
-          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
-        });
+        } = yield* openReview(
+          [slowChoices, ...projectSays(catalogue), indexSays(catalogue), ...studioRoutes],
+          { href: pageHref.set(STUDIO_FOLDER, STUDIO_SET) },
+        );
         yield* waitFor(page, '.rv-set-tools[data-sources="project"]');
         yield* page.click('a.sh-tab[data-page="project"]');
         const approve =
@@ -633,11 +652,18 @@ describe('a Set approving a scene render', () => {
         yield* waitFor(page, approve);
         yield* page.click(approve);
         yield* waitFor(page, '.rv-scene[data-scene="open"] [data-approval="approved"]');
-        // Back to the Set, and on to Project again, each in the page.
+        // Back to the Set, and on to Project again, each in the page: the set mounts as the
+        // entry lands, and reads the set untracked.
         yield* page.back;
         yield* waitFor(page, '.rv-set-tools[data-sources="project"]');
+        expect(errors).toEqual([]);
         yield* page.forward;
         yield* waitFor(page, '.rv-scene[data-scene="open"] [data-approval="approved"]');
+        // Back to the Set again: the version of open's render shows the approve too.
+        yield* page.back;
+        yield* waitFor(page, '.rv-card[data-id="main"] [data-act="inspect"]');
+        yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"][data-approval="approved"]`);
         expect(catalogue.approved).toBe(true);
         expect(projectReads(requests)).toBe(1);
         expect(errors).toEqual([]);
@@ -664,25 +690,6 @@ describe('a Set approving a scene render', () => {
         yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
         yield* waitFor(page, '.rv-scene[data-scene="open"] [data-approval="approved"]');
         expect(projectReads(requests)).toBe(2);
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
-
-  it.live(
-    'Back from Project onto the Set hears the landing as the set mounts, reading the set untracked: the page warns nothing',
-    () =>
-      Effect.gen(function* () {
-        const { page, errors } = yield* openReview(studioRoutes, {
-          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
-        });
-        yield* waitFor(page, '.rv-set-tools[data-sources="project"]');
-        yield* page.click('a.sh-tab[data-page="project"]');
-        yield* waitFor(page, '.rv-scene[data-scene="open"]');
-        yield* page.back;
-        yield* waitFor(page, '.rv-set-tools[data-sources="project"]');
-        // The set mounts as the entry lands, so a warning is the page's by now (and the case's
-        // scope reads the page's warnings again as it closes).
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

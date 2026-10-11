@@ -763,11 +763,11 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
                     actions.answered,
                   );
                   // A Refresh asked after the say may not hold it, nor the say what that
-                  // Refresh found: the index is read again.
-                  if (l.succeeded && l.overtaken('index')) actions.refresh();
-                  // A say on a film's folder may change its project (an approve of a scene's
+                  // Refresh found: the index is read again, and every project with it. Else a
+                  // say on a film's folder may change its project (an approve of a scene's
                   // render): its owner reads it again.
-                  if (l.succeeded) Option.map(film(), (of) => meta.project(of).changed());
+                  if (l.succeeded && l.overtaken('index')) actions.refresh();
+                  else if (l.succeeded) Option.map(film(), (of) => meta.project(of).changed());
                   return l.succeeded;
                 },
               }),
@@ -1496,7 +1496,7 @@ const SetBody = () => {
  * decides, never the folder's name: the film's own folder under a root of
  * another label is judged by the project, and a copy of it under another
  * root by the record alone. The project as its owner shows it
- * (`FilmProject.here`): in the page alone, never by the server, and only
+ * (`FilmProject.shown`): in the page alone, never by the server, and only
  * when the folder's title is one of the app's films (a montage's title is
  * none), which the page then holds (`FilmProject.hold`), so a say reads it
  * again now. The record's judgement stands while it is read (and in the
@@ -1527,7 +1527,7 @@ const useSourcesNow = (folder: ReviewFolder): SourcesNow => {
             ),
             Match.orElse((films) =>
               Match.value(isFilm(films)).pipe(
-                Match.when(true, () => AsyncResult.map(get(owner.here), Option.some)),
+                Match.when(true, () => AsyncResult.map(get(owner.shown), Option.some)),
                 Match.orElse(() => AsyncResult.success(Option.none<ProjectView>())),
               ),
             ),

@@ -758,10 +758,12 @@ const sayWords = (film: string, before: Option.Option<ProjectView>) => (s: Proje
  * answer to the newest asked of its reads and says (`asked.ts`), kept in
  * place. A say overtaken by an ask after it reads the project again: neither
  * may hold the other. So does a say refused for its scenes' state: the cards
- * then say why.
+ * then say why. A say that lands moved what the index lists of the film's
+ * folder (a version's approval, a comment), so the index is read again
+ * (`indexChanged`): a Set opened after it shows the say.
  */
 const ProjectReady = (props: { readonly film: string }) => {
-  const { meta } = useReview();
+  const { meta, actions } = useReview();
   const film = props.film;
   // The page reads the `main` variant's project; another variant's is the CLI's (`--variant`).
   const read = useProject(film);
@@ -787,6 +789,7 @@ const ProjectReady = (props: { readonly film: string }) => {
               l.show('project', Option.some, project.answer);
               if ((l.succeeded && l.overtaken('project')) || staleSinceRead(l.failure))
                 project.changed();
+              if (l.succeeded) actions.indexChanged();
               return l.succeeded;
             },
           }),
