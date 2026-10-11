@@ -83,7 +83,7 @@ import { resample } from './resample.ts';
 import { X264Encoder } from './x264.ts';
 
 /** How long a media file plays, in seconds, and its frames a second (none for a file with no video). */
-export interface Timing {
+interface Timing {
   readonly seconds: number;
   readonly fps: Option.Option<number>;
 }
