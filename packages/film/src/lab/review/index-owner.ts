@@ -13,7 +13,7 @@ import type { ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import { type Asks, newestAsked } from './asked.ts';
 
 /** The review's index as the newest ask answered it. */
-export interface IndexOwner<E> {
+interface IndexOwner<E> {
   /**
    * Every folder with something to review: the newest answer once one has
    * landed, else the first read.
