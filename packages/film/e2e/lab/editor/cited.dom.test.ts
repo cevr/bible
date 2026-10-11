@@ -56,8 +56,14 @@ describe('a link that cites a cue or a knob, served', () => {
             const served = yield* keeping(kept, viewport);
             yield* landed(served, labAt(1, { selection: rise }));
             yield* panelIs(served.page, 'edit');
+            // Back is the page the viewer kept their mode on, in it.
+            yield* served.page.back;
+            yield* panelIs(served.page, kept);
             yield* landed(served, labAt(1, { selection: spot }));
             yield* panelIs(served.page, 'edit');
+            // The link was not the viewer's pick: a plain link shows the mode they kept.
+            yield* landed(served, labAt(1));
+            yield* panelIs(served.page, kept);
           }).pipe(Effect.scoped),
         SLOW,
       );
