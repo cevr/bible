@@ -786,23 +786,30 @@ describe('the review page', () => {
           yield* until(
             page,
             Object.entries(rates)
-              .map(([id, fps]) => `Math.abs(${video(id)}.currentTime - ${0.25 / fps}) < 1e-4`)
+              .map(
+                ([id, fps]) =>
+                  `Math.abs(${video(id)}.currentTime - ${0.25 / fps}) < 1e-4 && !${video(id)}.seeking && ${video(id)}.readyState >= 2`,
+              )
               .join(' && '),
           );
-          // From here each video counts its seeks, and keeps the time of the picture it last showed.
+          // From here each video counts its seeks, and keeps the time of the picture it last showed:
+          // the one it holds now (sought, and its frame there loaded), until it presents another. A
+          // step that keeps a video in its frame presents none (its picture is the one already shown).
           yield* page.evaluate(
-            `Array.from(document.querySelectorAll('.rv-card video')).forEach((v) => { v.dataset.seeks = '0'; v.addEventListener('seeking', () => { v.dataset.seeks = String(Number(v.dataset.seeks) + 1); }); const shown = (_, frame) => { v.dataset.shown = String(frame.mediaTime); v.requestVideoFrameCallback(shown); }; v.requestVideoFrameCallback(shown); })`,
+            `Array.from(document.querySelectorAll('.rv-card video')).forEach((v) => { v.dataset.seeks = '0'; v.dataset.shown = String(v.currentTime); v.addEventListener('seeking', () => { v.dataset.seeks = String(Number(v.dataset.seeks) + 1); }); const shown = (_, frame) => { v.dataset.shown = String(frame.mediaTime); v.requestVideoFrameCallback(shown); }; v.requestVideoFrameCallback(shown); })`,
           );
           /**
-           * The clock reads its frame `n`, and every video stands inside its
-           * own frame that holds the clock's time, shows its picture, and
-           * was sought once for each step.
+           * The clock reads its frame `n`, in the transport and in the
+           * header (the one a laptop shows), and every video stands inside
+           * its own frame that holds the clock's time, shows its picture,
+           * and was sought once for each step.
            */
           const onFrame = (n: number, steps: number) =>
             until(
               page,
               [
                 `document.querySelector('.rv-transport .rv-time-at').textContent === '${timecode(n / clock, clock)}'`,
+                `document.querySelector('.sh-header .sh-timecode').textContent === '${timecode(n / clock, clock)}'`,
                 ...Object.entries(rates).map(([id, fps]) => {
                   const own = frameAtOrBefore(n / clock, fps);
                   return `(${video(id)}.currentTime >= ${own / fps} && ${video(id)}.currentTime < ${(own + 1) / fps} && Math.abs(Number(${video(id)}.dataset.shown) - ${own / fps}) < ${0.5 / fps} && ${video(id)}.dataset.seeks === '${steps}')`;

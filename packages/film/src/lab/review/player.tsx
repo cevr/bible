@@ -79,8 +79,11 @@ export const Transport = (props: {
   const { sync } = props;
   const { meta } = useReview();
   const keys = hubKeys(meta.hub);
-  // The header's timecode is this transport's clock.
-  useShellTime(() => sync().t);
+  // The header's timecode is this transport's clock, at its rate.
+  useShellTime(
+    () => sync().t,
+    () => sync().fps,
+  );
   onCleanup(
     meta.hub.commands.register(
       ...rateCommands({

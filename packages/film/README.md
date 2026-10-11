@@ -2408,7 +2408,8 @@ into its own frame that holds that frame's start (`landing`, by the
 rate each version's video is read at, the clock's until it is; Chrome
 keeps some frames' starts a microsecond short, which shows the frame
 before), so each shows its own frame's picture at the clock's time, at any
-rate of either, and the picture is the timecode's; a drifter is put back
+rate of either, and the picture is the timecode's (on a laptop the
+header's, read at the clock's rate, `useShellTime`); a drifter is put back
 on the clock's time itself; one sound heard;
 opened at the URL's `#t=`, which follows it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
 `Wipe`, `Moments`, `Diff` shown as Difference, `Notes`; a set of one version has
