@@ -4,7 +4,8 @@
 // `modal=false` (a drawer's), `backdrop=user` for a `Dialog.Backdrop`,
 // `owner=keep` for an owner that keeps `open` true through a close request,
 // `tall=true` for a page that scrolls, `titles=two` for a second title
-// after the first, which `window.__dropTitle()` unmounts.
+// after the first, which `window.__dropTitle()` unmounts, `portal=inline`
+// for a portal rendered in place.
 import type { JSX } from '@solidjs/web';
 import { createSignal, Show } from 'solid-js';
 
@@ -43,7 +44,7 @@ function BasicDialog(): JSX.Element {
         }}
         onOpenChangeComplete={(open) => log(`complete ${open}`)}
       >
-        <Dialog.Portal id="portal">
+        <Dialog.Portal id="portal" inline={param('portal') === 'inline'}>
           {param('backdrop') === 'user' ? <Dialog.Backdrop id="backdrop" /> : null}
           <Dialog.Popup id="popup">
             <Show when={firstTitle()}>

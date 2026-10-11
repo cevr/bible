@@ -15,6 +15,7 @@ import {
   createUniqueId,
   omit,
   Show,
+  untrack,
   useContext,
 } from 'solid-js';
 
@@ -91,8 +92,22 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
   const [focusManagerState, setFocusManagerState] = createSignal<FocusManagerState | null>(null, {
     ownedWrite: true,
   });
+  const shouldRenderGuards = () => {
+    const state = focusManagerState();
+    return !!state && !state.modal && state.open && !!portalNode();
+  };
+
   const beforeOutsideRef: { current: HTMLSpanElement | null } = { current: null };
-  const afterOutsideRef: { current: HTMLSpanElement | null } = { current: null };
+  // The after guard stays rendered (see below): it is the guard only while guarding.
+  let afterOutsideElement: HTMLSpanElement | null = null;
+  const afterOutsideRef: { current: HTMLSpanElement | null } = {
+    get current() {
+      return untrack(shouldRenderGuards) ? afterOutsideElement : null;
+    },
+    set current(element) {
+      afterOutsideElement = element;
+    },
+  };
   const beforeInsideRef: { current: HTMLSpanElement | null } = { current: null };
   const afterInsideRef: { current: HTMLSpanElement | null } = { current: null };
   const id = createUniqueId();
@@ -100,11 +115,6 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
 
   // The enclosing portal's node, else the body.
   const mount = () => parent?.portalNode() ?? document.body;
-
-  const shouldRenderGuards = () => {
-    const state = focusManagerState();
-    return !!state && !state.modal && state.open && !!portalNode();
-  };
 
   // Elements inside a non-modal portal are tabbable only once focus has entered it.
   createEffect(
@@ -198,26 +208,28 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
           <PortalElement />
         </Show>
       </PortalContext>
-      <Show when={shouldRenderGuards()}>
-        <FocusGuard
-          data-type="outside"
-          ref={(el) => {
-            afterOutsideRef.current = el;
-          }}
-          onFocus={(event) => {
-            const node = portalNode();
-            if (node && isOutsideEvent(event, node)) {
-              afterInsideRef.current?.focus();
-            } else {
-              const state = focusManagerState();
-              getNextTabbable(state?.domReference ?? null)?.focus();
-              if (state?.closeOnFocusOut) {
-                state.onOpenChange(false, createChangeEventDetails(REASONS.focusOut, event));
-              }
+      {/* Always rendered (hidden while not guarding): were the guards on both sides of the
+          portal node to appear at once, Solid would move the node, and a move resets every
+          scroll position inside it (an inline sheet's swipe). */}
+      <FocusGuard
+        data-type="outside"
+        hidden={!shouldRenderGuards()}
+        ref={(el) => {
+          afterOutsideRef.current = el;
+        }}
+        onFocus={(event) => {
+          const node = portalNode();
+          if (node && isOutsideEvent(event, node)) {
+            afterInsideRef.current?.focus();
+          } else {
+            const state = focusManagerState();
+            getNextTabbable(state?.domReference ?? null)?.focus();
+            if (state?.closeOnFocusOut) {
+              state.onOpenChange(false, createChangeEventDetails(REASONS.focusOut, event));
             }
-          }}
-        />
-      </Show>
+          }
+        }}
+      />
     </>
   );
 }
