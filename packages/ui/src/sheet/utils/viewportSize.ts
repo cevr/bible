@@ -9,7 +9,7 @@
 // zoom: its height shrinks while a software keyboard covers the page.
 import { type Accessor, createSignal, onSettled } from 'solid-js';
 
-export interface ViewportSize {
+interface ViewportSize {
   readonly width: number;
   readonly height: number;
 }

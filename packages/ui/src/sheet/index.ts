@@ -6,5 +6,3 @@
 // `Sheet.Backdrop`, `Sheet.Popup`, `Sheet.Content`, `Sheet.Title`,
 // `Sheet.Description` and `Sheet.Close`.
 export * as Sheet from './index.parts.ts';
-export type { SheetChangeEventDetails } from './root/SheetRoot.tsx';
-export type { SheetPosition, SheetSwipeDirection, SnapPoint } from './utils/swipe.ts';

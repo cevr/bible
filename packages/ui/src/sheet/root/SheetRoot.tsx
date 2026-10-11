@@ -24,7 +24,7 @@ import {
 } from '../utils/swipe.ts';
 import { SheetRootContext } from './SheetRootContext.ts';
 
-export type SheetChangeEventDetails = DialogChangeEventDetails;
+type SheetChangeEventDetails = DialogChangeEventDetails;
 
 interface SheetRootProps {
   open?: boolean | undefined;

@@ -59,7 +59,7 @@ import {
 import { useViewportSize } from '../utils/viewportSize.ts';
 
 /** What the parts inside the overlay read of the mounted sheet. */
-export interface SheetOverlayContext {
+interface SheetOverlayContext {
   /** Its place among the sheets mounted now. */
   index: Accessor<number>;
   /** The sheets in front of it. */
@@ -75,7 +75,7 @@ export interface SheetOverlayContext {
 }
 
 /** A panel's resting insets from the viewport's edges, in pixels. */
-export interface RestRect {
+interface RestRect {
   readonly top: number;
   readonly right: number;
   readonly bottom: number;

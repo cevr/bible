@@ -26,7 +26,8 @@
 import type { JSX } from '@solidjs/web';
 import { createSignal, Show } from 'solid-js';
 
-import { Sheet, type SheetPosition, type SheetSwipeDirection } from '../../../src/sheet/index.ts';
+import { Sheet } from '../../../src/sheet/index.ts';
+import type { SheetPosition, SheetSwipeDirection } from '../../../src/sheet/utils/swipe.ts';
 import { log, param } from './log.ts';
 
 if (param('timeline') === 'none') {
