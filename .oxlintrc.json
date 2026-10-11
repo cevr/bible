@@ -1940,6 +1940,27 @@
               }
             ]
           }
+        ],
+        // The same tree reached through the rule's own context
+        // (`context.sourceCode.getScope`): its readers are refused by name.
+        "no-restricted-properties": [
+          "error",
+          {
+            "property": "getScope",
+            "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
+          },
+          {
+            "property": "getDeclaredVariables",
+            "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
+          },
+          {
+            "property": "scopeManager",
+            "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
+          },
+          {
+            "property": "isGlobalReference",
+            "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
+          }
         ]
       }
     }
