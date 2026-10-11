@@ -1593,12 +1593,18 @@ pages). Every design-language mock wears `tokens.css` and the kit, writes no
 token, and sets each space, type size, line height and radius on its scale
 (`e2e/design-language/mocks.dom.test.ts`, one case a mock, and planted pages
 of each shape; the reader is `e2e/design-language/mock-lengths.ts`
-`mockLengths`). The page is read as the browser resolves it, at each width
-its queries name and on both pointers: a variable is read on each element
-and pseudo-element its declaration applies to, so the cascade (nesting,
-`:is()`, a compound, a query, an alias, a losing declaration) is Chrome's,
-and a rule that reaches no element the mock shows (a hover) is named, never
-passed unread. The tab answers the page's requests itself (the
+`mockLengths`). The page is read as the browser lays it out and resolves
+it, at 390 and 1440 px and each width its media queries name (px, em or
+rem; `min-`, `max-` or a range), on a phone's pointer and a desk's: a red on
+either is a red. A variable is read on each element and pseudo-element its
+declaration applies to, so the cascade (nesting, `:is()`, a compound, a
+media or container query, an alias, a losing declaration) is Chrome's; the
+reader shadows each local with a variable of its own, beside it, and never
+touches a property the page lays out by. Each selector of a list that gives
+or reads a variable is reached on its own: one that reaches no element on
+either pointer (a hover, a colour-scheme query) is named, never passed
+unread, and a selector of kit.css or lab.css is named only when no mock
+reaches it. The tab answers the page's requests itself (the
 protocol's `Fetch`), types and clicks with native input events, and waits in
 the page on its real timers, so a file's cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
 worker (`--max-concurrency=3` in the E2E script: at most eight workers, one
