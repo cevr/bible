@@ -428,10 +428,29 @@ describe('the lab shell', () => {
         yield* page.reload;
         yield* page.waitFor('.lab-panel[data-staged="true"]');
         yield* attributeIs(page, '.lab-panel', 'data-mode', 'motion');
+        // The tray's one tab stop starts on the mode kept, not on the first.
+        yield* attributeIs(page, '.lab-modes [data-mode-pick="motion"]', 'tabindex', '0');
+        yield* attributeIs(page, '.lab-modes [data-mode-pick="edit"]', 'tabindex', '-1');
         // Note this frame, from any mode, shows Note with its composer open.
         yield* page.press('n');
         yield* attributeIs(page, '.lab-panel', 'data-mode', 'note');
         yield* evaluates(page, shown, [false, true, false, false, false]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a mode picked with the mouse leaves the Lab its transport keys: → steps one frame, Space plays',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([], { href: labAt(1) });
+        yield* page.click('.lab-modes [data-mode-pick="motion"]');
+        yield* attributeIs(page, '.lab-modes [data-mode-pick="motion"]', 'aria-pressed', 'true');
+        yield* page.press('ArrowRight');
+        yield* evaluates(page, `Math.round(${T} * 30)`, 31);
+        yield* attributeIs(page, '.lab-modes [data-mode-pick="motion"]', 'aria-pressed', 'true');
+        yield* page.press(' ');
+        yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Pause');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );

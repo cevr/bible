@@ -5,7 +5,8 @@
 // `?view=pair|wipe&other=<id>`, `?view=moments&m=<n>`, `?view=diff&other=<id>&m=<n>`), one film's choices
 // (`/films/<film>/choices`), or one film's project by its address tree
 // (`/films/<film>/project`). Each of those is also a place ⌘K goes to by
-// its name (`destinationsOf`).
+// its name (`destinationsOf`). A folder or a set keeps the still open full
+// size (`?still=`: `stillIn`, `withStill`).
 
 import { Place } from '@bible/url-state';
 import { Data, Match, Option } from 'effect';
@@ -29,7 +30,7 @@ export type ReviewPlace = Data.TaggedEnum<{
 export const ReviewPlace = Data.taggedEnum<ReviewPlace>();
 
 /** What a comparison set's URL keeps of its view: its name, a pair's other, the moment. */
-export type SetQuery = Omit<Place.Type<typeof Places.set>['query'], 'inspect'>;
+export type SetQuery = Omit<Place.Type<typeof Places.set>['query'], 'inspect' | 'still'>;
 
 /** The place `href` names; home when it names none of the review's. */
 export const placeOf = (href: string): ReviewPlace =>
@@ -41,6 +42,27 @@ export const placeOf = (href: string): ReviewPlace =>
     ),
     Option.map(Place.decode(Places.project, href), (v) => ReviewPlace.Project(v.path)),
   ]).pipe(Option.getOrElse(() => ReviewPlace.Home()));
+
+/** The still `href` opens full size (`?still=`) on a folder or a set: its key, or none. */
+export const stillIn = (href: string): Option.Option<string> =>
+  Option.filter(
+    Option.firstSomeOf([
+      Option.map(Place.decode(Places.folder, href), (v) => v.query.still),
+      Option.map(Place.decode(Places.set, href), (v) => v.query.still),
+    ]),
+    (still) => still !== '',
+  );
+
+/** `href` with the still `still` open full size ('' for none), on a folder or a set; none elsewhere. */
+export const withStill = (href: string, still: string): Option.Option<string> =>
+  Option.firstSomeOf([
+    Option.map(Place.decode(Places.folder, href), (v) =>
+      Place.href(Places.folder, { ...v, query: { ...v.query, still } }),
+    ),
+    Option.map(Place.decode(Places.set, href), (v) =>
+      Place.href(Places.set, { ...v, query: { ...v.query, still } }),
+    ),
+  ]);
 
 /** The link that opens `place`, its view and selections at their defaults. */
 export const hrefOf = (place: ReviewPlace): string =>

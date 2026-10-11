@@ -22,23 +22,27 @@ Every part takes `class` and `style` (a value or a function of the part's state)
         - `Menu.Item`: `<div role="menuitem">` that runs an action and closes the menu (`label` for typeahead).
         - `Menu.Group`: `<div role="group">`.
           - `Menu.GroupLabel`: `<div aria-hidden>` that names the group.
-        - `Menu.Separator`: `<div role="separator">`.
+        - `Menu.RadioGroup`: `<div role="group">` of radio items, one checked; its owner holds `value`, and a press on an item offers that item's value to `onValueChange`. A `Menu.GroupLabel` inside it names it.
+          - `Menu.RadioItem`: `<div role="menuitemradio">`, `aria-checked` while its `value` is the group's (`label` for typeahead). It is an item as `Menu.Item` is, and keeps the menu open on a press unless `closeOnClick`.
+            - `Menu.RadioItemIndicator`: `<span aria-hidden>`, rendered while its item is checked (always with `keepMounted`).
+        - `Menu.Separator`: `<div role="separator">` (see Separator).
 
-Upstream's hover opening, submenus, arrow (and `arrowPadding`), backdrop, link, checkbox and radio items, `defaultOpen`, `keepMounted`, `actionsRef` and `highlightItemOnHover` are left out, and so are the options no page passes: the root's `open`, `modal`, `disabled`, `loopFocus`, `orientation` and `onItemHighlighted`; the trigger's and item's `disabled` and `nativeButton`; the item's `closeOnClick`; the positioner's `side`, `alignOffset`, `anchor`, `positionMethod` and collision options; the popup's `finalFocus`; the separator's `orientation`. A part or an option returns with its first consumer.
+Upstream's hover opening, submenus, arrow (and `arrowPadding`), backdrop, link and checkbox items, `defaultOpen`, `keepMounted`, `actionsRef` and `highlightItemOnHover` are left out, and so are the options no page passes: the root's `open`, `modal`, `disabled`, `loopFocus`, `orientation` and `onItemHighlighted`; the trigger's and items' `disabled` and `nativeButton`; the plain item's `closeOnClick`; the radio group's `defaultValue` and `disabled`; the indicator's exit transition; the positioner's `side`, `alignOffset`, `anchor`, `positionMethod` and collision options; the popup's `finalFocus`. A part or an option returns with its first consumer.
 
-| Member                | Attribute                                   | Present when                                                   |
-| --------------------- | ------------------------------------------- | -------------------------------------------------------------- |
-| `Trigger`             | `data-popup-open`, `data-pressed`           | the menu this trigger opened is open (both together)           |
-| `Positioner`          | `data-open` / `data-closed`                 | the menu is open / closed                                      |
-| `Positioner`, `Popup` | `data-side`                                 | always: `bottom`, or `top` after a collision flip              |
-| `Positioner`, `Popup` | `data-align`                                | always: `start`, `center` or `end`                             |
-| `Positioner`          | `data-anchor-hidden`                        | the anchor has scrolled out of view                            |
-| `Positioner`, `Popup` | `data-instant`                              | transitions are skipped, with the reason: `click` or `dismiss` |
-| `Popup`               | `data-open` / `data-closed`                 | the menu is open / closed                                      |
-| `Popup`               | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition       |
-| `Item`                | `data-highlighted`                          | the item is under the keyboard or the pointer                  |
+| Member                            | Attribute                                   | Present when                                                   |
+| --------------------------------- | ------------------------------------------- | -------------------------------------------------------------- |
+| `Trigger`                         | `data-popup-open`, `data-pressed`           | the menu this trigger opened is open (both together)           |
+| `Positioner`                      | `data-open` / `data-closed`                 | the menu is open / closed                                      |
+| `Positioner`, `Popup`             | `data-side`                                 | always: `bottom`, or `top` after a collision flip              |
+| `Positioner`, `Popup`             | `data-align`                                | always: `start`, `center` or `end`                             |
+| `Positioner`                      | `data-anchor-hidden`                        | the anchor has scrolled out of view                            |
+| `Positioner`, `Popup`             | `data-instant`                              | transitions are skipped, with the reason: `click` or `dismiss` |
+| `Popup`                           | `data-open` / `data-closed`                 | the menu is open / closed                                      |
+| `Popup`                           | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition       |
+| `Item`, `RadioItem`               | `data-highlighted`                          | the item is under the keyboard or the pointer                  |
+| `RadioItem`, `RadioItemIndicator` | `data-checked` / `data-unchecked`           | the item's value is / is not the group's                       |
 
-`Group`, `GroupLabel` and `Separator` set none.
+`Group`, `GroupLabel` and `RadioGroup` set none; `Separator` sets its own (see Separator).
 
 Upstream's positioner CSS variables (`--anchor-width`, `--anchor-height`, `--available-width`, `--available-height` and `--transform-origin`) are left out: no stylesheet reads them. A variable returns with its first stylesheet reader.
 
@@ -175,10 +179,21 @@ Upstream's lone toggle (`pressed`, `defaultPressed`, `onPressedChange`) and `dis
 
 `import { ToggleGroup } from '@bible/ui/toggle-group'`
 
-- `ToggleGroup`: `<div role="group">`, one of its `Toggle`s pressed at a time. Its owner holds `value`; a press offers `onValueChange` the pressed toggle's value alone, or `[]` for the one already pressed. The left and right arrows (wrapping at the ends), Home and End move its one tab stop.
+- `ToggleGroup`: `<div role="group">`, one of its `Toggle`s pressed at a time. Its owner holds `value`; a press offers `onValueChange` the pressed toggle's value alone, or `[]` for the one already pressed. The left and right arrows (wrapping at the ends), Home and End move its one tab stop, which starts on the toggle drawn pressed (`aria-pressed`; the first when none is pressed). A value changed from outside the group later (Back, a key) leaves the tab stop where it was.
+  - A mouse press from outside the group takes no focus. Focus goes where the platform sends it for a press on content that takes none: to the group's nearest focusable ancestor (a sheet's or dialog's popup, so Tab and the keys stay in it), else off every control (`body`, so the page keeps its keys: Space, the arrows). Either way a field that had focus commits on its own blur, before the press's `onValueChange`, and the pressed toggle takes the tab stop. When focus is already in the group, the press moves it to the pressed toggle. Upstream focuses the toggle on every press.
   - `Toggle`: see Toggle.
 
 Upstream's uncontrolled mode (`defaultValue`), `multiple`, `disabled`, `orientation` and `loopFocus` are left out; an option returns with its first consumer. The group carries no attributes.
+
+### Separator
+
+`import { Separator } from '@bible/ui/separator'`
+
+- `Separator`: `<div role="separator">` between groups of items or controls, `aria-orientation` saying its `orientation` (`horizontal`, the default, or `vertical`). The menus' `Menu.Separator` is the same part.
+
+| Member      | Attribute          | Present when                       |
+| ----------- | ------------------ | ---------------------------------- |
+| `Separator` | `data-orientation` | always: `horizontal` or `vertical` |
 
 ## Styling contract
 

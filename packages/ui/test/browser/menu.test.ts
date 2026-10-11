@@ -4,9 +4,10 @@
 // packages/react/src/menu/group-label/MenuGroupLabel.test.tsx,
 // packages/react/src/menu/popup/MenuPopup.test.tsx
 //
-// The menu's behaviour cases, against one menu of plain items in a group.
-// Upstream's cases for parts not ported (hover opening, submenus, checkbox,
-// radio and link items, arrow, backdrop, filter, list, viewport, detached
+// The menu's behaviour cases, against one menu of plain items in a group,
+// and one with a radio group.
+// Upstream's cases for parts not ported (hover opening, submenus, checkbox
+// and link items, arrow, backdrop, filter, list, viewport, detached
 // triggers, menubar) and for React-only machinery are left out.
 import { describe, expect, it } from 'bun:test';
 
@@ -220,6 +221,72 @@ describe('Menu.Group + Menu.GroupLabel', () => {
     await page.click('#trigger');
     await see(page.locator('#view-group')).toHaveAttribute('role', 'group');
     await see(page.locator('#view-group')).toHaveAttribute('aria-labelledby', 'view-label');
+  });
+});
+
+// Upstream: packages/react/src/menu/radio-item/MenuRadioItem.test.tsx,
+// packages/react/src/menu/radio-item-indicator/MenuRadioItemIndicator.test.tsx
+describe('Menu.RadioGroup + Menu.RadioItem', () => {
+  it('a group of radio items, labelled, the owner’s value checked and its indicator shown', async () => {
+    const page = await h.open('radio');
+    await page.click('#trigger');
+    await see(page.locator('#films')).toHaveAttribute('role', 'group');
+    await see(page.locator('#films')).toHaveAttribute('aria-labelledby', 'films-label');
+    const items = page.getByRole('menuitemradio');
+    await see(items).toHaveText(['alpha', 'bravo✓', 'charlie']);
+    expect(
+      await items.evaluateAll((els) =>
+        els.map((el) => [
+          el.getAttribute('aria-checked'),
+          el.hasAttribute('data-checked'),
+          el.hasAttribute('data-unchecked'),
+        ]),
+      ),
+    ).toEqual([
+      ['false', false, true],
+      ['true', true, false],
+      ['false', false, true],
+    ]);
+    await see(page.locator('#bravo .check')).toHaveAttribute('aria-hidden', 'true');
+    // Named by its words alone: the check is hidden from assistive tech.
+    await see(page.getByRole('menuitemradio', { name: 'bravo', exact: true })).toHaveCount(1);
+  });
+
+  it('a press offers its value and keeps the menu open; the owner’s value moves the check', async () => {
+    const page = await h.open('radio');
+    await page.click('#trigger');
+    await page.click('#charlie');
+    expect(await logOf(page)).toContain('value charlie');
+    await see(page.locator('#popup')).toBeVisible();
+    await see(page.locator('#charlie')).toHaveAttribute('aria-checked', 'true');
+    await see(page.locator('#bravo')).toHaveAttribute('aria-checked', 'false');
+    await see(page.locator('#bravo .check')).toHaveCount(0);
+  });
+
+  it('with closeOnClick a press closes the menu', async () => {
+    const page = await h.open('radio', { query: { close: 'true' } });
+    await page.click('#trigger');
+    await page.click('#alpha');
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await logOf(page)).toEqual(
+      expect.arrayContaining(['value alpha', 'open false item-press']),
+    );
+  });
+
+  it.each(['Enter', ' '])('the keyboard walks the items and %p picks one', async (key) => {
+    const page = await h.open('radio');
+    await page.focus('#trigger');
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('alpha');
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('bravo');
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('charlie');
+    await page.keyboard.press(key);
+    await see(page.locator('#charlie')).toHaveAttribute('aria-checked', 'true');
+    // The action item after the group is the next stop.
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('copy');
   });
 });
 

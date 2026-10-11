@@ -469,20 +469,6 @@ body.lab .stage {
   font-size: var(--fs-2);
   color: var(--text-2);
 }
-/* A chip: its state's colour in its text and its edge, no fill. */
-.lab-badge {
-  padding: 0 var(--s-1);
-  border: 1px solid currentColor;
-  border-radius: var(--r-1);
-  color: var(--text-2);
-  background: none;
-}
-.lab-badge.open {
-  color: var(--state-note);
-}
-.lab-badge.replied {
-  color: var(--state-agent);
-}
 .lab-note-text,
 .lab-reply-text {
   margin: 0;
@@ -822,13 +808,6 @@ body.lab .stage {
   text-transform: uppercase;
   letter-spacing: var(--track-caps);
 }
-.lab-count {
-  padding: 0 var(--s-1);
-  border: 1px solid var(--state-findings);
-  border-radius: var(--r-1);
-  color: var(--state-findings);
-  font-size: var(--fs-1);
-}
 /* A finding's text may hold a long unbroken token (a path): it wraps inside the panel. */
 .lab-findings-group {
   overflow-wrap: anywhere;
@@ -1098,12 +1077,6 @@ body.play .sh-body {
   margin: var(--s-1) 0 0;
   color: var(--text-2);
   font-size: var(--fs-2);
-}
-.lab-badge.recorded {
-  color: var(--state-approved);
-}
-.lab-badge.stale {
-  color: var(--state-stale);
 }
 .studio-prompter {
   padding: var(--s-3);

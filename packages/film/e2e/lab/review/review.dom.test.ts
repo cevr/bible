@@ -332,8 +332,8 @@ describe('the review page', () => {
         // A stack of several says how many; of one, nothing; its versions' names are its
         // long-press menu's, each opening the set on that version's sheet.
         const roof = `a.rv-card[href="${SET}"]`;
-        yield* textHas(page, roof, '3 versions');
-        yield* countIs(page, `a.rv-card[href="${SKY}"] .rv-badge`, 0);
+        yield* textIs(page, `${roof} .sh-badge`, '3 versions');
+        yield* countIs(page, `a.rv-card[href="${SKY}"] .sh-badge`, 0);
         yield* evaluates(
           page,
           `document.querySelector('${roof}').innerText.includes('Warm')`,
@@ -851,14 +851,14 @@ describe('the review page', () => {
         yield* until(page, `${frames} === '19,19,19'`);
         yield* until(page, "location.search === '?view=moments&m=4'");
         yield* page.click('.rv-card img');
-        yield* textIs(page, '.rv-lightbox figcaption', 'Warm at 00:00:19:00');
+        yield* textIs(page, '.rv-lightbox .rv-lightbox-caption', 'Warm at 00:00:19:00');
         yield* page.press('Escape');
         yield* until(page, "document.querySelector('.rv-lightbox') === null");
         // The keyboard opens it too: a still is a button, Enter and Space open its caption.
         for (const key of ['Enter', ' ']) {
           yield* page.focus('.rv-card[data-id="B"] .rv-zoom');
           yield* page.press(key);
-          yield* textHas(page, '.rv-lightbox figcaption', 'at 00:00:19:00');
+          yield* textHas(page, '.rv-lightbox .rv-lightbox-caption', 'at 00:00:19:00');
           yield* page.press('Escape');
           yield* until(page, "document.querySelector('.rv-lightbox') === null");
         }
@@ -885,6 +885,140 @@ describe('the review page', () => {
         yield* page.goto(`${SET}?view=diff&other=B&inspect=B`);
         yield* waitFor(page, '[data-role="inspector"]');
         yield* attributesAre(page, '.rv-card[data-selected="true"]', 'data-id', ['B']);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a set's views, layouts, others and moments are toggle groups: named, one tab stop, the arrows move along, Enter or Space picks, the address keeps it",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: SET });
+        yield* waitFor(page, '.rv-transport');
+        const views = '.rv-views[role="group"][aria-label="View"]';
+        yield* attributeIs(page, `${views} [data-view="all"]`, 'aria-pressed', 'true');
+        yield* attributeIs(page, `${views} [data-view="all"]`, 'tabindex', '0');
+        yield* attributeIs(page, `${views} [data-view="compare"]`, 'tabindex', '-1');
+        // → moves along the views without picking; the address stays.
+        yield* page.focus(`${views} [data-view="all"]`);
+        yield* page.press('ArrowRight');
+        yield* until(page, "document.activeElement.dataset.view === 'compare'");
+        yield* evaluates(page, 'location.search', '');
+        yield* page.press('Enter');
+        yield* until(page, "location.search === '?view=pair&other=B'");
+        // In Compare, its layouts and the version it is against are groups of their own.
+        const layouts = '.rv-layouts[role="group"][aria-label="Layout"]';
+        yield* attributeIs(page, `${layouts} [data-view="pair"]`, 'aria-pressed', 'true');
+        yield* attributeIs(
+          page,
+          '.rv-pick[role="group"][aria-label="Against"] [data-other="B"]',
+          'aria-pressed',
+          'true',
+        );
+        yield* page.focus(`${layouts} [data-view="pair"]`);
+        yield* page.press('ArrowRight');
+        yield* until(page, "document.activeElement.dataset.view === 'wipe'");
+        yield* page.press(' ');
+        yield* until(page, "new URLSearchParams(location.search).get('view') === 'wipe'");
+        yield* attributeIs(page, `${layouts} [data-view="wipe"]`, 'aria-pressed', 'true');
+        // Back walks the address, and the groups show what it holds.
+        yield* page.back;
+        yield* until(page, "new URLSearchParams(location.search).get('view') === 'pair'");
+        yield* attributeIs(page, `${layouts} [data-view="pair"]`, 'aria-pressed', 'true');
+        yield* page.click(`${views} [data-view="moments"]`);
+        yield* attributeIs(
+          page,
+          '.rv-pick[role="group"][aria-label="Moment"] [data-moment="0"]',
+          'aria-pressed',
+          'true',
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a view or a moment picked with the mouse leaves the page its keys: Space plays, → steps one frame, → steps the moments',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: SET });
+        yield* waitFor(page, '.rv-transport');
+        yield* page.click('.rv-views button[data-view="compare"]');
+        yield* until(page, "location.search === '?view=pair&other=B'");
+        yield* page.press('Space');
+        yield* textHas(page, '.rv-big', '❚❚');
+        yield* page.press('Space');
+        yield* textHas(page, '.rv-big', '▶');
+        yield* until(
+          page,
+          "Array.from(document.querySelectorAll('.rv-card video')).every((v) => v.paused)",
+        );
+        const labelFrames = `(() => { const [h, m, s, f] = document.querySelector('.rv-time').textContent.split(' ')[0].split(':').map(Number); return ((h * 60 + m) * 60 + s) * ${FILM_FPS} + f; })()`;
+        const paused = yield* page.evaluate<number>(labelFrames);
+        yield* page.press('ArrowRight');
+        yield* textHas(page, '.rv-time', timecode((paused + 1) / FILM_FPS));
+        yield* evaluates(page, 'location.search', '?view=pair&other=B');
+        // A moment picked with the mouse: → steps on to the next.
+        yield* page.click('.rv-views button[data-view="moments"]');
+        yield* page.click('button[data-moment="1"]');
+        yield* until(page, "new URLSearchParams(location.search).get('m') === '1'");
+        yield* page.press('ArrowRight');
+        yield* until(page, "new URLSearchParams(location.search).get('m') === '2'");
+        yield* attributeIs(page, 'button[data-moment="2"]', 'aria-pressed', 'true');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a still opens full size in the kit's dialog, over the phone's tab bar: titled by its caption, focus in it and back on the still, Escape, a tap and Back close it, a link opens it (SH5-1)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, {
+          href: `${SET}?view=moments`,
+          viewport: { width: 390, height: 844 },
+        });
+        const still = '.rv-card[data-id="B"] .rv-zoom';
+        const box = '.rv-lightbox[role="dialog"]';
+        const gone = "document.querySelector('.rv-lightbox') === null";
+        yield* waitFor(page, still);
+        yield* page.click(still);
+        yield* waitFor(page, box);
+        yield* until(page, "new URLSearchParams(location.search).get('still') === 'B'");
+        // Its name is its caption, the dialog's title; the focus is in it.
+        yield* evaluates(
+          page,
+          `(() => { const d = document.querySelector('${box}'); return document.getElementById(d.getAttribute('aria-labelledby')) === d.querySelector('.rv-lightbox-caption'); })()`,
+          true,
+        );
+        yield* textHas(page, `${box} .rv-lightbox-caption`, 'Cold at ');
+        yield* until(page, `document.querySelector('${box}').contains(document.activeElement)`);
+        // Nothing of the page draws over it: its backdrop and its picture stand over the tab
+        // bar, the page's highest layer (the dock stands under the bar).
+        yield* evaluates(
+          page,
+          "(() => { const z = (s) => Number(getComputedStyle(document.querySelector(s)).zIndex); return [z('.rv-lightbox-backdrop'), z('.rv-lightbox')].map((n) => n > z('.sh-pagebar')); })()",
+          [true, true],
+        );
+        // Escape closes it, adding no entry; the focus is back on the still.
+        yield* page.press('Escape');
+        yield* until(page, gone);
+        yield* until(page, "location.search === '?view=moments'");
+        yield* until(page, `document.activeElement === document.querySelector('${still}')`);
+        // Back closes it, as every sheet's opening is a step of its own.
+        yield* page.press('Enter');
+        yield* waitFor(page, box);
+        yield* page.back;
+        yield* until(page, gone);
+        yield* until(page, "location.search === '?view=moments'");
+        // A link opens it, and a tap anywhere closes it.
+        yield* page.goto(`${SET}?view=moments&still=B`);
+        yield* waitFor(page, box);
+        yield* textHas(page, `${box} .rv-lightbox-caption`, 'Cold at ');
+        yield* page.click(`${box} img`);
+        yield* until(page, gone);
+        yield* until(page, "location.search === '?view=moments'");
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -1087,10 +1221,10 @@ describe('the review page', () => {
         const STALE = 'out of date: its sources changed since it was made';
         /** The grid's one state badge is C's. */
         const onlyCStale = Effect.andThen(
-          textsAre(page, '.rv-grid [data-approval="stale"]', ['Out of date']),
-          textsAre(page, '.rv-grid [data-id="C"] [data-approval="stale"]', ['Out of date']),
+          textsAre(page, '.rv-grid .sh-badge[data-state="stale"]', ['Out of date']),
+          textsAre(page, '.rv-grid [data-id="C"] .sh-badge[data-state="stale"]', ['Out of date']),
         );
-        yield* waitFor(page, '.rv-card[data-id="C"] [data-approval="stale"]');
+        yield* waitFor(page, '.rv-card[data-id="C"] .sh-badge[data-state="stale"]');
         yield* onlyCStale;
         yield* page.click('.rv-views button[data-view="moments"]');
         yield* waitFor(page, '.rv-card[data-id="C"] img');
@@ -1602,7 +1736,7 @@ describe('the review page', () => {
           viewport: { width: 390, height: 844 },
         });
         // The caps fit, C's saying Out of date; why, and its lines, are its Info, in full.
-        yield* waitFor(page, '.rv-card[data-id="C"] [data-approval="stale"]');
+        yield* waitFor(page, '.rv-card[data-id="C"] .sh-badge[data-state="stale"]');
         yield* evaluates(
           page,
           `Array.from(document.querySelectorAll('.rv-card[data-id] .rv-cap')).every((t) => t.scrollWidth <= t.clientWidth)`,
@@ -1857,9 +1991,14 @@ describe('the review page', () => {
         yield* textHas(page, `${inspector} .lab-sheet-title`, '2 · Cold');
         yield* textHas(page, inspector, 'Cold look');
         yield* textHas(page, inspector, 'out/art/roof.B.mp4');
-        yield* page.click(`${inspector} [data-act="approve"]`);
+        // Pressed twice in one tick, the verb sends once: its own write is in flight.
+        yield* page.evaluate(
+          `(() => { const verb = document.querySelector('${inspector} [data-act="approve"]'); verb.click(); verb.click(); })()`,
+        );
         yield* waitFor(page, `${inspector} [data-act="approve"][data-approval="approved"]`);
+        expect(asked).toHaveLength(1);
         expect(asked[0]).toMatchObject({ variant: 'B', say: { _tag: 'Approve' } });
+        yield* attributeIs(page, `${inspector} .rv-comment-input`, 'aria-label', 'Comment');
         yield* page.fill(`${inspector} .rv-comment-input`, 'colder at the edge');
         yield* page.click(`${inspector} [data-act="comment"]`);
         yield* waitFor(page, `${inspector} [data-comment="c1"]`);

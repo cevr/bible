@@ -5,8 +5,9 @@
 // area), and the dock a page's transport takes above it (`.sh-dock`); and
 // the kit (§5), each control styled once: the quiet and primary buttons
 // (`.sh-btn`), the icon button (`.sh-tool`), the segmented control
-// (`.sh-seg`), the field (`.lab-num`, a `select`) and the slider. Every page
-// injects it with the commands' styles.
+// (`.sh-seg`), the field (`.lab-num`, a `select`), the slider, the badge
+// (`.sh-badge`), one focus ring for them all, and words said, not shown
+// (`.sh-sr`). Every page injects it with the commands' styles.
 
 import { PHONE, WIDE } from './viewport.ts';
 
@@ -160,4 +161,22 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
   margin-top: calc((var(--s-1) - var(--s-4)) / 2); border: 0; border-radius: var(--r-1); background: var(--accent); }
 :where(input[type="range"])::-moz-range-thumb { width: var(--s-1); height: var(--s-4); border: 0; border-radius: var(--r-1);
   background: var(--accent); }
+/* Focus: every kit control, on every page and in every portal, shows the studio's ring, not the browser's outline. */
+:where(.sh-btn, .sh-tool, .sh-seg > button, .lab-num, select, input, textarea, [role="option"]):focus-visible {
+  outline: none; box-shadow: var(--focus-ring); }
+/* Chip / badge: a state's word (or a count), its edge and its words in the state's colour, no fill;
+   its own type, never a heading's caps and tracking around it. */
+:where(.sh-badge) { display: inline-block; padding: 0 var(--s-1); border: 1px solid currentColor; border-radius: var(--r-1);
+  background: none; color: var(--text-2); font-size: var(--fs-1); line-height: var(--lh-1); font-weight: var(--w-2);
+  letter-spacing: normal; text-transform: none; }
+:where(.sh-badge[data-state="stale"]) { color: var(--state-stale); }
+:where(.sh-badge[data-state="approved"]) { color: var(--state-approved); }
+:where(.sh-badge[data-state="findings"]) { color: var(--state-findings); }
+:where(.sh-badge[data-state="warning"]) { color: var(--state-warning); }
+:where(.sh-badge[data-state="note"]) { color: var(--state-note); }
+:where(.sh-badge[data-state="agent"]) { color: var(--state-agent); }
+:where(.sh-badge[data-state="rendered"]) { color: var(--state-rendered); }
+/* Said, not shown: words for assistive tech alone (a live region's announcement). */
+.sh-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; }
 `;

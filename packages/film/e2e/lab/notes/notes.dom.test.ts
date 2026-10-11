@@ -32,6 +32,7 @@ import {
   attached,
   attributeIs,
   evaluates,
+  inkIs,
   textHas,
   textIs,
   valueIs,
@@ -430,6 +431,9 @@ describe('marking a frame', () => {
         yield* page.press('n');
         yield* save(page, 'hold longer');
         yield* textIs(page, '.lab-status', 'the notes file is locked');
+        // The reason is said: the line is a polite live region; the field is named, not only hinted.
+        yield* attributeIs(page, '.lab-status', 'role', 'status');
+        yield* attributeIs(page, '.lab-compose textarea', 'aria-label', 'Note');
         yield* waitFor(page, '.lab-compose:not([hidden])');
         yield* valueIs(page, '.lab-compose textarea', 'hold longer');
       }).pipe(Effect.scoped),
@@ -459,6 +463,10 @@ describe("a note's place", () => {
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         // Beside its scene's name, its time into the scene: one clock in one place.
         yield* textHas(page, '.lab-note-label', `two · ${timecode(0.4)}`);
+        // Its status is the kit's badge, open in the notes' colour.
+        const status = '.lab-note-item[data-id="n1"] .sh-badge';
+        yield* textIs(page, `${status}[data-state="note"]`, 'open');
+        yield* evaluates(page, inkIs(status, '--state-note'), true);
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
         yield* evaluates(page, `Math.round(${URL_T} * ${film.fps})`, Math.round(shown * film.fps));
         yield* attached(page, '.lab-overlay rect.lab-note');
@@ -589,6 +597,7 @@ describe('the thread', () => {
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
         yield* waitFor(page, '.lab-note-item.selected .lab-reply-input');
+        yield* attributeIs(page, '.lab-note-item.selected .lab-reply-input', 'aria-label', 'Reply');
         yield* page.fill('.lab-reply-input', 'see frame 31');
         yield* answered(page, '/notes/n1/reply', page.pressIn('.lab-reply-input', 'Enter'));
         yield* answered(page, '/notes/n1/resolve', page.click('.lab-resolve'));

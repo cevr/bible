@@ -50,7 +50,10 @@ function isFocusableCandidate(element: Element | null): element is FocusableElem
       (element.parentElement != null &&
         getNodeName(element.parentElement) === 'details' &&
         getDetailsSummary(element.parentElement) === element)) &&
-    (nodeName !== 'details' || getDetailsSummary(element) == null) &&
+    // A <details> with a summary takes focus only when given a tabindex (its summary does).
+    (nodeName !== 'details' ||
+      getDetailsSummary(element) == null ||
+      element.hasAttribute('tabindex')) &&
     (nodeName !== 'input' || (element as HTMLInputElement).type !== 'hidden')
   );
 }
@@ -164,6 +167,24 @@ function appendMatchingElements(container: ParentNode, selector: string, list: H
 
 export function isTabbable(element: Element | null): element is FocusableElement {
   return isFocusableElement(element) && getTabIndex(element) >= 0;
+}
+
+/**
+ * The nearest ancestor of `element` that takes focus (a dialog's popup, a
+ * sheet): where the platform moves focus on a press on content that takes
+ * none. `null` when there is none, and focus then leaves every control.
+ */
+export function getFocusableAncestor(element: Element): FocusableElement | null {
+  for (
+    let candidate = element.parentElement?.closest(CANDIDATE_SELECTOR) ?? null;
+    candidate !== null;
+    candidate = candidate.parentElement?.closest(CANDIDATE_SELECTOR) ?? null
+  ) {
+    if (isFocusableElement(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
 }
 
 export function focusable(container: Element): FocusableElement[] {
