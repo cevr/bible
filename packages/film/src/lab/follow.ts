@@ -44,13 +44,20 @@ interface FollowOptions {
   readonly played: () => void;
 }
 
-/** The span's top and bottom in the box's own scroll coordinates, whatever sits between them. */
+/**
+ * The span's top and bottom in the box's own scroll coordinates, whatever sits
+ * between them: each of its rows asked once, so a one-row span is one read.
+ */
 const extentOf = (box: HTMLElement, span: Span) => {
   const origin = box.getBoundingClientRect().top - box.scrollTop;
-  return {
-    top: span.first.getBoundingClientRect().top - origin,
-    bottom: span.last.getBoundingClientRect().bottom - origin,
-  };
+  const first = span.first.getBoundingClientRect();
+  const last = Option.getOrElse(
+    Option.liftPredicate(span.last, (row) => row !== span.first).pipe(
+      Option.map((row) => row.getBoundingClientRect()),
+    ),
+    () => first,
+  );
+  return { top: first.top - origin, bottom: last.bottom - origin };
 };
 
 /** Follow `options.target` in `options.box` while `options.placing()`, by the rule above. Mount it with the view. */

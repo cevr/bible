@@ -1074,6 +1074,23 @@ describe('Follow', () => {
       yield* evaluates(page, `window.__reads <= 1`, true);
     }).pipe(Effect.scoped),
   );
+  it.live('one placement asks the line for its place once', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(span('rise').start + 0.02, { code: 'follow' }),
+        viewport: short,
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* page.evaluate(
+        `window.__reads = 0; const rect = Element.prototype.getBoundingClientRect; Element.prototype.getBoundingClientRect = function (...r) { if (this.classList.contains('lab-source-line')) window.__reads += 1; return rect.apply(this, r); };`,
+      );
+      // The content grows a pixel: a resize, so the view measures its target again, once.
+      yield* page.evaluate(
+        `(() => { const p = document.querySelector('.lab-source-col .lab-source-page'); p.style.minHeight = (p.getBoundingClientRect().height + 1) + 'px'; })()`,
+      );
+      yield* evaluates(page, `window.__reads`, 1);
+    }).pipe(Effect.scoped),
+  );
   it.live('a playing cue’s meter is one element its progress moves, not one made each frame', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([codeRoute], {
