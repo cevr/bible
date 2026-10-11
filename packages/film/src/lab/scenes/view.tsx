@@ -52,6 +52,7 @@ import { approveUndo, partSaid, undoApprove } from '../review/options/receipt.ts
 import { PHONE, useMatches } from '../viewport.ts';
 import { pressed } from '../pressed.ts';
 import { Sheet, useSheetDismissal } from '../sheet.tsx';
+import { draftBook } from '../review/draft-book.ts';
 import type { InspectorBox } from '../review/inspector.tsx';
 import { Comments, SayBox } from '../review/options/choice.tsx';
 import { useOnScreenFirst } from '../review/options/stills.tsx';
@@ -358,23 +359,13 @@ export const ScenesView = (props: ScenesViewProps) => {
   const [info, setInfo] = createSignal(false, fromHost);
   // A scene's unsent comment outlives its sheet (a tap on another still remakes it), and its
   // comment box's field is the one `scenes.comment` focuses.
-  const drafts = new Map<string, string>();
+  const draft = draftBook();
   const fields = new Map<string, HTMLElement>();
-  const [drafted, setDrafted] = createSignal(0, fromHost);
   const boxOf = (scene: string): InspectorBox => ({
     input: (el) => {
       fields.set(scene, el);
     },
-    draft: {
-      get: () => {
-        drafted();
-        return Option.getOrElse(Option.fromUndefinedOr(drafts.get(scene)), () => '');
-      },
-      set: (text) => {
-        drafts.set(scene, text);
-        setDrafted((n) => n + 1);
-      },
-    },
+    draft: draft(scene),
   });
   /** Whether a scene's sheet has a comment box: a film that is not a short, its project read. */
   const commentable = () => !short && Option.isSome(read().project);
