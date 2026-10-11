@@ -1637,6 +1637,34 @@ describe('the strip follows the playhead down its rows', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live('what grows above the lit row moves no scroll by itself: Follow keeps the rows', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(middle('fall')), viewport: PHONE });
+      yield* page.waitFor('.lab-cue[data-cue="fall"][data-live]');
+      yield* evaluates(page, SHORT, true);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      yield* page.evaluate(
+        `(() => { const pad = document.createElement('div'); pad.id = 'o5-pad'; pad.style.height = '40px'; const words = document.querySelector('.lab-strip-words'); words.after(pad); return true; })()`,
+      );
+      yield* page.evaluate(FRAMES);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      // What stands above the lit row grows: the browser keeps its hands off the box (no scroll anchoring), so
+      // no scroll comes that Follow would read as a reader's.
+      yield* page.evaluate(
+        `(() => { document.getElementById('o5-pad').style.height = '52px'; return true; })()`,
+      );
+      yield* page.evaluate(FRAMES);
+      yield* page.evaluate(FRAMES);
+      // Still following: a seek away and back brings the lit lane into sight.
+      yield* page.evaluate(seek(middle('rise')));
+      yield* until(page, `document.querySelector('.lab-cue[data-cue="rise"][data-live]') !== null`);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+      yield* page.evaluate(seek(middle('fall')));
+      yield* until(page, `document.querySelector('.lab-cue[data-cue="fall"][data-live]') !== null`);
+      yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+    }).pipe(Effect.scoped),
+  );
+
   it.live('a hand’s scroll whose event has not come yet is still the hand’s', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([], { href: labAt(middle('fall')), viewport: PHONE });

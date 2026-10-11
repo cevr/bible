@@ -614,6 +614,7 @@ body.lab .stage {
   --cue-names: calc(2 * var(--s-8) + var(--s-2));
   max-height: min(30vh, 240px);
   overflow-y: auto;
+  overflow-anchor: none;
   padding-left: var(--cue-names);
 }
 .lab-strip-rows {
