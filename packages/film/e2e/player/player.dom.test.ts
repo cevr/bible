@@ -1324,40 +1324,28 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
-  it.live('two approves answered together, the newer first: neither answer is lost (CP5-1)', () =>
-    Effect.gen(function* () {
-      const older = yield* Deferred.make<void>();
-      const newer = yield* Deferred.make<void>();
-      const again = yield* Deferred.make<void>();
-      const { page, asked, errors } = yield* openPlayer(
-        { href: pageHref.scenes(PROBE), viewport: DESK },
-        STILL_DRAWN,
-        heldApproves([older, newer], again),
-      );
-      const posts = () => asked.filter((a) => a.method === 'POST' && a.path === '/project/say');
-      yield* page.waitFor('.sc-acts [data-act-name="opening"]');
-      yield* clickInScene(page, 'one');
-      yield* page.press('a');
-      yield* Effect.repeat(Effect.sync(posts), {
-        until: (p) => p.length === 1,
-        schedule: Schedule.spaced('20 millis'),
-      });
-      yield* clickInScene(page, 'three');
-      yield* page.press('a');
-      yield* Effect.repeat(Effect.sync(posts), {
-        until: (p) => p.length === 2,
-        schedule: Schedule.spaced('20 millis'),
-      });
-      // Both answers released at once, the newer first; a read again stays held, so what
-      // shows is theirs.
-      yield* Deferred.done(newer, Exit.void);
-      yield* Deferred.done(older, Exit.void);
-      yield* textHas(page, '[data-role="receipt"]', 'Approved scene');
-      yield* evaluates(page, BANDS, ['approved', 'none', 'approved']);
-      yield* Deferred.done(again, Exit.void);
-      yield* evaluates(page, BANDS, ['approved', 'none', 'approved']);
-      expect(errors).toEqual([]);
-    }).pipe(Effect.scoped),
+  it.live(
+    "a read's two answers land in one task, the check's then the project's: neither is lost (CP5-1)",
+    () =>
+      Effect.gen(function* () {
+        // The check fails (its legend says so) and scene one is approved: both answers of the
+        // one read are written before the page flushes.
+        const failing = route('GET', /^\/check$/, () =>
+          refused(FreshProcessFailed.make({ command: 'film check', reason: 'exit 1' })),
+        );
+        const oneApproved = route('GET', /^\/project$/, () =>
+          json(projectOf(new Map([['one', 'op-0']]))),
+        );
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          [failing, oneApproved],
+        );
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        yield* evaluates(page, BANDS, ['approved', 'none', 'none']);
+        yield* textIs(page, '.sc-legend-item[data-mark="check-failed"]', 'check failed');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   // Serial: a finger's touches (`film/touches-serial`).

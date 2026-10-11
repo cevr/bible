@@ -230,26 +230,29 @@ export const ScenesView = (props: ScenesViewProps) => {
     }),
   );
 
-  // What the lab knows of each scene: the project and the check. The project is the newest
-  // ask's answer (`asked.ts`): the first read, a say's answer, a read again; answers land in
-  // any order, so an older one landing late is dropped. Each answer is written over the value
-  // as it then stands, so two landing before the page flushes both hold.
+  // What the lab knows of each scene: the project and the check, each the newest ask's answer
+  // (`asked.ts`). The project's asks are the first read, each say and each read again; the
+  // check's, each read. Answers land in any order, so an older one landing late is dropped.
+  // Each answer is written over the value as it then stands, so two landing before the page
+  // flushes (a read's check, then its project) both hold.
   const [read, setRead] = createSignal<ScenesRead>(
     { project: Option.none(), check: Result.succeed([]) },
     fromHost,
   );
   const asks = newestAsked();
+  const checks = newestAsked();
   /** Show `project`, `ask`'s answer, unless an answer asked after it is shown. */
   const showProject = (ask: Ask, project: ProjectView) =>
     ask.answer(() => setRead((r) => ({ ...r, project: Option.some(project) })));
-  /** Read the project and the check: the project shown as `asked.ts` orders it, the check as read. */
+  /** Read the check and the project: each shown as `asked.ts` orders it. */
   const readNow = () => {
-    const ask = asks.ask();
+    const project = asks.ask();
+    const check = checks.ask();
     Effect.runFork(
       Effect.tap(calls.read, (r) =>
         Effect.sync(() => {
-          Option.map(r.project, (project) => showProject(ask, project));
-          setRead((was) => ({ ...was, check: r.check }));
+          check.answer(() => setRead((was) => ({ ...was, check: r.check })));
+          Option.map(r.project, (view) => showProject(project, view));
         }),
       ),
     );
