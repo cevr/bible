@@ -65,9 +65,10 @@ const layerBunSectionSources = (input: {
 };
 
 /** The catalog half alone. Always available: `bible.db` is the verified
- *  bootstrap corpus and ships the topic tables §3.5's fallback depends on. */
+ *  bootstrap corpus and ships the topic tables §3.5's fallback depends on, so
+ *  a `bible.db` that will not open is a defect. */
 const layerBunCatalog = (bible: string): Layer.Layer<TopicService> =>
-  TopicService.Live.pipe(Layer.provide(readOnlySqlite(bible)));
+  TopicService.Live.pipe(Layer.provide(readOnlySqlite(bible)), Layer.orDie);
 
 const readOnlySqlite = (filename: string) =>
   SqliteBun.layer({
