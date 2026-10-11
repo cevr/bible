@@ -2237,9 +2237,14 @@ judges as the record says; the Set's tools say which judges (`data-sources`:
 `reading`, `project`, `record`). The page reads the project itself, once it
 runs and only for a folder whose title is one of the app's films (a
 montage's title is none, so its Set asks for no project); the server's
-render never waits on it. Each page reads the project as it mounts, so a
-Set and then its Project tab read it twice, and Project shows what a Set's
-approve wrote. It says it in every view, beside the
+render never waits on it. The page has one owner of each film's project
+(`FilmProject`, `meta.project` in `lab/review/context.tsx`), kept for the
+page's life, which every page that shows it reads (`useProject`: a Films
+card, a Set's judgement, Project): a Set and then its Project tab read it
+once, however long Project takes to open. A say's answer lands on it in the
+order asked (`asked.ts`); a Set's say, a source write and Refresh read it
+again, now while a page shows it, else when one next does. A change made
+elsewhere (another tab, the CLI) shows after a Refresh or a reload. It says it in every view, beside the
 variant's label: why a variant is stale (`staleText`), and no state word
 otherwise, never "current". A montage folder (say a
 look explored by hand) holds `review.json` (`ReviewManifest`), which names its
@@ -2501,7 +2506,10 @@ bar on a phone, under the header on a laptop); while the film has no
 render, the dock says "No render of the whole film yet" (its scenes'
 renders may all be there: what is missing is the film's). Each say answers the fresh `ProjectView`, which the page
 shows in place (a playing clip plays on, a half-typed comment stays); a
-source write reads it again (`data-reading` on the film while it does). The
+source write, a Set's say and Refresh read it again (`data-reading` on the
+film while it does). The page shows the film's one project owner
+(`FilmProject`), which a Set and a Films card read too, so it opens on the
+project as the review last knew it, unread again. The
 answers land in any order, so the page shows the newest asked
 (`lab/review/asked.ts`): a read asked before a say and answered after it is
 dropped, a say answered after a read asked later reads the project again, and

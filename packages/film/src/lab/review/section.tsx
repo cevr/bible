@@ -39,11 +39,17 @@ import {
 } from '../../core/choice.ts';
 import { type Compare, type ComparePanes, Media } from '../../browser/media.ts';
 import { Pointer, Surface } from '../../browser/pointer.ts';
-import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
+import type {
+  ReviewFile,
+  ReviewFilms,
+  ReviewFolder,
+  ReviewIndex,
+  ReviewVideo,
+} from '../../core/review.ts';
 import { timecode } from '../../core/time.ts';
 import {
   Places,
-  ProjectView,
+  type ProjectView,
   type Say,
   type SetSaid,
   type SetSayPost,
@@ -51,14 +57,13 @@ import {
   reviewFileUrl,
   reviewFrameUrl,
 } from '../../core/api.ts';
-import { type LabFailure, served } from '../api.ts';
+import type { LabFailure } from '../api.ts';
 import { pressed } from '../pressed.ts';
 import { useSheetDismissal } from '../sheet.tsx';
 import { addressOn } from '../../browser/host.ts';
 import { StateBand } from '../scenes/card.tsx';
 import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
-import { OptionsApi } from './options/api.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
 import { approvalVerbs } from './things.ts';
@@ -66,7 +71,7 @@ import { setApproveUndo, setSaidText, undoApprove } from './options/receipt.ts';
 import { quiet, refused } from '../../command/command.ts';
 import { OpId, type Project, projectNow, versionState } from '../../core/catalogue.ts';
 import { uniqueId } from '../../core/unique.ts';
-import { Go, SetProvider, useReview, useSet } from './context.tsx';
+import { Go, SetProvider, useProject, useReview, useSet } from './context.tsx';
 import {
   agoText,
   approvalText,
@@ -198,21 +203,16 @@ const Section = (props: {
 /**
  * A film's state on its card, as its Project's head says it: its
  * length and scenes (`8:46 · 20 scenes`, `filmLength`), the state band and
- * `n/N approved · n out of date`, from the film's project,
- * read for the card (by the server, sent with the page). Its band marks the
- * renders and approvals; the check's findings are Project's. Nothing while
- * the project is read or when the film has none.
+ * `n/N approved · n out of date`, from the film's project as its owner
+ * shows it (`useProject`: read by the server, sent with the page, then the
+ * newest answer). Its band marks the renders and approvals; the check's
+ * findings are Project's. Nothing while the project is read or when the
+ * film has none.
  */
 const FilmState = (props: { readonly film: string }) => {
-  const { meta } = useReview();
-  const readAtom = untrack(() =>
-    meta.runtime
-      .atom(OptionsApi.use((api) => api.project(props.film)))
-      .pipe(served(`review.project:${props.film}`, ProjectView)),
-  );
-  const read = useAtomValue(() => readAtom);
+  const read = untrack(() => useProject(props.film));
   return (
-    <Show when={Option.getOrUndefined(AsyncResult.value(read()))}>
+    <Show when={Option.getOrUndefined(AsyncResult.value(read.view()))}>
       {(view: Accessor<ProjectView>) => (
         <>
           <div class="rv-film-length" data-role="length">
@@ -765,6 +765,9 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
                   // A Refresh asked after the say may not hold it, nor the say what that
                   // Refresh found: the index is read again.
                   if (l.succeeded && l.overtaken('index')) actions.refresh();
+                  // A say on a film's folder may change its project (an approve of a scene's
+                  // render): its owner reads it again.
+                  if (l.succeeded) Option.map(film(), (of) => meta.project(of).changed());
                   return l.succeeded;
                 },
               }),
@@ -1492,18 +1495,29 @@ const SetBody = () => {
  * folder), and the write judges by the project only there. That alone
  * decides, never the folder's name: the film's own folder under a root of
  * another label is judged by the project, and a copy of it under another
- * root by the record alone. Read by the page once it runs, never by the
- * server (`Atom.withServerValue`), as the page mounts, and only when the
- * folder's title is one of the app's films (a montage's title is none):
- * the record's judgement stands while it is read (and in the server's
- * render), and the write decides.
+ * root by the record alone. The project as its owner shows it
+ * (`FilmProject.here`): in the page alone, never by the server, and only
+ * when the folder's title is one of the app's films (a montage's title is
+ * none), which the page then holds (`FilmProject.hold`), so a say reads it
+ * again now. The record's judgement stands while it is read (and in the
+ * server's render), and the write decides.
  */
 const useSourcesNow = (folder: ReviewFolder): SourcesNow => {
   const { meta } = useReview();
   return Option.match(folder.title, {
     onNone: () => ({ project: () => Option.none(), by: (): JudgedBy => 'record' }),
     onSome: (title) => {
-      const projectAtom = meta.runtime.atom(OptionsApi.use((api) => api.project(title)));
+      const owner = meta.project(title);
+      const isFilm = (films: AsyncResult.AsyncResult<ReviewFilms, LabFailure>) =>
+        Option.exists(AsyncResult.value(films), (f) => f.films.includes(title));
+      // Held while the page is the film's (the films say the title is one of theirs).
+      const films = useAtomValue(() => meta.films);
+      createEffect(
+        () => isFilm(films()),
+        (yes) => {
+          if (yes) return owner.hold();
+        },
+      );
       // The project, once the films say the title is one of theirs; none for any other title.
       const readAtom = Atom.make(
         (get): AsyncResult.AsyncResult<Option.Option<ProjectView>, LabFailure> =>
@@ -1512,12 +1526,9 @@ const useSourcesNow = (folder: ReviewFolder): SourcesNow => {
               AsyncResult.initial<Option.Option<ProjectView>, LabFailure>(),
             ),
             Match.orElse((films) =>
-              Option.match(
-                Option.filter(AsyncResult.value(films), (f) => f.films.includes(title)),
-                {
-                  onNone: () => AsyncResult.success(Option.none<ProjectView>()),
-                  onSome: () => AsyncResult.map(get(projectAtom), Option.some),
-                },
+              Match.value(isFilm(films)).pipe(
+                Match.when(true, () => AsyncResult.map(get(owner.here), Option.some)),
+                Match.orElse(() => AsyncResult.success(Option.none<ProjectView>())),
               ),
             ),
           ),

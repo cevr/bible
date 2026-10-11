@@ -406,11 +406,14 @@ const FilmBody = (
   /**
    * Ask every mix again for the mix `heard` names, unless this tab already
    * asked for it or a later one. A source write that names no mix (it made
-   * none a page hears) asks again whatever: its source changed.
+   * none a page hears) asks again whatever: its source changed. The film's
+   * project may have changed with it (a pick its sound, a kept voice a
+   * scene): its owner reads it again (`FilmProject.changed`).
    */
   const refreshFor = (heard: Option.Option<PageBuild>) => {
     if (Option.exists(heard, (h) => Option.exists(refreshedFor, (r) => !newer(r)(h)))) return;
     setVersion((v) => v + 1);
+    meta.project(film).changed();
     if (Option.isSome(heard)) refreshedFor = heard;
   };
   // The check as the newest write asked that answers one (a source write, an undo, a redo).
