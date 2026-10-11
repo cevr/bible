@@ -1789,7 +1789,9 @@ scene longer than 8 s shows the 8 s around the playhead, held inside the scene
 the window it began in, and a cue's bar is clipped to it. The rows scroll in
 their own box, which keeps the lanes the playhead is inside in sight by the
 Source view's Follow rule (`lab/follow.ts`): a hand's scroll lets go of it
-until Play, and a press on the strip holds it still. Drag a cue's
+until Play or Follow (`edit.strip-follow`, on the strip's menu and ⌘K only
+while the rows are let go, so the playhead stays put), and a press on the strip
+holds it still. Drag a cue's
 body to move its offset, its left edge to move its start (offset and dur),
 its right edge to move its end (dur): an edge is the bar's outer 6 px, 14 px
 under a finger (`edgeFor`, `lab/editor/grip.ts`). A finger has no

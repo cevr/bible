@@ -16,6 +16,7 @@ import { pageHref } from '../../../src/core/api.ts';
 import { DEFAULT_EASE } from '../../../src/core/time.ts';
 import { SourceRefused, StepNotNewest } from '../../../src/core/refusals.ts';
 import { LONG, LONG_SCENE } from '../../../src/lab/fixtures/long-film.ts';
+import { MENU_ITEMS, menuOffers, rightClick } from '../../../src/lab/fixtures/gestures.ts';
 import { probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   type Asked,
@@ -1576,6 +1577,8 @@ describe('the strip follows the playhead down its rows', () => {
     const cue = one?.cues.get(name);
     return (one?.start ?? 0) + ((cue?.start ?? 0) + (cue?.end ?? 0)) / 2;
   };
+  /** The strip's Follow command: offered only while a reader has the rows. */
+  const STRIP_FOLLOW = 'edit.strip-follow';
   const BOX = `document.querySelector('.lab-strip-scroll')`;
   /** The rows' box a row and the words high: the probe film's two lanes overflow it, as roof's 35 overflow 240 px. */
   const SHORT = `(() => { const s = document.createElement('style'); s.textContent = '.lab-strip-scroll { max-height: calc(18px + 16px) !important; }'; document.head.append(s); return true; })()`;
@@ -1631,5 +1634,37 @@ describe('the strip follows the playhead down its rows', () => {
       yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
       yield* page.click('.bar [data-act="play"]');
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'let go while paused, Follow on the strip’s menu takes the rows back where the playhead stands',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], {
+          href: labAt(middle('fall')),
+          viewport: { width: 1440, height: 900 },
+        });
+        yield* page.waitFor('.lab-cue[data-cue="fall"][data-live]');
+        yield* evaluates(page, SHORT, true);
+        yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+        // Followed, the strip offers nothing new: no Follow on its menu, none in the command menu.
+        yield* menuOffers(page, 'follow', STRIP_FOLLOW, false);
+        yield* rightClick(page, '.lab-strip-words');
+        yield* evaluates(page, `${MENU_ITEMS}.length > 0`, true);
+        yield* evaluates(page, `${MENU_ITEMS}.includes('${STRIP_FOLLOW}')`, false);
+        yield* page.press('Escape');
+        yield* countIs(page, '[data-role="context-menu"]', 0);
+        // The reader scrolls away; the strip's menu and the command menu now offer Follow.
+        yield* page.evaluate(`${BOX}.scrollTop = 0`);
+        yield* page.evaluate(FRAMES);
+        yield* evaluates(page, `${LIT_IN_SIGHT}.startsWith('lit rows')`, true);
+        yield* menuOffers(page, 'follow', STRIP_FOLLOW, true);
+        const at = yield* page.evaluate<string>('location.hash');
+        yield* rightClick(page, '.lab-strip-words');
+        yield* page.click(`[data-role="context-menu"] [data-command="${STRIP_FOLLOW}"]`);
+        // The rows come back to the lit lane, and the playhead stays where the editor left it.
+        yield* evaluates(page, LIT_IN_SIGHT, 'in sight');
+        yield* evaluates(page, 'location.hash', at);
+      }).pipe(Effect.scoped),
   );
 });
