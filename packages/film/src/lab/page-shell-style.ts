@@ -164,9 +164,11 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 /* Focus: every kit control, on every page and in every portal, shows the studio's ring, not the browser's outline. */
 :where(.sh-btn, .sh-tool, .sh-seg > button, .lab-num, select, input, textarea, [role="option"]):focus-visible {
   outline: none; box-shadow: var(--focus-ring); }
-/* Chip / badge: a state's word (or a count), its edge and its words in the state's colour, no fill. */
+/* Chip / badge: a state's word (or a count), its edge and its words in the state's colour, no fill;
+   its own type, never a heading's caps and tracking around it. */
 :where(.sh-badge) { display: inline-block; padding: 0 var(--s-1); border: 1px solid currentColor; border-radius: var(--r-1);
-  background: none; color: var(--text-2); font-size: var(--fs-1); line-height: var(--lh-1); font-weight: var(--w-2); }
+  background: none; color: var(--text-2); font-size: var(--fs-1); line-height: var(--lh-1); font-weight: var(--w-2);
+  letter-spacing: normal; text-transform: none; }
 :where(.sh-badge[data-state="stale"]) { color: var(--state-stale); }
 :where(.sh-badge[data-state="approved"]) { color: var(--state-approved); }
 :where(.sh-badge[data-state="findings"]) { color: var(--state-findings); }
