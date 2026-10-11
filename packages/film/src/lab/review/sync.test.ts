@@ -45,6 +45,9 @@ const rig = (refuse?: { readonly a?: string; readonly b?: string }) => {
   a.el.finishLoading(10);
   b.el.finishLoading(10);
   const release = { a: driver.attach('a', a.media), b: driver.attach('b', b.media) };
+  // The clock joined measured: the machine knows its end before any test begins.
+  expect(told).toEqual([SyncEvent.Measured({ end: 10 })]);
+  told.length = 0;
   return { frames, told, driver, a, b, release, tags: () => told.map((e) => e._tag) };
 };
 
@@ -185,11 +188,8 @@ describe('the sync driver', () => {
 
   test("the clock's new media, after its last failed, is told; another's, or over a clock that plays, is not", () => {
     const { driver, tags } = rig();
-    const media = () => {
-      const v = fakeMedia();
-      v.el.finishLoading(10);
-      return v.media;
-    };
+    // Not measured yet, as a fresh element is: only the replacement is told.
+    const media = () => fakeMedia().media;
     driver.apply(SyncState.Playing(clock(2)));
     driver.attach('a', media());
     expect(tags()).toEqual([]);
@@ -288,6 +288,27 @@ describe('the sync driver', () => {
       SyncEvent.Ticked({ t: 3 }),
       SyncEvent.Ended,
     ]);
+  });
+
+  test("the clock's video measured before it joins the set is told: its end is known, not waited on", () => {
+    const frames = manualFrames();
+    const told: Array<SyncEvent> = [];
+    const host = hostOf(
+      Layer.mergeAll(
+        frames.layer,
+        Media.layerOver(() => fakeMedia().media),
+      ),
+    );
+    const driver = makeSync('a', (event) => told.push(event), host);
+    // Its `loadedmetadata` fired before it was attached: no `measured` is heard after.
+    const a = fakeMedia();
+    a.el.finishLoading(8);
+    const b = fakeMedia();
+    b.el.finishLoading(6);
+    driver.attach('b', b.media);
+    expect(told).toEqual([]);
+    driver.attach('a', a.media);
+    expect(told).toEqual([SyncEvent.Measured({ end: 8 })]);
   });
 
   test('stopped, every video is paused and no frame is asked for', () => {

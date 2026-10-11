@@ -236,6 +236,12 @@ export const makeSync = (
     broken.delete(a);
   };
 
+  /** The machine told the clock's end, when `id` leads and its video is measured. */
+  const measure = (id: string, video: Playable) => {
+    if (id === leading && Number.isFinite(video.duration()))
+      send(Events.Measured({ end: video.duration() }));
+  };
+
   const attach = (id: string, video: Playable) => {
     Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => {
       old.held.abort();
@@ -247,13 +253,14 @@ export const makeSync = (
     // The clock's new media, while its last failed: the failure was that media's.
     if (id === leading && Option.exists(current, (state) => state._tag === 'Failed'))
       send(Events.MediaReplaced);
+    // Measured before it joined (its `loadedmetadata` came first): no `measured` follows.
+    measure(id, video);
     video.on(
       'measured',
       () => {
         // Measured, it plays: a failure before was another try's.
         broken.delete(attached);
-        if (id === leading && Number.isFinite(video.duration()))
-          send(Events.Measured({ end: video.duration() }));
+        measure(id, video);
         Option.map(current, (state) => seekTo(attached, state.t));
       },
       signal,
