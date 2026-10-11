@@ -2513,9 +2513,10 @@ the film second it starts at; a finding about the whole film has neither).
   `UnknownAct`, `UnknownScene` or `UnknownShort`, and scenes the film does
   not play one after another (`--scene a,c` with `b` between) with
   `ScenesApart`: a part is one stretch, so its span, its render and its
-  stamp cover exactly the scenes named. `sceneAt(placed, T)`
-  (`core/layout.ts`) is the one rule for the scene playing at a time: the
-  last to have started, within `SCENE_EPSILON`. A sound never generated
+  stamp cover exactly the scenes named. `sceneIndexAt(placed, T)`
+  (`core/layout.ts`; `sceneAt` its scene) is the one rule for the scene
+  playing at a time: the last to have started, within `CLOCK_EPSILON`, and
+  the first before the film starts. A sound never generated
   (`AssetMissing`) is always a warning: the mix plays without it.
 - **Layout** (headless pages, like `render`): each scene is sampled at every
   mark, every cue's start and end, and its 60% point, pulled after its
