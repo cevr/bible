@@ -289,7 +289,7 @@ Files cache to `outputs/sabbath-school/pdfs/`; re-runs are idempotent.
 - **Don't invent Strong's numbers.** `bible concordance H<n>` returns a null
   entry on a miss — check before citing.
 - **Don't paraphrase EGW.** Use `bible egw search` to find it and `bible egw
-lookup` to quote the `paragraphs[].text` field with the refcode.
+  lookup` to quote the `paragraphs[].text` field with the refcode.
 - **Don't recall EGW refcodes from memory** — `search` first; a wrong refcode
   silently returns the wrong (or no) paragraph.
 - **Don't use bare `bible egw <ref>` (no `lookup`) in agent flows.** That

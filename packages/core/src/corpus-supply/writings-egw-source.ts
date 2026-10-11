@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Predicate, Schema, Stream } from 'effect';
+import { Crypto, Effect, Layer, Option, Predicate, Schema, Stream } from 'effect';
 import { unzipSync } from 'fflate';
 
 import {
@@ -196,76 +196,80 @@ const archiveFromBook = (
     });
   });
 
-export const layerEgwWritingsAssetSource: Layer.Layer<WritingsAssetRecipe, never, EGWApiClient> =
-  Layer.effect(
-    WritingsAssetRecipe,
-    Effect.gen(function* () {
-      const api = yield* EGWApiClient;
-      const catalog = api.getBooks({ lang: 'en' }).pipe(
-        Stream.mapEffect(publicationFromBook),
-        Stream.runCollect,
-        Effect.map((items) => [...items]),
-        Effect.mapError(sourceUnavailable('read-writings-catalog')),
+export const layerEgwWritingsAssetSource: Layer.Layer<
+  WritingsAssetRecipe,
+  never,
+  EGWApiClient | Crypto.Crypto
+> = Layer.effect(
+  WritingsAssetRecipe,
+  Effect.gen(function* () {
+    const api = yield* EGWApiClient;
+    const crypto = yield* Crypto.Crypto;
+    const catalog = api.getBooks({ lang: 'en' }).pipe(
+      Stream.mapEffect(publicationFromBook),
+      Stream.runCollect,
+      Effect.map((items) => [...items]),
+      Effect.mapError(sourceUnavailable('read-writings-catalog')),
+    );
+    const acquire = Effect.fn('WritingsAssetSource.acquire')(function* (
+      requestedId: PublicationId,
+    ) {
+      const book = yield* api
+        .getBook(requestedId)
+        .pipe(Effect.mapError(sourceUnavailable('read-writings-publication')));
+      if (book.book_id !== requestedId) {
+        return yield* CorpusContributionRejectedError.make({
+          publication: requestedId,
+          cause: `Received publication ${String(book.book_id)}`,
+        });
+      }
+      const download = Option.fromNullishOr(book.download).pipe(
+        Option.filter((value) => value.length > 0),
       );
-      const acquire = Effect.fn('WritingsAssetSource.acquire')(function* (
-        requestedId: PublicationId,
-      ) {
-        const book = yield* api
-          .getBook(requestedId)
-          .pipe(Effect.mapError(sourceUnavailable('read-writings-publication')));
-        if (book.book_id !== requestedId) {
+      let chapters: readonly (readonly EGWSchemas.Paragraph[])[];
+      if (Option.isSome(download)) {
+        const bytes = yield* api
+          .downloadBook(requestedId)
+          .pipe(Effect.mapError(sourceUnavailable('download-writings-publication')));
+        chapters = yield* downloadedParagraphFiles(bytes, requestedId);
+      } else {
+        const toc = yield* api
+          .getBookToc(requestedId)
+          .pipe(Effect.mapError(sourceUnavailable('read-writings-toc')));
+        const chapterIds = toc.flatMap((item) => {
+          if (Option.isNone(item.para_id) && Predicate.isUndefined(item.puborder)) return [];
+          return [chapterIdFromTocItem(item)];
+        });
+        if (chapterIds.length === 0) {
           return yield* CorpusContributionRejectedError.make({
             publication: requestedId,
-            cause: `Received publication ${String(book.book_id)}`,
+            cause: 'Publication has no chapters',
           });
         }
-        const download = Option.fromNullishOr(book.download).pipe(
-          Option.filter((value) => value.length > 0),
+        chapters = yield* Effect.forEach(
+          chapterIds,
+          (chapterId) =>
+            api
+              .getChapterContent(requestedId, chapterId)
+              .pipe(Effect.mapError(sourceUnavailable(`read-writings-chapter:${chapterId}`))),
+          { concurrency: 5 },
         );
-        let chapters: readonly (readonly EGWSchemas.Paragraph[])[];
-        if (Option.isSome(download)) {
-          const bytes = yield* api
-            .downloadBook(requestedId)
-            .pipe(Effect.mapError(sourceUnavailable('download-writings-publication')));
-          chapters = yield* downloadedParagraphFiles(bytes, requestedId);
-        } else {
-          const toc = yield* api
-            .getBookToc(requestedId)
-            .pipe(Effect.mapError(sourceUnavailable('read-writings-toc')));
-          const chapterIds = toc.flatMap((item) => {
-            if (Option.isNone(item.para_id) && Predicate.isUndefined(item.puborder)) return [];
-            return [chapterIdFromTocItem(item)];
-          });
-          if (chapterIds.length === 0) {
-            return yield* CorpusContributionRejectedError.make({
-              publication: requestedId,
-              cause: 'Publication has no chapters',
-            });
-          }
-          chapters = yield* Effect.forEach(
-            chapterIds,
-            (chapterId) =>
-              api
-                .getChapterContent(requestedId, chapterId)
-                .pipe(Effect.mapError(sourceUnavailable(`read-writings-chapter:${chapterId}`))),
-            { concurrency: 5 },
-          );
-        }
-        const paragraphs = uniqueProviderParagraphs(chapters);
-        if (paragraphs.length === 0) {
-          return yield* CorpusContributionRejectedError.make({
-            publication: requestedId,
-            cause: 'Publication has no paragraphs',
-          });
-        }
-        const archive = yield* archiveFromBook(book, paragraphs, requestedId);
-        let revision = book.pub_year;
-        if (Predicate.isNotNullish(book.last_modified)) {
-          revision = book.last_modified;
-        }
-        const provenance = yield* provenanceForArchive('egw-api', revision, archive);
-        return WritingsContribution.make({ provenance, archive });
-      });
-      return makeWritingsAssetRecipe([{ kind: 'provider', catalog, acquire }]);
-    }),
-  );
+      }
+      const paragraphs = uniqueProviderParagraphs(chapters);
+      if (paragraphs.length === 0) {
+        return yield* CorpusContributionRejectedError.make({
+          publication: requestedId,
+          cause: 'Publication has no paragraphs',
+        });
+      }
+      const archive = yield* archiveFromBook(book, paragraphs, requestedId);
+      let revision = book.pub_year;
+      if (Predicate.isNotNullish(book.last_modified)) {
+        revision = book.last_modified;
+      }
+      const provenance = yield* provenanceForArchive(crypto, 'egw-api', revision, archive);
+      return WritingsContribution.make({ provenance, archive });
+    });
+    return makeWritingsAssetRecipe([{ kind: 'provider', catalog, acquire }]);
+  }),
+);

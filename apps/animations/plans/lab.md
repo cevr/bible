@@ -44,7 +44,7 @@ A Bun server (reuses the app's PreviewServer + HMR) serving the player with a la
   trail for a knob-driven object.
 - **Compare**: split or blink view — current vs. HEAD (render HEAD in a second page).
 - **Notes**: click the canvas (optionally drag a box) at any frame → a note `{id, film, scene, T, frame, cue?,
-box?, text, still}`. The still is the exact frame PNG. Stored in `apps/animations/lab/<film>/notes.json` +
+  box?, text, still}`. The still is the exact frame PNG. Stored in `apps/animations/lab/<film>/notes.json` +
   `stills/` (gitignored). Status: open → agent-replied → resolved; replies thread under the note. Notes show as
   pins on the timeline.
 

@@ -1,4 +1,4 @@
-import { Effect, Exit, Option, Schema } from 'effect';
+import { type Crypto, Effect, Exit, Option, Schema } from 'effect';
 
 import { PublicationArchive } from '../writings/archive.js';
 import { PublicationId } from '../writings/model.js';
@@ -146,16 +146,15 @@ export const unknownProvenance = (source: string, revision: string): CorpusProve
   });
 
 export const provenanceForArchive = Effect.fn('CorpusSupply.provenanceForArchive')(function* (
+  crypto: Crypto.Crypto,
   source: string,
   revision: string,
   archive: PublicationArchive,
 ) {
   const encoded = yield* Schema.encodeEffect(Schema.fromJsonString(PublicationArchive))(archive);
   const bytes = new TextEncoder().encode(encoded);
-  const digest = yield* Effect.tryPromise(() => globalThis.crypto.subtle.digest('SHA-256', bytes));
-  const hex = [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
+  const digest = yield* crypto.digest('SHA-256', bytes);
+  const hex = [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
   return CorpusProvenance.make({
     source: assetSourceId(source),
     revision: corpusRevision(revision),

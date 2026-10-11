@@ -22,9 +22,9 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  isHydrating,
   omit,
   onCleanup,
-  sharedConfig,
   untrack,
   useContext,
 } from 'solid-js';
@@ -425,7 +425,7 @@ export const Root = (
         // the page was rendered, so both say the same; the client's later
         // renders count from its own clock.
         now: () => {
-          if (!isServer && !sharedConfig.hydrating) return clockNow();
+          if (!isServer && !isHydrating()) return clockNow();
           return Option.getOrElse(AsyncResult.value(untrack(servedAt)), clockNow);
         },
         draw: props.draw,

@@ -11,7 +11,7 @@
 
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { Database } from 'bun:sqlite';
-import { Effect, FileSystem, type Layer, type Scope } from 'effect';
+import { Effect, FileSystem, type Scope } from 'effect';
 import { SqlClient } from 'effect/sql';
 import { describe, expect, it } from 'effect-bun-test';
 
@@ -40,7 +40,7 @@ const readMarkerValues = (file: string): Effect.Effect<readonly string[], never,
         readwrite: false,
         create: false,
         disableWAL: true,
-      }) as Layer.Layer<SqlClient.SqlClient>,
+      }),
     ),
     Effect.orDie,
   );

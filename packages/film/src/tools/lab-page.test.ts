@@ -1123,8 +1123,7 @@ describe('lab pages', () => {
       expect(imports.build).toBeGreaterThan(settled);
       yield* Ref.set(
         during,
-        Effect.andThen(
-          write('src/new.ts', 'export const v = 2;\n'),
+        Effect.andThen(write('src/new.ts', 'export const v = 2;\n'), () =>
           Effect.sleep('300 millis'),
         ).pipe(Effect.orDie),
       );
