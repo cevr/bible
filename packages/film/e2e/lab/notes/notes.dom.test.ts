@@ -467,7 +467,7 @@ describe("a note's place", () => {
   );
 
   it.live(
-    'the selected note is in the link: a reload keeps it, Back undoes it, and one gone from the feed leaves it',
+    'the selected note is in the link: a reload keeps it, and Back undoes it',
     () =>
       Effect.gen(function* () {
         const notes = [noteJson('n1'), noteJson('n2')];
@@ -483,8 +483,18 @@ describe("a note's place", () => {
         yield* attached(page, '.lab-note-item[data-id="n2"].selected');
         yield* page.back;
         yield* attached(page, '.lab-note-item[data-id="n1"].selected');
-        // A link to a note the feed does not have: the URL lets it go, in place.
-        yield* page.goto(labAt(1, { note: 'gone' }));
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a link to a note the feed does not have lets it go from the URL',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab(
+          [route('GET', /^\/notes$/, () => notesFile(1, [noteJson('n1')]))],
+          { href: labAt(1, { note: 'gone' }), mode: 'note' },
+        );
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         yield* evaluates(page, NOTE_IN_URL, '');
       }).pipe(Effect.scoped),
