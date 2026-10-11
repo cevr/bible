@@ -19,7 +19,7 @@ pull, then generate, citing the actual data.
 | Search Strong's by English word       | `bible concordance <word> --json [--limit N]`         |
 | **Find an EGW reference (FTS)**       | `bible egw search "<query>" --json`                   |
 | Find an EGW reference (whole corpus)  | `bible egw search "<query>" --remote --json`          |
-| EGW lookup by refcode                 | `bible egw lookup "<CODE n.n>" --json`                |
+| EGW lookup by refcode (any)           | `bible egw lookup "<refcode>" --json`                 |
 | EGW commentary on a verse             | `bible egw commentary "<book ch:vv>" --json`          |
 | EGW catalog (remote)                  | `bible egw catalog --search "<term>" --json`          |
 | List installed EGW books              | `bible egw books --json`                              |
@@ -155,13 +155,24 @@ Avoid bare commas/operators in the query — they hit the FTS5 parser literally.
 
 ### `bible egw lookup <ref> [--json]`
 
-Explicit refcode lookup — no FTS fallback. Refcode forms:
+Explicit refcode lookup — no FTS fallback. Any refcode in the corpus resolves
+as `search` prints it (spacing and case aside), and so does any refcode above
+it, which returns everything under it:
 
-- `"PP 351.1"` — single paragraph
-- `"PP 351.1-5"` — paragraph range
+- `"PP 351.1"`, `"GC xii.2"`, `"LOF_ATJ 104.3"` — single paragraph
+- `"PTUK February 4, 1897, page 70.2"`, `"GCDB March 11, 1891, page 75.13"` —
+  periodical paragraph (`… page 70` — the whole issue page)
+- `"11LtMs, Lt 1a, 1896, par. 14"` — letter paragraph (`"11LtMs, Lt 1a, 1896"`
+  — the whole letter)
 - `"PP 351"` — full page
+- `"PP 351.1-5"` — paragraph range
 - `"PP 351-355"` — page range
 - `"PP"` — book metadata + chapter TOC
+
+A refcode match returns `kind: "refcode"`:
+`{ ref, found, kind: "refcode", paragraphs: [{ refcode, text, book }] }` —
+quote `paragraphs[].text` as usual. Page ranges and bare codes keep the shapes
+below. Nothing cited that way exits 1 with a message on stderr.
 
 JSON shape (single page):
 
@@ -218,12 +229,28 @@ download by `--id`.
 ### `bible hymns get <number> [--json]`
 
 Returns the full hymn (`verses[]`). JSON: `{ id, name, category, verses }`.
-Range: 1-920.
+Range: 1-920. Verse `id`s count stanzas up from 0 and refrains down from -1
+(`-1` the refrain, `-2` a second one); the text output prints the refrain after
+stanza 1, as the hymnal does.
 
 ### `bible hymns search <query> [--json] [--limit N]`
 
 Returns up to `--limit N` matches (default `20`). JSON:
 `{ query, matches: [{ id, name, category, firstLine }] }`.
+
+### `bible check <file...> [--json]`
+
+Verifies a written document before export. Finds every Scripture bullet
+(`- _Ref._ "text"`) and witness line (`[SOP REF] "text"`,
+`[PIONEER Name, REF] "text"`), compares each with the KJV / the paragraph the
+refcode cites, word for word (typography, KJV `[ ]`/`‹›`/`¶` marks and the
+quoter's own `[bracketed]` insertions aside), and flags witnesses that splice
+with an ellipsis or run past 30 words. Text output: one
+`file:line kind detail` per problem, then `N quotations checked, M problems`;
+exits 1 on any problem. Kinds: `verse-unresolved`, `verse-mismatch`,
+`witness-unresolved`, `witness-mismatch`, `witness-spliced`,
+`witness-too-long`. Only those two line shapes are checked — keep every
+quotation on them.
 
 ### `bible hymns categories` / `bible hymns category <id>`
 

@@ -231,6 +231,7 @@ New and regenerated documents go in the teachings tree.
 ## Export — folder per topic
 
 ```bash
+bible check outputs/teachings/great-controversy/<slug>.md   # must report 0 problems
 bible export -f outputs/teachings/great-controversy/<slug>.md --folder "Great Controversy"
 ```
 

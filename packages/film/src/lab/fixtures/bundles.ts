@@ -58,6 +58,7 @@ export const ENTRIES = [
   'review-hydrated-page.ts',
   'player-page.ts',
   'player-hydrated-page.ts',
+  'render-page.ts',
   'capture-page.ts',
   'on-screen-page.tsx',
 ];

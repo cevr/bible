@@ -6,8 +6,8 @@
 
 import { Argument, Command, Flag } from 'effect/cli';
 import { BunServices } from '@effect/platform-bun';
-import type { CategoryId, HymnId } from '@bible/core/hymnal';
-import { HymnalService } from '@bible/core/hymnal';
+import type { CategoryId, HymnId, HymnVerse } from '@bible/core/hymnal';
+import { HymnalService, isRefrain } from '@bible/core/hymnal';
 import { layerHymnalBun } from '@bible/core/hymnal/bun';
 import { Console, Effect, Layer, Option, Schema, SchemaGetter } from 'effect';
 
@@ -51,15 +51,25 @@ function formatHymnFull(hymn: {
   id: number;
   name: string;
   category: string;
-  verses: readonly { text: string }[];
+  verses: readonly HymnVerse[];
 }): string {
   const lines = [`#${hymn.id} — ${hymn.name}`, `Category: ${hymn.category}`, ''];
 
-  hymn.verses.forEach((v, i) => {
-    lines.push(`Verse ${i + 1}:`);
-    lines.push(v.text);
+  // Stanzas count up from 0, refrains down from -1 (see VerseId). The store
+  // lists refrains first; print them where the hymnal does, after stanza 1.
+  const stanzas = hymn.verses.filter((verse) => !isRefrain(verse));
+  const refrains = hymn.verses.filter(isRefrain).toSorted((a, b) => b.id - a.id);
+  const [opening, ...rest] = stanzas;
+  let ordered = refrains;
+  if (opening) ordered = [opening, ...refrains, ...rest];
+  for (const verse of ordered) {
+    let label = `Verse ${verse.id + 1}:`;
+    if (verse.id === -1) label = 'Refrain:';
+    else if (isRefrain(verse)) label = `Refrain ${-verse.id}:`;
+    lines.push(label);
+    lines.push(verse.text);
     lines.push('');
-  });
+  }
 
   return lines.join('\n');
 }
@@ -84,7 +94,10 @@ const getCommand = Command.make('get', { hymnNumber, json: jsonFlag }, (args) =>
     const service = yield* HymnalService;
     const hymn = yield* service.getHymn(args.hymnNumber as HymnId).pipe(
       Effect.asSome,
-      Effect.catch(() => Effect.succeedNone),
+      // Only a missing hymn is "not found"; a read or decode failure is a
+      // failure. Swallowing every error here reported 192 hymns with refrains
+      // as absent when their verses failed to decode.
+      Effect.catchTag('HymnNotFoundError', () => Effect.succeedNone),
     );
 
     if (Option.isNone(hymn)) {

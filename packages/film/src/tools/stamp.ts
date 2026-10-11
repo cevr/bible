@@ -9,8 +9,9 @@
 //   every module it imports, followed through relative and workspace
 //   imports (a package from the registry is not followed);
 // - the film's frame: `film.ts`, the scene registry and all they import
-//   (the lights, the script, the kit, the engine) and the export page's
-//   engine (`@bible/film/player`), with the registry's imports of the
+//   (the lights, the script, the kit, the engine), the player
+//   (`@bible/film/player`) and the export page's engine (`@bible/film/render`),
+//   with the registry's imports of the
 //   other scenes' modules cut, so an edit to one scene leaves the others'
 //   keys alone;
 // - its beat as laid out: its declaration (`say`, `enter`, timeline,
@@ -262,9 +263,12 @@ export class Stamps extends Context.Service<Stamps, StampsService>()('@bible/fil
         const located = yield* sources.locate(film.paths.name);
         const sceneFiles = new Set([...located.sites.values()].map((s) => s.file));
         const registry = path.join(dir, 'scenes', 'index.ts');
-        const player = yield* workspace('@bible/film/player', path.join(dir, 'film.ts'));
+        const engines = yield* Effect.forEach(
+          ['@bible/film/player', '@bible/film/render'],
+          (spec) => workspace(spec, path.join(dir, 'film.ts')),
+        );
         const frame = yield* closure(
-          [path.join(dir, 'film.ts'), registry, ...Option.toArray(player)],
+          [path.join(dir, 'film.ts'), registry, ...engines.flatMap(Option.toArray)],
           (from, to) => from === registry && sceneFiles.has(to),
           reads,
         );

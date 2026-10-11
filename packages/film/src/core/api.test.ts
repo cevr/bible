@@ -4,7 +4,7 @@ import { Duration, Option, Schema } from 'effect';
 import {
   LabHttpApi,
   TIME_EVERY_MS,
-  type PageName,
+  type AppPage,
   Places,
   filmOfPage,
   filmTimeOn,
@@ -27,7 +27,7 @@ type PlaceName = keyof typeof Places;
  * out, keys a place does not declare dropped, a broken key at its default).
  */
 const LINKS: ReadonlyArray<
-  readonly [href: string, place: PlaceName, page: PageName, written: string]
+  readonly [href: string, place: PlaceName, page: AppPage, written: string]
 > = [
   ['/', 'home', 'review', '/'],
   ['/sets/bible-tools%2Frbf', 'folder', 'review', '/sets/bible-tools%2Frbf'],
@@ -93,6 +93,13 @@ const LINKS: ReadonlyArray<
   ['/films/rbf/lab/roof?note=n-2#t=-0.5', 'labScene', 'lab', '/films/rbf/lab/roof?note=n-2#t=-0.5'],
   ['/films/rbf/lab/roof#t=nope', 'labScene', 'lab', '/films/rbf/lab/roof'],
   ['/films/rbf/project#point-score', 'project', 'review', '/films/rbf/project'],
+  ['/films/rbf/export', 'export', 'render', '/films/rbf/export'],
+  [
+    '/films/rbf%2Fshorts%2Fverdict/export',
+    'export',
+    'render',
+    '/films/rbf%2Fshorts%2Fverdict/export',
+  ],
 ];
 
 describe('page places', () => {
@@ -123,6 +130,14 @@ describe('page places', () => {
     '/films/%2E%2E/play',
   ])('%s serves no page', (path) => {
     expect(pageAt(path)).toEqual(Option.none());
+  });
+
+  test("a film's export page is the render page's own place, never Play's", () => {
+    expect(pageAt('/films/rbf/export')).toEqual(Option.some('render'));
+    expect(pageAt('/films/rbf/play')).toEqual(Option.some('player'));
+    expect(filmOfPage('/films/rbf%2Fshorts%2Fverdict/export?build=3')).toEqual(
+      Option.some('rbf/shorts/verdict'),
+    );
   });
 
   test('every link the app prints is its place', () => {
@@ -175,7 +190,7 @@ describe('page places', () => {
       Option.some('rbf/shorts/verdict'),
     );
     expect(filmOfPage(pageHref.play('rbf'))).toEqual(Option.some('rbf'));
-    for (const href of ['/', '/sets/f/p', '/?film=rbf&export'])
+    for (const href of ['/', '/sets/f/p', '/?film=rbf'])
       expect(filmOfPage(href)).toEqual(Option.none());
   });
 
@@ -201,6 +216,15 @@ describe('page places', () => {
  * as film time where the place reads film time).
  */
 const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
+  // A render link: the easel's before the render page had a place, the PreviewServer's form.
+  ['/films/rbf/play?export', '/films/rbf/export'],
+  ['/films/rbf/play?export&build=3', '/films/rbf/export?build=3'],
+  [
+    '/films/rbf%2Fshorts%2Fverdict/play?export&wedge=4-x',
+    '/films/rbf%2Fshorts%2Fverdict/export?wedge=4-x',
+  ],
+  ['/?film=rbf&export', '/films/rbf/export'],
+  ['/?film=rbf&export&captions=0', '/films/rbf/export?captions=0'],
   ['/lab?film=rbf', '/films/rbf/lab'],
   ['/lab?film=rbf#42.000', '/films/rbf/lab#t=42'],
   ['/lab?film=rbf&sel=cue:roof:lower', '/films/rbf/lab/roof?cue=lower'],
@@ -208,6 +232,10 @@ const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/lab?film=rbf&sel=knob:roof:sway', '/films/rbf/lab/roof?knob=sway'],
   ['/lab?film=rbf&sel=cue:render:scenes:x', '/films/rbf/lab/render?cue=scenes%3Ax'],
   ['/lab?film=rbf&sel=nonsense', '/films/rbf/lab'],
+  // A name no path can hold (a URL resolves `.` and `..` away) names nothing.
+  ['/lab?film=rbf&sel=cue:..:lower', '/films/rbf/lab'],
+  ['/lab?film=..', '/'],
+  ['/?folder=f&set=..', '/sets/f'],
   ['/lab', '/'],
   ['/player?film=rbf', '/films/rbf/play'],
   ['/player?film=rbf#42.000', '/films/rbf/play#t=42'],
@@ -257,8 +285,8 @@ describe('old links', () => {
 
   test.each([
     '/',
-    '/?film=rbf&export',
-    '/?film=rbf&export&captions=0',
+    '/films/rbf/export',
+    '/films/rbf/export?build=3',
     '/films/rbf/play',
     '/films/rbf/play#t=4',
     '/films/rbf/lab/roof#42.000',
@@ -266,6 +294,12 @@ describe('old links', () => {
     '/films/rbf/project?point=render%3Ascenes%3Aroof',
     '/sets/f/p?view=pair',
     '/nowhere?film=rbf',
+    // A film no path can hold (a URL resolves `.` and `..` away) names no film.
+    '/?film=..',
+    '/?film=..&export',
+    '/?film=.&export',
+    '/?project=..',
+    '/?folder=..',
   ])('%s is not old', (href) => {
     expect(legacyPlace(href)).toEqual(Option.none());
   });

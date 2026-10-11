@@ -1,11 +1,11 @@
 ---
 created_at: '2026-09-19T00:00:00Z'
 topic: godhead
-title: 'That Their Writings May Speak Again'
-subtitle: 'The Pioneers on the Godhead — Objection and Answer'
+title: That Their Writings May Speak Again
+subtitle: The Pioneers on the Godhead — Objection and Answer
 kind: study
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p2022'
 ---
-
 # That Their Writings May Speak Again
 
 **The pioneers denied a three-in-one God without ever denying that Christ is God — and Ellen White never stood anywhere else.**
@@ -38,10 +38,10 @@ of it falls apart before an answer is needed.
 **The denial was narrow and it was named — three persons in one essence:**
 
 - _Jn 17:3._ "And this is life eternal, that they might know thee the only true God, and Jesus Christ, whom thou hast sent." — the Son is distinguished from "the only true God," by the Son's own mouth
-- _1 Cor 8:6._ "But to us there is but one God, the Father, of whom are all things... and one Lord Jesus Christ, by whom are all things" — one God AND one Lord; Paul does not collapse them
+- _1 Cor 8:6._ "But to us there is but one God, the Father, of whom are all things, and we in him; and one Lord Jesus Christ, by whom are all things, and we by him." — one God AND one Lord; Paul does not collapse them
 - _Jn 14:28._ "my Father is greater than I" — a text the pioneers refused to explain away
 
-[PIONEER J. White, LIFIN 343.2] "Neither are the Father and the Son parts of the 'three-one God.' They are two distinct beings, yet one in the design and accomplishment of redemption" — the whole objection in one sentence
+[PIONEER J. White, LIFIN 343.2] "Neither are the Father and the Son parts of the “three-one God.” They are two distinct beings, yet one in the design and accomplishment of redemption" — the whole objection in one sentence
 
 [PIONEER J. H. Waggoner, AERS 164.3] "They take the denial of a trinity to be equivalent to a denial of the divinity of Christ" — the exact confusion ADL makes
 
@@ -75,7 +75,7 @@ of it falls apart before an answer is needed.
 
 [PIONEER A. T. Jones, GCDB February 5, 1893, page 147.4] "Christ the righteousness of God, Christ the life of God; Christ is God! That is the message that now we are to give to the world"
 
-[PIONEER U. Smith, LUJ 3.2] "So we are asked by some to look unto Jesus as only a man... not the divine Son of the Eternal Father and one with the Father in essential perfection" — Smith names this as the *enemy's* work, 1898
+[PIONEER U. Smith, LUJ 3.2] "but still only human, not the divine Son of the Eternal Father and one with the Father in essential perfection" — Smith names this as the *enemy's* work, 1898
 
 | The charge | The record |
 | --- | --- |
@@ -112,7 +112,7 @@ of it falls apart before an answer is needed.
 
 [PIONEER U. Smith, LUJ 12.1] "thus degrading him to the level of a created being" — Smith names the created-being reading as a degradation, 1898
 
-[PIONEER U. Smith, LUJ 12.1] "present him, not as the 'beginning,' but as the beginner, of the creation of God" — arche means headship, not first item made
+[PIONEER U. Smith, LUJ 12.1] "present him, not as the “beginning,” but as the beginner, of the creation of God" — arche means headship, not first item made
 
 [PIONEER E. J. Waggoner, CHR 22.1] "He is of the very substance and nature of God and possesses by birth all the attributes of God" — substance language, from an anti-trinitarian
 
@@ -169,7 +169,7 @@ of honor. Read what she says it means:**
 - _Heb 13:8._ "Jesus Christ the same yesterday, and to day, and for ever."
 - _Phil 2:9._ "Wherefore God also hath highly exalted him" — Scripture itself has a post-cross exaltation of One who was already God; exaltation language does not imply prior lack
 
-[SOP PP 38.1] "There had been no change in the position or authority of Christ... But this had been the same from the beginning" — her own gloss on her own passage
+[SOP PP 38.1] "There had been no change in the position or authority of Christ." — her own gloss on her own passage
 
 [SOP 5BC 1126.4] "Christ was God essentially, and in the highest sense. He was with God from all eternity" — 1906
 
@@ -240,7 +240,7 @@ churches taught. On the Godhead the claim is that light moved them *back in*.
 
 [PIONEER J. White, LIFIN 343.2] "This prayer did not contemplate one disciple with twelve heads, but twelve disciples, made one in object and effort" — Christ's own definition of the oneness
 
-[PIONEER E. J. Waggoner, CHR 19.1] "Let no one imagine that we would exalt Christ at the expense of the Father... for their interests are one"
+[PIONEER E. J. Waggoner, CHR 19.1] "Let no one imagine that we would exalt Christ at the expense of the Father or would ignore the Father. That cannot be, for their interests are one."
 
 The unity of the Godhead is unity of nature, will, and glory under one
 source — the Father. Deny the source and you get three unoriginated deities;
