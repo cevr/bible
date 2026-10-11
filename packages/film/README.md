@@ -2410,7 +2410,9 @@ the film rate (`FILM_FPS`) only while that answer is pending or the video
 names none; a seek (a step, a scrub, a `#t=`) lands every video at the
 frame the clock's timecode reads, each a quarter of one of its own frames
 into its own frame that holds that frame's start (`landing`, by the
-rate each version's video is read at, the clock's until it is; Chrome
+rate each version's video as it is now is read at, the clock's while that
+read is pending or names none, so a file written again with no rate forgets
+its old one; Chrome
 keeps some frames' starts a microsecond short, which shows the frame
 before), so each shows its own frame's picture at the clock's time, at any
 rate of either, and the picture is the timecode's (on a laptop the

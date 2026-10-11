@@ -742,6 +742,77 @@ describe('the review page', () => {
     );
   }
 
+  it.live(
+    "a version whose video is written again with no rate its frames tell lands by the clock's rate, never by its old file's",
+    () =>
+      Effect.gen(function* () {
+        // Every version's video at 24 fps; a Refresh finds version A's (the
+        // clock's) written again, and the server reads no rate from it now.
+        // 125 frames (5.21 s): its end reads 5 s 5 frames at 24, 5 s 6 at 30.
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped();
+        yield* fs.writeFile(`${dir}/roof.mp4`, yield* ratedVideo(24, 125));
+        const timed = yield* Schema.encodeEffect(ReviewDuration)(
+          yield* (yield* Media).timing(`${dir}/roof.mp4`),
+        );
+        const unrated = yield* Schema.encodeEffect(ReviewDuration)(
+          yield* (yield* Media)
+            .timing(`${dir}/roof.mp4`)
+            .pipe(Effect.map((t) => ({ ...t, fps: Option.none<number>() }))),
+        );
+        const answers = [index, indexOf(walkOf('none'), { warmAt: 60_000 })];
+        let reads = 0;
+        const timings: ReadonlyArray<Json> = [timed, unrated];
+        let timedA = 0;
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => {
+              const answer = answers[Math.min(reads, 1)] ?? index;
+              reads += 1;
+              return json(answer);
+            }),
+            route('GET', /^\/api\/review\/duration\?ref=out%2Fart%2Froof\.A\.mp4/, () => {
+              const answer = timings[Math.min(timedA, 1)] ?? timed;
+              timedA += 1;
+              return json(answer);
+            }),
+            route('GET', /^\/api\/review\/duration/, () => json(timed)),
+            route('GET', /^\/api\/review\/files\/out\/art\/roof\.[A-C]\.mp4/, () =>
+              file(`${dir}/roof.mp4`),
+            ),
+            ...routes,
+          ],
+          { href: SET },
+        );
+        const video = (id: string) => `document.querySelector('.rv-card video[data-id="${id}"]')`;
+        const at = (id: string, seconds: number) =>
+          `Math.abs(${video(id)}.currentTime - ${seconds}) < 1e-4`;
+        // The clock counts 24 fps, and each video stands a quarter into its
+        // first 24 fps frame: every rate is known.
+        yield* textHas(page, '.rv-transport .rv-time', `/ ${timecode(125 / 24, 24)}`);
+        yield* until(page, ['A', 'B', 'C'].map((id) => at(id, 0.25 / 24)).join(' && '));
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
+        // A's new video is read, naming no rate: the clock counts the film rate.
+        yield* textHas(page, '.rv-transport .rv-time', `/ ${timecode(125 / 24, FILM_FPS)}`);
+        yield* page.press('ArrowRight');
+        // The clock reads its frame 1 at 30 fps: A, rated as the clock now, lands
+        // a quarter into that frame; B and C, still 24 fps, in their frame 0.
+        yield* until(
+          page,
+          [
+            `document.querySelector('.rv-transport .rv-time-at').textContent === '${timecode(1 / FILM_FPS, FILM_FPS)}'`,
+            at('A', 1.25 / FILM_FPS),
+            at('B', 0.25 / 24),
+            at('C', 0.25 / 24),
+          ].join(' && '),
+        );
+        expect(timedA).toBe(2);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide(Layer.provideMerge(Media.layer, BunServices.layer))),
+    SLOW,
+  );
+
   for (const { clock, other } of MIXED) {
     it.live(
       `steps a Set of videos at other rates (a ${clock.toFixed(2)} fps clock, ${other.toFixed(2)} fps versions): each shows its own frame at the clock's, one seek a step, and the timecode never runs back`,

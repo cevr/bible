@@ -695,8 +695,11 @@ export const useClockRate = (
 
 /**
  * Tell a set's driver the frame rate of each version's video (`timed`), its
- * own as the server reads it, once each answers: each video lands in its own
- * frames (`landing`), whatever the clock's rate. Read in the page only
+ * own as the server reads it for the file it is now: each video lands in its
+ * own frames (`landing`), whatever the clock's rate. Derived as the clock's
+ * rate is (`useClockRate`): none while its file's answer is pending, or when
+ * it names none, so a file written again with no rate its frames tell lands
+ * by the clock's rate, never by its old file's. Read in the page only
  * (`timedHere`), as the clock's is.
  */
 const useVersionRates = (variants: Accessor<SeenPoint['variants']>, driver: SyncDriver) => {
@@ -704,14 +707,10 @@ const useVersionRates = (variants: Accessor<SeenPoint['variants']>, driver: Sync
   const rates = useAtomValue(() => {
     const each = variants();
     return Atom.make((get) =>
-      Arr.getSomes(
-        each.map((v) =>
-          Option.map(
-            Option.flatMap(AsyncResult.value(get(meta.timedHere(v.video))), (t) => t.fps),
-            (fps) => ({ id: v.id, fps }),
-          ),
-        ),
-      ),
+      each.map((v) => ({
+        id: v.id,
+        fps: Option.flatMap(AsyncResult.value(get(meta.timedHere(v.video))), (t) => t.fps),
+      })),
     );
   });
   createEffect(rates, (known) => {

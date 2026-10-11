@@ -84,11 +84,12 @@ export interface SyncDriver {
   readonly follow: (id: string) => void;
   /**
    * `id`'s video runs at `fps` frames a second, its own (`Media.timing`, as
-   * the server reads it): each seek lands it in its own frames (`landing`),
-   * the clock's rate only until this is told, and it is put on its frame
-   * again now. For any video that joins as `id`, from now on.
+   * the server reads it for the file it is now): each seek lands it in its
+   * own frames (`landing`); none (not read yet, or no rate its frames tell)
+   * lands it by the clock's rate, as the clock itself then counts. It is put
+   * on its frame again now. For any video that joins as `id`, from now on.
    */
-  readonly timed: (id: string, fps: number) => void;
+  readonly timed: (id: string, fps: Option.Option<number>) => void;
   /** Every video paused, every listener and the clock's loop stopped. */
   readonly stop: () => void;
 }
@@ -354,9 +355,12 @@ export const makeSync = (
     });
   };
 
-  const timed = (id: string, fps: number) => {
-    if (rates.get(id) === fps) return;
-    rates.set(id, fps);
+  const timed = (id: string, fps: Option.Option<number>) => {
+    if (rates.get(id) === Option.getOrUndefined(fps)) return;
+    Option.match(fps, {
+      onNone: () => rates.delete(id),
+      onSome: (rate) => rates.set(id, rate),
+    });
     Option.map(Option.fromUndefinedOr(videos.get(id)), (a) => {
       if (!broken.has(a)) Option.map(current, (state) => land(id, a, state));
     });

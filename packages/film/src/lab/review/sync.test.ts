@@ -7,7 +7,7 @@
 // play is told, and so is its new media after.
 
 import { describe, expect, it, test } from 'effect-bun-test';
-import { Duration, Effect, Layer } from 'effect';
+import { Duration, Effect, Layer, Option } from 'effect';
 import { TestClock } from 'effect/testing';
 import { manualFrames } from '../../browser/fixtures/frames.ts';
 import { fakeMedia } from '../../browser/fixtures/media.ts';
@@ -131,15 +131,21 @@ describe('the sync driver', () => {
     expect(a.asked.slice(-2)).toEqual([`seek ${3.25 / 24}`, 'pause']);
     // A 30 fps follower, told its rate: a quarter into its own frame 3 (0.1 s to 0.133 s), not its 4.
     b.asked.length = 0;
-    driver.timed('b', 30);
+    driver.timed('b', Option.some(30));
     expect(b.asked).toEqual([`seek ${3.25 / 30}`]);
     // The same rate told again moves nothing.
-    driver.timed('b', 30);
+    driver.timed('b', Option.some(30));
     expect(b.asked).toEqual([`seek ${3.25 / 30}`]);
+    // Its file written again with no rate it tells: by the clock's rate again, a
+    // quarter into the clock's frame 3; told none again, it moves no more.
+    driver.timed('b', Option.none());
+    expect(b.asked).toEqual([`seek ${3.25 / 30}`, `seek ${3.25 / 24}`]);
+    driver.timed('b', Option.none());
+    expect(b.asked).toEqual([`seek ${3.25 / 30}`, `seek ${3.25 / 24}`]);
     // Every seek after lands it in its own frames: a 30 fps clock at its frame 3
     // (0.1 s) over a 29.97 follower, whose frame 3 starts at 0.1001 s: its frame 2.
     const ntsc = 30000 / 1001;
-    driver.timed('b', ntsc);
+    driver.timed('b', Option.some(ntsc));
     driver.apply(SyncState.Paused({ ...clock(3 / 30, 2), fps: 30 }));
     expect(a.asked.slice(-2)).toEqual([`seek ${3.25 / 30}`, 'pause']);
     expect(b.asked.slice(-2)).toEqual([`seek ${2.25 / ntsc}`, 'pause']);
