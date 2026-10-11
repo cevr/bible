@@ -2261,11 +2261,17 @@ card, a Set's judgement, Project): a Set and then its Project tab read it
 once, however long Project takes to open. A say's answer lands on it in the
 order asked (`asked.ts`); a Set's say, a source write and Refresh read it
 again, now while a page shows it, else when one next does. A version's
-approval and comments are the index's: a say on Project reads the index
-again (`indexChanged`), and the server's index reads a folder's catalogue
-again after any project say (Project's or Scenes', `Review.written`), as
-after a set's, so a Set opened after a say shows it. A change made
-elsewhere (another tab, the CLI) shows after a Refresh or a reload. It says it in every view, beside the
+approval and comments are the index's (`useIndexOwner`,
+`lab/review/index-owner.ts`): a say on Project reads the index again
+(`indexChanged`), and a Set's say puts its folder into the index's newest
+answer, so a read again and a say landing together both stand. After any
+project say (Project's or Scenes', `Review.written`), as after a set's, the
+server drops its cached index, and a walk that began before the say keeps
+nothing, so its next read walks every root again and a Set opened after a
+say shows it. A change made elsewhere shows at once
+after a Refresh. A reload shows another tab's say at once; the CLI writes
+without telling the server, so a reload shows a CLI change once the
+server's last index read is older than its 15 s cache (`INDEX_FRESH`). It says it in every view, beside the
 variant's label: why a variant is stale (`staleText`), and no state word
 otherwise, never "current". A montage folder (say a
 look explored by hand) holds `review.json` (`ReviewManifest`), which names its
