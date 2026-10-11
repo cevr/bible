@@ -9,7 +9,19 @@
 import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Context, Effect, FileSystem, Layer, Option, Path, Schedule, Schema } from 'effect';
+import {
+  Context,
+  Deferred,
+  Effect,
+  Fiber,
+  FileSystem,
+  Function,
+  Layer,
+  Option,
+  Path,
+  Schedule,
+  Schema,
+} from 'effect';
 import { type Address, sceneAddress } from '../core/address.ts';
 import {
   type Catalogue,
@@ -462,8 +474,13 @@ const projectCatalogue = [
  * lone video, a variant from `out/elsewhere`); `out/f`, a project folder
  * with its catalogue; a stand-in Media (`reviewMedia`) giving every video
  * 12.5 s and making a still or a phone copy by copying the video whole.
+ * The review reads the files through `files` (the file system as is, by default).
  */
-const fixture = (phoneCopies: boolean, fps: Option.Option<number> = Option.none()) =>
+const fixture = (
+  phoneCopies: boolean,
+  fps: Option.Option<number> = Option.none(),
+  files: (fs: FileSystem.FileSystem) => FileSystem.FileSystem = Function.identity,
+) =>
   Layer.unwrap(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -502,6 +519,7 @@ const fixture = (phoneCopies: boolean, fps: Option.Option<number> = Option.none(
         maxVideo: 1000,
         phoneCopies,
       }).pipe(
+        Layer.provide(Layer.succeed(FileSystem.FileSystem, files(fs))),
         Layer.provideMerge(reviewMedia(spawned, 12.5, fps)),
         Layer.provide(RenderCatalogue.layer.pipe(Layer.provide(ContentStore.layer))),
         Layer.merge(Layer.succeed(Spawned, spawned)),
@@ -929,5 +947,42 @@ describe('the review service', () => {
       const fresh = yield* review.index(true);
       expect(fresh.folders.flatMap((f) => f.videos).some((v) => v.name === 'new.mp4')).toBe(true);
     }).pipe(Effect.provide(fixture(false))),
+  );
+
+  it.effect(
+    'a read that began before a write keeps nothing over the dropped cache: the next ask reads the write',
+    () => {
+      // The first read of `art`'s manifest, once it has the text, waits for the test.
+      const readOld = Deferred.makeUnsafe<boolean>();
+      const release = Deferred.makeUnsafe<boolean>();
+      const holdingFirstManifest = (fs: FileSystem.FileSystem): FileSystem.FileSystem => ({
+        ...fs,
+        readFileString: (file, encoding) =>
+          fs.readFileString(file, encoding).pipe(
+            Effect.tap(() => {
+              if (!file.endsWith('review.json')) return Effect.void;
+              return Effect.flatMap(Deferred.succeed(readOld, true), (first) => {
+                if (first) return Deferred.await(release);
+                return Effect.void;
+              });
+            }),
+          ),
+      });
+      const titles = (index: ReviewIndex) => index.folders.flatMap((f) => Option.toArray(f.title));
+      return Effect.gen(function* () {
+        const review = yield* Review;
+        const path = yield* Path.Path;
+        const before = yield* Effect.forkChild(review.index(false));
+        yield* Deferred.await(readOld);
+        yield* writeText(
+          path.join(yield* Root, 'out', 'art', 'review.json'),
+          '{ "title": "Art again", "videos": ["big.mp4"] }',
+        );
+        yield* review.written;
+        yield* Deferred.succeed(release, true);
+        expect(titles(yield* Fiber.join(before))).toContain('Art');
+        expect(titles(yield* review.index(false))).toContain('Art again');
+      }).pipe(Effect.provide(fixture(false, Option.none(), holdingFirstManifest)));
+    },
   );
 });

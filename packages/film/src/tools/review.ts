@@ -941,17 +941,29 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           return { index: { folders }, pictures } satisfies Read;
         });
 
-        const cached = yield* Ref.make(Option.none<{ readonly at: number; readonly read: Read }>());
+        // The last read and when it began, and how many times a write has
+        // dropped it: a read keeps its answer only when no write dropped the
+        // cache while it read, so a walk that began before a write never
+        // stands in for the walk after it.
+        const cached = yield* Ref.make({
+          drops: 0,
+          last: Option.none<{ readonly at: number; readonly read: Read }>(),
+        });
+        const drop = Ref.update(cached, (c) => ({ drops: c.drops + 1, last: Option.none() }));
 
         const current = Effect.fn('Review.current')(function* (fresh: boolean) {
           const now = yield* Clock.currentTimeMillis;
+          const began = yield* Ref.get(cached);
           const had = Option.filter(
-            yield* Ref.get(cached),
+            began.last,
             (c) => !fresh && now - c.at < Duration.toMillis(INDEX_FRESH),
           );
           if (Option.isSome(had)) return had.value.read;
           const made = yield* read();
-          yield* Ref.set(cached, Option.some({ at: now, read: made }));
+          yield* Ref.update(cached, (c) => {
+            if (c.drops !== began.drops) return c;
+            return { drops: c.drops, last: Option.some({ at: now, read: made }) };
+          });
           return made;
         });
 
@@ -1092,7 +1104,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             .pipe(
               // The index reads the folder again on its next ask: it changed, or
               // the index was found behind it.
-              Effect.ensuring(Ref.set(cached, Option.none())),
+              Effect.ensuring(drop),
             );
           yield* Effect.log(
             `review.say folder=${ref} point=${point} variant=${variant.id} say=${asked.say._tag}`,
@@ -1116,7 +1128,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         return Review.of({
           roots,
           index,
-          written: Ref.set(cached, Option.none()),
+          written: drop,
           pictures,
           renderVideo: videoOfRender,
           resolve,
