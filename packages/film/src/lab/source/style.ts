@@ -27,7 +27,6 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
 .lab-source-head > .sh-btn { flex: none; min-height: var(--hit); }
 .lab-source-note { margin: 0; padding: var(--s-3) var(--gutter); color: var(--text-2); font-size: var(--fs-3); }
 .lab-source-follow { flex: none; }
-.lab-source-follow[aria-pressed='true'] { color: var(--accent); }
 .lab-source-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
   overflow-anchor: none; /* the browser never moves the scroll by itself: the view places it, layout clamps it, a hand moves it */ }
 .lab-source-page { --source-lh: var(--body-lh); position: relative; font-size: var(--body-fs); line-height: var(--source-lh);

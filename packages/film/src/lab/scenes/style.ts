@@ -46,9 +46,8 @@ body.scenes { display: block; height: auto; }
 .sc-dot[data-state="approved"] { background: var(--state-approved); }
 .sc-dot[data-state="findings"] { background: var(--state-findings); }
 .sc-dot[data-state="warning"] { background: var(--state-warning); }
-/* Follow is the kit's quiet button, a toggle; on, its dot takes the accent. */
+/* Follow is the kit's quiet button, a toggle: on, it takes the kit's pressed look, as the Source view's Follow does. */
 .sc-follow { flex: none; min-height: var(--hit); }
-.sc-follow[aria-pressed="true"] .sc-dot { background: var(--accent); }
 .sc-tape { display: grid; gap: var(--s-1); padding: var(--s-2) var(--gutter) var(--s-8); }
 .sc-line { display: grid; grid-template-columns: var(--s-8) minmax(0, 1fr); gap: var(--s-2); }
 .sc-line-tc { align-self: center; padding-top: var(--lh-1); font-size: var(--fs-1); line-height: var(--lh-1);

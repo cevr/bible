@@ -44,6 +44,7 @@ import {
   labelsClash,
   labelsInFull,
   labelsOverMarks,
+  pressedLook,
   textHas,
   textIs,
 } from '../../src/lab/fixtures/settled.ts';
@@ -400,6 +401,9 @@ describe('the player', () => {
       // Followed again, a press on the tape bar's track scrubs away too.
       yield* page.click('[data-act="follow"]');
       yield* attributeIs(page, '[data-act="follow"]', 'aria-pressed', 'true');
+      // Pressed, it wears the kit's one pressed look, as the Source view's Follow does: no dot.
+      yield* evaluates(page, pressedLook('[data-act="follow"]'), true);
+      yield* countIs(page, '[data-act="follow"] .sc-dot', 0);
       const track = yield* page.box('.bar .track');
       yield* page.mouse.click(track.x + track.width * 0.7, track.y + track.height / 2);
       yield* attributeIs(page, '[data-act="follow"]', 'aria-pressed', 'false');

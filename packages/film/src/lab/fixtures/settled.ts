@@ -150,9 +150,21 @@ export const until = (page: Tab, check: string) => page.until(check);
 const computedBeside = (selector: string, property: string, value: string) =>
   `((el) => { const probe = document.createElement('i'); probe.style.setProperty(${json(property)}, ${json(value)}); el.parentElement.append(probe); const drawn = getComputedStyle(probe).getPropertyValue(${json(property)}); probe.remove(); return drawn; })(document.querySelector(${json(selector)}))`;
 
+/** An expression run in the page: whether `selector`'s first match draws `property` as `value` would (a token as `var(--…)`). */
+export const drawnAs = (selector: string, property: string, value: string) =>
+  `getComputedStyle(document.querySelector(${json(selector)})).getPropertyValue(${json(property)}) === ${computedBeside(selector, property, value)}`;
+
 /** An expression run in the page: whether `selector`'s first match is drawn in the colour token `token` (its words' ink). */
 export const inkIs = (selector: string, token: string) =>
-  `getComputedStyle(document.querySelector(${json(selector)})).color === ${computedBeside(selector, 'color', `var(${token})`)}`;
+  drawnAs(selector, 'color', `var(${token})`);
+
+/**
+ * An expression run in the page: whether `selector`'s first match wears the
+ * kit's pressed look (DL §5, a quiet button pressed): the raised surface, the
+ * accent edge, its words in the primary ink.
+ */
+export const pressedLook = (selector: string) =>
+  `[${drawnAs(selector, 'background-color', 'var(--surface-3)')}, ${drawnAs(selector, 'border-top-color', 'var(--accent)')}, ${drawnAs(selector, 'color', 'var(--text-1)')}].every(Boolean)`;
 
 /**
  * An expression run in the page: how the focused element shows its focus,

@@ -857,7 +857,6 @@ export const ScenesView = (props: ScenesViewProps) => {
                 setFollow(!follow());
               }}
             >
-              <i class="sc-dot" />
               Follow
             </button>
           </div>

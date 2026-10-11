@@ -26,6 +26,7 @@ import {
   attributeIs,
   countIs,
   evaluates,
+  pressedLook,
   textHas,
   textIs,
 } from '../../../src/lab/fixtures/settled.ts';
@@ -1061,6 +1062,8 @@ describe('Follow', () => {
       yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'false');
       yield* page.click(FOLLOW_BUTTON);
       yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
+      // Pressed, it wears the kit's one pressed look, as Scenes' Follow does.
+      yield* evaluates(page, pressedLook(FOLLOW_BUTTON), true);
     }).pipe(Effect.scoped),
   );
 
