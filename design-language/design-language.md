@@ -249,7 +249,7 @@ One `:root` block, in one stylesheet, `packages/film/src/player/tokens.css`, lin
   --border: 1px solid var(--line);
   --shadow-pop: 0 8px 28px rgb(0 0 0 / 0.55); /* menus, sheets, toasts only; panels have none */
   --focus-ring: 0 0 0 1px var(--surface-0), 0 0 0 2px var(--accent);
-  --focus-inset: inset 0 0 0 2px var(--accent); /* the ring drawn inside a part clipped to its box (a sheet) */
+  --focus-inset: inset 0 0 0 2px var(--accent);
 
   /* Motion. */
   --t-fast: 80ms;
