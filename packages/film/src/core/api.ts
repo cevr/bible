@@ -839,6 +839,13 @@ const refined = Field.key(Codec.Text, { default: '' });
 const inspect = cited;
 
 /**
+ * The still open full size (`?still=`): a folder's sheet or still by its ref, or a
+ * set's version at the moment shown by its id. Its opening is a step Back walks, as
+ * every sheet's is; none open is the page's first.
+ */
+const still = cited;
+
+/**
  * The views of a comparison set (`?view=`): all side by side, a pair, the
  * pair's wipe, the moments, the pair's difference at a moment; and
  * `notes`, a view no longer shown, read so an old link opens all with the
@@ -902,9 +909,10 @@ export const OWN_SOUND = 'own';
 
 /**
  * Every place a page is at. Review: home `/`, a folder of renders
- * `/sets/<folder>`, a comparison set `/sets/<folder>/<point>` (its view,
- * pair, moment and time), a film's choices (the sound heard, the picture and
- * its time) and its project (the card in focus). Player: a film's scenes
+ * `/sets/<folder>` (its still open full size), a comparison set
+ * `/sets/<folder>/<point>` (its view, pair, moment, time and still open), a
+ * film's choices (the sound heard, the picture and its time) and its
+ * project (the card in focus). Player: a film's scenes
  * (the tape) `/films/<film>/scenes[/<scene>]#t=`, the path's scene the one
  * selected and `#t=` the playhead in film time on both, and its plain preview
  * `/films/<film>/play#t=`. Lab: a film
@@ -917,7 +925,11 @@ export const OWN_SOUND = 'own';
  */
 export const Places = {
   home: Place.make({ path: '/' }),
-  folder: Place.make({ path: '/sets/:folder', params: { folder: Codec.Segment } }),
+  folder: Place.make({
+    path: '/sets/:folder',
+    params: { folder: Codec.Segment },
+    query: Field.struct({ still }),
+  }),
   set: Place.make({
     path: '/sets/:folder/:point',
     params: { folder: Codec.Segment, point: Codec.Segment },
@@ -927,6 +939,7 @@ export const Places = {
       // A moment chosen is a step Back walks; a ←/→ step through the moments follows in place.
       m: Field.key(MomentIndex, { default: 0, history: 'push' }),
       inspect,
+      still,
     }),
     hash: At,
   }),
@@ -1054,12 +1067,12 @@ const timeOf = (t: Option.Option<number>) => ({ t });
 export const pageHref = {
   home: (): string => Place.href(Places.home, { path: {}, query: {}, hash: {} }),
   folder: (folder: string): string =>
-    Place.href(Places.folder, { path: { folder }, query: {}, hash: {} }),
+    Place.href(Places.folder, { path: { folder }, query: { still: '' }, hash: {} }),
   /** A comparison set, with the sheet of its version `inspect` open. */
   set: (folder: string, point: string, inspect = ''): string =>
     Place.href(Places.set, {
       path: { folder, point },
-      query: { view: 'all', other: '', m: 0, inspect },
+      query: { view: 'all', other: '', m: 0, inspect, still: '' },
       hash: START,
     }),
   /** A film's choices, with the card of `point` in focus and the sheet of its variant `inspect` open. */

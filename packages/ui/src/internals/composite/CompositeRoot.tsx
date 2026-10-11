@@ -21,10 +21,12 @@ interface CompositeRootProps<State extends object> {
   /** The element's props (children included), merged after the root's own. */
   props?: ReadonlyArray<PropsInput> | undefined;
   state?: State | undefined;
+  /** Where the tab stop starts, among the first items (-1: the first enabled). */
+  initialIndex?: ((elements: ReadonlyArray<HTMLElement | null>) => number) | undefined;
 }
 
 export function CompositeRoot<State extends object>(props: CompositeRootProps<State>): JSX.Element {
-  const root = useCompositeRoot();
+  const root = useCompositeRoot({ initialIndex: untrack(() => props.initialIndex) });
 
   const context: CompositeRootContextValue = {
     highlightedIndex: root.highlightedIndex,

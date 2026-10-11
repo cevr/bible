@@ -10,8 +10,12 @@
 // and the comment box, said over the set's route.
 
 import { useAtomValue } from '@bible/atom-solid';
+import { Dialog } from '@bible/ui/dialog';
+import { Toggle } from '@bible/ui/toggle';
+import * as UrlAtom from '@bible/url-state/atom';
+import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Effect, Exit, Match, Option, Scope, Struct } from 'effect';
+import { Array as Arr, Effect, Exit, Match, Option, Scope, Struct } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import {
@@ -49,6 +53,8 @@ import {
 } from '../../core/api.ts';
 import { type LabFailure, served } from '../api.ts';
 import { pressed } from '../pressed.ts';
+import { useSheetDismissal } from '../sheet.tsx';
+import { addressOn } from '../../browser/host.ts';
 import { StateBand } from '../scenes/card.tsx';
 import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
@@ -60,7 +66,7 @@ import { setApproveUndo, setSaidText, undoApprove } from './options/receipt.ts';
 import { quiet, refused } from '../../command/command.ts';
 import { OpId, type Project, projectNow, versionState } from '../../core/catalogue.ts';
 import { uniqueId } from '../../core/unique.ts';
-import { Go, SetProvider, type Shown, useReview, useSet } from './context.tsx';
+import { Go, SetProvider, useReview, useSet } from './context.tsx';
 import {
   agoText,
   approvalText,
@@ -91,7 +97,7 @@ import {
 } from './machine.ts';
 import { Loaded, useWrite, writeStatus } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
-import { ReviewPlace as Place } from './place.ts';
+import { ReviewPlace as Place, stillIn, withStill } from './place.ts';
 import { HearToggle, PlayedAlone, Transport, useClockMedia } from './player.tsx';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
@@ -346,21 +352,66 @@ const Markdown = (props: { readonly file: ReviewFile }) => {
   );
 };
 
+/** An image the lightbox shows: its source, and the caption under it (what its card no longer says). */
+interface Shown {
+  readonly src: string;
+  readonly caption: string;
+}
+
 /**
- * A still that opens in the lightbox with its caption (`shown`): a button, so
- * a tap, a click, Enter and Space all open it, and its name says what opens.
+ * A still that opens full size in the lightbox, with its caption (`shown`):
+ * a button, so a tap, a click, Enter and Space all open it, and its name
+ * says what opens. The URL keeps it open (`?still=` its `name`), so a link
+ * opens it, and Back closes it as every sheet's opening is. The lightbox is
+ * the kit's dialog over every other layer of the page (the tab bar and the
+ * dock too), titled by its caption: focus moves into it and back to the
+ * still, and Escape or a tap anywhere closes it, by the sheets' one rule
+ * (`useSheetDismissal`), adding no entry.
  */
-const Zoom = (props: { readonly still: string; readonly alt: string; readonly shown: Shown }) => {
-  const { actions } = useReview();
+const Zoom = (props: {
+  readonly still: string;
+  readonly alt: string;
+  readonly shown: Shown;
+  readonly name: string;
+}) => {
+  const { meta } = useReview();
+  const href = useAtomValue(() => UrlAtom.href);
+  const address = addressOn(meta.host);
+  const dismissal = useSheetDismissal(meta.host, (at, name) =>
+    Option.exists(stillIn(at), (open) => open === name),
+  );
+  const open = () => Option.exists(stillIn(href()), (name) => name === props.name);
+  const show = () =>
+    Option.map(withStill(untrack(href), props.name), (to) => {
+      dismissal.opening(props.name);
+      address.go(to);
+    });
+  const close = () => dismissal.dismiss(() => withStill(untrack(href), ''));
   return (
-    <button
-      type="button"
-      class="rv-zoom"
-      aria-label={`Open ${props.shown.caption}`}
-      onClick={() => actions.show(Option.some(props.shown))}
-    >
-      <img class="rv-media" loading="lazy" src={props.still} alt={props.alt} />
-    </button>
+    <>
+      <button
+        type="button"
+        class="rv-zoom"
+        aria-label={`Open ${props.shown.caption}`}
+        onClick={show}
+      >
+        <img class="rv-media" loading="lazy" src={props.still} alt={props.alt} />
+      </button>
+      <Dialog.Root
+        open={open()}
+        onOpenChange={(next: boolean) => {
+          if (!next) close();
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop class="rv-lightbox-backdrop" />
+          <Dialog.Popup class="rv-lightbox" data-still={props.name} onClick={close}>
+            <img src={props.shown.src} alt={props.shown.caption} />
+            <Dialog.Title class="rv-lightbox-caption">{props.shown.caption}</Dialog.Title>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </>
   );
 };
 
@@ -413,7 +464,7 @@ const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoi
         <div class="rv-body">
           <b>{props.set.title}</b>
           <Show when={props.set.variants.length >= 2}>
-            <span class="rv-badge">{versionsText(props.set.variants.length)}</span>
+            <span class="sh-badge">{versionsText(props.set.variants.length)}</span>
           </Show>
         </div>
       </Go>
@@ -456,6 +507,7 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
                 {/* Its path in the folder and its age are the lightbox's caption, and its name. */}
                 <Zoom
                   still={reviewFileUrl(image.ref)}
+                  name={image.ref}
                   alt={image.name}
                   shown={{
                     src: reviewFileUrl(image.ref),
@@ -570,41 +622,52 @@ const LAYOUT_TITLES = {
 /**
  * The set's modes as one segmented control, and in Compare
  * its layouts as a second: the touch path of `v` and `⇧V` (`viewCommands`).
+ * Each is a toggle group (the arrows move between its choices); a choice
+ * sends the view, which the address owns, and the pressed one is the view
+ * the address shows (a press on it offers nothing).
  */
 const ViewTabs = () => {
   const { set, view, send } = useSet();
   const name = () => viewNameOf(view());
   return (
     <>
-      <div class="sh-seg rv-views">
+      <ToggleGroup<SetMode>
+        class="sh-seg rv-views"
+        aria-label="View"
+        value={[modeOf(name())]}
+        onValueChange={(chosen) => {
+          Option.map(Arr.head(chosen), (mode) =>
+            send.view(ViewEvent.ViewChosen({ view: modeView(mode, name()) })),
+          );
+        }}
+      >
         <For each={modesOf(set().variants.length)}>
           {(mode) => (
-            <button
-              type="button"
-              data-view={mode}
-              aria-pressed={pressed(modeOf(name()) === mode)}
-              onClick={() => send.view(ViewEvent.ViewChosen({ view: modeView(mode, name()) }))}
-            >
+            <Toggle<SetMode> value={mode} data-view={mode}>
               {MODE_TITLES[mode]}
-            </button>
+            </Toggle>
           )}
         </For>
-      </div>
+      </ToggleGroup>
       <Show when={modeOf(name()) === 'compare'}>
-        <div class="sh-seg rv-layouts">
+        <ToggleGroup<Layout>
+          class="sh-seg rv-layouts"
+          aria-label="Layout"
+          value={Arr.filter(LAYOUTS, (layout) => layout === name())}
+          onValueChange={(chosen) => {
+            Option.map(Arr.head(chosen), (layout) =>
+              send.view(ViewEvent.ViewChosen({ view: layout })),
+            );
+          }}
+        >
           <For each={LAYOUTS}>
             {(layout) => (
-              <button
-                type="button"
-                data-view={layout}
-                aria-pressed={pressed(name() === layout)}
-                onClick={() => send.view(ViewEvent.ViewChosen({ view: layout }))}
-              >
+              <Toggle<Layout> value={layout} data-view={layout}>
                 {LAYOUT_TITLES[layout]}
-              </button>
+              </Toggle>
             )}
           </For>
-        </div>
+        </ToggleGroup>
       </Show>
     </>
   );
@@ -823,7 +886,7 @@ const VersionName = (props: { readonly version: SeenVariant }) => {
 const StaleBadge = (props: { readonly variant: SeenVariant }) => (
   <Show when={Option.getOrUndefined(staleText(props.variant))}>
     {(words) => (
-      <span class="rv-badge" data-approval="stale" title={words()}>
+      <span class="sh-badge" data-state="stale" title={words()}>
         Out of date
       </span>
     )}
@@ -972,7 +1035,14 @@ const pairOf = (set: SeenPoint, other: string) => ({
 const OtherPick = (props: { readonly other: string }) => {
   const { set, send } = useSet();
   return (
-    <div class="rv-row rv-pick">
+    <ToggleGroup
+      class="rv-row rv-pick"
+      aria-label="Against"
+      value={[props.other]}
+      onValueChange={(chosen) => {
+        Option.map(Arr.head(chosen), (id) => send.view(ViewEvent.OtherChosen({ id })));
+      }}
+    >
       <span class="rv-hint">
         {Option.getOrElse(
           Option.map(Option.fromUndefinedOr(set().variants[0]), (v) => v.label),
@@ -982,18 +1052,12 @@ const OtherPick = (props: { readonly other: string }) => {
       </span>
       <EachVersion of={set().variants.slice(1)}>
         {(variant) => (
-          <button
-            type="button"
-            class="sh-btn"
-            data-other={variant().id}
-            aria-pressed={pressed(variant().id === props.other)}
-            onClick={() => send.view(ViewEvent.OtherChosen({ id: variant().id }))}
-          >
+          <Toggle class="sh-btn" value={variant().id} data-other={variant().id}>
             {variant().label}
-          </button>
+          </Toggle>
         )}
       </EachVersion>
-    </div>
+    </ToggleGroup>
   );
 };
 
@@ -1223,25 +1287,28 @@ const WipeView = (props: { readonly other: string }) => {
   );
 };
 
-/** The moments' chips, the one shown pressed; ←/→ step through them. */
+/** The moments' chips, a toggle group, the one shown pressed: the page's ←/→ step the moment, and in the group they move its focus. */
 const MomentPick = (props: { readonly moments: ReadonlyArray<number>; readonly index: number }) => {
   const { send } = useSet();
   return (
-    <div class="rv-row rv-pick">
+    <ToggleGroup
+      class="rv-row rv-pick"
+      aria-label="Moment"
+      value={[String(props.index)]}
+      onValueChange={(chosen) => {
+        Option.map(Arr.head(chosen), (index) =>
+          send.view(ViewEvent.MomentChosen({ index: Number(index) })),
+        );
+      }}
+    >
       <For each={props.moments.map((t, i) => ({ t, i }))}>
         {(m) => (
-          <button
-            type="button"
-            class="sh-btn"
-            data-moment={String(m.i)}
-            aria-pressed={pressed(m.i === props.index)}
-            onClick={() => send.view(ViewEvent.MomentChosen({ index: m.i }))}
-          >
+          <Toggle class="sh-btn" value={String(m.i)} data-moment={String(m.i)}>
             {timecode(m.t)}
-          </button>
+          </Toggle>
         )}
       </For>
-    </div>
+    </ToggleGroup>
   );
 };
 
@@ -1294,6 +1361,7 @@ const MomentsView = (props: { readonly index: number }) => {
                 <VersionCard version={variant().id}>
                   <Zoom
                     still={reviewFrameUrl(variant().video.ref, Option.some(at()), MOMENT_W)}
+                    name={variant().id}
                     alt={`${variant().label} at ${timecode(at())}`}
                     shown={{
                       src: reviewFrameUrl(variant().video.ref, Option.some(at()), LIGHTBOX_W),

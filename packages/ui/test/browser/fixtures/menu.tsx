@@ -104,8 +104,53 @@ function MenuInContextMenu(): JSX.Element {
   );
 }
 
+/**
+ * A radio group of three films, the owner keeping the checked one (`bravo`
+ * first), and an action item after it; `close=true` closes the menu on a
+ * pick. Each item shows a check while it is checked.
+ */
+function RadioMenu(): JSX.Element {
+  const [film, setFilm] = createSignal('bravo');
+  return (
+    <div style={{ padding: '40px' }}>
+      <Menu.Root onOpenChange={(open, details) => log(`open ${open} ${details.reason}`)}>
+        <Menu.Trigger id="trigger">Film</Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Positioner id="positioner" sideOffset={4} align="start">
+            <Menu.Popup id="popup">
+              <Menu.RadioGroup
+                id="films"
+                value={film()}
+                onValueChange={(next: string) => {
+                  log(`value ${next}`);
+                  setFilm(next);
+                }}
+              >
+                <Menu.GroupLabel id="films-label">Films</Menu.GroupLabel>
+                <For each={['alpha', 'bravo', 'charlie']}>
+                  {(name) => (
+                    <Menu.RadioItem id={name} value={name} closeOnClick={param('close') === 'true'}>
+                      {name}
+                      <Menu.RadioItemIndicator class="check">✓</Menu.RadioItemIndicator>
+                    </Menu.RadioItem>
+                  )}
+                </For>
+              </Menu.RadioGroup>
+              <Menu.Separator id="sep" />
+              <Menu.Item id="copy" onClick={() => log('click copy')}>
+                Copy link
+              </Menu.Item>
+            </Menu.Popup>
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.Root>
+    </div>
+  );
+}
+
 export const fixtures: Record<string, () => JSX.Element> = {
   menu: () => <FullMenu />,
   'in-context-menu': () => <MenuInContextMenu />,
   sorted: () => <SortedMenu />,
+  radio: () => <RadioMenu />,
 };

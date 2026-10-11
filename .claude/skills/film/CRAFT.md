@@ -13,11 +13,17 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
   - at most one word card per act: the word, its Hebrew or Greek, and a gloss of 2 to 4 words;
   - the opening question, and its answer;
   - a quotation of 10 words or fewer, and only when the words are an object in the world: written in dust, carved, stamped;
-  - the sources, in the credits that roll over the coda (rule 7).
+  - the sources, in the credits that roll over the coda (rule 7);
+  - **full-screen cards** of the narration's own words (below).
 - **One text element at a time.** The title and the credits are the only exceptions.
-- **Narration is never typeset.** The captions ship as the `.vtt` beside the MP4, so render the master with `--no-captions`.
+- **Narration is typeset only as a full-screen card.** Never as a strip, a plate, a lower third or a small card over the picture. The captions ship as the `.vtt` beside the MP4, so render the master with `--no-captions`. A card, from the owner's editing reference ([reference/real-life-tv-study.md](reference/real-life-tv-study.md); owner, 2026-10-11):
+  - **It takes the whole frame.** The picture cuts away to it and back: a hard cut in, and a hard cut out on the last word of its sentence. Nothing else is on screen with it.
+  - **Its words are the take's, verbatim,** one sentence or one clause, 12 words at most (the reference's median is 6). Each word appears on its own spoken word (a word pin from the timings), so the card and the voice never disagree.
+  - **One payoff word,** set two to three times larger, with one treatment drawn from the colour script (scarlet for sin, white for the robe, gold for the Word). The lead-in words stay small.
+  - **Scripture on a card is KJV, verbatim.** A card may follow the verse on its page, the phrase highlighted, the highlight flooding into the card.
+  - **A card earns its place:** a turn in the argument, a key line or a verse. How many a film carries is set by its look, studied side by side in the lab before a film adopts it.
 - **`cite` feeds the credits and `sources.md`.** It is never an on-screen tag. The film's `credits.ts` builds the roll from the beats' `cite`s: grouped by author, each work once with its places merged ("Steps to Christ, 17, 18, 47, 70"), no locator left alone on a line.
-- **Check:** in a `--contact 6` sheet, text shows in about 8 tiles out of 58 or fewer, outside the title and the credits.
+- **Check:** in a `--contact 6` sheet, text shows in about 8 tiles out of 58 or fewer, outside the title, the credits and the full-screen cards.
 
 ## 2. Quote less, paraphrase more
 

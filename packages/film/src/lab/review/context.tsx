@@ -1,7 +1,7 @@
 // The review's providers. `<Root>` holds the page: its runtime (the
 // review's routes), where it is (read from and kept in the URL, so Back and a
 // reload work), the index, the copy its videos play (the phone's 720p or the
-// file) and the lightbox; the page's own commands (Refresh, the copy played,
+// file); the page's own commands (Refresh, the copy played,
 // every place by its name for ⌘K). `<SetProvider>`
 // holds one comparison set: its two machines (the synced player and the
 // view, spawned on the runtime and stopped with the set), the driver that
@@ -112,14 +112,6 @@ interface ReviewStateValue {
   /** The app's films, each with options to pick from. */
   readonly films: Accessor<AsyncResult.AsyncResult<ReviewFilms, LabFailure>>;
   readonly quality: Accessor<Quality>;
-  /** The image the lightbox shows, when it is open. */
-  readonly lightbox: Accessor<Option.Option<Shown>>;
-}
-
-/** An image the lightbox shows: its source, and the caption under it (what its card no longer says). */
-export interface Shown {
-  readonly src: string;
-  readonly caption: string;
 }
 
 interface ReviewActions {
@@ -134,8 +126,6 @@ interface ReviewActions {
    */
   readonly answered: (folder: ReviewFolder) => void;
   readonly quality: (quality: Quality) => void;
-  /** Open the lightbox on an image, or close it. */
-  readonly show: (shown: Option.Option<Shown>) => void;
 }
 
 /** A file as the index last saw it: its ref, and when it was written. */
@@ -318,21 +308,6 @@ export const Root = (
 
   const address = addressOn(props.host);
 
-  const [lightbox, setLightbox] = createSignal(Option.none<Shown>());
-  // Escape closes the lightbox while it is open, from a field too.
-  onCleanup(
-    props.hub.commands.register({
-      id: 'review.close-image',
-      label: 'Close the image',
-      group: 'Review',
-      keys: ['escape'],
-      keysIn: ['page', 'field'],
-      touch: 'tap the image',
-      when: () => Option.isSome(lightbox()),
-      run: quietly(() => setLightbox(Option.none())),
-    }),
-  );
-
   const Inner = (inner: ParentProps) => {
     // Where the page is: its URL, as the host's `UrlState` leaves it (a
     // write, or Back and Forward landing).
@@ -377,7 +352,7 @@ export const Root = (
     const servedAt = useAtomValue(() => servedAtAtom);
     const clockNow = () => Effect.runSyncWith(props.host)(Clock.currentTimeMillis);
     const value: ReviewContextValue = {
-      state: { place, index, films, quality, lightbox },
+      state: { place, index, films, quality },
       actions: {
         go: (next) => {
           address.go(hrefOf(next));
@@ -396,7 +371,6 @@ export const Root = (
           );
         },
         quality: keepQuality,
-        show: setLightbox,
       },
       meta: {
         asks,
@@ -786,12 +760,13 @@ const SetBody = (
   createEffect(leader, (id) => driver.follow(id));
 
   const address = addressOn(meta.host);
+  // A view moved closes a still open full size (`?still=`): the still was the view's.
   const sendView = (event: ViewEvent) =>
     Option.map(at(), (v) =>
       address[causeOf(event)](
         Place.href(Places.set, {
           ...v,
-          query: { ...v.query, ...queryOfView(stepView(view(), other(), event)) },
+          query: { ...v.query, ...queryOfView(stepView(view(), other(), event)), still: '' },
         }),
       ),
     );

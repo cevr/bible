@@ -152,14 +152,21 @@ const TransportRow = (
         class="sh-btn rv-big"
         data-primary=""
         data-act="play"
+        aria-label={Match.value(playing()).pipe(
+          Match.when(true, () => 'Pause'),
+          Match.orElse(() => 'Play'),
+        )}
         title={props.title}
         disabled={Option.isSome(failure())}
         onClick={() => send.sync(SyncEvent.Toggled)}
       >
-        {Match.value(playing()).pipe(
-          Match.when(true, () => '❚❚'),
-          Match.orElse(() => '▶'),
-        )}
+        {/* Named by its word; the glyph is drawn, not read. */}
+        <span aria-hidden="true">
+          {Match.value(playing()).pipe(
+            Match.when(true, () => '❚❚'),
+            Match.orElse(() => '▶'),
+          )}
+        </span>
       </button>
       <span class="rv-time" data-state={sync()._tag}>
         {/* The time: a laptop's header shows the docked one's already (`useShellTime`), so its row leaves it out. */}

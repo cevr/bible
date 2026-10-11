@@ -13,7 +13,8 @@
     "./toast": "./src/toast/index.ts",
     "./number-field": "./src/number-field/index.ts",
     "./toggle": "./src/toggle/index.ts",
-    "./toggle-group": "./src/toggle-group/index.ts"
+    "./toggle-group": "./src/toggle-group/index.ts",
+    "./separator": "./src/separator/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

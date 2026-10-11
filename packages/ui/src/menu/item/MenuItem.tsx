@@ -8,14 +8,16 @@
 // the roving tab order (the highlighted one is tabbable), and releasing the
 // mouse on it after pressing the trigger (press, drag, release) activates
 // it. In a context menu, the release of the right-click that opened the menu
-// does not activate the item under the pointer.
+// does not activate the item under the pointer. `useMenuItem` is that
+// behaviour, which the radio item (`Menu.RadioItem`) shares.
 import type { JSX } from '@solidjs/web';
 import { createUniqueId, omit, untrack } from 'solid-js';
 
+import type { PropsInput } from '../../merge-props/mergeProps.ts';
 import { useCompositeListItem } from '../../internals/composite/CompositeList.tsx';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
-import type { BaseUIComponentProps } from '../../internals/types.ts';
+import type { BaseUIComponentProps, HTMLProps } from '../../internals/types.ts';
 import { dispatchClickWithModifiers, useButton } from '../../internals/useButton.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { platform } from '../../utils/platform.ts';
@@ -30,26 +32,43 @@ interface MenuItemProps extends BaseUIComponentProps<'div', MenuItemState> {
   label?: string | undefined;
 }
 
-export function MenuItem(componentProps: MenuItemProps): JSX.Element {
+interface MenuItemParams {
+  /** The id the user gave the item, if any. */
+  readonly id: string | false | undefined;
+  /** The text typeahead matches; the item's text content when not given. */
+  readonly label: () => string | undefined;
+  /** Whether a press closes the menu. */
+  readonly closeOnClick: () => boolean;
+}
+
+interface MenuItemBehaviour {
+  readonly highlighted: () => boolean;
+  /** The item's own props (its id, its tab stop, its presses) and the root's item props. */
+  readonly props: ReadonlyArray<PropsInput>;
+  /** The button behaviour, merged last, over the user's props. */
+  readonly buttonProps: (externalProps?: HTMLProps) => HTMLProps;
+  readonly ref: (el: HTMLElement) => void;
+}
+
+/** What makes an element one of a menu's items: its place in the roving focus, its presses, its release after a drag. */
+export function useMenuItem(params: MenuItemParams): MenuItemBehaviour {
   const { store, parent, itemProps } = useMenuRootContext();
   // The root decides whether this menu is a context menu's; a menu inside a
   // context menu's trigger is a plain one.
   const contextMenu = parent.type === 'context-menu' ? parent.context : null;
-  const elementProps = omit(componentProps, 'class', 'style', 'render', 'id', 'label');
   const listItem = useCompositeListItem({
     get label() {
-      return componentProps.label;
+      return params.label();
     },
   });
-  const id = untrack(() => componentProps.id) || createUniqueId();
+  const id = params.id || createUniqueId();
   const highlighted = () => store.isActive(listItem.index());
   let itemElement: HTMLElement | null = null;
 
   const { getButtonProps } = useButton({ native: false, composite: true });
 
-  const ownProps = {
+  const ownProps: HTMLProps = {
     id,
-    role: 'menuitem',
     // `-1` rather than none, which would leave links and buttons in the tab order.
     get tabindex() {
       return store.open() && highlighted() ? 0 : -1;
@@ -60,7 +79,9 @@ export function MenuItem(componentProps: MenuItemProps): JSX.Element {
       }
     },
     onClick(event: MouseEvent) {
-      store.setOpen(false, createChangeEventDetails(REASONS.itemPress, event));
+      if (untrack(params.closeOnClick)) {
+        store.setOpen(false, createChangeEventDetails(REASONS.itemPress, event));
+      }
     },
     onMouseUp(event: MouseEvent) {
       if (contextMenu) {
@@ -90,18 +111,34 @@ export function MenuItem(componentProps: MenuItemProps): JSX.Element {
     },
   };
 
+  return {
+    highlighted,
+    props: [ownProps, itemProps],
+    buttonProps: getButtonProps,
+    ref: (el: HTMLElement) => {
+      itemElement = el;
+      listItem.ref(el);
+    },
+  };
+}
+
+export function MenuItem(componentProps: MenuItemProps): JSX.Element {
+  const elementProps = omit(componentProps, 'class', 'style', 'render', 'id', 'label');
+  const item = useMenuItem({
+    id: untrack(() => componentProps.id),
+    label: () => componentProps.label,
+    closeOnClick: () => true,
+  });
+
   const state: MenuItemState = {
     get highlighted() {
-      return highlighted();
+      return item.highlighted();
     },
   };
 
   return useRenderElement('div', componentProps, {
     state,
-    props: [ownProps, itemProps, elementProps, getButtonProps],
-    ref: (el: HTMLElement) => {
-      itemElement = el;
-      listItem.ref(el);
-    },
+    props: [{ role: 'menuitem' }, ...item.props, elementProps, item.buttonProps],
+    ref: item.ref,
   });
 }

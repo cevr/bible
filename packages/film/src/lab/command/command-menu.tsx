@@ -49,6 +49,12 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
     );
   });
 
+  // The row the query names as its active descendant: one that exists, else none (no row matches).
+  const active = () =>
+    Option.getOrUndefined(
+      Option.map(Option.fromUndefinedOr(rows()[at()]), () => `lab-command-${at()}`),
+    );
+
   const show = (ctx: Context) => {
     run.open({ ...ctx, focus: 'page' });
     setQuery('');
@@ -93,7 +99,8 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
 
   const onKey = (e: KeyboardEvent) => {
     const count = rows().length;
-    if (e.key === 'ArrowDown') setAt((i) => Math.min(count - 1, i + 1));
+    // An empty list keeps the first place: no row is active until one exists.
+    if (e.key === 'ArrowDown') setAt((i) => Math.max(0, Math.min(count - 1, i + 1)));
     else if (e.key === 'ArrowUp') setAt((i) => Math.max(0, i - 1));
     else if (e.key === 'Enter') Option.map(Option.fromUndefinedOr(rows()[at()]), choose);
     else return;
@@ -118,7 +125,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
             placeholder="Type a command"
             aria-label="Command"
             aria-controls="lab-command-rows"
-            aria-activedescendant={`lab-command-${at()}`}
+            aria-activedescendant={active()}
             value={query()}
             onInput={(e) => {
               setQuery(e.currentTarget.value);
@@ -145,10 +152,11 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
                 </div>
               )}
             </For>
-            <Show when={rows().length === 0}>
-              <p class="lab-command-none">No command matches.</p>
-            </Show>
           </div>
+          {/* Beside the list, not in it: a listbox holds options alone. */}
+          <Show when={rows().length === 0}>
+            <p class="lab-command-none">No command matches.</p>
+          </Show>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

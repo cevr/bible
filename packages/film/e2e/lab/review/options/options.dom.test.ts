@@ -53,6 +53,7 @@ import {
   attributeIs,
   attributesAre,
   countIs,
+  describedBy,
   evaluates,
   textHas,
   textIs,
@@ -460,10 +461,10 @@ describe("a film's choices", () => {
         // A row says its state only when it is not current, in a word; a take in place
         // says nothing of it: its 🔊 hears it over the picture.
         yield* countIs(page, `${at('score', 'strings')} [data-state]:not([data-variant])`, 0);
-        yield* textIs(page, `${at('score', 'piano')} .rv-badge[data-state="stale"]`, 'Out of date');
+        yield* textIs(page, `${at('score', 'piano')} .sh-badge[data-state="stale"]`, 'Out of date');
         yield* textIs(
           page,
-          `${at('score', 'choir')} .rv-badge[data-state="missing"]`,
+          `${at('score', 'choir')} .sh-badge[data-state="missing"]`,
           'Not made yet',
         );
         yield* evaluates(
@@ -673,7 +674,12 @@ describe("a film's choices", () => {
           ],
           { href: FILM },
         );
-        yield* waitFor(page, `[id="point-${WIND}"] input[type="range"][disabled]`);
+        const slider = `[id="point-${WIND}"] input[type="range"]`;
+        yield* waitFor(page, `${slider}[disabled]`);
+        // The slider is named as its field is, and both are described by why they cannot move.
+        yield* attributeIs(page, slider, 'aria-label', `${WIND} (dB)`);
+        yield* evaluates(page, describedBy(slider), 'computed');
+        yield* evaluates(page, describedBy(`[id="point-${WIND}"] .lab-num`), 'computed');
         yield* openCommandMenu(page, 'wind');
         yield* click(page, menuEntry(`go.choice.${WIND}`));
         yield* until(page, focusIn(WIND));
@@ -1686,6 +1692,8 @@ describe("a film's choices", () => {
         yield* page.press('Space');
         // The requested play is kept while the missing mix buffers.
         yield* textIs(page, '.rv-transport [data-act="play"]', '❚❚');
+        yield* attributeIs(page, '.rv-transport [data-act="play"]', 'aria-label', 'Pause');
+        yield* attributeIs(page, '.rv-transport [data-act="play"] > span', 'aria-hidden', 'true');
         // Fire the retry deadline once; intermediate picture frames aren't asserted.
         yield* page.clock.fastForward(5_000);
         yield* until(page, "document.querySelector('audio.rv-mix').readyState >= 1");
@@ -1693,6 +1701,52 @@ describe("a film's choices", () => {
         // The reload stalls the set (Buffering) until the mix can play, and the set resumes it.
         yield* until(page, "document.querySelector('.rv-picture video').paused === false");
         yield* until(page, "document.querySelector('audio.rv-mix').paused === false");
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'the pictures to play over are a toggle group: the arrows move along it, Enter picks, the address keeps it',
+    () =>
+      Effect.gen(function* () {
+        const picture = (ref: string, name: string): Json => ({
+          ref,
+          name,
+          size: 2048,
+          mtime: 0,
+          phone: 'none',
+        });
+        const two = route('GET', /^\/api\/films\/toy\/choices$/, () =>
+          json({
+            ...(choices(freshToy()) as Record<string, Json>),
+            pictures: [
+              picture('out/toy/toy.mp4', 'toy.mp4'),
+              picture('out/toy/warm.mp4', 'warm.mp4'),
+            ],
+          }),
+        );
+        const { page, errors } = yield* openReview([two, ...fakeFilm()], { href: FILM });
+        const group = '.rv-pick[aria-label="Picture"]';
+        const first = `${group} [data-picture="out/toy/toy.mp4"]`;
+        const warm = `${group} [data-picture="out/toy/warm.mp4"]`;
+        yield* attributeIs(page, group, 'role', 'group');
+        yield* attributeIs(page, first, 'aria-pressed', 'true');
+        yield* attributeIs(page, warm, 'aria-pressed', 'false');
+        // One tab stop, the pressed one; → moves along without picking.
+        yield* attributeIs(page, first, 'tabindex', '0');
+        yield* attributeIs(page, warm, 'tabindex', '-1');
+        yield* page.focus(first);
+        yield* page.press('ArrowRight');
+        yield* until(page, "document.activeElement.dataset.picture === 'out/toy/warm.mp4'");
+        yield* attributeIs(page, first, 'aria-pressed', 'true');
+        // Enter picks it; the address holds the pick.
+        yield* page.press('Enter');
+        yield* attributeIs(page, warm, 'aria-pressed', 'true');
+        yield* until(
+          page,
+          "new URLSearchParams(location.search).get('picture') === 'out/toy/warm.mp4'",
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

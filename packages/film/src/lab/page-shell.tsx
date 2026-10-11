@@ -17,6 +17,7 @@
 // tab's title names what the page has selected (`subject`) before the rest.
 
 import { Menu } from '@bible/ui/menu';
+import { Separator } from '@bible/ui/separator';
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Portal, Show, isServer, useHead } from '@solidjs/web';
 import { Effect, Option } from 'effect';
@@ -348,7 +349,7 @@ export const PageShell = (props: PageShellProps) => {
               <Icon of="films" />
               <span>Films</span>
             </a>
-            <span class="sh-vsep" />
+            <Separator class="sh-vsep" orientation="vertical" />
             <Menu.Root>
               <Menu.Trigger class="sh-switcher" data-act="switch-film" title="Switch film">
                 <span>{Option.getOrElse(film(), () => 'Choose a film')}</span>
@@ -357,31 +358,41 @@ export const PageShell = (props: PageShellProps) => {
               <Menu.Portal>
                 <Menu.Positioner class="lab-context-positioner" sideOffset={4} align="start">
                   <Menu.Popup class="lab-context-menu" data-role="film-menu">
-                    <For each={props.films()}>
-                      {(name) => (
-                        <Menu.Item
-                          class="lab-context-item"
-                          data-film={name}
-                          label={name}
-                          onClick={() => {
-                            go(partHref(filmPart(props.part()), name));
-                          }}
-                        >
-                          <span>{name}</span>
-                          <Show when={Option.contains(film(), name)}>
-                            <kbd>✓</kbd>
-                          </Show>
-                        </Menu.Item>
-                      )}
-                    </For>
-                    <Menu.Separator class="lab-context-separator" />
-                    <Menu.Item
-                      class="lab-context-item"
-                      label="Copy link"
-                      onClick={() => props.hub.invokeId('link.copy', BY_BUTTON)}
+                    {/* The films, the one open checked: a pick goes to it, on the part it is on. */}
+                    <Menu.RadioGroup
+                      aria-label="Films"
+                      value={Option.getOrUndefined(film())}
+                      onValueChange={(name: string) => {
+                        go(partHref(filmPart(props.part()), name));
+                      }}
                     >
-                      <span>Copy link</span>
-                    </Menu.Item>
+                      <For each={props.films()}>
+                        {(name) => (
+                          <Menu.RadioItem
+                            class="lab-context-item"
+                            data-film={name}
+                            value={name}
+                            label={name}
+                            closeOnClick
+                          >
+                            <span>{name}</span>
+                            <Menu.RadioItemIndicator class="lab-context-check">
+                              ✓
+                            </Menu.RadioItemIndicator>
+                          </Menu.RadioItem>
+                        )}
+                      </For>
+                    </Menu.RadioGroup>
+                    <Menu.Separator class="lab-context-separator" />
+                    <Menu.Group>
+                      <Menu.Item
+                        class="lab-context-item"
+                        label="Copy link"
+                        onClick={() => props.hub.invokeId('link.copy', BY_BUTTON)}
+                      >
+                        <span>Copy link</span>
+                      </Menu.Item>
+                    </Menu.Group>
                   </Menu.Popup>
                 </Menu.Positioner>
               </Menu.Portal>

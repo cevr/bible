@@ -12,11 +12,11 @@
 // refused (with the command its words offer past the refusal: Accept
 // anyway), for the newest asked of those landed (`writeStatus`).
 
-import { useAtomMount, useAtomSet } from '@bible/atom-solid';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { type JSX, Show } from '@solidjs/web';
 import { Effect, Exit, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { type Accessor, createSignal, untrack } from 'solid-js';
+import type { Accessor } from 'solid-js';
 import { busy, refused, said } from '../../command/command.ts';
 import type { LabFailure } from '../api.ts';
 import type { ReviewApi } from './api.ts';
@@ -100,18 +100,21 @@ export const useWrite = <Arg, A, K extends string>(
 ): OwnWrite<Arg, A, K> => {
   const { meta } = useReview();
   const atom = meta.runtime.fn<Arg>()(run);
-  // Mounted while the control lives, so its run is never dropped for want of a reader.
-  useAtomMount(() => atom);
+  // Read while the control lives, so its run is never dropped for want of a reader; whether
+  // it waits is the run's own state, not a copy of it.
+  const result = useAtomValue(() => atom);
   const set = useAtomSet(() => atom, { mode: 'promiseExit' });
-  const [waiting, setWaiting] = createSignal(false);
+  // The guard against a second write is the call's, not a signal's: a signal written now
+  // reads back only once the page flushes, so two writes in one tick would both go out.
+  let inFlight = false;
   return {
-    waiting,
+    waiting: () => result().waiting,
     write: (arg) => {
-      if (untrack(waiting)) return Effect.runPromise(Effect.succeedNone);
-      setWaiting(true);
+      if (inFlight) return Effect.runPromise(Effect.succeedNone);
+      inFlight = true;
       const land = sending(orders);
       return status.track(set(arg), words(arg)).then((exit) => {
-        setWaiting(false);
+        inFlight = false;
         return Option.some(land(exit));
       });
     },
@@ -121,7 +124,8 @@ export const useWrite = <Arg, A, K extends string>(
 /**
  * `children` over `value` once there is one, kept in place as it changes
  * (the value is an accessor); before, what `result` is `reading`, or why it
- * failed.
+ * failed, in a polite live region: the reading line is there as the page
+ * mounts, so only a failure that replaces it is said.
  */
 export const Loaded = <A,>(props: {
   readonly value: Option.Option<A>;
@@ -132,7 +136,7 @@ export const Loaded = <A,>(props: {
   <Show
     when={Option.getOrUndefined(props.value)}
     fallback={
-      <p class="empty">
+      <p class="empty" role="status">
         {Match.value(AsyncResult.isFailure(props.result)).pipe(
           Match.when(true, () => failedText(props.result)),
           Match.orElse(() => props.reading),

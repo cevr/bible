@@ -13,7 +13,7 @@
 import { For, Show } from '@solidjs/web';
 import { Option, Schema } from 'effect';
 import type { Accessor } from 'solid-js';
-import { createMemo } from 'solid-js';
+import { createMemo, createUniqueId } from 'solid-js';
 import { type Knob, Point } from '../../core/schema.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
@@ -72,7 +72,8 @@ const Where = (props: { readonly scene: string; readonly name: string }) => {
 /**
  * One knob's row: its name, its value's fields (the inspector's, stepped as
  * the knob's schema says: a number's name is its scrubby label, a point's
- * x and y step by pixels), and why it cannot be written, if it cannot.
+ * x and y step by pixels), and why it cannot be written, if it cannot: the
+ * line that describes its fields.
  */
 const Row = (props: { readonly scene: string; readonly name: string; readonly value: Knob }) => {
   const { state } = useEditor();
@@ -80,6 +81,7 @@ const Row = (props: { readonly scene: string; readonly name: string; readonly va
   const fields = createMemo(() => state.fieldsOf(knobOf(props.scene, props.name)));
   const field = (id: string) => fields().find((f) => f.id === id);
   const refusal = () => knobRefusal(state.inspectedSource(), props.name);
+  const why = createUniqueId();
   return (
     <Target
       of={knobOf(props.scene, props.name)}
@@ -90,17 +92,27 @@ const Row = (props: { readonly scene: string; readonly name: string; readonly va
         when={Option.isSome(pointOf(props.value))}
         fallback={
           <Show when={field('value')}>
-            {(f) => <Field field={f()} label={<span class="lab-edit-key">{props.name}</span>} />}
+            {(f) => (
+              <Field
+                field={f()}
+                label={<span class="lab-edit-key">{props.name}</span>}
+                describedBy={why}
+              />
+            )}
           </Show>
         }
       >
         <span class="lab-edit-key">{props.name}</span>
-        <Show when={field('x')}>{(f) => <Field field={f()} />}</Show>
-        <Show when={field('y')}>{(f) => <Field field={f()} />}</Show>
+        <Show when={field('x')}>{(f) => <Field field={f()} describedBy={why} />}</Show>
+        <Show when={field('y')}>{(f) => <Field field={f()} describedBy={why} />}</Show>
         <Where scene={props.scene} name={props.name} />
       </Show>
       <Show when={Option.getOrUndefined(refusal())}>
-        {(why: Accessor<string>) => <span class="lab-edit-note">{why()}</span>}
+        {(text: Accessor<string>) => (
+          <span class="lab-edit-note" id={why}>
+            {text()}
+          </span>
+        )}
       </Show>
     </Target>
   );

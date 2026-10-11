@@ -4,8 +4,9 @@
 // has `tabindex="0"`, the rest `-1`; the left and right arrows, and Home and
 // End, move it and focus the new item, and the keydown stops there.
 // Disabled items (by the DOM) are skipped, and a key held with a modifier is
-// left alone. When the items change, the tab stop follows its item, or falls
-// back to an enabled one when its item is gone.
+// left alone. The tab stop starts on the item `initialIndex` names, else on
+// the first enabled one. When the items change, the tab stop follows its
+// item, or falls back to an enabled one when its item is gone.
 import { createSignal, untrack } from 'solid-js';
 
 import {
@@ -34,7 +35,14 @@ interface UseCompositeRootReturnValue {
   onMapChange: (map: CompositeIndexMap) => void;
 }
 
-export function useCompositeRoot(): UseCompositeRootReturnValue {
+interface UseCompositeRootParameters {
+  /** Where the tab stop starts, among the first items (-1: the first enabled). */
+  initialIndex?: ((elements: ReadonlyArray<HTMLElement | null>) => number) | undefined;
+}
+
+export function useCompositeRoot(
+  params: UseCompositeRootParameters = {},
+): UseCompositeRootReturnValue {
   const [highlightedIndex, setHighlightedIndex] = createSignal(0, { ownedWrite: true });
   const elementsRef: { current: Array<HTMLElement | null> } = { current: [] };
   let rootElement: HTMLElement | null = null;
@@ -77,6 +85,14 @@ export function useCompositeRoot(): UseCompositeRootReturnValue {
 
       hasSetDefaultIndex = true;
       const sortedElements = Array.from(map.keys()) as Array<HTMLElement | null>;
+      const initial = params.initialIndex?.(sortedElements) ?? -1;
+      if (
+        !isIndexOutOfListBounds(sortedElements, initial) &&
+        !isListIndexDisabled(sortedElements, initial)
+      ) {
+        onHighlightedIndexChange(initial);
+        return;
+      }
       highlightedElement = elementsRef.current[current] ?? null;
       if (isListIndexDisabled(sortedElements, current)) {
         // A disabled item should not be the composite's entry point.

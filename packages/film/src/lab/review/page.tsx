@@ -1,11 +1,11 @@
 // The review page (`/`, served by `film lab`): the studio's shell
 // (`PageShell`: the film switcher, the page bar, a drill-down crumb, Go
-// to…), the page itself, and the lightbox, in Solid 2 over the review's
+// to…) and the page itself, in Solid 2 over the review's
 // routes on the page's own origin. The browser mounts it (`mount.tsx`) and
 // the lab renders it on the server first (`server.tsx`), over the same
 // components; neither side's own adapters are imported here.
 
-import { type JSX, Show } from '@solidjs/web';
+import type { JSX } from '@solidjs/web';
 import { parseHref } from '@bible/url-state';
 import { Equal, type Layer, Match, Option } from 'effect';
 import type { HttpClient } from 'effect/http';
@@ -165,22 +165,6 @@ const Page = () => {
   );
 };
 
-/** The image the page shows full size, with what it is under it (its name and age, or a version's moment). */
-const Lightbox = () => {
-  const { state, actions } = useReview();
-  return (
-    <Show when={Option.getOrUndefined(state.lightbox())}>
-      {(shown) => (
-        // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Escape closes the image (review.close-image), from a field too: a tap anywhere is the pointer's way
-        <figure class="rv-lightbox" onClick={() => actions.show(Option.none())}>
-          <img src={shown().src} alt={shown().caption} />
-          <figcaption>{shown().caption}</figcaption>
-        </figure>
-      )}
-    </Show>
-  );
-};
-
 /** What the review is rendered with: its host, its commands, how it draws a film's stills and its client of the lab. */
 interface ReviewWith {
   readonly host: Host;
@@ -189,7 +173,7 @@ interface ReviewWith {
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
 }
 
-/** The review: its shell, the page it is on, the lightbox, its context menu, the inspector, ⌘K, the `?` sheet and the receipts. */
+/** The review: its shell, the page it is on, its context menu, the inspector, ⌘K, the `?` sheet and the receipts. */
 const ReviewPage = (props: ReviewWith) => (
   <Root host={props.host} hub={props.hub} draw={props.draw} client={props.client}>
     <StudioFrame hub={props.hub} scope="review" legend={false}>
@@ -197,7 +181,6 @@ const ReviewPage = (props: ReviewWith) => (
         <Shell>
           <Page />
         </Shell>
-        <Lightbox />
       </Inspecting>
     </StudioFrame>
   </Root>

@@ -133,7 +133,7 @@ export const SceneCard = (props: SceneCardProps) => (
       <For each={chipsOf(props.marks)} keyed={(c) => c.mark}>
         {(chip) => (
           <span
-            class="sc-chip"
+            class="sh-badge"
             data-mark={chip().mark}
             data-state={chip().state}
             title={chip().why}

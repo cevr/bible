@@ -120,6 +120,8 @@ const COMMAND_RULES = `
   border: 1px solid var(--line-strong); border-radius: var(--r-1);
 }
 .lab-context-menu kbd:empty { display: none; }
+/* A radio item's check (the film switcher's open film): a glyph in the key's ink, no key's box. */
+.lab-context-check { font-size: var(--fs-2); color: var(--text-2); }
 .lab-field { display: contents; }
 .lab-field-scrub { cursor: ew-resize; }
 .lab-inspector-hint {

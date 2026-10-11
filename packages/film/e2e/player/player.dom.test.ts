@@ -40,9 +40,11 @@ import {
   attributeIs,
   countIs,
   evaluates,
+  inkIs,
   labelsClash,
   labelsInFull,
   labelsOverMarks,
+  pressedLook,
   textHas,
   textIs,
 } from '../../src/lab/fixtures/settled.ts';
@@ -399,6 +401,9 @@ describe('the player', () => {
       // Followed again, a press on the tape bar's track scrubs away too.
       yield* page.click('[data-act="follow"]');
       yield* attributeIs(page, '[data-act="follow"]', 'aria-pressed', 'true');
+      // Pressed, it wears the kit's one pressed look, as the Source view's Follow does: no dot.
+      yield* evaluates(page, pressedLook('[data-act="follow"]'), true);
+      yield* countIs(page, '[data-act="follow"] .sc-dot', 0);
       const track = yield* page.box('.bar .track');
       yield* page.mouse.click(track.x + track.width * 0.7, track.y + track.height / 2);
       yield* attributeIs(page, '[data-act="follow"]', 'aria-pressed', 'false');
@@ -476,9 +481,13 @@ describe('the player', () => {
         yield* page.clock.runFor(HUD_IDLE_MS * 3);
         yield* evaluates(page, controls(true), true);
         yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        // Named by its word, the glyph hidden from a reader.
+        yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Pause');
+        yield* attributeIs(page, '.bar [data-act="play"] > span', 'aria-hidden', 'true');
         // Enter on it is its click: the film pauses.
         yield* page.press('Enter');
         yield* textIs(page, '.bar [data-act="play"]', '▶︎');
+        yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Play');
         yield* evaluates(page, controls(true), true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -520,6 +529,7 @@ describe('the player', () => {
         yield* tap;
         yield* page.click('.bar [data-act="play"]');
         yield* textIs(page, '.bar [data-act="play"]', '▶︎');
+        yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Play');
         yield* evaluates(page, controls(true), true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.runPromise),
@@ -1157,6 +1167,10 @@ describe('the player', () => {
           .map((a) => SaidOf(Option.getOrElse(a.body, () => ({}))).address.ids),
       ).toEqual([['one', 'three']]);
       yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
+      // The chip is the kit's badge, in the approved colour.
+      const chip = '.sc-focus .sc-chips .sh-badge[data-state="approved"]';
+      yield* textIs(page, chip, 'Approved');
+      yield* evaluates(page, inkIs(chip, '--state-approved'), true);
       // The sheet says why under the card, as a chip's title never shows on touch.
       yield* textIs(
         page,
