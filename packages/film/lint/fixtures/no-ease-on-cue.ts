@@ -23,3 +23,13 @@ export const scene = drawing({
     ];
   },
 });
+
+// A drawing's `light` is handed the frame as its `draw` is.
+export const lit = drawing({
+  timeline: { weave: { mark: 'robe', dur: 1.2 } },
+  light: (f) => [
+    ease.inCubic(f.at('weave')), // RED film/no-ease-on-cue
+    clamp(f.at('weave') * 4), // RED film/no-cue-remap
+  ],
+  draw: () => [],
+});

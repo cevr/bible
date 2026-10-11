@@ -18,7 +18,7 @@
 // b`; and a comparison `x < k` (`<=`, `>`, `>=`, either way round) with `k`
 // inside `STEP` (a comparison within `STEP`'s margin of 0 or 1 asks whether
 // the cue has begun, is seen at all, or is done: the cue's own edges). `x` is
-// a call of the frame's `.at(…)` (`nodes.ts`: the frame a draw is handed) or
+// a call of the frame's `.at(…)` (`nodes.ts`: the frame a drawing's `draw` or `light` is handed) or
 // a name bound by `const`, anywhere in scope, to one, and `k`, `a`, `b`, `c`
 // are numbers written out or top-level consts, by the name's binding where it
 // is read (a parameter of a const's name is not the const). An `.at` read off

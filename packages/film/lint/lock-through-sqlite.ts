@@ -23,7 +23,7 @@ import {
 import { type Bindings, bindings, type Module } from './nodes.ts';
 
 /** The lock's module, `tools/manifest-lock-bun.ts`, which exports `lockFile`. */
-const isLock: Module = (from) => /(?:^|\/)manifest-lock-bun(?:\.ts)?$/u.test(from);
+const isLock: Module = (from) => /(?:^|\/)manifest-lock-bun(?:\.[jt]s)?$/u.test(from);
 
 /** A lock file's name: a dot, a name, `.lock`, at the end of a path or a name's piece. */
 const LOCK_NAME = /(?:^|\/)\.[^/]*\.lock$/u;

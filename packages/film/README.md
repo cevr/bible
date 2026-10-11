@@ -2836,18 +2836,23 @@ seams and the type tests are let off.
 
 Every name a rule reads a meaning into is read by its binding where it is
 written, through one reader, `lint/nodes.ts` (`bindings`: `definitionOf`,
-`importsAs`, `readsImport`, `callsImport`, `isGlobal`, `isFrame`,
-`framePart`, `readsCue`, `takenFrom`, `readsOf`, `isRunner`): an import
+`importsAs`, `readsImport`, `callsImport`, `isGlobal`, `framePart`,
+`readsCue`, `takenFrom`, `readsOf`, `isRunner`): an import
 under an alias or read off its module imported whole (`clamp as cap`,
 `Core.clamp`) is the import, and a parameter or a local of the same spelling
-(`Math`, `t`, `window`, `test`) is its own name. A global is the global only
+(`Math`, `t`, `window`, `test`) is its own name. A module is told by the path
+a relative specifier resolves to from the importing file, so core's own
+`./time.ts` is `core/time.ts` as `../core/time.ts` is. A global is the global only
 where the file binds that name nowhere; the frame's `t`, `T` and `at` are the
-frame's only when read off the parameter a draw is handed. A member read off
+frame's only when read off the parameter a drawing's `draw` or `light` is
+handed, or one typed `Frame`. A member read off
 a value handed in (`page.finger`, `page.evaluate`, `hub.keysOf`) is read by
 its member's name, since the rule cannot type the value. `.oxlintrc.json`
-refuses the scope tree's own readers (`Scope`, `SourceCode`, `Variable`,
-`sourceCode` from `oxlint-plugin-effect/rule-bindings`) to every module of
-`lint/` but `nodes.ts`, so a rule cannot grow a second reader.
+refuses the scope tree's own readers to every module of `lint/` but
+`nodes.ts`: the imports (`Scope`, `SourceCode`, `Variable`, `sourceCode` from
+`oxlint-plugin-effect/rule-bindings`) and, through a rule's own context, the
+properties `getScope`, `getDeclaredVariables`, `scopeManager` and
+`isGlobalReference`, so a rule cannot grow a second reader.
 `lint/plugin.test.ts` runs oxlint over the marked fixtures: every RED
 location must report its rule, with no extra findings. Each of the plugin's
 twenty-two rules (`lint/plugin.ts`) also has a diagnostic whose corrective

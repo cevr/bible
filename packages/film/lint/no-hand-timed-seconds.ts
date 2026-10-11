@@ -31,7 +31,7 @@
 //    no word is left to pin it to.
 //
 // Each name is read by its binding where it is written (`nodes.ts`). The
-// clock is the frame's `t` or `T`: read off the frame a draw is handed
+// clock is the frame's `t` or `T`: read off the frame a drawing's `draw` or `light` is handed
 // (`f.t`, `f.T`), taken apart from it (`const { t } = f`), or a `const`
 // bound to either (`const now = f.t`); a parameter `t` of a curve or a share
 // is no clock. `clamp`, `progress` and `keys` are film's (`core/time.ts`:

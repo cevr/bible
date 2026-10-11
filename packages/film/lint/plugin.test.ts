@@ -161,9 +161,14 @@ describe('film oxlint plugin', () => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const dir = path.join(import.meta.dir, 'fixtures');
-        const files = (yield* fs.readDirectory(dir)).filter((f) => /\.tsx?$/.test(f));
+        // A fixture may sit in a folder its module tests read (`core/`); oxlint reports it by its name.
+        const files = (yield* fs.readDirectory(dir, { recursive: true })).filter((f) =>
+          /\.tsx?$/.test(f),
+        );
         const expected = (yield* Effect.forEach(files, (file) =>
-          Effect.map(fs.readFileString(path.join(dir, file)), (source) => marked(file, source)),
+          Effect.map(fs.readFileString(path.join(dir, file)), (source) =>
+            marked(path.basename(file), source),
+          ),
         ))
           .flat()
           .sort();

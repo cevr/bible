@@ -4,13 +4,14 @@
 // the frame a draw is handed), a number written out or named by a top-level
 // const, an object literal's property by name, and whether an expression is
 // a cue's progress. No rule reads a file's scope tree but through this module
-// (`.oxlintrc.json` refuses `Scope`, `SourceCode` and `Variable` to the
-// others).
+// (`.oxlintrc.json` refuses `Scope`, `SourceCode` and `Variable`, and the
+// context's `getScope` and `getDeclaredVariables`, to the others).
 
 import { Effect, Option, Predicate } from 'effect';
 import {
   type Definition,
   type ESTree,
+  filename,
   type OxlintSourceCode,
   type RuleContext,
   Scope,
@@ -76,12 +77,35 @@ export const unwrapped = (node: ESTree.Node): ESTree.Node => {
 /** A name, where it is read. */
 export type Named = ESTree.Node & { readonly name: string };
 
-/** A module a rule reads names from, told by the specifier an import names it with. */
+/**
+ * A module a rule reads names from, told by what an import names: a package's
+ * specifier as written (`@bible/film/core`, `effect/process`), or a relative
+ * one resolved against the file that writes it (`./time.ts` in
+ * `src/core/x.ts` is `…/src/core/time.ts`), so a module is the same however
+ * the importing file reaches it.
+ */
 export type Module = (from: string) => boolean;
 
+/** The file a rule reads: its scope tree, and its path (forward slashes). */
+interface Source {
+  readonly sourceCode: OxlintSourceCode;
+  readonly file: string;
+}
+
+/** What a specifier names, seen from `file`: a relative one resolved against the file's folder, any other as written. */
+const resolvedFrom = (file: string, from: string): string => {
+  if (!from.startsWith('./') && !from.startsWith('../')) return from;
+  const folder = file.split('/').slice(0, -1);
+  for (const piece of from.split('/')) {
+    if (piece === '..') folder.pop();
+    else if (piece !== '.') folder.push(piece);
+  }
+  return folder.join('/');
+};
+
 /** How `id` is bound where it is read: its first definition, none for a name the file does not bind. */
-const definitionIn = (code: OxlintSourceCode, id: Named): Option.Option<Definition> =>
-  Option.flatMap(Scope.findVariableUp(code.getScope(id), id.name), (v: Variable) =>
+const definitionIn = (code: Source, id: Named): Option.Option<Definition> =>
+  Option.flatMap(Scope.findVariableUp(code.sourceCode.getScope(id), id.name), (v: Variable) =>
     Option.fromUndefinedOr(v.defs[0]),
   );
 
@@ -92,12 +116,12 @@ interface Imported {
 }
 
 /** The import `id` is bound to where it is read, when it is one. */
-const importIn = (code: OxlintSourceCode, id: Named): Option.Option<Imported> =>
+const importIn = (code: Source, id: Named): Option.Option<Imported> =>
   Option.flatMap(definitionIn(code, id), (def) => {
     const declaration = def.parent;
     if (def.type !== 'ImportBinding' || declaration?.type !== 'ImportDeclaration')
       return Option.none();
-    const from = String(declaration.source.value);
+    const from = resolvedFrom(code.file, String(declaration.source.value));
     const s = def.node;
     if (s.type === 'ImportNamespaceSpecifier') return Option.some({ from, name: '*' });
     if (s.type === 'ImportDefaultSpecifier') return Option.some({ from, name: 'default' });
@@ -106,7 +130,7 @@ const importIn = (code: OxlintSourceCode, id: Named): Option.Option<Imported> =>
   });
 
 /** Whether `node` is a name bound to the import of `name` (`*`: the module whole) from a module `from` accepts. */
-const importsAsIn = (code: OxlintSourceCode, node: ESTree.Node, from: Module, name: string) => {
+const importsAsIn = (code: Source, node: ESTree.Node, from: Module, name: string) => {
   if (node.type !== 'Identifier') return false;
   return Option.exists(importIn(code, node), (i) => from(i.from) && i.name === name);
 };
@@ -116,7 +140,7 @@ const importsAsIn = (code: OxlintSourceCode, node: ESTree.Node, from: Module, na
  * imported (`clamp`), under an alias (`clamp as cap`), or read off the module
  * imported whole (`Core.clamp`, `Core['clamp']`), under any type wrapper.
  */
-const readsImportIn = (code: OxlintSourceCode, node: ESTree.Node, from: Module, name: string) => {
+const readsImportIn = (code: Source, node: ESTree.Node, from: Module, name: string) => {
   const n = unwrapped(node);
   if (n.type === 'Identifier') return importsAsIn(code, n, from, name);
   if (n.type !== 'MemberExpression' || !Option.contains(memberName(n), name)) return false;
@@ -124,11 +148,11 @@ const readsImportIn = (code: OxlintSourceCode, node: ESTree.Node, from: Module, 
 };
 
 /** Whether `node` is a call of the export `name` of a module `from` accepts: `clamp(…)`, `cap(…)`, `Core.clamp(…)`. */
-const callsImportIn = (code: OxlintSourceCode, node: ESTree.Node, from: Module, name: string) =>
+const callsImportIn = (code: Source, node: ESTree.Node, from: Module, name: string) =>
   node.type === 'CallExpression' && readsImportIn(code, node.callee, from, name);
 
 /** Whether `node` is the global `name`: that name, which the file binds nowhere it is read. */
-const isGlobalIn = (code: OxlintSourceCode, node: ESTree.Node, name: string) =>
+const isGlobalIn = (code: Source, node: ESTree.Node, name: string) =>
   node.type === 'Identifier' && node.name === name && Option.isNone(definitionIn(code, node));
 
 /** Whether a declarator is a `const`'s. */
@@ -153,7 +177,7 @@ const topLevelConst = (declarator: ESTree.Node): boolean => {
  * const`). A parameter or a local of the same name is its own binding, whose
  * value is not known.
  */
-const topLevelValueIn = (code: OxlintSourceCode, id: Named): Option.Option<ESTree.Node> =>
+const topLevelValueIn = (code: Source, id: Named): Option.Option<ESTree.Node> =>
   Option.flatMap(definitionIn(code, id), (def) => {
     const node = def.node;
     if (def.type !== 'Variable' || node.type !== 'VariableDeclarator' || !node.init)
@@ -163,7 +187,7 @@ const topLevelValueIn = (code: OxlintSourceCode, id: Named): Option.Option<ESTre
   });
 
 /** The value a `const` binds `id` to, when `id`'s binding is a plain `const x = …` anywhere in scope. */
-const constValueIn = (code: OxlintSourceCode, id: Named): Option.Option<ESTree.Node> =>
+const constValueIn = (code: Source, id: Named): Option.Option<ESTree.Node> =>
   Option.flatMap(definitionIn(code, id), (def) => {
     const node = def.node;
     if (def.type !== 'Variable' || !isConst(node) || !node.init) return Option.none();
@@ -197,8 +221,9 @@ const writtenNumber = (n: ESTree.Node): Option.Option<number> => {
 export type NumberOf = (n: ESTree.Node) => Option.Option<number>;
 
 // The frame. A draw is handed one instant of its scene, a `Frame`
-// (`canvas/film.ts`): the parameter of `drawing({ draw: (f) => … })`, or a
-// parameter whose type is film's `Frame` (imported, read off the canvas
+// (`canvas/film.ts`): the first parameter of a callback of the spec handed
+// to `drawing(…)` that takes the frame (`draw: (f) => …`, `light: (f) =>
+// …`), or a parameter whose type is film's `Frame` (imported, read off the canvas
 // module imported whole, or a local alias of one: `type RoofFrame =
 // Frame<…>`). Its members (`t`, `T`, `at`) are read off it (`f.t`), taken
 // apart from it (`const { t } = f`, `({ t }: Frame) => …`), or named by a
@@ -206,13 +231,16 @@ export type NumberOf = (n: ESTree.Node) => Option.Option<number>;
 
 /** The module film's `Frame` and `drawing` are exported from. */
 export const isCanvas: Module = (from) =>
-  from === '@bible/film/canvas' || /(?:^|\/)canvas\/(?:index|film)\.ts$/u.test(from);
+  from === '@bible/film/canvas' || /(?:^|\/)canvas\/(?:index|film)(?:\.[jt]s)?$/u.test(from);
+
+/** The callbacks of a drawing's spec that film hands the frame (`canvas/film.ts`: `draw`, and `light` when a function). */
+const FRAME_TAKERS: ReadonlyArray<string> = ['draw', 'light'];
 
 /** How far a type or a value is followed through aliases before the reader gives up. */
 const ALIAS_DEPTH = 8;
 
 /** Whether a type as written is film's `Frame`: `Frame<…>`, `Canvas.Frame<…>`, or a local alias of one. */
-const isFrameTypeIn = (code: OxlintSourceCode, t: ESTree.Node, depth: number): boolean => {
+const isFrameTypeIn = (code: Source, t: ESTree.Node, depth: number): boolean => {
   if (depth > ALIAS_DEPTH || t.type !== 'TSTypeReference') return false;
   const name = t.typeName;
   if (name.type === 'TSQualifiedName')
@@ -234,11 +262,11 @@ const annotationOf = (param: ESTree.Node): Option.Option<ESTree.Node> => {
   return Option.map(Option.fromNullishOr(param.typeAnnotation), (a) => a.typeAnnotation);
 };
 
-/** Whether `fn` is the `draw` of an object literal handed to film's `drawing(…)`. */
-const isDrawOfDrawing = (code: OxlintSourceCode, fn: ESTree.Node): boolean => {
+/** Whether `fn` is the `draw` or `light` of an object literal handed to film's `drawing(…)`. */
+const takesFrameOfDrawing = (code: Source, fn: ESTree.Node): boolean => {
   const property = fn.parent;
   if (property?.type !== 'Property' || property.value !== fn) return false;
-  if (!Option.contains(keyName(property), 'draw')) return false;
+  if (!Option.exists(keyName(property), (key) => FRAME_TAKERS.includes(key))) return false;
   const spec = property.parent;
   const call = spec.parent;
   return (
@@ -248,14 +276,14 @@ const isDrawOfDrawing = (code: OxlintSourceCode, fn: ESTree.Node): boolean => {
   );
 };
 
-/** Whether `param`, a parameter of `fn`, is handed the frame: typed as one, or the first of a drawing's `draw`. */
-const isFrameParamIn = (code: OxlintSourceCode, fn: ESTree.Node, param: ESTree.Node): boolean =>
+/** Whether `param`, a parameter of `fn`, is handed the frame: typed as one, or the first of a drawing's `draw` or `light`. */
+const isFrameParamIn = (code: Source, fn: ESTree.Node, param: ESTree.Node): boolean =>
   Option.match(annotationOf(param), {
     onSome: (t) => isFrameTypeIn(code, t, 0),
     onNone: () =>
       (fn.type === 'ArrowFunctionExpression' || fn.type === 'FunctionExpression') &&
       fn.params[0] === param &&
-      isDrawOfDrawing(code, fn),
+      takesFrameOfDrawing(code, fn),
   });
 
 /** The parameter of `fn` that is, or defaults, the pattern or name `bound`. */
@@ -272,7 +300,7 @@ const paramHolding = (fn: ESTree.Node, bound: ESTree.Node): Option.Option<ESTree
 };
 
 /** Whether `node` holds the frame where it is read: a parameter handed it, or a `const` alias of one. */
-const isFrameIn = (code: OxlintSourceCode, node: ESTree.Node, depth: number): boolean => {
+const isFrameIn = (code: Source, node: ESTree.Node, depth: number): boolean => {
   const n = unwrapped(node);
   if (depth > ALIAS_DEPTH || n.type !== 'Identifier') return false;
   return Option.exists(definitionIn(code, n), (def) => {
@@ -310,11 +338,7 @@ const takenApartAs = (
  * The member of the frame `node` reads: `t` for `f.t`, for a `t` taken
  * apart from the frame, or for a `const` bound to such a read.
  */
-const framePartIn = (
-  code: OxlintSourceCode,
-  node: ESTree.Node,
-  depth: number,
-): Option.Option<string> => {
+const framePartIn = (code: Source, node: ESTree.Node, depth: number): Option.Option<string> => {
   const n = unwrapped(node);
   if (depth > ALIAS_DEPTH) return Option.none();
   if (n.type === 'MemberExpression')
@@ -338,7 +362,7 @@ const framePartIn = (
 };
 
 /** `f.at(…)`: a call of the frame's `at`, read off it or taken apart from it. */
-const isCueProgressIn = (code: OxlintSourceCode, n: ESTree.Node): boolean =>
+const isCueProgressIn = (code: Source, n: ESTree.Node): boolean =>
   n.type === 'CallExpression' && Option.contains(framePartIn(code, n.callee, 0), 'at');
 
 /**
@@ -346,7 +370,7 @@ const isCueProgressIn = (code: OxlintSourceCode, n: ESTree.Node): boolean =>
  * (anywhere in scope) to one. A progress passed in as a parameter is not
  * traced.
  */
-const readsCueIn = (code: OxlintSourceCode, x: ESTree.Node): boolean => {
+const readsCueIn = (code: Source, x: ESTree.Node): boolean => {
   const n = unwrapped(x);
   if (isCueProgressIn(code, n)) return true;
   if (n.type !== 'Identifier') return false;
@@ -359,7 +383,7 @@ const readsCueIn = (code: OxlintSourceCode, x: ESTree.Node): boolean => {
  * = Bun`, `go` and `url` for `const { navigate: go } = url`.
  */
 const takenFromIn = (
-  code: OxlintSourceCode,
+  code: Source,
   id: Named,
 ): Option.Option<{ readonly key: string; readonly value: ESTree.Node }> =>
   Option.flatMap(definitionIn(code, id), (def) => {
@@ -373,8 +397,8 @@ const takenFromIn = (
   });
 
 /** Every read of a name `node` declares (a declarator's, a function's), where it is read. */
-const readsOfIn = (code: OxlintSourceCode, node: ESTree.Node): ReadonlyArray<ESTree.Node> =>
-  code
+const readsOfIn = (code: Source, node: ESTree.Node): ReadonlyArray<ESTree.Node> =>
+  code.sourceCode
     .getDeclaredVariables(node)
     .flatMap((v) => v.references)
     .filter((ref) => ref.isRead())
@@ -384,7 +408,7 @@ const readsOfIn = (code: OxlintSourceCode, node: ESTree.Node): ReadonlyArray<EST
 const isRunner: Module = (from) => from === 'bun:test' || from === 'effect-bun-test';
 
 /** Whether `node` is the test runner's `name`: imported from it (or an alias), or bun's global of that name. */
-const isRunnerIn = (code: OxlintSourceCode, node: ESTree.Node, name: string) =>
+const isRunnerIn = (code: Source, node: ESTree.Node, name: string) =>
   importsAsIn(code, node, isRunner, name) || isGlobalIn(code, node, name);
 
 /** What a file's bindings give a rule, each read where the name is written. */
@@ -399,8 +423,6 @@ export interface Bindings {
   readonly callsImport: (node: ESTree.Node, from: Module, name: string) => boolean;
   /** Whether a name is the global `name`: written so, and bound nowhere where it is read. */
   readonly isGlobal: (node: ESTree.Node, name: string) => boolean;
-  /** Whether an expression holds the frame a draw is handed. */
-  readonly isFrame: (node: ESTree.Node) => boolean;
   /** The member of the frame an expression reads: `t` for `f.t`, `const { t } = f` or `const now = f.t`. */
   readonly framePart: (node: ESTree.Node) => Option.Option<string>;
   /** Whether an expression is a cue's progress: `f.at(…)`, or a `const` bound to one. */
@@ -420,7 +442,7 @@ export interface Bindings {
 }
 
 /** `Bindings` over the file `code` reads. */
-const bindingsIn = (code: OxlintSourceCode): Bindings => {
+const bindingsIn = (code: Source): Bindings => {
   const numberOf: NumberOf = (n) => {
     if (n.type === 'Literal' && Predicate.isNumber(n.value)) return Option.some(n.value);
     if (n.type === 'Identifier') return Option.flatMap(topLevelValueIn(code, n), writtenNumber);
@@ -432,7 +454,6 @@ const bindingsIn = (code: OxlintSourceCode): Bindings => {
     readsImport: (node, from, name) => readsImportIn(code, node, from, name),
     callsImport: (node, from, name) => callsImportIn(code, node, from, name),
     isGlobal: (node, name) => isGlobalIn(code, node, name),
-    isFrame: (node) => isFrameIn(code, node, 0),
     framePart: (node) => framePartIn(code, node, 0),
     readsCue: (node) => readsCueIn(code, node),
     takenFrom: (id) => takenFromIn(code, id),
@@ -445,8 +466,8 @@ const bindingsIn = (code: OxlintSourceCode): Bindings => {
 
 /** The linted file's `Bindings`, for a rule's visitors: `const { numberOf, callsImport } = yield* bindings`. */
 export const bindings: Effect.Effect<Bindings, never, RuleContext> = Effect.map(
-  sourceCode,
-  bindingsIn,
+  Effect.all([sourceCode, filename]),
+  ([code, file]) => bindingsIn({ sourceCode: code, file: file.replaceAll('\\', '/') }),
 );
 
 /** `Bindings.definitionOf`, as an answer read through the rule's context. */
@@ -462,7 +483,7 @@ export const isGlobal = (node: ESTree.Node, name: string) =>
 
 /** The module of film's clock and easing helpers: `lerp`, `clamp`, `ease`, `CLOCK_EPSILON` (`core/time.ts`). */
 export const isFilmTime: Module = (from) =>
-  from === '@bible/film/core' || /(?:^|\/)core\/(?:time|index)(?:\.ts)?$/u.test(from);
+  from === '@bible/film/core' || /(?:^|\/)core\/(?:time|index)(?:\.[jt]s)?$/u.test(from);
 
 /** The property `key` of an object literal, by plain name. */
 export const property = (

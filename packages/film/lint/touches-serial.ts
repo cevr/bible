@@ -34,7 +34,7 @@ import {
 import { ancestors, type Bindings, bindings, memberName, type Module } from './nodes.ts';
 
 /** The module the touch gesture is exported from. */
-const isGestures: Module = (from) => /(?:^|\/)fixtures\/gestures(?:\.ts)?$/u.test(from);
+const isGestures: Module = (from) => /(?:^|\/)fixtures\/gestures(?:\.[jt]s)?$/u.test(from);
 
 /** The node a callee chain starts at: `it` for `it.effect.layer(x)(…)`. */
 const rootOf = (n: ESTree.Node): Option.Option<ESTree.Node> => {
