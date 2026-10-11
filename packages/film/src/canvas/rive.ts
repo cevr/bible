@@ -144,7 +144,10 @@ const rigOf = async (spec: RivePropSpec) => {
   const machine =
     spec.source.stateMachine === undefined
       ? undefined
-      : new runtime.StateMachineInstance(artboard.stateMachineByName(spec.source.stateMachine), artboard);
+      : new runtime.StateMachineInstance(
+          artboard.stateMachineByName(spec.source.stateMachine),
+          artboard,
+        );
   const model = file.defaultArtboardViewModel(artboard);
   const vm = model === null || model === undefined ? undefined : model.defaultInstance();
   if (vm !== undefined) {

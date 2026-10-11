@@ -160,10 +160,7 @@ const blob = (x: number, y: number, w: number, h: number, seed: number): Pt[] =>
   });
 
 /** `court.ts`'s `FIGURE_STAIN_SPOTS`, the accused's two stains. */
-const STAINS: ReadonlyArray<Pt[]> = [
-  blob(10, -76, 30, 38, 7),
-  blob(-14, -52, 14, 16, 11),
-];
+const STAINS: ReadonlyArray<Pt[]> = [blob(10, -76, 30, 38, 7), blob(-14, -52, 14, 16, 11)];
 
 // ─── the skeleton ────────────────────────────────────────────────────────────
 
@@ -400,7 +397,12 @@ const tailWeigh =
 
 /** A strip of cloth hanging along a tail's bones, `w0` wide at the knot to `w1` at its end, clockwise. */
 const tailStrip = (tail: 'A' | 'B', w0: number, w1: number): Pt[] => {
-  const spine: Pt[] = [rootOf(`tail${tail}0`), tipOf(`tail${tail}0`), tipOf(`tail${tail}1`), tipOf(`tail${tail}2`)];
+  const spine: Pt[] = [
+    rootOf(`tail${tail}0`),
+    tipOf(`tail${tail}0`),
+    tipOf(`tail${tail}1`),
+    tipOf(`tail${tail}2`),
+  ];
   const side = (sgn: number): Pt[] =>
     spine.map((p, i) => {
       const q = spine[Math.min(spine.length - 1, i + 1)] ?? p;
@@ -521,7 +523,12 @@ const BOWED = {
 const restOf = (name: string) => BONES.find((b) => b.name === name)?.rotation ?? 0;
 
 /** The tails' swing on a move starting at `start`, from `from` (rest + offset per link), each link later and wider. */
-const tails = (kick: number, start: number, from = 0, to = 0): Record<string, Record<string, K[]>> => {
+const tails = (
+  kick: number,
+  start: number,
+  from = 0,
+  to = 0,
+): Record<string, Record<string, K[]>> => {
   const out: Record<string, Record<string, K[]>> = {};
   for (const tail of ['A', 'B'] as const)
     for (let i = 0; i < 3; i++) {
@@ -529,7 +536,13 @@ const tails = (kick: number, start: number, from = 0, to = 0): Record<string, Re
       const r = restOf(name);
       const amp = kick * (1 + 0.5 * i) * (tail === 'A' ? 1 : 0.8);
       out[`bone:${name}`] = {
-        rotation: swing(r + from * (i === 0 ? 1 : 0.3), r + to * (i === 0 ? 1 : 0.3), amp, 0.05 + 0.06 * i, start),
+        rotation: swing(
+          r + from * (i === 0 ? 1 : 0.3),
+          r + to * (i === 0 ? 1 : 0.3),
+          amp,
+          0.05 + 0.06 * i,
+          start,
+        ),
       };
     }
   return out;
@@ -568,29 +581,31 @@ export const accusedRml = (): string => {
 
   // The face, in the head's own frame turned upright (origin at the neck, x right, y down).
   const eye = (side: 'L' | 'R', x: number) =>
-    el(
-      'Shape',
-      { x, y: -7, name: `eye${side}`, id: idOf(`eye${side}`) },
-      [
-        el('Ellipse', { width: 6.4, height: 8.4, originX: 0.5, originY: 0.5, name: 'Path' }),
-        el('Fill', { name: 'Ink' }, [solid(P.outline)]),
-        // Pulled toward the gaze, then held inside its socket.
-        el('TranslationConstraint', { targetId: idOf('gaze'), strength: 0.03, name: 'Look' }),
-        el('DistanceConstraint', {
-          targetId: idOf(`socket${side}`),
-          distance: 3,
-          modeValue: 'closer',
-          name: 'Socket',
-        }),
-        bind('eyes', 17),
-      ],
-    );
+    el('Shape', { x, y: -7, name: `eye${side}`, id: idOf(`eye${side}`) }, [
+      el('Ellipse', { width: 6.4, height: 8.4, originX: 0.5, originY: 0.5, name: 'Path' }),
+      el('Fill', { name: 'Ink' }, [solid(P.outline)]),
+      // Pulled toward the gaze, then held inside its socket.
+      el('TranslationConstraint', { targetId: idOf('gaze'), strength: 0.03, name: 'Look' }),
+      el('DistanceConstraint', {
+        targetId: idOf(`socket${side}`),
+        distance: 3,
+        modeValue: 'closer',
+        name: 'Socket',
+      }),
+      bind('eyes', 17),
+    ]);
   const brow = (side: -1 | 1) =>
     el('Shape', { x: side * 13, y: -21, name: `brow${side}`, id: idOf(`brow${side}`) }, [
-      smoothPath(b, `brow${side}`, [
-        [-8, 0],
-        [8, 0],
-      ], undefined, false),
+      smoothPath(
+        b,
+        `brow${side}`,
+        [
+          [-8, 0],
+          [8, 0],
+        ],
+        undefined,
+        false,
+      ),
       el('Stroke', { thickness: 3.4, cap: 'round', name: 'Ink' }, [solid(P.outline)]),
     ]);
   const face = el('Node', { x: 0, y: FACE_Y, name: 'face', id: idOf('face') }, [
@@ -615,13 +630,17 @@ export const accusedRml = (): string => {
         // The head turns after the eyes (`follow` of the way). The runtime's IK keeps its last
         // solve where the head bone is not dirtied, so the prop re-dirties it each frame
         // (`RiveSource.refresh`): without that a frame depends on the frame drawn before it.
-        el('IKConstraint', {
-          targetId: idOf('gaze'),
-          parentBoneCount: 0,
-          strength: 0,
-          name: 'Follow',
-          id: idOf('follow'),
-        }, [bind('follow', 172)]),
+        el(
+          'IKConstraint',
+          {
+            targetId: idOf('gaze'),
+            parentBoneCount: 0,
+            strength: 0,
+            name: 'Follow',
+            id: idOf('follow'),
+          },
+          [bind('follow', 172)],
+        ),
         bone(spec('jaw'), []),
       ]),
     ]),
@@ -653,7 +672,10 @@ export const accusedRml = (): string => {
     shape(
       b,
       'head',
-      smoothPath(b, 'head', ellipse(0, -165, 35, 38, 18), { bones: ['head', 'jaw'], weigh: headWeigh }),
+      smoothPath(b, 'head', ellipse(0, -165, 35, 38, 18), {
+        bones: ['head', 'jaw'],
+        weigh: headWeigh,
+      }),
       { color: P.figure },
     ),
     ...(['A', 'B'] as const).map((t) =>
@@ -667,18 +689,16 @@ export const accusedRml = (): string => {
         { color: P.scarlet, line: 2, shadow: 0.2 },
       ),
     ),
-    shape(
-      b,
-      'knot',
-      smoothPath(b, 'knot', ellipse(16, -40, 6, 5, 8), torsoSkin),
-      { color: P.scarlet, line: 2, shadow: 0.2 },
-    ),
-    shape(
-      b,
-      'sash',
-      smoothPath(b, 'sash', roundRect(0, -40, 70, 8, 3, 1), torsoSkin),
-      { color: P.scarlet, line: 2, shadow: 0.15 },
-    ),
+    shape(b, 'knot', smoothPath(b, 'knot', ellipse(16, -40, 6, 5, 8), torsoSkin), {
+      color: P.scarlet,
+      line: 2,
+      shadow: 0.2,
+    }),
+    shape(b, 'sash', smoothPath(b, 'sash', roundRect(0, -40, 70, 8, 3, 1), torsoSkin), {
+      color: P.scarlet,
+      line: 2,
+      shadow: 0.15,
+    }),
     ...STAINS.map((pts, i) =>
       shape(b, `stain${i}`, smoothPath(b, `stain${i}`, pts, torsoSkin), {
         color: P.scarlet,
@@ -707,7 +727,13 @@ export const accusedRml = (): string => {
     body,
     // The contact shadow under the feet (`ground`), softened by a feather.
     el('Shape', { x: 0, y: 2, name: 'ground' }, [
-      el('Ellipse', { width: GROUND.width, height: GROUND.height, originX: 0.5, originY: 0.5, name: 'Path' }),
+      el('Ellipse', {
+        width: GROUND.width,
+        height: GROUND.height,
+        originX: 0.5,
+        originY: 0.5,
+        name: 'Path',
+      }),
       el('Fill', { fillRule: 'clockwise', name: 'Shade' }, [
         solid('#281c10', GROUND.alpha),
         el('Feather', { strength: GROUND.feather, name: 'Soft' }),
@@ -718,13 +744,32 @@ export const accusedRml = (): string => {
   // ─── the timelines ───
   const bow = timeline(b, 'bow', TIMELINES.bow.seconds, {
     'bone:chest': {
-      rotation: [[0, 0], [0.33, BOWED.chestRot + 0.01, 'io'], [0.5, BOWED.chestRot]],
-      scaleX: [[0, 1, 'out'], [0.3, BOWED.chestLen - 0.01, 'io'], [0.52, BOWED.chestLen]],
+      rotation: [
+        [0, 0],
+        [0.33, BOWED.chestRot + 0.01, 'io'],
+        [0.5, BOWED.chestRot],
+      ],
+      scaleX: [
+        [0, 1, 'out'],
+        [0.3, BOWED.chestLen - 0.01, 'io'],
+        [0.52, BOWED.chestLen],
+      ],
     },
     'bone:head': {
-      rotation: [[0, 0], [0.06, 0, 'out'], [0.4, BOWED.headRot + 0.03, 'io'], [0.62, BOWED.headRot]],
+      rotation: [
+        [0, 0],
+        [0.06, 0, 'out'],
+        [0.4, BOWED.headRot + 0.03, 'io'],
+        [0.62, BOWED.headRot],
+      ],
     },
-    'bone:jaw': { scaleX: [[0, 1], [0.06, 1, 'out'], [0.38, BOWED.jaw]] },
+    'bone:jaw': {
+      scaleX: [
+        [0, 1],
+        [0.06, 1, 'out'],
+        [0.38, BOWED.jaw],
+      ],
+    },
     face: {
       y: [
         [0, FACE_Y],
@@ -732,37 +777,135 @@ export const accusedRml = (): string => {
         [0.36, FACE_Y + BOWED.faceY + 1, 'io'],
         [0.56, FACE_Y + BOWED.faceY],
       ],
-      scaleY: [[0, 1], [0.04, 1, 'out'], [0.36, BOWED.faceSy]],
+      scaleY: [
+        [0, 1],
+        [0.04, 1, 'out'],
+        [0.36, BOWED.faceSy],
+      ],
     },
-    nearHand: { y: [[0, 0], [0.08, 0, 'out'], [0.42, BOWED.handY + 1, 'io'], [0.66, BOWED.handY]], x: [[0, 0], [0.4, BOWED.handX]] },
-    farHand: { y: [[0, 0], [0.14, 0, 'out'], [0.48, BOWED.handY + 1, 'io'], [0.72, BOWED.handY]], x: [[0, 0], [0.46, -BOWED.handX]] },
-    body: { y: [[0, 0], [0.1, 1.6, 'io'], [0.36, BOWED.bodyY]] },
+    nearHand: {
+      y: [
+        [0, 0],
+        [0.08, 0, 'out'],
+        [0.42, BOWED.handY + 1, 'io'],
+        [0.66, BOWED.handY],
+      ],
+      x: [
+        [0, 0],
+        [0.4, BOWED.handX],
+      ],
+    },
+    farHand: {
+      y: [
+        [0, 0],
+        [0.14, 0, 'out'],
+        [0.48, BOWED.handY + 1, 'io'],
+        [0.72, BOWED.handY],
+      ],
+      x: [
+        [0, 0],
+        [0.46, -BOWED.handX],
+      ],
+    },
+    body: {
+      y: [
+        [0, 0],
+        [0.1, 1.6, 'io'],
+        [0.36, BOWED.bodyY],
+      ],
+    },
     ...tails(0.16, 0.0),
   });
 
   const lift = timeline(b, 'lift', TIMELINES.lift.seconds, {
     'bone:chest': {
-      rotation: [[0, BOWED.chestRot], [0.3, -0.012, 'io'], [0.6, 0]],
-      scaleX: [[0, BOWED.chestLen, 'out'], [0.26, 1.035, 'io'], [0.46, 0.995, 'io'], [0.66, 1]],
+      rotation: [
+        [0, BOWED.chestRot],
+        [0.3, -0.012, 'io'],
+        [0.6, 0],
+      ],
+      scaleX: [
+        [0, BOWED.chestLen, 'out'],
+        [0.26, 1.035, 'io'],
+        [0.46, 0.995, 'io'],
+        [0.66, 1],
+      ],
     },
     'bone:head': {
-      rotation: [[0, BOWED.headRot, 'out'], [0.3, -0.06, 'io'], [0.52, 0.012, 'io'], [0.74, 0]],
+      rotation: [
+        [0, BOWED.headRot, 'out'],
+        [0.3, -0.06, 'io'],
+        [0.52, 0.012, 'io'],
+        [0.74, 0],
+      ],
     },
-    'bone:jaw': { scaleX: [[0, BOWED.jaw, 'out'], [0.26, 1.05, 'io'], [0.56, 1]] },
+    'bone:jaw': {
+      scaleX: [
+        [0, BOWED.jaw, 'out'],
+        [0.26, 1.05, 'io'],
+        [0.56, 1],
+      ],
+    },
     face: {
-      y: [[0, FACE_Y + BOWED.faceY, 'out'], [0.26, FACE_Y - 3, 'io'], [0.54, FACE_Y]],
-      scaleY: [[0, BOWED.faceSy, 'out'], [0.26, 1.04, 'io'], [0.54, 1]],
+      y: [
+        [0, FACE_Y + BOWED.faceY, 'out'],
+        [0.26, FACE_Y - 3, 'io'],
+        [0.54, FACE_Y],
+      ],
+      scaleY: [
+        [0, BOWED.faceSy, 'out'],
+        [0.26, 1.04, 'io'],
+        [0.54, 1],
+      ],
     },
-    nearHand: { y: [[0, BOWED.handY], [0.06, BOWED.handY, 'out'], [0.36, -5, 'io'], [0.66, 0]], x: [[0, BOWED.handX], [0.5, 0]] },
-    farHand: { y: [[0, BOWED.handY], [0.12, BOWED.handY, 'out'], [0.42, -5, 'io'], [0.72, 0]], x: [[0, -BOWED.handX], [0.56, 0]] },
-    body: { y: [[0, BOWED.bodyY, 'out'], [0.22, -2.2, 'io'], [0.5, 0]] },
+    nearHand: {
+      y: [
+        [0, BOWED.handY],
+        [0.06, BOWED.handY, 'out'],
+        [0.36, -5, 'io'],
+        [0.66, 0],
+      ],
+      x: [
+        [0, BOWED.handX],
+        [0.5, 0],
+      ],
+    },
+    farHand: {
+      y: [
+        [0, BOWED.handY],
+        [0.12, BOWED.handY, 'out'],
+        [0.42, -5, 'io'],
+        [0.72, 0],
+      ],
+      x: [
+        [0, -BOWED.handX],
+        [0.56, 0],
+      ],
+    },
+    body: {
+      y: [
+        [0, BOWED.bodyY, 'out'],
+        [0.22, -2.2, 'io'],
+        [0.5, 0],
+      ],
+    },
     ...tails(-0.2, 0.0),
   });
 
   const stamp = timeline(b, 'stamp', TIMELINES.stamp.seconds, {
     body: {
-      scaleY: [[0, 1, 'out'], [0.05, 0.972, 'io'], [0.24, 1.008, 'io'], [0.4, 1]],
-      scaleX: [[0, 1, 'out'], [0.05, 1.012, 'io'], [0.24, 0.997, 'io'], [0.4, 1]],
+      scaleY: [
+        [0, 1, 'out'],
+        [0.05, 0.972, 'io'],
+        [0.24, 1.008, 'io'],
+        [0.4, 1],
+      ],
+      scaleX: [
+        [0, 1, 'out'],
+        [0.05, 1.012, 'io'],
+        [0.24, 0.997, 'io'],
+        [0.4, 1],
+      ],
     },
   });
 
@@ -771,9 +914,28 @@ export const accusedRml = (): string => {
     'breath',
     TIMELINES.breath.seconds,
     {
-      'bone:chest': { scaleY: [[0, 1], [2, 1.025], [4, 1]] },
-      nearBreath: { y: [[0, -50], [2, -51.6], [4, -50]] },
-      farBreath: { y: [[0, -50], [0.3, -50], [2.3, -51.6], [4, -50]] },
+      'bone:chest': {
+        scaleY: [
+          [0, 1],
+          [2, 1.025],
+          [4, 1],
+        ],
+      },
+      nearBreath: {
+        y: [
+          [0, -50],
+          [2, -51.6],
+          [4, -50],
+        ],
+      },
+      farBreath: {
+        y: [
+          [0, -50],
+          [0.3, -50],
+          [2.3, -51.6],
+          [4, -50],
+        ],
+      },
     },
     FPS,
     true,
@@ -813,7 +975,12 @@ export const accusedRml = (): string => {
       ),
     ),
   );
-  const idle = el('LinearAnimation', { fps: FPS, duration: 1, name: 'idle', id: idOf('anim:idle') });
+  const idle = el('LinearAnimation', {
+    fps: FPS,
+    duration: 1,
+    name: 'idle',
+    id: idOf('anim:idle'),
+  });
 
   const artboard = el(
     'Artboard',
