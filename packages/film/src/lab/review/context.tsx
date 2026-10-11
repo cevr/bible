@@ -148,6 +148,13 @@ interface ReviewMeta {
    */
   readonly timing: (video: Written) => Loaded<ReviewDuration>;
   /**
+   * The same read in the page alone (`Atom.withServerValue`): the server's
+   * render never waits on it, nor shows it, and while the page hydrates it
+   * is pending; it then takes the timing the server sent, if it sent one,
+   * else reads it once.
+   */
+  readonly timedHere: (video: Written) => Loaded<ReviewDuration>;
+  /**
    * A doc's text, read once per file as the index last saw it (its ref and
    * when it was written): a doc written again since is read afresh.
    */
@@ -292,6 +299,12 @@ export const Root = (
       .pipe(served(`review.text:${file.ref}@${file.mtime}`, Schema.String)),
   );
   const timing = (file: Written) => timingOf({ ref: file.ref, mtime: file.mtime });
+  const timedHereOf = Atom.family((file: Written) =>
+    Atom.make((get) => get(timingOf(file))).pipe(
+      Atom.withServerValue(() => AsyncResult.initial<ReviewDuration, LabFailure>()),
+    ),
+  );
+  const timedHere = (file: Written) => timedHereOf({ ref: file.ref, mtime: file.mtime });
   const text = (file: Written) => textOf({ ref: file.ref, mtime: file.mtime });
   const servedAtAtom = Atom.make(Clock.currentTimeMillis).pipe(served(SERVED_AT, Schema.Finite));
 
@@ -377,6 +390,7 @@ export const Root = (
       meta: {
         asks,
         timing,
+        timedHere,
         text,
         runtime,
         client: props.client,
@@ -636,12 +650,18 @@ export const useSet = (): SetContextValue => useContext(SetContext);
 
 const unmeasured = Atom.make(AsyncResult.initial<ReviewDuration, LabFailure>());
 
+/** No video to time, as a page-only read is (`timedHere`): the same kind of atom on either side. */
+const untimed = unmeasured.pipe(
+  Atom.withServerValue(() => AsyncResult.initial<ReviewDuration, LabFailure>()),
+);
+
 /**
  * Tell a clock (`send`) the frame rate of its video (`video`, none when it
  * has none): the rate the server reads from the video's own frames, once it
  * answers; the film rate (`FILM_FPS`) while the answer is pending, or when
- * the video names none. Read in the page only: nothing the server renders
- * counts frames past the clock's start, so its render never waits on it.
+ * the video names none. Read in the page only (`timedHere`): nothing the
+ * server renders counts frames past the clock's start, so its render never
+ * waits on it.
  */
 export const useClockRate = (
   video: Accessor<Option.Option<Written>>,
@@ -649,10 +669,7 @@ export const useClockRate = (
 ) => {
   const { meta } = useReview();
   const timed = useAtomValue(() =>
-    Option.match(
-      Option.filter(video(), () => !isServer),
-      { onNone: () => unmeasured, onSome: meta.timing },
-    ),
+    Option.match(video(), { onNone: () => untimed, onSome: meta.timedHere }),
   );
   createEffect(
     () =>
