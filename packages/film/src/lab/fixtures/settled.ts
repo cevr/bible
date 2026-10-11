@@ -151,7 +151,7 @@ const computedBeside = (selector: string, property: string, value: string) =>
   `((el) => { const probe = document.createElement('i'); probe.style.setProperty(${json(property)}, ${json(value)}); el.parentElement.append(probe); const drawn = getComputedStyle(probe).getPropertyValue(${json(property)}); probe.remove(); return drawn; })(document.querySelector(${json(selector)}))`;
 
 /** An expression run in the page: whether `selector`'s first match draws `property` as `value` would (a token as `var(--…)`). */
-export const drawnAs = (selector: string, property: string, value: string) =>
+const drawnAs = (selector: string, property: string, value: string) =>
   `getComputedStyle(document.querySelector(${json(selector)})).getPropertyValue(${json(property)}) === ${computedBeside(selector, property, value)}`;
 
 /** An expression run in the page: whether `selector`'s first match is drawn in the colour token `token` (its words' ink). */

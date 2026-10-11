@@ -68,7 +68,6 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-card video:not([controls]) { pointer-events: none; }
 /* A still that opens the lightbox: a bare button around its picture. */
 .rv-zoom { display: block; width: 100%; padding: 0; border: 0; background: none; color: inherit; cursor: zoom-in; }
-.rv-zoom:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* The pair wiped: both videos stacked full width, the other right of the divider. */
 .rv-wipe { position: relative; background: var(--surface-0); overflow: hidden; touch-action: pan-y; }
 .rv-wipe video, .rv-wipe canvas { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
@@ -146,7 +145,6 @@ a.rv-card:hover { background: var(--surface-2); }
  * card. Its clock is its own, so the row says its time on a laptop too.
  */
 .rv-alone-picture { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
-.rv-alone-picture:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 /* One whose media cannot play says so across the foot of its picture. */
 .rv-alone-picture .rv-failed {
   position: absolute; left: 0; right: 0; bottom: 0; padding: var(--s-2) var(--s-3);
@@ -165,14 +163,12 @@ a.rv-card:hover { background: var(--surface-2); }
 @media ${WIDE} {
   .rv-alone-row .rv-time-at { display: inline; }
 }
-/* The lightbox (\`Zoom\`): the kit's dialog on the overlays' layer, over the tab bar and the dock;
-   the popup is the whole window, so the ring it takes as focus moves in is none of its own. */
+/* The lightbox (\`Zoom\`): the kit's dialog on the overlays' layer, over the tab bar and the dock. */
 .rv-lightbox-backdrop { position: fixed; inset: 0; background: var(--backdrop-deep); z-index: var(--cmd-layer); }
 .rv-lightbox {
   position: fixed; inset: 0; display: grid; place-items: center; z-index: calc(var(--cmd-layer) + 1);
   padding: var(--s-4); cursor: zoom-out; grid-template-rows: minmax(0, 1fr) auto; gap: var(--s-2);
 }
-.rv-lightbox:focus { outline: none; }
 .rv-lightbox img { max-width: 100%; max-height: 100%; }
 .rv-lightbox-caption { margin: 0; color: var(--text-2); font-size: var(--fs-2); font-weight: inherit; }
 .rv-note {

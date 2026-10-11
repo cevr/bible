@@ -173,8 +173,6 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 :where(.sh-badge[data-state="warning"]) { color: var(--state-warning); }
 :where(.sh-badge[data-state="note"]) { color: var(--state-note); }
 :where(.sh-badge[data-state="agent"]) { color: var(--state-agent); }
-:where(.sh-badge[data-state="recording"]) { color: var(--state-recording); }
-:where(.sh-badge[data-state="scratch"]) { color: var(--state-scratch); }
 :where(.sh-badge[data-state="rendered"]) { color: var(--state-rendered); }
 /* Said, not shown: words for assistive tech alone (a live region's announcement). */
 .sh-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden;
