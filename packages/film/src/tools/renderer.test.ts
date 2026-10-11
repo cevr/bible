@@ -52,6 +52,7 @@ const video = RenderJob.Video({
   out: Option.none(),
   share: false,
   encoder: Option.none(),
+  server: Option.none(),
   cut: Cut.Whole(),
 });
 
@@ -457,6 +458,7 @@ describe.concurrent('Renderer', () => {
           address: { _tag: 'Film' },
           variant: 'g',
           captions: true,
+          server: Option.none(),
           workers: 4,
           times: [2.5, 1],
           cut: Cut.Whole(),
@@ -478,6 +480,7 @@ describe.concurrent('Renderer', () => {
           address: { _tag: 'Film' },
           variant: 'g',
           captions: false,
+          server: Option.none(),
           every: 5,
           from: Option.none(),
           to: Option.none(),
@@ -499,6 +502,7 @@ describe.concurrent('Renderer', () => {
             address: { _tag: 'Film' },
             variant: 'g',
             captions: false,
+            server: Option.none(),
             every: 1,
             from: Option.some(from),
             to: Option.some(to),
@@ -526,7 +530,12 @@ describe.concurrent('Renderer', () => {
     Effect.gen(function* () {
       const { ledger, files, render } = setup();
       yield* render(
-        RenderJob.LookBook({ address: { _tag: 'Film' }, variant: 'main', captions: false }),
+        RenderJob.LookBook({
+          address: { _tag: 'Film' },
+          variant: 'main',
+          captions: false,
+          server: Option.none(),
+        }),
       );
       expect(files.has('/out/test/film/main/lookbook.jpg')).toBe(true);
       expect(ledger.pages.opened).toBe(1);
@@ -764,6 +773,7 @@ describe.concurrent('Renderer', () => {
             address: { _tag: 'Short', id: 'cut' },
             variant: 'g',
             captions: true,
+            server: Option.none(),
             workers: 1,
             times: [1],
             cut: short,

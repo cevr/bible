@@ -5,7 +5,7 @@
 
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Exit, Fiber, Latch, Layer } from 'effect';
+import { Effect, Exit, Fiber, Latch, Layer, Option } from 'effect';
 import { PageCrashed } from './errors.ts';
 import { type ExportPages, Pages, type PagesOptions, exportUrl } from './pages.ts';
 import { type FakeRenderHost, emptyLedger, fakeRenderHost } from './testing.ts';
@@ -38,7 +38,8 @@ describe('Pages', () => {
   it.live('opens at most `workers` pages, reads the info once, and closes them all', () =>
     Effect.gen(function* () {
       const { ledger, withPool } = setup();
-      const frames = yield* withPool('film', { workers: 3, captions: false }, (pool) => {
+      const three = { workers: 3, captions: false, server: Option.none() };
+      const frames = yield* withPool('film', three, (pool) => {
         expect(pool.info.fps).toBe(30);
         return Effect.forEach([0, 1, 2, 3, 4, 5, 6, 7], (i) => pool.call('frame', i, 'image/png'), {
           concurrency: 8,
@@ -65,7 +66,8 @@ describe('Pages', () => {
             ),
           ),
       });
-      const [crashed, next] = yield* withPool('film', { workers: 1, captions: true }, (pool) =>
+      const one = { workers: 1, captions: true, server: Option.none() };
+      const [crashed, next] = yield* withPool('film', one, (pool) =>
         Effect.all([
           Effect.exit(pool.call('frame', 5, 'image/png')),
           pool.call('frame', 5, 'image/png'),
@@ -91,7 +93,7 @@ describe('Pages', () => {
           ).pipe(Effect.andThen(Effect.never)),
       });
       const fiber = yield* Effect.forkChild(
-        withPool('film', { workers: 4, captions: true }, (pool) =>
+        withPool('film', { workers: 4, captions: true, server: Option.none() }, (pool) =>
           Effect.forEach([0, 1, 2, 3], (i) => pool.call('frame', i, 'image/png'), {
             concurrency: 4,
           }),
@@ -102,6 +104,15 @@ describe('Pages', () => {
       expect(ledger.pages.opened).toBe(4);
       expect(ledger.pages.closed).toBe(4);
       expect(ledger.browser).toEqual({ launched: 1, closed: 1 });
+    }),
+  );
+
+  it.live("opens a wedge's server in place of the PreviewServer when it names one", () =>
+    Effect.gen(function* () {
+      const { ledger, withPool } = setup();
+      const wedge = { workers: 1, captions: true, server: Option.some('http://wedge.test/') };
+      yield* withPool('film', wedge, (pool) => pool.call('frame', 0, 'image/png'));
+      expect(new Set(ledger.urls)).toEqual(new Set(['http://wedge.test/?film=film&export']));
     }),
   );
 });
