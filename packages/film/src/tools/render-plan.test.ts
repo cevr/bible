@@ -62,6 +62,7 @@ const flags = {
   out: Option.none(),
   share: Option.none(),
   encoder: Option.none(),
+  server: Option.none(),
 } as const;
 
 const conflict = (over: Partial<Parameters<typeof jobOf>[0]>) =>

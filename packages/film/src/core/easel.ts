@@ -261,6 +261,35 @@ export const cropOf = (text: string): Result.Result<Crop, LookInvalid> => {
   return Result.succeed([x0, y0, x1, y1]);
 };
 
+/**
+ * `--level look=level` flags (`film look`, `film render`) as a wedge's
+ * levels, each look once; a flag of another shape, or a look given twice, is
+ * `LookInvalid`. No flags is no wedge: the levels the film plays.
+ */
+export const levelsOf = (
+  flags: ReadonlyArray<string>,
+): Result.Result<Readonly<Record<string, string>>, LookInvalid> =>
+  Result.flatMap(
+    Result.all(
+      flags.map((flag) => {
+        const [look = '', level = '', ...rest] = flag.split('=');
+        if (look === '' || level === '' || rest.length > 0)
+          return invalid(`--level ${flag}: a look and its level, look=level`);
+        return Result.succeed([look, level] as const);
+      }),
+    ),
+    (pairs) => {
+      const looks = pairs.map(([look]) => look);
+      return Option.match(
+        Arr.findFirst(looks, (look, i) => looks.indexOf(look) !== i),
+        {
+          onNone: () => Result.succeed(Object.fromEntries(pairs)),
+          onSome: (twice) => invalid(`--level ${twice} is given twice: one level a look`),
+        },
+      );
+    },
+  );
+
 /** The longest side a look is asked at. */
 export const LOOK_MAX_SIZE = 4096;
 

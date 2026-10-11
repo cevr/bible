@@ -5,7 +5,7 @@
 // `HandJump`, `HandFar`, `HandHidden`); `film lookbook` prints it. The pages
 // are a pool of `Pages`, in the look's scope, as in a render.
 
-import { Array as Arr, Context, Effect, Layer } from 'effect';
+import { Array as Arr, Context, Effect, Layer, Option } from 'effect';
 import type { Scope } from '../core/address.ts';
 import type { PageOpenError } from './browser.ts';
 import type { FrameFailed, PageCrashed, PageError } from './errors.ts';
@@ -61,7 +61,11 @@ export class Looker extends Context.Service<Looker, LookerService>()('@bible/fil
           Effect.gen(function* () {
             const size = Math.max(1, workers);
             // The look handle draws without captions whatever the page's switch says.
-            const pool = yield* pages.open(film.paths.name, { workers: size, captions: true });
+            const pool = yield* pages.open(film.paths.name, {
+              workers: size,
+              captions: true,
+              server: Option.none(),
+            });
             const info = pool.info;
             /** `samples` drawn on the pool, each as a `w` × `h` thumb, in order. */
             const drawAll = (samples: ReadonlyArray<LookSample>, w: number, h: number) =>

@@ -30,7 +30,9 @@ export interface Look {
    * `f.at('sweep')` of the way, the page in from `f.at('page')`. Returns the
    * box the card floods out from over `flood`, in the canvas's own pixels:
    * the engine's `verse` returns its highlight's last line so, through every
-   * transform it was drawn under.
+   * transform it was drawn under. The engine reads it on the same frame (the
+   * scene's draw returns it), so it is a function of `f` like the rest: a
+   * look keeps no box between frames.
    */
   readonly job: (f: JobFrame) => Box;
   /**

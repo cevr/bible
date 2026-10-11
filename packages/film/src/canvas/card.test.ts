@@ -216,12 +216,15 @@ describe('a scene with a card', () => {
         flood: { mark: 'job', dur: 0.3, ends: true },
         card: { mark: 'job', until: { at: 'speechEnd' }, untilOffset: 0.4 },
       },
-      draw: () => void ran.push('scene'),
+      draw: () => {
+        ran.push('scene');
+        return { x: 800, y: 500, w: 300, h: 50 };
+      },
       card: {
         cue: 'card',
         from: 'job',
         payoff: 'just',
-        flood: { cue: 'flood', from: () => ({ x: 800, y: 500, w: 300, h: 50 }) },
+        flood: { cue: 'flood' },
         draw: (_f, words) => void ran.push(`card:${words.length}`),
       },
     });
@@ -252,6 +255,83 @@ describe('a scene with a card', () => {
     expect(at(card.start + 0.01)).toEqual(['card:7']);
     expect(at(card.end - 0.01)).toEqual(['card:7']);
     expect(at(card.end + 0.01)).toEqual(['scene']);
+  });
+
+  /**
+   * A film whose scene's highlight moves with the scene's time, and the
+   * flood's clip at `at` (of the flood cue) once the frames at `before` were
+   * drawn on the same film: the rect laid just before the card is drawn.
+   */
+  const floodAt = (
+    at: (flood: { readonly start: number; readonly end: number }) => number,
+    before: ReadonlyArray<number>,
+  ) => {
+    const log: Array<string | ReadonlyArray<number>> = [];
+    const scene = drawing({
+      timeline: {
+        flood: { mark: 'job', dur: 0.6, ends: true },
+        card: { mark: 'job', until: { at: 'speechEnd' }, untilOffset: 0.4 },
+      },
+      draw: (f) => ({ x: 100 + 400 * f.t, y: 500, w: 300, h: 50 }),
+      card: {
+        cue: 'card',
+        from: 'job',
+        payoff: 'just',
+        flood: { cue: 'flood' },
+        draw: () => void log.push('card'),
+      },
+    });
+    const film = createFilm({
+      title: 'card',
+      paper: { base: '#fff', tone: '#000', seed: 1 },
+      shade: '#000',
+      scenes: [{ id: 'job', say: LINE, ...scene }],
+    });
+    const { ctx } = recorder();
+    Object.assign(ctx, { rect: (...box: ReadonlyArray<number>) => void log.push(box) });
+    const flood = film.placed[0]?.cues.get('flood') ?? { start: Number.NaN, end: Number.NaN };
+    withDom(
+      () => {
+        for (const t of before) film.render(ctx, t);
+        log.length = 0;
+        film.render(ctx, at(flood));
+      },
+      { record: false },
+    );
+    return log[log.indexOf('card') - 1];
+  };
+
+  test("grows its flood from the box the scene's draw returned on the same frame, whatever was drawn before", () => {
+    const mid = (c: { start: number; end: number }) => (c.start + c.end) / 2;
+    const early = (c: { start: number; end: number }) => c.start + 0.05;
+    const alone = floodAt(mid, []);
+    expect(alone).toBeDefined();
+    expect(floodAt(mid, [0.1, 3, 1.2])).toEqual(alone);
+    expect(floodAt(early, [])).not.toEqual(alone);
+  });
+
+  test('stops the frame where a flood holds but the scene drew no box to grow it from', () => {
+    const scene = drawing({
+      timeline: { flood: { mark: 'job', dur: 0.5, ends: true }, card: { mark: 'job', dur: 1 } },
+      draw: () => undefined,
+      card: {
+        cue: 'card',
+        from: 'job',
+        payoff: 'just',
+        flood: { cue: 'flood' },
+        draw: () => undefined,
+      },
+    });
+    const film = createFilm({
+      title: 'card',
+      paper: { base: '#fff', tone: '#000', seed: 1 },
+      shade: '#000',
+      scenes: [{ id: 'job', say: LINE, ...scene }],
+    });
+    const flood = film.placed[0]?.cues.get('flood') ?? { start: Number.NaN, dur: Number.NaN };
+    expect(() =>
+      withDom(() => film.render(recorder().ctx, flood.start + flood.dur / 2), { record: false }),
+    ).toThrow('no box to flood from');
   });
 
   test('stops the film where the card names a payoff its line never says', () => {

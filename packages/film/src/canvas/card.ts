@@ -9,7 +9,9 @@
 // cue the card holds the frame for (a hard cut in at its start and out at its
 // end), the words it sets (from a mark, as the take says them) and its payoff
 // word, and, when it follows a highlight, the cue the highlight floods the
-// frame over and where on the frame it starts. The film draws the card in
+// frame over. The scene's draw returns where on the frame the highlight
+// stands (`verse` returns it so), and the flood grows from that box: the
+// same frame's, never one an earlier frame left. The film draws the card in
 // place of the scene, on the bare frame, so no act light or vignette dims it
 // (`film.ts`); a flood is drawn over the lit scene, after its light and
 // vignette. What the card looks like is the look's: `fullCard` sets the words
@@ -52,10 +54,12 @@ export interface CardSpec<C extends string, F> {
   readonly payoff: string;
   /**
    * The highlight the card floods in from: over `cue` the card grows from
-   * `from` (the highlight's box in the canvas's own pixels, as `verse`
-   * returns it) to the whole frame, drawn over the lit scene.
+   * the box the scene's draw returned on the same frame (the highlight's, in
+   * the canvas's own pixels, as `verse` returns it) to the whole frame, drawn
+   * over the lit scene. A draw that returns no box while the flood holds
+   * stops the frame.
    */
-  readonly flood?: { readonly cue: C; readonly from: (f: F) => Box };
+  readonly flood?: { readonly cue: C };
   /** The card on the bare frame: the look's typography (`fullCard`, or its own). */
   readonly draw: (f: F, words: ReadonlyArray<CardWord>) => void;
 }

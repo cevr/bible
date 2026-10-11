@@ -25,6 +25,7 @@ import {
   Cause,
   Console,
   Effect,
+  FileSystem,
   Layer,
   Logger,
   Option,
@@ -35,7 +36,6 @@ import {
   Schema,
   Stdio,
 } from 'effect';
-import type { FileSystem } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
 import type { ChildProcessSpawner } from 'effect/process';
 import { type AddressFlags, type Scope, addressOf, resolveAddress } from '../core/address.ts';
@@ -78,7 +78,9 @@ import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
 import { labAllowed, labLink } from './lab.ts';
 import type { LabAt } from './api-server.ts';
-import type { LabPageSpec } from './lab-page.ts';
+import { type LabPageSpec, PageBundler } from './lab-page.ts';
+import { PALETTE_FILE, paletteSwaps, wedgeServer } from './wedge.ts';
+import { levelsOf } from '../core/easel.ts';
 import { filmServices, labPages, startLab } from './film-services.ts';
 import { look } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
@@ -647,7 +649,16 @@ const printReport = Effect.fn('film.check.report')(function* (
 /** `--stills 3,10.5`: seconds, each a finite number. */
 const Seconds = Schema.Array(Schema.FiniteFromString);
 
-const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
+/**
+ * `film render`, drawn on the app's PreviewServer, or with `--level` on a
+ * wedge of its render page (`renderPage`, the films' narration from `films`):
+ * the look at that level, the palette's pick unwritten (`tools/wedge.ts`).
+ */
+const render = <E, R>(
+  renderLayer: Layer.Layer<Renderer, E, R>,
+  renderPage: string,
+  films: string,
+) =>
   Command.make(
     'render',
     {
@@ -705,36 +716,56 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
           'render this short instead: its spans back to back at 1080×1920, to out/<film>/shorts/<id>/<variant>.mp4 (--from/--to in its seconds)',
         ),
       ),
+      level: Flag.String('level').pipe(
+        Flag.atLeast(0),
+        Flag.withDescription(
+          "look=level: render that look (palette.ts's looks) at that level, not the one it plays, the pick unwritten (a wedge); repeat for more looks; --variant names the file",
+        ),
+      ),
     },
-    Effect.fn('film.render')(function* (input) {
-      const loaded = yield* (yield* FilmRepo).load(input.film);
-      const placed = yield* placeFilm(loaded);
-      // `--act` and `--scene` set the range from the film's own layout; `--short` cuts to it.
-      const scope = yield* scopeOf(loaded, placed, input);
-      const stills = yield* Option.match(input.stills, {
-        onNone: () => Effect.succeedNone,
-        onSome: (list) => Effect.asSome(Schema.decodeEffect(Seconds)(list.split(','))),
-      });
-      // What it draws, stamped before the first frame: the sources as they stand now.
-      const stamp = stampOf(yield* (yield* Stamps).scenes(loaded, placed), scope);
-      const job = yield* Effect.fromResult(
-        jobOf({
-          variant: input.variant,
-          captions: input.captions,
-          workers: input.workers,
-          stills,
-          contact: input.contact,
-          scope,
-          from: input.from,
-          to: input.to,
-          scale: input.scale,
-          out: input.out,
-          share: input.share,
-          encoder: input.encoder,
-        }),
-      );
-      yield* renderAndRecord(loaded, scope, job, stamp);
-    }, Effect.provide(renderLayer)),
+    Effect.fn('film.render')(
+      function* (input) {
+        const loaded = yield* (yield* FilmRepo).load(input.film);
+        const placed = yield* placeFilm(loaded);
+        // `--act` and `--scene` set the range from the film's own layout; `--short` cuts to it.
+        const scope = yield* scopeOf(loaded, placed, input);
+        const stills = yield* Option.match(input.stills, {
+          onNone: () => Effect.succeedNone,
+          onSome: (list) => Effect.asSome(Schema.decodeEffect(Seconds)(list.split(','))),
+        });
+        // `--level`: the palette as the picks would write it, built and served for this render alone.
+        const levels = yield* Effect.fromResult(levelsOf(input.level));
+        const path = yield* Path.Path;
+        const swaps = yield* paletteSwaps(
+          yield* FileSystem.FileSystem,
+          path.join(loaded.paths.dir, PALETTE_FILE),
+          levels,
+        );
+        const server = yield* wedgeServer(renderPage, films, swaps);
+        // What it draws, stamped before the first frame: the sources as they stand now, at its levels.
+        const stamp = stampOf(yield* (yield* Stamps).scenes(loaded, placed), scope, levels);
+        const job = yield* Effect.fromResult(
+          jobOf({
+            variant: input.variant,
+            captions: input.captions,
+            workers: input.workers,
+            stills,
+            contact: input.contact,
+            scope,
+            from: input.from,
+            to: input.to,
+            scale: input.scale,
+            out: input.out,
+            share: input.share,
+            encoder: input.encoder,
+            server,
+          }),
+        );
+        yield* renderAndRecord(loaded, scope, job, stamp);
+      },
+      Effect.scoped,
+      Effect.provide(Layer.merge(renderLayer, PageBundler.layer)),
+    ),
   ).pipe(
     Command.withDescription(
       "Render a film, an act or scenes to its project folder, out/<film>/<address>/<variant>.mp4 (+ .vtt captions), stills, or a contact sheet; or one of its shorts (--short); each recorded in the folder's catalogue.json",
@@ -768,6 +799,7 @@ const lookbook = <E, R>(lookLayer: Layer.Layer<Renderer | Looker, E, R>) =>
           address: whole.address,
           variant: input.variant,
           captions: input.captions,
+          server: Option.none(),
         }),
         stamp,
       );
@@ -913,7 +945,7 @@ export const runFilmCli = <E>({
       read,
       cues(checkLayer),
       check(checkLayer),
-      render(renderLayer),
+      render(renderLayer, labApp.pages.pages.render, films),
       project(renderLayer),
       lookbook(lookLayer),
       chaptersCommand,

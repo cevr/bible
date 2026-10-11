@@ -63,7 +63,7 @@ import {
   makeBloom,
 } from './grade.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
-import { type CardSpec, type CardWord, cardWords, floodBox } from './card.ts';
+import { type Box, type CardSpec, type CardWord, cardWords, floodBox } from './card.ts';
 import { seedOf } from '../core/random.ts';
 import { FILM_FPS, type Key, clamp, ease, heardAtOrAfter, justBefore } from '../core/time.ts';
 
@@ -175,7 +175,12 @@ const sceneHand = (scene: string, key: string | number, boil: number): Hand => (
 });
 
 export interface SceneSpec extends Timed {
-  readonly draw: (f: Frame) => void;
+  /**
+   * The scene's picture at `f.t`. A scene whose card floods in from a
+   * highlight returns the highlight's box (`verse` gives it), which the flood
+   * grows from on the same frame (`CardSpec.flood`); any other returns nothing.
+   */
+  readonly draw: (f: Frame) => Box | void;
   /**
    * How this scene breathes (`Drift`), in place of the film's `DRIFT`: `0`
    * holds it still (an end card), a `Drift` sets its own size. `DRIFT` when
@@ -238,7 +243,7 @@ export const drawing = <const T extends Timeline, const K extends Knobs = NoKnob
   d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'knobs' | 'draw' | 'light' | 'card'> & {
     readonly timeline: T & Closed<T>;
     readonly knobs?: K;
-    readonly draw: (f: Frame<keyof T & string, K>) => void;
+    readonly draw: (f: Frame<keyof T & string, K>) => Box | void;
     readonly light?: Light | ((f: Frame<keyof T & string, K>) => Light);
     readonly card?: CardSpec<keyof T & string, Frame<keyof T & string, K>>;
   },
@@ -822,12 +827,15 @@ export const createFilm = (spec: FilmSpec): Film => {
     };
     const frame = frameOf(ctx, p, T, boil, reads, edits, unframed);
     drawnFrame = frame;
+    drawnBox = undefined;
     ctx.save();
     const heard =
       reads?.direct === true
         ? (inside: DOMMatrix, aimed: DOMMatrix) => frameReads(reads.list, inside, aimed)
         : undefined;
-    const shot = hearingCameras(ctx, heard, breath, () => p.spec.draw(frame));
+    const shot = hearingCameras(ctx, heard, breath, () => {
+      drawnBox = p.spec.draw(frame);
+    });
     ctx.restore();
     const light = p.spec.light;
     drawnFixed = !Predicate.isFunction(light);
@@ -841,6 +849,8 @@ export const createFilm = (spec: FilmSpec): Film => {
   let drawnFixed = true;
   /** The frame the last scene drawn was drawn on: what its card's flood reads. */
   let drawnFrame: Frame | undefined;
+  /** The box that draw returned, reset before each draw: where its card's flood grows from on the same frame. */
+  let drawnBox: Box | void;
 
   /** The breath each scene draw is given: one, rewritten per draw, never made per frame. */
   const breath: BreathNow = { through: 0, drift: DRIFT, outer: false, width, height };
@@ -911,11 +921,16 @@ export const createFilm = (spec: FilmSpec): Film => {
     const flood = p.spec.card?.flood;
     const f = drawnFrame;
     if (flood === undefined || f === undefined || !holds(p, flood.cue, T, edits)) return;
+    const from = drawnBox;
+    if (from === undefined)
+      throw new Error(
+        `scene ${p.spec.id}: its card floods in over "${flood.cue}", but its draw returned no box to flood from`,
+      );
     // The box is in the canvas's own pixels (`verse` gives it so, through the
     // transform it drew under), so the clip is laid with none, whatever scale
     // the frame is drawn at, and the card drawn under the frame's.
     const frame = ctx.getTransform();
-    const box = floodBox(flood.from(f), ctx.canvas.width, ctx.canvas.height, f.at(flood.cue));
+    const box = floodBox(from, ctx.canvas.width, ctx.canvas.height, f.at(flood.cue));
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.beginPath();

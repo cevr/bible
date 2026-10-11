@@ -6,7 +6,7 @@
 // and the next call opens a fresh one. The scope closing (done, failed or
 // interrupted) closes every page.
 
-import { Array as Arr, Context, Effect, Layer, Pool, Predicate, type Scope } from 'effect';
+import { Array as Arr, Context, Effect, Layer, Option, Pool, Predicate, type Scope } from 'effect';
 import type { CallAnswers, CallArgs, ExportCall, ExportInfo } from '../core/export-handle.ts';
 import { Browser, type CallErrors, type FramePage, type PageOpenError } from './browser.ts';
 import type { PageCrashed, PageError } from './errors.ts';
@@ -18,6 +18,12 @@ export interface PagesOptions {
   readonly workers: number;
   /** Draw the captions in (`?captions=0` when not). */
   readonly captions: boolean;
+  /**
+   * The server whose render page they open: a wedge's (`film render
+   * --level`, `serveWedge`), whose page draws a look at another level than it
+   * plays; none opens the PreviewServer's, the sources as written.
+   */
+  readonly server: Option.Option<string>;
 }
 
 /** A film page open in `workers` export pages. */
@@ -65,7 +71,13 @@ export class Pages extends Context.Service<Pages, PagesService>()('@bible/film/t
 
       const open = Effect.fn('Pages.open')(function* (film: string, options: PagesOptions) {
         const pool = yield* Pool.make({
-          acquire: browser.open(exportUrl(server.url, film, options.captions)),
+          acquire: browser.open(
+            exportUrl(
+              Option.getOrElse(options.server, () => server.url),
+              film,
+              options.captions,
+            ),
+          ),
           size: Math.max(1, options.workers),
         });
         const use = <A, E, R>(run: (page: FramePage) => Effect.Effect<A, E, R>) =>

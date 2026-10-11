@@ -204,7 +204,11 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
         return yield* Effect.scoped(
           Effect.gen(function* () {
             const workers = Math.max(1, options.workers);
-            const pool = yield* pages.open(film.paths.name, { workers, captions: true });
+            const pool = yield* pages.open(film.paths.name, {
+              workers,
+              captions: true,
+              server: Option.none(),
+            });
             const info = pool.info;
             const chosen = new Set(options.scope.scenes.map((p) => p.spec.id));
             const samples = layoutSamples(placed, info.fps).filter((s) => chosen.has(s.scene));
@@ -256,6 +260,7 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
         const pool = yield* pages.open(shortKey(film.paths.name, declared.id), {
           workers,
           captions: true,
+          server: Option.none(),
         });
         const info = pool.info;
         const cut = yield* Effect.fromResult(resolveShort(placed, declared, info.fps));
@@ -280,7 +285,7 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
             if (options.static) return words;
             // The short's page is named for the short: the film's title and size are on the film's page.
             const { title, band } = yield* Effect.map(
-              pages.open(name, { workers: 1, captions: true }),
+              pages.open(name, { workers: 1, captions: true, server: Option.none() }),
               (whole) => ({ title: whole.title, band: bandOf(whole.info) }),
             );
             const k = info.width / SHORT_WIDTH;
