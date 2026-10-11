@@ -39,6 +39,7 @@ import {
   attributesAre,
   countIs,
   evaluates,
+  inkIs,
   textHas,
   textIs,
   until,
@@ -1357,7 +1358,9 @@ describe('the inspector', () => {
       // the film's in its level's colour; the rest are counted.
       const listed = "[...document.querySelectorAll('.lab-finding b')].map((b) => b.textContent)";
       yield* evaluates(page, listed, ['timed', 'whole']);
-      yield* textIs(page, '.lab-findings-group h3 .lab-count', '1');
+      // The scene's count is the kit's badge, in the findings' red (an error is among them).
+      yield* textIs(page, '.lab-findings-group h3 .sh-badge[data-state="findings"]', '1');
+      yield* evaluates(page, inkIs('.lab-findings-group h3 .sh-badge', '--state-findings'), true);
       yield* textIs(page, '.lab-findings-film[data-state="warning"]', 'Film · 1');
       yield* textIs(page, '.lab-findings-elsewhere', '1 in other scenes · F walks to them');
       yield* page.press('f');

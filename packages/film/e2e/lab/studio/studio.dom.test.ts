@@ -48,6 +48,7 @@ import {
   attributesAre,
   countIs,
   evaluates,
+  inkIs,
   textHas,
   textIs,
   textsAre,
@@ -280,6 +281,14 @@ describe('the studio', () => {
             '.studio-attempt .studio-attempt-line',
             files.map(() => '“the law is holy” · 0.0% · 00:00:02:15'),
           );
+          // The take says kept, an attempt at the line before it changed says so: the kit's
+          // badges, each in its state's colour.
+          const kept = '[data-file="thesis.kept.flac"] .sh-badge';
+          const earlier = '[data-file="thesis.old.flac"] .sh-badge';
+          yield* textIs(page, `${kept}[data-state="approved"]`, 'kept');
+          yield* evaluates(page, inkIs(kept, '--state-approved'), true);
+          yield* textIs(page, `${earlier}[data-state="stale"]`, 'earlier line');
+          yield* evaluates(page, inkIs(earlier, '--state-stale'), true);
           // Only an attempt that is not the take can be kept.
           yield* countIs(page, '.studio-attempt [data-act="keep"]:not([disabled])', 1);
           yield* attached(page, '[data-file="thesis.new.flac"] [data-act="keep"]:not([disabled])');

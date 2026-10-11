@@ -129,12 +129,6 @@ body.scenes { display: block; height: auto; }
 .sc-card-facts dd { margin: 0; color: var(--text-1); font-variant-numeric: tabular-nums; }
 .sc-chips { display: flex; flex-wrap: wrap; gap: var(--s-1); }
 .sc-chips:empty { display: none; }
-.sc-chip { padding: 0 var(--s-1); border: 1px solid currentColor; border-radius: var(--r-1); font-size: var(--fs-1); line-height: var(--lh-1); }
-.sc-chip[data-state="stale"] { color: var(--state-stale); }
-.sc-chip[data-state="rendered"] { color: var(--state-rendered); }
-.sc-chip[data-state="approved"] { color: var(--state-approved); }
-.sc-chip[data-state="findings"] { color: var(--state-findings); }
-.sc-chip[data-state="warning"] { color: var(--state-warning); }
 .sc-card-verb { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .sc-section > .sh-btn { min-height: var(--hit); }
 .sc-section { display: grid; gap: var(--s-2); padding-top: var(--s-3); border-top: var(--border); }

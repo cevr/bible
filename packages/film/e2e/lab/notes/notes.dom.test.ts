@@ -32,6 +32,7 @@ import {
   attached,
   attributeIs,
   evaluates,
+  inkIs,
   textHas,
   textIs,
   valueIs,
@@ -454,6 +455,10 @@ describe("a note's place", () => {
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         // Beside its scene's name, its time into the scene: one clock in one place.
         yield* textHas(page, '.lab-note-label', `two · ${timecode(0.4)}`);
+        // Its status is the kit's badge, open in the notes' colour.
+        const status = '.lab-note-item[data-id="n1"] .sh-badge';
+        yield* textIs(page, `${status}[data-state="note"]`, 'open');
+        yield* evaluates(page, inkIs(status, '--state-note'), true);
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
         yield* evaluates(page, `Math.round(${URL_T} * ${film.fps})`, Math.round(shown * film.fps));
         yield* attached(page, '.lab-overlay rect.lab-note');

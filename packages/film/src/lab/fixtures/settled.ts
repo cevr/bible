@@ -143,6 +143,25 @@ export const evaluates = (page: Tab, script: string, want: Answer) =>
 export const until = (page: Tab, check: string) => page.until(check);
 
 /**
+ * An expression run in the page: what `property` of a probe styled
+ * `property: value` computes to beside `selector`'s first match (in its
+ * parent, so it reads the same tokens), as the page draws it.
+ */
+const computedBeside = (selector: string, property: string, value: string) =>
+  `((el) => { const probe = document.createElement('i'); probe.style.setProperty(${json(property)}, ${json(value)}); el.parentElement.append(probe); const drawn = getComputedStyle(probe).getPropertyValue(${json(property)}); probe.remove(); return drawn; })(document.querySelector(${json(selector)}))`;
+
+/** An expression run in the page: whether `selector`'s first match is drawn in the colour token `token` (its words' ink). */
+export const inkIs = (selector: string, token: string) =>
+  `getComputedStyle(document.querySelector(${json(selector)})).color === ${computedBeside(selector, 'color', `var(${token})`)}`;
+
+/**
+ * An expression run in the page: how the focused element shows its focus,
+ * `ring` (the studio's `--focus-ring` and no outline) or `outline` (the
+ * browser's, or any other), and `none` when nothing has focus.
+ */
+export const FOCUS_SHOWN = `((el) => el === null || el === document.body ? 'none' : getComputedStyle(el).outlineStyle === 'none' && getComputedStyle(el).boxShadow === ((probe) => { probe.style.boxShadow = 'var(--focus-ring)'; el.parentElement.append(probe); const ring = getComputedStyle(probe).boxShadow; probe.remove(); return ring; })(document.createElement('i')) ? 'ring' : 'outline')(document.activeElement)`;
+
+/**
  * An expression run in the page: every way the shown `labels` (each the
  * element holding a label's text) fail to read, as `text: why`; none, `[]`.
  * A label stays inside its room (its closest `room`, or itself): the span of

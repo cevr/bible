@@ -40,6 +40,7 @@ import {
   attributeIs,
   countIs,
   evaluates,
+  inkIs,
   labelsClash,
   labelsInFull,
   labelsOverMarks,
@@ -1157,6 +1158,10 @@ describe('the player', () => {
           .map((a) => SaidOf(Option.getOrElse(a.body, () => ({}))).address.ids),
       ).toEqual([['one', 'three']]);
       yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
+      // The chip is the kit's badge, in the approved colour.
+      const chip = '.sc-focus .sc-chips .sh-badge[data-state="approved"]';
+      yield* textIs(page, chip, 'Approved');
+      yield* evaluates(page, inkIs(chip, '--state-approved'), true);
       // The sheet says why under the card, as a chip's title never shows on touch.
       yield* textIs(
         page,

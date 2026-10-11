@@ -460,10 +460,10 @@ describe("a film's choices", () => {
         // A row says its state only when it is not current, in a word; a take in place
         // says nothing of it: its 🔊 hears it over the picture.
         yield* countIs(page, `${at('score', 'strings')} [data-state]:not([data-variant])`, 0);
-        yield* textIs(page, `${at('score', 'piano')} .rv-badge[data-state="stale"]`, 'Out of date');
+        yield* textIs(page, `${at('score', 'piano')} .sh-badge[data-state="stale"]`, 'Out of date');
         yield* textIs(
           page,
-          `${at('score', 'choir')} .rv-badge[data-state="missing"]`,
+          `${at('score', 'choir')} .sh-badge[data-state="missing"]`,
           'Not made yet',
         );
         yield* evaluates(

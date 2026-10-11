@@ -413,7 +413,7 @@ const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoi
         <div class="rv-body">
           <b>{props.set.title}</b>
           <Show when={props.set.variants.length >= 2}>
-            <span class="rv-badge">{versionsText(props.set.variants.length)}</span>
+            <span class="sh-badge">{versionsText(props.set.variants.length)}</span>
           </Show>
         </div>
       </Go>
@@ -823,7 +823,7 @@ const VersionName = (props: { readonly version: SeenVariant }) => {
 const StaleBadge = (props: { readonly variant: SeenVariant }) => (
   <Show when={Option.getOrUndefined(staleText(props.variant))}>
     {(words) => (
-      <span class="rv-badge" data-approval="stale" title={words()}>
+      <span class="sh-badge" data-state="stale" title={words()}>
         Out of date
       </span>
     )}

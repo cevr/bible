@@ -332,8 +332,8 @@ describe('the review page', () => {
         // A stack of several says how many; of one, nothing; its versions' names are its
         // long-press menu's, each opening the set on that version's sheet.
         const roof = `a.rv-card[href="${SET}"]`;
-        yield* textHas(page, roof, '3 versions');
-        yield* countIs(page, `a.rv-card[href="${SKY}"] .rv-badge`, 0);
+        yield* textIs(page, `${roof} .sh-badge`, '3 versions');
+        yield* countIs(page, `a.rv-card[href="${SKY}"] .sh-badge`, 0);
         yield* evaluates(
           page,
           `document.querySelector('${roof}').innerText.includes('Warm')`,

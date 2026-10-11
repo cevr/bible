@@ -106,12 +106,8 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-body { padding: var(--s-2) var(--s-3); }
 .rv-strip { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 1px; background: var(--surface-0); }
 .rv-strip img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
-.rv-badge {
-  display: inline-block; font-size: var(--fs-1); line-height: var(--lh-1); font-weight: var(--w-2);
-  border: 1px solid currentColor; color: var(--text-2); border-radius: var(--r-1); padding: 0 var(--s-1); margin-left: var(--s-1);
-}
-.rv-badge[data-approval="approved"] { color: var(--state-approved); }
-.rv-badge:is([data-approval="stale"], [data-state="stale"]) { color: var(--state-stale); }
+/* A set card's count of versions, after its title in the line's flow (rows set their badges apart by their gap). */
+.rv-body > b + .sh-badge { margin-left: var(--s-1); }
 .rv-picked { display: inline-flex; align-items: center; gap: var(--s-1); color: var(--text-1); font-size: var(--fs-2); font-weight: var(--w-2); }
 .rv-picked svg { width: 14px; height: 14px; flex: none; }
 .rv-picked circle { fill: var(--text-1); }

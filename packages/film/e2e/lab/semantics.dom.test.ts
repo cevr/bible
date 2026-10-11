@@ -1,13 +1,15 @@
 // The studio's controls as assistive tech and the keyboard meet them, over
 // the probe film with the lab API faked: the header's rule is a vertical
 // separator, and the film switcher lists the films as a group of radio
-// items, the open film checked.
+// items, the open film checked; and a kit control focused from the keyboard
+// shows the studio's ring on every page and in every portal.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { openLab } from '../../src/lab/fixtures/harness.ts';
+import { pageHref } from '../../src/core/api.ts';
+import { DESK, openLab, openPlayer } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { attributeIs, evaluates, waitFor } from '../../src/lab/fixtures/settled.ts';
+import { FOCUS_SHOWN, attributeIs, evaluates, waitFor } from '../../src/lab/fixtures/settled.ts';
 
 const SLOW = 30_000;
 
@@ -42,6 +44,34 @@ describe("the shell's header", () => {
           0,
         );
         expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+describe("the kit's focus ring", () => {
+  it.live(
+    'on the Lab, in its ⌘K portal and on Play, a kit control focused from the keyboard shows the studio’s ring',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab();
+        // The mode tray's toggle (a segment), the transport's play (an icon button).
+        for (const control of ['.lab-modes > button', '.bar [data-act="play"]']) {
+          yield* page.focus(control);
+          yield* evaluates(page, FOCUS_SHOWN, 'ring');
+        }
+        // The ⌘K sheet is portalled to the body, outside every page's scope: its query field too.
+        yield* page.click('.sh-header [data-act="search"]');
+        yield* waitFor(page, '.lab-command-query:focus');
+        yield* evaluates(page, FOCUS_SHOWN, 'ring');
+        expect(errors).toEqual([]);
+        const play = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: DESK },
+          '.bar [data-act="play"]',
+        );
+        yield* play.page.focus('.bar [data-act="play"]');
+        yield* evaluates(play.page, FOCUS_SHOWN, 'ring');
+        expect(play.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );

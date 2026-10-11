@@ -195,10 +195,12 @@ const Attempt = (props: { readonly row: Accessor<AttemptRow> }) => {
       <div class="studio-attempt-head">
         <span class="studio-attempt-line">{row().line}</span>
         <Show when={row().kept}>
-          <span class="lab-badge recorded">kept</span>
+          <span class="sh-badge" data-state="approved">
+            kept
+          </span>
         </Show>
         <Show when={!row().current}>
-          <span class="lab-badge stale" title="recorded for the line as it read before">
+          <span class="sh-badge" data-state="stale" title="recorded for the line as it read before">
             earlier line
           </span>
         </Show>

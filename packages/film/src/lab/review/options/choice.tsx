@@ -568,7 +568,7 @@ const RowState = (props: { readonly variant: ChoiceVariant }) => {
       <For each={Option.toArray(notCurrent())}>
         {(s) => (
           <span
-            class="rv-badge"
+            class="sh-badge"
             data-state={s}
             title={stateText(props.variant.state, props.variant.staleBy)}
           >
@@ -577,7 +577,7 @@ const RowState = (props: { readonly variant: ChoiceVariant }) => {
         )}
       </For>
       <Show when={props.variant.approval !== 'none'}>
-        <span class="rv-badge" data-approval={props.variant.approval}>
+        <span class="sh-badge" data-state={props.variant.approval}>
           {APPROVAL_TEXT[props.variant.approval]}
         </span>
       </Show>
@@ -592,7 +592,7 @@ const StateTags = (props: { readonly variant: ChoiceVariant }) => (
       {stateText(props.variant.state, props.variant.staleBy)}
     </span>
     <Show when={props.variant.approval !== 'none'}>
-      <span class="rv-badge" data-approval={props.variant.approval}>
+      <span class="sh-badge" data-state={props.variant.approval}>
         {APPROVAL_TEXT[props.variant.approval]}
       </span>
     </Show>

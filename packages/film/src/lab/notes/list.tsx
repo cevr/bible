@@ -22,7 +22,7 @@ import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createMemo, createSignal, onCleanup, useContext } from 'solid-js';
 import { stillUrl } from '../../core/api.ts';
-import { type Note, NotesFile } from '../../core/schema.ts';
+import { type Note, type NoteStatus, NotesFile } from '../../core/schema.ts';
 import { BY_BUTTON, quietly } from '../../command/command.ts';
 import { Selection } from '../../command/selection.ts';
 import type { Hub } from '../../command/hub.ts';
@@ -33,6 +33,13 @@ import { SelectionSheet } from '../selection-sheet.tsx';
 import { type LabApi, NotesApi, reasonOf, served } from '../api.ts';
 import { pressed } from '../pressed.ts';
 import { FeedEvent, FeedState, feedText, spawnFeed, startOf } from './feed.ts';
+
+/** The state a note's status badge is drawn in (DL §5 Chip / badge): a resolved note's has no state colour, so it is plain. */
+const NOTE_STATE = {
+  open: 'note',
+  replied: 'agent',
+  resolved: 'resolved',
+} as const satisfies Record<NoteStatus, string>;
 
 /** What the page's reads run with: the lab's routes for its film, and its host. */
 export type PageRuntime = Atom.AtomRuntime<LabApi | NotesApi | BrowserServices>;
@@ -323,7 +330,9 @@ const Item = (props: ItemProps) => {
     >
       <div class="lab-note-head">
         <span class="lab-note-label">{label(props.note, at())}</span>
-        <span class={['lab-badge', props.note.status]}>{props.note.status}</span>
+        <span class="sh-badge" data-state={NOTE_STATE[props.note.status]}>
+          {props.note.status}
+        </span>
       </div>
       <p class="lab-note-text">{props.note.text}</p>
       <Still film={props.film} name={props.note.still} />
