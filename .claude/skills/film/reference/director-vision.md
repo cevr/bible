@@ -154,7 +154,7 @@ The last row is the rule that the landing is both the most saturated and the cal
 
 ## What we never do
 
-- Typeset the narration, or put a logo or title card before the hook. _(CRAFT 1; #52.)_
+- Typeset the narration anywhere but a full-screen card, or put a logo or title card before the hook. _(CRAFT 1; #52.)_
 - Outline scenery in ink, boil scenery, or fix grain to the screen. _(#25, #26.)_
 - Use pure black, except the cross; use more than three accents, or let anything but gold glow.
 - Hold a picture still for more than 4 s while someone speaks. _(#1.)_
