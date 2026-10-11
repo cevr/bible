@@ -14,7 +14,8 @@
 // `range=true` for swipe animations limited to the first snap point (the
 // panel's up to it, the backdrop's from it). `async-owner` is the lab's shape: an `open` that stays
 // true, under a page that drops the sheet later. `stack` opens a second
-// sheet from inside the first.
+// sheet from inside the first. The sheet stands in `#section`, which a test
+// hides with `display: none` as the lab hides a mode's section.
 //
 // On the 800x600 page the bottom and top sheets are 300px tall and full width
 // (the bottom one's top edge at y=300), the side sheets 300px wide (the right
@@ -129,67 +130,70 @@ function BasicSheet(): JSX.Element {
         outside
       </button>
       <owner.Opener>Open</owner.Opener>
-      <Sheet.Root
-        open={owner.open()}
-        position={positionParam()}
-        swipeDirection={swipeParam()}
-        snapPoints={snapParam()}
-        modal={param('modal') !== 'false'}
-        disablePointerDismissal={param('dismissal') === 'disabled'}
-        preventDismissal={param('prevent') === 'true'}
-        onOpenChange={(open, details) => {
-          log(`open ${open} ${details.reason}`);
-          if (!open && param('owner') === 'cancel') {
-            details.cancel();
-            return;
-          }
-          owner.setOpen(open);
-        }}
-        onOpenChangeComplete={(open) => log(`complete ${open}`)}
-      >
-        <Sheet.Portal inline={param('portal') === 'inline'}>
-          <Sheet.Overlay id="overlay">
-            <Sheet.Backdrop
-              id="backdrop"
-              class="backdrop"
-              swipeAnimation="fade"
-              swipeAnimationRange={param('range') === 'true' ? { start: 0 } : undefined}
-            />
-            <Sheet.Popup
-              id="panel"
-              class="panel"
-              swipeAnimation="rise"
-              swipeAnimationRange={param('range') === 'true' ? { end: 0 } : undefined}
-              stackAnimation="recede"
-              overscrollPadding={param('overscroll') === 'true'}
-            >
-              <Sheet.Content id="popup" class="content" initialFocus={initialFocus}>
-                <Sheet.Title id="title">Sheet</Sheet.Title>
-                <Show
-                  when={param('body') === 'tall'}
-                  fallback={<div id="body">Selectable text</div>}
-                >
-                  <div id="body" style={{ height: '120px', 'overflow-y': 'auto' }}>
-                    <div style={{ height: '600px' }}>Selectable text</div>
-                  </div>
-                </Show>
-                <button
-                  type="button"
-                  id="first"
-                  ref={(el) => (first = el)}
-                  style={{ height: '100px' }}
-                >
-                  first
-                </button>
-                <Show when={param('stack') === 'true'}>
-                  <InnerSheet />
-                </Show>
-                <Sheet.Close id="close">Close</Sheet.Close>
-              </Sheet.Content>
-            </Sheet.Popup>
-          </Sheet.Overlay>
-        </Sheet.Portal>
-      </Sheet.Root>
+      {/* What holds the sheet: hidden with `display: none`, an inline sheet is hidden with it. */}
+      <div id="section">
+        <Sheet.Root
+          open={owner.open()}
+          position={positionParam()}
+          swipeDirection={swipeParam()}
+          snapPoints={snapParam()}
+          modal={param('modal') !== 'false'}
+          disablePointerDismissal={param('dismissal') === 'disabled'}
+          preventDismissal={param('prevent') === 'true'}
+          onOpenChange={(open, details) => {
+            log(`open ${open} ${details.reason}`);
+            if (!open && param('owner') === 'cancel') {
+              details.cancel();
+              return;
+            }
+            owner.setOpen(open);
+          }}
+          onOpenChangeComplete={(open) => log(`complete ${open}`)}
+        >
+          <Sheet.Portal inline={param('portal') === 'inline'}>
+            <Sheet.Overlay id="overlay">
+              <Sheet.Backdrop
+                id="backdrop"
+                class="backdrop"
+                swipeAnimation="fade"
+                swipeAnimationRange={param('range') === 'true' ? { start: 0 } : undefined}
+              />
+              <Sheet.Popup
+                id="panel"
+                class="panel"
+                swipeAnimation="rise"
+                swipeAnimationRange={param('range') === 'true' ? { end: 0 } : undefined}
+                stackAnimation="recede"
+                overscrollPadding={param('overscroll') === 'true'}
+              >
+                <Sheet.Content id="popup" class="content" initialFocus={initialFocus}>
+                  <Sheet.Title id="title">Sheet</Sheet.Title>
+                  <Show
+                    when={param('body') === 'tall'}
+                    fallback={<div id="body">Selectable text</div>}
+                  >
+                    <div id="body" style={{ height: '120px', 'overflow-y': 'auto' }}>
+                      <div style={{ height: '600px' }}>Selectable text</div>
+                    </div>
+                  </Show>
+                  <button
+                    type="button"
+                    id="first"
+                    ref={(el) => (first = el)}
+                    style={{ height: '100px' }}
+                  >
+                    first
+                  </button>
+                  <Show when={param('stack') === 'true'}>
+                    <InnerSheet />
+                  </Show>
+                  <Sheet.Close id="close">Close</Sheet.Close>
+                </Sheet.Content>
+              </Sheet.Popup>
+            </Sheet.Overlay>
+          </Sheet.Portal>
+        </Sheet.Root>
+      </div>
     </div>
   );
 }

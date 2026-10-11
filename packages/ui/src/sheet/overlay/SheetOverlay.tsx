@@ -16,7 +16,8 @@
 // in would scroll, and stop the scroll on iOS). An IntersectionObserver
 // watches the content: all of it showing is `expanded`, and once it has shown
 // and then left the screen entirely (the user scrolled it away), the sheet
-// asks to close with the reason `swipe`.
+// asks to close with the reason `swipe`. Hidden with what holds it, it is not
+// gone: it rests again once laid out.
 //
 // It sets `--visual-viewport-width` and `--visual-viewport-height` (the
 // visual viewport's size, which a software keyboard shrinks), and from them
@@ -212,8 +213,34 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         );
       }
       let shown = wasEntered;
+      // A sheet hidden with what holds it (`display: none` round it) has no layout: the
+      // observer reports it gone, and the browser drops its scroll position. Neither is a
+      // swipe. It must show again before it can be swiped away, and it rests again, at once,
+      // when it is laid out.
+      const laidOut = () => scrollElement.getClientRects().length > 0;
+      let unlaid = false;
+      const forget = () => {
+        unlaid = true;
+        shown = false;
+        visible = false;
+      };
+      const layout = new ResizeObserver(() => {
+        if (!laidOut()) {
+          forget();
+        } else if (unlaid) {
+          unlaid = false;
+          if (untrack(store.open)) {
+            scrollToRest(scrollElement, config, false);
+          }
+        }
+      });
+      layout.observe(scrollElement);
       const observer = new IntersectionObserver(
         (entries) => {
+          if (!laidOut()) {
+            forget();
+            return;
+          }
           const ratio = entries[entries.length - 1]?.intersectionRatio ?? 0;
           setExpanded(ratio >= 1);
           visible = ratio > 0;
@@ -237,6 +264,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         iterations: config.viewIterations,
       });
       return () => {
+        layout.disconnect();
         observer.disconnect();
         leave();
       };

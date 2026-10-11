@@ -42,6 +42,63 @@ const scrollState = (page: Page) =>
     .first()
     .evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft }));
 
+/** Hides (`display: none`) or shows what holds the sheet, as the lab hides a mode's section. */
+const hideSection = (page: Page, hidden: boolean) =>
+  page.locator('#section').evaluate((el, hide) => (el.style.display = hide ? 'none' : ''), hidden);
+
+const opens = async (page: Page) => (await logOf(page)).filter((line) => line.startsWith('open'));
+
+/**
+ * Resolves once an IntersectionObserver of the page's own reports the content
+ * hidden: observers are told in one task, in the order they were made, so the
+ * sheet's (made first) has been told by then.
+ */
+const reportedHidden = (page: Page) =>
+  page.locator('#popup').evaluate(
+    (content) =>
+      new Promise<void>((resolve) => {
+        const observer = new IntersectionObserver((entries) => {
+          if (entries.some((entry) => !entry.isIntersecting)) {
+            observer.disconnect();
+            resolve();
+          }
+        });
+        observer.observe(content);
+      }),
+  );
+
+describe('hidden with what holds it', () => {
+  const LAB = { modal: 'false', dismissal: 'disabled', portal: 'inline' };
+  const REST = { x: 0, y: 300, width: 800, height: 300 };
+
+  it('stays open while hidden, rests where it did when shown, and is swiped away after', async () => {
+    const page = await h.open('sheet', { query: LAB });
+    await openSheet(page);
+    await hideSection(page, true);
+    await reportedHidden(page);
+    await see(page.locator('#popup')).toHaveCount(1);
+    await hideSection(page, false);
+    await see.poll(() => box(page, '#panel')).toEqual(REST);
+    expect(await opens(page)).toEqual([]);
+    await scrollSheet(page, { top: 0 });
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await opens(page)).toEqual(['open false swipe']);
+  });
+
+  it('opened while hidden, rests once shown', async () => {
+    const page = await h.open('sheet', { query: LAB });
+    await hideSection(page, true);
+    await page.click('#open');
+    await see(page.locator('#popup')).toHaveCount(1);
+    await reportedHidden(page);
+    // Its scroll in has settled where it had no layout: it has entered.
+    await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
+    await hideSection(page, false);
+    await see.poll(() => box(page, '#panel')).toEqual(REST);
+    expect(await opens(page)).toEqual([]);
+  });
+});
+
 describe('Sheet.Root', () => {
   it('opens as a dialog named by its title that focuses itself once in', async () => {
     const page = await h.open('sheet');
