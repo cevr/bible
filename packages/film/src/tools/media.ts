@@ -563,12 +563,13 @@ const gcd = (a: number, b: number): number => {
  * - their clock is the coarsest step every start is a whole count of (their
  *   greatest common divisor), not the timescale that keeps them: a
  *   millisecond clock's times copied onto a 16000 timescale tell no more
- *   than they did on a 1000 one. That holds only while the step is under
- *   half a candidate rate's frame: a coarser one is the frames' own spacing
- *   (an exactly timed file, whose starts all lie on its frames, at 1.25 fps
- *   or with frames dropped), which would let a whole rate's grid put two
- *   starts on one of its frames and still hold them, so against that rate
- *   they are judged by one tick of the timescale;
+ *   than they did on a 1000 one;
+ * - a clock of half a candidate rate's frame or more cannot tell that rate
+ *   from its neighbours: it is the frames' own spacing (an exactly timed
+ *   file, whose starts all lie on its frames, at 0.5 or 1.25 fps or with
+ *   frames dropped), and a grid of the rate near it could hold the starts
+ *   only by putting two on one of its frames. Then no rate is claimed: as
+ *   measured, below, which is exact for an exactly timed file;
  * - a whole rate (30) or its 1000/1001 rate (30000/1001, NTSC's 29.97) is
  *   taken when its frame grid puts every start within one step of its time
  *   and the other's does not. Each start is its frame's time put on the
@@ -597,18 +598,18 @@ const rateOfTicks = (ticks: ReadonlyArray<number>, resolution: number): Option.O
       /**
        * How far apart `num / den` frames a second's grid puts the starts'
        * offsets from it, and the step they are judged against, both in ticks
-       * times `num`: whole counts, so a bound is met or not, exactly.
+       * times `num`: whole counts, so a bound is met or not, exactly. The
+       * clock tells this grid only while its step is under half the grid's
+       * frame.
        */
       const spreadOf = (num: number, den: number) => {
         const period = resolution * den;
         const offsets = ticks.map((at) => at * num - Math.round((at * num) / period) * period);
-        // A step of half this grid's frame or more is no clock its frames were
-        // put on, but frames themselves: judged by one tick.
-        const judged = Option.getOrElse(
-          Option.filter(Option.some(step), (each) => each * num * 2 < period),
-          () => 1,
-        );
-        return { spread: Math.max(...offsets) - Math.min(...offsets), step: judged * num };
+        return {
+          spread: Math.max(...offsets) - Math.min(...offsets),
+          step: step * num,
+          tells: step * num * 2 < period,
+        };
       };
       const whole = Math.round(measured);
       const ntsc = Math.round((measured * 1001) / 1000);
@@ -629,9 +630,13 @@ const rateOfTicks = (ticks: ReadonlyArray<number>, resolution: number): Option.O
       };
       const strictly = Arr.filter(spreads, (each) => each.spread < each.step);
       return Option.getOrElse(
-        Match.value(strictly.length).pipe(
-          Match.when(0, () => only((each) => each.spread <= each.step)),
-          Match.orElse(() => only((each) => each.spread < each.step)),
+        Option.flatMap(
+          Option.filter(Option.some(spreads), (each) => each.every((one) => one.tells)),
+          () =>
+            Match.value(strictly.length).pipe(
+              Match.when(0, () => only((each) => each.spread <= each.step)),
+              Match.orElse(() => only((each) => each.spread < each.step)),
+            ),
         ),
         () => measured,
       );

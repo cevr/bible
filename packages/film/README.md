@@ -2405,9 +2405,11 @@ the rate `GET /api/review/duration` reads from the video's own packets
 (`fps`, `Media.timing`: read from the start times of its first 120 frames,
 on the clock those times sit on (the coarsest step each is a whole count
 of, so a millisecond clock's times copied onto a finer timescale tell no
-more than before, while it is under half a candidate rate's frame: a
-coarser one is the frames' own spacing, as an exactly timed 1.25 fps file's
-or one with frames dropped, and is judged by one tick); the whole or 1000/1001 rate whose frame grid alone holds
+more than before); when that clock is half the frame of the whole or
+1000/1001 rate near them or coarser (the frames' own spacing, as an exactly
+timed 0.5 or 1.25 fps file's, or one's with frames dropped), it cannot tell
+that rate from its neighbours and no rate is claimed: as measured, below;
+else the whole or 1000/1001 rate whose frame grid alone holds
 every start within one step of its time (strictly within first; a whole step
 apart, as halfway times rounded either way leave them, only when no grid
 holds them strictly; a millisecond clock tells 30 from

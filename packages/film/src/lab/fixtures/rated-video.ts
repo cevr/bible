@@ -41,7 +41,11 @@ export interface RatedTiming {
   readonly grid?: number;
   /** The last frame's own duration (s), as a whole clip's is written apart; a frame's by default. */
   readonly last?: number;
-  /** Frames left out, their places kept empty, as a capture drops frames under load. */
+  /**
+   * Frames left out, their places kept empty, as a capture drops frames under
+   * load: a file for its timing only, since a dropped frame's pictures after
+   * it (or all, with frame 0, the one key frame) no longer decode.
+   */
   readonly drop?: ReadonlyArray<number>;
 }
 
