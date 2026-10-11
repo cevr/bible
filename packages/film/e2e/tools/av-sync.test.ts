@@ -19,11 +19,11 @@ import {
   type InputVideoTrack,
   VideoSampleSink,
 } from 'mediabunny';
-import { FOOTAGE_RECIPES } from '../core/footage.ts';
-import { MIX_RATE } from '../core/mix.ts';
-import { FootageMedia } from './footage-media.ts';
-import { type SyncClip, syncClip } from './fixtures/sync-clip.ts';
-import { Media } from './media.ts';
+import { FOOTAGE_RECIPES } from '../../src/core/footage.ts';
+import { MIX_RATE } from '../../src/core/mix.ts';
+import { FootageMedia } from '../../src/tools/footage-media.ts';
+import { type SyncClip, syncClip } from '../../src/tools/fixtures/sync-clip.ts';
+import { Media } from '../../src/tools/media.ts';
 
 const Live = FootageMedia.layer.pipe(
   Layer.provideMerge(Media.layer),
