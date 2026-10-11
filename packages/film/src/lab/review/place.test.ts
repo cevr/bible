@@ -18,7 +18,9 @@ import {
   placeOf,
   queryOfView,
   shownQuery,
+  stillIn,
   viewOf,
+  withStill,
 } from './place.ts';
 
 /** The view query of a set link ending in `search`. */
@@ -110,7 +112,7 @@ describe('the place in the URL', () => {
     const at = (state: ViewState) =>
       Place.href(Places.set, {
         path: { folder: 'f', point: 's' },
-        query: { ...queryOfView(state), inspect: '' },
+        query: { ...queryOfView(state), inspect: '', still: '' },
         hash: { t: Option.none() },
       });
     expect(at(ViewState.Wipe({ other: 'C' }))).toBe('/sets/f/s?view=wipe&other=C');
@@ -154,7 +156,7 @@ describe('the place in the URL', () => {
     const at = (state: ViewState) =>
       Place.href(Places.set, {
         path: { folder: 'f', point: 's' },
-        query: { ...queryOfView(state), inspect: '' },
+        query: { ...queryOfView(state), inspect: '', still: '' },
         hash: { t: Option.none() },
       });
     expect(at(ViewState.Pair({ other: 'C' }))).toBe('/sets/f/s?view=pair&other=C');
@@ -162,6 +164,24 @@ describe('the place in the URL', () => {
     expect(at(ViewState.All)).toBe('/sets/f/s');
     for (const state of [ViewState.Pair({ other: 'C' }), ViewState.Moments({ index: 2 })])
       expect(viewOf(queryAt(at(state).slice('/sets/f/s'.length)), ['A', 'B', 'C'])).toEqual(state);
+  });
+
+  test('a folder and a set keep the still open full size, its opening a step Back closes (SH5-1)', () => {
+    const folder = '/sets/out%2Fsheets';
+    const set = '/sets/f/s?view=moments&m=2';
+    expect(stillIn(folder)).toEqual(Option.none());
+    const sheet = Option.getOrThrow(withStill(folder, 'out/sheets/ink.jpg'));
+    expect(sheet).toBe('/sets/out%2Fsheets?still=out%2Fsheets%2Fink.jpg');
+    expect(stillIn(sheet)).toEqual(Option.some('out/sheets/ink.jpg'));
+    const version = Option.getOrThrow(withStill(set, 'B'));
+    expect(stillIn(version)).toEqual(Option.some('B'));
+    // The view and the place stay as they were; none open again is the link before.
+    expect(placeOf(version)).toEqual(placeOf(set));
+    expect(withStill(version, '')).toEqual(Option.some(set));
+    expect(pageMove(folder, sheet)).toBe('push');
+    // Only a folder or a set keeps one.
+    expect(withStill('/films/f/choices', 'x')).toEqual(Option.none());
+    expect(stillIn('/films/f/choices?still=x')).toEqual(Option.none());
   });
 });
 

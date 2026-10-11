@@ -854,14 +854,14 @@ describe('the review page', () => {
         yield* until(page, `${frames} === '19,19,19'`);
         yield* until(page, "location.search === '?view=moments&m=4'");
         yield* page.click('.rv-card img');
-        yield* textIs(page, '.rv-lightbox figcaption', 'Warm at 00:00:19:00');
+        yield* textIs(page, '.rv-lightbox .rv-lightbox-caption', 'Warm at 00:00:19:00');
         yield* page.press('Escape');
         yield* until(page, "document.querySelector('.rv-lightbox') === null");
         // The keyboard opens it too: a still is a button, Enter and Space open its caption.
         for (const key of ['Enter', ' ']) {
           yield* page.focus('.rv-card[data-id="B"] .rv-zoom');
           yield* page.press(key);
-          yield* textHas(page, '.rv-lightbox figcaption', 'at 00:00:19:00');
+          yield* textHas(page, '.rv-lightbox .rv-lightbox-caption', 'at 00:00:19:00');
           yield* page.press('Escape');
           yield* until(page, "document.querySelector('.rv-lightbox') === null");
         }
@@ -936,6 +936,59 @@ describe('the review page', () => {
           'aria-pressed',
           'true',
         );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a still opens full size in the kit's dialog, over the phone's tab bar: titled by its caption, focus in it and back on the still, Escape, a tap and Back close it, a link opens it (SH5-1)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, {
+          href: `${SET}?view=moments`,
+          viewport: { width: 390, height: 844 },
+        });
+        const still = '.rv-card[data-id="B"] .rv-zoom';
+        const box = '.rv-lightbox[role="dialog"]';
+        const gone = "document.querySelector('.rv-lightbox') === null";
+        yield* waitFor(page, still);
+        yield* page.click(still);
+        yield* waitFor(page, box);
+        yield* until(page, "new URLSearchParams(location.search).get('still') === 'B'");
+        // Its name is its caption, the dialog's title; the focus is in it.
+        yield* evaluates(
+          page,
+          `(() => { const d = document.querySelector('${box}'); return document.getElementById(d.getAttribute('aria-labelledby')) === d.querySelector('.rv-lightbox-caption'); })()`,
+          true,
+        );
+        yield* textHas(page, `${box} .rv-lightbox-caption`, 'Cold at ');
+        yield* until(page, `document.querySelector('${box}').contains(document.activeElement)`);
+        // Nothing of the page draws over it: its backdrop and its picture stand over the tab
+        // bar, the page's highest layer (the dock stands under the bar).
+        yield* evaluates(
+          page,
+          "(() => { const z = (s) => Number(getComputedStyle(document.querySelector(s)).zIndex); return [z('.rv-lightbox-backdrop'), z('.rv-lightbox')].map((n) => n > z('.sh-pagebar')); })()",
+          [true, true],
+        );
+        // Escape closes it, adding no entry; the focus is back on the still.
+        yield* page.press('Escape');
+        yield* until(page, gone);
+        yield* until(page, "location.search === '?view=moments'");
+        yield* until(page, `document.activeElement === document.querySelector('${still}')`);
+        // Back closes it, as every sheet's opening is a step of its own.
+        yield* page.press('Enter');
+        yield* waitFor(page, box);
+        yield* page.back;
+        yield* until(page, gone);
+        yield* until(page, "location.search === '?view=moments'");
+        // A link opens it, and a tap anywhere closes it.
+        yield* page.goto(`${SET}?view=moments&still=B`);
+        yield* waitFor(page, box);
+        yield* textHas(page, `${box} .rv-lightbox-caption`, 'Cold at ');
+        yield* page.click(`${box} img`);
+        yield* until(page, gone);
+        yield* until(page, "location.search === '?view=moments'");
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

@@ -10,7 +10,9 @@
 // and the comment box, said over the set's route.
 
 import { useAtomValue } from '@bible/atom-solid';
+import { Dialog } from '@bible/ui/dialog';
 import { Toggle } from '@bible/ui/toggle';
+import * as UrlAtom from '@bible/url-state/atom';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, type JSX, Show } from '@solidjs/web';
 import { Array as Arr, Effect, Exit, Match, Option, Scope, Struct } from 'effect';
@@ -51,6 +53,8 @@ import {
 } from '../../core/api.ts';
 import { type LabFailure, served } from '../api.ts';
 import { pressed } from '../pressed.ts';
+import { useSheetDismissal } from '../sheet.tsx';
+import { addressOn } from '../../browser/host.ts';
 import { StateBand } from '../scenes/card.tsx';
 import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
@@ -62,7 +66,7 @@ import { setApproveUndo, setSaidText, undoApprove } from './options/receipt.ts';
 import { quiet, refused } from '../../command/command.ts';
 import { OpId, type Project, projectNow, versionState } from '../../core/catalogue.ts';
 import { uniqueId } from '../../core/unique.ts';
-import { Go, SetProvider, type Shown, useReview, useSet } from './context.tsx';
+import { Go, SetProvider, useReview, useSet } from './context.tsx';
 import {
   agoText,
   approvalText,
@@ -93,7 +97,7 @@ import {
 } from './machine.ts';
 import { Loaded, useWrite, writeStatus } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
-import { ReviewPlace as Place } from './place.ts';
+import { ReviewPlace as Place, stillIn, withStill } from './place.ts';
 import { HearToggle, PlayedAlone, Transport, useClockMedia } from './player.tsx';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
@@ -348,21 +352,66 @@ const Markdown = (props: { readonly file: ReviewFile }) => {
   );
 };
 
+/** An image the lightbox shows: its source, and the caption under it (what its card no longer says). */
+interface Shown {
+  readonly src: string;
+  readonly caption: string;
+}
+
 /**
- * A still that opens in the lightbox with its caption (`shown`): a button, so
- * a tap, a click, Enter and Space all open it, and its name says what opens.
+ * A still that opens full size in the lightbox, with its caption (`shown`):
+ * a button, so a tap, a click, Enter and Space all open it, and its name
+ * says what opens. The URL keeps it open (`?still=` its `name`), so a link
+ * opens it, and Back closes it as every sheet's opening is. The lightbox is
+ * the kit's dialog over every other layer of the page (the tab bar and the
+ * dock too), titled by its caption: focus moves into it and back to the
+ * still, and Escape or a tap anywhere closes it, by the sheets' one rule
+ * (`useSheetDismissal`), adding no entry.
  */
-const Zoom = (props: { readonly still: string; readonly alt: string; readonly shown: Shown }) => {
-  const { actions } = useReview();
+const Zoom = (props: {
+  readonly still: string;
+  readonly alt: string;
+  readonly shown: Shown;
+  readonly name: string;
+}) => {
+  const { meta } = useReview();
+  const href = useAtomValue(() => UrlAtom.href);
+  const address = addressOn(meta.host);
+  const dismissal = useSheetDismissal(meta.host, (at, name) =>
+    Option.exists(stillIn(at), (open) => open === name),
+  );
+  const open = () => Option.exists(stillIn(href()), (name) => name === props.name);
+  const show = () =>
+    Option.map(withStill(untrack(href), props.name), (to) => {
+      dismissal.opening(props.name);
+      address.go(to);
+    });
+  const close = () => dismissal.dismiss(() => withStill(untrack(href), ''));
   return (
-    <button
-      type="button"
-      class="rv-zoom"
-      aria-label={`Open ${props.shown.caption}`}
-      onClick={() => actions.show(Option.some(props.shown))}
-    >
-      <img class="rv-media" loading="lazy" src={props.still} alt={props.alt} />
-    </button>
+    <>
+      <button
+        type="button"
+        class="rv-zoom"
+        aria-label={`Open ${props.shown.caption}`}
+        onClick={show}
+      >
+        <img class="rv-media" loading="lazy" src={props.still} alt={props.alt} />
+      </button>
+      <Dialog.Root
+        open={open()}
+        onOpenChange={(next: boolean) => {
+          if (!next) close();
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop class="rv-lightbox-backdrop" />
+          <Dialog.Popup class="rv-lightbox" data-still={props.name} onClick={close}>
+            <img src={props.shown.src} alt={props.shown.caption} />
+            <Dialog.Title class="rv-lightbox-caption">{props.shown.caption}</Dialog.Title>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </>
   );
 };
 
@@ -458,6 +507,7 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
                 {/* Its path in the folder and its age are the lightbox's caption, and its name. */}
                 <Zoom
                   still={reviewFileUrl(image.ref)}
+                  name={image.ref}
                   alt={image.name}
                   shown={{
                     src: reviewFileUrl(image.ref),
@@ -1311,6 +1361,7 @@ const MomentsView = (props: { readonly index: number }) => {
                 <VersionCard version={variant().id}>
                   <Zoom
                     still={reviewFrameUrl(variant().video.ref, Option.some(at()), MOMENT_W)}
+                    name={variant().id}
                     alt={`${variant().label} at ${timecode(at())}`}
                     shown={{
                       src: reviewFrameUrl(variant().video.ref, Option.some(at()), LIGHTBOX_W),

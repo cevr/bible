@@ -701,8 +701,8 @@ Forward itself (`film/history-through-host`). The review pages also set a place'
 | Place                            | Page   | Query                                                                                                                   | Hash                                 |
 | -------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | `/`                              | review |                                                                                                                         |                                      |
-| `/sets/<folder>`                 | review |                                                                                                                         |                                      |
-| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`, `inspect` (the version whose sheet is open)                                                       | `t` (the set's video)                |
+| `/sets/<folder>`                 | review | `still` (the sheet or still open full size)                                                                             |                                      |
+| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`, `inspect` (the version whose sheet is open), `still` (the version whose moment is open full size) | `t` (the set's video)                |
 | `/films/<film>/choices`          | review | `point` (the card revealed), `inspect` (its variant's sheet), `heard` (a point, or `own`), `variant`, `picture`, `only` | `t` (the picture)                    |
 | `/films/<film>/project`          | review | `point` (the card in focus, its sheet open), `heard`, `variant`, `picture`, `only`                                      | `t` (the picture)                    |
 | `/films/<film>/scenes[/<scene>]` | player |                                                                                                                         | `t` (film time)                      |
@@ -2364,8 +2364,11 @@ recording is made on the box's own browser or through an HTTPS name.
 **The page** (`lab/review/`): `<Root>` holds the runtime (the review's
 routes and the options'), where the page is (its place, read from the URL
 through the host's `UrlState`, so a link, Back and a reload work; see Pages
-and links), the index, the films, the quality (Proxy or Original) and the
-lightbox. The header is the studio's shell (`PageShell`,
+and links), the index, the films and the quality (Proxy or Original). A
+still opens full size in a lightbox, the kit's Dialog over every layer of
+the page, titled by its caption; the URL keeps it open (`?still=`), so a
+link opens it, Back closes it, and Escape or a tap closes it by the
+sheets' rule (`useSheetDismissal`). The header is the studio's shell (`PageShell`,
 `lab/page-shell.tsx`): Films, the film switcher, the page bar, a drill-down
 crumb and Go to… (⌘K: Go to finds a folder, a set, or a film's choices or
 project by name, `destinationsOf`, and on a film's choices each choice
