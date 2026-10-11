@@ -39,10 +39,11 @@ import {
   type Lit,
   type Picks,
   followLine,
-  lineStarts,
   litNow,
+  liveWords,
   metersOn,
   selectionAt,
+  startsOf,
 } from './lit.ts';
 import { FOLLOW } from './open.ts';
 
@@ -87,8 +88,9 @@ interface Row {
   readonly text: string;
 }
 
-const rowsOf = (text: string): ReadonlyArray<Row> => {
-  const starts = lineStarts(text);
+const rowsOf = (code: SceneCode): ReadonlyArray<Row> => {
+  const text = code.text;
+  const starts = startsOf(code);
   return starts.map((from, i) => ({
     n: i + 1,
     from,
@@ -117,7 +119,7 @@ const Text = (props: { readonly code: SceneCode }) => {
   const { state: lab, actions, meta } = useLab();
   const source = useSource();
   const lit = useLit(() => props.code);
-  const rows = createMemo(() => rowsOf(props.code.text));
+  const rows = createMemo(() => rowsOf(props.code));
   const digits = createMemo(() => String(rows().length).length);
   // The box the rows scroll in: found from the rows (`scrollContainerOf`), so the column and the sheet scroll by one rule.
   let scroller = Option.none<HTMLElement>();
@@ -333,10 +335,7 @@ const Head = (props: { readonly code: SceneCode; readonly close: boolean }) => {
     <header class="lab-source-head">
       <span class="lab-source-file">{props.code.file}</span>
       <span class="lab-source-live" data-empty={pressed(lit().names.length === 0)}>
-        {Bool.match(lit().names.length === 0, {
-          onTrue: () => 'nothing playing',
-          onFalse: () => lit().names.join(' · '),
-        })}
+        {liveWords(props.code, lit())}
       </span>
       <button
         type="button"

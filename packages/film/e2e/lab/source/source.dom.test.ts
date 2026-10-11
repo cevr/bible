@@ -77,7 +77,6 @@ const CODE = {
     },
   ],
   knobs: [{ name: 'spot', at: range('spot: [320, 200]'), reads: [range("f.knob('spot')")] }],
-  marks: [],
   refused: [],
 };
 
@@ -217,6 +216,23 @@ describe('what is lit', () => {
         yield* textIs(page, '.lab-source-live', 'rise');
         yield* evaluates(page, PAINTED, ['rise']);
         yield* attributeIs(page, '.lab-source-meter', 'data-cue', 'rise');
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a timeline the lab cannot locate says why in the head, where the strip lights a cue the code cannot',
+    () =>
+      Effect.gen(function* () {
+        const reason = 'it is `make()`, not an object literal';
+        const computed = route('GET', /^\/scenes\/one\/code$/, () =>
+          json({ ...CODE, cues: [], refused: [{ field: 'timeline', reason }] }),
+        );
+        const { page } = yield* openLab([computed], {
+          href: labOne(middle('rise'), { code: 'follow' }),
+        });
+        yield* page.waitFor('.lab-source-col .lab-source-page');
+        yield* evaluates(page, LANES, ['rise']);
+        yield* textIs(page, '.lab-source-live', `timeline not lit: ${reason}`);
       }).pipe(Effect.scoped),
   );
 });
@@ -763,7 +779,6 @@ describe('a line of the code', () => {
         text: ['// two', 'a', 'b', 'c', 'const d = 4;', 'e'].join('\n'),
         cues: [],
         knobs: [],
-        marks: [],
         refused: [],
       };
       const twoRoute = route('GET', /^\/scenes\/two\/code$/, () => json(TWO));

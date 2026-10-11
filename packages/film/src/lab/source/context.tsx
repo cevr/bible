@@ -26,7 +26,7 @@ import { LabApi, reasonOf } from '../api.ts';
 import { useEditor } from '../editor/context.tsx';
 import { SourceKnown } from '../editor/grip.ts';
 import { useLab } from '../shell.tsx';
-import { lineOf, lineSite, lineStarts } from './lit.ts';
+import { lineAt, lineSite } from './lit.ts';
 import { sourceCommands } from './commands.ts';
 import { type CodeOpen } from './open.ts';
 
@@ -66,10 +66,6 @@ interface SourceContextValue {
   readonly whereCue: (scene: string, name: string) => Option.Option<Where>;
   /** The file and line that write knob `name`, likewise. */
   readonly whereKnob: (scene: string, name: string) => Option.Option<Where>;
-  /** The line that writes cue `name` in `scene`'s file, if known. */
-  readonly lineOfCue: (scene: string, name: string) => Option.Option<number>;
-  /** The line that writes knob `name`, likewise. */
-  readonly lineOfKnob: (scene: string, name: string) => Option.Option<number>;
   /** The line the view is held on, as a note cites it, with the scene whose file it is: none while it follows or is shut. */
   readonly heldSite: () => Option.Option<{ readonly scene: string; readonly source: NoteSource }>;
 }
@@ -147,7 +143,7 @@ export const Provider = (props: ParentProps) => {
           (c) =>
             Option.map(Option.fromUndefinedOr(c[site].find((s) => s.name === name)), (s) => ({
               file: c.file,
-              line: lineOf(lineStarts(c.text), s.at[0]),
+              line: lineAt(c, s.at[0]),
             })),
         ),
         () =>
@@ -172,7 +168,6 @@ export const Provider = (props: ParentProps) => {
   const whereCue = whereIn('cues');
   const whereKnob = whereIn('knobs');
   const lineOfCue = (at: string, name: string) => Option.map(whereCue(at, name), (w) => w.line);
-  const lineOfKnob = (at: string, name: string) => Option.map(whereKnob(at, name), (w) => w.line);
   onCleanup(
     meta.hub.commands.register(
       ...sourceCommands({
@@ -210,8 +205,6 @@ export const Provider = (props: ParentProps) => {
     resume: () => setSuspended(false),
     whereCue,
     whereKnob,
-    lineOfCue,
-    lineOfKnob,
     heldSite,
   };
   return (
