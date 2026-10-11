@@ -4,11 +4,15 @@
 // sibling renders loaded every core. Give the test its budget, in
 // milliseconds, as its last argument.
 //
-// A test is a call to `it` or `test` (`it.effect`, `it.live`,
+// A test is a call of the runner's `it` or `test` (`bun:test`'s,
+// `effect-bun-test`'s or bun's global; `it.effect`, `it.live`,
 // `it.effect.layer(…)`) with a name and a body. It spawns when its body calls
-// `ChildProcess.make`, `Bun.spawn` or `Bun.spawnSync`, or a function of the
-// same file that does, however deep. A test with a third argument has
-// its budget.
+// effect's `ChildProcess.make`, the global `Bun`'s `spawn` or `spawnSync`
+// (read off it, or taken apart from it), `spawn` or `spawnSync` imported from
+// `bun`, or a function of the same file that does, however deep. Each name is
+// read by its binding (`nodes.ts`): a parameter or a local of the same
+// spelling is none of these, and a helper is the binding its call resolves
+// to, not a name. A test with a third argument has its budget.
 
 import { Effect, Option } from 'effect';
 import {
@@ -18,44 +22,61 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { ancestors, memberName } from './nodes.ts';
+import { ancestors, type Bindings, bindings, memberName, type Module } from './nodes.ts';
 
-/** The name `SPAWN` stands for a call that spawns: its host spawns. */
-const SPAWN = '(spawn)';
+/** Bun's spawns. */
+const BUN_SPAWNS: ReadonlyArray<string> = ['spawn', 'spawnSync'];
 
-/** Calls that spawn a process, by `Owner.member`. */
-const SPAWNS = new Set(['ChildProcess.make', 'Bun.spawn', 'Bun.spawnSync']);
+/** Effect's process modules: `effect/process`, or `effect/process/ChildProcess` imported whole. */
+const isProcess: Module = (from) => from === 'effect/process';
+const isChildProcess: Module = (from) => from === 'effect/process/ChildProcess';
 
-/** The identifier a callee chain starts at: `it` for `it.effect.layer(x)(…)`. */
-const rootName = (n: ESTree.Node): Option.Option<string> => {
-  if (n.type === 'Identifier') return Option.some(n.name);
-  if (n.type === 'MemberExpression') return rootName(n.object);
-  if (n.type === 'CallExpression') return rootName(n.callee);
+/** Whether `node` is effect's `ChildProcess` module. */
+const isChildProcessModule = (b: Bindings, node: ESTree.Node) =>
+  b.readsImport(node, isProcess, 'ChildProcess') || b.importsAs(node, isChildProcess, '*');
+
+/** The node a callee chain starts at: `it` for `it.effect.layer(x)(…)`. */
+const rootOf = (n: ESTree.Node): Option.Option<ESTree.Node> => {
+  if (n.type === 'Identifier') return Option.some(n);
+  if (n.type === 'MemberExpression') return rootOf(n.object);
+  if (n.type === 'CallExpression') return rootOf(n.callee);
   return Option.none();
 };
 
 const isFunction = (n: ESTree.Node) =>
   n.type === 'ArrowFunctionExpression' || n.type === 'FunctionExpression';
 
-/** A test: `it…(name, body, …)` or `test…(name, body, …)`. */
-const isTest = (n: ESTree.Node): n is ESTree.CallExpression =>
+/** A test: the runner's `it…(name, body, …)` or `test…(name, body, …)`. */
+const isTest = (b: Bindings, n: ESTree.Node): n is ESTree.CallExpression =>
   n.type === 'CallExpression' &&
-  Option.exists(rootName(n.callee), (name) => name === 'it' || name === 'test') &&
+  Option.exists(rootOf(n.callee), (root) => b.isRunner(root, 'it') || b.isRunner(root, 'test')) &&
   n.arguments.some(isFunction);
 
-/** What a call names: `SPAWN` for a spawn, a plain function's name, or nothing. */
-const calledName = (call: ESTree.CallExpression): Option.Option<string> => {
+/** Whether a call spawns a process itself. */
+const spawns = (b: Bindings, call: ESTree.CallExpression): boolean => {
   const callee = call.callee;
-  if (callee.type === 'Identifier') return Option.some(callee.name);
-  if (callee.type !== 'MemberExpression' || callee.object.type !== 'Identifier')
-    return Option.none();
-  const owner = callee.object.name;
-  return Option.flatMap(memberName(callee), (name) =>
-    Option.map(
-      Option.liftPredicate(`${owner}.${name}`, (full) => SPAWNS.has(full)),
-      () => SPAWN,
-    ),
+  if (callee.type === 'MemberExpression')
+    return Option.exists(memberName(callee), (name) => {
+      if (name === 'make') return isChildProcessModule(b, callee.object);
+      return BUN_SPAWNS.includes(name) && b.isGlobal(callee.object, 'Bun');
+    });
+  if (callee.type !== 'Identifier') return false;
+  if (BUN_SPAWNS.some((name) => b.importsAs(callee, (from) => from === 'bun', name))) return true;
+  return Option.exists(
+    b.takenFrom(callee),
+    ({ key, value }) => BUN_SPAWNS.includes(key) && b.isGlobal(value, 'Bun'),
   );
+};
+
+/** What a call reaches: a spawn, a function of the file (by the binding its callee resolves to), or nothing. */
+type Reached =
+  | { readonly _tag: 'Spawn' }
+  | { readonly _tag: 'Helper'; readonly binding: ESTree.Node };
+
+const reached = (b: Bindings, call: ESTree.CallExpression): Option.Option<Reached> => {
+  if (spawns(b, call)) return Option.some({ _tag: 'Spawn' });
+  if (call.callee.type !== 'Identifier') return Option.none();
+  return Option.map(b.definitionOf(call.callee), (def) => ({ _tag: 'Helper', binding: def.name }));
 };
 
 /**
@@ -70,22 +91,22 @@ const declaresFunction = (d: ESTree.VariableDeclarator) =>
       isFunction(init) || (init.type === 'CallExpression' && init.callee.type === 'CallExpression'),
   );
 
-/** Where a call is made: in a test's body, or in a function declared by name. */
+/** Where a call is made: in a test's body, or in a function declared by name (its binding). */
 type Host =
   | { readonly _tag: 'Test'; readonly test: ESTree.CallExpression }
-  | { readonly _tag: 'Helper'; readonly name: string };
+  | { readonly _tag: 'Helper'; readonly binding: ESTree.Node };
 
-const hostOf = (n: ESTree.Node): Option.Option<Host> =>
+const hostOf = (b: Bindings, n: ESTree.Node): Option.Option<Host> =>
   Option.fromUndefinedOr(
     ancestors(n)
       .flatMap((a): ReadonlyArray<Host> => {
-        if (isTest(a)) return [{ _tag: 'Test', test: a }];
+        if (isTest(b, a)) return [{ _tag: 'Test', test: a }];
         if (a.type === 'VariableDeclarator' && a.id.type === 'Identifier' && declaresFunction(a))
-          return [{ _tag: 'Helper', name: a.id.name }];
+          return [{ _tag: 'Helper', binding: a.id }];
         if (a.type === 'FunctionDeclaration')
           return Option.toArray(Option.fromNullOr(a.id)).map((id) => ({
             _tag: 'Helper' as const,
-            name: id.name,
+            binding: id,
           }));
         return [];
       })
@@ -93,29 +114,41 @@ const hostOf = (n: ESTree.Node): Option.Option<Host> =>
   );
 
 type Seen =
-  | { readonly _tag: 'Call'; readonly name: string; readonly host: Host }
+  | { readonly _tag: 'Call'; readonly reached: Reached; readonly host: Host }
   | { readonly _tag: 'Unbudgeted'; readonly test: ESTree.CallExpression };
 
-const seen = (n: ESTree.Node): Option.Option<ReadonlyArray<Seen>> => {
-  if (n.type !== 'CallExpression') return Option.none();
-  const out: Array<Seen> = [];
-  if (isTest(n) && n.arguments.length < 3) out.push({ _tag: 'Unbudgeted', test: n });
-  const name = calledName(n);
-  const host = hostOf(n);
-  if (Option.isSome(name) && Option.isSome(host))
-    out.push({ _tag: 'Call', name: name.value, host: host.value });
-  return Option.liftPredicate(out, (all) => all.length > 0);
-};
+const seen =
+  (b: Bindings) =>
+  (n: ESTree.Node): Option.Option<ReadonlyArray<Seen>> => {
+    if (n.type !== 'CallExpression') return Option.none();
+    const out: Array<Seen> = [];
+    if (isTest(b, n) && n.arguments.length < 3) out.push({ _tag: 'Unbudgeted', test: n });
+    const to = reached(b, n);
+    const host = hostOf(b, n);
+    if (Option.isSome(to) && Option.isSome(host))
+      out.push({ _tag: 'Call', reached: to.value, host: host.value });
+    return Option.liftPredicate(out, (all) => all.length > 0);
+  };
 
-/** The helpers that spawn, directly or through one another. */
-const spawningHelpers = (calls: ReadonlyArray<Extract<Seen, { _tag: 'Call' }>>) => {
-  const spawning = new Set([SPAWN]);
+type Call = Extract<Seen, { _tag: 'Call' }>;
+
+/** Whether a call spawns, given the helpers that do. */
+const reachesSpawn = (call: Call, spawning: ReadonlySet<ESTree.Node>) =>
+  call.reached._tag === 'Spawn' || spawning.has(call.reached.binding);
+
+/** The helpers that spawn, directly or through one another, by binding. */
+const spawningHelpers = (calls: ReadonlyArray<Call>) => {
+  const spawning = new Set<ESTree.Node>();
   let grew = true;
   while (grew) {
     grew = false;
     for (const call of calls)
-      if (call.host._tag === 'Helper' && spawning.has(call.name) && !spawning.has(call.host.name)) {
-        spawning.add(call.host.name);
+      if (
+        call.host._tag === 'Helper' &&
+        !spawning.has(call.host.binding) &&
+        reachesSpawn(call, spawning)
+      ) {
+        spawning.add(call.host.binding);
         grew = true;
       }
   }
@@ -131,15 +164,18 @@ export const spawnBudget = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
-    return yield* Visitor.accumulate('CallExpression', seen, (batches) => {
+    const b = yield* bindings;
+    return yield* Visitor.accumulate('CallExpression', seen(b), (batches) => {
       const all = batches.flat();
-      const calls = all.filter((s): s is Extract<Seen, { _tag: 'Call' }> => s._tag === 'Call');
+      const calls = all.filter((s): s is Call => s._tag === 'Call');
       const spawning = spawningHelpers(calls);
-      const spawns = (test: ESTree.CallExpression) =>
-        calls.some((c) => c.host._tag === 'Test' && c.host.test === test && spawning.has(c.name));
+      const spawnsIn = (test: ESTree.CallExpression) =>
+        calls.some(
+          (c) => c.host._tag === 'Test' && c.host.test === test && reachesSpawn(c, spawning),
+        );
       return Effect.forEach(
         all.flatMap((s) => {
-          if (s._tag === 'Unbudgeted' && spawns(s.test)) return [s.test];
+          if (s._tag === 'Unbudgeted' && spawnsIn(s.test)) return [s.test];
           return [];
         }),
         (test) =>

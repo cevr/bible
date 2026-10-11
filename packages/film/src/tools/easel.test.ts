@@ -7,6 +7,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { ConfigProvider, Effect, Fiber, Layer, Option, Path, Ref, Schedule } from 'effect';
+import { filmOfPage, pageAt } from '../core/api.ts';
 import type { SceneTimes, StillView } from '../core/easel.ts';
 import { FrameFailed } from './errors.ts';
 import { Easel } from './easel.ts';
@@ -25,6 +26,20 @@ const roof: SceneTimes = {
 const view: StillView = { mode: 'value', captions: false, format: 'image/png' };
 
 const film = 'f' as FilmName;
+
+/**
+ * What the lab serves at a URL the easel opened (`pageAt`, as the lab's
+ * server reads it): its origin, the page, the film and the build it pins.
+ */
+const servedAt = (href: string) => {
+  const url = new URL(href);
+  return {
+    origin: url.origin,
+    page: pageAt(url.pathname),
+    film: filmOfPage(url.pathname),
+    pinned: url.search,
+  };
+};
 
 /** The pages' build as the test sets it: `now`, which a look asks. */
 const pagesAt = (now: Ref.Ref<PagesNow>) =>
@@ -84,7 +99,15 @@ describe('the easel', () => {
       expect(files.get('/out/f/look/roof/t0003.00.value.bs.1.png')).toEqual(
         new Uint8Array([150 % 256]),
       );
-      expect(ledger.urls).toEqual(['http://127.0.0.1:4401/films/f/play?export&build=1']);
+      // The render page, whose handle the look draws through, of the build the look was answered.
+      expect(ledger.urls.map(servedAt)).toEqual([
+        {
+          origin: 'http://127.0.0.1:4401',
+          page: Option.some('render'),
+          film: Option.some('f'),
+          pinned: '?build=1',
+        },
+      ]);
       expect(ledger.stills).toEqual([
         { frame: 150, view },
         { frame: 150, view },
@@ -252,7 +275,14 @@ describe('the easel', () => {
         expect(taken.looks[0]?.file).toBe(
           '/out/f/look/roof/t0001.00.value.wground-light.bs.4.4-x.png',
         );
-        expect(ledger.urls).toEqual(['http://127.0.0.1:4401/films/f/play?export&wedge=4-x']);
+        expect(ledger.urls.map(servedAt)).toEqual([
+          {
+            origin: 'http://127.0.0.1:4401',
+            page: Option.some('render'),
+            film: Option.some('f'),
+            pinned: '?wedge=4-x',
+          },
+        ]);
         // The source is as it was: the pick is never written.
         expect(new TextDecoder().decode(files.get('/films/f/palette.ts'))).toBe(palette);
         const level = yield* Effect.flip(

@@ -11,7 +11,7 @@
 
 import { Effect, Option, Predicate, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
-import type { Tab } from '../../../src/lab/fixtures/tab.ts';
+import { type Tab, WAIT_MS } from '../../../src/lab/fixtures/tab.ts';
 import {
   type Asked,
   type FakeRoute,
@@ -32,6 +32,7 @@ import {
   attached,
   attributeIs,
   evaluates,
+  inkIs,
   textHas,
   textIs,
   valueIs,
@@ -41,8 +42,13 @@ import { RETRY_MS } from '../../../src/lab/notes/feed.ts';
 import { cueOf } from '../../../src/command/selection.ts';
 import type { Note, Reply } from '../../../src/core/schema.ts';
 
-/** Long enough to open the lab, draw, save and read the list back. */
-const SLOW = 15_000;
+/**
+ * Long enough to open the lab, draw, save and read the list back, and for a
+ * case's further page loads (a reload, Back across one, a link opened):
+ * twice a wait's own bound (`WAIT_MS`), so a wait that fails says what it
+ * waited for before the case runs out of time.
+ */
+const SLOW = 2 * WAIT_MS;
 
 type JsonObject = { readonly [key: string]: Json };
 
@@ -425,6 +431,9 @@ describe('marking a frame', () => {
         yield* page.press('n');
         yield* save(page, 'hold longer');
         yield* textIs(page, '.lab-status', 'the notes file is locked');
+        // The reason is said: the line is a polite live region; the field is named, not only hinted.
+        yield* attributeIs(page, '.lab-status', 'role', 'status');
+        yield* attributeIs(page, '.lab-compose textarea', 'aria-label', 'Note');
         yield* waitFor(page, '.lab-compose:not([hidden])');
         yield* valueIs(page, '.lab-compose textarea', 'hold longer');
       }).pipe(Effect.scoped),
@@ -454,6 +463,10 @@ describe("a note's place", () => {
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         // Beside its scene's name, its time into the scene: one clock in one place.
         yield* textHas(page, '.lab-note-label', `two · ${timecode(0.4)}`);
+        // Its status is the kit's badge, open in the notes' colour.
+        const status = '.lab-note-item[data-id="n1"] .sh-badge';
+        yield* textIs(page, `${status}[data-state="note"]`, 'open');
+        yield* evaluates(page, inkIs(status, '--state-note'), true);
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
         yield* evaluates(page, `Math.round(${URL_T} * ${film.fps})`, Math.round(shown * film.fps));
         yield* attached(page, '.lab-overlay rect.lab-note');
@@ -462,7 +475,7 @@ describe("a note's place", () => {
   );
 
   it.live(
-    'the selected note is in the link: a reload keeps it, Back undoes it, and one gone from the feed leaves it',
+    'the selected note is in the link: a reload keeps it, and Back undoes it',
     () =>
       Effect.gen(function* () {
         const notes = [noteJson('n1'), noteJson('n2')];
@@ -478,8 +491,18 @@ describe("a note's place", () => {
         yield* attached(page, '.lab-note-item[data-id="n2"].selected');
         yield* page.back;
         yield* attached(page, '.lab-note-item[data-id="n1"].selected');
-        // A link to a note the feed does not have: the URL lets it go, in place.
-        yield* page.goto(labAt(1, { note: 'gone' }));
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a link to a note the feed does not have lets it go from the URL',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab(
+          [route('GET', /^\/notes$/, () => notesFile(1, [noteJson('n1')]))],
+          { href: labAt(1, { note: 'gone' }), mode: 'note' },
+        );
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         yield* evaluates(page, NOTE_IN_URL, '');
       }).pipe(Effect.scoped),
@@ -574,6 +597,7 @@ describe('the thread', () => {
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
         yield* waitFor(page, '.lab-note-item.selected .lab-reply-input');
+        yield* attributeIs(page, '.lab-note-item.selected .lab-reply-input', 'aria-label', 'Reply');
         yield* page.fill('.lab-reply-input', 'see frame 31');
         yield* answered(page, '/notes/n1/reply', page.pressIn('.lab-reply-input', 'Enter'));
         yield* answered(page, '/notes/n1/resolve', page.click('.lab-resolve'));

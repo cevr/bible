@@ -155,6 +155,8 @@ describe('ContextMenu.Trigger: right click', () => {
     const { x, y } = await areaCentre(page);
     await page.mouse.click(x, y, { button: 'right' });
     await see(page.locator('#popup')).toBeVisible();
+    // The open popup takes focus a frame after it is in the page; a key before that reaches the body.
+    await see.poll(() => focused(page)).toBe('popup');
     await page.keyboard.press('ArrowDown');
     await see.poll(() => focused(page)).toBe('copy');
     await page.keyboard.press('Escape');
@@ -166,6 +168,7 @@ describe('ContextMenu.Trigger: right click', () => {
     const { x, y } = await areaCentre(page);
     await page.mouse.click(x, y, { button: 'right' });
     await see(page.locator('#popup')).toBeVisible();
+    await see.poll(() => focused(page)).toBe('popup');
     await page.keyboard.press('ArrowDown');
     await see.poll(() => focused(page)).toBe('copy');
     await page.keyboard.press('ArrowLeft');

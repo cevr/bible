@@ -15,6 +15,8 @@
 import { For, type JSX, Show } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, flush, onCleanup } from 'solid-js';
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { Toggle } from '@bible/ui/toggle';
+import { ToggleGroup } from '@bible/ui/toggle-group';
 import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
@@ -110,22 +112,23 @@ export const FilmPicture = () => {
         return (
           <>
             <Show when={choices().pictures.length > 1}>
-              <div class="rv-row rv-pick">
+              <ToggleGroup
+                class="rv-row rv-pick"
+                aria-label="Picture"
+                value={[video().ref]}
+                onValueChange={(chosen) => {
+                  Option.map(Arr.head(chosen), choosePicture);
+                }}
+              >
                 <span class="rv-hint">Picture:</span>
                 <For each={choices().pictures}>
                   {(p) => (
-                    <button
-                      type="button"
-                      class="sh-btn"
-                      data-picture={p.ref}
-                      aria-pressed={pressed(p.ref === video().ref)}
-                      onClick={() => choosePicture(p.ref)}
-                    >
+                    <Toggle class="sh-btn" value={p.ref} data-picture={p.ref}>
                       {pictureLabel(p)}
-                    </button>
+                    </Toggle>
                   )}
                 </For>
-              </div>
+              </ToggleGroup>
             </Show>
             <div class="rv-card rv-picture" data-id={PICTURE}>
               <Show when={src()} keyed fallback={<ProxyPending video={video()} />}>

@@ -15,6 +15,8 @@ import {
   type Keyed,
   type SceneKey,
   renderNeed,
+  renderState,
+  renderVersion,
   partSubject,
   projectNow,
   projectOf,
@@ -23,6 +25,7 @@ import {
   sceneSlot,
   subjectOf,
   tookOf,
+  versionState,
   withdraw,
   withdrawScenes,
 } from './catalogue.ts';
@@ -111,6 +114,61 @@ describe('a scene render against its sources', () => {
 const sounding = (render: Render, mix: string): Render => ({
   ...render,
   sound: Option.some({ mix: Option.some(mix), pieces: [{ start: 0, duration: 4 }] }),
+});
+
+describe('versionState', () => {
+  test('judges a render, and its version (its key alone), against the sources and mix now', () => {
+    const silent = sceneRender('a', 'k1');
+    const unmixed = { ...silent, sound: Option.some({ mix: Option.none(), pieces: [] }) };
+    type Judged = ReturnType<typeof versionState>;
+    const current: Judged = { state: 'current', staleBy: Option.none() };
+    const bySources: Judged = { state: 'stale', staleBy: Option.some('sources') };
+    const bySound: Judged = { state: 'stale', staleBy: Option.some('sound') };
+    const k1 = { key: 'k1', sound: Option.none<string>() };
+    const k1m1 = { key: 'k1', sound: Option.some('m1') };
+    // [render, now, its judgement], each written out.
+    const rows: ReadonlyArray<readonly [Render, typeof k1, Judged]> = [
+      [silent, k1, current],
+      [silent, k1m1, bySound],
+      [unmixed, k1, current],
+      [unmixed, k1m1, bySound],
+      [sounding(silent, 'm1'), k1, current],
+      [sounding(silent, 'm1'), k1m1, current],
+      [sounding(silent, 'm2'), k1m1, bySound],
+      [sceneRender('a', 'k2'), k1, bySources],
+      [sounding(sceneRender('a', 'k2'), 'm1'), k1m1, bySources],
+      [sceneRender('a', 'k1'), { key: 'k10', sound: Option.none() }, bySources],
+    ];
+    for (const [render, now, judged] of rows) {
+      expect([renderVersion(render), now, renderState(Option.some(render), now)]).toEqual([
+        renderVersion(render),
+        now,
+        judged,
+      ]);
+      expect([renderVersion(render), now, versionState(renderVersion(render), now)]).toEqual([
+        renderVersion(render),
+        now,
+        judged,
+      ]);
+    }
+    expect(renderState(Option.none(), k1)).toEqual({ state: 'missing', staleBy: Option.none() });
+    // A render is judged by its stamp and its mix as recorded, whatever its key holds: a
+    // stamp `k1+m1` (keys are hex digests, but the record allows it) is not the key `k1`.
+    expect(renderState(Option.some(sceneRender('a', 'k1+m1')), k1)).toEqual(bySources);
+    expect(renderState(Option.some(sceneRender('a', 'k1+m1')), k1m1)).toEqual(bySources);
+    // Its version alone cannot say where its key ends: read against the key now, the tail is a mix.
+    expect(versionState(renderVersion(sceneRender('a', 'k1+m1')), k1m1)).toEqual(current);
+    // A version by its key: other sources, then another mix, then current.
+    const now = { key: 'k1', sound: Option.some('m1') };
+    expect(versionState('k2+m1', now)).toEqual({ state: 'stale', staleBy: Option.some('sources') });
+    expect(versionState('k1+m2', now)).toEqual({ state: 'stale', staleBy: Option.some('sound') });
+    expect(versionState('k1', now)).toEqual({ state: 'stale', staleBy: Option.some('sound') });
+    expect(versionState('k1+m1', now)).toEqual({ state: 'current', staleBy: Option.none() });
+    // A key that only begins like the key now is other sources.
+    expect(versionState('k10', { key: 'k1', sound: Option.none() }).staleBy).toEqual(
+      Option.some('sources'),
+    );
+  });
 });
 
 /** The film keyed now with the film's mix key `sound`. */

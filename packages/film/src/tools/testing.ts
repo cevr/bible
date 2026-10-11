@@ -762,6 +762,7 @@ export const noRenders = Layer.succeed(
   Review.of({
     roots: [],
     index: () => unreviewed('index'),
+    written: unreviewed('written'),
     pictures: () => unreviewed('pictures'),
     renderVideo: () => unreviewed('renderVideo'),
     resolve: () => unreviewed('resolve'),
@@ -1031,12 +1032,17 @@ export const noRecording = {
 >;
 
 /**
- * Media as the review uses it, on disk: every video lasts `seconds`, and a
+ * Media as the review uses it, on disk: every video lasts `seconds` at `fps`
+ * frames a second (none: a rate it cannot read), and a
  * still or a phone copy is the video copied whole. Each call lands in `calls`
- * (`duration <file>`, `still <video> <at> <width>`, `phone <video>`), so a
+ * (`timing <file>`, `still <video> <at> <width>`, `phone <video>`), so a
  * test counts what was made; a video that is not there fails as the real media does.
  */
-export const reviewMedia = (calls: Array<string>, seconds = 12.5) =>
+export const reviewMedia = (
+  calls: Array<string>,
+  seconds = 12.5,
+  fps: Option.Option<number> = Option.none(),
+) =>
   Layer.effect(
     Media,
     Effect.gen(function* () {
@@ -1052,8 +1058,8 @@ export const reviewMedia = (calls: Array<string>, seconds = 12.5) =>
       const unused = Effect.die('not used by the review');
       return Media.of({
         ...noRecording,
-        duration: (file) =>
-          Effect.sync(() => void calls.push(`duration ${file}`)).pipe(Effect.as(seconds)),
+        timing: (file) =>
+          Effect.sync(() => void calls.push(`timing ${file}`)).pipe(Effect.as({ seconds, fps })),
         still: (video, at, width, out) =>
           Effect.sync(() => void calls.push(`still ${video} ${at} ${width}`)).pipe(
             Effect.andThen(copy('decode', video, out)),
@@ -1097,13 +1103,14 @@ export const fakeMedia = (
   Layer.succeed(
     Media,
     Media.of({
-      duration: (file) =>
-        Effect.succeed(
-          Option.match(Option.fromNullishOr(files.get(file)), {
+      timing: (file) =>
+        Effect.succeed({
+          seconds: Option.match(Option.fromNullishOr(files.get(file)), {
             onNone: () => 2.5,
             onSome: fakeDuration,
           }),
-        ),
+          fps: Option.none(),
+        }),
       decode: () => Effect.succeed(decoded),
       writeWav: (file, pcm) => Effect.sync(() => void files.set(file, text(`wav ${pcm.frames}`))),
       encodeAac: () => Effect.succeed({ packets: [], meta: {} }),
@@ -1464,8 +1471,11 @@ export const fakeRenderMedia = (ledger: RenderLedger, host: FakeRenderHost = {})
     Media,
     Media.of({
       ...noRecording,
-      duration: () =>
-        Effect.succeed(Option.getOrElse(Option.fromNullishOr(host.master), () => info.duration)),
+      timing: () =>
+        Effect.succeed({
+          seconds: Option.getOrElse(Option.fromNullishOr(host.master), () => info.duration),
+          fps: Option.none(),
+        }),
       decode: (file) =>
         Effect.sync(() => void ledger.decodes.push(file)).pipe(
           Effect.as(silence(MIX_RATE, MIX_RATE * info.duration, 2)),

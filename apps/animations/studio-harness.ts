@@ -83,7 +83,7 @@ const harnessElevenLabs = (film: string, misheard: Set<string>) =>
               Option.filter(Option.some(MISHEARD), () => misheard.has(beat)),
               () => line,
             );
-            const duration = yield* Effect.orDie(media.duration(file));
+            const { seconds: duration } = yield* Effect.orDie(media.timing(file));
             yield* Effect.log(`harness.stt beat=${beat} misheard=${misheard.has(beat)}`);
             return { text: said, words: timed(said, duration) };
           }),

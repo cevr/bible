@@ -21,7 +21,7 @@ import { For, Show } from '@solidjs/web';
 import { ContextMenu } from '@bible/ui/context-menu';
 import { Option } from 'effect';
 import { type Accessor, type ComponentProps, type ParentProps, createMemo, omit } from 'solid-js';
-import { focusOf, withSelection } from '../../command/context.ts';
+import { isField, withSelection } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { type MenuRow, contextRows, rowChord, rowKey } from '../../command/menu.ts';
 import type { Selection } from '../../command/selection.ts';
@@ -56,8 +56,9 @@ export const TargetMenu = (props: ParentProps<{ readonly hub: Hub }>) => {
       onOpenChange={(open, details) => {
         if (!open) return;
         const at = Option.fromNullishOr(details.event.target);
-        // A field keeps its own menu (paste, spelling): the thing's menu is for the thing.
-        if (focusOf(at) === 'field') {
+        // A field keeps its own menu (paste, spelling): the thing's menu is for the thing, in a
+        // sheet as anywhere (a sheet's dialog holds the keys, not the press: `isField`).
+        if (isField(at)) {
           details.cancel();
           return;
         }

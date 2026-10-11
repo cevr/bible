@@ -1,7 +1,7 @@
 // The `film` oxlint plugin, run for real: oxlint lints each fixture in
 // `fixtures/` with only this plugin on, and what it reports must be exactly the
 // lines a fixture marks `// RED film/<rule>`, with corrective advice pinned
-// for each rule. no-unprobed-ink resolves names
+// for every rule the plugin defines. Every rule resolves names
 // through scope, which only a real oxlint run provides, so its fixture is its
 // test. drawing-literal has its fixture here too, and the lab locator it runs
 // (`unlocatable`) is tested on source in src/tools/scene-source.test.ts.
@@ -10,6 +10,7 @@ import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import plugin from './plugin.ts';
 
 /** The timeout of a test here that spawns (oxlint): a cold start's time is the machine's (film/spawn-budget). */
 const SPAWNS_MS = 30_000;
@@ -49,26 +50,28 @@ const marked = (file: string, source: string): ReadonlyArray<string> =>
 
 /** Corrective advice users receive for each rule, including the two timing repairs. */
 const MESSAGES = {
-  'no-unprobed-ink.ts:9 film/no-unprobed-ink':
+  'no-unprobed-ink.ts:11 film/no-unprobed-ink':
     "ctx.stroke bypasses the probe, so film check cannot see it cross text. Draw it with the kit's stroke/write, or wrap it in the kit's unprobed(ctx, () => …) to say it is texture.",
   'span-ends-on-anchor.ts:10 film/span-ends-on-anchor':
     'a span that ends on its anchor writes its length twice (offset: -d, dur: d): drop the offset and add `ends: true`, so a dur edit keeps the landing.',
   'span-ends-on-anchor.ts:19 film/span-ends-on-anchor':
     "a part that ends on its parent's end only because its offset and dur add up to the parent's dur: write `{ after: parent, dur, ends: true }` (keeps its length) or `{ with: parent, until: { cue: parent } }` (keeps its start), so a drag of the parent carries it.",
-  'no-point-free-log.ts:8 film/no-point-free-log':
+  'no-point-free-log.ts:10 film/no-point-free-log':
     'Console.log passed point-free: it is variadic, and this call passes the index too, which it prints after each line. Write (line) => Console.log(line).',
-  'no-ease-on-cue.ts:12 film/no-ease-on-cue':
+  'no-ease-on-cue.ts:15 film/no-ease-on-cue':
     "a cue's progress eased a second time: f.at(cue) is already eased by the span's `ease`, which the lab sets. A camera push is a shotPath stop with pushInto; another curve is its own cue or f.keys.",
-  'no-ease-on-cue.ts:15 film/no-cue-remap':
+  'no-ease-on-cue.ts:20 film/no-cue-remap':
     'a cue split by a fraction written in the draw: declare the part as its own cue ({ with: cue, dur }, or { after: cue, dur, ends: true } for its last part) and read it with f.at, where the lab can reach it.',
-  'no-cue-remap.ts:23 film/no-cue-remap':
+  'no-cue-remap.ts:24 film/no-cue-remap':
     "a cue's last part split by a fraction written in the draw: declare it as its own cue that lands on the cue's end ({ after: cue, dur, ends: true }) and read it with f.at, so a drag of the cue carries it.",
-  'no-cue-remap.ts:35 film/no-cue-remap':
+  'no-cue-remap.ts:36 film/no-cue-remap':
     "a step part way through a cue, written in the draw: declare the instant as its own cue ({ with: cue, offset, dur: 0 }) and read f.at(instant) > 0, where the lab can reach it and a sound can follow it; an instant the drawing's own shape makes is read from that shape (Math.cos(f.at('flip') * Math.PI) < 0).",
   'touches-serial.ts:17 film/touches-serial':
     "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case as test.serial.",
-  'spawn-budget.ts:14 film/spawn-budget':
+  'spawn-budget.ts:15 film/spawn-budget':
     "this test spawns a process and has no timeout: a cold start's time is the machine's, so give it its budget in milliseconds as the last argument.",
+  'no-test-seam.ts:3 film/no-test-seam':
+    "a test seam imported by product code: a testing.ts module holds a package's test-only doubles and fixtures, so a shipped import never reaches one. Move what this file needs out of the seam, into the module it belongs to.",
   'no-read-once.ts:23 film/no-read-once':
     'evaluate reads the page once, whatever it had drawn at that instant: wait for the value instead (textIs, textHas, valueIs, attributeIs, countIs, evaluates or until in lab/fixtures/settled.ts).',
   'drawing-literal.ts:18 film/drawing-literal':
@@ -102,24 +105,24 @@ const MESSAGES = {
   'keys-through-keymap.tsx:18 film/keys-through-keymap':
     'addEventListener hears contextmenu on its own: open a context menu through @bible/ui ContextMenu over the selection’s commands (packages/film/src/lab/command/).',
   'no-host-alias.ts:6 film/no-host-alias':
-    'a host global bound to a name of the page\'s own: the host bans read it only under its name, so reach it as itself, or through its adapter (packages/film/README.md, "The host").',
+    'a host global held under a name of the page\'s own: the host bans read it only under its name, so reach it as itself, or through its adapter (packages/film/README.md, "The purity rule": The host).',
   'booleans-through-pressed.tsx:28 film/booleans-through-pressed':
     "a boolean written as a string by hand: pressed(on) (packages/film/src/lab/pressed.ts) types it 'true' | 'false'.",
   'history-through-host.ts:11 film/history-through-host':
     "a history move chosen here: a place's field declares its policy (Place.history, @bible/url-state), and the address bar is written through addressOn (packages/film/src/browser/host.ts).",
-  'one-clock-epsilon.ts:10 film/one-clock-epsilon':
+  'one-clock-epsilon.ts:12 film/one-clock-epsilon':
     'a nudge written beside a time: put the time on its grid through packages/film/src/core/time.ts (frameAtOrAfter, frameAtOrBefore, onTheMs, offTheMs, heardAtOrAfter, justBefore), or judge two times one with CLOCK_EPSILON, so one owner rounds every time.',
-  'lock-through-sqlite.ts:9 film/lock-through-sqlite':
+  'lock-through-sqlite.ts:11 film/lock-through-sqlite':
     "a manifest's lock file named outside its lock: SQLite alone opens it (packages/film/src/tools/manifest-lock-bun.ts), since closing any other handle on it lets go of the process's lock.",
   'one-breakpoint.ts:8 film/one-breakpoint':
     "a breakpoint written out: ask the studio's one breakpoint through PHONE or WIDE (packages/film/src/lab/viewport.ts), so the width is declared once.",
-  'framing-is-a-knob.ts:9 film/framing-is-a-knob':
+  'framing-is-a-knob.ts:10 film/framing-is-a-knob':
     'a framing written in the scene: make it knobs (a point and a zoom, read with knobCamera), a move between framings a shotPath of them, and a push that keeps going pushOn with a number knob, so the lab can reach it.',
   'no-history-comment.ts:4 film/no-history-comment':
     'a pass number in a comment tells history: say what the code does today and why; how it got here lives in the ledger and git log.',
-  'no-hand-timed-seconds.ts:22 film/no-hand-timed-seconds':
+  'no-hand-timed-seconds.ts:23 film/no-hand-timed-seconds':
     "an offset over 1 s from its mark or scene landmark: a hand-timed second. Declare a cue in the drawing's timeline and read f.at / f.keys / f.stagger / f.cue, anchored to a mark, a word ({ mark, word }), another cue or the voice's end.",
-  'no-hand-timed-seconds.ts:33 film/no-hand-timed-seconds':
+  'no-hand-timed-seconds.ts:34 film/no-hand-timed-seconds':
     "an untilOffset over 1 s from its until point: a hand-timed second. Declare a cue in the drawing's timeline and read f.at / f.keys / f.stagger / f.cue, anchored to a mark, a word ({ mark, word }), another cue or the voice's end.",
 } as const satisfies Readonly<Record<string, string>>;
 
@@ -144,6 +147,13 @@ const lintFixtures = Effect.fn('test.lintFixtures')(function* () {
 });
 
 describe('film oxlint plugin', () => {
+  it.effect('pins a corrective message for every rule it defines', () =>
+    Effect.sync(() => {
+      const pinned = new Set(Object.keys(MESSAGES).map((site) => site.split(' film/')[1]));
+      expect([...pinned].sort()).toEqual(Object.keys(plugin.rules).sort());
+    }),
+  );
+
   it.effect.layer(BunServices.layer)(
     'fires on every RED fixture line and gives the corrective advice',
     () =>
@@ -151,9 +161,14 @@ describe('film oxlint plugin', () => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const dir = path.join(import.meta.dir, 'fixtures');
-        const files = (yield* fs.readDirectory(dir)).filter((f) => /\.tsx?$/.test(f));
+        // A fixture may sit in a folder its module tests read (`core/`); oxlint reports it by its name.
+        const files = (yield* fs.readDirectory(dir, { recursive: true })).filter((f) =>
+          /\.tsx?$/.test(f),
+        );
         const expected = (yield* Effect.forEach(files, (file) =>
-          Effect.map(fs.readFileString(path.join(dir, file)), (source) => marked(file, source)),
+          Effect.map(fs.readFileString(path.join(dir, file)), (source) =>
+            marked(path.basename(file), source),
+          ),
         ))
           .flat()
           .sort();

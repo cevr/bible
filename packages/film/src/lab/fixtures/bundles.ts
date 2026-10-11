@@ -61,6 +61,7 @@ export const ENTRIES = [
   'render-page.ts',
   'capture-page.ts',
   'on-screen-page.tsx',
+  'index-owner-page.ts',
 ];
 
 /**

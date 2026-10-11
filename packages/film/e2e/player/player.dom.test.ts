@@ -11,7 +11,16 @@
 // The tape bar's scene names never overlap, and where a scene has room its
 // name reads whole.
 
-import { Boolean as Bool, Effect, Option, Schema } from 'effect';
+import {
+  Array as Arr,
+  Boolean as Bool,
+  Deferred,
+  Effect,
+  Exit,
+  Option,
+  Schedule,
+  Schema,
+} from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode, onTheMs } from '../../src/core/time.ts';
@@ -23,6 +32,7 @@ import {
   type Json,
   URL_T,
   json,
+  later,
   openPlayer,
   refused,
   route,
@@ -40,9 +50,11 @@ import {
   attributeIs,
   countIs,
   evaluates,
+  inkIs,
   labelsClash,
   labelsInFull,
   labelsOverMarks,
+  pressedLook,
   textHas,
   textIs,
 } from '../../src/lab/fixtures/settled.ts';
@@ -154,6 +166,43 @@ const projectRoutes = (meanwhile: ReadonlyArray<string> = []): ReadonlyArray<Fak
     }),
   ];
 };
+
+/**
+ * The project's routes, each approve answered as the project stood when it
+ * landed on the server, but delivered once its gate (`gates`, in the order the
+ * approves are posted; none: at once) opens: so an approve posted first can
+ * be answered last, holding only what it approved. Every read after the
+ * first is held until `again` opens, so what shows meanwhile is the answers'
+ * own order.
+ */
+const heldApproves = (
+  gates: ReadonlyArray<Deferred.Deferred<void>>,
+  again: Deferred.Deferred<void>,
+): ReadonlyArray<FakeRoute> => {
+  const approved = new Map<string, string>();
+  let runs = 0;
+  let reads = 0;
+  return [
+    route('GET', /^\/project$/, () => {
+      reads += 1;
+      const answer = json(projectOf(approved));
+      return Bool.match(reads === 1, { onTrue: () => answer, onFalse: () => later(again, answer) });
+    }),
+    route('POST', /^\/project\/say$/, (asked) => {
+      const said = SaidOf(Option.getOrElse(asked.body, () => ({})));
+      const gate = Arr.get(gates, runs);
+      runs += 1;
+      const op = `op-${runs}`;
+      const made = said.address.ids.filter((s) => !approved.has(s));
+      made.forEach((s) => approved.set(s, op));
+      const answer = json(projectOf(approved, { gave: { op, at: 0, scenes: made } }));
+      return Option.match(gate, { onNone: () => answer, onSome: (g) => later(g, answer) });
+    }),
+  ];
+};
+
+/** Each scene's band state on the tape, in the film's order. */
+const BANDS = `['one', 'two', 'three'].map((s) => document.querySelector('.sc-band [data-scene="' + s + '"]')?.dataset.state)`;
 
 /** Play's ticks turned on, as a viewer does: the view menu (⋯), then Show the ticks. */
 const ticksOn = (page: Tab) =>
@@ -399,6 +448,9 @@ describe('the player', () => {
       // Followed again, a press on the tape bar's track scrubs away too.
       yield* page.click('[data-act="follow"]');
       yield* attributeIs(page, '[data-act="follow"]', 'aria-pressed', 'true');
+      // Pressed, it wears the kit's one pressed look, as the Source view's Follow does: no dot.
+      yield* evaluates(page, pressedLook('[data-act="follow"]'), true);
+      yield* countIs(page, '[data-act="follow"] .sc-dot', 0);
       const track = yield* page.box('.bar .track');
       yield* page.mouse.click(track.x + track.width * 0.7, track.y + track.height / 2);
       yield* attributeIs(page, '[data-act="follow"]', 'aria-pressed', 'false');
@@ -476,9 +528,13 @@ describe('the player', () => {
         yield* page.clock.runFor(HUD_IDLE_MS * 3);
         yield* evaluates(page, controls(true), true);
         yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        // Named by its word, the glyph hidden from a reader.
+        yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Pause');
+        yield* attributeIs(page, '.bar [data-act="play"] > span', 'aria-hidden', 'true');
         // Enter on it is its click: the film pauses.
         yield* page.press('Enter');
         yield* textIs(page, '.bar [data-act="play"]', '▶︎');
+        yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Play');
         yield* evaluates(page, controls(true), true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -520,6 +576,7 @@ describe('the player', () => {
         yield* tap;
         yield* page.click('.bar [data-act="play"]');
         yield* textIs(page, '.bar [data-act="play"]', '▶︎');
+        yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Play');
         yield* evaluates(page, controls(true), true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.runPromise),
@@ -1157,6 +1214,10 @@ describe('the player', () => {
           .map((a) => SaidOf(Option.getOrElse(a.body, () => ({}))).address.ids),
       ).toEqual([['one', 'three']]);
       yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
+      // The chip is the kit's badge, in the approved colour.
+      const chip = '.sc-focus .sc-chips .sh-badge[data-state="approved"]';
+      yield* textIs(page, chip, 'Approved');
+      yield* evaluates(page, inkIs(chip, '--state-approved'), true);
       // The sheet says why under the card, as a chip's title never shows on touch.
       yield* textIs(
         page,
@@ -1215,6 +1276,74 @@ describe('the player', () => {
         );
         yield* page.press('Shift+A');
         yield* evaluates(page, 'window.__said', ['Approved scene one · 0/2 → 2/2 approved']);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "approves answered out of order: the first approve's older answer landing last hides neither (CP5-1)",
+    () =>
+      Effect.gen(function* () {
+        const first = yield* Deferred.make<void>();
+        const again = yield* Deferred.make<void>();
+        const { page, asked, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          heldApproves([first], again),
+        );
+        const posts = () => asked.filter((a) => a.method === 'POST' && a.path === '/project/say');
+        const reads = () => asked.filter((a) => a.method === 'GET' && a.path === '/project');
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        // A: its answer (one approved) is held.
+        yield* clickInScene(page, 'one');
+        yield* page.press('a');
+        yield* Effect.repeat(Effect.sync(posts), {
+          until: (p) => p.length === 1,
+          schedule: Schedule.spaced('20 millis'),
+        });
+        // B: posted after A was approved, its answer (one and two) lands first.
+        yield* clickInScene(page, 'two');
+        yield* page.press('a');
+        yield* textHas(page, '[data-role="receipt"]', 'Approved scene two');
+        yield* evaluates(page, BANDS, ['approved', 'approved', 'none']);
+        const readsBefore = reads().length;
+        // A's answer lands last, holding only one: it shows nothing over B's.
+        yield* Deferred.done(first, Exit.void);
+        yield* textHas(page, '[data-role="receipt"]', 'Approved scene one');
+        yield* evaluates(page, BANDS, ['approved', 'approved', 'none']);
+        // An answer a later ask overtook reads the project again; until it answers, B's shows.
+        yield* Effect.repeat(Effect.sync(reads), {
+          until: (r) => r.length === readsBefore + 1,
+          schedule: Schedule.spaced('20 millis'),
+        }).pipe(Effect.timeout('5 seconds'));
+        yield* evaluates(page, BANDS, ['approved', 'approved', 'none']);
+        yield* Deferred.done(again, Exit.void);
+        yield* evaluates(page, BANDS, ['approved', 'approved', 'none']);
+        expect(posts().length).toBe(2);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a read's two answers land in one task, the check's then the project's: neither is lost (CP5-1)",
+    () =>
+      Effect.gen(function* () {
+        // The check fails (its legend says so) and scene one is approved: both answers of the
+        // one read are written before the page flushes.
+        const failing = route('GET', /^\/check$/, () =>
+          refused(FreshProcessFailed.make({ command: 'film check', reason: 'exit 1' })),
+        );
+        const oneApproved = route('GET', /^\/project$/, () =>
+          json(projectOf(new Map([['one', 'op-0']]))),
+        );
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          [failing, oneApproved],
+        );
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        yield* evaluates(page, BANDS, ['approved', 'none', 'none']);
+        yield* textIs(page, '.sc-legend-item[data-mark="check-failed"]', 'check failed');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );

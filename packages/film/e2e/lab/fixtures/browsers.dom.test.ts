@@ -9,7 +9,7 @@
 // Chrome hears no touch on it after, and the next case's finger lands on a
 // view of its own.
 
-import { Effect, Option } from 'effect';
+import { Effect, Option, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import {
   asset,
@@ -181,9 +181,13 @@ describe('the pool of views', () => {
               yield* evaluates(tab, "globalThis.served ?? 'none'", 'one');
               yield* tab.evaluate(`${script}; true`);
               // The page's report is an event: wait until the tab has heard it.
-              yield* Effect.repeat(Effect.sleep('10 millis'), {
-                until: () => tab.errors.length > 0,
-              });
+              yield* Effect.repeat(
+                Effect.sync(() => tab.errors.length),
+                {
+                  schedule: Schedule.spaced('10 millis'),
+                  until: (heard) => heard > 0,
+                },
+              );
             }),
           ),
         );

@@ -22,7 +22,7 @@ import {
 import {
   type CompareView,
   LabHttpApi,
-  type PageName,
+  type AppPage,
   Refusal,
   pageAt,
   pageHref,
@@ -466,7 +466,7 @@ const fakeServer =
 
 /** What `answer` makes of each request for `name`, on every path the real server serves it on (`pageAt`, `core/api.ts`). */
 const servedBy =
-  (name: PageName, answer: (request: Request) => Effect.Effect<Response>) =>
+  (name: AppPage, answer: (request: Request) => Effect.Effect<Response>) =>
   (request: Request): Option.Option<Effect.Effect<Response>> =>
     Option.as(
       Option.filter(pageAt(request.url.pathname), (page) => page === name),
@@ -474,7 +474,7 @@ const servedBy =
     );
 
 /** `html` on every path the real server serves `name` on. */
-const servedAs = (name: PageName, html: Response) => servedBy(name, () => Effect.succeed(html));
+const servedAs = (name: AppPage, html: Response) => servedBy(name, () => Effect.succeed(html));
 
 /**
  * `canvas.toBlob` encoding at once, from `toDataURL`: the same image in the
@@ -648,6 +648,40 @@ export const openPlayer = Effect.fn('lab.fixture.player')(function* (
   });
   yield* page.goto(at.href);
   yield* page.waitFor(ready);
+  const open: OpenLab = { page, asked, errors: page.errors };
+  return open;
+});
+
+/** The render page's script over the probe and crowd films: built the first time a case asks for it. */
+const renderScript = Effect.runSync(Effect.cached(scriptAsset('render-page.ts', 'render.js')));
+
+/**
+ * Open a film's export page (`fixtures/render-page.ts`, the real
+ * `mountRender`) at `href`, served on the place the lab serves the render
+ * page on and nowhere else, as the easel's own Chrome opens it (its window,
+ * 1920 × 1080), and wait until its handle is on `window.__film`.
+ */
+export const openRender = Effect.fn('lab.fixture.render')(function* (href: string) {
+  const script = yield* renderScript;
+  const asked: Array<Asked> = [];
+  const page = yield* openTab({
+    width: 1920,
+    height: 1080,
+    microphone: false,
+    init: [CLOCK_SCRIPT],
+    assets: [script],
+    serve: fakeServer(
+      servedAs('render', respond(playerPage(css, script), 'text/html')),
+      API,
+      defaults,
+      asked,
+    ),
+  });
+  yield* page.goto(href);
+  yield* page.until('window.__film !== undefined', {
+    now: `document.body.innerText.slice(0, 200)`,
+    say: (now) => `the export page at ${href} installed no handle: it shows ${now}`,
+  });
   const open: OpenLab = { page, asked, errors: page.errors };
   return open;
 });
@@ -882,6 +916,16 @@ interface OpenServed extends OpenLab {
   readonly read: ReadonlyArray<Asked>;
   /** Each document the server answered, in order. */
   readonly documents: ReadonlyArray<Document>;
+  /**
+   * Land on `href` as a pasted link does: a new document the server
+   * renders, which the browser hydrates (what the viewer kept in this
+   * browser stays). Done once the page says it is mounted, as the open is.
+   * An `href` that differs from the page's URL only in its hash is no new
+   * document (the browser only moves to the hash): `reload` lands there.
+   */
+  readonly land: (href: string) => Effect.Effect<void>;
+  /** Reload the page: a new document of the same URL, served and hydrated as `land`'s is. */
+  readonly reload: Effect.Effect<void>;
 }
 
 /**
@@ -958,25 +1002,36 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
       Option.fromUndefinedOr(at.faceHeld),
     ),
   });
+  // A page served cut (its document carries the mark) is rendered anew; any other,
+  // a render that ended before `at.cut` among them, hydrates the server's markup.
+  const mounted = Effect.suspend(() => {
+    const servedCut = Option.exists(Arr.last(documents), (served) =>
+      served.html.includes(PAGE_CUT_MARK),
+    );
+    const how = Option.match(Option.liftPredicate(servedCut, Boolean), {
+      onNone: () => 'hydrated',
+      onSome: () => 'rendered',
+    });
+    return Effect.raceFirst(
+      page.until(`document.body.getAttribute('${PAGE_MOUNTED}') === '${how}'`, {
+        now: `document.body.getAttribute('${PAGE_MOUNTED}')`,
+        say: (now) => `the ${name} page was not ${how}: its body says it was mounted ${now}`,
+      }),
+      Deferred.await(failed),
+    );
+  });
   const going = page.goto(at.href ?? spec.home);
   if (at.mountedOnly === true) yield* Effect.forkScoped(going);
   else yield* going;
-  // A page served cut (its document carries the mark) is rendered anew; any other,
-  // a render that ended before `at.cut` among them, hydrates the server's markup.
-  const servedCut = Option.exists(Arr.last(documents), (served) =>
-    served.html.includes(PAGE_CUT_MARK),
-  );
-  const mounted = Option.match(Option.liftPredicate(servedCut, Boolean), {
-    onNone: () => 'hydrated',
-    onSome: () => 'rendered',
-  });
-  yield* Effect.raceFirst(
-    page.until(`document.body.getAttribute('${PAGE_MOUNTED}') === '${mounted}'`, {
-      now: `document.body.getAttribute('${PAGE_MOUNTED}')`,
-      say: (now) => `the ${name} page was not ${mounted}: its body says it was mounted ${now}`,
-    }),
-    Deferred.await(failed),
-  );
-  const open: OpenServed = { page, asked, errors: page.errors, read, documents };
+  yield* mounted;
+  const open: OpenServed = {
+    page,
+    asked,
+    errors: page.errors,
+    read,
+    documents,
+    land: (href) => Effect.andThen(page.goto(href), mounted),
+    reload: Effect.andThen(page.reload, mounted),
+  };
   return open;
 });

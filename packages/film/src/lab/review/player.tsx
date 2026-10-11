@@ -17,6 +17,7 @@ import {
   onSettled,
   untrack,
 } from 'solid-js';
+import type { ReviewFile } from '../../core/review.ts';
 import { type Playable, playableOf } from '../../browser/media.ts';
 import { rateCommands, rateId, rateText, rateTitle } from '../../player/transport.ts';
 import { Actor } from '../actor.tsx';
@@ -24,7 +25,7 @@ import { hubKeys } from '../command/changes.ts';
 import { CommandChip } from '../command/command-chip.tsx';
 import { HearIcon, useShellTime } from '../page-shell.tsx';
 import { pressed } from '../pressed.ts';
-import { useReview } from './context.tsx';
+import { useClockRate, useReview } from './context.tsx';
 import {
   Rate,
   SyncEvent,
@@ -35,6 +36,7 @@ import {
   reachOf,
   runningOf,
   spawnSync,
+  syncAt,
 } from './machine.ts';
 import { type SyncDriver, makeSync } from './sync.ts';
 
@@ -77,8 +79,11 @@ export const Transport = (props: {
   const { sync } = props;
   const { meta } = useReview();
   const keys = hubKeys(meta.hub);
-  // The header's timecode is this transport's clock.
-  useShellTime(() => sync().t);
+  // The header's timecode is this transport's clock, at its rate.
+  useShellTime(
+    () => sync().t,
+    () => sync().fps,
+  );
   onCleanup(
     meta.hub.commands.register(
       ...rateCommands({
@@ -128,7 +133,15 @@ const TransportRow = (
     readonly alone?: boolean;
   }>,
 ) => {
-  const { sync } = props;
+  // The clock as the server opened it: at its start, as a page whose link
+  // says where (`#t=`) opens there only in the browser, the server never
+  // seeing the hash. The server's render and the client's hydration show it,
+  // so both write the same markup; the page's own clock follows once
+  // hydrated (a hydration adopts the server's text and writes it again only
+  // when the value next changes, so a clock read live as it hydrates would
+  // keep the server's time).
+  const opened = untrack(() => syncAt(props.sync().audible, props.sync().start));
+  const sync = createMemo(() => props.sync(), { ssrSource: 'client', loadingValue: opened });
   const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
   const failure = () => failureOf(sync());
@@ -139,14 +152,21 @@ const TransportRow = (
         class="sh-btn rv-big"
         data-primary=""
         data-act="play"
+        aria-label={Match.value(playing()).pipe(
+          Match.when(true, () => 'Pause'),
+          Match.orElse(() => 'Play'),
+        )}
         title={props.title}
         disabled={Option.isSome(failure())}
         onClick={() => send.sync(SyncEvent.Toggled)}
       >
-        {Match.value(playing()).pipe(
-          Match.when(true, () => '❚❚'),
-          Match.orElse(() => '▶'),
-        )}
+        {/* Named by its word; the glyph is drawn, not read. */}
+        <span aria-hidden="true">
+          {Match.value(playing()).pipe(
+            Match.when(true, () => '❚❚'),
+            Match.orElse(() => '▶'),
+          )}
+        </span>
       </button>
       <span class="rv-time" data-state={sync()._tag}>
         {/* The time: a laptop's header shows the docked one's already (`useShellTime`), so its row leaves it out. */}
@@ -229,7 +249,12 @@ export const useClockMedia = (
  * are its `<track>`s.
  */
 export const PlayedAlone = (
-  props: ParentProps<{ readonly src: string; readonly poster: string }>,
+  props: ParentProps<{
+    readonly src: string;
+    readonly poster: string;
+    /** The video it plays, whose own frames its clock counts. */
+    readonly video: Pick<ReviewFile, 'ref' | 'mtime'>;
+  }>,
 ) => {
   const { meta } = useReview();
   const [retried, setRetried] = createSignal<Option.Option<Try>>(Option.none());
@@ -260,6 +285,7 @@ export const PlayedAlone = (
         const sync = useAtomValue(() => syncAtom);
         const send = useAtomSet(() => syncAtom);
         const driver = makeSync(ALONE, send, meta.host);
+        useClockRate(() => Option.some(props.video), send);
         onCleanup(driver.stop);
         createEffect(sync, (state) => driver.apply(state));
         const failure = () => failureOf(sync());

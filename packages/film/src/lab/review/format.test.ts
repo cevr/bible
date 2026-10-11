@@ -8,6 +8,7 @@ import {
   captionsFor,
   countsText,
   isFilmsFolder,
+  pathIn,
   sizeText,
   videoSource,
 } from './format.ts';
@@ -65,6 +66,15 @@ describe('what a card says', () => {
     // Its card says what it mostly holds; the rest are its page's sections.
     expect(countsText(folder)).toBe('2 videos');
     expect(countsText({ ...folder, videos: [], docs: [] })).toBe('empty');
+  });
+
+  test('names a file by its path in its folder, or its ref when it lies elsewhere', () => {
+    const folder = { ref: 'out/f' } as const;
+    const at = (ref: string) => ({ ref, name: 'contact.jpg', size: 10, mtime: 0 });
+    expect(pathIn(folder, at('out/f/ink/contact.jpg'))).toBe('ink/contact.jpg');
+    expect(pathIn(folder, at('out/f/contact.jpg'))).toBe('contact.jpg');
+    // A folder whose ref is a prefix of another's name is not its parent.
+    expect(pathIn(folder, at('out/fig/contact.jpg'))).toBe('out/fig/contact.jpg');
   });
 
   test("a folder holds a film's renders when its ref is the film's name or ends in it", () => {

@@ -20,9 +20,10 @@ import { PageReads } from './api-server.ts';
 import { PageRenderer } from './page-render.ts';
 
 /**
- * Every place a page is at (`Places`, `core/api.ts`), by a link the lab
- * serves it at: a place added there is weighed here, or this fails to
- * typecheck.
+ * Every place a studio page is at (`Places`, `core/api.ts`), by a link the
+ * lab serves it at: a place added there is weighed here, or this fails to
+ * typecheck. A film's export page is no phone's: the renderer's and the
+ * easel's, drawn in the browser alone.
  */
 const PLACES = {
   home: pageHref.home(),
@@ -35,7 +36,7 @@ const PLACES = {
   play: pageHref.play('f'),
   lab: pageHref.lab('f'),
   labScene: pageHref.labScene('f', 's'),
-} satisfies Record<keyof typeof Places, string>;
+} satisfies Record<Exclude<keyof typeof Places, 'export'>, string>;
 
 /**
  * The most a page's render-blocking CSS may weigh, in bytes, as built

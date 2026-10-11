@@ -4,17 +4,16 @@
 // line, the held line the accent's wash. On a laptop it is a column between
 // the picture and the inspector; on a phone it is a face of the selection's
 // sheet, or a sheet of its own (`lab-inspector-sheet`, the command styles').
-// Read only through the tokens (`player/tokens.css`); what no token holds is
-// named in `SOURCE_TOKENS`. A cue lane the playhead is inside carries
-// `data-live` (`editor/strip.tsx`), lit in the same state colour.
+// Read only through the tokens (`player/tokens.css`, whose `--state-live`
+// lights what plays here and on the strip's lanes); what no token holds is
+// named in `SOURCE_TOKENS`.
 
 import { PHONE, WIDE } from '../viewport.ts';
 
-/** What no studio token holds: the column's width, and the colour of what plays. */
+/** What no studio token holds: the column's width. */
 const SOURCE_TOKENS = `
 :root {
   --source-w: 480px;
-  --state-live: var(--text-1); /* a cue playing at the frame: its lane, its literal, its meter */
 }
 `;
 
@@ -28,7 +27,6 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
 .lab-source-head > .sh-btn { flex: none; min-height: var(--hit); }
 .lab-source-note { margin: 0; padding: var(--s-3) var(--gutter); color: var(--text-2); font-size: var(--fs-3); }
 .lab-source-follow { flex: none; }
-.lab-source-follow[aria-pressed='true'] { color: var(--accent); }
 .lab-source-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
   overflow-anchor: none; /* the browser never moves the scroll by itself: the view places it, layout clamps it, a hand moves it */ }
 .lab-source-page { --source-lh: var(--body-lh); position: relative; font-size: var(--body-fs); line-height: var(--source-lh);
@@ -49,9 +47,6 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
   border: 0; background: none; font: inherit; color: var(--accent); cursor: pointer; }
 .lab-source-at:hover { text-decoration: underline; }
 .lab-source-tabs { display: flex; width: 100%; margin-bottom: var(--s-2); }
-.lab-source-tabs > button[aria-pressed='true'], .lab-source-tabs > button[data-pressed] { color: var(--text-1); background: var(--surface-3); }
-.lab-cue[data-live] { background: var(--state-live); }
-.lab-cue.selected[data-live] { background: var(--accent); box-shadow: 0 0 0 1px var(--state-live); }
 .lab-source-sheet .lab-source-scroll, .lab-selection-sheet .lab-source-scroll { max-height: 55dvh; }
 @media ${WIDE} {
   body.lab:has(.lab-source-col) { grid-template-columns: minmax(0, 1fr) var(--source-w) var(--inspector-w); }

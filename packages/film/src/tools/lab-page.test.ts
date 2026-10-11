@@ -49,9 +49,9 @@ const html = (title: string, script: string) =>
 
 /**
  * An app in a temp folder: its review (`review.html` over `src/p.ts`, which
- * imports `lib/shared.ts`, another package's source), its lab and its player
- * (`sub/player.html`, an entry below the others). `write` writes a file
- * under the folder.
+ * imports `lib/shared.ts`, another package's source), its lab, its player
+ * (`sub/player.html`, an entry below the others) and its render page.
+ * `write` writes a file under the folder.
  */
 const appFolder = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
@@ -63,6 +63,7 @@ const appFolder = Effect.gen(function* () {
   yield* write('review.html', html('review', './src/p.ts'));
   yield* write('lab.html', html('lab', './src/lab.ts'));
   yield* write('sub/player.html', html('player', '../src/play.ts'));
+  yield* write('index.html', html('render', './src/render.ts'));
   yield* write(
     'src/p.ts',
     "import { shared } from '../lib/shared.ts';\nconsole.log('first', shared);\n",
@@ -70,6 +71,7 @@ const appFolder = Effect.gen(function* () {
   yield* write('lib/shared.ts', "export const shared = 'shared one';\n");
   yield* write('src/lab.ts', "console.log('the lab');\n");
   yield* write('src/play.ts', "console.log('the player');\n");
+  yield* write('src/render.ts', "console.log('the render page');\n");
   yield* write('src/notes.json', '{}');
   // The review's server entry: the same shared source, and one only the server reads.
   yield* write(
@@ -82,6 +84,7 @@ const appFolder = Effect.gen(function* () {
       review: path.join(dir, 'review.html'),
       lab: path.join(dir, 'lab.html'),
       player: path.join(dir, 'sub', 'player.html'),
+      render: path.join(dir, 'index.html'),
     },
     servers: { review: path.join(dir, 'src', 'review.server.tsx') },
     films: path.join(dir, 'src', 'films'),
@@ -190,6 +193,7 @@ const filmsInMemory = Effect.gen(function* () {
     ['/app/review.html', html],
     ['/app/lab.html', html],
     ['/app/player.html', html],
+    ['/app/index.html', html],
   ]);
   const mtimes = new Map<string, number>();
   const trackOf = (film: string) => `/app/films/${film}/narration/full.wav`;
@@ -228,7 +232,12 @@ const filmsInMemory = Effect.gen(function* () {
     Layer.provideMerge(HttpPlatform.layer, Layer.mergeAll(fileSystem, Path.layer)),
   );
   const spec = {
-    pages: { review: '/app/review.html', lab: '/app/lab.html', player: '/app/player.html' },
+    pages: {
+      review: '/app/review.html',
+      lab: '/app/lab.html',
+      player: '/app/player.html',
+      render: '/app/index.html',
+    },
     servers: {},
     films: '/app/films',
   };
@@ -497,9 +506,13 @@ describe('lab pages', () => {
           '/films/f/lab': 'lab',
           '/films/f/lab/hand': 'lab',
           '/films/f/play': 'player',
+          '/films/f/export': 'render',
         };
         for (const [pathname, page] of Object.entries(places))
           expect([pathname, ...(yield* titleOf(pathname))]).toEqual([pathname, 200, page]);
+        // A film's export page runs the render page's script (its handle), never Play's.
+        expect(yield* scriptOf('/films/f/export')).toContain('the render page');
+        expect(yield* scriptOf('/films/f/export')).not.toContain('the player');
         // A page deep under a film's path finds its script: the HTML links it from the root.
         const page = (yield* ask('/films/f/lab/hand')).text;
         expect(page).toMatch(/src="\/[^"]+\.js"/);
@@ -522,6 +535,9 @@ describe('lab pages', () => {
         '/player?film=f': '/films/f/play',
         '/?project=f': '/films/f/project',
         '/?film=f': '/films/f/choices',
+        // A render link lands on the film's export page, the build it pins kept.
+        '/films/f/play?export&build=3': '/films/f/export?build=3',
+        '/?film=f&export': '/films/f/export',
         '/?folder=root%2Fout&set=render%3Ascenes%3Ahand&view=moments&m=1':
           '/sets/root%2Fout/render:scenes:hand?view=moments&m=1',
       };
@@ -529,8 +545,6 @@ describe('lab pages', () => {
         const answer = yield* ask(from);
         expect([from, answer.status, answer.location]).toEqual([from, 302, to]);
       }
-      // A renderer's export page is no old link.
-      expect((yield* ask('/?film=f&export')).status).toBe(200);
     }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
@@ -1109,8 +1123,7 @@ describe('lab pages', () => {
       expect(imports.build).toBeGreaterThan(settled);
       yield* Ref.set(
         during,
-        Effect.andThen(
-          write('src/new.ts', 'export const v = 2;\n'),
+        Effect.andThen(write('src/new.ts', 'export const v = 2;\n'), () =>
           Effect.sleep('300 millis'),
         ).pipe(Effect.orDie),
       );
@@ -1209,12 +1222,14 @@ const memoryApp = (
     ['/app/review.html', text(html('review old', './src/p.ts'))],
     ['/app/lab.html', text(html('lab', './src/lab.ts'))],
     ['/app/sub/player.html', text(html('player', '../src/play.ts'))],
+    ['/app/index.html', text(html('render', './src/render.ts'))],
   ]);
   const spec = {
     pages: {
       review: '/app/review.html',
       lab: '/app/lab.html',
       player: '/app/sub/player.html',
+      render: '/app/index.html',
     },
     servers: {},
     films: '/app/src/films',

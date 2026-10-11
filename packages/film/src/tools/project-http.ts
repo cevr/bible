@@ -132,7 +132,11 @@ export const projectGroup = HttpApiBuilder.group(LabHttpApi, 'project', (handler
         project(params.film, (film) => {
           const { verb, flags } = sayArgs(payload.address, payload.say);
           return [verb, film, ...flags, ...variantArgs(payload), '--json', ...sayText(payload.say)];
-        }),
+        }).pipe(
+          // The run wrote the film's catalogue, which the review's index lists (a version's
+          // approval, a comment): the index reads it again on its next ask.
+          Effect.ensuring(Review.use((review) => review.written)),
+        ),
       ),
     ),
 );

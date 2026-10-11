@@ -54,6 +54,7 @@ import { type LabFailure, served } from '../../api.ts';
 import { hearMixes, newer } from '../../rebuilt.ts';
 import { type Asks, type Landed, newestAsked } from '../asked.ts';
 import { useReview } from '../context.tsx';
+import { videoSource } from '../format.ts';
 import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';
 import { type SyncActor, SyncEvent, type SyncState, spawnSync, syncAt } from '../machine.ts';
 import { type SyncDriver, playerCommands, makeSync, playerEvent } from '../sync.ts';
@@ -349,7 +350,7 @@ const FilmBody = (
     readonly player: ReturnType<typeof playerOf>;
   }>,
 ) => {
-  const { meta } = useReview();
+  const { meta, state: page } = useReview();
   const film = props.atoms.film;
   // The choices as first read seed the body once; each later answer updates `choices`.
   const first = untrack(() => props.first);
@@ -405,11 +406,14 @@ const FilmBody = (
   /**
    * Ask every mix again for the mix `heard` names, unless this tab already
    * asked for it or a later one. A source write that names no mix (it made
-   * none a page hears) asks again whatever: its source changed.
+   * none a page hears) asks again whatever: its source changed. The film's
+   * project may have changed with it (a pick its sound, a kept voice a
+   * scene): its owner reads it again (`FilmProject.changed`).
    */
   const refreshFor = (heard: Option.Option<PageBuild>) => {
     if (Option.exists(heard, (h) => Option.exists(refreshedFor, (r) => !newer(r)(h)))) return;
     setVersion((v) => v + 1);
+    meta.project(film).changed();
     if (Option.isSome(heard)) refreshedFor = heard;
   };
   // The check as the newest write asked that answers one (a source write, an undo, a redo).
@@ -519,9 +523,18 @@ const FilmBody = (
     },
   );
 
-  const driver = makeSync(PICTURE, send, meta.host);
+  // The clock is one media alone: the picture's video while it plays here,
+  // else (its proxy still being made on a phone) the mix heard over it.
+  const leader = createMemo(() =>
+    Option.match(
+      Option.flatMap(picture(), (video) => videoSource(video, page.quality())),
+      { onSome: () => PICTURE, onNone: () => Option.getOrElse(mix(), () => PICTURE) },
+    ),
+  );
+  const driver = makeSync(untrack(leader), send, meta.host);
   onCleanup(driver.stop);
   createEffect(sync, (s) => driver.apply(s));
+  createEffect(leader, (id) => driver.follow(id));
 
   // The one state the points are shown in is the URL's (`?only=`), so a link carries it.
   const only = createMemo(() =>

@@ -68,7 +68,6 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-card video:not([controls]) { pointer-events: none; }
 /* A still that opens the lightbox: a bare button around its picture. */
 .rv-zoom { display: block; width: 100%; padding: 0; border: 0; background: none; color: inherit; cursor: zoom-in; }
-.rv-zoom:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* The pair wiped: both videos stacked full width, the other right of the divider. */
 .rv-wipe { position: relative; background: var(--surface-0); overflow: hidden; touch-action: pan-y; }
 .rv-wipe video, .rv-wipe canvas { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
@@ -106,12 +105,8 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-body { padding: var(--s-2) var(--s-3); }
 .rv-strip { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 1px; background: var(--surface-0); }
 .rv-strip img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
-.rv-badge {
-  display: inline-block; font-size: var(--fs-1); line-height: var(--lh-1); font-weight: var(--w-2);
-  border: 1px solid currentColor; color: var(--text-2); border-radius: var(--r-1); padding: 0 var(--s-1); margin-left: var(--s-1);
-}
-.rv-badge[data-approval="approved"] { color: var(--state-approved); }
-.rv-badge:is([data-approval="stale"], [data-state="stale"]) { color: var(--state-stale); }
+/* A set card's count of versions, after its title in the line's flow (rows set their badges apart by their gap). */
+.rv-body > b + .sh-badge { margin-left: var(--s-1); }
 .rv-picked { display: inline-flex; align-items: center; gap: var(--s-1); color: var(--text-1); font-size: var(--fs-2); font-weight: var(--w-2); }
 .rv-picked svg { width: 14px; height: 14px; flex: none; }
 .rv-picked circle { fill: var(--text-1); }
@@ -150,7 +145,6 @@ a.rv-card:hover { background: var(--surface-2); }
  * card. Its clock is its own, so the row says its time on a laptop too.
  */
 .rv-alone-picture { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
-.rv-alone-picture:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 /* One whose media cannot play says so across the foot of its picture. */
 .rv-alone-picture .rv-failed {
   position: absolute; left: 0; right: 0; bottom: 0; padding: var(--s-2) var(--s-3);
@@ -158,16 +152,25 @@ a.rv-card:hover { background: var(--surface-2); }
   font-size: var(--fs-2); line-height: var(--lh-2); text-align: left;
 }
 .rv-alone-row { padding: var(--s-2) var(--s-3); }
+/*
+ * In a scene's card (Project's sheet; the card's player picture frames the
+ * picture and stands the row under it) the row is a phone's at any width
+ * (the card is a sheet's width): the time where the clock is, the scrub
+ * showing the end.
+ */
+.sc-card-picture > .rv-alone-row { gap: var(--s-2); }
+.sc-card-picture > .rv-alone-row .rv-time-rest { display: none; }
 @media ${WIDE} {
   .rv-alone-row .rv-time-at { display: inline; }
 }
+/* The lightbox (\`Zoom\`): the kit's dialog on the overlays' layer, over the tab bar and the dock. */
+.rv-lightbox-backdrop { position: fixed; inset: 0; background: var(--backdrop-deep); z-index: var(--cmd-layer); }
 .rv-lightbox {
-  position: fixed; inset: 0; background: var(--backdrop-deep); display: grid; place-items: center;
-  z-index: 20; padding: var(--s-4); cursor: zoom-out;
+  position: fixed; inset: 0; display: grid; place-items: center; z-index: calc(var(--cmd-layer) + 1);
+  padding: var(--s-4); cursor: zoom-out; grid-template-rows: minmax(0, 1fr) auto; gap: var(--s-2);
 }
-.rv-lightbox { margin: 0; grid-template-rows: minmax(0, 1fr) auto; gap: var(--s-2); }
 .rv-lightbox img { max-width: 100%; max-height: 100%; }
-.rv-lightbox figcaption { color: var(--text-2); font-size: var(--fs-2); }
+.rv-lightbox-caption { margin: 0; color: var(--text-2); font-size: var(--fs-2); font-weight: inherit; }
 .rv-note {
   background: var(--surface-1); padding: var(--s-3) var(--s-4); font-size: var(--fs-3); line-height: var(--lh-3);
   min-width: 0; overflow-wrap: anywhere;

@@ -7,7 +7,8 @@
 // one; a touch that moves (a drag) never opens it, and a touch that opened
 // it starts no drag; a field inside a thing keeps the browser's own menu;
 // `/` opens ⌘K to Go to a scene or a cue by its name; a row pressed while
-// the film plays, in ⌘K or a cue's menu, runs.
+// the film plays, in ⌘K or a cue's menu, runs; a query no command matches
+// names no row and says so beside the list.
 
 import { Effect } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
@@ -18,7 +19,14 @@ import {
   touch,
 } from '../../../src/lab/fixtures/gestures.ts';
 import { URL_T, labAt, openLab } from '../../../src/lab/fixtures/harness.ts';
-import { attached, evaluates, textHas, textIs } from '../../../src/lab/fixtures/settled.ts';
+import {
+  attached,
+  attributeIs,
+  countIs,
+  evaluates,
+  textHas,
+  textIs,
+} from '../../../src/lab/fixtures/settled.ts';
 import { jsonOf } from '../../../src/lab/fixtures/tab.ts';
 
 /** The probe's first cue's bar on the strip. */
@@ -45,10 +53,35 @@ describe('the command menu', () => {
         `[...document.querySelectorAll('[data-role="command-menu"] [data-command]')].map((e) => e.dataset.command)`,
         ['play.scene-next'],
       );
+      // The query names the row it would run, one that exists.
+      yield* attributeIs(page, '.lab-command-query', 'aria-activedescendant', 'lab-command-0');
+      yield* attributeIs(page, '#lab-command-0', 'data-command', 'play.scene-next');
       yield* page.pressIn('.lab-command-query', 'Enter');
       yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a query no command matches names no row, even after the arrows, and says so beside the list, not in it',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([], { href: labAt(0.5) });
+        yield* page.press('Control+k');
+        yield* page.waitFor('[data-role="command-menu"] [data-command]');
+        yield* page.fill('.lab-command-query', 'zzzz no such command');
+        yield* textIs(page, '[data-role="command-menu"] .lab-command-none', 'No command matches.');
+        // The listbox holds options alone; the query points at no row, nor does an arrow make it.
+        yield* countIs(page, '[role="listbox"] > :not([role="option"])', 0);
+        const names =
+          "document.querySelector('.lab-command-query').hasAttribute('aria-activedescendant')";
+        yield* evaluates(page, names, false);
+        yield* page.pressIn('.lab-command-query', 'ArrowDown');
+        yield* evaluates(page, names, false);
+        yield* page.pressIn('.lab-command-query', 'ArrowUp');
+        yield* evaluates(page, names, false);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live('/ opens it to Go to: a scene or a cue found by its name, once a word is typed', () =>

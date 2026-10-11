@@ -13,7 +13,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Duration, Effect, FileSystem, Layer, Option, Stream } from 'effect';
+import { Array as Arr, Duration, Effect, FileSystem, Layer, Option, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import {
   ALL_FORMATS,
@@ -27,6 +27,8 @@ import {
   Output,
 } from 'mediabunny';
 import { type Pcm, toInt16 } from '../core/audio.ts';
+import { ratedVideo } from '../lab/fixtures/rated-video.ts';
+import type { RatedTiming } from '../lab/fixtures/rated-video.ts';
 import { Media } from './media.ts';
 import { collectWithin } from './process.ts';
 import { memoryFileSystem, text } from './testing.ts';
@@ -161,7 +163,7 @@ describe.concurrent('Media', () => {
         const back = yield* media.decode('/out.wav');
         expect([back.rate, back.frames, back.channels.length]).toEqual([44100, frames, 2]);
         expect(toInt16(back)).toEqual(toInt16(pcm));
-        expect(yield* media.duration('/out.wav')).toBeCloseTo(frames / 44100, 9);
+        expect((yield* media.timing('/out.wav')).seconds).toBeCloseTo(frames / 44100, 9);
       }),
   );
 
@@ -170,7 +172,7 @@ describe.concurrent('Media', () => {
       const media = yield* Media;
       const tone = yield* media.decode('/tone.mp3');
       expect([tone.rate, tone.frames, tone.channels.length]).toEqual([44100, 22050, 1]);
-      expect(yield* media.duration('/tone.mp3')).toBe(0.5);
+      expect((yield* media.timing('/tone.mp3')).seconds).toBe(0.5);
       const peak = Math.max(...(tone.channels[0] ?? []).map(Math.abs));
       expect(peak).toBeGreaterThan(0.1);
     }),
@@ -290,7 +292,7 @@ describe.concurrent('Media', () => {
         const plane = back.channels[0] ?? new Float32Array();
         const worst = wave.reduce((m, s, i) => Math.max(m, Math.abs(s - (plane[i] ?? 0))), 0);
         expect(worst).toBeLessThan(2 ** -22);
-        expect(yield* media.duration('/take.flac')).toBeCloseTo(30000 / 44100, 6);
+        expect((yield* media.timing('/take.flac')).seconds).toBeCloseTo(30000 / 44100, 6);
       }),
   );
 
@@ -401,7 +403,7 @@ describe.concurrent('Media', () => {
           const [track, ...rest] = yield* readBack(file);
           expect(rest).toEqual([]);
           expect([track?.type, track?.codec]).toEqual(['audio', 'aac']);
-          expect(yield* media.duration(file)).toBeCloseTo(1, 1);
+          expect((yield* media.timing(file)).seconds).toBeCloseTo(1, 1);
           // Fast start: the index (moov) comes before the samples (mdat).
           const head = new TextDecoder('latin1').decode(
             (yield* (yield* FileSystem.FileSystem).readFile(file)).subarray(0, 4096),
@@ -430,8 +432,155 @@ describe.concurrent('Media', () => {
 
   it.effect.layer(MediaOnDisk)('a video measures by its container, read where it lies', () =>
     Effect.gen(function* () {
-      expect(yield* (yield* Media).duration(fixture('segment-a.mp4'))).toBeCloseTo(0.5, 2);
+      expect((yield* (yield* Media).timing(fixture('segment-a.mp4'))).seconds).toBeCloseTo(0.5, 2);
     }),
+  );
+
+  it.effect.layer(MediaOnDisk)(
+    "a video's timing is its length and its own frame rate, never rounded: none for a file with no video",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* tempDir;
+          const rateAt = Effect.fn('Media.test.rateAt')(function* (fps: number) {
+            const file = `${dir}/rated-${fps}.mp4`;
+            yield* fs.writeFile(file, yield* ratedVideo(fps, 60));
+            return (yield* media.timing(file)).fps;
+          });
+          expect(yield* rateAt(24)).toEqual(Option.some(24));
+          expect(yield* rateAt(30000 / 1001)).toEqual(Option.some(30000 / 1001));
+          expect(yield* rateAt(24000 / 1001)).toEqual(Option.some(24000 / 1001));
+          expect(yield* rateAt(12.5)).toEqual(Option.some(12.5));
+          const film = yield* media.timing(fixture('segment-a.mp4'));
+          expect(film.fps).toEqual(Option.some(30));
+          expect(film.seconds).toBeCloseTo(0.5, 2);
+          expect((yield* media.timing(fixture('tone.mp3'))).fps).toEqual(Option.none());
+          const missing = yield* Effect.flip(media.timing(fixture('no-such.mp4')));
+          expect(missing._tag).toBe('MediaFailed');
+        }),
+      ),
+  );
+
+  it.effect.layer(MediaOnDisk)(
+    "a whole or 1000/1001 rate is taken only when its frame grid alone holds every frame's start within a step of the clock the starts sit on",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* tempDir;
+          /** The rate read from `frames` frames made at `fps`, timed in the file as `timing` says. */
+          const rateAt = Effect.fn('Media.test.rateAt')(function* (
+            fps: number,
+            frames: number,
+            timing?: RatedTiming,
+          ) {
+            const file = `${dir}/rated.mp4`;
+            yield* fs.writeFile(file, yield* ratedVideo(fps, frames, timing));
+            return Option.getOrThrow((yield* media.timing(file)).fps);
+          });
+          const ntsc = 30000 / 1001;
+          const ms = { timescale: 1000 };
+          // A millisecond timescale, each start rounded to its millisecond: 30's
+          // grid holds 23 frames' starts within a millisecond; 29.97's drifts
+          // 0.73 ms over them on top of the rounding, past it: 30. Truncated
+          // to the millisecond (as a WebM's clock keeps them) they read 30 too.
+          expect(yield* rateAt(30, 23, ms)).toBe(30);
+          expect(yield* rateAt(30, 23, { ...ms, grid: 0.001 })).toBe(30);
+          // At 60 fps the 120 frames drift 2 ms from 59.94's grid: each its own.
+          expect(yield* rateAt(60, 120, ms)).toBe(60);
+          expect(yield* rateAt(60000 / 1001, 120, ms)).toBe(60000 / 1001);
+          // 29.97 and 30 over a long clip, each its own.
+          expect(yield* rateAt(30, 200, ms)).toBe(30);
+          expect(yield* rateAt(ntsc, 200, ms)).toBe(ntsc);
+          // 23.976's frames lie halfway between two milliseconds every 24th frame,
+          // and a rounding muxer sends some halves down, some up: its grid holds
+          // the starts within a millisecond only with its ends, and 24's not at all.
+          expect(yield* rateAt(24000 / 1001, 120, ms)).toBe(24000 / 1001);
+          // Eight frames (0.23 s from first start to last) cannot tell 30 from
+          // 29.97 (0.23 ms apart by then): kept as measured, taken for neither.
+          expect(yield* rateAt(30, 8, ms)).toBeCloseTo(7 / 0.233, 9);
+          // A fine timescale tells a rate 0.03% off 30, or halfway to 29.97, from either.
+          expect(yield* rateAt(30 * (1 - 3e-4), 120)).toBeCloseTo(30 * (1 - 3e-4), 6);
+          const halfway = (30 + ntsc) / 2;
+          expect(yield* rateAt(halfway, 120)).toBeCloseTo(halfway, 6);
+          // A millisecond clock's starts read alike on whatever timescale keeps
+          // them: 1000, 16000 (a WebM's stream copy into an MP4) or 90000.
+          for (const frames of [23, 50, 100]) {
+            const read = new Set<number>();
+            for (const timescale of [1000, 16000, 90000])
+              read.add(yield* rateAt(30, frames, { timescale, grid: 0.001 }));
+            expect([...read]).toEqual([30]);
+          }
+          // A last frame's own duration ending a 60 fps clip at 2.001 s (a tick
+          // late) names no other rate: 60, never 59.94.
+          expect(yield* rateAt(60, 120, { ...ms, grid: 0.001, last: 0.018 })).toBe(60);
+          // Twenty frames of 29.97 on a millisecond clock whose last ends at
+          // 0.666 s (1⅓ ms short): their starts drift 0.63 ms from 30's grid on
+          // top of the truncation, past a millisecond, so 29.97 alone holds them.
+          expect(yield* rateAt(ntsc, 20, { ...ms, grid: 0.001, last: 0.033 })).toBe(ntsc);
+          // Exactly timed starts sit a frame apart on their clock, as coarse as
+          // the frame of the whole rate near them: that clock cannot tell the
+          // whole rate (or its 1000/1001 one) from its neighbours, so neither
+          // is claimed and each reads as measured, its own rate exactly.
+          for (const [fps, timescale] of [
+            [0.5, 1000],
+            [0.5, 16384],
+            [0.5, 90000],
+            [0.5, 600],
+            [1.25, 1000],
+            [4 / 3, 1000],
+            [2.4, 90000],
+            [6.25, 1000],
+            [6.4, 16000],
+            [12.4, 12.4],
+          ] as const)
+            expect(yield* rateAt(fps, 30, { timescale })).toBeCloseTo(fps, 9);
+          // 0.5 fps with a start a tick late (or every inner start a tick early):
+          // the clock is one tick, and 1 fps's grid holds every start within it,
+          // but only on every other line of its own; a grid no two consecutive
+          // starts sit on adjacent lines of is no frame grid of theirs: 0.5.
+          for (const [timescale, nudge] of [
+            [1000, [[7, 0.001]]],
+            [90000, [[7, 1 / 90000]]],
+            [1000, Arr.range(1, 28).map((frame) => [frame, -0.001] as const)],
+          ] as const)
+            expect(yield* rateAt(0.5, 30, { timescale, nudge })).toBeCloseTo(0.5, 9);
+          // An exactly timed file with three frames dropped from its first 120
+          // (its 120 starts span 122 frames), on a clock of a tick a frame too
+          // (mediabunny's for a whole rate), names no whole or 1000/1001 rate a
+          // frame short: kept as measured, never 29 (or 23, 24, 59, 28.97).
+          for (const [fps, timescales] of [
+            [30, [30, 15360, 90000]],
+            [24, [24, 15360, 90000]],
+            [25, [25, 90000]],
+            [60, [15360, 90000]],
+            [ntsc, [30000, 90000]],
+          ] as const)
+            for (const timescale of timescales) {
+              const read = yield* rateAt(fps, 133, { timescale, drop: [30, 60, 90] });
+              expect(read).toBeCloseTo((119 * fps) / 122, 9);
+            }
+          // One dropped frame from an exactly timed file: as measured too (its
+          // clock cannot tell 30 from 29); a rounding millisecond clock tells 30.
+          expect(yield* rateAt(30, 131, { timescale: 15360, drop: [50] })).toBe((119 * 30) / 120);
+          expect(yield* rateAt(30, 131, { timescale: 1000, drop: [50] })).toBe(30);
+          expect(yield* rateAt(ntsc, 131, { timescale: 30000, drop: [50] })).toBeCloseTo(
+            (119 * ntsc) / 120,
+            9,
+          );
+          // 90 fps on a millisecond clock kept on 15360: each start a whole 169
+          // ticks (11 ms), as coarse as the frame of 90.91 (91000/1001): neither
+          // 91 nor 90.91 is claimed over 8 or 9 frames, only as measured.
+          for (const frames of [8, 9])
+            expect(yield* rateAt(90, frames, { timescale: 15360, grid: 0.001 })).toBeCloseTo(
+              15360 / 169,
+              9,
+            );
+        }),
+      ),
   );
 
   it.effect.layer(MediaOnDisk)('a share copy that fails leaves no file behind', () =>

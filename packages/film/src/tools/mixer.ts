@@ -81,7 +81,7 @@ export const readMaster = (
   Effect.gen(function* () {
     const file = masterFile(paths);
     if (!(yield* fs.exists(file))) return Option.none();
-    const length = yield* media.duration(file);
+    const { seconds: length } = yield* media.timing(file);
     const key = yield* fs.readFileString(stampFile(paths)).pipe(
       Effect.flatMap(Schema.decodeEffect(MasterStampJson)),
       Effect.map((stamp) => stamp.key),

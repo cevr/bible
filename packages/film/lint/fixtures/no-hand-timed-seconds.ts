@@ -1,7 +1,8 @@
 // Fixture for film/no-hand-timed-seconds: each line marked RED fires the rule,
 // and nothing else does.
-import { drawing } from '@bible/film/canvas';
-import { clamp, envelope, keys, progress } from '@bible/film/core';
+import { type Frame, drawing } from '@bible/film/canvas';
+import * as Core from '@bible/film/core';
+import { clamp, clamp as cap, keys, progress } from '@bible/film/core';
 
 const RISE = [
   [0, 0],
@@ -47,7 +48,6 @@ export const scene = drawing({
       (t - f.cue('near').end) / 12, // RED film/no-hand-timed-seconds
       progress(t, 1.2, 0.5), // RED film/no-hand-timed-seconds
       progress(f.t, f.mark('go') - 0.1, 1.1), // RED film/no-hand-timed-seconds
-      envelope(t, drift.start, 0.3, 0.3, drift.end), // RED film/no-hand-timed-seconds
       keys(f.t, RISE), // RED film/no-hand-timed-seconds
       t > f.cue('near').end + 0.5, // RED film/no-hand-timed-seconds
       f.mark('go') - 0.4, // RED film/no-hand-timed-seconds
@@ -86,3 +86,30 @@ export const passed = (t: number, HOLD: number, LATE: number) => [
   t > LATE,
   { mark: 'go', offset: LATE, dur: 0.4 },
 ];
+
+// The clock is the frame's, by its binding: under another name, through a
+// helper typed by the frame (or a local alias of its type), taken apart in a
+// parameter; and clamp is film's under an alias or off the module whole.
+type SceneFrame = Frame<'far'>;
+export const helpers = drawing({
+  timeline: { far: { mark: 'go', dur: 0.4 } },
+  draw: (f) => {
+    const now = f.t;
+    return [
+      now > 3.5, // RED film/no-hand-timed-seconds
+      cap(f.t / 2), // RED film/no-hand-timed-seconds
+      Core.clamp(f.t / 2), // RED film/no-hand-timed-seconds
+      Core.progress(f.t, 1.2, 0.5), // RED film/no-hand-timed-seconds
+    ];
+  },
+});
+export const typed = (g: Frame) => g.t > 3.5; // RED film/no-hand-timed-seconds
+export const aliased = (g: SceneFrame) => g.T - 12.3; // RED film/no-hand-timed-seconds
+export const takenApart = ({ t }: Frame) => t > 2; // RED film/no-hand-timed-seconds
+
+// A `t` that is not the frame's is no clock: a curve's input, a share, a scratch value.
+export const curve = (t: number) => (t > 0.5 ? 1 : 0);
+export const wobble = (t: number) => clamp(t / 0.3);
+export const notAFrame = (g: { readonly t: number }) => g.t > 3.5;
+// A parameter named `clamp` is not film's.
+export const own = (clamp: (x: number) => number, g: Frame) => clamp(g.t / 2);

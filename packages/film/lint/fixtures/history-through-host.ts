@@ -10,7 +10,14 @@ declare const url: { readonly navigate: (to: string) => void };
 export const pushed = UrlState.UrlState.use(
   (u) => u.navigate(href, { history: 'push', throttle: Option.none() }), // RED film/history-through-host
 );
-export const navigated = () => url.navigate(href); // RED film/history-through-host
+export const navigated = Effect.gen(function* () {
+  const { navigate } = yield* UrlState.UrlState; // RED film/history-through-host
+  const state = yield* UrlState.UrlState;
+  const go = state.navigate; // RED film/history-through-host
+  return [navigate, go];
+});
+// A `navigate` off anything but UrlState (a WebView's) is no history move.
+export const loaded = () => url.navigate(href);
 export const push = Location.use((l) => l.push(href)); // RED film/history-through-host
 export const replace = Location.use((bar) => bar.replace(href)); // RED film/history-through-host
 export const bound = Effect.gen(function* () {

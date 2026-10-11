@@ -10,9 +10,8 @@
 // reads of the lab's API come back to the lab (`PageReads`): answered by the
 // lab's own handler as the page's request would be, so they pass the one
 // gate and the same handlers. Bun is the only host: the live adapter is
-// Effect's `BunWorker`; `layerTest` renders without one.
+// Effect's `BunWorker` (`page-render-bun.ts`); `layerTest` renders without one.
 
-import { BunWorker } from '@effect/platform-bun';
 import {
   Cause,
   Context,
@@ -36,8 +35,9 @@ import {
   Stream,
 } from 'effect';
 import * as Worker from 'effect/workers/Worker';
-import type { PageName } from '../core/api.ts';
+import type { AppPage } from '../core/api.ts';
 import { LONGEST_WAIT } from '../core/wait.ts';
+import { renderWorkers } from './page-render-bun.ts';
 import { FromRender, ToRender } from './page-render-protocol.ts';
 
 /** A module of a build's server bundle, at its path under the build's root. */
@@ -49,7 +49,7 @@ interface BundledModule {
 /** A build's server bundle: its modules, and each server-rendered page's entry among them. */
 export interface ServerBundle {
   readonly files: ReadonlyArray<BundledModule>;
-  readonly entries: ReadonlyMap<PageName, string>;
+  readonly entries: ReadonlyMap<AppPage, string>;
 }
 
 /** A build as a render names it: its number among the builds, and its server bundle. */
@@ -89,7 +89,7 @@ interface PageRendererService {
    */
   readonly render: (
     build: RenderBuild,
-    page: PageName,
+    page: AppPage,
     url: string,
     read: Read,
   ) => Effect.Effect<RenderedPage, RenderFailed, Scope.Scope>;
@@ -103,7 +103,7 @@ export class PageRenderer extends Context.Service<PageRenderer, PageRendererServ
     Layer.effect(
       PageRenderer,
       Effect.suspend(() => make),
-    ).pipe(Layer.provide(BunWorker.layer(() => new globalThis.Worker(WORKER))));
+    ).pipe(Layer.provide(renderWorkers));
 
   /**
    * Pages rendered with no worker, for tests of what serves them: a page's
@@ -122,9 +122,6 @@ export class PageRenderer extends Context.Service<PageRenderer, PageRendererServ
     }),
   );
 }
-
-/** The worker's module: what each build's worker runs. */
-const WORKER = new URL('./page-render-worker.ts', import.meta.url);
 
 /** How long a render may take to write its head before the page is answered without it. */
 const HEAD_WAIT = Duration.seconds(10);

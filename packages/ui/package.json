@@ -13,7 +13,8 @@
     "./toast": "./src/toast/index.ts",
     "./number-field": "./src/number-field/index.ts",
     "./toggle": "./src/toggle/index.ts",
-    "./toggle-group": "./src/toggle-group/index.ts"
+    "./toggle-group": "./src/toggle-group/index.ts",
+    "./separator": "./src/separator/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -27,7 +28,7 @@
     "solid-js": "catalog:"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.64.0",
     "@solidjs/compiler": "catalog:"
   }
 }

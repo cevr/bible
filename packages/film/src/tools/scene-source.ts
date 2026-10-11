@@ -37,6 +37,7 @@ import {
   Span,
   Until,
 } from '../core/schema.ts';
+import { lineOf, lineStarts } from '../core/lines.ts';
 import { SourceRefused } from '../core/refusals.ts';
 import { toMs } from '../core/time.ts';
 import { patchSpan, writtenPatch } from '../core/timeline.ts';
@@ -569,9 +570,6 @@ const fieldState = (prop: Option.Option<ObjectProperty>, literal: (e: Expression
     },
   });
 
-/** The line (from 1) that offset `at` of `source` falls on. */
-const lineAt = (source: string, at: number): number => source.slice(0, at).split('\n').length;
-
 const editableCue = (
   file: string,
   cue: string,
@@ -609,32 +607,36 @@ export const editable = (
   source: string,
   name: string,
 ): Result.Result<Editable, SourceRefused> =>
-  Result.map(siteNamed(file, source, name), (site) => ({
-    cues: literalProperties(site.timeline).flatMap((p) =>
-      Option.match(
-        Option.zipWith(keyName(p), valueOf(p), (cue, span) => ({ cue, span })),
-        {
-          onNone: (): ReadonlyArray<EditableCue> => [],
-          onSome: ({ cue, span }): ReadonlyArray<EditableCue> => {
-            if (span.type !== 'ObjectExpression') return [];
-            return [editableCue(file, cue, span, lineAt(source, p.start))];
-          },
-        },
-      ),
-    ),
-    knobs: literalProperties(site.knobs).flatMap((p) =>
-      Option.match(keyName(p), {
-        onNone: () => [],
-        onSome: (knob) => [
+  Result.map(siteNamed(file, source, name), (site) => {
+    // The file's lines, counted once for every cue and knob it writes.
+    const starts = lineStarts(source);
+    return {
+      cues: literalProperties(site.timeline).flatMap((p) =>
+        Option.match(
+          Option.zipWith(keyName(p), valueOf(p), (cue, span) => ({ cue, span })),
           {
-            name: knob,
-            state: fieldState(Option.some(p), isKnobLiteral),
-            line: lineAt(source, p.start),
+            onNone: (): ReadonlyArray<EditableCue> => [],
+            onSome: ({ cue, span }): ReadonlyArray<EditableCue> => {
+              if (span.type !== 'ObjectExpression') return [];
+              return [editableCue(file, cue, span, lineOf(starts, p.start))];
+            },
           },
-        ],
-      }),
-    ),
-  }));
+        ),
+      ),
+      knobs: literalProperties(site.knobs).flatMap((p) =>
+        Option.match(keyName(p), {
+          onNone: () => [],
+          onSome: (knob) => [
+            {
+              name: knob,
+              state: fieldState(Option.some(p), isKnobLiteral),
+              line: lineOf(starts, p.start),
+            },
+          ],
+        }),
+      ),
+    };
+  });
 
 const applySplices = (source: string, splices: ReadonlyArray<Splice>) =>
   [...splices]
@@ -1131,8 +1133,8 @@ export const readKnobs = (
       ),
   });
 
-/** What a frame's reader names by its first argument: a cue, a knob or a narration mark. */
-type Reads = 'cue' | 'knob' | 'mark';
+/** What a frame's reader names by its first argument: a cue or a knob. */
+type Reads = 'cue' | 'knob';
 
 const READERS: ReadonlyMap<string, Reads> = new Map([
   ['at', 'cue'],
@@ -1141,7 +1143,6 @@ const READERS: ReadonlyMap<string, Reads> = new Map([
   ['stagger', 'cue'],
   ['staggerAt', 'cue'],
   ['knob', 'knob'],
-  ['mark', 'mark'],
 ]);
 
 interface Read {
@@ -1151,8 +1152,8 @@ interface Read {
 }
 
 /**
- * Every call in the module of a frame's reader (`f.at('lift')`, `f.knob(…)`,
- * `f.mark(…)`) whose first argument is a string literal, wherever the call
+ * Every call in the module of a frame's cue or knob reader (`f.at('lift')`,
+ * `f.knob(…)`) whose first argument is a string literal, wherever the call
  * stands: a scene's helpers read the frame too. Matched by the member's name,
  * so a lookalike on another object (`list.at('x')`) is a wrong guess the Source
  * view only lights, never writes.
@@ -1197,7 +1198,7 @@ const writtenIn = (file: string, slot: Slot) => {
   return literalProperties(slot).flatMap((p) =>
     Option.match(keyName(p), {
       onNone: () => [],
-      onSome: (name) => [{ name, at: [p.start, p.end] satisfies CodeRange, value: p.value }],
+      onSome: (name) => [{ name, at: [p.start, p.end] satisfies CodeRange }],
     }),
   );
 };
@@ -1206,8 +1207,8 @@ const writtenIn = (file: string, slot: Slot) => {
 const readsOf = (reads: ReadonlyArray<Read>, of: Reads, name: string): ReadonlyArray<CodeRange> =>
   reads.filter((r) => r.of === of && r.name === name).map((r) => r.at);
 
-/** Where in the module the drawing exported as `name` writes and reads its cues, knobs and marks. */
-type SceneRanges = Pick<SceneCode, 'cues' | 'knobs' | 'marks' | 'refused'>;
+/** Where in the module the drawing exported as `name` writes and reads its cues and knobs. */
+type SceneRanges = Pick<SceneCode, 'cues' | 'knobs' | 'refused'>;
 
 /**
  * Where the drawing exported as `name` writes each cue (in its `timeline`
@@ -1215,10 +1216,8 @@ type SceneRanges = Pick<SceneCode, 'cues' | 'knobs' | 'marks' | 'refused'>;
  * reads one by name, as the Source view lights them (`GET …/scenes/<scene>/code`):
  * positions from the same parse the writes splice by, so an offset is a text
  * range as the file now stands. A cue or knob read by a name the scene does not
- * declare, or an array's `.at(0)`, is left out. Narration marks are not
- * declared in the file: a mark is listed where the code reads it, or where a
- * cue anchors at it (`mark: 'take'`). A `timeline` or `knobs` that is not an
- * object literal lists nothing, and says why.
+ * declare, or an array's `.at(0)`, is left out. A `timeline` or `knobs` that
+ * is not an object literal lists nothing, and says why.
  */
 export const sceneCode = (
   file: string,
@@ -1228,33 +1227,15 @@ export const sceneCode = (
   Result.flatMap(parseModule(file, source), (program) =>
     Result.map(siteIn(file, source, program, name), (site): SceneRanges => {
       const reads = readsIn(program);
-      const cues = writtenIn(file, site.timeline);
-      const anchors = cues.flatMap(({ value }) => {
-        if (value.type !== 'ObjectExpression') return [];
-        return value.properties.flatMap((p) => {
-          if (p.type === 'SpreadElement' || !Option.contains(keyName(p), 'mark')) return [];
-          return Option.match(stringOf(p.value), {
-            onNone: () => [],
-            onSome: (mark): ReadonlyArray<Read> => [
-              { of: 'mark', name: mark, at: [p.value.start, p.value.end] },
-            ],
-          });
-        });
-      });
-      const marked = [...reads.filter((r) => r.of === 'mark'), ...anchors].sort(
-        (a, b) => a.at[0] - b.at[0],
-      );
+      const sites = (field: 'timeline' | 'knobs', of: Reads) =>
+        writtenIn(file, site[field]).map((s) => ({
+          name: s.name,
+          at: s.at,
+          reads: readsOf(reads, of, s.name),
+        }));
       return {
-        cues: cues.map((c) => ({ name: c.name, at: c.at, reads: readsOf(reads, 'cue', c.name) })),
-        knobs: writtenIn(file, site.knobs).map((k) => ({
-          name: k.name,
-          at: k.at,
-          reads: readsOf(reads, 'knob', k.name),
-        })),
-        marks: [...new Set(marked.map((m) => m.name))].map((mark) => ({
-          name: mark,
-          reads: marked.filter((m) => m.name === mark).map((m) => m.at),
-        })),
+        cues: sites('timeline', 'cue'),
+        knobs: sites('knobs', 'knob'),
         refused: (['timeline', 'knobs'] as const).flatMap((field) => {
           const slot = site[field];
           if (slot._tag === 'Computed')

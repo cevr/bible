@@ -2,15 +2,18 @@
 // `<video>`s and `<audio>`s), made to do what the machine's state says, and
 // what they do told back to it as events. It reaches them only through the
 // port (`browser/media.ts`), and plays them through `Media.playOrMute`. The
-// first variant's video is the clock (its time is the set's), and a set that
-// loses that variant `follow`s the first one left (`ClockMoved`); every other
-// that drifts more than DRIFT_S from it is put back on it. Only the audible
+// leading version's video is the clock, and the clock alone: its time, its
+// end, its ending and its failure are the set's, and while it is not
+// attached the set's time stands. The page says which version leads; when
+// that changes the driver `follow`s the new one (`ClockMoved`). Every other
+// video that drifts more than DRIFT_S from it is put back on it. Only the audible
 // one is unmuted. The machine is told when the clock's media cannot play
 // (`MediaFailed`), and when the clock's media is new (`MediaReplaced`: each
 // source, and each retry, is a fresh element attached), so a failure is its
 // media's alone; another video that fails is left out: of the drift pull,
 // of the seeks and plays, and of what a stalled set waits on, until its media
-// is measured again. A seek moves every video that can play; a stall pauses
+// is measured again. A seek moves every video that can play, each onto its
+// own frame at the clock's (`landing`, by its own rate once `timed`); a stall pauses
 // them all until each has enough to play on (`Buffering`). A seek or a play it sets going on a video lasts
 // only while that video is attached: replaced, released or stopped, it
 // ends. The player's transport (space, ←/→) is declared here too, as the
@@ -18,15 +21,16 @@
 
 import { type Context, Data, type Duration, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
+import { frameAtOrBefore, frameRead } from '../../core/time.ts';
 import { Media, type Playable } from '../../browser/media.ts';
 import { type Command, type Invocation, quietly } from '../../command/command.ts';
 import type { Target } from '../../command/target.ts';
 import {
   type SyncEvent,
   SyncEvent as Events,
-  STEP_S,
   type SyncState,
   UNKNOWN_END,
+  movingOf,
   runningOf,
 } from './machine.ts';
 
@@ -36,7 +40,30 @@ const DRIFT_S = 0.2;
 /** How far the clock moves before the machine hears of it, in seconds. */
 const TICK_S = 0.05;
 
-/** Whether `video` has drifted from the clock at `t` far enough to be put back. */
+/** How far into its frame a seek lands, in frames. */
+const INTO_FRAME = 0.25;
+
+/**
+ * Where a seek of the clock to `t` (counting `fps` frames a second) lands on
+ * a video at `own` frames a second: the clock's frame is the one its
+ * timecode reads (`frameRead`), and the video lands a quarter of one of its
+ * own frames into its frame that holds that frame's start. A step's time is
+ * its frame's start (`n / fps`), and Chrome keeps an element's time a
+ * microsecond short of some frames' starts (frame 25 at 24 fps, 62 at 30),
+ * which shows the frame before; inside the frame, it shows that frame's
+ * picture. So each video shows its own frame at the clock's frame, at any
+ * rate of either, and a scrub or a `#t=` shows the frame its timecode reads.
+ * The clock's own time stays as the machine has it (`t`).
+ */
+const landing = (t: number, fps: number, own: number): number =>
+  (frameAtOrBefore(frameRead(t, fps) / fps, own) + INTO_FRAME) / own;
+
+/**
+ * Whether `video` has drifted from the clock's video at `t` far enough to be
+ * put back on it: the drift pull seeks it to `t` itself (a playing picture
+ * needs no quarter in), so a video put back is never found drifted again by
+ * where it landed, at any rate.
+ */
 export const drifted = (video: number, t: number): boolean => Math.abs(video - t) > DRIFT_S;
 
 export interface SyncDriver {
@@ -50,11 +77,20 @@ export interface SyncDriver {
   /** The machine's state, made so. */
   readonly apply: (state: SyncState) => void;
   /**
-   * The clock is `id`'s video from now on (the version it followed left the
-   * set): the machine is told its end, and whether its media failed or
-   * ended already; every media event after is heard against it.
+   * The clock is `id`'s video from now on (another version leads: the one it
+   * followed left the set, or another plays first here): the machine is told
+   * its end, and whether its media failed or ended already; every media
+   * event after is heard against it.
    */
   readonly follow: (id: string) => void;
+  /**
+   * `id`'s video runs at `fps` frames a second, its own (`Media.timing`, as
+   * the server reads it for the file it is now): each seek lands it in its
+   * own frames (`landing`); none (not read yet, or no rate its frames tell)
+   * lands it by the clock's rate, as the clock itself then counts. It is put
+   * on its frame again now. For any video that joins as `id`, from now on.
+   */
+  readonly timed: (id: string, fps: Option.Option<number>) => void;
   /** Every video paused, every listener and the clock's loop stopped. */
   readonly stop: () => void;
 }
@@ -95,22 +131,26 @@ export const reloadOnError = <R>(
 };
 
 /**
- * The driver of a set whose clock is the video of `first` (until it
+ * The driver of a set whose clock is the video of `leader` (until it
  * `follow`s another), telling the machine through `send`.
  */
 export const makeSync = (
-  first: string,
+  leader: string,
   send: (event: SyncEvent) => void,
   host: Context.Context<Frames | Media>,
 ): SyncDriver => {
   const videos = new Map<string, Attached>();
+  /** Each version's video's own frames a second, once told (`timed`). */
+  const rates = new Map<string, number>();
   let current = Option.none<SyncState>();
   let seek = -1;
+  /** The clock's rate the videos last landed by: a new one puts them on its frames again. */
+  let grid = -1;
   let told = -1;
   /** The stop of the clock's loop, while it runs. */
   let looping = Option.none<() => void>();
   /** The version whose video is the clock: every media event is heard against it. */
-  let leading = first;
+  let leading = leader;
 
   /**
    * The videos whose media failed (an `error`, a play the browser would not
@@ -119,10 +159,8 @@ export const makeSync = (
   const broken = new Map<Attached, string>();
   const all = () => [...videos.values()];
   const working = () => all().filter((a) => !broken.has(a));
-  const clock = () =>
-    Option.orElse(Option.fromUndefinedOr(videos.get(leading)), () =>
-      Option.fromUndefinedOr(all()[0]),
-    );
+  /** The clock: the leading version's video, none until it is attached. */
+  const clock = () => Option.fromUndefinedOr(videos.get(leading));
 
   /** Do `effect` on the host, without waiting for it. */
   const fork = (effect: Effect.Effect<unknown, never, Frames | Media>) => {
@@ -153,7 +191,18 @@ export const makeSync = (
         ),
       ),
     );
-  const seekTo = (a: Attached, t: number) => forkOn(a, a.video.seek(t));
+  /** `id`'s video `a` put where the clock at `state` stands, in its own frames (`landing`). */
+  const land = (id: string, a: Attached, state: SyncState) =>
+    forkOn(
+      a,
+      a.video.seek(
+        landing(
+          state.t,
+          state.fps,
+          Option.getOrElse(Option.fromUndefinedOr(rates.get(id)), () => state.fps),
+        ),
+      ),
+    );
 
   const hear = (state: SyncState) => {
     for (const [id, a] of videos) {
@@ -181,10 +230,10 @@ export const makeSync = (
         for (const a of working()) {
           const video = a.video;
           if (a === master || video.seeking() || video.ended()) continue;
-          if (t < video.duration() && drifted(video.time(), t)) seekTo(a, t);
+          if (t < video.duration() && drifted(video.time(), t)) forkOn(a, video.seek(t));
         }
       });
-      return Option.exists(current, (now) => runningOf(now) || now._tag === 'Buffering');
+      return Option.exists(current, movingOf);
     });
 
   const run = () => {
@@ -208,10 +257,17 @@ export const makeSync = (
   const apply = (state: SyncState) => {
     current = Option.some(state);
     hear(state);
-    if (state.seek !== seek) {
+    // A seek, or the clock's rate read while still (its frames are not the
+    // ones the videos landed on). Read while playing, or while the set waits
+    // on a video to play on, it lands none: a landing at the last tick's time
+    // would put each back (and give the wait more to load); they play on, and
+    // the next seek lands them on the new frames.
+    const regrid = state.fps !== grid && !movingOf(state);
+    grid = state.fps;
+    if (state.seek !== seek || regrid) {
       seek = state.seek;
       told = state.t;
-      for (const a of working()) seekTo(a, state.t);
+      for (const [id, a] of videos) if (!broken.has(a)) land(id, a, state);
     }
     if (runningOf(state)) {
       for (const [id, a] of videos) if (!broken.has(a) && !a.video.playing()) play(id, a);
@@ -235,6 +291,12 @@ export const makeSync = (
     broken.delete(a);
   };
 
+  /** The machine told the clock's end, when `id` leads and its video is measured. */
+  const measure = (id: string, video: Playable) => {
+    if (id === leading && Number.isFinite(video.duration()))
+      send(Events.Measured({ end: video.duration() }));
+  };
+
   const attach = (id: string, video: Playable) => {
     Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => {
       old.held.abort();
@@ -246,14 +308,15 @@ export const makeSync = (
     // The clock's new media, while its last failed: the failure was that media's.
     if (id === leading && Option.exists(current, (state) => state._tag === 'Failed'))
       send(Events.MediaReplaced);
+    // Measured before it joined (its `loadedmetadata` came first): no `measured` follows.
+    measure(id, video);
     video.on(
       'measured',
       () => {
         // Measured, it plays: a failure before was another try's.
         broken.delete(attached);
-        if (id === leading && Number.isFinite(video.duration()))
-          send(Events.Measured({ end: video.duration() }));
-        Option.map(current, (state) => seekTo(attached, state.t));
+        measure(id, video);
+        Option.map(current, (state) => land(id, attached, state));
       },
       signal,
     );
@@ -268,7 +331,7 @@ export const makeSync = (
     );
     Option.map(current, (state) => {
       hear(state);
-      seekTo(attached, state.t);
+      land(id, attached, state);
       if (runningOf(state)) play(id, attached);
     });
     return () => release(id, attached);
@@ -298,29 +361,40 @@ export const makeSync = (
     });
   };
 
+  const timed = (id: string, fps: Option.Option<number>) => {
+    if (rates.get(id) === Option.getOrUndefined(fps)) return;
+    Option.match(fps, {
+      onNone: () => rates.delete(id),
+      onSome: (rate) => rates.set(id, rate),
+    });
+    Option.map(Option.fromUndefinedOr(videos.get(id)), (a) => {
+      if (!broken.has(a)) Option.map(current, (state) => land(id, a, state));
+    });
+  };
+
   const stop = () => {
     halt();
     for (const [id, a] of [...videos]) release(id, a);
   };
 
-  return { attach, apply, follow, stop };
+  return { attach, apply, follow, timed, stop };
 };
 
-/** What a synced player is asked: play or pause, or a step back or on (`by` steps). */
+/** What a synced player is asked: play or pause, or a step back or on (`by` frames). */
 export type PlayerKey = Data.TaggedEnum<{
   Toggle: {};
   Step: { readonly by: number };
 }>;
 export const PlayerKey = Data.taggedEnum<PlayerKey>();
 
-/** The machine's event for a player's ask: a toggle, or a step of `by` × STEP_S seconds. */
+/** The machine's event for a player's ask: a toggle, or a step of `by` frames. */
 export const playerEvent = (key: PlayerKey): SyncEvent =>
   PlayerKey.$match(key, {
     Toggle: () => Events.Toggled,
-    Step: ({ by }) => Events.Stepped({ by: by * STEP_S }),
+    Step: ({ by }) => Events.Stepped({ frames: by }),
   });
 
-/** The steps a ←/→ moves by: one, ten with Shift (the coarse step), one with Alt. */
+/** The frames a ←/→ moves by: one, ten with Shift (the coarse step), one with Alt. */
 const STEPS_BY: Readonly<Record<Invocation['step'], number>> = { normal: 1, coarse: 10, fine: 1 };
 
 /**

@@ -23,7 +23,8 @@
     "film/history-through-host": "error",
     "film/one-clock-epsilon": "error",
     "film/lock-through-sqlite": "error",
-    "film/booleans-through-pressed": "error"
+    "film/booleans-through-pressed": "error",
+    "film/no-test-seam": "error"
   },
   "overrides": [
     {

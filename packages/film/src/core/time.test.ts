@@ -16,6 +16,7 @@ import {
   progress,
   staggered,
   timecode,
+  timecodeParts,
 } from './time.ts';
 
 describe('a word heard at or after a mark', () => {
@@ -79,6 +80,56 @@ describe('time', () => {
     expect(timecode(1.97, 24)).toBe('00:00:01:23');
     // Before a scene's start, signed.
     expect(timecode(-0.5)).toBe('−00:00:00:15');
+  });
+
+  test('a timecode is right at any rate a video keeps: whole, 1000/1001 counted non-drop-frame, or neither', () => {
+    // Whole rates: a second holds that many frames.
+    expect(timecode(2, 24)).toBe('00:00:02:00');
+    expect(timecode(25 / 24, 24)).toBe('00:00:01:01');
+    expect(timecode(10, 30)).toBe('00:00:10:00');
+    expect(timecode(62 / 30, 30)).toBe('00:00:02:02');
+    // 29.97 (30000/1001) counts 30 frames a second, non-drop-frame (NDF), so it
+    // runs behind the wall clock: frame 1000 is 33 s and 10 frames in its count.
+    const ntsc = 30000 / 1001;
+    expect(timecode(1000 / ntsc, ntsc)).toBe('00:00:33:10');
+    expect(timecode(1000, ntsc)).toBe('00:16:39:00');
+    // A rate that is neither (12.5, a phone's 29.6): the frame within its wall second.
+    expect(timecode(2, 12.5)).toBe('00:00:02:00');
+    expect(timecode(10, 12.5)).toBe('00:00:10:00');
+    expect(timecode(24 / 12.5, 12.5)).toBe('00:00:01:11');
+    expect(timecode(13 / 12.5, 12.5)).toBe('00:00:01:00');
+    expect(timecode(12 / 12.5, 12.5)).toBe('00:00:00:12');
+    expect(timecode(60, 29.6)).toBe('00:01:00:00');
+    // A measured rate a hair over 12.5 (as a real file's timestamps give it):
+    // frame 25 starts a hair before 2 s, so it is the last of second 1.
+    const measured = 12.50000260416721;
+    expect(timecode(25 / measured, measured)).toBe('00:00:01:12');
+    expect(timecode(26 / measured, measured)).toBe('00:00:02:00');
+  });
+
+  test('a timecode at any rate keeps its frame within its second, and never runs back as time grows', () => {
+    const whole = [1, 6, 10, 12, 15, 23, 24, 25, 29, 30, 48, 50, 59, 60, 120];
+    const broadcast = [...whole, ...whole.map((fps) => (fps * 1000) / 1001)];
+    // Rates no grid counts whole, and each a few parts in ten million off
+    // (the noise a measure over a file's timestamps carries).
+    const odd = [0.5, 6.25, 7.3, 10, 12.5, 15, 23.5, 24, 25, 29.6, 30, 59.7].flatMap((fps) =>
+      [-10, -5, -2, -1, 0, 1, 2, 5, 10].map((k) => fps * (1 + k * 2e-7)),
+    );
+    const wrong: Array<string> = [];
+    for (const fps of [...broadcast, ...odd]) {
+      const last = Math.ceil(fps) - 1;
+      let before = '';
+      // Each frame's start, and two times inside it.
+      for (let i = 0; i < 1000 * 3; i++) {
+        const p = timecodeParts(i / 3 / fps, fps);
+        const ff = Number(p.ff);
+        const now = `${p.hh}:${p.mm}:${p.ss}:${p.ff.padStart(4, '0')}`;
+        if (!(ff >= 0 && ff <= last) || now < before)
+          wrong.push(`${fps} fps, frame ${i / 3}: ${now}`);
+        before = now;
+      }
+    }
+    expect(wrong.slice(0, 5)).toEqual([]);
   });
 
   test("a set's stagger spreads its items' starts over a share of the progress", () => {

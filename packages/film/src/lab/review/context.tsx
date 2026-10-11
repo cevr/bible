@@ -1,36 +1,49 @@
 // The review's providers. `<Root>` holds the page: its runtime (the
 // review's routes), where it is (read from and kept in the URL, so Back and a
 // reload work), the index, the copy its videos play (the phone's 720p or the
-// file) and the lightbox; the page's own commands (Refresh, the copy played,
+// file); the page's own commands (Refresh, the copy played,
 // every place by its name for ⌘K). `<SetProvider>`
 // holds one comparison set: its two machines (the synced player and the
 // view, spawned on the runtime and stopped with the set), the driver that
 // makes its videos follow the player, and its moments.
 
-import { RegistryProvider, useAtomMount, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import {
+  RegistryProvider,
+  useAtomMount,
+  useAtomRefresh,
+  useAtomSet,
+  useAtomValue,
+  useRegistry,
+} from '@bible/atom-solid';
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, isServer } from '@solidjs/web';
-import { Array as Arr, Clock, Effect, Equal, Exit, Layer, Option, Schema } from 'effect';
+import { Array as Arr, Clock, Effect, Equal, Exit, Function, Layer, Option, Schema } from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
+import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
   createContext,
   createEffect,
   createMemo,
-  createSignal,
+  isHydrating,
   omit,
   onCleanup,
-  sharedConfig,
   untrack,
   useContext,
 } from 'solid-js';
 import { type SeenPoint, seenVariants } from '../../core/choice.ts';
 import type { DrawStills } from './options/stills.tsx';
-import { type ReviewFile, ReviewFilms, type ReviewFolder, ReviewIndex } from '../../core/review.ts';
+import {
+  ReviewDuration,
+  type ReviewFile,
+  ReviewFilms,
+  type ReviewFolder,
+  ReviewIndex,
+} from '../../core/review.ts';
 import { Viewport } from '../../browser/viewport.ts';
 import { plainClick } from '../../browser/pointer.ts';
 import { PHONE } from '../viewport.ts';
@@ -52,9 +65,10 @@ import { served } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
-import { type Quality, fileInfoText } from './format.ts';
+import { type Quality, fileInfoText, videoSource } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
-import { Places, legacyPlace, pageHref, reviewFileUrl } from '../../core/api.ts';
+import { Places, ProjectView, legacyPlace, pageHref, reviewFileUrl } from '../../core/api.ts';
+import { FILM_FPS } from '../../core/time.ts';
 import { onChoicesTab } from '../../core/point.ts';
 import {
   type SyncActor,
@@ -85,9 +99,61 @@ import {
 } from './place.ts';
 import { PlayerKey, type SyncDriver, playerCommands, makeSync, playerEvent } from './sync.ts';
 import { type Asks, newestAsked } from './asked.ts';
+import { useIndexOwner } from './index-owner.ts';
 import { hearVersionCommands } from './hear.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
+
+/**
+ * A film's project (`film project`) as the review shows it, the one owner of
+ * it for the page's life, whatever shows it (a Films card, a Set's
+ * judgement, Project): the first read, then the newest ask's answer
+ * (`asked.ts`): a say's, or a read again's. A move between the review's
+ * places never reads it twice. A change the page hears of (a Set's say, a
+ * source write, Refresh) reads it again now while a page shows it, else once
+ * one next does; a change made elsewhere (another tab, the CLI) shows after
+ * a Refresh or a reload.
+ */
+interface FilmProject {
+  /**
+   * The first read, under its served key (`review.project:<film>`): read by
+   * the server where it renders a page that shows it, and sent with the page.
+   */
+  readonly first: Loaded<ProjectView>;
+  /** The newest later answer (a say's, a read again's): none until one lands. */
+  readonly answered: Atom.Atom<Option.Option<ProjectView>>;
+  /**
+   * The project as shown (`shownProject`), as an atom: for a reader's own
+   * atom (a Set's judgement, which keeps its own server value).
+   */
+  readonly shown: Loaded<ProjectView>;
+  /** Whether a read again is out. */
+  readonly reading: Atom.Atom<boolean>;
+  /** Its asks, in the order made: a say takes one as it is sent (`useWrite`'s orders). */
+  readonly asks: Asks;
+  /** A say's answer: shown only through its `Landed.show` on `asks`. */
+  readonly answer: (view: ProjectView) => void;
+  /**
+   * The project may have moved: read it again now while a page shows it,
+   * else once one next does (`hold`).
+   */
+  readonly changed: () => void;
+  /**
+   * Count the caller as showing it until the release it returns is called:
+   * a change heard while nothing showed it is read again now.
+   */
+  readonly hold: () => () => void;
+}
+
+/** The project as shown: the newest later answer once one has landed, else the first read. */
+const shownProject = <E,>(
+  answered: Option.Option<ProjectView>,
+  first: AsyncResult.AsyncResult<ProjectView, E>,
+): AsyncResult.AsyncResult<ProjectView, E> =>
+  Option.match(answered, {
+    onNone: () => first,
+    onSome: (view) => AsyncResult.success<ProjectView, E>(view),
+  });
 
 interface ReviewStateValue {
   readonly place: Accessor<ReviewPlace>;
@@ -99,30 +165,31 @@ interface ReviewStateValue {
   /** The app's films, each with options to pick from. */
   readonly films: Accessor<AsyncResult.AsyncResult<ReviewFilms, LabFailure>>;
   readonly quality: Accessor<Quality>;
-  /** The image the lightbox shows, when it is open. */
-  readonly lightbox: Accessor<Option.Option<Shown>>;
-}
-
-/** An image the lightbox shows: its source, and the caption under it (what its card no longer says). */
-export interface Shown {
-  readonly src: string;
-  readonly caption: string;
 }
 
 interface ReviewActions {
   /** Go to `place`, as a link does (Back returns). */
   readonly go: (place: ReviewPlace) => void;
-  /** Walk the roots again now: an ask of the index (`asks`). */
+  /**
+   * Walk the roots again now (an ask of the index, `asks`), read the films
+   * again, and read every film's project the page has read again
+   * (`FilmProject.changed`).
+   */
   readonly refresh: () => void;
   /**
-   * A write's answer, `folder` as the write left it, shown in the index in
-   * its place: only through its `Landed.show` on the index's `asks`, so an
-   * answer a newer read overtook is never shown over it.
+   * A write the index does not answer (a say on Project) moved what it lists
+   * (a version's approval, a comment): walk the roots again now, an ask of
+   * the index (`asks`), so a Set shows the say.
+   */
+  readonly indexChanged: () => void;
+  /**
+   * A write's answer, `folder` as the write left it, put in its place in the
+   * index's newest answer, shown or not yet (`useIndexOwner`): only through
+   * its `Landed.show` on the index's `asks`, so an answer a newer read
+   * overtook is never shown over it.
    */
   readonly answered: (folder: ReviewFolder) => void;
   readonly quality: (quality: Quality) => void;
-  /** Open the lightbox on an image, or close it. */
-  readonly show: (shown: Option.Option<Shown>) => void;
 }
 
 /** A file as the index last saw it: its ref, and when it was written. */
@@ -135,10 +202,22 @@ interface ReviewMeta {
    */
   readonly asks: Asks;
   /**
-   * A video's length, read once per file as the index last saw it: a video
-   * written again since is measured afresh.
+   * A video's length and its frame rate (its own, as the server reads its
+   * packets: never rounded, so a 29.97 video steps on its own grid), read once per file as the index last saw it: a video written
+   * again since is measured afresh.
    */
-  readonly duration: (video: Written) => Loaded<number>;
+  readonly timing: (video: Written) => Loaded<ReviewDuration>;
+  /**
+   * The same read in the page alone (`Atom.withServerValue`): the server's
+   * render never waits on it, nor shows it, and while the page hydrates it
+   * is pending; it then takes the timing the server sent, if it sent one,
+   * else reads it once.
+   */
+  readonly timedHere: (video: Written) => Loaded<ReviewDuration>;
+  /** The app's films, the read `state.films` gives: for a read of a page's own that waits on them. */
+  readonly films: Loaded<ReviewFilms>;
+  /** A film's project, its one owner for the page's life (`FilmProject`); a page shows it through `useProject`. */
+  readonly project: (film: string) => FilmProject;
   /**
    * A doc's text, read once per file as the index last saw it (its ref and
    * when it was written): a doc written again since is read afresh.
@@ -171,6 +250,31 @@ const ReviewContext = createContext<ReviewContextValue>();
 
 /** The review's context: only inside `<Root>`. */
 export const useReview = (): ReviewContextValue => useContext(ReviewContext);
+
+/** A film's project as a page shows it (`useProject`). */
+interface ProjectShown {
+  /** The project as the newest ask answered it (`shownProject`): the first read until a later one lands. */
+  readonly view: Accessor<AsyncResult.AsyncResult<ProjectView, LabFailure>>;
+  /** Whether a read again is out. */
+  readonly reading: Accessor<boolean>;
+  /** Its owner: the asks a say takes, a say's answer, a change. */
+  readonly project: FilmProject;
+}
+
+/**
+ * `film`'s project, shown while the calling component lives (it holds the
+ * owner, `FilmProject.hold`): the read the server sent with the page, or the
+ * page's own, then the newest answer.
+ */
+export const useProject = (film: string): ProjectShown => {
+  const { meta } = useReview();
+  const project = meta.project(film);
+  const first = useAtomValue(() => project.first);
+  const answered = useAtomValue(() => project.answered);
+  const reading = useAtomValue(() => project.reading);
+  onCleanup(project.hold());
+  return { view: () => shownProject(answered(), first()), reading, project };
+};
 
 /**
  * The review's one link to a place: a plain click goes there in the page
@@ -208,17 +312,6 @@ export const Go = (
 const kept = {
   quality: keptText(ViewerStore, 'film-review.quality'),
 };
-
-/** `index` with `folder` in the place of the folder of its ref. */
-const withFolder = (index: ReviewIndex, folder: ReviewFolder): ReviewIndex => ({
-  ...index,
-  folders: index.folders.map((f) =>
-    Option.getOrElse(
-      Option.liftPredicate(folder, (answered) => answered.ref === f.ref),
-      () => f,
-    ),
-  ),
-});
 
 /** The copy the page plays: the kept one, else 720p on a phone's width (`PHONE`). */
 const qualityOf = (stored: Option.Option<string>, narrow: () => boolean): Quality =>
@@ -273,36 +366,41 @@ export const Root = (
   // A video's length and a doc's text are each keyed by what names the file's
   // content, its ref and when it was written: a refreshed index that saw it
   // written again names a new read.
-  const durationOf = Atom.family((file: Written) =>
+  const timingOf = Atom.family((file: Written) =>
     runtime
       .atom(ReviewApi.use((api) => api.duration(file.ref)))
-      .pipe(served(`review.duration:${file.ref}@${file.mtime}`, Schema.Finite)),
+      .pipe(served(`review.duration:${file.ref}@${file.mtime}`, ReviewDuration)),
   );
   const textOf = Atom.family((file: Written) =>
     runtime
       .atom(ReviewApi.use((api) => api.text(file.ref)))
       .pipe(served(`review.text:${file.ref}@${file.mtime}`, Schema.String)),
   );
-  const duration = (file: Written) => durationOf({ ref: file.ref, mtime: file.mtime });
+  const timing = (file: Written) => timingOf({ ref: file.ref, mtime: file.mtime });
+  const timedHereOf = Atom.family((file: Written) =>
+    Atom.make((get) => get(timingOf(file))).pipe(
+      Atom.withServerValue(() => AsyncResult.initial<ReviewDuration, LabFailure>()),
+    ),
+  );
+  const timedHere = (file: Written) => timedHereOf({ ref: file.ref, mtime: file.mtime });
   const text = (file: Written) => textOf({ ref: file.ref, mtime: file.mtime });
+  // A film's project (`FilmProject`), kept for the page's life (`Atom.keepAlive`), so a move
+  // between the review's places never reads it twice: its first read under its served key,
+  // its read again, and the newest later answer.
+  const projectFirstOf = Atom.family((film: string) =>
+    runtime
+      .atom(OptionsApi.use((api) => api.project(film)))
+      .pipe(served(`review.project:${film}`, ProjectView), Atom.keepAlive),
+  );
+  const projectAgainOf = Atom.family((film: string) =>
+    runtime.fn(() => OptionsApi.use((api) => api.project(film))).pipe(Atom.keepAlive),
+  );
+  const projectAnsweredOf = Atom.family((_film: string) =>
+    Atom.make(Option.none<ProjectView>()).pipe(Atom.keepAlive),
+  );
   const servedAtAtom = Atom.make(Clock.currentTimeMillis).pipe(served(SERVED_AT, Schema.Finite));
 
   const address = addressOn(props.host);
-
-  const [lightbox, setLightbox] = createSignal(Option.none<Shown>());
-  // Escape closes the lightbox while it is open, from a field too.
-  onCleanup(
-    props.hub.commands.register({
-      id: 'review.close-image',
-      label: 'Close the image',
-      group: 'Review',
-      keys: ['escape'],
-      keysIn: ['page', 'field'],
-      touch: 'tap the image',
-      when: () => Option.isSome(lightbox()),
-      run: quietly(() => setLightbox(Option.none())),
-    }),
-  );
 
   const Inner = (inner: ParentProps) => {
     // Where the page is: its URL, as the host's `UrlState` leaves it (a
@@ -320,21 +418,17 @@ export const Root = (
         Option.map(moved, address.follow);
       },
     );
-    // The index as the newest ask answered it: a Refresh, or a say's answer for its
-    // folder (`asked.ts`); until one has, the first read's: it was asked first, so
-    // any later answer stands over it.
+    // The index as the newest ask answered it (`useIndexOwner`): a walk of the roots
+    // again, or a say's answer for its folder (`asked.ts`); until one has, the first
+    // read's: it was asked first, so any later answer stands over it.
     const firstIndex = useAtomValue(() => firstIndexAtom);
     useAtomMount(() => againAtom);
     const askAgain = useAtomSet(() => againAtom, { mode: 'promiseExit' });
-    const [answered, setAnswered] = createSignal(Option.none<ReviewIndex>());
-    const index = createMemo(() =>
-      Option.match(answered(), {
-        onNone: firstIndex,
-        onSome: (ix) => AsyncResult.success<ReviewIndex, LabFailure>(ix),
-      }),
-    );
-    const asks = newestAsked();
+    const indexOwner = useIndexOwner(firstIndex, () => askAgain());
+    const { index, asks } = indexOwner;
     const films = useAtomValue(() => filmsAtom);
+    // A Refresh reads the films again too: a film added since is one from then on.
+    const refreshFilms = useAtomRefresh(() => filmsAtom);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
     const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(PHONE)));
@@ -345,30 +439,80 @@ export const Root = (
     });
     const servedAt = useAtomValue(() => servedAtAtom);
     const clockNow = () => Effect.runSyncWith(props.host)(Clock.currentTimeMillis);
+    // Each film's project, made the first time a page asks for it, kept for the page's life.
+    const registry = useRegistry();
+    const projects = new Map<string, FilmProject>();
+    const projectOf = (film: string): FilmProject => {
+      const first = projectFirstOf(film);
+      const again = projectAgainOf(film);
+      const answered = projectAnsweredOf(film);
+      const projectAsks = newestAsked();
+      // How many pages show it now; whether one ever has; a change heard since one last did.
+      let holders = 0;
+      let held = false;
+      let stale = false;
+      const answer = (view: ProjectView) => registry.set(answered, Option.some(view));
+      const readAgain = () => {
+        const ask = projectAsks.ask();
+        registry.set(again, Function.constVoid());
+        void Effect.runPromiseExit(
+          AtomRegistry.getResult(registry, again, { suspendOnWaiting: true }),
+        ).then((exit) => {
+          if (Exit.isSuccess(exit)) ask.answer(() => answer(exit.value));
+        });
+      };
+      return {
+        first,
+        answered,
+        shown: Atom.make((get) => shownProject(get(answered), get(first))),
+        reading: Atom.make((get) => get(again).waiting),
+        asks: projectAsks,
+        answer,
+        // A project never shown is read fresh when one first shows it.
+        changed: () => {
+          if (holders > 0) readAgain();
+          else stale = held;
+        },
+        hold: () => {
+          holders += 1;
+          held = true;
+          if (stale) readAgain();
+          stale = false;
+          return () => {
+            holders -= 1;
+          };
+        },
+      };
+    };
+    const project = (film: string): FilmProject =>
+      Option.getOrElse(Option.fromUndefinedOr(projects.get(film)), () => {
+        const made = projectOf(film);
+        projects.set(film, made);
+        return made;
+      });
     const value: ReviewContextValue = {
-      state: { place, index, films, quality, lightbox },
+      state: { place, index, films, quality },
       actions: {
         go: (next) => {
           address.go(hrefOf(next));
           window.scrollTo(0, 0);
         },
         refresh: () => {
-          const ask = asks.ask();
-          void askAgain().then((exit) => {
-            if (Exit.isSuccess(exit)) ask.answer(() => setAnswered(Option.some(exit.value)));
-          });
+          refreshFilms();
+          indexOwner.again();
+          // Every project the page has read is read again (now where it shows).
+          for (const p of projects.values()) p.changed();
         },
-        answered: (folder) => {
-          Option.map(AsyncResult.value(untrack(index)), (ix) =>
-            setAnswered(Option.some(withFolder(ix, folder))),
-          );
-        },
+        indexChanged: indexOwner.again,
+        answered: indexOwner.answered,
         quality: keepQuality,
-        show: setLightbox,
       },
       meta: {
         asks,
-        duration,
+        timing,
+        timedHere,
+        films: filmsAtom,
+        project,
         text,
         runtime,
         client: props.client,
@@ -378,7 +522,7 @@ export const Root = (
         // the page was rendered, so both say the same; the client's later
         // renders count from its own clock.
         now: () => {
-          if (!isServer && !sharedConfig.hydrating) return clockNow();
+          if (!isServer && !isHydrating()) return clockNow();
           return Option.getOrElse(AsyncResult.value(untrack(servedAt)), clockNow);
         },
         draw: props.draw,
@@ -570,7 +714,8 @@ const QUALITY_SAID: Readonly<Record<Quality, string>> = {
 
 /**
  * The review's page-wide commands, in ⌘K and the page's long-press menu:
- * Refresh walks the roots again; the copy played switches
+ * Refresh walks the roots again and reads every film's project the page has
+ * read again; the copy played switches
  * between the Proxy (a 720p copy, made for big videos) and the Original, a
  * per-viewer setting kept in this browser.
  */
@@ -626,10 +771,90 @@ const SetContext = createContext<SetContextValue>();
 /** A set's context: only inside `<SetProvider>`. */
 export const useSet = (): SetContextValue => useContext(SetContext);
 
-const unmeasured = Atom.make(AsyncResult.initial<number, LabFailure>());
+const unmeasured = Atom.make(AsyncResult.initial<ReviewDuration, LabFailure>());
+
+/** No video to time, as a page-only read is (`timedHere`): the same kind of atom on either side. */
+const untimed = unmeasured.pipe(
+  Atom.withServerValue(() => AsyncResult.initial<ReviewDuration, LabFailure>()),
+);
+
+/**
+ * Tell a clock (`send`) the frame rate of its video (`video`, none when it
+ * has none): the rate the server reads from the video's own packets
+ * (`ReviewDuration.fps`, as measured), once it answers; the film rate (`FILM_FPS`) while the answer is pending, or when
+ * the video names none. Read in the page only (`timedHere`): nothing the
+ * server renders counts frames past the clock's start, so its render never
+ * waits on it.
+ */
+export const useClockRate = (
+  video: Accessor<Option.Option<Written>>,
+  send: (event: SyncEvent) => void,
+) => {
+  const { meta } = useReview();
+  const timed = useAtomValue(() =>
+    Option.match(video(), { onNone: () => untimed, onSome: meta.timedHere }),
+  );
+  createEffect(
+    () =>
+      Option.getOrElse(
+        Option.flatMap(AsyncResult.value(timed()), (t) => t.fps),
+        () => FILM_FPS,
+      ),
+    (fps) => send(SyncEvent.Timed({ fps })),
+  );
+};
+
+/**
+ * Tell a set's driver the frame rate of each version's video (`timed`), its
+ * own as the server reads it for the file it is now: each video lands in its
+ * own frames (`landing`), whatever the clock's rate. Derived as the clock's
+ * rate is (`useClockRate`): none while its file's answer is pending, or when
+ * it names none, so a file written again with no rate its frames tell lands
+ * by the clock's rate, never by its old file's. Read in the page only
+ * (`timedHere`), as the clock's is.
+ */
+const useVersionRates = (variants: Accessor<SeenPoint['variants']>, driver: SyncDriver) => {
+  const { meta } = useReview();
+  const rates = useAtomValue(() => {
+    const each = variants();
+    return Atom.make((get) =>
+      each.map((v) => ({
+        id: v.id,
+        fps: Option.flatMap(AsyncResult.value(get(meta.timedHere(v.video))), (t) => t.fps),
+      })),
+    );
+  });
+  createEffect(rates, (known) => {
+    for (const { id, fps } of known) driver.timed(id, fps);
+  });
+};
 
 /** The set's place in the URL: its path, its view in the query, the player's time in the hash. */
 const setPlace = UrlAtom.place(Places.set);
+
+/**
+ * The version whose video is `set`'s clock in `view` at `quality`: the first
+ * of those the view plays (all of them, or a pair's two) whose video plays
+ * here, so a phone's version whose proxy is still being made never holds the
+ * clock; else the view's first.
+ */
+const leaderOf = (set: SeenPoint, view: ViewState, quality: Quality): string => {
+  const head = set.variants[0];
+  const shown = Option.match(otherOf(view), {
+    onNone: () => set.variants,
+    onSome: (o) => set.variants.filter((v) => v === head || v.id === o),
+  });
+  return Option.getOrElse(
+    Option.map(
+      Option.orElse(
+        Arr.findFirst(shown, (v) => Option.isSome(videoSource(v.video, quality))),
+        () => Arr.head(shown),
+      ),
+      (v) => v.id,
+    ),
+    () => '',
+  );
+};
 
 const SetBody = (
   props: ParentProps<{
@@ -638,21 +863,13 @@ const SetBody = (
     readonly sync: SyncActor;
   }>,
 ) => {
-  const { meta } = useReview();
+  const { meta, state: page } = useReview();
   const syncAtom = ActorAtom.make(props.sync);
   const sync = useAtomValue(() => syncAtom);
   const sendSync = useAtomSet(() => syncAtom);
   const ids = createMemo(() => props.set.variants.map((v) => v.id), { equals: Equal.equals });
   const first = () => Option.getOrElse(Option.fromUndefinedOr(ids()[0]), () => '');
   const other = () => Option.fromUndefinedOr(ids()[1]);
-
-  // The clock is the set's first version as the index last read it: a refresh
-  // that takes that version away moves the clock to the first one left, and
-  // the player plays on.
-  const driver = makeSync(untrack(first), sendSync, meta.host);
-  onCleanup(driver.stop);
-  createEffect(sync, (state) => driver.apply(state));
-  createEffect(first, (id) => driver.follow(id));
 
   // The view is the URL's: a link, a reload, Back and Forward all show what
   // it keeps. A choice of view or of a moment is a new history entry (Back
@@ -668,13 +885,25 @@ const SetBody = (
     // The time moving on is no new view.
     { equals: Equal.equals },
   );
+
+  // The clock is the leading version's video alone (`leaderOf`): its time,
+  // its end and its ending are the set's. A refresh that takes it away, a
+  // view that leaves it out, or a copy played that makes another the first
+  // to play moves the clock (`follow`), and the player plays on.
+  const leader = createMemo(() => leaderOf(props.set, view(), page.quality()));
+  const driver = makeSync(untrack(leader), sendSync, meta.host);
+  onCleanup(driver.stop);
+  createEffect(sync, (state) => driver.apply(state));
+  createEffect(leader, (id) => driver.follow(id));
+
   const address = addressOn(meta.host);
+  // A view moved closes a still open full size (`?still=`): the still was the view's.
   const sendView = (event: ViewEvent) =>
     Option.map(at(), (v) =>
       address[causeOf(event)](
         Place.href(Places.set, {
           ...v,
-          query: { ...v.query, ...queryOfView(stepView(view(), other(), event)) },
+          query: { ...v.query, ...queryOfView(stepView(view(), other(), event)), still: '' },
         }),
       ),
     );
@@ -698,28 +927,33 @@ const SetBody = (
     (t) =>
       Effect.runSyncWith(meta.host)(UrlState.update(Places.set, (v) => ({ ...v, hash: { t } }))),
   );
+  // The set as it stands when an entry lands, read untracked: a listener tracks nothing, and
+  // the landing that mounted the set (Back onto it) is heard as the set mounts.
   onCleanup(
     onTraverse(meta.host, (href) =>
-      Option.map(
-        Option.filter(
-          Place.decode(Places.set, href),
-          (v) => v.path.folder === props.folder.ref && v.path.point === props.set.id,
+      untrack(() =>
+        Option.map(
+          Option.filter(
+            Place.decode(Places.set, href),
+            (v) => v.path.folder === props.folder.ref && v.path.point === props.set.id,
+          ),
+          (v) =>
+            sendSync(SyncEvent.Landed({ t: Option.getOrElse(v.hash.t, () => props.set.start) })),
         ),
-        (v) => sendSync(SyncEvent.Landed({ t: Option.getOrElse(v.hash.t, () => props.set.start) })),
       ),
     ),
   );
   // Nothing plays behind the moments or the difference; a pair (or
   // its wipe) hears one of its two, and every view a version the set still
-  // holds: else its first.
+  // holds: else the one leading.
   createEffect(
-    () => [view(), sync().audible, ids()] as const,
-    ([state, audible, all]) => {
+    () => [view(), sync().audible, ids(), leader()] as const,
+    ([state, audible, all, lead]) => {
       if (!playsIn(viewNameOf(state))) sendSync(SyncEvent.PausePressed);
-      Option.map(Option.fromUndefinedOr(all[0]), (lead) => {
+      Option.map(Option.fromUndefinedOr(all[0]), (head) => {
         const heard = Option.match(otherOf(state), {
           onNone: () => all,
-          onSome: (o) => [lead, o],
+          onSome: (o) => [head, o],
         });
         if (!heard.includes(audible)) sendSync(SyncEvent.HeardChosen({ id: lead }));
       });
@@ -730,14 +964,28 @@ const SetBody = (
     if (Option.isSome(props.set.moments)) return unmeasured;
     return Option.match(Option.fromUndefinedOr(props.set.variants[0]), {
       onNone: () => unmeasured,
-      onSome: (v) => meta.duration(v.video),
+      onSome: (v) => meta.timing(v.video),
     });
   });
+  // The clock steps and counts by the leading video's own frames. Read after
+  // `length`: hydrating, that read takes the timing the server sent, so the
+  // clock's page-only read of the same video finds it there and asks again
+  // for nothing.
+  useClockRate(
+    () =>
+      Option.map(
+        Option.fromUndefinedOr(props.set.variants.find((v) => v.id === leader())),
+        (v) => v.video,
+      ),
+    sendSync,
+  );
+  // Each version's video lands in its own frames at the clock's.
+  useVersionRates(() => props.set.variants, driver);
   // The same instants read again are no new moments: the views over them stay.
   const moments = createMemo(
     () =>
       Option.orElse(props.set.moments, () =>
-        Option.map(AsyncResult.value(length()), (seconds) =>
+        Option.map(AsyncResult.value(length()), ({ seconds }) =>
           spreadMoments(seconds, props.set.start),
         ),
       ),
@@ -857,19 +1105,15 @@ const SetBody = (
 export const SetProvider = (
   props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>,
 ) => {
-  const { meta } = useReview();
+  const { meta, state } = useReview();
   // Made once, for the set as the page opened it: the player opens where the
-  // URL's `#t=` says, else at the set's start, hearing its first version.
+  // URL's `#t=` says, else at the set's start, hearing the version that leads it.
   const spawn = untrack(() => {
-    const first = Option.getOrElse(
-      Option.map(Option.fromUndefinedOr(props.set.variants[0]), (v) => v.id),
-      () => '',
-    );
     const at = Option.getOrElse(
       Option.flatMap(Effect.runSyncWith(meta.host)(UrlState.get(Places.set)), (v) => v.hash.t),
       () => props.set.start,
     );
-    return spawnSync(first, props.set.start, at);
+    return spawnSync(leaderOf(props.set, ViewState.All, state.quality()), props.set.start, at);
   });
   return (
     <Actor runtime={meta.runtime} spawn={spawn}>

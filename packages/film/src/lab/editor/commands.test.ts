@@ -9,7 +9,7 @@ import { BY_BUTTON, Unfit, quiet, refused } from '../../command/command.ts';
 import { contextAt, withSelection } from '../../command/context.ts';
 import { cueOf, selectionText } from '../../command/selection.ts';
 import { ChangeId, RequestId } from '../../core/schema.ts';
-import { editorCommands, stepNamed } from './commands.ts';
+import { editorCommands, stepNamed, stripFollowCommand } from './commands.ts';
 import { CueWrite, StepWrite, type CueGrip } from './grip.ts';
 import { EditState } from './machine.ts';
 import { notTaken } from './format.ts';
@@ -188,5 +188,13 @@ describe('notTaken', () => {
     expect(notTaken(writing, 'press')).toEqual(
       Option.some('a write is still out; drag once it lands'),
     );
+  });
+});
+
+describe('the strip’s Follow', () => {
+  test('its touch path names a hold that keeps the frame: a cue’s lane, not the strip at large', () => {
+    const follow = stripFollowCommand({ letGo: () => true, follow: () => {} });
+    expect(follow.touch).toContain('a cue’s lane');
+    expect(follow.touch).not.toContain('hold the strip');
   });
 });

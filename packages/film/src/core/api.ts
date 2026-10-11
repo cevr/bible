@@ -47,7 +47,7 @@ import { PartAddress } from './address.ts';
 import type { Interval } from './time.ts';
 import { isShortKey } from './shorts.ts';
 import { onChoicesTab } from './point.ts';
-import { OpId, Project, RenderVariantName } from './catalogue.ts';
+import { Gave, OpId, Project, RenderVariantName, Took } from './catalogue.ts';
 import { WaitTimeout } from './wait.ts';
 import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
@@ -351,6 +351,21 @@ export const SetSayPost = Schema.Struct({
 });
 export type SetSayPost = typeof SetSayPost.Type;
 
+/**
+ * What a set's say answers: the folder as the say leaves it; an approve
+ * that named its run (`op`), what it `gave` (the scene whose approval it
+ * added; none when the version was approved already); a withdraw given a
+ * run, what it `took` (none of it when the approval was withdrawn since), as
+ * a project's say answers (`Project.gave`, `Project.took`). Each optional on
+ * the wire: any other say carries neither.
+ */
+export const SetSaid = Schema.Struct({
+  ...ReviewFolder.fields,
+  gave: Schema.OptionFromOptionalKey(Gave),
+  took: Schema.OptionFromOptionalKey(Took),
+});
+export type SetSaid = typeof SetSaid.Type;
+
 /** A file answered as it lies (a still, a take, a render, a mix): its type is the file's. */
 const FileBytes = Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array());
 
@@ -409,7 +424,7 @@ class ScenesGroup extends HttpApiGroup.make('scenes').add(
     success: SceneSource,
     error: Refusals,
   }),
-  /** The scene file's text now, and where its cues, knobs and marks are written and read (the Source view). */
+  /** The scene file's text now, and where its cues and knobs are written and read (the Source view). */
   HttpApiEndpoint.get('code', `${FILM}/scenes/:scene/code`, {
     params: { ...film, scene: Schema.String },
     success: SceneCode,
@@ -527,12 +542,12 @@ class ReviewGroup extends HttpApiGroup.make('review').add(
   /**
    * A say on a version of a set in a film's project folder (its ref written
    * `%2F` for each `/`), written to that folder's `catalogue.json`: the
-   * folder as the say leaves it.
+   * folder as the say leaves it, and what it gave or took (`SetSaid`).
    */
   HttpApiEndpoint.post('say', `${REVIEW}/sets/:folder/:point/say`, {
     params: { folder: Schema.String, point: Schema.String },
     payload: SetSayPost,
-    success: ReviewFolder,
+    success: SetSaid,
     error: Refusals,
   }),
 ) {}
@@ -712,8 +727,15 @@ export const prefixesOf = <Id extends string, Groups extends HttpApiGroup.Constr
 // rewritten to their place by `legacyPlace`, on the server as a redirect and
 // on a page already loaded as a replace.
 
-/** The app's pages, each one HTML entry: its review, its lab, its player. */
+/** The studio's pages, each one HTML entry: its review, its lab, its player. */
 export type PageName = 'review' | 'lab' | 'player';
+
+/**
+ * The pages the lab serves, each one HTML entry: the studio's, and the
+ * render page (a film with no chrome, whose handle the renderer and the
+ * easel drive).
+ */
+export type AppPage = PageName | 'render';
 
 /**
  * A value the URL may leave out: blank text (empty, or only spaces) is none,
@@ -817,6 +839,13 @@ const refined = Field.key(Codec.Text, { default: '' });
 const inspect = cited;
 
 /**
+ * The still open full size (`?still=`): a folder's sheet or still by its ref, or a
+ * set's version at the moment shown by its id. Its opening is a step Back walks, as
+ * every sheet's is; none open is the page's first.
+ */
+const still = cited;
+
+/**
  * The views of a comparison set (`?view=`): all side by side, a pair, the
  * pair's wipe, the moments, the pair's difference at a moment; and
  * `notes`, a view no longer shown, read so an old link opens all with the
@@ -880,18 +909,27 @@ export const OWN_SOUND = 'own';
 
 /**
  * Every place a page is at. Review: home `/`, a folder of renders
- * `/sets/<folder>`, a comparison set `/sets/<folder>/<point>` (its view,
- * pair, moment and time), a film's choices (the sound heard, the picture and
- * its time) and its project (the card in focus). Player: a film's scenes
+ * `/sets/<folder>` (its still open full size), a comparison set
+ * `/sets/<folder>/<point>` (its view, pair, moment, time and still open), a
+ * film's choices (the sound heard, the picture and its time) and its
+ * project (the card in focus). Player: a film's scenes
  * (the tape) `/films/<film>/scenes[/<scene>]#t=`, the path's scene the one
  * selected and `#t=` the playhead in film time on both, and its plain preview
  * `/films/<film>/play#t=`. Lab: a film
  * `/films/<film>/lab#t=` (film time) or one of its scenes
  * `/films/<film>/lab/<scene>?cue=#t=` (scene time), with the selection.
+ * Render: a film's export page `/films/<film>/export`, the film staged with
+ * no chrome and its handle on `window.__film` (`mountRender`), which the
+ * easel opens on the lab (`film look`); no reviewer's view, so it holds no
+ * time and no selection.
  */
 export const Places = {
   home: Place.make({ path: '/' }),
-  folder: Place.make({ path: '/sets/:folder', params: { folder: Codec.Segment } }),
+  folder: Place.make({
+    path: '/sets/:folder',
+    params: { folder: Codec.Segment },
+    query: Field.struct({ still }),
+  }),
   set: Place.make({
     path: '/sets/:folder/:point',
     params: { folder: Codec.Segment, point: Codec.Segment },
@@ -901,6 +939,7 @@ export const Places = {
       // A moment chosen is a step Back walks; a ←/→ step through the moments follows in place.
       m: Field.key(MomentIndex, { default: 0, history: 'push' }),
       inspect,
+      still,
     }),
     hash: At,
   }),
@@ -937,10 +976,11 @@ export const Places = {
     query: LabSelection,
     hash: LabAt,
   }),
+  export: Place.make({ path: '/films/:film/export', params: filmParams }),
 };
 
 /** The page each place is served by, the first that holds a path winning. */
-const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, PageName]> = [
+const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, AppPage]> = [
   [Places.home, 'review'],
   [Places.folder, 'review'],
   [Places.set, 'review'],
@@ -951,10 +991,11 @@ const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, PageName]> = [
   [Places.play, 'player'],
   [Places.lab, 'lab'],
   [Places.labScene, 'lab'],
+  [Places.export, 'render'],
 ];
 
 /** The page `pathname` serves, if any: a path no place declares (a chunk, a typo, an old `/lab`) serves none. */
-export const pageAt = (pathname: string): Option.Option<PageName> =>
+export const pageAt = (pathname: string): Option.Option<AppPage> =>
   Option.map(
     Arr.findFirst(PAGES, ([place]) => Option.isSome(Place.decode(place, pathname))),
     ([, page]) => page,
@@ -987,6 +1028,7 @@ const FILM_PLACES: ReadonlyArray<Place.Place<{ readonly path: { readonly film: s
   Places.play,
   Places.lab,
   Places.labScene,
+  Places.export,
 ];
 
 /** The film `href`'s path names (`/films/<film>/…`), if it names one. */
@@ -1025,12 +1067,12 @@ const timeOf = (t: Option.Option<number>) => ({ t });
 export const pageHref = {
   home: (): string => Place.href(Places.home, { path: {}, query: {}, hash: {} }),
   folder: (folder: string): string =>
-    Place.href(Places.folder, { path: { folder }, query: {}, hash: {} }),
+    Place.href(Places.folder, { path: { folder }, query: { still: '' }, hash: {} }),
   /** A comparison set, with the sheet of its version `inspect` open. */
   set: (folder: string, point: string, inspect = ''): string =>
     Place.href(Places.set, {
       path: { folder, point },
-      query: { view: 'all', other: '', m: 0, inspect },
+      query: { view: 'all', other: '', m: 0, inspect, still: '' },
       hash: START,
     }),
   /** A film's choices, with the card of `point` in focus and the sheet of its variant `inspect` open. */
@@ -1055,6 +1097,9 @@ export const pageHref = {
     Place.href(Places.scene, { path: { film, scene }, query: {}, hash: timeOf(t) }),
   play: (film: string, t: Option.Option<number> = Option.none()): string =>
     Place.href(Places.play, { path: { film }, query: {}, hash: timeOf(t) }),
+  /** A film's export page: the render page, staged for the easel's stills. */
+  export: (film: string): string =>
+    Place.href(Places.export, { path: { film }, query: {}, hash: {} }),
   /** The lab on `film`, at film time `t`, comparing with HEAD by `view`, looping `loop`. */
   lab: (
     film: string,
@@ -1144,14 +1189,21 @@ const bareTime = (hash: string): Option.Option<number> =>
 const param = (query: URLSearchParams, key: string): Option.Option<string> =>
   Option.filter(Option.fromNullishOr(query.get(key)), (value) => value !== '');
 
+/** `text` as a path holds it (`Codec.Segment`): none for a name no path can hold (`.`, `..`). */
+const asSegment = Schema.decodeOption(Codec.Segment);
+
+/** A query key's value that an old link moves into a path: none when no path can hold it. */
+const segmentParam = (query: URLSearchParams, key: string): Option.Option<string> =>
+  Option.flatMap(param(query, key), asSegment);
+
 /** The lab's place an old `sel=<cue|knob>:<scene>:<name>` named, on `film`. */
 const labOfSelection = (film: string, sel: Option.Option<string>): string =>
   Option.getOrElse(
     Option.flatMap(sel, (raw) => {
       const [kind = '', scene = '', ...rest] = raw.split(':');
       const name = rest.join(':');
-      if ((kind !== 'cue' && kind !== 'knob') || scene === '' || name === '') return Option.none();
-      return Option.some(pageHref.labScene(film, scene, { [kind]: name }));
+      if ((kind !== 'cue' && kind !== 'knob') || name === '') return Option.none();
+      return Option.map(asSegment(scene), (s) => pageHref.labScene(film, s, { [kind]: name }));
     }),
     () => pageHref.lab(film),
   );
@@ -1170,10 +1222,45 @@ const setOfQuery = (folder: string, point: string, query: URLSearchParams): stri
   );
 };
 
+/**
+ * The export page an old render link names: Play's with `?export`
+ * (`/films/<f>/play?export`, the easel's before the render page had a
+ * place) or the root's (`/?film=<f>&export`, the PreviewServer's form), the
+ * rest of its query (the build or wedge it pins, captions) kept.
+ */
+const exportOfQuery = (
+  pathname: string,
+  rootFilm: Option.Option<string>,
+  query: URLSearchParams,
+): Option.Option<string> => {
+  const film = Option.orElse(
+    Option.map(Place.decode(Places.play, pathname), (value) => value.path.film),
+    () =>
+      Option.flatMap(
+        Option.liftPredicate(pathname, (p) => p === '/'),
+        () => rootFilm,
+      ),
+  );
+  return Option.map(film, (f) => {
+    const kept = new URLSearchParams(query);
+    kept.delete('export');
+    kept.delete('film');
+    return Option.match(
+      Option.liftPredicate(kept.toString(), (search) => search !== ''),
+      {
+        onNone: () => pageHref.export(f),
+        onSome: (search) => `${pageHref.export(f)}?${search}`,
+      },
+    );
+  });
+};
+
 /** The place an old link's path and query name, if they name one. */
 const legacyPath = (pathname: string, query: URLSearchParams): Option.Option<string> => {
-  if (query.has('export')) return Option.none();
-  const film = param(query, 'film');
+  // Each value an old link moves into a path is read once, as the path holds it: a name no path
+  // can hold (`.`, `..`) names nothing.
+  const film = segmentParam(query, 'film');
+  if (query.has('export')) return exportOfQuery(pathname, film, query);
   const lookbook = query.has('lookbook');
   const lab = query.has('lab');
   if (pathname === '/lab')
@@ -1195,16 +1282,16 @@ const legacyPath = (pathname: string, query: URLSearchParams): Option.Option<str
       }),
     );
   if (pathname !== '/') return Option.none();
-  const project = param(query, 'project');
+  const project = segmentParam(query, 'project');
   if (Option.isSome(project)) return Option.some(pageHref.project(project.value));
   if (Option.isSome(film)) {
     if (lookbook) return Option.some(pageHref.scenes(film.value));
     if (lab) return Option.some(pageHref.lab(film.value));
     return Option.some(pageHref.choices(film.value));
   }
-  return Option.flatMap(param(query, 'folder'), (folder) =>
+  return Option.flatMap(segmentParam(query, 'folder'), (folder) =>
     Option.some(
-      Option.match(param(query, 'set'), {
+      Option.match(segmentParam(query, 'set'), {
         onNone: () => pageHref.folder(folder),
         onSome: (point) => setOfQuery(folder, point, query),
       }),
@@ -1268,13 +1355,14 @@ const choiceOffProject = (href: string): Option.Option<string> =>
 /**
  * The place an old link names, if `href` is one: `/lab?film=<f>[&sel=…]`,
  * `/player?film=<f>[&lookbook|&lab]`, `/?project=<f>`,
- * `/?film=<f>[&lookbook|&lab]`, `/?folder=<ref>[&set=<point>…]`, a bare
+ * `/?film=<f>[&lookbook|&lab]`, `/?folder=<ref>[&set=<point>…]`, a render
+ * link (`/films/<f>/play?export`, `/?film=<f>&export`, now the film's export
+ * page `/films/<f>/export`), a bare
  * `#<seconds>` on a place that reads film time (`/films/<f>/play`, the Scenes, a lab with
  * no scene), a project card's anchor (`#point-<id>`, now `?point=<id>`), and
  * a project link to a choice's card (on Choices now). The server sends the browser on with a redirect (the browser
  * keeps the hash, which the server never sees); a page already loaded
- * replaces its entry. A renderer's export page (`&export`) is not old. A
- * scene's lab reads a bare `#<seconds>` as film time itself.
+ * replaces its entry. A scene's lab reads a bare `#<seconds>` as film time itself.
  */
 export const legacyPlace = (href: string): Option.Option<string> => {
   const url = parseHref(href);

@@ -5,6 +5,7 @@
 // (`browser/highlights.ts`) and the view scrolls to `followLine`.
 
 import { Array as Arr, Option } from 'effect';
+import { lastLineOf, lineOf, lineStarts } from '../../core/lines.ts';
 import type { CodeRange, NoteSource, SceneCode } from '../../core/schema.ts';
 import { type LabSelection, cueOf, knobOf } from '../../command/selection.ts';
 import type { liveAt } from '../../core/timeline.ts';
@@ -46,16 +47,43 @@ export interface Lit {
   readonly names: ReadonlyArray<string>;
 }
 
-/** Where each line of `text` starts, as offsets (line 1 first). */
-export const lineStarts = (text: string): ReadonlyArray<number> => {
-  const starts = [0];
-  for (let i = 0; i < text.length; i += 1) if (text[i] === '\n') starts.push(i + 1);
-  return starts;
-};
+/** Each code read's line starts, counted once however many frames, taps and links ask. */
+const STARTS = new WeakMap<SceneCode, ReadonlyArray<number>>();
 
-/** The line (from 1) `offset` falls on, given where the lines `starts`. */
-export const lineOf = (starts: ReadonlyArray<number>, offset: number): number =>
-  Math.max(1, starts.findLastIndex((s) => s <= offset) + 1);
+/** Where each line of `code`'s text starts, as offsets (line 1 first): counted once per code read. */
+const startsOf = (code: SceneCode): ReadonlyArray<number> =>
+  Option.getOrElse(Option.fromUndefinedOr(STARTS.get(code)), () => {
+    const starts = lineStarts(code.text);
+    STARTS.set(code, starts);
+    return starts;
+  });
+
+/** The line (from 1) of `code` that offset `at` falls on. */
+export const lineAt = (code: SceneCode, at: number): number => lineOf(startsOf(code), at);
+
+/** The last line (from 1) of `code`'s file: what a held line past it holds. */
+export const lastLine = (code: SceneCode): number => lastLineOf(code.text, startsOf(code));
+
+/** One row of the file: its number, its text, and where the text starts in the whole. */
+interface Row {
+  readonly n: number;
+  readonly from: number;
+  readonly text: string;
+}
+
+/** `code`'s file a row to a line, to its `lastLine`: the newline that ends the file starts no row. */
+export const rowsOf = (code: SceneCode): ReadonlyArray<Row> => {
+  const text = code.text;
+  const starts = startsOf(code);
+  return starts.slice(0, lastLine(code)).map((from, i) => ({
+    n: i + 1,
+    from,
+    text: text.slice(
+      from,
+      Option.getOrElse(Option.fromUndefinedOr(starts[i + 1]), () => text.length + 1) - 1,
+    ),
+  }));
+};
 
 /**
  * The line (from 1) `line` of `code`, as a note cites it: its file, its
@@ -63,7 +91,7 @@ export const lineOf = (starts: ReadonlyArray<number>, offset: number): number =>
  * not have or one that is blank.
  */
 export const lineSite = (code: SceneCode, line: number): Option.Option<NoteSource> => {
-  const starts = lineStarts(code.text);
+  const starts = startsOf(code);
   return Option.flatMap(Option.fromUndefinedOr(starts[line - 1]), (from) =>
     Option.map(
       Option.liftPredicate(
@@ -86,7 +114,6 @@ export const lineSite = (code: SceneCode, line: number): Option.Option<NoteSourc
  * lights nothing.
  */
 export const litNow = (code: SceneCode, live: Live, picks: Picks = NO_PICKS): Lit => {
-  const starts = lineStarts(code.text);
   const found = live.flatMap((l) =>
     Option.match(
       Arr.findFirst(code.cues, (c) => c.name === l.name),
@@ -110,12 +137,31 @@ export const litNow = (code: SceneCode, live: Live, picks: Picks = NO_PICKS): Li
     ].map((site) => site.at),
     meters: found.map(({ site, progress }) => ({
       name: site.name,
-      line: lineOf(starts, site.at[0]),
+      line: lineAt(code, site.at[0]),
       progress,
     })),
     names: found.map(({ site }) => site.name),
   };
 };
+
+/**
+ * What the view's head says plays in `code`: the playing cues' names; else,
+ * where the code lists no literal for a field (`refused`), why it lights
+ * none, so a strip lit beside an unlit view is never called "nothing
+ * playing"; else that nothing plays.
+ */
+export const liveWords = (code: SceneCode, lit: Lit): string =>
+  Option.getOrElse(
+    Option.orElse(
+      Option.liftPredicate(lit.names.join(' · '), (words) => words !== ''),
+      () =>
+        Option.liftPredicate(
+          code.refused.map((r) => `${r.field} not lit: ${r.reason}`).join(' · '),
+          (words) => words !== '',
+        ),
+    ),
+    () => 'nothing playing',
+  );
 
 /** Every meter of the playing literals written on `line`: a line that writes two playing cues wears both. */
 export const metersOn = (meters: ReadonlyArray<Meter>, line: number): ReadonlyArray<Meter> =>
@@ -126,8 +172,7 @@ export const metersOn = (meters: ReadonlyArray<Meter>, line: number): ReadonlyAr
  * line selects. A cue wins a line a knob shares; none for any other line.
  */
 export const selectionAt = (code: SceneCode, line: number): Option.Option<LabSelection> => {
-  const starts = lineStarts(code.text);
-  const on = (site: { readonly at: CodeRange }) => lineOf(starts, site.at[0]) === line;
+  const on = (site: { readonly at: CodeRange }) => lineAt(code, site.at[0]) === line;
   return Option.orElse(
     Option.map(Arr.findFirst(code.cues, on), (c) => cueOf(code.scene, c.name)),
     () => Option.map(Arr.findFirst(code.knobs, on), (k) => knobOf(code.scene, k.name)),
@@ -135,13 +180,16 @@ export const selectionAt = (code: SceneCode, line: number): Option.Option<LabSel
 };
 
 /**
- * The line the view follows to: where the first playing cue is written, else
- * the first call that reads one. None when nothing playing is in the code.
+ * The line the view follows to: where the first playing cue is written; else,
+ * with nothing playing, where the selected cue or knob is written; else the
+ * first range lit as a read (with nothing playing, a knob the frame read,
+ * where it is written or read). None when the code lights nothing.
  */
-export const followLine = (code: SceneCode, lit: Lit): Option.Option<number> => {
-  const starts = lineStarts(code.text);
-  return Option.map(
-    Option.orElse(Arr.head(lit.literals), () => Arr.head(lit.reads)),
-    (range) => lineOf(starts, range[0]),
+export const followLine = (code: SceneCode, lit: Lit): Option.Option<number> =>
+  Option.map(
+    Option.orElse(
+      Option.orElse(Arr.head(lit.literals), () => Arr.head(lit.picked)),
+      () => Arr.head(lit.reads),
+    ),
+    (range) => lineAt(code, range[0]),
   );
-};

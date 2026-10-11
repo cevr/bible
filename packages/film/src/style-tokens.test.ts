@@ -132,6 +132,8 @@ const RULES: ReadonlyArray<{
     spares: [FACE],
   },
   { why: 'a font family', pattern: /new FontFace\(\s*['"`]/ },
+  // A state colour is the tokens' (§3's one meaning per colour), even one written as another token.
+  { why: 'a state colour of its own', pattern: /(?<![\w-])--state-[\w-]+\s*:/ },
   { why: 'a font size', pattern: new RegExp(`${cssSetting('font-size')}${NOT_TOKEN}`) },
   { why: 'a font size', pattern: new RegExp(`${setting('fontSize')}\\s*['"\`]${NOT_TOKEN}`) },
   {
@@ -249,6 +251,8 @@ describe('the studio reads its look only through its tokens', () => {
         "const FACE_FAMILY = 'JetBrains Mono';",
         "new FontFace('Inter', url);",
         "{ family: 'Inter' }",
+        // A state colour defined outside the tokens.
+        '  --state-live: var(--text-1);',
       ];
       const allowedLines = [
         'color: var(--accent);',
@@ -277,6 +281,7 @@ describe('the studio reads its look only through its tokens', () => {
         'ctx.fillStyle = ink;',
         "el.animate(frames, { fill: 'forwards' });",
         'new FontFace(FACE_FAMILY, url);',
+        '.lab-cue[data-live] { background: var(--state-live); }',
       ];
       // Every line it names is refused, and every token (and all else a line may hold) let
       // through: the lines each list gets wrong, both at once.

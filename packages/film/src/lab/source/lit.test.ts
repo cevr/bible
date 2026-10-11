@@ -7,7 +7,7 @@ import { describe, expect, test } from 'effect-bun-test';
 import type { ResolvedCue, SceneCode } from '../../core/schema.ts';
 import { liveAt } from '../../core/timeline.ts';
 import { cueOf, knobOf } from '../../command/selection.ts';
-import { followLine, lineOf, lineSite, lineStarts, litNow, metersOn, selectionAt } from './lit.ts';
+import { followLine, lineSite, litNow, liveWords, metersOn, rowsOf, selectionAt } from './lit.ts';
 import { FOLLOW, codeOpenOf, codeText, lineOpen } from './open.ts';
 
 const TEXT = [
@@ -34,7 +34,6 @@ const code: SceneCode = {
     { name: 'fall', at: range('fall: { after: "rise", dur: 1 }'), reads: [range('f.at("fall")')] },
   ],
   knobs: [],
-  marks: [],
   refused: [],
 };
 
@@ -51,14 +50,6 @@ const cues = new Map([
   ['fall', cue(1, 1)],
   ['unwritten', cue(0, 2)],
 ]);
-
-describe('the lines of a file', () => {
-  test('a line starts after each newline, and an offset is on the line it falls in', () => {
-    const starts = lineStarts('a\nbc\n\nd');
-    expect(starts).toEqual([0, 2, 5, 6]);
-    expect([0, 1, 2, 4, 5, 6, 7].map((o) => lineOf(starts, o))).toEqual([1, 1, 2, 2, 3, 4, 4]);
-  });
-});
 
 describe('what is lit at a frame', () => {
   test('the playing cue lights its literal and its reads, and meters its line', () => {
@@ -83,6 +74,47 @@ describe('what is lit at a frame', () => {
   test('the view follows to the playing cue’s line, else to nothing', () => {
     expect(followLine(code, litNow(code, liveAt(cues, 1.5, 30)))).toEqual(Option.some(4));
     expect(followLine(code, litNow(code, liveAt(cues, 5, 30)))).toEqual(Option.none());
+  });
+
+  test('with nothing playing it follows to the selection’s literal, else to a knob the frame read', () => {
+    const withKnob: SceneCode = {
+      ...code,
+      knobs: [{ name: 'lift', at: range('lift = 1'), reads: [] }],
+    };
+    const still = liveAt(cues, 5, 30);
+    const read = { cue: Option.none(), knob: Option.none(), read: ['lift'] };
+    // Nothing selected: the knob the frame read, on line 1.
+    expect(followLine(withKnob, litNow(withKnob, still, read))).toEqual(Option.some(1));
+    // The cue selected, on line 4, before the knob read.
+    const fall = { ...read, cue: Option.some('fall') };
+    expect(followLine(withKnob, litNow(withKnob, still, fall))).toEqual(Option.some(4));
+    // What plays, on line 3, before the selection.
+    expect(followLine(withKnob, litNow(withKnob, liveAt(cues, 0.5, 30), fall))).toEqual(
+      Option.some(3),
+    );
+  });
+
+  test('the head names what plays; else why the code lights none; else that nothing plays', () => {
+    expect(liveWords(code, litNow(code, liveAt(cues, 0.5, 30)))).toBe('rise');
+    expect(liveWords(code, litNow(code, liveAt(cues, 5, 30)))).toBe('nothing playing');
+    const computed: SceneCode = {
+      ...code,
+      cues: [],
+      refused: [{ field: 'timeline', reason: 'it is `make()`, not an object literal' }],
+    };
+    expect(liveWords(computed, litNow(computed, liveAt(cues, 0.5, 30)))).toBe(
+      'timeline not lit: it is `make()`, not an object literal',
+    );
+  });
+});
+
+describe('the rows the view draws', () => {
+  test('a row to a line, and none after the newline that ends the file', () => {
+    const of = (text: string) => rowsOf({ ...code, text }).map((r) => r.text);
+    expect(of('a\nb\n')).toStrictEqual(['a', 'b']);
+    expect(of('a\nb')).toStrictEqual(['a', 'b']);
+    expect(of('a\n\n')).toStrictEqual(['a', '']);
+    expect(of('')).toStrictEqual(['']);
   });
 });
 

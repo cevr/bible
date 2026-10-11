@@ -4,7 +4,8 @@
 // Alt fine), a drag across its label scrubs it the same way, and typed
 // arithmetic (`+0.1`, `*2`, `0.42*2`) is read on Enter or on leaving it, as
 // a typed number is. A field that cannot be written now is disabled and says
-// why in its title. Built on @bible/ui's NumberField and its scrub area.
+// why in its title, and in the line its caller shows it in, which describes
+// its input. Built on @bible/ui's NumberField and its scrub area.
 //
 // The hint prints the keys of the commands about the selection, read from
 // the page's keymap, and the gestures the caller names; it shows only while
@@ -28,10 +29,21 @@ import { hubChanges, hubKeys } from './changes.ts';
 /**
  * One field: `label`, when given, is its scrubby label (drag it across to
  * change the value); without one the field is named for assistive tech only.
+ * `describedBy` is the id of the line its caller shows the field's refusal
+ * in, in words a phone sees too: while the field is refused its input is
+ * described by it (`aria-describedby`).
  */
-export const Field = (props: { readonly field: Inspected; readonly label?: JSX.Element }) => {
+export const Field = (props: {
+  readonly field: Inspected;
+  readonly label?: JSX.Element;
+  readonly describedBy?: string;
+}) => {
   const refusal = () => refusalOf(props.field);
   const title = () => Option.getOrElse(refusal(), () => props.field.label);
+  const describedBy = () =>
+    Option.getOrUndefined(
+      Option.flatMap(refusal(), () => Option.fromUndefinedOr(props.describedBy)),
+    );
   return (
     <NumberField.Root
       class="lab-field"
@@ -68,6 +80,7 @@ export const Field = (props: { readonly field: Inspected; readonly label?: JSX.E
         data-field={props.field.id}
         title={title()}
         aria-label={props.field.label}
+        aria-describedby={describedBy()}
       />
     </NumberField.Root>
   );

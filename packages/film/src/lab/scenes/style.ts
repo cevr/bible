@@ -46,9 +46,8 @@ body.scenes { display: block; height: auto; }
 .sc-dot[data-state="approved"] { background: var(--state-approved); }
 .sc-dot[data-state="findings"] { background: var(--state-findings); }
 .sc-dot[data-state="warning"] { background: var(--state-warning); }
-/* Follow is the kit's quiet button, a toggle; on, its dot takes the accent. */
+/* Follow is the kit's quiet button, a toggle: on, it takes the kit's pressed look, as the Source view's Follow does. */
 .sc-follow { flex: none; min-height: var(--hit); }
-.sc-follow[aria-pressed="true"] .sc-dot { background: var(--accent); }
 .sc-tape { display: grid; gap: var(--s-1); padding: var(--s-2) var(--gutter) var(--s-8); }
 .sc-line { display: grid; grid-template-columns: var(--s-8) minmax(0, 1fr); gap: var(--s-2); }
 .sc-line-tc { align-self: center; padding-top: var(--lh-1); font-size: var(--fs-1); line-height: var(--lh-1);
@@ -102,7 +101,15 @@ body.scenes { display: block; height: auto; }
   border: var(--border); border-radius: var(--r-2); }
 .sc-card[data-size="tile"][data-selected="true"] { border-color: var(--accent); }
 .sc-card[data-size="tile"] > :not(.sc-card-picture) { padding: 0 var(--s-2); }
-.sc-card-picture { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-0); border-radius: var(--r-1); }
+/*
+ * A card's picture is framed 16:9 and cropped: a still in its slot; a player
+ * (a picture with its own transport) in its first child, its row standing
+ * under it outside the clip, the slot no wider than the card.
+ */
+.sc-card-picture { position: relative; }
+.sc-card-picture[data-picture="player"] { min-width: 0; }
+.sc-card-picture[data-picture="still"],
+.sc-card-picture[data-picture="player"] > :first-child { aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-0); border-radius: var(--r-1); }
 .sc-card-picture img, .sc-card-picture video, .sc-card-picture > canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
 .sc-live, .sc-live .stage { width: 100%; height: 100%; padding: 0; }
 .sc-card-length { position: absolute; right: var(--s-1); bottom: var(--s-1); padding: 0 var(--s-1); border-radius: var(--r-1);
@@ -121,12 +128,6 @@ body.scenes { display: block; height: auto; }
 .sc-card-facts dd { margin: 0; color: var(--text-1); font-variant-numeric: tabular-nums; }
 .sc-chips { display: flex; flex-wrap: wrap; gap: var(--s-1); }
 .sc-chips:empty { display: none; }
-.sc-chip { padding: 0 var(--s-1); border: 1px solid currentColor; border-radius: var(--r-1); font-size: var(--fs-1); line-height: var(--lh-1); }
-.sc-chip[data-state="stale"] { color: var(--state-stale); }
-.sc-chip[data-state="rendered"] { color: var(--state-rendered); }
-.sc-chip[data-state="approved"] { color: var(--state-approved); }
-.sc-chip[data-state="findings"] { color: var(--state-findings); }
-.sc-chip[data-state="warning"] { color: var(--state-warning); }
 .sc-card-verb { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .sc-section > .sh-btn { min-height: var(--hit); }
 .sc-section { display: grid; gap: var(--s-2); padding-top: var(--s-3); border-top: var(--border); }

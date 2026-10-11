@@ -16,7 +16,7 @@
 
 import { For, Show } from '@solidjs/web';
 import { Option } from 'effect';
-import { createEffect, createMemo, createSignal, untrack } from 'solid-js';
+import { createEffect, createMemo, createSignal, createUniqueId, untrack } from 'solid-js';
 import { reviewFrameUrl, withdrawSay } from '../../../core/api.ts';
 import type { ApprovalState, SaidComment } from '../../../core/catalogue.ts';
 import {
@@ -161,6 +161,7 @@ export const SayBox = (props: {
         ref={(el: HTMLInputElement) => {
           Option.map(Option.fromUndefinedOr(props.box), (b) => b.input(el));
         }}
+        aria-label="Comment"
         placeholder="Add a comment"
         value={text()}
         onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
@@ -229,7 +230,7 @@ export const Seen = (props: { readonly video: ReviewVideo }) => {
   const poster = createMemo(() => reviewFrameUrl(props.video.ref, Option.none(), POSTER_W));
   return (
     <Show when={src()} fallback={<ProxyPending video={props.video} />}>
-      {(source) => <PlayedAlone src={source()} poster={poster()} />}
+      {(source) => <PlayedAlone src={source()} poster={poster()} video={props.video} />}
     </Show>
   );
 };
@@ -568,7 +569,7 @@ const RowState = (props: { readonly variant: ChoiceVariant }) => {
       <For each={Option.toArray(notCurrent())}>
         {(s) => (
           <span
-            class="rv-badge"
+            class="sh-badge"
             data-state={s}
             title={stateText(props.variant.state, props.variant.staleBy)}
           >
@@ -577,7 +578,7 @@ const RowState = (props: { readonly variant: ChoiceVariant }) => {
         )}
       </For>
       <Show when={props.variant.approval !== 'none'}>
-        <span class="rv-badge" data-approval={props.variant.approval}>
+        <span class="sh-badge" data-state={props.variant.approval}>
           {APPROVAL_TEXT[props.variant.approval]}
         </span>
       </Show>
@@ -592,7 +593,7 @@ const StateTags = (props: { readonly variant: ChoiceVariant }) => (
       {stateText(props.variant.state, props.variant.staleBy)}
     </span>
     <Show when={props.variant.approval !== 'none'}>
-      <span class="rv-badge" data-approval={props.variant.approval}>
+      <span class="sh-badge" data-state={props.variant.approval}>
         {APPROVAL_TEXT[props.variant.approval]}
       </span>
     </Show>
@@ -619,10 +620,15 @@ const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob })
     void setting.write(ChoiceAct.Knob({ point: props.point.id, value: to })).then((ok) => {
       if (!ok) setDragged(Option.none());
     });
+  // Why a computed level cannot move, shown beside it and describing its slider and field.
+  const why = createUniqueId();
+  const describedBy = () => Option.getOrUndefined(Option.as(props.knob.fixed, why));
   return (
     <div class="rv-row rv-knob" data-knob={props.point.id}>
       <input
         type="range"
+        aria-label={knobLabel(props.point, props.knob)}
+        aria-describedby={describedBy()}
         min={props.knob.min}
         max={props.knob.max}
         step={props.knob.step}
@@ -636,14 +642,24 @@ const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob })
           set(Number(e.currentTarget.value))
         }
       />
-      <Field field={knobField(props.point, props.knob, value(), setting.waiting(), set)} />
+      <Field
+        field={knobField(props.point, props.knob, value(), setting.waiting(), set)}
+        describedBy={describedBy()}
+      />
       <span class="rv-tag">{props.knob.unit}</span>
       <Show when={Option.getOrUndefined(props.knob.fixed)}>
-        {(why) => <span class="rv-hint">{why()}</span>}
+        {(fixed) => (
+          <span class="rv-hint" id={why}>
+            {fixed()}
+          </span>
+        )}
       </Show>
     </div>
   );
 };
+
+/** A level's name, its slider's and its field's alike: the point's title and the knob's unit. */
+const knobLabel = (point: ChoicePoint, knob: ChoiceKnob) => `${point.title} (${knob.unit})`;
 
 /**
  * A knob's value as a field: typed to any value its range holds
@@ -659,7 +675,7 @@ const knobField = (
   write: (to: number) => void,
 ): Inspected => ({
   id: point.id,
-  label: `${point.title} (${knob.unit})`,
+  label: knobLabel(point, knob),
   spec: {
     unit: knob.unit,
     step: knob.step,

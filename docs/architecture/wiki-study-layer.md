@@ -971,7 +971,7 @@ Add `bible wiki matches`.
   offsets.
 - **Builds:** web, desktop, CLI.
 - **CLI JSON workflow:** `bible wiki matches "$(bible bible verse 'Dan 8:9')"
---json` returns the fixture's exact spans.
+  --json` returns the fixture's exact spans.
 - **UI parity:** none.
 
 ---
@@ -997,7 +997,7 @@ exists first.
   Electron main (asserted, not assumed); CLI calls `StudyService` directly.
 - **Builds:** web, desktop, CLI.
 - **CLI JSON workflow:** `bible study verse "Dan 8:13" --json` and `bible study
-strongs H8548 --json` produce the same result identities as the RPC responses.
+  strongs H8548 --json` produce the same result identities as the RPC responses.
 - **UI parity:** web and desktop render the same pane, same route state, same
   Loading/Errored/retained-stale behavior; narrow and wide; keyboard, pointer,
   touch.
@@ -1047,7 +1047,7 @@ panel in the Milestone 5 pane surface, and add `bible wiki lookup`.
   lookup input the CLI builds from its argument.
 - **Builds:** web, desktop, CLI.
 - **CLI JSON workflow:** `bible wiki lookup "the daily" --context "Dan 8:13"
---json` returns the same five groups in the same order as the panel.
+  --json` returns the same five groups in the same order as the panel.
 - **UI parity:** one panel, all groups, empty groups collapsed, no action menu,
   identical on web and desktop.
 
@@ -1074,7 +1074,7 @@ vector artifact riding the Milestone 1 lifecycle.
   no-WebGPU web falls back to lexical-only with the typed absence.
 - **Builds:** web, desktop, CLI.
 - **CLI JSON workflow:** the **golden query set** runs via `bible egw search
---json`; ordered result identities and fallback behavior match the web and
+  --json`; ordered result identities and fallback behavior match the web and
   desktop runs within tolerance.
 - **UI parity:** one search surface, shared query/scope/book URL state, identical
   pinned-topics presentation on web and desktop.

@@ -17,7 +17,13 @@ import {
   route,
   sourceOne,
 } from '../../../src/lab/fixtures/harness.ts';
-import { attributeIs, evaluates, textHas, valueIs } from '../../../src/lab/fixtures/settled.ts';
+import {
+  attributeIs,
+  describedBy,
+  evaluates,
+  textHas,
+  valueIs,
+} from '../../../src/lab/fixtures/settled.ts';
 
 const posted = (asked: ReadonlyArray<Asked>) =>
   asked.filter((a) => a.method === 'POST').map((a) => ({ path: a.path, body: a.body }));
@@ -148,6 +154,12 @@ describe('the handles on the frame', () => {
       yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
       yield* dragHandle(page, 'spot', 40, 0);
       yield* statusSays(page, 'cannot move spot: it is computed in the source');
+      // Its row says so in words a phone sees, and the line describes its fields.
+      yield* evaluates(
+        page,
+        describedBy('.lab-knob[data-knob="spot"] input'),
+        'cannot move spot: it is computed in the source',
+      );
       expect(posted(asked)).toEqual([]);
     }).pipe(Effect.scoped),
   );

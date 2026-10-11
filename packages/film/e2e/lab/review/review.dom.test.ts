@@ -11,13 +11,17 @@
 // the rest say no state; the view lives in the URL through a reload; and a
 // phone's width folds the grid to one column without scrolling sideways.
 
-import { Deferred, Effect, Exit, Match, Option, Schedule, Schema } from 'effect';
+import { BunServices } from '@effect/platform-bun';
+import { Deferred, Effect, Exit, FileSystem, Layer, Match, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
-import { FILM_FPS, timecode } from '../../../src/core/time.ts';
+import { FILM_FPS, frameAtOrBefore, timecode } from '../../../src/core/time.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
+import { ReviewDuration } from '../../../src/core/review.ts';
+import { Media } from '../../../src/tools/media.ts';
+import { ratedVideo } from '../../../src/lab/fixtures/rated-video.ts';
 import { tone } from '../../../src/lab/fixtures/tone.ts';
-import { STEP_S, spreadMoments } from '../../../src/lab/review/machine.ts';
+import { spreadMoments } from '../../../src/lab/review/machine.ts';
 import {
   type FakeRoute,
   type Json,
@@ -26,6 +30,7 @@ import {
   json,
   later,
   openReview,
+  openServed,
   refused,
   route,
   text,
@@ -51,6 +56,40 @@ import {
 
 /** Long enough to open the page, walk to a set and play with it. */
 const SLOW = 30_000;
+
+/**
+ * Videos at their own frame rates: 24, the films' 30 (`FILM_FPS`), and
+ * NTSC's 29.97 (30000/1001), which no whole rate steps; opened in the page,
+ * and once as the lab serves it (`served`).
+ */
+const RATED: ReadonlyArray<{
+  readonly rate: string;
+  readonly fps: number;
+  readonly served: string;
+}> = [
+  { rate: '24', fps: 24, served: '' },
+  { rate: '30', fps: 30, served: '' },
+  { rate: '29.97', fps: 30000 / 1001, served: '' },
+  { rate: '29.97', fps: 30000 / 1001, served: ', served' },
+];
+
+/** A rated video's frames (`ratedVideo`): 120 to step through. */
+const RATED_FRAMES = 120;
+
+/**
+ * Sets whose versions differ in rate: the first version's video (the
+ * clock) at `clock` frames a second, the others at `other`, slower and
+ * faster, and 29.97 against 30 either way.
+ */
+const MIXED: ReadonlyArray<{ readonly clock: number; readonly other: number }> = [
+  { clock: 24, other: 30 },
+  { clock: 30, other: 24 },
+  { clock: 30000 / 1001, other: 30 },
+  { clock: 30, other: 30000 / 1001 },
+];
+
+/** Long enough to step a rated video frame by frame, over a hundred times. */
+const SWEEP = 120_000;
 
 /** A seen variant of the roof's render set, as the server encodes it. */
 const variant = (id: string, label: string, extra: Readonly<Record<string, Json>> = {}): Json => ({
@@ -305,8 +344,8 @@ describe('the review page', () => {
         // A stack of several says how many; of one, nothing; its versions' names are its
         // long-press menu's, each opening the set on that version's sheet.
         const roof = `a.rv-card[href="${SET}"]`;
-        yield* textHas(page, roof, '3 versions');
-        yield* countIs(page, `a.rv-card[href="${SKY}"] .rv-badge`, 0);
+        yield* textIs(page, `${roof} .sh-badge`, '3 versions');
+        yield* countIs(page, `a.rv-card[href="${SKY}"] .sh-badge`, 0);
         yield* evaluates(
           page,
           `document.querySelector('${roof}').innerText.includes('Warm')`,
@@ -437,6 +476,47 @@ describe('the review page', () => {
         yield* attributeIs(page, LONE_FAILED, 'data-reason', 'error');
         yield* countIs(page, LONE_ROW, 0);
         yield* evaluates(page, `${LONE_VIDEO}.paused`, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a folder's sheets of one name, in two stacks, open by two names: each its path in the folder",
+    () =>
+      Effect.gen(function* () {
+        const sheet = (stack: string): Json => ({
+          ref: `out/sheets/${stack}/contact.jpg`,
+          name: 'contact.jpg',
+          size: 10,
+          mtime: 0,
+        });
+        const sheets: Json = {
+          folders: [
+            {
+              ref: 'out/sheets',
+              mtime: 0,
+              sets: [],
+              videos: [],
+              images: [sheet('watercolor'), sheet('ink')],
+              docs: [],
+            },
+          ],
+        };
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => json(sheets)),
+            route('GET', /^\/api\/review\/files\/out\/sheets\//, () => text('', 200)),
+            ...routes,
+          ],
+          { href: pageHref.folder('out/sheets') },
+        );
+        // Each name, up to its age.
+        yield* evaluates(
+          page,
+          "Array.from(document.querySelectorAll('.rv-zoom')).map((b) => b.getAttribute('aria-label').split(' · ')[0])",
+          ['Open watercolor/contact.jpg', 'Open ink/contact.jpg'],
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -609,6 +689,236 @@ describe('the review page', () => {
     SLOW,
   );
 
+  for (const { rate, fps, served } of RATED) {
+    it.live(
+      `steps a video by its own frames${served}: at ${rate} fps, each → shows its next picture, frame after frame, and the end reads in its frames`,
+      () =>
+        Effect.gen(function* () {
+          // A real video made at `fps`, timed as the server times it (`Media.timing`), sent as the route encodes it.
+          const fs = yield* FileSystem.FileSystem;
+          const rated = `${yield* fs.makeTempDirectoryScoped()}/rated.mp4`;
+          yield* fs.writeFile(rated, yield* ratedVideo(fps, RATED_FRAMES));
+          const timed = yield* Schema.encodeEffect(ReviewDuration)(
+            yield* (yield* Media).timing(rated),
+          );
+          const ratedRoutes = [
+            route('GET', /^\/api\/review\/duration/, () => json(timed)),
+            route('GET', /^\/api\/review\/files\/out\/art\/roof\.[A-C]\.mp4/, () => file(rated)),
+            ...routes,
+          ];
+          const { page, errors } = yield* Match.value(served).pipe(
+            Match.when('', () => openReview(ratedRoutes, { href: SET })),
+            Match.orElse(() => openServed('review', ratedRoutes, { href: SET })),
+          );
+          yield* waitFor(page, '.rv-transport');
+          // The end is read in the video's frames (120: `00:00:05:00` at 24, `00:00:04:00` at 30 and, non-drop-frame, at 29.97).
+          const frames = RATED_FRAMES;
+          yield* textHas(page, '.rv-transport .rv-time', timecode(frames / fps, fps));
+          // Each video keeps the time of the picture it last showed (`requestVideoFrameCallback`).
+          const videos = "Array.from(document.querySelectorAll('.rv-card video'))";
+          yield* page.evaluate(
+            `${videos}.forEach((v) => { const shown = (_, frame) => { v.dataset.shown = String(frame.mediaTime); v.requestVideoFrameCallback(shown); }; v.requestVideoFrameCallback(shown); })`,
+          );
+          /**
+           * The clock reads frame `n`, and every video stands inside it and
+           * shows its picture (a picture's time is its frame's start).
+           */
+          const onFrame = (n: number) =>
+            until(
+              page,
+              `document.querySelector('.rv-transport .rv-time-at').textContent === '${timecode(n / fps, fps)}' && ${videos}.every((v) => v.currentTime >= ${n / fps} && v.currentTime < ${(n + 1) / fps} && Math.abs(Number(v.dataset.shown) - ${n / fps}) < ${0.5 / fps})`,
+            );
+          // Frame after frame (Chrome's clock falls a microsecond short of
+          // some frames' starts, frame 25 at 24 fps, 62 at 30), then back one.
+          for (let n = 1; n < frames - 1; n++) {
+            yield* page.press('ArrowRight');
+            yield* onFrame(n);
+          }
+          yield* page.press('ArrowLeft');
+          yield* onFrame(frames - 3);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped, Effect.provide(Layer.provideMerge(Media.layer, BunServices.layer))),
+      SWEEP,
+    );
+  }
+
+  it.live(
+    "a version whose video is written again with no rate its frames tell lands by the clock's rate, never by its old file's",
+    () =>
+      Effect.gen(function* () {
+        // Every version's video at 24 fps; a Refresh finds version A's (the
+        // clock's) written again, and the server reads no rate from it now.
+        // 125 frames (5.21 s): its end reads 5 s 5 frames at 24, 5 s 6 at 30.
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped();
+        yield* fs.writeFile(`${dir}/roof.mp4`, yield* ratedVideo(24, 125));
+        const timed = yield* Schema.encodeEffect(ReviewDuration)(
+          yield* (yield* Media).timing(`${dir}/roof.mp4`),
+        );
+        const unrated = yield* Schema.encodeEffect(ReviewDuration)(
+          yield* (yield* Media)
+            .timing(`${dir}/roof.mp4`)
+            .pipe(Effect.map((t) => ({ ...t, fps: Option.none<number>() }))),
+        );
+        const answers = [index, indexOf(walkOf('none'), { warmAt: 60_000 })];
+        let reads = 0;
+        const timings: ReadonlyArray<Json> = [timed, unrated];
+        let timedA = 0;
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => {
+              const answer = answers[Math.min(reads, 1)] ?? index;
+              reads += 1;
+              return json(answer);
+            }),
+            route('GET', /^\/api\/review\/duration\?ref=out%2Fart%2Froof\.A\.mp4/, () => {
+              const answer = timings[Math.min(timedA, 1)] ?? timed;
+              timedA += 1;
+              return json(answer);
+            }),
+            route('GET', /^\/api\/review\/duration/, () => json(timed)),
+            route('GET', /^\/api\/review\/files\/out\/art\/roof\.[A-C]\.mp4/, () =>
+              file(`${dir}/roof.mp4`),
+            ),
+            ...routes,
+          ],
+          { href: SET },
+        );
+        const video = (id: string) => `document.querySelector('.rv-card video[data-id="${id}"]')`;
+        const at = (id: string, seconds: number) =>
+          `Math.abs(${video(id)}.currentTime - ${seconds}) < 1e-4`;
+        // The clock counts 24 fps, and each video stands a quarter into its
+        // first 24 fps frame: every rate is known.
+        yield* textHas(page, '.rv-transport .rv-time', `/ ${timecode(125 / 24, 24)}`);
+        yield* until(page, ['A', 'B', 'C'].map((id) => at(id, 0.25 / 24)).join(' && '));
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
+        // A's new video is read, naming no rate: the clock counts the film rate.
+        yield* textHas(page, '.rv-transport .rv-time', `/ ${timecode(125 / 24, FILM_FPS)}`);
+        yield* page.press('ArrowRight');
+        // The clock reads its frame 1 at 30 fps: A, rated as the clock now, lands
+        // a quarter into that frame; B and C, still 24 fps, in their frame 0.
+        yield* until(
+          page,
+          [
+            `document.querySelector('.rv-transport .rv-time-at').textContent === '${timecode(1 / FILM_FPS, FILM_FPS)}'`,
+            at('A', 1.25 / FILM_FPS),
+            at('B', 0.25 / 24),
+            at('C', 0.25 / 24),
+          ].join(' && '),
+        );
+        expect(timedA).toBe(2);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide(Layer.provideMerge(Media.layer, BunServices.layer))),
+    SLOW,
+  );
+
+  for (const { clock, other } of MIXED) {
+    it.live(
+      `steps a Set of videos at other rates (a ${clock.toFixed(2)} fps clock, ${other.toFixed(2)} fps versions): each shows its own frame at the clock's, one seek a step, and the timecode never runs back`,
+      () =>
+        Effect.gen(function* () {
+          // Each version's video made at its rate, timed as the server times it, sent as the route encodes it.
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* fs.makeTempDirectoryScoped();
+          const rates = { A: clock, B: other, C: other };
+          // Long enough at either rate for every frame of the clock stepped.
+          const frames = (fps: number) => Math.ceil((RATED_FRAMES * fps) / clock) + 2;
+          const timings: Record<string, Json> = {};
+          for (const [id, fps] of Object.entries(rates)) {
+            yield* fs.writeFile(`${dir}/${id}.mp4`, yield* ratedVideo(fps, frames(fps)));
+            timings[id] = yield* Schema.encodeEffect(ReviewDuration)(
+              yield* (yield* Media).timing(`${dir}/${id}.mp4`),
+            );
+          }
+          /** The version (`A`…`C`) whose video an asked path names. */
+          const idOf = (path: string) => decodeURIComponent(path).match(/roof\.([A-C])\.mp4/)?.[1];
+          const { page, errors } = yield* openReview(
+            [
+              route('GET', /^\/api\/review\/duration/, (asked) =>
+                json(timings[idOf(asked.path) ?? 'A'] ?? {}),
+              ),
+              route('GET', /^\/api\/review\/files\/out\/art\/roof\.[A-C]\.mp4/, (asked) =>
+                file(`${dir}/${idOf(asked.path) ?? 'A'}.mp4`),
+              ),
+              ...routes,
+            ],
+            { href: SET },
+          );
+          yield* waitFor(page, '.rv-transport');
+          const video = (id: string) => `document.querySelector('.rv-card video[data-id="${id}"]')`;
+          // The clock's rate is read (its end reads in its frames), and each
+          // video stands a quarter into its own first frame: its rate is known.
+          yield* textHas(
+            page,
+            '.rv-transport .rv-time',
+            `/ ${timecode(frames(clock) / clock, clock)}`,
+          );
+          yield* until(
+            page,
+            Object.entries(rates)
+              .map(
+                ([id, fps]) =>
+                  `Math.abs(${video(id)}.currentTime - ${0.25 / fps}) < 1e-4 && !${video(id)}.seeking && ${video(id)}.readyState >= 2`,
+              )
+              .join(' && '),
+          );
+          // From here each video counts its seeks, and keeps the time of the picture it last showed:
+          // the one it holds now (sought, and its frame there loaded), until it presents another. A
+          // step that keeps a video in its frame presents none (its picture is the one already shown).
+          yield* page.evaluate(
+            `Array.from(document.querySelectorAll('.rv-card video')).forEach((v) => { v.dataset.seeks = '0'; v.dataset.shown = String(v.currentTime); v.addEventListener('seeking', () => { v.dataset.seeks = String(Number(v.dataset.seeks) + 1); }); const shown = (_, frame) => { v.dataset.shown = String(frame.mediaTime); v.requestVideoFrameCallback(shown); }; v.requestVideoFrameCallback(shown); })`,
+          );
+          /**
+           * The clock reads its frame `n`, in the transport and in the
+           * header (the one a laptop shows), and every video stands inside
+           * its own frame that holds the clock's time, shows its picture,
+           * and was sought once for each step.
+           */
+          const onFrame = (n: number, steps: number) =>
+            until(
+              page,
+              [
+                `document.querySelector('.rv-transport .rv-time-at').textContent === '${timecode(n / clock, clock)}'`,
+                `document.querySelector('.sh-header .sh-timecode').textContent === '${timecode(n / clock, clock)}'`,
+                ...Object.entries(rates).map(([id, fps]) => {
+                  const own = frameAtOrBefore(n / clock, fps);
+                  return `(${video(id)}.currentTime >= ${own / fps} && ${video(id)}.currentTime < ${(own + 1) / fps} && Math.abs(Number(${video(id)}.dataset.shown) - ${own / fps}) < ${0.5 / fps} && ${video(id)}.dataset.seeks === '${steps}')`;
+                }),
+              ].join(' && '),
+            );
+          let before = timecode(0, clock);
+          for (let n = 1; n < RATED_FRAMES - 1; n++) {
+            // The timecode the step lands on comes after the one before it.
+            expect(timecode(n / clock, clock) > before).toBe(true);
+            before = timecode(n / clock, clock);
+            yield* page.press('ArrowRight');
+            yield* onFrame(n, n);
+          }
+          yield* page.press('ArrowLeft');
+          yield* onFrame(RATED_FRAMES - 3, RATED_FRAMES - 1);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped, Effect.provide(Layer.provideMerge(Media.layer, BunServices.layer))),
+      SWEEP,
+    );
+  }
+
+  it.live(
+    "a montage's Set asks for no project: its title is none of the app's films, so its record judges",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openReview(
+          [route('GET', /^\/api\/films$/, () => json({ films: ['toy'] })), ...routes],
+          { href: SET },
+        );
+        yield* waitFor(page, '.rv-transport');
+        yield* waitFor(page, '.rv-set-tools[data-sources="record"]');
+        expect(asked.filter((a) => /^\/api\/films\/[^/]+\/project$/.test(a.path))).toEqual([]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
   it.live(
     'plays every variant on one clock: space, ←/→ and the 🔊',
     () =>
@@ -627,7 +937,7 @@ describe('the review page', () => {
         yield* page.click('.rv-card[data-id="C"] .rv-sound');
         yield* until(page, `${heard} === 'C'`);
         yield* waitFor(page, '.rv-card[data-id="C"].rv-audible');
-        // Space plays and pauses; ←/→ step 2 s while paused.
+        // Space plays and pauses; ←/→ step one frame while paused.
         yield* page.press('Space');
         yield* textHas(page, '.rv-big', '❚❚');
         yield* page.press('Space');
@@ -641,7 +951,7 @@ describe('the review page', () => {
         );
         // The machine keeps the time it sampled and the videos follow it, so the
         // label (the machine's time, to the frame) is the count the steps add to:
-        // whole seconds on a whole frame count are exact. The videos agree with
+        // a step lands on the frame after the one it reads. The videos agree with
         // each other, and the clock video stands within a frame of the label.
         const clockAt = "document.querySelector('.rv-card video').currentTime";
         const labelFrames = `(() => { const [h, m, s, f] = document.querySelector('.rv-time').textContent.split(' ')[0].split(':').map(Number); return ((h * 60 + m) * 60 + s) * ${FILM_FPS} + f; })()`;
@@ -655,7 +965,7 @@ describe('the review page', () => {
               `Math.abs(${clockAt} - ${frames / FILM_FPS}) <= ${1 / FILM_FPS + 1e-3} && Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - ${clockAt}) < 1e-3)`,
             );
           });
-        const step = STEP_S * FILM_FPS;
+        const step = 1;
         yield* page.press('ArrowRight');
         yield* stoodAt(paused + step);
         yield* page.press('ArrowRight');
@@ -714,14 +1024,14 @@ describe('the review page', () => {
         yield* until(page, `${frames} === '19,19,19'`);
         yield* until(page, "location.search === '?view=moments&m=4'");
         yield* page.click('.rv-card img');
-        yield* textIs(page, '.rv-lightbox figcaption', 'Warm at 00:00:19:00');
+        yield* textIs(page, '.rv-lightbox .rv-lightbox-caption', 'Warm at 00:00:19:00');
         yield* page.press('Escape');
         yield* until(page, "document.querySelector('.rv-lightbox') === null");
         // The keyboard opens it too: a still is a button, Enter and Space open its caption.
         for (const key of ['Enter', ' ']) {
           yield* page.focus('.rv-card[data-id="B"] .rv-zoom');
           yield* page.press(key);
-          yield* textHas(page, '.rv-lightbox figcaption', 'at 00:00:19:00');
+          yield* textHas(page, '.rv-lightbox .rv-lightbox-caption', 'at 00:00:19:00');
           yield* page.press('Escape');
           yield* until(page, "document.querySelector('.rv-lightbox') === null");
         }
@@ -754,6 +1064,140 @@ describe('the review page', () => {
   );
 
   it.live(
+    "a set's views, layouts, others and moments are toggle groups: named, one tab stop, the arrows move along, Enter or Space picks, the address keeps it",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: SET });
+        yield* waitFor(page, '.rv-transport');
+        const views = '.rv-views[role="group"][aria-label="View"]';
+        yield* attributeIs(page, `${views} [data-view="all"]`, 'aria-pressed', 'true');
+        yield* attributeIs(page, `${views} [data-view="all"]`, 'tabindex', '0');
+        yield* attributeIs(page, `${views} [data-view="compare"]`, 'tabindex', '-1');
+        // → moves along the views without picking; the address stays.
+        yield* page.focus(`${views} [data-view="all"]`);
+        yield* page.press('ArrowRight');
+        yield* until(page, "document.activeElement.dataset.view === 'compare'");
+        yield* evaluates(page, 'location.search', '');
+        yield* page.press('Enter');
+        yield* until(page, "location.search === '?view=pair&other=B'");
+        // In Compare, its layouts and the version it is against are groups of their own.
+        const layouts = '.rv-layouts[role="group"][aria-label="Layout"]';
+        yield* attributeIs(page, `${layouts} [data-view="pair"]`, 'aria-pressed', 'true');
+        yield* attributeIs(
+          page,
+          '.rv-pick[role="group"][aria-label="Against"] [data-other="B"]',
+          'aria-pressed',
+          'true',
+        );
+        yield* page.focus(`${layouts} [data-view="pair"]`);
+        yield* page.press('ArrowRight');
+        yield* until(page, "document.activeElement.dataset.view === 'wipe'");
+        yield* page.press(' ');
+        yield* until(page, "new URLSearchParams(location.search).get('view') === 'wipe'");
+        yield* attributeIs(page, `${layouts} [data-view="wipe"]`, 'aria-pressed', 'true');
+        // Back walks the address, and the groups show what it holds.
+        yield* page.back;
+        yield* until(page, "new URLSearchParams(location.search).get('view') === 'pair'");
+        yield* attributeIs(page, `${layouts} [data-view="pair"]`, 'aria-pressed', 'true');
+        yield* page.click(`${views} [data-view="moments"]`);
+        yield* attributeIs(
+          page,
+          '.rv-pick[role="group"][aria-label="Moment"] [data-moment="0"]',
+          'aria-pressed',
+          'true',
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a view or a moment picked with the mouse leaves the page its keys: Space plays, → steps one frame, → steps the moments',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: SET });
+        yield* waitFor(page, '.rv-transport');
+        yield* page.click('.rv-views button[data-view="compare"]');
+        yield* until(page, "location.search === '?view=pair&other=B'");
+        yield* page.press('Space');
+        yield* textHas(page, '.rv-big', '❚❚');
+        yield* page.press('Space');
+        yield* textHas(page, '.rv-big', '▶');
+        yield* until(
+          page,
+          "Array.from(document.querySelectorAll('.rv-card video')).every((v) => v.paused)",
+        );
+        const labelFrames = `(() => { const [h, m, s, f] = document.querySelector('.rv-time').textContent.split(' ')[0].split(':').map(Number); return ((h * 60 + m) * 60 + s) * ${FILM_FPS} + f; })()`;
+        const paused = yield* page.evaluate<number>(labelFrames);
+        yield* page.press('ArrowRight');
+        yield* textHas(page, '.rv-time', timecode((paused + 1) / FILM_FPS));
+        yield* evaluates(page, 'location.search', '?view=pair&other=B');
+        // A moment picked with the mouse: → steps on to the next.
+        yield* page.click('.rv-views button[data-view="moments"]');
+        yield* page.click('button[data-moment="1"]');
+        yield* until(page, "new URLSearchParams(location.search).get('m') === '1'");
+        yield* page.press('ArrowRight');
+        yield* until(page, "new URLSearchParams(location.search).get('m') === '2'");
+        yield* attributeIs(page, 'button[data-moment="2"]', 'aria-pressed', 'true');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a still opens full size in the kit's dialog, over the phone's tab bar: titled by its caption, focus in it and back on the still, Escape, a tap and Back close it, a link opens it (SH5-1)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, {
+          href: `${SET}?view=moments`,
+          viewport: { width: 390, height: 844 },
+        });
+        const still = '.rv-card[data-id="B"] .rv-zoom';
+        const box = '.rv-lightbox[role="dialog"]';
+        const gone = "document.querySelector('.rv-lightbox') === null";
+        yield* waitFor(page, still);
+        yield* page.click(still);
+        yield* waitFor(page, box);
+        yield* until(page, "new URLSearchParams(location.search).get('still') === 'B'");
+        // Its name is its caption, the dialog's title; the focus is in it.
+        yield* evaluates(
+          page,
+          `(() => { const d = document.querySelector('${box}'); return document.getElementById(d.getAttribute('aria-labelledby')) === d.querySelector('.rv-lightbox-caption'); })()`,
+          true,
+        );
+        yield* textHas(page, `${box} .rv-lightbox-caption`, 'Cold at ');
+        yield* until(page, `document.querySelector('${box}').contains(document.activeElement)`);
+        // Nothing of the page draws over it: its backdrop and its picture stand over the tab
+        // bar, the page's highest layer (the dock stands under the bar).
+        yield* evaluates(
+          page,
+          "(() => { const z = (s) => Number(getComputedStyle(document.querySelector(s)).zIndex); return [z('.rv-lightbox-backdrop'), z('.rv-lightbox')].map((n) => n > z('.sh-pagebar')); })()",
+          [true, true],
+        );
+        // Escape closes it, adding no entry; the focus is back on the still.
+        yield* page.press('Escape');
+        yield* until(page, gone);
+        yield* until(page, "location.search === '?view=moments'");
+        yield* until(page, `document.activeElement === document.querySelector('${still}')`);
+        // Back closes it, as every sheet's opening is a step of its own.
+        yield* page.press('Enter');
+        yield* waitFor(page, box);
+        yield* page.back;
+        yield* until(page, gone);
+        yield* until(page, "location.search === '?view=moments'");
+        // A link opens it, and a tap anywhere closes it.
+        yield* page.goto(`${SET}?view=moments&still=B`);
+        yield* waitFor(page, box);
+        yield* textHas(page, `${box} .rv-lightbox-caption`, 'Cold at ');
+        yield* page.click(`${box} img`);
+        yield* until(page, gone);
+        yield* until(page, "location.search === '?view=moments'");
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'Back lands the player on the time its entry keeps, and nothing writes the later time over it',
     () =>
       Effect.gen(function* () {
@@ -761,47 +1205,21 @@ describe('the review page', () => {
         yield* waitFor(page, '.rv-transport');
         yield* page.press('ArrowRight');
         yield* page.press('ArrowRight');
-        yield* until(page, "location.hash === '#t=4'");
+        yield* until(page, "location.hash === '#t=0.067'");
         yield* page.click('.rv-views button[data-view="compare"]');
         yield* until(page, "location.search === '?view=pair&other=B'");
-        // The time moves on in the pair's entry; all's keeps 4.
+        // The time moves on in the pair's entry; all's keeps its two frames.
         yield* page.press('ArrowRight');
-        yield* textHas(page, '.rv-time', '00:00:06:00');
-        yield* until(page, "location.hash === '#t=6'");
+        yield* textHas(page, '.rv-time', '00:00:00:03');
+        yield* until(page, "location.hash === '#t=0.1'");
         yield* page.back;
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
-        yield* textHas(page, '.rv-time', '00:00:04:00');
+        yield* textHas(page, '.rv-time', '00:00:00:02');
         // Past the time's throttle, the entry still keeps its own time.
         yield* page.clock.fastForward(600);
-        yield* until(page, "location.search === '' && location.hash === '#t=4'");
-        yield* textHas(page, '.rv-time', '00:00:04:00');
+        yield* until(page, "location.search === '' && location.hash === '#t=0.067'");
+        yield* textHas(page, '.rv-time', '00:00:00:02');
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
-
-  it.live(
-    "shows one timecode: a laptop's in the header, the row its length; a phone's in the row (SU-12)",
-    () =>
-      Effect.gen(function* () {
-        /** The timecodes the page shows, as read (a hidden one is not). */
-        const SHOWN = `[...document.querySelectorAll('.sh-tc, .rv-time')].filter((e) => e.getClientRects().length > 0).map((e) => e.innerText.replace(/\\s+/g, ' ').trim()).filter((t) => t !== '')`;
-        const { page, errors } = yield* openReview(routes, { href: `${SET}#t=4` });
-        yield* textHas(page, '.rv-time', '00:00:04:00');
-        yield* until(
-          page,
-          `${SHOWN}.length === 2 && ${SHOWN}[0] === '00:00:04:00' && ${SHOWN}[1].startsWith('/ ')`,
-        );
-        const phone = yield* openReview(routes, {
-          href: `${SET}#t=4`,
-          viewport: { width: 390, height: 844 },
-        });
-        yield* textHas(phone.page, '.rv-time', '00:00:04:00');
-        yield* phone.page.until(`${SHOWN}.join() === '00:00:04:00'`, {
-          now: SHOWN,
-          say: (shown) => `a phone shows the timecodes ${shown}`,
-        });
-        expect([...errors, ...phone.errors]).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );
@@ -811,7 +1229,7 @@ describe('the review page', () => {
     "a long-press on a version's picture steps the set on or back, one step or ten (SU-11)",
     () =>
       Effect.gen(function* () {
-        // Thirty seconds of tone, past the twenty ten steps go: a step of another size lands elsewhere.
+        // Thirty seconds of tone: a step of another size (two seconds, as one was) lands elsewhere.
         const long = tone(30, 0.1);
         const { page, errors } = yield* openReview(
           [
@@ -825,22 +1243,27 @@ describe('the review page', () => {
         );
         yield* waitFor(page, '.rv-transport');
         const MENU = '[data-role="context-menu"]';
-        /** A long press on the second version's picture, on the page's held clock. */
-        const held = Effect.gen(function* () {
-          yield* page.clock.hold;
-          yield* touch(page, '.rv-card[data-id="B"] video', 0);
-          yield* page.clock.runFor(700);
-          yield* waitFor(page, `${MENU} [data-command]`);
-          yield* page.finger.up;
-          yield* page.clock.runFor(500);
-        });
-        yield* held;
-        yield* waitFor(page, `${MENU} [data-command="review.step-previous"]`);
-        yield* page.click(`${MENU} [data-command="review.step-next"][data-step="coarse"]`);
-        // The menu closes, and runs its row, on the held clock.
-        yield* page.clock.runFor(500);
-        // Ten steps of two seconds on from the start.
-        yield* textIs(page, '.rv-time-at', `00:00:${10 * STEP_S}:00`);
+        /** A long press on the second version's picture, on the page's held clock, then `row` picked. */
+        const held = (row: string) =>
+          Effect.gen(function* () {
+            yield* touch(page, '.rv-card[data-id="B"] video', 0);
+            yield* page.clock.runFor(700);
+            yield* waitFor(page, `${MENU} [data-command]`);
+            yield* page.finger.up;
+            yield* page.clock.runFor(500);
+            yield* waitFor(page, `${MENU} [data-command="review.step-previous"]`);
+            yield* page.click(`${MENU} ${row}`);
+            // The menu closes, and runs its row, on the held clock.
+            yield* page.clock.runFor(500);
+            yield* countIs(page, MENU, 0);
+          });
+        yield* page.clock.hold;
+        yield* held('[data-command="review.step-next"][data-step="coarse"]');
+        // Ten frames on from the start.
+        yield* textIs(page, '.rv-time-at', timecode(10 / FILM_FPS));
+        // Step on: one frame more.
+        yield* held('[data-command="review.step-next"][data-step="normal"]');
+        yield* textIs(page, '.rv-time-at', timecode(11 / FILM_FPS));
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.runPromise),
     SLOW,
@@ -859,8 +1282,8 @@ describe('the review page', () => {
         );
         yield* page.press('ArrowRight');
         yield* page.press('ArrowRight');
-        yield* textHas(page, '.rv-time', '00:00:04:00');
-        yield* until(page, "location.hash === '#t=4'");
+        yield* textHas(page, '.rv-time', '00:00:00:02');
+        yield* until(page, "location.hash === '#t=0.067'");
         // The time in the URL is the set's own: the set and its videos stay as they are.
         yield* evaluates(page, "document.querySelector('.rv-card video') === window.first", true);
         const at = 'location.pathname + location.search';
@@ -971,10 +1394,10 @@ describe('the review page', () => {
         const STALE = 'out of date: its sources changed since it was made';
         /** The grid's one state badge is C's. */
         const onlyCStale = Effect.andThen(
-          textsAre(page, '.rv-grid [data-approval="stale"]', ['Out of date']),
-          textsAre(page, '.rv-grid [data-id="C"] [data-approval="stale"]', ['Out of date']),
+          textsAre(page, '.rv-grid .sh-badge[data-state="stale"]', ['Out of date']),
+          textsAre(page, '.rv-grid [data-id="C"] .sh-badge[data-state="stale"]', ['Out of date']),
         );
-        yield* waitFor(page, '.rv-card[data-id="C"] [data-approval="stale"]');
+        yield* waitFor(page, '.rv-card[data-id="C"] .sh-badge[data-state="stale"]');
         yield* onlyCStale;
         yield* page.click('.rv-views button[data-view="moments"]');
         yield* waitFor(page, '.rv-card[data-id="C"] img');
@@ -1102,7 +1525,7 @@ describe('the review page', () => {
         yield* waitFor(page, '.rv-wipe-caps .rv-card[data-id="B"].rv-audible');
         yield* page.press('ArrowRight');
         yield* page.press('ArrowRight');
-        yield* until(page, "location.hash === '#t=4'");
+        yield* until(page, "location.hash === '#t=0.067'");
         yield* page.press('j');
         yield* waitFor(page, '.rv-transport [data-act="rate"] [data-rate="0.5"]');
         const clip = "document.querySelector('.rv-wipe-other').style.clipPath";
@@ -1126,7 +1549,7 @@ describe('the review page', () => {
         );
         yield* attributesAre(page, '.rv-wipe-caps .rv-audible', 'data-id', ['B']);
         yield* evaluates(page, clip, 'inset(0px 0px 0px 60%)');
-        yield* evaluates(page, 'location.hash', '#t=4');
+        yield* evaluates(page, 'location.hash', '#t=0.067');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -1180,11 +1603,70 @@ describe('the review page', () => {
   );
 
   it.live(
+    "a Set on a phone whose first version's proxy is still being made is led by the first that plays: its end and its ending (ARCH5-2)",
+    () =>
+      Effect.gen(function* () {
+        // Version A is too big for a phone and its proxy is still being made; B's video is 3 s.
+        const aPending: Json = {
+          folders: [
+            {
+              ref: 'out/art',
+              title: 'Roofs at dusk',
+              mtime: 0,
+              sets: [
+                {
+                  id: 'render:roof',
+                  kind: 'render',
+                  title: 'The roof',
+                  lines: [],
+                  start: 0,
+                  marks: [],
+                  variants: [
+                    variant('A', 'Warm', {
+                      media: { _tag: 'Seen', video: { ...pendingSky, ref: 'out/art/roof.A.mp4' } },
+                    }),
+                    variant('B', 'Cold'),
+                    variant('C', 'Grey'),
+                  ],
+                },
+              ],
+              videos: [],
+              images: [],
+              docs: [],
+            },
+          ],
+        };
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => json(aPending)),
+            route('GET', /^\/api\/review\/(files|phone)\/out\/art\/roof\.B\.mp4/, () => ({
+              _tag: 'Wav',
+              bytes: tone(3, 0.1),
+            })),
+            ...routes,
+          ],
+          { href: SET, viewport: { width: 390, height: 844 } },
+        );
+        yield* waitFor(page, '.rv-card[data-id="A"] [data-proxy="pending"]');
+        yield* waitFor(page, '.rv-transport');
+        // B leads: the set ends where its video does.
+        yield* textHas(page, '.rv-time-rest', timecode(3));
+        yield* page.press('Space');
+        yield* attributeIs(page, '.rv-time', 'data-state', 'Playing');
+        yield* attributeIs(page, '.rv-time', 'data-state', 'Paused');
+        yield* textIs(page, '.rv-time-at', timecode(3));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a Set's Refresh reads a video's length again when its file was written since: the moments spread over the new length",
     () =>
       Effect.gen(function* () {
         // The first answer is the page's; a refresh's finds version A's video written again,
-        // and the server measures it 40 s long now.
+        // and the server measures it 40 s long now. (The other versions' videos are read
+        // too, for their own frame rates: those reads are not counted.)
         const answers = [index, indexOf(walkOf('none'), { warmAt: 60_000 })];
         let reads = 0;
         const lengths = [20, 40];
@@ -1196,7 +1678,7 @@ describe('the review page', () => {
               reads += 1;
               return json(answer);
             }),
-            route('GET', /^\/api\/review\/duration/, () => {
+            route('GET', /^\/api\/review\/duration\?ref=out%2Fart%2Froof\.A\.mp4/, () => {
               const seconds = lengths[Math.min(measured, 1)] ?? 20;
               measured += 1;
               return json({ seconds });
@@ -1428,7 +1910,7 @@ describe('the review page', () => {
           viewport: { width: 390, height: 844 },
         });
         // The caps fit, C's saying Out of date; why, and its lines, are its Info, in full.
-        yield* waitFor(page, '.rv-card[data-id="C"] [data-approval="stale"]');
+        yield* waitFor(page, '.rv-card[data-id="C"] .sh-badge[data-state="stale"]');
         yield* evaluates(
           page,
           `Array.from(document.querySelectorAll('.rv-card[data-id] .rv-cap')).every((t) => t.scrollWidth <= t.clientWidth)`,
@@ -1683,9 +2165,14 @@ describe('the review page', () => {
         yield* textHas(page, `${inspector} .lab-sheet-title`, '2 · Cold');
         yield* textHas(page, inspector, 'Cold look');
         yield* textHas(page, inspector, 'out/art/roof.B.mp4');
-        yield* page.click(`${inspector} [data-act="approve"]`);
+        // Pressed twice in one tick, the verb sends once: its own write is in flight.
+        yield* page.evaluate(
+          `(() => { const verb = document.querySelector('${inspector} [data-act="approve"]'); verb.click(); verb.click(); })()`,
+        );
         yield* waitFor(page, `${inspector} [data-act="approve"][data-approval="approved"]`);
+        expect(asked).toHaveLength(1);
         expect(asked[0]).toMatchObject({ variant: 'B', say: { _tag: 'Approve' } });
+        yield* attributeIs(page, `${inspector} .rv-comment-input`, 'aria-label', 'Comment');
         yield* page.fill(`${inspector} .rv-comment-input`, 'colder at the edge');
         yield* page.click(`${inspector} [data-act="comment"]`);
         yield* waitFor(page, `${inspector} [data-comment="c1"]`);

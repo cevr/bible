@@ -62,9 +62,18 @@ describe('ToggleGroup', () => {
     await see(page.locator('#three')).toHaveAttribute('data-pressed', '');
   });
 
-  it('gives a rendered toggle the roving tabindex', async () => {
+  it('starts the tab stop on the pressed toggle, a rendered one too', async () => {
     const page = await h.open('group', { query: { value: 'three' } });
     await see(page.locator('#three')).toHaveAttribute('data-rendered', '');
+    await see(page.locator('#three')).toHaveAttribute('tabindex', '0');
+    await see(page.locator('#one')).toHaveAttribute('tabindex', '-1');
+    await page.focus('#before');
+    await page.keyboard.press('Tab');
+    await see.poll(() => focused(page)).toBe('three');
+  });
+
+  it('starts the tab stop on the first toggle when none is pressed', async () => {
+    const page = await h.open('group');
     await see(page.locator('#one')).toHaveAttribute('tabindex', '0');
     await see(page.locator('#three')).toHaveAttribute('tabindex', '-1');
   });
@@ -104,6 +113,96 @@ describe('ToggleGroup', () => {
     await page.keyboard.press('Home');
     await see.poll(() => focused(page)).toBe('one');
     await see(page.locator('#one')).toHaveAttribute('tabindex', '0');
+  });
+
+  it('leaves focus on the page after a pointer press, and gives the pressed toggle the tab stop', async () => {
+    // A click on chrome: the page keeps its keys after it.
+    const page = await h.open('group');
+    await page.click('#two');
+    await see(page.locator('#two')).toHaveAttribute('aria-pressed', 'true');
+    expect(await focused(page)).toBe('body');
+    await page.focus('#before');
+    await page.click('#three');
+    await see(page.locator('#three')).toHaveAttribute('aria-pressed', 'true');
+    expect(await focused(page)).toBe('body');
+    // The press moved the tab stop: Tab lands on the pressed toggle, its arrows and Space work.
+    await see(page.locator('#three')).toHaveAttribute('tabindex', '0');
+    await see(page.locator('#one')).toHaveAttribute('tabindex', '-1');
+    await page.focus('#before');
+    await page.keyboard.press('Tab');
+    await see.poll(() => focused(page)).toBe('three');
+    await page.keyboard.press('ArrowLeft');
+    await see.poll(() => focused(page)).toBe('two');
+    await page.keyboard.press('Space');
+    await see(page.locator('#two')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('blurs a field that has focus before a pointer press changes the value', async () => {
+    // The field's own blur (where a lab field commits) runs before the press's effect.
+    const page = await h.open('group');
+    await page.focus('#field');
+    await page.keyboard.type('5');
+    await page.click('#two');
+    await see(page.locator('#two')).toHaveAttribute('aria-pressed', 'true');
+    expect(await logOf(page)).toEqual(['field blur', 'value [two]']);
+    expect(await focused(page)).toBe('body');
+  });
+
+  it('blurs a focused SVG control on a pointer press, so the page keeps its keys', async () => {
+    // The Lab's wipe grip is an SVG slider: a press on a toggle takes the arrows back from it.
+    const page = await h.open('group');
+    await page.focus('#grip');
+    expect(await focused(page)).toBe('grip');
+    await page.click('#two');
+    await see(page.locator('#two')).toHaveAttribute('aria-pressed', 'true');
+    expect(await focused(page)).toBe('body');
+  });
+
+  it('moves focus to the popup around the group after a pointer press, so Tab stays in it', async () => {
+    // A press on content that takes no focus focuses its nearest focusable ancestor: a sheet keeps the keyboard.
+    const page = await h.open('in-dialog');
+    await page.focus('#before');
+    await page.click('#two');
+    await see(page.locator('#two')).toHaveAttribute('aria-pressed', 'true');
+    expect(await focused(page)).toBe('dialog');
+    await page.keyboard.press('Tab');
+    await see.poll(() => focused(page)).toBe('before');
+  });
+
+  it('moves focus to a <details> around the group that has a tabindex, as the platform does', async () => {
+    const page = await h.open('in-details');
+    await page.focus('#before');
+    await page.click('#two');
+    await see(page.locator('#two')).toHaveAttribute('aria-pressed', 'true');
+    expect(await focused(page)).toBe('details');
+  });
+
+  it('blurs a field in the popup before a pointer press changes the value, and focuses the popup', async () => {
+    const page = await h.open('in-dialog');
+    await page.focus('#field');
+    await page.keyboard.type('5');
+    await page.click('#two');
+    await see(page.locator('#two')).toHaveAttribute('aria-pressed', 'true');
+    expect(await logOf(page)).toEqual(['field blur', 'value [two]']);
+    expect(await focused(page)).toBe('dialog');
+  });
+
+  it('starts the tab stop on the pressed toggle of a group mounted later', async () => {
+    const page = await h.open('later', { query: { value: 'two' } });
+    await page.click('#show');
+    await see(page.locator('#two')).toHaveAttribute('tabindex', '0');
+    await see(page.locator('#one')).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('moves focus to a pressed toggle when the keyboard is already in the group', async () => {
+    const page = await h.open('group');
+    await page.focus('#before');
+    await page.keyboard.press('Tab');
+    await see.poll(() => focused(page)).toBe('one');
+    await page.click('#three');
+    await see.poll(() => focused(page)).toBe('three');
+    await page.keyboard.press('ArrowLeft');
+    await see.poll(() => focused(page)).toBe('two');
   });
 
   for (const key of ['Enter', 'Space']) {

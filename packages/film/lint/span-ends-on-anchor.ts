@@ -25,7 +25,7 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { type NumberOf, property, topLevel } from './nodes.ts';
+import { bindings, type NumberOf, property } from './nodes.ts';
 
 /** How far apart two sums of written seconds may be and still be the same point. */
 const SAME = 1e-9;
@@ -95,7 +95,7 @@ export const spanEndsOnAnchor = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
-    const { numberOf } = yield* topLevel;
+    const { numberOf } = yield* bindings;
     const report = (found: Option.Option<ESTree.Node>, message: string) =>
       Option.match(found, {
         onNone: () => Effect.void,

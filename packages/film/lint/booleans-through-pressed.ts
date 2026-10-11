@@ -4,8 +4,10 @@
 // a boolean is a second spelling of it, and the one that was fixed by hand twice
 // (Scenes, then the sheet and the page shell) came back at six more controls.
 //
-// A value is written by hand when it is `String(x)` or a template that is one
-// value and nothing else (`` `${x}` ``). Refused, as a JSX attribute's value:
+// A value is written by hand when it is `String(x)`, `x.toString()` (no
+// radix), `JSON.stringify(x)` (`String` and `JSON` the globals, by their
+// binding) or a template that is one value and nothing else (`` `${x}` ``).
+// Refused, as a JSX attribute's value:
 // - on `aria-pressed`, `aria-selected`, `aria-checked`, `aria-expanded` and
 //   `aria-busy`, any such value: their tokens are `true` and `false` (and a
 //   `mixed`, written as itself), so the attribute is the proof the value is a
@@ -33,10 +35,22 @@
 // rate())`), text around a value (`` `${on()} item` ``) and a name proven
 // nothing (`loaded()`) pass. The config turns it on over the lab's components
 // and off in the tests and the fixtures.
+// Out of its reach: the player. It may not import the lab, so `pressed` is
+// not its to call, and it writes its one toggle's state as a DOM property
+// (`captionsBtn.ariaPressed = String(captions.on)`, `player/main.ts`), not a
+// JSX attribute.
 
 import { Effect, Option, Predicate } from 'effect';
 import { Diagnostic, type ESTree, Rule, RuleContext } from 'oxlint-plugin-effect/rule-bindings';
-import { definitionOf, importsAs, memberName, type Named, staticName, unwrapped } from './nodes.ts';
+import {
+  definitionOf,
+  importsAs,
+  isGlobal,
+  memberName,
+  type Named,
+  staticName,
+  unwrapped,
+} from './nodes.ts';
 
 const MESSAGE =
   "a boolean written as a string by hand: pressed(on) (packages/film/src/lab/pressed.ts) types it 'true' | 'false'.";
@@ -89,24 +103,31 @@ const some = (answers: ReadonlyArray<Reads>): Reads =>
 const every = (answers: ReadonlyArray<Reads>): Reads =>
   Effect.map(Effect.all(answers), (all) => all.every((a) => a));
 
-/** Whether `node` is a name the file does not bind: a global (`String`, `Boolean`, `Readonly`). */
-const isGlobal = (node: ESTree.Node, name: string): Reads => {
-  if (node.type !== 'Identifier' || node.name !== name) return no;
-  return Effect.map(definitionOf(node), Option.isNone);
-};
-
 /** Whether `node` is a name bound to solid's import of `name`. */
 const isSolid = (node: ESTree.Node, name: string): Reads =>
   importsAs(node, (from) => from === SOLID, name);
 
-/** The value a JSX attribute writes by hand: the argument of `String(x)`, or the one value of `` `${x}` ``. */
+/**
+ * The value a call writes as a string by hand: `x` of the global `String(x)`
+ * or `JSON.stringify(x)`, or of `x.toString()` (with no radix: a radix is a
+ * number's).
+ */
+const stringified = (call: ESTree.CallExpression): Reads<Option.Option<ESTree.Node>> => {
+  const callee = call.callee;
+  const first = Option.fromUndefinedOr(call.arguments[0]);
+  if (callee.type !== 'MemberExpression')
+    return Effect.map(isGlobal(callee, 'String'), (string) => Option.filter(first, () => string));
+  if (Option.contains(memberName(callee), 'toString'))
+    return Effect.succeed(Option.liftPredicate(callee.object, () => call.arguments.length === 0));
+  if (!Option.contains(memberName(callee), 'stringify')) return Effect.succeedNone;
+  return Effect.map(isGlobal(callee.object, 'JSON'), (json) => Option.filter(first, () => json));
+};
+
+/** The value a JSX attribute writes by hand: `String(x)`, `x.toString()`, `JSON.stringify(x)`, or the one value of `` `${x}` ``. */
 const writtenByHand = (attr: ESTree.JSXAttribute): Reads<Option.Option<ESTree.Node>> => {
   if (attr.value?.type !== 'JSXExpressionContainer') return Effect.succeedNone;
   const value = attr.value.expression;
-  if (value.type === 'CallExpression')
-    return Effect.map(isGlobal(value.callee, 'String'), (string) =>
-      Option.filter(Option.fromUndefinedOr(value.arguments[0]), () => string),
-    );
+  if (value.type === 'CallExpression') return stringified(value);
   if (
     value.type === 'TemplateLiteral' &&
     value.expressions.length === 1 &&
@@ -308,7 +329,7 @@ const bindingGives = (id: Named, use: Use, seen: Seen): Reads =>
       if (use === 'read') return no;
       return returnsBoolean(node, next);
     }
-    if (type !== 'Variable' || node.type !== 'VariableDeclarator' || !node.init) return no;
+    if (node.type !== 'VariableDeclarator' || !node.init) return no;
     if (node.parent.type !== 'VariableDeclaration' || node.parent.kind !== 'const') return no;
     // `const [on] = createSignal(false)`: the pattern's first name reads the signal.
     if (node.id.type === 'ArrayPattern') {

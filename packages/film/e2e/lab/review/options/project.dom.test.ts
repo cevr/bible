@@ -39,6 +39,7 @@ import {
   type Json,
   json,
   later,
+  TONE,
   openReview,
   refused,
   route,
@@ -1016,6 +1017,67 @@ describe("a film's project", () => {
   );
 
   it.live(
+    "a scene's sheet plays its render with its transport under the picture, each control in reach, at a phone's width and a laptop's",
+    () =>
+      Effect.gen(function* () {
+        for (const viewport of [PHONE, LAPTOP]) {
+          const { page, errors } = yield* openReview(
+            [
+              route(
+                'GET',
+                /^\/api\/review\/files\/out\/toy\/scenes\/open\/main\.share\.mp4/,
+                () => TONE,
+              ),
+              ...fakeProject(),
+            ],
+            { href: pageHref.project('toy', 'render:scenes:open'), viewport },
+          );
+          const picture = `${INSPECTOR} [data-act="play-video"]`;
+          yield* waitFor(page, `${picture} video`);
+          yield* click(page, picture);
+          const row = `${INSPECTOR} .rv-alone-row`;
+          yield* waitFor(page, row);
+          // The card frames a player by its own variant: the row is the player's, under its picture.
+          yield* waitFor(
+            page,
+            `${INSPECTOR} .sc-card-picture[data-picture="player"] > ${row.split(' ').at(-1)}`,
+          );
+          // Each control is what a press at its middle lands on: none is clipped by the picture's
+          // frame. The sheet is scrolled to the card's top, never the row itself into view: the
+          // frame is a scroll box of its own, which would scroll a clipped row into its window.
+          yield* page.evaluate(
+            `document.querySelector('${INSPECTOR} .sc-card').scrollIntoView({ block: 'start' })`,
+          );
+          for (const control of ['[data-act="play"]', '.rv-time', 'input[type="range"]']) {
+            yield* until(
+              page,
+              `(() => {
+                const el = document.querySelector('${row} ${control}');
+                const r = el.getBoundingClientRect();
+                const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+                return r.width > 0 && r.height > 0 && hit !== null && (hit === el || el.contains(hit));
+              })()`,
+            );
+          }
+          // The picture keeps its frame: 16:9, the card's width, the video filling it.
+          yield* evaluates(
+            page,
+            `(() => {
+              const r = document.querySelector('${picture}').getBoundingClientRect();
+              const card = document.querySelector('${INSPECTOR} .sc-card-head').getBoundingClientRect();
+              const v = document.querySelector('${picture} video').getBoundingClientRect();
+              return Math.abs(r.width / r.height - 16 / 9) < 0.02 && Math.abs(r.width - card.width) < 1
+                && Math.abs(v.width - r.width) < 1 && Math.abs(v.height - r.height) < 1;
+            })()`,
+            true,
+          );
+          expect(errors).toEqual([]);
+        }
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'with no render of the film, the dock says so in a line where the transport would be',
     () =>
       Effect.gen(function* () {
@@ -1081,13 +1143,13 @@ describe("a film's project", () => {
         yield* click(page, approve);
         // Only the current scene is approved (close waits on a render): one of two.
         yield* receiptSays(page, 'Approved act opening · 0/2 → 1/2 approved');
-        yield* waitFor(page, `${render('open')} .sc-chip[data-mark="approved"]`);
+        yield* waitFor(page, `${render('open')} .sh-badge[data-mark="approved"]`);
         yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
         yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
         yield* receiptSays(page, 'Undid approving scene open');
-        yield* countIs(page, `${render('open')} .sc-chip[data-mark="approved"]`, 0);
+        yield* countIs(page, `${render('open')} .sh-badge[data-mark="approved"]`, 0);
         // close kept its approval of an earlier version: the Undo withdrew open's alone.
-        yield* attached(page, `${render('close')} .sc-chip[data-mark="approved-earlier"]`);
+        yield* attached(page, `${render('close')} .sh-badge[data-mark="approved-earlier"]`);
         // The Undo names the approve's run (its op): only the approvals it gave go.
         expect(saysPosted(asked)).toEqual([
           { address: { _tag: 'Act', act: 'opening' }, say: { _tag: 'Approve' } },
@@ -1325,16 +1387,16 @@ describe("a film's project", () => {
         yield* countIs(page, `${INSPECTOR} video`, 0);
         // A render stale by the film's sound alone says so, beside its approval
         // of an earlier version: each a chip, why in full its title.
-        yield* textIs(page, `${render('close')} .sc-chip[data-mark="stale"]`, 'Out of date');
+        yield* textIs(page, `${render('close')} .sh-badge[data-mark="stale"]`, 'Out of date');
         yield* attributeIs(
           page,
-          `${render('close')} .sc-chip[data-mark="stale"]`,
+          `${render('close')} .sh-badge[data-mark="stale"]`,
           'title',
           "out of date: the film's sound changed since it was made",
         );
         yield* attributeIs(
           page,
-          `${render('close')} .sc-chip[data-mark="approved-earlier"]`,
+          `${render('close')} .sh-badge[data-mark="approved-earlier"]`,
           'title',
           'needs review: an earlier version was approved',
         );
@@ -1426,7 +1488,7 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
         // One scene approved as it is rendered, and its approval withdrawn.
         yield* click(page, `${render('coda')} [data-act="approve"]`);
-        yield* waitFor(page, `${render('coda')} .sc-chip[data-mark="approved"]`);
+        yield* waitFor(page, `${render('coda')} .sh-badge[data-mark="approved"]`);
         yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
         // Unapprove is in the scene's inspector, not at rest.
         yield* countIs(page, `${render('coda')} [data-act="unapprove"]`, 0);
@@ -1443,10 +1505,10 @@ describe("a film's project", () => {
           '0/4 approved · 1 out of date · 1 not rendered',
         );
         yield* click(page, `${INSPECTOR} [data-act="approve-all"]`);
-        yield* waitFor(page, `${render('open')} .sc-chip[data-mark="approved"]`);
-        yield* waitFor(page, `${render('coda')} .sc-chip[data-mark="approved"]`);
+        yield* waitFor(page, `${render('open')} .sh-badge[data-mark="approved"]`);
+        yield* waitFor(page, `${render('coda')} .sh-badge[data-mark="approved"]`);
         // The stale scene is left for a render.
-        yield* waitFor(page, `${render('close')} .sc-chip[data-mark="approved-earlier"]`);
+        yield* waitFor(page, `${render('close')} .sh-badge[data-mark="approved-earlier"]`);
         // Nothing current is left to approve, in the film or the act: no say would change a thing.
         yield* until(
           page,
@@ -1474,10 +1536,10 @@ describe("a film's project", () => {
         yield* click(page, `${INSPECTOR} [data-act="unapprove-act"]`);
         yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
         yield* waitFor(page, `${render('close')} [data-act="approve"][data-approval="none"]`);
-        yield* waitFor(page, `${render('coda')} .sc-chip[data-mark="approved"]`);
+        yield* waitFor(page, `${render('coda')} .sh-badge[data-mark="approved"]`);
         yield* countIs(page, `${INSPECTOR} [data-act="unapprove-act"]`, 0);
         yield* click(page, `${INSPECTOR} [data-act="approve-act"]`);
-        yield* waitFor(page, `${render('open')} .sc-chip[data-mark="approved"]`);
+        yield* waitFor(page, `${render('open')} .sh-badge[data-mark="approved"]`);
         yield* until(
           page,
           `document.querySelector('${INSPECTOR} [data-act="approve-act"]').disabled === true`,
@@ -1530,7 +1592,7 @@ describe("a film's project", () => {
         yield* page.evaluate(`window.clip = document.querySelector('${INSPECTOR} video')`);
         // The inspector sits beside the page: the page under it stays live.
         yield* click(page, `${render('coda')} [data-act="approve"]`);
-        yield* waitFor(page, `${render('coda')} .sc-chip[data-mark="approved"]`);
+        yield* waitFor(page, `${render('coda')} .sh-badge[data-mark="approved"]`);
         yield* valueIs(page, `${INSPECTOR} .rv-comment-input`, 'half a thought');
         yield* evaluates(
           page,
@@ -1653,7 +1715,7 @@ describe("a film's project", () => {
         yield* waitFor(page, `${scene('coda')}[data-state="stale"]`);
         yield* attributeIs(
           page,
-          `${render('coda')} .sc-chip[data-mark="stale"]`,
+          `${render('coda')} .sh-badge[data-mark="stale"]`,
           'title',
           'out of date: its sources changed since it was made',
         );

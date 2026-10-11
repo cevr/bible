@@ -30,7 +30,6 @@ import {
   Clock,
   Config,
   Context,
-  Data,
   Duration,
   Effect,
   Fiber,
@@ -56,12 +55,14 @@ import {
   type Project,
   approvalState,
   commentsOn,
+  gaveOf,
   projectNow,
   recordedNow,
   said,
   renderState,
   saidOn,
   subjectOf,
+  tookOf,
 } from '../core/catalogue.ts';
 import {
   type ChoicePoint,
@@ -71,8 +72,9 @@ import {
   seenVariants,
   subjectAt,
 } from '../core/choice.ts';
-import type { SetSayPost } from '../core/api.ts';
+import { Say, type SetSaid, type SetSayPost } from '../core/api.ts';
 import type {
+  ReviewDuration,
   ReviewFile,
   ReviewFolder,
   ReviewIndex,
@@ -93,8 +95,7 @@ import { clamp } from '../core/time.ts';
 import { counted } from '../core/words.ts';
 import { CATALOGUE_FILE, type CatalogueError, RenderCatalogue } from './catalogue.ts';
 import { writeWhole } from './content-store.ts';
-import { cacheKey } from './digest.ts';
-import { keptWhenMade } from './film-repo.ts';
+import { AtMtime, fileCache, madeFromName } from './file-cache.ts';
 import { Media } from './media.ts';
 
 /** A folder the review reads, and the label its refs start with. */
@@ -515,6 +516,12 @@ interface ReviewService {
   /** Every folder under the roots with something to review, newest first; read again when `fresh` or stale. */
   readonly index: (fresh: boolean) => Effect.Effect<ReviewIndex>;
   /**
+   * A catalogue under the roots was written by another than `say` (a
+   * project's say, in its own run): the index reads it again on its next
+   * ask, as after a set's say.
+   */
+  readonly written: Effect.Effect<void>;
+  /**
    * `film`'s whole-film renders under the roots, newest first, by its
    * project folders' catalogues: the pictures its options are heard against.
    */
@@ -530,8 +537,9 @@ interface ReviewService {
   /**
    * Say `asked.say` of version `asked.variant` of the set `point` in the
    * project folder `folder` (a ref), as it is now: written to that folder's
-   * own catalogue, answered with the folder as the say leaves it. A montage
-   * keeps no say (its manifest is written by hand). The version is checked
+   * own catalogue, answered with the folder as the say leaves it and what
+   * it gave or took (`SetSaid`: a scene's run, as a project's say answers
+   * it). A montage keeps no say (its manifest is written by hand). The version is checked
    * again inside the catalogue's write: one made again since the index showed
    * it is `VersionChanged`, and an approval is refused by its state then:
    * against the film's sources as `project` reads them now, the rule the
@@ -544,7 +552,7 @@ interface ReviewService {
     asked: SetSayPost,
     project: ProjectRead,
   ) => Effect.Effect<
-    ReviewFolder,
+    SetSaid,
     | ReviewFileUnknown
     | ChoiceUnknown
     | VariantUnknown
@@ -552,8 +560,10 @@ interface ReviewService {
     | VersionChanged
     | CatalogueError
   >;
-  /** A video's length in seconds (its container's index), kept per path and mtime. */
-  readonly duration: (ref: string) => Effect.Effect<number, ReviewFileUnknown | MediaFailed>;
+  /** A video's length in seconds (its container's index) and its frame rate, kept per path and mtime. */
+  readonly duration: (
+    ref: string,
+  ) => Effect.Effect<ReviewDuration, ReviewFileUnknown | MediaFailed>;
   /** A JPEG of the video at `at` seconds (10% in when none), `width` wide, from the cache. */
   readonly frame: (
     ref: string,
@@ -592,9 +602,6 @@ export const once = <K, A, E>(
     }),
   );
 
-/** A file as it stands: its path and mtime, the key of what is read from it. */
-class AtMtime extends Data.Class<{ readonly file: string; readonly mtime: number }> {}
-
 /** How many lengths the review keeps: every video a long review shows, with room. */
 const LENGTHS_KEPT = 4096;
 
@@ -632,8 +639,16 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             Effect.option,
           );
 
-        const mtimeOf = (file: string) =>
-          Effect.map(statOf(file), Option.match({ onNone: () => 0, onSome: (s) => s.mtime }));
+        /** `file` as it stands now: its mtime, or 0 for a file not there, the key of what is read or made from it. */
+        const standing = (file: string) =>
+          Effect.map(
+            statOf(file),
+            (stat) =>
+              new AtMtime({
+                file,
+                mtime: Option.match(stat, { onNone: () => 0, onSome: (s) => s.mtime }),
+              }),
+          );
 
         const foundAt = Effect.fn('Review.foundAt')(function* (file: string) {
           const ref = refOf(roots, file, path);
@@ -694,26 +709,23 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             return out;
           });
 
-        /** Each video's length, by path and mtime, the newest kept; a failed read is not. */
-        const lengths = yield* Cache.makeWith((at: AtMtime) => media.duration(at.file), {
-          capacity: LENGTHS_KEPT,
-          timeToLive: keptWhenMade,
-        });
+        /**
+         * Each video's length and frame rate, one read of it (`Media.timing`:
+         * its own, never rounded; none for a file with no video), by path and
+         * mtime, the newest kept; a failed read is not.
+         */
+        const lengths = yield* fileCache((at) => media.timing(at.file), LENGTHS_KEPT);
 
         const duration = Effect.fn('Review.duration')(function* (ref: string) {
-          const file = yield* resolve(ref);
-          return yield* Cache.get(lengths, new AtMtime({ file, mtime: yield* mtimeOf(file) }));
+          return yield* Cache.get(lengths, yield* standing(yield* resolve(ref)));
         });
 
         /** The frames being made, by name: a scrub that asks for one twice makes it once. */
         const framing = yield* FiberMap.make<string, string, ReviewToolFailed | MediaFailed>();
 
-        const sourceKey = Effect.fn('Review.sourceKey')(function* (
-          file: string,
-          rest: ReadonlyArray<string | number>,
-        ) {
-          return cacheKey([file, yield* mtimeOf(file), ...rest]);
-        });
+        /** The cache file's name for what is made from `file` as it stands, with `rest`. */
+        const sourceKey = (file: string, rest: ReadonlyArray<string | number>) =>
+          Effect.map(standing(file), (at) => madeFromName(at, rest));
 
         const frame = Effect.fn('Review.frame')(function* (
           ref: string,
@@ -722,7 +734,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         ) {
           const file = yield* resolve(ref);
           // A time outside the video is its first or last frame: one key, one still.
-          const length = yield* duration(ref);
+          const { seconds: length } = yield* duration(ref);
           let t = 0;
           if (Option.isSome(at)) t = clamp(at.value, 0, length);
           else t = length * 0.1;
@@ -929,17 +941,29 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           return { index: { folders }, pictures } satisfies Read;
         });
 
-        const cached = yield* Ref.make(Option.none<{ readonly at: number; readonly read: Read }>());
+        // The last read and when it began, and how many times a write has
+        // dropped it: a read keeps its answer only when no write dropped the
+        // cache while it read, so a walk that began before a write never
+        // stands in for the walk after it.
+        const cached = yield* Ref.make({
+          drops: 0,
+          last: Option.none<{ readonly at: number; readonly read: Read }>(),
+        });
+        const drop = Ref.update(cached, (c) => ({ drops: c.drops + 1, last: Option.none() }));
 
         const current = Effect.fn('Review.current')(function* (fresh: boolean) {
           const now = yield* Clock.currentTimeMillis;
+          const began = yield* Ref.get(cached);
           const had = Option.filter(
-            yield* Ref.get(cached),
+            began.last,
             (c) => !fresh && now - c.at < Duration.toMillis(INDEX_FRESH),
           );
           if (Option.isSome(had)) return had.value.read;
           const made = yield* read();
-          yield* Ref.set(cached, Option.some({ at: now, read: made }));
+          yield* Ref.update(cached, (c) => {
+            if (c.drops !== began.drops) return c;
+            return { drops: c.drops, last: Option.some({ at: now, read: made }) };
+          });
           return made;
         });
 
@@ -1012,7 +1036,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           // against the catalogue as the write reads it, and the say written
           // only of the version that was shown. A refusal fails the write before
           // anything is encoded, so the file stays as it was, byte for byte.
-          yield* catalogues
+          const answer = yield* catalogues
             .attempt({ name: film, out: dir.value }, (catalogue) => {
               const render = Arr.findFirst(
                 catalogue.renders,
@@ -1044,22 +1068,50 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
                   ),
               );
               if (Option.isSome(stale)) return Result.fail(refused('approve', stale.value));
-              return Result.succeed([
-                variant.id,
-                said(catalogue, subject, asked.say, at, Option.fromUndefinedOr(asked.op)),
-              ] as const);
+              const next = said(
+                catalogue,
+                subject,
+                asked.say,
+                at,
+                Option.fromUndefinedOr(asked.op),
+              );
+              // The scene a scene's set is of, when the say moved its approval: what a run gave
+              // or took, as a project's say names it (a film's or an act's set names none).
+              const moved = Arr.filter(
+                Option.match(
+                  Option.liftPredicate(
+                    address,
+                    (a): a is Extract<typeof address, { readonly _tag: 'Scenes' }> =>
+                      a._tag === 'Scenes',
+                  ),
+                  { onNone: (): ReadonlyArray<string> => [], onSome: (a) => a.ids },
+                ),
+                () => next.approvals.length !== catalogue.approvals.length,
+              );
+              const answer: Pick<SetSaid, 'gave' | 'took'> = {
+                gave: Option.flatMap(
+                  Option.filter(Option.fromUndefinedOr(asked.op), () =>
+                    Say.guards.Approve(asked.say),
+                  ),
+                  (op) => gaveOf(moved, at, op),
+                ),
+                took: Option.flatMap(Option.liftPredicate(asked.say, Say.guards.Withdraw), (w) =>
+                  tookOf(w.given, moved),
+                ),
+              };
+              return Result.succeed([answer, next] as const);
             })
             .pipe(
               // The index reads the folder again on its next ask: it changed, or
               // the index was found behind it.
-              Effect.ensuring(Ref.set(cached, Option.none())),
+              Effect.ensuring(drop),
             );
           yield* Effect.log(
             `review.say folder=${ref} point=${point} variant=${variant.id} say=${asked.say._tag}`,
           );
           const built = yield* folderAt(file);
           return yield* Effect.fromOption(
-            Option.map(built, (b) => b.folder),
+            Option.map(built, (b): SetSaid => ({ ...b.folder, ...answer })),
             () => unknown,
           );
         });
@@ -1076,6 +1128,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         return Review.of({
           roots,
           index,
+          written: drop,
           pictures,
           renderVideo: videoOfRender,
           resolve,

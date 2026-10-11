@@ -2,7 +2,7 @@
 //
 // An item of a composite widget: it registers in the root's list, holds the
 // tab stop (`tabindex` 0) while highlighted and -1 otherwise, and takes the
-// tab stop when it is focused.
+// tab stop when it is focused or clicked.
 import { untrack } from 'solid-js';
 
 import type { HTMLProps } from '../types.ts';
@@ -27,6 +27,10 @@ export function useCompositeItem(): UseCompositeItemReturnValue {
       return highlighted() ? 0 : -1;
     },
     onFocus() {
+      root.onHighlightedIndexChange(untrack(listItem.index));
+    },
+    // A press that leaves focus elsewhere (a toggle's) still moves the tab stop.
+    onClick() {
       root.onHighlightedIndexChange(untrack(listItem.index));
     },
   };

@@ -10,9 +10,14 @@
 // and the comment box, said over the set's route.
 
 import { useAtomValue } from '@bible/atom-solid';
+import { Dialog } from '@bible/ui/dialog';
+import { Toggle } from '@bible/ui/toggle';
+import * as UrlAtom from '@bible/url-state/atom';
+import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Effect, Exit, Match, Option, Scope } from 'effect';
+import { Array as Arr, Effect, Exit, Match, Option, Scope, Struct } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import * as Atom from 'effect/reactivity/Atom';
 import {
   type Accessor,
   type ParentProps,
@@ -34,31 +39,39 @@ import {
 } from '../../core/choice.ts';
 import { type Compare, type ComparePanes, Media } from '../../browser/media.ts';
 import { Pointer, Surface } from '../../browser/pointer.ts';
-import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
+import type {
+  ReviewFile,
+  ReviewFilms,
+  ReviewFolder,
+  ReviewIndex,
+  ReviewVideo,
+} from '../../core/review.ts';
 import { timecode } from '../../core/time.ts';
 import {
   Places,
-  ProjectView,
+  type ProjectView,
   type Say,
+  type SetSaid,
   type SetSayPost,
   pageHref,
   reviewFileUrl,
   reviewFrameUrl,
 } from '../../core/api.ts';
-import { served } from '../api.ts';
+import type { LabFailure } from '../api.ts';
 import { pressed } from '../pressed.ts';
+import { useSheetDismissal } from '../sheet.tsx';
+import { addressOn } from '../../browser/host.ts';
 import { StateBand } from '../scenes/card.tsx';
 import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
-import { OptionsApi } from './options/api.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
 import { approvalVerbs } from './things.ts';
-import { approveUndoOf, undoApprove } from './options/receipt.ts';
+import { setApproveUndo, setSaidText, undoApprove } from './options/receipt.ts';
 import { quiet, refused } from '../../command/command.ts';
-import { OpId } from '../../core/catalogue.ts';
+import { OpId, type Project, projectNow, versionState } from '../../core/catalogue.ts';
 import { uniqueId } from '../../core/unique.ts';
-import { Go, SetProvider, type Shown, useReview, useSet } from './context.tsx';
+import { Go, SetProvider, useProject, useReview, useSet } from './context.tsx';
 import {
   agoText,
   approvalText,
@@ -68,9 +81,9 @@ import {
   folderTitle,
   isFilmsFolder,
   isMarkdown,
+  pathIn,
   POSTER_W,
-  recordedStaleText,
-  sayText,
+  staleText,
   sizeText,
   versionsText,
   videoSource,
@@ -89,7 +102,7 @@ import {
 } from './machine.ts';
 import { Loaded, useWrite, writeStatus } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
-import { ReviewPlace as Place } from './place.ts';
+import { ReviewPlace as Place, stillIn, withStill } from './place.ts';
 import { HearToggle, PlayedAlone, Transport, useClockMedia } from './player.tsx';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
@@ -190,21 +203,16 @@ const Section = (props: {
 /**
  * A film's state on its card, as its Project's head says it: its
  * length and scenes (`8:46 · 20 scenes`, `filmLength`), the state band and
- * `n/N approved · n out of date`, from the film's project,
- * read for the card (by the server, sent with the page). Its band marks the
- * renders and approvals; the check's findings are Project's. Nothing while
- * the project is read or when the film has none.
+ * `n/N approved · n out of date`, from the film's project as its owner
+ * shows it (`useProject`: read by the server, sent with the page, then the
+ * newest answer). Its band marks the renders and approvals; the check's
+ * findings are Project's. Nothing while the project is read or when the
+ * film has none.
  */
 const FilmState = (props: { readonly film: string }) => {
-  const { meta } = useReview();
-  const readAtom = untrack(() =>
-    meta.runtime
-      .atom(OptionsApi.use((api) => api.project(props.film)))
-      .pipe(served(`review.project:${props.film}`, ProjectView)),
-  );
-  const read = useAtomValue(() => readAtom);
+  const read = untrack(() => useProject(props.film));
   return (
-    <Show when={Option.getOrUndefined(AsyncResult.value(read()))}>
+    <Show when={Option.getOrUndefined(AsyncResult.value(read.view()))}>
       {(view: Accessor<ProjectView>) => (
         <>
           <div class="rv-film-length" data-role="length">
@@ -344,21 +352,66 @@ const Markdown = (props: { readonly file: ReviewFile }) => {
   );
 };
 
+/** An image the lightbox shows: its source, and the caption under it (what its card no longer says). */
+interface Shown {
+  readonly src: string;
+  readonly caption: string;
+}
+
 /**
- * A still that opens in the lightbox with its caption (`shown`): a button, so
- * a tap, a click, Enter and Space all open it, and its name says what opens.
+ * A still that opens full size in the lightbox, with its caption (`shown`):
+ * a button, so a tap, a click, Enter and Space all open it, and its name
+ * says what opens. The URL keeps it open (`?still=` its `name`), so a link
+ * opens it, and Back closes it as every sheet's opening is. The lightbox is
+ * the kit's dialog over every other layer of the page (the tab bar and the
+ * dock too), titled by its caption: focus moves into it and back to the
+ * still, and Escape or a tap anywhere closes it, by the sheets' one rule
+ * (`useSheetDismissal`), adding no entry.
  */
-const Zoom = (props: { readonly still: string; readonly alt: string; readonly shown: Shown }) => {
-  const { actions } = useReview();
+const Zoom = (props: {
+  readonly still: string;
+  readonly alt: string;
+  readonly shown: Shown;
+  readonly name: string;
+}) => {
+  const { meta } = useReview();
+  const href = useAtomValue(() => UrlAtom.href);
+  const address = addressOn(meta.host);
+  const dismissal = useSheetDismissal(meta.host, (at, name) =>
+    Option.exists(stillIn(at), (open) => open === name),
+  );
+  const open = () => Option.exists(stillIn(href()), (name) => name === props.name);
+  const show = () =>
+    Option.map(withStill(untrack(href), props.name), (to) => {
+      dismissal.opening(props.name);
+      address.go(to);
+    });
+  const close = () => dismissal.dismiss(() => withStill(untrack(href), ''));
   return (
-    <button
-      type="button"
-      class="rv-zoom"
-      aria-label={`Open ${props.shown.caption}`}
-      onClick={() => actions.show(Option.some(props.shown))}
-    >
-      <img class="rv-media" loading="lazy" src={props.still} alt={props.alt} />
-    </button>
+    <>
+      <button
+        type="button"
+        class="rv-zoom"
+        aria-label={`Open ${props.shown.caption}`}
+        onClick={show}
+      >
+        <img class="rv-media" loading="lazy" src={props.still} alt={props.alt} />
+      </button>
+      <Dialog.Root
+        open={open()}
+        onOpenChange={(next: boolean) => {
+          if (!next) close();
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop class="rv-lightbox-backdrop" />
+          <Dialog.Popup class="rv-lightbox" data-still={props.name} onClick={close}>
+            <img src={props.shown.src} alt={props.shown.caption} />
+            <Dialog.Title class="rv-lightbox-caption">{props.shown.caption}</Dialog.Title>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </>
   );
 };
 
@@ -380,6 +433,7 @@ const LooseVideo = (props: {
         {(src) => (
           <PlayedAlone
             src={src()}
+            video={props.video}
             poster={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
           >
             <Show when={Option.getOrUndefined(captions())} keyed>
@@ -410,7 +464,7 @@ const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoi
         <div class="rv-body">
           <b>{props.set.title}</b>
           <Show when={props.set.variants.length >= 2}>
-            <span class="rv-badge">{versionsText(props.set.variants.length)}</span>
+            <span class="sh-badge">{versionsText(props.set.variants.length)}</span>
           </Show>
         </div>
       </Go>
@@ -450,13 +504,14 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
           <For each={props.folder.images}>
             {(image) => (
               <div class="rv-card">
-                {/* Its name and age are the lightbox's caption. */}
+                {/* Its path in the folder and its age are the lightbox's caption, and its name. */}
                 <Zoom
                   still={reviewFileUrl(image.ref)}
+                  name={image.ref}
                   alt={image.name}
                   shown={{
                     src: reviewFileUrl(image.ref),
-                    caption: `${image.name} · ${agoText(image.mtime, now)}`,
+                    caption: `${pathIn(props.folder, image)} · ${agoText(image.mtime, now)}`,
                   }}
                 />
               </div>
@@ -567,41 +622,52 @@ const LAYOUT_TITLES = {
 /**
  * The set's modes as one segmented control, and in Compare
  * its layouts as a second: the touch path of `v` and `⇧V` (`viewCommands`).
+ * Each is a toggle group (the arrows move between its choices); a choice
+ * sends the view, which the address owns, and the pressed one is the view
+ * the address shows (a press on it offers nothing).
  */
 const ViewTabs = () => {
   const { set, view, send } = useSet();
   const name = () => viewNameOf(view());
   return (
     <>
-      <div class="sh-seg rv-views">
+      <ToggleGroup<SetMode>
+        class="sh-seg rv-views"
+        aria-label="View"
+        value={[modeOf(name())]}
+        onValueChange={(chosen) => {
+          Option.map(Arr.head(chosen), (mode) =>
+            send.view(ViewEvent.ViewChosen({ view: modeView(mode, name()) })),
+          );
+        }}
+      >
         <For each={modesOf(set().variants.length)}>
           {(mode) => (
-            <button
-              type="button"
-              data-view={mode}
-              aria-pressed={pressed(modeOf(name()) === mode)}
-              onClick={() => send.view(ViewEvent.ViewChosen({ view: modeView(mode, name()) }))}
-            >
+            <Toggle<SetMode> value={mode} data-view={mode}>
               {MODE_TITLES[mode]}
-            </button>
+            </Toggle>
           )}
         </For>
-      </div>
+      </ToggleGroup>
       <Show when={modeOf(name()) === 'compare'}>
-        <div class="sh-seg rv-layouts">
+        <ToggleGroup<Layout>
+          class="sh-seg rv-layouts"
+          aria-label="Layout"
+          value={Arr.filter(LAYOUTS, (layout) => layout === name())}
+          onValueChange={(chosen) => {
+            Option.map(Arr.head(chosen), (layout) =>
+              send.view(ViewEvent.ViewChosen({ view: layout })),
+            );
+          }}
+        >
           <For each={LAYOUTS}>
             {(layout) => (
-              <button
-                type="button"
-                data-view={layout}
-                aria-pressed={pressed(name() === layout)}
-                onClick={() => send.view(ViewEvent.ViewChosen({ view: layout }))}
-              >
+              <Toggle<Layout> value={layout} data-view={layout}>
                 {LAYOUT_TITLES[layout]}
-              </button>
+              </Toggle>
             )}
           </For>
-        </div>
+        </ToggleGroup>
       </Show>
     </>
   );
@@ -644,7 +710,7 @@ const SetSaysContext = createContext<SetSays>();
  */
 const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>) => {
   const { meta, actions } = useReview();
-  const status = writeStatus<ReviewFolder>('set');
+  const status = writeStatus<SetSaid>('set');
   /** Version `id` as a receipt names it: its letter, its label, and the set's title. */
   const versionText = (id: string) =>
     Option.getOrElse(
@@ -666,23 +732,10 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
         { index: meta.asks },
         (asked) => ({
           doing: 'saying…',
-          done: () => sayText(asked.say, versionText(asked.variant)),
-          // An approve of a scene's render offers its Undo, bound to the run it named.
-          undo: () =>
-            Option.map(
-              Option.all({
-                film: film(),
-                scene: scene(),
-                op: Option.fromUndefinedOr(asked.op),
-              }),
-              (of) =>
-                approveUndoOf(
-                  of.film,
-                  of.op,
-                  [of.scene],
-                  Option.some({ point: props.set.id, version: asked.variant }),
-                ),
-            ),
+          // What the catalogue says the say gave or took, never what was asked.
+          done: (answer) => setSaidText(asked, answer, versionText(asked.variant)),
+          // An approve of a scene's render offers its Undo, bound to what it gave.
+          undo: (answer) => setApproveUndo(film(), asked, props.set.id, answer),
         }),
       );
       return {
@@ -703,10 +756,18 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
               Option.match(landed, {
                 onNone: () => false,
                 onSome: (l) => {
-                  l.show('index', Option.some, actions.answered);
+                  // The index holds the folder; what the say gave or took is the receipt's.
+                  l.show(
+                    'index',
+                    (said) => Option.some(Struct.omit(said, ['gave', 'took'])),
+                    actions.answered,
+                  );
                   // A Refresh asked after the say may not hold it, nor the say what that
-                  // Refresh found: the index is read again.
+                  // Refresh found: the index is read again, and every project with it. Else a
+                  // say on a film's folder may change its project (an approve of a scene's
+                  // render): its owner reads it again.
                   if (l.succeeded && l.overtaken('index')) actions.refresh();
+                  else if (l.succeeded) Option.map(film(), (of) => meta.project(of).changed());
                   return l.succeeded;
                 },
               }),
@@ -822,22 +883,22 @@ const VersionName = (props: { readonly version: SeenVariant }) => {
 };
 
 /**
- * A version's state on its caption, when its record proves it stale: the
+ * A version's state on its caption, when it is judged stale (`judged`): the
  * short badge; why, in its inspector's Info (`StaleTag`).
  */
 const StaleBadge = (props: { readonly variant: SeenVariant }) => (
-  <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
+  <Show when={Option.getOrUndefined(staleText(props.variant))}>
     {(words) => (
-      <span class="rv-badge" data-approval="stale" title={words()}>
+      <span class="sh-badge" data-state="stale" title={words()}>
         Out of date
       </span>
     )}
   </Show>
 );
 
-/** Why a variant is stale, when its record proves it; nothing otherwise (`recordedStaleText`). */
+/** Why a variant is stale, when it is judged so (`judged`); nothing otherwise (`staleText`). */
 const StaleTag = (props: { readonly variant: SeenVariant }) => (
-  <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
+  <Show when={Option.getOrUndefined(staleText(props.variant))}>
     {(words) => (
       <span class="rv-tag" data-state="stale">
         {words()}
@@ -977,7 +1038,14 @@ const pairOf = (set: SeenPoint, other: string) => ({
 const OtherPick = (props: { readonly other: string }) => {
   const { set, send } = useSet();
   return (
-    <div class="rv-row rv-pick">
+    <ToggleGroup
+      class="rv-row rv-pick"
+      aria-label="Against"
+      value={[props.other]}
+      onValueChange={(chosen) => {
+        Option.map(Arr.head(chosen), (id) => send.view(ViewEvent.OtherChosen({ id })));
+      }}
+    >
       <span class="rv-hint">
         {Option.getOrElse(
           Option.map(Option.fromUndefinedOr(set().variants[0]), (v) => v.label),
@@ -987,18 +1055,12 @@ const OtherPick = (props: { readonly other: string }) => {
       </span>
       <EachVersion of={set().variants.slice(1)}>
         {(variant) => (
-          <button
-            type="button"
-            class="sh-btn"
-            data-other={variant().id}
-            aria-pressed={pressed(variant().id === props.other)}
-            onClick={() => send.view(ViewEvent.OtherChosen({ id: variant().id }))}
-          >
+          <Toggle class="sh-btn" value={variant().id} data-other={variant().id}>
             {variant().label}
-          </button>
+          </Toggle>
         )}
       </EachVersion>
-    </div>
+    </ToggleGroup>
   );
 };
 
@@ -1228,25 +1290,28 @@ const WipeView = (props: { readonly other: string }) => {
   );
 };
 
-/** The moments' chips, the one shown pressed; ←/→ step through them. */
+/** The moments' chips, a toggle group, the one shown pressed: the page's ←/→ step the moment, and in the group they move its focus. */
 const MomentPick = (props: { readonly moments: ReadonlyArray<number>; readonly index: number }) => {
   const { send } = useSet();
   return (
-    <div class="rv-row rv-pick">
+    <ToggleGroup
+      class="rv-row rv-pick"
+      aria-label="Moment"
+      value={[String(props.index)]}
+      onValueChange={(chosen) => {
+        Option.map(Arr.head(chosen), (index) =>
+          send.view(ViewEvent.MomentChosen({ index: Number(index) })),
+        );
+      }}
+    >
       <For each={props.moments.map((t, i) => ({ t, i }))}>
         {(m) => (
-          <button
-            type="button"
-            class="sh-btn"
-            data-moment={String(m.i)}
-            aria-pressed={pressed(m.i === props.index)}
-            onClick={() => send.view(ViewEvent.MomentChosen({ index: m.i }))}
-          >
+          <Toggle class="sh-btn" value={String(m.i)} data-moment={String(m.i)}>
             {timecode(m.t)}
-          </button>
+          </Toggle>
         )}
       </For>
-    </div>
+    </ToggleGroup>
   );
 };
 
@@ -1299,6 +1364,7 @@ const MomentsView = (props: { readonly index: number }) => {
                 <VersionCard version={variant().id}>
                   <Zoom
                     still={reviewFrameUrl(variant().video.ref, Option.some(at()), MOMENT_W)}
+                    name={variant().id}
                     alt={`${variant().label} at ${timecode(at())}`}
                     shown={{
                       src: reviewFrameUrl(variant().video.ref, Option.some(at()), LIGHTBOX_W),
@@ -1423,6 +1489,107 @@ const SetBody = () => {
 };
 
 /**
+ * The film's project, which an approve's write judges a set's versions by
+ * (`Review.say`), when the folder is the film's own: the project names its
+ * own folder (`ProjectView.folder`, the server's ref of the checkout's out
+ * folder), and the write judges by the project only there. That alone
+ * decides, never the folder's name: the film's own folder under a root of
+ * another label is judged by the project, and a copy of it under another
+ * root by the record alone. The project as its owner shows it
+ * (`FilmProject.shown`): in the page alone, never by the server, and only
+ * when the folder's title is one of the app's films (a montage's title is
+ * none), which the page then holds (`FilmProject.hold`), so a say reads it
+ * again now. The record's judgement stands while it is read (and in the
+ * server's render), and the write decides.
+ */
+const useSourcesNow = (folder: ReviewFolder): SourcesNow => {
+  const { meta } = useReview();
+  return Option.match(folder.title, {
+    onNone: () => ({ project: () => Option.none(), by: (): JudgedBy => 'record' }),
+    onSome: (title) => {
+      const owner = meta.project(title);
+      const isFilm = (films: AsyncResult.AsyncResult<ReviewFilms, LabFailure>) =>
+        Option.exists(AsyncResult.value(films), (f) => f.films.includes(title));
+      // Held while the page is the film's (the films say the title is one of theirs).
+      const films = useAtomValue(() => meta.films);
+      createEffect(
+        () => isFilm(films()),
+        (yes) => {
+          if (yes) return owner.hold();
+        },
+      );
+      // The project, once the films say the title is one of theirs; none for any other title.
+      const readAtom = Atom.make(
+        (get): AsyncResult.AsyncResult<Option.Option<ProjectView>, LabFailure> =>
+          Match.value(get(meta.films)).pipe(
+            Match.tag('Initial', () =>
+              AsyncResult.initial<Option.Option<ProjectView>, LabFailure>(),
+            ),
+            Match.orElse((films) =>
+              Match.value(isFilm(films)).pipe(
+                Match.when(true, () => AsyncResult.map(get(owner.shown), Option.some)),
+                Match.orElse(() => AsyncResult.success(Option.none<ProjectView>())),
+              ),
+            ),
+          ),
+      ).pipe(
+        Atom.withServerValue(() => AsyncResult.initial<Option.Option<ProjectView>, LabFailure>()),
+      );
+      const read = useAtomValue(() => readAtom);
+      const own = () =>
+        Option.filter(Option.flatten(AsyncResult.value(read())), (view) =>
+          Option.contains(view.folder, folder.ref),
+        );
+      return {
+        project: () => Option.map(own(), (view) => view.project),
+        by: () =>
+          Match.value(read()).pipe(
+            Match.tag('Initial', (): JudgedBy => 'reading'),
+            Match.orElse((): JudgedBy =>
+              Option.match(own(), { onNone: () => 'record', onSome: () => 'project' }),
+            ),
+          ),
+      };
+    },
+  });
+};
+
+/**
+ * What judges a set's versions: its record while the film's project is read
+ * (`reading`; and in the server's render), then the project (`project`, the
+ * folder is its own) or the record (`record`, any other folder, a project
+ * that could not be read, a folder of no film).
+ */
+type JudgedBy = 'reading' | 'record' | 'project';
+
+/** The film's sources now as a Set page judges by them (`useSourcesNow`), and what judges. */
+interface SourcesNow {
+  /** The film's project, where it judges the folder. */
+  readonly project: Accessor<Option.Option<Project>>;
+  /** Shown as the Set's `data-sources`. */
+  readonly by: Accessor<JudgedBy>;
+}
+
+/**
+ * `set` with each version judged as the write judges its approve: against
+ * the film's sources now, where `project` says them for the set's address
+ * (`projectNow`, `versionState`); as its record says, elsewhere.
+ */
+const judged = (set: SeenPoint, project: Option.Option<Project>): SeenPoint =>
+  Option.match(
+    Option.flatMap(Option.all({ project, address: set.address }), (at) =>
+      projectNow(at.project, at.address),
+    ),
+    {
+      onNone: () => set,
+      onSome: (now) => ({
+        ...set,
+        variants: set.variants.map((v) => ({ ...v, ...versionState(v.key, now) })),
+      }),
+    },
+  );
+
+/**
  * A set's page while the index holds it. A page is one set's (a new place is
  * a new page), so neither Show is keyed: a refreshed index moves the folder
  * and the set under the page, and its player plays on (`SetProvider`).
@@ -1440,11 +1607,13 @@ export const SetPage = (props: { readonly folder: string; readonly point: string
             fallback={<Missing what="version stack" />}
           >
             {(point) => {
-              const set = createMemo(() => seenPoint(point()));
+              // The folder is the page's: whether its film's sources judge it is fixed with it.
+              const sourcesNow = untrack(() => useSourcesNow(folder()));
+              const set = createMemo(() => judged(seenPoint(point()), sourcesNow.project()));
               return (
                 <SetProvider folder={folder()} set={set()}>
                   <Saying folder={folder()} set={set()}>
-                    <div class="rv-tools rv-set-tools">
+                    <div class="rv-tools rv-set-tools" data-sources={sourcesNow.by()}>
                       <ViewTabs />
                     </div>
                     <SetBody />

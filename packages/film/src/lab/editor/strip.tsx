@@ -5,14 +5,17 @@
 // drag across a cue's lane beside its bar marks the in and out points, shown
 // as a band (a tap there seeks); a press elsewhere on the strip scrubs within
 // the scene. Its head holds the Snap toggle (S), and Cancel drag while a
-// grip is held: a finger's Shift and Escape. The cue lanes are Edit's (and
-// Motion's on a laptop, for its loop): in Note, Compare and Record, and on a
-// phone in every mode but Edit, the strip folds to its words (`player.css`,
-// by the panel's mode on `data-mode`).
+// grip is held: a finger's Shift and Escape. The rows scroll in their own box,
+// which follows the lanes the playhead is inside by the Source view's rule
+// (`lab/follow.ts`) until a hand scrolls it; Play takes it back, and so does
+// Follow, offered on the strip's menu and ⌘K only while the rows are let go.
+// The cue lanes are Edit's (and Motion's on a laptop, for its loop): in Note,
+// Compare and Record, and on a phone in every mode but Edit, the strip folds
+// to its words (`player.css`, by the panel's mode on `data-mode`).
 
 import { For, Show } from '@solidjs/web';
 import { Effect, Option, Result } from 'effect';
-import { createMemo, createSignal } from 'solid-js';
+import { createMemo, createSignal, onCleanup } from 'solid-js';
 import { DRAG_PX, Pointer, Surface } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
@@ -21,15 +24,17 @@ import { endsLate, liveAt } from '../../core/timeline.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
 import { cueOf } from '../../command/selection.ts';
 import { BY_BUTTON } from '../../command/command.ts';
-import { CANCEL_GRIP, SNAP } from './commands.ts';
+import { CANCEL_GRIP, SNAP, stripFollowCommand } from './commands.ts';
 import { hubKeys } from '../command/changes.ts';
 import { Target } from '../command/context-menu.tsx';
 import { selectsCue } from '../place.ts';
 import { pressed } from '../pressed.ts';
 import { useLabPage } from '../panel.tsx';
+import { useFollow } from '../follow.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { anchorText } from './format.ts';
+import { lanesKey, lanesOf } from './lanes.ts';
 import { SourceKnown, type StripWindow, dragModeAt, edgeFor, stripWindow } from './grip.ts';
 import { PHONE, useMatches } from '../viewport.ts';
 import { useMotion } from '../motion/context.tsx';
@@ -82,6 +87,8 @@ interface CueRowProps {
   readonly rows: () => Option.Option<HTMLElement>;
   /** A press on the lane beside the bar: a drag across it marks the in and out points. */
   readonly lane: (e: PointerEvent) => void;
+  /** Lit while the playhead is inside the cue (`liveAt`, counted once a frame by the strip): the Source view lights the same cues. */
+  readonly live: () => boolean;
 }
 
 /** One cue's row: its name, and its bar where it plays. */
@@ -89,10 +96,6 @@ const CueRow = (props: CueRowProps) => {
   const { state: lab, meta } = useLab();
   const { actions } = useEditor();
   const scene = () => props.placed.spec.id;
-  // Lit while the playhead is inside the cue (`liveAt`): the Source view lights the same cues.
-  const live = () =>
-    liveAt(new Map([[props.name, props.cue]]), lab.T() - props.placed.start, meta.film.fps).length >
-    0;
   const title = () =>
     Option.match(Option.fromUndefinedOr(meta.stage.timelineOf(scene())[props.name]), {
       onNone: () => '',
@@ -132,7 +135,7 @@ const CueRow = (props: CueRowProps) => {
           ]}
           data-cue={props.name}
           data-scene={scene()}
-          data-live={Option.getOrUndefined(Option.liftPredicate('', live))}
+          data-live={Option.getOrUndefined(Option.liftPredicate('', props.live))}
           style={{
             left: pct(props.window(), props.cue.start),
             width: len(props.window(), props.cue.dur),
@@ -159,6 +162,7 @@ export const Strip = () => {
     return [...meta.stage.cuesOf(state.stripScene())];
   });
   let rows = Option.none<HTMLElement>();
+  let scroller = Option.none<HTMLElement>();
   const { state: motionState, actions: motion } = useMotion();
   const [marking, setMarking] = createSignal(Option.none<LoopRange>());
   const file = () =>
@@ -247,6 +251,62 @@ export const Strip = () => {
             ),
           );
         };
+        // The lanes the playhead is inside, counted once a frame: each row's lit bar and what the rows follow read it.
+        const live = createMemo(
+          () =>
+            new Set(liveAt(new Map(cues()), lab.T() - p().start, meta.film.fps).map((l) => l.name)),
+        );
+        // What the rows follow, as one key (`lanes.ts`): the scene and its live lanes in the strip's order.
+        const following = createMemo(() =>
+          lanesKey(
+            p().spec.id,
+            cues().map(([name]) => name),
+            live(),
+          ),
+        );
+        const laneRow = (scene: string, name: string) =>
+          Option.flatMap(rows, (r) =>
+            Option.fromNullishOr(
+              r
+                .querySelector(
+                  `.lab-cue[data-scene="${CSS.escape(scene)}"][data-cue="${CSS.escape(name)}"]`,
+                )
+                ?.closest<HTMLElement>('.lab-strip-row'),
+            ),
+          );
+        // The lab's one Follow rule (`lab/follow.ts`): the live lanes kept in the rows' box, below the words held at
+        // its top. A hand's scroll lets go until Play or the strip's Follow command; a press on the strip (a grip, a
+        // scrub, a range) holds it still.
+        const [readerHas, setReaderHas] = createSignal(false);
+        onCleanup(
+          meta.hub.commands.register(
+            stripFollowCommand({ letGo: readerHas, follow: () => setReaderHas(false) }),
+          ),
+        );
+        useFollow({
+          box: () => scroller,
+          content: () => rows,
+          target: following,
+          span: (key) =>
+            Option.flatMap(lanesOf(key), (lanes) =>
+              Option.all({
+                first: laneRow(lanes.scene, lanes.first),
+                last: laneRow(lanes.scene, lanes.last),
+              }),
+            ),
+          clear: () => ({
+            top: Option.match(
+              Option.flatMap(rows, (r) =>
+                Option.fromNullishOr(r.querySelector<HTMLElement>('.lab-strip-words')),
+              ),
+              { onNone: () => 0, onSome: (w) => w.offsetHeight },
+            ),
+            bottom: 0,
+          }),
+          placing: () => !readerHas() && !state.holding() && Option.isNone(held()),
+          reader: () => setReaderHas(true),
+          played: () => setReaderHas(false),
+        });
         // The in and out points over this scene's window: as a lane drag marks them, else as marked.
         const band = () =>
           Option.filter(
@@ -291,7 +351,12 @@ export const Strip = () => {
               </button>
             </div>
             {/* The rows scroll in their own box, the words held at its top, so the film keeps its row. */}
-            <div class="lab-strip-scroll">
+            <div
+              class="lab-strip-scroll"
+              ref={(el: HTMLDivElement) => {
+                scroller = Option.some(el);
+              }}
+            >
               <div
                 class="lab-strip-rows"
                 ref={(el: HTMLDivElement) => {
@@ -320,6 +385,7 @@ export const Strip = () => {
                       window={shown}
                       rows={() => rows}
                       lane={lane}
+                      live={() => live().has(entry()[0])}
                     />
                   )}
                 </For>

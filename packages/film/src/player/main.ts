@@ -138,8 +138,9 @@ export interface Staged {
 }
 
 /**
- * The film the page at `href` is on: its path's (`/films/<film>/…`), else an
- * export page's `?film=<name>`, else the registry's first.
+ * The film the page at `href` is on: its path's (`/films/<film>/…`, a film's
+ * export page on the lab among them), else the PreviewServer's render page's
+ * `?film=<name>`, else the registry's first.
  */
 const filmName = (href: string, films: Films): string =>
   Option.getOrElse(
@@ -201,7 +202,7 @@ export const mountPreview = (
   bar.className = 'bar';
   bar.innerHTML = `
     <div class="row">
-      <button class="sh-tool" data-act="play">▶︎</button>
+      <button class="sh-tool" data-act="play" aria-label="Play"><span aria-hidden="true">▶︎</span></button>
       <span class="time"><span class="tc"></span><span class="of"></span><span class="narration" role="status"></span></span>
       <span class="scene"></span>
       <span class="say"></span>
@@ -220,6 +221,8 @@ export const mountPreview = (
   const sceneEl = q<HTMLSpanElement>('.scene');
   const sayEl = q<HTMLSpanElement>('.say');
   const playBtn = q<HTMLButtonElement>('[data-act="play"]');
+  // Named by its word, Play or Pause; the glyph beside it is drawn, not read.
+  const playGlyph = q<HTMLSpanElement>('[data-act="play"] > span');
   const captionsBtn = q<HTMLButtonElement>('[data-act="captions"]');
   const tip = q<HTMLDivElement>('.tip');
 
@@ -416,7 +419,11 @@ export const mountPreview = (
     lengthEl.textContent = ` / ${timecode(length, film.fps)}${shownRate}${shownLoop}`;
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
-    playBtn.textContent = playing ? '❚❚' : '▶︎';
+    const playWord = playing ? 'Pause' : 'Play';
+    if (playBtn.ariaLabel !== playWord) {
+      playBtn.ariaLabel = playWord;
+      playGlyph.textContent = playing ? '❚❚' : '▶︎';
+    }
     // On Play the line is the captions' alone while they show (`player.css`).
     bar.dataset['captions'] = captions.on ? 'on' : 'off';
     // The captions' button is a toggle, its state said to a reader and drawn as the kit's pressed look.

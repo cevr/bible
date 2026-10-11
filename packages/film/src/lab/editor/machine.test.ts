@@ -708,7 +708,9 @@ describe('an Undo that remakes what follows its file', () => {
   const undoing = undoingAs('undo-1');
 
   it.effect('an Undo answered after a slow remake lands, past the scene write wait', () => {
-    const { log, layer } = fakes(Effect.as(Effect.sleep('2 minutes'), timings));
+    const { log, layer } = fakes(
+      Effect.suspend(() => Effect.as(Effect.sleep('2 minutes'), timings)),
+    );
     return Effect.gen(function* () {
       const actor = yield* undoing;
       yield* TestClock.adjust(`${WRITE_TIMEOUT_S + 1} seconds`);

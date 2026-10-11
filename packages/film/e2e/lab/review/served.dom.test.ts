@@ -23,6 +23,7 @@ import {
   servedTitle,
 } from '../../../src/lab/fixtures/harness.ts';
 import { PAGE_CUT_MARK, PAGE_ROOT } from '../../../src/core/page-render.ts';
+import { timecode } from '../../../src/core/time.ts';
 import { TOY } from '../../../src/lab/fixtures/toy-film.ts';
 import {
   STUDIO_FILM,
@@ -31,6 +32,7 @@ import {
   studioRoutes,
 } from '../../../src/lab/fixtures/studio-film.ts';
 import { countIs, textHas, until, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import { jsonOf } from '../../../src/lab/fixtures/tab.ts';
 
 /** Long enough to bundle the server entry once, render, open and hydrate. */
 const SLOW = 60_000;
@@ -127,6 +129,23 @@ const NAMING_NOTHING: ReadonlyArray<{
   },
 ];
 
+/** Pages whose player opens where the link's `#t=` says: a Set, Choices and Project. */
+const LANDING_AT_A_TIME: ReadonlyArray<{ readonly name: string; readonly href: string }> = [
+  { name: 'a Set', href: pageHref.set(STUDIO_FOLDER, STUDIO_SET) },
+  { name: 'Choices', href: pageHref.choices(STUDIO_FILM) },
+  { name: 'Project', href: pageHref.project(STUDIO_FILM) },
+];
+
+/**
+ * Where a link at a time (`#t=`) opens them: between two frames, as a shared
+ * link's time is, and inside the served media (`TONE`'s ten seconds), which
+ * the clock never passes.
+ */
+const AT = 6.35;
+
+/** The timecodes the page shows, as read (a hidden one is not). */
+const SHOWN = `[...document.querySelectorAll('.sh-tc, .rv-time')].filter((e) => e.getClientRects().length > 0).map((e) => e.innerText.replace(/\\s+/g, ' ').trim()).filter((t) => t !== '')`;
+
 /** The reads among `read` that are the browser's alone: a check, the steps, a wait on a build. */
 const browserOnly = (read: ReadonlyArray<Asked>) =>
   read.map((a) => a.path).filter((path) => /check|steps|wait|build/.test(path));
@@ -216,6 +235,58 @@ describe('the review served as the lab renders it', () => {
         expect(reads(film.asked, `/api/films/${TOY}/choices`)).toBe(0);
         expect(mismatches(film.page.logged)).toEqual([]);
         expect(film.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a Set's server render shows the record's versions without waiting on the film's project: the project is the page's own read",
+    () =>
+      Effect.gen(function* () {
+        // The film's project never answers, to the server or the page.
+        const stuck = [route('GET', /^\/api\/films\/toy\/project$/, () => hold), ...studioRoutes];
+        const set = yield* openServed('review', stuck, {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+          cut: '2 seconds',
+        });
+        const html = set.documents[0]?.html ?? '';
+        expect(html).not.toContain(PAGE_CUT_MARK);
+        expect(painted(html)).toContain('data-act="inspect"');
+        // The record judges while the project is read, and it is never answered.
+        expect(painted(html)).toContain('data-sources="reading"');
+        yield* countIs(set.page, `[${PAGE_ROOT}]`, 1);
+        yield* waitFor(set.page, '.rv-main [data-act="inspect"]');
+        yield* waitFor(set.page, '.rv-set-tools[data-sources="reading"]');
+        expect(set.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a Set's video length is read once, by the server: the hydrated page times its clock by the length it was sent",
+    () =>
+      Effect.gen(function* () {
+        const set = yield* openServed('review', studioRoutes, {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+        });
+        const timings = (asked: ReadonlyArray<Asked>) =>
+          asked.filter((a) => a.method === 'GET' && a.path.startsWith('/api/review/duration'))
+            .length;
+        expect(timings(set.read)).toBe(1);
+        // Hydrated and live: the clock has measured its video, and a step moves it.
+        yield* textHas(set.page, '.rv-transport .rv-time', `/ ${timecode(10)}`);
+        const at = "document.querySelector('.rv-transport .rv-time').textContent.split(' ')[0]";
+        const before = yield* set.page.evaluate<string>(at);
+        yield* set.page.press('ArrowRight');
+        yield* until(set.page, `${at} !== ${jsonOf(before)}`);
+        expect(timings(set.asked)).toBe(0);
+        // The film's project is the page's own read, once it knows from the films it was sent
+        // that the folder's title is a film: the films are not asked again.
+        yield* waitFor(set.page, '.rv-set-tools[data-sources="project"]');
+        expect(reads(set.asked, '/api/films')).toBe(0);
+        expect(reads(set.asked, `/api/films/${TOY}/project`)).toBe(1);
+        expect(mismatches(set.page.logged)).toEqual([]);
+        expect(set.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );
@@ -319,6 +390,41 @@ describe('the review served as the lab renders it', () => {
           yield* textHas(served.page, `${SHEET} .lab-sheet-title`, link.title);
           expect(mismatches(served.page.logged)).toEqual([]);
           expect(served.errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+  for (const link of LANDING_AT_A_TIME)
+    it.live(
+      `${link.name}'s link at a time shows that time once hydrated, though the server never saw it: a phone's in the row, a laptop's in the header (SU-12)`,
+      () =>
+        Effect.gen(function* () {
+          const at = timecode(AT);
+          // The phone's timecode and its scrub read the one clock.
+          const phoneShows = `${SHOWN}.join() === '${at}' && document.querySelector('.rv-transport input[type=range]')?.value === '${AT}'`;
+          const phone = yield* openServed('review', studioRoutes, {
+            href: `${link.href}#t=${AT}`,
+            viewport: PHONE,
+          });
+          // The server never sees `#t=`: its document stands at the start.
+          expect(painted(phone.documents[0]?.html ?? '')).not.toContain(at);
+          yield* phone.page.until(phoneShows, {
+            now: SHOWN,
+            say: (shown) => `a phone shows the timecodes ${shown}`,
+          });
+          // A reload lands there again.
+          yield* phone.reload;
+          yield* phone.page.until(phoneShows, {
+            now: SHOWN,
+            say: (shown) => `a phone, reloaded, shows the timecodes ${shown}`,
+          });
+          const desk = yield* openServed('review', studioRoutes, { href: `${link.href}#t=${AT}` });
+          yield* desk.page.until(
+            `${SHOWN}.length === 2 && ${SHOWN}[0] === '${at}' && ${SHOWN}[1].startsWith('/ ')`,
+            { now: SHOWN, say: (shown) => `a laptop shows the timecodes ${shown}` },
+          );
+          expect(mismatches([...phone.page.logged, ...desk.page.logged])).toEqual([]);
+          expect([...phone.errors, ...desk.errors]).toEqual([]);
         }).pipe(Effect.scoped),
       SLOW,
     );

@@ -438,8 +438,13 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         context.open(),
         modal(),
         portalContext?.portalNode() ?? null,
+        // Read here, not tracked: the guards follow the popup's open state. A
+        // prop's getter may create a memo (a compiled condition), which only
+        // the compute half has an owner for.
+        untrack(() => props.previousFocusableElement),
+        untrack(() => props.nextFocusableElement),
       ] as const,
-    ([isDisabled, floating, open, isModal, portalNode]) => {
+    ([isDisabled, floating, open, isModal, portalNode, previousFocusable, nextFocusable]) => {
       if (isDisabled || !floating || !open) {
         return undefined;
       }
@@ -455,9 +460,8 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         portalContext?.beforeOutsideRef.current,
         portalContext?.afterOutsideRef.current,
         ...getResolvedInsideElements(),
-        // Read as the effect runs, not tracked: the guards follow the popup's open state.
-        untrack(() => resolveRef(props.previousFocusableElement)),
-        untrack(() => resolveRef(props.nextFocusableElement)),
+        resolveRef(previousFocusable ?? null),
+        resolveRef(nextFocusable ?? null),
       ].filter((x): x is Element => x != null);
       const ariaHiddenCleanup = markOthers(insideElements, {
         ariaHidden: isModal,

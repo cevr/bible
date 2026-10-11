@@ -1,7 +1,8 @@
-// The app's player, with each film's recorded narration, on loopback for as
-// long as `render` or `check` runs (the film CLI's PreviewServer, cli.ts), and
-// the pages the lab builds (`LAB_PAGES`). The lab's own server is the
-// framework's (`labServer`): `bun run lab`, the box's unit.
+// The app's render page (`index.html`), with each film's recorded narration,
+// on loopback for as long as `render` or `check` runs (the film CLI's
+// PreviewServer, cli.ts, at `/?film=<name>&export`), and the pages the lab builds
+// (`LAB_PAGES`). The lab's own server is the framework's (`labServer`):
+// `bun run lab`, the box's unit.
 
 import { CACHE, narrationFile } from '@bible/film/tools';
 import { BunServices } from '@effect/platform-bun';
@@ -13,14 +14,17 @@ import index from './index.html';
 export const FILMS = join(import.meta.dir, 'src/films');
 
 /**
- * The lab's pages, each this app's HTML entry: its review, its lab and its
- * play page, whose look-book is a film's scenes (`index.html` is the render page). The paths each is served at are
- * the framework's (`PAGE_PATHS`); `film lab` and the studio harness serve these.
+ * The lab's pages, each this app's HTML entry: its review, its lab, its
+ * play page, whose look-book is a film's scenes, and its render page, whose
+ * handle the easel draws a look through (`film look`, at a film's export
+ * page). The places each is served at are the framework's (`Places`,
+ * `pageAt`); `film lab` and the studio harness serve these.
  */
 export const LAB_PAGES = {
   review: join(import.meta.dir, 'review.html'),
   lab: join(import.meta.dir, 'lab.html'),
   player: join(import.meta.dir, 'play.html'),
+  render: join(import.meta.dir, 'index.html'),
 };
 
 /**
@@ -28,7 +32,8 @@ export const LAB_PAGES = {
  * same components as its HTML entry's script, with none of the app's films
  * (the server never imports a film's modules: Fresh reads; the lab refuses
  * a build whose server entry does, `filmCode`). The lab and the player
- * pages render their shell; the film is staged in the browser.
+ * pages render their shell; the film is staged in the browser. The render
+ * page has no shell and no server entry: it is drawn in the browser alone.
  */
 export const LAB_SERVERS: Partial<Record<keyof typeof LAB_PAGES, string>> = {
   review: join(import.meta.dir, 'src/review.server.tsx'),

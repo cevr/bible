@@ -27,20 +27,12 @@
 // newest asked, kept in place: a playing clip plays on and a half-typed
 // comment stays.
 
-import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Array as Arr, Effect, Exit, Match, Option } from 'effect';
+import { Array as Arr, Effect, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import {
-  type Accessor,
-  createEffect,
-  createMemo,
-  createSignal,
-  onCleanup,
-  untrack,
-} from 'solid-js';
+import { type Accessor, createMemo, onCleanup, untrack } from 'solid-js';
 import { type Address, type PartAddress, addressKey, sceneAddress } from '../../../core/address.ts';
-import { Places, ProjectView, pageHref, withdrawSay } from '../../../core/api.ts';
+import { Places, type ProjectView, pageHref, withdrawSay } from '../../../core/api.ts';
 import {
   type ProjectAct as Act,
   type ProjectScene,
@@ -59,10 +51,9 @@ import { FILM_FPS, timecode } from '../../../core/time.ts';
 import { counted } from '../../../core/words.ts';
 import { SceneCard, SceneFindings, SceneState, StateBand } from '../../scenes/card.tsx';
 import { filmCounts, filmSpan, marksOf, projectPlaced } from '../../scenes/marks.ts';
-import { type LabFailure, served } from '../../api.ts';
-import { type Ask, newestAsked } from '../asked.ts';
+import type { LabFailure } from '../../api.ts';
 import { plainClick } from '../../../browser/pointer.ts';
-import { Go, OPEN_ON_CHOICES, useReview } from '../context.tsx';
+import { Go, OPEN_ON_CHOICES, useProject, useReview } from '../context.tsx';
 import { pressed } from '../../pressed.ts';
 import { Loaded, useWrite, writeStatus } from '../loaded.tsx';
 import { ReviewPlace } from '../place.ts';
@@ -371,7 +362,12 @@ const SceneRow = (props: {
       Option.getOrElse(AsyncResult.value(findings()), () => []),
       projectPlaced(props.at.view()),
     )(props.scene.scene);
-  const card = (size: 'tile' | 'focus', picture: JSX.Element, verb: JSX.Element) => (
+  const card = (
+    size: 'tile' | 'focus',
+    picture: JSX.Element,
+    verb: JSX.Element,
+    picturing: () => 'still' | 'player' = () => 'still',
+  ) => (
     <SceneCard
       film={props.at.film}
       scene={props.scene.scene}
@@ -382,6 +378,7 @@ const SceneRow = (props: {
       marks={marks()}
       size={size}
       picture={picture}
+      picturing={picturing()}
       name={
         <InspectName of={thing.selection} comments={variant().comments.length}>
           {props.scene.scene}
@@ -418,6 +415,12 @@ const SceneRow = (props: {
                 {(video) => <Seen video={video()} />}
               </Show>,
               <Approval variant={variant()} sayer={sayer} first={RENDER_FIRST} />,
+              // Its render plays with its own transport; with none, the still the card frames.
+              () =>
+                Option.match(videoOf(variant()), {
+                  onNone: () => 'still' as const,
+                  onSome: () => 'player' as const,
+                }),
             )}
             <SceneFindings marks={marks()} />
             <Comments comments={variant().comments} />
@@ -751,46 +754,28 @@ const sayWords = (film: string, before: Option.Option<ProjectView>) => (s: Proje
 };
 
 /**
- * The project read, read again, and said: the page shows the answer to the
- * newest of them asked (`asked.ts`), kept in place. A say overtaken by a
- * read asked after it reads the project again: that read may not hold it.
- * So does a say refused for its scenes' state: the cards then say why.
+ * The project as its owner shows it (`useProject`): the page shows the
+ * answer to the newest asked of its reads and says (`asked.ts`), kept in
+ * place. A say overtaken by an ask after it reads the project again: neither
+ * may hold the other. So does a say refused for its scenes' state: the cards
+ * then say why. A say that lands moved what the index lists of the film's
+ * folder (a version's approval, a comment), so the index is read again
+ * (`indexChanged`): a Set opened after it shows the say.
  */
 const ProjectReady = (props: { readonly film: string }) => {
-  const { meta } = useReview();
-  const { version } = useFilm();
+  const { meta, actions } = useReview();
   const film = props.film;
   // The page reads the `main` variant's project; another variant's is the CLI's (`--variant`).
-  // Read by the server and sent with the page; the page adopts it and reads it no more.
-  const readAtom = meta.runtime
-    .atom(OptionsApi.use((api) => api.project(film)))
-    .pipe(served(`review.project:${film}`, ProjectView));
-  const againAtom = meta.runtime.fn(() => OptionsApi.use((api) => api.project(film)));
-  const read = useAtomValue(() => readAtom);
-  const again = useAtomValue(() => againAtom);
-  const askAgain = useAtomSet(() => againAtom, { mode: 'promiseExit' });
+  const read = useProject(film);
+  const project = read.project;
   const status = writeStatus<ProjectView>('project');
-  // The project as the newest ask answered it (a read again, a say's answer); until one
-  // has, the first read's: it was asked first, so any later answer stands over it.
-  const [answeredLater, setShown] = createSignal(Option.none<ProjectView>());
-  const shown = createMemo(() => Option.orElse(answeredLater(), () => AsyncResult.value(read())));
-  const asks = newestAsked();
+  const shown = () => AsyncResult.value(read.view());
   const stills = useSceneStills(film);
-  /** Show `exit`'s project when it answered and `ask` is still the newest: whether it answered. */
-  const answered = (ask: Ask, exit: Exit.Exit<ProjectView, LabFailure>): boolean => {
-    if (Exit.isFailure(exit)) return false;
-    ask.answer(() => setShown(Option.some(exit.value)));
-    return true;
-  };
-  const readAgain = () => {
-    const ask = asks.ask();
-    void askAgain().then((exit) => answered(ask, exit));
-  };
   const useSay = (): ProjectSayer => {
     const own = useWrite(
       (s: ProjectSay) => OptionsApi.use((api) => api.sayOfProject(film, s)),
       status,
-      { project: asks },
+      { project: project.asks },
       // The words are given as the say is sent: the part as the page shows it then.
       (s) => sayWords(film, untrack(shown))(s),
     );
@@ -801,8 +786,10 @@ const ProjectReady = (props: { readonly film: string }) => {
           Option.match(landed, {
             onNone: () => false,
             onSome: (l) => {
-              l.show('project', Option.some, (v) => setShown(Option.some(v)));
-              if ((l.succeeded && l.overtaken('project')) || staleSinceRead(l.failure)) readAgain();
+              l.show('project', Option.some, project.answer);
+              if ((l.succeeded && l.overtaken('project')) || staleSinceRead(l.failure))
+                project.changed();
+              if (l.succeeded) actions.indexChanged();
               return l.succeeded;
             },
           }),
@@ -838,19 +825,15 @@ const ProjectReady = (props: { readonly film: string }) => {
       Option.map(projectPointOf(s), (point) => ({ ...v, query: { ...v.query, point } })),
     cleared: (v) => ({ ...v, query: { ...v.query, point: '' } }),
   });
-  // A source write changes the film (a pick its sound, a kept voice a scene): its scenes are read again.
-  createEffect(version, (v) => {
-    if (v > 0) readAgain();
-  });
   const at = (view: Accessor<ProjectView>): ProjectValue => ({
     film,
     view,
     useSay,
-    reading: () => again().waiting,
+    reading: read.reading,
     stills,
   });
   return (
-    <Loaded value={shown()} result={read()} reading={`Reading ${film}'s project…`}>
+    <Loaded value={shown()} result={read.view()} reading={`Reading ${film}'s project…`}>
       {(view) => <ProjectBody at={at(view)} />}
     </Loaded>
   );

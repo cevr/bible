@@ -95,8 +95,12 @@ export interface AtRest extends State {
   readonly budget: Budget;
 }
 
-/** Every place a page is at (`Places`, `core/api.ts`). */
-export type PlaceName = keyof typeof Places;
+/**
+ * Every place a studio page is at (`Places`, `core/api.ts`): all but a
+ * film's export page, the renderer's and the easel's, which has no chrome to
+ * touch and no phone to fit (`e2e/player/render.dom.test.ts` opens it).
+ */
+export type PlaceName = Exclude<keyof typeof Places, 'export'>;
 
 /** A place a guard here does not open itself: the place whose cases measure it, and why. */
 export interface Exempt {

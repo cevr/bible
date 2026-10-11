@@ -41,7 +41,11 @@ A typed location in the Writings: a Publication, Page, or Paragraph.
 _Avoid_: Refcode string, position, address
 
 **Refcode**:
-The conventional display form of a Reference, such as `PP 351.1`. A refcode is a representation, not the identity itself.
+The conventional display form of a Reference, such as `PP 351.1`, `PTUK February 4, 1897, page 70.2` or `11LtMs, Lt 1a, 1896, par. 14`. A refcode is a representation, not the identity itself. A refcode is matched as typed, with spacing and case ignored, and one refcode can cite paragraphs in more than one Publication.
+
+**Refcode Match**:
+One Paragraph a refcode cites, with its Publication. Looking up a refcode returns every match; a parent refcode (`PP 351`, `11LtMs, Lt 1a, 1896`) matches the Paragraphs under it.
+_Avoid_: Search hit (a Search finds text; a lookup resolves a citation)
 
 **Search**:
 A text query across Paragraphs whose Reference is not known beforehand.

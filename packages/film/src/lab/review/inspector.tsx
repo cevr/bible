@@ -38,13 +38,8 @@ import { targetAttr } from '../../command/target.ts';
 import { counted } from '../../core/words.ts';
 import { Sheet, useSheetDismissal } from '../sheet.tsx';
 import { useReview } from './context.tsx';
+import { type Draft, draftBook } from './draft-book.ts';
 import { type OpenAt, type Thing, type Things, thingCommands, withRegistered } from './things.ts';
-
-/** A comment box's unsent text, kept per thing while the page lives (read reactively): a box that closes keeps it. */
-interface Draft {
-  readonly get: () => string;
-  readonly set: (text: string) => void;
-}
 
 /** What an inspector hands its comment box: the ref its field takes to be focused, and its draft. */
 export interface InspectorBox {
@@ -94,10 +89,7 @@ const useInspecting = (): InspectingValue => useContext(InspectingContext);
 /** The page's things and its one inspector, around `children`, with their commands on `hub`. */
 export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.Element }) => {
   const shown = new Map<string, Thing>();
-  const drafts = new Map<string, string>();
-  // One count for every draft: a box reads its draft through it, so a say that lands
-  // after its box closed empties the box opened since.
-  const [drafted, setDrafted] = createSignal(0, { ownedWrite: true });
+  const draft = draftBook();
   // The page's URL, while a page keeps the open inspector there (the newest page's
   // binding, last); else none is open. A page binds its place as it renders, before
   // its sheets: held here as it is bound, so what renders after reads it at once, on the
@@ -166,16 +158,7 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
         setRebound((n) => n + 1);
       };
     },
-    draft: (key) => ({
-      get: () => {
-        drafted();
-        return Option.getOrElse(Option.fromUndefinedOr(drafts.get(key)), () => '');
-      },
-      set: (text) => {
-        drafts.set(key, text);
-        setDrafted((n) => n + 1);
-      },
-    }),
+    draft,
     put: (thing) => {
       const key = targetAttr(thing.selection);
       shown.set(key, thing);

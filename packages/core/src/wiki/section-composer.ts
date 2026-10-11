@@ -226,13 +226,10 @@ export class WikiSectionSources extends Context.Service<WikiSectionSources, Sect
    *  fault hidden behind a degradation state.
    *
    *  The discrimination is by what the cause carries, not by fail-vs-die,
-   *  because on this stack the *expected* failure is a defect. `bun:sqlite` and
-   *  `node:sqlite` both construct their handle with a throwing constructor
-   *  inside `Effect.gen`, so a missing or unreadable corpus file surfaces as a
-   *  died `SQLITE_CANTOPEN` rather than as anything typed — the SQL client
-   *  layers declare `never` in their error channel. `SqlError` covers the other
-   *  half: a corpus that opens but whose schema step fails, which
-   *  `EGWParagraphDatabase.layerCore` does report typed.
+   *  because an unavailable corpus can arrive either way. The Effect SQLite
+   *  clients report a file that will not open, and a schema step that fails, as
+   *  a typed `SqlError`; a driver handle constructed outside them throws, so
+   *  the same missing file surfaces there as a died `SQLITE_CANTOPEN`.
    *
    *  Interruption is deliberately not in the set. A host shutting down mid-build
    *  has not discovered an unavailable corpus, and turning that into a value
@@ -263,10 +260,10 @@ export class WikiSectionSources extends Context.Service<WikiSectionSources, Sect
 /** Whether a layer-construction cause is "this host's corpora are not there".
  *
  *  Two shapes qualify, and only these two. A `SqlError` is the typed report
- *  from a corpus that opened but could not be prepared. A died `SQLiteError` —
- *  identified by the `SQLITE_…` code every driver stamps on it — is the
- *  untyped report from a corpus file that would not open at all, which is the
- *  common case and the one that has no typed channel to travel in.
+ *  from a corpus the SQL client could not open or prepare. A died
+ *  `SQLiteError` — identified by the `SQLITE_…` code every driver stamps on
+ *  it — is the untyped report from a driver throw that reached the layer
+ *  outside a SQL client.
  *
  *  Anything else, defect or interrupt, is not an absent corpus and is not this
  *  function's business. */

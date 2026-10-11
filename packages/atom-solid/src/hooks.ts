@@ -63,7 +63,7 @@ import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import type * as Schema from 'effect/Schema';
 import type { Accessor } from 'solid-js';
 import { isServer } from '@solidjs/web';
-import { createMemo, createRenderEffect, createSignal, sharedConfig, untrack } from 'solid-js';
+import { createMemo, createRenderEffect, createSignal, isHydrating, untrack } from 'solid-js';
 
 import { useRegistry } from './registry-context.js';
 
@@ -173,9 +173,9 @@ function createLiveAccessor<A>(
  * Only those two passes get the memo. A client render that is not hydrating
  * returns the live accessor itself: a memo's value waits for Solid's flush,
  * so behind one a read right after a write would see the old value.
- * `isServer` is Solid's build flag; `sharedConfig.hydrating` is Solid's own
- * flag for a hydration pass, set by `hydrate` and by each boundary that
- * hydrates later.
+ * `isServer` is Solid's build flag; `isHydrating()` is Solid's own answer
+ * for a hydration pass: the root pass of `hydrate`, or a boundary claiming
+ * its server markup later.
  *
  * The server never reads the live value (the memo shows the server value
  * there), so it never runs the atom: an atom whose value is the browser's
@@ -190,7 +190,7 @@ const serverAware = <A>(
   live: () => Accessor<A>,
 ): Accessor<A> => {
   if (!(Atom.ServerValueTypeId in source)) return live();
-  if (!isServer && !sharedConfig.hydrating) return live();
+  if (!isServer && !isHydrating()) return live();
   const loadingValue = Atom.getServerValue(source, registry);
   if (isServer) {
     createRenderEffect(atom, noop);
