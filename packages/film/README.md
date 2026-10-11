@@ -3323,8 +3323,13 @@ a seek, a probe, a look or a contact sheet decodes one frame's reads
 (`Footage.run`, each source's packets at most once while its times rise).
 A frame the host cannot decode fails as `FootageFrameMissing`, never drawn
 black. The player's `renderShown` (the frame the lab's still, onion and
-compare read) resolves only once that frame is painted (`paintedAt`), so
-nothing reads the canvas before its footage is on it. A drawn film has no
+compare read) resolves only once that frame is painted, so nothing reads
+the canvas before its footage is on it. The preview and the HEAD layer ask
+for frames faster than they may decode; each paints a frame only while it
+is the newest it asked for (`newestAsks`, `paintedIfNewest`), so a decode
+that lands late neither paints over a newer frame nor says it failed. An
+onion ghost that will not decode takes the onion off its layer, and
+Motion's status says why (`onion off: …`) until one paints. A drawn film has no
 `footageAt` and is drawn at once, as it always was, and its page never
 loads the decoder. The live adapter (`footage-browser.ts`) opens each
 source with mediabunny over a ranged `UrlSource` at

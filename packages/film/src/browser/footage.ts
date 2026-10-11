@@ -129,9 +129,49 @@ export const footageAt = (
  * so whatever reads the canvas after it (a note's still, the onion) reads
  * this frame.
  */
-export const paintedAt = (
+const paintedAt = (
   film: Pick<Film, 'footageAt'>,
   T: number,
   paint: (shown: FootageShown) => void,
 ): Effect.Effect<void, FootageFrameMissing, Footage> =>
   Effect.flatMap(footageAt(film, T), (shown) => Effect.sync(() => paint(shown)));
+
+/**
+ * The frames asked of one surface, of which only the newest lands, as
+ * `<video>` drops frames rather than show an old one late: `ask` gives each
+ * ask whether it is still the newest.
+ */
+export const newestAsks = () => {
+  let asked = 0;
+  return {
+    ask: (): (() => boolean) => {
+      asked += 1;
+      const mine = asked;
+      return () => mine === asked;
+    },
+  };
+};
+
+/**
+ * `paintedAt` for one ask of a surface's (`newestAsks`): its frame painted,
+ * and its failure said, only while it is the newest ask. An older ask whose
+ * footage lands after a newer one's paints nothing and fails nothing, so a
+ * decode that lands late never paints over a newer frame, and a frame no
+ * longer asked for never says it failed.
+ */
+export const paintedIfNewest = (
+  film: Pick<Film, 'footageAt'>,
+  T: number,
+  paint: (shown: FootageShown) => void,
+  isNewest: () => boolean,
+): Effect.Effect<void, FootageFrameMissing, Footage> =>
+  paintedAt(film, T, (shown) => {
+    if (isNewest()) paint(shown);
+  }).pipe(
+    Effect.catchTag('FootageFrameMissing', (missing) =>
+      Effect.suspend(() => {
+        if (isNewest()) return Effect.fail(missing);
+        return Effect.void;
+      }),
+    ),
+  );

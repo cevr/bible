@@ -17,7 +17,8 @@ import type { Host } from '../browser/host.ts';
 import {
   type FootageFrameMissing,
   type FootageShown,
-  paintedAt,
+  newestAsks,
+  paintedIfNewest,
   readsFootage,
 } from '../browser/footage.ts';
 import { makeClock } from '../browser/media-clock.ts';
@@ -93,12 +94,16 @@ export interface Player {
    * film's faces have loaded (`drawable`); a frame that reads footage (a
    * talk's) is drawn once the host has decoded it. It resolves once the frame
    * is painted, so a reader of `ctx`'s canvas after it reads this frame; a
-   * frame whose footage will not decode fails, never drawn black.
+   * frame whose footage will not decode fails, never drawn black. A surface
+   * that asks again before a frame lands (the HEAD layer) passes `newest`
+   * (one of its `newestAsks`): a frame no longer the newest asked for paints
+   * nothing and fails nothing.
    */
   renderShown(
     ctx: CanvasRenderingContext2D,
     T: number,
     over?: ReadonlyMap<string, ShownEdit>,
+    newest?: () => boolean,
   ): Effect.Effect<void, FootageFrameMissing>;
   /**
    * Draw with `edits` (`RenderOptions.edits`) from now on, starting with the
@@ -377,13 +382,21 @@ export const mountPreview = (
   bar.dataset['hud'] = 'shown';
 
   /**
-   * Frame `at`'s footage decoded, then `paint` given it. A frame that will
-   * not decode is never drawn black: the film stops, and the page says why in
-   * its place (`fail`), as it does for a face that will not load.
+   * The frames of footage the preview asks for: a decode that lands after a
+   * later ask draws nothing and says nothing, so the newest wins and the
+   * preview drops frames rather than showing an old one late, as `<video>`
+   * would.
+   */
+  const previewAsks = newestAsks();
+  /**
+   * Frame `at`'s footage decoded, then `paint` given it, while it is the
+   * newest frame asked for. A frame that will not decode is never drawn
+   * black: the film stops, and the page says why in its place (`fail`), as
+   * it does for a face that will not load.
    */
   const withFootage = (at: number, paint: (shown: FootageShown) => void) =>
     Effect.runForkWith(host)(
-      paintedAt(film, at, paint).pipe(
+      paintedIfNewest(film, at, paint, previewAsks.ask()).pipe(
         Effect.catchTag('FootageFrameMissing', (missing) =>
           Effect.logWarning(
             `player.footage.missing source=${missing.source} at=${missing.at} why=${missing.why}`,
@@ -398,12 +411,6 @@ export const mountPreview = (
         ),
       ),
     );
-  /**
-   * The last frame of footage the preview asked for: a decode that lands
-   * after a later ask draws nothing, so the newest wins and the preview
-   * drops frames rather than showing an old one late, as `<video>` would.
-   */
-  let askedFor = 0;
   /** Frame `at` drawn as the preview shows it, with what its knobs read. */
   const paintShown = (at: number, shown: FootageShown) => {
     reads = [];
@@ -414,12 +421,8 @@ export const mountPreview = (
   const draw = () => {
     if (drawable && !readsFootage(film)) paintShown(T, {});
     else if (drawable) {
-      askedFor += 1;
-      const ask = askedFor;
       const at = T;
-      withFootage(at, (shown) => {
-        if (ask === askedFor) paintShown(at, shown);
-      });
+      withFootage(at, (shown) => paintShown(at, shown));
     }
     movedTo.call(T);
     const cur = film.sceneAt(T);
@@ -739,11 +742,19 @@ export const mountPreview = (
       loop = range === undefined || range.to <= range.from ? undefined : range;
       draw();
     },
-    renderShown: (into, at, over = new Map()) =>
+    renderShown: (into, at, over = new Map(), newest = () => true) =>
       Effect.suspend(() => {
         if (!drawable) return Effect.void;
-        return paintedAt(film, at, (footage) =>
-          film.render(into, at, shownOptions({ edits: new Map([...edits, ...over]), ...footage })),
+        return paintedIfNewest(
+          film,
+          at,
+          (footage) =>
+            film.render(
+              into,
+              at,
+              shownOptions({ edits: new Map([...edits, ...over]), ...footage }),
+            ),
+          newest,
         ).pipe(Effect.provideContext(host));
       }),
     drawable: () => drawable,
