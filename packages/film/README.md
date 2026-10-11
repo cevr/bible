@@ -757,8 +757,10 @@ beside the tape, and on a phone a sheet over the tab bar that opens lowered
 to the card in brief. It holds the live frame, in, out and length in
 timecode, its marks, Open in Lab (E), Approve (A), its findings
 (`SceneFindings`, the Project's too) and a comment; its Close (Escape, a
-swipe) clears the selection and adds no entry, by the inspectors' rule
-(`useSheetDismissal`): it goes Back over the tap that opened the sheet only when
+swipe) clears the selection and adds no entry, by the sheets' one rule, the
+address bar's dismissal (`addressOn(host).dismiss`, `browser/host.ts`
+`AddressBar.dismiss`; `useSheetDismissal` tracks the tap that opened the
+sheet): it goes Back over the tap that opened the sheet only when
 the entry before it is exactly where the Close would write (a scene's tap moves
 the playhead, so Close keeps that time), else the entry is rewritten to the tape. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
 say; M puts the cursor in the selected scene's comment box (an unsent comment is kept per scene); an approve's receipt offers Undo (`project.undo-approve`), as
@@ -1700,10 +1702,11 @@ selected note's reply, stand in the selection's sheet
 above the dock (`cue rise · offset 0 · dur 0.6 · ease inOutCubic`, each
 value as its field prints it; `peekText` in `lab/editor/format.ts`; `note n1 · one · … · open`), opens
 whole on a tap of its head, and its open state is the selection: Back closes
-it as it unpicks, and Close, Escape or a swipe unpick by the review sheets'
-one rule (`useSheetDismissal`: Back over a tap's pick when the entry before it
-is where the Close would write, so a time moved since is kept; else the URL
-follows to pick none).
+it as it unpicks, and Close, Escape or a swipe unpick by the sheets' one
+rule, the address bar's dismissal (`addressOn(host).dismiss`, told by
+`useSheetDismissal` which tap opened the sheet: Back over a tap's pick when
+the entry before it is where the Close would write, so a time moved since is
+kept; else the URL follows to pick none).
 
 | Route                                              | What it does                                                                                                                                                                                                                        |
 | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2446,7 +2449,7 @@ them): Show findings (⌘K, the page's long-press menu) opens the
 check's findings grouped, a timed one with its timecode, which seeks the
 picture there. On Choices and Project the sheet is the URL's (`?findings=1`):
 raising it is a step Back closes, and Close, Escape and a swipe go Back over it
-by the sheets' one rule (`useSheetDismissal`); F and ⇧F walk the timed findings forward and back. A write is
+by the sheets' one rule, the address bar's dismissal (`addressOn(host).dismiss`; `useSheetDismissal` tracks the opening); F and ⇧F walk the timed findings forward and back. A write is
 shown from its answer: the page reads nothing again but the undo and redo
 (`GET …/steps`, no check) and, after an undo or a redo, the choices. The
 answer updates the player in place: the picture's `<video>` stays the same

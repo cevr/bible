@@ -30,7 +30,6 @@ import {
   Clock,
   Config,
   Context,
-  Data,
   Duration,
   Effect,
   Fiber,
@@ -96,8 +95,7 @@ import { clamp } from '../core/time.ts';
 import { counted } from '../core/words.ts';
 import { CATALOGUE_FILE, type CatalogueError, RenderCatalogue } from './catalogue.ts';
 import { writeWhole } from './content-store.ts';
-import { cacheKey } from './digest.ts';
-import { keptWhenMade } from './film-repo.ts';
+import { AtMtime, fileCache, madeFromName } from './file-cache.ts';
 import { Media } from './media.ts';
 
 /** A folder the review reads, and the label its refs start with. */
@@ -598,9 +596,6 @@ export const once = <K, A, E>(
     }),
   );
 
-/** A file as it stands: its path and mtime, the key of what is read from it. */
-class AtMtime extends Data.Class<{ readonly file: string; readonly mtime: number }> {}
-
 /** How many lengths the review keeps: every video a long review shows, with room. */
 const LENGTHS_KEPT = 4096;
 
@@ -638,8 +633,16 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             Effect.option,
           );
 
-        const mtimeOf = (file: string) =>
-          Effect.map(statOf(file), Option.match({ onNone: () => 0, onSome: (s) => s.mtime }));
+        /** `file` as it stands now: its mtime, or 0 for a file not there, the key of what is read or made from it. */
+        const standing = (file: string) =>
+          Effect.map(
+            statOf(file),
+            (stat) =>
+              new AtMtime({
+                file,
+                mtime: Option.match(stat, { onNone: () => 0, onSome: (s) => s.mtime }),
+              }),
+          );
 
         const foundAt = Effect.fn('Review.foundAt')(function* (file: string) {
           const ref = refOf(roots, file, path);
@@ -705,25 +708,18 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
          * its own, never rounded; none for a file with no video), by path and
          * mtime, the newest kept; a failed read is not.
          */
-        const lengths = yield* Cache.makeWith((at: AtMtime) => media.timing(at.file), {
-          capacity: LENGTHS_KEPT,
-          timeToLive: keptWhenMade,
-        });
+        const lengths = yield* fileCache((at) => media.timing(at.file), LENGTHS_KEPT);
 
         const duration = Effect.fn('Review.duration')(function* (ref: string) {
-          const file = yield* resolve(ref);
-          return yield* Cache.get(lengths, new AtMtime({ file, mtime: yield* mtimeOf(file) }));
+          return yield* Cache.get(lengths, yield* standing(yield* resolve(ref)));
         });
 
         /** The frames being made, by name: a scrub that asks for one twice makes it once. */
         const framing = yield* FiberMap.make<string, string, ReviewToolFailed | MediaFailed>();
 
-        const sourceKey = Effect.fn('Review.sourceKey')(function* (
-          file: string,
-          rest: ReadonlyArray<string | number>,
-        ) {
-          return cacheKey([file, yield* mtimeOf(file), ...rest]);
-        });
+        /** The cache file's name for what is made from `file` as it stands, with `rest`. */
+        const sourceKey = (file: string, rest: ReadonlyArray<string | number>) =>
+          Effect.map(standing(file), (at) => madeFromName(at, rest));
 
         const frame = Effect.fn('Review.frame')(function* (
           ref: string,
