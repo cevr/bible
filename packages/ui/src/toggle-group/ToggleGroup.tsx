@@ -4,9 +4,10 @@
 // `value`: pressing a toggle offers `[its value]`, pressing the pressed one
 // offers `[]`, and the toggles show what the owner keeps. It is a composite
 // with one tab stop (the left and right arrows, wrapping at the ends; Home
-// and End). A mouse press leaves focus where it was, as a toolbar's button
-// does, unless focus is already in the group; the pressed toggle takes the
-// tab stop either way (see Toggle).
+// and End), which starts on the pressed toggle (the first when none is). A
+// mouse press from outside the group takes no focus: it blurs whatever had
+// it, as a click on the page does; the pressed toggle takes the tab stop
+// either way (see Toggle).
 // Upstream's uncontrolled mode, `multiple`, `disabled`, `orientation` and
 // `loopFocus` are left out.
 import type { JSX } from '@solidjs/web';
@@ -34,6 +35,15 @@ export function ToggleGroup<Value extends string = string>(
   props: ToggleGroupProps<Value>,
 ): JSX.Element {
   let element: HTMLElement | null = null;
+  // Each toggle's value by its element: the tab stop starts on the pressed one.
+  const toggles = new WeakMap<Element, Value>();
+  const pressedIndex = (elements: ReadonlyArray<HTMLElement | null>) => {
+    const pressed = untrack(() => props.value);
+    return elements.findIndex((el) => {
+      const value = el ? toggles.get(el) : undefined;
+      return value !== undefined && pressed.includes(value);
+    });
+  };
   const context: ToggleGroupContextValue<Value> = {
     get value() {
       return props.value;
@@ -43,6 +53,9 @@ export function ToggleGroup<Value extends string = string>(
     },
     holdsFocus() {
       return element?.contains(element.ownerDocument.activeElement) ?? false;
+    },
+    registerToggle(node, value) {
+      toggles.set(node, value);
     },
   };
 
@@ -68,6 +81,7 @@ export function ToggleGroup<Value extends string = string>(
         class={props.class}
         style={props.style}
         state={STATE}
+        initialIndex={pressedIndex}
         props={[defaultProps, elementProps]}
       />
     </ToggleGroupContext>

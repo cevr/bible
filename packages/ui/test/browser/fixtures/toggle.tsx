@@ -3,7 +3,7 @@
 // lab's mode trays: one value always pressed, an offered `[]` ignored) or
 // `owner=decline` (it takes none). `value` seeds the owner's value; the
 // `set-value` button sets it to `three`. Every offer is logged as
-// `value [<values>]`.
+// `value [<values>]`; the field after the group logs `field blur`.
 import type { JSX } from '@solidjs/web';
 import { createSignal } from 'solid-js';
 
@@ -47,6 +47,7 @@ function Group() {
       <button id="set-value" onClick={() => setValue(['three'])}>
         set
       </button>
+      <input id="field" aria-label="field" onBlur={() => log('field blur')} />
     </>
   );
 }

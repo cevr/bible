@@ -428,6 +428,9 @@ describe('the lab shell', () => {
         yield* page.reload;
         yield* page.waitFor('.lab-panel[data-staged="true"]');
         yield* attributeIs(page, '.lab-panel', 'data-mode', 'motion');
+        // The tray's one tab stop starts on the mode kept, not on the first.
+        yield* attributeIs(page, '.lab-modes [data-mode-pick="motion"]', 'tabindex', '0');
+        yield* attributeIs(page, '.lab-modes [data-mode-pick="edit"]', 'tabindex', '-1');
         // Note this frame, from any mode, shows Note with its composer open.
         yield* page.press('n');
         yield* attributeIs(page, '.lab-panel', 'data-mode', 'note');

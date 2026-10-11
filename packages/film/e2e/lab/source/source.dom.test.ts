@@ -29,6 +29,7 @@ import {
   pressedLook,
   textHas,
   textIs,
+  valueIs,
 } from '../../../src/lab/fixtures/settled.ts';
 import { PHONE_HIT, undersizedTargets } from '../../../src/lab/fixtures/touch-targets.ts';
 
@@ -390,6 +391,36 @@ describe('on a phone', () => {
       yield* page.click('.lab-selection-sheet [data-face="inspect"]');
       yield* countIs(page, '.lab-selection-sheet .lab-source', 0);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a number typed and not yet sent is written once when Source is pressed, and Inspect shows it',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openLab([codeRoute, sourceRoute], {
+          href: labOne(1, { cue: 'rise' }),
+          viewport: PHONE,
+        });
+        yield* page.waitFor('.lab-selection-sheet');
+        yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+        const dur = '.lab-selection-sheet input[data-field="dur"]';
+        yield* page.waitFor(`${dur}:not([disabled])`);
+        yield* valueIs(page, dur, '0.6');
+        // Typed, no Enter: the press on Source leaves the inspector, and the field's blur writes it.
+        yield* page.fill(dur, '0.9');
+        yield* page.click('.lab-selection-sheet [data-face="source"]');
+        yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+        yield* page.click('.lab-selection-sheet [data-face="inspect"]');
+        yield* page.waitFor(`${dur}:not([disabled])`);
+        yield* valueIs(page, dur, '0.9');
+        const writes = asked
+          .filter((a) => a.method === 'POST')
+          .map((a) => ({ path: a.path, body: a.body }));
+        expect(writes).toEqual([
+          { path: '/scenes/one/cues/rise', body: Option.some({ dur: 0.9 }) },
+        ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live('opened from a selected cue with nothing playing, it shows the cue’s literal', () =>

@@ -2,10 +2,12 @@
 //
 // A two-state button (`aria-pressed`), an item of a toggle group: pressed
 // while its `value` is among the group's, and an item of the group's roving
-// focus. A mouse press leaves focus where it was unless focus is already in
-// the group (upstream focuses the toggle); the press still moves the group's
-// tab stop to it. Upstream's lone toggle (`pressed`, `defaultPressed`,
+// focus. A mouse press takes no focus unless focus is already in the group
+// (upstream focuses the toggle): it blurs whatever had focus, which then
+// rests on the page, and still moves the group's tab stop to the toggle.
+// Upstream's lone toggle (`pressed`, `defaultPressed`,
 // `onPressedChange`) and `disabled` are left out.
+import { isHTMLElement } from '@floating-ui/utils/dom';
 import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
 
@@ -43,12 +45,26 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
     get 'aria-pressed'() {
       return pressed() ? 'true' : 'false';
     },
+    ref(node: HTMLElement | null) {
+      if (node) {
+        group.registerToggle(
+          node,
+          untrack(() => props.value),
+        );
+      }
+    },
     onMouseDown(event: MouseEvent) {
-      // A mouse press leaves focus where it was, so the page keeps its keys
-      // (Space, the arrows) after a click; a keyboard user already in the
-      // group keeps it, on the pressed toggle.
-      if (!group.holdsFocus()) {
-        event.preventDefault();
+      // A mouse press from outside the group takes no focus: whatever had it
+      // is blurred (a field commits on its own blur, before the press's
+      // change) and the page keeps its keys (Space, the arrows). A keyboard
+      // user already in the group keeps it, on the pressed toggle.
+      if (group.holdsFocus()) {
+        return;
+      }
+      event.preventDefault();
+      const active = (event.currentTarget as HTMLElement).ownerDocument.activeElement;
+      if (isHTMLElement(active) && active !== active.ownerDocument.body) {
+        active.blur();
       }
     },
     onClick() {
