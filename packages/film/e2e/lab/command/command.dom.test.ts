@@ -62,22 +62,26 @@ describe('the command menu', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live('a query no command matches names no row, and says so beside the list, not in it', () =>
-    Effect.gen(function* () {
-      const { page, errors } = yield* openLab([], { href: labAt(0.5) });
-      yield* page.press('Control+k');
-      yield* page.waitFor('[data-role="command-menu"] [data-command]');
-      yield* page.fill('.lab-command-query', 'zzzz no such command');
-      yield* textIs(page, '[data-role="command-menu"] .lab-command-none', 'No command matches.');
-      // The listbox holds options alone; the query points at no row.
-      yield* countIs(page, '[role="listbox"] > :not([role="option"])', 0);
-      yield* evaluates(
-        page,
-        "document.querySelector('.lab-command-query').hasAttribute('aria-activedescendant')",
-        false,
-      );
-      expect(errors).toEqual([]);
-    }).pipe(Effect.scoped),
+  it.live(
+    'a query no command matches names no row, even after the arrows, and says so beside the list, not in it',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([], { href: labAt(0.5) });
+        yield* page.press('Control+k');
+        yield* page.waitFor('[data-role="command-menu"] [data-command]');
+        yield* page.fill('.lab-command-query', 'zzzz no such command');
+        yield* textIs(page, '[data-role="command-menu"] .lab-command-none', 'No command matches.');
+        // The listbox holds options alone; the query points at no row, nor does an arrow make it.
+        yield* countIs(page, '[role="listbox"] > :not([role="option"])', 0);
+        const names =
+          "document.querySelector('.lab-command-query').hasAttribute('aria-activedescendant')";
+        yield* evaluates(page, names, false);
+        yield* page.pressIn('.lab-command-query', 'ArrowDown');
+        yield* evaluates(page, names, false);
+        yield* page.pressIn('.lab-command-query', 'ArrowUp');
+        yield* evaluates(page, names, false);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live('/ opens it to Go to: a scene or a cue found by its name, once a word is typed', () =>

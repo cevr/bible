@@ -51,7 +51,9 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
 
   // The row the query names as its active descendant: one that exists, else none (no row matches).
   const active = () =>
-    Option.getOrUndefined(Option.liftPredicate(`lab-command-${at()}`, () => at() < rows().length));
+    Option.getOrUndefined(
+      Option.map(Option.fromUndefinedOr(rows()[at()]), () => `lab-command-${at()}`),
+    );
 
   const show = (ctx: Context) => {
     run.open({ ...ctx, focus: 'page' });
@@ -97,7 +99,8 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
 
   const onKey = (e: KeyboardEvent) => {
     const count = rows().length;
-    if (e.key === 'ArrowDown') setAt((i) => Math.min(count - 1, i + 1));
+    // An empty list keeps the first place: no row is active until one exists.
+    if (e.key === 'ArrowDown') setAt((i) => Math.max(0, Math.min(count - 1, i + 1)));
     else if (e.key === 'ArrowUp') setAt((i) => Math.max(0, i - 1));
     else if (e.key === 'Enter') Option.map(Option.fromUndefinedOr(rows()[at()]), choose);
     else return;
