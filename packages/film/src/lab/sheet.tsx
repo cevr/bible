@@ -134,8 +134,9 @@ export const Sheet = (props: {
       }}
     >
       {/* In place, not moved to the body: a link's sheet is in the server's
-          markup and hydrates there; it stands against the window (fixed). */}
-      <UiSheet.Portal inline>
+          markup and hydrates there; it stands against the window (fixed), and
+          draws the sheet's shadow round the clipped overlay. */}
+      <UiSheet.Portal inline class="lab-inspector-portal">
         <UiSheet.Overlay class="lab-inspector-overlay">
           <UiSheet.Popup class="lab-inspector-panel">
             <UiSheet.Content

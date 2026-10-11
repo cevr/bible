@@ -14,7 +14,12 @@
 // no wider than the screen less its gutters, scrolling inside itself. An
 // inspector field is the kit's number field (`.lab-num`), styled where the
 // kit is, never here. A phone's width is the studio's one breakpoint
-// (`PHONE`, `WIDE`), asked through its owner.
+// (`PHONE`, `WIDE`), asked through its owner. A sheet (@bible/ui's Sheet) is
+// clipped to its panel, which stands off the page's scrollbar: its portal
+// round the clip draws its shadow and takes no presses, and its focus ring is
+// drawn inside it (`--focus-inset`; this sheet comes after the review's,
+// whose ring it overrides). Comments here ship with the review's
+// render-blocking CSS, so the notes stand in this one.
 
 import { PHONE, WIDE } from '../viewport.ts';
 
@@ -136,12 +141,9 @@ const COMMAND_RULES = `
   font-family: var(--font); font-size: var(--fs-2); color: var(--text-1); padding: var(--cmd-key-pad);
   border: 1px solid var(--line-strong); border-radius: var(--r-1);
 }
-/* @bible/ui's Sheet: clipped to its panel (so no shadow), which stands off the page's scrollbar. */
-.lab-inspector-overlay { z-index: var(--cmd-layer); }
-.lab-inspector-panel {
-  position: relative; right: var(--sheet-scroll-padding-x, 0px);
-  width: min(var(--inspector-w), 100vw); height: 100%;
-}
+.lab-inspector-portal { position: fixed; inset: 0; z-index: var(--cmd-layer); pointer-events: none; filter: drop-shadow(var(--shadow-pop)); }
+.lab-inspector-sheet:focus-visible { box-shadow: var(--focus-inset); }
+.lab-inspector-panel { position: relative; right: var(--sheet-scroll-padding-x); width: min(var(--inspector-w), 100vw); height: 100%; }
 .lab-inspector-sheet {
   overflow: auto; display: flex; flex-direction: column; gap: var(--s-2);
   background: var(--surface-2); color: var(--text-1); border-left: 1px solid var(--line-strong);
@@ -205,10 +207,7 @@ const COMMAND_RULES = `
     --cmd-sheet-floor: calc(var(--tabbar-h) + var(--dock-h) + env(safe-area-inset-bottom));
   }
   body:has(.sh[data-film="false"] .sh-dock) { --cmd-sheet-floor: calc(var(--dock-h) + env(safe-area-inset-bottom)); }
-  .lab-inspector-panel {
-    right: auto; bottom: var(--cmd-sheet-floor); align-self: flex-start;
-    width: var(--visual-viewport-width, 100%); height: auto;
-  }
+  .lab-inspector-panel { right: auto; bottom: var(--cmd-sheet-floor); align-self: flex-start; width: var(--visual-viewport-width, 100%); height: auto; }
   .lab-inspector-sheet {
     max-height: var(--cmd-sheet-height);
     border-left: 0; border-top: 1px solid var(--line-strong);

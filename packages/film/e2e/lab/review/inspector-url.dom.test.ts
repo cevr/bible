@@ -80,6 +80,28 @@ const PAGES: ReadonlyArray<Page> = [
 ];
 
 /** The URL's query keys a sheet is named by, as a script reads them. */
+/**
+ * The focused sheet's ring, against the clip of the overlay it stands in
+ * (`@bible/ui/sheet` clips a non-modal sheet to its panel): whether the sheet
+ * has focus from the keyboard, draws a ring, and the ring's box (its own box,
+ * grown by its widest outer shadow) lies inside the clip.
+ */
+const RING = `(() => {
+  const el = document.activeElement;
+  const shadows = getComputedStyle(el).boxShadow.split(/,(?![^(]*\\))/).filter((s) => s.trim() !== 'none');
+  const out = Math.max(0, ...shadows.filter((s) => !/\\binset\\b/.test(s)).map((s) => parseFloat(s.replace(/rgba?\\([^)]*\\)/, '').trim().split(/\\s+/)[3] ?? '0')));
+  const r = el.getBoundingClientRect();
+  const overlay = el.closest('.lab-inspector-overlay');
+  const o = overlay.getBoundingClientRect();
+  const [top, right, bottom, left] = (/^inset\\(([^)]*)\\)$/.exec(getComputedStyle(overlay).clipPath)?.[1] ?? '0px').split(' ').map(parseFloat);
+  const clip = { top: o.top + top, right: o.right - (right ?? top), bottom: o.bottom - (bottom ?? top), left: o.left + (left ?? right ?? top) };
+  return {
+    focused: el.matches('${INSPECTOR}') && el.matches(':focus-visible'),
+    ring: shadows.length > 0,
+    inside: r.top - out >= clip.top - 0.5 && r.right + out <= clip.right + 0.5 && r.bottom + out <= clip.bottom + 0.5 && r.left - out >= clip.left - 0.5,
+  };
+})()`;
+
 const QUERY = `(() => { const q = new URL(location.href).searchParams; return [q.get('point') ?? '', q.get('inspect') ?? '']; })()`;
 
 /** Wait until the URL is `href`, path and query. */
@@ -194,6 +216,24 @@ for (const p of PAGES) {
           ]);
           // Back over the tap, or the tap's entry rewritten: no entry of the swipe's own.
           yield* evaluates(page, 'history.length === window.__entries', true);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+    it.live(
+      'opened from the keyboard, the sheet shows its whole focus ring, drawn inside the clip it stands in',
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* openReview(studioRoutes, {
+            href: p.href,
+            viewport: LAPTOP,
+          });
+          yield* waitFor(page, p.ready);
+          yield* page.pressIn(p.thing, 'Enter');
+          yield* waitFor(page, CLOSE);
+          yield* sheetsStand(page);
+          yield* evaluates(page, RING, { focused: true, ring: true, inside: true });
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
       SLOW,
