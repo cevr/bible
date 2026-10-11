@@ -46,7 +46,12 @@ interface StandInLinear {
 interface StandInCanvas {
   width: number;
   height: number;
-  readonly getContext: () => CanvasRenderingContext2D;
+  /**
+   * Its 2D stand-in; any other kind (`webgl2`, `webgl`) is none, as a canvas
+   * that cannot make one answers, so a look drawn in 3D (`glCanvas`) falls
+   * back rather than drive a 2D recorder as a GL context.
+   */
+  readonly getContext: (kind?: string) => CanvasRenderingContext2D | null;
   readonly drawn: Recorder;
   /** Its number, in the order stand-in canvases are made: a log of calls tells canvases apart by it. */
   readonly made: number;
@@ -494,7 +499,7 @@ const standInCanvas = (options: StandInOptions = {}): StandInCanvas => {
     width: 0,
     height: 0,
     made: canvasesMade,
-    getContext: () => canvas.drawn.ctx,
+    getContext: (kind = '2d') => (kind === '2d' ? canvas.drawn.ctx : null),
     get drawn() {
       drawn ??= recorder(canvas.width, canvas.height, options);
       return drawn;

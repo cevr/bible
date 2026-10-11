@@ -33,6 +33,7 @@ bun run media pull <key…> [--to dir]           # renders back out (default out
 bun run media list [prefix]                    # what the private store holds under a prefix (default renders/)
 bun run plan | deploy                          # the private store's Cloudflare stack (alchemy.run.ts), prod stage; deploy is the owner's call
 bun run store:keys                             # the deployed store's key pair into ./.env (git-ignored)
+bun run seed-look [--seed n] [--count k] [--out dir]  # new art directions for the looks study, drawn from a seed, as style briefs (see New art directions)
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time and sound, and each bed's span
@@ -42,6 +43,7 @@ bun run check <film>                           # cues, sound cues, stale takes/s
 bun run check <film> --static --allow-stale    # the files alone: no mix, no browser (the lab runs this after each write)
 bun run check <film> --sound                   # the static leg and the mix the film makes now (DeadAir, MasterLoudness, EffectHot), no browser
 bun run check <film> --draw                    # the static leg and every scene drawn in this process (DrawThrew, FrameImpure, InkOverFace on a face the viewer sees), no browser
+bun run check <film> [--draw] --level <look>=<level>  # a wedge: --draw and the page legs draw that look at that level instead of the one it plays, the pick left unwritten (not with --static, --sound or --short)
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message,address:{part,time}} (the lab reads this)
 bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone, a hook by 0.5 s, a clean loop, 45–75 s (--static: no frames probed)
 bun run render <film>                          # out/<film>/film/main.mp4 + .share.mp4 + .vtt (+ .chapters.txt when film.ts declares a look), recorded in out/<film>/catalogue.json
@@ -50,6 +52,7 @@ bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/film/m
 bun run render <film> --scene id[,id] ...      # a video or contact sheet over those adjacent scenes in out/<film>/scenes/<id>[+<id>]/ (not --stills); --act name for one act (acts/<act>/)
 bun run render <film> --short <id> ...         # out/<film>/shorts/<id>/main.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
 bun run render <film> ... --variant <name>     # another render of the same address beside main (<name>.mp4, <name>/stills/…): a look or score option, lab-<id>
+bun run render <film> ... --level <look>=<level> [--variant <name>]  # a wedge render: that look at that level instead of the one it plays, the pick left unwritten; files named for the levels (style-ps1) unless --variant names them
 bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
 bun run look <film> --scene <id> --at <place> [--at …]  # stills of the scene as its sources stand, from the running lab's warm page in about a second (no render): out/<film>/look/<scene>/…, one line per still; a place is seconds into the scene, mark:<name> or cue:<name>[@0..1] (FILM_LAB_URL, else :8229)
 bun run look <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer, or its failure as the route answers it (`ToolFailure`), as one line
@@ -331,6 +334,23 @@ from it. The file on disk never changes. A look or level the palette lacks
 is `LookLevelUnknown`; a wedge's stills carry its levels in their names
 (`….wground-light.b<build>.jpg`).
 
+`render` takes the same `--level` (`render <film> --level style=ps1`): the
+render page alone is built with the swapped palette and served on a loopback
+port of its own while the render runs, in place of the app's player, so a
+render needs no lab. The render's stamp carries the levels, so a wedge's
+render is never taken for the film as written, and its files are named for
+the levels (`style-ps1.mp4`, look by look in order) unless `--variant` names
+them; `--variant main` with a `--level` is refused, so a wedge never writes
+over `main`.
+
+`check` takes it too (`check <film> --draw --level style=ps1`): the page legs
+draw on that same loopback build, and `--draw`, which draws in its own
+process, imports the film's module built once with the swapped palette (into
+a temporary directory, removed when the check ends; its packages are pinned
+to the ones the film itself resolves, so the build shares `@bible/film` with
+the check wherever `FILMS_OUT` points), so a look the film does not play is
+checked before it is picked.
+
 ### A second opinion: the judge
 
 `bun run judge <film> --scene <id>` asks another model family to rank the
@@ -440,6 +460,34 @@ or the always-on lab on 8229 when that is unset. `bun run test:gent`
 typechecks and tests the extension against a local gent checkout:
 `~/Developer/personal/gent`, or the one named in `GENT_CHECKOUT`. It runs
 only on your machine, like `test:perf`, and the gate never runs it.
+
+### New art directions: the seeder
+
+`bun run seed-look [--seed n] [--count k] [--out dir]` (`art/seed-look.ts`)
+draws new looks for the `cold-studies` looks study from a seed and prints each
+as a markdown style brief: its picks on every axis of the deck, what each asks
+of the engine and the implementor, its cost (the Canvas 2D kit, or WebGL
+through `glCanvas`), the existing look it is nearest, and the series' standing
+rules (the colour script, human scale, the card). The deck is data
+(`art/deck.ts`): a first-class dimension (2D or 3D), about forty media tagged
+with the dimensions they allow, and an era, a palette family (each keeping the
+colour script), light, character design, camera and motion, texture, verse
+page and card typography, each option naming what it is never drawn with
+(`excludes`) or only with (`requires`). The existing looks are profiled there
+too, so a draw keeps its distance from them (`minDistance`, and never one's
+medium).
+
+A brief cites its seed and the deck's version, and the same seed draws the
+same brief forever: each option is scored by its own id, so an option added to
+an axis changes only the attempts it wins. To add options (the BibleProject
+style survey's catalogue among them), append them with new ids; removing an
+option or renaming one raises the deck's `version`. A batch (`--count` over 1)
+takes seed after seed, keeping a draw only when it is far enough from the
+batch's earlier draws and its dimension has room (half 2D, half 3D), and
+lists the seeds it passed over. The draw itself is the framework's
+(`drawBatch` and `artBrief` from `@bible/film/tools`, `core/art-seed.ts`); the
+deck is this app's, which is why the command is an app script, not a `film`
+command.
 
 ## How a film is built
 

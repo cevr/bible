@@ -241,7 +241,7 @@ export const normalizeWords = (s: string): ReadonlyArray<string> =>
  * (`normalizeWords`): `“Not,` reads `not`, `God’s` reads `god's`, and
  * `cover-up` reads `cover`, `up` and `cover-up`, a whole part at a time.
  */
-const readsWord = (text: string, word: string): boolean => {
+export const readsWord = (text: string, word: string): boolean => {
   const said = normalizeWords(text);
   const want = normalizeWords(word);
   if (want.length === 0) return false;
