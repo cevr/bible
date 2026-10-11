@@ -35,7 +35,7 @@ import {
 import { type Pcm, toInt16 } from '../core/audio.ts';
 import { ratedVideo } from '../lab/fixtures/rated-video.ts';
 import type { RatedTiming } from '../lab/fixtures/rated-video.ts';
-import { Media } from './media.ts';
+import { Media, PHONE_RATE } from './media.ts';
 import { collectWithin } from './process.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
@@ -150,47 +150,51 @@ const aiff16 = (rate: number, samples: Int16Array) => {
   return bytes;
 };
 
-/** The phone copy's height: a clip this high keeps its size, so its frames compare pixel for pixel. */
-const PHONE_TALL = 720;
-/** Its width: narrow, so x264 has little to encode and the case stays quick. */
-const PHONE_NARROW = 64;
+/** A made clip's size and length: under 720 lines, so its phone copy keeps its size and frames compare pixel for pixel. */
+interface Clip {
+  readonly width: number;
+  readonly height: number;
+  readonly fps: number;
+  readonly frames: number;
+}
 
 /**
- * A clip `PHONE_NARROW` × `PHONE_TALL` whose every frame holds detail of its
- * own, as a render's grain, dither or crawling hatching does: one seeded
- * texture under grain drawn fresh each frame, and a bar moving down it,
- * `frames` at 30 a second, encoded by x264 near losslessly (quantizer 8).
- * Its frames follow on from one another (no cut), so an encoder places its
- * key frames by its own rhythm.
+ * A clip whose every frame holds detail of its own, as a render's grain,
+ * dither or crawling hatching does: one seeded texture under grain drawn
+ * fresh each frame, and a bar moving down it, encoded by x264 near
+ * losslessly (quantizer 8). Its frames follow on from one another (no cut),
+ * so an encoder places its key frames by its own rhythm.
  */
-const grainyClip = (file: string, frames: number) =>
+const grainyClip = (file: string, clip: Clip) =>
   Effect.gen(function* () {
+    const { width, height, fps, frames } = clip;
     const output = new Output({ format: new Mp4OutputFormat(), target: new FilePathTarget(file) });
     const source = new VideoSampleSource({ codec: 'avc', quality: new Quality({ quantizer: 8 }) });
-    output.addVideoTrack(source, { frameRate: 30 });
+    output.addVideoTrack(source, { frameRate: fps });
     yield* Effect.promise(() => output.start());
     let seed = 7;
     const next = () => {
       seed = (seed * 1103515245 + 12345) % 2147483648;
       return seed / 2147483648;
     };
-    const luma = PHONE_NARROW * PHONE_TALL;
+    const luma = width * height;
     const texture = Uint8Array.from({ length: luma }, () => 48 + Math.floor(next() * 160));
     for (const k of Arr.range(0, frames - 1)) {
       const data = new Uint8Array(luma * 1.5).fill(128);
       for (const i of Arr.range(0, luma - 1)) {
-        const row = Math.floor(i / PHONE_NARROW);
+        const row = Math.floor(i / width);
         const grain = Math.floor((next() - 0.5) * 80);
-        // The bar is white (255), above any grain on the texture (248 at most).
-        const bar = Number(Math.abs(row - k * 8) < 24) * 255;
+        // The bar is white (255), above any grain on the texture (248 at most),
+        // three lines lower each frame: never a jump an encoder would take for a cut.
+        const bar = Number(Math.abs(row - 3 * k) < 6) * 255;
         data[i] = Math.max(bar, (texture[i] ?? 128) + grain);
       }
       const sample = new VideoSample(data, {
         format: 'I420',
-        codedWidth: PHONE_NARROW,
-        codedHeight: PHONE_TALL,
-        timestamp: k / 30,
-        duration: 1 / 30,
+        codedWidth: width,
+        codedHeight: height,
+        timestamp: k / fps,
+        duration: 1 / fps,
       });
       yield* Effect.promise(() => source.add(sample));
       sample.close();
@@ -198,8 +202,8 @@ const grainyClip = (file: string, frames: number) =>
     yield* Effect.promise(() => output.finalize());
   });
 
-/** Each frame of `file`'s video, in order of showing, as its luma plane (`PHONE_NARROW` wide), and its key frames' times. */
-const lumas = Effect.fn('test.lumas')(function* (file: string) {
+/** Each frame of `file`'s video (`clip`'s size), in order of showing, as its luma plane, and its key frames' times. */
+const lumas = Effect.fn('test.lumas')(function* (file: string, { width, height }: Clip) {
   const input = new Input({ source: new FilePathSource(file), formats: ALL_FORMATS });
   const track = yield* Effect.flatMap(
     Effect.promise(() => input.getPrimaryVideoTrack()),
@@ -214,10 +218,10 @@ const lumas = Effect.fn('test.lumas')(function* (file: string) {
         const bytes = new Uint8Array(sample.allocationSize());
         const [plane] = yield* Effect.promise(() => sample.copyTo(bytes));
         sample.close();
-        const { offset = 0, stride = PHONE_NARROW } = plane ?? {};
-        return Uint8Array.from({ length: PHONE_NARROW * PHONE_TALL }, (_, i) => {
-          const row = Math.floor(i / PHONE_NARROW);
-          return bytes[offset + row * stride + (i % PHONE_NARROW)] ?? 0;
+        const { offset = 0, stride = width } = plane ?? {};
+        return Uint8Array.from({ length: width * height }, (_, i) => {
+          const row = Math.floor(i / width);
+          return bytes[offset + row * stride + (i % width)] ?? 0;
         });
       }),
     ),
@@ -538,16 +542,18 @@ describe.concurrent('Media', () => {
   );
 
   it.effect.layer(MediaOnDisk)(
-    "a phone copy shows every frame's own picture however fine its detail, and a seek in it decodes at most a second",
+    "a phone copy shows every frame's own picture however fine its detail, and a seek in it decodes at most a second at the video's own rate",
     () =>
       Effect.scoped(
         Effect.gen(function* () {
           const dir = yield* tempDir;
-          const frames = 60;
-          yield* grainyClip(`${dir}/grain.mp4`, frames);
+          // Two seconds at 25 frames a second: a key frame every 30 frames would come every 1.2 s.
+          const clip = { width: 64, height: 160, fps: 25, frames: 50 };
+          const { frames, fps } = clip;
+          yield* grainyClip(`${dir}/grain.mp4`, clip);
           yield* (yield* Media).phoneCopy(`${dir}/grain.mp4`, `${dir}/phone.mp4`);
-          const made = yield* lumas(`${dir}/grain.mp4`);
-          const copy = yield* lumas(`${dir}/phone.mp4`);
+          const made = yield* lumas(`${dir}/grain.mp4`, clip);
+          const copy = yield* lumas(`${dir}/phone.mp4`, clip);
           expect(copy.pictures.length).toBe(frames);
           // A frame the encode starved shows the picture before it (or a blend
           // of its neighbours): nearer the frame before than its own.
@@ -558,13 +564,36 @@ describe.concurrent('Media', () => {
           });
           expect(behind).toEqual([]);
           // A seek starts decoding at the key frame at or before it.
+          // From each key frame to the next, the last to the end.
           const spans = Arr.zipWith(
-            [...copy.keys, frames / 30],
-            [-1, ...copy.keys],
-            (b, a) => b - a,
+            [...copy.keys.slice(1), frames / fps],
+            copy.keys,
+            (next, key) => next - key,
           );
           expect(copy.keys[0]).toBe(0);
           expect(spans.filter((span) => span > 1 + 1e-6)).toEqual([]);
+        }),
+      ),
+  );
+
+  it.effect.layer(MediaOnDisk)(
+    'a phone copy of a short video too dense to play averages the phone rate at most',
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* tempDir;
+          // A third of a second of grain over every pixel: denser than the rate even at CRF 23.
+          yield* grainyClip(`${dir}/dense.mp4`, { width: 640, height: 360, fps: 30, frames: 10 });
+          yield* media.phoneCopy(`${dir}/dense.mp4`, `${dir}/phone.mp4`);
+          const rateOf = (file: string) =>
+            Effect.gen(function* () {
+              const { seconds } = yield* media.timing(file);
+              return (Number((yield* fs.stat(file)).size) * 8) / seconds;
+            });
+          expect(yield* rateOf(`${dir}/dense.mp4`)).toBeGreaterThan(2 * PHONE_RATE);
+          expect(yield* rateOf(`${dir}/phone.mp4`)).toBeLessThanOrEqual(PHONE_RATE);
         }),
       ),
   );

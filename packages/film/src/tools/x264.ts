@@ -29,23 +29,32 @@ const SHARE_X264 = {
 };
 
 /**
- * A phone copy (a bitrate quality), made in the review's own process in the
- * background, on `PHONE_THREADS` threads, so the review answers while it
+ * A phone copy (a bitrate quality), everything it is made with: the review
+ * names a copy by all of it (`media.ts` `PHONE_COPY`), so a copy made any
+ * other way is never served. At most `height` lines high (a shorter video
+ * keeps its size, `Media.phoneCopy`), made in the review's own process in
+ * the background on `threads` threads, so the review answers while it
  * encodes: CRF 23 at preset medium, no tune, capped at the rate the
- * conversion asks over two seconds of buffer (where the cap binds, x264
- * spreads the bits over every frame: each keeps its own picture, softer). A
- * key frame comes at least every `keyEvery` seconds, so a seek decodes a
- * second of frames at most: the review's player puts a video that drifts
- * from its clock back on it by a seek (`lab/review/sync.ts`), which must land
- * before the clock has moved on again.
+ * conversion asks over `bufferSeconds` of buffer (where the cap binds, x264
+ * spreads the bits over every frame: each keeps its own picture, softer);
+ * `Media.phoneCopy` asks under `rate` by as much as the buffer could add, so
+ * even a short copy averages `rate` at most. A key frame comes every
+ * `keyEvery` seconds at the video's own frame rate (its first frame's
+ * length), so a seek decodes a second of frames at most: the review's player
+ * puts a video that drifts from its clock back on it by a seek
+ * (`lab/review/sync.ts`), which must land before the clock has moved on
+ * again. `recipe` counts the changes to how the copy is made in code (the
+ * size rule, the rate and key-frame sums): a change to any of them bumps it.
  */
 export const PHONE_ENCODE = {
-  x264: { preset: 'medium', level: '4.1', crf: 23 },
+  recipe: 1,
+  height: 720,
+  rate: 8_000_000,
+  bufferSeconds: 2,
   keyEvery: 1,
+  threads: 2,
+  x264: { preset: 'medium', level: '4.1', crf: 23 },
 } as const;
-
-/** The threads a phone copy's encode may use. */
-const PHONE_THREADS = 2;
 
 /** Microseconds: the time base frames and packets carry. */
 const MICROS = 1_000_000;
@@ -80,11 +89,15 @@ const settingsOf = (config: VideoEncoderConfig, options: VideoEncoderEncodeOptio
     })),
     Match.orElse(() => ({
       context: {
-        threadCount: PHONE_THREADS,
-        gopSize: Math.max(1, Math.round(fps * PHONE_ENCODE.keyEvery)),
+        threadCount: PHONE_ENCODE.threads,
+        // Never a frame past `keyEvery`: at 29.97 frames a second, every 29.
+        gopSize: Math.max(1, Math.floor(fps * PHONE_ENCODE.keyEvery)),
         ...Option.match(Option.fromNullishOr(config.bitrate), {
           onNone: () => ({}),
-          onSome: (bitrate) => ({ rcMaxRate: bitrate, rcBufferSize: 2 * bitrate }),
+          onSome: (bitrate) => ({
+            rcMaxRate: bitrate,
+            rcBufferSize: PHONE_ENCODE.bufferSeconds * bitrate,
+          }),
         }),
       },
       options: PHONE_ENCODE.x264,
@@ -121,7 +134,7 @@ export class X264Encoder extends CustomVideoEncoder {
       ),
     );
     return Effect.runPromise(
-      this.opened(options).pipe(
+      this.opened(sample, options).pipe(
         Effect.tap(() => filled),
         Effect.flatMap((encoder) => Effect.promise(() => encoder.encodeAll(frame))),
         Effect.map((packets) => this.emit(packets)),
@@ -148,20 +161,36 @@ export class X264Encoder extends CustomVideoEncoder {
     this.frame.free();
   }
 
-  /** The encoder, made on the first frame with the settings its copy asks (`settingsOf`). */
-  private opened(options: VideoEncoderEncodeOptions): Effect.Effect<NodeAv.Encoder> {
+  /**
+   * The encoder, made on the first frame with the settings its copy asks
+   * (`settingsOf`), at the rate the conversion names, else the video's own:
+   * one frame in its first frame's length (a conversion that keeps the
+   * video's rate names none), else the films' own.
+   */
+  private opened(
+    first: VideoSample,
+    options: VideoEncoderEncodeOptions,
+  ): Effect.Effect<NodeAv.Encoder> {
     return Option.match(this.encoder, {
       onSome: Effect.succeed,
       onNone: () => {
-        // A video that does not say its rate plays at the films' own.
-        const fps = Math.round(
-          Option.getOrElse(Option.fromNullishOr(this.config.framerate), () => FILM_FPS),
+        const fps = Option.getOrElse(
+          Option.orElse(Option.fromNullishOr(this.config.framerate), () =>
+            Option.map(
+              Option.liftPredicate(first.microsecondDuration, (length) => length > 0),
+              (length) => MICROS / length,
+            ),
+          ),
+          () => FILM_FPS,
         );
         const settings = settingsOf(this.config, options, fps);
         return Effect.promise(() =>
           // The time base comes with each frame (`encode`), in microseconds.
           NodeAv.Encoder.create(NodeAv.FF_ENCODER_LIBX264, {
-            context: { ...settings.context, framerate: new NodeAv.Rational(fps, 1) },
+            context: {
+              ...settings.context,
+              framerate: new NodeAv.Rational(Math.round(fps * 1000), 1000),
+            },
             options: settings.options,
           }),
         ).pipe(Effect.tap((made) => Effect.sync(() => (this.encoder = Option.some(made)))));
