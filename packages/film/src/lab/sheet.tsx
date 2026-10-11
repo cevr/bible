@@ -3,7 +3,7 @@
 // Scenes' scene sheet, the Lab's selection sheet and Findings.
 
 import { useAtomValue } from '@bible/atom-solid';
-import { Drawer } from '@bible/ui/drawer';
+import { Sheet as UiSheet } from '@bible/ui/sheet';
 import { Location } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, Show } from '@solidjs/web';
@@ -81,13 +81,15 @@ export const useSheetDismissal = (
 /**
  * The sheet of the selected thing (design language §7), the one frame an
  * inspector, Scenes' scene sheet, the Lab's selection sheet and Findings
- * stand in: hosted in @bible/ui's Drawer,
- * not over the page (it stays live, a tap outside keeps it open); beside the
- * page on a laptop, swiped away to the right; on a phone a bottom sheet
- * standing on the tab bar (and the dock), swiped down, whose grip lowers it
- * to a peek and raises it again. Its head holds its title and Close. Close,
- * Escape and a swipe each call `onClose`, and its page says what that is (a
- * URL's step). Its footer prints the keys of the commands about `of` while
+ * stand in: hosted in @bible/ui's Sheet,
+ * not over the page (it stays live, a tap outside keeps it open, and only the
+ * panel takes presses); beside the page on a laptop, swiped away to the right;
+ * on a phone a bottom sheet standing on the tab bar (and the dock), swiped
+ * down, whose grip lowers it to a peek and raises it again. A swipe is the
+ * browser's scroll: it scrolls in as it mounts and is gone once scrolled out
+ * of view. Its head holds its title and Close. Close, Escape and a swipe each
+ * call `onClose`, and its page says what that is (a URL's step); the page
+ * unmounting it is its close. Its footer prints the keys of the commands about `of` while
  * the pointer or the focus is in it (`Hint`); a sheet about no one thing
  * (the page's Findings) has none. It opens whole, or lowered on a phone
  * when `peeked`; what a lowered sheet still shows is its page's styles' to
@@ -119,12 +121,12 @@ export const Sheet = (props: {
     { ownedWrite: true },
   );
   return (
-    <Drawer.Root
+    <UiSheet.Root
       open
       modal={false}
       disablePointerDismissal
-      swipeDirection={Bool.match(phone(), {
-        onTrue: () => 'down' as const,
+      position={Bool.match(phone(), {
+        onTrue: () => 'bottom' as const,
         onFalse: () => 'right' as const,
       })}
       onOpenChange={(next) => {
@@ -133,54 +135,56 @@ export const Sheet = (props: {
     >
       {/* In place, not moved to the body: a link's sheet is in the server's
           markup and hydrates there; it stands against the window (fixed). */}
-      <Drawer.Portal inline>
-        <Drawer.Viewport class="lab-inspector-viewport">
-          <Drawer.Popup
-            class={[
-              'lab-inspector-sheet lab-inspector',
-              ...Option.toArray(Option.fromUndefinedOr(props.class)),
-            ].join(' ')}
-            data-role={props.role}
-            data-target={Option.getOrUndefined(
-              Option.map(Option.fromUndefinedOr(props.of), targetAttr),
-            )}
-            data-peek={pressed(peek())}
-            tabindex="-1"
-            ref={(el: HTMLElement) => {
-              popup = Option.some(el);
-            }}
-            initialFocus={() =>
-              Match.value(props.initialFocus()).pipe(
-                // The sheet itself, not its first control: that is Close, which Space would press.
-                Match.when(true, () => Option.getOrElse(popup, () => true)),
-                Match.orElse((asked) => asked),
-              )
-            }
-          >
-            <header class="lab-inspector-head">
-              <SheetGrip peek={peek()} toggle={() => setPeek(!peek())} />
-              <Drawer.Title class="lab-sheet-title">
-                <Show when={props.kind} fallback={props.title}>
-                  {(kind) => (
-                    <>
-                      <span class="lab-sheet-kind">{kind()}</span>{' '}
-                      <span class="lab-sheet-subject">{props.title}</span>
-                    </>
-                  )}
-                </Show>
-              </Drawer.Title>
-              <Drawer.Close class="lab-inspector-close" data-act="close-inspector">
-                Close
-              </Drawer.Close>
-            </header>
-            <Drawer.Content class="lab-inspector-body">{props.children}</Drawer.Content>
-            <Show when={props.of}>
-              {(of) => <Hint hub={props.hub} selection={of()} gestures={[]} />}
-            </Show>
-          </Drawer.Popup>
-        </Drawer.Viewport>
-      </Drawer.Portal>
-    </Drawer.Root>
+      <UiSheet.Portal inline>
+        <UiSheet.Overlay class="lab-inspector-overlay">
+          <UiSheet.Popup class="lab-inspector-panel">
+            <UiSheet.Content
+              class={[
+                'lab-inspector-sheet lab-inspector',
+                ...Option.toArray(Option.fromUndefinedOr(props.class)),
+              ].join(' ')}
+              data-role={props.role}
+              data-target={Option.getOrUndefined(
+                Option.map(Option.fromUndefinedOr(props.of), targetAttr),
+              )}
+              data-peek={pressed(peek())}
+              tabindex="-1"
+              ref={(el: HTMLElement) => {
+                popup = Option.some(el);
+              }}
+              initialFocus={() =>
+                Match.value(props.initialFocus()).pipe(
+                  // The sheet itself, not its first control: that is Close, which Space would press.
+                  Match.when(true, () => Option.getOrElse(popup, () => true)),
+                  Match.orElse((asked) => asked),
+                )
+              }
+            >
+              <header class="lab-inspector-head">
+                <SheetGrip peek={peek()} toggle={() => setPeek(!peek())} />
+                <UiSheet.Title class="lab-sheet-title">
+                  <Show when={props.kind} fallback={props.title}>
+                    {(kind) => (
+                      <>
+                        <span class="lab-sheet-kind">{kind()}</span>{' '}
+                        <span class="lab-sheet-subject">{props.title}</span>
+                      </>
+                    )}
+                  </Show>
+                </UiSheet.Title>
+                <UiSheet.Close class="lab-inspector-close" data-act="close-inspector">
+                  Close
+                </UiSheet.Close>
+              </header>
+              <div class="lab-inspector-body">{props.children}</div>
+              <Show when={props.of}>
+                {(of) => <Hint hub={props.hub} selection={of()} gestures={[]} />}
+              </Show>
+            </UiSheet.Content>
+          </UiSheet.Popup>
+        </UiSheet.Overlay>
+      </UiSheet.Portal>
+    </UiSheet.Root>
   );
 };
 

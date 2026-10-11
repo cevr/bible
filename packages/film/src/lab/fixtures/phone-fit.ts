@@ -11,9 +11,11 @@
 // (hidden, clip) leaves nothing of is "cut off": no scrolling reaches it. The chrome is measured where it holds most: at the
 // page's top, its middle and its end, each the union of the rows its fixed
 // and stuck (sticky, with an edge set, to the window rather than to a box
-// that scrolls on its own) elements cover in the window; a see-through frame
-// (a sheet's viewport over the whole window, taking no pointer) is what it
-// holds, so a sheet lowered to its peek counts as the peek. A layer the page
+// that scrolls on its own) elements cover in the window, each cut by its own
+// `clip-path: inset()` (a sheet's overlay, the window's size, is clipped to
+// its panel, so a sheet lowered to its peek counts as the peek); a
+// see-through frame (over the whole window, taking no pointer) is what it
+// holds. A layer the page
 // has open (a scene's sheet, as an inspector is), with the frame that holds
 // it in the window, is no chrome: it is shut to go back to the page. Its
 // width and its controls are measured as the page's are.
@@ -97,10 +99,19 @@ export const phoneFit = (layer?: string) => `(() => {
   };
   const barsNow = () => {
     const rows = [];
+    // What a bar draws: its box, cut by its own \`clip-path: inset(…)\` (a sheet's overlay is the
+    // window's size, clipped to where its panel rests).
+    const insetOf = (el) => {
+      const m = /^inset\\(([^)]*)\\)$/.exec(getComputedStyle(el).clipPath);
+      if (!m) return [0, 0];
+      const v = m[1].split(' ').map((p) => parseFloat(p) || 0);
+      return [v[0], v[2] ?? v[0]];
+    };
     const row = (el) => {
       const r = el.getBoundingClientRect();
-      const top = Math.max(0, r.top);
-      const bottom = Math.min(innerHeight, r.bottom);
+      const [clipTop, clipBottom] = insetOf(el);
+      const top = Math.max(0, r.top + clipTop);
+      const bottom = Math.min(innerHeight, r.bottom - clipBottom);
       // A visually hidden field (1 × 1, fixed so it never moves the page) is no bar.
       if (bottom - top > 2 && r.width > 2) rows.push({ name: el.className || el.tagName, top, bottom });
     };

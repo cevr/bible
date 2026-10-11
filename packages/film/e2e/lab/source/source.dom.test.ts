@@ -27,6 +27,7 @@ import {
   countIs,
   evaluates,
   pressedLook,
+  sheetsStand,
   textHas,
   textIs,
   valueIs,
@@ -1059,6 +1060,8 @@ describe('a line of the code in a phone sheet, served', () => {
             viewport: PHONE,
           });
           yield* page.waitFor(line);
+          // The finger lands on the sheet where it rests, not on one still scrolling in.
+          yield* sheetsStand(page);
           yield* page.clock.hold;
           yield* fingerDown(page, line, 0);
           yield* page.clock.runFor(700);

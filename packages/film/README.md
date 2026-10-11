@@ -1104,8 +1104,9 @@ gestures, only while the pointer or focus is in the inspector, never on a
 touch screen (`pointer: coarse`), where the long-press menu is the hint.
 
 On the review's pages the **inspector** is a sheet beside the page
-(`src/lab/review/inspector.tsx`, on /ui's Drawer: the page stays live
-under it, making room on a wide screen; swiped away or closed with Escape)
+(`src/lab/review/inspector.tsx`, on /ui's Sheet: the page stays live
+under it, making room on a wide screen; swiped away, a swipe being the
+sheet's own scroll (a finger, a trackpad), or closed with Escape)
 for the selected variant, set version, act or film, one at a time: its Info
 (every line of what it is; a version's file and notes), Approve and
 Unapprove, what was said of it and the one comment box, whose unsent text
@@ -1282,7 +1283,7 @@ so a key rebound in `?` reads as rebound.
   right-click or a touch long-press.
 - **Sheet**: a panel over the page that holds a surface, not one fixed in
   the layout: the Findings sheet and the review's inspector, on /ui's
-  Drawer, swiped away or closed with Escape; the keys sheet, a Dialog,
+  Sheet, swiped away or closed with Escape; the keys sheet, a Dialog,
   closed with Escape.
 - **Nudge**: moving a value by its step with a key (⌥← ⌥→: a frame; ten with
   Shift).

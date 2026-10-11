@@ -194,7 +194,7 @@ export const firstScreenItems = (reach: 'screen' | 'page' = 'screen'): string =>
  * no exception keeps, as `tag.class "text" W×H □S` (the area's width and
  * height, and the side of the largest square in it), and each whose hit-slop
  * lies over a neighbour's box, as `… reaches over <the neighbour>`; none, `[]`. It scrolls
- * each target into view to reach it, and leaves the page scrolled to the top;
+ * each target into view to reach it (a sheet stays where it rests), and leaves the page scrolled to the top;
  * one that scrolling leaves wholly out of the window is `… out of the window`.
  * A layer (a sheet, a menu, a dialog) is measured `within` itself: what lies
  * under it is measured with it closed.
@@ -324,7 +324,12 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
     if (inline(el)) continue;
     const set = setOf(el);
     const lead = set.reduce((a, b) => (boxOf(b).width * boxOf(b).height > boxOf(a).width * boxOf(a).height ? b : a));
+    // A sheet's swipe container (\`[data-sheet-scroll]\`) is where the sheet stands, not a scroll
+    // that reaches a target: scrolled along with the target, it is put back, and the sheet stays.
+    const sheets = [...document.querySelectorAll('[data-sheet-scroll]')].map((s) => [s, s.scrollLeft, s.scrollTop]);
     lead.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+    for (const [s, x, y] of sheets)
+      if (s.scrollLeft !== x || s.scrollTop !== y) s.scrollTo({ left: x, top: y, behavior: 'instant' });
     const reached = over(el, set);
     if (reached === 'loose') out.push(named(el) + ' hit-slop is not anchored to its target');
     else for (const other of reached) out.push(named(el) + ' reaches over ' + named(other));

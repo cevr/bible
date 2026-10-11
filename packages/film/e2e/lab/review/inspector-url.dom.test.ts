@@ -2,8 +2,9 @@
 // Choices (`?inspect=<variant>`, beside `?point=`, the card in focus) and a
 // Set (`?inspect=<version>`) as on Project (`?point=`): a tap on a thing's
 // name names it, a step of its own, so Back closes its sheet and Forward
-// opens it again; Close, Escape and, on a phone, a swipe down drop it,
-// going Back over the entry the tap pushed, so they leave none of their own;
+// opens it again; Close, Escape and a swipe (a finger down on a phone, the
+// sheet's own scroll sideways on a laptop) drop it, going Back over the entry
+// the tap pushed, so they leave none of their own;
 // a link naming it opens it, and closing that makes no entry either. A link
 // written before the key keeps landing, the sheet shut. The page owns its
 // sheets, not the cards it shows: a sheet the URL names opens though a
@@ -20,7 +21,14 @@ import {
   studioRoutes,
   studioRoutesOfThree,
 } from '../../../src/lab/fixtures/studio-film.ts';
-import { countIs, evaluates, textHas, until, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import {
+  countIs,
+  evaluates,
+  sheetsStand,
+  textHas,
+  until,
+  waitFor,
+} from '../../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 
 const SLOW = 30_000;
@@ -143,6 +151,8 @@ for (const p of PAGES) {
           yield* page.click(p.thing);
           yield* waitFor(page, CLOSE);
           yield* until(page, `(new URL(location.href).searchParams.get('inspect') ?? '') !== ''`);
+          // The finger finds the sheet where it rests, not on its way in.
+          yield* sheetsStand(page);
           const sheet = yield* page.box(`${INSPECTOR} .lab-inspector-head`);
           const x = sheet.x + sheet.width / 2;
           const y = sheet.y + sheet.height / 2;
@@ -155,6 +165,37 @@ for (const p of PAGES) {
           ]);
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped, Effect.runPromise),
+      SLOW,
+    );
+
+    it.live(
+      "on a laptop a sideways scroll (a trackpad's swipe) carries it off and dismisses it as Close does, going Back over the tap",
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* openReview(studioRoutes, {
+            href: p.href,
+            viewport: LAPTOP,
+          });
+          yield* waitFor(page, p.ready);
+          const rest = yield* page.evaluate<string>('location.pathname + location.search');
+          yield* page.click(p.thing);
+          yield* waitFor(page, CLOSE);
+          yield* sheetsStand(page);
+          yield* page.evaluate('void (window.__entries = history.length)');
+          // The swipe is the sheet's own scroll: a viewport's width toward the right edge.
+          yield* page.evaluate(
+            `void document.querySelector('[data-sheet-scroll]').scrollBy({ left: -innerWidth, behavior: 'smooth' })`,
+          );
+          yield* countIs(page, INSPECTOR, 0);
+          yield* at(page, p.closed(rest));
+          yield* evaluates(page, QUERY, [
+            new URL(`http://x${p.closed(rest)}`).searchParams.get('point') ?? '',
+            '',
+          ]);
+          // Back over the tap, or the tap's entry rewritten: no entry of the swipe's own.
+          yield* evaluates(page, 'history.length === window.__entries', true);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
       SLOW,
     );
   });

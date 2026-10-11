@@ -148,7 +148,7 @@ Upstream's `SheetTrigger`, `DismissButton`, the reveal held back until a softwar
 
 `Close`, `Title` and `Description` set none (`data-sheet-content` on `Content` is a fixed marker).
 
-CSS variables on `Sheet.Overlay`: `--visual-viewport-width` and `--visual-viewport-height` (the visual viewport, which a software keyboard shrinks; set once the browser has measured it), `--sheet-scroll-padding-x` and `--sheet-scroll-padding-y` (how much of the layout viewport the keyboard covers: pad the content's end by it), `--page-width` and `--page-height` (a modal sheet's page size).
+CSS variables on `Sheet.Overlay`: `--visual-viewport-width` and `--visual-viewport-height` (the visual viewport, which a software keyboard shrinks; set once the browser has measured it), `--sheet-scroll-padding-x` and `--sheet-scroll-padding-y` (how much of the window the keyboard covers, or a page's scrollbar takes, the visual viewport's width being at most the page's: pad the content's end by it, or stand a sheet that is not modal off the scrollbar with it), `--page-width` and `--page-height` (a modal sheet's page size).
 
 ### Toast
 

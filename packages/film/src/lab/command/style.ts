@@ -136,14 +136,26 @@ const COMMAND_RULES = `
   font-family: var(--font); font-size: var(--fs-2); color: var(--text-1); padding: var(--cmd-key-pad);
   border: 1px solid var(--line-strong); border-radius: var(--r-1);
 }
-.lab-inspector-viewport { position: fixed; inset: 0; z-index: var(--cmd-layer); pointer-events: none; }
+/*
+ * The sheet (@bible/ui's Sheet): its overlay is fixed over the window and
+ * takes presses only over the panel, which it clips to where the panel rests,
+ * so nothing outside that rect shows (no shadow). On a laptop the panel stands
+ * against the right edge, the window's height; the sheet (\`Sheet.Content\`)
+ * fills it and scrolls inside itself. The overlay spans the window with the
+ * page's scrollbar in it: the panel stands off that scrollbar
+ * (\`--sheet-scroll-padding-x\`, what of the window the page does not lay out
+ * into), against the page's edge, as the page's own room for it is.
+ */
+.lab-inspector-overlay { z-index: var(--cmd-layer); }
+.lab-inspector-panel {
+  position: relative; right: var(--sheet-scroll-padding-x, 0px);
+  width: min(var(--inspector-w), 100vw); height: 100%;
+}
 .lab-inspector-sheet {
-  position: fixed; top: 0; right: 0; bottom: 0; width: min(var(--inspector-w), 100vw); overflow: auto;
-  pointer-events: auto; display: flex; flex-direction: column; gap: var(--s-2);
+  overflow: auto; display: flex; flex-direction: column; gap: var(--s-2);
   background: var(--surface-2); color: var(--text-1); border-left: 1px solid var(--line-strong);
-  padding: var(--s-3); box-shadow: var(--shadow-pop); outline: none;
+  padding: var(--s-3); outline: none;
   font-family: var(--font); font-size: var(--body-fs); line-height: var(--body-lh);
-  transform: translateX(var(--drawer-swipe-movement-x, 0px));
 }
 .lab-inspector-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-2); }
 .lab-inspector-body { display: flex; flex-direction: column; gap: var(--s-1); }
@@ -202,11 +214,15 @@ const COMMAND_RULES = `
     --cmd-sheet-floor: calc(var(--tabbar-h) + var(--dock-h) + env(safe-area-inset-bottom));
   }
   body:has(.sh[data-film="false"] .sh-dock) { --cmd-sheet-floor: calc(var(--dock-h) + env(safe-area-inset-bottom)); }
+  /* The panel stands on the floor (lifted off the window's foot), the page's width (the scrollbar's off it), as tall as the sheet in it. */
+  .lab-inspector-panel {
+    right: auto; bottom: var(--cmd-sheet-floor); align-self: flex-start;
+    width: var(--visual-viewport-width, 100%); height: auto;
+  }
   .lab-inspector-sheet {
-    top: auto; left: 0; bottom: var(--cmd-sheet-floor); width: auto; max-height: var(--cmd-sheet-height);
+    max-height: var(--cmd-sheet-height);
     border-left: 0; border-top: 1px solid var(--line-strong);
     border-radius: var(--r-sheet) var(--r-sheet) 0 0;
-    transform: translateY(var(--drawer-swipe-movement-y, 0px));
   }
   .lab-inspector-head { position: relative; align-items: center; min-height: var(--hit); }
   .lab-inspector-grip {
