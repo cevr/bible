@@ -29,13 +29,29 @@ const present = <A>(what: string, value: A) =>
     onSome: Effect.succeed,
   });
 
+/** How a rated video's frames are timed in its file. */
+export interface RatedTiming {
+  /** Ticks a second of the track's timescale: the rate's own by default (1000 is a millisecond one). */
+  readonly timescale?: number;
+  /**
+   * A coarser clock each frame's time is first truncated to (s), as a
+   * millisecond clock's times (a WebM's) are kept on a finer timescale by a
+   * stream copy into an MP4 (16000 is FFmpeg's for a 1/1000 time base).
+   */
+  readonly grid?: number;
+  /** The last frame's own duration (s), as a whole clip's is written apart; a frame's by default. */
+  readonly last?: number;
+}
+
 /**
  * `frames` of the segment's frames, laid over and over, at `fps` a second:
- * `frames / fps` seconds, its timestamps whole ticks of `1 / timescale` s
- * (the rate's own by default; 1000 is a millisecond timescale, as a WebM's
- * or a re-mux's).
+ * `frames / fps` seconds, timed as `timing` says (`RatedTiming`).
  */
-export const ratedVideo = (fps: number, frames: number, timescale: number = fps) =>
+export const ratedVideo = (
+  fps: number,
+  frames: number,
+  { timescale = fps, grid, last }: RatedTiming = {},
+) =>
   Effect.scoped(
     Effect.gen(function* () {
       const input = yield* Effect.acquireRelease(
@@ -62,10 +78,20 @@ export const ratedVideo = (fps: number, frames: number, timescale: number = fps)
       // The track's timestamps snap to whole ticks of `1 / timescale`.
       output.addVideoTrack(source, { frameRate: timescale });
       yield* Effect.promise(() => output.start());
+      /** Frame `frame`'s time: on the coarser clock, when there is one, truncated. */
+      const at = (frame: number) =>
+        Option.match(Option.fromUndefinedOr(grid), {
+          onNone: () => frame / fps,
+          onSome: (step) => Math.floor(frame / fps / step + 1e-9) * step,
+        });
       const laid = Arr.flatMap(Arr.range(0, Math.ceil(frames / packets.length) - 1), (pass) =>
         packets.map((packet) => {
           const frame = pass * packets.length + Math.round(packet.timestamp * SEGMENT_FPS);
-          return packet.clone({ timestamp: frame / fps, duration: 1 / fps });
+          const duration = Option.getOrElse(
+            Option.filter(Option.fromUndefinedOr(last), () => frame === frames - 1),
+            () => at(frame + 1) - at(frame),
+          );
+          return packet.clone({ timestamp: at(frame), duration });
         }),
       ).slice(0, frames);
       // The first packet carries the track's config.

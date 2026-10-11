@@ -28,6 +28,7 @@ import {
 } from 'mediabunny';
 import { type Pcm, toInt16 } from '../core/audio.ts';
 import { ratedVideo } from '../lab/fixtures/rated-video.ts';
+import type { RatedTiming } from '../lab/fixtures/rated-video.ts';
 import { Media } from './media.ts';
 import { collectWithin } from './process.ts';
 import { memoryFileSystem, text } from './testing.ts';
@@ -463,39 +464,59 @@ describe.concurrent('Media', () => {
   );
 
   it.effect.layer(MediaOnDisk)(
-    'a measured rate is taken for a whole or 1000/1001 rate only as far as its timestamps can tell: a tick over the span measured',
+    "a whole or 1000/1001 rate is taken only when its frame grid alone holds every frame's start within a step of the clock the starts sit on",
     () =>
       Effect.scoped(
         Effect.gen(function* () {
           const media = yield* Media;
           const fs = yield* FileSystem.FileSystem;
           const dir = yield* tempDir;
-          /** The rate read from `frames` frames made at `fps`, their timestamps whole ticks of `1 / timescale` s. */
+          /** The rate read from `frames` frames made at `fps`, timed in the file as `timing` says. */
           const rateAt = Effect.fn('Media.test.rateAt')(function* (
             fps: number,
             frames: number,
-            timescale?: number,
+            timing?: RatedTiming,
           ) {
             const file = `${dir}/rated.mp4`;
-            yield* fs.writeFile(file, yield* ratedVideo(fps, frames, timescale));
+            yield* fs.writeFile(file, yield* ratedVideo(fps, frames, timing));
             return Option.getOrThrow((yield* media.timing(file)).fps);
           });
           const ntsc = 30000 / 1001;
-          // A millisecond timescale: 23 frames at 30 measure 30.026 (0.09% off),
-          // a tick over 0.766 s is 0.13%, and 29.97 is 0.19% off, so it is 30.
-          expect(yield* rateAt(30, 23, 1000)).toBe(30);
-          // At 60 fps the 120 frames span 2 s: a tick is 0.05%, half the gap to 59.94.
-          expect(yield* rateAt(60, 120, 1000)).toBe(60);
-          expect(yield* rateAt(60000 / 1001, 120, 1000)).toBe(60000 / 1001);
+          const ms = { timescale: 1000 };
+          // A millisecond timescale, each start rounded to its millisecond: 30's
+          // grid holds 23 frames' starts within a millisecond; 29.97's drifts
+          // 0.73 ms over them on top of the rounding, past it: 30. Truncated
+          // to the millisecond (as a WebM's clock keeps them) they read 30 too.
+          expect(yield* rateAt(30, 23, ms)).toBe(30);
+          expect(yield* rateAt(30, 23, { ...ms, grid: 0.001 })).toBe(30);
+          // At 60 fps the 120 frames drift 2 ms from 59.94's grid: each its own.
+          expect(yield* rateAt(60, 120, ms)).toBe(60);
+          expect(yield* rateAt(60000 / 1001, 120, ms)).toBe(60000 / 1001);
           // 29.97 and 30 over a long clip, each its own.
-          expect(yield* rateAt(30, 200, 1000)).toBe(30);
-          expect(yield* rateAt(ntsc, 200, 1000)).toBe(ntsc);
-          // Eight frames (0.27 s) cannot tell 30 from 29.97: kept as measured, taken for neither.
-          expect(yield* rateAt(30, 8, 1000)).toBeCloseTo(8 / 0.266, 9);
+          expect(yield* rateAt(30, 200, ms)).toBe(30);
+          expect(yield* rateAt(ntsc, 200, ms)).toBe(ntsc);
+          // Eight frames (0.23 s from first start to last) cannot tell 30 from
+          // 29.97 (0.23 ms apart by then): kept as measured, taken for neither.
+          expect(yield* rateAt(30, 8, ms)).toBeCloseTo(7 / 0.233, 9);
           // A fine timescale tells a rate 0.03% off 30, or halfway to 29.97, from either.
           expect(yield* rateAt(30 * (1 - 3e-4), 120)).toBeCloseTo(30 * (1 - 3e-4), 6);
           const halfway = (30 + ntsc) / 2;
           expect(yield* rateAt(halfway, 120)).toBeCloseTo(halfway, 6);
+          // A millisecond clock's starts read alike on whatever timescale keeps
+          // them: 1000, 16000 (a WebM's stream copy into an MP4) or 90000.
+          for (const frames of [23, 50, 100]) {
+            const read = new Set<number>();
+            for (const timescale of [1000, 16000, 90000])
+              read.add(yield* rateAt(30, frames, { timescale, grid: 0.001 }));
+            expect([...read]).toEqual([30]);
+          }
+          // A last frame's own duration ending a 60 fps clip at 2.001 s (a tick
+          // late) names no other rate: 60, never 59.94.
+          expect(yield* rateAt(60, 120, { ...ms, grid: 0.001, last: 0.018 })).toBe(60);
+          // Twenty frames of 29.97 on a millisecond clock whose last ends at
+          // 0.666 s (1⅓ ms short): their starts drift 0.63 ms from 30's grid on
+          // top of the truncation, past a millisecond, so 29.97 alone holds them.
+          expect(yield* rateAt(ntsc, 20, { ...ms, grid: 0.001, last: 0.033 })).toBe(ntsc);
         }),
       ),
   );

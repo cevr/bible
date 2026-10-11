@@ -43,6 +43,7 @@ import {
   Layer,
   Match,
   Option,
+  Order,
   Stream,
 } from 'effect';
 import {
@@ -63,6 +64,7 @@ import {
   FlacOutputFormat,
   Input,
   type InputAudioTrack,
+  type InputVideoTrack,
   MP3,
   Mp4OutputFormat,
   NullTarget,
@@ -543,61 +545,109 @@ const videoTrackOf = (op: MediaFailed['op'], file: string, input: Input) =>
     (track) => present(op, file, 'video track', track),
   );
 
-/** The packets a video's frame rate is counted over: a few seconds of a film. */
+/** The frames a video's frame rate is read from: a few seconds of a film. */
 const RATE_PACKETS = 120;
 
-/**
- * How far off, in ticks of its track's timescale, the span a rate is
- * measured over may be: its first and last timestamps are each a time put
- * on the tick grid, so their difference errs by up to a tick.
- */
-const SPAN_TICKS = 1;
+/** The greatest whole count of ticks both `a` and `b` are whole multiples of. */
+const gcd = (a: number, b: number): number => {
+  let [x, y] = [Math.abs(a), Math.abs(b)];
+  while (y > 0) [x, y] = [y, x % y];
+  return x;
+};
 
 /**
- * How far, as a share of it, a rate measured as `packets` frames over a
- * track whose timestamps are whole ticks of `1 / resolution` s may lie from
- * the rate the video was made at: a tick (`SPAN_TICKS`) over the span
- * measured. A millisecond timescale tells 30 from 29.97 (0.1% apart) over
- * 4 s of 30 fps; over 23 frames (0.77 s, 0.13%) it does not.
+ * The rate frames starting at `ticks` (whole ticks of `1 / resolution` s
+ * from the first frame's start, in order) were made at, as far as their
+ * times can tell:
+ *
+ * - their clock is the coarsest step every start is a whole count of (their
+ *   greatest common divisor), not the timescale that keeps them: a
+ *   millisecond clock's times copied onto a 16000 timescale tell no more
+ *   than they did on a 1000 one;
+ * - a whole rate (30) or its 1000/1001 rate (30000/1001, NTSC's 29.97) is
+ *   taken when its frame grid puts every start within one step of its time
+ *   (each start is its frame's time put on the clock, truncated or rounded,
+ *   so the made rate's offsets all lie within a step), and the other does
+ *   not: the frame times alone judge, so a last frame's own duration
+ *   (written apart, rounded on its own) names no rate;
+ * - else, both fitting (the times cannot tell them apart, as 20 frames on a
+ *   millisecond clock cannot) or neither (another rate, or a variable one),
+ *   the rate as measured: the frames over their span, in whole ticks, so a
+ *   file timed exactly (a frame a whole count of ticks) reads its rate
+ *   exactly. Neither is claimed: as measured, every start the times hold is
+ *   within a step of its frame either way.
+ *
+ * None for fewer than two frames, or frames with no span.
  */
-const precisionOf = (measured: number, packets: number, resolution: number): number =>
-  (SPAN_TICKS * measured) / (packets * resolution);
-
-/**
- * `measured` (frames a second over a span of packets) as the rate it is: a
- * whole rate (30) or its 1000/1001 rate (30000/1001, NTSC's 29.97) when it
- * lies within `precision` (a share of it, `precisionOf`) of that one alone;
- * else, near both (the timestamps cannot tell them apart) or neither, as
- * measured. Never rounded to a whole rate it is not: a 29.97 video steps on
- * its own grid.
- */
-const rateOf = (measured: number, precision: number): number => {
-  const whole = Math.round(measured);
-  const ntsc = (Math.round((measured * 1001) / 1000) * 1000) / 1001;
-  const near = Arr.filter(
-    [whole, ntsc],
-    (rate) => rate > 0 && Math.abs(rate - measured) <= precision * measured,
+const rateOfTicks = (ticks: ReadonlyArray<number>, resolution: number): Option.Option<number> =>
+  Option.map(
+    Option.filter(Arr.last(ticks), (span) => ticks.length > 1 && span > 0),
+    (span) => {
+      const step = Arr.reduce(ticks, 0, gcd);
+      const measured = ((ticks.length - 1) * resolution) / span;
+      /** Whether `rate`'s frame grid puts every start within one step of its time. */
+      const fits = (rate: number) => {
+        const period = resolution / rate;
+        const offsets = ticks.map((at) => at - Math.round(at / period) * period);
+        return Math.max(...offsets) - Math.min(...offsets) < step;
+      };
+      const whole = Math.round(measured);
+      const ntsc = (Math.round((measured * 1001) / 1000) * 1000) / 1001;
+      const fitting = Arr.filter([whole, ntsc], (rate) => rate > 0 && fits(rate));
+      return Option.getOrElse(
+        Option.filter(Arr.head(fitting), () => fitting.length === 1),
+        () => measured,
+      );
+    },
   );
-  return Option.getOrElse(
-    Option.filter(Arr.head(near), () => near.length === 1),
-    () => measured,
+
+/**
+ * The start times (s) of the first `RATE_PACKETS` frames of `track`, in
+ * presentation order: read on past them while a packet still comes before
+ * the latest, as a reordered (B-frame) stream sends one.
+ */
+const firstFrameTimes = (file: string, track: InputVideoTrack) => {
+  // From the first packet to the last: no packet bounds the read.
+  const unbounded = Option.getOrUndefined(Option.none<EncodedPacket>());
+  return Stream.fromAsyncIterable(
+    new EncodedPacketSink(track).packets(unbounded, unbounded, { metadataOnly: true }),
+    (cause) => MediaFailed.make({ op: 'read', file, reason: String(cause) }),
+  ).pipe(
+    Stream.mapAccum(
+      () => ({ count: 0, latest: -Infinity }),
+      (seen, packet) =>
+        [
+          { count: seen.count + 1, latest: Math.max(seen.latest, packet.timestamp) },
+          [
+            {
+              at: packet.timestamp,
+              past: seen.count >= RATE_PACKETS && packet.timestamp >= seen.latest,
+            },
+          ],
+        ] as const,
+    ),
+    Stream.takeWhile((frame) => !frame.past),
+    Stream.map((frame) => frame.at),
+    Stream.runCollect,
+    Effect.map((times) => Arr.sort(times, Order.Number)),
   );
 };
 
 /**
- * The frame rate of the video in `input` (`file` opened), as its own packets
- * say (mediabunny's count over its first packets, `rateOf`, within what its
- * timestamps can tell, `precisionOf`). None for a file with no video track,
- * or none readable.
+ * The frame rate of the video in `input` (`file` opened), as its own frames'
+ * times say (`rateOfTicks`, over its first `RATE_PACKETS`). None for a file
+ * with no video track, or none readable.
  */
 const frameRateIn = (file: string, input: Input): Effect.Effect<Option.Option<number>> =>
   Effect.gen(function* () {
     const track = yield* videoTrackOf('read', file, input);
     const resolution = yield* attempt('read', file, () => track.getTimeResolution());
-    const stats = yield* attempt('read', file, () => track.computePacketStats(RATE_PACKETS));
-    return Option.map(
-      Option.liftPredicate(stats.averagePacketRate, (rate) => Number.isFinite(rate) && rate > 0),
-      (measured) => rateOf(measured, precisionOf(measured, stats.packetCount, resolution)),
+    const times = yield* firstFrameTimes(file, track);
+    const ticks = times.map((at) => Math.round(at * resolution));
+    const first = Option.getOrElse(Arr.head(ticks), () => 0);
+    return rateOfTicks(
+      ticks.map((at) => at - first),
+      resolution,
     );
   }).pipe(Effect.orElseSucceed(() => Option.none<number>()));
 

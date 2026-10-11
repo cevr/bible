@@ -2398,12 +2398,14 @@ a finding names an address, not a point. A set's page holds one effect-machine a
 leading version's video (the first shown whose video plays here), whose ←/→
 step is one frame of that video's own (its timecode counts them; Shift ten):
 the rate `GET /api/review/duration` reads from the video's own packets
-(`fps`, `Media.timing`: frames a second over its first 120 packets, taken
-for the whole or 1000/1001 rate it lies within its timestamps' precision
-of (a tick of the track's timescale over the span measured: a millisecond
-timescale tells 30 from 29.97 over 4 s, not over a third of a second)
-when that is the only one, else as measured, never rounded to a whole
-rate, so a 29.97 video steps on its own grid),
+(`fps`, `Media.timing`: read from the start times of its first 120 frames,
+on the clock those times sit on (the coarsest step each is a whole count
+of, so a millisecond clock's times copied onto a finer timescale tell no
+more than before); the whole or 1000/1001 rate whose frame grid alone holds
+every start within one step of its time (a millisecond clock tells 30 from
+29.97 over a second, not over a third of one; a last frame's own duration
+names no rate), else as measured, frames over their span, never rounded to a
+whole rate, so a 29.97 video steps on its own grid),
 the film rate (`FILM_FPS`) only while that answer is pending or the video
 names none; a seek (a step, a scrub, a `#t=`) lands every video at the
 frame the clock's timecode reads, each a quarter of one of its own frames
