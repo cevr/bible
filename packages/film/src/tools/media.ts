@@ -566,11 +566,15 @@ const gcd = (a: number, b: number): number => {
  *   than they did on a 1000 one;
  * - a whole rate (30) or its 1000/1001 rate (30000/1001, NTSC's 29.97) is
  *   taken when its frame grid puts every start within one step of its time
- *   (each start is its frame's time put on the clock, truncated or rounded,
- *   so the made rate's offsets all lie within a step), and the other does
- *   not: the frame times alone judge, so a last frame's own duration
- *   (written apart, rounded on its own) names no rate;
- * - else, both fitting (the times cannot tell them apart, as 20 frames on a
+ *   and the other's does not. Each start is its frame's time put on the
+ *   clock, truncated or rounded, so the made rate's offsets from its grid lie
+ *   within a step of each other: strictly, unless a time lay halfway between
+ *   two ticks and was rounded the other way from another, when they lie a
+ *   whole step apart. So a grid holding every start strictly within a step
+ *   is taken first; one that needs a start a whole step off, only when no
+ *   grid holds them strictly. The frame times alone judge, so a last frame's
+ *   own duration (written apart, rounded on its own) names no rate;
+ * - else, both fitting (the times cannot tell them apart, as 10 frames on a
  *   millisecond clock cannot) or neither (another rate, or a variable one),
  *   the rate as measured: the frames over their span, in whole ticks, so a
  *   file timed exactly (a frame a whole count of ticks) reads its rate
@@ -585,17 +589,39 @@ const rateOfTicks = (ticks: ReadonlyArray<number>, resolution: number): Option.O
     (span) => {
       const step = Arr.reduce(ticks, 0, gcd);
       const measured = ((ticks.length - 1) * resolution) / span;
-      /** Whether `rate`'s frame grid puts every start within one step of its time. */
-      const fits = (rate: number) => {
-        const period = resolution / rate;
-        const offsets = ticks.map((at) => at - Math.round(at / period) * period);
-        return Math.max(...offsets) - Math.min(...offsets) < step;
+      /**
+       * How far apart `num / den` frames a second's grid puts the starts'
+       * offsets from it, and the step they are judged against, both in ticks
+       * times `num`: whole counts, so a bound is met or not, exactly.
+       */
+      const spreadOf = (num: number, den: number) => {
+        const period = resolution * den;
+        const offsets = ticks.map((at) => at * num - Math.round((at * num) / period) * period);
+        return { spread: Math.max(...offsets) - Math.min(...offsets), step: step * num };
       };
       const whole = Math.round(measured);
-      const ntsc = (Math.round((measured * 1001) / 1000) * 1000) / 1001;
-      const fitting = Arr.filter([whole, ntsc], (rate) => rate > 0 && fits(rate));
+      const ntsc = Math.round((measured * 1001) / 1000);
+      const spreads = Arr.filter(
+        [
+          { rate: whole, ...spreadOf(whole, 1) },
+          { rate: (ntsc * 1000) / 1001, ...spreadOf(ntsc * 1000, 1001) },
+        ],
+        (each) => each.rate > 0,
+      );
+      /** The one rate whose spread `holds` against its step, if one alone does. */
+      const only = (holds: (each: { spread: number; step: number }) => boolean) => {
+        const fitting = Arr.filter(spreads, holds);
+        return Option.map(
+          Option.filter(Arr.head(fitting), () => fitting.length === 1),
+          (each) => each.rate,
+        );
+      };
+      const strictly = Arr.filter(spreads, (each) => each.spread < each.step);
       return Option.getOrElse(
-        Option.filter(Arr.head(fitting), () => fitting.length === 1),
+        Match.value(strictly.length).pipe(
+          Match.when(0, () => only((each) => each.spread <= each.step)),
+          Match.orElse(() => only((each) => each.spread < each.step)),
+        ),
         () => measured,
       );
     },

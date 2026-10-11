@@ -2402,7 +2402,9 @@ the rate `GET /api/review/duration` reads from the video's own packets
 on the clock those times sit on (the coarsest step each is a whole count
 of, so a millisecond clock's times copied onto a finer timescale tell no
 more than before); the whole or 1000/1001 rate whose frame grid alone holds
-every start within one step of its time (a millisecond clock tells 30 from
+every start within one step of its time (strictly within first; a whole step
+apart, as halfway times rounded either way leave them, only when no grid
+holds them strictly; a millisecond clock tells 30 from
 29.97 over a second, not over a third of one; a last frame's own duration
 names no rate), else as measured, frames over their span, never rounded to a
 whole rate, so a 29.97 video steps on its own grid),

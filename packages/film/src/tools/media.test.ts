@@ -495,6 +495,10 @@ describe.concurrent('Media', () => {
           // 29.97 and 30 over a long clip, each its own.
           expect(yield* rateAt(30, 200, ms)).toBe(30);
           expect(yield* rateAt(ntsc, 200, ms)).toBe(ntsc);
+          // 23.976's frames lie halfway between two milliseconds every 24th frame,
+          // and a rounding muxer sends some halves down, some up: its grid holds
+          // the starts within a millisecond only with its ends, and 24's not at all.
+          expect(yield* rateAt(24000 / 1001, 120, ms)).toBe(24000 / 1001);
           // Eight frames (0.23 s from first start to last) cannot tell 30 from
           // 29.97 (0.23 ms apart by then): kept as measured, taken for neither.
           expect(yield* rateAt(30, 8, ms)).toBeCloseTo(7 / 0.233, 9);
