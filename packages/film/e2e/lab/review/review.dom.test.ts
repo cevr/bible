@@ -731,6 +731,22 @@ describe('the review page', () => {
   }
 
   it.live(
+    "a montage's Set asks for no project: its title is none of the app's films, so its record judges",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openReview(
+          [route('GET', /^\/api\/films$/, () => json({ films: ['toy'] })), ...routes],
+          { href: SET },
+        );
+        yield* waitFor(page, '.rv-transport');
+        yield* waitFor(page, '.rv-set-tools[data-sources="record"]');
+        expect(asked.filter((a) => /^\/api\/films\/[^/]+\/project$/.test(a.path))).toEqual([]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'plays every variant on one clock: space, ←/→ and the 🔊',
     () =>
       Effect.gen(function* () {

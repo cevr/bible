@@ -60,7 +60,7 @@ import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
 import { type Quality, fileInfoText, videoSource } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
-import { Places, ProjectView, legacyPlace, pageHref, reviewFileUrl } from '../../core/api.ts';
+import { Places, legacyPlace, pageHref, reviewFileUrl } from '../../core/api.ts';
 import { FILM_FPS } from '../../core/time.ts';
 import { onChoicesTab } from '../../core/point.ts';
 import {
@@ -154,18 +154,8 @@ interface ReviewMeta {
    * else reads it once.
    */
   readonly timedHere: (video: Written) => Loaded<ReviewDuration>;
-  /**
-   * A film's project (`film project`), one read per film for the page,
-   * whatever shows it (a Films card, Project, a Set's judgement): read by the
-   * server where a page renders it, and sent with the page.
-   */
-  readonly project: (film: string) => Loaded<ProjectView>;
-  /**
-   * The same read in the page alone (`Atom.withServerValue`), as `timedHere`
-   * is: the server's render never waits on it; once the page runs it takes
-   * the project the server sent, if it sent one, else reads it once.
-   */
-  readonly projectHere: (film: string) => Loaded<ProjectView>;
+  /** The app's films, the read `state.films` gives: for a read of a page's own that waits on them. */
+  readonly films: Loaded<ReviewFilms>;
   /**
    * A doc's text, read once per file as the index last saw it (its ref and
    * when it was written): a doc written again since is read afresh.
@@ -317,17 +307,6 @@ export const Root = (
     ),
   );
   const timedHere = (file: Written) => timedHereOf({ ref: file.ref, mtime: file.mtime });
-  // A film's project under its served key, the one node every reader of it shares.
-  const project = Atom.family((film: string) =>
-    runtime
-      .atom(OptionsApi.use((api) => api.project(film)))
-      .pipe(served(`review.project:${film}`, ProjectView)),
-  );
-  const projectHere = Atom.family((film: string) =>
-    Atom.make((get) => get(project(film))).pipe(
-      Atom.withServerValue(() => AsyncResult.initial<ProjectView, LabFailure>()),
-    ),
-  );
   const text = (file: Written) => textOf({ ref: file.ref, mtime: file.mtime });
   const servedAtAtom = Atom.make(Clock.currentTimeMillis).pipe(served(SERVED_AT, Schema.Finite));
 
@@ -414,8 +393,7 @@ export const Root = (
         asks,
         timing,
         timedHere,
-        project,
-        projectHere,
+        films: filmsAtom,
         text,
         runtime,
         client: props.client,

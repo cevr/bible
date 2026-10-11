@@ -2229,8 +2229,11 @@ just the versions the write would take. Anywhere else, a copy of the film's
 folder under another root among them, and until the project answers, it
 judges as the record says; the Set's tools say which judges (`data-sources`:
 `reading`, `project`, `record`). The page reads the project itself, once it
-runs, on the one node every reader of the film's project shares; the
-server's render never waits on it. It says it in every view, beside the
+runs and only for a folder whose title is one of the app's films (a
+montage's title is none, so its Set asks for no project); the server's
+render never waits on it. Each page reads the project as it mounts, so a
+Set and then its Project tab read it twice, and Project shows what a Set's
+approve wrote. It says it in every view, beside the
 variant's label: why a variant is stale (`staleText`), and no state word
 otherwise, never "current". A montage folder (say a
 look explored by hand) holds `review.json` (`ReviewManifest`), which names its

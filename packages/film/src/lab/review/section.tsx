@@ -13,6 +13,7 @@ import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
 import { Effect, Exit, Match, Option, Scope, Struct } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import * as Atom from 'effect/reactivity/Atom';
 import {
   type Accessor,
   type ParentProps,
@@ -38,7 +39,7 @@ import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../c
 import { timecode } from '../../core/time.ts';
 import {
   Places,
-  type ProjectView,
+  ProjectView,
   type Say,
   type SetSaid,
   type SetSayPost,
@@ -46,10 +47,12 @@ import {
   reviewFileUrl,
   reviewFrameUrl,
 } from '../../core/api.ts';
+import { type LabFailure, served } from '../api.ts';
 import { pressed } from '../pressed.ts';
 import { StateBand } from '../scenes/card.tsx';
 import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
+import { OptionsApi } from './options/api.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
 import { approvalVerbs } from './things.ts';
@@ -196,7 +199,11 @@ const Section = (props: {
  */
 const FilmState = (props: { readonly film: string }) => {
   const { meta } = useReview();
-  const readAtom = untrack(() => meta.project(props.film));
+  const readAtom = untrack(() =>
+    meta.runtime
+      .atom(OptionsApi.use((api) => api.project(props.film)))
+      .pipe(served(`review.project:${props.film}`, ProjectView)),
+  );
   const read = useAtomValue(() => readAtom);
   return (
     <Show when={Option.getOrUndefined(AsyncResult.value(read()))}>
@@ -1418,18 +1425,40 @@ const SetBody = () => {
  * decides, never the folder's name: the film's own folder under a root of
  * another label is judged by the project, and a copy of it under another
  * root by the record alone. Read by the page once it runs, never by the
- * server (`projectHere`, the one node every reader of the film's project
- * shares): the record's judgement stands while it is read (and in the
- * server's render), and the write decides.
+ * server (`Atom.withServerValue`), as the page mounts, and only when the
+ * folder's title is one of the app's films (a montage's title is none):
+ * the record's judgement stands while it is read (and in the server's
+ * render), and the write decides.
  */
 const useSourcesNow = (folder: ReviewFolder): SourcesNow => {
   const { meta } = useReview();
   return Option.match(folder.title, {
     onNone: () => ({ project: () => Option.none(), by: (): JudgedBy => 'record' }),
-    onSome: (film) => {
-      const read = useAtomValue(() => meta.projectHere(film));
+    onSome: (title) => {
+      const projectAtom = meta.runtime.atom(OptionsApi.use((api) => api.project(title)));
+      // The project, once the films say the title is one of theirs; none for any other title.
+      const readAtom = Atom.make(
+        (get): AsyncResult.AsyncResult<Option.Option<ProjectView>, LabFailure> =>
+          Match.value(get(meta.films)).pipe(
+            Match.tag('Initial', () =>
+              AsyncResult.initial<Option.Option<ProjectView>, LabFailure>(),
+            ),
+            Match.orElse((films) =>
+              Option.match(
+                Option.filter(AsyncResult.value(films), (f) => f.films.includes(title)),
+                {
+                  onNone: () => AsyncResult.success(Option.none<ProjectView>()),
+                  onSome: () => AsyncResult.map(get(projectAtom), Option.some),
+                },
+              ),
+            ),
+          ),
+      ).pipe(
+        Atom.withServerValue(() => AsyncResult.initial<Option.Option<ProjectView>, LabFailure>()),
+      );
+      const read = useAtomValue(() => readAtom);
       const own = () =>
-        Option.filter(AsyncResult.value(read()), (view) =>
+        Option.filter(Option.flatten(AsyncResult.value(read())), (view) =>
           Option.contains(view.folder, folder.ref),
         );
       return {

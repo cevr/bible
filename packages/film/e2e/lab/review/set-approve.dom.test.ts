@@ -108,6 +108,40 @@ const movedOn = (own: string): FakeRoute => {
   });
 };
 
+/** `value` (the project) with scene `id`'s approval `approval`. */
+const withSceneApproval = (value: Json, id: string, approval: string): Json =>
+  Match.value(value).pipe(
+    Match.when(isList, (all): Json => all.map((one) => withSceneApproval(one, id, approval))),
+    Match.when(isFields, (record): Json => {
+      const mapped = Record.map(record, (one) => withSceneApproval(one, id, approval));
+      return Bool.match(record['scene'] === id && 'approval' in record, {
+        onTrue: (): Json => ({ ...mapped, approval }),
+        onFalse: () => mapped,
+      });
+    }),
+    Match.orElse(() => value),
+  );
+
+/** The studio's project as `film project` reads it now: open approved while the last say posted approved it. */
+const approvedOnceSaid = (asked: ReadonlyArray<SetSayPost>): FakeRoute => {
+  const projectRoute = Option.getOrThrow(
+    Arr.findFirst(studioRoutes, (r) => r.path.test('/api/films/toy/project')),
+  );
+  return route('GET', /^\/api\/films\/toy\/project$/, (a) => {
+    const answer = projectRoute.answer(a);
+    return Option.getOrElse(
+      Option.map(
+        Option.filter(
+          Option.liftPredicate(answer, (r) => r._tag === 'Json'),
+          () => Option.exists(Arr.last(asked), (p) => p.say._tag === 'Approve'),
+        ),
+        (r) => json(withSceneApproval(r.json, 'open', 'approved')),
+      ),
+      () => answer,
+    );
+  });
+};
+
 /** `value` with the studio's folder (`STUDIO_FOLDER`) and the refs under it named under `label`. */
 const relabel = (value: Json, label: string): Json =>
   Match.value(value).pipe(
@@ -485,21 +519,23 @@ describe('a Set approving a scene render', () => {
   );
 
   it.live(
-    "the film's project is one read for the page: a Set's judgement and the Project it opens share it",
+    "a Set's approve shows on its Project tab: Project reads the project as the approve left it",
     () =>
       Effect.gen(function* () {
-        const { page, asked, errors } = yield* openReview(
-          [movedOn(STUDIO_FOLDER), ...studioRoutes],
-          { href: pageHref.set(STUDIO_FOLDER, STUDIO_SET) },
-        );
+        const asked = new Array<SetSayPost>();
+        const { page, errors } = yield* openReview([approvedOnceSaid(asked), ...approving(asked)], {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+        });
+        // The Set read the project before the approve, open approved in none.
         yield* waitFor(page, '.rv-set-tools[data-sources="project"]');
-        // Project, from the Set's own tab: the page moves on, the project's read with it.
+        yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
+        yield* page.click(`${INSPECTOR} [data-act="approve"]`);
+        yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        // Project, from the Set's own tab: the page moves on, and open is approved there.
         yield* page.click('a.sh-tab[data-page="project"]');
-        yield* waitFor(page, '[data-scene="open"]');
-        const projectReads = asked.filter(
-          (a) => a.method === 'GET' && a.path === '/api/films/toy/project',
-        );
-        expect(projectReads).toHaveLength(1);
+        yield* waitFor(page, '[data-scene="open"] [data-approval="approved"]');
+        expect(asked.map((p) => p.say._tag)).toEqual(['Approve']);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

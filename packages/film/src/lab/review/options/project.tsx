@@ -40,7 +40,7 @@ import {
   untrack,
 } from 'solid-js';
 import { type Address, type PartAddress, addressKey, sceneAddress } from '../../../core/address.ts';
-import { Places, type ProjectView, pageHref, withdrawSay } from '../../../core/api.ts';
+import { Places, ProjectView, pageHref, withdrawSay } from '../../../core/api.ts';
 import {
   type ProjectAct as Act,
   type ProjectScene,
@@ -59,7 +59,7 @@ import { FILM_FPS, timecode } from '../../../core/time.ts';
 import { counted } from '../../../core/words.ts';
 import { SceneCard, SceneFindings, SceneState, StateBand } from '../../scenes/card.tsx';
 import { filmCounts, filmSpan, marksOf, projectPlaced } from '../../scenes/marks.ts';
-import type { LabFailure } from '../../api.ts';
+import { type LabFailure, served } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
 import { plainClick } from '../../../browser/pointer.ts';
 import { Go, OPEN_ON_CHOICES, useReview } from '../context.tsx';
@@ -774,7 +774,9 @@ const ProjectReady = (props: { readonly film: string }) => {
   const film = props.film;
   // The page reads the `main` variant's project; another variant's is the CLI's (`--variant`).
   // Read by the server and sent with the page; the page adopts it and reads it no more.
-  const readAtom = meta.project(film);
+  const readAtom = meta.runtime
+    .atom(OptionsApi.use((api) => api.project(film)))
+    .pipe(served(`review.project:${film}`, ProjectView));
   const againAtom = meta.runtime.fn(() => OptionsApi.use((api) => api.project(film)));
   const read = useAtomValue(() => readAtom);
   const again = useAtomValue(() => againAtom);

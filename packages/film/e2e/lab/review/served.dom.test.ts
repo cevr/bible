@@ -280,6 +280,11 @@ describe('the review served as the lab renders it', () => {
         yield* set.page.press('ArrowRight');
         yield* until(set.page, `${at} !== ${jsonOf(before)}`);
         expect(timings(set.asked)).toBe(0);
+        // The film's project is the page's own read, once it knows from the films it was sent
+        // that the folder's title is a film: the films are not asked again.
+        yield* waitFor(set.page, '.rv-set-tools[data-sources="project"]');
+        expect(reads(set.asked, '/api/films')).toBe(0);
+        expect(reads(set.asked, `/api/films/${TOY}/project`)).toBe(1);
         expect(mismatches(set.page.logged)).toEqual([]);
         expect(set.errors).toEqual([]);
       }).pipe(Effect.scoped),
