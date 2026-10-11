@@ -148,6 +148,16 @@ describe('ToggleGroup', () => {
     expect(await focused(page)).toBe('body');
   });
 
+  it('blurs a focused SVG control on a pointer press, so the page keeps its keys', async () => {
+    // The Lab's wipe grip is an SVG slider: a press on a toggle takes the arrows back from it.
+    const page = await h.open('group');
+    await page.focus('#grip');
+    expect(await focused(page)).toBe('grip');
+    await page.click('#two');
+    await see(page.locator('#two')).toHaveAttribute('aria-pressed', 'true');
+    expect(await focused(page)).toBe('body');
+  });
+
   it('moves focus to the popup around the group after a pointer press, so Tab stays in it', async () => {
     // A press on content that takes no focus focuses its nearest focusable ancestor: a sheet keeps the keyboard.
     const page = await h.open('in-dialog');
@@ -157,6 +167,14 @@ describe('ToggleGroup', () => {
     expect(await focused(page)).toBe('dialog');
     await page.keyboard.press('Tab');
     await see.poll(() => focused(page)).toBe('before');
+  });
+
+  it('moves focus to a <details> around the group that has a tabindex, as the platform does', async () => {
+    const page = await h.open('in-details');
+    await page.focus('#before');
+    await page.click('#two');
+    await see(page.locator('#two')).toHaveAttribute('aria-pressed', 'true');
+    expect(await focused(page)).toBe('details');
   });
 
   it('blurs a field in the popup before a pointer press changes the value, and focuses the popup', async () => {

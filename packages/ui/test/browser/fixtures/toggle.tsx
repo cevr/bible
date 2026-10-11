@@ -3,9 +3,11 @@
 // lab's mode trays: one value always pressed, an offered `[]` ignored) or
 // `owner=decline` (it takes none). `value` seeds the owner's value; the
 // `set-value` button sets it to `three`. Every offer is logged as
-// `value [<values>]`; the field after the group logs `field blur`.
+// `value [<values>]`; the field after the group logs `field blur`; `#grip`
+// after it is an SVG control that takes focus (the Lab's wipe grip).
 // `in-dialog` puts all of it in a popup that takes focus (`tabindex="-1"`),
-// as the lab's sheets are; `later` mounts it when `#show` is pressed.
+// as the lab's sheets are; `in-details` in an open `<details>` given a
+// `tabindex`; `later` mounts it when `#show` is pressed.
 import type { JSX } from '@solidjs/web';
 import { createSignal, Show } from 'solid-js';
 
@@ -50,6 +52,18 @@ function Group() {
         set
       </button>
       <input id="field" aria-label="field" onBlur={() => log('field blur')} />
+      <svg width="20" height="20" aria-label="wipe">
+        <circle
+          id="grip"
+          cx="10"
+          cy="10"
+          r="10"
+          role="slider"
+          tabindex="0"
+          aria-label="grip"
+          aria-valuenow={50}
+        />
+      </svg>
     </>
   );
 }
@@ -74,6 +88,12 @@ export const fixtures: Record<string, () => JSX.Element> = {
     <div id="dialog" role="dialog" aria-label="sheet" tabindex="-1">
       <Group />
     </div>
+  ),
+  'in-details': () => (
+    <details id="details" open tabindex="-1">
+      <summary>details</summary>
+      <Group />
+    </details>
   ),
   later: () => <Later />,
 };

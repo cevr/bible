@@ -50,7 +50,10 @@ function isFocusableCandidate(element: Element | null): element is FocusableElem
       (element.parentElement != null &&
         getNodeName(element.parentElement) === 'details' &&
         getDetailsSummary(element.parentElement) === element)) &&
-    (nodeName !== 'details' || getDetailsSummary(element) == null) &&
+    // A <details> with a summary takes focus only when given a tabindex (its summary does).
+    (nodeName !== 'details' ||
+      getDetailsSummary(element) == null ||
+      element.hasAttribute('tabindex')) &&
     (nodeName !== 'input' || (element as HTMLInputElement).type !== 'hidden')
   );
 }

@@ -11,11 +11,13 @@
 // the pressed toggle takes the tab stop either way (see Toggle).
 // Upstream's uncontrolled mode, `multiple`, `disabled`, `orientation` and
 // `loopFocus` are left out.
-import { isHTMLElement } from '@floating-ui/utils/dom';
 import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
 
-import { getFocusableAncestor } from '../floating-ui-solid/utils/tabbable.ts';
+import {
+  type FocusableElement,
+  getFocusableAncestor,
+} from '../floating-ui-solid/utils/tabbable.ts';
 import { CompositeRoot } from '../internals/composite/CompositeRoot.tsx';
 import type { BaseUIComponentProps, HTMLProps } from '../internals/types.ts';
 import { ToggleGroupContext, type ToggleGroupContextValue } from './ToggleGroupContext.ts';
@@ -61,9 +63,10 @@ export function ToggleGroup<Value extends string = string>(
         ancestor.focus({ preventScroll: true });
         return;
       }
+      // An HTML control or an SVG one (the Lab's wipe grip) alike.
       const active = element.ownerDocument.activeElement;
-      if (isHTMLElement(active) && active !== element.ownerDocument.body) {
-        active.blur();
+      if (active !== null && active !== element.ownerDocument.body && 'blur' in active) {
+        (active as FocusableElement).blur();
       }
     },
   };
