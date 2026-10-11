@@ -76,7 +76,7 @@ const frames = (page: Page) =>
       ),
   );
 
-describe('hidden with what holds it', () => {
+describe('its layout changing under it (hidden with what holds it, a window resized)', () => {
   const LAB = { modal: 'false', dismissal: 'disabled', portal: 'inline' };
   const REST = { x: 0, y: 300, width: 800, height: 300 };
 
@@ -92,6 +92,26 @@ describe('hidden with what holds it', () => {
     await scrollSheet(page, { top: 0 });
     await see(page.locator('#popup')).toHaveCount(0);
     expect(await opens(page)).toEqual(['open false swipe']);
+  });
+
+  it('rests again when the window is resized under it, and stays open', async () => {
+    const page = await h.open('sheet', { query: LAB });
+    await openSheet(page);
+    await page.setViewportSize({ width: 800, height: 1400 });
+    await see.poll(() => box(page, '#panel')).toEqual({ ...REST, y: 1100 });
+    await page.setViewportSize({ width: 800, height: 480 });
+    await see.poll(() => box(page, '#panel')).toEqual({ ...REST, y: 180 });
+    expect(await opens(page)).toEqual([]);
+  });
+
+  it('rests when the window is resized as it scrolls in, and stays open', async () => {
+    const page = await h.open('sheet', { query: LAB });
+    await page.click('#open');
+    await see(page.locator('#panel')).toHaveAttribute('data-entering', '');
+    await page.setViewportSize({ width: 800, height: 1400 });
+    await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
+    await see.poll(() => box(page, '#panel')).toEqual({ ...REST, y: 1100 });
+    expect(await opens(page)).toEqual([]);
   });
 
   it('opened while hidden, rests once shown', async () => {

@@ -216,7 +216,10 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       // A sheet hidden with what holds it (`display: none` round it) has no layout: the
       // observer reports it gone, and the browser drops its scroll position. Neither is a
       // swipe. It must show again before it can be swiped away, and it rests again, at once,
-      // when it is laid out.
+      // when it is laid out. A container resized with the window (its length is the
+      // viewport's) rests again too: the browser re-snaps one at rest, but not one still
+      // scrolling in, which the new geometry would leave out of view. A ResizeObserver is
+      // told before the IntersectionObserver in the same frame.
       const laidOut = () => scrollElement.getClientRects().length > 0;
       let unlaid = false;
       const forget = () => {
@@ -224,14 +227,18 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         shown = false;
         visible = false;
       };
+      let size = '';
       const layout = new ResizeObserver(() => {
         if (!laidOut()) {
           forget();
-        } else if (unlaid) {
-          unlaid = false;
-          if (untrack(store.open)) {
-            scrollToRest(scrollElement, config, false);
-          }
+          return;
+        }
+        const now = `${scrollElement.clientWidth}x${scrollElement.clientHeight}`;
+        const moved = unlaid || (size !== '' && size !== now);
+        size = now;
+        unlaid = false;
+        if (moved && untrack(store.open)) {
+          scrollToRest(scrollElement, config, false);
         }
       });
       layout.observe(scrollElement);
