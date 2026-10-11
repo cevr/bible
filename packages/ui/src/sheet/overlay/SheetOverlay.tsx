@@ -49,6 +49,7 @@ import { type SheetState, sheetStateAttributesMapping } from '../utils/sheetAttr
 import { registerSheet, type SheetStackEntry, sheetStack } from '../utils/stack.ts';
 import {
   cssToPx,
+  reached,
   scrollAlongAxis,
   scrollDetentIntoView,
   scrollSettled,
@@ -96,27 +97,40 @@ export function useSheetOverlayContext(): SheetOverlayContext {
 
 interface SheetOverlayProps extends BaseUIComponentProps<'div', SheetState> {}
 
-/** Scrolls the sheet to where it rests open: its first snap point, or all of it showing. */
-function scrollToRest(scrollElement: HTMLElement, config: SwipeConfig, smooth: boolean) {
+/**
+ * Scrolls the sheet to where it rests open: its first snap point, or all of it
+ * showing. Answers that scroll position.
+ */
+function scrollToRest(scrollElement: HTMLElement, config: SwipeConfig, smooth: boolean): number {
   // Its own marker comes first: a sheet nested in its content renders after it.
   const initial = scrollElement.querySelector<HTMLElement>('[data-sheet-initial]');
   if (initial) {
-    scrollDetentIntoView(
+    return scrollDetentIntoView(
       scrollElement,
       initial,
       config.axis,
       config.after ? 'start' : 'end',
       smooth,
     );
-  } else {
-    scrollAlongAxis(
-      scrollElement,
-      config.axis,
-      (config.enteredScroll / 100) * viewportTravel(config),
-      smooth,
-    );
   }
+  const rest = (config.enteredScroll / 100) * viewportTravel(config);
+  scrollAlongAxis(scrollElement, config.axis, rest, smooth);
+  return rest;
 }
+
+/** Whether `element` has a layout (nothing round it is `display: none`). */
+const laidOut = (element: HTMLElement) => element.getClientRects().length > 0;
+
+/**
+ * Resolves once the sheet's scroll to `target` has settled: there, or ended
+ * elsewhere (a swipe took it over). With no layout it cannot scroll, and has
+ * settled at once: it rests when it is laid out again.
+ */
+const settledAt = (scrollElement: HTMLElement, axis: SwipeConfig['axis'], target: number) =>
+  scrollSettled(
+    scrollElement,
+    () => !laidOut(scrollElement) || reached(scrollElement, axis, target),
+  );
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -220,7 +234,6 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       // viewport's) rests again too: the browser re-snaps one at rest, but not one still
       // scrolling in, which the new geometry would leave out of view. A ResizeObserver is
       // told before the IntersectionObserver in the same frame.
-      const laidOut = () => scrollElement.getClientRects().length > 0;
       let unlaid = false;
       const forget = () => {
         unlaid = true;
@@ -229,7 +242,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       };
       let size = '';
       const layout = new ResizeObserver(() => {
-        if (!laidOut()) {
+        if (!laidOut(scrollElement)) {
           forget();
           return;
         }
@@ -244,7 +257,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       layout.observe(scrollElement);
       const observer = new IntersectionObserver(
         (entries) => {
-          if (!laidOut()) {
+          if (!laidOut(scrollElement)) {
             forget();
             return;
           }
@@ -315,8 +328,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
           if (!live) {
             return undefined;
           }
-          scrollToRest(scrollElement, config, true);
-          return scrollSettled(scrollElement);
+          return settledAt(scrollElement, config.axis, scrollToRest(scrollElement, config, true));
         })
         .then(() => {
           if (live && untrack(store.open)) {
@@ -353,7 +365,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       target = current > (config.enteredScroll / 100) * travel ? max : 0;
     }
     scrollAlongAxis(scrollElement, config.axis, target, true);
-    return scrollSettled(scrollElement);
+    return settledAt(scrollElement, config.axis, target);
   }
 
   const viewport = useViewportSize();

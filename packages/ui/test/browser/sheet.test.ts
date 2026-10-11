@@ -114,6 +114,38 @@ describe('its layout changing under it (hidden with what holds it, a window resi
     expect(await opens(page)).toEqual([]);
   });
 
+  it('scrolls in on a page too busy to start the scroll at once, entering until it rests', async () => {
+    const page = await h.open('sheet', { query: LAB });
+    // Where the panel stands as it stops entering; the frame after the open runs 400 ms long.
+    await page.locator('#open').evaluate((button: HTMLElement) => {
+      const seen = window as unknown as { __enteredAt?: number };
+      new MutationObserver(() => {
+        const panel = document.getElementById('panel');
+        if (seen.__enteredAt === undefined && panel && !panel.hasAttribute('data-entering')) {
+          seen.__enteredAt = Math.round(panel.getBoundingClientRect().y);
+        }
+      }).observe(document.body, { subtree: true, attributes: true, childList: true });
+      button.click();
+      setTimeout(() =>
+        requestAnimationFrame(() => {
+          const from = performance.now();
+          while (performance.now() - from < 400) {
+            // The page is busy.
+          }
+        }),
+      );
+    });
+    // At rest, within the pixel a scroll's last frame may leave.
+    await see
+      .poll(() => page.evaluate(() => (window as { __enteredAt?: number }).__enteredAt))
+      .toBeGreaterThanOrEqual(REST.y - 1);
+    expect(
+      await page.evaluate(() => (window as { __enteredAt?: number }).__enteredAt),
+    ).toBeLessThanOrEqual(REST.y + 1);
+    await see.poll(() => box(page, '#panel')).toEqual(REST);
+    expect(await opens(page)).toEqual([]);
+  });
+
   it('opened while hidden, rests once shown', async () => {
     const page = await h.open('sheet', { query: LAB });
     await hideSection(page, true);

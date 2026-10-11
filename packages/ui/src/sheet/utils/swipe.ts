@@ -162,14 +162,14 @@ export function scrollAlongAxis(element: HTMLElement, axis: Axis, value: number,
   element.scrollTo(axis === 'y' ? { top: value, behavior } : { left: value, behavior });
 }
 
-/** Scrolls `scroller` so `marker` rests where its scroll margin snaps it. */
+/** Scrolls `scroller` so `marker` rests where its scroll margin snaps it; answers that scroll position. */
 export function scrollDetentIntoView(
   scroller: HTMLElement,
   marker: HTMLElement,
   axis: Axis,
   align: 'start' | 'end',
   smooth = false,
-) {
+): number {
   const behavior: ScrollBehavior = smooth && !reduceMotion() ? 'smooth' : 'instant';
   const markerRect = marker.getBoundingClientRect();
   const scrollerRect = scroller.getBoundingClientRect();
@@ -184,6 +184,7 @@ export function scrollDetentIntoView(
           parseFloat(style.scrollMarginBottom) -
           scroller.clientHeight;
     scroller.scrollTo({ top, behavior });
+    return top;
   } else {
     const left =
       align === 'start'
@@ -197,21 +198,54 @@ export function scrollDetentIntoView(
           parseFloat(style.scrollMarginRight) -
           scroller.clientWidth;
     scroller.scrollTo({ left, behavior });
+    return left;
   }
 }
 
 const SETTLE_QUIET_MS = 150;
+/**
+ * How long, in frames and in time (both), a scroll that has moved stands still
+ * before it has stopped elsewhere: on a loaded page the browser's own smooth
+ * scroll can stand still for some frames on its way.
+ */
+const STILL_FRAMES = 5;
+const STILL_MS = 300;
+/** Frames a scroll sent somewhere may take to move at all before it is taken as going nowhere. */
+const START_FRAMES = 60;
+
+/** Whether `scroller` stands at `target` along `axis`, as far as it can scroll (within a pixel). */
+export function reached(scroller: HTMLElement, axis: Axis, target: number): boolean {
+  const max =
+    axis === 'y'
+      ? scroller.scrollHeight - scroller.clientHeight
+      : scroller.scrollWidth - scroller.clientWidth;
+  const now = axis === 'y' ? scroller.scrollTop : scroller.scrollLeft;
+  return Math.abs(now - Math.min(Math.max(target, 0), max)) <= 1;
+}
 
 /**
- * Resolves once `scroller` stops scrolling: on its `scrollend`, or, where the
- * browser has none (Safari before 26.2) or no scroll happens at all, once no
- * `scroll` event has come for 150 ms. Upstream waits on `scrollend` alone.
+ * Resolves once `scroller` stops scrolling. Sent somewhere (`arrived` says
+ * whether it stands there): on its `scrollend`, on a frame where it has
+ * arrived, or, stopped elsewhere (another scroll took it over, a focus or a
+ * swipe, which may end with no `scrollend`, as with none at all in Safari
+ * before 26.2), once it has moved and then stood still for 5 frames and
+ * 300 ms; one that has not moved in 60 frames goes nowhere. A page too busy
+ * to start the scroll at once does not settle it before it moves. Not sent anywhere (a swipe's momentum running out): on its
+ * `scrollend`, or once no `scroll` event has come for 150 ms. Upstream waits
+ * on `scrollend` alone.
  */
-export function scrollSettled(scroller: HTMLElement): Promise<void> {
+export function scrollSettled(scroller: HTMLElement, arrived?: () => boolean): Promise<void> {
   return new Promise((resolve) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let frame = 0;
+    let settled = false;
     const done = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
       clearTimeout(timer);
+      cancelAnimationFrame(frame);
       scroller.removeEventListener('scroll', quiet);
       scroller.removeEventListener('scrollend', done);
       resolve();
@@ -220,9 +254,37 @@ export function scrollSettled(scroller: HTMLElement): Promise<void> {
       clearTimeout(timer);
       timer = setTimeout(done, SETTLE_QUIET_MS);
     };
-    scroller.addEventListener('scroll', quiet, { passive: true });
     scroller.addEventListener('scrollend', done);
-    quiet();
+    if (!arrived) {
+      scroller.addEventListener('scroll', quiet, { passive: true });
+      quiet();
+      return;
+    }
+    const position = () => `${scroller.scrollLeft},${scroller.scrollTop}`;
+    let last = position();
+    let moved = false;
+    let still = 0;
+    let stillSince = 0;
+    let frames = 0;
+    const look = () => {
+      const now = position();
+      if (now === last) {
+        still += 1;
+      } else {
+        moved = true;
+        still = 0;
+        stillSince = performance.now();
+        last = now;
+      }
+      frames += 1;
+      const stopped = moved && still >= STILL_FRAMES && performance.now() - stillSince >= STILL_MS;
+      if (arrived() || stopped || (!moved && frames > START_FRAMES)) {
+        done();
+      } else {
+        frame = requestAnimationFrame(look);
+      }
+    };
+    look();
   });
 }
 
