@@ -17,7 +17,7 @@ import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { FILM_FPS, timecode } from '../../../src/core/time.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
 import { tone } from '../../../src/lab/fixtures/tone.ts';
-import { STEP_S, spreadMoments } from '../../../src/lab/review/machine.ts';
+import { spreadMoments } from '../../../src/lab/review/machine.ts';
 import {
   type FakeRoute,
   type Json,
@@ -627,7 +627,7 @@ describe('the review page', () => {
         yield* page.click('.rv-card[data-id="C"] .rv-sound');
         yield* until(page, `${heard} === 'C'`);
         yield* waitFor(page, '.rv-card[data-id="C"].rv-audible');
-        // Space plays and pauses; ←/→ step 2 s while paused.
+        // Space plays and pauses; ←/→ step one frame while paused.
         yield* page.press('Space');
         yield* textHas(page, '.rv-big', '❚❚');
         yield* page.press('Space');
@@ -641,7 +641,7 @@ describe('the review page', () => {
         );
         // The machine keeps the time it sampled and the videos follow it, so the
         // label (the machine's time, to the frame) is the count the steps add to:
-        // whole seconds on a whole frame count are exact. The videos agree with
+        // a step lands on the frame after the one it reads. The videos agree with
         // each other, and the clock video stands within a frame of the label.
         const clockAt = "document.querySelector('.rv-card video').currentTime";
         const labelFrames = `(() => { const [h, m, s, f] = document.querySelector('.rv-time').textContent.split(' ')[0].split(':').map(Number); return ((h * 60 + m) * 60 + s) * ${FILM_FPS} + f; })()`;
@@ -655,7 +655,7 @@ describe('the review page', () => {
               `Math.abs(${clockAt} - ${frames / FILM_FPS}) <= ${1 / FILM_FPS + 1e-3} && Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - ${clockAt}) < 1e-3)`,
             );
           });
-        const step = STEP_S * FILM_FPS;
+        const step = 1;
         yield* page.press('ArrowRight');
         yield* stoodAt(paused + step);
         yield* page.press('ArrowRight');
@@ -761,20 +761,20 @@ describe('the review page', () => {
         yield* waitFor(page, '.rv-transport');
         yield* page.press('ArrowRight');
         yield* page.press('ArrowRight');
-        yield* until(page, "location.hash === '#t=4'");
+        yield* until(page, "location.hash === '#t=0.067'");
         yield* page.click('.rv-views button[data-view="compare"]');
         yield* until(page, "location.search === '?view=pair&other=B'");
-        // The time moves on in the pair's entry; all's keeps 4.
+        // The time moves on in the pair's entry; all's keeps its two frames.
         yield* page.press('ArrowRight');
-        yield* textHas(page, '.rv-time', '00:00:06:00');
-        yield* until(page, "location.hash === '#t=6'");
+        yield* textHas(page, '.rv-time', '00:00:00:03');
+        yield* until(page, "location.hash === '#t=0.1'");
         yield* page.back;
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
-        yield* textHas(page, '.rv-time', '00:00:04:00');
+        yield* textHas(page, '.rv-time', '00:00:00:02');
         // Past the time's throttle, the entry still keeps its own time.
         yield* page.clock.fastForward(600);
-        yield* until(page, "location.search === '' && location.hash === '#t=4'");
-        yield* textHas(page, '.rv-time', '00:00:04:00');
+        yield* until(page, "location.search === '' && location.hash === '#t=0.067'");
+        yield* textHas(page, '.rv-time', '00:00:00:02');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -785,7 +785,7 @@ describe('the review page', () => {
     "a long-press on a version's picture steps the set on or back, one step or ten (SU-11)",
     () =>
       Effect.gen(function* () {
-        // Thirty seconds of tone, past the twenty ten steps go: a step of another size lands elsewhere.
+        // Thirty seconds of tone: a step of another size (two seconds, as one was) lands elsewhere.
         const long = tone(30, 0.1);
         const { page, errors } = yield* openReview(
           [
@@ -799,22 +799,27 @@ describe('the review page', () => {
         );
         yield* waitFor(page, '.rv-transport');
         const MENU = '[data-role="context-menu"]';
-        /** A long press on the second version's picture, on the page's held clock. */
-        const held = Effect.gen(function* () {
-          yield* page.clock.hold;
-          yield* touch(page, '.rv-card[data-id="B"] video', 0);
-          yield* page.clock.runFor(700);
-          yield* waitFor(page, `${MENU} [data-command]`);
-          yield* page.finger.up;
-          yield* page.clock.runFor(500);
-        });
-        yield* held;
-        yield* waitFor(page, `${MENU} [data-command="review.step-previous"]`);
-        yield* page.click(`${MENU} [data-command="review.step-next"][data-step="coarse"]`);
-        // The menu closes, and runs its row, on the held clock.
-        yield* page.clock.runFor(500);
-        // Ten steps of two seconds on from the start.
-        yield* textIs(page, '.rv-time-at', `00:00:${10 * STEP_S}:00`);
+        /** A long press on the second version's picture, on the page's held clock, then `row` picked. */
+        const held = (row: string) =>
+          Effect.gen(function* () {
+            yield* touch(page, '.rv-card[data-id="B"] video', 0);
+            yield* page.clock.runFor(700);
+            yield* waitFor(page, `${MENU} [data-command]`);
+            yield* page.finger.up;
+            yield* page.clock.runFor(500);
+            yield* waitFor(page, `${MENU} [data-command="review.step-previous"]`);
+            yield* page.click(`${MENU} ${row}`);
+            // The menu closes, and runs its row, on the held clock.
+            yield* page.clock.runFor(500);
+            yield* countIs(page, MENU, 0);
+          });
+        yield* page.clock.hold;
+        yield* held('[data-command="review.step-next"][data-step="coarse"]');
+        // Ten frames on from the start.
+        yield* textIs(page, '.rv-time-at', timecode(10 / FILM_FPS));
+        // Step on: one frame more.
+        yield* held('[data-command="review.step-next"][data-step="normal"]');
+        yield* textIs(page, '.rv-time-at', timecode(11 / FILM_FPS));
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.runPromise),
     SLOW,
@@ -833,8 +838,8 @@ describe('the review page', () => {
         );
         yield* page.press('ArrowRight');
         yield* page.press('ArrowRight');
-        yield* textHas(page, '.rv-time', '00:00:04:00');
-        yield* until(page, "location.hash === '#t=4'");
+        yield* textHas(page, '.rv-time', '00:00:00:02');
+        yield* until(page, "location.hash === '#t=0.067'");
         // The time in the URL is the set's own: the set and its videos stay as they are.
         yield* evaluates(page, "document.querySelector('.rv-card video') === window.first", true);
         const at = 'location.pathname + location.search';
@@ -1076,7 +1081,7 @@ describe('the review page', () => {
         yield* waitFor(page, '.rv-wipe-caps .rv-card[data-id="B"].rv-audible');
         yield* page.press('ArrowRight');
         yield* page.press('ArrowRight');
-        yield* until(page, "location.hash === '#t=4'");
+        yield* until(page, "location.hash === '#t=0.067'");
         yield* page.press('j');
         yield* waitFor(page, '.rv-transport [data-act="rate"] [data-rate="0.5"]');
         const clip = "document.querySelector('.rv-wipe-other').style.clipPath";
@@ -1100,7 +1105,7 @@ describe('the review page', () => {
         );
         yield* attributesAre(page, '.rv-wipe-caps .rv-audible', 'data-id', ['B']);
         yield* evaluates(page, clip, 'inset(0px 0px 0px 60%)');
-        yield* evaluates(page, 'location.hash', '#t=4');
+        yield* evaluates(page, 'location.hash', '#t=0.067');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

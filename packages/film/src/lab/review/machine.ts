@@ -34,10 +34,14 @@
 import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State, simulate } from 'effect-machine';
 import type { SET_VIEWS } from '../../core/api.ts';
-import { timecode } from '../../core/time.ts';
+import { FILM_FPS, timecode } from '../../core/time.ts';
 
-/** Seconds a ←/→ step moves. */
-export const STEP_S = 2;
+/**
+ * The frames a second the clock counts: its timecode's, and a ←/→ step's.
+ * Every film renders at `FILM_FPS` (none names a rate of its own), so it is
+ * the rate of the videos a set compares.
+ */
+export const CLOCK_FPS = FILM_FPS;
 
 /** An end not known yet: the clock's video's metadata has not loaded. */
 export const UNKNOWN_END = Number.MAX_SAFE_INTEGER;
@@ -81,7 +85,8 @@ export const SyncEvent = Event({
   Ticked: { t: Schema.Finite },
   ScrubMoved: { t: Schema.Finite },
   ScrubReleased: {},
-  Stepped: { by: Schema.Finite },
+  /** A ←/→ step: `frames` on (back when negative) from the frame the clock reads. */
+  Stepped: { frames: Schema.Int },
   /** Back or Forward landed on an entry whose `#t=` (or the set's start) is `t`. */
   Landed: { t: Schema.Finite },
   Stalled: {},
@@ -218,9 +223,11 @@ export const syncMachine = (audible: string, start: number, at: number = start) 
     })
     .on(ANY, SyncEvent.Stepped, ({ state, event }) => {
       const clock = clockOf(state);
+      // From the frame its timecode reads (`timecodeParts`: the nearest), onto the frame grid: no drift.
+      const frame = Math.round(clock.t * CLOCK_FPS);
       return withClock(state, {
         ...clock,
-        t: clamp(clock, clock.t + event.by),
+        t: clamp(clock, (frame + event.frames) / CLOCK_FPS),
         seek: clock.seek + 1,
       });
     })
@@ -278,13 +285,13 @@ export const failureOf = (state: SyncState): Option.Option<string> =>
 export const clockParts = (state: SyncState) => {
   const end = Match.value(state.end >= UNKNOWN_END).pipe(
     Match.when(true, () => '…'),
-    Match.orElse(() => timecode(state.end)),
+    Match.orElse(() => timecode(state.end, CLOCK_FPS)),
   );
   const waiting = Match.value(state._tag).pipe(
     Match.when('Buffering', () => ' · waiting'),
     Match.orElse(() => ''),
   );
-  return { at: timecode(Math.max(0, state.t)), rest: ` / ${end}${waiting}` };
+  return { at: timecode(Math.max(0, state.t), CLOCK_FPS), rest: ` / ${end}${waiting}` };
 };
 
 /** The scrub bar's reach: the clock's video's end once known, else where the clock is. */

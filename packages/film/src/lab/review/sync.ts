@@ -26,7 +26,6 @@ import type { Target } from '../../command/target.ts';
 import {
   type SyncEvent,
   SyncEvent as Events,
-  STEP_S,
   type SyncState,
   UNKNOWN_END,
   runningOf,
@@ -314,21 +313,21 @@ export const makeSync = (
   return { attach, apply, follow, stop };
 };
 
-/** What a synced player is asked: play or pause, or a step back or on (`by` steps). */
+/** What a synced player is asked: play or pause, or a step back or on (`by` frames). */
 export type PlayerKey = Data.TaggedEnum<{
   Toggle: {};
   Step: { readonly by: number };
 }>;
 export const PlayerKey = Data.taggedEnum<PlayerKey>();
 
-/** The machine's event for a player's ask: a toggle, or a step of `by` × STEP_S seconds. */
+/** The machine's event for a player's ask: a toggle, or a step of `by` frames. */
 export const playerEvent = (key: PlayerKey): SyncEvent =>
   PlayerKey.$match(key, {
     Toggle: () => Events.Toggled,
-    Step: ({ by }) => Events.Stepped({ by: by * STEP_S }),
+    Step: ({ by }) => Events.Stepped({ frames: by }),
   });
 
-/** The steps a ←/→ moves by: one, ten with Shift (the coarse step), one with Alt. */
+/** The frames a ←/→ moves by: one, ten with Shift (the coarse step), one with Alt. */
 const STEPS_BY: Readonly<Record<Invocation['step'], number>> = { normal: 1, coarse: 10, fine: 1 };
 
 /**

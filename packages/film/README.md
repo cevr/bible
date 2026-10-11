@@ -2358,8 +2358,9 @@ each choice replacing the entry, and while it holds a line over the points
 says so with Show every point. A point with a finding is not one of them:
 a finding names an address, not a point. A set's page holds one effect-machine actor, the synced player
 (`machine.ts`: `Paused`, `Playing`, `Scrubbing`, `Buffering`; one clock, the
-first variant's; one sound heard; opened at the URL's `#t=`, which follows
-it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
+leading version's video (the first shown whose video plays here), whose ←/→
+step is one frame of its timecode (`CLOCK_FPS`, Shift ten); one sound heard;
+opened at the URL's `#t=`, which follows it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
 `Wipe`, `Moments`, `Diff` shown as Difference, `Notes`; a set of one version has
 no pair, wipe or difference, and a link asking for one opens All; the pair,
 its wipe and its difference share the other chosen, and the moments and the

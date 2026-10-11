@@ -257,7 +257,7 @@ films and every folder of renders under every checkout's `out/` (and any
 folder are a comparison set, played on one clock (all of them, the first
 against one other (`?view=pair&other=<id>`), that pair as a wipe or as their
 difference at a moment, every variant's frame at a few moments, or the notes;
-space plays, ←/→ step 2 s, 🔊 picks whose sound is heard), titled and
+space plays, ←/→ step a frame (Shift ten), 🔊 picks whose sound is heard), titled and
 annotated by an optional `review.json`. A film's choices page (`/films/<film>/choices`) plays
 its newest render with the film's whole mix heard over it and lists its
 choice points: the score's options, each library sound's takes, each beat's
