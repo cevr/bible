@@ -38,10 +38,12 @@ import {
   attributeIs,
   attributesAre,
   countIs,
+  describedBy,
   evaluates,
   inkIs,
   textHas,
   textIs,
+  textsAre,
   until,
   valueIs,
 } from '../../../src/lab/fixtures/settled.ts';
@@ -1075,6 +1077,12 @@ describe('the inspector', () => {
         `[document.querySelector('${linear}').disabled, document.querySelector('${linear}').title]`,
         [true, 'cannot drag rise: the registry overrides it'],
       );
+      // The reason is a line a phone sees too, said once for the fields and the eases it
+      // refuses alike, and it describes each of them.
+      const why = 'cannot drag rise: the registry overrides it';
+      yield* textsAre(page, '.lab-edit-cue .lab-edit-note', [why]);
+      yield* evaluates(page, describedBy('.lab-edit-cue input[data-field="offset"]'), why);
+      yield* evaluates(page, describedBy(linear), why);
       expect(posted(asked)).toEqual([]);
     }).pipe(Effect.scoped),
   );

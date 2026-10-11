@@ -162,6 +162,14 @@ export const inkIs = (selector: string, token: string) =>
 export const FOCUS_SHOWN = `((el) => el === null || el === document.body ? 'none' : getComputedStyle(el).outlineStyle === 'none' && getComputedStyle(el).boxShadow === ((probe) => { probe.style.boxShadow = 'var(--focus-ring)'; el.parentElement.append(probe); const ring = getComputedStyle(probe).boxShadow; probe.remove(); return ring; })(document.createElement('i')) ? 'ring' : 'outline')(document.activeElement)`;
 
 /**
+ * An expression run in the page: what describes `selector`'s first match for
+ * assistive tech (the text of each element its `aria-describedby` names that
+ * is on the page and shown, joined by a space); `''` when nothing does.
+ */
+export const describedBy = (selector: string) =>
+  `((el) => (el.getAttribute('aria-describedby') || '').split(' ').map((id) => document.getElementById(id)).filter((d) => d !== null && d.checkVisibility()).map((d) => d.textContent).join(' '))(document.querySelector(${json(selector)}))`;
+
+/**
  * An expression run in the page: every way the shown `labels` (each the
  * element holding a label's text) fail to read, as `text: why`; none, `[]`.
  * A label stays inside its room (its closest `room`, or itself): the span of

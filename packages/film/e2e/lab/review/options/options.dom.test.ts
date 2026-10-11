@@ -53,6 +53,7 @@ import {
   attributeIs,
   attributesAre,
   countIs,
+  describedBy,
   evaluates,
   textHas,
   textIs,
@@ -673,7 +674,12 @@ describe("a film's choices", () => {
           ],
           { href: FILM },
         );
-        yield* waitFor(page, `[id="point-${WIND}"] input[type="range"][disabled]`);
+        const slider = `[id="point-${WIND}"] input[type="range"]`;
+        yield* waitFor(page, `${slider}[disabled]`);
+        // The slider is named as its field is, and both are described by why they cannot move.
+        yield* attributeIs(page, slider, 'aria-label', `${WIND} (dB)`);
+        yield* evaluates(page, describedBy(slider), 'computed');
+        yield* evaluates(page, describedBy(`[id="point-${WIND}"] .lab-num`), 'computed');
         yield* openCommandMenu(page, 'wind');
         yield* click(page, menuEntry(`go.choice.${WIND}`));
         yield* until(page, focusIn(WIND));

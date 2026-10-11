@@ -7,10 +7,11 @@
 // receipt it lands with (the page's toast, `lab/command/receipts.tsx`).
 
 import { For, Show } from '@solidjs/web';
-import { Boolean as Bool, Option, Result } from 'effect';
-import type { ParentProps } from 'solid-js';
-import { createMemo } from 'solid-js';
+import { Array as Arr, Boolean as Bool, Option, Result } from 'effect';
+import type { Accessor, ParentProps } from 'solid-js';
+import { createMemo, createUniqueId } from 'solid-js';
 import type { SceneSpec } from '../../canvas/film.ts';
+import { type Inspected, refusalOf } from '../../core/field.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import {
   type CheckLine,
@@ -60,7 +61,8 @@ interface CueFieldsProps {
  * The selected cue: its anchor, offset, dur (or, ending on a mark, its end
  * and the mark with the offset off it: an end typed sets that offset, as its
  * drag does, and the end keeps following the mark), when it plays, and its
- * ease.
+ * ease; and why a field or the ease cannot be written, each reason once, in
+ * a line a phone sees too, which describes the controls it refuses.
  */
 const CueFields = (props: CueFieldsProps) => {
   const { meta } = useLab();
@@ -70,6 +72,23 @@ const CueFields = (props: CueFieldsProps) => {
   const field = (id: string) => fields().find((f) => f.id === id);
   // Why an ease cannot be written, as a drag or a typed field would be told.
   const easeRefusal = createMemo(() => cueRefusal(state.inspectedSource(), props.name, ['ease']));
+  const notes = createUniqueId();
+  const refusals = createMemo(() =>
+    Arr.dedupe([
+      ...fields().flatMap((f) => Option.toArray(refusalOf(f))),
+      ...Option.toArray(easeRefusal()),
+    ]),
+  );
+  /** The id of the line saying `why`. */
+  const noteOf = (why: string) => `${notes}-${refusals().indexOf(why)}`;
+  /** A field of the grid, its key its scrubby label, described by its refusal's line. */
+  const key = (name: string, f: Accessor<Inspected>) => (
+    <Field
+      field={f()}
+      label={<Key>{name}</Key>}
+      describedBy={Option.getOrUndefined(Option.map(refusalOf(f()), noteOf))}
+    />
+  );
   const write = (patch: CuePatch) => {
     const commit = cueCommit(scene(), props.name, props.span, props.cue, patch);
     actions.commit(commit.write, {
@@ -90,16 +109,14 @@ const CueFields = (props: CueFieldsProps) => {
       <div class="lab-edit-grid">
         <Key>anchor</Key>
         <Val>{anchorText(props.span)}</Val>
-        <Show when={field('offset')}>{(f) => <Field field={f()} label={<Key>offset</Key>} />}</Show>
+        <Show when={field('offset')}>{(f) => key('offset', f)}</Show>
         <Show
           when={props.span.until}
-          fallback={
-            <Show when={field('dur')}>{(f) => <Field field={f()} label={<Key>dur</Key>} />}</Show>
-          }
+          fallback={<Show when={field('dur')}>{(f) => key('dur', f)}</Show>}
         >
           {(until) => (
             <>
-              <Show when={field('end')}>{(f) => <Field field={f()} label={<Key>end</Key>} />}</Show>
+              <Show when={field('end')}>{(f) => key('end', f)}</Show>
               <Key>until</Key>
               <Val>{untilEndText(until(), props.span.untilOffset)}</Val>
             </>
@@ -108,6 +125,13 @@ const CueFields = (props: CueFieldsProps) => {
         <Key>plays</Key>
         <Val>{`${timecode(props.cue.start, meta.film.fps)}–${timecode(props.cue.end, meta.film.fps)} in the scene`}</Val>
       </div>
+      <For each={refusals()}>
+        {(why, i) => (
+          <p class="lab-edit-note" id={`${notes}-${i()}`}>
+            {why}
+          </p>
+        )}
+      </For>
       <div class="lab-edit-key">{`ease: ${props.cue.ease}${easeNote()}`}</div>
       <div class="lab-eases">
         <For each={EaseName.literals}>
@@ -119,6 +143,7 @@ const CueFields = (props: CueFieldsProps) => {
               data-ease={e}
               title={Option.getOrElse(easeRefusal(), () => e)}
               disabled={Option.isSome(easeRefusal())}
+              aria-describedby={Option.getOrUndefined(Option.map(easeRefusal(), noteOf))}
               onClick={() => {
                 if (e !== props.span.ease) write({ ease: e });
               }}
