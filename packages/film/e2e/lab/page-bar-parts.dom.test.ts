@@ -270,15 +270,24 @@ const heldLooks = (page: Tab, holds: Holds, held: ReadonlyArray<Part>) =>
 /** What a held look is read for: whether the state held, then the look. */
 const HELD_READ = ['held', ...LOOK];
 
-/** Each property `mine` holds otherwise than `theirs`, as a sentence; a state that did not hold is one (`held`). */
-const heldOff = (name: string, mine: Look, theirs: Look): ReadonlyArray<string> =>
-  HELD_READ.filter((property) => mine[property] !== theirs[property]).map(
+/**
+ * Each property `mine` holds otherwise than `theirs`, as a sentence; a state
+ * that did not hold on the page is one (`held`). The Lab is the reference:
+ * a state it never took is no look to match, so that is the sentence, and
+ * neither taking a state is a failure, never a match.
+ */
+const heldOff = (name: string, mine: Look, theirs: Look): ReadonlyArray<string> => {
+  if (theirs['held'] !== 'yes') return [`${name}: the Lab's never took it (${theirs['held']})`];
+  return HELD_READ.filter((property) => mine[property] !== theirs[property]).map(
     (property) => `${name} ${property} is ${mine[property]}, the Lab's ${theirs[property]}`,
   );
+};
 
 /**
  * Each control a viewer can hold both on `page` and on the Lab (`lab`),
  * focused and under the pointer, read against the Lab's held the same way.
+ * The Lab holds every control (a control it cannot is a sentence); a page
+ * holds those its own state leaves out from under a sheet.
  */
 const heldDifferences = (lab: Tab, page: Tab) =>
   Effect.gen(function* () {
@@ -287,10 +296,15 @@ const heldDifferences = (lab: Tab, page: Tab) =>
     const held = CONTROLS.filter((part) => part in labHolds.at && part in pageHolds.at);
     const theirs = yield* heldLooks(lab, labHolds, held);
     const mine = yield* heldLooks(page, pageHolds, held);
-    return held.flatMap((part) => [
-      ...heldOff(`${part} focus`, mine.focus[part] ?? {}, theirs.focus[part] ?? {}),
-      ...heldOff(`${part} hover`, mine.hover[part] ?? {}, theirs.hover[part] ?? {}),
-    ]);
+    return [
+      ...CONTROLS.filter((part) => !(part in labHolds.at)).map(
+        (part) => `${part}: the Lab's cannot be held`,
+      ),
+      ...held.flatMap((part) => [
+        ...heldOff(`${part} focus`, mine.focus[part] ?? {}, theirs.focus[part] ?? {}),
+        ...heldOff(`${part} hover`, mine.hover[part] ?? {}, theirs.hover[part] ?? {}),
+      ]),
+    ];
   });
 
 /** Each place's first case, the place as it opens, but the Lab's own (`labCue`). */
@@ -403,9 +417,26 @@ describe("the shell guard's own probe", () => {
           'otherTab hover backgroundColor',
           'goto focus boxShadow',
         ]);
-        // A control the keyboard cannot focus takes no focus state: its read says so.
-        yield* page.evaluate(`document.querySelector('.sh-goto').setAttribute('disabled', '')`);
+        // A control the keyboard cannot focus takes no focus state: its read says so, and a
+        // state the page never takes, the Lab's taken, is a difference.
+        const disable = `document.querySelector('.sh-goto').setAttribute('disabled', '')`;
+        yield* page.evaluate(disable);
         yield* evaluates(page, `${FOCUSED(['goto'])}.goto.held`, 'not :focus-visible');
+        const unheld = (differences: ReadonlyArray<string>) =>
+          differences.filter((d) => d.startsWith('goto focus') && !d.includes(' is '));
+        expect(
+          (yield* heldDifferences(lab, page)).filter((d) => d.startsWith('goto focus held')),
+        ).toEqual(["goto focus held is not :focus-visible, the Lab's yes"]);
+        // Neither taking it is no match: the Lab's reference never took it.
+        yield* lab.evaluate(disable);
+        expect(unheld(yield* heldDifferences(lab, page))).toEqual([
+          "goto focus: the Lab's never took it (not :focus-visible)",
+        ]);
+        // Nor is a control the Lab's pointer cannot reach.
+        yield* lab.evaluate(plant('.sh-header .sh-goto { pointer-events: none !important; }'));
+        expect((yield* heldDifferences(lab, page)).filter((d) => d.startsWith('goto'))).toEqual([
+          "goto: the Lab's cannot be held",
+        ]);
       }).pipe(Effect.scoped),
     SLOW,
   );
