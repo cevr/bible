@@ -206,10 +206,13 @@ for (const p of PAGES) {
           yield* waitFor(page, CLOSE);
           yield* sheetsStand(page);
           yield* page.evaluate('void (window.__entries = history.length)');
-          // The swipe is the sheet's own scroll: a viewport's width toward the right edge.
-          yield* page.evaluate(
-            `void document.querySelector('[data-sheet-scroll]').scrollBy({ left: -innerWidth, behavior: 'smooth' })`,
+          // The swipe is the user's: a trackpad's wheel sideways over the panel, a viewport's width
+          // toward the right edge, which the browser turns into the sheet's own scroll.
+          const [x, y] = yield* page.evaluate<[number, number]>(
+            `(({ left, top, width, height }) => [left + width / 2, top + height / 2])(document.querySelector('.lab-inspector-panel').getBoundingClientRect())`,
           );
+          yield* page.mouse.move(x, y);
+          yield* page.mouse.wheel(-LAPTOP.width, 0);
           yield* countIs(page, INSPECTOR, 0);
           yield* at(page, p.closed(rest));
           yield* evaluates(page, QUERY, [
@@ -333,9 +336,7 @@ describe('an open phone sheet as what it stands on moves under it', () => {
           { view: 'moments', docked: false },
           { view: 'all', docked: true },
         ]) {
-          yield* page.evaluate(
-            `document.querySelector('.rv-views button[data-view="${view}"]').click()`,
-          );
+          yield* page.click(`.rv-views button[data-view="${view}"]`);
           yield* until(page, `(document.querySelector('.sh-dock') !== null) === ${docked}`);
           yield* until(page, `(({ sheets, whole }) => sheets === 1 && whole)(${STANDS})`);
           // Still so a moment later: nothing read the move as a swipe.

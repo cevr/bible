@@ -104,6 +104,8 @@ export interface Tab {
     readonly down: Effect.Effect<void>;
     readonly up: Effect.Effect<void>;
     readonly click: (x: number, y: number) => Effect.Effect<void>;
+    /** Turn the wheel where the mouse is, by `dx`, `dy` pixels (a trackpad's swipe sideways is `dx`). */
+    readonly wheel: (dx: number, dy: number) => Effect.Effect<void>;
   };
   /**
    * One finger, as the browser's touch input sends it (its touch events and
@@ -623,6 +625,16 @@ export const makeTab = (
       }),
     );
     const clickAt = (x: number, y: number) => Effect.andThen(move(x, y), Effect.andThen(down, up));
+    const wheel = (dx: number, dy: number) =>
+      Effect.suspend(() =>
+        call('Input.dispatchMouseEvent', {
+          type: 'mouseWheel',
+          x: at.x,
+          y: at.y,
+          deltaX: dx,
+          deltaY: dy,
+        }),
+      );
 
     /** The fingers down now, by touch id (1, the first; 2, a second), where each is. */
     const fingers = new Map<number, Point>();
@@ -766,7 +778,7 @@ export const makeTab = (
         ),
       press,
       pressIn: (selector, key) => Effect.andThen(focus(selector), press(key)),
-      mouse: { move, down, up, click: clickAt },
+      mouse: { move, down, up, click: clickAt, wheel },
       finger,
       goto: (path) => Effect.promise(() => view.navigate(`${origin}${path}`)),
       reload: Effect.promise(() => view.reload()),
