@@ -2,9 +2,19 @@
 // cutpaper control's paper person (`kit.ts`'s `person`, read-only, its pieces
 // copied here) with its torso and head skinned, so the bow deforms the paper
 // itself. The same four bones as the Rive rig (`looks/rive/rig.ts`): hips →
-// chest → head, the jaw back down the lower head. The tunic and its stains
-// bend along hips → chest; the head's upper half rides the head bone and its
-// lower half the jaw. The face rides the head whole.
+// chest → head, the jaw back down the lower head; and two more the Rive rig
+// lacks, a shoulder each from the neck out to the tunic's top corners. The
+// tunic bends along hips → chest, its top corners on the shoulders; its
+// stains along hips → chest; the head's upper half rides the head bone and
+// its lower half the jaw. The face rides the head whole.
+//
+// The jaw squashes toward its start, the head's centre, so it would lift the
+// chin off the neck: the head sinks by just what the jaw takes off (its
+// `shift`), keeping the chin on the neck and the crown coming down. A
+// front-facing figure that turns tilts sideways, so the bow is not a turn:
+// the chest shortens and widens, the shoulders round down and in, the head
+// sinks, the jaw squashes and the face slides down, with the rig's own small
+// turns.
 //
 // Posed on the court's cues as the rig is: `bow` rounds the shoulders, sags
 // the tunic's top, sinks the head and squashes the jaw; `stamp` jolts the
@@ -13,11 +23,10 @@
 // the key they arrive at, as `keys` reads them. Nothing is carried between
 // frames: the pose is made from the frame's own numbers.
 //
-// `PARITY` poses it with the rig's own values; `AMPLIFIED` takes each
-// channel further from rest by its gain, so the bend reads at film scale: the
-// shoulders round, the tunic's top sags, the jaw squashes, the lift overshoots
-// by a few pixels. The keys' times and eases are the rig's in both, so the
-// amplified bow is the same move, only larger.
+// `PARITY` poses it with the rig's own values (its shoulders still, as the
+// Rive rig has none); `AMPLIFIED` takes each channel further from rest by its
+// gain, so the bow reads at film scale. The keys' times and eases are the
+// rig's in both, so the amplified bow is the same move, only larger.
 
 import {
   type Hand,
@@ -68,18 +77,44 @@ const smoothstep = (e0: number, e1: number, x: number) => {
 
 const [STAIN_A = [], STAIN_B = []] = FIGURE_STAINS;
 
+/** The tunic's half width: each shoulder's length, from the neck to a top corner. */
+const SHOULDER_SPAN = 33;
+/** The jaw bone's length: from the head's centre to the chin. */
+const JAW = 38;
+
+/**
+ * The tunic's weights: hips → chest by height as the chain weighs them (the
+ * joint at the waist, −70, blended ±25), and the top corners on their
+ * shoulders: from 100 up to the top (128) and from 6 out to the corner (26),
+ * each by a smoothstep, so the top edge slopes from the neck to the corner
+ * and the side curves in below it.
+ */
+const tunicWeights = ([x, y]: Pt) => {
+  const chest = smoothstep(-25, 25, -70 - y);
+  const shoulder = smoothstep(80, 128, -y) * smoothstep(0, 33, Math.abs(x));
+  return {
+    hips: (1 - shoulder) * (1 - chest),
+    chest: (1 - shoulder) * chest,
+    shoulderL: x < 0 ? shoulder : 0,
+    shoulderR: x < 0 ? 0 : shoulder,
+  };
+};
+
 /**
  * The rig's chain: hips at the waist's foot, chest to the neck (−128), head to
- * its centre, jaw back down to the chin. Its skins: the tunic, with points
- * added so its long straight sides have points to bend, and its two stains,
- * along hips → chest; the head, its upper half on the head bone, from the
- * eyes down onto the jaw (the rig's weights).
+ * its centre, jaw back down to the chin; a shoulder each way from the neck
+ * along the tunic's top. Its skins: the tunic, with points added so its long
+ * straight sides have points to bend; its two stains, along hips → chest; the
+ * head, its upper half on the head bone, from the eyes down onto the jaw (the
+ * rig's weights).
  */
 const BODY = skeleton('hips', { at: [0, -20], angle: UP, length: 50 })
   .bone('chest', 'hips', { length: 58 })
   .bone('head', 'chest', { length: 37 })
-  .bone('jaw', 'head', { angle: Math.PI, length: 38 })
-  .skin('torso', TUNIC_SHAPE, { chain: ['hips', 'chest'] }, { spacing: 4 })
+  .bone('jaw', 'head', { angle: Math.PI, length: JAW })
+  .bone('shoulderL', 'chest', { angle: -Math.PI / 2, length: SHOULDER_SPAN })
+  .bone('shoulderR', 'chest', { angle: Math.PI / 2, length: SHOULDER_SPAN })
+  .skin('torso', TUNIC_SHAPE, { weigh: tunicWeights }, { spacing: 4 })
   .skin('stainA', STAIN_A, { chain: ['hips', 'chest'] })
   .skin('stainB', STAIN_B, { chain: ['hips', 'chest'] })
   .skin('head', ellipseShape(HEAD[0], HEAD[1], HEAD_RX, HEAD_RY, 64), {
@@ -109,6 +144,8 @@ type Channel =
   | 'chestAcross'
   | 'headTurn'
   | 'jawAlong'
+  | 'shoulderTurn'
+  | 'shoulderAlong'
   | 'faceY'
   | 'faceSy'
   | 'nearX'
@@ -121,8 +158,22 @@ type Track = Readonly<Record<Channel, ReadonlyArray<Key>>>;
 const IO = 'inOutSine';
 const OUT = 'outCubic';
 
-/** Head down on "you did it": the rig's `bow`, and the shoulders rounding out a little as the chest folds. */
+/**
+ * Head down on "you did it": the rig's `bow`, the chest widening a little as
+ * it folds, and the shoulders (ours: the rig has none) rounding down and in
+ * with the chest, their turn each way down from the neck.
+ */
 const BOW: Track = {
+  shoulderTurn: [
+    [0, 0],
+    [0.3, 0.22, OUT],
+    [0.52, 0.2, IO],
+  ],
+  shoulderAlong: [
+    [0, 1],
+    [0.3, 0.94, OUT],
+    [0.52, 0.95, IO],
+  ],
   chestTurn: [
     [0, 0],
     [0.33, 0.055, IO],
@@ -187,8 +238,18 @@ const BOW: Track = {
   ],
 };
 
-/** Up at the verdict, past upright and back: the rig's `lift`. */
+/** Up at the verdict, past upright and back: the rig's `lift`, the shoulders squaring a little past rest. */
 const LIFT: Track = {
+  shoulderTurn: [
+    [0, 0.2],
+    [0.26, -0.04, OUT],
+    [0.5, 0, IO],
+  ],
+  shoulderAlong: [
+    [0, 0.95],
+    [0.26, 1.01, OUT],
+    [0.5, 1, IO],
+  ],
   chestTurn: [
     [0, 0.045],
     [0.3, -0.012, IO],
@@ -277,6 +338,8 @@ const AT_REST: Readonly<Record<Channel, number>> = {
   chestAcross: 1,
   headTurn: 0,
   jawAlong: 1,
+  shoulderTurn: 0,
+  shoulderAlong: 1,
   faceY: 0,
   faceSy: 1,
   nearX: 0,
@@ -289,22 +352,21 @@ const AT_REST: Readonly<Record<Channel, number>> = {
 /** How far each channel moves from rest, as a share of the rig's move: a channel left out moves as the rig's. */
 type Gains = Readonly<Partial<Record<Channel, number>>>;
 
-/** The rig's own values: parity with the Rive look. */
-export const PARITY: Gains = {};
+/** The rig's own values: parity with the Rive look, whose rig has no shoulders to round. */
+export const PARITY: Gains = { shoulderTurn: 0, shoulderAlong: 0 };
 
 /**
- * Larger, to read at film scale, and still sincere: the chest bows about
- * 0.18 rad and squashes to 0.84 (its top sags), the shoulders round out to
- * 1.09, the head sinks a further 0.23 rad (the head hangs about 24°, a bow,
- * not a quizzical tilt), the jaw squashes to 0.75; the lift overshoots to
- * 1.07 along the chest and 1.1 on the jaw before it settles. The chest stays
- * well under the 0.8 rad where a wide piece folds.
+ * Larger, to read at film scale, and still sincere: a bow, not a lean. The
+ * chest and head keep the rig's small turns (0.055 and 0.18 rad); the chest
+ * shortens to 0.84 and widens to 1.09, the shoulders round 0.22 rad down
+ * from the neck and draw in to 0.94, the jaw squashes to 0.75 and the head
+ * sinks with it (the chin stays on the neck), and the face slides down. The
+ * lift overshoots to 1.07 along the chest and 1.1 on the jaw before it
+ * settles.
  */
 export const AMPLIFIED: Gains = {
-  chestTurn: 3.2,
   chestAlong: 2,
   chestAcross: 2.5,
-  headTurn: 1.3,
   jawAlong: 2.1,
   faceY: 1.6,
   faceSy: 1.5,
@@ -341,13 +403,25 @@ const motionOf = (f: CourtFrame, gains: Gains) => {
   };
 };
 
-/** The bones' values for a frame's motion `m`, the chest widened by `breath`. */
-const valuesOf = (m: (channel: Channel) => number, breath: number): PoseValues<Bone> => ({
-  hips: { shift: [0, m('bodyY')] },
-  chest: { turn: m('chestTurn'), along: m('chestAlong'), across: m('chestAcross') * breath },
-  head: { turn: m('headTurn') },
-  jaw: { along: m('jawAlong') },
-});
+/**
+ * The bones' values for a frame's motion `m`, the chest widened by `breath`.
+ * The jaw squashes toward the head's centre, lifting the chin by what it
+ * loses; the head's start moves back down the chest (its frame's x) by just
+ * that, so the chin stays on the neck and the crown comes down instead.
+ */
+const valuesOf = (m: (channel: Channel) => number, breath: number): PoseValues<Bone> => {
+  const jaw = m('jawAlong');
+  const shoulder = m('shoulderTurn');
+  const along = m('shoulderAlong');
+  return {
+    hips: { shift: [0, m('bodyY')] },
+    chest: { turn: m('chestTurn'), along: m('chestAlong'), across: m('chestAcross') * breath },
+    head: { turn: m('headTurn'), shift: [-(1 - jaw) * JAW, 0] },
+    jaw: { along: jaw },
+    shoulderL: { turn: -shoulder, along },
+    shoulderR: { turn: shoulder, along },
+  };
+};
 
 // ─── the drawing ─────────────────────────────────────────────────────────────
 
