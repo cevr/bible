@@ -72,6 +72,26 @@ describe('skin: names', () => {
     bones.bone(dynamic, 'low', { length: 1 });
     expect(bones.names).toEqual(['low', 'high']);
   });
+
+  test('a name widened to a union or a template does not compile, so no duplicate slips in through one', () => {
+    const bones = body().skin('torso', [[0, 0]], { chain: ['low'] });
+    /** A name the compiler knows only as one of two. */
+    const either = (taken: boolean): 'high' | 'mid' => (taken ? 'high' : 'mid');
+    const skinEither = (taken: boolean): 'torso' | 'cape' => (taken ? 'torso' : 'cape');
+    const fresh = (first: boolean): 'x' | 'y' => (first ? 'x' : 'y');
+    const arm = (i: number): `arm-${number}` => `arm-${i}`;
+    // @ts-expect-error: one of the two is `high`, which the skeleton has
+    bones.bone(either(true), 'low', { length: 1 });
+    // @ts-expect-error: one of the two is `torso`, which the skeleton has
+    bones.skin(skinEither(true), [[0, 0]], { chain: ['low'] });
+    // @ts-expect-error: two names at once, neither taken, is still not one name
+    bones.bone(fresh(true), 'low', { length: 1 });
+    // @ts-expect-error: a template is a pattern of names, not one
+    bones.bone(arm(1), 'low', { length: 1 });
+    // @ts-expect-error: and for a skin
+    bones.skin(arm(2), [[0, 0]], { chain: ['low'] });
+    expect(bones.names).toEqual(['low', 'high']);
+  });
 });
 
 describe('skin: at rest', () => {
@@ -251,6 +271,95 @@ describe('skin: weights', () => {
     expect(bones.weights('two', 0)).toEqual({ low: 0.25, high: 0.75 });
     expect(bones.weights('two', 1)).toEqual({ low: 1, high: 0 });
   });
+
+  test('a chain that curls back over several joints gives a point on its last bone nothing of its first: a U', () => {
+    /** `a` right from (0, 0), `b` down from its tip, `c` back left from b's: each 40, `b` `mid` long, `c` turned `turn` more. */
+    const u = (mid: number, turn: number, pts: ReadonlyArray<Pt>) =>
+      skeleton('a', { at: [0, 0], angle: 0, length: 40 })
+        .bone('b', 'a', { angle: Math.PI / 2, length: mid })
+        .bone('c', 'b', { angle: turn, length: 40 })
+        .skin('u', pts, { chain: ['a', 'b', 'c'] }, { closed: false });
+    // c's tip and a's start, the U's two ends, side by side; and a narrower U.
+    const wide = u(40, Math.PI / 2, [
+      [0, 40],
+      [0, 0],
+    ]);
+    expect(wide.weights('u', 0)).toEqual({ a: 0, b: 0, c: 1 });
+    expect(wide.weights('u', 1)).toEqual({ a: 1, b: 0, c: 0 });
+    expect(u(30, Math.PI / 2, [[0, 30]]).weights('u', 0)).toEqual({ a: 0, b: 0, c: 1 });
+    // Bones at 0°, 90° and 150° (40, 10, 40): c's tip is c's.
+    const tip: Pt = [40 + 40 * Math.cos((5 * Math.PI) / 6), 10 + 40 * Math.sin((5 * Math.PI) / 6)];
+    expect(u(10, Math.PI / 3, [tip]).weights('u', 0)).toEqual({ a: 0, b: 0, c: 1 });
+    // So c turned moves its tip as c alone moves it.
+    const [moved] = wide.pose({ c: { turn: 0.5 } }).at('u');
+    expect(dist(moved ?? [NaN, NaN], turned([0, 40], [40, 40], 0.5))).toBeLessThan(1e-9);
+    // And the weights stay smooth all round the U, 5 either side of its bones.
+    const around = (pts: ReadonlyArray<Pt>) =>
+      skeleton('a', { at: [0, 0], angle: 0, length: 40 })
+        .bone('b', 'a', { angle: Math.PI / 2, length: 40 })
+        .bone('c', 'b', { angle: Math.PI / 2, length: 40 })
+        .skin('side', pts, { chain: ['a', 'b', 'c'] }, { closed: false, spacing: 0.5 });
+    for (const side of [
+      [
+        [0, -5],
+        [45, -5],
+        [45, 45],
+        [0, 45],
+      ],
+      [
+        [0, 5],
+        [35, 5],
+        [35, 35],
+        [0, 35],
+      ],
+    ] satisfies Array<Array<Pt>>) {
+      const bones = around(side);
+      const rows = bones.rest('side').map((_, i) => bones.weights('side', i));
+      rows.slice(1).forEach((w, i) => {
+        const before = rows[i] ?? w;
+        for (const b of ['a', 'b', 'c'] as const)
+          expect(Math.abs((w[b] ?? NaN) - (before[b] ?? NaN))).toBeLessThan(0.05);
+      });
+    }
+  });
+
+  test('a weight or blend that is not a finite number never reaches the outline: it is set aside and named', () => {
+    const outline = rounded(0, -50, 60, 110, 18);
+    const bones = body()
+      .skin(
+        'torn',
+        outline,
+        // A falloff's 0/0 above the joint: `high` gets NaN there.
+        { weigh: ([, y]) => (y < -50 ? { low: 1, high: ((y + 50) * 0) / 0 } : { low: 1 }) },
+        { spacing: 4 },
+      )
+      .skin('wide', outline, { chain: ['low', 'high'], blend: Number.NaN }, { spacing: 4 })
+      .skin('plain', outline, { chain: ['low', 'high'] }, { spacing: 4 });
+    const above = bones.rest('torn').filter(([, y]) => y < -50).length;
+    expect(above).toBeGreaterThan(0);
+    expect(bones.rejected).toEqual([
+      { _tag: 'WeightNotFinite', skin: 'torn', bone: 'high', value: Number.NaN, points: above },
+      { _tag: 'BlendNotFinite', skin: 'wide', value: Number.NaN },
+    ]);
+    const pose = bones.pose({ high: { turn: 0.4 }, low: { along: 0.9 } });
+    for (const skin of ['torn', 'wide'] as const)
+      expect(pose.at(skin).every(([x, y]) => Number.isFinite(x) && Number.isFinite(y))).toBe(true);
+    // A blend that is not a number takes the default: the same weights as no blend given.
+    expect(identical(pose.at('wide'), pose.at('plain'))).toBe(true);
+    expect(body().skin('plain', outline, { chain: ['low', 'high'] }).rejected).toEqual([]);
+  });
+
+  test('a chain whose bones are not parent → child is named', () => {
+    const bones = skeleton('a', { at: [0, 0], angle: 0, length: 10 })
+      .bone('b', 'a', { length: 10 })
+      .bone('c', 'b', { length: 10 })
+      .skin('back', [[5, 0]], { chain: ['b', 'a'] }, { closed: false })
+      .skin('skip', [[5, 0]], { chain: ['a', 'c'] }, { closed: false });
+    expect(bones.rejected).toEqual([
+      { _tag: 'ChainNotLinked', skin: 'back', from: 'b', to: 'a' },
+      { _tag: 'ChainNotLinked', skin: 'skip', from: 'a', to: 'c' },
+    ]);
+  });
 });
 
 describe('skin: smooth joints', () => {
@@ -346,8 +455,10 @@ describe('skin: pure', () => {
       { closed: false },
     );
     const values = { b: { turn: Math.PI / 2 } };
-    expect(dist(standing.pose(values).at('hand')[0] ?? [NaN, NaN], [0, 10])).toBeLessThan(1e-9);
-    expect(dist(seated.pose(values).at('hand')[0] ?? [NaN, NaN], [100, 10])).toBeLessThan(1e-9);
+    // Both posed before either is read, so neither can read the other's binding.
+    const [stand, sit] = [standing.pose(values), seated.pose(values)];
+    expect(dist(sit.at('hand')[0] ?? [NaN, NaN], [100, 10])).toBeLessThan(1e-9);
+    expect(dist(stand.at('hand')[0] ?? [NaN, NaN], [0, 10])).toBeLessThan(1e-9);
   });
 
   test('a value that is not a finite number is held at rest and named, never a NaN point', () => {
@@ -371,6 +482,11 @@ describe('skin: pure', () => {
     // Held at rest: the same outline as the sound fields alone.
     expect(identical(pose.at('torso'), sound.at('torso'))).toBe(true);
     expect(pose.rigid('high').every(Number.isFinite)).toBe(true);
+    // A shift with both components unsound names both.
+    expect(bones.pose({ low: { shift: [NaN, Infinity] } }).rejected).toEqual([
+      { _tag: 'PoseNotFinite', bone: 'low', field: 'shift', value: NaN },
+      { _tag: 'PoseNotFinite', bone: 'low', field: 'shift', value: Infinity },
+    ]);
   });
 });
 
