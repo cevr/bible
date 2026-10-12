@@ -514,6 +514,54 @@ describe('on a phone', () => {
   }
 
   it.live(
+    'handed from the selection’s face to its own sheet (Edit to Note), a reader’s scroll still on its way before the line is known keeps the view where the hand put it',
+    () =>
+      Effect.gen(function* () {
+        // As above, the reader's scroll in the view the face handed over to: the text the own sheet mounts as the
+        // face's goes (both read the mode), so the view asked whether a hand has it is the one shown.
+        const gate = yield* Deferred.make<void>();
+        const noFall = route('GET', /^\/scenes\/one\/code$/, () =>
+          json({
+            ...codeOf(LONG_TEXT),
+            cues: codeOf(LONG_TEXT).cues.filter((c) => c.name !== 'fall'),
+          }),
+        );
+        const { page } = yield* openLab([noFall, sourceLater(gate)], {
+          href: labOne(middle('rise'), { cue: 'fall' }),
+          viewport: PHONE,
+        });
+        yield* page.waitFor('.lab-selection-sheet');
+        yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+        yield* page.click('.lab-selection-sheet [data-face="source"]');
+        yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+        yield* evaluates(page, `new URLSearchParams(location.search).get('code')`, 'follow');
+        // The sheet lowers to its peek to reach the mode tray, as a hand would.
+        yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+        yield* page.click('.lab-modes [data-mode-pick="note"]');
+        yield* page.waitFor('.lab-source-sheet .lab-source-page');
+        yield* countIs(page, '.lab-source-page', 1);
+        const box = `(() => { let up = document.querySelector('.lab-source-sheet .lab-source-page').parentElement; while (up && !['auto', 'scroll'].includes(getComputedStyle(up).overflowY)) up = up.parentElement; return up; })()`;
+        // Follow placed the playing line, a screen down the file; the reader scrolls back to the top, its scroll
+        // event held until the answer has landed.
+        yield* page.until(`${box}.scrollTop > 0`);
+        yield* page.evaluate(
+          `(() => { const box = ${box}; const hold = (event) => { if (event.target === box) event.stopImmediatePropagation(); }; window.addEventListener('scroll', hold, { capture: true }); window.__hear = () => window.removeEventListener('scroll', hold, { capture: true }); })()`,
+        );
+        yield* page.evaluate(`${box}.scrollTop = 0`);
+        yield* page.evaluate(FRAMES);
+        const landed = yield* page.nextAnswer((a) => a.url.endsWith('/scenes/one/source'));
+        yield* Deferred.done(gate, Exit.void);
+        yield* landed;
+        yield* page.evaluate(FRAMES);
+        yield* page.evaluate(FRAMES);
+        yield* page.evaluate('window.__hear()');
+        // The answer has landed and the page has run on: a settle would have written its line by now.
+        yield* evaluates(page, `new URLSearchParams(location.search).get('code')`, 'follow');
+        yield* evaluates(page, `${box}.scrollTop`, 0);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     'opened before the selection’s line is known, it holds that line once a read answers',
     () =>
       Effect.gen(function* () {

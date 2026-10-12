@@ -178,8 +178,7 @@ const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
       if (Option.exists(source.open(), (o) => o._tag === 'Follow')) source.resume();
     },
   });
-  source.offerHand(handHas);
-  onCleanup(() => source.offerHand(() => false));
+  onCleanup(source.offerHand(handHas));
 
   // A tap on a line, unless it ends a text selection, holds it: held again, the view places it again.
   const tap = (n: number) => {

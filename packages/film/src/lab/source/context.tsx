@@ -75,8 +75,12 @@ interface SourceContextValue {
    * found so, the view stops placing. Asked before the view moves on the page's word. No view shown: none has.
    */
   readonly handHas: () => boolean;
-  /** The view shown hands over how to ask it (`useFollow`'s answer); gone, it hands back `() => false`. */
-  readonly offerHand: (ask: () => boolean) => void;
+  /**
+   * The view shown hands over how to ask it (`useFollow`'s answer). Answers its release, for when the view goes:
+   * it clears the slot only while the slot still holds this view's ask (a view mounted in its place, as Edit hands a
+   * phone's view from the selection's face to its own sheet, mounts before the old one goes).
+   */
+  readonly offerHand: (ask: () => boolean) => () => void;
   /** The file and line that write cue `name` of `scene`: from the code read, else from the small source answer. */
   readonly whereCue: (scene: string, name: string) => Option.Option<Where>;
   /** The file and line that write knob `name`, likewise. */
@@ -231,6 +235,9 @@ export const Provider = (props: ParentProps) => {
     handHas: () => askHand(),
     offerHand: (ask) => {
       askHand = ask;
+      return () => {
+        if (askHand === ask) askHand = () => false;
+      };
     },
     whereCue,
     whereKnob,
