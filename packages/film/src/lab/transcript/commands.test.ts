@@ -11,7 +11,7 @@ import { BY_BUTTON, type Command } from '../../command/command.ts';
 import { type Context, contextAt, withSelection } from '../../command/context.ts';
 import { contextRows } from '../../command/menu.ts';
 import { Selection, type WordsSelection } from '../../command/selection.ts';
-import { extendedTo, transcriptCommands, wordsAbout } from './commands.ts';
+import { extendedTo, transcriptCommands } from './commands.ts';
 import type { Row } from './lit.ts';
 
 const here = contextAt('lab', '/films/talk/lab/ask#t=1');
@@ -22,7 +22,7 @@ const words = (scene: string, from: number, to: number): WordsSelection =>
 const onWord = (scene: string, index: number): Context =>
   withSelection(here, [words(scene, index, index)]);
 
-/** Section `ask`'s words 0–9, word 5 struck. */
+/** Each section's words 0–9, word 5 struck. */
 const ROWS: ReadonlyArray<Row> = Arr.makeBy(10, (index) => ({
   index,
   text: `w${index}`,
@@ -49,7 +49,7 @@ const over = (
     show: () => log.push('show'),
     hide: () => log.push('hide'),
     selection: () => options.selection ?? Option.none(),
-    rows: (w) => ROWS.filter((r) => w.scene === 'ask' && r.index >= w.from && r.index <= w.to),
+    rows: (w) => ROWS.filter((r) => r.index >= w.from && r.index <= w.to),
     writing: () => options.writing ?? false,
     select: said('select'),
     cut: said('cut'),
@@ -97,20 +97,25 @@ describe('the Transcript view’s command', () => {
 describe('the words a verb acts on', () => {
   const selection = Option.some(words('ask', 3, 6));
 
+  /** What Cut, run where `ctx` says with `selected` selected, cut: none when it is not offered there. */
+  const cutAt = (ctx: Context, selected: Option.Option<WordsSelection>) => {
+    const log: Array<string> = [];
+    over(log, { selection: selected }).run('transcript.cut', ctx);
+    return log;
+  };
+
   test('a word inside the words selected is about them all; any other word about itself', () => {
-    expect(wordsAbout(onWord('ask', 4), selection)).toEqual(selection);
-    expect(wordsAbout(onWord('ask', 8), selection)).toEqual(Option.some(words('ask', 8, 8)));
-    expect(wordsAbout(onWord('answer', 4), selection)).toEqual(Option.some(words('answer', 4, 4)));
-    expect(wordsAbout(onWord('ask', 8), Option.none())).toEqual(Option.some(words('ask', 8, 8)));
+    expect(cutAt(onWord('ask', 4), selection)).toEqual(['cut ask 3-6']);
+    expect(cutAt(onWord('ask', 8), selection)).toEqual(['cut ask 8-8']);
+    expect(cutAt(onWord('answer', 4), selection)).toEqual(['cut answer 4-4']);
+    expect(cutAt(onWord('ask', 8), Option.none())).toEqual(['cut ask 8-8']);
   });
 
   test("opened on no one word (the view's buttons, a section), the words selected, unless the menu is about another section", () => {
-    expect(wordsAbout(here, selection)).toEqual(selection);
-    expect(wordsAbout(withSelection(here, [words('ask', 0, 9)]), selection)).toEqual(selection);
-    expect(wordsAbout(withSelection(here, [words('answer', 0, 9)]), selection)).toEqual(
-      Option.none(),
-    );
-    expect(wordsAbout(here, Option.none())).toEqual(Option.none());
+    expect(cutAt(here, selection)).toEqual(['cut ask 3-6']);
+    expect(cutAt(withSelection(here, [words('ask', 0, 9)]), selection)).toEqual(['cut ask 3-6']);
+    expect(cutAt(withSelection(here, [words('answer', 0, 9)]), selection)).toEqual([]);
+    expect(cutAt(here, Option.none())).toEqual([]);
   });
 
   test('a selection extended to a word runs from its first word to that one, whichever comes first; another section’s word is alone', () => {

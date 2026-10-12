@@ -53,7 +53,7 @@ const within = (inner: WordsSelection, outer: WordsSelection): boolean =>
  * (a section's words, or the view's buttons: the page), the selection, unless
  * the menu is about another section's.
  */
-export const wordsAbout = (
+const wordsAbout = (
   ctx: Context,
   selection: Option.Option<WordsSelection>,
 ): Option.Option<WordsSelection> => {
