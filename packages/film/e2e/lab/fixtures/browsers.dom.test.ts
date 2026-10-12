@@ -7,12 +7,14 @@
 // server answers, and nothing the first page did reaches its errors or log.
 // A view two fingers were down on at once is closed rather than lent again:
 // Chrome hears no touch on it after, and the next case's finger lands on a
-// view of its own.
+// view of its own. And the Chrome the tabs run in is silent, as its own
+// command line shows (`tools/chrome.ts` adds the flags to every launch).
 
 import { Effect, Option, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import {
   asset,
+  chromeCommandLine,
   openTab,
   respond,
   scriptOf,
@@ -271,5 +273,17 @@ describe('the pool of views', () => {
           }),
         );
       }).pipe(Effect.runPromise),
+  );
+});
+
+describe("the tests' Chrome", () => {
+  it.live(
+    "runs silent: its pages muted, their sound played to a fake device, never the host's speakers",
+    () =>
+      Effect.gen(function* () {
+        const flags = (yield* chromeCommandLine).split(/\s+/);
+        expect(flags).toContain('--mute-audio');
+        expect(flags).toContain('--disable-audio-output');
+      }),
   );
 });

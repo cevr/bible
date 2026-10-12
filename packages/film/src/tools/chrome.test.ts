@@ -1,14 +1,13 @@
-// Every Chrome the film tools and their browser tests spawn is silent: the
-// flags it is spawned with lead with `--mute-audio` and `--disable-audio-output`
-// (no page heard, the host's output device never opened) whatever the caller asks
-// for (the renderer's, the browser tests'), and `chrome.ts` is the one place
-// that spawns one, so no launch can do without them. No Chromium.
+// Every Chrome the film tools and their browser tests spawn is silent: it is
+// spawned by `chrome.ts` alone (`openView`), which adds `--mute-audio` and
+// `--disable-audio-output` to whatever flags the caller asks for, so no launch
+// can do without them. That a running Chrome carries them is read from its
+// own command line by the browser tests (`e2e/lab/fixtures/browsers.dom.test.ts`).
+// No Chromium.
 
 import { BunServices } from '@effect/platform-bun';
-import { describe, expect, it, test } from 'effect-bun-test';
+import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem } from 'effect';
-import { launchArgs } from './browser.ts';
-import { chromeArgs } from './chrome.ts';
 
 /** The package's sources and browser tests, as this guard reads them. */
 const PACKAGE = `${import.meta.dir}/../..`;
@@ -17,11 +16,6 @@ const PACKAGE = `${import.meta.dir}/../..`;
 const SPAWNS = /new Bun\.WebView\(/;
 
 describe('the Chrome a tool or test spawns', () => {
-  test('is spawned silent, with the flags its caller asks for after it', () => {
-    for (const asked of [launchArgs('darwin'), launchArgs('linux'), []])
-      expect(chromeArgs(asked)).toEqual(['--mute-audio', '--disable-audio-output', ...asked]);
-  });
-
   it.effect.layer(BunServices.layer)('is spawned only by chrome.ts, which silences it', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
