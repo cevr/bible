@@ -22,20 +22,20 @@
 import { type Path, type Pt, resample, spline } from './ink.ts';
 
 /** A root bone at rest: where it starts and which way it points (radians, as `ctx.rotate`), in the figure's units. */
-export interface RootRest {
+interface RootRest {
   readonly at: Pt;
   readonly angle: number;
   readonly length: number;
 }
 
 /** A child bone at rest: its turn from its parent's direction (0 carries straight on), and its length. It starts at the parent's tip. */
-export interface BoneRest {
+interface BoneRest {
   readonly angle?: number;
   readonly length: number;
 }
 
 /** One bone's pose on a frame: every field is a move from rest, and a field left out is at rest. */
-export interface BonePose {
+interface BonePose {
   /** Turn about the bone's start, radians (+ as `ctx.rotate`, clockwise on screen). */
   readonly turn?: number;
   /** Scale along the bone, about its start: below 1 squashes what it weighs toward the start and brings its children's start in. */
@@ -47,20 +47,20 @@ export interface BonePose {
 }
 
 /** A frame's values, by bone name: a bone left out is at rest. */
-export type SkinPose<B extends string> = { readonly [K in B]?: BonePose };
+type SkinPose<B extends string> = { readonly [K in B]?: BonePose };
 
 /** A number for some of a skeleton's bones, by name. */
-export type ByBone<B extends string> = { readonly [K in B]?: number };
+type ByBone<B extends string> = { readonly [K in B]?: number };
 
 /** A transform as `ctx.transform(a, b, c, d, e, f)` takes it. */
-export type Transform = readonly [number, number, number, number, number, number];
+type Transform = readonly [number, number, number, number, number, number];
 
 /**
  * A skeleton posed for one frame: each bone's move from rest. Made by
  * `Skeleton.pose`, read by `Skin.at` and `rigid`; it keeps nothing a later
  * frame writes.
  */
-export interface Pose<B extends string> {
+interface Pose<B extends string> {
   /** Each bone's move, by name: its rigid move as a planar dual quaternion (c, s, dx, dy), then its scale (along, across). */
   readonly moves: ReadonlyMap<B, Readonly<Float64Array>>;
   /** No bone moves: a skin hands back its rest outline. */
@@ -74,7 +74,7 @@ export interface Pose<B extends string> {
 }
 
 /** How a skin's points are weighted to the bones. */
-export type Weights<B extends string> =
+type Weights<B extends string> =
   /**
    * Along a chain of bones, in order: each point by where it falls along the
    * line from the chain's start to its end, each joint blended over `blend`
@@ -86,7 +86,7 @@ export type Weights<B extends string> =
   /** By the drawing's own function of a rest point: any non-negative numbers, normalised. */
   | { readonly weigh: (p: Pt) => ByBone<B> };
 
-export interface SkinOptions {
+interface SkinOptions {
   /** The path is a closed outline (the default) or an open line. */
   readonly closed?: boolean;
   /** Resample the path every `spacing` units first, so a long straight edge has points to bend. */
@@ -96,7 +96,7 @@ export interface SkinOptions {
 }
 
 /** An outline bound to a skeleton's bones. */
-export interface Skin<B extends string> {
+interface Skin<B extends string> {
   /** The outline at rest: the path given, resampled when asked. */
   readonly rest: ReadonlyArray<Pt>;
   /** Rest point `i`'s weight on each bone, summing to 1. */
@@ -110,7 +110,7 @@ type NewBone<N extends string, B extends string> = BoneRest &
   (N extends B ? { readonly 'a bone of this name already exists': never } : unknown);
 
 /** A few named bones, built once at module scope and posed every frame. */
-export interface Skeleton<B extends string> {
+interface Skeleton<B extends string> {
   readonly names: ReadonlyArray<B>;
   /** A child bone `name` starting at `parent`'s tip: a new skeleton with it added. */
   readonly bone: <const N extends string>(
