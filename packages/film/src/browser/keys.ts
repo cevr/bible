@@ -37,6 +37,13 @@ interface KeysOps {
   readonly listen: (take: (press: KeyPress) => boolean) => Effect.Effect<never>;
 }
 
+/**
+ * Whether a browser's platform (`navigator.platform`) is Apple's, whose
+ * keyboard is a Mac's: the rule a page reads its keys and labels its chords by.
+ */
+export const applePlatform = (platform: string): boolean =>
+  ['Mac', 'iPhone', 'iPad', 'iPod'].some((name) => platform.startsWith(name));
+
 export class Keys extends Context.Service<Keys, KeysOps>()('@bible/film/browser/Keys') {
   /** Presses heard on `page` (the window live, a test's `EventTarget` in a test), from a Mac's keyboard or not. */
   static readonly layerOn = (page: EventTarget, mac = false): Layer.Layer<Keys> =>

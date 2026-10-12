@@ -6,7 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Effect, Option } from 'effect';
 import { hostOf } from './host.ts';
-import { type KeyPress, Keys } from './keys.ts';
+import { applePlatform, type KeyPress, Keys } from './keys.ts';
 
 /** A key press of `key` (with `held` modifiers), cancelable as the browser's are. */
 const keydown = (
@@ -75,4 +75,19 @@ describe('Keys.listen', () => {
     expect(p.heard).toEqual([]);
     expect(after.defaultPrevented).toBe(false);
   });
+});
+
+test("a Mac's or an iOS device's platform keys as a Mac; Linux's, Windows' and Android's do not", () => {
+  expect(['MacIntel', 'iPhone', 'iPad', 'iPod touch'].map((p) => applePlatform(p))).toEqual([
+    true,
+    true,
+    true,
+    true,
+  ]);
+  expect(['Linux x86_64', 'Win32', 'Linux armv8l', ''].map((p) => applePlatform(p))).toEqual([
+    false,
+    false,
+    false,
+    false,
+  ]);
 });
