@@ -6,20 +6,24 @@
 //
 // - A `skeleton` is a few bones, each a start, a direction and a length; a
 //   child starts at its parent's tip. Built once, at module scope.
-// - A `skin` binds an outline to the bones once: each point's weights, by a
-//   smooth (cubic) falloff along a chain of bones or by the drawing's own
-//   function, normalised so every point is shared out whole.
+// - `.skin(name, path, weights)` binds a named outline to the bones once:
+//   each point's weights, by a smooth (cubic) falloff along a chain of bones
+//   or by the drawing's own function, normalised so every point is shared
+//   out whole.
 // - A `pose` is a frame's values by bone name (turn, scale along and across,
 //   shift), made fresh from the frame's own numbers: nothing is carried from
-//   one frame to the next.
-// - `skin.at(pose)` is the bent outline, a new path, handed to `piece()`.
+//   one frame to the next. `pose.at(name)` is that skin bent, a new path,
+//   handed to `piece()`. A pose bends only its own skeleton's skins, by
+//   name: no other skin can be handed to it.
 //
-// The blend is dual-quaternion skinning in the plane: each bone's rigid move
-// is blended as a turn and a shift together, so a joint turned far keeps its
-// girth instead of collapsing toward the joint (linear blending's "candy
-// wrapper"). A bone's scale is blended first, in its rest frame.
+// The blend is dual-quaternion skinning in the plane: each bone's move of a
+// point (its scale about its start, then its rigid move) is blended as a turn
+// and a shift together, so a joint turned far keeps its girth instead of
+// collapsing toward the joint (linear blending's "candy wrapper"), and a
+// joint shared by two bones lands where both put it.
 
-import { type Path, type Pt, resample, spline } from './ink.ts';
+import type { Path, Pt } from './ink.ts';
+import { spline } from './ink.ts';
 
 /** A root bone at rest: where it starts and which way it points (radians, as `ctx.rotate`), in the figure's units. */
 interface RootRest {
@@ -34,20 +38,20 @@ interface BoneRest {
   readonly length: number;
 }
 
-/** One bone's pose on a frame: every field is a move from rest, and a field left out is at rest. */
+/** One bone's pose on a frame: every field is a move from rest, and a field left out is at rest. Finite numbers only (see `PoseNotFinite`). */
 interface BonePose {
   /** Turn about the bone's start, radians (+ as `ctx.rotate`, clockwise on screen). */
-  readonly turn?: number;
+  readonly turn?: number | undefined;
   /** Scale along the bone, about its start: below 1 squashes what it weighs toward the start and brings its children's start in. */
-  readonly along?: number;
+  readonly along?: number | undefined;
   /** Scale across the bone, about its line. */
-  readonly across?: number;
+  readonly across?: number | undefined;
   /** Move the bone's start, in its parent's frame (a root's: the figure's units). */
-  readonly shift?: Pt;
+  readonly shift?: Pt | undefined;
 }
 
 /** A frame's values, by bone name: a bone left out is at rest. */
-type SkinPose<B extends string> = { readonly [K in B]?: BonePose };
+export type PoseValues<B extends string> = { readonly [K in B]?: BonePose };
 
 /** A number for some of a skeleton's bones, by name. */
 type ByBone<B extends string> = { readonly [K in B]?: number };
@@ -56,31 +60,48 @@ type ByBone<B extends string> = { readonly [K in B]?: number };
 type Transform = readonly [number, number, number, number, number, number];
 
 /**
- * A skeleton posed for one frame: each bone's move from rest. Made by
- * `Skeleton.pose`, read by `Skin.at` and `rigid`; it keeps nothing a later
- * frame writes.
+ * A pose value that was not a finite number (NaN, ±Infinity: a 0/0, a typo),
+ * named: the field is held at rest, so the outline never carries a NaN point
+ * that a canvas would silently drop.
  */
-interface Pose<B extends string> {
-  /** Each bone's move, by name: its rigid move as a planar dual quaternion (c, s, dx, dy), then its scale (along, across). */
-  readonly moves: ReadonlyMap<B, Readonly<Float64Array>>;
-  /** No bone moves: a skin hands back its rest outline. */
-  readonly still: boolean;
+interface PoseNotFinite<B extends string> {
+  readonly _tag: 'PoseNotFinite';
+  readonly bone: B;
+  readonly field: keyof BonePose;
+  readonly value: number;
+}
+
+/**
+ * A skeleton posed for one frame. Made by `Skeleton.pose`; it keeps nothing
+ * a later frame writes, and it bends only its own skeleton's skins.
+ */
+export interface Pose<B extends string, S extends string> {
+  /** Skin `skin` bent by this pose: a new path each call (for a `smooth` skin, the curve through the bent controls). */
+  readonly at: (skin: S) => Pt[];
   /**
    * Bone `bone`'s rigid move as a canvas transform (`ctx.transform(...)`):
    * what rides the bone whole (an eye on the head) is drawn in rest units
    * after it.
    */
   readonly rigid: (bone: B) => Transform;
+  /** No bone moves: every skin hands back its rest outline. */
+  readonly still: boolean;
+  /** The values that were not finite, each held at rest: none for a sound pose. */
+  readonly rejected: ReadonlyArray<PoseNotFinite<B>>;
 }
 
 /** How a skin's points are weighted to the bones. */
 type Weights<B extends string> =
   /**
-   * Along a chain of bones, in order: each point by where it falls along the
-   * line from the chain's start to its end, each joint blended over `blend`
-   * units either side (default: half the shorter of its two bones) by a
-   * smoothstep. Before the start a point is all the first bone's, past the
-   * end all the last's.
+   * Along a chain of bones, in order: each point by how far it lies past each
+   * joint along the rest chain, measured across the joint's bisector (a
+   * point on a bone, at its distance along the chain from the joint; a bent
+   * rest chain, an arm, is measured bone by bone). Each joint is blended over
+   * `blend` units either side (default: half the shorter of its two bones)
+   * by a smoothstep. A chain folded back on itself past about 175° cannot be
+   * measured that way: weigh it with `weigh`. With the default blend a point
+   * before the chain's start is all the first bone's and one past its end
+   * all the last's; a `blend` wider than an end bone reaches past that end.
    */
   | { readonly chain: ReadonlyArray<B>; readonly blend?: number }
   /** By the drawing's own function of a rest point: any non-negative numbers, normalised. */
@@ -89,39 +110,44 @@ type Weights<B extends string> =
 interface SkinOptions {
   /** The path is a closed outline (the default) or an open line. */
   readonly closed?: boolean;
-  /** Resample the path every `spacing` units first, so a long straight edge has points to bend. */
+  /** Add points along each edge, at most `spacing` apart, so a long straight edge has points to bend; every vertex given is kept. */
   readonly spacing?: number;
   /** The points are a curve's controls: bent, then the curve drawn through them (`spline`, `smooth` points a segment). */
   readonly smooth?: number;
 }
 
-/** An outline bound to a skeleton's bones. */
-interface Skin<B extends string> {
-  /** The outline at rest: the path given, resampled when asked. */
-  readonly rest: ReadonlyArray<Pt>;
-  /** Rest point `i`'s weight on each bone, summing to 1. */
-  readonly weights: (i: number) => ByBone<B>;
-  /** The outline bent by `pose`: a new path each call (for a `smooth` skin, the curve through the bent controls). */
-  readonly at: (pose: Pose<B>) => Pt[];
-}
+/** A name refused by the compiler (naming why) when it is taken, or not a literal (a name the compiler cannot check). */
+type Fresh<N extends string, Taken extends string, What extends string> = string extends N
+  ? { readonly [K in `a ${What} name must be a literal`]: never }
+  : N extends Taken
+    ? { readonly [K in `a ${What} of this name already exists`]: never }
+    : unknown;
 
-/** A bone's rest, refused by the compiler (naming why) when its name is taken. */
-type NewBone<N extends string, B extends string> = BoneRest &
-  (N extends B ? { readonly 'a bone of this name already exists': never } : unknown);
-
-/** A few named bones, built once at module scope and posed every frame. */
-interface Skeleton<B extends string> {
+/**
+ * A few named bones and the outlines bound to them, built once at module
+ * scope and posed every frame. `B` names the bones, `S` the skins.
+ */
+interface Skeleton<B extends string, S extends string> {
   readonly names: ReadonlyArray<B>;
-  /** A child bone `name` starting at `parent`'s tip: a new skeleton with it added. */
+  /** A child bone `name` starting at `parent`'s tip: a new skeleton with it added (its skins bound again). */
   readonly bone: <const N extends string>(
     name: N,
     parent: B,
-    rest: NewBone<N, B>,
-  ) => Skeleton<B | N>;
+    rest: BoneRest & Fresh<N, B, 'bone'>,
+  ) => Skeleton<B | N, S>;
+  /** Bind `path` to the bones by `weights` as the skin `name`: a new skeleton with it added. */
+  readonly skin: <const K extends string>(
+    name: K,
+    path: Path,
+    weights: Weights<B> & Fresh<K, S, 'skin'>,
+    options?: SkinOptions,
+  ) => Skeleton<B, S | K>;
   /** The skeleton posed by a frame's `values`. */
-  readonly pose: (values: SkinPose<B>) => Pose<B>;
-  /** Bind `path` to the bones by `weights`. */
-  readonly skin: (path: Path, weights: Weights<B>, options?: SkinOptions) => Skin<B>;
+  readonly pose: (values: PoseValues<B>) => Pose<B, S>;
+  /** Skin `skin`'s outline at rest: the path given, with its added points. */
+  readonly rest: (skin: S) => ReadonlyArray<Pt>;
+  /** Skin `skin`'s rest point `i`'s weight on each bone, summing to 1. */
+  readonly weights: (skin: S, i: number) => ByBone<B>;
 }
 
 /** One bone as a skeleton keeps it: its parent's index (−1 for a root), start, direction and length. */
@@ -133,8 +159,27 @@ interface Spec<B extends string> {
   readonly length: number;
 }
 
+/**
+ * One skin as a skeleton keeps it, to bind again when a bone is added (its
+ * weights by bone name: the bones they name were checked when it was added).
+ */
+interface SkinSpec<S extends string> {
+  readonly name: S;
+  readonly path: Path;
+  readonly weights: Weights<string>;
+  readonly options: SkinOptions;
+}
+
+/** A frame's values made sound, and what was held at rest to make them so. */
+interface Sound<B extends string> {
+  readonly values: PoseValues<B>;
+  readonly rejected: ReadonlyArray<PoseNotFinite<B>>;
+}
+
 const ORIGIN: Pt = [0, 0];
 const AT_REST: BonePose = {};
+/** Below this cosine of half a joint's bend (a fold past about 175°) a chain joint is measured along its first bone. */
+const FOLDED = 0.04;
 
 /**
  * Each bone's frame for `values`: its start (x, y) and its direction, three
@@ -143,7 +188,7 @@ const AT_REST: BonePose = {};
  */
 const framesOf = <B extends string>(
   specs: ReadonlyArray<Spec<B>>,
-  values: SkinPose<B>,
+  values: PoseValues<B>,
 ): Float64Array => {
   const out = new Float64Array(specs.length * 3);
   specs.forEach((b, i) => {
@@ -166,6 +211,58 @@ const framesOf = <B extends string>(
     out[i * 3 + 2] = pa + b.angle + turn;
   });
   return out;
+};
+
+/** Pose value `x` of `bone`'s `field`, or undefined (rest) with its rejection named when it is not finite. */
+const finite = <B extends string>(
+  bone: B,
+  field: keyof BonePose,
+  x: number | undefined,
+  rejected: Array<PoseNotFinite<B>>,
+): number | undefined => {
+  if (x === undefined || Number.isFinite(x)) return x;
+  rejected.push({ _tag: 'PoseNotFinite', bone, field, value: x });
+  return undefined;
+};
+
+/** One bone's values with each non-finite field held at rest. */
+const finiteBone = <B extends string>(
+  bone: B,
+  v: BonePose,
+  rejected: Array<PoseNotFinite<B>>,
+): BonePose => {
+  const shift = v.shift;
+  const shiftOk =
+    shift === undefined ||
+    (finite(bone, 'shift', shift[0], rejected) !== undefined &&
+      finite(bone, 'shift', shift[1], rejected) !== undefined);
+  return {
+    turn: finite(bone, 'turn', v.turn, rejected),
+    along: finite(bone, 'along', v.along, rejected),
+    across: finite(bone, 'across', v.across, rejected),
+    shift: shiftOk ? shift : undefined,
+  };
+};
+
+/** Whether every number in `v` is finite (or left out). */
+const allFinite = (v: BonePose) =>
+  [v.turn, v.along, v.across, v.shift?.[0], v.shift?.[1]].every(
+    (x) => x === undefined || Number.isFinite(x),
+  );
+
+/** A frame's values with every non-finite field held at rest and named; the values as given when all are sound. */
+const soundValues = <B extends string>(
+  names: ReadonlyArray<B>,
+  values: PoseValues<B>,
+): Sound<B> => {
+  const rejected: Array<PoseNotFinite<B>> = [];
+  if (names.every((name) => allFinite(values[name] ?? AT_REST))) return { values, rejected };
+  const out: { [K in B]?: BonePose } = {};
+  for (const name of names) {
+    const v = values[name];
+    if (v !== undefined) out[name] = finiteBone(name, v, rejected);
+  }
+  return { values: out, rejected };
 };
 
 /**
@@ -221,33 +318,53 @@ const tipOf = <B extends string>(
   return [(rest[i * 3] ?? 0) + Math.cos(a) * len, (rest[i * 3 + 1] ?? 0) + Math.sin(a) * len];
 };
 
+/**
+ * A chain joint: where bone `from` hands over to bone `to` (its tip), and the
+ * gauge that measures a point's distance past it, `(p − at)·n`: across the
+ * bisector of the two bones' directions, scaled by 1 / cos(bend / 2) so that
+ * a point on either bone measures its distance along the chain from the
+ * joint. Linear in the point, so the weights are smooth everywhere.
+ */
+const jointOf = <B extends string>(
+  specs: ReadonlyArray<Spec<B>>,
+  rest: Float64Array,
+  axes: ReadonlyArray<Pt>,
+  from: number,
+  to: number,
+  blend: number | undefined,
+) => {
+  const [ax, ay] = axes[from] ?? ORIGIN;
+  const [bx, by] = axes[to] ?? ORIGIN;
+  const [sx, sy] = [ax + bx, ay + by];
+  // |a + b| / 2 is the cosine of half the bend; the gauge is (a + b) / |a + b| / that.
+  const half = (sx * sx + sy * sy) / 2;
+  const folded = Math.sqrt(half / 2) < FOLDED;
+  return {
+    at: tipOf(specs, rest, from),
+    n: folded ? ([ax, ay] as const) : ([sx / half, sy / half] as const),
+    half: blend ?? 0.5 * Math.min(specs[from]?.length ?? 0, specs[to]?.length ?? 0),
+  };
+};
+
 /** Each point's weights along `chain` (bones by index), a row of every bone's per point, before normalising. */
 const chainWeights = <B extends string>(
   specs: ReadonlyArray<Spec<B>>,
   rest: Float64Array,
+  axes: ReadonlyArray<Pt>,
   chain: ReadonlyArray<number>,
   blend: number | undefined,
   pts: ReadonlyArray<Pt>,
 ): Float64Array => {
   const n = specs.length;
   const out = new Float64Array(pts.length * n);
-  const first = chain[0] ?? 0;
-  // The chain's line, from its first bone's start to its last bone's tip.
-  const [sx, sy] = [rest[first * 3] ?? 0, rest[first * 3 + 1] ?? 0];
-  const [ex, ey] = tipOf(specs, rest, chain[chain.length - 1] ?? first);
-  const span = Math.hypot(ex - sx, ey - sy) || 1;
-  const [ux, uy] = [(ex - sx) / span, (ey - sy) / span];
-  const along = ([x, y]: Pt) => (x - sx) * ux + (y - sy) * uy;
-  // Each joint (bone k's tip, where bone k + 1 takes over) on that line, and its blend.
-  const joints = chain.slice(0, -1).map((j, k) => {
-    const next = chain[k + 1] ?? j;
-    const half = blend ?? 0.5 * Math.min(specs[j]?.length ?? 0, specs[next]?.length ?? 0);
-    return { at: along(tipOf(specs, rest, j)), half };
-  });
-  pts.forEach((p, i) => {
-    const s = along(p);
+  const joints = chain
+    .slice(0, -1)
+    .map((j, k) => jointOf(specs, rest, axes, j, chain[k + 1] ?? j, blend));
+  pts.forEach(([x, y], i) => {
     // Bone k holds from joint k − 1's step to joint k's: the steps telescope to 1.
-    const steps = joints.map((j) => smoothstep(j.at - j.half, j.at + j.half, s));
+    const steps = joints.map(({ at, n: [nx, ny], half }) =>
+      smoothstep(-half, half, (x - at[0]) * nx + (y - at[1]) * ny),
+    );
     chain.forEach((bone, k) => {
       const w = (k === 0 ? 1 : (steps[k - 1] ?? 0)) - (steps[k] ?? 0);
       out[i * n + bone] = (out[i * n + bone] ?? 0) + Math.max(0, w);
@@ -298,28 +415,82 @@ const localsOf = (rest: Float64Array, n: number, pts: ReadonlyArray<Pt>): Float6
   return out;
 };
 
-/** The rest path a skin binds: the one given, resampled round its closing edge too when asked. */
+/**
+ * The rest path a skin binds: the one given, every vertex kept, with points
+ * added along each edge (the closing one too, for an outline) so none is
+ * longer than `spacing`.
+ */
 const restPath = (path: Path, closed: boolean, spacing: number | undefined): Pt[] => {
-  const first = path[0];
-  if (spacing === undefined || spacing <= 0 || first === undefined) return [...path];
-  if (!closed) return resample(path, spacing);
-  const ring = resample([...path, first], spacing);
-  // The closing point is the first again: an outline lists it once.
-  ring.pop();
-  return ring;
+  if (spacing === undefined || spacing <= 0) return [...path];
+  const out: Pt[] = [];
+  const edges = closed ? path.length : path.length - 1;
+  path.forEach((p, i) => {
+    out.push(p);
+    const q = path[(i + 1) % path.length];
+    if (i >= edges || q === undefined) return;
+    const k = Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / spacing);
+    for (let j = 1; j < k; j++)
+      out.push([p[0] + ((q[0] - p[0]) * j) / k, p[1] + ((q[1] - p[1]) * j) / k]);
+  });
+  return out;
 };
 
 /** A skeleton's moves on one frame, in its bones' order. */
-type Moves = ReadonlyArray<Readonly<Float64Array> | undefined>;
+type Moves = ReadonlyArray<Readonly<Float64Array>>;
+
+/** One skin bound: its rest points, weights and rest-frame places. */
+interface Bound {
+  readonly pts: ReadonlyArray<Pt>;
+  readonly w: Float64Array;
+  readonly local: Float64Array;
+  readonly closed: boolean;
+  readonly smooth: number | undefined;
+}
 
 /**
- * Point `i` (rest x, y) scaled, written to `out[0..1]`: each bone's scale
- * about its start, in its rest frame, blended by weight.
+ * Bone `b`'s scale of point `i` as its dual quaternion's share, written to
+ * `q[6..7]`: the displacement d, (along − 1) of the point's place along the
+ * bone and (across − 1) of its place across, about the bone's start on its
+ * rest axes, then moved with the bone (R d) into the dual part, ½ R(α/2) d.
+ * Nothing (0, 0) when the bone does not scale.
  */
-const scaleInto = (
-  out: Float64Array,
-  x: number,
-  y: number,
+const scaleOf = (
+  q: Float64Array,
+  i: number,
+  b: number,
+  n: number,
+  m: Readonly<Float64Array>,
+  local: Float64Array,
+  axes: ReadonlyArray<Pt>,
+) => {
+  const along = m[4] ?? 1;
+  const across = m[5] ?? 1;
+  if (along === 1 && across === 1) {
+    q[6] = 0;
+    q[7] = 0;
+    return;
+  }
+  const j = (i * n + b) * 2;
+  const du = (along - 1) * (local[j] ?? 0);
+  const dv = (across - 1) * (local[j + 1] ?? 0);
+  const axis = axes[b] ?? ORIGIN;
+  const ex = du * axis[0] - dv * axis[1];
+  const ey = du * axis[1] + dv * axis[0];
+  const c = m[0] ?? 1;
+  const s = m[1] ?? 0;
+  q[6] = 0.5 * (c * ex - s * ey);
+  q[7] = 0.5 * (s * ex + c * ey);
+};
+
+/**
+ * Point `i`'s move, written to `q[0..3]` as the dual quaternion (c, s, dx, dy):
+ * each bone's own move of the point (its scale, folded into the shift as
+ * R·d, then its rigid move) blended by weight, each taken on the first's
+ * side (the shorter way round), normalised. A point two bones agree on
+ * lands where they agree.
+ */
+const blendInto = (
+  q: Float64Array,
   i: number,
   w: Float64Array,
   local: Float64Array,
@@ -327,31 +498,7 @@ const scaleInto = (
   moves: Moves,
 ) => {
   const n = moves.length;
-  let px = x;
-  let py = y;
-  for (let b = 0; b < n; b++) {
-    const wb = w[i * n + b] ?? 0;
-    const along = moves[b]?.[4] ?? 1;
-    const across = moves[b]?.[5] ?? 1;
-    if (wb === 0 || (along === 1 && across === 1)) continue;
-    const j = (i * n + b) * 2;
-    const du = (along - 1) * (local[j] ?? 0);
-    const dv = (across - 1) * (local[j + 1] ?? 0);
-    const axis = axes[b] ?? ORIGIN;
-    px += wb * (du * axis[0] - dv * axis[1]);
-    py += wb * (du * axis[1] + dv * axis[0]);
-  }
-  out[0] = px;
-  out[1] = py;
-};
-
-/**
- * Point `i`'s rigid move, written to `out[2..5]` as (c, s, dx, dy): each
- * bone's dual quaternion blended by weight, each taken on the first's side
- * (the shorter way round), normalised.
- */
-const moveInto = (out: Float64Array, i: number, w: Float64Array, moves: Moves) => {
-  const n = moves.length;
+  // Scalars, not destructured arrays: this runs per point per bone, every frame.
   let c = 0;
   let s = 0;
   let dx = 0;
@@ -369,49 +516,89 @@ const moveInto = (out: Float64Array, i: number, w: Float64Array, moves: Moves) =
       rs = ms;
     }
     const k = mc * rc + ms * rs < 0 ? -wb : wb;
+    scaleOf(q, i, b, n, m, local, axes);
     c += k * mc;
     s += k * ms;
-    dx += k * (m[2] ?? 0);
-    dy += k * (m[3] ?? 0);
+    dx += k * ((m[2] ?? 0) + (q[6] ?? 0));
+    dy += k * ((m[3] ?? 0) + (q[7] ?? 0));
   }
   const len = Math.sqrt(c * c + s * s);
-  out[2] = c / len;
-  out[3] = s / len;
-  out[4] = dx / len;
-  out[5] = dy / len;
+  q[0] = c / len;
+  q[1] = s / len;
+  q[2] = dx / len;
+  q[3] = dy / len;
 };
 
 /**
- * Point `i` (rest x, y) bent by a frame's `moves`: scaled, then moved
- * rigidly. `q` is the call's own scratch (six numbers), so a point costs
- * only the point it returns.
+ * Point `i` (rest x, y) moved by a frame's `moves`. `q` is the call's own
+ * scratch (eight numbers), so a point costs only the point it returns.
  */
 const bendPoint = (
   q: Float64Array,
   x: number,
   y: number,
   i: number,
-  w: Float64Array,
-  local: Float64Array,
+  bound: Bound,
   axes: ReadonlyArray<Pt>,
   moves: Moves,
 ): Pt => {
-  scaleInto(q, x, y, i, w, local, axes, moves);
-  moveInto(q, i, w, moves);
-  const px = q[0] ?? x;
-  const py = q[1] ?? y;
-  const c = q[2] ?? 1;
-  const s = q[3] ?? 0;
-  const dx = q[4] ?? 0;
-  const dy = q[5] ?? 0;
-  // No turn and no shift: the scaled point as it is, bit for bit.
-  if (s === 0 && dx === 0 && dy === 0) return [px, py];
-  const [cos, sin] = [c * c - s * s, 2 * c * s];
-  return [cos * px - sin * py + 2 * (dx * c - dy * s), sin * px + cos * py + 2 * (dx * s + dy * c)];
+  blendInto(q, i, bound.w, bound.local, axes, moves);
+  const c = q[0] ?? 1;
+  const s = q[1] ?? 0;
+  const dx = q[2] ?? 0;
+  const dy = q[3] ?? 0;
+  // No move at all: the point as it is, bit for bit.
+  if (s === 0 && dx === 0 && dy === 0) return [x, y];
+  const cos = c * c - s * s;
+  const sin = 2 * c * s;
+  return [cos * x - sin * y + 2 * (dx * c - dy * s), sin * x + cos * y + 2 * (dx * s + dy * c)];
 };
 
-const build = <B extends string>(specs: ReadonlyArray<Spec<B>>): Skeleton<B> => {
+/** Skin `spec` bound to bones at `rest`. */
+const bind = <B extends string, S extends string>(
+  specs: ReadonlyArray<Spec<B>>,
+  rest: Float64Array,
+  axes: ReadonlyArray<Pt>,
+  spec: SkinSpec<S>,
+): Bound => {
   const n = specs.length;
+  const names: ReadonlyArray<string> = specs.map((b) => b.name);
+  const closed = spec.options.closed ?? true;
+  const pts = restPath(spec.path, closed, spec.options.spacing);
+  const weights = spec.weights;
+  const raw =
+    'chain' in weights
+      ? chainWeights(
+          specs,
+          rest,
+          axes,
+          weights.chain.map((b) => names.indexOf(b)).filter((i) => i >= 0),
+          weights.blend,
+          pts,
+        )
+      : ownWeights(names, weights.weigh, pts);
+  return {
+    pts,
+    w: normalise(raw, n),
+    local: localsOf(rest, n, pts),
+    closed,
+    smooth: spec.options.smooth,
+  };
+};
+
+/** `bound` bent by `moves` (its rest outline when `still`). */
+const bend = (bound: Bound, axes: ReadonlyArray<Pt>, moves: Moves, still: boolean): Pt[] => {
+  const q = new Float64Array(8);
+  const bent = still
+    ? [...bound.pts]
+    : bound.pts.map((p, i) => bendPoint(q, p[0], p[1], i, bound, axes, moves));
+  return bound.smooth === undefined ? bent : spline(bent, bound.smooth, bound.closed);
+};
+
+const build = <B extends string, S extends string>(
+  specs: ReadonlyArray<Spec<B>>,
+  skins: ReadonlyArray<SkinSpec<S>>,
+): Skeleton<B, S> => {
   const names = specs.map((s) => s.name);
   const index = new Map(names.map((name, i) => [name, i]));
   const rest = framesOf(specs, {});
@@ -419,57 +606,34 @@ const build = <B extends string>(specs: ReadonlyArray<Spec<B>>): Skeleton<B> => 
     const a = rest[b * 3 + 2] ?? 0;
     return [Math.cos(a), Math.sin(a)];
   });
-
-  const pose = (values: SkinPose<B>): Pose<B> => {
-    const posed = framesOf(specs, values);
-    const moves = new Map(
-      specs.map((s, i) => [s.name, moveOf(rest, posed, i, values[s.name] ?? AT_REST)]),
-    );
-    const still = [...moves.values()].every(isStill);
-    return { moves, still, rigid: (bone) => transformOf(moves.get(bone)) };
+  const bound = new Map(skins.map((spec) => [spec.name, bind(specs, rest, axes, spec)]));
+  const none: Bound = {
+    pts: [],
+    w: new Float64Array(),
+    local: new Float64Array(),
+    closed: true,
+    smooth: undefined,
   };
+  const boundOf = (name: S) => bound.get(name) ?? none;
 
-  const skin = (path: Path, weights: Weights<B>, options: SkinOptions = {}): Skin<B> => {
-    const closed = options.closed ?? true;
-    const pts = restPath(path, closed, options.spacing);
-    const raw =
-      'chain' in weights
-        ? chainWeights(
-            specs,
-            rest,
-            weights.chain.map((b) => index.get(b) ?? 0),
-            weights.blend,
-            pts,
-          )
-        : ownWeights(names, weights.weigh, pts);
-    const w = normalise(raw, n);
-    const local = localsOf(rest, n, pts);
-    const bent = (pose: Pose<B>): Pt[] => {
-      if (pose.still) return [...pts];
-      // The pose's moves in this skeleton's order, found by name.
-      const moves = names.map((name) => pose.moves.get(name));
-      const q = new Float64Array(6);
-      return pts.map((p, i) => bendPoint(q, p[0], p[1], i, w, local, axes, moves));
-    };
-    const smooth = options.smooth;
+  const pose = (given: PoseValues<B>): Pose<B, S> => {
+    const { values, rejected } = soundValues(names, given);
+    const posed = framesOf(specs, values);
+    const moves = specs.map((s, i) => moveOf(rest, posed, i, values[s.name] ?? AT_REST));
+    const still = moves.every(isStill);
     return {
-      rest: pts,
-      weights: (i) => {
-        const out: { [K in B]?: number } = {};
-        names.forEach((name, b) => {
-          out[name] = w[i * n + b] ?? 0;
-        });
-        return out;
-      },
-      at: (pose) => (smooth === undefined ? bent(pose) : spline(bent(pose), smooth, closed)),
+      at: (name) => bend(boundOf(name), axes, moves, still),
+      rigid: (bone) => transformOf(moves[index.get(bone) ?? 0]),
+      still,
+      rejected,
     };
   };
 
   const bone = <const N extends string>(
     name: N,
     parent: B,
-    boneRest: NewBone<N, B>,
-  ): Skeleton<B | N> => {
+    boneRest: BoneRest & Fresh<N, B, 'bone'>,
+  ): Skeleton<B | N, S> => {
     const added: Spec<N> = {
       name,
       parent: index.get(parent) ?? 0,
@@ -477,24 +641,52 @@ const build = <B extends string>(specs: ReadonlyArray<Spec<B>>): Skeleton<B> => 
       angle: boneRest.angle ?? 0,
       length: boneRest.length,
     };
-    return build<B | N>([...specs, added]);
+    return build<B | N, S>([...specs, added], skins);
   };
 
-  return { names, bone, pose, skin };
+  const skin = <const K extends string>(
+    name: K,
+    path: Path,
+    weights: Weights<B> & Fresh<K, S, 'skin'>,
+    options: SkinOptions = {},
+  ): Skeleton<B, S | K> => {
+    const added: SkinSpec<K> = { name, path, weights, options };
+    return build<B, S | K>(specs, [...skins, added]);
+  };
+
+  return {
+    names,
+    bone,
+    skin,
+    pose,
+    rest: (name) => boundOf(name).pts,
+    weights: (name, i) => {
+      const { w } = boundOf(name);
+      const out: { [K in B]?: number } = {};
+      names.forEach((b, k) => {
+        out[b] = w[i * names.length + k] ?? 0;
+      });
+      return out;
+    },
+  };
 };
 
 /**
  * A skeleton of one root bone `name`; add children with `.bone(name, parent,
- * rest)`. The names are the skeleton's type, so a pose, a chain or a weight
- * naming a bone it lacks does not compile.
+ * rest)` and named outlines with `.skin(name, path, weights)`. The names are
+ * the skeleton's type, so a pose, a chain, a weight or a skin naming one it
+ * lacks does not compile, and a pose bends only this skeleton's skins.
  *
  * ```ts
  * const BODY = skeleton('hips', { at: [0, -20], angle: -Math.PI / 2, length: 50 })
  *   .bone('chest', 'hips', { length: 58 })
- *   .bone('head', 'chest', { length: 37 });
- * const TORSO = BODY.skin(TUNIC, { chain: ['hips', 'chest'] }, { spacing: 6 });
- * piece(ctx, TORSO.at(BODY.pose({ chest: { turn: 0.05, along: 0.93 } })), …);
+ *   .bone('head', 'chest', { length: 37 })
+ *   .skin('torso', TUNIC, { chain: ['hips', 'chest'] }, { spacing: 6 });
+ * piece(ctx, BODY.pose({ chest: { turn: 0.05, along: 0.93 } }).at('torso'), …);
  * ```
  */
-export const skeleton = <const N extends string>(name: N, rest: RootRest): Skeleton<N> =>
-  build<N>([{ name, parent: -1, at: rest.at, angle: rest.angle, length: rest.length }]);
+export const skeleton = <const N extends string>(
+  name: N,
+  rest: RootRest & Fresh<N, never, 'bone'>,
+): Skeleton<N, never> =>
+  build<N, never>([{ name, parent: -1, at: rest.at, angle: rest.angle, length: rest.length }], []);
