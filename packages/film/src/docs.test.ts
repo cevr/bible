@@ -762,6 +762,31 @@ const Scripts = Schema.fromJsonString(
   Schema.Struct({ scripts: Schema.Record(Schema.String, Schema.String) }),
 );
 
+/**
+ * The workspaces in `parent` (`apps`, `packages`) under `root`, as the
+ * root's workspace globs (`packages/*`) take them: each folder there that
+ * holds a `package.json`, by its path from the root. A file beside them
+ * (Finder's `.DS_Store`) or a folder with no `package.json` is none.
+ */
+const workspacesIn = (root: string, parent: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const names = yield* fs.readDirectory(path.join(root, parent));
+    return yield* Effect.filter(names.map((name) => `${parent}/${name}`).toSorted(), (dir) =>
+      Effect.flatMap(fs.stat(path.join(root, dir)), (info) =>
+        // Looked into only when a folder: a path under a file is an error, not absent.
+        Effect.map(
+          Effect.when(
+            fs.exists(path.join(root, dir, 'package.json')),
+            Effect.succeed(info.type === 'Directory'),
+          ),
+          Option.getOrElse(() => false),
+        ),
+      ),
+    );
+  });
+
 /** The repo's code as the docs name it. */
 const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
   const fs = yield* FileSystem.FileSystem;
@@ -783,12 +808,11 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
   const scriptsOf = (dir: string) =>
     Effect.flatMap(read(dir, 'package.json'), Schema.decodeUnknownEffect(Scripts));
   const workspaces = yield* Effect.forEach(['apps', 'packages'], (parent) =>
-    Effect.map(fs.readDirectory(at(parent)), (names) => names.map((name) => `${parent}/${name}`)),
+    workspacesIn(root, parent),
   );
   const scriptsAt = new Map(
-    yield* Effect.forEach(
-      yield* Effect.filter(['', ...workspaces.flat()], (dir) => fs.exists(at(dir, 'package.json'))),
-      (dir) => Effect.map(scriptsOf(dir), (p) => [dir, new Set(Object.keys(p.scripts))] as const),
+    yield* Effect.forEach(['', ...workspaces.flat()], (dir) =>
+      Effect.map(scriptsOf(dir), (p) => [dir, new Set(Object.keys(p.scripts))] as const),
     ),
   );
   const packages = yield* Effect.forEach(['', 'apps/animations', 'packages/film'], scriptsOf);
@@ -1192,6 +1216,20 @@ describe('the docs', () => {
         // Each registered rule is on for the paths it guards.
         expect(Array.from(code.registered).filter((rule) => !code.enabled.has(rule))).toEqual([]);
       }),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    "read as workspaces only the folders holding a package.json: Finder's .DS_Store beside them is none",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const root = yield* fs.makeTempDirectoryScoped();
+        yield* fs.makeDirectory(`${root}/packages/kept`, { recursive: true });
+        yield* fs.makeDirectory(`${root}/packages/bare`);
+        yield* fs.writeFileString(`${root}/packages/kept/package.json`, '{}');
+        yield* fs.writeFileString(`${root}/packages/.DS_Store`, 'Bud1');
+        expect(yield* workspacesIn(root, 'packages')).toEqual(['packages/kept']);
+      }).pipe(Effect.scoped),
   );
 
   it.effect.layer(BunServices.layer)('fail a doc that names what the code no longer has', () =>
