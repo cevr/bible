@@ -70,6 +70,13 @@ interface SourceContextValue {
   readonly suspend: () => void;
   /** Place the view again: follow the frame, or show the held line. */
   readonly resume: () => void;
+  /**
+   * Whether a hand has the view now, its scroll event heard or still on its way (a busy page tells it late):
+   * found so, the view stops placing. Asked before the view moves on the page's word. No view shown: none has.
+   */
+  readonly handHas: () => boolean;
+  /** The view shown hands over how to ask it (`useFollow`'s answer); gone, it hands back `() => false`. */
+  readonly offerHand: (ask: () => boolean) => void;
   /** The file and line that write cue `name` of `scene`: from the code read, else from the small source answer. */
   readonly whereCue: (scene: string, name: string) => Option.Option<Where>;
   /** The file and line that write knob `name`, likewise. */
@@ -124,6 +131,8 @@ export const Provider = (props: ParentProps) => {
   );
   const [state, setState] = createSignal<CodeState>(CodeState.Idle(), { ownedWrite: true });
   let retrying = () => {};
+  // How to ask the view shown whether a hand has it: none shown, none has.
+  let askHand = () => false;
   const code = createMemo(() =>
     CodeState.$match(state(), {
       Idle: () => Option.none<SceneCode>(),
@@ -219,6 +228,10 @@ export const Provider = (props: ParentProps) => {
     following,
     suspend: () => setSuspended(true),
     resume: () => setSuspended(false),
+    handHas: () => askHand(),
+    offerHand: (ask) => {
+      askHand = ask;
+    },
     whereCue,
     whereKnob,
     heldSite,

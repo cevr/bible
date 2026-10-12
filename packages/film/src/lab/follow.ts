@@ -12,7 +12,8 @@
 // keys, the scrollbar, find-in-page, assistive tech), and `reader` is told,
 // so the view stops placing until it is taken back. A placement asks the same
 // before it scrolls, so a reader's scroll whose event is still on its way is
-// not undone. Play is told too.
+// not undone, and so may the view before it moves on the page's word (the
+// Source face settling on a line once a read names it). Play is told too.
 
 import { Option } from 'effect';
 import { type Accessor, createEffect, createSignal, untrack } from 'solid-js';
@@ -62,8 +63,12 @@ const extentOf = (box: HTMLElement, span: Span) => {
   return { top: first.top - origin, bottom: last.bottom - origin };
 };
 
-/** Follow `options.target` in `options.box` while `options.placing()`, by the rule above. Mount it with the view. */
-export const useFollow = (options: FollowOptions): void => {
+/**
+ * Follow `options.target` in `options.box` while `options.placing()`, by the rule above. Mount it with the view.
+ * Answers whether a reader has the box now, its scroll event heard or still on its way (`reader` told if so): what
+ * anything that would move the view on the page's word (a settle on a line) asks first.
+ */
+export const useFollow = (options: FollowOptions): (() => boolean) => {
   const { state: lab, meta } = useLab();
   // Where the view last authored the box: the scroll it wrote, read back (so clamping and rounding are in it), or
   // the clamp layout made of it. A reader's scroll is measured from here, so steps too small to tell one by one add up.
@@ -158,4 +163,15 @@ export const useFollow = (options: FollowOptions): void => {
       );
     },
   );
+
+  return () =>
+    Option.match(options.box(), {
+      onNone: () => false,
+      onSome: (box) => {
+        if (!untrack(options.placing)) return true;
+        if (!readerMoved(box)) return false;
+        options.reader();
+        return true;
+      },
+    });
 };
