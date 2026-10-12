@@ -235,6 +235,9 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
     const style: Record<string, string> = {
       // The snap markers anchor to the panel's box.
       position: 'relative',
+      // It takes presses wherever it is drawn, inside an overlay that takes none (a sheet that
+      // is not modal).
+      'pointer-events': 'auto',
       ...swipeAnimationStyle({
         name: componentProps.swipeAnimation,
         range: componentProps.swipeAnimationRange,
@@ -294,39 +297,6 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
     }
     return style;
   };
-
-  // A sheet that is not modal takes presses only where its panel rests: the overlay clips to
-  // that rect (see SheetOverlay), from the panel's layout offsets in the stage, which stands at
-  // the viewport's origin at rest. Its far edges are the overlay's to work out: the stage is
-  // `100dvw` wide, a classic scrollbar's gutter included, and the overlay is not. It is
-  // measured as the stage or the panel resizes, and as the position changes, which moves the
-  // panel in the stage without resizing either (a window turned past the owner's breakpoint).
-  // A clip left where the panel was hides the content, which is gone to the sheet's
-  // IntersectionObserver as if swiped away.
-  createEffect(
-    () => [store.modal(), stage(), panel(), root.position(), config()] as const,
-    ([modal, stageElement, panelElement]) => {
-      if (modal || !stageElement || !panelElement) {
-        sheet.setRestRect(null);
-        return undefined;
-      }
-      const measure = () =>
-        sheet.setRestRect({
-          top: panelElement.offsetTop,
-          left: panelElement.offsetLeft,
-          width: panelElement.offsetWidth,
-          height: panelElement.offsetHeight,
-        });
-      measure();
-      const observer = new ResizeObserver(measure);
-      observer.observe(stageElement);
-      observer.observe(panelElement);
-      return () => {
-        observer.disconnect();
-        sheet.setRestRect(null);
-      };
-    },
-  );
 
   const scrollerStyle = (): JSX.CSSProperties => {
     const { axis, containerOffset } = config();

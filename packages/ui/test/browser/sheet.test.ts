@@ -74,24 +74,70 @@ const reported = (page: Page, showing: boolean) =>
   );
 
 /**
- * The box a non-modal sheet's overlay is drawn and pressed in: its `clip-path` inset from the
- * overlay's own box; null with no clip.
+ * Where a non-modal sheet's panel stands, and what a press reaches round it: `box`, its box;
+ * `drawn`, whether it is drawn whole there (nothing of the sheet clips it); `inside`, whether a
+ * press 3 px inside each of its edges and corners lands on it; `outside`, whether one 3 px past
+ * each edge (inside the window) misses the sheet and reaches the page.
  */
-const clipOf = (page: Page) =>
-  page.locator('#overlay').evaluate((overlay: HTMLElement) => {
-    const inset = /inset\(([^)]*)\)/.exec(overlay.style.clipPath)?.[1];
-    if (!inset) {
+const reachOf = (page: Page) =>
+  page.evaluate(() => {
+    const panel = document.getElementById('panel');
+    const overlay = document.getElementById('overlay');
+    if (!panel || !overlay) {
       return null;
     }
-    const values = inset.split(/\s+/).map((value) => Number.parseFloat(value));
-    const [top = 0, right = top, bottom = top, left = right] = values;
+    const r = panel.getBoundingClientRect();
+    const hits = (x: number, y: number, selector: string) =>
+      document.elementFromPoint(x, y)?.closest(selector) != null;
+    const midX = r.left + r.width / 2;
+    const midY = r.top + r.height / 2;
+    const inside: Array<[number, number]> = [
+      [r.left + 3, midY],
+      [r.right - 3, midY],
+      [midX, r.top + 3],
+      [midX, r.bottom - 3],
+      [r.left + 3, r.top + 3],
+      [r.right - 3, r.bottom - 3],
+    ];
+    const outside: Array<[number, number]> = [
+      [r.left - 3, midY],
+      [r.right + 3, midY],
+      [midX, r.top - 3],
+      [midX, r.bottom + 3],
+    ];
+    // Drawn whole: no clip of the overlay's (an `inset()` from its own box) cuts into the panel.
+    const inset = /^inset\(([^)]*)\)$/.exec(getComputedStyle(overlay).clipPath)?.[1];
+    const [top = 0, right = top, bottom = top, left = right] = (inset ?? '0px')
+      .split(/\s+/)
+      .map((value) => Number.parseFloat(value));
+    const o = overlay.getBoundingClientRect();
+    const drawn =
+      r.left >= o.left + left - 0.5 &&
+      r.top >= o.top + top - 0.5 &&
+      r.right <= o.left + overlay.clientWidth - right + 0.5 &&
+      r.bottom <= o.top + overlay.clientHeight - bottom + 0.5;
     return {
-      x: left,
-      y: top,
-      width: overlay.clientWidth - left - right,
-      height: overlay.clientHeight - top - bottom,
+      box: {
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        width: Math.round(r.width),
+        height: Math.round(r.height),
+      },
+      drawn,
+      inside: inside.every(([x, y]) => hits(x, y, '#panel')),
+      outside: outside
+        .filter(([x, y]) => x >= 0 && y >= 0 && x < innerWidth && y < innerHeight)
+        .every(([x, y]) => !hits(x, y, '#overlay')),
     };
   });
+
+/** What `reachOf` answers of a sheet resting whole at `box`, the page round it live. */
+const standsAt = (box: { x: number; y: number; width: number; height: number }) => ({
+  box,
+  drawn: true,
+  inside: true,
+  outside: true,
+});
 
 /** Resolves after the page's next two frames. */
 const frames = (page: Page) =>
@@ -100,6 +146,21 @@ const frames = (page: Page) =>
       new Promise<void>((resolve) =>
         requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
       ),
+  );
+
+/**
+ * Resolves after the page's next `count` frames (none for 0): the pace of a run of inputs,
+ * on the page's own clock (about 16 ms a frame).
+ */
+const framesOf = (page: Page, count: number) =>
+  page.evaluate(
+    (count) =>
+      new Promise<void>((resolve) => {
+        const step = (left: number) =>
+          left <= 0 ? resolve() : requestAnimationFrame(() => step(left - 1));
+        step(count);
+      }),
+    count,
   );
 
 /**
@@ -122,6 +183,72 @@ const observed = async (page: Page) => {
   );
   await frames(page);
 };
+
+/** What `recordCrossing` leaves on the page's window. */
+interface CrossingWindow {
+  /** How far the sheet has scrolled in along its axis, 0 to 1. */
+  entranceShare: () => number;
+  /** Where the sheet was when the window first resized. */
+  __crossed?: { entering: boolean; share: number };
+}
+
+/**
+ * Gives the page `entranceShare()`, and records whether the sheet was still scrolling in when the
+ * window first resized (read on the resize, before the sheet hears of it).
+ */
+const recordCrossing = (page: Page) =>
+  page.evaluate(() => {
+    const w = window as unknown as CrossingWindow;
+    w.entranceShare = () => {
+      const scroller = document.querySelector<HTMLElement>('#overlay [data-sheet-scroll]');
+      const right = document.getElementById('panel')?.getAttribute('data-position') === 'right';
+      if (!scroller) {
+        return 0;
+      }
+      return right
+        ? scroller.scrollLeft / Math.max(1, scroller.scrollWidth - scroller.clientWidth)
+        : scroller.scrollTop / Math.max(1, scroller.scrollHeight - scroller.clientHeight);
+    };
+    addEventListener('resize', () => {
+      w.__crossed ??= {
+        entering: document.getElementById('panel')?.hasAttribute('data-entering') ?? false,
+        share: w.entranceShare(),
+      };
+    });
+  });
+
+/** How far the sheet had come in, as an expression the page runs. */
+const entranceShare = () => (window as unknown as CrossingWindow).entranceShare();
+
+/**
+ * Where the sheet was as the window first resized (`recordCrossing`), once the page has been
+ * told of the resize: it is told on its next frame, after the viewport has changed.
+ */
+const crossing = async (page: Page) => {
+  const crossed = await page.waitForFunction(
+    () => (window as unknown as CrossingWindow).__crossed,
+    undefined,
+    { polling: 'raf' },
+  );
+  return (await crossed.jsonValue()) as { entering: boolean; share: number };
+};
+
+/**
+ * The page's offset of the `breakpoint` fixture's panel, as the lab's page sets one: `--floor`
+ * under a bottom sheet (a phone's dock), `--side` beside a right one (a scrollbar's gutter).
+ */
+const OFFSETS = `#panel[data-position="bottom"] { bottom: var(--floor, 0px); }
+  #panel[data-position="right"] { right: var(--side, 0px); }`;
+
+/**
+ * Where the `breakpoint` fixture's panel rests in a window of `size`, its page's offset `by`
+ * (`--floor` under a bottom sheet, `--side` beside a right one) applied: a 300 px bottom sheet
+ * under 900 px wide, a 300 px right one from there.
+ */
+const restIn = (size: { width: number; height: number }, by = 0) =>
+  size.width < 900
+    ? { x: 0, y: size.height - 300 - by, width: size.width, height: 300 }
+    : { x: size.width - 300 - by, y: 0, width: 300, height: size.height };
 
 describe('its layout changing under it (hidden with what holds it, a window resized)', () => {
   const LAB = { modal: 'false', dismissal: 'disabled', portal: 'inline' };
@@ -154,10 +281,10 @@ describe('its layout changing under it (hidden with what holds it, a window resi
     expect(await opens(page)).toEqual([]);
   });
 
-  it('turns from a bottom sheet to a right one and back as the window crosses a breakpoint in one step, open, at rest and clipped to its panel', async () => {
+  it('turns from a bottom sheet to a right one and back as the window crosses a breakpoint in one step, open, at rest and pressed over its panel alone', async () => {
     const page = await h.open('sheet', { query: { ...LAB, position: 'breakpoint' } });
     await openSheet(page);
-    await see.poll(() => clipOf(page)).toEqual(REST);
+    await see.poll(() => reachOf(page)).toEqual(standsAt(REST));
     const steps = [
       {
         viewport: { width: 1180, height: 820 },
@@ -185,14 +312,319 @@ describe('its layout changing under it (hidden with what holds it, a window resi
       const done = await before;
       await page.setViewportSize(step.viewport);
       await see(page.locator('#panel')).toHaveAttribute('data-position', step.position);
-      await see.poll(() => box(page, '#panel')).toEqual(step.rest);
-      await see.poll(() => clipOf(page)).toEqual(step.rest);
+      await see.poll(() => reachOf(page)).toEqual(standsAt(step.rest));
       // Still so once the sheet's observer has seen the turn drawn: nothing read it as a swipe.
       await observed(page);
-      return [...done, [step.position, await box(page, '#panel'), await clipOf(page)]];
+      return [...done, [step.position, await reachOf(page)]];
     }, Promise.resolve([]));
-    expect(stood).toEqual(steps.map((step) => [step.position, step.rest, step.rest]));
+    expect(stood).toEqual(steps.map((step) => [step.position, standsAt(step.rest)]));
     expect(await opens(page)).toEqual([]);
+  });
+
+  it('follows its panel as its owner moves it with no resize, both ways: drawn whole, pressed over it alone, and open', async () => {
+    // The lab's panel stands on an offset its page sets (a phone's dock, a laptop's scrollbar
+    // gutter); the page changes it, by 61 px here, with nothing resized and the position kept.
+    const cases = [
+      {
+        viewport: { width: 800, height: 600 },
+        position: 'bottom',
+        rest: (by: number) => ({ x: 0, y: 300 - by, width: 800, height: 300 }),
+      },
+      {
+        viewport: { width: 1180, height: 820 },
+        position: 'right',
+        rest: (by: number) => ({ x: 880 - by, y: 0, width: 300, height: 820 }),
+      },
+    ];
+    const followed = await Promise.all(
+      cases.map(async ({ viewport, position, rest }) => {
+        const page = await h.open('sheet', {
+          viewport,
+          query: { ...LAB, position: 'breakpoint' },
+        });
+        await page.addStyleTag({ content: OFFSETS });
+        await openSheet(page);
+        await see(page.locator('#panel')).toHaveAttribute('data-position', position);
+        const moves = [61, 0, 61, 0];
+        // One move after another, each from where the last left it.
+        const stood = await moves.reduce<Promise<Array<unknown>>>(async (before, by) => {
+          const done = await before;
+          await page.evaluate(
+            (by) =>
+              ['--floor', '--side'].forEach((name) =>
+                document.documentElement.style.setProperty(name, `${by}px`),
+              ),
+            by,
+          );
+          await see.poll(() => box(page, '#panel')).toEqual(rest(by));
+          await frames(page);
+          await observed(page);
+          return [...done, await reachOf(page)];
+        }, Promise.resolve([]));
+        return { position, stood, opens: await opens(page) };
+      }),
+    );
+    expect(followed).toEqual(
+      cases.map(({ position, rest }) => ({
+        position,
+        stood: [61, 0, 61, 0].map((by) => standsAt(rest(by))),
+        opens: [],
+      })),
+    );
+  });
+
+  it('with a snap point, its panel moved by its owner as it scrolls in, either way, it ends where it rests when opened so moved', async () => {
+    // A snap point's marker moves with the panel, so the scroll the sheet rests at moves with it:
+    // the entrance goes on to the rest of the layout it ends in, not the one it set off in.
+    const VIEW = { width: 800, height: 600 };
+    const query = { ...LAB, snap: '150' };
+    // Where its panel stands, and whether a press 3 px inside its showing top lands on it and one
+    // 3 px above it reaches the page.
+    const standing = (page: Page) =>
+      page.evaluate(() => {
+        const panel = document.getElementById('panel')!;
+        const r = panel.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        return {
+          box: { x: Math.round(r.x), y: Math.round(r.y), width: r.width, height: r.height },
+          pressed: [
+            document.elementFromPoint(x, r.top + 3)?.closest('#panel') != null,
+            document.elementFromPoint(x, r.top - 3)?.closest('#overlay') == null,
+          ],
+        };
+      });
+    const restsMoved = async (by: number) => {
+      const page = await h.open('sheet', { viewport: VIEW, query });
+      await page.addStyleTag({ content: OFFSETS });
+      await page.evaluate(
+        (by) => document.documentElement.style.setProperty('--floor', `${by}px`),
+        by,
+      );
+      await openSheet(page);
+      await frames(page);
+      return standing(page);
+    };
+    const moves = [
+      [0, 61],
+      [61, 0],
+    ] as const;
+    const ended = await moves.reduce<Promise<Array<unknown>>>(async (before, [from, to]) => {
+      const done = await before;
+      const rest = await restsMoved(to);
+      const page = await h.open('sheet', { viewport: VIEW, query });
+      await page.addStyleTag({ content: OFFSETS });
+      await page.evaluate(
+        (by) => document.documentElement.style.setProperty('--floor', `${by}px`),
+        from,
+      );
+      await recordCrossing(page);
+      await page.click('#open');
+      await see(page.locator('#panel')).toHaveAttribute('data-entering', '');
+      await page.waitForFunction(() => entranceShare() > 0.03, undefined, { polling: 'raf' });
+      await page.evaluate(
+        (by) => document.documentElement.style.setProperty('--floor', `${by}px`),
+        to,
+      );
+      const entering = await page.locator('#panel').getAttribute('data-entering');
+      await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
+      await see.poll(() => standing(page)).toEqual(rest);
+      await observed(page);
+      const stood = await standing(page);
+      return [
+        ...done,
+        { from, to, entering: entering !== null, moved: stood, rest, opens: await opens(page) },
+      ];
+    }, Promise.resolve([]));
+    const rests = (ended as Array<{ rest: unknown }>).map((e) => e.rest);
+    expect(ended).toEqual(
+      moves.map(([from, to], i) => ({
+        from,
+        to,
+        entering: true,
+        moved: rests[i],
+        rest: { box: expect.anything(), pressed: [true, true] },
+        opens: [],
+      })),
+    );
+  });
+
+  it('a window resized under a finger dragging it down leaves it where the finger has it, and the swipe goes on', async () => {
+    const page = await h.open('sheet', {
+      touch: true,
+      viewport: { width: 800, height: 600 },
+      query: LAB,
+    });
+    await openSheet(page);
+    const rest = await box(page, '#panel');
+    const cdp = await page.context().newCDPSession(page);
+    const start = Date.now() / 1000;
+    const x = rest.x + 100;
+    const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', step: number, y: number) =>
+      cdp.send('Input.dispatchTouchEvent', {
+        type,
+        touchPoints: type === 'touchEnd' ? [] : [{ x, y }],
+        timestamp: start + step * 0.008,
+      });
+    const from = rest.y + 20;
+    // Moves one after another, in order, 20 px each.
+    const moves = (steps: ReadonlyArray<number>) =>
+      steps.reduce<Promise<unknown>>(
+        (previous, step) => previous.then(() => touch('touchMove', step, from + step * 20)),
+        Promise.resolve(),
+      );
+    await touch('touchStart', 0, from);
+    await moves([1, 2, 3, 4, 5, 6]);
+    await frames(page);
+    const dragged = (await box(page, '#panel')).y;
+    // The window grows taller (a phone's toolbar going), the finger still down.
+    await page.setViewportSize({ width: 800, height: 640 });
+    await frames(page);
+    await frames(page);
+    const held = (await box(page, '#panel')).y;
+    await moves([7, 8, 9, 10, 11, 12]);
+    await touch('touchEnd', 13, from + 240);
+    await see(page.locator('#popup'), 'swiped away').toHaveCount(0);
+    // Still dragged down as far (the window's 40 px more below it): not put back at rest.
+    expect([dragged - rest.y > 60, held - rest.y > 60, await opens(page)]).toEqual([
+      true,
+      true,
+      ['open false swipe'],
+    ]);
+  });
+
+  it('crossing the breakpoint as it scrolls in, at the start or on its way, either way, it ends open at rest at its new end, pressed over its panel alone', async () => {
+    const NARROW = { width: 800, height: 600 };
+    const WIDE = { width: 1180, height: 820 };
+    const cases = [
+      { from: NARROW, to: WIDE, when: 'start' },
+      { from: NARROW, to: WIDE, when: 'on its way' },
+      { from: WIDE, to: NARROW, when: 'start' },
+      { from: WIDE, to: NARROW, when: 'on its way' },
+    ] as const;
+    // One case after another: a loaded page under three others would start its scroll late.
+    const ended = await cases.reduce<Promise<Array<unknown>>>(async (before, c) => {
+      const done = await before;
+      const page = await h.open('sheet', {
+        viewport: c.from,
+        query: { ...LAB, position: 'breakpoint' },
+      });
+      await recordCrossing(page);
+      await page.click('#open');
+      await see(page.locator('#panel')).toHaveAttribute('data-entering', '');
+      if (c.when === 'on its way') {
+        await page.waitForFunction(() => entranceShare() >= 0.3, undefined, { polling: 'raf' });
+      }
+      await page.setViewportSize(c.to);
+      const crossed = await crossing(page);
+      await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
+      await see.poll(() => reachOf(page)).toEqual(standsAt(restIn(c.to)));
+      await observed(page);
+      return [
+        ...done,
+        { ...c, entering: crossed.entering, stood: await reachOf(page), opens: await opens(page) },
+      ];
+    }, Promise.resolve([]));
+    expect(ended).toEqual(
+      cases.map((c) => ({ ...c, entering: true, stood: standsAt(restIn(c.to)), opens: [] })),
+    );
+  });
+
+  it('crossing the breakpoint twice four frames (about 60 ms) apart as it scrolls in ends open at rest where it started', async () => {
+    const NARROW = { width: 800, height: 600 };
+    const WIDE = { width: 1180, height: 820 };
+    const ended = await [
+      [NARROW, WIDE],
+      [WIDE, NARROW],
+    ].reduce<Promise<Array<unknown>>>(async (before, [from, to]) => {
+      const done = await before;
+      const page = await h.open('sheet', {
+        viewport: from,
+        query: { ...LAB, position: 'breakpoint' },
+      });
+      await recordCrossing(page);
+      await page.click('#open');
+      await page.waitForFunction(() => entranceShare() >= 0.3, undefined, { polling: 'raf' });
+      await page.setViewportSize(to!);
+      await framesOf(page, 4);
+      await page.setViewportSize(from!);
+      const crossed = await crossing(page);
+      await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
+      await see.poll(() => reachOf(page)).toEqual(standsAt(restIn(from!)));
+      await observed(page);
+      return [...done, [crossed.entering, await reachOf(page), await opens(page)]];
+    }, Promise.resolve([]));
+    expect(ended).toEqual([
+      [true, standsAt(restIn(NARROW)), []],
+      [true, standsAt(restIn(WIDE)), []],
+    ]);
+  });
+
+  it('rests whole at its end after any run of moves, turns and resizes, the opening among them, at any pace', async () => {
+    // A small seeded random walk: each run opens the sheet at some step, and between steps the
+    // page moves the panel (`--floor`, `--side`), or resizes the window (across the breakpoint
+    // or not), 0 to 15 frames (about 250 ms) apart. However the steps fall, it ends at rest for where it is.
+    const SIZES = [
+      { width: 800, height: 600 },
+      { width: 700, height: 900 },
+      { width: 820, height: 1180 },
+      { width: 1180, height: 820 },
+      { width: 1440, height: 900 },
+    ];
+    const random = (seed: number) => () => {
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const ended = await [1, 2, 3, 4, 5, 6].reduce<Promise<Array<unknown>>>(async (before, seed) => {
+      const done = await before;
+      const next = random(seed);
+      const pick = <T>(of: ReadonlyArray<T>) => of[Math.floor(next() * of.length)]!;
+      let size = pick(SIZES);
+      const page = await h.open('sheet', {
+        viewport: size,
+        query: { ...LAB, position: 'breakpoint' },
+      });
+      await page.addStyleTag({ content: OFFSETS });
+      const opensAt = Math.floor(next() * 3);
+      const steps: Array<string> = [];
+      await Array.from({ length: 7 }, (_, i) => i).reduce<Promise<void>>(async (prior, i) => {
+        await prior;
+        if (i === opensAt) {
+          steps.push('open');
+          await page.click('#open');
+        } else if (next() < 0.4) {
+          const by = Math.round(next() * 80);
+          steps.push(`offset ${by}`);
+          await page.evaluate(
+            (by) =>
+              ['--floor', '--side'].forEach((name) =>
+                document.documentElement.style.setProperty(name, `${by}px`),
+              ),
+            by,
+          );
+        } else {
+          size = pick(SIZES);
+          steps.push(`size ${size.width}x${size.height}`);
+          await page.setViewportSize(size);
+        }
+        await framesOf(page, Math.round(next() * 15));
+      }, Promise.resolve());
+      const run = `seed ${seed}: ${steps.join(', ')}`;
+      await see(page.locator('#panel'), run).not.toHaveAttribute('data-entering', '');
+      const by = await page.evaluate(() =>
+        Number.parseFloat(document.documentElement.style.getPropertyValue('--floor') || '0'),
+      );
+      await see.poll(() => reachOf(page), { message: run }).toEqual(standsAt(restIn(size, by)));
+      await observed(page);
+      return [...done, { run, stood: await reachOf(page), opens: await opens(page) }];
+    }, Promise.resolve([]));
+    expect(ended).toEqual(
+      ended.map((end) => {
+        const { run, stood } = end as { run: string; stood: unknown };
+        return { run, stood, opens: [] };
+      }),
+    );
   });
 
   it('rests when the window is resized as it scrolls in, and stays open', async () => {
@@ -989,20 +1421,32 @@ const fingerScrollsSheet = (page: Page) =>
   });
 
 /**
- * Resolves, once a bottom sheet's panel has scrolled wholly below the window, with whether the
- * sheet was still entering then. Read on the scroll that carried it there, before any
- * observer is told it is gone (and its owner closes it). Call it before the sheet opens.
+ * Resolves, once a bottom sheet's panel has shown (its head 60 px into the window) and then
+ * scrolled wholly below the window, with whether the sheet was still entering then. Read on the
+ * scroll that carried it there, before any observer is told it is gone (and its owner closes
+ * it). From then on, a scroll that brings any of it back into the window is recorded
+ * (`cameBack`). Call it before the sheet opens.
  */
 const leftView = (page: Page) =>
   page.evaluate(
     () =>
       new Promise<boolean>((resolve) => {
         const watch = (scroller: Element) => {
+          let shown = false;
+          let left = false;
           const onScroll = () => {
             const panel = document.getElementById('panel');
-            if (panel && panel.getBoundingClientRect().top >= innerHeight) {
-              scroller.removeEventListener('scroll', onScroll);
+            // Hidden as it unmounts, it has no box (its top reads 0): not back in view.
+            if (!panel || panel.getClientRects().length === 0) {
+              return;
+            }
+            const top = panel.getBoundingClientRect().top;
+            shown ||= top < innerHeight - 60;
+            if (shown && !left && top >= innerHeight) {
+              left = true;
               resolve(panel.hasAttribute('data-entering'));
+            } else if (left && top < innerHeight - 1) {
+              (window as unknown as { __cameBack?: boolean }).__cameBack = true;
             }
           };
           scroller.addEventListener('scroll', onScroll);
@@ -1055,19 +1499,23 @@ describe('a finger', () => {
         await fingerDown(page, { x: panel.x + 100, y: panel.y + 10 }, 400, 10);
         // It left the screen before its entrance ended: the swipe took the entrance over.
         const entering = await left;
-        // The async owner lets it go 1.5 s after it was asked: past the entrance's settle.
+        // The async owner lets it go 1.5 s after it was asked: past the entrance's settle. Taken,
+        // the entrance never brings it back into view meanwhile.
         await see(page.locator('#popup')).toHaveCount(0);
-        return [entering, (await logOf(page)).filter((line) => line.startsWith('open'))];
+        const cameBack = await page.evaluate(
+          () => (window as unknown as { __cameBack?: boolean }).__cameBack ?? false,
+        );
+        return [entering, cameBack, (await logOf(page)).filter((line) => line.startsWith('open'))];
       }),
     );
     expect(swept).toEqual([
-      [true, ['open false swipe']],
-      [true, ['open false swipe']],
-      [true, ['open false swipe']],
+      [true, false, ['open false swipe']],
+      [true, false, ['open false swipe']],
+      [true, false, ['open false swipe']],
     ]);
   });
 
-  it('swipes a non-modal sheet away by a wheel or a finger, its shadow drawn round the clip by a wrapper that takes no presses', async () => {
+  it('swipes a non-modal sheet away by a wheel or a finger, its shadow drawn round its panel by a wrapper that takes no presses', async () => {
     const LOOSE = { modal: 'false', dismissal: 'disabled', portal: 'inline' };
     const swept = await Promise.all(
       (['wheel', 'finger'] as const).map(async (by) => {
@@ -1076,7 +1524,7 @@ describe('a finger', () => {
           query: by === 'wheel' ? { ...LOOSE, position: 'right' } : LOOSE,
         });
         // The lab's: the inline portal, fixed over the window, draws the shadow and takes no
-        // presses; the overlay inside takes the panel's.
+        // presses; nor does the overlay inside, and the panel takes its own.
         await page.addStyleTag({
           content: `div:has(> #overlay) {
             position: fixed; inset: 0; pointer-events: none;
