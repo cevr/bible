@@ -747,9 +747,40 @@ const serverId = Effect.gen(function* () {
   return `${started.toString(36)}-${draw.toString(36)}`;
 });
 
-const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
+/**
+ * `spec` with its pages, its server entries and its films folder by their
+ * real paths: the bundler names each file it read by where it lies (one in
+ * a folder reached through a link, as macOS's temp folder is, by the link's
+ * target), and the watches, the files read and their prints must name one
+ * file one way. One not there stays as given, resolved.
+ */
+const realSpec = (fs: FileSystem.FileSystem, path: Path.Path, spec: LabPageSpec) => {
+  const real = (file: string) =>
+    fs.realPath(file).pipe(Effect.orElseSucceed(() => path.resolve(file)));
+  return Effect.map(
+    Effect.all({
+      pages: Effect.all(Record.map(spec.pages, real)),
+      servers: Effect.map(
+        Effect.forEach(
+          Record.keys(spec.pages).flatMap((page) =>
+            Option.toArray(Option.fromUndefinedOr(spec.servers[page])).map(
+              (entry) => [page, entry] as const,
+            ),
+          ),
+          ([page, entry]) => Effect.map(real(entry), (file) => [page, file] as const),
+        ),
+        (pairs): LabPageSpec['servers'] => Record.fromEntries(pairs),
+      ),
+      films: real(spec.films),
+    }),
+    (named): LabPageSpec => ({ ...spec, ...named }),
+  );
+};
+
+const make = Effect.fnUntraced(function* (given: LabPageSpec) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
+  const spec = yield* realSpec(fs, path, given);
   const bundler = yield* PageBundler;
   const renderer = yield* PageRenderer;
   const scope = yield* Effect.scope;

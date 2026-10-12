@@ -645,6 +645,46 @@ describe('lab pages', () => {
   );
 
   it.live(
+    'an app named through a link is watched where it lies, as the bundler names what it read: a first build hears no save of its own, and a later save is heard',
+    () =>
+      Effect.gen(function* () {
+        // Every file the build reads lies in a folder watched from the start (an entry's).
+        const { spec, write } = yield* appFolderWith({
+          'review.html': html('review', './src/lab.ts'),
+          'src/review.server.tsx': "export const rendered = () => 'served';\n",
+        });
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const dir = path.dirname(spec.pages.review);
+        // The same folder by another name, as macOS names its temp folder (`/var` for `/private/var`).
+        const linked = `${dir}-linked`;
+        yield* fs.symlink(dir, linked);
+        const through = (file: string) => path.join(linked, path.relative(dir, file));
+        const { page, ask } = yield* served(
+          {
+            ...spec,
+            pages: Record.map(spec.pages, through),
+            servers: { review: through(spec.servers.review) },
+            films: through(spec.films),
+          },
+          PageBundler.layer,
+        );
+        const built = buildOf((yield* ask('/')).text);
+        // Past the arming check of any watch the build began: nothing was saved since.
+        const held = yield* page.wait(
+          { since: built, server: Option.none(), film: Option.none() },
+          '1 second',
+        );
+        expect(held.build).toBe(built);
+        const heard = yield* Effect.andThen(
+          write('src/lab.ts', "console.log('the lab, saved');\n"),
+          page.wait({ since: built, server: Option.none(), film: Option.none() }, '5 seconds'),
+        );
+        expect(heard.build).toBeGreaterThan(built);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
     "plays a take's copy the footage library lists, by the range asked, and answers any other footage path with a 404, never a page",
     () =>
       Effect.gen(function* () {
