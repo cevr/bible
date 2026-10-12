@@ -69,7 +69,8 @@ The last row is the rule that the landing is both the most saturated and the cal
 ### Paper, light, texture
 
 - **Planes.** Every STORY shot has 3–5 planes, with parallax of about 1 : 3 : 7 from far to near. Depth comes from a haze veil between the planes (10–30 %), not from blur. _(Ocarina, Norstein #29, #31.)_
-- **Contact shadow.** Every cut-out casts a warm shadow on the sheet behind it: offset 2–6 px, blur 4–12 px, alpha 15–30 %. Nearer planes cast longer, softer shadows (the engine's `raised()`). Figures standing on ground get a contact shadow at their feet. _(Tearaway, Three Brothers #26, #28.)_
+- **Shadow colour.** Shade with hue, not black (owner, 2026-10-12): a shadow is the light's complement, darker and as saturated or more (warm parchment under a warm key takes a dusky violet-blue shadow; a cool night page takes a warm one), and a highlight leans to the light's hue. A dimmed copy of the base, a grey, or an alpha-black layer reads dead and muddy; shifting hue keeps the paper luminous, as cut-paper and gouache work does. Each palette colour keeps a named ramp (shade, base, light), the shade a neighbouring hue.
+- **Contact shadow.** Every cut-out casts a shadow on the sheet behind it, in the sheet's shade hue (above), not a darkened brown: offset 2–6 px, blur 4–12 px, alpha 15–30 %. Nearer planes cast longer, softer shadows (the engine's `raised()`). Figures standing on ground get a contact shadow at their feet. _(Tearaway, Three Brothers #26, #28.)_
 - **Edges.**
   - Cut pieces (people, furniture) have a clean edge with a 1–2 px light core.
   - Torn pieces (earth, clouds, the paper of the world) have a 2–4 px fibrous white rim.
