@@ -9,9 +9,23 @@
 // Bun finds in the usual places, else the newest Chromium a Playwright
 // install left in `~/.cache/ms-playwright`. None of them: `BrowserMissing`,
 // which names `BUN_CHROME_PATH`.
+//
+// Every Chrome is muted (`chromeArgs`): no page a tool or test opens is
+// listened to (a render mixes and encodes its sound offline), and a headless
+// Chrome otherwise plays its pages' sound out of the host's speakers.
 
 import { Config, Effect, FileSystem, Option, Order, Path, Schema, type Scope } from 'effect';
 import { BrowserFailed, BrowserMissing } from './errors.ts';
+
+/**
+ * The flags a Chrome is spawned with: the caller's, after `--mute-audio`.
+ * Muted, a page's audio still runs (its `AudioContext` keeps time, decodes
+ * and processes, a microphone is heard); only the output device gets silence.
+ */
+export const chromeArgs = (argv: ReadonlyArray<string>): ReadonlyArray<string> => [
+  '--mute-audio',
+  ...argv,
+];
 
 /** A view's viewport, and where the page's `console.*` calls go (dropped when not given). */
 interface ViewOptions {
@@ -105,17 +119,19 @@ const firstView = (argv: ReadonlyArray<string>, options: ViewOptions) =>
 
 /**
  * A view (a tab of this process's Chrome) as `options` say, closed with the scope.
- * The first view spawns Chrome with `argv`; a later one asking for other
- * flags fails, since the running Chrome cannot take them.
+ * The first view spawns Chrome with `requested` (`chromeArgs`: muted); a
+ * later one asking for other flags fails, since the running Chrome cannot
+ * take them.
  */
 export const openView = (
-  argv: ReadonlyArray<string>,
+  requested: ReadonlyArray<string>,
   options: ViewOptions,
 ): Effect.Effect<
   Bun.WebView,
   BrowserMissing | BrowserFailed,
   Scope.Scope | FileSystem.FileSystem | Path.Path
 > => {
+  const argv = chromeArgs(requested);
   const flags = argv.join(' ');
   return Effect.acquireRelease(
     Effect.suspend(() =>
