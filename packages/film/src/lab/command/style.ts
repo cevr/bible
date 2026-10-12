@@ -20,6 +20,30 @@
 // drawn inside it (`--focus-inset`; this sheet comes after the review's,
 // whose ring it overrides). Comments here ship with the review's
 // render-blocking CSS, so the notes stand in this one.
+//
+// A sheet about a thing has its kind for a title; its name and values keep
+// their own case (an ease is a literal). On a wide screen it stands beside
+// the page, not over it: the page makes room while an inspector is open. On a
+// phone (the shell's width) the sheet rises from the bottom (design language
+// §7): the screen's width, standing on what `--cmd-sheet-floor` says (the
+// film's tab bar, and the shell's dock or the Lab's transport row docked over
+// it), so both stay in reach; at most three quarters of the screen tall. Its
+// head is its grip (a bar drawn at its top): a tap lowers it to a peek, its
+// head alone, and raises it again. The head's Close stands over the grip, a
+// whole target of its own: the grip round it leaves it no spacing. While it
+// stands whole the page makes room under it, so its last row can be scrolled
+// above it. The Lab's selection (a cue, a knob, a note) peeks one line above
+// its dock, what it is and its values, wrapped onto a second line rather than
+// cut before the last value: its head alone, a target tall with no padding
+// above or below it (`--cmd-peek-h`, the sheet's top line with it; two lines
+// of the language's leading fit), so the phone's stack (header, peek, dock,
+// tab bar) stays within a quarter of the screen. The peek is the subject's
+// line alone; raised, the kind heads it. The page's foot clears the peek, or
+// the whole sheet, as it clears the dock; only a sheet the mode shows keeps
+// its room, the other mode's hidden with its section. Over an open sheet on a
+// phone the receipts stand on its top edge, by anchor positioning, as they
+// stand over the Lab's viewer on a laptop; a browser with none keeps them at
+// the foot, centred.
 
 import { PHONE, WIDE } from '../viewport.ts';
 
@@ -41,10 +65,8 @@ body {
   --cmd-top: 12vh;
   --cmd-layer: 40;
   --cmd-sheet-height: 75dvh;
-  /* What the phone's sheet stands on: the tab bar and the shell's dock (\`.sh .sh-dock\`), set below. */
   --cmd-sheet-floor: env(safe-area-inset-bottom);
   --cmd-grip-height: 4px;
-  /* The Lab's selection peeking: its head alone, a target's height, and the sheet's top line. */
   --cmd-peek-h: calc(var(--hit) + 1px);
 }
 `;
@@ -66,7 +88,6 @@ const COMMAND_RULES = `
   margin: 0 0 var(--s-1); font-size: var(--fs-2); font-weight: var(--w-3); color: var(--text-2);
   text-transform: uppercase; letter-spacing: var(--track-caps);
 }
-/* A sheet about a thing: its kind is the title; its name and values keep their own case (an ease is a literal). */
 .lab-sheet-subject {
   font-size: var(--fs-3); font-weight: var(--w-2); color: var(--text-1);
   text-transform: none; letter-spacing: normal;
@@ -188,21 +209,10 @@ const COMMAND_RULES = `
   border: 1px solid var(--line-strong); border-radius: var(--r-1); background: none; color: var(--text-1);
   line-height: var(--cmd-count-size);
 }
-/* Beside the page, not over it: on a wide screen the page makes room while an inspector is open. */
 @media ${WIDE} { body:has(.lab-inspector-sheet) { padding-right: var(--inspector-w); } }
 .lab-inspector-grip { display: none; }
-/*
- * On a phone (the shell's width) the sheet rises from the bottom (design
- * language §7): the screen's width, standing on the film's tab bar and the
- * transport docked over it, so both stay in reach; at most three quarters of
- * the screen tall. Its head is its grip (a bar drawn at its top): a tap lowers
- * it to a peek, its head alone, and raises it again; the head's Close stays
- * above the grip. While it stands whole the page makes room under it, so its
- * last row can be scrolled above it.
- */
 @media ${PHONE} {
   body:has(.sh[data-film="true"]) { --cmd-sheet-floor: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
-  /* The shell's dock, or the Lab's (its transport row, docked as the shell's dock is). */
   body:has(.sh[data-film="true"] .sh-dock), body.lab:has(.bar > .row) {
     --cmd-sheet-floor: calc(var(--tabbar-h) + var(--dock-h) + env(safe-area-inset-bottom));
   }
@@ -224,28 +234,16 @@ const COMMAND_RULES = `
     border-radius: var(--r-1); background: var(--line-strong);
   }
   .lab-inspector-head .lab-sheet-title { position: relative; pointer-events: none; }
-  /* Close stands over the grip, a whole target of its own: the grip round it leaves it no spacing. */
   .lab-inspector-head .lab-inspector-close { position: relative; z-index: 1; min-height: var(--hit); }
   .lab-inspector-sheet[data-peek="true"] > :not(.lab-inspector-head) { display: none; }
   body:has(.lab-inspector-sheet:not([data-peek="true"])) .sh-body { padding-bottom: var(--cmd-sheet-height); }
-  /*
-   * The Lab's selection (a cue, a knob, a note) peeks one line above its
-   * dock, what it is and its values, wrapped onto a second line rather than
-   * cut before the last value: its head alone, a target tall with no padding
-   * above or below it (two lines of the language's leading fit), so the
-   * phone's stack (header, peek, dock, tab bar) stays within a quarter of the
-   * screen. The page's foot clears the peek, or the whole sheet, as it
-   * clears the dock.
-   */
   .lab-selection-sheet .lab-sheet-title {
     flex: 1; min-width: 0; margin: 0; line-height: var(--lh-1); overflow-wrap: anywhere;
   }
   .lab-selection-sheet[data-peek="true"] { padding-block: 0; }
-  /* The peek is the subject's line alone; raised, the kind heads it. */
   .lab-selection-sheet[data-peek="true"] .lab-sheet-kind { display: none; }
   .lab-selection-sheet[data-peek="true"] .lab-inspector-grip { top: 0; }
   .lab-selection-sheet[data-peek="true"] .lab-inspector-grip::before { top: var(--s-1); }
-  /* Only a sheet the mode shows keeps its room: the other mode's is hidden with its section. */
   body.lab:has(${STANDING}) { padding-bottom: calc(var(--cmd-sheet-floor) + var(--cmd-peek-h)); }
   body.lab:has(${STANDING}:not([data-peek="true"])) {
     padding-bottom: calc(var(--cmd-sheet-floor) + var(--cmd-sheet-height));
@@ -267,14 +265,12 @@ const COMMAND_RULES = `
 @media ${PHONE} {
   .lab-receipts { bottom: calc(var(--cmd-sheet-floor) + var(--s-2)); }
 }
-/* Over an open sheet they stand on its top edge: a browser with no anchor positioning keeps them at the foot. */
 @supports (anchor-name: --a) {
   @media ${PHONE} {
     .lab-inspector-sheet { anchor-name: --cmd-sheet; }
     body:has(.lab-inspector-sheet) .lab-receipts { position-anchor: --cmd-sheet; bottom: calc(anchor(top) + var(--s-2)); }
   }
 }
-/* A browser with no anchor positioning keeps them at the foot, centred. */
 @supports (anchor-name: --a) {
   @media ${WIDE} {
     body.lab .stage { anchor-name: --lab-viewer; }
