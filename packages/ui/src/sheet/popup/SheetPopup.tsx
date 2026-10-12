@@ -298,9 +298,13 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
   // A sheet that is not modal takes presses only where its panel rests: the overlay clips to
   // that rect (see SheetOverlay), from the panel's layout offsets in the stage, which stands at
   // the viewport's origin at rest. Its far edges are the overlay's to work out: the stage is
-  // `100dvw` wide, a classic scrollbar's gutter included, and the overlay is not.
+  // `100dvw` wide, a classic scrollbar's gutter included, and the overlay is not. It is
+  // measured as the stage or the panel resizes, and as the position changes, which moves the
+  // panel in the stage without resizing either (a window turned past the owner's breakpoint).
+  // A clip left where the panel was hides the content, which is gone to the sheet's
+  // IntersectionObserver as if swiped away.
   createEffect(
-    () => [store.modal(), stage(), panel()] as const,
+    () => [store.modal(), stage(), panel(), root.position(), config()] as const,
     ([modal, stageElement, panelElement]) => {
       if (modal || !stageElement || !panelElement) {
         sheet.setRestRect(null);

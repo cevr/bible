@@ -1,7 +1,9 @@
 // Fixtures for the sheet. Every sheet is opened as a page opens one: its
 // owner holds `open`, a plain button sets it, and the sheet's own opens and
 // closes reach the owner through `onOpenChange`. URL params for `sheet`:
-// `position` (`bottom` by default, `top`, `left`, `right`, `center`),
+// `position` (`bottom` by default, `top`, `left`, `right`, `center`, or
+// `breakpoint` for the lab's: bottom under 900px wide, right from there, the
+// panel styled by the window's width and the sheet told of it a task later),
 // `swipe` (a `swipeDirection` other than the position's), `modal=false`,
 // `dismissal=disabled` (an outside press never closes it), `prevent=true`
 // (`preventDismissal`), `snap` (comma-separated snap points, `150` or `50%`),
@@ -13,7 +15,7 @@
 // (Firefox today), `overscroll=true` for the panel's `overscrollPadding`,
 // `range=true` for swipe animations limited to the first snap point (the
 // panel's up to it, the backdrop's from it). `async-owner` is the lab's shape: an `open` that stays
-// true, under a page that drops the sheet later. `stack` opens a second
+// true, under a page that drops the sheet later (100 ms, or `drop` ms). `stack` opens a second
 // sheet from inside the first. The sheet stands in `#section`, which a test
 // hides with `display: none` as the lab hides a mode's section.
 //
@@ -45,6 +47,8 @@ const STYLES = `
   .panel[data-position="bottom"], .panel[data-position="top"] { width: 100%; height: 300px; }
   .panel[data-position="left"], .panel[data-position="right"] { width: 300px; height: 100%; }
   .panel[data-position="center"] { width: 300px; height: 300px; }
+  @media (max-width: 899px) { .panel.by-width { width: 100%; height: 300px; } }
+  @media (min-width: 900px) { .panel.by-width { width: 300px; height: 100%; } }
   .content { display: flex; flex-direction: column; box-sizing: border-box; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
   @keyframes rise { from { opacity: 0.5; } to { opacity: 1; } }
@@ -61,9 +65,23 @@ const DIRECTIONS: ReadonlySet<string> = new Set([
   'horizontal',
 ]);
 
-function positionParam(): SheetPosition {
+/** The `position` param's, or the lab's: `bottom` on a page under 900px wide, `right` from there. */
+function positionParam(): () => SheetPosition {
   const value = param('position') ?? 'bottom';
-  return (POSITIONS.has(value) ? value : 'bottom') as SheetPosition;
+  if (value === 'breakpoint') {
+    const narrow = window.matchMedia('(max-width: 899px)');
+    const [position, setPosition] = createSignal<SheetPosition>(
+      narrow.matches ? 'bottom' : 'right',
+    );
+    // Told a task later, as the lab's window is (an Effect stream): the page's styles have
+    // changed with the window by then, and a frame may have been drawn.
+    narrow.addEventListener('change', () =>
+      setTimeout(() => setPosition(narrow.matches ? 'bottom' : 'right')),
+    );
+    return position;
+  }
+  const fixed = (POSITIONS.has(value) ? value : 'bottom') as SheetPosition;
+  return () => fixed;
 }
 
 function swipeParam(): SheetSwipeDirection | undefined {
@@ -124,6 +142,7 @@ function BasicSheet(): JSX.Element {
   const initial = param('initial');
   const initialFocus =
     initial === 'first' ? () => first ?? true : initial === 'false' ? () => false : undefined;
+  const position = positionParam();
   return (
     <div>
       <style>{STYLES}</style>
@@ -135,7 +154,7 @@ function BasicSheet(): JSX.Element {
       <div id="section">
         <Sheet.Root
           open={owner.open()}
-          position={positionParam()}
+          position={position()}
           swipeDirection={swipeParam()}
           snapPoints={snapParam()}
           modal={param('modal') !== 'false'}
@@ -161,7 +180,7 @@ function BasicSheet(): JSX.Element {
               />
               <Sheet.Popup
                 id="panel"
-                class="panel"
+                class={param('position') === 'breakpoint' ? 'panel by-width' : 'panel'}
                 swipeAnimation="rise"
                 swipeAnimationRange={param('range') === 'true' ? { end: 0 } : undefined}
                 stackAnimation="recede"
@@ -220,7 +239,7 @@ function AsyncOwnerSheet(): JSX.Element {
           onOpenChange={(open, details) => {
             log(`open ${open} ${details.reason}`);
             if (!open) {
-              setTimeout(() => setShown(false), 100);
+              setTimeout(() => setShown(false), Number(param('drop') ?? 100));
             }
           }}
         >

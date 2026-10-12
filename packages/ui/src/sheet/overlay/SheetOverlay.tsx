@@ -257,12 +257,64 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
   let visible = false;
   // The entrance under way, if any, and whether the user's swipe has taken it over.
   let entrance: { taken: boolean } | null = null;
+  // Whether this opening has asked its owner to close as swiped away: once is all, however long
+  // the owner keeps `open` before it drops the sheet (the observer and the end of an entrance
+  // taken over both see the one swipe). An owner that cancels may be asked again.
+  let swipeAsked = false;
 
-  /** Asks to close as swiped away; an owner that cancels has it scrolled back in. */
+  /**
+   * Marks the entrance under way taken over by the user's swipe: a finger's move or a wheel on
+   * the sheet that scrolls the sheet, not a list in it that scrolls of its own. Its listeners
+   * stand for as long as the sheet is mounted, and only an entrance reads them: added and
+   * removed with each entrance, Chromium now and then dropped the first wheel after one ended
+   * (a sheet clipped inside a filtered wrapper that takes no presses). Answers their removal.
+   */
+  const takeEntrance = (scrollElement: HTMLElement, config: SwipeConfig) => {
+    const take = (target: EventTarget | null, delta: number) => {
+      if (entrance && delta !== 0 && !takenInside(target, scrollElement, config.axis, delta)) {
+        entrance.taken = true;
+      }
+    };
+    const along = (point: { clientX: number; clientY: number }) =>
+      config.axis === 'y' ? point.clientY : point.clientX;
+    let finger: number | null = null;
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      finger = touch ? along(touch) : null;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch) {
+        return;
+      }
+      const now = along(touch);
+      // A finger moving down scrolls up.
+      take(event.target, finger === null ? 0 : finger - now);
+      finger = now;
+    };
+    const onWheel = (event: WheelEvent) =>
+      take(event.target, config.axis === 'y' ? event.deltaY : event.deltaX);
+    const passive = { passive: true } as const;
+    scrollElement.addEventListener('touchstart', onTouchStart, passive);
+    scrollElement.addEventListener('touchmove', onTouchMove, passive);
+    scrollElement.addEventListener('wheel', onWheel, passive);
+    return () => {
+      scrollElement.removeEventListener('touchstart', onTouchStart);
+      scrollElement.removeEventListener('touchmove', onTouchMove);
+      scrollElement.removeEventListener('wheel', onWheel);
+    };
+  };
+
+  /** Asks to close as swiped away, once an opening; an owner that cancels has it scrolled back in. */
   const swipedAway = (scrollElement: HTMLElement, config: SwipeConfig) => {
+    if (swipeAsked) {
+      return;
+    }
+    swipeAsked = true;
     const details = createChangeEventDetails(REASONS.swipe);
     store.setOpen(false, details);
     if (details.isCanceled) {
+      swipeAsked = false;
       scrollToRest(scrollElement, config, true);
     }
   };
@@ -336,6 +388,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         { threshold: [0, 1], rootMargin: `0px 0px ${cssToPx(viewportPadding(config))}px 0px` },
       );
       observer.observe(content);
+      const stopTaking = takeEntrance(scrollElement, config);
       const leave = registerSheet({
         id,
         range: config.viewRange,
@@ -345,6 +398,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       return () => {
         layout.disconnect();
         observer.disconnect();
+        stopTaking();
         leave();
       };
     },
@@ -370,46 +424,17 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       if (untrack(entered)) {
         return undefined;
       }
+      // A new opening: its swipe away has not been asked.
+      swipeAsked = false;
       let live = true;
-      // Scrolling in is the sheet's own motion: only the user's swipe (a finger's move or a
-      // wheel on the sheet, not on a list in it that scrolls of its own) takes it over. A
-      // scroll into view inside it (a focus, a caret revealed, the page's own) stops it where
-      // it is, and its snapping may carry it out of view: that is no swipe, and once it has
-      // stood it scrolls on to rest. It has entered only once it rests, or the user took it.
+      // Scrolling in is the sheet's own motion: only the user's swipe takes it over (see
+      // `takeEntrance`). A scroll into view inside it (a focus, a caret revealed, the page's
+      // own) stops it where it is, and its snapping may carry it out of view: that is no swipe,
+      // and once it has stood it scrolls on to rest. It has entered only once it rests, or the
+      // user took it.
       const run = { taken: false };
       entrance = run;
-      const take = (target: EventTarget | null, delta: number) => {
-        if (delta !== 0 && !takenInside(target, scrollElement, config.axis, delta)) {
-          run.taken = true;
-        }
-      };
-      const along = (point: { clientX: number; clientY: number }) =>
-        config.axis === 'y' ? point.clientY : point.clientX;
-      let finger: number | null = null;
-      const onTouchStart = (event: TouchEvent) => {
-        const touch = event.touches[0];
-        finger = touch ? along(touch) : null;
-      };
-      const onTouchMove = (event: TouchEvent) => {
-        const touch = event.touches[0];
-        if (!touch) {
-          return;
-        }
-        const now = along(touch);
-        // A finger moving down scrolls up.
-        take(event.target, finger === null ? 0 : finger - now);
-        finger = now;
-      };
-      const onWheel = (event: WheelEvent) =>
-        take(event.target, config.axis === 'y' ? event.deltaY : event.deltaX);
-      const passive = { passive: true } as const;
-      scrollElement.addEventListener('touchstart', onTouchStart, passive);
-      scrollElement.addEventListener('touchmove', onTouchMove, passive);
-      scrollElement.addEventListener('wheel', onWheel, passive);
       const release = () => {
-        scrollElement.removeEventListener('touchstart', onTouchStart);
-        scrollElement.removeEventListener('touchmove', onTouchMove);
-        scrollElement.removeEventListener('wheel', onWheel);
         if (entrance === run) {
           entrance = null;
         }

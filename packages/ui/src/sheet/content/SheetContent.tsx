@@ -35,7 +35,8 @@ interface SheetContentState {
 interface SheetContentProps extends BaseUIComponentProps<'div', SheetContentState> {
   /**
    * What takes focus once the sheet has scrolled in, read then: an element,
-   * `false` for nothing, `true` for the first tabbable element. The content
+   * `false` for nothing (the content itself for a modal sheet, whose page
+   * outside is inert), `true` for the first tabbable element. The content
    * itself by default.
    */
   initialFocus?: (() => HTMLElement | boolean) | undefined;
@@ -100,16 +101,30 @@ export function SheetContent(componentProps: SheetContentProps): JSX.Element {
   // a compiled condition's memo may not be made.
   const scrollingIn = () => store.open() && !sheet.entered();
 
+  // What takes focus once in. A modal sheet makes the page outside inert, where focus cannot
+  // stay: asked for nothing, it focuses itself unless focus is in it already, as upstream's
+  // dialog does.
+  const initialFocus = (): HTMLElement | boolean => {
+    const popup = untrack(store.popupElement);
+    const asked = componentProps.initialFocus;
+    const given = asked === undefined ? (popup ?? true) : asked();
+    if (
+      given === false &&
+      popup &&
+      untrack(store.modal) &&
+      !popup.contains(popup.ownerDocument.activeElement)
+    ) {
+      return popup;
+    }
+    return given;
+  };
+
   return (
     <DialogPopupFocus
       store={store}
       deferred={scrollingIn()}
       inertOutside
-      initialFocus={
-        componentProps.initialFocus === undefined
-          ? () => untrack(store.popupElement) ?? true
-          : componentProps.initialFocus
-      }
+      initialFocus={initialFocus}
     >
       {untrack(element)}
     </DialogPopupFocus>

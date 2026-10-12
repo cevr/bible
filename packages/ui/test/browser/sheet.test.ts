@@ -73,6 +73,26 @@ const reported = (page: Page, showing: boolean) =>
     showing,
   );
 
+/**
+ * The box a non-modal sheet's overlay is drawn and pressed in: its `clip-path` inset from the
+ * overlay's own box; null with no clip.
+ */
+const clipOf = (page: Page) =>
+  page.locator('#overlay').evaluate((overlay: HTMLElement) => {
+    const inset = /inset\(([^)]*)\)/.exec(overlay.style.clipPath)?.[1];
+    if (!inset) {
+      return null;
+    }
+    const values = inset.split(/\s+/).map((value) => Number.parseFloat(value));
+    const [top = 0, right = top, bottom = top, left = right] = values;
+    return {
+      x: left,
+      y: top,
+      width: overlay.clientWidth - left - right,
+      height: overlay.clientHeight - top - bottom,
+    };
+  });
+
 /** Resolves after the page's next two frames. */
 const frames = (page: Page) =>
   page.evaluate(
@@ -81,6 +101,27 @@ const frames = (page: Page) =>
         requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
       ),
   );
+
+/**
+ * Resolves once an IntersectionObserver made now has seen the panel as drawn, then two frames
+ * on: the sheet's own observer, made before it, was told of the same drawing first, and what it
+ * asked of the sheet has been drawn.
+ */
+const observed = async (page: Page) => {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const panel = document.getElementById('panel');
+        if (!panel) return resolve();
+        const seen = new IntersectionObserver(() => {
+          seen.disconnect();
+          resolve();
+        });
+        seen.observe(panel);
+      }),
+  );
+  await frames(page);
+};
 
 describe('its layout changing under it (hidden with what holds it, a window resized)', () => {
   const LAB = { modal: 'false', dismissal: 'disabled', portal: 'inline' };
@@ -110,6 +151,47 @@ describe('its layout changing under it (hidden with what holds it, a window resi
     await see.poll(() => box(page, '#panel')).toEqual({ ...REST, y: 1100 });
     await page.setViewportSize({ width: 800, height: 480 });
     await see.poll(() => box(page, '#panel')).toEqual({ ...REST, y: 180 });
+    expect(await opens(page)).toEqual([]);
+  });
+
+  it('turns from a bottom sheet to a right one and back as the window crosses a breakpoint in one step, open, at rest and clipped to its panel', async () => {
+    const page = await h.open('sheet', { query: { ...LAB, position: 'breakpoint' } });
+    await openSheet(page);
+    await see.poll(() => clipOf(page)).toEqual(REST);
+    const steps = [
+      {
+        viewport: { width: 1180, height: 820 },
+        position: 'right',
+        rest: { x: 880, y: 0, width: 300, height: 820 },
+      },
+      {
+        viewport: { width: 820, height: 1180 },
+        position: 'bottom',
+        rest: { x: 0, y: 880, width: 820, height: 300 },
+      },
+      {
+        viewport: { width: 1440, height: 900 },
+        position: 'right',
+        rest: { x: 1140, y: 0, width: 300, height: 900 },
+      },
+      {
+        viewport: { width: 700, height: 900 },
+        position: 'bottom',
+        rest: { x: 0, y: 600, width: 700, height: 300 },
+      },
+    ];
+    // One turn after another, each from where the last left it.
+    const stood = await steps.reduce<Promise<Array<unknown>>>(async (before, step) => {
+      const done = await before;
+      await page.setViewportSize(step.viewport);
+      await see(page.locator('#panel')).toHaveAttribute('data-position', step.position);
+      await see.poll(() => box(page, '#panel')).toEqual(step.rest);
+      await see.poll(() => clipOf(page)).toEqual(step.rest);
+      // Still so once the sheet's observer has seen the turn drawn: nothing read it as a swipe.
+      await observed(page);
+      return [...done, [step.position, await box(page, '#panel'), await clipOf(page)]];
+    }, Promise.resolve([]));
+    expect(stood).toEqual(steps.map((step) => [step.position, step.rest, step.rest]));
     expect(await opens(page)).toEqual([]);
   });
 
@@ -392,7 +474,7 @@ describe('Sheet.Root', () => {
     await openSheet(page, 'first');
   });
 
-  it('moves no focus in when initialFocus returns false: it stays where it was, unless a modal sheet makes the page inert', async () => {
+  it('moves no focus in when initialFocus returns false, unless the sheet is modal: a modal one focuses itself, as upstream', async () => {
     const left = await Promise.all(
       ([{}, { modal: 'false', dismissal: 'disabled', portal: 'inline' }] as const).map(
         async (query: Readonly<Record<string, string>>) => {
@@ -405,8 +487,10 @@ describe('Sheet.Root', () => {
         },
       ),
     );
-    // Modal: the opener is inert now, and no inert element keeps focus. Not modal: the page is live.
-    expect(left).toEqual(['body', 'open']);
+    // Modal: the page outside is inert, focus cannot stay there, and the dialog takes it (not
+    // the body, where a screen reader would lose the dialog). Not modal: the page is live, and
+    // focus stays on the opener.
+    expect(left).toEqual(['popup', 'open']);
   });
 
   it("the lab's inspector: non-modal, an outside press is ignored, rendered in place", async () => {
@@ -871,6 +955,69 @@ async function fingerDown(
   await at('touchEnd', steps + 1, from.y + distance);
 }
 
+/**
+ * Has a finger's moves scroll the sheet by as much as the finger moved, at once, in place of
+ * the browser's own scroll. Headless Chromium does not stop a script's smooth scroll for
+ * CDP's touches (the sheet's scroll in runs on to rest under them); a scroll of the page's
+ * own does stop it, as a real finger does on a phone.
+ */
+const fingerScrollsSheet = (page: Page) =>
+  page.evaluate(() => {
+    let last: number | null = null;
+    const options = { capture: true, passive: false };
+    window.addEventListener(
+      'touchstart',
+      (event) => {
+        last = event.touches[0]?.clientY ?? null;
+      },
+      options,
+    );
+    window.addEventListener(
+      'touchmove',
+      (event) => {
+        const y = event.touches[0]?.clientY;
+        const scroller = document.querySelector('#overlay [data-sheet-scroll]');
+        if (y === undefined || last === null || !scroller) {
+          return;
+        }
+        event.preventDefault();
+        scroller.scrollBy({ top: last - y, behavior: 'instant' });
+        last = y;
+      },
+      options,
+    );
+  });
+
+/**
+ * Resolves, once a bottom sheet's panel has scrolled wholly below the window, with whether the
+ * sheet was still entering then. Read on the scroll that carried it there, before any
+ * observer is told it is gone (and its owner closes it). Call it before the sheet opens.
+ */
+const leftView = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<boolean>((resolve) => {
+        const watch = (scroller: Element) => {
+          const onScroll = () => {
+            const panel = document.getElementById('panel');
+            if (panel && panel.getBoundingClientRect().top >= innerHeight) {
+              scroller.removeEventListener('scroll', onScroll);
+              resolve(panel.hasAttribute('data-entering'));
+            }
+          };
+          scroller.addEventListener('scroll', onScroll);
+        };
+        const mounted = new MutationObserver(() => {
+          const scroller = document.querySelector('#overlay [data-sheet-scroll]');
+          if (scroller) {
+            mounted.disconnect();
+            watch(scroller);
+          }
+        });
+        mounted.observe(document.body, { childList: true, subtree: true });
+      }),
+  );
+
 const bodyScrollTop = (page: Page) => page.locator('#body').evaluate((el) => el.scrollTop);
 
 describe('a finger', () => {
@@ -885,26 +1032,39 @@ describe('a finger', () => {
     ]);
   });
 
-  it('swipes the sheet away as it scrolls in, taking its entrance over', async () => {
+  it('swipes the sheet away as it scrolls in, taking its entrance over, and asks once however long its owner keeps it', async () => {
     const swept = await Promise.all(
-      ([{}, { modal: 'false', dismissal: 'disabled', portal: 'inline' }] as const).map(
-        async (query: Readonly<Record<string, string>>) => {
-          const page = await h.open('sheet', { touch: true, query });
-          await page.click('#open');
-          // The finger lands on the panel's head once it shows, and drags it down.
-          await page.waitForFunction(() => {
-            const panel = document.getElementById('panel');
-            return panel !== null && panel.getBoundingClientRect().y < innerHeight - 60;
-          });
-          expect(await page.locator('#panel').getAttribute('data-entering')).toBe('');
-          const panel = await box(page, '#panel');
-          await fingerDown(page, { x: panel.x + 100, y: panel.y + 10 }, 400, 10);
-          await see(page.locator('#popup')).toHaveCount(0);
-          return (await logOf(page)).filter((line) => line.startsWith('open'));
-        },
-      ),
+      (
+        [
+          ['sheet', {}],
+          ['sheet', { modal: 'false', dismissal: 'disabled', portal: 'inline' }],
+          // An owner slower than the entrance's settle: the swipe is asked of it once.
+          ['async-owner', { drop: '1500' }],
+        ] as const
+      ).map(async ([fixture, query]: readonly [string, Readonly<Record<string, string>>]) => {
+        const page = await h.open(fixture, { touch: true, query });
+        await fingerScrollsSheet(page);
+        const left = leftView(page);
+        await page.click('#open');
+        // The finger lands on the panel's head once it shows, and drags it down.
+        await page.waitForFunction(() => {
+          const panel = document.getElementById('panel');
+          return panel !== null && panel.getBoundingClientRect().y < innerHeight - 60;
+        });
+        const panel = await box(page, '#panel');
+        await fingerDown(page, { x: panel.x + 100, y: panel.y + 10 }, 400, 10);
+        // It left the screen before its entrance ended: the swipe took the entrance over.
+        const entering = await left;
+        // The async owner lets it go 1.5 s after it was asked: past the entrance's settle.
+        await see(page.locator('#popup')).toHaveCount(0);
+        return [entering, (await logOf(page)).filter((line) => line.startsWith('open'))];
+      }),
     );
-    expect(swept).toEqual([['open false swipe'], ['open false swipe']]);
+    expect(swept).toEqual([
+      [true, ['open false swipe']],
+      [true, ['open false swipe']],
+      [true, ['open false swipe']],
+    ]);
   });
 
   it('swipes a non-modal sheet away by a wheel or a finger, its shadow drawn round the clip by a wrapper that takes no presses', async () => {
@@ -944,7 +1104,7 @@ describe('a finger', () => {
         } else {
           await fingerDown(page, { x: panel.x + 100, y: panel.y + 20 }, 260, 12);
         }
-        await see(page.locator('#popup')).toHaveCount(0);
+        await see(page.locator('#popup'), `swiped by a ${by}`).toHaveCount(0);
         return [reach, (await logOf(page)).filter((line) => line.startsWith('open'))];
       }),
     );
