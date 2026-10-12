@@ -349,7 +349,10 @@ export const TalkWords = Schema.Struct({
 });
 export type TalkWords = typeof TalkWords.Type;
 
-/** `POST /api/films/<film>/talk/{cut,restore}`: the words `from`–`to` of `section`, struck or played again. */
+/**
+ * `POST /api/films/<film>/talk/cut` and `POST /api/films/<film>/talk/restore`:
+ * the words `from`–`to` of `section`, struck or played again.
+ */
 export const TalkWordsPost = Schema.Struct({
   section: Schema.String,
   from: TalkWordIndex,
@@ -954,7 +957,10 @@ const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off', h
  * The lab's selection keys: a cue or a knob of the path's scene, a note, and
  * the studio's beat (a scene's take; with none the studio is on the path's),
  * and the Source view open (`code`: `follow`, or a line of the scene's file;
- * `lab/source/open.ts`), shut with the key absent.
+ * `lab/source/open.ts`), shut with the key absent. A talk's section (a
+ * scene of a talk) adds its words selected (`words`: `<a>-<b>`, take word
+ * indices) and the Transcript view open (`text`: `follow`, or a word;
+ * `lab/transcript/open.ts`); both absent, the lab is as it was.
  */
 const LabSelection = Field.struct({
   cue: cited,
@@ -963,6 +969,8 @@ const LabSelection = Field.struct({
   beat: cited,
   view: compareView,
   code: cited,
+  words: cited,
+  text: cited,
 });
 
 /**
@@ -1127,7 +1135,16 @@ const START = { t: Option.none<number>() };
 const NOTHING_HEARD = { heard: '', variant: '', picture: '', only: '', findings: false };
 
 /** The lab's selection keys, none set. */
-const NOTHING_SELECTED = { cue: '', knob: '', note: '', beat: '', view: 'off' as const, code: '' };
+const NOTHING_SELECTED = {
+  cue: '',
+  knob: '',
+  note: '',
+  beat: '',
+  view: 'off' as const,
+  code: '',
+  words: '',
+  text: '',
+};
 
 /** What the lab has selected in a scene: a cue or a knob by name, a note by id, the studio's beat. */
 interface LabPicked {
@@ -1138,6 +1155,10 @@ interface LabPicked {
   readonly view?: CompareView;
   /** The Source view open (`?code=`): `follow` or a line. */
   readonly code?: string;
+  /** A talk's words selected (`?words=`): `<a>-<b>`. */
+  readonly words?: string;
+  /** The Transcript view open (`?text=`): `follow` or a word. */
+  readonly text?: string;
 }
 
 /** A time for the hash, when there is one. */

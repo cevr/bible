@@ -89,6 +89,26 @@ describe("a selection in the pages' URLs", () => {
     expect(selectionText(line)).toBe('line 42 of one');
   });
 
+  test("reads a talk's words (?words=<a>-<b>) and cites them selected, the Transcript view held on the first", () => {
+    const here = pageHref.labScene('f', 'law', {}, Option.some(1.5));
+    const words = Selection.cases.Words.make({ scene: 'law', from: 3, to: 4 });
+    expect(selectionOf(pageHref.labScene('f', 'law', { words: '3-4' }))).toEqual(
+      Option.some(words),
+    );
+    expect(citeOf(words, here)).toBe(
+      pageHref.labScene('f', 'law', { words: '3-4', text: '3' }, Option.some(1.5)),
+    );
+    expect(selectionOf(citeOf(words, here))).toEqual(Option.some(words));
+    expect(selectionText(words)).toBe('words 3–4 of law');
+    expect(selectionText(Selection.cases.Words.make({ scene: 'law', from: 2, to: 2 }))).toBe(
+      'word 2 of law',
+    );
+    // Anything but a range, first to last, selects nothing, and an old link has no key.
+    for (const bad of ['4-3', '3', 'a-b', '-1-2', ''])
+      expect(selectionOf(pageHref.labScene('f', 'law', { words: bad }))).toEqual(Option.none());
+    expect(pageHref.labScene('f', 'law')).toBe('/films/f/lab/law');
+  });
+
   test("cites the studio's beat in the lab's scene at its time (?beat=), else in the beat's own scene", () => {
     const here = pageHref.labScene('f', 'one', {}, Option.some(1.5));
     expect(citeOf(Beat.make({ beat: 'two' }), here)).toBe(

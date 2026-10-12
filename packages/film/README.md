@@ -1939,6 +1939,31 @@ every other mode; closing the sheet closes the selection and the view in one
 history step. ⇧C and the command menu (⌘K, and a phone's menu button) open and
 close it; nothing stands for it at rest.
 
+A talk's lab has a Transcript view (`lab/transcript/`): the paper edit in the
+lab. `?text=follow` opens it following the frame and `?text=<word>` held on
+that word; closed at rest, it reads nothing until opened, then the talk's
+words as the server reads `talk.ts` and cuts it (`GET …/talk`, every word of
+each section in play order, struck or played, with when each played one is
+heard). The words the cut strikes are hidden until Show cuts (the viewer's,
+kept in the browser), then shown struck through. The word playing at the
+frame is lit by the clock (a link's `#t=` lights what its sender saw), the
+words selected (`?words=a-b`, in the path's section; a word's link cites it)
+painted, and the word held washed, all through the page's highlights, so the
+text stays selectable and copyable. It scrolls by the lab's one Follow rule,
+as the Source view does. A tap on a word seeks to where it starts and selects
+it (shift extends the selection); a text selection across words selects them;
+a long press or right-click opens the page's menu on the section's words.
+Under the selection, Cut, Restore and Mark here each make one write of
+`talk.ts` (`POST …/talk/cut`, `…/restore`, `…/mark`), judged by the cut before
+the file is touched (a section left playing nothing, a strike over a marked
+word, a mark on a struck word: refused in the server's words, nothing
+written), answered as a scene write is, in the editor's receipt slot with an
+Undo that steps the change it made; the write of `talk.ts` rebuilds the page,
+which lands on the frame it held. On a laptop it is a column beside the
+picture (the Source view's place; opening one shuts the other); on a phone a
+sheet of its own. ⇧T and the command menu show and hide it on a film that
+reads footage, and hide it wherever it is open.
+
 On a phone (below 900 px) the selected cue's or knob's fields, and the
 selected note's reply, stand in the selection's sheet
 (`lab/selection-sheet.tsx`, over the review's `Sheet`): it peeks one line
@@ -1960,6 +1985,9 @@ kept; else the URL follows to pick none).
 | `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under; `{change?}`: that change only, while it is the newest, else a 409 `StepNotNewest`)        |
 | `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do (each with its `change` id), and the steps `landed` by request id                                                                                         |
 | `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                                                                                                                                                    |
+| `GET /api/films/<film>/talk`                       | a talk's words (`TalkWords`): each section in play order, its take, every word from its first to its last with its text, whether the cut strikes it, when it is heard, and the section's marks; a film with no `talk.ts` a 422      |
+| `POST /api/films/<film>/talk/cut`, `/restore`      | `{ section, from, to }`: strike those words from the section's cut, or play them again, as one write of `talk.ts` judged by the cut (`LabWrite`; an edit the cut refuses a 422)                                                     |
+| `POST /api/films/<film>/talk/mark`                 | `{ section, word, name }`: mark that played word, as one write of `talk.ts` judged by the cut (`LabWrite`)                                                                                                                          |
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
