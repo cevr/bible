@@ -57,6 +57,8 @@ const gated = () => {
     writeCue: () => Effect.die('not asked'),
     writeKnob: () => Effect.die('not asked'),
     step: () => Effect.succeed(undoneTake),
+    talkWords: Effect.die('not asked'),
+    writeTalk: () => Effect.die('not asked'),
   };
   const layer = Layer.merge(Layer.succeed(Stage, stage), Layer.succeed(LabApi, api));
   return { page, gate, layer };

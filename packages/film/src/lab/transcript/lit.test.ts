@@ -3,9 +3,10 @@
 // the word lit at a time, and the name Mark here gives a word.
 
 import { describe, expect, test } from 'bun:test';
-import { Option, Result } from 'effect';
+import { Option, Result, Schema } from 'effect';
 import type { TalkWords } from '../../core/api.ts';
 import { layout } from '../../core/layout.ts';
+import { MarkName } from '../../core/talk.ts';
 import { markName, rangesOf, rowsIn, rowsOf, wordAt } from './lit.ts';
 
 /** Each section's voice starting a quarter second in, as a talk's lead-in puts it. */
@@ -78,5 +79,14 @@ describe("the Transcript view's words", () => {
     expect(markName('to', 5, { to: 3 })).toBe('to-2');
     expect(markName('to', 6, { to: 3, 'to-2': 5 })).toBe('to-3');
     expect(markName('—', 1, {})).toBe('mark');
+  });
+
+  test("Mark here's name is one the talk keeps (`MarkName`): a letter's accent let go, a word of no such letters `mark`", () => {
+    expect(markName('Café', 3, {})).toBe('cafe');
+    expect(markName('Señor,', 4, {})).toBe('senor');
+    expect(markName('日本', 5, {})).toBe('mark');
+    expect(markName('naïve', 6, { naive: 2 })).toBe('naive-2');
+    for (const word of ['Café', 'Señor,', '日本', 'Law?', '—', "don't", 'ÆON'])
+      expect(Schema.is(MarkName)(markName(word, 1, {}))).toBe(true);
   });
 });

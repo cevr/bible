@@ -14,14 +14,16 @@ export const TRANSCRIPT_CSS = `
 .lab-transcript { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; background: var(--surface-1); }
 .lab-transcript-head { display: flex; align-items: center; gap: var(--s-2); min-height: var(--panel-head-h);
   padding: 0 var(--gutter); border-bottom: var(--border); font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
-.lab-transcript-file { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The file's name clips by the kit's one rule (\`lab-clamp\`). */
+.lab-transcript-file { flex: 1; min-width: 0; }
 .lab-transcript-head > .sh-btn, .lab-transcript-actions > .sh-btn { flex: none; min-height: var(--hit); min-width: var(--hit); }
 .lab-transcript-note { margin: 0; padding: var(--s-3) var(--gutter); color: var(--text-2); font-size: var(--fs-3); }
 .lab-transcript-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
   overflow-anchor: none; /* the browser never moves the scroll by itself: the view places it, layout clamps it, a hand moves it */ }
-.lab-transcript-page { padding: var(--s-2) var(--gutter) var(--s-3); font-size: var(--body-fs); line-height: var(--body-lh);
-  color: var(--text-1); overflow-wrap: anywhere; }
-.lab-transcript-section + .lab-transcript-section { margin-top: var(--s-3); }
+.lab-transcript-page { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-2) var(--gutter) var(--s-3);
+  font-size: var(--body-fs); line-height: var(--body-lh); color: var(--text-1); overflow-wrap: anywhere; }
+/* Its ring inside the box: the column clips what stands outside it. */
+.lab-transcript-scroll:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
 .lab-transcript-scene { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); font-weight: inherit; color: var(--text-3); }
 .lab-transcript-words { margin: 0; }
 .lab-transcript-w { cursor: pointer; }

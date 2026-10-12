@@ -360,8 +360,12 @@ export const TalkWordsPost = Schema.Struct({
 });
 export type TalkWordsPost = typeof TalkWordsPost.Type;
 
-/** `POST /api/films/<film>/talk/mark`: the mark `name` set on word `word` of `section`. */
-const TalkMarkPost = Schema.Struct({
+/**
+ * `POST /api/films/<film>/talk/mark`: the mark `name` set on word `word` of
+ * `section`. Any string, so a name the talk's decode would drop (`MarkName`)
+ * reaches the server and is refused in its words, not the client's.
+ */
+export const TalkMarkPost = Schema.Struct({
   section: Schema.String,
   word: TalkWordIndex,
   name: Schema.String,

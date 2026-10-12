@@ -900,6 +900,17 @@
       }
     },
     {
+      // A scrolling region the keyboard reaches (arrows, Page keys) takes a tab
+      // stop: WCAG 2.1.1, the rule's own `roles` allowance for `region`. Here the
+      // Transcript view's words; the Source view still says so by a directive
+      // of its own until it is moved to this.
+      "files": ["**/packages/film/src/lab/transcript/**/*.tsx"],
+      "plugins": ["jsx-a11y"],
+      "rules": {
+        "jsx-a11y/no-noninteractive-tabindex": ["error", { "roles": ["tabpanel", "region"] }]
+      }
+    },
+    {
       // A page or a page render is a function of its reads: no module-level
       // state a second render, or a second request, would share.
       "files": [

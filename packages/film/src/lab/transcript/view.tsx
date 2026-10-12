@@ -11,17 +11,22 @@
 // Closed at rest; opened by `?text=follow` (the view scrolls to the word
 // playing until a hand scrolls it; Play or Follow takes it back) or
 // `?text=<word>` (held there), by the lab's one Follow rule
-// (`lab/follow.ts`). A tap on a word shows it: the frame seeks to where it
+// (`lab/follow.ts`); its scrolling words are a tab stop, so the keyboard
+// scrolls them. A tap on a word shows it: the frame seeks to where it
 // starts, and it is selected (shift extends the selection); a text selection
-// across words selects them. Under the words, what the selection can have
-// done: Cut, Restore, Mark here. On a laptop it is a column beside the
-// picture; on a phone a sheet of its own.
+// across words selects them; a word held (or right-clicked) opens the page's
+// menu about it, whose Select to here extends the selection to it: a
+// phone's range. Under the words, what the selection can have done: Cut,
+// Restore, Mark here, each the command of that name (`commands.ts`). On a
+// laptop it is a column beside the picture; on a phone a sheet of its own.
 
 import { For, Portal, Show } from '@solidjs/web';
 import { Array as Arr, Boolean as Bool, Effect, Option } from 'effect';
-import { createEffect, createMemo, onCleanup } from 'solid-js';
+import { type ParentProps, createEffect, createMemo, onCleanup } from 'solid-js';
 import { Highlights, type HighlightName } from '../../browser/highlights.ts';
+import { BY_BUTTON } from '../../command/command.ts';
 import { Selection, selectionText } from '../../command/selection.ts';
+import { targetAttr } from '../../command/target.ts';
 import type { CodeRange } from '../../core/schema.ts';
 import { Target } from '../command/context-menu.tsx';
 import { useFollow } from '../follow.ts';
@@ -29,6 +34,7 @@ import { pressed } from '../pressed.ts';
 import { useLab } from '../shell.tsx';
 import { Sheet } from '../sheet.tsx';
 import { PHONE, useMatches } from '../viewport.ts';
+import { playsAny, strikesAny } from './commands.ts';
 import { TalkState, useTranscript } from './context.tsx';
 import { type Row, type SectionRows, type WordAt, rangesOf } from './lit.ts';
 import { FOLLOW_TEXT } from './open.ts';
@@ -41,16 +47,6 @@ const rowOf = (sections: ReadonlyArray<SectionRows>, at: WordAt): Option.Option<
   Option.flatMap(Option.fromUndefinedOr(sections.find((s) => s.id === at.section)), (s) =>
     Option.fromUndefinedOr(s.rows.find((r) => r.index === at.index)),
   );
-
-/** The nearest ancestor of `el` that scrolls: the box the words move in, in the column and in the sheet alike. */
-const scrollContainerOf = (el: HTMLElement): Option.Option<HTMLElement> =>
-  Option.flatMap(Option.fromNullishOr(el.parentElement), (up) => {
-    const y = getComputedStyle(up).overflowY;
-    return Bool.match(y === 'auto' || y === 'scroll', {
-      onTrue: () => Option.some(up),
-      onFalse: () => scrollContainerOf(up),
-    });
-  });
 
 /** The word a node of the text is in: its section and its index. */
 const wordOfNode = (node: Option.Option<Node>): Option.Option<WordAt> =>
@@ -76,11 +72,9 @@ const Text = () => {
   const { meta } = useLab();
   const text = useTranscript();
   let page = Option.none<HTMLElement>();
+  // The box the words move in: the view's own, in the column and in the sheet alike.
   let scroller = Option.none<HTMLElement>();
-  const box = () => {
-    if (Option.isNone(scroller)) scroller = Option.flatMap(page, scrollContainerOf);
-    return scroller;
-  };
+  const box = () => scroller;
 
   const paint = (name: HighlightName, ranges: ReadonlyArray<CodeRange>) =>
     Option.map(page, (root) =>
@@ -189,12 +183,18 @@ const Text = () => {
     );
   };
   return (
-    <div class="lab-transcript-scroll">
+    <div
+      class="lab-transcript-scroll"
+      role="region"
+      tabindex="0"
+      aria-label={`${Option.getOrElse(text.file(), () => 'talk.ts')}, the talk's words`}
+      ref={(el: HTMLDivElement) => {
+        scroller = Option.some(el);
+      }}
+    >
       <div
         class="lab-transcript-page"
         data-cuts={pressed(text.cuts())}
-        role="region"
-        aria-label={`${Option.getOrElse(text.file(), () => 'talk.ts')}, the talk's words`}
         ref={(el: HTMLDivElement) => {
           page = Option.some(el);
         }}
@@ -222,8 +222,16 @@ const Text = () => {
                 <For each={section().rows} keyed={(r) => r.index}>
                   {(row) => (
                     <>
+                      {/* A word is a thing of its own the menu opens on, nested in its section's: Select to here, Cut… */}
                       <span
                         class="lab-transcript-w"
+                        data-target={targetAttr(
+                          Selection.cases.Words.make({
+                            scene: section().id,
+                            from: row().index,
+                            to: row().index,
+                          }),
+                        )}
                         data-index={row().index}
                         data-struck={pressed(row().struck)}
                         data-from={row().from}
@@ -242,8 +250,23 @@ const Text = () => {
   );
 };
 
-/** The view's head: the talk's file, Show cuts, Follow, and (in the column) Close. */
-const Head = (props: { readonly close: boolean }) => {
+/** The column's way out: Close (a sheet has its own). */
+const Close = () => {
+  const { actions } = useLab();
+  return (
+    <button
+      type="button"
+      class="sh-btn lab-transcript-close"
+      data-act="close-transcript"
+      onClick={() => actions.dismissText()}
+    >
+      Close
+    </button>
+  );
+};
+
+/** The view's head: the talk's file, Show cuts, Follow, and what its place adds after them (`children`: the column's Close). */
+const Head = (props: ParentProps) => {
   const { actions } = useLab();
   const text = useTranscript();
   const follow = () => {
@@ -253,7 +276,9 @@ const Head = (props: { readonly close: boolean }) => {
   };
   return (
     <header class="lab-transcript-head">
-      <span class="lab-transcript-file">{Option.getOrElse(text.file(), () => 'talk.ts')}</span>
+      <span class="lab-transcript-file lab-clamp">
+        {Option.getOrElse(text.file(), () => 'talk.ts')}
+      </span>
       <button
         type="button"
         class="sh-btn lab-transcript-cuts"
@@ -274,23 +299,16 @@ const Head = (props: { readonly close: boolean }) => {
       >
         Follow
       </button>
-      <Show when={props.close}>
-        <button
-          type="button"
-          class="sh-btn lab-transcript-close"
-          data-act="close-transcript"
-          onClick={() => actions.dismissText()}
-        >
-          Close
-        </button>
-      </Show>
+      {props.children}
     </header>
   );
 };
 
-/** What the words selected can have done: their name, and Cut, Restore, Mark here. */
+/** What the words selected can have done: their name, and Cut, Restore, Mark here, each its command run by a button. */
 const Actions = () => {
+  const { meta } = useLab();
   const text = useTranscript();
+  const run = (id: string) => () => meta.hub.invokeId(id, BY_BUTTON);
   return (
     <Show when={Option.getOrUndefined(text.selected())}>
       {(words) => (
@@ -300,8 +318,8 @@ const Actions = () => {
             type="button"
             class="sh-btn"
             data-act="cut-words"
-            disabled={!text.canCut() || text.writing()}
-            onClick={() => text.cut()}
+            disabled={!playsAny(text.picked()) || text.writing()}
+            onClick={run('transcript.cut')}
           >
             Cut
           </button>
@@ -309,8 +327,8 @@ const Actions = () => {
             type="button"
             class="sh-btn"
             data-act="restore-words"
-            disabled={!text.canRestore() || text.writing()}
-            onClick={() => text.restore()}
+            disabled={!strikesAny(text.picked()) || text.writing()}
+            onClick={run('transcript.restore')}
           >
             Restore
           </button>
@@ -318,8 +336,8 @@ const Actions = () => {
             type="button"
             class="sh-btn"
             data-act="mark-word"
-            disabled={!text.canCut() || text.writing()}
-            onClick={() => text.mark()}
+            disabled={!playsAny(text.picked()) || text.writing()}
+            onClick={run('transcript.mark')}
           >
             Mark here
           </button>
@@ -329,9 +347,12 @@ const Actions = () => {
   );
 };
 
-/** The talk's words with the head once the server has read them; while it reads, or when it refuses, the words and the way out. */
-const Body = (props: { readonly close: boolean }) => {
-  const { actions } = useLab();
+/**
+ * The talk's words with the head once the server has read them; while it
+ * reads, or when it refuses, the words and the way out. `children`: what its
+ * place adds to the head (the column's Close).
+ */
+const Body = (props: ParentProps) => {
   const text = useTranscript();
   const read = () => TalkState.$is('Read')(text.state());
   return (
@@ -351,16 +372,7 @@ const Body = (props: { readonly close: boolean }) => {
                 >
                   Retry
                 </button>
-                <Show when={props.close}>
-                  <button
-                    type="button"
-                    class="sh-btn lab-transcript-close"
-                    data-act="close-transcript"
-                    onClick={() => actions.dismissText()}
-                  >
-                    Close
-                  </button>
-                </Show>
+                {props.children}
               </header>
             </Show>
             <p
@@ -380,7 +392,7 @@ const Body = (props: { readonly close: boolean }) => {
           </>
         }
       >
-        <Head close={props.close} />
+        <Head>{props.children}</Head>
         <Text />
         <Actions />
       </Show>
@@ -396,7 +408,9 @@ export const Column = () => {
     <Show when={!phone() && Option.isSome(state.text())}>
       <Portal mount={document.body}>
         <aside class="lab-transcript-col" aria-label="Transcript">
-          <Body close />
+          <Body>
+            <Close />
+          </Body>
         </aside>
       </Portal>
     </Show>
@@ -418,7 +432,7 @@ export const OwnSheet = () => {
         initialFocus={() => false}
         onClose={actions.dismissText}
       >
-        <Body close={false} />
+        <Body />
       </Sheet>
     </Show>
   );

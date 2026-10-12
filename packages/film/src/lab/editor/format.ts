@@ -6,7 +6,7 @@ import { type Receipt, busy, refused, said } from '../../command/command.ts';
 import type { CheckLine, CheckReport, EaseName, Span } from '../../core/schema.ts';
 import { printField } from '../../core/field.ts';
 import { ease } from '../../core/time.ts';
-import type { StepVerb } from '../api.ts';
+import type { StepVerb, TalkAsk } from '../api.ts';
 import { findingScenes } from '../scenes/marks.ts';
 import type { EditState } from './machine.ts';
 
@@ -135,8 +135,8 @@ const DOING = { undo: 'undoing', redo: 'redoing' } as const;
 /** Why a grip held takes no write. */
 const HELD = 'a cue or a handle is held; let it go first';
 
-/** What the machine may be asked: a commit, a press on a cue or a handle, or an Undo or Redo. */
-type Asked = 'commit' | 'press' | StepVerb;
+/** What the machine may be asked: a commit, a press on a cue or a handle, an Undo or Redo, or a talk's write. */
+type Asked = 'commit' | 'press' | StepVerb | 'talk';
 
 /** Each ask as a receipt says when to try it again. */
 const AGAIN: Readonly<Record<Asked, string>> = {
@@ -144,12 +144,20 @@ const AGAIN: Readonly<Record<Asked, string>> = {
   press: 'drag',
   undo: 'undo',
   redo: 'redo',
+  talk: 'ask',
+};
+
+/** What a talk's write on its way says, by its verb. */
+const TALK_DOING: Readonly<Record<TalkAsk['_tag'], string>> = {
+  Cut: 'cutting…',
+  Restore: 'restoring…',
+  Mark: 'marking…',
 };
 
 /**
  * Why the machine in `state` does not take what is `asked`, in a receipt's
  * words; none when it does. A grip held takes none; a write out takes a
- * commit (it waits, shown) but no press and no step.
+ * commit (it waits, shown) but no press, no step and no talk's write.
  */
 export const notTaken = (state: EditState, asked: Asked): Option.Option<string> =>
   Match.value(state).pipe(
@@ -176,6 +184,7 @@ export const receiptOf = (state: EditState, film: string): Option.Option<Receipt
         busy(
           Match.value(s.write).pipe(
             Match.tag('StepWrite', (w) => `${DOING[w.verb]}…`),
+            Match.tag('TalkWrite', (w) => TALK_DOING[w.ask._tag]),
             Match.orElse(() => 'writing…'),
           ),
         ),

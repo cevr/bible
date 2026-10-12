@@ -1950,10 +1950,15 @@ frame is lit by the clock (a link's `#t=` lights what its sender saw), the
 words selected (`?words=a-b`, in the path's section; a word's link cites it)
 painted, and the word held washed, all through the page's highlights, so the
 text stays selectable and copyable. It scrolls by the lab's one Follow rule,
-as the Source view does. A tap on a word seeks to where it starts and selects
-it (shift extends the selection); a text selection across words selects them;
-a long press or right-click opens the page's menu on the section's words.
-Under the selection, Cut, Restore and Mark here each make one write of
+as the Source view does; its scrolling words are a tab stop. A tap on a word
+seeks to where it starts and selects it, its section taking the path (a cue or
+knob of another scene let go); shift extends the selection; a text selection
+across words selects them. A long press or right-click on a word opens the
+page's menu about it (`lab/transcript/commands.ts`): Select to here extends
+the selection to it, a phone's range with no Shift (tap the first word, hold
+the last), and Cut, Restore and Mark here act on the words selected when the
+word is one of them, else on the word. Under the selection, the same three
+commands as buttons each make one write of
 `talk.ts` (`POST …/talk/cut`, `…/restore`, `…/mark`), judged by the cut before
 the file is touched (a section left playing nothing, a strike over a marked
 word, a mark on a struck word, a mark name the talk would drop: refused in
@@ -1963,9 +1968,14 @@ it does (on a line of its own in a section written over lines), a key taken
 away leaves every comment, so a Restore gives back the text its Cut found;
 the line break oxfmt forces on a cut of two runs is let go by the write that
 leaves it one, unless a comment in the section says the author laid it out
-(`tools/talk-source.ts`). Each is answered as a scene write is, in the editor's receipt slot with an
-Undo that steps the change it made; the write of `talk.ts` rebuilds the page,
-which lands on the frame it held. On a laptop it is a column beside the
+(`tools/talk-source.ts`). Mark here names the mark from its word as the talk
+keeps it (`MarkName`: `Café` is `cafe`). Each write is a write of the film's
+source, so the editor's one machine sends it (`TalkWrite`, one write out at a
+time, `lab/editor/machine.ts`): `#t=` and the page's reloads are held until it
+is answered, so the rebuild the write of `talk.ts` causes lands on the frame it
+held after the receipt is said, in the editor's slot, with an Undo that steps
+the change it made, held as an editor write's is until the page reads the
+history with it. On a laptop it is a column beside the
 picture (the Source view's place; opening one shuts the other); on a phone a
 sheet of its own. ⇧T and the command menu show and hide it on a film that
 reads footage, and hide it wherever it is open.

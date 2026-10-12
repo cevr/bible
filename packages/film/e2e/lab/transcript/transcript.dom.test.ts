@@ -5,27 +5,39 @@
 // cuts; the word playing at `#t=` is lit and follows play, until a hand
 // scrolls the view; `?words=a-b` selects; a tap seeks to a word's start;
 // Cut, Restore and Mark here each send their write and show the server's
-// receipt, whose Undo asks the server to undo; and on a phone it fits the
-// window, its targets a finger's size.
+// receipt, whose Undo (held, as the editor's are, until the page reads the
+// history with the change) asks the server to undo the change it made, a
+// rebuild the write causes waiting for its answer; a word of another
+// section is selected whatever cue or knob is; a phone selects a range by
+// a held word's Select to here; and on a phone it fits the window, its
+// targets a finger's size.
 
-import { Effect, Option, Result } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { Boolean as Bool, Deferred, Effect, Exit, Option, Result } from 'effect';
+import { describe, expect, it, test } from 'effect-bun-test';
 import { type TalkWords, pageHref } from '../../../src/core/api.ts';
 import { createTalk } from '../../../src/canvas/talk.ts';
 import { SourceRefused } from '../../../src/core/refusals.ts';
 import { talkCut } from '../../../src/core/talk.ts';
+import { MENU_ITEMS, touch as fingerDown } from '../../../src/lab/fixtures/gestures.ts';
 import {
   DESK,
   PHONE,
   type Viewport,
   hold,
   json,
+  later,
   openLab,
   refused,
   route,
 } from '../../../src/lab/fixtures/harness.ts';
 import { fitsPhone, noSidewaysBox } from '../../../src/lab/fixtures/phone-fit.ts';
-import { attributeIs, countIs, evaluates, textHas } from '../../../src/lab/fixtures/settled.ts';
+import {
+  attributeIs,
+  countIs,
+  evaluates,
+  textHas,
+  textIs,
+} from '../../../src/lab/fixtures/settled.ts';
 import { TALK, TALK_EDIT, TALK_TAKE } from '../../../src/lab/fixtures/talk-film.ts';
 import { DESK_HIT, PHONE_HIT, undersizedTargets } from '../../../src/lab/fixtures/touch-targets.ts';
 import { TALK_FILE, talkWords } from '../../../src/tools/talk-source.ts';
@@ -105,7 +117,7 @@ const talkRoutes = (talk: TalkWords = WORDS, undo = Option.none<ReturnType<typeo
 const talkAt = (
   scene: string,
   t: number,
-  picked: { readonly text?: string; readonly words?: string },
+  picked: { readonly text?: string; readonly words?: string; readonly knob?: string },
 ): string => pageHref.labScene(TALK, scene, picked, Option.some(t));
 
 /** Each window the view is checked in: its size, and where the view stands in it. */
@@ -276,11 +288,28 @@ for (const [name, viewport, where] of PLACES)
     );
 
     it.live(
-      'Cut sends its write and shows the receipt; its Undo, after the reload, asks the server to undo',
+      'Cut sends its write and shows the receipt, whose Undo, held (never retired) until the page reads the history with the Cut, then asks the server to undo the change it made',
       () =>
         Effect.gen(function* () {
+          // The history as the page read it at load knows nothing of the Cut; read again, it has it.
+          const cutStep = wrote('ask', 'cut words 3–4 of ask');
+          let cutLanded = false;
           const { page, asked } = yield* openLab(
-            talkRoutes(WORDS, Option.some(wrote('ask', 'cut words 3–4 of ask'))),
+            [
+              route('GET', at('/check'), () =>
+                json(
+                  Bool.match(cutLanded, {
+                    onFalse: () => ({ findings: [] }),
+                    onTrue: () => ({ findings: [], undo: cutStep }),
+                  }),
+                ),
+              ),
+              route('POST', at('/talk/cut'), () => {
+                cutLanded = true;
+                return json(cutStep);
+              }),
+              ...talkRoutes(),
+            ],
             { href: talkAt('ask', 0, { text: 'follow', words: '3-4' }), viewport },
           );
           yield* page.waitFor(`${where} .lab-transcript-page`);
@@ -289,9 +318,15 @@ for (const [name, viewport, where] of PLACES)
           expect(posted(asked)).toEqual([
             { path: `${TALK_API}/talk/cut`, body: Option.some({ section: 'ask', from: 3, to: 4 }) },
           ]);
-          // The write of `talk.ts` reloads the page in the lab; its receipt outlives the reload.
+          // The page's own change, judged as the editor's writes are: held, its Undo kept, not
+          // retired as a change the lab no longer has.
+          yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
+          yield* textHas(page, said, 'Undo is not available now');
+          yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Undo');
+          // The rebuild the write causes reloads the page, which reads the history again.
           yield* page.reload;
-          yield* textHas(page, said, `cut words 3–4 of ask in ${TALK_FILE}`);
+          yield* page.waitFor(`${where} .lab-transcript-page`);
+          yield* page.waitFor('[data-act="undo"]:not([disabled])');
           yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
           yield* textHas(page, said, `undid cut words 3–4 of ask in ${TALK_FILE}`);
           expect(posted(asked).map((a) => a.path)).toEqual([
@@ -302,6 +337,60 @@ for (const [name, viewport, where] of PLACES)
             Option.some({ request: expect.any(String), change: 'ask:cut words 3–4 of ask' }),
           );
         }).pipe(Effect.scoped),
+    );
+
+    it.live(
+      "a rebuild while Cut's write is out waits for its answer, so the receipt and its Undo outlive the reload",
+      () =>
+        Effect.gen(function* () {
+          // The lab rebuilds the page as soon as `talk.ts` is written, and answers the write only
+          // later, once its check and its mix are done.
+          const [posted, answer] = [Deferred.makeUnsafe<void>(), Deferred.makeUnsafe<void>()];
+          let waits = 0;
+          const { page } = yield* openLab(
+            [
+              route('GET', /^\/api\/review\/build\?/, () => {
+                waits += 1;
+                if (waits > 1) return hold;
+                return later(posted, json({ build: 1, server: 'lab' }));
+              }),
+              route('POST', at('/talk/cut'), () => {
+                Deferred.doneUnsafe(posted, Effect.void);
+                return later(answer, json(wrote('ask', 'cut words 3–4 of ask')));
+              }),
+              ...talkRoutes(),
+            ],
+            {
+              href: talkAt('ask', 0, { text: 'follow', words: '3-4' }),
+              viewport,
+              build: { build: 0, server: 'lab' },
+            },
+          );
+          yield* page.waitFor(`${where} .lab-transcript-page`);
+          yield* page.evaluate('window.loadedOnce = true');
+          const rebuilt = yield* page.nextAnswer((a) => a.url.includes('/api/review/build'));
+          yield* page.click(`${where} [data-act="cut-words"]`);
+          yield* rebuilt;
+          yield* page.clock.runFor(300);
+          // The page holds its reload while the write is out: the write's answer reaches it.
+          yield* evaluates(page, 'window.loadedOnce === true', true);
+          yield* textHas(page, said, 'cutting…');
+          yield* Deferred.done(answer, Exit.void);
+          yield* evaluates(page, 'window.loadedOnce === true', false);
+          yield* textHas(page, said, `cut words 3–4 of ask in ${TALK_FILE}`);
+          yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Undo');
+        }).pipe(Effect.scoped),
+    );
+
+    it.live('its scrolling words are a tab stop, so the keyboard scrolls them', () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab(talkRoutes(), {
+          href: talkAt('ask', 0, { text: 'follow' }),
+          viewport,
+        });
+        yield* page.waitFor(`${where} .lab-transcript-page`);
+        yield* attributeIs(page, `${where} .lab-transcript-scroll`, 'tabindex', '0');
+      }).pipe(Effect.scoped),
     );
 
     it.live(
@@ -332,6 +421,72 @@ for (const [name, viewport, where] of PLACES)
         }).pipe(Effect.scoped),
     );
   });
+
+describe('selecting words', () => {
+  it.live(
+    'a tap on a word of another section while a knob is selected selects the word, its section taking the path',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab(talkRoutes(), {
+          href: talkAt('ask', 0, { text: 'follow', knob: 'zoom' }),
+        });
+        yield* page.waitFor('.lab-transcript-col .lab-transcript-page');
+        yield* page.click('.lab-transcript-col [data-scene="answer"] [data-index="7"]');
+        yield* page.until(`new URLSearchParams(location.search).get('words') === '7-7'`);
+        yield* evaluates(page, `location.pathname.endsWith('/lab/answer')`, true);
+        yield* evaluates(page, `new URLSearchParams(location.search).has('knob')`, false);
+        yield* evaluates(page, painted('lab-picked'), ['show']);
+        yield* textHas(page, '.lab-transcript-col .lab-transcript-picked', 'word 7 of answer');
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('a text selection across words selects them, from the first to the last', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab(talkRoutes(), { href: talkAt('ask', 0, { text: 'follow' }) });
+      const word = (i: number) =>
+        `document.querySelector('.lab-transcript-col [data-scene="answer"] [data-index="${i}"]')`;
+      yield* page.waitFor('.lab-transcript-col .lab-transcript-page');
+      // A drag across the words as the browser leaves it: a range from inside one word to inside another, then the click that ends it.
+      yield* page.evaluate(
+        `(() => { const r = document.createRange(); r.setStart(${word(6)}.firstChild, 1); r.setEnd(${word(8)}.firstChild, 1); const s = getSelection(); s.removeAllRanges(); s.addRange(r); ${word(8)}.click(); })()`,
+      );
+      yield* page.until(`new URLSearchParams(location.search).get('words') === '6-8'`);
+      yield* evaluates(page, `location.pathname.endsWith('/lab/answer')`, true);
+    }).pipe(Effect.scoped),
+  );
+
+  // Serial, each case here: a finger's touches (`film/touches-serial`).
+  test.serial(
+    'on a phone, a word tapped and another held then Select to here selects the words between, and Cut cuts them',
+    () =>
+      Effect.gen(function* () {
+        const sheet = '.lab-transcript-sheet';
+        const { page, asked } = yield* openLab(talkRoutes(), {
+          href: talkAt('ask', 0, { text: 'follow' }),
+          viewport: PHONE,
+        });
+        yield* page.waitFor(`${sheet} .lab-transcript-page`);
+        yield* page.click(`${sheet} [data-scene="ask"] [data-index="3"]`);
+        yield* page.until(`new URLSearchParams(location.search).get('words') === '3-3'`);
+        // A touch held still on the last word opens the page's menu about it.
+        yield* page.clock.hold;
+        yield* fingerDown(page, `${sheet} [data-scene="ask"] [data-index="4"]`, 0);
+        yield* page.clock.runFor(700);
+        yield* page.waitFor('[data-role="context-menu"] [data-command="transcript.select-to"]');
+        yield* evaluates(page, `${MENU_ITEMS}.includes('transcript.cut')`, true);
+        yield* page.finger.up;
+        yield* page.click('[data-role="context-menu"] [data-command="transcript.select-to"]');
+        yield* page.clock.runFor(100);
+        yield* page.until(`new URLSearchParams(location.search).get('words') === '3-4'`);
+        yield* evaluates(page, painted('lab-picked'), ['the', 'law']);
+        yield* page.click(`${sheet} [data-act="cut-words"]`);
+        yield* textHas(page, said, `cut words 3–4 of ask in ${TALK_FILE}`);
+        expect(posted(asked)).toEqual([
+          { path: `${TALK_API}/talk/cut`, body: Option.some({ section: 'ask', from: 3, to: 4 }) },
+        ]);
+      }).pipe(Effect.scoped, Effect.runPromise),
+  );
+});
 
 describe('Follow over a talk longer than the view', () => {
   /** The answer said as many words, evenly over its voice: more than a screen. */

@@ -113,16 +113,22 @@ export const rangesOf = (rows: ReadonlyArray<Row>): ReadonlyArray<CodeRange> =>
 
 /**
  * The mark Mark here sets on word `index` (spelt `text`), given the marks its
- * section has: the word in lower-case letters and digits (`mark` when it has
- * none), with `-2`, `-3`, … while another word of the section has that name;
- * a mark already on the word is its own name again.
+ * section has: the word in lower-case ASCII letters and digits, a letter's
+ * accent let go (`café` is `cafe`; `mark` when none is left), so it is a name
+ * the talk's decode keeps (`MarkName`: the server refuses any other), with
+ * `-2`, `-3`, … while another word of the section has that name; a mark
+ * already on the word is its own name again.
  */
 export const markName = (
   text: string,
   index: number,
   marks: Readonly<Record<string, number>>,
 ): string => {
-  const base = text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '') || 'mark';
+  const base =
+    text
+      .normalize('NFD')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '') || 'mark';
   const free = (name: string) =>
     Option.match(Option.fromUndefinedOr(marks[name]), {
       onNone: () => true,

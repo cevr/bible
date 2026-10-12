@@ -23,6 +23,7 @@ import { TestClock } from 'effect/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
 import type { SceneEdit } from '../../canvas/film.ts';
+import { busy, said } from '../../command/command.ts';
 import { ChangeId, type CheckReport, type LabWrite, RequestId } from '../../core/schema.ts';
 import { STUDIO_IMPORT_WAIT_S } from '../../core/studio.ts';
 import { SourceChanged } from '../../core/refusals.ts';
@@ -34,8 +35,10 @@ import {
   type KnobGrip,
   KnobWrite,
   StepWrite,
+  TalkWrite,
   cueSaidText,
 } from './grip.ts';
+import { notTaken, receiptOf } from './format.ts';
 import { EditEvent, EditState, WRITE_TIMEOUT_S, editMachine } from './machine.ts';
 
 const grip: CueGrip = {
@@ -108,6 +111,8 @@ const fakes = (
     writeCue: () => write,
     writeKnob: () => write,
     step: () => write,
+    talkWords: Effect.die('not asked'),
+    writeTalk: () => write,
     ...more,
   };
   return { log, layer: Layer.merge(Layer.succeed(Stage, stage), Layer.succeed(LabApi, api)) };
@@ -792,6 +797,100 @@ describe('an Undo that remakes what follows its file', () => {
         const state = yield* SubscriptionRef.get(actor.state);
         expect(state._tag).toBe('Written');
         expect(state).toMatchObject({ note: expect.stringContaining('cue rise dur') });
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+});
+
+describe("a talk's write (the Transcript view's Cut, Restore, Mark here)", () => {
+  const cut = TalkWrite.make({ ask: { _tag: 'Cut', section: 'ask', from: 3, to: 4 } });
+  const cutLanded: LabWrite = {
+    file: 'talk.ts',
+    target: 'cut words 3–4 of ask',
+    change: CHANGE_1,
+    findings: [],
+  };
+
+  it.effect(
+    "is sent as asked, `#t=` held, and lands as the editor's receipt, undone by Undo bound to its change",
+    () => {
+      const asked: Array<TalkWrite['ask']> = [];
+      const { log, layer } = fakes(Effect.succeed(cutLanded), Effect.die('not asked'), {
+        writeTalk: (ask) => Effect.sync(() => asked.push(ask)).pipe(Effect.as(cutLanded)),
+      });
+      return Effect.gen(function* () {
+        const actor = yield* Machine.spawn(editMachine);
+        yield* actor.start;
+        yield* actor.send(EditEvent.Talk({ write: cut }));
+        yield* TestClock.adjust('10 millis');
+        const state = yield* SubscriptionRef.get(actor.state);
+        expect(state._tag).toBe('Written');
+        expect(asked).toEqual([{ _tag: 'Cut', section: 'ask', from: 3, to: 4 }]);
+        expect(log).toEqual(['holdT']);
+        expect(receiptOf(state, 'f')).toEqual(
+          Option.some(
+            said(
+              'cut words 3–4 of ask in talk.ts',
+              Option.some({ command: 'edit.undo', bound: { film: 'f', change: CHANGE_1 } }),
+            ),
+          ),
+        );
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect('says what it is doing while out, and one that changed nothing says so', () =>
+    Effect.gen(function* () {
+      const result = yield* simulate(editMachine, [EditEvent.Talk({ write: cut })]);
+      expect(receiptOf(result.finalState, 'f')).toEqual(Option.some(busy('cutting…')));
+      const unchanged = yield* simulate(editMachine, [
+        EditEvent.Talk({ write: cut }),
+        EditEvent.Wrote({
+          result: { file: 'talk.ts', target: 'cut words 3–4 of ask', findings: [] },
+        }),
+      ]);
+      expect(unchanged.finalState).toMatchObject({
+        _tag: 'Written',
+        note: 'cut words 3–4 of ask in talk.ts (already so)',
+      });
+    }).pipe(Effect.provide(fakes().layer)),
+  );
+
+  it.effect(
+    "one write at a time: a talk's write while another is out is not taken, and says so",
+    () =>
+      Effect.gen(function* () {
+        const result = yield* simulate(editMachine, [
+          EditEvent.Step({ verb: 'undo', request: UNDO_1, change: Option.none() }),
+          EditEvent.Talk({ write: cut }),
+        ]);
+        expect(result.finalState).toEqual(
+          EditState.Writing({
+            write: StepWrite.make({ verb: 'undo', request: UNDO_1, change: Option.none() }),
+            next: [],
+          }),
+        );
+        expect(notTaken(result.finalState, 'talk')).toEqual(
+          Option.some('a write is still out; ask once it lands'),
+        );
+      }).pipe(Effect.provide(fakes().layer)),
+  );
+
+  it.effect(
+    'waits past the scene write wait (it remixes the talk), and one with no answer even then is refused, `#t=` let go',
+    () => {
+      const { log, layer } = fakes(Effect.never);
+      return Effect.gen(function* () {
+        const actor = yield* Machine.spawn(editMachine);
+        yield* actor.start;
+        yield* actor.send(EditEvent.Talk({ write: cut }));
+        yield* TestClock.adjust(`${WRITE_TIMEOUT_S + 1} seconds`);
+        expect((yield* SubscriptionRef.get(actor.state))._tag).toBe('Writing');
+        yield* TestClock.adjust(`${STUDIO_IMPORT_WAIT_S} seconds`);
+        const state = yield* SubscriptionRef.get(actor.state);
+        expect(state._tag).toBe('Refused');
+        expect(state).toMatchObject({ message: expect.stringContaining('talk.ts') });
+        expect(log).toEqual(['holdT', 'settle']);
       }).pipe(Effect.scoped, Effect.provide(layer));
     },
   );

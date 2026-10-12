@@ -222,7 +222,11 @@ export const labHref = (
 /**
  * The lab's URL at `href` with `change` made to what it picks, at film
  * seconds `T` (`labHref`): what every lab write prints, so each keeps what
- * the others hold (a pick keeps the loop, the time keeps the pick).
+ * the others hold (a pick keeps the loop, the time keeps the pick). The
+ * path names one scene, so the newer of two picks in different scenes wins:
+ * words selected in another scene than the cue or knob let it go, and a cue
+ * or knob picked in another scene lets the words go (`labHref` keeps only
+ * the path's).
  */
 export const labHrefWith = (
   film: string,
@@ -232,10 +236,12 @@ export const labHrefWith = (
   T: number,
 ): string => {
   const { selection, note, beat, view, code, words, text, loop } = labPlaceOf(href);
+  const picked = Option.flatten(Option.fromUndefinedOr(change.words));
+  const kept = Option.filter(selection, (s) => !Option.exists(picked, (w) => w.scene !== s.scene));
   return labHref(
     film,
     placed,
-    { selection, note, beat, view, code, words, text, loop, ...change },
+    { selection: kept, note, beat, view, code, words, text, loop, ...change },
     T,
   );
 };
