@@ -18,28 +18,33 @@
 // has it.
 //
 // A write splices the literal and nothing else: the author's layout and
-// comments stay. A key added goes after the one before it as that one sits:
-// on a line of its own in a section written over lines, else on the same
-// line; a key taken away goes with the separator before it, or, when a
-// comment stands there, with its own comma (its line too, when nothing else
-// is on it), so a comment is never taken. So a Restore undoes a Cut to the
-// byte, in a section written over lines as on one. One break is the
-// formatter's, not the author's: oxfmt prints a cut of two runs or more a run
-// to a line, and its section broken with it, and keeps an object broken once;
-// the Restore that leaves such a cut one run or none puts the section back
-// on one line (`unbroken`), unless a comment in it says the author laid it
-// out. A one-line section a Cut's single run pushes past the print width
-// stays broken: only Undo gives back its line.
+// comments stay, each on the key it is about. A key added goes after the one
+// before it as that one sits: in a section written over lines, on a line of
+// its own after that key's line, so a comment ending that line stays its
+// key's; on one line, after the block comments that hug that key; into
+// marks that hold only a comment, after it. A key taken away goes with the
+// separator before it, or, when a comment stands there, with its own comma
+// (its line too, when nothing else is on it), so a comment is never taken.
+// So a Restore undoes a Cut to the byte, in a section written over lines as
+// on one. One break is the formatter's, not the author's: oxfmt prints a cut
+// of two runs or more a run to a line, and its section broken with it, and
+// keeps an object broken once while a break follows its `{`; the Restore
+// that leaves such a cut one run or none lets go of that one break
+// (`braceBreak`), and the formatter lays the section out again: on one line
+// when it fits and nothing in it is over lines. So a section its author
+// broke at its brace alone comes back on one line, and a one-line section a
+// Cut's single run pushes past the print width stays broken: in both, only
+// Undo gives back the text.
 
 import {
   Array as Arr,
-  Boolean as Bool,
   Effect,
   FileSystem,
   Option,
   Order,
   Path,
   Predicate,
+  Record as Rec,
   Result,
   Schema,
 } from 'effect';
@@ -304,53 +309,97 @@ const strikesText = (runs: ReadonlyArray<Strike>) =>
 /** Where the line holding offset `at` of `source` starts. */
 const lineStart = (source: string, at: number) => source.lastIndexOf('\n', at - 1) + 1;
 
+/** A block comment on one line: `/* the end *\/`. */
+const BLOCK = String.raw`\/\*(?:[^*\n]|\*(?!\/))*\*\/`;
+
+/** The block comments that hug a value on its line, before its comma. */
+const HUGGING = new RegExp(String.raw`^(?:[ \t]*${BLOCK})*`);
+
+/** A line's rest that holds no more than a comma (caught) and comments. */
+const ENDING = new RegExp(String.raw`^[ \t]*(,?)[ \t]*(?:${BLOCK}[ \t]*)*(?:\/\/.*)?$`);
+
 /**
- * The splice that takes `p` out of `obj`, every comment left in place: with
- * the separator before it (as `insertionAfter` wrote it) when only a comma
- * and space stand between it and the key before; else (a comment stands
- * there, or it is the first key) with its own comma and the space after it,
- * and its whole line when nothing else is on it.
+ * Where a key's own text ends, from `end` (its value's): past the block
+ * comments that hug the value on its line, before any comma (`to: 5 /* the
+ * end *\/,`), which are the key's own.
+ */
+const hugged = (source: string, end: number) =>
+  end + (HUGGING.exec(source.slice(end))?.[0].length ?? 0);
+
+/**
+ * The splice that takes `p` out of `obj`, every comment left in place: from
+ * the end of the key before it (its hugging comments kept) when only a comma
+ * and space stand between them, as `insertionAfter` wrote it; else (a comment
+ * stands there, or it is the first key) with its own comma and the space
+ * after it, and its whole line when nothing else is on it. A block comment
+ * that hugs `p` stays where `p` was.
  */
 const removal = (source: string, obj: ObjectExpression, p: ObjectProperty): Splice =>
   Option.getOrElse(
     Option.map(
-      Option.filter(Arr.get(obj.properties, obj.properties.indexOf(p) - 1), (before) =>
-        /^\s*,?\s*$/.test(source.slice(before.end, p.start)),
+      Option.filter(
+        Option.map(Arr.get(obj.properties, obj.properties.indexOf(p) - 1), (before) =>
+          hugged(source, before.end),
+        ),
+        (from) => /^\s*,?\s*$/.test(source.slice(from, p.start)),
       ),
-      (before): Splice => ({ start: before.end, end: p.end, text: '' }),
+      (from): Splice => ({ start: from, end: p.end, text: '' }),
     ),
     (): Splice => {
-      const end = p.end + (/^[ \t]*,[ \t]*/.exec(source.slice(p.end))?.[0].length ?? 0);
+      const own = hugged(source, p.end);
+      const kept = source.slice(p.end, own).trim();
+      const end = own + (/^[ \t]*,[ \t]*/.exec(source.slice(own))?.[0].length ?? 0);
       const from = lineStart(source, p.start);
-      const alone = /^[ \t]*$/.test(source.slice(from, p.start)) && source[end] === '\n';
-      return Bool.match(alone, {
-        onTrue: () => ({ start: from, end: end + 1, text: '' }),
-        onFalse: () => ({ start: p.start, end, text: '' }),
-      });
+      const alone =
+        kept === '' && /^[ \t]*$/.test(source.slice(from, p.start)) && source[end] === '\n';
+      if (alone) return { start: from, end: end + 1, text: '' };
+      if (kept === '') return { start: p.start, end, text: '' };
+      return { start: p.start, end, text: `${kept} ` };
     },
   );
 
 /**
  * The splice that adds `text` (a `key: value`) right after `after`, as
- * `after` sits: on a line of its own, indented as `after`'s, when nothing
- * but its comma and a comment follows it on its line (an object written over
- * lines); else on its line.
+ * `after` sits. When `after` ends its line (nothing but its comma and its
+ * comments follow it: an object written over lines), on a line of its own
+ * after that one, indented as `after`'s, so a comment at the end of that
+ * line stays `after`'s; `after` given a comma when it has none. Else on its
+ * line, after the block comments that hug it.
  */
 const insertionAfter = (
   source: string,
   after: Pick<ObjectPropertyKind, 'start' | 'end'>,
   text: string,
 ): Splice => {
-  const rest = /^[^\n]*/.exec(source.slice(after.end))?.[0] ?? '';
+  const at = hugged(source, after.end);
+  const rest = /^[^\n]*/.exec(source.slice(at))?.[0] ?? '';
   const indent = /^[ \t]*/.exec(source.slice(lineStart(source, after.start)))?.[0] ?? '';
-  return {
-    start: after.end,
-    end: after.end,
-    text: Bool.match(/^[ \t]*,?[ \t]*(\/\/.*|\/\*.*\*\/[ \t]*)?$/.test(rest), {
-      onTrue: () => `,\n${indent}${text}`,
-      onFalse: () => `, ${text}`,
-    }),
-  };
+  const eol = at + rest.length;
+  return Option.match(Option.fromNullOr(ENDING.exec(rest)), {
+    onNone: (): Splice => ({ start: at, end: at, text: `, ${text}` }),
+    onSome: ([, comma]): Splice => {
+      if (comma === ',') return { start: eol, end: eol, text: `\n${indent}${text},` };
+      return { start: at, end: eol, text: `,${rest}\n${indent}${text}` };
+    },
+  });
+};
+
+/**
+ * The splice that adds `text` (a `key: value`) to `obj`, an object with no
+ * key: in place of it when nothing is in it (`{ text }`); else after the
+ * comments in it, which stay: on a line of its own before the `}` when that
+ * stands on its own line, else just before it.
+ */
+const insertionInto = (source: string, obj: ObjectExpression, text: string): Splice => {
+  const close = obj.end - 1;
+  const inner = source.slice(obj.start + 1, close);
+  if (!/\S/.test(inner)) return { start: obj.start, end: obj.end, text: `{ ${text} }` };
+  const from = lineStart(source, close);
+  const indent = /^[ \t]*/.exec(source.slice(from))?.[0] ?? '';
+  if (from > obj.start && /^[ \t]*$/.test(source.slice(from, close)))
+    return { start: from, end: from, text: `${indent}  ${text},\n` };
+  const space = /\s*$/.exec(inner)?.[0].length ?? 0;
+  return { start: close - space, end: close, text: ` ${text} ` };
 };
 
 /** A mark's name as a key: bare when it is a name, else quoted. */
@@ -441,55 +490,29 @@ export const editStrikes = (
     if (strikes.length === 0) return source;
     // Two runs or more broke the section over lines (oxfmt): one or none lets it back on one.
     const unforced = runsOf(struckIn(read.strikes)).length > 1 && now.length < 2;
-    return yield* spliced(
-      at.file,
-      source,
-      Bool.match(unforced, {
-        onTrue: () => unbroken(source, section, strikes),
-        onFalse: () => strikes,
-      }),
+    const loosed = Option.filter(
+      Option.filter(braceBreak(source, section), () => unforced),
+      (brace) => strikes.every((s) => s.start >= brace.end),
     );
+    return yield* spliced(at.file, source, [...strikes, ...Option.toArray(loosed)]);
   });
 
-/** `text` with no comment in it: none outside its strings. */
-const uncommented = (text: string) =>
-  !/\/[/*]/.test(text.replace(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g, '""'));
-
 /**
- * An object literal's text on one line, as oxfmt prints one that it did not
- * break: every break between its tokens taken out (no string of a literal
- * holds one), a trailing comma with it.
+ * The break after `section`'s `{` let go (`{ id: …`), when its first key
+ * stands on the next line. oxfmt keeps an object broken once while that
+ * break is there, and a cut of two runs or more broke the section it was in;
+ * let go by the write that leaves the cut one run or none, the formatter
+ * lays the section out again: back on one line when it fits and nothing in
+ * it is over lines (a line comment, an object an author broke), as a Restore
+ * gives back the line its Cut broke. Only that break goes, so whatever else
+ * is over lines stays: a section an author broke at its brace alone comes
+ * back on one line (only Undo gives back its lines).
  */
-const oneLine = (text: string) =>
-  text
-    .replace(/\[\s*\n\s*/g, '[')
-    .replace(/,?\s*\n\s*\]/g, ']')
-    .replace(/\{\s*\n\s*/g, '{ ')
-    .replace(/,?\s*\n\s*\}/g, ' }')
-    .replace(/\s*\n\s*/g, ' ');
-
-/**
- * `strikes` (splices inside `section`) as one splice of the whole section,
- * put back on one line: the break a cut of two runs or more forced (oxfmt
- * prints such a cut a run to a line, and keeps its section broken after),
- * taken away by the write that leaves it one run or none, so a Restore gives
- * back the line a Cut broke. A section with a comment in it is the author's
- * layout, and keeps its lines.
- */
-const unbroken = (
-  source: string,
-  section: ObjectExpression,
-  strikes: ReadonlyArray<Splice>,
-): ReadonlyArray<Splice> => {
-  const text = strikes
-    .toSorted((a, b) => b.start - a.start)
-    .reduce(
-      (t, s) => `${t.slice(0, s.start - section.start)}${s.text}${t.slice(s.end - section.start)}`,
-      source.slice(section.start, section.end),
-    );
-  if (!text.includes('\n') || !uncommented(text)) return strikes;
-  return [{ start: section.start, end: section.end, text: oneLine(text) }];
-};
+const braceBreak = (source: string, section: ObjectExpression): Option.Option<Splice> =>
+  Option.map(
+    Option.fromNullOr(/^\{[ \t]*\n\s*/.exec(source.slice(section.start))),
+    ([gap]): Splice => ({ start: section.start, end: section.start + gap.length, text: '{ ' }),
+  );
 
 /**
  * `source` with mark `name` set on word `word` of section `id`: added to its
@@ -518,7 +541,7 @@ export const editMark = (
     const section = yield* sectionObject(at, talk, id);
     const read = yield* sectionRead(at, section);
     const entry = `${keyText(name)}: ${word}`;
-    const marked = Option.fromUndefinedOr(read.marks[name]);
+    const marked = Rec.get(read.marks, name);
     if (Option.contains(marked, word)) return source;
     if (Option.isSome(marked))
       return yield* refused<string>(
@@ -530,7 +553,7 @@ export const editMark = (
         Result.fromOption(
           Option.map(objectOf(node.value), (obj) =>
             Option.match(Arr.last(obj.properties), {
-              onNone: (): Splice => ({ start: obj.start, end: obj.end, text: `{ ${entry} }` }),
+              onNone: () => insertionInto(source, obj, entry),
               onSome: (last) => insertionAfter(source, last, entry),
             }),
           ),
@@ -603,7 +626,7 @@ export const markMissed = (
       onFailure: (): ReadonlyArray<string> => [],
       onSuccess: (talk) => {
         const marks = talk.sections.find((s) => s.id === id)?.marks ?? {};
-        if (marks[name] === word) return [];
+        if (Option.contains(Rec.get(marks, name), word)) return [];
         return [`the talk read back has no mark ${name} on word ${word} of ${id}`];
       },
     });

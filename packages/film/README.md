@@ -1963,12 +1963,15 @@ commands as buttons each make one write of
 the file is touched (a section left playing nothing, a strike over a marked
 word, a mark on a struck word, a mark name the talk would drop: refused in
 the server's words, nothing written). A write splices the one literal and
-keeps the author's layout and comments: a key added sits as the key before
-it does (on a line of its own in a section written over lines), a key taken
-away leaves every comment, so a Restore gives back the text its Cut found;
-the line break oxfmt forces on a cut of two runs is let go by the write that
-leaves it one, unless a comment in the section says the author laid it out
-(`tools/talk-source.ts`). Mark here names the mark from its word as the talk
+keeps the author's layout and comments, each on the key it is about: a key
+added sits as the key before it does (on a line of its own, after that key's
+line and its comment, in a section written over lines), a key taken away
+leaves every comment, so a Restore gives back the text its Cut found. Two
+layouts come back as the formatter lays them out, and only Undo gives back
+their text: the break after a section's `{` that oxfmt keeps once a cut of two
+runs broke it is let go by the write that leaves the cut one run (a section
+its author broke there alone comes back on one line), and a one-line section a
+Cut pushes past the print width stays broken (`tools/talk-source.ts`). Mark here names the mark from its word as the talk
 keeps it (`MarkName`: `Café` is `cafe`). Each write is a write of the film's
 source, so the editor's one machine sends it (`TalkWrite`, one write out at a
 time, `lab/editor/machine.ts`): `#t=` and the page's reloads are held until it

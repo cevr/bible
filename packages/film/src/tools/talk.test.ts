@@ -428,40 +428,41 @@ describe('a talk through the tools', () => {
 });
 
 /**
- * The talk's edit as oxfmt leaves it (its defaults: no config is above the
- * test's folder), so a write's formatting moves nothing but what it set.
+ * The talk's edit as oxfmt leaves it under the repo's config (`laidOut`
+ * puts it beside the films), so a write's formatting moves nothing but what
+ * it set.
  */
 const FORMATTED = `export const talk = {
-  title: "Why the law?",
-  format: "question",
-  takes: { a: "why-the-law" },
+  title: 'Why the law?',
+  format: 'question',
+  takes: { a: 'why-the-law' },
   sections: [
-    { id: "law", take: "a", from: 0, to: 5, cut: [[2, 2]] },
-    { id: "need", take: "a", from: 6, to: 11, knobs: { frame: [960, 540], zoom: 1.5 } },
+    { id: 'law', take: 'a', from: 0, to: 5, cut: [[2, 2]] },
+    { id: 'need', take: 'a', from: 6, to: 11, knobs: { frame: [960, 540], zoom: 1.5 } },
   ],
 };
 `;
 
 /**
  * The same edit as its author wrote it: sections over lines, comments on
- * them and between them, as oxfmt leaves it.
+ * them and between them, as oxfmt leaves it under the repo's config.
  */
 const COMMENTED = `export const talk = {
-  title: "Why the law?",
-  format: "question",
-  takes: { a: "why-the-law" },
+  title: 'Why the law?',
+  format: 'question',
+  takes: { a: 'why-the-law' },
   sections: [
     // The question, asked once.
     {
-      id: "law",
-      take: "a",
+      id: 'law',
+      take: 'a',
       from: 0,
       to: 5, // the question ends here
       cut: [[2, 2]], // the false start
     },
     {
-      id: "need", // the answer
-      take: "a",
+      id: 'need', // the answer
+      take: 'a',
       from: 6,
       to: 11,
       // the frame holds the speaker
@@ -470,6 +471,9 @@ const COMMENTED = `export const talk = {
   ],
 };
 `;
+
+/** The repo's oxfmt config, which every film's file is formatted with. */
+const OXFMT_CONFIG = `${import.meta.dir}/../../../../.oxfmtrc.json`;
 
 /** What a test here posts: a talk write's body (a section and its words, or a mark), or an Undo's empty one. */
 type Posted = Readonly<Record<string, string | number>>;
@@ -525,10 +529,19 @@ describe("a talk's writes in the lab", () => {
     (read.sections.find((s) => s.id === section)?.words ?? [])
       .filter((w) => w.struck)
       .map((w) => w.index);
-  /** The edit as oxfmt leaves it, in place of the world's one-line JSON. */
-  const formatted = FileSystem.FileSystem.use((fs) =>
-    fs.writeFileString(`${folders.films}/why/talk.ts`, FORMATTED),
-  );
+  /**
+   * `edit` as the talk, in place of the world's one-line JSON, and the repo's
+   * oxfmt config above it, so each write is formatted as a film's file is.
+   */
+  const laidOut = (edit: string) =>
+    FileSystem.FileSystem.use((fs) =>
+      Effect.andThen(
+        fs.copyFile(OXFMT_CONFIG, `${folders.films}/.oxfmtrc.json`),
+        fs.writeFileString(`${folders.films}/why/talk.ts`, edit),
+      ),
+    );
+  /** The edit as oxfmt leaves it. */
+  const formatted = laidOut(FORMATTED);
 
   it.live(
     "a Cut rewrites only its section's cut, the talk read again drops the word, Undo puts the file back to the byte, and Restore is its inverse",
@@ -641,12 +654,10 @@ describe("a talk's writes in the lab", () => {
   );
 
   it.live(
-    'a talk written over lines, with comments, keeps them: Cut then Restore leaves the file as it was, to the byte, and a Restore that empties a cut keeps the comments around it',
+    "a talk written over lines, with comments, keeps each on its own key: Cut then Restore leaves the file as it was, to the byte, Mark here and a cut added go after the line's comment, and a Restore that empties a cut keeps the comments around it",
     () =>
       Effect.gen(function* () {
-        yield* FileSystem.FileSystem.use((fs) =>
-          fs.writeFileString(`${folders.films}/why/talk.ts`, COMMENTED),
-        );
+        yield* laidOut(COMMENTED);
         const before = yield* file();
         // A run grown and shrunk again, in a section with comments on its lines.
         yield* post(labUrls.talk.cut(film), { section: 'law', from: 3, to: 3 });
@@ -660,11 +671,33 @@ describe("a talk's writes in the lab", () => {
         );
         yield* post(labUrls.talk.restore(film), { section: 'need', from: 8, to: 8 });
         expect(yield* file()).toEqual(before);
+        // A mark goes on a line of its own after the cut's, whose comment stays the cut's.
+        yield* post(labUrls.talk.mark(film), { section: 'law', word: 3, name: 'law' });
+        expect(text(yield* file())).toBe(
+          COMMENTED.replace(
+            '// the false start\n',
+            '// the false start\n      marks: { law: 3 },\n',
+          ),
+        );
+        yield* post(labUrls.steps.undo(film), {});
+        expect(yield* file()).toEqual(before);
         // Every word played again: the cut goes, its comments stay.
         yield* post(labUrls.talk.restore(film), { section: 'law', from: 2, to: 2 });
-        expect(text(yield* file())).toBe(
-          COMMENTED.replace('      cut: [[2, 2]], // the false start', '      // the false start'),
+        const played = COMMENTED.replace(
+          '      cut: [[2, 2]], // the false start',
+          '      // the false start',
         );
+        expect(text(yield* file())).toBe(played);
+        // A cut added after `to`: below its line, whose comment stays `to`'s; Restore takes it away.
+        yield* post(labUrls.talk.cut(film), { section: 'law', from: 3, to: 3 });
+        expect(text(yield* file())).toBe(
+          played.replace(
+            '// the question ends here\n',
+            '// the question ends here\n      cut: [[3, 3]],\n',
+          ),
+        );
+        yield* post(labUrls.talk.restore(film), { section: 'law', from: 3, to: 3 });
+        expect(text(yield* file())).toBe(played);
       }).pipe(Effect.scoped, Effect.provide(Layer.merge(world, lab))),
     SPAWNS_MS,
   );
