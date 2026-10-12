@@ -14,11 +14,11 @@
 // no wider than the screen less its gutters, scrolling inside itself. An
 // inspector field is the kit's number field (`.lab-num`), styled where the
 // kit is, never here. A phone's width is the studio's one breakpoint
-// (`PHONE`, `WIDE`), asked through its owner. A sheet (@bible/ui's Sheet) is
-// clipped to its panel, which stands off the page's scrollbar: its portal
-// round the clip draws its shadow and takes no presses, and its focus ring is
-// drawn inside it (`--focus-inset`; this sheet comes after the review's,
-// whose ring it overrides). Comments here ship with the review's
+// (`PHONE`, `WIDE`), asked through its owner. A sheet (@bible/ui's Sheet)
+// takes presses on its panel alone, which stands off the page's scrollbar at
+// the window's edge: its portal round it draws its shadow and takes no
+// presses, and its focus ring is drawn inside it (`--focus-inset`; this sheet
+// comes after the review's, whose ring it overrides). Comments here ship with the review's
 // render-blocking CSS, so the notes stand in this one.
 //
 // A sheet about a thing has its kind for a title; its name and values keep

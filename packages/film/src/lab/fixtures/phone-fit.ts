@@ -11,11 +11,11 @@
 // (hidden, clip) leaves nothing of is "cut off": no scrolling reaches it. The chrome is measured where it holds most: at the
 // page's top, its middle and its end, each the union of the rows its fixed
 // and stuck (sticky, with an edge set, to the window rather than to a box
-// that scrolls on its own) elements cover in the window, each cut by its own
-// `clip-path: inset()` (a sheet's overlay, the window's size, is clipped to
-// its panel, so a sheet lowered to its peek counts as the peek); a
-// see-through frame (over the whole window, taking no pointer) is what it
-// holds. A layer the page
+// that scrolls on its own) elements cover in the window, each cut by the
+// window; a see-through frame (over the whole window, taking no pointer) is
+// what it holds, down through the frames in it (a sheet's overlay holds its
+// scroll container, which holds its stage, which holds its panel: a sheet
+// lowered to its peek counts as the peek that shows). A layer the page
 // has open (a scene's sheet, as an inspector is), with the frame that holds
 // it in the window, is no chrome: it is shut to go back to the page. Its
 // width and its controls are measured as the page's are.
@@ -91,37 +91,37 @@ export const phoneFit = (layer?: string) => `(() => {
     if (s.position === 'fixed') return true;
     return s.position === 'sticky' && (s.top !== 'auto' || s.bottom !== 'auto') && !inScroller(el);
   };
-  // A frame that holds pieces in the window (a sheet's viewport) draws nothing and takes no
-  // pointer: its bar is what it holds (a sheet lowered to a peek holds the peek's rows), not itself.
+  // A frame that holds pieces in the window (a sheet's overlay, its scroll container and its
+  // stage) draws nothing and takes no pointer: its bar is what it holds (a sheet lowered to a
+  // peek holds the peek's rows), not itself.
   const frame = (el) => {
     const s = getComputedStyle(el);
     return s.pointerEvents === 'none' && s.backgroundColor === 'rgba(0, 0, 0, 0)' && s.borderTopStyle === 'none' && s.boxShadow === 'none';
   };
   const barsNow = () => {
     const rows = [];
-    // What a bar draws: its box, cut by its own \`clip-path: inset(…)\` (a sheet's overlay is the
-    // window's size, clipped to where its panel rests).
-    const insetOf = (el) => {
-      const m = /^inset\\(([^)]*)\\)$/.exec(getComputedStyle(el).clipPath);
-      if (!m) return [0, 0];
-      const v = m[1].split(' ').map((p) => parseFloat(p) || 0);
-      return [v[0], v[2] ?? v[0]];
-    };
+    // What a bar draws: its box, cut by the window.
     const row = (el) => {
       const r = el.getBoundingClientRect();
-      const [clipTop, clipBottom] = insetOf(el);
-      const top = Math.max(0, r.top + clipTop);
-      const bottom = Math.min(innerHeight, r.bottom - clipBottom);
+      const top = Math.max(0, r.top);
+      const bottom = Math.min(innerHeight, r.bottom);
       // A visually hidden field (1 × 1, fixed so it never moves the page) is no bar.
       if (bottom - top > 2 && r.width > 2) rows.push({ name: el.className || el.tagName, top, bottom });
+    };
+    // What a frame holds, down through the frames in it; what stays on its own is a bar of its own.
+    const hold = (el) => {
+      for (const held of el.children) {
+        if (stays(held) || !held.checkVisibility()) continue;
+        if (frame(held)) hold(held);
+        else row(held);
+      }
     };
     for (const el of document.body.querySelectorAll('*')) {
       // The open layer, and the frame that holds it in the window (a sheet's viewport), are no bar.
       const layered = LAYER !== '' && (el.closest(LAYER) !== null || el.querySelector(LAYER) !== null);
       if (!stays(el) || !el.checkVisibility() || layered) continue;
-      // What stays on its own is a bar of its own.
-      if (frame(el)) for (const held of el.children) if (!stays(held) && held.checkVisibility()) row(held);
-      if (!frame(el)) row(el);
+      if (frame(el)) hold(el);
+      else row(el);
     }
     rows.sort((a, b) => a.top - b.top);
     let held = 0;

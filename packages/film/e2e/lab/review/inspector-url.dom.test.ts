@@ -80,11 +80,12 @@ const PAGES: ReadonlyArray<Page> = [
 ];
 
 /**
- * The focused sheet's ring, against the clip of the overlay it stands in
- * (`@bible/ui/sheet` clips a non-modal sheet to its panel), as three answers:
- * whether the sheet has focus from the keyboard, whether it draws a ring, and
- * whether the ring's box (its own box, grown by its widest outer shadow) lies
- * inside the clip.
+ * The focused sheet's ring, against the window it stands in (its overlay's
+ * box: the window less a classic scrollbar's gutter, cut by any clip of the
+ * overlay's), as three answers: whether the sheet has focus from the keyboard,
+ * whether it draws a ring, and whether the ring's box (its own box, grown by
+ * its widest outer shadow) lies inside the window; the sheet stands at its
+ * edge.
  */
 const RING = `(() => {
   const el = document.activeElement;
@@ -94,7 +95,7 @@ const RING = `(() => {
   const overlay = el.closest('.lab-inspector-overlay');
   const o = overlay.getBoundingClientRect();
   const [top, right, bottom, left] = (/^inset\\(([^)]*)\\)$/.exec(getComputedStyle(overlay).clipPath)?.[1] ?? '0px').split(' ').map(parseFloat);
-  const clip = { top: o.top + top, right: o.right - (right ?? top), bottom: o.bottom - (bottom ?? top), left: o.left + (left ?? right ?? top) };
+  const clip = { top: o.top + top, right: o.left + overlay.clientWidth - (right ?? top), bottom: o.top + overlay.clientHeight - (bottom ?? top), left: o.left + (left ?? right ?? top) };
   return [
     el.matches('${INSPECTOR}') && el.matches(':focus-visible'),
     shadows.length > 0,
@@ -223,7 +224,7 @@ for (const p of PAGES) {
     );
 
     it.live(
-      'opened from the keyboard, the sheet shows its whole focus ring, drawn inside the clip it stands in',
+      'opened from the keyboard, the sheet shows its whole focus ring, drawn inside the window it stands at the edge of',
       () =>
         Effect.gen(function* () {
           const { page, errors } = yield* openReview(studioRoutes, {
@@ -234,7 +235,7 @@ for (const p of PAGES) {
           yield* page.pressIn(p.thing, 'Enter');
           yield* waitFor(page, CLOSE);
           yield* sheetsStand(page);
-          // Focused from the keyboard, ringed, the ring inside the clip.
+          // Focused from the keyboard, ringed, the ring inside the window.
           yield* evaluates(page, RING, [true, true, true]);
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
@@ -244,25 +245,26 @@ for (const p of PAGES) {
 }
 
 /**
- * Where the open sheet stands, as a script reads it: its panel's box, whether the overlay's
- * clip is that box (`@bible/ui/sheet` clips a non-modal sheet to its panel), and how many
- * sheets there are.
+ * Where the open sheet stands, as a script reads it: how many sheets there are, its panel's
+ * box, and whether it stands whole: drawn whole (no clip of its overlay's cuts into it), a press
+ * 3 px inside each of its edges lands on it, and one 3 px past each (inside the window) misses
+ * the sheet and reaches the page.
  */
 const STANDS = `(() => {
+  const sheets = document.querySelectorAll('${INSPECTOR}').length;
   const panel = document.querySelector('.lab-inspector-panel');
   const overlay = document.querySelector('.lab-inspector-overlay');
-  if (!panel || !overlay) return { sheets: document.querySelectorAll('${INSPECTOR}').length };
-  const p = panel.getBoundingClientRect();
+  if (!panel || !overlay) return { sheets, box: null, whole: false };
+  const r = panel.getBoundingClientRect();
   const o = overlay.getBoundingClientRect();
-  const v = (/inset\\(([^)]*)\\)/.exec(overlay.style.clipPath)?.[1] ?? '').split(/\\s+/).map(parseFloat);
-  const [top = 0, right = top, bottom = top, left = right] = v;
-  const clip = [o.left + left, o.top + top, overlay.clientWidth - right, overlay.clientHeight - bottom];
-  const box = [p.left, p.top, p.right, p.bottom].map(Math.round);
-  return {
-    sheets: document.querySelectorAll('${INSPECTOR}').length,
-    box,
-    clipped: clip.every((edge, i) => Math.abs(edge - box[i]) <= 1),
-  };
+  const [top = 0, right = top, bottom = top, left = right] = (/^inset\\(([^)]*)\\)$/.exec(getComputedStyle(overlay).clipPath)?.[1] ?? '0px').split(/\\s+/).map(parseFloat);
+  const drawn = r.left >= o.left + left - 0.5 && r.top >= o.top + top - 0.5 && r.right <= o.left + overlay.clientWidth - right + 0.5 && r.bottom <= o.top + overlay.clientHeight - bottom + 0.5;
+  const hits = (x, y, selector) => document.elementFromPoint(x, y)?.closest(selector) != null;
+  const midX = r.left + r.width / 2;
+  const midY = r.top + r.height / 2;
+  const inside = [[r.left + 3, midY], [r.right - 3, midY], [midX, r.top + 3], [midX, r.bottom - 3]].every(([x, y]) => hits(x, y, '.lab-inspector-panel'));
+  const outside = [[r.left - 3, midY], [r.right + 3, midY], [midX, r.top - 3], [midX, r.bottom + 3]].filter(([x, y]) => x >= 0 && y >= 0 && x < innerWidth && y < innerHeight).every(([x, y]) => !hits(x, y, '.lab-inspector-overlay'));
+  return { sheets, box: [r.left, r.top, r.right, r.bottom].map(Math.round), whole: drawn && inside && outside };
 })()`;
 
 /** Resolves after the page's next two frames. */
@@ -293,7 +295,7 @@ describe('an open sheet as the window crosses the phone width in one step (a tab
           { width: 820, height: 1180, rests: 'box[0] === 0 && box[3] <= 1180 && box[1] > 0' },
         ];
         for (const turn of turns) {
-          const stands = `(({ sheets, box, clipped }) => sheets === 1 && !!box && clipped && ${turn.rests})(${STANDS})`;
+          const stands = `(({ sheets, box, whole }) => sheets === 1 && whole && ${turn.rests})(${STANDS})`;
           yield* page.resize(turn.width, turn.height);
           yield* until(page, stands);
           // Still so a moment later: nothing read the turn as a swipe.
@@ -301,6 +303,48 @@ describe('an open sheet as the window crosses the phone width in one step (a tab
           yield* page.evaluate(FRAMES);
           yield* evaluates(page, stands, true);
           yield* at(page, named);
+        }
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+describe('an open phone sheet as what it stands on moves under it', () => {
+  it.live(
+    "a Set's sheet as its view turns to the moments and back (the dock goes and comes again): it moves with its floor, open and standing whole",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(studioRoutes, {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+          viewport: PHONE,
+        });
+        yield* waitFor(page, '.rv-main [data-act="inspect"]');
+        yield* page.click('.rv-main [data-act="inspect"]');
+        yield* waitFor(page, CLOSE);
+        yield* sheetsStand(page);
+        const floor = `getComputedStyle(document.querySelector('.lab-inspector-panel')).bottom`;
+        const before = yield* page.evaluate<string>(floor);
+        yield* evaluates(page, `${STANDS}.whole`, true);
+        // The page stays live round a sheet: the view's toggles are pressed as a user would.
+        // All plays in the dock; the moments have none, so the sheet's floor drops by the dock's
+        // height, with nothing resized.
+        for (const { view, docked } of [
+          { view: 'moments', docked: false },
+          { view: 'all', docked: true },
+        ]) {
+          yield* page.evaluate(
+            `document.querySelector('.rv-views button[data-view="${view}"]').click()`,
+          );
+          yield* until(page, `(document.querySelector('.sh-dock') !== null) === ${docked}`);
+          yield* until(page, `(({ sheets, whole }) => sheets === 1 && whole)(${STANDS})`);
+          // Still so a moment later: nothing read the move as a swipe.
+          yield* page.evaluate(FRAMES);
+          yield* page.evaluate(FRAMES);
+          yield* evaluates(page, `(({ sheets, whole }) => sheets === 1 && whole)(${STANDS})`, true);
+          yield* evaluates(page, `new URLSearchParams(location.search).get('inspect')`, 'main');
+          // It stands on the floor it stood on with the dock, and on another without.
+          yield* evaluates(page, `(${floor} === '${before}') === ${docked}`, true);
         }
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
