@@ -124,6 +124,19 @@ let made = 0;
 export const viewsMade = () => made;
 
 /**
+ * The command line of the Chrome this process's tabs run in, as Chrome
+ * shows it (`chrome://version`), read in a view of its own that closes after:
+ * what it was spawned with, the flags `tools/chrome.ts` adds among them.
+ */
+export const chromeCommandLine: Effect.Effect<string> = Effect.gen(function* () {
+  const view = yield* openView(yield* flags, { width: 800, height: 600 });
+  yield* Effect.promise(() => view.navigate('chrome://version'));
+  return yield* Effect.promise(() =>
+    view.evaluate<string>("document.querySelector('#command_line').textContent"),
+  );
+}).pipe(Effect.scoped, Effect.orDie, Effect.provide(BunServices.layer));
+
+/**
  * Calls that run one at a time, in order, however their callers fare: run
  * apart from the caller, so a caller interrupted leaves its call out and the
  * next starts once it ends (a view takes one protocol call and one script at
