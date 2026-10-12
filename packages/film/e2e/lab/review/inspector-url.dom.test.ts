@@ -79,7 +79,6 @@ const PAGES: ReadonlyArray<Page> = [
   },
 ];
 
-/** The URL's query keys a sheet is named by, as a script reads them. */
 /**
  * The focused sheet's ring, against the clip of the overlay it stands in
  * (`@bible/ui/sheet` clips a non-modal sheet to its panel), as three answers:
@@ -103,6 +102,7 @@ const RING = `(() => {
   ];
 })()`;
 
+/** The URL's query keys a sheet is named by, as a script reads them. */
 const QUERY = `(() => { const q = new URL(location.href).searchParams; return [q.get('point') ?? '', q.get('inspect') ?? '']; })()`;
 
 /** Wait until the URL is `href`, path and query. */
@@ -242,6 +242,71 @@ for (const p of PAGES) {
     );
   });
 }
+
+/**
+ * Where the open sheet stands, as a script reads it: its panel's box, whether the overlay's
+ * clip is that box (`@bible/ui/sheet` clips a non-modal sheet to its panel), and how many
+ * sheets there are.
+ */
+const STANDS = `(() => {
+  const panel = document.querySelector('.lab-inspector-panel');
+  const overlay = document.querySelector('.lab-inspector-overlay');
+  if (!panel || !overlay) return { sheets: document.querySelectorAll('${INSPECTOR}').length };
+  const p = panel.getBoundingClientRect();
+  const o = overlay.getBoundingClientRect();
+  const v = (/inset\\(([^)]*)\\)/.exec(overlay.style.clipPath)?.[1] ?? '').split(/\\s+/).map(parseFloat);
+  const [top = 0, right = top, bottom = top, left = right] = v;
+  const clip = [o.left + left, o.top + top, overlay.clientWidth - right, overlay.clientHeight - bottom];
+  const box = [p.left, p.top, p.right, p.bottom].map(Math.round);
+  return {
+    sheets: document.querySelectorAll('${INSPECTOR}').length,
+    box,
+    clipped: clip.every((edge, i) => Math.abs(edge - box[i]) <= 1),
+  };
+})()`;
+
+/** Resolves after the page's next two frames. */
+const FRAMES = `new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))`;
+
+describe('an open sheet as the window crosses the phone width in one step (a tablet turned)', () => {
+  it.live(
+    'turns from a bottom sheet to a right one and back, staying open, at rest and drawn whole',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(studioRoutes, {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+          viewport: { width: 820, height: 1180 },
+        });
+        yield* waitFor(page, '.rv-main [data-act="inspect"]');
+        yield* page.click('.rv-main [data-act="inspect"]');
+        yield* waitFor(page, CLOSE);
+        yield* sheetsStand(page);
+        const named = yield* page.evaluate<string>('location.pathname + location.search');
+        const turns = [
+          // Landscape: a right sheet, its panel's right edge the page's (short of its scrollbar).
+          {
+            width: 1180,
+            height: 820,
+            rests: 'box[2] === document.documentElement.clientWidth && box[1] === 0',
+          },
+          // Portrait: a bottom sheet, its panel's left edge the window's, above its bottom.
+          { width: 820, height: 1180, rests: 'box[0] === 0 && box[3] <= 1180 && box[1] > 0' },
+        ];
+        for (const turn of turns) {
+          const stands = `(({ sheets, box, clipped }) => sheets === 1 && !!box && clipped && ${turn.rests})(${STANDS})`;
+          yield* page.resize(turn.width, turn.height);
+          yield* until(page, stands);
+          // Still so a moment later: nothing read the turn as a swipe.
+          yield* page.evaluate(FRAMES);
+          yield* page.evaluate(FRAMES);
+          yield* evaluates(page, stands, true);
+          yield* at(page, named);
+        }
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
 
 describe('a link written before the sheet had a key', () => {
   it.live("keeps landing: Choices' point focuses its card, the sheet shut", () =>
