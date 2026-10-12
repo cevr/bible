@@ -3252,6 +3252,58 @@ through them, rather than a flat cutout.
   bleed light) and `grade` (an S curve, split toning of the shadows and the
   highlights, and saturation), applied before the grain.
 
+## Skin
+
+A figure's paper can bend as well as turn: `canvas/skin.ts` gives a piece's
+outline a few named bones (a skeleton), as Rive and Spine skin a mesh, and
+bends the outline before `piece()` cuts it. The tear, the grain, the boil,
+the ink outline and the check's probes all work on the bent outline as on
+any other. Bones are for the agent that draws a figure; nothing in the lab
+shows or edits them.
+
+```ts
+const BODY = skeleton('hips', { at: [0, -20], angle: -Math.PI / 2, length: 50 })
+  .bone('chest', 'hips', { length: 58 })
+  .bone('head', 'chest', { length: 37 })
+  .bone('jaw', 'head', { angle: Math.PI, length: 38 });
+const TORSO = BODY.skin(TUNIC, { chain: ['hips', 'chest'] }, { spacing: 4 });
+
+draw: (f) => {
+  const bow = f.at('bow');
+  const pose = BODY.pose({ chest: { turn: 0.05 * bow, along: 1 - 0.07 * bow } });
+  piece(ctx, TORSO.at(pose), { color, outline, role: 'figure' }, f.hand('torso'));
+};
+```
+
+- **Skeleton:** a root bone has a start, a direction (radians, as
+  `ctx.rotate`) and a length. Each child starts at its parent's tip, turned
+  `angle` from it. Bone names are the skeleton's type, so a pose, a chain or a
+  parent that names a missing bone does not compile, and neither does a
+  second bone of the same name.
+- **Skin:** `skeleton.skin(path, weights, options)` binds an outline once, at
+  module scope. Each point gets a weight per bone, and the weights sum to 1.
+  - `{ chain, blend }` weighs a point by where it falls along the chain's line.
+    Each joint is blended by a smoothstep over `blend` units either side; the
+    default is half the shorter of its two bones.
+  - `{ weigh }` takes the drawing's own function of a rest point (a jaw that
+    holds the lower half of a head). The weights are normalised, and a point
+    no bone claims rides the root.
+  - `spacing` resamples a long straight edge so that it has points to bend.
+  - `smooth` treats the points as a curve's controls: they are bent, then
+    the `spline` is drawn through them.
+- **Pose:** `skeleton.pose(values)` is one frame's pose, built from the
+  frame's own numbers. Each bone named takes `turn`, `along` and `across`
+  (scale along and across the bone, about its start; a child rides the
+  scaled tip) and `shift`. A bone left out stays at rest. `pose.rigid(bone)`
+  is the bone's rigid move as a `ctx.transform`, for what rides the bone
+  whole (an eye on the head).
+- **Blend:** each point's rigid move is blended as a planar dual quaternion,
+  so a joint turned far keeps its girth instead of collapsing toward the
+  joint. A bone's scale is blended first, in its rest frame.
+- **Purity:** `skin.at(pose)` returns a new path and keeps nothing between
+  calls. A pose at rest returns the rest outline bit for bit. A figure's pose
+  and two skins cost about 15 µs a frame.
+
 ## The purity rule
 
 `src/core` never touches the DOM at runtime (type-only DOM references are
