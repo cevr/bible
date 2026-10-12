@@ -14,7 +14,6 @@ import {
   type ResolvedShort,
   SHORT_LAYOUT,
   bandOf,
-  hookAlpha,
   pageScale,
   resolveShort,
   shortKey,
@@ -35,7 +34,8 @@ import {
   offscreen,
   shadeBy,
 } from './paper.ts';
-import { type Probe, type ProbeSink, recordText } from './probe.ts';
+import type { Probe, ProbeSink } from './probe.ts';
+import { verticalHook } from './vertical.ts';
 
 /** A scene of the film on the short's clock: its start moved so its own clock reads the same. */
 const retimed = (film: Film, short: ResolvedShort): ReadonlyArray<Placed<SceneSpec>> =>
@@ -65,69 +65,6 @@ const onPage = (from: ProbeSink, sink: ProbeSink, dy: number) => {
       points: i.points.map(([x, y]) => [x, y + dy] as const),
       order: sink.texts.length + sink.inks.length,
     });
-};
-
-/** A line of set text, measured once: where it sits in 1080 × 1920 px. */
-interface SetLine {
-  readonly text: string;
-  /** Its centre's height. */
-  readonly y: number;
-  readonly width: number;
-}
-
-/** A line's box: its height above and below its centre, in the font it is set in. */
-interface LineBox {
-  readonly ascent: number;
-  readonly descent: number;
-}
-
-/** `text` broken into lines at most `width` wide in `ctx`'s font, greedily by word. */
-const wrap = (
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  width: number,
-): ReadonlyArray<string> => {
-  const lines: string[] = [];
-  let line = '';
-  for (const word of text.split(' ')) {
-    const next = line === '' ? word : `${line} ${word}`;
-    if (line !== '' && ctx.measureText(next).width > width) {
-      lines.push(line);
-      line = word;
-    } else line = next;
-  }
-  if (line !== '') lines.push(line);
-  return lines;
-};
-
-/** A block of set text: its lines, and the box each line's glyphs fill. */
-interface SetBlock {
-  readonly lines: ReadonlyArray<SetLine>;
-  readonly box: LineBox;
-}
-
-/** `text` set in `font`, wrapped to `width` and centred as a block on `y`: measured once. */
-const setBlock = (
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  font: string,
-  width: number,
-  y: number,
-): SetBlock => {
-  ctx.save();
-  ctx.font = font;
-  const m = ctx.measureText('Hg');
-  const box = { ascent: m.fontBoundingBoxAscent, descent: m.fontBoundingBoxDescent };
-  const step = (box.ascent + box.descent) * 1.08;
-  const broken = wrap(ctx, text, width);
-  const top = y - ((broken.length - 1) * step) / 2;
-  const lines = broken.map((line, i) => ({
-    text: line,
-    y: top + i * step,
-    width: ctx.measureText(line).width,
-  }));
-  ctx.restore();
-  return { lines, box };
 };
 
 /**
@@ -176,10 +113,8 @@ export const createShort = (film: Film, declared: Short): Film => {
   /** The words below the band, phrase by phrase (`--no-captions` leaves them out). */
   const captions = burnedCaptions(shortPhrases(film.placed, short), style.caption, k);
 
-  /** The hook, set once on the first frame that draws it. */
-  let hook: SetBlock | undefined;
-  const hookOf = (ctx: CanvasRenderingContext2D, text: string) =>
-    (hook ??= setBlock(ctx, text, style.hook.font, SHORT_LAYOUT.hook.width, SHORT_LAYOUT.hook.y));
+  /** The hook line, above the band, while it shows; recorded as the caption's when probed. */
+  const hook = verticalHook(decoded.hook, style.hook, k, SHORT_LAYOUT);
 
   /**
    * The band's render options, rewritten each frame so the draw allocates
@@ -193,37 +128,6 @@ export const createShort = (film: Film, declared: Short): Film => {
 
   const sceneAt = (T: number): Placed<SceneSpec> =>
     placed[shortSpanAt(short, T)] ?? film.sceneAt(short.spans[0].from);
-
-  /** The hook line, above the band, while it shows; recorded as the caption's when probed. */
-  const drawHook = (ctx: CanvasRenderingContext2D, T: number, probe: Probe | undefined) => {
-    const text = decoded.hook;
-    const alpha = hookAlpha(T);
-    if (text === undefined || alpha <= 0) return;
-    const set = hookOf(ctx, text);
-    ctx.save();
-    ctx.setTransform(k, 0, 0, k, 0, 0);
-    ctx.font = style.hook.font;
-    ctx.fillStyle = style.hook.color;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.globalAlpha = alpha;
-    for (const line of set.lines) {
-      const baseline = line.y + (set.box.ascent - set.box.descent) / 2;
-      ctx.fillText(line.text, SHORT_LAYOUT.centre, baseline);
-      if (probe !== undefined)
-        recordText(
-          ctx,
-          probe,
-          line.text,
-          SHORT_LAYOUT.centre - line.width / 2,
-          baseline - set.box.ascent,
-          line.width,
-          set.box.ascent + set.box.descent,
-          alpha,
-        );
-    }
-    ctx.restore();
-  };
 
   const render = (ctx: CanvasRenderingContext2D, T: number, opts: RenderOptions = {}) => {
     const { sheet, grain, band: frame } = getAssets();
@@ -273,13 +177,13 @@ export const createShort = (film: Film, declared: Short): Film => {
 
     const words = opts.captions !== false;
     if (sink === undefined || probed === undefined) {
-      drawHook(ctx, T, undefined);
+      hook.draw(ctx, T, undefined);
       if (words) captions.draw(ctx, T, undefined);
       return;
     }
     onPage(probed, sink, band.top);
     const probe: Probe = { sink, scene: span.scene, dx: 0, alpha: 1, caption: true };
-    drawHook(ctx, T, probe);
+    hook.draw(ctx, T, probe);
     if (words) captions.draw(ctx, T, probe);
   };
 

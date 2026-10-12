@@ -4,11 +4,15 @@ import { type Placed, layout } from './layout.ts';
 import { hashText } from './narration.ts';
 import { Shorts, type Short, type Timings } from './schema.ts';
 import {
+  PLATFORM_ZONES,
   type ResolvedShort,
+  SAFE_ZONES,
+  SAFE_ZONE_NAMES,
   SHORT_LAYOUT,
   SHORT_PREROLL,
   hookAlpha,
   resolveShort,
+  roomAcross,
   isShortKey,
   shortKey,
   shortPage,
@@ -188,6 +192,40 @@ describe('shorts', () => {
       false,
       false,
     ]);
+  });
+
+  test("the platforms' zone is each edge's widest of YouTube Shorts', Instagram Reels' and TikTok's", () => {
+    const zones = Object.values(PLATFORM_ZONES).map((p) => p.zone);
+    expect(Object.values(PLATFORM_ZONES).map((p) => p.title)).toEqual([
+      'YouTube Shorts',
+      'Instagram Reels',
+      'TikTok',
+    ]);
+    expect(SAFE_ZONES.platforms).toEqual({
+      top: Math.max(...zones.map((z) => z.top)),
+      bottom: Math.max(...zones.map((z) => z.bottom)),
+      left: Math.max(...zones.map((z) => z.left)),
+      right: Math.max(...zones.map((z) => z.right)),
+      // TikTok's button column, as its safe-zone file gives it: 300 px from 840 px down.
+      columns: [{ right: 300, from: 840 }],
+    });
+    expect(PLATFORM_ZONES.tiktok.zone.columns).toEqual([{ right: 300, from: 840 }]);
+    // The room a line has beside the column: the whole width above it, short of it below.
+    expect(roomAcross(SAFE_ZONES.platforms, 600)).toEqual({ left: 120, right: 888 });
+    expect(roomAcross(SAFE_ZONES.platforms, 840)).toEqual({ left: 120, right: 888 });
+    expect(roomAcross(SAFE_ZONES.platforms, 900)).toEqual({ left: 120, right: 780 });
+    expect(roomAcross(SAFE_ZONES.platforms, 1100)).toEqual({ left: 120, right: 780 });
+    // No platform's own zone reaches past it, and each edge is some platform's.
+    for (const side of ['top', 'bottom', 'left', 'right'] as const) {
+      for (const z of zones) expect(z[side]).toBeLessThanOrEqual(SAFE_ZONES.platforms[side]);
+      expect(zones.map((z) => z[side])).toContain(SAFE_ZONES.platforms[side]);
+    }
+    // The feed's zones are as they were.
+    expect([SAFE_ZONES.default, SAFE_ZONES.ads]).toEqual([
+      { top: 270, bottom: 520, left: 65, right: 140, columns: [] },
+      { top: 270, bottom: 672, left: 65, right: 140, columns: [] },
+    ]);
+    expect(SAFE_ZONE_NAMES).toEqual(['default', 'ads', 'platforms']);
   });
 
   test('shorts.ts decodes: ids are unique slugs and every short has a span', () => {

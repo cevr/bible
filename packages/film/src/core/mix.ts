@@ -10,7 +10,8 @@
 // dB relative to the voice's speech level by what each variant measured.
 
 import { Option, Result, Schema } from 'effect';
-import { type Pcm, SPEECH_GATE, toStereo } from './audio.ts';
+import { CUT_FADE } from './align.ts';
+import { type Pcm, SPEECH_GATE, fadeEdges, slice, toStereo } from './audio.ts';
 import { type Duck, type Limit, addInto, duck, fade, limitInto, toFrames } from './dsp.ts';
 import {
   CueInvalid,
@@ -27,6 +28,7 @@ import { type Placed, filmEnd } from './layout.ts';
 import { hashText } from './narration.ts';
 import { TAKE_LEVEL, takeLift } from './recording.ts';
 import type { Sound, SoundEffect, SoundManifest } from './schema.ts';
+import type { Piece } from './talk.ts';
 import {
   type Placing,
   type Playable,
@@ -89,9 +91,42 @@ export interface Placement<A> {
  * `takes import` levels a recording (`takeLift`): ElevenLabs sends each at its
  * own level, so the mix brings its speech to the one the film is balanced
  * on. A person's take was levelled when it was imported and plays as it is.
+ *
+ * A take plays its sound whole, from its start (a scene's take), or one piece
+ * of it: `dur` seconds from `from` into it, faded in and out over `fade`
+ * seconds (a talk's section, several pieces of its take's voice, each faded
+ * `CUT_FADE` at its seams so a cut never clicks, as a beat cut from a reading
+ * is: `align.ts`).
  */
 export interface Take<A> extends Placement<A> {
   readonly staged: boolean;
+  /** Seconds into the sound it starts playing from. */
+  readonly from: number;
+  /** How long it plays; none to the sound's end. */
+  readonly dur: Option.Option<number>;
+  /** Seconds each end fades over. */
+  readonly fade: number;
+  /**
+   * What its sound is, for the key, when its file's name does not say: a
+   * talk's voice (every take's is `voice.flac`) is its source and the
+   * recipe it was made by. None for a file named by its content.
+   */
+  readonly content: Option.Option<string>;
+}
+
+/** Whether `take` plays its sound whole, from its start, unfaded: a scene's take. */
+const playsWhole = <A>(take: Take<A>): boolean =>
+  take.from === 0 && Option.isNone(take.dur) && take.fade === 0;
+
+/**
+ * A talk's section's voice: its take's voice file, what that voice is (its
+ * source and the recipe it was made by: the key reads this, not the file's
+ * name), and the stretches of it the section plays (`talk.ts`).
+ */
+export interface VoicePieces {
+  readonly file: string;
+  readonly content: string;
+  readonly pieces: ReadonlyArray<Piece>;
 }
 
 /**
@@ -149,6 +184,8 @@ interface MixInput {
   readonly soundDir: string;
   /** The score option to play in place of the one the score names (`mix --score`). */
   readonly play: Option.Option<string>;
+  /** A talk's sections' voices, by scene, played in pieces in place of a take (none for a drawn film). */
+  readonly pieces: ReadonlyMap<string, VoicePieces>;
 }
 
 export type MixPlanError =
@@ -287,23 +324,44 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
     const { placed, manifest } = input;
     const warnings: Array<string> = [];
 
-    const voice = placed.flatMap((p) =>
-      Option.match(
-        Option.filter(Option.fromNullishOr(p.voice.file), () => p.voice.recorded),
-        {
-          onNone: () => [],
-          onSome: (file): ReadonlyArray<Take<SoundSource>> => [
+    const voice = placed.flatMap((p): ReadonlyArray<Take<SoundSource>> =>
+      Option.match(Option.fromUndefinedOr(input.pieces.get(p.spec.id)), {
+        // A talk's section: the pieces of its take's voice, back to back.
+        onSome: ({ file, content, pieces }) =>
+          pieces.map((piece) => ({
+            name: p.spec.id,
+            sound: fileSource(file),
+            at: p.start + p.speechStart + piece.at,
+            gain: 1,
+            pitch: 0,
+            staged: false,
+            from: piece.from,
+            dur: Option.some(piece.to - piece.from),
+            fade: CUT_FADE,
+            content: Option.some(content),
+          })),
+        onNone: () =>
+          Option.match(
+            Option.filter(Option.fromNullishOr(p.voice.file), () => p.voice.recorded),
             {
-              name: p.spec.id,
-              sound: fileSource(`${input.narration}/${file}`),
-              at: p.start + p.speechStart,
-              gain: 1,
-              pitch: 0,
-              staged: p.voice.source !== 'recorded',
+              onNone: () => [],
+              onSome: (file) => [
+                {
+                  name: p.spec.id,
+                  sound: fileSource(`${input.narration}/${file}`),
+                  at: p.start + p.speechStart,
+                  gain: 1,
+                  pitch: 0,
+                  staged: p.voice.source !== 'recorded',
+                  from: 0,
+                  dur: Option.none(),
+                  fade: 0,
+                  content: Option.none(),
+                },
+              ],
             },
-          ],
-        },
-      ),
+          ),
+      }),
     );
 
     // A stale score still plays, with a warning; a missing one is silence, with a warning.
@@ -351,6 +409,20 @@ const soundKey = (source: SoundSource): string => {
   return sourceLabel(source);
 };
 
+/**
+ * A piece's in-point, length (none to its sound's end) and fade, as the key
+ * reads them: nothing for a take played whole, so a drawn film's key reads as
+ * it always has.
+ */
+const pieceKey = (take: Take<SoundSource>): ReadonlyArray<number> =>
+  Option.match(
+    Option.liftPredicate(take, (t) => !playsWhole(t)),
+    {
+      onNone: () => [],
+      onSome: (t) => [t.from, ...Option.toArray(t.dur), t.fade],
+    },
+  );
+
 /** A key's fields as one line of JSON. */
 const KeyJson = Schema.fromJsonString(Schema.Json);
 
@@ -378,7 +450,15 @@ export const mixKey = (plan: MixPlan<SoundSource>): string =>
         TAKE_LEVEL,
       },
       seconds: plan.seconds,
-      voice: plan.voice.map((t) => [t.name, soundKey(t.sound), t.at, t.gain, t.pitch, t.staged]),
+      voice: plan.voice.map((t) => [
+        t.name,
+        Option.getOrElse(t.content, () => soundKey(t.sound)),
+        t.at,
+        t.gain,
+        t.pitch,
+        t.staged,
+        ...pieceKey(t),
+      ]),
       score: Option.getOrNull(
         Option.map(plan.score, (s) => [s.option, soundKey(s.sound), s.under, s.alone]),
       ),
@@ -495,6 +575,20 @@ const masteringGain = (track: Pcm): number => {
 };
 
 /**
+ * What a take plays, in stereo: its sound whole, or its piece (`from`, `dur`)
+ * with each end faded over `fade`.
+ */
+const played = (take: Take<Pcm>): ReadonlyArray<Float32Array> => {
+  if (playsWhole(take)) return toStereo(take.sound).channels;
+  const first = Math.min(take.sound.frames, toFrames(take.from, MIX_RATE));
+  const last = Option.match(take.dur, {
+    onNone: () => take.sound.frames,
+    onSome: (dur) => Math.min(take.sound.frames, first + toFrames(dur, MIX_RATE)),
+  });
+  return toStereo(fadeEdges(slice(take.sound, first, last - first), take.fade)).channels;
+};
+
+/**
  * Play `plan` out over decoded audio, every sound at `MIX_RATE`: the takes
  * summed on the voice bus; the score under the voice and alone in its pauses,
  * each levelled against the voice, then faded in and out; the beds looped over
@@ -508,7 +602,7 @@ export const renderMix = (plan: MixPlan<Pcm>): Mixed => {
   for (const take of plan.voice) {
     let lift = 1;
     if (take.staged) lift = 10 ** (takeLift(take.sound) / 20);
-    addInto(voice, toStereo(take.sound).channels, at(take.at), take.gain * lift);
+    addInto(voice, played(take), at(take.at), take.gain * lift);
   }
 
   const music = Option.map(plan.score, (score) => {

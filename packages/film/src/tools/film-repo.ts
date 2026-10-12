@@ -18,9 +18,28 @@ import {
   Layer,
   Option,
   Path,
+  Record as Rec,
+  Result,
   Schema,
 } from 'effect';
+import {
+  EMPTY_FOOTAGE_LOCK,
+  type FootageLock,
+  FootageLockJson,
+  FootageTranscriptJson,
+  VOICE_RECIPE,
+  copiesIn,
+} from '../core/footage.ts';
 import { type LayoutError, type Placed, layout } from '../core/layout.ts';
+import type { VoicePieces } from '../core/mix.ts';
+import {
+  Talk,
+  type TalkCut,
+  type TalkTake,
+  talkCut,
+  talkTakes,
+  talkTranscripts,
+} from '../core/talk.ts';
 import { Library, type Lock, LockJson, NO_SOUNDS, type Sounds } from '../core/sfx.ts';
 import { StoreConfig } from '../core/store.ts';
 import {
@@ -39,7 +58,7 @@ import {
 import type { PlatformError } from 'effect/PlatformError';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { FilmUnknown } from '../core/refusals.ts';
-import { FilmModuleInvalid } from './errors.ts';
+import { FilmModuleInvalid, TalkUnvoiced } from './errors.ts';
 import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
 
 /** Every path a tool touches for one film. */
@@ -61,7 +80,8 @@ export const masterFile = (paths: FilmPaths): string => `${paths.narration}/full
 export interface LoadedFilm {
   readonly paths: FilmPaths;
   readonly scenes: ReadonlyArray<Timed>;
-  readonly voice: Voice;
+  /** Who reads it (`voice.ts`); none for a talk, which its speaker recorded on camera. */
+  readonly voice: Option.Option<Voice>;
   readonly sound: Option.Option<Sound>;
   /** The vertical shorts its `shorts.ts` declares; empty when it has none. */
   readonly shorts: Shorts;
@@ -76,7 +96,50 @@ export interface LoadedFilm {
   readonly looks: Looks;
   /** The app's sound library its effects and beds name; none when the app has none. */
   readonly sounds: Sounds;
+  /** A talk's edit and how it plays (`core/talk.ts`); none for a drawn film. */
+  readonly talk: Option.Option<LoadedTalk>;
 }
+
+/**
+ * A talk as the tools read it: its edit, its takes (by the talk's take keys,
+ * `talkTakes`), its cut, and the folder of copies its takes' voices are in
+ * (`<FILMS_OUT>/footage`).
+ */
+export interface LoadedTalk {
+  readonly talk: Talk;
+  readonly takes: Readonly<Record<string, TalkTake>>;
+  readonly cut: TalkCut;
+  readonly copies: string;
+}
+
+/** Who reads `film` (`voice.ts`), or `TalkUnvoiced` for a talk, which is recorded on camera. */
+export const readerOf = (film: LoadedFilm): Result.Result<Voice, TalkUnvoiced> =>
+  Result.fromOption(film.voice, () => TalkUnvoiced.make({ film: film.paths.name }));
+
+/**
+ * The voice each of a talk's sections plays, in pieces of its take's
+ * (`mixPlan`), known by its take's source and the recipe its voice is made
+ * by; none for a drawn film.
+ */
+export const voicePiecesOf = (film: LoadedFilm): ReadonlyMap<string, VoicePieces> =>
+  new Map(
+    Option.match(film.talk, {
+      onNone: () => [],
+      onSome: ({ cut, takes, copies }) =>
+        cut.sections.flatMap((section) =>
+          Option.toArray(
+            Option.map(Rec.get(takes, section.take), (take) => [
+              section.id,
+              {
+                file: `${copies}/${section.voice.file}`,
+                content: `${take.source} ${VOICE_RECIPE}`,
+                pieces: section.pieces,
+              },
+            ]),
+          ),
+        ),
+    }),
+  );
 
 type LoadError = FilmUnknown | FilmModuleInvalid | StoreError;
 
@@ -101,10 +164,13 @@ interface FilmFolderService {
   readonly names: Effect.Effect<ReadonlyArray<string>>;
   /** The app's sound library folder (`library.ts`, its lock, `files/`), when it has one. */
   readonly sounds: Option.Option<string>;
+  /** The app's footage library folder (its lock, `transcripts/`, `files/`), when it has one. */
+  readonly footage: Option.Option<string>;
   /**
    * What the film is made from as it stands: the newest mtime of any file
    * under its folder (its scenes, script, takes, score and `sound.ts`) and of
-   * the library's module (`library.ts`) and lock. A process that keeps what it read of a film fresh
+   * the library's module (`library.ts`) and lock, and of the footage library's lock and
+   * transcripts (a talk is cut on them). A process that keeps what it read of a film fresh
    * keys it by this, and reads again when it moves.
    */
   readonly stamp: (film: string) => Effect.Effect<number, PlatformError>;
@@ -140,6 +206,8 @@ const SoundModule = Schema.Struct({ sound: Sound });
 /** The part of `film.ts` the tools read: its declared look, when it declares one. */
 const FilmModule = Schema.Struct({ look: Schema.optionalKey(Look) });
 const ShortsModule = Schema.Struct({ shorts: Shorts });
+/** A talk's `talk.ts`: its edit. */
+const TalkModule = Schema.Struct({ talk: Talk });
 /** The part of `palette.ts` the tools read: the looks it chooses between, when it has any. */
 const PaletteModule = Schema.Struct({ looks: Schema.optionalKey(Looks) });
 
@@ -208,15 +276,23 @@ export const keptWhenMade = <A, E>(exit: Exit.Exit<A, E>): Duration.Duration =>
 const NOT_SOURCE: ReadonlyArray<string> = ['out', 'node_modules', '.git'];
 
 /**
- * The file that makes `name` under `films` a film: its scene registry,
- * `<films>/<name>/scenes/index.ts`. None for a name no folder of `films`
- * has (`.`, `..`, a path). `FilmFolder.names` and the narration route
+ * The files either of which makes `name` under `films` a film: a drawn
+ * film's scene registry, `<films>/<name>/scenes/index.ts`, or a talk's edit,
+ * `<films>/<name>/talk.ts`. None for a name no folder of `films` has (`.`,
+ * `..`, a path). `FilmFolder.names` and the narration route
  * (`narration-route.ts`) both ask it.
  */
-export const filmMark = (films: string, name: string): Option.Option<string> => {
-  if (name === '' || name === '.' || name === '..' || name.includes('/')) return Option.none();
-  return Option.some(`${films}/${name}/scenes/index.ts`);
+export const filmMarks = (films: string, name: string): ReadonlyArray<string> => {
+  if (name === '' || name === '.' || name === '..' || name.includes('/')) return [];
+  return [`${films}/${name}/scenes/index.ts`, `${films}/${name}/talk.ts`];
 };
+
+/** The footage library's lock (`library.lock.json`) in `dir`, as the content store reads and writes it. */
+export const footageLockManifest = (dir: string): Manifest<FootageLock> => ({
+  file: `${dir}/library.lock.json`,
+  codec: FootageLockJson,
+  empty: EMPTY_FOOTAGE_LOCK,
+});
 
 /** The folder outputs go under: `FILMS_OUT` (the app's `out/` under `runFilmCli`), else `<cwd>/out`. */
 export const filmsOut = Effect.gen(function* () {
@@ -229,9 +305,14 @@ export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()
 ) {
   /**
    * The films in `films`: the app's films folder, which its player imports;
-   * `sounds`, the app's sound library folder, when it has one.
+   * `sounds`, the app's sound library folder, and `footage`, its footage
+   * library's, when it has them.
    */
-  static readonly layer = (films: string, sounds: Option.Option<string> = Option.none()) =>
+  static readonly layer = (
+    films: string,
+    sounds: Option.Option<string> = Option.none(),
+    footage: Option.Option<string> = Option.none(),
+  ) =>
     Layer.effect(
       FilmFolder,
       Effect.gen(function* () {
@@ -266,10 +347,12 @@ export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()
           Effect.flatMap((entries) =>
             // A file beside the films (the registry's `index.ts`) is no film: its lookup fails, not errs.
             Effect.filter(entries, (name) =>
-              Option.match(filmMark(films, name), {
-                onNone: () => Effect.succeed(false),
-                onSome: (mark) => fs.exists(mark).pipe(Effect.orElseSucceed(() => false)),
-              }),
+              Effect.map(
+                Effect.forEach(filmMarks(films, name), (mark) =>
+                  fs.exists(mark).pipe(Effect.orElseSucceed(() => false)),
+                ),
+                (found) => found.includes(true),
+              ),
             ),
           ),
           Effect.map((found) => [...found].sort()),
@@ -285,8 +368,20 @@ export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()
             onNone: () => [],
             onSome: (at) => [path.join(at, 'library.ts'), lockManifest(at).file],
           });
+          // The footage library's lock and transcripts: a talk is cut on them.
+          const heard = yield* Option.match(footage, {
+            onNone: () => Effect.succeed<ReadonlyArray<string>>([]),
+            onSome: (at) =>
+              fs.readDirectory(path.join(at, 'transcripts')).pipe(
+                Effect.map((files) => [
+                  footageLockManifest(at).file,
+                  ...files.map((f) => path.join(at, 'transcripts', f)),
+                ]),
+                Effect.orElseSucceed(() => [footageLockManifest(at).file]),
+              ),
+          });
           const times = yield* Effect.forEach(
-            [...made.map((f) => path.join(dir, f)), ...library],
+            [...made.map((f) => path.join(dir, f)), ...library, ...heard],
             (file) =>
               fs.stat(file).pipe(
                 Effect.map((info) =>
@@ -299,7 +394,7 @@ export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()
           return Math.max(0, ...times);
         });
 
-        return FilmFolder.of({ paths, names, sounds, stamp });
+        return FilmFolder.of({ paths, names, sounds, footage, stamp });
       }),
     );
 }
@@ -309,16 +404,22 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
 ) {
   /**
    * The repo over the films in `films` (`FilmFolder.layer`, which it
-   * provides beside itself): each film's modules imported, its data read.
+   * provides beside itself): each film's modules imported, its data read; a
+   * talk cut on its takes' transcripts in the footage library (`footage`).
    */
-  static readonly layer = (films: string, sounds: Option.Option<string> = Option.none()) =>
+  static readonly layer = (
+    films: string,
+    sounds: Option.Option<string> = Option.none(),
+    footage: Option.Option<string> = Option.none(),
+  ) =>
     Layer.effect(
       FilmRepo,
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const store = yield* ContentStore;
-        const { paths, names, sounds } = yield* FilmFolder;
+        const { paths, names, sounds, footage: footageDir } = yield* FilmFolder;
+        const outputs = yield* filmsOut;
 
         /** A film not in the folder: `FilmUnknown`, naming the films there are (never a path). */
         const unknown = (film: string) =>
@@ -341,9 +442,70 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             }),
           );
 
+        /**
+         * A talk: its edit, its takes as the footage library keeps them
+         * (`talkTakes`, over the lock and the transcripts it names, as the
+         * page reads them through the footage route), cut, and laid out as a
+         * film's scenes are.
+         */
+        const loadTalk = (name: string, at: FilmPaths) =>
+          Effect.gen(function* () {
+            const invalid = (reason: string) =>
+              FilmModuleInvalid.make({ film: name, module: 'talk.ts', reason });
+            const { talk } = yield* loadModule(name, path.join(at.dir, 'talk.ts'), TalkModule);
+            const dir = yield* Effect.fromOption(footageDir, () =>
+              invalid('it plays footage, but the app keeps no footage library'),
+            );
+            const lock = yield* store.read(footageLockManifest(dir));
+            const transcripts = new Map(
+              yield* Effect.forEach(talkTranscripts(talk, lock), (file) =>
+                fs.readFileString(path.join(dir, 'transcripts', file)).pipe(
+                  Effect.flatMap(Schema.decodeEffect(FootageTranscriptJson)),
+                  Effect.map((heard) => [file, heard] as const),
+                  Effect.mapError((error) =>
+                    invalid(`its transcript ${file} does not read: ${error.message}`),
+                  ),
+                ),
+              ),
+            );
+            const takes = yield* Effect.fromResult(talkTakes(talk, lock, transcripts)).pipe(
+              Effect.mapError((error) => invalid(error.message)),
+            );
+            const cut = yield* Effect.fromResult(talkCut(talk, takes)).pipe(
+              Effect.mapError((error) => invalid(error.message)),
+            );
+            const loaded: LoadedTalk = { talk, takes, cut, copies: copiesIn(outputs) };
+            return loaded;
+          });
+
         const load = Effect.fn('FilmRepo.load')(function* (name: string) {
           const at = paths(name);
           if (!(yield* fs.exists(at.dir))) return yield* unknown(name);
+          const soundAt = path.join(at.dir, 'sound.ts');
+          if (
+            !(yield* fs.exists(path.join(at.dir, 'scenes', 'index.ts'))) &&
+            (yield* fs.exists(path.join(at.dir, 'talk.ts')))
+          ) {
+            const talk = yield* loadTalk(name, at);
+            let sound = Option.none<Sound>();
+            if (yield* fs.exists(soundAt))
+              sound = Option.some((yield* loadModule(name, soundAt, SoundModule)).sound);
+            const loaded: LoadedFilm = {
+              paths: at,
+              scenes: talk.cut.scenes,
+              voice: Option.none(),
+              sound,
+              shorts: [],
+              timings: talk.cut.timings,
+              manifest: yield* store.read(at.manifest),
+              heardAs: {},
+              look: Option.none(),
+              looks: {},
+              sounds: yield* loadSounds,
+              talk: Option.some(talk),
+            };
+            return loaded;
+          }
           const { scenes } = yield* loadModule(
             name,
             path.join(at.dir, 'scenes', 'index.ts'),
@@ -376,10 +538,10 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
               (): Looks => ({}),
             );
           const library = yield* loadSounds;
-          return {
+          const loaded: LoadedFilm = {
             paths: at,
             scenes,
-            voice,
+            voice: Option.some(voice),
             sound,
             shorts,
             timings,
@@ -388,7 +550,9 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             look,
             looks,
             sounds: library,
+            talk: Option.none(),
           };
+          return loaded;
         });
 
         /** The app's library and its lock; none when the app keeps no `sounds/library.ts`. */
@@ -430,5 +594,5 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
 
         return FilmRepo.of({ load, script, scores });
       }),
-    ).pipe(Layer.provideMerge(FilmFolder.layer(films, sounds)));
+    ).pipe(Layer.provideMerge(FilmFolder.layer(films, sounds, footage)));
 }

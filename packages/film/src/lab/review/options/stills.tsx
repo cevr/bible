@@ -10,8 +10,10 @@
 // browser entry): the server's render draws none.
 
 import { Effect, Equivalence, Fiber, Option } from 'effect';
+import type { Context } from 'effect';
 import { type Accessor, createMemo, createSignal, onCleanup, untrack } from 'solid-js';
 import { monotonicMs } from '../../../browser/host.ts';
+import type { Footage } from '../../../browser/footage.ts';
 import { Frames } from '../../../browser/frames.ts';
 import type { makeStills } from '../../../player/stills.ts';
 import { pressed } from '../../pressed.ts';
@@ -100,7 +102,11 @@ export const useOnScreenFirst = (want: (times: ReadonlyArray<number>) => void): 
  */
 export type DrawStills = (
   film: string,
-  how: { readonly turn: () => Promise<unknown>; readonly now: () => number },
+  how: {
+    readonly turn: () => Promise<unknown>;
+    readonly now: () => number;
+    readonly footage: Context.Context<Footage>;
+  },
 ) => Option.Option<Effect.Effect<FilmStills, 'load-failed'>>;
 
 /** No film's stills: the server's render, which draws no film. */
@@ -126,6 +132,7 @@ export const useSceneStills = (film: string): SceneStills => {
   const draw = meta.draw(film, {
     turn: () => Effect.runPromiseWith(meta.host)(Frames.use((f) => f.next)),
     now,
+    footage: meta.host,
   });
   // The stills, once they are made, stopped with the page: their queue and listener go,
   // so a left Project draws nothing more.

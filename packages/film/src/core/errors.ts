@@ -354,3 +354,22 @@ export class NarrationUnreadable extends Schema.TaggedError<NarrationUnreadable>
     return `film "${this.film}": its narration timings at ${this.url} cannot be read (${this.reason}); the page will not lay the film out on estimates the tools do not use`;
   }
 }
+
+/**
+ * A talk's page could not be built: its edit does not read, a file of the
+ * footage library it reads (`url`) could not be fetched or read, or a take it
+ * plays is not ready (`talkTakes`).
+ */
+export class TalkUnreadable extends Schema.TaggedError<TalkUnreadable>()('TalkUnreadable', {
+  film: Schema.String,
+  url: Schema.optionalKey(Schema.String),
+  reason: Schema.String,
+}) {
+  override get message() {
+    const at = Option.match(Option.fromUndefinedOr(this.url), {
+      onNone: () => '',
+      onSome: (url) => ` at ${url}`,
+    });
+    return `talk "${this.film}"${at} cannot be read: ${this.reason}`;
+  }
+}

@@ -30,7 +30,7 @@ import {
 } from '@bible/film/tools';
 import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { FOLDERS, SOUNDS } from './cli.ts';
+import { FOLDERS, FOOTAGE, SOUNDS } from './cli.ts';
 import { FILMS, LAB_PAGES, LAB_SERVERS } from './server.ts';
 
 /** What the fake hears for a beat it is told to mis-hear. */
@@ -146,15 +146,22 @@ const Harness = Layer.unwrap(
     // The lab's own services and pages (`filmServices`, `labPages`, as `film lab` runs them)
     // over the copy, read fresh through the CLI over the copy, reviewing no render roots, with
     // an ElevenLabs that only hears.
-    const Services = labPages({ pages: LAB_PAGES, servers: LAB_SERVERS, films: root }).pipe(
+    const Services = labPages({
+      pages: LAB_PAGES,
+      servers: LAB_SERVERS,
+      films: root,
+      footage: { dir: FOOTAGE, out: FOLDERS.out },
+    }).pipe(
       Layer.provideMerge(
         filmServices({
           films: root,
           sounds: SOUNDS,
+          footage: FOOTAGE,
           folders: FOLDERS,
           self: ['bun', cli],
           roots: Effect.succeed([]),
           elevenLabs: harnessElevenLabs(film, misheard),
+          privateStore: Option.none(),
         }),
       ),
     );

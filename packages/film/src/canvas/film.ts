@@ -446,8 +446,35 @@ export interface ShownEdit {
  */
 export type EditError = UnknownScene | TimelineError | FloodInTransition;
 
+/**
+ * One frame of footage a frame of a film reads (`Film.footageAt`): a derived
+ * file of the footage library by its content (`source`, `<name>/<sha12>`,
+ * the same in the proxy the lab plays and the mezzanine the render reads),
+ * at `at` seconds of the source's own clock.
+ */
+export interface FootageRead {
+  readonly source: string;
+  readonly at: number;
+}
+
+/**
+ * The footage frames the host decoded for one frame (`RenderOptions.footage`):
+ * each read the frame named (`Film.footageAt`), as a picture to draw, or none
+ * when the host has not decoded it. The host fills it before the frame is
+ * drawn (`browser/footage.ts` `Footage`), so a film's draw stays synchronous
+ * and keeps nothing between frames.
+ */
+export interface FootageFrames {
+  readonly frame: (read: FootageRead) => CanvasImageSource | undefined;
+}
+
 export interface RenderOptions {
   readonly captions?: boolean;
+  /**
+   * The footage frames this frame reads (`Film.footageAt`), decoded by the
+   * host. A film that reads none (a drawn film) is never given any.
+   */
+  readonly footage?: FootageFrames;
   /**
    * Draw each scene named here with its resolved edit's cues and knobs in
    * place of its drawing's, for this frame only: the lab's live preview of a
@@ -480,6 +507,13 @@ export interface Film {
   /** The sheet it is drawn on, as made: what a page cut from it (a short) is drawn on too. */
   readonly look: FilmLook;
   sceneAt(T: number): Placed<SceneSpec>;
+  /**
+   * The footage frame `T` reads, a pure function of the film (a talk's
+   * camera take at the source second its edit puts at `T`): what the host
+   * decodes before it draws `T` (`RenderOptions.footage`). A drawn film reads
+   * none and has no `footageAt`, so it is drawn as it always was.
+   */
+  readonly footageAt?: (T: number) => ReadonlyArray<FootageRead>;
   render(ctx: CanvasRenderingContext2D, T: number, opts?: RenderOptions): void;
   /**
    * `edit` resolved for `scene` as a frame draws it (`RenderOptions.edits`):

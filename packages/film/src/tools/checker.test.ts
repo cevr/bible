@@ -297,3 +297,37 @@ describe('Checker.short', () => {
       }),
   );
 });
+
+describe('Checker.talk', () => {
+  it.live(
+    "probes a talk's page for text past every platform's zone and a still open: a caption under TikTok's buttons is caught",
+    () => {
+      const ledger = emptyLedger();
+      const host: FakeRenderHost = {
+        info: { width: 1080, height: 1920, fps: 30, duration: 2, frames: 60 },
+        // A caption reaching x 888 below y 840: inside YouTube's and Reels' zones, under TikTok's buttons.
+        probe: () =>
+          Effect.succeed({
+            texts: [{ ...textBox('the law', 228, 1100, 660, 60), caption: true }],
+            inks: [],
+          }),
+      };
+      const talk = { film: { id: 'why', duration: 2, format: 'question' as const }, phrases: [] };
+      const check = Effect.gen(function* () {
+        return yield* (yield* Checker).talk(film, talk, { workers: 2, span: Option.none() });
+      }).pipe(Effect.provide(Checker.layer.pipe(Layer.provide(fakeRenderHost(ledger, host)))));
+      return Effect.gen(function* () {
+        const findings = yield* check;
+        expect(findings.map((f) => f._tag)).toEqual(['ShortUnsafeText', 'ShortHook']);
+        expect(findings[0]?.message).toContain(
+          'past the right of the platforms (TikTok) safe zone',
+        );
+        expect(findings[0]).toMatchObject({ side: 'right', by: 888 - 780, own: true });
+        expect(findings[1]).toMatchObject({ reason: 'still open' });
+        // The talk's own page: every half second of it, and its open.
+        expect(ledger.urls.every((u) => u.includes(`film=${film.paths.name}&`))).toBe(true);
+        expectAllClosed(ledger);
+      });
+    },
+  );
+});

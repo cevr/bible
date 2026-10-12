@@ -13,7 +13,9 @@
 // file alone).
 
 import { Effect } from 'effect';
+import type { Context } from 'effect';
 import type { Film } from '../canvas/film.ts';
+import type { Footage } from '../browser/footage.ts';
 import type { Placed } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
 import { timecode } from '../core/time.ts';
@@ -89,7 +91,12 @@ const TIME_W = 104;
  */
 export const composeLookbook = async (
   film: Film,
-  options: { readonly captions: boolean; readonly onProgress?: (done: number, of: number) => void },
+  options: {
+    readonly captions: boolean;
+    /** The page's footage: what decodes the frames a talk's stills read. */
+    readonly footage: Context.Context<Footage>;
+    readonly onProgress?: (done: number, of: number) => void;
+  },
 ): Promise<Lookbook> => {
   const moments = sceneMoments(film.placed, film.fps, { marks: false });
   const swatches = Object.entries(film.palette);
@@ -175,6 +182,7 @@ export const composeLookbook = async (
     turn: () => Effect.runPromise(Effect.yieldNow),
     // The sheet is not timed: its stills' cost is the page's to read.
     now: () => 0,
+    footage: options.footage,
   });
   const drawn = await stills.all(
     tiles.map((tile) => tile.moment.time),

@@ -574,3 +574,110 @@ export class ChaptersInvalid extends Schema.TaggedError<ChaptersInvalid>()('Chap
     return `${this.film}: no chapters (${this.reason})`;
   }
 }
+
+// ---------------------------------------------------------------------------
+// The footage library (`footage/`): what `film footage` refuses.
+
+/** An original whose picture is HDR (HLG, PQ or BT.2020): the render is SDR, and refuses a silent colour shift. */
+export class FootageHdr extends Schema.TaggedError<FootageHdr>()('FootageHdr', {
+  file: Schema.String,
+}) {
+  override get message() {
+    return `${this.file} is HDR video, which the render cannot conform without shifting its colour; record with HDR off (Settings › Camera › Record Video › HDR Video off) and import that`;
+  }
+}
+
+/** A take with no sound: a talk is cut on what its take says. */
+export class FootageSilent extends Schema.TaggedError<FootageSilent>()('FootageSilent', {
+  file: Schema.String,
+}) {
+  override get message() {
+    return `${this.file} has no sound; a take is cut on what it says (import a clip without --take)`;
+  }
+}
+
+/** A name the library already gives other bytes: a take is never overwritten; a second recording is a second name. */
+export class FootageNameTaken extends Schema.TaggedError<FootageNameTaken>()('FootageNameTaken', {
+  name: Schema.String,
+  file: Schema.String,
+}) {
+  override get message() {
+    return `the footage library already names other bytes "${this.name}"; ${this.file} was not imported (give it a name of its own with --as)`;
+  }
+}
+
+/**
+ * A name that is no footage name (`core/footage.ts` `FootageName`): its
+ * files would land outside the library's folders, or where the footage route
+ * never serves them. Nothing was written.
+ */
+export class FootageNameInvalid extends Schema.TaggedError<FootageNameInvalid>()(
+  'FootageNameInvalid',
+  {
+    name: Schema.String,
+    file: Schema.String,
+    reason: Schema.String,
+  },
+) {
+  override get message() {
+    return `"${this.name}" is no footage name (${this.reason}); ${this.file} was not imported (give --as a name such as why-the-law)`;
+  }
+}
+
+/**
+ * A file whose extension the library cannot keep (`core/footage.ts`
+ * `FootageExt`): its original's file and its key in the private store end
+ * in it. Nothing was written.
+ */
+export class FootageExtInvalid extends Schema.TaggedError<FootageExtInvalid>()(
+  'FootageExtInvalid',
+  {
+    file: Schema.String,
+    ext: Schema.String,
+    rule: Schema.String,
+  },
+) {
+  override get message() {
+    return `${this.file} ends "${this.ext}", which is no extension the library keeps (${this.rule}); rename it and import it again`;
+  }
+}
+
+/** A name the footage library does not have. */
+export class FootageUnknown extends Schema.TaggedError<FootageUnknown>()('FootageUnknown', {
+  name: Schema.String,
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    if (this.known.length === 0)
+      return `the footage library has no "${this.name}"; it has nothing yet (film footage import)`;
+    return `the footage library has no "${this.name}"; it has ${this.known.join(', ')}`;
+  }
+}
+
+/** An original the lock names that is not on this machine. */
+export class FootageOriginalMissing extends Schema.TaggedError<FootageOriginalMissing>()(
+  'FootageOriginalMissing',
+  { name: Schema.String, file: Schema.String },
+) {
+  override get message() {
+    return `footage "${this.name}": its original ${this.file} is not on disk; run film footage pull`;
+  }
+}
+
+/** A talk asked for what only a narrated film has: its voice is its takes, recorded on camera. */
+export class TalkUnvoiced extends Schema.TaggedError<TalkUnvoiced>()('TalkUnvoiced', {
+  film: Schema.String,
+}) {
+  override get message() {
+    return `${this.film} is a talk: its voice is its takes, recorded on camera (film footage import, film footage make), so it has no voice to narrate or stage`;
+  }
+}
+
+/** A command for a talk run on a drawn film. */
+export class NotATalk extends Schema.TaggedError<NotATalk>()('NotATalk', {
+  film: Schema.String,
+}) {
+  override get message() {
+    return `${this.film} is not a talk: it has no talk.ts`;
+  }
+}

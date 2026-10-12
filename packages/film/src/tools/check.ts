@@ -457,7 +457,8 @@ export const staleTakes = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
 ): ReadonlyArray<TakeStale> => {
-  const voice = voiceKey(film.voice);
+  // A talk's takes are all recorded: no staging voice's key decides them.
+  const voice = Option.match(film.voice, { onNone: () => '', onSome: voiceKey });
   return placed.flatMap((p) => {
     if (p.voice.spoken.length === 0) return [];
     const state = takeState(p.spec.id, takeScript(p.voice), film.timings, voice);
@@ -471,12 +472,17 @@ export const unknownVoices = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
 ): ReadonlyArray<UnknownVoice> =>
-  placed.flatMap((p) =>
-    Result.match(linesOf(p.spec.id, p.voice, film.voice), {
-      onFailure: (error) => [error],
-      onSuccess: () => [],
-    }),
-  );
+  // A talk has no cast to hand a line to.
+  Option.match(film.voice, {
+    onNone: () => [],
+    onSome: (voice) =>
+      placed.flatMap((p) =>
+        Result.match(linesOf(p.spec.id, p.voice, voice), {
+          onFailure: (error) => [error],
+          onSuccess: () => [],
+        }),
+      ),
+  });
 
 /**
  * Each score option's movements: each names a scene, and each runs in film
@@ -1617,18 +1623,29 @@ const boxAtRest = (a: Mark, b: Mark) =>
     STILL_DRIFT * Math.min(a.scale, b.scale) + BOX_NOISE &&
   Math.abs(a.alpha - b.alpha) <= STILL_FADE;
 
-/** The picture in a probed frame: everything but the caption line and its plate, which are the voice. */
-const pictureOf = (probed: Probed): Probed => ({
+/**
+ * The picture in a probed frame: everything but the caption line and its
+ * plate, which are the voice, and the footage frames it drew (none for a
+ * drawn film).
+ */
+const pictureOf = (probed: Probed): Required<Pick<Probed, 'texts' | 'inks' | 'footage'>> => ({
   texts: probed.texts.filter((t) => t.caption !== true),
   inks: probed.inks.filter((m) => m.caption !== true),
+  footage: probed.footage ?? [],
 });
 
-/** Two pictures draw the same marks, in the same order, each where and as strong as it was. */
-const atRest = (a: Probed, b: Probed) =>
+/**
+ * Two pictures draw the same marks, in the same order, each where and as
+ * strong as it was, over the same footage frames: a source's time moving
+ * (the edit playing its take) is motion, read from the edit, not the pixels.
+ */
+const atRest = (a: ReturnType<typeof pictureOf>, b: ReturnType<typeof pictureOf>) =>
   a.texts.length === b.texts.length &&
   a.inks.length === b.inks.length &&
+  a.footage.length === b.footage.length &&
   Arr.zip(a.texts, b.texts).every(([s, t]) => s.text === t.text && boxAtRest(s, t)) &&
-  Arr.zip(a.inks, b.inks).every(([m, n]) => m.kind === n.kind && boxAtRest(m, n));
+  Arr.zip(a.inks, b.inks).every(([m, n]) => m.kind === n.kind && boxAtRest(m, n)) &&
+  Arr.zip(a.footage, b.footage).every(([s, t]) => s.source === t.source && s.at === t.at);
 
 /**
  * Whether probed frames hold still: each frame's picture (the caption left

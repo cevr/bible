@@ -29,12 +29,14 @@ import {
   PubSub,
   Ref,
   Schedule,
+  Schema,
   Stream,
 } from 'effect';
 import { HttpPlatform, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { TestClock } from 'effect/testing';
 import { brotliCompressSync, brotliDecompressSync, constants as zlib } from 'node:zlib';
 import { LabHttpApi } from '../core/api.ts';
+import { type FootageLock, FootageLockJson } from '../core/footage.ts';
 import { LONGEST_WAIT } from '../core/wait.ts';
 import { PAGE_CUT_MARK } from '../core/page-render.ts';
 import { LabPage, type LabPageSpec, PageBundler, splice } from './lab-page.ts';
@@ -88,6 +90,7 @@ const appFolder = Effect.gen(function* () {
     },
     servers: { review: path.join(dir, 'src', 'review.server.tsx') },
     films: path.join(dir, 'src', 'films'),
+    footage: { dir: path.join(dir, 'footage'), out: path.join(dir, 'out') },
   };
   return { spec, write };
 });
@@ -240,6 +243,7 @@ const filmsInMemory = Effect.gen(function* () {
     },
     servers: {},
     films: '/app/films',
+    footage: { dir: '/app/footage', out: '/app/out' },
   };
   const { page, ask } = yield* served(spec, PageBundler.layerTest).pipe(
     Effect.provideContext(memory),
@@ -623,6 +627,61 @@ describe('lab pages', () => {
       const { build } = yield* waitWriting(settled, '1 second', 'src/notes.json', '{"seq":1}');
       expect(build).toBe(settled);
     }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    "plays a take's copy the footage library lists, by the range asked, and answers any other footage path with a 404, never a page",
+    () =>
+      Effect.gen(function* () {
+        const { spec } = yield* appFolder;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const sha256 = 'abcdef012345'.padEnd(64, '0');
+        const lock: FootageLock = {
+          version: 1,
+          footage: {
+            'take.why': {
+              kind: 'take',
+              sha256,
+              bytes: 1,
+              ext: '.mov',
+              probe: {
+                container: 'mp4',
+                duration: 1,
+                picture: {
+                  codec: 'hevc',
+                  width: 1080,
+                  height: 1920,
+                  rotation: 0,
+                  fps: 30,
+                  variable: false,
+                  start: 0,
+                },
+              },
+            },
+          },
+        };
+        yield* fs.makeDirectory(spec.footage.dir, { recursive: true });
+        yield* fs.writeFileString(
+          path.join(spec.footage.dir, 'library.lock.json'),
+          yield* Schema.encodeEffect(FootageLockJson)(lock),
+        );
+        const copies = path.join(spec.footage.out, 'footage', 'take.why', 'abcdef012345');
+        yield* fs.makeDirectory(copies, { recursive: true });
+        yield* fs.writeFileString(path.join(copies, 'proxy.mp4'), 'the proxy');
+        const { ask } = yield* served(spec, PageBundler.layerTest);
+        const proxy = '/footage/take.why/abcdef012345/proxy.mp4';
+        expect((yield* ask(proxy)).text).toBe('the proxy');
+        const part = yield* ask(proxy, 'GET', { range: 'bytes=4-8' });
+        expect([part.status, part.text]).toEqual([206, 'proxy']);
+        for (const other of [
+          '/footage/take.why/abcdef012345/mezzanine.mp4',
+          '/footage/take.why/000000000000/proxy.mp4',
+          '/footage/../out/footage/take.why/abcdef012345/proxy.mp4',
+          '/footage/',
+        ])
+          expect((yield* ask(other)).status).toBe(404);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
   it.live(
@@ -1233,6 +1292,7 @@ const memoryApp = (
     },
     servers: {},
     films: '/app/src/films',
+    footage: { dir: '/app/footage', out: '/app/out' },
   };
   const fileSystem = Layer.effect(
     FileSystem.FileSystem,

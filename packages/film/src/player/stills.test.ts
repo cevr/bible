@@ -4,9 +4,15 @@
 // and a sheet waits for every still it asked for.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
+import type { RenderOptions } from '../canvas/film.ts';
 import { standInDom } from '../canvas/fixtures/stand-in.ts';
+import { Footage } from '../browser/footage.ts';
+import { hostOf } from '../browser/host.ts';
 import { makeStills } from './stills.ts';
+
+/** A page with no footage: a drawn film's stills never ask for any. */
+const NO_FOOTAGE = hostOf(Footage.none);
 
 /** A film that draws nothing and remembers each time it was asked to draw. */
 const recording = () => {
@@ -46,6 +52,7 @@ describe('makeStills', () => {
           captions: false,
           turn: page.turn,
           now: () => 0,
+          footage: NO_FOOTAGE,
         });
         expect([stills.width, stills.height]).toEqual([160, 90]);
         stills.want([5, 10, 15]);
@@ -72,6 +79,7 @@ describe('makeStills', () => {
           captions: false,
           turn: page.turn,
           now: () => 0,
+          footage: NO_FOOTAGE,
         });
         stills.want([0, 5, 10, 15]);
         // The page scrolled: the stills now on screen go next.
@@ -92,6 +100,7 @@ describe('makeStills', () => {
           captions: false,
           turn: page.turn,
           now: () => 0,
+          footage: NO_FOOTAGE,
         });
         stills.want([2]);
         yield* page.next();
@@ -114,6 +123,7 @@ describe('makeStills', () => {
           captions: false,
           turn: page.turn,
           now: () => 0,
+          footage: NO_FOOTAGE,
         });
         const heard: Array<string> = [];
         const sheet = stills.all([1, 2, 3], (done, of) => heard.push(`${done}/${of}`));
@@ -143,6 +153,7 @@ describe('makeStills', () => {
             captions: false,
             turn: page.turn,
             now: () => 0,
+            footage: NO_FOOTAGE,
           });
           const sheet = yield* Effect.flip(
             Effect.tryPromise({ try: () => stills.all([1, 2]), catch: String }),
@@ -160,6 +171,77 @@ describe('makeStills', () => {
       ),
   );
 
+  it.effect(
+    'a film that reads footage draws each still once its footage is decoded, with that footage',
+    () =>
+      withDom(
+        Effect.gen(function* () {
+          // The host's frame for each read: a canvas per second it is read at.
+          const decoded = new Map<number, HTMLCanvasElement>();
+          const frameAt = (at: number) =>
+            Option.getOrElse(Option.fromUndefinedOr(decoded.get(at)), () => {
+              const made = document.createElement('canvas');
+              decoded.set(at, made);
+              return made;
+            });
+          const footage = hostOf(Footage.layerOver((read) => Option.some(frameAt(read.at))));
+          const read = (T: number) => ({ source: 'take/0123456789ab', at: T + 1 });
+          const shown: Array<readonly [number, boolean]> = [];
+          const film = {
+            width: 640,
+            height: 360,
+            fps: 30,
+            footageAt: (T: number) => [read(T)],
+            render: (_: unknown, T: number, opts?: RenderOptions) =>
+              shown.push([T, opts?.footage?.frame(read(T)) === frameAt(T + 1)]),
+          };
+          const stills = makeStills(film, {
+            width: 160,
+            captions: false,
+            turn: () => Promise.resolve(),
+            now: () => 0,
+            footage,
+          });
+          // Asked for, not yet decoded: nothing is drawn in the asking turn.
+          const sheet = stills.all([2, 1]);
+          expect(shown).toEqual([]);
+          const drawn = yield* Effect.promise(() => sheet);
+          expect(drawn.length).toBe(2);
+          expect(shown).toEqual([
+            [2, true],
+            [1, true],
+          ]);
+        }),
+      ),
+  );
+
+  it.effect(
+    "a still whose footage will not decode is never drawn: a waiting sheet rejects with the frame's name",
+    () =>
+      withDom(
+        Effect.gen(function* () {
+          const { film: drawn, times } = recording();
+          const film = {
+            ...drawn,
+            footageAt: (T: number) => [{ source: 'take/0123456789ab', at: T }],
+          };
+          const stills = makeStills(film, {
+            width: 160,
+            captions: false,
+            turn: () => Promise.resolve(),
+            now: () => 0,
+            footage: NO_FOOTAGE,
+          });
+          const why = yield* Effect.flip(
+            Effect.tryPromise({ try: () => stills.all([1, 2]), catch: String }),
+          );
+          expect(why).toContain('footage take/0123456789ab has no frame at 1.000 s');
+          expect(times).toEqual([]);
+          expect(stills.drawn().count).toBe(0);
+        }),
+      ),
+  );
+
   it.effect('once stopped (its page left), no further still is drawn, wanted before or after', () =>
     withDom(
       Effect.gen(function* () {
@@ -170,6 +252,7 @@ describe('makeStills', () => {
           captions: false,
           turn: page.turn,
           now: () => 0,
+          footage: NO_FOOTAGE,
         });
         stills.want([1, 2, 3]);
         expect(times).toEqual([1]);

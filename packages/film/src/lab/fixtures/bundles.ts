@@ -74,6 +74,36 @@ const DEVELOPMENT: ReadonlySet<string> = new Set([
   'player-hydrated-page.ts',
 ]);
 
+/** The entries whose tests show a talk's footage: their bundles keep the decoder. */
+const FOOTAGE_PAGES: ReadonlySet<string> = new Set(['render-page.ts', 'player-page.ts']);
+
+/**
+ * The footage host loads its decoder (mediabunny) with a talk's first frame.
+ * The lab's build keeps it in a chunk of its own that a page with no talk
+ * never fetches (`splitting`); a fixture is one classic script, which would
+ * carry the whole decoder, and its inline map, into every page. A page whose
+ * tests show no footage is bundled with that load failing by name instead.
+ */
+const noDecoder: BunPlugin = {
+  name: 'no-decoder',
+  setup(build) {
+    build.onLoad({ filter: /\/browser\/footage-browser\.ts$/ }, (args) =>
+      Effect.runPromise(
+        FileSystem.FileSystem.use((fs) => fs.readFileString(args.path)).pipe(
+          Effect.provide(BunServices.layer),
+          Effect.map((source) => ({
+            contents: source.replaceAll(
+              "import('mediabunny')",
+              "Promise.reject(new Error('this fixture page decodes no footage (bundles.ts FOOTAGE_PAGES)'))",
+            ),
+            loader: 'ts' as const,
+          })),
+        ),
+      ),
+    );
+  },
+};
+
 export const compile = (entry: string) =>
   Effect.promise(() =>
     Bun.build({
@@ -83,7 +113,12 @@ export const compile = (entry: string) =>
       minify: true,
       // The host-reach check reads a call's frames back to the files that wrote them.
       sourcemap: 'inline',
-      plugins: [solidPlugin, servedFonts, classicScript],
+      plugins: [
+        solidPlugin,
+        servedFonts,
+        classicScript,
+        ...Arr.filter([noDecoder], () => !FOOTAGE_PAGES.has(entry)),
+      ],
       conditions: Arr.filter(['development'], () => DEVELOPMENT.has(entry)),
     }),
   ).pipe(

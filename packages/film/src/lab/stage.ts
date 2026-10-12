@@ -67,12 +67,13 @@ export interface StageOps {
   readonly still: (T: number) => Effect.Effect<Uint8Array, NoStill>;
 }
 
-/** The canvas gave no PNG for the frame. */
+/** No PNG of the frame: its footage would not decode, or the canvas gave none. */
 class NoStill extends Schema.TaggedError<NoStill>()('NoStill', {
   T: Schema.Finite,
+  why: Schema.String,
 }) {
   override get message() {
-    return `no still of ${this.T.toFixed(2)}s: the canvas gave no image`;
+    return `no still of ${this.T.toFixed(2)}s: ${this.why}`;
   }
 }
 
@@ -180,11 +181,20 @@ export const makeStage = (
       }),
     still: (T) =>
       drawable(player).pipe(
-        Effect.andThen(Effect.sync(() => player.renderShown(player.ctx, T))),
+        // The canvas is read once the frame is painted: a talk's after its footage decodes.
+        Effect.andThen(
+          Effect.mapError(player.renderShown(player.ctx, T), (missing) =>
+            NoStill.make({ T, why: missing.message }),
+          ),
+        ),
         Effect.flatMap(() =>
           Effect.callback<Blob, NoStill>((resume) =>
             player.canvas.toBlob((blob) =>
-              resume(Effect.fromOption(Option.fromNullishOr(blob), () => NoStill.make({ T }))),
+              resume(
+                Effect.fromOption(Option.fromNullishOr(blob), () =>
+                  NoStill.make({ T, why: 'the canvas gave no image' }),
+                ),
+              ),
             ),
           ),
         ),

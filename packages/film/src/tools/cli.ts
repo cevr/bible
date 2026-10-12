@@ -6,6 +6,8 @@
 //   film narrate | takes import | script | score | mix       the voice and the sound
 //   film sfx …        (sfx-cli.ts)     the app's sound library
 //   film media …      (media-cli.ts)   the app's private media store
+//   film footage …    (footage-cli.ts) the app's camera footage, its copies and a take's transcript
+//   film talk …       (talk-cli.ts)    a talk's edit, read as it plays (its words by index)
 //   film cues | check | doctor                                 read and check a film
 //   film render | lookbook | chapters                          pictures and video
 //   film project …    (project-cli.ts) a film's scenes rendered, approved, commented
@@ -71,7 +73,7 @@ import {
   PreviewServerFailed,
   SoundMissing,
 } from './errors.ts';
-import { FilmFolder, FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
+import { FilmFolder, FilmRepo, type LoadedFilm, filmsOut, placeFilm } from './film-repo.ts';
 import { Mixer } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
@@ -100,6 +102,8 @@ import {
   jobOf,
 } from './render-plan.ts';
 import { media } from './media-cli.ts';
+import { footage } from './footage-cli.ts';
+import { talk } from './talk-cli.ts';
 import { options } from './choices-cli.ts';
 import { answeringCheck, encodeCheckLine } from './fresh-film.ts';
 import { sfx } from './sfx-cli.ts';
@@ -648,7 +652,7 @@ const check = <E, R>(
     }, answeringCheck),
   ).pipe(
     Command.withDescription(
-      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds and a master mixed for the film as it is, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s; no dead air in the mix the film makes now, and warnings where a scene holds still for most of its seconds, no face reaches human scale, an act misses its colour script, or the ending leaves no room for end screens. With --short <id>, check that short instead: text inside the platform's safe zone (--zone), a hook in the first ${SHORT_RULES.motionBy} s, a clean loop and a length of at most ${SHORT_RULES.length.max} s`,
+      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds and a master mixed for the film as it is, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s; no dead air in the mix the film makes now, and warnings where a scene holds still for most of its seconds, no face reaches human scale, an act misses its colour script, or the ending leaves no room for end screens. With --short <id>, check that short instead: text inside the platform's safe zone (--zone), a hook in the first ${SHORT_RULES.motionBy} s, a clean loop and a length of at most ${SHORT_RULES.length.max} s. A talk is checked as a vertical film as well: its length against its format's, its first word and its loop's silence, and (on the full check, in the browser) its text inside every platform's zone and its open moving`,
     ),
   );
 };
@@ -851,7 +855,7 @@ const chaptersCommand = Command.make(
   ),
 );
 
-const lab = <E>(app: FilmApp<E>['lab'], films: string) =>
+const lab = <E>(app: FilmApp<E>['lab'], films: string, footage: string) =>
   Command.make(
     'lab',
     {},
@@ -872,7 +876,13 @@ const lab = <E>(app: FilmApp<E>['lab'], films: string) =>
   ).pipe(
     // The pages, built from the app's entries and watched while the lab runs,
     // and the easel's warm pages over them, in this process's Chrome.
-    Command.provide(labPages({ ...app.pages, films })),
+    Command.provide(
+      Layer.unwrap(
+        Effect.map(filmsOut, (out) =>
+          labPages({ ...app.pages, films, footage: { dir: footage, out } }),
+        ),
+      ),
+    ),
     Command.withDescription(
       "Serve the lab for every film: the player with notes on frames, cues and knobs that write back to the scene files and the studio, beside every render under the roots, compared in sync, and each film's choices and scenes to approve (Ctrl-C stops it)",
     ),
@@ -884,6 +894,8 @@ interface FilmApp<E> {
   readonly films: string;
   /** The app's sound library folder (`library.ts`, its lock, `files/`, `public/`), shared by its films. */
   readonly sounds: string;
+  /** The app's footage library folder (its lock, `transcripts/`, `files/`), shared by its talks. */
+  readonly footage: string;
   /**
    * The app's own folders for what a run makes: `out`, its renders, sheets and
    * project folders (`FILMS_OUT`), and `lab`, the lab's notes (`FILMS_LAB`).
@@ -901,7 +913,7 @@ interface FilmApp<E> {
    */
   readonly lab: {
     readonly at: Effect.Effect<LabAt, E>;
-    readonly pages: Omit<LabPageSpec, 'films'>;
+    readonly pages: Omit<LabPageSpec, 'films' | 'footage'>;
     readonly roots: Effect.Effect<
       ReadonlyArray<ReviewRoot>,
       never,
@@ -933,6 +945,7 @@ interface FilmApp<E> {
 export const runFilmCli = <E>({
   films,
   sounds,
+  footage: footageAt,
   folders,
   previewServer,
   lab: labApp,
@@ -940,14 +953,17 @@ export const runFilmCli = <E>({
   judge: judging,
 }: FilmApp<E>): void => {
   // The film's services, the lab's included (`film-services.ts`), over the app's folders,
-  // reading a film fresh through this CLI, with the real ElevenLabs.
+  // reading a film fresh through this CLI, with the real ElevenLabs and the private store
+  // the app's sound library declares.
   const Services = filmServices({
     films,
     sounds,
+    footage: footageAt,
     folders,
     self,
     roots: labApp.roots,
     elevenLabs: ElevenLabs.layer,
+    privateStore: Option.none(),
   });
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Layer.mergeAll(Checker.layer, Looker.layer).pipe(
@@ -965,6 +981,8 @@ export const runFilmCli = <E>({
       score,
       sfx,
       media,
+      footage,
+      talk,
       mix,
       options,
       read,
@@ -975,7 +993,7 @@ export const runFilmCli = <E>({
       lookbook(lookLayer),
       chaptersCommand,
       doctor(previewServer),
-      lab(labApp, films),
+      lab(labApp, films, footageAt),
       look(films),
       journal,
       judge(films, judging.rules),

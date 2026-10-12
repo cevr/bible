@@ -137,6 +137,7 @@ const setup = (
       paths: () => film.paths,
       names: Effect.succeed([film.paths.name]),
       sounds: Option.none(),
+      footage: Option.none(),
       stamp: () => Effect.succeed(1),
     }),
   );

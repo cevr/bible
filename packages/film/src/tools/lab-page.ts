@@ -73,6 +73,7 @@ import {
   type RenderedPage,
   type ServerBundle,
 } from './page-render.ts';
+import { type FootageRoot, footageResponse, isFootageUrl } from './footage-route.ts';
 import { isNarrationUrl, narrationPath } from './narration-route.ts';
 import { narrationUrls } from '../player/narrated.ts';
 import { CACHE, serveFile } from './review-file.ts';
@@ -90,6 +91,11 @@ export interface LabPageSpec {
   readonly servers: Partial<Readonly<Record<AppPage, string>>>;
   /** The films folder, whose narration the pages play (`/films/<film>/narration/<file>`). */
   readonly films: string;
+  /**
+   * The footage library and the outputs folder its copies are made under,
+   * whose takes' copies the pages play (`/footage/<name>/<sha12>/<copy>.mp4`).
+   */
+  readonly footage: FootageRoot;
 }
 
 /** A built file: its bytes and its media type. */
@@ -1541,7 +1547,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       HttpServerResponse.redirect(to, { status: 302, headers: { 'cache-control': CACHE.none } }),
     );
 
-  // A narration file by its exact URL, then a built file, then an old link
+  // A narration file or a footage copy by its exact URL, then a built file, then an old link
   // sent on to its place, then the page the path serves (`pageAt`, the
   // places); anything else, a chunk of a build no longer kept among them, is
   // a 404 and never a page's HTML.
@@ -1550,6 +1556,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     const url = new URL(request.url, 'http://lab');
     const pathname = url.pathname;
     if (isNarrationUrl(pathname)) return yield* narration(request, pathname);
+    if (isFootageUrl(pathname)) return yield* footageResponse(spec.footage, request, pathname);
     const built = yield* asset(pathname);
     if (Option.isSome(built)) return built.value;
     const old = `${pathname}${url.search}`;

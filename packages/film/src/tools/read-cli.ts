@@ -41,8 +41,15 @@ import type { CuePatch, Span } from '../core/schema.ts';
 import { type Quote, type ScriptLine, sheetBeats } from '../core/sheet.ts';
 import type { StudioReading } from '../core/studio.ts';
 import { patchSpan, resolveTimeline, writtenPatch } from '../core/timeline.ts';
-import { FilmModuleInvalid } from './errors.ts';
-import { FilmFolder, FilmRepo, type LoadedFilm, importFilmModule, placeFilm } from './film-repo.ts';
+import { FilmModuleInvalid, type TalkUnvoiced } from './errors.ts';
+import {
+  FilmFolder,
+  FilmRepo,
+  type LoadedFilm,
+  importFilmModule,
+  placeFilm,
+  readerOf,
+} from './film-repo.ts';
 import {
   CuePatchJson,
   CueRead,
@@ -71,13 +78,13 @@ const studioReading = (
   loaded: LoadedFilm,
   script: Option.Option<ReadonlyArray<ScriptLine>>,
   quotes: ReadonlyArray<Quote>,
-): Result.Result<StudioReading, UnknownVoice | LineError> =>
+): Result.Result<StudioReading, UnknownVoice | LineError | TalkUnvoiced> =>
   Result.gen(function* () {
     const lines = Option.getOrElse(script, () =>
       loaded.scenes.map((scene) => ({ ...scene, cite: [] })),
     );
     return {
-      voice: loaded.voice,
+      voice: yield* readerOf(loaded),
       heardAs: loaded.heardAs,
       beats: yield* beatsOf(loaded),
       sheet: yield* sheetBeats(lines, quotes),

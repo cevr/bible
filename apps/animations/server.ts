@@ -4,7 +4,7 @@
 // (`LAB_PAGES`). The lab's own server is the framework's (`labServer`):
 // `bun run lab`, the box's unit.
 
-import { CACHE, narrationFile } from '@bible/film/tools';
+import { CACHE, type FootageRoot, footageHandler, narrationFile } from '@bible/film/tools';
 import { BunServices } from '@effect/platform-bun';
 import { Effect, Option } from 'effect';
 import { join } from 'node:path';
@@ -44,8 +44,12 @@ export const LAB_SERVERS: Partial<Record<keyof typeof LAB_PAGES, string>> = {
 /** The loopback interface: the only one the player listens on. */
 const HOST = '127.0.0.1';
 
-/** The player on `HOST`:`port`, its narration served from `films`. */
-export const serve = (port: number, films: string = FILMS) => {
+/**
+ * The player on `HOST`:`port`, its narration served from `films` and its
+ * talks' footage from `footage` (`footageHandler`: each copy by range, as the
+ * export decodes it).
+ */
+export const serve = (port: number, films: string, footage: FootageRoot) => {
   const spoken = narration(films);
   return Bun.serve({
     hostname: HOST,
@@ -54,6 +58,7 @@ export const serve = (port: number, films: string = FILMS) => {
     routes: {
       '/': index,
       '/films/*': (req) => spoken(new URL(req.url).pathname),
+      '/footage/*': footageHandler(footage),
     },
   });
 };

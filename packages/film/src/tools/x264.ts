@@ -2,20 +2,29 @@
 // @mediabunny/server decodes with), registered as mediabunny's encoder for
 // `avc`, so a mediabunny conversion encodes with it. @mediabunny/server's own
 // libx264 runs the default preset with no tune and loses the paper's grain
-// at any size measured. This one encodes the two copies the tools make, told
-// apart by the quality a conversion asks for (all mediabunny hands a
-// registered encoder): a quantizer is a render's share copy, a bitrate a
-// review's phone copy (`SHARE_X264`, `PHONE_ENCODE`). Both are level 4.1
-// (preset slow's reference frames would otherwise raise it to 5.0, which some
-// phones refuse). x264 places every key frame by its own interval: NodeAV's
-// encoder clears the picture type a frame carries, so the key frames a
-// conversion asks for never reach it. Packets leave in Annex B, and
-// mediabunny's MP4 muxer writes them as AVC.
+// at any size measured. This one encodes the copies the tools make, told
+// apart by what mediabunny hands a registered encoder, its config: a
+// footage copy by its content hint (`FOOTAGE_HINTS`, `core/footage.ts`),
+// and a film's by the quality a conversion asks for: a quantizer is a
+// render's share copy, a bitrate a review's phone copy (`SHARE_X264`,
+// `PHONE_ENCODE`). A film's two are level 4.1 (preset slow's reference
+// frames would otherwise raise it to 5.0, which some phones refuse). x264
+// places every key frame by its own interval: NodeAV's encoder clears the
+// picture type a frame carries, so the key frames a conversion asks for
+// never reach it. Packets leave in Annex B, and mediabunny's MP4 muxer
+// writes them as AVC.
 
 import { toAvFrame } from '@mediabunny/server';
 import { Array as Arr, Effect, Match, Option, Stream } from 'effect';
 import { CustomVideoEncoder, EncodedPacket, type VideoCodec, type VideoSample } from 'mediabunny';
 import * as NodeAv from 'node-av';
+import {
+  FOOTAGE_COPIES,
+  FOOTAGE_HINTS,
+  FOOTAGE_RECIPES,
+  type FootageCopy,
+  type FootageRecipe,
+} from '../core/footage.ts';
 import { FILM_FPS } from '../core/time.ts';
 
 /**
@@ -77,8 +86,59 @@ const spsBytes = (data: Uint8Array): Option.Option<Uint8Array> =>
 const codecString = (sps: Uint8Array) =>
   `avc1.${Array.from(sps, (b) => b.toString(16).padStart(2, '0')).join('')}`;
 
+/**
+ * A footage copy (`core/footage.ts`): x264's CRF at the quantizer it asks,
+ * preset medium, tune film, BT.709 colour named in the stream, and its key
+ * frames at most its recipe's `keyEvery` apart, by x264's own `keyint`.
+ * The key frames mediabunny asks for (`keyFrameInterval`) never reach x264:
+ * NodeAV's encoder clears each frame's picture type before it encodes
+ * (`prepareFrameForEncoding`), so a copy's key frames are x264's to place.
+ */
+const FOOTAGE_X264 = {
+  preset: 'medium',
+  tune: 'film',
+};
+
+/**
+ * x264's `keyint` and colour for a footage copy at `fps` (a camera's 29.97
+ * as it is): a key frame at most `keyEvery` seconds apart, so 29 frames at
+ * 29.97 for a second.
+ */
+const footageParams = (recipe: FootageRecipe, fps: number) =>
+  [
+    `keyint=${Math.max(1, Math.floor(recipe.keyEvery * fps))}`,
+    'colorprim=bt709',
+    'transfer=bt709',
+    'colormatrix=bt709',
+  ].join(':');
+
+/** The footage copy a content hint names (`FOOTAGE_HINTS`), if it names one. */
+const footageCopyOf = (hint: VideoEncoderConfig['contentHint']): Option.Option<FootageCopy> =>
+  Arr.findFirst(FOOTAGE_COPIES, (copy) => FOOTAGE_HINTS[copy] === hint);
+
 /** x264's context and settings for the copy mediabunny's config asks for (above), at `fps` frames a second. */
 const settingsOf = (config: VideoEncoderConfig, options: VideoEncoderEncodeOptions, fps: number) =>
+  Option.match(footageCopyOf(config.contentHint), {
+    onSome: (copy) => ({
+      context: {},
+      options: {
+        ...FOOTAGE_X264,
+        ...Option.match(Option.fromNullishOr(options.avc?.quantizer), {
+          onNone: () => ({ crf: FOOTAGE_RECIPES[copy].crf }),
+          onSome: (crf) => ({ crf }),
+        }),
+        'x264-params': footageParams(FOOTAGE_RECIPES[copy], fps),
+      },
+    }),
+    onNone: () => filmSettingsOf(config, options, fps),
+  });
+
+/** A film's share copy or phone copy (above), at `fps` frames a second. */
+const filmSettingsOf = (
+  config: VideoEncoderConfig,
+  options: VideoEncoderEncodeOptions,
+  fps: number,
+) =>
   Match.value(config.bitrateMode).pipe(
     Match.when('quantizer', () => ({
       context: {},

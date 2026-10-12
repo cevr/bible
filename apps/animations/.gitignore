@@ -28,3 +28,10 @@ src/films/*/sound/*
 # library's lock file, `.library.lock.json.lock`.
 **/sounds/**/*.partial
 **/sounds/**/*.lock
+# Camera footage (the owner's face, licensed stock): never in this public repo.
+# The originals sync with the private store (`footage push` / `footage pull`);
+# only the lock and the transcripts (text and numbers) are committed. Its
+# copies are made under `out/footage/` by `footage make`.
+**/footage/files/
+**/footage/**/*.partial
+**/footage/**/*.lock

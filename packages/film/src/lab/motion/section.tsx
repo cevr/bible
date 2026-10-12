@@ -6,7 +6,7 @@
 // onion over the film on a paused frame. Both read Motion's context.
 
 import { NumberField } from '@bible/ui/number-field';
-import { Option } from 'effect';
+import { Effect, Option } from 'effect';
 import { createEffect, onCleanup } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
@@ -119,7 +119,7 @@ export const Section = () => {
  */
 export const Onion = () => {
   const { state: lab, meta } = useLab();
-  const { state } = useMotion();
+  const { state, actions } = useMotion();
   const { player } = meta;
   const painter = makeOnion(player);
   let layer = Option.none<{
@@ -130,7 +130,23 @@ export const Onion = () => {
     Option.map(layer, (l) => {
       const shown = state.onion().on && !player.playing();
       l.el.hidden = !shown;
-      if (shown) painter.paint(l.ctx, state.onion());
+      // Painted once its ghosts' frames are; one that will not decode takes
+      // the onion off the layer, and the section says why until one paints.
+      if (shown)
+        Effect.runForkWith(meta.host)(
+          painter.paint(l.ctx, state.onion()).pipe(
+            Effect.andThen(Effect.sync(() => actions.onionFailed(Option.none()))),
+            Effect.catchTag('FootageFrameMissing', (missing) =>
+              Effect.logWarning(
+                `lab.onion.footage.missing source=${missing.source} at=${missing.at}`,
+              ).pipe(
+                Effect.andThen(
+                  Effect.sync(() => actions.onionFailed(Option.some(missing.message))),
+                ),
+              ),
+            ),
+          ),
+        );
     });
   };
   // Painted once a frame, however often it is asked for; not after the layer goes.

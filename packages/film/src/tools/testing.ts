@@ -85,6 +85,10 @@ import {
 import { FilmFolder, FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { cueOf, locateHere } from './read-cli.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
+import type { FootageCopy, FootageProbe } from '../core/footage.ts';
+import { FootageMedia } from './footage-media.ts';
+import { folderStore } from './media-store.ts';
+import { PrivateStore } from './private-store.ts';
 import { StudioReadings } from './studio.ts';
 import { PreviewServer } from './preview-server.ts';
 import { SceneHead } from './scene-head.ts';
@@ -333,6 +337,15 @@ const memoryOps = (
       writeInto(files, folders, 'writeFile', path, data, options?.flag),
     writeFileString: (path, data, options) =>
       writeInto(files, folders, 'writeFileString', path, text(data), options?.flag),
+    // A file's bytes written whole at another path, as Node's `copyFile` writes them; a
+    // folder is refused as Bun refuses it, its kind unknown.
+    copyFile: (from, to) =>
+      Effect.flatMap(
+        keyed(from, (key) =>
+          fileAt('copyFile', key, () => refusal('Unknown', 'copyFile', key, 'EISDIR')),
+        ),
+        (bytes) => writeInto(files, folders, 'copyFile', to, bytes.slice()),
+      ),
     // Made as Node's `mkdir` makes it: one folder in a folder that is there
     // (ENOENT when not, EEXIST when the path is taken), or with `recursive`
     // every folder down to it (ENOTDIR through a file, EEXIST on one).
@@ -1122,6 +1135,45 @@ export const fakeMedia = (
     }),
   );
 
+/**
+ * The footage library's media over `files`: an original is probed by what
+ * its bytes say (`probeOf`), a copy lands as `<copy> of <original>` and is
+ * counted in `made`, and a take's voice is `fakeRecording` of its words.
+ */
+export const fakeFootageMedia = (
+  files: Map<string, Uint8Array>,
+  probeOf: (said: string) => { readonly probe: FootageProbe; readonly hdr: boolean },
+  made: Array<FootageCopy>,
+) =>
+  Layer.succeed(
+    FootageMedia,
+    FootageMedia.of({
+      probe: (file) =>
+        Option.match(Option.fromNullishOr(files.get(file)), {
+          onNone: () => Effect.fail(MediaFailed.make({ op: 'read', file, reason: 'no such file' })),
+          onSome: (bytes) => Effect.succeed(probeOf(new TextDecoder().decode(bytes))),
+        }),
+      copy: (file, _picture, copy, out) =>
+        Effect.sync(() => {
+          made.push(copy);
+          files.set(out, text(`${copy} of ${file}`));
+        }),
+      voice: (file, _picture, rate) =>
+        Effect.succeed(fakeRecording(new TextDecoder().decode(files.get(file)).trim(), rate)),
+    }),
+  );
+
+/** A private store in the folder `root`, on whatever disk the test gives: nothing reaches a bucket. */
+export const privateFolder = (root: string) =>
+  Layer.effect(
+    PrivateStore,
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      return PrivateStore.of({ store: Effect.succeed(folderStore(fs, path, root)) });
+    }),
+  );
+
 /** How a fake page answers the export handle's calls: decoded answers, or the failure a page would give. */
 type FakeHandle = {
   readonly [K in ExportCall]: (
@@ -1493,7 +1545,7 @@ export const testFilm = (
     },
   },
   scenes,
-  voice,
+  voice: Option.some(voice),
   sound: Option.none(),
   shorts: [],
   timings,
@@ -1502,6 +1554,7 @@ export const testFilm = (
   look: Option.none(),
   looks: {},
   sounds: NO_SOUNDS,
+  talk: Option.none(),
 });
 
 /**
