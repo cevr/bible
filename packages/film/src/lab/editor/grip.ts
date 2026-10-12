@@ -564,20 +564,21 @@ const writeSaid = (w: CueWrite | KnobWrite): string =>
  * before → after, when the page knew (else what the lab wrote), what an
  * Undo or Redo walked, or what a talk's write set, in the lab's words
  * (`cut words 3–4 of ask in talk.ts`). A write that changed nothing (no
- * `change`) says the value was already so; the lab's own words already do.
+ * `change`) says the value was already so: the page's words of a cue or knob
+ * say it here, the lab's own words already do (`… (already so)`).
  */
-export const wroteNote = (write: Write, result: LabWrite): string => {
-  const already = Option.match(Option.fromUndefinedOr(result.change), {
-    onNone: () => ' (already so)',
-    onSome: () => '',
-  });
-  return Match.value(write).pipe(
+export const wroteNote = (write: Write, result: LabWrite): string =>
+  Match.value(write).pipe(
     Match.tag(
       'StepWrite',
       (s) => `${PAST[s.verb]} ${result.target.replace(/^(undo|redo) /, '')} in ${result.file}`,
     ),
-    Match.tag('TalkWrite', () => `${result.target} in ${result.file}${already}`),
+    Match.tag('TalkWrite', () => `${result.target} in ${result.file}`),
     Match.orElse((w) => {
+      const already = Option.match(Option.fromUndefinedOr(result.change), {
+        onNone: () => ' (already so)',
+        onSome: () => '',
+      });
       const unresolved = Option.match(Option.fromUndefinedOr(result.unresolved), {
         onNone: () => '',
         onSome: (why) => ` (not resolved: ${why})`,
@@ -592,7 +593,6 @@ export const wroteNote = (write: Write, result: LabWrite): string => {
       return `${said}${unresolved}`;
     }),
   );
-};
 
 /**
  * What the inspector's fields of a cue or knob read: its scene as the lab

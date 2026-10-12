@@ -8,7 +8,7 @@
 // the words selected are painted as their ranges of the one text. Mark here
 // names its mark from the word.
 
-import { Array as Arr, Option } from 'effect';
+import { Array as Arr, Option, Record as Rec } from 'effect';
 import type { TalkWords } from '../../core/api.ts';
 import { type Placed, sceneAt } from '../../core/layout.ts';
 import type { CodeRange } from '../../core/schema.ts';
@@ -130,7 +130,7 @@ export const markName = (
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '') || 'mark';
   const free = (name: string) =>
-    Option.match(Option.fromUndefinedOr(marks[name]), {
+    Option.match(Rec.get(marks, name), {
       onNone: () => true,
       onSome: (on) => on === index,
     });

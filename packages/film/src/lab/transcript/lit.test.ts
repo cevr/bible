@@ -81,6 +81,11 @@ describe("the Transcript view's words", () => {
     expect(markName('—', 1, {})).toBe('mark');
   });
 
+  test("a word named as an object's inherited key is a name like any other: only the section's own marks are taken", () => {
+    expect(markName('Constructor', 3, { law: 1 })).toBe('constructor');
+    expect(markName('constructor', 4, { constructor: 3 })).toBe('constructor-2');
+  });
+
   test("Mark here's name is one the talk keeps (`MarkName`): a letter's accent let go, a word of no such letters `mark`", () => {
     expect(markName('Café', 3, {})).toBe('cafe');
     expect(markName('Señor,', 4, {})).toBe('senor');

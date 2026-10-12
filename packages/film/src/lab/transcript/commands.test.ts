@@ -164,9 +164,15 @@ describe('the view’s verbs', () => {
   });
 
   test('none of the writes is offered while a write is out, or with the view shut', () => {
-    for (const id of ['transcript.cut', 'transcript.restore', 'transcript.mark']) {
-      expect(over([], { writing: true }).command(id).when(onWord('ask', 5))).toBe(false);
-      expect(over([], { open: false }).command(id).when(onWord('ask', 5))).toBe(false);
+    // Each on a word it is offered on otherwise: a played word for Cut and Mark here, a struck one for Restore.
+    for (const [id, word] of [
+      ['transcript.cut', 4],
+      ['transcript.mark', 4],
+      ['transcript.restore', 5],
+    ] as const) {
+      expect(over([]).command(id).when(onWord('ask', word))).toBe(true);
+      expect(over([], { writing: true }).command(id).when(onWord('ask', word))).toBe(false);
+      expect(over([], { open: false }).command(id).when(onWord('ask', word))).toBe(false);
     }
   });
 

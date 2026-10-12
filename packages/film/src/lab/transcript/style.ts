@@ -22,8 +22,8 @@ export const TRANSCRIPT_CSS = `
   overflow-anchor: none; /* the browser never moves the scroll by itself: the view places it, layout clamps it, a hand moves it */ }
 .lab-transcript-page { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-2) var(--gutter) var(--s-3);
   font-size: var(--body-fs); line-height: var(--body-lh); color: var(--text-1); overflow-wrap: anywhere; }
-/* Its ring inside the box: the column clips what stands outside it. */
-.lab-transcript-scroll:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+/* The kit's ring, inside the box: the column clips what stands outside it. */
+.lab-transcript-scroll:focus-visible { outline: none; box-shadow: var(--focus-ring-inset); }
 .lab-transcript-scene { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); font-weight: inherit; color: var(--text-3); }
 .lab-transcript-words { margin: 0; }
 .lab-transcript-w { cursor: pointer; }

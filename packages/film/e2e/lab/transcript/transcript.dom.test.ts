@@ -65,6 +65,14 @@ const startOf = (id: string, index: number) =>
 /** The words the cut plays, in play order. */
 const PLAYED = WORDS.sections.flatMap((s) => s.words.filter((w) => !w.struck).map((w) => w.text));
 
+/**
+ * Whether the focused element shows the kit's ring drawn inside it
+ * (`--focus-ring-inset`, as a box whose column clips what stands outside it
+ * draws it) and no outline: its computed shadow against the token's, read off
+ * a probe beside it.
+ */
+const INSET_RING_SHOWN = `((el) => { const probe = document.createElement('i'); probe.style.boxShadow = 'var(--focus-ring-inset)'; el.parentElement.append(probe); const ring = getComputedStyle(probe).boxShadow; probe.remove(); const s = getComputedStyle(el); return s.outlineStyle === 'none' && ring !== 'none' && s.boxShadow === ring; })(document.activeElement)`;
+
 /** A write the server took, as it answers one. */
 const wrote = (scene: string, target: string) => ({
   scene,
@@ -382,15 +390,19 @@ for (const [name, viewport, where] of PLACES)
         }).pipe(Effect.scoped),
     );
 
-    it.live('its scrolling words are a tab stop, so the keyboard scrolls them', () =>
-      Effect.gen(function* () {
-        const { page } = yield* openLab(talkRoutes(), {
-          href: talkAt('ask', 0, { text: 'follow' }),
-          viewport,
-        });
-        yield* page.waitFor(`${where} .lab-transcript-page`);
-        yield* attributeIs(page, `${where} .lab-transcript-scroll`, 'tabindex', '0');
-      }).pipe(Effect.scoped),
+    it.live(
+      "its scrolling words are a tab stop, so the keyboard scrolls them, focused with the kit's ring drawn inside the box",
+      () =>
+        Effect.gen(function* () {
+          const { page } = yield* openLab(talkRoutes(), {
+            href: talkAt('ask', 0, { text: 'follow' }),
+            viewport,
+          });
+          yield* page.waitFor(`${where} .lab-transcript-page`);
+          yield* attributeIs(page, `${where} .lab-transcript-scroll`, 'tabindex', '0');
+          yield* page.focus(`${where} .lab-transcript-scroll`);
+          yield* evaluates(page, INSET_RING_SHOWN, true);
+        }).pipe(Effect.scoped),
     );
 
     it.live(

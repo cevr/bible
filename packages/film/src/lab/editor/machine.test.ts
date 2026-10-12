@@ -552,9 +552,11 @@ describe('writes', () => {
 
   it.effect('an Undo of a file the page reads once at load (a kept take) reloads it', () => {
     const { log, layer } = fakes();
+    // As the lab answers a step: the change it made (a step always makes one).
     const timings: LabWrite = {
       file: 'narration/timings.json',
       target: 'undo voice a keep a.0123456789ab.flac',
+      change: CHANGE_1,
       findings: [],
     };
     return Effect.gen(function* () {
@@ -676,9 +678,11 @@ describe('the write task, through an actor', () => {
 // even then, the lab's check says whether it landed.
 describe('an Undo that remakes what follows its file', () => {
   const kept = 'voice a keep a.0123456789ab.flac';
+  // As the lab answers a step: the change it made (a step always makes one).
   const timings: LabWrite = {
     file: 'narration/timings.json',
     target: `undo ${kept}`,
+    change: CHANGE_1,
     findings: [],
   };
   /** The lab's check: its latest change, and the steps that landed with the ids their pages sent. */
@@ -839,21 +843,61 @@ describe("a talk's write (the Transcript view's Cut, Restore, Mark here)", () =>
     },
   );
 
-  it.effect('says what it is doing while out, and one that changed nothing says so', () =>
+  it.effect('says what it is doing while out', () =>
     Effect.gen(function* () {
       const result = yield* simulate(editMachine, [EditEvent.Talk({ write: cut })]);
       expect(receiptOf(result.finalState, 'f')).toEqual(Option.some(busy('cutting…')));
-      const unchanged = yield* simulate(editMachine, [
-        EditEvent.Talk({ write: cut }),
-        EditEvent.Wrote({
-          result: { file: 'talk.ts', target: 'cut words 3–4 of ask', findings: [] },
-        }),
-      ]);
-      expect(unchanged.finalState).toMatchObject({
-        _tag: 'Written',
-        note: 'cut words 3–4 of ask in talk.ts (already so)',
-      });
     }).pipe(Effect.provide(fakes().layer)),
+  );
+
+  it.effect(
+    "one that changed nothing says so once, in the lab's words, and lets `#t=` go: no rebuild follows a write that wrote nothing",
+    () => {
+      // As the lab answers a write that changed nothing: no change, its target saying so (`named`).
+      const already: LabWrite = {
+        file: 'talk.ts',
+        target: 'mark law on word 3 of ask (already so)',
+        findings: [],
+      };
+      const { log, layer } = fakes(Effect.succeed(already));
+      return Effect.gen(function* () {
+        const actor = yield* Machine.spawn(editMachine);
+        yield* actor.start;
+        yield* actor.send(
+          EditEvent.Talk({
+            write: TalkWrite.make({ ask: { _tag: 'Mark', section: 'ask', word: 3, name: 'law' } }),
+          }),
+        );
+        yield* TestClock.adjust('10 millis');
+        expect(yield* SubscriptionRef.get(actor.state)).toMatchObject({
+          _tag: 'Written',
+          note: 'mark law on word 3 of ask (already so) in talk.ts',
+        });
+        expect(log).toEqual(['holdT', 'settle']);
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    "the rule is every write's: a cue's write that changed nothing lets `#t=` go too",
+    () => {
+      const { log, layer } = fakes(
+        Effect.succeed({
+          scene: 'one',
+          file: 'scenes/one.ts',
+          target: 'cue rise offset',
+          findings: [],
+        }),
+      );
+      return Effect.gen(function* () {
+        const actor = yield* Machine.spawn(editMachine);
+        yield* actor.start;
+        yield* actor.send(EditEvent.Commit({ write: cueWrite, edit: {} }));
+        yield* TestClock.adjust('10 millis');
+        expect((yield* SubscriptionRef.get(actor.state))._tag).toBe('Written');
+        expect(log.slice(-2)).toEqual(['holdT', 'settle']);
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
   );
 
   it.effect(

@@ -284,21 +284,26 @@ const refuse = (write: Write, message: string, next: Waiting = []) =>
 
 /**
  * `write` landed as `result`: Written, reloading the page itself for a file
- * it reads at load (no rebuild follows one). The commits waiting on it are
- * written next, in turn (a step's are not: they were asked of the film
- * before the step).
+ * it reads at load (no rebuild follows one). One that changed nothing (no
+ * `change`) wrote nothing, so no rebuild or reload follows it: `#t=` is let
+ * go here, as a refusal lets it go. The commits waiting on it are written
+ * next, in turn (a step's are not: they were asked of the film before the
+ * step).
  */
 const landedAs = (write: Write, result: LabWrite, next: Waiting) => {
+  const change = Option.fromUndefinedOr(result.change);
   const written = (note: string) =>
-    EditState.Written({
-      note,
-      findings: result.findings,
-      undo: undoneBy(write),
-      change: Option.fromUndefinedOr(result.change),
-    });
+    EditState.Written({ note, findings: result.findings, undo: undoneBy(write), change });
   const rest = (note: string) =>
     Stage.use((stage) =>
-      Effect.as(Effect.when(stage.reload, Effect.succeed(readAtLoad(result.file))), written(note)),
+      Effect.as(
+        Option.match(change, {
+          onNone: () => stage.settle,
+          onSome: () =>
+            Effect.asVoid(Effect.when(stage.reload, Effect.succeed(readAtLoad(result.file)))),
+        }),
+        written(note),
+      ),
     );
   return Match.value(write).pipe(
     Match.tag('StepWrite', (step) =>
