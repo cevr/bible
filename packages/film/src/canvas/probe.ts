@@ -9,7 +9,14 @@
 
 import { insidePolygon } from '../core/polygon.ts';
 import type { Point } from '../core/schema.ts';
-import type { FaceMark, GripShares, HandMark, InkMark, TextBox } from '../core/export-handle.ts';
+import type {
+  FaceMark,
+  FootageMark,
+  GripShares,
+  HandMark,
+  InkMark,
+  TextBox,
+} from '../core/export-handle.ts';
 
 /** What one probed frame collects: text and ink, in the order drawn, and faces and hands when asked. */
 export interface ProbeSink {
@@ -19,6 +26,8 @@ export interface ProbeSink {
   readonly faces?: FaceMark[];
   /** Given, every hand `probeHand` declares lands here (the look pass's `HandJump`, `HandFar`, `HandHidden`). */
   readonly hands?: HandMark[];
+  /** Given (a film that reads footage), every footage frame the frame draws lands here (`heldStill`). */
+  readonly footage?: FootageMark[];
 }
 
 /** Where text and ink drawn into a context land on screen, and whose they are. */

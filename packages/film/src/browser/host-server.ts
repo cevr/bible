@@ -13,6 +13,7 @@
 import { UrlState, layerServer } from '@bible/url-state';
 import { Effect, Layer } from 'effect';
 import { Clipboard, ClipboardRefused } from './clipboard.ts';
+import { Footage } from './footage.ts';
 import { Frames } from './frames.ts';
 import { Highlights } from './highlights.ts';
 import type { BrowserServices } from './host.ts';
@@ -64,6 +65,7 @@ export const ServerHost = {
   layer: (href: string): Layer.Layer<BrowserServices> =>
     Layer.mergeAll(
       noClipboard,
+      Footage.none,
       Frames.layerClock,
       Highlights.none,
       Keys.layerOn(new EventTarget()),

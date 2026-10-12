@@ -13,6 +13,7 @@ import { For, Show } from '@solidjs/web';
 import { Array as Arr, Effect, Option } from 'effect';
 import type { Accessor } from 'solid-js';
 import { createEffect, createSignal, onCleanup, onSettled, untrack } from 'solid-js';
+import { newestAsks } from '../../browser/footage.ts';
 import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
 import { Pointer, Surface } from '../../browser/pointer.ts';
@@ -78,13 +79,27 @@ export const Layer = () => {
     readonly el: HTMLCanvasElement;
     readonly ctx: CanvasRenderingContext2D;
   }>();
+  /** The frames the layer asks for: one that lands after a later ask paints nothing. */
+  const asks = newestAsks();
   const paint = () => {
     Option.map(layer, (l) => {
       const shows = state.layer();
       const shown = Option.filter(state.edit(), () => shows !== 'hidden');
       l.el.hidden = Option.isNone(shown) || shows !== 'head';
       Option.map(shown, (edit) => {
-        player.renderShown(l.ctx, player.now(), new Map([[state.scene(), edit]]));
+        // Drawn once its frame is painted, if no later frame was asked for
+        // since; one that will not decode is the preview's to say.
+        Effect.runForkWith(meta.host)(
+          player
+            .renderShown(l.ctx, player.now(), new Map([[state.scene(), edit]]), asks.ask())
+            .pipe(
+              Effect.catchTag('FootageFrameMissing', (missing) =>
+                Effect.logWarning(
+                  `lab.compare.footage.missing source=${missing.source} at=${missing.at}`,
+                ),
+              ),
+            ),
+        );
         // Clipped left of the divider in a wipe; whole otherwise; in the difference blend in a diff.
         l.el.style.mixBlendMode = state.blend();
         l.el.style.clipPath = Option.match(state.split(), {

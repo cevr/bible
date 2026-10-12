@@ -1,7 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result, Schema } from 'effect';
+import { CUT_FADE } from './align.ts';
 import { type Pcm, slice } from './audio.ts';
+import { VOICE_RECIPE } from './footage.ts';
+import { syntheticTake } from './fixtures/talk-take.ts';
 import { layout } from './layout.ts';
+import { hashText, parse, takeScript } from './narration.ts';
+import { type Talk, talkCut } from './talk.ts';
+import { voicedAt } from './voiced.ts';
 import { loudness } from './synth/loudness.ts';
 import {
   BED_DUCK,
@@ -9,6 +15,7 @@ import {
   MASTER,
   MIX_RATE,
   type MixPlan,
+  type Take,
   loopFill,
   mixKey,
   mixPlan,
@@ -70,6 +77,10 @@ const take = (sound: Pcm, secs: number) => ({
   gain: 1,
   pitch: 0,
   staged: false,
+  from: 0,
+  dur: Option.none<number>(),
+  fade: 0,
+  content: Option.none<string>(),
 });
 
 describe('renderMix', () => {
@@ -261,6 +272,7 @@ describe('mixPlan', () => {
     narration: 'n',
     soundDir: 's',
     play: Option.none<string>(),
+    pieces: new Map(),
   };
   const keyOf = (music: Music) => musicKey(music, Result.getOrThrow(musicPlan(music, placed)));
   const manifest: SoundManifest = {
@@ -565,6 +577,10 @@ describe('mixKey', () => {
         gain: 1,
         pitch: 0,
         staged: false,
+        from: 0,
+        dur: Option.none(),
+        fade: 0,
+        content: Option.none(),
       },
     ],
     score: Option.some({
@@ -621,5 +637,156 @@ describe('mixKey', () => {
       mixKey({ ...planned, score: Option.none() }),
     ];
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  test('a drawn film keys as it did before a take could play in pieces', () => {
+    const open = { id: 'open', say: 'In the beginning.' };
+    const word = { id: 'word', say: 'Was the Word.' };
+    const scenes: ReadonlyArray<Timed> = [open, word];
+    const recorded = (scene: typeof open, file: string, words: ReadonlyArray<string>) => ({
+      hash: hashText(takeScript(Result.getOrThrow(parse(scene.id, scene.say)))),
+      file,
+      duration: 0.5 * words.length + 0.4,
+      words: words.map((text, i) => ({
+        text,
+        start: 0.2 + 0.5 * i,
+        end: 0.6 + 0.5 * i,
+        voiced: voicedAt(0.25 + 0.5 * i, 0.6 + 0.5 * i),
+      })),
+      source: 'recorded' as const,
+    });
+    const placed = Result.getOrThrow(
+      layout(scenes, {
+        voice: 'v',
+        scenes: {
+          open: recorded(open, 'open.1f33612e28ca.flac', ['In', 'the', 'beginning.']),
+          word: recorded(word, 'word.0a1b2c3d4e5f.flac', ['Was', 'the', 'Word.']),
+        },
+      }),
+    );
+    const plan = Result.getOrThrow(
+      mixPlan({
+        film: 'f',
+        placed,
+        manifest: {},
+        sounds: NO_SOUNDS,
+        sound: Option.none(),
+        narration: '/box/narration',
+        soundDir: '/box/sound',
+        play: Option.none(),
+        pieces: new Map(),
+      }),
+    );
+    // The key a drawn film's plan has always had: its takes play whole, so pieces add nothing to it.
+    expect(mixKey(plan)).toBe('01045f97');
+  });
+});
+
+describe("a talk's voice, played in pieces", () => {
+  const WORDS = ['Is', 'the', 'um', 'verdict', 'a', 'cover', 'up'];
+  const take = syntheticTake(WORDS);
+  const talk: Talk = {
+    title: 'Is the verdict a cover-up?',
+    format: 'question',
+    takes: { a: 'take.why' },
+    sections: [{ id: 'claim', take: 'a', from: 0, to: 6, cut: [[2, 2]] }],
+  };
+  const cut = Result.getOrThrow(talkCut(talk, { a: take }));
+  const placed = Result.getOrThrow(layout(cut.scenes, cut.timings));
+  const pieces = cut.sections[0]?.pieces ?? [];
+  /** The plan with the section's voice at `file`, known by `content`. */
+  const planOf = (file: string, content: string) =>
+    Result.getOrThrow(
+      mixPlan({
+        film: 'talk',
+        placed,
+        manifest: {},
+        sounds: NO_SOUNDS,
+        sound: Option.none(),
+        narration: 'n',
+        soundDir: 's',
+        play: Option.none(),
+        pieces: new Map([['claim', { file, content, pieces }]]),
+      }),
+    );
+  const VOICE = `/out/footage/${take.source}/voice.flac`;
+  const planned = planOf(VOICE, `${take.source} ${VOICE_RECIPE}`);
+  /** The take's voice: `level(i)` at its `i`th sample, with a click (1) at each second of `clicks`. */
+  const voiceOf = (level: (i: number) => number, clicks: ReadonlyArray<number>): Pcm => {
+    const frames = Math.round(take.envelope.length * 0.01 * RATE);
+    const plane = Float32Array.from({ length: frames }, (_, i) => level(i));
+    for (const t of clicks) plane[Math.round(t * RATE)] = 1;
+    return { rate: RATE, frames, channels: [plane] };
+  };
+  /** The voice bus with `voice` as the take's voice file. */
+  const busOf = (voice: Pcm) =>
+    renderMix({
+      ...planned,
+      voice: planned.voice.map((t) => ({ ...t, sound: voice })),
+      score: Option.none(),
+      beds: [],
+      effects: [],
+    }).voice;
+
+  test("places each kept word's click at its section second, to the sample, and drops the struck word's", () => {
+    const clicks = take.words.map((w) => (w.voiced.start + w.voiced.end) / 2);
+    const bus = busOf(voiceOf(() => 0, clicks)).channels[0] ?? new Float32Array();
+    const heard = [...bus.keys()].filter((i) => (bus[i] ?? 0) > 0.5);
+    const p = placed[0];
+    const kept = new Set(cut.sections[0]?.kept);
+    const want = clicks
+      .filter((_, i) => kept.has(i))
+      .flatMap((click) =>
+        pieces
+          .filter((piece) => click > piece.from && click < piece.to)
+          .map((piece) => (p?.start ?? 0) + (p?.speechStart ?? 0) + piece.at + click - piece.from),
+      );
+    expect(want.length).toBe(WORDS.length - 1);
+    expect(heard.length).toBe(want.length);
+    for (const [k, t] of want.entries())
+      expect(Math.abs((heard[k] ?? 0) - t * RATE)).toBeLessThanOrEqual(1);
+  });
+
+  test('fades each piece in and out at its seams, so no sample steps further than the fade allows', () => {
+    // A voice that rises slowly through the take, to 0.5 at its end: each seam
+    // skips a struck word or a pause, so the two sides of it differ.
+    const frames = Math.round(take.envelope.length * 0.01 * RATE);
+    const bus = busOf(voiceOf((i) => (0.5 * i) / frames, [])).channels[0] ?? new Float32Array();
+    const level = 0.5 * Math.SQRT1_2;
+    const steepest = Math.max(...bus.slice(1).map((x, i) => Math.abs(x - (bus[i] ?? 0))));
+    // A fade's ramp steps at most the level over its length each sample, twice that for rounding.
+    expect(steepest).toBeLessThanOrEqual((level / Math.round(CUT_FADE * RATE)) * 2);
+    expect(steepest).toBeGreaterThan(0);
+    expect(planned.voice.map((t) => t.fade)).toEqual(pieces.map(() => CUT_FADE));
+  });
+
+  test("keys each piece's in-point, length and fade, so a changed cut is mixed again", () => {
+    const first = Option.getOrThrow(Option.fromUndefinedOr(planned.voice[0]));
+    const changed = (to: Partial<Take<SoundSource>>) =>
+      mixKey({ ...planned, voice: [{ ...first, ...to }, ...planned.voice.slice(1)] });
+    const keys = [
+      mixKey(planned),
+      changed({ from: first.from + 1 / 30 }),
+      changed({ dur: Option.map(first.dur, (d) => d - 1 / 30) }),
+      changed({ fade: 0.01 }),
+    ];
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  test('keys the voice by what it is, not by its file name: another take, or its voice made another way, is mixed again', () => {
+    // Every take's voice file is `voice.flac`: two takes cut alike, and one voice remade, differ only in what they are.
+    const other = `/out/footage/take.other/ffffffffffff/voice.flac`;
+    const keys = [
+      mixKey(planned),
+      mixKey(planOf(other, `take.other/ffffffffffff ${VOICE_RECIPE}`)),
+      mixKey(planOf(VOICE, `${take.source} mono 48000 level-once picture-clock`)),
+    ];
+    expect(new Set(keys).size).toBe(keys.length);
+    // Where the box keeps it is not what it is: the same voice elsewhere keys the same.
+    expect(
+      mixKey(
+        planOf(`/elsewhere/footage/${take.source}/voice.flac`, `${take.source} ${VOICE_RECIPE}`),
+      ),
+    ).toBe(mixKey(planned));
   });
 });

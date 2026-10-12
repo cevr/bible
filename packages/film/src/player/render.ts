@@ -5,7 +5,9 @@
 // (`encode.ts`, mediabunny) is the render page's alone: the studio's pages,
 // which mount the preview (`main.ts`), never load it.
 
+import type { Film, RenderOptions } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
+import { Footage, type FootageShown, footageAt, footageReads } from '../browser/footage.ts';
 import type { ExportHandle } from '../core/export-handle.ts';
 import { sceneTimesOf } from '../core/easel.ts';
 import { frameAtOrAfter } from '../core/time.ts';
@@ -35,7 +37,7 @@ declare global {
  * `window.__film`.
  */
 export const mountRender = (films: Films): void => {
-  const host = hostOf(BrowserHost.layer);
+  const host = hostOf(BrowserHost.render);
   stageFilm(films, addressOn(host).href())
     .then((staged) =>
       Effect.runPromise(
@@ -55,6 +57,37 @@ export const mountRender = (films: Films): void => {
 };
 
 /**
+ * `use` given each of `times`' footage in turn (`next`, once per time, in
+ * order), decoded as one run (`Footage.run`): an export chunk's frames. The
+ * run's decoders are let go when `use` settles. A film that reads none is
+ * given nothing for every time, with no decoder made.
+ */
+const withFootageRun = <A>(
+  host: Host,
+  film: Film,
+  times: ReadonlyArray<number>,
+  use: (next: () => Promise<FootageShown>) => Promise<A>,
+): Promise<A> =>
+  Option.match(footageReads(film), {
+    onNone: () => use(() => Promise.resolve({})),
+    onSome: (reads) =>
+      Effect.runPromiseWith(host)(
+        Effect.scoped(
+          Effect.gen(function* () {
+            const run = yield* Footage.use((footage) => footage.run(times.map(reads)));
+            const context = yield* Effect.context<Footage>();
+            const next = () =>
+              Effect.runPromiseWith(context)(
+                Effect.map(run.next, (footage): FootageShown => ({ footage })),
+              );
+            // `use`'s own failure (a frame missing, an encoder's) is the caller's, as it was thrown.
+            return yield* Effect.promise(() => use(next));
+          }),
+        ),
+      ),
+  });
+
+/**
  * The handle the tools drive a staged film through (`ExportHandle`,
  * core/export-handle.ts). Every draw is timed the same way (`drawn`): the
  * frame drawn, then rastered by a one-pixel read before the clock stops, so
@@ -64,11 +97,17 @@ export const mountRender = (films: Films): void => {
 const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): ExportHandle => {
   /** The page clock in ms (`monotonicMs`): what every draw and encode is timed by. */
   const nowMs = monotonicMs(host);
-  const draw = (i: number) => film.render(ctx, i / film.fps, { captions: captions.on });
-  /** Draw frame `i` and raster it: the ms it took. */
-  const drawn = (i: number) => {
+  /** Frame `i`'s footage, decoded (nothing, at once, for a film that reads none). */
+  const footageOf = (i: number) => Effect.runPromiseWith(host)(footageAt(film, i / film.fps));
+  /** Frame `i` drawn with its footage and `extra` options. */
+  const drawWith = (i: number, shown: FootageShown, extra: RenderOptions = {}) =>
+    film.render(ctx, i / film.fps, { captions: captions.on, ...shown, ...extra });
+  /** Frame `i` drawn, once its footage is decoded. */
+  const draw = async (i: number) => drawWith(i, await footageOf(i));
+  /** Draw frame `i` with its decoded footage and raster it: the ms it took, the decoding not in it. */
+  const drawn = (i: number, shown: FootageShown) => {
     const began = nowMs();
-    draw(i);
+    drawWith(i, shown);
     ctx.getImageData(0, 0, 1, 1);
     return nowMs() - began;
   };
@@ -81,42 +120,54 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): Expo
       frames: frameAtOrAfter(film.duration, film.fps),
       audio: film.audio,
     },
-    frame: (i, type) => {
-      draw(i);
+    frame: async (i, type) => {
+      await draw(i);
       return canvasBase64(canvas, type);
     },
-    probe: (i) => {
-      const sink: ProbeSink = { texts: [], inks: [] };
-      film.render(ctx, i / film.fps, { captions: captions.on, probe: sink });
+    probe: async (i) => {
+      // A film that reads footage records each frame of it drawn; a drawn film's probe is as it was.
+      const sink: ProbeSink = Option.match(footageReads(film), {
+        onNone: () => ({ texts: [], inks: [] }),
+        onSome: () => ({ texts: [], inks: [], footage: [] }),
+      });
+      drawWith(i, await footageOf(i), { probe: sink });
       return sink;
     },
     lookbook: async (type) =>
-      canvasBase64((await composeLookbook(film, { captions: captions.on })).canvas, type),
+      canvasBase64(
+        (await composeLookbook(film, { captions: captions.on, footage: host })).canvas,
+        type,
+      ),
     encoder: (scale, share, candidates) =>
       encoderChoice(canvas, film.fps, scale, share, candidates),
     encode: async (from, to, scale, share, encoder) => {
       const began = nowMs();
       let drawing = 0;
-      const chunk = await encodeChunk(
-        (i) => {
-          drawing += drawn(i);
-        },
-        canvas,
-        film.fps,
-        from,
-        to,
-        scale,
-        share,
-        encoder,
+      // The chunk's frames' footage is decoded as one run, each packet at most once.
+      const times = Array.from({ length: to - from }, (_, k) => (from + k) / film.fps);
+      const chunk = await withFootageRun(host, film, times, (next) =>
+        encodeChunk(
+          async (i) => {
+            drawing += drawn(i, await next());
+          },
+          canvas,
+          film.fps,
+          from,
+          to,
+          scale,
+          share,
+          encoder,
+        ),
       );
       const master = bytesBase64(chunk.master);
       const copy = chunk.share === undefined ? {} : { share: bytesBase64(chunk.share) };
       return { master, ...copy, timing: { draw: drawing, page: nowMs() - began } };
     },
-    contact: (frames) => canvasBase64(composeContact(draw, canvas, frames), 'image/jpeg'),
-    look: (frames, w, h) => {
-      const shot = lookFrames(
-        (i, probe) => film.render(ctx, i / film.fps, { captions: false, probe }),
+    contact: async (frames) =>
+      canvasBase64(await composeContact(draw, canvas, frames), 'image/jpeg'),
+    look: async (frames, w, h) => {
+      const shot = await lookFrames(
+        async (i, probe) => drawWith(i, await footageOf(i), { captions: false, probe }),
         canvas,
         frames,
         w,
@@ -124,14 +175,19 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): Expo
       );
       return { thumbs: bytesBase64(shot.thumbs), faces: shot.faces, hands: shot.hands };
     },
-    luma: (i, area) => {
-      draw(i);
+    luma: async (i, area) => {
+      await draw(i);
       return canvasLuma(canvas, area);
     },
-    drawTimes: (frames) => frames.map(drawn),
+    // One frame at a time, each timed alone: its footage decoded before its clock starts.
+    drawTimes: (frames) =>
+      frames.reduce<Promise<ReadonlyArray<number>>>(
+        async (before, i) => [...(await before), drawn(i, await footageOf(i))],
+        Promise.resolve([]),
+      ),
     scenes: () => film.placed.map(sceneTimesOf),
-    still: (i, view) => {
-      film.render(ctx, i / film.fps, { captions: view.captions });
+    still: async (i, view) => {
+      drawWith(i, await footageOf(i), { captions: view.captions });
       return canvasBase64(composeStill(canvas, view), view.format);
     },
   };

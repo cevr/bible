@@ -277,7 +277,7 @@ const rendition = (
  * makes one in the page, a small copy encoded in the same pass.
  */
 export const encodeChunk = async (
-  draw: (i: number) => void,
+  draw: (i: number) => Promise<void>,
   canvas: HTMLCanvasElement,
   fps: number,
   from: number,
@@ -296,7 +296,7 @@ export const encodeChunk = async (
     await Promise.all(all.map((r) => r.start()));
     await Array.from({ length: to - from }, (_, k) => from + k).reduce(async (before, i) => {
       await before;
-      draw(i);
+      await draw(i);
       if (i === from) await Promise.all(all.map((r) => r.warm()));
       await Promise.all(all.map((r) => r.add((i - from) / fps, i === from)));
     }, Promise.resolve());

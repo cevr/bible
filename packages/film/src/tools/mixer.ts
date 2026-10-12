@@ -27,7 +27,7 @@ import {
   renderMix,
 } from '../core/mix.ts';
 import { repoJson } from '../core/schema.ts';
-import type { SoundSource, Sounds } from '../core/sfx.ts';
+import { type SoundSource, type Sounds, fileSource } from '../core/sfx.ts';
 import { synthesize } from '../core/synth/recipes.ts';
 import {
   ContentStore,
@@ -45,6 +45,7 @@ import {
   type PlaceError,
   masterFile,
   placeFilm,
+  voicePiecesOf,
 } from './film-repo.ts';
 import { Media, type MediaService } from './media.ts';
 
@@ -191,9 +192,14 @@ interface MixerService {
   ) => Effect.Effect<Rendered, MixError | PlatformError>;
 }
 
+/** Whether a sound is a file (not a recipe). */
+const isFile = (source: SoundSource): source is Extract<SoundSource, { readonly _tag: 'File' }> =>
+  source._tag === 'File';
+
 /**
- * `plan` with every sound it plays decoded (a file) or played (a recipe); the
- * mix never resamples, so a file at another rate fails.
+ * `plan` with every sound it plays decoded (a file) or played (a recipe), each
+ * voice file once however many pieces of it play; the mix never resamples, so
+ * a file at another rate fails.
  */
 const decodePlan = (
   media: MediaService,
@@ -215,10 +221,36 @@ const decodePlan = (
     Effect.map(decodeAt(score.sound), (sound): ScoreBed<Pcm> => ({ ...score, sound }));
   const span = (bed: BedSpan<SoundSource>) =>
     Effect.map(decodeAt(bed.sound), (sound): BedSpan<Pcm> => ({ ...bed, sound }));
+  // A talk's section plays many pieces of one voice: each file is decoded once.
+  const voiceFiles = [
+    ...new Set(
+      plan.voice
+        .map((t) => t.sound)
+        .filter(isFile)
+        .map((s) => s.file),
+    ),
+  ];
   return Effect.gen(function* () {
+    const once = new Map(
+      yield* Effect.forEach(
+        voiceFiles,
+        (file) => Effect.map(decodeAt(fileSource(file)), (pcm) => [file, pcm] as const),
+        { concurrency: 4 },
+      ),
+    );
+    const readOnce = (take: Take<SoundSource>) =>
+      Option.match(
+        Option.flatMap(Option.liftPredicate(take.sound, isFile), (s) =>
+          Option.fromUndefinedOr(once.get(s.file)),
+        ),
+        {
+          onNone: () => read(take),
+          onSome: (sound) => Effect.succeed<Take<Pcm>>({ ...take, sound }),
+        },
+      );
     const decoded: MixPlan<Pcm> = {
       ...plan,
-      voice: yield* Effect.forEach(plan.voice, read, { concurrency: 4 }),
+      voice: yield* Effect.forEach(plan.voice, readOnce, { concurrency: 4 }),
       score: yield* Effect.transposeOption(Option.map(plan.score, lay)),
       beds: yield* Effect.forEach(plan.beds, span, { concurrency: 4 }),
       effects: yield* Effect.forEach(plan.effects, place, { concurrency: 4 }),
@@ -279,6 +311,7 @@ export const planOf = (
         narration: film.paths.narration,
         soundDir: film.paths.sound,
         play: options.score,
+        pieces: voicePiecesOf(film),
       }),
   );
 

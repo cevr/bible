@@ -165,6 +165,32 @@ export const loopText = (state: LoopState, fps: number): string => {
   );
 };
 
+/** What Motion's section says, each part only when it has something to say. */
+interface MotionSaid {
+  /** The loop, as `loopText` says it. */
+  readonly loop: string;
+  readonly rate: number;
+  /** Whether the onion is on. */
+  readonly onion: boolean;
+  /** Why the onion's last paint took it off its layer: a ghost that would not decode. */
+  readonly onionWhy: Option.Option<string>;
+}
+
+/**
+ * Motion's status line: the loop, the speed when it mutes the narration, and
+ * why the onion is off its layer while it is on.
+ */
+export const motionStatus = (said: MotionSaid): string => {
+  const muted = Option.liftPredicate(`${said.rate}×: narration muted`, () => said.rate !== 1);
+  const ghostless = Option.filter(
+    Option.map(said.onionWhy, (why) => `onion off: ${why}`),
+    () => said.onion,
+  );
+  return [said.loop, ...Option.toArray(muted), ...Option.toArray(ghostless)]
+    .filter((s) => s !== '')
+    .join(' · ');
+};
+
 type ViewLoop = NonNullable<LabView['loop']>;
 
 /** The loop as the view keeps it through a reload: a looped cue, else none (a range is the link's). */

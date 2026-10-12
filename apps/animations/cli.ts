@@ -11,6 +11,9 @@ import { FILMS, LAB_PAGES, LAB_SERVERS, serve } from './server.ts';
 /** The app's sound library, shared by its films (`sounds/library.ts`). */
 export const SOUNDS = `${import.meta.dir}/sounds`;
 
+/** The app's footage library, shared by its talks (`footage/library.lock.json`). */
+export const FOOTAGE = `${import.meta.dir}/footage`;
+
 /**
  * Where the app's runs put what they make (`out`: renders, sheets, project
  * folders) and the lab's notes (`lab`), whatever directory a run starts in
@@ -18,14 +21,22 @@ export const SOUNDS = `${import.meta.dir}/sounds`;
  */
 export const FOLDERS = { out: `${import.meta.dir}/out`, lab: `${import.meta.dir}/lab` };
 
-/** The player on any free port (nobody opens it by hand), its narration from `films`, stopped with the command's scope. */
+/**
+ * The player on any free port (nobody opens it by hand), its narration from
+ * `films` and its talks' footage from the library's copies under the
+ * outputs (FILMS_OUT, else the app's), stopped with the command's scope.
+ */
 const player = (films: string) =>
   Layer.effect(
     PreviewServer,
-    Effect.acquireRelease(
-      Effect.sync(() => serve(0, films)),
-      (server) => Effect.promise(() => server.stop(true)),
-    ).pipe(Effect.map((server) => PreviewServer.of({ url: server.url.href }))),
+    Effect.gen(function* () {
+      const out = yield* Config.String('FILMS_OUT').pipe(Config.withDefault(FOLDERS.out));
+      const server = yield* Effect.acquireRelease(
+        Effect.sync(() => serve(0, films, { dir: FOOTAGE, out })),
+        (running) => Effect.promise(() => running.stop(true)),
+      );
+      return PreviewServer.of({ url: server.url.href });
+    }),
   );
 
 /**
@@ -74,6 +85,7 @@ export const appCli = (films: string, sounds: string, self: string): void =>
   runFilmCli<Config.ConfigError>({
     films,
     sounds,
+    footage: FOOTAGE,
     folders: FOLDERS,
     previewServer: player(films),
     lab: {

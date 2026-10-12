@@ -51,9 +51,10 @@ const film = Argument.String('film').pipe(
   Argument.withDescription('the film, a folder under src/films'),
 );
 
-/** Each beat's attempts, and the hash of its line as it reads now. */
+/** Each beat's attempts, and the hash of its line as it reads now; a talk has none (its takes are camera footage). */
 const beatAttempts = Effect.fn('film.options.beats')(function* (loaded: LoadedFilm) {
   const takes = yield* Takes;
+  if (Option.isSome(loaded.talk)) return [];
   const beats = yield* Effect.fromResult(beatsOf(loaded));
   return yield* Effect.forEach(beats, (beat) =>
     Effect.map(takes.attempts(loaded.paths, beat.id), (attempts): BeatAttempts => ({

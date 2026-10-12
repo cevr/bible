@@ -424,6 +424,7 @@ const drivenPages = (
           onSome: () => ({ review: '/app/review.server.js' }),
         }),
         films: '/app/films',
+        footage: { dir: '/app/footage', out: '/app/out' },
       };
       const saves = yield* PubSub.unbounded<string>();
       const reads = yield* Ref.make<ReadonlyArray<string>>(SOURCES);
@@ -542,6 +543,7 @@ const trackPages = (
     },
     servers: {},
     films: '/app/films',
+    footage: { dir: '/app/footage', out: '/app/out' },
   };
   return Layer.mergeAll(
     echoPages,
@@ -603,7 +605,12 @@ describe('lab routes', () => {
     () =>
       Effect.gen(function* () {
         const lab = yield* labHandler(LOOPBACK);
-        for (const path of ['/films/f/play', '/chunk-a1.js', '/films/f/narration/s1.mp3']) {
+        for (const path of [
+          '/films/f/play',
+          '/chunk-a1.js',
+          '/films/f/narration/s1.mp3',
+          '/footage/take.why/0123456789ab/proxy.mp4',
+        ]) {
           const asked = `/?read=${encodeURIComponent(path)}`;
           const page = yield* Effect.promise(() => lab(get(asked), bound).then((r) => r.text()));
           expect([path, page]).toEqual([path, `404 {"_tag":"RouteUnknown","path":"${path}"}`]);
@@ -1073,7 +1080,12 @@ describe('lab routes', () => {
           '/player?film=f&lookbook',
           '/?project=f',
         ];
-        const files = ['/chunk-a1.js', '/films/f/narration/s1.mp3', '/nothing'];
+        const files = [
+          '/chunk-a1.js',
+          '/films/f/narration/s1.mp3',
+          '/footage/take.why/0123456789ab/proxy.mp4',
+          '/nothing',
+        ];
         for (const path of [...pages, ...files]) {
           expect(yield* row(get(path, foreign))).toEqual([`GET ${path}`, 403, 'RequestRefused']);
           // A HEAD's answer has no body to name its refusal: the log names it.
@@ -1188,6 +1200,7 @@ describe('lab routes', () => {
         '/lab',
         '/films/f/lab/hand',
         '/films/f/narration/s1.mp3',
+        '/footage/take.why/0123456789ab/proxy.mp4',
         '/chunk-a1.js',
       ])
         expect([path, yield* status(path, { host: 'evil.example' })]).toEqual([path, 403]);

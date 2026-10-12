@@ -5,15 +5,19 @@
 // with `UrlState` over it. A page whose media does more than the page's own
 // (the review's compares on WebCodecs panes, `panesMediaLayer`) builds
 // its host `withMedia` that layer, over the host's frames and viewport, so
-// no other page loads what it needs.
+// no other page loads what it needs. A page's footage is read from the proxy
+// (the lab's, the phone's copy); the render page's from the mezzanine it
+// conforms from (`BrowserHost.render`).
 
 import { UrlState, layerBrowser } from '@bible/url-state';
 import { Layer } from 'effect';
+import { type FootageCopy, footageHref } from '../core/footage.ts';
 import type { BrowserServices } from './host.ts';
 import type { Frames } from './frames.ts';
 import type { Media } from './media.ts';
 import type { Viewport } from './viewport.ts';
 import { clipboardLayer } from './clipboard-browser.ts';
+import { FootageDecoders, footageLayer } from './footage-browser.ts';
 import { framesLayer } from './frames-browser.ts';
 import { highlightsLayer } from './highlights-browser.ts';
 import { keysLayer } from './keys-browser.ts';
@@ -25,12 +29,14 @@ import { viewportLayer } from './viewport-browser.ts';
 /** The address bar, with `UrlState` over it. */
 const addressLayer = UrlState.layer.pipe(Layer.provideMerge(layerBrowser()));
 
-/** The page's host over the browser's own APIs, its media `media`. */
+/** The page's host over the browser's own APIs, its media `media`, its footage read from `copy`. */
 const hostWith = (
   media: Layer.Layer<Media, never, Frames | Viewport>,
+  copy: FootageCopy = 'proxy',
 ): Layer.Layer<BrowserServices> =>
   Layer.mergeAll(
     clipboardLayer,
+    footageLayer((source) => footageHref(source, copy)).pipe(Layer.provide(FootageDecoders.layer)),
     framesLayer,
     highlightsLayer,
     keysLayer,
@@ -44,6 +50,8 @@ const hostWith = (
 /** The page's host over the browser's own APIs. */
 export const BrowserHost = {
   layer: hostWith(mediaLayer),
+  /** The render page's host: its footage read from the mezzanine, which the render conforms from. */
+  render: hostWith(mediaLayer, 'mezzanine'),
   /** The host with `media` for the page's own (`media-browser.ts` `panesMediaLayer`). */
-  withMedia: hostWith,
+  withMedia: (media: Layer.Layer<Media, never, Frames | Viewport>) => hostWith(media),
 };

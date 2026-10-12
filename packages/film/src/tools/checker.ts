@@ -29,6 +29,7 @@ import {
   openFrames,
   shortStaticFindings,
   stillOpen,
+  type TalkVertical,
   titleOpen,
   unsafeTexts,
   zoneFrames,
@@ -185,6 +186,18 @@ interface CheckerService {
     short: Short,
     options: ShortCheckOptions,
   ) => Effect.Effect<ReadonlyArray<ShortFinding>, ShortCheckError>;
+  /**
+   * A talk's page probed every half second and at each phrase's first frame
+   * for text past every platform's zone (`platforms`), and its open for motion
+   * (its footage moving is motion), only over the film seconds `span` covers
+   * when it has one (`--scene`, `--act`): the open only where it lies in it.
+   * What its words tell is the static leg's (`talkWords`).
+   */
+  readonly talk: (
+    film: LoadedFilm,
+    talk: TalkVertical,
+    options: { readonly workers: number; readonly span: Option.Option<Interval> },
+  ) => Effect.Effect<ReadonlyArray<ShortFinding>, LayoutCheckError>;
 }
 
 export class Checker extends Context.Service<Checker, CheckerService>()(
@@ -325,7 +338,53 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
         );
       });
 
-      return Checker.of({ layout, cut, short });
+      const talk = Effect.fn('Checker.talk')(function* (
+        film: LoadedFilm,
+        { film: vertical, phrases }: TalkVertical,
+        { workers, span }: { readonly workers: number; readonly span: Option.Option<Interval> },
+      ) {
+        return yield* Effect.scoped(
+          Effect.gen(function* () {
+            const pool = yield* pages.open(film.paths.name, {
+              workers: Math.max(1, workers),
+              captions: true,
+            });
+            const { info } = pool;
+            const k = info.width / SHORT_WIDTH;
+            const probeAt = (i: number) => pool.call('probe', i);
+            // The frames the scope spans: every one for the whole film.
+            const inSpan = (i: number) =>
+              Option.match(span, {
+                onNone: () => true,
+                onSome: ({ from, to }) =>
+                  i / info.fps + CLOCK_EPSILON >= from && i / info.fps + CLOCK_EPSILON < to,
+              });
+            const frames = zoneFrames(
+              { duration: vertical.duration, fps: info.fps },
+              phrases,
+            ).filter(inSpan);
+            const probed = yield* Effect.forEach(frames, probeAt, { concurrency: workers });
+            const unsafe = mergeUnsafe(
+              Arr.zip(frames, probed).flatMap(([i, p]) =>
+                unsafeTexts(vertical.id, 'platforms', i / info.fps, p, k),
+              ),
+            );
+            const open = yield* Effect.forEach(openFrames(info.fps).filter(inSpan), probeAt, {
+              concurrency: workers,
+            });
+            const findings = [
+              ...unsafe,
+              ...Option.toArray(stillOpen(vertical.id, open, SHORT_RULES.motionBy)),
+            ];
+            yield* Effect.log(
+              `check.talk film=${vertical.id} zone=platforms frames=${frames.length + open.length} findings=${findings.length}`,
+            );
+            return findings;
+          }),
+        );
+      });
+
+      return Checker.of({ layout, cut, short, talk });
     }),
   ).pipe(Layer.provide(Pages.layer));
 }

@@ -162,6 +162,17 @@ export const HandMark = Schema.Struct({
 });
 export type HandMark = typeof HandMark.Type;
 
+/**
+ * A frame of footage a probed frame drew (`Film.footageAt`): the source it is
+ * a frame of (`<name>/<sha12>`) and the second of the source's own clock, so
+ * a check knows what the picture showed without reading its pixels.
+ */
+export const FootageMark = Schema.Struct({
+  source: Schema.String,
+  at: Schema.Finite,
+});
+export type FootageMark = typeof FootageMark.Type;
+
 /** A probed frame: every line of text and every mark of ink it drew, and the faces and hands. */
 export const Probed = Schema.Struct({
   texts: Schema.Array(TextBox),
@@ -170,6 +181,8 @@ export const Probed = Schema.Struct({
   faces: Schema.optionalKey(Schema.Array(FaceMark)),
   /** Recorded only where the sink asks for hands (the look pass). */
   hands: Schema.optionalKey(Schema.Array(HandMark)),
+  /** Each footage frame it drew, in order: only a film that reads footage (a talk) records any. */
+  footage: Schema.optionalKey(Schema.Array(FootageMark)),
 });
 export type Probed = typeof Probed.Type;
 

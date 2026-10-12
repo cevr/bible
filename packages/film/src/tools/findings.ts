@@ -4,7 +4,7 @@
 // collects, never the first failure only; the run fails with `CheckFailed`
 // once every one is reported. The legs that find them are in `film-check.ts`.
 
-import { Array as Arr, Match, Schema } from 'effect';
+import { Array as Arr, Match, Option, Schema } from 'effect';
 import type {
   CueCycle,
   DuplicateMark,
@@ -212,10 +212,27 @@ export class StaticHold extends Schema.TaggedError<StaticHold>()('StaticHold', {
 }
 
 /**
+ * A vertical's findings below are a short's, or a talk's (a film shot
+ * vertical, checked as its own vertical, `short` its name): a talk's are the
+ * film's, at the film's scene (`scene`) and second, or of the whole film
+ * (`talk`); a short's have neither, and are the short's, on its own clock.
+ */
+const TalkScene = Schema.optionalKey(Schema.String);
+const TalkWhole = Schema.optionalKey(Schema.Boolean);
+
+/** What a vertical's findings call it: `short "<id>"`, or `talk "<id>"`. */
+const verticalNamed = (id: string, talk: boolean) => {
+  let kind = 'short';
+  if (talk) kind = 'talk';
+  return `${kind} "${id}"`;
+};
+
+/**
  * A line of text on a short that crosses its safe zone (`SAFE_ZONES`), first
  * at short second `at`, by `by` px (1080 × 1920) past its worst `side`. `own`
  * when it is the short's own text (its hook or captions), which the page
- * places; otherwise it is the film's, in the band.
+ * places; otherwise it is the film's, in the band. A talk's (`scene`, the
+ * film's scene at `at`) is its own.
  */
 export class ShortUnsafeText extends Schema.TaggedError<ShortUnsafeText>()('ShortUnsafeText', {
   short: Schema.String,
@@ -227,13 +244,16 @@ export class ShortUnsafeText extends Schema.TaggedError<ShortUnsafeText>()('Shor
   own: Schema.Boolean,
   /** How many other lines cross the same side with it (the short's own lines are one finding). */
   others: Schema.Int,
+  scene: TalkScene,
 }) {
   override get message() {
+    const talk = Option.isSome(Option.fromUndefinedOr(this.scene));
     let whose = "the film's";
     if (this.own) whose = "the short's";
+    if (talk) whose = "the talk's";
     let more = '';
     if (this.others > 0) more = ` (and ${this.others} more of its lines)`;
-    return `short "${this.short}" ${this.at.toFixed(2)}s: ${whose} "${this.text}"${more} runs up to ${Math.ceil(this.by)} px past the ${this.side} of the ${this.zone} safe zone, under the platform's buttons`;
+    return `${verticalNamed(this.short, talk)} ${this.at.toFixed(2)}s: ${whose} "${this.text}"${more} runs up to ${Math.ceil(this.by)} px past the ${this.side} of the ${this.zone} safe zone, under the platform's buttons`;
   }
 }
 
@@ -390,13 +410,16 @@ export class ShortHook extends Schema.TaggedError<ShortHook>()('ShortHook', {
   max: Schema.Finite,
   /** The title's words, for `title card`. */
   text: Schema.optionalKey(Schema.String),
+  /** A talk's: the film's scene it is at (its first word's, or its first). */
+  scene: TalkScene,
 }) {
   override get message() {
+    const named = verticalNamed(this.short, Option.isSome(Option.fromUndefinedOr(this.scene)));
     if (this.reason === 'late word')
-      return `short "${this.short}": the first word starts at ${this.at.toFixed(2)}s, after ${this.max.toFixed(1)}s; open on the voice`;
+      return `${named}: the first word starts at ${this.at.toFixed(2)}s, after ${this.max.toFixed(1)}s; open on the voice`;
     if (this.reason === 'still open')
-      return `short "${this.short}": nothing moves in the first ${this.at.toFixed(2)}s (by ${this.max.toFixed(1)}s something must)`;
-    return `short "${this.short}": it opens on the title card "${this.text ?? ''}"; open on the hook, not a title`;
+      return `${named}: nothing moves in the first ${this.at.toFixed(2)}s (by ${this.max.toFixed(1)}s something must)`;
+    return `${named}: it opens on the title card "${this.text ?? ''}"; open on the hook, not a title`;
   }
 }
 
@@ -411,26 +434,35 @@ export class ShortLoop extends Schema.TaggedError<ShortLoop>()('ShortLoop', {
   reason: Schema.Literals(['picture', 'gap']),
   value: Schema.Finite,
   max: Schema.Finite,
+  /** A talk's: of the whole film. */
+  talk: TalkWhole,
 }) {
   override get message() {
+    const named = verticalNamed(this.short, this.talk === true);
     if (this.reason === 'picture')
-      return `short "${this.short}": its last frame differs from its first by ${this.value.toFixed(3)} (mean absolute per-cell luma difference on a ${SHORT_RULES.loopGrid.cols}×${SHORT_RULES.loopGrid.rows} grid), over ${this.max.toFixed(3)}; the loop shows a cut`;
-    return `short "${this.short}": ${this.value.toFixed(2)}s of silence from the last word round to the first, over ${this.max.toFixed(1)}s; the loop stalls`;
+      return `${named}: its last frame differs from its first by ${this.value.toFixed(3)} (mean absolute per-cell luma difference on a ${SHORT_RULES.loopGrid.cols}×${SHORT_RULES.loopGrid.rows} grid), over ${this.max.toFixed(3)}; the loop shows a cut`;
+    return `${named}: ${this.value.toFixed(2)}s of silence from the last word round to the first, over ${this.max.toFixed(1)}s; the loop stalls`;
   }
 }
 
-/** A short past `max` s (an error), or outside `from`–`to` s (a warning). */
+/** A short past `max` s (an error), or outside `from`–`to` s (a warning); a talk held to its format's. */
 export class ShortLength extends Schema.TaggedError<ShortLength>()('ShortLength', {
   short: Schema.String,
   length: Schema.Finite,
   max: Schema.Finite,
   from: Schema.Finite,
   to: Schema.Finite,
+  /** A talk's: of the whole film. */
+  talk: TalkWhole,
 }) {
   override get message() {
+    const talk = this.talk === true;
+    const named = verticalNamed(this.short, talk);
+    let kind = 'a short';
+    if (talk) kind = 'a talk';
     if (this.length > this.max)
-      return `short "${this.short}" is ${this.length.toFixed(1)}s, over the ${this.max}s a short may run`;
-    return `short "${this.short}" is ${this.length.toFixed(1)}s, outside the ${this.from}–${this.to}s that hold best`;
+      return `${named} is ${this.length.toFixed(1)}s, over the ${this.max}s ${kind} may run`;
+    return `${named} is ${this.length.toFixed(1)}s, outside the ${this.from}–${this.to}s that hold best`;
   }
 }
 
@@ -812,7 +844,9 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
  * act, a short, else the whole film), and the film second it starts at. A
  * seam is addressed at the scene it runs into; a colour script at its act; a
  * short's findings at the short, with no film second (its seconds are its
- * own). A finding about the whole film or a sound file is the film's.
+ * own); a talk's at the film's scene and second, or the film's when they
+ * are of the whole talk. A finding about the whole film or a sound file is
+ * the film's.
  */
 export const addressOf = (finding: Finding): FindingAddress => {
   const film: Address = { _tag: 'Film' };
@@ -829,6 +863,20 @@ export const addressOf = (finding: Finding): FindingAddress => {
   const short = (f: { readonly short: string }): FindingAddress => ({
     part: { _tag: 'Short', id: f.short },
   });
+  /** A vertical's finding at second `time`: a talk's at its scene, a short's at the short. */
+  const verticalAt = (
+    f: { readonly short: string; readonly scene?: string },
+    time: number,
+  ): FindingAddress =>
+    Option.match(Option.fromUndefinedOr(f.scene), {
+      onNone: () => short(f),
+      onSome: (s) => at(s, time),
+    });
+  /** A vertical's finding of the whole of it: a talk's is the film's, a short's the short's. */
+  const verticalWhole = (f: { readonly short: string; readonly talk?: boolean }) => {
+    if (f.talk === true) return none();
+    return short(f);
+  };
   return matchFinding.pipe(
     Match.tagsExhaustive({
       CueLate: scene,
@@ -889,10 +937,15 @@ export const addressOf = (finding: Finding): FindingAddress => {
       HandJump: (f) => at(f.scene, f.T),
       HandFar: span,
       HandHidden: span,
-      ShortUnsafeText: short,
-      ShortHook: short,
-      ShortLoop: short,
-      ShortLength: short,
+      ShortUnsafeText: (f) => verticalAt(f, f.at),
+      // A late first word is at its start; a still open or a title card at the first frame.
+      ShortHook: (f) => {
+        let time = 0;
+        if (f.reason === 'late word') time = f.at;
+        return verticalAt(f, time);
+      },
+      ShortLoop: verticalWhole,
+      ShortLength: verticalWhole,
     }),
   )(finding);
 };
