@@ -3279,18 +3279,27 @@ draw: (f) => {
   `ctx.rotate`) and a length. Each child starts at its parent's tip, turned
   `angle` from it. Bone and skin names are the skeleton's type, so a pose, a
   chain, a parent or a skin that names one the skeleton lacks does not
-  compile, nor does a second of one name, nor a name that is not a literal.
+  compile, nor does a second of one name, nor a name that is not one
+  literal (a `string`, a template such as `` `arm-${number}` ``, a union).
+- **Rigging:** `along` squashes toward the bone's start. A part that should
+  squash toward where it rests (a chin on a neck) wants its bone rooted
+  there, or a `shift` that puts its start back. A front-facing figure that
+  turns its chest or head tilts sideways in the picture plane; it bows by
+  shortening (`along`), sinking and sliding its face down, with little turn.
 - **Skin:** `skeleton.skin(name, path, weights, options)` binds an outline
   once, at module scope, and returns the skeleton with it. Each point gets a
   weight per bone, and the weights sum to 1; `skeleton.rest(name)` and
   `skeleton.weights(name, i)` show them.
   - `{ chain, blend }` weighs a point by how far it lies past each joint
-    along the rest chain. The distance is measured across the bisector of
-    the joint's two bones, so a bent rest chain (an arm at the elbow) is
-    measured bone by bone. Each joint is blended by a smoothstep over
+    along the rest chain, each bone a child of the one before. The distance
+    is measured across the bisector of the joint's two bones, so a bent rest
+    chain (an arm at the elbow) is measured bone by bone. A point is
+    measured from the bone nearest it, so a chain that curls back over
+    several joints (a U, a hand on a bent wrist) gives a point on its last
+    bone nothing of its first. Each joint is blended by a smoothstep over
     `blend` units either side; the default is half the shorter of its two
-    bones. A `blend` wider than an end bone reaches past the chain's end. A
-    chain folded back on itself past about 175° cannot be measured this way:
+    bones. A `blend` wider than an end bone reaches past the chain's end.
+    One joint folded back past about 175° cannot be measured this way:
     weigh it with `{ weigh }`.
   - `{ weigh }` takes the drawing's own function of a rest point (a jaw that
     holds the lower half of a head). The weights are normalised, and a point
@@ -3306,10 +3315,15 @@ draw: (f) => {
   is that skin bent; a pose bends only its own skeleton's skins.
   `pose.rigid(bone)` is the bone's rigid move as a `ctx.transform`, for what
   rides the bone whole (an eye on the head).
-- **Not a number:** a value that is not finite (NaN, ±Infinity) is held at
-  rest and named in `pose.rejected` as `{ _tag: 'PoseNotFinite', bone,
-  field, value }`. Nothing throws mid-frame and no NaN point reaches the
-  canvas.
+- **Not a number:** a pose value that is not finite (NaN, ±Infinity) is
+  held at rest and named in `pose.rejected` as `{ _tag: 'PoseNotFinite',
+  bone, field, value }`, each one (both of a shift's components). At bind,
+  `skeleton.rejected` names what a skin's binding set aside: a `weigh`
+  weight that is not finite (`WeightNotFinite`, taken as 0), a `blend` that
+  is not finite (`BlendNotFinite`, the default taken), and a chain whose
+  bones are not parent → child (`ChainNotLinked`, weighed as given). Nothing
+  throws, and no weight or pose value puts a NaN point on the canvas; the
+  bones' rest and the path itself must be finite.
 - **Blend:** each bone moves a point by its scale and then its rigid move.
   That move is blended as a planar dual quaternion, so a joint turned far
   keeps its girth instead of collapsing toward the joint, and a point that
@@ -3317,9 +3331,10 @@ draw: (f) => {
   round, so a joint turned past ±π flips. A wide piece folds on its inside
   past about 1 rad; keep a chest or neck below about 0.8.
 - **Purity:** `pose.at(name)` returns a new path and keeps nothing between
-  calls. A pose at rest returns the rest outline bit for bit. One pose and
-  two skins (a 94-point torso and a 64-point head) cost about 25 µs a frame
-  in Bun.
+  calls. A pose at rest returns the rest outline bit for bit (for a
+  `smooth` skin, the rest curve through its controls). One pose and two
+  skins (a 94-point torso and a 64-point head) cost 10–25 µs a frame in Bun,
+  by the machine's load.
 
 ## The purity rule
 

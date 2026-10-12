@@ -93,13 +93,17 @@ export interface Pose<B extends string, S extends string> {
 /** How a skin's points are weighted to the bones. */
 type Weights<B extends string> =
   /**
-   * Along a chain of bones, in order: each point by how far it lies past each
-   * joint along the rest chain, measured across the joint's bisector (a
-   * point on a bone, at its distance along the chain from the joint; a bent
-   * rest chain, an arm, is measured bone by bone). Each joint is blended over
-   * `blend` units either side (default: half the shorter of its two bones)
-   * by a smoothstep. A chain folded back on itself past about 175° cannot be
-   * measured that way: weigh it with `weigh`. With the default blend a point
+   * Along a chain of bones, each a child of the one before: each point by
+   * how far it lies past each joint along the rest chain, measured across
+   * the joint's bisector (a point on a bone, at its distance along the chain
+   * from the joint; a bent rest chain, an arm, is measured bone by bone).
+   * Each joint is blended over `blend` units either side (default: half the
+   * shorter of its two bones) by a smoothstep. A point is measured from the
+   * bone nearest it: past every joint before that bone and short of every
+   * joint after it, so a chain that curls back over several joints (a U, a
+   * hand on a bent wrist) gives a point on its last bone nothing of its
+   * first. One joint folded back past about 175° cannot be measured across
+   * its bisector: weigh it with `weigh`. With the default blend a point
    * before the chain's start is all the first bone's and one past its end
    * all the last's; a `blend` wider than an end bone reaches past that end.
    */
@@ -116,12 +120,25 @@ interface SkinOptions {
   readonly smooth?: number;
 }
 
-/** A name refused by the compiler (naming why) when it is taken, or not a literal (a name the compiler cannot check). */
-type Fresh<N extends string, Taken extends string, What extends string> = string extends N
-  ? { readonly [K in `a ${What} name must be a literal`]: never }
-  : N extends Taken
-    ? { readonly [K in `a ${What} of this name already exists`]: never }
-    : unknown;
+/** `U`'s members met: `never` for a union of two or more literals, `U` itself for one. */
+type Meet<U> = (U extends unknown ? (u: U) => void : never) extends (u: infer I) => void
+  ? I
+  : never;
+
+/**
+ * A name refused by the compiler, naming why: one that is not a single
+ * literal (a `string`, a template such as `` `arm-${number}` ``, or a union:
+ * a name the compiler cannot check, or two names at once), or one taken.
+ * Checked whole, never member by member.
+ */
+type Fresh<N extends string, Taken extends string, What extends string> =
+  Record<never, never> extends Record<N, 1>
+    ? { readonly [K in `a ${What} name must be a literal`]: never }
+    : [N] extends [Meet<N>]
+      ? [Extract<N, Taken>] extends [never]
+        ? unknown
+        : { readonly [K in `a ${What} of this name already exists`]: never }
+      : { readonly [K in `a ${What} name must be one name, not a union`]: never };
 
 /**
  * A few named bones and the outlines bound to them, built once at module
@@ -148,7 +165,30 @@ interface Skeleton<B extends string, S extends string> {
   readonly rest: (skin: S) => ReadonlyArray<Pt>;
   /** Skin `skin`'s rest point `i`'s weight on each bone, summing to 1. */
   readonly weights: (skin: S, i: number) => ByBone<B>;
+  /** What binding the skins refused, each named and set aside: none for a sound rig. */
+  readonly rejected: ReadonlyArray<SkinRejected<B, S>>;
 }
+
+/**
+ * Something a skin's binding refused, named, and what was done instead:
+ * - `WeightNotFinite`: a `weigh` gave bone `bone` a weight that is not a
+ *   finite number (a 0/0 in a falloff) at `points` points, the first `value`;
+ *   those weights are 0.
+ * - `BlendNotFinite`: a chain's `blend` was not finite; each joint takes its
+ *   default blend.
+ * - `ChainNotLinked`: bone `to` follows `from` in a chain but is not its
+ *   child; the chain is weighed as given, with a joint at `from`'s tip.
+ */
+type SkinRejected<B extends string, S extends string> =
+  | {
+      readonly _tag: 'WeightNotFinite';
+      readonly skin: S;
+      readonly bone: B;
+      readonly value: number;
+      readonly points: number;
+    }
+  | { readonly _tag: 'BlendNotFinite'; readonly skin: S; readonly value: number }
+  | { readonly _tag: 'ChainNotLinked'; readonly skin: S; readonly from: B; readonly to: B };
 
 /** One bone as a skeleton keeps it: its parent's index (−1 for a root), start, direction and length. */
 interface Spec<B extends string> {
@@ -232,10 +272,10 @@ const finiteBone = <B extends string>(
   rejected: Array<PoseNotFinite<B>>,
 ): BonePose => {
   const shift = v.shift;
-  const shiftOk =
-    shift === undefined ||
-    (finite(bone, 'shift', shift[0], rejected) !== undefined &&
-      finite(bone, 'shift', shift[1], rejected) !== undefined);
+  // Both components checked, so each that is not finite is named.
+  const sx = finite(bone, 'shift', shift?.[0], rejected);
+  const sy = finite(bone, 'shift', shift?.[1], rejected);
+  const shiftOk = shift === undefined || (sx !== undefined && sy !== undefined);
   return {
     turn: finite(bone, 'turn', v.turn, rejected),
     along: finite(bone, 'along', v.along, rejected),
@@ -346,6 +386,53 @@ const jointOf = <B extends string>(
   };
 };
 
+/** How far point (x, y) lies from bone `b`'s rest segment. */
+const distanceTo = <B extends string>(
+  specs: ReadonlyArray<Spec<B>>,
+  rest: Float64Array,
+  axes: ReadonlyArray<Pt>,
+  b: number,
+  x: number,
+  y: number,
+) => {
+  const [ax, ay] = axes[b] ?? ORIGIN;
+  const [dx, dy] = [x - (rest[b * 3] ?? 0), y - (rest[b * 3 + 1] ?? 0)];
+  const t = Math.min(Math.max(dx * ax + dy * ay, 0), specs[b]?.length ?? 0);
+  return Math.hypot(dx - t * ax, dy - t * ay);
+};
+
+/** Which of `chain`'s bones (its place in the chain) lies nearest point (x, y) at rest; the first on a tie. */
+const nearestOf = <B extends string>(
+  specs: ReadonlyArray<Spec<B>>,
+  rest: Float64Array,
+  axes: ReadonlyArray<Pt>,
+  chain: ReadonlyArray<number>,
+  x: number,
+  y: number,
+) => {
+  let best = 0;
+  let near = Infinity;
+  chain.forEach((b, k) => {
+    const d = distanceTo(specs, rest, axes, b, x, y);
+    if (d < near) [best, near] = [k, d];
+  });
+  return best;
+};
+
+/**
+ * Each joint's step for a point nearest chain bone `j`, in place: the two
+ * joints at its ends as their gauges measure them; every joint before those
+ * at least as far past as the one after it, every joint after them at most.
+ * So the steps never rise along the chain from the point's own bone outward,
+ * and a joint whose bisector the chain has curled back across cannot take
+ * the point for a bone it is not on.
+ */
+const anchored = (steps: Array<number>, j: number) => {
+  for (let k = j - 2; k >= 0; k--) steps[k] = Math.max(steps[k] ?? 0, steps[k + 1] ?? 0);
+  for (let k = j + 1; k < steps.length; k++) steps[k] = Math.min(steps[k] ?? 0, steps[k - 1] ?? 0);
+  return steps;
+};
+
 /** Each point's weights along `chain` (bones by index), a row of every bone's per point, before normalising. */
 const chainWeights = <B extends string>(
   specs: ReadonlyArray<Spec<B>>,
@@ -362,9 +449,10 @@ const chainWeights = <B extends string>(
     .map((j, k) => jointOf(specs, rest, axes, j, chain[k + 1] ?? j, blend));
   pts.forEach(([x, y], i) => {
     // Bone k holds from joint k − 1's step to joint k's: the steps telescope to 1.
-    const steps = joints.map(({ at, n: [nx, ny], half }) =>
+    const gauged = joints.map(({ at, n: [nx, ny], half }) =>
       smoothstep(-half, half, (x - at[0]) * nx + (y - at[1]) * ny),
     );
+    const steps = anchored(gauged, nearestOf(specs, rest, axes, chain, x, y));
     chain.forEach((bone, k) => {
       const w = (k === 0 ? 1 : (steps[k - 1] ?? 0)) - (steps[k] ?? 0);
       out[i * n + bone] = (out[i * n + bone] ?? 0) + Math.max(0, w);
@@ -373,18 +461,25 @@ const chainWeights = <B extends string>(
   return out;
 };
 
-/** Each point's weights by the drawing's own `weigh`, a row of every bone's per point, before normalising. */
-const ownWeights = <B extends string>(
-  names: ReadonlyArray<B>,
-  weigh: (p: Pt) => ByBone<B>,
+/**
+ * Each point's weights by the drawing's own `weigh`, a row of every bone's
+ * per point, before normalising. A weight that is not a finite number is 0,
+ * and handed to `refuse` with its bone.
+ */
+const ownWeights = (
+  names: ReadonlyArray<string>,
+  weigh: (p: Pt) => ByBone<string>,
   pts: ReadonlyArray<Pt>,
+  refuse: (bone: number, value: number) => void,
 ): Float64Array => {
   const n = names.length;
   const out = new Float64Array(pts.length * n);
   pts.forEach((p, i) => {
     const w = weigh(p);
     names.forEach((name, b) => {
-      out[i * n + b] = Math.max(0, w[name] ?? 0);
+      const x = w[name] ?? 0;
+      if (!Number.isFinite(x)) refuse(b, x);
+      out[i * n + b] = Number.isFinite(x) ? Math.max(0, x) : 0;
     });
   });
   return out;
@@ -554,36 +649,72 @@ const bendPoint = (
   return [cos * x - sin * y + 2 * (dx * c - dy * s), sin * x + cos * y + 2 * (dx * s + dy * c)];
 };
 
-/** Skin `spec` bound to bones at `rest`. */
+/** A chain's links that are not parent → child, named for skin `skin`. */
+const unlinked = <B extends string, S extends string>(
+  specs: ReadonlyArray<Spec<B>>,
+  chain: ReadonlyArray<number>,
+  skin: S,
+): Array<SkinRejected<B, S>> =>
+  chain.slice(1).flatMap((to, k) => {
+    const from = chain[k] ?? 0;
+    const [a, b] = [specs[from], specs[to]];
+    if (a === undefined || b === undefined || b.parent === from) return [];
+    return [{ _tag: 'ChainNotLinked', skin, from: a.name, to: b.name } as const];
+  });
+
+/** Skin `spec`'s raw weights on bones at `rest` for its points `pts`, and what it refused. */
+const weightsOf = <B extends string, S extends string>(
+  specs: ReadonlyArray<Spec<B>>,
+  rest: Float64Array,
+  axes: ReadonlyArray<Pt>,
+  spec: SkinSpec<S>,
+  pts: ReadonlyArray<Pt>,
+) => {
+  const names: ReadonlyArray<string> = specs.map((b) => b.name);
+  const weights = spec.weights;
+  const rejected: Array<SkinRejected<B, S>> = [];
+  if ('chain' in weights) {
+    const chain = weights.chain.map((b) => names.indexOf(b)).filter((i) => i >= 0);
+    const blend = weights.blend;
+    const sound = blend === undefined || Number.isFinite(blend);
+    if (!sound) rejected.push({ _tag: 'BlendNotFinite', skin: spec.name, value: blend });
+    rejected.push(...unlinked(specs, chain, spec.name));
+    const raw = chainWeights(specs, rest, axes, chain, sound ? blend : undefined, pts);
+    return { raw, rejected };
+  }
+  // Each bone's refusals counted, so a falloff's 0/0 is named once, not once a point.
+  const refused = new Map<number, { value: number; points: number }>();
+  const raw = ownWeights(names, weights.weigh, pts, (b, value) => {
+    const seen = refused.get(b);
+    refused.set(b, { value: seen?.value ?? value, points: (seen?.points ?? 0) + 1 });
+  });
+  for (const [b, { value, points }] of refused) {
+    const bone = specs[b]?.name;
+    if (bone !== undefined)
+      rejected.push({ _tag: 'WeightNotFinite', skin: spec.name, bone, value, points });
+  }
+  return { raw, rejected };
+};
+
+/** Skin `spec` bound to bones at `rest`, and what binding it refused. */
 const bind = <B extends string, S extends string>(
   specs: ReadonlyArray<Spec<B>>,
   rest: Float64Array,
   axes: ReadonlyArray<Pt>,
   spec: SkinSpec<S>,
-): Bound => {
+) => {
   const n = specs.length;
-  const names: ReadonlyArray<string> = specs.map((b) => b.name);
   const closed = spec.options.closed ?? true;
   const pts = restPath(spec.path, closed, spec.options.spacing);
-  const weights = spec.weights;
-  const raw =
-    'chain' in weights
-      ? chainWeights(
-          specs,
-          rest,
-          axes,
-          weights.chain.map((b) => names.indexOf(b)).filter((i) => i >= 0),
-          weights.blend,
-          pts,
-        )
-      : ownWeights(names, weights.weigh, pts);
-  return {
+  const { raw, rejected } = weightsOf(specs, rest, axes, spec, pts);
+  const bound: Bound = {
     pts,
     w: normalise(raw, n),
     local: localsOf(rest, n, pts),
     closed,
     smooth: spec.options.smooth,
   };
+  return { bound, rejected };
 };
 
 /** `bound` bent by `moves` (its rest outline when `still`). */
@@ -606,7 +737,9 @@ const build = <B extends string, S extends string>(
     const a = rest[b * 3 + 2] ?? 0;
     return [Math.cos(a), Math.sin(a)];
   });
-  const bound = new Map(skins.map((spec) => [spec.name, bind(specs, rest, axes, spec)]));
+  const binds = skins.map((spec) => [spec.name, bind(specs, rest, axes, spec)] as const);
+  const bound = new Map(binds.map(([name, b]) => [name, b.bound]));
+  const rejected = binds.flatMap(([, b]) => b.rejected);
   const none: Bound = {
     pts: [],
     w: new Float64Array(),
@@ -668,6 +801,7 @@ const build = <B extends string, S extends string>(
       });
       return out;
     },
+    rejected,
   };
 };
 
