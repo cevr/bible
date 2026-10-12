@@ -6,7 +6,9 @@
 // instance, the scratch matrix, the surfaces it draws on) is the load scope's
 // and freed when it closes; the rigs stand on the film until then. Each name
 // a declaration gives is checked against the file here, so a missing one
-// fails the load, listing what the file has, and nothing is drawn.
+// fails the load, listing what the file has, and nothing is drawn; so is its
+// fresh timeline (`RiveSource.fresh`), which must play once and which no pose
+// may name.
 
 import type { Artboard, File, RiveCanvas } from '@rive-app/webgl2-advanced';
 import { Effect, Option, type Scope } from 'effect';
@@ -51,6 +53,9 @@ const fileOf = (spec: RivePropSpec, runtime: RiveCanvas, bytes: Uint8Array) => {
   );
 };
 
+/** A timeline's `loopValue` when it plays once and holds (Rive's `Loop.oneShot`). */
+const ONE_SHOT = 0;
+
 /** The view model's numbers a pose may set: the declared ones, else every one the model has. */
 const numberNames = (spec: RivePropSpec, has: ReadonlyArray<string>) =>
   Option.getOrElse(Option.fromNullishOr(spec.source.numbers), () => has);
@@ -76,9 +81,9 @@ const loadRig = Effect.fn('Rive.loadRig')(function* (spec: RivePropSpec) {
     (a) => a.delete(),
   );
 
-  // Every timeline of the artboard, one instance each: the rest a frame is posed from.
+  // Every timeline of the artboard, one instance each: the fresh one, and the rest a frame is posed from.
   const animations = namesOf(artboard.animationCount(), (i) => artboard.animationByIndex(i).name);
-  const rest = yield* Effect.forEach(animations, (_, i) =>
+  const all = yield* Effect.forEach(animations, (_, i) =>
     owned(
       Effect.sync(
         () => new runtime.LinearAnimationInstance(artboard.animationByIndex(i), artboard),
@@ -86,10 +91,23 @@ const loadRig = Effect.fn('Rive.loadRig')(function* (spec: RivePropSpec) {
       (t) => t.delete(),
     ),
   );
-  const timelines = new Map<string, (typeof rest)[number]>();
+  const freshAt = animations.indexOf(source.fresh);
+  const fresh = yield* found(all[freshAt], missing('timeline', source.fresh, animations));
+  // A one-shot holds its last keys past its end, where the engine plays it; a loop would not.
+  if (artboard.animationByIndex(freshAt).loopValue !== ONE_SHOT)
+    return yield* RigUnloadable.make({
+      rig: spec.key,
+      reason: `its fresh timeline "${source.fresh}" loops; it must be one-shot`,
+    });
+  if (source.timelines.some((name) => name === source.fresh))
+    return yield* RigUnloadable.make({
+      rig: spec.key,
+      reason: `a pose cannot name its fresh timeline "${source.fresh}": every frame plays it first`,
+    });
+  const rest = all.filter((_, i) => i !== freshAt);
+  const timelines = new Map<string, (typeof all)[number]>();
   for (const name of source.timelines) {
-    const at = animations.indexOf(name);
-    const t = yield* found(rest[at], missing('timeline', name, animations));
+    const t = yield* found(all[animations.indexOf(name)], missing('timeline', name, animations));
     timelines.set(name, t);
   }
 
@@ -167,6 +185,7 @@ const loadRig = Effect.fn('Rive.loadRig')(function* (spec: RivePropSpec) {
     runtime,
     paints: rive.paints,
     artboard,
+    fresh,
     rest,
     timelines,
     numbers,

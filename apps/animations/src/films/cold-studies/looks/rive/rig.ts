@@ -28,7 +28,7 @@ import { type Element, argb, el, fragment, ids } from './rml.ts';
 type Pt = readonly [number, number];
 
 /** The artboard, and where the figure's feet stand on it (its origin). */
-export const ART = { width: 320, height: 300, feet: [160, 280] as Pt } as const;
+export const ART = { width: 320, height: 300, feet: [160, 280] satisfies Pt } as const;
 
 /** The view model's numbers, and what each means at rest. */
 export const KNOBS = {
@@ -57,7 +57,6 @@ export const TIMELINES = {
 export type Timeline = keyof typeof TIMELINES;
 
 const FPS = 60;
-const fr = (s: number) => Math.round(s * FPS);
 
 // ─── geometry ────────────────────────────────────────────────────────────────
 
@@ -178,18 +177,35 @@ const UP = -Math.PI / 2;
 const DOWN = Math.PI / 2;
 
 /** The body's chain: hips at the waist's foot, chest to the neck (−128, `NECK`), head to its centre, jaw back down to the chin. */
+const CHAIN = {
+  hips: { name: 'hips', x: 0, y: -20, rotation: UP, length: 50 },
+  chest: { name: 'chest', parent: 'hips', rotation: 0, length: 58 },
+  head: { name: 'head', parent: 'chest', rotation: 0, length: 37 },
+  jaw: { name: 'jaw', parent: 'head', rotation: Math.PI, length: 38 },
+} satisfies Record<string, BoneSpec>;
+
+/** The sash's tails, from its knot at the waist, three links each. */
+const TAILS = {
+  A: [
+    { name: 'tailA0', x: 15, y: -40, rotation: DOWN - 0.18, length: 9 },
+    { name: 'tailA1', parent: 'tailA0', rotation: 0.06, length: 9 },
+    { name: 'tailA2', parent: 'tailA1', rotation: 0.04, length: 9 },
+  ],
+  B: [
+    { name: 'tailB0', x: 17, y: -40, rotation: DOWN + 0.32, length: 8 },
+    { name: 'tailB1', parent: 'tailB0', rotation: -0.05, length: 8 },
+    { name: 'tailB2', parent: 'tailB1', rotation: -0.03, length: 8 },
+  ],
+} satisfies Record<'A' | 'B', readonly [BoneSpec, BoneSpec, BoneSpec]>;
+
+/** Every bone: the body's chain, then the sash's tails. */
 const BONES: ReadonlyArray<BoneSpec> = [
-  { name: 'hips', x: 0, y: -20, rotation: UP, length: 50 },
-  { name: 'chest', parent: 'hips', rotation: 0, length: 58 },
-  { name: 'head', parent: 'chest', rotation: 0, length: 37 },
-  { name: 'jaw', parent: 'head', rotation: Math.PI, length: 38 },
-  // The sash's tails, from its knot at the waist, three links each.
-  { name: 'tailA0', x: 15, y: -40, rotation: DOWN - 0.18, length: 9 },
-  { name: 'tailA1', parent: 'tailA0', rotation: 0.06, length: 9 },
-  { name: 'tailA2', parent: 'tailA1', rotation: 0.04, length: 9 },
-  { name: 'tailB0', x: 17, y: -40, rotation: DOWN + 0.32, length: 8 },
-  { name: 'tailB1', parent: 'tailB0', rotation: -0.05, length: 8 },
-  { name: 'tailB2', parent: 'tailB1', rotation: -0.03, length: 8 },
+  CHAIN.hips,
+  CHAIN.chest,
+  CHAIN.head,
+  CHAIN.jaw,
+  ...TAILS.A,
+  ...TAILS.B,
 ];
 
 /** Each bone's bind transform in the body's frame (feet at 0, 0), from the chain. */
@@ -219,7 +235,11 @@ const rootOf = (name: string): Pt => {
 
 // ─── building it ─────────────────────────────────────────────────────────────
 
-/** Everything the build hands out ids to, by name, so timelines and binds can reach it. */
+/**
+ * Everything the build hands out ids to, by name, so timelines and binds can
+ * reach it, and the fresh timeline's tracks (`freshen`): one property of
+ * every path, a unit off at its start and back as cut a frame later.
+ */
 const build = () => {
   const id = ids();
   const named = new Map<string, string>();
@@ -230,7 +250,17 @@ const build = () => {
     named.set(name, made);
     return made;
   };
-  return { id, idOf };
+  const fresh: Record<string, Record<string, ReadonlyArray<K>>> = {};
+  /** Put the path `key` on the fresh timeline by its `property`, `value` as cut. */
+  const freshen = (key: string, property: 'x' | 'width', value: number) => {
+    fresh[key] = {
+      [property]: [
+        [0, value + 1, 'hold'],
+        [1 / FPS, value, 'hold'],
+      ],
+    };
+  };
+  return { id, idOf, fresh, freshen };
 };
 
 /** A colour as a paint. */
@@ -354,6 +384,7 @@ const smoothPath = (
             }),
           ),
         ];
+  b.freshen(`${key}.0`, 'x', pts[0]?.[0] ?? 0);
   return el('PointsPath', { isClosed: closed, isClockwise: true, name: 'Path' }, [
     ...vertices,
     ...skinEl,
@@ -523,30 +554,24 @@ const BOWED = {
 const restOf = (name: string) => BONES.find((b) => b.name === name)?.rotation ?? 0;
 
 /** The tails' swing on a move starting at `start`, from `from` (rest + offset per link), each link later and wider. */
-const tails = (
-  kick: number,
-  start: number,
-  from = 0,
-  to = 0,
-): Record<string, Record<string, K[]>> => {
-  const out: Record<string, Record<string, K[]>> = {};
-  for (const tail of ['A', 'B'] as const)
-    for (let i = 0; i < 3; i++) {
-      const name = `tail${tail}${i}`;
-      const r = restOf(name);
-      const amp = kick * (1 + 0.5 * i) * (tail === 'A' ? 1 : 0.8);
-      out[`bone:${name}`] = {
-        rotation: swing(
+const tails = (kick: number, start: number, from = 0, to = 0) =>
+  Object.fromEntries(
+    (['A', 'B'] as const).flatMap((tail) =>
+      [0, 1, 2].map((i) => {
+        const name = `tail${tail}${i}`;
+        const r = restOf(name);
+        const amp = kick * (1 + 0.5 * i) * (tail === 'A' ? 1 : 0.8);
+        const swung = swing(
           r + from * (i === 0 ? 1 : 0.3),
           r + to * (i === 0 ? 1 : 0.3),
           amp,
           0.05 + 0.06 * i,
           start,
-        ),
-      };
-    }
-  return out;
-};
+        );
+        return [`bone:${name}`, { rotation: swung }] as const;
+      }),
+    ),
+  );
 
 // ─── the file ────────────────────────────────────────────────────────────────
 
@@ -568,21 +593,28 @@ export const accusedRml = (): string => {
       },
       children,
     );
-  const spec = (name: string): BoneSpec => {
-    const s = BONES.find((x) => x.name === name);
-    if (s === undefined) throw new Error(`no bone ${name}`);
-    return s;
-  };
-
   const vm = idOf('vm');
-  const prop = (k: Knob) => idOf(`vm:${k}`);
+  /** A view-model number's id, by its name (a `KNOBS` key). */
+  const prop = (k: string) => idOf(`vm:${k}`);
   const bind = (k: Knob, propertyKey: number) =>
     el('DataBindContext', { sourcePathIds: `${vm}-${prop(k)}`, propertyKey });
+  /** An ellipse `w` × `h` about its shape's origin, on the fresh timeline as `key`. */
+  const ellipsePath = (key: string, w: number, h: number) => {
+    b.freshen(key, 'width', w);
+    return el('Ellipse', {
+      width: w,
+      height: h,
+      originX: 0.5,
+      originY: 0.5,
+      name: 'Path',
+      id: idOf(key),
+    });
+  };
 
   // The face, in the head's own frame turned upright (origin at the neck, x right, y down).
   const eye = (side: 'L' | 'R', x: number) =>
     el('Shape', { x, y: -7, name: `eye${side}`, id: idOf(`eye${side}`) }, [
-      el('Ellipse', { width: 6.4, height: 8.4, originX: 0.5, originY: 0.5, name: 'Path' }),
+      ellipsePath(`eye${side}:path`, 6.4, 8.4),
       el('Fill', { name: 'Ink' }, [solid(P.outline)]),
       // Pulled toward the gaze, then held inside its socket.
       el('TranslationConstraint', { targetId: idOf('gaze'), strength: 0.03, name: 'Look' }),
@@ -613,7 +645,7 @@ export const accusedRml = (): string => {
     eye('L', -12),
     eye('R', 13),
     el('Shape', { x: 2, y: 16, scaleX: 0, scaleY: 0, name: 'mouth', id: idOf('mouth') }, [
-      el('Ellipse', { width: 6, height: 8, originX: 0.5, originY: 0.5, name: 'Path' }),
+      ellipsePath('mouth:path', 6, 8),
       el('Fill', { name: 'Ink' }, [solid(P.outline)]),
       bind('mouth', 16),
       bind('mouth', 17),
@@ -623,9 +655,9 @@ export const accusedRml = (): string => {
   ]);
   const headSpace = el('Node', { rotation: Math.PI / 2, name: 'headSpace' }, [face]);
 
-  const skeleton = bone(spec('hips'), [
-    bone(spec('chest'), [
-      bone(spec('head'), [
+  const skeleton = bone(CHAIN.hips, [
+    bone(CHAIN.chest, [
+      bone(CHAIN.head, [
         headSpace,
         // The head turns after the eyes (`follow` of the way). The runtime's IK keeps its last
         // solve where the head bone is not dirtied, so the prop re-dirties it each frame
@@ -641,13 +673,14 @@ export const accusedRml = (): string => {
           },
           [bind('follow', 172)],
         ),
-        bone(spec('jaw'), []),
+        bone(CHAIN.jaw, []),
       ]),
     ]),
   ]);
-  const tailBones = (['A', 'B'] as const).map((t) =>
-    bone(spec(`tail${t}0`), [bone(spec(`tail${t}1`), [bone(spec(`tail${t}2`), [])])]),
-  );
+  const tailBones = (['A', 'B'] as const).map((t) => {
+    const [root, mid, tip] = TAILS[t];
+    return bone(root, [bone(mid, [bone(tip, [])])]);
+  });
 
   const torsoSkin = { bones: ['hips', 'chest'], weigh: torsoWeigh };
   const mitten = (side: 'near' | 'far', x: number) =>
@@ -727,13 +760,7 @@ export const accusedRml = (): string => {
     body,
     // The contact shadow under the feet (`ground`), softened by a feather.
     el('Shape', { x: 0, y: 2, name: 'ground' }, [
-      el('Ellipse', {
-        width: GROUND.width,
-        height: GROUND.height,
-        originX: 0.5,
-        originY: 0.5,
-        name: 'Path',
-      }),
+      ellipsePath('ground:path', GROUND.width, GROUND.height),
       el('Fill', { fillRule: 'clockwise', name: 'Shade' }, [
         solid('#281c10', GROUND.alpha),
         el('Feather', { strength: GROUND.feather, name: 'Soft' }),
@@ -981,6 +1008,9 @@ export const accusedRml = (): string => {
     name: 'idle',
     id: idOf('anim:idle'),
   });
+  // Every path a unit off and back as cut (`RiveSource.fresh`): the engine plays it
+  // first each frame, so every shape is remade from that frame's own transforms.
+  const fresh = timeline(b, 'fresh', 2 / FPS, b.fresh);
 
   const artboard = el(
     'Artboard',
@@ -1009,6 +1039,7 @@ export const accusedRml = (): string => {
       stamp,
       lift,
       boil,
+      fresh,
     ],
   );
 
@@ -1016,14 +1047,12 @@ export const accusedRml = (): string => {
     'ViewModel',
     { defaultInstanceId: idOf('vm:default'), name: 'Accused', id: vm },
     [
-      ...Object.keys(KNOBS).map((k) =>
-        el('ViewModelPropertyNumber', { name: k, id: prop(k as Knob) }),
-      ),
+      ...Object.keys(KNOBS).map((k) => el('ViewModelPropertyNumber', { name: k, id: prop(k) })),
       el(
         'ViewModelInstance',
         { exports: true, name: 'Default', id: idOf('vm:default') },
         Object.entries(KNOBS).map(([k, v]) =>
-          el('ViewModelInstanceNumber', { propertyValue: v, viewModelPropertyId: prop(k as Knob) }),
+          el('ViewModelInstanceNumber', { propertyValue: v, viewModelPropertyId: prop(k) }),
         ),
       ),
     ],

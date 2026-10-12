@@ -6,11 +6,26 @@
 // a frame. The film loads its rigs before its first frame (`src/rive`,
 // `loadRigs`), and a rig's every wasm object belongs to that load's scope.
 //
-// Rive never owns the clock, and a frame is posed from rest whatever was
-// drawn before it (`posed`): every timeline of the artboard applied at its
-// start, then every view-model number the rig has set (the pose's, else its
-// rest), then the pose's timelines in order, each bone an IK constraint turns
-// (`refresh`) dirtied, and the machine and the artboard advanced by no time.
+// Rive never owns the clock, and a frame is a function of its pose alone,
+// whatever was drawn before it (`posed`): every path made afresh (the rig's
+// `fresh` timeline played at its start and its end), every other timeline of
+// the artboard applied at its start, then every view-model number the rig has
+// set (the pose's, else its rest), then the pose's timelines in order, each
+// bone an IK constraint turns (`refresh`) dirtied, and the machine and the
+// artboard advanced by no time.
+//
+// Why every path is made afresh: Rive keeps a shape's paths in the shape's
+// own space, mapped by the inverse of the shape's world transform times each
+// path's, and remakes them only when a path's geometry changes or that
+// product moves by more than 16 float epsilons (`PathComposer`). A rigid move
+// leaves the product equal but for rounding, so a shape drawn on a later
+// frame keeps the paths an earlier frame made, with that frame's rounding:
+// the fixture arm, posed through shuffled times, drew 22 of 60 frames off a
+// new artboard's by up to a millionth of a unit, and the court's accused drew
+// a pixel apart. The `fresh` timeline moves one point of every path (or an
+// ellipse's or a rectangle's width) a unit off at its start and back as cut
+// at its end, so each path's geometry changes on every frame and every shape
+// is remade from that frame's own transforms.
 //
 // Two engines draw it:
 //
@@ -51,13 +66,24 @@ export type RiveEngine = 'canvas' | 'webgl2';
 /**
  * A rig's built file (its URL in a page, its path in Bun: the module's own
  * `import riv from './x.riv' with { type: 'file' }`), the artboard drawn, the
- * timelines a pose may name, the view model's numbers it may set, and the
- * machine that applies the view model's binds.
+ * timelines a pose may name, the timeline that makes every path afresh, the
+ * view model's numbers it may set, and the machine that applies the view
+ * model's binds.
  */
 interface RiveSource<Tl extends string = string, N extends string = string> {
   readonly riv: string;
   readonly artboard: string;
   readonly timelines: ReadonlyArray<Tl>;
+  /**
+   * A one-shot timeline keying one point of every path the artboard draws
+   * (or an ellipse's or a rectangle's width) a unit off at its start and
+   * back as cut at its end. Every frame plays it at both ends before
+   * anything else, so every shape is remade from that frame's own
+   * transforms and no frame carries the rounding of one drawn before it; a
+   * path it leaves out may. Not a timeline a pose names, nor part of the
+   * rest.
+   */
+  readonly fresh: string;
   /** The numbers a pose may set, checked against the file at load; any of its numbers when it names none. */
   readonly numbers?: ReadonlyArray<N>;
   readonly stateMachine?: string;
@@ -125,7 +151,9 @@ export interface LoadedRig {
   /** False where the rig is posed and probed but never drawn (Bun, which has no canvas). */
   readonly paints: boolean;
   readonly artboard: Artboard;
-  /** Every timeline of the artboard, each applied at its start: the rest a frame is posed from. */
+  /** The timeline that makes every path afresh (`RiveSource.fresh`), played at both ends each frame. */
+  readonly fresh: LinearAnimationInstance;
+  /** Every other timeline of the artboard, each applied at its start: the rest a frame is posed from. */
   readonly rest: ReadonlyArray<LinearAnimationInstance>;
   /** The declared timelines, by name. */
   readonly timelines: ReadonlyMap<string, LinearAnimationInstance>;
@@ -208,7 +236,21 @@ const hasNumber = (rig: LoadedRig, name: string) => {
 /** The names a rig has of a kind, for an error. */
 const listed = (names: Iterable<string>) => [...names].join(', ');
 
-/** Every timeline of the artboard applied at its start, in full: the rest a frame is posed from. */
+/**
+ * A time past the end of any `fresh` timeline: a one-shot timeline holds its
+ * last keys past its end, and the runtime does not tell a timeline's length.
+ */
+const PAST_ITS_END = 3600;
+
+/** Every path a unit off and back as cut: each shape's paths remade on this frame. */
+const freshened = (rig: LoadedRig) => {
+  rig.fresh.time = 0;
+  rig.fresh.apply(1);
+  rig.fresh.time = PAST_ITS_END;
+  rig.fresh.apply(1);
+};
+
+/** Every other timeline of the artboard applied at its start, in full: the rest a frame is posed from. */
 const atRest = (rig: LoadedRig) => {
   for (let i = 0; i < rig.rest.length; i++) {
     const t = rig.rest[i];
@@ -248,12 +290,15 @@ const timed = (spec: RivePropSpec, rig: LoadedRig, pose: RivePose): string | und
 };
 
 /**
- * Set `rig` to `pose` from rest: every timeline at its start, every number,
- * the pose's timelines, the refreshed bones, then the machine and the
- * artboard by no time at all. Why it cannot, when the pose names a timeline
- * or a number the rig does not have.
+ * Set `rig` to `pose` from rest: every path made afresh, every other
+ * timeline at its start, every number, the pose's timelines, the refreshed
+ * bones, then the machine and the artboard by no time at all. The fresh
+ * timeline goes first, so a timeline that keys the same point (a boil) has
+ * the last word. Why it cannot, when the pose names a timeline or a number
+ * the rig does not have.
  */
 const posed = (spec: RivePropSpec, rig: LoadedRig, pose: RivePose): string | undefined => {
+  freshened(rig);
   atRest(rig);
   const why = numbered(spec, rig, pose) ?? timed(spec, rig, pose);
   if (why !== undefined) return why;

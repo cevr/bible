@@ -5,7 +5,7 @@
         </Node>
         <RootBone x="40" y="40" rotation="1.570796" length="60" name="upper" id="1:20">
             <Shape x="30" y="0" name="upperPiece">
-                <Rectangle width="60" height="16" originX="0.5" originY="0.5" name="Path"/>
+                <Rectangle width="60" height="16" originX="0.5" originY="0.5" name="Path" id="1:60"/>
                 <Fill fillRule="clockwise" name="Paper">
                     <SolidColor colorValue="FF6F8FAF"/>
                     <Feather strength="4" offsetX="1" offsetY="2" name="Soft"/>
@@ -13,14 +13,14 @@
             </Shape>
             <Bone rotation="0" length="60" name="lower" id="1:21">
                 <Shape x="30" y="0" name="lowerPiece">
-                    <Rectangle width="60" height="12" originX="0.5" originY="0.5" name="Path"/>
+                    <Rectangle width="60" height="12" originX="0.5" originY="0.5" name="Path" id="1:61"/>
                     <Fill name="Paper">
                         <SolidColor colorValue="FFAF6F4F"/>
                     </Fill>
                 </Shape>
                 <Node x="60" y="0" name="face" id="1:22">
                     <Shape name="faceDisc">
-                        <Ellipse width="24" height="24" originX="0.5" originY="0.5" name="Path"/>
+                        <Ellipse width="24" height="24" originX="0.5" originY="0.5" name="Path" id="1:62"/>
                         <Fill name="Paper">
                             <SolidColor colorValue="FFE0C090"/>
                         </Fill>
@@ -45,6 +45,36 @@
                 <KeyedProperty property="x">
                     <KeyFrameDouble value="60" frame="0" interpolationType="linear"/>
                     <KeyFrameDouble value="170" frame="120" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation fps="60" duration="60" loopValue="loop" name="boil" id="1:32">
+            <KeyedObject objectId="1:60">
+                <KeyedProperty property="width">
+                    <KeyFrameDouble value="60" frame="0" interpolationType="hold"/>
+                    <KeyFrameDouble value="60.4" frame="15" interpolationType="hold"/>
+                    <KeyFrameDouble value="59.8" frame="30" interpolationType="hold"/>
+                    <KeyFrameDouble value="60.2" frame="45" interpolationType="hold"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation fps="60" duration="2" loopValue="oneShot" name="fresh" id="1:33">
+            <KeyedObject objectId="1:60">
+                <KeyedProperty property="width">
+                    <KeyFrameDouble value="61" frame="0" interpolationType="hold"/>
+                    <KeyFrameDouble value="60" frame="1" interpolationType="hold"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="1:61">
+                <KeyedProperty property="width">
+                    <KeyFrameDouble value="61" frame="0" interpolationType="hold"/>
+                    <KeyFrameDouble value="60" frame="1" interpolationType="hold"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="1:62">
+                <KeyedProperty property="width">
+                    <KeyFrameDouble value="25" frame="0" interpolationType="hold"/>
+                    <KeyFrameDouble value="24" frame="1" interpolationType="hold"/>
                 </KeyedProperty>
             </KeyedObject>
         </LinearAnimation>

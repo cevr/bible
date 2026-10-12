@@ -3268,9 +3268,10 @@ the checks stay ours.
   (`drawing({ rigs: { accused: spec }, draw: (f) => f.rive('accused', pose) })`).
   A spec (`RivePropSpec`, `@bible/film/rive`) is the rig's built file
   (`import riv from './x.riv' with { type: 'file' }`), its artboard, the
-  timelines and view-model numbers a pose may name, its state machine, the
-  bones an IK constraint turns (`refresh`), its engine, which artboard point
-  stands at our origin, and its face node. `f.rive` takes only a declared
+  timelines and view-model numbers a pose may name, its `fresh` timeline
+  (see below), its state machine, the bones an IK constraint turns
+  (`refresh`), its engine, which artboard point stands at our origin, and its
+  face node. `f.rive` takes only a declared
   name, and a pose (`timelines`: each `[name, seconds, mix?]`; `numbers` by
   name) names only that rig's timelines and numbers: anything else does not
   compile (`canvas/drawing.types.ts`).
@@ -3286,22 +3287,49 @@ the checks stay ours.
   machine, view-model instance, scratch matrix, renderers, GL targets)
   belongs to the load's scope. Two films never share a rig. A name the file
   lacks fails the load (`RigNameMissing`, listing what the file has), a file
-  that cannot be read fails it (`RigUnloadable`), and a frame that draws a
-  rig its film has not loaded throws: there is no fallback picture.
-- **Posed from rest.** A frame is a function of its time, whatever was drawn
-  before it (`canvas/rive.ts` `drawRig`): every timeline of the artboard
-  applied at its start, every view-model number written (the pose's, else
-  the rest it was loaded with), the pose's timelines in order, the `refresh`
-  bones dirtied, then the machine and the artboard advanced by no time.
-  Without the rest pass, a timeline left out (or at mix 0) keeps what the
-  frame before set, and both tests go red; without the primed GL target the
-  page test does. The spike's IK history (a solve started from the last
-  frame's world transform) does not show in runtime 2.43.1 in Bun or on the
-  page with the bones left clean; `refresh` stays as its guard. The draw is
-  plain synchronous code that allocates nothing a frame. One
-  instance per rig, posed from rest, costs 3.4 µs a frame for the fixture
-  arm and 16 µs for the cold-studies accused in Bun; a fresh instance a
-  frame cost 19 and 120.
+  that cannot be read fails it (`RigUnloadable`), so does a `fresh` timeline
+  that loops or that a pose may name, and a frame that draws a rig its film
+  has not loaded throws: there is no fallback picture.
+- **Posed from rest, every path made afresh.** A frame is a function of its
+  time, whatever was drawn before it (`canvas/rive.ts` `drawRig`): the
+  rig's `fresh` timeline played at its start and its end, every other
+  timeline of the artboard applied at its start, every view-model number
+  written (the pose's, else the rest it was loaded with), the pose's
+  timelines in order, the `refresh` bones dirtied, then the machine and the
+  artboard advanced by no time.
+  - _Why `fresh`._ Rive keeps a shape's paths in the shape's own space
+    (each path's geometry mapped by the inverse of the shape's world
+    transform times the path's) and remakes them only when a path's
+    geometry changes or that product moves by more than 16 float epsilons
+    (`PathComposer` in rive-runtime). A rigid move leaves the product equal
+    but for rounding, so a shape keeps the paths an earlier frame made, with
+    that frame's rounding: posed through shuffled times, the fixture arm drew
+    20 of 60 frames' paths off a new rig's (by up to a millionth of a unit),
+    the cold-studies accused 59 of 60, and on the court one pixel of a brow
+    differed. A boil does not cure it (a held tick changes no geometry) and
+    an unboiled rig has it too. The `fresh` timeline is the file's: a
+    one-shot timeline keying one point of every path (or an ellipse's or a
+    rectangle's width) a unit off at its start and back as cut at its end. The
+    engine plays it first, so every path's geometry changes every frame and
+    every shape is remade from that frame's own transforms; a timeline that
+    keys the same point (a boil) then has the last word. A path the timeline
+    leaves out is not covered: a rig's generator lists its paths (the
+    fixture's three, the accused's `freshen` in `looks/rive/rig.ts`).
+  - _Proved in Bun, number for number._ `src/rive/rive.test.ts` draws the arm
+    with Rive's Canvas 2D runtime into a context that writes down every path's
+    commands: drawn after a shuffled history, each frame's paths are a new
+    rig's exactly; without `freshened` 20 of 60 are not. Playing it after the
+    pose loses the boil, and leaving it in the rest leaves every path a unit
+    wide: each turns a case red.
+  - Without the rest pass, a timeline left out (or at mix 0) keeps what the
+    frame before set, and both tests go red; without the primed GL target the
+    page test does. The spike's IK history (a solve started from the last
+    frame's world transform) does not show in runtime 2.43.1 in Bun or on the
+    page with the bones left clean; `refresh` stays as its guard. The draw is
+    plain synchronous code that allocates nothing a frame. One instance per
+    rig, posed from rest, costs 3.4 µs a frame for the fixture arm and 16 µs
+    for the cold-studies accused in Bun; a new instance a frame (which would
+    also make every path afresh) cost 19 and 120, and allocates.
 - **Two engines.** `canvas` (`@rive-app/canvas-advanced`) draws with Rive's
   Canvas 2D renderer on our own context. `webgl2` (`@rive-app/webgl2-advanced`)
   draws with the Rive Renderer on a WebGL 2 canvas off the page and

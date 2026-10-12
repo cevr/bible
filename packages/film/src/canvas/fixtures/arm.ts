@@ -3,9 +3,12 @@
 // with two bones (`upper`, `lower`) reaching for a node `target` through one
 // IK constraint (`Reach`, its strength bound to the view model's `reach`),
 // the target's x keyed by the timeline `reach` (60 → 170 over 2 s) and its y
-// bound to the number `lift`, a `face` node at the lower bone's tip, and an
-// empty `idle` timeline the machine `Binds` plays. Feet (the artboard's
-// centre) at our origin.
+// bound to the number `lift`, a `face` node at the lower bone's tip, an
+// empty `idle` timeline the machine `Binds` plays, a `boil` that crawls the
+// upper piece's width (60, 60.4, 59.8, 60.2, a quarter second each, looped)
+// and the `fresh` timeline that puts each of its three paths (two
+// rectangles, the face's disc) a unit wide and back, the boiled width among
+// them. Feet (the artboard's centre) at our origin.
 
 import { Option } from 'effect';
 import type { PoseOf, RiveEngine, RivePropSpec } from '../rive.ts';
@@ -13,11 +16,14 @@ import { type SceneSpec, createFilm, drawing } from '../film.ts';
 import armRiv from '../../rive/fixtures/arm/build/arm.riv' with { type: 'file' };
 
 /** The arm, drawn by `engine`. */
-export const armRig = (engine: RiveEngine): RivePropSpec<'idle' | 'reach', 'lift' | 'reach'> => ({
+export const armRig = (
+  engine: RiveEngine,
+): RivePropSpec<'idle' | 'reach' | 'boil', 'lift' | 'reach'> => ({
   source: {
     riv: armRiv,
     artboard: 'Arm',
-    timelines: ['idle', 'reach'],
+    timelines: ['idle', 'reach', 'boil'],
+    fresh: 'fresh',
     numbers: ['lift', 'reach'],
     stateMachine: 'Binds',
     refresh: ['upper'],
@@ -35,12 +41,13 @@ export const HANGING_FACE = [40 - 100, 160 - 100] as const;
  * The pose at scene time `t`: the reach played over two seconds and the
  * lift swung, with the reach's strength off for the first half second and
  * the timeline left at rest (mix 0) over the last, so frames that differ only
- * in what was drawn before them are told apart.
+ * in what was drawn before them are told apart; the upper piece boiling.
  */
 export const armPose = (t: number): ArmPose => ({
   timelines: [
     ['idle', t % 1],
     ['reach', t % 2, Number(t < 1.5)],
+    ['boil', t % 1],
   ],
   // Slack, the lift left at its rest; then reaching, the lift swung.
   numbers: Option.match(

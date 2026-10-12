@@ -85,7 +85,13 @@ export const callback = drawing({
 
 /** A rig as a drawing declares it: its timelines and numbers typed, so a pose names only those. */
 const arm: RivePropSpec<'reach', 'lift'> = {
-  source: { riv: 'arm.riv', artboard: 'Arm', timelines: ['reach'], numbers: ['lift'] },
+  source: {
+    riv: 'arm.riv',
+    artboard: 'Arm',
+    timelines: ['reach'],
+    fresh: 'fresh',
+    numbers: ['lift'],
+  },
   engine: 'webgl2',
   key: 'arm',
   origin: [0, 0],

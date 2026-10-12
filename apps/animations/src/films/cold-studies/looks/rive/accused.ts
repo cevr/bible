@@ -14,6 +14,7 @@ const SOURCE = {
   riv: accusedRiv,
   artboard: 'Accused',
   timelines: Object.keys(TIMELINES),
+  fresh: 'fresh',
   stateMachine: 'Knobs',
   refresh: ['head'],
 } as const;
