@@ -3,6 +3,7 @@
 // declares. Each `@ts-expect-error` fails the typecheck if the line compiles.
 
 import { drawing } from './film.ts';
+import type { RivePropSpec } from './rive.ts';
 
 export const declared = drawing({
   timeline: {
@@ -79,5 +80,35 @@ export const callback = drawing({
     is<readonly [number, number]>()(theirs('quoteAt'));
     // @ts-expect-error: `f.knobsOf` names only the knobs that drawing declares.
     theirs('handX');
+  },
+});
+
+/** A rig as a drawing declares it: its timelines and numbers typed, so a pose names only those. */
+const arm: RivePropSpec<'reach', 'lift'> = {
+  source: { riv: 'arm.riv', artboard: 'Arm', timelines: ['reach'], numbers: ['lift'] },
+  engine: 'webgl2',
+  key: 'arm',
+  origin: [0, 0],
+};
+
+export const rigged = drawing({
+  timeline: {},
+  rigs: { arm },
+  draw: (f) => {
+    f.rive('arm', { timelines: [['reach', 0.5]], numbers: { lift: 1 } });
+    // @ts-expect-error: `f.rive` names only declared rigs.
+    f.rive('leg', { timelines: [] });
+    // @ts-expect-error: a pose names only the rig's own timelines.
+    f.rive('arm', { timelines: [['wave', 0.5]] });
+    // @ts-expect-error: a pose sets only the rig's own numbers.
+    f.rive('arm', { timelines: [], numbers: { elbow: 1 } });
+  },
+});
+
+export const rigless = drawing({
+  timeline: {},
+  draw: (f) => {
+    // @ts-expect-error: a drawing with no rigs has no `f.rive` names.
+    f.rive('arm', { timelines: [] });
   },
 });
