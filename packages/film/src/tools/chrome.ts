@@ -26,7 +26,7 @@ import { BrowserFailed, BrowserMissing } from './errors.ts';
  * as on a real one, decodes and processes, and a microphone is heard. A host
  * with no output device (a Linux server) ran on that fake device already.
  */
-export const chromeArgs = (argv: ReadonlyArray<string>): ReadonlyArray<string> => [
+const chromeArgs = (argv: ReadonlyArray<string>): ReadonlyArray<string> => [
   '--mute-audio',
   '--disable-audio-output',
   ...argv,
