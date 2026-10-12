@@ -10,6 +10,7 @@ import { engraving } from './engraving/index.ts';
 import { painterly } from './painterly/index.ts';
 import { ps1 } from './ps1/index.ts';
 import { rive, rivegl } from './rive/index.ts';
+import { skinned } from './skinned/index.ts';
 
 const LOOKS: Readonly<Record<Style, Look>> = {
   cutpaper,
@@ -19,6 +20,7 @@ const LOOKS: Readonly<Record<Style, Look>> = {
   bold,
   rive,
   rivegl,
+  skinned,
 };
 
 /** The look the study plays. */
