@@ -1,5 +1,6 @@
-// Every Chrome the film tools and their browser tests spawn is muted: the
-// flags it is spawned with lead with `--mute-audio` whatever the caller asks
+// Every Chrome the film tools and their browser tests spawn is silent: the
+// flags it is spawned with lead with `--mute-audio` and `--disable-audio-output`
+// (no page heard, the host's output device never opened) whatever the caller asks
 // for (the renderer's, the browser tests'), and `chrome.ts` is the one place
 // that spawns one, so no launch can do without them. No Chromium.
 
@@ -16,12 +17,12 @@ const PACKAGE = `${import.meta.dir}/../..`;
 const SPAWNS = /new Bun\.WebView\(/;
 
 describe('the Chrome a tool or test spawns', () => {
-  test('is spawned muted, with the flags its caller asks for after it', () => {
+  test('is spawned silent, with the flags its caller asks for after it', () => {
     for (const asked of [launchArgs('darwin'), launchArgs('linux'), []])
-      expect(chromeArgs(asked)).toEqual(['--mute-audio', ...asked]);
+      expect(chromeArgs(asked)).toEqual(['--mute-audio', '--disable-audio-output', ...asked]);
   });
 
-  it.effect.layer(BunServices.layer)('is spawned only by chrome.ts, which mutes it', () =>
+  it.effect.layer(BunServices.layer)('is spawned only by chrome.ts, which silences it', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const spawning = yield* Effect.forEach(['src', 'e2e'], (folder) =>

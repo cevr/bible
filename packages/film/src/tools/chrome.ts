@@ -10,7 +10,7 @@
 // install left in `~/.cache/ms-playwright`. None of them: `BrowserMissing`,
 // which names `BUN_CHROME_PATH`.
 //
-// Every Chrome is muted (`chromeArgs`): no page a tool or test opens is
+// Every Chrome is silent (`chromeArgs`): no page a tool or test opens is
 // listened to (a render mixes and encodes its sound offline), and a headless
 // Chrome otherwise plays its pages' sound out of the host's speakers.
 
@@ -18,12 +18,17 @@ import { Config, Effect, FileSystem, Option, Order, Path, Schema, type Scope } f
 import { BrowserFailed, BrowserMissing } from './errors.ts';
 
 /**
- * The flags a Chrome is spawned with: the caller's, after `--mute-audio`.
- * Muted, a page's audio still runs (its `AudioContext` keeps time, decodes
- * and processes, a microphone is heard); only the output device gets silence.
+ * The flags a Chrome is spawned with: the caller's, after the two that keep
+ * it silent. `--mute-audio` mutes its pages; `--disable-audio-output` plays
+ * what they would play to a fake device, so Chrome never opens the host's
+ * output at all (muted alone, it still held it, playing silence). A page's
+ * audio still runs: its `AudioContext` keeps time on the fake device's clock
+ * as on a real one, decodes and processes, and a microphone is heard. A host
+ * with no output device (a Linux server) ran on that fake device already.
  */
 export const chromeArgs = (argv: ReadonlyArray<string>): ReadonlyArray<string> => [
   '--mute-audio',
+  '--disable-audio-output',
   ...argv,
 ];
 
