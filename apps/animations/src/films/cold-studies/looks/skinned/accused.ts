@@ -12,9 +12,17 @@
 // copied with their Rive eases (`io` → inOutSine, `out` → outCubic) moved to
 // the key they arrive at, as `keys` reads them. Nothing is carried between
 // frames: the pose is made from the frame's own numbers.
+//
+// `PARITY` poses it with the rig's own values; `AMPLIFIED` takes each
+// channel further from rest by its gain, so the bend reads at film scale: the
+// shoulders round, the tunic's top sags, the jaw squashes, the lift overshoots
+// by a few pixels. The keys' times and eases are the rig's in both, so the
+// amplified bow is the same move, only larger.
 
 import {
   type Hand,
+  type Pose,
+  type PoseValues,
   type Pt,
   breathOf,
   cutout,
@@ -52,27 +60,37 @@ const REST: Pt = [42, -50];
 // ─── the bones and the skins ─────────────────────────────────────────────────
 
 const UP = -Math.PI / 2;
-/** The rig's chain: hips at the waist's foot, chest to the neck (−128), head to its centre, jaw back down to the chin. */
-const BODY = skeleton('hips', { at: [0, -20], angle: UP, length: 50 })
-  .bone('chest', 'hips', { length: 58 })
-  .bone('head', 'chest', { length: 37 })
-  .bone('jaw', 'head', { angle: Math.PI, length: 38 });
 
 const smoothstep = (e0: number, e1: number, x: number) => {
   const t = clamp((x - e0) / (e1 - e0));
   return t * t * (3 - 2 * t);
 };
 
-/** The tunic, resampled so its long straight sides have points to bend. */
-const TORSO = BODY.skin(TUNIC_SHAPE, { chain: ['hips', 'chest'] }, { spacing: 4 });
-const STAINS = FIGURE_STAINS.map((stain) => BODY.skin(stain, { chain: ['hips', 'chest'] }));
-/** The head: its upper half on the head bone, from the eyes down onto the jaw (the rig's weights). */
-const HEAD_SKIN = BODY.skin(ellipseShape(HEAD[0], HEAD[1], HEAD_RX, HEAD_RY, 64), {
-  weigh: ([, y]) => {
-    const jaw = smoothstep(-168, -140, y);
-    return { head: 1 - jaw, jaw };
-  },
-});
+const [STAIN_A = [], STAIN_B = []] = FIGURE_STAINS;
+
+/**
+ * The rig's chain: hips at the waist's foot, chest to the neck (−128), head to
+ * its centre, jaw back down to the chin. Its skins: the tunic, with points
+ * added so its long straight sides have points to bend, and its two stains,
+ * along hips → chest; the head, its upper half on the head bone, from the
+ * eyes down onto the jaw (the rig's weights).
+ */
+const BODY = skeleton('hips', { at: [0, -20], angle: UP, length: 50 })
+  .bone('chest', 'hips', { length: 58 })
+  .bone('head', 'chest', { length: 37 })
+  .bone('jaw', 'head', { angle: Math.PI, length: 38 })
+  .skin('torso', TUNIC_SHAPE, { chain: ['hips', 'chest'] }, { spacing: 4 })
+  .skin('stainA', STAIN_A, { chain: ['hips', 'chest'] })
+  .skin('stainB', STAIN_B, { chain: ['hips', 'chest'] })
+  .skin('head', ellipseShape(HEAD[0], HEAD[1], HEAD_RX, HEAD_RY, 64), {
+    weigh: ([, y]) => {
+      const jaw = smoothstep(-168, -140, y);
+      return { head: 1 - jaw, jaw };
+    },
+  });
+type Bone = (typeof BODY.names)[number];
+type Posed = Pose<Bone, 'torso' | 'stainA' | 'stainB' | 'head'>;
+const STAINS = ['stainA', 'stainB'] as const;
 
 // ─── the motion, on the cues ─────────────────────────────────────────────────
 
@@ -252,6 +270,49 @@ const STAMP_SX: ReadonlyArray<Key> = [
 /** How far the chest widens on a breath in, as a share. */
 const BREATH = 0.0125;
 
+/** Each channel's value at rest, which a gain scales the move away from. */
+const AT_REST: Readonly<Record<Channel, number>> = {
+  chestTurn: 0,
+  chestAlong: 1,
+  chestAcross: 1,
+  headTurn: 0,
+  jawAlong: 1,
+  faceY: 0,
+  faceSy: 1,
+  nearX: 0,
+  nearY: 0,
+  farX: 0,
+  farY: 0,
+  bodyY: 0,
+};
+
+/** How far each channel moves from rest, as a share of the rig's move: a channel left out moves as the rig's. */
+type Gains = Readonly<Partial<Record<Channel, number>>>;
+
+/** The rig's own values: parity with the Rive look. */
+export const PARITY: Gains = {};
+
+/**
+ * Larger, to read at film scale, and still sincere: the chest bows about
+ * 0.18 rad and squashes to 0.84 (its top sags), the shoulders round out to
+ * 1.09, the head sinks a further 0.23 rad (the head hangs about 24°, a bow,
+ * not a quizzical tilt), the jaw squashes to 0.75; the lift overshoots to
+ * 1.07 along the chest and 1.1 on the jaw before it settles. The chest stays
+ * well under the 0.8 rad where a wide piece folds.
+ */
+export const AMPLIFIED: Gains = {
+  chestTurn: 3.2,
+  chestAlong: 2,
+  chestAcross: 2.5,
+  headTurn: 1.3,
+  jawAlong: 2.1,
+  faceY: 1.6,
+  faceSy: 1.5,
+  nearY: 1.5,
+  farY: 1.5,
+  bodyY: 1.5,
+};
+
 /**
  * Where cue `cue`'s timeline stands at `f.t` (the Rive look's `cueTime`): 0
  * before the cue; across it the move stretched to the cue's own length, so a
@@ -266,13 +327,27 @@ const cueTime = (f: CourtFrame, cue: Cue): number => {
   return Math.min(seconds, move + since - dur);
 };
 
-/** The frame's motion: the lift's once it has begun (it starts from where the bow ends), else the bow's. */
-const motionOf = (f: CourtFrame) => {
+/**
+ * The frame's motion: the lift's once it has begun (it starts from where the
+ * bow ends), else the bow's, each channel's move from rest scaled by its gain.
+ */
+const motionOf = (f: CourtFrame, gains: Gains) => {
   const lifting = f.t > f.cue('lift').start;
   const track = lifting ? LIFT : BOW;
   const at = lifting ? cueTime(f, 'lift') : cueTime(f, 'bow');
-  return (channel: Channel) => keys(at, track[channel]);
+  return (channel: Channel) => {
+    const rest = AT_REST[channel];
+    return rest + (gains[channel] ?? 1) * (keys(at, track[channel]) - rest);
+  };
 };
+
+/** The bones' values for a frame's motion `m`, the chest widened by `breath`. */
+const valuesOf = (m: (channel: Channel) => number, breath: number): PoseValues<Bone> => ({
+  hips: { shift: [0, m('bodyY')] },
+  chest: { turn: m('chestTurn'), along: m('chestAlong'), across: m('chestAcross') * breath },
+  head: { turn: m('headTurn') },
+  jaw: { along: m('jawAlong') },
+});
 
 // ─── the drawing ─────────────────────────────────────────────────────────────
 
@@ -345,14 +420,12 @@ const torso = (
   STAINS.forEach((stain, i) =>
     cutout(
       ctx,
-      stain.at(pose),
+      pose.at(stain),
       { color: C.scarlet, torn: 2.5, rim: 0, shadow: 0.1, boil: 'crawl' },
       sub(hand, 60 + i),
     ),
   );
 };
-
-type Posed = Parameters<typeof TORSO.at>[0];
 
 /** The face on the head bone, slid down and squashed as the rig's `face` node is, then `draw` in rest units. */
 const onFace = (
@@ -372,23 +445,20 @@ const onFace = (
   ctx.restore();
 };
 
-/** The accused, feet at the origin: the control's acting (eyes down and left on the bow), the body bent by its bones. */
-export const skinnedAccused = (f: CourtFrame) => {
+/**
+ * The accused, feet at the origin, its moves scaled by `gains`: the control's
+ * acting (eyes down and left on the bow), the body bent by its bones.
+ */
+export const skinnedAccused = (gains: Gains) => (f: CourtFrame) => {
   const { ctx } = f;
   const hand = f.hand('accused');
   const bow = f.at('bow') * (1 - f.at('lift'));
   const look: Pt = [-2 * bow, 3 * bow];
-  const m = motionOf(f);
+  const m = motionOf(f, gains);
   const bodyY = m('bodyY');
-  const breath = 1 + BREATH * (1 + breathOf(hand));
-  const pose = BODY.pose({
-    hips: { shift: [0, bodyY] },
-    chest: { turn: m('chestTurn'), along: m('chestAlong'), across: m('chestAcross') * breath },
-    head: { turn: m('headTurn') },
-    jaw: { along: m('jawAlong') },
-  });
-  const tunic = TORSO.at(pose);
-  const head = HEAD_SKIN.at(pose);
+  const pose = BODY.pose(valuesOf(m, 1 + BREATH * (1 + breathOf(hand))));
+  const tunic = pose.at('torso');
+  const head = pose.at('head');
   const body = probesHands(ctx) ? [tunic, head] : undefined;
   const faceY = m('faceY');
   const faceSy = m('faceSy');

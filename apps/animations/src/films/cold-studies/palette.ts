@@ -22,6 +22,7 @@ export const looks = {
       rive: 5,
       rivegl: 6,
       skinned: 7,
+      amplified: 8,
     },
     play: 'cutpaper',
   },
