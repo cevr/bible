@@ -6,7 +6,12 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
+import { Selection } from '../command/selection.ts';
 import { FOLLOW, lineOpen } from './source/open.ts';
+import { FOLLOW_TEXT, type TextOpen } from './transcript/open.ts';
+
+/** The Transcript view held on take word `word`. */
+const wordOpen = (word: number): TextOpen => ({ _tag: 'Word', word });
 import { beatAt, labHref, labHrefWith, labOpensAt, labPlaceOf, selectsCue } from './place.ts';
 
 const placed = Result.getOrThrow(
@@ -36,6 +41,8 @@ describe("the lab's place", () => {
       beat: Option.none(),
       view: 'off',
       code: Option.none(),
+      words: Option.none(),
+      text: Option.none(),
       t: Option.some(1.5),
       loop: Option.none(),
     });
@@ -108,6 +115,47 @@ describe("the lab's place", () => {
     expect(labHrefWith('f', placed, at, {}, b + 0.5)).toBe('/films/f/lab/b?code=7#t=0.5');
     expect(labHrefWith('f', placed, at, { code: Option.none() }, 1)).toBe('/films/f/lab/a#t=1');
     expect(labHref('f', placed, none, 1)).not.toContain('code=');
+  });
+
+  test("a talk's words ride in ?words= and the Transcript view in ?text=: read back, kept by every write, the words' section in the path", () => {
+    const words = Selection.cases.Words.make({ scene: 'b', from: 3, to: 4 });
+    expect(labPlaceOf('/films/f/lab/b?words=3-4&text=follow#t=1')).toMatchObject({
+      words: Option.some(words),
+      text: Option.some(FOLLOW_TEXT),
+    });
+    expect(labPlaceOf('/films/f/lab/b?text=12#t=1').text).toEqual(Option.some(wordOpen(12)));
+    expect(labPlaceOf('/films/f/lab/b?text=0#t=1').text).toEqual(Option.some(wordOpen(0)));
+    expect(labPlaceOf('/films/f/lab/b?text=-1#t=1').text).toEqual(Option.none());
+    expect(labPlaceOf('/films/f/lab/b?words=4-3#t=1').words).toEqual(Option.none());
+    // Words selected keep their section in the path, as a cue does; the time signed against its start.
+    const picked = { ...none, words: Option.some(words), text: Option.some(FOLLOW_TEXT) };
+    expect(labHref('f', placed, picked, 1)).toBe(`/films/f/lab/b?words=3-4&text=follow#t=${1 - b}`);
+    // A write that says nothing of them keeps them; one that drops them drops them.
+    const at = '/films/f/lab/b?words=3-4&text=3#t=1';
+    expect(labHrefWith('f', placed, at, {}, b + 2)).toBe('/films/f/lab/b?words=3-4&text=3#t=2');
+    expect(labHrefWith('f', placed, at, { words: Option.none(), text: Option.none() }, 1)).toBe(
+      '/films/f/lab/a#t=1',
+    );
+    expect(labHref('f', placed, none, 1)).not.toMatch(/words=|text=/);
+  });
+
+  test("words selected in another scene than the cue's or knob's take the path, the cue or knob let go; a cue picked in another scene lets the words go", () => {
+    const knobAt = '/films/f/lab/a?knob=zoom&text=follow#t=1';
+    const inB = Selection.cases.Words.make({ scene: 'b', from: 3, to: 4 });
+    expect(labHrefWith('f', placed, knobAt, { words: Option.some(inB) }, b + 2)).toBe(
+      '/films/f/lab/b?words=3-4&text=follow#t=2',
+    );
+    // Words of the knob's own scene sit beside it.
+    const inA = Selection.cases.Words.make({ scene: 'a', from: 1, to: 1 });
+    expect(labHrefWith('f', placed, knobAt, { words: Option.some(inA) }, 1)).toBe(
+      '/films/f/lab/a?knob=zoom&words=1-1&text=follow#t=1',
+    );
+    // A cue picked in another scene: the path is its scene, and the words go with the old one.
+    const wordsAt = '/films/f/lab/b?words=3-4&text=follow#t=1';
+    const rise = Selection.cases.Cue.make({ scene: 'a', name: 'rise' });
+    expect(labHrefWith('f', placed, wordsAt, { selection: Option.some(rise) }, 1)).toBe(
+      '/films/f/lab/a?cue=rise&text=follow#t=1',
+    );
   });
 
   test('the A–B loop rides in #loop= in film seconds: read back, kept across a scene boundary, none unwritten or ill-formed', () => {

@@ -34,13 +34,14 @@ import { type LabApi, type NotesApi, labApiLayer } from './api.ts';
 import { goToCommands } from '../command/go.ts';
 import type { CompareView } from '../core/api.ts';
 import type { Hub } from '../command/hub.ts';
-import { type LabSelection, Selection } from '../command/selection.ts';
+import { type LabSelection, Selection, type WordsSelection } from '../command/selection.ts';
 import { targetAttr } from '../command/target.ts';
 import { type LabPick, labHrefWith, labPlaceOf } from './place.ts';
 import { useSheetDismissal } from './sheet.tsx';
 import { Fill, useLabPage } from './panel.tsx';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { type CodeOpen, lineOpen } from './source/open.ts';
+import type { TextOpen } from './transcript/open.ts';
 import { type ReloadGate, makeReloadGate } from './reload-gate.ts';
 import { type Stage, type StageOps, makeStage, reloadHere, stageLayer } from './stage.ts';
 
@@ -62,6 +63,14 @@ interface LabState {
   readonly view: Accessor<CompareView>;
   /** The Source view: the URL's (`?code=`), shut when none. */
   readonly code: Accessor<Option.Option<CodeOpen>>;
+  /**
+   * The Transcript view: the URL's (`?text=`), shut when none, and while the
+   * Source view is open (one view owns the page's highlights; a link naming
+   * both shows the Source view).
+   */
+  readonly text: Accessor<Option.Option<TextOpen>>;
+  /** A talk's words selected: the URL's (`?words=` in the path's scene). */
+  readonly words: Accessor<Option.Option<WordsSelection>>;
 }
 
 interface LabActions {
@@ -99,6 +108,16 @@ interface LabActions {
   readonly settleCode: (code: CodeOpen) => void;
   /** Close the Source view (its sheet's Close, Escape, a swipe, a column's Close) by the sheets' one rule. */
   readonly dismissCode: () => void;
+  /**
+   * Open the Transcript view (following the frame, or held on a word), or
+   * shut it: a new history entry when it opens on a shut view. It shuts the
+   * Source view as it opens, as the Source view shuts it.
+   */
+  readonly showText: (text: Option.Option<TextOpen>) => void;
+  /** Close the Transcript view, its words selected with it, by the sheets' one rule. */
+  readonly dismissText: () => void;
+  /** Select a talk's words, or none: a new history entry, so Back undoes the pick. */
+  readonly selectWords: (words: Option.Option<WordsSelection>) => void;
 }
 
 interface LabMeta {
@@ -267,6 +286,7 @@ const Root = (props: RootProps) => {
     selection: sheetOf('selection'),
     note: sheetOf('note'),
     code: sheetOf('code'),
+    text: sheetOf('text'),
   } as const;
   /** Go to `pick` of `part`: a step Back walks, its sheet's opening when it picks on a shut one. */
   const pick = (part: SheetPart, next: Partial<LabPick>, shut: boolean) => {
@@ -283,6 +303,8 @@ const Root = (props: RootProps) => {
       note: () => here().note,
       view: () => here().view,
       code: () => here().code,
+      text: () => Option.filter(here().text, () => Option.isNone(here().code)),
+      words: () => here().words,
     },
     actions: {
       pin: (layer) => {
@@ -296,9 +318,10 @@ const Root = (props: RootProps) => {
       holdLine: (line, selection) => {
         const now = untrack(here);
         const next = Option.match(selection, {
-          onNone: (): Partial<LabPick> => ({ code: Option.some(lineOpen(line)) }),
+          onNone: (): Partial<LabPick> => ({ code: Option.some(lineOpen(line)), ...TEXT_SHUT }),
           onSome: (s): Partial<LabPick> => ({
             code: Option.some(lineOpen(line)),
+            ...TEXT_SHUT,
             selection: Option.some(s),
           }),
         });
@@ -327,9 +350,28 @@ const Root = (props: RootProps) => {
       compareBy: (view) => {
         if (view !== untrack(() => here().view)) address.go(picked({ view }));
       },
-      showCode: (code) => pick('code', { code }, Option.isNone(untrack(here).code)),
+      showCode: (code) =>
+        pick(
+          'code',
+          Option.match(code, {
+            onNone: (): Partial<LabPick> => ({ code }),
+            onSome: (): Partial<LabPick> => ({ code, ...TEXT_SHUT }),
+          }),
+          Option.isNone(untrack(here).code),
+        ),
       settleCode: (code) => address.follow(picked({ code: Option.some(code) })),
       dismissCode: () => sheets.code.dismiss(() => Option.some(picked({ code: Option.none() }))),
+      showText: (text) =>
+        pick(
+          'text',
+          Option.match(text, {
+            onNone: (): Partial<LabPick> => TEXT_SHUT,
+            onSome: (): Partial<LabPick> => ({ text, code: Option.none() }),
+          }),
+          Option.isNone(untrack(here).text),
+        ),
+      dismissText: () => sheets.text.dismiss(() => Option.some(picked(TEXT_SHUT))),
+      selectWords: (words) => address.go(picked({ words })),
     },
     meta: {
       name,
@@ -349,13 +391,19 @@ const Root = (props: RootProps) => {
   return <LabContext value={value}>{props.children}</LabContext>;
 };
 
-/** The picks a sheet is kept open by: the cue or knob, the note, the Source view. */
-type SheetPart = 'selection' | 'note' | 'code';
+/** The picks a sheet is kept open by: the cue or knob, the note, the Source view, the Transcript view. */
+type SheetPart = 'selection' | 'note' | 'code' | 'text';
 
 /** The thing the Source view's sheet is open for, as the sheets' one rule names it. */
 const SOURCE_THING = 'source';
 
-/** What a pick keeps a sheet open for (its cue or knob, its note, the Source view), as a target names it. */
+/** The thing the Transcript view's sheet is open for, likewise. */
+const TEXT_THING = 'transcript';
+
+/** The Transcript view shut, and the words it selected with it. */
+const TEXT_SHUT: Partial<LabPick> = { text: Option.none(), words: Option.none() };
+
+/** What a pick keeps a sheet open for (its cue or knob, its note, the Source view, the Transcript view), as a target names it. */
 const sheetThings = (pick: Partial<Pick<LabPick, SheetPart>>): ReadonlyArray<string> => [
   ...[
     ...Option.toArray(Option.flatten(Option.fromUndefinedOr(pick.selection))),
@@ -366,6 +414,7 @@ const sheetThings = (pick: Partial<Pick<LabPick, SheetPart>>): ReadonlyArray<str
     ),
   ].map(targetAttr),
   ...Option.toArray(Option.as(Option.flatten(Option.fromUndefinedOr(pick.code)), SOURCE_THING)),
+  ...Option.toArray(Option.as(Option.flatten(Option.fromUndefinedOr(pick.text)), TEXT_THING)),
 ];
 
 /** How long the picture flashes when new code lands. */

@@ -1939,6 +1939,57 @@ every other mode; closing the sheet closes the selection and the view in one
 history step. ⇧C and the command menu (⌘K, and a phone's menu button) open and
 close it; nothing stands for it at rest.
 
+A talk's lab has a Transcript view (`lab/transcript/`): the paper edit in the
+lab. `?text=follow` opens it following the frame and `?text=<word>` held on
+that word; closed at rest, it reads nothing until opened, then the talk's
+words as the server reads `talk.ts` and cuts it (`GET …/talk`, every word of
+each section in play order, struck or played, with when each played one is
+heard). The words the cut strikes are hidden until Show cuts (the viewer's,
+kept in the browser), then shown struck through. The word playing at the
+frame is lit by the clock (a link's `#t=` lights what its sender saw), the
+words selected (`?words=a-b`, in the path's section; a word's link cites it)
+painted, and the word held washed, all through the page's highlights, so the
+text stays selectable and copyable. It scrolls by the lab's one Follow rule,
+as the Source view does; its scrolling words are a tab stop. A tap on a word
+seeks to where it starts and selects it, its section taking the path (a cue or
+knob of another scene let go); shift extends the selection; a text selection
+across words selects them. A long press or right-click on a word opens the
+page's menu about it (`lab/transcript/commands.ts`): Select to here extends
+the selection to it, a phone's range with no Shift (tap the first word, hold
+the last), and Cut, Restore and Mark here act on the words selected when the
+word is one of them, else on the word. Under the selection, the same three
+commands as buttons each make one write of
+`talk.ts` (`POST …/talk/cut`, `…/restore`, `…/mark`), judged by the cut before
+the file is touched (a section left playing nothing, a strike over a marked
+word, a mark on a struck word, a mark name the talk would drop: refused in
+the server's words, nothing written). A write splices the one literal and
+keeps the author's layout and comments, each by the key it is about, by the
+formatter's own rule of whose a comment is: a key's comments are those above
+it and those after it on its line. A write moves keys whole: a key added goes
+between two keys and their comments, never inside (on a line of its own in a
+section written over lines), and a key taken away goes with its own comments
+and leaves every other (a Restore that empties a cut takes the comment about
+the cut). A cut whose runs hold a comment is refused a rewrite of them, and
+the server refuses any write that would move a comment off its key, so a
+Restore gives back the text its Cut found, as a property over generated
+sections, oxfmt-formatted, proves. Three layouts come back as the formatter
+lays them out, and only Undo gives back their text: the break after a
+section's `{` that oxfmt keeps once a cut of two runs broke it is let go by
+the write that leaves the cut one run (a section its author broke there alone
+comes back on one line), a one-line section a Cut pushes past the print width
+stays broken, and a cut a Restore emptied comes back after `to`, without the
+comments it had (`tools/talk-source.ts`). Mark here names the mark from its word as the talk
+keeps it (`MarkName`: `Café` is `cafe`). Each write is a write of the film's
+source, so the editor's one machine sends it (`TalkWrite`, one write out at a
+time, `lab/editor/machine.ts`): `#t=` and the page's reloads are held until it
+is answered, so the rebuild the write of `talk.ts` causes lands on the frame it
+held after the receipt is said, in the editor's slot, with an Undo that steps
+the change it made, held as an editor write's is until the page reads the
+history with it. On a laptop it is a column beside the
+picture (the Source view's place; opening one shuts the other); on a phone a
+sheet of its own. ⇧T and the command menu show and hide it on a film that
+reads footage, and hide it wherever it is open.
+
 On a phone (below 900 px) the selected cue's or knob's fields, and the
 selected note's reply, stand in the selection's sheet
 (`lab/selection-sheet.tsx`, over the review's `Sheet`): it peeks one line
@@ -1960,6 +2011,9 @@ kept; else the URL follows to pick none).
 | `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under; `{change?}`: that change only, while it is the newest, else a 409 `StepNotNewest`)        |
 | `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do (each with its `change` id), and the steps `landed` by request id                                                                                         |
 | `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                                                                                                                                                    |
+| `GET /api/films/<film>/talk`                       | a talk's words (`TalkWords`): each section in play order, its take, every word from its first to its last with its text, whether the cut strikes it, when it is heard, and the section's marks; a film with no `talk.ts` a 422      |
+| `POST /api/films/<film>/talk/cut`, `/restore`      | `{ section, from, to }`: strike those words from the section's cut, or play them again, as one write of `talk.ts` judged by the cut (`LabWrite`; an edit the cut refuses a 422)                                                     |
+| `POST /api/films/<film>/talk/mark`                 | `{ section, word, name }`: mark that played word, as one write of `talk.ts` judged by the cut (`LabWrite`); a name the talk's decode would drop (`MarkName`) a 422, the mark read back from the talk decoded                        |
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.

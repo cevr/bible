@@ -44,7 +44,7 @@ import {
   untilText,
   writtenPatch,
 } from '../../core/timeline.ts';
-import { StepVerb } from '../api.ts';
+import { StepVerb, TalkAsk } from '../api.ts';
 
 /** How near (screen pixels) an edge must come to a word, mark or cue edge to snap to it. */
 const SNAP_PX = 8;
@@ -220,8 +220,16 @@ export const StepWrite = Schema.TaggedStruct('StepWrite', {
 });
 export type StepWrite = typeof StepWrite.Type;
 
-/** One write to a scene file: a cue's fields, a knob's value, or an undo or redo. */
-export const Write = Schema.Union([CueWrite, KnobWrite, StepWrite]);
+/**
+ * A write of a talk's `talk.ts` (the Transcript view's Cut, Restore, Mark
+ * here): a write of the film's source, so the one machine sends it, one
+ * write out at a time, as it sends a scene write.
+ */
+export const TalkWrite = Schema.TaggedStruct('TalkWrite', { ask: TalkAsk });
+export type TalkWrite = typeof TalkWrite.Type;
+
+/** One write of the film's source: a cue's fields, a knob's value, an undo or redo, or a talk's edit. */
+export const Write = Schema.Union([CueWrite, KnobWrite, StepWrite, TalkWrite]);
 export type Write = typeof Write.Type;
 
 /** The fields that set a span's whole end: a dur replaces an until and an until a dur. */
@@ -553,9 +561,11 @@ const writeSaid = (w: CueWrite | KnobWrite): string =>
 
 /**
  * What the receipt says once `write` has landed as `result`: what it moved,
- * before → after, when the page knew (else what the lab wrote), or what an
- * Undo or Redo walked. A write that changed nothing (no `change`) says the
- * value was already so; the lab's own words already do.
+ * before → after, when the page knew (else what the lab wrote), what an
+ * Undo or Redo walked, or what a talk's write set, in the lab's words
+ * (`cut words 3–4 of ask in talk.ts`). A write that changed nothing (no
+ * `change`) says the value was already so: the page's words of a cue or knob
+ * say it here, the lab's own words already do (`… (already so)`).
  */
 export const wroteNote = (write: Write, result: LabWrite): string =>
   Match.value(write).pipe(
@@ -563,14 +573,15 @@ export const wroteNote = (write: Write, result: LabWrite): string =>
       'StepWrite',
       (s) => `${PAST[s.verb]} ${result.target.replace(/^(undo|redo) /, '')} in ${result.file}`,
     ),
+    Match.tag('TalkWrite', () => `${result.target} in ${result.file}`),
     Match.orElse((w) => {
-      const unresolved = Option.match(Option.fromUndefinedOr(result.unresolved), {
-        onNone: () => '',
-        onSome: (why) => ` (not resolved: ${why})`,
-      });
       const already = Option.match(Option.fromUndefinedOr(result.change), {
         onNone: () => ' (already so)',
         onSome: () => '',
+      });
+      const unresolved = Option.match(Option.fromUndefinedOr(result.unresolved), {
+        onNone: () => '',
+        onSome: (why) => ` (not resolved: ${why})`,
       });
       const said = Option.match(
         Option.filter(Option.some(writeSaid(w)), (s) => s !== ''),
