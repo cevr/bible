@@ -10,24 +10,32 @@
 import { type JSX, generateHydrationScript, renderToStream } from '@solidjs/web';
 import { Effect, Exit, Layer, Scope } from 'effect';
 import { onCleanup } from 'solid-js';
-import { PAGE_ROOT, PAGE_STYLE, type PageRender, type PageRequest } from '../core/page-render.ts';
+import {
+  PAGE_ROOT,
+  PAGE_STYLE,
+  type PageAsked,
+  type PageRender,
+  type PageRequest,
+} from '../core/page-render.ts';
 import type { Host } from '../browser/host.ts';
 import { ServerHost } from '../browser/host-server.ts';
 import { FACE_HEAD } from '../player/face.ts';
 
 /**
- * `app` over a host of the page's URL (`host-server.ts`: the URL asked, no
- * window), which lives as long as the render does.
+ * `app` over a host of the page as `asked` (`host-server.ts`: the URL asked,
+ * the asking browser's keys, no window), which lives as long as the render does.
  */
 export const ServerHosted = (props: {
-  readonly url: string;
+  readonly asked: PageAsked;
   readonly app: (host: Host) => JSX.Element;
 }) => {
   const scope = Scope.makeUnsafe();
   onCleanup(() => {
     Effect.runFork(Scope.close(scope, Exit.void));
   });
-  return props.app(Effect.runSync(Layer.buildWithScope(ServerHost.layer(props.url), scope)));
+  return props.app(
+    Effect.runSync(Layer.buildWithScope(ServerHost.layer(props.asked.url, props.asked.mac), scope)),
+  );
 };
 
 /** A page as its server entry renders it. */

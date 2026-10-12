@@ -47,6 +47,10 @@ import { memoryFileSystem, text } from './testing.ts';
 
 const Platform = Layer.provideMerge(BunHttpPlatform.layer, BunServices.layer);
 
+/** A Mac's Chrome, as its `User-Agent` names it. */
+const MAC_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
+
 const html = (title: string, script: string) =>
   `<!doctype html><html><head><title>${title}</title></head><body><script type="module" src="${script}"></script></body></html>`;
 
@@ -410,7 +414,7 @@ describe('lab pages', () => {
   );
 
   it.live(
-    "a page with a server entry is answered rendered: the render's head before </head>, its body's class on <body>, its markup first in the body, at the URL asked",
+    "a page with a server entry is answered rendered: the render's head before </head>, its body's class on <body>, its markup first in the body, at the URL asked, for the browser that asked",
     () =>
       Effect.gen(function* () {
         const { spec } = yield* appFolder;
@@ -421,6 +425,11 @@ describe('lab pages', () => {
         expect(page.text).toContain('<meta name="rendered" content="review"></head>');
         expect(page.text).toContain(
           '<body class="rendered"><main>review at http://127.0.0.1:8229/sets/root/folder?view=all</main><script type="module" src="./src/p.ts"></script></body>',
+        );
+        // Asked by a Mac's browser, it is rendered for a Mac (its chords labelled as a Mac labels them).
+        const asMac = yield* ask('/sets/root/folder?view=all', 'GET', { 'user-agent': MAC_AGENT });
+        expect(asMac.text).toContain(
+          '<main>review at http://127.0.0.1:8229/sets/root/folder?view=all for a Mac</main>',
         );
         // The lab has no server entry: its page is as built.
         const lab = yield* ask('/films/f/lab');

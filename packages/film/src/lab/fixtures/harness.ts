@@ -32,6 +32,7 @@ import { declares } from '../../core/testing.ts';
 import type { PageBuild } from '../../core/schema.ts';
 import type { Interval } from '../../core/time.ts';
 import { PAGE_CUT_MARK, PAGE_MOUNTED, type PageRender } from '../../core/page-render.ts';
+import { appleAgent } from '../../browser/keys.ts';
 import { splice } from '../../tools/lab-page.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled, served } from './bundles.ts';
@@ -828,7 +829,8 @@ const fetched = (response: Response): globalThis.Response =>
   );
 
 /**
- * `render` of the page at `url`, whole, its reads answered by `read` (a
+ * `render` of the page at `url` for a browser that keys as a Mac or not
+ * (`mac`, as the lab reads it from the request), whole, its reads answered by `read` (a
  * GET of the path, as the lab answers a render's reads); a held read holds
  * it, and a failed render fails the test. Given `cut`, a render still under
  * way that long after it began is cut as the lab cuts one (`END_WAIT`,
@@ -838,6 +840,7 @@ const fetched = (response: Response): globalThis.Response =>
 const rendered = (
   render: PageRender,
   url: URL,
+  mac: boolean,
   read: (request: Request) => Effect.Effect<Option.Option<Response>>,
   cut: Option.Option<Duration.Duration>,
 ): Effect.Effect<Rendered> =>
@@ -849,7 +852,7 @@ const rendered = (
       body: written.body.join(''),
       pieces: written.body,
     });
-    const whole = Effect.map(rendering(render, url, read, written), sofar);
+    const whole = Effect.map(rendering(render, url, mac, read, written), sofar);
     return Option.match(cut, {
       onNone: () => whole,
       onSome: (after) =>
@@ -862,16 +865,29 @@ const rendered = (
     });
   });
 
+/** The `User-Agent` a request was sent with, by its name in any case; empty when it has none. */
+const agentOf = (request: Request): string =>
+  Option.getOrElse(
+    Option.fromUndefinedOr(
+      Object.entries(request.headers ?? {}).find(([name]) => name.toLowerCase() === 'user-agent'),
+    ).pipe(Option.map(([, value]) => value)),
+    () => '',
+  );
+
 /** What a render has written so far: its head, and each piece of its markup in order. */
 interface Written {
   head: string;
   readonly body: Array<string>;
 }
 
-/** `render` of the page at `url` to its end, what it writes kept in `written` as it is written. */
+/**
+ * `render` of the page at `url` for a browser that keys as a Mac or not
+ * (`mac`), to its end, what it writes kept in `written` as it is written.
+ */
 const rendering = (
   render: PageRender,
   url: URL,
+  mac: boolean,
   read: (request: Request) => Effect.Effect<Option.Option<Response>>,
   written: Written,
 ): Effect.Effect<void> =>
@@ -887,6 +903,7 @@ const rendering = (
     render.render(
       {
         url: `${url.origin}${url.pathname}${url.search}`,
+        mac,
         signal,
         fetch: Object.assign(readOf, { preconnect: globalThis.fetch.preconnect }),
       },
@@ -969,7 +986,13 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
   const failed = yield* Deferred.make<never>();
   const document = (request: Request) =>
     Effect.gen(function* () {
-      const page = yield* rendered(render, request.url, apiAnswer(spec.prefix, all, read), cut);
+      const page = yield* rendered(
+        render,
+        request.url,
+        appleAgent(agentOf(request)),
+        apiAnswer(spec.prefix, all, read),
+        cut,
+      );
       const [before, after] = yield* Option.match(splice(spec.html(script, build), page), {
         onNone: () => Effect.die(`the ${name} page has no head or body to splice into`),
         onSome: Effect.succeed,

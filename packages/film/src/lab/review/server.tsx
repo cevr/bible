@@ -18,7 +18,7 @@ export const reviewRender: PageRender = pageRender({
   ...REVIEW_PAGE,
   app: (request) => (
     <ServerHosted
-      url={request.url}
+      asked={request}
       app={(host) =>
         Effect.runSync(reviewOn(host, LabClient.layerRendering(request), noStills)).app()
       }

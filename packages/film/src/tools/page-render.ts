@@ -13,6 +13,7 @@
 // Effect's `BunWorker` (`page-render-bun.ts`); `layerTest` renders without one.
 
 import {
+  Boolean as Bool,
   Cause,
   Context,
   Deferred,
@@ -36,6 +37,7 @@ import {
 } from 'effect';
 import * as Worker from 'effect/workers/Worker';
 import type { AppPage } from '../core/api.ts';
+import type { PageAsked } from '../core/page-render.ts';
 import { LONGEST_WAIT } from '../core/wait.ts';
 import { renderWorkers } from './page-render-bun.ts';
 import { FromRender, ToRender } from './page-render-protocol.ts';
@@ -81,7 +83,8 @@ export interface RenderedPage {
 
 interface PageRendererService {
   /**
-   * `page` of `build` rendered at `url`, its reads through `read`: once its
+   * `page` of `build` rendered as `asked` (its URL, and whether the browser
+   * keys as a Mac), its reads through `read`: once its
    * head is written (or `HEAD_WAIT` passes, a failure). Its markup fails
    * once `END_WAIT` passes after the head. The render holds its build's
    * worker until the scope closes; closed before its markup ends, the render
@@ -90,7 +93,7 @@ interface PageRendererService {
   readonly render: (
     build: RenderBuild,
     page: AppPage,
-    url: string,
+    asked: PageAsked,
     read: Read,
   ) => Effect.Effect<RenderedPage, RenderFailed, Scope.Scope>;
 }
@@ -108,16 +111,21 @@ export class PageRenderer extends Context.Service<PageRenderer, PageRendererServ
   /**
    * Pages rendered with no worker, for tests of what serves them: a page's
    * head names it, its body's class is `rendered`, and its markup is a
-   * `<main>` naming the page and the URL it was asked at.
+   * `<main>` naming the page and the URL it was asked at (and `for a Mac`
+   * when the browser that asked keys as one).
    */
   static readonly layerTest: Layer.Layer<PageRenderer> = Layer.succeed(
     PageRenderer,
     PageRenderer.of({
-      render: (_build, page, url) =>
+      render: (_build, page, asked) =>
         Effect.succeed({
           head: `<meta name="rendered" content="${page}">`,
           bodyClass: 'rendered',
-          markup: Stream.make('<main>', `${page} at ${url}`, '</main>'),
+          markup: Stream.make(
+            '<main>',
+            `${page} at ${asked.url}${Bool.match(asked.mac, { onTrue: () => ' for a Mac', onFalse: () => '' })}`,
+            '</main>',
+          ),
         }),
     }),
   );
@@ -150,7 +158,7 @@ interface Pending {
 interface BuildWorker {
   readonly render: (
     entry: string,
-    url: string,
+    asked: PageAsked,
     read: Read,
   ) => Effect.Effect<RenderedPage, RenderFailed, Scope.Scope>;
   readonly alive: Effect.Effect<boolean>;
@@ -289,7 +297,7 @@ const spawnWorker = Effect.fnUntraced(function* (build: number, bundle: ServerBu
   );
   yield* Effect.log(`lab.render.worker.spawned build=${build} files=${bundle.files.length}`);
 
-  const render = (entry: string, url: string, read: Read) =>
+  const render = (entry: string, asked: PageAsked, read: Read) =>
     Effect.gen(function* () {
       started += 1;
       const id = started;
@@ -306,7 +314,9 @@ const spawnWorker = Effect.fnUntraced(function* (build: number, bundle: ServerBu
       );
       const failed = (reason: string) => RenderFailed.make({ reason });
       yield* worker
-        .send(ToRender.Render({ id, module: path.join(dir, entry), url }))
+        .send(
+          ToRender.Render({ id, module: path.join(dir, entry), url: asked.url, mac: asked.mac }),
+        )
         .pipe(Effect.mapError((error) => failed(error.message)));
       const first = yield* Queue.take(parts).pipe(
         Effect.raceFirst(
@@ -415,7 +425,7 @@ const make = Effect.gen(function* () {
     });
 
   return PageRenderer.of({
-    render: (build, page, url, read) =>
+    render: (build, page, asked, read) =>
       Effect.gen(function* () {
         const entry = yield* Effect.fromOption(
           Option.fromUndefinedOr(build.bundle.entries.get(page)),
@@ -427,7 +437,7 @@ const make = Effect.gen(function* () {
         yield* follow(build);
         const worker = yield* workerOf(build);
         yield* retireIfOlder(build);
-        return yield* worker.render(entry, url, read);
+        return yield* worker.render(entry, asked, read);
       }),
   });
 });

@@ -11,6 +11,8 @@
 
 import { Effect, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
+import { appleAgent } from '../../src/browser/keys.ts';
+import { chordLabel } from '../../src/command/keymap.ts';
 import { pageHref } from '../../src/core/api.ts';
 import {
   DESK,
@@ -24,7 +26,14 @@ import {
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { targetBoxes } from '../../src/lab/fixtures/touch-targets.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { countIs, evaluates, textHas, until, waitFor } from '../../src/lab/fixtures/settled.ts';
+import {
+  attributeIs,
+  countIs,
+  evaluates,
+  textHas,
+  until,
+  waitFor,
+} from '../../src/lab/fixtures/settled.ts';
 import { LAB_MODES } from '../../src/lab/mode.ts';
 
 /** Long enough to bundle the server entry once, render, open, hydrate and stage the film. */
@@ -220,6 +229,15 @@ describe("a film's pages served as the lab renders them", () => {
           expect(asked.filter((a) => a.path === '/notes')).toEqual([]);
           yield* evaluates(page, SEEN, 'visible');
           if (viewport === PHONE) yield* fitsPhone(page);
+          // The server labelled the page's chords for this browser's keyboard, as
+          // its hydration does: Go to's ⌘K on a Mac, Ctrl+K elsewhere.
+          const mac = appleAgent(yield* page.evaluate<string>('navigator.userAgent'));
+          yield* attributeIs(
+            page,
+            '[data-act="search"]',
+            'title',
+            `Go to a film, a part or a thing by name, or run a command (/ or ${chordLabel('mod+k', mac)})`,
+          );
           expect(mismatches(page.logged)).toEqual([]);
           expect(errors).toEqual([]);
           // What the server painted first, before any script: every target it

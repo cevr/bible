@@ -24,6 +24,8 @@ export interface Request {
   readonly url: URL;
   /** The body, as text (a page's JSON); empty when it sent none. */
   readonly body: string;
+  /** The headers the browser sent, by their names as it sent them; none for a request a test makes itself. */
+  readonly headers?: Readonly<Record<string, string>>;
 }
 
 /** What the test's server answers: a status, the body's type, the body, and any other headers. */
@@ -410,6 +412,7 @@ export const makeTab = (
           method: paused.request.method,
           url: new URL(paused.request.url),
           body: bodyOf(paused.request),
+          headers: paused.request.headers ?? {},
         }),
         Option.match({
           onNone: () => Effect.void,

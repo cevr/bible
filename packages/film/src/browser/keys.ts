@@ -38,11 +38,16 @@ interface KeysOps {
 }
 
 /**
- * Whether a browser's platform (`navigator.platform`) is Apple's, whose
- * keyboard is a Mac's: the rule a page reads its keys and labels its chords by.
+ * Whether a browser is on an Apple device, whose keyboard is a Mac's (its
+ * command key ⌘), by its `User-Agent`: the device its parentheses open with
+ * is a Mac (`Macintosh`), an iPhone, an iPad or an iPod. The rule a page
+ * reads its keys and labels its chords by, read from one string on both
+ * sides: the server from the request's header, the browser from
+ * `navigator.userAgent`, the same string, so a page's first paint and its
+ * hydration label every chord alike.
  */
-export const applePlatform = (platform: string): boolean =>
-  ['Mac', 'iPhone', 'iPad', 'iPod'].some((name) => platform.startsWith(name));
+export const appleAgent = (userAgent: string): boolean =>
+  /\((?:Macintosh|iPhone|iPad|iPod)\b/.test(userAgent);
 
 export class Keys extends Context.Service<Keys, KeysOps>()('@bible/film/browser/Keys') {
   /** Presses heard on `page` (the window live, a test's `EventTarget` in a test), from a Mac's keyboard or not. */

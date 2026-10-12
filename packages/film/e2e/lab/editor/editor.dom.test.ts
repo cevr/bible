@@ -12,7 +12,7 @@
 import { Deferred, Effect, Exit, Option, Predicate, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
-import { applePlatform } from '../../../src/browser/keys.ts';
+import { appleAgent } from '../../../src/browser/keys.ts';
 import { chordLabel } from '../../../src/command/keymap.ts';
 import { pageHref } from '../../../src/core/api.ts';
 import { DEFAULT_EASE } from '../../../src/core/time.ts';
@@ -1306,8 +1306,8 @@ describe('the inspector', () => {
       });
       const hint = '[data-role="inspector-hint"]';
       yield* page.waitFor('.lab-edit-cue input[data-field="offset"]:not([disabled])');
-      // The nudge's chord as the page labels it on the browser's platform (⌥→ on a Mac).
-      const mac = applePlatform(yield* page.evaluate<string>('navigator.platform'));
+      // The nudge's chord as the page labels it for the browser's keyboard (⌥→ on a Mac).
+      const mac = appleAgent(yield* page.evaluate<string>('navigator.userAgent'));
       yield* textHas(
         page,
         hint,

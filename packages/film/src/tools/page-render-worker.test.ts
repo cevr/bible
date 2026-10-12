@@ -91,18 +91,18 @@ describe("a build's render worker", () => {
             }
           });
 
-        yield* worker.send(ToRender.Render({ id: 1, module: gated, url: URL_ASKED }));
+        yield* worker.send(ToRender.Render({ id: 1, module: gated, url: URL_ASKED, mac: false }));
         yield* Deferred.await(loading);
         yield* worker.send(ToRender.Cancel({ id: 1 }));
         // The worker takes its messages in order: once a later render has
         // ended, the cancel was taken.
-        yield* worker.send(ToRender.Render({ id: 3, module: fast, url: URL_ASKED }));
+        yield* worker.send(ToRender.Render({ id: 3, module: fast, url: URL_ASKED, mac: false }));
         yield* heardFrom(3, 'End');
 
         channel.postMessage('open');
         // The same entry, rendered again: its load is the one the cancelled
         // render waited on, so its head comes after anything that render did.
-        yield* worker.send(ToRender.Render({ id: 2, module: gated, url: URL_ASKED }));
+        yield* worker.send(ToRender.Render({ id: 2, module: gated, url: URL_ASKED, mac: false }));
         const head = yield* heardFrom(2, 'Head');
         expect(head).toEqual(expect.objectContaining({ html: 'aborted=false' }));
         expect(heard.filter((message) => message.id === 1)).toEqual([]);
