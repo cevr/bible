@@ -66,6 +66,7 @@ import {
 } from './grade.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { type Box, type CardSpec, type CardWord, cardWords, floodBox } from './card.ts';
+import { type LoadedRig, type PoseOf, type RivePropSpec, drawRig } from './rive.ts';
 import { seedOf } from '../core/random.ts';
 import {
   CLOCK_EPSILON,
@@ -81,10 +82,20 @@ import {
 type KnobValue<V extends Knob> = V extends number ? number : Point;
 
 /**
- * One instant of one scene. `C` names the scene's cues and `K` its knobs, when
- * its drawing declares them.
+ * A drawing's Rive rigs, by the names its draw poses them by (`f.rive`): what
+ * the film loads before its first frame (`Film.rigs`). A name may stand for no
+ * rig (a look that draws its figure some other way declares none for it).
  */
-export interface Frame<C extends string = string, K extends Knobs = Knobs> {
+type Rigs = Readonly<Record<string, RivePropSpec | undefined>>;
+
+/** No rigs: every `f.rive` name is a compile error. */
+type NoRigs = Record<never, RivePropSpec>;
+
+/**
+ * One instant of one scene. `C` names the scene's cues, `K` its knobs and `R`
+ * its rigs, when its drawing declares them.
+ */
+export interface Frame<C extends string = string, K extends Knobs = Knobs, R extends Rigs = Rigs> {
   readonly ctx: CanvasRenderingContext2D;
   readonly w: number;
   readonly h: number;
@@ -128,6 +139,14 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
   staggerAt(name: C, at: number): number;
   /** A knob the drawing declares (`knobs: { handY: 800 }`): a number or a point. */
   knob<N extends keyof K & string>(name: N): KnobValue<K[N]>;
+  /**
+   * Draw a rig the drawing declares (`rigs: { accused: … }`) at the origin
+   * under the canvas's transform, posed from rest as `pose` says (its
+   * timelines at their times, its view-model numbers): the frame's own, never
+   * the frame before's. Throws, naming it, for a rig the film has not loaded,
+   * or a pose that names what the rig lacks.
+   */
+  rive<N extends keyof R & string>(name: N, pose: PoseOf<R[N]>): void;
   /** The spoken words, scene-local. */
   readonly words: ReadonlyArray<Word>;
   /**
@@ -191,6 +210,8 @@ export interface SceneSpec extends Timed {
    * grows from on the same frame (`CardSpec.flood`); any other returns nothing.
    */
   readonly draw: (f: Frame) => Box | void;
+  /** The Rive rigs its draw poses by name (`f.rive`): the film loads each before its first frame. */
+  readonly rigs?: Rigs;
   /**
    * How this scene breathes (`Drift`), in place of the film's `DRIFT`: `0`
    * holds it still (an end card), a `Drift` sets its own size. `DRIFT` when
@@ -255,18 +276,24 @@ type Closed<T extends Timeline> = { readonly [N in keyof T]: SpanOf<keyof T & st
 type NoKnobs = Record<never, Knob>;
 
 /**
- * Declare a drawing with a timeline and knobs, so `after` and `with` in the
- * timeline, `f.cue` and `f.at` in `draw` accept only the cue names it
- * declares, and `f.knob` only its knob names, typed as declared. An identity:
- * the result is an ordinary scene drawing.
+ * Declare a drawing with a timeline, knobs and rigs, so `after` and `with` in
+ * the timeline, `f.cue` and `f.at` in `draw` accept only the cue names it
+ * declares, `f.knob` only its knob names, typed as declared, and `f.rive` only
+ * its rig names, posed as each rig declares. An identity: the result is an
+ * ordinary scene drawing.
  */
-export const drawing = <const T extends Timeline, const K extends Knobs = NoKnobs>(
-  d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'knobs' | 'draw' | 'light' | 'card'> & {
+export const drawing = <
+  const T extends Timeline,
+  const K extends Knobs = NoKnobs,
+  const R extends Rigs = NoRigs,
+>(
+  d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'knobs' | 'rigs' | 'draw' | 'light' | 'card'> & {
     readonly timeline: T & Closed<T>;
     readonly knobs?: K;
-    readonly draw: (f: Frame<keyof T & string, K>) => Box | void;
-    readonly light?: Light | ((f: Frame<keyof T & string, K>) => Light);
-    readonly card?: CardSpec<keyof T & string, Frame<keyof T & string, K>>;
+    readonly rigs?: R;
+    readonly draw: (f: Frame<keyof T & string, K, R>) => Box | void;
+    readonly light?: Light | ((f: Frame<keyof T & string, K, R>) => Light);
+    readonly card?: CardSpec<keyof T & string, Frame<keyof T & string, K, R>>;
   },
 ) => d;
 
@@ -521,6 +548,20 @@ export interface Film {
    * the scene's. Fails as `layout()` would for a timeline that cannot resolve.
    */
   edit(scene: string, edit: SceneEdit): Result.Result<ShownEdit, EditError>;
+  /** The Rive rigs its scenes' drawings declare, and the loaded ones it draws with. */
+  readonly rigs: FilmRigs;
+}
+
+/**
+ * A film's rigs: every one its drawings declare (`drawing({ rigs })`), each
+ * once, never listed a second time; and where the loader (`loadRigs`,
+ * src/rive) stands the loaded ones for its draws. They belong to this film
+ * value: another film, a page's second one among them, loads its own.
+ */
+interface FilmRigs {
+  readonly declared: ReadonlyArray<RivePropSpec>;
+  /** Draw with `loaded` from now on; what it returns stands them down again (the load's scope closing). */
+  readonly stand: (loaded: ReadonlyMap<RivePropSpec, LoadedRig>) => () => void;
 }
 
 /** The finish's vignette and grain, each at its default where the film declares none. */
@@ -827,6 +868,27 @@ export const createFilm = (spec: FilmSpec): Film => {
     return one;
   };
 
+  /** Every rig the scenes declare, each once, in film order. */
+  const declaredRigs = [
+    ...new Set(
+      placed.flatMap((q) =>
+        Object.values(q.spec.rigs ?? {}).filter((r): r is RivePropSpec => r !== undefined),
+      ),
+    ),
+  ];
+  /** The loaded rigs the film draws with: none until its loader stands them (`FilmRigs.stand`). */
+  let standing: ReadonlyMap<RivePropSpec, LoadedRig> = new Map();
+  const rigs: FilmRigs = {
+    declared: declaredRigs,
+    stand: (loaded) => {
+      const before = standing;
+      standing = loaded;
+      return () => {
+        standing = before;
+      };
+    },
+  };
+
   const edit = (scene: string, e: SceneEdit): Result.Result<ShownEdit, EditError> =>
     Result.flatMap(sceneOf(placed, scene), (p) =>
       Result.map(
@@ -919,6 +981,17 @@ export const createFilm = (spec: FilmSpec): Film => {
           transform: reads.direct ? affineOf(ctx.getTransform()) : undefined,
         });
         return k;
+      },
+      rive: (name, pose) => {
+        const spec = p.spec.rigs?.[name];
+        if (spec === undefined) throw new Error(`scene ${p.spec.id} has no rig "${name}"`);
+        const rig = standing.get(spec);
+        if (rig === undefined)
+          throw new Error(
+            `scene ${p.spec.id}: rig "${name}" (${spec.key}) is not loaded: a film's rigs load with it, before its first frame (loadRigs)`,
+          );
+        const why = drawRig(ctx, spec, rig, pose);
+        if (why !== undefined) throw new Error(`scene ${p.spec.id}: ${why}`);
       },
       hand: (key) => sceneHand(p.spec.id, key, boil),
       handsOf: (of) => {
@@ -1336,6 +1409,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     sceneAt,
     render,
     edit,
+    rigs,
   };
 };
 

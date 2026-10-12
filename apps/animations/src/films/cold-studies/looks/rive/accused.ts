@@ -1,15 +1,12 @@
 // The accused as a Rive rig (`rig.ts`, built to `accused.riv` by `build.ts`),
-// posed from the court's cues and drawn by `riveProp` where the control
-// draws its paper person: same place, same camera, same plane. Where Rive is
-// not loaded (`check --draw`'s stand-in, a Bun process) the control's paper
-// person stands in.
+// posed from the court's cues and drawn by `f.rive` where the control draws
+// its paper person: same place, same camera, same plane. The film loads it
+// with its other rigs before the first frame, in a page and in Bun alike.
 
-import { type RiveEngine, type RivePropSpec, prepareRive, riveProp } from '@bible/film/rive';
+import type { RiveEngine, RivePropSpec } from '@bible/film/rive';
 import { lerp } from '@bible/film/core';
 import { ACCUSED, JUDGE } from '../../../righteousness-by-faith/court.ts';
-import { STYLE } from '../../palette.ts';
 import type { CourtFrame } from '../../scenes/court.ts';
-import { paperAccused } from '../cutpaper/court.ts';
 import accusedRiv from './accused.riv' with { type: 'file' };
 import { ART, KNOBS, type Knob, TIMELINES, type Timeline } from './rig.ts';
 
@@ -78,13 +75,5 @@ const poseOf = (f: CourtFrame) => {
   };
 };
 
-/** The accused drawn by Rive's `engine`, feet at the origin; the paper person where Rive is not loaded. */
-export const riveAccused = (engine: RiveEngine) => (f: CourtFrame) => {
-  if (!riveProp(f.ctx, accusedProp(engine), poseOf(f))) paperAccused(f);
-};
-
-/** The look in play loads its rig before the first frame is drawn (in a browser; a Bun process draws the fallback). */
-const ENGINES: Partial<Record<string, RiveEngine>> = { rive: 'canvas', rivegl: 'webgl2' };
-const playing = ENGINES[STYLE];
-if (playing !== undefined && typeof document !== 'undefined')
-  await prepareRive([accusedProp(playing)]);
+/** The accused drawn by the rig the look declares (`Look.rigs.accused`), feet at the origin. */
+export const riveAccused = (f: CourtFrame) => f.rive('accused', poseOf(f));

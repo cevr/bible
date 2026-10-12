@@ -43,7 +43,10 @@ import { Array as Arr, Effect, Option, Order, Predicate, type Scope } from 'effe
 import type { Film } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
 import { isStandInCanvas, recorder, standInDom } from '../canvas/fixtures/stand-in.ts';
+import type { RigNameMissing, RigUnloadable } from '../core/errors.ts';
 import { sceneMoments } from '../core/moments.ts';
+import { loadRigs } from '../rive/load.ts';
+import { RiveRuntimeBun } from '../rive/runtime-bun.ts';
 import { FNV_START, fnvStep, fnvText } from '../core/random.ts';
 import { framesOf } from '../core/time.ts';
 import { inkOverFace } from './check.ts';
@@ -346,19 +349,21 @@ const mergeFaces = (found: ReadonlyArray<DrawFinding>): ReadonlyArray<DrawFindin
  * The draw leg: under a stand-in document, the film `build` makes (its
  * canvases stand-ins too), each moment of its scenes named in `scenes`
  * (every one when empty) drawn: what threw, what is not pure and what ink
- * lies over a face.
+ * lies over a face. The film's rigs are loaded first, through Rive's Bun
+ * runtime (`RiveRuntimeBun`), and posed for real: a rig that cannot load
+ * fails the leg, naming it.
  */
 export const drawFindings = (
   build: () => Film,
   scenes: ReadonlySet<string> = new Set(),
-): Effect.Effect<ReadonlyArray<DrawFinding>, never, Scope.Scope> =>
+): Effect.Effect<ReadonlyArray<DrawFinding>, RigUnloadable | RigNameMissing, Scope.Scope> =>
   Effect.gen(function* () {
     yield* standInDom(BLANK);
-    const film = build();
+    const film = yield* loadRigs(build());
     const moments = drawMoments(film).filter((m) => scenes.size === 0 || scenes.has(m.scene));
     const found = yield* Effect.forEach(moments, (m) => drawAt(film, m));
     return mergeFaces(found.flat());
-  });
+  }).pipe(Effect.provide(RiveRuntimeBun));
 
 /** How many moments `drawFindings` draws in `film`, and how many it checks for purity. */
 export const momentCounts = (film: Film) => {

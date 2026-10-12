@@ -705,7 +705,9 @@
                 "group": [
                   "**/*-browser.ts",
                   "!**/browser/host-browser.ts",
-                  "!**/browser/storage-browser.ts"
+                  "!**/browser/storage-browser.ts",
+                  // A film's page load (player/narrated.ts) defaults to the page's Rive runtimes, as it defaults to the page's fetch client.
+                  "!**/rive/runtime-browser.ts"
                 ],
                 "message": "a page reaches the host through its services: only a page's mount builds the host (`BrowserHost`, browser/host-browser.ts), and the stores are storage-browser.ts's."
               }

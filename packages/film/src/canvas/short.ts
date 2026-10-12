@@ -203,6 +203,8 @@ export const createShort = (film: Film, declared: Short): Film => {
     sceneAt,
     render,
     edit: film.edit,
+    // The film's own rigs: the page draws the film's frames, so it draws with what the film loaded.
+    rigs: film.rigs,
   };
 };
 

@@ -510,12 +510,17 @@ const standInCanvas = (options: StandInOptions = {}): StandInCanvas => {
 
 /** The global the stand-in DOM replaces, as it was. */
 interface Globals {
+  /** Whether there was one: where there was none (Bun), none is left behind. */
+  readonly had: boolean;
   readonly document: unknown;
 }
 
 const putUp = (options: StandInOptions) =>
   Effect.sync((): Globals => {
-    const before = { document: Reflect.get(globalThis, 'document') };
+    const before = {
+      had: Reflect.has(globalThis, 'document'),
+      document: Reflect.get(globalThis, 'document'),
+    };
     // Its fonts hold none a film asked for: what draws waits for nothing (`pictureFacesWait`).
     Reflect.set(globalThis, 'document', {
       createElement: () => standInCanvas(options),
@@ -526,7 +531,8 @@ const putUp = (options: StandInOptions) =>
 
 const takeDown = (before: Globals) =>
   Effect.sync(() => {
-    Reflect.set(globalThis, 'document', before.document);
+    if (before.had) Reflect.set(globalThis, 'document', before.document);
+    else Reflect.deleteProperty(globalThis, 'document');
   });
 
 /**
