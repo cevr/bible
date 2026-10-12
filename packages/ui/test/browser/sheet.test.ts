@@ -495,12 +495,10 @@ describe('its layout changing under it (hidden with what holds it, a window resi
   it('crossing the breakpoint as it scrolls in, at the start or on its way, either way, it ends open at rest at its new end, pressed over its panel alone', async () => {
     const NARROW = { width: 800, height: 600 };
     const WIDE = { width: 1180, height: 820 };
-    const cases = [
-      { from: NARROW, to: WIDE, when: 'start' },
-      { from: NARROW, to: WIDE, when: 'on its way' },
-      { from: WIDE, to: NARROW, when: 'start' },
-      { from: WIDE, to: NARROW, when: 'on its way' },
-    ] as const;
+    // When it crosses: as the entrance starts (0), or once it has come that share of the way in.
+    const cases = [NARROW, WIDE].flatMap((from) =>
+      [0, 0.3, 0.7].map((when) => ({ from, to: from === NARROW ? WIDE : NARROW, when })),
+    );
     // One case after another: a loaded page under three others would start its scroll late.
     const ended = await cases.reduce<Promise<Array<unknown>>>(async (before, c) => {
       const done = await before;
@@ -511,9 +509,7 @@ describe('its layout changing under it (hidden with what holds it, a window resi
       await recordCrossing(page);
       await page.click('#open');
       await see(page.locator('#panel')).toHaveAttribute('data-entering', '');
-      if (c.when === 'on its way') {
-        await page.waitForFunction(() => entranceShare() >= 0.3, undefined, { polling: 'raf' });
-      }
+      await page.waitForFunction((when) => entranceShare() >= when, c.when, { polling: 'raf' });
       await page.setViewportSize(c.to);
       const crossed = await crossing(page);
       await see(page.locator('#panel')).not.toHaveAttribute('data-entering', '');
