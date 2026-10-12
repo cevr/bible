@@ -442,6 +442,35 @@ const FORMATTED = `export const talk = {
 };
 `;
 
+/**
+ * The same edit as its author wrote it: sections over lines, comments on
+ * them and between them, as oxfmt leaves it.
+ */
+const COMMENTED = `export const talk = {
+  title: "Why the law?",
+  format: "question",
+  takes: { a: "why-the-law" },
+  sections: [
+    // The question, asked once.
+    {
+      id: "law",
+      take: "a",
+      from: 0,
+      to: 5, // the question ends here
+      cut: [[2, 2]], // the false start
+    },
+    {
+      id: "need", // the answer
+      take: "a",
+      from: 6,
+      to: 11,
+      // the frame holds the speaker
+      knobs: { frame: [960, 540], zoom: 1.5 },
+    },
+  ],
+};
+`;
+
 /** What a test here posts: a talk write's body (a section and its words, or a mark), or an Undo's empty one. */
 type Posted = Readonly<Record<string, string | number>>;
 
@@ -594,6 +623,12 @@ describe("a talk's writes in the lab", () => {
             { section: 'nope', from: 1, to: 1 },
             'it has no section "nope"',
           ],
+          // A name the talk's decode would drop (`MarkName`): written, it would mark nothing.
+          [
+            labUrls.talk.mark(film),
+            { section: 'law', word: 3, name: 'café' },
+            '"café" is not a mark\'s name',
+          ],
         ];
         for (const [path, body, said] of refusals) {
           const answer = yield* post(path, body);
@@ -601,6 +636,35 @@ describe("a talk's writes in the lab", () => {
           expect(answer.body.reason).toContain(said);
           expect(yield* file()).toEqual(before);
         }
+      }).pipe(Effect.scoped, Effect.provide(Layer.merge(world, lab))),
+    SPAWNS_MS,
+  );
+
+  it.live(
+    'a talk written over lines, with comments, keeps them: Cut then Restore leaves the file as it was, to the byte, and a Restore that empties a cut keeps the comments around it',
+    () =>
+      Effect.gen(function* () {
+        yield* FileSystem.FileSystem.use((fs) =>
+          fs.writeFileString(`${folders.films}/why/talk.ts`, COMMENTED),
+        );
+        const before = yield* file();
+        // A run grown and shrunk again, in a section with comments on its lines.
+        yield* post(labUrls.talk.cut(film), { section: 'law', from: 3, to: 3 });
+        expect(text(yield* file())).toBe(COMMENTED.replace('cut: [[2, 2]]', 'cut: [[2, 3]]'));
+        yield* post(labUrls.talk.restore(film), { section: 'law', from: 3, to: 3 });
+        expect(yield* file()).toEqual(before);
+        // A cut written into a section with none: on a line of its own, and taken away again.
+        yield* post(labUrls.talk.cut(film), { section: 'need', from: 8, to: 8 });
+        expect(text(yield* file())).toBe(
+          COMMENTED.replace('      to: 11,\n', '      to: 11,\n      cut: [[8, 8]],\n'),
+        );
+        yield* post(labUrls.talk.restore(film), { section: 'need', from: 8, to: 8 });
+        expect(yield* file()).toEqual(before);
+        // Every word played again: the cut goes, its comments stay.
+        yield* post(labUrls.talk.restore(film), { section: 'law', from: 2, to: 2 });
+        expect(text(yield* file())).toBe(
+          COMMENTED.replace('      cut: [[2, 2]], // the false start', '      // the false start'),
+        );
       }).pipe(Effect.scoped, Effect.provide(Layer.merge(world, lab))),
     SPAWNS_MS,
   );

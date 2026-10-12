@@ -1956,8 +1956,14 @@ a long press or right-click opens the page's menu on the section's words.
 Under the selection, Cut, Restore and Mark here each make one write of
 `talk.ts` (`POST …/talk/cut`, `…/restore`, `…/mark`), judged by the cut before
 the file is touched (a section left playing nothing, a strike over a marked
-word, a mark on a struck word: refused in the server's words, nothing
-written), answered as a scene write is, in the editor's receipt slot with an
+word, a mark on a struck word, a mark name the talk would drop: refused in
+the server's words, nothing written). A write splices the one literal and
+keeps the author's layout and comments: a key added sits as the key before
+it does (on a line of its own in a section written over lines), a key taken
+away leaves every comment, so a Restore gives back the text its Cut found;
+the line break oxfmt forces on a cut of two runs is let go by the write that
+leaves it one, unless a comment in the section says the author laid it out
+(`tools/talk-source.ts`). Each is answered as a scene write is, in the editor's receipt slot with an
 Undo that steps the change it made; the write of `talk.ts` rebuilds the page,
 which lands on the frame it held. On a laptop it is a column beside the
 picture (the Source view's place; opening one shuts the other); on a phone a
@@ -1987,7 +1993,7 @@ kept; else the URL follows to pick none).
 | `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                                                                                                                                                    |
 | `GET /api/films/<film>/talk`                       | a talk's words (`TalkWords`): each section in play order, its take, every word from its first to its last with its text, whether the cut strikes it, when it is heard, and the section's marks; a film with no `talk.ts` a 422      |
 | `POST /api/films/<film>/talk/cut`, `/restore`      | `{ section, from, to }`: strike those words from the section's cut, or play them again, as one write of `talk.ts` judged by the cut (`LabWrite`; an edit the cut refuses a 422)                                                     |
-| `POST /api/films/<film>/talk/mark`                 | `{ section, word, name }`: mark that played word, as one write of `talk.ts` judged by the cut (`LabWrite`)                                                                                                                          |
+| `POST /api/films/<film>/talk/mark`                 | `{ section, word, name }`: mark that played word, as one write of `talk.ts` judged by the cut (`LabWrite`); a name the talk's decode would drop (`MarkName`) a 422, the mark read back from the talk decoded                        |
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.

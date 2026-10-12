@@ -135,8 +135,8 @@ const CaptionWord = Schema.String.check(
   Schema.isPattern(/^[^\s{}]+$/, { message: 'a fix is one word, with no space and no { or }' }),
 );
 
-/** A mark's name, as a line writes it (`{law}`). */
-const MarkName = Schema.String.check(
+/** A mark's name, as a line writes it (`{law}`): the lab's Mark here writes only a name this decodes. */
+export const MarkName = Schema.String.check(
   Schema.isPattern(/^[a-zA-Z0-9_-]+$/, { message: 'a mark is letters, digits, _ and -' }),
 );
 

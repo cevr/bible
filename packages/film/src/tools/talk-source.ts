@@ -11,13 +11,29 @@
 //
 // Strikes are kept as sorted, maximal runs (`[[2, 3], [7, 7]]`): a Cut adds
 // its words to the section's struck set and a Restore takes them out, each
-// written back as the runs of the set, so a Restore undoes a Cut to the
-// byte; a `cut` left empty is taken away. A mark is written where the
-// section names its marks, or after its `cut` (else its `to`) when it names
-// none.
+// written back as the runs of the set; a `cut` left empty is taken away. A
+// mark is written where the section names its marks, or after its `cut`
+// (else its `to`) when it names none, under a name the talk's decode keeps
+// (`MarkName`), and reads back only when the talk decoded from the new text
+// has it.
+//
+// A write splices the literal and nothing else: the author's layout and
+// comments stay. A key added goes after the one before it as that one sits:
+// on a line of its own in a section written over lines, else on the same
+// line; a key taken away goes with the separator before it, or, when a
+// comment stands there, with its own comma (its line too, when nothing else
+// is on it), so a comment is never taken. So a Restore undoes a Cut to the
+// byte, in a section written over lines as on one. One break is the
+// formatter's, not the author's: oxfmt prints a cut of two runs or more a run
+// to a line, and its section broken with it, and keeps an object broken once;
+// the Restore that leaves such a cut one run or none puts the section back
+// on one line (`unbroken`), unless a comment in it says the author laid it
+// out. A one-line section a Cut's single run pushes past the print width
+// stays broken: only Undo gives back its line.
 
 import {
   Array as Arr,
+  Boolean as Bool,
   Effect,
   FileSystem,
   Option,
@@ -27,11 +43,12 @@ import {
   Result,
   Schema,
 } from 'effect';
-import type { Expression, ObjectExpression, ObjectProperty } from 'oxc-parser';
+import type { Expression, ObjectExpression, ObjectProperty, ObjectPropertyKind } from 'oxc-parser';
 import type { TalkWord, TalkWords } from '../core/api.ts';
 import { FootageTranscriptJson } from '../core/footage.ts';
 import { SourceRefused } from '../core/refusals.ts';
 import {
+  MarkName,
   Talk,
   type TalkCut,
   type TalkTake,
@@ -284,50 +301,57 @@ const runsOf = (words: Iterable<number>): ReadonlyArray<Strike> =>
 const strikesText = (runs: ReadonlyArray<Strike>) =>
   `[${runs.map(([a, b]) => `[${a}, ${b}]`).join(', ')}]`;
 
-/** The splice that takes `p` out of `obj`, with the comma between it and its neighbour. */
-const removal = (obj: ObjectExpression, p: ObjectProperty): Splice => {
-  const i = obj.properties.indexOf(p);
-  return Option.getOrElse(
-    Option.orElse(
-      Option.map(Arr.get(obj.properties, i + 1), (next) => ({
-        start: p.start,
-        end: next.start,
-        text: '',
-      })),
-      () =>
-        Option.map(Arr.get(obj.properties, i - 1), (before) => ({
-          start: before.end,
-          end: p.end,
-          text: '',
-        })),
-    ),
-    () => ({ start: p.start, end: p.end, text: '' }),
-  );
-};
-
-/** The splice that adds `text` (a `key: value`) to `obj` right after `after`. */
-const insertionAfter = (after: ObjectProperty, text: string): Splice => ({
-  start: after.end,
-  end: after.end,
-  text: `, ${text}`,
-});
+/** Where the line holding offset `at` of `source` starts. */
+const lineStart = (source: string, at: number) => source.lastIndexOf('\n', at - 1) + 1;
 
 /**
- * The break oxfmt keeps after `obj`'s `{`, taken away: an object the
- * formatter broke over lines once (a `cut` of two runs is printed a run to a
- * line, its section with it) is printed on one line again when it fits, as
- * it was before, so a Restore gives back the text a Cut broke. None when
- * the object opens on its line already.
+ * The splice that takes `p` out of `obj`, every comment left in place: with
+ * the separator before it (as `insertionAfter` wrote it) when only a comma
+ * and space stand between it and the key before; else (a comment stands
+ * there, or it is the first key) with its own comma and the space after it,
+ * and its whole line when nothing else is on it.
  */
-const fitted = (source: string, obj: ObjectExpression): ReadonlyArray<Splice> =>
-  Option.toArray(
+const removal = (source: string, obj: ObjectExpression, p: ObjectProperty): Splice =>
+  Option.getOrElse(
     Option.map(
-      Option.filter(Arr.head(obj.properties), (first) =>
-        /^\{\s*\n\s*$/.test(source.slice(obj.start, first.start)),
+      Option.filter(Arr.get(obj.properties, obj.properties.indexOf(p) - 1), (before) =>
+        /^\s*,?\s*$/.test(source.slice(before.end, p.start)),
       ),
-      (first): Splice => ({ start: obj.start + 1, end: first.start, text: ' ' }),
+      (before): Splice => ({ start: before.end, end: p.end, text: '' }),
     ),
+    (): Splice => {
+      const end = p.end + (/^[ \t]*,[ \t]*/.exec(source.slice(p.end))?.[0].length ?? 0);
+      const from = lineStart(source, p.start);
+      const alone = /^[ \t]*$/.test(source.slice(from, p.start)) && source[end] === '\n';
+      return Bool.match(alone, {
+        onTrue: () => ({ start: from, end: end + 1, text: '' }),
+        onFalse: () => ({ start: p.start, end, text: '' }),
+      });
+    },
   );
+
+/**
+ * The splice that adds `text` (a `key: value`) right after `after`, as
+ * `after` sits: on a line of its own, indented as `after`'s, when nothing
+ * but its comma and a comment follows it on its line (an object written over
+ * lines); else on its line.
+ */
+const insertionAfter = (
+  source: string,
+  after: Pick<ObjectPropertyKind, 'start' | 'end'>,
+  text: string,
+): Splice => {
+  const rest = /^[^\n]*/.exec(source.slice(after.end))?.[0] ?? '';
+  const indent = /^[ \t]*/.exec(source.slice(lineStart(source, after.start)))?.[0] ?? '';
+  return {
+    start: after.end,
+    end: after.end,
+    text: Bool.match(/^[ \t]*,?[ \t]*(\/\/.*|\/\*.*\*\/[ \t]*)?$/.test(rest), {
+      onTrue: () => `,\n${indent}${text}`,
+      onFalse: () => `, ${text}`,
+    }),
+  };
+};
 
 /** A mark's name as a key: bare when it is a name, else quoted. */
 const keyText = (name: string) => {
@@ -405,25 +429,75 @@ export const editStrikes = (
         return Option.toArray(
           Option.map(
             Option.flatten(Result.getSuccess(propertyOf(at.file, at.target, section, 'to'))),
-            (to) => insertionAfter(to, `cut: ${strikesText(now)}`),
+            (to) => insertionAfter(source, to, `cut: ${strikesText(now)}`),
           ),
         );
       },
       onSome: ({ node }) => {
-        if (now.length === 0) return [removal(section, node)];
+        if (now.length === 0) return [removal(source, section, node)];
         return [{ start: node.value.start, end: node.value.end, text: strikesText(now) }];
       },
     });
     if (strikes.length === 0) return source;
-    return yield* spliced(at.file, source, [...strikes, ...fitted(source, section)]);
+    // Two runs or more broke the section over lines (oxfmt): one or none lets it back on one.
+    const unforced = runsOf(struckIn(read.strikes)).length > 1 && now.length < 2;
+    return yield* spliced(
+      at.file,
+      source,
+      Bool.match(unforced, {
+        onTrue: () => unbroken(source, section, strikes),
+        onFalse: () => strikes,
+      }),
+    );
   });
+
+/** `text` with no comment in it: none outside its strings. */
+const uncommented = (text: string) =>
+  !/\/[/*]/.test(text.replace(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g, '""'));
+
+/**
+ * An object literal's text on one line, as oxfmt prints one that it did not
+ * break: every break between its tokens taken out (no string of a literal
+ * holds one), a trailing comma with it.
+ */
+const oneLine = (text: string) =>
+  text
+    .replace(/\[\s*\n\s*/g, '[')
+    .replace(/,?\s*\n\s*\]/g, ']')
+    .replace(/\{\s*\n\s*/g, '{ ')
+    .replace(/,?\s*\n\s*\}/g, ' }')
+    .replace(/\s*\n\s*/g, ' ');
+
+/**
+ * `strikes` (splices inside `section`) as one splice of the whole section,
+ * put back on one line: the break a cut of two runs or more forced (oxfmt
+ * prints such a cut a run to a line, and keeps its section broken after),
+ * taken away by the write that leaves it one run or none, so a Restore gives
+ * back the line a Cut broke. A section with a comment in it is the author's
+ * layout, and keeps its lines.
+ */
+const unbroken = (
+  source: string,
+  section: ObjectExpression,
+  strikes: ReadonlyArray<Splice>,
+): ReadonlyArray<Splice> => {
+  const text = strikes
+    .toSorted((a, b) => b.start - a.start)
+    .reduce(
+      (t, s) => `${t.slice(0, s.start - section.start)}${s.text}${t.slice(s.end - section.start)}`,
+      source.slice(section.start, section.end),
+    );
+  if (!text.includes('\n') || !uncommented(text)) return strikes;
+  return [{ start: section.start, end: section.end, text: oneLine(text) }];
+};
 
 /**
  * `source` with mark `name` set on word `word` of section `id`: added to its
  * `marks`, or a `marks` added after its `cut` (else its `to`). Refused when
- * the name marks another word already; a mark already there leaves the text
- * as it is. Whether the word is played, and the name a mark's, is the talk's
- * own check (`talkCutIn`).
+ * the name is not one the talk's decode keeps (`MarkName`: it would drop
+ * the key, and the mark would mark nothing), or marks another word already;
+ * a mark already there leaves the text as it is. Whether the word is played
+ * is the talk's own check (`talkCutIn`).
  */
 export const editMark = (
   at: TalkTarget,
@@ -433,6 +507,13 @@ export const editMark = (
   word: number,
 ): Result.Result<string, SourceRefused> =>
   Result.gen(function* () {
+    yield* Result.mapError(Schema.decodeResult(MarkName)(name), (e) =>
+      SourceRefused.make({
+        file: at.file,
+        target: at.target,
+        reason: `"${name}" is not a mark's name (${e.message}): the talk would drop it`,
+      }),
+    );
     const talk = yield* talkObject(at, source);
     const section = yield* sectionObject(at, talk, id);
     const read = yield* sectionRead(at, section);
@@ -450,7 +531,7 @@ export const editMark = (
           Option.map(objectOf(node.value), (obj) =>
             Option.match(Arr.last(obj.properties), {
               onNone: (): Splice => ({ start: obj.start, end: obj.end, text: `{ ${entry} }` }),
-              onSome: (last): Splice => ({ start: last.end, end: last.end, text: `, ${entry}` }),
+              onSome: (last) => insertionAfter(source, last, entry),
             }),
           ),
           () =>
@@ -468,7 +549,7 @@ export const editMark = (
               () =>
                 Option.flatten(Result.getSuccess(propertyOf(at.file, at.target, section, 'to'))),
             ),
-            (after) => insertionAfter(after, `marks: { ${entry} }`),
+            (after) => insertionAfter(source, after, `marks: { ${entry} }`),
           ),
           () =>
             SourceRefused.make({
@@ -502,7 +583,13 @@ export const strikesMissed = (
     return [`${id} strikes ${strikesText(now)}, not ${strikesText(asked)}`];
   });
 
-/** What of a mark write does not read back from `after`. */
+/**
+ * What of a mark write does not read back from `after`, judged by the talk
+ * decoded from it (`Talk`), not the literal: a key the decode drops is a
+ * mark the talk does not have. A text that is no talk at all (a mark on a
+ * word the section does not play) is the check's to refuse, in the talk's
+ * own words (`talkCutIn`), so it misses nothing here.
+ */
 export const markMissed = (
   at: TalkTarget,
   after: string,
@@ -511,9 +598,15 @@ export const markMissed = (
   word: number,
 ): Result.Result<ReadonlyArray<string>, SourceRefused> =>
   Result.gen(function* () {
-    const read = yield* sectionRead(at, yield* sectionObject(at, yield* talkObject(at, after), id));
-    if (read.marks[name] === word) return [];
-    return [`mark ${name} is not on word ${word} of ${id}`];
+    yield* sectionObject(at, yield* talkObject(at, after), id);
+    return Result.match(talkIn(at, after), {
+      onFailure: (): ReadonlyArray<string> => [],
+      onSuccess: (talk) => {
+        const marks = talk.sections.find((s) => s.id === id)?.marks ?? {};
+        if (marks[name] === word) return [];
+        return [`the talk read back has no mark ${name} on word ${word} of ${id}`];
+      },
+    });
   });
 
 /** A talk as it plays: its edit, its takes and its cut. */
