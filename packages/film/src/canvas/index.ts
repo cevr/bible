@@ -27,7 +27,7 @@ export {
 } from './ink.ts';
 export { type Place, at, cutout } from './cutout.ts';
 export { type PieceStyle, piece } from './piece.ts';
-export { skeleton } from './skin.ts';
+export { type Pose, type PoseValues, skeleton } from './skin.ts';
 export { ground } from './ground.ts';
 export { type Hex, clearOf, mix } from './colour.ts';
 export { glow, sky, wash } from './glow.ts';

@@ -3269,44 +3269,61 @@ shows or edits them.
 const BODY = skeleton('hips', { at: [0, -20], angle: -Math.PI / 2, length: 50 })
   .bone('chest', 'hips', { length: 58 })
   .bone('head', 'chest', { length: 37 })
-  .bone('jaw', 'head', { angle: Math.PI, length: 38 });
-const TORSO = BODY.skin(TUNIC, { chain: ['hips', 'chest'] }, { spacing: 4 });
+  .bone('jaw', 'head', { angle: Math.PI, length: 38 })
+  .skin('torso', TUNIC, { chain: ['hips', 'chest'] }, { spacing: 4 });
 
 draw: (f) => {
   const bow = f.at('bow');
-  const pose = BODY.pose({ chest: { turn: 0.05 * bow, along: 1 - 0.07 * bow } });
-  piece(ctx, TORSO.at(pose), { color, outline, role: 'figure' }, f.hand('torso'));
+  const pose = BODY.pose({ chest: { turn: 0.2 * bow, along: 1 - 0.16 * bow } });
+  piece(ctx, pose.at('torso'), { color, outline, role: 'figure' }, f.hand('torso'));
 };
 ```
 
 - **Skeleton:** a root bone has a start, a direction (radians, as
   `ctx.rotate`) and a length. Each child starts at its parent's tip, turned
-  `angle` from it. Bone names are the skeleton's type, so a pose, a chain or a
-  parent that names a missing bone does not compile, and neither does a
-  second bone of the same name.
-- **Skin:** `skeleton.skin(path, weights, options)` binds an outline once, at
-  module scope. Each point gets a weight per bone, and the weights sum to 1.
-  - `{ chain, blend }` weighs a point by where it falls along the chain's line.
-    Each joint is blended by a smoothstep over `blend` units either side; the
-    default is half the shorter of its two bones.
+  `angle` from it. Bone and skin names are the skeleton's type, so a pose, a
+  chain, a parent or a skin that names one the skeleton lacks does not
+  compile, nor does a second of one name, nor a name that is not a literal.
+- **Skin:** `skeleton.skin(name, path, weights, options)` binds an outline
+  once, at module scope, and returns the skeleton with it. Each point gets a
+  weight per bone, and the weights sum to 1; `skeleton.rest(name)` and
+  `skeleton.weights(name, i)` show them.
+  - `{ chain, blend }` weighs a point by how far it lies past each joint
+    along the rest chain. The distance is measured across the bisector of
+    the joint's two bones, so a bent rest chain (an arm at the elbow) is
+    measured bone by bone. Each joint is blended by a smoothstep over
+    `blend` units either side; the default is half the shorter of its two
+    bones. A `blend` wider than an end bone reaches past the chain's end. A
+    chain folded back on itself past about 175° cannot be measured this way:
+    weigh it with `{ weigh }`.
   - `{ weigh }` takes the drawing's own function of a rest point (a jaw that
     holds the lower half of a head). The weights are normalised, and a point
     no bone claims rides the root.
-  - `spacing` resamples a long straight edge so that it has points to bend.
+  - `spacing` adds points along each edge, at most `spacing` apart, so a
+    long straight edge has points to bend. Every vertex given is kept.
   - `smooth` treats the points as a curve's controls: they are bent, then
     the `spline` is drawn through them.
-- **Pose:** `skeleton.pose(values)` is one frame's pose, built from the
-  frame's own numbers. Each bone named takes `turn`, `along` and `across`
-  (scale along and across the bone, about its start; a child rides the
-  scaled tip) and `shift`. A bone left out stays at rest. `pose.rigid(bone)`
-  is the bone's rigid move as a `ctx.transform`, for what rides the bone
-  whole (an eye on the head).
-- **Blend:** each point's rigid move is blended as a planar dual quaternion,
-  so a joint turned far keeps its girth instead of collapsing toward the
-  joint. A bone's scale is blended first, in its rest frame.
-- **Purity:** `skin.at(pose)` returns a new path and keeps nothing between
-  calls. A pose at rest returns the rest outline bit for bit. A figure's pose
-  and two skins cost about 15 µs a frame.
+- **Pose:** `skeleton.pose(values)` is one frame's `Pose`, built from the
+  frame's own `PoseValues`. Each bone named takes `turn`, `along` and
+  `across` (scale along and across the bone, about its start; a child rides
+  the scaled tip) and `shift`. A bone left out stays at rest. `pose.at(name)`
+  is that skin bent; a pose bends only its own skeleton's skins.
+  `pose.rigid(bone)` is the bone's rigid move as a `ctx.transform`, for what
+  rides the bone whole (an eye on the head).
+- **Not a number:** a value that is not finite (NaN, ±Infinity) is held at
+  rest and named in `pose.rejected` as `{ _tag: 'PoseNotFinite', bone,
+  field, value }`. Nothing throws mid-frame and no NaN point reaches the
+  canvas.
+- **Blend:** each bone moves a point by its scale and then its rigid move.
+  That move is blended as a planar dual quaternion, so a joint turned far
+  keeps its girth instead of collapsing toward the joint, and a point that
+  two bones share lands where both put it. A turn takes the shorter way
+  round, so a joint turned past ±π flips. A wide piece folds on its inside
+  past about 1 rad; keep a chest or neck below about 0.8.
+- **Purity:** `pose.at(name)` returns a new path and keeps nothing between
+  calls. A pose at rest returns the rest outline bit for bit. One pose and
+  two skins (a 94-point torso and a 64-point head) cost about 25 µs a frame
+  in Bun.
 
 ## The purity rule
 
