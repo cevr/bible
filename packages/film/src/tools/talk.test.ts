@@ -40,7 +40,11 @@ import { fileSource } from '../core/sfx.ts';
 import { sceneAddress } from '../core/address.ts';
 import { filmEnd, sceneAt } from '../core/layout.ts';
 import { TALK_FPS, Talk } from '../core/talk.ts';
+import { LabHttpApi, TalkWords, labUrls } from '../core/api.ts';
+import { LabWrite } from '../core/schema.ts';
+import { routesOf } from '../core/testing.ts';
 import { talkFilms } from '../player/talks.ts';
+import { labHandler } from './lab.ts';
 import { Checker } from './checker.ts';
 import { sceneReport } from './cues.ts';
 import { drawLeg, laidOut, layoutLeg, staticLeg } from './film-check.ts';
@@ -54,10 +58,12 @@ import { planNarration } from './narrator.ts';
 import { read } from './read-cli.ts';
 import { talk } from './talk-cli.ts';
 import {
+  echoPages,
   emptyCalls,
   emptyLedger,
   fakeElevenLabs,
   fakeRenderHost,
+  freshFilm,
   privateFolder,
   textBox,
 } from './testing.ts';
@@ -418,5 +424,198 @@ describe('a talk through the tools', () => {
           ],
         ]);
       }).pipe(Effect.provide(world)),
+  );
+});
+
+/**
+ * The talk's edit as oxfmt leaves it (its defaults: no config is above the
+ * test's folder), so a write's formatting moves nothing but what it set.
+ */
+const FORMATTED = `export const talk = {
+  title: "Why the law?",
+  format: "question",
+  takes: { a: "why-the-law" },
+  sections: [
+    { id: "law", take: "a", from: 0, to: 5, cut: [[2, 2]] },
+    { id: "need", take: "a", from: 6, to: 11, knobs: { frame: [960, 540], zoom: 1.5 } },
+  ],
+};
+`;
+
+/** What a test here posts: a talk write's body (a section and its words, or a mark), or an Undo's empty one. */
+type Posted = Readonly<Record<string, string | number>>;
+
+/** The timeout of a test here that writes: each write formats its text with oxfmt, a spawn (film/spawn-budget). */
+const SPAWNS_MS = 30_000;
+
+describe("a talk's writes in the lab", () => {
+  let folders: Folders = { films: '', footage: '', out: '' };
+  const world = worldOf((made) => {
+    folders = made;
+  });
+  /** The films `film mix` was run for, fresh, as each write's track was made again. */
+  const remixed: Array<string> = [];
+  // The lab's pages and its fresh runs, as a test has them: the check finds nothing, a mix is noted.
+  const lab = Layer.mergeAll(
+    echoPages,
+    freshFilm({
+      check: () => Effect.succeed([]),
+      remix: (film) => Effect.sync(() => void remixed.push(film)),
+    }),
+  );
+  const bound = { hostname: '127.0.0.1', port: 4401 } as const;
+  const at = (path: string) => `http://127.0.0.1:4401${path}`;
+  const film = { params: { film: 'why' } };
+  /** `talk.ts` as it lies, byte for byte. */
+  const file = () => FileSystem.FileSystem.use((fs) => fs.readFile(`${folders.films}/why/talk.ts`));
+  const text = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
+  /** The lab's answer to `request`: its status, and its body as JSON. */
+  const ask = (request: Request) =>
+    Effect.gen(function* () {
+      const handler = yield* labHandler({ hosts: [] });
+      const response = yield* Effect.promise(() => handler(request, bound));
+      const body: { readonly _tag?: string; readonly reason?: string } = yield* Effect.promise(() =>
+        response.json(),
+      );
+      return { status: response.status, body };
+    });
+  const json = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
+  const post = (path: string, body: Posted) =>
+    ask(
+      new Request(at(path), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: json(body),
+      }),
+    );
+  /** The talk's words as the Transcript view reads them. */
+  const words = Effect.flatMap(ask(new Request(at(labUrls.talk.words(film)))), ({ body }) =>
+    Schema.decodeUnknownEffect(TalkWords)(body),
+  );
+  const struck = (read: TalkWords, section: string) =>
+    (read.sections.find((s) => s.id === section)?.words ?? [])
+      .filter((w) => w.struck)
+      .map((w) => w.index);
+  /** The edit as oxfmt leaves it, in place of the world's one-line JSON. */
+  const formatted = FileSystem.FileSystem.use((fs) =>
+    fs.writeFileString(`${folders.films}/why/talk.ts`, FORMATTED),
+  );
+
+  it.live(
+    "a Cut rewrites only its section's cut, the talk read again drops the word, Undo puts the file back to the byte, and Restore is its inverse",
+    () =>
+      Effect.gen(function* () {
+        yield* formatted;
+        const before = yield* file();
+        expect(struck(yield* words, 'law')).toEqual([2]);
+        const cut = yield* post(labUrls.talk.cut(film), { section: 'law', from: 3, to: 3 });
+        expect(cut.status).toBe(200);
+        expect(yield* Schema.decodeUnknownEffect(LabWrite)(cut.body)).toMatchObject({
+          scene: 'law',
+          file: 'talk.ts',
+          target: 'cut word 3 of law',
+        });
+        // Only the section's `cut` literal changed: word 3 joins the run struck.
+        expect(text(yield* file())).toBe(FORMATTED.replace('cut: [[2, 2]] }', 'cut: [[2, 3]] }'));
+        // The talk read again plays without the word, and its track was mixed again.
+        expect(struck(yield* words, 'law')).toEqual([2, 3]);
+        expect(remixed).toContain('why');
+        // Undo: the file as it was, byte for byte.
+        const undone = yield* post(labUrls.steps.undo(film), {});
+        expect(undone.status).toBe(200);
+        expect(yield* file()).toEqual(before);
+        expect(struck(yield* words, 'law')).toEqual([2]);
+        // Restore is a Cut's inverse: struck, then played again, the file is as it was.
+        yield* post(labUrls.talk.cut(film), { section: 'law', from: 4, to: 5 });
+        expect(struck(yield* words, 'law')).toEqual([2, 4, 5]);
+        const restored = yield* post(labUrls.talk.restore(film), {
+          section: 'law',
+          from: 4,
+          to: 5,
+        });
+        expect(restored.status).toBe(200);
+        expect(yield* file()).toEqual(before);
+        // Every word played again: the section's `cut` is taken away.
+        yield* post(labUrls.talk.restore(film), { section: 'law', from: 2, to: 2 });
+        expect(text(yield* file())).toBe(FORMATTED.replace(', cut: [[2, 2]] }', ' }'));
+      }).pipe(Effect.scoped, Effect.provide(Layer.merge(world, lab))),
+    SPAWNS_MS,
+  );
+
+  it.live(
+    "Mark here writes the section's marks; a write that leaves the talk unplayable is refused in the cut's own words and writes nothing",
+    () =>
+      Effect.gen(function* () {
+        yield* formatted;
+        const marked = yield* post(labUrls.talk.mark(film), {
+          section: 'law',
+          word: 1,
+          name: 'law',
+        });
+        expect(marked.status).toBe(200);
+        expect(text(yield* file())).toBe(
+          FORMATTED.replace('cut: [[2, 2]] }', 'cut: [[2, 2]], marks: { law: 1 } }'),
+        );
+        expect((yield* words).sections.find((s) => s.id === 'law')?.marks).toEqual({ law: 1 });
+        const before = yield* file();
+        const refusals: ReadonlyArray<readonly [string, Posted, string]> = [
+          // Every word of a section struck: it would play nothing.
+          [
+            labUrls.talk.cut(film),
+            { section: 'need', from: 6, to: 11 },
+            'talk: section "need" strikes every word it has, so it plays nothing',
+          ],
+          // A marked word struck: its mark would be on a word the section does not play.
+          [
+            labUrls.talk.cut(film),
+            { section: 'law', from: 1, to: 1 },
+            'marks word 1, which the section does not play',
+          ],
+          // A mark on a word the section strikes.
+          [
+            labUrls.talk.mark(film),
+            { section: 'law', word: 2, name: 'was' },
+            'marks word 2, which the section does not play',
+          ],
+          // A name that marks another word already.
+          [
+            labUrls.talk.mark(film),
+            { section: 'law', word: 3, name: 'law' },
+            'mark "law" is on word 1 of "law" already',
+          ],
+          // Words the section does not have, and a section the talk does not.
+          [
+            labUrls.talk.cut(film),
+            { section: 'law', from: 9, to: 9 },
+            'words 9–9 are not in section "law", which plays words 0–5',
+          ],
+          [
+            labUrls.talk.restore(film),
+            { section: 'nope', from: 1, to: 1 },
+            'it has no section "nope"',
+          ],
+        ];
+        for (const [path, body, said] of refusals) {
+          const answer = yield* post(path, body);
+          expect([answer.status, answer.body._tag]).toEqual([422, 'SourceRefused']);
+          expect(answer.body.reason).toContain(said);
+          expect(yield* file()).toEqual(before);
+        }
+      }).pipe(Effect.scoped, Effect.provide(Layer.merge(world, lab))),
+    SPAWNS_MS,
+  );
+
+  it.effect('are routes of the lab API, so the one gate sweeps them', () =>
+    Effect.sync(() => {
+      const talk = routesOf(LabHttpApi)
+        .filter((r) => r.path.startsWith('/api/films/:film/talk'))
+        .map((r) => `${r.method} ${r.path}`);
+      expect(talk).toEqual([
+        'GET /api/films/:film/talk',
+        'POST /api/films/:film/talk/cut',
+        'POST /api/films/:film/talk/restore',
+        'POST /api/films/:film/talk/mark',
+      ]);
+    }),
   );
 });

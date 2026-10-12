@@ -19,38 +19,49 @@ import {
   Config,
   Duration,
   Effect,
-  type FileSystem,
+  FileSystem,
   Layer,
   Option,
-  type Path,
+  Path,
   Record as Rec,
   Result,
 } from 'effect';
 import type { HttpPlatform } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
-import { LabHttpApi } from '../core/api.ts';
-import { StillUnknown } from '../core/refusals.ts';
+import { LabHttpApi, type TalkWordsPost } from '../core/api.ts';
+import { SourceRefused, StillUnknown } from '../core/refusals.ts';
 import { type Allowed, type BesideRoutes, answered, serveApi } from './api-server.ts';
 import { choicesGroup } from './choices-http.ts';
 import { Easel } from './easel.ts';
 import type { Choices } from './choices.ts';
-import { LabPage } from './lab-page.ts';
+import { LabPage, mixedAnswer } from './lab-page.ts';
 import { projectGroup } from './project-http.ts';
 import { CACHE, serveFile } from './review-file.ts';
 import { reviewGroup } from './review-http.ts';
 import type { Review } from './review.ts';
 import type { ContentStore } from './content-store.ts';
-import { type FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
+import { FilmFolder, type FilmName, filmNamed, masterFile } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
 import { readKnob, readSpans } from './scene-source.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { type CueWritten, SceneWriter } from './scene-writer.ts';
-import type { SourceWriter } from './source-writer.ts';
-import type { FreshFilm } from './fresh-film.ts';
+import { type Follows, type Remade, SourceWriter, type Wrote } from './source-writer.ts';
+import { FreshFilm } from './fresh-film.ts';
 import { stepsGroup, writeAnswer } from './steps-http.ts';
 import { type StudioReadings, studioGroup } from './studio.ts';
 import type { Takes } from './takes.ts';
+import {
+  TALK_FILE,
+  editMark,
+  editStrikes,
+  markMissed,
+  markTarget,
+  strikeTarget,
+  strikesMissed,
+  talkCutIn,
+  talkWords,
+} from './talk-source.ts';
 
 /** A cue written: the span as the file now reads it, and where it resolves (or why it does not). */
 const cueWritten = Effect.fn('lab.cueWritten')(function* (
@@ -206,6 +217,138 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
     ),
 );
 
+/** A talk's file as a write and a refusal name it (`talk.ts`), and what the write sets. */
+interface TalkAt {
+  readonly file: string;
+  readonly target: string;
+}
+
+/**
+ * `film`'s talk edit (`talk.ts`): its path, and its name as a write and a
+ * refusal name it. A drawn film has none, refused in those words.
+ */
+const talkFile = Effect.fn('lab.talkFile')(function* (film: FilmName, target: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const file = path.join((yield* FilmFolder).paths(film).dir, TALK_FILE);
+  if (!(yield* fs.exists(file).pipe(Effect.orElseSucceed(() => false))))
+    return yield* SourceRefused.make({
+      file: TALK_FILE,
+      target,
+      reason: `${film} is not a talk: it has no ${TALK_FILE}`,
+    });
+  const at: TalkAt = { file: TALK_FILE, target };
+  return { path: file, at };
+});
+
+/**
+ * What follows a talk's edit: its track, mixed again from the takes in the
+ * pieces the edit now cuts (`film mix`, fresh), answering when it landed.
+ * No file it names comes or goes: the takes are the footage library's.
+ */
+const talkFollows = Effect.fn('lab.talkFollows')(function* (film: FilmName) {
+  const fs = yield* FileSystem.FileSystem;
+  const fresh = yield* FreshFilm;
+  const track = masterFile((yield* FilmFolder).paths(film));
+  const landed = Effect.suspend(() => fs.stat(track)).pipe(
+    Effect.map((info): Remade => Option.map(info.mtime, (at) => at.getTime())),
+    Effect.orElseSucceed((): Remade => Option.none()),
+  );
+  const follows: Follows = {
+    bring: () => Effect.void,
+    putAway: () => Effect.void,
+    remake: Option.some(Effect.suspend(() => fresh.remix(film)).pipe(Effect.andThen(landed))),
+  };
+  return follows;
+});
+
+/**
+ * One write of `name`'s talk, one `SourceWriter.write`: `edit` of its
+ * `talk.ts` as it is now, read back by `verify`, and judged by the talk its
+ * new text cuts (`talkCutIn`), so a talk left unplayable is refused in the
+ * cut's words with nothing written; its track mixed again once it lands.
+ * Answered as a scene write is, with the mix it made.
+ */
+const talkWrite = (
+  name: string,
+  section: string,
+  target: string,
+  edit: (at: TalkAt, source: string) => Result.Result<string, SourceRefused>,
+  verify: (
+    at: TalkAt,
+    after: string,
+    before: string,
+  ) => Result.Result<ReadonlyArray<string>, SourceRefused>,
+) =>
+  answered(
+    Effect.gen(function* () {
+      const film = yield* filmNamed(name);
+      const { path, at } = yield* talkFile(film, target);
+      // The cut is judged over the footage library as it is when the text is.
+      const reads = yield* Effect.context<
+        ContentStore | FileSystem.FileSystem | FilmFolder | Path.Path
+      >();
+      const [change, , remade] = yield* (yield* SourceWriter).write({
+        film,
+        scene: Option.some(section),
+        file: path,
+        target,
+        edit: (source) => edit(at, source),
+        verify: (after, before) => verify(at, after, before),
+        check: (after) => Effect.asVoid(talkCutIn(at, after)).pipe(Effect.provideContext(reads)),
+        follows: yield* talkFollows(film),
+      });
+      const wrote: Wrote = { scene: Option.some(section), file: path, target, change };
+      return yield* writeAnswer(film, wrote, mixedAnswer(film, remade));
+    }),
+  );
+
+/** A Cut (`strike`) or a Restore of the words a request names, of the film its route names. */
+const strikesWritten =
+  (strike: boolean) =>
+  ({
+    params,
+    payload,
+  }: {
+    readonly params: { readonly film: string };
+    readonly payload: TalkWordsPost;
+  }) => {
+    const { section, from, to } = payload;
+    return talkWrite(
+      params.film,
+      section,
+      strikeTarget(strike, section, from, to),
+      (at, source) => editStrikes(at, source, section, { from, to }, strike),
+      (at, after, before) => strikesMissed(at, after, before, section, { from, to }, strike),
+    );
+  };
+
+/** A talk's words as the Transcript view reads them, and its writes there: Cut, Restore, Mark here. */
+const talkGroup = HttpApiBuilder.group(LabHttpApi, 'talk', (handlers) =>
+  handlers
+    .handle('words', ({ params }) =>
+      answered(
+        Effect.gen(function* () {
+          const film = yield* filmNamed(params.film);
+          const { path, at } = yield* talkFile(film, 'its words');
+          const source = yield* (yield* FileSystem.FileSystem).readFileString(path);
+          return talkWords(at.file, yield* talkCutIn(at, source));
+        }),
+      ),
+    )
+    .handle('cut', strikesWritten(true))
+    .handle('restore', strikesWritten(false))
+    .handle('mark', ({ params, payload }) =>
+      talkWrite(
+        params.film,
+        payload.section,
+        markTarget(payload.section, payload.name, payload.word),
+        (at, source) => editMark(at, source, payload.section, payload.name, payload.word),
+        (at, after) => markMissed(at, after, payload.section, payload.name, payload.word),
+      ),
+    ),
+);
+
 /** The pages' build: a wait that answers once a source a build read changes, or the page's film is mixed, or at once for a page another server served. */
 const pageGroup = HttpApiBuilder.group(LabHttpApi, 'page', (handlers) =>
   handlers.handle('wait', ({ query }) =>
@@ -311,6 +454,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         notesGroup,
         scenesGroup,
         stepsGroup,
+        talkGroup,
         studioGroup,
         reviewGroup,
         choicesGroup,

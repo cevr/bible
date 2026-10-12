@@ -313,6 +313,57 @@ export const Steps = Schema.Struct({
 });
 export type Steps = typeof Steps.Type;
 
+/** A word of a take, by its index into the take's transcript (`core/talk.ts`). */
+const TalkWordIndex = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+
+/**
+ * A word of a talk's section as the lab's Transcript view reads it: its index
+ * into the take, as the captions spell it (the talk's fixes), whether the
+ * section strikes it, and, for a word it plays, when it is heard in the
+ * section (seconds from the section's start, `voiced`).
+ */
+const TalkWord = Schema.Struct({
+  index: TalkWordIndex,
+  text: Schema.String,
+  struck: Schema.Boolean,
+  heard: Schema.optionalKey(Schema.Tuple([Schema.Finite, Schema.Finite])),
+});
+export type TalkWord = typeof TalkWord.Type;
+
+/** A talk's section as the Transcript view reads it: its words from its first to its last, and its marks. */
+const TalkSectionWords = Schema.Struct({
+  id: Schema.String,
+  take: Schema.String,
+  words: Schema.Array(TalkWord),
+  marks: Schema.Record(Schema.String, TalkWordIndex),
+});
+
+/**
+ * `GET /api/films/<film>/talk`: a talk's sections in play order, as its
+ * `talk.ts` cuts them on its takes' transcripts now (`talkCut`), each with
+ * every word from its first to its last, struck or played.
+ */
+export const TalkWords = Schema.Struct({
+  file: Schema.String,
+  sections: Schema.Array(TalkSectionWords),
+});
+export type TalkWords = typeof TalkWords.Type;
+
+/** `POST /api/films/<film>/talk/{cut,restore}`: the words `from`–`to` of `section`, struck or played again. */
+export const TalkWordsPost = Schema.Struct({
+  section: Schema.String,
+  from: TalkWordIndex,
+  to: TalkWordIndex,
+});
+export type TalkWordsPost = typeof TalkWordsPost.Type;
+
+/** `POST /api/films/<film>/talk/mark`: the mark `name` set on word `word` of `section`. */
+const TalkMarkPost = Schema.Struct({
+  section: Schema.String,
+  word: TalkWordIndex,
+  name: Schema.String,
+});
+
 /**
  * What the owner says of a variant, a scene's render, an act or the film:
  * approve it as it is now, withdraw every approval of it, or comment on it.
@@ -473,6 +524,37 @@ class StepsGroup extends HttpApiGroup.make('steps').add(
   HttpApiEndpoint.get('steps', `${FILM}/steps`, {
     params: film,
     success: Steps,
+    error: Refusals,
+  }),
+) {}
+
+/**
+ * A talk's words as the lab's Transcript view reads them, and its edits there:
+ * words struck (Cut) or played again (Restore), and a mark set on a word (Mark
+ * here). Each write rewrites `talk.ts` by its literal, as a scene write does.
+ */
+class TalkGroup extends HttpApiGroup.make('talk').add(
+  HttpApiEndpoint.get('words', `${FILM}/talk`, {
+    params: film,
+    success: TalkWords,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('cut', `${FILM}/talk/cut`, {
+    params: film,
+    payload: TalkWordsPost,
+    success: LabWrite,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('restore', `${FILM}/talk/restore`, {
+    params: film,
+    payload: TalkWordsPost,
+    success: LabWrite,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('mark', `${FILM}/talk/mark`, {
+    params: film,
+    payload: TalkMarkPost,
+    success: LabWrite,
     error: Refusals,
   }),
 ) {}
@@ -697,6 +779,7 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(NotesGroup)
   .add(ScenesGroup)
   .add(StepsGroup)
+  .add(TalkGroup)
   .add(StudioGroup)
   .add(ReviewGroup)
   .add(ChoicesGroup)
