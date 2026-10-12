@@ -1963,15 +1963,22 @@ commands as buttons each make one write of
 the file is touched (a section left playing nothing, a strike over a marked
 word, a mark on a struck word, a mark name the talk would drop: refused in
 the server's words, nothing written). A write splices the one literal and
-keeps the author's layout and comments, each on the key it is about: a key
-added sits as the key before it does (on a line of its own, after that key's
-line and its comment, in a section written over lines), a key taken away
-leaves every comment, so a Restore gives back the text its Cut found. Two
-layouts come back as the formatter lays them out, and only Undo gives back
-their text: the break after a section's `{` that oxfmt keeps once a cut of two
-runs broke it is let go by the write that leaves the cut one run (a section
-its author broke there alone comes back on one line), and a one-line section a
-Cut pushes past the print width stays broken (`tools/talk-source.ts`). Mark here names the mark from its word as the talk
+keeps the author's layout and comments, each by the key it is about, by the
+formatter's own rule of whose a comment is: a key's comments are those above
+it and those after it on its line. A write moves keys whole: a key added goes
+between two keys and their comments, never inside (on a line of its own in a
+section written over lines), and a key taken away goes with its own comments
+and leaves every other (a Restore that empties a cut takes the comment about
+the cut). A cut whose runs hold a comment is refused a rewrite of them, and
+the server refuses any write that would move a comment off its key, so a
+Restore gives back the text its Cut found, as a property over generated
+sections, oxfmt-formatted, proves. Three layouts come back as the formatter
+lays them out, and only Undo gives back their text: the break after a
+section's `{` that oxfmt keeps once a cut of two runs broke it is let go by
+the write that leaves the cut one run (a section its author broke there alone
+comes back on one line), a one-line section a Cut pushes past the print width
+stays broken, and a cut a Restore emptied comes back after `to`, without the
+comments it had (`tools/talk-source.ts`). Mark here names the mark from its word as the talk
 keeps it (`MarkName`: `Café` is `cafe`). Each write is a write of the film's
 source, so the editor's one machine sends it (`TalkWrite`, one write out at a
 time, `lab/editor/machine.ts`): `#t=` and the page's reloads are held until it

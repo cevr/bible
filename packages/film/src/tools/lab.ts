@@ -53,6 +53,7 @@ import { type StudioReadings, studioGroup } from './studio.ts';
 import type { Takes } from './takes.ts';
 import {
   TALK_FILE,
+  commentsMoved,
   editMark,
   editStrikes,
   markMissed,
@@ -294,7 +295,11 @@ const talkWrite = (
         file: path,
         target,
         edit: (source) => edit(at, source),
-        verify: (after, before) => verify(at, after, before),
+        // What it set reads back, and every comment stands by the key it is about.
+        verify: (after, before) =>
+          Result.flatMap(verify(at, after, before), (missed) =>
+            Result.map(commentsMoved(at, after, before), (moved) => [...missed, ...moved]),
+          ),
         check: (after) => Effect.asVoid(talkCutIn(at, after)).pipe(Effect.provideContext(reads)),
         follows: yield* talkFollows(film),
       });

@@ -8,10 +8,11 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Array as Arr, Boolean as Bool, Effect, Option, Predicate, Result, Stream } from 'effect';
+import { Array as Arr, Effect, FileSystem, Option, Result, Schema, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import { Talk } from '../core/talk.ts';
 import { collect } from './process.ts';
-import { editMark, editStrikes, markMissed } from './talk-source.ts';
+import { commentsMoved, editMark, editStrikes, markMissed } from './talk-source.ts';
 
 /** The timeout of a test here that spawns (bunx oxfmt): a cold start's time is the machine's (film/spawn-budget). */
 const SPAWNS_MS = 30_000;
@@ -180,7 +181,7 @@ describe('talk source', () => {
         expect(Result.getOrThrow(editStrikes(at, last, 'law', { from: 3, to: 3 }, true))).toBe(
           last.replace(
             'to: 5 // the question ends here\n',
-            'to: 5, // the question ends here\n      cut: [[3, 3]]\n',
+            'to: 5, // the question ends here\n      cut: [[3, 3]],\n',
           ),
         );
       }),
@@ -224,19 +225,26 @@ describe('talk source', () => {
         expect(Result.getOrThrow(editMark(at, hugged, 'law', 'law', 3))).toBe(
           hugged.replace('/* the end */ }', '/* the end */, marks: { law: 3 } }'),
         );
-        // Marks that hold only a comment: the mark goes in after it, and the comment stays.
+        // Marks that hold only a comment, the marks' own: the mark goes in before it, so no
+        // mark follows it and it stays theirs; on one line, the marks go over lines for that.
         const anchored = talkOf(
           '    { id: "law", take: "a", from: 0, to: 5, marks: { /* anchors to come */ } },',
         );
         expect(Result.getOrThrow(editMark(at, anchored, 'law', 'law', 3))).toBe(
-          anchored.replace('/* anchors to come */ }', '/* anchors to come */ law: 3 }'),
+          anchored.replace(
+            '{ /* anchors to come */ }',
+            '{\n      law: 3,\n      /* anchors to come */\n    }',
+          ),
         );
         const anchoredOver = over.replace(
           '        why: 1, // the ask\n',
           '        // anchors to come\n',
         );
         expect(Result.getOrThrow(editMark(at, anchoredOver, 'law', 'law', 3))).toBe(
-          anchoredOver.replace('// anchors to come\n', '// anchors to come\n        law: 3,\n'),
+          anchoredOver.replace(
+            '        // anchors to come\n',
+            '        law: 3,\n        // anchors to come\n',
+          ),
         );
       }),
   );
@@ -257,7 +265,7 @@ describe('talk source', () => {
   );
 
   it.effect(
-    'a Restore that leaves the section striking nothing takes the cut away and keeps the comments around it',
+    "a Restore that leaves the section striking nothing takes the cut away whole, its own comments with it, and keeps every other key's",
     () =>
       Effect.sync(() => {
         const commented = talkOf(
@@ -273,18 +281,23 @@ describe('talk source', () => {
             '    },',
           ].join('\n'),
         );
+        // The comment ending the cut's line is the cut's: it goes with it. `to`'s and the
+        // knobs' (the line above them) stay.
         expect(
           Result.getOrThrow(editStrikes(at, commented, 'law', { from: 1, to: 1 }, false)),
-        ).toBe(
-          commented.replace('      cut: [[1, 1]], // the false start', '      // the false start'),
-        );
-        // A comment before the cut's own line stays, and so does the line's own.
+        ).toBe(commented.replace('      cut: [[1, 1]], // the false start\n', ''));
+        // So does a comment on the line above the cut: the lines standing above a key are its.
         const above = commented.replace(
           '      cut: [[1, 1]], // the false start',
           '      // the false start\n      cut: [[1, 1]],',
         );
         expect(Result.getOrThrow(editStrikes(at, above, 'law', { from: 1, to: 1 }, false))).toBe(
-          above.replace('\n      cut: [[1, 1]],', ''),
+          above.replace('      // the false start\n      cut: [[1, 1]],\n', ''),
+        );
+        // A rewrite of runs that hold a comment would leave it by no run: refused, nothing written.
+        const inRuns = commented.replace('cut: [[1, 1]]', 'cut: [[1, 1] /* the um */]');
+        expect(reason(editStrikes(at, inRuns, 'law', { from: 3, to: 3 }, true))).toContain(
+          'its cut holds a comment among its runs',
         );
       }),
   );
@@ -299,6 +312,25 @@ describe('talk source', () => {
         expect(reason(editMark(at, SOURCE, 'law', 'two words', 3))).toContain(
           'a mark is letters, digits, _ and -',
         );
+      }),
+  );
+
+  it.effect(
+    "`__proto__` is refused as a mark's name, in plain words, and nothing is written: in an object literal it sets the prototype, so the film's own import of the talk has no such mark",
+    () =>
+      Effect.gen(function* () {
+        // What the film's import makes of the literal a write would leave: no own key.
+        const written = SOURCE.replace('to: 5 }', 'to: 5, marks: { __proto__: 3 } }');
+        const read = yield* imported([written, SOURCE.replace('to: 5 }', 'to: 5, marks: {} }')]);
+        expect(Result.isSuccess(readAt(read, 1))).toBe(true);
+        expect(readAt(read, 0)).toEqual(readAt(read, 1));
+        expect(reason(editMark(at, SOURCE, 'law', '__proto__', 3))).toBe(
+          '"__proto__" is not a mark\'s name (a mark is never named __proto__: in an object literal that name sets its prototype, so the talk would have no such mark): the talk would drop it',
+        );
+        // Read back as the import reads it, a literal `__proto__` marks nothing.
+        expect(Result.getOrThrow(markMissed(at, written, 'law', '__proto__', 3))).toEqual([
+          'the talk read back has no mark __proto__ on word 3 of law',
+        ]);
       }),
   );
 
@@ -333,6 +365,48 @@ describe('talk source', () => {
       }),
   );
 
+  it.effect(
+    "the server's read-back of a write finds a comment moved off its key, so such a write is refused whatever the layout: round 3's Restore, round 2's Cut",
+    () =>
+      Effect.sync(() => {
+        /** A section over lines, its last keys `rest`, each line written with its comma. */
+        const section = (...rest: ReadonlyArray<string>) =>
+          talkOf(
+            [
+              '    {',
+              '      id: "law",',
+              '      take: "a",',
+              '      from: 0,',
+              ...rest,
+              '    },',
+            ].join('\n'),
+          );
+        const struck = section('      to: 5,', '      cut: [[2, 2]], // the "um"');
+        // Round 3's Restore: the cut went, its comment stayed and labelled `to`.
+        expect(
+          Result.getOrThrow(commentsMoved(at, section('      to: 5, // the "um"'), struck)),
+        ).toEqual([
+          'the comment // the "um" stays, by sections[0].to, though sections[0].cut is gone',
+        ]);
+        // Round 2's Cut: `to`'s comment went onto the cut added.
+        const asked = section('      to: 5, // the question');
+        expect(
+          Result.getOrThrow(
+            commentsMoved(
+              at,
+              section('      to: 5,', '      cut: [[3, 3]], // the question'),
+              asked,
+            ),
+          ),
+        ).toEqual(['the comment // the question moves from sections[0].to to sections[0].cut']);
+        // As this unit writes them: nothing moved.
+        const cut = Result.getOrThrow(editStrikes(at, asked, 'law', { from: 3, to: 3 }, true));
+        expect(Result.getOrThrow(commentsMoved(at, cut, asked))).toEqual([]);
+        const played = Result.getOrThrow(editStrikes(at, struck, 'law', { from: 2, to: 2 }, false));
+        expect(Result.getOrThrow(commentsMoved(at, played, struck))).toEqual([]);
+      }),
+  );
+
   it.effect('what the literal does not prove is refused', () =>
     Effect.sync(() => {
       const computed = SOURCE.replace('cut: [[7, 7]]', 'cut: STRUCK');
@@ -349,127 +423,454 @@ describe('talk source', () => {
   );
 });
 
-/** Where a section's one comment sits, by the key it is about. */
-type Said = 'trailing' | 'after' | 'hugging' | 'above';
+// The property: a section of a talk, generated as an author might write it,
+// and each write on it, as the repo's oxfmt prints them. Every comment
+// names the owner it is about (`@to`, `@marks.why`, `@{}` for the section's
+// own, `@marks{}` for its marks' own), so where it sits is checked against
+// what it says, by the rule of ownership written out here on its own:
+// - a comment on a key's line, before the line breaks and before the next
+//   key on that line (after its value, or after its comma), is that key's;
+// - after the break, it is the next key's (the lines standing above it), or
+//   the object's own when no key follows (before its `}`);
+// - on one line, after a comma, it hugs the next key; with no comma before
+//   it, it is the key's before it;
+// - before the first key (after the `{`), it is the first key's, and in an
+//   object with no key, the object's own;
+// - inside a value that is no object (the cut's runs), it is the key's.
+// It is the formatter's own attachment: oxfmt breaks a line or joins one
+// and never moves a comment off its owner.
 
-/** One way a section of a talk may be written. */
-interface Layout {
-  /** Over lines, a key to a line (else on one line, as the formatter keeps it when it fits). */
+/** A key of a section, as the property writes it. */
+type Key = 'id' | 'take' | 'from' | 'to' | 'cut' | 'marks' | 'knobs';
+
+/**
+ * How a comment sits by its owner: `trailing` (`// @k` after the key's comma),
+ * `after` (`/* @k *\/` after the comma), `hugging` (`/* @k *\/` after the
+ * value, before the comma), `before` (`/* @k *\/` before the key), `above`
+ * (`// @k` on the line above), `twoLine` (a block over two lines, hugging
+ * the value), `inside` (in the cut's runs), `end` (an object's own, on a
+ * line before its `}`: on one line an object with keys has no place for one).
+ */
+type Kind = 'trailing' | 'after' | 'hugging' | 'before' | 'above' | 'twoLine' | 'inside' | 'end';
+
+/** A section as an author may write it. */
+interface Sample {
+  /** Over lines, a key to a line (else on one line). */
   readonly lines: boolean;
-  /** Whether it strikes word 1 already. */
-  readonly cut: boolean;
-  /** No marks, a mark, or marks that hold only a comment. */
+  /** Its keys, in the order it writes them. */
+  readonly order: ReadonlyArray<Key>;
+  /** What it strikes: nothing, word 1, or words 1 and 3. */
+  readonly cut: 'none' | 'one' | 'two';
+  /** No marks, a mark (`why` on word 0), or marks that hold only a comment. */
   readonly marks: 'none' | 'named' | 'anchored';
-  /** No knobs, knobs on one line, or knobs over lines (as only an author breaks them). */
+  /** No knobs, knobs on one line, or knobs over lines. */
   readonly knobs: 'none' | 'flat' | 'broken';
-  /** A comment about one key: `// on to` after its comma, `/* on to *\/` after or before it, `// above to` on the line before. */
-  readonly comment: Option.Option<readonly [string, Said]>;
+  /** Its comments, by the owner each names. */
+  readonly comments: Readonly<Record<string, Kind>>;
 }
 
+const RUNS = {
+  none: [],
+  one: [[1, 1]],
+  two: [
+    [1, 1],
+    [3, 3],
+  ],
+} as const;
+
+const said = (s: Sample, owner: string, kind: Kind) => s.comments[owner] === kind;
+
+/** `text` when `held`, else nothing. */
+const when = (held: boolean, text: string) => {
+  if (held) return text;
+  return '';
+};
+
 /** `items` when `held`, else none. */
-const onlyIf = <A>(held: boolean, ...items: ReadonlyArray<A>) => Arr.filter(items, () => held);
+const onlyWhen = <A>(held: boolean, items: ReadonlyArray<A>): ReadonlyArray<A> => {
+  if (held) return items;
+  return [];
+};
 
-const keysOf = (l: Layout): ReadonlyArray<string> => [
-  'id',
-  'take',
-  'from',
-  'to',
-  ...onlyIf(l.cut, 'cut'),
-  ...onlyIf(l.marks !== 'none', 'marks'),
-  ...onlyIf(l.knobs !== 'none', 'knobs'),
-];
+const blockOn = (owner: string) => `/* @${owner} */`;
 
-const valueOf = (l: Layout, key: string): string => {
+/** Key `key`'s value as `s` writes it, its nested lines indented under `ind`. */
+const sampleValue = (s: Sample, key: Key, ind: string): string => {
   switch (key) {
     case 'id':
-      return '"law"';
+      return "'law'";
     case 'take':
-      return '"a"';
+      return "'a'";
     case 'from':
       return '0';
     case 'to':
       return '9';
     case 'cut':
-      return '[[1, 1]]';
+      return `[${when(said(s, 'cut', 'inside'), `${blockOn('cut')} `)}${RUNS[s.cut].map(([a, b]) => `[${a}, ${b}]`).join(', ')}]`;
     case 'marks':
-      if (l.marks === 'named') return '{ why: 0 }';
-      if (l.lines) return '{\n        // anchors to come\n      }';
-      return '{ /* anchors to come */ }';
-    default:
-      if (l.knobs === 'broken') return '{\n        zoom: 1.5,\n      }';
-      return '{ zoom: 1.5 }';
+      if (s.marks === 'anchored') {
+        if (s.lines) return `{\n${ind}  // @marks{}\n${ind}}`;
+        return `{ ${blockOn('marks{}')} }`;
+      }
+      if (said(s, 'marks.why', 'trailing')) return `{\n${ind}  why: 0, // @marks.why\n${ind}}`;
+      return `{ why: 0${when(said(s, 'marks.why', 'hugging'), ` ${blockOn('marks.why')}`)} }`;
+    case 'knobs': {
+      const hug = when(said(s, 'knobs.zoom', 'hugging'), ` ${blockOn('knobs.zoom')}`);
+      if (s.knobs === 'broken')
+        return `{\n${ind}  zoom: 1.5${hug},${when(said(s, 'knobs.zoom', 'trailing'), ' // @knobs.zoom')}\n${ind}}`;
+      return `{ zoom: 1.5${hug} }`;
+    }
   }
 };
 
-/** The talk whose one section `l` lays out. */
-const layoutText = (l: Layout) => {
-  const said = (key: string, how: Said) =>
-    Option.exists(l.comment, ([k, s]) => k === key && s === how);
-  const comment = (key: string, how: Said, text: string) => onlyIf(said(key, how), text).join('');
-  const keyText = (key: string) =>
-    `${key}: ${valueOf(l, key)}${comment(key, 'hugging', ` /* on ${key} */`)}`;
-  if (!l.lines) return talkOf(`    { ${keysOf(l).map(keyText).join(', ')} },`);
+/** The one-section talk `s` writes. */
+const sampleText = (s: Sample) => {
+  const ind = '      ';
+  const keyed = (k: Key) =>
+    `${when(said(s, k, 'before'), `${blockOn(k)} `)}${k}: ${sampleValue(s, k, ind)}${when(said(s, k, 'hugging'), ` ${blockOn(k)}`)}`;
+  if (!s.lines) return talkOf(`    { ${s.order.map(keyed).join(', ')} },`);
   return talkOf(
     [
       '    {',
-      ...keysOf(l).flatMap((key) => [
-        ...onlyIf(said(key, 'above'), `      // above ${key}`),
-        `      ${keyText(key)},${comment(key, 'trailing', ` // on ${key}`)}${comment(key, 'after', ` /* on ${key} */`)}`,
+      ...s.order.flatMap((k) => [
+        ...onlyWhen(said(s, k, 'above'), [`${ind}// @${k}`]),
+        `${ind}${keyed(k)}${when(said(s, k, 'twoLine'), ` /* @${k}\n${ind}   ends here */`)},${when(said(s, k, 'after'), ` ${blockOn(k)}`)}${when(said(s, k, 'trailing'), ` // @${k}`)}`,
       ]),
+      ...onlyWhen(said(s, '{}', 'end'), [`${ind}// @{}`]),
       '    },',
     ].join('\n'),
   );
 };
 
-const layoutName = (l: Layout) =>
-  `${Bool.match(l.lines, { onTrue: () => 'lines', onFalse: () => 'line' })} cut=${l.cut} marks=${l.marks} knobs=${l.knobs} comment=${Option.match(
-    l.comment,
-    { onNone: () => 'none', onSome: ([key, how]) => `${how} ${key}` },
-  )}`;
+const sampleName = (s: Sample) =>
+  `line${when(s.lines, 's')} [${s.order.join(' ')}] cut=${s.cut} marks=${s.marks} knobs=${s.knobs} {${Object.entries(
+    s.comments,
+  )
+    .map(([owner, kind]) => `${owner}: ${kind}`)
+    .join(', ')}}`;
+
+/** The ways a comment may sit by `owner` in `s`. */
+const kindsFor = (s: Sample, owner: string): ReadonlyArray<Kind> => {
+  if (owner === '{}') return ['end'];
+  if (owner === 'marks.why') return ['hugging', ...onlyWhen<Kind>(s.lines, ['trailing'])];
+  if (owner === 'knobs.zoom')
+    return ['hugging', ...onlyWhen<Kind>(s.knobs === 'broken', ['trailing'])];
+  const inside = onlyWhen<Kind>(owner === 'cut', ['inside']);
+  if (s.lines) return ['trailing', 'after', 'hugging', 'before', 'above', 'twoLine', ...inside];
+  return ['hugging', 'before', ...inside];
+};
+
+/** A seeded generator of numbers in [0, 1) (mulberry32): the same samples on every run. */
+const seeded = (seed: number) => {
+  const state = { a: seed >>> 0 };
+  return () => {
+    state.a = (state.a + 0x6d2b79f5) >>> 0;
+    const t1 = Math.imul(state.a ^ (state.a >>> 15), state.a | 1);
+    const t2 = t1 ^ (t1 + Math.imul(t1 ^ (t1 >>> 7), t1 | 61));
+    return ((t2 ^ (t2 >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+const pick = <A>(r: () => number, items: ReadonlyArray<A>): A =>
+  Option.getOrThrow(Arr.get(items, Math.floor(r() * items.length)));
+
+/** One sample: its shape, its keys in any order, and a comment on each owner one time in three. */
+const generated = (r: () => number): Sample => {
+  const lines = r() < 0.5;
+  const cut = pick(r, ['none', 'one', 'two'] as const);
+  const marks = pick(r, ['none', 'named', 'anchored'] as const);
+  const knobs = pick<Sample['knobs']>(r, [
+    'none',
+    'flat',
+    ...onlyWhen<Sample['knobs']>(lines, ['broken']),
+  ]);
+  const keys: ReadonlyArray<Key> = [
+    'id',
+    'take',
+    'from',
+    'to',
+    ...onlyWhen<Key>(cut !== 'none', ['cut']),
+    ...onlyWhen<Key>(marks !== 'none', ['marks']),
+    ...onlyWhen<Key>(knobs !== 'none', ['knobs']),
+  ];
+  const order = keys
+    .map((k) => [r(), k] as const)
+    .toSorted(([a], [b]) => a - b)
+    .map(([, k]) => k);
+  const bare: Sample = { lines, order, cut, marks, knobs, comments: {} };
+  const owners = [
+    ...order,
+    ...onlyWhen(lines, ['{}']),
+    ...onlyWhen(marks === 'named', ['marks.why']),
+    ...onlyWhen(knobs !== 'none', ['knobs.zoom']),
+  ];
+  const comments = Object.fromEntries(
+    owners.flatMap((o) => {
+      if (r() >= 1 / 3) return [];
+      return [[o, pick(r, kindsFor(bare, o))] as const];
+    }),
+  );
+  if (marks === 'anchored') return { ...bare, comments: { ...comments, 'marks{}': 'end' } };
+  return { ...bare, comments };
+};
+
+/** The seed of the property's samples. */
+const SEED = 0x7a1b_2026;
+
+/** How many samples the property generates. */
+const SAMPLES = 160;
 
 /**
- * Whether `l`'s section stays within the print width (100) with the longest
- * key a write here adds (`, marks: { grace: 7 }`): on one line, one a write
- * pushes past it stays broken after (only Undo gives back its line).
+ * Samples a review found the writes failing on, kept: each round's case is
+ * a sample here, so the property holds them for good.
  */
-const fits = (l: Layout) =>
-  l.lines ||
-  layoutText(l)
-    .split('\n')
-    .every((line) => line.length + ', marks: { grace: 7 }'.length <= 100);
+const FOUND: ReadonlyArray<Sample> = [
+  // Round 3, M1 (R1): Restore that empties a cut whose comment ends its line put the comment on `to`.
+  {
+    lines: true,
+    order: ['id', 'take', 'from', 'to', 'cut'],
+    cut: 'one',
+    marks: 'none',
+    knobs: 'none',
+    comments: { cut: 'trailing' },
+  },
+  // R2: a block comment hugging the cut went to `to`.
+  {
+    lines: true,
+    order: ['id', 'take', 'from', 'to', 'cut'],
+    cut: 'one',
+    marks: 'none',
+    knobs: 'none',
+    comments: { cut: 'hugging' },
+  },
+  // R3: R1 with knobs after the cut.
+  {
+    lines: true,
+    order: ['id', 'take', 'from', 'to', 'cut', 'knobs'],
+    cut: 'one',
+    marks: 'none',
+    knobs: 'flat',
+    comments: { cut: 'trailing' },
+  },
+  // R1 on one line: `cut: [[1, 1]] /* @cut */` must not end up hugging `to`.
+  {
+    lines: false,
+    order: ['id', 'take', 'from', 'to', 'cut'],
+    cut: 'one',
+    marks: 'none',
+    knobs: 'none',
+    comments: { cut: 'hugging' },
+  },
+  // Round 3, m1 (R5): a block comment over two lines hugging `to` went onto an added cut.
+  {
+    lines: true,
+    order: ['id', 'take', 'from', 'to'],
+    cut: 'none',
+    marks: 'none',
+    knobs: 'none',
+    comments: { to: 'twoLine' },
+  },
+  // Round 2, M1: a comment ending `to`'s line went onto an added cut, and an empty marks' comment was lost.
+  {
+    lines: true,
+    order: ['id', 'take', 'from', 'to', 'marks'],
+    cut: 'none',
+    marks: 'anchored',
+    knobs: 'none',
+    comments: { to: 'trailing', 'marks{}': 'end' },
+  },
+  // Round 1, M5: a Restore that empties a cut took the next key's comment above it.
+  {
+    lines: true,
+    order: ['id', 'take', 'from', 'to', 'cut', 'knobs'],
+    cut: 'one',
+    marks: 'none',
+    knobs: 'flat',
+    comments: { cut: 'trailing', knobs: 'above' },
+  },
+];
 
-/** Every layout: each shape, with no comment or one about `to` or the last key, each way it may sit. */
-const LAYOUTS: ReadonlyArray<Layout> = [true, false]
-  .flatMap((lines) =>
-    [false, true].flatMap((cut) =>
-      (['none', 'named', 'anchored'] as const).flatMap((marks) =>
-        Bool.match(lines, {
-          onTrue: (): ReadonlyArray<Layout['knobs']> => ['none', 'broken'],
-          onFalse: (): ReadonlyArray<Layout['knobs']> => ['none', 'flat'],
-        }).flatMap((knobs) => {
-          const bare: Layout = { lines, cut, marks, knobs, comment: Option.none() };
-          const hows = Bool.match(lines, {
-            onTrue: (): ReadonlyArray<Said> => ['trailing', 'after', 'hugging', 'above'],
-            onFalse: (): ReadonlyArray<Said> => ['hugging'],
-          });
-          return [
-            bare,
-            ...Arr.dedupe(['to', ...Arr.takeRight(keysOf(bare), 1)]).flatMap((key) =>
-              hows.map((how): Layout => ({ ...bare, comment: Option.some([key, how] as const) })),
-            ),
-          ];
-        }),
-      ),
+const SAMPLED: ReadonlyArray<Sample> = (() => {
+  const r = seeded(SEED);
+  return [...FOUND, ...Arr.makeBy(SAMPLES, () => generated(r))];
+})();
+
+/**
+ * Talk `text` with the break after its section's `{` toggled: made when the
+ * section is on one line, let go when it is over lines. Formatted, it is the
+ * base's twin, which the formatter tells from it by that break alone, when
+ * nothing else in the section holds it over lines.
+ */
+const braceToggled = (text: string) => {
+  if (/sections: \[\n\s*\{ /.test(text))
+    return text.replace(/(sections: \[\n\s*)\{ /, '$1{\n      ');
+  return text.replace(/(sections: \[\n\s*)\{\n\s*/, '$1{ ');
+};
+
+/** `s` with its cut as the lab writes one: right after `to`, and no comment of its own. */
+const labCut = (s: Sample): Sample => {
+  const rest = s.order.filter((k) => k !== 'cut');
+  const to = rest.indexOf('to');
+  return {
+    ...s,
+    order: [...rest.slice(0, to + 1), 'cut', ...rest.slice(to + 1)],
+    comments: Object.fromEntries(Object.entries(s.comments).filter(([o]) => o !== 'cut')),
+  };
+};
+
+/** A comment of a section, by what it says (the owner it names) and where it sits (its owner by the rule). */
+interface Owned {
+  readonly names: string;
+  readonly owner: string;
+}
+
+const TOKEN =
+  /\/\/[^\n]*|\/\*[\s\S]*?\*\/|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[A-Za-z_$][\w$]*|-?\d+(?:\.\d+)?|[{}[\],:\n]/g;
+
+const isComment = (t: string) => t.startsWith('//') || t.startsWith('/*');
+
+/** A section's tokens as the oracle reads them, the next one's index, and what it has found. */
+interface Reading {
+  readonly tokens: ReadonlyArray<string>;
+  readonly at: { i: number };
+  readonly found: Array<Owned>;
+  readonly owners: Set<string>;
+}
+
+/**
+ * A gap of an object as the oracle reads it: the key before it (or the
+ * object), whether it broke the line, whether its comma came, whether no
+ * key came before it, and the comments whose owner waits on what follows.
+ */
+interface Between {
+  prev: string;
+  broke: boolean;
+  comma: boolean;
+  first: boolean;
+  readonly held: Array<string>;
+  readonly waiting: Array<string>;
+}
+
+const nextIn = (r: Reading) => r.tokens[r.at.i++] ?? '}';
+
+const ownBy = (r: Reading, comment: string, owner: string) =>
+  r.found.push({ names: /@([\w.{}]+)/.exec(comment)?.[1] ?? comment, owner });
+
+/** The path of key `key` of the object at `path`. */
+const pathOf = (path: string, key: string) => {
+  if (path === '') return key;
+  return `${path}.${key}`;
+};
+
+/** A value that is no object, after its `[`: every comment in it is `owner`'s. */
+const readRuns = (r: Reading, owner: string) => {
+  const depth = { n: 1 };
+  while (depth.n > 0) {
+    const t = nextIn(r);
+    if (t === '[' || t === '{') depth.n += 1;
+    else if (t === ']' || t === '}') depth.n -= 1;
+    else if (isComment(t)) ownBy(r, t, owner);
+  }
+};
+
+/** Key `key`'s value, after its `:`: an object read as one, else a value whose comments are the key's. */
+const readValue = (r: Reading, key: string) => {
+  for (let v = nextIn(r); ; v = nextIn(r)) {
+    if (v === '{') return readObject(r, key);
+    if (v === '[') return readRuns(r, key);
+    if (isComment(v)) ownBy(r, v, key);
+    else if (v !== '\n') return;
+  }
+};
+
+/** The comments the gap holds go: those on the line to `onLine`, those below to `below`. */
+const settle = (r: Reading, gap: Between, onLine: string, below: string) => {
+  for (const c of gap.held.splice(0)) ownBy(r, c, onLine);
+  for (const c of gap.waiting.splice(0)) ownBy(r, c, below);
+};
+
+/** A comment in a gap: the key's before it, or waiting on the line's end or the next key. */
+const commentIn = (r: Reading, gap: Between, comment: string) => {
+  if (gap.broke || gap.first) gap.waiting.push(comment);
+  else if (gap.comma) gap.held.push(comment);
+  else ownBy(r, comment, gap.prev);
+};
+
+/** The gap's line breaks: what waited on its comma's line is the key's before it. */
+const breakIn = (r: Reading, gap: Between) => {
+  if (!gap.broke) for (const c of gap.held.splice(0)) ownBy(r, c, gap.prev);
+  gap.broke = true;
+};
+
+/** An object, after its `{`, at `path`. */
+const readObject = (r: Reading, path: string) => {
+  const self = `${path}{}`;
+  r.owners.add(self);
+  // Before the first key, every comment waits for it (`first`).
+  const gap: Between = {
+    prev: self,
+    broke: false,
+    comma: false,
+    first: true,
+    held: [],
+    waiting: [],
+  };
+  while (r.at.i < r.tokens.length) {
+    const t = nextIn(r);
+    if (t === '}') return settle(r, gap, gap.prev, self);
+    if (isComment(t)) commentIn(r, gap, t);
+    else if (t === '\n') breakIn(r, gap);
+    else if (t === ',') gap.comma = true;
+    else {
+      const key = pathOf(path, t);
+      settle(r, gap, key, key);
+      r.owners.add(key);
+      nextIn(r); // its `:`
+      readValue(r, key);
+      Object.assign(gap, { prev: key, broke: false, comma: false, first: false });
+    }
+  }
+};
+
+/**
+ * The comments of the one section of talk `text`, each with its owner by
+ * the rule (above), and the owners there are: the section's keys (`to`,
+ * `marks.why`) and objects (`{}`, `marks{}`).
+ */
+const ownedIn = (text: string) => {
+  const r: Reading = {
+    tokens: Array.from(
+      text.slice(text.indexOf('{', text.indexOf('sections: ['))).matchAll(TOKEN),
+      (m) => m[0],
     ),
-  )
-  .filter(fits);
+    at: { i: 1 },
+    found: [],
+    owners: new Set<string>(['{}']),
+  };
+  readObject(r, '');
+  return { found: r.found, owners: r.owners };
+};
 
-/** Whether the only break of `l`'s section that outlasts it is its `{`'s: over lines, with no line comment or object over lines in it. */
-const brokenOnlyAtItsBrace = (l: Layout) =>
-  l.lines &&
-  l.marks !== 'anchored' &&
-  l.knobs !== 'broken' &&
-  !Option.exists(l.comment, ([, how]) => how === 'trailing' || how === 'above');
+/**
+ * What of `base`'s comments is not where it was in `text`: each comment
+ * must sit by the owner it names, and every comment of an owner `text`
+ * still has must be there, no more.
+ */
+const misplaced = (base: string, text: string): ReadonlyArray<string> => {
+  const was = ownedIn(base).found;
+  const now = ownedIn(text);
+  const kept = was
+    .filter((c) => now.owners.has(c.names))
+    .map((c) => c.names)
+    .toSorted();
+  const has = now.found.map((c) => c.names).toSorted();
+  return [
+    ...onlyWhen(kept.join('|') !== has.join('|'), [
+      `comments ${kept.join('|')} became ${has.join('|')}`,
+    ]),
+    ...now.found.filter((c) => c.owner !== c.names).map((c) => `@${c.names} sits by ${c.owner}`),
+  ];
+};
 
 /** `texts`, each a talk, as oxfmt formats them under the repo's config: one run for them all, each under its own name. */
 const formatted = (texts: ReadonlyArray<string>) =>
@@ -491,117 +892,284 @@ const formatted = (texts: ReadonlyArray<string>) =>
       .map((t) => t.replace(/^export const talk\d+ = \{/, 'export const talk = {'));
   }).pipe(Effect.provide(BunServices.layer));
 
-/** A comment of a one-section talk: how deep in the section it sits, and the section's keys before and after it. */
-interface Placed {
-  readonly text: string;
-  readonly depth: number;
-  readonly before: string;
-  readonly after: string;
+/** The words `runs` strike, as a set. */
+const struckBy = (runs: ReadonlyArray<readonly [number, number]>) =>
+  new Set(runs.flatMap(([a, b]) => Arr.makeBy(b - a + 1, (k) => a + k)));
+
+/** `words` as sorted, maximal runs: what a section's `cut` should then read. */
+const runsFrom = (words: ReadonlySet<number>): ReadonlyArray<readonly [number, number]> =>
+  [...words]
+    .toSorted((a, b) => a - b)
+    .reduce<ReadonlyArray<readonly [number, number]>>(
+      (runs, w) =>
+        Option.match(
+          Option.filter(Arr.last(runs), ([, b]) => b + 1 === w),
+          {
+            onNone: (): ReadonlyArray<readonly [number, number]> => [...runs, [w, w]],
+            onSome: ([a]): ReadonlyArray<readonly [number, number]> => [
+              ...runs.slice(0, -1),
+              [a, w],
+            ],
+          },
+        ),
+      [],
+    );
+
+/** A sample's section as data, before the talk decodes it. */
+interface SectionData {
+  readonly id: string;
+  readonly take: string;
+  readonly from: number;
+  readonly to: number;
+  cut?: ReadonlyArray<readonly [number, number]>;
+  marks?: Readonly<Record<string, number>>;
+  knobs?: { readonly zoom: number };
 }
 
-interface Token {
-  readonly key: boolean;
-  readonly text: string;
-  readonly depth: number;
+/** The section `s` decodes to, struck as `runs` and with `more` marks. */
+const sectionData = (
+  s: Sample,
+  runs: ReadonlyArray<readonly [number, number]>,
+  more: Readonly<Record<string, number>>,
+): SectionData => {
+  const section: SectionData = { id: 'law', take: 'a', from: 0, to: 9 };
+  if (runs.length > 0) section.cut = runs;
+  if (s.marks === 'named') section.marks = { why: 0, ...more };
+  else if (Object.keys(more).length > 0) section.marks = more;
+  else if (s.marks === 'anchored') section.marks = {};
+  if (s.knobs !== 'none') section.knobs = { zoom: 1.5 };
+  return section;
+};
+
+/** A talk as JSON, as its schema encodes it: two reads of one talk compare equal. */
+const talkJson = Schema.encodeSync(Schema.fromJsonString(Talk));
+
+/** The talk `s` should decode to, struck as `runs` and with `more` marks, as JSON. */
+const wanted = (
+  s: Sample,
+  runs: ReadonlyArray<readonly [number, number]>,
+  more: Readonly<Record<string, number>>,
+) =>
+  talkJson(
+    Schema.decodeSync(Talk)({
+      title: 'Why',
+      format: 'question',
+      takes: { a: 'take' },
+      sections: [sectionData(s, runs, more)],
+    }),
+  );
+
+/** One write the property makes on a sample, what it should decode to, and the write that undoes it. */
+interface Write {
+  readonly name: string;
+  readonly run: (text: string) => Result.Result<string, { readonly reason: string }>;
+  readonly runs: ReadonlyArray<readonly [number, number]>;
+  readonly marks: Readonly<Record<string, number>>;
+  readonly inverse: Option.Option<
+    (text: string) => Result.Result<string, { readonly reason: string }>
+  >;
 }
 
-/** Each comment of the one-section talk `text`, where it sits. */
-const commentsIn = (text: string): ReadonlyArray<Placed> => {
-  const tokens = Arr.reduce(
-    text
-      .slice(text.indexOf('sections: [') + 'sections: ['.length)
-      .matchAll(/\/\/[^\n]*|\/\*[\s\S]*?\*\/|[{}[\]]|(\w+):/g),
-    { depth: 0, read: Arr.empty<Token>() },
-    (s, [token, key]) => {
-      if (token === '{' || token === '[') return { ...s, depth: s.depth + 1 };
-      if (token === '}' || token === ']') return { ...s, depth: s.depth - 1 };
-      if (Predicate.isString(key))
-        return { ...s, read: [...s.read, { key: true, text: key, depth: s.depth }] };
-      const said = token.replace(/^\/[/*]\s*|\s*\*\/$/g, '');
-      return { ...s, read: [...s.read, { key: false, text: said, depth: s.depth }] };
+const strikeOf = (word: number, strike: boolean) => (text: string) =>
+  editStrikes(at, text, 'law', { from: word, to: word }, strike);
+
+/** The writes on `s`: Cut 5 (a run added), Cut 2 (a run grown), Restore 1 (a run shrunk, or the cut emptied), Mark here. */
+const writesOn = (s: Sample): ReadonlyArray<Write> => {
+  const struck = struckBy(RUNS[s.cut]);
+  const strike = (word: number, on: boolean): Write => {
+    const now = new Set(struck);
+    if (on) now.add(word);
+    else now.delete(word);
+    return {
+      name: `${when(on, 'Cut')}${when(!on, 'Restore')} ${word}`,
+      run: strikeOf(word, on),
+      runs: runsFrom(now),
+      marks: {},
+      inverse: Option.some(strikeOf(word, !on)),
+    };
+  };
+  return [
+    strike(5, true),
+    strike(2, true),
+    ...onlyWhen(s.cut !== 'none', [strike(1, false)]),
+    {
+      name: 'Mark here',
+      run: (text) => editMark(at, text, 'law', 'grace', 7),
+      runs: RUNS[s.cut],
+      marks: { grace: 7 },
+      inverse: Option.none(),
     },
-  ).read;
-  const sectionKey = (t: Token) => t.key && t.depth === 1;
-  return tokens.flatMap((t, i) => {
-    if (t.key) return [];
-    const before = Arr.findLast(tokens.slice(0, i), sectionKey);
-    const after = Arr.findFirst(tokens.slice(i + 1), sectionKey);
-    return [
-      {
-        text: t.text,
-        depth: t.depth,
-        before: Option.match(before, { onNone: () => '', onSome: (k) => k.text }),
-        after: Option.match(after, { onNone: () => '', onSome: (k) => k.text }),
-      },
-    ];
-  });
+  ];
 };
 
-/** What of `base`'s comments is not where it was in `text`: each still about its key, none lost or added. */
-const misplaced = (base: string, text: string): ReadonlyArray<string> => {
-  const found = commentsIn(text);
-  const lost = Arr.map(commentsIn(base), (c) => c.text).join('|');
-  if (found.map((c) => c.text).join('|') !== lost)
-    return [`comments ${lost} became ${found.map((c) => c.text).join('|')}`];
-  return found.flatMap((c) => {
-    const on = /^on (\w+)$/.exec(c.text)?.[1];
-    const above = /^above (\w+)$/.exec(c.text)?.[1];
-    if (Predicate.isString(on) && (c.depth !== 1 || c.before !== on))
-      return [`"${c.text}" follows ${c.before}`];
-    if (Predicate.isString(above) && (c.depth !== 1 || c.after !== above))
-      return [`"${c.text}" is above ${c.after}`];
-    if (c.text === 'anchors to come' && (c.depth !== 2 || c.before !== 'marks'))
-      return ['"anchors to come" is not in the marks'];
-    return [];
-  });
-};
+/**
+ * Whether `w` on `s` rewrites a cut whose runs hold a comment: refused, for
+ * the comment would have nothing to stand by (a cut emptied goes whole).
+ */
+const refusedOn = (s: Sample, w: Write) =>
+  said(s, 'cut', 'inside') &&
+  w.runs.length > 0 &&
+  w.runs.map(String).join('|') !== RUNS[s.cut].map(String).join('|');
 
-describe("a talk's writes over every layout, as the repo's oxfmt prints them", () => {
+/** What a write answers, as text: its new text, or its refusal. */
+const answerOf = (r: Result.Result<string, { readonly reason: string }>) =>
+  Result.getOrElse(r, (e) => `refused: ${e.reason}`);
+
+const isRefusal = (text: string) => text.startsWith('refused: ');
+
+/** `texts` as `formatted` prints them, each refusal left as it is. */
+const formattedAnswers = (texts: ReadonlyArray<string>) =>
+  Effect.map(formatted(texts.filter((t) => !isRefusal(t))), (done) => {
+    const printed = done.values();
+    return texts.map((t) => {
+      if (isRefusal(t)) return t;
+      return printed.next().value ?? '';
+    });
+  });
+
+/** A module of talks, as `imported` writes one. */
+const Talks = Schema.Struct({ talks: Schema.Array(Schema.Unknown) });
+
+/**
+ * Each talk of `texts` as the film's own import of it reads it, then decoded
+ * as a talk: as JSON (`talkJson`), or why it does not decode.
+ */
+const imported = (texts: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'talk-source-' });
+    const file = `${dir}/talks.ts`;
+    yield* fs.writeFileString(
+      file,
+      [
+        ...texts.map((t, i) => t.replace('export const talk = {', `const talk${i} = {`)),
+        `export const talks = [${texts.map((_, i) => `talk${i}`).join(', ')}];\n`,
+      ].join(''),
+    );
+    const { talks } = yield* Effect.promise(() => import(file)).pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Talks)),
+    );
+    return texts.map((_, i) =>
+      Result.match(Schema.decodeUnknownResult(Talk)(talks[i]), {
+        onFailure: (e) => Result.fail(e.message),
+        onSuccess: (t) => Result.succeed(talkJson(t)),
+      }),
+    );
+  }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
+
+/** The `i`th of `read`, or a failure when there is none. */
+const readAt = (read: ReadonlyArray<Result.Result<string, string>>, i: number) =>
+  Option.getOrElse(Arr.get(read, i), () => Result.fail('no talk read back'));
+
+describe("a talk's writes over generated sections, as the repo's oxfmt prints them", () => {
   it.effect(
-    'keep each comment on its key; a Restore gives back the text its Cut found, but for a section broken only at its brace, which a Restore that leaves one run lets the formatter put back on one line',
+    'decode to the talk asked for, keep every comment by its owner (gone with an owner taken away), and are undone by their inverse to the byte, but where the write itself made two bases one',
     () =>
       Effect.gen(function* () {
-        const base = yield* formatted(LAYOUTS.map(layoutText));
-        const read = (r: Result.Result<string, { readonly reason: string }>) =>
-          Result.getOrElse(r, (e) => `refused: ${e.reason}`);
-        // Word 2 joins the run struck; word 5 adds one (two runs, when the section strikes word 1).
-        const grown = base.map((b) => read(editStrikes(at, b, 'law', { from: 2, to: 2 }, true)));
-        const added = base.map((b) => read(editStrikes(at, b, 'law', { from: 5, to: 5 }, true)));
-        const marked = base.map((b) => read(editMark(at, b, 'law', 'grace', 7)));
-        // The section as the formatter lays it out once the break after its `{` is let go.
-        const loosed = base.map((b) => b.replace(/(sections: \[\n\s*)\{\n\s*/, '$1{ '));
-        const written = yield* formatted([...grown, ...added, ...marked, ...loosed]);
-        const n = LAYOUTS.length;
-        const part = (k: number) => written.slice(k * n, (k + 1) * n);
-        const [grownF, addedF, markedF, loosedF] = [part(0), part(1), part(2), part(3)];
-        const back = yield* formatted([
-          ...grownF.map((t) => read(editStrikes(at, t, 'law', { from: 2, to: 2 }, false))),
-          ...addedF.map((t) => read(editStrikes(at, t, 'law', { from: 5, to: 5 }, false))),
-        ]);
-        const failures = LAYOUTS.flatMap((l, i) => {
-          const name = layoutName(l);
-          const b = base[i] ?? '';
-          // A cut of one run made two by word 5 is left one again: its section as the formatter lays it out.
-          const restored = Bool.match(l.cut, { onTrue: () => loosedF[i] ?? '', onFalse: () => b });
-          const mark = markedF[i] ?? '';
+        // Each sample as the formatter prints it: the base, which must decode to the sample
+        // and keep each comment by the owner it names.
+        const printed = yield* formatted(SAMPLED.map(sampleText));
+        const readBack = yield* imported(printed);
+        const unlike = SAMPLED.map((s, i) => {
+          const name = sampleName(s);
           return [
-            ...misplaced(b, grownF[i] ?? '').map((m) => `${name}: Cut 2: ${m}`),
-            ...misplaced(b, addedF[i] ?? '').map((m) => `${name}: Cut 5: ${m}`),
-            ...misplaced(b, mark).map((m) => `${name}: Mark here: ${m}`),
-            ...onlyIf(back[i] !== b, `${name}: Restore 2 is not the base:\n${back[i]}`),
-            ...onlyIf(back[n + i] !== restored, `${name}: Restore 5 is not:\n${back[n + i]}`),
-            ...onlyIf(
-              read(editMark(at, mark, 'law', 'grace', 7)) !== mark,
-              `${name}: the mark does not read back`,
-            ),
+            ...Result.match(readAt(readBack, i), {
+              onFailure: (e) => [`${name}: the base does not decode: ${e}`],
+              onSuccess: (got) =>
+                onlyWhen(got !== wanted(s, RUNS[s.cut], {}), [
+                  `${name}: the base decodes to ${got}`,
+                ]),
+            }),
+            ...ownedIn(printed[i] ?? '')
+              .found.filter((c) => c.owner !== c.names)
+              .map((c) => `${name}: the base's @${c.names} sits by ${c.owner}`),
           ];
         });
-        expect(failures).toEqual([]);
-        // The one layout a Restore does not give back to the byte: over lines by its author's
-        // brace alone, which the formatter puts back on one line (only Undo gives it back).
-        expect(LAYOUTS.filter((l, i) => l.cut && loosedF[i] !== base[i]).map(layoutName)).toEqual(
-          LAYOUTS.filter((l) => l.cut && brokenOnlyAtItsBrace(l)).map(layoutName),
+        expect(unlike.flat()).toEqual([]);
+        const kept = SAMPLED.map((s, i) => ({ s, b: printed[i] ?? '' }));
+        // The bases a write could not tell each from: its twin by the brace's break, its cut as
+        // the lab writes one (when a Restore takes the cut away), and that one's twin.
+        const labCuts = kept.flatMap(({ s }) => onlyWhen(s.cut === 'one', [sampleText(labCut(s))]));
+        const labPrinted = (yield* formatted(labCuts)).values();
+        const unformatted = kept.map(({ s, b }) => {
+          if (s.cut !== 'one') return [braceToggled(b)];
+          const lab = labPrinted.next().value ?? '';
+          return [braceToggled(b), lab, braceToggled(lab)];
+        });
+        const otherPrinted = yield* formatted(unformatted.flat());
+        const otherBases = unformatted.reduce<ReadonlyArray<ReadonlyArray<string>>>((acc, list) => {
+          const from = acc.flat().length;
+          return [...acc, otherPrinted.slice(from, from + list.length)];
+        }, []);
+        // Each write on each base, and on the bases it could not tell it from.
+        const jobs = kept.flatMap(({ s, b }, i) =>
+          writesOn(s).map((w) => ({ s, w, b, others: otherBases[i] ?? [] })),
         );
+        const written = yield* formattedAnswers([
+          ...jobs.map((j) => answerOf(j.w.run(j.b))),
+          ...jobs.flatMap((j) => j.others.map((o) => answerOf(j.w.run(o)))),
+        ]);
+        const after = written.slice(0, jobs.length);
+        const othersAfter = jobs.reduce<ReadonlyArray<ReadonlyArray<string>>>((acc, j) => {
+          const from = jobs.length + acc.flat().length;
+          return [...acc, written.slice(from, from + j.others.length)];
+        }, []);
+        const back = yield* formattedAnswers(
+          jobs.map((j, k) => {
+            const text = after[k] ?? '';
+            if (isRefusal(text)) return text;
+            return Option.match(j.w.inverse, {
+              onNone: () => 'refused: no inverse',
+              onSome: (inverse) => answerOf(inverse(text)),
+            });
+          }),
+        );
+        // A refusal decodes to no talk (a talk of no section).
+        const decoded = yield* imported(
+          after.map((t) => {
+            if (isRefusal(t)) return talkOf('');
+            return t;
+          }),
+        );
+        const failures = [
+          ...jobs.flatMap((j, k) => {
+            const name = `${sampleName(j.s)}: ${j.w.name}`;
+            const text = after[k] ?? '';
+            if (refusedOn(j.s, j.w))
+              return onlyWhen(!isRefusal(text) || !text.includes('comment'), [
+                `${name}: should be refused, for a comment in the cut's runs, but wrote\n${text}`,
+              ]);
+            if (isRefusal(text)) return [`${name}: ${text}`];
+            // (a) It decodes to the talk asked for.
+            const want = wanted(j.s, j.w.runs, j.w.marks);
+            const got = Result.match(readAt(decoded, k), {
+              onFailure: (e) => `does not decode: ${e}`,
+              onSuccess: (json) => json,
+            });
+            // (c) Its inverse gives the base back, or a base the write could not tell from it.
+            const undone = back[k] ?? '';
+            const told = Option.match(j.w.inverse, {
+              onNone: () => [],
+              onSome: () => {
+                if (undone === j.b) return [];
+                const twin = j.others.findIndex(
+                  (o, m) => o === undone && othersAfter[k]?.[m] === text,
+                );
+                if (twin >= 0) return [];
+                return [`${name}: its inverse is not the base:\n${j.b}\nbut\n${undone}`];
+              },
+            });
+            // (b) by the server's own read-back too: it refuses none of these writes.
+            const guard = Result.getOrElse(commentsMoved(at, text, j.b), (e) => [e.reason]);
+            return [
+              ...onlyWhen(got !== want, [`${name}: decodes to ${got}, not ${want}`]),
+              ...misplaced(j.b, text).map((m) => `${name}: ${m}\n${text}`),
+              ...guard.map((m) => `${name}: the server's read-back says ${m}`),
+              ...told,
+            ];
+          }),
+        ];
+        expect(failures).toEqual([]);
       }),
     SPAWNS_MS,
   );

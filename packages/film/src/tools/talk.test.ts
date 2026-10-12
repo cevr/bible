@@ -654,7 +654,7 @@ describe("a talk's writes in the lab", () => {
   );
 
   it.live(
-    "a talk written over lines, with comments, keeps each on its own key: Cut then Restore leaves the file as it was, to the byte, Mark here and a cut added go after the line's comment, and a Restore that empties a cut keeps the comments around it",
+    "a talk written over lines, with comments, keeps each on its own key: Cut then Restore leaves the file as it was, to the byte, Mark here and a cut added go after the line's comment, and a Restore that empties a cut takes the cut's own comment with it and keeps every other",
     () =>
       Effect.gen(function* () {
         yield* laidOut(COMMENTED);
@@ -681,12 +681,9 @@ describe("a talk's writes in the lab", () => {
         );
         yield* post(labUrls.steps.undo(film), {});
         expect(yield* file()).toEqual(before);
-        // Every word played again: the cut goes, its comments stay.
+        // Every word played again: the cut goes whole, with the comment about it; `to`'s stays.
         yield* post(labUrls.talk.restore(film), { section: 'law', from: 2, to: 2 });
-        const played = COMMENTED.replace(
-          '      cut: [[2, 2]], // the false start',
-          '      // the false start',
-        );
+        const played = COMMENTED.replace('      cut: [[2, 2]], // the false start\n', '');
         expect(text(yield* file())).toBe(played);
         // A cut added after `to`: below its line, whose comment stays `to`'s; Restore takes it away.
         yield* post(labUrls.talk.cut(film), { section: 'law', from: 3, to: 3 });
