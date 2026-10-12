@@ -3,7 +3,9 @@
 // closes reach the owner through `onOpenChange`. URL params for `sheet`:
 // `position` (`bottom` by default, `top`, `left`, `right`, `center`, or
 // `breakpoint` for the lab's: bottom under 900px wide, right from there, the
-// panel styled by the window's width and the sheet told of it a task later),
+// panel styled by the window's width and the sheet told of it a task later;
+// `narrow` and `wide` name other positions for it, the panel styled by its
+// position),
 // `swipe` (a `swipeDirection` other than the position's), `modal=false`,
 // `dismissal=disabled` (an outside press never closes it), `prevent=true`
 // (`preventDismissal`), `snap` (comma-separated snap points, `150` or `50%`),
@@ -65,19 +67,27 @@ const DIRECTIONS: ReadonlySet<string> = new Set([
   'horizontal',
 ]);
 
-/** The `position` param's, or the lab's: `bottom` on a page under 900px wide, `right` from there. */
+/** A position param's value, or `fallback`. */
+const positionOf = (name: string, fallback: SheetPosition): SheetPosition => {
+  const value = param(name);
+  return value && POSITIONS.has(value) ? (value as SheetPosition) : fallback;
+};
+
+/**
+ * The `position` param's, or the lab's (`breakpoint`): `bottom` on a page under 900px wide,
+ * `right` from there, or the `narrow` and `wide` params' positions (`narrow=bottom&wide=top`
+ * turns it to the other edge of the same axis).
+ */
 function positionParam(): () => SheetPosition {
   const value = param('position') ?? 'bottom';
   if (value === 'breakpoint') {
     const narrow = window.matchMedia('(max-width: 899px)');
-    const [position, setPosition] = createSignal<SheetPosition>(
-      narrow.matches ? 'bottom' : 'right',
-    );
+    const pick = () =>
+      narrow.matches ? positionOf('narrow', 'bottom') : positionOf('wide', 'right');
+    const [position, setPosition] = createSignal<SheetPosition>(pick());
     // Told a task later, as the lab's window is (an Effect stream): the page's styles have
     // changed with the window by then, and a frame may have been drawn.
-    narrow.addEventListener('change', () =>
-      setTimeout(() => setPosition(narrow.matches ? 'bottom' : 'right')),
-    );
+    narrow.addEventListener('change', () => setTimeout(() => setPosition(pick())));
     return position;
   }
   const fixed = (POSITIONS.has(value) ? value : 'bottom') as SheetPosition;
@@ -180,7 +190,11 @@ function BasicSheet(): JSX.Element {
               />
               <Sheet.Popup
                 id="panel"
-                class={param('position') === 'breakpoint' ? 'panel by-width' : 'panel'}
+                class={
+                  param('position') === 'breakpoint' && !param('narrow') && !param('wide')
+                    ? 'panel by-width'
+                    : 'panel'
+                }
                 swipeAnimation="rise"
                 swipeAnimationRange={param('range') === 'true' ? { end: 0 } : undefined}
                 stackAnimation="recede"

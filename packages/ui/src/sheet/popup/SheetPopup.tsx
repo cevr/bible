@@ -2,7 +2,8 @@
 // (Sheet, SnapPoint, DetentPoint, useSnapPointTravel). Copyright 2026 Adobe,
 // Apache-2.0 (`../LICENSE`); ported to Solid 2 and changed: the panel is a plain
 // element (the dialog it holds is `Sheet.Content`); a sheet that is not modal
-// leaves the page around its panel live, so only the panel takes the pointer.
+// leaves the page around its panel live: its container is clipped to the box
+// its panel is drawn in, so only the panel takes the pointer.
 //
 // The swipeable panel, and the scroll container that moves it. The container
 // is two viewports long along the swipe axis (three when the sheet leaves by
@@ -147,6 +148,23 @@ function useSnapPointTravel(
   return travel;
 }
 
+/** Whether `element` has a layout (nothing round it is `display: none`). */
+const laidOut = (element: HTMLElement) => element.getClientRects().length > 0;
+
+/**
+ * The `clip-path` that leaves of `scroller` only the box `panel` is drawn in now (its
+ * transforms with it), from the boxes drawn: none while either has no layout.
+ */
+function panelClip(scroller: HTMLElement, panel: HTMLElement): string | null {
+  if (!laidOut(scroller) || !laidOut(panel)) {
+    return null;
+  }
+  const s = scroller.getBoundingClientRect();
+  const p = panel.getBoundingClientRect();
+  const px = (value: number) => `${Math.max(0, Math.round(value * 100) / 100)}px`;
+  return `inset(${px(p.top - s.top)} ${px(s.right - p.right)} ${px(s.bottom - p.bottom)} ${px(p.left - s.left)})`;
+}
+
 /**
  * The sheet's panel, in the scroll container that swipes it.
  * Renders a `<div>` element (in two of its own).
@@ -207,6 +225,31 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
     return `calc(${stageStart()} + ${viewport()}${before && after ? ` + ${viewport()}` : ''})`;
   };
 
+  // A sheet that is not modal takes presses over its panel alone, and the page takes them
+  // everywhere else. The container that scrolls takes them itself, so a finger on the panel
+  // scrolls it on every engine (iOS Safari scrolls no container that takes no presses from a
+  // child that does), clipped to the box the panel is drawn in. That box is read each frame
+  // while the sheet is mounted, as the browser draws it, so whatever moves the panel (its swipe,
+  // its owner's offsets, a resize) moves the clip in the same frame. Until it is first read
+  // (the server's markup), the container takes no presses, and the panel takes its own.
+  const [reach, setReach] = createSignal<string | null>(null, owned);
+  createEffect(
+    () => [scroller(), panel(), store.modal()] as const,
+    ([scrollElement, panelElement, modal]) => {
+      if (modal || !scrollElement || !panelElement) {
+        setReach(null);
+        return undefined;
+      }
+      let frame = 0;
+      const look = () => {
+        setReach(panelClip(scrollElement, panelElement));
+        frame = requestAnimationFrame(look);
+      };
+      look();
+      return () => cancelAnimationFrame(frame);
+    },
+  );
+
   // Moving between the clamped and unclamped geometry keeps the panel where it shows.
   let stageOffset: number | null = null;
   let wasClamped = untrack(clamped);
@@ -236,7 +279,7 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
       // The snap markers anchor to the panel's box.
       position: 'relative',
       // It takes presses wherever it is drawn, inside an overlay that takes none (a sheet that
-      // is not modal).
+      // is not modal), before its container's clip is first read too.
       'pointer-events': 'auto',
       ...swipeAnimationStyle({
         name: componentProps.swipeAnimation,
@@ -305,7 +348,9 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
     // overlay is fixed.
     const scrollX = store.modal() && !isServer ? untrack(() => window.scrollX) : 0;
     const scrollY = store.modal() && !isServer ? untrack(() => window.scrollY) : 0;
+    const clip = reach();
     return {
+      ...(clip !== null && { 'pointer-events': 'auto', 'clip-path': clip }),
       position: 'absolute',
       top: axis === 'y' ? `calc(${scrollY}px + ${containerOffset}dvh)` : `${scrollY}px`,
       left: axis === 'x' ? `calc(${scrollX}px + ${containerOffset}dvw)` : `${scrollX}px`,

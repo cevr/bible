@@ -1,6 +1,6 @@
 // Upstream: react-aria-components 1.22.1, packages/react-aria-components/src/Sheet.tsx
 // (getSwipeConfig, POSITION_ALIGNMENT, toLength, viewportPadding, useSwipeAnimation,
-// scrollAlongAxis, scrollDetentIntoView, calcToPx). Copyright 2026 Adobe, Apache-2.0
+// scrollAlongAxis, scrollDetentIntoView as detentScroll, calcToPx). Copyright 2026 Adobe, Apache-2.0
 // (`../LICENSE`); ported to Solid 2 and changed as the comments below say.
 //
 // The sheet's geometry. The sheet lives inside an oversized scroll container:
@@ -162,44 +162,37 @@ export function scrollAlongAxis(element: HTMLElement, axis: Axis, value: number,
   element.scrollTo(axis === 'y' ? { top: value, behavior } : { left: value, behavior });
 }
 
-/** Scrolls `scroller` so `marker` rests where its scroll margin snaps it; answers that scroll position. */
-export function scrollDetentIntoView(
+/**
+ * The scroll position along `axis` at which `scroller` rests `marker` where its scroll margin
+ * snaps it (`align`, its snap alignment). Upstream's `scrollDetentIntoView` reads it from the
+ * boxes drawn; this reads the layout (the offsets down to the container's content, each
+ * ancestor's border with them), which the swipe and stack animations' transforms leave alone,
+ * so it is where the sheet rests whatever the panel's animation draws now.
+ */
+export function detentScroll(
   scroller: HTMLElement,
   marker: HTMLElement,
   axis: Axis,
   align: 'start' | 'end',
-  smooth = false,
 ): number {
-  const behavior: ScrollBehavior = smooth && !reduceMotion() ? 'smooth' : 'instant';
-  const markerRect = marker.getBoundingClientRect();
-  const scrollerRect = scroller.getBoundingClientRect();
+  let offset = 0;
+  for (let element: HTMLElement | null = marker; element && element !== scroller;) {
+    offset += axis === 'y' ? element.offsetTop : element.offsetLeft;
+    const parent = element.offsetParent as HTMLElement | null;
+    if (parent && parent !== scroller) {
+      offset += axis === 'y' ? parent.clientTop : parent.clientLeft;
+    }
+    element = parent;
+  }
   const style = getComputedStyle(marker);
   if (axis === 'y') {
-    const top =
-      align === 'start'
-        ? markerRect.top - scrollerRect.top + scroller.scrollTop - parseFloat(style.scrollMarginTop)
-        : markerRect.bottom -
-          scrollerRect.top +
-          scroller.scrollTop +
-          parseFloat(style.scrollMarginBottom) -
-          scroller.clientHeight;
-    scroller.scrollTo({ top, behavior });
-    return top;
-  } else {
-    const left =
-      align === 'start'
-        ? markerRect.left -
-          scrollerRect.left +
-          scroller.scrollLeft -
-          parseFloat(style.scrollMarginLeft)
-        : markerRect.right -
-          scrollerRect.left +
-          scroller.scrollLeft +
-          parseFloat(style.scrollMarginRight) -
-          scroller.clientWidth;
-    scroller.scrollTo({ left, behavior });
-    return left;
+    return align === 'start'
+      ? offset - parseFloat(style.scrollMarginTop)
+      : offset + marker.offsetHeight + parseFloat(style.scrollMarginBottom) - scroller.clientHeight;
   }
+  return align === 'start'
+    ? offset - parseFloat(style.scrollMarginLeft)
+    : offset + marker.offsetWidth + parseFloat(style.scrollMarginRight) - scroller.clientWidth;
 }
 
 const SETTLE_QUIET_MS = 150;
@@ -293,6 +286,38 @@ export function scrollSettled(scroller: HTMLElement, arrived?: () => boolean): P
       }
     };
     look();
+  });
+}
+
+/** How long a user's gesture that set no scroll off (a wheel at the end) is waited on. */
+const GESTURE_IDLE_MS = 500;
+/** How long a scroll with a `scrollend` to come may stand still before it is taken as ended. */
+const GESTURE_QUIET_MS = 1000;
+
+/**
+ * Resolves once the scroll a user's gesture set off has ended, its momentum and its snap with
+ * it: on `scrollend`, or, where the browser has none (Safari before 26.2), once no `scroll` has
+ * come for 150 ms. One that set no scroll off has ended once 500 ms pass with none; one whose
+ * `scrollend` never comes (its container gone), once it has stood still for a second.
+ */
+export function gestureSettled(scroller: HTMLElement): Promise<void> {
+  return new Promise((resolve) => {
+    const ends = 'onscrollend' in window;
+    let timer = setTimeout(() => done(), GESTURE_IDLE_MS);
+    const onScroll = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => done(), ends ? GESTURE_QUIET_MS : SETTLE_QUIET_MS);
+    };
+    const done = () => {
+      clearTimeout(timer);
+      scroller.removeEventListener('scroll', onScroll);
+      scroller.removeEventListener('scrollend', done);
+      resolve();
+    };
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    if (ends) {
+      scroller.addEventListener('scrollend', done);
+    }
   });
 }
 
