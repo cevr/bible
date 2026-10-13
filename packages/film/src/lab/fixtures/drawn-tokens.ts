@@ -110,11 +110,11 @@ const SITES = {
   'marginTop 13px: rv-pending > p.rv-row':
     "a pending row's paragraph keeps the user agent's margin of 1em (13 px)",
   'marginBottom 13px: rv-pending > p.rv-row': 'the same row, below',
-  'outline-color rgb(238, 238, 238): lab-keys-actions > button':
+  'outline-color -webkit-focus-ring-color: lab-keys-actions > button':
     "the user agent's focus ring on the keys dialog's focused button: the lab has one ring in the shell and the review (`--focus-ring`), none for a dialog's own",
-  'outline-color rgb(238, 238, 238): lab-compose > textarea':
+  'outline-color -webkit-focus-ring-color: lab-compose > textarea':
     "the user agent's focus ring on a note's composer, which has no ring of the lab's own",
-  'outline-color rgb(238, 238, 238): lab-command-menu > input.lab-command-query':
+  'outline-color -webkit-focus-ring-color: lab-command-menu > input.lab-command-query':
     "the user agent's focus ring on the command menu's query field",
 } satisfies Readonly<Record<string, string>>;
 
@@ -202,6 +202,22 @@ export const untokened = (tokensCss: string) => `(() => {
   // The colours a computed gradient, shadow or filter draws with, each as the engine writes a colour.
   const COLOURS_IN = /(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\\([^()]*\\)/g;
   const NATIVE = (el) => el.matches('input[type="range"], select');
+  // The user agent's focus ring, as its \`:focus-visible\` rule draws it in a colour scheme: a
+  // colour of the platform's own (Linux's Chrome draws it rgb(238, 238, 238) in the dark, a
+  // Mac's rgb(153, 200, 255)), so a ring is named by the rule's keyword, the same on every host.
+  const RING = '-webkit-focus-ring-color';
+  const rings = new Map();
+  const ringIn = (scheme) => {
+    if (!rings.has(scheme)) {
+      const ring = document.createElement('i');
+      ring.style.cssText = 'position:absolute;visibility:hidden;color-scheme:' + scheme + ';outline:auto 1px ' + RING;
+      document.body.append(ring);
+      rings.set(scheme, getComputedStyle(ring).outlineColor);
+      ring.remove();
+    }
+    return rings.get(scheme);
+  };
+  const outlineOf = (s) => (s.outlineStyle === 'auto' && s.outlineColor === ringIn(s.colorScheme) ? RING : s.outlineColor);
   // A margin set to auto: its computed value (the typed one; the resolved one is the px it took).
   const autoMargin = (el, p) =>
     p.startsWith('margin') && el.computedStyleMap().get(p.replace(/[A-Z]/, (c) => '-' + c.toLowerCase())).toString() === 'auto';
@@ -258,7 +274,7 @@ export const untokened = (tokensCss: string) => `(() => {
         if (!within(scales.space, s['border' + side + 'Width']) && !NATIVE(el)) off('border-width', s['border' + side + 'Width'], el, pseudo);
       }
       if (s.outlineStyle !== 'none' && s.outlineWidth !== '0px') {
-        if (!isColour(s.outlineColor, el)) off('outline-color', s.outlineColor, el, pseudo);
+        if (!isColour(s.outlineColor, el)) off('outline-color', outlineOf(s), el, pseudo);
         if (!within(scales.space, s.outlineWidth)) off('outline-width', s.outlineWidth, el, pseudo);
         if (!within(scales.space, s.outlineOffset)) off('outline-offset', s.outlineOffset, el, pseudo);
       }
