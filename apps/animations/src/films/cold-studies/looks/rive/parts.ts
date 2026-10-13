@@ -4,9 +4,9 @@
 // than each drawing its own. The language they follow is the film skill's
 // director vision → "Paper-cut figures (Rive)":
 //
-// - paper: a flat piece with a warm ink edge (`INK`), lifted off the sheet by a
-//   small cast shadow in the shade of the surface under it, its outline
-//   crawling on the boil;
+// - paper: a flat piece with an ink edge (`INK`, laid as `direction.ts`'s
+//   outline axis says), lifted off the sheet by a small cast shadow in the
+//   shade of the surface under it, its outline crawling on the boil;
 // - the crease (the look's signature): every piece is split once by a
 //   straight line at the light's one angle, its far side the paper's shade,
 //   a hue of its own from the paper's ramp (`ramps`), never the paper dimmed;
@@ -18,6 +18,7 @@
 
 import { rng } from '@bible/film/core';
 import { ramps as R } from '../../palette.ts';
+import { OUTLINE, ink as inkColour } from './direction.ts';
 import { type Element, argb, el } from './rml.ts';
 
 export type Pt = readonly [number, number];
@@ -139,8 +140,8 @@ export interface PieceLook {
   readonly color: string;
   /** The paper past the crease; none for a piece too small or thin to crease (a stain, a band). */
   readonly shade?: string;
-  /** Ink outline width, units; 0 for none. */
-  readonly line?: number;
+  /** What its ink carries (`INK`): a silhouette's line (`outer`, the default), a small silhouette piece's (`small`), trim's, or none. */
+  readonly ink?: keyof typeof INK | 'none';
   /** The cutout's lift off the sheet, 0..1: a small cast shadow to the light's far side. */
   readonly shadow?: number;
   /** The shade of the surface the cast shadow falls on (its ramp's, `ramps`): the parchment sheet's unless said. */
@@ -158,15 +159,64 @@ export const FIGURE: PieceLook = { color: R.figure.base, shade: R.figure.shade }
 const CAST = 1.4;
 
 /**
- * The ink's weights, in units at the court's scale, by what a line carries:
- * a figure's silhouette (`outer`, about 2.5 % of the accused's height, as
- * RimWorld lines its pawns: `apps/animations/docs/rimworld-study.md`) is the
- * heaviest line in the frame, so the eye finds the people first; its small
- * pieces (`small`: a hand, a leg) and its trim (`trim`: a sash, a band, a
- * tail) lighter; the face's marks are the kit's own and lighter still
- * (`KIT.brow`, `KIT.mouthLine`).
+ * The ink's weights, in units at the court's scale, by what a line carries,
+ * as a line centred on the cut edge (`OUTLINE` `line`): a figure's
+ * silhouette (`outer`) is the heaviest line in the frame, so the eye finds
+ * the people first; its small pieces (`small`: a hand, a leg) and its trim
+ * (`trim`: a sash, a band, a tail) lighter; the face's marks are the kit's
+ * own and lighter still (`KIT.brow`, `KIT.mouthLine`).
  */
 export const INK = { outer: 5, small: 3.5, trim: 2.5 } as const;
+
+/**
+ * What a silhouette's line shows outside its paper under the thick outline
+ * (`OUTLINE` `thick` or `both`), units: RimWorld's figures-first line
+ * (`apps/animations/docs/rimworld-study.md`), about 3 % of the accused's
+ * height on the head and body, a little less on a hand or a leg.
+ */
+export const OUTSIDE = { outer: 6, small: 5 } as const;
+
+/** The light core's half-width on a cut edge (`OUTLINE` `edge` or `both`), units: about 1.5 px a side at the court's camera. */
+export const CORE = 1;
+
+/** A piece's light core: its paper halfway to the parchment's light (`ramps.paper.light`), the edge of a cut catching the room. */
+export const coreOf = (color: string) => {
+  const ch = (c: string, i: number) => Number.parseInt(c.slice(1 + 2 * i, 3 + 2 * i), 16);
+  return `#${[0, 1, 2]
+    .map((i) =>
+      Math.round((ch(color, i) + ch(R.paper.light, i)) / 2)
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')}`;
+};
+
+/**
+ * A piece's edge under `OUTLINE` (`direction.ts`), as the strokes under its
+ * paper and over it. A line laid outside the paper is a stroke under it,
+ * twice as wide as what shows (the paper covers its inner half); a light
+ * core is a stroke over the paper, straddling the cut.
+ */
+const edgeOf = (weight: keyof typeof INK, color: string) => {
+  const ink = (thickness: number) =>
+    el('Stroke', { thickness, join: 'round', cap: 'round', name: 'Ink' }, [solid(inkColour)]);
+  const silhouette = weight !== 'trim';
+  const centred = { under: [], over: [ink(INK[weight])] };
+  if (OUTLINE === 'line' || (OUTLINE === 'thick' && !silhouette)) return centred;
+  const core = OUTLINE === 'thick' ? 0 : CORE;
+  const showing = OUTLINE === 'edge' ? 0 : weight === 'trim' ? INK.trim / 2 : OUTSIDE[weight];
+  return {
+    under: showing > 0 ? [ink(2 * (showing + core))] : [],
+    over:
+      core > 0
+        ? [
+            el('Stroke', { thickness: 2 * core, join: 'round', cap: 'round', name: 'Core' }, [
+              solid(coreOf(color)),
+            ]),
+          ]
+        : [],
+  };
+};
 
 /** The paints of a piece over `box`, bottom to top as Rive stacks a shape's paints (last on top). */
 export const paints = (look: PieceLook, box: Box): Element[] => {
@@ -179,18 +229,16 @@ export const paints = (look: PieceLook, box: Box): Element[] => {
         el('Feather', { strength: 6 * lift, offsetX: 3 * lift, offsetY: 5 * lift, name: 'Lift' }),
       ]),
     );
+  const weight = look.ink ?? 'outer';
+  const edge: { under: Element[]; over: Element[] } =
+    weight === 'none' ? { under: [], over: [] } : edgeOf(weight, look.color);
   out.push(
+    ...edge.under,
     el('Fill', { name: 'Paper' }, [
       look.shade === undefined ? solid(look.color) : creased(look.color, look.shade, box),
     ]),
+    ...edge.over,
   );
-  const line = look.line ?? INK.outer;
-  if (line > 0)
-    out.push(
-      el('Stroke', { thickness: line, join: 'round', cap: 'round', name: 'Ink' }, [
-        solid(R.ink.base),
-      ]),
-    );
   return out;
 };
 
@@ -484,7 +532,7 @@ export const handOutline = (r: number): Pt[] => ellipse(0, 0, r, r, 12);
  * circle sits and how it travels.
  */
 export const hand = (fig: Figure, key: string, r: number, look: PieceLook = FIGURE): Element =>
-  piece(fig, key, handOutline(r), { line: INK.small, shadow: 0.3, ...look }, { boil: 0.6 });
+  piece(fig, key, handOutline(r), { ink: 'small', shadow: 0.3, ...look }, { boil: 0.6 });
 
 /**
  * Where a hand is `reach` of the way from `rest` to `to`, travelling round
@@ -583,7 +631,7 @@ const brow = (fig: Figure, side: 'L' | 'R', x: number) =>
         undefined,
         false,
       ),
-      el('Stroke', { thickness: KIT.brow, cap: 'round', name: 'Ink' }, [solid(R.ink.base)]),
+      el('Stroke', { thickness: KIT.brow, cap: 'round', name: 'Ink' }, [solid(inkColour)]),
       fig.bind('browTilt', KEY.rotation),
     ]),
   ]);
@@ -596,7 +644,7 @@ const ellipsePath = (w: number, h: number) =>
 const eye = (fig: Figure, side: 'L' | 'R', x: number, scale: number) =>
   el('Shape', { x, y: KIT.eyeY, name: `eye${side}`, id: fig.idOf(`eye${side}`) }, [
     ellipsePath(KIT.eye[0], KIT.eye[1]),
-    el('Fill', { name: 'Ink' }, [solid(R.ink.base)]),
+    el('Fill', { name: 'Ink' }, [solid(inkColour)]),
     el('TranslationConstraint', { targetId: fig.idOf('gaze'), strength: 0.03, name: 'Look' }),
     el('DistanceConstraint', {
       targetId: fig.idOf(`socket${side}`),
@@ -613,7 +661,7 @@ const mouth = (fig: Figure) =>
   el('Node', { x: KIT.mouth[0], y: KIT.mouth[1], name: 'mouth', id: fig.idOf('mouth') }, [
     el('Shape', { scaleX: 0, scaleY: 0, name: 'mouthOh', id: fig.idOf('mouthOh') }, [
       ellipsePath(8, 10.5),
-      el('Fill', { name: 'Ink' }, [solid(R.ink.base)]),
+      el('Fill', { name: 'Ink' }, [solid(inkColour)]),
       fig.bind('mouthOpen', KEY.scaleX),
       fig.bind('mouthOpen', KEY.scaleY),
     ]),
@@ -628,7 +676,7 @@ const mouth = (fig: Figure) =>
         el('StraightVertex', { x: KIT.mouthHalf, y: 0, name: 'mouthR' }),
       ]),
       el('Stroke', { thickness: KIT.mouthLine, cap: 'round', join: 'round', name: 'Ink' }, [
-        solid(R.ink.base),
+        solid(inkColour),
       ]),
       fig.bind('mouthLine', KEY.opacity),
     ]),

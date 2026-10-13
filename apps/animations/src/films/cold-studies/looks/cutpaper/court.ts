@@ -115,13 +115,36 @@ const paperJudge: Bench = {
   over: (f, swing, lean) => judgeGavel(f.ctx, f.hand, swing, lean, 10 * lean),
 };
 
+/** The paper of the court's props: the bench and its rim, panels and gavel block, and the evidence sheets (cycled), with the sheets' and the block's ink. */
+export interface Props {
+  readonly bench: string;
+  readonly rim: string;
+  readonly panel: string;
+  readonly block: string;
+  readonly sheets: ReadonlyArray<string>;
+  readonly sheetInk: string;
+  readonly blockInk: string;
+}
+
+/** The control's props. */
+const paperProps: Props = {
+  bench: C.paperTone,
+  rim: C.inkSoft,
+  panel: C.inkSoft,
+  block: C.boardDeep,
+  sheets: [C.paper],
+  sheetInk: C.ink,
+  blockInk: C.outline,
+};
+
 /**
- * The court with its accused drawn by `accused`, feet at the origin, and its
+ * The court with its accused drawn by `accused`, feet at the origin, its
  * judge by `judge` (the control's paper people, or rigs: `looks/rive/`,
- * `looks/papercut/`): everything else is the control's own.
+ * `looks/papercut/`) and its props in `props`: everything else is the
+ * control's own.
  */
 export const courtWith =
-  (accused: (f: CourtFrame) => void, judge: Bench = paperJudge) =>
+  (accused: (f: CourtFrame) => void, judge: Bench = paperJudge, props: Props = paperProps) =>
   (f: CourtFrame) => {
     const { ctx, w, h } = f;
 
@@ -166,7 +189,7 @@ export const courtWith =
           draw: () => {
             ground(ctx, 1180, 860, 820);
             judge.behind(f, lean);
-            piece(ctx, rectShape(860, 475, 640, 380), C.paperTone, f.hand('bench'), {
+            piece(ctx, rectShape(860, 475, 640, 380), props.bench, f.hand('bench'), {
               role: 'scenery',
               kind: 'cut',
               torn: 2,
@@ -176,18 +199,19 @@ export const courtWith =
               stroke(
                 ctx,
                 [...panel, panel[0] ?? [x, 540]],
-                { color: C.inkSoft, width: 3, jitter: 0.5, taper: 0, boil: 'none', closed: true },
+                { color: props.panel, width: 3, jitter: 0.5, taper: 0, boil: 'none', closed: true },
                 f.hand(`panel${i}`),
               );
             });
-            piece(ctx, rounded(1180, 472, 690, 34, 6), C.inkSoft, f.hand('rim'), {
+            piece(ctx, rounded(1180, 472, 690, 34, 6), props.rim, f.hand('rim'), {
               role: 'scenery',
               kind: 'cut',
             });
-            piece(ctx, rounded(1436, 448, 76, 14, 4), C.boardDeep, f.hand('block'), {
+            piece(ctx, rounded(1436, 448, 76, 14, 4), props.block, f.hand('block'), {
               role: 'scenery',
               kind: 'cut',
               line: 2,
+              outline: props.blockInk,
             });
             judge.over(f, swing, lean);
             // The verdict, stamped on a torn label across the bench.
@@ -207,12 +231,13 @@ export const courtWith =
               if (k <= 0) return;
               const fall = lerp(-300, 0, k);
               at(ctx, { x: s.x, y: s.y + fall, rot: s.rot }, () =>
-                piece(ctx, rectShape(-75, -5.5, 150, 11), C.paper, sub(f.hand('sheet'), i), {
-                  role: 'scenery',
-                  kind: 'cut',
-                  line: 2,
-                  outline: C.ink,
-                }),
+                piece(
+                  ctx,
+                  rectShape(-75, -5.5, 150, 11),
+                  props.sheets[i % props.sheets.length] ?? C.paper,
+                  sub(f.hand('sheet'), i),
+                  { role: 'scenery', kind: 'cut', line: 2, outline: props.sheetInk },
+                ),
               );
             });
             at(ctx, { x: ACCUSED[0], y: ACCUSED[1] }, () => accused(f));

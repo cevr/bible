@@ -12,11 +12,11 @@
 // - a `breath` loop and the paper's `boil`.
 
 import { ramps as R } from '../../palette.ts';
+import { HEAD_SCALE } from './accused-rig.ts';
+import { dress } from './direction.ts';
 import {
   type BoneSpec,
   FACE,
-  FIGURE,
-  INK,
   type Figure,
   UP,
   artboard,
@@ -54,7 +54,7 @@ const PIVOT = 175;
 /** His chain from the pivot: the chest up to the neck, the head to its centre. */
 const BONES: ReadonlyArray<BoneSpec> = [
   { name: 'chest', x: 0, y: 0, rotation: UP, length: PIVOT - 60 },
-  { name: 'head', parent: 'chest', rotation: 0, length: 60 },
+  { name: 'head', parent: 'chest', rotation: 0, length: 60 * HEAD_SCALE },
 ];
 
 /** The judge's artboard and view model. */
@@ -63,8 +63,13 @@ export const judgeRig = (fig: Figure) => {
   // The head's pieces in its bone's frame turned upright (origin at the neck); the robe's in the
   // lean's frame (origin at the pivot), off the bones, so it draws under the head.
   const headSpace = el('Node', { rotation: Math.PI / 2, name: 'headSpace' }, [
-    faceKit(fig, { x: 0, y: -60 + 2, scale: JUDGE_FACE }),
-    piece(fig, 'head', ellipse(0, -60, 60, 65, 22), FIGURE),
+    faceKit(fig, { x: 0, y: (-60 + 2) * HEAD_SCALE, scale: JUDGE_FACE * HEAD_SCALE }),
+    piece(
+      fig,
+      'head',
+      ellipse(0, -60 * HEAD_SCALE, 60 * HEAD_SCALE, 65 * HEAD_SCALE, 22),
+      dress.skin,
+    ),
   ]);
   const robe = el('Node', { name: 'robeSide', id: fig.idOf('robeSide') }, [
     ...[-9, 9].map((x) =>
@@ -72,14 +77,11 @@ export const judgeRig = (fig: Figure) => {
         fig,
         `band${x}`,
         roundRect(x, 88 - PIVOT, 14, 30, 3, 2),
-        { color: R.paper.base, line: INK.trim, shadow: 0.15, cast: R.robe.shade },
+        { color: R.paper.base, ink: 'trim', shadow: 0.15, cast: dress.robe.shade },
         { boil: 0.6 },
       ),
     ),
-    piece(fig, 'robe', roundRect(0, 120 - PIVOT, 250, 120, 40, 4), {
-      color: R.robe.base,
-      shade: R.robe.shade,
-    }),
+    piece(fig, 'robe', roundRect(0, 120 - PIVOT, 250, 120, 40, 4), dress.robe),
   ]);
   const body = el('Node', { y: PIVOT, name: 'leanPivot', id: fig.idOf('leanPivot') }, [
     fig.bind('lean', 15),
@@ -125,7 +127,7 @@ export const handRig = (fig: Figure) =>
     HAND_ART,
     [
       el('Node', { x: HAND_ART.width / 2, y: HAND_ART.height / 2, name: 'hand' }, [
-        hand(fig, 'palm', HAND_ART.r, { ...FIGURE, cast: R.paperTone.shade }),
+        hand(fig, 'palm', HAND_ART.r, { ...dress.skin, cast: dress.bench.shade }),
       ]),
     ],
     [boilTimeline(fig)],

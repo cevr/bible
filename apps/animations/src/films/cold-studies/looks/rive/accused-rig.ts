@@ -18,12 +18,12 @@
 
 import { hash2 } from '@bible/film/core';
 import { ramps as R } from '../../palette.ts';
+import { dress, headShare } from './direction.ts';
 import {
   type BoneSpec,
   DOWN,
   FACE,
   FIGURE,
-  INK,
   type Figure,
   type Influence,
   type K,
@@ -48,8 +48,22 @@ import { el } from './rml.ts';
 /** The artboard, and where the figure's feet stand on it (its origin). */
 export const ACCUSED_ART = { width: 320, height: 300, feet: [160, 280] } as const;
 
+/** The neck's height over the feet, and the head's height over the neck, as drawn: the head is 76 of the figure's 203 units, about ⅓. */
+const NECK = -127;
+const HEAD_H = 76;
+
+/**
+ * The head's scale about the neck for the head axis (`direction.ts`, D):
+ * the factor that makes it `headShare` of the figure's height, 1 as drawn.
+ * The judge's head takes the same factor.
+ */
+export const HEAD_SCALE = headShare === null ? 1 : (headShare * -NECK) / (HEAD_H * (1 - headShare));
+
+/** The head's centre over the feet. */
+const HEAD_Y = NECK - (HEAD_H / 2) * HEAD_SCALE;
+
 /** The view model's numbers at rest: the face kit's, the eyes on us. */
-export const ACCUSED_KNOBS = { ...FACE, gazeX: 0, gazeY: -165 } as const;
+export const ACCUSED_KNOBS = { ...FACE, gazeX: 0, gazeY: HEAD_Y } as const;
 
 /** The timelines a host poses, their authored length in seconds, and the share of it its cue spans. */
 export const ACCUSED_TIMELINES = {
@@ -65,8 +79,8 @@ export type AccusedTimeline = keyof typeof ACCUSED_TIMELINES;
 const BONES: ReadonlyArray<BoneSpec> = [
   { name: 'hips', x: 0, y: -20, rotation: UP, length: 50 },
   { name: 'chest', parent: 'hips', rotation: 0, length: 58 },
-  { name: 'head', parent: 'chest', rotation: 0, length: 37 },
-  { name: 'jaw', parent: 'head', rotation: Math.PI, length: 38 },
+  { name: 'head', parent: 'chest', rotation: 0, length: 37 * HEAD_SCALE },
+  { name: 'jaw', parent: 'head', rotation: Math.PI, length: 38 * HEAD_SCALE },
   { name: 'tailA0', x: 15, y: -40, rotation: DOWN - 0.18, length: 9 },
   { name: 'tailA1', parent: 'tailA0', rotation: 0.06, length: 9 },
   { name: 'tailA2', parent: 'tailA1', rotation: 0.04, length: 9 },
@@ -88,7 +102,7 @@ const HAND = {
 } as const;
 
 /** The face's centre in the head's upright frame (the neck at 0, 0). */
-const FACE_Y = -37;
+const FACE_Y = -37 * HEAD_SCALE;
 
 /** The pose the bow ends in, which the lift starts from. */
 const BOWED = {
@@ -123,7 +137,7 @@ const torsoWeigh = (p: Pt): Influence => {
 
 /** The head's two bones: the upper head rigid, its lower half riding the jaw. */
 const headWeigh = (p: Pt): Influence => {
-  const down = smooth(-168, -140, p[1]);
+  const down = smooth(HEAD_Y - 3 * HEAD_SCALE, HEAD_Y + 25 * HEAD_SCALE, p[1]);
   return [
     [0, 1 - down],
     [1, down],
@@ -222,7 +236,7 @@ export const accusedRig = (fig: Figure) => {
   const torso = { skeleton: sk, bones: ['hips', 'chest'], weigh: torsoWeigh };
 
   const headSpace = el('Node', { rotation: Math.PI / 2, name: 'headSpace' }, [
-    faceKit(fig, { x: 0, y: FACE_Y }),
+    faceKit(fig, { x: 0, y: FACE_Y, scale: HEAD_SCALE }),
   ]);
   const body = sk.element('hips', [
     sk.element('chest', [sk.element('head', [headSpace, lookAt(fig), sk.element('jaw', [])])]),
@@ -241,7 +255,7 @@ export const accusedRig = (fig: Figure) => {
       handNode('near', HAND.x),
       handNode('far', -HAND.x),
       body,
-      piece(fig, 'head', ellipse(0, -165, 35, 38, 18), FIGURE, {
+      piece(fig, 'head', ellipse(0, HEAD_Y, 35 * HEAD_SCALE, 38 * HEAD_SCALE, 18), FIGURE, {
         skin: { skeleton: sk, bones: ['head', 'jaw'], weigh: headWeigh },
       }),
       ...(['A', 'B'] as const).map((t) =>
@@ -249,7 +263,7 @@ export const accusedRig = (fig: Figure) => {
           fig,
           `tail${t}`,
           tailStrip(sk, t, t === 'A' ? 8 : 7, t === 'A' ? 10 : 8),
-          { color: R.scarlet.base, line: INK.trim, shadow: 0.2, cast: R.figure.shade },
+          { color: R.scarlet.base, ink: 'trim', shadow: 0.2, cast: dress.tunic.shade },
           {
             skin: {
               skeleton: sk,
@@ -264,7 +278,7 @@ export const accusedRig = (fig: Figure) => {
         fig,
         'knot',
         ellipse(16, -40, 6, 5, 8),
-        { color: R.scarlet.base, line: INK.trim, shadow: 0.2, cast: R.figure.shade },
+        { color: R.scarlet.base, ink: 'trim', shadow: 0.2, cast: dress.tunic.shade },
         { skin: torso, boil: 0 },
       ),
       piece(
@@ -274,9 +288,9 @@ export const accusedRig = (fig: Figure) => {
         {
           color: R.scarlet.base,
           shade: R.scarlet.shade,
-          line: INK.trim,
+          ink: 'trim',
           shadow: 0.15,
-          cast: R.figure.shade,
+          cast: dress.tunic.shade,
         },
         { skin: torso, boil: 0 },
       ),
@@ -285,17 +299,17 @@ export const accusedRig = (fig: Figure) => {
           fig,
           `stain${i}`,
           pts,
-          { color: R.scarlet.base, line: 0, shadow: 0.1, cast: R.figure.shade },
+          { color: R.scarlet.base, ink: 'none', shadow: 0.1, cast: dress.tunic.shade },
           { skin: torso, boil: 1 },
         ),
       ),
-      piece(fig, 'tunic', roundRect(0, -72, 66, 112, 22, 3), FIGURE, { skin: torso }),
+      piece(fig, 'tunic', roundRect(0, -72, 66, 112, 22, 3), dress.tunic, { skin: torso }),
       ...[-13, 13].map((x) =>
         piece(
           fig,
           `leg${x}`,
           roundRect(x, -10, 16, 22, 5, 2),
-          { color: R.figure.shade, line: INK.small },
+          { color: dress.legs, ink: 'small' },
           { boil: 0.7 },
         ),
       ),
@@ -338,13 +352,13 @@ export const accusedRig = (fig: Figure) => {
       y: [
         [0, FACE_Y],
         [0.04, FACE_Y, 'out'],
-        [0.36, FACE_Y + BOWED.faceY + 1, 'io'],
-        [0.56, FACE_Y + BOWED.faceY],
+        [0.36, FACE_Y + (BOWED.faceY + 1) * HEAD_SCALE, 'io'],
+        [0.56, FACE_Y + BOWED.faceY * HEAD_SCALE],
       ],
       scaleY: [
-        [0, 1],
-        [0.04, 1, 'out'],
-        [0.36, BOWED.faceSy],
+        [0, HEAD_SCALE],
+        [0.04, HEAD_SCALE, 'out'],
+        [0.36, BOWED.faceSy * HEAD_SCALE],
       ],
     },
     nearHand: handTrack(rest, HAND.clasp, 0.04, 0.62),
@@ -390,14 +404,14 @@ export const accusedRig = (fig: Figure) => {
     },
     face: {
       y: [
-        [0, FACE_Y + BOWED.faceY, 'out'],
-        [0.26, FACE_Y - 1.5, 'io'],
-        [0.54, FACE_Y - 0.5],
+        [0, FACE_Y + BOWED.faceY * HEAD_SCALE, 'out'],
+        [0.26, FACE_Y - 1.5 * HEAD_SCALE, 'io'],
+        [0.54, FACE_Y - 0.5 * HEAD_SCALE],
       ],
       scaleY: [
-        [0, BOWED.faceSy, 'out'],
-        [0.26, 1.05, 'io'],
-        [0.54, 1],
+        [0, BOWED.faceSy * HEAD_SCALE, 'out'],
+        [0.26, 1.05 * HEAD_SCALE, 'io'],
+        [0.54, HEAD_SCALE],
       ],
     },
     nearHand: handTrack(HAND.clasp, HAND.open, 0.02, 0.62, HAND.spring),

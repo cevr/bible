@@ -48,8 +48,12 @@ describe('the figure parts', () => {
       points: walk([palm]).filter((e) => e.name === 'CubicMirroredVertex').length,
       paints: palm.children.filter((e) => e.name !== 'PointsPath').map((e) => attr(e, 'name')),
     });
-    for (const palm of palms)
-      expect(shapeOf(palm)).toEqual({ points: 12, paints: ['Shadow', 'Paper', 'Ink'] });
+    // The edge's paints follow the outline axis (`direction.ts`); every hand takes the same ones.
+    const shapes = palms.map(shapeOf);
+    expect(shapes[0]?.points).toBe(12);
+    expect(shapes[0]?.paints).toContain('Paper');
+    for (const shape of shapes)
+      expect(shape).toEqual({ points: 12, paints: shapes[0]?.paints ?? [] });
   });
 
   test('the accused and the judge wear the same face kit, the judge at his own scale', () => {
