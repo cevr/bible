@@ -5,8 +5,9 @@
 // director vision → "Paper-cut figures (Rive)":
 //
 // - paper: a flat piece with an ink edge (`INK`, laid as its figure's
-//   direction's outline says, `direction.ts`), lifted off the sheet by a small cast shadow in the
-//   shade of the surface under it, its outline crawling on the boil;
+//   direction's outline says, `direction.ts`) and its ramp's light on the
+//   cut, lifted off the sheet by a small cast shadow in the shade of each
+//   surface it falls on, its outline crawling on the boil;
 // - the crease (the look's signature): every piece is split once by a
 //   straight line at the light's one angle, its far side the paper's shade,
 //   a hue of its own from the paper's ramp (`ramps`), never the paper dimmed;
@@ -135,21 +136,47 @@ const creased = (color: string, shade: string, box: Box): Element => {
   ]);
 };
 
+/**
+ * A piece of the figure a cast shadow falls on: its key (`piece`) and its
+ * paper's shade, which the shadow lays there.
+ */
+export interface Surface {
+  readonly key: string;
+  readonly shade: string;
+}
+
 /** A figure piece's paint. */
 export interface PieceLook {
   readonly color: string;
   /** The paper past the crease; none for a piece too small or thin to crease (a stain, a band). */
   readonly shade?: string;
+  /** Its ramp's light: the light core along its cut edge (outline `edge` or `both`), its one highlight. */
+  readonly light: string;
   /** What its ink carries (`INK`): a silhouette's line (`outer`, the default), a small silhouette piece's (`small`), trim's, or none. */
   readonly ink?: keyof typeof INK | 'none';
   /** The cutout's lift off the sheet, 0..1: a small cast shadow to the light's far side. */
   readonly shadow?: number;
-  /** The shade of the surface the cast shadow falls on (its ramp's, `ramps`): the parchment sheet's unless said. */
+  /**
+   * The shade of what the cast shadow falls on past the figure (its ramp's,
+   * `ramps`): the parchment sheet's unless said.
+   */
   readonly cast?: string;
+  /**
+   * The figure's own pieces this one's cast shadow can fall on, and its
+   * backmost piece. Given, the shadow is laid once per surface, in that
+   * surface's shade, clipped to it and drawn just over it, and once in
+   * `cast` behind the whole figure, where only the sheet shows it: a cast
+   * shadow is the shade of the surface it falls on (CRAFT 12).
+   */
+  readonly over?: { readonly surfaces: ReadonlyArray<Surface>; readonly behind: string };
 }
 
-/** The grey paper of a person, and its far side: the figure ramp's base and shade. */
-export const FIGURE: PieceLook = { color: R.figure.base, shade: R.figure.shade };
+/** The grey paper of a person, its far side and its light: the figure ramp. */
+export const FIGURE: PieceLook = {
+  color: R.figure.base,
+  shade: R.figure.shade,
+  light: R.figure.light,
+};
 
 /**
  * How strongly a cast shadow lays its surface's shade per unit of lift: a
@@ -176,28 +203,21 @@ export const INK = { outer: 5, small: 3.5, trim: 2.5 } as const;
  */
 export const OUTSIDE = { outer: 6, small: 5 } as const;
 
-/** The light core's half-width on a cut edge (outline `edge` or `both`), units: about 1.5 px a side at the court's camera. */
+/**
+ * The light core's half-width on a cut edge (outline `edge` or `both`),
+ * units: about 1.5 px a side at the court's camera. Its colour is the
+ * paper's ramp light (`PieceLook.light`): the edge of a cut catching the
+ * room, leaning to the key's warm hue.
+ */
 export const CORE = 1;
-
-/** A piece's light core: its paper halfway to the parchment's light (`ramps.paper.light`), the edge of a cut catching the room. */
-export const coreOf = (color: string) => {
-  const ch = (c: string, i: number) => Number.parseInt(c.slice(1 + 2 * i, 3 + 2 * i), 16);
-  return `#${[0, 1, 2]
-    .map((i) =>
-      Math.round((ch(color, i) + ch(R.paper.light, i)) / 2)
-        .toString(16)
-        .padStart(2, '0'),
-    )
-    .join('')}`;
-};
 
 /**
  * A piece's edge under `d`'s outline and in its ink, as the strokes under
  * its paper and over it. A line laid outside the paper is a stroke under it,
  * twice as wide as what shows (the paper covers its inner half); a light
- * core is a stroke over the paper, straddling the cut.
+ * core, in `light`, is a stroke over the paper, straddling the cut.
  */
-const edgeOf = (d: Direction, weight: keyof typeof INK, color: string) => {
+const edgeOf = (d: Direction, weight: keyof typeof INK, light: string) => {
   const ink = (thickness: number) =>
     el('Stroke', { thickness, join: 'round', cap: 'round', name: 'Ink' }, [solid(inkOf(d))]);
   const silhouette = weight !== 'trim';
@@ -211,27 +231,33 @@ const edgeOf = (d: Direction, weight: keyof typeof INK, color: string) => {
       core > 0
         ? [
             el('Stroke', { thickness: 2 * core, join: 'round', cap: 'round', name: 'Core' }, [
-              solid(coreOf(color)),
+              solid(light),
             ]),
           ]
         : [],
   };
 };
 
+/**
+ * A cast shadow in `shade`, lifted `lift`: a feathered copy of its shape's
+ * outline toward the light's far side, as a fill (`clockwise`, the one rule
+ * the Rive Renderer feathers without pixel local storage).
+ */
+const shadowFill = (shade: string, lift: number) =>
+  el('Fill', { fillRule: 'clockwise', name: 'Shadow' }, [
+    solid(shade, Math.min(1, CAST * lift)),
+    el('Feather', { strength: 6 * lift, offsetX: 3 * lift, offsetY: 5 * lift, name: 'Lift' }),
+  ]);
+
 /** The paints of a piece over `box` under `d`, bottom to top as Rive stacks a shape's paints (last on top). */
 const paints = (d: Direction, look: PieceLook, box: Box): Element[] => {
   const lift = look.shadow ?? 0.35;
   const out: Element[] = [];
-  if (lift > 0)
-    out.push(
-      el('Fill', { fillRule: 'clockwise', name: 'Shadow' }, [
-        solid(look.cast ?? R.paper.shade, Math.min(1, CAST * lift)),
-        el('Feather', { strength: 6 * lift, offsetX: 3 * lift, offsetY: 5 * lift, name: 'Lift' }),
-      ]),
-    );
+  // A piece that lies over others of its figure lays its shadow on each (`casts`), not here.
+  if (lift > 0 && look.over === undefined) out.push(shadowFill(look.cast ?? R.paper.shade, lift));
   const weight = look.ink ?? 'outer';
   const edge: { under: Element[]; over: Element[] } =
-    weight === 'none' ? { under: [], over: [] } : edgeOf(d, weight, look.color);
+    weight === 'none' ? { under: [], over: [] } : edgeOf(d, weight, look.light);
   out.push(
     ...edge.under,
     el('Fill', { name: 'Paper' }, [
@@ -267,6 +293,8 @@ export interface Figure {
   readonly bind: (knob: string, key: number) => Element;
   /** Key each of `pts` (the vertices `key.i`) to crawl within `amp` units of where it is cut, on the boil's ticks. */
   readonly boil: (key: string, pts: ReadonlyArray<Pt>, amp: number) => void;
+  /** Key the `n` vertices `key.i` to crawl exactly as `like.i` do (a cast shadow following its piece). */
+  readonly echo: (key: string, like: string, n: number) => void;
   readonly boilTracks: () => Tracks;
 }
 
@@ -305,6 +333,12 @@ export const figure = (
           Array.from({ length: BOIL.ticks }, (_, tick) => [tick / BOIL.fps, c + d(tick), 'hold']);
         tracks[`${key}.${i}`] = { x: keys(p[0], dx), y: keys(p[1], dy) };
       }),
+    echo: (key, like, n) => {
+      for (let i = 0; i < n; i++) {
+        const track = tracks[`${like}.${i}`];
+        if (track !== undefined) tracks[`${key}.${i}`] = track;
+      }
+    },
     boilTracks: () => tracks,
   };
 };
@@ -514,7 +548,9 @@ export const smoothPath = (
 /**
  * A piece of the figure: a closed smooth outline through `pts`, skinned when
  * given, painted `look` with its crease across its own box, and its outline
- * on the boil (`boil` units; 0 holds it still).
+ * on the boil (`boil` units; 0 holds it still). A piece that lies over others
+ * of its figure (`look.over`) comes as a node: the piece, then its cast
+ * shadows (`casts`).
  */
 export const piece = (
   fig: Figure,
@@ -523,11 +559,70 @@ export const piece = (
   look: PieceLook,
   opts: { readonly skin?: SkinSpec; readonly boil?: number } = {},
 ): Element => {
-  if ((opts.boil ?? 0.9) > 0) fig.boil(key, pts, opts.boil ?? 0.9);
-  return el('Shape', { name: key, id: fig.idOf(key) }, [
+  const boil = opts.boil ?? 0.9;
+  if (boil > 0) fig.boil(key, pts, boil);
+  const shape = el('Shape', { name: key, id: fig.idOf(key) }, [
     smoothPath(fig, key, pts, opts.skin),
     ...paints(fig.direction, look, boxOf(pts)),
   ]);
+  if (look.over === undefined || (look.shadow ?? 0.35) <= 0) return shape;
+  return el('Node', { name: `${key}Piece` }, [
+    shape,
+    ...casts(fig, key, pts, look, look.over, opts.skin, boil > 0),
+  ]);
+};
+
+/**
+ * The cast shadows of the piece `key` over the surfaces of its figure: one
+ * per surface, in its shade, clipped to it and drawn just over it, so a piece
+ * between them covers it as it covers that surface; and one in the ground's
+ * shade (`look.cast`) drawn behind the figure's backmost piece, so only the
+ * sheet past the figure shows it. Each is the piece's outline again, on its
+ * skin and crawling with it.
+ */
+const casts = (
+  fig: Figure,
+  key: string,
+  pts: ReadonlyArray<Pt>,
+  look: PieceLook,
+  over: NonNullable<PieceLook['over']>,
+  skin: SkinSpec | undefined,
+  boils: boolean,
+): Element[] => {
+  const lift = look.shadow ?? 0.35;
+  const cast = (
+    name: string,
+    shade: string,
+    target: { readonly key: string; readonly placement: 'before' | 'after' },
+    clip?: string,
+  ) => {
+    if (boils) fig.echo(name, key, pts.length);
+    return el('Shape', { name, id: fig.idOf(name) }, [
+      smoothPath(fig, name, pts, skin),
+      shadowFill(shade, lift),
+      ...(clip === undefined
+        ? []
+        : [el('ClippingShape', { sourceId: fig.idOf(clip), name: 'Clip' })]),
+      el(
+        'DrawRules',
+        { drawTargetId: fig.idOf(`${name}:at`), name: 'Rules', id: fig.idOf(`${name}:rules`) },
+        [
+          el('DrawTarget', {
+            drawableId: fig.idOf(target.key),
+            placementValue: target.placement,
+            name: 'At',
+            id: fig.idOf(`${name}:at`),
+          }),
+        ],
+      ),
+    ]);
+  };
+  return [
+    ...over.surfaces.map((s) =>
+      cast(`${key}CastOn${s.key}`, s.shade, { key: s.key, placement: 'before' }, s.key),
+    ),
+    cast(`${key}Cast`, look.cast ?? R.paper.shade, { key: over.behind, placement: 'after' }),
+  ];
 };
 
 // ─── the hand ────────────────────────────────────────────────────────────────

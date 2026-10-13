@@ -13,7 +13,7 @@
 // (`tmp/orchestrate/p5/rimproto/`: `A-outline.png`, `B-ink.png`,
 // `C-colour.png`, `D-head.png`) and may pick others.
 
-import { hues, ramps } from '../../palette.ts';
+import { type Ramp, hues, ramps } from '../../palette.ts';
 import { type Props, paperProps } from '../cutpaper/court.ts';
 
 /**
@@ -77,11 +77,15 @@ export const DIRECTION: Direction = K1;
 /** The ink of `d`. */
 export const inkOf = (d: Direction): string => INKS[d.ink];
 
-/** A paper as a piece takes it: its colour and its crease's far side. */
+/** A paper as a piece takes it, from its ramp: its colour, its crease's far side and its cut edge's light. */
 export interface Paper {
   readonly color: string;
   readonly shade: string;
+  readonly light: string;
 }
+
+/** A ramp as a piece's paper. */
+const paperOf = (ramp: Ramp): Paper => ({ color: ramp.base, shade: ramp.shade, light: ramp.light });
 
 /**
  * What the people wear: the accused's tunic and legs, the judge's robe.
@@ -90,7 +94,7 @@ export interface Paper {
  */
 export interface Dress {
   readonly tunic: Paper;
-  readonly legs: string;
+  readonly legs: Paper;
   readonly robe: Paper;
   /** The bench's paper, under the judge's hand. */
   readonly bench: Paper;
@@ -100,16 +104,16 @@ export interface Dress {
 export const dressOf = (d: Direction): Dress =>
   d.colour === 'hues'
     ? {
-        tunic: { color: hues.tunic.base, shade: hues.tunic.shade },
-        legs: hues.legs,
-        robe: { color: hues.robe.base, shade: hues.robe.shade },
-        bench: { color: hues.bench.base, shade: hues.bench.shade },
+        tunic: paperOf(hues.tunic),
+        legs: paperOf(hues.legs),
+        robe: paperOf(hues.robe),
+        bench: paperOf(hues.bench),
       }
     : {
-        tunic: { color: ramps.figure.base, shade: ramps.figure.shade },
-        legs: ramps.figure.shade,
-        robe: { color: ramps.robe.base, shade: ramps.robe.shade },
-        bench: { color: ramps.paperTone.base, shade: ramps.paperTone.shade },
+        tunic: paperOf(ramps.figure),
+        legs: paperOf(ramps.figureDeep),
+        robe: paperOf(ramps.robe),
+        bench: paperOf(ramps.paperTone),
       };
 
 /**

@@ -256,6 +256,24 @@ export const accusedRig = (fig: Figure) => {
   const dress = dressOf(fig.direction);
   const sk = skeleton(fig, bones(hs));
   const torso = { skeleton: sk, bones: ['hips', 'chest'], weigh: torsoWeigh };
+  const scarlet = { color: R.scarlet.base, shade: R.scarlet.shade, light: R.scarlet.light };
+
+  // The surfaces a cast shadow can fall on, front to back as they are drawn,
+  // each in its paper's shade; the ground casts go behind the backmost leg.
+  const on = (...keys: ReadonlyArray<string>) => ({
+    surfaces: keys.map((key) => ({
+      key,
+      shade:
+        key === 'tunic'
+          ? dress.tunic.shade
+          : key.startsWith('leg')
+            ? dress.legs.shade
+            : R.scarlet.shade,
+    })),
+    behind: 'leg13',
+  });
+  const stains = STAINS.map((_, i) => `stain${i}`);
+  const legs = ['leg-13', 'leg13'];
 
   const headSpace = el('Node', { rotation: Math.PI / 2, name: 'headSpace' }, [
     faceKit(fig, { x: 0, y: faceY, scale: hs }),
@@ -263,10 +281,14 @@ export const accusedRig = (fig: Figure) => {
   const body = sk.element('hips', [
     sk.element('chest', [sk.element('head', [headSpace, lookAt(fig), sk.element('jaw', [])])]),
   ]);
+  // A hand travels over the whole front of him: its shadow falls on whatever it passes.
   const handNode = (side: 'near' | 'far', x: number) =>
     el('Node', { x, y: HAND.y, name: `${side}Breath`, id: fig.idOf(`${side}Breath`) }, [
       el('Node', { name: `${side}Hand`, id: fig.idOf(`${side}Hand`) }, [
-        hand(fig, `${side}Palm`, HAND.r),
+        hand(fig, `${side}Palm`, HAND.r, {
+          ...FIGURE,
+          over: on('tailA', 'tailB', 'knot', 'sash', ...stains, 'tunic'),
+        }),
       ]),
     ]);
 
@@ -277,15 +299,19 @@ export const accusedRig = (fig: Figure) => {
       handNode('near', HAND.x),
       handNode('far', -HAND.x),
       body,
-      piece(fig, 'head', ellipse(0, head.y, 35 * hs, 38 * hs, 18), FIGURE, {
-        skin: { skeleton: sk, bones: ['head', 'jaw'], weigh: headWeigh(head) },
-      }),
+      piece(
+        fig,
+        'head',
+        ellipse(0, head.y, 35 * hs, 38 * hs, 18),
+        { ...FIGURE, over: on('tunic') },
+        { skin: { skeleton: sk, bones: ['head', 'jaw'], weigh: headWeigh(head) } },
+      ),
       ...(['A', 'B'] as const).map((t) =>
         piece(
           fig,
           `tail${t}`,
           tailStrip(sk, t, t === 'A' ? 8 : 7, t === 'A' ? 10 : 8),
-          { color: R.scarlet.base, ink: 'trim', shadow: 0.2, cast: dress.tunic.shade },
+          { ...scarlet, shade: undefined, ink: 'trim', shadow: 0.2, over: on('tunic', ...legs) },
           {
             skin: {
               skeleton: sk,
@@ -300,38 +326,39 @@ export const accusedRig = (fig: Figure) => {
         fig,
         'knot',
         ellipse(16, -40, 6, 5, 8),
-        { color: R.scarlet.base, ink: 'trim', shadow: 0.2, cast: dress.tunic.shade },
+        { ...scarlet, shade: undefined, ink: 'trim', shadow: 0.2, over: on('sash', 'tunic') },
         { skin: torso, boil: 0 },
       ),
       piece(
         fig,
         'sash',
         roundRect(0, -40, 70, 8, 3, 1),
-        {
-          color: R.scarlet.base,
-          shade: R.scarlet.shade,
-          ink: 'trim',
-          shadow: 0.15,
-          cast: dress.tunic.shade,
-        },
+        { ...scarlet, ink: 'trim', shadow: 0.15, over: on('tunic') },
         { skin: torso, boil: 0 },
       ),
+      // A stain lies inside the tunic: its whole shadow falls on it.
       ...STAINS.map((pts, i) =>
         piece(
           fig,
           `stain${i}`,
           pts,
-          { color: R.scarlet.base, ink: 'none', shadow: 0.1, cast: dress.tunic.shade },
+          { ...scarlet, shade: undefined, ink: 'none', shadow: 0.1, cast: dress.tunic.shade },
           { skin: torso, boil: 1 },
         ),
       ),
-      piece(fig, 'tunic', roundRect(0, -72, 66, 112, 22, 3), dress.tunic, { skin: torso }),
+      piece(
+        fig,
+        'tunic',
+        roundRect(0, -72, 66, 112, 22, 3),
+        { ...dress.tunic, over: on(...legs) },
+        { skin: torso },
+      ),
       ...[-13, 13].map((x) =>
         piece(
           fig,
           `leg${x}`,
           roundRect(x, -10, 16, 22, 5, 2),
-          { color: dress.legs, ink: 'small' },
+          { ...dress.legs, shade: undefined, ink: 'small' },
           { boil: 0.7 },
         ),
       ),

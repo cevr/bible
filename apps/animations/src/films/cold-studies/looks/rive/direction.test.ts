@@ -14,7 +14,7 @@ import * as BunServices from '@effect/platform-bun/BunServices';
 import { describe, expect, test } from 'bun:test';
 import { Console, Effect, FileSystem, Predicate, Result } from 'effect';
 import { C } from '../../../righteousness-by-faith/kit.ts';
-import { hues, keyLight, ramps } from '../../palette.ts';
+import { type Ramp, hues, keyLight, ramps, robes } from '../../palette.ts';
 import type { CourtFrame } from '../../scenes/court.ts';
 import { type Props, paperProps } from '../cutpaper/court.ts';
 import { HAND as ACCUSED_HAND, accusedFace, accusedHead } from './accused-rig.ts';
@@ -205,17 +205,16 @@ const lightFaults = (base: string, light: string): string[] => {
   return faults;
 };
 
-/** Every paper the palette ramps, by name: its base and shade, and its light where it has one. */
-const PAPERS: ReadonlyArray<
-  readonly [string, { readonly base: string; readonly shade: string; readonly light?: string }]
-> = [
+/** Every paper the palette ramps, by name, the robe's options last (the drawn one is `hues.robe`). */
+const PAPERS: ReadonlyArray<readonly [string, Ramp]> = [
   ...Object.entries(ramps).map(([name, ramp]) => [`ramps.${name}`, ramp] as const),
   ...Object.entries(hues).flatMap(([name, hue]) =>
     Predicate.hasProperty(hue, 'base') ? [[`hues.${name}`, hue] as const] : [],
   ),
+  ...Object.entries(robes).map(([name, ramp]) => [`robes.${name}`, ramp] as const),
 ];
 
-/** The shade of the paper whose base is `base`, from the palette's ramps. */
+/** The shade of the paper whose base is `base`, from the palette's ramps (the first that has it). */
 const shadeOfBase = (base: string) =>
   PAPERS.find(([, paper]) => paper.base.toLowerCase() === base.toLowerCase())?.[1].shade;
 
@@ -437,7 +436,11 @@ describe.each(CASES)('option %s', (_, d) => {
     const shapeOf = (palm: Element) => ({
       paths: palm.children.filter((e) => e.name === 'PointsPath').length,
       points: walk([palm]).filter((e) => e.name === 'CubicMirroredVertex').length,
-      paints: palm.children.filter((e) => e.name !== 'PointsPath').map((e) => attr(e, 'name')),
+      // Its shadow is laid on its own where nothing of its figure lies under it (the judge's hand
+      // over the bench), and as casts beside it where something does (`casts` in `parts.ts`).
+      paints: palm.children
+        .filter((e) => e.name !== 'PointsPath' && attr(e, 'name') !== 'Shadow')
+        .map((e) => attr(e, 'name')),
     });
     const shapes = palms.map(shapeOf);
     expect(shapes[0]?.points).toBe(12);
@@ -612,8 +615,29 @@ describe.each(CASES)('hands and lines under %s', (_, d) => {
       [named([accused], 'farHand')[0], ACCUSED_HAND.r],
       [named([hand], 'hand')[0], HAND_ART.r],
     ] as const) {
-      const shapes = walk(node ? [node] : []).filter((e) => e.name === 'Shape');
+      const all = walk(node ? [node] : []).filter((e) => e.name === 'Shape');
+      const shapes = all.filter((e) => !String(attr(e, 'name')).includes('Cast'));
       expect([attr(node, 'name'), shapes.length]).toEqual([attr(node, 'name'), 1]);
+      // Anything else in the node is the palm's cast shadow: its outline again, with only a shadow.
+      const palm = String(attr(shapes[0], 'name'));
+      const outline = (s: Element | undefined) =>
+        walk(s ? [s] : [])
+          .filter((v) => v.name === 'CubicMirroredVertex')
+          .map((v) => [
+            num(v, 'x', 0),
+            num(v, 'y', 0),
+            num(v, 'rotation', 0),
+            num(v, 'distance', 0),
+          ]);
+      for (const cast of all.filter((e) => String(attr(e, 'name')).includes('Cast'))) {
+        const name = String(attr(cast, 'name'));
+        expect([name, name.startsWith(`${palm}Cast`)]).toEqual([name, true]);
+        expect([name, outline(cast)]).toEqual([name, outline(shapes[0])]);
+        const paints = cast.children
+          .filter((c) => c.name === 'Fill' || c.name === 'Stroke')
+          .map((c) => attr(c, 'name'));
+        expect([name, paints]).toEqual([name, ['Shadow']]);
+      }
       const paths = (shapes[0]?.children ?? []).filter((c) => c.name === 'PointsPath');
       expect(paths).toHaveLength(1);
       expect(String(attr(paths[0], 'isClosed'))).toBe('true');

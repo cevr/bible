@@ -80,9 +80,21 @@ export const judgeRig = (fig: Figure) => {
   const sk = skeleton(fig, bones(hs));
   // The head's pieces in its bone's frame turned upright (origin at the neck); the robe's in the
   // lean's frame (origin at the pivot), off the bones, so it draws under the head.
+  // His head lies over his robe's shoulders and its bands: its shadow falls on them in their
+  // shades, and on the wall behind him past them.
+  const bands = [-9, 9].map((x) => `band${x}`);
   const headSpace = el('Node', { rotation: Math.PI / 2, name: 'headSpace' }, [
     faceKit(fig, { x: 0, y: (-HEAD.rx + 2) * hs, scale: JUDGE_FACE * hs }),
-    piece(fig, 'head', ellipse(0, -HEAD.rx * hs, HEAD.rx * hs, HEAD.ry * hs, 22), FIGURE),
+    piece(fig, 'head', ellipse(0, -HEAD.rx * hs, HEAD.rx * hs, HEAD.ry * hs, 22), {
+      ...FIGURE,
+      over: {
+        surfaces: [
+          ...bands.map((key) => ({ key, shade: R.paper.shade })),
+          { key: 'robe', shade: dress.robe.shade },
+        ],
+        behind: 'robe',
+      },
+    }),
   ]);
   const robe = el('Node', { name: 'robeSide', id: fig.idOf('robeSide') }, [
     ...[-9, 9].map((x) =>
@@ -90,7 +102,13 @@ export const judgeRig = (fig: Figure) => {
         fig,
         `band${x}`,
         roundRect(x, 88 - PIVOT, 14, 30, 3, 2),
-        { color: R.paper.base, ink: 'trim', shadow: 0.15, cast: dress.robe.shade },
+        {
+          color: R.paper.base,
+          light: R.paper.light,
+          ink: 'trim',
+          shadow: 0.15,
+          cast: dress.robe.shade,
+        },
         { boil: 0.6 },
       ),
     ),
