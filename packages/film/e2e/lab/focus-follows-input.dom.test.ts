@@ -7,14 +7,18 @@
 // The paths are generated, not listed by hand:
 // - every command each page's registry holds, read from ⌘K with a query
 //   every id matches (`.`), so the Go to entries found only by typing are
-//   in it too (one per kind of thing: they share one `go`). Each runs from ⌘K
-//   by its keys (Control+k, then the row chosen with the arrows and Enter) and
-//   by the pointer (the header's Go to… clicked, then the row clicked);
-// - every place in the lab's sources that moves the focus from script
-//   (`FOCUS_SITES`): a source scan fails on a file that moves the focus and
-//   is not named there, and each named site's paths that no command reaches
-//   (a kind's tab, a studio button, a kept take's reload) run below it, by
-//   the keyboard and by the pointer.
+//   in it too (one per kind of thing: they share one `go`), on each page as it
+//   opens and with the thing selected that a command is about (a scene, a
+//   point). Each runs from ⌘K by its keys (Control+k, then the row chosen
+//   with the arrows and Enter) and by the pointer (the header's Go to…
+//   clicked, then the row clicked); a command a page names in its `moves`
+//   must also have moved the focus where it goes, by both;
+// - every call in the lab's sources that moves the focus from script
+//   (`FOCUS_SITES`, by file and call, the lab's wrappers' callers too): a
+//   source scan fails on a call not named there, and each site's paths that
+//   no command reaches (a kind's tab, Back and Forward, a studio button or
+//   its prompter, a kept take's reload) run below it, by the keyboard and by
+//   the pointer, and a key pressed in the middle of a click.
 // `:focus-visible` matches only in the window that has the focus, so every
 // case runs alone, and a page without it answers so instead of passing.
 
@@ -144,12 +148,19 @@ const watched = (page: Tab, path: Effect.Effect<void>) =>
 interface Opened {
   readonly name: string;
   readonly open: () => Effect.Effect<{ readonly page: Tab }, never, Scope.Scope>;
+  /**
+   * The commands (by id, or a family's prefix) that move the focus on this page as it opens,
+   * each with the element it moves it to (by name, `NAME`): each must run by both inputs and
+   * move the focus there, so a site a command reaches is proved reached, not only listed.
+   */
+  readonly moves: ReadonlyArray<readonly [command: string, to: RegExp]>;
 }
 
 /**
  * Run every command of the page's registry from ⌘K by each input, on the page `opened`
  * opens; a command that leaves the page (another part) or leaves a root open has the page
- * opened again before the next. Fails naming each stop whose ring is not the input's.
+ * opened again before the next. Fails naming each stop whose ring is not the input's, and
+ * each command of `opened.moves` that did not run, or ran and moved no focus.
  */
 const everyCommand = (opened: Opened) =>
   Effect.gen(function* () {
@@ -158,6 +169,7 @@ const everyCommand = (opened: Opened) =>
     const ids = sampled(yield* registry(walk.page()));
     const failures: Array<string> = [];
     const ran: Array<string> = [];
+    const reached: Array<string> = [];
     for (const id of ids)
       for (const input of INPUTS) {
         const page = walk.page();
@@ -166,6 +178,9 @@ const everyCommand = (opened: Opened) =>
         if (offered && seen.watching && !seen.leaving) {
           ran.push(`${id} by ${input}`);
           failures.push(...wrong(`${opened.name}: ${id}`, input, seen));
+          for (const [command, to] of opened.moves)
+            if (id.startsWith(command) && seen.moves.some(([element]) => to.test(element)))
+              reached.push(`${command} by ${input}`);
         }
         const away = yield* page.evaluate<boolean>(
           `location.pathname !== '${start}' || window.focusMoves === undefined || window.focusLeaving === true || ${LEFT_OPEN}`,
@@ -174,6 +189,12 @@ const everyCommand = (opened: Opened) =>
       }
     expect(ran.length).toBeGreaterThan(0);
     expect(failures).toEqual([]);
+    const missing = opened.moves.flatMap(([command, to]) =>
+      INPUTS.filter((input) => !reached.includes(`${command} by ${input}`)).map(
+        (input) => `${opened.name}: ${command} by ${input} never moved the focus to ${to}`,
+      ),
+    );
+    expect(missing).toEqual([]);
   });
 
 /** One beat to record, with one earlier attempt that can be kept, whose keep mixes: the page reloads. */
@@ -228,8 +249,13 @@ const inRecord = () =>
 
 /** The pages whose registries the property runs, each at a desk. */
 const PAGES: ReadonlyArray<Opened> = [
-  { name: 'the Lab', open: () => openLab() },
-  { name: 'Record', open: inRecord },
+  { name: 'the Lab', open: () => openLab(), moves: [] },
+  {
+    name: 'the Lab in Note',
+    open: () => openLab([], { mode: 'note' }),
+    moves: [['notes.frame', /^textarea/]],
+  },
+  { name: 'Record', open: inRecord, moves: [] },
   {
     name: 'Scenes',
     open: () =>
@@ -237,43 +263,87 @@ const PAGES: ReadonlyArray<Opened> = [
         { href: pageHref.scenes(PROBE), viewport: DESK },
         '.sc-still[data-drawn="true"] canvas',
       ),
+    moves: [],
+  },
+  {
+    // A scene selected: the commands about it (Comment on, Open in Lab) are offered.
+    name: 'Scenes, a scene selected',
+    open: () => openPlayer({ href: pageHref.scene(PROBE, 'one'), viewport: DESK }, '.sc-focus'),
+    moves: [['scenes.comment', /^input\.rv-comment-input/]],
   },
   {
     name: 'Play',
     open: () =>
       openPlayer({ href: pageHref.play(PROBE), viewport: DESK }, '.bar [data-act="play"]'),
+    moves: [],
   },
-  { name: 'Choices', open: () => onChoices() },
+  {
+    // A point selected: its auditions are offered.
+    name: 'Choices',
+    open: () => onChoices(),
+    moves: [
+      ['review.audition-next', /\.rv-sound/],
+      ['review.audition-previous', /\.rv-sound/],
+      ['go.choice.', /\.lab-inspect|\.rv-/],
+    ],
+  },
 ];
 
 /**
- * Every place in the lab's sources that moves the focus from script, by file, with the paths
- * that reach it: a command's (run above, from each registry), or one of the cases below.
+ * Every call in the lab's sources that moves the focus from script, by its file and its
+ * callee with its first argument (a file's two alike are two rows), with the paths that
+ * reach it: a command's (run above, each named in its page's `moves`), or one of the cases
+ * below. The lab's helpers that move it for a caller (`focusPoint`, `focusVariant`,
+ * `goToPoint`) are calls too, so each caller is a row of its own.
  */
-const FOCUS_SITES = {
-  'notes/section.tsx': "the Lab's Note frame command opens the composer, a text field",
-  'scenes/view.tsx': "Scenes' comment command focuses a scene's field, a text field",
-  'review/options/choice.tsx':
-    "Choices' Go to entries; a kind's tab, clicked and pressed; a page opened on a point",
-  'review/options/context.tsx': "Choices' auditions, from ⌘K",
-  'studio/section.tsx':
-    'a studio button pressed after the keyboard; a kept take’s reload, by the keyboard and the pointer; a control the keyboard pressed away',
-};
+const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: string]> = [
+  ['notes/section.tsx', 'focusFor(el', "the Lab in Note's notes.frame, a text field"],
+  ['review/options/choice.tsx', 'focusFor(', 'focusPoint, for each of its callers below'],
+  ['review/options/context.tsx', 'focusFor(button', 'focusVariant, for the auditions'],
+  ['review/options/context.tsx', 'focusVariant(next', "Choices' review.audition-*, from ⌘K"],
+  [
+    'review/options/section.tsx',
+    'focusPoint(point',
+    'a page opened on a point; Back and Forward, by a key and by none',
+  ],
+  ['review/options/section.tsx', 'focusPoint(point', "goToPoint: Choices' go.choice.*"],
+  [
+    'review/options/section.tsx',
+    'goToPoint(point',
+    "a kind's tab, clicked, pressed, and clicked with a key down",
+  ],
+  ['scenes/view.tsx', 'focusFor(field', "Scenes' scenes.comment, a scene selected, a text field"],
+  ['studio/section.tsx', 'focusFor(r', 'a studio control the keyboard pressed away'],
+  [
+    'studio/section.tsx',
+    'focusFor(r',
+    'a kept take’s reload, by the keyboard and the pointer; a reload after a click',
+  ],
+  [
+    'studio/section.tsx',
+    'focusFor(r',
+    'a studio button, and the prompter, pressed after the keyboard',
+  ],
+  ['studio/section.tsx', 'focusFor(r', 'Keep pressed, disabled under the focus'],
+];
 
-/** The lab's sources (tests and fixtures aside) that move the focus from script. */
-const focusingFiles = Effect.gen(function* () {
+/** A call that moves the focus: `.focus(`, or the lab's helper or one of its wrappers, with its first argument. */
+const FOCUS_CALL = /(\.focus|\b(?:focusFor|focusPoint|focusVariant|goToPoint))\s*\(\s*([\w.]*)/g;
+
+/** Every call in the lab's sources (tests and fixtures aside) that moves the focus, as `file call`. */
+const focusCalls = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const root = path.join(import.meta.dir, '..', '..', 'src', 'lab');
   const sources = (yield* fs.readDirectory(root, { recursive: true })).filter(
-    (f) => /\.tsx?$/.test(f) && !/(^|\/)fixtures\/|\.test\.tsx?$/.test(f),
+    (f) => /\.tsx?$/.test(f) && f !== HELPER && !/(^|\/)fixtures\/|\.test\.tsx?$/.test(f),
   );
-  const moving = yield* Effect.filter(sources, (file) =>
+  const calls = yield* Effect.forEach(sources, (file) =>
     Effect.map(fs.readFileString(path.join(root, file)), (source) =>
-      /\.focus\s*\(|\bfocusFor\s*\(/.test(source),
+      [...source.matchAll(FOCUS_CALL)].map(([, callee, first]) => `${file} ${callee}(${first}`),
     ),
   );
-  return moving.toSorted();
+  return calls.flat().toSorted();
 });
 
 /** The file that owns the lab's focus moves: it moves the focus for every site. */
@@ -287,10 +357,10 @@ const alone = <A, E>(name: string, body: Effect.Effect<A, E, Scope.Scope>, timeo
   test.serial(name, () => Effect.runPromise(Effect.scoped(body)), timeout);
 
 it.effect.layer(BunServices.layer)(
-  'every lab source that moves the focus is a named site, with its paths',
+  'every call in the lab that moves the focus is a named site, with its paths',
   () =>
-    Effect.map(focusingFiles, (files) =>
-      expect(files.filter((f) => f !== HELPER)).toEqual(Object.keys(FOCUS_SITES).toSorted()),
+    Effect.map(focusCalls, (calls) =>
+      expect(calls).toEqual(FOCUS_SITES.map(([file, call]) => `${file} ${call}`).toSorted()),
     ),
 );
 
@@ -344,23 +414,102 @@ for (const input of INPUTS)
     }),
   );
 
-/** The studio, a beat in it, and an earlier attempt's Keep. */
-const STUDIO = '[data-role="studio"]';
-const BEAT = '[data-beat="thesis"]';
-const KEEP = '[data-file="thesis.new.flac"] [data-act="keep"]';
-
 alone(
-  'in Record, the keyboard on the studio, then a studio button pressed with the mouse: the ring goes',
+  "on Choices, a kind's tab clicked with a key pressed while the button is down: the card it goes to shows no ring",
   Effect.gen(function* () {
-    const { page, errors } = yield* inRecord();
-    yield* waitFor(page, BEAT);
-    yield* page.focus(STUDIO);
-    yield* page.press('ArrowRight');
-    const seen = yield* watched(page, page.click(BEAT));
-    yield* holds('a studio button after the keyboard', 'pointer', seen);
+    const { page, errors } = yield* onChoices('take:paper.page');
+    yield* waitFor(page, SCORE_TAB);
+    const tab = yield* page.box(SCORE_TAB);
+    const seen = yield* watched(
+      page,
+      Effect.gen(function* () {
+        yield* page.mouse.move(tab.x + tab.width / 2, tab.y + tab.height / 2);
+        yield* page.mouse.down;
+        yield* page.press('Shift');
+        yield* page.mouse.up;
+        yield* until(page, `document.activeElement?.closest('.rv-option')?.id === 'point-score'`);
+      }),
+    );
+    yield* holds("a kind's tab clicked, a key pressed mid-click", 'pointer', seen);
     expect(errors).toEqual([]);
   }),
 );
+
+/** Another kind's tab: a second step for Back to walk. */
+const LEVEL_TAB = '.rv-kinds [data-kind="level"]';
+
+/** The card in focus is `point`'s. */
+const onCard = (point: string) =>
+  `document.activeElement?.closest('.rv-option')?.id === 'point-${point}'`;
+
+/** How each input walks Back, as a case's name says it. */
+const BACK = {
+  key: 'by a key the browser walks it by',
+  pointer: 'the page never hears (the toolbar’s), after a key',
+} as const;
+
+/**
+ * Back as a key the browser walks the history by: ⌘[ pressed, and, if this browser (a
+ * headless one) left the walk to the page, the step it would have taken.
+ */
+const backByKey = (page: Tab) =>
+  Effect.gen(function* () {
+    const before = yield* page.url;
+    yield* page.press('Meta+[');
+    yield* page.evaluate(`new Promise((done) => setTimeout(() => done(true), 300))`);
+    if ((yield* page.url) === before) yield* page.back;
+  });
+
+for (const input of INPUTS)
+  alone(
+    `on Choices, Back ${BACK[input]}: the card it lands on shows the ring iff a key walked`,
+    Effect.gen(function* () {
+      const { page, errors } = yield* onChoices('take:paper.page');
+      yield* waitFor(page, SCORE_TAB);
+      yield* page.click(SCORE_TAB);
+      yield* until(page, onCard('score'));
+      yield* page.click(LEVEL_TAB);
+      yield* until(page, onCard('level:const:PAPER'));
+      const seen = yield* watched(
+        page,
+        Effect.gen(function* () {
+          if (input === 'key') yield* backByKey(page);
+          else {
+            // A key the page hears, then a step it does not: the toolbar's Back, a swipe.
+            yield* page.press('Shift');
+            yield* page.back;
+          }
+          yield* until(page, onCard('score'));
+        }),
+      );
+      yield* holds('Back', input, seen);
+      expect(errors).toEqual([]);
+    }),
+  );
+
+/** The studio, a beat in it, its prompter, and an earlier attempt's Keep. */
+const STUDIO = '[data-role="studio"]';
+const BEAT = '[data-beat="thesis"]';
+const PROMPTER = '[data-role="prompter"]';
+const KEEP = '[data-file="thesis.new.flac"] [data-act="keep"]';
+
+for (const [part, at] of [
+  ['a studio button', BEAT],
+  ['the prompter', PROMPTER],
+] as const)
+  alone(
+    `in Record, the keyboard on the studio, then ${part} pressed with the mouse: the ring goes`,
+    Effect.gen(function* () {
+      const { page, errors } = yield* inRecord();
+      yield* waitFor(page, BEAT);
+      yield* waitFor(page, at);
+      yield* page.focus(STUDIO);
+      yield* page.press('ArrowRight');
+      const seen = yield* watched(page, page.click(at));
+      yield* holds(`${part} after the keyboard`, 'pointer', seen);
+      expect(errors).toEqual([]);
+    }),
+  );
 
 for (const input of INPUTS)
   alone(
@@ -381,6 +530,28 @@ for (const input of INPUTS)
       expect(errors).toEqual([]);
     }),
   );
+
+alone(
+  'in Record, Keep pressed, then a beat clicked, then a reload nothing asked for: the studio takes the focus back with no ring',
+  Effect.gen(function* () {
+    const { page, errors } = yield* inRecord();
+    yield* waitFor(page, BEAT);
+    yield* page.click(BEAT);
+    yield* waitFor(page, `${KEEP}:not([disabled])`);
+    const kept = yield* page.nextLoad;
+    yield* page.pressIn(KEEP, 'Enter');
+    yield* kept;
+    yield* waitFor(page, BEAT);
+    yield* until(page, `document.activeElement?.matches('${STUDIO}:focus-visible') === true`);
+    yield* page.click(BEAT);
+    // A reload the viewer did not ask for (the rebuild's, an Undo's) restores the focus as nothing asked.
+    yield* page.reload;
+    yield* waitFor(page, BEAT);
+    yield* until(page, `document.activeElement?.matches('${STUDIO}') === true`);
+    yield* holds('a reload after a click', 'pointer', yield* page.evaluate<Seen>(SEEN));
+    expect(errors).toEqual([]);
+  }),
+);
 
 alone(
   'in Record, a studio control the keyboard pressed away hands the focus to the studio, with the ring',
