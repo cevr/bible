@@ -301,7 +301,7 @@ const COMMAND_RULES = `
 .lab-receipt-undo { border: 1px solid var(--line-strong); color: var(--text-1); }
 .lab-receipt-close { border: 0; color: var(--text-2); }
 .lab-scope {
-  display: inline-flex; align-items: center; gap: var(--s-1); max-width: 100%;
+  display: inline-flex; align-items: center; gap: var(--s-1); max-width: 100%; justify-self: start;
   padding: var(--cmd-key-pad); border: 1px solid var(--line-strong); border-radius: var(--r-2);
   color: var(--text-1); font: var(--fs-2)/var(--body-lh) var(--font);
 }

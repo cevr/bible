@@ -182,15 +182,12 @@ export const NotesProvider = (props: ParentProps) => {
   );
 };
 
-/** Note… under the words selected, while no note is being made: the composer opens on them. */
+/** Note… under the words selected: the composer opens on them. */
 export const NoteButton = () => {
   const script = useScript();
   const verbs = useScriptNotes();
-  const { state } = useNotes();
   return (
-    <Show
-      when={Option.getOrUndefined(Option.filter(script.selected(), () => !state.composerOpen()))}
-    >
+    <Show when={Option.getOrUndefined(script.selected())}>
       {(words) => (
         <button
           type="button"
@@ -265,10 +262,18 @@ export const BeatMarkers = (props: { readonly beat: string }) => {
   return <For each={verbs.ofBeat(props.beat)}>{(note) => <Marker note={note} />}</For>;
 };
 
+/** What the note being made is, as its sheet's title names it: what it asks of its words. */
+const MAKING: Readonly<Record<NoteKind, string>> = {
+  note: 'Note',
+  correction: 'Correction',
+  removal: 'Removal',
+};
+
 /**
  * The composer, under beat `beat` while the note being made sits in it: in
- * the reader on a laptop, in a sheet over the page on a phone. Its Close
- * cancels the note, as its Cancel does.
+ * the reader on a laptop, in a sheet over the page on a phone, titled with
+ * what the note asks of its words (a note of a frame, a note; its words are
+ * its scope chip's to say). Its Close cancels the note, as its Cancel does.
  */
 export const Composer = (props: { readonly beat: string }) => {
   const { meta } = useLab();
@@ -289,11 +294,10 @@ export const Composer = (props: { readonly beat: string }) => {
           host={meta.host}
           hub={meta.hub}
           role="composer"
-          kind="note"
           class="lab-script-sheet"
           title={Option.match(state.words(), {
-            onNone: () => state.where(),
-            onSome: (w) => `“${w.text}”`,
+            onNone: () => MAKING.note,
+            onSome: () => MAKING[state.asked()],
           })}
           initialFocus={() => false}
           onClose={actions.cancel}

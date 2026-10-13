@@ -9,7 +9,8 @@
 // agent reads it. A correction saved with its words unchanged posts
 // nothing: its labelled field is marked, described by why, and has the keys.
 // The composer says where its note sits on the film's clock, as the beats'
-// heads do.
+// heads do; the cues tied to the words wait while it is open; and on a phone
+// its sheet is titled with what the note asks.
 
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Effect, FileSystem, Layer, Option, Schema } from 'effect';
@@ -418,6 +419,8 @@ describe('the Script', () => {
         const instead = `${compose} .lab-instead`;
         yield* page.click('[data-act="note-words"]');
         yield* waitFor(page, `${compose} .lab-compose:not([hidden])`);
+        // The composer is the one box open: the cues tied to the words wait until it closes.
+        yield* countIs(page, '.lab-script-ties', 0);
         yield* page.click(`${compose} [data-ask="correction"]`);
         // The field is labelled where it stands, its label the name it is known by.
         yield* textIs(page, `${compose} .lab-instead-field .lab-field-label`, 'Say instead');
@@ -440,13 +443,16 @@ describe('the Script', () => {
         yield* page.fill(instead, 'climbs slowly,');
         yield* attributeIs(page, instead, 'aria-invalid', 'false');
         yield* evaluates(page, describedBy(instead), '');
+        // Cancelled, the words are still selected, and the cues tied to them show again.
+        yield* page.click(`${compose} [data-act="cancel"]`);
+        yield* waitFor(page, '[data-scene="one"] .lab-script-ties [data-act="note-words"]');
         expect(posted(asked)).toEqual([]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
 
   it.live(
-    "on a phone, Note… on the words selected opens the composer in a sheet, and a removal saves from it to the lab's notes",
+    "on a phone, Note… on the words selected opens the composer in a sheet titled with what it asks, and a removal saves from it to the lab's notes",
     () =>
       overTheLab(
         Effect.gen(function* () {
@@ -458,7 +464,10 @@ describe('the Script', () => {
           yield* page.click('[data-act="note-words"]');
           const sheet = '.lab-script-sheet';
           yield* waitFor(page, `${sheet} .lab-compose:not([hidden])`);
+          // Titled with what the note asks of the words, as it is pressed; the words are the chip's.
+          yield* textIs(page, `${sheet} .lab-sheet-title`, 'Note');
           yield* page.click(`${sheet} [data-ask="removal"]`);
+          yield* textIs(page, `${sheet} .lab-sheet-title`, 'Removal');
           yield* page.click(`${sheet} button[type="submit"]`);
           yield* until(page, `${selects('note')} === 'n1' && !document.querySelector('${sheet}')`);
           yield* waitFor(page, '[data-scene="one"] .lab-script-noted[data-note="n1"]');

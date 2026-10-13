@@ -6,9 +6,9 @@
 // named in backticks links to them), its line as the film says it with a
 // chip for each mark and its notes on words (`notes.tsx`: painted on the
 // words, a correction's words instead after them, a marker after the last),
-// the cues tied to what is selected in it with Note… on words (`tied.tsx`),
-// the composer and the note selected while they are the beat's, and its
-// sources. The head notes the frame shown (Note frame). The line's words
+// the cues tied to what is selected in it with Note… on words (`tied.tsx`;
+// not while a note is being made), the composer and the note selected while
+// they are the beat's, and its sources. The head notes the frame shown (Note frame). The line's words
 // are laid out, painted and pressed as the Transcript's are
 // (`transcript/words.ts`): the word playing at the frame lit and the beat
 // under it edged, the words selected (`?words=a-b`) painted and the words a
@@ -208,6 +208,7 @@ const Line = (props: { readonly line: SectionRows }) => {
 const Beat = (props: { readonly beat: BeatRow }) => {
   const { meta } = useLab();
   const script = useScript();
+  const notes = useScriptNotes();
   const beat = props.beat;
   const said = () => script.said(beat.id);
   return (
@@ -260,9 +261,12 @@ const Beat = (props: { readonly beat: BeatRow }) => {
       {Option.toArray(beat.line).map((line) => (
         <Line line={line} />
       ))}
-      <Ties beat={beat.id}>
-        <NoteButton />
-      </Ties>
+      {/* While a note is being made, its composer is the one box open: its scope chip says the words. */}
+      <Show when={Option.isNone(notes.composing())}>
+        <Ties beat={beat.id}>
+          <NoteButton />
+        </Ties>
+      </Show>
       <Composer beat={beat.id} />
       <ShownNote beat={beat.id} stands="line" />
       <Show
