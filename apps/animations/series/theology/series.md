@@ -32,6 +32,10 @@ Every Christian, of any church or none, who knows a little of the Bible or nothi
 
 House rules for every episode (owner's, binding): quote only Scripture, KJV, verbatim; paraphrase Ellen White and the pioneers without naming them, credits name them; no Adventism, no denominations, no church history in speech or picture; doctrine unchanged. One narrator. One quotation per beat; quotations 20 % or less of the words. Content is never checked by code.
 
+**Unravel common theology, indirectly (owner, 2026-10-13).** The series may aim at the common Christian teachings that the Bible's plain reading unravels and corrects: an ever-burning hell, an immortal soul, a Sunday sacredness taken from tradition, the secret rapture, a law nailed to the cross, a sanctuary with nothing left to do. It never names or attacks them. It sets the plain text beside the viewer's assumption, lets the contradiction surface, and lets the better picture win. Each episode's "one small dose of the problem" is where the common view appears, stated fairly and in the viewer's own words.
+
+**Parenting as pathos (owner, 2026-10-13).** Blend the education series' parenting techniques into the emotional line: God as the Father who trains, corrects, waits and welcomes. A parent's patience, discipline that restores, a child's will won rather than broken, and the home as the first school make the doctrine felt. Typology rules still apply: a parenting picture illustrates a truth the text states, and never creates one.
+
 ## How each episode is built (the shared shape)
 
 - Cold open on a Bible scene (STORY) or a plain human picture, ending on the viewer's question.
@@ -108,7 +112,7 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
   - Found and verified but not voiced: DA 530.3 (frame); CHR 9.1, 22.1; AERS 152.1, 155.1; RH April 5, 1906, par. 6–7; PP 311.4; ST May 3, 1899, par. 18; ST November 15, 1899, par. 2.
 - **Builds on:** 02, 03, 04. **Length:** about 6:00 (666 words). **History:** OK.
 - **Note on the frame:** the god-christ frame governs. Use no Trinity words or emblems, do not settle the Son's origin, and show the Father only as veiled radiance.
-  - In this series, no line calls Jesus "the Almighty" or "Lord God Almighty", and Rev 1:8 and 4:8 are not used. The sources differ there: EGW, 1895 and 1908, gives the title to Christ, and Ms 140, 1903 says "The man Christ Jesus was not the Lord God Almighty"; Amadon 1861, the Review in 1862 and Smith in DAR give "the Almighty" to the Father.
+  - OWNER RULE (2026-10-13): do not call Jesus "the Almighty" or "Lord God Almighty", except where it clarifies how an Old Testament reference reads in the New (the LORD Isaiah saw is the One John names, Isa 6:1 with John 12:41; the "I AM" of the bush, Ex 3:14 with John 8:58 and DA 24.3). Then say it once, tied to the two texts, never as a title of address. Otherwise no line calls Jesus "the Almighty", and Rev 1:8 and 4:8 are not used. The sources differ there: EGW, 1895 and 1908, gives the title to Christ, and Ms 140, 1903 says "The man Christ Jesus was not the Lord God Almighty"; Amadon 1861, the Review in 1862 and Smith in DAR give "the Almighty" to the Father.
   - Isaiah 6 is quoted only at verse 1, with John 12:41, because J. H. Waggoner keeps verse 3's "LORD of hosts" for the Father (AERS 170.1).
   - See Open questions 11.
 
@@ -184,7 +188,7 @@ The "many things … hard to be uttered". The series motif is the veil with gold
 - **Added 2026-10-12 (from the 05 round):** the Son's return to His throne as the meat of 05's landing.
   - Sources: ST May 10, 1899, par. 16–17 ("publicly reinstated in the place of honor and glory which He voluntarily left"); PP 36.2 ("The Son of God shared the Father’s throne"); LIFIN 343.2 ("to both God and the Lamb", frame).
   - KJV: Rev 5:11–13; Zech 6:13 ("between them both").
-  - If the owner wants the "Lord God Almighty" title treated anywhere, it belongs here, with the dated wordings in a note and not in the narration (Open questions 11).
+  - The title is used only under the owner rule in 05 (to clarify an OT reference read in the NT); the dated wordings stay in a note (Open questions 11, answered).
 
 **15 · Made Like His Brethren**
 
@@ -436,7 +440,7 @@ The later church-history series is where these belong. Each item is split into w
    - GCDB 1897, which is Waggoner's sermon but carries the editor tag in the corpus;
    - years missing from the corpus for EVCO, GTI, CIS, STTHD, S23D, JEO, RDAC, SOSL, GNT, MON, RAR and HSFD.
 10. **The local EGW database.** `~/.bible/egw-paragraphs.db` on this box has no paragraph text, so `bible egw` fails. The film skill's fetch step and the frame verifier need it before any of these scripts move into `apps/animations`.
-11. **"The Lord God Almighty" (05, 14).** Added 2026-10-12. The source is asitreads.com's "Is Jesus the Lord God Almighty?" (Jason Smith, 2017/2018).
+11. **ANSWERED 2026-10-13. "The Lord God Almighty" (05, 14).** OWNER RULE (2026-10-13): do not call Jesus "the Almighty" or "Lord God Almighty", except where it clarifies how an Old Testament reference reads in the New (the LORD Isaiah saw is the One John names, Isa 6:1 with John 12:41; the "I AM" of the bush, Ex 3:14 with John 8:58 and DA 24.3). Then say it once, tied to the two texts, never as a title of address. Added 2026-10-12. The source is asitreads.com's "Is Jesus the Lord God Almighty?" (Jason Smith, 2017/2018).
 
 - The sources split:
   - **The title is Christ's:** EGW, Ms 64, 1895 = RH February 18, 1896 (Rev 1:8), and RH March 12, 1908 (Rev 4:8's cry before Christ); J. M. Stephenson, 1854.

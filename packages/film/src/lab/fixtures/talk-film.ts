@@ -99,15 +99,12 @@ export const TALK_LIBRARY: Effect.Effect<Readonly<Record<string, string>>> = Eff
 ).pipe(Effect.orDie);
 
 /** The talk's page, built as the films index builds it, playing no narration. */
-export const talkFilm = (): Promise<Film> =>
-  Effect.runPromise(
-    Effect.map(
-      Effect.promise(() =>
-        talkFilms({ [TALK]: () => Effect.runPromise(Effect.succeed({ talk: TALK_EDIT })) })[TALK](),
-      ),
-      (page) => page.film({ audio: '' }),
-    ),
-  );
+export const talkFilm: Effect.Effect<Film> = Effect.map(
+  Effect.promise(() =>
+    talkFilms({ [TALK]: () => Effect.runPromise(Effect.succeed({ talk: TALK_EDIT })) })[TALK](),
+  ),
+  (page) => page.film({ audio: '' }),
+);
 
 /** The footage library's files (`TALK_LIBRARY`) answered in the page, by path: the lab's fake server has no footage route. */
 const libraryClient: Layer.Layer<HttpClient.HttpClient> = Layer.effect(
@@ -136,18 +133,15 @@ const libraryClient: Layer.Layer<HttpClient.HttpClient> = Layer.effect(
  * `bundles.ts`), so it draws its captions over nothing. The lab reads it a
  * talk all the same by its words (`GET …/talk`), which a test answers.
  */
-export const labTalkFilm = (): Promise<Film> =>
-  Effect.runPromise(
-    Effect.map(
-      Effect.promise(() =>
-        talkFilms(
-          { [TALK]: () => Effect.runPromise(Effect.succeed({ talk: TALK_EDIT })) },
-          libraryClient,
-        )[TALK](),
-      ),
-      (page) => {
-        const { footageAt: _footage, ...film } = page.film({ audio: '' });
-        return film;
-      },
-    ),
-  );
+export const labTalkFilm: Effect.Effect<Film> = Effect.map(
+  Effect.promise(() =>
+    talkFilms(
+      { [TALK]: () => Effect.runPromise(Effect.succeed({ talk: TALK_EDIT })) },
+      libraryClient,
+    )[TALK](),
+  ),
+  (page) => {
+    const { footageAt: _footage, ...film } = page.film({ audio: '' });
+    return film;
+  },
+);

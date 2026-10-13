@@ -20,7 +20,7 @@ Record each in the ledger's performance table with the HEAD hash. There is no st
 
 **Load rule.** Record `uptime` with every time. At a load average over 4 a time claims nothing, neither a win nor a regression: on a busy box the same code measured 17 minutes apart moved 49 % in wall time, and CPU time did not remove it (the contention is in the cores). Claim with the work-per-frame counts instead, and take times again on a quiet box.
 
-## Where time goes in a canvas film (look here first)
+## Where time goes in a frame (look here first)
 
 1. **Per-point allocation.** `Pt` tuples built per point per frame (`[x, y]` in `quad`, `spline`, `line`, boil jitter, `blob`) are the usual cost. The pmndrs `math` answer: caller-owned scratch arrays and functions that write into `out`. Shapes that do not change with `T` (a `blob` with a fixed seed, a `rounded` rect) are built once at module scope, not per frame; `robe.ts` and the kit already do this for some.
 2. **Path rebuilds.** A `Path2D` for a static shape can be built once and stroked many times; a boiling outline changes with the boil frame only (a few times a second), so it can be keyed by `(shape, boil frame)` inside one frame's work only if that keeps frames pure. Measure before adding any cache.
@@ -28,6 +28,7 @@ Record each in the ledger's performance table with the HEAD hash. There is no st
 4. **Text.** `measureText` and font shaping per frame for text that does not change; wrap results can be computed once per text and style.
 5. **Randomness and noise.** `hash2`, `rng` and boil jitter per point: compare with `math/random` (`mulberry32`) and `math/noise`, which are allocation-free and benchmarked.
 6. **Render pipeline.** Pages, chunk size and encoder settings (`packages/film/src/tools/renderer.ts`, `render-plan.ts`): Remotion's concurrency and benchmark command are the prior art.
+7. **Rive rigs.** A rig's frame makes, poses, draws and deletes its own artboard instance (`canvas/rive.ts` `drawRig`): that is its purity, never traded for a kept instance. The accused poses in 89 µs in Bun; a page draws it in 0.60 ms on `canvas` and about 19 ms on `webgl2` under SwiftShader, Chrome's software GPU (`packages/film/README.md` § Rive, this Mac). A `webgl2` rig cannot be timed in a Mac render, whose Chrome has no WebGL ([`RIVE.md`](../film/RIVE.md)): time it in a browser test's page or on Linux, and name the host.
 
 ## Measured and rejected
 

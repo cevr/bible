@@ -1,11 +1,11 @@
-# Sabbath School — Weekly Lesson Outline
+# Sabbath School — Guided Weekly Session
 
 ## When to use
 
 User asks for a Sabbath School outline for a specific week, or "this week's
-Sabbath School", or "process Q2 W5 2026". Output is a teacher's outline
-derived from the official Adventist Beliefs Study Guide PDF + the EGW Notes
-PDF for that week.
+Sabbath School", or "process Q2 W5 2026". Output is a guided teaching session: one
+present-truth theme for the week, reached by a fixed sequence of movements.
+The official lesson PDF + EGW Notes PDF supply the subject and readings.
 
 There is no `bible sabbath-school process` AI command anymore — the agent
 fetches the PDFs and generates the outline directly.
@@ -59,79 +59,126 @@ bible verse "<key verse from the lesson>" --json
 bible egw lookup "<refcode cited by the lesson>" --json
 ```
 
-## Output shape
+## Output shape — a guided session, not a day-by-day survey
 
-The voice and marker family are the universal teaching format —
-`references/teachings.md` — scoped to the week's lesson: scannable
-telegraphic bullets, no prose, a bold thesis, `[SOP]`/`[PIONEER]` witness
-lines, and the interpretive method of `SKILL.md` ("Hermeneutic & Sources"):
-**Miller's 14 Rules** and the **EGW + SDA-pioneer corpus — historic pioneer
-Adventism, not modern Adventism**. The lesson PDFs set the week's frame; the
-pioneer reading governs how its proof-texts are interpreted. Where the
-quarterly's reading and the pioneer reading diverge, teach the pioneer
-position from Scripture (charitably, with the verses on the table).
+The teacher walks the class down one road. The week has **one overarching
+theme**, phrased as present truth — righteousness by faith, the third
+angel's message "in verity" — and the session is a fixed sequence of
+**movements** that leads the class to it, then to a decision. The
+quarterly's days are raw material, not the structure: each movement says
+which days it draws on, and a day that doesn't serve the theme is left out.
 
-Gather before writing (Phase 1 of `references/teachings.md`): pull the
-week's verses via `bible verse`, and hunt EGW + pioneer witnesses for each
-day's subtopic via `bible egw search`/`lookup` — beyond what the EGW Notes
-PDF hands you.
+**Finding the theme.** Read the lesson and EGW Notes PDFs, then ask: where
+does this week's subject meet Christ our righteousness? The theme is the
+answer, in one sentence a class member can repeat. Everything in the
+session serves it; a good point that doesn't is cut.
+
+**Guided, not open-ended.** Every question the teacher asks has a
+prepared answer, read from the text just on the table. The teacher never
+asks "what do you think?" without knowing where the answer goes. The class
+reads the verses aloud; the teacher says the point, asks, confirms, and
+moves on.
+
+The voice and line grammar are the universal teaching format —
+`references/teachings.md` — and the interpretive method is `SKILL.md`'s
+("Hermeneutic & Sources"): **Miller's 14 Rules** and the **EGW +
+SDA-pioneer corpus — historic pioneer Adventism, not modern Adventism**.
+Where the quarterly's reading and the pioneer reading diverge, teach the
+pioneer position from Scripture, charitably, with the verses on the table.
+
+Gather before writing (Phase 1 of `references/teachings.md`): pull every
+verse via `bible verse`, and hunt EGW + pioneer witnesses for each movement
+via `bible egw search`/`lookup` — the 1888 periodicals (1893 Bulletin,
+Present Truth, Signs, Review) as well as the books.
 
 ```markdown
 # Sabbath School — Q[QUARTER] W[WEEK] ([YEAR])
 
-## [Lesson Title]
+## [The week's theme, as a title]
+
+_Quarterly: [lesson title] · [dates] · Read: [the lesson's readings]_
 
 **Memory Verse:** — _Book X:Y._ "[verse text]"
 
-**[Burden — ONE bold sentence: the week compressed.]**
+**Theme: [ONE bold sentence — the present truth the class leaves with.]**
 
-## MAP
+## The road
 
-1. Sabbath — [phrase] — [anchor ref]
-2. Sunday — [phrase] — [anchor ref]
-   ... (one line per day)
-3. Appeal
-
-[Q] index: [objection]? →[day] · [objection]? →[day]
-
----
-
-## 1. Sabbath Afternoon — [Anchor Ref]
-
-> [Day burden — ≤2 lines.]
-
-- _Ref._ "anchor verse quoted in full" — gloss
-- chain: Ref (gloss) → Ref (gloss) → Ref (gloss)
-
-[SOP REFCODE] "punchline ≤30 words" — why this quote
+1. [Movement phrase] — [anchor ref] _(quarterly: Sun, Mon)_
+2. [Movement phrase] — [anchor ref] _(quarterly: Tue)_
+3. [Movement phrase] — [anchor ref] _(quarterly: Wed, Thu)_
+4. [Movement phrase] — [anchor ref] _(quarterly: Fri)_
+5. Decision
 
 ---
 
-## 2. Sunday — [Subtopic] — [Anchor Ref]
+## Open
 
-(... same shape; [WB] board moves where a day has a shape;
-[PIONEER Name, REFCODE] wherever a pioneer carries the day's point ...)
-
----
-
-## 7. Friday — Further Thought — [Anchor Ref]
-
-- EGW Notes PDF citations as [SOP REFCODE] lines
-- [TANGENT] hop-chain: Ref (gloss) → Ref (gloss) → Ref (gloss)
+- **Say:** [the question the whole session answers — one or two lines]
+- _Ref._ "the memory verse or the week's key text" — gloss
+- [RQ] [an opening question with one right answer in that text]
+  → [the answer, from the text]
 
 ---
 
-## 8. Appeal
+## 1. [Movement phrase] — [Anchor Ref]
 
-- the week's central truth pressed home — decision language
-- _Ref._ "closing scripture"
+- **Say:** [the movement's point, in one or two lines, as the teacher says it]
+- _Ref._ "verse, read aloud" — gloss
+- _Ref._ "verse" — gloss
+- [RQ] [question with a prepared answer]
+  → [the answer, quoting or citing the verse just read]
+- [RQ] [follow-up that moves the class one step toward the theme]
+  → [answer]
+
+[WB]: [the board move, when the point has a shape]
+
+[SOP REFCODE] "punchline ≤30 words" — why it lands here
+
+- **Bridge:** [one line that hands the class to the next movement]
+
+---
+
+## 2. ... (3–5 movements, same shape)
+
+---
+
+## Decision
+
+- **Say:** [the theme pressed home — what God offers, what He asks]
+- _Ref._ "closing scripture" — gloss
+- [RQ] [the decision question, answered by faith, not by effort]
+  → [the answer]
+
+[SOP or PIONEER REFCODE] "the closing witness"
+
+---
+
+## If asked
+
+- [Q] [a predictable objection]?
+  → [refs + one-line answer]
 ```
 
-Line grammar and marker set are `references/teachings.md`'s — ref-first
-verse bullets with em-dash glosses, `[WB]`, `[SOP REFCODE]`,
-`[PIONEER Name, REFCODE]`, `[Q]`/`[RQ]`, `[Aside]`, `[TANGENT]` hop-chains,
-one-line `[→]`, contrasts as tables, one-screen sections, self-contained
-days.
+Rules of the shape:
+
+- **3–5 movements**, each one screen. Each has a **Say**, the verses the
+  class reads, one or two `[RQ]` questions with `→` answers, at most one
+  witness, and a **Bridge** — except the last movement, which bridges to
+  the Decision.
+- **One witness per movement**, the strongest the corpus has: a pioneer of
+  the 1888 message where one carries the point, otherwise SOP. Witness lines
+  follow `references/teachings.md` (refcode first, ≤30 words, one
+  contiguous clause).
+- **Every `[RQ]` has its `→` answer**, and the answer is in a verse already
+  read. No open discussion prompts.
+- **The road is the MAP**: one line per movement, with the quarterly days
+  it covers in italics, so the teacher can see what the class studied at
+  home.
+- **If asked** holds the two or three objections the week's subject
+  predictably raises, each a `[Q]` with a one-line `→` answer. It replaces
+  the `[Q]` index.
+- No time guides, no day-by-day sections, no prose paragraphs.
 
 ## Frontmatter
 
@@ -142,6 +189,8 @@ year: 2026
 quarter: 2
 week: 5
 title: '[Lesson title]'
+theme: '[The week's theme, as a title]'
+topic: righteousness-by-faith
 ---
 ```
 
@@ -172,14 +221,14 @@ bible export -f outputs/sabbath-school/2026-Q2-W5.md
 ## Anti-patterns
 
 - **Don't generate without fetching the PDFs first** — the lesson + EGW
-  Notes PDFs are the source of truth for the week's content.
-- **Don't write prose paragraphs** — the thesis block is the only
-  multi-sentence run; everything else is scannable bullets and markers.
+  Notes PDFs are where the week's subject and readings come from.
+- **Don't follow the quarterly day by day** — find the theme, then build
+  the road to it. A day that doesn't serve the theme is left out.
+- **Don't ask a question you haven't answered** — every `[RQ]` carries its
+  `→` answer from a verse on the table.
+- **Don't stack witnesses** — one per movement, the strongest.
+- **Don't write prose paragraphs** — Say lines and bullets only.
 - **Don't paraphrase EGW from the EGW Notes PDF** — quote with the refcode.
-- **Don't drift from the lesson's daily structure** — Sabbath afternoon /
-  Sun–Fri / Discussion Questions is the format SS teachers expect.
-- **Don't skip the memory verse** — it anchors the week.
-- **Don't treat the EGW Notes section as optional** — it's where the
-  pioneer voice carries the week.
+- **Don't skip the memory verse** — it anchors the Open.
 - **Don't fabricate quarter/week numbers** — calculate from today's date or
   ask the user.

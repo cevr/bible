@@ -99,6 +99,15 @@ export const variantFlag = Flag.String('variant').pipe(
   ),
 );
 
+/** `render`'s `--variant name`: unset, a wedge's render is named for its levels (`wedgeVariant`), any other `main`. */
+export const renderVariantFlag = Flag.String('variant').pipe(
+  Flag.withSchema(RenderVariantName),
+  Flag.optional,
+  Flag.withDescription(
+    'which render: a look or score option, named in lower case (default main; with --level, named for the levels, e.g. style-ps1); its files are named for it',
+  ),
+);
+
 const sceneIds = Flag.String('scene').pipe(
   Flag.optional,
   Flag.map(Option.map((ids: string) => ids.split(','))),
@@ -454,6 +463,7 @@ const renderScenes = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
               out: Option.none(),
               share: Option.some(input.share),
               encoder: input.encoder,
+              server: Option.none(),
             }),
           );
           const output = yield* recordOutput(

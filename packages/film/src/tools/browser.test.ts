@@ -52,10 +52,11 @@ describe('launchArgs', () => {
     ]);
   });
 
-  test('Linux gets no macOS-only backend; the canvas draws in software everywhere', () => {
+  test('Linux gets no macOS-only backend, and WebGL on SwiftShader by name; the canvas draws in software everywhere', () => {
     expect(launchArgs('linux')).toEqual([
       '--disable-gpu-vsync',
       '--disable-frame-rate-limit',
+      '--enable-unsafe-swiftshader',
       '--disable-accelerated-2d-canvas',
     ]);
   });

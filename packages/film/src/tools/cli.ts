@@ -27,6 +27,7 @@ import {
   Cause,
   Console,
   Effect,
+  FileSystem,
   Layer,
   Logger,
   Option,
@@ -37,7 +38,6 @@ import {
   Schema,
   Stdio,
 } from 'effect';
-import type { FileSystem } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
 import type { ChildProcessSpawner } from 'effect/process';
 import { type AddressFlags, type Scope, addressOf, resolveAddress } from '../core/address.ts';
@@ -80,7 +80,9 @@ import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
 import { labAllowed, labLink } from './lab.ts';
 import type { LabAt } from './api-server.ts';
-import type { LabPageSpec } from './lab-page.ts';
+import { type LabPageSpec, PageBundler } from './lab-page.ts';
+import { PALETTE_FILE, paletteSwaps, wedgeServer } from './wedge.ts';
+import { levelsOf, wedgeVariant } from '../core/easel.ts';
 import { filmServices, labPages, startLab } from './film-services.ts';
 import { look } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
@@ -107,7 +109,7 @@ import { answeringCheck, encodeCheckLine } from './fresh-film.ts';
 import { sfx } from './sfx-cli.ts';
 import { SoundLibrary } from './library.ts';
 import { type EncoderReadyError, Renderer, encoderReady } from './renderer.ts';
-import { project, renderAndRecord, variantFlag } from './project-cli.ts';
+import { project, renderAndRecord, renderVariantFlag, variantFlag } from './project-cli.ts';
 import { Stamps, stampOf } from './stamp.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
 
@@ -528,14 +530,25 @@ const cues = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
   );
 };
 
-const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
-  const layout = Effect.fn('film.check.layout')(function* (
-    loaded: LoadedFilm,
-    scope: Scope,
-    workers: number,
-  ) {
-    return yield* layoutLeg(loaded, scope, workers);
-  }, Effect.provide(checkLayer));
+const check = <E, R>(
+  checkLayer: Layer.Layer<Checker | Looker, E, R>,
+  renderPage: string,
+  films: string,
+) => {
+  // A wedge's pages draw on its own server (`--level`), held while the leg runs.
+  const layout = Effect.fn('film.check.layout')(
+    function* (
+      loaded: LoadedFilm,
+      scope: Scope,
+      workers: number,
+      swaps: ReadonlyMap<string, string>,
+    ) {
+      const server = yield* wedgeServer(renderPage, films, swaps);
+      return yield* layoutLeg(loaded, scope, workers, server);
+    },
+    Effect.scoped,
+    Effect.provide(Layer.merge(checkLayer, PageBundler.layer)),
+  );
   const onShort = Effect.fn('film.check.short')(function* (
     loaded: LoadedFilm,
     declared: Short,
@@ -590,6 +603,12 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
           "the platform's safe zone a short's text is held to: default (the feed) or ads (the bottom 35% covered)",
         ),
       ),
+      level: Flag.String('level').pipe(
+        Flag.atLeast(0),
+        Flag.withDescription(
+          "look=level: draw that look (palette.ts's looks) at that level, not the one it plays, the pick unwritten (a wedge), in --draw and the page legs; repeat for more looks",
+        ),
+      ),
     },
     Effect.fn('film.check')(function* (input) {
       yield* Effect.fromResult(
@@ -599,12 +618,19 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
             sound: Option.liftPredicate(input.sound, Boolean),
             draw: Option.liftPredicate(input.draw, Boolean),
             short: input.short,
+            level: Arr.head(input.level),
           }),
           CHECK_RULES,
         ),
       );
       const options = { allowStale: input.allowStale };
       const loaded = yield* (yield* FilmRepo).load(input.film);
+      // `--level`: the palette as the picks would write it, for the legs that draw.
+      const swaps = yield* paletteSwaps(
+        yield* FileSystem.FileSystem,
+        (yield* Path.Path).join(loaded.paths.dir, PALETTE_FILE),
+        yield* Effect.fromResult(levelsOf(input.level)),
+      );
       const address = yield* Effect.fromResult(addressOf(input));
       // A film that does not lay out, or a misspelt act, scene or short, is the
       // one finding: reported at its scene, rather than probing nothing.
@@ -618,10 +644,10 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
         return yield* printReport(declared.id, 'short', report(found, options), input.json);
       }
       const found: Array<Finding> = [...(yield* staticLeg(loaded, placed))];
-      if (input.draw) found.push(...(yield* drawLeg(loaded, scope)));
+      if (input.draw) found.push(...(yield* drawLeg(loaded, scope, swaps)));
       if (!input.static && !input.draw) found.push(...(yield* soundLeg(loaded, placed)));
       if (!input.static && !input.sound && !input.draw)
-        found.push(...(yield* layout(loaded, scope, input.workers)));
+        found.push(...(yield* layout(loaded, scope, input.workers, swaps)));
       yield* printReport(input.film, 'film', report(found, options), input.json);
     }, answeringCheck),
   ).pipe(
@@ -651,7 +677,16 @@ const printReport = Effect.fn('film.check.report')(function* (
 /** `--stills 3,10.5`: seconds, each a finite number. */
 const Seconds = Schema.Array(Schema.FiniteFromString);
 
-const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
+/**
+ * `film render`, drawn on the app's PreviewServer, or with `--level` on a
+ * wedge of its render page (`renderPage`, the films' narration from `films`):
+ * the look at that level, the palette's pick unwritten (`tools/wedge.ts`).
+ */
+const render = <E, R>(
+  renderLayer: Layer.Layer<Renderer, E, R>,
+  renderPage: string,
+  films: string,
+) =>
   Command.make(
     'render',
     {
@@ -684,7 +719,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         Flag.withDefault(true),
         Flag.withDescription('burn the captions in (--no-captions to leave them out)'),
       ),
-      variant: variantFlag,
+      variant: renderVariantFlag,
       out: Flag.String('out').pipe(
         Flag.optional,
         Flag.withDescription(
@@ -709,36 +744,57 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
           'render this short instead: its spans back to back at 1080×1920, to out/<film>/shorts/<id>/<variant>.mp4 (--from/--to in its seconds)',
         ),
       ),
+      level: Flag.String('level').pipe(
+        Flag.atLeast(0),
+        Flag.withDescription(
+          "look=level: render that look (palette.ts's looks) at that level, not the one it plays, the pick unwritten (a wedge); repeat for more looks; the file is named for the levels (style-ps1) unless --variant names it",
+        ),
+      ),
     },
-    Effect.fn('film.render')(function* (input) {
-      const loaded = yield* (yield* FilmRepo).load(input.film);
-      const placed = yield* placeFilm(loaded);
-      // `--act` and `--scene` set the range from the film's own layout; `--short` cuts to it.
-      const scope = yield* scopeOf(loaded, placed, input);
-      const stills = yield* Option.match(input.stills, {
-        onNone: () => Effect.succeedNone,
-        onSome: (list) => Effect.asSome(Schema.decodeEffect(Seconds)(list.split(','))),
-      });
-      // What it draws, stamped before the first frame: the sources as they stand now.
-      const stamp = stampOf(yield* (yield* Stamps).scenes(loaded, placed), scope);
-      const job = yield* Effect.fromResult(
-        jobOf({
-          variant: input.variant,
-          captions: input.captions,
-          workers: input.workers,
-          stills,
-          contact: input.contact,
-          scope,
-          from: input.from,
-          to: input.to,
-          scale: input.scale,
-          out: input.out,
-          share: input.share,
-          encoder: input.encoder,
-        }),
-      );
-      yield* renderAndRecord(loaded, scope, job, stamp);
-    }, Effect.provide(renderLayer)),
+    Effect.fn('film.render')(
+      function* (input) {
+        const loaded = yield* (yield* FilmRepo).load(input.film);
+        const placed = yield* placeFilm(loaded);
+        // `--act` and `--scene` set the range from the film's own layout; `--short` cuts to it.
+        const scope = yield* scopeOf(loaded, placed, input);
+        const stills = yield* Option.match(input.stills, {
+          onNone: () => Effect.succeedNone,
+          onSome: (list) => Effect.asSome(Schema.decodeEffect(Seconds)(list.split(','))),
+        });
+        // `--level`: the palette as the picks would write it, built and served for this render alone.
+        const levels = yield* Effect.fromResult(levelsOf(input.level));
+        const variant = yield* Effect.fromResult(wedgeVariant(input.variant, levels));
+        const path = yield* Path.Path;
+        const swaps = yield* paletteSwaps(
+          yield* FileSystem.FileSystem,
+          path.join(loaded.paths.dir, PALETTE_FILE),
+          levels,
+        );
+        const server = yield* wedgeServer(renderPage, films, swaps);
+        // What it draws, stamped before the first frame: the sources as they stand now, at its levels.
+        const stamp = stampOf(yield* (yield* Stamps).scenes(loaded, placed), scope, levels);
+        const job = yield* Effect.fromResult(
+          jobOf({
+            variant,
+            captions: input.captions,
+            workers: input.workers,
+            stills,
+            contact: input.contact,
+            scope,
+            from: input.from,
+            to: input.to,
+            scale: input.scale,
+            out: input.out,
+            share: input.share,
+            encoder: input.encoder,
+            server,
+          }),
+        );
+        yield* renderAndRecord(loaded, scope, job, stamp);
+      },
+      Effect.scoped,
+      Effect.provide(Layer.merge(renderLayer, PageBundler.layer)),
+    ),
   ).pipe(
     Command.withDescription(
       "Render a film, an act or scenes to its project folder, out/<film>/<address>/<variant>.mp4 (+ .vtt captions), stills, or a contact sheet; or one of its shorts (--short); each recorded in the folder's catalogue.json",
@@ -772,10 +828,11 @@ const lookbook = <E, R>(lookLayer: Layer.Layer<Renderer | Looker, E, R>) =>
           address: whole.address,
           variant: input.variant,
           captions: input.captions,
+          server: Option.none(),
         }),
         stamp,
       );
-      const looked = yield* (yield* Looker).look(loaded, DRAW_WORKERS, whole);
+      const looked = yield* (yield* Looker).look(loaded, DRAW_WORKERS, whole, Option.none());
       for (const line of lookLines(looked.looks, whole.acts)) yield* Console.log(line);
     }, Effect.provide(lookLayer)),
   ).pipe(
@@ -930,8 +987,8 @@ export const runFilmCli = <E>({
       options,
       read,
       cues(checkLayer),
-      check(checkLayer),
-      render(renderLayer),
+      check(checkLayer, labApp.pages.pages.render, films),
+      render(renderLayer, labApp.pages.pages.render, films),
       project(renderLayer),
       lookbook(lookLayer),
       chaptersCommand,

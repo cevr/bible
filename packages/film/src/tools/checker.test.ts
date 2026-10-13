@@ -50,7 +50,7 @@ const setup = (host: FakeRenderHost = {}, checked: LoadedFilm = film) => {
           address,
         ),
       );
-      return yield* (yield* Checker).layout(checked, { workers: 2, scope });
+      return yield* (yield* Checker).layout(checked, { workers: 2, scope, server: Option.none() });
     }).pipe(Effect.provide(layer));
   return { ledger, check };
 };

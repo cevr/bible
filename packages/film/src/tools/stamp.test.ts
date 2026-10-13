@@ -142,6 +142,12 @@ describe('scene keys', () => {
         resolveAddress({ name: 'f', placed, look: Option.none(), shorts: [] }, { _tag: 'Film' }),
       );
       expect(stampOf(keys, whole).key).not.toEqual(stamp.key);
+      // A wedge (`render --level`) is another stamp, its levels in any order the same;
+      // no levels is the stamp as written.
+      expect(stampOf(keys, scope, {}).key).toEqual(stamp.key);
+      const wedged = stampOf(keys, scope, { style: 'ps1', ground: 'light' }).key;
+      expect(wedged).not.toEqual(stamp.key);
+      expect(stampOf(keys, scope, { ground: 'light', style: 'ps1' }).key).toEqual(wedged);
     }).pipe(Effect.provide(fixture)),
   );
 });

@@ -46,7 +46,12 @@ interface StandInLinear {
 interface StandInCanvas {
   width: number;
   height: number;
-  readonly getContext: () => CanvasRenderingContext2D;
+  /**
+   * Its 2D stand-in; any other kind (`webgl2`, `webgl`) is none, as a canvas
+   * that cannot make one answers, so a look drawn in 3D (`glCanvas`) falls
+   * back rather than drive a 2D recorder as a GL context.
+   */
+  readonly getContext: (kind?: string) => CanvasRenderingContext2D | null;
   readonly drawn: Recorder;
   /** Its number, in the order stand-in canvases are made: a log of calls tells canvases apart by it. */
   readonly made: number;
@@ -494,7 +499,7 @@ const standInCanvas = (options: StandInOptions = {}): StandInCanvas => {
     width: 0,
     height: 0,
     made: canvasesMade,
-    getContext: () => canvas.drawn.ctx,
+    getContext: (kind = '2d') => (kind === '2d' ? canvas.drawn.ctx : null),
     get drawn() {
       drawn ??= recorder(canvas.width, canvas.height, options);
       return drawn;
@@ -505,12 +510,17 @@ const standInCanvas = (options: StandInOptions = {}): StandInCanvas => {
 
 /** The global the stand-in DOM replaces, as it was. */
 interface Globals {
+  /** Whether there was one: where there was none (Bun), none is left behind. */
+  readonly had: boolean;
   readonly document: unknown;
 }
 
 const putUp = (options: StandInOptions) =>
   Effect.sync((): Globals => {
-    const before = { document: Reflect.get(globalThis, 'document') };
+    const before = {
+      had: Reflect.has(globalThis, 'document'),
+      document: Reflect.get(globalThis, 'document'),
+    };
     // Its fonts hold none a film asked for: what draws waits for nothing (`pictureFacesWait`).
     Reflect.set(globalThis, 'document', {
       createElement: () => standInCanvas(options),
@@ -521,7 +531,8 @@ const putUp = (options: StandInOptions) =>
 
 const takeDown = (before: Globals) =>
   Effect.sync(() => {
-    Reflect.set(globalThis, 'document', before.document);
+    if (before.had) Reflect.set(globalThis, 'document', before.document);
+    else Reflect.deleteProperty(globalThis, 'document');
   });
 
 /**

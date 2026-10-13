@@ -9,7 +9,7 @@
 // drawing is the browser's (`draw-stills.ts`, handed in by the page's
 // browser entry): the server's render draws none.
 
-import { Effect, Equivalence, Fiber, Option } from 'effect';
+import { Effect, Equivalence, Exit, Fiber, Option, Scope } from 'effect';
 import type { Context } from 'effect';
 import { type Accessor, createMemo, createSignal, onCleanup, untrack } from 'solid-js';
 import { monotonicMs } from '../../../browser/host.ts';
@@ -97,8 +97,9 @@ export const useOnScreenFirst = (want: (times: ReadonlyArray<number>) => void): 
 
 /**
  * How the page draws a film's stills, given its turn between two and its
- * clock: the film's code loaded, then its stills made (`drawStills`, the
- * browser's); none for a film the page has no code for.
+ * clock: the film's code loaded into the scope they are drawn in (what it
+ * holds, its Rive rigs, freed when that scope closes), then its stills made
+ * (`drawStills`, the browser's); none for a film the page has no code for.
  */
 export type DrawStills = (
   film: string,
@@ -107,7 +108,7 @@ export type DrawStills = (
     readonly now: () => number;
     readonly footage: Context.Context<Footage>;
   },
-) => Option.Option<Effect.Effect<FilmStills, 'load-failed'>>;
+) => Option.Option<Effect.Effect<FilmStills, 'load-failed', Scope.Scope>>;
 
 /** No film's stills: the server's render, which draws no film. */
 export const noStills: DrawStills = () => Option.none();
@@ -116,7 +117,8 @@ export const noStills: DrawStills = () => Option.none();
  * The stills of `film`'s scenes, while the calling component lives: drawn
  * from its code (none when the app has none, the server's render's case, and
  * none when it fails to load, said in the page's log), a still a turn, the
- * scenes on screen first.
+ * scenes on screen first. The film is loaded into a scope the component owns
+ * and closes when it goes, so each mount's film frees what it holds.
  */
 export const useSceneStills = (film: string): SceneStills => {
   const { meta } = useReview();
@@ -158,8 +160,12 @@ export const useSceneStills = (film: string): SceneStills => {
     }).pipe(
       Effect.catch((why) => Effect.logInfo(`project.stills-none film=${film} reason=${why}`)),
     );
-    const fiber = Effect.runForkWith(meta.host)(drawing);
-    onCleanup(() => Effect.runFork(Fiber.interrupt(fiber)));
+    // The film's scope: this mount's, closed with it (after its drawing stops).
+    const scope = Scope.makeUnsafe();
+    const fiber = Effect.runForkWith(meta.host)(Scope.provide(drawing, scope));
+    onCleanup(() =>
+      Effect.runFork(Effect.andThen(Fiber.interrupt(fiber), Scope.close(scope, Exit.void))),
+    );
   });
   return {
     of: (scene) => {

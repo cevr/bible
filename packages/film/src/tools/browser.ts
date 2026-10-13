@@ -210,12 +210,16 @@ const SETTLE = Duration.seconds(1);
  * is drawn. On macOS the GPU process runs too, through Metal (a macOS-only
  * ANGLE backend): it holds the hardware H.264 encoder a render encodes with.
  * Elsewhere the page encodes in software when it finds no hardware encoder
- * (`chooseEncoder`, player/encode.ts).
+ * (`chooseEncoder`, player/encode.ts), and WebGL (a look drawn in 3D,
+ * `canvas/gl.ts`) runs on SwiftShader, Chrome's software GPU, asked for by
+ * name: Chrome is withdrawing the fallback it takes to it unasked, and
+ * without it a 3D look would draw its 2D fallback in a render, silently.
  */
 export const launchArgs = (platform: string): ReadonlyArray<string> => [
   '--disable-gpu-vsync',
   '--disable-frame-rate-limit',
   ...Arr.filter(['--enable-gpu', '--use-angle=metal'], () => platform === 'darwin'),
+  ...Arr.filter(['--enable-unsafe-swiftshader'], () => platform !== 'darwin'),
   '--disable-accelerated-2d-canvas',
 ];
 

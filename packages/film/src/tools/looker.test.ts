@@ -71,7 +71,7 @@ const setup = () => {
           address,
         ),
       );
-      return yield* (yield* Looker).look(film, 2, scope);
+      return yield* (yield* Looker).look(film, 2, scope, Option.none());
     }).pipe(Effect.provide(layer));
   return { ledger, look };
 };
