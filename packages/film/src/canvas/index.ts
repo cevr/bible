@@ -60,7 +60,7 @@ export {
   UNMOVED,
 } from './camera.ts';
 export { scenesOf } from './scenes.ts';
-export { type Film, type Frame, type Light, type SceneSpec, createFilm, drawing } from './film.ts';
+export { type Frame, type Light, type SceneSpec, createFilm, drawing } from './film.ts';
 export { shortPages } from './short.ts';
 export {
   type Box,
