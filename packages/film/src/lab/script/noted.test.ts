@@ -1,5 +1,5 @@
 // The notes on the Script's words: each on the words of its line where they
-// still read as they did, else on the first run of the line that does, else
+// still read as they did, else on the one run of the line that does, else
 // at the line's end; the reader shows each until it is resolved, and the one
 // selected whatever its status; a note's words are underlined, a
 // correction's or a removal's struck.
@@ -50,10 +50,19 @@ describe('where a note on words stands in its line', () => {
     expect(placed(line, words(3, 4, 'are saved'))).toEqual([3, 4]);
   });
 
-  test('on the first run that reads as they did, once a word before them moved them', () => {
+  test('on the one run that reads as they did, once a word before them moved them', () => {
     const moved = lineOf('gift', 'By His grace you are saved through faith');
     expect(placed(moved, words(1, 1, 'grace'))).toEqual([2]);
     expect(placed(moved, words(3, 4, 'are saved'))).toEqual([4, 5]);
+  });
+
+  test('nowhere, once they moved and two runs read as they did: which one it meant is lost', () => {
+    // The second "faith" of "By faith we walk by faith", once "living" came after "By".
+    const walk = lineOf('gift', 'By faith we walk by faith');
+    expect(placed(walk, words(5, 5, 'faith'))).toEqual([5]);
+    const moved = lineOf('gift', 'By living faith we walk by faith');
+    expect(placed(moved, words(5, 5, 'faith'))).toEqual([]);
+    expect(placed(moved, words(3, 4, 'we walk'))).toEqual([3, 4]);
   });
 
   test('nowhere, once the line no longer says them', () => {
