@@ -66,7 +66,9 @@ export const DEVICES: ReadonlyArray<Device> = [PHONE, LAPTOP];
  * UI-reduction sweep's `count.js` counts them; Progressive
  * disclosure: a thing earns a place at rest by being used in most visits).
  * A budget is raised only in the commit that adds the thing, saying why
- * most visits use it.
+ * most visits use it. A film's views count the page bar, a tab for each of
+ * the studio's parts (`PARTS`): the Script's tab raised each that had no
+ * room by one, as a part is how a visit goes from one to another.
  */
 export interface Budget {
   readonly phone: number;
@@ -76,7 +78,7 @@ export interface Budget {
 /** A view's budget: at most `phone` things on a phone, `laptop` on a laptop. */
 export const most = (phone: number, laptop: number): Budget => ({ phone, laptop });
 /** The Lab's Edit: its budget, which a planted button or a planted line of text passes (the budget's positive controls). */
-export const LAB_EDIT = most(50, 54);
+export const LAB_EDIT = most(51, 55);
 
 /** A page in one state: how it opens on a device, what discloses the state, and the layer measured. */
 export interface State {
@@ -514,9 +516,9 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(CHOICES, ...CHOICES_READY),
       disclose: AT_REST,
       // The kinds strip's four tabs are its index on a page this long.
-      budget: most(45, 33),
+      budget: most(46, 33),
       // Its levels, kinds and rows below the fold: a state word back on every row lands here.
-      page: most(99, 100),
+      page: most(100, 101),
     },
     {
       name: "Choices, a variant's inspector",
@@ -553,8 +555,8 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'Project, its panels, stills and dock, with comment counts',
       open: review(PROJECT, ...PROJECT_READY),
       disclose: AT_REST,
-      budget: most(38, 30),
-      page: most(39, 44),
+      budget: most(39, 31),
+      page: most(40, 45),
     },
     {
       name: "Project, a scene row's sheet",
@@ -577,7 +579,7 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'a Set, with a comment count',
       open: review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video', '[data-comments]'),
       disclose: AT_REST,
-      budget: most(27, 28),
+      budget: most(28, 29),
     },
     {
       name: "a Set, the transport's rate chip menu",
@@ -589,13 +591,13 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'a Set, its wipe (the grip a slider)',
       open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=wipe`, '.rv-wipe-grip'),
       disclose: AT_REST,
-      budget: most(33, 27),
+      budget: most(34, 28),
     },
     {
       name: 'a Set, its diff',
       open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=diff`, '.rv-diff'),
       disclose: AT_REST,
-      budget: most(32, 26),
+      budget: most(33, 27),
     },
   ],
   folder: [
@@ -604,8 +606,8 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name'),
       disclose: AT_REST,
       // A loose video is one card, its file in its menu.
-      budget: most(20, 18),
-      page: most(20, 18),
+      budget: most(21, 19),
+      page: most(21, 19),
     },
   ],
   labScene: [
@@ -615,7 +617,7 @@ export const STATES: ByPlace<State, AtRest> = {
       disclose: AT_REST,
       // A phone's peek counted: its grip, its line and its Close over the Edit's at rest, the
       // fields in the sheet below it. A laptop's panel shows the cue's fields, its eases and the knobs.
-      budget: most(40, 80),
+      budget: most(41, 80),
     },
     {
       // On a phone the opened sheet is a layer, as an inspector is: the Lab under it is the case
@@ -626,7 +628,7 @@ export const STATES: ByPlace<State, AtRest> = {
       layer: `:is(${SELECTION_SHEET}, :root:not(:has(${SELECTION_SHEET})))`,
     },
     { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST, budget: LAB_EDIT },
-    { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(39, 43) },
+    { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(40, 44) },
     {
       name: 'Lab, Note with a scoped composer',
       open: labNoteOnCue,
@@ -635,10 +637,10 @@ export const STATES: ByPlace<State, AtRest> = {
         '[data-role="note-scope"] [data-act="clear-scope"]',
       ),
     },
-    { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(42, 49) },
-    { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(40, 44) },
+    { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(43, 50) },
+    { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(41, 45) },
     // Its budget is the resting Record's, with no beats listed.
-    { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(36, 40) },
+    { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(37, 41) },
     { name: 'Lab, Record, its beats and the recorder', open: recording, disclose: AT_REST },
     {
       name: "Lab, the command menu's Go to",
@@ -720,7 +722,7 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'Scenes',
       open: player(pageHref.scenes(PROBE), STILL),
       disclose: AT_REST,
-      budget: most(20, 21),
+      budget: most(21, 22),
     },
   ],
   scene: [
@@ -730,7 +732,7 @@ export const STATES: ByPlace<State, AtRest> = {
       open: player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
       disclose: AT_REST,
       // The tape under the sheet and the sheet's own fields, counted as the page shows them.
-      budget: most(27, 34),
+      budget: most(28, 35),
       layer: '[data-role="scene"]',
     },
   ],
@@ -739,7 +741,7 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'Play',
       open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
       disclose: AT_REST,
-      budget: most(18, 18),
+      budget: most(19, 19),
     },
     {
       name: 'Play, the view menu',
