@@ -76,7 +76,7 @@ The last row is the rule that the landing is both the most saturated and the cal
   - Torn pieces (earth, clouds, the paper of the world) have a 2–4 px fibrous white rim.
   - Choose cut or torn for what the piece means, never at random.
 - **Ink.**
-  - Use warm near-black (`outline` #2b2622 is right); never pure black.
+  - Ink is warm near-black by default (`outline` #2b2622), and black is allowed: the never-black rule is for shading, not lines (owner, 2026-10-13).
   - Draw ink only for features: eyes, brows, mouths, hand creases, the letters of a prop.
   - Figures may keep a thin outline. Scenery keeps none.
   - Outer lines are heavier than inner ones.
