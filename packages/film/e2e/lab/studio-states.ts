@@ -615,8 +615,16 @@ export const STATES: ByPlace<State, AtRest> = {
       disclose: AT_REST,
       // Its words are what it is read for: each its own text leaf, as the Transcript's are, so a tap
       // shows it (the probe's are 26 of the laptop's things, 17 of the phone's, where two of its
-      // three beats stand on the first screen). A beat's id and start are one press.
-      budget: most(46, 63),
+      // three beats stand on the first screen). A beat's id and start are one press. How its cues
+      // are tied to its words is what the owner reads it for too: a chip for each mark and a link
+      // for each cue or mark its picture names (8 on the laptop, 4 on the phone).
+      budget: most(50, 71),
+    },
+    {
+      // A mark picked: the cues tied to it under its beat's line, each a row that picks it.
+      name: 'Script, a mark and the cues tied to it',
+      open: scriptOpen,
+      disclose: opens('[data-scene="three"] .lab-script-mark[data-mark="near"]', '.lab-script-tie'),
     },
   ],
   scenes: [

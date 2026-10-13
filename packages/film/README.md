@@ -2010,7 +2010,7 @@ reads footage, and hide it wherever it is open.
 
 A film's Script page (`/films/<film>/script[/<beat>]`, the page bar's
 Script, ⇧4; `lab/script/`) reads the whole film as its script: each beat
-in play order under its id and where it starts (a press on the id shows its
+in play order under its id and where it starts (a press on either shows its
 first frame), a quiet `estimated` badge on a line no take voices as it reads
 now, what its picture does (the script's brief, `GET …/script`), its line as
 the film says it, and its sources. It is the Lab's page with the Lab's
@@ -2026,6 +2026,21 @@ the page's menu, whose Select to here (`lab/script/commands.ts`) extends the
 selection. The reader follows the frame by the lab's one Follow rule until a
 hand scrolls it; Follow or Play takes it back. The Script selects one thing
 at a time (a cue, a mark or words), and writes nothing of the film's.
+
+How a beat's cues are tied to its words is drawn on its line
+(`lab/script/ties.ts`, `tied.tsx`): each `{mark}` a chip before the word it
+stands before, and each name in backticks in the picture's brief a link to
+the cue of the beat it names (else its mark; a name the beat lacks stays
+text). A mark, a cue or words selected (`?mark=`, `?cue=`, `?words=`) list
+under the line the cues tied to them, each with its start and end in the
+beat (`0.85–1.90 s`, as `film cues` prints them) and what its span says
+(`mark {near} · until {held}`): a cue is tied to a mark when its start or
+its end lands on it, directly or through `after` and `with` chains (`after`
+a cue is where that cue ends, `with` it where it starts), to the words its
+start and end land on (a word pinned after a mark is that word), and to no
+word through a landmark. A mark or a cue picked seeks to where it is and
+washes the words it lands on; each chip, name and row is a link to its own
+place on the Script, so it opens apart in a tab.
 
 On a phone (below 900 px) the selected cue's or knob's fields, and the
 selected note's reply, stand in the selection's sheet

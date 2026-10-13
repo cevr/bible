@@ -2,19 +2,21 @@
 // play order, each under its id and where it starts (one press on either
 // shows the beat's first frame), with a quiet badge on a line no take voices
 // as it reads now (timed by the estimate), then what its picture does (the
-// script's brief), its line as the film says it, and its sources. The line's
-// words are laid out, painted and pressed as the Transcript's are
-// (`transcript/words.ts`): the word playing at the frame lit and the beat
-// under it edged, the words selected (`?words=a-b`) painted, all through the
-// page's highlights, so the text stays selectable and a word lit costs no
-// element. A tap on a word shows it (the frame seeks to where it starts) and
-// selects it (shift extends the selection); a text selection across words
-// selects them; a word held (or right-clicked) opens the page's menu about
-// it, whose Select to here extends the selection: a phone's range. The
-// reader keeps the word playing in sight (`lab/follow.ts`) until a hand
-// scrolls it; Follow or Play takes it back. On a laptop it is a column
-// beside the picture; on a phone it scrolls under the picture and its track.
-// Nothing here writes the script.
+// script's brief, its cues and marks named in backticks links to them), its
+// line as the film says it with a chip for each mark, the cues tied to what
+// is selected in it (`tied.tsx`), and its sources. The line's words are laid
+// out, painted and pressed as the Transcript's are (`transcript/words.ts`):
+// the word playing at the frame lit and the beat under it edged, the words
+// selected (`?words=a-b`) painted and the words a mark or a cue selected
+// lands on washed, all through the page's highlights, so the text stays
+// selectable and a word lit costs no element. A tap on a word shows it (the
+// frame seeks to where it starts) and selects it (shift extends the
+// selection); a text selection across words selects them; a word held (or
+// right-clicked) opens the page's menu about it, whose Select to here extends
+// the selection: a phone's range. The reader keeps the word playing in sight
+// (`lab/follow.ts`) until a hand scrolls it; Follow or Play takes it back. On
+// a laptop it is a column beside the picture; on a phone it scrolls under the
+// picture and its track. Nothing here writes the script.
 
 import { For, Portal, Show } from '@solidjs/web';
 import { Array as Arr, Option } from 'effect';
@@ -30,6 +32,8 @@ import { useLab } from '../shell.tsx';
 import { type SectionRows, type WordAt, rangesOf, rowOf } from '../transcript/lit.ts';
 import { usePainted, wordsReleased } from '../transcript/words.ts';
 import { type BeatRow, ScriptState, useScript } from './context.tsx';
+import { MarkChip, Picture, Ties } from './tied.tsx';
+import { marksIn } from './ties.ts';
 
 /** What the reader follows, as Follow names it: the word playing (`w:<beat>:<index>`), else the beat under the frame (`b:<beat>`). */
 const WORD_KEY = /^w:(.*):(\d+)$/;
@@ -96,10 +100,16 @@ const Status = () => {
   );
 };
 
-/** A beat's line: its words, each a thing the page's menu opens on, inside the line's own. */
+/**
+ * A beat's line: its words, each a thing the page's menu opens on, inside
+ * the line's own, and its marks, each a chip before the word it stands
+ * before (`MarkChip`; never painted or selected as a word is).
+ */
 const Line = (props: { readonly line: SectionRows }) => {
   const script = useScript();
+  // The staged film's, laid out once: a plain value.
   const line = props.line;
+  const marks = marksIn(line);
   // A press that ends a text selection across words selects them; a tap on one word shows it.
   const released = wordsReleased({
     sections: () => script.lines,
@@ -122,22 +132,26 @@ const Line = (props: { readonly line: SectionRows }) => {
       class="lab-script-line"
       onClick={released}
     >
-      <For each={line.rows} keyed={(r) => r.index}>
+      <For each={line.rows}>
         {(row) => (
           <>
+            <For each={marks.at(row.index)}>
+              {(name) => <MarkChip beat={line.id} name={name} />}
+            </For>
             <span
               class="lab-script-w"
               data-target={targetAttr(
-                Selection.cases.Words.make({ scene: line.id, from: row().index, to: row().index }),
+                Selection.cases.Words.make({ scene: line.id, from: row.index, to: row.index }),
               )}
-              data-index={row().index}
-              data-from={row().from}
+              data-index={row.index}
+              data-from={row.from}
             >
-              {row().text}
+              {row.text}
             </span>{' '}
           </>
         )}
       </For>
+      <For each={marks.end}>{(name) => <MarkChip beat={line.id} name={name} />}</For>
     </Target>
   );
 };
@@ -181,11 +195,22 @@ const Beat = (props: { readonly beat: BeatRow }) => {
           Option.flatMap(said(), (b) => Option.fromUndefinedOr(b.picture)),
         )}
       >
-        {(picture) => <p class="lab-script-picture">{picture()}</p>}
+        {(picture) => (
+          <Picture
+            beat={beat.id}
+            text={picture()}
+            cues={beat.ties.map((t) => t.cue)}
+            marks={Option.getOrElse(
+              Option.map(beat.line, (l) => l.marks),
+              () => ({}),
+            )}
+          />
+        )}
       </Show>
       {Option.toArray(beat.line).map((line) => (
         <Line line={line} />
       ))}
+      <Ties beat={beat.id} />
       <Show
         when={Option.getOrUndefined(
           Option.filter(
@@ -218,7 +243,7 @@ const Beats = () => {
     () => page,
     () => ({
       'lab-live': rangesAt(script.lit()),
-      'lab-read': [],
+      'lab-read': rangesOf(script.read()),
       'lab-picked': rangesOf(script.picked()),
     }),
   );

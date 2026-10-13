@@ -1,11 +1,15 @@
-// The Script page's styles (`view.tsx`): the film's beats on the panel's
-// surface, each under a head line of its id, its start and its badge, its
-// picture's brief in the secondary ink at the body size, its line at the
-// reading size (`--fs-read`: text read aloud, as the prompter's), and its
-// sources quiet under it; the beat under the frame edged in the playing ink
-// (`--state-live`), the word playing lit by `::highlight(lab-live)` and the
-// words selected by `lab-picked` (the Source view's own highlights,
-// `source/style.ts`, which owns those rules). On a laptop the reader is a
+// The Script page's styles (`view.tsx`, `tied.tsx`): the film's beats on the
+// panel's surface, each under a head line of its id, its start and its
+// badge, its picture's brief in the secondary ink at the body size (the cues
+// and marks it names underlined links), its line at the reading size
+// (`--fs-read`: text read aloud, as the prompter's) with a small chip for
+// each mark, the cues tied to the selection in a raised box under it, and
+// its sources quiet under that; the beat under the frame edged in the
+// playing ink (`--state-live`), the word playing lit by
+// `::highlight(lab-live)`, the words a mark or a cue selected lands on
+// washed by `lab-read` and the words selected painted by `lab-picked` (the
+// Source view's own highlights, `source/style.ts`, which owns those rules);
+// a mark, a cue or a name selected takes the accent. On a laptop the reader is a
 // column beside the picture and its track, wider than the Source view's
 // (`--script-w`); on a phone the page is the screen's height, the picture and
 // its track over the reader, which scrolls in a box of its own above the
@@ -49,8 +53,35 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 @media (hover: hover) { .lab-script-id:hover, .lab-script-id:hover .lab-script-at { color: var(--text-1); } }
 .lab-script-at { color: var(--text-3); }
 .lab-script-picture { margin: 0; color: var(--text-2); }
+/* A cue or a mark the brief names: a link in the brief's running text, the accent while it is selected. */
+.lab-script-ref { color: var(--text-1); text-decoration: underline; text-decoration-color: var(--line-strong);
+  text-underline-offset: 0.2em; }
+.lab-script-ref[aria-current='true'] { color: var(--accent); text-decoration-color: var(--accent); }
+@media (hover: hover) { .lab-script-ref:hover { text-decoration-color: var(--text-1); } }
+/* A name the beat does not have: the brief's own words, set apart only by the ink. */
+.lab-script-code { font: inherit; color: var(--text-1); }
 .lab-script-line { margin: 0; font-size: var(--fs-read); line-height: var(--lh-read); color: var(--text-1); }
 .lab-script-w { cursor: pointer; }
+/* A mark: a chip before the word it stands before, raised to the line's cap height, never in a text selection. */
+.lab-script-mark { margin-inline-end: var(--s-1); padding: 0 var(--s-1); border-radius: var(--r-1); background: var(--surface-3);
+  color: var(--text-2); font-size: var(--fs-1); line-height: var(--lh-1); font-weight: var(--w-2); text-decoration: none;
+  vertical-align: text-top; user-select: none; -webkit-user-select: none; }
+.lab-script-mark[aria-current='true'] { background: var(--accent); color: var(--accent-ink); }
+@media (hover: hover) { .lab-script-mark:hover { color: var(--text-1); } .lab-script-mark[aria-current='true']:hover { color: var(--accent-ink); } }
+/* What the selection ties to: a raised box under the line, its head and a row to a cue. */
+.lab-script-ties { display: flex; flex-direction: column; border: var(--border); border-radius: var(--r-2); background: var(--surface-2); }
+.lab-script-ties-head { display: flex; align-items: center; gap: var(--s-2); padding: 0 var(--s-1) 0 var(--s-3); }
+.lab-script-ties-what { flex: 1; min-width: 0; color: var(--text-1); }
+.lab-script-ties-head > .sh-btn { flex: none; min-height: var(--hit); }
+.lab-script-ties-none { margin: 0; padding: 0 var(--s-3) var(--s-2); color: var(--text-3); }
+.lab-script-ties-list { margin: 0; padding: 0 0 var(--s-1); list-style: none; }
+.lab-script-tie { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; column-gap: var(--s-3);
+  min-height: var(--hit); padding: 0 var(--s-3); color: var(--text-2); text-decoration: none; }
+.lab-script-tie-name { color: var(--text-1); font-weight: var(--w-2); }
+.lab-script-tie-said { color: var(--text-3); }
+.lab-script-tie[aria-current='true'] { background: var(--accent-wash); }
+.lab-script-tie[aria-current='true'] .lab-script-tie-name { color: var(--accent); }
+@media (hover: hover) { .lab-script-tie:hover { background: var(--surface-3); } }
 .lab-script-cite { display: flex; flex-wrap: wrap; gap: 0 var(--s-3); margin: 0; padding: 0; list-style: none;
   font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-3); }
 @media ${WIDE} {

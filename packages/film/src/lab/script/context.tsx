@@ -1,22 +1,30 @@
 // The Script page's provider: the film's beats in play order, each as the
 // staged film plays it (where it starts, its line's words laid out as the
-// Transcript lays a talk's, `transcript/lit.ts`, and whether its line is
-// timed by the estimate) beside what its script says of it (`GET …/script`,
-// read as the page stands: the picture's brief and the beat's sources); the
-// word playing at the frame shown and the beat under it; the words selected
-// (`?words=` in the path's beat); and Follow (the lab's one rule,
-// `lab/follow.ts`: the reader keeps the word playing in sight until a hand
-// scrolls it, and Follow or Play takes it back). It writes nothing of the
-// film's: a word tapped seeks the player to it and selects it. The reader
-// (`view.tsx`) and the commands (`commands.ts`) read this context; none
-// holds the script of its own.
+// Transcript lays a talk's, `transcript/lit.ts`, whether its line is timed
+// by the estimate, and its cues tied to its words, `ties.ts`) beside what
+// its script says of it (`GET …/script`, read as the page stands: the
+// picture's brief and the beat's sources); the word playing at the frame
+// shown and the beat under it; what is selected in the path's beat, one
+// thing at a time (`?words=`, `?mark=` or `?cue=`), the cues tied to it and
+// the words a mark or a cue selected lands on; and Follow (the lab's one
+// rule, `lab/follow.ts`: the reader keeps the word playing in sight until a
+// hand scrolls it, and Follow or Play takes it back). It writes nothing of
+// the film's: a word, a mark or a cue picked seeks the player to where it
+// is and selects it. The reader (`view.tsx`, `tied.tsx`) and the commands
+// (`commands.ts`) read this context; none holds the script of its own.
 
 import { useAtomRefresh, useAtomValue } from '@bible/atom-solid';
 import { Array as Arr, Data, Option, Record as Rec } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createMemo, createSignal, onCleanup, useContext } from 'solid-js';
-import { Selection, type WordsSelection } from '../../command/selection.ts';
+import {
+  type MarkSelection,
+  Selection,
+  type WordsSelection,
+  cueOf,
+  markOf,
+} from '../../command/selection.ts';
 import type { ScriptBeat } from '../../core/api.ts';
 import { LabApi, reasonOf } from '../api.ts';
 import { useLab } from '../shell.tsx';
@@ -31,6 +39,7 @@ import {
   wordAt,
 } from '../transcript/lit.ts';
 import { scriptCommands } from './commands.ts';
+import { type Tie, tiesOf, tiesOfCue, tiesOfMark, tiesOfWords } from './ties.ts';
 
 /** The script as the page knows it: being read, read (each beat as `script.ts` says it), or refused with the server's words. */
 export type ScriptState = Data.TaggedEnum<{
@@ -49,6 +58,17 @@ export interface BeatRow {
   readonly line: Option.Option<SectionRows>;
   /** Whether its line is timed by the estimate: no take voices it as it reads now. */
   readonly estimated: boolean;
+  /** Its cues, each tied to the words its start and end land on, in play order. */
+  readonly ties: ReadonlyArray<Tie>;
+}
+
+/** What the selection in a beat ties to: what it is, as the reader names it, the cues tied to it, and the cue selected among them. */
+export interface Tied {
+  readonly beat: string;
+  /** The selection, named: `{grace}`, `“By grace”`, `cue lift`. */
+  readonly what: string;
+  readonly ties: ReadonlyArray<Tie>;
+  readonly cue: Option.Option<string>;
 }
 
 interface ScriptContextValue {
@@ -70,6 +90,12 @@ interface ScriptContextValue {
   readonly picked: Accessor<ReadonlyArray<Row>>;
   /** The words selected, as the URL holds them. */
   readonly selected: Accessor<Option.Option<WordsSelection>>;
+  /** The mark selected, as the URL holds it. */
+  readonly mark: Accessor<Option.Option<MarkSelection>>;
+  /** What the selection ties to, in the beat it is in: none while nothing of a beat's line is selected. */
+  readonly tied: Accessor<Option.Option<Tied>>;
+  /** The words a mark or a cue selected lands on, as the lines have them. */
+  readonly read: Accessor<ReadonlyArray<Row>>;
   /** Whether the reader keeps the frame's word in sight: no hand has scrolled it since it was last taken back. */
   readonly following: Accessor<boolean>;
   /** A hand scrolled the reader: it stops placing until `resume`. */
@@ -82,6 +108,12 @@ interface ScriptContextValue {
   readonly tap: (section: string, row: Row, extend: boolean) => void;
   /** Select words `from`–`to` of beat `section` (a text selection in the reader). */
   readonly selectRange: (section: string, from: number, to: number) => void;
+  /** Show mark `name` of beat `beat`: seek to where it is, and select it. */
+  readonly selectMark: (beat: string, name: string) => void;
+  /** Show cue `name` of beat `beat`: seek to where it starts, and select it. */
+  readonly selectCue: (beat: string, name: string) => void;
+  /** Select nothing of the beats' lines. */
+  readonly clear: () => void;
 }
 
 const ScriptContext = createContext<ScriptContextValue>();
@@ -94,17 +126,39 @@ export const Provider = (props: ParentProps) => {
   const placed = meta.film.placed;
   // The film on the stage is the page's for its life (a write reloads it): laid out once.
   const lines = lineRows(placed);
-  const beats = placed.map((p): BeatRow => ({
-    id: p.spec.id,
-    start: p.start,
-    line: Arr.findFirst(lines, (l) => l.id === p.spec.id),
-    estimated: p.voice.duration > 0 && !p.voice.recorded,
-  }));
+  const beats = placed.map((p): BeatRow => {
+    const line = Arr.findFirst(lines, (l) => l.id === p.spec.id);
+    return {
+      id: p.spec.id,
+      start: p.start,
+      line,
+      estimated: p.voice.duration > 0 && !p.voice.recorded,
+      ties: tiesOf(p, line),
+    };
+  });
+  const beatOf = (id: string) => Arr.findFirst(beats, (b) => b.id === id);
+  const tiesIn = (id: string): ReadonlyArray<Tie> =>
+    Option.getOrElse(
+      Option.map(beatOf(id), (b) => b.ties),
+      () => [],
+    );
+  /** The rows of beat `id`'s line at word indices `at`. */
+  const rowsAt = (id: string, at: ReadonlyArray<number>): ReadonlyArray<Row> =>
+    Option.getOrElse(
+      Option.map(
+        Option.flatMap(beatOf(id), (b) => b.line),
+        (l) => l.rows.filter((r) => at.includes(r.index)),
+      ),
+      () => [],
+    );
+  /** Show film second `t` when there is one: a mark or a cue picked is shown where it is. */
+  const seekTo = (t: Option.Option<number>) => Option.map(t, (at) => meta.player.seek(at));
+  const placedOf = (id: string) => Arr.findFirst(placed, (p) => p.spec.id === id);
 
   // Read through the page's one client, on the shell's runtime, as the page stands.
-  const read = meta.runtime.atom(LabApi.use((api) => api.scriptBeats));
-  const result = useAtomValue(() => read);
-  const retry = useAtomRefresh(() => read);
+  const reading = meta.runtime.atom(LabApi.use((api) => api.scriptBeats));
+  const result = useAtomValue(() => reading);
+  const retry = useAtomRefresh(() => reading);
   const state = createMemo((): ScriptState =>
     AsyncResult.match(result(), {
       onInitial: () => ScriptState.Reading(),
@@ -129,6 +183,63 @@ export const Provider = (props: ParentProps) => {
       onSome: (w) => rowsIn(lines, w.scene, w.from, w.to),
     }),
   );
+  // The Script's selection is one thing: words, a mark, or a cue (of the Lab's selection, only a cue reaches it).
+  const cue = lab.selection;
+  const tied = createMemo((): Option.Option<Tied> =>
+    Option.firstSomeOf<Tied>([
+      Option.map(cue(), (c) => ({
+        beat: c.scene,
+        what: `cue ${c.name}`,
+        ties: tiesOfCue(tiesIn(c.scene), c.name),
+        cue: Option.some(c.name),
+      })),
+      Option.map(lab.mark(), (m) => ({
+        beat: m.scene,
+        what: `{${m.name}}`,
+        ties: tiesOfMark(tiesIn(m.scene), m.name),
+        cue: Option.none(),
+      })),
+      Option.map(lab.words(), (w) => ({
+        beat: w.scene,
+        what: `“${picked()
+          .map((r) => r.text)
+          .join(' ')}”`,
+        ties: tiesOfWords(tiesIn(w.scene), w.from, w.to),
+        cue: Option.none(),
+      })),
+    ]),
+  );
+  // A cue lights the words its start and end land on; a mark, the word it stands before.
+  const read = createMemo((): ReadonlyArray<Row> =>
+    Option.getOrElse(
+      Option.firstSomeOf([
+        Option.map(cue(), (c) =>
+          rowsAt(
+            c.scene,
+            Option.getOrElse(
+              Option.map(
+                Arr.findFirst(tiesIn(c.scene), (t) => t.cue === c.name),
+                (t) => t.words,
+              ),
+              () => [],
+            ),
+          ),
+        ),
+        Option.map(lab.mark(), (m) =>
+          rowsAt(
+            m.scene,
+            Option.toArray(
+              Option.flatMap(
+                Option.flatMap(beatOf(m.scene), (b) => b.line),
+                (l) => Rec.get(l.marks, m.name),
+              ),
+            ),
+          ),
+        ),
+      ]),
+      () => [],
+    ),
+  );
   // A hand's scroll holds until Follow or Play takes the reader back.
   const [suspended, setSuspended] = createSignal(false, { ownedWrite: true });
 
@@ -145,6 +256,9 @@ export const Provider = (props: ParentProps) => {
     live: lab.scene,
     picked,
     selected: lab.words,
+    mark: lab.mark,
+    tied,
+    read,
     following: () => !suspended(),
     suspend: () => setSuspended(true),
     resume: () => setSuspended(false),
@@ -169,6 +283,28 @@ export const Provider = (props: ParentProps) => {
         return;
       select(Selection.cases.Words.make({ scene: section, from, to }));
     },
+    selectMark: (beat, name) => {
+      // Where the mark is: the beat's start, its voice's, then the mark's in the take or the estimate.
+      seekTo(
+        Option.flatMap(placedOf(beat), (p) =>
+          Option.map(
+            Option.fromUndefinedOr(p.voice.marks.get(name)),
+            (at) => p.start + p.speechStart + at,
+          ),
+        ),
+      );
+      actions.selectMark(Option.some(markOf(beat, name)));
+    },
+    selectCue: (beat, name) => {
+      seekTo(
+        Option.flatMap(placedOf(beat), (p) =>
+          Option.map(Option.fromUndefinedOr(p.cues.get(name)), (c) => p.start + c.start),
+        ),
+      );
+      actions.select(Option.some(cueOf(beat, name)));
+    },
+    // On the Script one pick lets the others go (`lab/place.ts`): picking no words picks nothing.
+    clear: () => actions.selectWords(Option.none()),
   };
   return <ScriptContext value={value}>{props.children}</ScriptContext>;
 };
