@@ -10,7 +10,7 @@ import { RiveRuntime } from '../../rive/runtime.ts';
 import { RiveRuntimeBun } from '../../rive/runtime-bun.ts';
 
 /** What the counted layer has seen made and freed. */
-export interface RiveCounts {
+interface RiveCounts {
   files: number;
   unrefs: number;
   artboards: number;
