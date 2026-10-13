@@ -40,7 +40,17 @@
 //   markdown link or image names (`[CRAFT](../CRAFT.md)`, a reference's
 //   target; not code in a span or a block that looks like one) is there
 //   beside the doc. A symbol written with no path (`Name.member`) names no
-//   file, and is left to the sweeps;
+//   file, and is read as a bare name (below);
+// - in these docs (the README, the `film` skill and the loop's), each name
+//   written alone in a code span of the prose (`accusedRml`, `TIMELINES`,
+//   `Effect.runPromise`, `drawRig()`) is a word the repo's code or config
+//   writes outside its comments. Only a part shaped as code is read
+//   (camelCase, a PascalCase compound, UPPER_SNAKE, all caps of five letters
+//   or more), never a lowercase or capitalised word, a short acronym or a
+//   file's name. A name of another tool the code never writes is a link to
+//   its source (`` [`waitUntil`](https://motioncanvas.io/api/core/flow) ``);
+//   a line that cites a commit is a receipt; a name to come is not code yet,
+//   so no span;
 // - the design language's §3 block is the player's tokens.css (the mocks'
 //   lengths are read in a browser: e2e/design-language/mocks.dom.test.ts);
 // - each `--flag` given to a film command written as a command, is declared
@@ -60,6 +70,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
+import type { PlatformError } from 'effect/PlatformError';
 import { type Node, type Program, Visitor, parseSync } from 'oxc-parser';
 import { LabHttpApi } from './core/api.ts';
 import { declares as declaresRoute, routesOf } from './core/testing.ts';
@@ -90,6 +101,15 @@ interface Code {
    * module.
    */
   readonly names: ReadonlySet<string>;
+  /**
+   * Every name the repo's code writes outside its comments: each word of
+   * the `.ts` and `.tsx` files of the root and each workspace's tree, and of
+   * their top's config (`.json`, `.toml`; installed packages and ignored
+   * output left out), so a library's call the code makes (`drawImage`) and a
+   * config's key (`jsPlugins`) are written too. This file is left out: its
+   * probes name what the code lacks.
+   */
+  readonly written: ReadonlySet<string>;
 }
 
 interface Doc {
@@ -312,12 +332,16 @@ const block = (children: string) => `\n${children}\n`;
  * block in a list or a quote is code too; a code block's lines marked as
  * code (a fence's length, its character and its info string are the
  * parser's); a code span written in backticks; a table's row as
- * `| cell | cell |`; a link's or an image's text in its line, and its
- * target kept. An HTML block (a comment, `<details>`) is a line of prose,
- * as written.
+ * `| cell | cell |`; a link's or an image's text in its line (left out
+ * when `linkText` is `'dropped'`), and its target kept. An HTML block (a
+ * comment, `<details>`) is a line of prose, as written.
  */
-const markdownOf = (text: string): Markdown => {
+const markdownOf = (text: string, linkText: 'kept' | 'dropped' = 'kept'): Markdown => {
   const links: Array<string> = [];
+  const shown = (children: string) => {
+    if (linkText === 'dropped') return '';
+    return children;
+  };
   const out = Bun.markdown.render(text, {
     heading: block,
     paragraph: block,
@@ -339,11 +363,11 @@ const markdownOf = (text: string): Markdown => {
     codespan: spanOf,
     link: (children, { href }) => {
       links.push(href);
-      return children;
+      return shown(children);
     },
     image: (children, { src }) => {
       links.push(src);
-      return children;
+      return shown(children);
     },
   });
   return {
@@ -737,6 +761,52 @@ const findingDrift = (line: string, code: Code) => {
     .map((name) => `${name} is no finding`);
 };
 
+/** A code span that is a name, dotted or called: `drawRig`, `Effect.runPromise`, `accusedRml()`, `accusedProp(engine)`. */
+const BARE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*(?:\([^()]*\))?$/;
+
+/** A file's name (`rig.ts`, `NORTH_STAR.md`, `accused.riv`): the anchors' to read, not a name of the code. */
+const FILE_NAME =
+  /\.(?:md|[cm]?[jt]sx?|json|jsonc|toml|ya?ml|riv|rml|css|html|svg|png|jpe?g|webp|wav|mp3|mp4|vtt|txt|lock|sh)$/;
+
+/**
+ * A part of a name written as code, never as a word of a sentence:
+ * camelCase (`drawRig`), a PascalCase compound (`RiveEngine`), UPPER_SNAKE
+ * (`TOKENS_CSS`) or an all-caps name of five letters or more (`TIMELINES`).
+ * A lowercase word (`clear`), a capitalised one (`Look`) and a short acronym
+ * (`GET`, `RIVE`) read as English, a unit or a protocol, and are not read.
+ */
+const CODE_NAME =
+  /^(?:[a-z][a-z\d]*[A-Z][A-Za-z\d]*|[A-Z][a-z\d]+(?:[A-Z][a-z\d]*)+|[A-Z][A-Z\d]*(?:_[A-Z\d]+)+|[A-Z][A-Z\d]{4,})$/;
+
+/** A commit's hash cited in a span: its line is a receipt, naming the tree as it was. */
+const CITED_COMMIT = /`[0-9a-f]{7,40}`/;
+
+/**
+ * Each name a doc writes alone in a code span of its prose that the code
+ * does not write (`Code.written`): each part of the span written as code
+ * (`CODE_NAME`; `TIMELINES` in `` `TIMELINES[…]` `` is not alone; a symbol
+ * after a path is read here too, as a word, and by its anchor, in its file),
+ * so a renamed or removed name fails here. Not read: a code block (commands, sketches); a link's text, since a name of
+ * another tool is written as a link to its source
+ * (`` [`waitUntil`](https://motioncanvas.io/api/core/flow) ``); a line
+ * about another repo; and a line that cites a commit, a receipt. A name to
+ * come (a proposal's) is not written as code.
+ */
+const bareNameDrift = (text: string, code: Code) =>
+  markdownOf(text, 'dropped')
+    .lines.filter(
+      (line) => !line.code && !ANOTHER_REPO.test(line.text) && !CITED_COMMIT.test(line.text),
+    )
+    .flatMap((line) => matches(line.text, SPAN).map((m) => group(m, 2)))
+    .filter((span) => BARE.test(span) && !FILE_NAME.test(span))
+    .flatMap((span) =>
+      span
+        .replace(/\(.*\)$/, '')
+        .split('.')
+        .filter((part) => CODE_NAME.test(part) && !code.written.has(part))
+        .map((part) => `\`${span}\`: the code writes no ${part}`),
+    );
+
 /** What a doc names that the code does not have, one line each. */
 const drift = (doc: Doc, code: Code): ReadonlyArray<string> => {
   const markdown = markdownOf(doc.text);
@@ -749,6 +819,7 @@ const drift = (doc: Doc, code: Code): ReadonlyArray<string> => {
       ...flagDrift(line, code),
       ...findingDrift(line.text, code),
     ]),
+    ...bareNameDrift(doc.text, code),
   ].map((what) => `${doc.path}: ${what}`);
 };
 
@@ -786,6 +857,62 @@ const workspacesIn = (root: string, parent: string) =>
       ),
     );
   });
+
+/** A file of code `Code.written` reads, at any depth. */
+const CODE_FILE = /\.tsx?$/;
+
+/** A config file `Code.written` reads at a package's top (`.oxlintrc.json`, `bunfig.toml`); deeper, a `.json` is data (the corpora's assets). */
+const CONFIG_FILE = /\.(?:jsonc?|toml)$/;
+
+/**
+ * The names the repo's code writes outside its comments (`Code.written`):
+ * the root's own code and config, and each workspace's config and the code
+ * of its tree, past installed packages and the directories the root's
+ * `.gitignore` names.
+ */
+const writtenIn = Effect.fn('test.docs.writtenIn')(function* (
+  root: string,
+  workspaces: ReadonlyArray<string>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const ignored = ignoredDirectories(yield* fs.readFileString(path.join(root, '.gitignore')));
+  const self = path.relative(root, import.meta.path);
+  /** A directory's files `Code.written` reads; at its `top`, its config too, and under it only when `deep`. */
+  const filesIn = (
+    dir: string,
+    top: boolean,
+    deep: boolean,
+  ): Effect.Effect<ReadonlyArray<string>, PlatformError> =>
+    Effect.flatMap(fs.readDirectory(path.join(root, dir)), (names) =>
+      Effect.map(
+        Effect.forEach(
+          names.filter((name) => name !== 'node_modules' && !ignored.has(name)),
+          (name) =>
+            Effect.flatMap(fs.stat(path.join(root, dir, name)), (info) => {
+              const at = path.join(dir, name);
+              if (info.type === 'Directory' && deep) return filesIn(at, false, deep);
+              const read =
+                info.type !== 'Directory' &&
+                at !== self &&
+                (CODE_FILE.test(name) || (top && CONFIG_FILE.test(name)));
+              return Effect.succeed([at].filter(() => read));
+            }),
+        ),
+        (each) => each.flat(),
+      ),
+    );
+  const files = [
+    ...(yield* filesIn('', true, false)),
+    ...(yield* Effect.forEach(workspaces, (dir) => filesIn(dir, true, true))).flat(),
+  ];
+  const words = yield* Effect.forEach(files, (file) =>
+    Effect.map(fs.readFileString(path.join(root, file)), (text) =>
+      matches(uncommented(text), /[A-Za-z_$][\w$]*/g).map((m) => m[0]),
+    ),
+  );
+  return new Set(words.flat());
+});
 
 /** The repo's code as the docs name it. */
 const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
@@ -858,6 +985,7 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
         ...matches(srcCode, /^import\s+(?:type\s+)?([A-Z]\w*)\s*(?:,|from\b)/gm),
       ].map(firstGroup),
     ),
+    written: yield* writtenIn(root, workspaces.flat()),
   } satisfies Code;
 });
 
@@ -1325,6 +1453,10 @@ describe('the docs', () => {
           'bun run nothing-headed',
           'bun run nothing-next',
           '```',
+          // A bare name the code no longer writes: alone, dotted, called, all caps.
+          '',
+          'The rig prints through `accusedRmlGone`, posed by `Effect.runPoseGone` and `drawRigGone(rig)`;',
+          'its seconds sit in `TIMELINES_GONE` and `KNOBSGONE`.',
         ].join('\n'),
       };
       expect(drift(stale, code)).toEqual([
@@ -1352,6 +1484,13 @@ describe('the docs', () => {
         'stale.md: film check --frob-listed: no command declares the flag',
         'stale.md: film check --frob-quoted: no command declares the flag',
         'stale.md: film check --frob-4: no command declares the flag',
+        'stale.md: `pageHrefs`: the code writes no pageHrefs',
+        'stale.md: `NoSuchFinding`: the code writes no NoSuchFinding',
+        'stale.md: `accusedRmlGone`: the code writes no accusedRmlGone',
+        'stale.md: `Effect.runPoseGone`: the code writes no runPoseGone',
+        'stale.md: `drawRigGone(rig)`: the code writes no drawRigGone',
+        'stale.md: `TIMELINES_GONE`: the code writes no TIMELINES_GONE',
+        'stale.md: `KNOBSGONE`: the code writes no KNOBSGONE',
       ]);
       expect(yield* anchorsDrift(root, [stale])).toEqual([
         'stale.md: path packages/film/src/tools/gone.ts does not exist',
@@ -1426,6 +1565,22 @@ describe('the docs', () => {
           'a',
           '```ts',
           'Read [the gone guide](guide/gone.md).',
+          '```',
+          // A bare name the code writes, a library's call it makes, a config's key; and what is
+          // no name of ours: a word, a short acronym, a file, a name not alone, a link to another
+          // tool, a line that cites a commit, another repo's row, a code block's sketch.
+          '',
+          'The rig is `accusedRml()` over `TIMELINES` and `KNOBS`; `drawRig` draws with `drawImage`, under `jsPlugins`.',
+          'Run `clear`, then `Look` at the `GET` from `RIVE`; read `NORTH_STAR.md` and `TIMELINES[name].seconds`.',
+          'Motion Canvas waits with [`waitUntilGone`](https://motioncanvas.io/api/core/flow).',
+          'The rejected `atBeginGone` pair (`acb1daca`).',
+          '',
+          '| `motion-canvas/motion-canvas` | `waitUntilGone` |',
+          '| --- | --- |',
+          '',
+          '```ts',
+          'atBeginGone(ctx);',
+          '```',
         ].join('\n'),
       };
       expect(drift(correct, code)).toEqual([]);

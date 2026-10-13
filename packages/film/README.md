@@ -3162,7 +3162,8 @@ field that is not there. Write `(line) => Console.log(line)`.
 `attributeIs`, `attributesAre`, `valueIs`, `countIs`, `evaluates` for a
 script's answer, `waitFor`, `attached`, `until`), and a read that times out
 fails naming what it wanted and what the page last showed. A one-shot read
-(`textContent()`, `inputValue()`, `$eval`, `$$eval`, `isVisible()`,
+(`textContent()`, `inputValue()`, `$eval`, `$$eval`,
+[`isVisible()`](https://playwright.dev/docs/api/class-locator#locator-is-visible),
 `getAttribute()` or `count()` on the page or a locator, and an `evaluate(…)`
 whose answer `expect` asserts or a matcher compares with, followed through a
 `const` bound to it, a local helper that answers it, a part of it, a
@@ -3381,7 +3382,9 @@ the checks stay ours.
   outlives its frame, so nothing an earlier frame did reaches it:
   - Rive keeps a shape's paths in the shape's own space and remakes them only
     when a path's geometry changes or the shape-to-path transform moves past
-    16 float epsilons (`PathComposer` in rive-runtime), so an instance posed
+    16 float epsilons
+    ([`PathComposer`](https://github.com/rive-app/rive-runtime/blob/main/src/shapes/path_composer.cpp)
+    in rive-runtime), so an instance posed
     again keeps the paths an earlier frame made, with that frame's rounding
     (rigs with no boil too: the fixture arm 22 of 60 shuffled frames, the
     cold-studies accused 59 of 60);
