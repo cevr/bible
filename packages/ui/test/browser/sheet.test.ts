@@ -2601,7 +2601,8 @@ async function runModel(run: ModelRun): Promise<ModelResult> {
  * (`swipe`), none did (`stay`), or a layout change fell inside a gesture's span (`either`),
  * against whether the sheet asked to close as swiped. Under `either`, `closes` says whether a
  * close is allowed: only when the gesture had carried it wholly out with no finger on it before
- * the layout change.
+ * the layout change, or the sheet, the gesture having carried it out, asked before the change
+ * was written.
  */
 function judgeIntent(result: ModelResult) {
   const { frames: seen, marks, log } = result;
@@ -2636,7 +2637,12 @@ function judgeIntent(result: ModelResult) {
       const gesture = span.filter((f) => f.t < end && f.pos !== null);
       const start = gesture[0]?.pos;
       // A layout change inside the gesture's span, from its input to its end.
-      const layoutAt = layouts.find((m) => m.t >= input.t && m.t < end)?.t ?? Infinity;
+      const layout = layouts.find((m) => m.t >= input.t && m.t < end);
+      const layoutAt = layout?.t ?? Infinity;
+      // The sheet asked to close as swiped before the layout change was written: it decided on
+      // what it could see then.
+      const askedFirst =
+        layout !== undefined && log.slice(open.log, layout.log).includes('open false swipe');
       // One the page heard before the input itself: the sheet cannot tell it from one before.
       const heardAt = heards.find((m) => m.t >= input.t)?.t ?? Infinity;
       // Wholly out of the window with no finger on it: in a frame with none down, or in the last
@@ -2660,7 +2666,7 @@ function judgeIntent(result: ModelResult) {
         return;
       }
       if (expected !== 'swipe') expected = 'either';
-      closes ||= carriedFirst || (carried && layoutAt <= heardAt);
+      closes ||= carriedFirst || (carried && (layoutAt <= heardAt || askedFirst));
     });
     const segment = log.slice(open.log, opens[i + 1]?.log ?? log.length);
     const actual = segment.includes('open false swipe') ? 'swipe' : 'stay';

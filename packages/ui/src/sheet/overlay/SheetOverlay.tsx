@@ -110,6 +110,9 @@ interface Entrance {
   aimed: Rest | null;
 }
 
+/** The input a gesture of the user's came from. */
+type InputKind = 'finger' | 'wheel' | 'key';
+
 const SheetOverlayContext = createContext<SheetOverlayContext | null>(null);
 
 export function useSheetOverlayContext(): SheetOverlayContext {
@@ -304,13 +307,18 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
   // never one on the page. While any is down, where the sheet stands is the user's.
   const fingers = new Map<number, number>();
   // The user's gesture on the sheet under way, by what made it (`finger` once its container has
-  // scrolled under a moving finger, `other` for a wheel, a key, or a fling let go of), and the
-  // layout epoch it began in: from an input of theirs that scrolls the sheet until the scroll it
-  // set off, its momentum and its snap with it, has ended and been looked at (`seeOut`). Only
-  // such a scroll swipes it away, and only when no layout moved during it. An input that cannot
-  // move the sheet (toward the end it stands at, a still finger, a drag a list in it takes) is
-  // no gesture.
-  let gesture: { readonly by: 'finger' | 'other'; readonly epoch: number } | null = null;
+  // scrolled under a moving finger, `other` for a wheel, a key, or a fling let go of), the input
+  // it came from, and the layout epoch it began in: from an input of theirs that scrolls the
+  // sheet until the scroll it set off, its momentum and its snap with it, has ended and been
+  // looked at (`seeOut`). Only such a scroll swipes it away, and only when no layout moved
+  // during it. An input that cannot move the sheet (toward the end it stands at, a still finger,
+  // a drag a list in it takes) is no gesture. A new input of another kind, or a finger put down
+  // again, ends the gesture before it (a wheel's stream of events is one gesture).
+  let gesture: {
+    readonly by: 'finger' | 'other';
+    readonly from: InputKind;
+    readonly epoch: number;
+  } | null = null;
   // Counts the looks asked for: a look is the latest one's, or nobody's.
   let looks = 0;
   // Counts the layouts the sheet has stood in: each window or visual viewport resize, each change
@@ -414,9 +422,9 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
   /**
    * Looks where the sheet was left once the scroll that moved it has ended (a finger down, then
    * or as the look is taken, holds it until the finger lifts), from its panel's box then. Out of
-   * view, a gesture of the user's that no layout crossed swiped it away. Otherwise, moved by a
-   * layout, crossed by one, or out of view, it rests again; a gesture's that left it in view
-   * stays where the gesture left it (a snap point of the user's). The look is the latest one's;
+   * view, a gesture of the user's that no layout crossed swiped it away. Otherwise it rests
+   * again, unless it stands at a rest already (`restNow`: a snap point the user left it at
+   * stays). The look is the latest one's;
    * a later one starts it over. `idleMs` is how long a scroll already over is waited on: the
    * user's input behind a scroll the browser ran ahead of the page (a finger's fling, the page
    * busy) reaches the page by then, and makes it theirs. A wheel's gesture in desktop WebKit that
@@ -455,7 +463,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       }
       if (by && !layoutHad && out && shown) {
         swipedAway(scrollElement);
-      } else if ((layoutHad || out) && !selfEntering()) {
+      } else if (!selfEntering()) {
         restNow(scrollElement);
       }
     });
@@ -489,7 +497,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
     let input: {
       readonly way: number;
       readonly at: number;
-      readonly byWheel: boolean;
+      readonly from: InputKind;
       readonly epoch: number;
     } | null = null;
     // The epoch the hand's first finger went down in.
@@ -502,15 +510,23 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
     let largestStep = 0;
     // Where the container stood at its last scroll.
     let last = position();
-    /** The sheet's layout is read again before the user's input is taken in. */
-    const heard = () => {
+    /**
+     * A new input of the user's (`from`), no finger down: it ends the gesture before it (its look
+     * still rests the sheet if that one leaves it short of a rest), unless both are a wheel's (one
+     * stream), and the sheet's layout is read again before it is taken in.
+     */
+    const heard = (from: InputKind) => {
+      if (fingers.size === 0 && !(from === 'wheel' && gesture?.from === 'wheel')) {
+        setGesture(null);
+        movedByLayout = false;
+      }
       if (checkLayout(scrollElement).moved) {
         restAfterLayout(scrollElement, false);
       }
     };
     const onTouchStart = (event: TouchEvent) => {
       if (fingers.size === 0) {
-        heard();
+        heard('finger');
         handEpoch = epoch;
         plus = 0;
         minus = 0;
@@ -577,7 +593,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         // first scroll the finger's way however late it reaches the page, and where the hand
         // leaves the sheet is looked at once that ends.
         if (by === null && lastWay !== 0) {
-          input = { way: -lastWay, at: performance.now(), byWheel: false, epoch: handEpoch };
+          input = { way: -lastWay, at: performance.now(), from: 'finger', epoch: handEpoch };
         }
         seeOut(scrollElement);
       },
@@ -596,11 +612,15 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         (selfEntering() || Math.abs(moved) <= travel + fingerSlack(largestStep))
       );
     };
-    /** The user's gesture takes the sheet (`by`), from the epoch its input came in. */
-    const take = (by: 'finger' | 'other', from: number) => {
+    /**
+     * The user's gesture takes the sheet (`by`, from the input `from`), from the epoch its input
+     * came in: a gesture under way keeps its own.
+     */
+    const take = (by: 'finger' | 'other', from: InputKind, since: number) => {
       setGesture({
         by: by === 'finger' || gesture?.by === 'finger' ? 'finger' : 'other',
-        epoch: gesture ? gesture.epoch : from,
+        from: gesture?.from ?? from,
+        epoch: gesture ? gesture.epoch : since,
       });
       if (entrance) {
         entrance.taken = true;
@@ -631,7 +651,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       if (fingers.size > 0) {
         if (driven) {
           if (gesture?.by !== 'finger') {
-            take('finger', handEpoch);
+            take('finger', 'finger', handEpoch);
           }
         } else {
           stray();
@@ -642,10 +662,10 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         return;
       }
       if (input && now - input.at <= INPUT_SCROLL_MS && Math.sign(moved) === input.way) {
-        const { byWheel, epoch: from } = input;
+        const { from, epoch: since } = input;
         input = null;
-        take('other', from);
-        seeOut(scrollElement, undefined, byWheel && snapsTwice());
+        take('other', from, since);
+        seeOut(scrollElement, undefined, from === 'wheel' && snapsTwice());
         return;
       }
       stray();
@@ -664,18 +684,18 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       restAfterLayout(scrollElement, true);
     };
     /** A wheel or a scroll key went `delta` along the axis: a gesture if the sheet scrolls for it. */
-    const scrollsBy = (delta: number, byWheel: boolean) => {
+    const scrollsBy = (delta: number, from: InputKind) => {
       if (delta !== 0) {
-        heard();
-        input = { way: Math.sign(delta), at: performance.now(), byWheel, epoch };
+        heard(from);
+        input = { way: Math.sign(delta), at: performance.now(), from, epoch };
       }
     };
     const onWheel = (event: WheelEvent) =>
-      scrollsBy(axis() === 'y' ? event.deltaY : event.deltaX, true);
+      scrollsBy(axis() === 'y' ? event.deltaY : event.deltaX, 'wheel');
     const onKeyDown = (event: KeyboardEvent) => {
       const way = KEY_SCROLLS[axis()][event.key];
       if (way !== undefined && !event.defaultPrevented) {
-        scrollsBy(event.key === ' ' && event.shiftKey ? -way : way, false);
+        scrollsBy(event.key === ' ' && event.shiftKey ? -way : way, 'key');
       }
     };
     const passive = { passive: true } as const;
