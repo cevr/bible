@@ -34,7 +34,7 @@ Record each in the ledger's performance table with the HEAD hash. There is no st
 
 A candidate the numbers turned down stays here with its numbers, so it is not proposed again without new ones.
 
-**`at(ctx, …)` / `camera(ctx, …)` closures → `atBegin`/`restore` pairs** (p1-framework item 6, 2026-09-28, HEAD `acb1daca`, this Mac; decided by measure-before-optimise):
+**`at(ctx, …)` / `camera(ctx, …)` closures → begin/restore pairs** (p1-framework item 6, 2026-09-28, HEAD `acb1daca`, this Mac; decided by measure-before-optimise):
 
 | Measure                         | Value                                                                         | How                                                                                                |
 | ------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |

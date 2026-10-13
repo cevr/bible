@@ -42,14 +42,17 @@
 //   beside the doc. A symbol written with no path (`Name.member`) names no
 //   file, and is read as a bare name (below);
 // - in these docs (the README, the `film` skill and the loop's), each name
-//   written alone in a code span of the prose (`accusedRml`, `TIMELINES`,
-//   `Effect.runPromise`, `drawRig()`) is a word the repo's code or config
-//   writes outside its comments. Only a part shaped as code is read
-//   (camelCase, a PascalCase compound, UPPER_SNAKE, all caps of five letters
-//   or more), never a lowercase or capitalised word, a short acronym or a
-//   file's name. A name of another tool the code never writes is a link to
-//   its source (`` [`waitUntil`](https://motioncanvas.io/api/core/flow) ``);
-//   a line that cites a commit is a receipt; a name to come is not code yet,
+//   written alone in a code span of the prose (`loadRigs`, `KNOBS`,
+//   `Effect.runPromise`, `drawRig()`) is a name the repo's code or config
+//   writes, as the parser reads it: an identifier, a module path, a string
+//   that is one name, a config's key; never a comment, a sentence in a
+//   string or a test's title, which a rename leaves behind. Only a part
+//   shaped as code is read (camelCase, a PascalCase compound, one led by an
+//   acronym, UPPER_SNAKE, all caps of five letters or more), never a
+//   lowercase or capitalised word, a short acronym or a file's name. A name
+//   of another tool the code never writes is a link to its source
+//   (`` [`waitUntil`](https://motioncanvas.io/api/core/flow) ``); a name
+//   followed by `at <commit>` is a receipt; a name to come is not code yet,
 //   so no span;
 // - the design language's §3 block is the player's tokens.css (the mocks'
 //   lengths are read in a browser: e2e/design-language/mocks.dom.test.ts);
@@ -71,6 +74,7 @@ import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
+import { JSONC, TOML } from 'bun';
 import { type Node, type Program, Visitor, parseSync } from 'oxc-parser';
 import { LabHttpApi } from './core/api.ts';
 import { declares as declaresRoute, routesOf } from './core/testing.ts';
@@ -102,12 +106,15 @@ interface Code {
    */
   readonly names: ReadonlySet<string>;
   /**
-   * Every name the repo's code writes outside its comments: each word of
-   * the `.ts` and `.tsx` files of the root and each workspace's tree, and of
+   * Every name the repo's code writes, as the parser reads it (`wordsOf`):
+   * the identifiers, module paths and one-name strings of the `.ts` and
+   * `.tsx` files of the root and each workspace's tree, and the keys of
    * their top's config (`.json`, `.toml`; installed packages and ignored
-   * output left out), so a library's call the code makes (`drawImage`) and a
-   * config's key (`jsPlugins`) are written too. This file is left out: its
-   * probes name what the code lacks.
+   * output left out). A library's call the code makes (`drawImage`) and a
+   * config's key (`jsPlugins`) are written; a comment, a sentence in a
+   * string and a test's title are not, so a name only they keep goes stale
+   * when a rename leaves them. This file is left out: its probes name what
+   * the code lacks.
    */
   readonly written: ReadonlySet<string>;
 }
@@ -332,14 +339,14 @@ const block = (children: string) => `\n${children}\n`;
  * block in a list or a quote is code too; a code block's lines marked as
  * code (a fence's length, its character and its info string are the
  * parser's); a code span written in backticks; a table's row as
- * `| cell | cell |`; a link's or an image's text in its line (left out
- * when `linkText` is `'dropped'`), and its target kept. An HTML block (a
- * comment, `<details>`) is a line of prose, as written.
+ * `| cell | cell |`; a link's or an image's text in its line (left out of
+ * a link to a URL when `linkText` is `'local'`), and its target kept. An
+ * HTML block (a comment, `<details>`) is a line of prose, as written.
  */
-const markdownOf = (text: string, linkText: 'kept' | 'dropped' = 'kept'): Markdown => {
+const markdownOf = (text: string, linkText: 'all' | 'local' = 'all'): Markdown => {
   const links: Array<string> = [];
-  const shown = (children: string) => {
-    if (linkText === 'dropped') return '';
+  const shown = (children: string, target: string) => {
+    if (linkText === 'local' && URL_TARGET.test(target)) return '';
     return children;
   };
   const out = Bun.markdown.render(text, {
@@ -363,11 +370,11 @@ const markdownOf = (text: string, linkText: 'kept' | 'dropped' = 'kept'): Markdo
     codespan: spanOf,
     link: (children, { href }) => {
       links.push(href);
-      return shown(children);
+      return shown(children, href);
     },
     image: (children, { src }) => {
       links.push(src);
-      return shown(children);
+      return shown(children, src);
     },
   });
   return {
@@ -389,6 +396,9 @@ const proseOf = (markdown: Markdown) =>
 /** A code span in a line of prose (`spanOf`): its text. */
 const SPAN = /(`+) ?(.*?) ?\1/g;
 
+/** A link's target that is a URL (`https://…`, `mailto:…`): another site's, never a file of this tree. */
+const URL_TARGET = /^[a-z][\w+.-]*:/i;
+
 /**
  * Each relative link a doc writes (`[x](reference/vision.md#part)`, an
  * image's source, a reference's target), its target without the part: a
@@ -399,7 +409,7 @@ const SPAN = /(`+) ?(.*?) ?\1/g;
 const linksIn = (doc: Doc): ReadonlyArray<Anchor> =>
   markdownOf(doc.text)
     .links.map((target) => target.replace(/[#?].*$/, ''))
-    .filter((target) => target !== '' && !/^(?:[a-z][\w+.-]*:|\/)/i.test(target))
+    .filter((target) => target !== '' && !URL_TARGET.test(target) && !target.startsWith('/'))
     .map((target) => ({
       written: target,
       path: target.replace(/\/$/, ''),
@@ -761,49 +771,60 @@ const findingDrift = (line: string, code: Code) => {
     .map((name) => `${name} is no finding`);
 };
 
-/** A code span that is a name, dotted or called: `drawRig`, `Effect.runPromise`, `accusedRml()`, `accusedProp(engine)`. */
+/** A code span that is a name, dotted or called: `drawRig`, `Effect.runPromise`, `loadRigs()`, `loadRigs(film)`. */
 const BARE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*(?:\([^()]*\))?$/;
 
-/** A file's name (`rig.ts`, `NORTH_STAR.md`, `accused.riv`): the anchors' to read, not a name of the code. */
+/** A file's name (`load.ts`, `NORTH_STAR.md`, `arm.riv`): the anchors' to read, not a name of the code. */
 const FILE_NAME =
   /\.(?:md|[cm]?[jt]sx?|json|jsonc|toml|ya?ml|riv|rml|css|html|svg|png|jpe?g|webp|wav|mp3|mp4|vtt|txt|lock|sh)$/;
 
 /**
  * A part of a name written as code, never as a word of a sentence:
- * camelCase (`drawRig`), a PascalCase compound (`RiveEngine`), UPPER_SNAKE
- * (`TOKENS_CSS`) or an all-caps name of five letters or more (`TIMELINES`).
- * A lowercase word (`clear`), a capitalised one (`Look`) and a short acronym
- * (`GET`, `RIVE`) read as English, a unit or a protocol, and are not read.
+ * camelCase (`drawRig`), a PascalCase compound (`RiveEngine`), one led by
+ * an acronym (`DOMParser`; letters only, so an id such as a playlist's is
+ * none), UPPER_SNAKE (`FILM_SRC`) or an all-caps name of five letters or
+ * more (`KNOBS`). A lowercase word (`clear`), a capitalised one (`Look`), a
+ * short acronym (`GET`, `RIVE`) and a one-letter lead (`XZoom`, a pattern of
+ * names) read as English, a unit, a protocol or a placeholder, and are not
+ * read.
  */
 const CODE_NAME =
-  /^(?:[a-z][a-z\d]*[A-Z][A-Za-z\d]*|[A-Z][a-z\d]+(?:[A-Z][a-z\d]*)+|[A-Z][A-Z\d]*(?:_[A-Z\d]+)+|[A-Z][A-Z\d]{4,})$/;
+  /^(?:[a-z][a-z\d]*[A-Z][A-Za-z\d]*|[A-Z][a-z\d]+(?:[A-Z][a-z\d]*)+|[A-Z]{2,}[A-Z][a-z]+(?:[A-Z][a-z]+)*|[A-Z][A-Z\d]*(?:_[A-Z\d]+)+|[A-Z][A-Z\d]{4,})$/;
 
-/** A commit's hash cited in a span: its line is a receipt, naming the tree as it was. */
-const CITED_COMMIT = /`[0-9a-f]{7,40}`/;
+/**
+ * A receipt right after a span: `` `name` at `<commit>` `` names the tree as
+ * it was, so that span is not read. A commit's hash holds a letter, so a
+ * long number (`16777216`) is none.
+ */
+const AT_COMMIT = /^\s+at\s+`(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}`/;
 
 /**
  * Each name a doc writes alone in a code span of its prose that the code
- * does not write (`Code.written`): each part of the span written as code
- * (`CODE_NAME`; `TIMELINES` in `` `TIMELINES[…]` `` is not alone; a symbol
+ * does not write (`written`, `Code.written`): each part of the span written
+ * as code (`CODE_NAME`; `KNOBS` in `` `KNOBS[…]` `` is not alone; a symbol
  * after a path is read here too, as a word, and by its anchor, in its file),
- * so a renamed or removed name fails here. Not read: a code block (commands, sketches); a link's text, since a name of
+ * so a renamed or removed name fails here. Not read: a code block
+ * (commands, sketches); a link's text when it links a URL, since a name of
  * another tool is written as a link to its source
- * (`` [`waitUntil`](https://motioncanvas.io/api/core/flow) ``); a line
- * about another repo; and a line that cites a commit, a receipt. A name to
- * come (a proposal's) is not written as code.
+ * (`` [`waitUntil`](https://motioncanvas.io/api/core/flow) ``), while a link
+ * to a file of ours is read; a line about another repo; and a span followed
+ * by its receipt, `at <commit>`. A name to come (a proposal's) is not
+ * written as code.
  */
-const bareNameDrift = (text: string, code: Code) =>
-  markdownOf(text, 'dropped')
-    .lines.filter(
-      (line) => !line.code && !ANOTHER_REPO.test(line.text) && !CITED_COMMIT.test(line.text),
+const bareNameDrift = (text: string, written: ReadonlySet<string>) =>
+  markdownOf(text, 'local')
+    .lines.filter((line) => !line.code && !ANOTHER_REPO.test(line.text))
+    .flatMap((line) =>
+      matches(line.text, SPAN)
+        .filter((m) => !AT_COMMIT.test(line.text.slice(m.index + m[0].length)))
+        .map((m) => group(m, 2)),
     )
-    .flatMap((line) => matches(line.text, SPAN).map((m) => group(m, 2)))
     .filter((span) => BARE.test(span) && !FILE_NAME.test(span))
     .flatMap((span) =>
       span
         .replace(/\(.*\)$/, '')
         .split('.')
-        .filter((part) => CODE_NAME.test(part) && !code.written.has(part))
+        .filter((part) => CODE_NAME.test(part) && !written.has(part))
         .map((part) => `\`${span}\`: the code writes no ${part}`),
     );
 
@@ -819,7 +840,7 @@ const drift = (doc: Doc, code: Code): ReadonlyArray<string> => {
       ...flagDrift(line, code),
       ...findingDrift(line.text, code),
     ]),
-    ...bareNameDrift(doc.text, code),
+    ...bareNameDrift(doc.text, code.written),
   ].map((what) => `${doc.path}: ${what}`);
 };
 
@@ -864,10 +885,83 @@ const CODE_FILE = /\.tsx?$/;
 /** A config file `Code.written` reads at a package's top (`.oxlintrc.json`, `bunfig.toml`); deeper, a `.json` is data (the corpora's assets). */
 const CONFIG_FILE = /\.(?:jsonc?|toml)$/;
 
+/** A text that is one name (`'AnswerUnencoded'`, `'LAB_PORT'`), never a sentence or a path. */
+const ONE_NAME = /^[A-Za-z_$][\w$]*$/;
+
+/** The calls whose first argument is a test's title (`describe('loadRigs', …)`, `it.effect.layer(l)('…')`). */
+const TEST_RUNNERS: ReadonlySet<string> = new Set(['describe', 'it', 'test', 'bench']);
+
+/** The name a call's callee starts from: `it` for `it.effect.layer(l)`. */
+const calleeRoot = (node: Node): string => {
+  if (node.type === 'MemberExpression') return calleeRoot(node.object);
+  if (node.type === 'CallExpression') return calleeRoot(node.callee);
+  if (node.type === 'Identifier') return node.name;
+  return '';
+};
+
+const isJsonObject = (value: Schema.Json): value is Schema.JsonObject =>
+  Predicate.isObject(value) && !Array.isArray(value);
+
+/** A config's keys, and its values that are one name, at any depth. */
+const configWords = (value: Schema.Json, values: boolean): ReadonlyArray<string> => {
+  if (Array.isArray(value)) return value.flatMap((v: Schema.Json) => configWords(v, values));
+  if (isJsonObject(value))
+    return Object.entries(value).flatMap(([key, v]) => [key, ...configWords(v, values)]);
+  if (values && Predicate.isString(value) && ONE_NAME.test(value)) return [value];
+  return [];
+};
+
+const decodeJson = Schema.decodeUnknownSync(Schema.Json);
+
+/** A module path's words (`./dir/load.ts`: `dir`, `load`, `ts`); none for a computed import. */
+const pathWords = (source: Option.Option<Node>): ReadonlyArray<string> =>
+  Option.toArray(source).flatMap((node) => {
+    if (node.type !== 'Literal' || !Predicate.isString(node.value)) return [];
+    return matches(node.value, /[A-Za-z_$][\w$]*/g).map((m) => m[0]);
+  });
+
 /**
- * The names the repo's code writes outside its comments (`Code.written`):
- * the root's own code and config, and each workspace's config and the code
- * of its tree, past installed packages and the directories the root's
+ * The names a file writes as an editor's rename reads them, by the parser.
+ * Code (`.ts`, `.tsx`): each identifier (a binding, a reference, a member, a
+ * key, a JSX tag), the words of each module path it imports or exports
+ * from, and each string that is one name (a tag, an env key), unless it is a
+ * test's title. A comment, a sentence in a string or a template, and a
+ * title are prose: a rename leaves them as they were, so they keep no name.
+ * JSON: its keys and the values that are one name. TOML: its keys.
+ */
+const wordsOf = (file: string, text: string): ReadonlyArray<string> => {
+  if (/\.jsonc?$/.test(file)) return configWords(decodeJson(JSONC.parse(text)), true);
+  if (file.endsWith('.toml')) return configWords(decodeJson(TOML.parse(text)), false);
+  const words: Array<string> = [];
+  const strings: Array<{ readonly at: number; readonly value: string }> = [];
+  const titles = new Set<number>();
+  const fromPath = (source: Option.Option<Node>) => words.push(...pathWords(source));
+  new Visitor({
+    Identifier: (node) => words.push(node.name),
+    PrivateIdentifier: (node) => words.push(node.name),
+    JSXIdentifier: (node) => words.push(node.name),
+    Literal: (node) => {
+      if (Predicate.isString(node.value)) strings.push({ at: node.start, value: node.value });
+    },
+    CallExpression: (node) => {
+      if (TEST_RUNNERS.has(calleeRoot(node.callee)))
+        node.arguments.slice(0, 1).forEach((title) => titles.add(title.start));
+    },
+    ImportDeclaration: (node) => fromPath(Option.some(node.source)),
+    ImportExpression: (node) => fromPath(Option.some(node.source)),
+    ExportNamedDeclaration: (node) => fromPath(Option.fromNullOr(node.source)),
+    ExportAllDeclaration: (node) => fromPath(Option.some(node.source)),
+  }).visit(parseSync(file, text).program);
+  return [
+    ...words,
+    ...strings.filter((s) => !titles.has(s.at) && ONE_NAME.test(s.value)).map((s) => s.value),
+  ];
+};
+
+/**
+ * The names the repo's code writes (`Code.written`, `wordsOf`): the root's
+ * own code and config, and each workspace's config and the code of its
+ * tree, past installed packages and the directories the root's
  * `.gitignore` names.
  */
 const writtenIn = Effect.fn('test.docs.writtenIn')(function* (
@@ -907,9 +1001,7 @@ const writtenIn = Effect.fn('test.docs.writtenIn')(function* (
     ...(yield* Effect.forEach(workspaces, (dir) => filesIn(dir, true, true))).flat(),
   ];
   const words = yield* Effect.forEach(files, (file) =>
-    Effect.map(fs.readFileString(path.join(root, file)), (text) =>
-      matches(uncommented(text), /[A-Za-z_$][\w$]*/g).map((m) => m[0]),
-    ),
+    Effect.map(fs.readFileString(path.join(root, file)), (text) => wordsOf(file, text)),
   );
   return new Set(words.flat());
 });
@@ -1453,10 +1545,6 @@ describe('the docs', () => {
           'bun run nothing-headed',
           'bun run nothing-next',
           '```',
-          // A bare name the code no longer writes: alone, dotted, called, all caps.
-          '',
-          'The rig prints through `accusedRmlGone`, posed by `Effect.runPoseGone` and `drawRigGone(rig)`;',
-          'its seconds sit in `TIMELINES_GONE` and `KNOBSGONE`.',
         ].join('\n'),
       };
       expect(drift(stale, code)).toEqual([
@@ -1486,11 +1574,6 @@ describe('the docs', () => {
         'stale.md: film check --frob-4: no command declares the flag',
         'stale.md: `pageHrefs`: the code writes no pageHrefs',
         'stale.md: `NoSuchFinding`: the code writes no NoSuchFinding',
-        'stale.md: `accusedRmlGone`: the code writes no accusedRmlGone',
-        'stale.md: `Effect.runPoseGone`: the code writes no runPoseGone',
-        'stale.md: `drawRigGone(rig)`: the code writes no drawRigGone',
-        'stale.md: `TIMELINES_GONE`: the code writes no TIMELINES_GONE',
-        'stale.md: `KNOBSGONE`: the code writes no KNOBSGONE',
       ]);
       expect(yield* anchorsDrift(root, [stale])).toEqual([
         'stale.md: path packages/film/src/tools/gone.ts does not exist',
@@ -1565,22 +1648,6 @@ describe('the docs', () => {
           'a',
           '```ts',
           'Read [the gone guide](guide/gone.md).',
-          '```',
-          // A bare name the code writes, a library's call it makes, a config's key; and what is
-          // no name of ours: a word, a short acronym, a file, a name not alone, a link to another
-          // tool, a line that cites a commit, another repo's row, a code block's sketch.
-          '',
-          'The rig is `accusedRml()` over `TIMELINES` and `KNOBS`; `drawRig` draws with `drawImage`, under `jsPlugins`.',
-          'Run `clear`, then `Look` at the `GET` from `RIVE`; read `NORTH_STAR.md` and `TIMELINES[name].seconds`.',
-          'Motion Canvas waits with [`waitUntilGone`](https://motioncanvas.io/api/core/flow).',
-          'The rejected `atBeginGone` pair (`acb1daca`).',
-          '',
-          '| `motion-canvas/motion-canvas` | `waitUntilGone` |',
-          '| --- | --- |',
-          '',
-          '```ts',
-          'atBeginGone(ctx);',
-          '```',
         ].join('\n'),
       };
       expect(drift(correct, code)).toEqual([]);
@@ -1626,6 +1693,96 @@ describe('the docs', () => {
       expect(yield* anchorsDrift(root, [whole])).toEqual([
         'whole.md: path pacakges/film/src/core/time.ts does not exist',
       ]);
+    }),
+  );
+
+  it.effect('read the names code writes as a rename reads them, and a bare name against them', () =>
+    Effect.sync(() => {
+      // An identifier, a module path's words, a string that is one name, a JSX tag, a private
+      // member, a config's keys and its one-name values are written; a comment, a sentence in a
+      // string or a template, a test's title and a TOML comment keep no name.
+      const code = [
+        "import { a } from './dir/pathWord.ts';",
+        "export * from 'pkg/exportWord';",
+        "describe('titleGone', () => { it.effect.layer(x)('layeredTitleGone', () => {}); });",
+        "const tag = 'TagWord';",
+        "const prose = 'a sentence naming proseGone';",
+        'const tpl = `templateGone`;',
+        '// commentGone',
+        '/* blockGone */',
+        'const obj = { keyWord: 1 };',
+        'class K { #privateWord = 1; }',
+      ].join('\n');
+      const written = new Set([
+        ...wordsOf('code.ts', code),
+        ...wordsOf('view.tsx', 'export const v = <PanelWord />;'),
+        ...wordsOf(
+          'config.json',
+          // A glob's `/*` opens no comment: the key after it is read.
+          '{ "files": ["**/*.ts"], // a comment\n "jsPluginsWord": ["ValueWord", "a sentence"], "laterKey": 1 }',
+        ),
+        ...wordsOf('bunfig.toml', '# tomlCommentGone\n[test]\nconcurrentTestGlob = "x"\n'),
+      ]);
+      expect(
+        [
+          ...['a', 'pathWord', 'exportWord', 'tag', 'TagWord', 'keyWord', 'privateWord'],
+          ...['PanelWord', 'jsPluginsWord', 'ValueWord', 'laterKey', 'test', 'concurrentTestGlob'],
+        ].filter((name) => !written.has(name)),
+      ).toEqual([]);
+      expect(
+        [
+          ...['titleGone', 'layeredTitleGone', 'proseGone', 'templateGone', 'commentGone'],
+          ...['blockGone', 'tomlCommentGone'],
+        ].filter((name) => written.has(name)),
+      ).toEqual([]);
+      // Against a set the test controls: what a doc names that is not written is red, each rule
+      // that keeps a span out holding a span that would be red without it.
+      const known = new Set(['drawRig', 'loadRigs', 'KNOBS', 'drawImage', 'RiveEngine']);
+      expect(
+        bareNameDrift(
+          [
+            'Loads with `loadRigsGone`, `Effect.runPoseGone` and `drawRigGone(rig)`; seconds in `TIMELINES_GONE`, `KNOBSGONE`.',
+            'Parsed by `DOMParserGone` over `HTTPServerGone`.',
+            'Linked to our file: [`linkedGone`](../canvas/rive.ts).',
+            'Its budget is `16777216` bytes, held by `budgetGone`.',
+            '',
+            '- `rigGone` at `acb1daca`, then `loadRigsGone2`.',
+          ].join('\n'),
+          known,
+        ),
+      ).toEqual([
+        '`loadRigsGone`: the code writes no loadRigsGone',
+        '`Effect.runPoseGone`: the code writes no runPoseGone',
+        '`drawRigGone(rig)`: the code writes no drawRigGone',
+        '`TIMELINES_GONE`: the code writes no TIMELINES_GONE',
+        '`KNOBSGONE`: the code writes no KNOBSGONE',
+        '`DOMParserGone`: the code writes no DOMParserGone',
+        '`HTTPServerGone`: the code writes no HTTPServerGone',
+        '`linkedGone`: the code writes no linkedGone',
+        '`budgetGone`: the code writes no budgetGone',
+        '`loadRigsGone2`: the code writes no loadRigsGone2',
+      ]);
+      expect(
+        bareNameDrift(
+          [
+            'The rig is `loadRigs()` over `KNOBS`; `drawRig` draws with `drawImage`, typed `RiveEngine`.',
+            // A word, a capitalised word, a short acronym, a one-letter lead, an id, a file, a span
+            // that is no name (its dotted member unwritten), a link to a URL, a receipt.
+            'Run `clear`, then `Look` at the `GET` from `RIVE`, on `XZoom`, in `PLH0Szn1yYNefD9pHcnyRivKRGpYGc2yfB`.',
+            'Read `NORTH_STAR.md` and `rigs[key].memberGone`.',
+            'Motion Canvas waits with [`waitUntilGone`](https://motioncanvas.io/api/core/flow).',
+            'The rejected `atBeginGone` at `acb1daca` pair.',
+            '',
+            '| `motion-canvas/motion-canvas` | `rowGone` |',
+            '| --- | --- |',
+            '',
+            '```ts',
+            'blockSketchGone(ctx);',
+            '```',
+          ].join('\n'),
+          known,
+        ),
+      ).toEqual([]);
     }),
   );
 

@@ -1647,7 +1647,7 @@ quotation set apart with who said it, marks stripped), and records it:
   default; `enumerateDevices`;
   the choice is remembered in this browser as `film-lab-mic`, a `keptText` in
   `ViewerStore`, `browser/storage.ts`), into an
-  `AudioWorklet` (`worklet.ts`) on an `AudioContext` at the device's own
+  [`AudioWorklet`](https://developer.mozilla.org/en-US/docs/Web/API/AudioWorklet) (`worklet.ts`) on an `AudioContext` at the device's own
   rate. The worklet hands each block of float PCM over untouched with its
   peak and RMS (the meter: dBFS, a clip warning at −1 dBFS); the page keeps
   the blocks from the count-in's end and joins them on stop. Nothing is
@@ -3433,7 +3433,7 @@ The fixture rig is `src/rive/fixtures/arm/arm.rml`, built to
 
 `src/core` never touches the DOM at runtime (type-only DOM references are
 fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
-tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `rive` (the Rive loader and its runtimes) may import both; `player` may import all three. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `rive`, `player`, `tools`, `lab` or `browser`, `canvas` no `rive` (its fixtures, which load a rig to draw it, excepted), `player`, `tools`, `lab` or `browser`, `rive` no `player`, `tools`, `lab`, `browser` or `command`, `player` no `tools` or `lab`, `browser` (the host's adapters) no `player`, `tools` or `lab`, and `command` (the commands, the keymap and the selection, shared by the player and the lab) no `player`, `tools` or `lab`.
+tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `rive` (the Rive loader and its runtimes) may import both; `player` may import all three. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `rive`, `player`, `tools`, `lab` or `browser`, `canvas` no `rive` (its fixtures, which load a rig to draw it, excepted), `player`, `tools`, `lab` or `browser`, `rive` no `player`, `tools`, `lab`, `browser` or `command`, `player` no `tools` or `lab`, `browser` (the host's adapters) no `player`, `tools` or `lab`, and `command` (the commands, the keymap and the selection, shared by the player and the lab) no `player`, `tools` or `lab`. Each block reads a layer's `.ts` and `.tsx`, and keeps a folder out whether a path names a file in it (`../tools/index.ts`) or the folder itself (`../tools`). An app reaches the film through its package exports (`@bible/film/rive`), never a path into `packages/film/src/`.
 
 **The host** (`src/browser/`): every browser API a page reaches goes through
 an Effect service there, each with its live adapter (`*-browser.ts`) and a
