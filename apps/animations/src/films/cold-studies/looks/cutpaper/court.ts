@@ -67,11 +67,12 @@ export const paperAccused = (f: CourtFrame) => {
 /**
  * The judge at the bench: `behind` it (drawn before the bench, in frame
  * units, as he leans `lean` of the way in) and `over` it (his hand on the
- * gavel, turned `swing`, drawn after the bench and its block).
+ * gavel, turned `swing`, drawn after the bench and its block, among the
+ * court's `props`).
  */
 export interface Bench {
   readonly behind: (f: CourtFrame, lean: number) => void;
-  readonly over: (f: CourtFrame, swing: number, lean: number) => void;
+  readonly over: (f: CourtFrame, swing: number, lean: number, props: Props) => void;
 }
 
 /** The judge as the control draws him: the kit's robe, bands and head, and the court's gavel in his paper hand. */
@@ -216,7 +217,7 @@ export const courtWith =
               line: 2,
               outline: props.blockInk,
             });
-            judge.over(f, swing, lean);
+            judge.over(f, swing, lean, props);
             // The verdict, stamped on a torn label across the bench.
             benchStamp(ctx, f.hand, VERDICT, popScale);
           },

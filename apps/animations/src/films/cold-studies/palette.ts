@@ -87,18 +87,21 @@ export interface Hue {
  * person is told by the hue of what they wear, not by a new accent. Every
  * value sits inside the film's saturation band (HSV 0.20–0.35) and scarlet
  * stays the figure's one accent. Each shade turns its hue toward the key's
- * complement (blue-violet) and keeps or raises saturation (CRAFT 12); the
- * skin's turns by a smaller step, so a face reads as one paper, not two tones.
+ * complement (blue-violet) and keeps or raises saturation (CRAFT 12). Heads
+ * and hands stay the people's one figure paper (`ramps.figure`): a garment
+ * tells a person, not a skin.
  */
 export const hues = {
   /** The accused's sage tunic, hsv(92, .27, .68) shading to hsv(125, .30, .57). */
   tunic: { base: '#94ad7f', shade: '#669169' },
   /** The accused's slate legs, hsv(215, .28, .48). */
   legs: '#58667a',
-  /** The judge's tan skin, hsv(30, .30, .76) shading to hsv(25, .32, .72): a step as small as the grey paper's, so the face stays one paper. */
-  skin: { base: '#c2a588', shade: '#b8957d' },
-  /** The judge's indigo robe, hsv(248, .30, .32) shading to hsv(262, .35, .24). */
-  robe: { base: '#3c3952', shade: '#30283d' },
+  /**
+   * The judge's indigo robe, hsv(248, .30, .32) shading to hsv(290, .35, .24):
+   * past violet toward plum, so three quarters of the dark paper's step is
+   * hue (LCh hue 298 → 322), not the robe dimmed.
+   */
+  robe: { base: '#3c3952', shade: '#3a283d' },
   /**
    * The walnut bench, hsv(24, .25, .54), its shade hsv(6, .29, .45) where a
    * hand's shadow falls on it: toned to the band's low end, since it is the

@@ -9,11 +9,11 @@ import { describe, expect, test } from 'bun:test';
 import { Console, Effect, FileSystem, Result } from 'effect';
 import { ramps } from '../../palette.ts';
 import { paperProps } from '../cutpaper/court.ts';
-import { accusedFace, accusedHead } from './accused-rig.ts';
+import { HAND as ACCUSED_HAND, accusedFace, accusedHead } from './accused-rig.ts';
 import { compile, rive } from './build.ts';
 import { type Direction, K1, OPTIONS, inkOf, propsOf } from './direction.ts';
 import { figureRigs, figuresRml } from './figures.ts';
-import { judgeFace } from './judge-rig.ts';
+import { HAND_ART, JUDGE_FACE, judgeFace } from './judge-rig.ts';
 import { type Mat, type Pt, boxOf } from './parts.ts';
 import { type Element, argb } from './rml.ts';
 
@@ -214,6 +214,24 @@ describe.each(CASES)('option %s', (_, d) => {
     expect(shapes[0]?.paints).toContain('Paper');
     for (const shape of shapes)
       expect(shape).toEqual({ paths: 1, points: 12, paints: shapes[0]?.paints ?? [] });
+    // Nothing but the one path and paints: no part hangs off a hand.
+    for (const palm of palms)
+      for (const child of palm.children)
+        expect([child.name, ['PointsPath', 'Fill', 'Stroke'].includes(child.name)]).toEqual([
+          child.name,
+          true,
+        ]);
+    // A circle about the hand's centre, of the hand's radius: the accused's, and the judge's at his size.
+    for (const [palm, r] of [
+      [palms[0], ACCUSED_HAND.r],
+      [palms[1], ACCUSED_HAND.r],
+      [palms[2], HAND_ART.r],
+    ] as const) {
+      const points = walk(palm ? [palm] : [])
+        .filter((e) => e.name === 'CubicMirroredVertex')
+        .map((v) => Math.hypot(num(v, 'x', 0), num(v, 'y', 0)));
+      for (const distance of points) expect(distance).toBeCloseTo(r, 6);
+    }
   });
 
   test('the accused and the judge wear the same face kit, the judge at his own scale', () => {
@@ -224,7 +242,11 @@ describe.each(CASES)('option %s', (_, d) => {
         1,
         1,
       ]);
-    expect(attr(named([judge], 'face')[0], 'scaleX')).toBeGreaterThan(1);
+    // The kit scales with the head the axis draws: the accused's by the head's scale, the judge's by his own times it.
+    const hs = accusedHead(d).scale;
+    expect(num(named([accused], 'face')[0], 'scaleX', 1)).toBeCloseTo(hs, 6);
+    expect(num(named([judge], 'face')[0], 'scaleX', 1)).toBeCloseTo(JUDGE_FACE * hs, 6);
+    expect(JUDGE_FACE).toBeGreaterThan(1);
   });
 
   test('both heads, their ink, shadow and moves, sit inside their artboards (what paintGl copies)', () => {
@@ -302,7 +324,9 @@ describe.each(CASES)('option %s', (_, d) => {
       [judge, 'head'],
       [hand, 'palm'],
     ] as const) {
-      const paper = named([b], shape)[0]?.children.find((c) => attr(c, 'name') === 'Paper');
+      const paper = named([b], shape)
+        .find((e) => e.name === 'Shape')
+        ?.children.find((c) => attr(c, 'name') === 'Paper');
       const stops = walk(paper ? [paper] : [])
         .filter((e) => e.name === 'GradientStop')
         .map((e) => attr(e, 'colorValue'));

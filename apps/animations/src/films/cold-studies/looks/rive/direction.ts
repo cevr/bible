@@ -13,9 +13,8 @@
 // (`tmp/orchestrate/p5/rimproto/`: `A-outline.png`, `B-ink.png`,
 // `C-colour.png`, `D-head.png`) and may pick others.
 
-import { palette as court } from '../../../righteousness-by-faith/palette.ts';
 import { hues, ramps } from '../../palette.ts';
-import type { Props } from '../cutpaper/court.ts';
+import { type Props, paperProps } from '../cutpaper/court.ts';
 
 /**
  * A. The figure's edge:
@@ -84,11 +83,14 @@ export interface Paper {
   readonly shade: string;
 }
 
-/** What the people wear: the accused's tunic and legs, the judge's skin (his head and hand) and robe. The accused's head and hands stay grey either way. */
+/**
+ * What the people wear: the accused's tunic and legs, the judge's robe.
+ * Heads and hands are the people's one figure paper (`FIGURE` in `parts.ts`)
+ * under either colour: a garment tells a person, not their skin.
+ */
 export interface Dress {
   readonly tunic: Paper;
   readonly legs: string;
-  readonly skin: Paper;
   readonly robe: Paper;
   /** The bench's paper, under the judge's hand. */
   readonly bench: Paper;
@@ -100,36 +102,34 @@ export const dressOf = (d: Direction): Dress =>
     ? {
         tunic: { color: hues.tunic.base, shade: hues.tunic.shade },
         legs: hues.legs,
-        skin: { color: hues.skin.base, shade: hues.skin.shade },
         robe: { color: hues.robe.base, shade: hues.robe.shade },
         bench: { color: hues.bench.base, shade: hues.bench.shade },
       }
     : {
         tunic: { color: ramps.figure.base, shade: ramps.figure.shade },
         legs: ramps.figure.shade,
-        skin: { color: ramps.figure.base, shade: ramps.figure.shade },
         robe: { color: ramps.robe.base, shade: ramps.robe.shade },
         bench: { color: ramps.paperTone.base, shade: ramps.paperTone.shade },
       };
 
-/** The court's props under `d`'s colour, lined in its ink (the control's own colours under `grey`). */
-export const propsOf = (d: Direction): Props => ({
-  ...(d.colour === 'hues'
+/**
+ * The court's props under `d`: under `hues` in walnut, the sheets, the block
+ * and the gavel lined in `d`'s ink; under `grey` the control's own props
+ * (`paperProps`), lined in its own inks unless `d`'s ink is black, which
+ * reaches every line it names.
+ */
+export const propsOf = (d: Direction): Props =>
+  d.colour === 'hues'
     ? {
         bench: hues.bench.base,
         rim: hues.rim,
         panel: hues.panel,
         block: hues.block,
         sheets: hues.sheets,
+        sheetInk: inkOf(d),
+        blockInk: inkOf(d),
+        gavelInk: inkOf(d),
       }
-    : {
-        bench: court.paperTone,
-        rim: court.inkSoft,
-        panel: court.inkSoft,
-        block: court.boardDeep,
-        sheets: [court.paper],
-      }),
-  sheetInk: inkOf(d),
-  blockInk: inkOf(d),
-  gavelInk: court.outline,
-});
+    : d.ink === 'black'
+      ? { ...paperProps, sheetInk: INKS.black, blockInk: INKS.black, gavelInk: INKS.black }
+      : paperProps;

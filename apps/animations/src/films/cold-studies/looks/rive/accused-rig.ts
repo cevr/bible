@@ -64,8 +64,11 @@ export const accusedHead = (d: Direction) => {
   return { scale, y: NECK - (HEAD_H / 2) * scale, face: -37 * scale };
 };
 
-/** The face `check` reads under `d` (`RivePropSpec.face`): its node, and the head's height as drawn. */
-export const accusedFace = (_d: Direction) => ({ node: 'face', height: HEAD_H });
+/** The face `check` reads under `d` (`RivePropSpec.face`): its node, and the head's height at the axis's scale. */
+export const accusedFace = (d: Direction) => ({
+  node: 'face',
+  height: HEAD_H * accusedHead(d).scale,
+});
 
 /** The view model's numbers at rest under `d`: the face kit's, the eyes on us. */
 const accusedKnobs = (d: Direction) => ({ ...FACE, gazeX: 0, gazeY: accusedHead(d).y }) as const;
@@ -97,16 +100,24 @@ const bones = (hs: number): ReadonlyArray<BoneSpec> => [
   { name: 'tailB2', parent: 'tailB1', rotation: -0.03, length: 8 },
 ];
 
-/** The hands: radius, their rest beside the hips (the near one screen right), and where they go. */
-const HAND = {
+/**
+ * The hands: radius, their rest beside the hips (the near one screen right),
+ * and where they go, from that rest (the far hand's mirrored).
+ */
+export const HAND = {
   r: 10,
   x: 49,
   y: -50,
   /** On the bow: together in front of the body, low, the near one over the far. */
   clasp: [-38, 4],
-  /** On the verdict: out and up, open, then settled a little lower. */
-  spring: [22, -30],
-  open: [14, -18],
+  /**
+   * On the verdict: up and open, then settled a little lower. The far hand
+   * springs out; the near one rises before the chest, since out on its side
+   * stands the evidence stack (`SHEETS` in `looks/cutpaper/court.ts`, its
+   * left edge about 44 units right of the feet), which it must clear.
+   */
+  spring: { near: [-24, -50], far: [22, -30] },
+  open: { near: [-22, -36], far: [14, -18] },
 } as const;
 
 /** The pose the bow ends in, which the lift starts from. */
@@ -425,8 +436,14 @@ export const accusedRig = (fig: Figure) => {
         [0.54, hs],
       ],
     },
-    nearHand: handTrack(HAND.clasp, HAND.open, 0.02, 0.62, HAND.spring),
-    farHand: handTrack(mirror(HAND.clasp), mirror(HAND.open), 0.06, 0.68, mirror(HAND.spring)),
+    nearHand: handTrack(HAND.clasp, HAND.open.near, 0.02, 0.62, HAND.spring.near),
+    farHand: handTrack(
+      mirror(HAND.clasp),
+      mirror(HAND.open.far),
+      0.06,
+      0.68,
+      mirror(HAND.spring.far),
+    ),
     body: {
       y: [
         [0, BOWED.bodyY, 'out'],

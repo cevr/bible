@@ -1,19 +1,24 @@
 // The judge as Rive rigs (`judge-rig.ts`, in `figures.riv`), at the bench
 // where the control draws its paper judge: his body behind the bench, and
-// his circle hand over it on the court's own gavel. The look declares both
-// rigs (`Look.rigs.judge`, `Look.rigs.hand`, `rigs.ts`).
+// over it the paper he reads, the court's gavel lined in the props' ink and
+// his circle hand on it. The look declares both rigs (`Look.rigs.judge`,
+// `Look.rigs.hand`, `rigs.ts`).
 //
-// His acting, on the court's cues: reading the papers before him, eyes down,
+// His acting, on the court's cues: reading the paper before him, eyes down,
 // until he leans in on "the judge looks at you", his eyes coming up to the
-// accused and his head turning a little after them; on the verdict his face
-// softens (`face.ts`).
+// accused's face, his head held still (`follow` 0: the eyes do the looking);
+// on the verdict his face softens (`face.ts`).
 
-import { at } from '@bible/film/canvas';
+import { at, rectShape, rounded } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import type { PoseOf } from '@bible/film/rive';
-import { ACCUSED, JUDGE, gavel } from '../../../righteousness-by-faith/court.ts';
+import { ACCUSED, JUDGE } from '../../../righteousness-by-faith/court.ts';
+import { C, piece } from '../../../righteousness-by-faith/kit.ts';
+import { ramps } from '../../palette.ts';
 import type { CourtFrame } from '../../scenes/court.ts';
-import type { Bench } from '../cutpaper/court.ts';
+import type { Bench, Props } from '../cutpaper/court.ts';
+import { accusedHead } from './accused-rig.ts';
+import { DIRECTION } from './direction.ts';
 import { EASE, type Expression, acted } from './face.ts';
 import { JUDGE_KNOBS, JUDGE_TIMELINES } from './judge-rig.ts';
 import { type Pt, boilTime, reachAbout } from './parts.ts';
@@ -26,10 +31,10 @@ const REGARD: Expression = { ...EASE, eyes: 1.05, browY: 0.5, browTilt: -0.08 };
 /** The verdict given: the brows' inner ends up, a small smile. Kind, not amused. */
 const KIND: Expression = { ...EASE, eyes: 1, browY: -2.2, browTilt: 0.28, mouth: 1.6 };
 
-/** Where his eyes go, from his head's centre: down on the papers, then the accused's face. */
+/** Where his eyes go, from his head's centre: down on the papers, then the accused's head as `figures.riv` draws it. */
 const GAZE = {
   papers: [JUDGE_KNOBS.gazeX, JUDGE_KNOBS.gazeY],
-  accused: [ACCUSED[0] - JUDGE[0], ACCUSED[1] - 150 - JUDGE[1]],
+  accused: [ACCUSED[0] - JUDGE[0], ACCUSED[1] + accusedHead(DIRECTION).y - JUDGE[1]],
 } as const;
 
 /** How far he tips toward the accused as he leans in, radians about the robe's foot (negative: toward screen left). */
@@ -67,16 +72,49 @@ const REST: Pt = [92, 104];
 const GAVEL: Pt = [1330, 445];
 const GRIP = 16;
 
+// The court's gavel (`righteousness-by-faith/court.ts`: `gavel`, which lines
+// it in the kit's outline): the same paper and cut, lined in the props' ink.
+const GAVEL_HANDLE = rounded(0, -52, 12, 100, 4);
+const GAVEL_HEAD = rounded(0, -104, 64, 34, 8);
+
+/** The paper he reads: one sheet lying on the bench's rim before him, under his lowered eyes. */
+const READING_SHEET = { x: 1186, y: 451, rot: -0.03, shape: rectShape(-48, -4, 96, 8) } as const;
+
+/** What lies on the bench before him: the paper he reads, and the gavel turned `swing`, lined in `props`' inks. */
+const benchTop = (f: CourtFrame, swing: number, props: Props) => {
+  const { ctx } = f;
+  at(ctx, READING_SHEET, () =>
+    piece(ctx, READING_SHEET.shape, ramps.paper.base, f.hand('judgeSheet'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 2,
+      outline: props.sheetInk,
+    }),
+  );
+  at(ctx, { x: GAVEL[0], y: GAVEL[1], rot: swing }, () => {
+    piece(ctx, GAVEL_HANDLE, C.inkSoft, f.hand('handle'), {
+      role: 'figure',
+      line: 2,
+      outline: props.gavelInk,
+    });
+    piece(ctx, GAVEL_HEAD, C.cutDeep, f.hand('gavelHead'), {
+      role: 'figure',
+      line: 2.5,
+      outline: props.gavelInk,
+    });
+  });
+};
+
 /**
  * The judge drawn by the rigs the look declares: his body behind the bench
- * (his contact shadow is the bench's, the court's), his hand on the gavel
- * over it.
+ * (his contact shadow is the bench's, the court's), the paper he reads and
+ * the gavel on it, his hand on the gavel.
  */
 export const riveJudge: Bench = {
   behind: (f, lean) =>
     at(f.ctx, { x: JUDGE[0], y: JUDGE[1] + 6 * lean }, () => f.rive('judge', poseOf(f, lean))),
-  over: (f, swing, lean) => {
-    gavel(f.ctx, f.hand, { x: GAVEL[0], y: GAVEL[1], rot: swing });
+  over: (f, swing, lean, props) => {
+    benchTop(f, swing, props);
     const shoulder: Pt = [JUDGE[0] + SHOULDER[0], JUDGE[1] + SHOULDER[1] + 10 * lean];
     const rest: Pt = [JUDGE[0] + REST[0], JUDGE[1] + REST[1]];
     const grip: Pt = [GAVEL[0] + Math.sin(swing) * GRIP, GAVEL[1] - Math.cos(swing) * GRIP];
