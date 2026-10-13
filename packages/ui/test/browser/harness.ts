@@ -19,6 +19,18 @@ import { transform } from '@solidjs/compiler';
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import type { BunPlugin } from 'bun';
 
+/**
+ * The flags every Chromium here launches with, as the film's `chromeArgs`:
+ * `--mute-audio` mutes its pages and `--disable-audio-output` plays to a fake
+ * device, so a test never opens the host's speakers.
+ */
+const SILENT = [
+  '--mute-audio',
+  '--disable-audio-output',
+  '--overscroll-history-navigation=0',
+  '--pull-to-refresh=0',
+];
+
 /** Solid's DOM compiler, with `fixtures/index.ts` resolved to `fixtureFile`. */
 const solid = (fixtureFile: string): BunPlugin => ({
   name: 'solid-dom',
@@ -55,6 +67,9 @@ const PAGE = `<!doctype html>
 <html><head><meta charset="utf-8"><title>ui</title>
 <style>
   body { margin: 0; font: 14px sans-serif; }
+  /* A host page's own overscroll gestures (pull to refresh, swipe back) reload or leave the page under
+     a test; a finger that drags past a hidden sheet reaches the document. */
+  html { overscroll-behavior: none; }
   [hidden] { display: none !important; }
 </style></head>
 <body><div id="root"></div><script type="module" src="/client.js"></script></body></html>`;
@@ -70,11 +85,27 @@ export interface OpenOptions {
   readonly touch?: boolean;
   readonly viewport?: { width: number; height: number };
   /**
+   * Scrollbars that take room, as on Windows and Linux: the page opens in a
+   * Chromium launched without `--hide-scrollbars` (headless hides them).
+   */
+  readonly scrollbars?: boolean;
+  /**
    * The `navigator.platform` the page reports (`MacIntel`, `Linux x86_64`):
    * the parts read their OS from it as they load, so a case can hold each
    * OS's rule on any host.
    */
   readonly platform?: string;
+  /**
+   * The engine the page reads itself as: `webkit` answers `CSS.supports` for the
+   * `-webkit-backdrop-filter` WebKit alone has, as the parts read it, so a case can hold a
+   * WebKit rule in Chromium.
+   */
+  readonly engine?: 'webkit';
+  /**
+   * The page's `<meta name="viewport" content="width=device-width">`, as the lab's pages have:
+   * a touch page lays out at its window's width, not a desktop page's 980 px.
+   */
+  readonly deviceWidth?: boolean;
 }
 
 /**
@@ -91,6 +122,8 @@ export interface OpenOptions {
 export const harness = (fixtureFile: string): Harness => {
   let server: ReturnType<typeof Bun.serve> | undefined;
   let browser: Browser | undefined;
+  // Launched for the first page that asks for scrollbars that take room.
+  let scrollbarBrowser: Promise<Browser> | undefined;
   let contexts: Array<BrowserContext> = [];
   let problems: Array<string> = [];
 
@@ -106,7 +139,7 @@ export const harness = (fixtureFile: string): Harness => {
         return new Response(PAGE, { headers: { 'content-type': 'text/html;charset=utf-8' } });
       },
     });
-    browser = await chromium.launch({ channel: 'chromium' });
+    browser = await chromium.launch({ channel: 'chromium', args: SILENT });
   });
 
   afterEach(async () => {
@@ -122,6 +155,7 @@ export const harness = (fixtureFile: string): Harness => {
 
   afterAll(async () => {
     await browser?.close();
+    await (await scrollbarBrowser)?.close();
     await server?.stop(true);
   });
 
@@ -130,7 +164,14 @@ export const harness = (fixtureFile: string): Harness => {
       if (!browser || !server) {
         throw new Error('harness: open a fixture inside a case');
       }
-      const context = await browser.newContext({
+      if (options.scrollbars) {
+        scrollbarBrowser ??= chromium.launch({
+          args: SILENT,
+          ignoreDefaultArgs: ['--hide-scrollbars'],
+        });
+      }
+      const from = options.scrollbars ? await scrollbarBrowser! : browser;
+      const context = await from.newContext({
         hasTouch: options.touch ?? false,
         isMobile: options.touch ?? false,
         viewport: options.viewport ?? { width: 800, height: 600 },
@@ -140,6 +181,24 @@ export const harness = (fixtureFile: string): Harness => {
         await context.addInitScript((platform) => {
           Object.defineProperty(Navigator.prototype, 'platform', { get: () => platform });
         }, options.platform);
+      }
+      if (options.engine === 'webkit') {
+        await context.addInitScript(() => {
+          const supports = CSS.supports.bind(CSS) as (...args: Array<string>) => boolean;
+          CSS.supports = ((...args: Array<string>) =>
+            args.join(' ').replace(/\s/g, '') === '-webkit-backdrop-filter:none' ||
+            supports(...args)) as typeof CSS.supports;
+        });
+      }
+      if (options.deviceWidth) {
+        await context.addInitScript(() => {
+          document.addEventListener('DOMContentLoaded', () => {
+            const meta = document.createElement('meta');
+            meta.name = 'viewport';
+            meta.content = 'width=device-width';
+            document.head.append(meta);
+          });
+        });
       }
       const page = await context.newPage();
       page.setDefaultTimeout(5000);

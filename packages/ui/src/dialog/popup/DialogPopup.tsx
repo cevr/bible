@@ -42,10 +42,18 @@ interface DialogPopupFocusProps {
    * the first tabbable element.
    */
   initialFocus?: (() => HTMLElement | boolean) | undefined;
+  /**
+   * Whether focus moving in, its trap and a modal's hiding of the page wait: a
+   * sheet's while it scrolls in. Once it turns false, focus moves in. Where
+   * focus returns on close is recorded at open regardless.
+   */
+  deferred?: boolean | undefined;
+  /** Whether a modal one makes the page `inert`, not `aria-hidden`: a sheet's, as React Aria's. */
+  inertOutside?: boolean | undefined;
   children: JSX.Element;
 }
 
-/** The focus manager a dialog or drawer popup renders in. */
+/** The focus manager a dialog or sheet popup renders in. */
 export function DialogPopupFocus(props: DialogPopupFocusProps): JSX.Element {
   const store = props.store;
   return (
@@ -54,6 +62,8 @@ export function DialogPopupFocus(props: DialogPopupFocusProps): JSX.Element {
       // The owner's `open` opens it: a programmatic open, so focus returns to what had it.
       openInteractionType={null}
       disabled={!store.mounted()}
+      deferred={props.deferred ?? false}
+      inertOutside={props.inertOutside ?? false}
       closeOnFocusOut={!store.disablePointerDismissal()}
       initialFocus={props.initialFocus}
       modal={store.modal()}
@@ -64,7 +74,7 @@ export function DialogPopupFocus(props: DialogPopupFocusProps): JSX.Element {
   );
 }
 
-/** The element props a dialog or drawer popup shares: its id, labels, role and keys. */
+/** The element props a dialog or sheet popup shares: its id, labels, role and keys. */
 export function dialogPopupProps(store: DialogStore, componentProps: Pick<DialogPopupProps, 'id'>) {
   return {
     get id() {
@@ -83,7 +93,7 @@ export function dialogPopupProps(store: DialogStore, componentProps: Pick<Dialog
 }
 
 /** Calls the root's `onOpenChangeComplete(true)` once the popup's enter animations finish. */
-function useDialogOpenChangeComplete(store: DialogStore) {
+export function useDialogOpenChangeComplete(store: DialogStore) {
   useOpenChangeComplete({
     open: store.open,
     element: store.popupElement,

@@ -974,7 +974,7 @@ describe("a film's project", () => {
           until(page, `location.pathname + location.search === '${href}'`);
         yield* page.click('.sh-pagebar [data-page="project"]');
         yield* at(PROJECT);
-        // Close and Escape (and a swipe: the drawer's own close) dismiss the sheet one way, the
+        // Close and Escape (and a swipe: the sheet's own close) dismiss the sheet one way, the
         // place's `name(None)`; neither leaves an entry, as the Back after them shows.
         const dismissals = [
           click(page, `${INSPECTOR} [data-act="close-inspector"]`),

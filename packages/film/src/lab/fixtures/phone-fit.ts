@@ -11,9 +11,11 @@
 // (hidden, clip) leaves nothing of is "cut off": no scrolling reaches it. The chrome is measured where it holds most: at the
 // page's top, its middle and its end, each the union of the rows its fixed
 // and stuck (sticky, with an edge set, to the window rather than to a box
-// that scrolls on its own) elements cover in the window; a see-through frame
-// (a sheet's viewport over the whole window, taking no pointer) is what it
-// holds, so a sheet lowered to its peek counts as the peek. A layer the page
+// that scrolls on its own) elements cover in the window, each cut by the
+// window; a see-through frame (over the whole window, taking no pointer) is
+// what it holds, down through the frames in it (a sheet's overlay holds its
+// scroll container, which holds its stage, which holds its panel: a sheet
+// lowered to its peek counts as the peek that shows). A layer the page
 // has open (a scene's sheet, as an inspector is), with the frame that holds
 // it in the window, is no chrome: it is shut to go back to the page. Its
 // width and its controls are measured as the page's are.
@@ -89,14 +91,18 @@ export const phoneFit = (layer?: string) => `(() => {
     if (s.position === 'fixed') return true;
     return s.position === 'sticky' && (s.top !== 'auto' || s.bottom !== 'auto') && !inScroller(el);
   };
-  // A frame that holds pieces in the window (a sheet's viewport) draws nothing and takes no
-  // pointer: its bar is what it holds (a sheet lowered to a peek holds the peek's rows), not itself.
-  const frame = (el) => {
+  // A frame that holds pieces in the window (a sheet's overlay, its scroll container and its
+  // stage) draws nothing, and takes no pointer, or takes it only inside a clip ('clipped': the
+  // container of a sheet that is not modal, clipped to its panel's box, and the stage in it):
+  // its bar is what it holds (a sheet lowered to a peek holds the peek's rows), not itself.
+  const clips = (el) => getComputedStyle(el).clipPath !== 'none';
+  const frame = (el, clipped) => {
     const s = getComputedStyle(el);
-    return s.pointerEvents === 'none' && s.backgroundColor === 'rgba(0, 0, 0, 0)' && s.borderTopStyle === 'none' && s.boxShadow === 'none';
+    return (s.pointerEvents === 'none' || clipped || clips(el)) && s.backgroundColor === 'rgba(0, 0, 0, 0)' && s.borderTopStyle === 'none' && s.boxShadow === 'none';
   };
   const barsNow = () => {
     const rows = [];
+    // What a bar draws: its box, cut by the window.
     const row = (el) => {
       const r = el.getBoundingClientRect();
       const top = Math.max(0, r.top);
@@ -104,13 +110,21 @@ export const phoneFit = (layer?: string) => `(() => {
       // A visually hidden field (1 × 1, fixed so it never moves the page) is no bar.
       if (bottom - top > 2 && r.width > 2) rows.push({ name: el.className || el.tagName, top, bottom });
     };
+    // What a frame holds, down through the frames in it; what stays on its own is a bar of its own.
+    const hold = (el, clipped) => {
+      const inClip = clipped || clips(el);
+      for (const held of el.children) {
+        if (stays(held) || !held.checkVisibility()) continue;
+        if (frame(held, inClip)) hold(held, inClip);
+        else row(held);
+      }
+    };
     for (const el of document.body.querySelectorAll('*')) {
       // The open layer, and the frame that holds it in the window (a sheet's viewport), are no bar.
       const layered = LAYER !== '' && (el.closest(LAYER) !== null || el.querySelector(LAYER) !== null);
       if (!stays(el) || !el.checkVisibility() || layered) continue;
-      // What stays on its own is a bar of its own.
-      if (frame(el)) for (const held of el.children) if (!stays(held) && held.checkVisibility()) row(held);
-      if (!frame(el)) row(el);
+      if (frame(el, false)) hold(el, false);
+      else row(el);
     }
     rows.sort((a, b) => a.top - b.top);
     let held = 0;

@@ -3,7 +3,7 @@
 // packages/react/src/dialog/root/useDialogRoot.ts
 //
 // Groups a dialog's parts and owns its state. The same root serves dialogs
-// and drawers, each opened by its owner's `open` (upstream's trigger is left
+// and sheets, each opened by its owner's `open` (upstream's trigger is left
 // out). It wires what the parts share: Escape and outside presses close the
 // dialog, and page scroll locks while a modal dialog is open. Upstream's
 // nested dialog stacks are left out: no page opens a dialog inside another.

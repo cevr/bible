@@ -149,6 +149,41 @@ describe('outside press', () => {
   });
 });
 
+describe('Dialog.Portal inline', () => {
+  it("keeps its node in place as a non-modal dialog's focus guards appear around it", async () => {
+    const page = await h.open('dialog', { query: { modal: 'false', portal: 'inline' } });
+    // Every removal of the portal's node: a move resets the scroll positions inside it.
+    await page.evaluate(() => {
+      const removed: Array<string> = [];
+      (window as unknown as { __removed: typeof removed }).__removed = removed;
+      new MutationObserver((records) => {
+        for (const record of records) {
+          for (const node of record.removedNodes) {
+            if (node instanceof HTMLElement && node.id === 'portal') {
+              removed.push(node.id);
+            }
+          }
+        }
+      }).observe(document.getElementById('root') as HTMLElement, {
+        childList: true,
+        subtree: true,
+      });
+    });
+    await page.click('#open');
+    await see.poll(() => focused(page)).toBe('first');
+    // The guards are in: Tab from the trigger's place reaches the dialog.
+    await see(page.locator('#root [data-type="outside"]:not([hidden])')).toHaveCount(2);
+    expect(
+      await page.evaluate(() => (window as unknown as { __removed: Array<string> }).__removed),
+    ).toEqual([]);
+    // The order they keep: back out of the dialog is the trigger, and on again is the dialog.
+    await page.keyboard.press('Shift+Tab');
+    await see.poll(() => focused(page)).toBe('open');
+    await page.keyboard.press('Tab');
+    await see.poll(() => focused(page)).toBe('first');
+  });
+});
+
 describe('modal', () => {
   it('hides the page from assistive tech while a modal dialog is open', async () => {
     const page = await h.open('dialog');

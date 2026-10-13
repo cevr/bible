@@ -18,7 +18,7 @@ import type { StateAttributesMapping } from './getStateAttributesProps.ts';
 
 export type TransitionStatus = 'starting' | 'ending' | undefined;
 
-export const TransitionStatusDataAttributes = {
+const TransitionStatusDataAttributes = {
   startingStyle: 'data-starting-style',
   endingStyle: 'data-ending-style',
 } as const;
@@ -88,6 +88,19 @@ function createTransitionStatus(open: Accessor<boolean>): TransitionStatusReturn
   };
 }
 
+// A popup's own motion that is no CSS animation (a sheet's scroll in or out), by element.
+const heldMotions = new WeakMap<Element, Promise<void>>();
+
+/**
+ * Holds what waits on `element`'s animations (the open change's completion,
+ * a closed popup's unmount) until `motion` settles too: a part's own motion
+ * that is no CSS animation or transition, such as a sheet's scroll. The
+ * element's last hold stands.
+ */
+export function holdMotion(element: Element, motion: Promise<void>): void {
+  heldMotions.set(element, motion);
+}
+
 function getFiniteAnimations(element: Element): Animation[] {
   return element.getAnimations().filter((animation) => {
     const timing = animation.effect?.getTiming();
@@ -116,9 +129,10 @@ function useAnimationsFinished(element: Accessor<HTMLElement | null | undefined>
     }
 
     const exec = () => {
-      Promise.all(
-        getFiniteAnimations(resolvedElement).map((animation) => animation.finished.then(NOOP)),
-      ).then(
+      Promise.all([
+        ...getFiniteAnimations(resolvedElement).map((animation) => animation.finished.then(NOOP)),
+        heldMotions.get(resolvedElement),
+      ]).then(
         () => {
           if (!signal?.aborted) {
             fnToExecute();

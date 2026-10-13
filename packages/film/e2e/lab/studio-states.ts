@@ -21,7 +21,7 @@ import {
 } from '../../src/lab/fixtures/harness.ts';
 import { untokened } from '../../src/lab/fixtures/drawn-tokens.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { evaluates, textHas, until, waitFor } from '../../src/lab/fixtures/settled.ts';
+import { evaluates, sheetsStand, textHas, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import {
   STUDIO_FILM,
   STUDIO_FOLDER,
@@ -204,11 +204,19 @@ export const recording = (viewport: Viewport) =>
     return page;
   });
 
-/** The player at `href`, once `ready` shows, over `routes` and the harness's own. */
+/**
+ * The player at `href`, once `ready` shows and every sheet it opened with stands, over `routes`
+ * and the harness's own. A sheet still scrolling in (a scene's, at `pageHref.scene`) passes over
+ * the page bar on a phone, so the page is not yet as it opens.
+ */
 export const player =
   (href: string, ready: string, routes: ReadonlyArray<FakeRoute> = []) =>
   (viewport: Viewport) =>
-    Effect.map(openPlayer({ href, viewport }, ready, routes), (o) => o.page);
+    Effect.gen(function* () {
+      const { page } = yield* openPlayer({ href, viewport }, ready, routes);
+      yield* sheetsStand(page);
+      return page;
+    });
 
 /**
  * The probe film's project and check as a film in work has them: a scene out
@@ -658,6 +666,7 @@ export const disclosed = (place: PlaceName, state: State, device: Device) =>
     // The page has the device's pointer, so its density tokens are the device's.
     yield* page.until(`matchMedia('${device.pointer}').matches`);
     yield* state.disclose(page);
+    yield* sheetsStand(page);
     return page;
   });
 

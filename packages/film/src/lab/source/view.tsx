@@ -149,7 +149,8 @@ const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
   );
   // The lab's one Follow rule (`lab/follow.ts`): a reader's scroll leaves the view where the hand put it until a
   // line is held, or, while it follows, until Follow or Play takes it back. Play leaves a held view where it is.
-  useFollow({
+  // Its answer, whether a hand has the box, is the context's while this view stands.
+  const handHas = useFollow({
     box,
     content: () => page,
     target: looking,
@@ -177,6 +178,7 @@ const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
       if (Option.exists(source.open(), (o) => o._tag === 'Follow')) source.resume();
     },
   });
+  onCleanup(source.offerHand(handHas));
 
   // A tap on a line, unless it ends a text selection, holds it: held again, the view places it again.
   const tap = (n: number) => {
@@ -444,6 +446,8 @@ export const Faces = (props: { readonly children: JSX.Element }) => {
       },
       Ready: ({ line }) => {
         setAsked(Option.none());
+        // A hand whose scroll is not heard yet has taken the view all the same: it moved on, as if heard.
+        if (source.handHas()) return;
         actions.settleCode(lineOpen(line));
       },
     }),

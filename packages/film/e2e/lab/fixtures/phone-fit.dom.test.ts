@@ -56,8 +56,11 @@ const SLIM = `<header style="position:sticky;top:0;height:44px"><button data-act
 const WIDE = `<div style="width:600px;height:10px"></div>`;
 const FAR = `<button data-act="far" style="position:fixed;left:370px;top:400px">far</button>`;
 const TALL = `<header style="position:sticky;top:0;height:300px"></header><div class="page"></div>`;
-/** A sheet in a frame over the whole window, as a dialog's viewport holds it. */
-const SHEET = `<div class="page"></div><div class="frame" style="position:fixed;inset:0;pointer-events:none"><div data-role="sheet" style="position:absolute;left:0;bottom:0;width:390px;height:500px"><button data-act="close">close</button></div></div>`;
+/**
+ * A sheet in frames over the whole window, as a sheet's overlay holds its scroll container: the
+ * frames take no pointer, the sheet takes its own.
+ */
+const SHEET = `<div class="page"></div><div class="frame" style="position:fixed;inset:0;pointer-events:none"><div class="frame" style="position:absolute;inset:0"><div data-role="sheet" style="position:absolute;left:0;bottom:0;width:390px;height:500px;pointer-events:auto"><button data-act="close">close</button></div></div></div>`;
 /** A sheet lowered to its one line, fixed in its see-through frame, as the Lab's selection peeks. */
 const PEEK = `<div class="page"></div><div class="frame" style="position:fixed;inset:0;pointer-events:none"><div data-role="sheet" style="position:fixed;left:0;bottom:117px;width:390px;height:69px;pointer-events:auto"></div></div>`;
 

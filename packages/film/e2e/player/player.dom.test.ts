@@ -55,6 +55,7 @@ import {
   labelsInFull,
   labelsOverMarks,
   pressedLook,
+  sheetsStand,
   textHas,
   textIs,
 } from '../../src/lab/fixtures/settled.ts';
@@ -1008,6 +1009,7 @@ describe('the player', () => {
         yield* attributeIs(page, TAPE, 'data-line', '30');
         yield* clickInScene(page, 'one');
         yield* page.waitFor('.sc-focus');
+        yield* sheetsStand(page);
         const sheet = yield* page.box('.sc-focus');
         expect(sheet.y + sheet.height).toBeLessThanOrEqual(PHONE.height);
         expect(sheet.width).toBe(PHONE.width);

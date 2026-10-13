@@ -156,6 +156,19 @@ interface FloatingFocusManagerProps {
   openInteractionType?: InteractionType | null | undefined;
   disabled?: boolean | undefined;
   /**
+   * Whether it waits to move focus in, trap it, guard it and hide the page (a
+   * sheet's while it scrolls in). Where focus returns on close is recorded at
+   * open all the same, so a field focused meanwhile is not taken for it.
+   */
+  deferred?: boolean | undefined;
+  /**
+   * Whether a modal popup makes the page outside it `inert` in place of
+   * `aria-hidden` (React Aria's sheet): out of reach of a script's focus and of
+   * find in page too. What stays live is its whole portal, so a backdrop there
+   * still takes its outside press.
+   */
+  inertOutside?: boolean | undefined;
+  /**
    * What takes focus on open: `true` the first tabbable element (else the
    * popup), `false` nothing, an element, or a function of the open type.
    */
@@ -179,7 +192,9 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   const { events, dataRef } = context;
   const portalContext = usePortalContext();
 
-  const disabled = () => props.disabled ?? false;
+  // Off altogether, or holding back what moves or guards focus (see `deferred`).
+  const disabled = () => (props.disabled ?? false) || (props.deferred ?? false);
+  const unrecorded = () => props.disabled ?? false;
   const modal = () => props.modal ?? true;
   const closeOnFocusOut = () => props.closeOnFocusOut ?? true;
   const restoreFocus = () => props.restoreFocus ?? false;
@@ -197,8 +212,19 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   let lastInteractionType: InteractionType = '';
   let pendingReturnFocus: { cancelled: boolean } | null = null;
 
+  const shouldRenderGuards = () => !disabled() && (!!portalContext || modal());
+
   const beforeGuardRef: { current: HTMLSpanElement | null } = { current: null };
-  const afterGuardRef: { current: HTMLSpanElement | null } = { current: null };
+  // The after guard stays rendered (see the render): it is the guard only while guarding.
+  let afterGuardElement: HTMLSpanElement | null = null;
+  const afterGuardRef: { current: HTMLSpanElement | null } = {
+    get current() {
+      return untrack(shouldRenderGuards) ? afterGuardElement : null;
+    },
+    set current(element) {
+      afterGuardElement = element;
+    },
+  };
 
   const blurTimeout = useTimeout();
   const pointerDownTimeout = useTimeout();
@@ -443,8 +469,18 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         // the compute half has an owner for.
         untrack(() => props.previousFocusableElement),
         untrack(() => props.nextFocusableElement),
+        untrack(() => props.inertOutside ?? false),
       ] as const,
-    ([isDisabled, floating, open, isModal, portalNode, previousFocusable, nextFocusable]) => {
+    ([
+      isDisabled,
+      floating,
+      open,
+      isModal,
+      portalNode,
+      previousFocusable,
+      nextFocusable,
+      inertOutside,
+    ]) => {
       if (isDisabled || !floating || !open) {
         return undefined;
       }
@@ -463,10 +499,11 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         resolveRef(previousFocusable ?? null),
         resolveRef(nextFocusable ?? null),
       ].filter((x): x is Element => x != null);
-      const ariaHiddenCleanup = markOthers(insideElements, {
-        ariaHidden: isModal,
-        mark: false,
-      });
+      const inert = isModal && inertOutside;
+      const ariaHiddenCleanup = markOthers(
+        inert && portalNode ? [portalNode, ...insideElements] : insideElements,
+        { ariaHidden: isModal, inert, mark: false },
+      );
       const markerCleanup = markOthers(
         [floating, ...portalNodes].filter((x): x is Element => x != null),
       );
@@ -539,9 +576,10 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
     },
   );
 
-  // Records where focus returns to, and returns it when the popup closes or unmounts.
+  // Records where focus returns to, and returns it when the popup closes or unmounts. A
+  // deferred popup records it too: at open, before anything inside can take focus.
   createEffect(
-    () => [disabled(), context.floatingElement(), context.domReferenceElement()] as const,
+    () => [unrecorded(), context.floatingElement(), context.domReferenceElement()] as const,
     ([isDisabled, floating, domReference]) => {
       // Resolved here, once the popup's content is in the DOM.
       const focusElement = getFloatingFocusElement(floating);
@@ -702,8 +740,6 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
     pendingReturnFocus = null;
   });
 
-  const shouldRenderGuards = () => !disabled() && (!!portalContext || modal());
-
   return (
     <>
       <Show when={shouldRenderGuards()}>
@@ -739,36 +775,38 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         />
       </Show>
       {props.children}
-      <Show when={shouldRenderGuards()}>
-        <FocusGuard
-          data-type="inside"
-          ref={(el) => {
-            afterGuardRef.current = el;
-            if (portalContext) {
-              portalContext.afterInsideRef.current = el;
-            }
-          }}
-          onFocus={(event) => {
-            if (modal()) {
-              enqueueFocus(getTabbableContent()[0]);
-            } else {
-              const portalNode = portalContext?.portalNode();
-              if (portalNode) {
-                if (closeOnFocusOut()) {
-                  preventReturnFocus = true;
-                }
-                if (isOutsideEvent(event, portalNode)) {
-                  getPreviousTabbable(untrack(context.domReferenceElement))?.focus();
-                } else {
-                  resolveRef(
-                    props.nextFocusableElement ?? portalContext?.afterOutsideRef ?? null,
-                  )?.focus();
-                }
+      {/* Always rendered (hidden while not guarding): were the guards on both sides of the
+          content to appear at once (a sheet's focus manager enabled once it has scrolled in),
+          Solid would move the content, and a move blurs the field focused in it. */}
+      <FocusGuard
+        data-type="inside"
+        hidden={!shouldRenderGuards()}
+        ref={(el) => {
+          afterGuardRef.current = el;
+          if (portalContext) {
+            portalContext.afterInsideRef.current = el;
+          }
+        }}
+        onFocus={(event) => {
+          if (modal()) {
+            enqueueFocus(getTabbableContent()[0]);
+          } else {
+            const portalNode = portalContext?.portalNode();
+            if (portalNode) {
+              if (closeOnFocusOut()) {
+                preventReturnFocus = true;
+              }
+              if (isOutsideEvent(event, portalNode)) {
+                getPreviousTabbable(untrack(context.domReferenceElement))?.focus();
+              } else {
+                resolveRef(
+                  props.nextFocusableElement ?? portalContext?.afterOutsideRef ?? null,
+                )?.focus();
               }
             }
-          }}
-        />
-      </Show>
+          }
+        }}
+      />
     </>
   );
 }

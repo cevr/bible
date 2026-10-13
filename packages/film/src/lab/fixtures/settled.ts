@@ -143,6 +143,14 @@ export const evaluates = (page: Tab, script: string, want: Answer) =>
 export const until = (page: Tab, check: string) => page.until(check);
 
 /**
+ * Wait until every sheet stands: none is scrolling in or out (`data-entering`,
+ * `data-exiting`, `@bible/ui/sheet`). A sheet's box is where it rests only
+ * then, and a scroll into view would stop one on its way.
+ */
+export const sheetsStand = (page: Tab) =>
+  page.until(`document.querySelector('[data-entering], [data-exiting]') === null`);
+
+/**
  * An expression run in the page: what `property` of a probe styled
  * `property: value` computes to beside `selector`'s first match (in its
  * parent, so it reads the same tokens), as the page draws it.
