@@ -3,7 +3,8 @@
 // separator, and the film switcher lists the films as a group of radio
 // items, the open film checked; and whatever the keyboard focuses (a control,
 // a link, a scroll box, a dialog, a receipt) shows the studio's ring on every
-// page and in every portal, never the browser's.
+// page and in every portal, never the browser's; and a floating root shows it
+// over its own shadow, exactly, on every page.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -126,6 +127,12 @@ describe("the kit's focus ring", () => {
   );
 });
 
+/** A page-side function: the box-shadow a value (`var(--focus-ring)`) computes to. */
+const RESOLVED = `((v) => { const i = document.createElement('i'); i.style.boxShadow = v; document.body.append(i); const s = getComputedStyle(i).boxShadow; i.remove(); return s; })`;
+
+/** A page-side function: an element's name, as `tag.class.class[role=…]`. */
+const NAME = `((el) => el.tagName.toLowerCase() + (typeof el.className === 'string' && el.className.trim() !== '' ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + (el.hasAttribute('role') ? '[role=' + el.getAttribute('role') + ']' : ''))`;
+
 /**
  * A script that, from now on, keeps every focus the keyboard shows (`:focus-visible`) as
  * `[element, shown]`: `ring` when its shadow begins with the studio's ring (`--focus-ring`, or
@@ -133,9 +140,9 @@ describe("the kit's focus ring", () => {
  * draws the user agent's own ring (an `auto` outline); else `none`.
  */
 const WATCH_FOCUS = `(() => {
-  const resolved = (v) => { const i = document.createElement('i'); i.style.boxShadow = v; document.body.append(i); const s = getComputedStyle(i).boxShadow; i.remove(); return s; };
+  const resolved = ${RESOLVED};
   const rings = [resolved('var(--focus-ring)'), resolved('var(--focus-ring-inset)')];
-  const name = (el) => el.tagName.toLowerCase() + (typeof el.className === 'string' && el.className.trim() !== '' ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + (el.hasAttribute('role') ? '[role=' + el.getAttribute('role') + ']' : '');
+  const name = ${NAME};
   window.focusStops = [];
   document.addEventListener('focusin', (e) => {
     const el = e.target;
@@ -162,6 +169,48 @@ const tabTo = (page: Tab, selector: string, most: number) =>
     }
   });
 
+/** A script that keeps `root`'s shadow as it rests, unfocused, for `RINGED_OVER_REST` to read. */
+const keepRest = (root: string) =>
+  `(() => { window.restingShadow = getComputedStyle(document.querySelector('${root}')).boxShadow; return true; })()`;
+
+/**
+ * How the focused element shows its focus: `exact` when it is `root`, draws no outline, and its
+ * shadow is exactly `--focus-ring` over the shadow `keepRest` kept (a shadow that merely begins
+ * with the ring, its own lost, is not); else what it drew.
+ */
+const ringedOverRest = (root: string) =>
+  `((el) => { const s = getComputedStyle(el); const ring = ${RESOLVED}('var(--focus-ring)'); const want = window.restingShadow === 'none' ? ring : ring + ', ' + window.restingShadow; return el.matches('${root}') && s.outlineStyle === 'none' && s.boxShadow === want ? 'exact' : ${NAME}(el) + ': outline ' + s.outlineStyle + ', shadow ' + s.boxShadow + ', not ' + want; })(document.activeElement)`;
+
+/** The keys dialog, and a command's Change in it. */
+const KEYS_SHEET = '[data-role="keys-sheet"]';
+const CHANGE = `${KEYS_SHEET} .lab-keys-actions > button`;
+
+/**
+ * Open the keys dialog (`?`), keep its resting shadow, and change the first command's key:
+ * Change clicked, `y` pressed. The new chord re-lists the rows, so the button leaves the page,
+ * and the dialog takes the focus.
+ */
+const rebind = (page: Tab) =>
+  Effect.gen(function* () {
+    yield* page.press('?');
+    yield* waitFor(page, CHANGE);
+    yield* page.evaluate(keepRest(KEYS_SHEET));
+    yield* page.click(CHANGE);
+    yield* waitFor(page, `${KEYS_SHEET} [data-act="press"]`);
+    yield* page.press('y');
+    yield* evaluates(page, `document.activeElement.matches('${KEYS_SHEET}')`, true);
+  });
+
+/** Each page the studio's frame (and its keys dialog) is on, opened at a desk. */
+const PAGES = [
+  ['the Lab', () => openLab()],
+  [
+    'Play',
+    () => openPlayer({ href: pageHref.play(PROBE), viewport: DESK }, '.bar [data-act="play"]'),
+  ],
+  ['the review', () => openReview([])],
+] as const;
+
 describe('every focus the keyboard shows is the studio’s ring', () => {
   for (const viewport of [DESK, PHONE])
     it.live(
@@ -179,37 +228,35 @@ describe('every focus the keyboard shows is the studio’s ring', () => {
     );
 
   it.live(
-    'a key changed in the keys dialog hands the focus to the dialog itself, which shows the ring',
-    () =>
-      Effect.gen(function* () {
-        const { page, errors } = yield* openLab();
-        const change = '[data-role="keys-sheet"] .lab-keys-actions > button';
-        yield* page.press('?');
-        yield* waitFor(page, change);
-        yield* page.evaluate(WATCH_FOCUS);
-        yield* page.click(change);
-        yield* waitFor(page, '[data-role="keys-sheet"] [data-act="press"]');
-        // The new chord re-lists the rows: the button leaves the page, and the dialog takes the focus.
-        yield* page.press('y');
-        yield* evaluates(page, `document.activeElement.matches('[data-role="keys-sheet"]')`, true);
-        yield* evaluates(page, stoppedOn('lab-keys-sheet'), true);
-        yield* evaluates(page, UNRINGED, []);
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
-
-  it.live(
-    'a receipt reached by Tab shows the ring over its own shadow',
+    'a receipt reached by Tab shows the ring over its own shadow, exactly',
     () =>
       Effect.gen(function* () {
         const page = yield* receipted(DESK);
         yield* page.evaluate(WATCH_FOCUS);
+        yield* page.evaluate(keepRest('.lab-receipt'));
         yield* tabTo(page, '.lab-receipt', 80);
-        yield* evaluates(page, `document.activeElement.matches('.lab-receipt')`, true);
         yield* evaluates(page, stoppedOn('lab-receipt'), true);
         yield* evaluates(page, UNRINGED, []);
+        yield* evaluates(page, ringedOverRest('.lab-receipt'), 'exact');
       }).pipe(Effect.scoped),
     SLOW,
   );
+});
+
+describe('a floating root shows the ring over its own shadow, exactly, on every page', () => {
+  for (const [where, open] of PAGES)
+    it.live(
+      `on ${where}, a key changed in the keys dialog hands the focus to the dialog, which shows the ring over its shadow`,
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* open();
+          yield* page.evaluate(WATCH_FOCUS);
+          yield* rebind(page);
+          yield* evaluates(page, stoppedOn('lab-keys-sheet'), true);
+          yield* evaluates(page, UNRINGED, []);
+          yield* evaluates(page, ringedOverRest(KEYS_SHEET), 'exact');
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
 });
