@@ -3,7 +3,7 @@
 One round per batch, then one fixup round by the apply agent. Use the `counsel-review` skill (never from inside a Workflow: the Codex leg is denied there), or a fresh read-only agent when the other model is not reachable. Write the prompt to `<scratchpad>/film-pass<N>/counsel-<batch>.md`.
 
 ```
-Read-only review of `<base>..HEAD` in <worktree path> (the @bible/film framework: pure canvas frames, narration-timed, Effect tooling; apps/animations is its first user). Use `git log --oneline <base>..HEAD` and `git show <hash>`. Read .claude/skills/film-architecture-loop/north-stars.md and <ledger path>. Edit no tracked file; put any scratch test under apps/animations/src/zz-scratch-* and remove it with `trash`, so `git status` is clean when you finish. Call no paid API.
+Read-only review of `<base>..HEAD` in <worktree path> (the @bible/film framework: pure frames drawn on a canvas with Rive rigs posed in them, narration-timed, Effect tooling; apps/animations is its first user). Use `git log --oneline <base>..HEAD` and `git show <hash>`. Read .claude/skills/film-architecture-loop/north-stars.md and <ledger path>. Edit no tracked file; put any scratch test under apps/animations/src/zz-scratch-* and remove it with `trash`, so `git status` is clean when you finish. Call no paid API.
 
 Real defects only, each with file:line and a concrete failure (input → wrong output):
 - a frame that now depends on an earlier frame, the wall clock or unseeded randomness, or a cache across frames;

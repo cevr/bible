@@ -16,7 +16,7 @@ Every candidate names the north star it serves, and every rejection names the no
 
 ## The draw-loop boundary
 
-The per-frame draw path (`draw(frame)`, ink, cutout, type, camera, the kit) runs thousands of times per render and stays synchronous plain code in the pmndrs `math` style: plain arrays, functions that write into their first argument, no hidden allocation. Reach for `math` (`vec2`, `mat2d`, `math/time` easing and springs, `math/random`, `math/noise`) before writing a helper it already has. **Effect-native tooling** governs everything around it: loading, narration, sound, checks, the lab server, render orchestration. A candidate that puts an Effect runtime inside the draw path is rejected on **Performant**.
+The per-frame draw path (`draw(frame)`, ink, cutout, type, camera, the kit, a Rive rig's pose) runs thousands of times per render and stays synchronous plain code in the pmndrs `math` style: plain arrays, functions that write into their first argument, no hidden allocation. Reach for `math` (`vec2`, `mat2d`, `math/time` easing and springs, `math/random`, `math/noise`) before writing a helper it already has. **Effect-native tooling** governs everything around it: loading, narration, sound, checks, the lab server, render orchestration. A candidate that puts an Effect runtime inside the draw path is rejected on **Performant**.
 
 ## How to use them in a sweep
 

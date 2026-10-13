@@ -32,6 +32,10 @@ Every Christian, of any church or none, who knows a little of the Bible or nothi
 
 House rules for every episode (owner's, binding): quote only Scripture, KJV, verbatim; paraphrase Ellen White and the pioneers without naming them, credits name them; no Adventism, no denominations, no church history in speech or picture; doctrine unchanged. One narrator. One quotation per beat; quotations 20 % or less of the words. Content is never checked by code.
 
+**Unravel common theology, indirectly (owner, 2026-10-13).** The series may aim at the common Christian teachings that the Bible's plain reading unravels and corrects: an ever-burning hell, an immortal soul, a Sunday sacredness taken from tradition, the secret rapture, a law nailed to the cross, a sanctuary with nothing left to do. It never names or attacks them. It sets the plain text beside the viewer's assumption, lets the contradiction surface, and lets the better picture win. Each episode's "one small dose of the problem" is where the common view appears, stated fairly and in the viewer's own words.
+
+**Parenting as pathos (owner, 2026-10-13).** Blend the education series' parenting techniques into the emotional line: God as the Father who trains, corrects, waits and welcomes. A parent's patience, discipline that restores, a child's will won rather than broken, and the home as the first school make the doctrine felt. Typology rules still apply: a parenting picture illustrates a truth the text states, and never creates one.
+
 ## How each episode is built (the shared shape)
 
 - Cold open on a Bible scene (STORY) or a plain human picture, ending on the viewer's question.
