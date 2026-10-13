@@ -5,17 +5,19 @@
 // a link, a scroll box, a dialog, a receipt) shows the studio's ring on every
 // page and in every portal, never the browser's; every floating root (a
 // dialog, a menu, a sheet, a receipt) shows it over its own shadow, exactly,
-// on every page that opens it; and a mouse path that moves
-// the focus from script (the studio holding it, a kept take's reload, a key's
-// Reset) shows no ring.
+// on every page that opens it, inside its edge when its box fills the view;
+// and a mouse path that moves the focus from script (the studio holding it, a
+// key's Reset) shows no ring.
 
-import { Effect, type Scope } from 'effect';
+import { Effect, Option, Result, type Scope } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { ServerFailed, pageHref } from '../../src/core/api.ts';
+import { talkCut } from '../../src/core/talk.ts';
 import {
   DESK,
   type Json,
   PHONE,
+  hold,
   json,
   labAt,
   openLab,
@@ -25,6 +27,8 @@ import {
   route,
 } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
+import { TALK, TALK_EDIT, TALK_TAKE } from '../../src/lab/fixtures/talk-film.ts';
+import { TALK_FILE, talkWords } from '../../src/tools/talk-source.ts';
 import { rightClick } from '../../src/lab/fixtures/gestures.ts';
 import {
   FOCUS_SHOWN,
@@ -367,23 +371,8 @@ describe('a mouse path that moves the focus from script shows no ring', () => {
     }),
   );
 
-  alone(
-    'in Record, Keep clicked: the take kept reloads the page, and the studio takes the focus back with no ring',
-    Effect.gen(function* () {
-      const { page, errors } = yield* inRecord();
-      yield* waitFor(page, '[data-beat="thesis"]');
-      yield* page.click('[data-beat="thesis"]');
-      const keep = '[data-file="thesis.new.flac"] [data-act="keep"]';
-      yield* waitFor(page, `${keep}:not([disabled])`);
-      const loaded = yield* page.nextLoad;
-      yield* page.click(keep);
-      yield* loaded;
-      yield* waitFor(page, '[data-beat="thesis"]');
-      yield* evaluates(page, IN_STUDIO, true);
-      yield* evaluates(page, SHOWN_FOCUS, 'none');
-      expect(errors).toEqual([]);
-    }),
-  );
+  // Keep clicked, and the reload's focus with no ring: the property's case, with its keyboard
+  // twin (`focus-follows-input.dom.test.ts`).
 
   alone(
     'in the keys dialog, Reset clicked hands the focus to the dialog with no ring',
@@ -407,25 +396,31 @@ describe('a mouse path that moves the focus from script shows no ring', () => {
 /**
  * Every floating root open now, outermost only (⌘K's listbox sits in its dialog), each focused
  * from the keyboard in turn: `exact` when it draws no outline and its shadow is exactly
- * `--focus-ring` over the shadow it rests with, unfocused; else what it drew. The focus goes
- * back where it was. Answers `[root, how]` pairs.
+ * `--focus-ring` over the shadow it rests with, unfocused; else what it drew. A root whose box
+ * fills the view (the lightbox) has no edge on screen for a ring outside it, so it shows
+ * `--focus-ring-inset` inside its edge, and nothing outside. The focus goes back where it
+ * was, with the look it had. Answers `[root, how]` pairs.
  */
 const ROOTS_RINGED = `(() => {
   const ring = ${RESOLVED}('var(--focus-ring)');
+  const inset = ${RESOLVED}('var(--focus-ring-inset)');
   const name = (el) => ${NAME}(el) + (el.dataset.role === undefined ? '' : '[data-role=' + el.dataset.role + ']');
   const floating = '${FLOATING}';
   const open = [...document.querySelectorAll(floating)].filter((e) => e.checkVisibility() && !e.matches('[data-ending-style], [data-closed]') && (e.parentElement === null || e.parentElement.closest(floating) === null));
   const had = document.activeElement;
+  const hadRing = had instanceof Element && had.matches(':focus-visible');
   const answers = open.map((root) => {
     if (root === document.activeElement) root.blur();
     const rest = getComputedStyle(root).boxShadow;
     root.focus({ focusVisible: true, preventScroll: true });
     if (document.activeElement !== root) return [name(root), 'takes no focus'];
     const s = getComputedStyle(root);
-    const want = rest === 'none' ? ring : ring + ', ' + rest;
+    const box = root.getBoundingClientRect();
+    const fills = box.left <= 0 && box.top <= 0 && box.right >= innerWidth && box.bottom >= innerHeight;
+    const want = fills ? inset : rest === 'none' ? ring : ring + ', ' + rest;
     return [name(root), s.outlineStyle === 'none' && s.boxShadow === want ? 'exact' : 'outline ' + s.outlineStyle + ', shadow ' + s.boxShadow + ', not ' + want];
   });
-  if (had instanceof HTMLElement) had.focus({ focusVisible: had.matches(':focus-visible'), preventScroll: true });
+  if (had instanceof HTMLElement) had.focus({ focusVisible: hadRing, preventScroll: true });
   return answers;
 })()`;
 
@@ -439,21 +434,146 @@ const markTrigger = (i: number) =>
 /** Mark the first visible thing the page's context menu is about (`data-target`). */
 const MARK_TARGET = `(() => { const t = [...document.querySelectorAll('[data-target]')].find((e) => e.checkVisibility()); if (t === undefined) return false; t.dataset.guard = 'target'; return true; })()`;
 
-/** A page the guard walks, by its name. */
+/** A page the guard walks, by its name, and the roots it opens, by their `data-role`. */
 interface Walked {
   readonly name: string;
   readonly open: () => Effect.Effect<{ readonly page: Tab }, never, Scope.Scope>;
+  /** The roots the walk meets on this page: one it meets and does not name fails it. */
+  readonly roots: ReadonlyArray<string>;
+  /** Only the roots the page opens on (a link to a still, a phone's open view), not the walk. */
+  readonly opening?: true;
 }
 
-/** The pages that open floating roots, at a desk, and the Lab at a phone's width (its sheets). */
+/** The roof set of the review: three stills, each one a lightbox opens on. */
+const roof = (id: string, label: string): Json => ({
+  id,
+  label,
+  lines: [`${label} look`],
+  state: 'current',
+  picked: false,
+  verbs: [],
+  media: {
+    _tag: 'Seen',
+    video: {
+      ref: `out/art/roof.${id}.mp4`,
+      name: `roof.${id}.mp4`,
+      size: 2048,
+      mtime: 0,
+      phone: 'none',
+    },
+  },
+  key: `out/art/roof.${id}.mp4`,
+  approval: 'none',
+  comments: [],
+});
+const ROOF_ROUTES = [
+  route('GET', /^\/api\/review\/index/, () =>
+    json({
+      folders: [
+        {
+          ref: 'out/art',
+          title: 'Roofs at dusk',
+          blurb: 'Roofs.',
+          mtime: 0,
+          sets: [
+            {
+              id: 'render:roof',
+              kind: 'render',
+              title: 'The roof',
+              lines: [],
+              start: 0,
+              marks: [],
+              variants: [roof('A', 'Warm'), roof('B', 'Cold')],
+            },
+          ],
+          videos: [],
+          images: [],
+          downloads: [],
+          docs: [],
+        },
+      ],
+    }),
+  ),
+  route('GET', /^\/api\/review\/duration/, () => json({ seconds: 20 })),
+];
+
+/** The talk's Lab: its words, so a phone opens its Transcript view in a sheet. */
+const TALK_API = `/api/films/${TALK}`;
+const talkAt = (path: string) => new RegExp(`^${TALK_API}${path}$`);
+const TALK_ROUTES = [
+  route('GET', talkAt('/notes'), () => json({ film: TALK, seq: 0, notes: [] })),
+  route('GET', talkAt('/notes/wait'), () => hold),
+  route('GET', talkAt('/check'), () => json({ findings: [] })),
+  route('GET', talkAt('/studio/beats'), () => json({ film: TALK, beats: [] })),
+  route('GET', talkAt('/scenes/(ask|answer)/source'), (asked) =>
+    json({
+      scene: asked.path.split('/')[5] ?? '',
+      file: TALK_FILE,
+      cues: [],
+      knobs: [],
+      refused: [],
+    }),
+  ),
+  route('GET', talkAt('/scenes/(ask|answer)/head'), (asked) =>
+    json({
+      scene: asked.path.split('/')[5] ?? '',
+      file: TALK_FILE,
+      timeline: {},
+      knobs: {},
+      codeChanged: false,
+      sameData: true,
+    }),
+  ),
+  route('GET', talkAt('/talk'), () =>
+    json(
+      talkWords(TALK_FILE, {
+        talk: TALK_EDIT,
+        takes: { a: TALK_TAKE },
+        cut: Result.getOrThrow(talkCut(TALK_EDIT, { a: TALK_TAKE })),
+      }),
+    ),
+  ),
+];
+
+/** The pages that open floating roots, at a desk, and at a phone's width (its sheets). */
 const WALKED: ReadonlyArray<Walked> = [
-  { name: 'the Lab', open: () => openLab() },
-  { name: 'the Lab in Motion', open: () => openLab([], { mode: 'motion' }) },
-  { name: 'the Lab at a phone', open: () => openLab([], { viewport: PHONE }) },
+  {
+    name: 'the Lab',
+    open: () => openLab(),
+    roots: ['command-menu', 'context-menu', 'film-menu', 'keys-sheet', 'receipt', 'view-menu'],
+  },
+  {
+    name: 'the Lab in Motion',
+    open: () => openLab([], { mode: 'motion' }),
+    roots: [
+      'chip-menu',
+      'command-menu',
+      'context-menu',
+      'film-menu',
+      'keys-sheet',
+      'receipt',
+      'view-menu',
+    ],
+  },
+  {
+    name: 'the Lab at a phone',
+    open: () => openLab([], { viewport: PHONE }),
+    roots: [
+      'command-menu',
+      'context-menu',
+      'film-menu',
+      'inspector',
+      'keys-sheet',
+      'receipt',
+      'source',
+      'view-menu',
+    ],
+  },
   {
     name: 'Play',
     open: () =>
       openPlayer({ href: pageHref.play(PROBE), viewport: DESK }, '.bar [data-act="play"]'),
+    roots: ['command-menu', 'film-menu', 'keys-sheet', 'receipt', 'view-menu'],
   },
   {
     name: 'Scenes',
@@ -462,19 +582,81 @@ const WALKED: ReadonlyArray<Walked> = [
         { href: pageHref.scenes(PROBE), viewport: DESK },
         '.sc-still[data-drawn="true"] canvas',
       ),
+    roots: [
+      'command-menu',
+      'context-menu',
+      'film-menu',
+      'info',
+      'keys-sheet',
+      'receipt',
+      'view-menu',
+    ],
   },
   {
     name: 'Scenes at a phone, a scene open in its sheet',
     open: () => openPlayer({ href: pageHref.scene(PROBE, 'one'), viewport: PHONE }, '.sc-focus'),
+    roots: [
+      'command-menu',
+      'context-menu',
+      'film-menu',
+      'info',
+      'keys-sheet',
+      'receipt',
+      'scene',
+      'view-menu',
+    ],
   },
-  { name: 'the review', open: () => openReview([]) },
-  { name: 'Choices', open: () => onChoices() },
+  {
+    name: 'the review',
+    open: () => openReview([]),
+    roots: ['command-menu', 'film-menu', 'keys-sheet', 'receipt', 'view-menu'],
+  },
+  {
+    name: 'Choices',
+    open: () => onChoices(),
+    roots: [
+      'chip-menu',
+      'command-menu',
+      'context-menu',
+      'film-menu',
+      'findings',
+      'keys-sheet',
+      'receipt',
+      'view-menu',
+    ],
+  },
+  ...(
+    [
+      ['a desk', DESK],
+      ['a phone', PHONE],
+    ] as const
+  ).map(([where, viewport]): Walked => ({
+    name: `the review's moments at ${where}, a still in its lightbox`,
+    open: () =>
+      openReview(ROOF_ROUTES, {
+        href: `${pageHref.set('out/art', 'render:roof')}?view=moments&still=B`,
+        viewport,
+      }),
+    roots: ['lightbox'],
+    opening: true,
+  })),
+  {
+    name: "the talk's Lab at a phone, its Transcript open",
+    open: () =>
+      openLab(TALK_ROUTES, {
+        href: pageHref.labScene(TALK, 'ask', { text: 'follow' }, Option.some(0)),
+        viewport: PHONE,
+      }),
+    roots: ['transcript'],
+    opening: true,
+  },
 ];
 
-/** Every root each case saw: the doc's roots are each among them. */
-const rootsSeen = new Set<string>();
-
-/** The roots the walk opens, by their `data-role`. */
+/**
+ * The roots the pages open, by their `data-role`: each page's together. Not walked: Scenes'
+ * palette, which only a film with named colours offers (no fixture film has one); it is the
+ * keys dialog's sheet (`lab-keys-sheet`), whose ring the walk proves on every page.
+ */
 const ROOTS = [
   'chip-menu',
   'command-menu',
@@ -484,9 +666,11 @@ const ROOTS = [
   'info',
   'inspector',
   'keys-sheet',
+  'lightbox',
   'receipt',
   'scene',
   'source',
+  'transcript',
   'view-menu',
 ];
 
@@ -504,6 +688,7 @@ const everyRoot = (walked: Walked) =>
     const start = yield* walk.page().evaluate<string>('location.pathname');
     const failures: Array<string> = [];
     const errors: Array<string> = [];
+    const seen = new Set<string>();
     const check = (path: string) =>
       Effect.gen(function* () {
         const page = walk.page();
@@ -511,7 +696,7 @@ const everyRoot = (walked: Walked) =>
         for (const [root, how] of yield* page.evaluate<ReadonlyArray<readonly [string, string]>>(
           ROOTS_RINGED,
         )) {
-          rootsSeen.add(root);
+          seen.add(root.replace(/^.*\[data-role=([^\]]+)\]$/, '$1'));
           if (how !== 'exact') failures.push(`${walked.name}, ${path}: ${root}: ${how}`);
         }
         for (let i = 0; i < 3 && (yield* page.evaluate<boolean>(LEFT_OPEN)); i++) {
@@ -526,38 +711,38 @@ const everyRoot = (walked: Walked) =>
           yield* walk.again;
         }
       });
-    yield* walk.page().press('?');
-    yield* check('the keys dialog');
-    yield* walk.page().press('Control+k');
-    yield* check('⌘K');
-    if (yield* walk.page().evaluate<boolean>(MARK_TARGET)) {
-      yield* rightClick(walk.page(), '[data-guard="target"]');
-      yield* check('the context menu');
-    }
-    for (let i = 0; yield* walk.page().evaluate<boolean>(markTrigger(i)); i++) {
-      yield* walk.page().click('[data-guard="trigger"]');
-      yield* check(`trigger ${i}`);
-    }
-    for (const id of sampled(yield* registry(walk.page()))) {
-      if (yield* runFromMenu(walk.page(), id, 'key')) yield* check(id);
+    yield* check('as it opens');
+    if (walked.opening !== true) {
+      yield* walk.page().press('?');
+      yield* check('the keys dialog');
+      yield* walk.page().press('Control+k');
+      yield* check('⌘K');
+      if (yield* walk.page().evaluate<boolean>(MARK_TARGET)) {
+        yield* rightClick(walk.page(), '[data-guard="target"]');
+        yield* check('the context menu');
+      }
+      for (let i = 0; yield* walk.page().evaluate<boolean>(markTrigger(i)); i++) {
+        yield* walk.page().click('[data-guard="trigger"]');
+        yield* check(`trigger ${i}`);
+      }
+      for (const id of sampled(yield* registry(walk.page()))) {
+        if (yield* runFromMenu(walk.page(), id, 'key')) yield* check(id);
+      }
     }
     errors.push(...walk.page().errors);
     expect(failures).toEqual([]);
     expect(errors).toEqual([]);
+    expect([...seen].toSorted()).toEqual(walked.roots.toSorted());
   });
 
 describe('every floating root shows the ring over its own shadow, exactly, on every page that opens it', () => {
   for (const walked of WALKED) alone(`on ${walked.name}`, everyRoot(walked), REGISTRY);
 
-  // A root the walk meets that is not named here fails it: name it, so the list stays the
-  // roots the pages open. Not reached (each needs a page of its own): the review's lightbox,
-  // a phone's Transcript sheet, and Scenes' palette.
-  alone(
-    'the roots walked are the ones the design language names: the keys dialog, ⌘K, the menus, the sheets, the receipts',
+  // A root a page opens that its row does not name fails it: name it, so the list stays the
+  // roots the pages open.
+  it.effect('the roots walked are the ones the design language names', () =>
     Effect.sync(() =>
-      expect(
-        [...rootsSeen].map((root) => root.replace(/^.*\[data-role=([^\]]+)\]$/, '$1')).toSorted(),
-      ).toEqual(ROOTS),
+      expect([...new Set(WALKED.flatMap((w) => w.roots))].toSorted()).toEqual(ROOTS),
     ),
   );
 });

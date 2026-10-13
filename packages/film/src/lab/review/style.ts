@@ -163,12 +163,13 @@ a.rv-card:hover { background: var(--surface-2); }
 @media ${WIDE} {
   .rv-alone-row .rv-time-at { display: inline; }
 }
-/* The lightbox (\`Zoom\`): the kit's dialog on the overlays' layer, over the tab bar and the dock. */
+/* The lightbox (\`Zoom\`), over the tab bar and dock, fills the viewport: rings inside. */
 .rv-lightbox-backdrop { position: fixed; inset: 0; background: var(--backdrop-deep); z-index: var(--cmd-layer); }
 .rv-lightbox {
   position: fixed; inset: 0; display: grid; place-items: center; z-index: calc(var(--cmd-layer) + 1);
   padding: var(--s-4); cursor: zoom-out; grid-template-rows: minmax(0, 1fr) auto; gap: var(--s-2);
 }
+.rv-lightbox[role]:focus-visible{box-shadow:var(--focus-ring-inset)}
 .rv-lightbox img { max-width: 100%; max-height: 100%; }
 .rv-lightbox-caption { margin: 0; color: var(--text-2); font-size: var(--fs-2); font-weight: inherit; }
 .rv-note {
