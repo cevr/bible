@@ -19,7 +19,7 @@ import type { CourtFrame } from '../../scenes/court.ts';
 import { type Props, paperProps } from '../cutpaper/court.ts';
 import { HAND as ACCUSED_HAND, accusedFace, accusedHead } from './accused-rig.ts';
 import { compile, rive } from './build.ts';
-import { type Direction, K1, OPTIONS, dressOf, inkOf, propsOf } from './direction.ts';
+import { DIRECTION, type Direction, K1, OPTIONS, dressOf, inkOf, propsOf } from './direction.ts';
 import { figureRigs, figuresRml } from './figures.ts';
 import { HAND_ART, JUDGE_FACE, judgeFace } from './judge-rig.ts';
 import { riveJudge } from './judge.ts';
@@ -394,6 +394,24 @@ test('reports whether the Rive CLI is here, so a skipped build is never silent',
       expect(Result.isSuccess(cli) || Result.isFailure(cli)).toBe(true);
     }),
   ));
+
+// The film reads `DIRECTION` (props, probes, gaze) beside the committed riv:
+// the two must be one build, or a pick without a rebuild pairs new props with
+// old figures. The compile is deterministic, so the bytes are the check.
+test.skipIf(noCli)(
+  'the committed figures.riv is the build of DIRECTION',
+  () =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const built = yield* compile(yield* fs.makeTempDirectoryScoped(), figuresRml(DIRECTION));
+        const fresh = yield* fs.readFile(built.riv);
+        const committed = yield* fs.readFile(`${import.meta.dir}/figures.riv`);
+        expect(Buffer.from(committed).equals(Buffer.from(fresh))).toBe(true);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    ),
+  30_000,
+);
 
 // ─── the property ────────────────────────────────────────────────────────────
 
