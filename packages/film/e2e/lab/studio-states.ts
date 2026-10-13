@@ -4,11 +4,12 @@
 
 import { Effect, Option, type Scope, Struct } from 'effect';
 import { Place } from '@bible/url-state';
-import { Places, pageHref } from '../../src/core/api.ts';
+import { Places, type ScriptPicked, pageHref } from '../../src/core/api.ts';
 import type { LabMode } from '../../src/lab/mode.ts';
 import { menuEntry, openCommandMenu, rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
 import {
   type FakeRoute,
+  type Json,
   type Viewport,
   changeOf,
   json,
@@ -423,6 +424,69 @@ export const scriptOpen = (viewport: Viewport) =>
     return page;
   });
 
+/** A note the lab lists on the probe film, made at `T` in `scene`: open, with no replies. */
+const listed = (
+  seq: number,
+  scene: string,
+  T: number,
+  fields: { readonly [key: string]: Json },
+) => ({
+  id: `n${seq}`,
+  film: PROBE,
+  scene,
+  T,
+  frame: Math.round(T * 30),
+  status: 'open',
+  still: `n${seq}.png`,
+  thread: [],
+  createdAt: '2026-10-13T00:00:00.000Z',
+  seq,
+  changed: seq,
+  ...fields,
+});
+
+/**
+ * The probe film's notes on its Script: on beat one's words a note, a
+ * correction and a removal, and a note on beat two's frame, whose marker is
+ * in its head.
+ */
+const SCRIPT_NOTES: ReadonlyArray<Json> = [
+  listed(1, 'one', 0.1, {
+    words: { beat: 'one', from: 0, to: 1, text: 'The ball' },
+    text: 'a bigger ball',
+  }),
+  listed(2, 'one', 0.4, {
+    words: { beat: 'one', from: 2, to: 3, text: 'rises slowly,' },
+    kind: 'correction',
+    replace: 'climbs slowly,',
+    text: 'say “climbs slowly,” for “rises slowly,”',
+  }),
+  listed(3, 'one', 1.6, {
+    words: { beat: 'one', from: 8, to: 9, text: 'down again.' },
+    kind: 'removal',
+    text: 'remove “down again.”',
+  }),
+  listed(4, 'two', 2.4, { text: 'the second scene sits too still' }),
+];
+
+/** The probe film's Script at beat one with `picked` selected, over its notes (`SCRIPT_NOTES`). */
+export const scriptAt = (picked: ScriptPicked) => (viewport: Viewport) =>
+  Effect.gen(function* () {
+    const notes = route('GET', /^\/notes$/, () =>
+      json({ film: PROBE, seq: SCRIPT_NOTES.length, notes: SCRIPT_NOTES }),
+    );
+    const { page } = yield* openLab([notes], {
+      viewport,
+      href: pageHref.scriptBeat(PROBE, 'one', picked),
+    });
+    yield* waitFor(page, '.lab-script-picture');
+    yield* waitFor(page, '[data-scene="one"] .lab-script-noted[data-note="n3"]');
+    return page;
+  });
+
+/** The Script's composer: in a sheet on a phone, under the beat's line on a laptop. */
+export const SCRIPT_SHEET = '.lab-script-sheet';
+
 /** A film's Script link moves as its Lab's does: to the beat under the playhead, where the Script is measured. */
 export const SCRIPT_MOVES: Exempt = {
   measuredAt: 'scriptBeat',
@@ -617,14 +681,35 @@ export const STATES: ByPlace<State, AtRest> = {
       // shows it (the probe's are 26 of the laptop's things, 17 of the phone's, where two of its
       // three beats stand on the first screen). A beat's id and start are one press. How its cues
       // are tied to its words is what the owner reads it for too: a chip for each mark and a link
-      // for each cue or mark its picture names (8 on the laptop, 4 on the phone).
-      budget: most(50, 71),
+      // for each cue or mark its picture names (8 on the laptop, 4 on the phone). Notes are what
+      // the owner leaves on it: Note frame in its head is the one at rest (a note on words comes
+      // from their selection).
+      budget: most(51, 72),
     },
     {
       // A mark picked: the cues tied to it under its beat's line, each a row that picks it.
       name: 'Script, a mark and the cues tied to it',
       open: scriptOpen,
       disclose: opens('[data-scene="three"] .lab-script-mark[data-mark="near"]', '.lab-script-tie'),
+    },
+    {
+      // Words selected, then Note… and Correct: the composer on them, its field of the words to
+      // say instead. On a phone the sheet is a layer: the Script under it is the case below.
+      name: 'Script, the composer on the words selected, correcting them',
+      open: scriptAt({ words: '4-7' }),
+      disclose: (page) =>
+        Effect.gen(function* () {
+          yield* opens('[data-act="note-words"]', '.lab-compose:not([hidden])')(page);
+          yield* opens('.lab-compose [data-ask="correction"]', '.lab-compose .lab-instead')(page);
+        }),
+      layer: `:is(${SCRIPT_SHEET}, :root:not(:has(${SCRIPT_SHEET})))`,
+    },
+    {
+      // A note, a correction and a removal on beat one's words, each its marker after them, a
+      // frame note's in beat two's head; the correction selected opens under its line.
+      name: 'Script, notes on its words and one selected',
+      open: scriptAt({ note: 'n2' }),
+      disclose: (page) => waitFor(page, '.lab-script-shown[data-note="n2"] .lab-reply-input'),
     },
   ],
   scenes: [

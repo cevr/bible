@@ -6,72 +6,22 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import {
-  ConfigProvider,
-  Console,
-  Duration,
-  Effect,
-  Exit,
-  Layer,
-  Option,
-  Path,
-  Queue,
-  References,
-} from 'effect';
-import { Command } from 'effect/cli';
-import { ContentStore } from './content-store.ts';
-import { FilmFolder, FilmName } from './film-repo.ts';
-import { notes } from './notes-cli.ts';
+import { Duration, Effect, Layer, Option, Queue } from 'effect';
+import { FilmName } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
-import { memoryFileSystem, memoryLocks, text } from './testing.ts';
+import {
+  NOTES_LAB as LAB,
+  notesCli as cli,
+  notesInMemory,
+  notesPrinting,
+  text,
+} from './testing.ts';
 
 const film = FilmName.make('tiny');
-const LAB = '/lab';
 const png = text('png');
 
 /** One film, `tiny`, under `/films`; its notes under `/lab`, in memory. */
-const World = Layer.unwrap(
-  Effect.sync(() => {
-    const files = new Map<string, Uint8Array>([
-      ['/films/tiny/scenes/index.ts', text('export default []')],
-    ]);
-    return Layer.mergeAll(NotesStore.layer, FilmFolder.layer('/films')).pipe(
-      Layer.provide(ContentStore.layer),
-      Layer.provideMerge([
-        memoryFileSystem(files, new Set()),
-        memoryLocks,
-        Path.layer,
-        ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_LAB: LAB })),
-      ]),
-    );
-  }),
-);
-
-/** The console a run prints to: each line it logs, offered to `lines`. */
-const printingTo = (lines: Queue.Queue<string>): Console.Console => ({
-  ...globalThis.console,
-  log: (...args: ReadonlyArray<unknown>) => {
-    Queue.offerUnsafe(lines, args.map(String).join(' '));
-  },
-});
-
-/**
- * `film notes …args`, its printed lines offered to `lines`. Its log events
- * go to stderr in the CLI; here they are dropped, so `lines` is its stdout.
- */
-const notesPrinting = (lines: Queue.Queue<string>, args: ReadonlyArray<string>) =>
-  Command.runWith(notes, { version: '0' })(args).pipe(
-    Effect.provideService(Console.Console, printingTo(lines)),
-    Effect.provideService(References.MinimumLogLevel, 'None'),
-  );
-
-/** `film notes …args` run to its end: whether it succeeded, and the lines it printed. */
-const cli = (...args: ReadonlyArray<string>) =>
-  Effect.gen(function* () {
-    const lines = yield* Queue.unbounded<string>();
-    const exit = yield* Effect.exit(notesPrinting(lines, args));
-    return { ok: Exit.isSuccess(exit), lines: yield* Queue.clear(lines) };
-  });
+const World = notesInMemory('tiny');
 
 /**
  * `film notes tiny --watch …flags`, running until the test's scope ends:

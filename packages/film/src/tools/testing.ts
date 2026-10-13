@@ -1,11 +1,13 @@
 // Test doubles for the tools: an in-memory file system, and ElevenLabs, media,
-// a browser and its pages that answer from memory and count their calls. No
-// network, no Chromium, no credits.
+// a browser and its pages that answer from memory and count their calls; a
+// film's notes in memory, and `film notes` run over them. No network, no
+// Chromium, no credits.
 
 import {
   Array as Arr,
   ByteSize,
   ConfigProvider,
+  Console,
   Context,
   DateTime,
   Effect,
@@ -14,12 +16,15 @@ import {
   Layer,
   Option,
   Path,
+  Queue,
   Redacted,
+  References,
   Result,
   Schema,
   Sink,
   Stream,
 } from 'effect';
+import { Command } from 'effect/cli';
 import { type ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import { Base64 } from 'effect/encoding';
@@ -61,6 +66,7 @@ import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
 import { ManifestLock, type ManifestLockService } from './manifest-lock.ts';
 import { labHandler } from './lab.ts';
+import { notes } from './notes-cli.ts';
 import { NotesStore } from './notes-store.ts';
 import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
 import { Browser, CallRefused, type Invoke, framePage } from './browser.ts';
@@ -1634,6 +1640,59 @@ export const memoryLocks = Layer.sync(ManifestLock, memoryManifestLock);
 /** A store over `files`, its locks in memory, its own. */
 export const storeLayer = (files: Map<string, Uint8Array>) =>
   ContentStore.layer.pipe(Layer.provide([memoryFileSystem(files), Path.layer, memoryLocks]));
+
+/** Where `notesInMemory` keeps a film's notes (`FILMS_LAB`): `/lab/<film>/notes.json`. */
+export const NOTES_LAB = '/lab';
+
+/**
+ * One film, `film`, under `/films`, its notes in memory under `NOTES_LAB`:
+ * the notes store and the film's folder, as `film notes` and the lab's
+ * server meet them, with the memory files beside them. Fresh each time the
+ * layer is built.
+ */
+export const notesInMemory = (film: string) =>
+  Layer.unwrap(
+    Effect.sync(() => {
+      const files = new Map<string, Uint8Array>([
+        [`/films/${film}/scenes/index.ts`, text('export default []')],
+      ]);
+      return Layer.mergeAll(NotesStore.layer, FilmFolder.layer('/films')).pipe(
+        Layer.provide(ContentStore.layer),
+        Layer.provideMerge([
+          memoryFileSystem(files, new Set()),
+          memoryLocks,
+          Path.layer,
+          ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_LAB: NOTES_LAB })),
+        ]),
+      );
+    }),
+  );
+
+/** The console a run prints to: each line it logs, offered to `lines`. */
+const printingTo = (lines: Queue.Queue<string>): Console.Console => ({
+  ...globalThis.console,
+  log: (...args: ReadonlyArray<unknown>) => {
+    Queue.offerUnsafe(lines, args.map(String).join(' '));
+  },
+});
+
+/**
+ * `film notes …args`, its printed lines offered to `lines`. Its log events
+ * go to stderr in the CLI; here they are dropped, so `lines` is its stdout.
+ */
+export const notesPrinting = (lines: Queue.Queue<string>, args: ReadonlyArray<string>) =>
+  Command.runWith(notes, { version: '0' })(args).pipe(
+    Effect.provideService(Console.Console, printingTo(lines)),
+    Effect.provideService(References.MinimumLogLevel, 'None'),
+  );
+
+/** `film notes …args` run to its end: whether it succeeded, and the lines it printed. */
+export const notesCli = (...args: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const lines = yield* Queue.unbounded<string>();
+    const exit = yield* Effect.exit(notesPrinting(lines, args));
+    return { ok: Exit.isSuccess(exit), lines: yield* Queue.clear(lines) };
+  });
 
 /**
  * A probed line of text: a `w` × `h` box at (`x`, `y`), turned `rot` radians

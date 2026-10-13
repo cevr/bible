@@ -206,14 +206,18 @@ const askedOf = (note: Note) =>
     onSome: (kind) => kind,
   });
 
-/** A note's marker: its id in its status's colour, a link to it on the Script; a plain click opens it in the page. */
+/**
+ * A note's marker: a link to it on the Script holding its id, the kit's
+ * badge in its status's colour; a plain click opens it in the page. In a
+ * line it is a link in the text; in a beat's head, a target of the
+ * pointer's size around its badge (`style.ts`).
+ */
 export const Marker = (props: { readonly note: Note }) => {
   const { state: lab, meta } = useLab();
   const verbs = useScriptNotes();
   return (
     <a
-      class="sh-badge lab-script-noted"
-      data-state={NOTE_STATE[props.note.status]}
+      class="lab-script-noted"
       data-note={props.note.id}
       href={pageHref.scriptBeat(meta.name, beatOfNote(props.note), { note: props.note.id })}
       aria-label={`${askedOf(props.note)} ${props.note.id}, ${props.note.status}`}
@@ -221,7 +225,9 @@ export const Marker = (props: { readonly note: Note }) => {
       title={props.note.text}
       onClick={picking(() => verbs.select(props.note))}
     >
-      {props.note.id}
+      <span class="sh-badge" data-state={NOTE_STATE[props.note.status]}>
+        {props.note.id}
+      </span>
     </a>
   );
 };

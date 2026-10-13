@@ -70,6 +70,8 @@ const GEOMETRY = {
   '3px':
     "a tape mark's reach either side (`--tick-slop`): a transparent border that widens its press",
   '3.5px': "half a tape mark's 7 px: the mark centred on its time",
+  '4.5px':
+    "half a note's pin on the tape, 3 px and its reach either side (`--tick-slop`): the pin centred on its time",
   '5px': "a cue bar's grip at either end (`--cue-grip`): the edge a drag takes",
   '14px':
     "the scene line's time dropped by one line of its own leading (`--lh-1`), so it sits on the line's first baseline",
