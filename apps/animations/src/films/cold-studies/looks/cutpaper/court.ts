@@ -5,6 +5,7 @@
 // them. The camera rests where the film's does (`REST`).
 
 import {
+  type Hex,
   at,
   ellipseShape,
   ground,
@@ -48,6 +49,16 @@ const SWING: ReadonlyArray<Key> = [
   [0.797, 1.4, 'outQuad'],
   [1, 1.58],
 ];
+
+/**
+ * The bench as the court cuts it, in the bench sheet's units: its face, the
+ * rim along its top (over the judge's feet) and the gavel's block on the rim.
+ */
+export const BENCH = {
+  face: rectShape(860, 475, 640, 380),
+  rim: rounded(1180, 472, 690, 34, 6),
+  block: rounded(1436, 448, 76, 14, 4),
+} as const;
 
 /** The verdict, rewritten each frame (scratch, so the draw allocates none). */
 const VERDICT = { fill: 1, shown: 0 } satisfies Stamp;
@@ -118,15 +129,15 @@ const paperJudge: Bench = {
 
 /** The paper of the court's props: the bench and its rim, panels and gavel block, and the evidence sheets (cycled), with the sheets', the block's and the gavel's ink. */
 export interface Props {
-  readonly bench: string;
-  readonly rim: string;
-  readonly panel: string;
-  readonly block: string;
-  readonly sheets: ReadonlyArray<string>;
-  readonly sheetInk: string;
-  readonly blockInk: string;
+  readonly bench: Hex;
+  readonly rim: Hex;
+  readonly panel: Hex;
+  readonly block: Hex;
+  readonly sheets: ReadonlyArray<Hex>;
+  readonly sheetInk: Hex;
+  readonly blockInk: Hex;
   /** The gavel's line: the kit's outline, as the court's `gavel` draws it. */
-  readonly gavelInk: string;
+  readonly gavelInk: Hex;
 }
 
 /** The control's props. */
@@ -193,7 +204,7 @@ export const courtWith =
           draw: () => {
             ground(ctx, 1180, 860, 820);
             judge.behind(f, lean);
-            piece(ctx, rectShape(860, 475, 640, 380), props.bench, f.hand('bench'), {
+            piece(ctx, BENCH.face, props.bench, f.hand('bench'), {
               role: 'scenery',
               kind: 'cut',
               torn: 2,
@@ -207,11 +218,11 @@ export const courtWith =
                 f.hand(`panel${i}`),
               );
             });
-            piece(ctx, rounded(1180, 472, 690, 34, 6), props.rim, f.hand('rim'), {
+            piece(ctx, BENCH.rim, props.rim, f.hand('rim'), {
               role: 'scenery',
               kind: 'cut',
             });
-            piece(ctx, rounded(1436, 448, 76, 14, 4), props.block, f.hand('block'), {
+            piece(ctx, BENCH.block, props.block, f.hand('block'), {
               role: 'scenery',
               kind: 'cut',
               line: 2,

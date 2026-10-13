@@ -8,7 +8,7 @@
 // The film's own colours are the frame's around the looks (its paper, the
 // caption plate); each look brings its own palette.
 
-import type { Hex } from '@bible/film/canvas';
+import type { Hex, Shading } from '@bible/film/canvas';
 import type { Looks } from '@bible/film/core';
 import { palette as court } from '../righteousness-by-faith/palette.ts';
 
@@ -44,12 +44,14 @@ export const palette = {
 } satisfies Record<string, Hex>;
 
 /**
- * The court's key light, by its colour: a neutral room light on warm
- * parchment, so the paper's own warmth is the light. Every shade turns
- * toward its hue's complement and every light leans to its hue (CRAFT 12);
- * `looks/rive/direction.test.ts` measures each ramp against it.
+ * The court's key light, by its colour: a pale gold, the warm cream a lamp
+ * throws on parchment. Every shade turns toward its complement, a violet-blue,
+ * and every light leans to it (CRAFT 12, `ramp`).
  */
-export const keyLight: Hex = court.paper;
+export const keyLight: Hex = '#f3e9c8';
+
+/** How the paper-cut look shades (`ramp`'s knobs), tuned on K1's stills. */
+export const shading: Shading = { turn: 25, dark: 0.16, lift: 0.45, deep: 14, warm: 7, fade: 0.6 };
 
 /** A colour's ramp: its shade (a neighbouring hue, never the base dimmed), the base, and its light. */
 export interface Ramp {

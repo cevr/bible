@@ -239,6 +239,13 @@ const edgeOf = (d: Direction, weight: keyof typeof INK, light: string) => {
 };
 
 /**
+ * A cast shadow per unit of a piece's lift, units: how far it falls from the
+ * piece along the light (`x`, `y`, to the light's far side) and its
+ * feather's strength.
+ */
+export const LIFT = { x: 3, y: 5, feather: 6 } as const;
+
+/**
  * A cast shadow in `shade`, lifted `lift`: a feathered copy of its shape's
  * outline toward the light's far side, as a fill (`clockwise`, the one rule
  * the Rive Renderer feathers without pixel local storage).
@@ -246,7 +253,12 @@ const edgeOf = (d: Direction, weight: keyof typeof INK, light: string) => {
 const shadowFill = (shade: string, lift: number) =>
   el('Fill', { fillRule: 'clockwise', name: 'Shadow' }, [
     solid(shade, Math.min(1, CAST * lift)),
-    el('Feather', { strength: 6 * lift, offsetX: 3 * lift, offsetY: 5 * lift, name: 'Lift' }),
+    el('Feather', {
+      strength: LIFT.feather * lift,
+      offsetX: LIFT.x * lift,
+      offsetY: LIFT.y * lift,
+      name: 'Lift',
+    }),
   ]);
 
 /** The paints of a piece over `box` under `d`, bottom to top as Rive stacks a shape's paints (last on top). */
@@ -630,13 +642,16 @@ const casts = (
 /** The outline points of a hand of radius `r`: a circle, twelve points round so it boils like the rest of the paper. */
 export const handOutline = (r: number): Pt[] => ellipse(0, 0, r, r, 12);
 
+/** A hand's lift off the sheet: a little less than a body piece's. */
+export const HAND_LIFT = 0.3;
+
 /**
  * The hand: a plain circle of paper of radius `r` at the origin, creased like
  * every piece. No thumb, no fingers: a grip or a point reads from where the
  * circle sits and how it travels.
  */
 export const hand = (fig: Figure, key: string, r: number, look: PieceLook = FIGURE): Element =>
-  piece(fig, key, handOutline(r), { ink: 'small', shadow: 0.3, ...look }, { boil: 0.6 });
+  piece(fig, key, handOutline(r), { ink: 'small', shadow: HAND_LIFT, ...look }, { boil: 0.6 });
 
 /**
  * Where a hand is `reach` of the way from `rest` to `to`, travelling round

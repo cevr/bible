@@ -49,3 +49,157 @@ export const clearOf = (color: Hex): Clear => {
   rgbOf(A, color);
   return `rgba(${A[0]}, ${A[1]}, ${A[2]}, 0)`;
 };
+
+// ─── ramps: shading with colour (CRAFT rule 12) ──────────────────────────────
+
+/**
+ * A colour's ramp under one key light (`ramp`): its shade, a darker hue turned
+ * toward the light's complement and never the base dimmed; the base; and its
+ * light, a lighter hue leaning to the light's own and never grey.
+ */
+export interface Ramp {
+  readonly shade: Hex;
+  readonly base: Hex;
+  readonly light: Hex;
+}
+
+/**
+ * How a look shades: `ramp`'s knobs, tuned on its stills. In CIE LCh (D65):
+ * lightness 0..100, chroma, hue in degrees.
+ */
+export interface Shading {
+  /**
+   * Degrees a strong colour's shade turns toward the key's complement, and
+   * its light toward the key's hue. A near-neutral turns all the way, since
+   * it has no hue of its own to keep (`deep` says which colours are near-neutral).
+   */
+  readonly turn: number;
+  /** The share of its lightness a shade loses. */
+  readonly dark: number;
+  /** The share of the way to white a light rises. */
+  readonly lift: number;
+  /**
+   * The least chroma a shade carries, so a grey's shade is the complement at
+   * this chroma. A colour below twice it is that much near-neutral: at `deep`
+   * or under it turns all the way, at twice it by `turn` alone.
+   */
+  readonly deep: number;
+  /** The least chroma a light carries: no light is grey. */
+  readonly warm: number;
+  /** The share of its base's chroma a light keeps (it pales toward the light), never under `warm`. */
+  readonly fade: number;
+}
+
+/** A colour in CIE LCh (D65). */
+interface Lch {
+  readonly L: number;
+  readonly C: number;
+  readonly h: number;
+}
+
+const WHITE = [0.95047, 1, 1.08883] as const;
+const EPSILON = 216 / 24389;
+const KAPPA = 24389 / 27;
+const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const toGamma = (c: number) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
+const labF = (t: number) => (t > EPSILON ? Math.cbrt(t) : (KAPPA * t + 16) / 116);
+const labFi = (t: number) => (t ** 3 > EPSILON ? t ** 3 : (116 * t - 16) / KAPPA);
+
+/** Scratch for `lchOf`. */
+const RGB: [number, number, number] = [0, 0, 0];
+
+/** Hex colour `hex` in CIE LCh. */
+const lchOf = (hex: Hex): Lch => {
+  rgbOf(RGB, hex);
+  const r = toLinear(RGB[0] / 255);
+  const g = toLinear(RGB[1] / 255);
+  const b = toLinear(RGB[2] / 255);
+  const x = labF((0.4124 * r + 0.3576 * g + 0.1805 * b) / WHITE[0]);
+  const y = labF(0.2126 * r + 0.7152 * g + 0.0722 * b);
+  const z = labF((0.0193 * r + 0.1192 * g + 0.9505 * b) / WHITE[2]);
+  const A = 500 * (x - y);
+  const B = 200 * (y - z);
+  return {
+    L: 116 * y - 16,
+    C: Math.hypot(A, B),
+    h: ((Math.atan2(B, A) * 180) / Math.PI + 360) % 360,
+  };
+};
+
+/** LCh `c` in sRGB, 0..1 a channel, unclamped: past 0..1 it lies outside the gamut. */
+const srgbOf = ({ L, C, h }: Lch): [number, number, number] => {
+  const a = C * Math.cos((h * Math.PI) / 180);
+  const b = C * Math.sin((h * Math.PI) / 180);
+  const fy = (L + 16) / 116;
+  const X = WHITE[0] * labFi(fy + a / 500);
+  const Y = labFi(fy);
+  const Z = WHITE[2] * labFi(fy - b / 200);
+  return [
+    toGamma(3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z),
+    toGamma(-0.969266 * X + 1.8760108 * Y + 0.041556 * Z),
+    toGamma(0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z),
+  ];
+};
+
+const inGamut = (rgb: ReadonlyArray<number>) => rgb.every((v) => v >= -1e-6 && v <= 1 + 1e-6);
+
+/** LCh `c` as hex, its chroma lowered (lightness and hue kept) only as far as sRGB needs. */
+const hexOfLch = (c: Lch): Hex => {
+  let lo = 0;
+  let hi = c.C;
+  if (!inGamut(srgbOf(c))) {
+    for (let i = 0; i < 32; i++) {
+      const mid = (lo + hi) / 2;
+      if (inGamut(srgbOf({ ...c, C: mid }))) lo = mid;
+      else hi = mid;
+    }
+  } else lo = c.C;
+  const rgb = srgbOf({ ...c, C: lo });
+  return `#${hex2(clamp(rgb[0]) * 255)}${hex2(clamp(rgb[1]) * 255)}${hex2(clamp(rgb[2]) * 255)}`;
+};
+
+/**
+ * Hue `h` turned toward hue `to`: the short way round, all the way when it is
+ * within `turn` of it; past that by `turn`, plus the rest of the way by
+ * `neutral` (0..1). On a tie, through the purples (across hue 0), so a warm
+ * colour's shade under a warm key cools through violet, never through green.
+ */
+const turned = (h: number, to: number, turn: number, neutral: number) => {
+  let d = ((to - h + 540) % 360) - 180;
+  if (Math.abs(d) >= 180 - 1e-9) d = h < 180 ? -180 : 180;
+  const apart = Math.abs(d);
+  const by = apart <= turn ? apart : turn + (apart - turn) * neutral;
+  return (h + Math.sign(d) * by + 360) % 360;
+};
+
+/**
+ * The ramp of `base` under the key light `key`, shaded by `k` (CRAFT rule 12:
+ * shade with colour, never with black or grey):
+ * - the shade is darker, its hue turned toward the key's complement, its
+ *   chroma kept or raised to `k.deep`;
+ * - the light is lighter, its hue leaning to the key's, its chroma at least
+ *   `k.warm`, so it is never grey.
+ *
+ * A cast shadow is the shade of the surface it falls on. Each colour keeps
+ * its lightness and hue and gives up only the chroma sRGB cannot show. Pure;
+ * throws on a key with no hue (a grey light has no complement).
+ */
+export const ramp = (base: Hex, key: Hex, k: Shading): Ramp => {
+  const light = lchOf(key);
+  if (light.C < 1) throw new Error(`key light "${key}" has no hue to shade toward`);
+  const b = lchOf(base);
+  const neutral = clamp((2 * k.deep - b.C) / k.deep);
+  return {
+    shade: hexOfLch({
+      L: b.L * (1 - k.dark),
+      C: Math.max(b.C, k.deep),
+      h: turned(b.h, (light.h + 180) % 360, k.turn, neutral),
+    }),
+    base,
+    light: hexOfLch({
+      L: b.L + (100 - b.L) * k.lift,
+      C: Math.max(b.C * k.fade, k.warm),
+      h: turned(b.h, light.h, k.turn, neutral),
+    }),
+  };
+};

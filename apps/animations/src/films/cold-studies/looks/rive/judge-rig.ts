@@ -67,6 +67,12 @@ export const judgeFace = (d: Direction) => ({
   height: 2 * HEAD.ry * accusedHead(d).scale,
 });
 
+/**
+ * His robe, cut in the lean's frame (its origin at the pivot, `PIVOT` below
+ * his head's centre): what the host knows of him to lay his hand's shadow on.
+ */
+export const ROBE = { pivot: PIVOT, outline: roundRect(0, 120 - PIVOT, 250, 120, 40, 4) } as const;
+
 /** His chain from the pivot, his head scaled `hs`: the chest up to the neck, the head to its centre. */
 const bones = (hs: number): ReadonlyArray<BoneSpec> => [
   { name: 'chest', x: 0, y: 0, rotation: UP, length: PIVOT - 60 },
@@ -112,7 +118,7 @@ export const judgeRig = (fig: Figure) => {
         { boil: 0.6 },
       ),
     ),
-    piece(fig, 'robe', roundRect(0, 120 - PIVOT, 250, 120, 40, 4), dress.robe),
+    piece(fig, 'robe', ROBE.outline, dress.robe),
   ]);
   const body = el('Node', { y: PIVOT, name: 'leanPivot', id: fig.idOf('leanPivot') }, [
     fig.bind('lean', 15),

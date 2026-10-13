@@ -13,6 +13,7 @@
 // (`tmp/orchestrate/p5/rimproto/`: `A-outline.png`, `B-ink.png`,
 // `C-colour.png`, `D-head.png`) and may pick others.
 
+import type { Hex } from '@bible/film/canvas';
 import { type Ramp, hues, ramps } from '../../palette.ts';
 import { type Props, paperProps } from '../cutpaper/court.ts';
 
@@ -75,7 +76,7 @@ export const K1: Direction = { outline: 'both', ink: 'warm', colour: 'hues', hea
 export const DIRECTION: Direction = K1;
 
 /** The ink of `d`. */
-export const inkOf = (d: Direction): string => INKS[d.ink];
+export const inkOf = (d: Direction): Hex => INKS[d.ink];
 
 /** A paper as a piece takes it, from its ramp: its colour, its crease's far side and its cut edge's light. */
 export interface Paper {

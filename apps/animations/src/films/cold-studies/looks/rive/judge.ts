@@ -18,9 +18,9 @@ import { ramps } from '../../palette.ts';
 import type { CourtFrame } from '../../scenes/court.ts';
 import type { Bench, Props } from '../cutpaper/court.ts';
 import { accusedHead } from './accused-rig.ts';
-import { DIRECTION } from './direction.ts';
+import { DIRECTION, type Direction } from './direction.ts';
 import { EASE, type Expression, acted } from './face.ts';
-import { JUDGE_KNOBS, JUDGE_TIMELINES } from './judge-rig.ts';
+import { JUDGE_KNOBS, JUDGE_TIMELINES, ROBE } from './judge-rig.ts';
 import { type Pt, boilTime, reachAbout } from './parts.ts';
 import type { judgeProp } from './rigs.ts';
 
@@ -31,11 +31,12 @@ const REGARD: Expression = { ...EASE, eyes: 1.05, browY: 0.5, browTilt: -0.08 };
 /** The verdict given: the brows' inner ends up, a small smile. Kind, not amused. */
 const KIND: Expression = { ...EASE, eyes: 1, browY: -2.2, browTilt: 0.28, mouth: 1.6 };
 
-/** Where his eyes go, from his head's centre: down on the papers, then the accused's head as `figures.riv` draws it. */
-const GAZE = {
-  papers: [JUDGE_KNOBS.gazeX, JUDGE_KNOBS.gazeY],
-  accused: [ACCUSED[0] - JUDGE[0], ACCUSED[1] + accusedHead(DIRECTION).y - JUDGE[1]],
-} as const;
+/** Where his eyes go under `d`, from his head's centre: down on the papers, then the accused's head as `d` draws it. */
+const gazeOf = (d: Direction) =>
+  ({
+    papers: [JUDGE_KNOBS.gazeX, JUDGE_KNOBS.gazeY],
+    accused: [ACCUSED[0] - JUDGE[0], ACCUSED[1] + accusedHead(d).y - JUDGE[1]],
+  }) as const;
 
 /** How far he tips toward the accused as he leans in, radians about the robe's foot (negative: toward screen left). */
 const LEAN = -0.06;
@@ -43,13 +44,17 @@ const LEAN = -0.06;
 /** The view model's numbers on this frame (scratch). */
 const NUMBERS: Record<keyof typeof JUDGE_KNOBS, number> = { ...JUDGE_KNOBS };
 
-const poseOf = (f: CourtFrame, lean: number): PoseOf<ReturnType<typeof judgeProp>> => {
+const poseOf = (
+  f: CourtFrame,
+  lean: number,
+  gaze: ReturnType<typeof gazeOf>,
+): PoseOf<ReturnType<typeof judgeProp>> => {
   acted(NUMBERS, READING, [
     [REGARD, lean],
     [KIND, f.at('stamp')],
   ]);
-  NUMBERS.gazeX = lerp(GAZE.papers[0], GAZE.accused[0], lean);
-  NUMBERS.gazeY = lerp(GAZE.papers[1], GAZE.accused[1], lean);
+  NUMBERS.gazeX = lerp(gaze.papers[0], gaze.accused[0], lean);
+  NUMBERS.gazeY = lerp(gaze.papers[1], gaze.accused[1], lean);
   NUMBERS.follow = 0;
   NUMBERS.lean = LEAN * lean;
   return {
@@ -84,6 +89,41 @@ const GAVEL_HEAD = rounded(0, -104, 64, 34, 8);
  */
 const READING_SHEET = { x: 1186, y: 461, rot: -0.03, shape: rectShape(-48, -4, 96, 8) } as const;
 
+/** `pts` placed at `p` and turned by `p.rot`, in frame units. */
+const placed = (
+  pts: ReadonlyArray<Pt>,
+  p: { readonly x: number; readonly y: number; readonly rot: number },
+): Pt[] =>
+  pts.map(([x, y]): Pt => [
+    p.x + x * Math.cos(p.rot) - y * Math.sin(p.rot),
+    p.y + x * Math.sin(p.rot) + y * Math.cos(p.rot),
+  ]);
+
+/** The paper he reads, in frame units. */
+export const sheetOutline: ReadonlyArray<Pt> = placed(READING_SHEET.shape, READING_SHEET);
+
+/** The gavel turned `swing`, in frame units: its handle and its head. */
+export const gavelAt = (swing: number) => {
+  const at = { x: GAVEL[0], y: GAVEL[1], rot: swing };
+  return { handle: placed(GAVEL_HANDLE, at), head: placed(GAVEL_HEAD, at) };
+};
+
+/** His robe as he leans `lean` of the way in, in frame units: turned about its foot (the rig's lean, `LEAN`). */
+export const robeAt = (lean: number): Pt[] =>
+  placed(ROBE.outline, { x: JUDGE[0], y: JUDGE[1] + 6 * lean + ROBE.pivot, rot: LEAN * lean });
+
+/**
+ * Where his hand's centre is, in frame units, as he leans `lean` of the way in
+ * and the gavel turns `swing`: on the rim at rest, reaching round his
+ * shoulder to the gavel's grip as he leans.
+ */
+export const handAt = (swing: number, lean: number): Pt => {
+  const shoulder: Pt = [JUDGE[0] + SHOULDER[0], JUDGE[1] + SHOULDER[1] + 10 * lean];
+  const rest: Pt = [JUDGE[0] + REST[0], JUDGE[1] + REST[1]];
+  const grip: Pt = [GAVEL[0] + Math.sin(swing) * GRIP, GAVEL[1] - Math.cos(swing) * GRIP];
+  return reachAbout(shoulder, rest, grip, lean);
+};
+
 /** What lies on the bench before him: the paper he reads, and the gavel turned `swing`, lined in `props`' inks. */
 const benchTop = (f: CourtFrame, swing: number, props: Props) => {
   const { ctx } = f;
@@ -110,19 +150,24 @@ const benchTop = (f: CourtFrame, swing: number, props: Props) => {
 };
 
 /**
- * The judge drawn by the rigs the look declares: his body behind the bench
- * (his contact shadow is the bench's, the court's), the paper he reads and
- * the gavel on it, his hand on the gavel.
+ * The judge drawn by the rigs built from `d`: his body behind the bench (his
+ * contact shadow is the bench's, the court's), the paper he reads and the
+ * gavel on it, his hand on the gavel.
  */
-export const riveJudge: Bench = {
-  behind: (f, lean) =>
-    at(f.ctx, { x: JUDGE[0], y: JUDGE[1] + 6 * lean }, () => f.rive('judge', poseOf(f, lean))),
-  over: (f, swing, lean, props) => {
-    benchTop(f, swing, props);
-    const shoulder: Pt = [JUDGE[0] + SHOULDER[0], JUDGE[1] + SHOULDER[1] + 10 * lean];
-    const rest: Pt = [JUDGE[0] + REST[0], JUDGE[1] + REST[1]];
-    const grip: Pt = [GAVEL[0] + Math.sin(swing) * GRIP, GAVEL[1] - Math.cos(swing) * GRIP];
-    const [x, y] = reachAbout(shoulder, rest, grip, lean);
-    at(f.ctx, { x, y }, () => f.rive('hand', { timelines: [['boil', boilTime(f.boil)]] }));
-  },
+export const judgeOf = (d: Direction): Bench => {
+  const gaze = gazeOf(d);
+  return {
+    behind: (f, lean) =>
+      at(f.ctx, { x: JUDGE[0], y: JUDGE[1] + 6 * lean }, () =>
+        f.rive('judge', poseOf(f, lean, gaze)),
+      ),
+    over: (f, swing, lean, props) => {
+      benchTop(f, swing, props);
+      const [x, y] = handAt(swing, lean);
+      at(f.ctx, { x, y }, () => f.rive('hand', { timelines: [['boil', boilTime(f.boil)]] }));
+    },
+  };
 };
+
+/** The judge `figures.riv` draws: built from `DIRECTION`. */
+export const riveJudge: Bench = judgeOf(DIRECTION);
