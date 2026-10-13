@@ -1,2 +1,2 @@
-# The Rive project `build.ts` writes from `rig.ts` and compiles: generated, rebuilt on every build.
+# The Rive project `build.ts` writes from `figures.ts` and compiles: generated, rebuilt on every build.
 project/

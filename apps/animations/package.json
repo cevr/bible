@@ -27,7 +27,8 @@
     "deploy": "alchemy deploy alchemy.run.ts --stage prod",
     "store:keys": "bun infra/keys.ts --stage prod",
     "seed-look": "bun art/seed-look.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src/films/cold-studies/looks"
   },
   "dependencies": {
     "@bible/film": "workspace:*",

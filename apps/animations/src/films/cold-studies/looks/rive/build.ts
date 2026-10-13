@@ -1,6 +1,9 @@
-// Build the accused's rig: write the generated project (`project/`), compile
-// it with the Rive CLI offline and unsigned (`rive --once`: no account, no
-// scripts), and copy the .riv beside the look, where the look imports it.
+// Build the court's figure rigs (`figures.ts`: the accused, the judge, his
+// hand) in the figures' direction (`DIRECTION`, `direction.ts`): write the
+// generated project (`project/`), compile it with the Rive
+// CLI offline and unsigned (`rive --once`: no account, no scripts), and copy
+// the .riv beside the looks, where `rigs.ts` imports it. Fails when the CLI
+// reports a problem.
 // `bun looks/rive/build.ts [--inspect] [--screenshot]`, from the film's folder
 // or anywhere: paths are this file's. The CLI is `rive` on the PATH, or the
 // one `RIVE` names.
@@ -13,16 +16,22 @@ import * as BunServices from '@effect/platform-bun/BunServices';
 import { Config, Console, Duration, Effect, FileSystem, Schema, Stream } from 'effect';
 import { Command, Flag } from 'effect/cli';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
-import { accusedRml } from './rig.ts';
+import { DIRECTION } from './direction.ts';
+import { figuresRml } from './figures.ts';
 
 const here = import.meta.dir;
 const project = `${here}/project`;
 
-/** What `rive --once --format=json` prints: the built file and what the build warned of. */
+/** What the CLI reports as wrong with a project: kept as it prints it. */
+const Problems = Schema.Array(Schema.Unknown);
+const ProblemsJson = Schema.fromJsonString(Problems);
+
+/** What `rive --once --format=json` prints: the built file, what the build warned of, and its problems. */
 const Built = Schema.fromJsonString(
   Schema.Struct({
     data: Schema.Struct({ riv: Schema.String, bytes: Schema.Finite }),
     warnings: Schema.Array(Schema.String),
+    problems: Schema.optional(Problems),
   }),
 );
 
@@ -44,7 +53,7 @@ const timed = <A, E, R>(label: string, effect: Effect.Effect<A, E, R>) =>
   );
 
 /** Run the Rive CLI with `args`: its stdout, or `RiveFailed` with all it printed. */
-const rive = (step: string, args: ReadonlyArray<string>) =>
+export const rive = (step: string, args: ReadonlyArray<string>) =>
   Effect.gen(function* () {
     const bin = yield* Config.String('RIVE').pipe(Config.withDefault('rive'));
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
@@ -61,6 +70,21 @@ const rive = (step: string, args: ReadonlyArray<string>) =>
     return stdout;
   }).pipe(Effect.scoped);
 
+/**
+ * Write `rml` as the project in `dir` (`rive.yaml` and `figures.rml`) and
+ * compile it offline and unsigned (`rive --once`): the built file, its size,
+ * what the build warned of and its problems.
+ */
+export const compile = Effect.fn('compile')(function* (dir: string, rml: string) {
+  const fs = yield* FileSystem.FileSystem;
+  yield* fs.makeDirectory(dir, { recursive: true });
+  yield* fs.writeFileString(`${dir}/rive.yaml`, 'name: figures\nmain: Accused\n');
+  yield* fs.writeFileString(`${dir}/figures.rml`, rml);
+  const printed = yield* rive('rive --once', [dir, '--once', '--quiet', '--format=json']);
+  const report = yield* Schema.decodeEffect(Built)(printed.trim());
+  return { ...report.data, warnings: report.warnings, problems: report.problems ?? [] };
+});
+
 const build = Effect.fn('build')(function* (options: {
   readonly inspect: boolean;
   readonly screenshot: boolean;
@@ -68,21 +92,20 @@ const build = Effect.fn('build')(function* (options: {
   const fs = yield* FileSystem.FileSystem;
   const rml = yield* timed(
     'generate',
-    Effect.sync(() => accusedRml()),
+    Effect.sync(() => figuresRml(DIRECTION)),
   );
-  yield* fs.makeDirectory(project, { recursive: true });
-  yield* fs.writeFileString(`${project}/rive.yaml`, 'name: accused\nmain: Accused\n');
-  yield* fs.writeFileString(`${project}/accused.rml`, rml);
-  yield* Console.log(`accused.rml: ${rml.split('\n').length} lines, ${rml.length} bytes`);
-
-  const printed = yield* timed(
-    'rive --once',
-    rive('rive --once', [project, '--once', '--quiet', '--format=json']),
+  yield* Console.log(`figures.rml: ${rml.split('\n').length} lines, ${rml.length} bytes`);
+  const built = yield* timed('rive --once', compile(project, rml));
+  yield* Console.log(
+    `riv: ${built.bytes} bytes; warnings: ${built.warnings.length}; problems: ${built.problems.length}`,
   );
-  const report = yield* Schema.decodeEffect(Built)(printed.trim());
-  yield* Console.log(`riv: ${report.data.bytes} bytes; warnings: ${report.warnings.length}`);
-  yield* Effect.forEach(report.warnings, (w) => Console.log(`  warning: ${w}`));
-  yield* fs.copyFile(report.data.riv, `${here}/accused.riv`);
+  yield* Effect.forEach(built.warnings, (w) => Console.log(`  warning: ${w}`));
+  if (built.problems.length > 0)
+    return yield* RiveFailed.make({
+      step: 'rive --once',
+      output: yield* Schema.encodeEffect(ProblemsJson)(built.problems),
+    });
+  yield* fs.copyFile(built.riv, `${here}/figures.riv`);
 
   if (options.inspect) {
     const inspected = yield* timed(
@@ -121,9 +144,11 @@ const command = Command.make(
     ),
   },
   build,
-).pipe(Command.withDescription("Build the accused's rig into accused.riv beside the look"));
+).pipe(Command.withDescription("Build the court's figure rigs into figures.riv beside the looks"));
 
-Command.run(command, { version: '1.0.0' }).pipe(
-  Effect.provide(BunServices.layer),
-  BunRuntime.runMain,
-);
+// Run as a script; imported (the axis test, `direction.test.ts`), it only lends `compile`.
+if (import.meta.main)
+  Command.run(command, { version: '1.0.0' }).pipe(
+    Effect.provide(BunServices.layer),
+    BunRuntime.runMain,
+  );
