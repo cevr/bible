@@ -14,6 +14,10 @@
 // before it scrolls, so a reader's scroll whose event is still on its way is
 // not undone, and so may the view before it moves on the page's word (the
 // Source face settling on a line once a read names it). Play is told too.
+// What a press opens under the rows (the Script's box under a line) is named
+// as a key too (`opened`), and brought into sight as it opens, by the least
+// scroll, whoever holds the box: the press was the reader's own. Layout that
+// moves it while it is open brings it back, until a reader scrolls the box.
 
 import { Option } from 'effect';
 import { type Accessor, createEffect, createSignal, untrack } from 'solid-js';
@@ -45,6 +49,12 @@ interface FollowOptions {
   readonly reader: () => void;
   /** Play pressed: what takes the view back. */
   readonly played: () => void;
+  /**
+   * What a press opened under the rows, as a key (`''` for none; its rows
+   * from `span`, the last the box it opened): brought into sight once, as
+   * the key changes, whether or not the view is placing.
+   */
+  readonly opened?: Accessor<string>;
 }
 
 /**
@@ -122,6 +132,13 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
       }),
   );
 
+  /** What a press opened under the rows, as its key: `''` while nothing is open, or for a view that opens nothing. */
+  const opened = () =>
+    Option.getOrElse(
+      Option.map(Option.fromUndefinedOr(options.opened), (o) => o()),
+      () => '',
+    );
+
   // One effect places the box, and first takes it back when placing turns on (Follow, Play, a line held again): the
   // box where it stands is the view's from then. In one effect, the take-back comes before the placement's own check
   // for a reader's scroll by the code's order, not by the scheduler's.
@@ -136,6 +153,9 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
           anchor = box.scrollTop;
         });
       if (!on || key === '') return;
+      // What a press opened holds the box while the film stands still: neither the press's own seek nor the resize its
+      // opening made places the frame's row over it. Play, or the view taken back, places it.
+      if (!takenBack && untrack(opened) !== '' && !meta.player.playing()) return;
       Option.map(
         Option.flatMap(options.box(), (box) =>
           Option.map(options.span(key), (span) => ({ box, span })),
@@ -158,6 +178,50 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
           const to = Math.min(Math.max(third, toLast), top - clear.top);
           // Instant, so the move is one scroll that lands on the anchor, never a smooth run of them.
           box.scrollTo({ top: Math.max(0, to), behavior: 'instant' });
+          anchor = box.scrollTop;
+        },
+      );
+    },
+  );
+
+  // What a press opened comes into sight as it opens, by the least scroll: the box it opened (the span's last row)
+  // and the first row it is about with it when both fit between the clear edges; else the box alone, its top never
+  // pushed above the clear top. Placing or not: the press was the reader's. A resize while it stays open (the page
+  // still settling, the box growing as it is typed in) brings it into sight again, while the film stands still and
+  // no reader has scrolled the box since. The scroll is the view's, so it is never taken for a reader's; a reader's
+  // not heard yet is told first.
+  let revealed = '';
+  createEffect(
+    () => [opened(), laidOut()] as const,
+    ([key]) => {
+      const fresh = key !== revealed;
+      revealed = key;
+      if (key === '' || (!fresh && meta.player.playing())) return;
+      Option.map(
+        Option.flatMap(options.box(), (box) =>
+          Option.map(options.span(key), (span) => ({ box, span })),
+        ),
+        ({ box, span }) => {
+          if (span.first.getClientRects().length === 0) return;
+          if (readerMoved(box)) {
+            options.reader();
+            // Since it opened, the box is the reader's: only a press brings what it opens into sight over that.
+            if (!fresh) return;
+          }
+          const clear = options.clear(box);
+          const { top, bottom } = extentOf(box, span);
+          const room = box.clientHeight - clear.top - clear.bottom;
+          const kept = Option.getOrElse(
+            Option.liftPredicate(top, () => bottom - top <= room),
+            () => extentOf(box, { first: span.last, last: span.last }).top,
+          );
+          const to = Math.min(
+            Math.max(box.scrollTop, bottom - box.clientHeight + clear.bottom),
+            kept - clear.top,
+          );
+          if (Math.abs(to - box.scrollTop) > SLACK)
+            box.scrollTo({ top: Math.max(0, to), behavior: 'instant' });
+          // Where it stands now is the view's, scrolled or let be: a resize measures from here.
           anchor = box.scrollTop;
         },
       );

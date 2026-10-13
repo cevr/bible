@@ -35,10 +35,14 @@ import { useScript } from './context.tsx';
 import { type Noted, notedOn } from './noted.ts';
 import { picking } from './tied.tsx';
 
-/** The note selected, and the beat it opens under. */
+/** Where a note's marker stands in its beat: in its head (a note of its frame), or in its line (a note on its words). */
+type Stands = 'head' | 'line';
+
+/** The note selected, the beat it opens in, and where: under the head or the line its marker stands in. */
 interface Shown {
   readonly beat: string;
   readonly note: Note;
+  readonly stands: Stands;
 }
 
 interface ScriptNotesValue {
@@ -88,20 +92,25 @@ const Verbs = (props: ParentProps) => {
   /** Whether beat `id` says a line the reader lays out. */
   const voiced = (id: string) =>
     Arr.some(script.beats, (b) => b.id === id && Option.isSome(b.line));
+  /** Where `note`'s marker stands: in its beat's head when it is of the frame, or its beat no longer has a line. */
+  const standsOf = (note: Note): Stands =>
+    Option.match(
+      Option.filter(Option.fromUndefinedOr(note.words), (w) => voiced(w.beat)),
+      { onNone: () => 'head', onSome: () => 'line' },
+    );
   const ofBeat = (id: string) =>
     state
       .notes()
-      .filter(
-        (n) =>
-          showing(n, lab.note()) &&
-          beatOfNote(n) === id &&
-          (Option.isNone(Option.fromUndefinedOr(n.words)) || !voiced(id)),
-      );
+      .filter((n) => showing(n, lab.note()) && beatOfNote(n) === id && standsOf(n) === 'head');
   const composing = createMemo(() =>
     Option.flatMap(state.at(), (T) => Option.map(sceneAt(placed, T), (p) => p.spec.id)),
   );
   const shown = createMemo(() =>
-    Option.map(state.selected(), (note): Shown => ({ beat: beatOfNote(note), note })),
+    Option.map(state.selected(), (note): Shown => ({
+      beat: beatOfNote(note),
+      note,
+      stands: standsOf(note),
+    })),
   );
   const shownRows = createMemo(() =>
     Option.getOrElse(
@@ -295,16 +304,22 @@ export const Composer = (props: { readonly beat: string }) => {
 };
 
 /**
- * The note selected, under beat `beat` while it is that beat's: its id and
+ * The note selected, in beat `beat` while it is that beat's, under what its
+ * marker `stands` in (the head, for a note of the frame; the line, for one
+ * on its words), where the press on the marker leaves the eye: its id and
  * status, Close, its words, what it asks of its words, its thread, and a
  * reply and Resolve until it is resolved.
  */
-export const ShownNote = (props: { readonly beat: string }) => {
+export const ShownNote = (props: { readonly beat: string; readonly stands: Stands }) => {
   const { actions: labActions, meta } = useLab();
   const verbs = useScriptNotes();
   const feed = useNotesFeed();
   return (
-    <Show when={Option.getOrUndefined(Option.filter(verbs.shown(), (s) => s.beat === props.beat))}>
+    <Show
+      when={Option.getOrUndefined(
+        Option.filter(verbs.shown(), (s) => s.beat === props.beat && s.stands === props.stands),
+      )}
+    >
       {(shown) => (
         <section
           class="lab-script-shown"

@@ -40,6 +40,7 @@ import {
 import { WAIT_MS } from '../../../src/lab/fixtures/tab.ts';
 import { labHandler } from '../../../src/tools/lab.ts';
 import { NOTES_LAB, labInMemory, notesCli, text } from '../../../src/tools/testing.ts';
+import { scriptAt } from '../studio-states.ts';
 
 /** Long enough to open the Script, select, write and save, and read the notes back: twice a wait's own bound. */
 const SLOW = 2 * WAIT_MS;
@@ -65,6 +66,13 @@ const word = (beat: string, index: number) => `[data-scene="${beat}"] [data-inde
 
 /** What the page's URL selects: `key`'s value in its query, '' for none. */
 const selects = (key: string) => `(new URLSearchParams(location.search).get('${key}') ?? '')`;
+
+/** A phone with little height to spare: the reader under the picture shows a few lines at a time. */
+const SHORT_PHONE = { ...PHONE, height: 600 };
+
+/** An expression run in the page: whether `selector` stands wholly inside the reader's scroll box. */
+const inSight = (selector: string) =>
+  `((el, box) => el !== null && el.getBoundingClientRect().top >= box.getBoundingClientRect().top - 1 && el.getBoundingClientRect().bottom <= box.getBoundingClientRect().bottom + 1)(document.querySelector('${selector}'), document.querySelector('.lab-script-scroll'))`;
 
 /** An expression run in the page: whether `selector` matches, each after a space no line breaks at (so none starts a line). */
 const heldBefore = (selector: string) =>
@@ -186,6 +194,33 @@ describe('the Script', () => {
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     );
+
+  it.live(
+    'on a short phone, what a tap opens under a line comes into sight: the cues tied to a word, a note of a frame under its beat head',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([], {
+          href: pageHref.scriptBeat(PROBE, 'one'),
+          viewport: SHORT_PHONE,
+        });
+        yield* page.click(word('one', 7));
+        yield* until(page, `${selects('words')} === '7-7'`);
+        // Its head, which says what is selected and holds Note… and Clear, at least.
+        yield* evaluates(page, inSight('[data-scene="one"] .lab-script-ties-head'), true);
+        expect(errors).toEqual([]);
+        // A note of beat two's frame opens under the head its marker stands in, in sight.
+        const noted = yield* scriptAt({ note: 'n4' })(SHORT_PHONE);
+        const shown = '[data-scene="two"] .lab-script-shown[data-note="n4"]';
+        yield* evaluates(
+          noted,
+          `document.querySelector('${shown}').previousElementSibling.matches('.lab-script-beat-head')`,
+          true,
+        );
+        // In sight once the page has settled: the player above it and the lines before it laid out.
+        yield* evaluates(noted, inSight(`${shown} .lab-script-shown-head`), true);
+        expect(noted.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
 
   it.live('a mark picked lists the cues tied to it; a cue picked from the list is selected', () =>
     Effect.gen(function* () {

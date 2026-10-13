@@ -25,7 +25,7 @@
 
 import { For, Portal, Show } from '@solidjs/web';
 import { Array as Arr, Option } from 'effect';
-import { createMemo } from 'solid-js';
+import { createMemo, untrack } from 'solid-js';
 import { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
 import { counted } from '../../core/words.ts';
@@ -53,6 +53,18 @@ import { marksIn } from './ties.ts';
 /** What the reader follows, as Follow names it: the word playing (`w:<beat>:<index>`), else the beat under the frame (`b:<beat>`). */
 const WORD_KEY = /^w:(.*):(\d+)$/;
 const BEAT_KEY = /^b:(.*)$/;
+
+/**
+ * A box a press opened under a beat's line, as Follow brings it into sight:
+ * its key, its beat, the first word it is about (none: the beat's frame,
+ * whose head it opens under), and the box itself.
+ */
+interface Opened {
+  readonly key: string;
+  readonly beat: string;
+  readonly first: Option.Option<number>;
+  readonly box: string;
+}
 
 /** The reader's head: how many beats the film has and how many are timed by the estimate, Note frame, and Follow. */
 const Head = () => {
@@ -226,6 +238,7 @@ const Beat = (props: { readonly beat: BeatRow }) => {
         </Show>
         <BeatMarkers beat={beat.id} />
       </header>
+      <ShownNote beat={beat.id} stands="head" />
       <Show
         when={Option.getOrUndefined(
           Option.flatMap(said(), (b) => Option.fromUndefinedOr(b.picture)),
@@ -250,7 +263,7 @@ const Beat = (props: { readonly beat: BeatRow }) => {
         <NoteButton />
       </Ties>
       <Composer beat={beat.id} />
-      <ShownNote beat={beat.id} />
+      <ShownNote beat={beat.id} stands="line" />
       <Show
         when={Option.getOrUndefined(
           Option.filter(
@@ -297,24 +310,81 @@ const Beats = () => {
       onNone: () => `b:${script.live()}`,
     }),
   );
+  // What a press opened under a line, while it is open: the composer, the note selected, else the cues tied to the
+  // selection (one at a time: a note picked lets the selection go). Follow brings it into sight as it opens.
+  const opened = createMemo(() =>
+    Option.firstSomeOf<Opened>([
+      Option.map(notes.composing(), (beat) => ({
+        key: `c:${beat}`,
+        beat,
+        first: Option.map(
+          Option.filter(script.selected(), (w) => w.scene === beat),
+          (w) => w.from,
+        ),
+        box: '.lab-script-compose',
+      })),
+      Option.map(notes.shown(), (s) => ({
+        key: `n:${s.note.id}`,
+        beat: s.beat,
+        first: Option.flatMap(
+          Option.liftPredicate(s, (on) => on.stands === 'line'),
+          () => Option.map(Arr.head(notes.shownRows()), (r) => r.index),
+        ),
+        box: '.lab-script-shown',
+      })),
+      Option.map(script.tied(), (t) => ({
+        key: `t:${t.beat}:${t.what}`,
+        beat: t.beat,
+        first: Option.map(Arr.head([...script.picked(), ...script.read()]), (r) => r.index),
+        box: '.lab-script-ties',
+      })),
+    ]),
+  );
   const found = (selector: string) =>
     Option.flatMap(page, (root) => Option.fromNullishOr(root.querySelector<HTMLElement>(selector)));
+  /** Beat `beat`'s part named by `selector`. */
+  const inBeat = (beat: string, selector: string) =>
+    found(`[data-scene="${CSS.escape(beat)}"] ${selector}`);
+  /** The rows of what was opened: the first word it is about (its beat's head, for a frame) down to its box. */
+  const openedSpan = (o: Opened) =>
+    Option.zipWith(
+      Option.orElse(
+        Option.flatMap(o.first, (index) => inBeat(o.beat, `[data-index="${index}"]`)),
+        () => inBeat(o.beat, '.lab-script-beat-head'),
+      ),
+      inBeat(o.beat, o.box),
+      (first, last) => ({ first, last }),
+    );
   useFollow({
     box: () => scroller,
     content: () => page,
     target: looking,
+    opened: () =>
+      Option.match(opened(), {
+        onNone: () => '',
+        onSome: (o) => o.key,
+      }),
+    // Asked as Follow places, outside any tracking scope: what is open now, read untracked.
     span: (key) =>
-      Option.map(
-        Option.orElse(
-          Option.flatMap(Option.fromNullishOr(WORD_KEY.exec(key)), ([, beat = '', index = '']) =>
-            found(`[data-scene="${CSS.escape(beat)}"] [data-index="${index}"]`),
-          ),
-          () =>
-            Option.flatMap(Option.fromNullishOr(BEAT_KEY.exec(key)), ([, beat = '']) =>
-              found(`[data-scene="${CSS.escape(beat)}"] .lab-script-beat-head`),
-            ),
+      Option.orElse(
+        Option.flatMap(
+          Option.filter(untrack(opened), (o) => o.key === key),
+          openedSpan,
         ),
-        (row) => ({ first: row, last: row }),
+        () =>
+          Option.map(
+            Option.orElse(
+              Option.flatMap(
+                Option.fromNullishOr(WORD_KEY.exec(key)),
+                ([, beat = '', index = '']) => inBeat(beat, `[data-index="${index}"]`),
+              ),
+              () =>
+                Option.flatMap(Option.fromNullishOr(BEAT_KEY.exec(key)), ([, beat = '']) =>
+                  inBeat(beat, '.lab-script-beat-head'),
+                ),
+            ),
+            (row) => ({ first: row, last: row }),
+          ),
       ),
     // Two lines clear of each edge.
     clear: () => {
