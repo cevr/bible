@@ -991,7 +991,13 @@ const writtenIn = Effect.fn('test.docs.writtenIn')(function* (
                 at !== self &&
                 (CODE_FILE.test(name) || (top && CONFIG_FILE.test(name)));
               return Effect.succeed([at].filter(() => read));
-            }),
+            }).pipe(
+              // A file another task removes between the listing and the stat (a build's journal) is gone, not a failure.
+              Effect.catchIf(
+                (error) => error.reason._tag === 'NotFound',
+                () => Effect.succeed([]),
+              ),
+            ),
         ),
         (each) => each.flat(),
       ),
