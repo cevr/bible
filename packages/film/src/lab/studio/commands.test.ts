@@ -93,6 +93,22 @@ describe('the studio as commands', () => {
       ).every((did) => did === '-'),
     ).toBe(true);
   });
+
+  test('a control runs with the input that asked for it, so the focus it leaves rings iff a key did', () => {
+    const asked: Array<string> = [];
+    const commands = studioCommands({
+      control: (command) => controlFor(review, command),
+      perform: (act, input) => asked.push(`${act} ${input}`),
+      stepsBeats: () => false,
+      step: (by) => asked.push(`step ${by}`),
+    });
+    const submit = commands.find((c) => c.id === 'studio.submit');
+    for (const input of ['key', 'pointer'] as const)
+      Effect.runSync(
+        Option.getOrThrow(Option.fromUndefinedOr(submit)).run(ctx, { ...BY_BUTTON, input }),
+      );
+    expect(asked).toEqual(['submit key', 'submit pointer']);
+  });
 });
 
 describe('the microphone as commands', () => {

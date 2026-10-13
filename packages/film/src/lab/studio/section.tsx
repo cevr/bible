@@ -202,6 +202,7 @@ const Controls = () => {
 /** One recording's row: kept by its file, so a player in it keeps playing while the recorder moves. */
 const Attempt = (props: { readonly row: Accessor<AttemptRow> }) => {
   const { state, actions } = useStudio();
+  const { meta } = useLab();
   const row = props.row;
   return (
     <li class={['studio-attempt', { kept: row().kept }]} data-file={row().file}>
@@ -225,7 +226,8 @@ const Attempt = (props: { readonly row: Accessor<AttemptRow> }) => {
           class="sh-btn"
           data-act="keep"
           disabled={!(state.keepable() && row().current && !row().kept)}
-          onClick={() => actions.keep(row().file)}
+          // Enter or Space on it is the keyboard's; a click, the pointer's (`Hub.input`).
+          onClick={() => actions.keep(row().file, meta.hub.input())}
         >
           Keep
         </button>
@@ -261,6 +263,14 @@ interface Held {
   root: Option.Option<HTMLElement>;
   last: Option.Option<Element>;
 }
+
+/** What takes the focus on a press of its own. */
+const FOCUSABLE =
+  'a[href], button, input, select, textarea, audio[controls], video[controls], [tabindex], [contenteditable]';
+
+/** Whether a press on `target` focuses `root` itself: no control of its own between them. */
+const heldBy = (target: EventTarget, root: Option.Option<HTMLElement>) =>
+  target instanceof Element && Option.exists(root, (r) => target.closest(FOCUSABLE) === r);
 
 /** Whether `target` is a button (or inside one). */
 const onButton = (target: EventTarget) =>
@@ -298,11 +308,15 @@ export const Section = () => {
   });
   onCleanup(meta.hub.commands.register(...studioCommands(actions)));
   registerWhile(meta.hub, () => micCommands(state.mics(), actions.pick));
-  // A press on a studio button keeps the focus on the section, without the ring: a ring the
-  // keyboard left there goes.
+  // A press anywhere in the studio the section itself holds the focus for (a button, the
+  // prompter, a beat's line) keeps the focus on the section without the ring: a ring the
+  // keyboard left there goes. A button's own focus is refused (the next state may take the
+  // button away); a control of its own (the mic's picker, a player) takes the focus as the
+  // browser gives it.
   const onMouseDown = (e: MouseEvent) => {
-    if (!Option.exists(Option.fromNullishOr(e.target), onButton)) return;
-    e.preventDefault();
+    const target = Option.fromNullishOr(e.target);
+    if (Option.exists(target, onButton)) e.preventDefault();
+    else if (!Option.exists(target, (t) => heldBy(t, held.root))) return;
     Option.map(held.root, (r) => focusFor(r, 'pointer', STAY));
   };
   const onFocusIn = (e: FocusEvent) => {

@@ -120,9 +120,10 @@ interface StudioStateValue {
 
 interface StudioActions {
   readonly select: (beat: string) => void;
-  readonly perform: (act: Act) => void;
-  /** Keep an earlier attempt as the beat's take. */
-  readonly keep: (file: string) => void;
+  /** Do `act`, asked by `input` (a command's `Invocation.input`). */
+  readonly perform: (act: Act, input: Input) => void;
+  /** Keep an earlier attempt as the beat's take, asked by `input`. */
+  readonly keep: (file: string, input: Input) => void;
   readonly pick: (device: Option.Option<string>) => void;
   /** The control `command` presses now, if it presses one (`controlFor`, `view.ts`). */
   readonly control: (command: ControlCommand) => Option.Option<Control>;
@@ -190,7 +191,10 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   );
   const beat = createMemo(() => recorder().beat);
   // Whether focus is in the studio, and the input of the studio's last act (a take submitted
-  // or kept: a key, or a click), are remembered through the reload a take kept causes.
+  // or kept: a key, or a click), are remembered through the reload a take kept causes. The
+  // input is the act's, read once: this page rewrites the slot without it, so a later reload
+  // nothing in the studio asked for (a write's, a rebuild's) brings the focus back without
+  // the ring, as no key asked for it.
   const kept = Option.fromUndefinedOr(meta.view.get().studio);
   const hadFocus = Option.exists(
     Option.flatMap(kept, (s) => Option.fromUndefinedOr(s.focused)),
@@ -201,10 +205,16 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     Option.flatMap(kept, (s) => Option.fromUndefinedOr(s.input)),
     (): Input => 'pointer',
   );
-  const [actedBy, setActedBy] = createSignal<Input>(keptBy);
+  const [actedBy, setActedBy] = createSignal<Option.Option<Input>>(Option.none());
   createEffect(
     () => [focused(), actedBy()] as const,
-    ([f, input]) => meta.view.patch({ studio: { focused: f, input } }),
+    ([f, by]) =>
+      meta.view.patch({
+        studio: Option.match(by, {
+          onNone: () => ({ focused: f }),
+          onSome: (input) => ({ focused: f, input }),
+        }),
+      }),
   );
   const refocus = Option.liftPredicate(keptBy, () => hadFocus);
 
@@ -349,15 +359,15 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
       ),
     );
   };
-  const perform = (act: Act) => {
-    setActedBy(meta.hub.input());
+  const perform = (act: Act, input: Input) => {
+    setActedBy(Option.some(input));
     send(eventOf(act, device()));
   };
   const actions: StudioActions = {
     select: (id) => select(id, 'go'),
     perform,
-    keep: (file) => {
-      setActedBy(meta.hub.input());
+    keep: (file, input) => {
+      setActedBy(Option.some(input));
       send(RecorderEvent.KeepAttempt({ file }));
     },
     pick: (next) => choose(Option.getOrElse(next, () => '')),
