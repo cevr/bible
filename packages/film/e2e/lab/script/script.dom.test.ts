@@ -192,6 +192,10 @@ const LONG_BRIEF = [
   ),
 ];
 
+/** An expression run in the page: the text of each range highlight `name` paints, in order. */
+const painted = (name: string) =>
+  `[...(CSS.highlights.get('${name}') ?? [])].map((r) => r.toString())`;
+
 /** An expression run in the page: how many lines beat `beat`'s brief shows. */
 const briefLines = (beat: string) =>
   `((p) => Math.round(p.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(p).lineHeight)))(document.querySelector('[data-scene="${beat}"] .lab-script-picture'))`;
@@ -307,6 +311,19 @@ describe('the Script', () => {
           false,
         );
         expect(desk.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "words selected are painted as one span, cut only where a mark's chip stands between them",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([], {
+          href: pageHref.scriptBeat(PROBE, 'one', { words: '6-8' }),
+        });
+        // “it {fall}falls down”: the chip before “falls” cuts the span; “falls down” is one.
+        yield* evaluates(page, painted('lab-picked'), ['it', 'falls down']);
+        expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
 

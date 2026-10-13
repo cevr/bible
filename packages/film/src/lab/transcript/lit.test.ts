@@ -54,10 +54,22 @@ describe("the Transcript view's words", () => {
       ['law?', 7, Option.some(LEAD + 0.5)],
     ]);
     expect(answer?.rows.map((r) => [r.from, r.start])).toEqual([[12, Option.some(answerAt + 0.2)]]);
-    expect(rangesOf(rowsIn(rowsOf(TALK, placed), 'ask', 1, 2))).toEqual([
-      [4, 6],
-      [7, 11],
+    // Words next to each other in the one text are one range, the space between them in it.
+    expect(rangesOf(rowsIn(rowsOf(TALK, placed), 'ask', 1, 2))).toEqual([[4, 11]]);
+  });
+
+  test('words painted are one range for each run of them, in the text’s order, a word given twice once', () => {
+    const [ask, answer] = rowsOf(TALK, placed);
+    const [why, um, law] = ask?.rows ?? [];
+    const [to] = answer?.rows ?? [];
+    const rows = [law, to, why, law].flatMap((r) => Option.toArray(Option.fromUndefinedOr(r)));
+    // Why (0-3) and law? (7-11) have um between them; law? and To (12-14) are next to each other.
+    expect(rangesOf(rows)).toEqual([
+      [0, 3],
+      [7, 14],
     ]);
+    expect(rangesOf(Option.toArray(Option.fromUndefinedOr(um)))).toEqual([[4, 6]]);
+    expect(rangesOf([])).toEqual([]);
   });
 
   test('the word lit is the one playing, else the last said in its section; none before the first', () => {

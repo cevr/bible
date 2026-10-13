@@ -9,7 +9,7 @@
 // the words selected are painted as their ranges of the one text. Mark here
 // names its mark from the word.
 
-import { Array as Arr, Option, Record as Rec, Result } from 'effect';
+import { Array as Arr, Option, Order, Record as Rec, Result } from 'effect';
 import type { TalkWords } from '../../core/api.ts';
 import { type Placed, sceneAt } from '../../core/layout.ts';
 import { parse } from '../../core/narration.ts';
@@ -177,9 +177,27 @@ export const rowsIn = (
     () => [],
   );
 
-/** `rows` as the ranges of the one text the highlights paint. */
+/**
+ * `rows` as the ranges of the one text the highlights paint, in its order:
+ * one for each run of words next to each other in it (the space between
+ * them in the range too), so a span of words is painted as one; a word
+ * given twice is painted once.
+ */
 export const rangesOf = (rows: ReadonlyArray<Row>): ReadonlyArray<CodeRange> =>
-  rows.map((r) => [r.from, r.from + r.text.length]);
+  Arr.sort(
+    rows.map((r): CodeRange => [r.from, r.from + r.text.length]),
+    Order.mapInput(Order.Number, ([from]: CodeRange) => from),
+  ).reduce<ReadonlyArray<CodeRange>>(
+    (runs, [from, to]) =>
+      Option.match(
+        Option.filter(Arr.last(runs), ([, end]) => from <= end + 1),
+        {
+          onNone: () => [...runs, [from, to]],
+          onSome: ([start, end]) => [...Arr.dropRight(runs, 1), [start, Math.max(end, to)]],
+        },
+      ),
+    [],
+  );
 
 /**
  * The mark Mark here sets on word `index` (spelt `text`), given the marks its

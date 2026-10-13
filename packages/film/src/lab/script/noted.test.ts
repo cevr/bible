@@ -112,11 +112,11 @@ describe('which notes the reader shows on a line, and how', () => {
   });
 
   test("a note's words underlined, a correction's or a removal's struck, as ranges of the one text", () => {
+    // “are saved” struck as one range, the space between its words in it.
     expect(notedPainted(notedOn(notes, line, Option.some('n3')))).toEqual({
       'lab-noted': [[3, 8]],
       'lab-struck': [
-        [13, 16],
-        [17, 22],
+        [13, 22],
         [31, 36],
       ],
     });

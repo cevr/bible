@@ -22,8 +22,10 @@ interface HighlightsOps {
    * Paint `ranges` as `name`, in place of what `name` painted. A text node
    * `root` is painted by offsets into its text; any other node holds its
    * text in children that say where each starts (`data-from`, an offset into
-   * the whole text), so a range may cross them and the markup between them
-   * (line numbers) is never painted.
+   * the whole text), so a range may cross them: the blank text between two
+   * of them (the space between words) is painted with them, so a span reads
+   * as one, and any other markup between them (line numbers, a mark's chip)
+   * never is.
    */
   readonly paint: (
     name: HighlightName,

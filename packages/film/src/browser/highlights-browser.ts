@@ -29,22 +29,48 @@ const piecesOf = (root: Node): ReadonlyArray<Piece> => {
   });
 };
 
-/** `ranges` cut at the pieces: one `Range` for each piece a range reaches into. */
+/** Whether `range` ends where its text does, and nothing but blank text lies from there to the start of `node`. */
+const blankTo = (range: Range, node: Text): boolean => {
+  const end = range.endContainer;
+  if (!(end instanceof Text) || range.endOffset !== end.length) return false;
+  const between = new Range();
+  between.setStart(end, range.endOffset);
+  between.setEnd(node, 0);
+  return between.toString().trim() === '';
+};
+
+/**
+ * `ranges` cut at the pieces: one `Range` for each run of pieces a range
+ * reaches into. A run goes on from one piece to the next only across blank
+ * text (the spaces between a line's words), so a span of words is painted
+ * whole, and is cut wherever anything else stands between them (a mark's
+ * chip, a note's marker, a line number).
+ */
 const rangesIn = (
   pieces: ReadonlyArray<Piece>,
   ranges: ReadonlyArray<readonly [number, number]>,
 ): ReadonlyArray<Range> =>
-  ranges.flatMap(([start, end]) =>
-    pieces.flatMap(({ node, from }) => {
+  ranges.flatMap(([start, end]) => {
+    const runs: Array<Range> = [];
+    for (const { node, from } of pieces) {
       const a = Math.max(start, from);
       const b = Math.min(end, from + node.length);
-      if (a >= b) return [];
+      if (a >= b) continue;
+      const goesOn = Option.filter(
+        Option.fromUndefinedOr(runs.at(-1)),
+        (last) => a === from && blankTo(last, node),
+      );
+      if (Option.isSome(goesOn)) {
+        goesOn.value.setEnd(node, b - from);
+        continue;
+      }
       const range = new Range();
       range.setStart(node, a - from);
       range.setEnd(node, b - from);
-      return [range];
-    }),
-  );
+      runs.push(range);
+    }
+    return runs;
+  });
 
 /** This page's highlights. */
 export const highlightsLayer: Layer.Layer<Highlights> = Layer.succeed(
