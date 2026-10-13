@@ -194,6 +194,8 @@ Owner: "go through the pioneer writings and egw and see what topics we can cover
 - Three Opus research agents (subagents, read-only on the repo) write series.md + pilot scripts + sources.md under ~/.cache/content-series/{theology,education,health}/. Theology = cut-paper films ("From Milk to Meat"); education and health = talk videos.
 - Next once in: read, publish summaries to Sideshow, owner picks; then a unit commits the series docs into the repo (content/series/?) so the lab can show them.
 
+- 2026-10-13: series docs committed at `apps/animations/series/` (9f2733897): theology ep 05 from asitreads (owner Q: voice "the Almighty"? — series.md Q11), education + Ritsema (10 new topics 78–87; owner Q: fiction texts vs no. 57 allegory). Joshua White: 3 candidate playlists in education/sources.md §7, awaiting owner pick. Raw third-party material in the warm source's git-ignored `tmp/content-series/`.
+
 ## Side studies (owner-requested, beside the loop)
 
 - looks: art-direction prototypes (spec `looks/spec.md`), lead rift `/workspaces/.rifts/bible-tools/looks` (56d263b4c, lead a97b39e0fbf7c30ee); phase 2 styles in rifts looks-{ps1,painterly,engraving,bold}; phase-1 engine review running.
