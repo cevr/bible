@@ -6,7 +6,8 @@
 // note that carries them, what it asks and the words to say instead, which
 // the reader paints on its line. What it posts reaches the lab's notes
 // route, its store keeps (`notes.json`) and `film notes` prints, as the
-// agent reads it.
+// agent reads it. A correction saved with its words unchanged posts
+// nothing: its labelled field is marked, described by why, and has the keys.
 
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Effect, FileSystem, Layer, Option, Schema } from 'effect';
@@ -29,6 +30,7 @@ import {
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   attributeIs,
+  describedBy,
   evaluates,
   textIs,
   textsAre,
@@ -235,6 +237,44 @@ describe('the Script', () => {
         }).pipe(Effect.scoped),
       ),
     SLOW,
+  );
+
+  it.live(
+    'a correction saved with its words unchanged marks their field, says why beside it and takes the keys there, until a word is written in it',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openLab([], {
+          href: pageHref.scriptBeat(PROBE, 'one', { words: '2-3' }),
+        });
+        const compose = '[data-role="script-compose"]';
+        const instead = `${compose} .lab-instead`;
+        yield* page.click('[data-act="note-words"]');
+        yield* waitFor(page, `${compose} .lab-compose:not([hidden])`);
+        yield* page.click(`${compose} [data-ask="correction"]`);
+        // The field is labelled where it stands, its label the name it is known by.
+        yield* textIs(page, `${compose} .lab-instead-field .lab-field-label`, 'Say instead');
+        yield* evaluates(
+          page,
+          `document.querySelector('${instead}').labels[0].textContent`,
+          'Say instead',
+        );
+        yield* attributeIs(page, instead, 'aria-invalid', 'false');
+        yield* page.click(`${compose} button[type="submit"]`);
+        yield* attributeIs(page, instead, 'aria-invalid', 'true');
+        yield* evaluates(page, describedBy(instead), 'Write the words to say instead.');
+        yield* evaluates(
+          page,
+          `document.activeElement === document.querySelector('${instead}')`,
+          true,
+        );
+        yield* attributeIs(page, `${compose} textarea`, 'aria-invalid', 'false');
+        // A word written in the field clears it: no longer invalid, nothing said of it.
+        yield* page.fill(instead, 'climbs slowly,');
+        yield* attributeIs(page, instead, 'aria-invalid', 'false');
+        yield* evaluates(page, describedBy(instead), '');
+        expect(posted(asked)).toEqual([]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live(

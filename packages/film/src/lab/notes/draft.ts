@@ -254,24 +254,32 @@ const saidOf = (text: string, words: Option.Option<NoteWords>, asked: Asked) =>
     () => Option.flatMap(words, (w) => ASKED_TEXT[asked.kind](asked, w)),
   );
 
+/** Why a note is no draft, as its composer says it, and the field that says too little: the words to say instead, or the note's own. */
+export interface Unsaid {
+  readonly field: 'instead' | 'note';
+  readonly says: string;
+}
+
 /**
  * Why a note saying `text` about `words`, asking `asked` of them, is no
- * draft, as its composer says it: a correction that says no other words, a
- * note that says nothing. None when it is one.
+ * draft, as its composer says it: a correction that says no other words
+ * (its field of the words to say instead), a note that says nothing (its
+ * own field). None when it is one.
  */
 export const unsaid = (
   text: string,
   words: Option.Option<NoteWords>,
   asked: Asked,
-): Option.Option<string> =>
+): Option.Option<Unsaid> =>
   Option.firstSomeOf([
-    Option.flatMap(
+    Option.as(
       Option.filter(words, (w) => !asksOf(asked, w)),
-      () => Option.some('Write the words to say instead.'),
+      { field: 'instead', says: 'Write the words to say instead.' } as const,
     ),
-    Option.flatMap(Option.liftPredicate(saidOf(text, words, asked), Option.isNone), () =>
-      Option.some('Write the note first.'),
-    ),
+    Option.as(Option.liftPredicate(saidOf(text, words, asked), Option.isNone), {
+      field: 'note',
+      says: 'Write the note first.',
+    } as const),
   ]);
 
 /**

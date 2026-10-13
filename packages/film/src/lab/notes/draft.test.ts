@@ -246,19 +246,19 @@ describe('a note on words of a line', () => {
     ).toEqual(Option.some('softer'));
   });
 
-  test('a correction that says no other words asks nothing: no draft, and the composer says why', () => {
+  test('a correction that says no other words asks nothing: no draft, and the composer says why, of the field that says too little', () => {
     for (const replace of ['', '  ', 'ball rises']) {
       const asked = { kind: 'correction' as const, replace };
       expect(draftOf(film.placed, film.fps, at('why'), onWords, asked)).toEqual(Option.none());
       expect(unsaid('why', Option.some(words), asked)).toEqual(
-        Option.some('Write the words to say instead.'),
+        Option.some({ field: 'instead', says: 'Write the words to say instead.' }),
       );
     }
     expect(unsaid('', Option.some(words), NOTE_ASKED)).toEqual(
-      Option.some('Write the note first.'),
+      Option.some({ field: 'note', says: 'Write the note first.' }),
     );
     expect(unsaid('', Option.none(), { kind: 'removal', replace: '' })).toEqual(
-      Option.some('Write the note first.'),
+      Option.some({ field: 'note', says: 'Write the note first.' }),
     );
     expect(unsaid('', Option.some(words), { kind: 'removal', replace: '' })).toEqual(Option.none());
   });

@@ -10,15 +10,16 @@ import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, Portal, Show } from '@solidjs/web';
 import { Array as Arr, Effect, Option } from 'effect';
-import { createEffect, createSignal, onCleanup, untrack } from 'solid-js';
+import { createEffect, createSignal, createUniqueId, onCleanup, untrack } from 'solid-js';
 import { DRAG_PX, Pointer, Surface } from '../../browser/pointer.ts';
 import { quietly } from '../../command/command.ts';
 import type { InkStroke, Note, NoteBox, NoteKind, Point } from '../../core/schema.ts';
 import { focusFor } from '../focus.ts';
 import { useLabPage } from '../panel.tsx';
+import { pressed } from '../pressed.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { type Written, useNotes } from './context.tsx';
-import { filmPixel, unsaid } from './draft.ts';
+import { type Unsaid, filmPixel, unsaid } from './draft.ts';
 
 /** What a note on words can ask of them, as the composer's segmented control names each. */
 const ASKS: ReadonlyArray<{ readonly kind: NoteKind; readonly label: string }> = [
@@ -44,12 +45,14 @@ const ON_WORDS: Readonly<Record<NoteKind, string>> = {
 /**
  * The note being written: where it sits, what it is about beside its frame
  * (its scope chip, whose × writes it about the frame alone), on words what
- * it asks of them (Note, Correct with the words to say instead, Remove), its
- * words, Save and Cancel, and why it did not save; ⌘↵ in its fields saves.
- * A note saved or cancelled leaves it empty; one opened takes the keys in
- * its field (a correction's: the words to say instead, selected to be
- * written over), showing the ring whatever asked, as a click into a text
- * field does (`focusFor`).
+ * it asks of them (Note, Correct with the words to say instead, under their
+ * label, Remove), its words, Save and Cancel, and why it did not save; ⌘↵
+ * in its fields saves. A Save that makes no note marks the field that says
+ * too little (invalid, described by the line saying why) and takes the keys
+ * there, until it is written in. A note saved or cancelled leaves it empty;
+ * one opened takes the keys in its field (a correction's: the words to say
+ * instead, selected to be written over), showing the ring whatever asked,
+ * as a click into a text field does (`focusFor`).
  */
 export const Form = () => {
   const { state, actions } = useNotes();
@@ -57,6 +60,8 @@ export const Form = () => {
   let form = Option.none<HTMLFormElement>();
   let area = Option.none<HTMLTextAreaElement>();
   let instead = Option.none<HTMLInputElement>();
+  // The line that says why Save made no note: what describes the field that said too little.
+  const status = createUniqueId();
   // ⌘↵ saves from the note's fields, as Save does.
   onCleanup(
     meta.hub.commands.register({
@@ -70,12 +75,18 @@ export const Form = () => {
       run: quietly(() => Option.map(form, (el) => el.requestSubmit())),
     }),
   );
-  // Why the last Save made no note: the composer's own words, until it is opened or closed again.
-  const [hint, setHint] = createSignal('', { ownedWrite: true });
+  // Why the last Save made no note, and of which field: until it is opened or closed again, or written in.
+  const [hint, setHint] = createSignal(Option.none<Unsaid>(), { ownedWrite: true });
+  const unhint = () => setHint(Option.none());
+  /** Whether the last Save found `field` saying too little. */
+  const wanting = (field: Unsaid['field']) => Option.exists(hint(), (h) => h.field === field);
+  /** The status line, for a field the last Save found saying too little. */
+  const describedBy = (field: Unsaid['field']) =>
+    Option.getOrUndefined(Option.as(Option.liftPredicate(field, wanting), status));
   createEffect(
     () => [state.composerOpen(), state.composerTyping()] as const,
     ([shown, typing]) => {
-      setHint('');
+      setHint(Option.none());
       Option.map(area, (el) => {
         if (!shown) el.value = '';
       });
@@ -111,9 +122,19 @@ export const Form = () => {
           Option.match(
             unsaid(said.text, state.words(), { kind: state.asked(), replace: said.replace }),
             {
-              onSome: setHint,
+              onSome: (why) => {
+                setHint(Option.some(why));
+                // The keys go to the field that said too little, as a Save that found it wanting asked.
+                Option.map(
+                  Option.orElse(
+                    Option.filter(instead, (field) => why.field === 'instead' && field.isConnected),
+                    () => Option.some<HTMLElement>(el),
+                  ),
+                  (field) => focusFor(field, meta.hub.input()),
+                );
+              },
               onNone: () => {
-                setHint('');
+                setHint(Option.none());
                 actions.save(said);
               },
             },
@@ -158,18 +179,23 @@ export const Form = () => {
               </For>
             </ToggleGroup>
             <Show when={state.asked() === 'correction'}>
-              <input
-                class="lab-instead"
-                type="text"
-                aria-label="Say instead"
-                autocomplete="off"
-                spellcheck={false}
-                ref={(el: HTMLInputElement) => {
-                  // The words as they read, to be rewritten: set once, never under the writer's hand.
-                  el.value = untrack(words).text;
-                  instead = Option.some(el);
-                }}
-              />
+              <label class="lab-instead-field">
+                <span class="lab-field-label">Say instead</span>
+                <input
+                  class="lab-instead"
+                  type="text"
+                  autocomplete="off"
+                  spellcheck={false}
+                  aria-invalid={pressed(wanting('instead'))}
+                  aria-describedby={describedBy('instead')}
+                  onInput={unhint}
+                  ref={(el: HTMLInputElement) => {
+                    // The words as they read, to be rewritten: set once, never under the writer's hand.
+                    el.value = untrack(words).text;
+                    instead = Option.some(el);
+                  }}
+                />
+              </label>
             </Show>
           </>
         )}
@@ -177,6 +203,9 @@ export const Form = () => {
       <textarea
         rows="3"
         aria-label="Note"
+        aria-invalid={pressed(wanting('note'))}
+        aria-describedby={describedBy('note')}
+        onInput={unhint}
         placeholder={Option.match(state.words(), {
           onNone: () => 'What should change on this frame?',
           onSome: () => ON_WORDS[state.asked()],
@@ -195,11 +224,8 @@ export const Form = () => {
         <button type="button" class="sh-btn" data-act="cancel" onClick={actions.cancel}>
           Cancel
         </button>
-        <span class="lab-status" role="status">
-          {Option.getOrElse(
-            Option.liftPredicate(hint(), (h) => h !== ''),
-            () => state.status(),
-          )}
+        <span class="lab-status" role="status" id={status}>
+          {Option.match(hint(), { onNone: () => state.status(), onSome: (h) => h.says })}
         </span>
       </div>
     </form>

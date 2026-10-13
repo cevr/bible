@@ -435,9 +435,21 @@ body.lab .stage {
 .lab-asks {
   justify-self: start;
 }
-/* A correction's words to say instead: one line, the pointer's target tall. */
+/* A correction's words to say instead: its label over its field, one line, the pointer's target tall. */
+.lab-instead-field {
+  display: grid;
+  gap: var(--s-1);
+}
+.lab-field-label {
+  color: var(--text-2);
+  font-size: var(--fs-2);
+}
 .lab-instead {
   min-height: var(--hit);
+}
+/* A field a Save found saying too little: edged in the refused ink, the status line saying why. */
+.lab-compose [aria-invalid='true'] {
+  border-color: var(--state-findings);
 }
 .lab-actions,
 .lab-reply-form {
