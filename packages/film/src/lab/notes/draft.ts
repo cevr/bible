@@ -101,13 +101,13 @@ interface Scoped {
  * What a note asks of the words it is about (`NoteKind`): its kind, and a
  * correction's words to say in their place.
  */
-export interface Asked {
+interface Asked {
   readonly kind: NoteKind;
   readonly replace: string;
 }
 
 /** A note that asks nothing of its words but to be read: a note. */
-export const NOTE_ASKED: Asked = { kind: 'note', replace: '' };
+const NOTE_ASKED: Asked = { kind: 'note', replace: '' };
 
 /**
  * What a note on `words` asking `asked` says when its writer says nothing:
@@ -145,7 +145,7 @@ export const saysOnlyAsked = (
  * Whether `asked` asks something of `words`: a correction only once it says
  * other words than theirs.
  */
-export const asksOf = (asked: Asked, words: NoteWords): boolean =>
+const asksOf = (asked: Asked, words: NoteWords): boolean =>
   asked.kind !== 'correction' ||
   (asked.replace.trim() !== '' && asked.replace.trim() !== words.text);
 

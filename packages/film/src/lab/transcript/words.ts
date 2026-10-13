@@ -15,7 +15,7 @@ import type { CodeRange } from '../../core/schema.ts';
 import { type Row, type SectionRows, type WordAt, rowOf } from './lit.ts';
 
 /** The word a node of the text is in: its section and its index. */
-export const wordOfNode = (node: Option.Option<Node>): Option.Option<WordAt> =>
+const wordOfNode = (node: Option.Option<Node>): Option.Option<WordAt> =>
   Option.flatMap(
     Option.flatMap(
       Option.flatMap(node, (n) =>
@@ -79,7 +79,7 @@ export const wordsReleased =
   };
 
 /** What a view paints over its words, by highlight: the ranges of the one text each covers. */
-export type Painted<N extends HighlightName = HighlightName> = Readonly<
+type Painted<N extends HighlightName = HighlightName> = Readonly<
   Record<N, ReadonlyArray<CodeRange>>
 >;
 

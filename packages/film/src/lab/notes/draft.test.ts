@@ -12,8 +12,6 @@ import { describe, expect, test } from 'effect-bun-test';
 import { NoteDraft } from '../../core/schema.ts';
 import { probeFilm } from '../fixtures/probe-film.ts';
 import {
-  type Asked,
-  NOTE_ASKED,
   NO_SCOPE,
   type Scope,
   boxOf,
@@ -26,6 +24,12 @@ import {
   whereText,
   wordsAt,
 } from './draft.ts';
+
+/** What a note asks of its words, as the composer asks it (`unsaid`'s). */
+type Asked = Parameters<typeof unsaid>[2];
+
+/** A plain note: it asks nothing of its words but to be read. */
+const NOTE_ASKED: Asked = { kind: 'note', replace: '' };
 
 const film = probeFilm();
 

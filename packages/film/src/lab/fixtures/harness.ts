@@ -38,7 +38,7 @@ import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled, served } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
 import type { LabSelection } from '../../command/selection.ts';
-import { type LabRoot, labHref, labPlaceOf } from '../place.ts';
+import { labHref, labPlaceOf } from '../place.ts';
 import type { LabMode } from '../mode.ts';
 import { narrationUrls } from '../../player/narrated.ts';
 import { PROBE, probeFilm } from './probe-film.ts';
@@ -204,7 +204,7 @@ const sourceThree = {
  * picture, naming its cues in backticks as a script's brief does, and its
  * sources; the second beat's picture says nothing of its cues, and cites none.
  */
-export const probeScript = {
+const probeScript = {
   film: PROBE,
   beats: [
     {
@@ -569,7 +569,7 @@ export const PHONE: Viewport = { width: 390, height: 844, coarse: true };
  * panel with the film's tools in it, the Script its reader (which stands
  * only on a staged film).
  */
-export const STAGED: Readonly<Record<LabRoot, string>> = {
+const STAGED: Readonly<Record<ReturnType<typeof labPlaceOf>['root'], string>> = {
   lab: '.lab-panel[data-staged="true"]',
   script: '.lab-script',
 };

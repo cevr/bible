@@ -3,13 +3,13 @@
 // line's words (the selection in it, else all of them) or, from ⌘K, the
 // words selected; none offered while a note is being made.
 
-import { Effect, Option } from 'effect';
+import { Array as Arr, Effect, Option } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import { BY_BUTTON } from '../../command/command.ts';
 import { type Context, contextAt, withSelection } from '../../command/context.ts';
 import { Selection, type WordsSelection } from '../../command/selection.ts';
 import type { NoteKind } from '../../core/schema.ts';
-import { noteCommands, notedAbout } from './commands.ts';
+import { noteCommands } from './commands.ts';
 
 const here = contextAt('lab', '/films/f/script/gift#t=1');
 
@@ -17,6 +17,31 @@ const words = (scene: string, from: number, to: number): WordsSelection =>
   Selection.cases.Words.make({ scene, from, to });
 /** The menu opened on `on` (a word, or a line's words). */
 const onWords = (on: WordsSelection): Context => withSelection(here, [on]);
+
+/** The commands over `selection`, a note being made or not, each note begun written to `log`. */
+const over = (
+  log: Array<readonly [WordsSelection, NoteKind]>,
+  selection: Option.Option<WordsSelection>,
+  composing = false,
+) =>
+  noteCommands({
+    selection: () => selection,
+    composing: () => composing,
+    note: (w, kind) => {
+      log.push([w, kind]);
+    },
+  });
+
+/** The words Note these words, run from `ctx`, begins a note on, the selection being `selection`; none when it is not offered. */
+const notedAbout = (
+  ctx: Context,
+  selection: Option.Option<WordsSelection>,
+): Option.Option<WordsSelection> => {
+  const log: Array<readonly [WordsSelection, NoteKind]> = [];
+  for (const c of over(log, selection).filter((c) => c.id === 'script.note' && c.when(ctx)))
+    Effect.runSync(c.run(ctx, { ...BY_BUTTON, input: 'pointer' }));
+  return Option.map(Arr.head(log), ([w]) => w);
+};
 
 describe('the words a note is about', () => {
   const selection = Option.some(words('gift', 2, 4));
@@ -47,20 +72,6 @@ describe('the words a note is about', () => {
 });
 
 describe('Note, Correct and Remove these words', () => {
-  /** The commands over `selection`, a note being made or not, each note begun written to `log`. */
-  const over = (
-    log: Array<readonly [WordsSelection, NoteKind]>,
-    selection: Option.Option<WordsSelection>,
-    composing = false,
-  ) =>
-    noteCommands({
-      selection: () => selection,
-      composing: () => composing,
-      note: (w, kind) => {
-        log.push([w, kind]);
-      },
-    });
-
   test('each begins a note on the words it is about, asking its own of them', () => {
     const log: Array<readonly [WordsSelection, NoteKind]> = [];
     const commands = over(log, Option.some(words('gift', 2, 4)));

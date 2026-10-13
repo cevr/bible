@@ -1235,7 +1235,7 @@ interface LabPicked {
 const NOTHING_SCRIPTED = { cue: '', mark: '', words: '', note: '' };
 
 /** What the Script page has selected in a beat: a cue, a mark or words (`<a>-<b>`), and the note. */
-export interface ScriptPicked {
+interface ScriptPicked {
   readonly cue?: string;
   readonly mark?: string;
   readonly words?: string;

@@ -40,7 +40,7 @@ export const scriptCommands = (verbs: ScriptVerbs): ReadonlyArray<Command> => [
  * its words) about the selection in it, else all its words; the page (⌘K)
  * about the selection.
  */
-export const notedAbout = (
+const notedAbout = (
   ctx: Context,
   selection: Option.Option<WordsSelection>,
 ): Option.Option<WordsSelection> =>

@@ -4,7 +4,7 @@
 
 import { Effect, Option, type Scope, Struct } from 'effect';
 import { Place } from '@bible/url-state';
-import { Places, type ScriptPicked, pageHref } from '../../src/core/api.ts';
+import { Places, pageHref } from '../../src/core/api.ts';
 import type { LabMode } from '../../src/lab/mode.ts';
 import { menuEntry, openCommandMenu, rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
 import {
@@ -468,6 +468,9 @@ const SCRIPT_NOTES: ReadonlyArray<Json> = [
   }),
   listed(4, 'two', 2.4, { text: 'the second scene sits too still' }),
 ];
+
+/** What the Script's link selects in a beat (`pageHref.scriptBeat`'s). */
+type ScriptPicked = NonNullable<Parameters<typeof pageHref.scriptBeat>[2]>;
 
 /** The probe film's Script at beat one with `picked` selected, over its notes (`SCRIPT_NOTES`). */
 export const scriptAt = (picked: ScriptPicked) => (viewport: Viewport) =>

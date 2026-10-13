@@ -21,7 +21,7 @@ import { type Written, useNotes } from './context.tsx';
 import { filmPixel, unsaid } from './draft.ts';
 
 /** What a note on words can ask of them, as the composer's segmented control names each. */
-export const ASKS: ReadonlyArray<{ readonly kind: NoteKind; readonly label: string }> = [
+const ASKS: ReadonlyArray<{ readonly kind: NoteKind; readonly label: string }> = [
   { kind: 'note', label: 'Note' },
   { kind: 'correction', label: 'Correct' },
   { kind: 'removal', label: 'Remove' },

@@ -212,7 +212,7 @@ const askedOf = (note: Note) =>
  * line it is a link in the text; in a beat's head, a target of the
  * pointer's size around its badge (`style.ts`).
  */
-export const Marker = (props: { readonly note: Note }) => {
+const Marker = (props: { readonly note: Note }) => {
   const { state: lab, meta } = useLab();
   const verbs = useScriptNotes();
   return (

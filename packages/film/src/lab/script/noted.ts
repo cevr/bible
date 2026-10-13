@@ -31,7 +31,7 @@ const reading = (rows: ReadonlyArray<Row>) => rows.map((r) => r.text).join(' ');
  * while they read as they did, else the first run of as many words that
  * does (a word added or cut before them moved them), else none.
  */
-export const placedWords = (line: SectionRows, words: NoteWords): ReadonlyArray<Row> => {
+const placedWords = (line: SectionRows, words: NoteWords): ReadonlyArray<Row> => {
   const count = words.to - words.from + 1;
   const at = line.rows.filter((r) => r.index >= words.from && r.index <= words.to);
   if (at.length === count && reading(at) === words.text) return at;
@@ -84,7 +84,7 @@ const NOTED_PAINT = {
 } as const satisfies Record<NoteKind, HighlightName>;
 
 /** A highlight the notes on words paint. */
-export type NotedPaint = (typeof NOTED_PAINT)[NoteKind];
+type NotedPaint = (typeof NOTED_PAINT)[NoteKind];
 
 /** The ranges of the one text the words of `noted` cover, by the highlight each is painted with. */
 export const notedPainted = (

@@ -9,7 +9,7 @@ import { Option } from 'effect';
 import { addNote, emptyNotes, resolveNote } from '../../core/notes.ts';
 import type { NoteDraft, NoteWords } from '../../core/schema.ts';
 import type { Row, SectionRows } from '../transcript/lit.ts';
-import { notedIn, notedOn, notedPainted, placedWords } from './noted.ts';
+import { notedIn, notedOn, notedPainted } from './noted.ts';
 
 /** Beat `id`'s line saying `said`, each word's offset in the one text running on from 0. */
 const lineOf = (id: string, said: string): SectionRows => {
@@ -32,21 +32,33 @@ const words = (from: number, to: number, text: string): NoteWords => ({
 });
 const indices = (rows: ReadonlyArray<Row>) => rows.map((r) => r.index);
 
+/** The words of `on` the reader shows a note on `noted` on, by their indices. */
+const placed = (on: SectionRows, noted: NoteWords): ReadonlyArray<number> =>
+  notedOn(
+    addNote(
+      emptyNotes('f'),
+      { scene: 'gift', T: 1, frame: 30, text: 'see', words: noted },
+      '2026-10-13T00:00:00Z',
+    ).notes,
+    on,
+    Option.none(),
+  ).flatMap((n) => indices(n.rows));
+
 describe('where a note on words stands in its line', () => {
   test('on its words, while they read as they did', () => {
-    expect(indices(placedWords(line, words(1, 1, 'grace')))).toEqual([1]);
-    expect(indices(placedWords(line, words(3, 4, 'are saved')))).toEqual([3, 4]);
+    expect(placed(line, words(1, 1, 'grace'))).toEqual([1]);
+    expect(placed(line, words(3, 4, 'are saved'))).toEqual([3, 4]);
   });
 
   test('on the first run that reads as they did, once a word before them moved them', () => {
     const moved = lineOf('gift', 'By His grace you are saved through faith');
-    expect(indices(placedWords(moved, words(1, 1, 'grace')))).toEqual([2]);
-    expect(indices(placedWords(moved, words(3, 4, 'are saved')))).toEqual([4, 5]);
+    expect(placed(moved, words(1, 1, 'grace'))).toEqual([2]);
+    expect(placed(moved, words(3, 4, 'are saved'))).toEqual([4, 5]);
   });
 
   test('nowhere, once the line no longer says them', () => {
-    expect(placedWords(line, words(1, 1, 'mercy'))).toEqual([]);
-    expect(placedWords(line, words(6, 8, 'faith and hope'))).toEqual([]);
+    expect(placed(line, words(1, 1, 'mercy'))).toEqual([]);
+    expect(placed(line, words(6, 8, 'faith and hope'))).toEqual([]);
   });
 });
 

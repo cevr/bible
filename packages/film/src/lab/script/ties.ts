@@ -175,7 +175,7 @@ export const tiesOfCue = (ties: ReadonlyArray<Tie>, name: string): ReadonlyArray
   );
 
 /** A line's marks as the reader sets them: each before the word it stands before, and those past the last word at the end. */
-export interface LineMarks {
+interface LineMarks {
   /** The marks before word `index`, in the line's order. */
   readonly at: (index: number) => ReadonlyArray<string>;
   /** The marks past the line's last word. */

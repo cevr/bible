@@ -34,7 +34,7 @@ import { type CodeOpen, codeOpenOf, codeText } from './source/open.ts';
 import { type TextOpen, textOpenOf, textText } from './transcript/open.ts';
 
 /** Which of the Lab's pages a place is on: the Lab (`/films/<film>/lab…`) or the Script (`/films/<film>/script…`). */
-export type LabRoot = 'lab' | 'script';
+type LabRoot = 'lab' | 'script';
 
 /** What the lab's URL holds beside its film. */
 interface LabPlace {

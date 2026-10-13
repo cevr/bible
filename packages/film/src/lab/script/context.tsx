@@ -65,7 +65,7 @@ export interface BeatRow {
 }
 
 /** What the selection in a beat ties to: what it is, as the reader names it, the cues tied to it, and the cue selected among them. */
-export interface Tied {
+interface Tied {
   readonly beat: string;
   /** The selection, named: `{grace}`, `“By grace”`, `cue lift`. */
   readonly what: string;
