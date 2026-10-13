@@ -232,15 +232,19 @@ const Marker = (props: { readonly note: Note }) => {
   );
 };
 
-/** After the words a note is on: a correction's words to say instead, then its marker. */
+/**
+ * After the words a note is on: a correction's words to say instead, then
+ * its marker, held to them by a space no line breaks at.
+ */
 export const NotedAfter = (props: { readonly noted: Noted }) => (
   <>
     <Show when={props.noted.kind === 'correction' && props.noted.rows.length > 0}>
       <ins class="lab-script-instead">
         {Option.getOrElse(Option.fromUndefinedOr(props.noted.note.replace), () => '')}
-      </ins>{' '}
+      </ins>
+      {' '}
     </Show>
-    <Marker note={props.noted.note} />{' '}
+    <Marker note={props.noted.note} />
   </>
 );
 

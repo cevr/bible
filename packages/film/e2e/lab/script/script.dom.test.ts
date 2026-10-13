@@ -66,6 +66,10 @@ const word = (beat: string, index: number) => `[data-scene="${beat}"] [data-inde
 /** What the page's URL selects: `key`'s value in its query, '' for none. */
 const selects = (key: string) => `(new URLSearchParams(location.search).get('${key}') ?? '')`;
 
+/** An expression run in the page: whether `selector` matches, each after a space no line breaks at (so none starts a line). */
+const heldBefore = (selector: string) =>
+  `((all) => all.length > 0 && all.every((el) => el.previousSibling !== null && el.previousSibling.nodeType === Node.TEXT_NODE && el.previousSibling.textContent.endsWith('\\u00a0')))([...document.querySelectorAll('${selector}')])`;
+
 /** The lab's handler, as `film lab` serves it: what its notes routes answer. */
 type Lab = Effect.Success<ReturnType<typeof labHandler>>;
 
@@ -223,6 +227,10 @@ describe('the Script', () => {
           yield* until(page, `${selects('note')} === 'n1'`);
           yield* textIs(page, '[data-scene="one"] .lab-script-instead', 'climbs slowly,');
           yield* waitFor(page, '[data-scene="one"] .lab-script-noted[data-note="n1"]');
+          // The words instead and the marker are held to the words before them by spaces no line
+          // breaks at, so neither starts a line away from the words the note is on.
+          yield* evaluates(page, heldBefore('[data-scene="one"] .lab-script-instead'), true);
+          yield* evaluates(page, heldBefore('[data-scene="one"] .lab-script-noted'), true);
           const body = Option.getOrThrow(Option.flatten(Option.fromUndefinedOr(posted(asked)[0])));
           const post = yield* Schema.decodeUnknownEffect(NotePost)(body);
           expect(asks(post)).toEqual(CORRECTED);

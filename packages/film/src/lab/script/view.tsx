@@ -166,13 +166,27 @@ const Line = (props: { readonly line: SectionRows }) => {
               data-from={row.from}
             >
               {row.text}
-            </span>{' '}
-            <For each={noted().at(row.index)}>{(n) => <NotedAfter noted={n} />}</For>
+            </span>
+            {/* A note's marker is held to its last word by a space no line breaks at, so it never starts a line of its own. */}
+            <For each={noted().at(row.index)}>
+              {(n) => (
+                <>
+                  {' '}
+                  <NotedAfter noted={n} />
+                </>
+              )}
+            </For>{' '}
           </>
         )}
       </For>
       <For each={marks.end}>{(name) => <MarkChip beat={line.id} name={name} />}</For>
-      <For each={noted().end}>{(n) => <NotedAfter noted={n} />}</For>
+      <For each={noted().end}>
+        {(n) => (
+          <>
+            <NotedAfter noted={n} />{' '}
+          </>
+        )}
+      </For>
     </Target>
   );
 };
