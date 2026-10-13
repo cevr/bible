@@ -16,6 +16,7 @@
 
 import {
   Array as Arr,
+  Cache,
   Config,
   Duration,
   Effect,
@@ -40,7 +41,14 @@ import { CACHE, serveFile } from './review-file.ts';
 import { reviewGroup } from './review-http.ts';
 import type { Review } from './review.ts';
 import type { ContentStore } from './content-store.ts';
-import { FilmFolder, type FilmName, filmNamed, masterFile } from './film-repo.ts';
+import {
+  FilmFolder,
+  type FilmName,
+  Stamped,
+  filmNamed,
+  keptWhenMade,
+  masterFile,
+} from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
 import { readKnob, readSpans } from './scene-source.ts';
 import { SceneHead } from './scene-head.ts';
@@ -354,6 +362,35 @@ const talkGroup = HttpApiBuilder.group(LabHttpApi, 'talk', (handlers) =>
     ),
 );
 
+/** How many films' scripts the lab keeps read: one film, a few stamps of it. */
+const SCRIPTS_KEPT = 8;
+
+/**
+ * The film's script as the Script page reads it beside the staged film:
+ * each beat's picture and sources, read fresh (`FreshFilm.script`) and kept
+ * under the film's source stamp, so a brief fixed while the lab is open is
+ * read once after the change. A failed read is not kept.
+ */
+const scriptGroup = HttpApiBuilder.group(LabHttpApi, 'script', (handlers) =>
+  Effect.gen(function* () {
+    const fresh = yield* FreshFilm;
+    const folder = yield* FilmFolder;
+    const read = yield* Cache.makeWith((at: Stamped) => fresh.script(at.film), {
+      capacity: SCRIPTS_KEPT,
+      timeToLive: keptWhenMade,
+    });
+    return handlers.handle('beats', ({ params }) =>
+      answered(
+        Effect.gen(function* () {
+          const film = yield* filmNamed(params.film);
+          const stamp = yield* folder.stamp(film);
+          return { film, beats: yield* Cache.get(read, new Stamped({ film, stamp })) };
+        }),
+      ),
+    );
+  }),
+);
+
 /** The pages' build: a wait that answers once a source a build read changes, or the page's film is mixed, or at once for a page another server served. */
 const pageGroup = HttpApiBuilder.group(LabHttpApi, 'page', (handlers) =>
   handlers.handle('wait', ({ query }) =>
@@ -453,6 +490,9 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
   allowed: Allowed,
   beside: BesideRoutes = Layer.empty,
 ) {
+  // The script's reads are kept for the server's life: its group is built over the services
+  // the server runs with.
+  const reads = yield* Effect.context<FreshFilm | FilmFolder>();
   const routes = HttpApiBuilder.layer(LabHttpApi).pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -460,6 +500,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         scenesGroup,
         stepsGroup,
         talkGroup,
+        Layer.provide(scriptGroup, Layer.succeedContext(reads)),
         studioGroup,
         reviewGroup,
         choicesGroup,

@@ -32,6 +32,7 @@ import { type Bound, Unfit, boundChange } from '../command/command.ts';
 import {
   LabHttpApi,
   Refusal,
+  type ScriptBeats,
   TalkMarkPost,
   type TalkWords,
   TalkWordsPost,
@@ -218,6 +219,8 @@ export interface LabCalls {
   readonly talkWords: Effect.Effect<TalkWords, LabFailure>;
   /** A write of a talk's `talk.ts`: words struck, played again, or a mark set. */
   readonly writeTalk: (ask: TalkAsk) => Effect.Effect<LabWrite, LabFailure>;
+  /** Each beat's picture and sources, as the film's `script.ts` says them now. */
+  readonly scriptBeats: Effect.Effect<ScriptBeats, LabFailure>;
 }
 
 export class LabApi extends Context.Service<LabApi, LabCalls>()('@bible/film/lab/LabApi') {}
@@ -322,6 +325,7 @@ const makeLabApi = Effect.fn('lab.api.make')(function* (film: string) {
           }),
         ),
       ),
+    scriptBeats: called(client.script.beats({ params: { film } })),
   };
   return api;
 });

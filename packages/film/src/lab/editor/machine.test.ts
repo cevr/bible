@@ -113,6 +113,7 @@ const fakes = (
     step: () => write,
     talkWords: Effect.die('not asked'),
     writeTalk: () => write,
+    scriptBeats: Effect.die('not asked'),
     ...more,
   };
   return { log, layer: Layer.merge(Layer.succeed(Stage, stage), Layer.succeed(LabApi, api)) };

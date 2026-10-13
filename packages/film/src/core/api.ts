@@ -372,6 +372,31 @@ export const TalkMarkPost = Schema.Struct({
 });
 
 /**
+ * A beat of a film's script as the Script page reads it beside the staged
+ * film: what the film plays leaves it out (`scenesOf`), so it comes from the
+ * script as it stands: the picture's brief and the beat's sources.
+ */
+const ScriptBeat = Schema.Struct({
+  id: Schema.String,
+  /** What the picture does, as the script says it; none where it says nothing. */
+  picture: Schema.optionalKey(Schema.String),
+  /** The beat's sources, as the script cites them. */
+  cite: Schema.Array(Schema.String),
+});
+export type ScriptBeat = typeof ScriptBeat.Type;
+
+/**
+ * `GET /api/films/<film>/script`: each beat of the film's `script.ts` in its
+ * order, as the file stands now (`film read script`, run fresh); no beats for
+ * a film that keeps no script.
+ */
+export const ScriptBeats = Schema.Struct({
+  film: Schema.String,
+  beats: Schema.Array(ScriptBeat),
+});
+export type ScriptBeats = typeof ScriptBeats.Type;
+
+/**
  * What the owner says of a variant, a scene's render, an act or the film:
  * approve it as it is now, withdraw every approval of it, or comment on it.
  * A withdraw `given` an approve's op (its `Project.gave.op`) withdraws only
@@ -562,6 +587,15 @@ class TalkGroup extends HttpApiGroup.make('talk').add(
     params: film,
     payload: TalkMarkPost,
     success: LabWrite,
+    error: Refusals,
+  }),
+) {}
+
+/** The film's script as the Script page reads it beside the staged film: each beat's picture and sources. */
+class ScriptGroup extends HttpApiGroup.make('script').add(
+  HttpApiEndpoint.get('beats', `${FILM}/script`, {
+    params: film,
+    success: ScriptBeats,
     error: Refusals,
   }),
 ) {}
@@ -787,6 +821,7 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(ScenesGroup)
   .add(StepsGroup)
   .add(TalkGroup)
+  .add(ScriptGroup)
   .add(StudioGroup)
   .add(ReviewGroup)
   .add(ChoicesGroup)

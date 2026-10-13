@@ -1534,9 +1534,9 @@ in an `<img>` or `<audio>` (`stillUrl`, `attemptUrl`, `reviewFileUrl`,
 `reviewPhoneUrl`, `reviewFrameUrl`, `choiceAloneUrl`, `choiceMixUrl`, from
 `urlBuilder`).
 
-| API          | Served by                 | Groups                                                                                                                                                                                                                 |
-| ------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `LabHttpApi` | `film lab` (`labHandler`) | `notes`, `scenes` (source, head, cue, knob), `steps` (undo, redo, check, steps), `studio`, `review` (index, file, phone, frame, duration, say), `choices`, `project`, `looks` (take), `page` (wait: the build counter) |
+| API          | Served by                 | Groups                                                                                                                                                                                                                                                                       |
+| ------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LabHttpApi` | `film lab` (`labHandler`) | `notes`, `scenes` (source, head, cue, knob), `steps` (undo, redo, check, steps), `talk` (words, cut, restore, mark), `script` (beats), `studio`, `review` (index, file, phone, frame, duration, say), `choices`, `project`, `looks` (take), `page` (wait: the build counter) |
 
 **A HEAD of a GET route** answers as the GET does, with its status and
 headers and no body.
@@ -1628,6 +1628,20 @@ or `comment` once; a comment's text goes after `--`, so one starting with a
 dash is never a flag. Its layer
 joins the `Layer.mergeAll` in `labHandler`, and the page calls
 `client.project.<name>` (`lab/review/options/api.ts`).
+
+### Script
+
+The Script page reads a film's script beside its staged film. What the film
+plays (each beat's line, its words and their times, its marks and cues) is
+the staged film's; what it leaves out (`scenesOf` drops each beat's
+`picture` and `cite`) the page reads from the script as it stands, through a
+fresh process (`film read script <film>`, `FreshFilm.script`) kept under the
+film's source stamp, so a brief fixed while the lab is open is read again
+once.
+
+| Route                          | What it does                                                                                                         |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/script` | `ScriptBeats`: each beat of `script.ts` in order, its `picture` (when it has one) and its `cite`; none for no script |
 
 ### Studio
 

@@ -534,6 +534,7 @@ export const freshFilm = (given: Partial<FreshFilmService>) => {
       keepVoice: unused('options keep-voice'),
       take: unused('options take'),
       reading: unused('read voice'),
+      script: unused('read script'),
       cue: unused('read cue'),
       sites: unused('read sites'),
       remix: unused('mix'),

@@ -4,8 +4,9 @@
 // is sent compressed, a streamed one chunk by chunk. A client that leaves
 // mid-build or mid-render, on the real server, leaves the watches whole and
 // stops the render's reads; one that leaves mid-ask of a film's track
-// leaves its next mix heard. And the lab never imports a film: no module its
-// handler runs reaches a loader.
+// leaves its next mix heard. The Script page's read of a film's script is
+// run fresh once a stamp, and refused for a film the app has not. And the lab
+// never imports a film: no module its handler runs reaches a loader.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
@@ -44,7 +45,7 @@ import {
 } from 'effect/http';
 import { brotliDecompressSync } from 'node:zlib';
 import { parseSync } from 'oxc-parser';
-import { LabHttpApi, Places, Refusal, ToolFailure, labUrls } from '../core/api.ts';
+import { LabHttpApi, Places, Refusal, ScriptBeats, ToolFailure, labUrls } from '../core/api.ts';
 import { routesOf } from '../core/testing.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
@@ -1404,6 +1405,62 @@ describe('a client that goes away', () => {
         const heard = yield* page.wait({ since, server: Option.none(), film: f }, '2 seconds');
         expect(heard.build).toBeGreaterThan(since);
       }).pipe(Effect.scoped, Effect.provide([labLayer(disk, pages), pages, FetchHttpClient.layer]));
+    },
+  );
+});
+
+describe("the Script page's read", () => {
+  const BEATS = [
+    { id: 'cold', cite: [], picture: 'a hand on a `door`' },
+    { id: 'title', cite: ['Romans 1:17'] },
+  ];
+  const SCENES = '/films/f/scenes/index.ts';
+
+  /** The lab over film `f` (its files' mtimes `mtimes`), its `film read script` answering `BEATS`, each run pushed to `runs`. */
+  const scriptLab = (mtimes: ReadonlyMap<string, number>, runs: Array<string>) =>
+    Layer.mergeAll(
+      NotesStore.layer,
+      FilmFolder.layer('/films'),
+      noSource,
+      noStudio,
+      noReview,
+      echoPages,
+      freshFilm({ script: (film) => Effect.sync(() => (runs.push(film), BEATS)) }),
+      HttpPlatform.layer,
+    ).pipe(
+      Layer.provideMerge(ContentStore.layer),
+      Layer.provideMerge([
+        memoryFileSystem(files(), new Set(), mtimes),
+        memoryLocks,
+        Path.layer,
+        ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_LAB: '/lab' })),
+      ]),
+    );
+
+  it.effect(
+    "answers each beat's picture and sources, read fresh again only once a file under the film changed",
+    () => {
+      const mtimes = new Map([[SCENES, 1_000]]);
+      const runs: Array<string> = [];
+      return Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        const read = (film: string) =>
+          Effect.promise(() => lab(get(labUrls.script.beats({ params: { film } })), bound));
+        const first = yield* read('f');
+        const body = yield* Effect.promise(() => first.json());
+        expect(yield* Schema.decodeUnknownEffect(ScriptBeats)(body)).toEqual({
+          film: 'f',
+          beats: BEATS,
+        });
+        yield* read('f');
+        expect(runs).toEqual(['f']);
+        mtimes.set(SCENES, 2_000);
+        yield* read('f');
+        expect(runs).toEqual(['f', 'f']);
+        // A film the app has not is refused before anything is read.
+        expect((yield* read('nope')).status).toBe(404);
+        expect(runs).toEqual(['f', 'f']);
+      }).pipe(Effect.scoped, Effect.provide(scriptLab(mtimes, runs)));
     },
   );
 });

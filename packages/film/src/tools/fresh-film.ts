@@ -27,7 +27,7 @@ import {
   Schema,
 } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
-import { ServerFailed } from '../core/api.ts';
+import { type ScriptBeat, ScriptBeats, ServerFailed } from '../core/api.ts';
 import { LONGEST_WAIT } from '../core/wait.ts';
 import { Project } from '../core/catalogue.ts';
 import { ChoicePoint, type ChoiceVerb } from '../core/choice.ts';
@@ -102,6 +102,11 @@ export class VoiceRead extends Schema.TaggedClass<VoiceRead>()('VoiceRead', {
   reading: StudioReading,
 }) {}
 
+/** `film read script`'s answer: each beat's picture and sources, as the Script page reads them. */
+export class ScriptRead extends Schema.TaggedClass<ScriptRead>()('ScriptRead', {
+  beats: ScriptBeats.fields.beats,
+}) {}
+
 /**
  * `film read cue`'s answer: the cue on its scene's clock, or why the scene's
  * timeline does not resolve; neither when the scene or the cue is not there.
@@ -167,6 +172,7 @@ const FreshLine = Schema.Union([
   OptionsTaken,
   ProjectRead,
   VoiceRead,
+  ScriptRead,
   CueRead,
   SitesRead,
   FreshRefusal,
@@ -312,6 +318,8 @@ export interface FreshFilmService {
   ) => Effect.Effect<void, FreshError>;
   /** What the studio reads of the film's script and voice (`film read voice`). */
   readonly reading: (film: FilmName) => Effect.Effect<StudioReading, FreshError>;
+  /** Each beat of the film's script, its picture and sources (`film read script`). */
+  readonly script: (film: FilmName) => Effect.Effect<ReadonlyArray<ScriptBeat>, FreshError>;
   /**
    * `cue` on `scene`'s clock as the film's files now declare it, `spans` in
    * place of the scene's own where given, and `patch` applied to the cue's
@@ -464,6 +472,10 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           return (yield* ask(['read', 'voice', film], READ_LIMIT, VoiceRead)).reading;
         });
 
+        const script = Effect.fn('FreshFilm.script')(function* (film: FilmName) {
+          return (yield* ask(['read', 'script', film], READ_LIMIT, ScriptRead)).beats;
+        });
+
         const cue = Effect.fn('FreshFilm.cue')(function* (
           film: FilmName,
           scene: string,
@@ -539,6 +551,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           keepVoice,
           take,
           reading,
+          script,
           cue,
           sites,
           remix,
