@@ -40,6 +40,7 @@ import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
+import { WORK_ROUTES } from './studio-states.ts';
 import { onChoices } from './toy-choices.ts';
 
 const SLOW = 30_000;
@@ -154,6 +155,12 @@ interface Opened {
    * move the focus there, so a site a command reaches is proved reached, not only listed.
    */
   readonly moves: ReadonlyArray<readonly [command: string, to: RegExp]>;
+  /**
+   * The commands (by id) that must run on this page by both inputs, whose focus move ⌘K's own
+   * closing takes back (a text field's: the follow-up in `rings/state.md`); the cases below
+   * move it by their keys.
+   */
+  readonly runs: ReadonlyArray<string>;
 }
 
 /**
@@ -170,6 +177,8 @@ const everyCommand = (opened: Opened) =>
     const failures: Array<string> = [];
     const ran: Array<string> = [];
     const reached: Array<string> = [];
+    /** Where each of `opened.moves` moved the focus instead, by input. */
+    const went = new Map<string, string>();
     for (const id of ids)
       for (const input of INPUTS) {
         const page = walk.page();
@@ -178,9 +187,14 @@ const everyCommand = (opened: Opened) =>
         if (offered && seen.watching && !seen.leaving) {
           ran.push(`${id} by ${input}`);
           failures.push(...wrong(`${opened.name}: ${id}`, input, seen));
-          for (const [command, to] of opened.moves)
-            if (id.startsWith(command) && seen.moves.some(([element]) => to.test(element)))
+          for (const [command, to] of opened.moves.filter(([c]) => id.startsWith(c))) {
+            if (seen.moves.some(([element]) => to.test(element)))
               reached.push(`${command} by ${input}`);
+            went.set(
+              `${command} by ${input}`,
+              [...seen.moves, ...seen.left].map(([element]) => element).join(' → '),
+            );
+          }
         }
         const away = yield* page.evaluate<boolean>(
           `location.pathname !== '${start}' || window.focusMoves === undefined || window.focusLeaving === true || ${LEFT_OPEN}`,
@@ -191,10 +205,17 @@ const everyCommand = (opened: Opened) =>
     expect(failures).toEqual([]);
     const missing = opened.moves.flatMap(([command, to]) =>
       INPUTS.filter((input) => !reached.includes(`${command} by ${input}`)).map(
-        (input) => `${opened.name}: ${command} by ${input} never moved the focus to ${to}`,
+        (input) =>
+          `${opened.name}: ${command} by ${input} never moved the focus to ${to} (it went: ${went.get(`${command} by ${input}`) ?? 'not run'})`,
       ),
     );
     expect(missing).toEqual([]);
+    const unrun = opened.runs.flatMap((command) =>
+      INPUTS.filter((input) => !ran.includes(`${command} by ${input}`)).map(
+        (input) => `${opened.name}: ${command} by ${input} never ran`,
+      ),
+    );
+    expect(unrun).toEqual([]);
   });
 
 /** One beat to record, with one earlier attempt that can be kept, whose keep mixes: the page reloads. */
@@ -248,34 +269,48 @@ const inRecord = () =>
   openLab(STUDIO_ROUTES, { href: labAt(1), mic: { allowed: true }, mode: 'record' });
 
 /** The pages whose registries the property runs, each at a desk. */
+/** Scenes at a desk, its stills drawn. */
+const onScenes = () =>
+  openPlayer(
+    { href: pageHref.scenes(PROBE), viewport: DESK },
+    '.sc-still[data-drawn="true"] canvas',
+  );
+
+/** A still on Scenes: a click on it selects its scene. */
+const STILL = '.sc-still';
+
+/**
+ * Scenes, its project read (the film's mark in the legend), a scene selected by a click on its
+ * still: the commands about it are offered, a comment among them.
+ */
+const sceneChosen = () =>
+  Effect.tap(
+    openPlayer(
+      { href: pageHref.scenes(PROBE), viewport: DESK },
+      '.sc-legend-item[data-mark="film"]',
+      WORK_ROUTES,
+    ),
+    ({ page }) =>
+      Effect.andThen(page.click(STILL), waitFor(page, `${STILL}[data-selected="true"]`)),
+  );
+
 const PAGES: ReadonlyArray<Opened> = [
-  { name: 'the Lab', open: () => openLab(), moves: [] },
+  { name: 'the Lab', open: () => openLab(), moves: [], runs: [] },
   {
     name: 'the Lab in Note',
     open: () => openLab([], { mode: 'note' }),
-    moves: [['notes.frame', /^textarea/]],
-  },
-  { name: 'Record', open: inRecord, moves: [] },
-  {
-    name: 'Scenes',
-    open: () =>
-      openPlayer(
-        { href: pageHref.scenes(PROBE), viewport: DESK },
-        '.sc-still[data-drawn="true"] canvas',
-      ),
     moves: [],
+    runs: ['notes.frame'],
   },
-  {
-    // A scene selected: the commands about it (Comment on, Open in Lab) are offered.
-    name: 'Scenes, a scene selected',
-    open: () => openPlayer({ href: pageHref.scene(PROBE, 'one'), viewport: DESK }, '.sc-focus'),
-    moves: [['scenes.comment', /^input\.rv-comment-input/]],
-  },
+  { name: 'Record', open: inRecord, moves: [], runs: [] },
+  { name: 'Scenes', open: onScenes, moves: [], runs: [] },
+  { name: 'Scenes, a scene selected', open: sceneChosen, moves: [], runs: ['scenes.comment'] },
   {
     name: 'Play',
     open: () =>
       openPlayer({ href: pageHref.play(PROBE), viewport: DESK }, '.bar [data-act="play"]'),
     moves: [],
+    runs: [],
   },
   {
     // A point selected: its auditions are offered.
@@ -286,6 +321,7 @@ const PAGES: ReadonlyArray<Opened> = [
       ['review.audition-previous', /\.rv-sound/],
       ['go.choice.', /\.lab-inspect|\.rv-/],
     ],
+    runs: [],
   },
 ];
 
@@ -298,7 +334,11 @@ const PAGES: ReadonlyArray<Opened> = [
  */
 const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: string]> = [
   ['notes/section.tsx', 'focusFor(el', "the Lab in Note's notes.frame, a text field"],
-  ['review/options/choice.tsx', 'focusFor(', 'focusPoint, for each of its callers below'],
+  [
+    'review/options/choice.tsx',
+    'focusFor(Option.getOrElse',
+    'focusPoint, for each of its callers below',
+  ],
   ['review/options/context.tsx', 'focusFor(button', 'focusVariant, for the auditions'],
   ['review/options/context.tsx', 'focusVariant(next', "Choices' review.audition-*, from ⌘K"],
   [
@@ -373,6 +413,39 @@ for (const opened of PAGES)
 
 /** How each input asks, as a case's name says it. */
 const ASKED = { key: 'pressed', pointer: 'clicked' } as const;
+
+/** A command whose field ⌘K's closing takes the focus back from, run by its key instead. */
+const BY_THEIR_KEYS = [
+  {
+    command: 'scenes.comment, a scene selected,',
+    open: sceneChosen,
+    key: 'm',
+    field: 'input.rv-comment-input',
+  },
+  {
+    command: 'notes.frame, in Note,',
+    open: () => openLab([], { mode: 'note' }),
+    key: 'n',
+    field: '.lab-compose textarea',
+  },
+] as const;
+
+for (const { command, open, key, field } of BY_THEIR_KEYS)
+  alone(
+    `${command} by its key puts the focus in its field, which rings as a text field does`,
+    Effect.gen(function* () {
+      const { page } = yield* open();
+      const seen = yield* watched(
+        page,
+        Effect.andThen(
+          page.press(key),
+          until(page, `document.activeElement?.matches('${field}') === true`),
+        ),
+      );
+      yield* holds(command, 'key', seen);
+      expect(page.errors).toEqual([]);
+    }),
+  );
 
 /** Fail naming each stop `seen` holds whose ring is not `input`'s. */
 const holds = (path: string, input: Input, seen: Seen) =>
