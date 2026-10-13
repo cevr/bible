@@ -381,15 +381,24 @@ const pinPackages = (path: Path.Path): BunPlugin => ({
  * of `swaps` read as its text there, and every package it imports pinned to
  * the file the source resolves it to (`pinPackages`), so the output runs the
  * same engine and three as this process wherever it is put: the output, or
- * why not. A build that reads none of `swaps` cannot draw them changed, and
+ * why not. The files it imports by path (`with { type: 'file' }`, a rig's
+ * `.riv`) are named under `into`, the absolute directory the output is
+ * written to, so each path reads from any directory, as the module as written
+ * gives it. A build that reads none of `swaps` cannot draw them changed, and
  * is refused.
  */
-export const bunModule = (path: Path.Path, file: string, swaps: ReadonlyMap<string, string>) =>
+export const bunModule = (
+  path: Path.Path,
+  file: string,
+  swaps: ReadonlyMap<string, string>,
+  into: string,
+) =>
   Effect.gen(function* () {
     const read = new Set<string>();
     const built = yield* bunBuild(path, {
       entrypoints: [file],
       target: 'bun',
+      publicPath: `${into}${path.sep}`,
       plugins: [pinPackages(path), swapPlugin(swaps, read)],
     });
     const unread = [...swaps.keys()].filter((swapped) => !read.has(swapped));

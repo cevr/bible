@@ -14,8 +14,10 @@ import { bunModule } from './lab-page.ts';
  * none; for a wedge, built with each of `swaps` read as its text and its
  * packages pinned to the files the film resolves them to (`bunModule`), so
  * it runs this process's engine wherever it is written: into a temporary
- * directory, imported, and the directory removed when the scope closes. A
- * build that fails, or reads none of `swaps`, is `PagesBroken`.
+ * directory (the files it imports by path named there, absolute, as the
+ * module as written names them), imported, and the directory removed when the
+ * scope closes. A build that fails, or reads none of `swaps`, is
+ * `PagesBroken`.
  */
 export const wedgedModule = Effect.fn('wedge.module')(function* (
   file: string,
@@ -29,12 +31,12 @@ export const wedgedModule = Effect.fn('wedge.module')(function* (
     });
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const outputs = yield* bunModule(path, file, swaps).pipe(
-    Effect.mapError((failed) => broken(failed.reason)),
-  );
   const into = yield* fs
     .makeTempDirectoryScoped({ prefix: 'film-wedge-' })
     .pipe(Effect.mapError((error) => broken(error.message)));
+  const outputs = yield* bunModule(path, file, swaps, into).pipe(
+    Effect.mapError((failed) => broken(failed.reason)),
+  );
   yield* Effect.forEach(outputs, (out) => fs.writeFile(path.join(into, out.path), out.bytes)).pipe(
     Effect.mapError((error) => broken(error.message)),
   );
