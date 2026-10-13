@@ -92,11 +92,13 @@ export const phoneFit = (layer?: string) => `(() => {
     return s.position === 'sticky' && (s.top !== 'auto' || s.bottom !== 'auto') && !inScroller(el);
   };
   // A frame that holds pieces in the window (a sheet's overlay, its scroll container and its
-  // stage) draws nothing and takes no pointer: its bar is what it holds (a sheet lowered to a
-  // peek holds the peek's rows), not itself.
-  const frame = (el) => {
+  // stage) draws nothing, and takes no pointer, or takes it only inside a clip ('clipped': the
+  // container of a sheet that is not modal, clipped to its panel's box, and the stage in it):
+  // its bar is what it holds (a sheet lowered to a peek holds the peek's rows), not itself.
+  const clips = (el) => getComputedStyle(el).clipPath !== 'none';
+  const frame = (el, clipped) => {
     const s = getComputedStyle(el);
-    return s.pointerEvents === 'none' && s.backgroundColor === 'rgba(0, 0, 0, 0)' && s.borderTopStyle === 'none' && s.boxShadow === 'none';
+    return (s.pointerEvents === 'none' || clipped || clips(el)) && s.backgroundColor === 'rgba(0, 0, 0, 0)' && s.borderTopStyle === 'none' && s.boxShadow === 'none';
   };
   const barsNow = () => {
     const rows = [];
@@ -109,10 +111,11 @@ export const phoneFit = (layer?: string) => `(() => {
       if (bottom - top > 2 && r.width > 2) rows.push({ name: el.className || el.tagName, top, bottom });
     };
     // What a frame holds, down through the frames in it; what stays on its own is a bar of its own.
-    const hold = (el) => {
+    const hold = (el, clipped) => {
+      const inClip = clipped || clips(el);
       for (const held of el.children) {
         if (stays(held) || !held.checkVisibility()) continue;
-        if (frame(held)) hold(held);
+        if (frame(held, inClip)) hold(held, inClip);
         else row(held);
       }
     };
@@ -120,7 +123,7 @@ export const phoneFit = (layer?: string) => `(() => {
       // The open layer, and the frame that holds it in the window (a sheet's viewport), are no bar.
       const layered = LAYER !== '' && (el.closest(LAYER) !== null || el.querySelector(LAYER) !== null);
       if (!stays(el) || !el.checkVisibility() || layered) continue;
-      if (frame(el)) hold(el);
+      if (frame(el, false)) hold(el, false);
       else row(el);
     }
     rows.sort((a, b) => a.top - b.top);
