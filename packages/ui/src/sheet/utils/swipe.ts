@@ -231,6 +231,28 @@ export function restAt(scroller: HTMLElement, config: SwipeConfig): Rest {
   return { axis: config.axis, target };
 }
 
+/**
+ * Whether the sheet in `scroller` stands where it rests open (`restAt`), or at one of its other
+ * snap points, all of it showing among them: where the user may leave it, and the browser's
+ * snapping keeps it.
+ */
+export function atARest(scroller: HTMLElement, config: SwipeConfig): boolean {
+  const rest = restAt(scroller, config);
+  if (
+    reached(scroller, rest.axis, rest.target) ||
+    reached(scroller, config.axis, (config.enteredScroll / 100) * viewportTravel(config))
+  ) {
+    return true;
+  }
+  const align = config.after ? 'start' : 'end';
+  return [...scroller.querySelectorAll<HTMLElement>('[data-sheet-detent]')].some(
+    (marker) =>
+      // Its own markers only: a sheet nested in its content has markers of its own.
+      marker.closest('[data-sheet-scroll]') === scroller &&
+      reached(scroller, config.axis, detentScroll(scroller, marker, config.axis, align)),
+  );
+}
+
 const SETTLE_QUIET_MS = 150;
 /**
  * How long, in frames and in time (both), a scroll that has moved stands still

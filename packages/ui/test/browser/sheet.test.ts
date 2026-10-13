@@ -492,7 +492,9 @@ describe('its layout changing under it (hidden with what holds it, a window resi
     );
   });
 
-  it('a window resized under a finger dragging it down leaves it where the finger has it, and the swipe goes on', async () => {
+  // Owner-visible since T1: a layout that moves during a gesture makes it no swipe. The sheet stays
+  // where the finger has it while the finger is down, and rests once it lifts.
+  it('a window resized under a finger dragging it down leaves it where the finger has it, and once let go it rests, open', async () => {
     const page = await h.open('sheet', {
       touch: true,
       viewport: { width: 800, height: 600 },
@@ -527,12 +529,19 @@ describe('its layout changing under it (hidden with what holds it, a window resi
     const held = (await box(page, '#panel')).y;
     await moves([7, 8, 9, 10, 11, 12]);
     await touch('touchEnd', 13, from + 240);
-    await see(page.locator('#popup'), 'swiped away').toHaveCount(0);
-    // Still dragged down as far (the window's 40 px more below it): not put back at rest.
+    // Still dragged down as far while the finger was down (the window's 40 px more below it): not
+    // put back at rest under it. Let go, it rests in the taller window, and asks nothing.
+    await see
+      .poll(() =>
+        page.evaluate(() =>
+          Math.round(innerHeight - document.getElementById('panel')!.getBoundingClientRect().top),
+        ),
+      )
+      .toBe(300);
     expect([dragged - rest.y > 60, held - rest.y > 60, await opens(page)]).toEqual([
       true,
       true,
-      ['open false swipe'],
+      [],
     ]);
   });
 
@@ -2450,7 +2459,15 @@ async function runModel(run: ModelRun): Promise<ModelResult> {
         const before = held;
         held = null;
         did.push('up');
+        const logged = (await logOf(page)).length;
         await hand.up();
+        await framesOf(page, 2);
+        // A finger that moved nothing is a tap: on the panel's Close, it closes the sheet, as the
+        // user asked (no swipe), and that close is marked as Escape's is.
+        if ((await logOf(page)).slice(logged).includes('open false close-press')) {
+          did.push('(a tap on Close)');
+          await markModel(page, 'close');
+        }
         await movedNothing('finger', before);
         return;
       }

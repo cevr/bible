@@ -8,8 +8,8 @@
 // sheet rests for the layout it has now, whatever changed it (a window resized
 // past a breakpoint turns it to another edge), and one scrolling in goes on to
 // that rest; a swipe is the user's gesture that carried it out of view, never
-// a scroll a layout made; a dismissal by swipe its owner cancels scrolls the
-// sheet back in.
+// a scroll a layout made, nor one a layout changed under; a dismissal by swipe
+// its owner cancels scrolls the sheet back in.
 //
 // The container of a sheet's backdrop and popup, and the owner of its motion.
 // Opening scrolls the sheet in (smoothly; to its first snap point when it has
@@ -17,15 +17,24 @@
 // unmounts once that scroll settles. While the sheet scrolls in, focus stays
 // where it was and the page is not yet hidden (a screen reader's cursor moving
 // in would scroll, and stop the scroll on iOS). An IntersectionObserver
-// watches the content: all of it showing is `expanded`. A gesture of the
-// user's on the sheet (a finger's drag that scrolls it, a wheel or a key that
-// can) that carries it out of view asks to close with the reason `swipe`: at
-// once with no finger on it (its snap may bring it back), or as the finger
-// lifts, or once its momentum and snap run out. An input that moves nothing is
-// no gesture. A sheet carried out of view by anything else (a layout that
-// clamped its scroll, a script) rests again once that scroll is over and no
-// input of the user's turned out to be behind it. Hidden with what holds it, it is
-// not gone: it rests again once laid out.
+// watches the content: all of it showing is `expanded`.
+//
+// Each scroll of its container is judged by its evidence, one classifier for
+// all: a layout's when its layout moved in that frame (the window or its
+// visual viewport resized, the container or the panel resized or laid out
+// again, the panel moved in it); the user's finger's when a finger of theirs
+// is down on it and the scroll goes the finger's way and about as far; a
+// wheel's or a key's when it goes their way soon after them; the gesture's
+// under way once one has started; otherwise the sheet's own while it scrolls
+// in, and a layout's once it has. A layout's scroll rests the sheet again, at
+// once (or by sending its entrance on), and while the user's hand has it, as
+// that hand lets go. A gesture of the user's that carried the sheet out of view
+// asks to close with the reason `swipe`, read from the panel's box as it ends
+// (the last finger lifts, the momentum and the snap run out) or at once with no
+// finger on it (its snap may bring it back), and only when no layout moved
+// during it: one that did rests instead. An input that moves nothing is no
+// gesture. Hidden with what holds it, it is not gone: it rests again once laid
+// out.
 //
 // It sets `--visual-viewport-width` and `--visual-viewport-height` (the
 // visual viewport's size, which a software keyboard shrinks), and from them
@@ -56,6 +65,7 @@ import { useSheetRootContext } from '../root/SheetRootContext.ts';
 import { type SheetState, sheetStateAttributesMapping } from '../utils/sheetAttributes.ts';
 import { registerSheet, type SheetStackEntry, sheetStack } from '../utils/stack.ts';
 import {
+  atARest,
   type Axis,
   cssToPx,
   gestureSettled,
@@ -69,7 +79,7 @@ import {
   viewportPadding,
   viewportTravel,
 } from '../utils/swipe.ts';
-import { followTouches } from '../utils/hand.ts';
+import { followWindow } from '../utils/hand.ts';
 import { useViewportSize } from '../utils/viewportSize.ts';
 
 /** What the parts inside the overlay read of the mounted sheet. */
@@ -129,20 +139,47 @@ function scrollToRest(scrollElement: HTMLElement, config: SwipeConfig, smooth: b
 const rootMargin = (config: SwipeConfig) => `0px 0px ${cssToPx(viewportPadding(config))}px 0px`;
 
 /**
- * Resolves with whether any of `content` shows now, as an IntersectionObserver with the sheet's
- * `rootMargin` reports it: its first report is of the layout drawn next.
+ * Whether none of `content` shows now, read from its box as drawn (its transforms with it) against
+ * the window, past its end edge by the sheet's padding there, as the sheet's IntersectionObserver
+ * counts it: read at once, not a frame on.
  */
-const showsNow = (content: Element, rootMargin: string) =>
-  new Promise<boolean>((resolve) => {
-    const once = new IntersectionObserver(
-      (entries) => {
-        once.disconnect();
-        resolve((entries[entries.length - 1]?.intersectionRatio ?? 0) > 0);
-      },
-      { threshold: [0], rootMargin },
-    );
-    once.observe(content);
-  });
+function outNow(content: Element, config: SwipeConfig): boolean {
+  const box = content.getBoundingClientRect();
+  const width = document.documentElement.clientWidth;
+  const height = document.documentElement.clientHeight + cssToPx(viewportPadding(config));
+  return (
+    box.width <= 0 ||
+    box.height <= 0 ||
+    box.right <= 0 ||
+    box.bottom <= 0 ||
+    box.left >= width ||
+    box.top >= height
+  );
+}
+
+/**
+ * The layout the sheet stands in, as the scroll and the rest read it: its container's size and
+ * scroll extent, and where its panel stands in it and how big it is (from layout offsets, which a
+ * swipe's or a stack's transforms leave alone); `none` with no layout. A change of it is a layout
+ * moving under the sheet.
+ */
+function layoutOf(scroller: HTMLElement, panel: HTMLElement | null) {
+  if (!laidOut(scroller)) {
+    return { frame: 'none', panel: 'none' };
+  }
+  let x = 0;
+  let y = 0;
+  let element: HTMLElement | null = panel;
+  while (element && element !== scroller) {
+    x += element.offsetLeft;
+    y += element.offsetTop;
+    element = element.offsetParent as HTMLElement | null;
+  }
+  return {
+    frame: `${scroller.clientWidth}x${scroller.clientHeight}`,
+    panel: `${scroller.scrollWidth}x${scroller.scrollHeight} ${x},${y} ${panel?.offsetWidth}x${panel?.offsetHeight}`,
+  };
+}
 
 /** The scroll each key that scrolls makes along an axis, its sign the way it goes. */
 const KEY_SCROLLS: Readonly<Record<Axis, Readonly<Record<string, number>>>> = {
@@ -154,12 +191,20 @@ const KEY_SCROLLS: Readonly<Record<Axis, Readonly<Record<string, number>>>> = {
 const laidOut = (element: HTMLElement) => element.getClientRects().length > 0;
 
 /**
- * How soon after the user's input a scroll of the sheet's container is the input's: the browser
- * scrolls under a moving finger in the same frame, lets go of a fling within a frame or two, and
- * starts a wheel's or a key's scroll on the next frame. A scroll under a finger that stands
- * still, or long after an input, is a layout's.
+ * How soon after a wheel, a scroll key or a finger's lift a scroll of the sheet's container is the
+ * input's: the browser starts a wheel's or a key's scroll on the next frame, and lets go of a
+ * fling within a frame or two. Long after an input, a scroll is a layout's.
  */
 const INPUT_SCROLL_MS = 100;
+
+/**
+ * How far a scroll under a finger may run past the finger's own travel since the last scroll and
+ * still be the finger's: the browser scrolls on the compositor, ahead of the moves the page hears
+ * (measured in Chromium: up to about 82 px, a step and a third, on a fling of 65 px steps; within
+ * 15 px on a slow drag, its touch slop with it), so the slack is 32 px or two of the finger's
+ * largest steps, whichever is more.
+ */
+const fingerSlack = (largestStep: number) => Math.max(32, 2 * largestStep);
 
 /**
  * Whether the browser is desktop WebKit, which snaps a wheel's scroll back to the open snap at
@@ -259,23 +304,69 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
   // never one on the page. While any is down, where the sheet stands is the user's.
   const fingers = new Map<number, number>();
   // The user's gesture on the sheet under way, by what made it (`finger` once its container has
-  // scrolled under a moving finger, `other` for a wheel or a key that can scroll it): from an
-  // input of theirs that scrolls the sheet until the scroll it set off, its momentum and its snap
-  // with it, has ended and been looked at (`seeOut`). Only such a scroll swipes it away. An input
-  // that cannot move the sheet (toward the end it stands at, a still finger, a drag a list in it
-  // takes) is no gesture.
-  let gesture: 'finger' | 'other' | null = null;
-  // Counts the gesture's inputs: a look at its end is the latest input's, or nobody's.
-  let gestureInputs = 0;
+  // scrolled under a moving finger, `other` for a wheel, a key, or a fling let go of), and the
+  // layout epoch it began in: from an input of theirs that scrolls the sheet until the scroll it
+  // set off, its momentum and its snap with it, has ended and been looked at (`seeOut`). Only
+  // such a scroll swipes it away, and only when no layout moved during it. An input that cannot
+  // move the sheet (toward the end it stands at, a still finger, a drag a list in it takes) is
+  // no gesture.
+  let gesture: { readonly by: 'finger' | 'other'; readonly epoch: number } | null = null;
+  // Counts the looks asked for: a look is the latest one's, or nobody's.
+  let looks = 0;
+  // Counts the layouts the sheet has stood in: each window or visual viewport resize, each change
+  // of its container's or its panel's layout (`layoutOf`), each change of its swipe direction.
+  let epoch = 0;
+  // Whether a layout moved in the frame running now: the browser clamps or snaps a container's
+  // scroll for a layout in the frame it lays it out, or the next, and any scroll then is the
+  // layout's, under a moving finger too. Cleared by the next animation frame.
+  let fresh = false;
+  // The layout last read (`layoutOf`).
+  let layout = { frame: 'none', panel: 'none' };
+  // Whether a layout moved the sheet while the user's hand had it: it rests once the hand lets go.
+  let movedByLayout = false;
+  // The rest the sheet was last put at, at once, until its scroll there is heard: its own.
+  let restedAt: Rest | null = null;
 
   /** The user's gesture becomes `to`; a finger's swipe starting or ending is told to the popup. */
-  const setGesture = (to: 'finger' | 'other' | null) => {
+  const setGesture = (to: typeof gesture) => {
     gesture = to;
-    setFingerSwipes(to === 'finger');
+    setFingerSwipes(to?.by === 'finger');
   };
+
+  /** Whether a layout moved since `of` began: it is no swipe then, wherever it leaves the sheet. */
+  const crossed = (of: NonNullable<typeof gesture>) => of.epoch !== epoch || movedByLayout;
 
   /** Whether the user's hand has the sheet: a finger of theirs on it, or their gesture under way. */
   const handHas = () => fingers.size > 0 || gesture !== null;
+
+  /** Whether the sheet is scrolling in on its own, not taken over by the user. */
+  const selfEntering = () => entrance !== null && !entrance.taken;
+
+  /** A layout moved under the sheet: a new epoch, and this frame's scrolls are the layout's. */
+  const layoutMoved = () => {
+    epoch += 1;
+    if (!fresh) {
+      fresh = true;
+      requestAnimationFrame(() => {
+        fresh = false;
+      });
+    }
+  };
+
+  /**
+   * Reads the layout the sheet stands in; a change is a layout moved (`layoutMoved`). Answers
+   * whether it changed, and whether its container's own box did (laid out again, resized).
+   */
+  const checkLayout = (scrollElement: HTMLElement) => {
+    const now = layoutOf(scrollElement, untrack(store.popupElement));
+    const framed = now.frame !== layout.frame;
+    const moved = framed || now.panel !== layout.panel;
+    layout = now;
+    if (moved) {
+      layoutMoved();
+    }
+    return { moved, framed };
+  };
 
   /** Sends the entrance `run` on, smoothly, to where the sheet rests for the layout it has now. */
   const aim = (scrollElement: HTMLElement, run: Entrance) => {
@@ -283,118 +374,168 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
   };
 
   /**
-   * Puts a sheet that has entered where it rests for the layout it has now, at once, unless a
-   * finger of the user's has it. Called as the layout changes under it: the container laid out
-   * again or resized (the window), the swipe direction changed (the owner turned the sheet to
-   * another edge). A sheet at rest whose panel alone moves needs nothing: the browser keeps a
-   * container at rest snapped to the snap point it rests at. One still scrolling in looks each
-   * frame for itself (see the entrance).
+   * Puts the sheet where it rests for the layout it has now, at once (that scroll is its own),
+   * unless it stands at a rest already: there, or at another of its snap points (`atARest`).
    */
-  const settle = (scrollElement: HTMLElement) => {
-    if (fingers.size > 0) {
-      // The layout moved under the hand: where it leaves the sheet now is the layout's doing,
-      // not a swipe of the user's, until they move it again.
-      setGesture(null);
+  const restNow = (scrollElement: HTMLElement) => {
+    if (!atARest(scrollElement, untrack(root.config))) {
+      restedAt = scrollToRest(scrollElement, untrack(root.config), false);
+    }
+  };
+
+  /**
+   * Rests the sheet again after a layout moved it, or changed under it: a scroll that was not the
+   * user's (`scrolled`, rested once it is over: a script's may run on), or a change of its
+   * container's own box (laid out again, resized), or of its swipe direction (rested at once).
+   * Scrolling in on its own, its entrance is sent on to the rest it has now. While the user's
+   * hand has it, it is left to the hand, marked moved by a layout: it rests as the hand lets go,
+   * never swiped away.
+   */
+  const restAfterLayout = (scrollElement: HTMLElement, scrolled: boolean) => {
+    if (!untrack(store.open) || swipeAsked || !laidOut(scrollElement)) {
       return;
     }
-    if (untrack(store.open) && untrack(entered) && laidOut(scrollElement)) {
-      scrollToRest(scrollElement, untrack(root.config), false);
+    if (handHas()) {
+      movedByLayout = true;
+      return;
+    }
+    if (entrance && !entrance.taken) {
+      aim(scrollElement, entrance);
+      return;
+    }
+    if (scrolled) {
+      movedByLayout = true;
+      seeOut(scrollElement, SCROLL_OVER_MS);
+    } else if (untrack(entered) || entrance) {
+      restNow(scrollElement);
     }
   };
 
   /**
    * Looks where the sheet was left once the scroll that moved it has ended (a finger down, then
-   * or as the look is taken, holds it until the finger lifts). Out of view, a gesture of the
-   * user's swiped it away; with none (a hand that only held it while a layout carried it out, or
-   * no hand at all) it rests again. The look is the latest input's; a later one starts it over.
-   * `idleMs` is how long a scroll already over is waited on: the user's input behind a scroll the
-   * browser ran ahead of the page (a finger's fling, the page busy) reaches the page by then, and
-   * makes it theirs. A wheel's gesture in desktop WebKit that leaves the sheet in view `lingers`
-   * that long too: a scroll the browser starts by then is still the gesture's (it snaps a
-   * wheel's scroll back at once, then about 90 ms later on to the snap the wheel went toward),
-   * and is looked at once it ends.
+   * or as the look is taken, holds it until the finger lifts), from its panel's box then. Out of
+   * view, a gesture of the user's that no layout crossed swiped it away. Otherwise, moved by a
+   * layout, crossed by one, or out of view, it rests again; a gesture's that left it in view
+   * stays where the gesture left it (a snap point of the user's). The look is the latest one's;
+   * a later one starts it over. `idleMs` is how long a scroll already over is waited on: the
+   * user's input behind a scroll the browser ran ahead of the page (a finger's fling, the page
+   * busy) reaches the page by then, and makes it theirs. A wheel's gesture in desktop WebKit that
+   * leaves the sheet in view `lingers` that long too: a scroll the browser starts by then is
+   * still the gesture's (it snaps a wheel's scroll back at once, then about 90 ms later on to
+   * the snap the wheel went toward), and is looked at once it ends.
    */
   const seeOut = (scrollElement: HTMLElement, idleMs?: number, lingers = false) => {
-    gestureInputs += 1;
-    const input = gestureInputs;
-    const latest = () => input === gestureInputs;
-    void gestureSettled(scrollElement, idleMs)
-      .then(() => {
-        if (!latest() || fingers.size > 0) {
-          return null;
-        }
-        const content = untrack(store.popupElement);
-        if (!content || !laidOut(scrollElement)) {
-          // Not laid out (hidden with what holds it): nothing to look at, and no swipe.
-          setGesture(null);
-          return null;
-        }
-        return showsNow(content, rootMargin(untrack(root.config)));
-      })
-      .then((shows) => {
-        // A finger that went down while the look was taken has the sheet: its lift looks again.
-        if (shows === null || !latest() || fingers.size > 0) {
-          return;
-        }
-        const swiped = gesture !== null;
-        if (shows && swiped && lingers) {
-          seeOut(scrollElement, SCROLL_OVER_MS);
-          return;
-        }
+    looks += 1;
+    const look = looks;
+    void gestureSettled(scrollElement, idleMs).then(() => {
+      // A finger that went down meanwhile has the sheet: its lift looks again.
+      if (look !== looks || fingers.size > 0) {
+        return;
+      }
+      const content = untrack(store.popupElement);
+      if (!content || !laidOut(scrollElement)) {
+        // Not laid out (hidden with what holds it): nothing to look at, and no swipe. It rests
+        // once laid out again.
         setGesture(null);
-        if (shows || !untrack(store.open) || swipeAsked) {
-          return;
-        }
-        if (swiped) {
-          swipedAway(scrollElement);
-        } else if (untrack(entered)) {
-          scrollToRest(scrollElement, untrack(root.config), false);
-        }
-      });
+        movedByLayout = false;
+        return;
+      }
+      const config = untrack(root.config);
+      const out = outNow(content, config);
+      const by = gesture;
+      if (by && lingers && !out && !crossed(by)) {
+        seeOut(scrollElement, SCROLL_OVER_MS);
+        return;
+      }
+      const layoutHad = movedByLayout || (by !== null && crossed(by));
+      setGesture(null);
+      movedByLayout = false;
+      if (!untrack(store.open) || swipeAsked) {
+        return;
+      }
+      if (by && !layoutHad && out && shown) {
+        swipedAway(scrollElement);
+      } else if ((layoutHad || out) && !selfEntering()) {
+        restNow(scrollElement);
+      }
+    });
   };
 
   /**
    * Follows the user's hand on the sheet for as long as its container is mounted, whatever its
    * swipe direction becomes (its axis is read as each input comes): the fingers that went down
    * on it, and the inputs that scroll it. A finger is the sheet's from its `touchstart` there;
-   * its moves and its lift are heard on the window (`followTouches`, one subscription for every
+   * its moves and its lift are heard on the window (`followWindow`, one subscription for every
    * sheet), as they go to the element it went down on even once that has left the sheet (a row
    * re-rendered under it), where the sheet would not hear them.
    *
-   * An input is a gesture only once the sheet's container has scrolled for it: under a finger as
-   * it moves (or the fling it just let go of), or the way a wheel or a scroll key went, soon after
-   * it. One that moves nothing (toward the end the sheet stands at, a drag or a wheel a list in
-   * it takes, a finger that stands still) is no gesture, and a scroll a layout makes meanwhile is
-   * not made the user's by it. Judged by the scroll, not by where the container stands as the
-   * input is heard: the browser may have scrolled for a wheel before the page hears of it. The
-   * gesture takes over an entrance under way; a wheel's or a key's scroll is looked at once it
-   * ends, a finger's once it lifts. Answers the listeners' removal.
+   * Each scroll of the container is judged as it comes (see the file's head): a layout's first,
+   * when the layout moved in its frame or under it; under a finger of the sheet's, the finger's
+   * when it goes the way the finger drives it and no further than the finger's travel since the
+   * last scroll and the slack the compositor runs ahead by (`fingerSlack`); else a gesture's
+   * under way; else, soon after a wheel, a scroll key or the last finger's lift, theirs when it
+   * goes their way; else the sheet's own while it scrolls in on its own, and a layout's after.
+   * Judged by the scroll, not by where the container stands as the input is heard: the browser
+   * may have scrolled for a wheel before the page hears of it. A gesture takes over an entrance
+   * under way; a wheel's or a key's scroll is looked at once it ends, a finger's as it lifts.
+   * Answers the listeners' removal.
    */
   const followHand = (scrollElement: HTMLElement) => {
     const axis = () => untrack(root.config).axis;
     const along = (touch: Touch) => (axis() === 'y' ? touch.clientY : touch.clientX);
     const position = () => (axis() === 'y' ? scrollElement.scrollTop : scrollElement.scrollLeft);
-    // When a finger of the sheet's last moved.
-    let movedAt = -Infinity;
-    // The latest wheel or scroll key on the sheet, its sign the way it scrolls, until the
-    // container scrolls that way or it is too late to.
-    let input: { readonly way: number; readonly at: number; readonly byWheel: boolean } | null =
-      null;
+    // The latest wheel, scroll key or last lift on the sheet, its sign the way it scrolls and the
+    // epoch it came in, until the container scrolls that way or it is too late to.
+    let input: {
+      readonly way: number;
+      readonly at: number;
+      readonly byWheel: boolean;
+      readonly epoch: number;
+    } | null = null;
+    // The epoch the hand's first finger went down in.
+    let handEpoch = 0;
+    // The fingers' travel along the axis since the container last scrolled, each way; the way
+    // the latest move went; the largest single move since the first finger went down.
+    let plus = 0;
+    let minus = 0;
+    let lastWay = 0;
+    let largestStep = 0;
     // Where the container stood at its last scroll.
     let last = position();
+    /** The sheet's layout is read again before the user's input is taken in. */
+    const heard = () => {
+      if (checkLayout(scrollElement).moved) {
+        restAfterLayout(scrollElement, false);
+      }
+    };
     const onTouchStart = (event: TouchEvent) => {
+      if (fingers.size === 0) {
+        heard();
+        handEpoch = epoch;
+        plus = 0;
+        minus = 0;
+        lastWay = 0;
+        largestStep = 0;
+      }
       for (const touch of event.changedTouches) {
         fingers.set(touch.identifier, along(touch));
       }
     };
-    const stopFollowing = followTouches({
+    const stopFollowing = followWindow({
       move: (event) => {
         for (const touch of event.changedTouches) {
-          const last = fingers.get(touch.identifier);
+          const was = fingers.get(touch.identifier);
           const now = along(touch);
-          if (last !== undefined && now !== last) {
+          if (was !== undefined && now !== was) {
             fingers.set(touch.identifier, now);
-            movedAt = performance.now();
+            const step = now - was;
+            if (step > 0) {
+              plus += step;
+            } else {
+              minus -= step;
+            }
+            lastWay = Math.sign(step);
+            largestStep = Math.max(largestStep, Math.abs(step));
           }
         }
       },
@@ -406,51 +547,127 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         if (!lifted || fingers.size > 0) {
           return;
         }
-        // The last finger lifted with the sheet out of view, its swipe took it there: it is
-        // swiped away at once (a layout may move it before its fling ends). Lifted in view, what
-        // it set off (a fling, a snap) is the gesture's too, and where the hand leaves the sheet
-        // is looked at once that ends.
+        const by = gesture;
+        const content = untrack(store.popupElement);
+        // The last finger lifted with the sheet out of view, its swipe, which no layout crossed,
+        // took it there: it is swiped away at once (a layout may move it before its fling ends).
         if (
-          gesture !== null &&
+          by !== null &&
+          !crossed(by) &&
           shown &&
-          !visible &&
+          content !== null &&
           untrack(store.open) &&
-          laidOut(scrollElement)
+          laidOut(scrollElement) &&
+          outNow(content, untrack(root.config))
         ) {
           swipedAway(scrollElement);
-        } else {
-          seeOut(scrollElement);
+          return;
         }
+        // A layout moved it while the hand had it: it rests now, whatever the hand did, and again
+        // once what the lift set off (a fling, the browser's snap) has ended (`seeOut`).
+        if (movedByLayout || (by !== null && crossed(by))) {
+          movedByLayout = true;
+          if (entrance && !entrance.taken) {
+            aim(scrollElement, entrance);
+          } else if (untrack(store.open) && !swipeAsked && laidOut(scrollElement)) {
+            restNow(scrollElement);
+          }
+        }
+        // Lifted in view, what it set off (a fling, a snap) is the gesture's too, the fling's
+        // first scroll the finger's way however late it reaches the page, and where the hand
+        // leaves the sheet is looked at once that ends.
+        if (by === null && lastWay !== 0) {
+          input = { way: -lastWay, at: performance.now(), byWheel: false, epoch: handEpoch };
+        }
+        seeOut(scrollElement);
       },
+      resize: () => layoutMoved(),
     });
+    /**
+     * Whether a scroll by `moved` is the fingers' on the sheet: their way, and about as far. While
+     * it scrolls in on its own, its entrance's motion is in the scroll too, and the way alone
+     * says it: a finger that takes it over.
+     */
+    const fingersDrive = (moved: number) => {
+      const way = -Math.sign(moved);
+      const travel = way > 0 ? plus : minus;
+      return (
+        (travel > 0 || lastWay === way) &&
+        (selfEntering() || Math.abs(moved) <= travel + fingerSlack(largestStep))
+      );
+    };
+    /** The user's gesture takes the sheet (`by`), from the epoch its input came in. */
+    const take = (by: 'finger' | 'other', from: number) => {
+      setGesture({
+        by: by === 'finger' || gesture?.by === 'finger' ? 'finger' : 'other',
+        epoch: gesture ? gesture.epoch : from,
+      });
+      if (entrance) {
+        entrance.taken = true;
+      }
+    };
     const onScroll = () => {
       const now = performance.now();
       const at = position();
       const moved = at - last;
       last = at;
-      if (now - movedAt <= INPUT_SCROLL_MS) {
-        if (gesture !== 'finger') {
-          setGesture('finger');
-          if (entrance) {
-            entrance.taken = true;
+      const own = restedAt;
+      restedAt = null;
+      if (!untrack(store.open) || swipeAsked || moved === 0) {
+        return;
+      }
+      if (own && reached(scrollElement, own.axis, own.target)) {
+        // The sheet's own rest, heard.
+        return;
+      }
+      const relaid = checkLayout(scrollElement).moved;
+      const driven = fingers.size > 0 && fingersDrive(moved);
+      plus = 0;
+      minus = 0;
+      if (relaid || fresh) {
+        restAfterLayout(scrollElement, true);
+        return;
+      }
+      if (fingers.size > 0) {
+        if (driven) {
+          if (gesture?.by !== 'finger') {
+            take('finger', handEpoch);
           }
+        } else {
+          stray();
         }
         return;
       }
-      if (input && now - input.at <= INPUT_SCROLL_MS && Math.sign(moved) === input.way) {
-        const { byWheel } = input;
-        input = null;
-        setGesture(gesture === 'finger' ? 'finger' : 'other');
-        if (entrance) {
-          entrance.taken = true;
-        }
-        seeOut(scrollElement, undefined, byWheel && snapsTwice());
+      if (gesture !== null) {
+        return;
       }
+      if (input && now - input.at <= INPUT_SCROLL_MS && Math.sign(moved) === input.way) {
+        const { byWheel, epoch: from } = input;
+        input = null;
+        take('other', from);
+        seeOut(scrollElement, undefined, byWheel && snapsTwice());
+        return;
+      }
+      stray();
+    };
+    /**
+     * A scroll no input of the user's explains: the sheet's own while it scrolls in on its own,
+     * or one that leaves it at a rest (its entrance's last, heard once it has entered; a snap
+     * point a script scrolled it to); otherwise a layout's (a script's, a clamp no observer saw),
+     * and it rests again once it is over.
+     */
+    const stray = () => {
+      if (selfEntering() || atARest(scrollElement, untrack(root.config))) {
+        return;
+      }
+      layoutMoved();
+      restAfterLayout(scrollElement, true);
     };
     /** A wheel or a scroll key went `delta` along the axis: a gesture if the sheet scrolls for it. */
     const scrollsBy = (delta: number, byWheel: boolean) => {
       if (delta !== 0) {
-        input = { way: Math.sign(delta), at: performance.now(), byWheel };
+        heard();
+        input = { way: Math.sign(delta), at: performance.now(), byWheel, epoch };
       }
     };
     const onWheel = (event: WheelEvent) =>
@@ -474,7 +691,8 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
       scrollElement.removeEventListener('keydown', onKeyDown);
       fingers.clear();
       setGesture(null);
-      gestureInputs += 1;
+      movedByLayout = false;
+      looks += 1;
     };
   };
 
@@ -509,40 +727,33 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
           (config.maxScroll / 100) * viewportTravel(config),
         );
       }
-      // Its swipe direction changed under it: it settles for the layout it has now.
-      settle(scrollElement);
+      // Mounted, or its swipe direction changed under it (its owner turned it to another edge): a
+      // layout moved, and it rests for the layout it has now.
+      checkLayout(scrollElement);
+      layoutMoved();
+      restAfterLayout(scrollElement, false);
       shown = wasEntered;
       // A sheet hidden with what holds it (`display: none` round it) has no layout: the
       // observer reports it gone, and the browser drops its scroll position. Neither is a
-      // swipe. It must show again before it can be swiped away, and it settles when it is laid
-      // out again. A container resized with the window (its length is the viewport's) settles
-      // too, unless a finger on the sheet has it; one still scrolling in sees the change for
-      // itself. A ResizeObserver is told before the IntersectionObserver in the same frame. A
-      // layout that clamped the container's scroll and was gone before it was drawn (the window
-      // shorter, or turned, and back within a frame) leaves its size as it was, and nothing
-      // resized: the observer sees the sheet carried out of view, by no gesture of the user's,
-      // and it rests again.
-      let unlaid = false;
+      // swipe. It must show again before it can be swiped away, and it rests when it is laid
+      // out again. Its container resized (with the window: its length is the viewport's), laid
+      // out again, or its panel resized: a layout moved, and the container's own box changed
+      // rests it (`restAfterLayout`). A ResizeObserver is told before the IntersectionObserver
+      // in the same frame.
       const forget = () => {
-        unlaid = true;
         shown = false;
         visible = false;
       };
-      let size = '';
-      const layout = new ResizeObserver(() => {
+      const relaid = new ResizeObserver(() => {
         if (!laidOut(scrollElement)) {
           forget();
-          return;
         }
-        const now = `${scrollElement.clientWidth}x${scrollElement.clientHeight}`;
-        const moved = unlaid || (size !== '' && size !== now);
-        size = now;
-        unlaid = false;
-        if (moved) {
-          settle(scrollElement);
+        if (checkLayout(scrollElement).framed) {
+          restAfterLayout(scrollElement, false);
         }
       });
-      layout.observe(scrollElement);
+      relaid.observe(scrollElement);
+      relaid.observe(content);
       const observer = new IntersectionObserver(
         (entries) => {
           if (!laidOut(scrollElement)) {
@@ -553,18 +764,22 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
           setExpanded(ratio >= 1);
           visible = ratio > 0;
           shown ||= visible;
-          // Carried out of view by the user's gesture, no finger on it now (a wheel's, a key's, a
-          // fling's), it is swiped away at once: the scroll's snap may bring it back before the
-          // gesture ends. Out of view under a finger is theirs to say once it lifts (see
-          // `seeOut`). Gone with no hand on it is no swipe: once the scroll that carried it is
-          // over, and no input of the user's turned out to be behind it, it rests again, unless
-          // it is still scrolling in on its own, which carries it on to rest itself.
-          if (shown && !visible && untrack(store.open) && !swipeAsked) {
-            if (gesture !== null && fingers.size === 0) {
-              swipedAway(scrollElement);
-            } else if (!handHas() && !(entrance && !entrance.taken)) {
-              seeOut(scrollElement, SCROLL_OVER_MS);
-            }
+          // Carried out of view by the user's gesture that no layout crossed, no finger on it now
+          // (a wheel's, a key's, a fling's), it is swiped away at once, as its box reads now: the
+          // scroll's snap may bring it back before the gesture ends. Out of view under a finger
+          // is theirs to say once it lifts; anything else that carried it out rested it again as
+          // it scrolled (see `followHand`).
+          if (
+            shown &&
+            !visible &&
+            untrack(store.open) &&
+            !swipeAsked &&
+            gesture !== null &&
+            fingers.size === 0 &&
+            !crossed(gesture) &&
+            outNow(content, untrack(root.config))
+          ) {
+            swipedAway(scrollElement);
           }
         },
         { threshold: [0, 1], rootMargin: rootMargin(config) },
@@ -577,7 +792,7 @@ export function SheetOverlay(componentProps: SheetOverlayProps): JSX.Element {
         iterations: config.viewIterations,
       });
       return () => {
-        layout.disconnect();
+        relaid.disconnect();
         observer.disconnect();
         leave();
       };
