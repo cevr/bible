@@ -855,6 +855,50 @@ export type NoteWords = typeof NoteWords.Type;
 export const NoteKind = Schema.Literals(['note', 'correction', 'removal']);
 export type NoteKind = typeof NoteKind.Type;
 
+/** What a note asks of a line's words: the words, what it asks of them, a correction's words instead. */
+interface Asking {
+  readonly words?: NoteWords;
+  readonly kind?: NoteKind;
+  readonly replace?: string;
+}
+
+/** Whether a correction says words of its own: some, and not the words it corrects. */
+const saysOtherWords = (n: Asking): boolean =>
+  Option.exists(
+    Option.fromUndefinedOr(n.replace),
+    (r) => r.trim() !== '' && r.trim() !== n.words?.text,
+  );
+
+/**
+ * What a note may ask of its words, by the composer's own rule (`unsaid`,
+ * `lab/notes/draft.ts`), checked wherever a note crosses a boundary (the
+ * lab's POST, `notes.json`): what it asks is of words, so a kind comes with
+ * them; only a correction says words instead, and other words than theirs.
+ */
+const ASKS_OF_WORDS = Schema.makeFilterGroup<Asking>([
+  Schema.makeFilter(
+    (n) =>
+      !('kind' in n) ||
+      'words' in n || { path: ['kind'], issue: 'a note asks something only of its words' },
+  ),
+  Schema.makeFilter(
+    (n) =>
+      !('replace' in n) ||
+      n.kind === 'correction' || {
+        path: ['replace'],
+        issue: 'only a correction says words instead',
+      },
+  ),
+  Schema.makeFilter(
+    (n) =>
+      n.kind !== 'correction' ||
+      saysOtherWords(n) || {
+        path: ['replace'],
+        issue: 'a correction says other words than its own',
+      },
+  ),
+]);
+
 /** What the lab sends for a new note: the frame, where it was marked, and what it says. */
 export const NoteDraft = Schema.Struct({
   scene: Schema.String,
@@ -892,7 +936,7 @@ export const NoteDraft = Schema.Struct({
   box: Schema.optionalKey(NoteBox),
   ink: Schema.optionalKey(Schema.Array(InkStroke)),
   text: Schema.String.check(Schema.isNonEmpty()),
-});
+}).check(ASKS_OF_WORDS);
 export type NoteDraft = typeof NoteDraft.Type;
 
 export const Note = Schema.Struct({
@@ -910,7 +954,7 @@ export const Note = Schema.Struct({
   thread: Schema.Array(Reply),
   /** ISO time. */
   createdAt: Schema.String,
-});
+}).check(ASKS_OF_WORDS);
 export type Note = typeof Note.Type;
 
 /** `lab/<film>/notes.json`. `seq` is the last change's number: the cursor a watcher waits past. */
@@ -940,7 +984,7 @@ export type NotesWait = typeof NotesWait.Type;
 export const NotePost = Schema.Struct({
   ...NoteDraft.fields,
   still: Schema.Uint8ArrayFromBase64,
-});
+}).check(ASKS_OF_WORDS);
 
 /** The lab's `POST /api/films/:film/notes/:id/reply` body. */
 export const ReplyPost = Schema.Struct({ text: Schema.String.check(Schema.isNonEmpty()) });

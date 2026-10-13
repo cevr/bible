@@ -572,6 +572,10 @@ const heardOf = <E, R>(change: Effect.Effect<void, E, R>) =>
 
 const draft = `{"scene":"hand","T":230.38,"frame":6911,"cue":{"name":"topple","edge":"end"},"box":{"x":860,"y":640,"w":200,"h":120},"text":"too low","still":"${Base64.encode(png)}"}`;
 
+/** A note the lab's page posts with `asks` among its fields (its words, what it asks of them). */
+const noteAsking = (asks: string) =>
+  `{"scene":"hand","T":230.38,"frame":6911,${asks},"text":"too low","still":"${Base64.encode(png)}"}`;
+
 describe('the lab loads no film', () => {
   // The lab runs for days and Bun keeps a module as it first imported it: a
   // module the lab runs that imports a film reads it as it was at the lab's
@@ -915,6 +919,45 @@ describe('lab routes', () => {
       ).toBe(404);
       expect(yield* status(get('/api/films/f/stills/..%2Fnotes.json'))).toBe(404);
     }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+  );
+
+  it.effect(
+    "a note on a line's words keeps them, what it asks and a correction's words instead; one that asks what its words cannot is a 400, and nothing is kept",
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        const notes = labUrls.notes.add({ params: { film: 'f' } });
+        const status = (asks: string) =>
+          Effect.promise(() => lab(post(notes, noteAsking(asks)), bound).then((r) => r.status));
+        // What a note asks is of its words; only a correction says words instead, and other
+        // words than its own.
+        for (const asks of [
+          '"kind":"removal"',
+          '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"replace":"climbs"',
+          '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"kind":"removal","replace":"climbs"',
+          '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"kind":"correction"',
+          '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"kind":"correction","replace":" "',
+          '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"kind":"correction","replace":"rises slowly,"',
+        ])
+          expect([asks, yield* status(asks)]).toEqual([asks, 400]);
+        expect(
+          yield* status(
+            '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"kind":"correction","replace":"climbs slowly,"',
+          ),
+        ).toBe(200);
+        const listed = yield* Effect.promise(() =>
+          lab(get(labUrls.notes.list({ params: { film: 'f' } })), bound).then((r) => r.json()),
+        );
+        const file = yield* Schema.decodeUnknownEffect(NotesFile)(listed);
+        expect(file.notes.map((n) => [n.id, n.words, n.kind, n.replace])).toEqual([
+          [
+            'n1',
+            { beat: 'hand', from: 2, to: 3, text: 'rises slowly,' },
+            'correction',
+            'climbs slowly,',
+          ],
+        ]);
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
   );
 
   it.effect(
