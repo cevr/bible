@@ -62,7 +62,9 @@ extension Library {
       .sorted { Library.canonical($0, $1) }
     return Curriculum(
       verses: selected,
-      promises: [],
+      promises: goals.compactMap { goal in
+        goal.promises.map { _ in corpus.promiseUnits(for: goal) }
+      },
       wholeChapters: whole,
       earnedChapters: chapterUnits(in: corpus, selected: selected))
   }

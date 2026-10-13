@@ -14,6 +14,7 @@ public struct Corpus: Sendable {
     scripture[verse.id] ?? Scripture(verse: verse)
   }
   private let byBook: [Int: [Verse]]
+  private let bookNumbers: [String: Int]
   private let byChapter: [ChapterKey: [Verse]]
   private let chapterOrder: [ChapterKey]
   public init(verses: [Verse]) {
@@ -21,6 +22,7 @@ public struct Corpus: Sendable {
     scripture = Dictionary(uniqueKeysWithValues: verses.map { ($0.id, Scripture(verse: $0)) })
     books = verses.filter { $0.chapter == 1 && $0.number == 1 }
     byBook = Dictionary(grouping: verses, by: \.book)
+    bookNumbers = Dictionary(books.map { ($0.bookName, $0.book) }) { first, _ in first }
     byChapter = Dictionary(grouping: verses) { ChapterKey(book: $0.book, chapter: $0.chapter) }
     chapterOrder = verses.filter { $0.number == 1 }.map {
       ChapterKey(book: $0.book, chapter: $0.chapter)
@@ -31,6 +33,7 @@ public struct Corpus: Sendable {
     byChapter[ChapterKey(book: book, chapter: chapter)] ?? []
   }
   public func verses(for goal: Goal) -> [Verse] {
+    if goal.promises != nil { return promiseUnits(for: goal).flatMap(\.verses) }
     let candidates: [Verse]
     if let book = goal.book, let chapter = goal.chapter {
       candidates = verses(book: book, chapter: chapter)
@@ -42,8 +45,22 @@ public struct Corpus: Sendable {
     if goal.firstVerse == nil && goal.lastVerse == nil { return candidates }
     return candidates.filter { goal.contains($0) }
   }
+  public func verses(for promise: PromiseReference) -> [Verse] {
+    guard let book = bookNumbers[promise.book] else { return [] }
+    let verses = verses(book: book, chapter: promise.chapter).filter {
+      $0.number >= promise.first && $0.number <= promise.last
+    }
+    return verses.count == promise.last - promise.first + 1 ? verses : []
+  }
+  public func promiseUnits(for category: PromiseCategory) -> [PracticeUnit] {
+    category.promises.map { verses(for: $0) }.filter { !$0.isEmpty }.map {
+      PracticeUnit(verses: $0)
+    }
+  }
   /// Promise goals practice their category's promises; unknown categories yield nothing.
-  public func promiseUnits(for goal: Goal) -> [PracticeUnit] { [] }
+  public func promiseUnits(for goal: Goal) -> [PracticeUnit] {
+    Promises.category(goal.promises).map { promiseUnits(for: $0) } ?? []
+  }
   public func bookRehearsal(book: Int) -> [PracticeUnit] {
     chapters(for: Goal(title: "", book: book)).map { PracticeUnit(verses: $0, isChapter: true) }
   }
