@@ -3433,7 +3433,7 @@ The fixture rig is `src/rive/fixtures/arm/arm.rml`, built to
 
 `src/core` never touches the DOM at runtime (type-only DOM references are
 fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
-tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `player`, `tools`, `lab` or `browser`, `canvas` no `player`, `tools`, `lab` or `browser`, `player` no `tools` or `lab`, `browser` (the host's adapters) no `player`, `tools` or `lab`, and `command` (the commands, the keymap and the selection, shared by the player and the lab) no `player`, `tools` or `lab`.
+tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `rive` (the Rive loader and its runtimes) may import both; `player` may import all three. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `rive`, `player`, `tools`, `lab` or `browser`, `canvas` no `rive` (its fixtures, which load a rig to draw it, excepted), `player`, `tools`, `lab` or `browser`, `rive` no `player`, `tools`, `lab`, `browser` or `command`, `player` no `tools` or `lab`, `browser` (the host's adapters) no `player`, `tools` or `lab`, and `command` (the commands, the keymap and the selection, shared by the player and the lab) no `player`, `tools` or `lab`.
 
 **The host** (`src/browser/`): every browser API a page reaches goes through
 an Effect service there, each with its live adapter (`*-browser.ts`) and a

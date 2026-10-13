@@ -601,13 +601,14 @@
               {
                 "group": [
                   "**/canvas/**",
+                  "**/rive/**",
                   "**/player/**",
                   "**/tools/**",
                   "**/lab/**",
                   "**/browser/**",
                   "@bible/film/*"
                 ],
-                "message": "core never imports canvas, player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
+                "message": "core never imports canvas, rive, player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
               }
             ]
           }
@@ -640,6 +641,81 @@
                   "@bible/film/lab-server"
                 ],
                 "message": "the engine never imports the player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
+              },
+              {
+                "group": ["**/rive/**"],
+                "message": "the engine declares a rig and draws it (canvas/rive.ts); it never imports the Rive loader or its runtimes (src/rive/), which load a film's rigs for the player and the tools (packages/film/README.md § Rive)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // The engine's fixtures load a rig to draw it in a test: the engine's
+      // block without its ban on src/rive/.
+      "files": ["**/packages/film/src/canvas/fixtures/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/player/**",
+                  "**/tools/**",
+                  "**/lab/**",
+                  "**/browser/**",
+                  "@bible/film/player",
+                  "@bible/film/render",
+                  "@bible/film/player.css",
+                  "@bible/film/tokens.css",
+                  "@bible/film/tools",
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/play",
+                  "@bible/film/review",
+                  "@bible/film/review-server",
+                  "@bible/film/lab-server"
+                ],
+                "message": "the engine never imports the player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // The Rive loader and its runtimes (src/rive/) load a film's rigs over
+      // the engine's declaration (canvas/rive.ts) and core's errors; the
+      // player's page load and the tools' `check --draw` import them, never
+      // the reverse.
+      "files": ["**/packages/film/src/rive/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/player/**",
+                  "**/tools/**",
+                  "**/lab/**",
+                  "**/browser/**",
+                  "**/command/**",
+                  "@bible/film/player",
+                  "@bible/film/render",
+                  "@bible/film/player.css",
+                  "@bible/film/tokens.css",
+                  "@bible/film/tools",
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/play",
+                  "@bible/film/review",
+                  "@bible/film/review-server",
+                  "@bible/film/lab-server"
+                ],
+                "message": "the Rive loader and its runtimes never import the player, tools, lab, the pages' commands or the host's adapters (browser): the player and the tools import them (packages/film/README.md § Rive)."
               }
             ]
           }
