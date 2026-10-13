@@ -52,19 +52,14 @@ const SWING: ReadonlyArray<Key> = [
 /** The verdict, rewritten each frame (scratch, so the draw allocates none). */
 const VERDICT = { fill: 1, shown: 0 } satisfies Stamp;
 
-/**
- * The accused as the control draws them: the kit's paper person, head down
- * on "you did it", up at the verdict, over their contact shadow (`ground`,
- * its share: 0 where the caller has laid it).
- */
-export const paperAccused = (f: CourtFrame, ground = 1) => {
+/** The accused as the control draws them: the kit's paper person, head down on "you did it", up at the verdict. */
+export const paperAccused = (f: CourtFrame) => {
   const bow = f.at('bow') * (1 - f.at('lift'));
   const face = {
     tilt: 0.2 * bow,
     nod: 6 * bow,
     look: [-2 * bow, 3 * bow] as const,
     stains: FIGURE_STAINS,
-    ground,
   };
   person(f.ctx, face, f.hand('accused'));
 };
@@ -80,7 +75,7 @@ export interface Bench {
 }
 
 /** The judge as the control draws him: the kit's robe, bands and head, and the court's gavel in his paper hand. */
-export const paperJudge: Bench = {
+const paperJudge: Bench = {
   behind: (f, lean) => {
     const { ctx } = f;
     at(ctx, { x: JUDGE[0], y: JUDGE[1] + 10 * lean }, () => {
