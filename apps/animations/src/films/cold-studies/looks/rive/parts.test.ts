@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { accusedRig } from './accused-rig.ts';
-import { figuresRml } from './figures.ts';
-import { handRig, judgeRig } from './judge-rig.ts';
+import { DIRECTION } from './direction.ts';
+import { figureRigs, figuresRml } from './figures.ts';
 import { type K, LIGHT, type Pt, creaseOf, figure, reachAbout } from './parts.ts';
 import { type Element, ids } from './rml.ts';
 
@@ -16,22 +15,18 @@ const attr = (e: Element | undefined, key: string) => e?.attrs.find(([k]) => k =
 
 /** The three rigs' artboards (their view models aside), from one id counter as `figures.ts` makes them. */
 const rigs = () => {
-  const next = ids();
-  return {
-    accused: accusedRig(figure(next, 'Accused', 1888, 0)).slice(0, 1),
-    judge: judgeRig(figure(next, 'Judge', 1889, 400)).slice(0, 1),
-    hand: handRig(figure(next, 'Hand', 1890, 840)).slice(0, 1),
-  };
+  const { accused, judge, hand } = figureRigs(DIRECTION);
+  return { accused: accused.slice(0, 1), judge: judge.slice(0, 1), hand: hand.slice(0, 1) };
 };
 
 describe('the figure parts', () => {
   test('the project file has no thumbs and no mittens', () => {
-    expect(figuresRml()).not.toMatch(/thumb|mitten/i);
+    expect(figuresRml(DIRECTION)).not.toMatch(/thumb|mitten/i);
   });
 
   test('the project file is the same text every time, and every id in it is its own', () => {
-    const rml = figuresRml();
-    expect(figuresRml()).toBe(rml);
+    const rml = figuresRml(DIRECTION);
+    expect(figuresRml(DIRECTION)).toBe(rml);
     const defined = [...rml.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]);
     expect(new Set(defined).size).toBe(defined.length);
   });
@@ -66,7 +61,7 @@ describe('the figure parts', () => {
   });
 
   test('an outline crawls: no point moves more than a fifth of its wander a tick, round the loop too', () => {
-    const fig = figure(ids(), 'Test', 7, 0);
+    const fig = figure(ids(), 'Test', 7, 0, DIRECTION);
     fig.boil('piece', [[3, 4]], 1);
     const { x = [], y = [] } = fig.boilTracks()['piece.0'] ?? {};
     expect(x).toHaveLength(48);

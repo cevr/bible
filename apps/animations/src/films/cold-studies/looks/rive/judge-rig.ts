@@ -12,8 +12,8 @@
 // - a `breath` loop and the paper's `boil`.
 
 import { ramps as R } from '../../palette.ts';
-import { HEAD_SCALE } from './accused-rig.ts';
-import { dress } from './direction.ts';
+import { accusedHead } from './accused-rig.ts';
+import { dressOf } from './direction.ts';
 import {
   type BoneSpec,
   FACE,
@@ -51,25 +51,22 @@ export const JUDGE_FACE = 1.62;
 /** Where the lean pivots: the robe's foot, behind the bench. */
 const PIVOT = 175;
 
-/** His chain from the pivot: the chest up to the neck, the head to its centre. */
-const BONES: ReadonlyArray<BoneSpec> = [
+/** His chain from the pivot, his head scaled `hs`: the chest up to the neck, the head to its centre. */
+const bones = (hs: number): ReadonlyArray<BoneSpec> => [
   { name: 'chest', x: 0, y: 0, rotation: UP, length: PIVOT - 60 },
-  { name: 'head', parent: 'chest', rotation: 0, length: 60 * HEAD_SCALE },
+  { name: 'head', parent: 'chest', rotation: 0, length: 60 * hs },
 ];
 
 /** The judge's artboard and view model. */
 export const judgeRig = (fig: Figure) => {
-  const sk = skeleton(fig, BONES);
+  const hs = accusedHead(fig.direction).scale;
+  const dress = dressOf(fig.direction);
+  const sk = skeleton(fig, bones(hs));
   // The head's pieces in its bone's frame turned upright (origin at the neck); the robe's in the
   // lean's frame (origin at the pivot), off the bones, so it draws under the head.
   const headSpace = el('Node', { rotation: Math.PI / 2, name: 'headSpace' }, [
-    faceKit(fig, { x: 0, y: (-60 + 2) * HEAD_SCALE, scale: JUDGE_FACE * HEAD_SCALE }),
-    piece(
-      fig,
-      'head',
-      ellipse(0, -60 * HEAD_SCALE, 60 * HEAD_SCALE, 65 * HEAD_SCALE, 22),
-      dress.skin,
-    ),
+    faceKit(fig, { x: 0, y: (-60 + 2) * hs, scale: JUDGE_FACE * hs }),
+    piece(fig, 'head', ellipse(0, -60 * hs, 60 * hs, 65 * hs, 22), dress.skin),
   ]);
   const robe = el('Node', { name: 'robeSide', id: fig.idOf('robeSide') }, [
     ...[-9, 9].map((x) =>
@@ -121,8 +118,9 @@ export const judgeRig = (fig: Figure) => {
 /** The hand artboard: one circle hand at its centre, for a hand that works over scenery the figure stands behind (the bench, which its shadow falls on). */
 export const HAND_ART = { width: 48, height: 48, r: 15 } as const;
 
-export const handRig = (fig: Figure) =>
-  artboard(
+export const handRig = (fig: Figure) => {
+  const dress = dressOf(fig.direction);
+  return artboard(
     fig,
     HAND_ART,
     [
@@ -132,3 +130,4 @@ export const handRig = (fig: Figure) =>
     ],
     [boilTimeline(fig)],
   );
+};

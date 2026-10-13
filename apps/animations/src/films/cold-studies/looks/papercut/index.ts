@@ -19,13 +19,13 @@ import type { Look } from '../../look.ts';
 import { courtWith } from '../cutpaper/court.ts';
 import { card, job } from '../cutpaper/job.ts';
 import { riveAccused } from '../rive/accused.ts';
-import { props } from '../rive/direction.ts';
+import { DIRECTION, propsOf } from '../rive/direction.ts';
 import { riveJudge } from '../rive/judge.ts';
 import { accusedProp, handProp, judgeProp } from '../rive/rigs.ts';
 
 /** The look on `engine`: the court's two people, and the judge's hand, as rigs, among its props. */
 const papercutOn = (engine: RiveEngine): Look => ({
-  court: courtWith(riveAccused, riveJudge, props),
+  court: courtWith(riveAccused, riveJudge, propsOf(DIRECTION)),
   rigs: { accused: accusedProp(engine), judge: judgeProp(engine), hand: handProp(engine) },
   job,
   card,

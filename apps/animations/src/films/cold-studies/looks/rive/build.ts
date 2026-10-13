@@ -15,6 +15,7 @@ import * as BunServices from '@effect/platform-bun/BunServices';
 import { Config, Console, Duration, Effect, FileSystem, Schema, Stream } from 'effect';
 import { Command, Flag } from 'effect/cli';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import { DIRECTION } from './direction.ts';
 import { figuresRml } from './figures.ts';
 
 const here = import.meta.dir;
@@ -73,7 +74,10 @@ const build = Effect.fn('build')(function* (options: {
   readonly screenshot: boolean;
 }) {
   const fs = yield* FileSystem.FileSystem;
-  const rml = yield* timed('generate', Effect.sync(figuresRml));
+  const rml = yield* timed(
+    'generate',
+    Effect.sync(() => figuresRml(DIRECTION)),
+  );
   yield* fs.makeDirectory(project, { recursive: true });
   yield* fs.writeFileString(`${project}/rive.yaml`, 'name: figures\nmain: Accused\n');
   yield* fs.writeFileString(`${project}/figures.rml`, rml);
