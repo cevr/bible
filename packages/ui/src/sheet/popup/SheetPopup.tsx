@@ -2,8 +2,9 @@
 // (Sheet, SnapPoint, DetentPoint, useSnapPointTravel). Copyright 2026 Adobe,
 // Apache-2.0 (`../LICENSE`); ported to Solid 2 and changed: the panel is a plain
 // element (the dialog it holds is `Sheet.Content`); a sheet that is not modal
-// leaves the page around its panel live: its container is clipped to the box
-// its panel is drawn in, so only the panel takes the pointer.
+// leaves the page around its panel live: once in, its container takes the
+// pointer itself (iOS scrolls it from there) clipped to its panel's box, drawn
+// or at rest; while it scrolls in or out, the panel takes its own.
 //
 // The swipeable panel, and the scroll container that moves it. The container
 // is two viewports long along the swipe axis (three when the sheet leaves by
@@ -36,6 +37,8 @@ import { timelineName } from '../utils/stack.ts';
 import {
   type Axis,
   POSITION_ALIGNMENT,
+  type Rest,
+  restAt,
   supportsViewTimeline,
   type SwipeAnimationRange,
   swipeAnimationStyle,
@@ -152,17 +155,47 @@ function useSnapPointTravel(
 const laidOut = (element: HTMLElement) => element.getClientRects().length > 0;
 
 /**
- * The `clip-path` that leaves of `scroller` only the box `panel` is drawn in now (its
- * transforms with it), from the boxes drawn: none while either has no layout.
+ * The `clip-path` that leaves of `scroller` what of it takes presses, from the boxes drawn now
+ * (the panel's transforms with them) and where the sheet rests (`rest`): none while either has
+ * no layout. It is the box `panel` is drawn in joined to the box it is drawn in at rest (the same
+ * box moved along the axis by how far the container stands from its rest), so it is the panel's
+ * own box at rest, and a panel scrolled back to rest (its snap once a swipe lets go) moves inside
+ * it: the browser scrolls ahead of the page's frames, and a clip that followed the panel's drawn
+ * box would cut its leading edge on the way. While a finger swipes it (`lane`), it is the
+ * panel's extent across the axis, all along the axis: under a finger the browser moves the panel
+ * either way ahead of the page (a drag, a fling, a bounce past its rest), and nothing of it is
+ * cut; a second finger in that lane is the sheet's meanwhile.
  */
-function panelClip(scroller: HTMLElement, panel: HTMLElement): string | null {
+function panelClip(
+  scroller: HTMLElement,
+  panel: HTMLElement,
+  rest: Rest,
+  lane: boolean,
+): string | null {
   if (!laidOut(scroller) || !laidOut(panel)) {
     return null;
   }
   const s = scroller.getBoundingClientRect();
   const p = panel.getBoundingClientRect();
+  const alongY = rest.axis === 'y';
+  const max = alongY
+    ? scroller.scrollHeight - scroller.clientHeight
+    : scroller.scrollWidth - scroller.clientWidth;
+  // Scrolled further along than its rest, the panel is drawn that much nearer the start.
+  const off =
+    (alongY ? scroller.scrollTop : scroller.scrollLeft) - Math.min(Math.max(rest.target, 0), max);
+  const start = lane
+    ? -Infinity
+    : Math.min(alongY ? p.top : p.left, (alongY ? p.top : p.left) + off);
+  const end = lane
+    ? Infinity
+    : Math.max(alongY ? p.bottom : p.right, (alongY ? p.bottom : p.right) + off);
+  const top = alongY ? start : p.top;
+  const bottom = alongY ? end : p.bottom;
+  const left = alongY ? p.left : start;
+  const right = alongY ? p.right : end;
   const px = (value: number) => `${Math.max(0, Math.round(value * 100) / 100)}px`;
-  return `inset(${px(p.top - s.top)} ${px(s.right - p.right)} ${px(s.bottom - p.bottom)} ${px(p.left - s.left)})`;
+  return `inset(${px(top - s.top)} ${px(s.right - right)} ${px(s.bottom - bottom)} ${px(left - s.left)})`;
 }
 
 /**
@@ -226,23 +259,32 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
   };
 
   // A sheet that is not modal takes presses over its panel alone, and the page takes them
-  // everywhere else. The container that scrolls takes them itself, so a finger on the panel
-  // scrolls it on every engine (iOS Safari scrolls no container that takes no presses from a
-  // child that does), clipped to the box the panel is drawn in. That box is read each frame
-  // while the sheet is mounted, as the browser draws it, so whatever moves the panel (its swipe,
-  // its owner's offsets, a resize) moves the clip in the same frame. Until it is first read
-  // (the server's markup), the container takes no presses, and the panel takes its own.
+  // everywhere else. Once it has scrolled in, the container that scrolls takes them itself, so
+  // a finger on the panel scrolls it on every engine (iOS Safari scrolls no container that
+  // takes no presses from a child that does: WebKit bug 183870), clipped to the panel's box
+  // (`panelClip`). That box is read each frame, as the browser lays it out, so whatever moves
+  // the panel (its owner's offsets, a resize, a turn to another edge) moves the clip in the same
+  // frame. While it scrolls in or out on its own, and until it is first read (the server's
+  // markup), the container takes no presses and draws all of the panel, and the panel takes
+  // its own.
   const [reach, setReach] = createSignal<string | null>(null, owned);
   createEffect(
-    () => [scroller(), panel(), store.modal()] as const,
-    ([scrollElement, panelElement, modal]) => {
-      if (modal || !scrollElement || !panelElement) {
+    () => [scroller(), panel(), store.modal(), sheet.entered()] as const,
+    ([scrollElement, panelElement, modal, entered]) => {
+      if (modal || !entered || !scrollElement || !panelElement) {
         setReach(null);
         return undefined;
       }
       let frame = 0;
       const look = () => {
-        setReach(panelClip(scrollElement, panelElement));
+        setReach(
+          panelClip(
+            scrollElement,
+            panelElement,
+            restAt(scrollElement, untrack(config)),
+            sheet.fingerSwipes(),
+          ),
+        );
         frame = requestAnimationFrame(look);
       };
       look();

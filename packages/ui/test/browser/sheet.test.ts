@@ -1234,6 +1234,24 @@ describe('swipe to dismiss', () => {
     expect((await logOf(page)).filter((line) => line.startsWith('open'))).toEqual([]);
   });
 
+  it("a snap the browser starts just after the user's scroll ended is still theirs: carried to the exit by it, the sheet is swiped away", async () => {
+    // Desktop WebKit snaps a wheel's scroll in two: back to the open snap at once (a `scrollend`
+    // there), then, about 90 ms later, on to the snap in the wheel's direction, the exit (probe
+    // r6/probe-webkit.ts). Chromium's own snap is played here as WebKit's second one.
+    const page = await h.open('sheet');
+    await openSheet(page);
+    await page.locator('#overlay [data-sheet-scroll]').evaluate((el) => {
+      el.addEventListener(
+        'scrollend',
+        () => setTimeout(() => el.scrollTo({ top: 0, behavior: 'smooth' }), 90),
+        { once: true },
+      );
+    });
+    await wheelSheet(page, 0, -100);
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await opens(page)).toEqual(['open false swipe']);
+  });
+
   it('a side sheet dismisses on a scroll along its own axis', async () => {
     const page = await h.open('sheet', { query: { position: 'right' } });
     await openSheet(page);
@@ -1268,13 +1286,14 @@ describe('swipe to dismiss', () => {
     ]);
   });
 
-  it('a non-modal sheet takes presses over its panel alone, its container taking them itself, through its entrance, a swipe that snaps back and one that carries it out', async () => {
+  it('a non-modal sheet takes presses over its panel alone, its container taking them itself at rest, through its entrance, a swipe that snaps back and one that carries it out', async () => {
     const page = await h.open('sheet', {
       query: { modal: 'false', dismissal: 'disabled', portal: 'inline' },
     });
     // Between frames, every 4 ms: a press 3 px inside each edge of the panel lands on it, and
-    // one 3 px past each (inside the window) misses the sheet. Frames where either fails are
-    // kept, with where the panel stood.
+    // one 3 px past each (inside the window) misses the sheet; but past its top edge while a
+    // swipe holds it below its rest (y 300), on its way back there, is the sheet's. Frames where
+    // either fails are kept, with where the panel stood.
     await page.evaluate(() => {
       const record = window as unknown as { __samples: number; __bad: Array<string> };
       record.__samples = 0;
@@ -1295,8 +1314,12 @@ describe('swipe to dismiss', () => {
             [r.left + 3, midY],
             [r.right - 3, midY],
           ].filter(([x, y]) => shows(x!, y!));
+          const swiped =
+            r.top > 300.5 &&
+            !panel.hasAttribute('data-entering') &&
+            !panel.hasAttribute('data-exiting');
           const outside = [
-            [midX, r.top - 3],
+            ...(swiped ? [] : [[midX, r.top - 3]]),
             [midX, r.bottom + 3],
             [r.left - 3, midY],
             [r.right + 3, midY],
@@ -1330,6 +1353,72 @@ describe('swipe to dismiss', () => {
       { many: true, bad: [] },
       ['open false swipe'],
     ]);
+  });
+
+  it("a non-modal sheet's panel is drawn whole in every frame the browser draws as it scrolls in and snaps back after a swipe", async () => {
+    const page = await h.open('sheet', {
+      query: { modal: 'false', dismissal: 'disabled', portal: 'inline' },
+    });
+    // The panel's top edge red over a blue body, on a white page, nothing else drawn. The
+    // browser scrolls ahead of the page's frames: a clip of its container that trailed the panel
+    // would cut its leading edge, and the frames it draws would show blue first, not red.
+    await page.addStyleTag({
+      content: `html, body { background: rgb(255 255 255) !important; }
+        .backdrop { display: none !important; }
+        #panel { background: rgb(0 0 255) !important; border-top: 8px solid rgb(255 0 0) !important;
+          box-sizing: border-box; animation: none !important; }
+        #popup { background: none !important; }
+        #popup * { visibility: hidden !important; }`,
+    });
+    const cdp = await page.context().newCDPSession(page);
+    const drawn: Array<string> = [];
+    cdp.on('Page.screencastFrame', (event: { data: string; sessionId: number }) => {
+      drawn.push(event.data);
+      void cdp.send('Page.screencastFrameAck', { sessionId: event.sessionId }).catch(() => {});
+    });
+    await cdp.send('Page.startScreencast', { format: 'png', everyNthFrame: 1 });
+    await openSheet(page);
+    // A swipe down that snaps back, twice.
+    await wheelSheet(page, 0, -120);
+    await see.poll(async () => (await scrollState(page)).top).toBe(600);
+    await wheelSheet(page, 0, -120);
+    await see.poll(async () => (await scrollState(page)).top).toBe(600);
+    await framesOf(page, 10);
+    await cdp.send('Page.stopScreencast');
+    // Down the middle of each frame drawn, below the top fifth: the first pixel not the page's.
+    const tops = await page.evaluate(async (frames: Array<string>) => {
+      const images = await Promise.all(
+        frames.map(async (data) => {
+          const image = new Image();
+          image.src = `data:image/png;base64,${data}`;
+          await image.decode();
+          return image;
+        }),
+      );
+      const seen: Array<string> = [];
+      for (const image of images) {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const context = canvas.getContext('2d')!;
+        context.drawImage(image, 0, 0);
+        const column = context.getImageData(Math.floor(image.width / 2), 0, 1, image.height).data;
+        let first = 'page';
+        for (let y = Math.floor(image.height / 5); y < image.height; y++) {
+          const [r, g, b] = [column[y * 4]!, column[y * 4 + 1]!, column[y * 4 + 2]!];
+          if (r > 200 && g > 200 && b > 200) continue;
+          first = r > 180 && g < 80 && b < 80 ? 'edge' : 'cut';
+          break;
+        }
+        seen.push(first);
+      }
+      return seen;
+    }, drawn);
+    // Frames were drawn with the panel on the way (not only at rest), and none cut its edge.
+    expect([
+      tops.filter((top) => top === 'edge').length > 10,
+      tops.filter((top) => top === 'cut'),
+    ]).toEqual([true, []]);
   });
 
   it('a key that scrolls it toward its exit (PageUp, focus in it) swipes it away', async () => {

@@ -120,10 +120,21 @@ export function viewportPadding(config: SwipeConfig): string {
   return config.after && config.axis === 'y' ? VIEWPORT_PADDING : '0px';
 }
 
-/** A CSS length (a `calc()` too) in pixels, measured in the document. */
+/** The last `calc()` measured, and the window size it was measured in. */
+let measured: { readonly key: string; readonly px: number } | null = null;
+
+/**
+ * A CSS length of pixels and viewport units (a `calc()` of them too) in pixels, measured in the
+ * document. A `calc()` is measured once for each window size (its viewport units change with the
+ * window alone): the sheet reads it each frame.
+ */
 export function cssToPx(length: string): number {
   if (!length.startsWith('calc(')) {
     return parseFloat(length) || 0;
+  }
+  const key = `${length} ${window.innerWidth}x${window.innerHeight}`;
+  if (measured?.key === key) {
+    return measured.px;
   }
   const measure = document.createElement('div');
   measure.inert = true;
@@ -137,6 +148,7 @@ export function cssToPx(length: string): number {
   document.body.appendChild(measure);
   const height = parseFloat(getComputedStyle(measure).height) || 0;
   measure.remove();
+  measured = { key, px: height };
   return height;
 }
 
@@ -193,6 +205,30 @@ export function detentScroll(
   return align === 'start'
     ? offset - parseFloat(style.scrollMarginLeft)
     : offset + marker.offsetWidth + parseFloat(style.scrollMarginRight) - scroller.clientWidth;
+}
+
+/** Where a sheet rests: a scroll position along its axis (`restAt`). */
+export interface Rest {
+  readonly axis: Axis;
+  readonly target: number;
+}
+
+/**
+ * Where the sheet in `scroller` rests open for the layout it has now and its swipe direction: the
+ * scroll position along its axis that rests its first snap point's marker, or, without one, all
+ * of it showing (the entered share of the travel, which counts the edges it leaves by and its
+ * container's offset). Read from the layout, not from the boxes drawn: a swipe or stack
+ * animation's transforms do not move it. The one answer the entrance aims at, checks each frame
+ * and arrives at, the one a sheet at rest is put back at, and the one its container's clip
+ * counts from.
+ */
+export function restAt(scroller: HTMLElement, config: SwipeConfig): Rest {
+  // Its own marker comes first: a sheet nested in its content renders after it.
+  const initial = scroller.querySelector<HTMLElement>('[data-sheet-initial]');
+  const target = initial
+    ? detentScroll(scroller, initial, config.axis, config.after ? 'start' : 'end')
+    : (config.enteredScroll / 100) * viewportTravel(config);
+  return { axis: config.axis, target };
 }
 
 const SETTLE_QUIET_MS = 150;
@@ -293,17 +329,19 @@ export function scrollSettled(scroller: HTMLElement, arrived?: () => boolean): P
 const GESTURE_IDLE_MS = 500;
 /** How long a scroll with a `scrollend` to come may stand still before it is taken as ended. */
 const GESTURE_QUIET_MS = 1000;
+/** How long a scroll already over (one a layout made) is waited on before it is taken as ended. */
+export const SCROLL_OVER_MS = SETTLE_QUIET_MS;
 
 /**
  * Resolves once the scroll a user's gesture set off has ended, its momentum and its snap with
  * it: on `scrollend`, or, where the browser has none (Safari before 26.2), once no `scroll` has
- * come for 150 ms. One that set no scroll off has ended once 500 ms pass with none; one whose
- * `scrollend` never comes (its container gone), once it has stood still for a second.
+ * come for 150 ms. One that set no scroll off has ended once `idleMs` (500 ms) pass with none;
+ * one whose `scrollend` never comes (its container gone), once it has stood still for a second.
  */
-export function gestureSettled(scroller: HTMLElement): Promise<void> {
+export function gestureSettled(scroller: HTMLElement, idleMs = GESTURE_IDLE_MS): Promise<void> {
   return new Promise((resolve) => {
     const ends = 'onscrollend' in window;
-    let timer = setTimeout(() => done(), GESTURE_IDLE_MS);
+    let timer = setTimeout(() => done(), idleMs);
     const onScroll = () => {
       clearTimeout(timer);
       timer = setTimeout(() => done(), ends ? GESTURE_QUIET_MS : SETTLE_QUIET_MS);
