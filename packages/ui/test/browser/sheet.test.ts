@@ -2860,10 +2860,51 @@ describe('the two invariants: it leaves only by the user, and rests at the end i
       size: { width: 1180, height: 820 },
       steps: [{ kind: 'open' }, { kind: 'size', width: 820, height: 1180 }],
     },
+    {
+      name: 'T1 M1: a phone finger drags the sheet near the edge and holds still, its page drops the dock under it, the finger lifts',
+      touch: true,
+      size: { width: 390, height: 844 },
+      steps: [
+        { kind: 'offset', by: 117 },
+        { kind: 'open' },
+        { kind: 'rest' },
+        { kind: 'down', on: 'sheet' },
+        { kind: 'move', toward: 'exit', px: 330, count: 22, gap: 1 },
+        { kind: 'wait', frames: 10 },
+        { kind: 'offset', by: 0 },
+        { kind: 'wait', frames: 10 },
+        { kind: 'up' },
+      ],
+    },
   ];
   for (const run of FIXED) {
     it(run.name, async () => {
       expect(brokenBy(await runModel(run))).toEqual([]);
+    });
+  }
+
+  // T1 D1, kept as cases of their own: the judge reads a swipe the sheet threw away as a stay
+  // (nothing carried it out), so a run of steps cannot hold it. Its page moves an idle sheet by
+  // CSS alone, which the sheet hears only at the next input: that input is still a swipe.
+  for (const [edge, size] of [
+    ['bottom', { width: 800, height: 600 }],
+    ['right', { width: 1440, height: 900 }],
+  ] as const) {
+    it(`T1 D1: its page moves an idle ${edge} sheet by CSS alone, and one wheel toward the exit swipes it away`, async () => {
+      const page = await h.open('sheet', { viewport: size, query: MODEL_QUERY });
+      await page.addStyleTag({ content: OFFSETS });
+      await openSheet(page);
+      await modelSettles(page);
+      await framesOf(page, 30);
+      await page.evaluate(() => {
+        for (const name of ['--floor', '--side']) {
+          document.documentElement.style.setProperty(name, '28px');
+        }
+      });
+      await framesOf(page, 60);
+      await wheelSheet(page, edge === 'right' ? -400 : 0, edge === 'right' ? 0 : -400);
+      await see(page.locator('#popup')).toHaveCount(0);
+      expect(await opens(page)).toEqual(['open false swipe']);
     });
   }
 
