@@ -263,9 +263,8 @@ const derived = (base: string): { readonly shade: string; readonly light: string
     ? ramp(base, keyLight, shading)
     : { shade: `no shade of ${base}`, light: `no light of ${base}` };
 
-/** A colour and its LCh chroma, so a near-grey reads as one in a failure. */
-const shown = (hex: string | undefined) => {
-  if (hex === undefined || !/^#[0-9a-f]{6}$/i.test(hex)) return String(hex);
+/** Hex colour `hex` in CIE LCh (D65): lightness 0..100, chroma, hue in degrees. */
+const lchOf = (hex: string) => {
   const lin = (i: number) => {
     const s = Number.parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16) / 255;
     return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
@@ -275,8 +274,19 @@ const shown = (hex: string | undefined) => {
   const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047);
   const y = f(0.2126 * r + 0.7152 * g + 0.0722 * b);
   const z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883);
-  return `${hex} (C ${Math.hypot(500 * (x - y), 200 * (y - z)).toFixed(1)})`;
+  const [A, B] = [500 * (x - y), 200 * (y - z)];
+  return {
+    L: 116 * y - 16,
+    C: Math.hypot(A, B),
+    h: ((Math.atan2(B, A) * 180) / Math.PI + 360) % 360,
+  };
 };
+
+/** A colour and its LCh chroma, so a near-grey reads as one in a failure. */
+const shown = (hex: string | undefined) =>
+  hex === undefined || !/^#[0-9a-f]{6}$/i.test(hex)
+    ? String(hex)
+    : `${hex} (C ${lchOf(hex).C.toFixed(1)})`;
 
 /** Every base the palette declares: the papers the look may cut from. */
 const BASES: ReadonlySet<string> = new Set(
@@ -726,6 +736,50 @@ test('every garment, robe and prop base sits in the film’s saturation band (CR
     .filter(([, hex]) => saturation(hex) < 0.2 || saturation(hex) > 0.35)
     .map(([name, hex]) => `${name}: ${hex} at ${saturation(hex)}`);
   expect(out).toEqual([]);
+});
+
+/**
+ * CRAFT 12's floors in numbers, as the film's colour model holds its knobs
+ * to them (`ramp`), here held to what the palette derives with no gamut
+ * excuse: a knob the model accepts can still ask for more than sRGB shows
+ * (a light near white keeps no chroma). Chroma is allowed half a unit for
+ * the hex's 8-bit rounding; a hue's turn the angle a unit of rounding moves
+ * it at that chroma.
+ */
+const LIVE_FLOORS = { chroma: 5.5, turn: 10 } as const;
+
+test('every live ramp meets CRAFT 12’s floors as drawn: darker and lighter, chroma 6, a 10° turn', () => {
+  const key = lchOf(keyLight).h;
+  const complement = (key + 180) % 360;
+  const apart = (h: number, k: number) => {
+    const d = Math.abs(h - k) % 360;
+    return d > 180 ? 360 - d : d;
+  };
+  const slack = (C: number) => (Math.atan(1 / Math.max(C, 1)) * 180) / Math.PI;
+  const turned = (from: number, to: number, toward: number, C: number) =>
+    apart(to, toward) <=
+    apart(from, toward) - Math.min(LIVE_FLOORS.turn, apart(from, toward)) + slack(C);
+  const live = [
+    ...Object.entries(ramps).map(([n, r]) => [`ramps.${n}`, r] as const),
+    ...Object.entries(robes).map(([n, r]) => [`robes.${n}`, r] as const),
+    ...Object.entries(hues).flatMap(([n, v]: [string, Hex | Ramp | ReadonlyArray<Hex>]) =>
+      Predicate.hasProperty(v, 'base') ? [[`hues.${n}`, v as Ramp] as const] : [],
+    ),
+  ];
+  const wrong = live.flatMap(([name, r]) => {
+    const [b, s, l] = [lchOf(r.base), lchOf(r.shade), lchOf(r.light)];
+    return [
+      ...(s.L < b.L ? [] : ['shade not darker']),
+      ...(s.C >= LIVE_FLOORS.chroma ? [] : [`shade ${shown(r.shade)} grey`]),
+      ...(turned(b.h, s.h, complement, s.C)
+        ? []
+        : [`shade ${r.shade} not turned 10° toward the complement`]),
+      ...(l.L > b.L ? [] : ['light not lighter']),
+      ...(l.C >= LIVE_FLOORS.chroma ? [] : [`light ${shown(r.light)} grey`]),
+      ...(turned(b.h, l.h, key, l.C) ? [] : [`light ${r.light} not turned 10° toward the key`]),
+    ].map((w) => `${name}: ${w}`);
+  });
+  expect(wrong).toEqual([]);
 });
 
 /** `board` with a second colour, black, in the first paint named `role`: a light or a shadow shaded with black part way across. */
@@ -1544,17 +1598,7 @@ describe('what the host lays round the figures', () => {
     expect([...new Set([...wrong, ...accused])]).toEqual([]);
   });
 
-  test('the kit’s named shading is what the host lays, so the exception names nothing stale', () => {
-    const laid = new Set(
-      [
-        ...accusedHost(),
-        ...drawing((f) => riveJudge.over(f, GAVEL_REST, 0, propsOf(DIRECTION))),
-      ].flatMap((l) => l.colours),
-    );
-    expect([...KIT_SHADING.keys()].filter((c) => !laid.has(c))).toEqual([]);
-  });
-
-  test('the kit’s named shading is laid in each role it names', () => {
+  test('the kit’s named shading is laid in each role it names, so the exception names nothing stale', () => {
     const laid = [
       ...accusedHost(),
       ...drawing((f) => riveJudge.over(f, GAVEL_REST, 0, propsOf(DIRECTION))),
