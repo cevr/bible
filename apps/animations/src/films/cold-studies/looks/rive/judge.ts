@@ -9,19 +9,29 @@
 // accused's face, his head held still (`follow` 0: the eyes do the looking);
 // on the verdict his face softens (`face.ts`).
 
-import { at, rectShape, rounded } from '@bible/film/canvas';
+import { type Hex, at, ramp, rectShape, rounded } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import type { PoseOf } from '@bible/film/rive';
 import { ACCUSED, JUDGE } from '../../../righteousness-by-faith/court.ts';
 import { C, piece } from '../../../righteousness-by-faith/kit.ts';
-import { ramps } from '../../palette.ts';
+import { keyLight, ramps, shading } from '../../palette.ts';
 import type { CourtFrame } from '../../scenes/court.ts';
-import type { Bench, Props } from '../cutpaper/court.ts';
+import { BENCH, type Bench, type Props } from '../cutpaper/court.ts';
 import { accusedHead } from './accused-rig.ts';
-import { DIRECTION, type Direction } from './direction.ts';
+import { DIRECTION, type Direction, dressOf } from './direction.ts';
 import { EASE, type Expression, acted } from './face.ts';
-import { JUDGE_KNOBS, JUDGE_TIMELINES, ROBE } from './judge-rig.ts';
-import { type Pt, boilTime, reachAbout } from './parts.ts';
+import { HAND_ART, JUDGE_KNOBS, JUDGE_TIMELINES, ROBE } from './judge-rig.ts';
+import {
+  FEATHER_REACH,
+  HAND_LIFT,
+  LIFT,
+  type Pt,
+  boilTime,
+  castAlpha,
+  castShows,
+  inkCover,
+  reachAbout,
+} from './parts.ts';
 import type { judgeProp } from './rigs.ts';
 
 /** Reading: lids lowered on the page, the brows level and a little low. */
@@ -150,9 +160,104 @@ const benchTop = (f: CourtFrame, swing: number, props: Props) => {
 };
 
 /**
+ * A feathered edge as the renderer draws one: a Gaussian falloff (σ half the
+ * feather's strength) across 1.5 strengths each side of the edge, as stops
+ * across that band (0 its inside, 1 its outside) and the share of the
+ * shadow's alpha each keeps.
+ */
+const FEATHER = [
+  [0, 0.9987],
+  [1 / 6, 0.9772],
+  [2 / 6, 0.8413],
+  [3 / 6, 0.5],
+  [4 / 6, 0.1587],
+  [5 / 6, 0.0228],
+  [1, 0],
+] as const;
+
+/** `hex` at opacity `a`, as a canvas colour. */
+const withAlpha = (hex: Hex, a: number) =>
+  `${hex}${Math.round(Math.max(0, Math.min(1, a)) * 255)
+    .toString(16)
+    .padStart(2, '0')}`;
+
+/** The outline `pts` as the current path's next subpath. */
+const trace = (ctx: CanvasRenderingContext2D, pts: ReadonlyArray<Pt>) => {
+  pts.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+  ctx.closePath();
+};
+
+/**
+ * What lies under his hand, top first, in the bench's units, each with its
+ * paper: the gavel's head and handle and the paper he reads (`benchTop`),
+ * the gavel's block, the rim and the bench's face (the court's `BENCH`), his
+ * robe as he leans, and past them all the court's parchment wall.
+ */
+const underHand = (d: Direction, swing: number, lean: number, props: Props) => {
+  const gavel = gavelAt(swing);
+  return [
+    [gavel.head, C.cutDeep],
+    [gavel.handle, C.inkSoft],
+    [sheetOutline, ramps.paper.base],
+    [BENCH.block, props.block],
+    [BENCH.rim, props.rim],
+    [BENCH.face, props.bench],
+    [robeAt(lean), dressOf(d).robe.color],
+    [undefined, ramps.paper.base],
+  ] as const satisfies ReadonlyArray<readonly [ReadonlyArray<Pt> | undefined, Hex]>;
+};
+
+/**
+ * His hand's cast, which the host lays because it falls on the host's
+ * scenery (`handRig`): the hand's circle moved along the light by its lift
+ * and feathered as the renderer feathers a figure's cast, laid on each
+ * surface under it in that surface's shade (`ramp`), clipped to the surface
+ * and kept off those above it. Only where it shows past the hand's ink under
+ * `d` (`castShows`); under K1 the ink hides it whole.
+ */
+const handCast = (
+  ctx: CanvasRenderingContext2D,
+  d: Direction,
+  swing: number,
+  lean: number,
+  props: Props,
+) => {
+  if (!castShows(HAND_LIFT, inkCover(d, 'small'))) return;
+  const [x, y] = handAt(swing, lean);
+  const [cx, cy] = [x + LIFT.x * HAND_LIFT, y + LIFT.y * HAND_LIFT];
+  const band = FEATHER_REACH * LIFT.feather * HAND_LIFT;
+  const [r0, r1] = [Math.max(0, HAND_ART.r - band), HAND_ART.r + band];
+  const alpha = castAlpha(HAND_LIFT);
+  const surfaces = underHand(d, swing, lean, props);
+  surfaces.forEach(([outline, paper], i) => {
+    ctx.save();
+    if (outline !== undefined) {
+      ctx.beginPath();
+      trace(ctx, outline);
+      ctx.clip();
+    }
+    for (const [above] of surfaces.slice(0, i)) {
+      if (above === undefined) continue;
+      ctx.beginPath();
+      ctx.rect(cx - r1 - 1, cy - r1 - 1, 2 * r1 + 2, 2 * r1 + 2);
+      trace(ctx, above);
+      ctx.clip('evenodd');
+    }
+    const shade = ramp(paper, keyLight, shading).shade;
+    const g = ctx.createRadialGradient(cx, cy, r0, cx, cy, r1);
+    for (const [t, k] of FEATHER) g.addColorStop(t, withAlpha(shade, alpha * k));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r1, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.restore();
+  });
+};
+
+/**
  * The judge drawn by the rigs built from `d`: his body behind the bench (his
  * contact shadow is the bench's, the court's), the paper he reads and the
- * gavel on it, his hand on the gavel.
+ * gavel on it, his hand's cast where it shows, and his hand on the gavel.
  */
 export const judgeOf = (d: Direction): Bench => {
   const gaze = gazeOf(d);
@@ -163,6 +268,7 @@ export const judgeOf = (d: Direction): Bench => {
       ),
     over: (f, swing, lean, props) => {
       benchTop(f, swing, props);
+      handCast(f.ctx, d, swing, lean, props);
       const [x, y] = handAt(swing, lean);
       at(f.ctx, { x, y }, () => f.rive('hand', { timelines: [['boil', boilTime(f.boil)]] }));
     },

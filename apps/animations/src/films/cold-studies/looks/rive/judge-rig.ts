@@ -155,19 +155,22 @@ export const judgeRig = (fig: Figure) => {
   return artboard(fig, JUDGE_ART, [figure], [breath, boilTimeline(fig)], JUDGE_KNOBS);
 };
 
-/** The hand artboard: one circle hand at its centre, for a hand that works over scenery the figure stands behind (the bench, which its shadow falls on). */
+/**
+ * The hand artboard: one circle hand at its centre, for a hand that works
+ * over scenery the figure stands behind (the bench and what lies on it, his
+ * robe, the wall). Its cast falls on that scenery, so the host lays it
+ * (`judge.ts`), in the shade of each surface it falls on.
+ */
 export const HAND_ART = { width: 48, height: 48, r: 15 } as const;
 
-export const handRig = (fig: Figure) => {
-  const dress = dressOf(fig.direction);
-  return artboard(
+export const handRig = (fig: Figure) =>
+  artboard(
     fig,
     HAND_ART,
     [
       el('Node', { x: HAND_ART.width / 2, y: HAND_ART.height / 2, name: 'hand' }, [
-        hand(fig, 'palm', HAND_ART.r, { ...FIGURE, cast: dress.bench.shade }),
+        hand(fig, 'palm', HAND_ART.r, { ...FIGURE, ground: 'host' }),
       ]),
     ],
     [boilTimeline(fig)],
   );
-};

@@ -162,6 +162,12 @@ export interface PieceLook {
    */
   readonly cast?: string;
   /**
+   * `host`: what lies past the figure under this piece is the host's scenery
+   * (the judge's hand over the bench), so the host lays its cast, in the
+   * shade of each surface there, and the rig lays none.
+   */
+  readonly ground?: 'host';
+  /**
    * The figure's own pieces this one's cast shadow can fall on, and its
    * backmost piece. Given, the shadow is laid once per surface, in that
    * surface's shade, clipped to it and drawn just over it, and once in
@@ -184,6 +190,9 @@ export const FIGURE: PieceLook = {
  * parchment as much as the old 30 % warm black did, in the shade's own hue.
  */
 const CAST = 1.4;
+
+/** How opaque a cast shadow lifted `lift` lays its surface's shade (`CAST`). */
+export const castAlpha = (lift: number) => Math.min(1, CAST * lift);
 
 /**
  * The ink's weights, in units at the court's scale, by what a line carries,
@@ -212,29 +221,49 @@ export const OUTSIDE = { outer: 6, small: 5 } as const;
 export const CORE = 1;
 
 /**
+ * The widths of a piece's edge strokes under `d`'s outline, units: the ink
+ * laid outside the paper (a stroke under it, twice as wide as what shows,
+ * the paper covering its inner half), the ink centred on the cut, and the
+ * light core straddling the cut; 0 for a stroke the outline does not lay.
+ */
+const edgeWidths = (d: Direction, weight: keyof typeof INK) => {
+  if (d.outline === 'line' || (d.outline === 'thick' && weight === 'trim'))
+    return { under: 0, centred: INK[weight], core: 0 };
+  const core = d.outline === 'thick' ? 0 : CORE;
+  const showing = d.outline === 'edge' ? 0 : weight === 'trim' ? INK.trim / 2 : OUTSIDE[weight];
+  return { under: showing > 0 ? 2 * (showing + core) : 0, centred: 0, core: 2 * core };
+};
+
+/**
+ * How far a piece's edge under `d` covers what lies just outside its cut,
+ * units: half its widest stroke (ink or light core), 0 for a piece with none.
+ */
+export const inkCover = (d: Direction, weight: keyof typeof INK | 'none') => {
+  if (weight === 'none') return 0;
+  const w = edgeWidths(d, weight);
+  return Math.max(w.under, w.centred, w.core) / 2;
+};
+
+/**
  * A piece's edge under `d`'s outline and in its ink, as the strokes under
- * its paper and over it. A line laid outside the paper is a stroke under it,
- * twice as wide as what shows (the paper covers its inner half); a light
- * core, in `light`, is a stroke over the paper, straddling the cut.
+ * its paper and over it (`edgeWidths`); its light core in `light`.
  */
 const edgeOf = (d: Direction, weight: keyof typeof INK, light: string) => {
   const ink = (thickness: number) =>
     el('Stroke', { thickness, join: 'round', cap: 'round', name: 'Ink' }, [solid(inkOf(d))]);
-  const silhouette = weight !== 'trim';
-  const centred = { under: [], over: [ink(INK[weight])] };
-  if (d.outline === 'line' || (d.outline === 'thick' && !silhouette)) return centred;
-  const core = d.outline === 'thick' ? 0 : CORE;
-  const showing = d.outline === 'edge' ? 0 : weight === 'trim' ? INK.trim / 2 : OUTSIDE[weight];
+  const w = edgeWidths(d, weight);
   return {
-    under: showing > 0 ? [ink(2 * (showing + core))] : [],
-    over:
-      core > 0
+    under: w.under > 0 ? [ink(w.under)] : [],
+    over: [
+      ...(w.centred > 0 ? [ink(w.centred)] : []),
+      ...(w.core > 0
         ? [
-            el('Stroke', { thickness: 2 * core, join: 'round', cap: 'round', name: 'Core' }, [
+            el('Stroke', { thickness: w.core, join: 'round', cap: 'round', name: 'Core' }, [
               solid(light),
             ]),
           ]
-        : [],
+        : []),
+    ],
   };
 };
 
@@ -246,13 +275,30 @@ const edgeOf = (d: Direction, weight: keyof typeof INK, light: string) => {
 export const LIFT = { x: 3, y: 5, feather: 6 } as const;
 
 /**
+ * How far the Rive Renderer paints a feather past its shape, per unit of
+ * its strength (`paint_outset.hpp`: a feather's outset is 1.5 times it), and
+ * the antialiasing pixel past that, units.
+ */
+export const FEATHER_REACH = 1.5;
+const AA = 1;
+
+/**
+ * Whether a cast lifted `lift` shows past an edge that covers `cover`
+ * (`inkCover`): its offset along the light, its feather's reach and a pixel
+ * of antialiasing past the ink. A cast the ink hides is not laid: no shadow,
+ * no casts on the figure's surfaces, no boil echo (R3-M2).
+ */
+export const castShows = (lift: number, cover: number) =>
+  lift > 0 && Math.hypot(LIFT.x, LIFT.y) * lift + FEATHER_REACH * LIFT.feather * lift + AA > cover;
+
+/**
  * A cast shadow in `shade`, lifted `lift`: a feathered copy of its shape's
  * outline toward the light's far side, as a fill (`clockwise`, the one rule
  * the Rive Renderer feathers without pixel local storage).
  */
 const shadowFill = (shade: string, lift: number) =>
   el('Fill', { fillRule: 'clockwise', name: 'Shadow' }, [
-    solid(shade, Math.min(1, CAST * lift)),
+    solid(shade, castAlpha(lift)),
     el('Feather', {
       strength: LIFT.feather * lift,
       offsetX: LIFT.x * lift,
@@ -261,12 +307,20 @@ const shadowFill = (shade: string, lift: number) =>
     }),
   ]);
 
+/** A piece's lift off the sheet. */
+const liftOf = (look: PieceLook) => look.shadow ?? 0.35;
+
+/** Whether `look`'s cast shows past its own edge under `d` (`castShows`). */
+const castOf = (d: Direction, look: PieceLook) =>
+  castShows(liftOf(look), inkCover(d, look.ink ?? 'outer'));
+
 /** The paints of a piece over `box` under `d`, bottom to top as Rive stacks a shape's paints (last on top). */
 const paints = (d: Direction, look: PieceLook, box: Box): Element[] => {
-  const lift = look.shadow ?? 0.35;
   const out: Element[] = [];
-  // A piece that lies over others of its figure lays its shadow on each (`casts`), not here.
-  if (lift > 0 && look.over === undefined) out.push(shadowFill(look.cast ?? R.paper.shade, lift));
+  // A piece that lies over others of its figure lays its shadow on each (`casts`), not here; a
+  // piece over the host's scenery leaves its shadow to the host.
+  if (castOf(d, look) && look.over === undefined && look.ground !== 'host')
+    out.push(shadowFill(look.cast ?? R.paper.shade, liftOf(look)));
   const weight = look.ink ?? 'outer';
   const edge: { under: Element[]; over: Element[] } =
     weight === 'none' ? { under: [], over: [] } : edgeOf(d, weight, look.light);
@@ -562,7 +616,7 @@ export const smoothPath = (
  * given, painted `look` with its crease across its own box, and its outline
  * on the boil (`boil` units; 0 holds it still). A piece that lies over others
  * of its figure (`look.over`) comes as a node: the piece, then its cast
- * shadows (`casts`).
+ * shadows (`casts`), when they show past its edge (`castShows`).
  */
 export const piece = (
   fig: Figure,
@@ -577,7 +631,7 @@ export const piece = (
     smoothPath(fig, key, pts, opts.skin),
     ...paints(fig.direction, look, boxOf(pts)),
   ]);
-  if (look.over === undefined || (look.shadow ?? 0.35) <= 0) return shape;
+  if (look.over === undefined || !castOf(fig.direction, look)) return shape;
   return el('Node', { name: `${key}Piece` }, [
     shape,
     ...casts(fig, key, pts, look, look.over, opts.skin, boil > 0),

@@ -80,9 +80,9 @@ export const inkOf = (d: Direction): Hex => INKS[d.ink];
 
 /** A paper as a piece takes it, from its ramp: its colour, its crease's far side and its cut edge's light. */
 export interface Paper {
-  readonly color: string;
-  readonly shade: string;
-  readonly light: string;
+  readonly color: Hex;
+  readonly shade: Hex;
+  readonly light: Hex;
 }
 
 /** A ramp as a piece's paper. */
