@@ -43,6 +43,14 @@ export const palette = {
   shade: '#423123',
 } satisfies Record<string, Hex>;
 
+/**
+ * The court's key light, by its colour: a neutral room light on warm
+ * parchment, so the paper's own warmth is the light. Every shade turns
+ * toward its hue's complement and every light leans to its hue (CRAFT 12);
+ * `looks/rive/direction.test.ts` measures each ramp against it.
+ */
+export const keyLight: Hex = court.paper;
+
 /** A colour's ramp: its shade (a neighbouring hue, never the base dimmed), the base, and its light. */
 export interface Ramp {
   readonly shade: Hex;

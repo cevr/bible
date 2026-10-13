@@ -2,25 +2,37 @@
 // (`direction.ts`), one axis at a time with the others at K1, builds a valid
 // rig, passes the figure-parts tests, keeps both heads inside their
 // artboards (what `paintGl` copies), declares a face probe as tall as the
-// head it draws, and reaches every part its axis names.
+// head it draws, and reaches every part its axis names. Under the court's
+// key light (`keyLight`) every shaded thing it draws keeps CRAFT 12: each
+// crease and ramp shade turns toward the light's complement, each highlight
+// leans to the light, and each cast shadow is the shade of the surface it
+// falls on. Every hand is one closed circle, and every line the outline axis
+// names is laid on every piece and on the gavel as drawn.
 
+import { recorder, withDom } from '@bible/film/stand-in';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { describe, expect, test } from 'bun:test';
-import { Console, Effect, FileSystem, Result } from 'effect';
-import { ramps } from '../../palette.ts';
-import { paperProps } from '../cutpaper/court.ts';
+import { Console, Effect, FileSystem, Predicate, Result } from 'effect';
+import { C } from '../../../righteousness-by-faith/kit.ts';
+import { hues, keyLight, ramps } from '../../palette.ts';
+import type { CourtFrame } from '../../scenes/court.ts';
+import { type Props, paperProps } from '../cutpaper/court.ts';
 import { HAND as ACCUSED_HAND, accusedFace, accusedHead } from './accused-rig.ts';
 import { compile, rive } from './build.ts';
-import { type Direction, K1, OPTIONS, inkOf, propsOf } from './direction.ts';
+import { type Direction, K1, OPTIONS, dressOf, inkOf, propsOf } from './direction.ts';
 import { figureRigs, figuresRml } from './figures.ts';
 import { HAND_ART, JUDGE_FACE, judgeFace } from './judge-rig.ts';
-import { type Mat, type Pt, boxOf } from './parts.ts';
+import { riveJudge } from './judge.ts';
+import { INK, type Mat, type Pt, boxOf } from './parts.ts';
 import { type Element, argb } from './rml.ts';
 
 /** Every option, by the study's name, as a direction: K1 with that one axis changed. */
 const CASES = Object.entries(OPTIONS).map(
   ([name, set]) => [name, { ...K1, ...set } satisfies Direction] as const,
 );
+
+/** The options, and K1 itself: every direction the shading must hold under. */
+const SHADED = [['K1', K1] as const, ...CASES];
 
 // ─── reading the generated rigs ──────────────────────────────────────────────
 
@@ -139,6 +151,224 @@ const hueShare = (base: string, shade: string) => {
 /** A colour value as RML writes it, back to `#rrggbb`. */
 const hexOf = (argbValue: string) => `#${argbValue.slice(2).toLowerCase()}`;
 
+// ─── CRAFT 12 under the key light ────────────────────────────────────────────
+
+/** A colour's LCh hue, degrees. */
+const hueOf = (hex: string) => {
+  const { a, b } = lch(hex);
+  return ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
+};
+/** How far apart two hues are, the short way round, degrees. */
+const apart = (h: number, k: number) => {
+  const d = Math.abs(h - k) % 360;
+  return d > 180 ? 360 - d : d;
+};
+/** HSV saturation, 0..1: what CRAFT 12 says a shade keeps or raises. */
+const saturationOf = (hex: string) => {
+  const [r, g, b] = [0, 1, 2].map((i) => Number.parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16));
+  const top = Math.max(r ?? 0, g ?? 0, b ?? 0);
+  return top === 0 ? 0 : (top - Math.min(r ?? 0, g ?? 0, b ?? 0)) / top;
+};
+
+/** The key light's hue, and its complement, which every shade turns toward. */
+const KEY = hueOf(keyLight);
+const COMPLEMENT = (KEY + 180) % 360;
+/** A hue this near its target already sits on it: a base there need not move further. */
+const NEAR = 10;
+
+/**
+ * Why `shade` is no CRAFT 12 shade of `base`: it must be darker, turn toward
+ * the key's complement (nearer it than the base, or already on it), be at
+ * least half hue by its colour step, and keep or raise the saturation.
+ */
+const shadeFaults = (base: string, shade: string): string[] => {
+  const faults: string[] = [];
+  if (lch(shade).L >= lch(base).L) faults.push('not darker');
+  const from = apart(hueOf(base), COMPLEMENT);
+  const to = apart(hueOf(shade), COMPLEMENT);
+  if (to >= from && to > NEAR)
+    faults.push(`turns away from the complement (${from.toFixed(1)}° → ${to.toFixed(1)}°)`);
+  if (hueShare(base, shade) < 0.5)
+    faults.push(`hue share ${(100 * hueShare(base, shade)).toFixed(0)} %`);
+  if (saturationOf(shade) < saturationOf(base) - 0.005) faults.push('loses saturation');
+  return faults;
+};
+
+/** Why `light` is no CRAFT 12 highlight of `base`: it must be lighter and lean to the key's hue (nearer it than the base, or on it). */
+const lightFaults = (base: string, light: string): string[] => {
+  const faults: string[] = [];
+  if (lch(light).L <= lch(base).L) faults.push('not lighter');
+  const from = apart(hueOf(base), KEY);
+  const to = apart(hueOf(light), KEY);
+  if (to >= from && to > NEAR)
+    faults.push(`turns away from the light (${from.toFixed(1)}° → ${to.toFixed(1)}°)`);
+  return faults;
+};
+
+/** Every paper the palette ramps, by name: its base and shade, and its light where it has one. */
+const PAPERS: ReadonlyArray<
+  readonly [string, { readonly base: string; readonly shade: string; readonly light?: string }]
+> = [
+  ...Object.entries(ramps).map(([name, ramp]) => [`ramps.${name}`, ramp] as const),
+  ...Object.entries(hues).flatMap(([name, hue]) =>
+    Predicate.hasProperty(hue, 'base') ? [[`hues.${name}`, hue] as const] : [],
+  ),
+];
+
+/** The shade of the paper whose base is `base`, from the palette's ramps. */
+const shadeOfBase = (base: string) =>
+  PAPERS.find(([, paper]) => paper.base.toLowerCase() === base.toLowerCase())?.[1].shade;
+
+describe('the palette under the key light (CRAFT 12)', () => {
+  test.each(PAPERS)(
+    '%s: its shade is darker, turned toward the light’s complement, mostly hue, as saturated',
+    (name, paper) => {
+      expect([name, paper.base, paper.shade, shadeFaults(paper.base, paper.shade)]).toEqual([
+        name,
+        paper.base,
+        paper.shade,
+        [],
+      ]);
+    },
+  );
+  test.each(PAPERS.filter(([, paper]) => paper.light !== undefined))(
+    '%s: its light is lighter and leans to the light’s hue',
+    (name, paper) => {
+      const light = paper.light ?? paper.base;
+      expect([name, light, lightFaults(paper.base, light)]).toEqual([name, light, []]);
+    },
+  );
+});
+
+// ─── reading what a rig paints ───────────────────────────────────────────────
+
+/** A paint's colour: its solid, or a gradient's first stop. */
+const colourOf = (paint: Element | undefined) => {
+  const stop = walk(paint ? [paint] : []).find(
+    (e) => e.name === 'SolidColor' || e.name === 'GradientStop',
+  );
+  const value = attr(stop, 'colorValue');
+  return value === undefined ? undefined : hexOf(String(value));
+};
+const paintNamed = (shape: Element, name: string) =>
+  shape.children.find((c) => attr(c, 'name') === name);
+
+/** A shape of an artboard as drawn: its element, its place in the draw (0 on top), and its outline at rest on the artboard. */
+interface Drawn {
+  readonly e: Element;
+  readonly name: string;
+  readonly order: number;
+  readonly outline: ReadonlyArray<Pt>;
+}
+
+/** Every shape of `board`, top first (Rive draws a node's first child over the ones after it). */
+const drawnOf = (board: Element): ReadonlyArray<Drawn> =>
+  framed([board])
+    .filter(({ e }) => e.name === 'Shape')
+    .map(({ e, at }, order) => ({
+      e,
+      name: String(attr(e, 'name')),
+      order,
+      outline: e.children
+        .filter((c) => c.name === 'PointsPath')
+        .flatMap((p) => p.children)
+        .filter((v) => v.name === 'CubicMirroredVertex' || v.name === 'StraightVertex')
+        .map((v) => apply(at, [num(v, 'x', 0), num(v, 'y', 0)])),
+    }));
+
+/** Whether `p` lies inside the closed polygon `poly`. */
+const inside = ([x, y]: Pt, poly: ReadonlyArray<Pt>) => {
+  let hit = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i] ?? [0, 0];
+    const [xj, yj] = poly[j] ?? [0, 0];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit;
+  }
+  return hit;
+};
+
+/** A paper piece: a shape with a `Paper` fill (not a face mark, not a cast). */
+const isPaper = (s: Drawn) => paintNamed(s.e, 'Paper') !== undefined;
+
+/**
+ * The cast shadows `caster` lays, as the renderer shows them at `p`: its own
+ * `Shadow` fill, drawn with it over whatever lies under it; else the casts
+ * clipped to a surface (shapes named `<caster>Cast…` with a `ClippingShape`),
+ * where that surface is; else its unclipped cast, drawn behind the figure,
+ * where no surface of the rig covers it.
+ */
+const castAt = (
+  shapes: ReadonlyArray<Drawn>,
+  caster: Drawn,
+  under: Drawn | undefined,
+): string | undefined => {
+  const own = paintNamed(caster.e, 'Shadow');
+  if (own !== undefined) return colourOf(own);
+  const casts = shapes.filter((s) => s.name.startsWith(`${caster.name}Cast`));
+  const clipOf = (s: Drawn) =>
+    attr(
+      s.e.children.find((c) => c.name === 'ClippingShape'),
+      'sourceId',
+    );
+  const lay =
+    under === undefined
+      ? casts.find((s) => clipOf(s) === undefined)
+      : casts.find((s) => clipOf(s) === attr(under.e, 'id'));
+  return lay === undefined ? undefined : colourOf(paintNamed(lay.e, 'Shadow'));
+};
+
+/** How far `caster`'s cast falls from it, along the light: its shadow's offset. */
+const offsetOf = (shapes: ReadonlyArray<Drawn>, caster: Drawn): Pt | undefined => {
+  const own = paintNamed(caster.e, 'Shadow');
+  const cast = shapes.find((s) => s.name.startsWith(`${caster.name}Cast`));
+  const paint = own ?? (cast ? paintNamed(cast.e, 'Shadow') : undefined);
+  const feather = walk(paint ? [paint] : []).find((e) => e.name === 'Feather');
+  return feather === undefined
+    ? undefined
+    : [num(feather, 'offsetX', 0), num(feather, 'offsetY', 0)];
+};
+
+/**
+ * Every place a piece's cast shadow shows, at rest: points just past its
+ * edge on the side away from the light, each with the surface it falls on
+ * (the topmost paper drawn under the piece there, else the artboard's
+ * ground) and the colour the cast lays there.
+ */
+const castsOf = (board: Element, ground: string) => {
+  const shapes = drawnOf(board);
+  return shapes.filter(isPaper).flatMap((caster) => {
+    const offset = offsetOf(shapes, caster);
+    if (offset === undefined || caster.outline.length === 0) return [];
+    const reach = Math.hypot(offset[0], offset[1]);
+    const away: Pt = [offset[0] / reach, offset[1] / reach];
+    const box = boxOf(caster.outline);
+    const centre: Pt = [(box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2];
+    const above = shapes.filter((s) => s.order < caster.order);
+    const below = shapes.filter(
+      (s) => s.order > caster.order && isPaper(s) && !s.name.includes('Cast'),
+    );
+    return caster.outline.flatMap((v) => {
+      const n = Math.hypot(v[0] - centre[0], v[1] - centre[1]);
+      const normal: Pt = [(v[0] - centre[0]) / n, (v[1] - centre[1]) / n];
+      if (normal[0] * away[0] + normal[1] * away[1] < 0.7) return [];
+      const p: Pt = [v[0] + normal[0] * reach * 0.5, v[1] + normal[1] * reach * 0.5];
+      if (inside(p, caster.outline) || above.some((s) => inside(p, s.outline))) return [];
+      const under = below.find((s) => inside(p, s.outline));
+      const surface = under === undefined ? 'ground' : under.name;
+      const want =
+        under === undefined ? ground : shadeOfBase(colourOf(paintNamed(under.e, 'Paper')) ?? '');
+      return [
+        {
+          caster: caster.name,
+          surface,
+          want: want ?? 'no ramp',
+          laid: castAt(shapes, caster, under) ?? 'none',
+        },
+      ];
+    });
+  });
+};
+
 // ─── building with the Rive CLI ──────────────────────────────────────────────
 
 /** `d`'s project built as `build.ts` builds it, in a directory of its own: its warnings and problems. */
@@ -221,17 +451,6 @@ describe.each(CASES)('option %s', (_, d) => {
           child.name,
           true,
         ]);
-    // A circle about the hand's centre, of the hand's radius: the accused's, and the judge's at his size.
-    for (const [palm, r] of [
-      [palms[0], ACCUSED_HAND.r],
-      [palms[1], ACCUSED_HAND.r],
-      [palms[2], HAND_ART.r],
-    ] as const) {
-      const points = walk(palm ? [palm] : [])
-        .filter((e) => e.name === 'CubicMirroredVertex')
-        .map((v) => Math.hypot(num(v, 'x', 0), num(v, 'y', 0)));
-      for (const distance of points) expect(distance).toBeCloseTo(r, 6);
-    }
   });
 
   test('the accused and the judge wear the same face kit, the judge at his own scale', () => {
@@ -299,23 +518,6 @@ describe.each(CASES)('option %s', (_, d) => {
       ]);
   });
 
-  test('the outline axis lays what it names: a line outside the paper, a light core on the cut', () => {
-    const pieces = [accused, judge, hand].flatMap((b) =>
-      walk([b]).filter(
-        (e) => e.name === 'Shape' && e.children.some((c) => attr(c, 'name') === 'Paper'),
-      ),
-    );
-    const paints = pieces.map((p) => p.children.map((c) => attr(c, 'name')));
-    const under = paints.some(
-      (ps) => ps.indexOf('Ink') !== -1 && ps.indexOf('Ink') < ps.indexOf('Paper'),
-    );
-    const core = paints.some((ps) => ps.includes('Core'));
-    expect({ under, core }).toEqual({
-      under: d.outline === 'thick' || d.outline === 'both',
-      core: d.outline === 'edge' || d.outline === 'both',
-    });
-  });
-
   test("every head and hand is the people's one figure paper", () => {
     for (const [b, shape] of [
       [accused, 'head'],
@@ -338,9 +540,16 @@ describe.each(CASES)('option %s', (_, d) => {
       ]);
     }
   });
+});
 
-  test('every crease turns the hue: at least half its colour step is hue, never the paper dimmed (CRAFT 12)', () => {
-    const creases = [accused, judge, hand].flatMap((b) =>
+// ─── shading, for every direction (CRAFT 12) ─────────────────────────────────
+
+describe.each(SHADED)('shading under %s (CRAFT 12)', (_, d) => {
+  const rigs = figureRigs(d);
+  const boards = [rigs.accused, rigs.judge, rigs.hand].map((rig) => rig[0] as Element);
+
+  test('every crease turns toward the light’s complement: darker, mostly hue, as saturated', () => {
+    const creases = boards.flatMap((b) =>
       walk([b])
         .filter((e) => e.name === 'LinearGradient')
         .map((g) => g.children.map((s) => hexOf(String(attr(s, 'colorValue')))))
@@ -348,6 +557,205 @@ describe.each(CASES)('option %s', (_, d) => {
     );
     expect(creases.length).toBeGreaterThan(0);
     for (const [base, shade] of new Map(creases.map((c) => [c.join(), c])).values())
-      expect([base, shade, hueShare(base, shade) >= 0.5]).toEqual([base, shade, true]);
+      expect([base, shade, shadeFaults(base, shade)]).toEqual([base, shade, []]);
   });
+
+  test('every highlight (a cut edge’s light core) is lighter than its paper and leans to the light', () => {
+    const cores = boards.flatMap((b) =>
+      walk([b])
+        .filter((e) => e.name === 'Shape' && paintNamed(e, 'Core') !== undefined)
+        .map(
+          (e) =>
+            [
+              String(attr(e, 'name')),
+              colourOf(paintNamed(e, 'Paper')) ?? '',
+              colourOf(paintNamed(e, 'Core')) ?? '',
+            ] as const,
+        ),
+    );
+    if (d.outline === 'edge' || d.outline === 'both') expect(cores.length).toBeGreaterThan(0);
+    for (const [name, base, core] of cores)
+      expect([name, base, core, lightFaults(base, core)]).toEqual([name, base, core, []]);
+  });
+
+  test('every cast shadow is the shade of the surface it falls on', () => {
+    const [accused, judge, hand] = boards as [Element, Element, Element];
+    const casts = [
+      ...castsOf(accused, ramps.paper.shade),
+      ...castsOf(judge, ramps.paper.shade),
+      ...castsOf(hand, dressOf(d).bench.shade),
+    ];
+    expect(casts.length).toBeGreaterThan(0);
+    const wrong = new Map(
+      casts
+        .filter((c) => c.laid !== c.want)
+        .map((c) => [`${c.caster} on ${c.surface}`, `wants ${c.want}, laid ${c.laid}`]),
+    );
+    expect(Object.fromEntries(wrong)).toEqual({});
+  });
+});
+
+// ─── the hand, and what the outline axis lays ─────────────────────────────────
+
+/** A circle's handle length for `n` points round radius `r`: what makes each cubic arc a circle's. */
+const circleHandle = (r: number, n: number) => (4 / 3) * Math.tan(Math.PI / (2 * n)) * r;
+
+describe.each(CASES)('hands and lines under %s', (_, d) => {
+  const rigs = figureRigs(d);
+  const accused = rigs.accused[0] as Element;
+  const judge = rigs.judge[0] as Element;
+  const hand = rigs.hand[0] as Element;
+
+  test('each hand node holds one shape, the palm: one closed path, a circle by its points and its handles', () => {
+    for (const [node, r] of [
+      [named([accused], 'nearHand')[0], ACCUSED_HAND.r],
+      [named([accused], 'farHand')[0], ACCUSED_HAND.r],
+      [named([hand], 'hand')[0], HAND_ART.r],
+    ] as const) {
+      const shapes = walk(node ? [node] : []).filter((e) => e.name === 'Shape');
+      expect([attr(node, 'name'), shapes.length]).toEqual([attr(node, 'name'), 1]);
+      const paths = (shapes[0]?.children ?? []).filter((c) => c.name === 'PointsPath');
+      expect(paths).toHaveLength(1);
+      expect(String(attr(paths[0], 'isClosed'))).toBe('true');
+      const vertices = paths[0]?.children ?? [];
+      expect(vertices.every((v) => v.name === 'CubicMirroredVertex')).toBe(true);
+      const n = vertices.length;
+      expect(n).toBe(12);
+      const knots = vertices.map((v) => {
+        const [x, y, rot, dist] = [
+          num(v, 'x', 0),
+          num(v, 'y', 0),
+          num(v, 'rotation', 0),
+          num(v, 'distance', 0),
+        ];
+        return {
+          at: [x, y] as Pt,
+          out: [x + Math.cos(rot) * dist, y + Math.sin(rot) * dist] as Pt,
+          into: [x - Math.cos(rot) * dist, y - Math.sin(rot) * dist] as Pt,
+          rot,
+          dist,
+        };
+      });
+      for (const k of knots) {
+        // On the circle, its handle along the circle's tangent, as long as a circle's.
+        expect(Math.hypot(k.at[0], k.at[1])).toBeCloseTo(r, 6);
+        const tangent = Math.atan2(k.at[1], k.at[0]) + Math.PI / 2;
+        expect(Math.abs(Math.sin(k.rot - tangent))).toBeLessThan(1e-6);
+        expect(Math.cos(k.rot - tangent)).toBeGreaterThan(0);
+        expect(Math.abs(k.dist / circleHandle(r, n) - 1)).toBeLessThan(0.1);
+      }
+      // And what it draws between them is the circle: every arc within half a percent of the radius.
+      knots.forEach((k, i) => {
+        const next = knots[(i + 1) % n] ?? k;
+        for (const t of [0.25, 0.5, 0.75]) {
+          const s = 1 - t;
+          const p = [0, 1].map(
+            (j) =>
+              s ** 3 * (k.at[j] ?? 0) +
+              3 * s ** 2 * t * (k.out[j] ?? 0) +
+              3 * s * t ** 2 * (next.into[j] ?? 0) +
+              t ** 3 * (next.at[j] ?? 0),
+          );
+          expect(Math.abs(Math.hypot(p[0] ?? 0, p[1] ?? 0) / r - 1)).toBeLessThan(0.005);
+        }
+      });
+    }
+  });
+
+  test('the outline axis lays what it names on every piece, by the line the piece carries', () => {
+    // A piece's line by its weight under the centred line (A0): outer 5, small 3.5, trim 2.5, none.
+    const lineRigs = figureRigs({ ...d, outline: 'line' });
+    const weightOf = new Map(
+      [lineRigs.accused, lineRigs.judge, lineRigs.hand].flatMap((rig) =>
+        drawnOf(rig[0] as Element)
+          .filter(isPaper)
+          .map((s) => {
+            const ink = paintNamed(s.e, 'Ink');
+            const width = ink === undefined ? 0 : num(ink, 'thickness', 0);
+            const weight = width === 0 ? 'none' : width === INK.trim ? 'trim' : 'silhouette';
+            return [`${attr(rig[0], 'name')}.${s.name}`, weight] as const;
+          }),
+      ),
+    );
+    const LAYS = {
+      none: { line: ['Paper'], thick: ['Paper'], edge: ['Paper'], both: ['Paper'] },
+      trim: {
+        line: ['Paper', 'Ink'],
+        thick: ['Paper', 'Ink'],
+        edge: ['Paper', 'Core'],
+        both: ['Ink', 'Paper', 'Core'],
+      },
+      silhouette: {
+        line: ['Paper', 'Ink'],
+        thick: ['Ink', 'Paper'],
+        edge: ['Paper', 'Core'],
+        both: ['Ink', 'Paper', 'Core'],
+      },
+    } as const;
+    const pieces = [accused, judge, hand].flatMap((b) =>
+      drawnOf(b)
+        .filter(isPaper)
+        .map((s) => [`${attr(b, 'name')}.${s.name}`, s] as const),
+    );
+    expect(pieces.length).toBe(weightOf.size);
+    for (const [name, s] of pieces) {
+      const weight = weightOf.get(name) ?? 'none';
+      const laid = s.e.children
+        .map((c) => String(attr(c, 'name')))
+        .filter((n) => n === 'Ink' || n === 'Paper' || n === 'Core');
+      expect([name, weight, laid]).toEqual([name, weight, [...LAYS[weight][d.outline]]]);
+    }
+    expect([...weightOf.values()].filter((w) => w === 'silhouette').length).toBeGreaterThan(5);
+    // Only the stains go unlined: they are marks on the tunic, not pieces of their own.
+    for (const [name, weight] of weightOf)
+      expect([name, weight === 'none']).toEqual([name, name.startsWith('Accused.stain')]);
+  });
+
+  test('the gavel and the paper he reads are drawn lined in the props’ inks', () => {
+    const props = propsOf(d);
+    const drawn = benchTopInks(props);
+    expect(drawn.filter((c) => c === props.gavelInk.toLowerCase()).length).toBeGreaterThanOrEqual(
+      2,
+    );
+    expect(drawn).toContain(props.sheetInk.toLowerCase());
+  });
+});
+
+/**
+ * The colours `riveJudge.over` fills with, in order, drawn into a recording
+ * context: what the bench top (the sheet he reads, the gavel) is drawn in.
+ * His hand is a rig, which this context does not draw.
+ */
+const benchTopInks = (props: Props): string[] =>
+  withDom(() => {
+    const rec = recorder();
+    const filled: string[] = [];
+    const ctx = new Proxy(rec.ctx, {
+      get: (target, key) => {
+        const value = Reflect.get(target, key);
+        if (key === 'fill')
+          return (...args: ReadonlyArray<unknown>) => {
+            filled.push(String(Reflect.get(target, 'fillStyle')).toLowerCase());
+            return Reflect.apply(value as (...a: ReadonlyArray<unknown>) => unknown, target, args);
+          };
+        return Predicate.isFunction(value) ? value.bind(target) : value;
+      },
+      set: (target, key, value) => Reflect.set(target, key, value),
+    });
+    const f = {
+      ctx,
+      boil: 0,
+      hand: (key: string | number) => ({ boil: 0, seed: String(key).length }),
+      rive: () => undefined,
+    } as unknown as CourtFrame;
+    riveJudge.over(f, 0.2, 0.5, props);
+    return filled;
+  });
+
+test('the bench top is lined in the props it is given, never the kit’s own outline', () => {
+  const props: Props = { ...propsOf(K1), sheetInk: '#0a0b0c', gavelInk: '#0d0e0f' };
+  const drawn = benchTopInks(props);
+  expect(drawn.filter((c) => c === '#0d0e0f').length).toBeGreaterThanOrEqual(2);
+  expect(drawn).toContain('#0a0b0c');
+  expect(drawn).not.toContain(C.outline.toLowerCase());
 });
