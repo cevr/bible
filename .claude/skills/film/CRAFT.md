@@ -133,7 +133,7 @@ BibleProject is informative, curious and hopeful. The weight sits on explanation
 
 A paper theatre lit from behind.
 
-- **Three accents, each with one meaning:** gold is God's word and gift, and only gold glows; scarlet is sin, only on the person or the cloth that carries it; white is the robe. Everything else stays at saturation 0.2–0.35.
+- **Three accents, each with one meaning:** gold is God's word and gift, and only gold glows; scarlet is sin, only on the person or the cloth that carries it; white is the robe. Everything else stays at saturation 0.2–0.35. The band holds a palette's base colours; a shade may leave it, since a shade keeps or raises its saturation as its value drops (below).
 - **4–6 hues per scene,** from the film's palette.
 - **Paper on every shape:** its edge (cut or torn, chosen by what it is), a shadow on the sheet under it, grain that travels with it.
 - **Shade with colour, never with black** (owner, 2026-10-12). A shadow or a shaded side is a different hue, not a darker or greyer copy of the same one: shift it toward the light's complement (a cool violet or blue under warm light, a warm red or orange under cool light), and keep or raise its saturation as its value drops. A highlight shifts toward the light's own hue (a pale gold, a warm cream). Never shade by mixing in black or grey, by an alpha-black layer or by `multiply` with a neutral. Each palette colour carries its ramp as named swatches (its shade, its base, its light; the shade a neighbouring hue), so every scene shades from the same ramps. This holds for contact shadows on the sheet, a figure's turned side, a crease or fold, and the haze between planes. Shading is not outlining: an outline or ink line may be black (owner, 2026-10-13).

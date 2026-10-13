@@ -207,7 +207,7 @@ export const INK = { outer: 5, small: 3.5, trim: 2.5 } as const;
 /**
  * What a silhouette's line shows outside its paper under the thick outline
  * (outline `thick` or `both`), units: RimWorld's figures-first line
- * (`apps/animations/docs/rimworld-study.md`), about 3 % of the accused's
+ * (`.claude/skills/film/reference/rimworld-study.md`), about 3 % of the accused's
  * height on the head and body, a little less on a hand or a leg.
  */
 export const OUTSIDE = { outer: 6, small: 5 } as const;

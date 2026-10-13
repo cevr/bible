@@ -1,5 +1,5 @@
-// The paper-cut figures' four open art-direction axes, from the RimWorld
-// study's questions (`apps/animations/docs/rimworld-study.md` §3): a
+// The paper-cut figures' four art-direction axes, from the RimWorld study's
+// questions (`.claude/skills/film/reference/rimworld-study.md` §3): a
 // `Direction` picks one option on each. The rigs (`parts.ts`,
 // `accused-rig.ts`, `judge-rig.ts`) are built from a direction, and
 // `build.ts` writes `figures.riv` from `DIRECTION`; the papercut looks
@@ -7,11 +7,8 @@
 // another option is one edit to `DIRECTION` and a rebuild, and
 // `direction.test.ts` builds and checks every option of every axis.
 //
-// PROVISIONAL (2026-10-13): `DIRECTION` is K1, the rimproto unit's
-// recommendation (A3 + B1 + C2 + D2), while the owner is away. The owner
-// reviews each axis's options on the rimproto sheets
-// (`tmp/orchestrate/p5/rimproto/`: `A-outline.png`, `B-ink.png`,
-// `C-colour.png`, `D-head.png`) and may pick others.
+// `DIRECTION` is K1 (A3 + B1 + C2 + D2), the owner's pick (2026-10-13,
+// `.claude/skills/film/reference/character-design.md`).
 
 import type { Hex } from '@bible/film/canvas';
 import { type Ramp, hues, ramps } from '../../palette.ts';
@@ -69,10 +66,10 @@ export const OPTIONS = {
   D3: { head: 'large' },
 } as const satisfies Record<string, Partial<Direction>>;
 
-/** K1: A3 + B1 + C2 + D2, the rimproto unit's recommendation. */
+/** K1: A3 + B1 + C2 + D2, the owner's pick. */
 export const K1: Direction = { outline: 'both', ink: 'warm', colour: 'hues', head: 'third' };
 
-/** The figures' direction: what `figures.riv` is built from and the looks draw with. Provisional: K1. */
+/** The figures' direction: what `figures.riv` is built from and the looks draw with: K1. */
 export const DIRECTION: Direction = K1;
 
 /** The ink of `d`. */

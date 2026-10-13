@@ -9,9 +9,9 @@
 // shadow is soft).
 //
 // The figures' edge, ink, colour and head, and the props' colour, follow the
-// four art-direction axes in `looks/rive/direction.ts`. PROVISIONAL: they are
-// set to K1 (A3 thick outline with a light core, B1 warm ink, C2 garment
-// hues, D2 head about ⅓) until the owner picks.
+// four art-direction axes in `looks/rive/direction.ts`, set to K1, the
+// owner's pick (2026-10-13): A3 thick outline with a light core, B1 warm ink,
+// C2 garment hues, D2 head about ⅓.
 
 import type { RiveEngine } from '@bible/film/rive';
 import { LIGHT } from '../../../righteousness-by-faith/light.ts';
