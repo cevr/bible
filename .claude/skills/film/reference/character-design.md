@@ -341,7 +341,7 @@ The people, beings and places of the Bible's own stories. They live in STORY sce
 
 ### 3.2 Christ
 
-The frame shows the Son freely and forbids an image of the Father ([god-christ.md](../frame/god-christ.md)): "No man hath seen God at any time; the only begotten Son … he hath declared him" (John 1:18); "he that hath seen me hath seen the Father" (John 14:9). Ellen White: Christ alone is the express image of the Father (PP 45.2). So Christ is drawn, with His face. How He is drawn is held to four texts.
+The frame shows the Son freely; the Father is shown only as a veiled, hazy human form (3.3; [god-christ.md](../frame/god-christ.md)): "No man hath seen God at any time; the only begotten Son … he hath declared him" (John 1:18); "he that hath seen me hath seen the Father" (John 14:9). Ellen White: Christ alone is the express image of the Father (PP 45.2). So Christ is drawn, with His face. How He is drawn is held to four texts.
 
 - **An ordinary man.** "He hath no form nor comeliness; and when we shall see him, there is no beauty that we should desire him" (Isa 53:2). "Made in the likeness of men" (Phil 2:7); "in all things it behoved him to be made like unto his brethren" (Heb 2:17). The disciples on the road did not know Him (Luke 24:16); Mary took Him for the gardener (John 20:15); Nazareth knew Him as "the carpenter" (Mark 6:3). Ellen White: men "could not see, beneath the disguise of humility, the glory of the Son of God" (FH 183.2). So He is not the tallest, the fairest or the most saturated figure in the crowd. He is "of Juda" (Heb 7:14), a Jewish man of His time.
 - **Known by what He does.** In a crowd the eye finds Him by staging (He moves toward people, others turn to Him) and by light (2.3), not by costume or a halo. No halo, no nimbus, no glow on His person in His earthly ministry except where the text lights Him: the transfiguration, "his face did shine as the sun, and his raiment was white as the light" (Matt 17:2; Mark 9:3).
@@ -355,9 +355,18 @@ The frame shows the Son freely and forbids an image of the Father ([god-christ.m
 
 ### 3.3 The Father
 
-- **Never a figure** (director-vision, What we never do). "Thou canst not see my face: for there shall no man see me, and live" (Ex 33:20); "dwelling in the light which no man can approach unto; whom no man hath seen, nor can see" (1 Tim 6:16); "ye saw no manner of similitude … Lest ye corrupt yourselves, and make you a graven image" (Deut 4:15–16).
-- **But a person, not a force.** The frame: His form hidden, not absent; a cloud of glorious light ([god-christ.md](../frame/god-christ.md); "who coverest thyself with light as with a garment", Ps 104:2).
-- **How.** The throne and what the text says is round it: the fire (Dan 7:9), the rainbow "in sight like unto an emerald" (Rev 4:3), the lamps of fire (Rev 4:5), the host (Dan 7:10). On the throne, the brightest gold glow in the film, its shape implying one seated, with no face, no hands and no outline. Where Dan 7:9 is read ("whose garment was white as snow, and the hair of his head like the pure wool"), the light is robe white at its centre within the gold, still with no figure drawn.
+**Owner, 2026-10-13: "the father should be hazy, with a definite human form."**
+
+- **A definite human form, veiled.** The Father is a person with a form ("a personal, spiritual being", [god-christ.md](../frame/god-christ.md)). The text gives that form on the throne: "the Ancient of days did sit, whose garment was white as snow, and the hair of his head like the pure wool" (Dan 7:9); "the likeness as the appearance of a man above upon it" (Ezek 1:26); "one sat on the throne" (Rev 4:2).
+  - Draw a clear human silhouette, seated: head, shoulders, the robe's fall, the hands' places.
+  - Wrap it all in a haze of glorious light: "who coverest thyself with light as with a garment" (Ps 104:2).
+- **Hazy, never sharp.**
+  - No face, no features and no ink outline: "Thou canst not see my face" (Ex 33:20, 23).
+  - The form reads through soft gold-white light: feathered edges, the robe white at the centre (Dan 7:9), the light brightest where the face would be.
+  - It is the brightest glow in the film.
+  - He is never a cut-paper figure like the rest, and never an old man with a beard drawn in detail.
+- **Round the throne,** what the text puts there: the fire (Dan 7:9), the rainbow "in sight like unto an emerald" (Rev 4:3), the lamps of fire (Rev 4:5), the host (Dan 7:10).
+- **With the Son:** the Son is drawn plainly beside Him, the one "express image of his person" (Heb 1:3). The two read as two distinct persons.
 - **No emblem.** No triangle, no three-in-one sign, no eye ([god-christ.md](../frame/god-christ.md)).
 
 ### 3.4 The Holy Spirit

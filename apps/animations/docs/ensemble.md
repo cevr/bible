@@ -28,7 +28,7 @@ The parenting pictures rest on texts that state the likeness, so the family illu
 - "If ye then, being evil, know how to give good gifts unto your children, how much more…" (Matt 7:11).
 - Luke 15:20, the father who "saw him, and had compassion, and ran".
 
-A cast parent pictures a likeness the text names. The father never stands in for God the Father as a figure of God, who is never pictured (frame, god-christ).
+A cast parent pictures a likeness the text names. The father never stands in for God the Father as a figure of God. God the Father is shown only as a hazy human form veiled in light (character-design 3.3).
 
 ## The cast
 
@@ -131,7 +131,7 @@ Heights are given against Hugo, with the head about ⅓ of an adult's height (th
 - **IDEA beats.** The parchment's 1–4 flat figures are cast members wherever the beat needs an everyday person: the figure frowning at the book, the child at the slate, the farmer reading by the lamp.
 - **The bridge.** A push-through from the cast's frame into the Bible scene (rule 3): Rosa's open book, and through its page into Berea.
 - **Never inside a Bible scene.** No cast member stands in a STORY scene of Bible history: not in Capernaum's crowd, at the cross, at Sinai, in Babylon. No cast member plays a Bible person or a figure of Christ's own parables (the sower, the prodigal son and his father are drawn as that parable's figures). The cast may mirror a parable in its own frame after the parable is told: Hugo at the window as the narration closes on Luke 15:20.
-- **Christ in the cast's frame.** Christ may come into the cast's world at the landing, where a stated text says He comes (Rev 3:20; 1 John 2:1), as the drafts already have Him: the host of the feast in 01, the Advocate beside the figure in 08. The cast never goes into His history. The Father is never pictured.
+- **Christ in the cast's frame.** Christ may come into the cast's world at the landing, where a stated text says He comes (Rev 3:20; 1 John 2:1), as the drafts already have Him: the host of the feast in 01, the Advocate beside the figure in 08. The cast never goes into His history. The Father appears only as a hazy, veiled human form, never in the cast's world (character-design 3.3).
 - **Talks.** Education and health are talks: the owner on camera, cut with B-roll. Cast moments there are short cut-paper inserts drawn and rendered by the film engine, so the faces are the same as in the films (open choice 6). The owner speaks; the cast acts.
 - **Shorts.** A cast member may carry a short's hook frame (CRAFT § Shorts rule 2): a face the viewer knows, moving on frame 0.
 
