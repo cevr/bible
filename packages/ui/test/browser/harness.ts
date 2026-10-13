@@ -69,6 +69,12 @@ export interface OpenOptions {
   /** A touch device: `hasTouch` and `isMobile`, as a phone's browser reports. */
   readonly touch?: boolean;
   readonly viewport?: { width: number; height: number };
+  /**
+   * The `navigator.platform` the page reports (`MacIntel`, `Linux x86_64`):
+   * the parts read their OS from it as they load, so a case can hold each
+   * OS's rule on any host.
+   */
+  readonly platform?: string;
 }
 
 /**
@@ -130,6 +136,11 @@ export const harness = (fixtureFile: string): Harness => {
         viewport: options.viewport ?? { width: 800, height: 600 },
       });
       contexts.push(context);
+      if (options.platform !== undefined) {
+        await context.addInitScript((platform) => {
+          Object.defineProperty(Navigator.prototype, 'platform', { get: () => platform });
+        }, options.platform);
+      }
       const page = await context.newPage();
       page.setDefaultTimeout(5000);
       page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
