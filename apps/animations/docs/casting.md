@@ -1295,7 +1295,7 @@ Each item gives where the conflict is and what the guide says. A recommendation 
      - §3.3 (owner, 2026-10-13) draws the Father only as a veiled, hazy human form with no features and no outline.
      - T13's plan makes Jesus the Judge.
    - The risk: a cut-paper judge whose verdict is God's pictures God as a man with a face.
-   - Recommendation: the IDEA courtroom keeps §5's official as a parable judge. The landing's gold should glow from the bench, not from the judge's person. Owner call.
+   - Answered (owner, 2026-10-13): "He should be pictured as a man, just an indistinct figure." The judge whose verdict is God's is the Father's veiled form on the judge's seat (§3.3, Dan 7:9–10): a man's shape in gold-white light, no face, no outline, no gavel. The Advocate stands before Him, drawn plainly. §5's official stays for a parable's human judge only.
 9. **RBF's grey figures.**
    - Where: the accused, the meeting-hall crowd and the stained figure at the gate are grey, and the accuser is "shadow-grey".
    - The guide: K1 retires grey (§1.2). The accused becomes Max (open choice 7), the crowd takes the crowd kit, and the accuser takes `#444152` (§2.5).
@@ -1306,7 +1306,7 @@ Each item gives where the conflict is and what the guide says. A recommendation 
 11. **Bible scenes in talk B-roll.**
     - Where: E17, E19, E44, H01, H06, H20, H33 and H50 call for generated "Illustration" B-roll of Bible scenes.
     - The ensemble: open choice 6 makes only cast moments cut-paper.
-    - Open question: whether the talks' Bible figures are drawn in the films' look, and so need rigs, is undecided. This file counts them apart (P4).
+    - Answered (owner, 2026-10-13): "generated illustrations are good - using same artworkstyle as we do for presentations". The talks' Bible scenes are generated illustrations in the sermon decks' oil-painting style ([`skills/bible/scripts/deck/series.ts`](../../../skills/bible/scripts/deck/series.ts)), with a slow parallax camera move where one helps. They need no rigs; the counts in P4 stay apart. The frame rules still hold in them: the Father veiled (§3.3), Christ an ordinary man (§3.2).
 12. **Bookends.**
     - Where: RBF's rooftop coda and some theology codas leave the opening's place.
     - Where it is tracked: in [bookends.md](../series/bookends.md), not here.
@@ -1314,11 +1314,11 @@ Each item gives where the conflict is and what the guide says. A recommendation 
 13. **The breastplate on Christ.**
     - Where: T01 (the veil) and RBF (`exchange`) put Christ in "a priest's white robe and breastplate".
     - The guide: §3.2 gives Christ as Priest "the robe white and the 'golden girdle' (Rev 1:13)". The breastplate is the earthly high priest's (Ex 28:4, 30), and Rev 1:13 does not name it.
-    - Owner call: Christ's priestly dress is the white robe and golden girdle alone, or with the breastplate as a typological sign.
+    - Answered (owner, 2026-10-13): "Christ - breastplate". As Priest He wears the breastplate with the robe and girdle (§3.2, Ex 28:29). The scripts stand.
 14. **The Father as "no figure".**
     - Where: T03 and C01 bring the presence in Eden as "a warm moving light ... no figure (frame: never a face or body for the Father)". T05's notes say "The Father is never shown with a face or body".
     - The guide: §3.3 now (owner, 2026-10-13) draws the Father as "hazy, with a definite human form", veiled, with no face.
-    - Recommendation: T05's throne scenes take the veiled form. Whether Eden's walking presence is the Father's form, or light alone, is an owner call; the text says only "the voice of the LORD God walking in the garden".
+    - Answered (owner, 2026-10-13): "He should be pictured as a man, just an indistinct figure." T05's throne scenes take the veiled form, and Eden's walking presence (Gen 3:8) is a man's shape walking in light, no face (§3.3). T03 and C01's "no figure" notes are restaged to it.
 15. **The accuser's height.**
     - Where: RBF draws Satan "tall".
     - The guide: §2.5 says "tall in its scene, but ... never larger than the Advocate". §3.2 keeps Christ an ordinary man, never the tallest.
