@@ -95,8 +95,8 @@ const GAVEL_HEAD = rounded(0, -104, 64, 34, 8);
 /**
  * The paper he reads: one sheet lying on the bench's rim before him, under
  * his lowered eyes, its top edge clear of his collar's bands (their feet at
- * y 453 with him upright, at rest; his lean moves them), so the two papers
- * never read as one at rest.
+ * y 453 with him upright; a lean lowers them behind the bench's rim, drawn
+ * over him), so the two papers never read as one.
  */
 const READING_SHEET = { x: 1186, y: 461, rot: -0.03, shape: rectShape(-48, -4, 96, 8) } as const;
 
