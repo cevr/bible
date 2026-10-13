@@ -1287,7 +1287,7 @@ Each item gives where the conflict is and what the guide says. A recommendation 
 7. **E52's named girl and period family.**
    - Where: the Abbott retelling names the girl "Mary" in speech and draws a 19th-century family with a chaise.
    - The ensemble: it puts Clara in this episode (ep 12, "one mother, three ways") and never names the cast in speech.
-   - Owner call: a period illustration of a book's story, or the cast in its own frame.
+   - Answered (owner, 2026-10-13): "lets go with period for education". A period illustration of the book's story, in the talks' generated-illustration style (item 11). The girl may be named in the retelling as the book names her; the cast stays out of it.
 8. **RBF's judge.**
    - Where: a human judge with a head 1.7 times a person's sits behind the bench and gavels; at the landing "the judge's bench glows gold", and the narration makes the verdict God's.
    - The guide:

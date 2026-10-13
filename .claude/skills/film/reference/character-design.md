@@ -174,6 +174,8 @@ Owner rule: typology, a text-authorized reading from literal to literal, is fine
 
 ### 1.6 Owner questions in this section
 
+**Answered (owner, 2026-10-13: "lets go with your recs"):** every question below is settled as recommended.
+
 - **OWNER QUESTION 1. Teal.** Retire "teal = sin" as a hue meaning: scarlet is sin's mark and a cold, desaturated light is sin's state, so teal stays free for the landing's day and Clara's slot. Why: CRAFT 11 already makes teal the most saturated, most hopeful act, and a hue that means both hope and sin teaches nothing.
 - **OWNER QUESTION 2. Cloth crimson.** Add one muted swatch for scarlet cloth the text names that is neither sin nor blood: proposed `#8d4a52` (353° .48 .55, the band's crimson end), never glowing, never on the cast. Why: Prov 31:21, Dan 5:29 and Ex 26:1 name scarlet cloth, and drawing them in the accent would put sin's colour on the woman of strength, on Daniel and on the veil. The alternative draws them in the accent and lets context explain.
 
@@ -309,6 +311,8 @@ Christ, the Father, the Spirit and the angels are in section 3.
 
 ### 2.10 Owner questions in this section
 
+**Answered (owner, 2026-10-13: "lets go with your recs"):** every question below is settled as recommended.
+
 - **OWNER QUESTION 3. Antagonist palette.** Antagonists at the band's floor (0.20) and the darkest figure value, in a cold hue off the cast's slots, with the accuser regraded from grey to `#444152`; temptation's sheen as non-glowing brass `#b2a474`. Why: K1 retires grey, and a drained, dark figure reads as emptied without horror; brass next to gold shows the counterfeit without breaking "only gold glows".
 - **OWNER QUESTION 4. Death as a figure.** Draw Death only as Revelation's rider, as a symbol on the IDEA page when a film reads Rev 6:8, and nowhere else. Why: the frame shows death as sleep; a figure of Death anywhere else teaches a being that takes souls. The alternative is never to draw it, and to read Rev 6:8 over the horse alone.
 
@@ -409,6 +413,8 @@ Section 2.5's principles apply in full. He is drawn by the text's forms, each in
 - **The new earth.** Faces seen: "they shall see his face" (Rev 22:4); "no more death, neither sorrow, nor crying" (Rev 21:4). The saints in white (Rev 7:9), every people.
 
 ### 3.8 Owner questions in this section
+
+**Answered (owner, 2026-10-13: "lets go with your recs"):** every question below is settled as recommended.
 
 - **OWNER QUESTION 5. Christ's look.** An ordinary Jewish man, beard (Isa 50:6), no halo, full expressive range, never a devotional portrait (restage theology 05's `face` beat). His earthly coat plain undyed linen (John 19:23); the robe white and gold girdle as Priest, Advocate and in glory (Rev 1:13). Answered in part (owner, 2026-10-13): as Priest He also wears the breastplate (Ex 28:29). Why: Isa 53:2 and FH 183.2 hide His glory under humility, and the white robe in the earthly scenes would say what the text says only of the transfiguration. The alternative is the drafts' white robe and gold sash throughout, which makes Him easy to find in a crowd.
 - **OWNER QUESTION 6. The cross.** Silhouette at the black moment; scarlet as the sins laid on Him; no wounds in close-up; the marks in the risen hands as ink cuts; Rev 19:13 the one text-blood exception on His garment.
