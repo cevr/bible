@@ -2066,8 +2066,9 @@ resolved, and the note selected, is painted on its words (a note's
 underlined, a correction's or a removal's struck, a correction's words
 instead after them) with its marker after its last word: its id in its
 status's colour, a link to it. A note whose words no longer stand where they
-stood marks the first run of the line that reads as they did, else the
-line's end; a note of a beat's frame has its marker in the beat's head. The
+stood marks the run of the line that reads as they did when only one run
+does, else the line's end; a note of a beat's frame has its marker in the
+beat's head. The
 note selected (`?note=`) opens under its beat: what it asks, its thread, a
 reply and Resolve. Nothing on the page writes `script.ts`: the agent reads
 the notes (`film notes`) and edits the script.
