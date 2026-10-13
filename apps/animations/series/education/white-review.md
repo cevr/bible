@@ -1,18 +1,21 @@
 # Joshua White playlists: review for _Taught of the Lord_
 
-Joshua White (A Thinking Generation Ministries) speaks in three true-education playlists: 31 videos, about 34.5 hours. Reviewed 2026-10-13.
+Joshua White (A Thinking Generation Ministries) speaks in six true-education playlists: 49 videos, about 53 hours. Reviewed 2026-10-13; playlists D–F were added the same day (§6).
 
-| Playlist                                            | Videos | Speakers                                                                                                                |
-| --------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- |
-| A. True Education Event, Bogenhofen, Austria 2026   | 8      | all Joshua White                                                                                                        |
-| B. Fundamentals of True Education, Autumn Leaves NZ | 8      | all Joshua White                                                                                                        |
-| C. Trinidad True Education Seminar (2023)           | 15     | 13 Joshua White; C3 "Kids and Natural Remedies" by a local mother, C7 "The Role of Fathers" by a local father ("James") |
+| Playlist                                                     | Videos                   | Speakers                                                                                                                |
+| ------------------------------------------------------------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| A. True Education Event, Bogenhofen, Austria 2026            | 8                        | all Joshua White                                                                                                        |
+| B. Fundamentals of True Education, Autumn Leaves NZ          | 8                        | all Joshua White                                                                                                        |
+| C. Trinidad True Education Seminar (2023)                    | 15                       | 13 Joshua White; C3 "Kids and Natural Remedies" by a local mother, C7 "The Role of Fathers" by a local father ("James") |
+| D. True Education 3 Part Series (Autumn Leaves NZ, Jan 2018) | 3                        | all Joshua White                                                                                                        |
+| E. True Education (2021–2023)                                | 8 (9 entries, one twice) | all Joshua White                                                                                                        |
+| F. Uchee Pines Education Seminars (2016, 2018)               | 7                        | all Joshua White                                                                                                        |
 
 Jennifer White gives none of the sessions. Three talks repeat between B and C (Daniel Chapter Zero, Not Recognizing Jesus, Called to Leave), so `notes.md` gives one in full and the other as a delta.
 
 Files:
 
-- **Transcripts** are git-ignored in `tmp/content-series/education/transcripts/white/<playlist>/` (`ytt --json` got all 31).
+- **Transcripts** are git-ignored in `tmp/content-series/education/transcripts/white/<playlist>/` (`ytt --json` got all 49).
 - **Notes** are in `transcripts/white/notes.md`, one section per talk.
 - **The full EGW check** is in `transcripts/white/verification.md`.
 - **Archives.** Before editing, `series.md`, `sources.md` and the five scripts were copied to `tmp/content-series/education/archive/*.20261013T024316Z.md`.
@@ -31,7 +34,9 @@ Files:
 4. **Method for the Book.** Bible study by one word (Ed 189.1–189.4, nos. 101–102), family worship children look forward to (CG 521.4; Ed 186.2 = CG 522.1; no. 104), and guidance by Ed 267.3's three rules: the nearest work, commit your ways, watch His providence (no. 47).
 5. **Assemblies that included the children** (Deut 31:12–13; Josh 8:35; 2 Chr 20:13; Ezra 10:1; Joel 2:16), from his book _Gather the Children_. It supports no. 85 from Scripture, not only from the counsel.
 6. **"Do kids need to see evil to resist it?"** (Ed 23.2–25.3): a sharp question the series lacked (no. 88).
-7. **Accurate reading.** 461 quotation rows were checked and 93.5% are verified, slightly better than Ritsema.
+7. **Accurate reading.** 721 quotation rows were checked across six playlists and 95% are verified, better than Ritsema's 93%.
+8. **The aim as love and service** (D3, F4, F7): Ed ch. 31 read almost whole; Ed 16.1–16.2, Ed 309.1, MH 401.3. It gives the series' "what is it for?" its warmest form (§6).
+9. **Home first, school as mercy** (D2): his most balanced word on school, and the series' own position (CT 162.3, 161.1, 167.1; Ed 46.1).
 
 **Main liabilities** (all now under "Steer around" in `series.md` §5):
 
@@ -154,23 +159,26 @@ The catalogue grows from 87 topics (64 Q, 23 E) to 114 (86 Q, 28 E). The new KJV
 
 ## 3. Verification table
 
-Full table (461 White rows plus 15 for the other speakers, with the real text for every DIFFERS): `transcripts/white/verification.md`.
+Full table (721 White rows plus 15 for the other speakers, with the real text for every DIFFERS): `transcripts/white/verification.md`.
 
 | Playlist                     | Rows    | VERIFIED | DIFFERS | NOT FOUND |
 | ---------------------------- | ------- | -------- | ------- | --------- |
 | A. Bogenhofen 2026 (A1–A8)   | 172     | 165      | 5       | 2         |
 | B. Autumn Leaves NZ (B1–B8)  | 124     | 113      | 10      | 1         |
-| C. Trinidad (13 White talks) | 165     | 153      | 4       | 8         |
-| **Joshua White, all**        | **461** | **431**  | **19**  | **11**    |
+| C. Trinidad (13 White talks) | 164     | 154      | 6       | 4         |
+| D. 3 Part Series (D1–D3)     | 95      | 94       | 1       | 0         |
+| E. True Education (E1–E8)    | 96      | 91       | 4       | 1         |
+| F. Uchee Pines (F1–F7)       | 70      | 68       | 1       | 1         |
+| **Joshua White, all**        | **721** | **685**  | **27**  | **9**     |
 | C3 and C7 (other speakers)   | 15      | 15       | 0       | 0         |
 
-**DIFFERS (19), by kind:**
+**DIFFERS in A–C (19 at first review; two NOT FOUND rows moved here in the D–F merge, below), by kind:**
 
 - **Splices** read as one quotation: Ed 41.1 + 187.1 (B1); 4T 498.2 + 498.3 (A7); PK 612.2 + 614.1 (B8, C12); PK 587.2 + 591.2 (B8); CD 57.4 + 55.3 (B8, two sources eleven years apart); CG 304.3 + 305.1 + 315.1 (B8); Ed 51.3 + 52.4 (C14); GW92 388.1 + 1SM 172.2 + 1SM 401.2 (C14); 1SM 68.1 + 68.3 (B7); the "danger signal" (Ms 155, 1903 + Lt 70, 1906; A8, B8), which is about the Battle Creek Sanitarium.
 - **Wording changed:** MYP 242.2 drops "resisting temptation" (A6); Ed 296.1 drops "conquered" (C6); FE 156.1 drops "may" (B1); AH 466.2 is reconstructed (B3); PP 95.3 + 96.1 are blended into "a deluded old fanatic" (A8); Ms 75, 1901 on mothers and church work is rearranged (C8).
 - **Wrong source:** "Let us learn together" is CT 436.1 ("Let us climb together"), not _Christ's Object Lessons_ (A5). GCDB 1899 par. 23 has words added and is presented as the 1872 message (B7).
 
-**NOT FOUND (11).** Most are his own lines read as quotations:
+**NOT FOUND in A–C (11 at first review; five settled in the D–F merge, see `verification.md`).** Most are his own lines read as quotations:
 
 - "the very foundation of true education is in the fear of the Lord";
 - "truth not lived is not truth" (nearest ChS 97.4);
@@ -184,7 +192,7 @@ Full table (461 White rows plus 15 for the other speakers, with the real text fo
 - "the highest attainments … for the purpose of doing others good" (nearest 5T 104.1);
 - the long Eden "divine system of teaching" passage (perhaps Sutherland, who is not in the corpus).
 
-**Corrected in the merge.** B6's "not only Adam's dwelling, but his schoolroom" is GCDB March 6, 1899 par. 36 (the corpus spells it "school-room"). It is filed as EGW, but the PH140 7.3 reprint is signed "—P.C.", so it is not used until the source is settled; Ed 20.1 carries the idea.
+**Corrected in the merge.** B6's "not only Adam's dwelling, but his schoolroom" is GCDB March 6, 1899 par. 36 (the corpus spells it "school-room"). It was held back because the PH140 7.3 reprint is signed "—P.C."; on 2026-10-13 that was settled: P.C. is the manual's "Private Collection" (PH140 4), and the line is Ellen White's testimony read to the 1899 session (`../country/sources.md` §1). It may now be paraphrased beside Ed 20.1, credited to the Bulletin.
 
 ## 4. Where he and the series disagree
 
@@ -254,11 +262,46 @@ These are his stretches, and the series follows the source:
 - CL 9.4 says to stay in cities "unnecessarily" (no. 95).
 - The "danger signal" letters are about the Battle Creek Sanitarium.
 
+### 4.10 Respectable conventionality (D3, F4, F7)
+
+Ed 264.2 asks a question: can we educate our children "for a life of respectable conventionality, a life professedly Christian, but lacking His self-sacrifice"? He turns it into a verdict ("God condemns this form of education"), lists a Christian school, good grades, a Christian marriage and mission trips under it, and glosses Rev 3:16 as "I'd rather you weren't a Christian at all". He also stops Ed 264.3 before its warning to parents. **Verdict:** keep the question and the paragraph whole; the fault it names is a life without His service, not those goods (no. 121; `guide.md` §14).
+
+### 4.11 Mothers and work (F5)
+
+AH 246.1 (Lt 28, 1890) was written to one mother drawn into church work away from her little children. He widens it to all employment ("that is not the Lord's calling") and adds animal-separation studies. **Verdict:** both go past the source. The series speaks the principle (the children come first; "not away from your own home, but back to it") and never a verdict on a family's work (`guide.md` §2).
+
+### 4.12 Country living: two framings (D1, E1, E4, E5, F5)
+
+His usual framing fits the owner's: country living chosen for the children's education, with Abraham's faith as the model (PP 126.3–126.4). E4 is the exception: Mordecai's Jews "shouldn't have been there", persecution "mostly in the cities", and the decree of PK 600.1 applied to city families now, with no country-living text read and CL 9.4's "unnecessarily" dropped. In F5, "leave your family and friends to isolate your children" goes beyond PP 126.4. He reads Ed 33.3 without its cities clause (D2, E8). **Verdict:** the series keeps the child-centred, faith-shaped version and leaves E4 out (`guide.md` §13).
+
+### 4.13 Insider and speculative material in D–F
+
+1844 and "he's now waiting on us" (F7, 1SM 68.1); "no reason to exist … just another denomination" (D1); Huldah spiritualized into a present-day prophetess (E); Enoch "part of the 144,000" (F5); his illness and crash read as direct attacks; the right hemisphere as the seat of "spiritual strength" and the forehead of Rev 7 as the frontal lobe (F1–F3); "over 90% of Seventh-day Adventists voted for Hitler" (wrong). D3's apple parable is John White's "Parable of the Orange Trees", retold without credit. None of it is used.
+
 ## 5. Owner decisions
 
-1. **The 27 new topics** (nos. 88–114). Keep all, or trim. The weakest are no. 90 (its hook needs the 1473 ordinance's primary text) and no. 113 (close to no. 104).
-2. **GCDB March 6, 1899 par. 36** ("Adam's … schoolroom"). Its reprint is signed "—P.C." Use Ed 20.1 unless the author is confirmed.
+1. **The 27 new topics** (nos. 88–114). **Decided (owner, 2026-10-13):** keep all; weak ones are marked, not pruned (`series-list.md`). The weakest are no. 90 (its hook needs the 1473 ordinance's primary text) and no. 113 (close to no. 104).
+2. **GCDB March 6, 1899 par. 36** ("Adam's … schoolroom"). **Settled (2026-10-13):** Ellen White's; "—P.C." means "Private Collection" (PH140 4). Usable, paraphrased and credited (`../country/sources.md` §1).
 3. **No. 98's frame.** That Daniel's parents heard Josiah's reading is a possibility built on dates, not a text. As written, the series says "all the people, both small and great" and speaks no dates.
-4. **No. 95** (country living): keep it as a principle, never a verdict on city families, or drop it.
+4. **No. 95** (country living). **Decided (owner, 2026-10-13):** keep it, framed as part of righteousness by faith, never a lifestyle add-on and never a verdict on city families. The guide (§13) and nos. 115–118 carry it.
 5. **Script 19's "old Jewish saying"**: check the wording of Shabbat 119b in a printed edition before the shoot.
-6. **His other playlists** on the same channel (`sources.md` §7: "True Education 3 Part Series", "True Education", "Uchee Pines Education Seminars"): process them, or stop here.
+6. **His other playlists.** Done: D–F are processed (§6).
+7. **Nos. 120–127** (new from D–F): keep, or fold into existing topics. No. 126 is close to no. 88.
+
+## 6. Playlists D–F (added 2026-10-13)
+
+Three more playlists on the channel, 18 videos, all Joshua White. Most repeat A–C and are written as deltas in `notes.md`; the new whole talks are D2 ("In Pity For Our Weakness"), D3 ("Respectable Conventionality", given again as F4 and F7), E1 (the core "True Education" talk, the spine of B6 and C1) and F5 ("Will It Ever Be Easy"). D (January 2018) and F7 (2016) are the earliest dated recordings of his material.
+
+**What they add, by the parent's question** (each ref verified; folded into `guide.md`):
+
+- **What is education for?** Love is its basis and service its highest form (Ed 16.1–16.2; Ed 309.1; COL 330.3; CT 505.3). Education that only informs against education that transforms (E1).
+- **Who teaches first?** "The home and the school were one" (FE 95.3). The mother's work (ST Mar 16, 1891, par. 1; Lt 28, 1890, par. 11). The work before the Lord comes is "to turn the hearts of the fathers to the children" (Luke 1:17). A parent's live voice over a recording (E2).
+- **Which school?** Home first, school as God's aid, parents co-operating (D2; CT 162.3, 158.2, 161.1, 167.1; Ed 46.1). "We can't control the way schools run, but we can control the way our family runs" (F1).
+- **Work and health.** "The whole body is designed for action" (Ed 207.2); agriculture the most valuable manual training (Ed 219.1).
+- **Service and calling.** Ed ch. 31 read almost whole: Ed 262.1, 264.1–264.3, 265.1, 269.3, 271.1–271.2; MH 401.3; responsibility right after baptism (CE 223.1).
+- **Where to live.** Abraham's faith, not fear (PP 126.3–126.4); the children's education as the reason (D1, E1, E5). E4's fear-driven version is left out (§4.12).
+- **Media.** A screen is a tool, not a toy; what is that hard to put down needs firm limits (E3, F3).
+
+**New topics:** nos. 120–127 in `series.md` (6 questions, 2 episodes): the push from behind, respectable or His?, will it ever be easy?, your voice not a recording, two kingdoms two schools, after the baptism, mostly true, turning the hearts. Existing topics that gain material (not yet marked **+W** in their rows): 1, 4, 9, 14, 24, 47, 74, 76, 79, 86, 92, 95, 107, 108. Two stories need primary sources before any use: the Kibidula mission school in Tanzania ("99% baptized") and an unnamed Kenya orphanage founder.
+
+**Corrections they made to A–C:** five rows settled (listed at the top of `verification.md`).
