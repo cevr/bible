@@ -17,7 +17,12 @@
 // pose; no timeline animates a colour. A cast is laid only where it can show
 // past its piece's ink. The judge's hand, a rig over the host's scenery, lays
 // no cast of its own: the host lays it, read from the drawing in every pose
-// and checked against the court's own geometry.
+// and checked against the court's own geometry (`underHand`, the one
+// inventory). Every colour the host lays round the figures, read whole from
+// the drawing (fills, rectangles, strokes, the shadows they cast, a
+// gradient's every stop), is a base, a derived shade, an ink or the kit's
+// named shading (`KIT_SHADING`). The knobs themselves are held to CRAFT 12's
+// floors by the model (`ramp` refuses knobs under `FLOORS`).
 
 import { type Hex, ramp } from '@bible/film/canvas';
 import { recorder, withDom } from '@bible/film/stand-in';
