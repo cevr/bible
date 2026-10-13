@@ -23,6 +23,7 @@ import { pageHref } from '../../core/api.ts';
 import { sceneAt } from '../../core/layout.ts';
 import type { Note, NoteKind } from '../../core/schema.ts';
 import { type Lent, useNotes } from '../notes/context.tsx';
+import { whereOnFilm } from '../notes/draft.ts';
 import { Notes } from '../notes/index.ts';
 import { Asks, NOTE_STATE, ReplyForm, Said, Thread, useNotesFeed } from '../notes/list.tsx';
 import { pressed } from '../pressed.ts';
@@ -164,7 +165,8 @@ const Verbs = (props: ParentProps) => {
 
 /**
  * The film's notes on the Script, about what it selects: the cue, and the
- * words of a line (`Lent`); the reader's verbs on them inside.
+ * words of a line (`Lent`); a note's place said on the film's clock, as the
+ * beats' heads keep it (`whereOnFilm`); the reader's verbs on them inside.
  */
 export const NotesProvider = (props: ParentProps) => {
   const script = useScript();
@@ -174,7 +176,7 @@ export const NotesProvider = (props: ParentProps) => {
     words: script.words,
   };
   return (
-    <Notes.Provider lent={lent}>
+    <Notes.Provider lent={lent} where={whereOnFilm}>
       <Verbs>{props.children}</Verbs>
     </Notes.Provider>
   );

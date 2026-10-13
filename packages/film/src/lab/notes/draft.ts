@@ -1,5 +1,6 @@
 // A note's draft, pure: where the moment noted sits (its scene, the time
-// into the scene, and the cue edge and mark nearest it), when a made note
+// into the scene, and the cue edge and mark nearest it; on the Script, the
+// film's time beside the cue edge and the mark), when a made note
 // shows (its scene's time, or the film's, named, once its scene is gone), what it
 // is about beside its frame (its scope: the cue selected, the in and out
 // points, the line of the scene's file the Source view is held on and the
@@ -34,21 +35,41 @@ interface Composed {
   readonly text: string;
 }
 
+/** How a composer says where a note at `T` sits in the film laid out as `placed`, at `fps`. */
+export type WhereSaid = (placed: ReadonlyArray<Placed>, fps: number, T: number) => string;
+
+/** Where a time falls on the film, as `nearestMoment` finds it. */
+type Moment = Option.Option.Value<ReturnType<typeof nearestMoment>>;
+
+/** Where a note sits, said: what names its time, then the cue edge and the mark nearest it. */
+const placeText = (time: ReadonlyArray<string>, m: Moment) =>
+  [
+    ...time,
+    ...Option.toArray(Option.map(m.cue, (c) => `cue ${c.name}:${c.edge}`)),
+    ...Option.toArray(Option.map(m.mark, (k) => `{${k}}`)),
+  ].join(' · ');
+
 /**
- * Where a note at `T` sits, as the composer says it: its scene and the time
- * into it (one clock beside a scene's name: the scene's); nothing past the
- * film.
+ * Where a note at `T` sits, as the Lab's composer says it: its scene and the
+ * time into it (one clock beside a scene's name: the scene's), and the cue
+ * edge and the mark nearest it; nothing for a film with no scenes.
  */
-export const whereText = (placed: ReadonlyArray<Placed>, fps: number, T: number): string =>
+export const whereText: WhereSaid = (placed, fps, T) =>
   Option.match(nearestMoment(placed, T), {
     onNone: () => '',
-    onSome: (m) =>
-      [
-        m.scene,
-        timecode(m.local, fps),
-        ...Option.toArray(Option.map(m.cue, (c) => `cue ${c.name}:${c.edge}`)),
-        ...Option.toArray(Option.map(m.mark, (k) => `{${k}}`)),
-      ].join(' · '),
+    onSome: (m) => placeText([m.scene, timecode(m.local, fps)], m),
+  });
+
+/**
+ * Where a note at `T` sits, as the Script's composer says it under its beat:
+ * the film's time, the clock its beats' heads keep, and the cue edge and the
+ * mark nearest it; the beat is the one it is written under, named in its
+ * head, so it is not named again. Nothing for a film with no scenes.
+ */
+export const whereOnFilm: WhereSaid = (placed, fps, T) =>
+  Option.match(nearestMoment(placed, T), {
+    onNone: () => '',
+    onSome: (m) => placeText([timecode(T, fps)], m),
   });
 
 /**

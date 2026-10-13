@@ -50,7 +50,16 @@ import {
   spawnComposer,
   unsaved,
 } from './composer.ts';
-import { NO_SCOPE, type Scope, draftOf, scopeText, whenText, whereText, wordsAt } from './draft.ts';
+import {
+  NO_SCOPE,
+  type Scope,
+  type WhereSaid,
+  draftOf,
+  scopeText,
+  whenText,
+  whereText,
+  wordsAt,
+} from './draft.ts';
 import { useMotion } from '../motion/context.tsx';
 import { useSource } from '../source/context.tsx';
 import { lineOpen } from '../source/open.ts';
@@ -80,7 +89,11 @@ interface NotesState {
   readonly pen: Accessor<boolean>;
   /** The frame the note being made is of, in film seconds: none while none is being made. */
   readonly at: Accessor<Option.Option<number>>;
-  /** Where the note being made sits: scene, time, frame, nearest cue edge and mark. */
+  /**
+   * Where the note being made sits, as the page says it (`WhereSaid`): the
+   * Lab's scene and time into it, the Script's film time; and the cue edge
+   * and the mark nearest it.
+   */
   readonly where: Accessor<string>;
   /**
    * The scope chip of the note being made (`scene · cue · 00:00:03:06–00:00:04:00`, in timecode): the
@@ -215,15 +228,22 @@ const useCommands = (
     ),
   );
 
-const Body = (props: ParentProps<{ readonly composer: ComposerActor; readonly lent: Lent }>) => {
+/** What a page gives its notes: what its tools lend a note's scope, and how it says where a note sits. */
+interface Given {
+  readonly lent: Lent;
+  readonly where: WhereSaid;
+}
+
+const Body = (props: ParentProps<Given & { readonly composer: ComposerActor }>) => {
   const { state: lab, actions: labActions, meta } = useLab();
   const { film, player } = meta;
   const feed = useNotesFeed();
   const composerAtom = ActorAtom.make(props.composer);
   const composer = useAtomValue(() => composerAtom);
   const sendComposer = useAtomSet(() => composerAtom);
-  // The page's, for the provider's life: a plain value.
+  // The page's, for the provider's life: plain values.
   const lent = props.lent;
+  const whereSaid = props.where;
 
   // The note selected is the URL's (`?note=`, `LabState.note`), so a link,
   // a reload and Back all carry it.
@@ -266,7 +286,7 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor; readonly le
   const where = createMemo(() =>
     Option.match(at(), {
       onNone: () => '',
-      onSome: (T) => whereText(film.placed, film.fps, T),
+      onSome: (T) => whereSaid(film.placed, film.fps, T),
     }),
   );
 
@@ -401,16 +421,18 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor; readonly le
 /**
  * The notes' state and actions in the staged lab, for the composer, the
  * marks and the pins, about what the page has selected: the cue, and what
- * its tools `lent` (the Script's words; `LabProvider` lends the Lab's).
+ * its tools `lent` (the Script's words; `LabProvider` lends the Lab's); the
+ * composer says where a note sits as the page's `where` does.
  */
-export const Provider = (props: ParentProps<{ readonly lent: Lent }>) => {
+export const Provider = (props: ParentProps<Given>) => {
   const { meta } = useLab();
-  // The page's, for the provider's life: a plain value.
+  // The page's, for the provider's life: plain values.
   const lent = props.lent;
+  const where = props.where;
   return (
     <Actor runtime={meta.runtime} spawn={spawnComposer}>
       {(composer) => (
-        <Body composer={composer} lent={lent}>
+        <Body composer={composer} lent={lent} where={where}>
           {props.children}
         </Body>
       )}
@@ -451,7 +473,8 @@ const LineNote = () => {
 
 /**
  * The notes on the Lab: about the cue selected, the in and out points
- * marked and the line the Source view holds; and Note this line.
+ * marked and the line the Source view holds, a note's place said by its
+ * scene and the time into it; and Note this line.
  */
 export const LabProvider = (props: ParentProps) => {
   const motion = useMotion();
@@ -462,7 +485,7 @@ export const LabProvider = (props: ParentProps) => {
     words: () => Option.none(),
   };
   return (
-    <Provider lent={lent}>
+    <Provider lent={lent} where={whereText}>
       <LineNote />
       {props.children}
     </Provider>

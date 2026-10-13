@@ -8,12 +8,15 @@
 // route, its store keeps (`notes.json`) and `film notes` prints, as the
 // agent reads it. A correction saved with its words unchanged posts
 // nothing: its labelled field is marked, described by why, and has the keys.
+// The composer says where its note sits on the film's clock, as the beats'
+// heads do.
 
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Effect, FileSystem, Layer, Option, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { labUrls, pageHref } from '../../../src/core/api.ts';
 import { type Note, NotePost, NotesFileJson } from '../../../src/core/schema.ts';
+import { timecode } from '../../../src/core/time.ts';
 import {
   type Asked,
   type FakeRoute,
@@ -46,7 +49,7 @@ import { scriptAt } from '../studio-states.ts';
 /** Long enough to open the Script, select, write and save, and read the notes back: twice a wait's own bound. */
 const SLOW = 2 * WAIT_MS;
 
-const placed = probeFilm().placed;
+const { placed, fps: FPS } = probeFilm();
 
 /** Where word `index` of beat `id`'s line is said, in film seconds, as the Script times its words. */
 const saidAt = (id: string, index: number): number =>
@@ -338,6 +341,23 @@ describe('the Script', () => {
       yield* attributeIs(page, '[data-scene="three"] .lab-script-tie', 'aria-current', 'true');
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "Note frame opens the composer under the beat the frame is in, saying where it sits on the film's clock, the one the beats' heads keep",
+    () =>
+      Effect.gen(function* () {
+        // A quarter of a frame into a frame of beat three, so no rounding moves it off that frame.
+        const at = (285 + 0.25) / FPS;
+        const { page, errors } = yield* openLab([], {
+          href: pageHref.script(PROBE, Option.some(at)),
+        });
+        yield* page.click('.lab-script-head [data-act="note-frame"]');
+        const compose = '[data-scene="three"] [data-role="script-compose"]';
+        yield* waitFor(page, `${compose} .lab-compose:not([hidden])`);
+        yield* textIs(page, `${compose} .lab-where`, new RegExp(`^${timecode(at, FPS)}( · |$)`));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live(
