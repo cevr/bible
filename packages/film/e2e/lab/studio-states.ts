@@ -450,7 +450,7 @@ const listed = (
 /**
  * The probe film's notes on its Script: on beat one's words a note, a
  * correction and a removal, and a note on beat two's frame, whose marker is
- * in its head.
+ * in its head, which the agent replied to.
  */
 const SCRIPT_NOTES: ReadonlyArray<Json> = [
   listed(1, 'one', 0.1, {
@@ -468,7 +468,13 @@ const SCRIPT_NOTES: ReadonlyArray<Json> = [
     kind: 'removal',
     text: 'remove “down again.”',
   }),
-  listed(4, 'two', 2.4, { text: 'the second scene sits too still' }),
+  listed(4, 'two', 2.4, {
+    text: 'the second scene sits too still',
+    status: 'replied',
+    thread: [
+      { seq: 1, by: 'agent', text: 'it drifts now, a little', at: '2026-10-13T00:01:00.000Z' },
+    ],
+  }),
 ];
 
 /** What the Script's link selects in a beat (`pageHref.scriptBeat`'s). */

@@ -63,7 +63,9 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
   background: none; font: inherit; color: var(--text-2); cursor: pointer; }
 .lab-script-beat[data-live='true'] .lab-script-id { color: var(--text-1); }
 @media (hover: hover) { .lab-script-id:hover, .lab-script-id:hover .lab-script-at { color: var(--text-1); } }
+/* Where a beat starts, its frames in its seconds' ink: the kit's timecode lifts them, as only a running clock wants. */
 .lab-script-at { color: var(--text-3); }
+.sh-timecode.lab-script-at .sh-ff { color: inherit; }
 .lab-script-brief { display: flex; flex-direction: column; min-width: 0; }
 .lab-script-picture { margin: 0; color: var(--text-2); }
 /* Under a brief its three lines clip on a phone: what opens it all, the size of a press, quiet as the brief. */
@@ -90,7 +92,7 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 @media (hover: hover) { .lab-script-mark:hover { color: var(--text-1); } .lab-script-mark[aria-current='true']:hover { color: var(--accent-ink); } }
 /* What the selection ties to: a raised box under the line, its head and a row to a cue. */
 .lab-script-ties { display: flex; flex-direction: column; border: var(--border); border-radius: var(--r-2); background: var(--surface-2); }
-.lab-script-ties-head { display: flex; align-items: center; gap: var(--s-2); padding: 0 var(--s-1) 0 var(--s-3); }
+.lab-script-ties-head { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-1) 0 var(--s-3); }
 .lab-script-ties-what { flex: 1; min-width: 0; color: var(--text-1); }
 .lab-script-ties-head > .sh-btn { flex: none; min-height: var(--hit); }
 .lab-script-ties-none { margin: 0; padding: 0 var(--s-3) var(--s-2); color: var(--text-3); }
@@ -120,16 +122,21 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 .lab-script-beat-head > .lab-script-noted { display: inline-flex; align-items: center; justify-content: center;
   min-width: var(--hit); min-height: var(--hit); }
 .lab-script-noted[aria-current='true'] > .sh-badge { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+/* A note the agent replied to, the one the owner acts on, says so past its colour: a reply's arrow after its id. */
+.lab-script-noted > .sh-badge[data-state='agent']::after { content: '\\00a0↩'; }
 @media (hover: hover) { .lab-script-noted:not([aria-current='true']):hover > .sh-badge { background: var(--surface-3); } }
 /* The composer and the note selected: boxes under the line, as the ties are; the composer is the kit's (\`.lab-compose\`). */
 .lab-script-compose { display: flex; flex-direction: column; }
-.lab-script-shown { display: flex; flex-direction: column; gap: var(--s-2); padding: 0 var(--s-3) var(--s-3);
+.lab-script-shown { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-1) var(--s-3) var(--s-3);
   border: var(--border); border-radius: var(--r-2); background: var(--surface-2); }
 .lab-script-shown-head { display: flex; align-items: center; gap: var(--s-2); margin-inline-end: calc(-1 * var(--s-2)); }
 .lab-script-shown-id { color: var(--text-1); font-weight: var(--w-2); }
 .lab-script-shown-head > .sh-btn { min-height: var(--hit); margin-inline-start: auto; }
 .lab-script-shown .lab-reply-input { min-height: var(--hit); }
 .lab-script-shown .lab-resolve, :is(.lab-script-compose, .lab-script-sheet) .lab-actions > .sh-btn { min-height: var(--hit); flex: none; }
+/* The line the frame is in has one home here, the reader: the transport keeps its place (CC stays at the row's end) and
+   says it no more. */
+body.lab:has(.lab-script) .bar > .row .say { visibility: hidden; }
 @media ${WIDE} {
   body.lab:has(.lab-script) { grid-template-columns: minmax(0, 1fr) var(--script-w); }
   .lab-script { grid-column: 2; grid-row: 2 / span 2; overflow: hidden; border-left: var(--border); }

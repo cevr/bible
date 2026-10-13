@@ -10,7 +10,8 @@
 // nothing: its labelled field is marked, described by why, and has the keys.
 // The composer says where its note sits on the film's clock, as the beats'
 // heads do; the cues tied to the words wait while it is open; and on a phone
-// its sheet is titled with what the note asks.
+// its sheet is titled with what the note asks. A note the agent replied to
+// has a reply's arrow after its marker's id.
 
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Effect, FileSystem, Layer, Option, Schema } from 'effect';
@@ -315,6 +316,21 @@ describe('the Script', () => {
           false,
         );
         expect(desk.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a note the agent replied to says so past its colour: a reply's arrow after its marker's id, which an open note's lacks",
+    () =>
+      Effect.gen(function* () {
+        const page = yield* scriptAt({})(DESK);
+        /** What follows the id in note `id`'s marker, drawn by the page's styles. */
+        const after = (id: string) =>
+          `getComputedStyle(document.querySelector('.lab-script-noted[data-note="${id}"] > .sh-badge'), '::after').content`;
+        // The arrow held to the id by a space no line breaks at.
+        yield* evaluates(page, after('n4'), `"${String.fromCodePoint(0xa0)}↩"`);
+        yield* evaluates(page, after('n3'), 'none');
+        expect(page.errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
 
