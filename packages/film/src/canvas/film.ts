@@ -876,15 +876,23 @@ export const createFilm = (spec: FilmSpec): Film => {
       ),
     ),
   ];
-  /** The loaded rigs the film draws with: none until its loader stands them (`FilmRigs.stand`). */
-  let standing: ReadonlyMap<RivePropSpec, LoadedRig> = new Map();
+  /**
+   * The loaded rigs the film draws with: the latest of its loads still
+   * standing (`FilmRigs.stand`), none until one is. A load stood down leaves
+   * the others as they were, in whatever order their scopes close, so a draw
+   * never finds rigs whose scope has closed.
+   */
+  const none: ReadonlyMap<RivePropSpec, LoadedRig> = new Map();
+  let stands: ReadonlyArray<ReadonlyMap<RivePropSpec, LoadedRig>> = [];
+  let standing = none;
   const rigs: FilmRigs = {
     declared: declaredRigs,
     stand: (loaded) => {
-      const before = standing;
+      stands = [...stands, loaded];
       standing = loaded;
       return () => {
-        standing = before;
+        stands = stands.filter((up) => up !== loaded);
+        standing = stands.at(-1) ?? none;
       };
     },
   };

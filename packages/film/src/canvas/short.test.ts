@@ -4,7 +4,7 @@
 // Making the page needs no DOM, so bun can make one.
 
 import { describe, expect, test } from 'bun:test';
-import { Effect, Scope } from 'effect';
+import { Effect } from 'effect';
 import { type FilmSpec, createFilm } from './film.ts';
 import { SHORT_LAYOUT, bandOf } from '../core/shorts.ts';
 import { createShort, shortPages } from './short.ts';
@@ -77,7 +77,7 @@ describe('createShort', () => {
   });
 
   test('each short is a page under <film>/shorts/<id>', () => {
-    const pages = shortPages('probe', () => Effect.runPromise(Effect.succeed(film)), [
+    const pages = shortPages('probe', Effect.succeed(film), [
       {
         id: 'one',
         title: 'One',
@@ -85,8 +85,9 @@ describe('createShort', () => {
       },
     ]);
     expect(Object.keys(pages)).toEqual(['probe/shorts/one']);
-    return expect(pages['probe/shorts/one']?.(Scope.makeUnsafe())).resolves.toMatchObject({
-      title: 'One',
-    });
+    const page = pages['probe/shorts/one'];
+    expect(page).toBeDefined();
+    if (page === undefined) return;
+    expect(Effect.runSync(Effect.scoped(page))).toMatchObject({ title: 'One' });
   });
 });

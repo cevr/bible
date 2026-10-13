@@ -7,7 +7,7 @@
 // the band (`SHORT_LAYOUT`). The page is made at the film's density and
 // encoded down to 1080 × 1920 (`shortPage`).
 
-import { Result, Schema, type Scope } from 'effect';
+import { Effect, Result, Schema, type Scope } from 'effect';
 import { type Placed, sceneOf } from '../core/layout.ts';
 import { Short } from '../core/schema.ts';
 import {
@@ -211,17 +211,17 @@ export const createShort = (film: Film, declared: Short): Film => {
 /**
  * The player's entries for a film's shorts, one page each under
  * `<film>/shorts/<id>`: spread them, beside the films, into the pages the app
- * mounts. A short's page loads its film into the page's `scope`, as the
+ * mounts. A short's page runs its film's load in the page's scope, as the
  * film's own page does, so what the film holds goes with that scope.
  */
-export const shortPages = (
+export const shortPages = <E>(
   name: string,
-  load: (scope: Scope.Scope) => Promise<Film>,
+  load: Effect.Effect<Film, E, Scope.Scope>,
   shorts: ReadonlyArray<Short>,
-): Record<string, (scope: Scope.Scope) => Promise<Film>> =>
+): Record<string, Effect.Effect<Film, E, Scope.Scope>> =>
   Object.fromEntries(
     shorts.map((short) => [
       shortKey(name, short.id),
-      (scope: Scope.Scope) => load(scope).then((f) => createShort(f, short)),
+      Effect.map(load, (f) => createShort(f, short)),
     ]),
   );

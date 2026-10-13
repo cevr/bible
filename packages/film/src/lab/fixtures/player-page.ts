@@ -11,7 +11,7 @@ import { PROBE, probeFilm } from './probe-film.ts';
 import { TALK, talkFilm } from './talk-film.ts';
 
 mountPlay({
-  [PROBE]: () => Effect.runPromise(Effect.sync(probeFilm)),
-  [CROWD]: () => Effect.runPromise(Effect.sync(crowdFilm)),
+  [PROBE]: Effect.sync(probeFilm),
+  [CROWD]: Effect.sync(crowdFilm),
   [TALK]: talkFilm,
 });

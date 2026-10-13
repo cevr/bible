@@ -6,4 +6,4 @@ import { Effect } from 'effect';
 import { mountLab } from '../mount.tsx';
 import { PROBE, narratedProbeFilm } from './probe-film.ts';
 
-mountLab({ [PROBE]: () => Effect.runPromise(Effect.sync(narratedProbeFilm)) });
+mountLab({ [PROBE]: Effect.sync(narratedProbeFilm) });

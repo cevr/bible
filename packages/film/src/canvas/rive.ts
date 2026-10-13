@@ -101,7 +101,40 @@ interface GlTarget {
   readonly canvas: HTMLCanvasElement;
   readonly gl: WebGL2RenderingContext;
   readonly renderer: WrappedRenderer;
+  /** Whether its first drawing at rest is done: one left unprimed (that drawing threw) is made anew. */
+  primed: boolean;
 }
+
+/** A Rive object a frame makes for itself and deletes. */
+interface Made {
+  delete(): void;
+}
+
+/**
+ * What a rig's frame has made and not yet deleted. The frame deletes all of
+ * it, last made first, as it ends; a frame that throws leaves it here, and the
+ * next frame deletes it as it starts, or the rig's scope as it closes
+ * (`free`). The draw path runs no Effect and no try/finally, so this slot is
+ * how a throw mid-frame leaks nothing.
+ */
+interface InFlight {
+  readonly hold: <A extends Made>(made: A) => A;
+  readonly free: () => void;
+}
+
+/** An empty in-flight slot for a rig's frames (`loadRigs` owns it, and frees it as its scope closes). */
+export const inFlight = (): InFlight => {
+  const held: Array<Made> = [];
+  return {
+    hold: (made) => {
+      held.push(made);
+      return made;
+    },
+    free: () => {
+      for (let made = held.pop(); made !== undefined; made = held.pop()) made.delete();
+    },
+  };
+};
 
 /**
  * What a rig draws on: a renderer on each frame canvas (`canvas`) and a target
@@ -132,6 +165,8 @@ export interface LoadedRig {
   /** Scratch for a frame's transform: nothing is kept in it between calls. */
   readonly scratch: Mat2D;
   readonly surfaces: RigSurfaces;
+  /** The instances the frame being drawn has made, deleted as it ends (or after it, if it threw). */
+  readonly frame: InFlight;
 }
 
 /** A prop's box on screen fits this square at any camera the court uses: a small target to clear and read back. */
@@ -143,17 +178,19 @@ const isGl2 = (v: unknown): v is WebGL2RenderingContext =>
 
 /**
  * The surfaces of a rig drawn by `runtime`. A target is first drawn once with
- * `rest()` (a new artboard, unposed, drawn as large as the target holds, then
- * deleted), so the buffers it sizes hold any frame that fits it. Its context
- * is held in the page's budget of live WebGL contexts (`holdGl`, with
- * `glCanvas`'s), each use as the most recent; one the budget or the browser
- * has let go is found lost and made anew, primed again, before it draws, so
- * a target never draws blank; and each is let go with the rig (`dropGl`).
+ * `rest()` (a new artboard, unposed, drawn as large as the target holds, held
+ * in the frame's slot, `frame`, which deletes it), so the buffers it sizes
+ * hold any frame that fits it. Its context is held in the page's budget of
+ * live WebGL contexts (`holdGl`, with `glCanvas`'s), each use as the most
+ * recent; one the budget or the browser has let go, or whose first drawing
+ * threw, is made anew, primed again, before it draws, so a target never draws
+ * blank; and each is let go with the rig (`dropGl`).
  */
 export const rigSurfaces = (
   runtime: RiveCanvas,
   rest: () => Artboard,
   scratch: Mat2D,
+  frame: InFlight,
 ): RigSurfaces => {
   const renderers = new Map<HTMLCanvasElement, WrappedRenderer>();
   const targets = new Map<number, GlTarget>();
@@ -168,7 +205,7 @@ export const rigSurfaces = (
     const at = w * 65536 + h;
     const have = targets.get(at);
     if (have !== undefined) {
-      if (!have.gl.isContextLost()) {
+      if (have.primed && !have.gl.isContextLost()) {
         holdGl(have.canvas, have.gl);
         return have;
       }
@@ -183,9 +220,11 @@ export const rigSurfaces = (
     const renderer = runtime.makeRenderer(canvas, false);
     const gl: unknown = canvas.getContext('webgl2');
     if (!isGl2(gl)) return undefined;
-    const made = { canvas, gl, renderer };
+    // Kept from the start, so the rig frees it even if its first drawing throws.
+    const made: GlTarget = { canvas, gl, renderer, primed: false };
+    targets.set(at, made);
     holdGl(canvas, gl);
-    const first = rest();
+    const first = frame.hold(rest());
     first.advance(0);
     const b = first.bounds;
     const fill = Math.min(w / (b.maxX - b.minX), h / (b.maxY - b.minY));
@@ -202,8 +241,7 @@ export const rigSurfaces = (
     made.renderer.restore();
     made.renderer.flush();
     runtime.resolveAnimationFrame();
-    first.delete();
-    targets.set(at, made);
+    made.primed = true;
     return made;
   };
   const free = () => {
@@ -240,8 +278,9 @@ const unposable = (spec: RivePropSpec, rig: LoadedRig, pose: RivePose): string |
 /**
  * `artboard`, a frame's own, set to `pose`: its view-model instance (`vm`,
  * the frame's own too) bound and given the pose's numbers, the pose's
- * timelines applied in order, each on an instance made for it and deleted,
- * then the artboard advanced by no time, which applies the binds.
+ * timelines applied in order, each on an instance made for it (held in the
+ * frame's slot, deleted with the frame), then the artboard advanced by no
+ * time, which applies the binds.
  */
 const posed = (
   rig: LoadedRig,
@@ -263,10 +302,9 @@ const posed = (
     if (step === undefined || animation === undefined) continue;
     const mix = step[2] ?? 1;
     if (mix <= 0) continue;
-    const t = new rig.runtime.LinearAnimationInstance(animation, artboard);
+    const t = rig.frame.hold(new rig.runtime.LinearAnimationInstance(animation, artboard));
     t.time = step[1];
     t.apply(mix);
-    t.delete();
   }
   artboard.advance(0);
 };
@@ -392,8 +430,10 @@ const declareFace = (
  * delete it: nothing once drawn, else why it cannot be (the pose names what
  * the rig lacks, or no WebGL 2 context can be made for a `webgl2` rig's
  * target), which the film throws (`f.rive`). The pose's names are
- * checked before an instance is made; a throw from the runtime itself fails
- * the frame and leaves that frame's instance to its file.
+ * checked before an instance is made. Every instance the frame makes is held
+ * in the rig's slot (`rig.frame`) and deleted as the frame ends; a throw from
+ * the runtime itself fails the frame, and what it had made is deleted by the
+ * rig's next frame as it starts, or by the rig's scope as it closes.
  */
 export const drawRig = (
   ctx: CanvasRenderingContext2D,
@@ -403,14 +443,15 @@ export const drawRig = (
 ): string | undefined => {
   const why = unposable(spec, rig, pose);
   if (why !== undefined) return why;
-  const artboard = rig.file.artboardByName(spec.source.artboard);
-  const vm = rig.model?.defaultInstance();
+  // What a frame that threw left behind.
+  rig.frame.free();
+  const artboard = rig.frame.hold(rig.file.artboardByName(spec.source.artboard));
+  const vm = rig.model === undefined ? undefined : rig.frame.hold(rig.model.defaultInstance());
   posed(rig, artboard, vm, pose);
   if (rig.paints && spec.engine === 'canvas') paintCanvas(ctx, spec, rig, artboard);
   const painted =
     rig.paints && spec.engine === 'webgl2' ? paintGl(ctx, spec, rig, artboard) : undefined;
   declareFace(ctx, spec, rig, artboard);
-  vm?.delete();
-  artboard.delete();
+  rig.frame.free();
   return painted;
 };

@@ -3341,18 +3341,25 @@ the checks stay ours.
   renderers, GL targets) belongs to the load's scope. Two films never share
   a rig.
 - **Owned by whoever loaded it.** The consumer that loads a film owns its
-  rigs and closes them: a film's loader takes the caller's scope (`Films`,
-  `player/main.ts`: `(scope) => Promise<Film>`; `narratedFilms` loads the
-  rigs into it, a short's page into its film's). The player's page
-  (`stageFilm`) loads into the page's own scope, which lives as the page
-  does; a lab or review Project's stills (`useSceneStills`,
-  `lab/review/options/stills.tsx`) load into a scope of their own, closed
-  when the Project unmounts, so a Project mounted and left again and again
-  leaves no rig behind (`draw-stills.test.ts`). `loadRigs` loads into a
-  scope of its own under the caller's, so a load that fails (a name the
-  file lacks, the second rig unreadable) frees what it had already made
-  before the failure surfaces, with the caller's scope still open
-  (`player/narrated.test.ts`).
+  rigs and closes them: a film's load is a scoped Effect (`Films`,
+  `player/main.ts`: `Effect<Film, FilmUnloadable, Scope>`; `narratedFilms`
+  loads the rigs into the scope it runs in, a short's page into its
+  film's), run on the consumer's own fiber, so no lifetime crosses a
+  Promise and stopping the consumer stops the load where it is. The
+  player's page (`stageFilm`) runs it in the page's own scope, which lives
+  as the page does; a lab or review Project's stills (`useSceneStills`,
+  `lab/review/options/stills.tsx`) run it in a scope of their own, which
+  their cleanup closes after it has stopped them, so a Project mounted and
+  left again and again leaves no rig behind, and one left mid-load stops
+  its load (`draw-stills.test.ts`). `loadRigs` holds what it acquires in a
+  scope only it can close while it runs, and hands that scope to the
+  caller's once done: a load that fails or is stopped frees what it had
+  made, with the caller's scope still open (`player/narrated.test.ts`), and
+  a caller's scope closed mid-load frees the load's objects only after the
+  load is done with them, standing no rig (`src/rive/rive.test.ts`, which
+  counts every call on a file after its unref). A film value loaded into
+  two scopes draws with whichever load still stands, in any order of
+  closing.
 - **One GL budget.** A `webgl2` rig's targets are held in the page's
   context budget with `glCanvas`'s keys (`holdGl`, 8 live; `dropGl` when the
   rig's scope closes), so rigs and a 3D look never pass the browser's cap
@@ -3394,7 +3401,12 @@ the checks stay ours.
   0.60 ms a frame on `canvas` (0.35 ms posed from rest) and about 19 ms on
   `webgl2` under SwiftShader, either way. The draw path allocates the frame's
   own Rive instances (made and deleted within it) and, on `webgl2`, the one
-  `getTransform` it reads.
+  `getTransform` it reads. Every instance a frame makes is held in the rig's
+  in-flight slot until the frame ends: the draw path runs no Effect and no
+  try/finally, so a frame the runtime throws in leaves its instances there,
+  and the rig's next frame deletes them as it starts, or the rig's scope as
+  it closes (`rive.test.ts` injects the runtime's own throw three frames
+  running and counts nothing left).
 
 - **Two engines.** `canvas` (`@rive-app/canvas-advanced`) draws with Rive's
   Canvas 2D renderer on our own context. `webgl2` (`@rive-app/webgl2-advanced`)

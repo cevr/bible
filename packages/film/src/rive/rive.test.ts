@@ -9,8 +9,9 @@
 import canvasWasm from '@rive-app/canvas-advanced/rive.wasm' with { type: 'file' };
 import { BunFileSystem } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Exit, FileSystem, Layer, Option, Schema, Scope } from 'effect';
+import { Deferred, Effect, Exit, Fiber, FileSystem, Layer, Option, Schema, Scope } from 'effect';
 import type { Film } from '../canvas/film.ts';
+import { countedRive } from '../canvas/fixtures/rive-counted.ts';
 import { recorder, standInDom } from '../canvas/fixtures/stand-in.ts';
 import { type LoadedRig, type RiveEngine, type RivePropSpec, drawRig } from '../canvas/rive.ts';
 import { RigNameMissing, RigUnloadable } from '../core/errors.ts';
@@ -218,6 +219,89 @@ describe('the Rive engine', () => {
       expect(Reflect.has(globalThis, 'document')).toBe(had);
       expect(Object.is(Reflect.get(globalThis, 'document'), before)).toBe(true);
     }),
+  );
+
+  it.live(
+    'a scope closed while its rigs still load frees each file once, after the load is done with it, and stands nothing',
+    () => {
+      const { counts, faults, layer } = countedRive();
+      return Effect.gen(function* () {
+        yield* standInDom({ record: false });
+        const parsing = yield* Deferred.make<boolean>();
+        const parse = yield* Deferred.make<boolean>();
+        faults.parsed = () =>
+          Effect.runPromise(
+            Effect.andThen(Deferred.succeed(parsing, true), Effect.asVoid(Deferred.await(parse))),
+          );
+        const film = armFilm([armScene('arm', 'webgl2')]);
+        const scope = yield* Scope.make();
+        const loading = yield* Effect.forkChild(Scope.provide(loadRigs(film), scope));
+        // The caller's scope closes while the rig's file is parsed, and the load is not stopped.
+        yield* Deferred.await(parsing);
+        yield* Scope.close(scope, Exit.void);
+        yield* Deferred.succeed(parse, true);
+        yield* Fiber.await(loading);
+        expect(counts.afterFree).toBe(0);
+        expect(counts.files).toBe(1);
+        expect(counts.unrefs).toBe(counts.files);
+        expect(counts.deletes).toBe(counts.artboards);
+        expect(counts.viewModelDeletes).toBe(counts.viewModels);
+        expect(() => film.render(recorder().ctx, 1)).toThrow(/not loaded/);
+      }).pipe(Effect.provide(layer), Effect.scoped);
+    },
+  );
+
+  it.effect(
+    'a frame that throws keeps nothing: what it made is freed by the next frame, or by the scope',
+    () => {
+      const { counts, faults, layer } = countedRive();
+      return Effect.gen(function* () {
+        const { spec, rig, scope } = yield* armLoaded('webgl2');
+        const ctx = recorder(200, 200, { record: false }).ctx;
+        // The load keeps one artboard (its names checked on it) until its scope closes.
+        const kept = () => ({
+          artboards: counts.artboards - counts.deletes,
+          viewModels: counts.viewModels - counts.viewModelDeletes,
+          timelines: counts.timelines - counts.timelineDeletes,
+        });
+        // The runtime itself throws as the artboard advances, three frames running.
+        const thrown = /Cannot pass .* as a Artboard/;
+        faults.throws = 3;
+        for (let i = 0; i < 3; i++)
+          expect(() => drawRig(ctx, spec, rig, armPose(0.6 + i))).toThrow(thrown);
+        // Only the last frame's: each frame frees what the one before it left.
+        expect(kept()).toMatchObject({ artboards: 2, viewModels: 1 });
+        expect(drawRig(ctx, spec, rig, armPose(1))).toBeUndefined();
+        expect(kept()).toEqual({ artboards: 1, viewModels: 0, timelines: 0 });
+        faults.throws = 1;
+        expect(() => drawRig(ctx, spec, rig, armPose(2))).toThrow(thrown);
+        yield* Scope.close(scope, Exit.void);
+        expect(kept()).toEqual({ artboards: 0, viewModels: 0, timelines: 0 });
+        expect(counts.viewModels).toBeGreaterThan(4);
+        expect(counts.timelines).toBeGreaterThan(4);
+      }).pipe(Effect.provide(layer), Effect.scoped);
+    },
+  );
+
+  it.effect(
+    'a film loaded into two scopes draws with a live load, whichever scope closes first',
+    () => {
+      const { counts, layer } = countedRive();
+      return Effect.gen(function* () {
+        yield* standInDom({ record: false });
+        const film = armFilm([armScene('arm', 'webgl2')]);
+        const first = yield* Scope.make();
+        const second = yield* Scope.make();
+        yield* Scope.provide(loadRigs(film), first);
+        yield* Scope.provide(loadRigs(film), second);
+        yield* Scope.close(first, Exit.void);
+        film.render(recorder().ctx, 1);
+        yield* Scope.close(second, Exit.void);
+        expect(() => film.render(recorder().ctx, 1)).toThrow(/not loaded/);
+        expect(counts.afterFree).toBe(0);
+        expect(counts.unrefs).toBe(2);
+      }).pipe(Effect.provide(layer), Effect.scoped);
+    },
   );
 
   it.effect('stands the rigs on the film for its scope, and two films never share one', () =>

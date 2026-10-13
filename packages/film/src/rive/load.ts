@@ -4,15 +4,16 @@
 // film for its draws. A rig is its file, parsed once: each frame poses an
 // artboard instance of its own made from it (`drawRig`). Each wasm object a
 // rig holds (the file, the artboard its names were checked on, the scratch
-// matrix, the surfaces it draws on) is the load scope's and freed when it
-// closes; the rigs stand on the film until then. Each name a declaration
+// matrix, the surfaces it draws on, what a frame that threw left in its
+// in-flight slot) is the load scope's and freed when it closes; the rigs
+// stand on the film until then. Each name a declaration
 // gives is checked against the file here, so a missing one fails the load,
 // listing what the file has, and nothing is drawn.
 
 import type { Artboard, File, LinearAnimation, RiveCanvas } from '@rive-app/webgl2-advanced';
 import { Effect, Exit, Option, Scope } from 'effect';
 import type { Film } from '../canvas/film.ts';
-import { type LoadedRig, type RivePropSpec, rigSurfaces } from '../canvas/rive.ts';
+import { type LoadedRig, type RivePropSpec, inFlight, rigSurfaces } from '../canvas/rive.ts';
 import { RigNameMissing, RigUnloadable } from '../core/errors.ts';
 import { RiveRuntime } from './runtime.ts';
 
@@ -119,8 +120,12 @@ const loadRig = Effect.fn('Rive.loadRig')(function* (spec: RivePropSpec) {
     Effect.sync(() => new runtime.Mat2D()),
     (m) => m.delete(),
   );
+  // The frames' in-flight slot: what a frame that threw left is freed before the file it came from.
+  const frame = yield* owned(Effect.sync(inFlight), (f) => f.free());
   const surfaces = yield* owned(
-    Effect.sync(() => rigSurfaces(runtime, () => file.artboardByName(source.artboard), scratch)),
+    Effect.sync(() =>
+      rigSurfaces(runtime, () => file.artboardByName(source.artboard), scratch, frame),
+    ),
     (s) => s.free(),
   );
   const rig: LoadedRig = {
@@ -132,6 +137,7 @@ const loadRig = Effect.fn('Rive.loadRig')(function* (spec: RivePropSpec) {
     numbers: new Set(numbers),
     scratch,
     surfaces,
+    frame,
   };
   return rig;
 });
@@ -139,15 +145,22 @@ const loadRig = Effect.fn('Rive.loadRig')(function* (spec: RivePropSpec) {
 /**
  * Load every rig `film`'s drawings declare and stand them on it for its draws,
  * until the caller's scope closes: what a film's load path runs before its
- * first frame (`narratedFilms` in a page, `check --draw` in Bun). Everything
- * it acquires is held in a scope of its own under the caller's, closed at
- * once, releasing it all, when any rig fails to load. The film, ready to draw.
+ * first frame (`narratedFilms` in a page, `check --draw` in Bun). The film,
+ * ready to draw.
+ *
+ * What the load acquires is held in a scope of its own, which only the load
+ * can close while it runs: interrupted or failed, it closes that scope and so
+ * releases it all; done, it hands the scope to the caller's, which closes it
+ * with itself. So nothing is released while the load still uses it, whenever
+ * the caller's scope closes: one closed before the hand-over (its owner left
+ * mid-load) closes the load's at once, after the load is done, and the film
+ * is given with no rig standing, refusing to draw one.
  */
 export const loadRigs = Effect.fn('Rive.loadRigs')(function* (
   film: Film,
 ): Effect.fn.Return<Film, RigUnloadable | RigNameMissing, RiveRuntime | Scope.Scope> {
-  const own = yield* Scope.fork(yield* Scope.Scope, 'sequential');
-  return yield* Effect.gen(function* () {
+  const caller = yield* Scope.Scope;
+  const stood = Effect.gen(function* () {
     const loaded = new Map<RivePropSpec, LoadedRig>();
     for (const spec of film.rigs.declared) loaded.set(spec, yield* loadRig(spec));
     yield* Effect.acquireRelease(
@@ -155,8 +168,17 @@ export const loadRigs = Effect.fn('Rive.loadRigs')(function* (
       (down) => Effect.sync(down),
     );
     return film;
-  }).pipe(
-    Scope.provide(own),
-    Effect.onError((cause) => Scope.close(own, Exit.failCause(cause))),
+  });
+  return yield* Effect.uninterruptibleMask((restore) =>
+    Effect.gen(function* () {
+      const own = yield* Scope.make('sequential');
+      const done = yield* Effect.exit(restore(Scope.provide(stood, own)));
+      if (Exit.isFailure(done)) {
+        yield* Scope.close(own, done);
+        return yield* done;
+      }
+      yield* Scope.addFinalizerExit(caller, (exit) => Scope.close(own, exit));
+      return done.value;
+    }),
   );
 });

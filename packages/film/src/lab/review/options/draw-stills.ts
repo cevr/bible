@@ -3,12 +3,13 @@
 // loader gives it once they have loaded, `narratedFilms`: a still drawn
 // before them would draw a fallback face), and its scenes' middles drawn by
 // the studio's one source of stills (`player/stills.ts`, the Scenes tape's
-// own). The film is loaded into the scope the stills are drawn in, so what it
-// holds (its Rive rigs) goes when the Project that shows them does. Only the review's browser entry imports it (`mount.tsx`): the
-// server's render reads no film's code and draws nothing (`filmCode`,
-// `tools/lab-page.ts`).
+// own). The film's load runs on the stills' fiber, in the scope they are
+// drawn in, so what it holds (its Rive rigs) goes when the Project that shows
+// them does, and a Project left mid-load stops the load. Only the review's
+// browser entry imports it (`mount.tsx`): the server's render reads no film's
+// code and draws nothing (`filmCode`, `tools/lab-page.ts`).
 
-import { Effect, Option, Scope } from 'effect';
+import { Effect, Option } from 'effect';
 import type { Films } from '../../../player/main.ts';
 import { makeStills } from '../../../player/stills.ts';
 import type { DrawStills } from './stills.tsx';
@@ -18,18 +19,16 @@ const STILL_W = 384;
 
 /**
  * The stills of the app's `films`, each drawn from its code, loaded into the
- * scope they are drawn in; a film not among them has none.
+ * scope they are drawn in; a film not among them has none, and one whose
+ * load fails (its code's import among it) has none either.
  */
 export const drawStills =
   (films: Films): DrawStills =>
   (film, how) =>
     Option.map(Option.fromUndefinedOr(films[film]), (load) =>
-      Effect.flatMap(Scope.Scope, (scope) =>
-        Effect.mapError(
-          Effect.tryPromise(() => load(scope)),
-          () => 'load-failed' as const,
-        ),
-      ).pipe(
+      load.pipe(
+        Effect.mapError(() => 'load-failed' as const),
+        Effect.catchDefect(() => Effect.fail('load-failed' as const)),
         Effect.map((code) => {
           // With captions, as the preview draws by default: the Project has no captions toggle
           // (the Scenes tape's stills follow the player's).

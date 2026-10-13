@@ -109,7 +109,7 @@ describe('narratedFilms', () => {
         ),
         answering(404).layer,
       );
-      const given = Effect.promise(() => films.rbf(Scope.makeUnsafe())).pipe(
+      const given = Effect.scoped(films.rbf).pipe(
         Effect.tap(() => Effect.sync(() => happened.push('film given'))),
       );
       const loading = yield* Effect.forkChild(given);
@@ -152,7 +152,7 @@ describe('narratedFilms', () => {
       // Five mounts, each loading the film into a scope of its own and closing it as it goes.
       for (let mount = 0; mount < 5; mount++) {
         const scope = yield* Scope.make();
-        const film = yield* Effect.promise(() => films.arm(scope));
+        const film = yield* Scope.provide(films.arm, scope);
         expect(film.rigs.declared.length).toBe(1);
         yield* Scope.close(scope, Exit.void);
       }
@@ -169,8 +169,8 @@ describe('narratedFilms', () => {
         const { counts, layer } = countedRive();
         const films = armFilms(layer);
         const scope = yield* Scope.make();
-        const failed = yield* Effect.flip(Effect.tryPromise(() => films.broken(scope)));
-        expect(String(failed.cause)).toContain('has no artboard "Leg"');
+        const failed = yield* Effect.flip(Scope.provide(films.broken, scope));
+        expect(failed).toMatchObject({ _tag: 'RigNameMissing', kind: 'artboard', name: 'Leg' });
         // The arm's file and the leg's were both loaded, and both are freed already.
         expect(counts.files).toBe(2);
         expect(counts.unrefs).toBe(2);

@@ -7,4 +7,4 @@ import { Effect } from 'effect';
 import { mountReview } from '../review/mount.tsx';
 import { TOY, toyFilm } from './toy-film.ts';
 
-mountReview({ [TOY]: () => Effect.runPromise(Effect.sync(toyFilm)) });
+mountReview({ [TOY]: Effect.sync(toyFilm) });

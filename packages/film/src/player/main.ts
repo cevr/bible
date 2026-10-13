@@ -6,6 +6,7 @@
 // loads Solid, and the studio's pages never load the encoder.
 
 import type { Film, KnobRead, RenderOptions, ShownEdit } from '../canvas/film.ts';
+import type { FilmUnloadable } from './narrated.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { timecode } from '../core/time.ts';
 import { Cause, Effect, Option, Scope } from 'effect';
@@ -136,12 +137,13 @@ export interface Player {
 }
 
 /**
- * An app's film registry: each film's name and its loader, which gives the
+ * An app's film registry: each film's name and its load, which gives the
  * film with what it holds while it draws (its Rive rigs, `loadRigs`) in the
- * caller's `scope`: the caller owns their lifetime, and closing the scope
- * frees them.
+ * scope it runs in: whoever runs the load owns their lifetime, closing that
+ * scope frees them, and stopping the load stops it where it is, releasing
+ * what it had acquired.
  */
-export type Films = Record<string, (scope: Scope.Scope) => Promise<Film>>;
+export type Films = Record<string, Effect.Effect<Film, FilmUnloadable, Scope.Scope>>;
 
 /** A page's film, loaded and on the stage: its name, its stage and canvas, and the captions switch. */
 export interface Staged {
@@ -183,7 +185,7 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
   if (load === undefined)
     throw new Error(`unknown film "${name}"; have ${Object.keys(films).join(', ')}`);
   // The page's own scope, never closed: the staged film's rigs live as long as the page.
-  const film = await load(Scope.makeUnsafe());
+  const film = await Effect.runPromise(Scope.provide(load, Scope.makeUnsafe()));
 
   const canvas = document.createElement('canvas');
   canvas.width = film.width;
