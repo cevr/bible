@@ -24,7 +24,12 @@ import type { BunPlugin } from 'bun';
  * `--mute-audio` mutes its pages and `--disable-audio-output` plays to a fake
  * device, so a test never opens the host's speakers.
  */
-const SILENT = ['--mute-audio', '--disable-audio-output'];
+const SILENT = [
+  '--mute-audio',
+  '--disable-audio-output',
+  '--overscroll-history-navigation=0',
+  '--pull-to-refresh=0',
+];
 
 /** Solid's DOM compiler, with `fixtures/index.ts` resolved to `fixtureFile`. */
 const solid = (fixtureFile: string): BunPlugin => ({
@@ -62,6 +67,9 @@ const PAGE = `<!doctype html>
 <html><head><meta charset="utf-8"><title>ui</title>
 <style>
   body { margin: 0; font: 14px sans-serif; }
+  /* A host page's own overscroll gestures (pull to refresh, swipe back) reload or leave the page under
+     a test; a finger that drags past a hidden sheet reaches the document. */
+  html { overscroll-behavior: none; }
   [hidden] { display: none !important; }
 </style></head>
 <body><div id="root"></div><script type="module" src="/client.js"></script></body></html>`;
