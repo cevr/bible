@@ -147,10 +147,10 @@ const hexOf = (L: number, C: number, h: number): Hex => {
 /** The paper-cut look's knobs (`cold-studies/palette.ts`, fitted to K1). */
 const FILM: Shading = {
   turn: 20,
-  dark: 0.2,
+  dark: 0.22,
   lift: 0.4,
-  deep: 10,
-  neutral: 1,
+  deep: 13.5,
+  neutral: 0.65,
   warm: 8.5,
   fade: 0.6,
 };

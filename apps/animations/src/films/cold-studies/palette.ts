@@ -52,16 +52,20 @@ export const palette = {
 export const keyLight: Hex = '#f3e9c8';
 
 /**
- * How the paper-cut look shades (`ramp`'s knobs): fitted to K1, the owner's
- * pick (2026-10-13), as the least-squares nearest (CIE ΔE) to the
- * swatches K1 was drawn with, its two near-grey lights left out.
+ * How the paper-cut look shades (`ramp`'s knobs, held above CRAFT 12's
+ * floors): fitted to K1, the owner's pick (2026-10-13), as the
+ * least-squares nearest (CIE ΔE) to the swatches K1 was drawn with, its two
+ * near-grey lights left out. The shade's knobs (`dark`, `deep`, `neutral`)
+ * are fitted to K1's hand shades, so a near-neutral's shade stops short of
+ * the complement as K1's did: the people's crease a lavender (h 299), not a
+ * slate blue. `neutral: 1` gives the slate back.
  */
 export const shading: Shading = {
   turn: 20,
-  dark: 0.2,
+  dark: 0.22,
   lift: 0.4,
-  deep: 10,
-  neutral: 1,
+  deep: 13.5,
+  neutral: 0.65,
   warm: 8.5,
   fade: 0.6,
 };
