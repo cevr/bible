@@ -158,6 +158,16 @@ Side plan (content series): three research subagents were running at the pause (
 
 ## Follow-ups (from state.md files; new units or tracker items)
 
+- **scoutfold** (owner asked for the scout 2026-10-13; report `tmp/orchestrate/p5/scout/animation-skills.md`): fold the gaps the scout found into the film framework and skill. Rules ported, no third-party code:
+  - a flash check (>3/s fails, WCAG 2.3.1) in `film check`;
+  - a motion lint over cue tracks (linear motion, teleports, missing stagger);
+  - a rig contract and rig QA in RIVE.md;
+  - a hands discipline;
+  - a scored contact sheet (fix the worst three until all are 8+);
+  - a 12-frame strip around fast actions;
+  - known ElevenLabs v3 failure modes (it cuts off the last sound);
+  - each review lesson becomes a skill rule.
+
 - **rbfbookend** (owner rule 2026-10-13, CRAFT rule 4 "bookend the setting"): RBF's coda leaves the court for the title's rooftop. Fix in `scenes/thesis.ts` by dropping `courtOut`, `cityIn` and `rooftop` and easing back to the court's `courtBack`. Then `scenes/end.ts` rolls the credits over the courtroom, and the `thesis`/`end` pictures in `script.ts` are updated. Owner-visible; stills before and after. See `series/bookends.md`.
 
 - 2026-10-13 retro-skills (pass5/retro-skills.md) — APPLIED on p5-main 9732f9d41: #3 hands by look (CRAFT §12, director-vision § Hands, description), #5 rejected.md Rive row → "Rive never owns the clock", #7 film skill Talks section + trigger. CARRIED as next-pass batches:
