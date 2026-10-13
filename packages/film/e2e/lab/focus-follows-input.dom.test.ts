@@ -19,7 +19,7 @@
 // case runs alone, and a page without it answers so instead of passing.
 
 import { BunServices } from '@effect/platform-bun';
-import { Effect, Exit, FileSystem, Option, Path, Scope } from 'effect';
+import { Effect, Exit, FileSystem, Path, Scope } from 'effect';
 import { expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import {
@@ -29,20 +29,18 @@ import {
   labAt,
   openLab,
   openPlayer,
-  openReview,
   route,
 } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { menuEntry } from '../../src/lab/fixtures/gestures.ts';
 import { until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
+import { type Input, LEFT_OPEN, registry, runFromMenu, sampled } from './registry.ts';
+import { onChoices } from './toy-choices.ts';
 
 const SLOW = 30_000;
 /** A page's whole registry, each command run twice. */
 const REGISTRY = 240_000;
 
-/** How a path was asked for. */
-type Input = 'key' | 'pointer';
 const INPUTS: ReadonlyArray<Input> = ['key', 'pointer'];
 
 /** A page-side function: an element's name, as `tag.class.class[role=…]`. */
@@ -141,80 +139,6 @@ const watchedThen = <A>(page: Tab, path: Effect.Effect<A>) =>
 const watched = (page: Tab, path: Effect.Effect<void>) =>
   Effect.map(watchedThen(page, path), ([, seen]) => seen);
 
-const COMMAND_MENU = '[data-role="command-menu"]';
-
-/** Every command ⌘K lists on the page now, a query every id matches (`.`) listing the typed ones too. */
-const registry = (page: Tab) =>
-  Effect.gen(function* () {
-    yield* page.press('Control+k');
-    yield* waitFor(page, '.lab-command-query');
-    yield* page.fill('.lab-command-query', '.');
-    yield* waitFor(page, `${COMMAND_MENU} [data-command]`);
-    const ids = yield* page.evaluate<ReadonlyArray<string>>(
-      `[...new Set([...document.querySelectorAll('${COMMAND_MENU} [data-command]')].map((e) => e.dataset.command))]`,
-    );
-    yield* page.press('Escape');
-    yield* until(page, `document.querySelector('${COMMAND_MENU}') === null`);
-    return ids;
-  });
-
-/** One per kind of thing a Go to goes to, and one per microphone: entries that share one `go`. */
-const SAMPLED = /^(go\.[^.]+\.|studio\.mic\.)/;
-
-/** The commands of `ids` the property runs: each, but one of a family that shares its run. */
-const sampled = (ids: ReadonlyArray<string>): ReadonlyArray<string> => {
-  const seen = new Set<string>();
-  return ids.filter((id) => {
-    const family = Option.match(Option.fromNullishOr(SAMPLED.exec(id)), {
-      onNone: () => id,
-      onSome: ([prefix]) => prefix,
-    });
-    if (seen.has(family)) return false;
-    seen.add(family);
-    return true;
-  });
-};
-
-/**
- * Run `id` from ⌘K by `input`: by the keys, Control+k, its id typed, the arrows down to its
- * row and Enter; by the pointer, the header's Go to… clicked, its id typed, the row clicked.
- * Done once the menu has gone.
- */
-const runFromMenu = (page: Tab, id: string, input: Input) =>
-  Effect.gen(function* () {
-    const row = menuEntry(id);
-    if (input === 'key') yield* page.press('Control+k');
-    else yield* page.click('.sh-header [data-act="search"]');
-    yield* waitFor(page, '.lab-command-query');
-    yield* page.fill('.lab-command-query', id);
-    yield* until(
-      page,
-      `document.querySelector('${COMMAND_MENU} [data-command]') !== null || document.querySelector('.lab-command-none') !== null`,
-    );
-    // A command an earlier run made unavailable (a take now recording) is not offered: no run.
-    if (!(yield* page.evaluate<boolean>(`document.querySelector('${row}') !== null`))) {
-      yield* page.press('Escape');
-      yield* until(page, `document.querySelector('${COMMAND_MENU}') === null`);
-      return false;
-    }
-    if (input === 'key') {
-      const at = yield* page.evaluate<number>(
-        `[...document.querySelectorAll('${COMMAND_MENU} [data-command]')].findIndex((e) => e.dataset.command === '${id}')`,
-      );
-      for (let i = 0; i < at; i++) yield* page.press('ArrowDown');
-      yield* until(
-        page,
-        `document.getElementById(document.querySelector('.lab-command-query').getAttribute('aria-activedescendant'))?.dataset.command === '${id}'`,
-      );
-      yield* page.press('Enter');
-    } else yield* page.click(row);
-    yield* until(page, `document.querySelector('${COMMAND_MENU}') === null`);
-    return true;
-  });
-
-/** A floating root a command left open (a receipt is not one: it waits beside the page). */
-const LEFT_OPEN = `[...document.querySelectorAll('[role=dialog], [role=menu], [role=alertdialog], [role=listbox]')].some((e) => !e.matches('.lab-receipt') && e.checkVisibility())`;
-
 /** A page the property opens, by its name. */
 interface Opened {
   readonly name: string;
@@ -305,94 +229,6 @@ const STUDIO_ROUTES = [
 /** The Lab in Record over `STUDIO_ROUTES`. */
 const inRecord = () =>
   openLab(STUDIO_ROUTES, { href: labAt(1), mic: { allowed: true }, mode: 'record' });
-
-/** A variant as the server encodes it. */
-const variant = (
-  id: string,
-  fields: {
-    readonly state?: string;
-    readonly picked?: boolean;
-    readonly verbs?: ReadonlyArray<string>;
-    readonly media?: Json;
-  } = {},
-): Json => ({
-  id,
-  label: id.slice(0, 12),
-  lines: [`${id.slice(0, 12)} line`],
-  state: fields.state ?? 'current',
-  picked: fields.picked ?? false,
-  verbs: fields.verbs ?? [],
-  media: fields.media ?? { _tag: 'Heard', alone: false, inPlace: true },
-  key: id,
-  approval: 'none',
-  comments: [],
-});
-
-/** A point as the server encodes it. */
-const point = (
-  id: string,
-  kind: string,
-  address: Json,
-  variants: ReadonlyArray<Json>,
-  knob: Option.Option<Json> = Option.none(),
-): Json => {
-  const at = { id, kind, address, title: id, lines: [], start: 0, marks: [], variants };
-  return Option.match(knob, { onNone: () => at, onSome: (k) => ({ ...at, knob: k }) });
-};
-
-const FILM_AT: Json = { _tag: 'Film' };
-const OPEN_AT: Json = { _tag: 'Scenes', ids: ['open'] };
-
-/** A film's choices of four kinds: a score's options, a look, a take's two versions and a level. */
-const CHOICES: Json = {
-  film: 'toy',
-  pictures: [{ ref: 'out/toy/toy.mp4', name: 'toy.mp4', size: 2048, mtime: 0, phone: 'none' }],
-  points: [
-    point('score', 'score', FILM_AT, [
-      variant('strings', { picked: true }),
-      variant('piano', { state: 'stale', verbs: ['pick'] }),
-      variant('choir', {
-        state: 'missing',
-        media: { _tag: 'Heard', alone: false, inPlace: false },
-      }),
-    ]),
-    point('look:ground', 'look', FILM_AT, [
-      variant('now', { picked: true, media: { _tag: 'Unseen' } }),
-      variant('light', { verbs: ['pick'], media: { _tag: 'Unseen' } }),
-    ]),
-    point('take:paper.page', 'take', OPEN_AT, [
-      variant('a'.repeat(64), {
-        picked: true,
-        verbs: ['unpick'],
-        media: { _tag: 'Heard', alone: true, inPlace: true },
-      }),
-      variant('b'.repeat(64), {
-        verbs: ['pick', 'reject'],
-        media: { _tag: 'Heard', alone: true, inPlace: true },
-      }),
-    ]),
-    point(
-      'level:const:PAPER',
-      'level',
-      OPEN_AT,
-      [],
-      Option.some({ value: -24, min: -40, max: 0, step: 0.5, unit: 'dB' }),
-    ),
-  ],
-};
-
-const CHOICE_ROUTES = [
-  route('GET', /^\/api\/review\/index/, () => json({ folders: [] })),
-  route('GET', /^\/api\/films$/, () => json({ films: ['toy'] })),
-  route('GET', /^\/api\/films\/toy\/choices$/, () => json(CHOICES)),
-  route('GET', /^\/api\/films\/toy\/choices\/check$/, () => json({ findings: [] })),
-  route('GET', /^\/api\/films\/toy\/check$/, () => json({ findings: [] })),
-  route('GET', /^\/api\/films\/toy\/steps$/, () => json({})),
-];
-
-/** The toy film's choices, a point selected (`?point=`), so its auditions are offered. */
-const onChoices = (point = 'score') =>
-  openReview(CHOICE_ROUTES, { href: pageHref.choices('toy', point) });
 
 /** The pages whose registries the property runs, each at a desk. */
 const PAGES: ReadonlyArray<Opened> = [
