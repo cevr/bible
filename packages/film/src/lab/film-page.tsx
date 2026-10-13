@@ -32,6 +32,7 @@ import { COMMENTS_CSS } from './review/comments-style.ts';
 import { SCENES_CSS } from './scenes/style.ts';
 import { SOURCE_CSS } from './source/style.ts';
 import { StudioFrame, studioOn } from './studio-frame.tsx';
+import { TRANSCRIPT_CSS } from './transcript/style.ts';
 
 /**
  * A film page's body, made once its film is staged, with the page's
@@ -160,7 +161,7 @@ interface FilmPageSpec {
 export const LAB_PAGE: FilmPageSpec = {
   bodyClass: 'lab',
   rootClass: 'lab-root',
-  style: `${SHELL_CSS}${COMMAND_CSS}${SOURCE_CSS}`,
+  style: `${SHELL_CSS}${COMMAND_CSS}${SOURCE_CSS}${TRANSCRIPT_CSS}`,
 };
 
 /** The Scenes and Play pages' page. */

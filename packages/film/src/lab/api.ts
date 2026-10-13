@@ -5,19 +5,38 @@
 // message the words the panel shows; a request that never reached the
 // server, or an answer that does not decode, is LabUnreachable in its own
 // words. One client (`LabClient`) serves every page's calls: the scene
-// source routes are `LabApi`, the notes routes `NotesApi`, and the studio's,
+// source routes and a talk's (its words, and its writes: `TalkAsk`, which
+// the editor's machine sends as it sends a scene write) are `LabApi`, the
+// notes routes `NotesApi`, and the studio's,
 // the review's and the choices' build on it (`studio/api.ts`,
 // `review/api.ts`, `review/options/api.ts`). An Undo or Redo carries an id
 // unique to its request (`stepRequest`), so either page whose step had no
 // answer learns from the lab's check whether it landed (`landedStep`).
 
-import { Array as Arr, Cause, Context, Effect, Layer, Option, Predicate, Schema } from 'effect';
+import {
+  Array as Arr,
+  Cause,
+  Context,
+  Effect,
+  Layer,
+  Match,
+  Option,
+  Predicate,
+  Schema,
+} from 'effect';
 import { FetchHttpClient, HttpClient, HttpClientRequest } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import { type Bound, Unfit, boundChange } from '../command/command.ts';
-import { LabHttpApi, Refusal, isRefusal } from '../core/api.ts';
+import {
+  LabHttpApi,
+  Refusal,
+  TalkMarkPost,
+  type TalkWords,
+  TalkWordsPost,
+  isRefusal,
+} from '../core/api.ts';
 import type { PageRequest } from '../core/page-render.ts';
 import { newerFirst } from '../core/refusals.ts';
 import { uniqueId } from '../core/unique.ts';
@@ -83,6 +102,17 @@ export const reasonOf = (cause: Cause.Cause<unknown>): string => {
     return squashed.message;
   return String(squashed);
 };
+
+/**
+ * A write of a talk's `talk.ts` as the page asks it (the Transcript view's
+ * Cut, Restore and Mark here), each its route's body under its verb.
+ */
+export const TalkAsk = Schema.Union([
+  Schema.TaggedStruct('Cut', TalkWordsPost.fields),
+  Schema.TaggedStruct('Restore', TalkWordsPost.fields),
+  Schema.TaggedStruct('Mark', TalkMarkPost.fields),
+]);
+export type TalkAsk = typeof TalkAsk.Type;
 
 /** Undo or Redo: the server's bounded stack of the lab's writes. */
 export const StepVerb = Schema.Literals(['undo', 'redo']);
@@ -184,6 +214,10 @@ export interface LabCalls {
     request: RequestId,
     change: Option.Option<ChangeId>,
   ) => Effect.Effect<LabWrite, LabFailure>;
+  /** A talk's words as the server reads its `talk.ts` and cuts it now (a film with none: refused). */
+  readonly talkWords: Effect.Effect<TalkWords, LabFailure>;
+  /** A write of a talk's `talk.ts`: words struck, played again, or a mark set. */
+  readonly writeTalk: (ask: TalkAsk) => Effect.Effect<LabWrite, LabFailure>;
 }
 
 export class LabApi extends Context.Service<LabApi, LabCalls>()('@bible/film/lab/LabApi') {}
@@ -276,6 +310,17 @@ const makeLabApi = Effect.fn('lab.api.make')(function* (film: string) {
             ...Option.match(change, { onNone: () => ({}), onSome: (c) => ({ change: c }) }),
           },
         }),
+      ),
+    talkWords: called(client.talk.words({ params: { film } })),
+    writeTalk: (ask) =>
+      called(
+        Match.value(ask).pipe(
+          Match.tagsExhaustive({
+            Cut: ({ _tag, ...payload }) => client.talk.cut({ params: { film }, payload }),
+            Restore: ({ _tag, ...payload }) => client.talk.restore({ params: { film }, payload }),
+            Mark: ({ _tag, ...payload }) => client.talk.mark({ params: { film }, payload }),
+          }),
+        ),
       ),
   };
   return api;

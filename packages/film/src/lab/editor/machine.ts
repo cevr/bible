@@ -1,7 +1,9 @@
 // The lab's writes to scene files, as one machine: a drag on the strip or of
 // a knob's handle on the frame (a press grabs a cue or a knob and pauses the
 // film, moves preview it in memory, the release writes what changed), a field
-// or an ease set in the inspector, and Undo or Redo. One machine serializes
+// or an ease set in the inspector, Undo or Redo, and a talk's Cut, Restore or
+// Mark here (the Transcript view's, a write of `talk.ts` taken at rest as a
+// step is, shown by nothing until the reload). One machine serializes
 // them all, so two writes never race for one file: while a write is out, a
 // press or a step is not taken, and a commit (a nudge, a field) waits in
 // `next`, shown at once: joined onto one waiting for the same cue or knob
@@ -13,7 +15,7 @@
 // machine does not take, the editor's commands and actions say (`notTaken`).
 //
 //   Idle | Written | Refused ─Press→ Pressed ─Move→ Dragging ─Release→ Writing
-//                   ─Commit | Step→ Writing ─Wrote→ Written | ─Failed | TimedOut→ Refused
+//                   ─Commit | Step | Talk→ Writing ─Wrote→ Written | ─Failed | TimedOut→ Refused
 //   Writing ─Commit→ Writing (next) ─Wrote→ Writing (next, reentered)
 //   Writing (a step) ─TimedOut (STEP_TIMEOUT_S)→ Checking (the lab's steps
 //     read back) ─Landed→ Written | ─Failed→ Refused
@@ -23,8 +25,9 @@
 // changes, rebuilds nothing, so the machine reloads the page itself); a
 // refused one, or one with no answer in WRITE_TIMEOUT_S, lets it go and puts
 // the preview back. An Undo or Redo remakes what follows its file before it
-// answers (a kept take's track, mixed again), so it waits as long as a
-// studio keep does, and one with no answer even then is never guessed at:
+// answers (a kept take's track, mixed again), and so does a talk's write (the
+// talk's track), so each waits as long as a studio keep does; a step with
+// no answer even then is never guessed at:
 // each step carries an id unique to its request, which the lab records on it
 // once it lands, and the lab's check says by that id whether it did. Nothing
 // here touches the DOM: the stage and the API are services, faked in tests.
@@ -37,7 +40,7 @@ import { STUDIO_IMPORT_WAIT_S } from '../../core/studio.ts';
 import { readAtLoad } from '../../player/narrated.ts';
 import { LabApi, LabUnreachable, StepVerb, landedStep } from '../api.ts';
 import { Stage } from '../stage.ts';
-import { Grip, Pointer, StepWrite, Write, drag, joined, wroteNote } from './grip.ts';
+import { Grip, Pointer, StepWrite, TalkWrite, Write, drag, joined, wroteNote } from './grip.ts';
 
 /**
  * How long a write may be out before the editor gives up on it: a server that
@@ -110,6 +113,8 @@ export const EditEvent = Event({
   Commit: { write: Write, edit: SceneEdit },
   /** An Undo or Redo, with an id unique to this request (`StepWrite.request`), of one change or the newest. */
   Step: { verb: StepVerb, request: RequestId, change: Schema.Option(ChangeId) },
+  /** A talk's write (the Transcript view's Cut, Restore, Mark here): taken at rest, as a step is. */
+  Talk: { write: TalkWrite },
   Wrote: { result: LabWrite },
   Failed: { message: Schema.String },
   /** The write was out its wait (WRITE_TIMEOUT_S, a step STEP_TIMEOUT_S) with no answer. */
@@ -121,10 +126,10 @@ export type EditEvent = typeof EditEvent.Type;
 
 const AT_REST = [EditState.Idle, EditState.Written, EditState.Refused] as const;
 
-/** The scene a write changes, when it names one (Undo and Redo do not). */
+/** The scene a write previews, when it names one (Undo, Redo and a talk's write show none). */
 const sceneOfWrite = (write: Write): Option.Option<string> =>
   Match.value(write).pipe(
-    Match.tag('StepWrite', () => Option.none<string>()),
+    Match.tag('StepWrite', 'TalkWrite', () => Option.none<string>()),
     Match.orElse((w) => Option.some(w.scene)),
   );
 
@@ -136,10 +141,10 @@ const undoneBy = (write: Write): StepVerb =>
     Match.orElse((): StepVerb => 'undo'),
   );
 
-/** How long `write` may be out with no answer: a step remakes what follows its file first. */
+/** How long `write` may be out with no answer: a step, or a talk's write, remakes what follows its file first. */
 const waitFor = (write: Write): Duration.Duration =>
   Match.value(write).pipe(
-    Match.tag('StepWrite', () => Duration.seconds(STEP_TIMEOUT_S)),
+    Match.tag('StepWrite', 'TalkWrite', () => Duration.seconds(STEP_TIMEOUT_S)),
     Match.orElse(() => Duration.seconds(WRITE_TIMEOUT_S)),
   );
 
@@ -169,6 +174,7 @@ const send = (write: Write) =>
         CueWrite: (w) => api.writeCue(w.scene, w.cue, w.patch),
         KnobWrite: (w) => api.writeKnob(w.scene, w.knob, w.value),
         StepWrite: (w) => api.step(w.verb, w.request, w.change),
+        TalkWrite: (w) => api.writeTalk(w.ask),
       }),
     ),
   );
@@ -278,21 +284,26 @@ const refuse = (write: Write, message: string, next: Waiting = []) =>
 
 /**
  * `write` landed as `result`: Written, reloading the page itself for a file
- * it reads at load (no rebuild follows one). The commits waiting on it are
- * written next, in turn (a step's are not: they were asked of the film
- * before the step).
+ * it reads at load (no rebuild follows one). One that changed nothing (no
+ * `change`) wrote nothing, so no rebuild or reload follows it: `#t=` is let
+ * go here, as a refusal lets it go. The commits waiting on it are written
+ * next, in turn (a step's are not: they were asked of the film before the
+ * step).
  */
 const landedAs = (write: Write, result: LabWrite, next: Waiting) => {
+  const change = Option.fromUndefinedOr(result.change);
   const written = (note: string) =>
-    EditState.Written({
-      note,
-      findings: result.findings,
-      undo: undoneBy(write),
-      change: Option.fromUndefinedOr(result.change),
-    });
+    EditState.Written({ note, findings: result.findings, undo: undoneBy(write), change });
   const rest = (note: string) =>
     Stage.use((stage) =>
-      Effect.as(Effect.when(stage.reload, Effect.succeed(readAtLoad(result.file))), written(note)),
+      Effect.as(
+        Option.match(change, {
+          onNone: () => stage.settle,
+          onSome: () =>
+            Effect.asVoid(Effect.when(stage.reload, Effect.succeed(readAtLoad(result.file)))),
+        }),
+        written(note),
+      ),
     );
   return Match.value(write).pipe(
     Match.tag('StepWrite', (step) =>
@@ -357,6 +368,7 @@ export const editMachine = Machine.make({
   .on(AT_REST, EditEvent.Step, ({ event }) =>
     writing(StepWrite.make({ verb: event.verb, request: event.request, change: event.change })),
   )
+  .on(AT_REST, EditEvent.Talk, ({ event }) => writing(event.write))
   .task(EditState.Writing, ({ state }) => send(state.write), {
     onSuccess: (result) => EditEvent.Wrote({ result }),
     onFailure: (e) => EditEvent.Failed({ message: e.message }),
@@ -377,6 +389,13 @@ export const editMachine = Machine.make({
       // A step with no answer is never guessed at: the lab says, by its request's id.
       Match.tag('StepWrite', (write) =>
         Effect.succeed(EditState.Checking({ write, next: state.next })),
+      ),
+      Match.tag('TalkWrite', (write) =>
+        refuse(
+          write,
+          `the write had no answer in ${STEP_TIMEOUT_S} s; see whether it changed talk.ts (git diff) before writing again`,
+          state.next,
+        ),
       ),
       Match.orElse((write) =>
         refuse(

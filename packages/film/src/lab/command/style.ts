@@ -17,7 +17,7 @@
 // (`PHONE`, `WIDE`), asked through its owner. A sheet (@bible/ui's Sheet)
 // takes presses on its panel alone, which stands off the page's scrollbar at
 // the window's edge: its portal round it draws its shadow and takes no
-// presses, and its focus ring is drawn inside it (`--focus-inset`; this sheet
+// presses, and its focus ring is drawn inside it (`--focus-ring-inset`; this sheet
 // comes after the review's, whose ring it overrides). Comments here ship with the review's
 // render-blocking CSS, so the notes stand in this one.
 //
@@ -163,7 +163,7 @@ const COMMAND_RULES = `
   border: 1px solid var(--line-strong); border-radius: var(--r-1);
 }
 .lab-inspector-portal { position: fixed; inset: 0; z-index: var(--cmd-layer); pointer-events: none; filter: drop-shadow(var(--shadow-pop)); }
-.lab-inspector-sheet:focus-visible { box-shadow: var(--focus-inset); }
+.lab-inspector-sheet:focus-visible { box-shadow: var(--focus-ring-inset); }
 .lab-inspector-panel { position: relative; right: var(--sheet-scroll-padding-x); width: min(var(--inspector-w), 100vw); height: 100%; }
 .lab-inspector-sheet {
   overflow: auto; display: flex; flex-direction: column; gap: var(--s-2);
