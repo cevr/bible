@@ -85,6 +85,7 @@
     "**/outputs/**",
     "**/lint/fixtures/**",
     "**/.alchemy/**",
+    "**/.prerender/**",
     "apps/triedgold/build/**",
     "apps/triedgold/.react-router/**"
   ],

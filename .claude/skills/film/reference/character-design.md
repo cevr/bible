@@ -174,6 +174,8 @@ Owner rule: typology, a text-authorized reading from literal to literal, is fine
 
 ### 1.6 Owner questions in this section
 
+**Answered (owner, 2026-10-13: "lets go with your recs"):** every question below is settled as recommended.
+
 - **OWNER QUESTION 1. Teal.** Retire "teal = sin" as a hue meaning: scarlet is sin's mark and a cold, desaturated light is sin's state, so teal stays free for the landing's day and Clara's slot. Why: CRAFT 11 already makes teal the most saturated, most hopeful act, and a hue that means both hope and sin teaches nothing.
 - **OWNER QUESTION 2. Cloth crimson.** Add one muted swatch for scarlet cloth the text names that is neither sin nor blood: proposed `#8d4a52` (353° .48 .55, the band's crimson end), never glowing, never on the cast. Why: Prov 31:21, Dan 5:29 and Ex 26:1 name scarlet cloth, and drawing them in the accent would put sin's colour on the woman of strength, on Daniel and on the veil. The alternative draws them in the accent and lets context explain.
 
@@ -309,6 +311,8 @@ Christ, the Father, the Spirit and the angels are in section 3.
 
 ### 2.10 Owner questions in this section
 
+**Answered (owner, 2026-10-13: "lets go with your recs"):** every question below is settled as recommended.
+
 - **OWNER QUESTION 3. Antagonist palette.** Antagonists at the band's floor (0.20) and the darkest figure value, in a cold hue off the cast's slots, with the accuser regraded from grey to `#444152`; temptation's sheen as non-glowing brass `#b2a474`. Why: K1 retires grey, and a drained, dark figure reads as emptied without horror; brass next to gold shows the counterfeit without breaking "only gold glows".
 - **OWNER QUESTION 4. Death as a figure.** Draw Death only as Revelation's rider, as a symbol on the IDEA page when a film reads Rev 6:8, and nowhere else. Why: the frame shows death as sleep; a figure of Death anywhere else teaches a being that takes souls. The alternative is never to draw it, and to read Rev 6:8 over the horse alone.
 
@@ -341,11 +345,11 @@ The people, beings and places of the Bible's own stories. They live in STORY sce
 
 ### 3.2 Christ
 
-The frame shows the Son freely and forbids an image of the Father ([god-christ.md](../frame/god-christ.md)): "No man hath seen God at any time; the only begotten Son … he hath declared him" (John 1:18); "he that hath seen me hath seen the Father" (John 14:9). Ellen White: Christ alone is the express image of the Father (PP 45.2). So Christ is drawn, with His face. How He is drawn is held to four texts.
+The frame shows the Son freely; the Father is shown only as a veiled, hazy human form (3.3; [god-christ.md](../frame/god-christ.md)): "No man hath seen God at any time; the only begotten Son … he hath declared him" (John 1:18); "he that hath seen me hath seen the Father" (John 14:9). Ellen White: Christ alone is the express image of the Father (PP 45.2). So Christ is drawn, with His face. How He is drawn is held to four texts.
 
 - **An ordinary man.** "He hath no form nor comeliness; and when we shall see him, there is no beauty that we should desire him" (Isa 53:2). "Made in the likeness of men" (Phil 2:7); "in all things it behoved him to be made like unto his brethren" (Heb 2:17). The disciples on the road did not know Him (Luke 24:16); Mary took Him for the gardener (John 20:15); Nazareth knew Him as "the carpenter" (Mark 6:3). Ellen White: men "could not see, beneath the disguise of humility, the glory of the Son of God" (FH 183.2). So He is not the tallest, the fairest or the most saturated figure in the crowd. He is "of Juda" (Heb 7:14), a Jewish man of His time.
 - **Known by what He does.** In a crowd the eye finds Him by staging (He moves toward people, others turn to Him) and by light (2.3), not by costume or a halo. No halo, no nimbus, no glow on His person in His earthly ministry except where the text lights Him: the transfiguration, "his face did shine as the sun, and his raiment was white as the light" (Matt 17:2; Mark 9:3).
-- **His dress follows the text.** In His earthly ministry, the plain coat "without seam, woven from the top throughout" (John 19:23) in undyed linen, a walnut mantle and a headcloth outdoors. As Priest and Advocate, and risen in glory, the robe white and the "golden girdle" (Rev 1:13): the drafts' white robe and gold sash, and the first film's Advocate. In Rev 1's vision, "his head and his hairs were white like wool" (Rev 1:14). **OWNER QUESTION 5.**
+- **His dress follows the text.** In His earthly ministry, the plain coat "without seam, woven from the top throughout" (John 19:23) in undyed linen, a walnut mantle and a headcloth outdoors. As Priest and Advocate, and risen in glory, the robe white and the "golden girdle" (Rev 1:13): the drafts' white robe and gold sash, and the first film's Advocate. As Priest He also wears the breastplate (owner, 2026-10-13: "Christ - breastplate"), the type's sign that He bears His people's names "upon his heart … for a memorial before the LORD continually" (Ex 28:29). It is drawn as twelve small stones in four rows on gold (Ex 28:17–21), and appears only when He ministers as Priest, never in His earthly ministry. In Rev 1's vision, "his head and his hairs were white like wool" (Rev 1:14). **OWNER QUESTION 5.**
 - **The full human range.** "Jesus wept" (John 11:35). He looked on them "with anger, being grieved" (Mark 3:5). "My soul is exceeding sorrowful, even unto death" (Matt 26:38). He was "moved with compassion" (Matt 9:36). He received children (Mark 10:14) and ate with sinners. He is never a still, blank, beatific mask.
 - **Never a devotional portrait.** He is always acting in the story: walking, reaching, speaking, breaking bread. Never a framed, held, front-on portrait offered to be looked at for its own sake: the second commandment forbids "the worship of the true God by images or similitudes" (PP 306.1; Ex 20:4). Theology 05's `face` beat, which puts His face in a portrait frame, should be restaged as His face in the story. **OWNER QUESTION 5.**
 - **Never stained.** "In all points tempted like as we are, yet without sin" (Heb 4:15). No scarlet on Him, except the sins laid on Him at the cross (1 Pet 2:24; [nature-of-christ.md](../frame/nature-of-christ.md)).
@@ -355,10 +359,23 @@ The frame shows the Son freely and forbids an image of the Father ([god-christ.m
 
 ### 3.3 The Father
 
-- **Never a figure** (director-vision, What we never do). "Thou canst not see my face: for there shall no man see me, and live" (Ex 33:20); "dwelling in the light which no man can approach unto; whom no man hath seen, nor can see" (1 Tim 6:16); "ye saw no manner of similitude … Lest ye corrupt yourselves, and make you a graven image" (Deut 4:15–16).
-- **But a person, not a force.** The frame: His form hidden, not absent; a cloud of glorious light ([god-christ.md](../frame/god-christ.md); "who coverest thyself with light as with a garment", Ps 104:2).
-- **How.** The throne and what the text says is round it: the fire (Dan 7:9), the rainbow "in sight like unto an emerald" (Rev 4:3), the lamps of fire (Rev 4:5), the host (Dan 7:10). On the throne, the brightest gold glow in the film, its shape implying one seated, with no face, no hands and no outline. Where Dan 7:9 is read ("whose garment was white as snow, and the hair of his head like the pure wool"), the light is robe white at its centre within the gold, still with no figure drawn.
+**Owner, 2026-10-13: "the father should be hazy, with a definite human form."**
+
+- **A definite human form, veiled.** The Father is a person with a form ("a personal, spiritual being", [god-christ.md](../frame/god-christ.md)). The text gives that form on the throne: "the Ancient of days did sit, whose garment was white as snow, and the hair of his head like the pure wool" (Dan 7:9); "the likeness as the appearance of a man above upon it" (Ezek 1:26); "one sat on the throne" (Rev 4:2).
+  - Draw a clear human silhouette, seated: head, shoulders, the robe's fall, the hands' places.
+  - Wrap it all in a haze of glorious light: "who coverest thyself with light as with a garment" (Ps 104:2).
+- **Hazy, never sharp.**
+  - No face, no features and no ink outline: "Thou canst not see my face" (Ex 33:20, 23).
+  - The form reads through soft gold-white light: feathered edges, the robe white at the centre (Dan 7:9), the light brightest where the face would be.
+  - It is the brightest glow in the film.
+  - He is never a cut-paper figure like the rest, and never an old man with a beard drawn in detail.
+- **Round the throne,** what the text puts there: the fire (Dan 7:9), the rainbow "in sight like unto an emerald" (Rev 4:3), the lamps of fire (Rev 4:5), the host (Dan 7:10).
+- **With the Son:** the Son is drawn plainly beside Him, the one "express image of his person" (Heb 1:3). The two read as two distinct persons.
 - **No emblem.** No triangle, no three-in-one sign, no eye ([god-christ.md](../frame/god-christ.md)).
+- **In a scene, a man, indistinct** (owner, 2026-10-13: "He should be pictured as a man, just an indistinct figure"). Wherever the text puts God present in a scene, the same veiled form stands or walks in it:
+  - the judge's seat in a judgment scene: "the Ancient of days did sit … the judgment was set" (Dan 7:9–10). The Son comes "near before him" (Dan 7:13) and is drawn plainly, so the two read apart;
+  - the presence in Eden "walking in the garden in the cool of the day" (Gen 3:8): a man's shape walking in light between the trees, with no face.
+  - Never a cut-paper judge with a face or a beard. The gold of a verdict comes from His light, not from a gavel.
 
 ### 3.4 The Holy Spirit
 
@@ -397,7 +414,9 @@ Section 2.5's principles apply in full. He is drawn by the text's forms, each in
 
 ### 3.8 Owner questions in this section
 
-- **OWNER QUESTION 5. Christ's look.** An ordinary Jewish man, beard (Isa 50:6), no halo, full expressive range, never a devotional portrait (restage theology 05's `face` beat). His earthly coat plain undyed linen (John 19:23); the robe white and gold girdle as Priest, Advocate and in glory (Rev 1:13). Why: Isa 53:2 and FH 183.2 hide His glory under humility, and the white robe in the earthly scenes would say what the text says only of the transfiguration. The alternative is the drafts' white robe and gold sash throughout, which makes Him easy to find in a crowd.
+**Answered (owner, 2026-10-13: "lets go with your recs"):** every question below is settled as recommended.
+
+- **OWNER QUESTION 5. Christ's look.** An ordinary Jewish man, beard (Isa 50:6), no halo, full expressive range, never a devotional portrait (restage theology 05's `face` beat). His earthly coat plain undyed linen (John 19:23); the robe white and gold girdle as Priest, Advocate and in glory (Rev 1:13). Answered in part (owner, 2026-10-13): as Priest He also wears the breastplate (Ex 28:29). Why: Isa 53:2 and FH 183.2 hide His glory under humility, and the white robe in the earthly scenes would say what the text says only of the transfiguration. The alternative is the drafts' white robe and gold sash throughout, which makes Him easy to find in a crowd.
 - **OWNER QUESTION 6. The cross.** Silhouette at the black moment; scarlet as the sins laid on Him; no wounds in close-up; the marks in the risen hands as ink cuts; Rev 19:13 the one text-blood exception on His garment.
 - **OWNER QUESTION 7. Angels' wings.** Wings only for cherubim, seraphim and angels the text says fly; the messengers on earth appear as men in white. Seraphim gold and cream, not flame-red.
 - **OWNER QUESTION 8. The dove.** The Spirit drawn as a dove only at the Jordan (Luke 3:22), never elsewhere.

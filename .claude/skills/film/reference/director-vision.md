@@ -180,6 +180,6 @@ The rules, in the order a figure is built:
 - Clone a crowd, float a giant hand in from nowhere, or mix hand designs.
 - Draw an arm or a forearm, anywhere, at any scale. Move a hand in a straight lerp, pop it to a new place in one frame, or send it past its reach.
 - Gild a joint or a hand: gold is the word.
-- Draw God the Father as a figure. Show anything the topic's MUST NOT SAY-OR-SHOW forbids. _(frame.)_
+- Draw God the Father as a sharp figure with a face: He is a hazy human form veiled in light (character-design 3.3, owner 2026-10-13). Show anything the topic's MUST NOT SAY-OR-SHOW forbids. _(frame.)_
 - Leave dead air: silence below −60 dBFS that no one designed. End on a 3 s card.
 - Trade the look for speed. Performance and reuse live in the framework; a pixel-moving change needs the owner's approval. _(Owner rule.)_

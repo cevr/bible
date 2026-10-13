@@ -375,6 +375,8 @@ Ten films share material with the education series. Of those, five carry the sam
 
 ## Notes for the owner
 
+**Answered (owner, 2026-10-13: "lets go with your recs"):** the name _Dwell in the Land_; films of 4–5 min; script 01 keeps "not yet, and not that way"; film 12 names the seventh day once, plainly, with its text (Ex 20:10; Gen 2:2–3), and does not argue.
+
 - **Adam's schoolroom.** The line is Ellen White's (evidence in `sources.md` §1): "P.C." in the 1900s school manual is the manual's own abbreviation for "Private Collection", not anyone's initials. The idea is used, paraphrased, in 01, and the credits name Ellen G. White, General Conference Daily Bulletin, March 6, 1899.
 - **The end-time layer** (12) is written to the owner's "very important". It names no nation, church, law or year in speech, and the theology films carry the exposition. If the owner wants the day of worship named in 12, it should be said once, with Ex 20:10 and Rev 14:12, as theology 31 does.
 - **The ensemble.** `apps/animations/docs/ensemble.md`'s "Country living (planned)" column can now point to these episode numbers. The ledger's "move" turn is 19. That file is outside this folder and is left for the orchestrator.

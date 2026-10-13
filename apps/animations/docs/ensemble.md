@@ -28,7 +28,7 @@ The parenting pictures rest on texts that state the likeness, so the family illu
 - "If ye then, being evil, know how to give good gifts unto your children, how much more…" (Matt 7:11).
 - Luke 15:20, the father who "saw him, and had compassion, and ran".
 
-A cast parent pictures a likeness the text names. The father never stands in for God the Father as a figure of God, who is never pictured (frame, god-christ).
+A cast parent pictures a likeness the text names. The father never stands in for God the Father as a figure of God. God the Father is shown only as a hazy human form veiled in light (character-design 3.3).
 
 ## The cast
 
@@ -131,7 +131,7 @@ Heights are given against Hugo, with the head about ⅓ of an adult's height (th
 - **IDEA beats.** The parchment's 1–4 flat figures are cast members wherever the beat needs an everyday person: the figure frowning at the book, the child at the slate, the farmer reading by the lamp.
 - **The bridge.** A push-through from the cast's frame into the Bible scene (rule 3): Rosa's open book, and through its page into Berea.
 - **Never inside a Bible scene.** No cast member stands in a STORY scene of Bible history: not in Capernaum's crowd, at the cross, at Sinai, in Babylon. No cast member plays a Bible person or a figure of Christ's own parables (the sower, the prodigal son and his father are drawn as that parable's figures). The cast may mirror a parable in its own frame after the parable is told: Hugo at the window as the narration closes on Luke 15:20.
-- **Christ in the cast's frame.** Christ may come into the cast's world at the landing, where a stated text says He comes (Rev 3:20; 1 John 2:1), as the drafts already have Him: the host of the feast in 01, the Advocate beside the figure in 08. The cast never goes into His history. The Father is never pictured.
+- **Christ in the cast's frame.** Christ may come into the cast's world at the landing, where a stated text says He comes (Rev 3:20; 1 John 2:1), as the drafts already have Him: the host of the feast in 01, the Advocate beside the figure in 08. The cast never goes into His history. The Father appears only as a hazy, veiled human form, never in the cast's world (character-design 3.3).
 - **Talks.** Education and health are talks: the owner on camera, cut with B-roll. Cast moments there are short cut-paper inserts drawn and rendered by the film engine, so the faces are the same as in the films (open choice 6). The owner speaks; the cast acts.
 - **Shorts.** A cast member may carry a short's hook frame (CRAFT § Shorts rule 2): a face the viewer knows, moving on frame 0.
 
@@ -151,6 +151,22 @@ Heights are given against Hugo, with the head about ⅓ of an adult's height (th
 - **What each knows.** Rosa knows Scripture best; Hugo and Clara are believers, still learning; Amara believes and asks the hard question; Leo tests; Nina asks why; Max knows no Bible words until a film gives them to him. A cast member never shows knowledge the film has not given its viewer.
 - **No names in speech.** The names are for scripts, sheets and this file. The narration says "a father", "picture a grandmother" (open choice 1).
 - **Look.** Minimal and expressive: circle hands of their own paper, no thumbs, no fingers, no arms; a face minimal but characterful, its kit the owner's pick (**OWNER QUESTION**: the four kits, each with one feature for each cast member, are in [face-study.md](../../../.claude/skills/film/reference/face-study.md)); shade with colour, never black or grey; outlines may be dark ([CRAFT.md](../../../.claude/skills/film/CRAFT.md) rule 12). Faces default warm, not cross (the film skill's Gotchas: raise the inner brows, give the glad a smile).
+
+### Recognition, not backstory
+
+Owner, 2026-10-13: "im wondering if there needs to be a backstory, what im going for is recognizable cast of characters that gives a sense of continuity and familiarity."
+
+No backstory beyond what each person's entry above already holds. A viewer comes to know a cast member the way they know a neighbour: by seeing the same person in the same places doing the same small things, never by being told a history. A parable's figure needs no past (What the cast is, and is not). Familiarity is built from what shows on screen, film after film:
+
+- **The same silhouette and one feature,** readable at quarter size (Before the first film, 2): Hugo's beard, Clara's plait, Nina's two bunches, Rosa's shawl triangle, Max's hood.
+- **The same clothes in the same hue slot.** No outfit changes except what the scene needs (a coat outdoors, the baptismal water).
+- **One signature prop and one habit,** repeated so it becomes theirs: Amara's hand on a shoulder or forehead, Rosa's open book. A habit shows in every film the person acts in.
+- **The same places,** shot from the same layouts: the stair, the landing, the rooftop, Rosa's gate and bench.
+- **The same relationships, shown by staging.** Who sits by whom, who opens the door to whom, who runs to whom.
+- **One want each,** the need the films meet (Christ's method). It is the only inner life a viewer is given.
+- **Small running gestures across films.** A detail that pays off for those who have seen earlier films and costs nothing to those who have not: Rosa's husband's portrait on her shelf, the bench under the fig tree, the rooftop at evening. Nothing in them ages or changes (Continuity, fixed ages).
+
+Each person's entry is kept to these card facts. A fact that never reaches the screen is not added.
 
 ### The continuity ledger
 
@@ -189,11 +205,11 @@ The numbers are episodes in each series' plan: theology [`series.md`](../series/
 ## Open choices for the owner
 
 1. **Names in speech.** Recommended: never spoken. A parable's "a certain man" lets every viewer stand in his place, and the one narrator never has to introduce anyone. The alternative, names spoken in talks only, makes continuity easier to follow at the cost of the parable's openness.
-2. **Heads and hands.** Recommended: the one shared figure paper for every cast member, as every film draws people now, so the cast reads as anyone in any country, and rimproto C2's two-tone tan face is avoided. The alternative is three or four warm skin papers inside the band, each with its own ramp.
+2. **Heads and hands.** Recommended: the one shared figure paper for every cast member, as every film draws people now, so the cast reads as anyone in any country, and rimproto C2's two-tone tan face is avoided. The alternative is three or four warm skin papers inside the band, each with its own ramp. **Answered (owner, 2026-10-13): the one shared figure paper.**
 3. **The size of the cast.** Recommended: eight. The alternative is six, dropping Amara (Max then carries health alone, and no one carries the caregiver) and Mila (Clara then carries a baby nobody knows).
 4. **Grief.** Recommended: Rosa is a widow, so theology 12 grieves with hope and the resurrection films answer it, and no cast member dies. The alternative is Rosa herself falling asleep in 12 and waking in 34: the strongest pathos, but every film after 12 loses her, and films that stand alone would contradict one another.
 5. **Christ in the cast's frame.** Recommended: yes, at the landing only, where a stated text says He comes, as 01 and 08 already draw Him. The alternative keeps the cast and Christ always apart.
-6. **Cast inserts in the talks.** Recommended: every cast moment in an education or health talk is a cut-paper insert from the film engine, so the faces match; generated or filmed B-roll stays for places and nature.
+6. **Cast inserts in the talks.** Recommended: every cast moment in an education or health talk is a cut-paper insert from the film engine, so the faces match; generated or filmed B-roll stays for places and nature. Bible scenes in the talks are generated illustrations in the sermon decks' painting style (owner, 2026-10-13), not cut-paper, so a talk never puts a Bible figure beside the cast.
 7. **Recasting 08.** Recommended: when _Righteousness by Faith_ moves to the paper-cut look, its grey everyman becomes Max (rimproto C2 already wears his sage). The alternative leaves 08's unnamed figure as the one film without the cast.
 8. **The family's schooling.** Recommended: Nina learns at home until about eight to ten, and Leo attends a day school in the city, so both settings appear and are judged by method, not building (education guide §12). The family's choice must not read as the series' verdict on any school.
 9. **The ledger's two turns.** Recommended: Max and Leo go down into the water together in theology 09, and the household moves in the country-living finale (country 19, [`country/series.md`](../series/country/series.md)). Each turn is shown once, and later films assume it.

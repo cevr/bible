@@ -1,0 +1,28 @@
+{
+  "name": "@bible/firsttheblade",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build && vite build --ssr src/prerender.tsx --outDir .prerender && bun .prerender/prerender.js",
+    "preview": "bun src/worker/preview.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src",
+    "plan": "bun run build && alchemy plan alchemy.run.ts --stage prod",
+    "deploy": "bun run build && alchemy deploy alchemy.run.ts --stage prod"
+  },
+  "dependencies": {
+    "@bible/ui": "workspace:*",
+    "@solidjs/web": "catalog:",
+    "effect": "catalog:",
+    "solid-js": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/platform-bun": "catalog:",
+    "@effect/platform-node": "catalog:",
+    "alchemy": "2.0.0-beta.83",
+    "effect-bun-test": "catalog:",
+    "vite": "^8.3.4",
+    "vite-plugin-solid": "catalog:"
+  }
+}
