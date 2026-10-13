@@ -192,7 +192,7 @@ Full table (721 White rows plus 15 for the other speakers, with the real text fo
 - "the highest attainments … for the purpose of doing others good" (nearest 5T 104.1);
 - the long Eden "divine system of teaching" passage (perhaps Sutherland, who is not in the corpus).
 
-**Corrected in the merge.** B6's "not only Adam's dwelling, but his schoolroom" is GCDB March 6, 1899 par. 36 (the corpus spells it "school-room"). It is filed as EGW, but the PH140 7.3 reprint is signed "—P.C.", so it is not used until the source is settled; Ed 20.1 carries the idea.
+**Corrected in the merge.** B6's "not only Adam's dwelling, but his schoolroom" is GCDB March 6, 1899 par. 36 (the corpus spells it "school-room"). It was held back because the PH140 7.3 reprint is signed "—P.C."; on 2026-10-13 that was settled: P.C. is the manual's "Private Collection" (PH140 4), and the line is Ellen White's testimony read to the 1899 session (`../country/sources.md` §1). It may now be paraphrased beside Ed 20.1, credited to the Bulletin.
 
 ## 4. Where he and the series disagree
 
@@ -281,7 +281,7 @@ His usual framing fits the owner's: country living chosen for the children's edu
 ## 5. Owner decisions
 
 1. **The 27 new topics** (nos. 88–114). **Decided (owner, 2026-10-13):** keep all; weak ones are marked, not pruned (`series-list.md`). The weakest are no. 90 (its hook needs the 1473 ordinance's primary text) and no. 113 (close to no. 104).
-2. **GCDB March 6, 1899 par. 36** ("Adam's … schoolroom"). Its reprint is signed "—P.C." Use Ed 20.1 unless the author is confirmed.
+2. **GCDB March 6, 1899 par. 36** ("Adam's … schoolroom"). **Settled (2026-10-13):** Ellen White's; "—P.C." means "Private Collection" (PH140 4). Usable, paraphrased and credited (`../country/sources.md` §1).
 3. **No. 98's frame.** That Daniel's parents heard Josiah's reading is a possibility built on dates, not a text. As written, the series says "all the people, both small and great" and speaks no dates.
 4. **No. 95** (country living). **Decided (owner, 2026-10-13):** keep it, framed as part of righteousness by faith, never a lifestyle add-on and never a verdict on city families. The guide (§13) and nos. 115–118 carry it.
 5. **Script 19's "old Jewish saying"**: check the wording of Shabbat 119b in a printed edition before the shoot.

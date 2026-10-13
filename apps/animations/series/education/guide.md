@@ -97,7 +97,7 @@ This is the core understanding behind the education series, in one place. It ans
 
 - Schools came later, "as an aid to parents" where homes were failing (Ed 46.1). Ritsema reads that as "schools were never God's plan"; the text says they were His provision to meet "this growing evil". Both are true: the first plan was the home, and the school is a God-given helper, not a replacement.
 - **AH 246.1** (Lt 28, 1890) was written to one mother being drawn into church work away from her little children. White (F5) widens it to all employment and adds animal-separation studies about working mothers; both go beyond the source and would wound many parents. Speak the principle (the children come first), never a verdict on a family's work.
-- The GCDB 1899 line "not only Adam's dwelling, but his schoolroom" is filed as EGW but its reprint is signed "—P.C." Use Ed 20.1.
+- **Settled (2026-10-13):** "The garden of Eden was not only Adam's dwelling, but his school-room" (GCDB March 6, 1899, par. 36) is Ellen White's. It was one of her testimonies read to the 1899 session on Sabbath, March 4, under the title "The Tree of Life and the Tree of Knowledge". The "—P.C." on its reprint (PH140 7.3) is that manual's abbreviation for "Private Collection" (its own key, PH140 4), not a person. Paraphrase it with Ed 20.1, and credit "Ellen G. White, General Conference Daily Bulletin, March 6, 1899". Evidence: `../country/sources.md` §1.
 
 **For a parent outside our tradition.** Deut 6 and Judg 2 carry the whole argument; no other authority is needed. "The Deuteronomy method" is White's label: credit it, or just say "Moses' two steps". Don't present home education as a denominational program; present the parent as teacher in every kind of family.
 

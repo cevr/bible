@@ -156,12 +156,12 @@ Heights are given against Hugo, with the head about ⅓ of an adult's height (th
 
 A film's `script.ts` header lists, beside its motifs, the cast it uses and the ledger state it assumes. The ledger is the cast's present. It changes only by a named turn, in the film named, with the owner's yes.
 
-| State                     | Now (2026-10-13)                         | The turn that may change it                                                   |
-| ------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------- |
-| Where the household lives | The city flat; Rosa's cottage is visited | The move: the country-living series' finale (education 32 shows it as a plan) |
-| Max's faith               | Seeking                                  | His choice: theology 09, "Buried and Raised" (with Leo, open choice 9)        |
-| Leo's faith               | Raised in it, untested                   | The same film, 09                                                             |
-| Who is living             | All eight; Rosa widowed                  | None (open choice 4)                                                          |
+| State                     | Now (2026-10-13)                         | The turn that may change it                                                                                               |
+| ------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Where the household lives | The city flat; Rosa's cottage is visited | The move: country-living 19 "Dwell in the Land", the finale (education 32 shows it as a plan; country 13 counts the cost) |
+| Max's faith               | Seeking                                  | His choice: theology 09, "Buried and Raised" (with Leo, open choice 9)                                                    |
+| Leo's faith               | Raised in it, untested                   | The same film, 09                                                                                                         |
+| Who is living             | All eight; Rosa widowed                  | None (open choice 4)                                                                                                      |
 
 Films made before a turn keep the old state; films after it use the new one. A film that stands alone (every one should) never depends on the viewer having seen a turn.
 
@@ -196,4 +196,4 @@ The numbers are episodes in each series' plan: theology [`series.md`](../series/
 6. **Cast inserts in the talks.** Recommended: every cast moment in an education or health talk is a cut-paper insert from the film engine, so the faces match; generated or filmed B-roll stays for places and nature.
 7. **Recasting 08.** Recommended: when _Righteousness by Faith_ moves to the paper-cut look, its grey everyman becomes Max (rimproto C2 already wears his sage). The alternative leaves 08's unnamed figure as the one film without the cast.
 8. **The family's schooling.** Recommended: Nina learns at home until about eight to ten, and Leo attends a day school in the city, so both settings appear and are judged by method, not building (education guide §12). The family's choice must not read as the series' verdict on any school.
-9. **The ledger's two turns.** Recommended: Max and Leo go down into the water together in theology 09, and the household moves in the country-living finale. Each turn is shown once, and later films assume it.
+9. **The ledger's two turns.** Recommended: Max and Leo go down into the water together in theology 09, and the household moves in the country-living finale (country 19, [`country/series.md`](../series/country/series.md)). Each turn is shown once, and later films assume it.
