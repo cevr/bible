@@ -10,10 +10,20 @@
 
 import { Predicate } from 'effect';
 
-/** The request a page is rendered for. */
-export interface PageRequest {
+/** What a page is asked at, and by which browser. */
+export interface PageAsked {
   /** The URL the page was asked at, whole, without its hash (a browser never sends it). */
   readonly url: string;
+  /**
+   * Whether the browser that asked keys as a Mac (an Apple device, by its
+   * `User-Agent`): the page labels its chords as that browser will (`⌘K`,
+   * not `Ctrl+K`), so the first paint is the hydrated page's.
+   */
+  readonly mac: boolean;
+}
+
+/** The request a page is rendered for. */
+export interface PageRequest extends PageAsked {
   /**
    * The page's reads of the lab's API: a GET by its path, answered in the
    * lab's process as the page's own request would be (through the gate, the

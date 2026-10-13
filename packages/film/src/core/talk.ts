@@ -135,9 +135,19 @@ const CaptionWord = Schema.String.check(
   Schema.isPattern(/^[^\s{}]+$/, { message: 'a fix is one word, with no space and no { or }' }),
 );
 
-/** A mark's name, as a line writes it (`{law}`). */
-const MarkName = Schema.String.check(
+/**
+ * A mark's name, as a line writes it (`{law}`): the lab's Mark here writes
+ * only a name this decodes. Never `__proto__`, which an object literal's
+ * key does not make an own key of (it sets the prototype), so the talk
+ * imported would have no such mark.
+ */
+export const MarkName = Schema.String.check(
   Schema.isPattern(/^[a-zA-Z0-9_-]+$/, { message: 'a mark is letters, digits, _ and -' }),
+  Schema.makeFilter(
+    (name: string) =>
+      name !== '__proto__' ||
+      'a mark is never named __proto__: in an object literal that name sets its prototype, so the talk would have no such mark',
+  ),
 );
 
 /** `index` is inside `[from, to]` and struck by none of `cut`. */

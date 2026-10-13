@@ -234,8 +234,11 @@ describe('ContextMenu.Trigger: the mouseup after a right click', () => {
     expect(await logOf(page)).toContain('open false cancel-open');
   });
 
+  // On the positioner, off its items: a right release over an item picks it on
+  // macOS (`MenuItem`, as a Mac's own menus do) and nowhere else, which is the
+  // item's rule, not this one.
   it('a release inside the positioner after 500ms keeps the menu open', async () => {
-    const page = await h.open('area');
+    const page = await h.open('area', { query: { padded: 'true' } });
     await page.clock.install();
     const { x, y } = await areaCentre(page);
     await page.mouse.move(x, y);
@@ -243,12 +246,38 @@ describe('ContextMenu.Trigger: the mouseup after a right click', () => {
     await see(page.locator('#popup')).toBeVisible();
     await page.clock.runFor(600);
     const sep = await page.locator('#positioner').boundingBox();
-    await page.mouse.move((sep?.x ?? 0) + 1, (sep?.y ?? 0) + 1);
+    const inside = { x: (sep?.x ?? 0) + 2, y: (sep?.y ?? 0) + 2 };
+    expect(await idAt(page, inside.x, inside.y)).toBe('popup');
+    await page.mouse.move(inside.x, inside.y);
     await page.mouse.up({ button: 'right' });
     await page.clock.runFor(100);
     await see(page.locator('#popup')).toBeVisible();
     expect(await logOf(page)).not.toContain('open false cancel-open');
   });
+
+  // The item's rule (`MenuItem`), each OS as its page reports itself: on macOS
+  // a right press dragged onto an item and released there picks it, as a Mac's
+  // own menus do; elsewhere that release only ends the right click.
+  for (const [os, platform, log] of [
+    ['macOS', 'MacIntel', ['open true trigger-press', 'click copy', 'open false item-press']],
+    ['Linux', 'Linux x86_64', ['open true trigger-press']],
+  ] as const) {
+    it(`a right release over an item after 500ms on ${os}: ${log.length > 1 ? 'picks it' : 'picks nothing'}`, async () => {
+      const page = await h.open('area', { platform });
+      await page.clock.install();
+      const { x, y } = await areaCentre(page);
+      await page.mouse.move(x, y);
+      await page.mouse.down({ button: 'right' });
+      await see(page.locator('#popup')).toBeVisible();
+      await page.clock.runFor(600);
+      const copy = await centreOf(page, '#copy');
+      await page.mouse.move(copy.x, copy.y);
+      await page.mouse.up({ button: 'right' });
+      await page.clock.runFor(100);
+      await see.poll(() => logOf(page)).toEqual([...log]);
+      await see(page.locator('#popup')).toHaveCount(log.length > 1 ? 0 : 1);
+    });
+  }
 });
 
 describe('ContextMenu.Trigger: touch long press', () => {

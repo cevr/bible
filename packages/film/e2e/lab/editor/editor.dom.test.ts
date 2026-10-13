@@ -12,6 +12,8 @@
 import { Deferred, Effect, Exit, Option, Predicate, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
+import { appleAgent } from '../../../src/browser/keys.ts';
+import { chordLabel } from '../../../src/command/keymap.ts';
 import { pageHref } from '../../../src/core/api.ts';
 import { DEFAULT_EASE } from '../../../src/core/time.ts';
 import { SourceRefused, StepNotNewest } from '../../../src/core/refusals.ts';
@@ -1304,7 +1306,13 @@ describe('the inspector', () => {
       });
       const hint = '[data-role="inspector-hint"]';
       yield* page.waitFor('.lab-edit-cue input[data-field="offset"]:not([disabled])');
-      yield* textHas(page, hint, 'Alt+→ Nudge cue rise in one later');
+      // The nudge's chord as the page labels it for the browser's keyboard (⌥→ on a Mac).
+      const mac = appleAgent(yield* page.evaluate<string>('navigator.userAgent'));
+      yield* textHas(
+        page,
+        hint,
+        `${chordLabel('alt+arrowright', mac)} Nudge cue rise in one later`,
+      );
       yield* textHas(page, hint, 'Tab Select cue fall in one');
       const shown = `getComputedStyle(document.querySelector('${hint}')).display`;
       yield* evaluates(page, shown, 'none');

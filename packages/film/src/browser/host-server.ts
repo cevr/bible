@@ -60,15 +60,19 @@ const noLoads: Layer.Layer<PageLoad> = Layer.succeed(
   }),
 );
 
-/** The host of a page rendered on the server for a request to `href`. */
+/**
+ * The host of a page rendered on the server for a request to `href`, from a
+ * browser that keys as a Mac or not (`mac`): its chords labelled as that
+ * browser labels them, so the hydrated page reads as the first paint did.
+ */
 export const ServerHost = {
-  layer: (href: string): Layer.Layer<BrowserServices> =>
+  layer: (href: string, mac: boolean): Layer.Layer<BrowserServices> =>
     Layer.mergeAll(
       noClipboard,
       Footage.none,
       Frames.layerClock,
       Highlights.none,
-      Keys.layerOn(new EventTarget()),
+      Keys.layerOn(new EventTarget(), mac),
       Media.layerOver(() => unplayable),
       noLoads,
       Pointer.layerOn(new EventTarget()),

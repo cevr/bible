@@ -13,7 +13,12 @@ const rendered = (render: PageRender) =>
   Effect.callback<string, string>((resume) => {
     const body: Array<string> = [];
     render.render(
-      { url: 'http://probe.test/', signal: new AbortController().signal, fetch: globalThis.fetch },
+      {
+        url: 'http://probe.test/',
+        mac: false,
+        signal: new AbortController().signal,
+        fetch: globalThis.fetch,
+      },
       {
         head: () => {},
         write: (html) => {

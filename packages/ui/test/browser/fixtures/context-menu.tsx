@@ -3,7 +3,8 @@
 // and the lab's shape, one root whose page trigger wraps target triggers (`nested`).
 // URL param: `under=true` moves the popup 20px up and left, over the point the
 // menu opens at, its first item under it (as a menu kept on a phone's screen
-// lands under the finger).
+// lands under the finger). `padded=true` pads the popup: a stretch of the
+// positioner that is no item.
 import type { JSX } from '@solidjs/web';
 
 import { ContextMenu } from '../../../src/context-menu/index.ts';
@@ -11,6 +12,7 @@ import { log, param } from './log.ts';
 
 function AreaMenu(): JSX.Element {
   const under = param('under') === 'true';
+  const padded = param('padded') === 'true';
   return (
     <ContextMenu.Root
       onOpenChange={(open, details) => {
@@ -34,7 +36,10 @@ function AreaMenu(): JSX.Element {
         <ContextMenu.Positioner id="positioner">
           <ContextMenu.Popup
             id="popup"
-            style={under ? { transform: 'translate(-20px, -20px)' } : undefined}
+            style={{
+              ...(under ? { transform: 'translate(-20px, -20px)' } : {}),
+              ...(padded ? { padding: '8px' } : {}),
+            }}
           >
             <ContextMenu.Item id="copy" onClick={() => log('click copy')}>
               Copy

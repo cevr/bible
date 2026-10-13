@@ -1,10 +1,11 @@
 // The render fixture's server entry (`page-render.test.ts`): a page that
-// names the URL it was asked at and its module's instance (drawn once per
+// names the URL it was asked at, whether the browser that asked keys as a
+// Mac, and its module's instance (drawn once per
 // import, so a fresh worker draws anew), and shows a read of the lab's API
 // once it is answered, streamed in after the shell.
 
 import { Loading } from '@solidjs/web';
-import { Effect, Random } from 'effect';
+import { Boolean as Bool, Effect, Random } from 'effect';
 import { createMemo } from 'solid-js';
 import type { PageRequest } from '../../../core/page-render.ts';
 import { pageRender } from '../../../lab/page-server.tsx';
@@ -21,6 +22,9 @@ const Fixture = (props: { readonly request: PageRequest }) => {
   return (
     <main>
       <p id="url">{props.request.url}</p>
+      <p id="keys">
+        {Bool.match(props.request.mac, { onTrue: () => 'mac', onFalse: () => 'not mac' })}
+      </p>
       <p id="instance">{INSTANCE}</p>
       <Loading fallback={<p id="read">reading</p>}>
         <p id="read">{read()}</p>

@@ -81,7 +81,12 @@ const serve = Effect.gen(function* () {
       yield* Effect.try({
         try: () =>
           page.render(
-            { url: message.url, fetch: reads.open(id), signal: live.controller.signal },
+            {
+              url: message.url,
+              mac: message.mac,
+              fetch: reads.open(id),
+              signal: live.controller.signal,
+            },
             sink,
           ),
         catch: (cause) => `the page's render threw: ${String(cause)}`,

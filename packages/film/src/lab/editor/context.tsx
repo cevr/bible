@@ -13,7 +13,11 @@
 // per-viewer setting as the lab's mode is), Shift flipping it for a move
 // (`placesFreely`). The editor's verbs (Undo, Redo, that Escape, Snap) are
 // commands on the page's hub (`commands.ts`), and what its writes did is said
-// there as they land: the page's receipts.
+// there as they land: the page's receipts. A talk's writes (the Transcript
+// view's) are the film's source's too, so they go through this machine
+// (`actions.talk`): one write out at a time, `#t=` and the page's reloads
+// held until it is answered, the receipt and its Undo in the editor's slot,
+// its change one this page made.
 
 import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Effect, Equal, Fiber, Match, Option, Result } from 'effect';
@@ -37,7 +41,7 @@ import type { SceneEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { ChangeId, CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
 import { type DragEdge, dragFields } from '../../core/timeline.ts';
-import { LabApi, type StepVerb, reasonOf, stepRequest, stepWhyNot } from '../api.ts';
+import { LabApi, type StepVerb, type TalkAsk, reasonOf, stepRequest, stepWhyNot } from '../api.ts';
 import { type Receipt, boundChange, refused } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
@@ -49,6 +53,7 @@ import {
   CueGrip,
   KnobGrip,
   SourceKnown,
+  TalkWrite,
   type Write,
   cueRefusal,
   fieldsOf,
@@ -81,6 +86,8 @@ interface EditorState {
   readonly stackCurrent: Accessor<boolean>;
   /** Whether a grip follows a press now (Pressed or Dragging): the strip offers Cancel while it does. */
   readonly holding: Accessor<boolean>;
+  /** Whether a write is out (Writing or Checking): what asks to write waits for its answer. */
+  readonly writing: Accessor<boolean>;
   /** The inspector's fields of a cue or knob, as the lab holds it now (`grip.ts`). */
   readonly fieldsOf: (selection: LabSelection) => ReadonlyArray<Inspected>;
   /** Whether a drag's edges snap (the viewer's Snap): Shift flips it for a move. */
@@ -125,6 +132,8 @@ interface EditorActions {
   readonly commit: (write: Write, edit: SceneEdit) => void;
   /** Say why something cannot be written. */
   readonly refuse: (message: string) => void;
+  /** Write a talk's `talk.ts` as `ask` says (or say, in the editor's slot, why it is not written now). */
+  readonly talk: (ask: TalkAsk) => void;
 }
 
 /** The viewer's Snap, kept in the browser: a convenience, safe to lose (on with nothing kept). */
@@ -412,6 +421,12 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       onSome: (why) => meta.hub.announce(refused(`not written: ${why}`), EDIT_SLOT),
       onNone: () => send(EditEvent.Commit({ write, edit: shown })),
     });
+  // A talk's write, likewise, at rest only, as a step is: what it changes no strip shows until the reload.
+  const talk = (ask: TalkAsk) =>
+    Option.match(notTaken(edit(), 'talk'), {
+      onSome: (why) => meta.hub.announce(refused(`not written: ${why}`), EDIT_SLOT),
+      onNone: () => send(EditEvent.Talk({ write: TalkWrite.make({ ask }) })),
+    });
 
   /** What the lab knows of `scene`'s source: the inspected scene's, else the strip's. */
   const sourceOf = (scene: string): SourceKnown =>
@@ -536,6 +551,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       report,
       stackCurrent,
       holding,
+      writing: out,
       fieldsOf: fieldsAt,
       snap,
     },
@@ -544,6 +560,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       grabKnob,
       commit,
       refuse: (message) => send(EditEvent.Refuse({ message })),
+      talk,
     },
   };
   return <EditorContext value={value}>{props.children}</EditorContext>;

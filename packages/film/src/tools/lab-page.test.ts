@@ -27,6 +27,7 @@ import {
   Option,
   Path,
   PubSub,
+  Record,
   Ref,
   Schedule,
   Schema,
@@ -46,54 +47,72 @@ import { memoryFileSystem, text } from './testing.ts';
 
 const Platform = Layer.provideMerge(BunHttpPlatform.layer, BunServices.layer);
 
+/** A Mac's Chrome, as its `User-Agent` names it. */
+const MAC_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
+
 const html = (title: string, script: string) =>
   `<!doctype html><html><head><title>${title}</title></head><body><script type="module" src="${script}"></script></body></html>`;
 
 /**
- * An app in a temp folder: its review (`review.html` over `src/p.ts`, which
- * imports `lib/shared.ts`, another package's source), its lab, its player
- * (`sub/player.html`, an entry below the others) and its render page.
- * `write` writes a file under the folder.
+ * An app in a temp folder, by its real path (macOS's temp folder is a link,
+ * and the bundler names what it reads by where it lies): its review
+ * (`review.html` over `src/p.ts`, which imports `lib/shared.ts`, another
+ * package's source), its lab, its player (`sub/player.html`, an entry below
+ * the others) and its render page, each file as `own` has it if it names
+ * it. The folder is written under another name and renamed into place: a
+ * watch armed a few milliseconds after a save may still be told of it on
+ * macOS (FSEvents hands a new watch the events still on their way), where
+ * inotify never tells one, and those events name the folder written, so a
+ * lab started after hears no save of the folder's making. `write` writes a
+ * file under the folder.
  */
-const appFolder = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const dir = yield* fs.makeTempDirectoryScoped();
-  for (const folder of ['src/films', 'sub', 'lib', 'extra'])
-    yield* fs.makeDirectory(path.join(dir, folder), { recursive: true });
-  const write = (name: string, text: string) => fs.writeFileString(path.join(dir, name), text);
-  yield* write('review.html', html('review', './src/p.ts'));
-  yield* write('lab.html', html('lab', './src/lab.ts'));
-  yield* write('sub/player.html', html('player', '../src/play.ts'));
-  yield* write('index.html', html('render', './src/render.ts'));
-  yield* write(
-    'src/p.ts',
-    "import { shared } from '../lib/shared.ts';\nconsole.log('first', shared);\n",
-  );
-  yield* write('lib/shared.ts', "export const shared = 'shared one';\n");
-  yield* write('src/lab.ts', "console.log('the lab');\n");
-  yield* write('src/play.ts', "console.log('the player');\n");
-  yield* write('src/render.ts', "console.log('the render page');\n");
-  yield* write('src/notes.json', '{}');
-  // The review's server entry: the same shared source, and one only the server reads.
-  yield* write(
-    'src/review.server.tsx',
-    "import { shared } from '../lib/shared.ts';\nimport { only } from '../lib/server-only.ts';\nexport const rendered = () => `${shared} ${only}`;\n",
-  );
-  yield* write('lib/server-only.ts', "export const only = 'server one';\n");
-  const spec = {
-    pages: {
-      review: path.join(dir, 'review.html'),
-      lab: path.join(dir, 'lab.html'),
-      player: path.join(dir, 'sub', 'player.html'),
-      render: path.join(dir, 'index.html'),
-    },
-    servers: { review: path.join(dir, 'src', 'review.server.tsx') },
-    films: path.join(dir, 'src', 'films'),
-    footage: { dir: path.join(dir, 'footage'), out: path.join(dir, 'out') },
-  };
-  return { spec, write };
-});
+const appFolderWith = (own: Readonly<Record<string, string>>) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const parent = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+    const making = path.join(parent, 'making');
+    for (const folder of ['src/films', 'sub', 'lib', 'extra'])
+      yield* fs.makeDirectory(path.join(making, folder), { recursive: true });
+    const files = {
+      'review.html': html('review', './src/p.ts'),
+      'lab.html': html('lab', './src/lab.ts'),
+      'sub/player.html': html('player', '../src/play.ts'),
+      'index.html': html('render', './src/render.ts'),
+      'src/p.ts': "import { shared } from '../lib/shared.ts';\nconsole.log('first', shared);\n",
+      'lib/shared.ts': "export const shared = 'shared one';\n",
+      'src/lab.ts': "console.log('the lab');\n",
+      'src/play.ts': "console.log('the player');\n",
+      'src/render.ts': "console.log('the render page');\n",
+      'src/notes.json': '{}',
+      // The review's server entry: the same shared source, and one only the server reads.
+      'src/review.server.tsx':
+        "import { shared } from '../lib/shared.ts';\nimport { only } from '../lib/server-only.ts';\nexport const rendered = () => `${shared} ${only}`;\n",
+      'lib/server-only.ts': "export const only = 'server one';\n",
+      ...own,
+    };
+    for (const [name, text] of Record.toEntries(files))
+      yield* fs.writeFileString(path.join(making, name), text);
+    const dir = path.join(parent, 'app');
+    yield* fs.rename(making, dir);
+    const write = (name: string, text: string) => fs.writeFileString(path.join(dir, name), text);
+    const spec = {
+      pages: {
+        review: path.join(dir, 'review.html'),
+        lab: path.join(dir, 'lab.html'),
+        player: path.join(dir, 'sub', 'player.html'),
+        render: path.join(dir, 'index.html'),
+      },
+      servers: { review: path.join(dir, 'src', 'review.server.tsx') },
+      films: path.join(dir, 'src', 'films'),
+      footage: { dir: path.join(dir, 'footage'), out: path.join(dir, 'out') },
+    };
+    return { spec, write };
+  });
+
+/** The app as `appFolderWith` writes it, every file its own. */
+const appFolder = appFolderWith({});
 
 /** A page's reads as it renders, answered `read <path>`. */
 const echoReads = PageReads.of({
@@ -395,7 +414,7 @@ describe('lab pages', () => {
   );
 
   it.live(
-    "a page with a server entry is answered rendered: the render's head before </head>, its body's class on <body>, its markup first in the body, at the URL asked",
+    "a page with a server entry is answered rendered: the render's head before </head>, its body's class on <body>, its markup first in the body, at the URL asked, for the browser that asked",
     () =>
       Effect.gen(function* () {
         const { spec } = yield* appFolder;
@@ -406,6 +425,11 @@ describe('lab pages', () => {
         expect(page.text).toContain('<meta name="rendered" content="review"></head>');
         expect(page.text).toContain(
           '<body class="rendered"><main>review at http://127.0.0.1:8229/sets/root/folder?view=all</main><script type="module" src="./src/p.ts"></script></body>',
+        );
+        // Asked by a Mac's browser, it is rendered for a Mac (its chords labelled as a Mac labels them).
+        const asMac = yield* ask('/sets/root/folder?view=all', 'GET', { 'user-agent': MAC_AGENT });
+        expect(asMac.text).toContain(
+          '<main>review at http://127.0.0.1:8229/sets/root/folder?view=all for a Mac</main>',
         );
         // The lab has no server entry: its page is as built.
         const lab = yield* ask('/films/f/lab');
@@ -627,6 +651,46 @@ describe('lab pages', () => {
       const { build } = yield* waitWriting(settled, '1 second', 'src/notes.json', '{"seq":1}');
       expect(build).toBe(settled);
     }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    'an app named through a link is watched where it lies, as the bundler names what it read: a first build hears no save of its own, and a later save is heard',
+    () =>
+      Effect.gen(function* () {
+        // Every file the build reads lies in a folder watched from the start (an entry's).
+        const { spec, write } = yield* appFolderWith({
+          'review.html': html('review', './src/lab.ts'),
+          'src/review.server.tsx': "export const rendered = () => 'served';\n",
+        });
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const dir = path.dirname(spec.pages.review);
+        // The same folder by another name, as macOS names its temp folder (`/var` for `/private/var`).
+        const linked = `${dir}-linked`;
+        yield* fs.symlink(dir, linked);
+        const through = (file: string) => path.join(linked, path.relative(dir, file));
+        const { page, ask } = yield* served(
+          {
+            ...spec,
+            pages: Record.map(spec.pages, through),
+            servers: { review: through(spec.servers.review) },
+            films: through(spec.films),
+          },
+          PageBundler.layer,
+        );
+        const built = buildOf((yield* ask('/')).text);
+        // Past the arming check of any watch the build began: nothing was saved since.
+        const held = yield* page.wait(
+          { since: built, server: Option.none(), film: Option.none() },
+          '1 second',
+        );
+        expect(held.build).toBe(built);
+        const heard = yield* Effect.andThen(
+          write('src/lab.ts', "console.log('the lab, saved');\n"),
+          page.wait({ since: built, server: Option.none(), film: Option.none() }, '5 seconds'),
+        );
+        expect(heard.build).toBeGreaterThan(built);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
   it.live(
@@ -1027,8 +1091,7 @@ describe('lab pages', () => {
 
   it.live('a first build that fails hears one save of its fix, with no build before it', () =>
     Effect.gen(function* () {
-      const { spec, write } = yield* appFolder;
-      yield* write('src/p.ts', "import './missing.ts';\n");
+      const { spec, write } = yield* appFolderWith({ 'src/p.ts': "import './missing.ts';\n" });
       const { page, ask } = yield* served(spec, PageBundler.layer);
       const broken = yield* ask('/');
       expect(broken.status).toBe(500);
@@ -1072,9 +1135,10 @@ describe('lab pages', () => {
     'a page that failed for a file in a folder no build read: its wait alone builds again, hears the fix, and the page then serves',
     () =>
       Effect.gen(function* () {
-        const { spec, write } = yield* appFolder;
         // The bundler names the importer (src/p.ts), never lib/, where the fix lands.
-        yield* write('src/p.ts', "import { gone } from '../lib/missing.ts';\nconsole.log(gone);\n");
+        const { spec, write } = yield* appFolderWith({
+          'src/p.ts': "import { gone } from '../lib/missing.ts';\nconsole.log(gone);\n",
+        });
         const { page, ask } = yield* served(spec, PageBundler.layer);
         const broken = yield* ask('/');
         expect(broken.status).toBe(500);
