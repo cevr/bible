@@ -345,6 +345,11 @@ const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: 
     "the Script's script.correct below, on the words to say instead, a text field",
   ],
   [
+    'notes/section.tsx',
+    'focusFor(field',
+    'a Save that found the words to say instead wanting, pressed and clicked below, a text field',
+  ],
+  [
     'review/options/choice.tsx',
     'focusFor(Option.getOrElse',
     'focusPoint, for each of its callers below',
@@ -486,6 +491,34 @@ for (const { command, field } of SCRIPT_ASKS)
         expect(page.errors).toEqual([]);
       }),
     );
+
+for (const input of INPUTS)
+  alone(
+    `on the Script, a correction's Save ${ASKED[input]} with its words unchanged puts the focus in the words to say instead, which rings as a text field does`,
+    Effect.gen(function* () {
+      const page = yield* scriptAt({ words: '4-7' })(DESK);
+      const compose = '[data-role="script-compose"]';
+      const save = `${compose} button[type="submit"]`;
+      yield* page.click('[data-act="note-words"]');
+      yield* waitFor(page, `${compose} .lab-compose:not([hidden])`);
+      yield* page.click(`${compose} [data-ask="correction"]`);
+      yield* waitFor(page, `${compose} .lab-instead`);
+      if (input === 'key') yield* page.focus(save);
+      const seen = yield* watched(
+        page,
+        Effect.gen(function* () {
+          if (input === 'key') yield* page.press('Enter');
+          else yield* page.click(save);
+          yield* until(
+            page,
+            `document.activeElement?.matches('${compose} .lab-instead[aria-invalid="true"]') === true`,
+          );
+        }),
+      );
+      yield* holds('a Save that found the words to say instead wanting', input, seen);
+      expect(page.errors).toEqual([]);
+    }),
+  );
 
 /** Fail naming each stop `seen` holds whose ring is not `input`'s. */
 const holds = (path: string, input: Input, seen: Seen) =>
