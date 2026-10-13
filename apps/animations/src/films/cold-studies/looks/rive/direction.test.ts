@@ -30,6 +30,7 @@ import { type Ramp, hues, keyLight, ramps, robes, shading } from '../../palette.
 import type { CourtFrame } from '../../scenes/court.ts';
 import { BENCH, type Props, paperProps } from '../cutpaper/court.ts';
 import { HAND as ACCUSED_HAND, accusedFace, accusedHead } from './accused-rig.ts';
+import { riveAccused } from './accused.ts';
 import { compile, rive } from './build.ts';
 import { DIRECTION, type Direction, K1, OPTIONS, dressOf, inkOf, propsOf } from './direction.ts';
 import { figureRigs, figuresRml } from './figures.ts';
@@ -965,6 +966,8 @@ const drawing = (draw: (f: CourtFrame) => void): ReadonlyArray<Laid> =>
       hand: (key: string | number) => ({ boil: 0, seed: String(key).length }),
       rive: () => undefined,
       at: () => 0,
+      t: 0,
+      cue: () => ({ start: 0, dur: 1 }),
     } as unknown as CourtFrame);
     return laid;
   });
@@ -1031,10 +1034,10 @@ const castBand = (c: Pt, cover: number): Pt[] => {
  * colour laid there: the rig's own shadow if it lays one, else the topmost
  * fill the host draws there.
  */
-const handCasts = (d: Direction, lean: number, swing: number) => {
+const handCasts = (d: Direction, lean: number, swing: number, as: Mutation = (f) => f) => {
   const palm = drawnOf(figureRigs(d).hand[0] as Element).find((s) => s.name === 'palm');
   const rigCast = palm === undefined ? undefined : paintNamed(palm.e, 'Shadow');
-  const fills = drawing((f) => judgeOf(d).over(f, swing, lean, propsOf(d)));
+  const fills = drawing((f) => judgeOf(d).over(as(f), swing, lean, propsOf(d)));
   const surfaces = underHand(d, swing, lean);
   return castBand(handAt(swing, lean), palm === undefined ? 0 : coverOf(palm.e))
     .filter((p) => surfaces.every((s) => edgeDistance(p, s.outline) >= EDGE))
@@ -1048,7 +1051,40 @@ const handCasts = (d: Direction, lean: number, swing: number) => {
     });
 };
 
+/** A frame drawn some other way: a negative control's mutation of what the host draws. */
+type Mutation = (f: CourtFrame) => CourtFrame;
+
+/** `f` with every radial gradient's middle stop black, its alpha kept: a cast shaded with black part way across. */
+const blackMiddleStop: Mutation = (f) => {
+  const ctx = new Proxy(f.ctx, {
+    get: (target, key) =>
+      key === 'createRadialGradient'
+        ? (...args: Parameters<CanvasRenderingContext2D['createRadialGradient']>) => {
+            const g = target.createRadialGradient(...args);
+            const add = g.addColorStop.bind(g);
+            g.addColorStop = (t: number, c: string) =>
+              add(t, t === 0.5 ? `#000000${c.length === 9 ? c.slice(7) : ''}` : c);
+            return g;
+          }
+        : Reflect.get(target, key),
+    set: (target, key, value) => Reflect.set(target, key, value),
+  });
+  return { ...f, ctx } as CourtFrame;
+};
+
+/** The faults among a hand's casts: each place it lies in a colour not its surface's shade. */
+const castFaults = (casts: ReturnType<typeof handCasts>) =>
+  casts.filter((c) => c.laid !== c.want).map((c) => `on the ${c.on}: ${shown(c.laid)}`);
+
+/** Options under which the host lays the hand's cast: its shade can be read there. */
+const A0 = SHADED.find(([name]) => name === 'A0')?.[1] ?? K1;
+
 describe('the judge’s hand', () => {
+  test('a cast shaded with black part way across fails: every stop of its feather is read', () => {
+    expect(castFaults(handCasts(A0, 0, GAVEL_REST))).toEqual([]);
+    expect(castFaults(handCasts(A0, 0, GAVEL_REST, blackMiddleStop)).length).toBeGreaterThan(0);
+  });
+
   test('its cast is the shade of each surface it falls on, in every option and pose, past its ink', () => {
     const casts = SHADED.flatMap(([name, d]) =>
       LEANS.flatMap((lean) =>
@@ -1233,4 +1269,111 @@ test('the bench top is lined in the props it is given, never the kit’s own out
   expect(drawn.filter((c) => c === '#0d0e0f').length).toBeGreaterThanOrEqual(2);
   expect(drawn).toContain('#0a0b0c');
   expect(drawn).not.toContain(C.outline.toLowerCase());
+});
+
+// ─── what the host lays round the figures (CRAFT 12) ─────────────────────────
+
+/**
+ * The kit's own shading, which the host lays round the Rive figures and no
+ * ramp derives: the look's one named exception to "every colour is a base or
+ * derived from one", each with its reason.
+ *
+ * Why it stays: these are the engine's (`packages/film/src/canvas`), and the
+ * court's scenery lays the same ones under every piece it cuts. Derived here
+ * alone, the frame would hold two shadow styles. The `shade` unit owns them
+ * and changes them together with the canvas looks; that change flips this
+ * entry.
+ */
+const KIT_SHADING: ReadonlyMap<string, string> = new Map([
+  [
+    '#281c10',
+    'the kit’s warm dark, rgba(40, 28, 16, …): the cast shadow under each cut piece (`cutout`) and the contact shadow under a figure’s feet (`ground`)',
+  ],
+  ['#fbf6ea', 'the kit’s paper core: the cream a cut or torn piece’s rim shows'],
+]);
+
+/**
+ * The colours the host may lay round the figures under `d`, posed: each
+ * paper it cuts (the sheet he reads, the gavel) or casts on (the hand's
+ * receivers) and that paper's shade, the props' inks, and the kit's named
+ * shading.
+ */
+const hostColours = (d: Direction, swing: number, lean: number): ReadonlySet<string> => {
+  const props = propsOf(d);
+  const papers = underHand(d, swing, lean).map((s) => s.paper as string);
+  return new Set(
+    [
+      ...[...papers, ramps.paper.base].flatMap((p) => [p, derived(p).shade]),
+      props.sheetInk,
+      props.gavelInk,
+      ...KIT_SHADING.keys(),
+    ].map((c) => c.toLowerCase()),
+  );
+};
+
+/** Why what the host laid is not what it may lay: each colour outside `allowed`, once. */
+const hostFaults = (laid: ReadonlyArray<Laid>, allowed: ReadonlySet<string>) => [
+  ...new Set(
+    laid.flatMap((l) =>
+      l.colour === undefined || allowed.has(l.colour)
+        ? []
+        : [`${shown(l.colour)}: no base, no derived colour, not the kit’s named shading`],
+    ),
+  ),
+];
+
+/** The accused's host: the contact shadow under the rig (`riveAccused`), the same under every option. */
+const accusedHost = (as: Mutation = (f) => f) => drawing((f) => riveAccused(as(f)));
+
+/** A black contact shadow laid where the kit's lies: a solid black-alpha ellipse's box under the feet. */
+const blackGround: Mutation = (f) => {
+  f.ctx.save();
+  f.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  f.ctx.fillRect(-50, -6, 100, 12);
+  f.ctx.restore();
+  return f;
+};
+
+/** A cut piece casting a black shadow: an alpha-black layer, which CRAFT 12 forbids. */
+const blackShadow: Mutation = (f) => {
+  f.ctx.save();
+  f.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  f.ctx.shadowBlur = 4;
+  f.ctx.shadowOffsetY = 3;
+  f.ctx.fillStyle = ramps.paper.base;
+  f.ctx.beginPath();
+  f.ctx.rect(-20, -40, 40, 30);
+  f.ctx.fill();
+  f.ctx.restore();
+  return f;
+};
+
+describe('what the host lays round the figures', () => {
+  test('every colour is a base, derived from one, an ink or the kit’s named shading, in every option and pose', () => {
+    const wrong = SHADED.flatMap(([name, d]) =>
+      LEANS.flatMap((lean) =>
+        SWINGS.flatMap((swing) =>
+          hostFaults(
+            drawing((f) => judgeOf(d).over(f, swing, lean, propsOf(d))),
+            hostColours(d, swing, lean),
+          ).map((f) => `${name} lean ${lean} swing ${swing}: ${f}`),
+        ),
+      ),
+    );
+    const accused = hostFaults(accusedHost(), hostColours(K1, GAVEL_REST, 0)).map(
+      (f) => `the accused: ${f}`,
+    );
+    expect([...new Set([...wrong, ...accused])]).toEqual([]);
+  });
+
+  test.each([
+    ['a black contact shadow', () => accusedHost(blackGround)],
+    ['a piece casting an alpha-black shadow', () => accusedHost(blackShadow)],
+    [
+      'the hand’s cast black part way across',
+      () => drawing((f) => judgeOf(A0).over(blackMiddleStop(f), GAVEL_REST, 0, propsOf(A0))),
+    ],
+  ] as const)('%s fails', (_, laid) => {
+    expect(hostFaults(laid(), hostColours(A0, GAVEL_REST, 0)).join('; ')).toContain('#000000');
+  });
 });

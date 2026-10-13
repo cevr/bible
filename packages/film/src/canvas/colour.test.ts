@@ -145,11 +145,15 @@ const hexOf = (L: number, C: number, h: number): Hex => {
   return `#${byte(3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z)}${byte(-0.969266 * X + 1.8760108 * Y + 0.041556 * Z)}${byte(0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z)}`;
 };
 
-/** Knobs from gentle to strong, and a set like the paper-cut look's. */
+/** The paper-cut look's knobs (`cold-studies/palette.ts`, fitted to K1). */
+const FILM: Shading = { turn: 20, dark: 0.2, lift: 0.4, deep: 10, warm: 8.5, fade: 0.6 };
+
+/** Knobs from gentle to strong (the second at CRAFT 12's floors), and the paper-cut look's. */
 const KNOBS: ReadonlyArray<Shading> = [
   { turn: 25, dark: 0.16, lift: 0.45, deep: 14, warm: 7, fade: 0.6 },
-  { turn: 10, dark: 0.3, lift: 0.2, deep: 6, warm: 4, fade: 0.9 },
+  { turn: 10, dark: 0.3, lift: 0.2, deep: 6, warm: 6, fade: 0.9 },
   { turn: 60, dark: 0.08, lift: 0.7, deep: 25, warm: 12, fade: 0.3 },
+  FILM,
 ];
 
 /** Key lights round the wheel, pale and stronger, and a cool night and a warm cream. */
@@ -219,6 +223,20 @@ describe('ramp', () => {
     expect(() => ramp('#94ad7f', '#e6e6e6', KNOBS[0] as Shading)).toThrow('#e6e6e6');
   });
 
+  test('K1’s lavender crease on the figure paper is a CRAFT 12 shade: short of the complement, turned past `turn`', () => {
+    // K1's hand-drawn crease (r3) on the people's paper, under the court's pale-gold key.
+    const key: Hex = '#f3e9c8';
+    const [paper, lavender] = ['#b7b2a8', '#9a92ab'] as const;
+    const [b, s] = [lch(paper), lch(lavender)];
+    const complement = (lch(key).h + 180) % 360;
+    // CRAFT 12's words: darker, more chromatic, turned toward the complement by more than `turn`.
+    expect(s.L).toBeLessThan(b.L);
+    expect(s.C).toBeGreaterThan(b.C);
+    expect(apart(s.h, complement)).toBeLessThan(apart(b.h, complement) - FILM.turn);
+    // ...and the check says the same: CRAFT 12 asks a near-neutral to turn, not to land on the complement.
+    expect(faults({ ...ramp(paper, key, FILM), shade: lavender }, key, FILM)).toEqual([]);
+  });
+
   // The rule's negative controls: what CRAFT 12 forbids fails the same check.
   describe('what CRAFT 12 forbids fails the check', () => {
     const k = KNOBS[0] as Shading;
@@ -243,5 +261,26 @@ describe('ramp', () => {
     ] as const)('%s', (_, r, fault) => {
       expect(faults(r, key, k).join('; ')).toContain(fault);
     });
+  });
+});
+
+// ─── CRAFT 12's floors: no knob lowers them ──────────────────────────────────
+
+describe('knobs under CRAFT 12’s floors', () => {
+  // The knobs are the look's tuning surface; tuned to grey, no ramp may derive.
+  const grey: Shading = { turn: 0, dark: 0.2, lift: 0.4, deep: 0, warm: 0, fade: 0.6 };
+
+  test('are refused, each named: an unturned shade and a grey light never derive', () => {
+    expect(() => ramp('#b7b2a8', '#f3e9c8', grey)).toThrow(/turn 0.*deep 0.*warm 0/);
+  });
+
+  test.each([
+    ['a shade that does not turn', { turn: 5 }, 'turn 5'],
+    ['a grey shade', { deep: 3 }, 'deep 3'],
+    ['a grey light', { warm: 3.3 }, 'warm 3.3'],
+    ['a shade no darker', { dark: 0 }, 'dark 0'],
+    ['a light no lighter', { lift: 0 }, 'lift 0'],
+  ] as const)('%s is refused', (_, knob, named) => {
+    expect(() => ramp('#94ad7f', '#f3e9c8', { ...FILM, ...knob })).toThrow(named);
   });
 });
