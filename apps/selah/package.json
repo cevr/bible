@@ -1,0 +1,13 @@
+{
+  "name": "@bible/selah",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Native macOS Scripture memorization app",
+  "scripts": {
+    "build": "./scripts/workspace.sh build",
+    "typecheck": "./scripts/workspace.sh typecheck",
+    "test": "./scripts/workspace.sh gate",
+    "gate": "./scripts/workspace.sh gate",
+    "benchmark": "./scripts/benchmark.sh"
+  }
+}
