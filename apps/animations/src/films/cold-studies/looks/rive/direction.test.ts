@@ -25,7 +25,7 @@
 // floors by the model (`ramp` refuses knobs under them).
 
 import { type Hex, ramp } from '@bible/film/canvas';
-import { recorder, withDom } from '@bible/film/stand-in';
+import { type Style, isPattern, recorder, withDom } from '@bible/film/stand-in';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { describe, expect, test } from 'bun:test';
 import { Console, Effect, FileSystem, Predicate, Result } from 'effect';
@@ -812,13 +812,15 @@ interface Region {
 /**
  * One paint: a fill (`fill`, `fillRect`), a stroke, or the shadow a fill or
  * stroke casts (`shadowColor`); its region, the clips in force, its colours
- * (a gradient's every stop; a pattern has none) and whether it paints over
- * (`source-over`).
+ * (a gradient's every stop; a pre-blended face's tile colour), whether it is
+ * one opaque flat colour (`flat`: how an ink line is laid, `ink.ts` filling
+ * a line's outline so) and whether it paints over (`source-over`).
  */
 interface Laid extends Region {
   readonly kind: 'fill' | 'stroke' | 'shadow';
   readonly clips: ReadonlyArray<Region>;
   readonly colours: ReadonlyArray<string>;
+  readonly flat: boolean;
   readonly over: boolean;
 }
 
@@ -848,9 +850,28 @@ const hexOfCss = (colour: string) => {
   return `#${[rgb[1], rgb[2], rgb[3]].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}`;
 };
 
-/** A paint style's colours as `#rrggbb`: a colour's own, a gradient's every stop's; a pattern has none. */
+/** A colour's own alpha, 0..1: `rgba(…, a)`, `#rrggbbaa`, `transparent`; 1 for any other. */
+const alphaOfCss = (colour: string) => {
+  const s = colour.replace(/\s/g, '').toLowerCase();
+  if (s === 'transparent') return 0;
+  const hex = /^#[0-9a-f]{6}([0-9a-f]{2})$/.exec(s)?.[1];
+  if (hex !== undefined) return Number.parseInt(hex, 16) / 255;
+  const a = /^rgba\([^,]+,[^,]+,[^,]+,([\d.]+)\)$/.exec(s)?.[1];
+  return a === undefined ? 1 : Number(a);
+};
+
+/**
+ * A paint style's colours as `#rrggbb`: a colour's own, a gradient's every
+ * stop's, a pattern's the colours its tile was filled with (a pre-blended
+ * face's tile holds one fill, the face's colour, under its grain: `faceOf`).
+ */
 const coloursOfStyle = (style: string | CanvasGradient | CanvasPattern): ReadonlyArray<string> => {
   if (Predicate.isString(style)) return [hexOfCss(style)];
+  const as = style as unknown as Style;
+  if (isPattern(as))
+    return as.tile.drawn.fills.flatMap((f) =>
+      Predicate.isString(f.style) ? [hexOfCss(f.style)] : [],
+    );
   // The stand-in's gradients keep their stops, as added (`StandInGradient`).
   const stops = Predicate.hasProperty(style, 'stops') ? style.stops : undefined;
   return Array.isArray(stops)
@@ -1013,13 +1034,16 @@ const drawing = (draw: (f: CourtFrame) => void): ReadonlyArray<Laid> =>
           kind: 'shadow',
           clips,
           colours: [hexOfCss(target.shadowColor)],
+          flat: false,
           over,
         });
+      const style = kind === 'stroke' ? target.strokeStyle : target.fillStyle;
       laid.push({
         ...region,
         kind,
         clips,
-        colours: coloursOfStyle(kind === 'stroke' ? target.strokeStyle : target.fillStyle),
+        colours: coloursOfStyle(style),
+        flat: Predicate.isString(style) && target.globalAlpha * alphaOfCss(style) >= 0.999,
         over,
       });
     };
@@ -1343,9 +1367,21 @@ test('the bench top is lined in the props it is given, never the kit’s own out
 // ─── what the host lays round the figures (CRAFT 12) ─────────────────────────
 
 /**
+ * What laid a paint, which says what it may be (CRAFT 12: an ink may line a
+ * piece, never shade it): a `line` is one opaque flat colour, as the kit lays
+ * an ink line (`ink.ts` fills the line's outline) and a paper's flat face; a
+ * `wash` is a gradient, a see-through fill or a pre-blended face; a `shadow`
+ * is what a paint casts (`shadowColor`).
+ */
+type Role = 'line' | 'wash' | 'shadow';
+
+/** The role of what laid `l`. */
+const roleOf = (l: Laid): Role => (l.kind === 'shadow' ? 'shadow' : l.flat ? 'line' : 'wash');
+
+/**
  * The kit's own shading, which the host lays round the Rive figures and no
  * ramp derives: the look's one named exception to "every colour is a base or
- * derived from one", each with its reason.
+ * derived from one", each with its reason and the roles it may take.
  *
  * Why it stays: these are the engine's (`packages/film/src/canvas`), and the
  * court's scenery lays the same ones under every piece it cuts. Derived here
@@ -1353,42 +1389,61 @@ test('the bench top is lined in the props it is given, never the kit’s own out
  * and changes them together with the canvas looks; that change flips this
  * entry.
  */
-const KIT_SHADING: ReadonlyMap<string, string> = new Map([
-  [
-    '#281c10',
-    'the kit’s warm dark, rgba(40, 28, 16, …): the cast shadow under each cut piece (`cutout`) and the contact shadow under a figure’s feet (`ground`)',
-  ],
-  ['#fbf6ea', 'the kit’s paper core: the cream a cut or torn piece’s rim shows'],
-]);
+const KIT_SHADING: ReadonlyMap<string, { readonly why: string; readonly as: ReadonlyArray<Role> }> =
+  new Map([
+    [
+      '#281c10',
+      {
+        why: 'the kit’s warm dark, rgba(40, 28, 16, …): the cast shadow under each cut piece (`cutout`) and the contact shadow under a figure’s feet (`ground`); a shadow or a wash, never a solid piece',
+        as: ['wash', 'shadow'],
+      },
+    ],
+    [
+      '#fbf6ea',
+      {
+        why: 'the kit’s paper core: the cream a cut or torn piece’s rim shows, laid flat',
+        as: ['line'],
+      },
+    ],
+  ]);
 
 /**
- * The colours the host may lay round the figures under `d`, posed: each
- * paper it cuts (the sheet he reads, the gavel) or casts on (the hand's
- * receivers) and that paper's shade, the props' inks, and the kit's named
- * shading.
+ * The colours the host may lay round the figures under `d`, posed, by what
+ * laid them: each paper it cuts (the sheet he reads, the gavel) or casts on
+ * (the hand's receivers) as a line or a wash; that paper's shade as any; the
+ * props' inks as a line only; the kit's named shading as its entry says.
  */
-const hostColours = (d: Direction, swing: number, lean: number): ReadonlySet<string> => {
+const hostColours = (
+  d: Direction,
+  swing: number,
+  lean: number,
+): Record<Role, ReadonlySet<string>> => {
   const props = propsOf(d);
   const papers = underHand(d, swing, lean, props).map((s) => s.paper);
-  return new Set(
-    [
-      ...papers.flatMap((p) => [p, derived(p).shade]),
-      props.sheetInk,
-      props.gavelInk,
-      ...KIT_SHADING.keys(),
-    ].map((c) => c.toLowerCase()),
-  );
+  const shades = papers.map((p) => derived(p).shade);
+  const kit = (role: Role) =>
+    [...KIT_SHADING].flatMap(([c, { as }]) => (as.includes(role) ? [c] : []));
+  const low = (cs: ReadonlyArray<string>) => new Set(cs.map((c) => c.toLowerCase()));
+  return {
+    line: low([...papers, ...shades, props.sheetInk, props.gavelInk, ...kit('line')]),
+    wash: low([...papers, ...shades, ...kit('wash')]),
+    shadow: low([...shades, ...kit('shadow')]),
+  };
 };
 
-/** Why what the host laid is not what it may lay: each colour outside `allowed`, once. */
-const hostFaults = (laid: ReadonlyArray<Laid>, allowed: ReadonlySet<string>) => [
+/** Why what the host laid is not what it may lay: each colour outside its role's allowance, and each paint with no colour to read, once. */
+const hostFaults = (laid: ReadonlyArray<Laid>, allowed: Record<Role, ReadonlySet<string>>) => [
   ...new Set(
     laid.flatMap((l) =>
-      l.colours.flatMap((c) =>
-        allowed.has(c)
-          ? []
-          : [`${l.kind} ${shown(c)}: no base, no derived colour, not the kit’s named shading`],
-      ),
+      l.colours.length === 0
+        ? [`${l.kind}: no colour to read`]
+        : l.colours.flatMap((c) =>
+            allowed[roleOf(l)].has(c)
+              ? []
+              : [
+                  `${roleOf(l)} ${shown(c)}: not a base, a derived colour, an ink line or the kit’s named shading in that role`,
+                ],
+          ),
     ),
   ),
 ];
@@ -1419,8 +1474,60 @@ const blackShadow: Mutation = (f) => {
   return f;
 };
 
+/** A cut piece casting its shadow in `ink`, half clear: an ink may line a piece, never shade one. */
+const inkShadow =
+  (ink: string): Mutation =>
+  (f) => {
+    f.ctx.save();
+    f.ctx.shadowColor = `${ink}80`;
+    f.ctx.shadowBlur = 4;
+    f.ctx.shadowOffsetY = 3;
+    f.ctx.fillStyle = ramps.paper.base;
+    f.ctx.beginPath();
+    f.ctx.rect(-20, -40, 40, 30);
+    f.ctx.fill();
+    f.ctx.restore();
+    return f;
+  };
+
+/** The kit's warm dark laid opaque, as a solid piece: it may shadow or wash, never be cut. */
+const kitDarkPiece: Mutation = (f) => {
+  f.ctx.save();
+  f.ctx.fillStyle = 'rgba(40, 28, 16, 1)';
+  f.ctx.beginPath();
+  f.ctx.rect(-60, -6, 120, 16);
+  f.ctx.fill();
+  f.ctx.restore();
+  return f;
+};
+
+/** A face cut in black, filled as the kit fills a pre-blended face: a pattern whose tile holds its one colour. */
+const blackFace: Mutation = (f) => {
+  const tile = document.createElement('canvas');
+  tile.width = 8;
+  tile.height = 8;
+  const t = tile.getContext('2d');
+  if (t !== null) {
+    t.fillStyle = '#000000';
+    t.fillRect(0, 0, 8, 8);
+  }
+  f.ctx.save();
+  f.ctx.fillStyle = f.ctx.createPattern(tile, 'repeat') ?? '#000000';
+  f.ctx.beginPath();
+  f.ctx.rect(-20, -40, 40, 30);
+  f.ctx.fill();
+  f.ctx.restore();
+  return f;
+};
+
+/** The centred line under each ink (A0, A0 + B2): the casts show, and B2's ink is black, so a black line is allowed and a black shading still is not. */
+const CONTROLLED = [
+  ['A0', A0],
+  ['A0 + B2', { ...A0, ink: 'black' }],
+] as const satisfies ReadonlyArray<readonly [string, Direction]>;
+
 describe('what the host lays round the figures', () => {
-  test('every colour is a base, derived from one, an ink or the kit’s named shading, in every option and pose', () => {
+  test('every paint is what laid it may be, in every option and pose: a line a paper, its shade, an ink or the kit’s core; a wash a paper, its shade or the kit’s shading; a shadow a shade or the kit’s warm dark', () => {
     const wrong = SHADED.flatMap(([name, d]) =>
       LEANS.flatMap((lean) =>
         SWINGS.flatMap((swing) =>
@@ -1447,14 +1554,40 @@ describe('what the host lays round the figures', () => {
     expect([...KIT_SHADING.keys()].filter((c) => !laid.has(c))).toEqual([]);
   });
 
-  test.each([
-    ['a black contact shadow', () => accusedHost(blackGround)],
-    ['a piece casting an alpha-black shadow', () => accusedHost(blackShadow)],
+  test('the kit’s named shading is laid in each role it names', () => {
+    const laid = [
+      ...accusedHost(),
+      ...drawing((f) => riveJudge.over(f, GAVEL_REST, 0, propsOf(DIRECTION))),
+    ];
+    const missing = [...KIT_SHADING].flatMap(([c, { as }]) =>
+      as.flatMap((role) =>
+        laid.some((l) => roleOf(l) === role && l.colours.includes(c)) ? [] : [`${c} as a ${role}`],
+      ),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  const controls: ReadonlyArray<
+    readonly [string, (d: Direction) => ReadonlyArray<Laid>, (d: Direction) => string]
+  > = [
+    ['a black contact shadow', () => accusedHost(blackGround), () => '#000000'],
+    ['a piece casting an alpha-black shadow', () => accusedHost(blackShadow), () => '#000000'],
     [
       'the hand’s cast black part way across',
-      () => drawing((f) => judgeOf(A0).over(blackMiddleStop(f), GAVEL_REST, 0, propsOf(A0))),
+      (d) => drawing((f) => judgeOf(d).over(blackMiddleStop(f), GAVEL_REST, 0, propsOf(d))),
+      () => '#000000',
     ],
-  ] as const)('%s fails', (_, laid) => {
-    expect(hostFaults(laid(), hostColours(A0, GAVEL_REST, 0)).join('; ')).toContain('#000000');
+    ['a piece casting its shadow in the ink', (d) => accusedHost(inkShadow(inkOf(d))), inkOf],
+    ['the kit’s warm dark as a solid piece', () => accusedHost(kitDarkPiece), () => '#281c10'],
+    ['a face cut in black', () => accusedHost(blackFace), () => '#000000'],
+  ];
+  test.each(
+    CONTROLLED.flatMap(([name, d]) =>
+      controls.map(([what, laid, wrong]) => [what, name, d, laid, wrong] as const),
+    ),
+  )('%s fails under %s', (_, __, d, laid, wrong) => {
+    expect(hostFaults(laid(d), hostColours(d, GAVEL_REST, 0)).join('; ')).toContain(
+      wrong(d).toLowerCase(),
+    );
   });
 });
