@@ -41,7 +41,7 @@ export const accusedProp = (
   face: accusedFace(DIRECTION),
 });
 
-/** The judge for `engine`: his head's centre at our origin, his face for `check`. */
+/** The judge for `engine`: his head's centre as drawn at D2 at our origin (a larger or smaller head grows from the neck), his face for `check`. */
 export const judgeProp = (
   engine: RiveEngine,
 ): RivePropSpec<JudgeTimeline, keyof typeof JUDGE_KNOBS> => ({

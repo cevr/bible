@@ -35,9 +35,11 @@ import {
 import { el } from './rml.ts';
 
 /**
- * The artboard, and where the judge's head centre stands on it (its origin):
- * room above the head for the largest head option (D3) with its outline,
- * shadow and moves, since `webgl2` draws only what lies inside the artboard.
+ * The artboard, and where the judge's head centre stands on it at D2 (its
+ * origin; under another head option the neck stays put and the head grows
+ * from it): room above the head for the largest option (D3) with its
+ * outline, shadow and moves, since `webgl2` draws only what lies inside the
+ * artboard.
  */
 export const JUDGE_ART = { width: 360, height: 360, head: [180, 140] } as const;
 
