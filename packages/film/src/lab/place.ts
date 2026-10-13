@@ -2,13 +2,13 @@
 // (`Places.lab`, `Places.labScene`, `Places.script`, `Places.scriptBeat`,
 // core/api.ts):
 // `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&beat=<id>&view=<compare>&code=follow|<line>&words=<a>-<b>&text=follow|<word>#t=<seconds>&loop=<a>,<b>`
-// and `/films/<film>/script/<beat>?cue=<name>|mark=<name>|words=<a>-<b>&note=<id>#t=<seconds>&loop=<a>,<b>`.
+// and `/films/<film>/script/<beat>?cue=<name>|mark=<name>|words=<a>-<b>|note=<id>#t=<seconds>&loop=<a>,<b>`.
 // The path's scene is the selection's scene when something is selected (a
 // cue or knob, else a talk's words; on the Script a cue, a mark or words),
 // else the scene under the playhead, so the path never names a scene the
 // frame has left; `#t=` is the frame's time in that scene (signed: a
 // selection's scene may start after the frame). The Script selects one
-// thing at a time: a cue, a mark or words, the newest pick winning. One
+// thing at a time: a cue, a mark, words or a note, the newest pick winning. One
 // reader (`labPlaceOf`, `labOpensAt`) and one printer (`labHref`), so a
 // reload, a pasted link and Back all come back to the frame, the pick, the
 // note and the studio's beat they left, on the page they left.
@@ -322,9 +322,9 @@ export const labHref = (
   root: LabRoot = 'lab',
 ): string => PRINTERS[root](film, placed, pick, T);
 
-/** A change that picks a cue, a mark or words: on the Script, it lets the other two go. */
+/** A change that picks a cue, a mark, words or a note: on the Script, it lets the others go. */
 const picksOne = (change: Partial<LabPick>): boolean =>
-  'selection' in change || 'mark' in change || 'words' in change;
+  'selection' in change || 'mark' in change || 'words' in change || 'note' in change;
 
 /** What a change lets go of on each page beside what it names: on the Script, a pick lets the others go. */
 const LET_GO: Readonly<Record<LabRoot, (change: Partial<LabPick>) => Partial<LabPick>>> = {
@@ -336,6 +336,7 @@ const LET_GO: Readonly<Record<LabRoot, (change: Partial<LabPick>) => Partial<Lab
         selection: Option.none(),
         mark: Option.none(),
         words: Option.none(),
+        note: Option.none(),
       }),
     }),
 };
@@ -348,7 +349,8 @@ const LET_GO: Readonly<Record<LabRoot, (change: Partial<LabPick>) => Partial<Lab
  * of two picks in different scenes wins: words selected in another scene
  * than the cue or knob let it go, and a cue or knob picked in another scene
  * lets the words go (`labHref` keeps only the path's). The Script selects
- * one thing at a time: a cue, a mark or words picked lets the others go.
+ * one thing at a time: a cue, a mark, words or a note picked lets the
+ * others go.
  */
 export const labHrefWith = (
   film: string,

@@ -9,8 +9,13 @@
 import { Context, Effect, Layer } from 'effect';
 import type { CodeRange } from '../core/schema.ts';
 
-/** The highlights a page paints, each styled by `::highlight(<name>)`. */
-export type HighlightName = 'lab-live' | 'lab-read' | 'lab-picked';
+/**
+ * The highlights a page paints, each styled by `::highlight(<name>)`: the
+ * word or line playing, what a selection reads, what is selected, and on the
+ * Script the words a note is on (`lab-noted`) or would cut or change
+ * (`lab-struck`).
+ */
+export type HighlightName = 'lab-live' | 'lab-read' | 'lab-picked' | 'lab-noted' | 'lab-struck';
 
 interface HighlightsOps {
   /**

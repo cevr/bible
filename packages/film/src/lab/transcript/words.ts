@@ -7,7 +7,7 @@
 // copyable. A press released on the words selects the words a text
 // selection spans, in one section, or shows the one word tapped.
 
-import { Effect, Option } from 'effect';
+import { Effect, Option, Record as Rec } from 'effect';
 import { createEffect, onCleanup } from 'solid-js';
 import { Highlights, type HighlightName } from '../../browser/highlights.ts';
 import type { Host } from '../../browser/host.ts';
@@ -79,33 +79,41 @@ export const wordsReleased =
   };
 
 /** What a view paints over its words, by highlight: the ranges of the one text each covers. */
-export type Painted = Readonly<Record<HighlightName, ReadonlyArray<CodeRange>>>;
-
-/** The page's highlights, each painted by a view's words while it is mounted. */
-const NAMES: ReadonlyArray<HighlightName> = ['lab-live', 'lab-read', 'lab-picked'];
+export type Painted<N extends HighlightName = HighlightName> = Readonly<
+  Record<N, ReadonlyArray<CodeRange>>
+>;
 
 /**
  * Paint `painted()` over the words in `page()` (once it is laid out) each
- * time it changes, for as long as the caller is mounted; each highlight is
- * cleared as it goes.
+ * time it changes, for as long as the caller is mounted; each highlight it
+ * names is cleared as it goes.
  */
-export const usePainted = (
+export const usePainted = <N extends HighlightName>(
   host: Host,
   page: () => Option.Option<HTMLElement>,
-  painted: () => Painted,
+  painted: () => Painted<N>,
 ): void => {
+  // The highlights painted so far, each cleared as the view goes.
+  const names = new Set<N>();
   createEffect(painted, (now) => {
     Option.map(page(), (root) =>
       Effect.runSyncWith(host)(
         Highlights.use((h) =>
-          Effect.forEach(NAMES, (name) => h.paint(name, root, now[name]), { discard: true }),
+          Effect.forEach(
+            Rec.toEntries(now),
+            ([name, ranges]) => {
+              names.add(name);
+              return h.paint(name, root, ranges);
+            },
+            { discard: true },
+          ),
         ),
       ),
     );
   });
   onCleanup(() =>
     Effect.runSyncWith(host)(
-      Highlights.use((h) => Effect.forEach(NAMES, (name) => h.clear(name), { discard: true })),
+      Highlights.use((h) => Effect.forEach(names, (name) => h.clear(name), { discard: true })),
     ),
   );
 };

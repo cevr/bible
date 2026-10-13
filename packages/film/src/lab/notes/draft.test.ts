@@ -1,23 +1,30 @@
 // A note's draft and where it sits, pure: the scene and timecode of the
 // moment noted, with the cue edge and mark nearest it; the draft carries
 // the box and the ink only when there are any; its scope (the cue selected,
-// the in and out points cut to its scene) as its chip says it and as the
-// draft carries it, and nothing once cleared; and a pointer's place on the
-// frame in film pixels.
+// the in and out points cut to its scene, the words of its line selected) as
+// its chip says it and as the draft carries it, and nothing once cleared;
+// what a note on words asks of them (a note, a correction, a removal), and
+// whether it says no more than that; and a pointer's place on the frame in
+// film pixels.
 
 import { Option, Schema } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import { NoteDraft } from '../../core/schema.ts';
 import { probeFilm } from '../fixtures/probe-film.ts';
 import {
+  type Asked,
+  NOTE_ASKED,
   NO_SCOPE,
   type Scope,
   boxOf,
   draftOf,
   filmPixel,
+  saysOnlyAsked,
   scopeText,
+  unsaid,
   whenText,
   whereText,
+  wordsAt,
 } from './draft.ts';
 
 const film = probeFilm();
@@ -120,6 +127,7 @@ describe('the scope', () => {
     cue: Option.some({ scene: 'one', name: 'fall' }),
     range: Option.some({ from: 1.2, to: 6 }),
     source: Option.none(),
+    words: Option.none(),
   };
 
   test('its chip names the scene, the cue selected and the range in timecode', () => {
@@ -137,6 +145,7 @@ describe('the scope', () => {
       cue: Option.some({ scene: 'two', name: 'fall' }),
       range: Option.some({ from: 9, to: 10 }),
       source: Option.some({ scene: 'two', source: { file: 'scenes/two.ts', line: 4, text: 'x' } }),
+      words: Option.some({ beat: 'two', from: 0, to: 1, text: 'A second' }),
     };
     expect(scopeText(film.placed, elsewhere, film.fps, 1.5)).toEqual(Option.none());
   });
@@ -169,6 +178,123 @@ describe('the scope', () => {
     expect(draft.cue).toEqual({ name: 'rise', edge: 'start' });
     expect('range' in draft).toBe(false);
     expect('source' in draft).toBe(false);
+    expect('words' in draft).toBe(false);
+    expect('kind' in draft).toBe(false);
+  });
+});
+
+describe('a note on words of a line', () => {
+  const words = { beat: 'one', from: 1, to: 2, text: 'ball rises' };
+  const onWords: Scope = { ...NO_SCOPE, words: Option.some(words) };
+  const at = (text: string, T = 1.5) => ({ T, box: Option.none(), ink: [], text });
+  /** What a draft asks of its words: the words, its kind and a correction's words instead (each while it has them), and its text. */
+  const fields = (d: NoteDraft) => ({
+    words: Option.fromUndefinedOr(d.words),
+    kind: Option.fromUndefinedOr(d.kind),
+    replace: Option.fromUndefinedOr(d.replace),
+    text: d.text,
+  });
+
+  test('its chip names the words, as they read', () => {
+    expect(scopeText(film.placed, onWords, film.fps, 1.5)).toEqual(
+      Option.some('one · “ball rises”'),
+    );
+    expect(wordsAt(film.placed, onWords, 1.5)).toEqual(Option.some(words));
+  });
+
+  test('a note carries its words and says what it says; one that says nothing is no draft', () => {
+    const draft = draftOf(film.placed, film.fps, at(' too quick '), onWords, NOTE_ASKED);
+    expect(Option.map(draft, fields)).toEqual(
+      Option.some({
+        words: Option.some(words),
+        kind: Option.some('note' as const),
+        replace: Option.none(),
+        text: 'too quick',
+      }),
+    );
+    expect(Option.map(draft, (d) => 'replace' in d)).toEqual(Option.some(false));
+    expect(draftOf(film.placed, film.fps, at(''), onWords, NOTE_ASKED)).toEqual(Option.none());
+  });
+
+  test('a correction carries the words to say instead, and says so when its writer does not', () => {
+    const draft = Option.getOrThrow(
+      draftOf(film.placed, film.fps, at(''), onWords, {
+        kind: 'correction',
+        replace: ' ball climbs ',
+      }),
+    );
+    expect(fields(draft)).toEqual({
+      words: Option.some(words),
+      kind: Option.some('correction' as const),
+      replace: Option.some('ball climbs'),
+      text: 'say “ball climbs” for “ball rises”',
+    });
+    expect(Schema.is(NoteDraft)(draft)).toBe(true);
+    // Its writer's words stand when there are any.
+    expect(
+      Option.map(
+        draftOf(film.placed, film.fps, at('softer'), onWords, {
+          kind: 'correction',
+          replace: 'ball climbs',
+        }),
+        (d) => d.text,
+      ),
+    ).toEqual(Option.some('softer'));
+  });
+
+  test('a correction that says no other words asks nothing: no draft, and the composer says why', () => {
+    for (const replace of ['', '  ', 'ball rises']) {
+      const asked = { kind: 'correction' as const, replace };
+      expect(draftOf(film.placed, film.fps, at('why'), onWords, asked)).toEqual(Option.none());
+      expect(unsaid('why', Option.some(words), asked)).toEqual(
+        Option.some('Write the words to say instead.'),
+      );
+    }
+    expect(unsaid('', Option.some(words), NOTE_ASKED)).toEqual(
+      Option.some('Write the note first.'),
+    );
+    expect(unsaid('', Option.none(), { kind: 'removal', replace: '' })).toEqual(
+      Option.some('Write the note first.'),
+    );
+    expect(unsaid('', Option.some(words), { kind: 'removal', replace: '' })).toEqual(Option.none());
+  });
+
+  test('a removal says what it cuts', () => {
+    const draft = Option.getOrThrow(
+      draftOf(film.placed, film.fps, at(''), onWords, { kind: 'removal', replace: 'ignored' }),
+    );
+    expect(fields(draft)).toEqual({
+      words: Option.some(words),
+      kind: Option.some('removal' as const),
+      replace: Option.none(),
+      text: 'remove “ball rises”',
+    });
+    expect('replace' in draft).toBe(false);
+    expect(Schema.is(NoteDraft)(draft)).toBe(true);
+  });
+
+  test('one that says no more than what it asks says it once; any words of its writer are its own', () => {
+    const asking = (text: string, asked: Asked) =>
+      Option.getOrThrow(draftOf(film.placed, film.fps, at(text), onWords, asked));
+    const correction = asking('', { kind: 'correction', replace: 'ball climbs' });
+    expect(saysOnlyAsked(correction)).toBe(true);
+    expect(saysOnlyAsked({ ...correction, text: 'softer' })).toBe(false);
+    expect(saysOnlyAsked(asking('', { kind: 'removal', replace: '' }))).toBe(true);
+    // A note says its writer's words, whatever they are; a note of the frame alone asks nothing.
+    expect(saysOnlyAsked(asking('remove “ball rises”', NOTE_ASKED))).toBe(false);
+    expect(saysOnlyAsked({ text: 'remove “ball rises”' })).toBe(false);
+  });
+
+  test("words of another scene are no scope of a note in this one: it is the frame's, and asks nothing", () => {
+    const two = (film.placed[1]?.start ?? 0) + 0.4;
+    expect(wordsAt(film.placed, onWords, two)).toEqual(Option.none());
+    const draft = Option.getOrThrow(
+      draftOf(film.placed, film.fps, at('later', two), onWords, { kind: 'removal', replace: '' }),
+    );
+    expect(['words' in draft, 'kind' in draft, draft.text]).toEqual([false, false, 'later']);
+    expect(
+      draftOf(film.placed, film.fps, at('', two), onWords, { kind: 'removal', replace: '' }),
+    ).toEqual(Option.none());
   });
 });
 

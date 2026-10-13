@@ -1,14 +1,19 @@
 // The Script page's reader (`/films/<film>/script…`): the film's beats in
 // play order, each under its id and where it starts (one press on either
 // shows the beat's first frame), with a quiet badge on a line no take voices
-// as it reads now (timed by the estimate), then what its picture does (the
-// script's brief, its cues and marks named in backticks links to them), its
-// line as the film says it with a chip for each mark, the cues tied to what
-// is selected in it (`tied.tsx`), and its sources. The line's words are laid
-// out, painted and pressed as the Transcript's are (`transcript/words.ts`):
-// the word playing at the frame lit and the beat under it edged, the words
-// selected (`?words=a-b`) painted and the words a mark or a cue selected
-// lands on washed, all through the page's highlights, so the text stays
+// as it reads now (timed by the estimate) and a marker for each note of its
+// frames, then what its picture does (the script's brief, its cues and marks
+// named in backticks links to them), its line as the film says it with a
+// chip for each mark and its notes on words (`notes.tsx`: painted on the
+// words, a correction's words instead after them, a marker after the last),
+// the cues tied to what is selected in it with Note… on words (`tied.tsx`),
+// the composer and the note selected while they are the beat's, and its
+// sources. The head notes the frame shown (Note frame). The line's words
+// are laid out, painted and pressed as the Transcript's are
+// (`transcript/words.ts`): the word playing at the frame lit and the beat
+// under it edged, the words selected (`?words=a-b`) painted and the words a
+// mark, a cue or the note selected lands on washed, all through the page's
+// highlights (the notes' too), so the text stays
 // selectable and a word lit costs no element. A tap on a word shows it (the
 // frame seeks to where it starts) and selects it (shift extends the
 // selection); a text selection across words selects them; a word held (or
@@ -26,12 +31,22 @@ import { targetAttr } from '../../command/target.ts';
 import { counted } from '../../core/words.ts';
 import { Target } from '../command/context-menu.tsx';
 import { useFollow } from '../follow.ts';
+import { Frame } from '../notes/list.tsx';
 import { Timecode } from '../page-shell.tsx';
 import { pressed } from '../pressed.ts';
 import { useLab } from '../shell.tsx';
 import { type SectionRows, type WordAt, rangesOf, rowOf } from '../transcript/lit.ts';
 import { usePainted, wordsReleased } from '../transcript/words.ts';
 import { type BeatRow, ScriptState, useScript } from './context.tsx';
+import { notedIn, notedPainted } from './noted.ts';
+import {
+  BeatMarkers,
+  Composer,
+  NoteButton,
+  NotedAfter,
+  ShownNote,
+  useScriptNotes,
+} from './notes.tsx';
 import { MarkChip, Picture, Ties } from './tied.tsx';
 import { marksIn } from './ties.ts';
 
@@ -39,8 +54,9 @@ import { marksIn } from './ties.ts';
 const WORD_KEY = /^w:(.*):(\d+)$/;
 const BEAT_KEY = /^b:(.*)$/;
 
-/** The reader's head: how many beats the film has and how many are timed by the estimate, and Follow. */
+/** The reader's head: how many beats the film has and how many are timed by the estimate, Note frame, and Follow. */
 const Head = () => {
+  const { meta } = useLab();
   const script = useScript();
   const estimated = script.beats.filter((b) => b.estimated).length;
   return (
@@ -51,6 +67,7 @@ const Head = () => {
           ...Arr.filter([`${estimated} estimated`], () => estimated > 0),
         ].join(' · ')}
       </span>
+      <Frame hub={meta.hub} />
       <button
         type="button"
         class="sh-btn lab-script-follow"
@@ -107,9 +124,11 @@ const Status = () => {
  */
 const Line = (props: { readonly line: SectionRows }) => {
   const script = useScript();
+  const notes = useScriptNotes();
   // The staged film's, laid out once: a plain value.
   const line = props.line;
   const marks = marksIn(line);
+  const noted = createMemo(() => notedIn(notes.noted().filter((n) => n.words.beat === line.id)));
   // A press that ends a text selection across words selects them; a tap on one word shows it.
   const released = wordsReleased({
     sections: () => script.lines,
@@ -148,10 +167,12 @@ const Line = (props: { readonly line: SectionRows }) => {
             >
               {row.text}
             </span>{' '}
+            <For each={noted().at(row.index)}>{(n) => <NotedAfter noted={n} />}</For>
           </>
         )}
       </For>
       <For each={marks.end}>{(name) => <MarkChip beat={line.id} name={name} />}</For>
+      <For each={noted().end}>{(n) => <NotedAfter noted={n} />}</For>
     </Target>
   );
 };
@@ -189,6 +210,7 @@ const Beat = (props: { readonly beat: BeatRow }) => {
             estimated
           </span>
         </Show>
+        <BeatMarkers beat={beat.id} />
       </header>
       <Show
         when={Option.getOrUndefined(
@@ -210,7 +232,11 @@ const Beat = (props: { readonly beat: BeatRow }) => {
       {Option.toArray(beat.line).map((line) => (
         <Line line={line} />
       ))}
-      <Ties beat={beat.id} />
+      <Ties beat={beat.id}>
+        <NoteButton />
+      </Ties>
+      <Composer beat={beat.id} />
+      <ShownNote beat={beat.id} />
       <Show
         when={Option.getOrUndefined(
           Option.filter(
@@ -233,6 +259,7 @@ const Beat = (props: { readonly beat: BeatRow }) => {
 const Beats = () => {
   const { meta } = useLab();
   const script = useScript();
+  const notes = useScriptNotes();
   let page = Option.none<HTMLElement>();
   let scroller = Option.none<HTMLElement>();
 
@@ -243,8 +270,9 @@ const Beats = () => {
     () => page,
     () => ({
       'lab-live': rangesAt(script.lit()),
-      'lab-read': rangesOf(script.read()),
+      'lab-read': rangesOf([...script.read(), ...notes.shownRows()]),
       'lab-picked': rangesOf(script.picked()),
+      ...notedPainted(notes.noted()),
     }),
   );
 

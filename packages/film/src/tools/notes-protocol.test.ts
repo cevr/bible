@@ -187,6 +187,40 @@ describe('film notes, as an agent reads it', () => {
   );
 
   it.live(
+    'prints the words of a line a note is about, as they read, what it asks of them and a correction’s words instead',
+    () =>
+      Effect.gen(function* () {
+        const store = yield* NotesStore;
+        const words = { beat: 'turn', from: 4, to: 6, text: 'the page "turns"' };
+        yield* store.add(
+          film,
+          {
+            scene: 'turn',
+            T: 5.35,
+            frame: 160,
+            words,
+            kind: 'correction',
+            replace: 'the page folds',
+            text: 'say “the page folds” for “the page "turns"”',
+          },
+          png,
+        );
+        yield* store.add(
+          film,
+          { scene: 'turn', T: 6, frame: 180, words, kind: 'removal', text: 'cut it' },
+          png,
+        );
+        const lines = (yield* cli('tiny')).lines;
+        expect(lines[0]).toBe(
+          `note id=n1 seq=1 status=open scene=turn T=5.35 frame=160 words=turn:4-6 said="the page \\"turns\\"" kind=correction replace="the page folds" replies=0 still=${LAB}/tiny/stills/n1.png text="say “the page folds” for “the page \\"turns\\"”"`,
+        );
+        expect(lines[1]).toBe(
+          `note id=n2 seq=2 status=open scene=turn T=6.00 frame=180 words=turn:4-6 said="the page \\"turns\\"" kind=removal replies=0 still=${LAB}/tiny/stills/n2.png text="cut it"`,
+        );
+      }).pipe(Effect.provide(Fresh)),
+  );
+
+  it.live(
     'a reply prints what the user said since the agent last replied: new notes and user replies',
     () =>
       Effect.gen(function* () {

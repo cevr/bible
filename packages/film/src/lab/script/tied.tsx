@@ -19,7 +19,7 @@ import { useScript } from './context.tsx';
 import { Brief, briefOf, tieTimes } from './ties.ts';
 
 /** A link's plain click, picked in the page by `pick`; any other (a new tab, a download) is the link's own. */
-const picking = (pick: () => void) => (e: MouseEvent) => {
+export const picking = (pick: () => void) => (e: MouseEvent) => {
   if (!plainClick(e)) return;
   e.preventDefault();
   pick();
@@ -132,10 +132,11 @@ export const Picture = (props: {
 
 /**
  * Under beat `beat`'s line while something of it is selected: what is
- * selected, the cues tied to it (each where it starts and ends in the beat
- * and what its span says, a link that picks it), and Clear.
+ * selected, the page's verbs on it (`children`: Note… on words), Clear, and
+ * the cues tied to it (each where it starts and ends in the beat and what
+ * its span says, a link that picks it).
  */
-export const Ties = (props: { readonly beat: string }) => {
+export const Ties = (props: ParentProps<{ readonly beat: string }>) => {
   const { meta } = useLab();
   const script = useScript();
   return (
@@ -144,6 +145,7 @@ export const Ties = (props: { readonly beat: string }) => {
         <section class="lab-script-ties" aria-label="Cues tied to the selection">
           <header class="lab-script-ties-head">
             <span class="lab-script-ties-what lab-clamp">{tied().what}</span>
+            {props.children}
             <button
               type="button"
               class="sh-btn"

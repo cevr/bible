@@ -280,25 +280,32 @@ describe("the Script's place", () => {
     }
   });
 
-  test('it selects one thing at a time: a cue, a mark or words picked lets the others go', () => {
+  test('it selects one thing at a time: a cue, a mark, words or a note picked lets the others go', () => {
     const cueAt = '/films/f/script/b?cue=rise&note=n1#t=1';
     expect(labHrefWith('f', placed, cueAt, { mark: Option.some(fall) }, b + 1)).toBe(
-      '/films/f/script/b?mark=fall&note=n1#t=1',
+      '/films/f/script/b?mark=fall#t=1',
     );
     expect(labHrefWith('f', placed, cueAt, { words: Option.some(said) }, b + 1)).toBe(
-      '/films/f/script/b?words=2-4&note=n1#t=1',
+      '/films/f/script/b?words=2-4#t=1',
     );
     const markAt = '/films/f/script/b?mark=fall#t=1';
     expect(labHrefWith('f', placed, markAt, { selection: Option.some(rise) }, b + 1)).toBe(
       '/films/f/script/b?cue=rise#t=1',
     );
-    // A pick of none lets everything go; a change of the note or the time keeps the pick.
+    // A note picked lets the pick go, and its path is the beat under the frame; a pick lets the note go.
+    const noteAt = '/films/f/script/b?note=n4#t=2';
+    expect(labHrefWith('f', placed, markAt, { note: Option.some('n4') }, b + 2)).toBe(noteAt);
+    expect(labHrefWith('f', placed, noteAt, { words: Option.some(said) }, b + 2)).toBe(
+      '/films/f/script/b?words=2-4#t=2',
+    );
+    // A pick of none lets everything go; a change of the time keeps the pick.
     expect(labHrefWith('f', placed, markAt, { mark: Option.none() }, 1)).toBe(
       '/films/f/script/a#t=1',
     );
-    expect(labHrefWith('f', placed, markAt, { note: Option.some('n4') }, b + 2)).toBe(
-      '/films/f/script/b?mark=fall&note=n4#t=2',
+    expect(labHrefWith('f', placed, noteAt, { note: Option.none() }, b + 2)).toBe(
+      '/films/f/script/b#t=2',
     );
+    expect(labHrefWith('f', placed, markAt, {}, b + 2)).toBe('/films/f/script/b?mark=fall#t=2');
     // A link naming all three reads them all; the next pick leaves one.
     const all = '/films/f/script/b?cue=rise&mark=fall&words=2-4#t=1';
     expect(labPlaceOf(all)).toMatchObject({

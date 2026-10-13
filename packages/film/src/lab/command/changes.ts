@@ -7,7 +7,7 @@
 // owner.
 
 import { isServer } from '@solidjs/web';
-import { Boolean as Bool, Option } from 'effect';
+import { Boolean as Bool, Context as Services, Effect, Option, Scheduler } from 'effect';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import type { Input } from '../../browser/keys.ts';
@@ -101,6 +101,9 @@ interface DeferredRun {
   readonly closed: () => void;
 }
 
+/** Where a fiber's yield resumes in the next microtask: on no timer, so no clock holds it. */
+const NEXT_MICROTASK = Services.make(Scheduler.Scheduler, new Scheduler.MixedScheduler('sync'));
+
 /** A menu's deferred run on `hub`, asked for `via` the menu it is (`menu`, ⌘K's `palette`). */
 export const deferredRun = (hub: Hub, via: Invocation['via']): DeferredRun => {
   const [opened, setOpened] = createSignal<Context>(hub.context());
@@ -116,9 +119,17 @@ export const deferredRun = (hub: Hub, via: Invocation['via']): DeferredRun => {
     },
     closed: () => {
       const picked = chosen;
+      const ctx = opened();
       chosen = Option.none();
+      // The popup gives the focus back in a microtask it queues as it unmounts, before it says it
+      // has closed: the row runs in the next one, so what it focuses is kept.
       Option.map(picked, ({ row, input }) =>
-        hub.invoke(row.command, { step: row.step, via, input }, opened()),
+        Effect.runForkWith(NEXT_MICROTASK)(
+          Effect.andThen(
+            Effect.yieldNow,
+            Effect.sync(() => hub.invoke(row.command, { step: row.step, via, input }, ctx)),
+          ),
+        ),
       );
     },
   };

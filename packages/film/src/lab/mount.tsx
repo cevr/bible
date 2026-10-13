@@ -63,7 +63,7 @@ const LabBody = (props: { readonly player: Player }) => (
           </ShellTools>
           <Motion.Provider>
             <Compare.Provider>
-              <Notes.Provider>
+              <Notes.LabProvider>
                 <Motion.Onion />
                 <Compare.Layer />
                 <Lab.Overlay>
@@ -85,7 +85,7 @@ const LabBody = (props: { readonly player: Player }) => (
                 <Studio.Provider>
                   <Studio.Section />
                 </Studio.Provider>
-              </Notes.Provider>
+              </Notes.LabProvider>
             </Compare.Provider>
           </Motion.Provider>
         </Source.Provider>
@@ -96,15 +96,19 @@ const LabBody = (props: { readonly player: Player }) => (
 
 /**
  * The staged lab in the Script's page: the film's beats beside the staged
- * film's player, read and lit on its clock. It edits nothing, so it has no
- * Undo and none of the Lab's tools.
+ * film's player, read and lit on its clock, with the film's notes on their
+ * words and frames (and their pins on the timeline). It edits nothing, so it
+ * has no Undo and none of the Lab's tools.
  */
 const ScriptBody = (props: { readonly player: Player }) => (
   <>
     <LabTime player={props.player} />
     <Lab.Root player={props.player}>
       <Script.Provider>
-        <Script.Reader />
+        <Script.Notes>
+          <Notes.Pins />
+          <Script.Reader />
+        </Script.Notes>
       </Script.Provider>
     </Lab.Root>
   </>

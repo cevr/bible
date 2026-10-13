@@ -1,6 +1,7 @@
 // The film's notes as the Lab's page holds them, on the server and in the
 // browser alike: the feed (`feed.ts`), the list with each note's
-// thread, a reply and a resolve, and the pen and the Note frame button in the
+// thread, what a note on words asks of them, a reply and a resolve (the
+// Script shows these three too), and the pen and the Note frame button in the
 // panel's header. None of it reads the film's code. The notes are the
 // page's first read, made by the server that renders it and sent with it
 // (`served`); the browser adopts them, reads them no second time, and its
@@ -22,7 +23,13 @@ import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createMemo, createSignal, onCleanup, useContext } from 'solid-js';
 import { stillUrl } from '../../core/api.ts';
-import { type Note, type NoteStatus, NotesFile } from '../../core/schema.ts';
+import {
+  type Note,
+  type NoteKind,
+  type NoteStatus,
+  type NoteWords,
+  NotesFile,
+} from '../../core/schema.ts';
 import { BY_BUTTON, quietly } from '../../command/command.ts';
 import { Selection } from '../../command/selection.ts';
 import type { Hub } from '../../command/hub.ts';
@@ -32,10 +39,12 @@ import type { BrowserServices, Host } from '../../browser/host.ts';
 import { SelectionSheet } from '../selection-sheet.tsx';
 import { type LabApi, NotesApi, reasonOf, served } from '../api.ts';
 import { pressed } from '../pressed.ts';
+import { kindOf } from '../../core/notes.ts';
+import { saysOnlyAsked } from './draft.ts';
 import { FeedEvent, FeedState, feedText, spawnFeed, startOf } from './feed.ts';
 
 /** The state a note's status badge is drawn in (DL §5 Chip / badge): a resolved note's has no state colour, so it is plain. */
-const NOTE_STATE = {
+export const NOTE_STATE = {
   open: 'note',
   replied: 'agent',
   resolved: 'resolved',
@@ -261,8 +270,71 @@ const Still = (props: { readonly film: string; readonly name: string }) => (
   <img class="lab-still" src={stillUrl(props.film, props.name)} alt={props.name} loading="lazy" />
 );
 
+/** The words a note asking `kind` is about: struck when it would cut or change them, and a correction's words to say instead. */
+const AskedWords = (props: {
+  readonly kind: NoteKind;
+  readonly words: NoteWords;
+  readonly replace: string;
+}) => (
+  <Show
+    when={props.kind !== 'note'}
+    fallback={<span class="lab-note-was">{`“${props.words.text}”`}</span>}
+  >
+    <del class="lab-note-was">{`“${props.words.text}”`}</del>
+    <Show when={props.kind === 'correction'}>
+      {' → '}
+      <ins class="lab-note-instead">{`“${props.replace}”`}</ins>
+    </Show>
+  </Show>
+);
+
+/**
+ * What a note on words asks of them, as the list and the Script say it: its
+ * kind, then the words (struck when it would cut or change them) and a
+ * correction's words to say instead. Nothing for a note of a frame.
+ */
+export const Asks = (props: { readonly note: Note }) => (
+  <Show when={props.note.words}>
+    {(words) => (
+      <p class="lab-note-asks" data-kind={kindOf(props.note)}>
+        <span class="lab-note-kind">{kindOf(props.note)}</span>{' '}
+        <AskedWords
+          kind={kindOf(props.note)}
+          words={words()}
+          replace={Option.getOrElse(Option.fromUndefinedOr(props.note.replace), () => '')}
+        />
+      </p>
+    )}
+  </Show>
+);
+
+/**
+ * What a note says, in its writer's words: nothing when it says no more
+ * than what it asks of its words, which `Asks` says.
+ */
+export const Said = (props: { readonly note: Note }) => (
+  <Show when={!saysOnlyAsked(props.note)}>
+    <p class="lab-note-text">{props.note.text}</p>
+  </Show>
+);
+
+/** A note's thread: each reply, who wrote it, its words and its still. */
+export const Thread = (props: { readonly film: string; readonly note: Note }) => (
+  <ol class="lab-thread">
+    <For each={props.note.thread}>
+      {(reply) => (
+        <li class={['lab-reply', reply.by]}>
+          <span class="lab-by">{reply.by}</span>
+          <p class="lab-reply-text">{reply.text}</p>
+          <Show when={reply.still}>{(still) => <Still film={props.film} name={still()} />}</Show>
+        </li>
+      )}
+    </For>
+  </ol>
+);
+
 /** A reply and a resolve, on the selected note while it is open. */
-const ReplyForm = (props: { readonly note: Note }) => {
+export const ReplyForm = (props: { readonly note: Note }) => {
   const feed = useNotesFeed();
   let input = Option.none<HTMLInputElement>();
   return (
@@ -335,21 +407,10 @@ const Item = (props: ItemProps) => {
           {props.note.status}
         </span>
       </div>
-      <p class="lab-note-text">{props.note.text}</p>
+      <Said note={props.note} />
+      <Asks note={props.note} />
       <Still film={props.film} name={props.note.still} />
-      <ol class="lab-thread">
-        <For each={props.note.thread}>
-          {(reply) => (
-            <li class={['lab-reply', reply.by]}>
-              <span class="lab-by">{reply.by}</span>
-              <p class="lab-reply-text">{reply.text}</p>
-              <Show when={reply.still}>
-                {(still) => <Still film={props.film} name={still()} />}
-              </Show>
-            </li>
-          )}
-        </For>
-      </ol>
+      <Thread film={props.film} note={props.note} />
       <Show when={selected()}>
         <SelectionSheet
           host={props.host}

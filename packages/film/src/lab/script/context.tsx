@@ -5,8 +5,9 @@
 // its script says of it (`GET …/script`, read as the page stands: the
 // picture's brief and the beat's sources); the word playing at the frame
 // shown and the beat under it; what is selected in the path's beat, one
-// thing at a time (`?words=`, `?mark=` or `?cue=`), the cues tied to it and
-// the words a mark or a cue selected lands on; and Follow (the lab's one
+// thing at a time (`?words=`, `?mark=` or `?cue=`; a note, `?note=`, lets
+// them go), the cues tied to it, the words a mark or a cue selected lands
+// on, and the words selected as a note on them carries them; and Follow (the lab's one
 // rule, `lab/follow.ts`: the reader keeps the word playing in sight until a
 // hand scrolls it, and Follow or Play takes it back). It writes nothing of
 // the film's: a word, a mark or a cue picked seeks the player to where it
@@ -26,6 +27,7 @@ import {
   markOf,
 } from '../../command/selection.ts';
 import type { ScriptBeat } from '../../core/api.ts';
+import type { NoteWords } from '../../core/schema.ts';
 import { LabApi, reasonOf } from '../api.ts';
 import { useLab } from '../shell.tsx';
 import { extendedTo } from '../transcript/commands.ts';
@@ -90,6 +92,8 @@ interface ScriptContextValue {
   readonly picked: Accessor<ReadonlyArray<Row>>;
   /** The words selected, as the URL holds them. */
   readonly selected: Accessor<Option.Option<WordsSelection>>;
+  /** The words selected as a note on them carries them: their beat, their first and last word, and what they read. */
+  readonly words: Accessor<Option.Option<NoteWords>>;
   /** The mark selected, as the URL holds it. */
   readonly mark: Accessor<Option.Option<MarkSelection>>;
   /** What the selection ties to, in the beat it is in: none while nothing of a beat's line is selected. */
@@ -183,6 +187,18 @@ export const Provider = (props: ParentProps) => {
       onSome: (w) => rowsIn(lines, w.scene, w.from, w.to),
     }),
   );
+  const words = createMemo(() =>
+    Option.flatMap(lab.words(), (w) =>
+      Option.zipWith(Arr.head(picked()), Arr.last(picked()), (first, last): NoteWords => ({
+        beat: w.scene,
+        from: first.index,
+        to: last.index,
+        text: picked()
+          .map((r) => r.text)
+          .join(' '),
+      })),
+    ),
+  );
   // The Script's selection is one thing: words, a mark, or a cue (of the Lab's selection, only a cue reaches it).
   const cue = lab.selection;
   const tied = createMemo((): Option.Option<Tied> =>
@@ -256,6 +272,7 @@ export const Provider = (props: ParentProps) => {
     live: lab.scene,
     picked,
     selected: lab.words,
+    words,
     mark: lab.mark,
     tied,
     read,

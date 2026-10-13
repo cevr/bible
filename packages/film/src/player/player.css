@@ -419,6 +419,8 @@ body.lab .stage {
   font-size: var(--fs-3);
 }
 .lab-panel textarea,
+.lab-compose textarea,
+.lab-instead,
 .lab-reply-input {
   width: 100%;
   background: var(--surface-2);
@@ -428,6 +430,14 @@ body.lab .stage {
   padding: var(--s-1) var(--s-2);
   font: inherit;
   resize: vertical;
+}
+/* What a note on words asks of them: the kit's segmented control, one pressed. */
+.lab-asks {
+  justify-self: start;
+}
+/* A correction's words to say instead: one line, the pointer's target tall. */
+.lab-instead {
+  min-height: var(--hit);
 }
 .lab-actions,
 .lab-reply-form {
@@ -472,6 +482,23 @@ body.lab .stage {
 .lab-note-text,
 .lab-reply-text {
   margin: 0;
+}
+/* What a note on words asks of them: its kind, the words (struck when it cuts or changes them), the words instead. */
+.lab-note-asks {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-2);
+}
+.lab-note-kind {
+  color: var(--state-note);
+}
+.lab-note-was {
+  color: var(--text-1);
+  text-decoration-color: var(--state-note);
+}
+.lab-note-instead {
+  color: var(--text-1);
+  text-decoration: none;
 }
 .lab-still {
   width: 100%;

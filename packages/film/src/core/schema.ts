@@ -834,6 +834,27 @@ export const NoteSource = Schema.Struct({
 });
 export type NoteSource = typeof NoteSource.Type;
 
+/**
+ * Words of a beat's line a note is about: the beat, its first and last word
+ * (from 0, as the line is said and the Script's `?words=` counts them) and
+ * the words as they stood, so a reader finds them after the line changes.
+ */
+export const NoteWords = Schema.Struct({
+  beat: Schema.String,
+  from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  to: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  text: Schema.String,
+}).check(Schema.makeFilter((w) => w.to >= w.from || 'the words end at or after they start'));
+export type NoteWords = typeof NoteWords.Type;
+
+/**
+ * What a note on a line's words asks of them: a note (they stand; it says
+ * something of them), a correction (say `replace` in their place) or a
+ * removal (cut them).
+ */
+export const NoteKind = Schema.Literals(['note', 'correction', 'removal']);
+export type NoteKind = typeof NoteKind.Type;
+
 /** What the lab sends for a new note: the frame, where it was marked, and what it says. */
 export const NoteDraft = Schema.Struct({
   scene: Schema.String,
@@ -858,6 +879,16 @@ export const NoteDraft = Schema.Struct({
   range: Schema.optionalKey(NoteRange),
   /** The line of its scene's file it is about (written with the Source view held on a line). Optional and additive. */
   source: Schema.optionalKey(NoteSource),
+  /**
+   * The words of its scene's line it is about (written with words of the
+   * line selected), its still the frame where they start. Optional and
+   * additive: a note without them is about its frame.
+   */
+  words: Schema.optionalKey(NoteWords),
+  /** What it asks of its `words` (written with them): absent, a note. Optional and additive. */
+  kind: Schema.optionalKey(NoteKind),
+  /** A correction's words to say in place of its `words`. Optional and additive. */
+  replace: Schema.optionalKey(Schema.String),
   box: Schema.optionalKey(NoteBox),
   ink: Schema.optionalKey(Schema.Array(InkStroke)),
   text: Schema.String.check(Schema.isNonEmpty()),

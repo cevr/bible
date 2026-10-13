@@ -25,6 +25,14 @@ const fields = (note: Note) => {
     Option.fromNullishOr(note.source),
     (s) => ` source=${s.file}:${s.line} line=${quoted(s.text)}`,
   );
+  // The words of its scene's line it is about (first and last, from 0, as the line is said) and
+  // as they read then; what it asks of them, and a correction's words to say instead.
+  const words = Option.map(
+    Option.fromNullishOr(note.words),
+    (w) => ` words=${w.beat}:${w.from}-${w.to} said=${quoted(w.text)}`,
+  );
+  const kind = Option.map(Option.fromNullishOr(note.kind), (k) => ` kind=${k}`);
+  const replace = Option.map(Option.fromNullishOr(note.replace), (r) => ` replace=${quoted(r)}`);
   const box = Option.map(
     Option.fromNullishOr(note.box),
     (b) => ` box=${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.w)}x${Math.round(b.h)}`,
@@ -38,14 +46,17 @@ const fields = (note: Note) => {
   });
   return [
     `scene=${note.scene} T=${note.T.toFixed(2)}${local} frame=${note.frame}`,
-    ...[cue, mark, range, source, box, ink].map((field) => Option.getOrElse(field, () => '')),
+    ...[cue, mark, range, source, words, kind, replace, box, ink].map((field) =>
+      Option.getOrElse(field, () => ''),
+    ),
   ].join('');
 };
 
 /**
  * A note as of change `seq` (it was made then, or last changed then):
  * `note id=n3 seq=3 status=open scene=hand T=230.38 local=4.12 frame=6911 cue=topple:end ... still=/…/n3.png text="…"`
- * (`local=`, `range=3.20-4.00` and `source=scenes/hand.ts:118 line="…"` only on a note that has them).
+ * (`local=`, `range=3.20-4.00`, `source=scenes/hand.ts:118 line="…"` and
+ * `words=hand:4-6 said="…" kind=correction replace="…"` only on a note that has them).
  */
 export const noteLine = (at: NotesPaths, note: Note, seq: number) =>
   `note id=${note.id} seq=${seq} status=${note.status} ${fields(note)} replies=${note.thread.length} still=${at.stills}/${note.still} text=${quoted(note.text)}`;

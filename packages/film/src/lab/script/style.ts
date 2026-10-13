@@ -9,7 +9,12 @@
 // `::highlight(lab-live)`, the words a mark or a cue selected lands on
 // washed by `lab-read` and the words selected painted by `lab-picked` (the
 // Source view's own highlights, `source/style.ts`, which owns those rules);
-// a mark, a cue or a name selected takes the accent. On a laptop the reader is a
+// a mark, a cue or a name selected takes the accent. A note's words are in
+// the note's ink (`--state-note`): a note's underlined (`lab-noted`), a
+// correction's or a removal's struck (`lab-struck`), a correction's words
+// instead in a wash of it after them, and its marker the kit's badge in its
+// status's colour; the composer (the kit's, `player.css`) and the note
+// selected stand under the line as the ties do. On a laptop the reader is a
 // column beside the picture and its track, wider than the Source view's
 // (`--script-w`); on a phone the page is the screen's height, the picture and
 // its track over the reader, which scrolls in a box of its own above the
@@ -84,6 +89,26 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 @media (hover: hover) { .lab-script-tie:hover { background: var(--surface-3); } }
 .lab-script-cite { display: flex; flex-wrap: wrap; gap: 0 var(--s-3); margin: 0; padding: 0; list-style: none;
   font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-3); }
+/* A note's words, in the note's ink: a note's underlined; a correction's or a removal's struck, as it would leave them. */
+::highlight(lab-noted) { text-decoration: underline 2px var(--state-note); }
+::highlight(lab-struck) { color: var(--text-3); text-decoration: line-through 2px var(--state-note); }
+/* A correction's words to say instead, after the words struck: the line's type in a wash of the note's ink,
+   never in a text selection of the line, as a mark's chip is not. */
+.lab-script-instead { padding: 0 var(--s-1); border-radius: var(--r-1); background: color-mix(in srgb, var(--state-note) 16%, transparent);
+  color: var(--text-1); text-decoration: none; user-select: none; -webkit-user-select: none; }
+/* A note's marker: the kit's badge in its status's colour, raised to the cap height as a mark's chip; filled while its note is open. */
+.lab-script-noted { margin-inline-end: var(--s-1); text-decoration: none; vertical-align: text-top; user-select: none; -webkit-user-select: none; }
+.lab-script-noted[aria-current='true'] { background: color-mix(in srgb, currentColor 18%, transparent); }
+@media (hover: hover) { .lab-script-noted:hover { background: color-mix(in srgb, currentColor 10%, transparent); } }
+/* The composer and the note selected: boxes under the line, as the ties are; the composer is the kit's (\`.lab-compose\`). */
+.lab-script-compose { display: flex; flex-direction: column; }
+.lab-script-shown { display: flex; flex-direction: column; gap: var(--s-2); padding: 0 var(--s-3) var(--s-3);
+  border: var(--border); border-radius: var(--r-2); background: var(--surface-2); }
+.lab-script-shown-head { display: flex; align-items: center; gap: var(--s-2); margin-inline-end: calc(-1 * var(--s-2)); }
+.lab-script-shown-id { color: var(--text-1); font-weight: var(--w-2); }
+.lab-script-shown-head > .sh-btn { min-height: var(--hit); margin-inline-start: auto; }
+.lab-script-shown .lab-reply-input { min-height: var(--hit); }
+.lab-script-shown .lab-resolve, :is(.lab-script-compose, .lab-script-sheet) .lab-actions > .sh-btn { min-height: var(--hit); flex: none; }
 @media ${WIDE} {
   body.lab:has(.lab-script) { grid-template-columns: minmax(0, 1fr) var(--script-w); }
   .lab-script { grid-column: 2; grid-row: 2 / span 2; overflow: hidden; border-left: var(--border); }
