@@ -689,6 +689,32 @@ describe.each(CASES)('option %s', (_, d) => {
 
 // ─── the colours, for every direction (CRAFT 12) ─────────────────────────────
 
+/** The HSV saturation of hex colour `hex`, to the hundredth a hex can hold it to. */
+const saturation = (hex: string) => {
+  const [r, g, b] = [0, 1, 2].map((i) => Number.parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16));
+  const most = Math.max(r ?? 0, g ?? 0, b ?? 0);
+  return most === 0
+    ? 0
+    : Math.round((100 * (most - Math.min(r ?? 0, g ?? 0, b ?? 0))) / most) / 100;
+};
+
+test('every garment, robe and prop base sits in the film’s saturation band (CRAFT 12; shades may leave it)', () => {
+  const bases = [
+    ...Object.entries(hues).flatMap(([name, v]: [string, Hex | Ramp | ReadonlyArray<Hex>]) =>
+      Predicate.isString(v)
+        ? [[name, v] as const]
+        : Array.isArray(v)
+          ? v.map((h, i) => [`${name}[${i}]`, h] as const)
+          : [[name, (v as Ramp).base] as const],
+    ),
+    ...Object.entries(robes).map(([name, r]) => [`robes.${name}`, r.base] as const),
+  ];
+  const out = bases
+    .filter(([, hex]) => saturation(hex) < 0.2 || saturation(hex) > 0.35)
+    .map(([name, hex]) => `${name}: ${hex} at ${saturation(hex)}`);
+  expect(out).toEqual([]);
+});
+
 describe.each(SHADED)('the colours under %s', (_, d) => {
   const rigs = figureRigs(d);
   const boards = [rigs.accused, rigs.judge, rigs.hand].map((rig) => rig[0] as Element);

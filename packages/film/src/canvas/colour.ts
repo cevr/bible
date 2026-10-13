@@ -71,7 +71,8 @@ export interface Shading {
   /**
    * Degrees a strong colour's shade turns toward the key's complement, and
    * its light toward the key's hue. A near-neutral turns all the way, since
-   * it has no hue of its own to keep (`deep` says which colours are near-neutral).
+   * it has no hue of its own to keep (`deep` says which colours are
+   * near-neutral for a shade, `warm` and `fade` for a light).
    */
   readonly turn: number;
   /** The share of its lightness a shade loses. */
@@ -84,7 +85,14 @@ export interface Shading {
    * or under it turns all the way, at twice it by `turn` alone.
    */
   readonly deep: number;
-  /** The least chroma a light carries: no light is grey. */
+  /**
+   * The least chroma a light carries: no light is grey. A light is
+   * near-neutral by the chroma it keeps (`fade` of its base's): at half this
+   * or under it takes the key's hue, at this or over it turns by `turn`
+   * alone. So a cool paper's light leans toward the key, but only a grey's
+   * takes the key's hue, and a slate's edge does not pass through green to
+   * reach a gold.
+   */
   readonly warm: number;
   /** The share of its base's chroma a light keeps (it pales toward the light), never under `warm`. */
   readonly fade: number;
@@ -173,6 +181,14 @@ const turned = (h: number, to: number, turn: number, neutral: number) => {
 };
 
 /**
+ * How near-neutral chroma `c` is against a floor of chroma `least` (0..1): a
+ * colour at or under the floor has no hue of its own to keep once raised to
+ * it, and turns all the way; one at twice the floor or more turns by `turn`
+ * alone.
+ */
+const nearNeutral = (c: number, least: number) => clamp((2 * least - c) / least);
+
+/**
  * The ramp of `base` under the key light `key`, shaded by `k` (CRAFT rule 12:
  * shade with colour, never with black or grey):
  * - the shade is darker, its hue turned toward the key's complement, its
@@ -188,18 +204,17 @@ export const ramp = (base: Hex, key: Hex, k: Shading): Ramp => {
   const light = lchOf(key);
   if (light.C < 1) throw new Error(`key light "${key}" has no hue to shade toward`);
   const b = lchOf(base);
-  const neutral = clamp((2 * k.deep - b.C) / k.deep);
   return {
     shade: hexOfLch({
       L: b.L * (1 - k.dark),
       C: Math.max(b.C, k.deep),
-      h: turned(b.h, (light.h + 180) % 360, k.turn, neutral),
+      h: turned(b.h, (light.h + 180) % 360, k.turn, nearNeutral(b.C, k.deep)),
     }),
     base,
     light: hexOfLch({
       L: b.L + (100 - b.L) * k.lift,
       C: Math.max(b.C * k.fade, k.warm),
-      h: turned(b.h, light.h, k.turn, neutral),
+      h: turned(b.h, light.h, k.turn, nearNeutral(b.C * k.fade, k.warm / 2)),
     }),
   };
 };

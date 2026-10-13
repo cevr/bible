@@ -96,8 +96,9 @@ const slack = (C: number) => (Math.atan(1 / Math.max(C, 1)) * 180) / Math.PI;
 /**
  * Why `r` is no CRAFT 12 ramp under `key` at knobs `k`: its shade must be
  * darker, turned toward the key's complement by at least `k.turn` (or onto
- * it; a near-neutral base onto it), and at least as chromatic as its base and
- * `k.deep`; its light lighter, leaning to the key's hue the same way, and at
+ * it; a base at or under `k.deep` chroma onto it), and at least as chromatic
+ * as its base and `k.deep`; its light lighter, leaning to the key's hue the
+ * same way (onto it when it keeps half `k.warm` of chroma or less), and at
  * least `k.warm` chromatic. Chroma the gamut cannot show at that lightness
  * and hue is excused.
  */
@@ -108,23 +109,24 @@ const faults = (r: Ramp, key: Hex, k: Shading): string[] => {
   const leans = (
     to: number,
     c: { readonly L: number; readonly C: number; readonly h: number },
+    neutral: boolean,
     what: string,
   ) => {
     // Black and white have no hue to turn: the gamut shows no chroma there.
     if (c.L < 1 || c.L > 99) return;
     const from = apart(b.h, to);
-    const want = b.C <= k.deep ? 0 : Math.max(0, from - Math.min(k.turn, from));
+    const want = neutral ? 0 : Math.max(0, from - Math.min(k.turn, from));
     if (apart(c.h, to) > want + slack(c.C))
       out.push(
         `${what} sits ${apart(c.h, to).toFixed(1)}° from hue ${to.toFixed(1)}, wants ${want.toFixed(1)}°`,
       );
   };
   if (b.L > 1 && s.L >= b.L - 0.2) out.push('shade not darker');
-  leans((keyHue + 180) % 360, s, 'shade');
+  leans((keyHue + 180) % 360, s, b.C <= k.deep, 'shade');
   if (s.C < Math.min(Math.max(b.C, k.deep), most(s.L, s.h)) - 1)
     out.push(`shade chroma ${s.C.toFixed(1)} under its base's ${b.C.toFixed(1)} or ${k.deep}`);
   if (b.L < 99 && l.L <= b.L + 0.2) out.push('light not lighter');
-  leans(keyHue, l, 'light');
+  leans(keyHue, l, b.C * k.fade <= k.warm / 2, 'light');
   if (l.C < Math.min(k.warm, most(l.L, l.h)) - 1) out.push(`light grey: chroma ${l.C.toFixed(1)}`);
   return out;
 };
@@ -203,6 +205,14 @@ describe('ramp', () => {
     expect(lch(r.shade).C).toBeGreaterThan(k.deep - 1);
     expect(apart(lch(r.light).h, key)).toBeLessThan(slack(k.warm));
     expect(lch(r.light).C).toBeGreaterThan(k.warm - 1);
+  });
+
+  test('a cool paper’s light leans toward a warm key without crossing to it through green', () => {
+    // The slate of the accused's legs: past the light's floor, so it keeps its own hue near enough.
+    const k = KNOBS[0] as Shading;
+    const light = lch(ramp('#58667a', '#f3e9c8', k).light);
+    expect(apart(light.h, lch('#58667a').h)).toBeLessThan(90);
+    expect(apart(light.h, 150)).toBeGreaterThan(45);
   });
 
   test('a light with no hue has no complement to shade toward', () => {
