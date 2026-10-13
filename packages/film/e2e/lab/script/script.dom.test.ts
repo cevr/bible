@@ -11,7 +11,9 @@
 // The composer says where its note sits on the film's clock, as the beats'
 // heads do; the cues tied to the words wait while it is open; and on a phone
 // its sheet is titled with what the note asks. A note the agent replied to
-// has a reply's arrow after its marker's id.
+// has a reply's arrow after its marker's id. What a tap opens under a line
+// comes into sight, the same words picked again where the line says them
+// again included (over the long film, whose line says “thing” twice).
 
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Effect, FileSystem, Layer, Option, Schema } from 'effect';
@@ -32,6 +34,7 @@ import {
   route,
   text as said,
 } from '../../../src/lab/fixtures/harness.ts';
+import { LONG, LONG_SCENE } from '../../../src/lab/fixtures/long-film.ts';
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   attributeIs,
@@ -201,6 +204,17 @@ const LONG_BRIEF = [
   ),
 ];
 
+/** The long film's script: its one beat's brief, a line. */
+const LONG_SCRIPT = [
+  route('GET', /^\/script$/, () =>
+    json({ film: LONG, beats: [{ id: LONG_SCENE, picture: 'A box that grows.', cite: [] }] }),
+  ),
+];
+
+/** Where the long film's line says “thing”: its first time, near its start, and its last, near its end. */
+const FIRST_THING = 2;
+const LAST_THING = 41;
+
 /** An expression run in the page: the text of each range highlight `name` paints, in order. */
 const painted = (name: string) =>
   `[...(CSS.highlights.get('${name}') ?? [])].map((r) => r.toString())`;
@@ -262,6 +276,33 @@ describe('the Script', () => {
         expect(noted.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
+  );
+
+  it.live(
+    'on a phone, the same words picked where their line says them again, once the reader has scrolled back to them, bring the cues tied to them into sight',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab(LONG_SCRIPT, {
+          href: pageHref.scriptBeat(LONG, LONG_SCENE),
+          viewport: PHONE,
+        });
+        const head = `[data-scene="${LONG_SCENE}"] .lab-script-ties-head`;
+        yield* textsAre(page, `${word(LONG_SCENE, FIRST_THING)}, ${word(LONG_SCENE, LAST_THING)}`, [
+          'thing',
+          'thing',
+        ]);
+        // “thing” as the line says it last: what it opens comes into sight under the line.
+        yield* page.click(word(LONG_SCENE, LAST_THING));
+        yield* until(page, `${selects('words')} === '${LAST_THING}-${LAST_THING}'`);
+        yield* evaluates(page, inSight(head), true);
+        // The reader scrolls back to the line's start, past the box, to where “thing” is said first.
+        yield* page.evaluate(`document.querySelector('.lab-script-scroll').scrollTop = 0`);
+        yield* evaluates(page, inSight(head), false);
+        yield* page.click(word(LONG_SCENE, FIRST_THING));
+        yield* until(page, `${selects('words')} === '${FIRST_THING}-${FIRST_THING}'`);
+        yield* evaluates(page, inSight(head), true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live(

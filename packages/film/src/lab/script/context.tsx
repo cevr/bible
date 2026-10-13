@@ -67,6 +67,11 @@ export interface BeatRow {
 /** What the selection in a beat ties to: what it is, as the reader names it, the cues tied to it, and the cue selected among them. */
 interface Tied {
   readonly beat: string;
+  /**
+   * The selection in its beat, one to each thing selected whatever it reads: `cue:lift`, `mark:grace`,
+   * `words:3-4`. Two runs of the same words are two selections; what opens under each is a box of its own.
+   */
+  readonly id: string;
   /** The selection, named: `{grace}`, `“By grace”`, `cue lift`. */
   readonly what: string;
   readonly ties: ReadonlyArray<Tie>;
@@ -205,18 +210,21 @@ export const Provider = (props: ParentProps) => {
     Option.firstSomeOf<Tied>([
       Option.map(cue(), (c) => ({
         beat: c.scene,
+        id: `cue:${c.name}`,
         what: `cue ${c.name}`,
         ties: tiesOfCue(tiesIn(c.scene), c.name),
         cue: Option.some(c.name),
       })),
       Option.map(lab.mark(), (m) => ({
         beat: m.scene,
+        id: `mark:${m.name}`,
         what: `{${m.name}}`,
         ties: tiesOfMark(tiesIn(m.scene), m.name),
         cue: Option.none(),
       })),
       Option.map(lab.words(), (w) => ({
         beat: w.scene,
+        id: `words:${w.from}-${w.to}`,
         what: `“${picked()
           .map((r) => r.text)
           .join(' ')}”`,

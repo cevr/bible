@@ -338,7 +338,7 @@ const Beats = () => {
         box: '.lab-script-shown',
       })),
       Option.map(script.tied(), (t) => ({
-        key: `t:${t.beat}:${t.what}`,
+        key: `t:${t.beat}:${t.id}`,
         beat: t.beat,
         first: Option.map(Arr.head([...script.picked(), ...script.read()]), (r) => r.index),
         box: '.lab-script-ties',
