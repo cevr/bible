@@ -22,6 +22,8 @@ export const looks = {
       bold: 4,
       rive: 5,
       rivegl: 6,
+      papercut: 7,
+      papercutgl: 8,
     },
     play: 'cutpaper',
   },
