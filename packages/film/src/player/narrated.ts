@@ -5,13 +5,20 @@
 // film with no timings file yet is laid out on estimates, as the tools lay it
 // out; a file that is there but cannot be fetched or read is an error naming
 // it, never a silent fall back to estimates. A film is given with the faces
-// it draws in asked for (`narratedFilms`): what draws it waits for them.
+// it draws in asked for (`narratedFilms`): what draws it waits for them. Its
+// Rive rigs (the ones its drawings declare) are loaded before it is given, into
+// the scope its load runs in, so its first frame finds them and whoever runs
+// the load frees them; a rig that cannot load fails the film's load, and what
+// the load had acquired is released with it, as it is when the load is stopped.
 
-import { Effect, type Layer, Record as Rec, Schema } from 'effect';
+import { Effect, Layer, ManagedRuntime, Record as Rec, Schema, type Scope } from 'effect';
 import { FetchHttpClient, HttpClient } from 'effect/http';
-import { NarrationUnreadable } from '../core/errors.ts';
+import { NarrationUnreadable, type RigNameMissing, type RigUnloadable } from '../core/errors.ts';
 import { type Timings, TimingsJson } from '../core/schema.ts';
 import type { Film } from '../canvas/film.ts';
+import { loadRigs } from '../rive/load.ts';
+import type { RiveRuntime } from '../rive/runtime.ts';
+import { RiveRuntimeBrowser } from '../rive/runtime-browser.ts';
 
 /** What a film's page is built from: its takes' timings and its master's URL. */
 export interface Narrated {
@@ -60,26 +67,39 @@ export const loadNarrated = (
     return { timings, audio: at.audio };
   });
 
+/** Why a film's load failed: its narration unreadable, or a rig it declares not loadable. */
+export type FilmUnloadable = NarrationUnreadable | RigUnloadable | RigNameMissing;
+
 /**
- * The registry's loaders: each film, keyed by its folder under `films/`, its
+ * The registry's loads: each film, keyed by its folder under `films/`, its
  * module and its narration read and the faces it draws in (`faces`, the
  * app's `pictureFaces`) asked for, together, and the film built from them:
  * a page lays its film out (its bar, its scenes) while the faces load, and
  * what draws the film waits for them (`pictureFacesWait`); the narration is
- * read through `http` (the page's `fetch` client unless given).
+ * read through `http` (the page's `fetch` client unless given). The film is
+ * given once its rigs are loaded (`loadRigs`) through `rive` (the page's Rive
+ * runtimes unless given), built once with the page's first film, into the
+ * scope the load runs in: each load of a film loads its own rigs, which
+ * whoever runs it frees by closing that scope (a page's staged film keeps
+ * them for the page's life, `stageFilm`; a Project's stills while they show,
+ * `useSceneStills`). A load runs on its runner's fiber, so stopping the
+ * runner stops the load; a load stopped or failed has released what it
+ * acquired.
  */
 export const narratedFilms = <K extends string>(
   modules: Readonly<Record<K, () => Promise<FilmModule>>>,
   faces: Effect.Effect<void>,
   http: Layer.Layer<HttpClient.HttpClient> = FetchHttpClient.layer,
-): Record<K, () => Promise<Film>> =>
-  Rec.map(
-    modules,
-    (load, id) => () =>
-      Effect.runPromise(
-        Effect.all([Effect.promise(load), loadNarrated(id), faces], { concurrency: 3 }).pipe(
-          Effect.map(([m, narrated]) => m.film(narrated)),
-          Effect.provide(http),
-        ),
+  rive: Layer.Layer<RiveRuntime, never, HttpClient.HttpClient> = RiveRuntimeBrowser,
+): Record<K, Effect.Effect<Film, FilmUnloadable, Scope.Scope>> => {
+  const page = ManagedRuntime.make(Layer.provideMerge(rive, http));
+  return Rec.map(modules, (load, id) =>
+    Effect.flatMap(page.contextEffect, (services) =>
+      Effect.all([Effect.promise(load), loadNarrated(id), faces], { concurrency: 3 }).pipe(
+        Effect.map(([m, narrated]) => m.film(narrated)),
+        Effect.flatMap(loadRigs),
+        Effect.provideContext(services),
       ),
+    ),
   );
+};

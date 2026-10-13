@@ -10,7 +10,7 @@ import { PROBE, probeFilm } from './probe-film.ts';
 import { TALK, labTalkFilm } from './talk-film.ts';
 
 mountLab({
-  [PROBE]: () => Effect.runPromise(Effect.sync(probeFilm)),
-  [LONG]: () => Effect.runPromise(Effect.sync(longFilm)),
+  [PROBE]: Effect.sync(probeFilm),
+  [LONG]: Effect.sync(longFilm),
   [TALK]: labTalkFilm,
 });

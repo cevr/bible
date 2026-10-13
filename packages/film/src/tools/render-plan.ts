@@ -19,6 +19,12 @@ interface JobBase {
   readonly variant: string;
   /** Burn the captions in. */
   readonly captions: boolean;
+  /**
+   * The server whose render page draws it: a wedge's (`--level`,
+   * `serveWedge`), a look at another level than the film plays; none draws
+   * on the PreviewServer, the sources as written.
+   */
+  readonly server: Option.Option<string>;
 }
 
 /** A job drawn on pages that encode nothing: how many draw at once. */
@@ -247,6 +253,8 @@ interface RenderFlags {
   readonly share: Option.Option<boolean>;
   /** `--encoder hardware|software`. */
   readonly encoder: Option.Option<Encoder>;
+  /** The wedge server `--level` started (`serveWedge`); none for no `--level`. */
+  readonly server: Option.Option<string>;
 }
 
 /**
@@ -274,6 +282,7 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
     address: flags.scope.address,
     variant: flags.variant,
     captions: flags.captions,
+    server: flags.server,
     cut: Option.match(flags.scope.short, {
       onNone: () => Cut.Whole(),
       onSome: (short) => Cut.Short({ short }),

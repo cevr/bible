@@ -4,7 +4,8 @@
 // what the lab answers. A look is one still of the scene as its sources stand,
 // drawn by a page the lab holds warm (`tools/easel.ts`): no render. Pure.
 
-import { Array as Arr, Match, Option, Result, Schema } from 'effect';
+import { Array as Arr, Match, Option, Order, Result, Schema } from 'effect';
+import { MAIN_VARIANT, RenderVariantName } from './catalogue.ts';
 import type { Placed } from './layout.ts';
 import { framesOf } from './time.ts';
 
@@ -259,6 +260,59 @@ export const cropOf = (text: string): Result.Result<Crop, LookInvalid> => {
   if (parts.length !== 4 || parts.includes('') || !corners.every(Number.isFinite))
     return invalid(`"${text}" is no crop: four pixel numbers, x0,y0,x1,y1`);
   return Result.succeed([x0, y0, x1, y1]);
+};
+
+/**
+ * `--level look=level` flags (`film look`, `film render`) as a wedge's
+ * levels, each look once; a flag of another shape, or a look given twice, is
+ * `LookInvalid`. No flags is no wedge: the levels the film plays.
+ */
+export const levelsOf = (
+  flags: ReadonlyArray<string>,
+): Result.Result<Readonly<Record<string, string>>, LookInvalid> =>
+  Result.flatMap(
+    Result.all(
+      flags.map((flag) => {
+        const [look = '', level = '', ...rest] = flag.split('=');
+        if (look === '' || level === '' || rest.length > 0)
+          return invalid(`--level ${flag}: a look and its level, look=level`);
+        return Result.succeed([look, level] as const);
+      }),
+    ),
+    (pairs) => {
+      const looks = pairs.map(([look]) => look);
+      return Option.match(
+        Arr.findFirst(looks, (look, i) => looks.indexOf(look) !== i),
+        {
+          onNone: () => Result.succeed(Object.fromEntries(pairs)),
+          onSome: (twice) => invalid(`--level ${twice} is given twice: one level a look`),
+        },
+      );
+    },
+  );
+
+/**
+ * The variant a render writes: the one `--variant` names; else, for a wedge
+ * (`levels`), one named for its levels, look by look in order
+ * (`style-ps1`, `ground-light-style-ps1`), so a wedge never writes over the
+ * film's `main`; else `main`. A wedge `--variant` names `main`, or a level
+ * whose name would not make a variant's, is `LookInvalid`, to be named
+ * otherwise with `--variant`.
+ */
+export const wedgeVariant = (
+  variant: Option.Option<string>,
+  levels: Readonly<Record<string, string>>,
+): Result.Result<string, LookInvalid> => {
+  const pairs = Arr.sortWith(Object.entries(levels), ([look]) => look, Order.String);
+  if (pairs.length > 0 && Option.contains(variant, MAIN_VARIANT))
+    return invalid('a wedge is never main: name it otherwise with --variant, or drop --variant');
+  if (Option.isSome(variant)) return Result.succeed(variant.value);
+  if (pairs.length === 0) return Result.succeed(MAIN_VARIANT);
+  const named = pairs.map(([look, level]) => `${look}-${level}`).join('-');
+  if (Schema.is(RenderVariantName)(named)) return Result.succeed(named);
+  return invalid(
+    `--level ${named} makes no variant's name (lower case, digits, . _ -): name it with --variant`,
+  );
 };
 
 /** The longest side a look is asked at. */

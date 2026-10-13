@@ -26,15 +26,18 @@
     "plan": "alchemy plan alchemy.run.ts --stage prod",
     "deploy": "alchemy deploy alchemy.run.ts --stage prod",
     "store:keys": "bun infra/keys.ts --stage prod",
+    "seed-look": "bun art/seed-look.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@bible/film": "workspace:*",
     "@effect/platform-bun": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "three": "0.186.1"
   },
   "devDependencies": {
     "@effect/platform-node": "catalog:",
+    "@types/three": "0.186.0",
     "alchemy": "2.0.0-beta.81"
   }
 }

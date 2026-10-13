@@ -76,7 +76,7 @@ The last row is the rule that the landing is both the most saturated and the cal
   - Torn pieces (earth, clouds, the paper of the world) have a 2–4 px fibrous white rim.
   - Choose cut or torn for what the piece means, never at random.
 - **Ink.**
-  - Use warm near-black (`outline` #2b2622 is right); never pure black.
+  - Ink is warm near-black by default (`outline` #2b2622), and black is allowed: the never-black rule is for shading, not lines (owner, 2026-10-13).
   - Draw ink only for features: eyes, brows, mouths, hand creases, the letters of a prop.
   - Figures may keep a thin outline. Scenery keeps none.
   - Outer lines are heavier than inner ones.
@@ -103,7 +103,7 @@ The last row is the rule that the landing is both the most saturated and the cal
   - **No arms: floating hands.** A figure's two hands float near its body, and no arm is ever drawn, close up or wide. At rest they float beside the body at hip height and bob with the breath, so a figure is never a handless pillar and a hand never pops in (hidden until acting, a figure at rest reads as a handless stub, and every action begins with a hand growing out of nothing). A lying figure folds them on its middle.
   - **A hand travels on an arc.** On its action's named cue (the kit's `far`/`near`, `{ to, reach: f.at('<cue>'), grip }`) it swings about the shoulder along a soft arc bowed away from the head, eased, and settles on arrival; never a straight lerp and never a pop. Give a travel at least 0.6 s.
   - **The kit owns the reach.** A person's hand works within its reach (the kit's radius about the shoulder, scaled with the build); a target past it is a staging fault, not a stretch. Bring the prop or the figure closer.
-  - **One hand at every scale.** A mitten with a thumb (`@bible/film/canvas`'s `floatingHand`). Close up (`handCloseUp`), it is the open hand palm up seen from above (the palm the biggest shape, the fingers one round block, the thumb low along the side) and adds a lifeline and two soft joint lines; the figure's own hand turns palm up into that shape before a push into it (`turn`). The close-up has no forearm: the push grows the figure's own hand into it and shrinks it back onto the hand.
+  - **One hand at every scale, by the look.** In the paper-cut look that Rive draws, a hand is a plain circle of the figure's paper with no thumb (owner, 2026-10-12), and its close-up waits for the owner's design. In the Canvas kit it is a mitten with a thumb (`@bible/film/canvas`'s `floatingHand`). Close up (`handCloseUp`), it is the open hand palm up seen from above (the palm the biggest shape, the fingers one round block, the thumb low along the side) and adds a lifeline and two soft joint lines; the figure's own hand turns palm up into that shape before a push into it (`turn`). The close-up has no forearm: the push grows the figure's own hand into it and shrinks it back onto the hand.
   - **The kit owns draw order.** A far hand working in front of the body is drawn over it; at rest and anywhere else it tucks behind. `film check` warns `HandHidden` for a hand at work lost inside its own body, `HandJump` for a hand that moves more than 1.5 of its length, or changes size by a quarter, in one frame, and `HandFar` for a hand sent past its figure's reach.
   - A big insert of a hand (the "hand that takes hold") is a close-up of that figure's hand: push to it from the figure's hand, then match back. It is never a prop that floats in from nowhere. _(Hibon: "the hands do so much of the talking" #26.)_
 - **Faces, staging and emotion.**

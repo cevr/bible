@@ -10,8 +10,8 @@ import type { Beat } from '../core/schema.ts';
 import type { SceneSpec } from './film.ts';
 import { type CardType, storyboard } from './storyboard.ts';
 
-/** What a drawing gives its scene: its picture, the cues and knobs it reads, its breath and its light. */
-type SceneDrawing = Pick<SceneSpec, 'draw' | 'timeline' | 'knobs' | 'drift' | 'light'>;
+/** What a drawing gives its scene: its picture, the cues and knobs it reads, its breath, its light and its card. */
+type SceneDrawing = Pick<SceneSpec, 'draw' | 'timeline' | 'knobs' | 'drift' | 'light' | 'card'>;
 
 /** A scene's light, fixed or read from its frame. */
 type SceneLight = NonNullable<SceneSpec['light']>;

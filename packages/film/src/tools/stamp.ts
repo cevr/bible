@@ -34,6 +34,7 @@ import {
   FileSystem,
   Layer,
   Option,
+  Order,
   Path,
   Record as Rec,
   Schema,
@@ -91,6 +92,11 @@ const AddressKeyInput = Schema.fromJsonString(
     address: Schema.String,
     short: Schema.OptionFromOptionalKey(Short),
     scenes: Schema.Array(Schema.String),
+    // A wedge's levels (`--level`), by look: absent for the levels the film plays,
+    // so a render of the sources as written keeps the key it always had.
+    levels: Schema.OptionFromOptionalKey(
+      Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
+    ),
   }),
 );
 
@@ -114,11 +120,14 @@ export const importsOf = (file: string, source: string): ReadonlyArray<string> =
 
 /**
  * `stamp` for the part of the film `scope` covers: one key over its scenes'
- * keys (and its short, which cuts them), at the commit the keys were read at.
+ * keys (and its short, which cuts them), and the wedge's `levels` when it
+ * draws a look at another level than the film plays (`render --level`), at
+ * the commit the keys were read at.
  */
 export const stampOf = (
   keys: SceneKeys,
   scope: Pick<Scope, 'address' | 'short' | 'scenes'>,
+  levels: Readonly<Record<string, string>> = {},
 ): Stamp => ({
   commit: keys.commit,
   key: sha256Hex(
@@ -127,6 +136,10 @@ export const stampOf = (
       short: scope.short,
       scenes: scope.scenes.flatMap((p) =>
         Option.toArray(Option.fromUndefinedOr(keys.keys.get(p.spec.id))),
+      ),
+      levels: Option.liftPredicate(
+        Arr.sortWith(Object.entries(levels), ([look]) => look, Order.String),
+        Arr.isArrayNonEmpty,
       ),
     }),
   ),

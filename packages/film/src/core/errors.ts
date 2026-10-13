@@ -144,6 +144,31 @@ export class UntilBeforeStart extends Schema.TaggedError<UntilBeforeStart>()('Un
   }
 }
 
+/**
+ * A card's flood that would fall inside a transition, where it is never
+ * drawn (a flood is drawn over its scene's own frame alone): starting inside
+ * the scene's way in (`into`), or running past its end into the next scene's
+ * way in (`out`, `next` that scene). `at` is the flood's start or end, `edge`
+ * where it would have to start after or end by.
+ */
+export class FloodInTransition extends Schema.TaggedError<FloodInTransition>()(
+  'FloodInTransition',
+  {
+    scene: Schema.String,
+    cue: Schema.String,
+    side: Schema.Literals(['into', 'out']),
+    next: Schema.String,
+    at: Schema.Finite,
+    edge: Schema.Finite,
+  },
+) {
+  override get message() {
+    if (this.side === 'into')
+      return `scene "${this.scene}": its card's flood "${this.cue}" starts at ${this.at.toFixed(2)} s, inside the scene's ${this.edge.toFixed(2)} s way in; a flood is drawn over the scene alone: start it after ${this.edge.toFixed(2)} s, or enter on a cut`;
+    return `scene "${this.scene}": its card's flood "${this.cue}" runs to ${this.at.toFixed(2)} s, past the scene's end into ${this.next}'s way in; a flood is drawn over the scene alone: end it by ${this.edge.toFixed(2)} s`;
+  }
+}
+
 /** Two scenes of a film share an id. */
 export class DuplicateScene extends Schema.TaggedError<DuplicateScene>()('DuplicateScene', {
   scene: Schema.String,
@@ -346,5 +371,43 @@ export class TalkUnreadable extends Schema.TaggedError<TalkUnreadable>()('TalkUn
       onSome: (url) => ` at ${url}`,
     });
     return `talk "${this.film}"${at} cannot be read: ${this.reason}`;
+  }
+}
+
+/**
+ * A rig a film's drawing declares (`src/rive`) could not be loaded: Rive's
+ * runtime would not start, or its built file could not be read or parsed.
+ */
+export class RigUnloadable extends Schema.TaggedError<RigUnloadable>()('RigUnloadable', {
+  /** The rig, by its declared key. */
+  rig: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `rig ${this.rig} cannot be loaded: ${this.reason}`;
+  }
+}
+
+/**
+ * A rig's declaration names an artboard, a timeline, a view-model number or
+ * a node its built file lacks, and what the file has of that kind (none
+ * listed for a node: the runtime cannot list them).
+ */
+export class RigNameMissing extends Schema.TaggedError<RigNameMissing>()('RigNameMissing', {
+  rig: Schema.String,
+  kind: Schema.Literals(['artboard', 'timeline', 'view-model number', 'node']),
+  name: Schema.String,
+  /** The names of that kind the file has, in its order. */
+  has: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    const said = `rig ${this.rig} has no ${this.kind} "${this.name}"`;
+    return Option.match(
+      Option.liftPredicate(this.has, (has) => has.length > 0),
+      {
+        onNone: () => said,
+        onSome: (has) => `${said}; it has ${has.join(', ')}`,
+      },
+    );
   }
 }

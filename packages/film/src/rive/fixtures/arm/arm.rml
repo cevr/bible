@@ -1,0 +1,62 @@
+<Rive version="1" kind="fragment">
+    <Artboard viewModelId="1:1" viewModelInstanceId="1:3" width="200" height="200" clip="false" name="Arm" id="1:50">
+        <Node x="60" y="160" name="target" id="1:10">
+            <DataBindContext sourcePathIds="1:1-1:2" propertyKey="14"/>
+        </Node>
+        <RootBone x="40" y="40" rotation="1.570796" length="60" name="upper" id="1:20">
+            <Shape x="30" y="0" name="upperPiece">
+                <Rectangle width="60" height="16" originX="0.5" originY="0.5" name="Path" id="1:60"/>
+                <Fill fillRule="clockwise" name="Paper">
+                    <SolidColor colorValue="FF6F8FAF"/>
+                    <Feather strength="4" offsetX="1" offsetY="2" name="Soft"/>
+                </Fill>
+            </Shape>
+            <Bone rotation="0" length="60" name="lower" id="1:21">
+                <Shape x="30" y="0" name="lowerPiece">
+                    <Rectangle width="60" height="12" originX="0.5" originY="0.5" name="Path" id="1:61"/>
+                    <Fill name="Paper">
+                        <SolidColor colorValue="FFAF6F4F"/>
+                    </Fill>
+                </Shape>
+                <Node x="60" y="0" name="face" id="1:22">
+                    <Shape name="faceDisc">
+                        <Ellipse width="24" height="24" originX="0.5" originY="0.5" name="Path" id="1:62"/>
+                        <Fill name="Paper">
+                            <SolidColor colorValue="FFE0C090"/>
+                        </Fill>
+                    </Shape>
+                </Node>
+                <IKConstraint targetId="1:10" parentBoneCount="1" strength="0.6" name="Reach" id="1:23">
+                    <DataBindContext sourcePathIds="1:1-1:4" propertyKey="172"/>
+                </IKConstraint>
+            </Bone>
+        </RootBone>
+        <LinearAnimation fps="60" duration="1" name="idle" id="1:30"/>
+        <LinearAnimation fps="60" duration="120" loopValue="oneShot" name="reach" id="1:31">
+            <KeyedObject objectId="1:10">
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="60" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="170" frame="120" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation fps="60" duration="60" loopValue="loop" name="boil" id="1:32">
+            <KeyedObject objectId="1:60">
+                <KeyedProperty property="width">
+                    <KeyFrameDouble value="60" frame="0" interpolationType="hold"/>
+                    <KeyFrameDouble value="60.4" frame="15" interpolationType="hold"/>
+                    <KeyFrameDouble value="59.8" frame="30" interpolationType="hold"/>
+                    <KeyFrameDouble value="60.2" frame="45" interpolationType="hold"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+    <ViewModel defaultInstanceId="1:3" name="Arm" id="1:1">
+        <ViewModelPropertyNumber name="lift" id="1:2"/>
+        <ViewModelPropertyNumber name="reach" id="1:4"/>
+        <ViewModelInstance exports="true" name="Default" id="1:3">
+            <ViewModelInstanceNumber propertyValue="160" viewModelPropertyId="1:2"/>
+            <ViewModelInstanceNumber propertyValue="0.6" viewModelPropertyId="1:4"/>
+        </ViewModelInstance>
+    </ViewModel>
+</Rive>

@@ -483,10 +483,11 @@
     {
       // The engine's thrown Errors: a programming mistake (a film with no
       // scenes, a missing cue, knob or mark, no 2d context, a colour that is
-      // not hex) that must stop the render. They live in the engine, never in
-      // a film; the probe test throws inside a draw to prove the probe comes
-      // off.
+      // not hex, a verse phrase that is not in its verse) that must stop the
+      // render. They live in the engine, never in a film; the probe test
+      // throws inside a draw to prove the probe comes off.
       "files": [
+        "**/packages/film/src/canvas/card.ts",
         "**/packages/film/src/canvas/colour.ts",
         "**/packages/film/src/canvas/film.ts",
         "**/packages/film/src/canvas/paper.ts",
@@ -704,7 +705,9 @@
                 "group": [
                   "**/*-browser.ts",
                   "!**/browser/host-browser.ts",
-                  "!**/browser/storage-browser.ts"
+                  "!**/browser/storage-browser.ts",
+                  // A film's page load (player/narrated.ts) defaults to the page's Rive runtimes, as it defaults to the page's fetch client.
+                  "!**/rive/runtime-browser.ts"
                 ],
                 "message": "a page reaches the host through its services: only a page's mount builds the host (`BrowserHost`, browser/host-browser.ts), and the stores are storage-browser.ts's."
               }

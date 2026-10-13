@@ -363,7 +363,7 @@ describe('a talk through the tools', () => {
       Effect.gen(function* () {
         const loaded = yield* (yield* FilmRepo).load('why');
         const { scope } = Result.getOrThrow(laidOut(loaded, { _tag: 'Film' }));
-        const found = yield* layoutLeg(loaded, scope, 2);
+        const found = yield* layoutLeg(loaded, scope, 2, Option.none());
         expect(found).toContainEqual(
           expect.objectContaining({
             _tag: 'ShortUnsafeText',
@@ -396,7 +396,7 @@ describe('a talk through the tools', () => {
       const placed = yield* placeFilm(loaded);
       const need = Option.getOrThrow(Arr.findFirst(placed, (p) => p.spec.id === 'need'));
       const { scope } = Result.getOrThrow(laidOut(loaded, sceneAddress('need')));
-      const found = yield* layoutLeg(loaded, scope, 2);
+      const found = yield* layoutLeg(loaded, scope, 2, Option.none());
       const unsafe = found.filter((f) => f._tag === 'ShortUnsafeText');
       expect(unsafe.length).toBeGreaterThan(0);
       for (const f of unsafe) {
@@ -413,7 +413,7 @@ describe('a talk through the tools', () => {
       Effect.gen(function* () {
         const loaded = yield* (yield* FilmRepo).load('why');
         const { scope } = Result.getOrThrow(laidOut(loaded, { _tag: 'Film' }));
-        const drawn = yield* drawLeg(loaded, scope);
+        const drawn = yield* drawLeg(loaded, scope, new Map());
         expect(drawn.filter((f) => f._tag === 'DrawThrew')).toEqual([]);
         const placed = yield* placeFilm(loaded);
         const length = (yield* staticLeg(loaded, placed)).filter((f) => f._tag === 'ShortLength');

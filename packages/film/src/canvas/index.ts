@@ -1,6 +1,7 @@
 // The Canvas 2D draw kit a film draws with (ink, cut paper, paper light, type,
 // floating hands (the one mitten, no arm), a multiplane camera, storyboard
-// cards, credits) and the compositor that turns scenes into a film. A film's
+// cards, full-screen cards and the verse a card follows, a WebGL 2 canvas for
+// a look drawn in 3D, credits) and the compositor that turns scenes into a film. A film's
 // people live in its own kit. Only what films, their kits and their tests use
 // is here; the engine's own parts (the paper's sheets, the probe's sink, the
 // hand's geometry) are exported from their files for the framework and its
@@ -31,7 +32,7 @@ export { type Hex, clearOf, mix } from './colour.ts';
 export { glow, sky, wash } from './glow.ts';
 export { type Posed, reset } from './scratch.ts';
 export { type Author, type Credit, creditRoll } from './credits.ts';
-export { type WriteOptions, measure, write } from './type.ts';
+export { type TextStyle, type WriteOptions, measure, write } from './type.ts';
 export { probeFace, probePlate, probesFaces, probesHands, unprobed } from './probe.ts';
 export {
   CLOSE_LINE,
@@ -59,5 +60,16 @@ export {
   UNMOVED,
 } from './camera.ts';
 export { scenesOf } from './scenes.ts';
-export { type Film, type Frame, type Light, type SceneSpec, createFilm, drawing } from './film.ts';
+export { type Frame, type Light, type SceneSpec, createFilm, drawing } from './film.ts';
 export { shortPages } from './short.ts';
+export {
+  type Box,
+  type CardStyle,
+  type CardWord,
+  type Verse,
+  type VerseStyle,
+  floodBox,
+  fullCard,
+  verse,
+} from './card.ts';
+export { glCanvas } from './gl.ts';

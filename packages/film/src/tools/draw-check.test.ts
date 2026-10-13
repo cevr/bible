@@ -8,6 +8,7 @@ import { type SceneSpec, createFilm } from '../canvas/film.ts';
 import { stroke } from '../canvas/ink.ts';
 import { probeFace } from '../canvas/probe.ts';
 import { standInDom } from '../canvas/fixtures/stand-in.ts';
+import { HANGING_FACE, armFilm, armPose, armRig, armScene } from '../canvas/fixtures/arm.ts';
 import { drawFindings, impureAt, momentCounts } from './draw-check.ts';
 
 /** A film of the given scenes, four seconds each. */
@@ -119,6 +120,57 @@ describe('the draw leg', () => {
       const counts = momentCounts(build());
       expect(counts.moments).toBeGreaterThanOrEqual(2 * 3);
       expect(counts.pure).toBeGreaterThanOrEqual(2);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect('poses a declared Rive rig through Bun, its face at its face node', () =>
+    Effect.gen(function* () {
+      // The arm hangs (its reach off), its face at the lower bone's tip; a rope is drawn across it after.
+      const struck: SceneSpec = {
+        id: 'struck',
+        min: 4,
+        rigs: { arm: armRig('webgl2') },
+        draw: (f) => {
+          f.ctx.save();
+          f.ctx.translate(960, 540);
+          f.rive('arm', { timelines: [], numbers: { reach: 0 } });
+          f.ctx.restore();
+          const [x, y] = [960 + HANGING_FACE[0], 540 + HANGING_FACE[1]];
+          stroke(
+            f.ctx,
+            [
+              [x - 60, y],
+              [x + 60, y],
+            ],
+            { color: '#000000', width: 6 },
+            f.hand('rope'),
+          );
+        },
+      };
+      const found = yield* drawFindings(() => armFilm([armScene('reaching', 'webgl2'), struck]));
+      // The reaching arm, posed for real at every moment, is pure and has nothing over its face.
+      expect(found.filter((f) => f.scene === 'reaching')).toEqual([]);
+      const faces = found.filter((f) => f._tag === 'InkOverFace');
+      expect(faces.map((f) => f.scene)).toEqual(['struck']);
+      expect(faces[0]?.x).toBeCloseTo(960 + HANGING_FACE[0], 3);
+      expect(faces[0]?.y).toBeCloseTo(540 + HANGING_FACE[1], 3);
+      expect(faces[0]?.size).toBe(24);
+      expect(found.filter((f) => f._tag === 'FrameImpure')).toEqual([]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect('fails, naming it, a rig the film cannot load: never a silent fallback', () =>
+    Effect.gen(function* () {
+      const arm = armRig('webgl2');
+      const lost = { ...arm, source: { ...arm.source, artboard: 'Leg' } };
+      const error = yield* Effect.flip(
+        drawFindings(() =>
+          armFilm([
+            { id: 'lost', min: 4, rigs: { arm: lost }, draw: (f) => f.rive('arm', armPose(f.t)) },
+          ]),
+        ),
+      );
+      expect(error.message).toBe('rig fixtures/arm/webgl2 has no artboard "Leg"; it has Arm');
     }).pipe(Effect.scoped),
   );
 });

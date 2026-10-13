@@ -359,6 +359,58 @@ const bunBundle =
       } satisfies Bundled;
     });
 
+/**
+ * Every package a build imports left out of it, pinned to the file it
+ * resolves to from the module importing it: the output imports each by its
+ * absolute path, so wherever the output is put it runs the very modules the
+ * source would (the engine and three this process runs), not whatever a
+ * folder near the output resolves. A runtime's own (`node:`, `bun:`) stays
+ * as written.
+ */
+const pinPackages = (path: Path.Path): BunPlugin => ({
+  name: 'film-pin-packages',
+  setup(build) {
+    build.onResolve({ filter: /^[^./]/ }, (args) => {
+      if (args.path.includes(':')) return { path: args.path, external: true };
+      return { path: Bun.resolveSync(args.path, path.dirname(args.importer)), external: true };
+    });
+  },
+});
+
+/**
+ * The module `file` built for this process (Bun's `bun` target), with each
+ * of `swaps` read as its text there, and every package it imports pinned to
+ * the file the source resolves it to (`pinPackages`), so the output runs the
+ * same engine and three as this process wherever it is put: the output, or
+ * why not. The files it imports by path (`with { type: 'file' }`, a rig's
+ * `.riv`) are named under `into`, the absolute directory the output is
+ * written to, so each path reads from any directory, as the module as written
+ * gives it. A build that reads none of `swaps` cannot draw them changed, and
+ * is refused.
+ */
+export const bunModule = (
+  path: Path.Path,
+  file: string,
+  swaps: ReadonlyMap<string, string>,
+  into: string,
+) =>
+  Effect.gen(function* () {
+    const read = new Set<string>();
+    const built = yield* bunBuild(path, {
+      entrypoints: [file],
+      target: 'bun',
+      publicPath: `${into}${path.sep}`,
+      plugins: [pinPackages(path), swapPlugin(swaps, read)],
+    });
+    const unread = [...swaps.keys()].filter((swapped) => !read.has(swapped));
+    if (unread.length > 0)
+      return yield* Effect.fail<BundleFailed>({
+        reason: `the build read none of ${unread.join(', ')}, so it cannot draw them changed`,
+        files: unread,
+      });
+    return built.outputs;
+  });
+
 /** A file as the test bundler answers it: a page's HTML, or a module. */
 const typeOf = (file: string): string => {
   if (file.endsWith('.html')) return 'text/html;charset=utf-8';
