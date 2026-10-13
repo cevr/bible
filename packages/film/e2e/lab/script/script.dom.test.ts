@@ -48,7 +48,11 @@ import { labHandler } from '../../../src/tools/lab.ts';
 import { NOTES_LAB, labInMemory, notesCli, text } from '../../../src/tools/testing.ts';
 import { scriptAt } from '../studio-states.ts';
 
-/** Long enough to open the Script, select, write and save, and read the notes back: twice a wait's own bound. */
+/**
+ * Long enough for a case that opens the Script twice, or opens it, selects, writes, saves and
+ * reads the notes back: twice a wait's own bound, so a wait that fails says what it waited for
+ * before the case runs out of time.
+ */
 const SLOW = 2 * WAIT_MS;
 
 const { placed, fps: FPS } = probeFilm();
@@ -257,10 +261,11 @@ describe('the Script', () => {
         yield* evaluates(noted, inSight(`${shown} .lab-script-shown-head`), true);
         expect(noted.errors).toEqual([]);
       }).pipe(Effect.scoped),
+    SLOW,
   );
 
   it.live(
-    'on a phone, a long brief shows three lines until More opens it, and opens as a name it hides is picked; on a laptop it shows whole; a beat it names is a link to that beat',
+    'on a phone, a long brief shows three lines until More opens it, and opens as a name it hides is picked; a beat it names is a link to that beat',
     () =>
       Effect.gen(function* () {
         const more = '[data-scene="one"] .lab-script-more';
@@ -299,24 +304,29 @@ describe('the Script', () => {
         });
         yield* attributeIs(picked.page, more, 'aria-expanded', 'true');
         expect(picked.errors).toEqual([]);
-        // On a laptop it shows whole, and no More shows.
-        const desk = yield* openLab(LONG_BRIEF, {
-          href: pageHref.scriptBeat(PROBE, 'one'),
-          viewport: DESK,
-        });
-        yield* waitFor(desk.page, '[data-scene="one"] .lab-script-picture');
-        yield* evaluates(
-          desk.page,
-          `((p) => p.scrollHeight <= p.clientHeight + 1)(document.querySelector('[data-scene="one"] .lab-script-picture'))`,
-          true,
-        );
-        yield* evaluates(
-          desk.page,
-          `[...document.querySelectorAll('.lab-script-more')].some((b) => b.checkVisibility())`,
-          false,
-        );
-        expect(desk.errors).toEqual([]);
       }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live('on a laptop, a long brief shows whole, and no More shows', () =>
+    Effect.gen(function* () {
+      const { page, errors } = yield* openLab(LONG_BRIEF, {
+        href: pageHref.scriptBeat(PROBE, 'one'),
+        viewport: DESK,
+      });
+      yield* waitFor(page, '[data-scene="one"] .lab-script-picture');
+      yield* evaluates(
+        page,
+        `((p) => p.scrollHeight <= p.clientHeight + 1)(document.querySelector('[data-scene="one"] .lab-script-picture'))`,
+        true,
+      );
+      yield* evaluates(
+        page,
+        `[...document.querySelectorAll('.lab-script-more')].some((b) => b.checkVisibility())`,
+        false,
+      );
+      expect(errors).toEqual([]);
+    }).pipe(Effect.scoped),
   );
 
   it.live(
