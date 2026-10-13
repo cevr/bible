@@ -1,13 +1,15 @@
-# Joshua White, three true-education playlists: per-talk notes
+# Joshua White, six true-education playlists: per-talk notes
 
 Joshua White, A Thinking Generation Ministries (early-childhood education researcher, "11 years in this work" as of 2023). Written 2026-10-13. These are third-party talks: everything below is his material (or another speaker's), reported as data in our own summary words. Nothing here is the owner's wording.
 
 - **Raw transcripts** (git-ignored, never committed): `tmp/content-series/education/transcripts/white/<playlist>/NN-<slug>.txt` in the warm source, plus `<videoid>.json` with per-caption timestamps and `index.tsv`. Each `.txt` groups the auto-captions into ~30 s lines stamped `[h:mm:ss]`.
-- **Tool.** `ytt --json` fetched all 31 videos; the `yt-dlp` fallback was not needed.
-- **EGW check.** Every quotation's status is in `verification.md` (461 White rows: 431 VERIFIED, 19 DIFFERS, 11 NOT FOUND). Statuses are marked inline here. DIFFERS and NOT FOUND items are flagged where they occur.
+- **Tool.** `ytt --json` fetched all 49 videos (31 in A–C, 18 in D–F); the `yt-dlp` fallback was not needed. Playlists D–F were added later on 2026-10-13.
+- **EGW check.** Every quotation's status is in `verification.md` (721 White rows: 685 VERIFIED, 27 DIFFERS, 9 NOT FOUND; A–C 460, D–F 261). Statuses are marked inline here. DIFFERS and NOT FOUND items are flagged where they occur.
 - **Conventions.** Times are `h:mm:ss` into the video (about ±30 s, from the line stamps). "Needs a primary source" means he names nothing checkable. Captions mishear names; the notes use the corrected forms (for example "Djokovic"/"Jacob" = Jochebed, "mileination" = myelination, "Leonard Saxs" = Leonard Sax, "Shiers" = Shyers, "YouTube Pine" = probably Uchee Pines). "SDP" is S. N. Haskell, _The Story of Daniel the Prophet_ (1901), the pioneer source of the series' Daniel booklet.
 
-## The three playlists
+## The six playlists
+
+D, E and F follow C below, each with its own talk table; their dedupe against A–C is stated per talk ("delta to …").
 
 Resolved with `yt-dlp --flat-playlist` on 2026-10-13. A and B resolve with the short ids as given.
 
@@ -57,7 +59,9 @@ Resolved with `yt-dlp --flat-playlist` on 2026-10-13. A and B resolve with the s
 | C14 | QqRhQfMn1Xw | 1:07:07 | A Safe Choice                         | Joshua White                                                                        |
 | C15 | WH3QrmDHQlg | 23:22   | Final Charge                          | Joshua White                                                                        |
 
-**Speakers.** 29 of the 31 videos are Joshua White. Jennifer White gives none of them: speakers were identified from each opening and from YouTube's mid-video frames, where the Zoom tile labels show the camera account, not the speaker. "Mothers in Israel" (C8), the likeliest candidate, is Joshua White on camera throughout. The two other speakers (C3, C7) are kept apart at the end of this file and in their own sub-table in `verification.md`.
+**D–F in one line.** D (3 talks, Autumn Leaves NZ, January 2018), E (8 unique talks, 2021–2023, A Thinking Generation Ministries' own playlist) and F (7 talks, Uchee Pines Institute, 2016 and 2018) are all Joshua White. Full talks: D2, D3, E1, F5; the rest are deltas.
+
+**Speakers.** 29 of the 31 videos in A–C are Joshua White. Jennifer White gives none of them: speakers were identified from each opening and from YouTube's mid-video frames, where the Zoom tile labels show the camera account, not the speaker. "Mothers in Israel" (C8), the likeliest candidate, is Joshua White on camera throughout. The two other speakers (C3, C7) are kept apart at the end of this file and in their own sub-table in `verification.md`.
 
 **Dedupe.** Three talks repeat across B and C: Daniel Chapter Zero (B2 full, C10 delta), Not Recognizing Jesus (C13 full, B4 delta) and Called to Leave / Time to Leave (B8 full, C12 delta). Inside the playlists, talks overlap by theme:
 
@@ -1886,9 +1890,9 @@ Transcript: `trinidad/01-principles.txt` (ytt --json)
 
 - 0:13:03 "family… greatest of all educational agencies", CT 107.1, VERIFIED. 0:14:12 "never graduated… higher school", CT 51.1, VERIFIED. 0:15:27 "Now as never before… true science of education", 1MCP 53.2, VERIFIED.
 - 0:26:32 "youth… not more religiously inclined", 2T 701.2, VERIFIED (context wider). 0:28:55 Ed 30.2, VERIFIED. 0:30:40 "in the water… learn to swim", Ed 268.3, VERIFIED. 0:37:17 Ed 17.2, VERIFIED.
-- 0:39:30 PP 595.2 and Ed 15.2, VERIFIED. 0:42:50 "very foundation of true education is in the fear of the Lord", NOT FOUND.
+- 0:39:30 PP 595.2 and Ed 15.2, VERIFIED. 0:42:50 "very foundation of true education is in the fear of the Lord", DIFFERS (a compression of 13LtMs Ms 25, 1898 par. 23; CT 505.2 is the citable form; found in the E merge).
 - 0:46:46 MH 401.4; CG 41.1; 0:47:51 CG 493.5 ("true education is religion"); 0:49:06 Ed 13.1, Ed 195.1; 0:51:20 CG 103.4; 0:54:09 AH 508.3; 0:57:32 FE 418.3; 0:58:04 CT 307.3; 0:58:39 TDG 203.5, Ed 218.1; 0:59:11 CT 307.1; 0:59:44 CT 146.2; 1:00:24 CT 275.3; 1:12:57 GCDB 6 Mar 1899 par. 36; 1:15:49 Ed 196.2. All VERIFIED.
-- 1:02:10 Eden "God himself visited… way of immortality… tree of life… divine system of teaching", NOT FOUND (nearest Ed 21.1). 1:17:39 "highest attainments… doing others good", NOT FOUND.
+- 1:02:10 Eden "God himself visited… way of immortality… tree of life… divine system of teaching": not EGW; Sutherland, _Living Fountains or Broken Cisterns_ (he names it in D1). 1:17:39 "highest attainments… doing others good": CT 505.3, VERIFIED (found in the D merge).
 - 1:20:57 CT 387.4; 1:23:09 MH 402.2, CG 296.3; 1:24:21 MH 395.1; 1:24:54 CT 545.3; 1:25:26 Ed 269.2; 1:28:18 CT 549.1; 1:28:52 CE 223.1. All VERIFIED.
 
 **Other sources as spoken**
@@ -2349,7 +2353,7 @@ Transcript: `trinidad/08-mothers-in-israel.txt` (ytt --json)
 - 0:54:00 "not called you to neglect your home". **AH 246.1, VERIFIED**. "Mother who trains her children for Christ". **PK 219.1, VERIFIED**.
 - 0:54:33 Church burdens and "the best church work". **16LtMs Ms 75 1901 par. 4, DIFFERS** (reworded).
 - 0:55:05 "king upon his throne … angel could not ask". **AH 231.3, VERIFIED**.
-- 0:56:11 "beside David Livingstone, Hudson Taylor". **NOT FOUND** in EGW.
+- 0:56:11 "beside David Livingstone, Hudson Taylor". **DIFFERS**: an embellishment of AH 235.1 ("the recording angel writes her name as one of the greatest missionaries in the world"), placed in the F merge.
 - 1:00:45 "She made me all I am". **CG 564.1, VERIFIED**.
 
 **Other sources as spoken**
@@ -2809,7 +2813,7 @@ Transcript: `trinidad/13-not-recognizing-jesus.txt` (ytt --json)
 | 0:34:49 | "so far separated from God in heart and life…"                                         | PK 709.2                           | VERIFIED  |
 | 0:35:22 | "deliverance from the Romans"                                                          | DA 29.4                            | VERIFIED  |
 | 0:51:45 | "son of Zacharias… the teachers of theology"                                           | DA 101.3                           | VERIFIED  |
-| 0:52:55 | "magnifying of things small… Heaven-appointed sources"                                 | MH 400.1                           | VERIFIED  |
+| 0:52:55 | "magnifying of things small… Heaven-appointed sources"                                 | Ed 77.2 (not MH 400.1)             | VERIFIED  |
 | 0:56:12 | "O how Christ longed… cast in such a mold"                                             | 1SM 407.3 = RH Feb 18, 1890 par. 5 | VERIFIED  |
 
 **Other sources as spoken**
@@ -3022,6 +3026,1313 @@ Transcript: `trinidad/15-final-charge.txt` (ytt --json)
 - **No. 10 When should kids start school?** Adds the "information versus transformation" turn: the years before 8–10 are character years, not waiting years.
 - **No. 77 Taught of the Lord (finale).** Adds Mal 4:6 (CLI-printed); AH 32.2 = 4T 304 ("The greatest evidence of the power of Christianity that can be presented to the world is a well-ordered, well-disciplined family").
 - **NEW (E): The Job test.** Promise: Satan said no one serves God for nothing; one man's life answered him, and a family's still can. KJV: Job 1:8–11; 2:3; Mal 4:6; 1 Cor 4:9. EGW: Ed 154.3–155.1; AH 32.2.
+
+## D · True Education 3 Part Series (Autumn Leaves NZ camp meeting, January 2018)
+
+https://www.youtube.com/playlist?list=PLLa98Guf3JC1v-NznPBufJXkrEsfzdN2l. Folder `true-education-3-part/`. Channel "Autumn Leaves NZ". Upload dates from `yt-dlp --print "%(upload_date)s"` (2026-10-13).
+
+A three-part series given at one camp meeting: D1 on Friday afternoon ("as Sabbath draws near"), D2 on Sabbath morning, D3 on Sabbath afternoon. He calls them "three messages that are separate and yet … go together". This is the earliest dated recording of his material in the four playlists. Playlist B is a later Autumn Leaves visit (B6 was uploaded 2026-01-23), so D1 is the 2018 form of the talk B6 and C1 repeat.
+
+| #   | Id          | Length | Uploaded   | Title                                           | Speaker      |
+| --- | ----------- | ------ | ---------- | ----------------------------------------------- | ------------ |
+| D1  | BxXUUqt7hNw | 54:15  | 2018-01-19 | True Education P1 - A Foundation                | Joshua White |
+| D2  | a8qrE2KB1Co | 41:32  | 2018-01-19 | True Education P2 - In Pity For Our Weakness    | Joshua White |
+| D3  | KeU3-w8iFw4 | 59:18  | 2018-01-20 | True Education P3 - Respectable Conventionality | Joshua White |
+
+**Speakers.** Joshua White in all three. Each opens with his own prayer ("speak through me"), and he speaks of "Michigan where I live" (D2) and of his own Africa work (D1). D3 mentions "Dr. Ramsey's appeal this morning", another camp-meeting speaker, who is not recorded here.
+
+**Dedupe.** D1 is a delta to B6 (and C1, A1): the same three pillars and the same evidence chain. D2 is new as a whole talk; only its Eden-to-Sinai reading (Ed 33–35) overlaps B1. D3 is new and is given in full. The agent for playlist F writes its two "Respectable Conventionality" talks as deltas against D3.
+
+**EGW check.** 95 rows: 94 VERIFIED, 1 DIFFERS, 0 NOT FOUND (`verification.md`). Two of D's hits correct NOT FOUND rows in batch C1 (see the end of `verification.md`).
+
+---
+
+### D1 · True Education P1 - A Foundation (BxXUUqt7hNw) · 54:15 · speaker: Joshua White (delta to B6)
+
+Transcript: `true-education-3-part/01-a-foundation.txt` (ytt --json)
+
+About 75% of D1 repeats B6/C1. It has the same three goals (education = redemption, Ed 30.2; harmonious development, Ed 13.1; service, Ed 13.1 / MH 395.1), the same house-without-a-foundation, quartet and three-trees images, and the same evidence chain: Ratey's "unparalleled stimulus", the activity-benefits list, "nobody asks if history class makes money", the three kinds of physical training, the garden test-score studies, _M. vaccae_ and "dirt is the new Prozac", the Jefferson line, Sutherland's Eden passage, Eden "his schoolroom" (GCDB 1899), "A, B and C" (SpM 134.4), CT 545.3, CT 547.2, CT 549.1 and GW92 279.2. It has no live leaning demo, no Jesuit/Painter passage and no Gaebelein.
+
+**New in BxXUUqt7hNw**
+
+- **0:00:00 Japan 1938 as the frame**, opening and closing the talk: Mizuno's "If you follow your plan, you have no reason to worry. If you do not follow your plan, you have no reason to exist." He widens it at once to "a plan of education, a plan of health, a plan of evangelism … or we may as well be just another denomination". Denominational lore; needs a primary source (B6 and C1 close with it).
+- **0:12:02 A run of four FE/CG definitions**, all VERIFIED, read back to back without refs. "True education is religion" (CG 493.5); "the power and soul of true education is a knowledge of God, and of Jesus Christ whom He hath sent" (FE 392.1); "the science of true education is the truth … so deeply impressed … that it cannot be obliterated" (FE 542.1); "True education is the inculcation of those ideas … renew the mind and transform the character … fortify the mind against the deceptive whisperings … fit the learned to become a co-worker with Christ" (FE 543.2). This is the cleanest one-minute definition block in his material for no. 1 and no. 4.
+- **0:13:05** SpM 245.4: "a place where our children can study the Bible, which is the foundation of all true education". He adds "the home or the school, either one". **Context:** the source is an appeal to finish building a schoolhouse (Ms 100, 1902, the same manuscript flagged in `verification.md`).
+- **0:14:37** COL 330.3: "the preparation of the physical, mental, and moral powers for the performance of every duty … training of body, mind, and soul for divine service". He notes the pair said twice. Then CT 64.1.
+- **0:15:08 "Combined" = blended (rice and beans).** CG 295.2 / CT 149.2, "practical and literary training should be combined". He reads it as teaching academics _through_ gardening and trades, which he says he trains teachers to do "at the school I've worked with in Africa". **Context:** CT 149.2 is about children sharing domestic duties alongside their studies. The blended-lesson method is his application, not the text.
+- **0:16:43 Hippocampus study** (higher-fit children, larger hippocampal volumes, better relational memory). This is Chaddock et al. 2010 (_Brain Research_) by its wording; a lead. Ed 207.2 ("the whole body is designed for action") and FE 146.3 (no studies that crowd out "muscular exertion in the open air"; "stated hours … manual labor").
+- **0:20:24** AH 508.3–508.4 (Avondale: "the time of study must be divided"; students cleared land and built houses). He names Australia correctly.
+- **0:32:21 Country living** (see Cautions): "This is one of the incredible benefits of country living. We have been counseled to move our families to the country." Benefits: awareness of the world, the power of attention, responsibility, cause-to-effect reasoning, industry, economy, diligence. "There is science to back up every one of them" (none named). "Country living is the powerful learning environment that God has designed for our children."
+- **0:33:24** Ed 196.2 (physiology and hygiene "begun by the mother in the home"); he wants children trained to treat sickness, as "medical missionaries".
+- **0:34:27 CE 51.1** read in pieces. Teachers need "no less of piety" and "a thorough knowledge of the sciences". "He is a Christian who aims to reach the highest attainments for the purpose of doing others good." "Education balanced by a solid religious experience fits the child of God to do his appointed work steadily, firmly, understandingly." The middle sentence was NOT FOUND in batch C1; it is CE 51.1 / CT 505.3.
+- **0:35:58** CE 24.1 (character "fitted … to discharge the duties of the present life, and to enter at last upon the future, immortal life"); CG 296.3; CG 293.3 with "go to Education page 267" for the three ways to know God's will (Ed 267.3, page right; C14 develops it); CG 161.1; Ed 225.3.
+- **0:42:16** FE 541.3: "The necessity of establishing Christian schools is urged upon me very strongly … a wrong education often starts the mind on the road to infidelity." VERIFIED, with two middle sentences dropped.
+- **0:43:18–0:51:41 Kibidula, Tanzania.** He opens with UN figures: primary attendance 92–96%, secondary 32% of boys and 24% of girls, 71% of the population under 30, one in six girls aged 15–19 pregnant each year, 5–8,000 girls expelled yearly for pregnancy, about a million child domestic workers. The Kibidula mission with Reach Switzerland (2004) runs a farm school for primary failures and dropouts: three units, about 60 students, each with a garden, orchard and field. They press their own oil and live with their teachers as "a family school". After about two hours a week of academics they pass the national exams they once failed. "99% … have left baptized Seventh-day Adventist Christians." All of it needs a primary source. It is a vivid true-story candidate, but denominational as told.
+- **0:51:41** "Why do we not have a thousand such schools…?" Luther and Melanchthon "transformed the nation of Germany in one generation" (the Sutherland frame; see B7).
+- **0:52:43** Ed 83.5 close ("what worse than folly is it to seek an education apart from Him … hew out broken cisterns").
+
+**Cautions (new)**
+
+- "No reason to exist … just another denomination" (0:02:36) is denominational identity rhetoric. So are "leave not Seventh-day Adventists" (0:50:39) and the 99% baptism figure.
+- Country living is presented as God's learning environment and as counsel to follow. The motive is the children's learning, with no fear or crisis framing. The "science behind every one" claim is unsourced. SpM 134.4, read just after it, is about siting the Avondale school "at a distance from the city"; he does not read that half.
+- Tanzania statistics and the 99% baptism figure: leads only.
+- The _M. vaccae_ claims are overstated again, plus new advice: "don't scrub" the vegetables, and soaking hands in dirt "cures the depression often". Don't speak.
+- "Early school start" is folded into the Tanzania failure ("they start school very early, which we've seen…"). That is his inference.
+
+**Series mapping (new)**
+
+- **No. 1 / no. 4:** the FE 392.1 + FE 542.1 + FE 543.2 + CG 493.5 definition block; COL 330.3.
+- **No. 3:** COL 330.3 ("physical, mental, and moral … body, mind, and soul"); Ed 207.2; FE 146.3.
+- **No. 37 / no. 31:** CT 149.2 / CG 295.2, practical and literary training combined, read in context (domestic duties beside study).
+- **No. 95 (Where you live is part of the lesson):** his list of what country living trains (attention, responsibility, cause and effect, industry, economy), with no fear framing. Needs EGW support of its own; he reads none here.
+- **No. 74 (The greatest want of the world):** CE 51.1 / CT 505.3 ("aims to reach the highest attainments for the purpose of doing others good").
+- **NEW candidate: "A school for the ones who failed."** Promise: children written off as slow can learn when hands, mind and faith are trained together. KJV: 1 Cor 1:27–28; Ps 113:7; Prov 22:29. EGW: CT 307.3; Ed 218.1; CT 153.1 ("must be saved if possible"). The Kibidula story needs a primary source first.
+
+---
+
+### D2 · True Education P2 - In Pity For Our Weakness (a8qrE2KB1Co) · 41:32 · speaker: Joshua White
+
+Transcript: `true-education-3-part/02-in-pity-for-our-weakness.txt` (ytt --json)
+
+**Thesis**
+
+- God has a Plan A. When sin spoils it, He mercifully brings in a Plan B that keeps the same goal and changes only the method. His examples: the plan of salvation; Christ as the Father's representative; the tabernacle; the written word; the schools.
+- The family is Plan A. Schools are Plan B: "necessary … because of sin, because of our weakness", ordained by God, but "an aid to parents", never their replacement. A counterfeit Plan B replaces the family, and a true Plan B can turn into the goal, as the temple did.
+
+**Outline**
+
+- 0:00:00–0:03:44 Daniel in 605 BC as an imagined interior monologue ("as Daniel pondered these things…"). Isa 43:10 "ye are my witnesses". PK 705.3: "Not by any temporary failure of Israel … was the plan of the ages … to be frustrated."
+- 0:03:44–0:06:21 Plan A / Plan B defined: "God doesn't change his mind; we change our circumstances through sin." "You may have heard it said that school is plan B, but God's plan B is just as important often as his plan A."
+- 0:06:21–0:08:57 **Plan B 1, the plan of salvation:** Ed 15.1–15.2. The goal (the image restored in body, mind and soul) is unchanged.
+- 0:08:57–0:11:03 **Plan B 2, God's connection to man:** Ed 20.3, Ed 21.1 (the Father "personally directed their education … face to face held communion with the Eternal"). After the Fall, Christ stands as the Father's representative (Ed 33.2); Ed 30.3 ("we behold the light of the knowledge of His glory in the face of Christ").
+- 0:11:03–0:13:40 **Plan B 3, the tabernacle:** Ed 34.3 (Sinai's training) and Ed 35.1, "In pity for their weakness, God gave them a symbol of His presence" (Ex 25:8). The title comes from here.
+- 0:14:14–0:15:49 **Plan B 4, the written word:** Ed 16.3. Nature still speaks, "but these revelations are partial and imperfect … we need the fuller revelation … in His written word."
+- 0:15:49–0:18:53 **Plan B 5, the schools.** Every Plan B was redemptive and therefore educational (Ed 15.2, Ed 30.2, CT 49.3 "the great purpose of all the education and discipline of life").
+- 0:18:53–0:24:38 Plan A was the family school: Ed 33.1–33.3, Ed 34.1, Ed 40.3 with Deut 6:6–7, FE 95.3 ("the home and the school were one … in the place of stranger lips"), Ed 44.3 ("the education imparted by God to the parents, and by them to be given to their children"). "Plan A was so much better that the Lord was hanging on to it as long as he could." Ed 45.1: the plan was "but partially and imperfectly fulfilled".
+- 0:24:38–0:26:42 **The ellipsis he restores.** First he shows Ed 46.1 cut down to "God provided other agencies … Samuel … established the schools of the prophets" and asks, "Plan B: schools train the children instead of the parents?" Then he restores the cut text: "as an aid to parents in the work of education … for the training of such a class of teachers". He reads it as schools that trained teachers who would instruct the people (and so the parents). Ed 46.2 + FE 96.2 read as one (DIFFERS, a splice).
+- 0:26:42–0:31:22 Does Plan B replace Plan A? No more than the tabernacle replaced God's wish to dwell in hearts, or the Bible replaced nature. "Is plan B necessary? It absolutely is." The home is the best place: CT 107.1, CT 109.1, CT 130.1, CT 158.2, CT 162.3 ("Neither the church school nor the college affords the opportunities…"). Schools are needed "because of the cruel neglect of many parents" (CT 204.4) and for children "parents have neglected to educate" (CT 153.1). He points back to Kibidula.
+- 0:31:22–0:33:28 **The stuck car.** A friend pushes; you don't shut off the engine, set the brake and fold your arms. "The church school is an aid, the extra push" (CT 167.1). Home missionary training (MYP 225.2), schools as "the Lord's special instrumentality" (CT 149.1), "let fathers and mothers co-operate with the teacher" (CT 161.1), church schools "ordained by God" (6T 203.1).
+- 0:33:28–0:36:38 **Lesson 1, beware counterfeit Plan Bs.** Salvation by works ("very exemplified in the Catholic Church"), saints and Mary as mediators, shrines and images, "man's words and writings about God". Counterfeit schools are ones that do not teach students to know God: no Bible at the foundation, mental-only, selfish, aimed at worldly success, academics before 8–10, "preschool, daycare, kindergarten … instead of the mother", reflectors, unsupervised associations.
+- 0:36:38–0:39:46 **Lesson 2, don't let the method become the goal.** Israel trusted the temple services instead of the One they pointed to, "so when Jesus came they did not recognize him". "Has this become our pride? … Is it helping the family or replacing the family?" Parental-neglect texts: CG 234.4, CT 204.4 (Satan beside neglected children), ST Nov 10, 1881 par. 13 (Eli), 1T 219.1 ("the curse of God will surely rest upon unfaithful parents").
+- 0:39:46–0:41:32 Close: CT 107.1 ("If the child is not instructed aright here, Satan will educate him through agencies of his choosing. How important, then, is the school in the home!"). "It worked for Moses … David … Elijah … Jesus."
+
+**Bible texts**
+
+- 0:00:32 Isa 43:10 / 44:8 (alluded: "ye are my witnesses"); Isa 49:6 / 60:3 (alluded: a light to the nations).
+- 0:09:28 Gen 2:8–9 (inside Ed 20.3). 0:09:28 Gen 3:8 (alluded: "cool of the day", inside Ed 21.1). 0:10:00 Luke 3:38 (inside Ed 33.1).
+- 0:11:03 Isa 40:12 (inside Ed 34.3). 0:13:09 Ex 25:8 (quoted, inside Ed 35.1). 0:10:32 2 Cor 4:6 (inside Ed 30.3).
+- 0:22:04 Deut 6:6–7 (quoted inside Ed 40.3; "in the evening after work" is his joke). 0:28:47 Eph 6:4 (inside CT 109.1).
+- 0:36:38 John 1:29 (alluded: "the lamb of God"). 0:38:44 1 Sam 2–3 (Eli, alluded via ST 1881).
+- 0:04:46 Gentile mission after Israel's failure (Acts 13:46, alluded).
+
+**EGW quotes** (35 rows: 34 VERIFIED, 1 DIFFERS; detail in `verification.md`)
+
+- 0:03:12 PK 705.3 (**context:** Malachi's day and the Gentiles; he applies it to Daniel's captivity, and the principle holds). 0:06:52 Ed 15.1. 0:07:54 Ed 15.2. 0:09:28 Ed 20.3, Ed 21.1. 0:10:00 Ed 33.1. 0:10:32 Ed 33.2 (rest read at 0:19:58), Ed 30.3. 0:11:03 Ed 34.3. 0:12:38 Ed 35.1. 0:14:14 Ed 16.3 (dup 0:18:22). 0:18:53 CT 49.3 (= CCh 202.4).
+- 0:20:30 Ed 33.3 (**he starts at "the men who held fast"**, so the cities sentence is not read). 0:21:00 Ed 34.1. 0:22:04 Ed 40.3. 0:23:06 FE 95.3, Ed 44.3. 0:23:37 Ed 45.1. 0:24:38 Ed 46.1 (read twice, shortened and then whole).
+- 0:26:10 Ed 46.2 + FE 96.2: **DIFFERS** (splice; the "If a youth was eager…" sentence is FE 96.2 = RH Oct 30, 1900, not Ed).
+- 0:28:16 CT 107.1 (dup 0:39:46). 0:28:47 CT 109.1, CT 130.1. 0:29:18 CT 158.2 (**context:** children of "small companies of Sabbathkeepers" are "needed in their homes"; it is about not sending them away to school, so it fits his use), CT 162.3. 0:29:50 CT 204.4 (dup 0:38:44; CT 205.1 goes on to "send them to schools … Scriptural foundation", as `verification.md` notes). 0:30:21 CT 153.1. 0:31:22 CT 167.1. 0:32:25 MYP 225.2, CT 149.1. 0:32:58 CT 161.1, 6T 203.1.
+- 0:38:14 CG 234.4 (first sentence; the source's subject is "blind parental affection"). 0:38:44 ST Nov 10, 1881 par. 13 (= 2BC 1009.3). 0:39:15 1T 219.1 (**cut:** the skipped sentence names the cause, "false sympathy and blind love … excuse the faults").
+- Allusion, not counted: 0:00:00 "Acts of the Apostles … we don't expect and ask for more of the outpouring" (nearest AA 50.2).
+
+**Science and history**
+
+- 605 BC for Daniel's captivity: standard. The "Plan B" scheme is his own frame and makes no historical claim.
+- No studies cited. "Conventional education encourages selfishness" (0:35:35) is his assertion.
+
+**Cautions**
+
+- **The Catholic counterfeit list** (0:34:00–0:35:03: works salvation "very exemplified in the Catholic Church", saints, Mary) is anti-Catholic framing. Keep it out.
+- **"Preschool, daycare, kindergarten" as Satan's counterfeit** (0:35:35) condemns families' choices. The series keeps the start-age counsel (no. 10) without that rhetoric.
+- **Fear and curse language** at the close (CT 204.4's Satan beside the child; Eli's curse; "the blood of their souls"): VERIFIED, but heavy. The sources put the cause in indulgence and "not restraining", and the series' no. 108 (Eli's house) carries it gently.
+- **His reading of Ed 46.1.** "Schools … to help train teachers to teach the parents how to teach their children" goes a step past the text. Ed 46.1–46.2 says the teachers were to "instruct the people in the works and ways of God", and the schools were also for "the mental and spiritual welfare of the youth". "An aid to parents" is in the text; "teachers of parents" is his inference.
+- Daniel's 605 BC thoughts are an imagined monologue: a dramatized reconstruction, not fiction proper. Flag it if reused.
+- "The visions of the night" (CT 204.4) and "the prophet of the Lord" are insider framing.
+- Strengths: he restores the cut text of Ed 46.1 himself, and the whole talk is a careful corrective to "school replaces the family" _and_ to "school is not needed". It is the balanced position the series takes (ritsema-review §4.2).
+
+**Series mapping**
+
+- **No. 79 Was school God's first plan?** The Plan A / Plan B frame with Ed 33.1–33.3, 34.1, 44.3, 45.1, 46.1 (whole); "is plan B necessary? It absolutely is … not to replace the family". Best single source for no. 79's balance.
+- **No. 24 Israel's colleges:** Ed 46.1–46.2; FE 96.2 (the open door for a youth "eager to obtain a better knowledge of the Scriptures … that he might become a teacher in Israel").
+- **No. 9 / no. 92:** CT 107.1 (whole, including "If the child is not instructed aright here, Satan will educate him through agencies of his choosing"); CT 162.3; CT 158.2 ("the well-ordered Christian home … is the best place for them"); Ed 44.3 ("imparted by God to the parents, and by them … to their children").
+- **No. 14 The generation that forgot:** Ed 45.1 ("Fathers and mothers in Israel became indifferent…"); Ed 40.3.
+- **No. 108 Eli's house:** ST Nov 10, 1881 par. 13; 1T 219.1 (with the cut sentence restored); CG 234.4.
+- **No. 100 Why didn't they recognize Him?** The method became the goal: temple services trusted in place of the One they pictured.
+- **NEW candidate: "Plan B is mercy."** Promise: when we fail God's first plan, He gives a second way to the same goal and never lowers the goal. KJV: Ex 25:8; Isa 40:12; Gen 3:15; 2 Cor 4:6. EGW: Ed 35.1 ("In pity for their weakness"); Ed 30.3; Ed 16.3; Ed 46.1. A strong E-episode frame for parents who feel they started late or must use a school.
+- **NEW candidate: "The push from behind."** Promise: a good school helps a family that keeps its own engine running; it cannot replace one that has switched off. KJV: Deut 6:6–7; Eph 6:4; Prov 22:6. EGW: CT 167.1 ("an aid to the parents"); CT 161.1 ("co-operate with the teacher"); CT 162.3. The stuck-car picture is the visual.
+
+---
+
+### D3 · True Education P3 - Respectable Conventionality (KeU3-w8iFw4) · 59:18 · speaker: Joshua White
+
+Transcript: `true-education-3-part/03-respectable-conventionality.txt` (ytt --json)
+
+**Thesis**
+
+- Raising good, churchgoing, country-living children who raise children like themselves does **not** fulfil true education. Its goal is a generation of missionaries who "finish the work" so the end of sin and suffering can come.
+- Unselfish service is the "connecting link" that restores the image of God. Love is the basis of education (Ed 16.1), and love calls for service (Ed 16.2). So education _is_ training for service, and service in turn is "the highest education" (Ed 309.1).
+- Ed 264.2's "respectable conventionality" is the Christian version of the ordinary life script. God rejects it because it professes Christ while "lacking His self-sacrifice". The cure is giving children real experience in ministry now ("in the water … men learn to swim"), not after graduation.
+
+**Outline**
+
+- 0:00:00–0:01:33 The question: if we raise good Adventists "who live in the country, follow all the counsel" and repeat the cycle, "have we fulfilled the purpose of true education? … No." "We don't want the cycle to continue; we want to bring an end to this sin-filled world."
+- 0:02:03–0:11:57 **The apple-orchard parable** (first person, "it's a parable … it was only a dream"). The narrator drives through endless unpicked orchards in the "neglected country", then into the "home country". There crowds in fine clothes keep "Apple Day", carry gold-lettered _Apple Pickers' Manuals_ and sit in tiered seats around one tree. They sing "Songs of the Apple Orchards" and listen to a polished speaker. "We don't pick apples … that's the pastor apple-picker's job … you need to know how an apple thinks" (apple-picking school; "apple psychology"). The speaker celebrates three apples picked last week and paid-off cushion covers, then picks two apples to deafening applause. Driving back, the narrator finds the far orchards raining fruit that rots on the ground. A voice: Matt 9:37–38. **Source:** an uncredited adaptation of John White's (the Canadian psychiatrist and author) "Parable of the Orange Trees" (orange groves, "Leaving Neglected County, Entering Home County", an "Orange Picker's Manual").
+- 0:11:57–0:13:01 Mark 16:15 ("stay ye right here where it's comfortable?"). "The Great Commission fulfilled through unselfish service to others is inextricably linked to the plan of true education."
+- 0:13:01–0:16:11 Recap: Gen 1:27; Ed 15.1–15.2. Whiteboard diagram: man created to rise ever closer to God; sin sends him below where he began. "What is the connecting link?"
+- 0:16:11–0:19:21 **Love → service → restoration.** Ed 16.1 ("Love, the basis of creation and of redemption, is the basis of true education"). Ed 16.2: "The law of love calls for the devotion of body, mind, and soul to the service of God and our fellow men … Unselfishness underlies all true development. Through unselfish service we receive the highest culture of every faculty … We are fitted for heaven, for we receive heaven into our hearts." "You're saying, hang on, that's heretical: Jesus is the connecting link. He absolutely is." Christ's life was unselfish service, and we partner with Him. His chain: education = redemption = fitting for heaven = Christlikeness = a life of service, so education = training for service. Ed 13.1.
+- 0:19:21–0:20:23 Ed 309.1 ("the greatest joy and the highest education are in service", here and hereafter): "school doesn't have to be boring". MH 401.3 ("service for Christ's sake in the little things of everyday experience has power to mold the character").
+- 0:20:23–0:21:28 Education ch. 31, "The Lifework": "that book is not for teachers … a powerful book for families and especially for young people". A stretch break.
+- 0:21:28–0:24:38 Ed 262.1: "Success in any line demands a definite aim … giving the gospel to the world in this generation is the noblest that can appeal to any human being." Edison's "ten thousand" tries; David Livingstone, "laser-focused" against the slave trade, buried in Westminster Abbey. Ed 262.2 (millions "have never so much as heard"; "it is their right"; "it rests with us … with our children"; Esther 4:14 "for such a time as this").
+- 0:25:10–0:28:17 Rom 3:1–2: "much every way … unto them were committed the oracles of God", to share, not hoard. "We as spiritual Israel" hold special truths for the last days. **The $20 illustration:** he gives Rhian $20 to pass $10 to Damon; if Rhian keeps it, he robs the giver, Damon and himself ("the blessing of being a blessing").
+- 0:28:17–0:31:22 Ed 263.1–263.2: "Few give thought to the suffering that sin has caused our Creator … Our world is a vast lazar house … Yet God feels it all … He has put it in our power, through co-operation with Him, to bring this scene of misery to an end" (Matt 24:14). Statistics: about 20 million orphans, nearly 30 million enslaved, over a billion children severely deprived, 19,000 under-fives dying daily (2011), 22 million child refugees, a billion children in conflict countries, over 50% domestic violence "in some countries", one in nine without enough food. "Not some social gospel … this gospel … for a witness … then the end."
+- 0:31:22–0:33:58 Against "it's all in God's timing": 2 Pet 3:12 (hasten). **The 6 a.m. family trip:** Dad is ready on time, the children dawdle and quarrel, and "it is within your power to bring this scene of misery to an end." DA 633.3 ("By giving the gospel to the world it is in our power to hasten our Lord's return"). An announced paraphrase of 1SM 68.1 ("if Adventists had held fast … we would have gone home by now").
+- 0:33:58–0:35:00 Ed 264.1: Mark 16:15 is a command, not a gift ("When you signed up you signed up to tell others"). "Not that all are called to be ministers or missionaries in the ordinary sense … but all may be workers with Him."
+- 0:35:00–0:39:13 **Ed 264.2, the title text**: "can we educate our sons and daughters for a life of respectable conventionality, a life professedly Christian, but lacking His self-sacrifice, a life on which the verdict of Him who is truth must be, 'I know you not'?" Dictionary definitions. **His two-column chart.** _Conventional_: school, graduate, job, marry, house, family, work hard, vacations, retire, grandkids, donate. _Respectably conventional_: Christian school with good grades and honors, a good job, marry a good Christian, a house in a good neighborhood, a Christian family, mission trips instead of vacations, more church time in retirement, leave money to the church. "I didn't say anything was wrong with it, but Jesus says I will vomit you out of my mouth. It's Laodiceanism." Rev 3:15–16. "God … condemns this form of education."
+- 0:39:13–0:41:48 Ed 264.3: "Thousands are doing this … Those who reject the privilege of fellowship with Christ in service reject the only training that imparts a fitness for participation with Him in His glory." **The doctor analogy:** a four-year education degree is a real education, but a hospital accepts only medical school. Likewise "there's only one" training that fits for heaven. "There's nothing inherently evil about other ways but they're not training us for fellowship with Christ in service."
+- 0:41:48–0:43:21 Ed 265.1: life split into "the period of learning and the period of doing". Graduates "out of touch with life", "engrossed in a struggle for mere subsistence"; "the world is robbed … God is robbed". Friends of his, "burning … to work for the Lord", lost the aim under family pressure "to get the highest and greatest degrees".
+- 0:43:21–0:47:03 Ed 268.3 ("It is in the water, not on the land, that men learn to swim"). **The YouTube swim course:** watching it will not put you on the Olympic team. "Not only teach our children how to give Bible studies but give them a chance to give some Bible studies … make it a part of the curriculum." Ed 269.2 (acquaintance awakens sympathy; geography studied "in the light of missionary effort"); Ed 270.4 ("thousands upon thousands of the youth … let every Christian educator give such workers sympathy and co-operation"). "Why not? … the great majority are caught up in respectable conventionality."
+- 0:47:03–0:50:17 Ed 271.1: "There is no line of work in which it is possible for the youth to receive greater benefit … co-workers with the angels … As a means of education, what 'university course' can equal this?" ("specialists, PhD and above"). Ed 271.2 ("such an army of workers as our youth, rightly trained, might furnish … how soon might the end come"). "Let's forget conventionality, respectable or otherwise … raise a generation of radical Christians."
+- 0:50:17–0:51:23 E. M. Bounds, "men are God's method". John Wesley, "give me one hundred men … shake the gates of hell and bring in the kingdom of God in one generation".
+- 0:51:54–0:54:37 **Kenya orphanage story** (told to him at a California camp meeting). A boy orphaned at 9–10 lived on the streets until a poor Adventist family in a one-room hut with 12 children took him in ("sometimes the dog went without food"). He vowed to adopt a child, told his fiancée so, and is now father to 283 children. "It started with the unselfish decision of one family." "Do the work that lies in front of you."
+- 0:54:37–0:59:18 Two appeals, both answered by coming forward. (1) Stand to reject respectable conventionality and be "radical Christians". (2) Come to the front for "ministry outside of your comfort zone … where there's ripe fruit waiting" (Isa 6:8). In some countries people "beg me to give them a Bible study"; mission organizations say "we don't need more donations, we need people". Prayer: "we don't want to be Laodicean anymore."
+
+**Bible texts**
+
+- 0:11:26 Matt 9:37–38 (quoted, the voice in the parable; also Luke 10:2).
+- 0:11:57, 0:33:58 Mark 16:15 (quoted; also inside Ed 264.1).
+- 0:13:01 Gen 1:27 (quoted).
+- 0:16:43 Luke 10:27 / Matt 22:39 (the two commandments, behind Ed 16.1–16.2; not read aloud).
+- 0:24:38 Esther 4:14 (inside Ed 262.2).
+- 0:25:10 Rom 3:1–2 (paraphrased from memory, correctly).
+- 0:28:47 Rom 8:22 (inside Ed 263.2). 0:29:17 Matt 24:14 (quoted, inside Ed 263.2).
+- 0:31:22 2 Pet 3:12 (paraphrased, "hasten"; DA 633.3 cites its margin).
+- 0:35:00 Matt 7:23 / 25:12 ("I know you not", inside Ed 264.2).
+- 0:37:36 Rev 3:15–16 (paraphrased: lukewarm, "vomit you out").
+- 0:48:46 Ps 37:29; Isa 33:24; 65:19 (inside Ed 271.2).
+- 0:53:03 Matt 25:40 (alluded, "the least of these"). 0:57:14 Isa 6:8 (quoted, "Here am I, send me").
+
+**EGW quotes** (18 rows, all VERIFIED; detail in `verification.md`)
+
+- 0:13:31 Ed 15.1–15.2 (dup of D2). 0:16:43 Ed 16.1 (first sentence). 0:17:16 Ed 16.2. 0:18:16 Ed 13.1 (dup).
+- 0:19:21 Ed 309.1. 0:19:52 MH 401.3 (first clause; it goes on "and to direct the life into lines of unselfish ministry. To awaken this spirit … is the parents' and the teacher's work").
+- 0:21:28 Ed 262.1. 0:23:36 Ed 262.2 (second half; the first half is the "many a lad … as did Daniel" passage).
+- 0:28:17 Ed 263.1 (excerpt). 0:28:47 Ed 263.2.
+- 0:33:27 DA 633.3 (= Ev 696.4). Announced paraphrase, not counted: 1SM 68.1 (he drops "after the great disappointment in 1844").
+- 0:33:58 Ed 264.1. 0:35:00 Ed 264.2 (dup 0:38:40). 0:39:13 Ed 264.3 (**cut short:** stops before "Many a father and mother, denying their children to the cross of Christ, have learned too late that they were thus giving them over to the enemy … They grew up a curse to the world").
+- 0:41:48 Ed 265.1 (omits "too many take up with some personal, selfish ambition" and "many drift into questionable or criminal practices"; the use fits the source, unlike Ritsema's stretch noted in ritsema-review §4.7).
+- 0:43:21 Ed 268.3. 0:45:28 Ed 269.2 (skips "Instead of dwelling on the exploits of the Alexanders and Napoleons … study the lives of … Paul and Martin Luther, as Moffat and Livingstone and Carey". That sentence would have carried his Livingstone example.) 0:46:29 Ed 270.4. 0:47:03 Ed 271.1. 0:48:46 Ed 271.2.
+
+**Science and history claims** (leads)
+
+- Edison "tried ten thousand times" before a working bulb: popular lore; the figure and the quip vary. Don't speak.
+- Livingstone: aims (gospel, ending the slave trade), hardships and burial in Westminster Abbey (1874) are correct. Paired with Ed 269.2's own naming of Livingstone, he is usable as history.
+- World-suffering statistics, dated by him "a couple years old": 30 million enslaved fits the Global Slavery Index 2013 (29.8 million); 19,000 under-five deaths a day in 2011 fits UNICEF 2012; over a billion children severely deprived fits UNICEF's _State of the World's Children_ 2005; one in nine undernourished fits FAO 2014–15. "20 million orphans" doesn't match UNICEF's usual figures (about 140 million lost one parent; about 15 million lost both); needs a source. "22 million child refugees" and "over 50% domestic violence in some countries" need sources.
+- E. M. Bounds, _Power Through Prayer_ (1907), ch. 1: real and checkable (as at B3).
+- Wesley: the real line is John Wesley to Alexander Mather (1777): "Give me one hundred preachers who fear nothing but sin, and desire nothing but God … such alone will shake the gates of hell and set up the kingdom of heaven upon earth." His "love only God … hate only sin … in one generation" is a loose popular form (B3 misnames him "Charles").
+- John White's "Parable of the Orange Trees", from his writing on missions (IVP, 1970s); a PDF copy circulates. Told uncredited, in the first person, with oranges changed to apples.
+- The Kenya orphanage founder (283 children): second-hand, unnamed; needs a primary source.
+
+**Cautions**
+
+- **Denominational framing throughout:** "good Seventh-day Adventist Christians", "a specific purpose as Seventh-day Adventists", "spiritual Israel" holding "the special truths for this last day", the "finish the work" and hastening theology, the 1SM 68.1 paraphrase, "we don't want to be Laodicean". The Laodicea reading applies Rev 3 to church members, which is typology rather than spiritualizing, but it is an insider frame. The series can carry the universal core: Ed 262–271, Mark 16:15, 2 Pet 3:12, Matt 24:14.
+- **"God condemns this form of education"** (0:38:08) is stronger than Ed 264.2, which asks a question. His chart puts Christian school, good grades, a good Christian marriage, a good neighborhood and mission trips in the "respectable conventionality" column. He says "I didn't say anything was wrong with it", but in practice it condemns families' choices. Present Ed 264.2 as the question it is.
+- **The doctor analogy** ("only one" training fits for heaven) can be heard as "other education is wasted". He softens it ("nothing inherently evil about other ways"), and Ed 264.3 itself says "fellowship with Christ in service" is "the only training that imparts a fitness for participation with Him in His glory". Keep the source's wording, not the hospital.
+- **"It's not your gift; it's a command"** (0:33:58): the source (Ed 264.1) adds that not all are called to be ministers "in the ordinary sense". He reads that line too. Keep them together.
+- **The apple parable** is an allegory (allowed). It mocks pastors ("the pastor apple-picker"), "apple-picking school", fund-raising for cushion covers and song leaders. Uncredited. If used, credit John White's original and drop the church satire.
+- **Children-level application is thin.** The talk aims at youth and adults (the altar call "outside your comfort zone"). For parents the usable core is MH 401.3 ("the little things of everyday experience … is the parents' and the teacher's work"), Ed 268.3 and "give them a chance to give some Bible studies".
+- **Country living** appears only in the opening line, as one of "all the counsel" that is _not enough_ without the missionary aim. He neither undervalues it nor makes it fearful; he places it under the goal of service. That fits the owner's frame of country living as the life faith works out _for_ the work, not a lifestyle end. Note it for no. 95.
+- **"Hasten" urgency** ("it's within your power … we would have gone home by now") tilts toward works-urgency if detached from Ed 263.2's "through co-operation with Him". Keep that phrase in.
+- Stories: the apple parable (allegory, uncredited); the $20 and 6 a.m. trip (hypothetical illustrations); the YouTube swim course and the doctor (analogies); Livingstone (true history); the Kenya orphanage (second-hand, true as told). No fiction proper.
+
+**Series mapping**
+
+- **No. 1 What is school actually for?** Ed 16.1–16.2 (love is the basis; the law of love calls for service; "we are fitted for heaven, for we receive heaven into our hearts"); Ed 309.1; his chain education = redemption = Christlikeness = service.
+- **No. 47 "Lord, what wilt thou have me to do?"** Ed 262.1 (definite aim: the gospel "in this generation" is "the noblest that can appeal to any human being"); Ed 264.1 (not all ministers, all workers); Ed 265.1 (the learning/doing split; graduates "out of touch with life").
+- **No. 86 You learn to swim in the water:** Ed 268.3 with the YouTube-swim picture; "give them a chance to give some Bible studies"; Ed 271.1 ("what 'university course' can equal this?"); Ed 270.4.
+- **No. 107 Acquaintance before service:** Ed 269.2 (full, including Paul, Luther, Moffat, Livingstone and Carey; restore the skipped sentence).
+- **No. 76 Heaven is a school:** Ed 309.1 ("in the future state … it is in service that our greatest joy and our highest education will be found").
+- **No. 43 The diploma heaven signs:** Ed 264.3 ("the only training that imparts a fitness"), told gently, without the hospital analogy.
+- **No. 37 Chores are curriculum / no. 45:** MH 401.3 ("service for Christ's sake in the little things of everyday experience has power to mold the character … the parents' and the teacher's work").
+- **No. 19 Daniel / no. 98:** Ed 262.2 continues the "many a lad … as did Daniel" text he read in A6.
+- **NEW candidate (Q): "Respectable conventionality."** Promise: a good, ordinary Christian life script can still miss what a child was made for. KJV: Mark 16:15; Rev 3:15–16; Matt 7:21–23; Esther 4:14. EGW: Ed 264.1–264.3 (the question, then "Thousands are doing this … reject the only training…"); Ed 262.1; Ed 271.2. Frame it as Ed 264.2's question, not as a verdict on school choices. Playlist F's two talks of the same title feed it too.
+- **NEW candidate (Q): "A blessing to pass on."** Promise: what God gives a child is given to be handed on. KJV: Rom 3:1–2; Gen 12:2; Matt 10:8. EGW: Ed 262.2 ("it rests with us … with our children to whom we may impart it"); Ed 16.2. The $20 picture is the visual.
+- **NEW candidate (E): "The family that fed one more."** A poor family with 12 children takes in a street boy; he grows up to father 283. KJV: Matt 25:40; Ps 68:6; Jas 1:27. EGW: MH 401.3; Ed 16.2. Needs the founder's name and a primary source before use.
+
+## E · True Education (A Thinking Generation Ministries playlist)
+
+Playlist: https://www.youtube.com/playlist?list=PLLa98Guf3JC139cSYVfIC4PKLjJVq25vw (9 entries; Wxzg09uDyqo appears twice, so 8 unique). Folder `true-education/`. Upload dates from `yt-dlp --print "%(upload_date)s"` (2026-10-13); uploader for all eight is A Thinking Generation Ministries.
+
+Settings, from the talks themselves:
+
+- **E1** was given at an "Adventist heritage weekend" in a US church in October 2021. Its host is "Tim", and he says "we live in a gardening state here".
+- **E6, E3, E8 and E2** are one weekend seminar at that church, February 2022. E6 opens it on Friday evening and refers back to "the Adventist heritage weekend in October". At its close he announces the Sabbath sessions: the battle for the mind, the education of Daniel, brain development in the early years, and the role of the family.
+- **E5** was streamed for the "Present Truth Outdoor Camp" over Zoom on a Sabbath. It is the same talk as E1.
+- **E4 and E7** are tagged "LOSDA", a church he has visited before ("last time I was here").
+
+| #   | Id          | Length  | Uploaded   | Title                                                            | Speaker      |
+| --- | ----------- | ------- | ---------- | ---------------------------------------------------------------- | ------------ |
+| E1  | Wxzg09uDyqo | 59:30   | 2021-11-30 | True Education, A Peculiar Message for a Peculiar People         | Joshua White |
+| E2  | 17v4JXACzqM | 1:42:36 | 2022-02-23 | God's Schedule for Education                                     | Joshua White |
+| E3  | H4hVj-kIPA8 | 1:06:09 | 2022-02-19 | The Battle for the Mind                                          | Joshua White |
+| E4  | IqjvDKq_e5g | 52:34   | 2022-11-28 | Time to Leave but No One to Go (LOSDA)                           | Joshua White |
+| E5  | TkYkO_ry6eY | 1:01:01 | 2021-12-27 | True Education: Its Urgency, What It Is, and Where It Must Begin | Joshua White |
+| E6  | dZt9KWtxmOQ | 1:07:23 | 2022-02-17 | Educating Royalty                                                | Joshua White |
+| E7  | k0mNCC9Hr2I | 50:54   | 2023-11-13 | Not Recognizing Jesus (LOSDA)                                    | Joshua White |
+| E8  | k7cS6quJMeQ | 51:41   | 2022-02-21 | Daniel Chapter Zero                                              | Joshua White |
+
+**Speakers.** All eight are Joshua White. He names himself at E5 0:00:01; every other opening is his own prayer or recap.
+
+**Dedupe.**
+
+- E1, E5 and E6 are one core talk ("three components of true education" plus "educating royalty"). E1 is written in full below. E5 and E6 are deltas to E1, and each adds a distinct half: E5 the urgency and "where it must begin", E6 the physical-training and missionary-training detail.
+- That core is also the spine of B6 and C1, and most of its EGW repeats their rows.
+- The other deltas: E2 → C4, E3 → C2, E4 → B8/C12, E7 → C13/B4, E8 → B2/C10.
+
+---
+
+### E1 · True Education, A Peculiar Message for a Peculiar People (Wxzg09uDyqo) · 59:30 · speaker: Joshua White
+
+Transcript: `true-education/01-peculiar-message.txt` (ytt --json)
+
+**Thesis**
+
+- Education is a salvation matter. "Education and redemption are one" (Ed 30.2), and "if we fail to understand [the true science of education] we shall never have a place in the kingdom of God" (1MCP 53.2).
+- There are two kingdoms, so there are two educations. Every education transforms a child for one kingdom or the other: "not merely informational… transformational".
+- True education has three components:
+  1. redemption, the restoring of God's image;
+  2. harmonious physical, mental and spiritual development;
+  3. preparation for service ("missionary training").
+- The family is "the greatest of all educational agencies" (CT 107.1), so the youth's lack of religious interest traces to the home. That is a charge, but it is also hope: what neglect lost, faithfulness can build.
+- A message on education always prepared God's people for a crisis:
+  - Deuteronomy on the border of Canaan, which gave both content and method;
+  - Josiah's reading of the law just before the captivity, with Daniel's parents in the audience.
+
+**Outline**
+
+- 0:02:10 Japan, 1938. Adventist leaders ask Dr Mizuno to keep their school open. He has already read _Education_: "follow what's written in that book… we need more schools like that… if you don't… you have no reason to exist."
+- 0:04:45 Education, "paired with health", is the message "most calculated to make God's people a light".
+- 0:05:51 Denominational history:
+  - the Second Great Awakening's "over 60 schools" (Sutherland, _Studies in Christian Education_);
+  - the churches failing the test, then the second and third angels;
+  - health and education in "the 1860s and 1870s" (6T 126.1);
+  - education readying the midnight cry then and the loud cry now.
+- 0:12:04 Rom 8:16–17; 1 Pet 2:9. **Educating royalty:** an earthly king gives "meticulous detailed attention" to his heir. "You are not the king. Those little ones… belong to… another King. You're raising them for Him."
+- 0:14:41 The principles are "as old as the world" (Eden, Abraham, Israel), and science now confirms them. Praise for _Education_ follows: Mysore, Ghana, a non-Adventist professor in a bookstore, John Michaelis (Berkeley), Florence Stratemeyer (Columbia).
+- 0:18:51 Not only for teachers: Ed 30.2; 1MCP 53.2. "God has not made algebra an entrance requirement for heaven."
+- 0:20:55 True and false: two kingdoms "diametrically opposed" must each have an educational system. Every education transforms its students.
+- 0:23:33 2T 701.2 ("their education is defective") + CT 107.1 ("the family… greatest of all educational agencies") → "it boils down to the family". The encouraging side: "we also have it in our power by following God's plan to create a religious interest in our young people".
+- 0:26:09 Component 1, redemption:
+  - Ed 30.2; PP 595.2; Gen 1:27; the image "nearly obliterated" (Ed 15.2 "well-nigh"); Ed 15.2.
+  - Prov 9:10: "knowledge to the Hebrew mind… is intimate relationship" (Adam "knew" his wife).
+  - "The very foundation of true education is in the fear of the Lord" (DIFFERS); MH 401.4.
+- 0:30:49 **The house without a foundation:**
+  - you could skip it and nobody would see, but everyone sees the results;
+  - recitals and special music are "paint on the walls";
+  - the foundation is laid "in the home in the early years… in the simple instruction of father and mother and the things nobody notices";
+  - Ed 17.2: "directed to the sources of truth".
+- 0:33:24 Component 2, harmonious development:
+  - "harmonious" means equilibrium, equal portions;
+  - Ed 195.1, with the leaning demonstration described, not performed;
+  - the physical-activity science list;
+  - "time of study must be divided" (AH 508.3).
+- 0:36:00 Physical training should be useful (CT 308.2). "Competitive sports are not good, we could spend a whole another hour on that." TDG 203.5.
+- 0:37:33 Agriculture: "A B and C" (SpM 134.4); Ed 219.1. Gardening research (confidence, patience, test scores, IQ). "Did we need a study…? You can't get your smartphone, press a few buttons and out comes tomatoes."
+  - _Mycobacterium vaccae_ (captions "buckeye").
+  - The garden as a place for "simple math or simple science".
+  - **"This is one of the reasons God has given us the message of country living, because it provides an opportunity for us to engage in useful work, specifically agriculture."**
+  - Eden as "his schoolroom" (GCDB 1899).
+- 0:39:37 Mental development:
+  - the world's degree-centred self-focus against "the highest attainments… for the purpose of doing others good" (CT 505.3);
+  - Sutherland on Jesuit memory training;
+  - MH 449.5: "When will I ever use this?" is "a legitimate question";
+  - Sutherland's "endless treadmill": Satan wants a system that repeats generation after generation, because "when [the world] does [end] he's finished".
+- 0:42:43 Spiritual development: COL 332.3; CG 296.3.
+- 0:43:13 Component 3, service: Ed 13.1; MH 395.1 "True education is missionary training". Community work "made a part of the everyday curriculum" (gloss on CT 545.3) "begins in the home with learning to serve even your brothers and sisters and mom and dad".
+- 0:45:16 "A message on true education has always played a role in preparing God's people for a significant event."
+- 0:46:17 **On the border of Canaan:**
+  - Israel's purpose was to be a light, "a wise and understanding people" (Deut 4:6);
+  - separation was kept "simply [by] education": word and works as content, the family as the unit.
+- 0:48:22 Exodus–Numbers educate the parents first. "God did not say… you're going to need to start a new educational system. He said no… parents teaching their children, but I'm going to need to educate the parents first."
+- 0:49:23 Deuteronomy as "a book of education… a covenant… as to the education they will give their children".
+  - Deut 6:6–7 has two parts: content ("in thine heart": "who receives true education first? parents") and method ("form a relationship… sitting walking lying down rising up… the things that are already in the parents' heart should come spilling out").
+- 0:52:29 Judg 2:7, 10: the "Deuteronomy generation" had the content (sanctuary, feasts, Sabbaths) but "missed the method… the relationship", so the next generation "knew not the Lord".
+- 0:54:01 **Before Babylon:**
+  - Isaiah's warning, "your sons… in the court of the king", a century before Daniel;
+  - Josiah's reform "16 years… just enough time to raise a youth";
+  - the reading of the law "one year before Daniel's birth", so "Daniel's parents" heard it;
+  - "he was not educated in the schools of his day, he was educated in the home using the word of God";
+  - "true education in four families".
+- 0:57:42 Appeal: "Don't look around… and say we failed… look to your family". Commit to study and apply it "in your home starting today".
+
+**Bible texts**
+
+- 0:08:26 Rev 14:6–8; 18:4, alluded ("come out of her, my people").
+- 0:12:04 Rom 8:16–17, read.
+- 0:12:35 1 Pet 2:9, quoted.
+- 0:27:43 Gen 1:27, quoted.
+- 0:29:17 Prov 9:10, quoted.
+- 0:29:47 Gen 4:1, alluded.
+- 0:31:50 Num 32:23, quoted ("your sin will find you out").
+- 0:46:50 Deut 4:6, alluded.
+- 0:48:52 Deut 6:6–7, quoted.
+- 0:52:29 Judg 2:7, 10, quoted.
+- 0:54:31 Isa 39:6–7 / 2 Kgs 20:17–18, paraphrased.
+- 0:56:06 2 Kgs 22–23 (Josiah and the book of the law), summarized.
+
+**EGW quotes** (detail in `verification.md`)
+
+| Time    | Quote                                                                              | Ref                     | Status                                          |
+| ------- | ---------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------- |
+| 0:09:30 | "we were shown that in the education of our children a different order of things…" | 6T 126.1                | VERIFIED                                        |
+| 0:19:22 | "In the highest sense the work of education and the work of redemption are one"    | Ed 30.2                 | VERIFIED                                        |
+| 0:19:22 | "Now as never before… never have a place in the kingdom of God"                    | 1MCP 53.2               | VERIFIED, context flag (= knowing God)          |
+| 0:23:33 | "not more religiously inclined… education is defective"                            | 2T 701.2 (= AH 318.3)   | VERIFIED, context flag (indulgence)             |
+| 0:25:07 | "the family shall be the greatest of all educational agencies"                     | CT 107.1 (= AH 182.2)   | VERIFIED                                        |
+| 0:27:43 | "the true object of education is to restore the image of God in the soul"          | PP 595.2                | VERIFIED                                        |
+| 0:28:15 | "To restore in man the image of his Maker… the great object of life"               | Ed 15.2                 | VERIFIED                                        |
+| 0:30:18 | "The very foundation of true education is in the fear of the Lord"                 | 13LtMs Ms 25, 1898 p.23 | DIFFERS (compressed; cf. CT 505.2)              |
+| 0:30:18 | "The Bible should be made the foundation of study and teaching"                    | MH 401.4                | VERIFIED                                        |
+| 0:33:24 | "Instead of confining their study to that which men have said or written…"         | Ed 17.2                 | VERIFIED                                        |
+| 0:33:55 | "harmonious development…"; "joy of service… wider service"                         | Ed 13.1                 | VERIFIED                                        |
+| 0:34:26 | "both mental and spiritual vigor… dependent upon physical strength"                | Ed 195.1                | VERIFIED                                        |
+| 0:35:59 | "the time of study must be divided…"                                               | AH 508.3                | VERIFIED, context flag (Australia, youth)       |
+| 0:36:30 | "The greatest benefit is not gained from exercise… taken as play" (as CT)          | CT 308.2                | VERIFIED                                        |
+| 0:37:01 | "Every man, woman, and child should be educated to practical, useful work"         | TDG 203.5               | VERIFIED, context flag (idleness, charity)      |
+| 0:37:33 | "agriculture… the A B and C of our educational work"                               | SpM 134.4               | VERIFIED (context: school sited away from city) |
+| 0:37:33 | "No line of manual training is of more value than agriculture"                     | Ed 219.1                | VERIFIED                                        |
+| 0:39:06 | "the garden of Eden was not only Adam's dwelling… his schoolroom"                  | GCDB Mar 6, 1899 p.36   | VERIFIED (attribution caution)                  |
+| 0:39:37 | "He is a Christian who aims to reach the highest attainments… doing others good"   | CT 505.3                | VERIFIED (corrects C1's NOT FOUND)              |
+| 0:41:09 | "not well to crowd the mind with studies…" (as MH)                                 | MH 449.5                | VERIFIED                                        |
+| 0:42:43 | "A character formed according to the divine likeness is the only treasure…"        | COL 332.3               | VERIFIED                                        |
+| 0:42:43 | "any effort that exalts intellectual culture above moral training is misdirected"  | CG 296.3                | VERIFIED                                        |
+| 0:43:44 | "True education is missionary training…"                                           | MH 395.1                | VERIFIED                                        |
+
+Sutherland (_Studies in Christian Education_) is named and read three times (0:07:22, 0:40:07, 0:41:40). He says the first "is quoting the Spirit of Prophecy", but only the phrase "true science of education" (1MCP 53.2) matches.
+
+**Science and history** (leads only)
+
+- The Japan 1938 story (Dr Mizuno; Toshio Yamagata and Francis Millard of the Japan Union Mission) is Adventist lore. Needs a primary source.
+- The endorsements of _Education_ (Mysore 1947, Ghana's education secretary, Michaelis, Stratemeyer "50 years ahead", "Roman Catholic") all circulate in Adventist literature. Needs primary sources; don't use.
+- "Over 60 schools" in the Second Great Awakening: from Sutherland, unsourced, and denominational.
+- The physical-activity benefits list (attributed in E5 to "JAMA Pediatrics"): needs the primary paper.
+- Gardening raises "test scores" and "IQ": the IQ claim is doubtful.
+- _M. vaccae_: real mouse research, with the benefits overstated (see E6).
+- "Knowledge to the Hebrew mind is intimate relationship": a fair note on _yada'_ (Gen 4:1), but overdrawn as a rule for every use.
+- "Deuteronomy's emphasis on education is not found in Exodus–Numbers": **overstated**. Exod 10:2; 12:26–27; 13:8, 14 already command teaching the children.
+- Chronology:
+  - Isa 39 comes about 80–100 years before Daniel.
+  - Josiah's 18th year (622 BC) is about 17 years before 605 BC, not 16.
+  - "One year before Daniel's birth" is an inference, since Daniel's birth year is unknown. This falls under the series' "unconfirmed claims" rule.
+
+**Cautions**
+
+- The first 12 minutes are denominational history: 1844, the three angels, "the Spirit of Prophecy", Sutherland, "Adventist heritage weekend". None of it is usable.
+- **Fear and salvation framing:**
+  - "Those who fail to follow God's plan of education will find their light growing dim."
+  - "We are on the verge of a crisis… spiritual Babylon will rule the world."
+
+  1MCP 53.2 does say "never have a place in the kingdom", but its own next line defines that science as knowing God (John 17:3), not a school method. Keep that context if it is used.
+
+- "Competitive sports are not good" (0:36:30): his opinion; it is not in CT 308.2.
+- Sutherland's Jesuit memory and "papal treadmill" passages, and "Satan designs a treadmill so the world won't end": the lineage the series steers around, and speculative.
+- "Daniel… was not educated in the schools of his day": Dan 1:4, 17 needs to stand beside it (see B2/C10).
+- **Country living (owner's frame):** here it is positive and centred on the children. Country living is "an opportunity… [for] useful work, specifically agriculture", and the garden is a schoolroom. There is no fear language. SpM 134.4's own context is a school "established at a distance from the city", which supports him.
+- "Egypt represents darkness and bondage to sin": typology, fine.
+- Stories:
+  - the Japan story (lore);
+  - the bookstore professor (secondhand);
+  - the leaning demonstration (only mentioned).
+- No fiction.
+
+**Strongest arguments** (good shorts)
+
+- **"You are not the king"** (0:13:37–0:14:41). The children belong to another King, and parents raise His heirs for Him. This is a parent-honouring frame for no. 90.
+- **Informational vs transformational** (0:23:01). Every education changes a child; the only question is for which kingdom.
+- **The foundation nobody sees** (0:30:49–0:32:50). Laid in the home, early, in what no one notices (no. 109).
+- **God educated the parents first** (0:48:22). He did not found a new school system leaving Egypt; for forty years He trained the parents, then gave them the job (no. 92).
+- **Content and method** (0:50:56–0:53:31). The Joshua generation kept the content and lost the relationship, and their children "knew not the Lord" (Judg 2:10; no. 14 and no. 93).
+- **"When will I ever use this?" is a legitimate question** (0:41:40; MH 449.5; no. 89).
+
+**Series mapping**
+
+- **No. 1 / no. 4:** Ed 30.2; Ed 15.2; PP 595.2; 1MCP 53.2 (with John 17:3); "informational vs transformational".
+- **No. 90:** Rom 8:16–17; 1 Pet 2:9; "you are not the king"; the Japan story is not usable.
+- **No. 9:** CT 107.1 (= AH 182.2); 2T 701.2 (context: indulgence).
+- **No. 109:** the house parable; MH 401.4. His "foundation… fear of the Lord" line should be cited as CT 505.2 ("Piety and religious experience lie at the very foundation of true education") or 13LtMs Ms 25, 1898 par. 23.
+- **No. 3:** Ed 13.1; Ed 195.1.
+- **No. 33:** CT 308.2.
+- **No. 11 / no. 95:** SpM 134.4; Ed 219.1; the garden as "math and science" room; "country living… useful work".
+- **No. 6 / no. 89:** CT 505.3 ("for the purpose of doing others good"); MH 449.5.
+- **No. 86 / no. 107:** MH 395.1; service "begins in the home… brothers and sisters".
+- **No. 92 / no. 12 / no. 14 / no. 93:** Exodus–Numbers educate the parents; Deut 6:6–7 (content + method); Judg 2:7, 10.
+- **No. 98:** Josiah's reading with Daniel's parents present (the chronology is not to be spoken).
+- **NEW candidate (Q): "Two kingdoms, two schools".** Promise: every education trains a citizen for some kingdom; which is yours raising?
+  - KJV: John 18:36; Col 1:13; Matt 6:24; Rom 12:2.
+  - EGW: Ed 30.2; FE 541.3 (E6); 2T 701.2.
+  - It could instead be the opening beat of no. 4.
+
+---
+
+### E2 · God's Schedule for Education (17v4JXACzqM) · 1:42:36 · speaker: Joshua White (delta to C4)
+
+Transcript: `true-education/02-gods-schedule-for-education.txt` (ytt --json)
+
+About 70% repeats C4:
+
+- FE 21.2 / CT 80.1;
+- the 1998 vs 2010 kindergarten surveys and the myelination timeline;
+- "a myth that we can accelerate";
+- the eye and myopia section (Alaska, Rio Negro, 10,000 lux, the outdoor-violin child);
+- "sit still and be quiet", BDNF and "free as lambs", with his own correction;
+- the herders, reading at 5 vs 7, the boys and ADHD;
+- the math catch-up, the Tanzania and Brazil stories, CG 300.4, and the seedling.
+
+It drops C4's Q&A, "creative documentation", "Satan must have a little love" and the "school detox". It adds a policy section, Jane Healy, the parent's live voice, emotional security, a memory section, a fuller reading section and three closing EGW readings.
+
+His frame is good: "we don't need the science to prove God correct… it helps strengthen our faith" (0:03:05). He closes: "are we going to wait for the world to prove God right?" (1:41:08).
+
+**Fix for C4's notes:** the outdoor-violin myopia story is about a **daughter** (C4 transcript 0:37:04 "she"; E2 the same), not "the boy".
+
+**New in 17v4JXACzqM**
+
+- **0:04:07** "Early formal academics" names a kind of education, not only a place: "I did homeschooling but that wasn't true education." The 8–10 counsel is a curriculum: nature, practical work, outdoors.
+- **0:07:15** The policy push: No Child Left Behind, Race to the Top, Common Core; the AAP play report; "There is no research evidence to support the claims that earlier is better."
+- **0:14:28** The relational brain matures from 15 months to 4½ years, so the little ones need "especially mom in the first four years".
+- **0:21:39–0:26:19** Jane Healy (_Endangered Minds_): learned helplessness, "how many children decide they are dumb", and "the school and the child are on different schedules". A girl whose every answer was "I don't know".
+- **0:26:50** **Practical:**
+  - be patient, and don't bow to "are they reading yet?";
+  - "don't just be idle";
+  - learn hands-on, spend time in nature, focus on character.
+- **0:36:06** If a young child reads, keep it to 15–20 minutes at a time, at most twice a day; three hours outdoors a day (Ian Morgan).
+- **0:44:27** Ask the school: "why is my seven-year-old boy sitting down for six hours a day?" (Catherine Davis).
+- **0:46:00** The Lego Foundation's "learn mainly through play until eight". He corrects it from EGW: "work together", not only play.
+- **0:47:32** Inner speech arrives about age eight, so young children think out loud. "Sit still and be quiet" means "stop thinking".
+- **0:49:08** **New for parents:**
+  - a live parent's voice reaches a child differently from audio, even a recording of the same parent;
+  - read the Bible story with the child on your lap rather than relying on audio devotions;
+  - Deut 6 says the parents teach, "not send them to church".
+- **0:51:45** "For a young brain emotional security is considered as important as food." Moore: daycare cannot neutralize "mother-child discontinuity".
+- **0:55:26** **Firsthand story:** a five-year-old with anger problems was "completely changed" by half an hour twice a week with an adult (hikes, firewood, weeding). "Imagine… with a parent all day."
+- **0:58:32** Memory and schooling: the Queensland song, the Maasai cow, an African village reciting a sermon "verbatim" (hearsay).
+- **1:03:15** **Reading, practical:**
+  - talk together and answer their questions ("what's that sign say?");
+  - learn incidentally, and read for a purpose, not by assignment;
+  - "about 30 hours" of instruction once the child is ready;
+  - "he just beat me to it" (a mother of a self-taught reader).
+- **1:21:27** Learn addition in the kitchen and garden, then put it on paper "in an hour" at 9–10, "saving four years of drill".
+- **1:34:23** Conscience and cause-to-effect reasoning are founded "in the first seven years". Baby Einstein and flash cards are a distraction.
+- **1:35:57** "Infancy extends… through age seven" (**DIFFERS:** CG 300.3 says "to the age of six or seven years").
+- **1:38:01** Eccl 3:1 ("God has a schedule"); Ed 41.2 ("not the forcing of instruction on an unready and unreceptive mind"); Ed 106.3 + 107.2 (spliced). The corn: "I have a promise of corn."
+- **1:40:37** Deut 28:13; 1 Sam 2:30.
+
+**Cautions (new)**
+
+- **Politics:**
+  - US education policy by president.
+  - At 1:16:15: "Satan does not want male leadership in our church… the issues that we're seeing in our church". This is denominational ordination politics. Leave it out.
+- **Brain claims used as proof**, all unsourced:
+  - left and right brain;
+  - "right hemisphere = faith, so boys need two more years to be spiritual leaders";
+  - BDNF "required" for myelination;
+  - "academic pressure suppresses spiritual development".
+- **"God never designed us to read; books are Plan B"** (0:35:04): speculation that Scripture contradicts (Ex 31:18; Deut 6:9). Don't use.
+- **CG 300.3 stretched** to "through seven". For 8–10, quote CT 80.1 / CG 300.1 (= Ed 208).
+- **Wounding lines:** "learning disability → look at the home first"; the "mom on Facebook" story. Leave them out.
+- **Hearsay** (the village sermon). "300 late starters" conflicts with C4's "9,300"; no source either way.
+- **Stretched proverb:** Prov 26:2 applied to myopia.
+- The 1904 exception is still absent.
+
+**Series mapping (new)**
+
+- **No. 10:** Ed 41.2; CG 300.3 (the real "six or seven"); CG 300.1 (= Ed 208), not read by him but the cleanest 8–10 text; Eccl 3:1.
+- **No. 70:** Ed 106.3 and Ed 107.2 cited separately; "I have a promise of corn"; Healy's learned helplessness (needs the page).
+- **No. 41:** the language-first path to reading; the self-taught reader; Suggate 2013.
+- **No. 35:** inner speech; the six-hours-sitting question.
+- **No. 9 / no. 12:** the live voice over recordings.
+- **No. 85 / no. 87:** the five-year-old changed by an adult's attention.
+- **No. 82 / no. 37:** arithmetic in the kitchen and garden; Ed 238.6 ("not merely to solve imaginary problems"), checked, not read by him.
+- **NEW candidate (Q): "Your voice, not a recording".** Promise: a parent's own voice, in a warm moment, carries what no device can.
+  - KJV: Deut 6:6–7; 2 Tim 3:15.
+  - EGW: FE 95.3 ("In the place of stranger lips…"); CG 300.4 ("the mother's loving instruction").
+  - The audio research needs a primary source before it is spoken.
+- **Optional NEW: "Learn it in life, then on paper"** (Isa 28:9–10; Luke 14:28; Ed 41.2; Ed 238.6). It could fold into no. 82.
+
+---
+
+### E3 · The Battle for the Mind (H4hVj-kIPA8) · 1:06:09 · speaker: Joshua White (delta to C2)
+
+Transcript: `true-education/03-battle-for-the-mind.txt` (ytt --json)
+
+About 75% repeats C2:
+
+- the Kurzweil/Musk hook and ChL 38.1;
+- the critical-thinking statistics;
+- Ed 17.2 read phrase by phrase, and "forehead" = frontal lobe;
+- Woodson and Hitler;
+- thinking-killers 1–8;
+- the two-year-old and the ball, and Shyers;
+- the spilled glass;
+- the Fichte → Cubberley → GEB → Harris → Russell chain;
+- ST 1878 and CT 536.3.
+
+It drops C2's memory section (Ed 230.1/230.3), Ed 231.1, Ed 57.3 and the Daniel close. Point 10 (early academics) is held for E2. It adds:
+
+- the Animal School read in full;
+- Isa 1:18;
+- the bluntest Adventist–Hitler claim yet;
+- Ross, Mann, and a Dewey "one generation" line;
+- a home-centred close (Deut 6:6–7 + FE 95.3 + AH 182.2): "don't point fingers… what can we do within our own families."
+
+**New in H4hVj-kIPA8**
+
+- **0:07:45** TDG 321.3: "God calls upon every one with whom He works to do the very highest kind of thinking."
+- **0:17:08** Isa 1:18 "Come now, and let us reason together": reasoning tied to redemption. Rom 12:2 read as "don't be a reflector".
+- **0:20:12** 1MCP 22.1, "the special work of Satan… to take possession of the minds of the youth" (context: moral purity).
+- **0:23:50** Cheap physical activity for babies and children: rocking, crawling, spinning, hanging upside down; agriculture as the core (Ed 219.1).
+- **0:25:23** **Overstimulation checklist for parents:**
+  - the causes: too many toys; a schedule full of school, homework, dance, music and swimming; too much school; media;
+  - the signs: stress, over-activity, irritability, overtiredness, superficial thinking;
+  - the question: "Might I be trying to put too much into their schedule?"
+  - CG 139.1 (= Ed 107.2).
+- **0:27:26** Too much study → learning problems that "self-correct" when study is cut: "what they really need is to go spend some time outside" (unsourced).
+- **0:28:30–0:32:37** The Animal School read in full and framed honestly: "obviously no such thing ever happened". "God loves diversity… a specific place for every individual."
+- **0:34:15** His own 4.0 GPA: studied late, tested in the morning, forgot an hour later. **0:34:47** Rote Bible memorization without understanding "doesn't require thinking either".
+- **0:38:20** Age-segregation history ("I don't fault them… it is kind of logical"). Greenberg; a professor friend: "children don't learn how to be adults from other children"; Gatto: "what big people were up to".
+- **0:48:44** Ed 220.2: "An education derived chiefly from books leads to superficial thinking. Practical work encourages close observation and independent thought."
+- **0:49:15** **Teach them to think:**
+  - let them figure things out "not by themselves", with you there;
+  - let them explore;
+  - let them make minor practical mistakes and clean them up, building cause-to-effect reasoning that "will transfer into moral decision-making";
+  - don't shield them from "little owies".
+- **0:59:32–1:03:39** New "designer" quotes: Ross 1901, Cubberley 1909 ("the child is my child" moves here from C2's Dewey), Dewey ("less than an hour a day… broken in about a generation"), Mann ("hostages"). "The system isn't broken; it is doing precisely what it was designed to do… we can't fix this system."
+- **1:01:04** The alternative: Deut 6:6–7; FE 95.3 ("The home and the school were one"); AH 182.2. **1:03:09** ST 1878 read to "The salvation of the young depends almost wholly upon the training they receive in childhood".
+- **1:04:10** **Close (usable):** "Don't point fingers at society… at media… We have the ability within our own homes."
+
+**Cautions (new)**
+
+- **"Over 90 percent of the Seventh-day Adventist church voted for Hitler… distributing notices to their churches"** (0:19:41, 0:56:28):
+  - denominational and unsourced, and wrong as stated;
+  - ballots are secret;
+  - the NSDAP peaked at 37.3% (July 1932) and 43.9% (March 1933);
+  - Hitler was appointed chancellor;
+  - the ~90% is the 1934 plebiscite, after he took power.
+
+  Leave it out entirely.
+
+- **"The counter-reformation began in Germany… in the Jesuit system":** wrong. Rome and Trent; the Jesuits were founded in Paris and Rome. The "Satan designed an entire educational system… we can't fix it" frame is conspiratorial and condemns families' choices. The prairie-dog "homeschool group" punchline scores off schools; end the Animal School before it.
+- **Attributions:** the Dewey "one generation" line has no known source; Mann "hostages" needs a source; "the child is my child" moves between Dewey (C2) and Cubberley (E3, E5). Use none of them.
+- **The New York lunch study "14% better on IQ tests"** is wrong: Schoenthaler et al. 1986 measured achievement percentiles, not IQ.
+- **1MCP 22.1 context:** the text continues "to corrupt their thoughts, and inflame their passions" (moral purity). He uses it for thinking skills.
+- Forehead = anterior cingulate cortex, and Rev 7 prophecy plus brain science: repeats from C2. Leave out.
+
+**Series mapping (new)**
+
+- **No. 2:** TDG 321.3; Ed 220.2; Isa 1:18; the rote-memorization caution.
+- **No. 44:** the Animal School as an openly framed allegory, stopped before the prairie dogs.
+- **No. 70:** the overstimulation checklist + CG 139.1; Isa 30:15; Ps 46:10.
+- **No. 37 / no. 53:** small mistakes, cause and effect, "not by themselves, but with you there".
+- **No. 85 / no. 87:** "children learn to be adults from adults".
+- **No. 69:** Kardaras, _Glow Kids_ (checkable); "even good content can be addicting".
+- **No. 12 / no. 9:** Deut 6:6–7 + FE 95.3 + AH 182.2; ST 1878.
+- **No. 78:** Ross 1901 and Cubberley 1909 as primary documents (no plot implied); not the Dewey or Mann lines.
+
+---
+
+### E4 · Time to Leave but No One to Go (IqjvDKq_e5g) · 52:34 · speaker: Joshua White (delta to B8)
+
+Transcript: `true-education/04-time-to-leave.txt` (ytt --json)
+
+About 85% repeats B8 and C12: the Haskell readings, the PK decree sequence, Esther, the 1,496, and the parallels chart. It opens with a recap of "previous messages… here" (Deuteronomy, the Hebrew maxim) instead of 1 Cor 10. Like C12, it omits the public-school, Battle Creek and Baucham block. It also omits 2SM 356.5, the "watch the flowers growing" text: **no EGW is read for country living in this talk.** What it adds is the strongest city-to-country framing of the three versions, and more PK readings in the parallels chart.
+
+**New in IqjvDKq_e5g**
+
+- **0:07:53** SDP 36.3 and 5T 463.2 are read in full, through "Many will be called to speak before councils and in courts of justice, perhaps separately and alone. The experience which would have helped them in this emergency they have neglected to obtain". He applies it: "it might seem difficult to follow God's plan now… it's only going to get more difficult".
+- **0:13:41** The seventy years as a time to prepare: "build houses, be peaceful… but it's only going to last 70 years… don't get too comfortable… every year… one step closer to going back".
+- **0:20:59** "Let's not be too hard on… Israel… they had their gardens put in… fruit trees planted… jobs… families… friends… safety". It was "not an issue of convenience; this was an issue of obedience… not how many might feel like going but how many would obey."
+- **0:31:17** **Esther as a city lesson (the core new material):**
+  - "Why was Mordecai even there?… The story of Esther is not showing the correctness of the course of God's people, it is showing the mercy of God… He had also given them clear counsel about where they were to be living."
+  - **Romania:** a village friend said life under communism "wasn't that bad… most of what you read about happened in the cities".
+  - "Has God given us a message about where we should be living? Does He know what's coming on our cities?… Leaving the city isn't the only part of leaving Babylon; you can bring the city to the country… but the physical location that you live is a major part of God's message to come out of Babylon."
+  - "Just as God's people in the time of Esther found themselves in a difficult situation because they were living in the city of Shushan, so will God's people in the last days living in the cities find themselves in a much more difficult situation."
+  - SDP 174.1 is read unattributed ("consternation… a bitter wail… within a year death would be their lot").
+  - "Is it going to take persecution to get us out of Babylon?… There is a sacrifice involved… [to leave the city] and change our diet and our dress and our education… it's not going to get any easier… it's only to prepare us and to make our lives easier when these hard times come."
+- **0:37:04** PK 612.2 and PK 614.1 are read as separate quotations this time, not spliced. He adds that "1,496 men" probably came with wives and children. "None of the Levites showed up" is still overstated (PK 612.3; Ezra 8:18–20).
+- **0:39:05** The parallels chart, now with PK readings:
+  - PK 558.3 (rejoicing at the decree = the first angel before 1844);
+  - PK 570.1 (refused alliance = the second angel);
+  - PK 572.1 and PK 573.1–574.1 (workmen go home to "temporal prosperity" = Laodicea);
+  - PK 579.4 ("for months before this decree… kept on working by faith"): "We're just supposed to pray for the Holy Spirit… and when that happens then we can get to work. God says no, get to work, and it is those who are working that will have the Holy Spirit poured out";
+  - PK 587.2 + 591.2 (splice);
+  - PK 600.3 and GC 635.1;
+  - Nehemiah 7 = the review of the books.
+- **0:46:50** **Practical close, "where we live" first:** "God has given us a message to come out of the cities… some of the strongest counsel… **Don't let the consideration of jobs or schools or friends or convenience or anything else keep you from obedience.** But we can bring Babylon to the country."
+  - Media: "video games… evil… destroy these things, cut the cords, burn them… media… a tool and not a toy".
+  - Diet.
+  - Daniel "let them… put him through the indoctrination of Babylonian university… forced into it, but he didn't resist… but… his diet he would rather die than sacrifice".
+  - Dress.
+- **0:49:26** **Education:** "perhaps our children are attending Babylonian schools, which… is pretty much all of them these days: any school which does not have the word of God as its basis". Then: "**don't consider yourself exempt just because you're homeschooling. Babylonian curriculum is the one most commonly in use today**… we don't need man's words, man's curriculum".
+- **0:51:01** The 144,000 ("debate as to whether it's a literal number… not the point") beside the 1,496: "not how many… but am I part of that number?"
+
+**Cautions (new)**
+
+- **Country living.** This is the most fear-framed of his three versions (B8, C12, E4).
+  - The motive given is the coming persecution of city dwellers (Shushan, Romania, "what's coming on our cities") and "obedience". The children's-environment motive of C12 and E1/E5/E6 is absent, and no EGW text on country living is read.
+  - **Beyond the source:** the Esther reading. PK 600.1 does say the Jews who stayed "refused to take advantage of the way of escape God had provided", but that was about leaving Babylon for Jerusalem. Applying Shushan to modern city dwellers is his own extension.
+  - The Romania anecdote is used as evidence, and it is one secondhand report.
+  - "Don't let jobs or schools or friends… keep you from obedience" makes moving a test of obedience without the counsel's own qualifiers ("unnecessarily", CL 9.4; family circumstances).
+  - For the series, keep only the positive form: the place a family lives shapes the children (2SM 356.5; SpM 134.4; Ed 33.3).
+- **Condemning families' choices:** "Babylonian schools… pretty much all of them"; "Babylonian curriculum" even in homeschools; video games "evil… burn them". The homeschool line is a fair point for no. 91 (method over setting), but not in this tone.
+- **The prophetic chart:** 1844, Laodicea, the latter rain, "unbelievers providing funds", the Sunday law, the 144,000. Not usable.
+- **Haskell read unnamed:** SDP 36.3, 173.1, 174.1 and 163.1. He names Haskell elsewhere in the talk.
+- **Daniel 1 as "indoctrination… forced into it":** the Ritsema reading (see B8, C12).
+- Ezra 2:64–65 adds to 49,897 (42,360 + 7,337 + 200 singers). His "49,997, three short of fifty thousand" is off by 100. Trivial, but wrong.
+- "Pray for the Spirit, then work" vs "work and receive": a good point that PK 579.4 supports.
+
+**Series mapping (new)**
+
+- **No. 95:** use his Romania story and Shushan only as negative examples of framing. The episode's ground stays 2SM 356.5, SpM 134.4 and Ed 33.3, with C12's "the right environment for our children".
+- **No. 99:** PK 612.2, 614.1 (read cleanly here); PK 598.1; "not convenience but obedience" (with Jer 29:5–7, 10).
+- **No. 91:** "don't consider yourself exempt just because you're homeschooling… curriculum" (method over setting; soften the tone).
+- **No. 69:** "a tool and not a toy" (media).
+- **No. 47 / no. 99:** PK 579.4 (they kept working by faith before the decree came); Hag 1:4–6 with PK 574.1 ("the desire to escape poverty has led you to neglect the temple").
+- **NEW candidate (Q), optional: "Get to work, and the help comes".** Promise: God's people kept building before the permission came, and the help met them at work.
+  - KJV: Hag 1:4–8; 2:4; Ezra 5:1–2; 6:7–8.
+  - EGW: PK 579.4; PK 574.1.
+  - Adult-facing; for the series it would have to become "children learn faith by doing the work before they see the result".
+
+---
+
+### E5 · True Education: Its Urgency, What It Is, and Where It Must Begin (TkYkO_ry6eY) · 1:01:01 · speaker: Joshua White (delta to E1)
+
+Transcript: `true-education/05-urgency-what-where.txt` (ytt --json)
+
+He announces it under E1's title, "True education: a peculiar message for a peculiar people". It was streamed over Zoom for the Present Truth Outdoor Camp. About 0:02:35–0:41:00 repeats E1 nearly line for line:
+
+- the history opening;
+- royalty;
+- two kingdoms;
+- the three components;
+- the foundation parable;
+- agriculture;
+- Sutherland;
+- missionary training.
+
+The Japan story and the endorsements of _Education_ are dropped. The last 20 minutes are new: the urgency, John 1:11, "where it must begin", and the "false education" quotations. The close (Deuteronomy and Josiah) is shorter than E1's.
+
+**New in TkYkO_ry6eY**
+
+- **0:07:19** A sequence: the health message (1863), then education "about nine years later in the early 1870s", then "righteousness by faith in the 1880s". Education prepares for righteousness by faith and for the loud cry. This is denominational history.
+- **0:16:35** **Ed 30.2 as a test for parents and teachers:** "look at every textbook, every curriculum, every activity, every conversation… is it focused on the redemption of the student? If not, it is not part of true education."
+- **0:19:43** Prov 9:10 applied: "parents can do this as they themselves are connected with God and they invest in relationship with their children… so that their children see in their parents' example who God is".
+- **0:21:50** The "sources of truth" (Ed 17.2) glossed as "the Bible, the Spirit of Prophecy and nature".
+- **0:26:29** "Divided" means about half the day for youth, and for young children "even more time… in physical activity, all the day really… academic training around 8 or 10". The half-and-half is his gloss, as at B6.
+- **0:29:06** Gardening children "do better at school". "This is one of the reasons God has designed that we should be living in the country; He provided this environment… as the ideal environment to provide our children with true education."
+- **0:30:10** **Appeal:** "many families are living in the city and not being involved with agriculture… I appeal to every family here: get your children in a place where they can be involved in agriculture; and to teachers… start an agriculture program or if need be move the school."
+- **0:38:58** CT 545.3: missionary work is part of the curriculum, aimed at "the families in the community around them", not evangelistic trips. Distant lands come after graduation (paraphrase of CT 549.1).
+- **0:41:03** **The urgency:**
+  - John 1:11; DA 27.1;
+  - "the Jews did not receive Jesus because of false education… they adopted worldly methods of education into their own God-given system… Satan was able to work through the education of their young people" (his inference; nearest DA 299.3, "the work that had been wrought by false education");
+  - "Will we know Him when He comes?"
+- **0:44:09** **Where it must begin:**
+  - schools following true education are "few and far between", and he appreciates them;
+  - "if we focus this message on the schools alone we're missing where true education really must begin";
+  - AH 182.2;
+  - Ed 276.3 ("Never will education accomplish all… until the importance of the parents' work is fully recognized, and they receive a training");
+  - "How do I get training?… start with the book called _Education_. This is a book written for parents and teachers."
+- **0:47:17** The other side's view of the family, read as quotations:
+  - Cubberley, 1909 ("the child is my child will not be accepted much longer");
+  - the "Rockefeller General Education Board", 1913 ("perfect docility to our molding hands");
+  - Edward Ross, _Social Control_ ("little plastic lumps of human dough");
+  - "John Dewey" (sports and homework leave parents "less than an hour a day… the church's influence… broken in about a generation");
+  - Horace Mann ("parents as giving hostages to our cause").
+
+  "This is a battle for the souls of our children."
+
+- **0:51:00** ST Dec 19, 1878 ("the position of a parent… the salvation of the young depends almost wholly upon the training they receive in childhood").
+- **0:54:05** FE 95.3: "God commanded the Hebrews to teach their children… **The home and the school were one.** In the place of stranger lips…". This is a stronger Deut 6 support than PP 592.2, which lacks that sentence.
+- **0:56:12** **A balance line:** "the content… the Bible, the Spirit of Prophecy, nature… the method is parents, families, the greatest educational agency, **aided by the schools** which… should be following true education".
+- **0:59:18** Close: "every parent, every teacher… take up your responsibility with a new earnestness… study the book _Education_".
+
+**Cautions (new)**
+
+- **The Cubberley / GEB / Ross / Dewey / Mann block** is the "false education plot" frame. The series rules leave it out.
+  - The Dewey line has no known source.
+  - "The child is my child" is given here to Cubberley but in C2 to Dewey ("author uncertain"). The attribution conflicts, so don't use it.
+  - The GEB words are F. T. Gates's (1913).
+  - Ross's book is from 1901, not 1900.
+  - The Mann "hostages" line needs a primary source.
+- The health → education → righteousness-by-faith sequence and the "loud cry" frame: denominational.
+- "The Jews rejected Jesus because of false education" is wider than DA 299.3 (see E7 / C13).
+- **Country living:** the motive stated is the children's education and agriculture ("ideal environment to provide our children with true education"). It is invitational, not fear-based. "Move the school" is institutional and not for the series.
+- "Sources of truth: Bible, Spirit of Prophecy, nature": insider phrasing.
+
+**Series mapping (new)**
+
+- **No. 92 / no. 9:** Ed 276.3 (the parents first need training); AH 182.2; ST Dec 19, 1878 Art. A par. 1.
+- **No. 79:** "parents… aided by the schools" (his line) + FE 95.3 ("The home and the school were one").
+- **No. 12:** FE 95.3 (= PP 592.2 without the "home and school" sentence).
+- **No. 100:** John 1:11; DA 27.1.
+- **No. 107 / no. 86:** CT 545.3; CT 549.1.
+- **No. 11 / no. 95:** "get your children in a place where they can be involved in agriculture" (an appeal, not a verdict).
+- **No. 1:** the "redemption test" for every textbook and activity (Ed 30.2).
+
+---
+
+### E6 · Educating Royalty (dZt9KWtxmOQ) · 1:07:23 · speaker: Joshua White (delta to E1)
+
+Transcript: `true-education/06-educating-royalty.txt` (ytt --json)
+
+This is the Friday-evening opener of the February 2022 seminar, at the church where he gave E1 ("a little bit of review… repetition deepens impression"). About 55% repeats E1: royalty, two kingdoms, the three components, the foundation, the Sutherland passages, and the Japan story (moved to the close). It drops the 1844 history and the Deuteronomy/Josiah close, which E8 and the later sessions take up. It adds much more practical detail on physical and missionary training.
+
+**New in dZt9KWtxmOQ**
+
+- **0:00:30** Who education is for: AH 182.2 ("not just… teachers"); CT 51.1 ("In the school of Christ students are never graduated… both old and young"). "It's all of us… throughout eternity."
+- **0:02:35** **Hook: Edward, Prince of Wales** (born 2 Nov 1470) and his father's 1473 regulations, "from the article I was reading":
+  - woken "at a good hour according to his age";
+  - mass, then breakfast, then "virtuous learning";
+  - dinner at 10 a.m. with "noble stories… nothing… that would move or stir him to vice";
+  - grammar, music and humanities in the afternoons, then physical activity.
+
+  Then Rom 8:16–17 and 1 Pet 2:9. Already the lead for no. 90; it still needs the ordinance text.
+
+- **0:11:29** Israel did not recognize their deliverer because worldly education was mixed into theirs (repeated at 1:05:28).
+- **0:17:40** "As you start in true education, this is a lifestyle change. This isn't something you just start to do for a few hours a day or a certain book you give your children" (from his family consulting).
+- **0:18:43** Ed 30.2 as a measure: "analyze… the textbook… everything that happens throughout the daily life… will this help in their redemption?"
+- **0:21:50** The fear of the Lord means "a recognition of who He is and a respect for His commandments, and that obedience is the happy way to live". Knowledge of the Holy means relationship, which "begins in the home as the little ones are connected with mom and dad".
+- **0:26:33** "The foundation is laid in the home in **morning and evening worship**… as parents talk and walk with their children… all day every day."
+- **0:27:36** COL 330.3: "True education is the preparation of the physical, mental, and moral powers for the performance of every duty… the education that will endure unto eternal life."
+- **0:30:45** Ed 195.1, read "in _Child Guidance_" (CG 360.4, correct). "Many times children who are having learning disabilities, if we… simply give them physical activity, it will often fix a lot of those problems." Then Chaddock's hippocampus study and Ratey's "ready, willing and able to learn".
+- **0:33:50** **The cake:** "divide" doesn't mean shaving off a translucent sliver. "He's talking about a major portion of the day spent in practical work… this doesn't mean just exercise."
+- **0:35:54** **Three kinds of physical training:**
+  - useful work, "the daily activities of the home… washing dishes, doing the laundry, sweeping the floor";
+  - manual training (a trade);
+  - learning and applying the health of the body.
+- **0:37:27** The trade sequence:
+  - CT 307.3 ("Physical employment is a part of the training essential for every youth");
+  - TDG 203.5; Ed 218.1;
+  - Israel taught every child a trade "even if they were wealthy" (paraphrase of CT 307.1, "the wealthy as well as the poorer classes");
+  - CT 146.2 (it begins in the home and the school continues it);
+  - Ed 218.2.
+- **0:40:05** **Gardening:**
+  - one study's gardening group "outperformed the control group… in all areas: general information, reading recognition, reading comprehension… mathematics, spelling and written language";
+  - _M. vaccae_ "reduce[s] depression… lung health… immune system… fight cancer… arthritis… allergies… raise your IQ";
+  - "Dirt: the new Prozac";
+  - farm children have "less than half the incidence of allergies and asthma";
+  - a secondhand story of elderly patients "cured" of depression by soaking their hands in soil.
+
+  "Think about all the academic subjects you can learn in the garden: counting, measuring, division… so much science… **just one of the huge benefits of living in the country, an ideal environment for children**."
+
+- **0:45:15** On "A B and C": "you start with… agriculture… some people take agriculture as that's true education. No, it's the start… not the sum total."
+- **0:47:20** He introduces Sutherland as "the educational pioneer… helped found the Madison school". His preview for the next day: the founders of modern schooling "explicitly say we are aiming to destroy a person's free will" (the C2/E3 lineage).
+- **0:52:00** MH 402.2 ("It is the use they make of knowledge that determines the value of their education").
+- **0:54:35** **Missionary training made practical:**
+  - CT 545.3: "given time… not just on their school break";
+  - Ed 269.2 ("It is acquaintance that awakens sympathy"), with a told-as-hypothetical neighbour: a man limping past your house every day, caring for his sick mother, whose bicycle was stolen;
+  - "sitting in the house watching TV… even reading books is not a very good way to awaken sympathy in their hearts; they need to get out and get acquainted";
+  - CT 545.3 cont. ("not be so loaded down with studies"); CT 549.1.
+- **0:58:45** CE 223.1 (= GW92 279.2): "When the youth give their hearts to God, your care for them should not cease… Lay some special responsibility upon them." "We… finally success [at baptism]… don't stop there… That means we should be engaged in service ourselves; it'd be a lot easier… to just bring them along."
+- **1:00:48** FE 541.3: "His object is effectually gained when, by perverting their ideas of education, he succeeds in enlisting parents and teachers on his side." "That's not where he starts… he starts with confusing parents' and teachers' ideas of education."
+- **1:01:50** The Japan story as the close (captions garble the year). "The secular science is coming along and saying, oh yeah, that's correct. Are we going to wait for the world to catch up?"
+
+**Cautions (new)**
+
+- **Health and science overclaims:**
+  - _M. vaccae_ is real (Lowry et al. 2007, in mice; a mouse maze study is behind "smarter"). "Fight cancer", "treat arthritis" and "raise your IQ" are overstated.
+  - The farm-allergy finding is real, but it is tied to broad microbial exposure, not this one bacterium.
+  - The elderly-depression "cure" is an unsourced anecdote.
+  - "Activity will often fix learning disabilities" is an overclaim.
+
+  Leads only; no. 20's no-health-claims rule applies.
+
+- **Denominational and lineage:** Sutherland "helped found the Madison school"; the "destroy free will" preview.
+- **An aside:** "everything that's been happening the last two years to distance people" is "the attack of Satan" (COVID era). Leave it out.
+- **The neighbour:** a hypothetical illustration, framed as such ("imagine"). It is not fiction presented as fact, so it is fine to adapt.
+- **FE 541.3 context:** the same paragraph opens "The necessity of establishing Christian schools… Schools are needed where the word of God is made the basis of education". The remedy in the source is Christian schools; he uses it for the ideas of parents and teachers in general. That is fair, but wider.
+- "Competitive sports… not good for our characters" (0:37:27), again his own line.
+- "Morning and evening worship" as the foundation: good counsel; it carries no text here.
+
+**Series mapping (new)**
+
+- **No. 90:** the Prince of Wales hook (needs the 1473 ordinance text); CT 51.1.
+- **No. 37:** the three kinds of physical training; household duties (dishes, laundry, sweeping) as part of education; CT 307.3.
+- **No. 31 / no. 27:** Ed 218.1–218.2; CT 146.2 (home first, then school); CT 307.1 (Israel's rich and poor alike learned a trade).
+- **No. 33:** CT 308.2 + the cake "divide" illustration (AH 508.3, with its youth context).
+- **No. 3:** COL 330.3.
+- **No. 11:** the garden as a classroom for counting, measuring and science; "the A B and C… not the sum total".
+- **No. 107:** Ed 269.2 with the neighbour illustration; "TV, even books, don't awaken sympathy; acquaintance does".
+- **No. 86:** CE 223.1 / GW92 279.2 ("Lay some special responsibility upon them").
+- **No. 4 / no. 1:** FE 541.3 (Satan's aim is the parents' and teachers' ideas of education).
+- **No. 104 / no. 109:** "the foundation is laid… in morning and evening worship".
+- **NEW candidate (Q): "After the baptism".** Promise: the day a young person gives his heart to God is the start of his training, not the finish line.
+  - KJV: 1 Tim 4:12; 2 Tim 2:2; Mark 5:19; Acts 16:1–3.
+  - EGW: CE 223.1 (= GW92 279.2, "your care for them should not cease… Thus they will grow up to be workers for God"); CT 545.3.
+  - It overlaps no. 86, so it could be no. 86's second half.
+
+---
+
+### E7 · Not Recognizing Jesus (k0mNCC9Hr2I) · 50:54 · speaker: Joshua White (delta to C13)
+
+Transcript: `true-education/07-not-recognizing-jesus.txt` (ytt --json)
+
+A Sabbath sermon after a Sabbath school led by "Wendell"; the same members answer from the floor in E8. About 75% is C13, in the same order and with the same readings:
+
+- DA 27.1 and DA 299.3;
+- Ed 24.2, 25.2, 28.3; COL 158.2; DA 35.2;
+- Sutherland and Haskell's Greece chapter;
+- Ed 126.2 against Plato;
+- Gilbert 1933;
+- PK 709.2 and DA 29.4;
+- the "180 years" rewrite;
+- John the Baptist and Jesus.
+
+It drops the humanism segment (AHA, Dewey, Montessori, Mason), cry-it-out, "sin can't be overcome", the doctor illustration and 1SM 407.3. It is the gentler, shorter version.
+
+**New in k0mNCC9Hr2I**
+
+- **0:03:21** DA 299.2 read up to 299.3: the crowd hoped for "the rich and costly robes of their conquerors". This is the hope that false education had shaped.
+- **0:07:29** **Illustration:** someone warns "don't go into that building, it's dangerous", and I go anyway. Distrust puts my judgment first; self-seeking grows from distrust. Plain and usable.
+- **0:15:14** The captivity as mingling: Israel dressed, ate and schooled like Babylon. About 50,000 returned (Ezra 2:64–65, correct). "The story of Esther should never have happened."
+- **0:39:41** **The school examples, softened, with no educator named:**
+  - a little child sent off to school "now has to fend for himself… harder… to learn to rely on Jesus later" (his reasoning; no EGW);
+  - grades, honours and degrees teach self-dependence;
+  - "even if we're home educating… man's methods, man's curriculum" can teach the same. This is C13's best line, now without names.
+- **0:42:49** Applied to "our church": "man's methods of evangelism, health, worship… are we content with a thus saith the Lord?"
+- **0:46:24** Jesus' education: the exact paragraph is **Ed 77.2** ("Jesus followed the divine plan of education… directly from the Heaven-appointed sources; from useful work, from the study of the Scriptures and of nature, and from the experiences of life"). "Do we have these today?… good enough for Jesus, good enough for us?" The C13 row (MH 400.1, "adds 'directly'") is better read as Ed 77.2.
+- **0:46:24** "John the Baptist's parents… in humble recognition of the superiority of God's wisdom… separated themselves from worldly wisdom": **NOT FOUND** (perhaps Sutherland, or his own summary). The nearest is Haskell, SDP 191.2.
+- **0:47:25** SDP 191.2, unattributed: Christ "never entered the schools of his day because of the mixture…". Haskell; the middle is reworded.
+- **0:47:55** SpM 52.2 (1896): the Saviour "did not encourage any to attend the rabbinical schools… These lesson books He reaches out His hand to remove, and in their stead places the Old and New Testament Scriptures… dig for the truth as for hidden treasures". He drops the antecedent: the lesson books are "infidel authors".
+
+**Cautions (new)**
+
+- "Especially in the universities, it's a dangerous place" (0:41:16): condemning (see C14).
+- Insider jabs: "teachers of theology"; "our church… man's methods of evangelism, health, worship".
+- "Esther should never have happened" is opinion beyond the text (Esth 4:14). "Hundreds of thousands" stayed in Babylon: unsourced.
+- **Haskell read unnamed** three times: SDP 190.2 (right after Gilbert, so it sounds like Gilbert), SDP 191.2 and SDP 197.3–198.1.
+- Gilbert's errors repeat: "rabbi a degree of Greek origin"; "the Sanhedrin which crucified Jesus". New: "gaon" in a pre-Christian list is anachronistic.
+- The DA 27.1 "180 years… Seventh-day Adventist" rewrite (0:38:08).
+
+**Series mapping (new)**
+
+- **No. 100:** DA 299.2 beside DA 299.3.
+- **No. 17:** Ed 77.2 (use it whenever "followed the divine plan" or "directly" is spoken); SpM 52.2 (= 11LtMs Ms 41a, 1896 par. 20) with Prov 2:4.
+- **No. 96:** Luke 1:80, plus Haskell SDP 191.2 (pioneer only), for John's parents taking him to the desert.
+- **No. 106:** the "don't go into that building" illustration; the small child who "has to fend for himself".
+- **NEW candidate (Q): "Mostly true".** Promise: Satan's first lesson was not a lie but a mixture. Is a mostly-true education safe?
+  - KJV: Gen 3:4–5; Col 2:8; 1 Tim 6:20; Isa 8:20.
+  - EGW: Ed 24.2 ("falsehood… concealed under a covering of apparent truth"); Ed 25.3; DA 35.2.
+  - Keep Plato and Greece out of speech.
+
+---
+
+### E8 · Daniel Chapter Zero (k7cS6quJMeQ) · 51:41 · speaker: Joshua White (delta to B2)
+
+Transcript: `true-education/08-daniel-chapter-zero.txt` (ytt --json)
+
+This is the Sabbath-morning session of the February 2022 seminar ("lunch and then… this afternoon"). About 80% is B2, closest to C10:
+
+- Eden → Fall → patriarchs (Ed 20.1, 33.1–33.3);
+- Moses and Samuel only (PP 243.4–244.1, CG 197.1);
+- FE 95.3–96.1;
+- 2 Kings 20 → Manasseh → Josiah;
+- Haskell SDP 16, 19, 20, 26, 49;
+- Ps 119:99–100 and Ed 276.3.
+
+It drops Noah, Isaac, Joseph, Elisha, Naaman's maid, Esther, the 4T 570.1 age arithmetic and 4T 198.2. It adds a few reasons and PK 396.2.
+
+**New in k7cS6quJMeQ**
+
+- **0:10:56** Why God set the parents between Christ and the child after the Fall: "children need to experience that relationship and connection with a real tangible person to help them learn to experience that relationship with God… a new level of parental responsibility that didn't exist before sin" (his reasoning on Ed 33.2).
+- **0:12:28** Ed 33.3: "God calls the family a school… still is that today". On cities he says only "a whole other sermon… country living". **He leaves out Ed 33.3's "the cities of today the world's pride and its curse."** No fear framing.
+- **0:19:15** **"Almost from infancy" (FE 95.4) balanced:** "don't take that to mean giving them a Bible and forcing them to read from an infant… God's plan was based in relationship… a natural process… throughout everyday life."
+- **0:22:22** "This was available to Daniel; is it available to us?" Every family has the same three sources.
+- **0:32:18** PK 396.2: Josiah "trembled for the future. The perversity of Judah had been great".
+- **0:34:52** Josiah was told the judgment would come after his death (2 Kgs 22:20). Instead of washing his hands, "he worked even harder… to prepare [the youth] for that crisis" (2 Kgs 23:1–3).
+- **0:39:04** Deut 6:6: "What does it mean for the words to be in your heart? It changes you… you act upon them." Then v. 7 as "bookends of the day and everything in between".
+- **0:42:12** "Daniel's parents were probably criticized because they weren't doing… what everyone else was doing." Conjecture, but an encouragement if marked as such.
+- **0:44:48** "Babylon… the educational center of the world… linguists… every nation" is Haskell **SDP 29.1**, which answers B2's "needs a primary source". It is a pioneer author, not a historian.
+- **0:47:23** "When we are faithful to connect our children with the source of wisdom we need not fear they could be torn from us."
+- **0:50:01** Ed 276.3's "training" read as Deut 6:6–7: "there's no college course on parenting… these words shall be in thine heart… then… connect with your children."
+
+**Cautions (new)**
+
+- **Huldah:** "Do we have a prophetess today? I don't think it's any accident that it… was a prophetess" (0:33:51). Denominational; doctrine read into a narrative detail (spiritualizing). Drop it.
+- **Imagined scenes:**
+  - the sign on "global news" and the envoys' dialogue;
+  - Josiah "with tears… pleading with the parents";
+  - "four mothers… or maybe they were brothers";
+  - "very likely heard Psalm 119";
+  - the parents "criticized";
+  - Daniel's "bachelor's degree".
+
+  Mark any that are used as imagination, or keep them out.
+
+- **Chronology:** "90 or 100 years before Daniel" (about 80); "one or two years before Daniel was born" (inference); "Dan 1:6" should be Dan 1:4.
+- **Schooling rhetoric:** "not gained in the schools of the time… is that any more true today?" The SDP 26.2 reading again leaves out Haskell's own balance: grounded youth may "enter worldly universities… and come forth unsullied".
+- **Repeats from B2:** Daniel as the 144,000; Cyrus as a type; "voices of the prophets" read as the Spirit of Prophecy; SDP 49.1 unattributed (the image-of-the-beast decree).
+
+**Series mapping (new)**
+
+- **No. 98:** PK 396.2; 2 Kgs 22:20 with 23:1–3 (he prepared the next generation anyway); 2 Chr 32:31 to keep the envoy scene in Scripture.
+- **No. 9 / no. 92:** why parents stand between Christ and the child (on Ed 33.2).
+- **No. 12:** "in thine heart" first (it changes you), then "teach them diligently".
+- **No. 13 / no. 10:** "from infancy" means relationship, not forced reading (FE 95.4).
+- **No. 19 / no. 21:** SDP 29.1 as the source of "Babylon's university"; Ps 119:99–100.
+- **No. 95:** Ed 33.3 read without fear (note the skipped "cities" clause).
+- **No. 9 / no. 73:** Ed 276.3 with Deut 6:6 as "the training".
+
+## F · Uchee Pines Education Seminars
+
+URL: https://www.youtube.com/playlist?list=PLLa98Guf3JC26vNrsiVzbMFf5YugYstPb
+Folder: `transcripts/white/uchee-pines/`
+
+| #   | Id          | Length  | Title                                 | Speaker                                           | Uploaded   |
+| --- | ----------- | ------- | ------------------------------------- | ------------------------------------------------- | ---------- |
+| F1  | uW_-humJ3lY | 1:04:14 | A Thinking Generation                 | Joshua White                                      | 2018-01-29 |
+| F2  | gcj3iiqG8TE | 1:15:45 | Doing the Right Job at the Right Time | Joshua White (host's opening prayer 0:00–0:01:46) | 2018-01-25 |
+| F3  | dIN451W9qI4 | 1:09:28 | iChild                                | Joshua White                                      | 2018-01-29 |
+| F4  | P3pf6YfTrcA | 1:04:55 | Respectable Conventionality           | Joshua White                                      | 2018-01-26 |
+| F5  | zDL8D4BVxXk | 1:04:52 | Will It Ever Be Easy                  | Joshua White                                      | 2018-01-25 |
+| F6  | CRk5Fcbh6Cs | 53:16   | iChild                                | Joshua White                                      | 2016-11-22 |
+| F7  | tVbaViM8crI | 1:06:47 | Respectable Conventionality           | Joshua White                                      | 2016-11-21 |
+
+All uploaded by Uchee Pines Institute (Seale, Alabama). Two seminars: F6–F7 come from the late-2016 seminar ("if you were here last year I did a session called iChild", F1); F1–F5 from the January 2018 seminar, given a week after the Autumn Leaves NZ series (D) and on a broken leg from his May 2017 crash in Tanzania. Only F5 is a new talk. F1 is a delta to C2, F2 to C4, F3 to C5, F4 to D3 (same talk a week apart), F6 to F3 (its earlier form) and F7 to F4 (its earlier form).
+
+### F1 · A Thinking Generation (uW_-humJ3lY) · 1:04:14 · speaker: Joshua White (delta to C2)
+
+Transcript: `uchee-pines/01-a-thinking-generation.txt` (ytt --json). Uploaded 2018-01-29; a morning session ("back at Uchee Pines… one leg less than last year"; he sits on a stool with a broken leg). He calls it "my talk _A Thinking Generation: 10 Tactics of Satan_… review for some of you".
+
+F1 is the 2018 form of C2 (about 75% the same): the Kurzweil/Musk hook, ChL 38.1, 1MCP 235.2, TM 302.3, Ed 17.2, Rev 7:3 / Rev 14:9 as the frontal lobe, Rom 12:2, 1 Pet 1:13, Woodson, the Hitler line, and tactics 1–9 in the same order (movement, overstimulation, too much study, testing with the Animal School, diet, age segregation with the zone of proximal development and Shyers, screens, mind-only education, no training to think). It does **not** have C2's Sutherland → Fichte → Hitler → Cubberley/GEB/Harris → Dewey chain or Ed 230.1–231.1. Tactic 10 is withheld "till Friday morning" (its symptoms, "learned helplessness… eye problems… school burnout… a major cause of our young people leaving the church", point to early academics; see F2).
+
+**New in uW\_-humJ3lY**
+
+- **0:15:58** MYP 163.1: youth "will have to battle against the powers of darkness that strive to gain control of the human mind" (VERIFIED). The paragraph goes on: God "has opened the way by which young men and young women may become partakers of the divine nature" (not read; the hopeful half).
+- **0:16:28** CT 204.4 (he gives "pages 204, 205"): "I saw standing by the side of these neglected children the one who was cast out of the heavenly courts… watching for opportunities to gain control of the mind of every child whose parents had not given faithful instruction in regard to Satan's snares" (VERIFIED). His gloss: Satan "starts at birth", not at twenty. The neglect the paragraph names is parents who put "the lines of control… into the hands of their children"; it opens by urging church schools ("The necessity of establishing such schools").
+- **0:18:03** CG 440.4 / 1MCP 22.1: "the special work of Satan in these last days to take possession of the minds of youth" (VERIFIED; the source goes on "to corrupt the thoughts and inflame the passions", i.e. moral purity, not schooling).
+- **0:18:35** CG 333.2 (= CT 84–85): "Close reasoners and logical thinkers are few, for the reason that false influences have checked the development of the intellect" (VERIFIED). He explains "checked" by his grandfather's dog-training check lead. The paragraph's next sentence names the false influence: "continued study" (so it fits tactic 3 exactly).
+- **0:08:27** 2MR 325.1: "God calls upon everyone with whom He works to do the very highest kind of thinking" (VERIFIED; context: men God uses in His work, "thinking and praying and hoping and believing").
+- **0:24:47** Point 1 ends on gardening as "the best physical activity… especially for children": Ed 219.1 (VERIFIED); "walking is the best form of exercise" (allusion; cf. HL 129.5).
+- **0:28:25** Overstimulation: Elisabeth Walling's line on the bell that ends the solar system for sentence dissection ("a child learns that no subject is truly meaningful"); counsel: guide at a natural pace, leave room for "incidental learning" (mud puddles); Healy's eight blocks.
+- **0:29:57** Raymond Moore, "quietness, calmness and freedom from artificial excitement build strength in the immature child", traced to CG 139.1 (= Ed 107.2, DA 74.3; VERIFIED). Children in Tanzania "far happier" with simple toys than a US child with a new iPad.
+- **0:37:21** Elkind, _The Hurried Child_ (caption "david elkin"; "PhD from Tufts", wrong: he taught at Tufts): the factory model labels slower children "learning disabled or ADHD"; "passing tests rather than meaningful learning is what school is all about". His own 4.0 in college as test-taking, not learning. Doris Fromberg (Hofstra): "no evidence that standardized tests make a difference in learning"; test publishers benefit. Real-life test: "you can do it and you can teach someone else".
+- **0:42:35** Diet: myelin and essential fatty acids; "breast is absolutely best"; the New York study of "1 million students" (no additives, preservatives, dyes) "14% better on IQ tests".
+- **0:43:36** Age segregation is new: Jay Feldman and Peter Gray (1930s, compulsory attendance; one-room school of ~25 children aged 5–15); "if you're homeschooling, that is a one-room schoolhouse… aged 0.5 to 99"; Dan Greenberg of Sudbury Valley ("thirty-year-old executives… socially damaging"); a friend: "where do you learn how to be adults, from other children or from adults?"
+- **0:55:10** AAP's change of guidance and Christakis "succumbed to social pressures"; researchers who say 7, 8 or 12. Promotes his _iChild_ DVD (3 × 1 h).
+- **0:58:48** Ed 220.2: "An education derived chiefly from books leads to superficial thinking. Practical work encourages close observation and independent thought…" (VERIFIED). Its subject is professional men, but the principle is general.
+- **0:59:18** Point 9: let children "figure things out for themselves, not by themselves"; allow "minor mistakes".
+- **1:00:54** ST Dec 19, 1878 par. 1 ("salvation of the young depends almost wholly upon the training they receive in childhood") and CT 536.3 (VERIFIED, both as in C2).
+- **1:02:26** Close: "it's easy to point fingers and say schools are doing so bad… we can't control the way schools run but we can control the way our family runs… the influences our children have". A gentler close than C2's.
+
+**Cautions (new)**
+
+- Science as proof, again: the cerebellum "about 40%" of neurons (it holds most of the brain's neurons, ~80%; the claim he means is about connections), children's semicircular-canal fluid "thin and watery" so they don't get dizzy (needs a primary source; looks wrong), "only 5% of us actually think", the 1-million-student "14% on IQ tests" (the New York study, Schoenthaler et al. 1986, reported gains in national achievement-test percentile rankings, not IQ), "more toys, more bored". Leads only.
+- Elkind's PhD was from UCLA (Tufts was his post); fix if quoted.
+- The Animal School: told as "a parable… no such thing ever happened", ending with prairie dogs who "start a successful homeschool group" (a jab at schools; fine as allegory if the ending is dropped).
+- "Satan… already controlling many people's minds"; the Hitler line "I think we may be seeing this played out again right now" (0:17:31): political aside; leave out.
+- Revelation 7 and 14 "forehead" = frontal lobe (as C2): prophecy plus brain science; leave out.
+- CT 204.4 is used for any neglect; the paragraph means indulgent parents who handed the lines of control to their children, and it argues for church schools.
+
+**Series mapping (new)**
+
+- **No. 2:** CG 333.2 (the false influence is "continued study"); 2MR 325.1; MYP 163.1 with its hopeful close ("partakers of the divine nature").
+- **No. 70:** Moore's "quietness, calmness" line traced to CG 139.1 / Ed 107.2; Walling's bell; incidental learning.
+- **No. 44:** Elkind's factory model; "you can do it and you can teach someone else" as the real test.
+- **No. 85:** Greenberg's office question; "where do children learn to be adults?"; the homeschool as one-room school "aged 0.5 to 99".
+- **No. 9:** CT 204.4: the enemy stands by the neglected child from the start; ST 1878.
+- **No. 11:** Ed 219.1 gardening as the best activity for children.
+
+### F2 · Doing the Right Job at the Right Time (gcj3iiqG8TE) · 1:15:45 · speaker: Joshua White (delta to C4)
+
+Transcript: `uchee-pines/02-right-job-right-time.txt` (ytt --json). Uploaded 2018-01-25. 0:00:00–0:01:46 is a host's prayer and music. He presents it as "tactic number 10" of F1: **early formal academics**.
+
+F2 is the 2018 form of C4 (about 75% the same) and covers the same ground as A2's and B7's start-age segments: CE 8.4 / CT 80.1 ("only teachers… until eight or ten"; open air the only schoolroom), the 1998 vs 2010 kindergarten surveys, myelination stages (limbic 15 months–4½; right hemisphere 4½–7 girls, to 9 boys; left hemisphere and frontal lobe from 7–9), plasticity routing work through "lower… sections", learned helplessness, eye development and myopia (Alaska, East Asia, 10,000 lux), BDNF and CT 79.1 "free as lambs", children thinking aloud, age segregation, the herders and the missing cow, reading at 5 vs 7, boys' two-year difference, and the math catch-up demonstration. It lacks C4's Q&A, the "creative documentation" aside, CG 300.4, the seedling, Plan B and "school detox".
+
+**New in gcj3iiqG8TE**
+
+- **0:05:29** Opening parable: a man pulls drowning people from a river and is "too busy rescuing them to go upstream and find out who's pushing them in". Modern psychology treats children's problems downstream; early academics is "a major source, not the only source".
+- **0:25:24** He marks his own gloss: "almost permanent organizational damage… these are my words". Then Healy: forcing a not-ready system "may create a functional organization in which less adaptive lower systems are trained to do the work" (he renames it "functional disorganization"); "the school and the child are on different schedules". "Doing school at home" can keep the same wrong schedule.
+- **0:27:27** "It may appear that a child is doing fine… but the damage is being done nonetheless… we need to take on faith that the Lord has said until eight or ten." The 2 + 3 = 5 on paper vs five apples; Healy's "missing addend" (learned by rote, forgotten the next day).
+- **0:29:32** CT 80.3: "You may bend a young tree into almost any shape… It will ever be a crooked tree" (VERIFIED). Applied to forcing academics; the paragraph is about "the disposition and habits of youth".
+- **0:32:07** Raymond Moore: a child may see clearly and still not decode print because of central-nervous-system immaturity. Myopia evidence beyond C4: Natal, Brazil (13.3% in the city vs 2.7% in surrounding tribes), Taiwan's two schools (80 minutes outdoors daily: 8% vs 18% myopic after a year), _Nature_'s "The myopia boom" (retinal dopamine blocks eye elongation), Ian Morgan (ANU) named for 3 hours at 10,000 lux; classroom ~500 lux; a New Zealand listener's 700-lux office rule.
+- **0:42:37** The Florida girl (10–12) told she'd be "legally blind" in two years: two hours outdoors daily, no progression in six months, slight improvement in a year; the eye doctor saw "no connection" (secondhand true-story claim; "God's method has always worked").
+- **0:45:11** Glasses "can often make the problem worse"; he believes early myopia "may" be reversed "as long as corrective lenses are not given and… we completely remove all close-up work for months". **Medical advice beyond his competence; leave out.**
+- **0:48:19** Proprioception: to "sit still, pay attention and visually remember the shapes of letters and numbers (aka kindergarten)" a child first needs the body-in-space sense, built by whole-body activity.
+- **0:50:25** Inner speech (Healy): little children talk aloud to think; "sit still and be quiet… we are quashing their ability to think"; inner speech comes from "individual adult attention as an adult talks with them through a situation"; it also matters "for behavior management".
+- **0:54:03** Learned helplessness sharpened: "young children believe that adults are all-knowing… they blame themselves for failure… We're sending too many children to school only to learn they are too dumb to be there."
+- **0:55:38** "Even the best daycare cannot completely neutralize the negative… effects of mother–child discontinuity" (no source named); a strong bond with a parent yields "a much more emotionally stable and socially competent child".
+- **0:57:41** Memory: North Queensland Aboriginal song of five nights; Maasai herdsmen (his own visit to Tanzania); a friend's sermon remembered "verbatim" two years later; "most children have an eidetic memory; it is rare among schooled adults". School memorizing for tests "is not going to help build their memories".
+- **1:00:48** Michael Gurian named: boys get 70% of Ds and Fs, cause 90% of discipline problems, 80% of dropouts, three of four labelled learning-disabled.
+- **1:01:50** Reading: _Early Childhood Research Quarterly_ named; the foundation of reading comprehension is language, built by conversation ("let's talk together"); "it's better to do than to read" in early childhood; Dick and Jane vs biographies and Bible stories; "30 contact hours" to read "to a college proficient level" when ready; Montessori early readers' advantage gone by 12; "a study of 300 individuals" who started at eight or later "all quickly caught up" (C4 said "9,300"; unknown).
+- **1:10:10** US literacy: 14% "completely illiterate", 29% low, 44% intermediate, 13% fully literate; Denmark, Finland "almost 100%".
+- **1:11:13** Spirituality: the right hemisphere is "heavily involved with spiritual strength"; the early years are its "critical period"; "the first seven years are the time in which character is developed" (1MCP 149.3 / CG 193, allusion); "pressure to develop the left hemisphere… suppress[es] the right"; boys get "two extra years… for spiritual strength" because they are to be "spiritual leaders of their families".
+- **1:12:46** CT 80.2 / CG 103.4 read: "greatest attention… to the physical constitution… the custom to encourage children to attend school when they were mere babes needing a mother's care" (VERIFIED).
+- **1:14:24** Close: "Are we going to wait until we have the research…? or just take on faith?" Reading list: CG, CE, FE, Ed, AH, _Special Testimonies on Education_, Sutherland's _Studies in Christian Education_.
+
+**Cautions (new)**
+
+- Brain-hemisphere theology: the right hemisphere as the seat of "faith and belief" and "spiritual strength", boys' later development as God's provision for spiritual leadership (0:15:25, 1:11:44). Pop-neuroscience plus doctrine drawn from it; leave out entirely.
+- Myopia treatment advice (no glasses; remove all close work for months) and "glasses make it worse": medical claims; leave out.
+- Statistics needing primary sources or looking wrong: "1.8 million synapses per second" (a common popular figure); NAAL 2003 percentages are real but "14% completely illiterate" is wrong (Below Basic ≠ illiterate); "almost 100% literacy" in Scandinavia (a UN-style self-report figure, not comparable); Gurian's 80% of dropouts (looks too high; C4 caution); "30 contact hours"; "300 individuals"; eidetic memory "most children" (eidetic imagery is found in a small minority of children).
+- He frames "the damage is being done nonetheless" even when the child seems fine: an unfalsifiable claim that frightens parents; keep the counsel (CT 80.1), drop the threat.
+- Hyperbole: "two years wasted"; "you can get my DVD _The Classroom of the Remnant_" (insider product).
+- Stories: river rescuer (parable, fine); Florida girl and the sermon remembered verbatim (secondhand true-story claims); Maasai herdsmen (his own visit).
+
+**Series mapping (new)**
+
+- **No. 10:** CT 80.3 (the bent tree) as a counsel image for "what's done early lasts"; the river parable as a framing hook; "take on faith… are we going to wait for the research?" (his own best line against science-as-proof).
+- **No. 70:** "the school and the child are on different schedules"; learned helplessness ("they blame themselves").
+- **No. 41:** language before reading: conversation is the foundation; "better to do than to read" early; real books (biographies, Bible stories) over primers.
+- **No. 35:** "sit still and be quiet" quashes thinking aloud (lead only).
+- **No. 9:** inner speech grows from "individual adult attention as an adult talks with them through a situation" (lead; pairs with conversation counsel).
+- **No. 11:** Taiwan 80-minute outdoor study as the one checkable myopia lead (Wu et al., _Ophthalmology_ 2013).
+
+### F3 · iChild (dIN451W9qI4) · 1:09:28 · speaker: Joshua White (delta to C5)
+
+Transcript: `uchee-pines/03-ichild-a.txt` (ytt --json). Uploaded 2018-01-29; an evening session, "a condensed version of this DVD series… _iChild_… I released this earlier this year" (three discs: research vs media hype, educational media, technology vs reality). Ends with a short Q&A.
+
+F3 is an earlier, shorter form of C5 (about 70% the same): media hours, Christakis and the AAP, Cris Rowan's ten reasons, the Common Sense review of 173 studies, Healy's eight points, the mouse on the stage, Dunckley's "interactive is worse than TV", Loh & Kanai's anterior-cingulate study, Kyrene, Jobs, Anderson, Alan Eagle, digital dementia in South Korea, pre-baked creativity, Waldorf ("94%") and Ed 107.2. It has none of C5's EGW block (AH 237.1, Eli via PP 575–579, CG 283.4, the phone-smashing mother, the boy at four seminars), so it is mostly science with one EGW paragraph.
+
+**New in dIN451W9qI4**
+
+- **0:06:21** William, four, takes the iPad at 4 a.m. (Daily Mail, Jan 2014); Dr Richard Graham's UK technology-addiction programme; "the same withdrawal symptoms as alcoholics or heroin addicts"; "$20,000 for a 28-day digital detox".
+- **0:09:03** A checklist of addiction signs parents can use: withdrawal (irritable, anxious or sad when the device is taken), tolerance (10 minutes becomes an hour), loss of interest in former play, lack of control (meltdowns when it is removed), deception (hiding use), escape from stress, lost opportunities. The 2011 study of 1,000 students across the world kept off phones for 24 hours (anxiety, depression reported).
+- **0:12:11** The alcohol and tobacco analogy: we keep addictive substances from children because their frontal lobe cannot yet stop; "if these devices are so addicting… children… shouldn't be partaking of them so much"; "if something is so addicting it needs to have very strict boundaries". He bounds the analogy himself ("I'm not sure we could completely ditch it").
+- **0:14:18** "Research is often slow… comes out five years later… too late… so we have to take a preventative approach."
+- **0:15:20** Rowan's reasons read and weighed one by one: brain growth 0–2, delayed development, obesity, sleep (75% of children have a bedroom TV; 75% sleep-deprived enough to hurt grades, "Boston College 2012"), mental illness, aggression ("by beholding we become changed"), attention, addiction, radiation (WHO "possible carcinogen"). "Maybe she wasn't all that wrong."
+- **0:26:45** The safari: a lion steps out and you run; that is the God-given link between alarm and action. Screens fire the alarm (cuts, zooms, noises) while the child sits still, "disconnecting the natural response of brain and body".
+- **0:31:02** "Electronics might be a good babysitter": the crying child on the plane "zoned out" in 30 seconds. "We don't need to ask whether it's keeping their attention… we need to ask whether it's good that it's keeping their attention."
+- **0:32:06** Dunckley in more detail: early in her career removing TV "fixed 99%" of problems; now TV can stay but handheld/interactive screens must go; a crossover study (one evening of gaming vs TV: gaming altered sleep structure and verbal memory); "mere moderation of screen time is often not sufficient". Educational interactive programs are "not as damaging… but not necessarily good either".
+- **0:37:21** The anterior cingulate cortex "very important to us as Seventh-day Adventists" because it handles "error detection" and is "the center of the free will", tied to Matt 24:24 ("deceive… the very elect", alluded). Any task switch inside 15 minutes "could begin to decrease" it; Nicholas Carr, _The Shallows_ (named); Internet-addiction studies show the same ACC pattern.
+- **0:43:32** Heavy smartphone use develops "the left side… leaving the right side untapped", and the right side is "very involved in spiritual strength".
+- **0:49:10** Paul Thomas (Furman University): "technology is a distraction when we need literacy, numeracy and critical thinking". Using screens to hold an ADHD child's attention "works until it doesn't… When children report non-screen activities as boring, this should become a red flag" (read "from a study"; it is Dunckley's wording).
+- **0:53:21** A long first-person passage on "outsourced memory" (map, phone numbers, spelling, the Japanese-restaurant photo), read "from a study" without a name.
+- **0:58:35** Waldorf: "for three weeks we ate our way through fractions"; an 11-year-old who visited cousins all on gadgets; "Finn, age 10, whose father works at Google… if you learn to write on paper you can still write if water spills on the computer". (NYT, Oct 2011.)
+- **1:00:14** Close on CG 139.1 / Ed 107.2: "if we followed this we don't even need the DVD… we know it because it says right here". "Let's become God's peculiar people and not just follow the ways of the world." He limits "technology" to screens, not washing machines or cars.
+- **1:04:00 (Q&A)** Paper vs e-reader: print readers had better comprehension and retention (no study named). Blue light "bypasses the eye's natural filters… damage to the retina… macular degeneration". Music videos: multi-camera cutting holds attention; "for the young child up until about age 12 those fast scene changes can definitely be damaging".
+
+**Cautions (new)**
+
+- Science dominates even more than in C5; the only EGW is CG 139.1. Every number here is a lead: the 1,000-student study (University of Maryland's _The World Unplugged_, a qualitative survey); "$20,000" (Graham's clinic cost was reported as £16,000); Boston College 2012 (TIMSS/PIRLS sleep data, checkable); WHO "possibly carcinogenic" (IARC Group 2B for radiofrequency fields, 2011, correct but weak); "15 minutes" of focus protecting the ACC (his own inference; "the research I found indicates"); left/right-brain imbalance from smartphones (a 2013 Korean clinic claim; pop science).
+- Blue-light retinal damage and macular degeneration (1:05:32): **looks wrong** (as C5).
+- "Center of the free will" and "important to Seventh-day Adventists" for the ACC: brain science joined to an insider appeal; leave out. Right hemisphere = spiritual strength (as F2): leave out.
+- Waldorf "94%… go on to some of the top universities" (wrong as stated, as C5).
+- Stories: William (a press report); the plane (his observation); safari (illustration); Finn and the 11-year-old (NYT interviews).
+
+**Series mapping (new)**
+
+- **No. 69:** the addiction-signs checklist (as observations, not diagnosis); "we need to ask whether it's good that it's keeping their attention"; Carr's _The Shallows_ (a book, checkable); Finn's "you can still write if water spills on the computer".
+- **No. 34 / 113:** the safari picture: alarm without action (an image, not a claim).
+- **No. 70:** CG 139.1 / Ed 107.2 as the whole case: "if we followed this we don't even need the DVD"; a ready line for counsel over science.
+- **No. 49:** "if something is so addicting it needs to have very strict boundaries".
+
+### F4 · Respectable Conventionality (P3pf6YfTrcA) · 1:04:55 · speaker: Joshua White (delta to D3)
+
+Transcript: `uchee-pines/04-respectable-conventionality-a.txt` (ytt --json). Uploaded 2018-01-26; a Saturday-night closing session. He swapped it in at short notice ("I already shared that one last year", i.e. F7) after a talk by "Scott" that day.
+
+F4 is the same talk as D3 (KeU3-w8iFw4, Autumn Leaves NZ, uploaded 2018-01-20), given a week apart: same order and the same readings, with different wording (about 30% of four-word sequences match; the opening question and the Apple Pickers parable match almost word for word). Shared spine: "if we raise good Adventist children who live in the country… have we fulfilled the purpose of true education? No"; the Apple Pickers parable (the "neglected country" vs "home country", the Apple Pickers' Manual, "more people than apples"); Matt 9:37–38; Mark 16:15; Ed 30.2, PP 595.2, Ed 15.1–16.2 with the circle diagram; Ed 13.1, Ed 309.1, CG 296.1; Ed chapter 31 "The Life Work" (Ed 262.1–271.2) read nearly whole; Esther 4:14; Rom 3:1–2 and the two $10 bills; the family trip and 2 Pet 3:12 hastening; the respectable-conventionality "list"; Rev 3:16; the would-be doctor with a teaching degree; learning to swim from YouTube; geography as mission class; the famous professor turned away; E. M. Bounds; Wesley's "100 men"; the Kenyan orphan who now fathers hundreds; two altar calls (families who consecrate their children; volunteers "to go somewhere with the ripe fruit").
+
+The **thesis** both share: education and redemption are one (Ed 30.2); redemption fits us for heaven; heaven is a life of unselfish service, so "education equals training for service" (his "geometry proof"), and the last-day aim of education is "giving the gospel to the world in this generation" (Ed 262.1), trained "in service, not for service" (Ed 268.3).
+
+**New in P3pf6YfTrcA** (relative to D3)
+
+- **0:14:06** He reads Ed 16.1–16.2 without the two great commandments (Luke 10:27; Matt 22:39) that the paragraphs are built on. Misreads Ed 16.2's last line as "fitted for heaven before we receive heaven into our hearts" (text: "for we receive heaven").
+- **0:25:10** CG 296.1 (= MH 401.3): "service for Christ's sake in the little things of everyday experience" (VERIFIED); his gloss: "you don't have to go to India as a missionary", and "home-like schools… should be one and the same".
+- **0:27:16** Ed 262.1 illustrated with Martin Luther, Edison's "10,000" tries, and Livingstone "buried in Westminster Abbey"; then "how long did it take Luther and Melanchthon to begin schools and convert the nation of Germany… one generation, about 40 years. Do we have more light than Martin Luther had?"
+- **0:29:52** "Are we going to be like the Jews and think we just hold this to ourselves?" and a Tanzanian friend: "I could take you to villages that have never even heard the name of Jesus within a few hours' drive."
+- **0:36:05** World-misery statistics read as the "lazar house" of Ed 263.2: 20 million orphans, ~30 million enslaved ("more slaves now than in the time of the Civil War"), 19,000 under-5 deaths a day (2011), 22 million child refugees, 1 in 9 hungry.
+- **0:37:08** "It's all God's timing… [hastening is] a works-based religion": answered from 2 Pet 3:12 and Ed 263.2 ("He has put it in our power, through co-operation with Him"); "we can't do it ourselves, but He has put it in our power".
+- **0:39:15** "I'm going to have to skip this quote explaining how if Adventists had followed through with the work… in 1844 we would not even be here today" (not read; insider).
+- **0:39:46** Ed 264.1: "you say that's not my gift… you're exactly right, it's not your gift, it's your command."
+- **0:42:21** The respectable-conventionality list in full: school, job, marriage, house, family, vacations, retirement, a bequest; "Christianized": Christian school with honours, a church job, a good Christian spouse, a good neighbourhood, mission trips, retire into church work, leave money to the church. "What's wrong with that? I didn't say it was wrong. Jesus said… lukewarm." "Christian schools make things respectable by adding Bible class… and it invades the homeschool environment too."
+- **0:44:29** Ed 264.3 read up to "nobility of character"; it stops before "Many a father and mother, denying their children to the cross of Christ, have learned too late that they were thus giving them over to the enemy…". (D3 reads Ed 265.1 in full, the "distinct periods" paragraph; F4 reads only its first sentence.)
+- **0:47:01** "Unless we give our children training in these lines we are not preparing them for heaven" (his own line, spoken between Ed 266.3 and Ed 265.1); "let's give them a radical training for mission service… make it a part of their curriculum".
+- **0:48:37** Ed 268.3 applied to the very young: "it doesn't say send your five-year-old to India… as simple as teaching your child to give up their seat for their sibling"; widen the field as they grow. "Teach our children how to give Bible studies and then give them a chance to do it."
+- **0:51:10** Ed 269.2 read without its middle (study "Paul and Martin Luther… Moffat and Livingstone and Carey" instead of "Alexanders and Napoleons"), though he had used Luther and Livingstone at 0:27:16.
+- **0:56:27** Close calls for "a generation of radical Christians"; altar call 1: parents who know young people whose families say "that is just too weird, let's be a little more normal" are asked to "let your children go wherever the Lord calls them"; altar call 2 with mission contacts he will pass on. The orphan count is 253 (D3: 283).
+
+**Cautions (new)**
+
+- "Adventists… in 1844" and "what advantage hath Seventh-day Adventists?" (Rom 3): insider frame; the series says "God's people" / "those who have the Scriptures".
+- "Jesus said it was wrong… lukewarm… spit you out" against the ordinary Christian life (0:43:25), and "if you're not going to go all-out… I'd rather you weren't a Christian at all" (0:43:58, his paraphrase of Rev 3:15–16): rhetoric that condemns families' ordinary choices. Ed 264.2–3 is strong enough on its own, and its target is a life "lacking His self-sacrifice", not school, job or house as such.
+- The statistics are dated and unsourced: 19,000 under-5 deaths a day in 2011 is UNICEF's figure; ~30 million enslaved matches the 2013 Global Slavery Index; "1 in 9 hungry" matches FAO 2014–16; "20 million orphans" (UNICEF counts ~15 million double orphans, 140 million single and double) and "22 million child refugees" need sources.
+- "Luther… converted Germany in about 40 years" through schools: simplified history (as C2).
+- Edison's "10,000 tries" is folklore; Livingstone's burial in Westminster Abbey is correct.
+- The Apple Pickers parable is not attributed; an allegory, fine as allegory. The "dream" ending is part of it.
+- Ed 264.3's omitted sentences are harsher than what he reads ("giving them over to the enemy… sealed their ruin"); if the series quotes the paragraph, decide deliberately where to stop.
+
+**Series mapping (new)**
+
+- **No. 1 / 4:** the "proof" chain (education = redemption = fitted for heaven = Christlikeness = service), with Ed 15.1–16.2, Ed 13.1, Ed 309.1 ("the greatest joy and the highest education are in service"). Restore the two great commandments that Ed 16.1–2 rests on (Luke 10:27; Matt 22:39).
+- **No. 86:** Ed 268.3 at child scale: giving up a seat for a sibling, then wider fields; "teach them to give Bible studies and then let them do it"; the YouTube swimmer.
+- **No. 107:** Ed 269.1–269.2: bands for service, parents alongside; geography as mission study; Ed 269.2's own list (Paul, Luther, Moffat, Livingstone, Carey) for no. 84.
+- **No. 47:** Ed chapter 31 as the book for a young person asking "what should I do with my life?" (his testimony that it "revolutionized" young people's thinking).
+- **No. 74:** Ed 271.1 ("co-workers with the angels… what 'university course' can equal this?"); the Kenyan orphan story (secondhand; numbers differ between tellings).
+- **NEW "Respectable, or His?":** Can a good, normal Christian life miss the point? KJV Mark 16:15; Esther 4:14; Matt 9:37–38; Rev 3:15–16 (careful); 2 Pet 3:12. EGW Ed 262.1, Ed 263.2, Ed 264.1–264.3, Ed 266.3, Ed 271.2. (If D's notes already propose this, merge.)
+
+### F5 · Will It Ever Be Easy (zDL8D4BVxXk) · 1:04:52 · speaker: Joshua White
+
+Transcript: `uchee-pines/05-will-it-ever-be-easy.txt` (ytt --json). Uploaded 2018-01-25; the last morning session ("we started Thursday morning…"; "we heard last night" = F4). Not a repeat: under 4% of its four-word sequences occur in any earlier White transcript.
+
+**Thesis**
+
+- The family is the strongest witness God has given (AH 32.2), and turning hearts of fathers and children (Mal 4:6; Luke 1:17) is the last-day "work of John"; so Satan attacks the family hardest, and the true-education path will not be easy.
+- Five places where a family will "stand alone": character in the early years, limits on media, character over academic success, parenting as the primary job, and a mother at home. The Bible's lone faithful (Enoch to John on Patmos) show it is worth it, and we are not alone (PK 175.2).
+
+**Outline**
+
+- 0:01:07 Testimony: five months in 2017 reforming the primary school at Kibidula (Tanzania; captions "keep me dual"/"kibbe doula"): schedule change for hands-on and outdoor time, agriculture for every pupil every day, a vocational building, teacher training. Teachers resisted ("only if you pay me"); the money (over $10,000) and a building crew came unasked ("the Lord owns the cattle on a thousand hills", Ps 50:10). Then strife among volunteers, illness, and on May 18, 2017 his motorcycle crash (shattered leg) and two medical flights in one weekend. His reading: discouragement, then an uncooperative spirit, then internal strife, then a direct attack on the leaders.
+- 0:12:00 John the Baptist's work was hard and ended in a dungeon; "just such a work as that of John is to be carried on in these last days" (SW 1905). Mal 4:5–6 and Luke 1:17 read: the work that prepares a people is "a work to restore the family".
+- 0:16:13 Why the family: AH 32.2 + RH 1893 ("far greater for good than… powerful sermons"). The toolbox: one tool is labelled "most important; use this one most of the time". So Satan attacks it: "50% of marriages", "75% of our young people leaving the church".
+- 0:19:20 Recap of F1/F2 (the ten tactics, early academics): following them means not following the majority. "Will we feel alone? We will."
+- 0:20:54 **1. Character in the early years.** The world says "let them grow up, then work on character": "backwards". CG 103.5 ("physical and moral education… in the first years"), and his reading of it: EGW names all three areas "except when she's speaking of early childhood… because the academic can come later". Conscience's foundations are laid "in the first three years" (_Child Development_). MH 380.2. "Give me a child until he is seven…" (the Jesuit maxim, via "Scott"). ST 1878 ("salvation of the young depends almost wholly upon the training… in childhood"). Youth programmes: "if we think they are going to do the job of helping our children be converted, we've waited way too long… the responsibility rests with the families."
+- 0:25:36 **2. Limit media.** Hours and smartphone figures (Common Sense, new census); keep it minimal "or even eliminate it under 12"; the cartoon "if your child can use a smartphone he can operate a washing machine"; "the world thinks it's child abuse to make your child do laundry, but 25 years ago that was normal"; parents' own screen time.
+- 0:27:39 **3. Character the primary focus** over grades and careers. The packing illustration: one suitcase, then carry-on, then "one item in your hand" for a year in China; for heaven we take nothing but character (CG 161.1 / COL 332). Ed 225.3. "God is so much more interested in preparing us for heaven than Harvard."
+- 0:30:45 **4. Parenting is your primary job.** Barna: successful Christian parents saw parenting as their main job, did not hand discipleship to church or school, and accepted being counter-cultural ("when they accepted it, it became easier"). Outsourcing all three areas (school, church, a hired psychologist). 3T 145.1 ("the almost infinite value of their misspent time").
+- 0:32:18 **5. Mothers at home.** Maternal employment by the ninth month and school readiness at 36 months; single-income families and "spiritually strong young adults"; animal studies (rat apoptosis doubled after 24 h separation; monkey hippocampus; cortisol); secure attachment and later competence. AH 234.2 ("opportunities of inestimable worth"); AH 246.1 (= Lt 28, 1890: "The Lord has not called you to neglect your home… Never for a moment suppose that God has given you a work that will necessitate a separation from your precious little flock"); ST Mar 16, 1891 ("The king upon his throne has no higher work than has the mother… resist the temptation to conform to the world's standard"). A riff of "do you want…?" answers (most influential position; next to God the strongest power for good, AH 240.1; recorded as one of the greatest missionaries, AH 235.1). MYP 330.1 ("She made me all I am"). An Australian mother without a driver's licence to stay home: "Has God lost all those cows on His hills?"
+- 0:41:07 **Standing alone, a roll call:** Enoch (living in the country, "weird", translated; "a five-thousand-year head start"), Noah ("as you move to the country, grow your own garden, people say you're crazy"), Abraham (leave the city, job, home; PP 126.3–126.4 read; "suppose Uchee Pines got an email: we're moving in a week… where? I don't know"), Jacob (alone through his own mistakes, still mercy), Joseph (PP 213.1, 214.1 read), Moses (against the learned; Aaron "wanted to get along"), Joshua and Caleb, Israel at the Jordan ("put your feet in the river and then I'll open the way"), Josh 24:15, Samuel, Jonathan (1 Sam 14:6), Job, Elijah, Isaiah, Jeremiah, Daniel (diet "because he knew it was right", not as a social trend; prayer), the three Hebrews, Mordecai, John the Baptist, Paul, John on Patmos.
+- 0:56:34 4SP 214.1 ("In every age God has called His servants… The majority are usually to be found on the side of error"); the Waldenses sending children out; ML 320.2 ("will frequently have to stand almost alone"); COL 78.2 ("For His church in every generation God has a special truth and a special work… See Martin Luther").
+- 0:59:44 **Are we alone?** Luther's "Art thou alone wise?" and "Moses was alone… I am sure… the word of God is with me" (Luther via GC 143.1 / GC 142.3, read as Luther). "We are in the majority… a spectacle to the universe… angels helping us." PK 175.2 ("Fellow Christian, Satan knows your weakness; therefore cling to Jesus… Trials will come, but go forward").
+- 1:02:52 Close: a friend (Isaac Santos): "our problem isn't knowledge; our problem is moving out upon what we do know"; the lamp lights the next step.
+
+**Bible texts**
+
+- 0:05:15 Ps 50:10 (alluded). 0:13:36 Mal 4:5–6 (read). 0:14:40 Luke 1:17 (read). 0:18:19 Mark 16:15 (alluded). 0:36:59 Eph 6:11 (inside ST 1891). 0:42:11 Gen 5:24 (Enoch, alluded). 0:43:17 Gen 6–7; 1 Pet 3:20 (eight people, alluded). 0:43:51 Gen 12:1 (alluded, via PP). 0:47:34 Gen 37 (Joseph). 0:50:12 Ex 32 (Aaron). 0:50:42 Num 14:6–10 (Joshua and Caleb, alluded). 0:51:14 Josh 3:13–15 (alluded). 0:51:46 Josh 24:15 (quoted). 0:52:19 1 Sam 8 (Samuel); 1 Sam 14:6 (quoted). 0:52:53 Job 1–2. 0:53:25 1 Kgs 18:17; 19:10 (alluded). 0:54:30 Dan 1:8; 6:10; Dan 3. 0:55:32 Esth 3:2. 0:56:03 2 Cor 11:23–27 (alluded); Rev 1:9; 2 Tim 4:7. 1:01:17 1 Cor 4:9 (alluded).
+
+**EGW quotes**
+
+- 0:13:05 SW Mar 21, 1905, par. 11 ("Just such a work as that which John did, is to be carried on in these last days"), VERIFIED.
+- 0:16:13 AH 32.2 (= 4T 304) + RH Feb 21, 1893, par. 8, **DIFFERS** (read as one quotation; two sources).
+- 0:22:28 CG 103.5 (= FE 156.2), VERIFIED; his "she always names all three areas except in early childhood" is his inference, not the text's.
+- 0:23:31 MH 380.2 (= CG 184.3), VERIFIED. 0:24:33 ST Dec 19, 1878, VERIFIED (dup in batch).
+- 0:30:13 CG 161.1 (= COL 332), VERIFIED. 0:30:45 Ed 225.3, VERIFIED. 0:32:18 3T 145.1, VERIFIED.
+- 0:35:26 AH 234.2, VERIFIED (fragment). 0:36:27 AH 246.1 (Lt 28, 1890), VERIFIED (context: a letter to one mother who thought God called her away from home to His work). 0:36:27 ST Mar 16, 1891, par. 1, VERIFIED.
+- 0:37:30 "next to God… the strongest power for good" = AH 240.1 (paraphrase), VERIFIED; "the most influential position attainable", NOT FOUND (as A8); "God will record your name as one of the greatest of missionaries" = AH 235.1, VERIFIED (resolves the C8 NOT FOUND row's source).
+- 0:39:02 MYP 330.1, VERIFIED. 0:46:02 PP 126.3, VERIFIED; 0:46:33 PP 126.4, VERIFIED. 0:48:35 PP 213.1, VERIFIED; 0:49:05 PP 214.1, VERIFIED.
+- 0:56:34 4SP 214.1, VERIFIED. 0:57:36 ML 320.2 + ML 320.3 (adjacent paragraphs, = RH July 29, 1873; 3T 302.2), VERIFIED. 0:58:07 COL 78.2, VERIFIED.
+- 1:01:17 PK 175.2, VERIFIED.
+
+**Science and history** (leads)
+
+- Barna Group (named; matches George Barna, _Revolutionary Parenting_, 2007): successful parents treated parenting as their primary job and accepted being counter-cultural. Checkable.
+- Maternal employment by nine months and lower school readiness at 36 months (matches Brooks-Gunn, Han & Waldfogel 2002, _Child Development_; checkable; effects were modest and varied by group).
+- Infant rats separated 24 h: apoptosis "doubled" (matches Zhang et al. 2002, _Dev. Brain Research_); monkey hippocampal damage from "just a few hours" of separation; cortisol and low mental/motor scores. Animal studies; needs primary citations before any use.
+- Conscience "foundations are laid in the first three years" (_Child Development_; matches Kochanska's work). Secure attachment and later competence (_Child Development_). Checkable.
+- "50% of marriages end in divorce" (an old, overstated estimate); "75% of our young people leaving the church" (no source). Needs a primary source.
+- "Give me a child until he is seven and he will be mine forever": the traditional Jesuit maxim (no primary source; C1 caution). He credits "Scott" with the Counter-Reformation history.
+- Luther quotations: GC 143.1 (Martyn) and GC 142.3 (D'Aubigné, _History of the Reformation_ b. 6 ch. 10). His wording ("No, for Jehovah is with me… side by side with me is the Word of God") partly differs; read as Luther, not EGW.
+
+**Strongest arguments**
+
+- Mal 4:6 / Luke 1:17: the forerunner's work is turning hearts in families; a family-first reading of last-day work, straight from the text (0:13:36–0:15:42).
+- AH 32.2: a well-ordered family "will recommend the truth as nothing else can": the toolbox's labelled tool (0:16:13–0:17:48).
+- Youth programmes can't do in adolescence what the family neglected in childhood (0:25:05).
+- The packing illustration: one item for a year abroad; only character goes to heaven (0:28:09–0:30:13; CG 161.1).
+- Barna's finding that accepting the counter-cultural cost made it easier (0:31:16–0:31:47).
+- AH 246.1 + its letter's next lines: "You may have at home a little school, of which you shall be the teacher… He will lead you, not away from your own home, but back to it" (Lt 28, 1890, par. 11; not read, but the strongest support for home as first school).
+- PP 126.3: "the happiest place on earth for him was the place where God would have him to be": a calm, faith-based frame for any move (0:46:02).
+- "Our problem is moving out upon what we do know" (1:02:52).
+
+**Country living and moving (as he teaches it here)**
+
+- He does not argue for country living in this talk; he assumes it and encourages those already doing it: "if you feel like you're the only one living in the country, following the simple way of life, quietly reaching out to people on your trips to the grocery store… Enoch"; "as you move to the country, grow your own garden, people say you're crazy… Noah".
+- Abraham is his model for moving: "if you're facing the need to leave the city… losing your job… your home… you don't know what the future holds, Abraham didn't either". PP 126.3–126.4 is about obeying God's call at the cost of career and kindred; it says nothing of cities, so it supports a move made **in obedience**, not a move made from fear. His framing here is faith ("God had spoken"), not fear.
+- One phrase goes further: "if you have to leave your family and your friends to isolate your children from bad influences around you… Abraham" (0:43:51). "Isolate" is his word; PP 126.4's reason for the separation is that "a life of ease and the influence of friends and kindred would hinder the development of the very traits" God wants.
+
+**Cautions**
+
+- The Kibidula account names a real institution and criticises its teachers ("only if you pay me"); keep it out.
+- Reading events as Satan's direct attacks (his flu, the volunteers' strife, the crash): personal testimony; the series doesn't interpret providence.
+- CG 103.5 overread: "she always names all three areas except when speaking of early childhood… because the academic can come later" (0:23:00). The text names "physical and moral"; the inference is his. Keep the quotation, drop the rule.
+- AH 32.2 spliced with RH 1893 ("powerful sermons from the pulpit") as one quotation; give both refs.
+- AH 246.1 widened: he applies a letter to one mother (who thought she was called away to church work) to all employment: "if you feel you are called to a work other than your home, that is not the Lord's calling" (0:36:27) is his line, not hers. The source's own limit is a work "that will necessitate a separation from your precious little flock".
+- "You have the most influential position attainable" is his own line again (NOT FOUND, as A8).
+- Mothers who work: the talk is gentle in tone but the animal studies ("killing brain cells by separating infants from their mothers") are fear-based and not about human daycare. Leave them out; the series must not condemn mothers who work.
+- Enoch "to be a part of 144,000"; "a five-thousand-year head start on the kingdom" (0:42:45): speculative; drop.
+- Insider lines: "dare to be a Daniel… vegans now" (diet as identity marker), Waldenses, "special truth for this generation", 4SP's "doctors of divinity".
+- Statistics: "50% divorce", "75% leaving the church" (needs a primary source).
+- Stories: Kibidula (his own); the Australian mother without a driver's licence (his own observation; a radical example, do not hold up as the norm); Uchee Pines moving in a week (hypothetical, fine).
+
+**Series mapping**
+
+- **No. 9:** AH 32.2 (the family as the strongest witness); "youth programmes can't do it later"; Barna's "parenting as primary job" (checkable).
+- **No. 109:** MH 380.2; CG 103.5; Mal 4:6.
+- **No. 52 / 15:** ST Mar 16, 1891 ("The king upon his throne has no higher work than has the mother"); AH 240.1; AH 235.1 ("the recording angel writes her name as one of the greatest missionaries in the world"); MYP 330.1 ("She made me all I am").
+- **No. 95:** PP 126.3–126.4 as the faith frame for a family move ("the happiest place on earth for him was the place where God would have him to be"); Enoch and Noah as encouragement, not argument.
+- **No. 69:** "if your child can use a smartphone he can operate a washing machine"; parents' own screens.
+- **No. 1 / 74:** CG 161.1 + Ed 225.3; the packing illustration.
+- **NEW "Will it ever be easy?" (standing alone as a family):** Why does doing right feel so lonely? KJV Josh 24:15; 1 Sam 14:6; 1 Kgs 19:10, 18; Heb 11:7–10; 1 Cor 4:9. EGW 4SP 214.1, PP 126.3–126.4, PK 175.2, COL 78.2. A Bible roll call (Noah, Abraham, Joseph, Daniel, the three Hebrews) ending on "you are not alone".
+- **NEW (or into no. 9) "Turning the hearts":** What is the last-day work God gives to families? KJV Mal 4:5–6; Luke 1:17. EGW SW Mar 21, 1905, par. 11; AH 32.2.
+
+### F6 · iChild (CRk5Fcbh6Cs) · 53:16 · speaker: Joshua White (delta to F3)
+
+Transcript: `uchee-pines/06-ichild-b.txt` (ytt --json). Uploaded 2016-11-22, from the previous year's Uchee Pines seminar (F1 refers back to it: "if you were here last year I did a session called iChild"). The DVD is still "on pre-order". A listener interjects twice (inaudible).
+
+F6 is the earliest form of the talk (about 70% the same as F3 in content): media hours, William and the iPad, Richard Graham, the addiction-signs list, the alcohol analogy, Christakis and the ages 3 / 7 / 8 / 12, Rowan's ten reasons, Common Sense's 173 studies, Dunckley, Healy's eight points, the mouse, the safari, the airport babysitter, Kyrene, Jobs, Anderson, Eagle, Paul Thomas, pre-baked creativity, Waldorf and Finn, CG 139.1. It does **not** have F3's anterior cingulate cortex, _The Shallows_, left/right brain, digital dementia or blue-light Q&A.
+
+**New in CRk5Fcbh6Cs**
+
+- **0:04:12** "The research industry… gets much less funding than the tech industry", so research lags; "when we consider the effects we'll be dialing back if not completely eliminating media use for children".
+- **0:12:36** Alcohol analogy taken further: "for children, whose frontal lobes… have not yet formed fully, these devices need to actually be eliminated, and it might be necessary for adults even in some cases". A listener's broccoli question: "if you ate enough of it that would be called intemperance, not an addiction."
+- **0:17:22** Kaiser Family Foundation 2010: 60% of parents don't supervise media use; 75% of children have technology in their bedrooms. Bristol University named for technology and mental illness.
+- **0:21:34** Common Sense's studies were often longitudinal (childhood use, later outcomes): "if a lot of media is causing this, then is a little bit a concern?"
+- **0:22:40** Dunckley's article named by its full title, "Dumb and Dumber: Interactive Screen Time Is Worse than TV"; her "electronic fast" since about 2000, gradually extended from gaming to laptops, phones, texting and social media; a Japanese survey of 2,000+ children (30 minutes of computer or games ≈ two hours of TV for sleep).
+- **0:27:53** "Within 30 seconds the frontal lobe shuts off" when watching stimulating media (**looks wrong**; no source given).
+- **0:33:05** He has seen "a slight startle response" in very young children on an iPad when the screen changes fast.
+- **0:35:11** Hypnosis: a bodybuilder told under hypnosis he can't lift a glass of water, then strains and sweats trying (secondhand; "I need to look this up"); "Do you think Satan knows how to engineer [media] to hypnotize you? Absolutely."
+- **0:37:50** Babysitter answer: "We shouldn't need babysitters… your child should be doing things with you as part of everyday life… playing in the mud is a great babysitter."
+- **0:39:24** Kyrene: a proposal for a further $47 million.
+- **0:44:40** "Dora Stromberg… a TED talk" on pretend play (name garbled; unidentified).
+- **0:46:14** Waldorf schools "discourage the parents… from using it in the home till eighth grade"; give no standardized tests in the elementary grades and admit early-grade pupils may score poorly, "in light of the whole eight to ten delaying"; "94% of their students go on to college" (the accurate form of C5/F3's "Ivy League"/"top universities" claim).
+- **0:48:50** 7LtMs Lt 24, 1892: "Satan will invent every possible device that he may attract the attention of the people from the issue that is just before us" (VERIFIED; he says himself "device" was not about electronics; the letter is about confusion of opinions among God's people).
+- **0:50:56** Close: "Are we a peculiar people?… God says, I'd like you to set this distraction aside also and focus on the work that I've given you… it may be helpful in cases but it's not necessary."
+
+**Cautions (new)**
+
+- "Frontal lobe shuts off within 30 seconds" and the hypnosis story: unsourced; leave out.
+- "Satan… engineer[s] it to hypnotize you": the series avoids attributing designers' motives to Satan.
+- 7LtMs Lt 24, 1892 is about doctrinal confusion in the church; he flags the stretch himself. Don't use it for screens.
+- Kaiser 2010 (_Generation M2_) and Common Sense 2008 are real and checkable; the Bristol study and "Dora Stromberg" need identifying.
+
+**Series mapping (new)**
+
+- **No. 69:** "your child should be doing things with you as part of everyday life… playing in the mud is a great babysitter" (the positive replacement); Kaiser 2010 bedroom-media figure (checkable).
+- **No. 70:** CG 139.1 / Ed 107.2 again as the anchor.
+- **No. 10:** Waldorf's admission that its early-grade pupils may test poorly, then 94% go to college (a lead for "late is not behind"; Waldorf framed as in C5).
+
+### F7 · Respectable Conventionality (tVbaViM8crI) · 1:06:47 · speaker: Joshua White (delta to F4)
+
+Transcript: `uchee-pines/07-respectable-conventionality-b.txt` (ytt --json). Uploaded 2016-11-21, from the previous year's Uchee Pines seminar; a Sabbath-morning sermon ("the music was beautiful… on Sabbath morning").
+
+F7 is the earliest form of F4/D3 (about 41% of four-word sequences match F4+D3): the same Apple Pickers parable almost word for word (0:01:10–0:11:40), Matt 9:37–38, Mark 16:15, Ed 30.2, PP 595.2, Ed 15.1–16.2, Ed 13.1, Ed 309.1, CG 296.1, Ed chapter 31 (Ed 262.1–271.2) in the same order, Esther 4:14, Edison and Livingstone, Rom 3:1–2 with the $20 for two friends, the world-misery statistics, the family trip and hastening, "not your gift, your command", the respectable-conventionality list and Rev 3:16, the would-be doctor with a teaching degree, learning to swim from YouTube, E. M. Bounds, the Kenyan orphan, Wesley's "100 men", and the two altar calls. It does **not** have F4's opening question ("if we raise good Adventist children who live in the country… have we fulfilled the purpose of true education?") or F4's Luther/Melanchthon "one generation, about 40 years".
+
+**New in tVbaViM8crI**
+
+- **0:14:53** Gen 1:27, then a whiteboard drawing of Ed 15.1–15.2: three rising arrows (physical, mental, spiritual) from man at creation toward God, "continually to grow more like God and yet never reach being like God"; the fall drawn as a decline, "now… all the way at the bottom after 6,000 years of sin"; "my favorite word… in the whole book Education: **yet**. Yet the race was not left without hope."
+- **0:21:06** Love (Ed 16.1) drawn as the pillar under creation, redemption and education; service as "the link"; a chart "education = redemption = the object of life". Ed 16.2's last line is read correctly here ("for we receive heaven into our hearts"; F4 misread it "before").
+- **0:23:49** "The law of heaven is one of unselfish service… Do the angels live their lives longing to come help weak sinful humans?"
+- **0:35:20** A sincere young man told him, "I'm glad [Jesus] didn't [come], because then I wouldn't get to be part of the work."
+- **0:38:26** "People say it's all in God's timing… it's true that God has a plan… but my friends, that time has passed; he's now waiting on us." Then he reads 1SM 68.1 ("Had Adventists, after the great disappointment in 1844, held fast their faith…", VERIFIED), the quotation F4 skipped.
+- **0:43:09** Dictionary definitions: "conventional = normal, the usual way of doing things… I'm a Christian and a Seventh-day Adventist, and a good one… that's where the respectable part comes in."
+- **0:45:48** Rev 3:16 gloss: "if you're not going to go all-out for Christianity I'd rather you just weren't Christian at all, because you're giving the Christians a bad name" (as F4 0:43:58).
+- **0:49:25** Ed 265.1 read almost whole (F4 read only its first sentence): school "cut off from the responsibilities of everyday life… upon their graduation thousands find themselves out of touch with life… a struggle for mere subsistence", glossed "the rat race". Skips "too many take up with some personal, selfish ambition" and "many drift into questionable or criminal practices".
+- **0:50:57** Ed 268.3's "common duties of life" made concrete: "giving your mom a glass of water when she's thirsty… when there's a squabble over who gets to sit in which chair, you unselfishly prefer others."
+- **0:54:06** "God may place them in positions of immense responsibility and influence, or… humble quiet work" (his own line; not in the corpus).
+- **0:54:37** Ed 269.3 read (new): "In this closing work of the gospel there is a vast field to be occupied… called from the field, from the vineyard, and from the workshop… Many of these have had little opportunity for education; but Christ sees in them qualifications… If they put their hearts into the work, and continue to be learners, He will fit them to labor for Him" (VERIFIED); "where did they get the education? In the water, not on the land." He drops "the work is to enlist helpers from the common people".
+- **0:59:48** The orphan story told in full: the boy's mother died when he was eight or nine; he and two siblings lived on the streets; a Seventh-day Adventist man with 12 children in a one-room hut took him in ("the dog had to go without food"); as a teen he prayed "give me one child that I can help"; he required a wife willing to adopt; now he and his wife are parents to **257** children in Kenya (F4: 253; D3: 283). "It started with a family with 12 children living in a hut with no money."
+- **1:02:30** Wesley's "100 men… and bring in the kingdom of God in one generation"; "let us set aside respectable conventionality… live lives that are radical".
+- **1:03:36** Appeal names the local "beautiful preparatory school where our children learn those lives of unselfish service"; two calls (stand in consecration; come forward to "go somewhere to find some more ripe fruit"). Closing prayer: "you could have given it to the angels and it would have been done more efficiently, but you've entrusted this to us."
+
+**Cautions (new)**
+
+- 1SM 68.1 (Adventists after 1844) and "that time has passed; he's now waiting on us": denominational history and a timing claim; outside the every-Christian audience. Ed 263.2 ("He has put it in our power, through co-operation with Him") and 2 Pet 3:12 carry the point without it.
+- "After 6,000 years of sin" is said in passing; not needed for the education point.
+- "I'd rather you just weren't Christian at all… you're giving the Christians a bad name" and the dictionary riff ("a good Seventh-day Adventist… that's the respectable part") aim at the ordinary Christian family; Ed 264.2–3's target is a life "lacking His self-sacrifice".
+- The orphan numbers change in every telling (253, 257, 283) and the story is secondhand; give no number, or "hundreds".
+- Ed 265.1 is a lead for "learning by doing", but its subject is the youth "in preparation for a life of service" sent away to study books; not an argument against schools as such.
+
+**Series mapping (new)**
+
+- **No. 107 / learning by doing:** Ed 265.1 (the "period of learning and period of doing" split; graduates "out of touch with life"), and the home-scale examples of Ed 268.3 (a glass of water for mother; giving up the chair).
+- **No. 74 / calling:** Ed 269.3 ("little opportunity for education; but Christ sees in them qualifications… continue to be learners") for young people without schooling advantages.
+- **Aim of education:** the whiteboard of Ed 15.1–16.2 (three arrows up, the fall, "yet", love as the pillar) is a teachable diagram for the opening episode.
 
 ## Other speakers in playlist C (kept apart from White)
 
