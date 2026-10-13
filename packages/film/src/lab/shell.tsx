@@ -1,7 +1,8 @@
-// The staged lab as compound components: `<Lab.Root>` holds what every tool
+// The staged lab as compound components, the Lab's and the Script's:
+// `<Lab.Root>` holds what every tool
 // shares once the browser has staged the film (the film and its player, the
 // lab API's base, the view kept through a reload, the frame shown), beside
-// what the Lab's page holds on both sides (`panel.tsx`, `useLabPage`: the
+// what the Lab's pages hold on both sides (`panel.tsx`, `useLabPage`: the
 // lab's place as the URL holds it, `lab/place.ts`, the mode and a held
 // reload). `LabState` hands the place's pick, note and compare view on as
 // accessors derived from the page's place, never kept apart from it; the
@@ -34,7 +35,12 @@ import { type LabApi, type NotesApi, labApiLayer } from './api.ts';
 import { goToCommands } from '../command/go.ts';
 import type { CompareView } from '../core/api.ts';
 import type { Hub } from '../command/hub.ts';
-import { type LabSelection, Selection, type WordsSelection } from '../command/selection.ts';
+import {
+  type LabSelection,
+  type MarkSelection,
+  Selection,
+  type WordsSelection,
+} from '../command/selection.ts';
 import { targetAttr } from '../command/target.ts';
 import { type LabPick, labHrefWith, labPlaceOf } from './place.ts';
 import { useSheetDismissal } from './sheet.tsx';
@@ -69,8 +75,10 @@ interface LabState {
    * both shows the Source view).
    */
   readonly text: Accessor<Option.Option<TextOpen>>;
-  /** A talk's words selected: the URL's (`?words=` in the path's scene). */
+  /** Words selected, a talk's or a beat's line's: the URL's (`?words=` in the path's scene). */
   readonly words: Accessor<Option.Option<WordsSelection>>;
+  /** A mark of a beat's line selected: the URL's (`?mark=` in the Script's path's beat). */
+  readonly mark: Accessor<Option.Option<MarkSelection>>;
 }
 
 interface LabActions {
@@ -116,8 +124,10 @@ interface LabActions {
   readonly showText: (text: Option.Option<TextOpen>) => void;
   /** Close the Transcript view, its words selected with it, by the sheets' one rule. */
   readonly dismissText: () => void;
-  /** Select a talk's words, or none: a new history entry, so Back undoes the pick. */
+  /** Select words (a talk's, a beat's line's), or none: a new history entry, so Back undoes the pick. */
   readonly selectWords: (words: Option.Option<WordsSelection>) => void;
+  /** Select a mark of a beat's line, or none (the Script's): a new history entry, so Back undoes the pick. */
+  readonly selectMark: (mark: Option.Option<MarkSelection>) => void;
 }
 
 interface LabMeta {
@@ -305,6 +315,7 @@ const Root = (props: RootProps) => {
       code: () => here().code,
       text: () => Option.filter(here().text, () => Option.isNone(here().code)),
       words: () => here().words,
+      mark: () => here().mark,
     },
     actions: {
       pin: (layer) => {
@@ -372,6 +383,7 @@ const Root = (props: RootProps) => {
         ),
       dismissText: () => sheets.text.dismiss(() => Option.some(picked(TEXT_SHUT))),
       selectWords: (words) => address.go(picked({ words })),
+      selectMark: (mark) => address.go(picked({ mark })),
     },
     meta: {
       name,

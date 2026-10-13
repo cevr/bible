@@ -1,12 +1,17 @@
-// The lab's place in the URL (`Places.lab`, `Places.labScene`, core/api.ts):
-// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&beat=<id>&view=<compare>&code=follow|<line>&words=<a>-<b>&text=follow|<word>#t=<seconds>&loop=<a>,<b>`.
+// The place in the URL of the Lab's pages, the Lab and the Script
+// (`Places.lab`, `Places.labScene`, `Places.script`, `Places.scriptBeat`,
+// core/api.ts):
+// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&beat=<id>&view=<compare>&code=follow|<line>&words=<a>-<b>&text=follow|<word>#t=<seconds>&loop=<a>,<b>`
+// and `/films/<film>/script/<beat>?cue=<name>|mark=<name>|words=<a>-<b>&note=<id>#t=<seconds>&loop=<a>,<b>`.
 // The path's scene is the selection's scene when something is selected (a
-// cue or knob, else a talk's words), else
-// the scene under the playhead, so the path never names a scene the frame has
-// left; `#t=` is the frame's time in that scene (signed: a selection's scene
-// may start after the frame). One reader (`labPlaceOf`, `labOpensAt`) and one
-// printer (`labHref`), so a reload, a pasted link and Back all come back to
-// the frame, the pick, the note and the studio's beat they left.
+// cue or knob, else a talk's words; on the Script a cue, a mark or words),
+// else the scene under the playhead, so the path never names a scene the
+// frame has left; `#t=` is the frame's time in that scene (signed: a
+// selection's scene may start after the frame). The Script selects one
+// thing at a time: a cue, a mark or words, the newest pick winning. One
+// reader (`labPlaceOf`, `labOpensAt`) and one printer (`labHref`), so a
+// reload, a pasted link and Back all come back to the frame, the pick, the
+// note and the studio's beat they left, on the page they left.
 
 import { Place, parseHref } from '@bible/url-state';
 import { Array as Arr, Option } from 'effect';
@@ -16,19 +21,26 @@ import type { Interval } from '../core/time.ts';
 import { onTheMs } from '../core/time.ts';
 import {
   type LabSelection as Selection,
+  type MarkSelection,
   type WordsSelection,
   cueOf,
   knobOf,
   labKeysOf,
+  markOf,
   wordsIn,
   wordsText,
 } from '../command/selection.ts';
 import { type CodeOpen, codeOpenOf, codeText } from './source/open.ts';
 import { type TextOpen, textOpenOf, textText } from './transcript/open.ts';
 
+/** Which of the Lab's pages a place is on: the Lab (`/films/<film>/lab…`) or the Script (`/films/<film>/script…`). */
+export type LabRoot = 'lab' | 'script';
+
 /** What the lab's URL holds beside its film. */
 interface LabPlace {
-  /** The path's scene: none on a film's lab (`/films/<film>/lab`). */
+  /** The page the place is on. */
+  readonly root: LabRoot;
+  /** The path's scene: none on a film's lab (`/films/<film>/lab`) or Script. */
   readonly scene: Option.Option<string>;
   /** The cue or knob selected in the path's scene. */
   readonly selection: Option.Option<Selection>;
@@ -40,8 +52,10 @@ interface LabPlace {
   readonly view: CompareView;
   /** The Source view (`?code=`): shut unless the link opens it, following the frame or held on a line. */
   readonly code: Option.Option<CodeOpen>;
-  /** A talk's words selected in the path's scene (`?words=<a>-<b>`). */
+  /** Words selected in the path's scene (`?words=<a>-<b>`): a talk's, or a beat's line's on the Script. */
   readonly words: Option.Option<WordsSelection>;
+  /** A mark of the path's scene's line selected (`?mark=<name>`, the Script's). */
+  readonly mark: Option.Option<MarkSelection>;
   /** The Transcript view (`?text=`): shut unless the link opens it, following the frame or held on a word. */
   readonly text: Option.Option<TextOpen>;
   /** `#t=`: seconds into the path's scene, or film seconds on a film's lab. */
@@ -51,6 +65,7 @@ interface LabPlace {
 }
 
 const NOWHERE: LabPlace = {
+  root: 'lab',
   scene: Option.none(),
   selection: Option.none(),
   note: Option.none(),
@@ -58,6 +73,7 @@ const NOWHERE: LabPlace = {
   view: 'off',
   code: Option.none(),
   words: Option.none(),
+  mark: Option.none(),
   text: Option.none(),
   t: Option.none(),
   loop: Option.none(),
@@ -76,11 +92,12 @@ const selectionIn = (
     () => Option.map(named(query.knob), (name) => knobOf(scene, name)),
   );
 
-/** The lab's place `href` names; nothing for a page that is not the lab. */
+/** The place of the Lab's pages `href` names; nothing for a page that is neither. */
 export const labPlaceOf = (href: string): LabPlace =>
   Option.getOrElse(
-    Option.orElse(
+    Option.firstSomeOf<LabPlace>([
       Option.map(Place.decode(Places.labScene, href), ({ path, query, hash }): LabPlace => ({
+        ...NOWHERE,
         scene: Option.some(path.scene),
         selection: selectionIn(path.scene, query),
         note: named(query.note),
@@ -92,15 +109,32 @@ export const labPlaceOf = (href: string): LabPlace =>
         t: hash.t,
         loop: hash.loop,
       })),
-      () =>
-        Option.map(Place.decode(Places.lab, href), ({ query, hash }): LabPlace => ({
-          ...NOWHERE,
-          note: named(query.note),
-          view: query.view,
-          t: hash.t,
-          loop: hash.loop,
-        })),
-    ),
+      Option.map(Place.decode(Places.lab, href), ({ query, hash }): LabPlace => ({
+        ...NOWHERE,
+        note: named(query.note),
+        view: query.view,
+        t: hash.t,
+        loop: hash.loop,
+      })),
+      Option.map(Place.decode(Places.scriptBeat, href), ({ path, query, hash }): LabPlace => ({
+        ...NOWHERE,
+        root: 'script',
+        scene: Option.some(path.scene),
+        selection: Option.map(named(query.cue), (name) => cueOf(path.scene, name)),
+        mark: Option.map(named(query.mark), (name) => markOf(path.scene, name)),
+        words: wordsIn(path.scene, query.words),
+        note: named(query.note),
+        t: hash.t,
+        loop: hash.loop,
+      })),
+      Option.map(Place.decode(Places.script, href), ({ query, hash }): LabPlace => ({
+        ...NOWHERE,
+        root: 'script',
+        note: named(query.note),
+        t: hash.t,
+        loop: hash.loop,
+      })),
+    ]),
     () => NOWHERE,
   );
 
@@ -163,19 +197,35 @@ export interface LabPick {
   readonly view: CompareView;
   /** The Source view; a pick that says nothing of it leaves it shut. */
   readonly code?: Option.Option<CodeOpen>;
-  /** A talk's words selected; a pick that says nothing of them selects none. */
+  /** Words selected (a talk's, a beat's line's); a pick that says nothing of them selects none. */
   readonly words?: Option.Option<WordsSelection>;
+  /** A mark of a beat's line selected (the Script's); a pick that says nothing of it selects none. */
+  readonly mark?: Option.Option<MarkSelection>;
   /** The Transcript view; a pick that says nothing of it leaves it shut. */
   readonly text?: Option.Option<TextOpen>;
   readonly loop: Option.Option<Interval>;
 }
 
-/**
- * The lab's URL for `film` (laid out as `placed`) at film seconds `T` with
- * `pick`: the path names the selection's scene, else the scene under `T`,
- * and `#t=` is `T` in that scene, to the ms (`onTheMs`).
- */
-export const labHref = (
+/** `T` in scene `id` of the film laid out as `placed`, to the ms (`onTheMs`). */
+const tIn = (placed: ReadonlyArray<Placed>, id: string, T: number) =>
+  Option.some(onTheMs(T - Option.getOrElse(startOf(placed, id), () => 0)));
+
+/** A pick's name for `?…=`, kept only when it is of the path's scene `id` (a section's words, a line's mark, a beat's cue). */
+const keyIn = <A extends { readonly scene: string }>(
+  picked: Option.Option<A>,
+  id: string,
+  text: (a: A) => string,
+): string =>
+  Option.getOrElse(
+    Option.map(
+      Option.filter(picked, (p) => p.scene === id),
+      text,
+    ),
+    () => '',
+  );
+
+/** The Lab's URL: the path names the cue's or knob's scene, else the words', else the scene under `T`. */
+const labPageHref = (
   film: string,
   placed: ReadonlyArray<Placed>,
   pick: LabPick,
@@ -204,29 +254,101 @@ export const labHref = (
           view: pick.view,
           code: codeText(Option.flatten(Option.fromUndefinedOr(pick.code))),
           // Words are a section's: kept only on the path that names it.
-          words: Option.getOrElse(
-            Option.map(
-              Option.filter(words, (w) => w.scene === id),
-              wordsText,
-            ),
-            () => '',
-          ),
+          words: keyIn(words, id, wordsText),
           text: textText(Option.flatten(Option.fromUndefinedOr(pick.text))),
         },
-        Option.some(onTheMs(T - Option.getOrElse(startOf(placed, id), () => 0))),
+        tIn(placed, id, T),
         pick.loop,
       ),
   });
 };
 
 /**
- * The lab's URL at `href` with `change` made to what it picks, at film
- * seconds `T` (`labHref`): what every lab write prints, so each keeps what
- * the others hold (a pick keeps the loop, the time keeps the pick). The
- * path names one scene, so the newer of two picks in different scenes wins:
- * words selected in another scene than the cue or knob let it go, and a cue
- * or knob picked in another scene lets the words go (`labHref` keeps only
- * the path's).
+ * The Script's URL: the path names the cue's beat, else the words', else the
+ * mark's, else the beat under `T`. A knob, the studio's beat, the compare and
+ * the views are the Lab's alone, so the Script prints none of them.
+ */
+const scriptHref = (
+  film: string,
+  placed: ReadonlyArray<Placed>,
+  pick: LabPick,
+  T: number,
+): string => {
+  const words = Option.flatten(Option.fromUndefinedOr(pick.words));
+  const mark = Option.flatten(Option.fromUndefinedOr(pick.mark));
+  const cue = Option.filter(pick.selection, (s) => s._tag === 'Cue');
+  const scene = Option.firstSomeOf([
+    Option.map(cue, (s) => s.scene),
+    Option.map(words, (w) => w.scene),
+    Option.map(mark, (m) => m.scene),
+    Option.map(sceneAt(placed, T), (p) => p.spec.id),
+  ]);
+  const note = Option.getOrElse(pick.note, () => '');
+  return Option.match(scene, {
+    onNone: () => pageHref.script(film, Option.some(onTheMs(T)), note, pick.loop),
+    onSome: (id) =>
+      pageHref.scriptBeat(
+        film,
+        id,
+        {
+          cue: keyIn(cue, id, (c) => c.name),
+          mark: keyIn(mark, id, (m) => m.name),
+          words: keyIn(words, id, wordsText),
+          note,
+        },
+        tIn(placed, id, T),
+        pick.loop,
+      ),
+  });
+};
+
+/** Each of the Lab's pages' printer. */
+const PRINTERS: Readonly<Record<LabRoot, typeof labPageHref>> = {
+  lab: labPageHref,
+  script: scriptHref,
+};
+
+/**
+ * The URL of `root` (the Lab unless said) for `film` (laid out as `placed`)
+ * at film seconds `T` with `pick`: the path names the selection's scene,
+ * else the scene under `T`, and `#t=` is `T` in that scene, to the ms
+ * (`onTheMs`).
+ */
+export const labHref = (
+  film: string,
+  placed: ReadonlyArray<Placed>,
+  pick: LabPick,
+  T: number,
+  root: LabRoot = 'lab',
+): string => PRINTERS[root](film, placed, pick, T);
+
+/** A change that picks a cue, a mark or words: on the Script, it lets the other two go. */
+const picksOne = (change: Partial<LabPick>): boolean =>
+  'selection' in change || 'mark' in change || 'words' in change;
+
+/** What a change lets go of on each page beside what it names: on the Script, a pick lets the others go. */
+const LET_GO: Readonly<Record<LabRoot, (change: Partial<LabPick>) => Partial<LabPick>>> = {
+  lab: () => ({}),
+  script: (change) =>
+    Option.match(Option.liftPredicate(change, picksOne), {
+      onNone: () => ({}),
+      onSome: (): Partial<LabPick> => ({
+        selection: Option.none(),
+        mark: Option.none(),
+        words: Option.none(),
+      }),
+    }),
+};
+
+/**
+ * The URL at `href` (the Lab's or the Script's) with `change` made to what it
+ * picks, at film seconds `T` (`labHref`), on the page it is on: what every
+ * write of either prints, so each keeps what the others hold (a pick keeps
+ * the loop, the time keeps the pick). The path names one scene, so the newer
+ * of two picks in different scenes wins: words selected in another scene
+ * than the cue or knob let it go, and a cue or knob picked in another scene
+ * lets the words go (`labHref` keeps only the path's). The Script selects
+ * one thing at a time: a cue, a mark or words picked lets the others go.
  */
 export const labHrefWith = (
   film: string,
@@ -235,14 +357,27 @@ export const labHrefWith = (
   change: Partial<LabPick>,
   T: number,
 ): string => {
-  const { selection, note, beat, view, code, words, text, loop } = labPlaceOf(href);
+  const { root, selection, note, beat, view, code, words, mark, text, loop } = labPlaceOf(href);
   const picked = Option.flatten(Option.fromUndefinedOr(change.words));
   const kept = Option.filter(selection, (s) => !Option.exists(picked, (w) => w.scene !== s.scene));
   return labHref(
     film,
     placed,
-    { selection: kept, note, beat, view, code, words, text, loop, ...change },
+    {
+      selection: kept,
+      note,
+      beat,
+      view,
+      code,
+      words,
+      mark,
+      text,
+      loop,
+      ...LET_GO[root](change),
+      ...change,
+    },
     T,
+    root,
   );
 };
 

@@ -38,7 +38,7 @@ import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled, served } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
 import type { LabSelection } from '../../command/selection.ts';
-import { labHref } from '../place.ts';
+import { type LabRoot, labHref, labPlaceOf } from '../place.ts';
 import type { LabMode } from '../mode.ts';
 import { narrationUrls } from '../../player/narrated.ts';
 import { PROBE, probeFilm } from './probe-film.ts';
@@ -81,13 +81,13 @@ export const labAt = (T: number, pick: PickAsked = {}): string =>
 /**
  * The film seconds the page's URL names, as a page-side expression: its
  * path's scene's start (the probe film's) plus `#t=`, as `labOpensAt` reads
- * a lab link; a play page's `#t=` is film time. The one reader of the time
- * in the URL the browser tests poll.
+ * a Lab or a Script link; a play page's `#t=` is film time. The one reader
+ * of the time in the URL the browser tests poll.
  */
 export const URL_T = `(() => {
   const starts = ${jsonOf(Object.fromEntries(probePlaced.map((p) => [p.spec.id, p.start])))};
   const url = new URL(location.href);
-  const scene = /^\\/films\\/[^/]+\\/lab\\/([^/]+)$/.exec(url.pathname)?.[1] ?? '';
+  const scene = /^\\/films\\/[^/]+\\/(?:lab|script)\\/([^/]+)$/.exec(url.pathname)?.[1] ?? '';
   return (starts[decodeURIComponent(scene)] ?? 0) + Number(new URLSearchParams(url.hash.slice(1)).get('t'));
 })()`;
 
@@ -199,6 +199,28 @@ const sourceThree = {
   refused: [],
 };
 
+/**
+ * The probe film's script as the lab reads it (`GET …/script`): each beat's
+ * picture, naming its cues in backticks as a script's brief does, and its
+ * sources; the second beat's picture says nothing of its cues, and cites none.
+ */
+export const probeScript = {
+  film: PROBE,
+  beats: [
+    {
+      id: 'one',
+      picture: 'A ball on a line: it climbs on `rise` and drops back on `fall`.',
+      cite: ['Probe 1:1'],
+    },
+    { id: 'two', picture: 'The ball at rest.', cite: [] },
+    {
+      id: 'three',
+      picture: 'A face, pushed in on `push` from the word `near` names.',
+      cite: ['Probe 3:1', 'Probe 3:2'],
+    },
+  ],
+};
+
 /** The id the fake lab gives the change a write of `target` to `scene` makes (`HistoryStep.change`). */
 export const changeOf = (target: string, scene = 'one'): string => `${scene}:${target}`;
 
@@ -239,6 +261,7 @@ const defaults: ReadonlyArray<FakeRoute> = [
   }),
   route('GET', /^\/check$/, () => json({ findings: [] })),
   route('GET', /^\/studio\/beats$/, () => json({ film: PROBE, beats: [] })),
+  route('GET', /^\/script$/, () => json(probeScript)),
   route('POST', /^\/scenes\/\w+\/cues\//, () => json(wrote('cue'))),
   route('POST', /^\/scenes\/\w+\/knobs\//, () => json(wrote('knob'))),
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
@@ -542,8 +565,19 @@ export const DESK: Viewport = { width: 1440, height: 900 };
 export const PHONE: Viewport = { width: 390, height: 844, coarse: true };
 
 /**
- * Open the lab at `href` (`pageHref.lab`, `pageHref.labScene`, `core/api.ts`;
- * the probe film's lab when none), served on every lab place as the server
+ * What each of the lab's pages shows once its film is staged: the Lab its
+ * panel with the film's tools in it, the Script its reader (which stands
+ * only on a staged film).
+ */
+export const STAGED: Readonly<Record<LabRoot, string>> = {
+  lab: '.lab-panel[data-staged="true"]',
+  script: '.lab-script',
+};
+
+/**
+ * Open the lab at `href` (`pageHref.lab`, `pageHref.labScene`,
+ * `pageHref.script`, `pageHref.scriptBeat`, `core/api.ts`; the probe film's
+ * lab when none), served on every lab place as the server
  * serves it, with `routes` answering the API before the defaults, and `mic`
  * as its microphone when given, in `mode` when given. The tab goes back to
  * the pool with the scope.
@@ -559,7 +593,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     readonly mode?: LabMode;
     /** The window, and its pointer; none: a desk's, 1400 × 900 with a mouse. */
     readonly viewport?: Viewport;
-    /** What the page is open at; none: its panel, the film staged in it. */
+    /** What the page is open at; none: the film staged on it (`STAGED`, by the page its link opens). */
     readonly ready?: string;
     /**
      * The probe film with a master to play (`narratedProbeFilm`), its file
@@ -600,9 +634,10 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
       asked,
     ),
   });
-  yield* page.goto(at.href ?? pageHref.lab(PROBE));
-  // The panel stands before the film is staged; its tools are in it once it is.
-  yield* page.waitFor(at.ready ?? '.lab-panel[data-staged="true"]');
+  const href = at.href ?? pageHref.lab(PROBE);
+  yield* page.goto(href);
+  // The Lab's panel stands before the film is staged, its tools in it once it is; the Script's reader once it is.
+  yield* page.waitFor(at.ready ?? STAGED[labPlaceOf(href).root]);
   for (const mode of Option.toArray(Option.fromUndefinedOr(at.mode))) {
     yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
     yield* page.waitFor(`.lab-panel[data-mode="${mode}"]`);

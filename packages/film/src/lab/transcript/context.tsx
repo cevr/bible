@@ -43,6 +43,7 @@ import {
   markName,
   rowsIn,
   rowsOf,
+  sameWord,
   wordAt,
 } from './lit.ts';
 import { FOLLOW_TEXT, type TextOpen, textText } from './open.ts';
@@ -152,11 +153,7 @@ export const Provider = (props: ParentProps) => {
   const placing = () => !suspended();
   const following = () => Option.exists(lab.text(), (o) => o._tag === 'Follow') && placing();
   const lit = createMemo(() => wordAt(sections(), meta.film.placed, lab.T()), {
-    equals: (a, b) =>
-      Option.getOrElse(
-        Option.zipWith(a, b, (x, y) => x.section === y.section && x.index === y.index),
-        () => Option.isNone(a) && Option.isNone(b),
-      ),
+    equals: sameWord,
   });
   // The word the view is held on: in the words selected's section when it has it, else the first that does.
   const held = createMemo(() =>

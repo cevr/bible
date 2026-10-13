@@ -12,8 +12,22 @@ import {
   selectionText,
 } from './selection.ts';
 
-const { Cue, Knob, Note, Point, Folder, Set, Version, Variant, Act, Film, Beat, Scene } =
-  Selection.cases;
+const {
+  Cue,
+  Knob,
+  Mark,
+  Words,
+  Note,
+  Point,
+  Folder,
+  Set,
+  Version,
+  Variant,
+  Act,
+  Film,
+  Beat,
+  Scene,
+} = Selection.cases;
 
 describe("a selection in the pages' URLs", () => {
   test('reads the lab scene keys as a cue, a knob or a note, cue first', () => {
@@ -124,20 +138,56 @@ describe("a selection in the pages' URLs", () => {
   });
 
   test('every selection round-trips through its citation where the places have a key for it', () => {
-    const here = pageHref.labScene('f', 'one');
-    for (const s of [
-      Cue.make({ scene: 'one', name: 'rise' }),
-      Knob.make({ scene: 'one', name: 'size' }),
-      Note.make({ id: 'n7' }),
-      Beat.make({ beat: 'two' }),
-      Point.make({ film: 'f', point: 'cold' }),
-      Folder.make({ folder: 'renders' }),
-      Set.make({ folder: 'renders', point: 'cold' }),
-      Version.make({ folder: 'renders', point: 'cold', version: 'b' }),
-      Variant.make({ film: 'f', point: 'score', variant: 'piano' }),
-    ]) {
-      expect(selectionOf(citeOf(s, here))).toEqual(Option.some(s));
-    }
+    for (const here of [pageHref.labScene('f', 'one'), pageHref.scriptBeat('f', 'one')])
+      for (const s of [
+        Cue.make({ scene: 'one', name: 'rise' }),
+        Knob.make({ scene: 'one', name: 'size' }),
+        Mark.make({ scene: 'one', name: 'fall' }),
+        Words.make({ scene: 'one', from: 2, to: 5 }),
+        Note.make({ id: 'n7' }),
+        Beat.make({ beat: 'two' }),
+        Point.make({ film: 'f', point: 'cold' }),
+        Folder.make({ folder: 'renders' }),
+        Set.make({ folder: 'renders', point: 'cold' }),
+        Version.make({ folder: 'renders', point: 'cold', version: 'b' }),
+        Variant.make({ film: 'f', point: 'score', variant: 'piano' }),
+      ]) {
+        expect(selectionOf(citeOf(s, here))).toEqual(Option.some(s));
+      }
+  });
+
+  test("reads the Script's beat keys as a cue, a mark, words or a note, and cites what it holds on it", () => {
+    expect(selectionOf(pageHref.scriptBeat('f', 'one', { mark: 'fall' }))).toEqual(
+      Option.some(Mark.make({ scene: 'one', name: 'fall' })),
+    );
+    expect(selectionOf(pageHref.scriptBeat('f', 'one', { words: '2-5' }))).toEqual(
+      Option.some(Words.make({ scene: 'one', from: 2, to: 5 })),
+    );
+    expect(selectionOf(pageHref.script('f', Option.none(), 'n7'))).toEqual(
+      Option.some(Note.make({ id: 'n7' })),
+    );
+    const here = pageHref.scriptBeat('f', 'one', {}, Option.some(1.5));
+    // A cue, words and a note the Script holds are cited on it, the time kept in the same beat.
+    expect(citeOf(Cue.make({ scene: 'one', name: 'rise' }), here)).toBe(
+      pageHref.scriptBeat('f', 'one', { cue: 'rise' }, Option.some(1.5)),
+    );
+    expect(citeOf(Words.make({ scene: 'two', from: 0, to: 3 }), here)).toBe(
+      pageHref.scriptBeat('f', 'two', { words: '0-3' }),
+    );
+    expect(citeOf(Note.make({ id: 'n7' }), here)).toBe(
+      pageHref.scriptBeat('f', 'one', { note: 'n7' }, Option.some(1.5)),
+    );
+    expect(citeOf(Note.make({ id: 'n7' }), pageHref.script('f', Option.some(9)))).toBe(
+      pageHref.script('f', Option.some(9), 'n7'),
+    );
+    // What only the Lab holds is cited on the Lab; a mark only on the Script.
+    expect(citeOf(Knob.make({ scene: 'one', name: 'size' }), here)).toBe(
+      pageHref.labScene('f', 'one', { knob: 'size' }, Option.some(1.5)),
+    );
+    expect(citeOf(Mark.make({ scene: 'one', name: 'fall' }), pageHref.labScene('f', 'one'))).toBe(
+      pageHref.scriptBeat('f', 'one', { mark: 'fall' }),
+    );
+    expect(selectionText(Mark.make({ scene: 'one', name: 'fall' }))).toBe('mark fall in one');
   });
 
   test("reads a set's and Choices' `?inspect=` as the version or the variant whose sheet is open; none open, as before", () => {

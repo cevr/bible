@@ -6,7 +6,8 @@
 // Lit by the clock, never by what ran, so a link with `#t=` lights what its
 // sender saw. The text is painted through the page's highlights
 // (`browser/highlights.ts`), so it stays selectable and copyable, and a word
-// lit costs no element.
+// lit costs no element; its words are laid out, painted and pressed as the
+// Script's are (`words.ts`).
 //
 // Closed at rest; opened by `?text=follow` (the view scrolls to the word
 // playing until a hand scrolls it; Play or Follow takes it back) or
@@ -21,13 +22,11 @@
 // laptop it is a column beside the picture; on a phone a sheet of its own.
 
 import { For, Portal, Show } from '@solidjs/web';
-import { Array as Arr, Boolean as Bool, Effect, Option } from 'effect';
-import { type ParentProps, createEffect, createMemo, onCleanup } from 'solid-js';
-import { Highlights, type HighlightName } from '../../browser/highlights.ts';
+import { Array as Arr, Boolean as Bool, Option } from 'effect';
+import { type ParentProps, createMemo } from 'solid-js';
 import { BY_BUTTON } from '../../command/command.ts';
 import { Selection, selectionText } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
-import type { CodeRange } from '../../core/schema.ts';
 import { Target } from '../command/context-menu.tsx';
 import { useFollow } from '../follow.ts';
 import { pressed } from '../pressed.ts';
@@ -36,36 +35,12 @@ import { Sheet } from '../sheet.tsx';
 import { PHONE, useMatches } from '../viewport.ts';
 import { playsAny, strikesAny } from './commands.ts';
 import { TalkState, useTranscript } from './context.tsx';
-import { type Row, type SectionRows, type WordAt, rangesOf } from './lit.ts';
+import { type WordAt, rangesOf, rowOf } from './lit.ts';
 import { FOLLOW_TEXT } from './open.ts';
+import { usePainted, wordsReleased } from './words.ts';
 
 /** A word as Follow names it: its section and its index, one string that settles while the word does. */
 const keyOf = (at: WordAt) => `${at.section}:${at.index}`;
-
-/** The row of `at` among `sections`. */
-const rowOf = (sections: ReadonlyArray<SectionRows>, at: WordAt): Option.Option<Row> =>
-  Option.flatMap(Option.fromUndefinedOr(sections.find((s) => s.id === at.section)), (s) =>
-    Option.fromUndefinedOr(s.rows.find((r) => r.index === at.index)),
-  );
-
-/** The word a node of the text is in: its section and its index. */
-const wordOfNode = (node: Option.Option<Node>): Option.Option<WordAt> =>
-  Option.flatMap(
-    Option.flatMap(
-      Option.flatMap(node, (n) =>
-        Option.orElse(
-          Option.liftPredicate(n, (x): x is Element => x instanceof Element),
-          () => Option.fromNullishOr(n.parentElement),
-        ),
-      ),
-      (el) => Option.fromNullishOr(el.closest('[data-index]')),
-    ),
-    (el) =>
-      Option.map(
-        Option.fromNullishOr(el.closest('[data-scene]')?.getAttribute('data-scene')),
-        (section) => ({ section, index: Number(el.getAttribute('data-index')) }),
-      ),
-  );
 
 /** The talk's words, a paragraph to a section, with the lit, held and selected words painted. */
 const Text = () => {
@@ -76,34 +51,20 @@ const Text = () => {
   let scroller = Option.none<HTMLElement>();
   const box = () => scroller;
 
-  const paint = (name: HighlightName, ranges: ReadonlyArray<CodeRange>) =>
-    Option.map(page, (root) =>
-      Effect.runSyncWith(meta.host)(Highlights.use((h) => h.paint(name, root, ranges))),
-    );
   const rangesAt = (at: Option.Option<WordAt>) =>
     rangesOf(Option.toArray(Option.flatMap(at, (w) => rowOf(text.sections(), w))));
-  createEffect(
-    () => ({
-      live: rangesAt(text.lit()),
-      read: rangesAt(text.held()),
-      picked: rangesOf(text.picked()),
-      cuts: text.cuts(),
-    }),
-    (now) => {
-      paint('lab-live', now.live);
-      paint('lab-read', now.read);
-      paint('lab-picked', now.picked);
+  usePainted(
+    meta.host,
+    () => page,
+    () => {
+      // Painted again as the struck words show or hide.
+      text.cuts();
+      return {
+        'lab-live': rangesAt(text.lit()),
+        'lab-read': rangesAt(text.held()),
+        'lab-picked': rangesOf(text.picked()),
+      };
     },
-  );
-  onCleanup(() =>
-    Effect.runSyncWith(meta.host)(
-      Highlights.use((h) =>
-        Effect.andThen(
-          Effect.andThen(h.clear('lab-live'), h.clear('lab-read')),
-          h.clear('lab-picked'),
-        ),
-      ),
-    ),
   );
 
   // The word the view looks at: the held word, else the one playing while it follows.
@@ -150,38 +111,12 @@ const Text = () => {
     },
   });
 
-  // The page's text selection, when it spans any text.
-  const textSelection = () =>
-    Option.filter(Option.fromNullishOr(window.getSelection()), (s) => !s.isCollapsed);
-  // The words a text selection spans, from the first to the last, in one section.
-  const selectWords = (selection: globalThis.Selection) =>
-    Option.map(
-      Option.filter(
-        Option.zipWith(
-          wordOfNode(Option.fromNullishOr(selection.anchorNode)),
-          wordOfNode(Option.fromNullishOr(selection.focusNode)),
-          (a, b) => ({ a, b }),
-        ),
-        ({ a, b }) => a.section === b.section,
-      ),
-      ({ a, b }) =>
-        text.selectRange(a.section, Math.min(a.index, b.index), Math.max(a.index, b.index)),
-    );
   // A press that ends a text selection across words selects them; a tap on one word shows it.
-  const released = (event: MouseEvent) => {
-    const selection = textSelection();
-    if (Option.isSome(selection)) {
-      selectWords(selection.value);
-      return;
-    }
-    const target = Option.filter(
-      Option.fromNullishOr(event.target),
-      (t): t is Node => t instanceof Node,
-    );
-    Option.map(wordOfNode(target), (at) =>
-      Option.map(rowOf(text.sections(), at), (row) => text.tap(at.section, row, event.shiftKey)),
-    );
-  };
+  const released = wordsReleased({
+    sections: text.sections,
+    selectRange: text.selectRange,
+    tap: text.tap,
+  });
   return (
     <div
       class="lab-transcript-scroll"

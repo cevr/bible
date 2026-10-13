@@ -35,6 +35,8 @@ import {
   cueFieldsShown,
   labNoteOnCue,
   LAB_MOVES,
+  SCRIPT_MOVES,
+  scriptOpen,
 } from './studio-states.ts';
 
 /**
@@ -118,6 +120,9 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
         SELECTION_SHEET,
       ],
     ],
+    script: SCRIPT_MOVES,
+    // The picture and its track over the words, which scroll in a box of their own above the dock.
+    scriptBeat: [['Script', scriptOpen]],
     play: [['Play', player(pageHref.play(PROBE), '.bar [data-act="play"]')]],
   };
   for (const [place, [name, open, layer]] of byPlace(PAGES)) {

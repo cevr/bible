@@ -143,7 +143,7 @@
   --fs-5: 16px;
   --lh-5: 22px; /* timecode, page title */
   --fs-read: 18px;
-  --lh-read: 28px; /* the prompter only: text read aloud */
+  --lh-read: 28px; /* the prompter and the Script's lines only: text read aloud */
   --w-1: 400;
   --w-2: 500;
   --w-3: 650;

@@ -1013,6 +1013,18 @@ const LabSelection = Field.struct({
 });
 
 /**
+ * What the Script page selects in a beat (the path's scene): one of a cue
+ * (`cue`), a mark of its line (`mark`) or its words (`words`: `<a>-<b>`,
+ * word indices of the line as it is said); and the note selected (`note`).
+ */
+const ScriptSelection = Field.struct({
+  cue: cited,
+  mark: cited,
+  words: cited,
+  note: cited,
+});
+
+/**
  * A film's player on its choices and its project: the sound heard over the
  * picture (`?heard=<point>&variant=<id>` for a variant in place, `heard=own`
  * for the picture's own sound; none heard is the page's first) and the
@@ -1047,7 +1059,10 @@ export const OWN_SOUND = 'own';
  * selected and `#t=` the playhead in film time on both, and its plain preview
  * `/films/<film>/play#t=`. Lab: a film
  * `/films/<film>/lab#t=` (film time) or one of its scenes
- * `/films/<film>/lab/<scene>?cue=#t=` (scene time), with the selection.
+ * `/films/<film>/lab/<scene>?cue=#t=` (scene time), with the selection; and
+ * its script, the lab's second page on the same staged film,
+ * `/films/<film>/script#t=` or a beat of it
+ * `/films/<film>/script/<scene>?mark=#t=`, with what is selected in the beat.
  * Render: a film's export page `/films/<film>/export`, the film staged with
  * no chrome and its handle on `window.__film` (`mountRender`), which the
  * easel opens on the lab (`film look`); no reviewer's view, so it holds no
@@ -1106,6 +1121,18 @@ export const Places = {
     query: LabSelection,
     hash: LabAt,
   }),
+  script: Place.make({
+    path: '/films/:film/script',
+    params: filmParams,
+    query: Field.struct({ note: cited }),
+    hash: LabAt,
+  }),
+  scriptBeat: Place.make({
+    path: '/films/:film/script/:scene',
+    params: { film: Codec.Segment, scene: Codec.Segment },
+    query: ScriptSelection,
+    hash: LabAt,
+  }),
   export: Place.make({ path: '/films/:film/export', params: filmParams }),
 };
 
@@ -1121,6 +1148,8 @@ const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, AppPage]> = [
   [Places.play, 'player'],
   [Places.lab, 'lab'],
   [Places.labScene, 'lab'],
+  [Places.script, 'lab'],
+  [Places.scriptBeat, 'lab'],
   [Places.export, 'render'],
 ];
 
@@ -1158,6 +1187,8 @@ const FILM_PLACES: ReadonlyArray<Place.Place<{ readonly path: { readonly film: s
   Places.play,
   Places.lab,
   Places.labScene,
+  Places.script,
+  Places.scriptBeat,
   Places.export,
 ];
 
@@ -1198,6 +1229,17 @@ interface LabPicked {
   readonly words?: string;
   /** The Transcript view open (`?text=`): `follow` or a word. */
   readonly text?: string;
+}
+
+/** The Script page's selection keys, none set. */
+const NOTHING_SCRIPTED = { cue: '', mark: '', words: '', note: '' };
+
+/** What the Script page has selected in a beat: a cue, a mark or words (`<a>-<b>`), and the note. */
+interface ScriptPicked {
+  readonly cue?: string;
+  readonly mark?: string;
+  readonly words?: string;
+  readonly note?: string;
 }
 
 /** A time for the hash, when there is one. */
@@ -1268,14 +1310,34 @@ export const pageHref = {
       query: { ...NOTHING_SELECTED, ...picked },
       hash: { t, loop },
     }),
+  /** The Script on `film`, at film time `t`, with note `note` selected, looping `loop`. */
+  script: (
+    film: string,
+    t: Option.Option<number> = Option.none(),
+    note = '',
+    loop: Option.Option<Interval> = Option.none(),
+  ): string => Place.href(Places.script, { path: { film }, query: { note }, hash: { t, loop } }),
+  /** The Script on beat `scene` of `film`, at scene time `t`, with what is `picked` there, looping `loop`. */
+  scriptBeat: (
+    film: string,
+    scene: string,
+    picked: ScriptPicked = {},
+    t: Option.Option<number> = Option.none(),
+    loop: Option.Option<Interval> = Option.none(),
+  ): string =>
+    Place.href(Places.scriptBeat, {
+      path: { film, scene },
+      query: { ...NOTHING_SCRIPTED, ...picked },
+      hash: { t, loop },
+    }),
 };
 
 /**
  * The studio's parts, in the page bar's order: Films (the home, every
- * film's), then a film's Scenes, Lab, Choices, Project and Play. ⇧1-⇧6 go
- * to them in this order.
+ * film's), then a film's Scenes, Lab, Script, Choices, Project and Play.
+ * ⇧1-⇧7 go to them in this order.
  */
-export const PARTS = ['films', 'scenes', 'lab', 'choices', 'project', 'play'] as const;
+export const PARTS = ['films', 'scenes', 'lab', 'script', 'choices', 'project', 'play'] as const;
 export type Part = (typeof PARTS)[number];
 
 /** Each part's name, as the page bar prints it. */
@@ -1283,6 +1345,7 @@ export const PART_TITLE: Readonly<Record<Part, string>> = {
   films: 'Films',
   scenes: 'Scenes',
   lab: 'Lab',
+  script: 'Script',
   choices: 'Choices',
   project: 'Project',
   play: 'Play',
@@ -1290,13 +1353,13 @@ export const PART_TITLE: Readonly<Record<Part, string>> = {
 
 /**
  * Whether `film` has `part`: a film has every part; a short (`<film>/shorts/<id>`)
- * is only played and seen as scenes, with no lab, choices or project of its own.
+ * is only played and seen as scenes, with no lab, script, choices or project of its own.
  */
 export const hasPart = (film: string, part: Part): boolean =>
   !isShortKey(film) || part === 'films' || part === 'scenes' || part === 'play';
 
 /** The parts whose `#t=` is the film's time: a move between them keeps the frame. */
-const FILM_TIME_PARTS: ReadonlySet<Part> = new Set<Part>(['scenes', 'lab', 'play']);
+const FILM_TIME_PARTS: ReadonlySet<Part> = new Set<Part>(['scenes', 'lab', 'script', 'play']);
 
 /** The film time a page of `part` at `t` hands the page bar to keep: none from a part whose time is not the film's. */
 export const filmTimeOn = (part: Part, t: Option.Option<number>): Option.Option<number> =>
@@ -1304,8 +1367,8 @@ export const filmTimeOn = (part: Part, t: Option.Option<number>): Option.Option<
 
 /**
  * The page of `part` on `film`, at its defaults (Films names no film);
- * Scenes, the Lab and Play at film time `t`, the frame a move between them
- * keeps.
+ * Scenes, the Lab, the Script and Play at film time `t`, the frame a move
+ * between them keeps.
  */
 export const partHref = (
   part: Part,
@@ -1316,6 +1379,7 @@ export const partHref = (
     films: () => pageHref.home(),
     scenes: () => pageHref.scenes(film, t),
     lab: () => pageHref.lab(film, t),
+    script: () => pageHref.script(film, t),
     choices: () => pageHref.choices(film),
     project: () => pageHref.project(film),
     play: () => pageHref.play(film, t),

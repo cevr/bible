@@ -415,8 +415,23 @@ export const LAB_MOVES: Exempt = {
   why: "a film's Lab moves to the scene under its playhead as it opens",
 };
 
+/** The probe film's Script, as its link opens it (`pageHref.script`): its beats read, its words laid out. */
+export const scriptOpen = (viewport: Viewport) =>
+  Effect.gen(function* () {
+    const { page } = yield* openLab([], { viewport, href: pageHref.script(PROBE) });
+    yield* waitFor(page, '.lab-script-picture');
+    return page;
+  });
+
+/** A film's Script link moves as its Lab's does: to the beat under the playhead, where the Script is measured. */
+export const SCRIPT_MOVES: Exempt = {
+  measuredAt: 'scriptBeat',
+  why: "a film's Script moves to the beat under its playhead as it opens",
+};
+
 export const STATES: ByPlace<State, AtRest> = {
   lab: LAB_MOVES,
+  script: SCRIPT_MOVES,
   home: [
     {
       name: 'Films',
@@ -591,6 +606,17 @@ export const STATES: ByPlace<State, AtRest> = {
       open: receipted,
       disclose: AT_REST,
       layer: RECEIPTS,
+    },
+  ],
+  scriptBeat: [
+    {
+      name: 'Script, the beats and their words',
+      open: scriptOpen,
+      disclose: AT_REST,
+      // Its words are what it is read for: each its own text leaf, as the Transcript's are, so a tap
+      // shows it (the probe's are 26 of the laptop's things, 17 of the phone's, where two of its
+      // three beats stand on the first screen). A beat's id and start are one press.
+      budget: most(46, 63),
     },
   ],
   scenes: [
