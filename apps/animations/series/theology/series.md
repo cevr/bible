@@ -41,7 +41,7 @@ House rules for every episode (owner's, binding): quote only Scripture, KJV, ver
 - Cold open on a Bible scene (STORY) or a plain human picture, ending on the viewer's question.
 - The first principle it rests on, said in one line (the callback to the earlier episode).
 - One small dose of the problem, answered within seconds.
-- The deepest turn at 55–65 %, the landing back in the cold open's layout, a thesis line of Scripture, about 30 s of music alone, credits.
+- The deepest turn at 55–65 %, the landing back in the cold open's layout, a thesis line of Scripture, about 30 s of music alone, credits. The thesis and the credits stay in the cold open's place (CRAFT rule 4, bookend the setting).
 - A recurring series motif: **the six stones** of Heb 6:1–2 (Tier One's map, each episode lights its stone), **the veil with gold light behind it** (Tier Two), **the hill path to the city** (Tier Three), all inside the widening light of the cross.
 
 ## Episodes

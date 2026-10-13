@@ -158,6 +158,8 @@ Side plan (content series): three research subagents were running at the pause (
 
 ## Follow-ups (from state.md files; new units or tracker items)
 
+- **rbfbookend** (owner rule 2026-10-13, CRAFT rule 4 "bookend the setting"): RBF's coda leaves the court for the title's rooftop. Fix in `scenes/thesis.ts` by dropping `courtOut`, `cityIn` and `rooftop` and easing back to the court's `courtBack`. Then `scenes/end.ts` rolls the credits over the courtroom, and the `thesis`/`end` pictures in `script.ts` are updated. Owner-visible; stills before and after. See `series/bookends.md`.
+
 - 2026-10-13 retro-skills (pass5/retro-skills.md) — APPLIED on p5-main 9732f9d41: #3 hands by look (CRAFT §12, director-vision § Hands, description), #5 rejected.md Rive row → "Rive never owns the clock", #7 film skill Talks section + trigger. CARRIED as next-pass batches:
   - OWNER 2026-10-13 ("a featuremap is good as well", pointing at cursor/plugins pstack): labui gains a feature map in the pstack create-verification-skill shape (README index + one file per user feature: Sub-features / How to get to it / Driving it / Gotchas); design from pass5/pstack-review.md.
   - 2026-10-13 pstack-review.md (§3) sharpens labui into TWO skills split by reader: `verify-lab` (Launch/Doctor/Drive/Evidence/Cleanup + `features/`: review, options, lab-edit, command, sheets, studio-talk, player-export; acceptance names feature ids; verifier drives from the map) and `lab-ui` (editing map/rules only). Prereq batch `verifytools`: `seed`/`lab`/`doctor`/`drive` scripts in `packages/film/src/tools/verify/` on `tools/chrome.ts` (verifiers hand-rebuilt a CDP helper 4×); add the skill to docs.test.ts `readDocs`. Generator: dotfiles `create-verification-skill` (being written).

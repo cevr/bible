@@ -133,11 +133,11 @@ Quoted Scripture: 10 passages, 130 of 741 spoken words (17.5 %; counted by the v
 
 **say:** {grow}“Grow in grace, and in the knowledge of our Lord and Saviour Jesus Christ.”
 **cite:** 2 Peter 3:18
-**picture:** The answer writes itself in the sky over the courtyard, the only text: GROW IN GRACE. The music rises alone for about thirty seconds while the camera eases back over the courtyard to the field from `grain`, full corn moving in the wind, and up the hill of `path`.
+**picture:** The answer writes itself in the sky over the courtyard, the only text: GROW IN GRACE. The music rises alone for about thirty seconds while the camera eases back and lifts over the courtyard, the grown man still at the host's side at the set table. Past the courtyard wall, the field from `grain` moves in the wind, full corn, and the hill of `path` rises beyond it.
 
 ### `end` · ~28 s
 
-**picture:** STORY: the credits over the landing's last pull back, the field and the hill under the landing sky, nothing breathing. The film's name and its sources roll up a torn paper strip at the left for about 22 s; then the strip goes and the hill holds clear for the end screens.
+**picture:** STORY: the credits over the landing's last pull back, the wedding courtyard from above under the landing sky, the field and the hill beyond its wall, nothing breathing. The film's name and its sources roll up a torn paper strip at the left for about 22 s; then the strip goes and the courtyard holds clear for the end screens.
 **credits (from the beats' cite):**
 
 - Scripture (KJV): Hebrews 5:10–14; 6:1–2, 19–20; 8:1–2, 6; 4:9 · 1 Peter 2:2 · 1 Corinthians 3:1–3 · Mark 4:26–28 · Isaiah 28:9–10 · Jeremiah 15:16 · Psalm 34:8 · Ephesians 4:13–15 · 2 Peter 1:19; 3:18

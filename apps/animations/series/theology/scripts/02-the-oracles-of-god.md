@@ -131,11 +131,11 @@ Quoted Scripture: 8 passages, 110 of 653 spoken words (17 %; counted by the veri
 
 **say:** {truth}“Thy word is truth.”
 **cite:** John 17:17
-**picture:** The answer writes itself above the table, the only text: THY WORD IS TRUTH. The music rises alone for about thirty seconds while the camera follows the lamp's light out of the door and down the road toward the hills at sunrise.
+**picture:** The answer writes itself above the table, the only text: THY WORD IS TRUTH. The music rises alone for about thirty seconds while the camera eases back from the table and out through the synagogue's door: the Bereans still bent over the scrolls inside, the lamp's light spilling from the door onto the road, and the hills beyond going gold at sunrise.
 
 ### `end` · ~28 s
 
-**picture:** STORY: credits roll up a torn strip at the left over the road at sunrise, nothing breathing, then the frame holds clear for the end screens.
+**picture:** STORY: credits roll up a torn strip at the left over the synagogue at sunrise, its door lit and the road running from it, nothing breathing, then the frame holds clear for the end screens.
 **credits:**
 
 - Scripture (KJV): Acts 17:2–3, 10–12 · Hebrews 5:12 · Acts 7:38 · 2 Peter 1:20–21 · Numbers 12:6–8 · Isaiah 8:20 · John 1:29 · Exodus 12:13 · 1 Corinthians 2:13 · Luke 24:13–27 · John 5:39 · Psalm 119:105, 130 · 2 Timothy 3:15 · John 7:17; 17:17
