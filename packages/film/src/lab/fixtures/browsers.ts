@@ -54,10 +54,19 @@ const flags = Effect.runSync(
     Effect.map(micFile, (wav) => [
       // The renderer's software 2D canvas (`tools/browser.ts`), as every test draws.
       '--disable-accelerated-2d-canvas',
+      // WebGL 2 on SwiftShader, Chrome's software GPU, as a render on Linux has it
+      // (`tools/browser.ts` `launchArgs`), so a rig the Rive Renderer draws (`src/rive`) is
+      // drawn. On every platform: Bun's Chrome is spawned with `--disable-gpu`, which no later
+      // flag turns back on, so SwiftShader is the only WebGL a test's Chrome can have.
+      '--enable-unsafe-swiftshader',
       // Plays media without a gesture: the test is the reviewer, and it never clicks first.
       '--autoplay-policy=no-user-gesture-required',
       '--use-fake-device-for-media-stream',
       `--use-file-for-fake-audio-capture=${wav}`,
+      // The fake microphone's file is opened by Chrome's audio service, whose
+      // sandbox on macOS (and Windows) lets it open no file of ours: there it
+      // recorded silence. On Linux the service runs unsandboxed already.
+      '--disable-features=AudioServiceSandbox',
       // A desk's mouse: headless Chrome has no pointer, so `(pointer: none)`
       // matched and every page took the phone's density. Fine (4) and hover
       // (2), as Blink numbers them; touch emulation (a phone's lease) stands
@@ -122,6 +131,19 @@ let made = 0;
 
 /** How many views this process has opened for its tabs: the pool's own test reads it. */
 export const viewsMade = () => made;
+
+/**
+ * The command line of the Chrome this process's tabs run in, as Chrome
+ * shows it (`chrome://version`), read in a view of its own that closes after:
+ * what it was spawned with, the flags `tools/chrome.ts` adds among them.
+ */
+export const chromeCommandLine: Effect.Effect<string> = Effect.gen(function* () {
+  const view = yield* openView(yield* flags, { width: 800, height: 600 });
+  yield* Effect.promise(() => view.navigate('chrome://version'));
+  return yield* Effect.promise(() =>
+    view.evaluate<string>("document.querySelector('#command_line').textContent"),
+  );
+}).pipe(Effect.scoped, Effect.orDie, Effect.provide(BunServices.layer));
 
 /**
  * Calls that run one at a time, in order, however their callers fare: run

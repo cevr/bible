@@ -2,71 +2,128 @@
 // it with the Rive CLI offline and unsigned (`rive --once`: no account, no
 // scripts), and copy the .riv beside the look, where the look imports it.
 // `bun looks/rive/build.ts [--inspect] [--screenshot]`, from the film's folder
-// or anywhere: paths are this file's.
+// or anywhere: paths are this file's. The CLI is `rive` on the PATH, or the
+// one `RIVE` names.
 //
 // Prints each step's wall time, so the agent loop (change → see it) is
 // measured, not guessed.
 
+import * as BunRuntime from '@effect/platform-bun/BunRuntime';
+import * as BunServices from '@effect/platform-bun/BunServices';
+import { Config, Console, Duration, Effect, FileSystem, Schema, Stream } from 'effect';
+import { Command, Flag } from 'effect/cli';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { accusedRml } from './rig.ts';
 
 const here = import.meta.dir;
 const project = `${here}/project`;
-const rive = `${process.env['HOME']}/.rive/bin/rive`;
-const args = new Set(process.argv.slice(2));
 
-const timed = async <A>(label: string, run: () => Promise<A>): Promise<A> => {
-  const began = performance.now();
-  const out = await run();
-  console.log(`${label}: ${(performance.now() - began).toFixed(0)} ms`);
-  return out;
-};
-
-const exec = async (argv: ReadonlyArray<string>) => {
-  const proc = Bun.spawn([...argv], { stdout: 'pipe', stderr: 'pipe' });
-  const [stdout, stderr, code] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
-  return { stdout, stderr, code };
-};
-
-const rml = await timed('generate', async () => accusedRml());
-await Bun.write(`${project}/rive.yaml`, 'name: accused\nmain: Accused\n');
-await Bun.write(`${project}/accused.rml`, rml);
-console.log(`accused.rml: ${rml.split('\n').length} lines, ${rml.length} bytes`);
-
-const built = await timed('rive --once', () =>
-  exec([rive, project, '--once', '--quiet', '--format=json']),
+/** What `rive --once --format=json` prints: the built file and what the build warned of. */
+const Built = Schema.fromJsonString(
+  Schema.Struct({
+    data: Schema.Struct({ riv: Schema.String, bytes: Schema.Finite }),
+    warnings: Schema.Array(Schema.String),
+  }),
 );
-if (built.code !== 0) {
-  console.error(built.stdout, built.stderr);
-  process.exit(1);
-}
-const report = JSON.parse(built.stdout.trim()) as {
-  data: { riv: string; bytes: number };
-  warnings: string[];
-};
-console.log(`riv: ${report.data.bytes} bytes; warnings: ${report.warnings.length}`);
-for (const w of report.warnings) console.log(`  warning: ${w}`);
-await Bun.write(`${here}/accused.riv`, Bun.file(report.data.riv));
 
-if (args.has('--inspect')) {
-  const inspected = await timed('rive inspect', () =>
-    exec([rive, 'inspect', project, '--summary']),
-  );
-  console.log(inspected.stdout.trim(), inspected.stderr.trim());
-}
-if (args.has('--screenshot')) {
-  for (const advance of ['0', '1']) {
-    const shot = await timed(`rive --screenshot (advance ${advance})`, () =>
-      exec([
-        rive,
-        project,
-        `--screenshot=${here}/project/build/shot-${advance}.png`,
-        `--advance=${advance}`,
-      ]),
-    );
-    if (shot.code !== 0) console.error(shot.stdout, shot.stderr);
+/** The Rive CLI exited non-zero: what it printed. */
+class RiveFailed extends Schema.TaggedError<RiveFailed>()('RiveFailed', {
+  step: Schema.String,
+  output: Schema.String,
+}) {
+  override get message() {
+    return `${this.step} failed:\n${this.output}`;
   }
 }
+
+/** `effect`, its wall time printed under `label`. */
+const timed = <A, E, R>(label: string, effect: Effect.Effect<A, E, R>) =>
+  Effect.timed(effect).pipe(
+    Effect.tap(([took]) => Console.log(`${label}: ${Duration.toMillis(took).toFixed(0)} ms`)),
+    Effect.map(([, out]) => out),
+  );
+
+/** Run the Rive CLI with `args`: its stdout, or `RiveFailed` with all it printed. */
+const rive = (step: string, args: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const bin = yield* Config.String('RIVE').pipe(Config.withDefault('rive'));
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    const handle = yield* spawner.spawn(ChildProcess.make(bin, args));
+    const [stdout, stderr, code] = yield* Effect.all(
+      [
+        Stream.mkString(Stream.decodeText(handle.stdout)),
+        Stream.mkString(Stream.decodeText(handle.stderr)),
+        handle.exitCode,
+      ],
+      { concurrency: 3 },
+    );
+    if (code !== 0) return yield* RiveFailed.make({ step, output: `${stdout}${stderr}` });
+    return stdout;
+  }).pipe(Effect.scoped);
+
+const build = Effect.fn('build')(function* (options: {
+  readonly inspect: boolean;
+  readonly screenshot: boolean;
+}) {
+  const fs = yield* FileSystem.FileSystem;
+  const rml = yield* timed(
+    'generate',
+    Effect.sync(() => accusedRml()),
+  );
+  yield* fs.makeDirectory(project, { recursive: true });
+  yield* fs.writeFileString(`${project}/rive.yaml`, 'name: accused\nmain: Accused\n');
+  yield* fs.writeFileString(`${project}/accused.rml`, rml);
+  yield* Console.log(`accused.rml: ${rml.split('\n').length} lines, ${rml.length} bytes`);
+
+  const printed = yield* timed(
+    'rive --once',
+    rive('rive --once', [project, '--once', '--quiet', '--format=json']),
+  );
+  const report = yield* Schema.decodeEffect(Built)(printed.trim());
+  yield* Console.log(`riv: ${report.data.bytes} bytes; warnings: ${report.warnings.length}`);
+  yield* Effect.forEach(report.warnings, (w) => Console.log(`  warning: ${w}`));
+  yield* fs.copyFile(report.data.riv, `${here}/accused.riv`);
+
+  if (options.inspect) {
+    const inspected = yield* timed(
+      'rive inspect',
+      rive('rive inspect', ['inspect', project, '--summary']).pipe(
+        // `rive inspect` exits 1 though it prints its summary.
+        Effect.catchTag('RiveFailed', (failed) => Effect.succeed(failed.output)),
+      ),
+    );
+    yield* Console.log(inspected.trim());
+  }
+  if (options.screenshot) {
+    yield* Effect.forEach(['0', '1'], (advance) =>
+      timed(
+        `rive --screenshot (advance ${advance})`,
+        rive('rive --screenshot', [
+          project,
+          `--screenshot=${project}/build/shot-${advance}.png`,
+          `--advance=${advance}`,
+        ]),
+      ).pipe(Effect.catchTag('RiveFailed', (failed) => Console.error(failed.message))),
+    );
+  }
+});
+
+const command = Command.make(
+  'build',
+  {
+    inspect: Flag.Boolean('inspect').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription('print `rive inspect --summary` of the built project'),
+    ),
+    screenshot: Flag.Boolean('screenshot').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription('write project/build/shot-0.png and shot-1.png (advance 0 and 1)'),
+    ),
+  },
+  build,
+).pipe(Command.withDescription("Build the accused's rig into accused.riv beside the look"));
+
+Command.run(command, { version: '1.0.0' }).pipe(
+  Effect.provide(BunServices.layer),
+  BunRuntime.runMain,
+);

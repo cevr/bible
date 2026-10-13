@@ -23,6 +23,7 @@ import { Motion } from './motion/index.ts';
 import { Notes } from './notes/index.ts';
 import { Source } from './source/index.ts';
 import { Studio } from './studio/index.ts';
+import { Transcript } from './transcript/index.ts';
 import { Lab } from './shell.tsx';
 
 /** The header's timecode: the player's time, as Play's is. */
@@ -43,6 +44,10 @@ const LabBody = (props: { readonly player: Player }) => (
         <Source.Provider>
           <Source.Column />
           <Source.Sheet />
+          <Transcript.Provider>
+            <Transcript.Column />
+            <Transcript.Sheet />
+          </Transcript.Provider>
           <ShellTools>
             <Editor.History />
           </ShellTools>

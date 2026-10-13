@@ -249,6 +249,8 @@ One `:root` block, in one stylesheet, `packages/film/src/player/tokens.css`, lin
   --border: 1px solid var(--line);
   --shadow-pop: 0 8px 28px rgb(0 0 0 / 0.55); /* menus, sheets, toasts only; panels have none */
   --focus-ring: 0 0 0 1px var(--surface-0), 0 0 0 2px var(--accent);
+  --focus-ring-inset:
+    inset 0 0 0 1px var(--surface-0), inset 0 0 0 2px var(--accent); /* the same ring inside the edge of a box whose column clips what stands outside it */
 
   /* Motion. */
   --t-fast: 80ms;
@@ -396,7 +398,7 @@ The controls live once, in the shell's sheet (`packages/film/src/lab/page-shell-
 
 Where each is used: the Lab's mode tray, Compare's off · wipe · blink · diff, the Set's All · Compare · Moments and Compare's Side by side · Wipe · Difference are `.sh-seg`, each a named ToggleGroup (one tab stop, the arrows move along it); the single-choice chip rows (a pair's version against, the moments, the picture a film's choices play over) are ToggleGroups of `.sh-btn` toggles; the Lab and Play transports (play, the frame pair, CC) and the review's speaker (the shell's line icon, `--accent` while heard) are `.sh-tool`; every other verb (Pen, Note frame, Save note, Cancel, Onion, the rate and loop chips, Snap, the eases, the studio's beats, Record and Keep, the review's Pick, Approve and findings, the Scenes' verbs and Follow) is `.sh-btn`. Motion's onion spread fields are NumberField, as the Edit inspector's are.
 
-Focus is one rule for the kit, unscoped so it reaches every page and every portal (⌘K, the sheets, the receipts): `.sh-btn`, `.sh-tool`, a segment, `.lab-num`, `select`, `input`, `textarea` and an `option` row, focused from the keyboard (`:focus-visible`), show `--focus-ring` and no outline. The badges are the notes' status, the studio's kept and earlier line, a set's versions and a version's state and approval on the review, the Scenes' chips, and the Lab's findings count (in its most pressing level's colour); the review's other counts (comments, choices, a check's findings) keep the neutral `.lab-count`.
+Focus is one rule for the kit, unscoped so it reaches every page and every portal (⌘K, the sheets, the receipts): `.sh-btn`, `.sh-tool`, a segment, `.lab-num`, `select`, `input`, `textarea` and an `option` row, focused from the keyboard (`:focus-visible`), show `--focus-ring` and no outline. A scroll box that fills a column clipping what stands outside it (the Transcript's words) shows the same ring inside its edge, `--focus-ring-inset`. The badges are the notes' status, the studio's kept and earlier line, a set's versions and a version's state and approval on the review, the Scenes' chips, and the Lab's findings count (in its most pressing level's colour); the review's other counts (comments, choices, a check's findings) keep the neutral `.lab-count`.
 
 ### Source (pass 4)
 

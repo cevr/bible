@@ -109,7 +109,7 @@ describe('a wedge', () => {
   );
 
   it.live(
-    'builds a module with the palette swapped for this process, sharing the packages the film resolves, its folder gone after',
+    'builds a module with the palette swapped for this process, sharing the packages the film resolves, its files where it says, its folder gone after',
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
@@ -124,17 +124,21 @@ describe('a wedge', () => {
           '{ "name": "film-engine", "type": "module", "main": "index.js" }',
         );
         yield* fs.writeFileString(path.join(pkg, 'index.js'), 'export const engine = {};\n');
+        // A file the film imports by its path (a rig's `.riv`): the path is where it is read.
+        yield* fs.writeFileString(path.join(dir, 'rig.riv'), 'RIVE');
         const film = path.join(dir, 'film.ts');
         yield* fs.writeFileString(
           film,
           [
             "import { looks } from './palette.ts';",
+            "import rig from './rig.riv' with { type: 'file' };",
             "import { engine } from 'film-engine';",
             "import { sep } from 'node:path';",
             'export const play = looks.style.play;',
             'export const same = engine;',
             'export const where = import.meta.dir;',
             'export const slash = sep;',
+            'export const riv = rig;',
             '',
           ].join('\n'),
         );
@@ -144,6 +148,10 @@ describe('a wedge', () => {
             const module = yield* wedgedModule(film, swaps);
             // Built and imported while the scope holds, outside the film's folder.
             expect(module).toMatchObject({ play: 'ps1', slash: '/' });
+            // Its file's path reads from any directory, as the module as written gives it.
+            const riv = String(Reflect.get(Object(module), 'riv'));
+            expect(path.isAbsolute(riv)).toBe(true);
+            expect(yield* fs.readFileString(riv)).toBe('RIVE');
             return module;
           }),
         );
@@ -155,9 +163,10 @@ describe('a wedge', () => {
         const where = String(Reflect.get(Object(wedged), 'where'));
         expect(where.startsWith(dir)).toBe(false);
         expect(yield* fs.exists(where)).toBe(false);
-        // No swaps: the module as written.
+        // No swaps: the module as written, its file where it was written.
         expect(yield* Effect.scoped(wedgedModule(film, new Map()))).toMatchObject({
           play: 'cutpaper',
+          riv: path.join(yield* fs.realPath(dir), 'rig.riv'),
         });
         expect(yield* fs.readFileString(palette)).toBe(PALETTE);
       }).pipe(Effect.scoped, Effect.provide(layer)),

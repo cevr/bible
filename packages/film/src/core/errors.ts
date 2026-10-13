@@ -373,3 +373,41 @@ export class TalkUnreadable extends Schema.TaggedError<TalkUnreadable>()('TalkUn
     return `talk "${this.film}"${at} cannot be read: ${this.reason}`;
   }
 }
+
+/**
+ * A rig a film's drawing declares (`src/rive`) could not be loaded: Rive's
+ * runtime would not start, or its built file could not be read or parsed.
+ */
+export class RigUnloadable extends Schema.TaggedError<RigUnloadable>()('RigUnloadable', {
+  /** The rig, by its declared key. */
+  rig: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `rig ${this.rig} cannot be loaded: ${this.reason}`;
+  }
+}
+
+/**
+ * A rig's declaration names an artboard, a timeline, a view-model number or
+ * a node its built file lacks, and what the file has of that kind (none
+ * listed for a node: the runtime cannot list them).
+ */
+export class RigNameMissing extends Schema.TaggedError<RigNameMissing>()('RigNameMissing', {
+  rig: Schema.String,
+  kind: Schema.Literals(['artboard', 'timeline', 'view-model number', 'node']),
+  name: Schema.String,
+  /** The names of that kind the file has, in its order. */
+  has: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    const said = `rig ${this.rig} has no ${this.kind} "${this.name}"`;
+    return Option.match(
+      Option.liftPredicate(this.has, (has) => has.length > 0),
+      {
+        onNone: () => said,
+        onSome: (has) => `${said}; it has ${has.join(', ')}`,
+      },
+    );
+  }
+}

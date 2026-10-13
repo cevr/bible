@@ -13,13 +13,10 @@ import { makeHub } from '../../command/hub.ts';
 import { pageHref } from '../../core/api.ts';
 import { keysAs } from './changes.ts';
 
-/** A PC's lab page with Note this frame bound to `n`, as the notes register it. */
-const page = () => {
+/** A lab page, a Mac's or a PC's, with Note this frame bound to `n`, as the notes register it. */
+const page = (mac = false) => {
   const host = hostOf(
-    Layer.mergeAll(
-      Keys.layerOn(new EventTarget(), false),
-      Clipboard.memory([], 'https://lab.test'),
-    ),
+    Layer.mergeAll(Keys.layerOn(new EventTarget(), mac), Clipboard.memory([], 'https://lab.test')),
   );
   const hub = Effect.runSyncWith(host)(
     makeHub(
@@ -58,9 +55,10 @@ describe("a command's keys as a title names them", () => {
     expect(keys.titled('Unbound', 'nothing.bound')).toBe('Unbound');
   });
 
-  test("a server render's: the defaults, as a PC writes them, whatever the viewer rebound", () => {
-    const hub = page();
-    hub.setOverrides([{ key: 'b', command: 'notes.frame' }]);
-    expect(keysAs(hub, () => false).text('notes.frame')).toBe('N Shift+N');
+  test("a server render's: the defaults, as the viewer's keyboard writes them, whatever the viewer rebound", () => {
+    const [pc, mac] = [page(false), page(true)];
+    for (const hub of [pc, mac]) hub.setOverrides([{ key: 'b', command: 'notes.frame' }]);
+    expect(keysAs(pc, () => false).text('notes.frame')).toBe('N Shift+N');
+    expect(keysAs(mac, () => false).text('notes.frame')).toBe('N ⇧N');
   });
 });

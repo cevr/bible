@@ -1,0 +1,14 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": [],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["dist/**"],
+      "cache": false
+    },
+    "typecheck": { "dependsOn": [], "inputs": ["$TURBO_DEFAULT$"], "cache": false },
+    "test": { "dependsOn": [], "inputs": ["$TURBO_DEFAULT$"], "cache": false },
+    "gate": { "dependsOn": [], "inputs": ["$TURBO_DEFAULT$"], "cache": false }
+  }
+}

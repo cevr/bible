@@ -605,8 +605,9 @@ describe('the studio', () => {
             rate: expect.any(Number),
             bits: 24,
           });
-          // Recorded at the page's own audio rate.
-          yield* evaluates(page, 'new AudioContext().sampleRate', Number(format?.rate));
+          // Recorded at the microphone's own rate (the fake device's 44.1 kHz),
+          // never resampled to the output device's.
+          expect(format?.rate).toBe(44100);
           yield* attributeIs(page, '[data-role="status"]', 'data-tone', 'refused');
           yield* textIs(page, '[data-act="acceptAnyway"]', 'Accept anyway (K)');
 

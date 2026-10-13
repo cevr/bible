@@ -9,9 +9,28 @@
 // Bun finds in the usual places, else the newest Chromium a Playwright
 // install left in `~/.cache/ms-playwright`. None of them: `BrowserMissing`,
 // which names `BUN_CHROME_PATH`.
+//
+// Every Chrome is silent (`chromeArgs`): no page a tool or test opens is
+// listened to (a render mixes and encodes its sound offline), and a headless
+// Chrome otherwise plays its pages' sound out of the host's speakers.
 
 import { Config, Effect, FileSystem, Option, Order, Path, Schema, type Scope } from 'effect';
 import { BrowserFailed, BrowserMissing } from './errors.ts';
+
+/**
+ * The flags a Chrome is spawned with: the caller's, after the two that keep
+ * it silent. `--mute-audio` mutes its pages; `--disable-audio-output` plays
+ * what they would play to a fake device, so Chrome never opens the host's
+ * output at all (muted alone, it still held it, playing silence). A page's
+ * audio still runs: its `AudioContext` keeps time on the fake device's clock
+ * as on a real one, decodes and processes, and a microphone is heard. A host
+ * with no output device (a Linux server) ran on that fake device already.
+ */
+const chromeArgs = (argv: ReadonlyArray<string>): ReadonlyArray<string> => [
+  '--mute-audio',
+  '--disable-audio-output',
+  ...argv,
+];
 
 /** A view's viewport, and where the page's `console.*` calls go (dropped when not given). */
 interface ViewOptions {
@@ -105,17 +124,19 @@ const firstView = (argv: ReadonlyArray<string>, options: ViewOptions) =>
 
 /**
  * A view (a tab of this process's Chrome) as `options` say, closed with the scope.
- * The first view spawns Chrome with `argv`; a later one asking for other
- * flags fails, since the running Chrome cannot take them.
+ * The first view spawns Chrome with `requested` (`chromeArgs`: muted); a
+ * later one asking for other flags fails, since the running Chrome cannot
+ * take them.
  */
 export const openView = (
-  argv: ReadonlyArray<string>,
+  requested: ReadonlyArray<string>,
   options: ViewOptions,
 ): Effect.Effect<
   Bun.WebView,
   BrowserMissing | BrowserFailed,
   Scope.Scope | FileSystem.FileSystem | Path.Path
 > => {
+  const argv = chromeArgs(requested);
   const flags = argv.join(' ');
   return Effect.acquireRelease(
     Effect.suspend(() =>

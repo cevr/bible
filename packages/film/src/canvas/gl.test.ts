@@ -3,13 +3,13 @@
 // into, it is told so instead of driving a 2D recorder as a GL context, and a
 // film whose scene draws in 3D still draws every frame without throwing. Where
 // one can be made, a lost context is made anew, a failure is asked again, and
-// only a few canvases stay live.
+// only a few canvases stay live: the page's, a rig's held among the keys'.
 
 import { expect, test } from 'bun:test';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { createFilm, drawing } from './film.ts';
 import { recorder, withDom } from './fixtures/stand-in.ts';
-import { glCanvas } from './gl.ts';
+import { dropGl, glCanvas, holdGl } from './gl.ts';
 
 test('a 3D canvas is none where the context cannot make WebGL 2, and the 2D context stays', () => {
   withDom(
@@ -146,5 +146,32 @@ test('only a few 3D canvases stay live: the longest unused is let go', () => {
     expect(dom.contexts[1]?.lost).toBe(true);
     expect(dom.contexts[0]?.lost).toBe(false);
     expect(idOf(glCanvas('t3/1', 16, 16))).toBe(9);
+  });
+});
+
+test('a canvas a rig draws on is held in the same budget: the ninth live context of either lets the longest unused go', () => {
+  const dom = glDom();
+  withGl(dom, () => {
+    // A rig's canvas and its context (`canvas/rive.ts`), held first, then seven keys and another rig's.
+    const rig = dom.document.createElement();
+    const rigGl = rig.getContext('webgl2');
+    // The fakes as the DOM types `holdGl` takes.
+    const asDom = Schema.decodeSync(Schema.Any);
+    holdGl(asDom(rig), asDom(rigGl));
+    const keys = Array.from({ length: 7 }, (_, i) => glCanvas(`t4/${i}`, 16, 16));
+    expect(keys.every((k) => k !== undefined)).toBe(true);
+    expect(rigGl?.lost).toBe(false);
+    // An eighth key: nine live, so the rig's (the longest unused) is let go and found lost.
+    glCanvas('t4/7', 16, 16);
+    expect(rigGl?.lost).toBe(true);
+    // A key's canvas let go by a rig's hold is made anew when next asked.
+    const other = dom.document.createElement();
+    const otherGl = other.getContext('webgl2');
+    holdGl(asDom(other), asDom(otherGl));
+    expect(dom.contexts.find((c) => c.id === 1)?.lost).toBe(true);
+    expect(idOf(glCanvas('t4/0', 16, 16))).not.toBe(1);
+    // A rig let go releases its context at once.
+    dropGl(asDom(other));
+    expect(otherGl?.lost).toBe(true);
   });
 });

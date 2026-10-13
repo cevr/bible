@@ -64,7 +64,8 @@ import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { type AppPage, labUrls, legacyPlace, pageAt } from '../core/api.ts';
 import { LONGEST_WAIT } from '../core/wait.ts';
 import type { PageBuild } from '../core/schema.ts';
-import { PAGE_CUT_MARK } from '../core/page-render.ts';
+import { PAGE_CUT_MARK, type PageAsked } from '../core/page-render.ts';
+import { appleAgent } from '../browser/keys.ts';
 import { brotliCompress, constants as zlib } from 'node:zlib';
 import { type PageAnswer, PageReads, pageCodingOf } from './api-server.ts';
 import {
@@ -381,15 +382,24 @@ const pinPackages = (path: Path.Path): BunPlugin => ({
  * of `swaps` read as its text there, and every package it imports pinned to
  * the file the source resolves it to (`pinPackages`), so the output runs the
  * same engine and three as this process wherever it is put: the output, or
- * why not. A build that reads none of `swaps` cannot draw them changed, and
+ * why not. The files it imports by path (`with { type: 'file' }`, a rig's
+ * `.riv`) are named under `into`, the absolute directory the output is
+ * written to, so each path reads from any directory, as the module as written
+ * gives it. A build that reads none of `swaps` cannot draw them changed, and
  * is refused.
  */
-export const bunModule = (path: Path.Path, file: string, swaps: ReadonlyMap<string, string>) =>
+export const bunModule = (
+  path: Path.Path,
+  file: string,
+  swaps: ReadonlyMap<string, string>,
+  into: string,
+) =>
   Effect.gen(function* () {
     const read = new Set<string>();
     const built = yield* bunBuild(path, {
       entrypoints: [file],
       target: 'bun',
+      publicPath: `${into}${path.sep}`,
       plugins: [pinPackages(path), swapPlugin(swaps, read)],
     });
     const unread = [...swaps.keys()].filter((swapped) => !read.has(swapped));
@@ -716,6 +726,18 @@ const urlOf = (request: HttpServerRequest.HttpServerRequest): string => {
   return new URL(request.url, `http://${host}`).href;
 };
 
+/**
+ * What a page was asked at and by which browser: its URL whole, and whether
+ * the browser keys as a Mac (`appleAgent` of its `User-Agent`), so the
+ * server labels the page's chords as that browser will.
+ */
+const askedOf = (request: HttpServerRequest.HttpServerRequest): PageAsked => ({
+  url: urlOf(request),
+  mac: appleAgent(
+    Option.getOrElse(Option.fromUndefinedOr(request.headers['user-agent']), () => ''),
+  ),
+});
+
 /** `text` as a script's string literal. */
 const jsonText = Schema.encodeSync(Schema.fromJsonString(Schema.String));
 
@@ -790,9 +812,40 @@ const serverId = Effect.gen(function* () {
   return `${started.toString(36)}-${draw.toString(36)}`;
 });
 
-const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
+/**
+ * `spec` with its pages, its server entries and its films folder by their
+ * real paths: the bundler names each file it read by where it lies (one in
+ * a folder reached through a link, as macOS's temp folder is, by the link's
+ * target), and the watches, the files read and their prints must name one
+ * file one way. One not there stays as given, resolved.
+ */
+const realSpec = (fs: FileSystem.FileSystem, path: Path.Path, spec: LabPageSpec) => {
+  const real = (file: string) =>
+    fs.realPath(file).pipe(Effect.orElseSucceed(() => path.resolve(file)));
+  return Effect.map(
+    Effect.all({
+      pages: Effect.all(Record.map(spec.pages, real)),
+      servers: Effect.map(
+        Effect.forEach(
+          Record.keys(spec.pages).flatMap((page) =>
+            Option.toArray(Option.fromUndefinedOr(spec.servers[page])).map(
+              (entry) => [page, entry] as const,
+            ),
+          ),
+          ([page, entry]) => Effect.map(real(entry), (file) => [page, file] as const),
+        ),
+        (pairs): LabPageSpec['servers'] => Record.fromEntries(pairs),
+      ),
+      films: real(spec.films),
+    }),
+    (named): LabPageSpec => ({ ...spec, ...named }),
+  );
+};
+
+const make = Effect.fnUntraced(function* (given: LabPageSpec) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
+  const spec = yield* realSpec(fs, path, given);
   const bundler = yield* PageBundler;
   const renderer = yield* PageRenderer;
   const scope = yield* Effect.scope;
@@ -1358,7 +1411,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
 
   /**
    * `html`, a page of the build `built` as its browser bundle made it,
-   * rendered on the server at `url` by its server entry: the page's markup
+   * rendered on the server as `asked` by its server entry: the page's markup
    * streamed into it as it is written. A render that fails before its head
    * answers the page as made, which the browser renders itself; one that
    * fails later (or is cut, `END_WAIT`) leaves what it wrote and the mark of
@@ -1368,12 +1421,12 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     name: AppPage,
     html: string,
     build: RenderBuild,
-    url: string,
+    asked: PageAsked,
     read: PageReads['Service']['read'],
   ) =>
     Stream.unwrap(
       Effect.gen(function* () {
-        const made = yield* Effect.result(renderer.render(build, name, url, read));
+        const made = yield* Effect.result(renderer.render(build, name, asked, read));
         if (Result.isFailure(made)) {
           yield* Effect.logWarning(
             `lab.page.render.failed page=${name} build=${build.id} reason="${made.failure.reason}"`,
@@ -1428,7 +1481,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
         });
       const { read } = yield* PageReads;
       const build = { id: built.kept, bundle: built.outcome.server };
-      const body = rendered(name, text, build, urlOf(request), read);
+      const body = rendered(name, text, build, askedOf(request), read);
       return HttpServerResponse.stream(Stream.encodeText(body), {
         contentType: HTML,
         headers: { 'cache-control': CACHE.none },

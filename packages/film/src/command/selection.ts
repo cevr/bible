@@ -31,6 +31,8 @@ export const Selection = Schema.TaggedUnion({
   Knob: { scene: Schema.String, name: Schema.String },
   /** A line of a scene's code in the Source view, from 1 (a press on it: not a place of its own, `?code=` holds it). */
   Line: { scene: Schema.String, line: Schema.Finite },
+  /** Words `from`–`to` of a talk's section (its scene), take word indices, in the Transcript view (`?words=`). */
+  Words: { scene: Schema.String, from: Schema.Finite, to: Schema.Finite },
   /** A note of the lab's feed, by its id. */
   Note: { id: Schema.String },
   /** A folder of renders (its card on the index). */
@@ -73,9 +75,25 @@ export const labKeysOf = (
     Match.tagsExhaustive({ Cue: (s) => ({ cue: s.name }), Knob: (s) => ({ knob: s.name }) }),
   );
 
+/** A talk's words selected, as `?words=` holds them. */
+export type WordsSelection = typeof Selection.cases.Words.Type;
+
+/** `?words=<a>-<b>` read: take word indices, the first not after the last; none for anything else. */
+export const wordsIn = (scene: string, text: string): Option.Option<WordsSelection> =>
+  Option.flatMap(Option.fromNullishOr(/^(\d{1,6})-(\d{1,6})$/.exec(text)), ([, a, b]) =>
+    Option.map(
+      Option.liftPredicate({ from: Number(a), to: Number(b) }, (w) => w.from <= w.to),
+      (w) => Selection.cases.Words.make({ scene, ...w }),
+    ),
+  );
+
+/** `?words=`'s value for words `from`–`to`. */
+export const wordsText = (words: { readonly from: number; readonly to: number }): string =>
+  `${words.from}-${words.to}`;
+
 /**
- * The selection a page's URL names: a lab scene's cue, knob or note, a
- * project's card, a folder, a comparison set. None where the URL names none.
+ * The selection a page's URL names: a lab scene's cue, knob, words or note,
+ * a project's card, a folder, a comparison set. None where the URL names none.
  */
 export const selectionOf = (href: string): Option.Option<Selection> =>
   Option.firstSomeOf<Selection>([
@@ -87,6 +105,7 @@ export const selectionOf = (href: string): Option.Option<Selection> =>
         Option.map(named(query.knob), (name) =>
           Selection.cases.Knob.make({ scene: path.scene, name }),
         ),
+        wordsIn(path.scene, query.words),
         Option.map(named(query.note), (id) => Selection.cases.Note.make({ id })),
         Option.map(named(query.beat), (beat) => Selection.cases.Beat.make({ beat })),
       ]),
@@ -198,7 +217,15 @@ export const citeOf = (selection: Selection, href: string): string => {
   );
   const inLab = (
     scene: string,
-    keys: { cue?: string; knob?: string; note?: string; beat?: string; code?: string },
+    keys: {
+      cue?: string;
+      knob?: string;
+      note?: string;
+      beat?: string;
+      code?: string;
+      words?: string;
+      text?: string;
+    },
   ) =>
     Option.match(lab, {
       onNone: () => href,
@@ -252,6 +279,8 @@ export const citeOf = (selection: Selection, href: string): string => {
     Knob: (s) => inLab(s.scene, { knob: s.name }),
     // A line of the scene's code is cited as the view held on it.
     Line: (s) => inLab(s.scene, { code: String(s.line) }),
+    // Words of a talk are cited selected, the Transcript view held on the first.
+    Words: (s) => inLab(s.scene, { words: wordsText(s), text: String(s.from) }),
     Note: (s) =>
       Option.match(lab, {
         onNone: () => href,
@@ -313,6 +342,10 @@ export const selectionText = (selection: Selection): string =>
     Cue: (s) => `cue ${s.name} in ${s.scene}`,
     Knob: (s) => `knob ${s.name} in ${s.scene}`,
     Line: (s) => `line ${s.line} of ${s.scene}`,
+    Words: (s) => {
+      if (s.from === s.to) return `word ${s.from} of ${s.scene}`;
+      return `words ${s.from}–${s.to} of ${s.scene}`;
+    },
     Note: (s) => `note ${s.id}`,
     Folder: (s) => `folder ${s.folder}`,
     Set: (s) => `set ${s.point}`,

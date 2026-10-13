@@ -7,7 +7,7 @@
 import { Effect, Layer, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { simulate } from 'effect-machine';
-import { type LabWrite, RequestId } from '../core/schema.ts';
+import { ChangeId, type LabWrite, RequestId } from '../core/schema.ts';
 import { LabApi, type LabCalls } from './api.ts';
 import { EditEvent, editMachine } from './editor/machine.ts';
 import { ComposerState, unsaved } from './notes/composer.ts';
@@ -16,10 +16,11 @@ import { Stage, type StageOps } from './stage.ts';
 import { RecorderState } from './studio/machine.ts';
 import { unsubmitted } from './studio/view.ts';
 
-/** The Undo of a kept take, as the lab answers it: a file the page reads once, at load. */
+/** The Undo of a kept take, as the lab answers it: a file the page reads once, at load, and the change it made. */
 const undoneTake: LabWrite = {
   file: 'narration/timings.json',
   target: 'undo voice a keep a.0123456789ab.flac',
+  change: ChangeId.make('change-1'),
   findings: [],
 };
 
@@ -57,6 +58,8 @@ const gated = () => {
     writeCue: () => Effect.die('not asked'),
     writeKnob: () => Effect.die('not asked'),
     step: () => Effect.succeed(undoneTake),
+    talkWords: Effect.die('not asked'),
+    writeTalk: () => Effect.die('not asked'),
   };
   const layer = Layer.merge(Layer.succeed(Stage, stage), Layer.succeed(LabApi, api));
   return { page, gate, layer };

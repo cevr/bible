@@ -1,0 +1,76 @@
+RESEARCH BRIEF: "From Milk to Meat" theology film series (bible-tools, owner Cristian)
+
+You research source material for a playlist of narrated cut-paper explainer films (BibleProject style)
+that moves every Christian from the first principles of the faith (milk, Heb 5:12-14; 6:1-2) to its deeper
+truths (meat), drawn from what the pioneers and Ellen White taught. You do NOT write scripts. You return
+per-episode research notes as your final message (text only; do not write files; do not edit the repo;
+do not commit; no paid APIs; never render/narrate/mix/check a film).
+
+TOOLS (absolute paths; run with Bash):
+- KJV:   /tmp/claude-1000/-home-exedev-Developer-personal-bible-tools/078fad2f-b3a9-4025-813b-23f987283860/scratchpad/bible verse "<ref>" --json
+         (the repo's `bible` CLI run through bun; `bible verse` works. Text search: bible verse "<words>" --json --limit 10)
+- EGW + pioneer corpus search (the deployed egw-search service, the same corpus the CLI indexes; the local
+  `bible egw ...` commands FAIL on this box because ~/.bible/egw-paragraphs.db has no text, so do not use them):
+         python3 /tmp/claude-1000/-home-exedev-Developer-personal-bible-tools/078fad2f-b3a9-4025-813b-23f987283860/scratchpad/es.py <egw|pioneer|all> <limit> "<query>" [--full] [--ctx=N]
+  Prints [refcode] (author | book) and the paragraph (first 260 chars, or whole with --full; --ctx=N adds N
+  paragraphs either side). Search with distinctive phrases to land a known passage; use scope `pioneer`
+  to reach Waggoner, Jones, Smith, Andrews, J. White, Haskell, Loughborough, Miller, Prescott etc.
+  Skip modern compilations by the White Estate ("Ellen G. White Estate" author, e.g. 365N, JTL*, CWe) and
+  non-KJV Bibles; prefer originals (letters, manuscripts, periodicals, the books she wrote) over later compilations.
+- The doctrinal frame (verified pioneer quotes, key texts, and a "Film direction" MUST SHOW / MUST NOT
+  SAY-OR-SHOW per topic): /home/exedev/Developer/personal/bible-tools/.claude/skills/film/frame/<topic>.md
+  (topics: god-christ, nature-of-christ, scripture, baptism, prophecy-chains, prophecy-2300-1844,
+  sanctuary-judgment, law-sabbath, health, holy-spirit, righteousness-by-faith, gift-of-prophecy,
+  three-angels, state-of-dead, second-coming-millennium, hell-destruction, new-earth; 1889.md has the
+  1889 principles). READ the relevant topic file first; it is the doctrine. Its quotes are already verified.
+
+BINDING OWNER RULES FOR THESE FILMS:
+- Films are for every Christian. On screen and in narration they quote ONLY Scripture, KJV, verbatim.
+  Pioneers and Ellen White are paraphrased in the narrator's words, never named or quoted; the credits name them.
+- No Adventism, no denominations, no church history (no 1844 movement story, no Millerites, no 1888,
+  no named churches, no pioneers drawn). Doctrines themselves are fine (sanctuary, Sabbath, judgment,
+  state of the dead, prophecy dates as prophecy). Secular history of empires is fine.
+  For each episode, FLAG whether it can be told without church history / naming a denomination; if not,
+  say which part needs it and whether the episode survives without that part.
+- Corpus, not memory: every refcode and snippet you report must have been printed by es.py or the frame
+  file in THIS session, copied verbatim. A gap stays a gap: write "not found" rather than recall.
+- Typology vs spiritualizing: doctrine rests on plain didactic Scripture; types are text-authorized overlays.
+
+RETURN FORMAT (one block per episode, in markdown):
+### NN Title  (propose a better title if you have one)
+- Promise: one sentence (what the viewer will understand by the end).
+- Core KJV: 4-8 refs. For the 2-3 load-bearing ones, the key words verbatim from `bible verse` (brackets for
+  supplied words as printed).
+- Sources to paraphrase (credits): 4-8 entries, each: refcode | author, work (year if known) | <=30-word
+  verbatim snippet | what thought it supplies to the film. At least one pioneer (non-EGW) source when the
+  corpus has one; mark frame-verified ones with (frame).
+- Shape: 3-5 bullet beats (the argument's spine in order, from the corpus), plus 1-2 concrete pictures
+  (a STORY scene from the Bible itself, or an IDEA prop).
+- Must not say/show: from the frame's Film direction / Distinctives, in a line or two.
+- History flag: OK / CAUTION (why) / NEEDS HISTORY (which part).
+- Prerequisites: earlier episode numbers it builds on.
+- Searches run: the es.py queries (scope: query) that found these.
+Keep it tight: refs and short snippets, no long dumps. End with a list of any doctrinal tension you
+noticed between sources (dated, both sides), and anything not found.
+
+THE SERIES PLAN (episode numbers are fixed; your batch is named in your task):
+TIER ONE - MILK: "the first principles of the oracles of God" (Heb 5:12; 6:1-2)
+ 01 Milk and Meat (series opener)  02 The Oracles of God (Scripture)  03 God Is Love
+ 04 The Serpent's Question (sin, the fall, where evil began)  05 The Word Made Flesh (who Jesus is: divine, pre-existent, God with us)
+ 06 Behold the Lamb (the cross)  07 Repentance from Dead Works  08 Righteousness by Faith (ALREADY MADE; faith toward God)
+ 09 Buried and Raised (the doctrine of baptisms)  10 The Laying On of Hands (the gift of the Holy Spirit)
+ 11 Growing Up Into Him (the new life: word, prayer, daily walk)  12 Asleep in Jesus (state of the dead, resurrection)
+ 13 Eternal Judgment (everyone gives account; the bridge to meat)
+TIER TWO - MEAT: "a priest for ever after the order of Melchisedec" (Heb 5:10-11; chapters 7-10)
+ 14 After the Order of Melchisedec  15 Made Like His Brethren (Christ's human nature; Heb 2:14-18; 4:15)
+ 16 The Pattern in the Mount (the sanctuary)  17 The Holy Place (Christ's daily ministry: altar, laver, bread, lamp, incense)
+ 18 The Better Covenant (two covenants)  19 What Was in the Ark (the law of God)  20 A Rest That Remains (the Sabbath, Heb 4)
+ 21 The Day of Atonement (Lev 16; scapegoat)  22 Messiah the Prince (the seventy weeks, Dan 9)
+ 23 Then Shall the Sanctuary Be Cleansed (the 2300 days, Dan 8)  24 The Hour of His Judgment (pre-advent judgment, Dan 7; Rev 14:7)
+ 25 Within the Veil (hope as an anchor; boldness in the judgment)
+TIER THREE - STRONG MEAT: "senses exercised to discern" - things to come (Heb 5:14; 2 Pet 1:19)
+ 26 The Sure Word of Prophecy (Dan 2; how prophecy reads)  27 War in Heaven (the great controversy, Rev 12)
+ 28 Four Winds, Four Beasts (Dan 7)  29 The Everlasting Gospel (Rev 14:6-7)  30 Come Out of Her (Babylon, Rev 14:8; 18)
+ 31 The Seal of the Living God (Rev 7; seal vs mark)  32 The Latter Rain  33 When the Door Is Shut (close of probation, time of trouble, plagues; Michael stands up)
+ 34 Every Eye Shall See Him (the second coming)  35 A Thousand Years (the millennium)  36 The Fire That Ends (hell)
+ 37 All Things New (the new earth; series finale)

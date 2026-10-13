@@ -12,6 +12,7 @@
 // WebGL canvas into `f.ctx` with `drawImage` (`glCanvas`, `looks/ps1/`).
 
 import type { Box, CardWord, Light, Verse } from '@bible/film/canvas';
+import type { accusedProp } from './looks/rive/accused.ts';
 import type { CourtFrame } from './scenes/court.ts';
 import type { JobFrame } from './scenes/job.ts';
 
@@ -25,6 +26,13 @@ export interface Look {
    * (the head comes up at the verdict).
    */
   readonly court: (f: CourtFrame) => void;
+  /**
+   * The Rive rigs `court` draws (`f.rive`), which the court's drawing declares
+   * and the film loads before its first frame: none for a look that draws its
+   * figures itself. The accused is typed by its own timelines and numbers
+   * (`accusedProp`), so a pose that names one it lacks does not compile.
+   */
+  readonly rigs?: { readonly accused?: ReturnType<typeof accusedProp> };
   /**
    * The `job` scene: Job 9:2 on its page (`VERSE`), the phrase highlighted
    * `f.at('sweep')` of the way, the page in from `f.at('page')`. Returns the

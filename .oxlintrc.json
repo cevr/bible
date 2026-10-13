@@ -705,7 +705,9 @@
                 "group": [
                   "**/*-browser.ts",
                   "!**/browser/host-browser.ts",
-                  "!**/browser/storage-browser.ts"
+                  "!**/browser/storage-browser.ts",
+                  // A film's page load (player/narrated.ts) defaults to the page's Rive runtimes, as it defaults to the page's fetch client.
+                  "!**/rive/runtime-browser.ts"
                 ],
                 "message": "a page reaches the host through its services: only a page's mount builds the host (`BrowserHost`, browser/host-browser.ts), and the stores are storage-browser.ts's."
               }
@@ -898,6 +900,17 @@
         "jsx-a11y/media-has-caption": "off",
         "jsx-a11y/prefer-tag-over-role": "off",
         "jsx-a11y/aria-role": "off"
+      }
+    },
+    {
+      // A scrolling region the keyboard reaches (arrows, Page keys) takes a tab
+      // stop: WCAG 2.1.1, the rule's own `roles` allowance for `region`. Here the
+      // Transcript view's words; the Source view still says so by a directive
+      // of its own until it is moved to this.
+      "files": ["**/packages/film/src/lab/transcript/**/*.tsx"],
+      "plugins": ["jsx-a11y"],
+      "rules": {
+        "jsx-a11y/no-noninteractive-tabindex": ["error", { "roles": ["tabpanel", "region"] }]
       }
     },
     {

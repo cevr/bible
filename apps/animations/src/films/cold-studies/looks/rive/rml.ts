@@ -1,6 +1,7 @@
 // RML, Rive's markup, written from code: an element tree printed the way
-// `rive pull` writes a file. The knowledge is the old Rive attempt's
-// (`core/rml.ts`, 9d89ab752..31e7db519); the rig is generated, not drawn. Pure.
+// `rive pull` writes a file, so the rig is generated, not drawn. Pure.
+
+import { Predicate } from 'effect';
 
 /** An attribute's value as written: round a number before it gets here (`num`). */
 export type Value = string | number | boolean;
@@ -19,7 +20,7 @@ export const el = (
 ): Element => ({
   name,
   attrs: Object.entries(attrs).flatMap(([k, v]) =>
-    v === undefined ? [] : [[k, typeof v === 'number' ? num(v) : v] as const],
+    v === undefined ? [] : [[k, Predicate.isNumber(v) ? num(v) : v] as const],
   ),
   children,
 });

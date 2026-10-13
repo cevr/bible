@@ -313,6 +313,64 @@ export const Steps = Schema.Struct({
 });
 export type Steps = typeof Steps.Type;
 
+/** A word of a take, by its index into the take's transcript (`core/talk.ts`). */
+const TalkWordIndex = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+
+/**
+ * A word of a talk's section as the lab's Transcript view reads it: its index
+ * into the take, as the captions spell it (the talk's fixes), whether the
+ * section strikes it, and, for a word it plays, when it is heard in the
+ * section (seconds from the section's start, `voiced`).
+ */
+const TalkWord = Schema.Struct({
+  index: TalkWordIndex,
+  text: Schema.String,
+  struck: Schema.Boolean,
+  heard: Schema.optionalKey(Schema.Tuple([Schema.Finite, Schema.Finite])),
+});
+export type TalkWord = typeof TalkWord.Type;
+
+/** A talk's section as the Transcript view reads it: its words from its first to its last, and its marks. */
+const TalkSectionWords = Schema.Struct({
+  id: Schema.String,
+  take: Schema.String,
+  words: Schema.Array(TalkWord),
+  marks: Schema.Record(Schema.String, TalkWordIndex),
+});
+
+/**
+ * `GET /api/films/<film>/talk`: a talk's sections in play order, as its
+ * `talk.ts` cuts them on its takes' transcripts now (`talkCut`), each with
+ * every word from its first to its last, struck or played.
+ */
+export const TalkWords = Schema.Struct({
+  file: Schema.String,
+  sections: Schema.Array(TalkSectionWords),
+});
+export type TalkWords = typeof TalkWords.Type;
+
+/**
+ * `POST /api/films/<film>/talk/cut` and `POST /api/films/<film>/talk/restore`:
+ * the words `from`–`to` of `section`, struck or played again.
+ */
+export const TalkWordsPost = Schema.Struct({
+  section: Schema.String,
+  from: TalkWordIndex,
+  to: TalkWordIndex,
+});
+export type TalkWordsPost = typeof TalkWordsPost.Type;
+
+/**
+ * `POST /api/films/<film>/talk/mark`: the mark `name` set on word `word` of
+ * `section`. Any string, so a name the talk's decode would drop (`MarkName`)
+ * reaches the server and is refused in its words, not the client's.
+ */
+export const TalkMarkPost = Schema.Struct({
+  section: Schema.String,
+  word: TalkWordIndex,
+  name: Schema.String,
+});
+
 /**
  * What the owner says of a variant, a scene's render, an act or the film:
  * approve it as it is now, withdraw every approval of it, or comment on it.
@@ -473,6 +531,37 @@ class StepsGroup extends HttpApiGroup.make('steps').add(
   HttpApiEndpoint.get('steps', `${FILM}/steps`, {
     params: film,
     success: Steps,
+    error: Refusals,
+  }),
+) {}
+
+/**
+ * A talk's words as the lab's Transcript view reads them, and its edits there:
+ * words struck (Cut) or played again (Restore), and a mark set on a word (Mark
+ * here). Each write rewrites `talk.ts` by its literal, as a scene write does.
+ */
+class TalkGroup extends HttpApiGroup.make('talk').add(
+  HttpApiEndpoint.get('words', `${FILM}/talk`, {
+    params: film,
+    success: TalkWords,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('cut', `${FILM}/talk/cut`, {
+    params: film,
+    payload: TalkWordsPost,
+    success: LabWrite,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('restore', `${FILM}/talk/restore`, {
+    params: film,
+    payload: TalkWordsPost,
+    success: LabWrite,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('mark', `${FILM}/talk/mark`, {
+    params: film,
+    payload: TalkMarkPost,
+    success: LabWrite,
     error: Refusals,
   }),
 ) {}
@@ -697,6 +786,7 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(NotesGroup)
   .add(ScenesGroup)
   .add(StepsGroup)
+  .add(TalkGroup)
   .add(StudioGroup)
   .add(ReviewGroup)
   .add(ChoicesGroup)
@@ -871,7 +961,10 @@ const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off', h
  * The lab's selection keys: a cue or a knob of the path's scene, a note, and
  * the studio's beat (a scene's take; with none the studio is on the path's),
  * and the Source view open (`code`: `follow`, or a line of the scene's file;
- * `lab/source/open.ts`), shut with the key absent.
+ * `lab/source/open.ts`), shut with the key absent. A talk's section (a
+ * scene of a talk) adds its words selected (`words`: `<a>-<b>`, take word
+ * indices) and the Transcript view open (`text`: `follow`, or a word;
+ * `lab/transcript/open.ts`); both absent, the lab is as it was.
  */
 const LabSelection = Field.struct({
   cue: cited,
@@ -880,6 +973,8 @@ const LabSelection = Field.struct({
   beat: cited,
   view: compareView,
   code: cited,
+  words: cited,
+  text: cited,
 });
 
 /**
@@ -1044,7 +1139,16 @@ const START = { t: Option.none<number>() };
 const NOTHING_HEARD = { heard: '', variant: '', picture: '', only: '', findings: false };
 
 /** The lab's selection keys, none set. */
-const NOTHING_SELECTED = { cue: '', knob: '', note: '', beat: '', view: 'off' as const, code: '' };
+const NOTHING_SELECTED = {
+  cue: '',
+  knob: '',
+  note: '',
+  beat: '',
+  view: 'off' as const,
+  code: '',
+  words: '',
+  text: '',
+};
 
 /** What the lab has selected in a scene: a cue or a knob by name, a note by id, the studio's beat. */
 interface LabPicked {
@@ -1055,6 +1159,10 @@ interface LabPicked {
   readonly view?: CompareView;
   /** The Source view open (`?code=`): `follow` or a line. */
   readonly code?: string;
+  /** A talk's words selected (`?words=`): `<a>-<b>`. */
+  readonly words?: string;
+  /** The Transcript view open (`?text=`): `follow` or a word. */
+  readonly text?: string;
 }
 
 /** A time for the hash, when there is one. */

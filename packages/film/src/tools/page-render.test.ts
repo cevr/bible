@@ -73,14 +73,17 @@ const nestedBundle = Effect.gen(function* () {
 
 const URL_ASKED = 'http://127.0.0.1:8229/sets/root/folder?view=all';
 
+/** The page as a Mac's browser asks for it at `URL_ASKED`. */
+const ASKED = { url: URL_ASKED, mac: true };
+
 /** A read answered `text` at once. */
 const answering = (text: string) => () => Effect.sync(() => new Response(text));
 
-/** The review of `build` rendered at `URL_ASKED`, read whole. */
+/** The review of `build` rendered as `ASKED`, read whole. */
 const renderOf = (build: RenderBuild, read: (path: string) => Effect.Effect<Response>) =>
   Effect.gen(function* () {
     const renderer = yield* PageRenderer;
-    const page = yield* renderer.render(build, 'review', URL_ASKED, read);
+    const page = yield* renderer.render(build, 'review', ASKED, read);
     const markup = (yield* Stream.runCollect(page.markup)).join('');
     return { head: page.head, bodyClass: page.bodyClass, markup };
   }).pipe(Effect.scoped);
@@ -191,6 +194,8 @@ describe("a page's server render", () => {
         expect(page.markup).toMatch(/^<div class="fixture-root" data-page-root>/);
         expect(page.markup).toMatch(/<\/div>$/);
         expect(page.markup).toContain(URL_ASKED);
+        // Labelled for the browser that asked: its chords as a Mac's.
+        expect(page.markup).toContain('<p id="keys">mac</p>');
         expect(page.markup).toContain('the answer');
         expect(reads).toEqual(['/api/fixture?x=1']);
       }).pipe(Effect.provide(Services)),
@@ -291,7 +296,7 @@ describe("a page's server render", () => {
         };
         yield* Effect.gen(function* () {
           const renderer = yield* PageRenderer;
-          const page = yield* renderer.render({ id: 1, bundle }, 'review', URL_ASKED, read);
+          const page = yield* renderer.render({ id: 1, bundle }, 'review', ASKED, read);
           // The render goes on, its kept read held: the given-up read's handler stops now.
           const stopped = yield* Deferred.await(givenUpStopped).pipe(
             Effect.timeoutOption('2 seconds'),
@@ -399,7 +404,7 @@ describe("a page's server render", () => {
           const page = yield* renderer.render(
             { id: 1, bundle: moduleBundle(READS_ONE) },
             'review',
-            URL_ASKED,
+            ASKED,
             () =>
               Effect.andThen(Deferred.done(asked, Exit.void), Effect.never).pipe(
                 Effect.onInterrupt(() => Deferred.done(stopped, Exit.void)),

@@ -42,8 +42,8 @@ interface HubKeys {
 }
 
 /**
- * `hub`'s keys as the viewer's own (their rebinds, on their keyboard) where
- * `viewers` holds, else the default keys as a PC writes them.
+ * `hub`'s keys as the viewer's keyboard writes them: their own (their
+ * rebinds) where `viewers` holds, else the default keys.
  */
 export const keysAs = (hub: Hub, viewers: Accessor<boolean>): HubKeys => {
   const bound = (id: CommandId) =>
@@ -51,7 +51,7 @@ export const keysAs = (hub: Hub, viewers: Accessor<boolean>): HubKeys => {
       onTrue: () => hub.keysOf(id),
       onFalse: () => keysOf(bindingsOf(hub.commands.all(), []), id),
     });
-  const label = (chord: string) => chordLabel(chord, viewers() && hub.mac);
+  const label = (chord: string) => chordLabel(chord, hub.mac);
   const first = (id: CommandId) => bound(id).slice(0, 1).map(label).join('');
   return {
     bound,
@@ -64,10 +64,12 @@ export const keysAs = (hub: Hub, viewers: Accessor<boolean>): HubKeys => {
 
 /**
  * `hub`'s keys as the page shows them, followed as they change. The viewer's
- * keyboard and their rebound keys are the browser's: a server render knows
- * neither, so it shows the default keys as a PC writes them, the client's
- * hydration shows the same, and the viewer's own follow once the page is
- * hydrated.
+ * rebound keys are the browser's: a server render knows them not, so it
+ * shows the default keys, the client's hydration shows the same, and the
+ * viewer's own follow once the page is hydrated. Their keyboard a server
+ * render knows from the request (`PageAsked.mac`), so every label reads as
+ * that keyboard writes it from the first paint (`⌘K` on a Mac), and no
+ * control changes its width once the page is hydrated.
  */
 export const hubKeys = (hub: Hub): HubKeys => {
   const changes = hubChanges(hub);

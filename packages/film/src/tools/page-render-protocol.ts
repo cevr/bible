@@ -10,8 +10,16 @@ import { Data } from 'effect';
 
 /** What the lab sends a render worker. */
 export type ToRender = Data.TaggedEnum<{
-  /** Render the page whose server entry is `module` (a path in the worker's build) at `url`. */
-  Render: { readonly id: number; readonly module: string; readonly url: string };
+  /**
+   * Render the page whose server entry is `module` (a path in the worker's
+   * build) at `url`, for a browser that keys as a Mac or not (`mac`).
+   */
+  Render: {
+    readonly id: number;
+    readonly module: string;
+    readonly url: string;
+    readonly mac: boolean;
+  };
   /** The page's request is gone: stop rendering it. */
   Cancel: { readonly id: number };
   /** The answer to the render's read `read`. */

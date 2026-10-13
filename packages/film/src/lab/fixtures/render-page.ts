@@ -13,8 +13,8 @@ import { PROBE, probeFilm } from './probe-film.ts';
 import { TALK, talkFilm } from './talk-film.ts';
 
 mountRender({
-  [PROBE]: () => Effect.runPromise(Effect.sync(probeFilm)),
-  [CROWD]: () => Effect.runPromise(Effect.sync(crowdFilm)),
-  [FOOTAGE]: () => Effect.runPromise(Effect.sync(footageFilm)),
+  [PROBE]: Effect.sync(probeFilm),
+  [CROWD]: Effect.sync(crowdFilm),
+  [FOOTAGE]: Effect.sync(footageFilm),
   [TALK]: talkFilm,
 });
