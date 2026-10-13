@@ -103,7 +103,11 @@ export interface Asked {
   readonly body: Option.Option<Json>;
 }
 
-/** How a fake route answers: JSON with a status, a refusal as the server answers it, or text. */
+/**
+ * How a fake route answers: JSON with a status, a refusal as the server
+ * answers it, text, or what an effect makes (the lab's own handler, run in
+ * the test).
+ */
 type Answer =
   | { readonly _tag: 'Json'; readonly status: number; readonly json: Json }
   | { readonly _tag: 'Refused'; readonly refusal: Refusal }
@@ -111,7 +115,8 @@ type Answer =
   | { readonly _tag: 'File'; readonly path: string }
   | { readonly _tag: 'Wav'; readonly bytes: Uint8Array }
   | { readonly _tag: 'Hold' }
-  | { readonly _tag: 'Later'; readonly gate: Deferred.Deferred<void>; readonly then: Answer };
+  | { readonly _tag: 'Later'; readonly gate: Deferred.Deferred<void>; readonly then: Answer }
+  | { readonly _tag: 'Made'; readonly made: Effect.Effect<Answer> };
 
 export const json = (value: Json, status = 200): Answer => ({
   _tag: 'Json',
@@ -135,6 +140,8 @@ export const later = (gate: Deferred.Deferred<void>, then: Answer): Answer => ({
 });
 /** A file on disk, its type read from its name (a fixture video). */
 export const file = (path: string): Answer => ({ _tag: 'File', path });
+/** What `made` answers once it has run: a route the lab's own handler answers, in the test. */
+export const madeBy = (made: Effect.Effect<Answer>): Answer => ({ _tag: 'Made', made });
 /**
  * Ten seconds of tone (`tone.ts`): the real media every fixture player plays
  * (its videos, its mixes), its time moving on the media's own clock.
@@ -386,10 +393,14 @@ const typeOfFile = (path: string) =>
     () => 'application/octet-stream',
   );
 
-/** `found` as the tab's server answers it: never, for a hold; after its gate, for a later one. */
+/**
+ * `found` as the tab's server answers it: never, for a hold; after its gate,
+ * for a later one; as what its effect makes, for a made one.
+ */
 const answer = (found: Answer): Effect.Effect<Option.Option<Response>> => {
   if (found._tag === 'Hold') return Effect.succeedNone;
   if (found._tag === 'Later') return Effect.andThen(Deferred.await(found.gate), answer(found.then));
+  if (found._tag === 'Made') return Effect.flatMap(found.made, answer);
   if (found._tag === 'File') return Effect.asSome(fileAnswer(found.path));
   if (found._tag === 'Wav') return Effect.succeedSome(respond(found.bytes, 'audio/wav'));
   if (found._tag === 'Text')

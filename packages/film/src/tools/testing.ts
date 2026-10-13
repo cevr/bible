@@ -107,7 +107,7 @@ import { voicePoints } from './choice-points.ts';
 import { Takes } from './takes.ts';
 import { Review } from './review.ts';
 import { Choices } from './choices.ts';
-import { HttpServerRequest, HttpServerResponse } from 'effect/http';
+import { HttpPlatform, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { LabPage } from './lab-page.ts';
 
 /** A refusal of `method` on `path`, filed under the kind Effect gives Node's error (`why`, its code). */
@@ -720,7 +720,7 @@ export const noScenes = Layer.mergeAll(
  * The scene source's services where a test calls none of its routes: the
  * lab's handler serves them too, so they only have to exist.
  */
-export const noSource = Layer.mergeAll(
+const noSource = Layer.mergeAll(
   noScenes,
   Layer.succeed(
     SourceWriter,
@@ -1666,6 +1666,42 @@ export const notesInMemory = (film: string) =>
         ]),
       );
     }),
+  );
+
+/** What else a lab in memory runs with: its films' fresh runs, and the mtimes its files keep. */
+interface LabInMemory {
+  readonly film?: Layer.Layer<FreshFilm>;
+  readonly mtimes?: ReadonlyMap<string, number>;
+}
+
+/**
+ * The lab's services over `files` in memory, its notes under `NOTES_LAB`:
+ * what its handler (`labHandler`) runs with, its pages answered by `pages`,
+ * its films' fresh runs by `film` (none, unless given), and no film's
+ * source, studio or review behind it.
+ */
+export const labInMemory = (
+  files: Map<string, Uint8Array>,
+  pages = echoPages,
+  { film = freshFilm({}), mtimes = new Map() }: LabInMemory = {},
+) =>
+  Layer.mergeAll(
+    NotesStore.layer,
+    FilmFolder.layer('/films'),
+    noSource,
+    noStudio,
+    noReview,
+    pages,
+    film,
+    HttpPlatform.layer,
+  ).pipe(
+    Layer.provideMerge(ContentStore.layer),
+    Layer.provideMerge([
+      memoryFileSystem(files, new Set(), mtimes),
+      memoryLocks,
+      Path.layer,
+      ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_LAB: NOTES_LAB })),
+    ]),
   );
 
 /** The console a run prints to: each line it logs, offered to `lines`. */
