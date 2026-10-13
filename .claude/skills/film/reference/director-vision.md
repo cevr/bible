@@ -92,7 +92,7 @@ The last row is the rule that the landing is both the most saturated and the cal
 
 ### Figures, scale, hands and faces
 
-- **One figure grammar.** Grey paper bean figures, with the head about ¼ of body height.
+- **One figure grammar.** Paper bean figures in the K1 look: a hue per garment, with the head about ⅓ of body height (owner, 2026-10-13). What each colour and role means, and every figure's sheet: [character-design.md](character-design.md).
   - The face is minimal but characterful: a few marks (eyes, brows, a mouth; lids and eye whites in the richer kits) moved by view-model numbers and bones, never redrawn for an expression. It carries eight expressions (rest, glad, troubled, set, astonished, ashamed, tender, angry) at five ages, and each cast member has one feature of their own. **OWNER QUESTION:** which kit. The four, from today's three marks sharpened to the RimWorld mods' whites and pupils, are specified in [face-study.md](face-study.md); the art they come from is in [prior-art.md](prior-art.md).
   - `browTilt` > 0 is the default (SKILL gotcha: flat brows read as cross).
 - **Scale.**

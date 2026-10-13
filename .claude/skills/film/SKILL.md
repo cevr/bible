@@ -7,8 +7,9 @@ description: >
   cut from the owner's own footage (`film footage`, a talk's paper edit). Use
   when asked for an animation, explainer video, or film; when editing a film's
   script, scenes, timing, voice, music or sound; or when a render, narrate or
-  score run fails; or when checking a film's doctrine against the pioneer
-  (1889) frame.
+  score run fails; when checking a film's doctrine against the pioneer
+  (1889) frame; or when designing a figure, a cast member, a Bible figure or
+  a character sheet.
 ---
 
 # Film
@@ -35,6 +36,7 @@ Every film and talk shares a recurring cast besides its main figures (owner, 202
 
 - **Show the cast where the story allows:** the cold open, the IDEA beats, the landing, and a talk's cut-paper inserts. Never inside a scene of Bible history, and never as a Bible person or a figure of Christ's parables.
 - **Never invent an everyday figure when a cast member fits.** A new person is only for a crowd, a judge or a stranger no cast member can be.
+- **Designing any figure** (what its colours say, how a main, supporting, antagonist, minor or allegorical figure is drawn, Bible figures, character sheets): read [reference/character-design.md](reference/character-design.md).
 - **Keep continuity:** fixed ages, the same homes, no names in speech, and each appearance framed as a parable ("Picture a father…"), never as history. The `script.ts` header lists the cast a film uses and the ledger state it assumes.
 
 ## Steps

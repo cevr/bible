@@ -4,7 +4,7 @@ Owner, 2026-10-13: "for the films in general, and to add to the skills that I th
 
 Today each film invents its everyday figures. A viewer moving from _From Milk to Meat_ to the education talks, the health talks or the planned country-living series meets strangers every time. A small recurring cast lets them know faces, follow lives from film to film, and feel the doctrine through people they have come to care about. BibleProject does the same with its Everyman and its reused shots ([bibleproject-study.md](../../../.claude/skills/film/reference/bibleproject-study.md), V6).
 
-This file is the cast bible. The film skill's **Ensemble** rule ([SKILL.md](../../../.claude/skills/film/SKILL.md)) points here.
+This file is the cast bible. The film skill's **Ensemble** rule ([SKILL.md](../../../.claude/skills/film/SKILL.md)) points here. What the colours mean, how each role is designed, the minor figures and every character sheet are in [character-design.md](../../../.claude/skills/film/reference/character-design.md).
 
 ## What the cast is, and is not
 
