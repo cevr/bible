@@ -6,7 +6,13 @@
 //
 // Real Chromium, not a fake DOM: focus, pointer and touch events, layout and
 // `:focus-visible` are what the parts are about, and a fake DOM gets them
-// wrong. Run with `bun run test:browser` (it needs Playwright's Chromium).
+// wrong. Run with `bun run test:browser` (it needs Playwright's Chromium:
+// `bunx playwright install chromium`).
+//
+// The whole browser in Chrome's headless mode, not Playwright's default
+// headless shell: the shell is a separate, slimmer build, and on macOS its
+// view never takes the pointer lock (`requestPointerLock` rejects with
+// WrongDocumentError), so a scrub's lock was never tested there.
 import { afterAll, afterEach, beforeAll } from 'bun:test';
 
 import { transform } from '@solidjs/compiler';
@@ -68,6 +74,12 @@ export interface OpenOptions {
    * Chromium launched without `--hide-scrollbars` (headless hides them).
    */
   readonly scrollbars?: boolean;
+  /**
+   * The `navigator.platform` the page reports (`MacIntel`, `Linux x86_64`):
+   * the parts read their OS from it as they load, so a case can hold each
+   * OS's rule on any host.
+   */
+  readonly platform?: string;
 }
 
 /**
@@ -101,7 +113,7 @@ export const harness = (fixtureFile: string): Harness => {
         return new Response(PAGE, { headers: { 'content-type': 'text/html;charset=utf-8' } });
       },
     });
-    browser = await chromium.launch();
+    browser = await chromium.launch({ channel: 'chromium' });
   });
 
   afterEach(async () => {
@@ -136,6 +148,11 @@ export const harness = (fixtureFile: string): Harness => {
         viewport: options.viewport ?? { width: 800, height: 600 },
       });
       contexts.push(context);
+      if (options.platform !== undefined) {
+        await context.addInitScript((platform) => {
+          Object.defineProperty(Navigator.prototype, 'platform', { get: () => platform });
+        }, options.platform);
+      }
       const page = await context.newPage();
       page.setDefaultTimeout(5000);
       page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));

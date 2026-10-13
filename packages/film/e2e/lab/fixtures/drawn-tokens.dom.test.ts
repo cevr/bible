@@ -217,4 +217,16 @@ describe('the drawn-token check reads each scale, every property and the whole p
         [],
       ),
   );
+
+  // The user agent's focus ring is its own colour, one per platform and
+  // scheme (Linux's Chrome draws it rgb(238, 238, 238) in the dark, a Mac's
+  // rgb(153, 200, 255)): the check names it by the keyword its rule draws,
+  // so a site allowed to keep the ring is the same site on every host.
+  it.live("names the user agent's focus ring by its keyword, whatever colour it draws here", () =>
+    drawn(
+      `<button type="button" style="font: inherit; font-size: var(--fs-2); line-height: var(--body-lh); color: var(--text-1); background: none; border: 0; padding: 0; margin: 0">ring</button>
+       <script>document.querySelector('button').focus({ focusVisible: true });</script>`,
+      ['outline-color -webkit-focus-ring-color: button'],
+    ),
+  );
 });

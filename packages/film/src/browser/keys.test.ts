@@ -6,7 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Effect, Option } from 'effect';
 import { hostOf } from './host.ts';
-import { type KeyPress, Keys } from './keys.ts';
+import { appleAgent, type KeyPress, Keys } from './keys.ts';
 
 /** A key press of `key` (with `held` modifiers), cancelable as the browser's are. */
 const keydown = (
@@ -75,4 +75,27 @@ describe('Keys.listen', () => {
     expect(p.heard).toEqual([]);
     expect(after.defaultPrevented).toBe(false);
   });
+});
+
+test("a Mac's or an Apple device's User-Agent keys as a Mac; Linux's, Windows' and Android's do not", () => {
+  const agents = [
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (iPod touch; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Mobile Safari/537.36',
+    '',
+  ];
+  expect(agents.map((a) => appleAgent(a))).toEqual([
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+  ]);
 });

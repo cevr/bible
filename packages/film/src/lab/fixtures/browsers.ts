@@ -58,6 +58,10 @@ const flags = Effect.runSync(
       '--autoplay-policy=no-user-gesture-required',
       '--use-fake-device-for-media-stream',
       `--use-file-for-fake-audio-capture=${wav}`,
+      // The fake microphone's file is opened by Chrome's audio service, whose
+      // sandbox on macOS (and Windows) lets it open no file of ours: there it
+      // recorded silence. On Linux the service runs unsandboxed already.
+      '--disable-features=AudioServiceSandbox',
       // A desk's mouse: headless Chrome has no pointer, so `(pointer: none)`
       // matched and every page took the phone's density. Fine (4) and hover
       // (2), as Blink numbers them; touch emulation (a phone's lease) stands

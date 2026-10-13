@@ -47,6 +47,10 @@ row here; the film loop sweeps the engine, these sweep the studio.
 
 Propose nothing against these.
 
+- Rive is the main film engine; 3D is deferred (2026-10-12). The paper-cut look is refined in Rive: hands are plain circles with no thumb, faces are a few marks, expressive but minimal (2026-10-12).
+- Shade with colour, never black: a shadow shifts toward the light's complement and keeps or raises its saturation, a highlight leans to the light's hue; no black, grey or alpha-black shading (film skill CRAFT rule 12; 2026-10-12).
+- The lab's chrome draws one focus ring, `--focus-ring`: no control falls back to the browser's own ring (the keys dialog's buttons, the composer, the command query; 2026-10-12).
+- Every pass ends with a retro of the pass: what went wrong, and the tooling to add, change or remove so the next pass costs less work and fewer tokens (architecture-loop step 11; 2026-10-12).
 - The lab is the one place files are shown; hand out its links, never box paths. The link handed out is the HTTPS address, `https://bite-cristian.exe.xyz:8229/…` (2026-10-02).
 - The owner relies on the loop for naming and industry context: name views, tools and states by the conventions of film and animation review tools (`PRIOR_ARTS.md`), and say in the README what each term means (2026-10-02).
 - Films are not checked, rendered, mixed or reviewed by the loop until the owner asks for scene review (2026-10-01).

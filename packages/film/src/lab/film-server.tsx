@@ -21,7 +21,7 @@ export const labRender: PageRender = pageRender({
   ...LAB_PAGE,
   app: (request) => (
     <ServerHosted
-      url={request.url}
+      asked={request}
       app={(host) =>
         Effect.runSync(labOn(host, [], LabClient.layerRendering(request), SERVER_BODY)).app()
       }
@@ -34,7 +34,7 @@ export const playRender: PageRender = pageRender({
   ...PLAY_PAGE,
   app: (request) => (
     <ServerHosted
-      url={request.url}
+      asked={request}
       app={(host) => Effect.runSync(playOn(host, [], SERVER_BODY)).app()}
     />
   ),
