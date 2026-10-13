@@ -96,11 +96,11 @@ const slack = (C: number) => (Math.atan(1 / Math.max(C, 1)) * 180) / Math.PI;
 /**
  * Why `r` is no CRAFT 12 ramp under `key` at knobs `k`: its shade must be
  * darker, turned toward the key's complement by at least `k.turn` (or onto
- * it; a base at or under `k.deep` chroma onto it), and at least as chromatic
- * as its base and `k.deep`; its light lighter, leaning to the key's hue the
- * same way (onto it when it keeps half `k.warm` of chroma or less), and at
- * least `k.warm` chromatic. Chroma the gamut cannot show at that lightness
- * and hue is excused.
+ * it), and at least as chromatic as its base and `k.deep`; its light
+ * lighter, leaning to the key's hue the same way, and at least `k.warm`
+ * chromatic. A near-neutral is held to the same turn: CRAFT 12 asks it to
+ * turn toward the complement, not to land on it. Chroma the gamut cannot show
+ * at that lightness and hue is excused.
  */
 const faults = (r: Ramp, key: Hex, k: Shading): string[] => {
   const [b, s, l] = [lch(r.base), lch(r.shade), lch(r.light)];
@@ -109,24 +109,23 @@ const faults = (r: Ramp, key: Hex, k: Shading): string[] => {
   const leans = (
     to: number,
     c: { readonly L: number; readonly C: number; readonly h: number },
-    neutral: boolean,
     what: string,
   ) => {
     // Black and white have no hue to turn: the gamut shows no chroma there.
     if (c.L < 1 || c.L > 99) return;
     const from = apart(b.h, to);
-    const want = neutral ? 0 : Math.max(0, from - Math.min(k.turn, from));
+    const want = Math.max(0, from - Math.min(k.turn, from));
     if (apart(c.h, to) > want + slack(c.C))
       out.push(
         `${what} sits ${apart(c.h, to).toFixed(1)}° from hue ${to.toFixed(1)}, wants ${want.toFixed(1)}°`,
       );
   };
   if (b.L > 1 && s.L >= b.L - 0.2) out.push('shade not darker');
-  leans((keyHue + 180) % 360, s, b.C <= k.deep, 'shade');
+  leans((keyHue + 180) % 360, s, 'shade');
   if (s.C < Math.min(Math.max(b.C, k.deep), most(s.L, s.h)) - 1)
     out.push(`shade chroma ${s.C.toFixed(1)} under its base's ${b.C.toFixed(1)} or ${k.deep}`);
   if (b.L < 99 && l.L <= b.L + 0.2) out.push('light not lighter');
-  leans(keyHue, l, b.C * k.fade <= k.warm / 2, 'light');
+  leans(keyHue, l, 'light');
   if (l.C < Math.min(k.warm, most(l.L, l.h)) - 1) out.push(`light grey: chroma ${l.C.toFixed(1)}`);
   return out;
 };
@@ -146,13 +145,21 @@ const hexOf = (L: number, C: number, h: number): Hex => {
 };
 
 /** The paper-cut look's knobs (`cold-studies/palette.ts`, fitted to K1). */
-const FILM: Shading = { turn: 20, dark: 0.2, lift: 0.4, deep: 10, warm: 8.5, fade: 0.6 };
+const FILM: Shading = {
+  turn: 20,
+  dark: 0.2,
+  lift: 0.4,
+  deep: 10,
+  neutral: 1,
+  warm: 8.5,
+  fade: 0.6,
+};
 
 /** Knobs from gentle to strong (the second at CRAFT 12's floors), and the paper-cut look's. */
 const KNOBS: ReadonlyArray<Shading> = [
-  { turn: 25, dark: 0.16, lift: 0.45, deep: 14, warm: 7, fade: 0.6 },
-  { turn: 10, dark: 0.3, lift: 0.2, deep: 6, warm: 6, fade: 0.9 },
-  { turn: 60, dark: 0.08, lift: 0.7, deep: 25, warm: 12, fade: 0.3 },
+  { turn: 25, dark: 0.16, lift: 0.45, deep: 14, neutral: 0.7, warm: 7, fade: 0.6 },
+  { turn: 10, dark: 0.1, lift: 0.1, deep: 6, neutral: 0, warm: 6, fade: 0.9 },
+  { turn: 60, dark: 0.1, lift: 0.7, deep: 25, neutral: 1, warm: 12, fade: 0.3 },
   FILM,
 ];
 
@@ -211,6 +218,22 @@ describe('ramp', () => {
     expect(lch(r.light).C).toBeGreaterThan(k.warm - 1);
   });
 
+  test('a near-neutral’s shade turns past `turn` by `neutral` of the rest: 1 onto the complement, less short of it', () => {
+    const key: Hex = '#f3e9c8';
+    const complement = (lch(key).h + 180) % 360;
+    const paper = '#b7b2a8';
+    const from = apart(lch(paper).h, complement);
+    const shortOf = (neutral: number) =>
+      apart(lch(ramp(paper, key, { ...FILM, neutral }).shade).h, complement);
+    expect(shortOf(1)).toBeLessThan(slack(FILM.deep));
+    expect(shortOf(0.6)).toBeGreaterThan(10);
+    expect(shortOf(0)).toBeGreaterThan(shortOf(0.6));
+    expect(shortOf(0)).toBeLessThan(from - FILM.turn);
+    // A hueless grey has no hue to stop at: all the way, whatever the share.
+    const grey = lch(ramp('#808080', key, { ...FILM, neutral: 0 }).shade);
+    expect(apart(grey.h, complement)).toBeLessThan(slack(FILM.deep));
+  });
+
   test('a cool paper’s light leans toward a warm key without crossing to it through green', () => {
     // The slate of the accused's legs: past the light's floor, so it keeps its own hue near enough.
     const k = KNOBS[0] as Shading;
@@ -257,6 +280,11 @@ describe('ramp', () => {
         'shade sits',
       ],
       ['a grey shade', { ...sage, shade: '#5c5c5c' }, 'shade chroma'],
+      [
+        'a near-neutral’s shade barely turned',
+        { ...ramp('#b7b2a8', key, k), shade: hexOf(62, 14.4, lch('#b7b2a8').h - 5) },
+        'shade sits',
+      ],
       ['a light turned away', { ...sage, light: hexOf(82, 16, base.h + 30) }, 'light sits'],
     ] as const)('%s', (_, r, fault) => {
       expect(faults(r, key, k).join('; ')).toContain(fault);
@@ -268,7 +296,7 @@ describe('ramp', () => {
 
 describe('knobs under CRAFT 12’s floors', () => {
   // The knobs are the look's tuning surface; tuned to grey, no ramp may derive.
-  const grey: Shading = { turn: 0, dark: 0.2, lift: 0.4, deep: 0, warm: 0, fade: 0.6 };
+  const grey: Shading = { turn: 0, dark: 0.2, lift: 0.4, deep: 0, neutral: 1, warm: 0, fade: 0.6 };
 
   test('are refused, each named: an unturned shade and a grey light never derive', () => {
     expect(() => ramp('#b7b2a8', '#f3e9c8', grey)).toThrow(/turn 0.*deep 0.*warm 0/);

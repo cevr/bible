@@ -65,38 +65,78 @@ export interface Ramp {
 
 /**
  * How a look shades: `ramp`'s knobs, tuned on its stills. In CIE LCh (D65):
- * lightness 0..100, chroma, hue in degrees.
+ * lightness 0..100, chroma, hue in degrees. No knob goes under CRAFT 12's
+ * floors (`FLOORS`): `ramp` refuses knobs that do, so a look tuned by eye
+ * can never shade grey or leave a shade unturned.
  */
 export interface Shading {
   /**
    * Degrees a strong colour's shade turns toward the key's complement, and
-   * its light toward the key's hue. A near-neutral turns all the way, since
-   * it has no hue of its own to keep (`deep` says which colours are
-   * near-neutral for a shade, `warm` and `fade` for a light).
+   * its light toward the key's hue; at least `FLOORS.turn`. A near-neutral
+   * turns further (`deep` and `neutral` for a shade, `warm` and `fade` for a
+   * light), since it has little hue of its own to keep.
    */
   readonly turn: number;
-  /** The share of its lightness a shade loses. */
+  /** The share of its lightness a shade loses; at least `FLOORS.step`. */
   readonly dark: number;
-  /** The share of the way to white a light rises. */
+  /** The share of the way to white a light rises; at least `FLOORS.step`. */
   readonly lift: number;
   /**
-   * The least chroma a shade carries, so a grey's shade is the complement at
-   * this chroma. A colour below twice it is that much near-neutral: at `deep`
-   * or under it turns all the way, at twice it by `turn` alone.
+   * The least chroma a shade carries (at least `FLOORS.chroma`), so a grey's
+   * shade is the complement at this chroma. A colour below twice it is that
+   * much near-neutral: at `deep` or under it turns past `turn` by `neutral`
+   * of the rest of the way, at twice it by `turn` alone.
    */
   readonly deep: number;
   /**
-   * The least chroma a light carries: no light is grey. A light is
-   * near-neutral by the chroma it keeps (`fade` of its base's): at half this
-   * or under it takes the key's hue, at this or over it turns by `turn`
-   * alone. So a cool paper's light leans toward the key, but only a grey's
-   * takes the key's hue, and a slate's edge does not pass through green to
-   * reach a gold.
+   * How far a near-neutral shade turns past `turn`, as a share (0..1) of
+   * the rest of the way to the key's complement: 1 lands it on the
+   * complement (a warm grey's shade a slate blue under a pale gold), less
+   * stops it short (a lavender). A hueless grey turns all the way whatever
+   * this is: it has no hue of its own to stop at.
+   */
+  readonly neutral: number;
+  /**
+   * The least chroma a light carries (at least `FLOORS.chroma`): no light is
+   * grey. A light is near-neutral by the chroma it keeps (`fade` of its
+   * base's): at half this or under it takes the key's hue, at this or over
+   * it turns by `turn` alone. So a cool paper's light leans toward the key,
+   * but only a grey's takes the key's hue, and a slate's edge does not pass
+   * through green to reach a gold.
    */
   readonly warm: number;
   /** The share of its base's chroma a light keeps (it pales toward the light), never under `warm`. */
   readonly fade: number;
 }
+
+/**
+ * CRAFT 12's floors, which no `Shading` lowers (`ramp` refuses knobs under
+ * them): what "shade with colour, never with black or grey" means in
+ * numbers, whatever a look tunes.
+ */
+export const FLOORS = {
+  /**
+   * The least chroma a shade or a light carries (sRGB allowing): under it a
+   * colour reads grey. The near-grey lights CRAFT 12 threw out sat at C 3.2
+   * and 3.4; every light that read warm on the stills at 6.4 or more.
+   */
+  chroma: 6,
+  /** The least turn, degrees, a shade takes toward the key's complement and a light toward the key's hue. */
+  turn: 10,
+  /** The least share of its lightness a shade loses, and of the way to white a light rises. */
+  step: 0.1,
+} as const;
+
+/** Why knobs `k` break CRAFT 12's floors (`FLOORS`), or leave a share outside 0..1: one reason per knob. */
+const floorFaults = (k: Shading): string[] => [
+  ...(k.turn >= FLOORS.turn ? [] : [`turn ${k.turn} under ${FLOORS.turn}°`]),
+  ...(k.dark >= FLOORS.step && k.dark < 1 ? [] : [`dark ${k.dark} outside ${FLOORS.step}..1`]),
+  ...(k.lift >= FLOORS.step && k.lift < 1 ? [] : [`lift ${k.lift} outside ${FLOORS.step}..1`]),
+  ...(k.deep >= FLOORS.chroma ? [] : [`deep ${k.deep} under chroma ${FLOORS.chroma}`]),
+  ...(k.warm >= FLOORS.chroma ? [] : [`warm ${k.warm} under chroma ${FLOORS.chroma}`]),
+  ...(k.neutral >= 0 && k.neutral <= 1 ? [] : [`neutral ${k.neutral} outside 0..1`]),
+  ...(k.fade >= 0 && k.fade <= 1 ? [] : [`fade ${k.fade} outside 0..1`]),
+];
 
 /** A colour in CIE LCh (D65). */
 interface Lch {
@@ -182,11 +222,18 @@ const turned = (h: number, to: number, turn: number, neutral: number) => {
 
 /**
  * How near-neutral chroma `c` is against a floor of chroma `least` (0..1): a
- * colour at or under the floor has no hue of its own to keep once raised to
- * it, and turns all the way; one at twice the floor or more turns by `turn`
- * alone.
+ * colour at or under the floor has little hue of its own to keep once raised
+ * to it; one at twice the floor or more turns by `turn` alone.
  */
 const nearNeutral = (c: number, least: number) => clamp((2 * least - c) / least);
+
+/**
+ * The share of the rest of the way a shade of chroma `c` turns past `turn`
+ * (`Shading.neutral`): `neutral` for a near-neutral at the floor, rising to
+ * all the way for a hueless grey, none at twice the floor.
+ */
+const shadeTurn = (c: number, k: Shading) =>
+  nearNeutral(c, k.deep) * (1 - (1 - k.neutral) * clamp(c / k.deep));
 
 /**
  * The ramp of `base` under the key light `key`, shaded by `k` (CRAFT rule 12:
@@ -198,9 +245,12 @@ const nearNeutral = (c: number, least: number) => clamp((2 * least - c) / least)
  *
  * A cast shadow is the shade of the surface it falls on. Each colour keeps
  * its lightness and hue and gives up only the chroma sRGB cannot show. Pure;
- * throws on a key with no hue (a grey light has no complement).
+ * throws on a key with no hue (a grey light has no complement), and on knobs
+ * under CRAFT 12's floors (`FLOORS`), naming each.
  */
 export const ramp = (base: Hex, key: Hex, k: Shading): Ramp => {
+  const under = floorFaults(k);
+  if (under.length > 0) throw new Error(`knobs under CRAFT 12's floors: ${under.join(', ')}`);
   const light = lchOf(key);
   if (light.C < 1) throw new Error(`key light "${key}" has no hue to shade toward`);
   const b = lchOf(base);
@@ -208,7 +258,7 @@ export const ramp = (base: Hex, key: Hex, k: Shading): Ramp => {
     shade: hexOfLch({
       L: b.L * (1 - k.dark),
       C: Math.max(b.C, k.deep),
-      h: turned(b.h, (light.h + 180) % 360, k.turn, nearNeutral(b.C, k.deep)),
+      h: turned(b.h, (light.h + 180) % 360, k.turn, shadeTurn(b.C, k)),
     }),
     base,
     light: hexOfLch({

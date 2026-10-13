@@ -56,7 +56,15 @@ export const keyLight: Hex = '#f3e9c8';
  * pick (2026-10-13), as the least-squares nearest (CIE ΔE) to the
  * swatches K1 was drawn with, its two near-grey lights left out.
  */
-export const shading: Shading = { turn: 20, dark: 0.2, lift: 0.4, deep: 10, warm: 8.5, fade: 0.6 };
+export const shading: Shading = {
+  turn: 20,
+  dark: 0.2,
+  lift: 0.4,
+  deep: 10,
+  neutral: 1,
+  warm: 8.5,
+  fade: 0.6,
+};
 
 export type { Ramp };
 
