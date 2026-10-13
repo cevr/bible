@@ -1,67 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import { DIRECTION } from './direction.ts';
-import { figureRigs, figuresRml } from './figures.ts';
+import { K1 } from './direction.ts';
 import { type K, LIGHT, type Pt, creaseOf, figure, reachAbout } from './parts.ts';
-import { type Element, ids } from './rml.ts';
+import { ids } from './rml.ts';
 
-/** Every element under `roots`, depth first. */
-const walk = (roots: ReadonlyArray<Element>): Element[] =>
-  roots.flatMap((e) => [e, ...walk(e.children)]);
-
-const named = (roots: ReadonlyArray<Element>, name: string) =>
-  walk(roots).filter((e) => e.attrs.some(([k, v]) => k === 'name' && v === name));
-
-const attr = (e: Element | undefined, key: string) => e?.attrs.find(([k]) => k === key)?.[1];
-
-/** The three rigs' artboards (their view models aside), from one id counter as `figures.ts` makes them. */
-const rigs = () => {
-  const { accused, judge, hand } = figureRigs(DIRECTION);
-  return { accused: accused.slice(0, 1), judge: judge.slice(0, 1), hand: hand.slice(0, 1) };
-};
+// The parts every figure is built from, whatever the art direction. What a
+// direction changes is checked for every option in `direction.test.ts`.
 
 describe('the figure parts', () => {
-  test('the project file has no thumbs and no mittens', () => {
-    expect(figuresRml(DIRECTION)).not.toMatch(/thumb|mitten/i);
-  });
-
-  test('the project file is the same text every time, and every id in it is its own', () => {
-    const rml = figuresRml(DIRECTION);
-    expect(figuresRml(DIRECTION)).toBe(rml);
-    const defined = [...rml.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]);
-    expect(new Set(defined).size).toBe(defined.length);
-  });
-
-  test('every hand is the same part: a plain circle of twelve points, creased and outlined alike', () => {
-    const { accused, hand } = rigs();
-    const palms = [
-      ...named(accused, 'nearPalm'),
-      ...named(accused, 'farPalm'),
-      ...named(hand, 'palm'),
-    ];
-    expect(palms).toHaveLength(3);
-    const shapeOf = (palm: Element) => ({
-      points: walk([palm]).filter((e) => e.name === 'CubicMirroredVertex').length,
-      paints: palm.children.filter((e) => e.name !== 'PointsPath').map((e) => attr(e, 'name')),
-    });
-    // The edge's paints follow the outline axis (`direction.ts`); every hand takes the same ones.
-    const shapes = palms.map(shapeOf);
-    expect(shapes[0]?.points).toBe(12);
-    expect(shapes[0]?.paints).toContain('Paper');
-    for (const shape of shapes)
-      expect(shape).toEqual({ points: 12, paints: shapes[0]?.paints ?? [] });
-  });
-
-  test('the accused and the judge wear the same face kit, the judge at his own scale', () => {
-    const { accused, judge } = rigs();
-    const parts = ['face', 'features', 'brows', 'eyeL', 'eyeR', 'mouthLine', 'mouthOh', 'faceRest'];
-    for (const part of parts) {
-      expect([part, named(accused, part).length, named(judge, part).length]).toEqual([part, 1, 1]);
-    }
-    expect(attr(named(judge, 'face')[0], 'scaleX')).toBeGreaterThan(1);
-  });
-
   test('an outline crawls: no point moves more than a fifth of its wander a tick, round the loop too', () => {
-    const fig = figure(ids(), 'Test', 7, 0, DIRECTION);
+    const fig = figure(ids(), 'Test', 7, 0, K1);
     fig.boil('piece', [[3, 4]], 1);
     const { x = [], y = [] } = fig.boilTracks()['piece.0'] ?? {};
     expect(x).toHaveLength(48);

@@ -131,4 +131,5 @@ export const propsOf = (d: Direction): Props => ({
       }),
   sheetInk: inkOf(d),
   blockInk: inkOf(d),
+  gavelInk: court.outline,
 });

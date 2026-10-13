@@ -115,7 +115,7 @@ const paperJudge: Bench = {
   over: (f, swing, lean) => judgeGavel(f.ctx, f.hand, swing, lean, 10 * lean),
 };
 
-/** The paper of the court's props: the bench and its rim, panels and gavel block, and the evidence sheets (cycled), with the sheets' and the block's ink. */
+/** The paper of the court's props: the bench and its rim, panels and gavel block, and the evidence sheets (cycled), with the sheets', the block's and the gavel's ink. */
 export interface Props {
   readonly bench: string;
   readonly rim: string;
@@ -124,10 +124,12 @@ export interface Props {
   readonly sheets: ReadonlyArray<string>;
   readonly sheetInk: string;
   readonly blockInk: string;
+  /** The gavel's line: the kit's outline, as the court's `gavel` draws it. */
+  readonly gavelInk: string;
 }
 
 /** The control's props. */
-const paperProps: Props = {
+export const paperProps: Props = {
   bench: C.paperTone,
   rim: C.inkSoft,
   panel: C.inkSoft,
@@ -135,6 +137,7 @@ const paperProps: Props = {
   sheets: [C.paper],
   sheetInk: C.ink,
   blockInk: C.outline,
+  gavelInk: C.outline,
 };
 
 /**

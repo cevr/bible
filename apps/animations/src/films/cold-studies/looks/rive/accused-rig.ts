@@ -64,6 +64,9 @@ export const accusedHead = (d: Direction) => {
   return { scale, y: NECK - (HEAD_H / 2) * scale, face: -37 * scale };
 };
 
+/** The face `check` reads under `d` (`RivePropSpec.face`): its node, and the head's height as drawn. */
+export const accusedFace = (_d: Direction) => ({ node: 'face', height: HEAD_H });
+
 /** The view model's numbers at rest under `d`: the face kit's, the eyes on us. */
 const accusedKnobs = (d: Direction) => ({ ...FACE, gazeX: 0, gazeY: accusedHead(d).y }) as const;
 

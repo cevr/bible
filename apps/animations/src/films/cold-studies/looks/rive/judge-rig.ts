@@ -13,7 +13,7 @@
 
 import { ramps as R } from '../../palette.ts';
 import { accusedHead } from './accused-rig.ts';
-import { dressOf } from './direction.ts';
+import { type Direction, dressOf } from './direction.ts';
 import {
   type BoneSpec,
   FACE,
@@ -50,6 +50,9 @@ export const JUDGE_FACE = 1.62;
 
 /** Where the lean pivots: the robe's foot, behind the bench. */
 const PIVOT = 175;
+
+/** The face `check` reads under `d` (`RivePropSpec.face`): its node, and the head's height as drawn. */
+export const judgeFace = (_d: Direction) => ({ node: 'face', height: 130 });
 
 /** His chain from the pivot, his head scaled `hs`: the chest up to the neck, the head to its centre. */
 const bones = (hs: number): ReadonlyArray<BoneSpec> => [

@@ -11,7 +11,9 @@ import {
   ACCUSED_KNOBS,
   ACCUSED_TIMELINES,
   type AccusedTimeline,
+  accusedFace,
 } from './accused-rig.ts';
+import { DIRECTION } from './direction.ts';
 import { ARTBOARDS } from './figures.ts';
 import figuresRiv from './figures.riv' with { type: 'file' };
 import {
@@ -20,6 +22,7 @@ import {
   JUDGE_KNOBS,
   JUDGE_TIMELINES,
   type JudgeTimeline,
+  judgeFace,
 } from './judge-rig.ts';
 
 /** The accused for `engine`: feet at our origin, its face for `check`; posed by its own names. */
@@ -35,7 +38,7 @@ export const accusedProp = (
   engine,
   key: `cold-studies/accused/${engine}`,
   origin: ACCUSED_ART.feet,
-  face: { node: 'face', height: 76 },
+  face: accusedFace(DIRECTION),
 });
 
 /** The judge for `engine`: his head's centre at our origin, his face for `check`. */
@@ -51,7 +54,7 @@ export const judgeProp = (
   engine,
   key: `cold-studies/judge/${engine}`,
   origin: JUDGE_ART.head,
-  face: { node: 'face', height: 130 },
+  face: judgeFace(DIRECTION),
 });
 
 /** The judge's hand for `engine`, its centre at our origin: no view model, only its paper's crawl. */
