@@ -265,6 +265,22 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
     return `calc(${stageStart()} + ${viewport()}${before && after ? ` + ${viewport()}` : ''})`;
   };
 
+  // Whether the panel has a layout (nothing round it `display: none`), as it changes.
+  const [panelLaidOut, setPanelLaidOut] = createSignal(false, owned);
+  createEffect(
+    () => panel(),
+    (panelElement) => {
+      if (!panelElement) {
+        return undefined;
+      }
+      const read = () => setPanelLaidOut(laidOut(panelElement));
+      read();
+      const observer = new ResizeObserver(read);
+      observer.observe(panelElement);
+      return () => observer.disconnect();
+    },
+  );
+
   // A sheet that is not modal takes presses over its panel alone, and the page takes them
   // everywhere else. Once it has scrolled in, the container that scrolls takes them itself, so
   // a finger on the panel scrolls it on every engine (iOS Safari scrolls no container that
@@ -275,19 +291,22 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
   // IntersectionObserver fitted to its box), its edge or a finger's swipe changed. Nothing runs
   // while it stands untouched. While it scrolls in or out on its own, and until it is first
   // read (the server's markup), the container takes no presses and draws all of the panel, and
-  // the panel takes its own.
+  // the panel takes its own. With no layout (hidden with what holds it) it is not followed, and
+  // laid out again it is followed afresh: `autoUpdate`'s observer fitted to a box that had none
+  // would never hear the panel move again.
   createEffect(
     () =>
       [
         scroller(),
         panel(),
+        panelLaidOut(),
         store.modal(),
         sheet.entered(),
         sheet.fingerSwipes(),
         config(),
       ] as const,
-    ([scrollElement, panelElement, modal, entered, lane, swipe]) => {
-      if (modal || !entered || !scrollElement || !panelElement) {
+    ([scrollElement, panelElement, shows, modal, entered, lane, swipe]) => {
+      if (modal || !entered || !scrollElement || !panelElement || !shows) {
         return undefined;
       }
       const write = () => {
