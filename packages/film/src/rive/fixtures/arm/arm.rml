@@ -1,5 +1,5 @@
 <Rive version="1" kind="fragment">
-    <Artboard defaultStateMachineId="1:40" viewModelId="1:1" viewModelInstanceId="1:3" width="200" height="200" clip="false" name="Arm" id="1:50">
+    <Artboard viewModelId="1:1" viewModelInstanceId="1:3" width="200" height="200" clip="false" name="Arm" id="1:50">
         <Node x="60" y="160" name="target" id="1:10">
             <DataBindContext sourcePathIds="1:1-1:2" propertyKey="14"/>
         </Node>
@@ -31,14 +31,6 @@
                 </IKConstraint>
             </Bone>
         </RootBone>
-        <StateMachine name="Binds" id="1:40">
-            <StateMachineLayer name="Idle">
-                <EntryState>
-                    <StateTransition stateToId="1:41"/>
-                </EntryState>
-                <AnimationState animationId="1:30" id="1:41"/>
-            </StateMachineLayer>
-        </StateMachine>
         <LinearAnimation fps="60" duration="1" name="idle" id="1:30"/>
         <LinearAnimation fps="60" duration="120" loopValue="oneShot" name="reach" id="1:31">
             <KeyedObject objectId="1:10">
@@ -55,26 +47,6 @@
                     <KeyFrameDouble value="60.4" frame="15" interpolationType="hold"/>
                     <KeyFrameDouble value="59.8" frame="30" interpolationType="hold"/>
                     <KeyFrameDouble value="60.2" frame="45" interpolationType="hold"/>
-                </KeyedProperty>
-            </KeyedObject>
-        </LinearAnimation>
-        <LinearAnimation fps="60" duration="2" loopValue="oneShot" name="fresh" id="1:33">
-            <KeyedObject objectId="1:60">
-                <KeyedProperty property="width">
-                    <KeyFrameDouble value="61" frame="0" interpolationType="hold"/>
-                    <KeyFrameDouble value="60" frame="1" interpolationType="hold"/>
-                </KeyedProperty>
-            </KeyedObject>
-            <KeyedObject objectId="1:61">
-                <KeyedProperty property="width">
-                    <KeyFrameDouble value="61" frame="0" interpolationType="hold"/>
-                    <KeyFrameDouble value="60" frame="1" interpolationType="hold"/>
-                </KeyedProperty>
-            </KeyedObject>
-            <KeyedObject objectId="1:62">
-                <KeyedProperty property="width">
-                    <KeyFrameDouble value="25" frame="0" interpolationType="hold"/>
-                    <KeyFrameDouble value="24" frame="1" interpolationType="hold"/>
                 </KeyedProperty>
             </KeyedObject>
         </LinearAnimation>

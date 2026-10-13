@@ -389,20 +389,13 @@ export class RigUnloadable extends Schema.TaggedError<RigUnloadable>()('RigUnloa
 }
 
 /**
- * A rig's declaration names an artboard, a timeline, a view-model number, a
- * state machine, a node or a bone its built file lacks, and what the file has
- * of that kind (none listed for a node or a bone: the runtime cannot list them).
+ * A rig's declaration names an artboard, a timeline, a view-model number or
+ * a node its built file lacks, and what the file has of that kind (none
+ * listed for a node: the runtime cannot list them).
  */
 export class RigNameMissing extends Schema.TaggedError<RigNameMissing>()('RigNameMissing', {
   rig: Schema.String,
-  kind: Schema.Literals([
-    'artboard',
-    'timeline',
-    'view-model number',
-    'state machine',
-    'node',
-    'bone',
-  ]),
+  kind: Schema.Literals(['artboard', 'timeline', 'view-model number', 'node']),
   name: Schema.String,
   /** The names of that kind the file has, in its order. */
   has: Schema.Array(Schema.String),

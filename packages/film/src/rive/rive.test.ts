@@ -1,12 +1,10 @@
 // The Rive engine on the fixture rig (`canvas/fixtures/arm.ts`), in Bun with no
 // browser: the Bun layer loads the runtime and the rig and leaves no global
-// behind; a frame is posed from rest, whatever was posed before it; every
-// path is made afresh each frame, so the paths Rive's Canvas 2D renderer
-// draws after any history are a new rig's, number for number, and a boil
-// keyed on the fresh timeline's point still has the last word; and a
-// declaration that names what the rig lacks (or a fresh timeline that loops,
-// or that a pose names) fails the load, listing what it has, with nothing
-// stood on the film.
+// behind; a frame is its pose's alone, by construction (each frame poses an
+// instance of its own), so after any history, the IK held full on or let go
+// among it, the paths Rive's Canvas 2D renderer draws are a newly loaded
+// rig's, number for number; and a declaration that names what the rig lacks
+// fails the load, listing what it has, with nothing stood on the film.
 
 import canvasWasm from '@rive-app/canvas-advanced/rive.wasm' with { type: 'file' };
 import { BunFileSystem } from '@effect/platform-bun';
@@ -183,23 +181,6 @@ const reaches = (drawn: string) =>
     ),
   );
 
-/** Every bone's world transform and the face node's, as the bytes of their numbers: equal only when bit-identical. */
-const worldOf = (rig: LoadedRig) => {
-  const values: number[] = [];
-  for (const node of [rig.artboard.bone('upper'), rig.artboard.bone('lower'), rig.face]) {
-    for (const m of Option.toArray(Option.fromNullishOr(node?.worldTransform()))) {
-      values.push(m.xx, m.xy, m.yx, m.yy, m.tx, m.ty);
-      m.delete();
-    }
-  }
-  expect(values.length).toBe(18);
-  return Buffer.from(new Float64Array(values).buffer).toString('hex');
-};
-
-/** Pose `rig` to `pose` (Bun draws nothing: the pose and the face). */
-const pose = (spec: RivePropSpec, rig: LoadedRig, p: ArmPose) =>
-  expect(drawRig(recorder(200, 200, { record: false }).ctx, spec, rig, p)).toBeUndefined();
-
 /** Two histories: one reaching far with the IK full on, one lifted and slack. */
 const HISTORY_A: ReadonlyArray<ArmPose> = [
   { timelines: [['reach', 1.9]], numbers: { reach: 1, lift: 20 } },
@@ -217,9 +198,6 @@ const HISTORY_B: ReadonlyArray<ArmPose> = [
   { timelines: [['reach', 0.7]], numbers: { lift: 100 } },
 ];
 
-/** The five poses compared: the reach off, on, mid-mix and left at rest. */
-const TARGETS = [0.1, 0.6, 1.1, 1.6, 1.95].map(armPose);
-
 /** How many times the shuffled history visits, over the arm's four seconds. */
 const SHUFFLED = 60;
 
@@ -231,13 +209,11 @@ describe('the Rive engine', () => {
       const { spec, rig, scope } = yield* loadedArm;
       expect(rig.paints).toBe(false);
       expect([...rig.timelines.keys()]).toEqual(['idle', 'reach', 'boil']);
-      // The rest is every timeline but the fresh one.
-      expect(rig.rest.length).toBe(3);
-      expect(rig.numbers.map((n) => [n.name, n.rest])).toEqual([
-        ['lift', 160],
-        ['reach', expect.closeTo(0.6, 6)],
-      ]);
-      pose(spec, rig, armPose(0.6));
+      expect([...rig.numbers]).toEqual(['lift', 'reach']);
+      // Posed, its face declared, and nothing drawn.
+      expect(
+        drawRig(recorder(200, 200, { record: false }).ctx, spec, rig, armPose(0.6)),
+      ).toBeUndefined();
       yield* Scope.close(scope, Exit.void);
       expect(Reflect.has(globalThis, 'document')).toBe(had);
       expect(Object.is(Reflect.get(globalThis, 'document'), before)).toBe(true);
@@ -257,7 +233,7 @@ describe('the Rive engine', () => {
       const [rigTwo] = [...(two.stood[0]?.values() ?? [])];
       expect(rigOne).toBeDefined();
       expect(rigOne).not.toBe(rigTwo);
-      expect(rigOne?.artboard).not.toBe(rigTwo?.artboard);
+      expect(rigOne?.file).not.toBe(rigTwo?.file);
       // Drawn while it stands; refused, naming the loader, once its scope has closed.
       film.render(recorder().ctx, 1);
       yield* Scope.close(scope, Exit.void);
@@ -266,47 +242,20 @@ describe('the Rive engine', () => {
   );
 
   it.effect(
-    'poses every frame from rest: bit-identical after either history and on a fresh rig',
-    () =>
-      Effect.gen(function* () {
-        const a = yield* loadedArm;
-        const b = yield* loadedArm;
-        for (const target of TARGETS) {
-          for (const p of HISTORY_A) pose(a.spec, a.rig, p);
-          pose(a.spec, a.rig, target);
-          for (const p of HISTORY_B) pose(b.spec, b.rig, p);
-          pose(b.spec, b.rig, target);
-          const fresh = yield* loadedArm;
-          pose(fresh.spec, fresh.rig, target);
-          const want = worldOf(fresh.rig);
-          expect(worldOf(a.rig)).toBe(want);
-          expect(worldOf(b.rig)).toBe(want);
-          yield* Scope.close(fresh.scope, Exit.void);
-        }
-        // The five poses are five pictures, not one.
-        const seen = new Set<string>();
-        for (const target of TARGETS) {
-          pose(a.spec, a.rig, target);
-          seen.add(worldOf(a.rig));
-        }
-        expect(seen.size).toBe(TARGETS.length);
-        yield* Scope.close(a.scope, Exit.void);
-        yield* Scope.close(b.scope, Exit.void);
-      }),
-  );
-
-  it.effect(
-    'makes every path afresh each frame: after a shuffled history, the paths drawn are a new rig’s',
+    'draws a frame from its pose alone: after a shuffled history, the IK full on and let go among it, every path drawn is a newly loaded rig’s',
     () =>
       Effect.gen(function* () {
         const times = Array.from(
           { length: SHUFFLED },
           (_, i) => ((i * 37) % SHUFFLED) * (4 / SHUFFLED),
         );
+        const between = [...HISTORY_A, ...HISTORY_B];
         const live = yield* armLoaded('canvas');
         let off = 0;
         const drawn = new Set<string>();
-        for (const t of times) {
+        for (const [i, t] of times.entries()) {
+          for (const p of [i, i + 2].flatMap((k) => between.slice(k % between.length).slice(0, 1)))
+            drawnPaths(live.spec, live.rig, p);
           const got = drawnPaths(live.spec, live.rig, armPose(t));
           const first = yield* armLoaded('canvas');
           const want = drawnPaths(first.spec, first.rig, armPose(t));
@@ -322,26 +271,24 @@ describe('the Rive engine', () => {
       }).pipe(Effect.provide(RiveRuntimePainted)),
   );
 
-  it.effect(
-    'leaves every path as cut, and the boil keyed on the fresh timeline’s point has the last word',
-    () =>
-      Effect.gen(function* () {
-        const { spec, rig, scope } = yield* armLoaded('canvas');
-        // Drawn face, lower piece, upper piece: the disc 24 wide, the lower 60, the upper cut 60
-        // and boiled 60.4 from 0.25 s and 59.8 from 0.5 s.
-        const halves = (t: number) => reaches(drawnPaths(spec, rig, armPose(t)));
-        for (const [t, upper] of [
-          [0.1, 30],
-          [0.3, 30.2],
-          [0.6, 29.9],
-        ] as const) {
-          const [face, lower, up] = halves(t);
-          expect(face).toBeCloseTo(12, 4);
-          expect(lower).toBeCloseTo(30, 4);
-          expect(up).toBeCloseTo(upper, 4);
-        }
-        yield* Scope.close(scope, Exit.void);
-      }).pipe(Effect.provide(RiveRuntimePainted)),
+  it.effect('draws each path as cut, and the boil’s width at its time', () =>
+    Effect.gen(function* () {
+      const { spec, rig, scope } = yield* armLoaded('canvas');
+      // Drawn face, lower piece, upper piece: the disc 24 wide, the lower 60, the upper cut 60
+      // and boiled 60.4 from 0.25 s and 59.8 from 0.5 s, each path centred on its shape.
+      const halves = (t: number) => reaches(drawnPaths(spec, rig, armPose(t)));
+      for (const [t, upper] of [
+        [0.1, 30],
+        [0.3, 30.2],
+        [0.6, 29.9],
+      ] as const) {
+        const [face, lower, up] = halves(t);
+        expect(face).toBeCloseTo(12, 4);
+        expect(lower).toBeCloseTo(30, 4);
+        expect(up).toBeCloseTo(upper, 4);
+      }
+      yield* Scope.close(scope, Exit.void);
+    }).pipe(Effect.provide(RiveRuntimePainted)),
   );
 
   it.effect('refuses a name the rig lacks, listing what it has, and stands nothing', () =>
@@ -376,30 +323,7 @@ describe('the Rive engine', () => {
         { ...arm, source: { ...arm.source, timelines: ['reach', 'wave'] } },
         'timeline',
         'wave',
-        ['idle', 'reach', 'boil', 'fresh'],
-      );
-      yield* lacks({ ...arm, source: { ...arm.source, fresh: 'clean' } }, 'timeline', 'clean', [
-        'idle',
-        'reach',
-        'boil',
-        'fresh',
-      ]);
-      const looping = yield* missing({ ...arm, source: { ...arm.source, fresh: 'boil' } });
-      expect(looping).toEqual(
-        RigUnloadable.make({
-          rig: arm.key,
-          reason: 'its fresh timeline "boil" loops; it must be one-shot',
-        }),
-      );
-      const posing = yield* missing({
-        ...arm,
-        source: { ...arm.source, timelines: [...arm.source.timelines, 'fresh'] },
-      });
-      expect(posing).toEqual(
-        RigUnloadable.make({
-          rig: arm.key,
-          reason: 'a pose cannot name its fresh timeline "fresh": every frame plays it first',
-        }),
+        ['idle', 'reach', 'boil'],
       );
       yield* lacks(
         { ...arm, source: { ...arm.source, numbers: ['lift', 'elbow'] } },
@@ -407,13 +331,6 @@ describe('the Rive engine', () => {
         'elbow',
         ['lift', 'reach'],
       );
-      yield* lacks(
-        { ...arm, source: { ...arm.source, stateMachine: 'Walk' } },
-        'state machine',
-        'Walk',
-        ['Binds'],
-      );
-      yield* lacks({ ...arm, source: { ...arm.source, refresh: ['wrist'] } }, 'bone', 'wrist', []);
       yield* lacks({ ...arm, face: { node: 'eye', height: 4 } }, 'node', 'eye', []);
       const unreadable = yield* missing({ ...arm, source: { ...arm.source, riv: '/no/such.riv' } });
       expect(unreadable._tag).toBe('RigUnloadable');

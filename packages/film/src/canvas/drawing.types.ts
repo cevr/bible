@@ -89,7 +89,6 @@ const arm: RivePropSpec<'reach', 'lift'> = {
     riv: 'arm.riv',
     artboard: 'Arm',
     timelines: ['reach'],
-    fresh: 'fresh',
     numbers: ['lift'],
   },
   engine: 'webgl2',

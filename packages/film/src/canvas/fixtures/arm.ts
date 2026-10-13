@@ -4,11 +4,9 @@
 // IK constraint (`Reach`, its strength bound to the view model's `reach`),
 // the target's x keyed by the timeline `reach` (60 → 170 over 2 s) and its y
 // bound to the number `lift`, a `face` node at the lower bone's tip, an
-// empty `idle` timeline the machine `Binds` plays, a `boil` that crawls the
-// upper piece's width (60, 60.4, 59.8, 60.2, a quarter second each, looped)
-// and the `fresh` timeline that puts each of its three paths (two
-// rectangles, the face's disc) a unit wide and back, the boiled width among
-// them. Feet (the artboard's centre) at our origin.
+// empty `idle` timeline, and a `boil` that crawls the upper piece's width
+// (60, 60.4, 59.8, 60.2, a quarter second each, looped). Feet (the
+// artboard's centre) at our origin.
 
 import { Option } from 'effect';
 import type { PoseOf, RiveEngine, RivePropSpec } from '../rive.ts';
@@ -23,10 +21,7 @@ export const armRig = (
     riv: armRiv,
     artboard: 'Arm',
     timelines: ['idle', 'reach', 'boil'],
-    fresh: 'fresh',
     numbers: ['lift', 'reach'],
-    stateMachine: 'Binds',
-    refresh: ['upper'],
   },
   engine,
   key: `fixtures/arm/${engine}`,

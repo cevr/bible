@@ -2,30 +2,23 @@
 // paths, constraints, a view model) that a drawing declares (`drawing({ rigs
 // })`) and poses by name each frame (`f.rive(name, pose)`), drawn under the
 // frame's own transform, as `glCanvas` lets a look draw in 3D. This is the
-// draw path: plain synchronous code, no Effect, no Promise and no allocation
-// a frame. The film loads its rigs before its first frame (`src/rive`,
-// `loadRigs`), and a rig's every wasm object belongs to that load's scope.
+// draw path: plain synchronous code, no Effect and no Promise. The film loads
+// its rigs before its first frame (`src/rive`, `loadRigs`): each rig's file,
+// parsed once, belongs to that load's scope.
 //
 // Rive never owns the clock, and a frame is a function of its pose alone,
-// whatever was drawn before it (`posed`): every path made afresh (the rig's
-// `fresh` timeline played at its start and its end), every other timeline of
-// the artboard applied at its start, then every view-model number the rig has
-// set (the pose's, else its rest), then the pose's timelines in order, each
-// bone an IK constraint turns (`refresh`) dirtied, and the machine and the
-// artboard advanced by no time.
-//
-// Why every path is made afresh: Rive keeps a shape's paths in the shape's
-// own space, mapped by the inverse of the shape's world transform times each
-// path's, and remakes them only when a path's geometry changes or that
-// product moves by more than 16 float epsilons (`PathComposer`). A rigid move
-// leaves the product equal but for rounding, so a shape drawn on a later
-// frame keeps the paths an earlier frame made, with that frame's rounding:
-// the fixture arm, posed through shuffled times, drew 22 of 60 frames off a
-// new artboard's by up to a millionth of a unit, and the court's accused drew
-// a pixel apart. The `fresh` timeline moves one point of every path (or an
-// ellipse's or a rectangle's width) a unit off at its start and back as cut
-// at its end, so each path's geometry changes on every frame and every shape
-// is remade from that frame's own transforms.
+// whatever was drawn before it, by construction: every frame poses an
+// artboard instance of its own, made from the loaded file and deleted when
+// the frame is drawn, bound to a view-model instance of its own (the model's
+// defaults, then the pose's numbers), with the pose's timelines applied in
+// order and the artboard advanced by no time. Nothing a frame does to an
+// instance outlives it: no path a shape keeps from an earlier frame's
+// rounding (`PathComposer` remakes a shape's paths only when their geometry
+// or their transform moves past a tolerance), no constraint solved from the
+// last frame's bones, no value a bind wrote back. The file's timelines are
+// the file's own (every instance shares them), so a frame makes only the
+// instances it poses: the artboard, the view model's instance, one instance
+// of each timeline it names.
 //
 // Two engines draw it:
 //
@@ -49,13 +42,12 @@
 
 import type {
   Artboard,
-  Bone,
-  LinearAnimationInstance,
+  File,
+  LinearAnimation,
   Mat2D,
-  Node,
   RiveCanvas,
-  StateMachineInstance,
-  ViewModelInstanceNumber,
+  ViewModel,
+  ViewModelInstance,
   WrappedRenderer,
 } from '@rive-app/webgl2-advanced';
 import { probeFace, probesFaces } from './probe.ts';
@@ -66,33 +58,14 @@ export type RiveEngine = 'canvas' | 'webgl2';
 /**
  * A rig's built file (its URL in a page, its path in Bun: the module's own
  * `import riv from './x.riv' with { type: 'file' }`), the artboard drawn, the
- * timelines a pose may name, the timeline that makes every path afresh, the
- * view model's numbers it may set, and the machine that applies the view
- * model's binds.
+ * timelines a pose may name and the view model's numbers it may set.
  */
 interface RiveSource<Tl extends string = string, N extends string = string> {
   readonly riv: string;
   readonly artboard: string;
   readonly timelines: ReadonlyArray<Tl>;
-  /**
-   * A one-shot timeline keying one point of every path the artboard draws
-   * (or an ellipse's or a rectangle's width) a unit off at its start and
-   * back as cut at its end. Every frame plays it at both ends before
-   * anything else, so every shape is remade from that frame's own
-   * transforms and no frame carries the rounding of one drawn before it; a
-   * path it leaves out may. Not a timeline a pose names, nor part of the
-   * rest.
-   */
-  readonly fresh: string;
   /** The numbers a pose may set, checked against the file at load; any of its numbers when it names none. */
   readonly numbers?: ReadonlyArray<N>;
-  readonly stateMachine?: string;
-  /**
-   * Bones an IK constraint turns, dirtied every frame (turned and turned
-   * back) so the solve starts from the frame's own pose, never from the
-   * last frame's world transform.
-   */
-  readonly refresh?: ReadonlyArray<string>;
 }
 
 /**
@@ -111,8 +84,8 @@ export interface RivePropSpec<Tl extends string = string, N extends string = str
 
 /**
  * One frame's pose: each timeline at its time in seconds, applied in this
- * order with its mix (1 by default; 0 leaves it at rest), then the view
- * model's numbers by name (one left out at its rest).
+ * order with its mix (1 by default; 0 leaves it out), then the view model's
+ * numbers by name (one left out at the model's default).
  */
 interface RivePose<Tl extends string = string, N extends string = string> {
   readonly timelines: ReadonlyArray<readonly [name: Tl, seconds: number, mix?: number]>;
@@ -121,13 +94,6 @@ interface RivePose<Tl extends string = string, N extends string = string> {
 
 /** The pose a declared rig takes: its own timelines and numbers. */
 export type PoseOf<S> = S extends RivePropSpec<infer Tl, infer N> ? RivePose<Tl, N> : never;
-
-/** A view-model number a rig has, and the value it rests at. */
-interface RigNumber {
-  readonly name: string;
-  readonly input: ViewModelInstanceNumber;
-  readonly rest: number;
-}
 
 /** A WebGL 2 canvas off the page, and the Rive Renderer on it. */
 interface GlTarget {
@@ -145,23 +111,21 @@ interface RigSurfaces {
   readonly free: () => void;
 }
 
-/** A rig loaded for drawing (`loadRigs`, src/rive): every object its load's scope owns. */
+/**
+ * A rig loaded for drawing (`loadRigs`, src/rive): its parsed file, which
+ * every frame's own instance is made from, and what its load's scope owns.
+ */
 export interface LoadedRig {
   readonly runtime: RiveCanvas;
   /** False where the rig is posed and probed but never drawn (Bun, which has no canvas). */
   readonly paints: boolean;
-  readonly artboard: Artboard;
-  /** The timeline that makes every path afresh (`RiveSource.fresh`), played at both ends each frame. */
-  readonly fresh: LinearAnimationInstance;
-  /** Every other timeline of the artboard, each applied at its start: the rest a frame is posed from. */
-  readonly rest: ReadonlyArray<LinearAnimationInstance>;
-  /** The declared timelines, by name. */
-  readonly timelines: ReadonlyMap<string, LinearAnimationInstance>;
-  /** The numbers a pose may set: every one written each frame. */
-  readonly numbers: ReadonlyArray<RigNumber>;
-  readonly machine: StateMachineInstance | undefined;
-  readonly refresh: ReadonlyArray<Bone>;
-  readonly face: Node | undefined;
+  readonly file: File;
+  /** The declared timelines, by name: the file's own, shared by every instance of the artboard. */
+  readonly timelines: ReadonlyMap<string, LinearAnimation>;
+  /** The view model each frame's own instance is made from; none where the artboard has none. */
+  readonly model: ViewModel | undefined;
+  /** The numbers a pose may set. */
+  readonly numbers: ReadonlySet<string>;
   /** Scratch for a frame's transform: nothing is kept in it between calls. */
   readonly scratch: Mat2D;
   readonly surfaces: RigSurfaces;
@@ -172,7 +136,7 @@ const TILE = 512;
 
 /**
  * The surfaces of a rig drawn by `runtime`. A target is first drawn once with
- * `rest()` (a fresh artboard, unposed, drawn as large as the target holds, then
+ * `rest()` (a new artboard, unposed, drawn as large as the target holds, then
  * deleted), so the buffers it sizes hold any frame that fits it.
  */
 export const rigSurfaces = (
@@ -227,95 +191,66 @@ export const rigSurfaces = (
   return { renderer, target, free };
 };
 
-/** Whether `rig` has a view-model number `name` a pose may set. */
-const hasNumber = (rig: LoadedRig, name: string) => {
-  for (let i = 0; i < rig.numbers.length; i++) if (rig.numbers[i]?.name === name) return true;
-  return false;
-};
-
 /** The names a rig has of a kind, for an error. */
 const listed = (names: Iterable<string>) => [...names].join(', ');
 
-/**
- * A time past the end of any `fresh` timeline: a one-shot timeline holds its
- * last keys past its end, and the runtime does not tell a timeline's length.
- */
-const PAST_ITS_END = 3600;
+/** No numbers: a pose that sets none. */
+const NO_NUMBERS: Readonly<Record<string, number>> = {};
 
-/** Every path a unit off and back as cut: each shape's paths remade on this frame. */
-const freshened = (rig: LoadedRig) => {
-  rig.fresh.time = 0;
-  rig.fresh.apply(1);
-  rig.fresh.time = PAST_ITS_END;
-  rig.fresh.apply(1);
-};
-
-/** Every other timeline of the artboard applied at its start, in full: the rest a frame is posed from. */
-const atRest = (rig: LoadedRig) => {
-  for (let i = 0; i < rig.rest.length; i++) {
-    const t = rig.rest[i];
-    if (t === undefined) continue;
-    t.time = 0;
-    t.apply(1);
-  }
-};
-
-/** Every number the rig has written: the pose's, else its rest. Why not, for a number it lacks. */
-const numbered = (spec: RivePropSpec, rig: LoadedRig, pose: RivePose): string | undefined => {
-  const numbers = pose.numbers ?? {};
-  for (const name in numbers)
-    if (!hasNumber(rig, name))
-      return `rig ${spec.key} has no view-model number "${name}"; it has ${listed(rig.numbers.map((n) => n.name))}`;
-  for (let i = 0; i < rig.numbers.length; i++) {
-    const n = rig.numbers[i];
-    if (n === undefined) continue;
-    n.input.value = numbers[n.name] ?? n.rest;
+/** Why `pose` cannot be posed on `rig`: a timeline or a number it names that the rig lacks. */
+const unposable = (spec: RivePropSpec, rig: LoadedRig, pose: RivePose): string | undefined => {
+  for (const name in pose.numbers ?? NO_NUMBERS)
+    if (!rig.numbers.has(name))
+      return `rig ${spec.key} has no view-model number "${name}"; it has ${listed(rig.numbers)}`;
+  for (let i = 0; i < pose.timelines.length; i++) {
+    const name = pose.timelines[i]?.[0];
+    if (name !== undefined && !rig.timelines.has(name))
+      return `rig ${spec.key} has no timeline "${name}"; it has ${listed(rig.timelines.keys())}`;
   }
   return undefined;
 };
 
-/** The pose's timelines applied in order, each at its time and mix. Why not, for one the rig lacks. */
-const timed = (spec: RivePropSpec, rig: LoadedRig, pose: RivePose): string | undefined => {
+/**
+ * `artboard`, a frame's own, set to `pose`: its view-model instance (`vm`,
+ * the frame's own too) bound and given the pose's numbers, the pose's
+ * timelines applied in order, each on an instance made for it and deleted,
+ * then the artboard advanced by no time, which applies the binds.
+ */
+const posed = (
+  rig: LoadedRig,
+  artboard: Artboard,
+  vm: ViewModelInstance | undefined,
+  pose: RivePose,
+) => {
+  if (vm !== undefined) {
+    artboard.bindViewModelInstance(vm);
+    const numbers = pose.numbers ?? NO_NUMBERS;
+    for (const name in numbers) {
+      const value = numbers[name];
+      if (value !== undefined) vm.number(name).value = value;
+    }
+  }
   for (let i = 0; i < pose.timelines.length; i++) {
     const step = pose.timelines[i];
-    if (step === undefined) continue;
-    const t = rig.timelines.get(step[0]);
-    if (t === undefined)
-      return `rig ${spec.key} has no timeline "${step[0]}"; it has ${listed(rig.timelines.keys())}`;
+    const animation = step === undefined ? undefined : rig.timelines.get(step[0]);
+    if (step === undefined || animation === undefined) continue;
     const mix = step[2] ?? 1;
+    if (mix <= 0) continue;
+    const t = new rig.runtime.LinearAnimationInstance(animation, artboard);
     t.time = step[1];
-    if (mix > 0) t.apply(mix);
+    t.apply(mix);
+    t.delete();
   }
-  return undefined;
+  artboard.advance(0);
 };
 
-/**
- * Set `rig` to `pose` from rest: every path made afresh, every other
- * timeline at its start, every number, the pose's timelines, the refreshed
- * bones, then the machine and the artboard by no time at all. The fresh
- * timeline goes first, so a timeline that keys the same point (a boil) has
- * the last word. Why it cannot, when the pose names a timeline or a number
- * the rig does not have.
- */
-const posed = (spec: RivePropSpec, rig: LoadedRig, pose: RivePose): string | undefined => {
-  freshened(rig);
-  atRest(rig);
-  const why = numbered(spec, rig, pose) ?? timed(spec, rig, pose);
-  if (why !== undefined) return why;
-  for (let i = 0; i < rig.refresh.length; i++) {
-    const bone = rig.refresh[i];
-    if (bone === undefined) continue;
-    const r = bone.rotation;
-    bone.rotation = r + 1;
-    bone.rotation = r;
-  }
-  rig.machine?.advance(0);
-  rig.artboard.advance(0);
-  return undefined;
-};
-
-/** Draw the posed rig with Rive's Canvas 2D renderer on `ctx`, under its transform. */
-const paintCanvas = (ctx: CanvasRenderingContext2D, spec: RivePropSpec, rig: LoadedRig) => {
+/** Draw the posed `artboard` with Rive's Canvas 2D renderer on `ctx`, under its transform. */
+const paintCanvas = (
+  ctx: CanvasRenderingContext2D,
+  spec: RivePropSpec,
+  rig: LoadedRig,
+  artboard: Artboard,
+) => {
   const [ox, oy] = spec.origin;
   // Made on the frame's own canvas: its 2D context is `ctx`, the one Rive draws into.
   const renderer = rig.surfaces.renderer(ctx.canvas);
@@ -323,22 +258,32 @@ const paintCanvas = (ctx: CanvasRenderingContext2D, spec: RivePropSpec, rig: Loa
   ctx.translate(-ox, -oy);
   renderer.beginFrame(false);
   renderer.save();
-  rig.artboard.draw(renderer);
+  artboard.draw(renderer);
   renderer.restore();
-  // The canvas renderer queues its draws; flush them under our transform.
+  // The canvas renderer queues its draws; flush them under our transform (and before the
+  // frame's artboard is deleted, which a queued draw would skip).
   rig.runtime.resolveAnimationFrame();
   ctx.restore();
 };
 
 /**
- * Draw the posed rig with the Rive Renderer on its target, and its box on
- * screen onto `ctx`: the box drawn at the tile's corner (whole pixels, so its
- * pixels are the frame's), or the frame at its own size.
+ * Draw the posed `artboard` with the Rive Renderer on its target, and its box
+ * on screen onto `ctx`: the box drawn at the tile's corner (whole pixels, so
+ * its pixels are the frame's), or the frame at its own size. Reads the
+ * context's transform once (`getTransform`) and allocates nothing else.
  */
-const paintGl = (ctx: CanvasRenderingContext2D, spec: RivePropSpec, rig: LoadedRig) => {
+const paintGl = (
+  ctx: CanvasRenderingContext2D,
+  spec: RivePropSpec,
+  rig: LoadedRig,
+  artboard: Artboard,
+) => {
   const [ox, oy] = spec.origin;
-  const m = ctx.getTransform().translate(-ox, -oy);
-  const b = rig.artboard.bounds;
+  const m = ctx.getTransform();
+  // The context's transform with the origin moved to (ox, oy), folded in by hand.
+  const e = m.e - (m.a * ox + m.c * oy);
+  const f = m.f - (m.b * ox + m.d * oy);
+  const b = artboard.bounds;
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -346,8 +291,8 @@ const paintGl = (ctx: CanvasRenderingContext2D, spec: RivePropSpec, rig: LoadedR
   for (let k = 0; k < 4; k++) {
     const x = k === 1 || k === 2 ? b.maxX : b.minX;
     const y = k >= 2 ? b.maxY : b.minY;
-    const px = m.a * x + m.c * y + m.e;
-    const py = m.b * x + m.d * y + m.f;
+    const px = m.a * x + m.c * y + e;
+    const py = m.b * x + m.d * y + f;
     minX = Math.min(minX, px);
     minY = Math.min(minY, py);
     maxX = Math.max(maxX, px);
@@ -375,10 +320,10 @@ const paintGl = (ctx: CanvasRenderingContext2D, spec: RivePropSpec, rig: LoadedR
   rig.scratch.xy = m.b;
   rig.scratch.yx = m.c;
   rig.scratch.yy = m.d;
-  rig.scratch.tx = m.e - sx;
-  rig.scratch.ty = m.f - sy;
+  rig.scratch.tx = e - sx;
+  rig.scratch.ty = f - sy;
   renderer.transform(rig.scratch);
-  rig.artboard.draw(renderer);
+  artboard.draw(renderer);
   renderer.restore();
   renderer.flush();
   rig.runtime.resolveAnimationFrame();
@@ -388,14 +333,20 @@ const paintGl = (ctx: CanvasRenderingContext2D, spec: RivePropSpec, rig: LoadedR
   ctx.restore();
 };
 
-/** Declare the rig's face where its face node stands, for the probe. */
-const declareFace = (ctx: CanvasRenderingContext2D, spec: RivePropSpec, rig: LoadedRig) => {
-  if (spec.face === undefined || rig.face === undefined || !probesFaces(ctx)) return;
+/** Declare the rig's face where the posed `artboard`'s face node stands, for the probe. */
+const declareFace = (
+  ctx: CanvasRenderingContext2D,
+  spec: RivePropSpec,
+  rig: LoadedRig,
+  artboard: Artboard,
+) => {
+  if (spec.face === undefined || !probesFaces(ctx)) return;
   const [ox, oy] = spec.origin;
-  // The node's place: its own offset through its parent's world transform, with no allocation.
-  rig.face.parentWorldTransform(rig.scratch);
+  // Its place: the node's own offset through its parent's world transform (checked at load).
+  const face = artboard.node(spec.face.node);
+  face.parentWorldTransform(rig.scratch);
   const p = rig.scratch;
-  const { x, y } = rig.face;
+  const { x, y } = face;
   probeFace(
     ctx,
     p.xx * x + p.yx * y + p.tx - ox,
@@ -405,10 +356,12 @@ const declareFace = (ctx: CanvasRenderingContext2D, spec: RivePropSpec, rig: Loa
 };
 
 /**
- * Pose `rig` (as `spec` declares it) to `pose` from rest and draw it at our
- * origin under the context's transform, declaring its face: nothing once
- * drawn, else why it cannot be (the pose names what the rig lacks), which the
- * film throws (`f.rive`).
+ * Pose a new instance of `rig` (as `spec` declares it) to `pose` and draw it
+ * at our origin under the context's transform, declaring its face, then
+ * delete it: nothing once drawn, else why it cannot be (the pose names what
+ * the rig lacks), which the film throws (`f.rive`). The pose's names are
+ * checked before an instance is made; a throw from the runtime itself fails
+ * the frame and leaves that frame's instance to its file.
  */
 export const drawRig = (
   ctx: CanvasRenderingContext2D,
@@ -416,12 +369,17 @@ export const drawRig = (
   rig: LoadedRig,
   pose: RivePose,
 ): string | undefined => {
-  const why = posed(spec, rig, pose);
+  const why = unposable(spec, rig, pose);
   if (why !== undefined) return why;
+  const artboard = rig.file.artboardByName(spec.source.artboard);
+  const vm = rig.model?.defaultInstance();
+  posed(rig, artboard, vm, pose);
   if (rig.paints) {
-    if (spec.engine === 'canvas') paintCanvas(ctx, spec, rig);
-    else paintGl(ctx, spec, rig);
+    if (spec.engine === 'canvas') paintCanvas(ctx, spec, rig, artboard);
+    else paintGl(ctx, spec, rig, artboard);
   }
-  declareFace(ctx, spec, rig);
+  declareFace(ctx, spec, rig, artboard);
+  vm?.delete();
+  artboard.delete();
   return undefined;
 };

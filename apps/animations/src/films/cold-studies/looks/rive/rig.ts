@@ -235,11 +235,7 @@ const rootOf = (name: string): Pt => {
 
 // ─── building it ─────────────────────────────────────────────────────────────
 
-/**
- * Everything the build hands out ids to, by name, so timelines and binds can
- * reach it, and the fresh timeline's tracks (`freshen`): one property of
- * every path, a unit off at its start and back as cut a frame later.
- */
+/** Everything the build hands out ids to, by name, so timelines and binds can reach it. */
 const build = () => {
   const id = ids();
   const named = new Map<string, string>();
@@ -250,17 +246,7 @@ const build = () => {
     named.set(name, made);
     return made;
   };
-  const fresh: Record<string, Record<string, ReadonlyArray<K>>> = {};
-  /** Put the path `key` on the fresh timeline by its `property`, `value` as cut. */
-  const freshen = (key: string, property: 'x' | 'width', value: number) => {
-    fresh[key] = {
-      [property]: [
-        [0, value + 1, 'hold'],
-        [1 / FPS, value, 'hold'],
-      ],
-    };
-  };
-  return { id, idOf, fresh, freshen };
+  return { id, idOf };
 };
 
 /** A colour as a paint. */
@@ -384,7 +370,6 @@ const smoothPath = (
             }),
           ),
         ];
-  b.freshen(`${key}.0`, 'x', pts[0]?.[0] ?? 0);
   return el('PointsPath', { isClosed: closed, isClockwise: true, name: 'Path' }, [
     ...vertices,
     ...skinEl,
@@ -598,23 +583,14 @@ export const accusedRml = (): string => {
   const prop = (k: string) => idOf(`vm:${k}`);
   const bind = (k: Knob, propertyKey: number) =>
     el('DataBindContext', { sourcePathIds: `${vm}-${prop(k)}`, propertyKey });
-  /** An ellipse `w` × `h` about its shape's origin, on the fresh timeline as `key`. */
-  const ellipsePath = (key: string, w: number, h: number) => {
-    b.freshen(key, 'width', w);
-    return el('Ellipse', {
-      width: w,
-      height: h,
-      originX: 0.5,
-      originY: 0.5,
-      name: 'Path',
-      id: idOf(key),
-    });
-  };
+  /** An ellipse `w` × `h` about its shape's origin. */
+  const ellipsePath = (w: number, h: number) =>
+    el('Ellipse', { width: w, height: h, originX: 0.5, originY: 0.5, name: 'Path' });
 
   // The face, in the head's own frame turned upright (origin at the neck, x right, y down).
   const eye = (side: 'L' | 'R', x: number) =>
     el('Shape', { x, y: -7, name: `eye${side}`, id: idOf(`eye${side}`) }, [
-      ellipsePath(`eye${side}:path`, 6.4, 8.4),
+      ellipsePath(6.4, 8.4),
       el('Fill', { name: 'Ink' }, [solid(P.outline)]),
       // Pulled toward the gaze, then held inside its socket.
       el('TranslationConstraint', { targetId: idOf('gaze'), strength: 0.03, name: 'Look' }),
@@ -645,7 +621,7 @@ export const accusedRml = (): string => {
     eye('L', -12),
     eye('R', 13),
     el('Shape', { x: 2, y: 16, scaleX: 0, scaleY: 0, name: 'mouth', id: idOf('mouth') }, [
-      ellipsePath('mouth:path', 6, 8),
+      ellipsePath(6, 8),
       el('Fill', { name: 'Ink' }, [solid(P.outline)]),
       bind('mouth', 16),
       bind('mouth', 17),
@@ -659,9 +635,8 @@ export const accusedRml = (): string => {
     bone(CHAIN.chest, [
       bone(CHAIN.head, [
         headSpace,
-        // The head turns after the eyes (`follow` of the way). The runtime's IK keeps its last
-        // solve where the head bone is not dirtied, so the prop re-dirties it each frame
-        // (`RiveSource.refresh`): without that a frame depends on the frame drawn before it.
+        // The head turns after the eyes (`follow` of the way), solved on each frame's own
+        // instance (`drawRig`), so no solve outlives its frame.
         el(
           'IKConstraint',
           {
@@ -760,7 +735,7 @@ export const accusedRml = (): string => {
     body,
     // The contact shadow under the feet (`ground`), softened by a feather.
     el('Shape', { x: 0, y: 2, name: 'ground' }, [
-      ellipsePath('ground:path', GROUND.width, GROUND.height),
+      ellipsePath(GROUND.width, GROUND.height),
       el('Fill', { fillRule: 'clockwise', name: 'Shade' }, [
         solid('#281c10', GROUND.alpha),
         el('Feather', { strength: GROUND.feather, name: 'Soft' }),
@@ -1008,9 +983,6 @@ export const accusedRml = (): string => {
     name: 'idle',
     id: idOf('anim:idle'),
   });
-  // Every path a unit off and back as cut (`RiveSource.fresh`): the engine plays it
-  // first each frame, so every shape is remade from that frame's own transforms.
-  const fresh = timeline(b, 'fresh', 2 / FPS, b.fresh);
 
   const artboard = el(
     'Artboard',
@@ -1039,7 +1011,6 @@ export const accusedRml = (): string => {
       stamp,
       lift,
       boil,
-      fresh,
     ],
   );
 
