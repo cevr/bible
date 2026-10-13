@@ -592,7 +592,7 @@
       // film's other layers, and the engine neither the player nor the tools.
       // A block that keeps a folder out keeps out each package export that
       // resolves into it (packages/film/lint/config.test.ts).
-      "files": ["**/packages/film/src/core/**/*.ts"],
+      "files": ["**/packages/film/src/core/**/*.ts", "**/packages/film/src/core/**/*.tsx"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -601,11 +601,17 @@
               {
                 "group": [
                   "**/canvas/**",
+                  "**/canvas",
                   "**/rive/**",
+                  "**/rive",
                   "**/player/**",
+                  "**/player",
                   "**/tools/**",
+                  "**/tools",
                   "**/lab/**",
+                  "**/lab",
                   "**/browser/**",
+                  "**/browser",
                   "@bible/film/*"
                 ],
                 "message": "core never imports canvas, rive, player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
@@ -616,7 +622,7 @@
       }
     },
     {
-      "files": ["**/packages/film/src/canvas/**/*.ts"],
+      "files": ["**/packages/film/src/canvas/**/*.ts", "**/packages/film/src/canvas/**/*.tsx"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -625,9 +631,13 @@
               {
                 "group": [
                   "**/player/**",
+                  "**/player",
                   "**/tools/**",
+                  "**/tools",
                   "**/lab/**",
+                  "**/lab",
                   "**/browser/**",
+                  "**/browser",
                   "@bible/film/player",
                   "@bible/film/render",
                   "@bible/film/player.css",
@@ -643,8 +653,8 @@
                 "message": "the engine never imports the player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
               },
               {
-                "group": ["**/rive/**"],
-                "message": "the engine declares a rig and draws it (canvas/rive.ts); it never imports the Rive loader or its runtimes (src/rive/), which load a film's rigs for the player and the tools (packages/film/README.md § Rive)."
+                "group": ["**/rive/**", "**/rive"],
+                "message": "the engine declares a rig and draws it (canvas/rive.ts); it never imports the Rive loader or its runtimes (src/rive/), which load a film's rigs for the player and the tools (packages/film/README.md, the purity rule)."
               }
             ]
           }
@@ -654,7 +664,10 @@
     {
       // The engine's fixtures load a rig to draw it in a test: the engine's
       // block without its ban on src/rive/.
-      "files": ["**/packages/film/src/canvas/fixtures/**/*.ts"],
+      "files": [
+        "**/packages/film/src/canvas/fixtures/**/*.ts",
+        "**/packages/film/src/canvas/fixtures/**/*.tsx"
+      ],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -663,9 +676,13 @@
               {
                 "group": [
                   "**/player/**",
+                  "**/player",
                   "**/tools/**",
+                  "**/tools",
                   "**/lab/**",
+                  "**/lab",
                   "**/browser/**",
+                  "**/browser",
                   "@bible/film/player",
                   "@bible/film/render",
                   "@bible/film/player.css",
@@ -690,7 +707,7 @@
       // the engine's declaration (canvas/rive.ts) and core's errors; the
       // player's page load and the tools' `check --draw` import them, never
       // the reverse.
-      "files": ["**/packages/film/src/rive/**/*.ts"],
+      "files": ["**/packages/film/src/rive/**/*.ts", "**/packages/film/src/rive/**/*.tsx"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -699,10 +716,15 @@
               {
                 "group": [
                   "**/player/**",
+                  "**/player",
                   "**/tools/**",
+                  "**/tools",
                   "**/lab/**",
+                  "**/lab",
                   "**/browser/**",
+                  "**/browser",
                   "**/command/**",
+                  "**/command",
                   "@bible/film/player",
                   "@bible/film/render",
                   "@bible/film/player.css",
@@ -715,7 +737,7 @@
                   "@bible/film/review-server",
                   "@bible/film/lab-server"
                 ],
-                "message": "the Rive loader and its runtimes never import the player, tools, lab, the pages' commands or the host's adapters (browser): the player and the tools import them (packages/film/README.md § Rive)."
+                "message": "the Rive loader and its runtimes never import the player, tools, lab, the pages' commands or the host's adapters (browser): the player and the tools import them (packages/film/README.md, the purity rule)."
               }
             ]
           }
@@ -734,8 +756,11 @@
               {
                 "group": [
                   "**/player/**",
+                  "**/player",
                   "**/tools/**",
+                  "**/tools",
                   "**/lab/**",
+                  "**/lab",
                   "!**/lab/fixtures/browsers.ts",
                   "@bible/film/player",
                   "@bible/film/render",
@@ -757,7 +782,7 @@
       }
     },
     {
-      "files": ["**/packages/film/src/player/**/*.ts"],
+      "files": ["**/packages/film/src/player/**/*.ts", "**/packages/film/src/player/**/*.tsx"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -766,7 +791,9 @@
               {
                 "group": [
                   "**/tools/**",
+                  "**/tools",
                   "**/lab/**",
+                  "**/lab",
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
                   "@bible/film/lab",
@@ -816,6 +843,10 @@
                   "!**/browser/storage-browser.ts"
                 ],
                 "message": "a page reaches the host through its services: only a page's mount builds the host (`BrowserHost`, browser/host-browser.ts), and the stores are storage-browser.ts's."
+              },
+              {
+                "group": ["**/packages/film/src/**"],
+                "message": "an app reaches the film through its package exports (`@bible/film/rive`, `@bible/film/canvas`), never a path into its source: the exports are the film's public modules (packages/film/README.md, the purity rule)."
               }
             ]
           }
@@ -836,7 +867,7 @@
     },
     {
       // The pages' commands (src/command/) serve the player and the lab both.
-      "files": ["**/packages/film/src/command/**/*.ts"],
+      "files": ["**/packages/film/src/command/**/*.ts", "**/packages/film/src/command/**/*.tsx"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -845,8 +876,11 @@
               {
                 "group": [
                   "**/player/**",
+                  "**/player",
                   "**/tools/**",
+                  "**/tools",
                   "**/lab/**",
+                  "**/lab",
                   "@bible/film/player",
                   "@bible/film/render",
                   "@bible/film/player.css",
@@ -1121,7 +1155,7 @@
     },
     {
       // The host's adapters serve every page and import none of them.
-      "files": ["**/packages/film/src/browser/**/*.ts"],
+      "files": ["**/packages/film/src/browser/**/*.ts", "**/packages/film/src/browser/**/*.tsx"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -1130,8 +1164,11 @@
               {
                 "group": [
                   "**/player/**",
+                  "**/player",
                   "**/tools/**",
+                  "**/tools",
                   "**/lab/**",
+                  "**/lab",
                   "@bible/film/player",
                   "@bible/film/render",
                   "@bible/film/player.css",
