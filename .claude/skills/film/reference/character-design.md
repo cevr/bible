@@ -316,11 +316,257 @@ Christ, the Father, the Spirit and the angels are in section 3.
 
 ## 3. Bible figures
 
-_Written in part 2._
+The people, beings and places of the Bible's own stories. They live in STORY scenes; the cast never enters them ([ensemble.md](../../../../apps/animations/docs/ensemble.md)). The frame files' MUST NOTs bind every picture here: a picture teaches as loudly as a line.
+
+### 3.1 Dress: story cloth
+
+- **Simple period dress.** A tunic, a mantle, a girdle, a headcloth outdoors, sandals: two or three pieces per person, cut as flat shapes. Enough to say "then and there", never a museum reconstruction, and never the religious dress of a living group.
+- **The text's details only.** Where the text describes a garment, draw it: John's camel hair and leather girdle (Matt 3:4), Joseph's coat (Gen 37:3), the high priest's garments (Ex 28:4). Where it does not, keep it plain. Fringes appear only where Num 15:38–39 is read.
+- **The story-cloth set.** Bible figures dress from a small set of plain dyes and undyed cloth at the band, so a Bible scene reads as one world, distinct from the cast's slots:
+
+| Cloth            | Use                                                  | HSV               | Base      | Shade                  | Light     |
+| ---------------- | ---------------------------------------------------- | ----------------- | --------- | ---------------------- | --------- |
+| Linen (undyed)   | tunics, Christ's coat, the day-of-atonement linen    | 38° .14 .82       | `#d1c6b4` | `#9c99ad`              | `#f0ecdd` |
+| Walnut wool      | mantles, headcloths, girdles, leather                | the chipboard cut | `#ab8163` | (the world's cut ramp) | `#c49a78` |
+| Indigo           | a working man's mantle                               | 220° .30 .42      | `#4b566b` | `#30304a`              | `#69798a` |
+| Olive            | a shepherd's or traveller's mantle                   | 75° .30 .50       | `#768059` | `#4b5e3d`              | `#9b9e78` |
+| Camel            | hair cloth, a prophet's mantle                       | 30° .30 .55       | `#8c7762` | `#585066`              | `#ab9d82` |
+| Royal purple     | kings and courts, and the mocking robe (John 19:2)   | 285° .33 .42      | `#62486b` | `#392e4a`              | `#87658a` |
+| Priest blue      | the high priest's robe (Ex 28:31), the ark's cloth   | 215° .35 .55      | `#5b708c` | `#40436b`              | `#7996ab` |
+| Sanctuary purple | the curtains' and the ephod's purple (Ex 26:1; 28:6) | 285° .35 .50      | `#745380` | `#48395e`              | `#9a709e` |
+
+- **Hair** is cut chipboard (walnut), darker or lighter by person; old hair is the pale cool paper, never robe white. Beards are allowed in Bible scenes; Hugo's is the only beard among the cast.
+- **Skin** follows [ensemble.md](../../../../apps/animations/docs/ensemble.md) open choice 2, the same decision for the cast and for Bible figures. The Bible's people are of the ancient Near East (Acts 17:26 makes every people one blood); no figure is drawn as a European or as any modern type.
+- **The cast's dress, for contrast.** The cast wear contemporary, timeless, plain clothes: no logos, no lettering, no uniforms, nothing religious. The two in theology 09's baptism go down in their own plain clothes.
+
+### 3.2 Christ
+
+The frame shows the Son freely and forbids an image of the Father ([god-christ.md](../frame/god-christ.md)): "No man hath seen God at any time; the only begotten Son … he hath declared him" (John 1:18); "he that hath seen me hath seen the Father" (John 14:9). Ellen White: Christ alone is the express image of the Father (PP 45.2). So Christ is drawn, with His face. How He is drawn is held to four texts.
+
+- **An ordinary man.** "He hath no form nor comeliness; and when we shall see him, there is no beauty that we should desire him" (Isa 53:2). "Made in the likeness of men" (Phil 2:7); "in all things it behoved him to be made like unto his brethren" (Heb 2:17). The disciples on the road did not know Him (Luke 24:16); Mary took Him for the gardener (John 20:15); Nazareth knew Him as "the carpenter" (Mark 6:3). Ellen White: men "could not see, beneath the disguise of humility, the glory of the Son of God" (FH 183.2). So He is not the tallest, the fairest or the most saturated figure in the crowd. He is "of Juda" (Heb 7:14), a Jewish man of His time.
+- **Known by what He does.** In a crowd the eye finds Him by staging (He moves toward people, others turn to Him) and by light (2.3), not by costume or a halo. No halo, no nimbus, no glow on His person in His earthly ministry except where the text lights Him: the transfiguration, "his face did shine as the sun, and his raiment was white as the light" (Matt 17:2; Mark 9:3).
+- **His dress follows the text.** In His earthly ministry, the plain coat "without seam, woven from the top throughout" (John 19:23) in undyed linen, a walnut mantle and a headcloth outdoors. As Priest and Advocate, and risen in glory, the robe white and the "golden girdle" (Rev 1:13): the drafts' white robe and gold sash, and the first film's Advocate. In Rev 1's vision, "his head and his hairs were white like wool" (Rev 1:14). **OWNER QUESTION 5.**
+- **The full human range.** "Jesus wept" (John 11:35). He looked on them "with anger, being grieved" (Mark 3:5). "My soul is exceeding sorrowful, even unto death" (Matt 26:38). He was "moved with compassion" (Matt 9:36). He received children (Mark 10:14) and ate with sinners. He is never a still, blank, beatific mask.
+- **Never a devotional portrait.** He is always acting in the story: walking, reaching, speaking, breaking bread. Never a framed, held, front-on portrait offered to be looked at for its own sake: the second commandment forbids "the worship of the true God by images or similitudes" (PP 306.1; Ex 20:4). Theology 05's `face` beat, which puts His face in a portrait frame, should be restaged as His face in the story. **OWNER QUESTION 5.**
+- **Never stained.** "In all points tempted like as we are, yet without sin" (Heb 4:15). No scarlet on Him, except the sins laid on Him at the cross (1 Pet 2:24; [nature-of-christ.md](../frame/nature-of-christ.md)).
+- **The cross.** Drawn at the film's one black moment, in silhouette against the dark, with the sins laid on Him as scarlet. No gore and no wounds in close-up. The mocking robe takes the cloth the text names: purple (John 19:2; Mark 15:17) or Matthew's "scarlet robe" (Matt 27:28) in the cloth crimson of OWNER QUESTION 2, since the soldiers' robe is cloth, not sin. Risen, He shows "his hands and his side" (John 20:20, 27): small ink cuts on the circle hands, not scarlet. The one place blood marks His garment is Rev 19:13, "a vesture dipped in blood", where the text puts it. **OWNER QUESTION 6.**
+- **He does not speak on screen.** The films have one narrator ([CRAFT.md](../CRAFT.md)); His words are quoted by the narrator from the KJV, and His mouth moves only as an action (blessing, calling), never lip-synced.
+- **Staging.** As Advocate, screen-right of the accused, on the light side, never below the accuser (director-vision, Camera and staging). His face reaches ⅓ of the frame at the answer.
+
+### 3.3 The Father
+
+- **Never a figure** (director-vision, What we never do). "Thou canst not see my face: for there shall no man see me, and live" (Ex 33:20); "dwelling in the light which no man can approach unto; whom no man hath seen, nor can see" (1 Tim 6:16); "ye saw no manner of similitude … Lest ye corrupt yourselves, and make you a graven image" (Deut 4:15–16).
+- **But a person, not a force.** The frame: His form hidden, not absent; a cloud of glorious light ([god-christ.md](../frame/god-christ.md); "who coverest thyself with light as with a garment", Ps 104:2).
+- **How.** The throne and what the text says is round it: the fire (Dan 7:9), the rainbow "in sight like unto an emerald" (Rev 4:3), the lamps of fire (Rev 4:5), the host (Dan 7:10). On the throne, the brightest gold glow in the film, its shape implying one seated, with no face, no hands and no outline. Where Dan 7:9 is read ("whose garment was white as snow, and the hair of his head like the pure wool"), the light is robe white at its centre within the gold, still with no figure drawn.
+- **No emblem.** No triangle, no three-in-one sign, no eye ([god-christ.md](../frame/god-christ.md)).
+
+### 3.4 The Holy Spirit
+
+- **No figure.** No body, no face, no third figure on the throne ([holy-spirit.md](../frame/holy-spirit.md)).
+- **The text's signs only.** At Pentecost "a sound from heaven as of a rushing mighty wind" and "cloven tongues like as of fire" (Acts 2:2–3): the wind as motion in paper (mantles, leaves, the page), the tongues as small gold flames that glow, since they are God's gift. At the Jordan, "in a bodily shape like a dove" (Luke 3:22), the one time a dove is drawn. **OWNER QUESTION 8.**
+- **In a life.** The heart lit from inside (the power-and-life act, 1.4), never a ghost or a beam entering a body.
+
+### 3.5 Angels
+
+- **They appear as men.** Abraham saw "three men" (Gen 18:2); "some have entertained angels unawares" (Heb 13:2); "a young man … clothed in a long white garment" (Mark 16:5); "two men stood by them in white apparel" (Acts 1:10). Ellen White: "angels in human form enter the homes of men" (6T 342.3). So a messenger on earth is a figure in the human grammar, in white (Matt 28:3; Rev 15:6), a little taller than the people, with no wings.
+- **Wings only where the text gives them.** The cherubim "stretch forth their wings on high" over the mercy seat (Ex 25:20); the seraphim "each one had six wings" (Isa 6:2); Gabriel "being caused to fly swiftly" (Dan 9:21); the angel "fly in the midst of heaven" (Rev 14:6). **OWNER QUESTION 7.**
+- **White, and never glowing on their own.** Angels' white is the robe white of holy beings. The glow is the light of the One they come from: At Bethlehem "the glory of the Lord shone round about them" (Luke 2:9): draw the glory round them, not from them.
+- **They say "Fear not".** "Fear not" (Matt 28:5; Luke 1:30; 2:10); "the angel of the LORD encampeth round about them that fear him" (Ps 34:7). Never frightening, never armoured warriors, never cute cherubs.
+- **Never above Christ.** Never brighter, larger or more central than Christ in a shared frame. Never worshipped: "See thou do it not … worship God" (Rev 22:9; Col 2:18).
+- **Seraphim** are gold and cream paper, not flame-red: theology 05's draft "flame-red and gold paper" would put the accent on them. Their six wings: "with twain he covered his face, and with twain he covered his feet, and with twain he did fly" (Isa 6:2).
+- **The Rev 14 angels** are flying messengers with the gospel; never drawn as 1840s preachers or any historical people (theology 29).
+
+### 3.6 Satan
+
+Section 2.5's principles apply in full. He is drawn by the text's forms, each in its own scene:
+
+- **Lucifer before the fall:** a covering cherub (Ezek 28:14), "every precious stone was thy covering" (Ezek 28:13). His beauty is real and reflected: the throne's gold light falls on him; he glows with none of his own. His pride is shown as the turn of his head from the throne toward himself (Ezek 28:17; Isa 14:12).
+- **The serpent in Eden:** "more subtil than any beast of the field" (Gen 3:1). Ellen White saw it winged, "having the color and brilliancy of burnished gold" (PP 53.4): brass sheen, never glowing. After the curse, on its belly (Gen 3:14). **OWNER QUESTION 9.**
+- **The accuser:** "Satan standing at his right hand to resist him" (Zech 3:1); "the accuser of our brethren" (Rev 12:10). The kingly frame that sags (EW 152.3), in the accuser ramp (2.5), the one pointing hand, shrinking when rebuked (Zech 3:2).
+- **The dragon:** "a great red dragon, having seven heads and ten horns, and seven crowns upon his heads" (Rev 12:3), whose "tail drew the third part of the stars" (Rev 12:4). The text makes him red, so here scarlet is allowed: it is the text's colour, on a prophetic symbol, on the IDEA page or a prophecy STORY scene. Not frightening: flat, cut, symbolic.
+- **As an angel of light:** "Satan himself is transformed into an angel of light" (2 Cor 11:14). At the counterfeit coming Ellen White saw "a majestic being of dazzling brightness" (GC 624.2). Draw him in brass sheen that lights nothing round him: no shadow cast by his light, no gold glow on the faces he faces. The real coming lights everything.
+- **His end:** "cast into the lake of fire" (Rev 20:10), "I will bring thee to ashes upon the earth" (Ezek 28:18); never a ruler of a burning hell ([hell-destruction.md](../frame/hell-destruction.md)).
+- **Never** horns on his head as a person, a tail, a pitchfork, red skin, or a grin of horror (EW 152.3's smile is not drawn).
+
+### 3.7 Places that shape figures
+
+- **Eden.** The pair wore "a robe of light" (COL 310.4), "both naked … and were not ashamed" (Gen 2:25): their figures in the robe white with a soft gold glow, the glow the gift. After the fall the glow goes out, they sew fig leaves (Gen 3:7: leaf green that browns to the dry leaf), and God makes "coats of skins" (Gen 3:21: chipboard). No altar, no slain lamb (1.5). They hid "amongst the trees" (Gen 3:8): faces turned away.
+- **The heavenly sanctuary.** The original of which Moses made the copy (Heb 8:2, 5). Two apartments ([sanctuary-judgment.md](../frame/sanctuary-judgment.md)); built of light (backlit gold paper), never a cathedral or a church building. The ark gold with the cherubim facing the mercy seat (Ex 25:20). The host in rows, "thousand thousands" (Dan 7:10; Rev 5:11), as small white figures, never a crowd of portraits.
+- **The earthly sanctuary.** The full palette of 1.2's sanctuary entry. The high priest in his garments of glory and beauty (Ex 28:2), and on the day of atonement in plain linen (Lev 16:4).
+- **The new earth.** Faces seen: "they shall see his face" (Rev 22:4); "no more death, neither sorrow, nor crying" (Rev 21:4). The saints in white (Rev 7:9), every people.
+
+### 3.8 Owner questions in this section
+
+- **OWNER QUESTION 5. Christ's look.** An ordinary Jewish man, beard (Isa 50:6), no halo, full expressive range, never a devotional portrait (restage theology 05's `face` beat). His earthly coat plain undyed linen (John 19:23); the robe white and gold girdle as Priest, Advocate and in glory (Rev 1:13). Why: Isa 53:2 and FH 183.2 hide His glory under humility, and the white robe in the earthly scenes would say what the text says only of the transfiguration. The alternative is the drafts' white robe and gold sash throughout, which makes Him easy to find in a crowd.
+- **OWNER QUESTION 6. The cross.** Silhouette at the black moment; scarlet as the sins laid on Him; no wounds in close-up; the marks in the risen hands as ink cuts; Rev 19:13 the one text-blood exception on His garment.
+- **OWNER QUESTION 7. Angels' wings.** Wings only for cherubim, seraphim and angels the text says fly; the messengers on earth appear as men in white. Seraphim gold and cream, not flame-red.
+- **OWNER QUESTION 8. The dove.** The Spirit drawn as a dove only at the Jordan (Luke 3:22), never elsewhere.
+- **OWNER QUESTION 9. The serpent.** Winged with a burnished, non-glowing brass sheen before the curse (PP 53.4), on its belly after. Why: it is Ellen White's detail beyond the text, though consistent with it; the alternative is a plain serpent, subtle by posture.
+
+---
 
 ## 4. Character sheets
 
-_Written in part 2._
+### 4.1 The template
+
+A sheet is built before a figure is rigged, and the rig is checked against it. Fields:
+
+| Field             | What goes there                                                                                                       |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Name and role     | who, and the role from section 2 (main, supporting, antagonist, minor, crowd, allegorical)                            |
+| Source            | the verse or the doc the figure comes from; for the cast, [ensemble.md](../../../../apps/animations/docs/ensemble.md) |
+| Register          | STORY, IDEA, or both; the cast never STORY                                                                            |
+| Age and height    | against Hugo = 1.0; head about ⅓ of an adult's height, a child's larger                                               |
+| Silhouette        | the hook, and how it reads front, three-quarter, side (mirrored) and back                                             |
+| Head and hair     | the hair or headwear shape and its paper                                                                              |
+| Garments          | each piece with its base, shade and light hex, and its meaning or "identity only"                                     |
+| Hands             | circles of the figure paper; what they hold; the habit gesture                                                        |
+| Face              | see the face study (coming); the default expression                                                                   |
+| Key expressions   | four to six, posture first                                                                                            |
+| Motion            | the habit, the tempo, how they travel                                                                                 |
+| Staging           | screen side, plane, who they stand near                                                                               |
+| Quarter-size test | what names them in `--mode value` and in `--mode squint`                                                              |
+| Never             | what the frame, the text or this guide forbids for this figure                                                        |
+
+A rig's sheet also carries a scale bar (the figure beside Hugo's 1.0) and the four turnaround drawings; these are images and live with the rig, not here.
+
+### 4.2 The cast
+
+Who they are, their temperaments and arcs: [ensemble.md](../../../../apps/animations/docs/ensemble.md). These sheets add the design. All eight are main or supporting by film, register IDEA and the cold open and landing, never STORY. Garment colours never change with an arc; props and posture carry it.
+
+#### Hugo, the father
+
+- **Age and height:** 41; 1.0, the tallest and broadest.
+- **Silhouette:** square shoulders, the short square beard. Front: a broad block. Three-quarter and side: the beard's square jut under the chin. Back: the broad, flat-topped block with cropped hair.
+- **Head and hair:** short cropped hair and beard, walnut chipboard.
+- **Garments:** work jacket, steel `#526575` / `#373c54` / `#708994` (identity only); trousers in walnut cut.
+- **Why steel:** the darkest garment in the cast, so he is the household's visual weight and anchor; the cool, solid blue of a working man.
+- **Hands:** big circles for his build; tools, a child lifted high. Habit: a hand to the back of his head and half a step back when he is in the wrong.
+- **Key expressions:** a big laugh; a flare (brows down, chin forward, rising on his toes); owning it (hand to head, eyes down); tender; counting the cost (still, hand to beard).
+- **Motion:** big and quick, whole-body; he bounces when he laughs.
+- **Staging:** the back plane of a family group or its anchor; never the lead's eye line when a child is the lead.
+- **Quarter size:** the biggest, darkest shape; the beard's jut.
+- **Never:** a fool or a tyrant; his flare is always owned in the same film or the next.
+
+#### Clara, the mother
+
+- **Age and height:** 38; 0.92, slender.
+- **Silhouette:** the long plait over the near shoulder. Front and side: the plait's line down to her waist. Three-quarter: the plait crossing the body. Back: the plait down the back (the rig swaps it to the back view).
+- **Garments:** long dress, teal `#6f9e95` / `#51767d` / `#8fbdac` (identity only).
+- **Why teal:** calm and clear; a near neighbour of Mila's mint, so mother and baby read as one shape. Teal means nothing here: sin's state is a light, not a hue (1.2, OWNER QUESTION 1).
+- **Hands:** a cup, a book open on the table, Mila on her hip (one hand circle under the baby). Habit: she tilts her head and waits.
+- **Key expressions:** listening (head tilt, still); the quiet joke (one side of the mouth); anxious (shoulders up, hand to her chest); settled; teaching.
+- **Motion:** unhurried, economical; she pauses before she answers.
+- **Staging:** the mid plane; the table's head; beside Mila.
+- **Quarter size:** the plait; with Mila, the two-headed shape.
+- **Never:** nagging or helpless.
+
+#### Leo, the son
+
+- **Age and height:** 15; 0.98, the narrowest, the longest legs.
+- **Silhouette:** the crown tuft and the long thin legs under a long shirt. Side: a forward slouch. Back: the tuft.
+- **Garments:** long loose shirt, khaki `#8c8b5e` / `#5f6b46` / `#aba27d` (identity only); trousers in walnut cut or a darker khaki neighbour.
+- **Why khaki:** plain, utilitarian, unshowy: a teenager who does not want to be looked at. The dullest yellow in the cast, well clear of gold.
+- **Hands:** the phone; tools at his father's bench. Habit: he glances at the phone, then turns it face down.
+- **Key expressions:** dry (one brow, half a smile); sceptical; absorbed; caught; resolved.
+- **Motion:** slow until it matters, then quick; slouch to upright across the arc.
+- **Staging:** the edge of the family group, then nearer as the arc goes on.
+- **Quarter size:** the tallest thin shape; the tuft.
+- **Never:** a screen-addict joke; the phone is never the villain, the choice is his.
+
+#### Nina, the daughter
+
+- **Age and height:** 7; 0.62, round.
+- **Silhouette:** two bunches sticking straight out, the widest head in the cast. Front: the wide head. Side: one bunch forward, one back. Back: both bunches.
+- **Garments:** short smock, lavender `#bd9bcc` / `#8a79ab` / `#e5c0eb` (identity only); leggings in a darker lavender neighbour.
+- **Why lavender:** light and playful; with Mila the lightest garment, so a child draws the eye in a family frame.
+- **Hands:** a slate, a story book. Habit: feet planted, both hand circles on her hips, chin up.
+- **Key expressions:** defiant (hands on hips, chin up); "why?" (head forward, brows up); delight; tender once won; caught in a fib (eyes away).
+- **Motion:** quick, hops, stamps; she never walks when she can run.
+- **Staging:** the near plane in her own films; at a parent's knee.
+- **Quarter size:** the widest head on the smallest round body.
+- **Never:** broken. Her will is won, not crushed.
+
+#### Mila, the little one
+
+- **Age and height:** about 18 months; 0.40.
+- **Silhouette:** one curl on top of a round head; round body.
+- **Garments:** mint `#abdbbb` / `#88baab` / `#c7f2ce` (identity only), the lightest garment.
+- **Why mint:** the lightest and youngest; a neighbour of Clara's teal, so on her hip they read as one.
+- **Hands:** both circles up, reaching. A cup.
+- **Key expressions:** sunny; reaching; wobbly first steps; sleepy.
+- **Motion:** a little bounce; unsteady steps with a parent's hands under her (Hos 11:3).
+- **Staging:** on Clara's hip, or on the floor in the near plane.
+- **Quarter size:** the smallest shape and the curl.
+- **Never:** grows; the ledger keeps her small.
+
+#### Rosa, the grandmother
+
+- **Age and height:** 71; 0.82, a slight stoop.
+- **Silhouette:** the shawl's triangle; outdoors, the widest brim in the cast. Front: the triangle. Side: the stoop and the bun. Back: the triangle and the bun.
+- **Head and hair:** silver bun in the pale cool paper, never robe white.
+- **Garments:** long skirt, plum `#7a5671` / `#563a59` / `#997489` (identity only); the shawl in a lighter plum neighbour; the garden hat in walnut cut.
+- **Why plum:** a deep, dignified dark. The woman of strength wears "silk and purple" (Prov 31:22): a resonance a viewer may feel and the film never states, so plum stays identity only.
+- **Hands:** a seedling, a fruit, a cutting, an open Bible by the lamp. Habit: she presses something growing into another's hands.
+- **Key expressions:** merry (eyes creased); deep listening; grief with hope; noticing.
+- **Motion:** slow, unhurried, steady.
+- **Staging:** her garden and her cottage; the far end of a table.
+- **Quarter size:** the shawl's triangle and the stoop.
+- **Never:** frail or a comic old woman.
+
+#### Max, the neighbour
+
+- **Age and height:** 29; 0.95.
+- **Silhouette:** round-shouldered, head forward; the hood down, a bump at the nape. Side: the head forward and the hood bump. Back: the hood. Straighter as the arc goes on.
+- **Garments:** hooded jacket, sage `#8ead7f` / `#5f8c61` / `#b7cca1` (identity only).
+- **Why sage:** muted, a little grey-green, city-worn. His arc is carried by props and posture (cup, glass of water, free hand; head forward to upright), never by his colour. He is the first film's accused, so the court figure becomes him (ensemble open choice 7): there he receives the robe white over his sage at the landing, the hood's bump still reading through.
+- **Hands:** a takeaway cup, then a glass of water, then a free hand. Habit: one brow up, head tipped back.
+- **Key expressions:** sceptical (one brow up); wry; tired; curious; caught off guard by kindness; settled.
+- **Motion:** slow, a little heavy; lighter across the arc.
+- **Staging:** across the landing, a doorway apart; the edge of the frame at first, nearer later.
+- **Quarter size:** the head forward and the hood bump.
+- **Never:** a strawman unbeliever; his questions are fair and the film answers them.
+
+#### Amara, the nurse
+
+- **Age and height:** 46; 0.90, sturdy.
+- **Silhouette:** the round crown of hair, larger than the head; the square tunic hem at the hip.
+- **Garments:** tunic, periwinkle `#7976a3` / `#6a5782` / `#a297c2` (identity only); trousers in a darker neighbour.
+- **Why periwinkle:** calm and cool, a care-giver's quiet. It is chosen to match no real hospital's uniform colour; the tunic has no badge, cross or lettering.
+- **Hands:** a hand circle on a shoulder or a forehead; a bag over her shoulder after a shift. Habit: the hand that feels for fever.
+- **Key expressions:** brisk focus; warm; worn out (slumped, eyes half shut); grieved; at rest.
+- **Motion:** brisk at work, heavy at home.
+- **Staging:** the ground floor; beside the sick.
+- **Quarter size:** the round crown and the square hem.
+- **Never:** a saint without needs; her own need is met in rest.
+
+### 4.3 Bible figures
+
+Every Bible figure is STORY register, in story cloth (3.1). Heights are against Hugo's 1.0. Sheets for Christ, the Father, the Spirit, angels and Satan are section 3; these are the recurring people.
+
+| Figure                 | Texts                                            | Age, height                       | Silhouette and props                                                                                                                                                | Garments (story cloth)                                                                                                                                            | Expressions and acting                                                                                                                       | Never                                                                     |
+| ---------------------- | ------------------------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Adam and Eve           | Gen 1:27; 2:7, 15, 25; 3:7–8, 21                 | young adults; 0.98, 0.92          | Adam tends the garden (Gen 2:15) with a tool; Eve beside him, not behind                                                                                            | the robe of light, then fig leaves, then chipboard coats of skins (3.7)                                                                                           | wonder; at the tree, reaching; hiding, faces away; clothed by God                                                                            | an altar or slain lamb at Gen 3:21; an apple (the text says fruit)        |
+| Noah                   | Gen 6:9, 22; 9:13                                | old; 0.96                         | broad, a long beard, a hammer or a plank; the ark beside him                                                                                                        | indigo tunic, walnut mantle                                                                                                                                       | steady at work; looking up at the bow                                                                                                        | a cartoon ark of paired animals as a joke                                 |
+| Abraham                | Gen 18:1–2, 8; 22:6; Heb 11:8                    | old; 0.97                         | a staff; the tent door; a long beard in pale cool paper                                                                                                             | olive mantle, linen tunic, walnut headcloth                                                                                                                       | welcoming (hands open, running to meet); serving under the tree; walking out "not knowing whither he went"                                   | the knife raised over Isaac in close-up                                   |
+| Lot and his wife       | Gen 13:10, 12; 19:26                             | middle age; 0.95, 0.90            | Lot looks toward the plain; his wife turns back                                                                                                                     | finer cloth: royal purple trim on linen, the city's wealth                                                                                                        | Lot hesitant; his wife's one look back, then a pillar of salt in the pale cool paper                                                         | horror at her change; the salt is still, quiet, far                       |
+| Moses                  | Num 12:3; Ex 2:3; 3:5; 4:2; 17:12; 34:29         | 80 for most scenes; 1.0           | the rod (Ex 4:2); sandals off at the bush (Ex 3:5); his hands held up by Aaron and Hur (Ex 17:12), floating circles held by theirs                                  | camel mantle, linen tunic, walnut headcloth                                                                                                                       | meek, "above all the men" (Num 12:3): head inclined, never a commanding pose; his face shining (Ex 34:29), the one gold glow on a man's face | a muscular lawgiver; horns (a Latin misreading of Ex 34:29's "shone")     |
+| Hannah and Jochebed    | 1 Sam 1:28; 2:19; Ex 2:2–3; Heb 11:23            | young mothers; 0.90               | Hannah with the little coat she makes each year (1 Sam 2:19); Jochebed with the ark of bulrushes                                                                    | olive and indigo mantles over linen                                                                                                                               | tender; letting go (hands open, slow)                                                                                                        | either as a type of a modern mother; they stay in their stories           |
+| Isaiah                 | Isa 6:1–7; 38:21                                 | young at the call; 0.97           | before the throne, small; the seraph's coal touching his lips (Isa 6:7); later the lump of figs for Hezekiah                                                        | camel mantle, linen tunic                                                                                                                                         | "Woe is me! for I am undone" (Isa 6:5): bowed, a hand circle to his mouth; then cleansed, upright                                            | the throne's figure drawn (3.3)                                           |
+| Daniel                 | Dan 1:4, 8, 12; 5:17, 29; 6:10                   | a youth, then old; 0.94           | young: one of the "children … well favoured" (Dan 1:4), pulse and water before him; old: at the open window toward Jerusalem, kneeling three times a day (Dan 6:10) | indigo, then a scholar's linen; given Belshazzar's scarlet (cloth crimson, OWNER QUESTION 2) and a gold chain (brass, not glowing: the world's gold)              | purposed (still, chin level); kneeling in prayer; refusing gifts (Dan 5:17), hands open and back                                             | the lions as monsters; Babylonians as a caricature                        |
+| Elijah                 | 1 Kgs 19:12–13; 2 Kgs 1:8; 2:13                  | old; 0.98                         | "an hairy man, and girt with a girdle of leather" (2 Kgs 1:8); the mantle that falls to Elisha (2 Kgs 2:13)                                                         | camel mantle, walnut leather girdle                                                                                                                               | fierce on Carmel; worn out under the tree; his face wrapped in his mantle at the still small voice (1 Kgs 19:13)                             | a wild man for laughs                                                     |
+| Job                    | Job 1:20; 2:8; 42:10                             | middle age; 0.96                  | rent mantle, sitting in ashes (Job 1:20; 2:8); restored and praying for his friends (Job 42:10)                                                                     | royal purple wealth, then torn camel, then plain linen                                                                                                            | grief with worship; bewilderment; restored                                                                                                   | his sores in close-up; his friends as villains                            |
+| Joshua the high priest | Zech 3:1–5                                       | middle age; 0.96                  | standing before the angel, Satan at his right hand                                                                                                                  | "filthy garments" (Zech 3:3): linen soiled with chipboard smudges and scarlet specks; then "change of raiment" and "a fair mitre" (Zech 3:4–5) in robe white      | head bowed, then lifted                                                                                                                      | the robe change without the accuser and the Advocate on stage (RBF frame) |
+| The high priest        | Ex 28:2–6, 31–39; Lev 16:4                       | middle age; 0.98                  | the breastplate, the mitre and the gold plate "HOLINESS TO THE LORD" (Ex 28:36), the hem's pomegranates and bells (Ex 28:33)                                        | priest blue robe, ephod of gold, blue, purple, scarlet and linen as woven stripes, fine linen coat and mitre; on the day of atonement plain linen only (Lev 16:4) | ministering, sprinkling the blood (Lev 16:14)                                                                                                | any living church's vestments                                             |
+| John the Baptist       | Matt 3:4, 16; 11:8                               | about 30; 0.96                    | "raiment of camel's hair, and a leathern girdle" (Matt 3:4); lean, wild hair; in the Jordan                                                                         | camel, walnut                                                                                                                                                     | urgent, pointing to the Lamb (John 1:29), the one pointing hand given to a good figure; joy at the Jordan                                    | "soft raiment" (Matt 11:8): never fine cloth                              |
+| John the apostle       | John 13:23; Rev 1:9, 17; 22:8–9                  | young, then old on Patmos; 0.94   | young: leaning on Jesus' breast (John 13:23); old: writing, the scroll; fallen "at his feet as dead" (Rev 1:17)                                                     | linen tunic, olive mantle; old hair the pale cool paper                                                                                                           | love; awe; falling down, then raised by Christ's hand ("Fear not", Rev 1:17)                                                                 | worshipping the angel without its rebuke (Rev 22:9)                       |
+| Paul and Silas         | Acts 16:23–25; 17:10–11; 2 Cor 10:10; 2 Tim 4:13 | Paul middle age, 0.88; Silas 0.97 | Paul slight ("his bodily presence is weak", 2 Cor 10:10), the cloak and the parchments (2 Tim 4:13); in the stocks at midnight, singing (Acts 16:24–25)             | Paul in camel, Silas in indigo                                                                                                                                    | praying and singing; reasoning from the scriptures                                                                                           | stripes in close-up                                                       |
+| The Bereans            | Acts 17:10–11                                    | a crowd, every age                | each with a scroll, searching "daily, whether those things were so"                                                                                                 | story cloth, mixed                                                                                                                                                | reading, comparing, nodding                                                                                                                  | a group of one type; they are a crowd (2.7)                               |
+| Hezekiah               | Isa 38:2, 21                                     | middle age; 0.96                  | sick on his bed, then the lump of figs on the boil                                                                                                                  | royal purple, then plain linen in sickness                                                                                                                        | his face "toward the wall" in prayer (Isa 38:2); restored                                                                                    | the figs as magic; the means and the prayer go together                   |
+
+### 4.4 Allegory and minor sheets
+
+The knight and the giants are in 2.8; the minor figures and the crowd kit are in section 5. Build their sheets from the template (4.1) when a film first uses them.
 
 ---
 
@@ -360,7 +606,7 @@ The owner: "for minor characters just pick what makes sense". These are the pick
 | 263° | `#9487a8` | `#666587` | `#baabc7` |
 | 299° | `#7f6680` | `#56475e` | `#9e889b` |
 
-Bodies: slight, broad, tall, child, elder. Hats: none, flat cap, brimmed cap, knit hat, a brim; never a hood (Max's) or a headcovering that marks a group. No two neighbours in a crowd share body, hat and hue.
+Bodies: slight, broad, tall, child, elder. Hats: none, flat cap, brimmed cap, knit hat, a small-brimmed hat (never as wide as Rosa's); never a hood (Max's) or a headcovering that marks a group. No two neighbours in a crowd share body, hat and hue.
 
 **Bible scenes draw their own.** This set belongs to the cast's world. A Bible scene's minor figures wear the story cloth of section 3.
 
