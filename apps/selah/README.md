@@ -1,6 +1,6 @@
 # Selah
 
-An offline SwiftUI menu bar app for memorizing Scripture on macOS 14+. Dark native controls, Georgia Scripture typography, verse-number gutters, supplied-word italics, and red-letter text.
+An offline SwiftUI menu bar app for memorizing Scripture on macOS 26+ (Liquid Glass). Dark native controls, Georgia Scripture typography, verse-number gutters, supplied-word italics, and red-letter text.
 
 ## Run
 
@@ -52,7 +52,7 @@ This interpretation follows the deleted Bible Tools web/desktop shared renderer,
 - **Daily backups:** on by default. Save the first valid snapshot of each local day, retain the latest 30 daily snapshots, and never overwrite that day's first snapshot. Backups occur at launch, during maintenance, and before the day's first progress mutation while Selah is running. Backup failures are shown in Settings and do not discard a successful grade.
 - **Quiet-hour reminders:** default quiet window 10 PM–8 AM, adjustable or disabled. An invitation waits until both practice readiness and the chosen cadence, then moves past quiet hours. Scheduling handles overnight windows, time-zone changes, and DST gaps. Equal start/end times mean no quiet window. Native notification permission and Focus determine delivery.
 
-Progress is written atomically to `~/Library/Application Support/Selah/progress.json`; backups are in the adjacent `Backups` folder. **Show Progress File** and **Show Backups** open Finder. To restore a backup, quit Selah, preserve the current file, copy the chosen snapshot to `progress.json`, then relaunch.
+Progress is written atomically to `~/Library/Application Support/Selah/progress.json`; backups are in the adjacent `Backups` folder. For development, `SELAH_DATA_ROOT=/some/folder` points the app at a separate folder (`progress.json` and `Backups` inside it), so a test build never touches real progress. **Show Progress File** and **Show Backups** open Finder. To restore a backup, quit Selah, preserve the current file, copy the chosen snapshot to `progress.json`, then relaunch.
 
 Selah keeps one pending notification. It renews invitations while running; quitting stops renewal, though an already scheduled invitation can still arrive. Opening the app and waking the Mac refresh the schedule. Clicking a notification opens practice. Native scheduling and authorization were inspected live; actual banner delivery has not been verified.
 

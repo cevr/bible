@@ -42,8 +42,14 @@ final class Store {
   private var remindersDirty = false
 
   init() {
-    let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-    file = ProgressFile(url: root.appendingPathComponent("Selah/progress.json"))
+    // SELAH_DATA_ROOT points a development build at a separate folder, away from real progress.
+    let root =
+      ProcessInfo.processInfo.environment["SELAH_DATA_ROOT"].map {
+        URL(fileURLWithPath: $0, isDirectory: true)
+      }
+      ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+      .appendingPathComponent("Selah")
+    file = ProgressFile(url: root.appendingPathComponent("progress.json"))
     repository = ProgressRepository(file: file)
     Task { await load() }
     Task { [weak self] in
