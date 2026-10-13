@@ -381,8 +381,9 @@ const FilmBody = () => {
     if (Option.isSome(here)) opened = true;
     if (!replayed) return;
     // A step's input is read once (`traversed`): only a step reads it, never the first entry.
+    // A step Back into Choices from another page is a step too, though it is the first here.
     const input = Option.getOrElse(
-      Option.liftPredicate(meta.hub.input(), () => first),
+      Option.liftPredicate(meta.hub.input(), () => first && e.navigation !== 'traverse'),
       meta.hub.traversed,
     );
     Option.map(
