@@ -364,8 +364,10 @@ const FilmBody = () => {
   // then each Back and Forward), the card its `?point=` names is brought into view with the
   // keyboard in it, so the keys' next audition is that card's. A later push or replace is the
   // page's own move (a Go to, a tap, an audition), which leaves the keyboard where it put it.
-  // The ring shows iff the viewer's last input was a key (Back pressed): never on a page just
-  // opened, where nothing asked.
+  // The ring shows iff a key asked: on a step Back or Forward, iff a key the browser walks the
+  // history by asked for that step (`Hub.traversed`: the toolbar's Back after typing is the
+  // pointer's); on the entry the page opens on, iff the viewer's last input was a key, never on
+  // a page just opened, where nothing asked.
   const { meta } = useReview();
   const at = useAtomValue(() => choicesPlace);
   const entry = useAtomValue(() => UrlAtom.entry);
@@ -374,15 +376,21 @@ const FilmBody = () => {
   let opened = false;
   createEffect(entry, (e) => {
     const here = Place.decode(Places.choices, e.href);
-    const replayed = Option.isSome(here) && (!opened || e.navigation === 'traverse');
+    const first = !opened;
+    const replayed = Option.isSome(here) && (first || e.navigation === 'traverse');
     if (Option.isSome(here)) opened = true;
     if (!replayed) return;
+    // A step's input is read once (`traversed`): only a step reads it, never the first entry.
+    const input = Option.getOrElse(
+      Option.liftPredicate(meta.hub.input(), () => first),
+      meta.hub.traversed,
+    );
     Option.map(
       Option.filter(
         Option.map(here, (v) => v.query.point),
         (point) => point !== '',
       ),
-      (point) => focusPoint(point, meta.hub.input()),
+      (point) => focusPoint(point, input),
     );
   });
   // Going to a point (⌘K's Go to, a kind's tab) is one step Back walks: its card in focus

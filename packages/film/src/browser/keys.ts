@@ -9,12 +9,15 @@
 // a press composing text (an input method's) are not heard. `take` runs in
 // the press's own dispatch, so the default of a press it takes is prevented
 // in time. It also hears which input the viewer last used (`inputs`: a key
-// pressed or a pointer put down, heard before any control handles it), so
-// the hub knows whether the keyboard asked for a command (`Invocation.input`).
+// pressed or a pointer put down, heard before any control handles it; a key
+// pressed while a pointer is down is the click's, not the keyboard's), so
+// the hub knows whether the keyboard asked for a command (`Invocation.input`)
+// and whether a key the browser walks the history by asked for a step
+// through it (`Heard.walks`).
 // The page it listens on is the adapter's (`keysOn`): the window live
 // (`keys-browser.ts`), a test's own `EventTarget` in a test.
 
-import { Context, Effect, Layer, Option } from 'effect';
+import { Context, Effect, Layer, Option, Schema } from 'effect';
 
 /** A key press as the pages read it. */
 export interface KeyPress {
@@ -40,17 +43,32 @@ interface KeysOps {
   readonly listen: (take: (press: KeyPress) => boolean) => Effect.Effect<never>;
   /**
    * Hear which input the viewer uses until interrupted: `heard` gets `key`
-   * for every key pressed and `pointer` for every pointer put down (a mouse,
+   * for every key pressed, unless a pointer is down (a key in the middle of a
+   * click is the click's), and `pointer` for every pointer put down (a mouse,
    * a pen, a finger), handled by a control or not.
    */
-  readonly inputs: (heard: (input: Input) => void) => Effect.Effect<never>;
+  readonly inputs: (heard: (input: Heard) => void) => Effect.Effect<never>;
 }
 
 /**
  * The input that asked for a move: a key pressed, or a pointer put down. The
- * lab shows its focus ring where the keyboard asked (`lab/focus.ts`).
+ * lab shows its focus ring where the keyboard asked (`lab/focus.ts`). The one
+ * declaration: the hub, the studio's slot and the e2e walkers read this.
  */
-export type Input = 'key' | 'pointer';
+export const Input = Schema.Literals(['key', 'pointer']);
+export type Input = typeof Input.Type;
+
+/** An input heard: which, and for a key, whether it is one the browser walks the history by. */
+export interface Heard {
+  readonly input: Input;
+  /**
+   * Whether the press is a key the browser steps back or forward by (Alt+← or
+   * Alt+→; ⌘[, ⌘], ⌘← or ⌘→; a keyboard's own Back and Forward keys) that no
+   * control on the page took for its own: read when the step comes, after
+   * every control has heard the press.
+   */
+  readonly walks: () => boolean;
+}
 
 /**
  * Whether a browser is on an Apple device, whose keyboard is a Mac's (its
@@ -84,6 +102,11 @@ interface KeyFields extends Pick<Event, 'defaultPrevented' | 'target'> {
   readonly isComposing?: unknown;
 }
 
+/** A pointer event as the page hears it: its pointer's id, unknown until read. */
+interface PointerFields extends Pick<Event, 'target'> {
+  readonly pointerId?: unknown;
+}
+
 /** Whether `e` is a press the page hears: not handled already, not composing text. */
 const heard = (e: KeyFields): boolean =>
   'key' in e && !e.defaultPrevented && e.isComposing !== true;
@@ -101,6 +124,15 @@ const pressOf = (e: KeyFields): Option.Option<KeyPress> =>
       target: Option.fromNullishOr(ev.target),
     })),
   );
+
+/** Whether `e` is a chord the browser walks the history by. */
+const walking = (e: KeyFields): boolean => {
+  const key = String(e.key);
+  if (key === 'BrowserBack' || key === 'BrowserForward') return true;
+  if (e.altKey === true) return key === 'ArrowLeft' || key === 'ArrowRight';
+  if (e.metaKey === true) return ['[', ']', 'ArrowLeft', 'ArrowRight'].includes(key);
+  return false;
+};
 
 /** The key presses on `page`. */
 const keysOn = (page: EventTarget, mac: boolean): KeysOps => ({
@@ -122,8 +154,39 @@ const keysOn = (page: EventTarget, mac: boolean): KeysOps => ({
       const listening = new AbortController();
       // Captured, so a press a control handles (⌘K's Enter, a menu's arrow) is heard too.
       const on = { capture: true, signal: listening.signal };
-      page.addEventListener('keydown', () => heard('key'), on);
-      page.addEventListener('pointerdown', () => heard('pointer'), on);
+      // The pointers down now: a key pressed while one is (Shift held mid-click) is the click's.
+      const down = new Set<unknown>();
+      const up = (e: PointerFields) => down.delete(e.pointerId);
+      page.addEventListener(
+        'keydown',
+        (e: KeyFields) => {
+          if (down.size > 0) return;
+          heard({ input: 'key', walks: () => walking(e) && !e.defaultPrevented });
+        },
+        on,
+      );
+      page.addEventListener(
+        'pointerdown',
+        (e: PointerFields) => {
+          down.add(e.pointerId);
+          heard({ input: 'pointer', walks: () => false });
+        },
+        on,
+      );
+      // Heard, never ended here: a pointer's lift only says it is up (`Pointer.press` ends a drag).
+      // oxlint-disable-next-line film/host-events-through-adapter -- Keys' own: whether a pointer is down
+      page.addEventListener('pointerup', up, on);
+      // oxlint-disable-next-line film/host-events-through-adapter -- Keys' own: whether a pointer is down
+      page.addEventListener('pointercancel', up, on);
+      // A pointer let go outside the window is never heard going up: the window's own blur lets
+      // it go (not an element's, which the capture hears too as a click moves the focus).
+      page.addEventListener(
+        'blur',
+        (e) => {
+          if (e.target === page) down.clear();
+        },
+        on,
+      );
       return Effect.sync(() => listening.abort());
     }),
 });

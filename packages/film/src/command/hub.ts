@@ -13,11 +13,12 @@
 // host is. A command runs only where its `when` holds, whether its key, a
 // menu, ⌘K or a button asked for it. The hub is the one owner of which input
 // the viewer last used (`input`, heard through `Keys.inputs`): a command runs
-// with the input that asked for it (`Invocation.input`). Framework-free.
+// with the input that asked for it (`Invocation.input`), and a step through
+// the history with the input that asked for it (`traversed`). Framework-free.
 
 import { Effect, Option } from 'effect';
 import type { Clipboard } from '../browser/clipboard.ts';
-import { type Input, type KeyPress, Keys } from '../browser/keys.ts';
+import { type Heard, type Input, type KeyPress, Keys } from '../browser/keys.ts';
 import { type StoreRuntime, keptJson } from '../browser/storage.ts';
 import type { PageName } from '../core/api.ts';
 import {
@@ -64,6 +65,14 @@ export interface Hub {
    * page opened on a point) shows no ring.
    */
   readonly input: () => Input;
+  /**
+   * The input that asked for a step through the history the page just heard
+   * (a `popstate`): `key` only when the last input is a key the browser walks
+   * it by (Alt+←, ⌘[, …: `Heard.walks`) and no step has read it yet; else
+   * `pointer` (the toolbar's Back, a swipe, a step after typing). Read once
+   * per step.
+   */
+  readonly traversed: () => Input;
   /** Hand every receipt to `sink`, with its slot, until the returned stop. */
   readonly receipts: (sink: (receipt: Receipt, slot: string) => void) => () => void;
   /** Tell `listener` of every key pressed on the page, whatever the keymap does with it, until the returned stop. */
@@ -146,11 +155,14 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
   const announce = (receipt: Receipt, slot: string) => {
     for (const sink of sinks) sink(receipt, slot);
   };
-  let input: Input = 'pointer';
+  /** The input the viewer last used; nothing heard yet, a pointer's (no ring). */
+  let heard: Heard = { input: 'pointer', walks: () => false };
+  /** Whether the last input's walk is still unread: a step through the history reads it once. */
+  let walkUnread = false;
   const invoke = (command: Command, how: Asked, ctx: Context = context()) => {
     if (!command.when(ctx)) return;
     Effect.runFork(
-      Effect.tap(command.run(ctx, { ...how, input: how.input ?? input }), (receipt) =>
+      Effect.tap(command.run(ctx, { ...how, input: how.input ?? heard.input }), (receipt) =>
         Effect.sync(() => announce(receipt, command.id)),
       ),
     );
@@ -188,7 +200,15 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
     invokeId: (id, how) => {
       Option.map(commands.byId(id), (command) => invoke(command, how));
     },
-    input: () => input,
+    input: () => heard.input,
+    traversed: () => {
+      const walked = walkUnread && heard.walks();
+      walkUnread = false;
+      return Option.getOrElse(
+        Option.liftPredicate('key' as const, () => walked),
+        (): Input => 'pointer',
+      );
+    },
     receipts: (sink) => {
       sinks.add(sink);
       return () => sinks.delete(sink);
@@ -212,8 +232,9 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
       Effect.andThen(
         Effect.all(
           [
-            k.inputs((heard) => {
-              input = heard;
+            k.inputs((now) => {
+              heard = now;
+              walkUnread = true;
             }),
             k.listen(press),
           ],

@@ -11,6 +11,7 @@
 // the view still decodes.
 
 import { Effect, Option, Schema } from 'effect';
+import { Input } from '../browser/keys.ts';
 import { type StoreRuntime, keptJson } from '../browser/storage.ts';
 
 /** The rates the lab plays at: the only ones a stored view may hold. */
@@ -42,7 +43,7 @@ export const LabView = Schema.Struct({
   studio: Schema.optionalKey(
     Schema.Struct({
       focused: Schema.optionalKey(Schema.Boolean),
-      input: Schema.optionalKey(Schema.Literals(['key', 'pointer'])),
+      input: Schema.optionalKey(Input),
     }),
   ),
 });
