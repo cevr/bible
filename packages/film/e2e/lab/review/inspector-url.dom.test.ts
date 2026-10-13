@@ -311,6 +311,36 @@ describe('an open sheet as the window crosses the phone width in one step (a tab
       }).pipe(Effect.scoped),
     SLOW,
   );
+
+  // The page reads the window as it renders the sheet and follows it from a moment later: a turn
+  // between the two is the window's answer too (`Viewport.changes` starts with it).
+  for (const turn of [
+    { from: { width: 1180, height: 820 }, to: { width: 820, height: 1180 }, position: 'bottom' },
+    { from: { width: 820, height: 1180 }, to: { width: 1180, height: 820 }, position: 'right' },
+  ]) {
+    it.live(
+      `turned as it starts to scroll in (${turn.from.width} to ${turn.to.width} wide): it rests as a ${turn.position} sheet, drawn whole`,
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* openReview(studioRoutes, {
+            href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+            viewport: turn.from,
+          });
+          yield* waitFor(page, '.rv-main [data-act="inspect"]');
+          yield* page.click('.rv-main [data-act="inspect"]');
+          yield* until(page, `document.querySelector('.lab-inspector-panel') !== null`);
+          yield* page.resize(turn.to.width, turn.to.height);
+          yield* waitFor(page, CLOSE);
+          yield* sheetsStand(page);
+          const stands = `(({ sheets, whole }) => sheets === 1 && whole && document.querySelector('.lab-inspector-panel').getAttribute('data-position') === '${turn.position}')(${STANDS})`;
+          yield* until(page, stands);
+          yield* page.evaluate(FRAMES);
+          yield* evaluates(page, stands, true);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+  }
 });
 
 describe('an open phone sheet as what it stands on moves under it', () => {

@@ -9,7 +9,11 @@ import { Context, Effect, Layer, Option, Stream } from 'effect';
 interface ViewportOps {
   /** Whether the window matches `query` (a CSS media query) now. */
   readonly matches: (query: string) => Effect.Effect<boolean>;
-  /** Whether the window matches `query`, each time that changes. */
+  /**
+   * Whether the window matches `query`: the answer as it subscribes, then each change. A reader
+   * that read `matches` earlier and subscribes later (a Solid owner, once settled) still ends at
+   * the window's answer when the window changed in between.
+   */
   readonly changes: (query: string) => Stream.Stream<boolean>;
 }
 
@@ -48,7 +52,7 @@ export class Viewport extends Context.Service<Viewport, ViewportOps>()(
     Viewport,
     Viewport.of({
       matches: (query) => Effect.succeed(phoneMatches(query)),
-      changes: () => Stream.empty,
+      changes: (query) => Stream.succeed(phoneMatches(query)),
     }),
   );
 }
