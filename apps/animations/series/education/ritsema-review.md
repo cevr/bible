@@ -232,14 +232,6 @@ These are his stretches, and the series follows the source:
 
 Each is noted where the series uses the passage.
 
-## 5. Joshua White (pending the owner's choice)
+## 5. Joshua White
 
-The second link pasted was Ritsema's again. Candidates, found with `yt-dlp`; none were processed:
-
-|     | Playlist                                                                            | URL                                                                      | Videos |
-| --- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------ |
-| A   | _True Education Event, Bogenhofen, Austria 2026_ (A Thinking Generation Ministries) | https://www.youtube.com/playlist?list=PLbmt48cWApDQ                      | 8      |
-| B   | _Fundamentals of True Education_ (Autumn Leaves NZ camp meeting)                    | https://www.youtube.com/playlist?list=PLGasFez3qv1o                      | 8      |
-| C   | _Trinidad True Education Seminar_ (A Thinking Generation Ministries)                | https://www.youtube.com/playlist?list=PLLa98Guf3JC2dObsnOnaHW1Lc0zDsU3SM | 15     |
-
-The titles are in `sources.md` §7. A is the newest and the most complete single series.
+His three playlists (Bogenhofen 2026, Autumn Leaves NZ, Trinidad 2023) were processed on 2026-10-13. See `white-review.md`, `transcripts/white/` and `sources.md` §8.
