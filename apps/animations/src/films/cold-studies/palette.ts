@@ -58,7 +58,8 @@ export const keyLight: Hex = '#f3e9c8';
  * near-grey lights left out. The shade's knobs (`dark`, `deep`, `neutral`)
  * are fitted to K1's hand shades, so a near-neutral's shade stops short of
  * the complement as K1's did: the people's crease a lavender (h 299), not a
- * slate blue. `neutral: 1` gives the slate back.
+ * slate blue. `neutral: 1` gives a slate blue, `#7e889f` at these knobs
+ * (P1's `#858c9d` also had `dark: 0.2`, `deep: 10`).
  */
 export const shading: Shading = {
   turn: 20,
