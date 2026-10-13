@@ -111,16 +111,16 @@ const placed = (
   ]);
 
 /** The paper he reads, in frame units. */
-export const sheetOutline: ReadonlyArray<Pt> = placed(READING_SHEET.shape, READING_SHEET);
+const sheetOutline: ReadonlyArray<Pt> = placed(READING_SHEET.shape, READING_SHEET);
 
 /** The gavel turned `swing`, in frame units: its handle and its head. */
-export const gavelAt = (swing: number) => {
+const gavelAt = (swing: number) => {
   const at = { x: GAVEL[0], y: GAVEL[1], rot: swing };
   return { handle: placed(GAVEL_HANDLE, at), head: placed(GAVEL_HEAD, at) };
 };
 
 /** His robe as he leans `lean` of the way in, in frame units: turned about its foot (the rig's lean, `LEAN`). */
-export const robeAt = (lean: number): Pt[] =>
+const robeAt = (lean: number): Pt[] =>
   placed(ROBE.outline, { x: JUDGE[0], y: JUDGE[1] + 6 * lean + ROBE.pivot, rot: LEAN * lean });
 
 /**
@@ -188,24 +188,38 @@ const trace = (ctx: CanvasRenderingContext2D, pts: ReadonlyArray<Pt>) => {
   ctx.closePath();
 };
 
+/** A surface under his hand: its name, its outline in frame units (none for the wall, which lies under all) and its paper. */
+export interface UnderHand {
+  readonly name: string;
+  readonly outline: ReadonlyArray<Pt> | undefined;
+  readonly paper: Hex;
+}
+
 /**
- * What lies under his hand, top first, in the bench's units, each with its
- * paper: the gavel's head and handle and the paper he reads (`benchTop`),
- * the gavel's block, the rim and the bench's face (the court's `BENCH`), his
- * robe as he leans, and past them all the court's parchment wall.
+ * What lies under his hand as the court draws it, top first, in the bench's
+ * units, each with its paper: the gavel's head and handle and the paper he
+ * reads (`benchTop`), the gavel's block, the rim and the bench's face (the
+ * court's `BENCH`), his robe as he leans, and past them all the court's
+ * parchment wall. The one inventory of what his cast can fall on: the host
+ * lays it from this, and `direction.test.ts` reads it.
  */
-const underHand = (d: Direction, swing: number, lean: number, props: Props) => {
+export const underHand = (
+  d: Direction,
+  swing: number,
+  lean: number,
+  props: Props,
+): ReadonlyArray<UnderHand> => {
   const gavel = gavelAt(swing);
   return [
-    [gavel.head, C.cutDeep],
-    [gavel.handle, C.inkSoft],
-    [sheetOutline, ramps.paper.base],
-    [BENCH.block, props.block],
-    [BENCH.rim, props.rim],
-    [BENCH.face, props.bench],
-    [robeAt(lean), dressOf(d).robe.color],
-    [undefined, ramps.paper.base],
-  ] as const satisfies ReadonlyArray<readonly [ReadonlyArray<Pt> | undefined, Hex]>;
+    { name: 'gavel head', outline: gavel.head, paper: C.cutDeep },
+    { name: 'gavel handle', outline: gavel.handle, paper: C.inkSoft },
+    { name: 'reading sheet', outline: sheetOutline, paper: ramps.paper.base },
+    { name: 'block', outline: BENCH.block, paper: props.block },
+    { name: 'rim', outline: BENCH.rim, paper: props.rim },
+    { name: 'bench', outline: BENCH.face, paper: props.bench },
+    { name: 'robe', outline: robeAt(lean), paper: dressOf(d).robe.color },
+    { name: 'wall', outline: undefined, paper: ramps.paper.base },
+  ];
 };
 
 /**
@@ -230,14 +244,14 @@ const handCast = (
   const [r0, r1] = [Math.max(0, HAND_ART.r - band), HAND_ART.r + band];
   const alpha = castAlpha(HAND_LIFT);
   const surfaces = underHand(d, swing, lean, props);
-  surfaces.forEach(([outline, paper], i) => {
+  surfaces.forEach(({ outline, paper }, i) => {
     ctx.save();
     if (outline !== undefined) {
       ctx.beginPath();
       trace(ctx, outline);
       ctx.clip();
     }
-    for (const [above] of surfaces.slice(0, i)) {
+    for (const { outline: above } of surfaces.slice(0, i)) {
       if (above === undefined) continue;
       ctx.beginPath();
       ctx.rect(cx - r1 - 1, cy - r1 - 1, 2 * r1 + 2, 2 * r1 + 2);

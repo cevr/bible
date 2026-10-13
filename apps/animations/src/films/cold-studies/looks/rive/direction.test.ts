@@ -28,16 +28,16 @@ import { GAVEL_REST } from '../../../righteousness-by-faith/court.ts';
 import { C } from '../../../righteousness-by-faith/kit.ts';
 import { type Ramp, hues, keyLight, ramps, robes, shading } from '../../palette.ts';
 import type { CourtFrame } from '../../scenes/court.ts';
-import { BENCH, type Props, paperProps } from '../cutpaper/court.ts';
+import { type Props, paperProps } from '../cutpaper/court.ts';
 import { HAND as ACCUSED_HAND, accusedFace, accusedHead } from './accused-rig.ts';
 import { riveAccused } from './accused.ts';
 import { compile, rive } from './build.ts';
-import { DIRECTION, type Direction, K1, OPTIONS, dressOf, inkOf, propsOf } from './direction.ts';
+import { DIRECTION, type Direction, K1, OPTIONS, inkOf, propsOf } from './direction.ts';
 import { figureRigs, figuresRml } from './figures.ts';
 import { HAND_ART, JUDGE_FACE, judgeFace } from './judge-rig.ts';
-import { gavelAt, handAt, judgeOf, riveJudge, robeAt, sheetOutline } from './judge.ts';
+import { handAt, judgeOf, riveJudge, underHand } from './judge.ts';
 import { HAND_LIFT, INK, LIFT, type Mat, type Pt, boxOf } from './parts.ts';
-import { type Element, argb } from './rml.ts';
+import { type Element, argb, el } from './rml.ts';
 
 /** Every option, by the study's name, as a direction: K1 with that one axis changed. */
 const CASES = Object.entries(OPTIONS).map(
@@ -46,6 +46,9 @@ const CASES = Object.entries(OPTIONS).map(
 
 /** The options, and K1 itself: every direction the colours must hold under. */
 const SHADED = [['K1', K1] as const, ...CASES];
+
+/** The centred line (A0): its thin ink leaves the casts showing, so the host lays the hand's and the rigs lay theirs. */
+const A0 = SHADED.find(([name]) => name === 'A0')?.[1] ?? K1;
 
 // ─── reading the generated rigs ──────────────────────────────────────────────
 
@@ -450,9 +453,13 @@ const paintFaults = (a: Audit, s: Drawn, paint: Element): string[] => {
     case 'Paper':
       return paperFaults(at, cs);
     case 'Core':
-      return differs(at, cs[0], derived(paperOf(s.e) ?? 'no paper').light);
+      return cs.length === 0
+        ? [`${at}: no colour`]
+        : cs.flatMap((c) => differs(at, c, derived(paperOf(s.e) ?? 'no paper').light));
     case 'Shadow':
-      return shadowFaults(a, s, paint, at, cs[0]);
+      return cs.length === 0
+        ? [`${at}: no colour`]
+        : [...new Set(cs.flatMap((c) => shadowFaults(a, s, paint, at, c)))];
     default:
       return [`${at}: a paint the look does not name`];
   }
@@ -716,6 +723,28 @@ test('every garment, robe and prop base sits in the film’s saturation band (CR
   expect(out).toEqual([]);
 });
 
+/** `board` with a second colour, black, in the first paint named `role`: a light or a shadow shaded with black part way across. */
+const blackenedSecond = (board: Element, role: string): Element => {
+  let done = false;
+  const visit = (e: Element): Element => {
+    if (!done && attr(e, 'name') === role && (e.name === 'Fill' || e.name === 'Stroke')) {
+      done = true;
+      return { ...e, children: [...e.children, el('SolidColor', { colorValue: argb('#000000') })] };
+    }
+    return { ...e, children: e.children.map(visit) };
+  };
+  return visit(board);
+};
+
+test.each(['Core', 'Shadow'])(
+  'a %s with a black second colour fails: every colour of a paint is read',
+  (role) => {
+    const board = figureRigs(K1).accused[0] as Element;
+    expect(auditOf(board, K1)).toEqual([]);
+    expect(auditOf(blackenedSecond(board, role), K1).join('; ')).toContain('#000000');
+  },
+);
+
 describe.each(SHADED)('the colours under %s', (_, d) => {
   const rigs = figureRigs(d);
   const boards = [rigs.accused, rigs.judge, rigs.hand].map((rig) => rig[0] as Element);
@@ -775,10 +804,16 @@ interface Region {
   readonly rule: Rule;
 }
 
-/** One fill: its region, the clips in force, its colour (a gradient's first stop's) and whether it paints over (`source-over`). */
+/**
+ * One paint: a fill (`fill`, `fillRect`), a stroke, or the shadow a fill or
+ * stroke casts (`shadowColor`); its region, the clips in force, its colours
+ * (a gradient's every stop; a pattern has none) and whether it paints over
+ * (`source-over`).
+ */
 interface Laid extends Region {
+  readonly kind: 'fill' | 'stroke' | 'shadow';
   readonly clips: ReadonlyArray<Region>;
-  readonly colour: string | undefined;
+  readonly colours: ReadonlyArray<string>;
   readonly over: boolean;
 }
 
@@ -798,17 +833,9 @@ const covers = (region: Region, [x, y]: Pt) => {
   return region.rule === 'evenodd' ? crossings % 2 === 1 : winding !== 0;
 };
 
-/** A fill style's colour as `#rrggbb`: a colour's own, a gradient's first stop's; a pattern has none. */
-const colourOfStyle = (style: string | CanvasGradient | CanvasPattern): string | undefined => {
-  if (!Predicate.isString(style)) {
-    // The stand-in's gradients keep their stops, as added (`StandInGradient`).
-    const stops = Predicate.hasProperty(style, 'stops') ? style.stops : undefined;
-    const first = Array.isArray(stops) ? stops[0] : undefined;
-    return Array.isArray(first) && Predicate.isString(first[1])
-      ? colourOfStyle(first[1])
-      : undefined;
-  }
-  const s = style.trim().toLowerCase();
+/** A colour as a canvas takes it, as `#rrggbb` (its alpha dropped). */
+const hexOfCss = (colour: string) => {
+  const s = colour.trim().toLowerCase();
   if (/^#[0-9a-f]{3}$/.test(s)) return `#${[...s.slice(1)].map((c) => `${c}${c}`).join('')}`;
   if (/^#[0-9a-f]{6}([0-9a-f]{2})?$/.test(s)) return s.slice(0, 7);
   const rgb = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(s);
@@ -816,10 +843,31 @@ const colourOfStyle = (style: string | CanvasGradient | CanvasPattern): string |
   return `#${[rgb[1], rgb[2], rgb[3]].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}`;
 };
 
+/** A paint style's colours as `#rrggbb`: a colour's own, a gradient's every stop's; a pattern has none. */
+const coloursOfStyle = (style: string | CanvasGradient | CanvasPattern): ReadonlyArray<string> => {
+  if (Predicate.isString(style)) return [hexOfCss(style)];
+  // The stand-in's gradients keep their stops, as added (`StandInGradient`).
+  const stops = Predicate.hasProperty(style, 'stops') ? style.stops : undefined;
+  return Array.isArray(stops)
+    ? stops.flatMap((stop) =>
+        Array.isArray(stop) && Predicate.isString(stop[1]) ? [hexOfCss(stop[1])] : [],
+      )
+    : [];
+};
+
+/** Whether a canvas lays a shadow under what it paints now: a colour not fully clear, blurred or moved. */
+const castsShadow = (ctx: CanvasRenderingContext2D) => {
+  const c = ctx.shadowColor.replace(/\s/g, '').toLowerCase();
+  const clear =
+    c === 'transparent' || /^rgba\(\d+,\d+,\d+,0(\.0*)?\)$/.test(c) || /^#[0-9a-f]{6}00$/.test(c);
+  return !clear && (ctx.shadowBlur > 0 || ctx.shadowOffsetX !== 0 || ctx.shadowOffsetY !== 0);
+};
+
 /**
- * What `draw` fills, in order, drawn into a recording context: each fill's
- * region and clips in device units (the recorder's transform at each path
- * call), and its colour. A rig it draws (`f.rive`) is not drawn here.
+ * What `draw` paints, in order, drawn into a recording context: each fill
+ * (`fill`, `fillRect`) and stroke, and the shadow each casts, with its region
+ * and clips in device units (the recorder's transform at each path call) and
+ * its every colour. A rig it draws (`f.rive`) is not drawn here.
  */
 const drawing = (draw: (f: CourtFrame) => void): ReadonlyArray<Laid> =>
   withDom(() => {
@@ -937,24 +985,48 @@ const drawing = (draw: (f: CourtFrame) => void): ReadonlyArray<Laid> =>
         },
       ],
     ]);
+    /** The region a paint call covers: the path for `fill` and `stroke`, its rectangle for `fillRect`. */
+    const painted = (
+      key: PropertyKey,
+      [x = 0, y = 0, w = 0, h = 0]: ReadonlyArray<number>,
+      raw: ReadonlyArray<unknown>,
+    ): Region | undefined => {
+      if (key === 'fill' || key === 'stroke')
+        return {
+          paths: path.map((s) => [...s]),
+          rule: raw[0] === 'evenodd' ? 'evenodd' : 'nonzero',
+        };
+      if (key !== 'fillRect') return undefined;
+      return { paths: [[to(x, y), to(x + w, y), to(x + w, y + h), to(x, y + h)]], rule: 'nonzero' };
+    };
+    /** One paint over `region`, and first the shadow it casts if the context lays one. */
+    const lay = (target: CanvasRenderingContext2D, kind: 'fill' | 'stroke', region: Region) => {
+      const over = target.globalCompositeOperation === 'source-over';
+      if (castsShadow(target))
+        laid.push({
+          ...region,
+          kind: 'shadow',
+          clips,
+          colours: [hexOfCss(target.shadowColor)],
+          over,
+        });
+      laid.push({
+        ...region,
+        kind,
+        clips,
+        colours: coloursOfStyle(kind === 'stroke' ? target.strokeStyle : target.fillStyle),
+        over,
+      });
+    };
     const ctx = new Proxy(rec.ctx, {
       get: (target, key) => {
         const value = Reflect.get(target, key);
         if (!Predicate.isFunction(value)) return value;
         return (...args: ReadonlyArray<unknown>) => {
-          if (key === 'fill')
-            laid.push({
-              paths: path.map((s) => [...s]),
-              rule: args[0] === 'evenodd' ? 'evenodd' : 'nonzero',
-              clips,
-              colour: colourOfStyle(target.fillStyle),
-              over: target.globalCompositeOperation === 'source-over',
-            });
-          else
-            ops.get(key)?.(
-              args.map((a) => (Predicate.isNumber(a) ? a : 0)),
-              args,
-            );
+          const n = args.map((a) => (Predicate.isNumber(a) ? a : 0));
+          const region = painted(key, n, args);
+          if (region === undefined) ops.get(key)?.(n, args);
+          else lay(target, key === 'stroke' ? 'stroke' : 'fill', region);
           return Reflect.apply(value as (...a: ReadonlyArray<unknown>) => unknown, target, args);
         };
       },
@@ -972,37 +1044,21 @@ const drawing = (draw: (f: CourtFrame) => void): ReadonlyArray<Laid> =>
     return laid;
   });
 
-/** The colour of the topmost fill over `p`, inside every clip in force, or `none`. */
-const laidAt = (fills: ReadonlyArray<Laid>, p: Pt) =>
-  fills.findLast(
-    (l) => l.over && l.colour !== undefined && covers(l, p) && l.clips.every((c) => covers(c, p)),
-  )?.colour ?? 'none';
+/** The colours of the topmost fill over `p`, inside every clip in force, or `none`. */
+const laidAt = (laid: ReadonlyArray<Laid>, p: Pt): ReadonlyArray<string> =>
+  laid.findLast(
+    (l) =>
+      l.kind === 'fill' &&
+      l.over &&
+      l.colours.length > 0 &&
+      covers(l, p) &&
+      l.clips.every((c) => covers(c, p)),
+  )?.colours ?? ['none'];
 
 /** The gavel's turns across its fall: raised, at rest, swinging down, down on the block. */
 const SWINGS = [-0.3, GAVEL_REST, 0.9, 1.4, 1.62];
 /** How far he leans in: upright, halfway, all the way. */
 const LEANS = [0, 0.5, 1];
-
-/**
- * What lies under the judge's hand as the court draws it, top first, in the
- * bench's units, each with its paper: the gavel's head and handle and the
- * paper he reads (`riveJudge.over`), the gavel's block, the rim and the
- * bench's face (`cutpaper/court.ts`), and his robe as he leans. Past them,
- * the court's parchment wall.
- */
-const underHand = (d: Direction, swing: number, lean: number) => {
-  const props = propsOf(d);
-  const gavel = gavelAt(swing);
-  return [
-    { name: 'gavel head', outline: gavel.head, paper: C.cutDeep },
-    { name: 'gavel handle', outline: gavel.handle, paper: C.inkSoft },
-    { name: 'reading sheet', outline: sheetOutline, paper: ramps.paper.base },
-    { name: 'block', outline: BENCH.block, paper: props.block },
-    { name: 'rim', outline: BENCH.rim, paper: props.rim },
-    { name: 'bench', outline: BENCH.face, paper: props.bench },
-    { name: 'robe', outline: robeAt(lean), paper: dressOf(d).robe.color },
-  ] as const;
-};
 
 /** How near a surface's edge a sample is too near to say which surface it is on (the boil, the cut's rim, its ink), units. */
 const EDGE = 3;
@@ -1038,15 +1094,19 @@ const handCasts = (d: Direction, lean: number, swing: number, as: Mutation = (f)
   const palm = drawnOf(figureRigs(d).hand[0] as Element).find((s) => s.name === 'palm');
   const rigCast = palm === undefined ? undefined : paintNamed(palm.e, 'Shadow');
   const fills = drawing((f) => judgeOf(d).over(as(f), swing, lean, propsOf(d)));
-  const surfaces = underHand(d, swing, lean);
+  const surfaces = underHand(d, swing, lean, propsOf(d));
+  const outlined = surfaces.flatMap((s) =>
+    s.outline === undefined ? [] : [{ ...s, outline: s.outline }],
+  );
+  const wall = surfaces.find((s) => s.outline === undefined);
   return castBand(handAt(swing, lean), palm === undefined ? 0 : coverOf(palm.e))
-    .filter((p) => surfaces.every((s) => edgeDistance(p, s.outline) >= EDGE))
+    .filter((p) => outlined.every((s) => edgeDistance(p, s.outline) >= EDGE))
     .map((p) => {
-      const under = surfaces.find((s) => inside(p, s.outline));
+      const under = outlined.find((s) => inside(p, s.outline)) ?? wall;
       return {
-        on: under?.name ?? 'wall',
-        want: derived(under?.paper ?? ramps.paper.base).shade,
-        laid: rigCast === undefined ? laidAt(fills, p) : (coloursOf(rigCast)[0] ?? 'none'),
+        on: under?.name ?? 'nothing',
+        want: under === undefined ? 'no surface' : derived(under.paper).shade,
+        laid: rigCast === undefined ? laidAt(fills, p) : coloursOf(rigCast),
       };
     });
 };
@@ -1072,12 +1132,13 @@ const blackMiddleStop: Mutation = (f) => {
   return { ...f, ctx } as CourtFrame;
 };
 
+/** Whether a cast lies in its surface's shade: every colour laid there (each stop of its feather) is it. */
+const castHolds = (c: ReturnType<typeof handCasts>[number]) =>
+  c.laid.length > 0 && c.laid.every((l) => l === c.want);
+
 /** The faults among a hand's casts: each place it lies in a colour not its surface's shade. */
 const castFaults = (casts: ReturnType<typeof handCasts>) =>
-  casts.filter((c) => c.laid !== c.want).map((c) => `on the ${c.on}: ${shown(c.laid)}`);
-
-/** Options under which the host lays the hand's cast: its shade can be read there. */
-const A0 = SHADED.find(([name]) => name === 'A0')?.[1] ?? K1;
+  casts.filter((c) => !castHolds(c)).map((c) => `on the ${c.on}: ${c.laid.map(shown).join(', ')}`);
 
 describe('the judge’s hand', () => {
   test('a cast shaded with black part way across fails: every stop of its feather is read', () => {
@@ -1099,8 +1160,11 @@ describe('the judge’s hand', () => {
     expect(casts.length).toBeGreaterThan(0);
     const wrong = new Map(
       casts
-        .filter((c) => c.laid !== c.want)
-        .map((c) => [`${c.at} on the ${c.on}`, `${shown(c.laid)}, derives ${shown(c.want)}`]),
+        .filter((c) => !castHolds(c))
+        .map((c) => [
+          `${c.at} on the ${c.on}`,
+          `${[...new Set(c.laid)].map(shown).join(', ')}, derives ${shown(c.want)}`,
+        ]),
     );
     expect(Object.fromEntries(wrong)).toEqual({});
   });
@@ -1259,9 +1323,9 @@ describe.each(CASES)('hands and lines under %s', (_, d) => {
  * His hand is a rig, which this context does not draw.
  */
 const benchTopInks = (props: Props): string[] =>
-  drawing((f) => riveJudge.over(f, 0.2, 0.5, props)).flatMap((l) =>
-    l.colour === undefined ? [] : [l.colour],
-  );
+  drawing((f) => riveJudge.over(f, 0.2, 0.5, props))
+    .filter((l) => l.kind === 'fill')
+    .flatMap((l) => l.colours);
 
 test('the bench top is lined in the props it is given, never the kit’s own outline', () => {
   const props: Props = { ...propsOf(K1), sheetInk: '#0a0b0c', gavelInk: '#0d0e0f' };
@@ -1300,10 +1364,10 @@ const KIT_SHADING: ReadonlyMap<string, string> = new Map([
  */
 const hostColours = (d: Direction, swing: number, lean: number): ReadonlySet<string> => {
   const props = propsOf(d);
-  const papers = underHand(d, swing, lean).map((s) => s.paper as string);
+  const papers = underHand(d, swing, lean, props).map((s) => s.paper);
   return new Set(
     [
-      ...[...papers, ramps.paper.base].flatMap((p) => [p, derived(p).shade]),
+      ...papers.flatMap((p) => [p, derived(p).shade]),
       props.sheetInk,
       props.gavelInk,
       ...KIT_SHADING.keys(),
@@ -1315,9 +1379,11 @@ const hostColours = (d: Direction, swing: number, lean: number): ReadonlySet<str
 const hostFaults = (laid: ReadonlyArray<Laid>, allowed: ReadonlySet<string>) => [
   ...new Set(
     laid.flatMap((l) =>
-      l.colour === undefined || allowed.has(l.colour)
-        ? []
-        : [`${shown(l.colour)}: no base, no derived colour, not the kit’s named shading`],
+      l.colours.flatMap((c) =>
+        allowed.has(c)
+          ? []
+          : [`${l.kind} ${shown(c)}: no base, no derived colour, not the kit’s named shading`],
+      ),
     ),
   ),
 ];
@@ -1364,6 +1430,16 @@ describe('what the host lays round the figures', () => {
       (f) => `the accused: ${f}`,
     );
     expect([...new Set([...wrong, ...accused])]).toEqual([]);
+  });
+
+  test('the kit’s named shading is what the host lays, so the exception names nothing stale', () => {
+    const laid = new Set(
+      [
+        ...accusedHost(),
+        ...drawing((f) => riveJudge.over(f, GAVEL_REST, 0, propsOf(DIRECTION))),
+      ].flatMap((l) => l.colours),
+    );
+    expect([...KIT_SHADING.keys()].filter((c) => !laid.has(c))).toEqual([]);
   });
 
   test.each([
