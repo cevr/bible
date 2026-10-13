@@ -1648,7 +1648,7 @@ quotation set apart with who said it, marks stripped), and records it:
   default; `enumerateDevices`;
   the choice is remembered in this browser as `film-lab-mic`, a `keptText` in
   `ViewerStore`, `browser/storage.ts`), into an
-  `AudioWorklet` (`worklet.ts`) on an `AudioContext` at the device's own
+  [`AudioWorklet`](https://developer.mozilla.org/en-US/docs/Web/API/AudioWorklet) (`worklet.ts`) on an `AudioContext` at the device's own
   rate. The worklet hands each block of float PCM over untouched with its
   peak and RMS (the meter: dBFS, a clip warning at −1 dBFS); the page keeps
   the blocks from the count-in's end and joins them on stop. Nothing is
@@ -3163,7 +3163,8 @@ field that is not there. Write `(line) => Console.log(line)`.
 `attributeIs`, `attributesAre`, `valueIs`, `countIs`, `evaluates` for a
 script's answer, `waitFor`, `attached`, `until`), and a read that times out
 fails naming what it wanted and what the page last showed. A one-shot read
-(`textContent()`, `inputValue()`, `$eval`, `$$eval`, `isVisible()`,
+(`textContent()`, `inputValue()`, `$eval`, `$$eval`,
+[`isVisible()`](https://playwright.dev/docs/api/class-locator#locator-is-visible),
 `getAttribute()` or `count()` on the page or a locator, and an `evaluate(…)`
 whose answer `expect` asserts or a matcher compares with, followed through a
 `const` bound to it, a local helper that answers it, a part of it, a
@@ -3382,7 +3383,9 @@ the checks stay ours.
   outlives its frame, so nothing an earlier frame did reaches it:
   - Rive keeps a shape's paths in the shape's own space and remakes them only
     when a path's geometry changes or the shape-to-path transform moves past
-    16 float epsilons (`PathComposer` in rive-runtime), so an instance posed
+    16 float epsilons
+    ([`PathComposer`](https://github.com/rive-app/rive-runtime/blob/main/src/shapes/path_composer.cpp)
+    in rive-runtime), so an instance posed
     again keeps the paths an earlier frame made, with that frame's rounding
     (rigs with no boil too: the fixture arm 22 of 60 shuffled frames, the
     cold-studies accused 59 of 60);
@@ -3431,7 +3434,7 @@ The fixture rig is `src/rive/fixtures/arm/arm.rml`, built to
 
 `src/core` never touches the DOM at runtime (type-only DOM references are
 fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
-tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `player`, `tools`, `lab` or `browser`, `canvas` no `player`, `tools`, `lab` or `browser`, `player` no `tools` or `lab`, `browser` (the host's adapters) no `player`, `tools` or `lab`, and `command` (the commands, the keymap and the selection, shared by the player and the lab) no `player`, `tools` or `lab`.
+tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `rive` (the Rive loader and its runtimes) may import both; `player` may import all three. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `rive`, `player`, `tools`, `lab` or `browser`, `canvas` no `rive` (its fixtures, which load a rig to draw it, excepted), `player`, `tools`, `lab` or `browser`, `rive` no `player`, `tools`, `lab`, `browser` or `command`, `player` no `tools` or `lab`, `browser` (the host's adapters) no `player`, `tools` or `lab`, and `command` (the commands, the keymap and the selection, shared by the player and the lab) no `player`, `tools` or `lab`. Each block reads a layer's `.ts` and `.tsx`, and keeps a folder out whether a path names a file in it (`../tools/index.ts`) or the folder itself (`../tools`). An app reaches the film through its package exports (`@bible/film/rive`); lint refuses a relative path into `packages/film/src/` from `apps/animations/src/` (an app file outside `src/`, or another app, is not checked yet).
 
 **The host** (`src/browser/`): every browser API a page reaches goes through
 an Effect service there, each with its live adapter (`*-browser.ts`) and a

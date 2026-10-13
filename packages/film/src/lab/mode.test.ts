@@ -68,7 +68,7 @@ describe('the mode commands', () => {
       'lab.mode.compare',
       'lab.mode.record',
     ]);
-    for (const c of commands) Effect.runSync(c.run(ctx, BY_BUTTON));
+    for (const c of commands) Effect.runSync(c.run(ctx, { ...BY_BUTTON, input: 'pointer' }));
     expect(shown).toEqual([...LAB_MODES]);
   });
 });

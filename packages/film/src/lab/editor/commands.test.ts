@@ -73,7 +73,7 @@ describe('Undo while the machine cannot step', () => {
   test('a write out: not taken, and it says so; a receipt’s button holds', () => {
     for (const state of [writing, checking]) {
       const { undo, stepped } = commandsIn(state);
-      expect(Effect.runSync(undo.run(ctx, BY_BUTTON))).toEqual(
+      expect(Effect.runSync(undo.run(ctx, { ...BY_BUTTON, input: 'pointer' }))).toEqual(
         refused('undo not taken: a write is still out; undo once it lands'),
       );
       expect(stepped).toEqual([]);
@@ -85,7 +85,7 @@ describe('Undo while the machine cannot step', () => {
 
   test('a grip held: not taken, and it says so', () => {
     const { undo, stepped } = commandsIn(held);
-    expect(Effect.runSync(undo.run(ctx, BY_BUTTON))).toEqual(
+    expect(Effect.runSync(undo.run(ctx, { ...BY_BUTTON, input: 'pointer' }))).toEqual(
       refused('undo not taken: a cue or a handle is held; let it go first'),
     );
     expect(stepped).toEqual([]);
@@ -93,7 +93,7 @@ describe('Undo while the machine cannot step', () => {
 
   test('at rest: stepped, quietly (the step’s own receipt says it)', () => {
     const { undo, stepped } = commandsIn(EditState.Idle({ note: '' }));
-    expect(Effect.runSync(undo.run(ctx, BY_BUTTON))).toEqual(quiet);
+    expect(Effect.runSync(undo.run(ctx, { ...BY_BUTTON, input: 'pointer' }))).toEqual(quiet);
     expect(stepped).toEqual(['undo']);
   });
 });
@@ -114,7 +114,7 @@ describe('Undo by key or button steps the change its label names', () => {
   test('with the history as the page read it, the label and the step both name its top change', () => {
     const { undo, stepped } = stepsOf(true);
     expect(undo.labelIn?.(ctx)).toBe('Undo cue rise offset');
-    expect(Effect.runSync(undo.run(ctx, BY_BUTTON))).toEqual(quiet);
+    expect(Effect.runSync(undo.run(ctx, { ...BY_BUTTON, input: 'pointer' }))).toEqual(quiet);
     expect(stepped).toEqual(['undo c-rise']);
   });
 
@@ -134,7 +134,7 @@ describe('Undo by key or button steps the change its label names', () => {
   test('a change this page made since it read the history: the label names none, and the step is the newest', () => {
     const { undo, stepped } = stepsOf(false);
     expect(undo.labelIn?.(ctx)).toBe('Undo');
-    Effect.runSync(undo.run(ctx, BY_BUTTON));
+    Effect.runSync(undo.run(ctx, { ...BY_BUTTON, input: 'pointer' }));
     expect(stepped).toEqual(['undo newest']);
   });
 });
@@ -165,7 +165,7 @@ describe("walking the strip's cues", () => {
       Option.fromUndefinedOr(commands.find((c) => c.id === 'edit.cue-next')),
     );
     const on = withSelection(ctx, [cueOf('one', 'rise')]);
-    expect(Effect.runSync(walk.run(on, BY_BUTTON))).toEqual(quiet);
+    expect(Effect.runSync(walk.run(on, { ...BY_BUTTON, input: 'pointer' }))).toEqual(quiet);
     expect(did).toEqual(['seek 30', `select ${selectionText(cueOf('one', 'fall'))}`]);
   });
 });

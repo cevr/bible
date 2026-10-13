@@ -2,7 +2,9 @@
 
 Owner, 2026-10-13: "for paper cut art direction, maybe we can look at rimworld's ingame art style". Owner rulings received while this was written: **"outlines can be black, shading !== outlining"**, and **"dont worry about camera, just art direction"**. So this study covers figure construction, line, shape, colour, shading, texture, motion and charm. It does not cover the camera or top-down framing.
 
-Evidence labels: **[src]** is a cited page. **[code]** is a decompiled RimWorld alpha (ILSpy, last pushed 2018; `github.com/josh-m/RW-Decompile`) or vanilla defs as copied in a modding-template repo, so the numbers may have drifted in 1.5. **[mem]** is from memory or inferred, not verified here. Two GitHub "vanilla texture" copies I sampled turned out to be other games' anime-style art, so no pixel measurements of vanilla sprites appear below.
+Evidence labels: **[src]** is a cited page. **[code]** is a decompiled RimWorld alpha (ILSpy, last pushed 2018; `github.com/josh-m/RW-Decompile`) or vanilla defs as copied in a modding-template repo, so the numbers may have drifted in 1.5; the faces bullet reads a 1.6 decompile (`github.com/32bitx64bit/RW-Decompiled-1.6`). **[obs]** is what a cited image shows. **[mem]** is from memory or inferred, not verified here. Two GitHub "vanilla texture" copies I sampled turned out to be other games' anime-style art, so no pixel measurements of vanilla sprites appear below.
+
+The faces, the style's name and the face mods are studied further in [face-study.md](face-study.md), with the face kits they led to; the wider art library is [prior-art.md](prior-art.md).
 
 ## 1. What RimWorld does
 
@@ -10,19 +12,24 @@ Evidence labels: **[src]** is a cited page. **[code]** is a decompiled RimWorld 
 
 - Ludeon's 2013 brief: the art "has to convey a lot of complex gameplay information in a really intuitive way". It "has to balance abstraction with specificity". "If it's too specific, it fills in too many gaps so players have no room to subconsciously interpret." And: "We'd rather have 100 kinds of characters with 3 frames of animation each than 3 characters with a hundred frames each." They kept "the vector look because it satisfies RimWorld's design constraints very well." [src: https://ludeon.com/blog/2013/12/rhopunzel-in-the-house/]
 - Tynan Sylvester, by email: "be clear about what's happening, be very cheap to create, don't be ugly, don't overwhelm with details, and be abstract enough for players to make their own interpretation." He calls the style a "solution to a problem". [src: https://hickmandesign.co.uk/blog/history/art-behind-gameplay-journey-video-game-visual-styles/]
-- The style was borrowed from Prison Architect, with that game's artist's blessing ("I'm not a good enough artist to come up with a really good original look"). The in-game art is by Rhopunzel (Rho Watson); Ricardo Tomé drew the storytellers and menu art. [src: https://en.wikipedia.org/wiki/RimWorld; the Rhopunzel post above]
+- The style follows Prison Architect's (Introversion, 2012; art by Ryan Sumo). Tynan, 2013: "I drew some inspiration from PA." "But they do look somewhat similar; that's my fault." "I'm not a good enough artist to come up with a really good original look." "We don't share any tools." The in-game art is by Rhopunzel (Rho Watson); Ricardo Tomé painted the storytellers' portraits and the key art. [src: https://en.wikipedia.org/wiki/RimWorld and its note 32 (Ludeon forums, 2013-09-16); http://ryansumo.blogspot.com/2012/01/on-introversion-and-prison-architect.html; https://ludeon.com/blog/2014/01/cassandra-portrait/; the Rhopunzel post above]
 
 ### Pawn construction
 
-- **Parts, not a puppet.** A humanlike pawn is drawn as layered flat meshes: body, head (placed at the body type's `headOffset` for each facing), hair, apparel and headgear layers, then the equipment. It has no arms, hands or legs. [code: `Verse/PawnRenderer.cs` RenderPawnInternal, BaseHeadOffsetAt]
+- **Parts, not a puppet.** A humanlike pawn is drawn as layered flat meshes: body, head (placed at the body type's head offset for each facing), hair, apparel and headgear layers, then the equipment. It has no arms, hands or legs. [code: `Verse/PawnRenderer.cs` RenderPawnInternal, BaseHeadOffsetAt]
 - **Four facings from three drawings.** Textures are `_north`, `_east`, `_south`; west mirrors east when no `_west` exists. [code: `Verse/Graphic_Multi.cs`; src: https://rimworldwiki.com/wiki/Modding_Tutorials/Textures]. Turning is a swap of drawings, not a tween [mem].
 - **Five body types** (male, female, thin, fat, hulk). Each apparel piece is drawn once for each body type, 15+1 textures in all. [src: Mod Textures page]. Head shapes come in a few variants (average or narrow × normal, pointy or wide) [mem, from vanilla file names].
 - **Held things float.** An idle weapon sits at a fixed offset from the body's root, angled at 143° (217° facing west). A weapon in use sits 0.4 tile out along the aim angle and rotates to the target. The item does the pointing, and no arm is drawn. [code: PawnRenderer.DrawEquipment]. Mods such as "Show Me Your Hands" exist to add hands. [src: https://rimworldbase.com/show-me-your-hands-mod/]
-- **Faces.** Vanilla heads are a skin shape with a heavy outline and no eyes or mouth [mem]. Indirect evidence: whole mod families add eyes and blinking (https://www.nexusmods.com/rimworld/mods/556). The head is large against the body, about as wide as the torso [mem].
+- **Faces.** Vanilla heads have eyes and nothing else. From the front, a head has two small dark eye shapes with a tiny highlight; from the side, it has one. Female heads add small lash flicks. There is no mouth, brow or nose. [obs: the wiki's head textures, e.g. https://rimworldwiki.com/images/thumb/0/0f/Male_Average_Normal_south.png/120px-Male_Average_Normal_south.png; a 2013 Ludeon screenshot shows the same dot eyes, https://ludeon.com/blog/wp-content/uploads/2013/12/ss-2013-12-10-at-06.22.34.jpg]
+  - In 1.6, the eyes are render nodes anchored on the head (for blinks and eye genes), and their size follows the life stage. A baby's eyes are 0.7 of an adult's in a head 0.5 the size, so against its head they are 1.4× larger. [code: 1.6 decompile; vanilla LifeStages.xml]
+  - Ideology (2021) adds beards and face tattoos. Biotech (2022) adds genes for eye colour, ears, a heavy brow, a heavy jaw and a gaunt head. [src: https://rimworldwiki.com/wiki/Genes]
+  - Mouths, brows, lids and blinks come only from mods. The largest, [NL] Facial Animation, has 804k subscribers. [src: https://steamcommunity.com/sharedfiles/filedetails/?id=1635901197]
+  - An earlier draft of this study said vanilla heads had no eyes [mem]; that was wrong.
+  - The head is large against the body, about as wide as the torso [mem].
 - **State without a face.**
   - **Downed:** the same sprites rotate to a random 45–135° (or that plus 180°). An awake downed pawn wiggles about 0.35° a tick on a 300-tick cycle, and an "incapacitated" icon puffs up every 200 ticks. [code: `Verse/PawnDownedWiggler.cs`]
   - **In bed:** the bed can hide the body, leaving only the head. [code: `bed_showSleeperBody`]
-  - **Mood:** shown as small bubbles, good or bad, carrying an icon, attached over the pawn (`MakeMoodThoughtBubble`). Social interactions get symbol bubbles (`MakeInteractionBubble`). [code: `RimWorld/MoteMaker.cs`]
+  - **Mood:** shown as small bubbles, good or bad, carrying an icon, attached over the pawn (the mote maker's mood-thought bubble). Social interactions get symbol bubbles. [code: `RimWorld/MoteMaker.cs`]
 
 ### Line and shape
 
@@ -80,7 +87,7 @@ Evidence labels: **[src]** is a cited page. **[code]** is a decompiled RimWorld 
    - _Map:_ §11 rules 4 and 9.
    - _Fit:_ this is RimWorld's head-on-a-body at a fixed offset with floating equipment. Our circle hands with no arm are the same idea one step further: the hand floats, as RimWorld's weapon does.
 4. **The held thing points, not the arm.** A prop rides a hand circle, at an offset from the body's root, rotated toward what it acts on: the gavel toward the bench, a scroll toward the reader.
-   - _Map:_ the hand circle's `reachAbout` arc, plus a rotation on the held prop toward its target.
+   - _Map:_ the hand circle's reach arc, plus a rotation on the held prop toward its target.
    - _Fit:_ full fit with "no arm, ever".
 5. **Variety by swapping parts and recolouring, never by drawing a new person.**
    - Keep a small body-type set, about 4–5 silhouettes (slight, broad, tall, child, elder), a few head shapes and a few hats or hair, plus the garment tint from a ramp.
@@ -120,7 +127,7 @@ Evidence labels: **[src]** is a cited page. **[code]** is a decompiled RimWorld 
 - **C. Colour variety against three accents.** RimWorld gets identity from free recolouring. Ours holds every non-accent at saturation 0.2–0.35, with scarlet only for sin and white only for the robe.
   - Proposal: vary identity by hue and value inside the 0.2–0.35 band (and by silhouette, rule 5), never with a fourth accent.
 - **D. Head proportion.** RimWorld's head is about as wide as the torso. Our design language says the head is about ¼ of the body's height; the current accused is nearer ⅓.
-  - A bigger head helps a three-mark face read in a wide. Decide whether ⅓ is the new norm.
+  - A bigger head helps a minimal face read in a wide. Settled: the owner's K1 pick (2026-10-13) makes the head about ⅓ of the figure's height.
 - **E. In-sprite shading.** RimWorld shades a sprite's form by value (greyscale under a tint) [mem]. We take its tinted shadows and leave its value-shaded fills. This is not a real conflict, only a note that RimWorld is not a model for form shading.
 
 ## 4. What not to take
@@ -132,7 +139,7 @@ Evidence labels: **[src]** is a cited page. **[code]** is a decompiled RimWorld 
 
   They are words or icons on the picture (CRAFT 1), and they tell emotion instead of acting it.
 
-- **Facelessness.** It works for a sandbox where the player writes the story. The owner asked for "certain expressiveness", and our faces carry the turn ("astonished relief on 'righteous'"). Keep the three-mark face.
+- **The near-blank face.** A mouthless head with dot eyes works for a sandbox where the player writes the story. The owner asked for "certain expressiveness", then for faces "more interesting — rimworld style", and our faces carry the turn ("astonished relief on 'righteous'"). Faces are minimal but characterful. **OWNER QUESTION:** which kit; the four are in [face-study.md](face-study.md) § The kits.
 - **Interpretive ambiguity as a goal.** RimWorld wants room for the player to "make their own interpretation". Our figures can be everyman ("you"), but the meaning cannot be left open: the doctrine is source-checked. Abstraction is for the person, not the message.
 - **The tone.** RimWorld leans on gore, harsh comedy, flailing downed pawns and organ harvesting [mem]. A Scripture film keeps its blows off-body: no wound flashes, no knockback played for laughs, and a fallen figure lies still, not twitching.
 - **Art as a cheap placeholder.** RimWorld's look began as a borrowed stand-in. Our rule is art direction over speed, so take the restraint, not the excuse.

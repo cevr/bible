@@ -36,6 +36,7 @@ import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import { type Command, quiet, quietly, refused, said } from '../../command/command.ts';
 import { type Context, selected } from '../../command/context.ts';
+import type { Input } from '../../browser/keys.ts';
 import type { Hub } from '../../command/hub.ts';
 import { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
@@ -57,6 +58,7 @@ import { draftBook } from '../review/draft-book.ts';
 import type { InspectorBox } from '../review/inspector.tsx';
 import { Comments, SayBox } from '../review/options/choice.tsx';
 import { useOnScreenFirst } from '../review/options/stills.tsx';
+import { focusFor } from '../focus.ts';
 import { SceneCard, SceneFindings, SceneState, sceneHue } from './card.tsx';
 import { type Said, type ScenesRead, findingsOf, scenesCalls } from './data.ts';
 import { bandState, legendOf, marksOf } from './marks.ts';
@@ -400,7 +402,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   /** Whether a scene's sheet has a comment box: a film that is not a short, its project read. */
   const commentable = () => !short && Option.isSome(read().project);
   /** Raise `scene`'s sheet (a lowered one is lifted) and put the cursor in its comment box. */
-  const commentOn = (scene: string) => {
+  const commentOn = (scene: string, input: Input) => {
     select(Option.some(scene));
     flush();
     for (const field of Option.toArray(Option.fromUndefinedOr(fields.get(scene)))) {
@@ -411,9 +413,10 @@ export const ScenesView = (props: ScenesViewProps) => {
       )) {
         if (grip instanceof HTMLElement) grip.click();
       }
-      // The raised sheet shows the comment section; a hidden field takes no focus.
+      // The raised sheet shows the comment section; a hidden field takes no focus. The field
+      // shows the ring whatever asked, as a click into a text field does (`focusFor`).
       flush();
-      field.focus();
+      focusFor(field, input);
     }
   };
   const commands: ReadonlyArray<Command> = [
@@ -435,7 +438,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       about: ['Scene'],
       touch: 'Comment on the selected scene, or long-press a still',
       when: (ctx) => Option.isSome(sceneIn(ctx)) && commentable(),
-      run: quietly((ctx) => Option.map(sceneIn(ctx), commentOn)),
+      run: quietly((ctx, how) => Option.map(sceneIn(ctx), (scene) => commentOn(scene, how.input))),
     },
     {
       id: 'scenes.approve',

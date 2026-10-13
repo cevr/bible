@@ -11,6 +11,7 @@
 // the view still decodes.
 
 import { Effect, Option, Schema } from 'effect';
+import { Input } from '../browser/keys.ts';
 import { type StoreRuntime, keptJson } from '../browser/storage.ts';
 
 /** The rates the lab plays at: the only ones a stored view may hold. */
@@ -34,10 +35,17 @@ export const LabView = Schema.Struct({
   /** The page reloaded itself onto new code (a write's, a kept take's, the rebuild's): it flashes once as it lands. */
   landed: Schema.optionalKey(Schema.Boolean),
   /**
-   * Whether focus was in the studio (so its keys still reach it), kept through
-   * the reload a take kept causes; the beat is the link's (`?beat=`).
+   * Whether focus was in the studio (so its keys still reach it), and the input
+   * of the studio's last act (so the focus comes back with the ring iff a key
+   * kept the take), kept through the reload a take kept causes; the beat is the
+   * link's (`?beat=`).
    */
-  studio: Schema.optionalKey(Schema.Struct({ focused: Schema.optionalKey(Schema.Boolean) })),
+  studio: Schema.optionalKey(
+    Schema.Struct({
+      focused: Schema.optionalKey(Schema.Boolean),
+      input: Schema.optionalKey(Input),
+    }),
+  ),
 });
 export type LabView = typeof LabView.Type;
 

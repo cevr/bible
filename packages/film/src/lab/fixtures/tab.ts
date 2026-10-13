@@ -93,6 +93,7 @@ export interface Tab {
   readonly click: (selector: string) => Effect.Effect<void>;
   /** Clear the field at `selector` and type `value` into it. */
   readonly fill: (selector: string, value: string) => Effect.Effect<void>;
+  /** Focus the element at `selector` as the keyboard would: from script, showing the ring (`focusVisible`). */
   readonly focus: (selector: string) => Effect.Effect<void>;
   /** Pick the option `value` of the select at `selector`. */
   readonly select: (selector: string, value: string) => Effect.Effect<void>;
@@ -747,7 +748,7 @@ export const makeTab = (
     const focus = (selector: string) =>
       Effect.andThen(
         waitShown(selector),
-        run(`document.querySelector(${jsonOf(selector)}).focus()`),
+        run(`document.querySelector(${jsonOf(selector)}).focus({ focusVisible: true })`),
       );
 
     const clock = (control: string) => run(`globalThis[Symbol.for('${CLOCK}')].${control}`);

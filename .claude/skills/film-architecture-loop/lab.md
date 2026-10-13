@@ -13,13 +13,13 @@ The lab (`bun run lab`, `/films/<film>/lab`; always on as the box's `film-lab` u
 
 ## Prior art to compare
 
-| Tool                 | Read it for                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Remotion Studio      | the props panel that saves `defaultProps` back to the source file, the timeline of sequences, the render queue, `remotion benchmark` |
-| Theatre.js studio    | the sequence editor, keyframe curves, the object tree; and why its values live in JSON (rejected here: a second copy of a value)     |
-| Motion Canvas editor | the timeline with time events you drag (`waitUntil`), the frame-accurate scrubber, hot reload that keeps the time                    |
-| modem-dev/sideshow   | a comment on a live surface, long-polled and delivered to the agent once                                                             |
-| R3F + leva / drei    | leva's typed controls from a schema, drei's `<PerformanceMonitor>` and `invalidate` (redraw on change only)                          |
+| Tool                 | Read it for                                                                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Remotion Studio      | the props panel that saves `defaultProps` back to the source file, the timeline of sequences, the render queue, `remotion benchmark`                       |
+| Theatre.js studio    | the sequence editor, keyframe curves, the object tree; and why its values live in JSON (rejected here: a second copy of a value)                           |
+| Motion Canvas editor | the timeline with time events you drag ([`waitUntil`](https://motioncanvas.io/api/core/flow)), the frame-accurate scrubber, hot reload that keeps the time |
+| modem-dev/sideshow   | a comment on a live surface, long-polled and delivered to the agent once                                                                                   |
+| R3F + leva / drei    | leva's typed controls from a schema, drei's `<PerformanceMonitor>` and `invalidate` (redraw on change only)                                                |
 
 ## Report
 

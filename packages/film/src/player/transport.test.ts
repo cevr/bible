@@ -27,7 +27,7 @@ const transport = (start: number) => {
     if (found === undefined) throw new Error(`no command ${id}`);
     return found;
   };
-  const run = (id: string) => Effect.runSync(byId(id).run(ctx, BY_BUTTON));
+  const run = (id: string) => Effect.runSync(byId(id).run(ctx, { ...BY_BUTTON, input: 'pointer' }));
   return { rates, commands, byId, run };
 };
 
@@ -76,7 +76,8 @@ describe('the steps, a finger away (AA-8)', () => {
       'Next scene',
       'Scene start, or the scene before',
     ]);
-    for (const row of rows) Effect.runSync(row.command.run(ctx, { step: row.step, via: 'menu' }));
+    for (const row of rows)
+      Effect.runSync(row.command.run(ctx, { step: row.step, via: 'menu', input: 'pointer' }));
     expect(moved).toEqual([
       'frames 1',
       'frames 10',
@@ -94,7 +95,7 @@ describe('the legend', () => {
     const command = legendCommand({ shown: () => shown, toggle: () => (shown = !shown) });
     expect(command.keys).toEqual([]);
     expect(labelOf(command, ctx)).toBe('Show the legend');
-    Effect.runSync(command.run(ctx, BY_BUTTON));
+    Effect.runSync(command.run(ctx, { ...BY_BUTTON, input: 'pointer' }));
     expect(labelOf(command, ctx)).toBe('Hide the legend');
   });
 });

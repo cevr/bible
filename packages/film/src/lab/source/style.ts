@@ -31,7 +31,6 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
   overflow-anchor: none; /* the browser never moves the scroll by itself: the view places it, layout clamps it, a hand moves it */ }
 .lab-source-page { --source-lh: var(--body-lh); position: relative; font-size: var(--body-fs); line-height: var(--source-lh);
   tab-size: 2; color: var(--text-1); }
-.lab-source-page:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 /* A row to a line: the number beside the text, a long line wrapping under its own number (one layout, phone and laptop). */
 .lab-source-line { position: relative; display: grid; min-height: var(--source-lh);
   grid-template-columns: calc(var(--digits) * 1ch + var(--gutter) + var(--s-2)) minmax(0, 1fr); cursor: pointer; }

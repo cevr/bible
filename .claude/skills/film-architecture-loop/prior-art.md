@@ -22,10 +22,10 @@ The rule behind every rejection: a frame is a pure function of `T` (north star "
 
 **Timing**
 
-- **Adopt: named cues, resolved once.** Each scene declares its timeline as named spans anchored to a mark or to another cue, never to an absolute second. `layout()` resolves them with no DOM; `draw` reads `f.cue(name)`; `sound.ts` references `{scene, cue, edge}`. Sources: Motion Canvas `waitUntil`, Motion `calc-time.ts:7-24` (number, `+n`, `-n`, `<`, labels; our marks are the labels).
+- **Adopt: named cues, resolved once.** Each scene declares its timeline as named spans anchored to a mark or to another cue, never to an absolute second. `layout()` resolves them with no DOM; `draw` reads `f.cue(name)`; `sound.ts` references `{scene, cue, edge}`. Sources: Motion Canvas [`waitUntil`](https://motioncanvas.io/api/core/flow), Motion `calc-time.ts:7-24` (number, `+n`, `-n`, `<`, labels; our marks are the labels).
 - **Adopt:** `stagger` with `from` and `ease` (motion-dom `stagger.ts:21-39`); springs baked into closed-form easing (motion-dom `create-generator-easing.ts:8-26`).
 - **Adapt:** Motion Canvas `all`/`chain`/`sequence`/`delay` as span constructors that resolve to times, not generators.
-- **Rejected:** Motion Canvas generators and signals (a seek replays from the scene start, `PlaybackManager.ts:83-107`). Theatre's absolute-time JSON keyframes (a re-record strands them). Sounds collected by running the scenes (the mix must resolve from `layout()`). Motion's MotionValues, `springValue` and `threeEffect`, plus R3F `useFrame` and the zustand store (history-dependent). R3F's reconciler (diffing a retained graph buys nothing for stateless frames).
+- **Rejected:** Motion Canvas generators and signals (a seek replays from the scene start, `PlaybackManager.ts:83-107`). Theatre's absolute-time JSON keyframes (a re-record strands them). Sounds collected by running the scenes (the mix must resolve from `layout()`). Motion's MotionValues, [`springValue`](https://motion.dev/docs/spring-value) and [`threeEffect`](https://github.com/motiondivision/motion/blob/main/packages/motion/src/three.ts), plus R3F [`useFrame`](https://r3f.docs.pmnd.rs/api/hooks#useframe) and the zustand store (history-dependent). R3F's reconciler (diffing a retained graph buys nothing for stateless frames).
 
 **Structure**
 
@@ -34,7 +34,7 @@ The rule behind every rejection: a frame is a pure function of `T` (north star "
 
 **Rendering and audio (Remotion)**
 
-Most of Remotion exists to make an async React page render the same frame every time (`delayRender`, premounting, media sync). A synchronous canvas that is a pure function of `T` needs none of it.
+Most of Remotion exists to make an async React page render the same frame every time ([`delayRender`](https://www.remotion.dev/docs/delay-render), premounting, media sync). A synchronous canvas that is a pure function of `T` needs none of it.
 
 - **Adopt:** a lossless audio master: the `Mixer` writes `full.wav` (the player streams it too), and `Media.join` encodes AAC from the samples under the render's range. One scope for the browser and pages, with a chunk retried when a page crashes (`render-frame-and-retry-target-close.ts`). Chunks on a queue, about 4× the worker count. Captions (SRT/VTT) from the word timings.
 - **Diverged (2026-09-26):** Remotion pipes frames into ffmpeg; here each page encodes its chunk with WebCodecs through mediabunny (`petergpt/painted-rickroll` does the same), so no frame leaves the page as an image and no ffmpeg binary is needed. The whole film renders in about two minutes, against about ten.

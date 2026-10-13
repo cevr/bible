@@ -6,8 +6,15 @@
 // the kit (§5), each control styled once: the quiet and primary buttons
 // (`.sh-btn`), the icon button (`.sh-tool`), the segmented control
 // (`.sh-seg`), the field (`.lab-num`, a `select`), the slider, the badge
-// (`.sh-badge`), one focus ring for them all, and words said, not shown
-// (`.sh-sr`). Every page injects it with the commands' styles.
+// (`.sh-badge`), and words said, not shown (`.sh-sr`); and the one focus
+// ring, `--focus-ring`, on whatever the keyboard focuses: a control, a link,
+// a scroll box the browser makes focusable, a dialog the focus falls back
+// to. It is one rule of no weight, so a part that draws its ring inside a
+// clipping edge (`--focus-ring-inset`) says so in a rule of its own; and a
+// floating root (role dialog, alertdialog or menu: a dialog, a sheet, a
+// menu, a receipt, each drawn over `--shadow-pop`) keeps that shadow under
+// the ring, in a rule that outweighs the part's own resting shadow. Every
+// page injects it with the commands' styles.
 
 import { PHONE, WIDE } from './viewport.ts';
 
@@ -66,7 +73,6 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 .sh-tool:is([aria-pressed="true"], .on), .sh-tool:is([aria-pressed="true"], .on):hover:not(:disabled) { color: var(--accent); }
 .sh kbd { font-family: var(--font); font-size: var(--fs-1); line-height: var(--lh-1); padding: 0 var(--s-1);
   border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--text-2); }
-.sh-header :focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .sh-body { flex: 1; min-width: 0; }
 /* A film's page before its film is staged (\`film-page.tsx\`): a quiet line where the picture lands. */
 .sh-await { margin: 0; padding: var(--s-4) var(--gutter); color: var(--text-2); font-size: var(--fs-2); }
@@ -161,9 +167,9 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
   margin-top: calc((var(--s-1) - var(--s-4)) / 2); border: 0; border-radius: var(--r-1); background: var(--accent); }
 :where(input[type="range"])::-moz-range-thumb { width: var(--s-1); height: var(--s-4); border: 0; border-radius: var(--r-1);
   background: var(--accent); }
-/* Focus: every kit control, on every page and in every portal, shows the studio's ring, not the browser's outline. */
-:where(.sh-btn, .sh-tool, .sh-seg > button, .lab-num, select, input, textarea, [role="option"]):focus-visible {
-  outline: none; box-shadow: var(--focus-ring); }
+/* Focus: the studio's ring, never the browser's; a floating root keeps its pop under it. */
+:where(:focus-visible) { outline: none; box-shadow: var(--focus-ring); }
+:is([role=dialog], [role=alertdialog], [role=menu]):focus-visible { box-shadow: var(--focus-ring), var(--shadow-pop); }
 /* Chip / badge: a state's word (or a count), its edge and its words in the state's colour, no fill;
    its own type, never a heading's caps and tracking around it. */
 :where(.sh-badge) { display: inline-block; padding: 0 var(--s-1); border: 1px solid currentColor; border-radius: var(--r-1);
