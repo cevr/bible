@@ -228,6 +228,8 @@ Every KJV reference in the tables was printed by the CLI during this research. T
 
 ## 5. Steer around (audience rule: every Christian)
 
+- **Fiction (owner rule, 2026-10-13).** Fiction is avoided as a rule (CT 134.2, 383.2), but a story may be used allegorically, the way a parable is, to carry a Bible truth. Ellen White commended _The Pilgrim's Progress_ (find and cite her words in `sources.md`). So no. 57's knight-and-giants allegory stays, framed openly as an allegory, and no. 68 teaches the rule and its allegory exception.
+
 - **Denominational history:** no church history, school-founding stories or institutional names.
   - The Kellogg book's Battle Creek setting is not mentioned in speech.
   - The Credits booklet's "papal degrees" claim (pp. 8–9) is left out.
