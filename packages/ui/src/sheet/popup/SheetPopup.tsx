@@ -23,6 +23,7 @@
 // `swipeAnimation` names `@keyframes` (from exited to entered) the panel runs
 // along the swipe; `stackAnimation` names ones it runs for each sheet opened
 // in front of it, composed one onto the next.
+import { autoUpdate } from '@floating-ui/dom';
 import { isServer, type JSX } from '@solidjs/web';
 import { createEffect, createSignal, For, omit, Show, untrack } from 'solid-js';
 
@@ -198,6 +199,12 @@ function panelClip(
   return `inset(${px(top - s.top)} ${px(s.right - right)} ${px(s.bottom - bottom)} ${px(left - s.left)})`;
 }
 
+/** Leaves the container no clip and no presses of its own (its overlay's `none` again). */
+function unclip(scroller: HTMLElement) {
+  scroller.style.removeProperty('clip-path');
+  scroller.style.removeProperty('pointer-events');
+}
+
 /**
  * The sheet's panel, in the scroll container that swipes it.
  * Renders a `<div>` element (in two of its own).
@@ -262,33 +269,48 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
   // everywhere else. Once it has scrolled in, the container that scrolls takes them itself, so
   // a finger on the panel scrolls it on every engine (iOS Safari scrolls no container that
   // takes no presses from a child that does: WebKit bug 183870), clipped to the panel's box
-  // (`panelClip`). That box is read each frame, as the browser lays it out, so whatever moves
-  // the panel (its owner's offsets, a resize, a turn to another edge) moves the clip in the same
-  // frame. While it scrolls in or out on its own, and until it is first read (the server's
-  // markup), the container takes no presses and draws all of the panel, and the panel takes
-  // its own.
-  const [reach, setReach] = createSignal<string | null>(null, owned);
+  // (`panelClip`), written on the container's style as it changes. It is read again whenever
+  // the panel can have moved: the container scrolled or resized, the panel resized or moved by
+  // anything else (its owner's offsets, a dock under it: floating-ui's `autoUpdate`, an
+  // IntersectionObserver fitted to its box), its edge or a finger's swipe changed. Nothing runs
+  // while it stands untouched. While it scrolls in or out on its own, and until it is first
+  // read (the server's markup), the container takes no presses and draws all of the panel, and
+  // the panel takes its own.
   createEffect(
-    () => [scroller(), panel(), store.modal(), sheet.entered()] as const,
-    ([scrollElement, panelElement, modal, entered]) => {
+    () =>
+      [
+        scroller(),
+        panel(),
+        store.modal(),
+        sheet.entered(),
+        sheet.fingerSwipes(),
+        config(),
+      ] as const,
+    ([scrollElement, panelElement, modal, entered, lane, swipe]) => {
       if (modal || !entered || !scrollElement || !panelElement) {
-        setReach(null);
         return undefined;
       }
-      let frame = 0;
-      const look = () => {
-        setReach(
-          panelClip(
-            scrollElement,
-            panelElement,
-            restAt(scrollElement, untrack(config)),
-            sheet.fingerSwipes(),
-          ),
-        );
-        frame = requestAnimationFrame(look);
+      const write = () => {
+        const clip = panelClip(scrollElement, panelElement, restAt(scrollElement, swipe), lane);
+        if (clip === null) {
+          unclip(scrollElement);
+          return;
+        }
+        scrollElement.style.setProperty('pointer-events', 'auto');
+        scrollElement.style.setProperty('clip-path', clip);
       };
-      look();
-      return () => cancelAnimationFrame(frame);
+      scrollElement.addEventListener('scroll', write, { passive: true });
+      // The window's own scroll and resize move nothing here: the overlay is fixed, and a resize
+      // resizes the container.
+      const stop = autoUpdate(panelElement, scrollElement, write, {
+        ancestorScroll: false,
+        ancestorResize: false,
+      });
+      return () => {
+        stop();
+        scrollElement.removeEventListener('scroll', write);
+        unclip(scrollElement);
+      };
     },
   );
 
@@ -390,9 +412,8 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
     // overlay is fixed.
     const scrollX = store.modal() && !isServer ? untrack(() => window.scrollX) : 0;
     const scrollY = store.modal() && !isServer ? untrack(() => window.scrollY) : 0;
-    const clip = reach();
+    // Its `clip-path` and `pointer-events` are written as the panel moves (see above).
     return {
-      ...(clip !== null && { 'pointer-events': 'auto', 'clip-path': clip }),
       position: 'absolute',
       top: axis === 'y' ? `calc(${scrollY}px + ${containerOffset}dvh)` : `${scrollY}px`,
       left: axis === 'x' ? `calc(${scrollX}px + ${containerOffset}dvw)` : `${scrollX}px`,

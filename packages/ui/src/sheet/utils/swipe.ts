@@ -334,27 +334,45 @@ export const SCROLL_OVER_MS = SETTLE_QUIET_MS;
 
 /**
  * Resolves once the scroll a user's gesture set off has ended, its momentum and its snap with
- * it: on `scrollend`, or, where the browser has none (Safari before 26.2), once no `scroll` has
- * come for 150 ms. One that set no scroll off has ended once `idleMs` (500 ms) pass with none;
- * one whose `scrollend` never comes (its container gone), once it has stood still for a second.
+ * it: on a `scrollend` after which it stands still the next frame, or, where the browser has
+ * none (Safari before 26.2), once no `scroll` has come for 150 ms. A `scrollend` it moves on
+ * from ends an earlier scroll this one cut short (a snap a key's scroll took over), not this
+ * one. One that set no scroll off has ended once `idleMs` (500 ms) pass with none; one whose
+ * `scrollend` never comes (its container gone), once it has stood still for a second.
  */
 export function gestureSettled(scroller: HTMLElement, idleMs = GESTURE_IDLE_MS): Promise<void> {
   return new Promise((resolve) => {
     const ends = 'onscrollend' in window;
     let timer = setTimeout(() => done(), idleMs);
+    let frame = 0;
+    const position = () => `${scroller.scrollLeft},${scroller.scrollTop}`;
     const onScroll = () => {
       clearTimeout(timer);
       timer = setTimeout(() => done(), ends ? GESTURE_QUIET_MS : SETTLE_QUIET_MS);
     };
+    const onScrollEnd = () => {
+      const at = position();
+      cancelAnimationFrame(frame);
+      // A `scrollend` comes in the frame's scroll steps, before its animation frame callbacks:
+      // the next frame is the second callback on.
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          if (position() === at) {
+            done();
+          }
+        });
+      });
+    };
     const done = () => {
       clearTimeout(timer);
+      cancelAnimationFrame(frame);
       scroller.removeEventListener('scroll', onScroll);
-      scroller.removeEventListener('scrollend', done);
+      scroller.removeEventListener('scrollend', onScrollEnd);
       resolve();
     };
     scroller.addEventListener('scroll', onScroll, { passive: true });
     if (ends) {
-      scroller.addEventListener('scrollend', done);
+      scroller.addEventListener('scrollend', onScrollEnd);
     }
   });
 }

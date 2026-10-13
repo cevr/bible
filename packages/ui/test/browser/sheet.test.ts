@@ -1237,8 +1237,9 @@ describe('swipe to dismiss', () => {
   it("a snap the browser starts just after the user's scroll ended is still theirs: carried to the exit by it, the sheet is swiped away", async () => {
     // Desktop WebKit snaps a wheel's scroll in two: back to the open snap at once (a `scrollend`
     // there), then, about 90 ms later, on to the snap in the wheel's direction, the exit (probe
-    // r6/probe-webkit.ts). Chromium's own snap is played here as WebKit's second one.
-    const page = await h.open('sheet');
+    // r6/probe-webkit.ts). Chromium's own snap is played here as WebKit's second one, in a page
+    // that reads itself as desktop WebKit (no other engine snaps twice).
+    const page = await h.open('sheet', { engine: 'webkit', platform: 'MacIntel' });
     await openSheet(page);
     await page.locator('#overlay [data-sheet-scroll]').evaluate((el) => {
       el.addEventListener(
@@ -1250,6 +1251,29 @@ describe('swipe to dismiss', () => {
     await wheelSheet(page, 0, -100);
     await see(page.locator('#popup')).toHaveCount(0);
     expect(await opens(page)).toEqual(['open false swipe']);
+  });
+
+  it("elsewhere, a scroll that starts after the user's scroll ended is not theirs: carried out of view by it, the sheet rests again", async () => {
+    const page = await h.open('sheet');
+    await openSheet(page);
+    await page.locator('#overlay [data-sheet-scroll]').evaluate((el) => {
+      const w = window as unknown as { __least: number };
+      w.__least = el.scrollTop;
+      el.addEventListener('scroll', () => (w.__least = Math.min(w.__least, el.scrollTop)));
+      el.addEventListener(
+        'scrollend',
+        () => setTimeout(() => el.scrollTo({ top: 0, behavior: 'smooth' }), 90),
+        { once: true },
+      );
+    });
+    await wheelSheet(page, 0, -100);
+    // Carried wholly out of view, then back at rest.
+    await see
+      .poll(() => page.evaluate(() => (window as unknown as { __least: number }).__least))
+      .toBe(0);
+    await see.poll(async () => (await scrollState(page)).top, { timeout: 5000 }).toBe(600);
+    await see(page.locator('#popup')).toBeVisible();
+    expect(await opens(page)).toEqual([]);
   });
 
   it('a side sheet dismisses on a scroll along its own axis', async () => {
@@ -2000,4 +2024,713 @@ describe('a finger', () => {
       'open false swipe',
     ]);
   });
+});
+
+describe('at rest', () => {
+  /** Counts the page's animation frame requests from now on; answers how to read the count. */
+  const countFrames = async (page: Page) => {
+    await page.evaluate(() => {
+      const w = window as unknown as { __frames: number };
+      w.__frames = 0;
+      const request = window.requestAnimationFrame.bind(window);
+      window.requestAnimationFrame = (callback) => {
+        w.__frames += 1;
+        return request(callback);
+      };
+    });
+    return () => page.evaluate(() => (window as unknown as { __frames: number }).__frames);
+  };
+
+  it('a sheet that is not modal, open and untouched, does no work each frame', async () => {
+    const page = await h.open('sheet', {
+      query: { modal: 'false', dismissal: 'disabled', portal: 'inline', position: 'breakpoint' },
+    });
+    await page.addStyleTag({ content: OFFSETS });
+    await openSheet(page, 'popup');
+    await modelSettles(page);
+    const frames = await countFrames(page);
+    // oxlint-disable-next-line effect/noFixedWaitInTests -- a frame that must not be asked for cannot be awaited; a loop asks 60 a second
+    await page.waitForTimeout(1000);
+    expect(await frames()).toBe(0);
+    // It still follows what moves its panel: its page's offset, then a wheel's swipe that
+    // snaps back, and is idle again after each.
+    await page.evaluate(() => document.documentElement.style.setProperty('--floor', '40px'));
+    await see.poll(() => reachOf(page)).toEqual(standsAt(restIn({ width: 800, height: 600 }, 40)));
+    await wheelSheet(page, 0, -60);
+    await modelSettles(page);
+    await see.poll(() => reachOf(page)).toEqual(standsAt(restIn({ width: 800, height: 600 }, 40)));
+    const after = await countFrames(page);
+    // oxlint-disable-next-line effect/noFixedWaitInTests -- as above: the absence of frames is watched over a second
+    await page.waitForTimeout(1000);
+    expect(await after()).toBe(0);
+  });
+});
+
+// The sheet's two invariants, held over runs of the user's inputs and the page's layout changes
+// in any order, at any time, the entrance and the exit among them:
+//
+// 1. Intent. It is swiped away if and only if a gesture of the user's carried it out of the
+//    window: an input the sheet's own scroll took (a finger's drag, a wheel, a scroll key) moved
+//    it toward its exit, and it then stood wholly out of the window with no finger on it. An
+//    input that moves nothing is no gesture; a scroll a layout made is no gesture.
+// 2. Position. Once a run settles, a sheet still open rests at the end its window gives it (the
+//    breakpoint's edge, its page's offset applied), says that edge in `data-position`, is drawn
+//    whole, and a press beside it reaches the page. A press beside it reaches the page too just
+//    after an input that moved nothing.
+//
+// What happened is read by the page itself, apart from the sheet: each frame where the panel
+// stands against the window and where its container is scrolled, whether a finger is down, and
+// when each input and each layout change was sent. A run where a layout change met a gesture
+// that had moved the sheet may end either way; it is still held to the position invariant.
+
+/** A step of a run: an input of the user's, a change of the page's layout, or a wait. */
+type ModelStep =
+  | { readonly kind: 'open' }
+  | { readonly kind: 'finger'; readonly how: 'fling' | 'short' | 'back' | 'still' | 'list' }
+  | { readonly kind: 'wheel'; readonly how: 'fine' | 'coarse' | 'stream' | 'back' }
+  | { readonly kind: 'key'; readonly how: 'exit' | 'back' }
+  | { readonly kind: 'escape' }
+  | { readonly kind: 'size'; readonly width: number; readonly height: number }
+  | { readonly kind: 'flicker'; readonly width: number; readonly height: number }
+  | { readonly kind: 'offset'; readonly by: number }
+  | { readonly kind: 'wait'; readonly frames: number }
+  | { readonly kind: 'rest' };
+
+/** A run: the page it opens (a phone's touch page or a mouse's), its window, and its steps. */
+interface ModelRun {
+  readonly name: string;
+  readonly touch: boolean;
+  readonly size: { readonly width: number; readonly height: number };
+  readonly query?: Record<string, string>;
+  readonly steps: ReadonlyArray<ModelStep>;
+}
+
+/** A frame as the page saw it: how far the panel stands past the window's edge (`past`, ≥ 0 out). */
+interface ModelFrame {
+  readonly t: number;
+  readonly past: number | null;
+  readonly pos: number | null;
+  readonly fingers: number;
+  readonly leaving: boolean;
+}
+
+/** When an input or a layout change was sent, and how long the fixture's log was then. */
+interface ModelMark {
+  readonly t: number;
+  readonly kind: 'user' | 'layout' | 'open' | 'close';
+  readonly log: number;
+}
+
+interface ModelWindow {
+  __model: { frames: Array<ModelFrame>; marks: Array<ModelMark> };
+  __mark: (kind: ModelMark['kind']) => void;
+  __log: Array<string>;
+}
+
+const MODEL_QUERY = {
+  modal: 'false',
+  dismissal: 'disabled',
+  portal: 'inline',
+  position: 'breakpoint',
+};
+
+/** Has the page record each frame, each finger and each resize, apart from the sheet. */
+const watchModel = (page: Page) =>
+  page.evaluate(() => {
+    const w = window as unknown as ModelWindow;
+    w.__model = { frames: [], marks: [] };
+    w.__mark = (kind) => w.__model.marks.push({ t: performance.now(), kind, log: w.__log.length });
+    let fingers = 0;
+    const count = (event: TouchEvent) => {
+      fingers = event.touches.length;
+    };
+    for (const type of ['touchstart', 'touchend', 'touchcancel'] as const) {
+      addEventListener(type, count, { capture: true, passive: true });
+    }
+    addEventListener('resize', () => w.__mark('layout'));
+    const sample = () => {
+      const panel = document.getElementById('panel');
+      const scroller = document.querySelector<HTMLElement>('#overlay [data-sheet-scroll]');
+      const t = performance.now();
+      if (panel && scroller) {
+        const r = panel.getBoundingClientRect();
+        const across = ['left', 'right'].includes(panel.getAttribute('data-position') ?? '');
+        w.__model.frames.push({
+          t,
+          past: Math.max(r.top - innerHeight, -r.bottom, r.left - innerWidth, -r.right),
+          pos: across ? scroller.scrollLeft : scroller.scrollTop,
+          fingers,
+          leaving: panel.hasAttribute('data-exiting'),
+        });
+      } else {
+        w.__model.frames.push({ t, past: null, pos: null, fingers, leaving: false });
+      }
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+
+const markModel = (page: Page, kind: ModelMark['kind']) =>
+  page.evaluate((kind) => (window as unknown as ModelWindow).__mark(kind), kind);
+
+/** Where the sheet's panel shows now, and how far its container is scrolled; null when gone. */
+const sheetNow = (page: Page) =>
+  page.evaluate(() => {
+    const panel = document.getElementById('panel');
+    const scroller = document.querySelector<HTMLElement>('#overlay [data-sheet-scroll]');
+    if (!panel || !scroller) {
+      return null;
+    }
+    const r = panel.getBoundingClientRect();
+    const across = ['left', 'right'].includes(panel.getAttribute('data-position') ?? '');
+    const left = Math.max(r.left, 0);
+    const top = Math.max(r.top, 0);
+    const right = Math.min(r.right, innerWidth);
+    const bottom = Math.min(r.bottom, innerHeight);
+    return {
+      across,
+      shows: right - left > 8 && bottom - top > 8,
+      x: (left + right) / 2,
+      y: (top + bottom) / 2,
+      left,
+      top,
+      extent: across ? r.width : r.height,
+      moving: panel.hasAttribute('data-entering') || panel.hasAttribute('data-exiting'),
+      pos: across ? scroller.scrollLeft : scroller.scrollTop,
+    };
+  });
+
+/** Resolves once the sheet is gone, or neither entering nor leaving and still for 20 frames. */
+const modelSettles = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        let last = '';
+        let still = 0;
+        const deadline = performance.now() + 8000;
+        const look = () => {
+          const panel = document.getElementById('panel');
+          const scroller = document.querySelector<HTMLElement>('#overlay [data-sheet-scroll]');
+          const moving =
+            panel !== null &&
+            (panel.hasAttribute('data-entering') || panel.hasAttribute('data-exiting'));
+          const now =
+            panel && scroller ? `${scroller.scrollLeft},${scroller.scrollTop},${moving}` : 'gone';
+          still = now === last && !moving ? still + 1 : 0;
+          last = now;
+          if (still >= 20 || performance.now() > deadline) {
+            resolve();
+          } else {
+            requestAnimationFrame(look);
+          }
+        };
+        look();
+      }),
+  );
+
+/** A finger down at `from`, moved by `by` in `steps` moves 8 ms apart, and lifted. */
+async function modelTouch(
+  page: Page,
+  from: { x: number; y: number },
+  by: { x: number; y: number },
+  steps: number,
+) {
+  const cdp = await page.context().newCDPSession(page);
+  const start = Date.now() / 1000;
+  const at = (type: 'touchStart' | 'touchMove' | 'touchEnd', step: number) =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints:
+        type === 'touchEnd'
+          ? []
+          : [
+              {
+                x: from.x + (steps === 0 ? 0 : (by.x * step) / steps),
+                y: from.y + (steps === 0 ? 0 : (by.y * step) / steps),
+              },
+            ],
+      timestamp: start + step * 0.008,
+    });
+  await at('touchStart', 0);
+  await Array.from({ length: steps }, (_, i) => i + 1).reduce<Promise<unknown>>(
+    (previous, step) => previous.then(() => at('touchMove', step)),
+    Promise.resolve(),
+  );
+  await at('touchEnd', Math.max(steps, 1));
+  await cdp.detach();
+}
+
+/** What a run did and how it ended, for its case to hold to the two invariants. */
+interface ModelResult {
+  readonly did: Array<string>;
+  readonly presses: Array<string>;
+  readonly frames: Array<ModelFrame>;
+  readonly marks: Array<ModelMark>;
+  readonly log: Array<string>;
+  readonly size: { width: number; height: number };
+  readonly by: number;
+  readonly end: {
+    readonly open: boolean;
+    readonly position?: string | null;
+    readonly reach?: unknown;
+  };
+}
+
+/** Runs `run`'s steps on a fresh page, then lets it settle and reads how it ended. */
+async function runModel(run: ModelRun): Promise<ModelResult> {
+  const page = await h.open('sheet', {
+    touch: run.touch,
+    deviceWidth: run.touch,
+    viewport: run.size,
+    query: { ...MODEL_QUERY, ...run.query },
+  });
+  await page.addStyleTag({ content: OFFSETS });
+  await frames(page);
+  await watchModel(page);
+  let size = run.size;
+  let by = 0;
+  const did: Array<string> = [];
+  const presses: Array<string> = [];
+  const user = async (name: string, send: () => Promise<unknown>) => {
+    const before = await sheetNow(page);
+    if (!before?.shows) {
+      did.push(`${name} (nothing shows)`);
+      return;
+    }
+    did.push(name);
+    await markModel(page, 'user');
+    await send();
+    // An input that moved nothing leaves every press beside the panel to the page.
+    await framesOf(page, 6);
+    const after = await sheetNow(page);
+    if (after && !before.moving && !after.moving && Math.abs(after.pos - before.pos) < 1) {
+      const reach = await reachOf(page);
+      if (reach && !reach.outside) {
+        presses.push(`${name}: moved nothing, and a press beside the panel missed the page`);
+      }
+    }
+  };
+  const step = async (s: ModelStep) => {
+    switch (s.kind) {
+      case 'open': {
+        await see(page.locator('#panel[data-exiting]')).toHaveCount(0, { timeout: 8000 });
+        if ((await page.locator('#panel').count()) > 0) {
+          did.push('open (open already)');
+          return;
+        }
+        did.push('open');
+        await markModel(page, 'open');
+        await page.click('#open');
+        return;
+      }
+      case 'finger': {
+        await user(`finger ${s.how}`, async () => {
+          const at = (await sheetNow(page))!;
+          const toward = (d: number) => (at.across ? { x: d, y: 0 } : { x: 0, y: d });
+          if (s.how === 'list') {
+            const body = await box(page, '#body');
+            // Up from the list's foot, slowly, much further than the list scrolls: the browser
+            // gives the whole drag to the list, and the sheet does not move.
+            const from = { x: body.x + body.width / 2, y: body.y + body.height - 5 };
+            await modelTouch(page, from, { x: 0, y: -800 }, 40);
+            return;
+          }
+          const from = at.across ? { x: at.left + 20, y: at.y } : { x: at.x, y: at.top + 20 };
+          if (s.how === 'fling') await modelTouch(page, from, toward(at.extent * 1.3), 6);
+          if (s.how === 'short') await modelTouch(page, from, toward(40), 5);
+          if (s.how === 'back') await modelTouch(page, from, toward(-60), 5);
+          if (s.how === 'still') await modelTouch(page, from, toward(0), 5);
+        });
+        return;
+      }
+      case 'wheel': {
+        await user(`wheel ${s.how}`, async () => {
+          const at = (await sheetNow(page))!;
+          await page.mouse.move(at.x, at.y);
+          const wheel = (d: number) => page.mouse.wheel(at.across ? d : 0, at.across ? 0 : d);
+          if (s.how === 'fine') await wheel(-60);
+          if (s.how === 'coarse') await wheel(-400);
+          if (s.how === 'back') await wheel(120);
+          if (s.how === 'stream') {
+            await Array.from({ length: 6 }).reduce<Promise<void>>(
+              (previous) =>
+                previous.then(async () => {
+                  await wheel(-300);
+                  await framesOf(page, 4);
+                }),
+              Promise.resolve(),
+            );
+          }
+        });
+        return;
+      }
+      case 'key': {
+        await user(`key ${s.how}`, async () => {
+          const at = (await sheetNow(page))!;
+          const keys = at.across
+            ? { exit: 'ArrowLeft', back: 'ArrowRight' }
+            : { exit: 'PageUp', back: 'ArrowDown' };
+          // The keys of a user who has moved into the sheet (a click, a tab): its content has focus.
+          await page.locator('#popup').focus();
+          await page.keyboard.press(keys[s.how]);
+        });
+        return;
+      }
+      case 'escape': {
+        if ((await page.locator('#panel').count()) === 0) {
+          did.push('escape (nothing open)');
+          return;
+        }
+        await markModel(page, 'close');
+        await page.keyboard.press('Escape');
+        await framesOf(page, 4);
+        const closing =
+          (await page.locator('#panel').count()) === 0 ||
+          (await page.locator('#panel[data-exiting]').count()) > 0;
+        if (!closing) {
+          // Nothing closed it: no close to leave out of the judging.
+          await page.evaluate(() => (window as unknown as ModelWindow).__model.marks.pop());
+        }
+        did.push(closing ? 'escape' : 'escape (stayed)');
+        return;
+      }
+      case 'size': {
+        size = { width: s.width, height: s.height };
+        did.push(`size ${s.width}x${s.height}`);
+        await markModel(page, 'layout');
+        await page.setViewportSize(size);
+        return;
+      }
+      case 'flicker': {
+        did.push(`flicker ${s.width}x${s.height}`);
+        await markModel(page, 'layout');
+        await windowFlicker(page, s, size, run.touch);
+        return;
+      }
+      case 'offset': {
+        by = s.by;
+        did.push(`offset ${s.by}`);
+        await markModel(page, 'layout');
+        await page.evaluate(
+          (by) =>
+            ['--floor', '--side'].forEach((name) =>
+              document.documentElement.style.setProperty(name, `${by}px`),
+            ),
+          s.by,
+        );
+        return;
+      }
+      case 'wait': {
+        await framesOf(page, s.frames);
+        return;
+      }
+      case 'rest': {
+        await modelSettles(page);
+        return;
+      }
+    }
+  };
+  await run.steps.reduce<Promise<void>>(
+    (previous, s) => previous.then(() => step(s)),
+    Promise.resolve(),
+  );
+  await modelSettles(page);
+  // Given a moment to reach its rest (or to finish leaving), then read in one look.
+  const rest = standsAt(restIn(size, by));
+  const restsOrGone = async () => {
+    const reach = await reachOf(page);
+    return reach === null || JSON.stringify(reach) === JSON.stringify(rest);
+  };
+  await see
+    .poll(restsOrGone, { timeout: 3000 })
+    .toBe(true)
+    .catch(() => undefined);
+  await observed(page);
+  await modelSettles(page);
+  const end = await page.evaluate(() => {
+    const panel = document.getElementById('panel');
+    return panel ? { open: true, position: panel.getAttribute('data-position') } : { open: false };
+  });
+  const reach = end.open ? await reachOf(page) : null;
+  const seen = await page.evaluate(() => {
+    const w = window as unknown as ModelWindow;
+    return { frames: w.__model.frames, marks: w.__model.marks, log: w.__log };
+  });
+  return {
+    did,
+    presses,
+    ...seen,
+    size,
+    by,
+    end: reach ? { ...end, reach } : { open: false },
+  };
+}
+
+/**
+ * For each opening of a run, whether a gesture of the user's carried the sheet out of the window
+ * (`swipe`), none did (`stay`), or one that had moved it met a layout change (`either`), against
+ * whether the sheet asked to close as swiped.
+ */
+function judgeIntent(result: ModelResult) {
+  const { frames: seen, marks, log } = result;
+  const opens = marks.filter((m) => m.kind === 'open');
+  const layouts = marks.filter((m) => m.kind === 'layout');
+  return opens.map((open, i) => {
+    const until = opens[i + 1]?.t ?? Infinity;
+    const closeAt =
+      marks.find((m) => m.kind === 'close' && m.t >= open.t && m.t < until)?.t ?? until;
+    const within = seen.filter((f) => f.t >= open.t && f.t < closeAt);
+    // Frames before it first showed (scrolling in from out of the window) prove nothing.
+    const shownAt = within.find((f) => f.past !== null && f.past <= -1)?.t ?? Infinity;
+    const users = marks.filter((m) => m.kind === 'user' && m.t >= open.t && m.t < closeAt);
+    let expected = 'stay' as 'swipe' | 'stay' | 'either';
+    users.forEach((input, j) => {
+      const next = users[j + 1]?.t ?? closeAt;
+      const span = within.filter((f) => f.t >= input.t && f.t < next && f.pos !== null);
+      // The gesture ends once its scroll has stood still 300 ms with no finger down.
+      let moved = input.t;
+      let end = next;
+      span.forEach((f, k) => {
+        const before = span[k - 1];
+        if (f.fingers > 0 || (before && Math.abs(f.pos! - before.pos!) > 0.5)) moved = f.t;
+        if (end === next && f.t - moved >= 300) end = f.t;
+      });
+      const gesture = span.filter((f) => f.t < end);
+      const start = gesture[0]?.pos;
+      if (start === undefined || start === null) return;
+      // A layout change during the gesture, or just before its input, may move it too.
+      const layoutAt = layouts.find((m) => m.t >= input.t - 200 && m.t < end)?.t ?? Infinity;
+      const cleanUntil = layoutAt < input.t ? input.t : layoutAt;
+      const movedOut = gesture.find((f) => start - f.pos! >= 2);
+      if (!movedOut) return;
+      const after = gesture.filter((f) => f.t >= movedOut.t && !f.leaving);
+      const carried = after.some(
+        (f) =>
+          f.t < cleanUntil && f.t >= shownAt && f.fingers === 0 && f.past !== null && f.past >= 1,
+      );
+      if (carried && movedOut.t < cleanUntil) {
+        expected = 'swipe';
+      } else if (expected === 'stay' && after.some((f) => f.past !== null && f.past > -1)) {
+        expected = 'either';
+      }
+    });
+    const segment = log.slice(open.log, opens[i + 1]?.log ?? log.length);
+    const actual = segment.includes('open false swipe') ? 'swipe' : 'stay';
+    return { expected, actual };
+  });
+}
+
+/** Holds a run's result to the two invariants: the problems found, none when it kept them. */
+function invariantsBroken(result: ModelResult): Array<string> {
+  const problems: Array<string> = [];
+  const openings = judgeIntent(result);
+  openings.forEach(({ expected, actual }, i) => {
+    if (expected !== 'either' && expected !== actual) {
+      problems.push(
+        `opening ${i + 1}: the user's gestures say ${expected}, the sheet did ${actual}`,
+      );
+    }
+  });
+  problems.push(...result.presses);
+  // Whether it should be open at the end: the last opening, not swiped away or closed.
+  const last = openings[openings.length - 1];
+  const lastOpen = result.marks.filter((m) => m.kind === 'open').pop();
+  const closed = result.marks.some((m) => m.kind === 'close' && lastOpen && m.t >= lastOpen.t);
+  const shouldBeOpen =
+    last === undefined || closed
+      ? false
+      : last.expected === 'either'
+        ? result.end.open
+        : last.expected === 'stay';
+  if (shouldBeOpen !== result.end.open) {
+    problems.push(`ended ${result.end.open ? 'open' : 'closed'}, should be the other`);
+  }
+  if (result.end.open) {
+    const position = result.size.width < 900 ? 'bottom' : 'right';
+    if (result.end.position !== position) {
+      problems.push(`data-position ${result.end.position} in a ${result.size.width} px window`);
+    }
+    const rest = standsAt(restIn(result.size, result.by));
+    if (JSON.stringify(result.end.reach) !== JSON.stringify(rest)) {
+      problems.push(`stood ${JSON.stringify(result.end.reach)}, rests ${JSON.stringify(rest)}`);
+    }
+  }
+  return problems;
+}
+
+/** The invariants a run broke, each with the steps it took (none when it kept them). */
+const brokenBy = (result: ModelResult) =>
+  invariantsBroken(result).map((broken) => `${broken} (after: ${result.did.join('; ')})`);
+
+describe('the two invariants: it leaves only by the user, and rests at the end its window gives it', () => {
+  // The counterexamples each round found, kept as runs.
+  const FIXED: ReadonlyArray<ModelRun> = [
+    {
+      name: 'D4: a tablet turned and turned back before a frame, the sheet at rest',
+      touch: false,
+      size: { width: 820, height: 1180 },
+      steps: [{ kind: 'open' }, { kind: 'rest' }, { kind: 'flicker', width: 1180, height: 820 }],
+    },
+    {
+      name: 'D4: a window made shorter than the rest and back, twice, 3 frames apart',
+      touch: false,
+      size: { width: 800, height: 600 },
+      steps: [
+        { kind: 'open' },
+        { kind: 'rest' },
+        { kind: 'flicker', width: 800, height: 200 },
+        { kind: 'wait', frames: 3 },
+        { kind: 'flicker', width: 800, height: 200 },
+      ],
+    },
+    {
+      name: 'M1a: a wheel toward rest (it moves nothing), then a layout flicker 100 ms later',
+      touch: false,
+      size: { width: 800, height: 600 },
+      steps: [
+        { kind: 'open' },
+        { kind: 'rest' },
+        { kind: 'wheel', how: 'back' },
+        { kind: 'flicker', width: 800, height: 200 },
+      ],
+    },
+    {
+      name: 'M1a: a wheel toward rest, then a layout flicker 300 ms later',
+      touch: false,
+      size: { width: 800, height: 600 },
+      steps: [
+        { kind: 'open' },
+        { kind: 'rest' },
+        { kind: 'wheel', how: 'back' },
+        { kind: 'wait', frames: 12 },
+        { kind: 'flicker', width: 800, height: 200 },
+      ],
+    },
+    {
+      name: 'M1a: ArrowDown in the sheet at rest, then a layout flicker 300 ms later',
+      touch: false,
+      size: { width: 800, height: 600 },
+      steps: [
+        { kind: 'open' },
+        { kind: 'rest' },
+        { kind: 'key', how: 'back' },
+        { kind: 'wait', frames: 12 },
+        { kind: 'flicker', width: 800, height: 200 },
+      ],
+    },
+    {
+      name: 'M1b: a phone finger dragged toward rest on a sheet at rest, a press beside it just after',
+      touch: true,
+      size: { width: 390, height: 844 },
+      steps: [{ kind: 'open' }, { kind: 'rest' }, { kind: 'finger', how: 'back' }],
+    },
+    {
+      name: 'M1b: a phone finger that scrolls the content list to its end and on',
+      touch: true,
+      size: { width: 390, height: 844 },
+      query: { body: 'tall' },
+      steps: [{ kind: 'open' }, { kind: 'rest' }, { kind: 'finger', how: 'list' }],
+    },
+    {
+      name: 'D6: a coarse wheel takes a laptop right sheet wholly off the window, its snap brings it back',
+      touch: false,
+      size: { width: 1440, height: 900 },
+      steps: [{ kind: 'open' }, { kind: 'rest' }, { kind: 'wheel', how: 'coarse' }],
+    },
+    {
+      name: 'D6: a coarse wheel takes a tall bottom sheet wholly off the window, its snap brings it back',
+      touch: false,
+      size: { width: 820, height: 1180 },
+      steps: [{ kind: 'open' }, { kind: 'rest' }, { kind: 'wheel', how: 'coarse' }],
+    },
+    {
+      name: 'D3: the breakpoint crossed as it scrolls in',
+      touch: false,
+      size: { width: 1180, height: 820 },
+      steps: [
+        { kind: 'open' },
+        { kind: 'wait', frames: 6 },
+        { kind: 'size', width: 820, height: 1180 },
+      ],
+    },
+    {
+      name: 'D5: the breakpoint crossed as it starts to scroll in',
+      touch: false,
+      size: { width: 1180, height: 820 },
+      steps: [{ kind: 'open' }, { kind: 'size', width: 820, height: 1180 }],
+    },
+  ];
+  for (const run of FIXED) {
+    it(run.name, async () => {
+      expect(brokenBy(await runModel(run))).toEqual([]);
+    });
+  }
+
+  // Generated runs: a seeded walk of inputs and layout changes, 0 to 15 frames apart.
+  const SIZES = [
+    { width: 390, height: 844 },
+    { width: 800, height: 600 },
+    { width: 820, height: 1180 },
+    { width: 1180, height: 820 },
+    { width: 1440, height: 900 },
+  ];
+  const random = (seed: number) => () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const generated = (seed: number): ModelRun => {
+    const next = random(seed);
+    const pick = <T>(of: ReadonlyArray<T>): T => of[Math.floor(next() * of.length)]!;
+    const touch = seed % 2 === 1;
+    let size = pick(SIZES);
+    const first = size;
+    const inputs: ReadonlyArray<ModelStep> = touch
+      ? [
+          { kind: 'finger', how: 'fling' },
+          { kind: 'finger', how: 'fling' },
+          { kind: 'finger', how: 'short' },
+          { kind: 'finger', how: 'back' },
+          { kind: 'finger', how: 'still' },
+          { kind: 'key', how: 'exit' },
+          { kind: 'key', how: 'back' },
+          { kind: 'wheel', how: 'coarse' },
+          { kind: 'escape' },
+        ]
+      : [
+          { kind: 'wheel', how: 'fine' },
+          { kind: 'wheel', how: 'coarse' },
+          { kind: 'wheel', how: 'stream' },
+          { kind: 'wheel', how: 'back' },
+          { kind: 'key', how: 'exit' },
+          { kind: 'key', how: 'back' },
+          { kind: 'escape' },
+        ];
+    const opensAt = Math.floor(next() * 3);
+    const steps: Array<ModelStep> = [];
+    for (let i = 0; i < 10; i++) {
+      const r = next();
+      if (i === opensAt || (i > opensAt && r < 0.12)) {
+        steps.push({ kind: 'open' });
+      } else if (r < 0.55) {
+        steps.push(pick(inputs));
+      } else if (r < 0.75) {
+        size = pick(SIZES);
+        steps.push({ kind: 'size', ...size });
+      } else if (r < 0.85) {
+        steps.push({ kind: 'flicker', width: size.width, height: Math.round(size.height / 3) });
+      } else {
+        steps.push({ kind: 'offset', by: Math.round(next() * 80) });
+      }
+      steps.push({ kind: 'wait', frames: Math.round(next() * 15) });
+    }
+    return { name: `seed ${seed}`, touch, size: first, steps };
+  };
+  for (const seed of Array.from({ length: 20 }, (_, i) => i + 1)) {
+    const run = generated(seed);
+    it(`${run.name} (${run.touch ? 'a phone finger' : 'a mouse'}): ${run.steps.filter((s) => s.kind !== 'wait').length} steps`, async () => {
+      expect(brokenBy(await runModel(run))).toEqual([]);
+    });
+  }
 });

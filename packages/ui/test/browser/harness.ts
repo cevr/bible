@@ -80,6 +80,17 @@ export interface OpenOptions {
    * OS's rule on any host.
    */
   readonly platform?: string;
+  /**
+   * The engine the page reads itself as: `webkit` answers `CSS.supports` for the
+   * `-webkit-backdrop-filter` WebKit alone has, as the parts read it, so a case can hold a
+   * WebKit rule in Chromium.
+   */
+  readonly engine?: 'webkit';
+  /**
+   * The page's `<meta name="viewport" content="width=device-width">`, as the lab's pages have:
+   * a touch page lays out at its window's width, not a desktop page's 980 px.
+   */
+  readonly deviceWidth?: boolean;
 }
 
 /**
@@ -152,6 +163,24 @@ export const harness = (fixtureFile: string): Harness => {
         await context.addInitScript((platform) => {
           Object.defineProperty(Navigator.prototype, 'platform', { get: () => platform });
         }, options.platform);
+      }
+      if (options.engine === 'webkit') {
+        await context.addInitScript(() => {
+          const supports = CSS.supports.bind(CSS) as (...args: Array<string>) => boolean;
+          CSS.supports = ((...args: Array<string>) =>
+            args.join(' ').replace(/\s/g, '') === '-webkit-backdrop-filter:none' ||
+            supports(...args)) as typeof CSS.supports;
+        });
+      }
+      if (options.deviceWidth) {
+        await context.addInitScript(() => {
+          document.addEventListener('DOMContentLoaded', () => {
+            const meta = document.createElement('meta');
+            meta.name = 'viewport';
+            meta.content = 'width=device-width';
+            document.head.append(meta);
+          });
+        });
       }
       const page = await context.newPage();
       page.setDefaultTimeout(5000);
