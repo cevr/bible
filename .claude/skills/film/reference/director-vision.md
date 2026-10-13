@@ -92,7 +92,7 @@ The last row is the rule that the landing is both the most saturated and the cal
 
 ### Figures, scale, hands and faces
 
-- **One figure grammar.** Grey paper bean figures, with the head about ¼ of body height.
+- **One figure grammar.** Paper bean figures in the K1 look: a hue per garment, with the head about ⅓ of body height (owner, 2026-10-13). What each colour and role means, and every figure's sheet: [character-design.md](character-design.md).
   - The face is two dot eyes, a brow line and a small mouth.
   - `browTilt` > 0 is the default (SKILL gotcha: flat brows read as cross).
 - **Scale.**
