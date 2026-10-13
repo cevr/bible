@@ -33,6 +33,8 @@ bun run plan       # build, then show what `prod` would change
 bun run deploy     # build, then deploy `prod`
 ```
 
+Alchemy asks before it changes anything. In a shell that can't prompt (Claude Code's `!`, CI), pass the approval through: `bun run deploy --yes`.
+
 A throwaway copy goes to its own stage and never touches the domain:
 
 ```bash
