@@ -4,7 +4,7 @@
 // than listeners of its own.
 
 /** What a sheet hears of the window's touches. */
-export interface Hand {
+interface Hand {
   /** A finger moved. */
   readonly move: (event: TouchEvent) => void;
   /** A finger lifted, or the browser took the touch (`touchcancel`). */
