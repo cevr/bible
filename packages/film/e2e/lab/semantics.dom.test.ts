@@ -3,15 +3,20 @@
 // separator, and the film switcher lists the films as a group of radio
 // items, the open film checked; and whatever the keyboard focuses (a control,
 // a link, a scroll box, a dialog, a receipt) shows the studio's ring on every
-// page and in every portal, never the browser's; and a floating root shows it
-// over its own shadow, exactly, on every page.
+// page and in every portal, never the browser's; a floating root shows it
+// over its own shadow, exactly, on every page; and a mouse path that moves
+// the focus from script (the studio holding it, a kept take's reload, a key's
+// Reset) shows no ring.
 
-import { Effect } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { Effect, type Scope } from 'effect';
+import { describe, expect, it, test } from 'effect-bun-test';
 import { ServerFailed, pageHref } from '../../src/core/api.ts';
 import {
   DESK,
+  type Json,
   PHONE,
+  json,
+  labAt,
   openLab,
   openPlayer,
   openReview,
@@ -211,6 +216,66 @@ const PAGES = [
   ['the review', () => openReview([])],
 ] as const;
 
+/**
+ * The element the page shows the keyboard's focus on (`:focus-visible`), by name; `none` when
+ * none. A page without the window's focus matches no `:focus-visible` at all, so it answers
+ * that instead of a `none` that proves nothing.
+ */
+const SHOWN_FOCUS = `(document.hasFocus() ? ((el) => el === null ? 'none' : ${NAME}(el))(document.querySelector(':focus-visible')) : 'a page without focus')`;
+
+/** Whether the studio holds the focus. */
+const IN_STUDIO = `document.activeElement.matches('[data-role="studio"]')`;
+
+/** One beat to record, with one earlier attempt that can be kept, whose keep mixes: the page reloads. */
+const STUDIO_ROUTES = [
+  route('GET', /^\/studio\/beats$/, () =>
+    json({
+      film: PROBE,
+      beats: [
+        {
+          id: 'thesis',
+          file: 'thesis.wav',
+          parts: [{ kind: 'line', text: 'The law is holy.' }],
+          sources: [],
+          state: 'staging',
+          recorded: false,
+          attempts: 1,
+        },
+      ],
+    }),
+  ),
+  route('GET', /^\/studio\/takes\/thesis\/attempts$/, () =>
+    json({
+      beat: 'thesis',
+      attempts: [
+        {
+          file: 'thesis.new.flac',
+          transcript: 'the law is holy',
+          wer: 0,
+          at: 0,
+          duration: 2.5,
+          kept: false,
+          current: true,
+        },
+      ],
+    }),
+  ),
+  route('POST', /^\/studio\/takes\/thesis\/keep$/, () =>
+    json({
+      beat: 'thesis',
+      take: { hash: 'h', file: 'thesis.new.flac', duration: 2.5, words: [], source: 'recorded' },
+      transcript: 'the law is holy',
+      wer: 0,
+      timings: { voice: 'v', scenes: {} },
+      mixed: true,
+    } satisfies Json),
+  ),
+];
+
+/** The Lab in Record over `STUDIO_ROUTES`. */
+const inRecord = () =>
+  openLab(STUDIO_ROUTES, { href: labAt(1), mic: { allowed: true }, mode: 'record' });
+
 describe('every focus the keyboard shows is the studio’s ring', () => {
   for (const viewport of [DESK, PHONE])
     it.live(
@@ -259,4 +324,75 @@ describe('a floating root shows the ring over its own shadow, exactly, on every 
         }).pipe(Effect.scoped),
       SLOW,
     );
+});
+
+/**
+ * A case that runs alone, its scope closed at its end: `:focus-visible` matches only in the
+ * window that has the focus, and a sibling case opening its own tab at once takes it.
+ */
+const alone = <A, E>(name: string, body: Effect.Effect<A, E, Scope.Scope>) =>
+  test.serial(name, () => Effect.runPromise(Effect.scoped(body)), SLOW);
+
+describe('a mouse path that moves the focus from script shows no ring', () => {
+  alone(
+    'on the Lab, a plain click on a button or the transport shows none, as before',
+    Effect.gen(function* () {
+      const { page, errors } = yield* openLab();
+      for (const control of ['.lab-modes > button', '.bar [data-act="play"]']) {
+        yield* page.click(control);
+        yield* evaluates(page, SHOWN_FOCUS, 'none');
+      }
+      expect(errors).toEqual([]);
+    }),
+  );
+
+  alone(
+    'in Record, opened fresh, a click on a studio button leaves the focus on the studio with no ring',
+    Effect.gen(function* () {
+      const { page, errors } = yield* inRecord();
+      // A page loaded in Record, as a link or a reload opens it: nothing has had focus yet.
+      yield* page.reload;
+      yield* waitFor(page, '[data-beat="thesis"]');
+      yield* page.click('[data-beat="thesis"]');
+      yield* evaluates(page, IN_STUDIO, true);
+      yield* evaluates(page, SHOWN_FOCUS, 'none');
+      expect(errors).toEqual([]);
+    }),
+  );
+
+  alone(
+    'in Record, Keep clicked: the take kept reloads the page, and the studio takes the focus back with no ring',
+    Effect.gen(function* () {
+      const { page, errors } = yield* inRecord();
+      yield* waitFor(page, '[data-beat="thesis"]');
+      yield* page.click('[data-beat="thesis"]');
+      const keep = '[data-file="thesis.new.flac"] [data-act="keep"]';
+      yield* waitFor(page, `${keep}:not([disabled])`);
+      const loaded = yield* page.nextLoad;
+      yield* page.click(keep);
+      yield* loaded;
+      yield* waitFor(page, '[data-beat="thesis"]');
+      yield* evaluates(page, IN_STUDIO, true);
+      yield* evaluates(page, SHOWN_FOCUS, 'none');
+      expect(errors).toEqual([]);
+    }),
+  );
+
+  alone(
+    'in the keys dialog, Reset clicked hands the focus to the dialog with no ring',
+    Effect.gen(function* () {
+      const { page, errors } = yield* openLab();
+      yield* rebind(page);
+      // The key back to its default re-lists the rows: Reset leaves the page, and the dialog takes the focus.
+      yield* page.click(`${KEYS_SHEET} [data-act="reset"]`);
+      yield* evaluates(
+        page,
+        `document.querySelector('${KEYS_SHEET} [data-act="reset"]') === null`,
+        true,
+      );
+      yield* evaluates(page, `document.activeElement.matches('${KEYS_SHEET}')`, true);
+      yield* evaluates(page, SHOWN_FOCUS, 'none');
+      expect(errors).toEqual([]);
+    }),
+  );
 });

@@ -665,7 +665,8 @@ const sameVariant = (a: InPlace, b: InPlace): boolean =>
 
 /**
  * Put the focus on the row of `heard`'s variant (its speaker), so the next key
- * is about it: an audition step selects what it hears.
+ * is about it: an audition step selects what it hears. An audition is a key's
+ * step (a tapped speaker hears without moving the focus), so it shows the ring.
  */
 const focusVariant = (heard: InPlace): void => {
   Option.map(Option.fromNullishOr(document.getElementById(`point-${heard.point}`)), (card) =>
@@ -675,7 +676,7 @@ const focusVariant = (heard: InPlace): void => {
           `[data-variant="${CSS.escape(heard.variant)}"] [data-act="hear"]`,
         ),
       ),
-      (button) => button.focus(),
+      (button) => button.focus({ focusVisible: true }),
     ),
   );
 };

@@ -411,9 +411,10 @@ export const ScenesView = (props: ScenesViewProps) => {
       )) {
         if (grip instanceof HTMLElement) grip.click();
       }
-      // The raised sheet shows the comment section; a hidden field takes no focus.
+      // The raised sheet shows the comment section; a hidden field takes no focus. The field
+      // shows the ring as a click into a text field does.
       flush();
-      field.focus();
+      field.focus({ focusVisible: true });
     }
   };
   const commands: ReadonlyArray<Command> = [

@@ -249,7 +249,10 @@ const Attempts = () => {
   );
 };
 
-/** Focus moved to the section leaves the page where it is (a click lands where it was aimed). */
+/**
+ * Focus moved to the section leaves the page where it is (a click lands where it was aimed);
+ * each move says whether it shows the ring (`focusVisible`), by the path that made it.
+ */
 const STAY: FocusOptions = { preventScroll: true };
 
 /** What the section holds of the DOM: itself, and the element in it that last had focus. */
@@ -281,12 +284,14 @@ export const Section = () => {
     () => [state.controls(), state.attempts()],
     () => {
       const lost = Option.exists(held.last, (el) => !el.isConnected);
+      // Only the keyboard leaves focus on a control here (a click lands on the section), so it shows.
       if (lost && document.activeElement === document.body)
-        Option.map(held.root, (r) => r.focus(STAY));
+        Option.map(held.root, (r) => r.focus({ ...STAY, focusVisible: true }));
     },
   );
+  // A kept take's reload gives the focus back as a click leaves it, without the ring.
   onSettled(() => {
-    if (state.hadFocus) Option.map(held.root, (r) => r.focus(STAY));
+    if (state.hadFocus) Option.map(held.root, (r) => r.focus({ ...STAY, focusVisible: false }));
   });
   const { meta } = useLab();
   onCleanup(meta.hub.commands.register(...studioCommands(actions)));
@@ -294,7 +299,7 @@ export const Section = () => {
   const onMouseDown = (e: MouseEvent) => {
     if (!Option.exists(Option.fromNullishOr(e.target), onButton)) return;
     e.preventDefault();
-    Option.map(held.root, (r) => r.focus(STAY));
+    Option.map(held.root, (r) => r.focus({ ...STAY, focusVisible: false }));
   };
   const onFocusIn = (e: FocusEvent) => {
     held.last = Option.filter(Option.fromNullishOr(e.target), (t) => t instanceof Element);

@@ -711,14 +711,20 @@ const FIRST_CONTROL = '.rv-body :is(button, input, select, a[href]):not(:disable
 /**
  * Reveal the card of `point` and put the keyboard on its first control that
  * takes it, else on the card itself, so what the keys select next (an
- * audition, a pick) is this point's and not the one focused before.
+ * audition, a pick) is this point's and not the one focused before. It is
+ * reached by ⌘K, a kind's tab or a link, from the keys or the mouse, so it
+ * shows the ring when the focus it moves did (a tab clicked does not; one
+ * pressed, or ⌘K left by its keys, does), and not on a page just opened.
  */
 export const focusPoint = (point: string) =>
   Option.map(revealPoint(point), (card) =>
     Option.getOrElse(
       Option.fromNullishOr(card.querySelector<HTMLElement>(FIRST_CONTROL)),
       () => card,
-    ).focus({ preventScroll: true }),
+    ).focus({
+      preventScroll: true,
+      focusVisible: document.activeElement?.matches(':focus-visible') === true,
+    }),
   );
 
 /** Where a choice's says go: the film's choices, under its point. */

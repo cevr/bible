@@ -6,6 +6,7 @@
 import { Plugin } from 'oxlint-plugin-effect/rule-bindings';
 import { booleansThroughPressed } from './booleans-through-pressed.ts';
 import { drawingLiteral } from './drawing-literal.ts';
+import { focusSaysVisible } from './focus-says-visible.ts';
 import { framingIsAKnob } from './framing-is-a-knob.ts';
 import { historyThroughHost } from './history-through-host.ts';
 import { hostEventsThroughAdapter } from './host-events-through-adapter.ts';
@@ -32,6 +33,7 @@ export default Plugin.define({
   rules: {
     'booleans-through-pressed': booleansThroughPressed,
     'drawing-literal': drawingLiteral,
+    'focus-says-visible': focusSaysVisible,
     'framing-is-a-knob': framingIsAKnob,
     'history-through-host': historyThroughHost,
     'host-events-through-adapter': hostEventsThroughAdapter,

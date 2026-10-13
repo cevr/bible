@@ -106,6 +106,8 @@ const MESSAGES = {
     'addEventListener hears contextmenu on its own: open a context menu through @bible/ui ContextMenu over the selection’s commands (packages/film/src/lab/command/).',
   'no-host-alias.ts:6 film/no-host-alias':
     'a host global held under a name of the page\'s own: the host bans read it only under its name, so reach it as itself, or through its adapter (packages/film/README.md, "The purity rule": The host).',
+  'focus-says-visible.ts:9 film/focus-says-visible':
+    'a focus moved from script without saying whether it shows the ring: write focus({ focusVisible }) at the call, true on a keyboard path, false on a pointer path.',
   'booleans-through-pressed.tsx:28 film/booleans-through-pressed':
     "a boolean written as a string by hand: pressed(on) (packages/film/src/lab/pressed.ts) types it 'true' | 'false'.",
   'history-through-host.ts:11 film/history-through-host':

@@ -29,13 +29,14 @@ export const Section = () => {
   });
   let area = Option.none<HTMLTextAreaElement>();
   const open = () => state.composerOpen();
-  // A note saved or cancelled leaves an empty composer; one opened takes the keys.
+  // A note saved or cancelled leaves an empty composer; one opened takes the keys, its field
+  // showing the ring as a click into a text field does.
   createEffect(
     () => [state.composerOpen(), state.composerTyping()] as const,
     ([shown, typing]) => {
       Option.map(area, (el) => {
         if (!shown) el.value = '';
-        if (typing) el.focus();
+        if (typing) el.focus({ focusVisible: true });
       });
     },
   );
