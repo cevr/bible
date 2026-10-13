@@ -34,17 +34,17 @@ Record each in the ledger's performance table with the HEAD hash. There is no st
 
 A candidate the numbers turned down stays here with its numbers, so it is not proposed again without new ones.
 
-**`at(ctx, …)` / `camera(ctx, …)` closures → `atBegin`/`restore` pairs** (p1-framework item 6, 2026-09-28, HEAD `acb1daca`, this Mac; decided by measure-before-optimise):
+**`at(ctx, …)` / `camera(ctx, …)` closures → begin/restore pairs** (p1-framework item 6, 2026-09-28, HEAD `acb1daca`, this Mac; decided by measure-before-optimise):
 
-| Measure                         | Value                                                                      | How                                                                                                |
-| ------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Closures per frame, whole film  | 8.1 (6.5 `at` + 1.6 `camera`)                                              | `righteousness-by-faith`, 1311 sampled frames drawn into a null context with `at`/`camera` counted |
-| Closures per frame, worst scene | 23.1 (20.9 `at` + 2.2 `camera`), `message`                                 | same run                                                                                           |
-| Cost per call                   | 7.89 ns with the closure, 4.75 ns as `atBegin`/`restore`: 3.14 ns overhead | Bun micro-bench, 10^7 calls, median of runs                                                        |
-| Overhead per frame, worst scene | ~73 ns                                                                     | 23.1 × 3.14 ns                                                                                     |
-| Draw per frame, film median     | 22.9 ms (`message` 57.6, `centurion` 62.8)                                 | the former `film bench righteousness-by-faith` (headless Chromium, raster flushed)                 |
-| Draw logic alone                | 2.53 ms/frame                                                              | the null-context run                                                                               |
-| Saving ÷ frame time             | ~1e-6 (73 ns ÷ 57.6 ms)                                                    |                                                                                                    |
+| Measure                         | Value                                                                         | How                                                                                                |
+| ------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Closures per frame, whole film  | 8.1 (6.5 `at` + 1.6 `camera`)                                                 | `righteousness-by-faith`, 1311 sampled frames drawn into a null context with `at`/`camera` counted |
+| Closures per frame, worst scene | 23.1 (20.9 `at` + 2.2 `camera`), `message`                                    | same run                                                                                           |
+| Cost per call                   | 7.89 ns with the closure, 4.75 ns as the begin/restore pair: 3.14 ns overhead | Bun micro-bench, 10^7 calls, median of runs                                                        |
+| Overhead per frame, worst scene | ~73 ns                                                                        | 23.1 × 3.14 ns                                                                                     |
+| Draw per frame, film median     | 22.9 ms (`message` 57.6, `centurion` 62.8)                                    | the former `film bench righteousness-by-faith` (headless Chromium, raster flushed)                 |
+| Draw logic alone                | 2.53 ms/frame                                                                 | the null-context run                                                                               |
+| Saving ÷ frame time             | ~1e-6 (73 ns ÷ 57.6 ms)                                                       |                                                                                                    |
 
 Counsel's cross-check agreed on the scale: 6–7 ns against 1.1–1.4 ns direct, across 105 `at(ctx,` and 11 `camera(ctx,` call sites. A 1e-6 saving is below any measurement's noise and would cost every call site its scoped form (a `restore` that can be forgotten), so the closures stay. Revisit only if a scene's closures per frame grow by three orders of magnitude.
 

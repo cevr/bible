@@ -4,7 +4,7 @@ Owner, 2026-10-13: "for the films in general, and to add to the skills that I th
 
 Today each film invents its everyday figures. A viewer moving from _From Milk to Meat_ to the education talks, the health talks or the planned country-living series meets strangers every time. A small recurring cast lets them know faces, follow lives from film to film, and feel the doctrine through people they have come to care about. BibleProject does the same with its Everyman and its reused shots ([bibleproject-study.md](../../../.claude/skills/film/reference/bibleproject-study.md), V6).
 
-This file is the cast bible. The film skill's **Ensemble** rule ([SKILL.md](../../../.claude/skills/film/SKILL.md)) points here.
+This file is the cast bible. The film skill's **Ensemble** rule ([SKILL.md](../../../.claude/skills/film/SKILL.md)) points here. What the colours mean, how each role is designed, the minor figures and every character sheet are in [character-design.md](../../../.claude/skills/film/reference/character-design.md).
 
 ## What the cast is, and is not
 
@@ -13,7 +13,7 @@ This file is the cast bible. The film skill's **Ensemble** rule ([SKILL.md](../.
 - **Never Bible people.** Jesus, Moses, Daniel and the rest stay the main figures of their own films. No cast member plays a Bible person, and no Bible person joins the cast.
 - **For every Christian.** No cast member carries a denominational marker: no church name or sign, no badge, no clothing, headcovering or habit that marks a group, no hymnal or book title in view. What the cast does is what the film's own text teaches, and nothing more ([series README](../series/README.md), "Voice and audience").
 - **Christ's method on screen.** "The Saviour mingled with men as one who desired their good. He showed His sympathy for them, ministered to their needs, and won their confidence. Then He bade them, 'Follow Me'" (MH 143.3). Each cast member has a need a viewer shares, and the films let the viewer watch that person being met in it.
-- **One narrator.** The cast never speaks, sings or lip-syncs. Faces and whole bodies act ([CRAFT.md](../../../.claude/skills/film/CRAFT.md) rule 5; [rimworld-study.md](rimworld-study.md) §2 rule 7); the narrator voices any question a cast member's face asks.
+- **One narrator.** The cast never speaks, sings or lip-syncs. Faces and whole bodies act ([CRAFT.md](../../../.claude/skills/film/CRAFT.md) rule 5; [rimworld-study.md](../../../.claude/skills/film/reference/rimworld-study.md) §2 rule 7); the narrator voices any question a cast member's face asks.
 
 ## The household at the centre
 
@@ -150,7 +150,7 @@ Heights are given against Hugo, with the head about ⅓ of an adult's height (th
 - **Relationships.** Rosa is Clara's mother. Rosa's husband is asleep in Jesus: never cast, never shown alive in the cast's present, a paper portrait on her shelf; he appears only in the resurrection and new-earth films, the reunion the text promises (1 Thess 4:16–17). No romance, feud, accident or mystery between cast members: the cast has no plot of its own beyond what a film's truth needs.
 - **What each knows.** Rosa knows Scripture best; Hugo and Clara are believers, still learning; Amara believes and asks the hard question; Leo tests; Nina asks why; Max knows no Bible words until a film gives them to him. A cast member never shows knowledge the film has not given its viewer.
 - **No names in speech.** The names are for scripts, sheets and this file. The narration says "a father", "picture a grandmother" (open choice 1).
-- **Look.** Minimal and expressive: circle hands of their own paper, no thumbs, no fingers, no arms; the three-mark face; shade with colour, never black or grey; outlines may be dark ([CRAFT.md](../../../.claude/skills/film/CRAFT.md) rule 12). Faces default warm, not cross (the film skill's Gotchas: raise the inner brows, give the glad a smile).
+- **Look.** Minimal and expressive: circle hands of their own paper, no thumbs, no fingers, no arms; a face minimal but characterful, its kit the owner's pick (**OWNER QUESTION**: the four kits, each with one feature for each cast member, are in [face-study.md](../../../.claude/skills/film/reference/face-study.md)); shade with colour, never black or grey; outlines may be dark ([CRAFT.md](../../../.claude/skills/film/CRAFT.md) rule 12). Faces default warm, not cross (the film skill's Gotchas: raise the inner brows, give the glad a smile).
 
 ### The continuity ledger
 
@@ -183,7 +183,7 @@ The numbers are episodes in each series' plan: theology [`series.md`](../series/
 ## Before the first film uses them
 
 1. **Owner's picks first.** The cast is drawn in the paper-cut look after the owner's rimproto picks (outline, ink, colour variety, head size); the slot table assumes C2, more hues.
-2. **A cast sheet.** Each person as a rig with front, side and back facings ([rimworld-study.md](rimworld-study.md) §2 rule 10), set in a lineup at full size and at quarter size. Done when, at quarter size, each person is named correctly from the silhouette filled dark (`--mode value`) and again from the hues blurred (`--mode squint`), and no two read alike.
+2. **A cast sheet.** Each person as a rig with front, side and back facings ([rimworld-study.md](../../../.claude/skills/film/reference/rimworld-study.md) §2 rule 10), set in a lineup at full size and at quarter size. Done when, at quarter size, each person is named correctly from the silhouette filled dark (`--mode value`) and again from the hues blurred (`--mode squint`), and no two read alike.
 3. **The two homes as layouts:** the city building (stair, landing, flats, roof) and Rosa's cottage (gate, garden, bench), each a reusable set.
 
 ## Open choices for the owner

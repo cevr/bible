@@ -20,7 +20,7 @@ Numbers in brackets (#n) are findings in [longform-research.md](longform-researc
 3. **Always breathing, never busy.** A take can be long, but nothing is still for more than about 4 s. The camera drifts, the planes slide, and one element moves on the word. We push in on the turn and hold still only at the landing. _(Ours: 79 % of seconds held against 20–35 % at BibleProject #1; Katz: the push is identification #34; LEMMiNO's continuous travel #15.)_
 4. **Story is cut, idea is moved.** STORY scenes are cut like film: angle, reverse, close-up. An IDEA scene is one continuous travel over a single page. _(TED-Ed: 16 cuts a minute for story, 2.4 for idea #14; CRAFT rule 3.)_
 5. **One valley, then dawn.** The film is hopeful on average, but it earns its dawn. One act goes down to dusk and the single black moment, then the light comes back. _(BibleProject uib2 and b54d, Lost Sheep #4, #12; Block #35.)_
-6. **Hands and posture act; faces stay simple.** Faces are a dot, a brow and a mouth. Emotion lives in the tilt of the head, the shoulders and the open or closed hand. _(Hibon, Ocelot, Reiniger #23, #26; BibleProject Redemption hides faces until "home" #18.)_
+6. **Hands and posture act; faces are minimal but characterful.** A face is a few marks moved by numbers, never a new drawing, and each person has one feature of their own. Emotion lives first in the tilt of the head, the shoulders and the open or closed hand; the face confirms it. **OWNER QUESTION:** the face kit, one of the four in [face-study.md](face-study.md). _(Hibon, Ocelot, Reiniger #23, #26; BibleProject Redemption hides faces until "home" #18; owner, 2026-10-13: faces "more interesting — rimworld style".)_
 7. **The ear gets room.** The score is written to the picture and sits under the voice. Effects land on concrete nouns. Silence is placed on purpose. The landing is 25–35 s of music alone. Dead air never happens. _(BibleProject 8–9 % music alone and a 30–36 s landing #6, #8; Thom and Chion #39, #40.)_
 
 ---
@@ -92,8 +92,8 @@ The last row is the rule that the landing is both the most saturated and the cal
 
 ### Figures, scale, hands and faces
 
-- **One figure grammar.** Grey paper bean figures, with the head about ¼ of body height.
-  - The face is two dot eyes, a brow line and a small mouth.
+- **One figure grammar.** Paper bean figures in the K1 look: a hue per garment, with the head about ⅓ of body height (owner, 2026-10-13). What each colour and role means, and every figure's sheet: [character-design.md](character-design.md).
+  - The face is minimal but characterful: a few marks (eyes, brows, a mouth; lids and eye whites in the richer kits) moved by view-model numbers and bones, never redrawn for an expression. It carries eight expressions (rest, glad, troubled, set, astonished, ashamed, tender, angry) at five ages, and each cast member has one feature of their own. **OWNER QUESTION:** which kit. The four, from today's three marks sharpened to the RimWorld mods' whites and pupils, are specified in [face-study.md](face-study.md); the art they come from is in [prior-art.md](prior-art.md).
   - `browTilt` > 0 is the default (SKILL gotcha: flat brows read as cross).
 - **Scale.**
   - In a wide, the lead figure is at least ¼ of frame height.
