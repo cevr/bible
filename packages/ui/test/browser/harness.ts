@@ -19,6 +19,13 @@ import { transform } from '@solidjs/compiler';
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import type { BunPlugin } from 'bun';
 
+/**
+ * The flags every Chromium here launches with, as the film's `chromeArgs`:
+ * `--mute-audio` mutes its pages and `--disable-audio-output` plays to a fake
+ * device, so a test never opens the host's speakers.
+ */
+const SILENT = ['--mute-audio', '--disable-audio-output'];
+
 /** Solid's DOM compiler, with `fixtures/index.ts` resolved to `fixtureFile`. */
 const solid = (fixtureFile: string): BunPlugin => ({
   name: 'solid-dom',
@@ -124,7 +131,7 @@ export const harness = (fixtureFile: string): Harness => {
         return new Response(PAGE, { headers: { 'content-type': 'text/html;charset=utf-8' } });
       },
     });
-    browser = await chromium.launch({ channel: 'chromium' });
+    browser = await chromium.launch({ channel: 'chromium', args: SILENT });
   });
 
   afterEach(async () => {
@@ -150,7 +157,10 @@ export const harness = (fixtureFile: string): Harness => {
         throw new Error('harness: open a fixture inside a case');
       }
       if (options.scrollbars) {
-        scrollbarBrowser ??= chromium.launch({ ignoreDefaultArgs: ['--hide-scrollbars'] });
+        scrollbarBrowser ??= chromium.launch({
+          args: SILENT,
+          ignoreDefaultArgs: ['--hide-scrollbars'],
+        });
       }
       const from = options.scrollbars ? await scrollbarBrowser! : browser;
       const context = await from.newContext({
