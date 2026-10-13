@@ -28,7 +28,7 @@ export {
 export { type Place, at, cutout } from './cutout.ts';
 export { type PieceStyle, piece } from './piece.ts';
 export { ground } from './ground.ts';
-export { FLOORS, type Hex, type Ramp, type Shading, clearOf, mix, ramp } from './colour.ts';
+export { type Hex, type Ramp, type Shading, clearOf, mix, ramp } from './colour.ts';
 export { glow, sky, wash } from './glow.ts';
 export { type Posed, reset } from './scratch.ts';
 export { type Author, type Credit, creditRoll } from './credits.ts';

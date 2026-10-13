@@ -22,7 +22,7 @@
 // the drawing (fills, rectangles, strokes, the shadows they cast, a
 // gradient's every stop), is a base, a derived shade, an ink or the kit's
 // named shading (`KIT_SHADING`). The knobs themselves are held to CRAFT 12's
-// floors by the model (`ramp` refuses knobs under `FLOORS`).
+// floors by the model (`ramp` refuses knobs under them).
 
 import { type Hex, ramp } from '@bible/film/canvas';
 import { recorder, withDom } from '@bible/film/stand-in';

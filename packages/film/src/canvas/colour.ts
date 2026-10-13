@@ -114,7 +114,7 @@ export interface Shading {
  * them): what "shade with colour, never with black or grey" means in
  * numbers, whatever a look tunes.
  */
-export const FLOORS = {
+const FLOORS = {
   /**
    * The least chroma a shade or a light carries (sRGB allowing): under it a
    * colour reads grey. The near-grey lights CRAFT 12 threw out sat at C 3.2
