@@ -20,7 +20,7 @@ const copier = () => {
 };
 
 const run = (command: Command, ctx: ReturnType<typeof contextAt>) =>
-  Effect.runSync(command.run(ctx, BY_BUTTON));
+  Effect.runSync(command.run(ctx, { ...BY_BUTTON, input: 'pointer' }));
 
 describe('Copy link', () => {
   const here = pageHref.labScene('f', 'one', { cue: 'rise' }, Option.some(1.5));

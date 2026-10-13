@@ -33,7 +33,8 @@ const pageWith = (
     target.dispatchEvent(e);
     return e.defaultPrevented;
   };
-  return { hub, stop, keydown };
+  const pointerdown = () => target.dispatchEvent(new Event('pointerdown'));
+  return { hub, stop, keydown, pointerdown };
 };
 
 const counter = (id: string, over: Partial<Omit<Command, 'touch'>> = {}) => {
@@ -150,5 +151,31 @@ describe('the hub', () => {
       return titledNow(hub, 'Undo', 'edit.undo');
     };
     expect([titled(true), titled(false)]).toEqual(['Undo (⌘Z)', 'Undo (Ctrl+Z)']);
+  });
+
+  test('runs a command with the input that asked: its own, else the one the viewer last used', () => {
+    const { hub, keydown, pointerdown } = pageWith(memoryStorage());
+    const inputs: Array<string> = [];
+    hub.commands.register(
+      counter('note.frame', {
+        keys: ['n'],
+        run: quietly((_ctx, how) => {
+          inputs.push(how.input);
+        }),
+      }).command,
+    );
+    const button = { step: 'normal', via: 'button' } as const;
+    // Nothing asked yet: a move the page makes on its own is a pointer's, with no ring.
+    expect(hub.input()).toBe('pointer');
+    hub.invokeId('note.frame', button);
+    keydown('n');
+    expect(hub.input()).toBe('key');
+    // A button the keyboard pressed (Enter on it) is the keyboard's; one clicked, the pointer's.
+    hub.invokeId('note.frame', button);
+    pointerdown();
+    hub.invokeId('note.frame', button);
+    // An asker that saw its input (⌘K's row chosen by Enter) says it, whatever came last.
+    hub.invokeId('note.frame', { ...button, input: 'key' });
+    expect(inputs).toEqual(['pointer', 'key', 'key', 'pointer', 'key']);
   });
 });

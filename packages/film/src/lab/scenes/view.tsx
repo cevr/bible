@@ -57,6 +57,7 @@ import { draftBook } from '../review/draft-book.ts';
 import type { InspectorBox } from '../review/inspector.tsx';
 import { Comments, SayBox } from '../review/options/choice.tsx';
 import { useOnScreenFirst } from '../review/options/stills.tsx';
+import { focusFor } from '../focus.ts';
 import { SceneCard, SceneFindings, SceneState, sceneHue } from './card.tsx';
 import { type Said, type ScenesRead, findingsOf, scenesCalls } from './data.ts';
 import { bandState, legendOf, marksOf } from './marks.ts';
@@ -412,9 +413,9 @@ export const ScenesView = (props: ScenesViewProps) => {
         if (grip instanceof HTMLElement) grip.click();
       }
       // The raised sheet shows the comment section; a hidden field takes no focus. The field
-      // shows the ring as a click into a text field does.
+      // shows the ring whatever asked, as a click into a text field does (`focusFor`).
       flush();
-      field.focus({ focusVisible: true });
+      focusFor(field, props.hub.input());
     }
   };
   const commands: ReadonlyArray<Command> = [

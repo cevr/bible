@@ -13,6 +13,7 @@
 // here too, so a key and a button say one thing. Pure.
 
 import { Effect, Option } from 'effect';
+import type { Input } from '../../../browser/keys.ts';
 import { type Command, quiet, quietly } from '../../../command/command.ts';
 import { type Context, selectedAll } from '../../../command/context.ts';
 import { type Toward, walkFrom } from '../../../command/walk.ts';
@@ -42,8 +43,8 @@ export interface Deck {
   readonly points: () => ReadonlyArray<ChoicePoint>;
   /** The variant heard in place now, if one is. */
   readonly heard: () => Option.Option<InPlace>;
-  /** Hear `heard` in place, and put the focus on its variant's row. */
-  readonly audition: (heard: InPlace) => void;
+  /** Hear `heard` in place, and put the focus on its variant's row, as `input` asked (`focusFor`). */
+  readonly audition: (heard: InPlace, input: Input) => void;
   /** Pick `heard`, answering whether it landed. */
   readonly pick: (heard: InPlace) => Promise<boolean>;
   /** The voice's attempt whose pick was refused as heard as something else, while that stands. */
@@ -145,9 +146,9 @@ const auditionCommand = (deck: Deck, toward: Toward, label: string, key: string)
   keys: [key],
   touch: 'tap a variant’s speaker',
   when: (ctx) => Option.isSome(auditionOf(deck, ctx, toward)),
-  run: quietly((ctx) =>
+  run: quietly((ctx, how) =>
     Option.map(auditionOf(deck, ctx, toward), (v) =>
-      deck.audition({ point: v.point, variant: v.id }),
+      deck.audition({ point: v.point, variant: v.id }, how.input),
     ),
   ),
 });

@@ -875,11 +875,11 @@
       }
     },
     {
-      // A focus the lab moves from script says whether it shows the ring
-      // (packages/film/lint/focus-says-visible.ts).
+      // A focus the lab moves from script goes through focusFor, which shows
+      // the ring iff a key asked (packages/film/lint/focus-through-focus-for.ts).
       "files": ["**/packages/film/src/lab/**/*.ts", "**/packages/film/src/lab/**/*.tsx"],
       "rules": {
-        "film/focus-says-visible": "error"
+        "film/focus-through-focus-for": "error"
       }
     },
     {
@@ -889,7 +889,7 @@
         "**/packages/film/src/**/*.test.tsx"
       ],
       "rules": {
-        "film/focus-says-visible": "off"
+        "film/focus-through-focus-for": "off"
       }
     },
     {

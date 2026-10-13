@@ -21,6 +21,7 @@ import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
 import { Array as Arr, Duration, Option } from 'effect';
+import type { Input } from '../../../browser/keys.ts';
 import { type Command, type CommandId, boundChange, quietly } from '../../../command/command.ts';
 import { type Destination, goToCommands } from '../../../command/go.ts';
 import { Selection } from '../../../command/selection.ts';
@@ -271,13 +272,13 @@ const KindsStrip = (props: {
 /** Each of `points` as a place ⌘K goes to by its name: its card, brought into view and in focus (`?point=`). */
 const pointDestinations = (
   points: ReadonlyArray<ChoicePoint>,
-  focus: (point: string) => void,
+  focus: (point: string, input: Input) => void,
 ): ReadonlyArray<Destination> =>
   points.map((point) => ({
     kind: 'choice',
     id: point.id,
     name: `${point.title} ${point.id}`,
-    go: () => focus(point.id),
+    go: (input) => focus(point.id, input),
   }));
 
 /** A heading and a card for each of `points` (how many, the kinds strip says). */
@@ -363,6 +364,9 @@ const FilmBody = () => {
   // then each Back and Forward), the card its `?point=` names is brought into view with the
   // keyboard in it, so the keys' next audition is that card's. A later push or replace is the
   // page's own move (a Go to, a tap, an audition), which leaves the keyboard where it put it.
+  // The ring shows iff the viewer's last input was a key (Back pressed): never on a page just
+  // opened, where nothing asked.
+  const { meta } = useReview();
   const at = useAtomValue(() => choicesPlace);
   const entry = useAtomValue(() => UrlAtom.entry);
   // The entry the page opens on is the first on Choices: a move here from another page lands
@@ -378,14 +382,15 @@ const FilmBody = () => {
         Option.map(here, (v) => v.query.point),
         (point) => point !== '',
       ),
-      focusPoint,
+      (point) => focusPoint(point, meta.hub.input()),
     );
   });
   // Going to a point (⌘K's Go to, a kind's tab) is one step Back walks: its card in focus
   // (`?point=`, its sheet closed, a Show only that hides it cleared), in view, and the
-  // keyboard on it, so the keys' next audition is its own.
+  // keyboard on it, so the keys' next audition is its own; the ring shows iff `input`, the
+  // input that asked, was a key.
   const setAt = useAtomSet(() => choicesPlace);
-  const goToPoint = (point: string) => {
+  const goToPoint = (point: string, input: Input) => {
     const shows = choices().points.some((p) => p.id === point && shownIn(only())(p));
     Option.map(at(), (v) =>
       setAt({
@@ -402,9 +407,8 @@ const FilmBody = () => {
       }),
     );
     flush();
-    focusPoint(point);
+    focusPoint(point, input);
   };
-  const { meta } = useReview();
   registerWhile(meta.hub, () => goToCommands(pointDestinations(choices().points, goToPoint)));
   const shown = createMemo(() =>
     KINDS.map((k) => ({
@@ -430,7 +434,7 @@ const FilmBody = () => {
             })),
           ),
         )}
-        go={goToPoint}
+        go={(point) => goToPoint(point, meta.hub.input())}
       />
       <For each={shown()}>{(k) => <ChoiceSection title={k.title} points={k.points} />}</For>
       <Show when={choices().points.length === 0}>

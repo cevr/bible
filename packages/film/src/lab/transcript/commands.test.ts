@@ -64,7 +64,7 @@ const over = (
     /** Run command `id` in `ctx` when it is offered there; whether it was. */
     run: (id: string, ctx: Context = here) => {
       const offered = command(id).when(ctx);
-      if (offered) Effect.runSync(command(id).run(ctx, BY_BUTTON));
+      if (offered) Effect.runSync(command(id).run(ctx, { ...BY_BUTTON, input: 'pointer' }));
       return offered;
     },
   };

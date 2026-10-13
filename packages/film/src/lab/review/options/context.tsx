@@ -47,7 +47,9 @@ import {
   type SoundCheck,
   onlyOf,
 } from '../../../core/choice.ts';
+import type { Input } from '../../../browser/keys.ts';
 import { type Command, quietly } from '../../../command/command.ts';
+import { focusFor } from '../../focus.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine, CheckReport, PageBuild } from '../../../core/schema.ts';
 import { type LabFailure, served } from '../../api.ts';
@@ -618,9 +620,9 @@ const FilmBody = (
         Own: () => Option.none<InPlace>(),
         InPlace: (p) => Option.some({ point: p.point, variant: p.variant }),
       }),
-    audition: (next) => {
+    audition: (next, input) => {
       value.hear(Playing.InPlace(next));
-      focusVariant(next);
+      focusVariant(next, input);
     },
     pick: (next) => picking.write(ChoiceAct.Verb({ ...next, verb: 'pick' })),
     mismatched,
@@ -665,10 +667,10 @@ const sameVariant = (a: InPlace, b: InPlace): boolean =>
 
 /**
  * Put the focus on the row of `heard`'s variant (its speaker), so the next key
- * is about it: an audition step selects what it hears. An audition is a key's
- * step (a tapped speaker hears without moving the focus), so it shows the ring.
+ * is about it: an audition step selects what it hears. It shows the ring iff
+ * `input` was a key (its keys, or ⌘K left by Enter; not a row clicked).
  */
-const focusVariant = (heard: InPlace): void => {
+const focusVariant = (heard: InPlace, input: Input): void => {
   Option.map(Option.fromNullishOr(document.getElementById(`point-${heard.point}`)), (card) =>
     Option.map(
       Option.fromNullishOr(
@@ -676,7 +678,7 @@ const focusVariant = (heard: InPlace): void => {
           `[data-variant="${CSS.escape(heard.variant)}"] [data-act="hear"]`,
         ),
       ),
-      (button) => button.focus({ focusVisible: true }),
+      (button) => focusFor(button, input),
     ),
   );
 };

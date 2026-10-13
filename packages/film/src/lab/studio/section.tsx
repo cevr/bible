@@ -18,6 +18,7 @@ import { Option } from 'effect';
 import type { Part } from '../../core/sheet.ts';
 import { BY_BUTTON } from '../../command/command.ts';
 import { hubKeys, registerWhile } from '../command/changes.ts';
+import { focusFor } from '../focus.ts';
 import { pressed } from '../pressed.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { micCommands, studioCommands } from './commands.ts';
@@ -251,9 +252,9 @@ const Attempts = () => {
 
 /**
  * Focus moved to the section leaves the page where it is (a click lands where it was aimed);
- * each move says whether it shows the ring (`focusVisible`), by the path that made it.
+ * each move shows the ring iff a key asked for it (`focusFor`).
  */
-const STAY: FocusOptions = { preventScroll: true };
+const STAY = { preventScroll: true } as const;
 
 /** What the section holds of the DOM: itself, and the element in it that last had focus. */
 interface Held {
@@ -274,36 +275,49 @@ const onButton = (target: EventTarget) =>
  */
 export const Section = () => {
   const { state, actions } = useStudio();
+  const { meta } = useLab();
   const held: Held = { root: Option.none(), last: Option.none() };
   /** Whether the target is in the studio. */
   const within = (target: EventTarget) =>
     target instanceof Node && Option.exists(held.root, (root) => root.contains(target));
   // Focus lost with the element that had it (a control the new state took
-  // away) goes back to the section. The effect runs once the DOM has changed.
+  // away) goes back to the section, showing the ring iff the viewer's last
+  // input was a key: a control pressed away, or a take that stopped itself.
+  // The effect runs once the DOM has changed.
   createEffect(
     () => [state.controls(), state.attempts()],
     () => {
       const lost = Option.exists(held.last, (el) => !el.isConnected);
-      // Only the keyboard leaves focus on a control here (a click lands on the section), so it shows.
       if (lost && document.activeElement === document.body)
-        Option.map(held.root, (r) => r.focus({ ...STAY, focusVisible: true }));
+        Option.map(held.root, (r) => focusFor(r, meta.hub.input(), STAY));
     },
   );
-  // A kept take's reload gives the focus back as a click leaves it, without the ring.
+  // A kept take's reload gives the focus back as the input that kept it left it.
   onSettled(() => {
-    if (state.hadFocus) Option.map(held.root, (r) => r.focus({ ...STAY, focusVisible: false }));
+    Option.map(state.refocus, (input) => Option.map(held.root, (r) => focusFor(r, input, STAY)));
   });
-  const { meta } = useLab();
   onCleanup(meta.hub.commands.register(...studioCommands(actions)));
   registerWhile(meta.hub, () => micCommands(state.mics(), actions.pick));
+  // A press on a studio button keeps the focus on the section, without the ring: a ring the
+  // keyboard left there goes.
   const onMouseDown = (e: MouseEvent) => {
     if (!Option.exists(Option.fromNullishOr(e.target), onButton)) return;
     e.preventDefault();
-    Option.map(held.root, (r) => r.focus({ ...STAY, focusVisible: false }));
+    Option.map(held.root, (r) => focusFor(r, 'pointer', STAY));
   };
   const onFocusIn = (e: FocusEvent) => {
     held.last = Option.filter(Option.fromNullishOr(e.target), (t) => t instanceof Element);
     actions.focused(true);
+  };
+  // A control the new state disabled under the focus (Keep, while its take is kept) loses it to
+  // the body: it goes back to the section as the input that pressed it left it, as a control
+  // taken away does.
+  const onFocusOut = (e: FocusEvent) => {
+    const to = Option.fromNullishOr(e.relatedTarget);
+    const disabled = e.target instanceof Element && e.target.matches(':disabled');
+    if (Option.isNone(to) && disabled)
+      Option.map(held.root, (r) => focusFor(r, meta.hub.input(), STAY));
+    else actions.focused(Option.exists(to, within));
   };
   return (
     <Lab.Fill at="record">
@@ -318,9 +332,7 @@ export const Section = () => {
         }}
         onMouseDown={onMouseDown}
         onFocusIn={onFocusIn}
-        onFocusOut={(e) =>
-          actions.focused(Option.exists(Option.fromNullishOr(e.relatedTarget), within))
-        }
+        onFocusOut={onFocusOut}
       >
         {/* No heading of its own: the mode tray's Record names the panel. */}
         {/* Record (R) and the meter stand over the prompter, on a phone's first screen. */}

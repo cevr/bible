@@ -11,18 +11,20 @@
 // `undoing…` becomes what was undone). Built once at each page's root (`mountPlay`,
 // `mountLab`, `mountReview`) and handed to everything on the page, as the
 // host is. A command runs only where its `when` holds, whether its key, a
-// menu, ⌘K or a button asked for it. Framework-free.
+// menu, ⌘K or a button asked for it. The hub is the one owner of which input
+// the viewer last used (`input`, heard through `Keys.inputs`): a command runs
+// with the input that asked for it (`Invocation.input`). Framework-free.
 
 import { Effect, Option } from 'effect';
 import type { Clipboard } from '../browser/clipboard.ts';
-import { type KeyPress, Keys } from '../browser/keys.ts';
+import { type Input, type KeyPress, Keys } from '../browser/keys.ts';
 import { type StoreRuntime, keptJson } from '../browser/storage.ts';
 import type { PageName } from '../core/api.ts';
 import {
+  type Asked,
   type Command,
   type CommandId,
   type Commands,
-  type Invocation,
   type Receipt,
   makeCommands,
 } from './command.ts';
@@ -49,10 +51,19 @@ export interface Hub {
   readonly context: (focus?: Focus) => Context;
   /** Refine every context with `part` (what the page knows that its URL does not), until the returned stop. */
   readonly refine: (part: (ctx: Context) => Context) => () => void;
-  /** Run `command` in `ctx` (the page's context now) if it is available there. */
-  readonly invoke: (command: Command, how: Invocation, ctx?: Context) => void;
+  /**
+   * Run `command` in `ctx` (the page's context now) if it is available there,
+   * asked by `how.input`, else by the input the viewer last used (`input`).
+   */
+  readonly invoke: (command: Command, how: Asked, ctx?: Context) => void;
   /** Run the command registered as `id` (a receipt's Undo), if it is registered and available. */
-  readonly invokeId: (id: CommandId, how: Invocation) => void;
+  readonly invokeId: (id: CommandId, how: Asked) => void;
+  /**
+   * The input the viewer last used on the page: a key pressed or a pointer put
+   * down; `pointer` until a key is pressed, so a move nothing asked for (a
+   * page opened on a point) shows no ring.
+   */
+  readonly input: () => Input;
   /** Hand every receipt to `sink`, with its slot, until the returned stop. */
   readonly receipts: (sink: (receipt: Receipt, slot: string) => void) => () => void;
   /** Tell `listener` of every key pressed on the page, whatever the keymap does with it, until the returned stop. */
@@ -67,7 +78,10 @@ export interface Hub {
   readonly keysOf: (id: CommandId) => ReadonlyArray<string>;
   /** Call `changed` each time a command comes or goes or a key is rebound, until the returned stop. */
   readonly subscribe: (changed: () => void) => () => void;
-  /** Hear the page's presses through `Keys`, until interrupted: the page's one key listener. */
+  /**
+   * Hear the page's presses through `Keys`, until interrupted: the page's one
+   * key listener; and which input the viewer uses (`input`).
+   */
   readonly listen: Effect.Effect<never, never, Keys>;
 }
 
@@ -132,10 +146,11 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
   const announce = (receipt: Receipt, slot: string) => {
     for (const sink of sinks) sink(receipt, slot);
   };
-  const invoke = (command: Command, how: Invocation, ctx: Context = context()) => {
+  let input: Input = 'pointer';
+  const invoke = (command: Command, how: Asked, ctx: Context = context()) => {
     if (!command.when(ctx)) return;
     Effect.runFork(
-      Effect.tap(command.run(ctx, how), (receipt) =>
+      Effect.tap(command.run(ctx, { ...how, input: how.input ?? input }), (receipt) =>
         Effect.sync(() => announce(receipt, command.id)),
       ),
     );
@@ -173,6 +188,7 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
     invokeId: (id, how) => {
       Option.map(commands.byId(id), (command) => invoke(command, how));
     },
+    input: () => input,
     receipts: (sink) => {
       sinks.add(sink);
       return () => sinks.delete(sink);
@@ -192,7 +208,20 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    listen: Keys.use((k) => k.listen(press)),
+    listen: Keys.use((k) =>
+      Effect.andThen(
+        Effect.all(
+          [
+            k.inputs((heard) => {
+              input = heard;
+            }),
+            k.listen(press),
+          ],
+          { concurrency: 'unbounded' },
+        ),
+        Effect.never,
+      ),
+    ),
   };
   return hub;
 };

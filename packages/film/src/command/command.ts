@@ -16,6 +16,7 @@
 // declares its transport here too.
 
 import { Array as Arr, Data, Effect, Option } from 'effect';
+import type { Input } from '../browser/keys.ts';
 import type { Gave } from '../core/catalogue.ts';
 import type { ChangeId } from '../core/schema.ts';
 import type { Context, Focus } from './context.ts';
@@ -145,17 +146,32 @@ export const busy = (text: string): Receipt =>
 export const moved = (what: string, before: string, after: string, unit = ''): string =>
   [what, before, '→', after, ...[unit].filter((u) => u !== '')].join(' ');
 
-/** How a command was asked for: the step a key's modifiers pick, and where it came from. */
+/**
+ * How a command was asked for: the step a key's modifiers pick, where it came
+ * from, and the input that asked (a key or a pointer), whatever it came
+ * through: ⌘K's row chosen with Enter or clicked, a button pressed or
+ * clicked. A focus the command moves shows the ring iff a key asked
+ * (`lab/focus.ts`).
+ */
 export interface Invocation {
   /** `coarse` with the keymap's coarse modifier (Shift: ×10), `fine` with its fine one. */
   readonly step: 'normal' | 'coarse' | 'fine';
   readonly via: 'key' | 'menu' | 'palette' | 'button';
+  readonly input: Input;
   /** The change a receipt's button asked it to act on (`Receipt.Said.bound`); absent from a key, a menu, ⌘K. */
   readonly bound?: Bound;
 }
 
-/** A command asked for by a button: the normal step. */
-export const BY_BUTTON: Invocation = { step: 'normal', via: 'button' };
+/**
+ * A command asked for as its asker knows it: its input when the asker saw it
+ * (a key's press, ⌘K's row chosen), else the hub's, the input the viewer last
+ * used (`Hub.invoke`): a button does not know whether a key or a click
+ * pressed it.
+ */
+export type Asked = Omit<Invocation, 'input'> & { readonly input?: Input };
+
+/** A command asked for by a button: the normal step, its input the one that pressed it. */
+export const BY_BUTTON: Asked = { step: 'normal', via: 'button' };
 
 /** One verb of a page. */
 export interface Command {

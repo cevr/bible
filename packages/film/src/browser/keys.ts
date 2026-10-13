@@ -8,8 +8,11 @@
 // handled (its default prevented: a menu's arrow, a number field's step) and
 // a press composing text (an input method's) are not heard. `take` runs in
 // the press's own dispatch, so the default of a press it takes is prevented
-// in time. The page it listens on is the adapter's (`keysOn`): the window
-// live (`keys-browser.ts`), a test's own `EventTarget` in a test.
+// in time. It also hears which input the viewer last used (`inputs`: a key
+// pressed or a pointer put down, heard before any control handles it), so
+// the hub knows whether the keyboard asked for a command (`Invocation.input`).
+// The page it listens on is the adapter's (`keysOn`): the window live
+// (`keys-browser.ts`), a test's own `EventTarget` in a test.
 
 import { Context, Effect, Layer, Option } from 'effect';
 
@@ -35,7 +38,19 @@ interface KeysOps {
    * answers whether it took it (its default is then prevented).
    */
   readonly listen: (take: (press: KeyPress) => boolean) => Effect.Effect<never>;
+  /**
+   * Hear which input the viewer uses until interrupted: `heard` gets `key`
+   * for every key pressed and `pointer` for every pointer put down (a mouse,
+   * a pen, a finger), handled by a control or not.
+   */
+  readonly inputs: (heard: (input: Input) => void) => Effect.Effect<never>;
 }
+
+/**
+ * The input that asked for a move: a key pressed, or a pointer put down. The
+ * lab shows its focus ring where the keyboard asked (`lab/focus.ts`).
+ */
+export type Input = 'key' | 'pointer';
 
 /**
  * Whether a browser is on an Apple device, whose keyboard is a Mac's (its
@@ -100,6 +115,15 @@ const keysOn = (page: EventTarget, mac: boolean): KeysOps => ({
         },
         { signal: listening.signal },
       );
+      return Effect.sync(() => listening.abort());
+    }),
+  inputs: (heard) =>
+    Effect.callback<never>(() => {
+      const listening = new AbortController();
+      // Captured, so a press a control handles (⌘K's Enter, a menu's arrow) is heard too.
+      const on = { capture: true, signal: listening.signal };
+      page.addEventListener('keydown', () => heard('key'), on);
+      page.addEventListener('pointerdown', () => heard('pointer'), on);
       return Effect.sync(() => listening.abort());
     }),
 });

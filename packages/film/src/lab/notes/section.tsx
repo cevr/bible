@@ -10,6 +10,7 @@ import { Effect, Option } from 'effect';
 import { createEffect } from 'solid-js';
 import { DRAG_PX, Pointer, Surface } from '../../browser/pointer.ts';
 import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
+import { focusFor } from '../focus.ts';
 import { useLabPage } from '../panel.tsx';
 import { Lab, useLab } from '../shell.tsx';
 import { useNotes } from './context.tsx';
@@ -21,6 +22,7 @@ import { filmPixel } from './draft.ts';
  */
 export const Section = () => {
   const { state, actions } = useNotes();
+  const { meta } = useLab();
   const page = useLabPage();
   // A note begun (Note frame, its key, a pin) shows the Note mode, where it is written: once
   // it waits for its words, so the strip folding in Note never moves the frame under a drag.
@@ -30,13 +32,13 @@ export const Section = () => {
   let area = Option.none<HTMLTextAreaElement>();
   const open = () => state.composerOpen();
   // A note saved or cancelled leaves an empty composer; one opened takes the keys, its field
-  // showing the ring as a click into a text field does.
+  // showing the ring whatever asked, as a click into a text field does (`focusFor`).
   createEffect(
     () => [state.composerOpen(), state.composerTyping()] as const,
     ([shown, typing]) => {
       Option.map(area, (el) => {
         if (!shown) el.value = '';
-        if (typing) el.focus({ focusVisible: true });
+        if (typing) focusFor(el, meta.hub.input());
       });
     },
   );

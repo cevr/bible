@@ -118,7 +118,7 @@ describe('Go to (AA-2)', () => {
     expect(go?.id).toBe('go.folder.out/art');
     expect(go?.label).toBe('Go to folder Roofs out/art');
     expect(go?.group).toBe(GO_TO);
-    Effect.runSync(go?.run(ctx, BY_BUTTON) ?? Effect.succeed(quiet));
+    Effect.runSync(go?.run(ctx, { ...BY_BUTTON, input: 'pointer' }) ?? Effect.succeed(quiet));
     expect(went).toEqual(['out/art']);
   });
 
@@ -152,7 +152,7 @@ describe('Go to (AA-2)', () => {
     ]);
     expect(open('roofs/shorts/hook')).toEqual(['page.scenes', 'page.play']);
     const play = parts('roofs/shorts/hook').find((c) => c.id === 'page.play');
-    Effect.runSync(play?.run(ctx, BY_BUTTON) ?? Effect.succeed(quiet));
+    Effect.runSync(play?.run(ctx, { ...BY_BUTTON, input: 'pointer' }) ?? Effect.succeed(quiet));
     expect(went).toEqual([pageHref.play('roofs/shorts/hook')]);
   });
 });

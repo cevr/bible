@@ -24,6 +24,7 @@ import {
   useContext,
 } from 'solid-js';
 import * as UrlAtom from '@bible/url-state/atom';
+import type { Input } from '../../browser/keys.ts';
 import { said } from '../../command/command.ts';
 import { hubKeys } from '../command/changes.ts';
 import { attemptUrl } from '../../core/api.ts';
@@ -110,8 +111,11 @@ interface StudioStateValue {
   readonly attemptsStatus: Accessor<string>;
   /** Whether an attempt may be kept now (at rest or after a refusal); a row adds its own terms. */
   readonly keepable: Accessor<boolean>;
-  /** Whether focus was in the studio when the page last went (a take kept reloads it). */
-  readonly hadFocus: boolean;
+  /**
+   * The input of the studio's last act, when focus was in the studio as the page last went
+   * (a take kept reloads it): the focus comes back as that input left it; none, it stays out.
+   */
+  readonly refocus: Option.Option<Input>;
 }
 
 interface StudioActions {
@@ -185,15 +189,24 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     ),
   );
   const beat = createMemo(() => recorder().beat);
-  // Whether focus is in the studio is remembered through the reload a take kept causes.
+  // Whether focus is in the studio, and the input of the studio's last act (a take submitted
+  // or kept: a key, or a click), are remembered through the reload a take kept causes.
+  const kept = Option.fromUndefinedOr(meta.view.get().studio);
   const hadFocus = Option.exists(
-    Option.flatMap(Option.fromUndefinedOr(meta.view.get().studio), (s) =>
-      Option.fromUndefinedOr(s.focused),
-    ),
+    Option.flatMap(kept, (s) => Option.fromUndefinedOr(s.focused)),
     (f) => f,
   );
   const [focused, setFocused] = createSignal(hadFocus);
-  createEffect(focused, (f) => meta.view.patch({ studio: { focused: f } }));
+  const keptBy = Option.getOrElse(
+    Option.flatMap(kept, (s) => Option.fromUndefinedOr(s.input)),
+    (): Input => 'pointer',
+  );
+  const [actedBy, setActedBy] = createSignal<Input>(keptBy);
+  createEffect(
+    () => [focused(), actedBy()] as const,
+    ([f, input]) => meta.view.patch({ studio: { focused: f, input } }),
+  );
+  const refocus = Option.liftPredicate(keptBy, () => hadFocus);
 
   // The beat is the link's (`beatAt`: `?beat=`, else the path's scene): a
   // beat picked is written there. The recorder is on the link's beat whenever
@@ -336,11 +349,17 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
       ),
     );
   };
-  const perform = (act: Act) => send(eventOf(act, device()));
+  const perform = (act: Act) => {
+    setActedBy(meta.hub.input());
+    send(eventOf(act, device()));
+  };
   const actions: StudioActions = {
     select: (id) => select(id, 'go'),
     perform,
-    keep: (file) => send(RecorderEvent.KeepAttempt({ file })),
+    keep: (file) => {
+      setActedBy(meta.hub.input());
+      send(RecorderEvent.KeepAttempt({ file }));
+    },
     pick: (next) => choose(Option.getOrElse(next, () => '')),
     control: (command) => controlFor(recorder(), command),
     stepsBeats: () => stepsBeats(recorder()),
@@ -384,7 +403,7 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
           onFailure: (f) => refusalText(f.cause),
         }),
       keepable,
-      hadFocus,
+      refocus,
     },
     actions,
   };

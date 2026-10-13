@@ -40,7 +40,9 @@ const pressed = (state: RecorderState) => {
   const run = (c: Command) => {
     if (!c.when(ctx)) return '-';
     did.length = 0;
-    Effect.runSync(Effect.orElseSucceed(c.run(ctx, BY_BUTTON), () => quiet));
+    Effect.runSync(
+      Effect.orElseSucceed(c.run(ctx, { ...BY_BUTTON, input: 'pointer' }), () => quiet),
+    );
     return did.join('');
   };
   return Object.fromEntries(commands.map((c) => [c.id, run(c)]));
@@ -109,7 +111,7 @@ describe('the microphone as commands', () => {
       ['studio.mic.default', 'Choose microphone: Default microphone', true],
       ['studio.mic.device.default', 'Choose microphone: Default - Desk', true],
     ]);
-    for (const c of commands) Effect.runSync(c.run(ctx, BY_BUTTON));
+    for (const c of commands) Effect.runSync(c.run(ctx, { ...BY_BUTTON, input: 'pointer' }));
     expect(picked).toEqual([Option.none(), Option.some('default')]);
   });
 });

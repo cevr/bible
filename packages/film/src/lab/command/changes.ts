@@ -10,6 +10,7 @@ import { isServer } from '@solidjs/web';
 import { Boolean as Bool, Option } from 'effect';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
+import type { Input } from '../../browser/keys.ts';
 import type { Command, CommandId, Invocation } from '../../command/command.ts';
 import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
@@ -84,14 +85,17 @@ export const hubKeys = (hub: Hub): HubKeys => {
  * A menu's run of the row chosen in it: the menu opens on a context (what
  * its rows are listed in), a row is chosen, and the row's command runs in
  * that context once the menu has closed and focus is back on the page, so
- * what the command focuses (a note's composer, a sheet) keeps focus.
+ * what the command focuses (a note's composer, a sheet) keeps focus. It runs
+ * asked by the input that chose the row (Enter, or a click or a tap), read
+ * as it was chosen: by the time the menu has closed, nothing on the page
+ * still says how.
  */
 interface DeferredRun {
   /** The context the menu opened on. */
   readonly opened: Accessor<Context>;
   /** The menu opens on `ctx`: nothing is chosen yet. */
   readonly open: (ctx: Context) => void;
-  /** `row` is chosen: it runs once the menu has closed. */
+  /** `row` is chosen, by the input the viewer used last (`Hub.input`): it runs once the menu has closed. */
   readonly choose: (row: MenuRow) => void;
   /** The menu has closed: the row chosen runs, once. */
   readonly closed: () => void;
@@ -100,7 +104,7 @@ interface DeferredRun {
 /** A menu's deferred run on `hub`, asked for `via` the menu it is (`menu`, ⌘K's `palette`). */
 export const deferredRun = (hub: Hub, via: Invocation['via']): DeferredRun => {
   const [opened, setOpened] = createSignal<Context>(hub.context());
-  let chosen = Option.none<MenuRow>();
+  let chosen = Option.none<{ readonly row: MenuRow; readonly input: Input }>();
   return {
     opened,
     open: (ctx) => {
@@ -108,12 +112,14 @@ export const deferredRun = (hub: Hub, via: Invocation['via']): DeferredRun => {
       setOpened(ctx);
     },
     choose: (row) => {
-      chosen = Option.some(row);
+      chosen = Option.some({ row, input: hub.input() });
     },
     closed: () => {
-      const row = chosen;
+      const picked = chosen;
       chosen = Option.none();
-      Option.map(row, (r) => hub.invoke(r.command, { step: r.step, via }, opened()));
+      Option.map(picked, ({ row, input }) =>
+        hub.invoke(row.command, { step: row.step, via, input }, opened()),
+      );
     },
   };
 };

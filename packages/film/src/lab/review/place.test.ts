@@ -221,7 +221,7 @@ describe('Go to on the review (AA-2)', () => {
       ['choices', 'cold', 'of cold'],
       ['project', 'cold', 'of cold'],
     ]);
-    for (const d of destinations) d.go();
+    for (const d of destinations) d.go('pointer');
     expect(went).toEqual([
       ReviewPlace.Folder({ folder: 'out/art' }),
       ReviewPlace.Set({ folder: 'out/art', point: 'render:p6-onset-roof' }),
