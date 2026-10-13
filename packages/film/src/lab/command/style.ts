@@ -14,7 +14,9 @@
 // no wider than the screen less its gutters, scrolling inside itself. An
 // inspector field is the kit's number field (`.lab-num`), styled where the
 // kit is, never here. A phone's width is the studio's one breakpoint
-// (`PHONE`, `WIDE`), asked through its owner.
+// (`PHONE`, `WIDE`), asked through its owner. Focus is the shell's ring;
+// only the phone sheet's grip, whose edge its scroller clips, draws it
+// inside (`--focus-ring-inset`).
 
 import { PHONE, WIDE } from '../viewport.ts';
 
@@ -105,14 +107,13 @@ const COMMAND_RULES = `
   min-width: var(--cmd-menu-width); max-width: calc(100vw - 2 * var(--gutter)); max-height: var(--cmd-height); overflow: auto;
   background: var(--surface-2); color: var(--text-1); border: 1px solid var(--line-strong);
   border-radius: var(--r-2); padding: var(--s-1); box-shadow: var(--shadow-pop);
-  font-family: var(--font); font-size: var(--body-fs); line-height: var(--body-lh); outline: none;
+  font-family: var(--font); font-size: var(--body-fs); line-height: var(--body-lh);
 }
 .lab-context-label { padding: var(--s-1) var(--s-2) 0; color: var(--text-2); font-size: var(--fs-2); }
 .lab-context-separator { height: 1px; margin: var(--s-1) 0; background: var(--line-strong); }
 .lab-context-item {
   display: flex; justify-content: space-between; align-items: center; gap: var(--s-2);
   padding: var(--cmd-row-pad); border-radius: var(--r-2); cursor: pointer; min-height: var(--cmd-row-height);
-  outline: none;
 }
 .lab-context-item[data-highlighted] { background: var(--surface-3); }
 .lab-context-menu kbd {
@@ -213,6 +214,7 @@ const COMMAND_RULES = `
     display: block; position: absolute; inset: calc(-1 * var(--s-3)) calc(-1 * var(--s-3)) 0;
     padding: 0; border: 0; background: none; cursor: pointer;
   }
+  .lab-inspector-grip:focus-visible { box-shadow: var(--focus-ring-inset); }
   .lab-inspector-grip::before {
     content: ''; position: absolute; top: var(--s-2); left: 50%; width: var(--s-8);
     height: var(--cmd-grip-height); margin-left: calc(var(--s-8) / -2);
@@ -257,7 +259,7 @@ const COMMAND_RULES = `
 .lab-receipts {
   position: fixed; z-index: calc(var(--cmd-layer) + 2); left: 50%; bottom: var(--gutter); transform: translateX(-50%);
   width: min(var(--cmd-toast-width), calc(100vw - 2 * var(--gutter)));
-  display: flex; flex-direction: column; gap: var(--s-1); outline: none;
+  display: flex; flex-direction: column; gap: var(--s-1);
 }
 @media ${PHONE} {
   .lab-receipts { bottom: calc(var(--cmd-sheet-floor) + var(--s-2)); }

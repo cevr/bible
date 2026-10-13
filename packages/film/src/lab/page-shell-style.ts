@@ -7,11 +7,14 @@
 // (`.sh-btn`), the icon button (`.sh-tool`), the segmented control
 // (`.sh-seg`), the field (`.lab-num`, a `select`), the slider, the badge
 // (`.sh-badge`), and words said, not shown (`.sh-sr`); and the one focus
-// ring, `--focus-ring`, for every control, known by its element (a button,
-// a link, a field, a disclosure's summary, an option row) and not by a kit
-// class, so a control drawn outside the kit (the keys dialog's Change) has
-// it too and none is left the browser's own. Every page injects it with the
-// commands' styles.
+// ring, `--focus-ring`, on whatever the keyboard focuses: a control, a link,
+// a scroll box the browser makes focusable, a dialog the focus falls back
+// to. It is one rule of no weight, so a part that draws its ring inside a
+// clipping edge (`--focus-ring-inset`) says so in a rule of its own; and a
+// floating root (role dialog, alertdialog or menu: a dialog, a sheet, a
+// menu, a receipt, each drawn over `--shadow-pop`) keeps that shadow under
+// the ring, in a rule that outweighs the part's own resting shadow. Every
+// page injects it with the commands' styles.
 
 import { PHONE, WIDE } from './viewport.ts';
 
@@ -164,9 +167,9 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
   margin-top: calc((var(--s-1) - var(--s-4)) / 2); border: 0; border-radius: var(--r-1); background: var(--accent); }
 :where(input[type="range"])::-moz-range-thumb { width: var(--s-1); height: var(--s-4); border: 0; border-radius: var(--r-1);
   background: var(--accent); }
-/* Focus: every control, known by its element (never a kit class), on every page and portal, shows the studio's ring. */
-:where(button, a, input, select, textarea, summary, [role="option"]):focus-visible {
-  outline: none; box-shadow: var(--focus-ring); }
+/* Focus: the studio's ring, never the browser's; a floating root keeps its pop under it. */
+:where(:focus-visible) { outline: none; box-shadow: var(--focus-ring); }
+:is([role=dialog], [role=alertdialog], [role=menu]):focus-visible { box-shadow: var(--focus-ring), var(--shadow-pop); }
 /* Chip / badge: a state's word (or a count), its edge and its words in the state's colour, no fill;
    its own type, never a heading's caps and tracking around it. */
 :where(.sh-badge) { display: inline-block; padding: 0 var(--s-1); border: 1px solid currentColor; border-radius: var(--r-1);

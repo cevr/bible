@@ -1,14 +1,16 @@
 // The studio's controls as assistive tech and the keyboard meet them, over
 // the probe film with the lab API faked: the header's rule is a vertical
 // separator, and the film switcher lists the films as a group of radio
-// items, the open film checked; and a kit control focused from the keyboard
-// shows the studio's ring on every page and in every portal.
+// items, the open film checked; and whatever the keyboard focuses (a control,
+// a link, a scroll box, a dialog, a receipt) shows the studio's ring on every
+// page and in every portal, never the browser's.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { ServerFailed, pageHref } from '../../src/core/api.ts';
 import {
   DESK,
+  PHONE,
   openLab,
   openPlayer,
   openReview,
@@ -23,6 +25,8 @@ import {
   textIs,
   waitFor,
 } from '../../src/lab/fixtures/settled.ts';
+import type { Tab } from '../../src/lab/fixtures/tab.ts';
+import { receipted } from './studio-states.ts';
 
 const SLOW = 30_000;
 
@@ -85,8 +89,8 @@ describe("the kit's focus ring", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openLab();
-        // The mode tray's toggle (a segment), the transport's play (an icon button).
-        for (const control of ['.lab-modes > button', '.bar [data-act="play"]']) {
+        // The mode tray's toggle (a segment), the transport's play (an icon button), a page bar's link.
+        for (const control of ['.lab-modes > button', '.bar [data-act="play"]', 'a.sh-tab']) {
           yield* page.focus(control);
           yield* evaluates(page, FOCUS_SHOWN, 'ring');
         }
@@ -117,6 +121,94 @@ describe("the kit's focus ring", () => {
         yield* page.focus(rebind);
         yield* evaluates(page, FOCUS_SHOWN, 'ring');
         expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+/**
+ * A script that, from now on, keeps every focus the keyboard shows (`:focus-visible`) as
+ * `[element, shown]`: `ring` when its shadow begins with the studio's ring (`--focus-ring`, or
+ * `--focus-ring-inset` inside a clipping edge) and it draws no `auto` outline; `browser` when it
+ * draws the user agent's own ring (an `auto` outline); else `none`.
+ */
+const WATCH_FOCUS = `(() => {
+  const resolved = (v) => { const i = document.createElement('i'); i.style.boxShadow = v; document.body.append(i); const s = getComputedStyle(i).boxShadow; i.remove(); return s; };
+  const rings = [resolved('var(--focus-ring)'), resolved('var(--focus-ring-inset)')];
+  const name = (el) => el.tagName.toLowerCase() + (typeof el.className === 'string' && el.className.trim() !== '' ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + (el.hasAttribute('role') ? '[role=' + el.getAttribute('role') + ']' : '');
+  window.focusStops = [];
+  document.addEventListener('focusin', (e) => {
+    const el = e.target;
+    if (!(el instanceof Element) || !el.matches(':focus-visible')) return;
+    const s = getComputedStyle(el);
+    const shown = s.outlineStyle === 'auto' ? 'browser' : rings.some((r) => s.boxShadow.startsWith(r)) ? 'ring' : 'none';
+    window.focusStops.push([name(el), shown]);
+  }, true);
+  return true;
+})()`;
+
+/** Each stop the watch kept that showed no studio ring, as `element: shown`. */
+const UNRINGED = `window.focusStops.filter(([, shown]) => shown !== 'ring').map(([el, shown]) => el + ': ' + shown)`;
+
+/** Whether the watch kept a stop on an element whose name has `part`. */
+const stoppedOn = (part: string) => `window.focusStops.some(([el]) => el.includes('${part}'))`;
+
+/** Press Tab until the focused element matches `selector`, at most `most` times. */
+const tabTo = (page: Tab, selector: string, most: number) =>
+  Effect.gen(function* () {
+    for (let i = 0; i < most; i++) {
+      if (yield* page.evaluate<boolean>(`document.activeElement.matches('${selector}')`)) return;
+      yield* page.press('Tab');
+    }
+  });
+
+describe('every focus the keyboard shows is the studio’s ring', () => {
+  for (const viewport of [DESK, PHONE])
+    it.live(
+      `a Tab walk through the Lab at ${viewport.width}: every stop, control, scroll box or root, shows the ring, never the browser’s`,
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* openLab([], { viewport });
+          yield* page.evaluate(WATCH_FOCUS);
+          for (let i = 0; i < 60; i++) yield* page.press('Tab');
+          yield* evaluates(page, 'window.focusStops.length > 20', true);
+          yield* evaluates(page, UNRINGED, []);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+  it.live(
+    'a key changed in the keys dialog hands the focus to the dialog itself, which shows the ring',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab();
+        const change = '[data-role="keys-sheet"] .lab-keys-actions > button';
+        yield* page.press('?');
+        yield* waitFor(page, change);
+        yield* page.evaluate(WATCH_FOCUS);
+        yield* page.click(change);
+        yield* waitFor(page, '[data-role="keys-sheet"] [data-act="press"]');
+        // The new chord re-lists the rows: the button leaves the page, and the dialog takes the focus.
+        yield* page.press('y');
+        yield* evaluates(page, `document.activeElement.matches('[data-role="keys-sheet"]')`, true);
+        yield* evaluates(page, stoppedOn('lab-keys-sheet'), true);
+        yield* evaluates(page, UNRINGED, []);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a receipt reached by Tab shows the ring over its own shadow',
+    () =>
+      Effect.gen(function* () {
+        const page = yield* receipted(DESK);
+        yield* page.evaluate(WATCH_FOCUS);
+        yield* tabTo(page, '.lab-receipt', 80);
+        yield* evaluates(page, `document.activeElement.matches('.lab-receipt')`, true);
+        yield* evaluates(page, stoppedOn('lab-receipt'), true);
+        yield* evaluates(page, UNRINGED, []);
       }).pipe(Effect.scoped),
     SLOW,
   );
