@@ -181,7 +181,7 @@ export function scrollAlongAxis(element: HTMLElement, axis: Axis, value: number,
  * ancestor's border with them), which the swipe and stack animations' transforms leave alone,
  * so it is where the sheet rests whatever the panel's animation draws now.
  */
-export function detentScroll(
+function detentScroll(
   scroller: HTMLElement,
   marker: HTMLElement,
   axis: Axis,
