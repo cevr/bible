@@ -321,8 +321,7 @@ final class Store {
       notificationStatus = "Notifications are blocked in System Settings."
       return
     }
-    let selected = readiness?.selected ?? []
-    guard !selected.isEmpty else {
+    guard readiness?.hasGoals ?? false else {
       notificationStatus = "Add a goal to begin reminders"
       return
     }

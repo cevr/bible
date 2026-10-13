@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 2,
+  "cards": {
+    "19:23:3": {
+      "interval": 0.0006944444444444445,
+      "introduced": 813373521.459801,
+      "lapses": 0,
+      "due": 813600119.337214,
+      "repetitions": 0,
+      "memory": {
+        "elapsedDays": 2,
+        "scheduledDays": 0,
+        "stability": 0.40717516,
+        "difficulty": 8.37863212,
+        "lapses": 0,
+        "learningSteps": 0,
+        "state": 1,
+        "reps": 2,
+        "due": 813600119.337214,
+        "lastReview": 813600059.337214
+      }
+    },
+    "19:23:2": {
+      "interval": 8,
+      "introduced": 813373504.728092,
+      "lapses": 0,
+      "due": 814064704.728092,
+      "repetitions": 1,
+      "memory": {
+        "elapsedDays": 0,
+        "scheduledDays": 8,
+        "stability": 8.2956,
+        "difficulty": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "state": 2,
+        "reps": 1,
+        "due": 814064704.728092,
+        "lastReview": 813373504.728092
+      }
+    },
+    "19:23:1": {
+      "interval": 11,
+      "introduced": 813373487.223146,
+      "lapses": 0,
+      "due": 814550442.759691,
+      "repetitions": 2,
+      "memory": {
+        "elapsedDays": 2,
+        "scheduledDays": 11,
+        "stability": 11.18501222,
+        "difficulty": 3.4641143,
+        "lapses": 0,
+        "learningSteps": 0,
+        "state": 2,
+        "reps": 2,
+        "due": 814550442.759691,
+        "lastReview": 813600042.759691
+      }
+    }
+  },
+  "goals": [
+    {
+      "title": "Psalms 23",
+      "book": 19,
+      "id": "B6E282B2-82A8-4CFA-81F4-9F1324A8EFE7",
+      "chapter": 23
+    },
+    {
+      "title": "Psalms 37",
+      "book": 19,
+      "id": "8253EB70-4C83-419D-819A-872BDD6CDDBC",
+      "chapter": 37
+    }
+  ],
+  "preferences": {
+    "quietHoursEnabled": true,
+    "reminderMinutes": 60,
+    "backupsEnabled": true,
+    "reader": {
+      "characterSpacing": 0,
+      "verseSpacing": 8,
+      "redLetters": true,
+      "size": 22,
+      "font": "Georgia",
+      "showVerseNumbers": true,
+      "paragraphSpacing": 16,
+      "lineHeight": 1.55
+    },
+    "showMarginNotes": false,
+    "newPerDay": 3,
+    "dictationEnabled": false,
+    "quietStartMinutes": 1320,
+    "quietEndMinutes": 480,
+    "remindersEnabled": true
+  },
+  "reviews": [
+    {
+      "usedHint": false,
+      "verseID": "19:23:1",
+      "interval": 0.004166666666666667,
+      "rating": 2,
+      "date": 813373487.223146
+    },
+    {
+      "usedHint": false,
+      "verseID": "19:23:2",
+      "interval": 8,
+      "rating": 4,
+      "date": 813373504.728092
+    },
+    {
+      "usedHint": false,
+      "verseID": "19:23:3",
+      "interval": 0.004166666666666667,
+      "rating": 2,
+      "date": 813373521.459801
+    },
+    {
+      "usedHint": false,
+      "verseID": "19:23:1",
+      "interval": 11,
+      "rating": 4,
+      "date": 813600042.759691
+    },
+    {
+      "usedHint": false,
+      "verseID": "19:23:3",
+      "interval": 0.0006944444444444445,
+      "rating": 1,
+      "date": 813600059.337214
+    }
+  ]
+}

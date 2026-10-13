@@ -141,8 +141,8 @@ struct TodayView: View {
           Text("YOUR PATH").font(.system(size: 9, weight: .medium)).tracking(1.6).foregroundStyle(
             muted)
           Text(goal.title).font(.system(size: 17, weight: .medium))
-          let count = store.readiness?.countByGoal[goal.id] ?? 0
-          let learned = store.readiness?.learnedByGoal[goal.id] ?? 0
+          let count = store.readiness?.progress[goal.id]?.total ?? 0
+          let learned = store.readiness?.progress[goal.id]?.learned ?? 0
           ProgressView(value: Double(learned), total: Double(max(1, count))).tint(.white)
           Text("\(learned) of \(count) verses recalled at least twice")
             .font(.system(size: 11)).foregroundStyle(muted)
@@ -335,7 +335,7 @@ struct LibraryView: View {
         HStack {
           VStack(alignment: .leading, spacing: 5) {
             Text(goal.title).font(.system(size: 15, weight: .medium))
-            Text("\(store.readiness?.countByGoal[goal.id] ?? 0) verses").font(
+            Text("\(store.readiness?.progress[goal.id]?.total ?? 0) verses").font(
               .system(size: 11)
             ).foregroundStyle(muted)
           }

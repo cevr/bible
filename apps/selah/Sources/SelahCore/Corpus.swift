@@ -42,6 +42,8 @@ public struct Corpus: Sendable {
     if goal.firstVerse == nil && goal.lastVerse == nil { return candidates }
     return candidates.filter { goal.contains($0) }
   }
+  /// Promise goals practice their category's promises; unknown categories yield nothing.
+  public func promiseUnits(for goal: Goal) -> [PracticeUnit] { [] }
   public func bookRehearsal(book: Int) -> [PracticeUnit] {
     chapters(for: Goal(title: "", book: book)).map { PracticeUnit(verses: $0, isChapter: true) }
   }
@@ -57,40 +59,79 @@ public struct Corpus: Sendable {
   }
 }
 
+/// Progress toward one goal, in the unit that goal is learned by.
+public struct GoalProgress: Sendable {
+  public enum Measure: Sendable { case verses, chapters, promises }
+  public let measure: Measure
+  public let learned: Int
+  public let total: Int
+  /// The whole chapter currently being learned, with how many of its verses stand without cues.
+  public let chapter: ChapterStatus?
+}
+
+public struct ChapterStatus: Sendable {
+  public let unit: PracticeUnit
+  public let uncued: Int
+  public let started: Bool
+}
+
 public struct Readiness: Sendable {
   public let queue: [PracticeUnit]
   public let dueCount: Int
   public let reviewedToday: Int
-  public let selected: [Verse]
-  public let learnedByGoal: [UUID: Int]
-  public let countByGoal: [UUID: Int]
+  public let hasGoals: Bool
+  public let progress: [UUID: GoalProgress]
   public let nextReview: Date?
   public let hasNew: Bool
+  /// A started whole chapter that holds back the next one until it is recalled without cues.
+  public let waitingOn: PracticeUnit?
   public init(library: Library, corpus: Corpus, now: Date) {
-    selected = library.selectedVerses(in: corpus)
-    queue = library.practiceQueue(in: corpus, now: now, selected: selected)
-    let chapters = library.chapterUnits(in: corpus, selected: selected)
-    dueCount =
-      (selected.map { PracticeUnit(verses: [$0]) } + chapters).filter {
-        library.cards[$0.id].map { $0.due <= now } ?? false
-      }.count
-    nextReview = (selected.map(\.id) + chapters.map(\.id)).compactMap { library.cards[$0]?.due }
-      .min()
+    let curriculum = library.curriculum(in: corpus)
+    hasGoals = !library.goals.isEmpty
+    queue = library.practiceQueue(in: corpus, now: now, curriculum: curriculum)
+    let units = curriculum.singles + curriculum.chapters
+    dueCount = units.filter { library.cards[$0.id].map { $0.due <= now } ?? false }.count
+    nextReview = units.compactMap { library.cards[$0.id]?.due }.min()
     hasNew =
-      selected.contains { library.cards[$0.id] == nil }
-      || chapters.contains { library.cards[$0.id] == nil && library.chapterEligible($0) }
+      curriculum.singles.contains { library.cards[$0.id] == nil }
+      || library.nextWholeChapter(in: curriculum) != nil
+      || curriculum.earnedChapters.contains {
+        library.cards[$0.id] == nil && library.chapterEligible($0)
+      }
+    let pending = curriculum.wholeChapters.contains { library.cards[$0.id] == nil }
+    waitingOn = pending ? library.chaptersInProgress(in: curriculum).first : nil
     let day = Calendar.current.dateInterval(of: .day, for: now)!
     reviewedToday =
       Set(library.reviews.filter { $0.date >= day.start && $0.date < day.end }.map(\.verseID)).count
-    var learned: [UUID: Int] = [:]
-    var counts: [UUID: Int] = [:]
+    var progress: [UUID: GoalProgress] = [:]
     for goal in library.goals {
-      let verses = corpus.verses(for: goal)
-      counts[goal.id] = verses.count
-      learned[goal.id] = verses.filter { (library.cards[$0.id]?.repetitions ?? 0) >= 2 }.count
+      progress[goal.id] = Readiness.progress(of: goal, library: library, corpus: corpus)
     }
-    learnedByGoal = learned
-    countByGoal = counts
+    self.progress = progress
+  }
+  static func progress(of goal: Goal, library: Library, corpus: Corpus) -> GoalProgress {
+    if goal.promises != nil {
+      let units = corpus.promiseUnits(for: goal)
+      return GoalProgress(
+        measure: .promises, learned: units.filter { library.isLearned($0) }.count,
+        total: units.count, chapter: nil)
+    }
+    if goal.learning == .wholeChapter {
+      let units = corpus.chapters(for: goal).map { PracticeUnit(verses: $0, isChapter: true) }
+      let current = units.first { !library.isLearned($0) }.map { unit in
+        ChapterStatus(
+          unit: unit, uncued: library.cues(for: unit).filter { $0 == .none }.count,
+          started: library.cards[unit.id] != nil)
+      }
+      return GoalProgress(
+        measure: .chapters, learned: units.filter { library.isLearned($0) }.count,
+        total: units.count, chapter: current)
+    }
+    let verses = corpus.verses(for: goal)
+    return GoalProgress(
+      measure: .verses,
+      learned: verses.filter { (library.cards[$0.id]?.repetitions ?? 0) >= 2 }.count,
+      total: verses.count, chapter: nil)
   }
 }
 

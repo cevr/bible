@@ -14,6 +14,6 @@ let package = Package(
     .executableTarget(
       name: "SelahApp", dependencies: ["SelahCore"], resources: [.process("Resources")]),
     .executableTarget(name: "SelahBenchmark", dependencies: ["SelahCore"], path: "Benchmarks"),
-    .testTarget(name: "SelahCoreTests", dependencies: ["SelahCore"]),
+    .testTarget(name: "SelahCoreTests", dependencies: ["SelahCore"], exclude: ["Fixtures"]),
   ]
 )

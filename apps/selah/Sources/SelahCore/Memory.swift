@@ -35,6 +35,17 @@ public struct Verse: Codable, Identifiable, Hashable, Sendable {
   }
 }
 
+/// How a goal's chapters are learned. Whole chapters are one practice unit from the first day.
+public enum LearningMethod: String, Codable, CaseIterable, Sendable {
+  case wholeChapter, verseByVerse
+  public var title: String {
+    switch self {
+    case .wholeChapter: "Whole chapter"
+    case .verseByVerse: "Verse by verse"
+    }
+  }
+}
+
 public struct Goal: Codable, Identifiable, Sendable {
   public let id: UUID
   public let title: String
@@ -42,9 +53,13 @@ public struct Goal: Codable, Identifiable, Sendable {
   public let chapter: Int?
   public let firstVerse: Int?
   public let lastVerse: Int?
+  /// Absent in goals saved before whole chapters existed; those keep learning verse by verse.
+  public var method: LearningMethod?
+  /// A promise category identifier; such a goal practices that category's promises.
+  public let promises: String?
   public init(
     title: String, book: Int? = nil, chapter: Int? = nil, firstVerse: Int? = nil,
-    lastVerse: Int? = nil
+    lastVerse: Int? = nil, method: LearningMethod? = nil, promises: String? = nil
   ) {
     id = UUID()
     self.title = title
@@ -52,9 +67,19 @@ public struct Goal: Codable, Identifiable, Sendable {
     self.chapter = chapter
     self.firstVerse = firstVerse
     self.lastVerse = lastVerse
+    self.method = method
+    self.promises = promises
+  }
+  /// Only goals that cover complete chapters can learn them whole.
+  public var supportsWholeChapters: Bool {
+    promises == nil && firstVerse == nil && lastVerse == nil
+  }
+  public var learning: LearningMethod {
+    supportsWholeChapters ? method ?? .verseByVerse : .verseByVerse
   }
   public func contains(_ verse: Verse) -> Bool {
-    (book == nil || verse.book == book) && (chapter == nil || verse.chapter == chapter)
+    promises == nil && (book == nil || verse.book == book)
+      && (chapter == nil || verse.chapter == chapter)
       && (firstVerse == nil || verse.number >= firstVerse!)
       && (lastVerse == nil || verse.number <= lastVerse!)
   }
@@ -92,6 +117,8 @@ public struct Review: Codable, Sendable {
   public let rating: RecallRating
   public let usedHint: Bool
   public let interval: Double
+  /// Whole-chapter recalls record the verse numbers that slipped.
+  public var weakVerses: [Int]? = nil
 }
 
 /// Canonical FSRS 6, fixed 90% retention, no interval fuzz so previews match saved schedules.
@@ -160,11 +187,29 @@ public struct Library: Codable, Sendable {
   public var cards: [String: MemoryCard] = [:]
   public var reviews: [Review] = []
   public var preferences = Preferences()
+  /// Cue ladders for whole-chapter recall, keyed by chapter unit identifier.
+  public var chapters: [String: ChapterProgress] = [:]
   public init() {}
+  private enum CodingKeys: String, CodingKey {
+    case schemaVersion, goals, cards, reviews, preferences, chapters
+  }
+  public init(from decoder: any Decoder) throws {
+    let values = try decoder.container(keyedBy: CodingKeys.self)
+    schemaVersion = try values.decode(Int.self, forKey: .schemaVersion)
+    goals = try values.decodeIfPresent([Goal].self, forKey: .goals) ?? []
+    cards = try values.decodeIfPresent([String: MemoryCard].self, forKey: .cards) ?? [:]
+    reviews = try values.decodeIfPresent([Review].self, forKey: .reviews) ?? []
+    preferences =
+      try values.decodeIfPresent(Preferences.self, forKey: .preferences) ?? Preferences()
+    chapters =
+      try values.decodeIfPresent([String: ChapterProgress].self, forKey: .chapters) ?? [:]
+  }
+  /// Verses learned one at a time, in canonical order across verse-by-verse goals.
   public func selectedVerses(in corpus: Corpus) -> [Verse] {
-    if goals.isEmpty { return [] }
-    if goals.count == 1 { return corpus.verses(for: goals[0]) }
-    let ids = Set(goals.flatMap { corpus.verses(for: $0) }.map(\.id))
+    let verseGoals = goals.filter { $0.promises == nil && $0.learning == .verseByVerse }
+    if verseGoals.isEmpty { return [] }
+    if verseGoals.count == 1 { return corpus.verses(for: verseGoals[0]) }
+    let ids = Set(verseGoals.flatMap { corpus.verses(for: $0) }.map(\.id))
     return corpus.verses.filter { ids.contains($0.id) }
   }
   public func queue(in corpus: Corpus, now: Date, calendar: Calendar = .current, limit: Int = 10)
