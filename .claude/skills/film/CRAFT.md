@@ -51,6 +51,13 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
   - Fewer motifs, drawn bigger, doing the text's job.
 - **Check:** every motif has its payoff beat.
 
+**Bookend the setting.** Close in the place you opened. If the film opens in a courtroom, it closes in that courtroom; if it opens at a kitchen table, it closes at that table. Keep the same room, the same layout and, where it fits, the same people (rule 8). Something has changed: the light, who is there, what is on the table, what someone now understands.
+
+- The middle can travel anywhere: history, the text, other places.
+- The landing and the coda's pull-back come home to the opening place.
+- A series film with a recurring cast opens and closes in one of the cast's places.
+- **Check:** the first scene and the last scene name the same setting, and their stills, side by side, show the same place, changed.
+
 ## 5. Human scale
 
 - **Faces:** every beat has a shot where a face fills a third of the frame's height or more.
