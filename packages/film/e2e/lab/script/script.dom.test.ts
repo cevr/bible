@@ -30,6 +30,7 @@ import {
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   attributeIs,
+  countIs,
   describedBy,
   evaluates,
   textIs,
@@ -168,6 +169,33 @@ const CORRECTED = {
   text: 'say “climbs slowly,” for “rises slowly,”',
 };
 
+/**
+ * The probe film's script with a long brief for beat one: seven lines and
+ * more on a phone, naming its cue `rise` past the third and beat `two` at
+ * its end. The other beats' briefs fit in a line.
+ */
+const LONG_BRIEF = [
+  route('GET', /^\/script$/, () =>
+    json({
+      film: PROBE,
+      beats: [
+        {
+          id: 'one',
+          picture:
+            'A ball on a line, drawn in one stroke of ink on the paper ground, the line ruled from the left edge of the frame to the right, a small tick at each second along it and the shadow of the ball soft beneath it. It waits for a breath as the narrator begins, then it climbs on `rise` and drops back on `fall`, coming to rest where it began, as it stands in `two`.',
+          cite: ['Probe 1:1'],
+        },
+        { id: 'two', picture: 'The ball at rest.', cite: [] },
+        { id: 'three', picture: 'A face, pushed in on `push`.', cite: [] },
+      ],
+    }),
+  ),
+];
+
+/** An expression run in the page: how many lines beat `beat`'s brief shows. */
+const briefLines = (beat: string) =>
+  `((p) => Math.round(p.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(p).lineHeight)))(document.querySelector('[data-scene="${beat}"] .lab-script-picture'))`;
+
 /** “down again.” of beat one, removed: what the page posts and the store keeps. */
 const REMOVED = {
   scene: 'one',
@@ -219,6 +247,66 @@ describe('the Script', () => {
         // In sight once the page has settled: the player above it and the lines before it laid out.
         yield* evaluates(noted, inSight(`${shown} .lab-script-shown-head`), true);
         expect(noted.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'on a phone, a long brief shows three lines until More opens it, and opens as a name it hides is picked; on a laptop it shows whole; a beat it names is a link to that beat',
+    () =>
+      Effect.gen(function* () {
+        const more = '[data-scene="one"] .lab-script-more';
+        const { page, errors } = yield* openLab(LONG_BRIEF, {
+          href: pageHref.scriptBeat(PROBE, 'one'),
+          viewport: PHONE,
+        });
+        yield* attributeIs(page, more, 'aria-expanded', 'false');
+        yield* evaluates(page, `${briefLines('one')} === 3`, true);
+        // The size of a press on a phone.
+        yield* evaluates(
+          page,
+          `document.querySelector('${more}').getBoundingClientRect().height >= 44`,
+          true,
+        );
+        yield* page.click(more);
+        yield* attributeIs(page, more, 'aria-expanded', 'true');
+        yield* textIs(page, more, 'Less');
+        yield* evaluates(page, `${briefLines('one')} > 3`, true);
+        yield* page.click(more);
+        yield* attributeIs(page, more, 'aria-expanded', 'false');
+        // A brief its three lines hold has no More.
+        yield* countIs(page, '[data-scene="two"] .lab-script-more', 0);
+        // The beat it names: a link to that beat's place on the Script.
+        yield* attributeIs(
+          page,
+          '[data-scene="one"] .lab-script-picture .lab-script-ref:last-child',
+          'href',
+          pageHref.scriptBeat(PROBE, 'two'),
+        );
+        expect(errors).toEqual([]);
+        // Its cue `rise` picked, past its third line: it opens, so the name lit shows.
+        const picked = yield* openLab(LONG_BRIEF, {
+          href: pageHref.scriptBeat(PROBE, 'one', { cue: 'rise' }),
+          viewport: PHONE,
+        });
+        yield* attributeIs(picked.page, more, 'aria-expanded', 'true');
+        expect(picked.errors).toEqual([]);
+        // On a laptop it shows whole, and no More shows.
+        const desk = yield* openLab(LONG_BRIEF, {
+          href: pageHref.scriptBeat(PROBE, 'one'),
+          viewport: DESK,
+        });
+        yield* waitFor(desk.page, '[data-scene="one"] .lab-script-picture');
+        yield* evaluates(
+          desk.page,
+          `((p) => p.scrollHeight <= p.clientHeight + 1)(document.querySelector('[data-scene="one"] .lab-script-picture'))`,
+          true,
+        );
+        yield* evaluates(
+          desk.page,
+          `[...document.querySelectorAll('.lab-script-more')].some((b) => b.checkVisibility())`,
+          false,
+        );
+        expect(desk.errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
 

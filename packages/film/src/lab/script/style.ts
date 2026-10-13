@@ -1,7 +1,8 @@
 // The Script page's styles (`view.tsx`, `tied.tsx`): the film's beats on the
 // panel's surface, each under a head line of its id, its start and its
-// badge, its picture's brief in the secondary ink at the body size (the cues
-// and marks it names underlined links), its line at the reading size
+// badge, its picture's brief in the secondary ink at the body size (the cues,
+// marks and beats it names underlined links; on a phone three lines of it
+// until More opens it), its line at the reading size
 // (`--fs-read`: text read aloud, as the prompter's) with a small chip for
 // each mark, the cues tied to the selection in a raised box under it, and
 // its sources quiet under that; the beat under the frame edged in the
@@ -25,6 +26,9 @@
 // for them.
 
 import { PHONE, WIDE } from '../viewport.ts';
+
+/** How many lines of a picture's brief a phone shows until More opens it (`tied.tsx` asks whether it runs past them). */
+export const BRIEF_LINES = 3;
 
 /** What no studio token holds: the laptop column's width, a reading measure that grows with the window. */
 const SCRIPT_TOKENS = `
@@ -60,14 +64,20 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 .lab-script-beat[data-live='true'] .lab-script-id { color: var(--text-1); }
 @media (hover: hover) { .lab-script-id:hover, .lab-script-id:hover .lab-script-at { color: var(--text-1); } }
 .lab-script-at { color: var(--text-3); }
+.lab-script-brief { display: flex; flex-direction: column; min-width: 0; }
 .lab-script-picture { margin: 0; color: var(--text-2); }
-/* A cue or a mark the brief names: a link in the brief's running text, the accent while it is selected. */
+/* Under a brief its three lines clip on a phone: what opens it all, the size of a press, quiet as the brief. */
+.lab-script-more { align-self: flex-start; min-height: var(--hit); min-width: var(--hit); padding: 0; border: 0;
+  background: none; font: inherit; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2);
+  text-align: start; cursor: pointer; }
+@media (hover: hover) { .lab-script-more:hover { color: var(--text-1); } }
+/* A cue, a mark or a beat the brief names: a link in the brief's running text, the accent while it is selected. */
 .lab-script-ref { color: var(--text-1); text-decoration: underline; text-decoration-color: var(--line-strong);
   text-underline-offset: 0.2em; }
 .lab-script-ref[aria-current='true'] { color: var(--accent); text-decoration-color: var(--accent); }
 @media (hover: hover) { .lab-script-ref:hover { text-decoration-color: var(--text-1); } }
-/* A name the beat does not have: the brief's own words, set apart only by the ink. */
-.lab-script-code { font: inherit; color: var(--text-1); }
+/* A name the film does not have: the brief's own words, in its ink. */
+.lab-script-code { font: inherit; color: inherit; }
 .lab-script-line { margin: 0; font-size: var(--fs-read); line-height: var(--lh-read); color: var(--text-1); }
 .lab-script-w { cursor: pointer; }
 /* A mark: a chip before the word it stands before, raised to the line's cap height, never in a text selection. */
@@ -126,5 +136,12 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
   /* The screen's height, not a page that scrolls: the picture and its track stay over the words. */
   body.lab:has(.lab-script) { height: 100dvh; min-height: 0; grid-template-rows: auto auto auto minmax(0, 1fr); }
   .lab-script { grid-column: 1; grid-row: 4; border-top: var(--border); }
+  /* A brief shows three lines until More opens it: the reader opens on the words read aloud, not on what the picture does. */
+  .lab-script-picture:not([data-open='true']) { display: -webkit-box; -webkit-box-orient: vertical;
+    -webkit-line-clamp: ${BRIEF_LINES}; line-clamp: ${BRIEF_LINES}; overflow: hidden; }
+}
+@media ${WIDE} {
+  /* A laptop's column shows a brief whole: nothing for More to open. */
+  .lab-script-more { display: none; }
 }
 `;

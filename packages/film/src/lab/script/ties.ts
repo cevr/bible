@@ -203,11 +203,15 @@ export const tieTimes = (tie: Pick<Tie, 'start' | 'end'>): string => {
   return `${start}–${end} s`;
 };
 
-/** A piece of a picture's brief: words, or a name in backticks, which is a cue of the beat, a mark of its line, or neither. */
+/**
+ * A piece of a picture's brief: words, or a name in backticks, which is a
+ * cue of the beat, a mark of its line, a beat of the film, or none of them.
+ */
 export type Brief = Data.TaggedEnum<{
   Text: { readonly text: string };
   Cue: { readonly name: string };
   Mark: { readonly name: string };
+  Beat: { readonly name: string };
   Code: { readonly text: string };
 }>;
 export const Brief = Data.taggedEnum<Brief>();
@@ -218,16 +222,19 @@ const TICKED = /`([^`\n]+)`/;
 /**
  * `picture` in pieces: its words, and each name in backticks as the cue of
  * the beat it names (one of `cues`), else the mark of its line (one of
- * `marks`), else code; empty words are left out.
+ * `marks`), else the film's beat of that id (one of `beats`), else code;
+ * empty words are left out.
  */
 export const briefOf = (
   picture: string,
   cues: ReadonlyArray<string>,
   marks: Readonly<Record<string, number>>,
+  beats: ReadonlyArray<string>,
 ): ReadonlyArray<Brief> =>
   picture.split(TICKED).flatMap((piece, i): ReadonlyArray<Brief> => {
     if (i % 2 === 0) return Arr.filter([Brief.Text({ text: piece })], () => piece !== '');
     if (cues.includes(piece)) return [Brief.Cue({ name: piece })];
     if (Rec.has(marks, piece)) return [Brief.Mark({ name: piece })];
+    if (beats.includes(piece)) return [Brief.Beat({ name: piece })];
     return [Brief.Code({ text: piece })];
   });

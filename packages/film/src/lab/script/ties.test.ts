@@ -134,20 +134,31 @@ describe("the Script's ties of a beat's cues to its words", () => {
 });
 
 describe("a picture's brief", () => {
-  test('a name in backticks is the cue it names, else the mark, else code', () => {
+  test('a name in backticks is the cue it names, else the mark, else the beat, else code', () => {
     expect(
-      briefOf('It climbs on `rise`, drops on `fall` and stops: `still`.', ['rise'], { fall: 3 }),
+      briefOf(
+        'It climbs on `rise`, drops on `fall` as in `two` and stops: `still`.',
+        ['rise'],
+        { fall: 3 },
+        ['one', 'two'],
+      ),
     ).toEqual([
       Brief.Text({ text: 'It climbs on ' }),
       Brief.Cue({ name: 'rise' }),
       Brief.Text({ text: ', drops on ' }),
       Brief.Mark({ name: 'fall' }),
+      Brief.Text({ text: ' as in ' }),
+      Brief.Beat({ name: 'two' }),
       Brief.Text({ text: ' and stops: ' }),
       Brief.Code({ text: 'still' }),
       Brief.Text({ text: '.' }),
     ]);
-    // A cue and a mark of one name: the cue. No empty words around a name that opens or ends it.
-    expect(briefOf('`rise`', ['rise'], { rise: 0 })).toEqual([Brief.Cue({ name: 'rise' })]);
-    expect(briefOf('No names here.', [], {})).toEqual([Brief.Text({ text: 'No names here.' })]);
+    // A cue, a mark and a beat of one name: the cue; a mark and a beat: the mark. No empty
+    // words around a name that opens or ends it.
+    expect(briefOf('`rise`', ['rise'], { rise: 0 }, ['rise'])).toEqual([
+      Brief.Cue({ name: 'rise' }),
+    ]);
+    expect(briefOf('`fall`', [], { fall: 0 }, ['fall'])).toEqual([Brief.Mark({ name: 'fall' })]);
+    expect(briefOf('No names here.', [], {}, [])).toEqual([Brief.Text({ text: 'No names here.' })]);
   });
 });

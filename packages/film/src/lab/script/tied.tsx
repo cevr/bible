@@ -9,13 +9,15 @@
 // lights the words it lands on.
 
 import { For, Show } from '@solidjs/web';
-import { Option } from 'effect';
+import { Boolean as Bool, Option } from 'effect';
 import type { ParentProps } from 'solid-js';
+import { createEffect, createMemo, createSignal, createUniqueId } from 'solid-js';
 import { plainClick } from '../../browser/pointer.ts';
 import { pageHref } from '../../core/api.ts';
 import { pressed } from '../pressed.ts';
 import { useLab } from '../shell.tsx';
 import { useScript } from './context.tsx';
+import { BRIEF_LINES } from './style.ts';
 import { Brief, briefOf, tieTimes } from './ties.ts';
 
 /** A link's plain click, picked in the page by `pick`; any other (a new tab, a download) is the link's own. */
@@ -109,26 +111,137 @@ const MarkRef = (props: Named) => {
   );
 };
 
-/** Beat `beat`'s picture brief, each name in backticks that is one of its cues or marks a link to it. */
+/** Beat `name`, named in a brief: a link to its place that shows its first frame, the reader following again. */
+const BeatRef = (props: { readonly name: string }) => {
+  const { meta } = useLab();
+  const script = useScript();
+  return (
+    <Ref
+      href={pageHref.scriptBeat(meta.name, props.name)}
+      current={false}
+      pick={() => {
+        script.seekBeat(props.name);
+        script.resume();
+      }}
+    >
+      {props.name}
+    </Ref>
+  );
+};
+
+/**
+ * Beat `beat`'s picture brief, each name in backticks that is one of its
+ * cues or marks a link to it, and one that is a beat of the film a link to
+ * that beat. On a phone it shows three lines, the line read aloud under it
+ * in sight, until More opens it; a name of it picked opens it, as a key
+ * landing on a link it hides does. More is there only while the three
+ * lines hide some of it.
+ */
 export const Picture = (props: {
   readonly beat: string;
   readonly text: string;
   readonly cues: ReadonlyArray<string>;
   readonly marks: Readonly<Record<string, number>>;
-}) => (
-  <p class="lab-script-picture">
-    <For each={briefOf(props.text, props.cues, props.marks)}>
-      {(piece) =>
-        Brief.$match(piece, {
-          Text: ({ text }) => text,
-          Cue: ({ name }) => <CueRef beat={props.beat} name={name} />,
-          Mark: ({ name }) => <MarkRef beat={props.beat} name={name} />,
-          Code: ({ text }) => <code class="lab-script-code">{text}</code>,
-        })
-      }
-    </For>
-  </p>
-);
+}) => {
+  const { state } = useLab();
+  const script = useScript();
+  const pieces = createMemo(() =>
+    briefOf(
+      props.text,
+      props.cues,
+      props.marks,
+      script.beats.map((b) => b.id),
+    ),
+  );
+  const named = createMemo(
+    () =>
+      Option.exists(
+        state.selection(),
+        (s) =>
+          s.scene === props.beat && pieces().some((p) => Brief.$is('Cue')(p) && p.name === s.name),
+      ) ||
+      Option.exists(
+        script.mark(),
+        (m) =>
+          m.scene === props.beat && pieces().some((p) => Brief.$is('Mark')(p) && p.name === m.name),
+      ),
+  );
+  const [open, setOpen] = createSignal(false, { ownedWrite: true });
+  const [clips, setClips] = createSignal(false, { ownedWrite: true });
+  const id = createUniqueId();
+  let brief = Option.none<HTMLElement>();
+  // A name of it picked opens it, so the name lit shows.
+  createEffect(named, (on) => {
+    if (on) setOpen(true);
+  });
+  // As the page lays it out, whether it runs past its lines on a phone, open or shut: the box shut keeps the whole
+  // height it scrolls. The stylesheet says where it shuts (and so where More shows), the phone's width.
+  createEffect(
+    () => true,
+    () =>
+      Option.match(brief, {
+        onNone: () => () => {},
+        onSome: (el) => {
+          const o = new ResizeObserver(() =>
+            setClips(
+              el.scrollHeight >
+                BRIEF_LINES * (Number.parseFloat(getComputedStyle(el).lineHeight) || 0) + 1,
+            ),
+          );
+          o.observe(el);
+          return () => o.disconnect();
+        },
+      }),
+  );
+  return (
+    <div class="lab-script-brief">
+      <p
+        class="lab-script-picture"
+        id={id}
+        data-open={pressed(open())}
+        ref={(el: HTMLParagraphElement) => {
+          brief = Option.some(el);
+        }}
+        onFocusIn={(e) => {
+          // A key landing on a link the three lines hide opens it.
+          const landed = e.target;
+          if (
+            landed instanceof HTMLElement &&
+            Option.exists(
+              brief,
+              (el) => landed.getBoundingClientRect().bottom > el.getBoundingClientRect().bottom + 1,
+            )
+          )
+            setOpen(true);
+        }}
+      >
+        <For each={pieces()}>
+          {(piece) =>
+            Brief.$match(piece, {
+              Text: ({ text }) => text,
+              Cue: ({ name }) => <CueRef beat={props.beat} name={name} />,
+              Mark: ({ name }) => <MarkRef beat={props.beat} name={name} />,
+              Beat: ({ name }) => <BeatRef name={name} />,
+              Code: ({ text }) => <code class="lab-script-code">{text}</code>,
+            })
+          }
+        </For>
+      </p>
+      <Show when={clips()}>
+        <button
+          type="button"
+          class="lab-script-more"
+          data-act="more-brief"
+          aria-expanded={pressed(open())}
+          aria-controls={id}
+          onClick={() => setOpen((on) => !on)}
+        >
+          {Bool.match(open(), { onTrue: () => 'Less', onFalse: () => 'More' })}
+        </button>
+      </Show>
+    </div>
+  );
+};
 
 /**
  * Under beat `beat`'s line while something of it is selected: what is
