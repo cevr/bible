@@ -51,6 +51,8 @@ Every change touches only a closing picture line: the `thesis` and `end` picture
 
 These lines in the plans lead a new script away from the rule. Settle them before the next scripts are drafted:
 
+_Resolved 2026-10-13 by the orchestrator: the three edits below are made (theology shape, the country bench and episode 12 landing at the dinner table, the cast's roof)._
+
 - **Theology's shared shape** (`theology/series.md`, "How each episode is built") brings the landing back to the cold open's layout but says nothing about the coda. All four theology drafts sent their final pull-back somewhere else. Add: "the thesis and the credits stay in that place".
 - **Country's bench** (`country/series.md`, "Series motifs"): "The fig-tree bench … is the landing place of the series." An episode that opens in the city flat must land in the flat. The bench is the landing only for an episode that opens at Rosa's gate or bench. Episode 12's plan ("the household at dinner … the landing on Rosa's bench") breaks the rule as written: open it at the bench, or land it at the dinner table.
 - **The cast's roof** (`docs/ensemble.md`, Continuity, Homes): "the cast's roof is the recurring landing place". It holds only for a film that opens on the roof. RBF's rooftop ending is the coda the change above removes.
