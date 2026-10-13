@@ -217,12 +217,12 @@ describe("the Script's place", () => {
   const fall = Selection.cases.Mark.make({ scene: 'b', name: 'fall' });
   const said = Selection.cases.Words.make({ scene: 'b', from: 2, to: 4 });
 
-  test('reads the beat, its cue, mark or words, the note and the time, on the Script', () => {
-    expect(labPlaceOf('/films/f/script/b?cue=rise&note=n3#t=1.5')).toEqual({
+  test('reads the beat, its cue, mark, words or note, and the time, on the Script', () => {
+    expect(labPlaceOf('/films/f/script/b?cue=rise#t=1.5')).toEqual({
       root: 'script',
       scene: Option.some('b'),
       selection: Option.some(rise),
-      note: Option.some('n3'),
+      note: Option.none(),
       beat: Option.none(),
       view: 'off',
       code: Option.none(),
@@ -234,6 +234,7 @@ describe("the Script's place", () => {
     });
     expect(labPlaceOf('/films/f/script/b?mark=fall').mark).toEqual(Option.some(fall));
     expect(labPlaceOf('/films/f/script/b?words=2-4').words).toEqual(Option.some(said));
+    expect(labPlaceOf('/films/f/script/b?note=n3').note).toEqual(Option.some('n3'));
     expect(labPlaceOf('/films/f/script?note=n1#t=2')).toMatchObject({
       root: 'script',
       scene: Option.none(),
@@ -306,12 +307,24 @@ describe("the Script's place", () => {
       '/films/f/script/b#t=2',
     );
     expect(labHrefWith('f', placed, markAt, {}, b + 2)).toBe('/films/f/script/b?mark=fall#t=2');
-    // A link naming all three reads them all; the next pick leaves one.
-    const all = '/films/f/script/b?cue=rise&mark=fall&words=2-4#t=1';
+    // A link naming more than one holds one, in the order a path names its beat by (a cue,
+    // words, a mark, then a note), and prints it alone as the time moves on.
+    const all = '/films/f/script/b?cue=rise&mark=fall&words=2-4&note=n4#t=1';
     expect(labPlaceOf(all)).toMatchObject({
       selection: Option.some(rise),
-      mark: Option.some(fall),
+      mark: Option.none(),
+      words: Option.none(),
+      note: Option.none(),
+    });
+    expect(labHrefWith('f', placed, all, {}, b + 2)).toBe('/films/f/script/b?cue=rise#t=2');
+    expect(labPlaceOf('/films/f/script/b?mark=fall&words=2-4&note=n4#t=1')).toMatchObject({
+      mark: Option.none(),
       words: Option.some(said),
+      note: Option.none(),
+    });
+    expect(labPlaceOf('/films/f/script/b?mark=fall&note=n4#t=1')).toMatchObject({
+      mark: Option.some(fall),
+      note: Option.none(),
     });
     expect(labHrefWith('f', placed, all, { mark: Option.some(fall) }, b + 1)).toBe(
       '/films/f/script/b?mark=fall#t=1',

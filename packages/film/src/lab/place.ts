@@ -8,7 +8,8 @@
 // else the scene under the playhead, so the path never names a scene the
 // frame has left; `#t=` is the frame's time in that scene (signed: a
 // selection's scene may start after the frame). The Script selects one
-// thing at a time: a cue, a mark, words or a note, the newest pick winning. One
+// thing at a time: a cue, a mark, words or a note, the newest pick winning,
+// and a link naming more holds one (`scriptPickIn`). One
 // reader (`labPlaceOf`, `labOpensAt`) and one printer (`labHref`), so a
 // reload, a pasted link and Back all come back to the frame, the pick, the
 // note and the studio's beat they left, on the page they left.
@@ -92,6 +93,49 @@ const selectionIn = (
     () => Option.map(named(query.knob), (name) => knobOf(scene, name)),
   );
 
+/** What the Script picks: a cue, words, a mark or a note. */
+type ScriptPick = Pick<LabPlace, 'selection' | 'words' | 'mark' | 'note'>;
+
+const NOTHING_PICKED: ScriptPick = {
+  selection: Option.none(),
+  words: Option.none(),
+  mark: Option.none(),
+  note: Option.none(),
+};
+
+/**
+ * The one pick a Script link holds in beat `scene` (the Script selects one
+ * thing at a time): its cue, else its words, else its mark, else its note,
+ * in the order its path names a beat by; a link naming more holds the first.
+ */
+const scriptPickIn = (
+  scene: string,
+  query: {
+    readonly cue: string;
+    readonly words: string;
+    readonly mark: string;
+    readonly note: string;
+  },
+): ScriptPick =>
+  Option.getOrElse(
+    Option.firstSomeOf<ScriptPick>([
+      Option.map(named(query.cue), (name) => ({
+        ...NOTHING_PICKED,
+        selection: Option.some(cueOf(scene, name)),
+      })),
+      Option.map(wordsIn(scene, query.words), (words) => ({
+        ...NOTHING_PICKED,
+        words: Option.some(words),
+      })),
+      Option.map(named(query.mark), (name) => ({
+        ...NOTHING_PICKED,
+        mark: Option.some(markOf(scene, name)),
+      })),
+      Option.map(named(query.note), (note) => ({ ...NOTHING_PICKED, note: Option.some(note) })),
+    ]),
+    () => NOTHING_PICKED,
+  );
+
 /** The place of the Lab's pages `href` names; nothing for a page that is neither. */
 export const labPlaceOf = (href: string): LabPlace =>
   Option.getOrElse(
@@ -120,10 +164,7 @@ export const labPlaceOf = (href: string): LabPlace =>
         ...NOWHERE,
         root: 'script',
         scene: Option.some(path.scene),
-        selection: Option.map(named(query.cue), (name) => cueOf(path.scene, name)),
-        mark: Option.map(named(query.mark), (name) => markOf(path.scene, name)),
-        words: wordsIn(path.scene, query.words),
-        note: named(query.note),
+        ...scriptPickIn(path.scene, query),
         t: hash.t,
         loop: hash.loop,
       })),
