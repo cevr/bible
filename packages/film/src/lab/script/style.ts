@@ -80,9 +80,11 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 .lab-script-code { font: inherit; color: inherit; }
 .lab-script-line { margin: 0; font-size: var(--fs-read); line-height: var(--lh-read); color: var(--text-1); }
 .lab-script-w { cursor: pointer; }
-/* A mark: a chip before the word it stands before, raised to the line's cap height, never in a text selection. */
-.lab-script-mark { margin-inline-end: var(--s-1); padding: 0 var(--s-1); border-radius: var(--r-1); background: var(--surface-3);
-  color: var(--text-2); font-size: var(--fs-1); line-height: var(--lh-1); font-weight: var(--w-2); text-decoration: none;
+/* A mark: a chip before the word it stands before, raised to the line's cap height, never in a text selection. Quiet
+   at rest, the faintest ink and no fill (a line has one every few words, and the words are what is read); the
+   accent's fill while it is selected. */
+.lab-script-mark { margin-inline-end: var(--s-1); padding: 0 var(--s-1); border-radius: var(--r-1); background: none;
+  color: var(--text-3); font-size: var(--fs-1); line-height: var(--lh-1); font-weight: var(--w-2); text-decoration: none;
   vertical-align: text-top; user-select: none; -webkit-user-select: none; }
 .lab-script-mark[aria-current='true'] { background: var(--accent); color: var(--accent-ink); }
 @media (hover: hover) { .lab-script-mark:hover { color: var(--text-1); } .lab-script-mark[aria-current='true']:hover { color: var(--accent-ink); } }
