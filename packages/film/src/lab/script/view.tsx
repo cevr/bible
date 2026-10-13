@@ -23,7 +23,7 @@
 // a laptop it is a column beside the picture; on a phone it scrolls under the
 // picture and its track. Nothing here writes the script.
 
-import { For, Portal, Show } from '@solidjs/web';
+import { For, Portal, Show, useHead } from '@solidjs/web';
 import { Array as Arr, Option } from 'effect';
 import { createMemo, untrack } from 'solid-js';
 import { Selection } from '../../command/selection.ts';
@@ -47,6 +47,7 @@ import {
   ShownNote,
   useScriptNotes,
 } from './notes.tsx';
+import { SCRIPT_CSS } from './style.ts';
 import { MarkChip, Picture, Ties } from './tied.tsx';
 import { marksIn } from './ties.ts';
 
@@ -422,13 +423,22 @@ const Beats = () => {
   );
 };
 
-/** The Script's reader: a column beside the picture on a laptop, under it on a phone. */
-export const Reader = () => (
-  <Portal mount={document.body}>
-    <section class="lab-script" data-role="script" aria-label="Script">
-      <Head />
-      <Status />
-      <Beats />
-    </section>
-  </Portal>
-);
+/**
+ * The Script's reader: a column beside the picture on a laptop, under it on
+ * a phone. Its styles are in the page's head while it is there, and only
+ * then: the body is the browser's alone, so no first paint shows them, and
+ * neither a Lab page nor the Script's first paint waits for them
+ * (`page-css-budget.test.ts`).
+ */
+export const Reader = () => {
+  useHead({ tag: 'style', props: { 'data-part-style': 'script', children: SCRIPT_CSS } });
+  return (
+    <Portal mount={document.body}>
+      <section class="lab-script" data-role="script" aria-label="Script">
+        <Head />
+        <Status />
+        <Beats />
+      </section>
+    </Portal>
+  );
+};

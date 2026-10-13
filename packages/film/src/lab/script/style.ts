@@ -20,7 +20,9 @@
 // (`--script-w`); on a phone the page is the screen's height, the picture and
 // its track over the reader, which scrolls in a box of its own above the
 // docked transport. Read only through the tokens (`player/tokens.css`); what
-// no token holds is named in `SCRIPT_TOKENS`.
+// no token holds is named in `SCRIPT_TOKENS`. The reader puts these in the
+// page's head while it is mounted (`view.tsx`): no page's first paint waits
+// for them.
 
 import { PHONE, WIDE } from '../viewport.ts';
 

@@ -31,7 +31,6 @@ import { labPlaceOf } from './place.ts';
 import { scenesPlaceOf } from './scenes/place.ts';
 import { COMMENTS_CSS } from './review/comments-style.ts';
 import { SCENES_CSS } from './scenes/style.ts';
-import { SCRIPT_CSS } from './script/style.ts';
 import { SOURCE_CSS } from './source/style.ts';
 import { StudioFrame, studioOn } from './studio-frame.tsx';
 import { TRANSCRIPT_CSS } from './transcript/style.ts';
@@ -163,11 +162,14 @@ interface FilmPageSpec {
   readonly style: string;
 }
 
-/** The Lab's page, the Script's too. */
+/**
+ * The Lab's page, the Script's too. The Script's own styles are not in its
+ * head: its reader puts them there while it is mounted (`script/view.tsx`).
+ */
 export const LAB_PAGE: FilmPageSpec = {
   bodyClass: 'lab',
   rootClass: 'lab-root',
-  style: `${SHELL_CSS}${COMMAND_CSS}${SOURCE_CSS}${TRANSCRIPT_CSS}${SCRIPT_CSS}`,
+  style: `${SHELL_CSS}${COMMAND_CSS}${SOURCE_CSS}${TRANSCRIPT_CSS}`,
 };
 
 /** The Scenes and Play pages' page. */
