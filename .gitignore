@@ -213,3 +213,7 @@ packages/cli/.bible/
 # The Tried Gold site build (apps/triedgold/build), written by `react-router build`
 # and bundled into the Railway image by apps/triedgold/alchemy.run.ts.
 apps/triedgold/build/
+
+# The First the Blade prerender's server build (apps/firsttheblade/.prerender),
+# written by its `build` script and read once to draw the pages.
+.prerender/
