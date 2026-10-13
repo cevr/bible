@@ -6,8 +6,10 @@
 // out; a file that is there but cannot be fetched or read is an error naming
 // it, never a silent fall back to estimates. A film is given with the faces
 // it draws in asked for (`narratedFilms`): what draws it waits for them. Its
-// Rive rigs (the ones its drawings declare) are loaded before it is given, so
-// its first frame finds them; a rig that cannot load fails the film's load.
+// Rive rigs (the ones its drawings declare) are loaded before it is given, into
+// the scope its caller gives, so its first frame finds them and its caller
+// frees them; a rig that cannot load fails the film's load, and what the load
+// had acquired is released with it.
 
 import { Effect, Layer, ManagedRuntime, Record as Rec, Schema, Scope } from 'effect';
 import { FetchHttpClient, HttpClient } from 'effect/http';
@@ -73,26 +75,26 @@ export const loadNarrated = (
  * what draws the film waits for them (`pictureFacesWait`); the narration is
  * read through `http` (the page's `fetch` client unless given). The film is
  * given once its rigs are loaded (`loadRigs`) through `rive` (the page's Rive
- * runtimes unless given), built once with the page's first film: each film
- * loads its own rigs, which it holds for the page's life (their scope is never
- * closed: the page going away frees them).
+ * runtimes unless given), built once with the page's first film, into the
+ * `scope` its caller gives: each load of a film loads its own rigs, which the
+ * caller frees by closing that scope (a page's staged film keeps them for the
+ * page's life, `stageFilm`; a Project's stills while they show,
+ * `useSceneStills`). A load that fails has released what it acquired.
  */
 export const narratedFilms = <K extends string>(
   modules: Readonly<Record<K, () => Promise<FilmModule>>>,
   faces: Effect.Effect<void>,
   http: Layer.Layer<HttpClient.HttpClient> = FetchHttpClient.layer,
   rive: Layer.Layer<RiveRuntime, never, HttpClient.HttpClient> = RiveRuntimeBrowser,
-): Record<K, () => Promise<Film>> => {
+): Record<K, (scope: Scope.Scope) => Promise<Film>> => {
   const page = ManagedRuntime.make(Layer.provideMerge(rive, http));
   return Rec.map(
     modules,
-    (load, id) => () =>
+    (load, id) => (scope) =>
       page.runPromise(
         Effect.all([Effect.promise(load), loadNarrated(id), faces], { concurrency: 3 }).pipe(
           Effect.map(([m, narrated]) => m.film(narrated)),
-          Effect.flatMap((film) =>
-            Effect.flatMap(Scope.make(), (scope) => Scope.provide(loadRigs(film), scope)),
-          ),
+          Effect.flatMap((film) => Scope.provide(loadRigs(film), scope)),
         ),
       ),
   );

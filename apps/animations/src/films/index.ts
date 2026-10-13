@@ -3,8 +3,8 @@
 // under `<film>/shorts/<id>`, and each talk (`talkFilms`: the speaker's own
 // take, cut on his words), a film of its own under its folder's name.
 
-import { type Film, shortPages } from '@bible/film/canvas';
-import { narratedFilms, talkFilms } from '@bible/film/player';
+import { shortPages } from '@bible/film/canvas';
+import { type Films, narratedFilms, talkFilms } from '@bible/film/player';
 import { faces } from './faces.ts';
 import { shorts as righteousnessByFaithShorts } from './righteousness-by-faith/shorts.ts';
 
@@ -35,4 +35,4 @@ export const pages = {
     films['righteousness-by-faith'],
     righteousnessByFaithShorts,
   ),
-} satisfies Record<string, () => Promise<Film>>;
+} satisfies Films;

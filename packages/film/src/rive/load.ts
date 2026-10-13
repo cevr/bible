@@ -10,7 +10,7 @@
 // listing what the file has, and nothing is drawn.
 
 import type { Artboard, File, LinearAnimation, RiveCanvas } from '@rive-app/webgl2-advanced';
-import { Effect, Option, type Scope } from 'effect';
+import { Effect, Exit, Option, Scope } from 'effect';
 import type { Film } from '../canvas/film.ts';
 import { type LoadedRig, type RivePropSpec, rigSurfaces } from '../canvas/rive.ts';
 import { RigNameMissing, RigUnloadable } from '../core/errors.ts';
@@ -138,17 +138,25 @@ const loadRig = Effect.fn('Rive.loadRig')(function* (spec: RivePropSpec) {
 
 /**
  * Load every rig `film`'s drawings declare and stand them on it for its draws,
- * until the scope closes: what a film's load path runs before its first frame
- * (`narratedFilms` in a page, `check --draw` in Bun). The film, ready to draw.
+ * until the caller's scope closes: what a film's load path runs before its
+ * first frame (`narratedFilms` in a page, `check --draw` in Bun). Everything
+ * it acquires is held in a scope of its own under the caller's, closed at
+ * once, releasing it all, when any rig fails to load. The film, ready to draw.
  */
 export const loadRigs = Effect.fn('Rive.loadRigs')(function* (
   film: Film,
 ): Effect.fn.Return<Film, RigUnloadable | RigNameMissing, RiveRuntime | Scope.Scope> {
-  const loaded = new Map<RivePropSpec, LoadedRig>();
-  for (const spec of film.rigs.declared) loaded.set(spec, yield* loadRig(spec));
-  yield* Effect.acquireRelease(
-    Effect.sync(() => film.rigs.stand(loaded)),
-    (down) => Effect.sync(down),
+  const own = yield* Scope.fork(yield* Scope.Scope, 'sequential');
+  return yield* Effect.gen(function* () {
+    const loaded = new Map<RivePropSpec, LoadedRig>();
+    for (const spec of film.rigs.declared) loaded.set(spec, yield* loadRig(spec));
+    yield* Effect.acquireRelease(
+      Effect.sync(() => film.rigs.stand(loaded)),
+      (down) => Effect.sync(down),
+    );
+    return film;
+  }).pipe(
+    Scope.provide(own),
+    Effect.onError((cause) => Scope.close(own, Exit.failCause(cause))),
   );
-  return film;
 });

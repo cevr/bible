@@ -2,15 +2,18 @@
 // fixture rig (`src/canvas/fixtures/arm.ts`), loaded as a page loads a film's
 // rigs and drawn by the `webgl2` engine (the Rive Renderer on WebGL 2,
 // composited in) through a fixture film, gives the same bytes at each of five
-// times after two different histories in one page and on a fresh page. And
-// what is compared is the rig: its box differs from the frame drawn without
-// it. Drawn in the browser tests' Chrome (SwiftShader's WebGL 2,
-// `lab/fixtures/browsers.ts`); every frame compared is drawn on this machine.
+// times after two different histories in one page and on a page of its own,
+// fresh, for each time. And what is compared is the rig: its box differs from
+// the frame drawn without it. A rig whose WebGL context is lost (the
+// browser's cap on live contexts, or the page's budget that `glCanvas`
+// shares) draws the same bytes again, never a blank. Drawn in the browser
+// tests' Chrome (SwiftShader's WebGL 2, `lab/fixtures/browsers.ts`); every
+// frame compared is drawn on this machine.
 
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { asset, openTab, respond, scriptOf, servePaths } from '../../src/lab/fixtures/browsers.ts';
-import type { RiveFrame } from '../../src/canvas/fixtures/rive-pixels.ts';
+import type { AfterLoss, RiveFrame } from '../../src/canvas/fixtures/rive-pixels.ts';
 
 /** The five times compared: the reach off, on, mid-swing and left at rest. */
 const TARGETS = [0.1, 0.6, 1.1, 1.6, 1.95];
@@ -46,8 +49,8 @@ const fixture = Effect.cached(
 /** Times as JSON, to hand to the page. */
 const json = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.Finite)));
 
-/** Each target's frame after `histories` (one after another, in one page), on a page of its own. */
-const framesOn = (histories: ReadonlyArray<ReadonlyArray<number>>) =>
+/** A page of its own with the fixture's script loaded. */
+const fixturePage = () =>
   Effect.gen(function* () {
     const files = yield* fixture;
     const entry = files.find((f) => f.kind === 'entry-point');
@@ -77,11 +80,21 @@ const framesOn = (histories: ReadonlyArray<ReadonlyArray<number>>) =>
       }),
     });
     yield* page.goto('/');
+    return page;
+  });
+
+/** `targets`' frames after `histories` (one after another), in one page. */
+const framesOn = (
+  histories: ReadonlyArray<ReadonlyArray<number>>,
+  targets: ReadonlyArray<number> = TARGETS,
+) =>
+  Effect.gen(function* () {
+    const page = yield* fixturePage();
     const drawn: Array<ReadonlyArray<RiveFrame>> = [];
     for (const history of histories)
       drawn.push(
         yield* page.evaluate<ReadonlyArray<RiveFrame>>(
-          `riveFrames(${json(history)}, ${json(TARGETS)})`,
+          `riveFrames(${json(history)}, ${json(targets)})`,
         ),
       );
     return drawn;
@@ -89,11 +102,12 @@ const framesOn = (histories: ReadonlyArray<ReadonlyArray<number>>) =>
 
 describe('a Rive rig in the page', () => {
   it.scopedLive(
-    'draws the same bytes at each time after either history and on a fresh page',
+    'draws the same bytes at each time after either history and on a fresh page of its own',
     () =>
       Effect.gen(function* () {
         const [afterA = [], afterB = []] = yield* framesOn([HISTORY_A, HISTORY_B]);
-        const [fresh = []] = yield* framesOn([[]]);
+        // Each time the first a page draws: no frame before it on that page.
+        const fresh = (yield* Effect.forEach(TARGETS, (at) => framesOn([[]], [at]))).flat(2);
         expect(fresh.map((f) => f.at)).toEqual(TARGETS);
         expect(afterA.map((f) => f.hash)).toEqual(fresh.map((f) => f.hash));
         expect(afterB.map((f) => f.hash)).toEqual(fresh.map((f) => f.hash));
@@ -101,6 +115,19 @@ describe('a Rive rig in the page', () => {
         expect(new Set(fresh.map((f) => f.hash)).size).toBe(TARGETS.length);
         for (const f of fresh) expect(f.rigPixels).toBeGreaterThan(1000);
       }),
-    60_000,
+    120_000,
   );
+
+  for (const how of ['cap', 'budget'] as const)
+    it.scopedLive(
+      `draws the same bytes again once its WebGL context is lost (${how === 'cap' ? "the browser's cap" : "the page's budget"}), never a blank`,
+      () =>
+        Effect.gen(function* () {
+          const page = yield* fixturePage();
+          const loss = yield* page.evaluate<AfterLoss>(`riveAfterLoss(0.6, '${how}')`);
+          expect(loss.lost).toBeGreaterThan(0);
+          expect(loss.after).toBe(loss.before);
+        }),
+      60_000,
+    );
 });

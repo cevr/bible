@@ -8,7 +8,7 @@
 import type { Film, KnobRead, RenderOptions, ShownEdit } from '../canvas/film.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { timecode } from '../core/time.ts';
-import { Cause, Effect, Option } from 'effect';
+import { Cause, Effect, Option, Scope } from 'effect';
 import type { Fiber } from 'effect';
 import { parseHref } from '@bible/url-state';
 import { TIME_EVERY_MS, filmOfPage } from '../core/api.ts';
@@ -135,8 +135,13 @@ export interface Player {
   playOn(part: HTMLElement): () => void;
 }
 
-/** An app's film registry: each film's name and its loader. */
-export type Films = Record<string, () => Promise<Film>>;
+/**
+ * An app's film registry: each film's name and its loader, which gives the
+ * film with what it holds while it draws (its Rive rigs, `loadRigs`) in the
+ * caller's `scope`: the caller owns their lifetime, and closing the scope
+ * frees them.
+ */
+export type Films = Record<string, (scope: Scope.Scope) => Promise<Film>>;
 
 /** A page's film, loaded and on the stage: its name, its stage and canvas, and the captions switch. */
 export interface Staged {
@@ -177,7 +182,8 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
   const load = films[name];
   if (load === undefined)
     throw new Error(`unknown film "${name}"; have ${Object.keys(films).join(', ')}`);
-  const film = await load();
+  // The page's own scope, never closed: the staged film's rigs live as long as the page.
+  const film = await load(Scope.makeUnsafe());
 
   const canvas = document.createElement('canvas');
   canvas.width = film.width;

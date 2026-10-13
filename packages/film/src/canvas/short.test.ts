@@ -4,7 +4,7 @@
 // Making the page needs no DOM, so bun can make one.
 
 import { describe, expect, test } from 'bun:test';
-import { Effect } from 'effect';
+import { Effect, Scope } from 'effect';
 import { type FilmSpec, createFilm } from './film.ts';
 import { SHORT_LAYOUT, bandOf } from '../core/shorts.ts';
 import { createShort, shortPages } from './short.ts';
@@ -85,6 +85,8 @@ describe('createShort', () => {
       },
     ]);
     expect(Object.keys(pages)).toEqual(['probe/shorts/one']);
-    return expect(pages['probe/shorts/one']?.()).resolves.toMatchObject({ title: 'One' });
+    return expect(pages['probe/shorts/one']?.(Scope.makeUnsafe())).resolves.toMatchObject({
+      title: 'One',
+    });
   });
 });

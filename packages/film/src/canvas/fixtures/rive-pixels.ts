@@ -4,10 +4,13 @@
 // client). `riveFrames` draws, for each target time, a history of frames and
 // then the target, and hands back each target frame's pixels as a hash, and
 // how many pixels of the rig's box differ from the same frame with the rig
-// left out.
+// left out. `riveAfterLoss` draws a time, has the rig's WebGL context lost
+// (by the browser's cap on live contexts, or by the page's budget that
+// `glCanvas` shares), and draws it again.
 
 import { Effect, Layer, Scope } from 'effect';
 import { FetchHttpClient } from 'effect/http';
+import { glCanvas } from '../gl.ts';
 import { offscreen } from '../paper.ts';
 import { armFilm, armScene } from './arm.ts';
 import { loadRigs } from '../../rive/load.ts';
@@ -20,6 +23,19 @@ export interface RiveFrame {
   /** Pixels of the rig's box that differ from the frame drawn without the rig. */
   readonly rigPixels: number;
 }
+
+/** Every WebGL 2 context the page makes (the rig's targets among them), in the order made. */
+const contexts: Array<WebGL2RenderingContext> = [];
+const contextOf = HTMLCanvasElement.prototype.getContext;
+const isGl2 = (v: unknown): v is WebGL2RenderingContext =>
+  v !== null && v !== undefined && Reflect.has(Object(v), 'isContextLost');
+Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+  value(this: HTMLCanvasElement, ...args: Parameters<HTMLCanvasElement['getContext']>) {
+    const made: unknown = Reflect.apply(contextOf, this, args);
+    if (args[0] === 'webgl2' && isGl2(made)) contexts.push(made);
+    return made;
+  },
+});
 
 /** The film with the arm, and the same film without it: its scene draws nothing. */
 const film = armFilm([armScene('arm', 'webgl2')]);
@@ -62,4 +78,38 @@ const riveFrames = (history: ReadonlyArray<number>, targets: ReadonlyArray<numbe
     }),
   );
 
-Object.assign(window, { riveFrames });
+/** A time drawn, its rig's contexts lost, then drawn again. */
+export interface AfterLoss {
+  readonly before: string;
+  readonly after: string;
+  /** How many of the contexts the rig had drawn with were lost before the second draw. */
+  readonly lost: number;
+}
+
+/** Contexts the page makes past the rig's: kept, so the browser cannot collect them. */
+const crowd: Array<unknown> = [];
+
+/**
+ * Draw `at`, then lose the rig's contexts `how`: `cap` makes 16 more WebGL
+ * contexts (the browser's cap, so it drops its oldest); `budget` asks
+ * `glCanvas` for 8 keys (the page's budget, which lets the longest unused go).
+ * Then draw `at` again.
+ */
+const riveAfterLoss = (at: number, how: 'cap' | 'budget') =>
+  loaded.then((): AfterLoss => {
+    film.render(frame.ctx, at);
+    const before = fnv(frame.ctx.getImageData(0, 0, film.width, film.height).data);
+    const rigs = [...contexts];
+    for (let i = 0; i < (how === 'cap' ? 16 : 0); i++) {
+      const canvas = document.createElement('canvas');
+      crowd.push(canvas, canvas.getContext('webgl2'));
+    }
+    for (let i = 0; i < (how === 'budget' ? 8 : 0); i++)
+      crowd.push(glCanvas(`rive-pixels/${i}`, 4, 4));
+    const lost = rigs.filter((gl) => gl.isContextLost()).length;
+    film.render(frame.ctx, at);
+    const after = fnv(frame.ctx.getImageData(0, 0, film.width, film.height).data);
+    return { before, after, lost };
+  });
+
+Object.assign(window, { riveFrames, riveAfterLoss });
