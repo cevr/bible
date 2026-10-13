@@ -77,7 +77,7 @@ export interface Shading {
    * light), since it has little hue of its own to keep.
    */
   readonly turn: number;
-  /** The share of its lightness a shade loses; at least `FLOORS.step`. */
+  /** The share of its lightness a shade loses; from `FLOORS.step` to `FLOORS.darkest`. */
   readonly dark: number;
   /** The share of the way to white a light rises; at least `FLOORS.step`. */
   readonly lift: number;
@@ -126,6 +126,8 @@ const FLOORS = {
   turn: 10,
   /** The least share of its lightness a shade loses, and of the way to white a light rises. */
   step: 0.1,
+  /** The most share of its lightness a shade loses: past it a mid-tone's shade falls to near black (L under 8 at a base of L 20). */
+  darkest: 0.6,
 } as const;
 
 /** Why knobs `k` break CRAFT 12's floors (`FLOORS`), leave a share outside 0..1, or are no finite number: one reason per knob. */
@@ -134,7 +136,9 @@ const floorFaults = (k: Shading): string[] => [
     Number.isFinite(v) ? [] : [`${n} ${v} not a finite number`],
   ),
   ...(k.turn >= FLOORS.turn ? [] : [`turn ${k.turn} under ${FLOORS.turn}°`]),
-  ...(k.dark >= FLOORS.step && k.dark < 1 ? [] : [`dark ${k.dark} outside ${FLOORS.step}..1`]),
+  ...(k.dark >= FLOORS.step && k.dark <= FLOORS.darkest
+    ? []
+    : [`dark ${k.dark} outside ${FLOORS.step}..${FLOORS.darkest}`]),
   ...(k.lift >= FLOORS.step && k.lift < 1 ? [] : [`lift ${k.lift} outside ${FLOORS.step}..1`]),
   ...(k.deep >= FLOORS.chroma ? [] : [`deep ${k.deep} under chroma ${FLOORS.chroma}`]),
   ...(k.warm >= FLOORS.chroma ? [] : [`warm ${k.warm} under chroma ${FLOORS.chroma}`]),

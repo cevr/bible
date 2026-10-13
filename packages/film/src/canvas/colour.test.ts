@@ -314,6 +314,8 @@ describe('knobs under CRAFT 12’s floors', () => {
     ['a light’s chroma just under the floor', { warm: 5.9 }, 'warm 5.9'],
     ['a darkening just under the floor', { dark: 0.09 }, 'dark 0.09'],
     ['a lift just under the floor', { lift: 0.09 }, 'lift 0.09'],
+    ['a shade near black', { dark: 0.95 }, 'dark 0.95'],
+    ['a darkening just over the top', { dark: 0.61 }, 'dark 0.61'],
     ['an endless chroma', { deep: Number.POSITIVE_INFINITY }, 'deep Infinity not a finite number'],
     ['a light of no number', { warm: Number.NaN }, 'warm NaN not a finite number'],
   ] as const)('%s is refused', (_, knob, named) => {
