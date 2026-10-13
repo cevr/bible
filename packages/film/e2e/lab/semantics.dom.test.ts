@@ -105,4 +105,19 @@ describe("the kit's focus ring", () => {
       }).pipe(Effect.scoped),
     SLOW,
   );
+
+  it.live(
+    'in the keys dialog, a button drawn outside the kit (a command’s Change) shows the studio’s ring',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab();
+        const rebind = '[data-role="keys-sheet"] .lab-keys-actions > button';
+        yield* page.press('?');
+        yield* waitFor(page, rebind);
+        yield* page.focus(rebind);
+        yield* evaluates(page, FOCUS_SHOWN, 'ring');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
 });
