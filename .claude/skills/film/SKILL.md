@@ -29,6 +29,14 @@ Generate against the corpus, never against training data. A film's doctrine, its
 - **Frame from the corpus.** The spine of the script (what the doctrine is, what it includes, in what order) is read from the topic file and the pioneers in context, never from a familiar summary. Where they differ, follow the corpus and name the difference in the topic file.
 - **A gap stays a gap.** A claim the corpus does not support is cut or marked unverified; memory never fills it.
 
+## Ensemble
+
+Every film and talk shares a recurring cast besides its main figures (owner, 2026-10-13): a household of five, the grandmother in the hills and two neighbours in the city. Who they are, how they look, their garment slots and their arcs are in [apps/animations/docs/ensemble.md](../../../apps/animations/docs/ensemble.md).
+
+- **Show the cast where the story allows:** the cold open, the IDEA beats, the landing, and a talk's cut-paper inserts. Never inside a scene of Bible history, and never as a Bible person or a figure of Christ's parables.
+- **Never invent an everyday figure when a cast member fits.** A new person is only for a crowd, a judge or a stranger no cast member can be.
+- **Keep continuity:** fixed ages, the same homes, no names in speech, and each appearance framed as a parable ("Picture a father…"), never as history. The `script.ts` header lists the cast a film uses and the ledger state it assumes.
+
 ## Steps
 
 0. **Tools.** `bun run doctor` (with `dangerouslyDisableSandbox: true`) says whether headless Chrome through Bun.WebView (and the H.264 encoder a render gets) and the logged-in `elevenlabs` CLI are there (media needs no ffmpeg: takes, shares, stills and phone copies are made in-process), and how to fix each that is not. `narrate` and `score` check the `elevenlabs` login before spending a credit.
