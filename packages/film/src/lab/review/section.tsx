@@ -405,7 +405,12 @@ const Zoom = (props: {
       >
         <Dialog.Portal>
           <Dialog.Backdrop class="rv-lightbox-backdrop" />
-          <Dialog.Popup class="rv-lightbox" data-still={props.name} onClick={close}>
+          <Dialog.Popup
+            class="rv-lightbox"
+            data-role="lightbox"
+            data-still={props.name}
+            onClick={close}
+          >
             <img src={props.shown.src} alt={props.shown.caption} />
             <Dialog.Title class="rv-lightbox-caption">{props.shown.caption}</Dialog.Title>
           </Dialog.Popup>

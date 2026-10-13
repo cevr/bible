@@ -32,7 +32,7 @@ describe('hear version n', () => {
     expect(one.when(ctx)).toBe(false);
     expect(three.when(ctx)).toBe(false);
     expect(labelOf(two, ctx)).toBe('Hear version 2 · take 1');
-    Effect.runSync(two.run(ctx, BY_BUTTON));
+    Effect.runSync(two.run(ctx, { ...BY_BUTTON, input: 'pointer' }));
     expect(heard).toBe('v2');
     expect(two.when(ctx)).toBe(false);
     expect(one.when(ctx)).toBe(true);

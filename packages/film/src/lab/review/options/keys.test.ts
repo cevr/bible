@@ -131,7 +131,9 @@ describe('audition', () => {
     const { d, auditioned } = deck(Option.none());
     const commands = pointCommands(d);
     expect(labelOf(byId(commands, 'review.audition-next'), onCard)).toBe('Hear piano in place');
-    Effect.runSync(byId(commands, 'review.audition-next').run(onCard, BY_BUTTON));
+    Effect.runSync(
+      byId(commands, 'review.audition-next').run(onCard, { ...BY_BUTTON, input: 'pointer' }),
+    );
     expect(auditioned).toEqual([{ point: 'score', variant: 'piano' }]);
     expect(byId(commands, 'review.audition-next').when(page)).toBe(false);
     expect(byId(commands, 'review.audition-next').keys).toEqual(['alt+arrowright']);
@@ -146,7 +148,7 @@ describe("Enter's pick", () => {
     expect(pick.when(onCard)).toBe(false);
     expect(pick.when(onVariant('piano'))).toBe(true);
     expect(labelOf(pick, onVariant('piano'))).toBe('Pick piano');
-    Effect.runFork(pick.run(onVariant('piano'), BY_BUTTON));
+    Effect.runFork(pick.run(onVariant('piano'), { ...BY_BUTTON, input: 'pointer' }));
     expect(picked).toEqual([{ point: 'score', variant: 'piano' }]);
     expect(Option.isNone(heardSelectedOf(deck(scoreOf('strings')).d, onVariant('strings')))).toBe(
       true,
@@ -182,7 +184,7 @@ describe('Accept anyway', () => {
     expect(
       contextRows([accept], onVariant('piano')).flatMap(([, r]) => r.map((x) => x.label)),
     ).toEqual(['Accept anyway · piano as score']);
-    Effect.runFork(accept.run(page, BY_BUTTON));
+    Effect.runFork(accept.run(page, { ...BY_BUTTON, input: 'pointer' }));
     expect(accepted).toEqual([refused]);
     expect(byId(pointCommands(deck(Option.none()).d), ACCEPT_ANYWAY).when(page)).toBe(false);
   });
@@ -192,8 +194,18 @@ describe('the marks', () => {
   test('`.` and `,` jump to the next and previous mark past the time shown', () => {
     const { d, jumped } = deck(Option.none());
     const commands = pointCommands(d);
-    Effect.runSync(byId(commands, 'review.mark-next').run(onVariant('piano'), BY_BUTTON));
-    Effect.runSync(byId(commands, 'review.mark-previous').run(onVariant('piano'), BY_BUTTON));
+    Effect.runSync(
+      byId(commands, 'review.mark-next').run(onVariant('piano'), {
+        ...BY_BUTTON,
+        input: 'pointer',
+      }),
+    );
+    Effect.runSync(
+      byId(commands, 'review.mark-previous').run(onVariant('piano'), {
+        ...BY_BUTTON,
+        input: 'pointer',
+      }),
+    );
     expect(jumped).toEqual([4, 1]);
     expect(byId(commands, 'review.mark-next').keys).toEqual(['.']);
     expect(byId(pointCommands(deck(Option.none(), true).d), 'review.mark-next').when(onCard)).toBe(

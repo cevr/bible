@@ -8,6 +8,7 @@
 // opens each part of its film (`filmCommands`). Pure.
 
 import { Option } from 'effect';
+import type { Input } from '../browser/keys.ts';
 import { PARTS, PART_TITLE, type Part, filmTimeOn, hasPart, partHref } from '../core/api.ts';
 import { type Command, type CommandId, quietly } from './command.ts';
 import { type Context, selected } from './context.ts';
@@ -20,8 +21,8 @@ export interface Destination {
   readonly id: string;
   /** Its name, as it is typed to find it. */
   readonly name: string;
-  /** Go there, as its link or its pick would. */
-  readonly go: () => void;
+  /** Go there, as its link or its pick would, asked by `input` (a focus it moves rings iff a key asked). */
+  readonly go: (input: Input) => void;
 }
 
 /** The group every Go to entry sits in. */
@@ -36,7 +37,7 @@ export const goToCommands = (destinations: ReadonlyArray<Destination>): Readonly
     typed: true,
     touch: 'the command menu: type its name',
     when: () => true,
-    run: quietly(() => d.go()),
+    run: quietly((_, how) => d.go(how.input)),
   }));
 
 /** The group the parts' commands sit in. */

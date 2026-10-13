@@ -496,15 +496,15 @@ Each direction gives the change for `SKILL.md` or the engine, the evidence, wher
     - a quotation of 10 words or fewer, only when the words are an object in the world (written in dust, stamped, carved);
     - the sources on the end card.
   - Captions ship as the `.vtt`, which `render` already writes, not in the frame. Remove cite tags from scenes.
-- **Change**, in the check tool:
-  - add `SpokenText`, which fails a text block whose words match narration spoken within ±3 s, unless the block is marked as a recitation;
-  - add `TextBudget`, which fails a sampled moment that shows more than one text block, not counting the title and end card.
+- **Change**, in the check tool (proposed; `check` has neither finding yet):
+  - add a SpokenText finding, which fails a text block whose words match narration spoken within ±3 s, unless the block is marked as a recitation;
+  - add a TextBudget finding, which fails a sampled moment that shows more than one text block, not counting the title and end card.
 - **Evidence:**
   - The Sermon on the Mount films show no text in all 10, apart from the title, the map and the sung prayer (3-Ylq 6:50–8:50).
   - The text-first formats keep text to one element with one job (V12).
 - **Ours:** a quotation in 31 of 58 tiles, caption strips in 56, and 30 cite tags.
 - **Test:**
-  - `check` passes with no `SpokenText` and no `TextBudget` findings.
+  - `check` passes with no SpokenText and no TextBudget findings.
   - The frame sheet shows text in no more than about 8 of 58 tiles outside the title and end card. That is the budget the allowed list implies.
 
 ### 2. Quote less and paraphrase more

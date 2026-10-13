@@ -9,6 +9,7 @@
 // browser lists (`micCommands`), no key, the one in use not offered.
 
 import { Option } from 'effect';
+import type { Input } from '../../browser/keys.ts';
 import { type Command, quietly } from '../../command/command.ts';
 import type { Act, Control, ControlCommand, MicOption } from './view.ts';
 
@@ -16,7 +17,8 @@ import type { Act, Control, ControlCommand, MicOption } from './view.ts';
 interface StudioVerbs {
   /** The control `command` presses now, if it presses one. */
   readonly control: (command: ControlCommand) => Option.Option<Control>;
-  readonly perform: (act: Act) => void;
+  /** Do `act`, asked by `input`: the focus the act leaves rings iff a key asked (`Invocation.input`). */
+  readonly perform: (act: Act, input: Input) => void;
   /** Whether ←/→ step through the beats now. */
   readonly stepsBeats: () => boolean;
   /** Select the beat `by` places on (1 the next, -1 the previous), if there is one. */
@@ -51,7 +53,7 @@ export const studioCommands = (verbs: StudioVerbs): ReadonlyArray<Command> => [
     keys: [chord],
     ...inStudio,
     when: () => Option.isSome(verbs.control(id)),
-    run: quietly(() => Option.map(verbs.control(id), (c) => verbs.perform(c.act))),
+    run: quietly((_, how) => Option.map(verbs.control(id), (c) => verbs.perform(c.act, how.input))),
   })),
   ...STEPS.map(([id, label, chord, by]): Command => ({
     id,

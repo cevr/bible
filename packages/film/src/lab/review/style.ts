@@ -163,12 +163,13 @@ a.rv-card:hover { background: var(--surface-2); }
 @media ${WIDE} {
   .rv-alone-row .rv-time-at { display: inline; }
 }
-/* The lightbox (\`Zoom\`): the kit's dialog on the overlays' layer, over the tab bar and the dock. */
+/* The lightbox (\`Zoom\`), over the tab bar and dock, fills the viewport: rings inside. */
 .rv-lightbox-backdrop { position: fixed; inset: 0; background: var(--backdrop-deep); z-index: var(--cmd-layer); }
 .rv-lightbox {
   position: fixed; inset: 0; display: grid; place-items: center; z-index: calc(var(--cmd-layer) + 1);
   padding: var(--s-4); cursor: zoom-out; grid-template-rows: minmax(0, 1fr) auto; gap: var(--s-2);
 }
+.rv-lightbox[role]:focus-visible{box-shadow:var(--focus-ring-inset)}
 .rv-lightbox img { max-width: 100%; max-height: 100%; }
 .rv-lightbox-caption { margin: 0; color: var(--text-2); font-size: var(--fs-2); font-weight: inherit; }
 .rv-note {
@@ -197,8 +198,9 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-option .rv-body { display: flex; flex-direction: column; gap: var(--s-2); }
 .rv-take { border-top: var(--border); padding-top: var(--s-2); display: flex; flex-direction: column; gap: var(--s-2); }
 /* The row whose inspector is open (design language §5, List row): its left edge in the
-   accent, on Choices' variant rows and a Set's version cards alike (Project's tiles below). */
-:is(.rv-take, .rv-card)[data-selected="true"] { box-shadow: inset 2px 0 var(--accent); }
+   accent, on Choices' variant rows and a Set's version cards alike (Project's tiles below);
+   one the keyboard focuses shows the shell's ring instead. */
+:is(.rv-take, .rv-card)[data-selected="true"]:not(:focus-visible) { box-shadow: inset 2px 0 var(--accent); }
 .rv-take { padding-left: var(--s-2); }
 /* The choices as a list (design language §6, Choices): each point a group across the column, each variant one row, its name and line at the start and its hear buttons and verbs at the end (wrapping there, the name keeping at least 10rem or half the row). */
 .rv-list { display: flex; flex-direction: column; gap: var(--s-3); }
@@ -292,7 +294,6 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-findings li[data-level="error"] b { color: var(--state-findings); }
 .rv-findings li[data-level="warning"] b { color: var(--state-warning); }
 .rv-films { margin-bottom: var(--s-1); }
-.rv :focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .rv .lab-count-hit:focus-visible { box-shadow: none; }
 .rv .lab-count-hit:focus-visible > .lab-count { box-shadow: var(--focus-ring); }
 /*

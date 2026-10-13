@@ -238,7 +238,7 @@ export const resolve = (
       bound = bound || named.length > 0;
       const ready = Option.fromUndefinedOr(named.filter((c) => c.when(ctx)).at(-1));
       if (Option.isSome(ready))
-        return Resolved.Run({ command: ready.value, how: { step, via: 'key' } });
+        return Resolved.Run({ command: ready.value, how: { step, via: 'key', input: 'key' } });
     }
     if (bound && OWNS.has(scope)) return Resolved.Owned();
   }

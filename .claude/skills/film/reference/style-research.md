@@ -10,8 +10,8 @@ in [`ref-frames/`](ref-frames/).
 
 | Source                                                                                                                                                     | What was studied                                                                                                         |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| BibleProject, _Is Holiness Just Moral Perfection?_ (`l9vn5UvsHvM`, 6:34)                                                                                   | Painterly theme video: gold/teal, silhouettes, scrolls, radiance                                                         |
-| BibleProject, _Agape – Love_ (`slyevQ1LW7A`, 4:48)                                                                                                         | Word-study format: flat vector, small square "card" on a grey page                                                       |
+| BibleProject, _Is Holiness Just Moral Perfection?_ ([l9vn5UvsHvM](https://www.youtube.com/watch?v=l9vn5UvsHvM), 6:34)                                      | Painterly theme video: gold/teal, silhouettes, scrolls, radiance                                                         |
+| BibleProject, _Agape – Love_ ([slyevQ1LW7A](https://www.youtube.com/watch?v=slyevQ1LW7A), 4:48)                                                            | Word-study format: flat vector, small square "card" on a grey page                                                       |
 | Kevin Ngo, [x.com/kevin_t_ngo/status/2102437977435893771](https://x.com/kevin_t_ngo/status/2102437977435893771)                                            | 28 s, 2160², "Claude Opus 5.5 drew every frame of this animation in JavaScript" (downloaded through `api.fxtwitter.com`) |
 | [JohnHeibel/PDoomVideo](https://github.com/JohnHeibel/PDoomVideo) + its successor [ClaudeAnimationBase](https://github.com/JohnHeibel/ClaudeAnimationBase) | Source for a p5.js + p5.brush watercolour music video                                                                    |
 
@@ -311,17 +311,17 @@ const boilSeed = (key) => {
   order, so there is no state between frames and no `Math.random()`.
 - `chapter(name, start, end, [[t0, shotFn], ...])` builds a registry. A shot is
   `fn(t, lt, dur)` (global time, local time, shot length) and paints the whole
-  frame. `drawWorld(t)` finds the chapter and shot, calls it, then applies the
+  frame. [`drawWorld(t)`](https://github.com/JohnHeibel/PDoomVideo) finds the chapter and shot, calls it, then applies the
   global overlays: the brush wipes at chapter boundaries and the karaoke.
 - Timing helpers: `seg(t,a,b)` (0..1 progress), `kf(t, [[t0,v0],...], ease)`
   (keyframes over numbers or arrays), `pulse(t)` (a decaying beat hit),
-  `backOut`/`elasticOut`, and `shakeXY(t, amt)` (hash-based, stepped at 24 fps).
-- Camera: `camBegin(cx, cy, zoom, rot)` / `camEnd()`, which puts a world point at
+  [`backOut`](https://github.com/JohnHeibel/PDoomVideo)/[`elasticOut`](https://github.com/JohnHeibel/PDoomVideo), and [`shakeXY(t, amt)`](https://github.com/JohnHeibel/PDoomVideo) (hash-based, stepped at 24 fps).
+- Camera: [`camBegin(cx, cy, zoom, rot)`](https://github.com/JohnHeibel/PDoomVideo) / [`camEnd()`](https://github.com/JohnHeibel/PDoomVideo), which puts a world point at
   screen centre. Lettering is projected through the camera separately
-  (`toScreen`), because it lives on the 2D compositor.
+  ([`toScreen`](https://github.com/JohnHeibel/PDoomVideo)), because it lives on the 2D compositor.
 - Transition primitives: `wipe(p)` (5 ragged fat paint bands sweep across, the scene
   swaps at p = .5 under full cover, then the bands drag off), `iris(cx,cy,r)`, and
-  `irisShape(pts)` (paints everything _outside_ any star-shaped outline, for
+  [`irisShape(pts)`](https://github.com/JohnHeibel/PDoomVideo) (paints everything _outside_ any star-shaped outline, for
   heart or keyhole reveals), and `flash(k)`.
 - Emotions never snap: `mood(t, keys)` inserts a squint, a squash-and-stretch
   "take" and an emote pop around every face change.
@@ -363,7 +363,7 @@ spawn('ffmpeg', [
 ]);
 ```
 
-- Time is **pulled, not played**: there is no `requestAnimationFrame`, and `noLoop()`
+- Time is **pulled, not played**: there is no `requestAnimationFrame`, and [`noLoop()`](https://p5js.org/reference/p5/noLoop/)
   plus `redraw()` draws exactly one frame per call. Determinism comes from design,
   so no clock virtualisation is needed.
 - **Parallel and resumable:** N worker pages pull the next missing frame index,
@@ -389,12 +389,12 @@ agent-friendly (fast contact sheets).
 
 ### Core decision: Canvas 2D first, with p5.brush as an optional layer
 
-| Option                                                         | Verdict                                                                                                                                                                                                         |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Canvas 2D + own seeded brush primitives** (recommended core) | Fast (tens of ms per frame on CPU), fully deterministic, and composites in simple layers. Wobble, torn edges, dry-brush and grain are all cheap point-list and texture tricks.                                  |
-| p5.js + p5.brush (WEBGL)                                       | The best watercolour look, and proven by PDoom. But it is GPU-bound (1–4 s per frame), a global-state API, and hard to layer. Use it only for backgrounds and washes, rendered to an offscreen canvas per shot. |
-| SVG + `feTurbulence`/`feDisplacementMap`                       | A good edge-roughening filter, but filter cost scales with resolution and must be rasterised through the DOM each frame. Use it for authoring or preview, not the main path.                                    |
-| WebGL/regl custom shaders                                      | Best for a full-frame paper-grain/bleed post-pass if we outgrow Canvas2D. Not needed for v1.                                                                                                                    |
+| Option                                                                                                                                                                                          | Verdict                                                                                                                                                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Canvas 2D + own seeded brush primitives** (recommended core)                                                                                                                                  | Fast (tens of ms per frame on CPU), fully deterministic, and composites in simple layers. Wobble, torn edges, dry-brush and grain are all cheap point-list and texture tricks.                                  |
+| p5.js + p5.brush (WEBGL)                                                                                                                                                                        | The best watercolour look, and proven by PDoom. But it is GPU-bound (1–4 s per frame), a global-state API, and hard to layer. Use it only for backgrounds and washes, rendered to an offscreen canvas per shot. |
+| SVG + [`feTurbulence`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feTurbulence)/[`feDisplacementMap`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDisplacementMap) | A good edge-roughening filter, but filter cost scales with resolution and must be rasterised through the DOM each frame. Use it for authoring or preview, not the main path.                                    |
+| WebGL/regl custom shaders                                                                                                                                                                       | Best for a full-frame paper-grain/bleed post-pass if we outgrow Canvas2D. Not needed for v1.                                                                                                                    |
 
 ### Line and shape tools (all deterministic when seeded)
 
@@ -446,7 +446,7 @@ stream (the ClaudeAnimationBase fix).
 - Frame rates: render at **30 fps** for smooth camera and light, with the boil at
   **12 fps** and character poses held on twos (`floor(t * 12) / 12`) for the
   hand-made cadence.
-- Optional later: in-browser WebCodecs `VideoEncoder` plus an MP4 muxer to skip the
+- Optional later: in-browser WebCodecs [`VideoEncoder`](https://developer.mozilla.org/en-US/docs/Web/API/VideoEncoder) plus an MP4 muxer to skip the
   PNG round trip. It is not needed for v1.
 - Audio drives time: the narration WAV and a cue sheet (word timestamps) give shot
   times. Put picture hits about 0.3 s after the spoken key word.
@@ -472,47 +472,47 @@ silhouettes, scrolls) and the Ngo collage (torn paper, crayon grain):
 
 Each is a pure `(t, params) → draw` with a progress `p ∈ [0,1]`.
 
-1. **`maskFillSweep(shape, fromColor, toColor, p, dir)`**: a colour front spreads
+1. **maskFillSweep(shape, fromColor, toColor, p, dir)**: a colour front spreads
    inside a silhouette mask with a ragged, boiling edge (BibleProject's whitening
    figure, [13](ref-frames/bp-holiness-13-burst-silhouette-whitening.jpg)). _The
    central move for this series:_ a filthy-rags silhouette receives Christ's white
    robe (Isa 61:10, Zech 3:3-5).
-2. **`brushWipe(p, colors, angle)`**: 3–5 dry-brush bands drag across with bristle
+2. **brushWipe(p, colors, angle)**: 3–5 dry-brush bands drag across with bristle
    edges, the scene swaps under full cover, and the bands drag off (PDoom `wipe`
    plus the Agape card wipe). It marks chapter breaks.
-3. **`radianceBurst(center, p)`**: rotating sunburst rays, an additive glow core, a
+3. **radianceBurst(center, p)**: rotating sunburst rays, an additive glow core, a
    ragged splatter rim, and it grows to white-out as a transition. Divine presence,
    or "light swallows the scene".
-4. **`muralPan(strip, keys)`**: one long world strip with keyframed camera travel,
+4. **muralPan(strip, keys)**: one long world strip with keyframed camera travel,
    plus parallax layers (sky 0.3×, mid 0.7×, fore 1×). Continuous story without
    cuts (sanctuary court → holy place → most holy).
-5. **`zoomThrough(target, p)`**: the camera dives into an object (a scroll's word, a
+5. **zoomThrough(target, p)**: the camera dives into an object (a scroll's word, a
    door, the veil), and the inner scene is already painted inside it. The book page
    becomes the world.
-6. **`scrollReveal(word, lang, gloss, p)`**: parchment unrolls (hands optional),
+6. **scrollReveal(word, lang, gloss, p)**: parchment unrolls (hands optional),
    the original-language word is written in red ink, and it cross-dissolves into the
    English plus the label pill. The word-study beat for צְדָקָה / δικαιοσύνη /
    πίστις / λογίζομαι.
-7. **`writeOn(text|path, p, {font, hand})`**: stroke-by-stroke handwriting. Sample
+7. **writeOn(text|path, p, {font, hand})**: stroke-by-stroke handwriting. Sample
    glyph outlines or centerlines, grow a perfect-freehand stroke along them, and
    optionally follow the writing head with a hand sprite (Ngo notebook). For quoted
    Scripture.
-8. **`wordRing(center, words, p)` and `wordFusion(word, index, object)`**: key
+8. **wordRing(center, words, p) and wordFusion(word, index, object)**: key
    words orbit a symbol on a circle path, and one letter swaps for an icon. For
    concept definition ("FAITH" with the A as an open hand).
-9. **`wavySplit(p)` → `loopMorph(p)`**: a hand-wobbled vertical divider sets two
+9. **wavySplit(p) → loopMorph(p)**: a hand-wobbled vertical divider sets two
    states side by side (by works | by faith, law | grace), then morphs into an
    enclosing shape (infinity loop, or a heart) that unites them. Contrast, then
    reconciliation.
-10. **`tornPaper(shape, {rim, seed})` + `ledgerExchange(p)`**: collage shapes with
+10. **tornPaper(shape, {rim, seed}) + ledgerExchange(p)**: collage shapes with
     fibrous white torn rims (Ngo). The signature exchange uses them: a torn "debt"
     page from the sinner's ledger is lifted and pinned onto the cross, and a
     "credit" page (Christ's record) is laid over the sinner's ledger, which shows
     imputation as a physical swap of paper.
 
-Supporting primitives that everything uses: `wobble()` and `boilSeed()`, `camera`,
-`kf`/`seg`/easings (`backOut`, `elasticOut`), `glow()`, `grainOverlay`, `iris` and
-`irisShape`, and `--sheet` contact-sheet rendering for agent QA.
+Supporting primitives that everything uses (names to come): `wobble()` and boilSeed(), `camera`,
+`kf`/`seg`/easings (backOut, elasticOut), `glow()`, grainOverlay, `iris` and
+irisShape, and `--sheet` contact-sheet rendering for agent QA.
 
 ## Reference frames
 

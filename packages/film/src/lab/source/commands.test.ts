@@ -27,7 +27,8 @@ const over = (open: boolean, lines: Record<string, number>, log: Array<string>) 
   const command = (id: string) => Option.getOrThrow(Arr.findFirst(commands, (c) => c.id === id));
   return {
     command,
-    run: (id: string, ctx = here) => Effect.runSync(command(id).run(ctx, BY_BUTTON)),
+    run: (id: string, ctx = here) =>
+      Effect.runSync(command(id).run(ctx, { ...BY_BUTTON, input: 'pointer' })),
   };
 };
 

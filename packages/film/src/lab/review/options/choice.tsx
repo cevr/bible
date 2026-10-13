@@ -28,6 +28,8 @@ import {
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import { useReview } from '../context.tsx';
+import type { Input } from '../../../browser/keys.ts';
+import { focusFor } from '../../focus.ts';
 import { pressed } from '../../pressed.ts';
 import { APPROVAL_TEXT, POSTER_W, stateText, videoSource } from '../format.ts';
 import { HearToggle, PlayedAlone } from '../player.tsx';
@@ -711,14 +713,21 @@ const FIRST_CONTROL = '.rv-body :is(button, input, select, a[href]):not(:disable
 /**
  * Reveal the card of `point` and put the keyboard on its first control that
  * takes it, else on the card itself, so what the keys select next (an
- * audition, a pick) is this point's and not the one focused before.
+ * audition, a pick) is this point's and not the one focused before. It is
+ * reached by ⌘K, a kind's tab or a link, from the keys or the mouse, so it
+ * shows the ring iff `input` was a key (a tab pressed, ⌘K left by Enter; not
+ * a tab clicked, nor a page just opened).
  */
-export const focusPoint = (point: string) =>
+export const focusPoint = (point: string, input: Input) =>
   Option.map(revealPoint(point), (card) =>
-    Option.getOrElse(
-      Option.fromNullishOr(card.querySelector<HTMLElement>(FIRST_CONTROL)),
-      () => card,
-    ).focus({ preventScroll: true }),
+    focusFor(
+      Option.getOrElse(
+        Option.fromNullishOr(card.querySelector<HTMLElement>(FIRST_CONTROL)),
+        () => card,
+      ),
+      input,
+      { preventScroll: true },
+    ),
   );
 
 /** Where a choice's says go: the film's choices, under its point. */

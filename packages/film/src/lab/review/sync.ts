@@ -415,7 +415,7 @@ export const playerCommands = (
   heed: (key: PlayerKey) => Option.Option<() => void>,
 ): ReadonlyArray<Command> => {
   const asked = (key: (how: Invocation) => PlayerKey) => ({
-    when: () => Option.isSome(heed(key({ step: 'normal', via: 'key' }))),
+    when: () => Option.isSome(heed(key({ step: 'normal', via: 'key', input: 'key' }))),
     run: quietly((_ctx, how) => Option.map(heed(key(how)), (act) => act())),
   });
   return [

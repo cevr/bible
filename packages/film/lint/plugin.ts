@@ -6,6 +6,7 @@
 import { Plugin } from 'oxlint-plugin-effect/rule-bindings';
 import { booleansThroughPressed } from './booleans-through-pressed.ts';
 import { drawingLiteral } from './drawing-literal.ts';
+import { focusThroughFocusFor } from './focus-through-focus-for.ts';
 import { framingIsAKnob } from './framing-is-a-knob.ts';
 import { historyThroughHost } from './history-through-host.ts';
 import { hostEventsThroughAdapter } from './host-events-through-adapter.ts';
@@ -23,6 +24,7 @@ import { noTestSeam } from './no-test-seam.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
 import { oneBreakpoint } from './one-breakpoint.ts';
 import { oneClockEpsilon } from './one-clock-epsilon.ts';
+import { pagesInCaseScope } from './pages-in-case-scope.ts';
 import { spanEndsOnAnchor } from './span-ends-on-anchor.ts';
 import { spawnBudget } from './spawn-budget.ts';
 import { touchesSerial } from './touches-serial.ts';
@@ -32,6 +34,7 @@ export default Plugin.define({
   rules: {
     'booleans-through-pressed': booleansThroughPressed,
     'drawing-literal': drawingLiteral,
+    'focus-through-focus-for': focusThroughFocusFor,
     'framing-is-a-knob': framingIsAKnob,
     'history-through-host': historyThroughHost,
     'host-events-through-adapter': hostEventsThroughAdapter,
@@ -49,6 +52,7 @@ export default Plugin.define({
     'no-unprobed-ink': noUnprobedInk,
     'one-breakpoint': oneBreakpoint,
     'one-clock-epsilon': oneClockEpsilon,
+    'pages-in-case-scope': pagesInCaseScope,
     'span-ends-on-anchor': spanEndsOnAnchor,
     'spawn-budget': spawnBudget,
     'touches-serial': touchesSerial,
