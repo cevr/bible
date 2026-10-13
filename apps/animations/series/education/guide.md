@@ -215,10 +215,10 @@ This is the core understanding behind the education series, in one place. It ans
 
 **Beyond the source / disagreements**
 
-- **The rod.** The counsel allows it as a last resort, never in anger: "Whipping may be necessary when other resorts fail, yet she should not use the rod if it is possible to avoid doing so" (CG 250.2); "not in passion, but with love and prayer" (CG 276.1). Abbott reads the rod as an emblem (ch. 21), Kellogg says "last resort, if at all" (pp. 103–104), and Byrum whips a two-year-old to "conquer" his will (pp. 51–53). The films leave this alone (`series.md` §5); the guide states the counsel as written.
+- **The rod.** The counsel allows it as a last resort, never in anger: "Whipping may be necessary when other resorts fail, yet she should not use the rod if it is possible to avoid doing so" (CG 250.2); "not in passion, but with love and prayer" (CG 276.1). Abbott reads the rod as an emblem (ch. 21), Kellogg says "last resort, if at all" (pp. 103–104), and Byrum whips a two-year-old to "conquer" his will (pp. 51–53). The owner keeps the last-resort counsel (2026-10-13): the guide and the films state it as written, after authority, calm and consistency, never before them (`series.md` §5).
 - Byrum's whipping and the 1905 methods (tying, taping, locking up, Kellogg pp. 45, 97, 99–100) are not counsel to follow.
 
-**For a parent outside our tradition.** Common ground. The rod is where Christian parents divide most sharply; a talk that took it up would need to meet both sides with care, which is why the films leave it alone.
+**For a parent outside our tradition.** Common ground. The rod is where Christian parents divide most sharply; a talk that takes it up meets both sides with care: it names the harsh extreme and the indulgent one as equally wrong (CG 175.2), and puts the last resort where the counsel puts it, last.
 
 **Draft topics:** 46, 50, 51, 53, 56, 63, 64.
 

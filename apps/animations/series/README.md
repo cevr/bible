@@ -12,6 +12,8 @@ Research, plans and draft scripts for three content series. Nothing here is narr
 - **Aim: persuade.** Use reason and logic (logos), feeling (pathos), and the speaker's evident trustworthiness (ethos). Never bare assertion, and never an insider's shorthand.
 - **Language:** charming, melodic, earnest, fervent. Sentences that sound well aloud, warm and urgent, never cold or clever.
 - **Method: Christ's method.** "Christ's method alone will give true success in reaching the people. The Saviour mingled with men as one who desired their good. He showed His sympathy for them, ministered to their needs, and won their confidence. Then He bade them, 'Follow Me'" (MH 143.3, verified). Meet the viewer's need first, then win their confidence, and only then call.
+- **No overt Adventist sourcing (owner, 2026-10-13, all series):** we reach a wide audience and avoid prejudice. Speech quotes Scripture (KJV); Ellen White and the pioneers are paraphrased without being named, and the credits name them. A plain idea needs no name on it. Draft scripts that quote Ellen White by name in speech are revised to this rule before narration.
+- **A recurring cast (owner, 2026-10-13):** every film shares an ensemble of characters besides its main figures, for continuity across films and series. See the film skill's ensemble rule.
 - See also the owner's rules in [`theology/series.md`](theology/series.md) (Audience), and the memory-backed rules for "the Almighty" and for fiction (allegory only) in each series' `series.md`.
 
 Each folder holds `series.md` (the plan and episode list), `sources.md` (every citation and how it was verified against the local corpus with the `bible` CLI) and `scripts/` (drafts).
