@@ -2,9 +2,11 @@
 
 Research, plans and draft scripts for four content series. Nothing here is narrated, rendered or checked yet.
 
+**Names (owner, 2026-10-13: "I like the names you chose for all the series"):** _From Milk to Meat_ (theology), _Dwell in the Land_ (country), _Taught of the Lord_ (education), _The True Remedies_ (health). The channel's name is still open.
+
 - [`theology/`](theology/series.md): **From Milk to Meat**, cut-paper films that walk from the first principles of the faith (Heb 5:12; 6:1–2) to its deepest truths, in the order the Bible serves them.
-- [`education/`](education/series.md): talk videos on true education from Scripture and Ellen White's education books.
-- [`health/`](health/series.md): talk videos on health and the eight laws.
+- [`education/`](education/series.md): **Taught of the Lord**, talk videos on true education from Scripture and Ellen White's education books.
+- [`health/`](health/series.md): **The True Remedies**, talk videos on health and the eight laws.
 - [`country/`](country/series.md): **Dwell in the Land**, cut-paper films on country living (what, why, where and how), doctrine and education side by side, interleaved with the education series.
 
 ## Voice and audience (owner, 2026-10-13, binding on every series)
