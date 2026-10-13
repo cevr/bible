@@ -22,7 +22,7 @@ export const DOMAIN = 'firsttheblade.com';
 export const WORKER_NAME = 'firsttheblade';
 
 /** The account's `workers.dev` subdomain (`<subdomain>.workers.dev`). */
-export const WORKERS_DEV_SUBDOMAIN = 'seeve-c';
+export const WORKERS_DEV_SUBDOMAIN = 'cvr';
 
 const ORIGINS: Record<ServedFrom, string> = {
   'workers.dev': `https://${WORKER_NAME}.${WORKERS_DEV_SUBDOMAIN}.workers.dev`,

@@ -12,7 +12,7 @@
  */
 import { Stage } from 'alchemy/Stage';
 import * as Cloudflare from 'alchemy/Cloudflare';
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 import { HttpServerRequest } from 'effect/http';
 
 import { DOMAIN, SERVED_FROM, type ServedFrom, WORKER_NAME } from '../site.ts';
@@ -36,10 +36,15 @@ const PRODUCTION: Record<ServedFrom, Cloudflare.WorkerProps> = {
   },
 };
 
+/**
+ * The props, by stage. They are read at deploy time, where the stage is
+ * known; the running Worker reads them too, without one, and needs only
+ * the base.
+ */
 const props = Effect.gen(function* () {
-  const stage = yield* Stage;
+  const stage = yield* Effect.serviceOption(Stage);
   const base = { main: import.meta.url, assets: ASSETS };
-  if (stage !== 'prod') return base;
+  if (!Option.contains(stage, 'prod')) return base;
   return { ...base, ...PRODUCTION[SERVED_FROM] };
 });
 
