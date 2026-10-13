@@ -1,0 +1,56 @@
+# Bookends: audit
+
+The owner's rule (2026-10-13): "for the films, i think a nice thing to do is that opening and closing contexts should be the same -> eg open in a courtroom, close in said courtroom etc". It is CRAFT rule 4's **Bookend the setting** ([`.claude/skills/film/CRAFT.md`](../../../.claude/skills/film/CRAFT.md)):
+
+- the film closes in the place it opened, changed;
+- the middle can travel;
+- the landing and the coda's pull-back come home.
+
+For a talk, the place is its frame scene: the desk and the hook object in _Taught of the Lord_, and the hook's first picture in _The True Remedies_.
+
+Audited 2026-10-13: the 15 draft scripts in `series/*/scripts/` and the two built films.
+
+## The draft scripts
+
+| Script                                         | Kind           | Opens                                                | Closes (landing → coda)                                                                                   | Bookends? | Change                                                                                                                                           |
+| ---------------------------------------------- | -------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| theology 01 · Milk and Meat                    | film           | The wedding courtyard, the grown man's bottle        | The courtyard, bottle set down at the set table → the camera went on to the `grain` field and `path` hill | Coda left | The thesis pull-back lifts over the courtyard; the field and hill show beyond its wall; the credits roll over the courtyard.                     |
+| theology 02 · The Oracles of God               | film           | The Berean synagogue table, scrolls by lamplight     | The same table with the viewer's book on it → the camera went down the road to the hills at sunrise       | Coda left | The camera eases back out of the door: the Bereans inside, the lamp's light on the road; the credits roll over the synagogue.                    |
+| theology 03 · God Is Love                      | film           | Eden at evening, two hiding, the light calling       | The same garden, the two step out → the camera went to the valley of `nature`                             | Coda left | The camera lifts over the same garden (their trees, the flowering thistle); the credits roll over the garden.                                    |
+| theology 05 · The Word Made Flesh              | film           | Isaiah's temple court, the throne                    | The same court and throne, the Son home → the camera went down to the Bethlehem hillside                  | Coda left | The camera lowers down the steps along the train of light to Isaiah, face lifted; the credits roll over the court.                               |
+| country 01 · Adam's Schoolroom                 | film           | The city flat's kitchen table at dusk                | The same kitchen, the seedling in her hands → the camera went over the rooftops to the hills              | Coda left | The camera pulls back out through the kitchen window (the lit window among the walls, the hills far beyond); the credits roll over the building. |
+| education 01 · What is school for?             | talk, question | The desk; the old report card                        | The desk; the report card on the open Bible                                                               | Yes       | None.                                                                                                                                            |
+| education 17 · Did Jesus go to school?         | talk, question | The desk; the Bible held to the lens, the wood block | The desk; the wood block on the open Bible                                                                | Yes       | None.                                                                                                                                            |
+| education 19 · Daniel's education              | talk, episode  | The desk; the bowl of lentils                        | The desk; the lentils beside the open Bible                                                               | Yes       | None.                                                                                                                                            |
+| education 44 · Compete for grades?             | talk, question | The desk; a gold star peeled toward the lens         | The desk; the gold star stuck on the open Bible                                                           | Yes       | None.                                                                                                                                            |
+| education 52 · Three ways to make a child obey | talk, episode  | The desk; the little wooden chair held up            | The chair on the story's step, then "the open Bible", with the desk left unsaid                           | Nearly    | The last frame names the desk: the hook's little wooden chair beside the open Bible.                                                             |
+| health 01 · The Lord That Healeth Thee         | talk, episode  | Owner; the bitter pool at Marah                      | Owner; back to the pool, the water clearing                                                               | Yes       | None.                                                                                                                                            |
+| health 06 · The Breath He Gave                 | talk, question | Owner; the clay figure, a breath of light            | Owner; the clay figure, now breathing                                                                     | Yes       | None.                                                                                                                                            |
+| health 20 · Rest a While                       | talk, question | Owner; the crowded lakeshore at dusk                 | Owner; the same lakeshore, the boat on still water                                                        | Yes       | None.                                                                                                                                            |
+| health 33 · Ten Days in Babylon                | talk, episode  | Owner; the palace table, meat and wine               | Owner; the same table, Daniel's plate of pulse beside it                                                  | Yes       | None.                                                                                                                                            |
+| health 50 · Figs for a King                    | talk, question | Owner; the pressed figs on a cloth                   | Owner; the same figs on the cloth, with nothing changed                                                   | Unchanged | A hand lifts the figs (the means, taken), so the return is changed.                                                                              |
+
+Every change touches only a closing picture line: the `thesis` and `end` pictures in the films and the last frame in the talks. No spoken word, quotation, citation or credit changed. No script needed a different opening, and none made a bookend dishonest to its content: each film's `thesis` line still reads over the place the film opened, and the motif the old coda travelled to stays in view beyond it.
+
+## The built films
+
+| Film                     | Opens                                             | Closes (landing → coda)                                                                                                                    | Bookends?      |
+| ------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| `cold-studies`           | RBF's courtroom (`court`)                         | Job 9:2 on its page, then the full-screen card (`job`); no landing and no coda                                                             | Not applicable |
+| `righteousness-by-faith` | `cold`: the parchment courtroom, the hollow stamp | `name`: the same courtroom in the cardboard world, the stamp solid → `thesis` and `end` ease out to the title's city, the two on a rooftop | Coda left      |
+
+- **`cold-studies`** is the looks study: two beats of RBF's cold open, cut from its take and drawn in each candidate look. It has no landing and no coda, so the rule has nothing to check. It needs no change, and it follows RBF's cold open if that changes.
+- **`righteousness-by-faith`** already lands home: `name` returns to the cold open's courtroom layout, changed (the robe, Christ as Advocate, the stamp solid). The coda leaves: `thesis` fades the court out (`courtOut`), brings in the city (`cityIn`) and ends on the rooftop (`scenes/thesis.ts`); `end` keeps easing back over that rooftop (`scenes/end.ts`, drawing `rooftop` from `city.ts`).
+  - **Smallest change (a film unit):** keep the coda in the courtroom.
+    - In `thesis`, drop `courtOut`, `cityIn` and the rooftop. Let the camera ease back to the court's own `courtBack` framing (already a knob). The robed figure and Christ sit together on the front bench under the gold-lit judge's bench, and the city shows under the landing sky through the court's high window.
+    - In `end`, keep easing back from that framing, drawn from `landingCourt` (`court.ts`), and roll the credits over the courtroom.
+    - Then update the `thesis` and `end` pictures in `script.ts` to match.
+  - The title over the city and the coda's rooftop rhymed with each other. That rhyme goes, and the open-and-close pair the rule asks for takes its place.
+
+## Plan-level tensions (not edited here)
+
+These lines in the plans lead a new script away from the rule. Settle them before the next scripts are drafted:
+
+- **Theology's shared shape** (`theology/series.md`, "How each episode is built") brings the landing back to the cold open's layout but says nothing about the coda. All four theology drafts sent their final pull-back somewhere else. Add: "the thesis and the credits stay in that place".
+- **Country's bench** (`country/series.md`, "Series motifs"): "The fig-tree bench … is the landing place of the series." An episode that opens in the city flat must land in the flat. The bench is the landing only for an episode that opens at Rosa's gate or bench. Episode 12's plan ("the household at dinner … the landing on Rosa's bench") breaks the rule as written: open it at the bench, or land it at the dinner table.
+- **The cast's roof** (`docs/ensemble.md`, Continuity, Homes): "the cast's roof is the recurring landing place". It holds only for a film that opens on the roof. RBF's rooftop ending is the coda the change above removes.

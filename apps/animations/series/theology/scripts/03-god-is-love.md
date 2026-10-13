@@ -121,11 +121,11 @@ Quoted Scripture: 9 passages, 94 of 582 spoken words (16 %; counted by the verif
 
 **say:** {love}“God is love.”
 **cite:** 1 John 4:8
-**picture:** The answer writes itself in the evening sky over the garden, the only text: GOD IS LOVE. The music rises alone for about thirty seconds while the two walk out along the path into the light and the camera lifts over the garden to the valley of `nature`.
+**picture:** The answer writes itself in the evening sky over the garden, the only text: GOD IS LOVE. The music rises alone for about thirty seconds while the two walk out along the path into the light and the camera lifts over the garden: the same trees they hid in, the flowering thistle by the path.
 
 ### `end` · ~28 s
 
-**picture:** STORY: credits roll up a torn strip at the left over the valley under the landing sky, nothing breathing, then the frame holds clear for the end screens.
+**picture:** STORY: credits roll up a torn strip at the left over the garden from above under the landing sky, the path lit where the two walk with the light, nothing breathing, then the frame holds clear for the end screens.
 **credits:**
 
 - Scripture (KJV): Genesis 3:8–10 · Matthew 5:45; 6:26 · Psalm 145:9 · Exodus 33:18–23; 34:5–7 · John 14:8–9; 1:18 · Acts 10:38 · Luke 15:11–24 · John 3:16 · 2 Corinthians 5:19 · 1 John 4:8–10 · Jeremiah 31:3

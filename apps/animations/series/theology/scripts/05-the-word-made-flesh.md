@@ -233,11 +233,11 @@ Quoted Scripture: 11 passages, 124 of 666 spoken words (18.6 %). One quotation p
 
 **say:** {flesh}“And the Word was made flesh, and dwelt among us.”
 **cite:** John 1:14
-**picture:** The words write themselves in gold over the throne, the only text: THE WORD WAS MADE FLESH. The camera lowers from the throne down through the clouds to the night hillside of `manger`, the stable lamp still lit, while the music rises alone for about thirty seconds.
+**picture:** The words write themselves in gold over the throne, the only text: THE WORD WAS MADE FLESH. The camera lowers from the throne down the steps, along the train of light that fills the court, to Isaiah standing in it with his face lifted, while the music rises alone for about thirty seconds.
 
 ### `end` · ~28 s
 
-**picture:** STORY: credits roll up a torn strip at the left over the Bethlehem hillside under the landing sky, nothing breathing, then the frame holds clear for the end screens.
+**picture:** STORY: credits roll up a torn strip at the left over the temple court under the landing sky, the roof still open to the gold and Isaiah small in the light, nothing breathing, then the frame holds clear for the end screens.
 **credits:**
 
 - Scripture (KJV): Isaiah 6:1–10 · John 12:37–41 · John 1:1–3, 14, 18 · Hebrews 1:2, 4, 6 · Exodus 3:2–14 · John 8:56–59 · John 14:9, 28 · 1 Corinthians 8:6 · John 5:23, 30 · Philippians 2:5–7 · John 17:5 · Mark 4:37–39 · Luke 8:24–25 · Luke 2:7–14 · Matthew 1:23 · Revelation 5:11–13

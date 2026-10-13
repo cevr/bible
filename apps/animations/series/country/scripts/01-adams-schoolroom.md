@@ -142,11 +142,11 @@ Quoted Scripture: 7 passages, 97 of 615 spoken words (16%; the girl's question i
 
 **say:** {taught}"And all thy children shall be taught of the LORD; and great shall be the peace of thy children."
 **cite:** Isaiah 54:13
-**picture:** The verse writes itself across the dusk sky over the city, the only text. The music rises alone for about thirty seconds while the camera lifts from the flat's window over the rooftops toward the hills, where one cottage window is lit.
+**picture:** The verse writes itself across the dusk sky over the city, the only text. The music rises alone for about thirty seconds while the camera pulls back out through the kitchen window: the household at the table in the lamp-yellow, the seedling and the seed pot on the sill, the flat one lit window among the walls. Far past the rooftops the line of hills holds, and one cottage window there is lit.
 
 ### `end` · ~25 s
 
-**picture:** Credits roll up a torn strip at the left over the hills at dusk, nothing breathing, then the frame holds clear for the end screens.
+**picture:** Credits roll up a torn strip at the left over the city building at dusk, the family's kitchen window lit with the hills faint beyond, nothing breathing, then the frame holds clear for the end screens.
 **credits:**
 
 - Scripture (KJV): Genesis 2:8–10, 15–17, 19 · Genesis 3:8, 23 · Luke 3:38 · Job 12:7 · John 6:35 · Revelation 22:2 · Isaiah 54:13
