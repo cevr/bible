@@ -25,7 +25,8 @@
     "film/lock-through-sqlite": "error",
     "film/booleans-through-pressed": "error",
     "film/no-test-seam": "error",
-    "film/focus-through-focus-for": "error"
+    "film/focus-through-focus-for": "error",
+    "film/pages-in-case-scope": "error"
   },
   "overrides": [
     {

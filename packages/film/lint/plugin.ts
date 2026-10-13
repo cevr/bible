@@ -24,6 +24,7 @@ import { noTestSeam } from './no-test-seam.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
 import { oneBreakpoint } from './one-breakpoint.ts';
 import { oneClockEpsilon } from './one-clock-epsilon.ts';
+import { pagesInCaseScope } from './pages-in-case-scope.ts';
 import { spanEndsOnAnchor } from './span-ends-on-anchor.ts';
 import { spawnBudget } from './spawn-budget.ts';
 import { touchesSerial } from './touches-serial.ts';
@@ -51,6 +52,7 @@ export default Plugin.define({
     'no-unprobed-ink': noUnprobedInk,
     'one-breakpoint': oneBreakpoint,
     'one-clock-epsilon': oneClockEpsilon,
+    'pages-in-case-scope': pagesInCaseScope,
     'span-ends-on-anchor': spanEndsOnAnchor,
     'spawn-budget': spawnBudget,
     'touches-serial': touchesSerial,

@@ -3,13 +3,36 @@
 // (`focus-follows-input.dom.test.ts`) and the floating roots' guard
 // (`semantics.dom.test.ts`).
 
-import { Effect, Option } from 'effect';
+import { Effect, Exit, Option, Scope } from 'effect';
+import type { Input } from '../../src/browser/keys.ts';
 import { menuEntry } from '../../src/lab/fixtures/gestures.ts';
 import { until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 
-/** How a path was asked for. */
-export type Input = 'key' | 'pointer';
+/**
+ * The page a walk is on, opened by `open` in a child of the case's scope:
+ * `again` gives it back and opens a fresh one, and a step that fails gives
+ * back whichever is open, as the case's scope closes its children
+ * (`film/pages-in-case-scope`).
+ */
+export const pageAfterPage = <P extends { readonly page: Tab }>(
+  open: () => Effect.Effect<P, never, Scope.Scope>,
+) =>
+  Effect.gen(function* () {
+    const parent = yield* Effect.scope;
+    const opened = Effect.gen(function* () {
+      const scope = yield* Scope.fork(parent);
+      return { scope, page: (yield* Scope.provide(scope)(open())).page };
+    });
+    let now = yield* opened;
+    return {
+      page: () => now.page,
+      again: Effect.gen(function* () {
+        yield* Scope.close(now.scope, Exit.void);
+        now = yield* opened;
+      }),
+    };
+  });
 
 export const COMMAND_MENU = '[data-role="command-menu"]';
 

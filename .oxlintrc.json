@@ -1110,6 +1110,14 @@
       }
     },
     {
+      // A browser test opens its pages in the case's scope or a child of it,
+      // so a failing step gives the page back (packages/film/lint/pages-in-case-scope.ts).
+      "files": ["**/packages/film/e2e/**/*.ts"],
+      "rules": {
+        "film/pages-in-case-scope": "error"
+      }
+    },
+    {
       // A test that spawns a process declares its timeout (packages/film/lint/spawn-budget.ts).
       "files": ["**/packages/film/**/*.test.ts"],
       "rules": {

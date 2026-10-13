@@ -19,8 +19,9 @@
 // case runs alone, and a page without it answers so instead of passing.
 
 import { BunServices } from '@effect/platform-bun';
-import { Effect, Exit, FileSystem, Path, Scope } from 'effect';
+import { Effect, FileSystem, Path, type Scope } from 'effect';
 import { expect, it, test } from 'effect-bun-test';
+import type { Input } from '../../src/browser/keys.ts';
 import { pageHref } from '../../src/core/api.ts';
 import {
   DESK,
@@ -34,7 +35,7 @@ import {
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
-import { type Input, LEFT_OPEN, registry, runFromMenu, sampled } from './registry.ts';
+import { LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
 import { onChoices } from './toy-choices.ts';
 
 const SLOW = 30_000;
@@ -152,14 +153,14 @@ interface Opened {
  */
 const everyCommand = (opened: Opened) =>
   Effect.gen(function* () {
-    let scope = yield* Scope.make();
-    let page = (yield* Scope.provide(scope)(opened.open())).page;
-    const start = yield* page.evaluate<string>('location.pathname');
-    const ids = sampled(yield* registry(page));
+    const walk = yield* pageAfterPage(opened.open);
+    const start = yield* walk.page().evaluate<string>('location.pathname');
+    const ids = sampled(yield* registry(walk.page()));
     const failures: Array<string> = [];
     const ran: Array<string> = [];
     for (const id of ids)
       for (const input of INPUTS) {
+        const page = walk.page();
         const [offered, seen] = yield* watchedThen(page, runFromMenu(page, id, input));
         // A command that would open another part moves nothing on this page.
         if (offered && seen.watching && !seen.leaving) {
@@ -169,13 +170,8 @@ const everyCommand = (opened: Opened) =>
         const away = yield* page.evaluate<boolean>(
           `location.pathname !== '${start}' || window.focusMoves === undefined || window.focusLeaving === true || ${LEFT_OPEN}`,
         );
-        if (away) {
-          yield* Scope.close(scope, Exit.void);
-          scope = yield* Scope.make();
-          page = (yield* Scope.provide(scope)(opened.open())).page;
-        }
+        if (away) yield* walk.again;
       }
-    yield* Scope.close(scope, Exit.void);
     expect(ran.length).toBeGreaterThan(0);
     expect(failures).toEqual([]);
   });

@@ -9,7 +9,7 @@
 // the focus from script (the studio holding it, a kept take's reload, a key's
 // Reset) shows no ring.
 
-import { Effect, Exit, Scope } from 'effect';
+import { Effect, type Scope } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { ServerFailed, pageHref } from '../../src/core/api.ts';
 import {
@@ -34,7 +34,7 @@ import {
   waitFor,
 } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
-import { FLOATING, LEFT_OPEN, registry, runFromMenu, sampled } from './registry.ts';
+import { FLOATING, LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
 import { receipted } from './studio-states.ts';
 import { onChoices } from './toy-choices.ts';
 
@@ -500,13 +500,13 @@ const ROOTS = [
  */
 const everyRoot = (walked: Walked) =>
   Effect.gen(function* () {
-    let scope = yield* Scope.make();
-    let page = (yield* Scope.provide(scope)(walked.open())).page;
-    const start = yield* page.evaluate<string>('location.pathname');
+    const walk = yield* pageAfterPage(walked.open);
+    const start = yield* walk.page().evaluate<string>('location.pathname');
     const failures: Array<string> = [];
     const errors: Array<string> = [];
     const check = (path: string) =>
       Effect.gen(function* () {
+        const page = walk.page();
         yield* page.evaluate(FRAMES);
         for (const [root, how] of yield* page.evaluate<ReadonlyArray<readonly [string, string]>>(
           ROOTS_RINGED,
@@ -523,28 +523,25 @@ const everyRoot = (walked: Walked) =>
         );
         if (away) {
           errors.push(...page.errors);
-          yield* Scope.close(scope, Exit.void);
-          scope = yield* Scope.make();
-          page = (yield* Scope.provide(scope)(walked.open())).page;
+          yield* walk.again;
         }
       });
-    yield* page.press('?');
+    yield* walk.page().press('?');
     yield* check('the keys dialog');
-    yield* page.press('Control+k');
+    yield* walk.page().press('Control+k');
     yield* check('⌘K');
-    if (yield* page.evaluate<boolean>(MARK_TARGET)) {
-      yield* rightClick(page, '[data-guard="target"]');
+    if (yield* walk.page().evaluate<boolean>(MARK_TARGET)) {
+      yield* rightClick(walk.page(), '[data-guard="target"]');
       yield* check('the context menu');
     }
-    for (let i = 0; yield* page.evaluate<boolean>(markTrigger(i)); i++) {
-      yield* page.click('[data-guard="trigger"]');
+    for (let i = 0; yield* walk.page().evaluate<boolean>(markTrigger(i)); i++) {
+      yield* walk.page().click('[data-guard="trigger"]');
       yield* check(`trigger ${i}`);
     }
-    for (const id of sampled(yield* registry(page))) {
-      if (yield* runFromMenu(page, id, 'key')) yield* check(id);
+    for (const id of sampled(yield* registry(walk.page()))) {
+      if (yield* runFromMenu(walk.page(), id, 'key')) yield* check(id);
     }
-    errors.push(...page.errors);
-    yield* Scope.close(scope, Exit.void);
+    errors.push(...walk.page().errors);
     expect(failures).toEqual([]);
     expect(errors).toEqual([]);
   });
