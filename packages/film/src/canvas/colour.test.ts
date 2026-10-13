@@ -308,6 +308,14 @@ describe('knobs under CRAFT 12’s floors', () => {
     ['a grey light', { warm: 3.3 }, 'warm 3.3'],
     ['a shade no darker', { dark: 0 }, 'dark 0'],
     ['a light no lighter', { lift: 0 }, 'lift 0'],
+    // Just under each floor, so the floors' own values are pinned.
+    ['a turn just under the floor', { turn: 9.9 }, 'turn 9.9'],
+    ['a shade’s chroma just under the floor', { deep: 5.9 }, 'deep 5.9'],
+    ['a light’s chroma just under the floor', { warm: 5.9 }, 'warm 5.9'],
+    ['a darkening just under the floor', { dark: 0.09 }, 'dark 0.09'],
+    ['a lift just under the floor', { lift: 0.09 }, 'lift 0.09'],
+    ['an endless chroma', { deep: Number.POSITIVE_INFINITY }, 'deep Infinity not a finite number'],
+    ['a light of no number', { warm: Number.NaN }, 'warm NaN not a finite number'],
   ] as const)('%s is refused', (_, knob, named) => {
     expect(() => ramp('#94ad7f', '#f3e9c8', { ...FILM, ...knob })).toThrow(named);
   });

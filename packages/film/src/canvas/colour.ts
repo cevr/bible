@@ -84,8 +84,9 @@ export interface Shading {
   /**
    * The least chroma a shade carries (at least `FLOORS.chroma`), so a grey's
    * shade is the complement at this chroma. A colour below twice it is that
-   * much near-neutral: at `deep` or under it turns past `turn` by `neutral`
-   * of the rest of the way, at twice it by `turn` alone.
+   * much near-neutral: at `deep` it turns past `turn` by `neutral` of the
+   * rest of the way, rising to all of it at chroma 0; at twice `deep`, by
+   * `turn` alone.
    */
   readonly deep: number;
   /**
@@ -127,8 +128,11 @@ const FLOORS = {
   step: 0.1,
 } as const;
 
-/** Why knobs `k` break CRAFT 12's floors (`FLOORS`), or leave a share outside 0..1: one reason per knob. */
+/** Why knobs `k` break CRAFT 12's floors (`FLOORS`), leave a share outside 0..1, or are no finite number: one reason per knob. */
 const floorFaults = (k: Shading): string[] => [
+  ...Object.entries(k).flatMap(([n, v]) =>
+    Number.isFinite(v) ? [] : [`${n} ${v} not a finite number`],
+  ),
   ...(k.turn >= FLOORS.turn ? [] : [`turn ${k.turn} under ${FLOORS.turn}°`]),
   ...(k.dark >= FLOORS.step && k.dark < 1 ? [] : [`dark ${k.dark} outside ${FLOORS.step}..1`]),
   ...(k.lift >= FLOORS.step && k.lift < 1 ? [] : [`lift ${k.lift} outside ${FLOORS.step}..1`]),
