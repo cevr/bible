@@ -265,6 +265,23 @@ describe('what is lit', () => {
         yield* textIs(page, '.lab-source-beat .lab-source-live', 'rise');
         yield* evaluates(page, PAINTED, ['rise']);
         yield* attributeIs(page, '.lab-source-meter', 'data-cue', 'rise');
+        // The meter runs under the line's text, never its number: from where the text starts, as far along it as
+        // the cue is done.
+        yield* evaluates(
+          page,
+          `(() => {
+            const row = document.querySelector('.lab-source-col .lab-source-line[data-line="${RISE_LINE}"]');
+            const meter = row.querySelector('.lab-source-meter');
+            const text = row.querySelector('.lab-source-t');
+            const box = text.getBoundingClientRect();
+            const from = box.left + parseFloat(getComputedStyle(text).paddingLeft);
+            const to = box.right - parseFloat(getComputedStyle(text).paddingRight);
+            const done = Number(meter.style.getPropertyValue('--done'));
+            const drawn = meter.getBoundingClientRect();
+            return done > 0 && Math.abs(drawn.left - from) < 1 && Math.abs(drawn.width - done * (to - from)) < 1;
+          })()`,
+          true,
+        );
       }).pipe(Effect.scoped),
   );
 
@@ -1101,6 +1118,19 @@ describe('a line of the code', () => {
         `${MENU_ITEMS}.includes('notes.line') && ${MENU_ITEMS}.includes('link.copy')`,
         true,
       );
+      // The row the menu is on is marked under it, as the kit's rows are.
+      yield* evaluates(
+        page,
+        `(() => {
+          const probe = document.createElement('i');
+          probe.style.background = 'var(--surface-3)';
+          document.body.append(probe);
+          const raised = getComputedStyle(probe).backgroundColor;
+          probe.remove();
+          return getComputedStyle(document.querySelector('.lab-source-line[data-line="${RISE_LINE}"]')).backgroundColor === raised;
+        })()`,
+        true,
+      );
       yield* page.click('[data-role="context-menu"] [data-command="notes.line"]');
       yield* textIs(
         page,
@@ -1397,6 +1427,9 @@ describe('what the selection and the frame’s reads light', () => {
 /** How brightly line `n` of the column's code glows, to a tenth: 0 when nothing fires on it or has just fired. */
 const glow = (n: number) =>
   `(() => { const row = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]'); return Math.round(Number(row.style.getPropertyValue('--glow') || 0) * 10) / 10; })()`;
+/** How strongly line `n`'s edge, at the row's left, is drawn, to a tenth: as its glow. */
+const edge = (n: number) =>
+  `(() => { const row = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]'); return Math.round(Number(getComputedStyle(row, '::before').opacity) * 10) / 10; })()`;
 
 describe('the reads that fire, and the beat they are on', () => {
   /** The reads of the clock lit as firing: what plays, the cues' literals left out. */
@@ -1413,8 +1446,11 @@ describe('the reads that fire, and the beat they are on', () => {
         const { page } = yield* openLab([codeRoute], { href: labOne(T, { code: 'follow' }) });
         yield* page.waitFor('.lab-source-col .lab-source-page');
         yield* evaluates(page, glow(RISE_READ_LINE), rise);
+        // Its edge at the row's left fades with it, so a trail reads down one column.
+        yield* evaluates(page, edge(RISE_READ_LINE), rise);
         // Fall has not begun: its read neither fires nor glows.
         yield* evaluates(page, glow(FALL_READ_LINE), 0);
+        yield* evaluates(page, edge(FALL_READ_LINE), 0);
         yield* evaluates(page, FIRING, firing);
       }).pipe(Effect.scoped),
     );

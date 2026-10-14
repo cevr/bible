@@ -1951,7 +1951,8 @@ the same either way) and the clock plays it: `f.at('lift')` while its cue
 plays, `f.mark('take')` on its word's frame, `f.spoken('take', 'held')` from
 its mark to the mark it names (or to the end of speech), so a branch the frame
 did not take stays dark. A line glows while a read on it fires and fades over
-0.6 s after, and a band over the code, held at its top as it scrolls, names
+0.6 s after (a wash over the row and an edge at its left, so a trail reads
+down one column), and a band over the code, held at its top as it scrolls, names
 the beat the frame is on (`cold · {job}`: the scene, and the mark its voice
 last said) and, at its right, the cues playing. A long line wraps under its own number, on a
 phone and on a laptop alike (one layout; the view never scrolls sideways). It

@@ -30,8 +30,9 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
 .lab-source-follow { flex: none; }
 .lab-source-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
   overflow-anchor: none; /* the browser never moves the scroll by itself: the view places it, layout clamps it, a hand moves it */ }
-.lab-source-page { --source-lh: var(--body-lh); position: relative; font-size: var(--body-fs); line-height: var(--source-lh);
-  tab-size: 2; color: var(--text-1); }
+/* The numbers' column: as many digits as the file's last line has (\`--digits\`, the page's), and the room either side. */
+.lab-source-page { --source-lh: var(--body-lh); --source-gutter: calc(var(--digits) * 1ch + var(--gutter) + var(--s-2));
+  position: relative; font-size: var(--body-fs); line-height: var(--source-lh); tab-size: 2; color: var(--text-1); }
 /* The view's one line of now, over the code as it scrolls: a line tall, from the gutter, the beat the frame is on left
    and the cues playing right, each clipped by an ellipsis. */
 .lab-source-beat { position: sticky; top: 0; z-index: 3; display: flex; gap: var(--s-2); height: var(--source-lh);
@@ -41,10 +42,15 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
 .lab-source-live { flex: 1 1 auto; text-align: right; color: var(--state-live); }
 .lab-source-live[data-empty='true'] { color: var(--text-3); }
 /* A row to a line: the number beside the text, a long line wrapping under its own number (one layout, phone and laptop).
-   A line glows while a read on it fires and fades after (\`--glow\`, 1 to 0): a wash of what plays, its number inked. */
+   A line glows while a read on it fires and fades after (\`--glow\`, 1 to 0): a wash of what plays, its number inked,
+   and an edge at the row's left, so a trail reads down one column the eye can scan. A row whose menu is open is marked
+   under it, as the kit's rows are. */
 .lab-source-line { position: relative; display: grid; min-height: var(--source-lh);
-  grid-template-columns: calc(var(--digits) * 1ch + var(--gutter) + var(--s-2)) minmax(0, 1fr); cursor: pointer;
+  grid-template-columns: var(--source-gutter) minmax(0, 1fr); cursor: pointer;
   background: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 12%), transparent); }
+.lab-source-line::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--state-live);
+  opacity: var(--glow, 0); pointer-events: none; }
+.lab-source-line[data-popup-open] { background: var(--surface-3); }
 .lab-source-n { padding: 0 var(--s-2) 0 var(--gutter); text-align: right; user-select: none;
   color: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 100%), var(--text-3)); }
 .lab-source-t { padding: 0 var(--gutter) 0 var(--s-2); white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -53,9 +59,11 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
 ::highlight(lab-picked) { background-color: var(--accent-wash); color: var(--text-1); text-decoration: underline var(--accent); }
 /* A knob the frame read: read on every frame and never playing, so a dotted rule and no wash. */
 ::highlight(lab-knob-read) { text-decoration: underline dotted 1px var(--line-strong); }
-.lab-source-held, .lab-source-meter { position: absolute; left: 0; pointer-events: none; }
-.lab-source-held { right: 0; top: 0; bottom: 0; background: var(--accent-wash); box-shadow: inset 2px 0 var(--accent); }
-.lab-source-meter { z-index: 2; bottom: 0; height: 2px; width: calc(var(--done) * 100%); background: var(--state-live); }
+.lab-source-held, .lab-source-meter { position: absolute; pointer-events: none; }
+.lab-source-held { inset: 0; background: var(--accent-wash); box-shadow: inset 2px 0 var(--accent); }
+/* Under the line's text, from where its text starts to where it ends, as far along as the cue is done. */
+.lab-source-meter { --meter-from: calc(var(--source-gutter) + var(--s-2)); z-index: 2; bottom: 0; left: var(--meter-from);
+  height: 2px; width: calc(var(--done) * (100% - var(--meter-from) - var(--gutter))); background: var(--state-live); }
 .lab-source-at { display: inline-flex; align-items: center; min-height: var(--hit); margin-left: var(--s-2); padding: 0;
   border: 0; background: none; font: inherit; color: var(--accent); cursor: pointer; }
 .lab-source-at:hover { text-decoration: underline; }
