@@ -91,3 +91,19 @@ public struct RecallComparison: Sendable {
     return a.count > b.count ? a[(i + 1)...] == b[i...] : a[i...] == b[(i + 1)...]
   }
 }
+
+extension RecallComparison {
+  /// How many words the comparison counts in a text: whitespace-separated runs with a letter or
+  /// digit. Rendered Scripture marks missing words by the same count.
+  public static func wordCount(_ text: some StringProtocol) -> Int {
+    text.split(whereSeparator: \.isWhitespace).filter {
+      $0.contains { $0.isLetter || $0.isNumber }
+    }.count
+  }
+  /// Positions, within one verse, of the words this recall missed.
+  public func missing(in segment: Int) -> Set<Int> {
+    Set(
+      expected.filter { $0.segment == segment }.enumerated().filter { !$0.element.matched }
+        .map(\.offset))
+  }
+}

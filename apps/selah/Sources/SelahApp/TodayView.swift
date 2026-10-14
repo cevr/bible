@@ -4,6 +4,7 @@ import SwiftUI
 struct TodayView: View {
   @Bindable var store: Store
   private var ready: Int { store.available.count }
+  private var newCount: Int { store.available.filter { store.library.cards[$0.id] == nil }.count }
   var body: some View {
     Column {
       if store.library.goals.isEmpty {
@@ -37,16 +38,15 @@ struct TodayView: View {
     VStack(alignment: .leading, spacing: Space.m) {
       HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
         Text("\(ready)").font(.metric)
-        Text(ready == 1 ? "review ready" : "reviews ready").font(.title3)
-          .foregroundStyle(.secondary)
+        Text("ready").font(.title3).foregroundStyle(.secondary)
       }
       Text(
-        "\(store.reviewedToday) reviewed today · \(store.dueCount) due" + nextReview
+        "\(newCount) new · \(store.dueCount) due · \(store.reviewedToday) done today" + nextReview
       )
       .font(.callout).foregroundStyle(.secondary).monospacedDigit()
       if ready > 0 {
         Button("Begin Practice") { store.begin() }
-          .buttonStyle(.glassProminent).controlSize(.extraLarge)
+          .buttonStyle(.borderedProminent).controlSize(.extraLarge)
           .keyboardShortcut(.return, modifiers: [])
       }
     }
@@ -64,15 +64,11 @@ struct TodayView: View {
   private var empty: some View {
     VStack(alignment: .leading, spacing: Space.m) {
       Text("Choose what to memorize").font(.title2.weight(.semibold))
-      Text("Pick a chapter to learn whole, or a set of promises.")
-        .foregroundStyle(.secondary)
-      GlassEffectContainer {
-        HStack(spacing: Space.s) {
-          Button("Choose a Chapter") { store.section = .passages }.buttonStyle(.glassProminent)
-          Button("Browse Promises") { store.section = .promises }.buttonStyle(.glass)
-        }
-        .controlSize(.large)
+      HStack(spacing: Space.s) {
+        Button("Choose a Passage") { store.section = .passages }.buttonStyle(.borderedProminent)
+        Button("Browse Promises") { store.section = .promises }.buttonStyle(.bordered)
       }
+      .controlSize(.large)
     }
   }
 }
@@ -133,8 +129,10 @@ struct GoalRow: View {
         }
       }
       if let meter {
-        ProgressView(value: Double(meter.value), total: Double(max(1, meter.total)))
-          .accessibilityLabel(meter.label)
+        if meter.value > 0 {
+          ProgressView(value: Double(meter.value), total: Double(max(1, meter.total)))
+            .accessibilityLabel(meter.label)
+        }
         if let detail = meter.detail {
           Text(detail).font(.callout).foregroundStyle(.secondary)
         }

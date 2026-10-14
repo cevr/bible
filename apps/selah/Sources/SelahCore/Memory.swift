@@ -238,6 +238,11 @@ public struct Library: Codable, Sendable {
     chapters =
       try values.decodeIfPresent([String: ChapterProgress].self, forKey: .chapters) ?? [:]
   }
+  /// Stops practicing a goal. Cards, chapter progress, and review history stay, so adding the
+  /// same passage or category again resumes where it left off.
+  public mutating func removeGoal(_ id: UUID) {
+    goals.removeAll { $0.id == id }
+  }
   /// Verses learned one at a time, in canonical order across verse-by-verse goals.
   public func selectedVerses(in corpus: Corpus) -> [Verse] {
     let verseGoals = goals.filter { $0.promises == nil && $0.learning == .verseByVerse }

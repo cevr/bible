@@ -2,7 +2,8 @@ import AppKit
 import SelahCore
 import SwiftUI
 
-/// A compact launcher. The popover's own material is the surface; controls are glass.
+/// A compact launcher. The popover's own material is the surface, so controls are plain
+/// bordered buttons rather than glass on glass.
 struct MenuBarView: View {
   @Bindable var store: Store
   @Environment(\.openWindow) private var openWindow
@@ -32,40 +33,38 @@ struct MenuBarView: View {
           Text("\(store.available.count)").font(.metric)
           Text("ready").foregroundStyle(.secondary)
           Spacer()
-          Text("\(store.reviewedToday) today").font(.callout).foregroundStyle(.secondary)
+          Text("\(store.reviewedToday) done today").font(.callout).foregroundStyle(.secondary)
             .monospacedDigit()
         }
-        GlassEffectContainer(spacing: Space.xs) {
-          VStack(spacing: Space.xs) {
+        VStack(spacing: Space.xs) {
+          Button {
+            store.section = .today
+            if !store.sessionActive { store.begin() }
+            openApp()
+          } label: {
+            Text(store.sessionActive ? "Continue Practice" : "Begin Practice")
+              .frame(maxWidth: .infinity)
+          }
+          .buttonStyle(.borderedProminent)
+          .disabled(!store.sessionActive && store.available.isEmpty)
+          if let passage {
             Button {
-              store.section = .today
-              if !store.sessionActive { store.begin() }
+              store.reader.present(store: store, goal: passage, onPractice: openApp)
+            } label: {
+              Text("Read \(passage.title)").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+          } else {
+            Button {
+              store.section = .passages
               openApp()
             } label: {
-              Text(store.sessionActive ? "Continue Practice" : "Begin Practice")
-                .frame(maxWidth: .infinity)
+              Text("Choose a Passage").frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glassProminent)
-            .disabled(!store.sessionActive && store.available.isEmpty)
-            if let passage {
-              Button {
-                store.reader.present(store: store, goal: passage, onPractice: openApp)
-              } label: {
-                Text("Read \(passage.title)").frame(maxWidth: .infinity)
-              }
-              .buttonStyle(.glass)
-            } else {
-              Button {
-                store.section = .passages
-                openApp()
-              } label: {
-                Text("Choose a Passage").frame(maxWidth: .infinity)
-              }
-              .buttonStyle(.glass)
-            }
+            .buttonStyle(.bordered)
           }
-          .controlSize(.large)
         }
+        .controlSize(.large)
         .disabled(store.isSaving)
       }
       Divider()

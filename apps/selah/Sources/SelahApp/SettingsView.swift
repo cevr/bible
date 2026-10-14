@@ -6,6 +6,10 @@ import SwiftUI
 
 struct SettingsView: View {
   @Bindable var store: Store
+  /// A status line as a sentence that another can follow.
+  private func sentence(_ status: String) -> String {
+    status.trimmingCharacters(in: CharacterSet(charactersIn: ". ")) + ". "
+  }
   @State private var configuring = false
   @State private var readerSettings = false
   private func quietTime(start: Bool) -> Binding<Date> {
@@ -31,26 +35,25 @@ struct SettingsView: View {
     Form {
       Section("Practice") {
         Stepper(
-          "\(store.library.preferences.newPerDay) new verses per day",
+          "\(store.library.preferences.newPerDay) new verses and promises per day",
           value: Binding(
             get: { store.library.preferences.newPerDay },
             set: { value in
               Task { await store.change { $0.preferences.newPerDay = value } }
             }), in: 1...20)
-        LabeledContent("Scheduler", value: "FSRS 6 · 90% retention")
-        Text(
-          "Whole chapters are one card each; a new one starts when the last stands without cues. Verse-by-verse chapters join review after every verse is recalled twice."
-        ).font(.caption).foregroundStyle(.secondary)
       }
       Section {
         Toggle(
-          "Dictate recall",
           isOn: Binding(
             get: { store.library.preferences.dictationEnabled },
             set: { value in
               store.dictation.stop()
               Task { await store.change { $0.preferences.dictationEnabled = value } }
-            }))
+            })
+        ) {
+          Text("Dictation")
+          Text("Recite a recall aloud and compare what was heard.")
+        }
         ForEach(DictationModel.allCases, id: \.self) { model in
           ModelRow(store: store, model: model)
         }
@@ -62,7 +65,7 @@ struct SettingsView: View {
       } footer: {
         VStack(alignment: .leading, spacing: Space.xs) {
           Text(
-            "Press Dictate during a recall and recite aloud; what the model hears fills your recall for comparison. Speech stays on this Mac. macOS stores Apple’s models and shares them with other apps."
+            "Speech stays on this Mac. macOS stores Apple’s models and shares them with other apps."
           )
           if store.modelStates.values.contains(.installed) {
             Button("Remove Apple Speech Models") { Task { await store.removeAppleModels() } }
@@ -94,21 +97,21 @@ struct SettingsView: View {
           }
         }
         Toggle(
-          "Show margin notes",
           isOn: Binding(
             get: { store.library.preferences.showMarginNotes },
             set: { value in
               Task { await store.change { $0.preferences.showMarginNotes = value } }
-            }))
-        Text(
-          "Notes stay collapsed until you open them. Keep them off for uninterrupted reading and recall."
-        ).font(.caption).foregroundStyle(.secondary)
+            })
+        ) {
+          Text("Show margin notes")
+          Text("Notes stay collapsed until you open them.")
+        }
       }
-      Section("Reminders") {
+      Section {
         Toggle(
           "Practice reminders",
           isOn: Binding(
-            get: { store.library.preferences.remindersEnabled },
+            get: { store.library.preferences.remindersEnabled && !store.notificationsBlocked },
             set: { enabled in
               configuring = true
               Task {
@@ -152,10 +155,25 @@ struct SettingsView: View {
               .foregroundStyle(.secondary)
           }
         }
-        Text(store.notificationStatus).font(.caption).foregroundStyle(.secondary)
+        if store.notificationsBlocked {
+          LabeledContent("Notifications are off for Selah") {
+            Button("Open Notification Settings…") {
+              if let url = URL(
+                string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")
+              {
+                NSWorkspace.shared.open(url)
+              }
+            }
+          }
+        }
+      } header: {
+        Text("Reminders")
+      } footer: {
         Text(
-          "Invitations wait until practice is ready and quiet hours have ended. Selah never opens a window automatically for a reminder."
-        ).font(.caption).foregroundStyle(.secondary)
+          (store.notificationsBlocked ? "" : sentence(store.notificationStatus))
+            + "Reminders wait until practice is ready and quiet hours have ended."
+        )
+        .font(.caption).foregroundStyle(.secondary)
       }
       Section("Automation") {
         Toggle(
@@ -171,8 +189,9 @@ struct SettingsView: View {
         if let message = store.loginMessage {
           Text(message).font(.caption).foregroundStyle(.secondary)
         }
+      }
+      Section("Your data") {
         Toggle(
-          "Daily progress backups",
           isOn: Binding(
             get: { store.library.preferences.backupsEnabled },
             set: { value in
@@ -181,17 +200,19 @@ struct SettingsView: View {
                   await store.maintainBackup()
                 }
               }
-            }))
-        Text(store.backupStatus).font(.caption).foregroundStyle(.secondary)
-        Text("Keep the first snapshot each day for 30 days while Selah is running.").font(.caption)
-          .foregroundStyle(.secondary)
-        Button("Show Backups") { NSWorkspace.shared.open(store.file.backupDirectory) }
-      }
-      Section("Your data") {
-        Button("Show Progress File") {
-          NSWorkspace.shared.selectFile(store.file.url.path, inFileViewerRootedAtPath: "")
+            })
+        ) {
+          Text("Daily progress backups")
+          Text(sentence(store.backupStatus) + "The first snapshot each day is kept for 30 days.")
         }
-        Button("Quit Selah") { NSApp.terminate(nil) }
+        LabeledContent("Files") {
+          HStack(spacing: Space.s) {
+            Button("Show Backups") { NSWorkspace.shared.open(store.file.backupDirectory) }
+            Button("Show Progress File") {
+              NSWorkspace.shared.selectFile(store.file.url.path, inFileViewerRootedAtPath: "")
+            }
+          }
+        }
       }
     }
     .formStyle(.grouped)

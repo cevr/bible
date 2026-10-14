@@ -41,7 +41,7 @@ extension Store {
     guard let goal = promiseGoal(category), let progress = readiness?.progress[goal.id] else {
       return "\(category.promises.count) promises"
     }
-    return "\(progress.learned) of \(progress.total) learned"
+    return Meter(progress).label
   }
 }
 
@@ -58,7 +58,9 @@ struct PromiseCategoryRow: View {
           .monospacedDigit()
       }
       Spacer()
-      if let goal = store.promiseGoal(category), let progress = store.readiness?.progress[goal.id] {
+      if let goal = store.promiseGoal(category), let progress = store.readiness?.progress[goal.id],
+        progress.learned > 0
+      {
         ProgressView(value: Double(progress.learned), total: Double(max(1, progress.total)))
           .frame(width: 72).accessibilityHidden(true)
       }
@@ -74,6 +76,7 @@ struct PromiseCategoryView: View {
   private var reader: ReaderPreferences { store.library.preferences.reader }
   private var units: [PracticeUnit] { store.corpus.promiseUnits(for: category) }
   private var added: Bool { store.promiseGoal(category) != nil }
+  @State private var confirmingRemoval = false
   var body: some View {
     Column {
       VStack(alignment: .leading, spacing: Space.xxs) {
@@ -95,16 +98,22 @@ struct PromiseCategoryView: View {
                   .accessibilityLabel("Learned")
               }
             }
-            Text(unit.verses.map(\.practiceText).joined(separator: " "))
-              .font(.scripture(reader)).lineSpacing(Space.xxs).textSelection(.enabled)
+            ScripturePassage(
+              verses: unit.verses, corpus: store.corpus, reader: reader,
+              numbered: unit.verses.count > 1)
           }
         }
       }
     }
     .navigationTitle(category.title)
+    .toolbar(removing: .title)
     .toolbar {
-      if !added {
-        ToolbarItem(placement: .primaryAction) {
+      ToolbarItem(placement: .primaryAction) {
+        if let goal = store.promiseGoal(category) {
+          Button("Remove from Practice…") { confirmingRemoval = true }
+            .disabled(!store.canSave)
+            .removalConfirmation(goal: goal, isPresented: $confirmingRemoval, store: store)
+        } else {
           Button("Add to Practice") { Task { await store.addPromises(category) } }
             .buttonStyle(.glassProminent).disabled(!store.canSave)
         }

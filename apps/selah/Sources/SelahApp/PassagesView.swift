@@ -35,10 +35,11 @@ struct PassagesView: View {
     }
   }
   private var passages: [Goal] { store.library.goals.filter { $0.promises == nil } }
+  private var alreadyAdded: Bool { passages.contains { $0.title == goal.title } }
   var body: some View {
     Form {
       Section {
-        Picker("Memorize", selection: $scope) {
+        Picker("Add", selection: $scope) {
           ForEach(Scope.allCases, id: \.self) { Text($0.rawValue) }
         }
         .pickerStyle(.segmented)
@@ -65,10 +66,14 @@ struct PassagesView: View {
           Text(methodDetail).font(.callout).foregroundStyle(.secondary)
         }
         HStack {
-          if let message { Text(message).font(.callout).foregroundStyle(.secondary) }
+          if alreadyAdded {
+            Text("Already in your passages").font(.callout).foregroundStyle(.secondary)
+          } else if let message {
+            Text(message).font(.callout).foregroundStyle(.secondary)
+          }
           Spacer()
-          Button("Add \(goal.title)") { add() }.buttonStyle(.glassProminent)
-            .disabled(!store.canSave)
+          Button("Add \(goal.title)") { add() }.buttonStyle(.borderedProminent)
+            .disabled(!store.canSave || alreadyAdded)
         }
       } header: {
         Text("Add a passage")
@@ -94,6 +99,7 @@ struct PassagesView: View {
     }
     .onChange(of: first) { last = max(first, last) }
     .onChange(of: scope) { message = nil }
+    .onAppear { if alreadyAdded { advance() } }
   }
   private var methodDetail: String {
     switch method {
@@ -103,16 +109,21 @@ struct PassagesView: View {
       "A few new verses each day. The chapter joins review once every verse is learned."
     }
   }
+  /// Moves the chapter pickers past passages already added, so the form offers something new.
+  private func advance() {
+    guard scope == .chapter else { return }
+    let added = Set(passages.compactMap { goal in goal.chapter.map { "\(goal.book ?? 0):\($0)" } })
+    let order = Array(chapter...chapters) + Array(1..<chapter)
+    if let next = order.first(where: { !added.contains("\(book):\($0)") }) {
+      chapter = next
+    }
+  }
   private func add() {
     let chosen = goal
-    if store.library.goals.contains(where: {
-      $0.title == chosen.title && $0.promises == nil
-    }) {
-      message = "\(chosen.title) is already in your passages."
-      return
-    }
+    guard !alreadyAdded else { return }
     Task {
       message = await store.add(chosen) ? "Added. Practice is ready in Today." : nil
+      advance()
     }
   }
 }
@@ -121,6 +132,7 @@ struct PassageRow: View {
   @Bindable var store: Store
   let goal: Goal
   @Environment(\.openWindow) private var openWindow
+  @State private var confirmingRemoval = false
   var body: some View {
     let progress = store.readiness?.progress[goal.id]
     HStack(alignment: .center, spacing: Space.s) {
@@ -146,6 +158,29 @@ struct PassageRow: View {
       Button("Read") {
         store.reader.present(store: store, goal: goal) { openWindow(id: "practice") }
       }
+      Menu("More", systemImage: "ellipsis") {
+        Button("Remove from Practice…", role: .destructive) { confirmingRemoval = true }
+      }
+      .menuStyle(.button).buttonStyle(.borderless).labelStyle(.iconOnly).menuIndicator(.hidden)
+      .fixedSize()
+      .accessibilityLabel("More for \(goal.title)")
+    }
+    .contextMenu {
+      Button("Remove from Practice…", role: .destructive) { confirmingRemoval = true }
+    }
+    .removalConfirmation(goal: goal, isPresented: $confirmingRemoval, store: store)
+  }
+}
+
+extension View {
+  /// Asks before a goal leaves practice, and says that its progress is kept.
+  func removalConfirmation(goal: Goal, isPresented: Binding<Bool>, store: Store) -> some View {
+    confirmationDialog(
+      "Remove \(goal.title) from practice?", isPresented: isPresented, titleVisibility: .visible
+    ) {
+      Button("Remove", role: .destructive) { Task { await store.remove(goal) } }
+    } message: {
+      Text("It leaves your daily practice. Its progress is kept if you add it again.")
     }
   }
 }

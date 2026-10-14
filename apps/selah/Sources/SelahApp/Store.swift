@@ -37,6 +37,8 @@ final class Store {
   var loginNeedsApproval = SMAppService.mainApp.status == .requiresApproval
   var loginMessage: String?
   var notificationStatus = "Reminders are off"
+  /// macOS refuses Selah's notifications, so reminders cannot be on whatever the preference says.
+  var notificationsBlocked = false
   var canSave = true
   var isLoading = true
   var isSaving = false
@@ -51,6 +53,8 @@ final class Store {
   var studying = false
   var hinted = false
   var typedRecall = ""
+  /// Whether the recall field is open during a whole-chapter recall, where typing is optional.
+  var typing = false
   var section = Pane.today
   /// The open promise category, if any, within the Promises pane.
   var promisePath: [String] = []
@@ -197,6 +201,17 @@ final class Store {
   }
   /// The last model download failure, shown under the models in Settings.
   var modelError: String?
+  /// Stops practicing a goal. Its progress stays, so adding it again resumes where it left off.
+  func remove(_ goal: Goal) async {
+    let id = goal.id
+    if await change({ $0.removeGoal(id) }) { await refreshReminders() }
+  }
+  /// The added promise category a practice unit comes from, so practice can name it.
+  func promiseCategory(for unit: PracticeUnit) -> PromiseCategory? {
+    guard !unit.isChapter else { return nil }
+    return library.goals.lazy.compactMap { $0.promises.flatMap(Promises.category) }
+      .first { category in corpus.promiseUnits(for: category).contains { $0.id == unit.id } }
+  }
   func addPromises(_ category: PromiseCategory) async {
     guard !library.goals.contains(where: { $0.promises == category.id }) else { return }
     await add(Goal(title: category.title, promises: category.id))
@@ -299,6 +314,7 @@ final class Store {
     isComparing = false
     peeked = []
     slipped = []
+    typing = false
     cues = current.map { library.cues(for: $0) } ?? []
     studying = current.map { library.cards[$0.id] == nil } ?? false
     revealed = studying
@@ -310,7 +326,9 @@ final class Store {
     peeked.insert(verse.number)
     slipped.insert(verse.number)
   }
+  /// A verse whose first letters were shown is saved as slipped, so its mark stays set.
   func toggleSlipped(_ verse: Verse) {
+    guard !peeked.contains(verse.number) else { return }
     if slipped.contains(verse.number) {
       slipped.remove(verse.number)
     } else {
@@ -435,6 +453,7 @@ final class Store {
       return
     }
     let settings = await center.notificationSettings()
+    notificationsBlocked = settings.authorizationStatus == .denied
     guard
       settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
     else {

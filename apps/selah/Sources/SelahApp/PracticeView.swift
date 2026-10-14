@@ -17,16 +17,14 @@ struct PracticeView: View {
           if unit.isChapter {
             ChapterReview(store: store, unit: unit)
           } else {
+            ScripturePassage(
+              verses: unit.verses, corpus: store.corpus, reader: reader,
+              numbered: unit.verses.count > 1,
+              showMargins: store.library.preferences.showMarginNotes, comparison: store.comparison)
             if let comparison = store.comparison {
-              Text(RecallFeedback.marked(comparison.expected, color: Palette.slipped))
-                .font(.scripture(reader)).lineSpacing(Space.xxs).textSelection(.enabled)
               RecallFeedback(comparison: comparison)
-            } else {
-              ScripturePassage(
-                verses: unit.verses, corpus: store.corpus, reader: reader,
-                numbered: unit.verses.count > 1,
-                showMargins: store.library.preferences.showMarginNotes)
-              if store.isComparing { ProgressView("Comparing words…").controlSize(.small) }
+            } else if store.isComparing {
+              ProgressView("Comparing words…").controlSize(.small)
             }
             if store.hinted {
               Text("First letters were shown, so grades are limited to Again or Hard.")
@@ -39,9 +37,14 @@ struct PracticeView: View {
             CueList(store: store, unit: unit)
           } else if store.hinted {
             Text(unit.initials).font(.scripture(reader)).lineSpacing(Space.xs)
-              .foregroundStyle(.secondary).textSelection(.enabled)
+              .foregroundStyle(Palette.cue).textSelection(.enabled)
           }
-          RecallEditor(store: store)
+          if !unit.isChapter || store.typing || !store.typedRecall.isEmpty
+            || store.dictation.active
+          {
+            RecallEditor(store: store)
+          }
+          DictationStatus(dictation: store.dictation)
         }
       } else {
         finished
@@ -56,8 +59,8 @@ struct PracticeView: View {
     )
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
-        Button("End Session", systemImage: "xmark") { store.endSession() }
-          .help("End this practice session")
+        Button("End Session") { store.endSession() }
+          .help("End this practice session. Grades already given are saved.")
       }
     }
     .onDisappear { store.dictation.stop() }
@@ -67,35 +70,26 @@ struct PracticeView: View {
   private func header(_ unit: PracticeUnit) -> some View {
     VStack(alignment: .leading, spacing: Space.xxs) {
       Text(unit.reference).font(.reference(reader))
-      Text(instruction(unit)).font(.callout).foregroundStyle(.secondary)
+      Text(kind(unit)).font(.callout).foregroundStyle(.secondary)
     }
   }
 
-  private func instruction(_ unit: PracticeUnit) -> String {
-    let kind: String =
-      switch unit.kind {
-      case .chapter: "Whole chapter · \(unit.verses.count) verses"
-      case .passage: "Passage · \(unit.verses.count) verses"
-      case .verse: "Verse"
-      }
-    if store.studying {
-      return unit.isChapter
-        ? "\(kind) · Read it through aloud, then recite it with cues."
-        : "\(kind) · Read it once, then hide it and recall."
+  /// What is being practiced, never how: the controls below say what comes next.
+  private func kind(_ unit: PracticeUnit) -> String {
+    let size = unit.verses.count == 1 ? "1 verse" : "\(unit.verses.count) verses"
+    if let category = store.promiseCategory(for: unit) { return "\(category.title) · \(size)" }
+    return switch unit.kind {
+    case .chapter: "Whole chapter · \(size)"
+    case .passage: "Passage · \(size)"
+    case .verse: "Verse"
     }
-    if store.revealed { return "\(kind) · Compare, then grade your recall." }
-    return unit.isChapter
-      ? "\(kind) · Recite the chapter in order. Cues fade as verses hold."
-      : "\(kind) · Say it or type it before revealing."
   }
 
   private var finished: some View {
     VStack(alignment: .leading, spacing: Space.s) {
       Text("Session complete").font(.title2.weight(.semibold))
-      Text(
-        "\(store.completed) \(store.completed == 1 ? "review" : "reviews") saved. Selah brings each one back when it’s due."
-      )
-      .foregroundStyle(.secondary)
+      Text("\(store.completed) \(store.completed == 1 ? "review" : "reviews") saved.")
+        .foregroundStyle(.secondary)
     }
   }
 }
@@ -132,6 +126,12 @@ struct ActionBar: View {
             if !unit.isChapter && !store.hinted {
               Button("First Letters") { store.hinted = true }.buttonStyle(.glass)
                 .help("Show each word’s first letter. Grades are limited to Again or Hard.")
+            }
+            if unit.isChapter && !store.typing && store.typedRecall.isEmpty
+              && !store.dictation.active
+            {
+              Button("Type", systemImage: "keyboard") { store.typing = true }.buttonStyle(.glass)
+                .help("Type the chapter to compare it word by word")
             }
             if store.library.preferences.dictationEnabled {
               DictateButton(store: store)
@@ -175,18 +175,37 @@ struct DictateButton: View {
 
 struct RecallEditor: View {
   @Bindable var store: Store
+  @FocusState private var focused: Bool
+  private var chapter: Bool { store.current?.isChapter == true }
+  var body: some View {
+    let shape = RoundedRectangle(cornerRadius: Radius.field, style: .continuous)
+    TextEditor(text: $store.typedRecall)
+      .font(.recall(store.library.preferences.reader))
+      .scrollContentBackground(.hidden).scrollIndicators(.never)
+      .focused($focused)
+      .frame(minHeight: chapter ? Measure.chapterRecall : Measure.verseRecall)
+      .padding(Space.s)
+      .background(Palette.field, in: shape)
+      .overlay(shape.strokeBorder(.separator))
+      .overlay(alignment: .topLeading) {
+        if store.typedRecall.isEmpty {
+          Text(chapter ? "Type the chapter to compare" : "Type to compare (optional)")
+            .font(.recall(store.library.preferences.reader)).foregroundStyle(Palette.cue)
+            .padding(Space.s).padding(.leading, Space.xxs).allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+      }
+      .accessibilityLabel("Your recall")
+      .onAppear { if chapter { focused = true } }
+  }
+}
+
+/// A running take's elapsed time, and any message from dictation.
+struct DictationStatus: View {
+  let dictation: Dictation
   var body: some View {
     VStack(alignment: .leading, spacing: Space.xs) {
-      TextEditor(text: $store.typedRecall)
-        .font(.scripture(store.library.preferences.reader, size: 18))
-        .scrollContentBackground(.hidden).scrollIndicators(.never)
-        .frame(minHeight: store.current?.isChapter == true ? 160 : 100)
-        .padding(Space.s)
-        .background(Palette.field, in: RoundedRectangle(cornerRadius: Radius.field))
-        .accessibilityLabel("Your recall")
-      Text("Type to compare word by word, or recite aloud and leave this empty.")
-        .font(.callout).foregroundStyle(.secondary)
-      if store.dictation.phase == .listening, let started = store.dictation.started {
+      if dictation.phase == .listening, let started = dictation.started {
         TimelineView(.periodic(from: started, by: 1)) { context in
           Label(
             "Listening · \(Duration.seconds(context.date.timeIntervalSince(started)).formatted(.time(pattern: .minuteSecond)))",
@@ -195,7 +214,7 @@ struct RecallEditor: View {
           .font(.callout).foregroundStyle(.secondary).monospacedDigit()
         }
       }
-      if let message = store.dictation.message {
+      if let message = dictation.message {
         Text(message).font(.callout).foregroundStyle(.secondary)
       }
     }
@@ -216,14 +235,12 @@ struct CueList: View {
           VerseNumber(number: verse.number, slipped: peeked)
           switch peeked && cue == .none ? .initials : cue {
           case .full:
-            Text(verse.practiceText).font(.scripture(reader)).foregroundStyle(.secondary)
+            Text(verse.practiceText).font(.scripture(reader)).foregroundStyle(Palette.cue)
           case .initials:
-            Text(verse.initials).font(.scripture(reader)).foregroundStyle(.secondary)
+            Text(verse.initials).font(.scripture(reader)).foregroundStyle(Palette.cue)
               .accessibilityLabel("First letters of verse \(verse.number)")
           case .none:
-            Button("Show Letters") { store.peek(verse) }
-              .buttonStyle(.borderless).font(.callout).foregroundStyle(.tertiary)
-              .help("Show this verse’s first letters. It will count as a verse that slipped.")
+            HiddenVerse(number: verse.number, reader: reader) { store.peek(verse) }
           }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -233,24 +250,74 @@ struct CueList: View {
   }
 }
 
+/// A verse recited without cues: a quiet placeholder at reading height. Hovering or focusing
+/// the row offers its first letters, at the cost of the verse counting as slipped.
+struct HiddenVerse: View {
+  let number: Int
+  let reader: ReaderPreferences
+  let peek: () -> Void
+  @State private var hovering = false
+  @FocusState private var focused: Bool
+  var body: some View {
+    Button(action: peek) {
+      HStack(alignment: .firstTextBaseline) {
+        Text("· · ·").font(.scripture(reader)).foregroundStyle(.quaternary)
+        Spacer(minLength: Space.s)
+        Label("First Letters", systemImage: "eye").font(.callout).foregroundStyle(Palette.cue)
+          .opacity(hovering || focused ? 1 : 0)
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .focused($focused)
+    .onHover { hovering = $0 }
+    .help("Show the first letters. The verse counts as slipped.")
+    .accessibilityLabel("Show first letters of verse \(number)")
+    .accessibilityHint("The verse counts as slipped")
+  }
+}
+
+/// A verse number in the gutter, raised like the reader's; orange when the verse slipped.
 struct VerseNumber: View {
   let number: Int
   var slipped = false
   var body: some View {
-    Text("\(number)").font(.caption.weight(.medium)).monospacedDigit()
-      .foregroundStyle(slipped ? Palette.slipped : .secondary)
-      .frame(width: 24, alignment: .trailing)
+    Text("\(number)").font(.verseNumber).monospacedDigit()
+      .foregroundStyle(slipped ? Palette.slipped : Palette.verseNumber)
+      .baselineOffset(Space.xxs + 2)
+      .frame(width: Measure.verseGutter, alignment: .trailing)
       .accessibilityLabel(slipped ? "Verse \(number), slipped" : "Verse \(number)")
   }
 }
 
-/// The revealed chapter, verse by verse: missing words underlined, slipped verses marked.
+/// The slipped mark beside a revealed verse: an empty ring, or an orange mark when set.
+struct SlippedMarkStyle: ToggleStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    Button {
+      configuration.isOn.toggle()
+    } label: {
+      Image(systemName: configuration.isOn ? "exclamationmark.circle.fill" : "circle")
+        .font(.title3)
+        .foregroundStyle(configuration.isOn ? Palette.slipped : Palette.cue)
+        .frame(width: Measure.markColumn, height: Measure.markColumn)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityRepresentation {
+      Toggle(isOn: configuration.$isOn) { configuration.label }
+    }
+  }
+}
+
+/// The revealed chapter, verse by verse: missing words marked, slipped verses flagged.
 struct ChapterReview: View {
   @Bindable var store: Store
   let unit: PracticeUnit
   private var reader: ReaderPreferences { store.library.preferences.reader }
   private var summary: String {
-    let slipped = unit.verses.map(\.number).filter { store.slipped.contains($0) }
+    let slipped = unit.verses.map(\.number).filter {
+      store.slipped.contains($0) || store.peeked.contains($0)
+    }
     var parts: [String] = []
     if let comparison = store.comparison {
       parts.append("\(comparison.matchedCount) of \(comparison.expected.count) words")
@@ -268,33 +335,36 @@ struct ChapterReview: View {
   var body: some View {
     VStack(alignment: .leading, spacing: Space.m) {
       if store.isComparing { ProgressView("Comparing words…").controlSize(.small) }
-      Text(summary).font(.callout).foregroundStyle(.secondary).monospacedDigit()
+      HStack(alignment: .firstTextBaseline) {
+        Text(summary).font(.callout).foregroundStyle(.secondary).monospacedDigit()
+        Spacer()
+        Text("Slipped").font(.callout).foregroundStyle(.secondary)
+          .frame(minWidth: Measure.markColumn, alignment: .trailing)
+          .accessibilityHidden(true)
+      }
       VStack(alignment: .leading, spacing: reader.verseSpacing + Space.xxs) {
         ForEach(Array(unit.verses.enumerated()), id: \.element.id) { index, verse in
-          let slipped = store.slipped.contains(verse.number)
+          let peeked = store.peeked.contains(verse.number)
+          let slipped = peeked || store.slipped.contains(verse.number)
           HStack(alignment: .firstTextBaseline, spacing: Space.s) {
             VerseNumber(number: verse.number, slipped: slipped)
-            Group {
-              if let comparison = store.comparison {
-                Text(marked(comparison.expected.filter { $0.segment == index }))
-                  .font(.scripture(reader)).lineSpacing(Space.xxs)
-              } else {
-                ScriptureText(
-                  verse: verse, scripture: store.corpus.rendering(for: verse), reader: reader,
-                  numbered: false)
-              }
-            }
+            ScriptureText(
+              verse: verse, scripture: store.corpus.rendering(for: verse), reader: reader,
+              numbered: false, missing: store.comparison?.missing(in: index) ?? []
+            )
             .frame(maxWidth: .infinity, alignment: .leading)
             Toggle(
-              "Slipped", isOn: Binding(get: { slipped }, set: { _ in store.toggleSlipped(verse) })
+              "Verse \(verse.number) slipped",
+              isOn: Binding(get: { slipped }, set: { _ in store.toggleSlipped(verse) })
             )
-            .toggleStyle(.checkbox).tint(Palette.slipped).font(.callout).foregroundStyle(.secondary)
-            .accessibilityLabel("Verse \(verse.number) slipped")
+            .toggleStyle(SlippedMarkStyle())
+            .disabled(peeked)
+            .help(peeked ? "First letters were shown, so this verse counts as slipped" : "")
           }
         }
       }
       if let comparison = store.comparison, comparison.extraCount > 0 {
-        DisclosureGroup("Your recall, with extra or changed words underlined") {
+        DisclosureGroup("Your recall, with extra or changed words marked") {
           Text(RecallFeedback.marked(comparison.recalled, color: Palette.extra))
             .lineSpacing(Space.xxs).textSelection(.enabled).padding(.top, Space.xs)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -305,8 +375,5 @@ struct ChapterReview: View {
         Text("Easy needs a recall without cues.").font(.callout).foregroundStyle(.secondary)
       }
     }
-  }
-  private func marked(_ words: [RecallWord]) -> AttributedString {
-    RecallFeedback.marked(words, color: Palette.slipped)
   }
 }

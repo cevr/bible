@@ -23,6 +23,13 @@ enum Radius {
 enum Measure {
   /// A readable column for Scripture and the controls that serve it.
   static let column: CGFloat = 640
+  /// The column verse numbers sit in, reserved even when a verse is hidden.
+  static let verseGutter: CGFloat = 24
+  /// The trailing column for a verse's slipped mark.
+  static let markColumn: CGFloat = 28
+  /// The recall field's resting height for a verse or passage, and for a whole chapter.
+  static let verseRecall: CGFloat = 64
+  static let chapterRecall: CGFloat = 160
 }
 
 enum Palette {
@@ -32,8 +39,13 @@ enum Palette {
   static let field = adaptive(light: (0.945, 0.938, 0.922), dark: (0.141, 0.141, 0.149))
   /// Words of Christ, when red letters are on.
   static let redLetter = adaptive(light: (0.655, 0.169, 0.122), dark: (0.961, 0.569, 0.482))
-  /// Verses and words that slipped in a recall.
-  static let slipped = adaptive(light: (0.725, 0.388, 0.031), dark: (0.976, 0.682, 0.322))
+  /// Verses and words that slipped in a recall; 4.9:1 on the light page.
+  static let slipped = adaptive(light: (0.659, 0.349, 0.020), dark: (0.976, 0.682, 0.322))
+  /// Cue text (first letters, faded verses) and unmarked controls on the page: about 6:1 in
+  /// both modes, where the system's secondary label drops to 3:1 on the light page.
+  static let cue = adaptive(light: (0.376, 0.373, 0.357), dark: (0.620, 0.620, 0.639))
+  /// Verse numbers in Scripture set on the page.
+  static let verseNumber = cue
   /// Recalled words that are not in the text.
   static let extra = adaptive(light: (0.749, 0.137, 0.149), dark: (1.0, 0.478, 0.478))
 
@@ -58,6 +70,12 @@ extension Font {
     let size = size ?? reader.size
     return reader.font == .system ? .system(size: size) : .custom(reader.font.rawValue, size: size)
   }
+  /// Recall typed beneath the passage: the reader's face, a step below the text.
+  static func recall(_ reader: ReaderPreferences) -> Font {
+    scripture(reader, size: max(15, reader.size - 4))
+  }
+  /// Verse numbers raised in the gutter.
+  static let verseNumber = Font.system(size: 11, weight: .medium)
   /// A passage reference set in the reader's face, a step above the text.
   static func reference(_ reader: ReaderPreferences) -> Font {
     scripture(reader, size: reader.size + 6).weight(.medium)

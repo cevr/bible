@@ -49,3 +49,19 @@ private let kjv: Corpus = {
   // A single-verse promise shares its card with the verse itself.
   #expect(kjv.promiseUnits(for: Promises.category("rest")!)[2].id == "2:33:14")
 }
+
+@Test func removingAGoalStopsItsPracticeButKeepsItsProgress() throws {
+  let now = Date(timeIntervalSince1970: 1_800_000_000)
+  let later = now.addingTimeInterval(30 * 86_400)
+  var library = Library()
+  library.goals = [Goal(title: "Rest", promises: "rest")]
+  let first = try #require(library.practiceQueue(in: kjv, now: now).first)
+  try library.record(first, rating: .good, usedHint: false, now: now)
+  library.removeGoal(library.goals[0].id)
+  #expect(library.practiceQueue(in: kjv, now: later).isEmpty)
+  #expect(Readiness(library: library, corpus: kjv, now: later).dueCount == 0)
+  #expect(library.cards[first.id] != nil)
+  // Adding the category again brings back the promise already started, now due.
+  library.goals.append(Goal(title: "Rest", promises: "rest"))
+  #expect(library.practiceQueue(in: kjv, now: later).first?.id == first.id)
+}

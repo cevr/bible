@@ -7,13 +7,15 @@ struct ScripturePassage: View {
   let reader: ReaderPreferences
   var numbered = true
   var showMargins = false
+  /// A recall to mark on the text: each verse's missing words keep its typesetting.
+  var comparison: RecallComparison?
   var body: some View {
     LazyVStack(alignment: .leading, spacing: 0) {
       ForEach(Array(verses.enumerated()), id: \.element.id) { index, verse in
         let scripture = corpus.rendering(for: verse)
         ScriptureText(
           verse: verse, scripture: scripture, reader: reader, numbered: numbered,
-          showMargins: showMargins
+          showMargins: showMargins, missing: comparison?.missing(in: index) ?? []
         )
         .padding(
           .top,

@@ -3,6 +3,12 @@ import Testing
 
 @testable import SelahCore
 
+private let kjv: Corpus = {
+  let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+    .appendingPathComponent("../../Sources/SelahApp/Resources/kjv.json").standardized
+  return Corpus(verses: try! JSONDecoder().decode([Verse].self, from: Data(contentsOf: url)))
+}()
+
 @Test func italicAndRedLetterSegmentsCarryAcrossBoundariesAndAnchorToVisiblePhrase() {
   let verse = Verse(
     book: 40, bookName: "Matthew", chapter: 5, number: 3,
@@ -54,4 +60,18 @@ import Testing
   #expect(strict.expected.filter { !$0.matched }.map(\.text) == ["the", "restoreth"])
   #expect(RecallComparison.sameWord("leadeth", "laedeth"))
   #expect(!RecallComparison.sameWord("want", "wont"))
+}
+
+@Test func renderedVersesHaveTheWordsTheComparisonCountsSoMarksLandOnTheRightWord() throws {
+  let mismatched = kjv.verses.filter { verse in
+    let rendered = Scripture(verse: verse).segments.filter { $0.noteIndex == nil }
+      .map(\.text).joined()
+    return RecallComparison.wordCount(rendered) != RecallComparison.wordCount(verse.practiceText)
+  }
+  #expect(mismatched.map(\.reference).prefix(5) == [])
+  let comparison = try RecallComparison(
+    segments: ["The LORD is my shepherd", "I shall not want."],
+    recalled: "The LORD my shepherd I want")
+  #expect(comparison.missing(in: 0) == [2])
+  #expect(comparison.missing(in: 1) == [1, 2])
 }

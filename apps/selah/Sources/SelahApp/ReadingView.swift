@@ -10,6 +10,11 @@ struct ReadingView: View {
   @State private var chapterIndex = 0
   @State private var hidden = false
   @State private var readerSettings = false
+  @State private var confirmingRehearsal = false
+  /// A whole book in Passages is worth rehearsing end to end; a single chapter is not.
+  private func bookIsAGoal(_ book: Int) -> Bool {
+    store.library.goals.contains { $0.book == book && $0.chapter == nil && $0.promises == nil }
+  }
   private var visible: [Verse] { chapters.isEmpty ? [] : chapters[chapterIndex] }
   private var reader: ReaderPreferences { store.library.preferences.reader }
   private var reference: String {
@@ -23,10 +28,8 @@ struct ReadingView: View {
     Column {
       Text(reference).font(.reference(reader))
       if hidden {
-        Text(
-          "Recite \(reference) from memory, then reveal it to check the transitions between verses."
-        )
-        .font(.title3).foregroundStyle(.secondary).padding(.top, Space.l)
+        Text("Recite from memory, then show the text to check.")
+          .font(.title3).foregroundStyle(.secondary).padding(.top, Space.l)
       } else {
         ScripturePassage(
           verses: visible, corpus: store.corpus, reader: reader,
@@ -47,29 +50,37 @@ struct ReadingView: View {
         }
       }
       ToolbarItemGroup(placement: .primaryAction) {
-        Button(
-          hidden ? "Reveal Chapter" : "Hide to Recite", systemImage: hidden ? "eye" : "eye.slash"
-        ) { hidden.toggle() }
+        Button(hidden ? "Show Text" : "Hide Text", systemImage: hidden ? "eye" : "eye.slash") {
+          hidden.toggle()
+        }
         .help(hidden ? "Show the text again" : "Hide the text and recite from memory")
         Button("Reader Settings", systemImage: "textformat.size") { readerSettings = true }
           .help("Reader settings")
       }
       if isWholeChapter, let first = visible.first {
         ToolbarSpacer(.fixed, placement: .primaryAction)
-        ToolbarItem(placement: .primaryAction) {
-          Menu("Practice", systemImage: "ellipsis") {
-            Button(
-              "Rehearse \(first.bookName) · \(store.corpus.chapterCount(book: first.book)) chapters"
-            ) {
-              store.beginBook(first.book)
-              close()
-              onPractice()
-            }
+        if bookIsAGoal(first.book) {
+          ToolbarItem(placement: .primaryAction) {
+            Button("Rehearse \(first.bookName)…") { confirmingRehearsal = true }
+              .help("Recall every chapter of \(first.bookName) in order")
+              .confirmationDialog(
+                "Rehearse all \(store.corpus.chapterCount(book: first.book)) chapters of \(first.bookName)?",
+                isPresented: $confirmingRehearsal, titleVisibility: .visible
+              ) {
+                Button("Rehearse \(first.bookName)") {
+                  store.beginBook(first.book)
+                  close()
+                  onPractice()
+                }
+              } message: {
+                Text(
+                  "Each chapter is recalled and graded in order. Ending early schedules only the chapters you graded."
+                )
+              }
           }
-          .help("More practice")
         }
         ToolbarItem(placement: .primaryAction) {
-          Button("Memorize Chapter") {
+          Button("Practice Now") {
             store.beginChapter(visible)
             close()
             onPractice()

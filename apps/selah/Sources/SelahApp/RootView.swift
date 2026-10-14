@@ -41,11 +41,12 @@ struct RootView: View {
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .background(Palette.page)
       .toolbar {
-        if store.isSaving {
-          ToolbarItem(placement: .status) {
-            ProgressView().controlSize(.small).accessibilityLabel("Saving")
-          }
+        // Always present, so a save never inserts or removes toolbar items between cards.
+        ToolbarItem(placement: .status) {
+          ProgressView().controlSize(.small).opacity(store.isSaving ? 1 : 0)
+            .accessibilityLabel("Saving").accessibilityHidden(!store.isSaving)
         }
+        .sharedBackgroundVisibility(.hidden)
       }
     }
     .preferredColorScheme(store.library.preferences.appearance.colorScheme)
@@ -87,7 +88,7 @@ struct ErrorBanner: View {
       Button("Show Progress File") {
         NSWorkspace.shared.selectFile(file.url.path, inFileViewerRootedAtPath: "")
       }
-      .buttonStyle(.glass)
+      .buttonStyle(.bordered)
     }
     .padding(Space.m).groupSurface().padding([.horizontal, .top], Space.m)
   }
@@ -103,6 +104,7 @@ struct Column<Content: View>: View {
         .padding(.horizontal, Space.xl).padding(.vertical, Space.l)
         .frame(maxWidth: .infinity)
     }
+    .scrollEdgeEffectStyle(.soft, for: .top)
     .background(Palette.page)
   }
 }
