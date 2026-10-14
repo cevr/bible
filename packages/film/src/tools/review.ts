@@ -504,6 +504,20 @@ export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder 
     images: uniqueFiles(found(parts, manifest.images)).map(fileOf),
     docs: newestFiles(found(parts, manifest.docs)),
     downloads: uniqueFiles(found(parts, manifest.downloads)).map(fileOf),
+    ...Option.match(manifest.production, {
+      onNone: () => ({}),
+      onSome: (production) => ({
+        production,
+        ...Option.match(manifest.version, {
+          onNone: () => ({}),
+          onSome: (version) => ({ version }),
+        }),
+        ...Option.match(manifest.published, {
+          onNone: () => ({}),
+          onSome: (published) => ({ published }),
+        }),
+      }),
+    }),
   };
 };
 

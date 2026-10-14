@@ -26,6 +26,7 @@ import { evaluates, sheetsStand, textHas, until, waitFor } from '../../src/lab/f
 import {
   STUDIO_FILM,
   STUDIO_FOLDER,
+  STUDIO_PRODUCTION,
   STUDIO_SET,
   studioRoutes,
 } from '../../src/lab/fixtures/studio-film.ts';
@@ -504,6 +505,9 @@ export const SCRIPT_MOVES: Exempt = {
   why: "a film's Script moves to the beat under its playhead as it opens",
 };
 
+/** A production's timeline, read: its current version's Move forward. */
+export const PRODUCTION_READY = '.pd-v[data-current="true"] [data-act="move-forward"]';
+
 export const STATES: ByPlace<State, AtRest> = {
   lab: LAB_MOVES,
   script: SCRIPT_MOVES,
@@ -604,6 +608,24 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=diff`, '.rv-diff'),
       disclose: AT_REST,
       budget: most(33, 27),
+    },
+  ],
+  production: [
+    {
+      name: "a Production's timeline: its current version open, the ones before shut",
+      open: review(pageHref.production(STUDIO_PRODUCTION), PRODUCTION_READY),
+      disclose: AT_REST,
+      budget: most(30, 30),
+    },
+    {
+      name: "a Production's timeline, Move forward's form open",
+      open: review(pageHref.production(STUDIO_PRODUCTION), PRODUCTION_READY),
+      disclose: (page) =>
+        Effect.gen(function* () {
+          yield* page.click(PRODUCTION_READY);
+          yield* waitFor(page, '[data-act="move-form"] input[name="title"]');
+        }),
+      budget: most(30, 30),
     },
   ],
   folder: [

@@ -2556,6 +2556,23 @@ dark and made for a phone first.
 **Terms.** The page uses the words of a film review room; the code keeps its
 own names, and the stored and wire words stay as they are.
 
+- **Production** (Kitsu's word, a film's or a track's): what the owner
+  follows from start to finish, a film or a track such as the house look. Its
+  page is its **timeline** (`/productions/<production>`, `?v=<n>` opens a
+  past version): its **versions** (v1, v2, …) newest first, each with what
+  it is for and the decision that opened it, and in each, newest first, the
+  sets published into it, the owner's words given outside the lab, and the
+  sets filed there that no root holds now. The current version is open, says
+  what waits on the owner (a choice of two or more variants none picked, and
+  no decision recorded on it), and holds the page's one verb, Move forward:
+  the decision in a line and what the next version is for. Only the
+  versions and the owner's words are kept (`ProductionStore`: a ledger a
+  production under `FILMS_LAB`, `productions/<production>.json`); the rest is
+  read from the sets (`core/production.ts` `historyOf`). A set lands on a
+  timeline when its `review.json` names the production (`film publish`); an
+  older set is filed by hand (`film production file`). The front door lists
+  the productions first, then the films, then the **Sets** and **Renders**
+  no production holds; [the design](../../apps/animations/plans/lab-timeline.md).
 - **Versions** (a version stack): the renders of one address side by side on
   one clock. The code calls it a set (`ChoicePoint` of kind `render`), each
   version a variant.
@@ -2712,6 +2729,8 @@ makes no phone copies.
 | `GET /api/review/files/<ref>`, `/api/review/phone/<ref>`                        | the file, or its phone copy, byte ranges answered 206                                                                                                                                                                                                       |
 | `GET /api/review/frame?ref=&t=&w=`, `/api/review/duration?ref=`                 | a JPEG of a video at `t` s, `w` px wide; its length and its frames a second as its packets give them (`fps`, never rounded; none for a file with no video)                                                                                                  |
 | `POST /api/review/sets/<folder>/<point>/say`                                    | `SetSayPost` `{variant, say, op?}` → `SetSaid` (the `ReviewFolder`, with `gave?` and `took?` as a project say answers them), written to the folder's `catalogue.json` (a montage refused; a version made again since it was shown is `VersionChanged`, 409) |
+| `GET /api/productions`                                                          | `Productions`: every production's ledger (`ProductionStore`), one that does not decode left out with a warning                                                                                                                                              |
+| `POST /api/productions/<production>/versions`                                   | `MoveForward` `{after, title, because?}` → the ledger with version `after + 1` opened now; `VersionMoved` (409) when the production is past `after`                                                                                                         |
 | `GET /api/films`                                                                | `ReviewFilms`: the app's films                                                                                                                                                                                                                              |
 | `GET /api/films/<film>/choices`                                                 | `FilmChoices`: the film's renders (the pictures) and its points                                                                                                                                                                                             |
 | `POST /api/films/<film>/choices/pick`                                           | `PickPost` `{point, variant, verb, acceptMismatch?}` → `ChoiceWrite`                                                                                                                                                                                        |

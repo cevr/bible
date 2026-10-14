@@ -11,7 +11,12 @@ import { openReview } from '../../src/lab/fixtures/harness.ts';
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { evaluates, waitFor } from '../../src/lab/fixtures/settled.ts';
-import { STUDIO_FOLDER, STUDIO_SET, studioRoutes } from '../../src/lab/fixtures/studio-film.ts';
+import {
+  STUDIO_FOLDER,
+  STUDIO_PRODUCTION,
+  STUDIO_SET,
+  studioRoutes,
+} from '../../src/lab/fixtures/studio-film.ts';
 import { PHONE_HIT } from '../../src/lab/fixtures/touch-targets.ts';
 import type { State, ByPlace } from './studio-states.ts';
 import {
@@ -28,6 +33,7 @@ import {
   CHOICES,
   PROJECT,
   PROJECT_READY,
+  PRODUCTION_READY,
   STILL,
   CHOICES_READY,
   SELECTION_SHEET,
@@ -91,6 +97,9 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
     set: [['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')]],
     folder: [
       ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name')],
+    ],
+    production: [
+      ['a Production', review(pageHref.production(STUDIO_PRODUCTION), PRODUCTION_READY)],
     ],
     scenes: [
       ['Scenes', player(pageHref.scenes(PROBE), STILL)],

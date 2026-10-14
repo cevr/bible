@@ -284,6 +284,8 @@ const defaults: ReadonlyArray<FakeRoute> = [
 const reviewDefaults: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/api\/review\/(files|phone)\/[^?]*\.mp4/, () => TONE),
   route('GET', /^\/api\/films\/[^/]+\/choices\/mix/, () => TONE),
+  // No production keeps a ledger unless a case's routes say one does.
+  route('GET', /^\/api\/productions$/, () => json({ productions: [] })),
 ];
 
 /**

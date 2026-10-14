@@ -9,6 +9,7 @@
 import { Context, Effect, Layer } from 'effect';
 import { HttpClient, HttpClientResponse } from 'effect/http';
 import { Refusal, type SetSaid, type SetSayPost, reviewFileUrl } from '../../core/api.ts';
+import type { MoveForward, ProductionFile, Productions } from '../../core/production.ts';
 import type { ReviewDuration, ReviewIndex } from '../../core/review.ts';
 import { LabClient, type LabFailure, called } from '../api.ts';
 
@@ -25,6 +26,13 @@ interface ReviewCalls {
     point: string,
     said: SetSayPost,
   ) => Effect.Effect<SetSaid, LabFailure>;
+  /** Every production's ledger (`core/production.ts`). */
+  readonly productions: Effect.Effect<Productions, LabFailure>;
+  /** `production` moved forward from the version the page saw: its ledger as the move leaves it. */
+  readonly forward: (
+    production: string,
+    move: MoveForward,
+  ) => Effect.Effect<ProductionFile, LabFailure>;
 }
 
 export class ReviewApi extends Context.Service<ReviewApi, ReviewCalls>()(
@@ -39,7 +47,8 @@ const fileText = (res: HttpClientResponse.HttpClientResponse) => {
 
 /** The review's routes on the page's own origin: a doc's URL is a path, resolved against the page's address. */
 const makeReviewApi = Effect.fn('lab.review.api')(function* () {
-  const client = (yield* LabClient).review;
+  const lab = yield* LabClient;
+  const client = lab.review;
   const http = yield* HttpClient.HttpClient;
   const api: ReviewCalls = {
     index: (fresh) => {
@@ -49,6 +58,9 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* () {
     duration: (ref) => called(client.duration({ query: { ref } })),
     text: (ref) => called(Effect.flatMap(http.get(reviewFileUrl(ref)), fileText)),
     say: (folder, point, said) => called(client.say({ params: { folder, point }, payload: said })),
+    productions: called(lab.productions.list()),
+    forward: (production, move) =>
+      called(lab.productions.forward({ params: { production }, payload: move })),
   };
   return api;
 });

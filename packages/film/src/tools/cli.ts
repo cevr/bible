@@ -86,6 +86,7 @@ import { levelsOf, wedgeVariant } from '../core/easel.ts';
 import { filmServices, labPages, startLab } from './film-services.ts';
 import { look } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
+import { production, publish } from './production-cli.ts';
 import { judge } from './judge-cli.ts';
 import type { JudgeRule } from '../core/judge.ts';
 import { Review, type ReviewRoot } from './review.ts';
@@ -996,6 +997,8 @@ export const runFilmCli = <E>({
       lab(labApp, films, footageAt),
       look(films),
       journal,
+      production,
+      publish,
       judge(films, judging.rules),
       notes,
     ]),

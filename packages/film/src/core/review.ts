@@ -6,6 +6,7 @@
 import { Array as Arr, Effect, Option, Schema } from 'effect';
 import { ChoicePoint } from './choice.ts';
 import { Clip } from './point.ts';
+import { ProductionId, VersionNumber } from './production.ts';
 import { Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
@@ -65,13 +66,20 @@ const ManifestSets = Schema.Record(Schema.String, ManifestSet).check(
  * hand-made clips by (a film's renders are listed by their catalogue). A
  * title and a line for the folder, the videos, images, docs and downloads it shows, and
  * per comparison set (by clip) its title, order, start, moments, and each
- * variant's label, tag, verdict, notes, or file when it lies elsewhere. A set
+ * variant's label, tag, verdict, notes, or file when it lies elsewhere; the
+ * production and version it is published to, and when. A set
  * lists the variants its `order` and `variants` name. Every key may be left
  * out; a file it does not name is not shown.
  */
 export const ReviewManifest = Schema.Struct({
   title: maybe(Schema.String),
   blurb: maybe(Schema.String),
+  /** The production whose timeline the set is on (`core/production.ts`), as `film publish` names it. */
+  production: maybe(ProductionId),
+  /** The version it was made for; the one open when it was published otherwise. */
+  version: maybe(VersionNumber),
+  /** When it was published, ms since the epoch (`film publish`); its newest file's time otherwise. */
+  published: maybe(Schema.Finite),
   /** Text files (markdown, logs), relative to the folder, shown with it. */
   docs: orElse(Schema.Array(Schema.String), []),
   /** Images, relative to the folder, shown with it. */
@@ -103,6 +111,12 @@ export const ReviewFolder = Schema.Struct({
   docs: Schema.Array(ReviewFile),
   /** Authored file links; omitted by older servers and by project folders. */
   downloads: Schema.optionalKey(Schema.Array(ReviewFile)),
+  /** The production its manifest publishes it to; omitted when it names none, by older servers and by project folders. */
+  production: Schema.optionalKey(Schema.String),
+  /** The version its manifest names. */
+  version: Schema.optionalKey(Schema.Int),
+  /** When its manifest says it was published, ms since the epoch. */
+  published: Schema.optionalKey(Schema.Finite),
 });
 export type ReviewFolder = typeof ReviewFolder.Type;
 

@@ -1,5 +1,6 @@
 // The review's pages. Home lists every folder with something to review,
-// version stacks first. A folder shows its version stacks
+// the productions first, then the films, then every folder no production
+// holds, version stacks first. A folder shows its version stacks
 // (Versions), and whatever is in no stack: its videos (with captions when a
 // `.vtt` lies beside them), its sheets and stills (a lightbox), its docs
 // (markdown inline). A stack plays every version on one clock: all of them,
@@ -10,6 +11,7 @@
 // and the comment box, said over the set's route.
 
 import { useAtomValue } from '@bible/atom-solid';
+import { unfiledOf } from '../../core/production.ts';
 import { Dialog } from '@bible/ui/dialog';
 import { Toggle } from '@bible/ui/toggle';
 import * as UrlAtom from '@bible/url-state/atom';
@@ -103,6 +105,7 @@ import {
 import { Loaded, useWrite, writeStatus } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
 import { ReviewPlace as Place, stillIn, withStill } from './place.ts';
+import { ProductionCards, useHistories } from './production.tsx';
 import { HearToggle, PlayedAlone, Transport, useClockMedia } from './player.tsx';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
@@ -284,16 +287,24 @@ const Films = (props: { readonly folders: ReadonlyArray<ReviewFolder> }) => {
   );
 };
 
-/** Every folder with something to review: version stacks first, then the rest (⌘K finds one by name). */
+/**
+ * The front door: the productions first (each a card that opens its
+ * timeline, `production.tsx`), then the films, then every folder no
+ * production holds: sets (version stacks) first, then the rest (⌘K finds
+ * one by name).
+ */
 export const Home = () => (
   <WithIndex>
     {(index) => {
-      const sets = createMemo(() => index().folders.filter((f) => f.sets.length > 0));
-      const rest = createMemo(() => index().folders.filter((f) => f.sets.length === 0));
+      const histories = useHistories();
+      const unfiled = createMemo(() => unfiledOf(histories(), index().folders));
+      const sets = createMemo(() => unfiled().filter((f) => f.sets.length > 0));
+      const rest = createMemo(() => unfiled().filter((f) => f.sets.length === 0));
       return (
         <>
+          <ProductionCards histories={histories()} />
           <Films folders={index().folders} />
-          <Section title="Versions" count={sets().length}>
+          <Section title="Sets" count={sets().length}>
             <div class="rv-grid">
               <For each={sets()}>{(folder) => <FolderCard folder={folder} />}</For>
             </div>

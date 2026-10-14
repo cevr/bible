@@ -36,6 +36,7 @@ import {
   useContext,
 } from 'solid-js';
 import { type SeenPoint, seenVariants } from '../../core/choice.ts';
+import { type ProductionFile, Productions } from '../../core/production.ts';
 import type { DrawStills } from './options/stills.tsx';
 import {
   ReviewDuration,
@@ -164,6 +165,11 @@ interface ReviewStateValue {
   readonly index: Accessor<AsyncResult.AsyncResult<ReviewIndex, LabFailure>>;
   /** The app's films, each with options to pick from. */
   readonly films: Accessor<AsyncResult.AsyncResult<ReviewFilms, LabFailure>>;
+  /**
+   * Every production's ledger (`core/production.ts`), as last read or as a
+   * move forward left it: the page lays the index's folders into each.
+   */
+  readonly productions: Accessor<AsyncResult.AsyncResult<Productions, LabFailure>>;
   readonly quality: Accessor<Quality>;
 }
 
@@ -189,6 +195,8 @@ interface ReviewActions {
    * overtook is never shown over it.
    */
   readonly answered: (folder: ReviewFolder) => void;
+  /** A production moved forward: its ledger as the move left it, shown in place of the one read. */
+  readonly moved: (file: ProductionFile) => void;
   readonly quality: (quality: Quality) => void;
 }
 
@@ -358,6 +366,12 @@ export const Root = (
   const filmsAtom = runtime
     .atom(OptionsApi.use((api) => api.films))
     .pipe(served('review.films', ReviewFilms));
+  // The productions' ledgers, read with the page; a move forward's answer stands over its own
+  // ledger until the next read (`moved`).
+  const productionsReadAtom = runtime
+    .atom(ReviewApi.use((api) => api.productions))
+    .pipe(served('review.productions', Productions));
+  const movedAtom = Atom.make<ReadonlyArray<ProductionFile>>([]);
   // A first read takes the server's cache; a refresh asks it to walk its roots again.
   const firstIndexAtom = runtime
     .atom(ReviewApi.use((api) => api.index(false)))
@@ -429,6 +443,19 @@ export const Root = (
     const films = useAtomValue(() => filmsAtom);
     // A Refresh reads the films again too: a film added since is one from then on.
     const refreshFilms = useAtomRefresh(() => filmsAtom);
+    // Read through the served atom itself, so the client adopts the server's answer as it
+    // hydrates (a read derived from it would start empty and the page would not match).
+    const productionsRead = useAtomValue(() => productionsReadAtom);
+    const movedFiles = useAtomValue(() => movedAtom);
+    const productions = createMemo(() =>
+      AsyncResult.map(productionsRead(), (read) => ({
+        productions: read.productions
+          .filter((p) => !movedFiles().some((m) => m.production === p.production))
+          .concat(movedFiles()),
+      })),
+    );
+    const refreshProductions = useAtomRefresh(() => productionsReadAtom);
+    const setMoved = useAtomSet(() => movedAtom);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
     const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(PHONE)));
@@ -491,7 +518,7 @@ export const Root = (
         return made;
       });
     const value: ReviewContextValue = {
-      state: { place, index, films, quality },
+      state: { place, index, films, productions, quality },
       actions: {
         go: (next) => {
           address.go(hrefOf(next));
@@ -499,12 +526,19 @@ export const Root = (
         },
         refresh: () => {
           refreshFilms();
+          setMoved([]);
+          refreshProductions();
           indexOwner.again();
           // Every project the page has read is read again (now where it shows).
           for (const p of projects.values()) p.changed();
         },
         indexChanged: indexOwner.again,
         answered: indexOwner.answered,
+        moved: (file) =>
+          setMoved([
+            ...registry.get(movedAtom).filter((m) => m.production !== file.production),
+            file,
+          ]),
         quality: keepQuality,
       },
       meta: {

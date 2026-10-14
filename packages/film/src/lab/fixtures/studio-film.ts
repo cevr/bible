@@ -239,6 +239,26 @@ const indexOf = (versions: ReadonlyArray<string>): Json => ({
   ],
 });
 
+/** The toy's production: two versions, a decision, and a set filed by hand that no root holds now. */
+export const STUDIO_PRODUCTION = 'toy-cut';
+
+/** The toy production's ledger, as `GET /api/productions` sends it, with `later` versions after its two. */
+export const productionLedgerWith = (later: ReadonlyArray<Json>): Json => ({
+  production: STUDIO_PRODUCTION,
+  title: 'The toy, cut by cut',
+  blurb: 'A film in two versions.',
+  versions: [
+    { at: 0, title: 'First cut' },
+    { at: 1000, title: 'Second cut', because: 'The first cut holds: open is approved' },
+    ...later,
+  ],
+  said: [{ _tag: 'Decided', at: 1000, text: 'The first cut holds', quote: 'ship it' }],
+  filed: [{ set: 'gone-2026-10-01', version: 1 }],
+});
+
+/** The toy production's ledger at its second version. */
+const productionLedger = productionLedgerWith([]);
+
 /** The review's routes over the film: its index, its films, its choices, its project and their checks. */
 export const studioRoutes: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/api\/review\/index/, () => json(indexOf(['main', 'warm']))),
@@ -272,6 +292,7 @@ export const studioRoutes: ReadonlyArray<FakeRoute> = [
   ),
   route('GET', /^\/api\/films\/toy\/steps$/, () => json({})),
   route('GET', /^\/api\/films\/toy\/project$/, () => json(project)),
+  route('GET', /^\/api\/productions$/, () => json({ productions: [productionLedger] })),
 ];
 
 /** The studio's routes with open's render set holding three versions: a pair leaves one out. */

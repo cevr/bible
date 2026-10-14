@@ -68,6 +68,7 @@ import { ManifestLock, type ManifestLockService } from './manifest-lock.ts';
 import { labHandler } from './lab.ts';
 import { notes } from './notes-cli.ts';
 import { NotesStore } from './notes-store.ts';
+import { ProductionStore } from './production-store.ts';
 import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
 import { Browser, CallRefused, type Invoke, framePage } from './browser.ts';
 import { type Encoder, type EncoderChoice, sharesInPage } from '../core/encoder.ts';
@@ -1687,6 +1688,7 @@ export const labInMemory = (
 ) =>
   Layer.mergeAll(
     NotesStore.layer,
+    ProductionStore.layer,
     FilmFolder.layer('/films'),
     noSource,
     noStudio,
@@ -2089,7 +2091,7 @@ export const reviewHttpFixtureLasting = (seconds: number, phoneCopies = false) =
             noSource,
             noStudio,
             echoPages,
-            NotesStore.layer.pipe(
+            Layer.mergeAll(NotesStore.layer, ProductionStore.layer).pipe(
               Layer.provideMerge(ContentStore.layer),
               Layer.provide(
                 ConfigProvider.layer(

@@ -1,6 +1,7 @@
 // Where the review page is, read from its URL's path and written back to it
 // (`Places`, `core/api.ts`), so a link, a reload or Back opens the same
-// place: every folder (`/`), one folder (`/sets/<folder>`), one comparison
+// place: every folder (`/`), a production's timeline
+// (`/productions/<production>`, the version in focus in `?v=`), one folder (`/sets/<folder>`), one comparison
 // set in it (`/sets/<folder>/<point>`, its view in the query:
 // `?view=pair|wipe&other=<id>`, `?view=moments&m=<n>`, `?view=diff&other=<id>&m=<n>`), one film's choices
 // (`/films/<film>/choices`), or one film's project by its address tree
@@ -19,6 +20,8 @@ import { type ViewEvent, ViewState, otherOf, viewNameOf } from './machine.ts';
 
 export type ReviewPlace = Data.TaggedEnum<{
   Home: {};
+  /** A production's timeline, version `v` in focus (0: the current one). */
+  Production: { readonly production: string; readonly v: number };
   Folder: { readonly folder: string };
   /** A render choice point of the folder, by its id. */
   Set: { readonly folder: string; readonly point: string };
@@ -35,6 +38,9 @@ export type SetQuery = Omit<Place.Type<typeof Places.set>['query'], 'inspect' | 
 /** The place `href` names; home when it names none of the review's. */
 export const placeOf = (href: string): ReviewPlace =>
   Option.firstSomeOf<ReviewPlace>([
+    Option.map(Place.decode(Places.production, href), (p) =>
+      ReviewPlace.Production({ production: p.path.production, v: p.query.v }),
+    ),
     Option.map(Place.decode(Places.folder, href), (v) => ReviewPlace.Folder(v.path)),
     Option.map(Place.decode(Places.set, href), (v) => ReviewPlace.Set(v.path)),
     Option.map(Place.decode(Places.choices, href), (v) =>
@@ -69,6 +75,7 @@ export const hrefOf = (place: ReviewPlace): string =>
   Match.value(place).pipe(
     Match.tagsExhaustive({
       Home: () => pageHref.home(),
+      Production: (p) => pageHref.production(p.production, p.v),
       Folder: (p) => pageHref.folder(p.folder),
       Set: (p) => pageHref.set(p.folder, p.point),
       Film: (p) => pageHref.choices(p.film, p.point),

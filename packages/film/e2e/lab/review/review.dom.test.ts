@@ -1,5 +1,5 @@
 // The review in a browser, its routes faked over a synthetic folder of three
-// variants: home lists the folder under Versions, and the header's Search
+// variants: home lists the folder under Sets, and the header's Search
 // (⌘K) finds it by name, with Refresh; the folder shows its set, its loose
 // video with captions, and a doc read as
 // escaped markdown; the set plays every variant on one clock (space plays
@@ -287,7 +287,7 @@ describe('the review page', () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes);
-        yield* textHas(page, '.rv-h', 'Versions');
+        yield* textHas(page, '.rv-h', 'Sets');
         yield* textHas(page, '.rv-h', 'Renders');
         yield* textHas(page, 'a.rv-card', 'Roofs at dusk');
         // The header's Go to… opens ⌘K: a folder is found by its title, Refresh is a command.

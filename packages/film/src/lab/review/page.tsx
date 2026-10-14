@@ -19,6 +19,7 @@ import { ReviewPlace, placeOf } from './place.ts';
 import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, SetPage } from './section.tsx';
+import { PRODUCTION_CSS, ProductionPage } from './production.tsx';
 import { COMMENTS_CSS } from './comments-style.ts';
 import { REVIEW_CSS } from './style.ts';
 import { type Part, pageAt } from '../../core/api.ts';
@@ -62,6 +63,7 @@ const filmOf = (place: ReviewPlace, films: ReadonlyArray<string>): Option.Option
   Match.value(place).pipe(
     Match.tagsExhaustive({
       Home: () => Option.none<string>(),
+      Production: () => Option.none<string>(),
       Folder: (p) => filmOfFolder(p.folder, films),
       Set: (p) => filmOfFolder(p.folder, films),
       Film: (p) => Option.some(p.film),
@@ -84,6 +86,7 @@ const partOf = (place: ReviewPlace, films: ReadonlyArray<string>): Part =>
   Match.value(place).pipe(
     Match.tagsExhaustive({
       Home: (): Part => 'films',
+      Production: (): Part => 'films',
       Folder: (p) => folderPart(p.folder, films),
       Set: (p) => folderPart(p.folder, films),
       Film: (): Part => 'choices',
@@ -95,6 +98,7 @@ const partOf = (place: ReviewPlace, films: ReadonlyArray<string>): Part =>
 const depthOf = (place: ReviewPlace, index: Option.Option<ReviewIndex>): Option.Option<string> =>
   Match.value(place).pipe(
     Match.tags({
+      Production: (p) => Option.some(p.production),
       Folder: (p) => Option.some(folderName(index, p.folder)),
       Set: (p) => Option.some(`${setName(index, p.folder, p.point)} · versions`),
     }),
@@ -155,6 +159,7 @@ const Page = () => {
       {Match.value(page()).pipe(
         Match.tagsExhaustive({
           Home: () => <Home />,
+          Production: (p) => <ProductionPage production={p.production} v={p.v} />,
           Folder: (p) => <FolderPage folder={p.folder} />,
           Set: (p) => <SetPage folder={p.folder} point={p.point} />,
           Film: (p) => <FilmPage film={p.film} />,
@@ -190,7 +195,7 @@ const ReviewPage = (props: ReviewWith) => (
 export const REVIEW_PAGE = {
   bodyClass: 'rv',
   rootClass: 'rv-root',
-  style: `${SHELL_CSS}${REVIEW_CSS}${COMMENTS_CSS}${COMMAND_CSS}${SCENES_CSS}`,
+  style: `${SHELL_CSS}${REVIEW_CSS}${PRODUCTION_CSS}${COMMENTS_CSS}${COMMAND_CSS}${SCENES_CSS}`,
 };
 
 /**

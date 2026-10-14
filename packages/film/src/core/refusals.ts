@@ -410,3 +410,16 @@ export class HeadUnavailable extends Schema.TaggedError<HeadUnavailable>()('Head
     return `${this.file}: no version at the last commit to compare with: ${this.reason}`;
   }
 }
+
+/** A production moved forward past the version the mover saw. */
+export class VersionMoved extends Schema.TaggedError<VersionMoved>()('VersionMoved', {
+  production: Schema.String,
+  /** The version the mover saw. */
+  after: Schema.Int,
+  /** The production's current version. */
+  current: Schema.Int,
+}) {
+  override get message() {
+    return `${this.production} is at v${this.current} now, not v${this.after}: read it again before moving forward`;
+  }
+}

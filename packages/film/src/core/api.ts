@@ -106,7 +106,9 @@ import {
   VariantUnknown,
   VerbRefused,
   VersionChanged,
+  VersionMoved,
 } from './refusals.ts';
+import { MoveForward, ProductionFile, ProductionId, Productions } from './production.ts';
 import {
   ChangeId,
   CheckReport,
@@ -226,6 +228,7 @@ const Refusals = [
   SourceChanged.pipe(status(409)),
   VerbRefused.pipe(status(409)),
   VersionChanged.pipe(status(409)),
+  VersionMoved.pipe(status(409)),
   LabElsewhere.pipe(status(409)),
   BodyTooLarge.pipe(status(413)),
   WriteNotJson.pipe(status(415)),
@@ -816,6 +819,22 @@ class PageGroup extends HttpApiGroup.make('page').add(
  * steps and studio, the renders under the roots and each film's choices and
  * project, and the pages' build.
  */
+/**
+ * The productions (`core/production.ts`): every ledger, which the page lays
+ * the review's folders into as each production's timeline, and a production
+ * moved forward from the version the mover saw (`VersionMoved` once it has
+ * moved since), answered with its ledger as the move leaves it.
+ */
+class ProductionsGroup extends HttpApiGroup.make('productions').add(
+  HttpApiEndpoint.get('list', `${API}/productions`, { success: Productions, error: Refusals }),
+  HttpApiEndpoint.post('forward', `${API}/productions/:production/versions`, {
+    params: { production: ProductionId },
+    payload: MoveForward,
+    success: ProductionFile,
+    error: Refusals,
+  }),
+) {}
+
 export class LabHttpApi extends HttpApi.make('lab')
   .add(NotesGroup)
   .add(ScenesGroup)
@@ -827,6 +846,7 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(ChoicesGroup)
   .add(ProjectGroup)
   .add(LooksGroup)
+  .add(ProductionsGroup)
   .add(PageGroup) {}
 
 /** The first segments `api`'s routes live under (`/api/`): the API's own paths. */
@@ -1071,6 +1091,12 @@ export const OWN_SOUND = 'own';
  */
 export const Places = {
   home: Place.make({ path: '/' }),
+  /** A production's timeline, the version in focus in `?v=` (none: the current one). */
+  production: Place.make({
+    path: '/productions/:production',
+    params: { production: Codec.Segment },
+    query: Field.struct({ v: Field.key(Codec.Int, { default: 0, history: 'push' }) }),
+  }),
   folder: Place.make({
     path: '/sets/:folder',
     params: { folder: Codec.Segment },
@@ -1140,6 +1166,7 @@ export const Places = {
 /** The page each place is served by, the first that holds a path winning. */
 const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, AppPage]> = [
   [Places.home, 'review'],
+  [Places.production, 'review'],
   [Places.folder, 'review'],
   [Places.set, 'review'],
   [Places.choices, 'review'],
@@ -1252,6 +1279,9 @@ const timeOf = (t: Option.Option<number>) => ({ t });
  */
 export const pageHref = {
   home: (): string => Place.href(Places.home, { path: {}, query: {}, hash: {} }),
+  /** A production's timeline, version `v` in focus (0: the current one). */
+  production: (production: string, v = 0): string =>
+    Place.href(Places.production, { path: { production }, query: { v }, hash: {} }),
   folder: (folder: string): string =>
     Place.href(Places.folder, { path: { folder }, query: { still: '' }, hash: {} }),
   /** A comparison set, with the sheet of its version `inspect` open. */
