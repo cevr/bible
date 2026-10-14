@@ -2037,8 +2037,10 @@ to where it starts and selects it, shift extends the selection, a text
 selection across words selects them, and a word held or right-clicked opens
 the page's menu, whose Select to here (`lab/script/commands.ts`) extends the
 selection. The reader follows the frame by the lab's one Follow rule until a
-hand scrolls it; Follow or Play takes it back. The Script selects one thing
-at a time (a cue, a mark, words or a note), and writes nothing of the film's.
+hand scrolls it, or a press opens something under a line while the film
+plays (so the frame moving on never scrolls it away); Follow or Play takes
+it back. The Script selects one thing at a time (a cue, a mark, words or a
+note), and writes nothing of the film's.
 
 How a beat's cues are tied to its words is drawn on its line
 (`lab/script/ties.ts`, `tied.tsx`): each `{mark}` a chip before the word it

@@ -13,7 +13,9 @@
 // its sheet is titled with what the note asks. A note the agent replied to
 // has a reply's arrow after its marker's id. What a tap opens under a line
 // comes into sight, the same words picked again where the line says them
-// again included (over the long film, whose line says “thing” twice).
+// again included (over the long film, whose line says “thing” twice), and
+// stays there tapped while the film plays: the tap takes the reader from
+// Follow.
 
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Effect, FileSystem, Layer, Option, Schema } from 'effect';
@@ -321,6 +323,32 @@ describe('the Script', () => {
         yield* page.click(word(LONG_SCENE, FIRST_THING));
         yield* until(page, `${selects('words')} === '${FIRST_THING}-${FIRST_THING}'`);
         yield* evaluates(page, inSight(head), true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "on a phone, what a tap opens under a line while the film plays stays in sight as it plays on and once it is paused: the press is the reader's, so Follow lets go",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab(LONG_SCRIPT, {
+          href: pageHref.scriptBeat(LONG, LONG_SCENE),
+          viewport: PHONE,
+        });
+        const play = '.bar [data-act="play"]';
+        const head = `[data-scene="${LONG_SCENE}"] .lab-script-ties-head`;
+        yield* page.click(play);
+        yield* attributeIs(page, play, 'aria-label', 'Pause');
+        // Its first mark's chip, by the line's first words: the cues tied to it open under the
+        // line, a long one, so the frame's word and the box cannot both be in sight.
+        yield* page.click(`[data-scene="${LONG_SCENE}"] .lab-script-mark[data-mark="early"]`);
+        yield* waitFor(page, head);
+        // Played on, the frame's word moving on along the line, then paused.
+        yield* until(page, `document.querySelector('.bar .tc').textContent >= '00:00:02:00'`);
+        yield* page.click(play);
+        yield* attributeIs(page, play, 'aria-label', 'Play');
+        yield* evaluates(page, inSight(head), true);
+        yield* attributeIs(page, '[data-act="follow-script"]', 'aria-pressed', 'false');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );

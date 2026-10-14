@@ -9,7 +9,8 @@
 // them go), the cues tied to it, the words a mark or a cue selected lands
 // on, and the words selected as a note on them carries them; and Follow (the lab's one
 // rule, `lab/follow.ts`: the reader keeps the word playing in sight until a
-// hand scrolls it, and Follow or Play takes it back). It writes nothing of
+// hand takes it, by a scroll or by a press that opens something under a line
+// while the film plays, and Follow or Play takes it back). It writes nothing of
 // the film's: a word, a mark or a cue picked seeks the player to where it
 // is and selects it. The reader (`view.tsx`, `tied.tsx`) and the commands
 // (`commands.ts`) read this context; none holds the script of its own.
@@ -105,9 +106,9 @@ interface ScriptContextValue {
   readonly tied: Accessor<Option.Option<Tied>>;
   /** The words a mark or a cue selected lands on, as the lines have them. */
   readonly read: Accessor<ReadonlyArray<Row>>;
-  /** Whether the reader keeps the frame's word in sight: no hand has scrolled it since it was last taken back. */
+  /** Whether the reader keeps the frame's word in sight: no hand has taken it since it was last taken back. */
   readonly following: Accessor<boolean>;
-  /** A hand scrolled the reader: it stops placing until `resume`. */
+  /** A hand took the reader (a scroll, or a press that opened something while the film plays): it stops placing until `resume`. */
   readonly suspend: () => void;
   /** Place the reader again (Follow, Play). */
   readonly resume: () => void;

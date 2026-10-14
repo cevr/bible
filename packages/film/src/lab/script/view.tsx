@@ -19,7 +19,8 @@
 // selection); a text selection across words selects them; a word held (or
 // right-clicked) opens the page's menu about it, whose Select to here extends
 // the selection: a phone's range. The reader keeps the word playing in sight
-// (`lab/follow.ts`) until a hand scrolls it; Follow or Play takes it back. On
+// (`lab/follow.ts`) until a hand scrolls it, or a press opens something under
+// a line while the film plays; Follow or Play takes it back. On
 // a laptop it is a column beside the picture; on a phone it scrolls under the
 // picture and its track. Nothing here writes the script.
 

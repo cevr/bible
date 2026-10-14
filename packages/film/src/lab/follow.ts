@@ -18,6 +18,9 @@
 // as a key too (`opened`), and brought into sight as it opens, by the least
 // scroll, whoever holds the box: the press was the reader's own. Layout that
 // moves it while it is open brings it back, until a reader scrolls the box.
+// While the film stands still it holds the box; opened while the film plays,
+// it takes the box from the view as a reader's scroll does (`reader` told),
+// so the frame moving on never scrolls it away.
 
 import { Option } from 'effect';
 import { type Accessor, createEffect, createSignal, untrack } from 'solid-js';
@@ -139,6 +142,11 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
       () => '',
     );
 
+  // Whether a press that opened something while the film played has the box, until the view is taken back. `reader`
+  // is told too, but its word reaches `placing` only as the flush that carries it ends: a placement in that flush asks
+  // here, so it never scrolls over what the press opened, whichever effect the scheduler runs first.
+  let heldByPress = false;
+
   // One effect places the box, and first takes it back when placing turns on (Follow, Play, a line held again): the
   // box where it stands is the view's from then. In one effect, the take-back comes before the placement's own check
   // for a reader's scroll by the code's order, not by the scheduler's.
@@ -148,11 +156,13 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
     ([key, , on]) => {
       const takenBack = on && !wasPlacing;
       wasPlacing = on;
-      if (takenBack)
+      if (takenBack) {
+        heldByPress = false;
         Option.map(options.box(), (box) => {
           anchor = box.scrollTop;
         });
-      if (!on || key === '') return;
+      }
+      if (!on || heldByPress || key === '') return;
       // What a press opened holds the box while the film stands still: neither the press's own seek nor the resize its
       // opening made places the frame's row over it. Play, or the view taken back, places it.
       if (!takenBack && untrack(opened) !== '' && !meta.player.playing()) return;
@@ -186,10 +196,11 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
 
   // What a press opened comes into sight as it opens, by the least scroll: the box it opened (the span's last row)
   // and the first row it is about with it when both fit between the clear edges; else the box alone, its top never
-  // pushed above the clear top. Placing or not: the press was the reader's. A resize while it stays open (the page
-  // still settling, the box growing as it is typed in) brings it into sight again, while the film stands still and
-  // no reader has scrolled the box since. The scroll is the view's, so it is never taken for a reader's; a reader's
-  // not heard yet is told first.
+  // pushed above the clear top. Placing or not: the press was the reader's, and while the film plays it takes the box
+  // from the view, so the frame's next row is never placed over it. A resize while it stays open (the page still
+  // settling, the box growing as it is typed in) brings it into sight again, while the film stands still and no
+  // reader has scrolled the box since. The scroll is the view's, so it is never taken for a reader's; a reader's not
+  // heard yet is told first.
   let revealed = '';
   createEffect(
     () => [opened(), laidOut()] as const,
@@ -197,6 +208,10 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
       const fresh = key !== revealed;
       revealed = key;
       if (key === '' || (!fresh && meta.player.playing())) return;
+      if (fresh && meta.player.playing()) {
+        heldByPress = true;
+        options.reader();
+      }
       Option.map(
         Option.flatMap(options.box(), (box) =>
           Option.map(options.span(key), (span) => ({ box, span })),
@@ -232,7 +247,7 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
     Option.match(options.box(), {
       onNone: () => false,
       onSome: (box) => {
-        if (!untrack(options.placing)) return true;
+        if (heldByPress || !untrack(options.placing)) return true;
         if (!readerMoved(box)) return false;
         options.reader();
         return true;
