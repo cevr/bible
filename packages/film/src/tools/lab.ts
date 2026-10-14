@@ -38,6 +38,7 @@ import { Easel } from './easel.ts';
 import type { Choices } from './choices.ts';
 import { LabPage, mixedAnswer } from './lab-page.ts';
 import { projectGroup } from './project-http.ts';
+import { productionsGroup } from './production-http.ts';
 import { CACHE, serveFile } from './review-file.ts';
 import { reviewGroup } from './review-http.ts';
 import type { Review } from './review.ts';
@@ -575,6 +576,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         projectGroup,
         pageGroup,
         looksGroup,
+        productionsGroup,
       ),
     ),
   );

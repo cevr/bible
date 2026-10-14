@@ -251,7 +251,7 @@ interface PageShellProps {
   readonly host: Host;
   /** Move to `href` within this page, answering whether it did; otherwise the link loads its page. */
   readonly follow?: (href: string) => boolean;
-  /** The page's depth below its part, after the page bar (`cold · versions`). */
+  /** The page's depth below its part, after the page bar (`cold · stack`). */
   readonly crumb?: Accessor<Option.Option<string>>;
   /** What the page has selected (a scene), first in the tab's title; the page's body shows it, so the header does not. */
   readonly subject?: Accessor<Option.Option<string>>;

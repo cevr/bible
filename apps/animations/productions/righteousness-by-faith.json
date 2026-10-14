@@ -1,0 +1,91 @@
+{
+  "production": "righteousness-by-faith",
+  "title": "Righteousness by Faith",
+  "film": "righteousness-by-faith",
+  "blurb": "The 1888 message in 20 scenes: the court, the robe, the exchange.",
+  "versions": [
+    {
+      "at": 1790341200000,
+      "title": "Canvas cut"
+    },
+    {
+      "at": 1791997200000,
+      "title": "Rive, in the new look",
+      "because": "Rive is the main engine (2026-10-12) and the look is moving to K1-minimal: redraw the cold open in each chosen style"
+    }
+  ],
+  "said": [
+    {
+      "_tag": "Noted",
+      "at": 1791997200000,
+      "text": "Draw the cold open (the court, then Job's question) as concept art in every chosen style",
+      "quote": "render the righteousness by faith opening court + job scene in these styles as the concept"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1791997380000,
+      "text": "Render the cold open in Rive in every chosen style",
+      "quote": "also render in rive the scene please in all these styles we've chosen"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1791999780000,
+      "text": "We start with storyboards, like a real studio",
+      "quote": "and part of our lab process, we start with storyboards, like a real studio"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792000440000,
+      "text": "Job's question is a full-screen card",
+      "quote": "remember about the full screen cards with text"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792001280000,
+      "text": "Try punchy subtitles, cut out over a full-screen card",
+      "quote": "lets try rendering with punchy subtitles",
+      "set": "rbf-rive-2026-10-14"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792002600000,
+      "text": "Which style holds the cold open?",
+      "set": "rbf-rive-2026-10-14",
+      "point": "render:cold"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792003500000,
+      "text": "Punchy subtitles or the clean master?",
+      "set": "rbf-rive-2026-10-14",
+      "point": "render:subtitles"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792005000000,
+      "text": "9005 over 9006",
+      "quote": "ok 9005 over 9006 for sure",
+      "set": "rbf-rive-2026-10-14",
+      "point": "render:cold",
+      "variant": "9005"
+    }
+  ],
+  "filed": [
+    {
+      "set": "righteousness-by-faith-v1",
+      "version": 1
+    },
+    {
+      "set": "righteousness-by-faith",
+      "version": 1
+    },
+    {
+      "set": "rbf-concepts-2026-10-14",
+      "version": 2
+    },
+    {
+      "set": "rbf-rive-2026-10-14",
+      "version": 2
+    }
+  ]
+}

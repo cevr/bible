@@ -433,7 +433,7 @@ export const selectionText = (selection: Selection): string =>
     Note: (s) => `note ${s.id}`,
     Folder: (s) => `folder ${s.folder}`,
     Set: (s) => `set ${s.point}`,
-    Version: (s) => `version ${s.version} of ${s.point}`,
+    Version: (s) => `option ${s.version} of ${s.point}`,
     File: (s) => `file ${s.ref}`,
     Point: (s) => s.point,
     Variant: (s) => `${s.variant} of ${s.point}`,

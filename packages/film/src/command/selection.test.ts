@@ -284,7 +284,7 @@ describe("a selection in the pages' URLs", () => {
   test('reads as a person names it', () => {
     expect(selectionText(cueOf('cold', 'slam'))).toBe('cue slam in cold');
     expect(selectionText(Version.make({ folder: 'r', point: 'cold', version: 'b' }))).toBe(
-      'version b of cold',
+      'option b of cold',
     );
   });
 });

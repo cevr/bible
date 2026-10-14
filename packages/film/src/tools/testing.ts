@@ -68,6 +68,7 @@ import { ManifestLock, type ManifestLockService } from './manifest-lock.ts';
 import { labHandler } from './lab.ts';
 import { notes } from './notes-cli.ts';
 import { NotesStore } from './notes-store.ts';
+import { ProductionStore } from './production-store.ts';
 import { BoardStore } from './board-store.ts';
 import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
 import { Browser, CallRefused, type Invoke, framePage } from './browser.ts';
@@ -1688,6 +1689,7 @@ export const labInMemory = (
 ) =>
   Layer.mergeAll(
     NotesStore.layer,
+    ProductionStore.layer,
     BoardStore.layer.pipe(Layer.provide(FilmFolder.layer('/films'))),
     FilmFolder.layer('/films'),
     noSource,
@@ -2091,14 +2093,18 @@ export const reviewHttpFixtureLasting = (seconds: number, phoneCopies = false) =
             noSource,
             noStudio,
             echoPages,
-            Layer.merge(
+            Layer.mergeAll(
               NotesStore.layer,
+              ProductionStore.layer,
               BoardStore.layer.pipe(Layer.provide(FilmFolder.layer(films))),
             ).pipe(
               Layer.provideMerge(ContentStore.layer),
               Layer.provide(
                 ConfigProvider.layer(
-                  ConfigProvider.fromUnknown({ FILMS_LAB: path.join(dir, 'lab') }),
+                  ConfigProvider.fromUnknown({
+                    FILMS_LAB: path.join(dir, 'lab'),
+                    FILMS_PRODUCTIONS: path.join(dir, 'productions'),
+                  }),
                 ),
               ),
             ),

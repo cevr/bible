@@ -16,10 +16,15 @@ export const FOOTAGE = `${import.meta.dir}/footage`;
 
 /**
  * Where the app's runs put what they make (`out`: renders, sheets, project
- * folders) and the lab's notes (`lab`), whatever directory a run starts in
- * (FILMS_OUT and FILMS_LAB move them).
+ * folders), the lab's notes (`lab`) and the productions' ledgers
+ * (`productions`, committed), whatever directory a run starts in (FILMS_OUT,
+ * FILMS_LAB and FILMS_PRODUCTIONS move them).
  */
-export const FOLDERS = { out: `${import.meta.dir}/out`, lab: `${import.meta.dir}/lab` };
+export const FOLDERS = {
+  out: `${import.meta.dir}/out`,
+  lab: `${import.meta.dir}/lab`,
+  productions: `${import.meta.dir}/productions`,
+};
 
 /**
  * The player on any free port (nobody opens it by hand), its narration from

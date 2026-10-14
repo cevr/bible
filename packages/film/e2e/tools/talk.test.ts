@@ -75,7 +75,11 @@ const world = Layer.unwrap(
       films: path.join(root, 'films'),
       sounds: path.join(root, 'sounds'),
       footage: path.join(root, 'footage'),
-      folders: { out: path.join(root, 'out'), lab: path.join(root, 'lab') },
+      folders: {
+        out: path.join(root, 'out'),
+        lab: path.join(root, 'lab'),
+        productions: path.join(root, 'productions'),
+      },
       self: ['bun', 'cli.ts'],
       roots: Effect.succeed([]),
       elevenLabs: fakeElevenLabs(new Map(), calls, { heard: new Map([['', SAID]]) }),

@@ -140,18 +140,18 @@ const some = (n: number, thing: string): Option.Option<string> =>
     (k) => counted(k, thing),
   );
 
-/** How many versions a stack holds: `1 version`, `3 versions`. */
-export const versionsText = (n: number): string => counted(n, 'version');
+/** How many options a stack holds: `1 option`, `3 options`. */
+export const optionsText = (n: number): string => counted(n, 'option');
 
 /**
  * What a folder holds, as its card says it: its first kind of thing's count
- * (`20 version stacks`, else `3 videos`…), the rest its page's sections.
+ * (`20 stacks`, else `3 videos`…), the rest its page's sections.
  */
 export const countsText = (folder: ReviewFolder): string =>
   Option.getOrElse(
     Arr.head(
       Arr.getSomes([
-        some(folder.sets.length, 'version stack'),
+        some(folder.sets.length, 'stack'),
         some(folder.videos.length, 'video'),
         some(folder.images.length, 'image'),
         some(folder.docs.length, 'doc'),

@@ -411,6 +411,19 @@ export class HeadUnavailable extends Schema.TaggedError<HeadUnavailable>()('Head
   }
 }
 
+/** A production moved forward past the version the mover saw. */
+export class VersionMoved extends Schema.TaggedError<VersionMoved>()('VersionMoved', {
+  production: Schema.String,
+  /** The version the mover saw. */
+  after: Schema.Int,
+  /** The production's current version. */
+  current: Schema.Int,
+}) {
+  override get message() {
+    return `${this.production} is at v${this.current} now, not v${this.after}: read it again before moving forward`;
+  }
+}
+
 /** A change to a film's storyboard it cannot make: a panel or try it lacks, a pick before approval, a card its line does not say. */
 export class BoardRefused extends Schema.TaggedError<BoardRefused>()('BoardRefused', {
   film: Schema.String,

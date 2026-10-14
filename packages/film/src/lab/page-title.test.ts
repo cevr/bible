@@ -12,8 +12,8 @@ describe("the tab's title", () => {
     );
     expect(pageTitle([Option.none(), Option.none()], 'lab', Option.some('rbf'))).toBe('Lab · rbf');
     expect(
-      pageTitle([Option.none(), Option.some('woman · versions')], 'project', Option.some('rbf')),
-    ).toBe('woman · versions · Project · rbf');
+      pageTitle([Option.none(), Option.some('woman · stack')], 'project', Option.some('rbf')),
+    ).toBe('woman · stack · Project · rbf');
     expect(pageTitle([Option.none(), Option.none()], 'films', Option.none())).toBe('Films');
   });
 

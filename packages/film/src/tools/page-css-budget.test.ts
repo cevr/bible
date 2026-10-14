@@ -27,6 +27,7 @@ import { PageRenderer } from './page-render.ts';
  */
 const PLACES = {
   home: pageHref.home(),
+  production: pageHref.production('p'),
   folder: pageHref.folder('f'),
   set: pageHref.set('f', 'p'),
   choices: pageHref.choices('f'),

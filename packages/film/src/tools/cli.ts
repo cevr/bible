@@ -89,6 +89,7 @@ import { levelsOf, wedgeVariant } from '../core/easel.ts';
 import { filmServices, labPages, startLab } from './film-services.ts';
 import { look } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
+import { production, publish } from './production-cli.ts';
 import { board } from './board-cli.ts';
 import { judge } from './judge-cli.ts';
 import type { JudgeRule } from '../core/judge.ts';
@@ -905,11 +906,12 @@ interface FilmApp<E> {
   readonly footage: string;
   /**
    * The app's own folders for what a run makes: `out`, its renders, sheets and
-   * project folders (`FILMS_OUT`), and `lab`, the lab's notes (`FILMS_LAB`).
+   * project folders (`FILMS_OUT`); `lab`, the lab's notes (`FILMS_LAB`); and
+   * `productions`, the productions' ledgers, committed (`FILMS_PRODUCTIONS`).
    * The environment's value wins when it names one, so a test points a run
    * elsewhere; the shell's directory never decides.
    */
-  readonly folders: { readonly out: string; readonly lab: string };
+  readonly folders: { readonly out: string; readonly lab: string; readonly productions: string };
   /** The player, served while `render` or `check` runs. */
   readonly previewServer: Layer.Layer<PreviewServer, E>;
   /**
@@ -1004,6 +1006,8 @@ export const runFilmCli = <E>({
       channel.pipe(Command.provide(FetchHttpClient.layer)),
       look(films),
       journal,
+      production,
+      publish,
       board,
       judge(films, judging.rules),
       notes,

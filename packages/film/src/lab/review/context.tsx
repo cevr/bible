@@ -36,6 +36,8 @@ import {
   useContext,
 } from 'solid-js';
 import { type SeenPoint, seenVariants } from '../../core/choice.ts';
+import type { BoardFile } from '../../core/board.ts';
+import { type ProductionFile, Productions } from '../../core/production.ts';
 import type { DrawStills } from './options/stills.tsx';
 import {
   ReviewDuration,
@@ -164,6 +166,11 @@ interface ReviewStateValue {
   readonly index: Accessor<AsyncResult.AsyncResult<ReviewIndex, LabFailure>>;
   /** The app's films, each with options to pick from. */
   readonly films: Accessor<AsyncResult.AsyncResult<ReviewFilms, LabFailure>>;
+  /**
+   * Every production's ledger (`core/production.ts`), as last read or as a
+   * move forward left it: the page lays the index's folders into each.
+   */
+  readonly productions: Accessor<AsyncResult.AsyncResult<Productions, LabFailure>>;
   readonly quality: Accessor<Quality>;
 }
 
@@ -189,6 +196,8 @@ interface ReviewActions {
    * overtook is never shown over it.
    */
   readonly answered: (folder: ReviewFolder) => void;
+  /** A production moved forward: its ledger as the move left it, shown in place of the one read. */
+  readonly moved: (file: ProductionFile) => void;
   readonly quality: (quality: Quality) => void;
 }
 
@@ -223,6 +232,8 @@ interface ReviewMeta {
    * when it was written): a doc written again since is read afresh.
    */
   readonly text: (file: Written) => Loaded<string>;
+  /** A film's storyboard, read in the page alone (the server's render never waits on it). */
+  readonly board: (film: string) => Loaded<BoardFile>;
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
   /** The page's one client of the lab's API: what a read of its own (a feed) goes through. */
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
@@ -358,6 +369,12 @@ export const Root = (
   const filmsAtom = runtime
     .atom(OptionsApi.use((api) => api.films))
     .pipe(served('review.films', ReviewFilms));
+  // The productions' ledgers, read with the page; a move forward's answer stands over its own
+  // ledger until the next read (`moved`).
+  const productionsReadAtom = runtime
+    .atom(ReviewApi.use((api) => api.productions))
+    .pipe(served('review.productions', Productions));
+  const movedAtom = Atom.make<ReadonlyArray<ProductionFile>>([]);
   // A first read takes the server's cache; a refresh asks it to walk its roots again.
   const firstIndexAtom = runtime
     .atom(ReviewApi.use((api) => api.index(false)))
@@ -398,6 +415,11 @@ export const Root = (
   const projectAnsweredOf = Atom.family((_film: string) =>
     Atom.make(Option.none<ProjectView>()).pipe(Atom.keepAlive),
   );
+  const board = Atom.family((film: string) =>
+    runtime
+      .atom(ReviewApi.use((api) => api.board(film)))
+      .pipe(Atom.withServerValue(() => AsyncResult.initial<BoardFile, LabFailure>())),
+  );
   const servedAtAtom = Atom.make(Clock.currentTimeMillis).pipe(served(SERVED_AT, Schema.Finite));
 
   const address = addressOn(props.host);
@@ -429,6 +451,19 @@ export const Root = (
     const films = useAtomValue(() => filmsAtom);
     // A Refresh reads the films again too: a film added since is one from then on.
     const refreshFilms = useAtomRefresh(() => filmsAtom);
+    // Read through the served atom itself, so the client adopts the server's answer as it
+    // hydrates (a read derived from it would start empty and the page would not match).
+    const productionsRead = useAtomValue(() => productionsReadAtom);
+    const movedFiles = useAtomValue(() => movedAtom);
+    const productions = createMemo(() =>
+      AsyncResult.map(productionsRead(), (read) => ({
+        productions: read.productions
+          .filter((p) => !movedFiles().some((m) => m.production === p.production))
+          .concat(movedFiles()),
+      })),
+    );
+    const refreshProductions = useAtomRefresh(() => productionsReadAtom);
+    const setMoved = useAtomSet(() => movedAtom);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
     const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(PHONE)));
@@ -491,7 +526,7 @@ export const Root = (
         return made;
       });
     const value: ReviewContextValue = {
-      state: { place, index, films, quality },
+      state: { place, index, films, productions, quality },
       actions: {
         go: (next) => {
           address.go(hrefOf(next));
@@ -499,12 +534,19 @@ export const Root = (
         },
         refresh: () => {
           refreshFilms();
+          setMoved([]);
+          refreshProductions();
           indexOwner.again();
           // Every project the page has read is read again (now where it shows).
           for (const p of projects.values()) p.changed();
         },
         indexChanged: indexOwner.again,
         answered: indexOwner.answered,
+        moved: (file) =>
+          setMoved([
+            ...registry.get(movedAtom).filter((m) => m.production !== file.production),
+            file,
+          ]),
         quality: keepQuality,
       },
       meta: {
@@ -514,6 +556,7 @@ export const Root = (
         films: filmsAtom,
         project,
         text,
+        board,
         runtime,
         client: props.client,
         host: props.host,
@@ -614,7 +657,7 @@ const NAMED_VERSIONS = 9;
 
 /**
  * A set card's versions, by name, in its long-press menu: the
- * card shows its strip and its title, and Open version n · <label> opens
+ * card shows its strip and its title, and Open option n · <label> opens
  * the set at that version's sheet.
  */
 const versionCommands = (
@@ -636,15 +679,15 @@ const versionCommands = (
       );
     return {
       id: `review.open-version-${n}`,
-      label: `Open version ${n}`,
+      label: `Open option ${n}`,
       labelIn: (ctx) =>
         Option.match(version(ctx), {
-          onNone: () => `Open version ${n}`,
-          onSome: ({ version: v }) => `Open version ${n} · ${v.label}`,
+          onNone: () => `Open option ${n}`,
+          onSome: ({ version: v }) => `Open option ${n} · ${v.label}`,
         }),
       group: 'Open',
       about: ['Set'],
-      touch: `long-press a version stack, then Open version ${n}`,
+      touch: `long-press a stack, then Open option ${n}`,
       when: (ctx) => Option.isSome(version(ctx)),
       run: quietly((ctx) => {
         Option.map(version(ctx), ({ set, version: v }) =>
@@ -1073,10 +1116,10 @@ const SetBody = (
   onCleanup(
     meta.hub.commands.register({
       id: 'set.hear',
-      label: 'Hear this version',
+      label: 'Hear this option',
       group: 'Review',
       about: ['Version'],
-      touch: 'long-press a version, then Hear this version (or tap its speaker)',
+      touch: 'long-press an option, then Hear this option (or tap its speaker)',
       when: (ctx) => Option.isSome(versionHere(ctx)),
       run: quietly((ctx) =>
         Option.map(versionHere(ctx), (v) => sendSync(SyncEvent.HeardChosen({ id: v.version }))),
@@ -1097,7 +1140,7 @@ const SetBody = (
 };
 
 /**
- * One version stack's player, view and moments, for its page; a stack of one
+ * One stack's player, view and moments, for its page; a stack of one
  * has no side by side. Its player is the set's for as long as the page shows
  * it: a refreshed index moves `folder` and `set` under it, so it plays on
  * with its time, rate, version heard and the view's own state.

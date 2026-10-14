@@ -1,0 +1,146 @@
+{
+  "production": "look",
+  "title": "The look",
+  "blurb": "The house look every film is drawn in: the paper-cut knobs, K1, seven other styles, then K1-minimal (9005).",
+  "versions": [
+    {
+      "at": 1791820800000,
+      "title": "Paper-cut knobs"
+    },
+    {
+      "at": 1791892800000,
+      "title": "K1 paper-cut",
+      "because": "K1 picked after watching the Opening set: a thick outline with a light inner edge, warm ink, a hue per garment, the head a third"
+    },
+    {
+      "at": 1791936000000,
+      "title": "Seven other styles",
+      "because": "Try other 2D styles that are stylistic, attractive, expressive and minimal: seven prototypes, one in the Paper Mario line"
+    },
+    {
+      "at": 1791983340000,
+      "title": "Concept art, then K1-minimal",
+      "because": "The seed concept art is liked: can it be rendered and animated reliably?"
+    },
+    {
+      "at": 1791995400000,
+      "title": "9005: K1-minimal, plain",
+      "because": "9005 picked: one-shape heads with an inner edge, a flat beard, plain clothes, the crease, grain and cast shadows"
+    }
+  ],
+  "said": [
+    {
+      "_tag": "Noted",
+      "at": 1791867600000,
+      "text": "Open choices go ahead on the agents' recommendations, provisionally, as knobs",
+      "quote": "continue without solidifying the choices"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1791892740000,
+      "text": "K1 is the paper-cut look (A3 + B1 + C2 + D2)",
+      "quote": "i like k1",
+      "set": "choices-2026-10-13"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1791907200000,
+      "text": "The cast's hair often looks strange; the heads look stitched on",
+      "quote": "it just looks stitched on",
+      "set": "cast-2026-10-13"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1791936000000,
+      "text": "Prototype seven 2D styles; one in the Paper Mario line, the rest widely different",
+      "quote": "maybe prototype for another of 2d art style thats stylistic, attactive, expressive and minimal? use seeds to generate a number and then try - use max, lets go for 7 prototypes"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1791983340000,
+      "text": "Can the concept art be animated reliably? Make a K1 concept too, and render against it",
+      "quote": "i like a lot of the concept art that we had made with the seeds, but can we reliably animate that?"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1791993060000,
+      "text": "K1 minimal: the gripe with K1 was hair and ornaments; clothes plain but for distinguishing marks",
+      "quote": "minimal when it comes to k1 - my main gripe with k1 was hair and ornaments"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1791993300000,
+      "text": "Favourite seeds: 9002, 8880, 6176, 7831",
+      "set": "concepts-2026-10-14"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1791995340000,
+      "text": "9005 is the look",
+      "quote": "i like 9005",
+      "set": "concepts-2026-10-14"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1791997260000,
+      "text": "Mid-century Shapes and Riso are dropped",
+      "quote": "no need for mid century or riso"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792005960000,
+      "text": "Explore the One Line concept: give it the storyboard-to-render treatment",
+      "quote": "also lets try exploring the one line concept - i kinda like it, give it the storyboard -> render etc treatment"
+    }
+  ],
+  "filed": [
+    {
+      "set": "choices-2026-10-13",
+      "version": 1
+    },
+    {
+      "set": "shading-2026-10-13",
+      "version": 2
+    },
+    {
+      "set": "cast-2026-10-13",
+      "version": 2
+    },
+    {
+      "set": "ensembles-2026-10-13",
+      "version": 2
+    },
+    {
+      "set": "bible-cast-2026-10-13",
+      "version": 2
+    },
+    {
+      "set": "picks-2026-10-13",
+      "version": 2
+    },
+    {
+      "set": "heads-2026-10-13",
+      "version": 2
+    },
+    {
+      "set": "styles-preview-2026-10-13",
+      "version": 3
+    },
+    {
+      "set": "styles-2026-10-13",
+      "version": 3
+    },
+    {
+      "set": "k1-concept-2026-10-14",
+      "version": 4
+    },
+    {
+      "set": "concepts-2026-10-14",
+      "version": 4
+    },
+    {
+      "set": "seedanim-2026-10-14",
+      "version": 5
+    }
+  ]
+}

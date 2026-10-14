@@ -5,6 +5,6 @@ import { counted, plural } from './words.ts';
 
 test('a noun is plural but for one, none included', () => {
   expect([0, 1, 2].map((n) => counted(n, 'scene'))).toEqual(['0 scenes', '1 scene', '2 scenes']);
-  expect(plural(1, 'version stack')).toBe('version stack');
-  expect(plural(3, 'version stack')).toBe('version stacks');
+  expect(plural(1, 'stack')).toBe('stack');
+  expect(plural(3, 'stack')).toBe('stacks');
 });

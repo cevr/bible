@@ -1,4 +1,4 @@
-// Hear version n: on a version stack's page, `1`…`9` make one of the
+// Hear option n: on a stack's page, `1`…`9` make one of the
 // stack's first nine versions the one heard, as its card's speaker does, its
 // number the one its card shows. Each is offered while its version can be
 // heard (the view plays, a pair holds it) and is not the one heard already,
@@ -19,14 +19,14 @@ interface Hearing {
   readonly hear: (id: string) => void;
 }
 
-/** `Hear version n` for the stack's first nine versions, on `1`…`9`. */
+/** `Hear option n` for the stack's first nine options, on `1`…`9`. */
 export const hearVersionCommands = (hearing: Hearing): ReadonlyArray<Command> =>
   hearing.versions.slice(0, KEYED).map((version, i): Command => {
     const n = i + 1;
     return {
       id: `set.hear-${n}`,
-      label: `Hear version ${n}`,
-      labelIn: () => `Hear version ${n} · ${version.label}`,
+      label: `Hear option ${n}`,
+      labelIn: () => `Hear option ${n} · ${version.label}`,
       group: 'Review',
       keys: [String(n)],
       touch: 'tap its speaker',

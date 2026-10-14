@@ -1,6 +1,7 @@
 // The review's pages. Home lists every folder with something to review,
-// version stacks first. A folder shows its version stacks
-// (Versions), and whatever is in no stack: its videos (with captions when a
+// the productions first, then the films, then every folder no production
+// holds, stacks first. A folder shows its stacks
+// (Stacks), and whatever is in no stack: its videos (with captions when a
 // `.vtt` lies beside them), its sheets and stills (a lightbox), its docs
 // (markdown inline). A stack plays every version on one clock: all of them,
 // the first side by side with one other or wiped against it (a stack of two
@@ -10,6 +11,7 @@
 // and the comment box, said over the set's route.
 
 import { useAtomValue } from '@bible/atom-solid';
+import { unfiledOf } from '../../core/production.ts';
 import { Dialog } from '@bible/ui/dialog';
 import { Toggle } from '@bible/ui/toggle';
 import * as UrlAtom from '@bible/url-state/atom';
@@ -56,6 +58,7 @@ import {
   pageHref,
   reviewFileUrl,
   reviewFrameUrl,
+  reviewStillUrl,
 } from '../../core/api.ts';
 import type { LabFailure } from '../api.ts';
 import { pressed } from '../pressed.ts';
@@ -85,7 +88,7 @@ import {
   POSTER_W,
   staleText,
   sizeText,
-  versionsText,
+  optionsText,
   videoSource,
 } from './format.ts';
 import {
@@ -103,6 +106,7 @@ import {
 import { Loaded, useWrite, writeStatus } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
 import { ReviewPlace as Place, stillIn, withStill } from './place.ts';
+import { ProductionCards, producedFilms, useHistories } from './production.tsx';
 import { HearToggle, PlayedAlone, Transport, useClockMedia } from './player.tsx';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
@@ -135,11 +139,11 @@ const WithIndex = (props: { readonly children: (index: Accessor<ReviewIndex>) =>
   );
 };
 
-/** A strip of frames: one per video named, 10% in. */
+/** A strip of stills: one per file named, an image as it is, a video's frame 10% in. */
 const Strip = (props: { readonly refs: ReadonlyArray<string> }) => (
   <div class="rv-strip">
     <For each={props.refs.slice(0, STRIP)}>
-      {(ref) => <img loading="lazy" src={reviewFrameUrl(ref, Option.none(), THUMB_W)} alt="" />}
+      {(ref) => <img loading="lazy" src={reviewStillUrl(ref, THUMB_W)} alt="" />}
     </For>
   </div>
 );
@@ -239,13 +243,13 @@ const FilmState = (props: { readonly read: ProjectShown }) => {
  * switcher is the other way into a film; the page bar shows once one is
  * chosen.
  */
-const Films = (props: { readonly folders: ReadonlyArray<ReviewFolder> }) => {
-  const { state } = useReview();
-  const films = () =>
-    Option.getOrElse(
-      Option.map(AsyncResult.value(state.films()), (f) => f.films),
-      () => [],
-    );
+const Films = (props: {
+  readonly folders: ReadonlyArray<ReviewFolder>;
+  /** The films a production card shows instead (`producedFilms`): each film has one card. */
+  readonly produced: ReadonlyArray<string>;
+}) => {
+  const appFilms = useAppFilms();
+  const films = () => appFilms().filter((film) => !props.produced.includes(film));
   /** The folder a film's renders sit in: the one named for it (`isFilmsFolder`). */
   const folderOf = (film: string) =>
     Option.fromUndefinedOr(props.folders.find((f) => isFilmsFolder(f.ref, film)));
@@ -255,6 +259,39 @@ const Films = (props: { readonly folders: ReadonlyArray<ReviewFolder> }) => {
         <For each={films()}>{(film) => <FilmCard film={film} folder={folderOf(film)} />}</For>
       </div>
     </Section>
+  );
+};
+
+/** The app's films, as the review last read them (none until it has); call it where the component is set up. */
+const useAppFilms = (): Accessor<ReadonlyArray<string>> => {
+  const { state } = useReview();
+  return () =>
+    Option.getOrElse(
+      Option.map(AsyncResult.value(state.films()), (f) => f.films),
+      (): ReadonlyArray<string> => [],
+    );
+};
+
+/**
+ * What a film's production card carries of its Films card: the film's state
+ * (`FilmState`), and the ways into its studio (Scenes) and its Board.
+ */
+const FilmOnProduction = (props: { readonly film: string }) => {
+  // A production makes one film for its card's life: read once.
+  const film = untrack(() => props.film);
+  const read = untrack(() => useProject(film));
+  return (
+    <div class="rv-body" data-film={film}>
+      <FilmState read={read} />
+      <div class="rv-row">
+        <a class="sh-btn" data-act="studio" href={pageHref.scenes(film)}>
+          Studio
+        </a>
+        <a class="sh-btn" data-act="board" href={pageHref.board(film)}>
+          Board
+        </a>
+      </div>
+    </div>
   );
 };
 
@@ -297,16 +334,27 @@ const FilmCard = (props: {
   );
 };
 
-/** Every folder with something to review: version stacks first, then the rest (⌘K finds one by name). */
+/**
+ * The front door: the productions first (each a card that opens its
+ * timeline, `production.tsx`, a film's production carrying the film's state
+ * and ways in), then the films no production makes, then every folder no
+ * production holds: sets (stacks) first, then the rest (⌘K finds one by
+ * name). Each film has one card.
+ */
 export const Home = () => (
   <WithIndex>
     {(index) => {
-      const sets = createMemo(() => index().folders.filter((f) => f.sets.length > 0));
-      const rest = createMemo(() => index().folders.filter((f) => f.sets.length === 0));
+      const histories = useHistories();
+      const films = useAppFilms();
+      const produced = createMemo(() => producedFilms(histories(), films()));
+      const unfiled = createMemo(() => unfiledOf(histories(), index().folders));
+      const sets = createMemo(() => unfiled().filter((f) => f.sets.length > 0));
+      const rest = createMemo(() => unfiled().filter((f) => f.sets.length === 0));
       return (
         <>
-          <Films folders={index().folders} />
-          <Section title="Versions" count={sets().length}>
+          <ProductionCards histories={histories()} films={films()} filmPart={FilmOnProduction} />
+          <Films folders={index().folders} produced={produced()} />
+          <Section title="Sets" count={sets().length}>
             <div class="rv-grid">
               <For each={sets()}>{(folder) => <FolderCard folder={folder} />}</For>
             </div>
@@ -468,9 +516,9 @@ const LooseVideo = (props: {
 };
 
 /**
- * A version stack's card: its strip, its title, and how many versions when
+ * A stack's card: its strip, its title, and how many options when
  * there is more than one; their names are its long-press menu's
- * (Open version n).
+ * (Open option n).
  */
 const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoint }) => (
   <Target
@@ -482,7 +530,7 @@ const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoi
         <div class="rv-body">
           <b>{props.set.title}</b>
           <Show when={props.set.variants.length >= 2}>
-            <span class="sh-badge">{versionsText(props.set.variants.length)}</span>
+            <span class="sh-badge">{optionsText(props.set.variants.length)}</span>
           </Show>
         </div>
       </Go>
@@ -505,7 +553,7 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
       <Show when={Option.getOrUndefined(props.folder.blurb)}>
         {(blurb) => <div class="rv-note" data-review-blurb innerHTML={markdownHtml(blurb())} />}
       </Show>
-      <Section title="Versions" count={props.folder.sets.length}>
+      <Section title="Stacks" count={props.folder.sets.length}>
         <div class="rv-grid rv-wide">
           <For each={props.folder.sets}>{(set) => <SetCard folder={props.folder} set={set} />}</For>
         </div>
@@ -1622,7 +1670,7 @@ export const SetPage = (props: { readonly folder: string; readonly point: string
         {(folder) => (
           <Show
             when={folder().sets.find((s) => s.id === props.point)}
-            fallback={<Missing what="version stack" />}
+            fallback={<Missing what="stack" />}
           >
             {(point) => {
               // The folder is the page's: whether its film's sources judge it is fixed with it.

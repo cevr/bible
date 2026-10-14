@@ -11,6 +11,7 @@ import { Equal, type Layer, Match, Option } from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createMemo } from 'solid-js';
+import type { ProductionHistory } from '../../core/production.ts';
 import type { ReviewIndex } from '../../core/review.ts';
 import { Root, useReview } from './context.tsx';
 import { Inspecting } from './inspector.tsx';
@@ -19,6 +20,7 @@ import { ReviewPlace, placeOf } from './place.ts';
 import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, SetPage } from './section.tsx';
+import { PRODUCTION_CSS, ProductionPage, useHistories } from './production.tsx';
 import { COMMENTS_CSS } from './comments-style.ts';
 import { REVIEW_CSS } from './style.ts';
 import { type Part, pageAt } from '../../core/api.ts';
@@ -57,11 +59,23 @@ const setName = (index: Option.Option<ReviewIndex>, ref: string, point: string):
 const filmOfFolder = (ref: string, films: ReadonlyArray<string>): Option.Option<string> =>
   Option.fromUndefinedOr(films.find((film) => isFilmsFolder(ref, film)));
 
+/** The production named `production`, when the page knows it. */
+const historyNamed = (
+  histories: ReadonlyArray<ProductionHistory>,
+  production: string,
+): Option.Option<ProductionHistory> =>
+  Option.fromUndefinedOr(histories.find((h) => h.production === production));
+
 /** The film a place is about: a film's choices or project, or a set in that film's folder. */
-const filmOf = (place: ReviewPlace, films: ReadonlyArray<string>): Option.Option<string> =>
+const filmOf = (
+  place: ReviewPlace,
+  films: ReadonlyArray<string>,
+  histories: ReadonlyArray<ProductionHistory>,
+): Option.Option<string> =>
   Match.value(place).pipe(
     Match.tagsExhaustive({
       Home: () => Option.none<string>(),
+      Production: (p) => Option.flatMap(historyNamed(histories, p.production), (h) => h.film),
       Folder: (p) => filmOfFolder(p.folder, films),
       Set: (p) => filmOfFolder(p.folder, films),
       Film: (p) => Option.some(p.film),
@@ -71,7 +85,7 @@ const filmOf = (place: ReviewPlace, films: ReadonlyArray<string>): Option.Option
 
 /**
  * The part a folder and each set in it sit under: its film's Project when
- * the folder names one (Frame.io's version stack on its asset), Films otherwise.
+ * the folder names one (Frame.io's version stack on its asset; the lab says stack), Films otherwise.
  */
 const folderPart = (folder: string, films: ReadonlyArray<string>): Part =>
   Option.match(filmOfFolder(folder, films), {
@@ -84,6 +98,7 @@ const partOf = (place: ReviewPlace, films: ReadonlyArray<string>): Part =>
   Match.value(place).pipe(
     Match.tagsExhaustive({
       Home: (): Part => 'films',
+      Production: (): Part => 'films',
       Folder: (p) => folderPart(p.folder, films),
       Set: (p) => folderPart(p.folder, films),
       Film: (): Part => 'choices',
@@ -91,12 +106,23 @@ const partOf = (place: ReviewPlace, films: ReadonlyArray<string>): Part =>
     }),
   );
 
-/** A place's depth below its part, for the crumb and the tab's title: a folder, a set's versions. */
-const depthOf = (place: ReviewPlace, index: Option.Option<ReviewIndex>): Option.Option<string> =>
+/** A place's depth below its part, for the crumb and the tab's title: a folder, a set's stack. */
+const depthOf = (
+  place: ReviewPlace,
+  index: Option.Option<ReviewIndex>,
+  histories: ReadonlyArray<ProductionHistory>,
+): Option.Option<string> =>
   Match.value(place).pipe(
     Match.tags({
+      Production: (p) =>
+        Option.some(
+          Option.match(historyNamed(histories, p.production), {
+            onNone: () => p.production,
+            onSome: (h) => `${h.title} · timeline`,
+          }),
+        ),
       Folder: (p) => Option.some(folderName(index, p.folder)),
-      Set: (p) => Option.some(`${setName(index, p.folder, p.point)} · versions`),
+      Set: (p) => Option.some(`${setName(index, p.folder, p.point)} · stack`),
     }),
     Match.orElse(() => Option.none<string>()),
   );
@@ -114,8 +140,9 @@ const Shell = (props: { readonly children: JSX.Element }) => {
       (): ReadonlyArray<string> => [],
     );
   const index = () => AsyncResult.value(state.index());
-  const film = () => filmOf(state.place(), films());
-  const depth = () => depthOf(state.place(), index());
+  const histories = useHistories();
+  const film = () => filmOf(state.place(), films(), histories());
+  const depth = () => depthOf(state.place(), index(), histories());
   return (
     <PageShell
       part={() => partOf(state.place(), films())}
@@ -155,6 +182,7 @@ const Page = () => {
       {Match.value(page()).pipe(
         Match.tagsExhaustive({
           Home: () => <Home />,
+          Production: (p) => <ProductionPage production={p.production} v={p.v} />,
           Folder: (p) => <FolderPage folder={p.folder} />,
           Set: (p) => <SetPage folder={p.folder} point={p.point} />,
           Film: (p) => <FilmPage film={p.film} />,
@@ -190,7 +218,7 @@ const ReviewPage = (props: ReviewWith) => (
 export const REVIEW_PAGE = {
   bodyClass: 'rv',
   rootClass: 'rv-root',
-  style: `${SHELL_CSS}${REVIEW_CSS}${COMMENTS_CSS}${COMMAND_CSS}${SCENES_CSS}`,
+  style: `${SHELL_CSS}${REVIEW_CSS}${PRODUCTION_CSS}${COMMENTS_CSS}${COMMAND_CSS}${SCENES_CSS}`,
 };
 
 /**
