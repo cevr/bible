@@ -1,6 +1,6 @@
 // The axis property: every option of every art-direction axis
 // (`direction.ts`), one axis at a time with the others at K1, builds a valid
-// rig, passes the figure-parts tests, keeps both heads inside their
+// rig (with the Rive CLI: `build.test.ts`), passes the figure-parts tests, keeps both heads inside their
 // artboards (what `paintGl` copies), declares a face probe as tall as the
 // head it draws, and reaches every part its axis names. Every hand is one
 // closed circle, and every line the outline axis names is laid on every
@@ -26,9 +26,8 @@
 
 import { type Hex, ramp } from '@bible/film/canvas';
 import { type Style, isPattern, recorder, withDom } from '@bible/film/stand-in';
-import * as BunServices from '@effect/platform-bun/BunServices';
 import { describe, expect, test } from 'bun:test';
-import { Console, Effect, FileSystem, Predicate, Result } from 'effect';
+import { Predicate } from 'effect';
 import { GAVEL_REST } from '../../../righteousness-by-faith/court.ts';
 import { C } from '../../../righteousness-by-faith/kit.ts';
 import { type Ramp, hues, keyLight, ramps, robes, shading } from '../../palette.ts';
@@ -36,7 +35,6 @@ import type { CourtFrame } from '../../scenes/court.ts';
 import { type Props, paperProps } from '../cutpaper/court.ts';
 import { HAND as ACCUSED_HAND, accusedFace, accusedHead } from './accused-rig.ts';
 import { riveAccused } from './accused.ts';
-import { compile, rive } from './build.ts';
 import { DIRECTION, type Direction, K1, OPTIONS, inkOf, propsOf } from './direction.ts';
 import { figureRigs, figuresRml } from './figures.ts';
 import { HAND_ART, JUDGE_FACE, judgeFace } from './judge-rig.ts';
@@ -506,83 +504,6 @@ const auditOf = (board: Element, d: Direction): string[] => {
   return [...new Set(faults.map((f) => `${name}.${f}`))];
 };
 
-// ─── building with the Rive CLI ──────────────────────────────────────────────
-
-// Top-level await, deliberately: `test.skipIf` needs the boolean at module
-// evaluation. CI has no Rive CLI; there the builds skip and say so.
-// oxlint-disable-next-line effect/noAsyncFunction -- test.skipIf needs this at module-evaluation time
-const cli = await Effect.runPromise(
-  Effect.result(rive('rive --version', ['--version'])).pipe(Effect.provide(BunServices.layer)),
-);
-const noCli = Result.isFailure(cli);
-
-test('reports whether the Rive CLI is here, so a skipped build is never silent', () =>
-  Effect.runPromise(
-    Effect.gen(function* () {
-      if (noCli)
-        yield* Console.warn('[papercut] no Rive CLI (`rive`, or `RIVE`): option builds SKIPPED');
-      expect(Result.isSuccess(cli) || Result.isFailure(cli)).toBe(true);
-    }),
-  ));
-
-/** How to rebuild `figures.riv` when it is stale, and the CLI that built this one. */
-const REBUILD = {
-  run: 'cd apps/animations/src/films/cold-studies && bun looks/rive/build.ts',
-  cli: Result.isSuccess(cli) ? cli.success.trim() : 'none',
-};
-
-/** A project built as `build.ts` builds it, in a directory of its own: the riv, its warnings and problems. */
-const builtIn = (rml: string) =>
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const built = yield* compile(yield* fs.makeTempDirectoryScoped(), rml);
-    return {
-      riv: yield* fs.readFile(built.riv),
-      warnings: built.warnings,
-      problems: built.problems,
-    };
-  }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
-
-/** `rml` built, as an exit: a failed build fails only the cases that read it. */
-const begin = (rml: string) => Effect.runPromiseExit(builtIn(rml));
-
-/** Each distinct project's build, by its text: `DIRECTION` is K1, as is each option K1 is made of. */
-const builds = new Map<string, ReturnType<typeof begin>>();
-
-/** `rml`'s build, begun on the first ask and shared by every later one. */
-const buildOf = (rml: string) => {
-  const build = builds.get(rml) ?? begin(rml);
-  builds.set(rml, build);
-  return build;
-};
-
-/** `d`'s project, built. */
-const builtOf = (d: Direction) => Effect.flatten(Effect.promise(() => buildOf(figuresRml(d))));
-
-// Every build begins as the file loads, so the CLI's runs overlap instead of
-// queueing case by case.
-if (!noCli) for (const d of [DIRECTION, ...CASES.map(([, d]) => d)]) void buildOf(figuresRml(d));
-
-// The film reads `DIRECTION` (props, probes, gaze) beside the committed riv:
-// the two must be one build, or a pick without a rebuild pairs new props with
-// old figures. The compile is deterministic, so the bytes are the check.
-test.skipIf(noCli)(
-  'the committed figures.riv is the build of DIRECTION',
-  () =>
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const fresh = (yield* builtOf(DIRECTION)).riv;
-        const committed = yield* fs.readFile(`${import.meta.dir}/figures.riv`);
-        expect({ fresh: Buffer.from(committed).equals(Buffer.from(fresh)), ...REBUILD }).toEqual({
-          fresh: true,
-          ...REBUILD,
-        });
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
-    ),
-  30_000,
-);
-
 // ─── the property ────────────────────────────────────────────────────────────
 
 describe.each(CASES)('option %s', (_, d) => {
@@ -591,18 +512,6 @@ describe.each(CASES)('option %s', (_, d) => {
   const accused = board(rigs.accused);
   const judge = board(rigs.judge);
   const hand = board(rigs.hand);
-
-  test.skipIf(noCli)(
-    'builds with the Rive CLI with no warnings and no problems',
-    () =>
-      Effect.runPromise(
-        Effect.gen(function* () {
-          const { warnings, problems } = yield* builtOf(d);
-          expect({ warnings, problems }).toEqual({ warnings: [], problems: [] });
-        }),
-      ),
-    30_000,
-  );
 
   test('the project file has no thumbs and no mittens', () => {
     expect(figuresRml(d)).not.toMatch(/thumb|mitten/i);
