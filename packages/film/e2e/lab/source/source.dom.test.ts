@@ -1118,7 +1118,8 @@ describe('a line of the code', () => {
         `${MENU_ITEMS}.includes('notes.line') && ${MENU_ITEMS}.includes('link.copy')`,
         true,
       );
-      // The row the menu is on is marked under it, as the kit's rows are.
+      // The row the menu is on, and it alone, is marked under it, as the kit's rows are: the
+      // page's one menu serves every row, and only the row that opened it is open.
       yield* evaluates(
         page,
         `(() => {
@@ -1127,9 +1128,11 @@ describe('a line of the code', () => {
           document.body.append(probe);
           const raised = getComputedStyle(probe).backgroundColor;
           probe.remove();
-          return getComputedStyle(document.querySelector('.lab-source-line[data-line="${RISE_LINE}"]')).backgroundColor === raised;
+          return [...document.querySelectorAll('.lab-source-line')]
+            .filter((row) => getComputedStyle(row).backgroundColor === raised)
+            .map((row) => row.dataset.line);
         })()`,
-        true,
+        [String(RISE_LINE)],
       );
       yield* page.click('[data-role="context-menu"] [data-command="notes.line"]');
       yield* textIs(
