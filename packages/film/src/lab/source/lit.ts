@@ -132,11 +132,61 @@ const clockReads = (code: SceneCode, clock: CodeClock): ReadonlyArray<ClockRead>
 const fires = (read: ClockRead, t: number): boolean =>
   read.heard && t >= read.span.start && t < read.span.end;
 
-/** The read that began last first; of two that began together, the one written first. */
-const NEWEST = Order.combine(
-  Order.flip(Order.mapInput(Order.Number, (r: ClockRead) => r.span.start)),
-  Order.mapInput(Order.Number, (r: ClockRead) => r.at[0]),
+/** Where the view may follow to: a read of the clock or a cue's literal, where it is written, and when what it plays began. */
+interface Lead {
+  readonly at: CodeRange;
+  readonly start: number;
+  /** A read of the clock the frame made, not a literal. */
+  readonly read: boolean;
+}
+
+/** What began last first; of two that began together, a read before a literal, then the one written first. */
+const LATEST = Order.combine(
+  Order.combine(
+    Order.flip(Order.mapInput(Order.Number, (l: Lead) => l.start)),
+    Order.flip(Order.mapInput(Order.Boolean, (l: Lead) => l.read)),
+  ),
+  Order.mapInput(Order.Number, (l: Lead) => l.at[0]),
 );
+
+/**
+ * What the view follows at `clock`'s frame: of the reads the frame made that
+ * play over a stretch (a cue's read, a `spoken` read; a mark's instant is one
+ * frame and moves nothing) and the literals of the cues the code writes,
+ * whichever began last by the frame, playing or not (`LATEST`). So the view
+ * moves only as something begins: an end never takes it back to an older read
+ * still firing, and a still frame (a pause, a step, a link) is placed where
+ * the playing frame before it was. None before anything has begun.
+ */
+const leadOf = (
+  code: SceneCode,
+  clock: CodeClock,
+  reads: ReadonlyArray<ClockRead>,
+): Option.Option<CodeRange> =>
+  Option.map(
+    Arr.head(
+      Arr.sort(
+        [
+          ...reads
+            .filter((r) => r.heard && r.lasts && r.span.start <= clock.t)
+            .map((r): Lead => ({ at: r.at, start: r.span.start, read: true })),
+          ...code.cues.flatMap((c) =>
+            Option.toArray(
+              Option.map(
+                Option.filter(
+                  Option.fromUndefinedOr(clock.cues.get(c.name)),
+                  (cue) => cue.start <= clock.t,
+                ),
+                (cue): Lead => ({ at: c.at, start: cue.start, read: false }),
+              ),
+            ),
+          ),
+        ],
+        LATEST,
+      ),
+    ),
+    (l) => l.at,
+  );
 
 /** What the lab has picked or the frame read, besides what plays: the Source view lights these too. */
 export interface Picks {
@@ -167,8 +217,8 @@ export interface Lit {
   readonly names: ReadonlyArray<string>;
   /** Each line a read of the clock glows on, by its number, and how brightly: 1 while one fires, fading over `TRAIL` after. */
   readonly glows: ReadonlyMap<number, number>;
-  /** The firing read that plays over a stretch and began last (of two that began together, the one written first). */
-  readonly newest: Option.Option<CodeRange>;
+  /** The read the frame made, or the literal, that began last by the frame, playing or not: what the view follows (`leadOf`). */
+  readonly lead: Option.Option<CodeRange>;
 }
 
 /** Each code read's line starts, counted once however many frames, taps and links ask. */
@@ -283,15 +333,7 @@ export const litNow = (code: SceneCode, clock: CodeClock, picks: Picks = NO_PICK
     })),
     names: found.map(({ site }) => site.name),
     glows: glowsOn(code, reads, clock.t),
-    newest: Option.map(
-      Arr.head(
-        Arr.sort(
-          firing.filter((r) => r.lasts),
-          NEWEST,
-        ),
-      ),
-      (r) => r.at,
-    ),
+    lead: leadOf(code, clock, reads),
   };
 };
 
@@ -350,26 +392,18 @@ export const selectionAt = (code: SceneCode, line: number): Option.Option<LabSel
 };
 
 /**
- * The line the view follows to: where the firing read that began last is
- * written (of two that began together, the one written first; a mark's
- * instant, one frame long, never moves the view); else `stay`, the line a
- * read last fired on while the film plays, so between two reads the view
- * keeps to them and the trail fades in sight, never leaving for the
- * `timeline` and back; else where the first playing cue is written; else,
- * with nothing playing, where the selected cue or knob is written; else where
- * the first knob the frame read is written (or read). None when the code
- * lights nothing.
+ * The line the view follows to: where the read the frame made, or the
+ * literal, that began last by the frame is written (`Lit.lead`: of two that
+ * began together, a read before a literal, then the one written first), so
+ * the view moves only as something begins, and between reads and after them
+ * it keeps to the last, its trail fading in sight; else, before anything has
+ * begun, where the selected cue or knob is written; else where the first knob
+ * the frame read is written (or read). None when the code lights nothing.
  */
-export const followLine = (
-  code: SceneCode,
-  lit: Lit,
-  stay: Option.Option<number> = Option.none(),
-): Option.Option<number> => {
+export const followLine = (code: SceneCode, lit: Lit): Option.Option<number> => {
   const lineOfRange = (range: CodeRange) => lineAt(code, range[0]);
   return Option.firstSomeOf([
-    Option.map(lit.newest, lineOfRange),
-    stay,
-    Option.map(Arr.head(lit.literals), lineOfRange),
+    Option.map(lit.lead, lineOfRange),
     Option.map(Arr.head(lit.picked), lineOfRange),
     Option.map(Arr.head(lit.knobs), lineOfRange),
   ]);

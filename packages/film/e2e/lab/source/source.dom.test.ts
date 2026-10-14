@@ -1254,6 +1254,11 @@ describe('Follow', () => {
   const FOLLOW_BUTTON = '.lab-source-col [data-act="follow-source"]';
   /** A scroll to the box's end that no event but the scroll announces: what find-in-page or assistive tech does. */
   const HAND = `(() => { const box = document.querySelector('.lab-source-col .lab-source-scroll'); box.scrollTop = box.scrollHeight; })()`;
+  /** The column's box the code scrolls in. */
+  const COL_BOX = `document.querySelector('.lab-source-col .lab-source-scroll')`;
+  /** Whether line `n` of the column's code shows whole inside its box. */
+  const inBox = (n: number) =>
+    `(() => { const r = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]').getBoundingClientRect(); const b = ${COL_BOX}.getBoundingClientRect(); return r.top >= b.top && r.bottom <= b.bottom; })()`;
 
   it.live('a hand on the scroll suspends it; Follow takes it back', () =>
     Effect.gen(function* () {
@@ -1293,9 +1298,6 @@ describe('Follow', () => {
       Effect.gen(function* () {
         // The column, not a phone's sheet: a sheet is a dialog, whose focus takes its own keys
         // (`command/context.ts` focusOf), so `.` seeks only with the column's code focused.
-        const COL_BOX = `document.querySelector('.lab-source-col .lab-source-scroll')`;
-        const inBox = (n: number) =>
-          `(() => { const r = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]').getBoundingClientRect(); const b = ${COL_BOX}.getBoundingClientRect(); return r.top >= b.top && r.bottom <= b.bottom; })()`;
         const { page } = yield* openLab([readRoute], {
           href: labOne(0.05, { code: 'follow' }),
           viewport: short,
@@ -1321,6 +1323,30 @@ describe('Follow', () => {
         yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
       }).pipe(Effect.scoped),
   );
+
+  // A link, a pause or a step between the reads or after them stands where the playing frame stood: on the read that
+  // began last, a screen down, never the knob the frame reads at the top.
+  for (const [when, at, line] of [
+    ['between the reads', (span('rise').end + span('fall').start) / 2, READ_RISE_LINE],
+    [
+      'after them',
+      (span('fall').end + (one?.start ?? 0) + (one?.dur ?? 0)) / 2,
+      lineIn(READ_TEXT, "f.at('fall')"),
+    ],
+  ] as const) {
+    it.live(`a still frame ${when} stands on the read that began last, not the knobs`, () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([readRoute], {
+          href: labOne(at, { code: 'follow' }),
+          viewport: short,
+        });
+        yield* page.waitFor('.lab-source-col .lab-source-page');
+        yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
+        yield* evaluates(page, inBox(line), true);
+        yield* evaluates(page, inBox(READ_SPOT_LINE), false);
+      }).pipe(Effect.scoped),
+    );
+  }
 
   it.live('a held line is not following; Follow lets go of it', () =>
     Effect.gen(function* () {

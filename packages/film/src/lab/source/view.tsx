@@ -13,9 +13,10 @@
 // (`browser/highlights.ts`), so it stays selectable and copyable. A long line
 // wraps under its number, on a phone and on a laptop alike: one layout.
 //
-// Closed at rest; opened by `?code=follow` (the view scrolls to the read that
-// fires, the newest first, else to what plays, until a hand scrolls it; Play
-// or Follow takes it back) or `?code=<line>` (held there, until a hand
+// Closed at rest; opened by `?code=follow` (the view scrolls to the read the
+// frame made, or the cue's literal, that began last, so it moves only as
+// something begins, until a hand scrolls it; Play or Follow takes it back) or
+// `?code=<line>` (held there, until a hand
 // scrolls it; holding a line takes it back), by the lab's one Follow rule
 // (`lab/follow.ts`). A band over the code names the beat the frame is on and
 // the cues playing. A
@@ -56,7 +57,6 @@ import {
   type Picks,
   beatWords,
   followLine,
-  lineAt,
   litNow,
   liveWords,
   metersOn,
@@ -189,12 +189,6 @@ const Beat = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
   );
 };
 
-/** The line a read last fired on, in the code it is a line of: what the view keeps to while the film plays. */
-interface Kept {
-  readonly code: SceneCode;
-  readonly line: number;
-}
-
 /** The nearest ancestor of `el` that scrolls: the box a row moves in, in the column and in a sheet alike. */
 const scrollContainerOf = (el: HTMLElement): Option.Option<HTMLElement> =>
   Option.flatMap(Option.fromNullishOr(el.parentElement), (up) => {
@@ -255,28 +249,16 @@ const Text = (props: {
     ),
   );
 
-  // The line a read last fired on in this code while the film plays: the view keeps to it while nothing fires, so
-  // between two reads it never leaves them for the timeline and back, and the trail fades in sight. A frame drawn
-  // while the film stands still (a seek, a step, a link) lets it go: a still frame is placed on what it lights.
-  const kept = createMemo((was: Option.Option<Kept> = Option.none()): Option.Option<Kept> =>
-    Option.match(lit().newest, {
-      onSome: (range) => Option.some({ code: props.code, line: lineAt(props.code, range[0]) }),
-      onNone: () => Option.filter(was, (k) => k.code === props.code && meta.player.playing()),
-    }),
-  );
-  // The line the view looks at: the held line, else what plays while it follows. The projection is the line
-  // number as a key, so the memo settles on a still target (Option.some(n) is a new object every frame; n is not).
+  // The line the view looks at: the held line, else, while it follows, what began last by the frame (`followLine`),
+  // so it moves only as a read or a cue begins, and a pause, a step or a link stands where the playing frame stood.
+  // The projection is the line number as a key, so the memo settles on a still target (Option.some(n) is a new
+  // object every frame; n is not).
   const looking = createMemo(() =>
     Option.match(
       Option.orElse(source.held(), () =>
         Option.flatMap(
           Option.filter(Option.some(source.following()), (on) => on),
-          () =>
-            followLine(
-              props.code,
-              lit(),
-              Option.map(kept(), (k) => k.line),
-            ),
+          () => followLine(props.code, lit()),
         ),
       ),
       { onNone: () => '', onSome: String },

@@ -2,7 +2,7 @@
 // literals that write them by the clock; a read of the clock fires while the
 // frame read its name and the clock plays it, and its line glows while one
 // fires and fades after; a cue the code does not write lights nothing; the
-// view follows the newest read firing, and a tap seeks to a line's next.
+// view follows what began last, and a tap seeks to a line's next.
 
 import { Option } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
@@ -110,48 +110,80 @@ describe('what is lit at a frame', () => {
     expect(litNow(code, clockAt(1.5))).toEqual(a);
   });
 
-  test('the view follows to the read firing, else to the playing cue’s line, else to nothing', () => {
+  test('the view follows to the read that began last, else the literal; after them it keeps to the last', () => {
     expect(followLine(code, litNow(code, clockAt(1.5)))).toEqual(Option.some(6));
     const unread = { cues: new Set<string>(), marks: new Set<string>() };
     expect(followLine(code, litNow(code, clockAt(1.5, cues, SILENT, unread)))).toEqual(
       Option.some(4),
     );
-    expect(followLine(code, litNow(code, clockAt(5)))).toEqual(Option.none());
+    // Nothing plays at 5 s: a still frame there stands where the playing frame stood, on `fall`'s read.
+    expect(followLine(code, litNow(code, clockAt(5)))).toEqual(Option.some(6));
+    // Before anything has begun, nothing.
+    const late = new Map([['rise', cue(2, 1)]]);
+    expect(followLine(code, litNow(code, clockAt(1, late)))).toEqual(Option.none());
   });
 
-  test('with nothing playing it follows to the selection’s literal, else to a knob the frame read', () => {
+  test('before anything has begun it follows to the selection’s literal, else to a knob the frame read', () => {
     const withKnob: SceneCode = {
       ...code,
       knobs: [{ name: 'lift', at: range('lift = 1'), reads: [] }],
     };
-    const still = clockAt(5);
+    const late = new Map([
+      ['rise', cue(2, 1)],
+      ['fall', cue(3, 1)],
+    ]);
+    const before = clockAt(1, late);
     const read = { cue: Option.none(), knob: Option.none(), read: ['lift'] };
     // Nothing selected: the knob the frame read, on line 1.
-    expect(followLine(withKnob, litNow(withKnob, still, read))).toEqual(Option.some(1));
+    expect(followLine(withKnob, litNow(withKnob, before, read))).toEqual(Option.some(1));
     // The cue selected, on line 4, before the knob read.
     const fall = { ...read, cue: Option.some('fall') };
-    expect(followLine(withKnob, litNow(withKnob, still, fall))).toEqual(Option.some(4));
-    // What plays, read on line 6, before the selection.
-    expect(followLine(withKnob, litNow(withKnob, clockAt(0.5), fall))).toEqual(Option.some(6));
-  });
-
-  test('while the film plays, the line a read fired on last holds the view until another fires', () => {
-    const withKnob: SceneCode = {
-      ...code,
-      knobs: [{ name: 'lift', at: range('lift = 1'), reads: [] }],
-    };
-    const read = { cue: Option.some('fall'), knob: Option.none(), read: ['lift'] };
-    const unread = { cues: new Set<string>(), marks: new Set<string>() };
-    // Nothing fires: the line kept wins over the playing cue's literal, the selection and the knob read.
-    const quiet = litNow(withKnob, clockAt(1.5, cues, SILENT, unread), read);
-    expect(followLine(withKnob, quiet, Option.some(2))).toEqual(Option.some(2));
-    expect(followLine(withKnob, litNow(withKnob, clockAt(5), read), Option.some(2))).toEqual(
-      Option.some(2),
-    );
-    // A read firing wins over the line kept.
-    expect(followLine(withKnob, litNow(withKnob, clockAt(0.5), read), Option.some(2))).toEqual(
+    expect(followLine(withKnob, litNow(withKnob, before, fall))).toEqual(Option.some(4));
+    // What began, read on line 6, before the selection: while it plays and after it.
+    expect(followLine(withKnob, litNow(withKnob, clockAt(2.5, late), fall))).toEqual(
       Option.some(6),
     );
+    expect(followLine(withKnob, litNow(withKnob, clockAt(9, late), fall))).toEqual(Option.some(6));
+  });
+
+  test('the view moves only as something begins: an older read still firing never takes it back', () => {
+    // `hold` plays 0–3 s, read on line 5; `blip` 1–1.5 s, read two lines down.
+    const SPREAD = [
+      'timeline: {',
+      '  hold: { dur: 3 },',
+      '  blip: { dur: 0.5 },',
+      '}',
+      'f.at("hold");',
+      '// between',
+      'f.at("blip");',
+    ].join('\n');
+    const at = (needle: string): readonly [number, number] => {
+      const start = SPREAD.indexOf(needle);
+      return [start, start + needle.length];
+    };
+    const spread: SceneCode = {
+      ...code,
+      text: SPREAD,
+      cues: [
+        { name: 'hold', at: at('hold: { dur: 3 }'), reads: [at('f.at("hold")')] },
+        { name: 'blip', at: at('blip: { dur: 0.5 }'), reads: [at('f.at("blip")')] },
+      ],
+    };
+    const both = new Map([
+      ['hold', cue(0, 3)],
+      ['blip', cue(1, 0.5)],
+    ]);
+    const heard = { cues: new Set(['hold', 'blip']), marks: new Set<string>() };
+    const follow = (t: number) =>
+      followLine(spread, litNow(spread, clockAt(t, both, SILENT, heard)));
+    expect(follow(0.5)).toEqual(Option.some(5));
+    // `blip` begins: its read, not its literal written above it.
+    expect(follow(1.2)).toEqual(Option.some(7));
+    // `blip` has ended and `hold` still fires: the view keeps to `blip`'s line, its trail fading there.
+    expect(follow(2)).toEqual(Option.some(7));
+    // A frame stepped, a pause, a link after both: the same line.
+    expect(follow(2 + 1 / 30)).toEqual(Option.some(7));
+    expect(follow(5)).toEqual(Option.some(7));
   });
 
   test('the head names what plays; else why the code lights none; else that nothing plays', () => {
@@ -262,8 +294,9 @@ describe('a read of the clock fires, and its line glows', () => {
       ...voiced,
       marks: [{ name: 'take', reads: [inVoiced('f.mark("take")')], speaks: [] }],
     };
+    // `{take}`'s instant, on line 3, moves nothing: the view keeps to `rise`'s read.
     expect(followLine(instantOnly, litNow(instantOnly, clockAt(1.51, rise, VOICE)))).toEqual(
-      Option.none(),
+      Option.some(2),
     );
   });
 
@@ -282,7 +315,8 @@ describe('a read of the clock fires, and its line glows', () => {
     const at = (t: number) => litNow(backwards, clockAt(t, rise, VOICE));
     expect(at(1.51).reads).toEqual([inVoiced('f.spoken("take", "held")')]);
     expect(at(1.51).glows.get(5)).toBe(1);
-    expect(followLine(backwards, at(1.51))).toEqual(Option.none());
+    // An instant: the view keeps to `rise`'s read, on line 2.
+    expect(followLine(backwards, at(1.51))).toEqual(Option.some(2));
     // Where `{held}` is said nothing steps: the read is dark, its trail long gone.
     expect(at(2.51).reads).toEqual([]);
     expect(at(2.51).glows.has(5)).toBe(false);

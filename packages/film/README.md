@@ -1957,11 +1957,13 @@ the beat the frame is on (`cold · {job}`: the scene, and the mark its voice
 last said) and, at its right, the cues playing. A long line wraps under its own number, on a
 phone and on a laptop alike (one layout; the view never scrolls sideways). It
 is closed at rest and reads nothing: `?code=follow` opens it following the
-playhead (to the read firing that began last, a mark's one-frame instant
-aside; while the film plays and nothing fires, the line a read fired on last,
-so the view keeps to the reads and the trail fades in sight; else the first
-playing cue's literal; with nothing playing, the selected cue's or knob's;
-else a knob the frame read), `?code=<line>` holds a
+playhead (to the read the frame made, or the cue's literal, that began last
+by the frame, playing or not: of two that began together the read, then the
+one written first, and a mark's one-frame instant moves nothing; so the view
+moves only as something begins, never back to an older read still firing as
+a newer one ends, and a pause, a step or a link stands where the playing frame
+stood, the trail fading in sight; before anything has begun, the selected
+cue's or knob's literal, else a knob the frame read), `?code=<line>` holds a
 line (one past the file's end holds its last line, and that is the line lit
 and cited), and the inspector's `file:line` (from the
 small `…/scenes/<scene>/source` answer, which names each cue's and knob's `line`,
