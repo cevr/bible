@@ -35,6 +35,7 @@ bun run typecheck              # Type check all packages
 bun run fmt                    # Format code with oxfmt
 bun run gate                   # What CI runs: lint, format check, typecheck, build, tests
 bun run test:perf              # The CLI's performance budgets (local only; reads packages/core/data/bible.db)
+bun run test:budget            # The tests' 10 s budget: `bun run test` and each workspace's (local only)
 bun run --filter @bible/selah gate  # Native Swift gate on macOS
 bun run ci [<commit>]          # Wait for a commit's CI run on main and print its verdict
 ```
