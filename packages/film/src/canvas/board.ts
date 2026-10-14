@@ -126,3 +126,64 @@ export const paintUnboarded = (
     ctx.fillText(line, w * 0.12, h * 0.28 + i * h * 0.042);
   ctx.restore();
 };
+
+/** The colours a tag on the picture is drawn in: the picture's own ink on its shade (`--on-picture`, `--on-picture-shade`). */
+export interface TagInk {
+  readonly ink: string;
+  readonly shade: string;
+}
+
+/**
+ * A small tag at the top of the `w` × `h` frame, at its `side`, saying what
+ * the picture shows (a board panel and its try, the scene's own frame, the
+ * panel held to draw on): the picture never shows something unnamed.
+ */
+export const paintTag = (
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  text: string,
+  side: 'left' | 'right',
+  colours: TagInk,
+) => {
+  const size = Math.round(h * 0.026);
+  const pad = Math.round(size * 0.5);
+  const margin = Math.round(h * 0.025);
+  ctx.save();
+  ctx.font = `500 ${size}px ui-monospace, Menlo, monospace`;
+  ctx.textBaseline = 'middle';
+  const tw = ctx.measureText(text).width;
+  const bw = tw + pad * 2;
+  const bh = size + pad * 1.4;
+  const x = { left: margin, right: w - margin - bw }[side];
+  ctx.fillStyle = colours.shade;
+  ctx.beginPath();
+  ctx.roundRect(x, margin, bw, bh, Math.round(size * 0.3));
+  ctx.fill();
+  ctx.fillStyle = colours.ink;
+  ctx.fillText(text, x + pad, margin + bh / 2);
+  ctx.restore();
+};
+
+/**
+ * Compare: `image` over the frame's left half only, the scene's own frame
+ * showing through the right, a hairline of `ink` between them, so a panel
+ * and its scene sit side by side at one size and one place.
+ */
+export const paintHalf = (
+  ctx: CanvasRenderingContext2D,
+  image: CanvasImageSource & { readonly width: number; readonly height: number },
+  w: number,
+  h: number,
+  ink: string,
+) => {
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, w / 2, h);
+  ctx.clip();
+  paintImage(ctx, image, w, h);
+  ctx.restore();
+  ctx.fillStyle = ink;
+  ctx.fillRect(w / 2 - Math.max(1, h / 540), 0, Math.max(2, h / 270), h);
+};

@@ -13,8 +13,11 @@
 // scrolls under the picture and its track.
 
 import { For, Portal, Show, useHead } from '@solidjs/web';
-import { Array as Arr, Boolean as Bool, Equal, Option, Order, Predicate } from 'effect';
-import { createEffect, createMemo, createSignal } from 'solid-js';
+import { Array as Arr, Boolean as Bool, Option, Order, Predicate } from 'effect';
+import { createMemo, createSignal } from 'solid-js';
+import { Toggle } from '@bible/ui/toggle';
+import { ToggleGroup } from '@bible/ui/toggle-group';
+import { useFollow } from '../follow.ts';
 import { BOARD_VIEWS, type BoardView, stillUrl } from '../../core/api.ts';
 import {
   type BoardFile,
@@ -74,6 +77,50 @@ const setSaid = (t: PanelText, at: string): string => {
 const triesSaid = (n: number): string =>
   Bool.match(n === 1, { onTrue: () => '1 try', onFalse: () => `${n} tries` });
 
+/** How a try was made, said on its label: drawn from the board's prompt, imported, or a note's tweak. */
+const madeSaid = (t: { readonly made: string; readonly note?: string }): string => {
+  if (t.made === 'tweak')
+    return Option.match(Option.fromUndefinedOr(t.note), {
+      onNone: () => 'tweak',
+      onSome: (n) => `tweak ${n}`,
+    });
+  if (t.made === 'import') return 'imported';
+  return 'drawn';
+};
+
+/** A brief with each backticked name (a mark, a cue) set as a mark chip, as the line's are. */
+const Brief = (props: { readonly text: string }) => (
+  <p class="lab-board-brief">
+    <For each={props.text.split('`')}>
+      {(part, i) => (
+        <Show when={i() % 2 === 1} fallback={part}>
+          <span class="lab-board-mark">{part}</span>
+        </Show>
+      )}
+    </For>
+  </p>
+);
+
+/** The words beat `beat` says while panel `at` holds: from its mark to the mark of the panel after (`until`). */
+const wordsFrom = (beat: BoardBeat, at: string, until: Option.Option<string>): string => {
+  const index = (mark: string): number => {
+    if (mark === 'start') return 0;
+    return Option.getOrElse(
+      Option.liftPredicate(
+        beat.line.findIndex((w) => w.marks.includes(mark)),
+        (i) => i >= 0,
+      ),
+      () => beat.line.length,
+    );
+  };
+  const from = index(at);
+  const to = Option.match(until, { onNone: () => beat.line.length, onSome: index });
+  return beat.line
+    .slice(from, Math.max(from, to))
+    .map((w) => w.text)
+    .join(' ');
+};
+
 /** The board as read, when it is. */
 const useRead = () => {
   const board = useBoard();
@@ -87,7 +134,7 @@ const useRead = () => {
 };
 
 /** The column's head: how many beats and panels the film has, and how many beats are approved. */
-const Head = () => {
+const Head = (props: { readonly following: boolean; readonly follow: () => void }) => {
   const board = useBoard();
   const read = useRead();
   const said = () =>
@@ -103,6 +150,16 @@ const Head = () => {
   return (
     <header class="lab-board-head">
       <span class="lab-board-count lab-clamp">{said()}</span>
+      <button
+        type="button"
+        class="sh-btn lab-board-follow"
+        data-act="follow-board"
+        aria-pressed={pressed(props.following)}
+        title="Scroll with the frame"
+        onClick={() => props.follow()}
+      >
+        Follow
+      </button>
     </header>
   );
 };
@@ -178,8 +235,22 @@ const Thumb = (props: { readonly panel: BoardPanel; readonly file: Option.Option
 };
 
 /** One of a beat's panels, as a press that picks it. */
-export const PanelChip = (props: { readonly beat: BoardBeat; readonly panel: BoardPanel }) => {
+export const PanelChip = (props: {
+  readonly beat: BoardBeat;
+  readonly panel: BoardPanel;
+  /** The mark of the panel after it in its beat: where its words stop. */
+  readonly until: Option.Option<string>;
+}) => {
   const board = useBoard();
+  const { state: lab } = useLab();
+  const words = () => wordsFrom(props.beat, props.panel.at, props.until);
+  const live = () =>
+    Option.exists(
+      board.state.shot(),
+      (s) => s._tag === 'Boarded' && s.panel.id === props.panel.id,
+    ) &&
+    lab.T() >= props.beat.start &&
+    lab.T() < props.beat.end;
   const picked = () => Option.exists(board.state.picked(), (p) => p.panel.id === props.panel.id);
   const notes = () => board.state.notesOf(props.panel.id).filter((n) => n.status !== 'resolved');
   return (
@@ -187,6 +258,7 @@ export const PanelChip = (props: { readonly beat: BoardBeat; readonly panel: Boa
       type="button"
       class="lab-board-panel"
       data-panel={props.panel.id}
+      data-live={pressed(live())}
       aria-current={pressed(picked())}
       onClick={() =>
         board.actions.pick(
@@ -196,6 +268,9 @@ export const PanelChip = (props: { readonly beat: BoardBeat; readonly panel: Boa
       }
     >
       <Thumb panel={props.panel} file={Option.map(shownTry(props.panel), (t) => t.file)} />
+      <Show when={words() !== ''}>
+        <span class="lab-board-panel-words">{words()}</span>
+      </Show>
       <span class="lab-board-panel-label">
         <span class="lab-board-panel-at">{props.panel.at}</span>
         <Timecode
@@ -210,7 +285,7 @@ export const PanelChip = (props: { readonly beat: BoardBeat; readonly panel: Boa
         </Show>
         <Show when={Predicate.isNotUndefined(props.panel.kept)}>
           <span class="sh-badge" data-state="approved">
-            kept {props.panel.kept}
+            try {props.panel.kept} kept
           </span>
         </Show>
         <Show when={notes().length > 0}>
@@ -227,20 +302,22 @@ export const PanelChip = (props: { readonly beat: BoardBeat; readonly panel: Boa
 const Views = () => {
   const board = useBoard();
   return (
-    <div class="lab-board-views" role="group" aria-label="Show the panel">
+    <ToggleGroup<BoardView>
+      class="sh-seg lab-board-views"
+      aria-label="Show the panel"
+      value={[board.state.view()]}
+      onValueChange={(pressedViews) => {
+        Option.map(Arr.head(pressedViews), (v) => board.actions.show(v));
+      }}
+    >
       <For each={BOARD_VIEWS}>
         {(v) => (
-          <button
-            type="button"
-            class="sh-btn"
-            aria-pressed={pressed(board.state.view() === v)}
-            onClick={() => board.actions.show(v)}
-          >
+          <Toggle<BoardView> value={v} data-view={v}>
             {VIEW_NAME[v]}
-          </button>
+          </Toggle>
         )}
       </For>
-    </div>
+    </ToggleGroup>
   );
 };
 
@@ -277,7 +354,7 @@ export const Tries = (props: { readonly picked: PickedPanel }) => {
                     height="90"
                   />
                   <span class="lab-board-try-label">
-                    {`try ${t.n} · ${t.made}`}
+                    {`try ${t.n} · ${madeSaid(t)}`}
                     <Show when={props.picked.panel.kept === t.n}>
                       <span class="sh-badge" data-state="approved">
                         kept
@@ -313,7 +390,10 @@ export const Tries = (props: { readonly picked: PickedPanel }) => {
                   class="sh-btn"
                   disabled={props.picked.panel.kept === n() && why() === ''}
                 >
-                  {`Keep try ${n()}`}
+                  {Bool.match(props.picked.panel.kept === n() && why() === '', {
+                    onTrue: () => 'Kept',
+                    onFalse: () => `Keep try ${n()}`,
+                  })}
                 </button>
               </form>
             )}
@@ -410,9 +490,7 @@ const PanelNote = (props: { readonly note: Note }) => {
           {props.note.id}
         </span>
         <Show when={props.note.panel?.ask === 'tweak'}>
-          <span class="sh-badge" data-state="warning">
-            tweak
-          </span>
+          <span class="sh-badge">tweak</span>
         </Show>
         <span class="lab-board-noted-text">{props.note.text}</span>
       </button>
@@ -474,23 +552,11 @@ const Opened = (props: { readonly picked: PickedPanel }) => {
         </button>
       </header>
       <Show when={board.state.view() === 'compare'}>
-        <figure class="lab-board-beside">
-          <Show
-            when={Option.getOrUndefined(props.picked.tried)}
-            fallback={
-              <figcaption>
-                The card is the frame: the picture shows the scene at its mark.
-              </figcaption>
-            }
-          >
-            {(t) => (
-              <img src={board.meta.url(t().file)} alt={`${props.picked.panel.id}, try ${t().n}`} />
-            )}
-          </Show>
-          <figcaption>
-            Board, beside the scene's own frame at {`{${props.picked.panel.at}}`} on the picture.
-          </figcaption>
-        </figure>
+        <p class="lab-board-beside">
+          On the picture, the board's panel on the left and the scene's own frame on the right, at{' '}
+          <span class="lab-board-mark">{props.picked.panel.at}</span>; anywhere else it plays the
+          animatic.
+        </p>
       </Show>
       <Show when={board.state.view() === 'draw'}>
         <Sketch.Toolbar />
@@ -520,8 +586,15 @@ export const Beat = (props: { readonly beat: BoardBeat }) => {
   const approval = () => Option.map(read(), (b) => approvalOf(b, props.beat.id));
   const live = () => lab.T() >= props.beat.start && lab.T() < props.beat.end;
   const opened = () => Option.filter(board.state.picked(), (p) => p.beat.id === props.beat.id);
+  // The brief in full and the line: behind a press, since each panel carries its own words.
+  const [more, setMore] = createSignal(false, { ownedWrite: true });
   return (
-    <article class="lab-board-beat" data-scene={props.beat.id} data-live={pressed(live())}>
+    <article
+      class="lab-board-beat"
+      data-scene={props.beat.id}
+      data-live={pressed(live())}
+      data-more={pressed(more())}
+    >
       <header class="lab-board-beat-head">
         <button
           type="button"
@@ -534,9 +607,13 @@ export const Beat = (props: { readonly beat: BoardBeat }) => {
         <Show when={Option.getOrUndefined(approval())}>
           {(a) => (
             <>
-              <span class="sh-badge" data-state={Option.getOrUndefined(approvalBadge(a()))}>
-                {APPROVAL[a()]}
-              </span>
+              <Show when={Option.getOrUndefined(approvalBadge(a()))}>
+                {(state) => (
+                  <span class="sh-badge" data-state={state()}>
+                    {APPROVAL[a()]}
+                  </span>
+                )}
+              </Show>
               <Show
                 when={a() === 'approved'}
                 fallback={
@@ -562,12 +639,6 @@ export const Beat = (props: { readonly beat: BoardBeat }) => {
           )}
         </Show>
       </header>
-      <Show when={Option.getOrUndefined(board.state.brief(props.beat.id))}>
-        {(brief) => <p class="lab-board-brief">{brief()}</p>}
-      </Show>
-      <Show when={props.beat.line.length > 0}>
-        <Line beat={props.beat} />
-      </Show>
       <Show
         when={panels().length > 0}
         fallback={
@@ -577,9 +648,33 @@ export const Beat = (props: { readonly beat: BoardBeat }) => {
         }
       >
         <div class="lab-board-panels">
-          <For each={panels()}>{(panel) => <PanelChip beat={props.beat} panel={panel} />}</For>
+          <For each={panels()}>
+            {(panel, i) => (
+              <PanelChip
+                beat={props.beat}
+                panel={panel}
+                until={Option.map(Arr.get(panels(), i() + 1), (next) => next.at)}
+              />
+            )}
+          </For>
         </div>
       </Show>
+      <Show when={Option.getOrUndefined(board.state.brief(props.beat.id))}>
+        {(brief) => <Brief text={brief()} />}
+      </Show>
+      <Show when={props.beat.line.length > 0}>
+        <Line beat={props.beat} />
+      </Show>
+      <button
+        type="button"
+        class="sh-btn lab-board-more"
+        aria-expanded={pressed(more())}
+        onClick={() => {
+          setMore((m) => !m);
+        }}
+      >
+        {Bool.match(more(), { onTrue: () => 'Less', onFalse: () => 'Brief and line' })}
+      </button>
       <Show when={Option.getOrUndefined(opened())}>{(p) => <Opened picked={p()} />}</Show>
     </article>
   );
@@ -607,48 +702,74 @@ export const Canvas = () => {
 export const Column = () => {
   useHead({ tag: 'style', props: { 'data-part-style': 'board', children: BOARD_CSS } });
   const board = useBoard();
-  const { state: lab, meta } = useLab();
-  // Follow: while the animatic plays, the playhead's beat stays in sight.
+  const { state: lab } = useLab();
+  // Follow: the beat under the frame stays in sight, until a reader scrolls the column; Play or Follow takes it back.
   let scroll = Option.none<HTMLDivElement>();
-  const following = createMemo(
-    () => {
-      const T = lab.T();
-      return Option.filter(
-        Option.map(
-          Arr.findFirst(board.state.beats, (b) => T >= b.start && T < b.end),
-          (b) => b.id,
-        ),
-        () => meta.player.playing(),
-      );
-    },
-    { equals: Equal.equals },
+  let beats = Option.none<HTMLDivElement>();
+  const [following, setFollowing] = createSignal(true, { ownedWrite: true });
+  const looking = createMemo(() => {
+    const T = lab.T();
+    return Option.match(
+      Arr.findFirst(board.state.beats, (b) => T >= b.start && T < b.end),
+      {
+        onNone: () => '',
+        onSome: (b) => `b:${b.id}`,
+      },
+    );
+  });
+  // The panel picked, by a tap or by the address: its box is brought into sight as it opens.
+  const opened = createMemo(() =>
+    Option.match(board.state.picked(), {
+      onNone: () => '',
+      onSome: (p) => `o:${p.panel.id}`,
+    }),
   );
-  // The panel picked, by a tap or by the address, is opened in sight.
-  const opened = createMemo(() => Option.map(board.state.picked(), (p) => p.panel.id), {
-    equals: Equal.equals,
-  });
-  createEffect(opened, (id) => {
-    Option.map(
-      Option.flatMap(id, () =>
-        Option.flatMap(scroll, (s) => Option.fromNullishOr(s.querySelector('.lab-board-open'))),
-      ),
-      (el) => el.scrollIntoView({ block: 'nearest' }),
+  const found = (selector: string) =>
+    Option.flatMap(beats, (root) =>
+      Option.fromNullishOr(root.querySelector<HTMLElement>(selector)),
     );
-  });
-  createEffect(following, (beat) => {
-    Option.map(
-      Option.flatMap(beat, (id) =>
-        Option.flatMap(scroll, (s) =>
-          Option.fromNullishOr(s.querySelector(`[data-scene="${CSS.escape(id)}"]`)),
+  useFollow({
+    box: () => scroll,
+    content: () => beats,
+    target: looking,
+    opened,
+    // Asked as Follow places, outside any tracking scope: a beat is its article, an opened panel its chip down to its box.
+    span: (key) =>
+      Option.orElse(
+        Option.flatMap(
+          Option.liftPredicate(key, (k) => k.startsWith('o:')),
+          (k) =>
+            Option.zipWith(
+              found(`[data-panel="${CSS.escape(k.slice(2))}"]`),
+              found('.lab-board-open'),
+              (first, last) => ({ first, last }),
+            ),
         ),
+        () =>
+          Option.map(
+            Option.flatMap(
+              Option.liftPredicate(key, (k) => k.startsWith('b:')),
+              (k) => found(`[data-scene="${CSS.escape(k.slice(2))}"]`),
+            ),
+            (row) => ({ first: row, last: row }),
+          ),
       ),
-      (el) => el.scrollIntoView({ block: 'nearest' }),
-    );
+    // Clear of the beat's head, which sticks to the column's top.
+    clear: () => ({
+      top: Option.match(found('.lab-board-beat-head'), {
+        onNone: () => 0,
+        onSome: (head) => head.offsetHeight,
+      }),
+      bottom: 0,
+    }),
+    placing: following,
+    reader: () => setFollowing(false),
+    played: () => setFollowing(true),
   });
   return (
     <Portal mount={document.body}>
       <section class="lab-board" data-role="board" aria-label="Board">
-        <Head />
+        <Head following={following()} follow={() => setFollowing(true)} />
         <Status />
         <div
           class="lab-board-scroll"
@@ -659,7 +780,14 @@ export const Column = () => {
             scroll = Option.some(el);
           }}
         >
-          <For each={board.state.beats}>{(beat) => <Beat beat={beat} />}</For>
+          <div
+            class="lab-board-beats"
+            ref={(el) => {
+              beats = Option.some(el);
+            }}
+          >
+            <For each={board.state.beats}>{(beat) => <Beat beat={beat} />}</For>
+          </div>
         </div>
       </section>
     </Portal>

@@ -544,9 +544,9 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'Board, the beats and their panels',
       open: boardOpen,
       disclose: AT_REST,
-      // A beat's id and start, its approval and Approve, its brief, its line with a chip at each
-      // mark, and a thumb for each panel (its mark, its time, its tries, its kept try).
-      budget: most(33, 50),
+      // Follow; a beat's id and start, its Approve, its brief (its marks as chips) and Brief and
+      // line, and a thumb for each panel (its words, its mark, its time, its tries, its kept try).
+      budget: most(29, 47),
     },
     {
       name: 'Board, a panel picked: its tries, Keep and the composer',

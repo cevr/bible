@@ -38,16 +38,23 @@ export const BOARD_CSS = `${BOARD_TOKENS}
   border-bottom: var(--border); }
 /* The beat under the frame: its edge in the playing ink, as the Script's. */
 .lab-board-beat[data-live='true'] { box-shadow: inset 2px 0 var(--state-live); }
-.lab-board-beat-head { display: flex; align-items: center; flex-wrap: wrap; gap: 0 var(--s-2);
-  font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-3); }
+.lab-board-beat-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; flex-wrap: wrap;
+  gap: 0 var(--s-2); background: var(--surface-1); font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-3); }
 .lab-board-id { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--hit); padding: 0; border: 0;
-  background: none; font: inherit; color: var(--text-2); cursor: pointer; }
+  background: none; font: inherit; font-size: var(--fs-3); line-height: var(--lh-3); font-weight: var(--w-3);
+  color: var(--text-2); cursor: pointer; }
 .lab-board-beat[data-live='true'] .lab-board-id { color: var(--text-1); }
 @media (hover: hover) { .lab-board-id:hover { color: var(--text-1); } }
 .lab-board-at { color: var(--text-3); }
 .sh-timecode.lab-board-at .sh-ff { color: inherit; }
 .lab-board-approve { margin-inline-start: auto; min-height: var(--hit); }
-.lab-board-brief { margin: 0; color: var(--text-2); }
+/* The brief and the line: two lines of the brief at rest, the rest and the line behind More (the panels carry the words). */
+.lab-board-brief { margin: 0; color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
+.lab-board-beat:not([data-more='true']) .lab-board-brief { display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; overflow: clip; }
+.lab-board-beat:not([data-more='true']) .lab-board-line { display: none; }
+.lab-board-more { align-self: flex-start; min-height: var(--hit); }
+.lab-board-brief .lab-board-mark { vertical-align: baseline; }
 .lab-board-line { margin: 0; font-size: var(--fs-read); line-height: var(--lh-read); color: var(--text-1); }
 /* A mark: a chip before the word it is said at, as the Script's (its panel is held from there). */
 .lab-board-mark { margin-inline-end: var(--s-1); padding: 0 var(--s-1); border-radius: var(--r-1);
@@ -61,6 +68,11 @@ export const BOARD_CSS = `${BOARD_TOKENS}
   border: var(--border); border-radius: var(--r-2); background: var(--surface-2); font: inherit; color: var(--text-2);
   text-align: start; cursor: pointer; touch-action: manipulation; }
 .lab-board-panel[aria-current='true'] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+/* The panel under the frame: its edge in the playing ink, as its beat's. */
+.lab-board-panel[data-live='true']:not([aria-current='true']) { box-shadow: inset 0 0 0 2px var(--state-live); }
+/* A panel's words: what the narrator says while it holds, from its mark to the next panel's. */
+.lab-board-panel-words { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: clip;
+  color: var(--text-1); font-size: var(--fs-2); line-height: var(--lh-2); }
 @media (hover: hover) { .lab-board-panel:not([aria-current='true']):hover { background: var(--surface-3); } }
 .lab-board-thumb { display: flex; align-items: center; justify-content: center; width: 100%; height: auto;
   aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); background: var(--surface-3);
@@ -78,16 +90,18 @@ export const BOARD_CSS = `${BOARD_TOKENS}
 /* The panel picked, open under its beat: a raised box, as the Script's ties. */
 .lab-board-open { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-2) var(--s-3) var(--s-3);
   border: var(--border); border-radius: var(--r-2); background: var(--surface-2); }
-.lab-board-open-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2); }
-.lab-board-open-id { color: var(--text-1); font-weight: var(--w-2); }
-.lab-board-views { display: flex; gap: var(--s-1); }
-.lab-board-views > .sh-btn, .lab-board-close { min-height: var(--hit); }
-.lab-board-close { margin-inline-start: auto; }
-.lab-board-beside { display: flex; flex-direction: column; gap: var(--s-1); margin: 0; }
-.lab-board-beside img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); }
-.lab-board-beside figcaption, .lab-board-why, .lab-board-set, .lab-board-drawn, .lab-board-asked {
+.lab-board-open-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s-2); }
+.lab-board-open-id { min-width: 0; color: var(--text-1); font-weight: var(--w-2); }
+.lab-board-views { grid-column: 1 / -1; }
+.lab-board-follow { flex: none; min-height: var(--hit); }
+.lab-board-close { grid-column: 2; grid-row: 1; min-height: var(--hit); }
+.lab-board-beside .lab-board-mark { margin-inline-end: 0; vertical-align: baseline; }
+.lab-board-beside, .lab-board-why, .lab-board-set, .lab-board-drawn, .lab-board-asked {
   margin: 0; color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
 .lab-board-asked:empty { display: none; }
+.lab-board-asked code { white-space: nowrap; font: inherit; color: var(--text-1); }
+/* The line is the column's: the transport does not repeat it, as on the Script. */
+body.lab:has(.lab-board) .bar > .row .say { visibility: hidden; }
 .lab-board-tries { display: flex; flex-direction: column; gap: var(--s-2); }
 .lab-board-tries-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--board-thumb-w), 100%), 1fr));
   gap: var(--s-2); }
@@ -108,7 +122,7 @@ export const BOARD_CSS = `${BOARD_TOKENS}
 .lab-board-actions > .sh-btn { min-height: var(--hit); }
 .lab-board-notes-list { display: flex; flex-direction: column; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
 .lab-board-noted { display: flex; flex-direction: column; gap: var(--s-2); }
-.lab-board-noted-head { display: flex; align-items: center; gap: var(--s-2); min-height: var(--hit); padding: 0; border: 0;
+.lab-board-noted-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--s-2); min-height: var(--hit); padding: 0; border: 0;
   background: none; font: inherit; color: var(--text-2); text-align: start; cursor: pointer; }
 .lab-board-noted[aria-current='true'] .lab-board-noted-head { color: var(--text-1); }
 .lab-board-noted-text { flex: 1; min-width: 0; }
@@ -120,13 +134,14 @@ export const BOARD_CSS = `${BOARD_TOKENS}
 .lab-sketch-tool, .lab-sketch-ink { display: inline-flex; align-items: center; justify-content: center; padding: 0; }
 .lab-sketch-glyph { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round;
   stroke-linejoin: round; }
-.lab-sketch-swatch { width: 14px; height: 14px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 1px var(--line-strong); }
+.lab-sketch-swatch { width: 14px; height: 14px; border-radius: 50%; background: var(--ink);
+  box-shadow: 0 0 0 1px var(--surface-0), 0 0 0 2px var(--text-2); }
 /* The surface over the picture: its catch takes every pointer, a finger draws and never scrolls or zooms. */
 .lab-overlay:has(.lab-sketch) { touch-action: none; }
 .lab-overlay .lab-sketch-catch { fill: transparent; stroke: none; pointer-events: all; touch-action: none; }
 .lab-sketch[data-tool='select'] .lab-sketch-catch { cursor: default; }
 .lab-sketch[data-tool='text'] .lab-sketch-catch { cursor: text; }
-.lab-overlay .lab-sketch-items { pointer-events: none; }
+.lab-overlay .lab-sketch-items { pointer-events: none; filter: drop-shadow(0 0 1px var(--on-picture-shade)); }
 .lab-overlay .lab-sketch-item { stroke-linecap: round; stroke-linejoin: round; vector-effect: none; }
 .lab-overlay .lab-sketch-item[data-selected='true'], .lab-overlay .lab-sketch-text[data-selected='true'] {
   filter: drop-shadow(0 0 3px var(--accent)); }
@@ -142,6 +157,10 @@ export const BOARD_CSS = `${BOARD_TOKENS}
 @media ${WIDE} {
   body.lab:has(.lab-board) { grid-template-columns: minmax(0, 1fr) var(--board-w); }
   .lab-board { grid-column: 2; grid-row: 2 / span 2; overflow: hidden; border-left: var(--border); }
+  /* In the panel's box the toolbar stays at the column's foot while the box scrolls to the composer. On a phone the
+     column is too short to give its foot to three rows of tools, so the toolbar keeps its place under the views. */
+  .lab-board-open .lab-sketch-bar { position: sticky; bottom: 0; z-index: 1; padding-block: var(--s-1);
+    background: var(--surface-2); }
 }
 @media ${PHONE} {
   body.lab:has(.lab-board) { height: 100dvh; min-height: 0; grid-template-rows: auto auto auto minmax(0, 1fr); }

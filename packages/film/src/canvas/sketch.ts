@@ -14,14 +14,14 @@ import { type SketchInk, TEXT_SHARE, type SketchItem, type View } from '../core/
 export const INK_COLOUR: Readonly<Record<SketchInk, string>> = {
   ink: '#1d1f22',
   red: '#d4332a',
-  gold: '#e0a526',
+  gold: '#9a6a00',
 };
 
 /** A line's width, as a share of the panel's height. */
-const LINE_SHARE = 0.006;
+const LINE_SHARE = 0.01;
 
 /** A pen stroke's width, as a share of the panel's height. */
-const PEN_SHARE = 0.011;
+const PEN_SHARE = 0.016;
 
 /** An arrowhead's length, as a share of the panel's height. */
 const HEAD_SHARE = 0.03;

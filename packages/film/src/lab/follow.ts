@@ -150,7 +150,8 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
   // One effect places the box, and first takes it back when placing turns on (Follow, Play, a line held again): the
   // box where it stands is the view's from then. In one effect, the take-back comes before the placement's own check
   // for a reader's scroll by the code's order, not by the scheduler's.
-  let wasPlacing = false;
+  // Placing as the view mounts is where it starts, not a take-back: what a link opened holds the box from the first frame.
+  let wasPlacing = untrack(options.placing);
   createEffect(
     () => [options.target(), laidOut(), options.placing()] as const,
     ([key, , on]) => {
