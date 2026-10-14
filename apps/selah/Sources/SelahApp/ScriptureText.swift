@@ -11,6 +11,9 @@ struct ScriptureText: View {
   /// Positions of words a recall missed, counted as `RecallComparison` counts a verse's words.
   /// They keep the verse's italics and red letters and gain the missing-word mark.
   var missing: Set<Int> = []
+  /// Orange when the verse counts as slipped; the cue colour for a word or two that did not
+  /// make it slip, so orange always means slipped.
+  var missingColor = Palette.slipped
   @State private var note: MarginNote?
   private var content: AttributedString {
     var result = AttributedString()
@@ -31,7 +34,7 @@ struct ScriptureText: View {
       }
       result += text
     }
-    if !missing.isEmpty { RecallFeedback.mark(missing, in: &result, color: Palette.slipped) }
+    if !missing.isEmpty { RecallFeedback.mark(missing, in: &result, color: missingColor) }
     return result
   }
   private var leading: Double {

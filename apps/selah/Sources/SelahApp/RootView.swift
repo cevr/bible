@@ -104,7 +104,7 @@ struct Column<Content: View>: View {
         .padding(.horizontal, Space.xl).padding(.vertical, Space.l)
         .frame(maxWidth: .infinity)
     }
-    .scrollEdgeEffectStyle(.soft, for: .top)
+    .scrollEdgeEffectStyle(.soft, for: .vertical)
     .background(Palette.page)
   }
 }

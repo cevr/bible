@@ -12,6 +12,8 @@ struct SettingsView: View {
   }
   @State private var configuring = false
   @State private var readerSettings = false
+  @State private var confirmingAppleRemoval = false
+  private var dictationOn: Bool { store.library.preferences.dictationEnabled }
   private func quietTime(start: Bool) -> Binding<Date> {
     Binding(
       get: {
@@ -51,11 +53,31 @@ struct SettingsView: View {
               Task { await store.change { $0.preferences.dictationEnabled = value } }
             })
         ) {
-          Text("Dictation")
-          Text("Recite a recall aloud and compare what was heard.")
+          Text("Dictate recalls")
+          Text("Recite aloud and compare what was heard.")
         }
         ForEach(LocalModels.offered, id: \.self) { model in
-          ModelRow(store: store, model: model)
+          ModelRow(store: store, model: model).disabled(!dictationOn)
+        }
+        if DictationModel.allCases.contains(where: {
+          !$0.isLocal && store.modelStates[$0] == .installed
+        }) {
+          LabeledContent {
+            Button("Remove…") { confirmingAppleRemoval = true }
+          } label: {
+            Text("Apple’s speech models")
+            Text("Shared with other apps; macOS stores and updates them.")
+          }
+          .confirmationDialog(
+            "Remove Apple’s speech models?", isPresented: $confirmingAppleRemoval,
+            titleVisibility: .visible
+          ) {
+            Button("Remove", role: .destructive) { Task { await store.removeAppleModels() } }
+          } message: {
+            Text(
+              "Apple Speech and Apple Dictation are released. macOS deletes them later unless another app uses them; dictation downloads them again when needed."
+            )
+          }
         }
         if let error = store.modelError {
           Text(error).font(.caption).foregroundStyle(.secondary)
@@ -63,21 +85,7 @@ struct SettingsView: View {
       } header: {
         Text("Dictation")
       } footer: {
-        VStack(alignment: .leading, spacing: Space.xs) {
-          Text(
-            "Speech stays on this Mac. macOS stores Apple’s models and shares them with other apps."
-          )
-          if DictationModel.allCases.contains(where: {
-            !$0.isLocal && store.modelStates[$0] == .installed
-          }) {
-            Button("Remove Apple Speech Models") { Task { await store.removeAppleModels() } }
-              .buttonStyle(.link)
-              .help(
-                "Release Selah’s claim on the English models. macOS deletes them later unless another app uses them."
-              )
-          }
-        }
-        .font(.caption).foregroundStyle(.secondary)
+        Text("Speech stays on this Mac.").font(.caption).foregroundStyle(.secondary)
       }
       Section("Reading") {
         Picker(
@@ -261,12 +269,13 @@ struct ModelRow: View {
         Task { await store.change { $0.preferences.dictationModel = model } }
       } label: {
         HStack(alignment: .firstTextBaseline, spacing: Space.s) {
-          Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+          Image(systemName: selected ? "largecircle.fill.circle" : "circle")
             .foregroundStyle(selected ? Color.accentColor : .secondary)
             .accessibilityHidden(true)
           VStack(alignment: .leading, spacing: Space.xxs) {
             Text(model.title)
-            Text("\(status) · \(detail)").font(.caption).foregroundStyle(.secondary)
+            Text(state == .installed && !model.isLocal ? detail : "\(status) · \(detail)")
+              .font(.subheadline).foregroundStyle(.secondary)
           }
           Spacer(minLength: 0)
         }

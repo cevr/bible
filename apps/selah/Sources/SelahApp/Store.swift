@@ -363,6 +363,16 @@ final class Store {
       slipped.insert(verse.number)
     }
   }
+  /// Why some grades are unavailable for this recall.
+  var ratingLimit: String {
+    hinted
+      ? "First letters were shown, so grades are limited to Again or Hard."
+      : "Easy needs a recall with no cues and no first letters shown."
+  }
+  /// Ending practice now would discard a typed or dictated recall.
+  var hasRecallInProgress: Bool {
+    !typedRecall.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || dictation.active
+  }
   var allowedRatings: [RecallRating] {
     guard let current else { return [] }
     return library.allowedRatings(for: current, usedHint: hinted, peeked: peeked)

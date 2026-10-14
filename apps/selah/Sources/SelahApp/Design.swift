@@ -46,6 +46,8 @@ enum Palette {
   static let cue = adaptive(light: (0.376, 0.373, 0.357), dark: (0.620, 0.620, 0.639))
   /// Verse numbers in Scripture set on the page.
   static let verseNumber = cue
+  /// Supporting text on the page (subtitles, counts, references), at the cue's contrast.
+  static let secondaryText = cue
   /// Recalled words that are not in the text.
   static let extra = adaptive(light: (0.749, 0.137, 0.149), dark: (1.0, 0.478, 0.478))
 
