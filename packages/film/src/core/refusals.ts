@@ -444,3 +444,31 @@ export class BoardFileUnknown extends Schema.TaggedError<BoardFileUnknown>()('Bo
     return `film "${this.film}": board image ${this.file}: ${this.reason}`;
   }
 }
+
+/** An ask the lab does not have (`FILMS_LAB/asks/<id>.json`). */
+export class AskUnknown extends Schema.TaggedError<AskUnknown>()('AskUnknown', {
+  id: Schema.String,
+}) {
+  override get message() {
+    return `the lab has no ask "${this.id}"`;
+  }
+}
+
+/** An answer or a close the ask cannot take as it stands: answered, closed, at another step, past its deadline, or not fitting. */
+export class AskRefused extends Schema.TaggedError<AskRefused>()('AskRefused', {
+  id: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `ask "${this.id}": ${this.reason}`;
+  }
+}
+
+/** An ask that may not render: what is wrong with its machine. */
+export class AskInvalid extends Schema.TaggedError<AskInvalid>()('AskInvalid', {
+  problems: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `the ask may not render: ${this.problems.join('; ')}`;
+  }
+}

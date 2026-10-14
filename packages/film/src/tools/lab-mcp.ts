@@ -13,6 +13,11 @@
 //   there is no second write path: a reply or a note marked done
 //   (`reply`, `resolve`), a tweak asked of a panel (`request_tweak`), a set
 //   published (`publish_set`), a render recorded (`record_render`).
+// - Asks: a decision page an agent composes from the lab's primitives as a
+//   small machine (`ask`), answered by the owner on any device, each step's
+//   answers heard as `ask.step` changes; read (`ask_read`, `asks`) and closed
+//   (`close_ask`), an answered ask filed on its production's timeline
+//   (`AskStore`, `ProductionStore`; `core/ask.ts`).
 // - Resources (`lab://…`) say the same reads for a client that attaches
 //   them; the `inbox` prompt opens a session on what waits.
 //
@@ -42,12 +47,23 @@ import {
 import { McpProtocol, McpSchema, McpServer, Tool, Toolkit } from 'effect/ai';
 import { Headers, HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { pageHref } from '../core/api.ts';
+import {
+  Ask,
+  AskAnswer,
+  AskBlock,
+  type AskRecord,
+  answersLine,
+  askStatus,
+  oneQuestion,
+} from '../core/ask.ts';
+import { setPathOf } from '../core/production.ts';
 import { type BoardFile, BoardStyle, PANEL_START, Panel, panelById } from '../core/board.ts';
 import { Catalogue, Render } from '../core/catalogue.ts';
 import { boardPath, gist, notePath } from '../core/lab-events.ts';
 import { unresolved } from '../core/notes.ts';
 import { ReviewManifest, ReviewManifestJson } from '../core/review.ts';
 import { Note, type NoteDraft, NoteStatus, repoJson } from '../core/schema.ts';
+import { AskStore } from './ask-store.ts';
 import { BoardStore } from './board-store.ts';
 import { CATALOGUE_FILE, RenderCatalogue } from './catalogue.ts';
 import { ContentStore, type Manifest, writeWholeWith } from './content-store.ts';
@@ -55,6 +71,7 @@ import { sha256Hex } from './digest.ts';
 import { FilmFolder, type FilmName, filmNamed, filmsOut } from './film-repo.ts';
 import { LabChanges, LabEvents, reviewFolders } from './lab-events.ts';
 import { NotesStore } from './notes-store.ts';
+import { ProductionStore } from './production-store.ts';
 import { Review, refOf, pathOf } from './review.ts';
 import { urlPath } from './review-file.ts';
 
@@ -213,6 +230,33 @@ const SetName = Schema.String.check(
   }),
 );
 
+/** Where an ask is answered: on this machine, on the phone (over the tailnet), from anywhere (the tunnel). */
+const AskLinks = Schema.Struct({
+  local: Schema.String,
+  phone: Schema.optionalKey(Schema.String),
+  public: Schema.optionalKey(Schema.String),
+});
+
+/** An ask as an agent reads it: where its run is and what the owner answered, typed. */
+const AskRead = Schema.Struct({
+  ask: Schema.String,
+  title: Schema.String,
+  by: Schema.String,
+  status: Schema.Literals(['asking', 'answered', 'closed']),
+  /** The step the run is on while it asks, or the end it reached. */
+  step: Schema.optionalKey(Schema.String),
+  /** Every answer so far, by the name of the block that asked it. */
+  answers: Schema.Record(Schema.String, AskAnswer),
+  /** Each step answered, in order, with when. */
+  answered: Schema.Array(Schema.Struct({ step: Schema.String, at: Schema.String })),
+  /** Why it was closed, once it is. */
+  closed: Schema.optionalKey(Schema.String),
+  deadline: Schema.optionalKey(Schema.String),
+  production: Schema.optionalKey(Schema.String),
+  set: Schema.optionalKey(Schema.String),
+  links: AskLinks,
+});
+
 /** The files a set may carry: what the review shows (images, videos, docs, captions) or offers to download. */
 const SET_FILE = /\.(png|jpe?g|webp|gif|svg|mp4|webm|mov|m4a|mp3|wav|vtt|md|txt|json|pdf|zip)$/i;
 
@@ -227,7 +271,7 @@ const Overview = Tool.make('overview', {
 }).annotate(Tool.Readonly, true);
 
 const Changes = Tool.make('changes', {
-  description: `What changed in the lab past \`since\` (a cursor from \`overview\` or an earlier \`changes\`): notes, replies and notes done, tweaks asked, tries kept and beats approved or withdrawn on a board, comments, approvals and withdrawals on renders, renders recorded, sets published or updated. Each change names its film, panel, render or set, its words, and its lab link. With \`wait\` (seconds, at most ${MAX_WAIT_S}) it answers as soon as there is one, else with none when the time is up: call it again with the cursor it answers to keep listening. With no \`since\`, it answers no changes and the cursor now. \`reset\` means the cursor was from an earlier run of the lab: the changes are all this run kept.`,
+  description: `What changed in the lab past \`since\` (a cursor from \`overview\` or an earlier \`changes\`): notes, replies and notes done, tweaks asked, tries kept and beats approved or withdrawn on a board, comments, approvals and withdrawals on renders, renders recorded, sets published or updated, and each step of an ask answered (\`ask.step\`, its answers typed), an ask answered to its end (\`ask.answered\`) or closed. Each change names its film, panel, render or set, its words, and its lab link. With \`wait\` (seconds, at most ${MAX_WAIT_S}) it answers as soon as there is one, else with none when the time is up: call it again with the cursor it answers to keep listening. With no \`since\`, it answers no changes and the cursor now. \`reset\` means the cursor was from an earlier run of the lab: the changes are all this run kept.`,
   parameters: Schema.Struct({
     since: Schema.optionalKey(Schema.String),
     wait: Schema.optionalKey(
@@ -337,6 +381,58 @@ const RecordRender = Tool.make('record_render', {
   failure: LabRefused,
 });
 
+const AskTool = Tool.make('ask', {
+  description: [
+    "Ask the owner to decide something, on a page made for this one question: answered on the laptop or the phone, the answers typed. Give `blocks` for one page (a heading, prose, an image, a choose, a free_text; each question block names its answer by `id`), or `machine` for a short flow: `{start, steps}`, each step a page (`blocks`, then `next`: `[{to, when?: {answer, is: [values]}}, …, {to}]`, the first whose `when` holds, the last unguarded) or an end (`{end: true, text?}`). An image is `{src}` (a lab URL, `/api/…`) or `{board: {film, panel, try}}`, a board try found for you; a choose's options may carry one. The machine is checked before anything is kept (every step reachable, no loops, guards on the step's own choices), and a refusal lists every problem.",
+    'Say `why` (what the answer decides) and `by` (who you are); a `deadline` (ISO time) after which it takes no answer; `production` (and the `set` ref it is about) to file it on that timeline: it waits there until closed.',
+    'Answers its links (`local`, `phone`, `public`): hand the owner one. Each step the owner sends is an `ask.step` change on `changes` (its answers typed), and `ask.answered` once the end is reached; read it with `ask_read`, and `close_ask` it once acted on.',
+  ].join(' '),
+  parameters: Schema.Struct({
+    title: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(200)),
+    why: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(2000)),
+    by: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(80)),
+    film: Schema.optionalKey(Schema.String),
+    deadline: Schema.optionalKey(Schema.String),
+    production: Schema.optionalKey(Schema.String),
+    set: Schema.optionalKey(Schema.String),
+    blocks: Schema.optionalKey(Schema.Array(AskBlock)),
+    /** The words the one page ends on, for `blocks`. */
+    thanks: Schema.optionalKey(Schema.String),
+    machine: Schema.optionalKey(Ask),
+  }),
+  success: AskRead,
+  failure: LabRefused,
+});
+
+const AskReadTool = Tool.make('ask_read', {
+  description:
+    "An ask: where its run is, every answer so far (typed: a choose's value and label, a free_text's words), each step answered, and its links.",
+  parameters: Schema.Struct({ ask: Schema.String }),
+  success: AskRead,
+  failure: LabRefused,
+}).annotate(Tool.Readonly, true);
+
+const AsksTool = Tool.make('asks', {
+  description:
+    'Every ask, the newest first: `status` narrows them (`asking`: what waits on the owner).',
+  parameters: Schema.Struct({
+    status: Schema.optionalKey(Schema.Literals(['asking', 'answered', 'closed'])),
+  }),
+  success: Schema.Struct({ asks: Schema.Array(AskRead) }),
+  failure: LabRefused,
+}).annotate(Tool.Readonly, true);
+
+const CloseAsk = Tool.make('close_ask', {
+  description:
+    "Close an ask, saying `why` (acted on, withdrawn): it takes no more answers and keeps what it has. An answered ask with a production is filed on its timeline as the owner's decision. Closing again with the same `why` answers it as it is.",
+  parameters: Schema.Struct({
+    ask: Schema.String,
+    why: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(2000)),
+  }),
+  success: AskRead,
+  failure: LabRefused,
+}).annotate(Tool.Idempotent, true);
+
 const LabToolkit = Toolkit.make(
   Overview,
   Changes,
@@ -350,6 +446,10 @@ const LabToolkit = Toolkit.make(
   RequestTweak,
   PublishSet,
   RecordRender,
+  AskTool,
+  AskReadTool,
+  AsksTool,
+  CloseAsk,
 );
 
 // ---------------------------------------------------------------------------
@@ -359,6 +459,10 @@ const LabToolkit = Toolkit.make(
 interface LabMcpOptions {
   /** The lab's address as the owner opens it (`labLink`). */
   readonly base: string;
+  /** Where the lab is bound on this machine, when it is not `base`. */
+  readonly local?: string;
+  /** The lab's address from the owner's phone (`FILM_LAB_PHONE_URL`), when it has one. */
+  readonly phone?: string;
 }
 
 /** A path under `root` that stays under it: `rel` relative, with no `..` out of it. */
@@ -382,6 +486,8 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
   const films = yield* Effect.context<FilmFolder>();
   const platform = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
   const out = yield* filmsOut;
+  const asks = yield* AskStore;
+  const productions = yield* ProductionStore;
 
   const linkOf = (at: string) => new URL(at, options.base).href;
   const named = (film: string) => refused(filmNamed(film).pipe(Effect.provideContext(films)));
@@ -727,7 +833,141 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     return { set: at.ref, link: linkOf(pageHref.folder(at.ref)) };
   });
 
+  /** An ask's links: the bound address, the phone's, and the public one when the lab has one. */
+  const askLinks = (id: string): typeof AskLinks.Type => {
+    const at = pageHref.ask(id);
+    const local = Option.getOrElse(Option.fromUndefinedOr(options.local), () => options.base);
+    const phone = Option.fromUndefinedOr(options.phone);
+    return {
+      local: new URL(at, local).href,
+      ...Option.match(phone, {
+        onNone: () => ({}),
+        onSome: (p) => ({ phone: new URL(at, p).href }),
+      }),
+      ...Bool.match(local === options.base, {
+        onTrue: () => ({}),
+        onFalse: () => ({ public: linkOf(at) }),
+      }),
+    };
+  };
+
+  const askRead = (record: AskRecord): typeof AskRead.Type => ({
+    ask: record.id,
+    title: record.title,
+    by: record.by,
+    status: askStatus(record.state),
+    ...Match.value(record.state).pipe(
+      Match.tag('Asking', 'Answered', (s) => ({ step: s.step })),
+      Match.orElse(() => ({})),
+    ),
+    answers: record.state.answers,
+    answered: record.answered.map((a) => ({ step: a.step, at: a.at })),
+    ...Match.value(record.state).pipe(
+      Match.tag('Closed', (s) => ({ closed: s.why })),
+      Match.orElse(() => ({})),
+    ),
+    ...Struct.pick(record, ['deadline', 'production', 'set']),
+    links: askLinks(record.id),
+  });
+
+  const ask = Effect.fn('LabMcp.ask')(function* (given: typeof AskTool.parametersSchema.Type) {
+    const blocks = Option.fromUndefinedOr(given.blocks);
+    const flow = Option.fromUndefinedOr(given.machine);
+    if (Option.isSome(blocks) && Option.isSome(flow))
+      return yield* LabRefused.make({ reason: 'give `blocks` or `machine`, not both' });
+    const machine = Option.orElse(flow, () =>
+      Option.map(blocks, (b) => oneQuestion(b, given.thanks)),
+    );
+    if (Option.isNone(machine))
+      return yield* LabRefused.make({ reason: 'give `blocks` (one page) or `machine`' });
+    const production = Option.fromUndefinedOr(given.production);
+    const set = Option.fromUndefinedOr(given.set);
+    if (Option.isSome(set) && Option.isNone(production))
+      return yield* LabRefused.make({ reason: '`set` files the ask on a production: name it' });
+    if (
+      Option.isSome(production) &&
+      Option.isNone(yield* refused(productions.read(production.value)))
+    )
+      return yield* LabRefused.make({
+        reason: `no production ${production.value}: film production start ${production.value}`,
+      });
+    if (Option.isSome(set) && !(yield* sets).some((s) => s.set === set.value))
+      return yield* LabRefused.make({ reason: `no set ${set.value}: \`sets\` lists them by ref` });
+    const record = yield* asks.make({ ...given, ask: machine.value }).pipe(
+      Effect.mapError((e) =>
+        LabRefused.make({
+          reason: Match.value(e).pipe(
+            Match.tag('AskInvalid', (i) => `the ask may not render:\n- ${i.problems.join('\n- ')}`),
+            Match.orElse((other) => other.message),
+          ),
+        }),
+      ),
+    );
+    yield* Option.match(Option.all({ production, set }), {
+      onNone: () => Effect.void,
+      onSome: (on) =>
+        Effect.flatMap(Clock.currentTimeMillis, (at) =>
+          refused(
+            productions.say(on.production, {
+              _tag: 'Asked',
+              at,
+              text: `${record.title} (ask ${record.id})`,
+              quote: Option.none(),
+              set: Option.some(setPathOf(on.set)),
+              point: Option.none(),
+              variant: Option.none(),
+            }),
+          ),
+        ),
+    });
+    return askRead(record);
+  });
+
+  const askOf = (id: string) => Effect.map(refused(asks.read(id)), askRead);
+
+  const asksOf = (status: Option.Option<'asking' | 'answered' | 'closed'>) =>
+    Effect.map(refused(asks.list), (all) => ({
+      asks: all
+        .filter((r) =>
+          Option.match(status, { onNone: () => true, onSome: (st) => askStatus(r.state) === st }),
+        )
+        .map(askRead),
+    }));
+
+  const closeAsk = Effect.fn('LabMcp.closeAsk')(function* (id: string, why: string) {
+    const before = yield* refused(asks.read(id));
+    const record = yield* refused(asks.close(id, why));
+    const production = Option.fromUndefinedOr(record.production);
+    // Filed once: as the close moves it from answered, not when it is closed again.
+    if (before.state._tag === 'Answered' && Option.isSome(production)) {
+      const words = Object.values(record.state.answers).flatMap((a) =>
+        Match.value(a).pipe(
+          Match.discriminatorsExhaustive('kind')({
+            choose: (): ReadonlyArray<string> => [],
+            free_text: (t) => [t.text],
+          }),
+        ),
+      );
+      yield* refused(
+        productions.say(production.value, {
+          _tag: 'Decided',
+          at: yield* Clock.currentTimeMillis,
+          text: `${record.title}: ${answersLine(record.state.answers)}`,
+          quote: Option.liftPredicate(words.join(' / '), (w) => w.length > 0),
+          set: Option.map(Option.fromUndefinedOr(record.set), setPathOf),
+          point: Option.none(),
+          variant: Option.none(),
+        }),
+      );
+    }
+    return askRead(record);
+  });
+
   return {
+    ask,
+    askOf,
+    asksOf,
+    closeAsk,
     overview,
     notesOf,
     boardOf,
@@ -766,6 +1006,10 @@ const handlers = (options: LabMcpOptions) =>
           lab.requestTweak(film, panel, text, Option.fromUndefinedOr(n)),
         publish_set: ({ name, files, manifest }) => lab.publishSet(name, files ?? [], manifest),
         record_render: ({ film, render }) => lab.recordRender(film, render),
+        ask: (given) => lab.ask(given),
+        ask_read: ({ ask }) => lab.askOf(ask),
+        asks: ({ status }) => lab.asksOf(Option.fromUndefinedOr(status)),
+        close_ask: ({ ask, why }) => lab.closeAsk(ask, why),
       }),
     ),
   );
@@ -957,12 +1201,15 @@ const access = (token: string) =>
 
 const INSTRUCTIONS = [
   'The film lab, where the owner reviews the films: notes on frames and board panels, tries kept, beats and renders approved, sets of renders compared. Read with `overview`, `notes`, `board`, `catalogue`, `sets`, `set`; act with `reply`, `resolve`, `request_tweak`, `publish_set`, `record_render`.',
-  'Listen with `changes`: pass the cursor from `overview` as `since` and a `wait` in seconds; it answers as soon as the owner does something (a note, a reply, a kept try, an approval or withdrawal, a comment, a render or set), each change with its film, panel or render, its words and its lab link. Call it again with the cursor it answers.',
+  'Listen with `changes`: pass the cursor from `overview` as `since` and a `wait` in seconds; it answers as soon as the owner does something (a note, a reply, a kept try, an approval or withdrawal, a comment, a render or set, an answer to an ask), each change with its film, panel or render, its words and its lab link. Call it again with the cursor it answers.',
   'Hand the owner work as a set (`publish_set`) and its link, never a path; reply on the note that asked for it.',
+  "When a decision is the owner's, ask it (`ask`): one page of blocks, or a short machine of pages; hand the owner its link, hear each answer on `changes` (`ask.step`, `ask.answered`), and `close_ask` once acted on.",
 ].join('\n\n');
 
 /** What the lab's MCP runs over beside its router: the lab's stores and its change feed. */
 export type LabMcpNeeds =
+  | AskStore
+  | ProductionStore
   | NotesStore
   | RenderCatalogue
   | BoardStore

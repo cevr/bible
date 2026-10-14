@@ -46,6 +46,7 @@ import {
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
 import { BoardFile } from './board.ts';
+import { AskRecord, StepValues } from './ask.ts';
 import type { Interval } from './time.ts';
 import { isShortKey } from './shorts.ts';
 import { onChoicesTab } from './point.ts';
@@ -87,6 +88,8 @@ import {
   HeadUnavailable,
   MediaFailed,
   NoteNotFound,
+  AskRefused,
+  AskUnknown,
   PhoneCopyUnmade,
   RecordingInvalid,
   RecordingLossy,
@@ -206,6 +209,7 @@ const status = HttpApiSchema.status;
  */
 const Refusals = [
   NoteNotFound.pipe(status(404)),
+  AskUnknown.pipe(status(404)),
   SceneNotLocated.pipe(status(404)),
   HeadUnavailable.pipe(status(404)),
   FilmUnknown.pipe(status(404)),
@@ -235,6 +239,7 @@ const Refusals = [
   VersionChanged.pipe(status(409)),
   VersionMoved.pipe(status(409)),
   LabElsewhere.pipe(status(409)),
+  AskRefused.pipe(status(409)),
   BodyTooLarge.pipe(status(413)),
   WriteNotJson.pipe(status(415)),
   RecordingLossy.pipe(status(415)),
@@ -730,6 +735,28 @@ class ReviewGroup extends HttpApiGroup.make('review').add(
   }),
 ) {}
 
+/** What a step's page sends: the step it answers and each answer's value by its name. */
+const AskAnswerPost = Schema.Struct({ step: Schema.String, values: StepValues });
+
+/**
+ * The asks: an agent's decision pages (`core/ask.ts`), each read as its
+ * record and answered a step at a time; the answer moves its machine and is
+ * kept, so a reload or another device opens it where it was left.
+ */
+class AsksGroup extends HttpApiGroup.make('asks').add(
+  HttpApiEndpoint.get('read', `${API}/asks/:ask`, {
+    params: { ask: Schema.String },
+    success: AskRecord,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('answer', `${API}/asks/:ask/answer`, {
+    params: { ask: Schema.String },
+    payload: AskAnswerPost,
+    success: AskRecord,
+    error: Refusals,
+  }),
+) {}
+
 /**
  * A film's choice points (`choice.ts`): listed, a variant picked (or
  * unpicked, or rejected), a level knob set, a variant said of (`Say`), each
@@ -900,7 +927,8 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(ProjectGroup)
   .add(LooksGroup)
   .add(ProductionsGroup)
-  .add(PageGroup) {}
+  .add(PageGroup)
+  .add(AsksGroup) {}
 
 /** The first segments `api`'s routes live under (`/api/`): the API's own paths. */
 export const prefixesOf = <Id extends string, Groups extends HttpApiGroup.Constraint>(
@@ -1250,6 +1278,8 @@ export const Places = {
     hash: LabAt,
   }),
   export: Place.make({ path: '/films/:film/export', params: filmParams }),
+  /** An agent's ask: its decision page (`core/ask.ts`), at the step its run is on. */
+  ask: Place.make({ path: '/asks/:ask', params: { ask: Codec.Segment } }),
 };
 
 /** The page each place is served by, the first that holds a path winning. */
@@ -1270,6 +1300,7 @@ const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, AppPage]> = [
   [Places.board, 'lab'],
   [Places.boardBeat, 'lab'],
   [Places.export, 'render'],
+  [Places.ask, 'review'],
 ];
 
 /** The page `pathname` serves, if any: a path no place declares (a chunk, a typo, an old `/lab`) serves none. */
@@ -1386,6 +1417,8 @@ export const pageHref = {
   /** A production's timeline, version `v` in focus (0: the current one). */
   production: (production: string, v = 0): string =>
     Place.href(Places.production, { path: { production }, query: { v }, hash: {} }),
+  /** An agent's ask, at the step its run is on. */
+  ask: (ask: string): string => Place.href(Places.ask, { path: { ask }, query: {}, hash: {} }),
   folder: (folder: string): string =>
     Place.href(Places.folder, { path: { folder }, query: { still: '' }, hash: {} }),
   /** A comparison set, with the sheet of its version `inspect` open. */

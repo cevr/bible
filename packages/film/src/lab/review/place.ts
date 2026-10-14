@@ -22,6 +22,8 @@ export type ReviewPlace = Data.TaggedEnum<{
   Home: {};
   /** A production's timeline, version `v` in focus (0: the current one). */
   Production: { readonly production: string; readonly v: number };
+  /** An agent's ask: its decision page, at the step its run is on. */
+  Ask: { readonly ask: string };
   Folder: { readonly folder: string };
   /** A render choice point of the folder, by its id. */
   Set: { readonly folder: string; readonly point: string };
@@ -41,6 +43,7 @@ export const placeOf = (href: string): ReviewPlace =>
     Option.map(Place.decode(Places.production, href), (p) =>
       ReviewPlace.Production({ production: p.path.production, v: p.query.v }),
     ),
+    Option.map(Place.decode(Places.ask, href), (v) => ReviewPlace.Ask(v.path)),
     Option.map(Place.decode(Places.folder, href), (v) => ReviewPlace.Folder(v.path)),
     Option.map(Place.decode(Places.set, href), (v) => ReviewPlace.Set(v.path)),
     Option.map(Place.decode(Places.choices, href), (v) =>
@@ -76,6 +79,7 @@ export const hrefOf = (place: ReviewPlace): string =>
     Match.tagsExhaustive({
       Home: () => pageHref.home(),
       Production: (p) => pageHref.production(p.production, p.v),
+      Ask: (p) => pageHref.ask(p.ask),
       Folder: (p) => pageHref.folder(p.folder),
       Set: (p) => pageHref.set(p.folder, p.point),
       Film: (p) => pageHref.choices(p.film, p.point),

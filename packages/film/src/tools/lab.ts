@@ -14,6 +14,8 @@
 // pages included, passes the one gate (`api-server.ts`): the bound port's
 // loopback names and the hosts it is told (`FILM_LAB_HOSTS`), nothing else.
 
+import type { AskStore } from './ask-store.ts';
+import { asksGroup } from './asks-http.ts';
 import {
   Array as Arr,
   Cache,
@@ -528,6 +530,7 @@ export const labLink = (bound: string, allowed: Allowed): string =>
  */
 export type LabContext =
   | NotesStore
+  | AskStore
   | BoardStore
   | FileSystem.FileSystem
   | Path.Path
@@ -577,6 +580,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         pageGroup,
         looksGroup,
         productionsGroup,
+        asksGroup,
       ),
     ),
   );

@@ -6,8 +6,10 @@
 // layers itself would drift from the lab it means to be
 // (`film-services.test.ts` names the two and sweeps for a third).
 
+import { AskStore } from './ask-store.ts';
 import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import {
+  Config,
   ConfigProvider,
   Context,
   Duration,
@@ -130,6 +132,8 @@ export const filmServices = (spec: FilmServicesSpec) => {
   const Productions = ProductionStore.layer.pipe(Layer.provide([Store, Platform]));
   // Each film's storyboard: its record beside the film, its images in the film's board folder.
   const Board = BoardStore.layer.pipe(Layer.provide([Store, Repo, Platform]));
+  // The agents' asks: a decision page each, kept under the lab's folder; a board try one shows is found on its board.
+  const Asks = AskStore.layer.pipe(Layer.provide([Board, Store, Repo, Platform]));
   // The lab checks each write, and the review reads a film's options, keeps its takes and
   // makes its mixes, through the app's CLI in a fresh process.
   const Fresh = FreshFilm.layer(spec.self).pipe(Layer.provide(Platform));
@@ -171,6 +175,7 @@ export const filmServices = (spec: FilmServicesSpec) => {
             Notes,
             Productions,
             Board,
+            Asks,
             Source,
             Library,
             Footage,
@@ -224,13 +229,17 @@ export const startLab = Effect.fn('film.lab.start')(function* (
     onSome: (access) =>
       Effect.gen(function* () {
         const base = labLink(bound, allowed);
+        // The lab from the owner's phone (the tailnet's address), for an ask's links.
+        const phone = yield* Config.option(Config.String('FILM_LAB_PHONE_URL'));
         const events = yield* Layer.build(LabEvents.layer({ base, every: FEED_EVERY }));
         const services = yield* Effect.context<LabMcpNeeds>();
         return Layer.merge(
           beside,
-          labMcp(access, { base }).pipe(
-            Layer.provide(Layer.succeedContext(Context.merge(services, events))),
-          ),
+          labMcp(access, {
+            base,
+            local: bound,
+            ...Option.match(phone, { onNone: () => ({}), onSome: (p) => ({ phone: p }) }),
+          }).pipe(Layer.provide(Layer.succeedContext(Context.merge(services, events)))),
         );
       }),
   });

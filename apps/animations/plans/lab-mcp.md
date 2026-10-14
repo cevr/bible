@@ -36,6 +36,10 @@ when `FILM_LAB_HOSTS` names one).
 | `request_tweak` | a tweak note on a board panel, its still the try shown (as the Board's Tweak writes one)                                |
 | `publish_set`   | copies files into `out/<name>/` and merges keys into its `review.json` (validated as a manifest)                        |
 | `record_render` | records a render in a film's project catalogue (`RenderCatalogue.record`)                                               |
+| `ask`           | makes an ask (a decision page) from `blocks` or a `machine`; answers its links (see [Asks](#asks))                      |
+| `ask_read`      | an ask: where its run is, every answer so far (typed), each step answered, its links                                    |
+| `asks`          | every ask, newest first, narrowed by `status` (`asking`, `answered`, `closed`)                                          |
+| `close_ask`     | closes an ask with `why`; an answered one with a production is filed on its timeline as `Decided`                       |
 
 Resources: `lab://overview`, `lab://changes` (the last 50), `lab://films/{film}/notes`, `lab://films/{film}/board`.
 Prompt: `inbox` (every waiting note across the films, and how to work them).
@@ -60,9 +64,10 @@ change kept, flagged `reset`.
 | `beat.approved`, `beat.withdrawn`                                            | a beat's board approved; its approval withdrawn |
 | `render.commented`, `render.approved`, `render.withdrawn`, `render.recorded` | the catalogue's say and renders                 |
 | `set.published`, `set.updated`                                               | a set's `review.json` new, or changed           |
+| `ask.step`, `ask.answered`, `ask.closed`                                     | a step answered; the ask's end; closed by agent |
 
-Each carries `film`, `set`, `note`, `panel`, `beat`, `try`, `address`, `variant` as they apply, `by`, the words
-(`text`), a one-line `summary` and the lab `link`.
+Each carries `film`, `set`, `note`, `panel`, `beat`, `try`, `address`, `variant`, `ask`, `step` as they apply,
+`by`, the words (`text`), an ask's typed `answers`, a one-line `summary` and the lab `link`.
 
 How an agent hears them:
 
@@ -125,20 +130,171 @@ terminal; learn of a pick when told. Now:
 3. `reply` on the note that asked for it, `resolve` once made; a board tweak is asked with `request_tweak`.
 4. `changes {since, wait: 60}` in a loop (a subagent can too), or the channel in the main session: the owner's
    note, pick or approval arrives with its film, panel or render, words and link.
+5. A decision that is the owner's ("Needs you"): `ask` it as a page, give the owner its link, hear the answers on
+   `changes`, act, and `close_ask`.
 
-## Seams with the timeline (unit `timeline`, not merged)
+## Asks
 
-The timeline's ledger (`FILMS_LAB/productions/<p>.json`, `ProductionStore` in `tools/production-store.ts`) is the
-record of versions and asks; the MCP calls its verbs and keeps no rival model:
+The owner (2026-10-14): "maybe we can make the lab allow for custom pages that you present the decisions needed
+… the lab can just simply a set of primitives that you build upon, sort of like codemode … they are used for one
+turn, the mcp delivers answers". An **ask** is that page: an agent composes it from the lab's primitives, the owner
+answers it on the laptop or the phone, and each answer reaches the agent as a typed event.
 
-- `publish_set` gains `production` and `version` and calls `ProductionStore.publish` (which stamps `review.json`)
-  instead of writing those keys itself. Until then it leaves them as they are.
-- Resources `lab://productions` and `lab://productions/{p}` (`ProductionStore.list`/`read` laid out by
-  `productionsOf`), and tools `production_forward`, `production_decide`, `production_note`, mapping one to one onto
-  `forward` and `say`.
-- `production_ask` is not a tool of its own: an ask becomes the lab's decision page (the owner's next request,
-  2026-10-14), filed onto the ledger as an `Asked` entry, its answers as `Said`.
-- The feed adds `production.*` kinds by reading the ledger folder, as it reads every other record.
+### What an agent writes
+
+An ask is data, never code: a small machine of steps, each step a page of blocks or an end.
+
+| Block       | Is                                                                                         |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| `heading`   | a title over what follows                                                                  |
+| `prose`     | the context the owner decides in                                                           |
+| `image`     | a still: `{src}` (a lab path, `/api/…`) or `{board: {film, panel, try}}`, plus a caption   |
+| `choose`    | choose one of 2–12 options by `id`; an option may carry an image (a board try, a set file) |
+| `free_text` | the owner's words by `id`, with a placeholder                                              |
+
+```jsonc
+{
+  "start": "pick",
+  "steps": {
+    "pick": {
+      "blocks": [
+        { "kind": "heading", "text": "The church, word beat" },
+        { "kind": "choose", "id": "try", "label": "Which try do we keep?",
+          "options": [{ "value": "7", "label": "Try 7",
+                        "image": { "board": { "film": "righteousness-by-faith", "panel": "word.church", "try": 7 } } }, …] }
+      ],
+      "next": [{ "to": "why", "when": { "answer": "try", "is": ["7", "8"] } }, { "to": "done" }]
+    },
+    "why": { "blocks": [{ "kind": "free_text", "id": "why", "label": "Why that one over the first six?" }],
+             "next": [{ "to": "done" }] },
+    "done": { "end": true, "text": "Thank you. The agent has it." }
+  }
+}
+```
+
+The only branching is `next`: the first way on whose `when` holds (a choice of this step is one of `is`), the
+last unguarded. There is no expression language and nothing runs: the machine the lab interprets
+(`askMachine`, effect-machine, `core/ask.ts`) is fixed; the agent writes only its table.
+
+Beside the machine the ask records `title`, `why` (what the answer decides), `by` (the agent), `film`, an optional
+`deadline` (kept as UTC ISO; no answer is taken after it), and `production` with the `set` it is about.
+
+### Validated before it renders
+
+`ask` runs two checks, and keeps nothing unless both pass; a refusal lists every problem at once:
+
+1. **The machine** (`askProblems`, pure): at most 12 steps, 12 blocks a step, 12 ways on and 12 options; `start`
+   is a step; every `to` is a step and not the step itself; the last way on is unguarded and only it; a guard
+   names a `choose` of its own step, and only that choose's values; answer ids are unique across the ask; a
+   choose has at least two options, each value once; an image has `src` or `board`; some step ends; every step
+   is reached from `start`; the steps never loop (so every run ends, in at most 12 pages). A `src` must be a lab
+   path (`/api/…`), so an ask never loads an outside URL. The Schema decode before it refuses an unknown block.
+2. **The board** (`AskStore.make`): every `{board: …}` image is found on its film's board and given its `src`
+   (`boardFileUrl`) before the record is written; a try not on its board is a problem like any other.
+
+The record keeps the machine as made, its images resolved, so later board edits never change a page the owner
+is answering.
+
+### One question stays one line
+
+`blocks` instead of `machine` is the one-page form (`oneQuestion`): the blocks become a step `ask` that goes on to
+an end (`thanks`, if given). So the one-question ask is
+
+```jsonc
+{
+  "title": "A name for the set",
+  "why": "…",
+  "by": "agent",
+  "blocks": [{ "kind": "free_text", "id": "name", "label": "What do we call it?" }],
+}
+```
+
+### Its life
+
+- **Made** (`ask`): checked, resolved, written to `FILMS_LAB/asks/<id>.json` (`a` + 10 hex). Answers its links:
+  `local` (where the lab is bound), `phone` (`FILM_LAB_PHONE_URL`, the tailnet address, when set) and `public`
+  (the tunnel's host, when `FILM_LAB_HOSTS` names one). With `production` and `set`, an `Asked` entry is filed on
+  that production's ledger, so the timeline shows it waiting on the owner.
+- **Answered** a step at a time, from any device: the page posts `{step, values}` (`POST /api/asks/<id>/answer`);
+  the lab moves the machine (`Machine.replay` from the kept state) and appends the step to the record's
+  `answered` log. The same answer again (a retry, a second tab) is answered as it is; a different one to a step
+  already answered, one to a step the run has left, one past the deadline and one to a closed ask are refused
+  (409), and the page reads the ask again and says why. The state lives in the lab's file, not the page, so a
+  reload or a switch from laptop to phone opens the ask where it was left.
+- **Heard**: the feed reads `FILMS_LAB/asks/` like every other record. `ask.step` carries the step's answers,
+  typed (`{kind: 'choose', value, label}` or `{kind: 'free_text', text}`, by block id); `ask.answered` carries all
+  of them when the run reaches its end. Both arrive through `changes` (a waiting call wakes) and the channel.
+- **Closed** (`close_ask {ask, why}`): it takes no more answers and keeps what it has. An answered ask with a
+  production is filed as `Decided` on the same set (text: the answers in a line; quote: the owner's free text,
+  verbatim), which answers the `Asked` entry, so it stops waiting on the timeline. Closing again with the same
+  `why` answers it as it is and files nothing.
+
+### The page
+
+`/asks/<id>`, a place of the review's page (it opens on a phone at once). The page is composed, not configured:
+
+- `lab/ask/machine.ts`, the page's own machine: Reading → Open → Sending → Open; Refused → Reading (said);
+  Unreadable. The send is the state's task, so one answer is out at a time; a draft is checked as the lab will
+  check it (`answerRefusal`) before it goes.
+- `lab/ask/context.tsx`, the provider: the only place that knows the machine. Parts read `state` (phase, record,
+  step, drafted, said) and call `actions` (set, submit).
+- `lab/ask/parts.tsx`, compound parts: `Head`, `Step`, `Submit`, `Outcome`, `Status`, and one part per primitive
+  (`Heading`, `Prose`, `Picture`, `ChooseOne` over `@bible/ui`'s ToggleGroup, `FreeText`), dispatched by
+  `Block` on the block's kind. No part takes a flag that changes what it is; a new primitive is a new block kind
+  and a new part.
+- Its CSS rides with the place (`PlaceStyle`), so it never weighs on another place's first paint; the CSS budget
+  now weighs a place's own styles too.
+
+Proof (2026-10-14, spare lab on 8251): the agent made the church ask above through MCP; the owner's page, at
+390×844, picked Try 7 and sent; a second browser opened the same ask on its `why` step, and its send woke an
+agent's waiting `changes` with `ask.step` and `ask.answered`, typed; `close_ask` filed `Asked` → `Decided` on
+righteousness-by-faith's ledger copy; a real Claude Code session read it back with `ask_read`. Screenshots are
+the set `spare/ask-proof`.
+
+### From gent's codemode kernel: taken and left
+
+gent's codemode runs an agent-written program in a cell, under a kernel that owns a state machine of the run. What
+an ask needs from it is the discipline, not the runtime.
+
+Taken:
+
+- **The flow as data the kernel interprets**, checked by Schema before anything runs; no functions, no
+  expressions. A guard is `{answer, is}`, nothing more.
+- **Bounded, terminating runs.** gent caps visits; an ask is acyclic and capped (12 steps), checked up front, which
+  is stronger and needs no counter.
+- **Persisted state with an append-only log**: the machine's state plus the `answered` log are the record, and a
+  run resumes from them on any device.
+- **Idempotent, ordered input**: an identical retry is answered as it was; a conflicting or stale one is refused,
+  never applied twice.
+- **The definition snapshotted at creation**: the machine and its resolved images are kept as made.
+- **One turn**: an ask is answered once and then frozen; the agent closes it and asks a new one for a new turn.
+- **Only the tools chosen for the turn**: a cell sees only the host tools selected for it; an ask can use only the
+  lab's primitives.
+
+Left, and why:
+
+- **Running agent code** (the cell's Bun process): the lab is a long-lived process on the owner's machine, reached
+  from a phone and a tunnel; it runs no agent's code. Data in, a fixed interpreter, nothing to sandbox.
+- **Thread, run and permit states**: an ask has one reader and one writer at a time; `ContentStore`'s lock is the
+  permit.
+- **The outbox and activation seam**: the lab is one process and its files are the record; the change feed
+  already turns a write into an event, so there is nothing to deliver twice.
+- **Natural-language `await` in code**: an agent waits on `changes` (or the channel), as it waits on any other
+  thing the owner does.
+
+## Seams with the timeline
+
+The timeline (`ProductionStore`, ledgers in `apps/animations/productions/`, read via `FILMS_PRODUCTIONS`) is the
+record of versions and of what waits on the owner; asks file onto it rather than keep a rival model:
+
+- An ask with `production` and `set` is filed as `Asked` when made, and its answers as `Decided` on the same set
+  when it is closed answered; the timeline's "waits on you" clears by its own rule (a later decision on the set).
+- The `Asked` text names the ask (`(ask a…)`). The timeline does not yet link to the ask's page; a waiting entry
+  that is an ask could open it.
+- `film production ask` in a terminal still files a bare `Asked` (a question with no page). The next step is for
+  it to make an ask (one `free_text`, or a `choose` over the set's options) so every question has a page.
+- Not built: `publish_set` taking `production`/`version` (calling `ProductionStore.publish`), resources over the
+  ledgers, and `production.*` feed kinds.
 
 ## Choices the owner may want to change
 
@@ -150,3 +306,8 @@ record of versions and asks; the MCP calls its verbs and keeps no rival model:
 - Render comments have no reply thread (the catalogue has none); an agent answers one in a note or a set.
 - Sound and look picks (the choices) are not in the feed yet: they live in the films' sources.
 - Sets are watched one folder under each review root.
+- Asks are acyclic and capped at 12 steps; a flow that needs to loop is asked again as a new ask.
+- An answered ask is filed on its production only when the agent closes it, not when the owner answers.
+- `FILM_LAB_PHONE_URL` is unset by default; with it unset an ask answers no phone link.
+- The review page's head CSS is 63.7 KB of the 64 KiB budget; the ask and production places are 65.4 KB and
+  65.5 KB with their own styles. The next rule added to the review's shared CSS needs a trim first.

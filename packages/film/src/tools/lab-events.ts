@@ -1,6 +1,6 @@
 // The lab's change feed: what changed in the files the lab keeps (each
 // film's notes and board, each project folder's catalogue, each set's
-// `review.json`), read off the files themselves every few seconds, numbered
+// `review.json`, each agent's ask), read off the files themselves every few seconds, numbered
 // in the order the lab saw it, and kept (the newest `KEPT`) for a reader to
 // ask past a cursor or to wait on. The files are the record, so a change the
 // page makes, one a terminal's `film notes` or `film board` makes, and one
@@ -36,6 +36,7 @@ import {
   LabChange,
   type LabChangeDraft,
   type SetSeen,
+  askChanges,
   boardChanges,
   catalogueChanges,
   noteChanges,
@@ -43,6 +44,8 @@ import {
 } from '../core/lab-events.ts';
 import { eventsSince } from '../core/notes.ts';
 import { ReviewManifestJson } from '../core/review.ts';
+import type { AskRecord } from '../core/ask.ts';
+import { AskStore } from './ask-store.ts';
 import { BoardStore } from './board-store.ts';
 import { CATALOGUE_FILE } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
@@ -81,6 +84,7 @@ interface Seen {
   readonly boards: Map<string, { readonly stamp: Stamp; readonly board: BoardFile }>;
   readonly catalogues: Map<string, { readonly stamp: Stamp; readonly catalogue: Catalogue }>;
   sets: ReadonlyMap<string, SetSeen>;
+  readonly asks: Map<string, { readonly stamp: Stamp; readonly record: AskRecord }>;
 }
 
 interface Journal {
@@ -156,6 +160,7 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
     const folder = yield* FilmFolder;
     const review = yield* Review;
     const store = yield* ContentStore;
+    const asks = yield* AskStore;
     const films = yield* Effect.context<FilmFolder>();
     const platform = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
     const epoch = (yield* Random.nextIntBetween(0, 2 ** 31)).toString(36);
@@ -165,6 +170,7 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
       boards: new Map(),
       catalogues: new Map(),
       sets: new Map(),
+      asks: new Map(),
     };
     /** Whether the next read is the first: the baseline, which tells nothing. */
     const first = yield* Ref.make(true);
@@ -254,6 +260,33 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
         });
       }).pipe(Effect.catch(unread(path.join(dir, CATALOGUE_FILE))));
 
+    /** Every ask's record, each read again only when its file changed. */
+    const lookAsks = (baseline: boolean) =>
+      Effect.gen(function* () {
+        const names = yield* fs.readDirectory(asks.dir).pipe(Effect.orElseSucceed(() => []));
+        const ids = names.flatMap((n) =>
+          Option.toArray(Option.fromNullishOr(/^(a[0-9a-f]{10})\.json$/.exec(n)?.[1])),
+        );
+        const told = yield* Effect.forEach(
+          ids,
+          (id) =>
+            Effect.gen(function* () {
+              const { stamp } = yield* stampOf(asks.file(id));
+              const was = Option.fromUndefinedOr(seen.asks.get(id));
+              if (Option.exists(was, (w) => same(w.stamp, stamp))) return [];
+              const record = yield* asks.read(id);
+              seen.asks.set(id, { stamp, record });
+              if (baseline) return [];
+              return askChanges(
+                Option.map(was, (w) => w.record),
+                record,
+              );
+            }).pipe(Effect.catch(unread(asks.file(id)))),
+          { concurrency: 8 },
+        );
+        return Arr.flatten(told);
+      });
+
     /** The set a folder's manifest makes, when it has one: its title and its bytes' digest. */
     const setAt = (dir: string) =>
       Effect.gen(function* () {
@@ -299,7 +332,8 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
         onFalse: () => setChanges(seen.sets, sets),
       });
       seen.sets = sets;
-      return [...Arr.flatten(filmChanges), ...Arr.flatten(catalogued), ...published];
+      const asked = yield* lookAsks(baseline);
+      return [...Arr.flatten(filmChanges), ...Arr.flatten(catalogued), ...published, ...asked];
     });
 
     const look = one.withPermits(1)(

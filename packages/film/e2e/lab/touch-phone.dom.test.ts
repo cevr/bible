@@ -12,6 +12,7 @@ import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { evaluates, waitFor } from '../../src/lab/fixtures/settled.ts';
 import {
+  STUDIO_ASK,
   STUDIO_FOLDER,
   STUDIO_PRODUCTION,
   STUDIO_SET,
@@ -34,6 +35,7 @@ import {
   PROJECT,
   PROJECT_READY,
   PRODUCTION_READY,
+  ASK_READY,
   STILL,
   CHOICES_READY,
   SELECTION_SHEET,
@@ -103,6 +105,7 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
     production: [
       ['a Production', review(pageHref.production(STUDIO_PRODUCTION), PRODUCTION_READY)],
     ],
+    ask: [['an ask', review(pageHref.ask(STUDIO_ASK), ASK_READY)]],
     scenes: [
       ['Scenes', player(pageHref.scenes(PROBE), STILL)],
       [

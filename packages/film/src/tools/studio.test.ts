@@ -4,6 +4,7 @@
 // with the attempt it saved, then kept on "accept anyway"; the attempts
 // listed and played back. No network, no ffmpeg.
 
+import { AskStore } from './ask-store.ts';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, type FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
@@ -166,6 +167,7 @@ const setup = (
     NotesStore.layer,
     ProductionStore.layer,
     BoardStore.layer,
+    AskStore.layer.pipe(Layer.provide(BoardStore.layer)),
     noScenes,
     echoPages,
     StudioReadings.layer,

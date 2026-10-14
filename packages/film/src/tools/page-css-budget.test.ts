@@ -2,8 +2,9 @@
 // app's pages (`LAB_PAGES`, `LAB_SERVERS`) built and rendered on the server
 // as the lab builds and renders them (`LabPage`, `PageBundler`,
 // `PageRenderer`), and every stylesheet the answered head links and every
-// style it holds weighed (`blockingCss`): the server's render's head is the
-// one it renders, whatever adds to it. A phone on slow 4G paints nothing
+// style the page holds weighed (`blockingCss`): the server's render's head is
+// the one it renders, whatever adds to it, and a place's own styles
+// (`PlaceStyle`) ride in its markup, ahead of what they draw. A phone on slow 4G paints nothing
 // until it has them all, so every place is held to one budget. The faces a
 // film draws in are no stylesheet's: the films' loaders add them
 // (`player/face.ts`).
@@ -28,6 +29,7 @@ import { PageRenderer } from './page-render.ts';
 const PLACES = {
   home: pageHref.home(),
   production: pageHref.production('p'),
+  ask: pageHref.ask('a0123456789'),
   folder: pageHref.folder('f'),
   set: pageHref.set('f', 'p'),
   choices: pageHref.choices('f'),
@@ -61,9 +63,10 @@ const attribute = (tag: string, name: string): string =>
   new RegExp(`\\b${name}=(?:"([^"]*)"|([^\\s>]+))`).exec(tag)?.slice(1).join('') ?? '';
 
 /**
- * A page's render-blocking CSS, in bytes, from its head (`html` up to its
- * `</head>`): each stylesheet it links, by its size as the lab answers its
- * path (`size`), and each style it holds.
+ * A page's render-blocking CSS, in bytes: each stylesheet its head (`html`
+ * up to its `</head>`) links, by its size as the lab answers its path
+ * (`size`), and each style the page holds, in its head or with a place's
+ * markup (`PlaceStyle`), which holds back the paint of all that follows it.
  */
 const blockingCss = <R>(html: string, size: (href: string) => Effect.Effect<number, never, R>) =>
   Effect.gen(function* () {
@@ -75,7 +78,7 @@ const blockingCss = <R>(html: string, size: (href: string) => Effect.Effect<numb
       (tag) => size(attribute(tag, 'href')),
     );
     const held = Array.from(
-      head.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g),
+      html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g),
       (m) => new TextEncoder().encode(m[1] ?? '').byteLength,
     );
     return [...linked, ...held].reduce((sum, bytes) => sum + bytes, 0);

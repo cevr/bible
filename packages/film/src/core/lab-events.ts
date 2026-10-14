@@ -7,8 +7,9 @@
 // read from the record, never from the route that made it, so a write from
 // the page, a terminal or an agent is seen alike. Pure and DOM-free.
 
-import { Array as Arr, Boolean as Bool, Match, Option, Schema } from 'effect';
+import { Array as Arr, Boolean as Bool, Match, Option, Record, Schema } from 'effect';
 import { addressKey } from './address.ts';
+import { AskAnswer, type AskAnswers, type AskRecord, answersLine, askedIn } from './ask.ts';
 import { pageHref } from './api.ts';
 import type { BoardFile, Panel } from './board.ts';
 import type { Catalogue } from './catalogue.ts';
@@ -45,6 +46,12 @@ const LabChangeKind = Schema.Literals([
   'set.published',
   /** A set's `review.json` written again. */
   'set.updated',
+  /** A step of an agent's ask answered by the owner: that step's answers, typed. */
+  'ask.step',
+  /** An ask answered to its end: every answer, typed. */
+  'ask.answered',
+  /** An ask closed by its agent. */
+  'ask.closed',
 ]);
 type LabChangeKind = typeof LabChangeKind.Type;
 
@@ -76,8 +83,13 @@ export const LabChange = Schema.Struct({
   /** A render's address (`scenes:cold`, `film`) and variant. */
   address: Schema.optionalKey(Schema.String),
   variant: Schema.optionalKey(Schema.String),
-  /** The words: the note's, the reply's, the comment's, why a try was kept. */
+  /** The words: the note's, the reply's, the comment's, why a try was kept, why an ask was closed. */
   text: Schema.optionalKey(Schema.String),
+  /** The ask (`a1f…`) and its step answered. */
+  ask: Schema.optionalKey(Schema.String),
+  step: Schema.optionalKey(Schema.String),
+  /** The answers, typed by the block that asked each, by its name: the step's, or every one at the end. */
+  answers: Schema.optionalKey(Schema.Record(Schema.String, AskAnswer)),
   /** The whole change in one line. */
   summary: Schema.String,
   /** The lab page it is on, absolute. */
@@ -381,3 +393,74 @@ export const setChanges = (
       { set, kind: 'set.updated', summary: `set ${titled} updated`, path: pageHref.folder(set) },
     ];
   });
+
+/** The answers `record` holds that step `step` asked. */
+const answersOf = (record: AskRecord, step: string): AskAnswers =>
+  Option.match(Record.get(record.ask.steps, step), {
+    onNone: () => ({}),
+    onSome: (at) =>
+      Record.filter(record.state.answers, (_, id) => askedIn(at).some((b) => b.id === id)),
+  });
+
+/**
+ * What happened to an ask between two reads (none before: made since; its
+ * making is not news, the agent that made it knows): each step the owner
+ * answered since, with its answers; the ask answered to its end, with them
+ * all; or closed.
+ */
+export const askChanges = (
+  before: Option.Option<AskRecord>,
+  after: AskRecord,
+): ReadonlyArray<LabChangeDraft> => {
+  const was = Option.match(before, { onNone: () => 0, onSome: (b) => b.answered.length });
+  const path = pageHref.ask(after.id);
+  const of = {
+    ask: after.id,
+    ...Option.match(Option.fromUndefinedOr(after.film), {
+      onNone: () => ({}),
+      onSome: (film) => ({ film }),
+    }),
+  };
+  const steps = after.answered.slice(was).map((a): LabChangeDraft => {
+    const answers = answersOf(after, a.step);
+    return {
+      ...of,
+      kind: 'ask.step',
+      by: 'owner',
+      step: a.step,
+      answers,
+      summary: `ask ${after.id} (${gist(after.title, 60)}) step ${a.step} answered: ${gist(answersLine(answers), 200)}`,
+      path,
+    };
+  });
+  const tagOf = (r: AskRecord) => r.state._tag;
+  const moved = Option.match(before, {
+    onNone: () => true,
+    onSome: (b) => tagOf(b) !== tagOf(after),
+  });
+  const ended = Match.value(after.state).pipe(
+    Match.tag('Answered', (s): ReadonlyArray<LabChangeDraft> => [
+      {
+        ...of,
+        kind: 'ask.answered',
+        by: 'owner',
+        answers: s.answers,
+        summary: `ask ${after.id} (${gist(after.title, 60)}) answered: ${gist(answersLine(s.answers), 200)}`,
+        path,
+      },
+    ]),
+    Match.tag('Closed', (s): ReadonlyArray<LabChangeDraft> => [
+      {
+        ...of,
+        kind: 'ask.closed',
+        by: 'agent',
+        text: s.why,
+        answers: s.answers,
+        summary: `ask ${after.id} (${gist(after.title, 60)}) closed: ${gist(s.why, 80)}`,
+        path,
+      },
+    ]),
+    Match.orElse((): ReadonlyArray<LabChangeDraft> => []),
+  );
+  return [...steps, ...Arr.filter(ended, () => moved)];
+};

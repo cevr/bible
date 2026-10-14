@@ -4,6 +4,7 @@
 // a knob write answers with the knob; a computed value is a 422 with the file
 // untouched; undo puts the file back byte for byte, and a second undo is a 409.
 
+import { AskStore } from './ask-store.ts';
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Context, Effect, FileSystem, Layer, Path, Schema } from 'effect';
@@ -74,6 +75,10 @@ const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.lay
         NotesStore.layer,
         ProductionStore.layer,
         BoardStore.layer.pipe(Layer.provide(FilmFolder.layer(films))),
+        AskStore.layer.pipe(
+          Layer.provide(BoardStore.layer),
+          Layer.provide(FilmFolder.layer(films)),
+        ),
         noStudio,
         noReview,
         echoPages,

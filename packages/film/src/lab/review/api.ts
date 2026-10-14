@@ -11,6 +11,7 @@ import { HttpClient, HttpClientResponse } from 'effect/http';
 import { Refusal, type SetSaid, type SetSayPost, reviewFileUrl } from '../../core/api.ts';
 import type { BoardFile } from '../../core/board.ts';
 import type { MoveForward, ProductionFile, Productions } from '../../core/production.ts';
+import type { AskRecord, StepValues } from '../../core/ask.ts';
 import type { ReviewDuration, ReviewIndex } from '../../core/review.ts';
 import { LabClient, type LabFailure, called } from '../api.ts';
 
@@ -36,6 +37,14 @@ interface ReviewCalls {
     production: string,
     move: MoveForward,
   ) => Effect.Effect<ProductionFile, LabFailure>;
+  /** An agent's ask, as the lab keeps it (`core/ask.ts`). */
+  readonly ask: (id: string) => Effect.Effect<AskRecord, LabFailure>;
+  /** The owner's answers to step `step` of ask `id`: the ask as they leave it. */
+  readonly answer: (
+    id: string,
+    step: string,
+    values: StepValues,
+  ) => Effect.Effect<AskRecord, LabFailure>;
 }
 
 export class ReviewApi extends Context.Service<ReviewApi, ReviewCalls>()(
@@ -65,6 +74,9 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* () {
     board: (film) => called(lab.board.read({ params: { film } })),
     forward: (production, move) =>
       called(lab.productions.forward({ params: { production }, payload: move })),
+    ask: (id) => called(lab.asks.read({ params: { ask: id } })),
+    answer: (id, step, values) =>
+      called(lab.asks.answer({ params: { ask: id }, payload: { step, values } })),
   };
   return api;
 });

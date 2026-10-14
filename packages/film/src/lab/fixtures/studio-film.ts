@@ -270,6 +270,59 @@ export const productionLedgerWith = (
 /** The toy production's ledger at its second version. */
 const productionLedger = productionLedgerWith([]);
 
+/** An agent's ask on the toy: a choice of three takes; the slow one asks why. */
+export const STUDIO_ASK = 'a0123456789';
+
+const askMachine: Json = {
+  start: 'pick',
+  steps: {
+    pick: {
+      blocks: [
+        { kind: 'heading', text: 'The open, its take' },
+        {
+          kind: 'prose',
+          text: 'Three takes of the open line. The slow one changes the cut after it.',
+        },
+        {
+          kind: 'choose',
+          id: 'take',
+          label: 'Which take?',
+          options: [
+            { value: 'warm', label: 'Warm' },
+            { value: 'bright', label: 'Bright' },
+            { value: 'slow', label: 'Slow' },
+          ],
+        },
+      ],
+      next: [{ to: 'why', when: { answer: 'take', is: ['slow'] } }, { to: 'done' }],
+    },
+    why: {
+      blocks: [{ kind: 'free_text', id: 'why', label: 'Why the slow one?' }],
+      next: [{ to: 'done' }],
+    },
+    done: { end: true },
+  },
+};
+
+/** The ask as `GET /api/asks/<id>` sends it, its run at `state` with the steps `answered`. */
+export const askRecordWith = (
+  state: Json = { _tag: 'Asking', step: 'pick', answers: {} },
+  answered: ReadonlyArray<Json> = [],
+): Json => ({
+  id: STUDIO_ASK,
+  title: 'Which take opens the toy?',
+  why: 'The open sets the pace of the act.',
+  by: 'toy-agent',
+  film: STUDIO_FILM,
+  created: '2026-10-14T00:00:00.000Z',
+  ask: askMachine,
+  state,
+  answered: [...answered],
+});
+
+/** The ask at its first step. */
+const askRecord = askRecordWith();
+
 /** The review's routes over the film: its index, its films, its choices, its project and their checks. */
 export const studioRoutes: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/api\/review\/index/, () => json(indexOf(['main', 'warm']))),
@@ -304,6 +357,7 @@ export const studioRoutes: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/api\/films\/toy\/steps$/, () => json({})),
   route('GET', /^\/api\/films\/toy\/project$/, () => json(project)),
   route('GET', /^\/api\/productions$/, () => json({ productions: [productionLedger] })),
+  route('GET', /^\/api\/asks\/a0123456789$/, () => json(askRecord)),
 ];
 
 /** The studio's routes with open's render set holding three versions: a pair leaves one out. */

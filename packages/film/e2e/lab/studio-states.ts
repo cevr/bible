@@ -26,6 +26,7 @@ import { evaluates, sheetsStand, textHas, until, waitFor } from '../../src/lab/f
 import {
   STUDIO_FILM,
   STUDIO_FOLDER,
+  STUDIO_ASK,
   STUDIO_PRODUCTION,
   STUDIO_SET,
   studioRoutes,
@@ -536,6 +537,9 @@ export const SCRIPT_MOVES: Exempt = {
   why: "a film's Script moves to the beat under its playhead as it opens",
 };
 
+/** An ask, read: its step's send. */
+export const ASK_READY = '.ak-step [data-act="send"]';
+
 /** A production's timeline, read: its current version's Move forward. */
 export const PRODUCTION_READY = '.pd-v[data-current="true"] [data-act="move-forward"]';
 
@@ -662,6 +666,14 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=diff`, '.rv-diff'),
       disclose: AT_REST,
       budget: most(34, 28),
+    },
+  ],
+  ask: [
+    {
+      name: "an agent's ask, at its first step: a choice of three",
+      open: review(pageHref.ask(STUDIO_ASK), ASK_READY),
+      disclose: AT_REST,
+      budget: most(17, 17),
     },
   ],
   production: [

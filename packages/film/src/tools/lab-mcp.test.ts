@@ -4,7 +4,10 @@
 // keeps what MCP answers with); every tool listed; the owner's note seen
 // in the change feed with its link; an agent's reply and done landing in the
 // note's thread; a tweak asked of a board panel; a set published into the
-// lab's out/ and listed, and seen as published.
+// lab's out/ and listed, and seen as published; an ask made (its machine
+// checked first), answered by the owner a step at a time through the page's
+// route and heard on `changes` with its answers typed, then closed and filed
+// on its production's timeline.
 
 import { describe, expect, it } from 'effect-bun-test';
 import {
@@ -33,6 +36,7 @@ import { Base64 } from 'effect/encoding';
 import { labUrls } from '../core/api.ts';
 import { type BoardFile, BoardFileJson } from '../core/board.ts';
 import { RenderCatalogue } from './catalogue.ts';
+import { ProductionStore } from './production-store.ts';
 import { labHandler } from './lab.ts';
 import { channel } from './lab-channel.ts';
 import { LabEvents } from './lab-events.ts';
@@ -43,6 +47,7 @@ import { formatAsIs, labInMemory, noRenders, text } from './testing.ts';
 const TOKEN = 'a'.repeat(64);
 const TUNNEL = 'x.opentunnel.xyz';
 const BASE = 'http://127.0.0.1:4401/';
+const PHONE = 'http://100.64.0.9:8230/';
 const bound = { hostname: '127.0.0.1', port: 4401 } as const;
 
 const board: BoardFile = {
@@ -91,7 +96,7 @@ const labWithMcp = Effect.gen(function* () {
   const events = yield* LabEvents.make({ base: BASE });
   yield* events.look;
   const services = yield* Effect.context<LabMcpNeeds>();
-  const mcp = labMcp({ token: TOKEN }, { base: BASE }).pipe(
+  const mcp = labMcp({ token: TOKEN }, { base: BASE, phone: PHONE }).pipe(
     Layer.provide(Layer.succeedContext(Context.add(services, LabEvents, events))),
   );
   // The tunnel's name is one the lab's gate admits (as `FILM_LAB_HOSTS` makes it): the MCP still refuses it.
@@ -183,7 +188,12 @@ const session = (lab: Lab) =>
         const messages: ReadonlyArray<any> = yield* Effect.orDie(
           Effect.forEach(texts, (t) => readJson(t)),
         );
-        return messages.find((m) => m.id === n)?.result;
+        const answer = messages.find((m) => m.id === n);
+        // A JSON-RPC error (the arguments did not decode) is said as a refusal.
+        return Option.getOrElse(Option.fromNullishOr(answer?.result), () => ({
+          isError: true,
+          content: [{ text: writeJson(answer?.error) }],
+        }));
       });
     /** A tool's structured answer, or its refusal's words. */
     const tool = (name: string, args: Schema.Json = {}) =>
@@ -267,6 +277,10 @@ describe('the lab as an MCP server', () => {
             'resolve',
             'set',
             'sets',
+            'ask',
+            'ask_read',
+            'asks',
+            'close_ask',
           ].toSorted(),
         );
         const { cursor } = yield* tool('overview');
@@ -367,6 +381,197 @@ describe('the lab as an MCP server', () => {
         ]);
       }),
     ),
+  );
+});
+
+/** The owner's answers to a step of an ask, as its page posts them. */
+const ownerAnswers = (lab: Lab, ask: string, step: string, values: Record<string, string>) =>
+  Effect.flatMap(
+    Effect.promise(() =>
+      lab(
+        new Request(`${BASE.slice(0, -1)}${labUrls.asks.answer({ params: { ask } })}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: writeJson({ step, values }),
+        }),
+        bound,
+      ),
+    ),
+    (r) => Effect.promise(() => r.json().then((body) => ({ status: r.status, body }))),
+  );
+
+describe('asks through the MCP', () => {
+  it.effect('refuses an ask that may not render, and makes a one-line one with its links', () =>
+    provided(
+      Effect.gen(function* () {
+        const { lab } = yield* labWithMcp;
+        const { tool } = yield* session(lab);
+        const who = { title: 'A name', why: 'the set needs one', by: 'agent' };
+        const looped = yield* tool('ask', {
+          ...who,
+          machine: {
+            start: 'a',
+            steps: {
+              a: { blocks: [{ kind: 'prose', text: 'a' }], next: [{ to: 'a' }] },
+            },
+          },
+        });
+        expect(looped.refused).toContain('the ask may not render');
+        expect(looped.refused).toContain('step a goes on to itself');
+        expect((yield* tool('ask', who)).refused).toContain('give `blocks`');
+        expect((yield* tool('ask', { ...who, blocks: [], set: 'spare/x' })).refused).toContain(
+          'name it',
+        );
+        const one = yield* tool('ask', {
+          ...who,
+          blocks: [{ kind: 'free_text', id: 'name', label: 'What do we call it?' }],
+        });
+        expect(one).toMatchObject({ status: 'asking', step: 'ask', answers: {}, answered: [] });
+        expect(one.links).toEqual({
+          local: `${BASE}asks/${one.ask}`,
+          phone: `${PHONE}asks/${one.ask}`,
+        });
+        expect(
+          (yield* tool('asks', { status: 'asking' })).asks.map((a: { ask: string }) => a.ask),
+        ).toEqual([one.ask]);
+      }),
+    ),
+  );
+
+  it.effect(
+    'the owner answers a step at a time, heard typed; closed, it is filed on the timeline',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab, events } = yield* labWithMcp;
+          const { tool } = yield* session(lab);
+          const productions = yield* ProductionStore;
+          yield* productions.start('f', {
+            title: 'F',
+            film: Option.some('f'),
+            blurb: Option.none(),
+            first: 'the board',
+            at: 1,
+          });
+          yield* tool('publish_set', {
+            name: 'judge-faces',
+            files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
+            manifest: { title: 'Judge faces', images: ['calmer.png'] },
+          });
+          yield* events.look;
+          const { cursor } = yield* tool('overview');
+          const made = yield* tool('ask', {
+            title: 'Which judge?',
+            why: 'the cold open keeps one',
+            by: 'agent',
+            film: 'f',
+            production: 'f',
+            set: 'spare/judge-faces',
+            machine: {
+              start: 'pick',
+              steps: {
+                pick: {
+                  blocks: [
+                    {
+                      kind: 'choose',
+                      id: 'try',
+                      label: 'Which judge?',
+                      options: [
+                        {
+                          value: '1',
+                          label: 'Try 1',
+                          image: { board: { film: 'f', panel: 'cold.judge', try: 1 } },
+                        },
+                        {
+                          value: 'calm',
+                          label: 'Calmer',
+                          image: { src: '/api/review/files/spare/judge-faces/calmer.png' },
+                        },
+                      ],
+                    },
+                  ],
+                  next: [{ to: 'why', when: { answer: 'try', is: ['calm'] } }, { to: 'done' }],
+                },
+                why: {
+                  blocks: [{ kind: 'free_text', id: 'why', label: 'Why the calmer one?' }],
+                  next: [{ to: 'done' }],
+                },
+                done: { end: true, text: 'Thank you.' },
+              },
+            },
+          });
+          expect(made).toMatchObject({ status: 'asking' });
+          const waits = Option.getOrThrow(yield* productions.read('f')).said;
+          expect(waits.map((w) => [w._tag, w.text, w.set])).toEqual([
+            ['Asked', `Which judge? (ask ${made.ask})`, Option.some('judge-faces')],
+          ]);
+          const picked = yield* ownerAnswers(lab, made.ask, 'pick', { try: 'calm' });
+          expect(picked.status).toBe(200);
+          expect((yield* ownerAnswers(lab, made.ask, 'pick', { try: '1' })).status).toBe(409);
+          yield* events.look;
+          const heard = yield* tool('changes', { since: cursor });
+          expect(
+            heard.changes.map(
+              (c: { kind: string; ask: string; step: string; answers: unknown; link: string }) => [
+                c.kind,
+                c.ask,
+                c.step,
+                c.answers,
+                c.link,
+              ],
+            ),
+          ).toEqual([
+            [
+              'ask.step',
+              made.ask,
+              'pick',
+              { try: { kind: 'choose', value: 'calm', label: 'Calmer' } },
+              `${BASE}asks/${made.ask}`,
+            ],
+          ]);
+          yield* ownerAnswers(lab, made.ask, 'why', { why: 'he listens' });
+          yield* events.look;
+          const ended = yield* tool('changes', { since: heard.cursor });
+          expect(ended.changes.map((c: { kind: string }) => c.kind)).toEqual([
+            'ask.step',
+            'ask.answered',
+          ]);
+          const answers = {
+            try: { kind: 'choose', value: 'calm', label: 'Calmer' },
+            why: { kind: 'free_text', text: 'he listens' },
+          };
+          expect(ended.changes[1].answers).toEqual(answers);
+          expect(yield* tool('ask_read', { ask: made.ask })).toMatchObject({
+            status: 'answered',
+            step: 'done',
+            answers,
+          });
+          const closed = yield* tool('close_ask', { ask: made.ask, why: 'kept the calmer judge' });
+          expect(closed).toMatchObject({
+            status: 'closed',
+            closed: 'kept the calmer judge',
+            answers,
+          });
+          // Closed again: as it is, and filed once.
+          yield* tool('close_ask', { ask: made.ask, why: 'kept the calmer judge' });
+          const said = Option.getOrThrow(yield* productions.read('f')).said;
+          expect(said.map((w) => [w._tag, w.text, w.quote, w.set])).toEqual([
+            ['Asked', `Which judge? (ask ${made.ask})`, Option.none(), Option.some('judge-faces')],
+            [
+              'Decided',
+              'Which judge?: try: Calmer · why: he listens',
+              Option.some('he listens'),
+              Option.some('judge-faces'),
+            ],
+          ]);
+          yield* events.look;
+          expect(
+            (yield* tool('changes', { since: ended.cursor })).changes.map(
+              (c: { kind: string; text: string }) => [c.kind, c.text],
+            ),
+          ).toEqual([['ask.closed', 'kept the calmer judge']]);
+        }),
+      ),
   );
 });
 

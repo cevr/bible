@@ -10,6 +10,7 @@
 // what the next version is for, and the ledger opens it. A past version is
 // shut to its head until opened (`?v=<n>` opens it from a link).
 
+import { PlaceStyle } from '../place-style.tsx';
 import { For, type JSX, Show } from '@solidjs/web';
 import { Array as Arr, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -672,48 +673,51 @@ export const ProductionPage = (props: { readonly production: string; readonly v:
     ),
   );
   return (
-    <Loaded value={read()} result={state.index()} reading="Reading the timeline…">
-      {() => (
-        <Show
-          when={histories().find((h) => h.production === props.production)}
-          fallback={
-            <p class="empty">
-              No production named {props.production}: none keeps a ledger, and no set names it.
-            </p>
-          }
-        >
-          {(history: Accessor<ProductionHistory>) => {
-            const said = () =>
-              history().versions.flatMap((v) =>
-                v.entries.filter(Entry.$is('Said')).map((e) => e.said),
+    <>
+      <PlaceStyle css={PRODUCTION_CSS} />
+      <Loaded value={read()} result={state.index()} reading="Reading the timeline…">
+        {() => (
+          <Show
+            when={histories().find((h) => h.production === props.production)}
+            fallback={
+              <p class="empty">
+                No production named {props.production}: none keeps a ledger, and no set names it.
+              </p>
+            }
+          >
+            {(history: Accessor<ProductionHistory>) => {
+              const said = () =>
+                history().versions.flatMap((v) =>
+                  v.entries.filter(Entry.$is('Said')).map((e) => e.said),
+                );
+              return (
+                <article class="pd" data-production={history().production}>
+                  <header class="pd-head">
+                    <h1>{history().title}</h1>
+                    <Show when={Option.getOrUndefined(history().blurb)}>
+                      {(blurb: Accessor<string>) => <p class="rv-hint">{blurb()}</p>}
+                    </Show>
+                  </header>
+                  <ol class="pd-line">
+                    <For each={history().versions}>
+                      {(version) => (
+                        <VersionBlock
+                          history={history()}
+                          version={version}
+                          focused={props.v === version.n}
+                          said={said()}
+                          waiting={currentOf(history()).waiting}
+                        />
+                      )}
+                    </For>
+                  </ol>
+                </article>
               );
-            return (
-              <article class="pd" data-production={history().production}>
-                <header class="pd-head">
-                  <h1>{history().title}</h1>
-                  <Show when={Option.getOrUndefined(history().blurb)}>
-                    {(blurb: Accessor<string>) => <p class="rv-hint">{blurb()}</p>}
-                  </Show>
-                </header>
-                <ol class="pd-line">
-                  <For each={history().versions}>
-                    {(version) => (
-                      <VersionBlock
-                        history={history()}
-                        version={version}
-                        focused={props.v === version.n}
-                        said={said()}
-                        waiting={currentOf(history()).waiting}
-                      />
-                    )}
-                  </For>
-                </ol>
-              </article>
-            );
-          }}
-        </Show>
-      )}
-    </Loaded>
+            }}
+          </Show>
+        )}
+      </Loaded>
+    </>
   );
 };
 
@@ -723,7 +727,7 @@ export const ProductionPage = (props: { readonly production: string; readonly v:
  * its left, the current one's dot in the accent; a set's stills beside its
  * words on a laptop, above them on a phone.
  */
-export const PRODUCTION_CSS = `
+const PRODUCTION_CSS = `
 .pd{max-width:960px;margin:0 auto}
 .pd h1{font-size:var(--fs-5);line-height:var(--lh-5);font-weight:var(--w-3);margin:var(--s-4) 0 var(--s-1)}
 .pd p{margin:0 0 var(--s-3)}

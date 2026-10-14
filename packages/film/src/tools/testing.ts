@@ -3,6 +3,7 @@
 // film's notes in memory, and `film notes` run over them. No network, no
 // Chromium, no credits.
 
+import { AskStore } from './ask-store.ts';
 import {
   Array as Arr,
   ByteSize,
@@ -1691,6 +1692,7 @@ export const labInMemory = (
     NotesStore.layer,
     ProductionStore.layer,
     BoardStore.layer.pipe(Layer.provide(FilmFolder.layer('/films'))),
+    AskStore.layer.pipe(Layer.provide(BoardStore.layer), Layer.provide(FilmFolder.layer('/films'))),
     FilmFolder.layer('/films'),
     noSource,
     noStudio,
@@ -2097,6 +2099,10 @@ export const reviewHttpFixtureLasting = (seconds: number, phoneCopies = false) =
               NotesStore.layer,
               ProductionStore.layer,
               BoardStore.layer.pipe(Layer.provide(FilmFolder.layer(films))),
+              AskStore.layer.pipe(
+                Layer.provide(BoardStore.layer),
+                Layer.provide(FilmFolder.layer(films)),
+              ),
             ).pipe(
               Layer.provideMerge(ContentStore.layer),
               Layer.provide(
