@@ -1165,6 +1165,15 @@ const anchorsDrift = (root: string, docs: ReadonlyArray<Doc>) => {
 
 const ROOT = Effect.map(Path.Path, (path) => path.join(import.meta.dir, '..', '..', '..'));
 
+// The repo's code is read once, begun as the file loads: two tests check docs
+// against it, and a read walks every workspace's tree.
+const codeRead = Effect.runPromiseExit(
+  Effect.flatMap(ROOT, readCode).pipe(Effect.provide(BunServices.layer)),
+);
+
+/** The repo's code as the docs name it, read once (`readCode`). */
+const repoCode = Effect.flatten(Effect.promise(() => codeRead));
+
 const TOKENS_CSS = 'packages/film/src/player/tokens.css';
 
 /** The design language's §3 block, as the parser reads it: the first css code block under `## 3. Tokens`. */
@@ -1425,7 +1434,7 @@ describe('the docs', () => {
       Effect.gen(function* () {
         const root = yield* ROOT;
         const [code, docs, spanned, anchored] = yield* Effect.all([
-          readCode(root),
+          repoCode,
           readDocs(root),
           readEach(root, SPANNED, false),
           readEach(root, ANCHORED, true),
@@ -1461,7 +1470,7 @@ describe('the docs', () => {
   it.effect.layer(BunServices.layer)('fail a doc that names what the code no longer has', () =>
     Effect.gen(function* () {
       const root = yield* ROOT;
-      const code = yield* readCode(root);
+      const code = yield* repoCode;
       const stale: Doc = {
         path: 'stale.md',
         bases: ['', FILM_SRC],

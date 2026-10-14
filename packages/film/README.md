@@ -3383,7 +3383,12 @@ test holds that list to the plugin's rules.
 
 The package's `test` script runs the unit tests under `src/` and `lint/`.
 The root `test` and `gate`, including the CI gate, run this browser-free
-suite. E2E files live separately under `e2e/`, so those paths do not discover
+suite. Each run writes its files' times to
+`node_modules/.cache/bun-test/timings.json` (`--timings`, `--update-timings`),
+and the next run starts the slowest files first, so a long file does not
+begin last and run alone. A fresh checkout, CI's among them, has no times
+yet and runs the files in their usual order. The suite stays inside the
+repo's ten-second budget (`bun run test:budget`). E2E files live separately under `e2e/`, so those paths do not discover
 or execute them. Their source remains linted and typechecked.
 
 Run `bun run test:e2e` from the repository root or this package to exercise
