@@ -326,10 +326,11 @@ describe('the Script', () => {
   );
 
   it.live(
-    'on a phone, a long brief shows three lines until More opens it, and opens as a name it hides is picked; a beat it names is a link to that beat',
+    'on a phone, a long brief shows three lines until More opens it, or a key lands on a link it hides; a name it hides picked leaves it shut; a beat it names is a link to that beat',
     () =>
       Effect.gen(function* () {
         const more = '[data-scene="one"] .lab-script-more';
+        const brief = '[data-scene="one"] .lab-script-picture';
         const { page, errors } = yield* openLab(LONG_BRIEF, {
           href: pageHref.scriptBeat(PROBE, 'one'),
           viewport: PHONE,
@@ -348,6 +349,17 @@ describe('the Script', () => {
         yield* evaluates(page, `${briefLines('one')} > 3`, true);
         yield* page.click(more);
         yield* attributeIs(page, more, 'aria-expanded', 'false');
+        // Tab from the beat's head lands on its cue `rise`, a link the three lines hide: the brief
+        // opens whole, never scrolled inside its three lines to show it.
+        yield* page.focus('[data-scene="one"] [data-act="seek-beat"]');
+        yield* page.press('Tab');
+        yield* evaluates(
+          page,
+          `document.activeElement.matches('${brief} .lab-script-ref') && document.activeElement.textContent`,
+          'rise',
+        );
+        yield* attributeIs(page, more, 'aria-expanded', 'true');
+        yield* evaluates(page, `document.querySelector('${brief}').scrollTop`, 0);
         // A brief its three lines hold has no More.
         yield* countIs(page, '[data-scene="two"] .lab-script-more', 0);
         // The beat it names: a link to that beat's place on the Script.
@@ -358,12 +370,16 @@ describe('the Script', () => {
           pageHref.scriptBeat(PROBE, 'two'),
         );
         expect(errors).toEqual([]);
-        // Its cue `rise` picked, past its third line: it opens, so the name lit shows.
+        // Its cue `rise` picked, past its third line, it stays shut: the line shows what is
+        // picked, and the reader stays on it.
         const picked = yield* openLab(LONG_BRIEF, {
           href: pageHref.scriptBeat(PROBE, 'one', { cue: 'rise' }),
           viewport: PHONE,
         });
-        yield* attributeIs(picked.page, more, 'aria-expanded', 'true');
+        yield* waitFor(picked.page, `${brief} .lab-script-ref[aria-current="true"]`);
+        yield* waitFor(picked.page, '[data-scene="one"] .lab-script-ties');
+        yield* attributeIs(picked.page, more, 'aria-expanded', 'false');
+        yield* evaluates(picked.page, `${briefLines('one')} === 3`, true);
         expect(picked.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

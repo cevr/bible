@@ -147,9 +147,11 @@ body.lab:has(.lab-script) .bar > .row .say { visibility: hidden; }
   /* The screen's height, not a page that scrolls: the picture and its track stay over the words. */
   body.lab:has(.lab-script) { height: 100dvh; min-height: 0; grid-template-rows: auto auto auto minmax(0, 1fr); }
   .lab-script { grid-column: 1; grid-row: 4; border-top: var(--border); }
-  /* A brief shows three lines until More opens it: the reader opens on the words read aloud, not on what the picture does. */
+  /* A brief shows three lines until More opens it: the reader opens on the words read aloud, not on what the picture does.
+     It clips the rest, never scrolls it: a key landing on a link it hides finds the link below its lines, and opens it
+     (a box that scrolls would scroll the link up into its three lines instead). The margin is the focus ring's. */
   .lab-script-picture:not([data-open='true']) { display: -webkit-box; -webkit-box-orient: vertical;
-    -webkit-line-clamp: ${BRIEF_LINES}; line-clamp: ${BRIEF_LINES}; overflow: hidden; }
+    -webkit-line-clamp: ${BRIEF_LINES}; line-clamp: ${BRIEF_LINES}; overflow: clip; overflow-clip-margin: 2px; }
 }
 @media ${WIDE} {
   /* A laptop's column shows a brief whole: nothing for More to open. */

@@ -133,8 +133,9 @@ const BeatRef = (props: { readonly name: string }) => {
  * Beat `beat`'s picture brief, each name in backticks that is one of its
  * cues or marks a link to it, and one that is a beat of the film a link to
  * that beat. On a phone it shows three lines, the line read aloud under it
- * in sight, until More opens it; a name of it picked opens it, as a key
- * landing on a link it hides does. More is there only while the three
+ * in sight, until More opens it, or a key lands on a link it hides. A name
+ * it hides picked leaves it shut: the line under it shows what is picked,
+ * and the reader stays on the line. More is there only while the three
  * lines hide some of it.
  */
 export const Picture = (props: {
@@ -143,7 +144,6 @@ export const Picture = (props: {
   readonly cues: ReadonlyArray<string>;
   readonly marks: Readonly<Record<string, number>>;
 }) => {
-  const { state } = useLab();
   const script = useScript();
   const pieces = createMemo(() =>
     briefOf(
@@ -153,27 +153,10 @@ export const Picture = (props: {
       script.beats.map((b) => b.id),
     ),
   );
-  const named = createMemo(
-    () =>
-      Option.exists(
-        state.selection(),
-        (s) =>
-          s.scene === props.beat && pieces().some((p) => Brief.$is('Cue')(p) && p.name === s.name),
-      ) ||
-      Option.exists(
-        script.mark(),
-        (m) =>
-          m.scene === props.beat && pieces().some((p) => Brief.$is('Mark')(p) && p.name === m.name),
-      ),
-  );
   const [open, setOpen] = createSignal(false, { ownedWrite: true });
   const [clips, setClips] = createSignal(false, { ownedWrite: true });
   const id = createUniqueId();
   let brief = Option.none<HTMLElement>();
-  // A name of it picked opens it, so the name lit shows.
-  createEffect(named, (on) => {
-    if (on) setOpen(true);
-  });
   // As the page lays it out, whether it runs past its lines on a phone, open or shut: the box shut keeps the whole
   // height it scrolls. The stylesheet says where it shuts (and so where More shows), the phone's width.
   createEffect(
