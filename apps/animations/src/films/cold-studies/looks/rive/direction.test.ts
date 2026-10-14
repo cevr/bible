@@ -1191,6 +1191,22 @@ const castBand = (c: Pt, cover: number): Pt[] => {
   });
 };
 
+/** The palms built so far, by direction: every pose of one direction reads the same rig. */
+const palms = new Map<Direction, ReturnType<typeof palmBuilt>>();
+
+/** `d`'s palm as its hand rig draws it, and the cast the rig lays under it, if any. */
+const palmBuilt = (d: Direction) => {
+  const palm = drawnOf(figureRigs(d).hand[0] as Element).find((s) => s.name === 'palm');
+  return { palm, rigCast: palm === undefined ? undefined : paintNamed(palm.e, 'Shadow') };
+};
+
+/** `d`'s palm, built once however many poses read it. */
+const palmOf = (d: Direction) => {
+  const built = palms.get(d) ?? palmBuilt(d);
+  palms.set(d, built);
+  return built;
+};
+
 /**
  * Under `d`, leaning `lean` with the gavel turned `swing`: each place the
  * hand's cast shows, the surface the court's geometry puts there, and the
@@ -1198,8 +1214,7 @@ const castBand = (c: Pt, cover: number): Pt[] => {
  * fill the host draws there.
  */
 const handCasts = (d: Direction, lean: number, swing: number, as: Mutation = (f) => f) => {
-  const palm = drawnOf(figureRigs(d).hand[0] as Element).find((s) => s.name === 'palm');
-  const rigCast = palm === undefined ? undefined : paintNamed(palm.e, 'Shadow');
+  const { palm, rigCast } = palmOf(d);
   const fills = drawing((f) => judgeOf(d).over(as(f), swing, lean, propsOf(d)));
   const surfaces = underHand(d, swing, lean, propsOf(d));
   const outlined = surfaces.flatMap((s) =>
