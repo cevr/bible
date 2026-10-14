@@ -4,7 +4,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import type { ResolvedCue, Timeline } from '../../core/schema.ts';
-import { blockWords, countText, labelsOf, stripOrder, tracksOf } from './tracks.ts';
+import { blockWords, countText, heldLanes, labelsOf, stripOrder, tracksOf } from './tracks.ts';
 
 const at = (start: number, dur: number): ResolvedCue => ({
   start,
@@ -108,6 +108,73 @@ describe('tracks', () => {
     expect(blockWords('tail', { at: 'speech', until: { cue: 'flood' } }, at(0, 2))).toBe(
       'tail until flood’s end',
     );
+  });
+
+  test('an end off its point says by how much, and one off the scene’s end no longer holds to it', () => {
+    expect(blockWords('near', { mark: 'near', until: 'held', untilOffset: 0.2 }, at(0, 2))).toBe(
+      'near until {held} +0.20 s',
+    );
+    expect(
+      blockWords('card', { mark: 'job', until: { at: 'end' }, untilOffset: -1 }, at(0, 2)),
+    ).toBe('card until end −1.00 s');
+  });
+
+  test('a cue named as another’s track keeps its own row: the two never merge', () => {
+    const timeline: Timeline = {
+      judge: { at: 'start', dur: 1 },
+      lean: { after: 'judge', dur: 1, track: 'judge' },
+    };
+    const cues = new Map([
+      ['judge', at(0, 1)],
+      ['lean', at(1, 1)],
+    ]);
+    expect(rowsOf(timeline, cues)).toStrictEqual([
+      ['judge', false, [['judge']]],
+      ['judge', true, [['lean']]],
+    ]);
+  });
+
+  test('while a cue is held its bar keeps the lane it was pressed on; let go, it stacks', () => {
+    const timeline: Timeline = {
+      a: { at: 'start', dur: 1, track: 't' },
+      b: { at: 'start', offset: 2, dur: 1, track: 't' },
+    };
+    const before = tracksOf(
+      timeline,
+      new Map([
+        ['a', at(0, 1)],
+        ['b', at(2, 1)],
+      ]),
+    );
+    // The drag takes b over a.
+    const dragged = tracksOf(
+      timeline,
+      new Map([
+        ['a', at(0, 1)],
+        ['b', at(0.5, 1)],
+      ]),
+    );
+    const lanes = (tracks: ReturnType<typeof tracksOf>) =>
+      tracks.map((t) => t.lanes.map((l) => l.map((b) => [b.name, b.cue.start])));
+    expect(lanes(dragged)).toStrictEqual([[[['a', 0]], [['b', 0.5]]]]);
+    expect(lanes(heldLanes(before, dragged))).toStrictEqual([
+      [
+        [
+          ['a', 0],
+          ['b', 0.5],
+        ],
+      ],
+    ]);
+    // A track whose cues changed takes the new lanes.
+    const grown = tracksOf(
+      { ...timeline, c: { at: 'start', dur: 1, track: 't' } },
+      new Map([
+        ['a', at(0, 1)],
+        ['b', at(0.5, 1)],
+        ['c', at(0, 1)],
+      ]),
+    );
+    expect(heldLanes(before, grown)).toStrictEqual(grown);
   });
 
   test('the marks are labels at their scene seconds, in time order', () => {

@@ -22,7 +22,9 @@ export interface Block {
 }
 
 /** A track: the actor or part its cues move, and its cues in lanes, none overlapping another in its lane. */
-interface Track {
+export interface Track {
+  /** Which track it is: a named track's and a cue's own never share one, though a cue may be named as a track is. */
+  readonly key: string;
   readonly name: string;
   /** Named by its cues' `track`; else the one cue that names none, named by itself. */
   readonly named: boolean;
@@ -38,19 +40,43 @@ export interface Label {
 /** Seconds as the strip prints them: `0.35`, `1.40`. */
 const seconds = (s: number) => s.toFixed(2);
 
-/** What ends a span that runs `until` a point, in words. */
-const untilWords = (until: Until): string =>
+/** The point a span runs `until`, in words. */
+const pointWords = (until: Until): string =>
   Match.value(until).pipe(
-    Match.when(Predicate.isString, (mark) => `until {${mark}}`),
-    Match.when({ at: 'end' }, () => '· holds to end'),
-    Match.when({ at: Predicate.isString }, ({ at }) => `until ${at}`),
-    Match.orElse(({ cue, edge }) => `until ${cue}’s ${edge ?? 'end'}`),
+    Match.when(Predicate.isString, (mark) => `{${mark}}`),
+    Match.when({ at: Predicate.isString }, ({ at }) => at),
+    Match.orElse(({ cue, edge }) => `${cue}’s ${edge ?? 'end'}`),
+  );
+
+/** Seconds off a point, signed: `+0.20 s`, `−1.00 s`. */
+const offWords = (s: number) =>
+  `${Option.match(
+    Option.liftPredicate(s, (n) => n < 0),
+    { onSome: () => '−', onNone: () => '+' },
+  )}${seconds(Math.abs(s))} s`;
+
+/**
+ * What ends a span that runs `until` a point, in words: the point and the
+ * seconds off it (`untilOffset`), or, on the scene's end itself, that it
+ * holds to it.
+ */
+const untilWords = (until: Until, offset: Option.Option<number>): string =>
+  Option.match(
+    Option.filter(offset, (s) => s !== 0),
+    {
+      onSome: (s) => `until ${pointWords(until)} ${offWords(s)}`,
+      onNone: () =>
+        Match.value(until).pipe(
+          Match.when({ at: 'end' }, () => '· holds to end'),
+          Match.orElse((u) => `until ${pointWords(u)}`),
+        ),
+    },
   );
 
 /** What a cue is: its name, then what ends it (a point it runs until, the scene's end) or its length. */
 export const blockWords = (name: string, span: Span, cue: ResolvedCue): string =>
   Option.match(Option.fromUndefinedOr(span.until), {
-    onSome: (until) => `${name} ${untilWords(until)}`,
+    onSome: (until) => `${name} ${untilWords(until, Option.fromUndefinedOr(span.untilOffset))}`,
     onNone: () =>
       Option.match(
         Option.liftPredicate(cue.dur, (d) => d > 0),
@@ -112,10 +138,21 @@ const pack = (
 
 /** One cue of a timeline, resolved, with the track it is on. */
 interface Placed {
+  /** Its track's key: `track:` and the name its span gives, else `cue:` and its own. */
+  readonly key: string;
   readonly track: string;
   readonly named: boolean;
   readonly block: Block;
 }
+
+/** A cue on the track its span names, or on its own, named by itself. */
+const placedOn = (name: string, span: Span, cue: ResolvedCue): Placed => {
+  const block = { name, cue, words: blockWords(name, span, cue), until: 'until' in span };
+  return Option.match(Option.fromUndefinedOr(span.track), {
+    onSome: (track) => ({ key: `track:${track}`, track, named: true, block }),
+    onNone: () => ({ key: `cue:${name}`, track: name, named: false, block }),
+  });
+};
 
 /**
  * The tracks of a scene's `timeline` (its cues in the order written) with its
@@ -127,25 +164,52 @@ export const tracksOf = (
 ): ReadonlyArray<Track> => {
   const placed = Arr.getSomes(
     Object.entries(timeline).map(([name, span]) =>
-      Option.map(Option.fromUndefinedOr(cues.get(name)), (cue): Placed => ({
-        track: span.track ?? name,
-        named: Predicate.isNotUndefined(span.track),
-        block: { name, cue, words: blockWords(name, span, cue), until: 'until' in span },
-      })),
+      Option.map(Option.fromUndefinedOr(cues.get(name)), (cue) => placedOn(name, span, cue)),
     ),
   );
-  // Grouped by name; a record's keys are not kept in the order written (`'2'` before `'b'`), so the order is its own.
-  const byTrack = Arr.groupBy(placed, (p) => p.track);
+  // Grouped by key; a record's keys are not kept in the order written (`'2'` before `'b'`), so the order is its own.
+  const byTrack = Arr.groupBy(placed, (p) => p.key);
   return Arr.getSomes(
-    Arr.dedupe(placed.map((p) => p.track)).map((track) =>
-      Option.map(Option.fromUndefinedOr(byTrack[track]), (mine): Track => ({
-        name: track,
+    Arr.dedupe(placed.map((p) => p.key)).map((key) =>
+      Option.map(Option.fromUndefinedOr(byTrack[key]), (mine): Track => ({
+        key,
+        name: mine[0].track,
         named: mine[0].named,
         lanes: pack(Arr.map(mine, (p) => p.block)),
       })),
     ),
   );
 };
+
+/**
+ * `next`'s tracks in `held`'s lanes while a cue is held: a drag that moves a
+ * bar into or out of an overlap keeps it on the lane it was pressed on (the
+ * bar holds the pointer, so a lane of its own would drop the grip), packed
+ * again once it is let go. A track whose cues changed takes `next`'s lanes.
+ */
+export const heldLanes = (
+  held: ReadonlyArray<Track>,
+  next: ReadonlyArray<Track>,
+): ReadonlyArray<Track> =>
+  next.map((track) =>
+    Option.getOrElse(
+      Option.flatMap(
+        Arr.findFirst(held, (h) => h.key === track.key),
+        (was) => {
+          const now = new Map(track.lanes.flatMap((lane) => lane.map((b) => [b.name, b] as const)));
+          const lanes = Arr.map(was.lanes, (lane) =>
+            Arr.getSomes(lane.map((b) => Option.fromUndefinedOr(now.get(b.name)))),
+          );
+          // Every cue it holds now was on one of its lanes then.
+          return Option.liftPredicate(
+            { ...track, lanes },
+            () => lanes.flat().length === now.size && stripOrder([was]).length === now.size,
+          );
+        },
+      ),
+      () => track,
+    ),
+  );
 
 /** The cue names of `tracks` in the strip's order: track by track, lane by lane, each lane by its clock. */
 export const stripOrder = (tracks: ReadonlyArray<Track>): ReadonlyArray<string> =>

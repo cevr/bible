@@ -34,7 +34,16 @@ import { useLab } from '../shell.tsx';
 import { pointsAt, useEditor } from './context.tsx';
 import { anchorText } from './format.ts';
 import { lanesKey, lanesOf } from './lanes.ts';
-import { type Block, type Label, countText, labelsOf, stripOrder, tracksOf } from './tracks.ts';
+import {
+  type Block,
+  type Label,
+  type Track,
+  countText,
+  heldLanes,
+  labelsOf,
+  stripOrder,
+  tracksOf,
+} from './tracks.ts';
 import { SourceKnown, type StripWindow, dragModeAt, edgeFor, stripWindow } from './grip.ts';
 import { PHONE, useMatches } from '../viewport.ts';
 import { useMotion } from '../motion/context.tsx';
@@ -123,6 +132,10 @@ const CueBar = (props: CueBarProps) => {
       onNone: () => '',
       onSome: anchorText,
     });
+  // A bar gone from under the mouse (the scene changed, its lane stacked) gives up the point it held: no leave comes.
+  onCleanup(() => {
+    if (pointsAt(editor.pointed(), scene(), name())) actions.point(Option.none());
+  });
   const press = (e: PointerEvent & { currentTarget: HTMLElement }) => {
     // A right-click is the context menu's, never a grip.
     if (e.button !== 0) return;
@@ -236,11 +249,16 @@ export const Strip = () => {
     lab.revision();
     return [...meta.stage.cuesOf(state.stripScene())];
   });
-  // The cues by track, read again as they are: a drag moves a bar within its track, and may stack it.
-  const tracks = createMemo(() => {
+  // The cues by track, read again as they are. While a cue is held its bar keeps its lane (`heldLanes`): the bar
+  // holds the pointer, so remounting it on another lane would drop the grip; it stacks once let go.
+  const tracks = createMemo((was?: ReadonlyArray<Track>) => {
     lab.revision();
     const scene = state.stripScene();
-    return tracksOf(meta.stage.timelineOf(scene), meta.stage.cuesOf(scene));
+    const next = tracksOf(meta.stage.timelineOf(scene), meta.stage.cuesOf(scene));
+    return Option.match(
+      Option.filter(Option.fromUndefinedOr(was), () => state.holding()),
+      { onSome: (held) => heldLanes(held, next), onNone: () => next },
+    );
   });
   let rows = Option.none<HTMLElement>();
   let scroller = Option.none<HTMLElement>();
@@ -345,7 +363,7 @@ export const Strip = () => {
         const lanes = createMemo(() =>
           tracks().flatMap((track) =>
             track.lanes.map((blocks, i) => ({
-              key: `${track.name}\u0000${i}`,
+              key: `${track.key}\u0000${i}`,
               label: Option.getOrElse(
                 Option.liftPredicate(track.name, () => i === 0),
                 () => '',

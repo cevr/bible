@@ -657,8 +657,8 @@ body.lab .stage {
 }
 /* The words stay at the top of the strip while its cues scroll under them; those outside its window are clipped. */
 .lab-strip-words {
-  /* The marks' names over the words (none where the strip folds to its words). */
-  --labels-h: var(--lh-1);
+  /* The marks' names over the words: a row of its own in Code mode only (`lab/source/style.ts`), none elsewhere. */
+  --labels-h: 0px;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -667,10 +667,17 @@ body.lab .stage {
   background: var(--surface-2);
   border-bottom: 1px solid var(--line);
 }
-/* The marks' names over the words: a row that folds away with the lanes. */
+/*
+ * The marks' names over the words, and their rules down through the tracks:
+ * Code mode's, where the strip reads beside the code (`lab/source/style.ts`).
+ * Elsewhere the marks are the ticks on the words, so a mode at rest shows no
+ * more than it did.
+ */
 .lab-strip-labels {
+  display: none;
   position: relative;
   height: var(--labels-h);
+  overflow: hidden;
 }
 /* A mark's name and scene second, in the room up to the next mark, from its rule. */
 .lab-strip-label {
@@ -687,6 +694,7 @@ body.lab .stage {
 }
 /* Each mark's rule down through the tracks, under the bars: a hairline, so the playhead stays the one accent line. */
 .lab-strip-guide {
+  display: none;
   position: absolute;
   top: 0;
   bottom: 0;
@@ -740,23 +748,15 @@ body.lab .stage {
  * The cue lanes and their Snap are Edit's (and Motion's on a laptop, where a
  * range across a lane sets the loop): in Note, Compare and Record, and on a
  * phone in every mode but Edit, the strip folds to its words, so the mode's
- * own controls start on the first screen and the picture keeps its room. The
- * marks' names and rules fold with the lanes.
+ * own controls start on the first screen and the picture keeps its room.
  */
 .lab-strip:is([data-mode='note'], [data-mode='compare'], [data-mode='record'])
-  :is(.lab-strip-row, .lab-strip-guide, .lab-strip-head > [data-act='snap']) {
+  :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
   display: none;
 }
-.lab-strip:is([data-mode='note'], [data-mode='compare'], [data-mode='record']) .lab-strip-words {
-  --labels-h: 0px;
-}
 @media (max-width: 899px) {
-  .lab-strip:not([data-mode='edit'])
-    :is(.lab-strip-row, .lab-strip-guide, .lab-strip-head > [data-act='snap']) {
+  .lab-strip:not([data-mode='edit']) :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
     display: none;
-  }
-  .lab-strip:not([data-mode='edit']) .lab-strip-words {
-    --labels-h: 0px;
   }
 }
 .lab-cue-label {

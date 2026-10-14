@@ -81,7 +81,10 @@ camera), and a misspelt track shows at once as its own row. `patchSpan` keeps it
   for a span `until` the scene's end, written inside its bar on a track of more than one cue. A track of one cue
   is named by that cue at the left, as today.
 - **Labels:** each `{mark}` of the scene's voice as a flag on a ruler over the words, with its scene time
-  (`evidence 1.62`), and a faint rule down through every row, so a block's edge on a mark reads as tied to it.
+  (`evidence 1.62`), and a faint rule down through every row, so a block's edge on a mark reads as tied to it. In
+  Code mode only: there the strip is the code's timeline, as scripter's is. Edit, Note, Motion, Compare and Record
+  keep their at-rest budgets (UR2-17, `e2e/lab/touch-budgets.dom.test.ts`), so there the marks stay ticks on the
+  words, named in their tooltips.
 - **The count:** the strip's head says `3 tracks · 6 marks · 7 cues`.
 
 ## The ties

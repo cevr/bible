@@ -88,6 +88,9 @@ body.lab:has(.lab-source-col[data-code='live']) .lab-panel { display: none; }
   body.lab:has(.lab-source-col) .lab-panel { grid-column: 3; }
   /* Half and half: the code as wide as the picture's column, the playhead's line in reach of the eye. */
   body.lab:has(.lab-source-col[data-code='live']) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  /* The strip reads as the code's timeline: each mark named with its second over the words, its rule down the tracks. */
+  body.lab:has(.lab-source-col[data-code='live']) .lab-strip-words { --labels-h: var(--lh-1); }
+  body.lab:has(.lab-source-col[data-code='live']) :is(.lab-strip-labels, .lab-strip-guide) { display: block; }
   .lab-source-col { grid-column: 2; grid-row: 2 / span 2; display: flex; flex-direction: column; min-height: 0; min-width: 0;
     overflow: hidden; background: var(--surface-1); border-left: var(--border); }
 }
@@ -95,9 +98,8 @@ body.lab:has(.lab-source-col[data-code='live']) .lab-panel { display: none; }
   .lab-source-col { display: none; }
   /* The screen's height, as the Script's reader: the picture and its strip stay over the code, which scrolls under them. */
   body.lab:has(.lab-source-col[data-code='live']) { height: 100dvh; min-height: 0; grid-template-rows: auto auto auto minmax(0, 1fr); }
-  body.lab:has(.lab-source-col[data-code='live']) .lab-strip :is(.lab-strip-row, .lab-strip-guide, .lab-strip-head > [data-act='snap']) {
+  body.lab:has(.lab-source-col[data-code='live']) .lab-strip :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
     display: none; }
-  body.lab:has(.lab-source-col[data-code='live']) .lab-strip .lab-strip-words { --labels-h: 0px; }
   .lab-source-col[data-code='live'] { grid-column: 1; grid-row: 4; display: flex; flex-direction: column; min-height: 0;
     min-width: 0; overflow: hidden; background: var(--surface-1); border-top: var(--border); }
 }

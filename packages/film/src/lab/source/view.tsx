@@ -230,8 +230,11 @@ const Text = (props: {
       ),
     ),
   );
+  // Whether the point is this view's, set by a mouse over one of its lines: gone from under it, the view gives it up.
+  let pointing = false;
   const pointAt = (e: PointerEvent, n: number) => {
     if (e.pointerType !== 'mouse') return;
+    pointing = true;
     editor.actions.point(
       Option.map(
         Option.filter(selectionAt(props.code, n), (s) => s._tag === 'Cue'),
@@ -239,6 +242,13 @@ const Text = (props: {
       ),
     );
   };
+  const pointOff = () => {
+    pointing = false;
+    editor.actions.point(Option.none());
+  };
+  onCleanup(() => {
+    if (pointing) pointOff();
+  });
   let page = Option.none<HTMLElement>();
   // The box the rows scroll in: found from the rows (`scrollContainerOf`), once they stand, so the column and the
   // sheet scroll by one rule.
@@ -373,7 +383,7 @@ const Text = (props: {
               style={{ '--glow': glowOn(row.n) }}
               onClick={() => tap(row.n)}
               onPointerEnter={(e: PointerEvent) => pointAt(e, row.n)}
-              onPointerLeave={() => editor.actions.point(Option.none())}
+              onPointerLeave={pointOff}
             >
               <span class="lab-source-n" aria-hidden="true">
                 {row.n}

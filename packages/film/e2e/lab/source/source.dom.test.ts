@@ -311,30 +311,36 @@ describe('the strip and the code, tied by the pointer', () => {
   const middleOf = (b: { x: number; y: number; width: number; height: number }) =>
     [b.x + b.width / 2, b.y + b.height / 2] as const;
 
-  it.live(
-    'the scene’s cues name no track, so each is a row of its own, under its marks’ labels',
-    () =>
-      Effect.gen(function* () {
-        const { page } = yield* openLab([codeRoute], {
-          href: labOne(0.05, { code: 'follow' }),
-        });
-        yield* page.waitFor('.lab-source-col .lab-source-page');
-        yield* evaluates(
-          page,
-          `[...document.querySelectorAll('.lab-strip-row')].map((r) => [r.querySelector('.lab-cue-label').textContent, r.hasAttribute('data-named')])`,
-          [
-            ['rise', false],
-            ['fall', false],
-          ],
-        );
-        yield* evaluates(
-          page,
-          `[...document.querySelectorAll('.lab-strip-label')].map((l) => l.dataset.mark)`,
-          ['rise', 'fall'],
-        );
-        // A bar on a track of its own draws as it did: its name at the row's left, no words in the bar.
-        yield* countIs(page, '.lab-cue .lab-cue-words', 0);
-      }).pipe(Effect.scoped),
+  /** The marks named over the strip's words, as shown. */
+  const LABELS_SHOWN = `[...document.querySelectorAll('.lab-strip-label')].filter((l) => l.checkVisibility()).map((l) => l.dataset.mark).join(' ')`;
+
+  it.live('the scene’s cues name no track, so each is a row of its own, as before', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(0.05, { code: 'follow' }),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* evaluates(
+        page,
+        `[...document.querySelectorAll('.lab-strip-row')].map((r) => r.querySelector('.lab-cue-label').textContent + (r.hasAttribute('data-named') ? ' named' : '')).join(' ')`,
+        'rise fall',
+      );
+      // A bar on a track of its own draws as it did: its name at the row's left, no words in the bar.
+      yield* countIs(page, '.lab-cue .lab-cue-words', 0);
+      // Outside Code mode the marks stay the ticks on the words.
+      yield* evaluates(page, LABELS_SHOWN, '');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('in Code mode the marks are named with their seconds over the words', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(0.05, { code: 'live' }),
+        ready: LIVE_READY,
+      });
+      yield* evaluates(page, LABELS_SHOWN, 'rise fall');
+      yield* textIs(page, '.lab-strip-label[data-mark="rise"]', /^rise \d+\.\d\d$/);
+    }).pipe(Effect.scoped),
   );
 
   it.live('a mouse over a bar lights the line that writes it, and over a line lights its bar', () =>
