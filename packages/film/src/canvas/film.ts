@@ -446,6 +446,32 @@ interface Reads {
 }
 
 /**
+ * Where a frame records the names it read off each scene's clock
+ * (`RenderOptions.clock`), by scene id: what the lab's Source view fires a
+ * read of the clock by, so a branch the frame did not take stays dark. A
+ * name is recorded once however often the frame reads it, by the scene's
+ * draw, its light or its card alike.
+ */
+export interface ClockReads {
+  /** Each cue read by name: `f.cue`, and `f.at`, `f.keys`, `f.stagger` and `f.staggerAt` through it. */
+  readonly cues: Map<string, Set<string>>;
+  /** Each mark read by name: `f.mark`, and both ends of `f.spoken` through it. */
+  readonly marks: Map<string, Set<string>>;
+}
+
+/** Scene `id`'s sets in `clock`, made the first time a frame draws the scene. */
+const hearsOf = (clock: ClockReads, id: string) => {
+  const of = (by: Map<string, Set<string>>) => {
+    const had = by.get(id);
+    if (had !== undefined) return had;
+    const made = new Set<string>();
+    by.set(id, made);
+    return made;
+  };
+  return { cues: of(clock.cues), marks: of(clock.marks) };
+};
+
+/**
  * A scene's timeline or knobs, standing in for its drawing's in a frame the
  * lab draws with it: a schema, as the editor's machine carries one in its
  * events.
@@ -511,6 +537,8 @@ export interface RenderOptions {
   readonly edits?: ReadonlyMap<string, ShownEdit>;
   /** Collect every knob the frame reads into this array. The pixels are the same either way. */
   readonly knobs?: KnobRead[];
+  /** Collect the names each scene's frame reads off its clock into these sets. The pixels are the same either way. */
+  readonly clock?: ClockReads;
   /**
    * Collect every line of text and every mark of ink the frame draws into
    * this sink (the probe `film check` reads). Leave it out for an ordinary
@@ -938,10 +966,14 @@ export const createFilm = (spec: FilmSpec): Film => {
     ]),
   );
 
+  /** Where the frame being rendered records the names it reads off each scene's clock: every render sets it (`RenderOptions.clock`). */
+  let hearing: ClockReads | undefined;
+
   /**
    * Scene `p`'s frame at film time `T`, drawn on `ctx`: its clock, cues,
    * knobs and words. A knob read outside every camera is noted in `unframed`
-   * (its place in `reads`), for the next camera to frame.
+   * (its place in `reads`), for the next camera to frame; a cue or mark read
+   * by name, in `hearing`.
    */
   const frameOf = (
     ctx: CanvasRenderingContext2D,
@@ -955,6 +987,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     const t = T - p.start;
     const words = localWords.get(p) ?? [];
     const shown = shownOf(p, edits);
+    const hears = hearing === undefined ? undefined : hearsOf(hearing, p.spec.id);
     const frame: Frame = {
       ctx,
       w: width,
@@ -967,11 +1000,13 @@ export const createFilm = (spec: FilmSpec): Film => {
       mark: (name) => {
         const at = p.voice.marks.get(name);
         if (at === undefined) throw new Error(`scene ${p.spec.id} has no mark {${name}}`);
+        hears?.marks.add(name);
         return p.speechStart + at;
       },
       cue: (name) => {
         const c = shown.cues.get(name);
         if (c === undefined) throw new Error(`scene ${p.spec.id} has no cue "${name}"`);
+        hears?.cues.add(name);
         return c;
       },
       at: (name) => cueProgress(frame.cue(name), t),
@@ -1351,6 +1386,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     const sink = opts.probe;
     const knobs = opts.knobs;
     const edits = opts.edits;
+    hearing = opts.clock;
     /** Knob reads straight onto the frame, or from a transition's layer. */
     const reads = (direct: boolean): Reads | undefined =>
       knobs === undefined ? undefined : { list: knobs, direct };

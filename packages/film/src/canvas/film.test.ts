@@ -128,6 +128,77 @@ describe('an edit is a value a frame draws with', () => {
   });
 });
 
+describe('a frame hears the names it reads off its clock', () => {
+  /** A film whose one scene reads cue `go` every frame, the voice from `{word}` to `{end}` in its first second, and cue `later` after it. */
+  const branching = () =>
+    createFilm({
+      ...spec(),
+      scenes: [
+        {
+          id: 'a',
+          say: 'A {word}line, and {end}more.',
+          min: 4,
+          timeline: { go: { at: 'start', dur: 1 }, later: { at: 'start', dur: 2 } },
+          draw: (f) => {
+            f.ctx.fillRect(0, 0, 100 * f.at('go'), 10);
+            if (f.t < 1) f.ctx.fillRect(0, 20, 100 * f.spoken('word', 'end'), 10);
+            else f.ctx.fillRect(0, 40, 100 * f.at('later'), 10);
+          },
+        },
+      ],
+    });
+  const clock = () => ({
+    cues: new Map<string, Set<string>>(),
+    marks: new Map<string, Set<string>>(),
+  });
+  const names = (of: Map<string, Set<string>>) => [...(of.get('a') ?? [])].sort();
+
+  test('draws the same frame whether it is heard or not', () => {
+    const film = branching();
+    const [plain, heard] = withDom(() => {
+      // Once first, so neither compared frame is a scene's first guess at its breath.
+      film.render(recorder().ctx, 0.5);
+      const a = recorder();
+      film.render(a.ctx, 0.5);
+      const b = recorder();
+      film.render(b.ctx, 0.5, { clock: clock() });
+      return [a.ops, b.ops];
+    });
+    expect(plain.length).toBeGreaterThan(0);
+    expect(heard).toEqual(plain);
+  });
+
+  test('hears each name its draw read, both ends of the voice, and none of a branch it did not take', () => {
+    const film = branching();
+    const early = clock();
+    const late = clock();
+    withDom(
+      () => {
+        film.render(recorder().ctx, 0.5, { clock: early });
+        film.render(recorder().ctx, 1.5, { clock: late });
+      },
+      { record: false },
+    );
+    expect(names(early.cues)).toEqual(['go']);
+    expect(names(early.marks)).toEqual(['end', 'word']);
+    expect(names(late.cues)).toEqual(['go', 'later']);
+    expect(names(late.marks)).toEqual([]);
+  });
+
+  test('a frame not asked to hear adds nothing to the last one heard', () => {
+    const film = branching();
+    const heard = clock();
+    withDom(
+      () => {
+        film.render(recorder().ctx, 0.5, { clock: heard });
+        film.render(recorder().ctx, 1.5);
+      },
+      { record: false },
+    );
+    expect(names(heard.cues)).toEqual(['go']);
+  });
+});
+
 describe("a callback reads another scene's knobs", () => {
   const city = drawing({ timeline: {}, knobs: { at: [1200, 640], zoom: 1.3 }, draw: () => {} });
   /** A film whose second scene reads the first's framing, logging what it saw. */
