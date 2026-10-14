@@ -850,6 +850,7 @@ const STAND_IN = {
   ease: 'linear',
   stagger: 0,
   silence: true,
+  track: 't',
 } satisfies Record<SpanKey, string | number | boolean>;
 
 /** The stand-in for a value under `key`, a key a span declares; none for a key no span has. */

@@ -152,7 +152,7 @@ export const writtenPatch = (patch: CuePatch): CuePatch =>
  * `untilOffset` moves an `until` span's end off its point, and 0 puts it back
  * on it, the key dropped; a span that `ends` on its anchor keeps landing there
  * as its `dur` changes. A field neither has stays absent, never `undefined`,
- * so the result decodes as a `Span`; a designed `silence` is kept.
+ * so the result decodes as a `Span`; a designed `silence` and the cue's `track` are kept.
  */
 export const patchSpan = (span: Span, patch: CuePatch): Span => {
   const offset = patch.offset ?? span.offset;
@@ -162,6 +162,7 @@ export const patchSpan = (span: Span, patch: CuePatch): Span => {
   const easeField = easeName === undefined ? {} : { ease: easeName };
   const staggerField = stagger === undefined ? {} : { stagger };
   const silenceField = span.silence === true ? { silence: true as const } : {};
+  const trackField = span.track === undefined ? {} : { track: span.track };
   return {
     ...anchorField(span),
     ...offsetField,
@@ -169,6 +170,7 @@ export const patchSpan = (span: Span, patch: CuePatch): Span => {
     ...easeField,
     ...staggerField,
     ...silenceField,
+    ...trackField,
   };
 };
 
