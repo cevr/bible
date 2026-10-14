@@ -47,6 +47,7 @@
     "mpg123-decoder": "1.0.3",
     "node-av": "6.1.1",
     "oxc-parser": "0.153.0",
+    "perfect-freehand": "1.2.3",
     "solid-js": "catalog:"
   },
   "devDependencies": {

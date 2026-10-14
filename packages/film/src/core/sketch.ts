@@ -11,7 +11,7 @@ import type { Option } from 'effect';
 
 /** The sketch's inks: ink for a drawing, red for a correction, gold to point at what works. */
 const SketchInk = Schema.Literals(['ink', 'red', 'gold']);
-type SketchInk = typeof SketchInk.Type;
+export type SketchInk = typeof SketchInk.Type;
 
 /** A point of the panel, in its fractions (a shape may run a little past an edge). */
 const SketchPoint = Schema.Struct({
@@ -20,7 +20,7 @@ const SketchPoint = Schema.Struct({
   /** The pen's pressure, 0–1, where the device gave one. */
   p: Schema.optionalKey(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))),
 });
-type SketchPoint = typeof SketchPoint.Type;
+export type SketchPoint = typeof SketchPoint.Type;
 
 const Common = { id: Schema.String, ink: SketchInk };
 
@@ -50,7 +50,7 @@ export const SketchItem = Schema.Union([
 export type SketchItem = typeof SketchItem.Type;
 
 /** The view a sketch is measured in: the panel's size on screen, in pixels. */
-interface View {
+export interface View {
   readonly w: number;
   readonly h: number;
 }
@@ -96,7 +96,7 @@ const toPolyline = (p: Px, points: ReadonlyArray<Px>): number => {
 const TEXT_SIZE = { em: 0.6, line: 1.3 } as const;
 
 /** The type size a text shape is drawn at, as a share of the view's height. */
-const TEXT_SHARE = 0.045;
+export const TEXT_SHARE = 0.045;
 
 /** A shape's box in view pixels: what a select brush and a move read. */
 const boundsOf = (view: View, item: SketchItem) =>
