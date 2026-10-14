@@ -40,3 +40,18 @@ import Testing
   let empty = try RecallComparison(expected: "In the beginning", recalled: "")
   #expect(empty.missingCount == 3)
 }
+
+@Test func spokenSpellingsMatchThePrintedKJVButDifferentShortWordsDoNot() throws {
+  // Words a speech model writes differently from the 1769 text, from a real Psalm 23 take.
+  let comparison = try RecallComparison(
+    expected: "he leadeth me in the paths of righteousness for his name's sake. O dwell for ever.",
+    recalled: "he ledeth me in the paths of righteousness for his namesake oh dwell forever")
+  #expect(comparison.missingCount == 0)
+  #expect(comparison.extraCount == 0)
+  // Short words stay exact: "thy" for "the" is a real slip, and so is a two-letter change.
+  let strict = try RecallComparison(
+    expected: "the rod restoreth", recalled: "thy rod restored")
+  #expect(strict.expected.filter { !$0.matched }.map(\.text) == ["the", "restoreth"])
+  #expect(RecallComparison.sameWord("leadeth", "laedeth"))
+  #expect(!RecallComparison.sameWord("want", "wont"))
+}

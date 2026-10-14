@@ -26,7 +26,8 @@ public struct RecallComparison: Sendable {
     case tooLong
     public var errorDescription: String? { "Compare one chapter at a time (up to 6,000 words)." }
   }
-  /// Sequence alignment preserves later matches after an omitted word. Case and punctuation do not count.
+  /// Sequence alignment preserves later matches after an omitted word. Case and punctuation do
+  /// not count, and neither do spelling slips a listener would not hear (see `sameWord`).
   public init(expected: String, recalled: String) throws {
     try self.init(segments: [expected], recalled: recalled)
   }
@@ -42,9 +43,12 @@ public struct RecallComparison: Sendable {
       words(text).map { (index, $0) }
     }
     let source = sourceSegments.map(\.1)
-    let answer = words(recalled)
+    // Modern spellings the KJV prints as two words count as those two words.
+    let answer = words(recalled).flatMap { word in
+      Self.compounds[word.1].map { $0.map { (String($0), String($0)) } } ?? [word]
+    }
     guard source.count <= 6000, answer.count <= 6000 else { throw Failure.tooLong }
-    let diff = answer.map { $0.1 }.difference(from: source.map { $0.1 })
+    let diff = answer.map { $0.1 }.difference(from: source.map { $0.1 }, by: Self.sameWord)
     var missing = Set<Int>()
     var extra = Set<Int>()
     for change in diff {
@@ -61,5 +65,29 @@ public struct RecallComparison: Sendable {
     self.recalled = answer.enumerated().map {
       RecallWord(id: $0.offset, text: $0.element.0, matched: !extra.contains($0.offset))
     }
+  }
+
+  static let compounds: [String: [Substring]] = [
+    "forever": ["for", "ever"], "namesake": ["names", "sake"], "evermore": ["ever", "more"],
+  ]
+
+  /// Two normalized words are the same when they are equal, when "O" is written "Oh", or when a
+  /// word of five letters or more differs by one letter (one added, dropped, changed, or two
+  /// swapped). That forgives a typo or a speech model's spelling of "leadeth", never a
+  /// different short word such as "thy" for "the".
+  static func sameWord(_ expected: String, _ recalled: String) -> Bool {
+    if expected == recalled { return true }
+    if expected == "o" && recalled == "oh" { return true }
+    let a = Array(expected)
+    let b = Array(recalled)
+    guard min(a.count, b.count) >= 5, abs(a.count - b.count) <= 1 else { return false }
+    var i = 0
+    while i < min(a.count, b.count) && a[i] == b[i] { i += 1 }
+    if a.count == b.count {
+      if a[(i + 1)...] == b[(i + 1)...] { return true }
+      return i + 1 < a.count && a[i] == b[i + 1] && a[i + 1] == b[i]
+        && a[(i + 2)...] == b[(i + 2)...]
+    }
+    return a.count > b.count ? a[(i + 1)...] == b[i...] : a[i...] == b[(i + 1)...]
   }
 }
