@@ -98,9 +98,14 @@ struct PromiseCategoryView: View {
                   .accessibilityLabel("Learned")
               }
             }
+            // Single verses sit in the text column too, so every promise starts at one edge.
             ScripturePassage(
               verses: unit.verses, corpus: store.corpus, reader: reader,
-              numbered: unit.verses.count > 1)
+              numbered: unit.verses.count > 1
+            )
+            .padding(
+              .leading,
+              unit.verses.count > 1 || !reader.showVerseNumbers ? 0 : Measure.verseGutter + Space.s)
           }
         }
       }
