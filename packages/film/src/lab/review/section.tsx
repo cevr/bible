@@ -58,6 +58,7 @@ import {
   pageHref,
   reviewFileUrl,
   reviewFrameUrl,
+  reviewStillUrl,
 } from '../../core/api.ts';
 import type { LabFailure } from '../api.ts';
 import { pressed } from '../pressed.ts';
@@ -138,11 +139,11 @@ const WithIndex = (props: { readonly children: (index: Accessor<ReviewIndex>) =>
   );
 };
 
-/** A strip of frames: one per video named, 10% in. */
+/** A strip of stills: one per file named, an image as it is, a video's frame 10% in. */
 const Strip = (props: { readonly refs: ReadonlyArray<string> }) => (
   <div class="rv-strip">
     <For each={props.refs.slice(0, STRIP)}>
-      {(ref) => <img loading="lazy" src={reviewFrameUrl(ref, Option.none(), THUMB_W)} alt="" />}
+      {(ref) => <img loading="lazy" src={reviewStillUrl(ref, THUMB_W)} alt="" />}
     </For>
   </div>
 );

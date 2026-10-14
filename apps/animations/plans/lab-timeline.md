@@ -149,11 +149,26 @@ To run at merge, from `apps/animations` with the owner's lab folder:
 its first line (a ledger is never created twice). Sets for brand, cast and illustration stay unfiled under
 Sets until the owner names their productions.
 
-## Next (mocked, not built)
+## Next (mocked or specified, not built)
 
-**A version in stages.** A linked progress line under the version's head, not tabs. Once the storyboard unit lands, a film's version reads its stages from what the
-film already keeps: its board (`board.json`, panels and approvals), its catalogue (scene renders whose time
-falls in the version), its takes. The board is always the first stage.
+**A version in stages.** A linked progress line under the current version's head, not tabs, on a production
+that names its film. It reads the stages from what the film already keeps and copies nothing into the ledger.
+The board is always the first stage, and it is the storyboard unit's model (branch `storyboard`, a09f7f74d),
+not a second one:
+
+- read: the film's `board.json` through the lab's `board` group (`GET /api/films/<film>/board`,
+  `LabClient.board`), as the Board view reads it;
+- tally: panels (`board.panels`), panels with a try kept (`shownTry` / `kept`), and beats approved as they stand
+  (`approvalOf(board, beat) === 'approved'`; a `stale` one counts as not approved and is named);
+- link: the Board view (`pageHref.board(film)`), so the line is `Board · 24 panels, 20 kept · 5 of 8 beats
+  approved ›`;
+- waits: the line names how many beats are left to approve; the approving stays the Board view's own verb,
+  and nothing joins "what waits on you" unless an agent asks, as with sets, so a board in progress is not a
+  chore list.
+
+The stages after the board are the catalogue's (scene renders whose time falls in the version) and the takes.
+Built once `storyboard` and `timeline` are both on p5-main: the stage needs the board group and `approvalOf`,
+and a merge of the unmerged `storyboard` into `timeline` would tie the two units' merges together.
 
 ![A version in stages, the board first](lab-timeline/mock-stages.jpg)
 

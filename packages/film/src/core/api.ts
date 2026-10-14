@@ -30,6 +30,7 @@ import {
   Array as Arr,
   Duration,
   Effect,
+  Match,
   Option,
   Schema,
   SchemaAST,
@@ -1662,6 +1663,13 @@ export const reviewFrameUrl = (ref: string, t: Option.Option<number>, w: number)
   const at = Option.match(t, { onNone: () => ({}), onSome: (s) => ({ t: Number(s.toFixed(2)) }) });
   return labUrls.review.frame({ query: { ref, w: Math.round(w), ...at } });
 };
+
+/** A still of a set's file, `w` px wide: an image as it is, a video's frame 10% in. */
+export const reviewStillUrl = (ref: string, w: number): string =>
+  Match.value(/\.(png|jpe?g|webp|gif|avif)$/i.test(ref)).pipe(
+    Match.when(true, () => reviewFileUrl(ref)),
+    Match.orElse(() => reviewFrameUrl(ref, Option.none(), w)),
+  );
 
 /** A variant of a choice point heard alone: a take's file, an attempt's. */
 export const choiceAloneUrl = (film: string, point: string, variant: string): string =>

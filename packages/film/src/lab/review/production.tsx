@@ -14,7 +14,7 @@ import { For, Show } from '@solidjs/web';
 import { Array as Arr, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { type Accessor, createEffect, createMemo, createSignal, flush } from 'solid-js';
-import { reviewFileUrl, reviewFrameUrl } from '../../core/api.ts';
+import { reviewStillUrl } from '../../core/api.ts';
 import { focusFor } from '../focus.ts';
 import { pressed } from '../pressed.ts';
 import { WIDE } from '../viewport.ts';
@@ -61,13 +61,6 @@ export const useHistories = (): Accessor<ReadonlyArray<ProductionHistory>> => {
   });
 };
 
-/** A still of a set's file: an image as it is, a video's frame 10% in. */
-const stillUrl = (ref: string): string =>
-  Match.value(/\.(png|jpe?g|webp|gif|avif)$/i.test(ref)).pipe(
-    Match.when(true, () => reviewFileUrl(ref)),
-    Match.orElse(() => reviewFrameUrl(ref, Option.none(), STILL_W)),
-  );
-
 /** The variant a stack shows: the one picked or approved, else its last. */
 const shownOf = (point: ChoicePoint): Option.Option<string> => {
   const seen = seenVariants(point);
@@ -87,7 +80,7 @@ const stillsOf = (folder: ReviewFolder): ReadonlyArray<string> => {
     .concat(folder.videos.map((v) => v.ref))
     .concat(folder.images.map((i) => i.ref))
     .slice(0, STILLS);
-  return refs.map(stillUrl);
+  return refs.map((ref) => reviewStillUrl(ref, STILL_W));
 };
 
 /** The stills of the newest set on the current version, else on any version. */
