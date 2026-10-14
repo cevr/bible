@@ -58,31 +58,36 @@ public struct Scripture: Sendable {
       }
     }
     while letters.first?.0.isWhitespace == true { letters.removeFirst() }
-    let visible = String(letters.map { $0.0 })
     var anchors: [Int: [MarginNote]] = [:]
-    for note in notes where !note.phrase.isEmpty {
-      if let range = visible.range(of: note.phrase, options: [.caseInsensitive]) {
-        anchors[visible.distance(from: visible.startIndex, to: range.upperBound), default: []]
-          .append(note)
+    if !notes.isEmpty {
+      let visible = String(letters.map { $0.0 })
+      for note in notes where !note.phrase.isEmpty {
+        if let range = visible.range(of: note.phrase, options: [.caseInsensitive]) {
+          anchors[visible.distance(from: visible.startIndex, to: range.upperBound), default: []]
+            .append(note)
+        }
       }
     }
+    // Letters gather into the open run until its style changes or a note anchors after one;
+    // the corpus renders every verse at launch, so a letter is appended, never re-copied.
     var result: [ScriptureSegment] = []
+    var run = ScriptureSegment(text: "", italic: false, redLetter: false, noteIndex: nil)
     for (offset, letter) in letters.enumerated() {
-      if let last = result.last, last.noteIndex == nil, last.italic == letter.1,
-        last.redLetter == letter.2
-      {
-        result[result.count - 1].text.append(letter.0)
-      } else {
-        result.append(
-          ScriptureSegment(
-            text: String(letter.0), italic: letter.1, redLetter: letter.2, noteIndex: nil))
+      if run.text.isEmpty || run.italic != letter.1 || run.redLetter != letter.2 {
+        if !run.text.isEmpty { result.append(run) }
+        run = ScriptureSegment(text: "", italic: letter.1, redLetter: letter.2, noteIndex: nil)
       }
-      for note in (anchors[offset + 1] ?? []).sorted(by: { $0.index < $1.index }) {
+      run.text.append(letter.0)
+      guard !anchors.isEmpty, let anchored = anchors[offset + 1] else { continue }
+      result.append(run)
+      run.text = ""
+      for note in anchored.sorted(by: { $0.index < $1.index }) {
         result.append(
           ScriptureSegment(text: note.label, italic: false, redLetter: false, noteIndex: note.index)
         )
       }
     }
+    if !run.text.isEmpty { result.append(run) }
     segments = result
   }
 }
