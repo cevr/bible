@@ -508,14 +508,6 @@ const auditOf = (board: Element, d: Direction): string[] => {
 
 // ─── building with the Rive CLI ──────────────────────────────────────────────
 
-/** `d`'s project built as `build.ts` builds it, in a directory of its own: its warnings and problems. */
-const builtIn = (d: Direction) =>
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const built = yield* compile(yield* fs.makeTempDirectoryScoped(), figuresRml(d));
-    return { warnings: built.warnings, problems: built.problems };
-  }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
-
 // Top-level await, deliberately: `test.skipIf` needs the boolean at module
 // evaluation. CI has no Rive CLI; there the builds skip and say so.
 // oxlint-disable-next-line effect/noAsyncFunction -- test.skipIf needs this at module-evaluation time
@@ -539,6 +531,38 @@ const REBUILD = {
   cli: Result.isSuccess(cli) ? cli.success.trim() : 'none',
 };
 
+/** A project built as `build.ts` builds it, in a directory of its own: the riv, its warnings and problems. */
+const builtIn = (rml: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const built = yield* compile(yield* fs.makeTempDirectoryScoped(), rml);
+    return {
+      riv: yield* fs.readFile(built.riv),
+      warnings: built.warnings,
+      problems: built.problems,
+    };
+  }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
+
+/** `rml` built, as an exit: a failed build fails only the cases that read it. */
+const begin = (rml: string) => Effect.runPromiseExit(builtIn(rml));
+
+/** Each distinct project's build, by its text: `DIRECTION` is K1, as is each option K1 is made of. */
+const builds = new Map<string, ReturnType<typeof begin>>();
+
+/** `rml`'s build, begun on the first ask and shared by every later one. */
+const buildOf = (rml: string) => {
+  const build = builds.get(rml) ?? begin(rml);
+  builds.set(rml, build);
+  return build;
+};
+
+/** `d`'s project, built. */
+const builtOf = (d: Direction) => Effect.flatten(Effect.promise(() => buildOf(figuresRml(d))));
+
+// Every build begins as the file loads, so the CLI's runs overlap instead of
+// queueing case by case.
+if (!noCli) for (const d of [DIRECTION, ...CASES.map(([, d]) => d)]) void buildOf(figuresRml(d));
+
 // The film reads `DIRECTION` (props, probes, gaze) beside the committed riv:
 // the two must be one build, or a pick without a rebuild pairs new props with
 // old figures. The compile is deterministic, so the bytes are the check.
@@ -548,8 +572,7 @@ test.skipIf(noCli)(
     Effect.runPromise(
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
-        const built = yield* compile(yield* fs.makeTempDirectoryScoped(), figuresRml(DIRECTION));
-        const fresh = yield* fs.readFile(built.riv);
+        const fresh = (yield* builtOf(DIRECTION)).riv;
         const committed = yield* fs.readFile(`${import.meta.dir}/figures.riv`);
         expect({ fresh: Buffer.from(committed).equals(Buffer.from(fresh)), ...REBUILD }).toEqual({
           fresh: true,
@@ -574,7 +597,8 @@ describe.each(CASES)('option %s', (_, d) => {
     () =>
       Effect.runPromise(
         Effect.gen(function* () {
-          expect(yield* builtIn(d)).toEqual({ warnings: [], problems: [] });
+          const { warnings, problems } = yield* builtOf(d);
+          expect({ warnings, problems }).toEqual({ warnings: [], problems: [] });
         }),
       ),
     30_000,
