@@ -179,20 +179,23 @@ const admit = (
   });
 
 /**
- * `request` with its body read, when the body is `STUDIO_MAX_BODY` bytes or
- * less; BodyTooLarge the moment it is not. The stream is counted as it comes
- * (a Content-Length over the limit is refused before a byte is read, one
- * under it is not believed), so a body over the limit is never held whole.
+ * `request` as a web request with its body read, when the body is
+ * `STUDIO_MAX_BODY` bytes or less; BodyTooLarge the moment it is not; none
+ * when there is no body to read (or no web request to read it from). The
+ * stream is counted as it comes (a Content-Length over the limit is refused
+ * before a byte is read, one under it is not believed), so a body over the
+ * limit is never held whole. The read request is aborted with the one it
+ * was read from.
  */
 const bounded = Effect.fn('api.bounded')(function* (request: HttpServerRequest.HttpServerRequest) {
   const tooLarge = BodyTooLarge.make({ limit: STUDIO_MAX_BODY });
   const web = HttpServerRequest.toWebResult(request);
-  if (Result.isFailure(web)) return request;
+  if (Result.isFailure(web)) return Option.none<Request>();
   const source = web.success;
   const declared = Option.map(header(request, 'content-length'), Number);
   if (Option.exists(declared, (n) => n > STUDIO_MAX_BODY)) return yield* tooLarge;
   const body = Option.fromNullishOr(source.body);
-  if (Option.isNone(body)) return request;
+  if (Option.isNone(body)) return Option.none<Request>();
   const reader = body.value.getReader();
   const unreadable = (cause: unknown) =>
     ServerFailed.make({
@@ -221,8 +224,8 @@ const bounded = Effect.fn('api.bounded')(function* (request: HttpServerRequest.H
   }
   const headers = new Headers(source.headers);
   headers.delete('content-length');
-  return HttpServerRequest.fromWeb(
-    new Request(source.url, { method: source.method, headers, body: whole }),
+  return Option.some(
+    new Request(source.url, { method: source.method, headers, body: whole, signal: source.signal }),
   );
 });
 
@@ -266,20 +269,54 @@ const decodedOrRefused = <E, R>(
     );
   });
 
-/** The gate: a request admitted, a write's body bounded; anything else answered with its refusal. */
-const gate = (allowed: Allowed) =>
+/**
+ * Marks a request whose body the gate has read (`bounded`): the gate admits
+ * it again and hands it to the routes as it is.
+ */
+class BodyRead extends Context.Service<BodyRead, { readonly limit: number }>()(
+  '@bible/film/tools/BodyRead',
+) {}
+
+/**
+ * The gate: a request admitted, a write's body bounded; anything else
+ * answered with its refusal. A write whose body is read is answered by the
+ * server's own handler (`self`) as a new request, never by swapping the
+ * request under the routes: what a route registers to run on its answer
+ * (Effect's pre-response handlers, as MCP's session header) is kept by the
+ * request it was registered on, and only the handler that took that request
+ * runs it.
+ */
+const gate = (allowed: Allowed, self: Deferred.Deferred<OwnHandler>) =>
   HttpRouter.middleware(
     (routes) =>
       Effect.gen(function* () {
         const request = yield* HttpServerRequest.HttpServerRequest;
-        const refusal = admit(request, yield* Connection, allowed);
+        const connection = yield* Connection;
+        const refusal = admit(request, connection, allowed);
         if (Option.isSome(refusal)) return yield* answerRefused(request, refusal.value);
-        if (SAFE_METHODS.includes(request.method)) return yield* decodedOrRefused(request, routes);
+        if (
+          SAFE_METHODS.includes(request.method) ||
+          Option.isSome(yield* Effect.serviceOption(BodyRead))
+        )
+          return yield* decodedOrRefused(request, routes);
         const whole = yield* Effect.result(bounded(request));
         if (Result.isFailure(whole)) return yield* answerRefused(request, whole.failure);
-        return yield* decodedOrRefused(whole.success, routes).pipe(
-          Effect.provideService(HttpServerRequest.HttpServerRequest, whole.success),
+        if (Option.isNone(whole.success)) return yield* decodedOrRefused(request, routes);
+        const read = whole.success.value;
+        const handler = yield* Deferred.await(self);
+        const response = yield* Effect.promise(() =>
+          handler(
+            read,
+            Context.make(Connection, connection).pipe(
+              Context.add(BodyRead, { limit: STUDIO_MAX_BODY }),
+            ),
+          ),
         );
+        return HttpServerResponse.raw(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        });
       }),
     { global: true },
   );
@@ -584,7 +621,7 @@ export const serveApi = <
     const app = Layer.mergeAll(
       routes,
       options.beside,
-      gate(options.allowed),
+      gate(options.allowed, self),
       pageRoute(options.page, prefixesOf(api), self),
     ).pipe(Layer.provide(Etag.layerWeak), Layer.provideMerge(Layer.succeedContext(services)));
     // What is left of `routes`' requirements is the router's markers; the
