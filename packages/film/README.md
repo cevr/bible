@@ -1990,8 +1990,9 @@ its code and nothing else. On a laptop they share the window half and half; on
 a phone the code takes the screen under the picture and its strip. It follows
 the frame as Follow does. The panel stands aside until Code mode is left, its
 selection sheets with it (`PanelAside`: the inspector stays in its place,
-hidden; the selection stays lit in the code), and the strip folds to its words
-as it does outside Edit. A tap there holds and selects nothing: a lit line (one
+hidden; the selection stays lit in the code). On a phone the strip folds to
+its words as it does outside Edit; on a laptop it keeps the mode's lanes, the
+picture keeping its size in its half. A tap there holds and selects nothing: a lit line (one
 that glows, or writes a playing cue) plays again from where it next fires, and
 the view follows it there; any other line stays still. A line's menu still
 opens, and Note this line leaves Code mode for the line it notes. A mode shown

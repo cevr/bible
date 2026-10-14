@@ -1493,6 +1493,8 @@ const LIVE_READY = `${LIVE_COL} .lab-source-page`;
 const CODE_MODE = '.lab-source-col [data-act="code-mode"]';
 /** Whether the panel (the modes and their tools) shows. */
 const PANEL_SHOWN = `document.querySelector('.lab-panel').checkVisibility()`;
+/** Whether the strip shows its cue lanes, or has folded to its words. */
+const LANES_SHOWN = `[...document.querySelectorAll('.lab-strip-row')].some((r) => r.checkVisibility())`;
 /** How the view is open, as `?code=` says it. */
 const CODE_KEY = `new URLSearchParams(location.search).get('code')`;
 
@@ -1509,6 +1511,9 @@ describe('Code mode', () => {
         `Math.abs(document.querySelector('.lab-source-col').getBoundingClientRect().width - document.querySelector('.stage').getBoundingClientRect().width) <= 1`,
         true,
       );
+      // The strip keeps Edit's lanes, the one playing lit under the picture beside the code: the picture's half has
+      // the room (a phone's strip folds to its words).
+      yield* evaluates(page, `${LANES_SHOWN} && ${LANES}.join() === 'rise'`, true);
       yield* attributeIs(page, CODE_MODE, 'aria-pressed', 'true');
       // It follows the frame, and lights what Follow lights.
       yield* attributeIs(
@@ -1681,11 +1686,7 @@ describe('Code mode on a phone', () => {
         // panel, so one text owns the highlights; and the strip folds to its words, so its lanes leave the code its room.
         yield* countIs(page, '.lab-selection-sheet', 0);
         yield* countIs(page, '.lab-source-page', 1);
-        yield* evaluates(
-          page,
-          `[...document.querySelectorAll('.lab-strip-row')].some((r) => r.checkVisibility())`,
-          false,
-        );
+        yield* evaluates(page, LANES_SHOWN, false);
         yield* evaluates(
           page,
           `document.querySelector('.lab-source-col').getBoundingClientRect().height > 200`,

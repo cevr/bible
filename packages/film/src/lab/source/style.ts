@@ -60,11 +60,10 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
 .lab-source-tabs { display: flex; width: 100%; margin-bottom: var(--s-2); }
 .lab-source-sheet .lab-source-scroll, .lab-selection-sheet .lab-source-scroll { max-height: 55dvh; }
 /* Code mode (\`?code=live\`): the picture and its code, and nothing else. The panel steps aside until it is left, its
-   sheets with it, and the strip folds to its words as it does outside Edit (\`player.css\`): the code is where the cues
-   are seen, and it keeps the screen's rest. */
+   sheets with it. On a laptop the strip keeps the mode's lanes, the picture keeping its size in its half and the live
+   lane under the playhead beside the code; on a phone it folds to its words, as outside Edit (\`player.css\`), so the
+   code keeps the screen's rest. */
 body.lab:has(.lab-source-col[data-code='live']) .lab-panel { display: none; }
-body.lab:has(.lab-source-col[data-code='live']) .lab-strip :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
-  display: none; }
 @media ${WIDE} {
   body.lab:has(.lab-source-col) { grid-template-columns: minmax(0, 1fr) var(--source-w) var(--inspector-w); }
   body.lab:has(.lab-source-col) .lab-panel { grid-column: 3; }
@@ -77,6 +76,8 @@ body.lab:has(.lab-source-col[data-code='live']) .lab-strip :is(.lab-strip-row, .
   .lab-source-col { display: none; }
   /* The screen's height, as the Script's reader: the picture and its strip stay over the code, which scrolls under them. */
   body.lab:has(.lab-source-col[data-code='live']) { height: 100dvh; min-height: 0; grid-template-rows: auto auto auto minmax(0, 1fr); }
+  body.lab:has(.lab-source-col[data-code='live']) .lab-strip :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
+    display: none; }
   .lab-source-col[data-code='live'] { grid-column: 1; grid-row: 4; display: flex; flex-direction: column; min-height: 0;
     min-width: 0; overflow: hidden; background: var(--surface-1); border-top: var(--border); }
 }
