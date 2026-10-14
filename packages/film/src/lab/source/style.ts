@@ -1,7 +1,8 @@
 // The Source view's styles (`view.tsx`, design language §5 Source, §7 Lab):
 // the scene's code in the studio's monospace on the panel's surface, the
 // playing cues lit by `::highlight` and a meter on each playing literal's
-// line, the held line the accent's wash. On a laptop it is a column between
+// line, a line a read fires on glowing (`--glow`), the beat's band held over
+// the code, the held line the accent's wash. On a laptop it is a column between
 // the picture and the inspector; on a phone it is a face of the selection's
 // sheet, or a sheet of its own (`lab-inspector-sheet`, the command styles').
 // Read only through the tokens (`player/tokens.css`, whose `--state-live`
@@ -31,10 +32,17 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
   overflow-anchor: none; /* the browser never moves the scroll by itself: the view places it, layout clamps it, a hand moves it */ }
 .lab-source-page { --source-lh: var(--body-lh); position: relative; font-size: var(--body-fs); line-height: var(--source-lh);
   tab-size: 2; color: var(--text-1); }
-/* A row to a line: the number beside the text, a long line wrapping under its own number (one layout, phone and laptop). */
+/* The beat the frame is on, over the code as it scrolls: a line tall, from the gutter. */
+.lab-source-beat { position: sticky; top: 0; z-index: 3; height: var(--source-lh); padding: 0 var(--gutter);
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis; background: var(--surface-1);
+  border-bottom: var(--border); font-size: var(--fs-2); color: var(--text-2); user-select: none; }
+/* A row to a line: the number beside the text, a long line wrapping under its own number (one layout, phone and laptop).
+   A line glows while a read on it fires and fades after (\`--glow\`, 1 to 0): a wash of what plays, its number inked. */
 .lab-source-line { position: relative; display: grid; min-height: var(--source-lh);
-  grid-template-columns: calc(var(--digits) * 1ch + var(--gutter) + var(--s-2)) minmax(0, 1fr); cursor: pointer; }
-.lab-source-n { padding: 0 var(--s-2) 0 var(--gutter); text-align: right; color: var(--text-3); user-select: none; }
+  grid-template-columns: calc(var(--digits) * 1ch + var(--gutter) + var(--s-2)) minmax(0, 1fr); cursor: pointer;
+  background: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 12%), transparent); }
+.lab-source-n { padding: 0 var(--s-2) 0 var(--gutter); text-align: right; user-select: none;
+  color: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 100%), var(--text-3)); }
 .lab-source-t { padding: 0 var(--gutter) 0 var(--s-2); white-space: pre-wrap; overflow-wrap: anywhere; }
 ::highlight(lab-live) { background-color: color-mix(in srgb, var(--state-live) 26%, transparent); color: var(--text-1); }
 ::highlight(lab-read) { background-color: color-mix(in srgb, var(--state-live) 11%, transparent); }

@@ -98,6 +98,9 @@ const SPOT_LINE = lineOfText('spot: [320, 200]');
 const LONG_LINE = lineOfText('// a long line');
 /** The file's last line: the long comment, before the newline that ends the file. */
 const LAST_LINE = LONG_LINE;
+/** The draw's reads of each cue: the probe's draw reads both every frame, so each fires while its cue plays. */
+const RISE_READ_LINE = lineOfText("f.at('rise')");
+const FALL_READ_LINE = lineOfText("f.at('fall')");
 
 /** Scene one's small source answer, as the server gives it: each cue and knob with the line that writes it. */
 const sourceAnswer = () =>
@@ -119,6 +122,8 @@ const span = (name: string) => {
   return { start: start + (cue?.start ?? 0), end: start + (cue?.end ?? 0) };
 };
 const middle = (name: string) => (span(name).start + span(name).end) / 2;
+/** The film seconds in `#t=`. */
+const HASH_T = `Number(location.hash.slice('#t='.length))`;
 
 /** The names of the cue lanes lit on the strip. */
 const LANES = `[...document.querySelectorAll('.lab-cue[data-live]')].map((e) => e.dataset.cue).sort()`;
@@ -152,6 +157,8 @@ const lineIn = (text: string, needle: string) =>
 /** `rise`'s literal near the end of the file, below its first screen. */
 const LONG_TEXT = `${FILLER}\n${TEXT}`;
 const LONG_RISE_LINE = lineIn(LONG_TEXT, "rise: { mark: 'rise'");
+/** The draw's read of `rise` in `LONG_TEXT`: what Follow shows while rise plays, as the frame reads it. */
+const LONG_READ_LINE = lineIn(LONG_TEXT, "f.at('rise')");
 const longRoute = route('GET', /^\/scenes\/one\/code$/, () => json(codeOf(LONG_TEXT)));
 /**
  * The timeline at the top, the knobs and the draw a screen below it, and a
@@ -169,6 +176,21 @@ const SPLIT_TEXT = [
 const splitRoute = route('GET', /^\/scenes\/one\/code$/, () => json(codeOf(SPLIT_TEXT)));
 const SPLIT_SPOT_LINE = lineIn(SPLIT_TEXT, 'spot: [320, 200]');
 const SPLIT_FALL_LINE = lineIn(SPLIT_TEXT, "fall: { mark: 'fall'");
+/**
+ * The timeline and the knobs at the top, and the draw that reads them a
+ * screen below: before any cue Follow looks at the knob the frame read, at
+ * the top, and a cue edge takes it down to the read that fires.
+ */
+const DRAW_AT = TEXT_LINES.findIndex((l) => l.includes('draw:'));
+const READ_TEXT = [
+  ...TEXT_LINES.slice(0, DRAW_AT),
+  FILLER,
+  ...TEXT_LINES.slice(DRAW_AT),
+  FILLER,
+].join('\n');
+const readRoute = route('GET', /^\/scenes\/one\/code$/, () => json(codeOf(READ_TEXT)));
+const READ_SPOT_LINE = lineIn(READ_TEXT, 'spot: [320, 200]');
+const READ_RISE_LINE = lineIn(READ_TEXT, "f.at('rise')");
 /** Whether line `n` of the code in the selection's sheet shows inside the box that scrolls it. */
 const inSheet = (n: number) => `(() => {
   const row = document.querySelector('.lab-selection-sheet .lab-source-line[data-line="${n}"]');
@@ -802,16 +824,18 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
     return r.top >= b.top && r.bottom <= b.bottom && r.bottom <= window.innerHeight;
   })()`;
 
-  it.live('?code=follow at a frame inside rise shows rise’s line, and Follow is pressed', () =>
-    Effect.gen(function* () {
-      const { page } = yield* openLab([longRoute], {
-        href: labOne(middle('rise'), { code: 'follow' }),
-        viewport: touch,
-      });
-      yield* page.waitFor('.lab-source-sheet .lab-source-page');
-      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-      yield* evaluates(page, showing(LONG_RISE_LINE), true);
-    }).pipe(Effect.scoped),
+  it.live(
+    '?code=follow at a frame inside rise shows the line that reads it, and Follow is pressed',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([longRoute], {
+          href: labOne(middle('rise'), { code: 'follow' }),
+          viewport: touch,
+        });
+        yield* page.waitFor('.lab-source-sheet .lab-source-page');
+        yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+        yield* evaluates(page, showing(LONG_READ_LINE), true);
+      }).pipe(Effect.scoped),
   );
 
   it.live('?code=<line> shows the held line', () =>
@@ -861,7 +885,7 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
         yield* page.evaluate(FRAMES);
         // The shorter box left the line below its edge: the view placed it again.
         yield* evaluates(page, `${BOX}.scrollTop !== window.__before`, true);
-        yield* evaluates(page, showing(LONG_RISE_LINE), true);
+        yield* evaluates(page, showing(LONG_READ_LINE), true);
         yield* page.evaluate(FRAMES);
         yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
       }).pipe(Effect.scoped),
@@ -897,7 +921,7 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
       });
       yield* page.waitFor('.lab-source-sheet .lab-source-page');
       yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-      yield* evaluates(page, showing(LONG_RISE_LINE), true);
+      yield* evaluates(page, showing(LONG_READ_LINE), true);
       yield* page.evaluate(`window.__before = ${BOX}.scrollTop`);
       yield* page.resize(390, 1400);
       yield* page.evaluate(FRAMES);
@@ -997,20 +1021,23 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
         });
         yield* page.waitFor('.lab-source-sheet .lab-source-page');
         yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-        yield* evaluates(page, showing(LONG_RISE_LINE), true);
+        yield* evaluates(page, showing(LONG_READ_LINE), true);
         yield* page.evaluate(
           `(() => { const box = document.querySelector('.lab-source-sheet .lab-source-scroll'); box.scrollTop = 0; })()`,
         );
         yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'false');
         yield* page.click(FOLLOW_SHEET);
         yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-        yield* evaluates(page, showing(LONG_RISE_LINE), true);
+        yield* evaluates(page, showing(LONG_READ_LINE), true);
       }).pipe(Effect.scoped),
   );
 });
 
 describe('a line of the code', () => {
-  it.live('a tap holds it and selects the cue written there', () =>
+  /** Half a frame into `s`: where a tap seeks for what starts at `s`, so the frame landed on plays it. */
+  const into = (s: number) => s + 0.5 / probeFilm().fps;
+
+  it.live('a tap holds it, selects the cue written there and seeks to where it plays', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([codeRoute, sourceRoute], {
         href: labOne(1, { code: 'follow' }),
@@ -1020,10 +1047,29 @@ describe('a line of the code', () => {
       yield* attributeIs(page, '.lab-source-held', 'data-line', String(FALL_LINE));
       yield* evaluates(page, `location.search.includes('cue=fall')`, true);
       yield* evaluates(page, `location.search.includes('code=${FALL_LINE}')`, true);
+      yield* evaluates(page, `Math.abs(${HASH_T} - ${into(span('fall').start)}) < 0.002`, true);
     }).pipe(Effect.scoped),
   );
 
-  it.live('a tap on a line that writes nothing holds it and leaves the selection', () =>
+  it.live('a tap on a read seeks to where it next fires, as one step Back walks', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(0.05, { code: 'follow' }),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* page.click(`.lab-source-line[data-line="${RISE_READ_LINE}"]`);
+      yield* attributeIs(page, '.lab-source-held', 'data-line', String(RISE_READ_LINE));
+      // The read writes no cue: nothing is selected, and the frame is rise's first.
+      yield* evaluates(page, `location.search.includes('cue=')`, false);
+      yield* evaluates(page, `Math.abs(${HASH_T} - ${into(span('rise').start)}) < 0.002`, true);
+      yield* page.back;
+      yield* evaluates(page, `location.search.includes('code=follow')`, true);
+      yield* evaluates(page, `Math.abs(${HASH_T} - 0.05) < 0.002`, true);
+      yield* countIs(page, '.lab-source-held', 0);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a tap on a line that writes nothing holds it, leaves the selection and the frame', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([codeRoute, sourceRoute], {
         href: labOne(1, { code: 'follow' }),
@@ -1032,6 +1078,7 @@ describe('a line of the code', () => {
       yield* page.click('.lab-source-line[data-line="1"]');
       yield* attributeIs(page, '.lab-source-held', 'data-line', '1');
       yield* evaluates(page, `location.search.includes('cue=')`, false);
+      yield* evaluates(page, `Math.abs(${HASH_T} - 1) < 0.002`, true);
     }).pipe(Effect.scoped),
   );
 
@@ -1202,7 +1249,7 @@ describe('Follow', () => {
   );
 
   it.live(
-    'a command key (the next cue edge) with the code focused scrolls it to the cue, and Follow stays pressed',
+    'a command key (the next cue edge) with the code focused scrolls it to the read that fires, and Follow stays pressed',
     () =>
       Effect.gen(function* () {
         // The column, not a phone's sheet: a sheet is a dialog, whose focus takes its own keys
@@ -1210,26 +1257,26 @@ describe('Follow', () => {
         const COL_BOX = `document.querySelector('.lab-source-col .lab-source-scroll')`;
         const inBox = (n: number) =>
           `(() => { const r = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]').getBoundingClientRect(); const b = ${COL_BOX}.getBoundingClientRect(); return r.top >= b.top && r.bottom <= b.bottom; })()`;
-        const { page } = yield* openLab([splitRoute], {
+        const { page } = yield* openLab([readRoute], {
           href: labOne(0.05, { code: 'follow' }),
           viewport: short,
         });
         yield* page.waitFor('.lab-source-col .lab-source-page');
         yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
-        // Before any cue the view follows the knob the frame read, a screen down the file.
-        yield* evaluates(page, inBox(SPLIT_SPOT_LINE), true);
-        yield* evaluates(page, `${COL_BOX}.scrollTop > 0`, true);
+        // Before any cue the view follows the knob the frame read, written at the top.
+        yield* evaluates(page, inBox(READ_SPOT_LINE), true);
+        yield* evaluates(page, inBox(READ_RISE_LINE), false);
         yield* page.evaluate(`window.__before = ${COL_BOX}.scrollTop`);
         yield* page.focus('.lab-source-col .lab-source-page');
         yield* page.press('.');
-        // The edge plays a cue written at the top: the view scrolled there itself.
+        // The edge plays a cue the draw reads a screen down: the view scrolled there itself.
         yield* evaluates(
           page,
           `Math.abs(Number(location.hash.slice('#t='.length)) - ${span('rise').start}) < 0.02`,
           true,
         );
-        yield* evaluates(page, inBox(RISE_LINE), true);
-        yield* evaluates(page, `${COL_BOX}.scrollTop < window.__before`, true);
+        yield* evaluates(page, inBox(READ_RISE_LINE), true);
+        yield* evaluates(page, `${COL_BOX}.scrollTop > window.__before`, true);
         yield* page.evaluate(FRAMES);
         yield* page.evaluate(FRAMES);
         yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
@@ -1338,6 +1385,92 @@ describe('what the selection and the frame’s reads light', () => {
       );
     }).pipe(Effect.scoped),
   );
+});
+
+describe('the reads that fire, and the beat they are on', () => {
+  /** How brightly line `n` glows, to a tenth: 0 when nothing fires on it or has just fired. */
+  const glow = (n: number) =>
+    `(() => { const row = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]'); return Math.round(Number(row.style.getPropertyValue('--glow') || 0) * 10) / 10; })()`;
+  /** The reads of the clock lit as firing: the read highlight's ranges, the knobs' left out. */
+  const FIRING = `${painted('lab-read')}.filter((r) => r.startsWith('f.at('))`;
+
+  const frames = [
+    ['while rise plays, its read fires and glows', middle('rise'), 1, ["f.at('rise')"]],
+    ['a moment after rise ends, its line still glows, fading', span('rise').end + 0.3, 0.5, []],
+    ['past the trail, its line is dark again', span('rise').end + 0.7, 0, []],
+  ] as const;
+  for (const [name, T, rise, firing] of frames)
+    it.live(name, () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([codeRoute], { href: labOne(T, { code: 'follow' }) });
+        yield* page.waitFor('.lab-source-col .lab-source-page');
+        yield* evaluates(page, glow(RISE_READ_LINE), rise);
+        // Fall has not begun: its read neither fires nor glows.
+        yield* evaluates(page, glow(FALL_READ_LINE), 0);
+        yield* evaluates(page, FIRING, firing);
+      }).pipe(Effect.scoped),
+    );
+
+  it.live('a read the frame did not make stays dark while its cue plays', () =>
+    Effect.gen(function* () {
+      // Scene three's draw reads its knobs and never its cue: the cue's literal lights by the clock, and a
+      // read of it the frame never made neither fires nor glows.
+      const text = [
+        'export const shot = drawing({',
+        "  timeline: { push: { mark: 'near', until: 'held' } },",
+        '  draw: (f) => {',
+        "    const lean = f.at('push');",
+        '  },',
+        '});',
+        '',
+      ].join('\n');
+      const at = (needle: string): readonly [number, number] => {
+        const from = text.indexOf(needle);
+        return [from, from + needle.length];
+      };
+      const three = route('GET', /^\/scenes\/three\/code$/, () =>
+        json({
+          scene: 'three',
+          file: 'scenes/three.ts',
+          text,
+          cues: [
+            {
+              name: 'push',
+              at: at("push: { mark: 'near', until: 'held' }"),
+              reads: [at("f.at('push')")],
+            },
+          ],
+          knobs: [],
+          marks: [],
+          refused: [],
+        }),
+      );
+      const push = probeFilm().placed[2]?.cues.get('push');
+      const t = ((push?.start ?? 0) + (push?.end ?? 0)) / 2;
+      const { page } = yield* openLab([three], {
+        href: pageHref.labScene(PROBE, 'three', { code: 'follow' }, Option.some(t)),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* evaluates(page, painted('lab-live'), ["push: { mark: 'near', until: 'held' }"]);
+      yield* evaluates(page, painted('lab-read'), []);
+      yield* evaluates(page, glow(text.split('\n').findIndex((l) => l.includes('f.at(')) + 1), 0);
+      yield* textIs(page, '.lab-source-col [data-role="beat"]', 'three · {near}');
+    }).pipe(Effect.scoped),
+  );
+
+  const beats = [
+    ['before its first mark, the band names the scene alone', 0.05, 'one'],
+    ['once its voice says a mark, the band names the mark too', middle('rise'), 'one · {rise}'],
+    ['the mark it names is the last one said', middle('fall'), 'one · {fall}'],
+  ] as const;
+  for (const [name, T, words] of beats)
+    it.live(name, () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([codeRoute], { href: labOne(T, { code: 'follow' }) });
+        yield* page.waitFor('.lab-source-col .lab-source-page');
+        yield* textIs(page, '.lab-source-col [data-role="beat"]', words);
+      }).pipe(Effect.scoped),
+    );
 });
 
 describe('a code view that cannot read', () => {
