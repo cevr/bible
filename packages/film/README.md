@@ -1993,9 +1993,11 @@ the frame as Follow does. The panel stands aside until Code mode is left, its
 selection sheets with it (`PanelAside`: the inspector stays in its place,
 hidden; the selection stays lit in the code). On a phone the strip folds to
 its words as it does outside Edit; on a laptop it keeps the mode's lanes, the
-picture keeping its size in its half. A tap there holds and selects nothing: a lit line (one
-that glows, or writes a playing cue) plays again from where it next fires, and
-the view follows it there; any other line stays still. A line's menu still
+picture keeping its size in its half. A tap there holds and selects nothing: a
+lit line (one that glows, or writes a playing cue) seeks to where it next
+fires, as a tap seeks everywhere in the lab (Play plays), and the view follows
+it there; any other line stays still, and only a lit line takes the pointer's
+cursor and shows a press (`data-lit`). A line's menu still
 opens, and Note this line leaves Code mode for the line it notes. A mode shown
 in the panel (the command menu's Show, a note begun with `n` or Note frame)
 leaves it too, to following, so the panel it asks for is seen

@@ -66,6 +66,10 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
    lane under the playhead beside the code; on a phone it folds to its words, as outside Edit (\`player.css\`), so the
    code keeps the screen's rest. */
 body.lab:has(.lab-source-col[data-code='live']) .lab-panel { display: none; }
+/* There a tap answers on a lit line alone (\`data-lit\`): the pointer says which, and a press shows on its row. */
+.lab-source-col[data-code='live'] .lab-source-line { cursor: default; -webkit-tap-highlight-color: transparent; }
+.lab-source-col[data-code='live'] .lab-source-line[data-lit='true'] { cursor: pointer; }
+.lab-source-col[data-code='live'] .lab-source-line[data-lit='true']:active { background: var(--surface-3); }
 @media ${WIDE} {
   body.lab:has(.lab-source-col) { grid-template-columns: minmax(0, 1fr) var(--source-w) var(--inspector-w); }
   body.lab:has(.lab-source-col) .lab-panel { grid-column: 3; }

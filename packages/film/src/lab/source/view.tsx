@@ -216,6 +216,8 @@ const Text = (props: {
   const lit = props.lit;
   /** How brightly line `n` glows now: none for a line nothing fires on, nor has just fired on. */
   const glowOn = (n: number) => Option.getOrUndefined(Option.fromUndefinedOr(lit().glows.get(n)));
+  /** Whether line `n` is lit now: it glows, or writes a playing cue. In Code mode a tap answers on such a line alone. */
+  const litLine = (n: number) => lit().glows.has(n) || metersOn(lit().meters, n).length > 0;
   const rows = createMemo(() => rowsOf(props.code));
   const digits = createMemo(() => String(rows().length).length);
   let page = Option.none<HTMLElement>();
@@ -320,12 +322,12 @@ const Text = (props: {
   };
   // A tap on a line, unless it ends a text selection, holds it (held again, the view places it again) and seeks to
   // where it next fires: held first, so Back finds the frame the tap left. Code mode holds and selects nothing: a
-  // lit line (one that glows, or writes a playing cue) plays again from where it next fires, and the view follows it
-  // there; any other line stays still.
+  // lit line (`litLine`) seeks to where it next fires, as a tap seeks everywhere in the lab (Play plays), and the view
+  // follows it there; any other line stays still, and says so to the pointer (`data-lit`).
   const tap = (n: number) => {
     if (!(window.getSelection()?.isCollapsed ?? true)) return;
     if (source.live()) {
-      if (!lit().glows.has(n) && metersOn(lit().meters, n).length === 0) return;
+      if (!litLine(n)) return;
       source.resume();
       seekTo(n);
       return;
@@ -357,6 +359,7 @@ const Text = (props: {
               of={Selection.cases.Line.make({ scene: props.code.scene, line: row.n })}
               class="lab-source-line"
               data-line={row.n}
+              data-lit={pressed(litLine(row.n))}
               style={{ '--glow': glowOn(row.n) }}
               onClick={() => tap(row.n)}
             >

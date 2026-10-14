@@ -1564,21 +1564,23 @@ describe('Code mode', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live('a tap on a playing literal plays its cue again, holding and selecting nothing', () =>
-    Effect.gen(function* () {
-      const { page } = yield* openLab([codeRoute, sourceRoute], {
-        href: labOne(middle('rise'), { code: 'live' }),
-        ready: LIVE_READY,
-      });
-      yield* page.click(`.lab-source-line[data-line="${RISE_LINE}"]`);
-      yield* evaluates(page, `Math.abs(${HASH_T} - ${into(span('rise').start)}) < 0.002`, true);
-      yield* countIs(page, '.lab-source-held', 0);
-      yield* evaluates(page, 'location.search', '?code=live');
-    }).pipe(Effect.scoped),
+  it.live(
+    'a tap on a playing literal seeks to its cue’s start, holding and selecting nothing',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([codeRoute, sourceRoute], {
+          href: labOne(middle('rise'), { code: 'live' }),
+          ready: LIVE_READY,
+        });
+        yield* page.click(`.lab-source-line[data-line="${RISE_LINE}"]`);
+        yield* evaluates(page, `Math.abs(${HASH_T} - ${into(span('rise').start)}) < 0.002`, true);
+        yield* countIs(page, '.lab-source-held', 0);
+        yield* evaluates(page, 'location.search', '?code=live');
+      }).pipe(Effect.scoped),
   );
 
   it.live(
-    'a line still glowing after its read plays it again; a dark line, a cue not playing among them, stays still',
+    'a line still glowing after its read seeks to where it fired; a dark line, a cue not playing among them, stays still',
     () =>
       Effect.gen(function* () {
         const T = span('rise').end + 0.3;
@@ -1586,6 +1588,20 @@ describe('Code mode', () => {
           href: labOne(T, { code: 'live' }),
           ready: LIVE_READY,
         });
+        // The pointer says which lines answer: the glowing one, and neither the dark one nor the cue not playing.
+        const cursorOf = (line: number) =>
+          `getComputedStyle(document.querySelector('.lab-source-line[data-line="${line}"]')).cursor`;
+        yield* evaluates(
+          page,
+          `[${cursorOf(1)}, ${cursorOf(FALL_LINE)}, ${cursorOf(RISE_READ_LINE)}].join()`,
+          'default,default,pointer',
+        );
+        yield* attributeIs(
+          page,
+          `.lab-source-line[data-line="${RISE_READ_LINE}"]`,
+          'data-lit',
+          'true',
+        );
         yield* page.click('.lab-source-line[data-line="1"]');
         yield* page.click(`.lab-source-line[data-line="${FALL_LINE}"]`);
         yield* page.evaluate(FRAMES);
