@@ -244,6 +244,35 @@ describe('who may use the MCP', () => {
           ]);
           expect(yield* status({ host: TUNNEL })).toEqual([403, Option.none()]);
           expect(yield* status({ 'x-forwarded-for': '203.0.113.9' })).toEqual([403, Option.none()]);
+          // Every spelling the router takes for the MCP's path is behind the same check.
+          const aliased = (at: string) =>
+            Effect.promise(() =>
+              lab(
+                new Request(`${BASE.slice(0, -1)}${at}`, {
+                  method: 'POST',
+                  headers: {
+                    host: TUNNEL,
+                    'content-type': 'application/json',
+                    accept: 'application/json, text/event-stream',
+                  },
+                  body: writeJson({
+                    jsonrpc: '2.0',
+                    id: 0,
+                    method: 'initialize',
+                    params: {
+                      protocolVersion: '2025-06-18',
+                      capabilities: {},
+                      clientInfo: { name: 't', version: '0' },
+                    },
+                  }),
+                }),
+                bound,
+              ),
+            ).pipe(Effect.map((r) => [at, r.status < 300]));
+          const spellings = ['/mcp', '/MCP', '/m%63p', '//mcp', '/mcp;', '/mcp/'];
+          expect(yield* Effect.forEach(spellings, aliased)).toEqual(
+            spellings.map((at) => [at, false]),
+          );
           // The page through the tunnel stays as it was.
           const page = yield* Effect.promise(() =>
             lab(new Request(`${BASE}films/f/board`, { headers: { host: TUNNEL } }), bound),
@@ -559,7 +588,7 @@ describe('asks through the MCP', () => {
             ['Asked', `Which judge? (ask ${made.ask})`, Option.none(), Option.some('judge-faces')],
             [
               'Decided',
-              'Which judge?: try: Calmer · why: he listens',
+              `Which judge? (ask ${made.ask}): try: Calmer · why: he listens`,
               Option.some('he listens'),
               Option.some('judge-faces'),
             ],
@@ -570,6 +599,25 @@ describe('asks through the MCP', () => {
               (c: { kind: string; text: string }) => [c.kind, c.text],
             ),
           ).toEqual([['ask.closed', 'kept the calmer judge']]);
+          // An ask withdrawn unanswered files a note naming it, which closes its question.
+          const other = yield* tool('ask', {
+            title: 'Name the judge?',
+            why: 'the credits',
+            by: 'agent',
+            production: 'f',
+            set: 'spare/judge-faces',
+            blocks: [{ kind: 'free_text', id: 'name', label: 'His name?' }],
+          });
+          yield* tool('close_ask', { ask: other.ask, why: 'not needed now' });
+          const after = Option.getOrThrow(yield* productions.read('f')).said;
+          expect(after.slice(2).map((w) => [w._tag, w.text, w.ask])).toEqual([
+            ['Asked', `Name the judge? (ask ${other.ask})`, Option.some(other.ask)],
+            [
+              'Noted',
+              `Name the judge? (ask ${other.ask}) withdrawn: not needed now`,
+              Option.some(other.ask),
+            ],
+          ]);
         }),
       ),
   );

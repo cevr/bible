@@ -15,6 +15,7 @@ import {
   productionsOf,
   unfiledOf,
   versionAt,
+  withAskSaid,
   withFiled,
   withSaid,
 } from './production.ts';
@@ -187,6 +188,7 @@ describe('a production’s history', () => {
       set: Option.none(),
       point: Option.none(),
       variant: Option.none(),
+      ask: Option.none(),
     };
     const history = historyOf('look', Option.some(withSaid(look(), said)), []);
     expect(history.versions.find((v) => v.n === 2)?.entries).toEqual([
@@ -216,6 +218,7 @@ describe('a production’s history', () => {
       set: Option.some('rbf-rive'),
       point: on,
       variant: Option.none(),
+      ask: Option.none(),
     });
     const words = [
       // Asked in v2, still open: it waits on the version open now.
@@ -237,6 +240,36 @@ describe('a production’s history', () => {
     expect(states).toEqual(['Waiting', 'Picked', 'Decided', 'Quiet']);
   });
 
+  test("an ask's words answer its own question only, its withdrawal closes it, and each files once", () => {
+    const word = (tag: Said['_tag'], at: number, ask: string): Said => ({
+      _tag: tag,
+      at,
+      text: `${tag} ${ask}`,
+      quote: Option.none(),
+      set: Option.some('gone'),
+      point: Option.none(),
+      variant: Option.none(),
+      ask: Option.some(ask),
+    });
+    const asked = [word('Asked', 20 * HOUR, 'a1'), word('Asked', 21 * HOUR, 'a2')].reduce(
+      withAskSaid,
+      look(),
+    );
+    const waitingOn = (file: ProductionFile) =>
+      currentOf(historyOf('look', Option.some(file), [])).waiting.map((w) => w.ask.text);
+    // Ask a1 answered on the same set: a2's question still waits.
+    const answered = withAskSaid(asked, word('Decided', 22 * HOUR, 'a1'));
+    expect(waitingOn(answered)).toEqual(['Asked a2']);
+    // Filed again (a retried close, a second close at once): once.
+    const again = [word('Decided', 23 * HOUR, 'a1'), word('Asked', 24 * HOUR, 'a1')].reduce(
+      withAskSaid,
+      answered,
+    );
+    expect(again).toEqual(answered);
+    // Ask a2 withdrawn: a note naming it closes its wait.
+    expect(waitingOn(withAskSaid(answered, word('Noted', 23 * HOUR, 'a2')))).toEqual([]);
+  });
+
   test('an ask on a set no root holds still waits, named by its words', () => {
     const file = withSaid(look(), {
       _tag: 'Asked',
@@ -246,6 +279,7 @@ describe('a production’s history', () => {
       set: Option.some('gone'),
       point: Option.none(),
       variant: Option.none(),
+      ask: Option.none(),
     });
     const [ask] = currentOf(historyOf('look', Option.some(file), [])).waiting;
     expect(ask?.ask.text).toBe('Keep the subtitles?');

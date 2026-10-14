@@ -21,7 +21,7 @@ const ASK_LIMITS = { steps: 12, blocks: 12, next: 12, options: 12 } as const;
 /** Text of at most `max` characters, not blank. */
 const Text = (max: number) =>
   Schema.String.check(
-    Schema.isNonEmpty(),
+    Schema.makeFilter((text) => text.trim().length > 0 || 'not blank'),
     Schema.isMaxLength(max, { message: `at most ${max} characters` }),
   );
 
@@ -536,6 +536,18 @@ export const askMachine = (ask: Ask, from: AskState = askStart(ask)) =>
       AskState.Closed({ answers: state.answers, why: event.why }),
     )
     .final(AskState.Closed);
+
+/**
+ * Whether the owner's answers took the ask to its end: its answered steps
+ * replayed through its machine from the start, so a close (which keeps the
+ * answers, not the step) still tells an answered ask from a withdrawn one.
+ */
+export const answeredToEnd = (record: Pick<AskRecord, 'ask' | 'answered'>): boolean =>
+  record.answered.reduce((state: AskState, a) => {
+    if (state._tag !== 'Asking') return state;
+    if (Option.isSome(answerRefusal(record.ask, state, a.step, a.values))) return state;
+    return answered(record.ask, state, a.values);
+  }, askStart(record.ask))._tag === 'Answered';
 
 /** Where `state` is, in a word: asking, answered or closed. */
 export const askStatus = (state: AskState): 'asking' | 'answered' | 'closed' =>

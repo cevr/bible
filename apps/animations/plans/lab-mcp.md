@@ -39,7 +39,7 @@ when `FILM_LAB_HOSTS` names one).
 | `ask`           | makes an ask (a decision page) from `blocks` or a `machine`; answers its links (see [Asks](#asks))                      |
 | `ask_read`      | an ask: where its run is, every answer so far (typed), each step answered, its links                                    |
 | `asks`          | every ask, newest first, narrowed by `status` (`asking`, `answered`, `closed`)                                          |
-| `close_ask`     | closes an ask with `why`; an answered one with a production is filed on its timeline as `Decided`                       |
+| `close_ask`     | closes an ask with `why`; with a production, files `Decided` (answered) or `Noted` (withdrawn), once, by ask id         |
 
 Resources: `lab://overview`, `lab://changes` (the last 50), `lab://films/{film}/notes`, `lab://films/{film}/board`.
 Prompt: `inbox` (every waiting note across the films, and how to work them).
@@ -77,8 +77,9 @@ How an agent hears them:
    `experimental['claude/channel']`, then long-polls the lab's `changes` and sends each as
    `notifications/claude/channel` (`content`: summary, words, link; `meta`: kind, seq, film, note, panel, beat,
    try, variant, by, link). Claude Code shows it in the session as `<channel source="lab-events" kind="…" …>`.
-   It reconnects every 5 s when the lab is down; after a lab restart it sends the newest 20 and a line for the
-   rest.
+   It reconnects every 5 s when the lab is down and reads on from the last cursor it saw, so nothing that
+   changed while it was away is skipped; after a lab restart (that cursor unknown) it sends the newest 20 and a
+   line for the rest.
 
 What reaches a Claude Code session (2.1.300, per its docs): tool results, always; `list_changed`, which only
 refreshes the lists; channel events, only from a stdio server, only in the main session, and only when Claude is
@@ -213,8 +214,8 @@ an end (`thanks`, if given). So the one-question ask is
 
 - **Made** (`ask`): checked, resolved, written to `FILMS_LAB/asks/<id>.json` (`a` + 10 hex). Answers its links:
   `local` (where the lab is bound), `phone` (`FILM_LAB_PHONE_URL`, the tailnet address, when set) and `public`
-  (the tunnel's host, when `FILM_LAB_HOSTS` names one). With `production` and `set`, an `Asked` entry is filed on
-  that production's ledger, so the timeline shows it waiting on the owner.
+  (the tunnel's host, when `FILM_LAB_HOSTS` names one). With `production` and `set`, an `Asked` entry naming the
+  ask (`ask: a…`) is filed on that production's ledger, so the timeline shows it waiting on the owner.
 - **Answered** a step at a time, from any device: the page posts `{step, values}` (`POST /api/asks/<id>/answer`);
   the lab moves the machine (`Machine.replay` from the kept state) and appends the step to the record's
   `answered` log. The same answer again (a retry, a second tab) is answered as it is; a different one to a step
@@ -224,10 +225,14 @@ an end (`thanks`, if given). So the one-question ask is
 - **Heard**: the feed reads `FILMS_LAB/asks/` like every other record. `ask.step` carries the step's answers,
   typed (`{kind: 'choose', value, label}` or `{kind: 'free_text', text}`, by block id); `ask.answered` carries all
   of them when the run reaches its end. Both arrive through `changes` (a waiting call wakes) and the channel.
-- **Closed** (`close_ask {ask, why}`): it takes no more answers and keeps what it has. An answered ask with a
-  production is filed as `Decided` on the same set (text: the answers in a line; quote: the owner's free text,
-  verbatim), which answers the `Asked` entry, so it stops waiting on the timeline. Closing again with the same
-  `why` answers it as it is and files nothing.
+  "Reached its end" is read from the `answered` log, not the state's tag, so an answer and a close seen in one
+  look of the feed still tell `ask.answered`, then `ask.closed`.
+- **Closed** (`close_ask {ask, why}`): it takes no more answers and keeps what it has. An ask with a production
+  files what closed it, naming the ask: answered to its end, a `Decided` (text: the answers in a line; quote: the
+  owner's free text, verbatim); withdrawn before, a `Noted` ("withdrawn: why"). Either answers that ask's `Asked`
+  entry and no other, so it stops waiting on the timeline. Each word is filed once by the ask's id under the
+  ledger's lock: closing again with the same `why` answers the ask as it is and files only what a failed filing
+  left out (the `Asked` among it), and two closes at once file one word.
 
 ### The page
 
@@ -287,8 +292,11 @@ Left, and why:
 The timeline (`ProductionStore`, ledgers in `apps/animations/productions/`, read via `FILMS_PRODUCTIONS`) is the
 record of versions and of what waits on the owner; asks file onto it rather than keep a rival model:
 
-- An ask with `production` and `set` is filed as `Asked` when made, and its answers as `Decided` on the same set
-  when it is closed answered; the timeline's "waits on you" clears by its own rule (a later decision on the set).
+- An ask with `production` and `set` is filed as `Asked` when made, and what closed it (`Decided` with its answers,
+  or `Noted` withdrawn) when the agent closes it. The ledger's words carry an optional `ask` id (old ledgers read
+  as before): a word naming an ask answers that ask's question only, and is not a decision on its set, so one
+  ask answered on a set leaves another asked on the same set waiting. A bare decision on the set (`film production
+  decide`) still answers every question on it.
 - The `Asked` text names the ask (`(ask a…)`). The timeline does not yet link to the ask's page; a waiting entry
   that is an ask could open it.
 - `film production ask` in a terminal still files a bare `Asked` (a question with no page). The next step is for

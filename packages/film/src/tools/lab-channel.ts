@@ -9,7 +9,8 @@
 // waiting up to `WAIT_S` each time, and sends each change on as one channel
 // event: its summary and link as the text, what it is about as attributes.
 // The lab stays the one record and the one feed; the bridge keeps nothing
-// but the cursor. A lab that stops answering is asked again every `RETRY`.
+// but the cursor (`lab-relay.ts`), which outlives a session: a lab that
+// stops answering is asked again every `RETRY` and read on from it.
 //
 //   claude mcp add lab-events -s user -- bun <app>/cli.ts channel
 //   claude --dangerously-load-development-channels server:lab-events
@@ -25,7 +26,6 @@ import {
   Option,
   Path,
   Queue,
-  Schedule,
   Schema,
   Stdio,
   Stream,
@@ -36,6 +36,7 @@ import type { LabChange } from '../core/lab-events.ts';
 import { labUrl } from './easel-cli.ts';
 import { LabChanges } from './lab-events.ts';
 import { MCP_PATH } from './lab-mcp.ts';
+import { relayFeed } from './lab-relay.ts';
 
 /** The capability Claude Code reads a channel by. */
 const CHANNEL = 'claude/channel';
@@ -324,30 +325,19 @@ const runChannel = (url: string, token: string) =>
     const feed = yield* labFeed(url, token);
 
     /** The lab's changes, relayed for as long as the bridge runs: a lost session is started again. */
-    const relay = Effect.gen(function* () {
-      let cursor = Option.none<string>();
-      while (true) {
-        const session = yield* feed.start;
-        if (Option.isNone(cursor))
-          cursor = Option.some((yield* feed.changes(session, Option.none(), 0)).cursor);
-        yield* Effect.log(`lab.channel.connected url=${url}`);
-        while (true) {
-          const answer = yield* feed.changes(session, cursor, WAIT_S);
-          cursor = Option.some(answer.cursor);
+    const relay = relayFeed(
+      feed,
+      (answer) =>
+        Effect.gen(function* () {
           const told = Bool.match(answer.reset, {
             onTrue: () => caughtUp(answer.changes),
             onFalse: () => answer.changes.map(channelEvent),
           });
           yield* Effect.forEach(told, send, { discard: true });
           if (told.length > 0) yield* Effect.log(`lab.channel.sent count=${told.length}`);
-        }
-      }
-    }).pipe(
-      Effect.tapError((error) =>
-        Effect.logWarning(`lab.channel.unanswered url=${url} reason="${error.reason}"`),
-      ),
-      // oxlint-disable-next-line effect/noUnboundedRetry -- the bridge lives as long as its session: a lab restarted or stopped is asked again until it answers
-      Effect.retry(Schedule.spaced(RETRY)),
+        }),
+      (error) => Effect.logWarning(`lab.channel.unanswered url=${url} reason="${error.reason}"`),
+      { wait: WAIT_S, retry: RETRY },
     );
 
     const answering = stdio.stdin.pipe(

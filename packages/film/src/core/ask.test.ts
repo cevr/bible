@@ -4,14 +4,16 @@
 // answer that does not fit, or to a step the ask has left, moves nothing;
 // closing keeps what was answered.
 
-import { Effect, Option } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { Machine } from 'effect-machine';
 import {
   type Ask,
   AskEvent,
+  Ask as AskSchema,
   AskState,
   answerRefusal,
+  answeredToEnd,
   askMachine,
   askProblems,
   askStart,
@@ -102,6 +104,25 @@ describe('the check before an ask renders', () => {
     ]);
   });
 
+  test('a blank option value, label or text does not decode, so no blank answer can be sent', () => {
+    const decode = Schema.decodeUnknownExit(AskSchema);
+    const choice = (value: string, label: string): Ask =>
+      oneQuestion([
+        {
+          kind: 'choose',
+          id: 'try',
+          label: 'Which?',
+          options: [
+            { value, label },
+            { value: '7', label: 'Try 7' },
+          ],
+        },
+      ]);
+    expect(decode(choice('1', 'Try 1'))._tag).toBe('Success');
+    expect(String(decode(choice('   ', 'Try 1')))).toContain('not blank');
+    expect(String(decode(choice('1', ' \n ')))).toContain('not blank');
+  });
+
   test('an ask is bounded: at most twelve steps', () => {
     const steps = Object.fromEntries(
       Array.from({ length: 13 }, (_, i) => [
@@ -167,6 +188,19 @@ describe('the run', () => {
       expect(yield* run([AskEvent.Answer({ step: 'pick', values: { try: '9' } })])).toEqual(start);
     }),
   );
+
+  test('answered to its end is read from the answered steps, so a close keeps it', () => {
+    const at = '2026-10-14T00:00:00.000Z';
+    const pick = { step: 'pick', values: { try: '7' }, at };
+    expect(answeredToEnd({ ask: proof, answered: [] })).toBe(false);
+    expect(answeredToEnd({ ask: proof, answered: [pick] })).toBe(false);
+    expect(
+      answeredToEnd({ ask: proof, answered: [pick, { step: 'why', values: { why: 'x' }, at }] }),
+    ).toBe(true);
+    expect(
+      answeredToEnd({ ask: proof, answered: [{ step: 'pick', values: { try: '3' }, at }] }),
+    ).toBe(true);
+  });
 
   it.effect('closing keeps what was answered, and a closed ask takes no answer', () =>
     Effect.gen(function* () {

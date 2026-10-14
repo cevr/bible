@@ -221,4 +221,19 @@ describe('askChanges', () => {
       ['ask.closed', 'agent', 'kept try 7'],
     ]);
   });
+
+  it('tells an ask answered and closed in one read as answered, then closed; a withdrawn one as closed', () => {
+    const closed: AskRecord = { ...done, state: AskState.Closed({ answers, why: 'kept try 7' }) };
+    expect(askChanges(Option.some(picked), closed).map((c) => [c.kind, c.answers])).toEqual([
+      ['ask.step', { why: answers.why }],
+      ['ask.answered', answers],
+      ['ask.closed', answers],
+    ]);
+    const withdrawn: AskRecord = {
+      ...picked,
+      state: AskState.Closed({ answers: picked.state.answers, why: 'not needed now' }),
+    };
+    expect(askChanges(Option.some(picked), withdrawn).map((c) => c.kind)).toEqual(['ask.closed']);
+    expect(askChanges(Option.some(withdrawn), withdrawn)).toEqual([]);
+  });
 });

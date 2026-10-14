@@ -64,12 +64,17 @@ const SaidOn = {
   variant: maybe(Schema.String),
 };
 
+/** The lab ask a word files (`ask`, in the lab's asks): its question, or its answer or withdrawal. */
+const SaidAsk = { ask: maybe(Schema.String) };
+
 /**
  * The owner's word given outside the lab, as an agent recorded it: a
  * decision (a pick, a direction) or a note (feedback), and the question an
  * agent asks the owner about a set (`Asked`: it waits on the owner until a
  * decision on that set, or a pick in that choice, answers it). `quote` is
- * the owner's own words, verbatim; `text` says it plainly.
+ * the owner's own words, verbatim; `text` says it plainly. A word an ask
+ * files names it (`ask`): that ask's answer answers its question and no
+ * other, and withdrawing the ask (a note naming it) closes its question.
  */
 export const Said = Schema.Union([
   Schema.TaggedStruct('Decided', {
@@ -77,18 +82,21 @@ export const Said = Schema.Union([
     text: Schema.String,
     quote: maybe(Schema.String),
     ...SaidOn,
+    ...SaidAsk,
   }),
   Schema.TaggedStruct('Noted', {
     at: At,
     text: Schema.String,
     quote: maybe(Schema.String),
     ...SaidOn,
+    ...SaidAsk,
   }),
   Schema.TaggedStruct('Asked', {
     at: At,
     text: Schema.String,
     quote: maybe(Schema.String),
     ...SaidOn,
+    ...SaidAsk,
   }),
 ]).pipe(Schema.toTaggedUnion('_tag'));
 export type Said = typeof Said.Type;
@@ -185,6 +193,20 @@ export const withSaid = (file: ProductionFile, said: Said): ProductionFile => ({
   ),
 });
 
+/**
+ * `said`, filed by an ask (`said.ask`), unless the timeline holds that ask's
+ * word of its kind already (its question, or what closed it): an ask's
+ * filing tried again, or by two closes at once, files it once.
+ */
+export const withAskSaid = (file: ProductionFile, said: Said): ProductionFile => {
+  const isQuestion = (s: Said) => s._tag === 'Asked';
+  const filed = Option.exists(said.ask, (id) =>
+    file.said.some((s) => Option.contains(s.ask, id) && isQuestion(s) === isQuestion(said)),
+  );
+  if (filed) return file;
+  return withSaid(file, said);
+};
+
 /** A set filed in version `version` by hand (a later filing of the same set replaces it). */
 export const withFiled = (file: ProductionFile, filed: Filed): ProductionFile => ({
   ...file,
@@ -277,9 +299,14 @@ const versionOfFolder = (file: ProductionFile, folder: ReviewFolder): Option.Opt
   );
 };
 
-/** Whether `said` is a decision on the set at `path` that covers `point` (one on the set alone covers all its choices). */
+/**
+ * Whether `said` is a decision on the set at `path` that covers `point` (one
+ * on the set alone covers all its choices). An ask's answer is not: it
+ * answers its own question, not the set.
+ */
 const decides = (said: Said, path: string, point: Option.Option<string>): boolean =>
   said._tag === 'Decided' &&
+  Option.isNone(said.ask) &&
   Option.contains(said.set, path) &&
   Option.match(said.point, {
     onNone: () => true,
@@ -296,7 +323,8 @@ const pickedIn = (point: ChoicePoint): boolean =>
 
 /**
  * The questions that wait on the owner: every ask in `said` that no later
- * decision on its set (and choice), nor a pick in its choice, answers; with
+ * decision on its set (and choice), nor a pick in its choice, nor (for an
+ * ask's question) that ask's own answer or withdrawal, answers; with
  * the set and choice from `folders` when the review holds them.
  */
 const waitingIn = (
@@ -310,8 +338,10 @@ const waitingIn = (
     const point = Option.flatMap(folder, (f) =>
       Arr.findFirst(f.sets, (p) => Option.contains(ask.point, p.id)),
     );
+    const closesIt = (s: Said) =>
+      s._tag !== 'Asked' && Option.isSome(ask.ask) && Option.contains(s.ask, ask.ask.value);
     const answered =
-      said.some((s) => s.at >= ask.at && decides(s, path, ask.point)) ||
+      said.some((s) => closesIt(s) || (s.at >= ask.at && decides(s, path, ask.point))) ||
       Option.exists(point, pickedIn);
     return [{ ask, folder, point }].filter(() => !answered);
   });

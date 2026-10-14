@@ -244,6 +244,7 @@ const say = (tag: Said['_tag']) =>
         set: input.set,
         point: input.point,
         variant: input.variant,
+        ask: Option.none(),
       };
       const said: Said = { _tag: tag, ...fields };
       yield* (yield* ProductionStore).say(id, said);

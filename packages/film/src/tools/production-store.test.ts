@@ -61,6 +61,7 @@ describe('ProductionStore', () => {
             set: Option.none(),
             point: Option.none(),
             variant: Option.none(),
+            ask: Option.none(),
           }),
         ),
       );
@@ -132,6 +133,7 @@ describe('the verbs', () => {
         set: Option.none(),
         point: Option.none(),
         variant: Option.none(),
+        ask: Option.none(),
       };
       expect(Exit.isFailure(yield* Effect.exit(store.say('look', ask)))).toBe(true);
       const said = yield* store.say('look', { ...ask, set: Option.some('rbf-rive') });

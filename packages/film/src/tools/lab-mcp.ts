@@ -16,7 +16,8 @@
 // - Asks: a decision page an agent composes from the lab's primitives as a
 //   small machine (`ask`), answered by the owner on any device, each step's
 //   answers heard as `ask.step` changes; read (`ask_read`, `asks`) and closed
-//   (`close_ask`), an answered ask filed on its production's timeline
+//   (`close_ask`), what closed it (answers, or withdrawn) filed on its
+//   production's timeline once by its id
 //   (`AskStore`, `ProductionStore`; `core/ask.ts`).
 // - Resources (`lab://…`) say the same reads for a client that attaches
 //   them; the `inbox` prompt opens a session on what waits.
@@ -34,6 +35,7 @@ import {
   Clock,
   Config,
   Crypto,
+  DateTime,
   Duration,
   Effect,
   FileSystem,
@@ -41,6 +43,7 @@ import {
   Match,
   Option,
   Path,
+  Result,
   Schema,
   Struct,
 } from 'effect';
@@ -52,11 +55,12 @@ import {
   AskAnswer,
   AskBlock,
   type AskRecord,
+  answeredToEnd,
   answersLine,
   askStatus,
   oneQuestion,
 } from '../core/ask.ts';
-import { setPathOf } from '../core/production.ts';
+import { type Said, setPathOf, withAskSaid } from '../core/production.ts';
 import { type BoardFile, BoardStyle, PANEL_START, Panel, panelById } from '../core/board.ts';
 import { Catalogue, Render } from '../core/catalogue.ts';
 import { boardPath, gist, notePath } from '../core/lab-events.ts';
@@ -73,7 +77,6 @@ import { LabChanges, LabEvents, reviewFolders } from './lab-events.ts';
 import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
 import { Review, refOf, pathOf } from './review.ts';
-import { urlPath } from './review-file.ts';
 
 /** Where the lab answers MCP. */
 export const MCP_PATH = '/mcp';
@@ -424,7 +427,7 @@ const AsksTool = Tool.make('asks', {
 
 const CloseAsk = Tool.make('close_ask', {
   description:
-    "Close an ask, saying `why` (acted on, withdrawn): it takes no more answers and keeps what it has. An answered ask with a production is filed on its timeline as the owner's decision. Closing again with the same `why` answers it as it is.",
+    "Close an ask, saying `why` (acted on, withdrawn): it takes no more answers and keeps what it has. With a production, it is filed on its timeline once: answered, as the owner's decision; withdrawn, as a note. Closing again with the same `why` answers it as it is (and files what a failed filing left out).",
   parameters: Schema.Struct({
     ask: Schema.String,
     why: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(2000)),
@@ -870,6 +873,84 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     links: askLinks(record.id),
   });
 
+  /**
+   * An ask's words on its production's timeline, each filed once by the ask's
+   * id (`withAskSaid`, under the ledger's lock): its question (when it names a
+   * set) as it is made, and once closed, its answers (answered to its end) or
+   * its withdrawal (closed before). A filing that failed is filed by the next
+   * close of the ask, and two closes at once file one word.
+   */
+  const fileAsk = (record: AskRecord) =>
+    Option.match(Option.fromUndefinedOr(record.production), {
+      onNone: () => Effect.void,
+      onSome: (production) =>
+        Effect.gen(function* () {
+          const now = yield* Clock.currentTimeMillis;
+          const set = Option.map(Option.fromUndefinedOr(record.set), setPathOf);
+          const on = {
+            set,
+            point: Option.none<string>(),
+            variant: Option.none<string>(),
+            ask: Option.some(record.id),
+          };
+          const named = `${record.title} (ask ${record.id})`;
+          const question = Arr.filter(
+            [
+              {
+                _tag: 'Asked' as const,
+                at: Option.getOrElse(
+                  Option.map(DateTime.make(record.created), DateTime.toEpochMillis),
+                  () => now,
+                ),
+                text: named,
+                quote: Option.none<string>(),
+                ...on,
+              },
+            ],
+            () => Option.isSome(set),
+          );
+          const closing = Match.value(record.state).pipe(
+            Match.tag('Closed', (closed): ReadonlyArray<Said> => {
+              if (!answeredToEnd(record))
+                return [
+                  {
+                    _tag: 'Noted',
+                    at: now,
+                    text: `${named} withdrawn: ${closed.why}`,
+                    quote: Option.none(),
+                    ...on,
+                  },
+                ];
+              const words = Object.values(closed.answers).flatMap((a) =>
+                Match.value(a).pipe(
+                  Match.discriminatorsExhaustive('kind')({
+                    choose: (): ReadonlyArray<string> => [],
+                    free_text: (t) => [t.text],
+                  }),
+                ),
+              );
+              return [
+                {
+                  _tag: 'Decided',
+                  at: now,
+                  text: `${named}: ${answersLine(closed.answers)}`,
+                  quote: Option.liftPredicate(words.join(' / '), (w) => w.length > 0),
+                  ...on,
+                },
+              ];
+            }),
+            Match.orElse((): ReadonlyArray<Said> => []),
+          );
+          const words: ReadonlyArray<Said> = [...question, ...closing];
+          if (words.length === 0) return;
+          yield* refused(
+            productions.modify(production, (current) =>
+              Result.succeed(words.reduce(withAskSaid, current)),
+            ),
+          );
+        }),
+    });
+
   const ask = Effect.fn('LabMcp.ask')(function* (given: typeof AskTool.parametersSchema.Type) {
     const blocks = Option.fromUndefinedOr(given.blocks);
     const flow = Option.fromUndefinedOr(given.machine);
@@ -903,23 +984,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
         }),
       ),
     );
-    yield* Option.match(Option.all({ production, set }), {
-      onNone: () => Effect.void,
-      onSome: (on) =>
-        Effect.flatMap(Clock.currentTimeMillis, (at) =>
-          refused(
-            productions.say(on.production, {
-              _tag: 'Asked',
-              at,
-              text: `${record.title} (ask ${record.id})`,
-              quote: Option.none(),
-              set: Option.some(setPathOf(on.set)),
-              point: Option.none(),
-              variant: Option.none(),
-            }),
-          ),
-        ),
-    });
+    yield* fileAsk(record);
     return askRead(record);
   });
 
@@ -935,31 +1000,8 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     }));
 
   const closeAsk = Effect.fn('LabMcp.closeAsk')(function* (id: string, why: string) {
-    const before = yield* refused(asks.read(id));
     const record = yield* refused(asks.close(id, why));
-    const production = Option.fromUndefinedOr(record.production);
-    // Filed once: as the close moves it from answered, not when it is closed again.
-    if (before.state._tag === 'Answered' && Option.isSome(production)) {
-      const words = Object.values(record.state.answers).flatMap((a) =>
-        Match.value(a).pipe(
-          Match.discriminatorsExhaustive('kind')({
-            choose: (): ReadonlyArray<string> => [],
-            free_text: (t) => [t.text],
-          }),
-        ),
-      );
-      yield* refused(
-        productions.say(production.value, {
-          _tag: 'Decided',
-          at: yield* Clock.currentTimeMillis,
-          text: `${record.title}: ${answersLine(record.state.answers)}`,
-          quote: Option.liftPredicate(words.join(' / '), (w) => w.length > 0),
-          set: Option.map(Option.fromUndefinedOr(record.set), setPathOf),
-          point: Option.none(),
-          variant: Option.none(),
-        }),
-      );
-    }
+    yield* fileAsk(record);
     return askRead(record);
   });
 
@@ -1161,42 +1203,42 @@ const mcpRefusal = (
   return Option.none();
 };
 
-/** The check in front of `/mcp`, for every request to it. */
+/**
+ * The check on the MCP's own routes: it runs on whatever the router matched
+ * them by (any spelling of the path the router takes for `/mcp`), never by a
+ * path compare of its own.
+ */
 const access = (token: string) =>
-  HttpRouter.middleware(
-    (routes) =>
-      Effect.gen(function* () {
-        const request = yield* HttpServerRequest.HttpServerRequest;
-        const path = urlPath(request.url);
-        if (path !== MCP_PATH && !path.startsWith(`${MCP_PATH}/`)) return yield* routes;
-        // A request made in process (a test's) names its Host in its URL only.
-        const host = Option.getOrElse(
-          Option.orElse(Option.fromUndefinedOr(request.headers['host']), () =>
-            Option.map(HttpServerRequest.toURL(request), (url) => url.host),
-          ),
-          () => '',
-        );
-        return yield* Option.match(mcpRefusal(Headers.set(request.headers, 'host', host), token), {
-          onNone: () => routes,
-          onSome: (refusal) =>
-            Effect.as(
-              Effect.logWarning(
-                `lab.mcp.refused method=${request.method} status=${refusal.status} reason="${refusal.reason}"`,
-              ),
-              HttpServerResponse.jsonUnsafe(
-                { error: 'McpRefused', reason: refusal.reason },
-                {
-                  status: refusal.status,
-                  headers: Bool.match(refusal.status === 401, {
-                    onTrue: () => ({ 'www-authenticate': 'Bearer' }),
-                    onFalse: () => ({}),
-                  }),
-                },
-              ),
+  HttpRouter.middleware((route) =>
+    Effect.gen(function* () {
+      const request = yield* HttpServerRequest.HttpServerRequest;
+      // A request made in process (a test's) names its Host in its URL only.
+      const host = Option.getOrElse(
+        Option.orElse(Option.fromUndefinedOr(request.headers['host']), () =>
+          Option.map(HttpServerRequest.toURL(request), (url) => url.host),
+        ),
+        () => '',
+      );
+      return yield* Option.match(mcpRefusal(Headers.set(request.headers, 'host', host), token), {
+        onNone: () => route,
+        onSome: (refusal) =>
+          Effect.as(
+            Effect.logWarning(
+              `lab.mcp.refused method=${request.method} status=${refusal.status} reason="${refusal.reason}"`,
             ),
-        });
-      }),
-    { global: true },
+            HttpServerResponse.jsonUnsafe(
+              { error: 'McpRefused', reason: refusal.reason },
+              {
+                status: refusal.status,
+                headers: Bool.match(refusal.status === 401, {
+                  onTrue: () => ({ 'www-authenticate': 'Bearer' }),
+                  onFalse: () => ({}),
+                }),
+              },
+            ),
+          ),
+      });
+    }),
   );
 
 const INSTRUCTIONS = [
@@ -1231,28 +1273,26 @@ export interface McpAccess {
  */
 export const labMcp = (access_: McpAccess, options: LabMcpOptions) =>
   Layer.mergeAll(
-    Layer.mergeAll(
-      McpServer.toolkit(LabToolkit).pipe(Layer.provideMerge(handlers(options))),
-      resources(options),
-      inbox(options),
-    ).pipe(
-      Layer.provide(
-        McpServer.layerHttp({
-          name: 'film-lab',
-          version: '0.1.0',
-          instructions: INSTRUCTIONS,
-          path: MCP_PATH,
-          protocols: [
-            McpProtocol.v2025_11_25,
-            McpProtocol.v2025_06_18,
-            McpProtocol.v2025_03_26,
-            McpProtocol.v2026_07_28,
-          ],
-        }),
-      ),
-      Layer.orDie,
+    McpServer.toolkit(LabToolkit).pipe(Layer.provideMerge(handlers(options))),
+    resources(options),
+    inbox(options),
+  ).pipe(
+    Layer.provide(
+      McpServer.layerHttp({
+        name: 'film-lab',
+        version: '0.1.0',
+        instructions: INSTRUCTIONS,
+        path: MCP_PATH,
+        protocols: [
+          McpProtocol.v2025_11_25,
+          McpProtocol.v2025_06_18,
+          McpProtocol.v2025_03_26,
+          McpProtocol.v2026_07_28,
+        ],
+        // Every route it adds is behind `access`.
+      }).pipe(Layer.provide(access(access_.token).layer)),
     ),
-    access(access_.token),
+    Layer.orDie,
   );
 
 // ---------------------------------------------------------------------------

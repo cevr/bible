@@ -9,7 +9,14 @@
 
 import { Array as Arr, Boolean as Bool, Match, Option, Record, Schema } from 'effect';
 import { addressKey } from './address.ts';
-import { AskAnswer, type AskAnswers, type AskRecord, answersLine, askedIn } from './ask.ts';
+import {
+  AskAnswer,
+  type AskAnswers,
+  type AskRecord,
+  answeredToEnd,
+  answersLine,
+  askedIn,
+} from './ask.ts';
 import { pageHref } from './api.ts';
 import type { BoardFile, Panel } from './board.ts';
 import type { Catalogue } from './catalogue.ts';
@@ -406,7 +413,8 @@ const answersOf = (record: AskRecord, step: string): AskAnswers =>
  * What happened to an ask between two reads (none before: made since; its
  * making is not news, the agent that made it knows): each step the owner
  * answered since, with its answers; the ask answered to its end, with them
- * all; or closed.
+ * all (read from its answered steps, so a close in the same look keeps it);
+ * and closed.
  */
 export const askChanges = (
   before: Option.Option<AskRecord>,
@@ -433,22 +441,24 @@ export const askChanges = (
       path,
     };
   });
-  const tagOf = (r: AskRecord) => r.state._tag;
-  const moved = Option.match(before, {
-    onNone: () => true,
-    onSome: (b) => tagOf(b) !== tagOf(after),
-  });
-  const ended = Match.value(after.state).pipe(
-    Match.tag('Answered', (s): ReadonlyArray<LabChangeDraft> => [
+  // Each from the history, not the state's tag alone: an answer and a close
+  // read in one look still tell that the ask was answered, then closed.
+  const held = (test: (r: AskRecord) => boolean) => Option.exists(before, test);
+  const answered = Arr.filter(
+    [
       {
         ...of,
-        kind: 'ask.answered',
-        by: 'owner',
-        answers: s.answers,
-        summary: `ask ${after.id} (${gist(after.title, 60)}) answered: ${gist(answersLine(s.answers), 200)}`,
+        kind: 'ask.answered' as const,
+        by: 'owner' as const,
+        answers: after.state.answers,
+        summary: `ask ${after.id} (${gist(after.title, 60)}) answered: ${gist(answersLine(after.state.answers), 200)}`,
         path,
       },
-    ]),
+    ],
+    () => answeredToEnd(after) && !held(answeredToEnd),
+  );
+  const isClosed = (r: AskRecord) => r.state._tag === 'Closed';
+  const closed = Match.value(after.state).pipe(
     Match.tag('Closed', (s): ReadonlyArray<LabChangeDraft> => [
       {
         ...of,
@@ -462,5 +472,5 @@ export const askChanges = (
     ]),
     Match.orElse((): ReadonlyArray<LabChangeDraft> => []),
   );
-  return [...steps, ...Arr.filter(ended, () => moved)];
+  return [...steps, ...answered, ...Arr.filter(closed, () => !held(isClosed))];
 };
