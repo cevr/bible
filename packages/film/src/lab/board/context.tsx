@@ -111,7 +111,11 @@ type BoardWrite = Data.TaggedEnum<{
   Keep: { readonly panel: string; readonly tried: number; readonly why: Option.Option<string> };
   Approve: { readonly beat: string };
   Withdraw: { readonly beat: string };
-  Post: { readonly asking: PanelAsking; readonly text: string };
+  Post: {
+    readonly asking: PanelAsking;
+    readonly text: string;
+    readonly items: SketchState['items'];
+  };
 }>;
 const BoardWrite = Data.taggedEnum<BoardWrite>();
 
@@ -314,16 +318,26 @@ export const Provider = (props: ParentProps) => {
     Option.match(picked(), { onNone: () => 'animatic', onSome: () => pick().view }),
   );
 
-  // The sketch over the picked panel and the note being written on it: fresh for each panel picked, kept while
-  // the same panel stays picked (a view changed, the board read again) and until a post of them lands.
+  // The sketch over the picked panel's try and the note being written on the panel: each kept while its panel (the
+  // sketch: its panel and try) stays picked, across a view change or a fresh read of the board, until a post of it
+  // lands. A sketch is drawn on one image, so another try starts a fresh one; the words carry to it.
   const [sketch, setSketch] = createSignal<SketchState>(sketchOf(), { ownedWrite: true });
   const [draft, setDraft] = createSignal('', { ownedWrite: true });
-  const sketchKey = createMemo(() => Option.map(picked(), (p) => p.panel.id), {
+  const panelKey = createMemo(() => Option.map(picked(), (p) => p.panel.id), {
     equals: Equal.equals,
+  });
+  const sketchKey = createMemo(
+    () =>
+      Option.map(picked(), (p) =>
+        Option.match(p.tried, { onNone: () => p.panel.id, onSome: (t) => `${p.panel.id}#${t.n}` }),
+      ),
+    { equals: Equal.equals },
+  );
+  createEffect(panelKey, () => {
+    setDraft('');
   });
   createEffect(sketchKey, () => {
     setSketch(sketchOf());
-    setDraft('');
   });
 
   const go = (board: { readonly scene: string } & BoardPick, T: number) =>
@@ -381,7 +395,7 @@ export const Provider = (props: ParentProps) => {
               LabApi.use((api) => api.boardApproval('withdraw', a.beat)),
               Option.none<string>(),
             ),
-          Post: (p) => postNote(p.asking, p.text),
+          Post: (p) => postNote(p.asking, p.text, p.items),
         }),
       );
       return made;
@@ -403,10 +417,11 @@ export const Provider = (props: ParentProps) => {
             }),
           );
           retry();
+          // A post clears what it sent, never what was written or drawn while it was on its way.
           if (w._tag === 'Post') {
             feed.refresh();
-            setSketch(sketchOf());
-            setDraft('');
+            if (untrack(sketch).items === w.items) setSketch(sketchOf());
+            if (untrack(draft) === w.text) setDraft('');
           }
         }),
       ),
@@ -423,12 +438,11 @@ export const Provider = (props: ParentProps) => {
   };
 
   /** Post a note on the picked panel: the draft (`note.ts`) and its still (the panel with the sketch on it). */
-  const postNote = (asking: PanelAsking, text: string) =>
+  const postNote = (asking: PanelAsking, text: string, items: SketchState['items']) =>
     Effect.gen(function* () {
       const p = yield* Effect.fromOption(untrack(picked)).pipe(
         Effect.mapError(() => BoardAskUnfit.make({ message: 'pick a panel first' })),
       );
-      const items = untrack(sketch).items;
       const draft = yield* Effect.fromOption(
         panelNoteOf({
           panel: p.panel,
@@ -508,7 +522,8 @@ export const Provider = (props: ParentProps) => {
       approve: (beat) => ask(BoardWrite.Approve({ beat })),
       withdraw: (beat) => ask(BoardWrite.Withdraw({ beat })),
       write: setDraft,
-      post: (asking) => ask(BoardWrite.Post({ asking, text: untrack(draft) })),
+      post: (asking) =>
+        ask(BoardWrite.Post({ asking, text: untrack(draft), items: untrack(sketch).items })),
       sketch: (event, at) => setSketch((s) => step(s, event, at)),
     },
     meta: { name, url, image, loaded },

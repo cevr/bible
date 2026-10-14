@@ -216,27 +216,35 @@ const importTries = Command.make(
         at: stamp,
       })),
     );
+    // `--keep` names one of the images given, checked before the board is touched.
+    const keep = yield* Option.match(input.keep, {
+      onNone: () => Effect.succeedNone,
+      onSome: (k) =>
+        Effect.asSome(
+          Effect.filterOrFail(
+            Effect.succeed(k - 1),
+            (i) => Number.isInteger(i) && i >= 0 && i < sources.length,
+            () =>
+              BoardRefused.make({
+                film: name,
+                reason: `--keep ${k} names none of the ${sources.length} images given`,
+              }),
+          ),
+        ),
+    });
     const made = yield* store.addTries(
       name,
       { id, beat: beat.id, at },
       (b) => orderWith(beats, b, id),
       sources,
     );
-    yield* Option.match(input.keep, {
-      onNone: () => Effect.void,
-      onSome: (k) =>
-        Effect.flatMap(
-          Effect.fromOption(Option.fromUndefinedOr(made[k - 1])).pipe(
-            Effect.mapError(() =>
-              BoardRefused.make({
-                film: name,
-                reason: `--keep ${k} names none of the ${made.length} images imported`,
-              }),
-            ),
-          ),
-          (t) => store.modify(name, (b) => pickTry(b, id, t.n, input.why)),
-        ),
-    });
+    yield* Option.match(
+      Option.flatMap(keep, (i) => Option.fromUndefinedOr(made[i])),
+      {
+        onNone: () => Effect.void,
+        onSome: (t) => store.modify(name, (b) => pickTry(b, id, t.n, input.why)),
+      },
+    );
     for (const t of made) yield* Console.log(`imported ${id} try=${t.n} file=${t.file}`);
   }),
 ).pipe(Command.withDescription('Bring images made elsewhere into the board as tries of a panel'));
