@@ -85,7 +85,7 @@ const filmOf = (
 
 /**
  * The part a folder and each set in it sit under: its film's Project when
- * the folder names one (Frame.io's version stack on its asset), Films otherwise.
+ * the folder names one (Frame.io's version stack on its asset; the lab says stack), Films otherwise.
  */
 const folderPart = (folder: string, films: ReadonlyArray<string>): Part =>
   Option.match(filmOfFolder(folder, films), {
@@ -106,7 +106,7 @@ const partOf = (place: ReviewPlace, films: ReadonlyArray<string>): Part =>
     }),
   );
 
-/** A place's depth below its part, for the crumb and the tab's title: a folder, a set's versions. */
+/** A place's depth below its part, for the crumb and the tab's title: a folder, a set's stack. */
 const depthOf = (
   place: ReviewPlace,
   index: Option.Option<ReviewIndex>,
@@ -122,7 +122,7 @@ const depthOf = (
           }),
         ),
       Folder: (p) => Option.some(folderName(index, p.folder)),
-      Set: (p) => Option.some(`${setName(index, p.folder, p.point)} · versions`),
+      Set: (p) => Option.some(`${setName(index, p.folder, p.point)} · stack`),
     }),
     Match.orElse(() => Option.none<string>()),
   );

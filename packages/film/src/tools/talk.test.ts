@@ -174,7 +174,11 @@ const worldOf = (made: (folders: Folders) => void) =>
         films: folders.films,
         sounds: path.join(root, 'sounds'),
         footage: folders.footage,
-        folders: { out: folders.out, lab: path.join(root, 'lab') },
+        folders: {
+          out: folders.out,
+          lab: path.join(root, 'lab'),
+          productions: path.join(root, 'productions'),
+        },
         self: ['bun', 'cli.ts'],
         roots: Effect.succeed([]),
         elevenLabs: fakeElevenLabs(new Map(), emptyCalls()),

@@ -2101,7 +2101,10 @@ export const reviewHttpFixtureLasting = (seconds: number, phoneCopies = false) =
               Layer.provideMerge(ContentStore.layer),
               Layer.provide(
                 ConfigProvider.layer(
-                  ConfigProvider.fromUnknown({ FILMS_LAB: path.join(dir, 'lab') }),
+                  ConfigProvider.fromUnknown({
+                    FILMS_LAB: path.join(dir, 'lab'),
+                    FILMS_PRODUCTIONS: path.join(dir, 'productions'),
+                  }),
                 ),
               ),
             ),

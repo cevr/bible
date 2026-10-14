@@ -39,3 +39,7 @@ src/films/*/sound/*
 # only at a cost. Only the record, `board.json` (each image's sha256), is
 # committed; copy the folder between checkouts.
 src/films/*/board/
+# The productions' ledgers (`productions/<production>.json`) are committed: small
+# text, the owner's decisions. Only a write in flight and the lock file stay out.
+productions/*.partial
+productions/*.lock

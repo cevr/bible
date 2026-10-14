@@ -900,11 +900,12 @@ interface FilmApp<E> {
   readonly footage: string;
   /**
    * The app's own folders for what a run makes: `out`, its renders, sheets and
-   * project folders (`FILMS_OUT`), and `lab`, the lab's notes (`FILMS_LAB`).
+   * project folders (`FILMS_OUT`); `lab`, the lab's notes (`FILMS_LAB`); and
+   * `productions`, the productions' ledgers, committed (`FILMS_PRODUCTIONS`).
    * The environment's value wins when it names one, so a test points a run
    * elsewhere; the shell's directory never decides.
    */
-  readonly folders: { readonly out: string; readonly lab: string };
+  readonly folders: { readonly out: string; readonly lab: string; readonly productions: string };
   /** The player, served while `render` or `check` runs. */
   readonly previewServer: Layer.Layer<PreviewServer, E>;
   /**

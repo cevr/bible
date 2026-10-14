@@ -24,15 +24,20 @@ This plan gives the lab one more thing to read: a **production** and its **timel
 - **Move forward**: closing the current version with a decision ("9005 over 9006 for sure") and opening the
   next with what it is for ("The whole film in 9005").
 - **Set**: a review folder (a `review.json` montage or a film's catalogue), as today. The front door's old
-  "Versions" heading (a set of version stacks) is now **Sets**, so "version" means one thing on the page.
+  "Versions" heading is now **Sets**, a set page's "Versions" is **Stacks** and each item in a stack an
+  **option** (the owner, 2026-10-14: "stacks is fine"), so "version" means one thing on the page: a
+  production's v1, v2, …
 
 ## The product flow
 
 ![The front door, built: productions first](lab-timeline/slice-home.jpg)
 
 1. **Open the lab.** The front door lists the **productions** first: each card shows the newest set's
-   stills, the current version and its title, and in amber how many questions wait on the owner. Then the films
-   (as before), then the **Sets** and **Renders** no production holds.
+   stills, the current version and its title, and in amber how many questions wait on the owner. A
+   production that makes one of the app's films is that film's only card (the owner: "lets try to reduce
+   showing twice"): under its head it carries what the film's card said, the film's state and its ways in,
+   **Studio** and **Board**. Then the films no production makes (as before), then the **Sets** and
+   **Renders** no production holds.
 2. **Open a production.** Its timeline (`/productions/<production>`) is one column: the current version open,
    the ones before shut to their head (number, title, dates, how many sets, and on a second line the decision
    that opened it). Opening one shows what happened in it; a link with `?v=<n>` opens that version and scrolls
@@ -61,8 +66,8 @@ This plan gives the lab one more thing to read: a **production** and its **timel
 
 Only what no file already says is new state. Everything else is read.
 
-**New: the ledger** (`<FILMS_LAB>/productions/<production>.json`, one per production, git-ignored beside the
-lab's notes, written whole under a lock across processes like the notes):
+**New: the ledger** (`apps/animations/productions/<production>.json`, one per production, committed, written
+whole under a lock across processes like the notes; `FILMS_PRODUCTIONS` moves the folder):
 
 - `production`, `title`, optional `film` and `blurb`;
 - `versions`: each `{at, title, because?}` in order; the number is the place;
@@ -123,7 +128,7 @@ seams the lab and the CLI do.
   `VersionUnknown`), and `publish` (stamps a set's `review.json`; `FileInvalid` when it would be no
   manifest). Over HTTP only `forward` is exposed (`POST /api/productions/<production>/versions`); the CLI
   (`film production …`, `film publish`) is a thin shell over the same verbs.
-- **Events** — none pushed yet: a ledger is a file (`FILMS_LAB/productions/<production>.json`), so a watcher
+- **Events** — none pushed yet: a ledger is a file (`FILMS_PRODUCTIONS/<production>.json`), so a watcher
   on that folder sees every move, word and ask, whoever wrote it; the owner's picks and approvals that answer
   an ask are the catalogue's and the sets' as today.
 
@@ -144,31 +149,47 @@ CLI, from the dated sets, the owner's picks and the units' journals:
   cut sits as loose `righteousness-by-faith-v1.mp4` files at the root of `out/` (no folder, no record), so it
   shows as Missing until its catalogue is restored or it gets a folder with a `review.json`.
 
-To run at merge, from `apps/animations` with the owner's lab folder:
-`FILMS_LAB=$PWD/lab sh plans/lab-timeline/migrate.sh`. A second run stops at
-its first line (a ledger is never created twice). Sets for brand, cast and illustration stay unfiled under
-Sets until the owner names their productions.
+The two ledgers it wrote are committed in `apps/animations/productions/`, so there is no step to run at
+merge: the script is the record of how they were written (a second run stops at its first line, a ledger is
+never created twice). Sets for brand, cast and illustration stay unfiled under Sets until the owner names
+their productions.
+
+## Where each kind of data lives
+
+The owner, 2026-10-14: "not sure if git is good for binary formats". Git keeps the small text that says what
+happened; every picture and render stays out of it, referenced by path and sha.
+
+| Data                                                               | Where                                           | In git                                             |
+| ------------------------------------------------------------------ | ----------------------------------------------- | -------------------------------------------------- |
+| A production's ledger (versions, the owner's words, asks, filings) | `apps/animations/productions/<production>.json` | committed (text JSON, a few KB)                    |
+| A film's board (`board.json`: panels, tries, kept, approvals)      | beside the film, `src/films/<film>/board.json`  | committed (text; each try by file name and sha256) |
+| The board's images (tries, refs)                                   | `src/films/<film>/board/`                       | ignored                                            |
+| Sets (`review.json` and its stills), renders, a film's catalogue   | `out/<set>/`, `out/<film>/catalogue.json`       | ignored                                            |
+| The owner's notes and picks in the lab                             | `lab/` (`FILMS_LAB`)                            | ignored                                            |
+
+A ledger's write is a commit's worth of text; a production's history travels with the branch, so the
+Workbox and the laptop read the same timeline. A set it names that is not on this machine reads **Missing**.
+
+## Built: a version in stages
+
+The current version of a production that names its film leads with its first stage, the **board**: one
+linked line, `Board · 24 panels, 20 kept · 5 of 8 beats approved ›` (`· 1 stale` when a beat's approval no
+longer matches its panels), or `no panels yet`. It reads the storyboard unit's model, not a second one, and
+copies nothing into the ledger:
+
+- read: the film's `board.json` through the lab's `board` group (`GET /api/films/<film>/board`), as the
+  Board view reads it;
+- tally (`boardStageOf`, `core/production.ts`, pure): the picture panels (not text cards), the ones with a
+  try kept, and beats approved as they stand (`approvalOf(board, beat)`; a `stale` one counts as not
+  approved and is named);
+- link: the Board view (`pageHref.board(film)`);
+- waits: the line says how many beats are left; approving stays the Board view's verb, and nothing joins
+  "what waits on you" unless an agent asks, as with sets, so a board in progress is not a chore list.
 
 ## Next (mocked or specified, not built)
 
-**A version in stages.** A linked progress line under the current version's head, not tabs, on a production
-that names its film. It reads the stages from what the film already keeps and copies nothing into the ledger.
-The board is always the first stage, and it is the storyboard unit's model (branch `storyboard`, a09f7f74d),
-not a second one:
-
-- read: the film's `board.json` through the lab's `board` group (`GET /api/films/<film>/board`,
-  `LabClient.board`), as the Board view reads it;
-- tally: panels (`board.panels`), panels with a try kept (`shownTry` / `kept`), and beats approved as they stand
-  (`approvalOf(board, beat) === 'approved'`; a `stale` one counts as not approved and is named);
-- link: the Board view (`pageHref.board(film)`), so the line is `Board · 24 panels, 20 kept · 5 of 8 beats
-  approved ›`;
-- waits: the line names how many beats are left to approve; the approving stays the Board view's own verb,
-  and nothing joins "what waits on you" unless an agent asks, as with sets, so a board in progress is not a
-  chore list.
-
-The stages after the board are the catalogue's (scene renders whose time falls in the version) and the takes.
-Built once `storyboard` and `timeline` are both on p5-main: the stage needs the board group and `approvalOf`,
-and a merge of the unmerged `storyboard` into `timeline` would tie the two units' merges together.
+**The stages after the board.** The catalogue's (scene renders whose time falls in the version) and the
+takes, each a line under the board's.
 
 ![A version in stages, the board first](lab-timeline/mock-stages.jpg)
 
@@ -185,12 +206,7 @@ once asks are in use: until then each card names its count.
 
 ## Open questions
 
-- **Where the ledger lives.** It is lab data (git-ignored, like notes), so it stays out of commits but is
-  local to the machine that writes it: the Workbox and the laptop would each keep their own. Committing it
-  (`apps/animations/productions/`) would share it and version it, at the price of a commit per decision.
 - **Times shown** are formatted where the page renders (the server, then the browser), so a server in another
   timezone shows its own clock until the page hydrates.
-- **A film's production and its Films card** both sit on the front door; the card could fold into the
-  production once every film has one.
 - **Renders from a film's catalogue** land on the timeline only as their folder (the film's whole `out/`);
-  bucketing each scene's renders by version is the stages step above.
+  bucketing each scene's renders by version is the stages after the board.

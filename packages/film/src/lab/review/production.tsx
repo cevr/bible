@@ -10,16 +10,19 @@
 // what the next version is for, and the ledger opens it. A past version is
 // shut to its head until opened (`?v=<n>` opens it from a link).
 
-import { For, Show } from '@solidjs/web';
+import { For, type JSX, Show } from '@solidjs/web';
 import { Array as Arr, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { type Accessor, createEffect, createMemo, createSignal, flush } from 'solid-js';
-import { reviewStillUrl } from '../../core/api.ts';
+import { useAtomValue } from '@bible/atom-solid';
+import { pageHref, reviewStillUrl } from '../../core/api.ts';
+import type { BoardFile } from '../../core/board.ts';
 import { focusFor } from '../focus.ts';
 import { pressed } from '../pressed.ts';
 import { WIDE } from '../viewport.ts';
 import { type ChoicePoint, seenVariants } from '../../core/choice.ts';
 import {
+  type BoardStage,
   ChoiceState,
   Entry,
   type ProductionFile,
@@ -27,6 +30,7 @@ import {
   type Said,
   type VersionView,
   type Waiting,
+  boardStageOf,
   choiceStateOf,
   currentOf,
   productionsOf,
@@ -118,44 +122,81 @@ const ownTitle = (v: Pick<VersionView, 'n' | 'title'>): Option.Option<string> =>
 const versionName = (v: Pick<VersionView, 'n' | 'title'>): string =>
   Option.match(ownTitle(v), { onNone: () => `v${v.n}`, onSome: (t) => `v${v.n} · ${t}` });
 
-/** A production's card on the front door: its stills, its name, its current version, what waits. */
-const ProductionCard = (props: { readonly history: ProductionHistory }) => {
+/** What a production's card shows of the film it makes: the front door's (its state, the ways into it). */
+type FilmPart = (props: { readonly film: string }) => JSX.Element;
+
+/**
+ * A production's card on the front door: its stills, its name, its current
+ * version and what waits, which open its timeline; under them, for a
+ * production that makes one of the app's films, what that film's card shows
+ * (`filmPart`), the film's only card on the front door.
+ */
+const ProductionCard = (props: {
+  readonly history: ProductionHistory;
+  readonly film: Option.Option<string>;
+  readonly filmPart: FilmPart;
+}) => {
   const { meta } = useReview();
   const current = () => currentOf(props.history);
+  const Part = props.filmPart;
   return (
-    <Go
-      class="rv-card pd-card"
-      data-production={props.history.production}
-      place={ReviewPlace.Production({ production: props.history.production, v: 0 })}
-    >
-      <Stills urls={posterOf(props.history)} />
-      <div class="rv-body">
-        <b>{props.history.title}</b>
-        <div>{versionName(current())}</div>
-        <div class="rv-meta">
-          <Show when={current().waiting.length > 0}>
-            <span class="sh-badge" data-state="warning">
-              {waitingText(current().waiting.length)}
-            </span>{' '}
-          </Show>
-          {agoText(props.history.latest, meta.now())}
+    <div class="rv-card rv-film-card pd-card" data-production={props.history.production}>
+      <Go
+        class="rv-card"
+        place={ReviewPlace.Production({ production: props.history.production, v: 0 })}
+      >
+        <Stills urls={posterOf(props.history)} />
+        <div class="rv-body">
+          <b>{props.history.title}</b>
+          <div>{versionName(current())}</div>
+          <div class="rv-meta">
+            <Show when={current().waiting.length > 0}>
+              <span class="sh-badge" data-state="warning">
+                {waitingText(current().waiting.length)}
+              </span>{' '}
+            </Show>
+            {agoText(props.history.latest, meta.now())}
+          </div>
         </div>
-      </div>
-    </Go>
+      </Go>
+      <Show when={Option.getOrUndefined(props.film)}>
+        {(film: Accessor<string>) => <Part film={film()} />}
+      </Show>
+    </div>
   );
 };
 
-/** The front door's productions, newest first; nothing while none is kept or named. */
+/**
+ * The front door's productions, newest first; nothing while none is kept or
+ * named. A production whose film is one of `films` carries that film's part.
+ */
 export const ProductionCards = (props: {
   readonly histories: ReadonlyArray<ProductionHistory>;
+  readonly films: ReadonlyArray<string>;
+  readonly filmPart: FilmPart;
 }) => (
   <Show when={props.histories.length > 0}>
     <h2 class="rv-h">Productions</h2>
     <div class="rv-grid">
-      <For each={props.histories}>{(history) => <ProductionCard history={history} />}</For>
+      <For each={props.histories}>
+        {(history) => (
+          <ProductionCard
+            history={history}
+            film={Option.filter(history.film, (f) => props.films.includes(f))}
+            filmPart={props.filmPart}
+          />
+        )}
+      </For>
     </div>
   </Show>
 );
+
+/** The films a production makes, among `films`: the front door shows each only as its production. */
+export const producedFilms = (
+  histories: ReadonlyArray<ProductionHistory>,
+  films: ReadonlyArray<string>,
+): ReadonlyArray<string> =>
+  histories.flatMap((h) => Option.toArray(Option.filter(h.film, (f) => films.includes(f))));
 
 /** How the line prints a time: `Oct 14, 12:30 PM`. */
 const DATES = new Intl.DateTimeFormat('en-US', {
@@ -510,6 +551,40 @@ const MoveForward = (props: { readonly production: string; readonly current: Ver
   );
 };
 
+/** A board's stage in words: `52 panels, 50 kept · 3 of 20 beats approved · 1 stale`. */
+const boardText = (s: BoardStage): string =>
+  Match.value(s.panels).pipe(
+    Match.when(0, () => 'no panels yet'),
+    Match.orElse(() =>
+      [
+        `${counted(s.panels, 'panel')}, ${s.kept} kept`,
+        `${s.approved} of ${counted(s.beats, 'beat')} approved`,
+        ...Arr.filter([`${s.stale} stale`], () => s.stale > 0),
+      ].join(' · '),
+    ),
+  );
+
+/**
+ * A film production's first stage, under its current version's head: the
+ * film's storyboard as its record stands (`boardStageOf`), linked to the
+ * Board, where the panels are kept and the beats approved. Read in the page
+ * alone; nothing while it is read, or when the film has no board to read.
+ */
+const BoardLine = (props: { readonly film: string }) => {
+  const { meta } = useReview();
+  const read = useAtomValue(() => meta.board(props.film));
+  return (
+    <Show when={Option.getOrUndefined(AsyncResult.value(read()))}>
+      {(board: Accessor<BoardFile>) => (
+        <div class="rv-row" data-role="stage" data-stage="board">
+          <span class="pd-kind">Board</span>
+          <a href={pageHref.board(props.film)}>{boardText(boardStageOf(board()))} ›</a>
+        </div>
+      )}
+    </Show>
+  );
+};
+
 /** A version with nothing in it, said as its state allows. */
 const emptyText = (v: VersionView): string =>
   Match.value(v.current).pipe(
@@ -567,6 +642,9 @@ const VersionBlock = (props: {
         </summary>
         <div class="pd-v-body">
           <Show when={v().current}>
+            <Show when={Option.getOrUndefined(props.history.film)}>
+              {(film: Accessor<string>) => <BoardLine film={film()} />}
+            </Show>
             <WaitingList waiting={v().waiting} />
             <MoveForward production={props.history.production} current={v()} />
           </Show>

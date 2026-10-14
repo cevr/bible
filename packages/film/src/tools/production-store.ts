@@ -1,7 +1,8 @@
-// The productions' ledgers on disk (`core/production.ts`): one file each,
-// `<lab>/productions/<production>.json` under `FILMS_LAB` (the app's `lab/`,
-// git-ignored beside the lab's notes: the owner's word, which no render can
-// make again). Each is a `ContentStore` manifest, written whole by one
+// The productions' ledgers on disk (`core/production.ts`): one small JSON
+// file each, `<productions>/<production>.json` under `FILMS_PRODUCTIONS` (the
+// app's `productions/`, committed: the owner's word, which no render can make
+// again, kept with the code and alike in every checkout; it names sets by
+// their folder and never holds an image or a render). Each is a `ContentStore` manifest, written whole by one
 // writer at a time across processes, so the lab's Move forward and an
 // agent's `film production` in a terminal never lose each other's write.
 // A ledger that does not decode is left out of the list with a warning,
@@ -84,9 +85,6 @@ interface Start {
   readonly at: number;
 }
 
-/** The folder the ledgers sit in, under the lab's own. */
-const PRODUCTIONS_DIR = 'productions';
-
 interface ProductionStoreService {
   /** Every ledger there is, by name. */
   readonly list: Effect.Effect<ReadonlyArray<ProductionFile>, StoreError>;
@@ -147,8 +145,9 @@ export class ProductionStore extends Context.Service<ProductionStore, Production
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const store = yield* ContentStore;
-      const lab = yield* Config.String('FILMS_LAB').pipe(Config.withDefault(path.resolve('lab')));
-      const dir = path.join(lab, PRODUCTIONS_DIR);
+      const dir = yield* Config.String('FILMS_PRODUCTIONS').pipe(
+        Config.withDefault(path.resolve('productions')),
+      );
 
       const manifest = (production: ProductionId): Manifest<ProductionFile> => ({
         file: path.join(dir, `${production}.json`),

@@ -30,14 +30,14 @@ const HOUR = 3_600_000;
 
 const JsonText = Schema.fromJsonString(Schema.JsonObject);
 
-/** A store over files kept in `files`, the ledgers under `/lab/productions`. */
+/** A store over files kept in `files`, the ledgers under `/productions`. */
 const storeOver = (files: Map<string, Uint8Array>) =>
   ProductionStore.layer.pipe(
     Layer.provide(ContentStore.layer),
     Layer.provide([
       memoryFileSystem(files),
       Path.layer,
-      ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_LAB: '/lab' })),
+      ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_PRODUCTIONS: '/productions' })),
       Layer.succeed(ManifestLock, memoryManifestLock()),
     ]),
   );
@@ -93,12 +93,12 @@ describe('ProductionStore', () => {
     const files = new Map<string, Uint8Array>();
     return Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      yield* fs.makeDirectory('/lab/productions', { recursive: true });
-      yield* fs.writeFileString('/lab/productions/broken.json', '{"production": 4}');
+      yield* fs.makeDirectory('/productions', { recursive: true });
+      yield* fs.writeFileString('/productions/broken.json', '{"production": 4}');
       const store = yield* ProductionStore;
       yield* store.modify('look', forward(1, 'K1'));
       expect((yield* store.list).map((p) => p.production)).toEqual(['look']);
-      expect(yield* fs.readFileString('/lab/productions/broken.json')).toBe('{"production": 4}');
+      expect(yield* fs.readFileString('/productions/broken.json')).toBe('{"production": 4}');
     }).pipe(Effect.provide(Layer.merge(storeOver(files), memoryFileSystem(files))));
   });
 });

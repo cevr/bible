@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Match, Option, Result, Schema } from 'effect';
+import type { BoardFile, BoardTry } from './board.ts';
 import { type ChoicePoint, type ChoiceVariant, pointHead } from './choice.ts';
 import {
   Entry,
   type ProductionFile,
+  boardStageOf,
   ProductionFile as ProductionFileSchema,
   type Said,
   choiceStateOf,
@@ -275,5 +277,42 @@ describe('a production’s history', () => {
     const histories = productionsOf([look()], folders);
     expect(histories.map((h) => h.production)).toEqual(['brand', 'look']);
     expect(unfiledOf(histories, folders).map((f) => f.ref)).toEqual(['p5/loose']);
+  });
+});
+
+describe('a film production’s board stage', () => {
+  const tried = (n: number): BoardTry => ({
+    n,
+    file: `t${n}.png`,
+    sha256: 'x',
+    made: 'generate',
+    refs: [],
+    at: '2026-10-14T12:00:00Z',
+  });
+
+  test('counts picture panels and the kept, and beats approved as they stand or since changed', () => {
+    const board: BoardFile = {
+      film: 'f',
+      panels: [
+        { id: 'a.start', beat: 'a', at: 'start', tries: [tried(1)], kept: 1 },
+        { id: 'a.x', beat: 'a', at: 'x', tries: [tried(1)], kept: 1 },
+        { id: 'b.start', beat: 'b', at: 'start', tries: [tried(1), tried(2)], kept: 2 },
+        { id: 'c.start', beat: 'c', at: 'start', tries: [] },
+        { id: 'c.card', beat: 'c', at: 'card', tries: [], text: { _tag: 'Card', payoff: 'just' } },
+      ],
+      approvals: [
+        {
+          beat: 'a',
+          kept: [
+            { panel: 'a.start', try: 1 },
+            { panel: 'a.x', try: 1 },
+          ],
+          at: '2026-10-14T12:00:00Z',
+        },
+        // Approved on try 1; try 2 is kept now.
+        { beat: 'b', kept: [{ panel: 'b.start', try: 1 }], at: '2026-10-14T12:00:00Z' },
+      ],
+    };
+    expect(boardStageOf(board)).toEqual({ panels: 4, kept: 3, beats: 3, approved: 1, stale: 1 });
   });
 });

@@ -1,4 +1,4 @@
-// Hear version n: `1`…`9` on a stack's first nine versions, each offered
+// Hear option n: `1`…`9` on a stack's first nine options, each offered
 // while it can be heard and is not heard already, saying its number and label.
 
 import { describe, expect, test } from 'bun:test';
@@ -9,8 +9,8 @@ import { hearVersionCommands } from './hear.ts';
 
 const ctx = contextAt('review', '/review/f/s');
 
-describe('hear version n', () => {
-  test('keys the first nine versions, offered while hearable and not heard', () => {
+describe('hear option n', () => {
+  test('keys the first nine options, offered while hearable and not heard', () => {
     const versions = Array.from({ length: 11 }, (_, i) => ({
       id: `v${i + 1}`,
       label: `take ${i}`,
@@ -31,7 +31,7 @@ describe('hear version n', () => {
     const [one, two, three] = [at(0), at(1), at(2)];
     expect(one.when(ctx)).toBe(false);
     expect(three.when(ctx)).toBe(false);
-    expect(labelOf(two, ctx)).toBe('Hear version 2 · take 1');
+    expect(labelOf(two, ctx)).toBe('Hear option 2 · take 1');
     Effect.runSync(two.run(ctx, { ...BY_BUTTON, input: 'pointer' }));
     expect(heard).toBe('v2');
     expect(two.when(ctx)).toBe(false);

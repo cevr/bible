@@ -344,7 +344,7 @@ describe('the review page', () => {
         // A stack of several says how many; of one, nothing; its versions' names are its
         // long-press menu's, each opening the set on that version's sheet.
         const roof = `a.rv-card[href="${SET}"]`;
-        yield* textIs(page, `${roof} .sh-badge`, '3 versions');
+        yield* textIs(page, `${roof} .sh-badge`, '3 options');
         yield* countIs(page, `a.rv-card[href="${SKY}"] .sh-badge`, 0);
         yield* evaluates(
           page,
@@ -355,7 +355,7 @@ describe('the review page', () => {
         yield* textHas(
           page,
           '[data-role="context-menu"] [data-command="review.open-version-2"]',
-          'Open version 2 · Cold',
+          'Open option 2 · Cold',
         );
         yield* countIs(
           page,

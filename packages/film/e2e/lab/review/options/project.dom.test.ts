@@ -8,7 +8,7 @@
 // card a still of the scene drawn from the film's code, its length, its name
 // in its hue, its marks and, on a laptop, its Approve; the transport docked
 // over the tab bar on a phone. A tap on a scene opens its sheet (its render,
-// its Approve, what was said and the comment box, Info, Versions, Open in
+// its Approve, what was said and the comment box, Info, Stack, Open in
 // Lab and the choices that play in it, each opening on Choices); a long
 // press on an act's header offers its approvals, whose receipt offers Undo.
 // Home links the project; a scene is approved, unapproved and commented on
@@ -315,7 +315,7 @@ interface Fake {
   readonly elsewhere?: boolean;
   /** Scenes drawn again since the page read them: an approve naming one is refused. */
   readonly goneStale?: ReadonlyArray<string>;
-  /** Scenes carrying their catalogue render: their sheets link their Versions. */
+  /** Scenes carrying their catalogue render: their sheets link their Stack. */
   readonly rendered?: ReadonlyArray<string>;
   /** What the film's check finds. */
   readonly findings?: ReadonlyArray<Json>;
@@ -870,7 +870,7 @@ describe("a film's project", () => {
           `document.elementFromPoint(innerWidth / 2, ${rect('.sh-pagebar')}.top + 20)?.closest('.sh-pagebar') !== null`,
           true,
         );
-        // It holds what the row does not: the comment box, Versions and Open in Lab, the choices in the scene.
+        // It holds what the row does not: the comment box, Stack and Open in Lab, the choices in the scene.
         yield* waitFor(page, `${INSPECTOR} .rv-comment-input`);
         yield* waitFor(page, `${INSPECTOR} [data-act="open-lab"]`);
         yield* waitFor(page, `${INSPECTOR} [data-plays="take:paper.page"]`);
@@ -1612,13 +1612,13 @@ describe("a film's project", () => {
   );
 
   it.live(
-    "a scene's Versions link leaves a modified click to the browser (a new tab); a plain one goes there in place",
+    "a scene's Stack link leaves a modified click to the browser (a new tab); a plain one goes there in place",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject({ rendered: ['open'] }), {
           href: PROJECT,
         });
-        // Versions is in the scene's inspector, with Open in Lab.
+        // Stack is in the scene's inspector, with Open in Lab.
         yield* inspect(page, render('open'));
         const versions = `${INSPECTOR} [data-compare]`;
         yield* waitFor(page, versions);

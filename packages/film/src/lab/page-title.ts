@@ -6,7 +6,7 @@ import { PART_TITLE, type Part } from '../core/api.ts';
 /**
  * A page's title, naming where it is as the header does: what it has
  * selected, its depth, its part and its film (`Choices ·
- * righteousness-by-faith`, `woman · Scenes · …`, `woman · versions ·
+ * righteousness-by-faith`, `woman · Scenes · …`, `woman · stack ·
  * Project · …`, `Films`). A film the names before it already say is not said
  * again (a folder named after its film is `righteousness-by-faith · Project`).
  */

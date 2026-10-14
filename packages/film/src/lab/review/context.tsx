@@ -36,6 +36,7 @@ import {
   useContext,
 } from 'solid-js';
 import { type SeenPoint, seenVariants } from '../../core/choice.ts';
+import type { BoardFile } from '../../core/board.ts';
 import { type ProductionFile, Productions } from '../../core/production.ts';
 import type { DrawStills } from './options/stills.tsx';
 import {
@@ -231,6 +232,8 @@ interface ReviewMeta {
    * when it was written): a doc written again since is read afresh.
    */
   readonly text: (file: Written) => Loaded<string>;
+  /** A film's storyboard, read in the page alone (the server's render never waits on it). */
+  readonly board: (film: string) => Loaded<BoardFile>;
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
   /** The page's one client of the lab's API: what a read of its own (a feed) goes through. */
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
@@ -412,6 +415,11 @@ export const Root = (
   const projectAnsweredOf = Atom.family((_film: string) =>
     Atom.make(Option.none<ProjectView>()).pipe(Atom.keepAlive),
   );
+  const board = Atom.family((film: string) =>
+    runtime
+      .atom(ReviewApi.use((api) => api.board(film)))
+      .pipe(Atom.withServerValue(() => AsyncResult.initial<BoardFile, LabFailure>())),
+  );
   const servedAtAtom = Atom.make(Clock.currentTimeMillis).pipe(served(SERVED_AT, Schema.Finite));
 
   const address = addressOn(props.host);
@@ -548,6 +556,7 @@ export const Root = (
         films: filmsAtom,
         project,
         text,
+        board,
         runtime,
         client: props.client,
         host: props.host,
@@ -648,7 +657,7 @@ const NAMED_VERSIONS = 9;
 
 /**
  * A set card's versions, by name, in its long-press menu: the
- * card shows its strip and its title, and Open version n · <label> opens
+ * card shows its strip and its title, and Open option n · <label> opens
  * the set at that version's sheet.
  */
 const versionCommands = (
@@ -670,15 +679,15 @@ const versionCommands = (
       );
     return {
       id: `review.open-version-${n}`,
-      label: `Open version ${n}`,
+      label: `Open option ${n}`,
       labelIn: (ctx) =>
         Option.match(version(ctx), {
-          onNone: () => `Open version ${n}`,
-          onSome: ({ version: v }) => `Open version ${n} · ${v.label}`,
+          onNone: () => `Open option ${n}`,
+          onSome: ({ version: v }) => `Open option ${n} · ${v.label}`,
         }),
       group: 'Open',
       about: ['Set'],
-      touch: `long-press a version stack, then Open version ${n}`,
+      touch: `long-press a stack, then Open option ${n}`,
       when: (ctx) => Option.isSome(version(ctx)),
       run: quietly((ctx) => {
         Option.map(version(ctx), ({ set, version: v }) =>
@@ -1107,10 +1116,10 @@ const SetBody = (
   onCleanup(
     meta.hub.commands.register({
       id: 'set.hear',
-      label: 'Hear this version',
+      label: 'Hear this option',
       group: 'Review',
       about: ['Version'],
-      touch: 'long-press a version, then Hear this version (or tap its speaker)',
+      touch: 'long-press an option, then Hear this option (or tap its speaker)',
       when: (ctx) => Option.isSome(versionHere(ctx)),
       run: quietly((ctx) =>
         Option.map(versionHere(ctx), (v) => sendSync(SyncEvent.HeardChosen({ id: v.version }))),
@@ -1131,7 +1140,7 @@ const SetBody = (
 };
 
 /**
- * One version stack's player, view and moments, for its page; a stack of one
+ * One stack's player, view and moments, for its page; a stack of one
  * has no side by side. Its player is the set's for as long as the page shows
  * it: a refreshed index moves `folder` and `set` under it, so it plays on
  * with its time, rate, version heard and the view's own state.

@@ -1,11 +1,12 @@
 #!/bin/sh
-# Writes the first two productions' ledgers (the look, and Righteousness by
+# Wrote the first two productions' ledgers (the look, and Righteousness by
 # Faith) from the dated sets, picks.md and the unit journals, through the
-# `film production` CLI. Run from apps/animations of the checkout whose lab
-# should show them; FILMS_LAB picks the lab folder (the owner's: p5's
-# apps/animations/lab). A decision that closed a version is dated a minute
-# before the move it made, so it sits in the version it closed. Each `new` refuses a ledger that is already there,
-# so a second run stops at the first line.
+# `film production` CLI, into apps/animations/productions/ (committed; the
+# ledgers it wrote are there now, so this is the record of how, not a step to
+# run again). Run from apps/animations; FILMS_PRODUCTIONS moves the folder. A
+# decision that closed a version is dated a minute before the move it made,
+# so it sits in the version it closed. Each `new` refuses a ledger that is
+# already there, so a second run stops at the first line.
 set -eu
 film() { bun cli.ts "$@"; }
 

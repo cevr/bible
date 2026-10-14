@@ -51,10 +51,11 @@ interface FilmServicesSpec {
   /** The app's footage library folder (its lock, `transcripts/`, `files/`), shared by its talks. */
   readonly footage: string;
   /**
-   * The app's folders for what a run makes (`FILMS_OUT`) and the lab's notes
-   * (`FILMS_LAB`); the environment's value wins when it names one.
+   * The app's folders for what a run makes (`FILMS_OUT`), the lab's notes
+   * (`FILMS_LAB`) and the productions' ledgers (`FILMS_PRODUCTIONS`); the
+   * environment's value wins when it names one.
    */
-  readonly folders: { readonly out: string; readonly lab: string };
+  readonly folders: { readonly out: string; readonly lab: string; readonly productions: string };
   /** The command that runs the app's CLI: the lab reads, checks and mixes a film through it, fresh (`FreshFilm`). */
   readonly self: ReadonlyArray<string>;
   /** The roots of the renders the lab reviews when `FILM_REVIEW_ROOTS` names none. */
@@ -90,9 +91,13 @@ interface FilmServicesSpec {
  */
 export const filmServices = (spec: FilmServicesSpec) => {
   const Platform = BunServices.layer;
-  // The app's folders under the environment's: FILMS_OUT and FILMS_LAB, when set, win.
+  // The app's folders under the environment's: FILMS_OUT, FILMS_LAB and FILMS_PRODUCTIONS, when set, win.
   const Folders = ConfigProvider.layerAdd(
-    ConfigProvider.fromUnknown({ FILMS_OUT: spec.folders.out, FILMS_LAB: spec.folders.lab }),
+    ConfigProvider.fromUnknown({
+      FILMS_OUT: spec.folders.out,
+      FILMS_LAB: spec.folders.lab,
+      FILMS_PRODUCTIONS: spec.folders.productions,
+    }),
   );
   const Store = ContentStore.layer.pipe(Layer.provide(Platform));
   const Repo = FilmRepo.layer(spec.films, Option.some(spec.sounds), Option.some(spec.footage)).pipe(
@@ -103,7 +108,7 @@ export const filmServices = (spec: FilmServicesSpec) => {
     Layer.provide([Repo, Platform]),
   );
   const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
-  // Each production's ledger, under the lab's folder beside its notes.
+  // Each production's ledger, a small committed JSON file in the app's `productions/`.
   const Productions = ProductionStore.layer.pipe(Layer.provide([Store, Platform]));
   // Each film's storyboard: its record beside the film, its images in the film's board folder.
   const Board = BoardStore.layer.pipe(Layer.provide([Store, Repo, Platform]));

@@ -25,6 +25,7 @@
 // repeat cannot be written. Pure: the lab's page and its tools share it.
 
 import { Array as Arr, Data, Effect, Match, Option, Order, Result, Schema } from 'effect';
+import { type BoardFile, approvalOf } from './board.ts';
 import type { ChoicePoint } from './choice.ts';
 import { VersionMoved } from './refusals.ts';
 import type { ReviewFolder } from './review.ts';
@@ -462,3 +463,32 @@ export const currentOf = (history: ProductionHistory): VersionView =>
     entries: [],
     waiting: [],
   };
+
+/**
+ * A film's board as a production's version shows it, its first stage: the
+ * picture panels and how many keep a try, the beats and how many are
+ * approved as they stand (`approvalOf`), and how many were approved on tries
+ * changed since. Read from the film's `board.json` (`core/board.ts`); a text
+ * panel (a card, a verse page) is the engine's and is not counted.
+ */
+export interface BoardStage {
+  readonly panels: number;
+  readonly kept: number;
+  readonly beats: number;
+  readonly approved: number;
+  readonly stale: number;
+}
+
+/** `board`'s stage. */
+export const boardStageOf = (board: BoardFile): BoardStage => {
+  const pictures = board.panels.filter((p) => Option.isNone(Option.fromUndefinedOr(p.text)));
+  const beats = Arr.dedupe(board.panels.map((p) => p.beat));
+  const states = beats.map((beat) => approvalOf(board, beat));
+  return {
+    panels: pictures.length,
+    kept: pictures.filter((p) => Option.isSome(Option.fromUndefinedOr(p.kept))).length,
+    beats: beats.length,
+    approved: states.filter((s) => s === 'approved').length,
+    stale: states.filter((s) => s === 'stale').length,
+  };
+};

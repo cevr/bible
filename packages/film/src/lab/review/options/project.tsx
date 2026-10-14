@@ -15,7 +15,7 @@
 // the URL (`?point=`, its render point) so a link opens it and Back closes
 // it: its render
 // or its still, its Approve and Unapprove, its findings, what was said of it
-// and the comment box, State, Open in Lab and Versions, and the choices that
+// and the comment box, State, Open in Lab and Stack, and the choices that
 // play in it, each a link to its card on Choices. An act's and the film's
 // approvals and comments are in their inspectors, their context menus (a
 // long press or a right-click on the panel) and ⌘K. The film's transport is
@@ -273,7 +273,7 @@ const PartChoices = (props: {
   );
 };
 
-/** The link to a scene's Versions (its renders side by side), when the review's roots hold its project folder. */
+/** The link to a scene's Stack (its renders side by side), when the review's roots hold its project folder. */
 const Compare = (props: { readonly folder: Option.Option<string>; readonly point: string }) => (
   <Show when={Option.getOrUndefined(props.folder)}>
     {(folder) => (
@@ -282,7 +282,7 @@ const Compare = (props: { readonly folder: Option.Option<string>; readonly point
         data-compare={props.point}
         place={ReviewPlace.Set({ folder: folder(), point: props.point })}
       >
-        Versions
+        Stack
       </Go>
     )}
   </Show>
@@ -317,7 +317,7 @@ const onControl = (event: MouseEvent): boolean =>
  * tap anywhere on it that is not a control opens its sheet: the same card
  * at full size (its render's video, else its still), its approve and
  * unapprove, its findings, what was said of it and the comment box, State,
- * Open in Lab and Versions, and the choices that play in it. Its menu and
+ * Open in Lab and Stack, and the choices that play in it. Its menu and
  * keys are its render's (`useVariantThing`).
  */
 const SceneRow = (props: {

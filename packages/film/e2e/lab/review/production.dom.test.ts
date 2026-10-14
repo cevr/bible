@@ -3,11 +3,13 @@
 // the open question; its current version is open with its decision, the
 // question that waits, and its Move forward, the one before shut to its
 // head, a set filed there that no root holds said Missing; a link's `?v=`
-// opens a past version; Move forward starts from the newest decision, posts
+// opens a past version; a production that makes a film is that film's only
+// card on the front door, and its current version leads with the film's
+// board; Move forward starts from the newest decision, posts
 // the version the page saw, and the answer's new version is current in
 // place, or the ledger's refusal is said in the receipt.
 
-import { Effect, Option } from 'effect';
+import { Effect, Option, type Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { VersionMoved } from '../../../src/core/refusals.ts';
@@ -21,6 +23,7 @@ import {
 } from '../../../src/lab/fixtures/harness.ts';
 import { attached, evaluates, textHas, waitFor } from '../../../src/lab/fixtures/settled.ts';
 import {
+  STUDIO_FILM,
   STUDIO_PRODUCTION,
   productionLedgerWith,
   studioRoutes,
@@ -30,6 +33,24 @@ import { PRODUCTION_READY, SLOW } from '../studio-states.ts';
 const CURRENT = '.pd-v[data-current="true"]';
 const RECEIPT = '[data-receipt="production"]';
 const FORWARD = new RegExp(`^/api/productions/${STUDIO_PRODUCTION}/versions$`);
+
+/** The toy's board: one beat of two picture panels, one keeping a try, not approved. */
+const toyTry = {
+  n: 1,
+  file: 'open.start.1.png',
+  sha256: 'x',
+  made: 'generate',
+  refs: [],
+  at: '2026-10-14T12:00:00Z',
+};
+const toyBoard: Schema.Json = {
+  film: STUDIO_FILM,
+  panels: [
+    { id: 'open.start', beat: 'open', at: 'start', tries: [toyTry], kept: 1 },
+    { id: 'open.turn', beat: 'open', at: 'turn', tries: [toyTry] },
+  ],
+  approvals: [],
+};
 
 /** The toy's ledger moved on to a third version. */
 const third = productionLedgerWith([
@@ -46,7 +67,7 @@ describe("a production's timeline", () => {
         yield* textHas(page, '.pd-card', 'The toy, cut by cut');
         yield* textHas(page, '.pd-card', 'v2 · Second cut');
         yield* textHas(page, '.pd-card', '1 question waits on you');
-        yield* page.click('.pd-card');
+        yield* page.click('.pd-card a');
         yield* waitFor(page, PRODUCTION_READY);
         yield* evaluates(page, 'location.pathname', pageHref.production(STUDIO_PRODUCTION));
         yield* textHas(page, `${CURRENT} .pd-v-head`, 'Second cut');
@@ -57,6 +78,55 @@ describe("a production's timeline", () => {
         yield* evaluates(page, `document.querySelector('.pd-v[data-v="1"] details').open`, false);
         yield* page.click('.pd-v[data-v="1"] summary');
         yield* textHas(page, '.pd-v[data-v="1"] .pd-missing', 'gone-2026-10-01');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a film a production makes shows once: its production card, with its state and the ways in',
+    () =>
+      Effect.gen(function* () {
+        const routes: ReadonlyArray<FakeRoute> = [
+          route('GET', /^\/api\/productions$/, () =>
+            json({ productions: [productionLedgerWith([], [STUDIO_FILM])] }),
+          ),
+          route('GET', /^\/api\/films\/toy\/board$/, () => json(toyBoard)),
+          ...studioRoutes,
+        ];
+        const { page, errors } = yield* openReview(routes);
+        yield* textHas(page, '.pd-card', 'The toy, cut by cut');
+        yield* waitFor(page, '.pd-card [data-role="length"]');
+        yield* evaluates(
+          page,
+          `document.querySelector('.pd-card [data-act="studio"]').getAttribute('href')`,
+          pageHref.scenes(STUDIO_FILM),
+        );
+        yield* evaluates(
+          page,
+          `document.querySelector('.pd-card [data-act="board"]').getAttribute('href')`,
+          pageHref.board(STUDIO_FILM),
+        );
+        // No Films card for it, and no Films heading with nothing under it.
+        yield* evaluates(page, `document.querySelectorAll('a.rv-film-card').length`, 0);
+        yield* evaluates(
+          page,
+          `[...document.querySelectorAll('.rv-h')].some((h) => h.textContent === 'Films')`,
+          false,
+        );
+        // Its timeline's current version leads with the film's board, linked to the Board.
+        yield* page.click('.pd-card a');
+        yield* waitFor(page, PRODUCTION_READY);
+        yield* textHas(
+          page,
+          `${CURRENT} [data-stage="board"]`,
+          '2 panels, 1 kept · 0 of 1 beat approved',
+        );
+        yield* evaluates(
+          page,
+          `document.querySelector('${CURRENT} [data-stage="board"] a').getAttribute('href')`,
+          pageHref.board(STUDIO_FILM),
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

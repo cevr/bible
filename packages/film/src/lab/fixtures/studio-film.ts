@@ -1,7 +1,7 @@
 // A synthetic film over every review page of the studio, for the tests that
 // walk them all (the touch-target guard): one film, `toy`, of an act (open,
 // close) and two loose scenes (coda, end), open rendered so its row links
-// its Versions; its choices are a score of three options, a look of two, a
+// its Stack; its choices are a score of three options, a look of two, a
 // sound's kept take and two candidates in open, a layer across the act and a
 // level's knob; and the review's index holds the film's project folder with
 // open's render set and two loose videos (one with its phone proxy ready). What the disclosed states need is there too: two
@@ -242,9 +242,17 @@ const indexOf = (versions: ReadonlyArray<string>): Json => ({
 /** The toy's production: two versions, a decision, an open question, and a set filed by hand that no root holds now. */
 export const STUDIO_PRODUCTION = 'toy-cut';
 
-/** The toy production's ledger, as `GET /api/productions` sends it, with `later` versions after its two. */
-export const productionLedgerWith = (later: ReadonlyArray<Json>): Json => ({
+/**
+ * The toy production's ledger, as `GET /api/productions` sends it, with
+ * `later` versions after its two; `film` names the film it makes (none: a
+ * track, so the toy keeps its Films card).
+ */
+export const productionLedgerWith = (
+  later: ReadonlyArray<Json>,
+  film: ReadonlyArray<string> = [],
+): Json => ({
   production: STUDIO_PRODUCTION,
+  ...Object.fromEntries(film.map((f) => ['film', f])),
   title: 'The toy, cut by cut',
   blurb: 'A film in two versions.',
   versions: [
