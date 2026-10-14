@@ -114,6 +114,9 @@ const fakes = (
     talkWords: Effect.die('not asked'),
     writeTalk: () => write,
     scriptBeats: Effect.die('not asked'),
+    board: Effect.die('not asked'),
+    boardPick: () => Effect.die('not asked'),
+    boardApproval: () => Effect.die('not asked'),
     ...more,
   };
   return { log, layer: Layer.merge(Layer.succeed(Stage, stage), Layer.succeed(LabApi, api)) };

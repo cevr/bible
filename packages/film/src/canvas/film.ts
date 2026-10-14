@@ -65,7 +65,15 @@ import {
   makeBloom,
 } from './grade.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
-import { type Box, type CardSpec, type CardWord, cardWords, floodBox } from './card.ts';
+import {
+  type Box,
+  type CardSpec,
+  type CardStyle,
+  type CardWord,
+  type VerseStyle,
+  cardWords,
+  floodBox,
+} from './card.ts';
 import { type LoadedRig, type PoseOf, type RivePropSpec, drawRig } from './rive.ts';
 import { seedOf } from '../core/random.ts';
 import {
@@ -410,6 +418,12 @@ export interface FilmSpec {
   readonly palette?: Readonly<Record<string, string>>;
   /** How its shorts set the hook and the captions. */
   readonly short?: ShortStyle;
+  /**
+   * How the film sets a full-screen card and a verse on its page, outside a
+   * scene: the storyboard's card and verse panels are set in these (a scene
+   * sets its own card with its look's `fullCard`, usually the same style).
+   */
+  readonly card?: { readonly style: CardStyle; readonly verse?: VerseStyle };
 }
 
 /** A knob as a frame read it (`RenderOptions.knobs`): the lab's handles come from these. */
@@ -629,6 +643,8 @@ interface FilmLook {
   readonly shade: string;
   readonly finish: Finish;
   readonly short: ShortLook;
+  /** Its card and verse styles (`FilmSpec.card`), none when it declares none. */
+  readonly card: FilmSpec['card'];
 }
 
 const affineOf = (m: DOMMatrix): Affine => [m.a, m.b, m.c, m.d, m.e, m.f];
@@ -1491,7 +1507,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     sound: spec.sound,
     palette: spec.palette ?? {},
     allRecorded,
-    look: { paper: spec.paper, shade: spec.shade, finish, short },
+    look: { paper: spec.paper, shade: spec.shade, finish, short, card: spec.card },
     sceneAt,
     render,
     edit,

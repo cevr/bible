@@ -7,6 +7,7 @@
 import { Array as Arr, Option, Schema, SchemaTransformation, Struct } from 'effect';
 import { ActName, Address, PartId } from './address-schema.ts';
 import { inspected } from './field.ts';
+import { SketchItem } from './sketch.ts';
 import type { ease } from './time.ts';
 
 /**
@@ -855,6 +856,27 @@ export type NoteWords = typeof NoteWords.Type;
 export const NoteKind = Schema.Literals(['note', 'correction', 'removal']);
 export type NoteKind = typeof NoteKind.Type;
 
+/**
+ * What a note on a storyboard panel asks of it: a note (it says something of
+ * the panel) or a tweak (make the panel again as the note and its sketch say;
+ * `film board tweak` acts on it).
+ */
+const PanelAsk = Schema.Literals(['note', 'tweak']);
+type PanelAsk = typeof PanelAsk.Type;
+
+/**
+ * The storyboard panel a note is about (`core/board.ts`): its id
+ * (`<beat>.<at>`), the try shown when it was written, and what it asks.
+ */
+const NotePanel = Schema.Struct({
+  id: Schema.String,
+  /** The try shown: absent on a card or a verse panel, which the engine sets and which has none. */
+  try: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))),
+  /** Absent: a note. */
+  ask: Schema.optionalKey(PanelAsk),
+});
+type NotePanel = typeof NotePanel.Type;
+
 /** What a note asks of a line's words: the words, what it asks of them, a correction's words instead. */
 interface Asking {
   readonly words?: NoteWords;
@@ -933,6 +955,17 @@ export const NoteDraft = Schema.Struct({
   kind: Schema.optionalKey(NoteKind),
   /** A correction's words to say in place of its `words`. Optional and additive. */
   replace: Schema.optionalKey(Schema.String),
+  /**
+   * The storyboard panel it is about (written on the Board), its still the
+   * panel with its sketch drawn on it. Optional and additive: a note without
+   * one is about its frame.
+   */
+  panel: Schema.optionalKey(NotePanel),
+  /**
+   * What was drawn on the panel (`core/sketch.ts`), in the panel's own
+   * fractions. Optional and additive.
+   */
+  sketch: Schema.optionalKey(Schema.Array(SketchItem)),
   box: Schema.optionalKey(NoteBox),
   ink: Schema.optionalKey(Schema.Array(InkStroke)),
   text: Schema.String.check(Schema.isNonEmpty()),

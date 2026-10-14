@@ -1455,16 +1455,17 @@ so a key rebound in `?` reads as rebound.
 **Terms**, as editing software uses them:
 
 - **Page bar**: the row of the studio's parts, as Resolve's Media · Cut ·
-  Edit row: Films · Scenes · Lab · Script · Choices · Project · Play, on
-  ⇧1-⇧7 (`lab/page-shell.tsx`). On a laptop it sits in the header; on a phone
-  the six film parts are a tab bar along the bottom and Films is the header's
+  Edit row: Films · Board · Scenes · Lab · Script · Choices · Project · Play, on
+  ⇧1-⇧8 (`lab/page-shell.tsx`). On a laptop it sits in the header; on a phone
+  the seven film parts are a tab bar along the bottom and Films is the header's
   leading square. Every move between parts is the page bar, the film
-  switcher or a command that lands on a part. Between Scenes, the Lab, the
+  switcher or a command that lands on a part. Between the Board, Scenes, the Lab, the
   Script and Play it keeps the frame: each opens at the header's playhead
   (`#t=`, `partHref`); Choices and Project open at their own.
 - **Project manager**: the studio's home, Films (`/`), named for Resolve's:
   a card per film (the stills of its renders' folder, its name; a tap opens
-  its Scenes, a long press its other parts, `filmCommands`), then the
+  its Scenes, or its Board while no scene is drawn yet (`allBoard`), a long
+  press its other parts, `filmCommands`), then the
   review's folders (Versions, Renders).
 - **Timecode**: a time written `HH:MM:SS:FF`, hours, minutes, seconds and
   frames (`timecode`, `core/time.ts`; 30 fps, or a video's own rate: a
@@ -1644,6 +1645,24 @@ once.
 | Route                          | What it does                                                                                                         |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/films/<film>/script` | `ScriptBeats`: each beat of `script.ts` in order, its `picture` (when it has one) and its `cite`; none for no script |
+
+### Board
+
+A film's storyboard (`core/board.ts`): the record, `src/films/<film>/board.json`
+(committed), and its images in `src/films/<film>/board/` (git-ignored, each
+recorded with its sha256). `film board` makes and keeps it from the terminal
+(`tools/board-cli.ts`); the Board page reads it and writes a pick, an
+approval or a withdrawal through the same store (`BoardStore`), so neither
+writes over the other. A note on a panel is a lab note (`POST
+/api/films/<film>/notes`) carrying its `panel` and its `sketch`.
+
+| Route                                      | What it does                                                                                        |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/board`              | `BoardFile`: the style, every panel in film order with its tries and the one kept, the approvals    |
+| `GET /api/films/<film>/board/files/<file>` | A board image the record names; 404 `BoardFileUnknown` for one it does not, or not in this checkout |
+| `POST /api/films/<film>/board/pick`        | `BoardPick` (panel, try, why): keep that try; 422 `BoardRefused` for a panel or try it lacks        |
+| `POST /api/films/<film>/board/approve`     | `{ beat }`: approve the beat's board as it stands; 422 while a picture panel keeps no try           |
+| `POST /api/films/<film>/board/withdraw`    | `{ beat }`: withdraw the beat's approval                                                            |
 
 ### Studio
 
@@ -2060,7 +2079,7 @@ sheet of its own. ⇧T and the command menu show and hide it on a film that
 reads footage, and hide it wherever it is open.
 
 A film's Script page (`/films/<film>/script[/<beat>]`, the page bar's
-Script, ⇧4; `lab/script/`) reads the whole film as its script: each beat
+Script, ⇧5; `lab/script/`) reads the whole film as its script: each beat
 in play order under its id and where it starts (a press on either shows its
 first frame), a quiet `estimated` badge on a line no take voices as it reads
 now, what its picture does (the script's brief, `GET …/script`), its line as

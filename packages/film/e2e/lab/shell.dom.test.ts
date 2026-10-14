@@ -216,7 +216,7 @@ describe('the lab shell', () => {
   );
 
   it.live(
-    "the page bar keeps the film's frame between Scenes, the Lab and Play (#t=); Choices and Project open at their own",
+    "the page bar keeps the film's frame between the Board, Scenes, the Lab and Play (#t=); Choices and Project open at their own",
     () =>
       Effect.gen(function* () {
         const at = TWO + 0.25;
@@ -224,6 +224,7 @@ describe('the lab shell', () => {
         yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(at));
         const hrefT = (part: string) =>
           `(() => { const a = document.querySelector('.sh-pagebar [data-page="${part}"]'); return a.hash.startsWith('#t=') && Math.abs(Number(a.hash.slice(3)) - ${at}) < 0.002; })()`;
+        yield* evaluates(page, hrefT('board'), true);
         yield* evaluates(page, hrefT('scenes'), true);
         yield* evaluates(page, hrefT('play'), true);
         yield* attributeIs(
@@ -232,8 +233,8 @@ describe('the lab shell', () => {
           'href',
           pageHref.choices(PROBE),
         );
-        // ⇧2 goes to Scenes at the lab's frame.
-        yield* page.press('Shift+2');
+        // ⇧3 goes to Scenes at the lab's frame (⇧2 is the Board's).
+        yield* page.press('Shift+3');
         yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
         yield* evaluates(page, `Math.abs(${T} - ${at}) < 0.002`, true);
         expect(errors).toEqual([]);
@@ -547,16 +548,16 @@ describe('the lab shell', () => {
   );
 
   it.live(
-    "on a phone the tab bar holds the studio's six parts, each tab's icon and label whole, at 390, 360 and 320 wide",
+    "on a phone the tab bar holds the studio's seven parts, each tab's icon and label whole, at 390, 360 and 320 wide",
     () =>
       Effect.gen(function* () {
         // As it opens, 390 wide; then the narrower phones, one resize each.
         const { page, errors } = yield* openLab([], { viewport: PHONE });
-        yield* evaluates(page, TABS_WHOLE, [6]);
+        yield* evaluates(page, TABS_WHOLE, [7]);
         yield* evaluates(page, NO_SIDEWAYS, true);
         for (const width of [360, 320]) {
           yield* resize(page, { width, height: PHONE.height });
-          yield* evaluates(page, TABS_WHOLE, [6]);
+          yield* evaluates(page, TABS_WHOLE, [7]);
           yield* evaluates(page, NO_SIDEWAYS, true);
         }
         expect(errors).toEqual([]);

@@ -368,6 +368,11 @@ const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: 
     "a kind's tab, clicked, pressed, and clicked with a key down",
   ],
   ['scenes/view.tsx', 'focusFor(field', "Scenes' scenes.comment, a scene selected, a text field"],
+  [
+    'sketch/surface.tsx',
+    'focusFor(el',
+    "the Board's text tool: a text placed on the panel, its field",
+  ],
   ['studio/section.tsx', 'focusFor(r', 'a studio control the keyboard pressed away'],
   [
     'studio/section.tsx',

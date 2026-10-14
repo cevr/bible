@@ -260,7 +260,7 @@ const ReviewContext = createContext<ReviewContextValue>();
 export const useReview = (): ReviewContextValue => useContext(ReviewContext);
 
 /** A film's project as a page shows it (`useProject`). */
-interface ProjectShown {
+export interface ProjectShown {
   /** The project as the newest ask answered it (`shownProject`): the first read until a later one lands. */
   readonly view: Accessor<AsyncResult.AsyncResult<ProjectView, LabFailure>>;
   /** Whether a read again is out. */

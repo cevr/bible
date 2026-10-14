@@ -18,6 +18,7 @@ import {
   Array as Arr,
   Cache,
   Config,
+  DateTime,
   Duration,
   Effect,
   FileSystem,
@@ -51,6 +52,8 @@ import {
   masterFile,
 } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
+import { BoardStore } from './board-store.ts';
+import { approveBeat, pickTry, withdrawBeat } from '../core/board.ts';
 import { readKnob, readSpans } from './scene-source.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
@@ -392,6 +395,69 @@ const scriptGroup = HttpApiBuilder.group(LabHttpApi, 'script', (handlers) =>
   }),
 );
 
+/**
+ * The film's storyboard: its record, its images (named by panel and try,
+ * written once), and a pick, an approval or a withdrawal written through
+ * the board store, so the CLI and the lab never write over each other.
+ */
+const boardGroup = HttpApiBuilder.group(LabHttpApi, 'board', (handlers) =>
+  handlers
+    .handle('read', ({ params }) =>
+      answered(
+        Effect.gen(function* () {
+          const film = yield* filmNamed(params.film);
+          return yield* (yield* BoardStore).read(film);
+        }),
+      ),
+    )
+    .handle('file', ({ params, request }) =>
+      answered(
+        Effect.gen(function* () {
+          const film = yield* filmNamed(params.film);
+          const file = yield* (yield* BoardStore).image(film, params.file);
+          return yield* serveFile(request, file, CACHE.derived);
+        }),
+      ),
+    )
+    .handle('pick', ({ params, payload }) =>
+      answered(
+        Effect.gen(function* () {
+          const film = yield* filmNamed(params.film);
+          const board = yield* (yield* BoardStore).modify(film, (b) =>
+            pickTry(b, payload.panel, payload.try, payload.why),
+          );
+          yield* Effect.log(`board.pick film=${film} panel=${payload.panel} try=${payload.try}`);
+          return board;
+        }),
+      ),
+    )
+    .handle('approve', ({ params, payload }) =>
+      answered(
+        Effect.gen(function* () {
+          const film = yield* filmNamed(params.film);
+          const at = DateTime.formatIso(yield* DateTime.now);
+          const board = yield* (yield* BoardStore).modify(film, (b) =>
+            approveBeat(b, payload.beat, at),
+          );
+          yield* Effect.log(`board.approve film=${film} beat=${payload.beat}`);
+          return board;
+        }),
+      ),
+    )
+    .handle('withdraw', ({ params, payload }) =>
+      answered(
+        Effect.gen(function* () {
+          const film = yield* filmNamed(params.film);
+          const board = yield* (yield* BoardStore).modify(film, (b) =>
+            withdrawBeat(b, payload.beat),
+          );
+          yield* Effect.log(`board.withdraw film=${film} beat=${payload.beat}`);
+          return board;
+        }),
+      ),
+    ),
+);
+
 /** The pages' build: a wait that answers once a source a build read changes, or the page's film is mixed, or at once for a page another server served. */
 const pageGroup = HttpApiBuilder.group(LabHttpApi, 'page', (handlers) =>
   handlers.handle('wait', ({ query }) =>
@@ -462,6 +528,7 @@ export const labLink = (bound: string, allowed: Allowed): string =>
  */
 export type LabContext =
   | NotesStore
+  | BoardStore
   | FileSystem.FileSystem
   | Path.Path
   | HttpPlatform.HttpPlatform
@@ -502,6 +569,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         stepsGroup,
         talkGroup,
         Layer.provide(scriptGroup, Layer.succeedContext(reads)),
+        boardGroup,
         studioGroup,
         reviewGroup,
         choicesGroup,

@@ -228,6 +228,63 @@ const probeScript = {
   ],
 };
 
+/** A try of the probe film's board, made at one time. */
+const probeTry = (beat: string, at: string, n: number): Json => ({
+  n,
+  file: `${beat}.${at}.${n}.png`,
+  sha256: `${beat}${at}${n}`,
+  made: 'generate',
+  refs: ['style.png'],
+  at: '2026-10-14T00:00:00.000Z',
+});
+
+/**
+ * The probe film's board as the lab reads it (`GET …/board`): beat one held
+ * from its start (two tries, the first kept), a card from `rise` and a
+ * picture from `fall` (two tries, none kept); beat two with no panel (the
+ * animatic's storyboard card); beat three a verse from `near`. Its images
+ * are never served: a thumb shows the try's place.
+ */
+const probeBoard: Json = {
+  film: PROBE,
+  panels: [
+    {
+      id: 'one.start',
+      beat: 'one',
+      at: 'start',
+      tries: [probeTry('one', 'start', 1), probeTry('one', 'start', 2)],
+      kept: 1,
+      why: 'the line reads at once',
+    },
+    {
+      id: 'one.rise',
+      beat: 'one',
+      at: 'rise',
+      tries: [],
+      text: { _tag: 'Card', to: 'fall', payoff: 'slowly' },
+    },
+    {
+      id: 'one.fall',
+      beat: 'one',
+      at: 'fall',
+      tries: [probeTry('one', 'fall', 1), probeTry('one', 'fall', 2)],
+    },
+    {
+      id: 'three.near',
+      beat: 'three',
+      at: 'near',
+      tries: [],
+      text: {
+        _tag: 'Verse',
+        ref: 'Probe 3:1',
+        text: 'pushed in close on a face',
+        phrase: 'a face',
+      },
+    },
+  ],
+  approvals: [],
+};
+
 /** The id the fake lab gives the change a write of `target` to `scene` makes (`HistoryStep.change`). */
 export const changeOf = (target: string, scene = 'one'): string => `${scene}:${target}`;
 
@@ -269,6 +326,7 @@ const defaults: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/check$/, () => json({ findings: [] })),
   route('GET', /^\/studio\/beats$/, () => json({ film: PROBE, beats: [] })),
   route('GET', /^\/script$/, () => json(probeScript)),
+  route('GET', /^\/board$/, () => json(probeBoard)),
   route('POST', /^\/scenes\/\w+\/cues\//, () => json(wrote('cue'))),
   route('POST', /^\/scenes\/\w+\/knobs\//, () => json(wrote('knob'))),
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
@@ -585,6 +643,7 @@ export const PHONE: Viewport = { width: 390, height: 844, coarse: true };
 const STAGED: Readonly<Record<ReturnType<typeof labPlaceOf>['root'], string>> = {
   lab: '.lab-panel[data-staged="true"]',
   script: '.lab-script',
+  board: '.lab-board',
 };
 
 /**

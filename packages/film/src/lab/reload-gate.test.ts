@@ -61,6 +61,9 @@ const gated = () => {
     talkWords: Effect.die('not asked'),
     writeTalk: () => Effect.die('not asked'),
     scriptBeats: Effect.die('not asked'),
+    board: Effect.die('not asked'),
+    boardPick: () => Effect.die('not asked'),
+    boardApproval: () => Effect.die('not asked'),
   };
   const layer = Layer.merge(Layer.succeed(Stage, stage), Layer.succeed(LabApi, api));
   return { page, gate, layer };

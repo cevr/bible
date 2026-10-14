@@ -42,6 +42,8 @@ import {
   labNoteOnCue,
   LAB_MOVES,
   SCRIPT_MOVES,
+  BOARD_MOVES,
+  boardOpen,
   scriptOpen,
 } from './studio-states.ts';
 
@@ -130,6 +132,9 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
       ],
     ],
     script: SCRIPT_MOVES,
+    board: BOARD_MOVES,
+    // The picture and its track over the panels, which scroll in a box of their own above the dock.
+    boardBeat: [['Board', boardOpen]],
     // The picture and its track over the words, which scroll in a box of their own above the dock.
     scriptBeat: [['Script', scriptOpen]],
     play: [['Play', player(pageHref.play(PROBE), '.bar [data-act="play"]')]],

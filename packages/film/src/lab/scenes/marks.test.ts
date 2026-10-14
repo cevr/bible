@@ -13,6 +13,7 @@ import {
   bandState,
   checkCount,
   chipsOf,
+  allBoard,
   filmCounts,
   filmLength,
   filmSpan,
@@ -32,6 +33,7 @@ const scene = (
   approval,
   render: Option.none(),
   span: Option.none(),
+  drawn: Option.none(),
   comments: [],
 });
 
@@ -226,6 +228,18 @@ describe('filmLength', () => {
 
   test('no scene says where it sits: its scenes alone, one said as one', () => {
     expect(filmLength([scene('a', 'current')])).toBe('1 scene');
+  });
+});
+
+describe('allBoard', () => {
+  const drawn = (on: Option.Option<boolean>) => ({ ...scene('one', 'missing'), drawn: on });
+  test('a film whose every scene is a storyboard card is all board', () => {
+    expect(allBoard([drawn(Option.some(false)), drawn(Option.some(false))])).toBe(true);
+  });
+  test('one drawn scene, a scene not said, or no scene at all is not', () => {
+    expect(allBoard([drawn(Option.some(false)), drawn(Option.some(true))])).toBe(false);
+    expect(allBoard([drawn(Option.some(false)), drawn(Option.none())])).toBe(false);
+    expect(allBoard([])).toBe(false);
   });
 });
 

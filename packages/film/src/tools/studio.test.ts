@@ -24,6 +24,7 @@ import { readingOf } from './read-cli.ts';
 import { NO_SCORES } from './media-store.ts';
 import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
+import { BoardStore } from './board-store.ts';
 import { SourceWriter } from './source-writer.ts';
 import { StudioReadings } from './studio.ts';
 import { Takes } from './takes.ts';
@@ -164,6 +165,7 @@ const setup = (
   const layer = Layer.mergeAll(
     NotesStore.layer,
     ProductionStore.layer,
+    BoardStore.layer,
     noScenes,
     echoPages,
     StudioReadings.layer,

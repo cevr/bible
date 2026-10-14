@@ -232,6 +232,15 @@ export const filmLength = (scenes: ReadonlyArray<ProjectScene>): string => {
 };
 
 /**
+ * Whether a film is still all board: it has scenes and none is drawn yet
+ * (every one a storyboard card), so its card opens on its Board, where the
+ * work is. A project read before it said whether a scene is drawn opens on
+ * Scenes, as before.
+ */
+export const allBoard = (scenes: ReadonlyArray<ProjectScene>): boolean =>
+  scenes.length > 0 && scenes.every((s) => Option.contains(s.drawn, false));
+
+/**
  * A film's scenes summed up in the chips' words, as Project's head and a
  * Films card say it: `0/4 approved · 1 out of date · 1 not rendered`, the
  * last two left out at 0.

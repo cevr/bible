@@ -79,11 +79,11 @@ export const stagedBody =
       ),
     );
 
-/** The parts a film's page is: the Lab or the Script (the lab's), or the Scenes or Play page (the player's). */
-type FilmPart = Extract<Part, 'lab' | 'script' | 'scenes' | 'play'>;
+/** The parts a film's page is: the Board, the Lab or the Script (the lab's), or the Scenes or Play page (the player's). */
+type FilmPart = Extract<Part, 'board' | 'lab' | 'script' | 'scenes' | 'play'>;
 
-/** The parts the lab's page is: the Lab and the Script. */
-export type LabPart = Extract<FilmPart, 'lab' | 'script'>;
+/** The parts the lab's page is: the Board, the Lab and the Script. */
+export type LabPart = Extract<FilmPart, 'board' | 'lab' | 'script'>;
 
 /** What a film's page puts around its body, made in its place when it is asked. */
 type PageAround = (body: () => JSX.Element) => JSX.Element;
@@ -131,6 +131,7 @@ const sceneOf = (part: FilmPart, href: string): Option.Option<string> =>
   Match.value(part).pipe(
     Match.when('lab', () => labPlaceOf(href).scene),
     Match.when('script', () => labPlaceOf(href).scene),
+    Match.when('board', () => labPlaceOf(href).scene),
     Match.when('scenes', () => Option.flatMap(scenesPlaceOf(href), (place) => place.scene)),
     Match.orElse(() => Option.none<string>()),
   );
@@ -186,7 +187,7 @@ export const playPartOf = (href: string): FilmPart =>
     onSome: (): FilmPart => 'scenes',
   });
 
-/** The Script on a Script link (`/films/<film>/script…`), else the Lab. */
+/** The Script on a Script link (`/films/<film>/script…`), the Board on a Board link, else the Lab. */
 export const labPartOf = (href: string): LabPart => labPlaceOf(href).root;
 
 /** What a page of film `name` and of `part` puts around its body, given its host and commands. */
@@ -228,8 +229,9 @@ const filmPageOn = <P extends FilmPart>(
   });
 };
 
-/** What each of the lab's parts puts beside its body in the page: the Lab its panel; the Script nothing more. */
+/** What each of the lab's parts puts beside its body in the page: the Lab its panel; the Board and the Script nothing more. */
 const LAB_PARTS: Readonly<Record<LabPart, PageAround>> = {
+  board: (made) => made(),
   lab: (made) => (
     <>
       <LabPanel />

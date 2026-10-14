@@ -30,6 +30,8 @@
 // - a scene's hue, `hsl(<hue> var(--scene-sat) var(--scene-light))`: any
 //   hue at the tokens' saturation and lightness, on a scene's swatch only
 //   (an element that carries `--hue`, or a `data-scene`, `.sc-hue`, `.seg`);
+// - a sketch ink (`INK_COLOUR`) on the Board's ink swatch only
+//   (`.lab-sketch-swatch`): the swatch shows the ink a mark is drawn in;
 // - a native part the engine colours itself: a range's and a select's own
 //   colours (text, ground, edge) and leading (`NATIVE`);
 // - a visually hidden field (1 × 1 or less), never seen;
@@ -43,6 +45,7 @@
 //   the scale.
 
 import { Schema } from 'effect';
+import { INK_COLOUR } from '../../canvas/sketch.ts';
 
 /**
  * Sizes a part composes of tokens or of the window, by the expression that
@@ -115,6 +118,10 @@ const SITES = {
     "a pending row's paragraph keeps the user agent's margin of 1em (13 px)",
   'marginBottom 13px: rv-pending > p.rv-row': 'the same row, below',
 } satisfies Readonly<Record<string, string>>;
+
+/** A `#rrggbb` colour as the browser computes it: `rgb(r, g, b)`. */
+const rgbOf = (hex: string): string =>
+  `rgb(${[1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
 
 /** A list of strings as a script's array literal. */
 const arrayOf = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.String)));
@@ -196,7 +203,11 @@ export const untokened = (tokensCss: string) => `(() => {
     return Math.abs(s - sat) < 0.02 && Math.abs(l - light) < 0.01;
   };
   const swatch = (el) => el.matches('[style*="--hue"], [data-scene], .sc-hue, .seg');
-  const isColour = (v, el) => v === 'rgba(0, 0, 0, 0)' || colours.has(v) || (swatch(el) && sceneHue(v));
+  // A sketch ink is its swatch's: the colour a mark on the Board is drawn in.
+  const INKS = new Set(${arrayOf(Object.values(INK_COLOUR).map(rgbOf))});
+  const inkSwatch = (v, el) => el.matches('.lab-sketch-swatch') && INKS.has(v);
+  const isColour = (v, el) =>
+    v === 'rgba(0, 0, 0, 0)' || colours.has(v) || (swatch(el) && sceneHue(v)) || inkSwatch(v, el);
   // The colours a computed gradient, shadow or filter draws with, each as the engine writes a colour.
   const COLOURS_IN = /(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\\([^()]*\\)/g;
   const NATIVE = (el) => el.matches('input[type="range"], select');

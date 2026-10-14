@@ -2,9 +2,11 @@
 // (`Places.lab`, `Places.labScene`, `Places.script`, `Places.scriptBeat`,
 // core/api.ts):
 // `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&beat=<id>&view=<compare>&code=follow|live|<line>&words=<a>-<b>&text=follow|<word>#t=<seconds>&loop=<a>,<b>`
-// and `/films/<film>/script/<beat>?cue=<name>|mark=<name>|words=<a>-<b>|note=<id>#t=<seconds>&loop=<a>,<b>`.
+// and `/films/<film>/script/<beat>?cue=<name>|mark=<name>|words=<a>-<b>|note=<id>#t=<seconds>&loop=<a>,<b>`
+// and `/films/<film>/board/<beat>?panel=<mark>&try=<n>&view=animatic|compare|draw&note=<id>#t=<seconds>&loop=<a>,<b>`.
 // The path's scene is the selection's scene when something is selected (a
-// cue or knob, else a talk's words; on the Script a cue, a mark or words),
+// cue or knob, else a talk's words; on the Script a cue, a mark or words; on
+// the Board a panel),
 // else the scene under the playhead, so the path never names a scene the
 // frame has left; `#t=` is the frame's time in that scene (signed: a
 // selection's scene may start after the frame). The Script selects one
@@ -16,7 +18,7 @@
 
 import { Place, parseHref } from '@bible/url-state';
 import { Array as Arr, Option } from 'effect';
-import { type CompareView, Places, pageHref } from '../core/api.ts';
+import { type BoardView, type CompareView, Places, pageHref } from '../core/api.ts';
 import { type Placed, sceneAt } from '../core/layout.ts';
 import type { Interval } from '../core/time.ts';
 import { onTheMs } from '../core/time.ts';
@@ -34,8 +36,24 @@ import {
 import { type CodeOpen, codeOpenOf, codeText } from './source/open.ts';
 import { type TextOpen, textOpenOf, textText } from './transcript/open.ts';
 
-/** Which of the Lab's pages a place is on: the Lab (`/films/<film>/lab…`) or the Script (`/films/<film>/script…`). */
-type LabRoot = 'lab' | 'script';
+/** Which of the Lab's pages a place is on: the Lab (`/films/<film>/lab…`), the Script (`/films/<film>/script…`) or the Board (`/films/<film>/board…`). */
+type LabRoot = 'lab' | 'script' | 'board';
+
+/** What the Board picks in its path's beat: a panel by the mark it is held from, the try shown in it, and how it is shown. */
+export interface BoardPick {
+  /** The panel's mark (`start` for one held from the beat's start): none, no panel picked. */
+  readonly panel: Option.Option<string>;
+  /** The try shown in the panel: none, its kept try. */
+  readonly tried: Option.Option<number>;
+  readonly view: BoardView;
+}
+
+/** Nothing picked on the Board: the animatic. */
+export const NO_BOARD_PICK: BoardPick = {
+  panel: Option.none(),
+  tried: Option.none(),
+  view: 'animatic',
+};
 
 /** What the lab's URL holds beside its film. */
 interface LabPlace {
@@ -59,6 +77,8 @@ interface LabPlace {
   readonly mark: Option.Option<MarkSelection>;
   /** The Transcript view (`?text=`): shut unless the link opens it, following the frame or held on a word. */
   readonly text: Option.Option<TextOpen>;
+  /** What the Board picks in the path's beat (`?panel=&try=&view=`, the Board's). */
+  readonly board: BoardPick;
   /** `#t=`: seconds into the path's scene, or film seconds on a film's lab. */
   readonly t: Option.Option<number>;
   /** `#loop=`: the A–B loop, film seconds on both. */
@@ -76,9 +96,20 @@ const NOWHERE: LabPlace = {
   words: Option.none(),
   mark: Option.none(),
   text: Option.none(),
+  board: NO_BOARD_PICK,
   t: Option.none(),
   loop: Option.none(),
 };
+
+/** A try's number as the link writes it (`?try=2`): none for anything else. */
+const triedOf = (text: string): Option.Option<number> =>
+  Option.filter(
+    Option.map(
+      Option.liftPredicate(text, (t) => /^[1-9]\d*$/.test(t)),
+      Number,
+    ),
+    Number.isSafeInteger,
+  );
 
 const named = (value: string): Option.Option<string> =>
   Option.liftPredicate(value, (v) => v !== '');
@@ -175,6 +206,22 @@ export const labPlaceOf = (href: string): LabPlace =>
         t: hash.t,
         loop: hash.loop,
       })),
+      Option.map(Place.decode(Places.boardBeat, href), ({ path, query, hash }): LabPlace => ({
+        ...NOWHERE,
+        root: 'board',
+        scene: Option.some(path.scene),
+        note: named(query.note),
+        board: { panel: named(query.panel), tried: triedOf(query.try), view: query.view },
+        t: hash.t,
+        loop: hash.loop,
+      })),
+      Option.map(Place.decode(Places.board, href), ({ query, hash }): LabPlace => ({
+        ...NOWHERE,
+        root: 'board',
+        note: named(query.note),
+        t: hash.t,
+        loop: hash.loop,
+      })),
     ]),
     () => NOWHERE,
   );
@@ -244,6 +291,11 @@ export interface LabPick {
   readonly mark?: Option.Option<MarkSelection>;
   /** The Transcript view; a pick that says nothing of it leaves it shut. */
   readonly text?: Option.Option<TextOpen>;
+  /**
+   * What the Board picks, in beat `scene` (a panel names its beat); a pick
+   * that says nothing of it picks no panel.
+   */
+  readonly board?: { readonly scene: string } & BoardPick;
   readonly loop: Option.Option<Interval>;
 }
 
@@ -343,10 +395,55 @@ const scriptHref = (
   });
 };
 
+/**
+ * The Board's URL: the path names the picked panel's beat, else the beat
+ * under `T`; a panel, its try and the view only on the path of the beat they
+ * are of (a view other than the animatic needs a panel to show). The Lab's
+ * and the Script's picks are theirs alone.
+ */
+const boardHref = (
+  film: string,
+  placed: ReadonlyArray<Placed>,
+  pick: LabPick,
+  T: number,
+): string => {
+  const board = Option.filter(Option.fromUndefinedOr(pick.board), (b) => Option.isSome(b.panel));
+  const scene = Option.firstSomeOf([
+    Option.map(board, (b) => b.scene),
+    Option.map(sceneAt(placed, T), (p) => p.spec.id),
+  ]);
+  const note = Option.getOrElse(pick.note, () => '');
+  return Option.match(scene, {
+    onNone: () => pageHref.board(film, Option.some(onTheMs(T)), note, pick.loop),
+    onSome: (id) =>
+      pageHref.boardBeat(
+        film,
+        id,
+        {
+          ...Option.match(
+            Option.filter(board, (b) => b.scene === id),
+            {
+              onNone: () => ({}),
+              onSome: (b) => ({
+                panel: Option.getOrElse(b.panel, () => ''),
+                try: Option.match(b.tried, { onNone: () => '', onSome: String }),
+                view: b.view,
+              }),
+            },
+          ),
+          note,
+        },
+        tIn(placed, id, T),
+        pick.loop,
+      ),
+  });
+};
+
 /** Each of the Lab's pages' printer. */
 const PRINTERS: Readonly<Record<LabRoot, typeof labPageHref>> = {
   lab: labPageHref,
   script: scriptHref,
+  board: boardHref,
 };
 
 /**
@@ -370,6 +467,7 @@ const picksOne = (change: Partial<LabPick>): boolean =>
 /** What a change lets go of on each page beside what it names: on the Script, a pick lets the others go. */
 const LET_GO: Readonly<Record<LabRoot, (change: Partial<LabPick>) => Partial<LabPick>>> = {
   lab: () => ({}),
+  board: () => ({}),
   script: (change) =>
     Option.match(Option.liftPredicate(change, picksOne), {
       onNone: () => ({}),
@@ -400,7 +498,8 @@ export const labHrefWith = (
   change: Partial<LabPick>,
   T: number,
 ): string => {
-  const { root, selection, note, beat, view, code, words, mark, text, loop } = labPlaceOf(href);
+  const { root, scene, selection, note, beat, view, code, words, mark, text, board, loop } =
+    labPlaceOf(href);
   const picked = Option.flatten(Option.fromUndefinedOr(change.words));
   const kept = Option.filter(selection, (s) => !Option.exists(picked, (w) => w.scene !== s.scene));
   return labHref(
@@ -415,6 +514,10 @@ export const labHrefWith = (
       words,
       mark,
       text,
+      ...Option.match(scene, {
+        onNone: () => ({}),
+        onSome: (s) => ({ board: { scene: s, ...board } }),
+      }),
       loop,
       ...LET_GO[root](change),
       ...change,

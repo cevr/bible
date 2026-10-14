@@ -6,6 +6,7 @@
 
 import { Option } from 'effect';
 import type { Note, NoteEvent, NotesFile, Reply } from '../core/schema.ts';
+import { sketchSummary } from '../core/sketch.ts';
 import type { NotesPaths } from './notes-store.ts';
 
 /** Text in double quotes, on one line. */
@@ -38,6 +39,16 @@ const fields = (note: Note) => {
     (b) => ` box=${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.w)}x${Math.round(b.h)}`,
   );
   const ink = Option.map(Option.fromNullishOr(note.ink), (strokes) => ` ink=${strokes.length}`);
+  // The storyboard panel it is about, the try shown, what it asks (a tweak is `film board tweak`'s), and its sketch.
+  const panel = Option.map(
+    Option.fromNullishOr(note.panel),
+    (p) =>
+      ` panel=${p.id}${Option.match(Option.fromUndefinedOr(p.try), { onNone: () => '', onSome: (n) => ` try=${n}` })} ask=${p.ask ?? 'note'}`,
+  );
+  const sketch = Option.map(
+    Option.filter(Option.fromNullishOr(note.sketch), (s) => s.length > 0),
+    (s) => ` sketch=${quoted(sketchSummary(s))}`,
+  );
   // Seconds into the scene: the film time now is the scene's start plus
   // these, where `T` moves when an earlier scene is re-taken.
   const local = Option.match(Option.fromNullishOr(note.local), {
@@ -46,7 +57,7 @@ const fields = (note: Note) => {
   });
   return [
     `scene=${note.scene} T=${note.T.toFixed(2)}${local} frame=${note.frame}`,
-    ...[cue, mark, range, source, words, kind, replace, box, ink].map((field) =>
+    ...[cue, mark, range, source, words, kind, replace, panel, sketch, box, ink].map((field) =>
       Option.getOrElse(field, () => ''),
     ),
   ].join('');
@@ -56,7 +67,8 @@ const fields = (note: Note) => {
  * A note as of change `seq` (it was made then, or last changed then):
  * `note id=n3 seq=3 status=open scene=hand T=230.38 local=4.12 frame=6911 cue=topple:end ... still=/…/n3.png text="…"`
  * (`local=`, `range=3.20-4.00`, `source=scenes/hand.ts:118 line="…"` and
- * `words=hand:4-6 said="…" kind=correction replace="…"` only on a note that has them).
+ * `words=hand:4-6 said="…" kind=correction replace="…"`, and
+ * `panel=cold.righteous try=1 ask=tweak sketch="pen 2, arrow 1"` only on a note that has them).
  */
 export const noteLine = (at: NotesPaths, note: Note, seq: number) =>
   `note id=${note.id} seq=${seq} status=${note.status} ${fields(note)} replies=${note.thread.length} still=${at.stills}/${note.still} text=${quoted(note.text)}`;
