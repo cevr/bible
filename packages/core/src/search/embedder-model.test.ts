@@ -9,8 +9,7 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { Array as Arr, Console, Effect, Option, Result } from 'effect';
-import type { Layer } from 'effect';
+import { Array as Arr, Console, Effect, Layer, ManagedRuntime, Option, Result } from 'effect';
 
 import { QueryEmbedder } from './embedder.js';
 import { layerBunEmbedder } from './embedder-bun.js';
@@ -39,6 +38,13 @@ const embedDocumentWith = (layer: Layer.Layer<QueryEmbedder>, text: string) =>
     Effect.result,
   );
 
+/** The adapter, built once for the whole file: each build loads the model's
+ *  weights anew, and every check here is of the one model. Its runtime lives
+ *  as long as the test process; the adapter holds nothing to release. */
+const adapter: Layer.Layer<QueryEmbedder> = Layer.effectContext(
+  ManagedRuntime.make(layerBunEmbedder).contextEffect,
+);
+
 /** Whether this machine can load the model at all.
  *
  *  Probed once with the cheapest possible query. A failure here is the "model
@@ -48,7 +54,7 @@ const embedDocumentWith = (layer: Layer.Layer<QueryEmbedder>, text: string) =>
 // evaluation, before any test body runs. Nothing inside an `Effect.gen` can
 // supply it, because the describe block is built before the runtime starts.
 // oxlint-disable-next-line effect/noAsyncFunction -- it.skipIf needs this at module-evaluation time
-const probe = await Effect.runPromise(embedWith(layerBunEmbedder, 'probe'));
+const probe = await Effect.runPromise(embedWith(adapter, 'probe'));
 const modelAvailable = Result.isSuccess(probe);
 
 describe('§10 the Bun embedding adapter', () => {
@@ -83,7 +89,7 @@ describe('§10 the Bun embedding adapter', () => {
       // agrees with the constant.
       Effect.runPromise(
         Effect.gen(function* () {
-          expect(yield* fingerprintOf(layerBunEmbedder)).toBe(MODEL_FINGERPRINT);
+          expect(yield* fingerprintOf(adapter)).toBe(MODEL_FINGERPRINT);
         }),
       ),
     120_000,
@@ -95,7 +101,7 @@ describe('§10 the Bun embedding adapter', () => {
       Effect.runPromise(
         Effect.gen(function* () {
           const query = Option.getOrElse(Arr.get(QUERIES, 0), () => 'the sanctuary');
-          const result = yield* embedWith(layerBunEmbedder, query);
+          const result = yield* embedWith(adapter, query);
           expect(Result.isSuccess(result)).toBe(true);
           if (Result.isFailure(result)) return;
           expect(result.success.length).toBe(DIMENSIONS);
@@ -153,9 +159,9 @@ describe('§9.5 the retrieval embedding, against the real model', () => {
           const unrelated =
             'Jupiter, the largest planet in our solar system, has a prominent red spot.';
 
-          const query = yield* embedWith(layerBunEmbedder, question);
-          const relevant = yield* embedDocumentWith(layerBunEmbedder, answer);
-          const irrelevant = yield* embedDocumentWith(layerBunEmbedder, unrelated);
+          const query = yield* embedWith(adapter, question);
+          const relevant = yield* embedDocumentWith(adapter, answer);
+          const irrelevant = yield* embedDocumentWith(adapter, unrelated);
           expect(Result.isSuccess(query)).toBe(true);
           expect(Result.isSuccess(relevant)).toBe(true);
           expect(Result.isSuccess(irrelevant)).toBe(true);
@@ -190,8 +196,8 @@ describe('§9.5 the retrieval embedding, against the real model', () => {
           // vector: if it did, the prefixes would not be reaching the model and
           // the document side would be embedded in the query's region.
           const text = 'the sanctuary in heaven is the center of Christ’s work';
-          const asQuery = yield* embedWith(layerBunEmbedder, text);
-          const asDocument = yield* embedDocumentWith(layerBunEmbedder, text);
+          const asQuery = yield* embedWith(adapter, text);
+          const asDocument = yield* embedDocumentWith(adapter, text);
           expect(Result.isSuccess(asQuery)).toBe(true);
           expect(Result.isSuccess(asDocument)).toBe(true);
           if (Result.isFailure(asQuery) || Result.isFailure(asDocument)) return;
@@ -303,7 +309,7 @@ describe('§9.5 the shared vector post-processing', () => {
       Effect.runPromise(
         Effect.gen(function* () {
           const overLong = 'and the word of the Lord came unto the prophet saying '.repeat(400);
-          const embedded = yield* embedDocumentWith(layerBunEmbedder, overLong);
+          const embedded = yield* embedDocumentWith(adapter, overLong);
           expect(Result.isSuccess(embedded)).toBe(true);
         }),
       ),
