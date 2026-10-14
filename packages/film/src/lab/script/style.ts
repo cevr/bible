@@ -103,7 +103,8 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 .lab-script-tie-said { color: var(--text-3); }
 .lab-script-tie[aria-current='true'] { background: var(--accent-wash); }
 .lab-script-tie[aria-current='true'] .lab-script-tie-name { color: var(--accent); }
-@media (hover: hover) { .lab-script-tie:hover { background: var(--surface-3); } }
+/* A hover lifts a row at rest; the selected row keeps its wash under the pointer. */
+@media (hover: hover) { .lab-script-tie:hover:not([aria-current='true']) { background: var(--surface-3); } }
 .lab-script-cite { display: flex; flex-wrap: wrap; gap: 0 var(--s-3); margin: 0; padding: 0; list-style: none;
   font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-3); }
 /* A note's words, in the note's ink: a note's underlined; a correction's or a removal's struck, as it would leave them. */

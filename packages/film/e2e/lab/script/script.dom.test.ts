@@ -487,6 +487,11 @@ describe('the Script', () => {
       yield* page.click('[data-scene="three"] .lab-script-tie');
       yield* until(page, `${selects('cue')} === 'push' && ${selects('mark')} === ''`);
       yield* attributeIs(page, '[data-scene="three"] .lab-script-tie', 'aria-current', 'true');
+      // Under the pointer still, the selected row keeps the accent's wash: a hover never hides it.
+      yield* until(
+        page,
+        `((row) => { const probe = document.createElement('i'); probe.style.background = 'var(--accent-wash)'; row.append(probe); const wash = getComputedStyle(probe).backgroundColor; probe.remove(); return row.matches(':hover') && getComputedStyle(row).backgroundColor === wash; })(document.querySelector('[data-scene="three"] .lab-script-tie'))`,
+      );
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
