@@ -270,6 +270,32 @@ describe('a production’s history', () => {
     expect(waitingOn(withAskSaid(answered, word('Noted', 23 * HOUR, 'a2')))).toEqual([]);
   });
 
+  test('a question filed before words named their ask is known by the id its text names', () => {
+    const legacy = withSaid(look(), {
+      _tag: 'Asked',
+      at: 20 * HOUR,
+      text: 'Which judge? (ask a0123456789)',
+      quote: Option.none(),
+      set: Option.some('gone'),
+      point: Option.none(),
+      variant: Option.none(),
+      ask: Option.none(),
+    });
+    const on = {
+      quote: Option.none(),
+      set: Option.some('gone'),
+      point: Option.none(),
+      variant: Option.none(),
+      ask: Option.some('a0123456789'),
+    };
+    const closed = [
+      { _tag: 'Asked' as const, at: 20 * HOUR, text: 'Which judge? (ask a0123456789)', ...on },
+      { _tag: 'Decided' as const, at: 22 * HOUR, text: 'Which judge?: Calmer', ...on },
+    ].reduce(withAskSaid, legacy);
+    expect(closed.said.map((s) => s._tag)).toEqual(['Asked', 'Decided']);
+    expect(currentOf(historyOf('look', Option.some(closed), [])).waiting).toEqual([]);
+  });
+
   test('an ask on a set no root holds still waits, named by its words', () => {
     const file = withSaid(look(), {
       _tag: 'Asked',

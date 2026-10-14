@@ -294,7 +294,8 @@ record of versions and of what waits on the owner; asks file onto it rather than
 
 - An ask with `production` and `set` is filed as `Asked` when made, and what closed it (`Decided` with its answers,
   or `Noted` withdrawn) when the agent closes it. The ledger's words carry an optional `ask` id (old ledgers read
-  as before): a word naming an ask answers that ask's question only, and is not a decision on its set, so one
+  as before; a question filed before the field is known by the `(ask a…)` its text names): a word naming an ask
+  answers that ask's question only, and is not a decision on its set, so one
   ask answered on a set leaves another asked on the same set waiting. A bare decision on the set (`film production
   decide`) still answers every question on it.
 - The `Asked` text names the ask (`(ask a…)`). The timeline does not yet link to the ask's page; a waiting entry

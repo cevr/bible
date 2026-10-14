@@ -193,6 +193,21 @@ export const withSaid = (file: ProductionFile, said: Said): ProductionFile => ({
   ),
 });
 
+/** An ask's id as the lab writes it into a word's text: `(ask <its id>)`. */
+const ASK_NAMED = /\(ask (a[0-9a-f]{10})\)/;
+
+/**
+ * The ask a word files: its `ask`, or for a question filed before words named
+ * their ask, the id its text names (the lab wrote `(ask a…)` into it).
+ */
+const askNamed = (said: Said): Option.Option<string> =>
+  Option.orElse(said.ask, () =>
+    Option.flatMap(
+      Option.liftPredicate(said, (s) => s._tag === 'Asked'),
+      (s) => Option.fromNullishOr(ASK_NAMED.exec(s.text)?.[1]),
+    ),
+  );
+
 /**
  * `said`, filed by an ask (`said.ask`), unless the timeline holds that ask's
  * word of its kind already (its question, or what closed it): an ask's
@@ -201,7 +216,7 @@ export const withSaid = (file: ProductionFile, said: Said): ProductionFile => ({
 export const withAskSaid = (file: ProductionFile, said: Said): ProductionFile => {
   const isQuestion = (s: Said) => s._tag === 'Asked';
   const filed = Option.exists(said.ask, (id) =>
-    file.said.some((s) => Option.contains(s.ask, id) && isQuestion(s) === isQuestion(said)),
+    file.said.some((s) => Option.contains(askNamed(s), id) && isQuestion(s) === isQuestion(said)),
   );
   if (filed) return file;
   return withSaid(file, said);
@@ -338,8 +353,9 @@ const waitingIn = (
     const point = Option.flatMap(folder, (f) =>
       Arr.findFirst(f.sets, (p) => Option.contains(ask.point, p.id)),
     );
+    const asked = askNamed(ask);
     const closesIt = (s: Said) =>
-      s._tag !== 'Asked' && Option.isSome(ask.ask) && Option.contains(s.ask, ask.ask.value);
+      s._tag !== 'Asked' && Option.isSome(asked) && Option.contains(s.ask, asked.value);
     const answered =
       said.some((s) => closesIt(s) || (s.at >= ask.at && decides(s, path, ask.point))) ||
       Option.exists(point, pickedIn);
