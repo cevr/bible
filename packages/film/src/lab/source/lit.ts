@@ -77,8 +77,9 @@ const saidAt = (voice: Voice, name: string): Option.Option<number> =>
  * Every call in `code` that reads the clock by a name its scene plays: a
  * cue's read over the cue (`liveEnd`), a mark's read on its word's frame, a
  * `spoken` read from its mark to the mark it names, else to the end of
- * speech (an instant, when that is not after it). A name the scene does not
- * play reads nothing.
+ * speech. A `spoken` read whose end is not after its mark holds no word: it
+ * reads 0 until that end and 1 from it, so it plays on the frame there, an
+ * instant, as a mark's read. A name the scene does not play reads nothing.
  */
 const clockReads = (code: SceneCode, clock: CodeClock): ReadonlyArray<ClockRead> => [
   ...code.cues.flatMap((c) =>
@@ -105,18 +106,20 @@ const clockReads = (code: SceneCode, clock: CodeClock): ReadonlyArray<ClockRead>
               onSome: (to) => saidAt(clock.voice, to),
             });
             return Option.toArray(
-              Option.map(end, (e) => ({
-                at: s.at,
-                span: Option.getOrElse(
-                  Option.map(
-                    Option.liftPredicate(e, (after) => after > said),
-                    (after) => ({ start: said, end: after }),
-                  ),
-                  () => once,
+              Option.map(end, (e) =>
+                Option.match(
+                  Option.liftPredicate(e, (after) => after > said),
+                  {
+                    onSome: (after) => ({
+                      at: s.at,
+                      span: { start: said, end: after },
+                      heard,
+                      lasts: true,
+                    }),
+                    onNone: () => ({ at: s.at, span: instant(e, clock.fps), heard, lasts: false }),
+                  },
                 ),
-                heard,
-                lasts: true,
-              })),
+              ),
             );
           }),
         ];
@@ -366,13 +369,14 @@ export const followLine = (code: SceneCode, lit: Lit): Option.Option<number> =>
   );
 
 /**
- * Where a tap on `line` of `code` seeks, in scene seconds: half a frame into
- * the next start after `clock`'s time of what the line reads or writes off
- * the clock (a cue's read or its literal, a mark's read, a `spoken` read's
- * mark), so the frame it lands on plays it whatever the sum's rounding; past
- * the last, the first, so taps go round. Heard or not, as a frame to come
- * may take a branch the frame shown did not. None for a line that reads and
- * writes nothing the scene plays.
+ * Where a tap on `line` of `code` seeks, in scene seconds: into the next
+ * start after `clock`'s time of what the line reads or writes off the clock
+ * (a cue's read or its literal, a mark's read, a `spoken` read), half a frame
+ * in, or halfway through what plays there when that is shorter (a cue of a
+ * few milliseconds), so the frame it lands on plays it whatever the sum's
+ * rounding; past the last, the first, so taps go round. Heard or not, as a
+ * frame to come may take a branch the frame shown did not. None for a line
+ * that reads and writes nothing the scene plays.
  */
 export const nextFiring = (
   code: SceneCode,
@@ -380,26 +384,29 @@ export const nextFiring = (
   clock: CodeClock,
 ): Option.Option<number> => {
   const on = (at: CodeRange) => lineAt(code, at[0]) === line;
-  const starts = Arr.sort(
+  const spans = Arr.sort(
     [
       ...clockReads(code, clock)
         .filter((r) => on(r.at))
-        .map((r) => r.span.start),
+        .map((r) => r.span),
       ...code.cues
         .filter((c) => on(c.at))
         .flatMap((c) =>
           Option.toArray(
-            Option.map(Option.fromUndefinedOr(clock.cues.get(c.name)), (cue) => cue.start),
+            Option.map(Option.fromUndefinedOr(clock.cues.get(c.name)), (cue): Span => ({
+              start: cue.start,
+              end: liveEnd(cue, clock.fps),
+            })),
           ),
         ),
     ],
-    Order.Number,
+    Order.mapInput(Order.Number, (s: Span) => s.start),
   );
   return Option.map(
     Option.orElse(
-      Arr.findFirst(starts, (s) => s > clock.t),
-      () => Arr.head(starts),
+      Arr.findFirst(spans, (s) => s.start > clock.t),
+      () => Arr.head(spans),
     ),
-    (s) => s + 0.5 / clock.fps,
+    (s) => s.start + Math.min(0.5 / clock.fps, (s.end - s.start) / 2),
   );
 };

@@ -247,6 +247,30 @@ describe('a read of the clock fires, and its line glows', () => {
       Option.none(),
     );
   });
+
+  test('a `spoken` read over no stretch fires where it steps to its last, at its end: an instant, never followed', () => {
+    // From `{held}` (2.5 s) to `{take}` (1.5 s): no word between, so it reads 0 until `{take}` and 1 from there.
+    const backwards: SceneCode = {
+      ...voiced,
+      marks: [
+        {
+          name: 'held',
+          reads: [],
+          speaks: [{ at: inVoiced('f.spoken("take", "held")'), to: 'take' }],
+        },
+      ],
+    };
+    const at = (t: number) => litNow(backwards, clockAt(t, rise, VOICE));
+    expect(at(1.51).reads).toEqual([inVoiced('f.spoken("take", "held")')]);
+    expect(at(1.51).glows.get(5)).toBe(1);
+    expect(followLine(backwards, at(1.51))).toEqual(Option.none());
+    // Where `{held}` is said nothing steps: the read is dark, its trail long gone.
+    expect(at(2.51).reads).toEqual([]);
+    expect(at(2.51).glows.has(5)).toBe(false);
+    expect(nextFiring(backwards, 5, clockAt(0.2, rise, VOICE))).toEqual(
+      Option.some(1.5 + 0.5 / 30),
+    );
+  });
 });
 
 describe('where a tap on a line seeks', () => {
@@ -280,6 +304,16 @@ describe('where a tap on a line seeks', () => {
     expect(nextFiring(voiced, 4, clockAt(0.2, rise, VOICE, unread))).toEqual(
       Option.some(1.5 + half),
     );
+  });
+
+  test('a cue shorter than half a frame is landed in its middle, never past its end', () => {
+    // Five milliseconds from 1 s: half a frame (1/60 s) in would land after it, where nothing fires.
+    const blink = new Map([['rise', cue(1, 0.005)]]);
+    for (const line of [1, 2]) {
+      const at = Option.getOrThrow(nextFiring(voiced, line, clockAt(0.2, blink, VOICE)));
+      expect(at).toBeCloseTo(1.0025, 9);
+      expect(litNow(voiced, clockAt(at, blink, VOICE)).reads).toEqual([inVoiced('f.at("rise")')]);
+    }
   });
 });
 
