@@ -303,6 +303,64 @@ describe('what is lit', () => {
   );
 });
 
+describe('the strip and the code, tied by the pointer', () => {
+  /** The lines of the code the pointer ties to a cue, and the cues on the strip it ties to a line. */
+  const POINTED_LINES = `[...document.querySelectorAll('.lab-source-col .lab-source-line[data-pointed]')].map((e) => Number(e.dataset.line))`;
+  const POINTED_BARS = `[...document.querySelectorAll('.lab-cue[data-pointed]')].map((e) => e.dataset.cue)`;
+  /** The middle of a box. */
+  const middleOf = (b: { x: number; y: number; width: number; height: number }) =>
+    [b.x + b.width / 2, b.y + b.height / 2] as const;
+
+  it.live(
+    'the scene’s cues name no track, so each is a row of its own, under its marks’ labels',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([codeRoute], {
+          href: labOne(0.05, { code: 'follow' }),
+        });
+        yield* page.waitFor('.lab-source-col .lab-source-page');
+        yield* evaluates(
+          page,
+          `[...document.querySelectorAll('.lab-strip-row')].map((r) => [r.querySelector('.lab-cue-label').textContent, r.hasAttribute('data-named')])`,
+          [
+            ['rise', false],
+            ['fall', false],
+          ],
+        );
+        yield* evaluates(
+          page,
+          `[...document.querySelectorAll('.lab-strip-label')].map((l) => l.dataset.mark)`,
+          ['rise', 'fall'],
+        );
+        // A bar on a track of its own draws as it did: its name at the row's left, no words in the bar.
+        yield* countIs(page, '.lab-cue .lab-cue-words', 0);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('a mouse over a bar lights the line that writes it, and over a line lights its bar', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(0.05, { code: 'follow' }),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      const [bx, by] = middleOf(yield* page.box('.lab-cue[data-cue="fall"]'));
+      yield* page.mouse.move(bx, by);
+      yield* evaluates(page, POINTED_LINES, [FALL_LINE]);
+      yield* evaluates(page, POINTED_BARS, ['fall']);
+      const line = (n: number) => `.lab-source-col .lab-source-line[data-line="${n}"]`;
+      const [lx, ly] = middleOf(yield* page.box(line(RISE_LINE)));
+      yield* page.mouse.move(lx, ly);
+      yield* evaluates(page, POINTED_BARS, ['rise']);
+      yield* evaluates(page, POINTED_LINES, [RISE_LINE]);
+      // A line that writes no cue ties to none.
+      const [nx, ny] = middleOf(yield* page.box(line(SPOT_LINE)));
+      yield* page.mouse.move(nx, ny);
+      yield* evaluates(page, POINTED_BARS, []);
+      yield* evaluates(page, POINTED_LINES, []);
+    }).pipe(Effect.scoped),
+  );
+});
+
 describe('a line held', () => {
   it.live('?code=<line> holds that line, in the column', () =>
     Effect.gen(function* () {

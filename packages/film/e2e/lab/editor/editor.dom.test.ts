@@ -1600,8 +1600,18 @@ describe('the strip follows the playhead down its rows', () => {
   /** The strip's Follow command: offered only while a reader has the rows. */
   const STRIP_FOLLOW = 'edit.strip-follow';
   const BOX = `document.querySelector('.lab-strip-scroll')`;
-  /** The rows' box a row and the words high: the probe film's two lanes overflow it, as roof's 35 overflow 240 px. */
-  const SHORT = `(() => { const s = document.createElement('style'); s.textContent = '.lab-strip-scroll { max-height: calc(18px + 16px) !important; }'; document.head.append(s); return true; })()`;
+  /**
+   * The rows' box a row and the words high (the words with their marks' labels, as tall as the strip draws them): the
+   * probe film's two lanes overflow it, as roof's 35 overflow 240 px.
+   */
+  const SHORT = `(() => {
+    const words = document.querySelector('.lab-strip-words').offsetHeight;
+    const row = document.querySelector('.lab-strip-row').offsetHeight;
+    const s = document.createElement('style');
+    s.textContent = '.lab-strip-scroll { max-height: ' + (words + row) + 'px !important; }';
+    document.head.append(s);
+    return true;
+  })()`;
   /** Whether every lit lane's row stands inside the rows' box, under the words held at its top. */
   const LIT_IN_SIGHT = `(() => {
     const box = ${BOX}.getBoundingClientRect();
