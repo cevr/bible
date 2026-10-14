@@ -37,6 +37,8 @@ public enum AppleModels {
       DictationTranscriber(
         locale: locale, contentHints: [], transcriptionOptions: [.punctuation],
         reportingOptions: live ? [.volatileResults] : [], attributeOptions: [])
+    case .parakeetSmall, .parakeetLarge:
+      preconditionFailure("\(model.title) does not run through SpeechAnalyzer")
     }
   }
 
@@ -48,6 +50,8 @@ public enum AppleModels {
       return await SpeechTranscriber.supportedLocale(equivalentTo: english)
     case .appleDictation:
       return await DictationTranscriber.supportedLocale(equivalentTo: english)
+    case .parakeetSmall, .parakeetLarge:
+      return nil
     }
   }
 

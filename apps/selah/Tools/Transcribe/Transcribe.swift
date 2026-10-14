@@ -6,7 +6,7 @@ import SelahSpeech
 /// Runs a recorded take through the same transcriber the app uses and scores it the way
 /// a reveal does.
 ///
-///     swift run SelahTranscribe <kjv.json> <audio> <appleSpeech|appleDictation> <book> <chapter> [--no-context]
+///     swift run SelahTranscribe <kjv.json> <audio> <appleSpeech|appleDictation|parakeetSmall|parakeetLarge> <book> <chapter> [--no-context]
 @main struct Transcribe {
   static func main() async throws {
     let arguments = CommandLine.arguments
@@ -14,7 +14,7 @@ import SelahSpeech
       let book = Int(arguments[4]), let chapter = Int(arguments[5])
     else {
       print(
-        "usage: SelahTranscribe <kjv.json> <audio> <appleSpeech|appleDictation> <book> <chapter> [--no-context]"
+        "usage: SelahTranscribe <kjv.json> <audio> <appleSpeech|appleDictation|parakeetSmall|parakeetLarge> <book> <chapter> [--no-context]"
       )
       exit(2)
     }
@@ -31,7 +31,13 @@ import SelahSpeech
 
     let clock = ContinuousClock()
     let began = clock.now
-    let (transcriber, used) = try await startTranscriber(model: model, context: context) { _ in }
+    let models = URL(
+      fileURLWithPath: ProcessInfo.processInfo.environment["SELAH_DATA_ROOT"]
+        ?? NSHomeDirectory() + "/Library/Application Support/Selah"
+    ).appendingPathComponent("Models")
+    let (transcriber, used) = try await startTranscriber(
+      model: model, context: context, models: models
+    ) { _ in }
     print(
       "Listening with \(used?.title ?? "legacy recognizer"), ready in \(began.duration(to: clock.now))"
     )

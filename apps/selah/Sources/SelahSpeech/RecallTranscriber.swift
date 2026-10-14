@@ -95,12 +95,20 @@ final class StreamConverter: @unchecked Sendable {
   }
 }
 
-/// Starts the chosen model, falling back to the other Apple model and then to the legacy
-/// recognizer when a model is not offered on this Mac. Returns what is actually listening.
+/// Starts the chosen model, falling back to Apple's models and then to the legacy recognizer
+/// when a model is not offered or not downloaded on this Mac. Returns what is actually
+/// listening. A downloaded model hears the whole take and transcribes it when the take ends.
 public func startTranscriber(
-  model: DictationModel, context: [String], update: @escaping @Sendable (String) -> Void
+  model: DictationModel, context: [String], models directory: URL,
+  update: @escaping @Sendable (String) -> Void
 ) async throws -> (transcriber: any RecallTranscriber, model: DictationModel?) {
-  for candidate in [model] + DictationModel.allCases.filter({ $0 != model }) {
+  if model.isLocal, let engine = LocalModels.engine,
+    await engine.state(of: model, in: directory) == .installed
+  {
+    return (try await engine.start(model, in: directory), model)
+  }
+  let apple = DictationModel.allCases.filter { !$0.isLocal }
+  for candidate in (apple.contains(model) ? [model] : []) + apple.filter({ $0 != model }) {
     do {
       let transcriber = try await AppleTranscriber.start(
         model: candidate, context: context, update: update)

@@ -23,7 +23,8 @@ final class Dictation {
 
   /// Starts a take. `context` lists words that help the model hear the passage as printed.
   func start(
-    model: DictationModel, context: [String], update: @escaping @MainActor (String) -> Void
+    model: DictationModel, context: [String], models: URL,
+    update: @escaping @MainActor (String) -> Void
   ) {
     stop()
     let token = generation
@@ -38,8 +39,9 @@ final class Dictation {
       }
       guard generation == token, !Task.isCancelled else { return }
       do {
-        let (transcriber, used) = try await startTranscriber(model: model, context: context) {
-          text in
+        let (transcriber, used) = try await startTranscriber(
+          model: model, context: context, models: models
+        ) { text in
           Task { @MainActor [weak self] in
             guard let self, self.generation == token, self.phase == .listening else { return }
             self.update?(text)
@@ -69,7 +71,9 @@ final class Dictation {
           switch used {
           case model: nil
           case .some(let other):
-            "\(model.title) is not offered on this Mac; \(other.title) is listening."
+            model.isLocal
+              ? "\(model.title) is not downloaded; \(other.title) is listening."
+              : "\(model.title) is not offered on this Mac; \(other.title) is listening."
           case .none:
             "Apple’s models are not offered on this Mac; on-device dictation is listening."
           }

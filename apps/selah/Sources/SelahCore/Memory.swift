@@ -163,12 +163,20 @@ public enum DictationModel: String, Codable, CaseIterable, Sendable {
   case appleSpeech
   /// Apple's dictation model (DictationTranscriber), the same one macOS dictation uses.
   case appleDictation
+  /// NVIDIA Parakeet TDT-CTC 110M, which Selah downloads into its own Models folder.
+  case parakeetSmall
+  /// NVIDIA Parakeet TDT 0.6B v2, which Selah downloads into its own Models folder.
+  case parakeetLarge
   public var title: String {
     switch self {
     case .appleSpeech: "Apple Speech"
     case .appleDictation: "Apple Dictation"
+    case .parakeetSmall: "Parakeet Small"
+    case .parakeetLarge: "Parakeet Large"
     }
   }
+  /// Selah downloads, stores, and deletes this model itself; macOS manages Apple's.
+  public var isLocal: Bool { self == .parakeetSmall || self == .parakeetLarge }
 }
 
 public struct Preferences: Codable, Sendable {

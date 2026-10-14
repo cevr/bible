@@ -69,6 +69,8 @@ final class Store {
   var isComparing = false
   private var feedbackTask: Task<Void, Never>?
   let file: ProgressFile
+  /// Where downloaded speech models live: the data folder's Models.
+  let modelsDirectory: URL
   private let repository: ProgressRepository
   private var revision = 0
   private var refreshingReminders = false
@@ -83,6 +85,7 @@ final class Store {
       ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
       .appendingPathComponent("Selah")
     file = ProgressFile(url: root.appendingPathComponent("progress.json"))
+    modelsDirectory = root.appendingPathComponent("Models", isDirectory: true)
     repository = ProgressRepository(file: file)
     Task { await load() }
     Task { [weak self] in
@@ -171,27 +174,52 @@ final class Store {
   }
   /// Where each speech model stands on this Mac, for Settings.
   private(set) var modelStates: [DictationModel: ModelState] = [:]
+  /// Bytes on disk for each downloaded local model.
+  private(set) var modelSizes: [DictationModel: Int64] = [:]
   func refreshModels() async {
-    for model in DictationModel.allCases {
+    for model in LocalModels.offered {
       if case .downloading = modelStates[model] { continue }
-      modelStates[model] = await AppleModels.state(of: model)
+      if model.isLocal, let engine = LocalModels.engine {
+        modelStates[model] = await engine.state(of: model, in: modelsDirectory)
+        modelSizes[model] = engine.size(of: model, in: modelsDirectory)
+      } else {
+        modelStates[model] = await AppleModels.state(of: model)
+      }
     }
   }
   func install(_ model: DictationModel) async {
     modelStates[model] = .downloading(0)
-    do {
-      try await AppleModels.install(model) { [weak self] fraction in
-        Task { @MainActor in
-          if case .downloading = self?.modelStates[model] {
-            self?.modelStates[model] = .downloading(fraction)
-          }
+    modelError = nil
+    let progress: @Sendable (Double) -> Void = { [weak self] fraction in
+      Task { @MainActor in
+        if case .downloading = self?.modelStates[model] {
+          self?.modelStates[model] = .downloading(fraction)
         }
+      }
+    }
+    do {
+      if model.isLocal, let engine = LocalModels.engine {
+        try await engine.install(model, in: modelsDirectory, progress: progress)
+      } else {
+        try await AppleModels.install(model, progress: progress)
       }
       modelStates[model] = .installed
     } catch {
-      modelStates[model] = await AppleModels.state(of: model)
+      modelStates[model] = nil
       modelError = "Could not download \(model.title): \(error.localizedDescription)"
     }
+    await refreshModels()
+  }
+  /// Deletes a downloaded local model from the Models folder.
+  func delete(_ model: DictationModel) async {
+    guard model.isLocal, let engine = LocalModels.engine else { return }
+    dictation.stop()
+    do {
+      try engine.delete(model, in: modelsDirectory)
+    } catch {
+      modelError = "Could not delete \(model.title): \(error.localizedDescription)"
+    }
+    modelSizes[model] = nil
     await refreshModels()
   }
   func removeAppleModels() async {
@@ -261,7 +289,7 @@ final class Store {
     let prefix = typedRecall.trimmingCharacters(in: .whitespacesAndNewlines)
     dictation.start(
       model: library.preferences.dictationModel,
-      context: contextualWords(for: current.verses.map(\.practiceText))
+      context: contextualWords(for: current.verses.map(\.practiceText)), models: modelsDirectory
     ) { [weak self] text in
       self?.typedRecall = prefix.isEmpty ? text : prefix + " " + text
     }

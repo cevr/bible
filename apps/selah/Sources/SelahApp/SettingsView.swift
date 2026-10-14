@@ -54,7 +54,7 @@ struct SettingsView: View {
           Text("Dictation")
           Text("Recite a recall aloud and compare what was heard.")
         }
-        ForEach(DictationModel.allCases, id: \.self) { model in
+        ForEach(LocalModels.offered, id: \.self) { model in
           ModelRow(store: store, model: model)
         }
         if let error = store.modelError {
@@ -67,7 +67,9 @@ struct SettingsView: View {
           Text(
             "Speech stays on this Mac. macOS stores Apple’s models and shares them with other apps."
           )
-          if store.modelStates.values.contains(.installed) {
+          if DictationModel.allCases.contains(where: {
+            !$0.isLocal && store.modelStates[$0] == .installed
+          }) {
             Button("Remove Apple Speech Models") { Task { await store.removeAppleModels() } }
               .buttonStyle(.link)
               .help(
@@ -230,15 +232,22 @@ struct ModelRow: View {
   let model: DictationModel
   private var selected: Bool { store.library.preferences.dictationModel == model }
   private var state: ModelState? { store.modelStates[model] }
+  @State private var confirmingDelete = false
   private var detail: String {
     switch model {
     case .appleSpeech: "Apple’s newest model, built for long recitations."
     case .appleDictation: "The model macOS dictation uses. Less accurate on the KJV’s older words."
+    case .parakeetSmall: "NVIDIA Parakeet, 110 million parameters. Fast; transcribes when you stop."
+    case .parakeetLarge:
+      "NVIDIA Parakeet, 600 million parameters. Most accurate; transcribes when you stop."
     }
   }
   private var status: String {
     switch state {
-    case .installed: "On this Mac"
+    case .installed:
+      store.modelSizes[model].map {
+        "On this Mac · \($0.formatted(.byteCount(style: .file)))"
+      } ?? "On this Mac"
     case .available: "Not downloaded"
     case .downloading(let fraction):
       "Downloading \(fraction.formatted(.percent.precision(.fractionLength(0))))"
@@ -272,6 +281,16 @@ struct ModelRow: View {
         Button("Download") { Task { await store.install(model) } }
       case .downloading(let fraction):
         ProgressView(value: fraction).frame(width: 72).accessibilityLabel(status)
+      case .installed where model.isLocal:
+        Button("Delete…") { confirmingDelete = true }
+          .confirmationDialog(
+            "Delete \(model.title) from this Mac?", isPresented: $confirmingDelete,
+            titleVisibility: .visible
+          ) {
+            Button("Delete", role: .destructive) { Task { await store.delete(model) } }
+          } message: {
+            Text("You can download it again from Settings.")
+          }
       default:
         EmptyView()
       }
