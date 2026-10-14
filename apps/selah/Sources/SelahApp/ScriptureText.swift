@@ -20,7 +20,7 @@ struct ScriptureText: View {
       text.font = segment.italic ? font.italic() : font
       text.foregroundColor =
         segment.redLetter && reader.redLetters
-        ? Color(red: 0.96, green: 0.57, blue: 0.48) : .primary
+        ? Palette.redLetter : .primary
       if let index = segment.noteIndex {
         text.link = URL(string: "selah-note://\(index)")
         text.baselineOffset = 8
@@ -84,34 +84,42 @@ struct ScriptureText: View {
 
 struct RecallFeedback: View {
   let comparison: RecallComparison
-  private func words(_ words: [RecallWord], missing: Bool) -> AttributedString {
+  static func marked(_ words: [RecallWord], color: Color) -> AttributedString {
     var result = AttributedString()
-    for word in words {
-      var text = AttributedString(word.text + " ")
+    for (index, word) in words.enumerated() {
+      if index > 0 {
+        // The space joins a run of missing words, so the underline never trails into a matched one.
+        var space = AttributedString(" ")
+        if !word.matched && !words[index - 1].matched {
+          space.foregroundColor = color
+          space.underlineStyle = .single
+        }
+        result += space
+      }
+      var text = AttributedString(word.text)
       if !word.matched {
-        text.foregroundColor = missing ? .orange : .red
+        text.foregroundColor = color
         text.underlineStyle = .single
       }
       result += text
     }
     return result
   }
+  /// The count summary and, when present, the recalled words that are not in the text.
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      Label(
-        "\(comparison.matchedCount) matched · \(comparison.missingCount) missing · \(comparison.extraCount) extra",
-        systemImage: comparison.missingCount == 0 && comparison.extraCount == 0
-          ? "checkmark.circle" : "text.badge.checkmark"
-      ).font(.callout)
-      if comparison.missingCount > 0 {
-        Text("Reference · missing words underlined").font(.caption).foregroundStyle(.secondary)
-        Text(words(comparison.expected, missing: true)).lineSpacing(5).textSelection(.enabled)
+    VStack(alignment: .leading, spacing: Space.xs) {
+      Text(
+        "\(comparison.matchedCount) of \(comparison.expected.count) words · \(comparison.missingCount) missing · \(comparison.extraCount) extra"
+      )
+      .font(.callout).foregroundStyle(.secondary).monospacedDigit()
+      if comparison.extraCount > 0 {
+        DisclosureGroup("Your recall, with extra or changed words underlined") {
+          Text(Self.marked(comparison.recalled, color: Palette.extra)).lineSpacing(Space.xxs)
+            .textSelection(.enabled).padding(.top, Space.xs)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .font(.callout)
       }
-      Text("Your recall · extra or changed words underlined").font(.caption).foregroundStyle(
-        .secondary)
-      Text(words(comparison.recalled, missing: false)).lineSpacing(5).textSelection(.enabled)
-      Text("Case and punctuation are ignored. Choose your grade after comparing.").font(.caption)
-        .foregroundStyle(.secondary)
-    }.padding(16).background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+    }
   }
 }

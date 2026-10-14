@@ -5,6 +5,26 @@ import ServiceManagement
 import SwiftUI
 import UserNotifications
 
+enum Pane: String, Hashable, CaseIterable {
+  case today, passages, promises, settings
+  var title: String {
+    switch self {
+    case .today: "Today"
+    case .passages: "Passages"
+    case .promises: "Promises"
+    case .settings: "Settings"
+    }
+  }
+  var symbol: String {
+    switch self {
+    case .today: "sun.horizon"
+    case .passages: "books.vertical"
+    case .promises: "text.book.closed"
+    case .settings: "gearshape"
+    }
+  }
+}
+
 @MainActor @Observable
 final class Store {
   var library = Library()
@@ -30,7 +50,15 @@ final class Store {
   var studying = false
   var hinted = false
   var typedRecall = ""
-  var section = "Today"
+  var section = Pane.today
+  /// The open promise category, if any, within the Promises pane.
+  var promisePath: [String] = []
+  /// Cues for the current chapter's verses as the recall began.
+  var cues: [Cue] = []
+  /// Verse numbers whose first letters were shown during this recall.
+  var peeked: Set<Int> = []
+  /// Verse numbers that slipped: from the comparison, peeks, and the reciter's own marks.
+  var slipped: Set<Int> = []
   var comparison: RecallComparison?
   var feedbackError: String?
   var isComparing = false
@@ -136,6 +164,19 @@ final class Store {
     sessionActive = true
     resetRecall()
   }
+  func addPromises(_ category: PromiseCategory) async {
+    guard !library.goals.contains(where: { $0.promises == category.id }) else { return }
+    await add(Goal(title: category.title, promises: category.id))
+  }
+  func setMethod(_ method: LearningMethod, for goal: Goal) async {
+    let id = goal.id
+    if await change({ library in
+      guard let index = library.goals.firstIndex(where: { $0.id == id }) else { return }
+      library.goals[index].method = method
+    }) {
+      await refreshReminders()
+    }
+  }
   func beginChapter(_ verses: [Verse]) {
     guard !isLoading, !isSaving, let first = verses.first,
       verses.count == corpus.verses(book: first.book, chapter: first.chapter).count
@@ -145,7 +186,7 @@ final class Store {
     completed = 0
     sessionTotal = 1
     sessionActive = true
-    section = "Today"
+    section = .today
     resetRecall()
   }
   func beginBook(_ book: Int) {
@@ -157,7 +198,7 @@ final class Store {
     completed = 0
     sessionTotal = queue.count
     sessionActive = true
-    section = "Today"
+    section = .today
     resetRecall()
   }
   func endSession() {
@@ -180,17 +221,20 @@ final class Store {
     guard let current, !typedRecall.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
       return
     }
-    let expected = current.practiceText
+    let expected = current.verses.map(\.practiceText)
+    let numbers = current.verses.map(\.number)
     let answer = typedRecall
     feedbackTask?.cancel()
     isComparing = true
     feedbackTask = Task {
       let result = await Task.detached(priority: .userInitiated) {
-        Result { try RecallComparison(expected: expected, recalled: answer) }
+        Result { try RecallComparison(segments: expected, recalled: answer) }
       }.value
       guard !Task.isCancelled else { return }
       switch result {
-      case .success(let feedback): comparison = feedback
+      case .success(let feedback):
+        comparison = feedback
+        slipped.formUnion(feedback.slippedSegments.map { numbers[$0] })
       case .failure(let error): feedbackError = error.localizedDescription
       }
       isComparing = false
@@ -202,16 +246,41 @@ final class Store {
     comparison = nil
     feedbackError = nil
     isComparing = false
+    peeked = []
+    slipped = []
+    cues = current.map { library.cues(for: $0) } ?? []
     studying = current.map { library.cards[$0.id] == nil } ?? false
     revealed = studying
     hinted = false
     typedRecall = ""
   }
+  /// Show a hidden verse's first letters during a chapter recall; the verse counts as slipped.
+  func peek(_ verse: Verse) {
+    peeked.insert(verse.number)
+    slipped.insert(verse.number)
+  }
+  func toggleSlipped(_ verse: Verse) {
+    if slipped.contains(verse.number) {
+      slipped.remove(verse.number)
+    } else {
+      slipped.insert(verse.number)
+    }
+  }
+  var allowedRatings: [RecallRating] {
+    guard let current else { return [] }
+    return library.allowedRatings(for: current, usedHint: hinted, peeked: peeked)
+  }
   func rate(_ rating: RecallRating) async {
-    guard let verse = current, revealed, !studying, !isSaving else { return }
+    guard let unit = current, revealed, !studying, !isSaving else { return }
     let usedHint = hinted
+    let weak = slipped
+    let peeked = peeked
     let now = Date()
-    guard await change({ try $0.record(verse, rating: rating, usedHint: usedHint, now: now) })
+    guard
+      await change({
+        try $0.record(
+          unit, rating: rating, usedHint: usedHint, weakVerses: weak, peeked: peeked, now: now)
+      })
     else {
       return
     }

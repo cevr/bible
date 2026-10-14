@@ -145,7 +145,20 @@ public enum Scheduler {
   }
 }
 
+/// Follow the system appearance, or keep Selah light or dark.
+public enum Appearance: String, Codable, CaseIterable, Sendable {
+  case system, light, dark
+  public var title: String {
+    switch self {
+    case .system: "System"
+    case .light: "Light"
+    case .dark: "Dark"
+    }
+  }
+}
+
 public struct Preferences: Codable, Sendable {
+  public var appearance = Appearance.system
   public var newPerDay = 3
   public var reminderMinutes = 60
   public var remindersEnabled = false
@@ -158,13 +171,15 @@ public struct Preferences: Codable, Sendable {
   public var quietEndMinutes = 8 * 60
   public init() {}
   private enum CodingKeys: String, CodingKey {
-    case reader, dictationEnabled, newPerDay, reminderMinutes, remindersEnabled, showMarginNotes,
+    case appearance, reader, dictationEnabled, newPerDay, reminderMinutes, remindersEnabled,
+      showMarginNotes,
       backupsEnabled,
       quietHoursEnabled,
       quietStartMinutes, quietEndMinutes
   }
   public init(from decoder: any Decoder) throws {
     let values = try decoder.container(keyedBy: CodingKeys.self)
+    appearance = try values.decodeIfPresent(Appearance.self, forKey: .appearance) ?? .system
     newPerDay = max(1, min(20, try values.decodeIfPresent(Int.self, forKey: .newPerDay) ?? 3))
     reminderMinutes = max(1, try values.decodeIfPresent(Int.self, forKey: .reminderMinutes) ?? 60)
     remindersEnabled = try values.decodeIfPresent(Bool.self, forKey: .remindersEnabled) ?? false

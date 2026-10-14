@@ -1,6 +1,6 @@
 # Selah
 
-An offline SwiftUI menu bar app for memorizing Scripture on macOS 26+ (Liquid Glass). Dark native controls, Georgia Scripture typography, verse-number gutters, supplied-word italics, and red-letter text.
+An offline SwiftUI menu bar app for memorizing Scripture on macOS 26+. Learn whole chapters at once or verse by verse, or learn curated promises by category. Liquid Glass is used only for controls and chrome; Scripture sits on a calm page surface in Georgia, with verse-number gutters, supplied-word italics, and red-letter text. Appearance follows the system or a chosen light or dark mode.
 
 ## Run
 
@@ -18,11 +18,14 @@ The build uses Apple's tools and the maintained [Swift FSRS package](https://git
 
 ## Practice
 
-1. Choose verses, a chapter, a book, or the whole Bible in **Library**. Overlapping goals share verse progress. New verses arrive in canonical order, defaulting to three per local calendar day.
-2. Begin in **Today**. Read a new passage, hide it, then recite aloud or type from memory. Command-Return hides or reveals it.
-3. Reveal to see word-level feedback. Missing reference words and extra or changed recalled words are underlined; alignment preserves later matches after omissions. Case and punctuation are ignored. Comparison runs after reveal, away from the UI thread. Input is limited to one chapter, up to 6,000 words.
-4. Choose Again, Hard, Good, or Easy (keys 1–4). First-letter hints restrict grades to Again or Hard. Feedback informs your own grade; it does not grade automatically.
-5. Chapter review becomes eligible after every verse has two consecutive successful recalls. Selah introduces at most one new chapter per day automatically. **Library → Read → Practice & Schedule This Chapter** also starts a full chapter manually. Chapter grades have independent FSRS cards and never change individual verse dates. Partial-verse goals do not create whole-chapter reviews.
+1. Choose verses, a chapter, a book, or the whole Bible in **Passages**. Chapters, books, and the whole Bible learn **Whole chapter** by default; **Verse by verse** stays available per passage and can be switched later. Overlapping goals share verse progress.
+2. Begin in **Today** (Return). A new whole chapter is read through once, then recited whole. Each verse carries a cue: full text, first letters, or nothing but its number. Cues start at first letters, or at nothing for verses you already know. **Show Letters** reveals one hidden verse and marks it as slipped.
+3. Reveal (Command-Return) to see the chapter verse by verse with missing words underlined. A verse slips when at least a tenth of its words are missing; you can mark or clear any verse yourself. Extra or changed recalled words are in a disclosure. Comparison ignores case and punctuation, runs after reveal away from the UI thread, and is limited to one chapter of up to 6,000 words.
+4. Choose a grade (keys 1–4). The whole chapter is one FSRS card from the first day. After a grade, slipped verses get more cue and the rest get less (Again keeps cues as they were). A chapter counts as learned when every verse stands without a cue, none slipped, and the grade is Good or better. Easy needs a recall with no cue and no peek; first-letter hints on a verse or passage limit grades to Again or Hard. Feedback informs your own grade; it does not grade automatically.
+5. One new whole chapter starts per day at most, and the next chapter of a passage waits until the current one stands without cues. Verse-by-verse goals keep the earlier flow: a few new verses per day (default three), and the chapter joins review after every verse has two successful recalls. Chapter cards never change individual verse dates.
+6. **Promises** lists 14 curated KJV categories (158 promises, 10–12 each, one to three verses and at most 70 words). Open a category to read its promises, then **Add to Practice**. Promises join the daily new-item allowance in turn with your verses; a single-verse promise shares its verse card with any passage that contains it. Each category shows how many promises are learned. Tests resolve every reference against the bundled KJV.
+
+**Read → Memorize Chapter** starts any full chapter immediately, with its cues.
 
 The scheduler is canonical **FSRS 6**, with default FSRS 6 weights, short-term learning steps, 90% target retention, and no interval fuzz so previews match saved schedules. Target retention is an algorithm setting, not a promise of Bible-specific performance. New-card learning steps are 1 and 10 minutes; graduated intervals adapt to elapsed time and grades. Relearning uses the package's 10-minute step. Raw review events are retained. The reference FSRS 6 interval sequence is checked independently in tests.
 
@@ -30,15 +33,15 @@ When opening v1 progress, Selah first backs up the original JSON, replays review
 
 ## Reader settings, book rehearsals, and dictation
 
-**Settings → Reading → Reader Settings…**, or the typography button in the reader, opens a native sheet with a live Scripture preview. Apply saves the draft; Cancel leaves saved preferences unchanged. Defaults are Georgia at 22 pt, 1.55× line height, zero character spacing, 8 pt between verses, and an extra 16 pt at source paragraph marks. Choose Georgia, Palatino, Baskerville, or the system font; adjust text size, leading, character spacing, paragraph spacing, verse spacing, verse numbers, and red letters. Supplied-word italics remain intact. Restore Tasteful Defaults resets the preview before applying. Settings persist across launches and apply to reading and practice.
+**Settings → Reading → Typography → Reader Settings…**, or the typography button in the reader, opens a native sheet with a live Scripture preview. Apply saves the draft; Cancel leaves saved preferences unchanged. Defaults are Georgia at 22 pt, 1.55× line height, zero character spacing, 8 pt between verses, and an extra 16 pt at source paragraph marks. Choose Georgia, Palatino, Baskerville, or the system font; adjust text size, leading, character spacing, paragraph spacing, verse spacing, verse numbers, and red letters. Supplied-word italics remain intact. Restore Tasteful Defaults resets the preview before applying. Settings persist across launches and apply to reading and practice.
 
-From **Library → Read**, choose **Rehearse [Book]** to start the entire book in canonical chapter order. Each chapter has its own study, recall, word comparison, and grade. Only chapters you actually grade acquire review events; ending early leaves the remaining chapters untouched. Chapter cards remain independent of verse cards.
+From **Passages → Read**, the reader's **⋯** menu offers **Rehearse [Book]** to start the entire book in canonical chapter order. Each chapter has its own study, recall, word comparison, and grade. Only chapters you actually grade acquire review events; ending early leaves the remaining chapters untouched. Chapter cards remain independent of verse cards.
 
 **Settings → Practice → Enable optional dictation** defaults off. During hidden recall, press **Dictate** to request microphone and speech permission and transcribe English on the device. Existing typed recall is retained as a prefix. Stop Dictation, revealing, advancing, ending practice, leaving practice, or switching apps stops capture. Speech recognition must support on-device English; there is no network fallback. Denied permissions and unavailable recognition show a message and leave typed recall usable. Transcription is optional and never assigns a grade. [Apple documents the on-device requirement](https://developer.apple.com/documentation/speech/sfspeechrecognitionrequest/requiresondevicerecognition).
 
 ## Reading and margins
 
-The menu-bar popup is a compact launcher: progress, Practice, Read, Open Selah, and Quit. It never embeds the reader, practice session, Library, or Settings.
+The menu-bar popup is a compact launcher: reviews ready, Begin Practice, Read, Open Selah, and Quit. It never embeds the reader, practice session, Passages, Promises, or Settings. The main window uses a sidebar (Today, Passages, Promises, Settings; Command-1 to 3 and Command-comma).
 
 The reader opens in its own native window, centered in the active display’s usable area every time you choose Read, including from the menu bar. It remains open independently of the menu-bar popover.
 
@@ -71,7 +74,7 @@ Corpus preparation, readiness calculation, comparisons, storage, and backups run
 
 These are core timings, not measured frame or end-to-end launch times. JSON saves rewrite the complete history; an incremental store remains a future scaling option.
 
-The full gate checks formatting, warning-free compilation, 19 behavior tests, and corpus integrity. Tests cover independent FSRS intervals, v1 migration, daily limits, relaunch, independent chapters, hint grading, concurrent storage transactions, corruption preservation, nested italics/red letters, margin anchors, recall alignment, overnight quiet hours, DST gaps, and immutable backup retention, and successful saves when backup storage is unavailable. Packaged app screens, native margin popovers, reader preview resizing, Cancel/Apply, and the Psalms book rehearsal entry were inspected live. No test grades were recorded in user progress.
+The full gate checks formatting, warning-free compilation, 27 behavior tests, and corpus integrity. Tests cover independent FSRS intervals, v1 migration, daily limits, relaunch, independent chapters, hint grading, concurrent storage transactions, corruption preservation, nested italics/red letters, margin anchors, recall alignment, overnight quiet hours, DST gaps, and immutable backup retention, successful saves when backup storage is unavailable, whole-chapter cues and scheduling, recall segments and slipped verses, decoding the real pre-whole-chapter progress file without loss, and promise references and turn-taking. Packaged app screens, native margin popovers, reader preview resizing, Cancel/Apply, and the Psalms book rehearsal entry were inspected live. No test grades were recorded in user progress.
 
 ## Text provenance
 

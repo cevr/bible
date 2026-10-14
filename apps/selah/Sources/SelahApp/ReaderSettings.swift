@@ -36,7 +36,7 @@ struct ReaderSettings: View {
     _ title: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double,
     suffix: String
   ) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
+    VStack(alignment: .leading, spacing: Space.xxs) {
       HStack {
         Text(title)
         Spacer()
@@ -48,23 +48,16 @@ struct ReaderSettings: View {
   }
   var body: some View {
     VStack(spacing: 0) {
-      HStack {
-        Text("Reader Settings").font(.title2)
-        Spacer()
-        Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-        Button("Apply") {
-          let settings = draft
-          Task { if await store.change({ $0.preferences.reader = settings }) { dismiss() } }
-        }.keyboardShortcut(.defaultAction).disabled(store.isSaving)
-      }.padding(20)
-      Divider()
       ScrollView {
         ScripturePassage(
           verses: Array(store.corpus.verses(book: 19, chapter: 23).prefix(3)), corpus: store.corpus,
           reader: draft
         )
-        .padding(24).frame(maxWidth: 600)
-      }.frame(height: 240).background(Color.black.opacity(0.4))
+        .padding(Space.l).frame(maxWidth: 600)
+      }
+      .frame(height: 200).frame(maxWidth: .infinity).background(Palette.page)
+      .accessibilityLabel("Preview")
+      Divider()
       Form {
         Section("Typography") {
           Picker("Font", selection: $draft.font) {
@@ -87,9 +80,22 @@ struct ReaderSettings: View {
             .foregroundStyle(.secondary)
           Toggle("Verse numbers", isOn: $draft.showVerseNumbers)
           Toggle("Red letters", isOn: $draft.redLetters)
-          Button("Restore Tasteful Defaults") { draft = ReaderPreferences() }
+          Button("Restore Defaults") { draft = ReaderPreferences() }
         }
-      }.formStyle(.grouped)
-    }.frame(width: 580, height: 760).preferredColorScheme(.dark)
+      }
+      .formStyle(.grouped)
+    }
+    .frame(width: 580, height: 600)
+    .navigationTitle("Reader Settings")
+    .toolbar {
+      ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+      ToolbarItem(placement: .confirmationAction) {
+        Button("Apply") {
+          let settings = draft
+          Task { if await store.change({ $0.preferences.reader = settings }) { dismiss() } }
+        }
+        .disabled(store.isSaving)
+      }
+    }
   }
 }
