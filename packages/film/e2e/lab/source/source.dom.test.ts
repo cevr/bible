@@ -81,6 +81,7 @@ const CODE = {
     },
   ],
   knobs: [{ name: 'spot', at: range('spot: [320, 200]'), reads: [range("f.knob('spot')")] }],
+  marks: [],
   refused: [],
 };
 
@@ -1064,6 +1065,7 @@ describe('a line of the code', () => {
         text: ['// two', 'a', 'b', 'c', 'const d = 4;', 'e'].join('\n'),
         cues: [],
         knobs: [],
+        marks: [],
         refused: [],
       };
       const twoRoute = route('GET', /^\/scenes\/two\/code$/, () => json(TWO));

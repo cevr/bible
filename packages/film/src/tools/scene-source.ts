@@ -1133,8 +1133,8 @@ export const readKnobs = (
       ),
   });
 
-/** What a frame's reader names by its first argument: a cue or a knob. */
-type Reads = 'cue' | 'knob';
+/** What a frame's reader names by its first argument: a cue, a knob or a mark. */
+type Reads = 'cue' | 'knob' | 'mark';
 
 const READERS: ReadonlyMap<string, Reads> = new Map([
   ['at', 'cue'],
@@ -1143,20 +1143,50 @@ const READERS: ReadonlyMap<string, Reads> = new Map([
   ['stagger', 'cue'],
   ['staggerAt', 'cue'],
   ['knob', 'knob'],
+  ['mark', 'mark'],
+  ['spoken', 'mark'],
 ]);
+
+/** The reader that reads the voice from a mark (`f.spoken('take', to?)`), not the mark's one instant. */
+const SPOKEN = 'spoken';
 
 interface Read {
   readonly of: Reads;
   readonly name: string;
   readonly at: CodeRange;
+  /** A `spoken` read's end: the mark its second argument names, or none for the end of speech. None for any other reader. */
+  readonly spoken: Option.Option<{ readonly to: Option.Option<string> }>;
 }
 
+/** Argument `i` of `call` as a string literal: none when it has none there, or it is a spread or anything else. */
+const stringArg = (call: CallExpression, i: number): Option.Option<string> =>
+  Option.flatMap(Option.fromUndefinedOr(call.arguments[i]), (arg) =>
+    Option.flatMap(
+      Option.liftPredicate(arg, (a): a is Expression => a.type !== 'SpreadElement'),
+      stringOf,
+    ),
+  );
+
 /**
- * Every call in the module of a frame's cue or knob reader (`f.at('lift')`,
- * `f.knob(…)`) whose first argument is a string literal, wherever the call
- * stands: a scene's helpers read the frame too. Matched by the member's name,
- * so a lookalike on another object (`list.at('x')`) is a wrong guess the Source
- * view only lights, never writes.
+ * How a reader's call reads the clock: an instant or a name (none of a
+ * `spoken` end), or, for `spoken`, the voice to the mark its second argument
+ * names, or to the end of speech when it names none. A `spoken` call whose
+ * second argument is not a string ends where the code computes, which the
+ * view cannot light: no read at all.
+ */
+const spokenOf = (method: string, call: CallExpression): Option.Option<Read['spoken']> => {
+  if (method !== SPOKEN) return Option.some(Option.none());
+  if (call.arguments.length < 2) return Option.some(Option.some({ to: Option.none() }));
+  return Option.map(stringArg(call, 1), (to) => Option.some({ to: Option.some(to) }));
+};
+
+/**
+ * Every call in the module of a frame's cue, knob or mark reader
+ * (`f.at('lift')`, `f.knob(…)`, `f.mark('take')`, `f.spoken('take')`) whose
+ * first argument is a string literal, wherever the call stands: a scene's
+ * helpers read the frame too. Matched by the member's name, so a lookalike on
+ * another object (`list.at('x')`) is a wrong guess the Source view only
+ * lights, never writes.
  */
 const readsIn = (program: Program): ReadonlyArray<Read> => {
   const found: Array<Read> = [];
@@ -1165,11 +1195,14 @@ const readsIn = (program: Program): ReadonlyArray<Read> => {
       const callee = call.callee;
       if (callee.type !== 'MemberExpression' || callee.computed) return;
       if (callee.property.type !== 'Identifier') return;
-      const of = Option.fromUndefinedOr(READERS.get(callee.property.name));
-      const arg = Arr.head(call.arguments);
-      if (Option.isNone(of) || Option.isNone(arg) || arg.value.type === 'SpreadElement') return;
-      Option.map(stringOf(arg.value), (name) =>
-        found.push({ of: of.value, name, at: [call.start, call.end] }),
+      const method = callee.property.name;
+      Option.map(
+        Option.all({
+          of: Option.fromUndefinedOr(READERS.get(method)),
+          name: stringArg(call, 0),
+          spoken: spokenOf(method, call),
+        }),
+        ({ of, name, spoken }) => found.push({ of, name, at: [call.start, call.end], spoken }),
       );
     },
   }).visit(program);
@@ -1207,8 +1240,35 @@ const writtenIn = (file: string, slot: Slot) => {
 const readsOf = (reads: ReadonlyArray<Read>, of: Reads, name: string): ReadonlyArray<CodeRange> =>
   reads.filter((r) => r.of === of && r.name === name).map((r) => r.at);
 
-/** Where in the module the drawing exported as `name` writes and reads its cues and knobs. */
-type SceneRanges = Pick<SceneCode, 'cues' | 'knobs' | 'refused'>;
+/**
+ * Every mark the module's code reads by name, in the order it is first read:
+ * where it is read as an instant (`f.mark('take')`) and where the voice is
+ * read from it (`f.spoken('take')`, to the mark a second argument names).
+ */
+const marksIn = (reads: ReadonlyArray<Read>): SceneCode['marks'] => {
+  const marks = reads.filter((r) => r.of === 'mark');
+  return Arr.dedupe(marks.map((r) => r.name)).map((name) => {
+    const of = marks.filter((r) => r.name === name);
+    return {
+      name,
+      reads: of.filter((r) => Option.isNone(r.spoken)).map((r) => r.at),
+      speaks: of.flatMap((r) =>
+        Option.match(r.spoken, {
+          onNone: () => [],
+          onSome: ({ to }) => [
+            {
+              at: r.at,
+              ...Option.match(to, { onNone: () => ({}), onSome: (mark) => ({ to: mark }) }),
+            },
+          ],
+        }),
+      ),
+    };
+  });
+};
+
+/** Where in the module the drawing exported as `name` writes and reads its cues and knobs, and reads its marks. */
+type SceneRanges = Pick<SceneCode, 'cues' | 'knobs' | 'marks' | 'refused'>;
 
 /**
  * Where the drawing exported as `name` writes each cue (in its `timeline`
@@ -1217,7 +1277,9 @@ type SceneRanges = Pick<SceneCode, 'cues' | 'knobs' | 'refused'>;
  * positions from the same parse the writes splice by, so an offset is a text
  * range as the file now stands. A cue or knob read by a name the scene does not
  * declare, or an array's `.at(0)`, is left out. A `timeline` or `knobs` that
- * is not an object literal lists nothing, and says why.
+ * is not an object literal lists nothing, and says why. Every mark the code
+ * reads by name is listed, as the file has no narration to check it against:
+ * the view lights only a mark the staged scene says.
  */
 export const sceneCode = (
   file: string,
@@ -1236,6 +1298,7 @@ export const sceneCode = (
       return {
         cues: sites('timeline', 'cue'),
         knobs: sites('knobs', 'knob'),
+        marks: marksIn(reads),
         refused: (['timeline', 'knobs'] as const).flatMap((field) => {
           const slot = site[field];
           if (slot._tag === 'Computed')

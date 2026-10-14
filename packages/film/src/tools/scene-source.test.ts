@@ -634,6 +634,7 @@ export const robe = drawing({
     f.keys('lift', [[0, 1]]) + f.knob('woven') + f.staggerAt('carry', 0.5);
     f.at('ghost');
     f.knob('ghost');
+    f.spoken('take') + f.spoken('take', 'later') + f.spoken('take', end);
     [1, 2].at(0);
     helper(f);
   },
@@ -673,6 +674,27 @@ const helper = (f: Frame) => f.stagger('carry', 1, 3) + f.mark('later');
     expect(texts(knobs.find((k) => k.name === 'woven')?.reads ?? [])).toEqual([
       "f.knob('woven')",
       "f.knob('woven')",
+    ]);
+  });
+
+  it('lists every mark the code reads by name: its instants, and the voice read from it to a mark or the end', () => {
+    const { marks } = code();
+    expect(
+      marks.map((m) => [
+        m.name,
+        texts(m.reads),
+        m.speaks.map((s) => [reading.slice(...s.at), s.to ?? 'the end of speech']),
+      ]),
+    ).toEqual([
+      [
+        'take',
+        ["f.mark('take')"],
+        [
+          ["f.spoken('take')", 'the end of speech'],
+          ["f.spoken('take', 'later')", 'later'],
+        ],
+      ],
+      ['later', ["f.mark('later')"], []],
     ]);
   });
 

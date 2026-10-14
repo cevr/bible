@@ -1188,14 +1188,28 @@ const CodeSite = Schema.Struct({
 });
 
 /**
+ * A `{mark}` of the scene's narration its code reads by name: every call
+ * that reads it as an instant, and every one that reads the voice from it.
+ */
+const MarkSite = Schema.Struct({
+  name: Schema.String,
+  /** `f.mark('take')`: when its word is said. */
+  reads: Schema.Array(CodeRange),
+  /** `f.spoken('take')`, `f.spoken('take', 'held')`: the voice from it to the mark `to` names, else to the end of speech. */
+  speaks: Schema.Array(Schema.Struct({ at: CodeRange, to: Schema.optionalKey(Schema.String) })),
+});
+
+/**
  * `GET /api/films/<film>/scenes/<scene>/code`: the scene file as it stands, and
- * where in it each cue and knob is written and read, for the Source view to
- * light what plays. The ranges come from the parse the writes use
- * (`tools/scene-source.ts`). A read is matched by name: a call of a
- * frame's reader (`at`, `cue`, `keys`, `stagger`, `staggerAt`, `knob`)
- * whose first argument is a string naming a cue or knob the scene declares;
- * a wrong match lights the wrong span and writes nothing. A cue's or a
- * knob's literal the lab cannot locate is not listed, and `refused` says why.
+ * where in it each cue and knob is written and read, and each mark read, for
+ * the Source view to light what plays. The ranges come from the parse the
+ * writes use (`tools/scene-source.ts`). A read is matched by name: a call of
+ * a frame's reader (`at`, `cue`, `keys`, `stagger`, `staggerAt`, `knob`,
+ * `mark`, `spoken`) whose first argument is a string naming a cue or knob the
+ * scene declares, or any mark (the file holds no narration: the view lights
+ * the marks the staged scene says); a wrong match lights the wrong span and
+ * writes nothing. A cue's or a knob's literal the lab cannot locate is not
+ * listed, and `refused` says why.
  */
 export const SceneCode = Schema.Struct({
   scene: Schema.String,
@@ -1205,6 +1219,7 @@ export const SceneCode = Schema.Struct({
   text: Schema.String,
   cues: Schema.Array(CodeSite),
   knobs: Schema.Array(CodeSite),
+  marks: Schema.Array(MarkSite),
   /** Each field whose literal is not provable, and why: what the view's head says while nothing it lists is lit. */
   refused: Schema.Array(
     Schema.Struct({ field: Schema.Literals(['timeline', 'knobs']), reason: Schema.String }),

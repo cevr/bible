@@ -34,6 +34,7 @@ const code: SceneCode = {
     { name: 'fall', at: range('fall: { after: "rise", dur: 1 }'), reads: [range('f.at("fall")')] },
   ],
   knobs: [],
+  marks: [],
   refused: [],
 };
 
