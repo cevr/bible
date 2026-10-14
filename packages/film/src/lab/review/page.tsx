@@ -11,6 +11,7 @@ import { Equal, type Layer, Match, Option } from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createMemo } from 'solid-js';
+import type { ProductionHistory } from '../../core/production.ts';
 import type { ReviewIndex } from '../../core/review.ts';
 import { Root, useReview } from './context.tsx';
 import { Inspecting } from './inspector.tsx';
@@ -19,7 +20,7 @@ import { ReviewPlace, placeOf } from './place.ts';
 import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, SetPage } from './section.tsx';
-import { PRODUCTION_CSS, ProductionPage } from './production.tsx';
+import { PRODUCTION_CSS, ProductionPage, useHistories } from './production.tsx';
 import { COMMENTS_CSS } from './comments-style.ts';
 import { REVIEW_CSS } from './style.ts';
 import { type Part, pageAt } from '../../core/api.ts';
@@ -58,12 +59,23 @@ const setName = (index: Option.Option<ReviewIndex>, ref: string, point: string):
 const filmOfFolder = (ref: string, films: ReadonlyArray<string>): Option.Option<string> =>
   Option.fromUndefinedOr(films.find((film) => isFilmsFolder(ref, film)));
 
+/** The production named `production`, when the page knows it. */
+const historyNamed = (
+  histories: ReadonlyArray<ProductionHistory>,
+  production: string,
+): Option.Option<ProductionHistory> =>
+  Option.fromUndefinedOr(histories.find((h) => h.production === production));
+
 /** The film a place is about: a film's choices or project, or a set in that film's folder. */
-const filmOf = (place: ReviewPlace, films: ReadonlyArray<string>): Option.Option<string> =>
+const filmOf = (
+  place: ReviewPlace,
+  films: ReadonlyArray<string>,
+  histories: ReadonlyArray<ProductionHistory>,
+): Option.Option<string> =>
   Match.value(place).pipe(
     Match.tagsExhaustive({
       Home: () => Option.none<string>(),
-      Production: () => Option.none<string>(),
+      Production: (p) => Option.flatMap(historyNamed(histories, p.production), (h) => h.film),
       Folder: (p) => filmOfFolder(p.folder, films),
       Set: (p) => filmOfFolder(p.folder, films),
       Film: (p) => Option.some(p.film),
@@ -95,10 +107,20 @@ const partOf = (place: ReviewPlace, films: ReadonlyArray<string>): Part =>
   );
 
 /** A place's depth below its part, for the crumb and the tab's title: a folder, a set's versions. */
-const depthOf = (place: ReviewPlace, index: Option.Option<ReviewIndex>): Option.Option<string> =>
+const depthOf = (
+  place: ReviewPlace,
+  index: Option.Option<ReviewIndex>,
+  histories: ReadonlyArray<ProductionHistory>,
+): Option.Option<string> =>
   Match.value(place).pipe(
     Match.tags({
-      Production: (p) => Option.some(p.production),
+      Production: (p) =>
+        Option.some(
+          Option.match(historyNamed(histories, p.production), {
+            onNone: () => p.production,
+            onSome: (h) => `${h.title} · timeline`,
+          }),
+        ),
       Folder: (p) => Option.some(folderName(index, p.folder)),
       Set: (p) => Option.some(`${setName(index, p.folder, p.point)} · versions`),
     }),
@@ -118,8 +140,9 @@ const Shell = (props: { readonly children: JSX.Element }) => {
       (): ReadonlyArray<string> => [],
     );
   const index = () => AsyncResult.value(state.index());
-  const film = () => filmOf(state.place(), films());
-  const depth = () => depthOf(state.place(), index());
+  const histories = useHistories();
+  const film = () => filmOf(state.place(), films(), histories());
+  const depth = () => depthOf(state.place(), index(), histories());
   return (
     <PageShell
       part={() => partOf(state.place(), films())}

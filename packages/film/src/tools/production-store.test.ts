@@ -1,9 +1,11 @@
 // ProductionStore and `film publish`'s stamp: a ledger starts on its first
 // change and lists by name; two moves forward from the same version, at
 // once, land one and refuse the other with the version now; a ledger that
-// does not decode is left out of the list and never rewritten; a set's
-// review.json is stamped with its production, version and time, every other
-// field as written, and a stamp that would make it no manifest is refused.
+// does not decode is left out of the list and never rewritten; the verbs
+// refuse a second start, an ask with no set and a filing in a version the
+// ledger lacks; a set's review.json is stamped with its production, version
+// and time, every other field as written, and a stamp that would make it no
+// manifest is refused.
 
 import { describe, expect, it } from 'effect-bun-test';
 import {
@@ -21,7 +23,7 @@ import { type ProductionFile, moveForward, withSaid } from '../core/production.t
 import { VersionMoved } from '../core/refusals.ts';
 import { ContentStore } from './content-store.ts';
 import { ManifestLock } from './manifest-lock.ts';
-import { ProductionStore, stampManifest } from './production-store.ts';
+import { ProductionStore } from './production-store.ts';
 import { memoryFileSystem, memoryManifestLock } from './testing.ts';
 
 const HOUR = 3_600_000;
@@ -101,6 +103,47 @@ describe('ProductionStore', () => {
   });
 });
 
+describe('the verbs', () => {
+  it.effect('start refuses a production that already has a ledger', () =>
+    Effect.gen(function* () {
+      const store = yield* ProductionStore;
+      const start = {
+        title: 'The look',
+        film: Option.none(),
+        blurb: Option.none(),
+        first: 'Paper-cut knobs',
+        at: HOUR,
+      };
+      const file = yield* store.start('look', start);
+      expect(file.versions.map((v) => v.title)).toEqual(['Paper-cut knobs']);
+      const again = yield* Effect.exit(store.start('look', start));
+      expect(Exit.isFailure(again)).toBe(true);
+    }).pipe(Effect.provide(storeOver(new Map()))),
+  );
+
+  it.effect('an ask must name its set; a filing must name a version the ledger has', () =>
+    Effect.gen(function* () {
+      const store = yield* ProductionStore;
+      const ask = {
+        _tag: 'Asked' as const,
+        at: HOUR,
+        text: 'Which cold open?',
+        quote: Option.none(),
+        set: Option.none(),
+        point: Option.none(),
+        variant: Option.none(),
+      };
+      expect(Exit.isFailure(yield* Effect.exit(store.say('look', ask)))).toBe(true);
+      const said = yield* store.say('look', { ...ask, set: Option.some('rbf-rive') });
+      expect(said.said.map((s) => s._tag)).toEqual(['Asked']);
+      expect(Exit.isFailure(yield* Effect.exit(store.file('look', 'styles', 2)))).toBe(true);
+      expect((yield* store.file('look', 'styles', 1)).filed).toEqual([
+        { set: 'styles', version: 1 },
+      ]);
+    }).pipe(Effect.provide(storeOver(new Map()))),
+  );
+});
+
 describe('film publish: the stamp', () => {
   const manifest = Schema.encodeSync(JsonText)({
     title: 'Styles',
@@ -109,13 +152,21 @@ describe('film publish: the stamp', () => {
     version: 2,
   });
 
+  /** Publish `/out/styles` holding `text` as its review.json; the review.json after, decoded. */
+  const published = (text: string, version: Option.Option<number>) => {
+    const files = new Map<string, Uint8Array>();
+    return Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      yield* fs.makeDirectory('/out/styles', { recursive: true });
+      yield* fs.writeFileString('/out/styles/review.json', text);
+      yield* (yield* ProductionStore).publish('/out/styles', 'look', version, 5 * HOUR);
+      return yield* fs.readFileString('/out/styles/review.json');
+    }).pipe(Effect.provide(Layer.merge(storeOver(files), memoryFileSystem(files))));
+  };
+
   it.effect('stamps the production and time, every other field kept, a dropped version gone', () =>
     Effect.gen(function* () {
-      const text = yield* stampManifest('review.json', manifest, {
-        production: 'look',
-        version: Option.none(),
-        published: 5 * HOUR,
-      });
+      const text = yield* published(manifest, Option.none());
       expect(yield* Schema.decodeEffect(JsonText)(text)).toEqual({
         title: 'Styles',
         images: ['a.png'],
@@ -129,24 +180,14 @@ describe('film publish: the stamp', () => {
 
   it.effect('names the version given', () =>
     Effect.gen(function* () {
-      const text = yield* stampManifest('review.json', manifest, {
-        production: 'look',
-        version: Option.some(3),
-        published: 0,
-      });
+      const text = yield* published(manifest, Option.some(3));
       expect((yield* Schema.decodeEffect(JsonText)(text))['version']).toBe(3);
     }),
   );
 
   it.effect('refuses text that is no manifest', () =>
     Effect.gen(function* () {
-      const exit = yield* Effect.exit(
-        stampManifest('review.json', '{"images": 4}', {
-          production: 'look',
-          version: Option.none(),
-          published: 0,
-        }),
-      );
+      const exit = yield* Effect.exit(published('{"images": 4}', Option.none()));
       expect(Exit.isFailure(exit)).toBe(true);
     }),
   );

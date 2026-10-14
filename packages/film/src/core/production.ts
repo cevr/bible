@@ -12,18 +12,19 @@
 //   version open when it was published (or the one it names, `version`);
 // - its choices: each set's comparison sets, and whether the owner approved
 //   a variant (the folder's catalogue, as the review index reads it);
-// - what waits on the owner: a choice of two or more variants with none
-//   approved and no decision naming it, in the current version.
+// - what waits on the owner: each question an agent asked of them about a
+//   set (`Asked`) that no pick in its choice and no later decision on it
+//   has answered; it waits on the current version, whenever it was asked.
 //
 // The ledger (`ProductionFile`, kept by `tools/production-store.ts`) holds
 // only what nothing else records: the versions (each opened at a time,
 // with what it is for and the decision that moved the production into it),
 // the owner's decisions and notes given outside the lab (in words, to an
-// agent), and the filing of sets published before sets named their
+// agent) and the questions asked of them, and the filing of sets published before sets named their
 // production. A version's number is its place in the ledger, so a gap or a
 // repeat cannot be written. Pure: the lab's page and its tools share it.
 
-import { Array as Arr, Data, Effect, Option, Order, Result, Schema } from 'effect';
+import { Array as Arr, Data, Effect, Match, Option, Order, Result, Schema } from 'effect';
 import type { ChoicePoint } from './choice.ts';
 import { VersionMoved } from './refusals.ts';
 import type { ReviewFolder } from './review.ts';
@@ -64,8 +65,10 @@ const SaidOn = {
 
 /**
  * The owner's word given outside the lab, as an agent recorded it: a
- * decision (a pick, a direction) or a note (feedback, an ask). `quote` is the
- * owner's own words, verbatim; `text` says it plainly.
+ * decision (a pick, a direction) or a note (feedback), and the question an
+ * agent asks the owner about a set (`Asked`: it waits on the owner until a
+ * decision on that set, or a pick in that choice, answers it). `quote` is
+ * the owner's own words, verbatim; `text` says it plainly.
  */
 export const Said = Schema.Union([
   Schema.TaggedStruct('Decided', {
@@ -75,6 +78,12 @@ export const Said = Schema.Union([
     ...SaidOn,
   }),
   Schema.TaggedStruct('Noted', {
+    at: At,
+    text: Schema.String,
+    quote: maybe(Schema.String),
+    ...SaidOn,
+  }),
+  Schema.TaggedStruct('Asked', {
     at: At,
     text: Schema.String,
     quote: maybe(Schema.String),
@@ -187,10 +196,15 @@ export const withFiled = (file: ProductionFile, filed: Filed): ProductionFile =>
 /** A folder's path under its root: its ref without the root's label. */
 export const setPathOf = (ref: string): string => ref.split('/').slice(1).join('/');
 
-/** A choice of the set's that waits on the owner: two or more variants, none approved, no decision on it. */
+/**
+ * A question that waits on the owner: an ask no decision on its set, and no
+ * pick or approval in its choice, has answered; with the set and the choice
+ * it names, when the review holds them.
+ */
 export interface Waiting {
-  readonly folder: ReviewFolder;
-  readonly point: ChoicePoint;
+  readonly ask: Said;
+  readonly folder: Option.Option<ReviewFolder>;
+  readonly point: Option.Option<ChoicePoint>;
 }
 
 export type Entry = Data.TaggedEnum<{
@@ -214,7 +228,7 @@ export interface VersionView {
   readonly current: boolean;
   /** Newest first. */
   readonly entries: ReadonlyArray<Entry>;
-  /** The choices that wait on the owner (only the current version's wait). */
+  /** The questions that wait on the owner, whenever asked (only the current version holds them). */
   readonly waiting: ReadonlyArray<Waiting>;
 }
 
@@ -262,26 +276,76 @@ const versionOfFolder = (file: ProductionFile, folder: ReviewFolder): Option.Opt
   );
 };
 
-/** Whether `said` names `point` of the set at `path` (a decision on the set alone names all its choices). */
-const decides = (said: Said, path: string, point: string): boolean =>
+/** Whether `said` is a decision on the set at `path` that covers `point` (one on the set alone covers all its choices). */
+const decides = (said: Said, path: string, point: Option.Option<string>): boolean =>
   said._tag === 'Decided' &&
   Option.contains(said.set, path) &&
-  Option.match(said.point, { onNone: () => true, onSome: (p) => p === point });
+  Option.match(said.point, {
+    onNone: () => true,
+    onSome: (p) => Option.match(point, { onNone: () => false, onSome: (q) => q === p }),
+  });
 
-/** A set's choices that wait on the owner, given the production's words. */
-export const waitingIn = (
-  folder: ReviewFolder,
+/** The decision on `point` of the set at `path`, newest first, when there is one. */
+const decisionOn = (said: ReadonlyArray<Said>, path: string, point: string): Option.Option<Said> =>
+  Arr.findLast(said, (s) => decides(s, path, Option.some(point)));
+
+/** Whether a variant of `point` is picked or approved. */
+const pickedIn = (point: ChoicePoint): boolean =>
+  point.variants.some((v) => v.approval === 'approved' || v.picked);
+
+/**
+ * The questions that wait on the owner: every ask in `said` that no later
+ * decision on its set (and choice), nor a pick in its choice, answers; with
+ * the set and choice from `folders` when the review holds them.
+ */
+const waitingIn = (
   said: ReadonlyArray<Said>,
-): ReadonlyArray<Waiting> => {
-  const path = setPathOf(folder.ref);
-  return folder.sets
-    .filter(
-      (point) =>
-        point.variants.length >= 2 &&
-        !point.variants.some((v) => v.approval === 'approved' || v.picked) &&
-        !said.some((s) => decides(s, path, point.id)),
-    )
-    .map((point) => ({ folder, point }));
+  folders: ReadonlyArray<ReviewFolder>,
+): ReadonlyArray<Waiting> =>
+  said.flatMap((ask) => {
+    if (ask._tag !== 'Asked') return [];
+    const path = Option.getOrElse(ask.set, () => '');
+    const folder = Arr.findFirst(folders, (f) => setPathOf(f.ref) === path);
+    const point = Option.flatMap(folder, (f) =>
+      Arr.findFirst(f.sets, (p) => Option.contains(ask.point, p.id)),
+    );
+    const answered =
+      said.some((s) => s.at >= ask.at && decides(s, path, ask.point)) ||
+      Option.exists(point, pickedIn);
+    return [{ ask, folder, point }].filter(() => !answered);
+  });
+
+/** A choice's state on the timeline: picked, decided, asked and open, or none of these. */
+export type ChoiceState = Data.TaggedEnum<{
+  Picked: { readonly variants: ReadonlyArray<string> };
+  Decided: { readonly variant: Option.Option<string> };
+  Waiting: {};
+  Quiet: {};
+}>;
+export const ChoiceState = Data.taggedEnum<ChoiceState>();
+
+/** The state of `point` in `folder`, given the production's words and what waits. */
+export const choiceStateOf = (
+  folder: ReviewFolder,
+  point: ChoicePoint,
+  said: ReadonlyArray<Said>,
+  waiting: ReadonlyArray<Waiting>,
+): ChoiceState => {
+  const picked = point.variants
+    .filter((v) => v.approval === 'approved' || v.picked)
+    .map((v) => v.label);
+  if (picked.length > 0) return ChoiceState.Picked({ variants: picked });
+  const decided = decisionOn(said, setPathOf(folder.ref), point.id);
+  if (Option.isSome(decided)) return ChoiceState.Decided({ variant: decided.value.variant });
+  const asked = waiting.some(
+    (w) =>
+      Option.exists(w.folder, (f) => f.ref === folder.ref) &&
+      Option.contains(w.ask.point, point.id),
+  );
+  return Match.value(asked).pipe(
+    Match.when(true, () => ChoiceState.Waiting()),
+    Match.orElse(() => ChoiceState.Quiet()),
+  );
 };
 
 const newestFirst = Order.flip(Order.mapInput(Order.Number, (e: Entry) => e.at));
@@ -305,12 +369,22 @@ const historyOf = (
   const listed = new Set(placed.map((p) => setPathOf(p.folder.ref)));
   const missing = file.filed.filter((f) => !listed.has(f.set) && f.version <= file.versions.length);
   const count = file.versions.length;
+  const waiting = waitingIn(file.said, folders);
   const versions = file.versions.map((opened, i): VersionView => {
     const n = i + 1;
     const mine = placed.filter((p) => p.n === n);
+    const until = Option.map(Option.fromUndefinedOr(file.versions[n]), (next) => next.at);
+    // A set's time is kept inside its version's span: a file touched since does not re-date it.
+    const within = (at: number) =>
+      Math.min(
+        Math.max(at, opened.at),
+        Option.getOrElse(until, () => Number.POSITIVE_INFINITY),
+      );
     const entries = Arr.sort(
       [
-        ...mine.map((p) => Entry.Published({ at: publishedAt(p.folder), folder: p.folder })),
+        ...mine.map((p) =>
+          Entry.Published({ at: within(publishedAt(p.folder)), folder: p.folder }),
+        ),
         ...missing
           .filter((f) => f.version === n)
           .map((f) => Entry.Missing({ at: opened.at, set: f.set })),
@@ -325,10 +399,10 @@ const historyOf = (
       title: opened.title,
       at: opened.at,
       because: opened.because,
-      until: Option.map(Option.fromUndefinedOr(file.versions[n]), (next) => next.at),
+      until,
       current: n === count,
       entries,
-      waiting: mine.filter(() => n === count).flatMap((p) => waitingIn(p.folder, file.said)),
+      waiting: waiting.filter(() => n === count),
     };
   });
   const shown = versions.toReversed();

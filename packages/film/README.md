@@ -2563,10 +2563,12 @@ own names, and the stored and wire words stay as they are.
   it is for and the decision that opened it, and in each, newest first, the
   sets published into it, the owner's words given outside the lab, and the
   sets filed there that no root holds now. The current version is open, says
-  what waits on the owner (a choice of two or more variants none picked, and
-  no decision recorded on it), and holds the page's one verb, Move forward:
-  the decision in a line and what the next version is for. Only the
-  versions and the owner's words are kept (`ProductionStore`: a ledger a
+  what waits on the owner (each question asked of them about a set,
+  `film production ask`, that no pick in its choice and no later decision on
+  it has answered; an open one stays open across a move), and holds the
+  page's one verb, Move forward: the decision in a line and what the next
+  version is for. Only the versions, the owner's words and the questions are
+  kept (`ProductionStore`: a ledger a
   production under `FILMS_LAB`, `productions/<production>.json`); the rest is
   read from the sets (`core/production.ts` `historyOf`). A set lands on a
   timeline when its `review.json` names the production (`film publish`); an

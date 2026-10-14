@@ -23,31 +23,15 @@
 //       one the lab reads (under a review root)
 
 import { Argument, Command, Flag } from 'effect/cli';
-import {
-  Clock,
-  Console,
-  DateTime,
-  Effect,
-  FileSystem,
-  Match,
-  Option,
-  Path,
-  Result,
-  Schema,
-} from 'effect';
+import { Clock, Console, DateTime, Effect, Match, Option, Path, Result, Schema } from 'effect';
 import {
   type ProductionFile,
   ProductionId,
   type Said,
   currentVersion,
-  moveForward,
-  newProduction,
   versionAt,
-  withFiled,
-  withSaid,
 } from '../core/production.ts';
-import { writeWhole } from './content-store.ts';
-import { ProductionStore, stampManifest } from './production-store.ts';
+import { ProductionStore } from './production-store.ts';
 import { Review, refOf } from './review.ts';
 
 /** A name that is not a production's (lower case, digits and `-`). */
@@ -60,32 +44,12 @@ class ProductionNameInvalid extends Schema.TaggedError<ProductionNameInvalid>()(
   }
 }
 
-/** `film production new` on a production that already has a ledger. */
-class ProductionKept extends Schema.TaggedError<ProductionKept>()('ProductionKept', {
-  production: Schema.String,
-}) {
-  override get message() {
-    return `${this.production} already has a ledger: film production show ${this.production}`;
-  }
-}
-
 /** A time that does not parse. */
 class TimeInvalid extends Schema.TaggedError<TimeInvalid>()('TimeInvalid', {
   text: Schema.String,
 }) {
   override get message() {
     return `"${this.text}" is not a time: give an ISO time, e.g. 2026-10-14T15:10:00-04:00`;
-  }
-}
-
-/** A version the production does not have. */
-class VersionUnknown extends Schema.TaggedError<VersionUnknown>()('VersionUnknown', {
-  production: Schema.String,
-  version: Schema.Int,
-  current: Schema.Int,
-}) {
-  override get message() {
-    return `${this.production} has no v${this.version} (v1 to v${this.current})`;
   }
 }
 
@@ -121,7 +85,7 @@ const atFlag = (what: string) =>
   );
 
 /** What a said line opens with, by its kind. */
-const saidVerb = { Decided: 'decided', Noted: 'noted' } as const satisfies Record<
+const saidVerb = { Decided: 'decided', Noted: 'noted', Asked: 'asked' } as const satisfies Record<
   Said['_tag'],
   string
 >;
@@ -204,16 +168,14 @@ const create = Command.make(
   },
   Effect.fn('film.production.new')(function* (input) {
     const id = yield* productionNamed(input.production);
-    const store = yield* ProductionStore;
-    if (Option.isSome(yield* store.read(id))) return yield* ProductionKept.make({ production: id });
     const now = yield* timeOf(input.at);
-    const file = yield* store.modify(id, () =>
-      Result.succeed({
-        ...newProduction(id, input.title, now, input.film),
-        blurb: input.blurb,
-        versions: [{ at: now, title: input.first, because: Option.none() }],
-      }),
-    );
+    const file = yield* (yield* ProductionStore).start(id, {
+      title: input.title,
+      film: input.film,
+      blurb: input.blurb,
+      first: input.first,
+      at: now,
+    });
     yield* Console.log(`started ${file.production}  v1  opened ${iso(now)}`);
   }),
 ).pipe(Command.withDescription("Start a production's ledger: one version, opened now"));
@@ -235,8 +197,10 @@ const forward = Command.make(
   Effect.fn('film.production.forward')(function* (input) {
     const id = yield* productionNamed(input.production);
     const at = yield* timeOf(input.at);
-    const file = yield* (yield* ProductionStore).modify(id, (current) =>
-      moveForward(current, { after: input.after, title: input.title, because: input.because }, at),
+    const file = yield* (yield* ProductionStore).forward(
+      id,
+      { after: input.after, title: input.title, because: input.because },
+      at,
     );
     yield* Console.log(`${id}  v${currentVersion(file)} ${input.title}  opened ${iso(at)}`);
   }),
@@ -248,7 +212,7 @@ const forward = Command.make(
 
 const say = (tag: Said['_tag']) =>
   Command.make(
-    { Decided: 'decide', Noted: 'note' }[tag],
+    ({ Decided: 'decide', Noted: 'note', Asked: 'ask' } as const)[tag],
     {
       production: name,
       text: Argument.String('text').pipe(Argument.withDescription('what was said, plainly')),
@@ -282,17 +246,19 @@ const say = (tag: Said['_tag']) =>
         variant: input.variant,
       };
       const said: Said = { _tag: tag, ...fields };
-      yield* (yield* ProductionStore).modify(id, (current) =>
-        Result.succeed(withSaid(current, said)),
-      );
+      yield* (yield* ProductionStore).say(id, said);
       yield* Console.log(`${saidVerb[tag]} ${id} at=${iso(at)}`);
     }),
   ).pipe(
     Command.withDescription(
-      {
-        Decided: "Record the owner's decision given outside the lab (a pick, a direction)",
-        Noted: "Record the owner's note given outside the lab (feedback, an ask)",
-      }[tag],
+      (
+        {
+          Decided: "Record the owner's decision given outside the lab (a pick, a direction)",
+          Noted: "Record the owner's note given outside the lab (feedback)",
+          Asked:
+            'Ask the owner about a set (--set, --point for one choice): it waits on them until a pick there or a decision on it answers',
+        } as const
+      )[tag],
     ),
   );
 
@@ -307,14 +273,7 @@ const file = Command.make(
   },
   Effect.fn('film.production.file')(function* (input) {
     const id = yield* productionNamed(input.production);
-    yield* (yield* ProductionStore).modify(id, (current) => {
-      const n = currentVersion(current);
-      if (input.version < 1 || input.version > n)
-        return Result.fail(
-          VersionUnknown.make({ production: id, version: input.version, current: n }),
-        );
-      return Result.succeed(withFiled(current, { set: input.set, version: input.version }));
-    });
+    yield* (yield* ProductionStore).file(id, input.set, input.version);
     yield* Console.log(`filed ${input.set} in ${id} v${input.version}`);
   }),
 ).pipe(
@@ -325,7 +284,16 @@ export const production = Command.make('production').pipe(
   Command.withDescription(
     "A production's timeline (a film, or a track such as the look): its versions, the owner's words, moving forward",
   ),
-  Command.withSubcommands([list, show, create, forward, say('Decided'), say('Noted'), file]),
+  Command.withSubcommands([
+    list,
+    show,
+    create,
+    forward,
+    say('Decided'),
+    say('Noted'),
+    say('Asked'),
+    file,
+  ]),
 );
 
 export const publish = Command.make(
@@ -344,17 +312,10 @@ export const publish = Command.make(
   },
   Effect.fn('film.publish')(function* (input) {
     const id = yield* productionNamed(input.production);
-    const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const folder = path.resolve(input.folder);
-    const manifest = path.join(folder, 'review.json');
     const published = yield* Clock.currentTimeMillis;
-    const text = yield* stampManifest(manifest, yield* fs.readFileString(manifest), {
-      production: id,
-      version: input.version,
-      published,
-    });
-    yield* writeWhole(fs, manifest, (partial) => fs.writeFileString(partial, text));
+    yield* (yield* ProductionStore).publish(folder, id, input.version, published);
     const ref = refOf((yield* Review).roots, folder, path);
     yield* Console.log(
       Option.match(ref, {

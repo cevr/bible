@@ -6,6 +6,12 @@
 // agent's `film production` in a terminal never lose each other's write.
 // A ledger that does not decode is left out of the list with a warning,
 // never rewritten: the front door still opens.
+//
+// The store is the timeline's one write path: the lab's Move forward (the
+// `productions` HTTP group), `film production` and `film publish` in a
+// terminal, and any other caller (an MCP tool) use its verbs (`start`,
+// `forward`, `say`, `file`, `publish`), each decided on the ledger as read
+// under its lock, so every caller gets the same refusals.
 
 import {
   Array as Arr,
@@ -16,21 +22,67 @@ import {
   Layer,
   Option,
   Path,
+  Result,
   Schema,
 } from 'effect';
-import type { Result } from 'effect';
 import {
+  type MoveForward,
   type ProductionFile,
   type ProductionId,
+  type Said,
+  currentVersion,
+  moveForward,
   newProduction,
   ProductionFile as ProductionFileSchema,
+  withFiled,
+  withSaid,
 } from '../core/production.ts';
+import type { VersionMoved } from '../core/refusals.ts';
 import { ReviewManifest } from '../core/review.ts';
 import { repoJson } from '../core/schema.ts';
 import { FileInvalid } from './errors.ts';
-import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
+import { ContentStore, type Manifest, type StoreError, writeWhole } from './content-store.ts';
 
 const ProductionFileJson = repoJson(ProductionFileSchema);
+
+/** `start` on a production that already has a ledger. */
+class ProductionKept extends Schema.TaggedError<ProductionKept>()('ProductionKept', {
+  production: Schema.String,
+}) {
+  override get message() {
+    return `${this.production} already has a ledger: film production show ${this.production}`;
+  }
+}
+
+/** A question asked of the owner that names no set: nothing could ever answer it. */
+class AskUnplaced extends Schema.TaggedError<AskUnplaced>()('AskUnplaced', {
+  text: Schema.String,
+}) {
+  override get message() {
+    return `"${this.text}" names no set: give --set <folder> (and --point <id> for one choice)`;
+  }
+}
+
+/** A version the production does not have. */
+class VersionUnknown extends Schema.TaggedError<VersionUnknown>()('VersionUnknown', {
+  production: Schema.String,
+  version: Schema.Int,
+  current: Schema.Int,
+}) {
+  override get message() {
+    return `${this.production} has no v${this.version} (v1 to v${this.current})`;
+  }
+}
+
+/** A production's first ledger as `start` takes it. */
+interface Start {
+  readonly title: string;
+  readonly film: Option.Option<string>;
+  readonly blurb: Option.Option<string>;
+  /** What its first version is for. */
+  readonly first: string;
+  readonly at: number;
+}
 
 /** The folder the ledgers sit in, under the lab's own. */
 const PRODUCTIONS_DIR = 'productions';
@@ -51,6 +103,39 @@ interface ProductionStoreService {
     production: ProductionId,
     change: (current: ProductionFile) => Result.Result<ProductionFile, E>,
   ) => Effect.Effect<ProductionFile, E | StoreError>;
+  /** Start a production's ledger: one version, opened at `at`; refused when one is kept. */
+  readonly start: (
+    production: ProductionId,
+    start: Start,
+  ) => Effect.Effect<ProductionFile, ProductionKept | StoreError>;
+  /** Move forward: version `after + 1` opens at `at`; refused when the production is past `after`. */
+  readonly forward: (
+    production: ProductionId,
+    move: MoveForward,
+    at: number,
+  ) => Effect.Effect<ProductionFile, VersionMoved | StoreError>;
+  /** Record the owner's word, or a question asked of them (which must name its set). */
+  readonly say: (
+    production: ProductionId,
+    said: Said,
+  ) => Effect.Effect<ProductionFile, AskUnplaced | StoreError>;
+  /** File a set published before sets named their production in version `version`. */
+  readonly file: (
+    production: ProductionId,
+    set: string,
+    version: number,
+  ) => Effect.Effect<ProductionFile, VersionUnknown | StoreError>;
+  /**
+   * Publish the set in `folder` (absolute) onto `production`'s timeline:
+   * its `review.json` stamped with the production, the version it was made
+   * for (the one open at `at` without) and `at`, written whole.
+   */
+  readonly publish: (
+    folder: string,
+    production: ProductionId,
+    version: Option.Option<number>,
+    at: number,
+  ) => Effect.Effect<void, FileInvalid | StoreError>;
 }
 
 export class ProductionStore extends Context.Service<ProductionStore, ProductionStoreService>()(
@@ -98,10 +183,52 @@ export class ProductionStore extends Context.Service<ProductionStore, Production
         return Arr.getSomes(files);
       });
 
+      const modify = <E>(
+        production: ProductionId,
+        change: (current: ProductionFile) => Result.Result<ProductionFile, E>,
+      ) => store.modify(manifest(production), change);
+
       return ProductionStore.of({
         list,
         read,
-        modify: (production, change) => store.modify(manifest(production), change),
+        modify,
+        start: (production, start) =>
+          Effect.gen(function* () {
+            if (Option.isSome(yield* read(production)))
+              return yield* ProductionKept.make({ production });
+            return yield* modify(production, () =>
+              Result.succeed({
+                ...newProduction(production, start.title, start.at, start.film),
+                blurb: start.blurb,
+                versions: [{ at: start.at, title: start.first, because: Option.none() }],
+              }),
+            );
+          }),
+        forward: (production, move, at) =>
+          modify(production, (current) => moveForward(current, move, at)),
+        say: (production, said) =>
+          Effect.gen(function* () {
+            if (said._tag === 'Asked' && Option.isNone(said.set))
+              return yield* AskUnplaced.make({ text: said.text });
+            return yield* modify(production, (current) => Result.succeed(withSaid(current, said)));
+          }),
+        file: (production, set, version) =>
+          modify(production, (current) => {
+            const n = currentVersion(current);
+            if (version < 1 || version > n)
+              return Result.fail(VersionUnknown.make({ production, version, current: n }));
+            return Result.succeed(withFiled(current, { set, version }));
+          }),
+        publish: (folder, production, version, at) =>
+          Effect.gen(function* () {
+            const file = path.join(folder, 'review.json');
+            const text = yield* stampManifest(file, yield* fs.readFileString(file), {
+              production,
+              version,
+              published: at,
+            });
+            yield* writeWhole(fs, file, (partial) => fs.writeFileString(partial, text));
+          }),
       });
     }),
   );
@@ -123,7 +250,7 @@ interface Stamp {
  * Refused (FileInvalid) when the text is no manifest, or the stamp would
  * make it none.
  */
-export const stampManifest = (file: string, text: string, stamp: Stamp) =>
+const stampManifest = (file: string, text: string, stamp: Stamp) =>
   Effect.gen(function* () {
     const invalid = (issue: Schema.SchemaError) =>
       FileInvalid.make({ file, reason: issue.message });

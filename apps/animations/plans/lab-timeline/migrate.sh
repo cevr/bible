@@ -3,7 +3,8 @@
 # Faith) from the dated sets, picks.md and the unit journals, through the
 # `film production` CLI. Run from apps/animations of the checkout whose lab
 # should show them; FILMS_LAB picks the lab folder (the owner's: p5's
-# apps/animations/lab). Each `new` refuses a ledger that is already there,
+# apps/animations/lab). A decision that closed a version is dated a minute
+# before the move it made, so it sits in the version it closed. Each `new` refuses a ledger that is already there,
 # so a second run stops at the first line.
 set -eu
 film() { bun cli.ts "$@"; }
@@ -18,7 +19,7 @@ film production file look choices-2026-10-13 --version 1
 film production forward look --after 1 --title "K1 paper-cut" --at 2026-10-13T08:00:00-04:00 \
   --because "K1 picked after watching the Opening set: a thick outline with a light inner edge, warm ink, a hue per garment, the head a third"
 film production decide look "K1 is the paper-cut look (A3 + B1 + C2 + D2)" --quote "i like k1" \
-  --set choices-2026-10-13 --at 2026-10-13T08:00:00-04:00
+  --set choices-2026-10-13 --at 2026-10-13T07:59:00-04:00
 film production note look "The cast's hair often looks strange; the heads look stitched on" \
   --quote "it just looks stitched on" --set cast-2026-10-13 --at 2026-10-13T12:00:00-04:00
 for set in shading-2026-10-13 cast-2026-10-13 ensembles-2026-10-13 bible-cast-2026-10-13 picks-2026-10-13 heads-2026-10-13; do
@@ -51,7 +52,7 @@ done
 film production forward look --after 4 --title "9005: K1-minimal, plain" --at 2026-10-14T12:30:00-04:00 \
   --because "9005 picked: one-shape heads with an inner edge, a flat beard, plain clothes, the crease, grain and cast shadows"
 film production decide look "9005 is the look" --quote "i like 9005" --set concepts-2026-10-14 \
-  --at 2026-10-14T12:30:00-04:00
+  --at 2026-10-14T12:29:00-04:00
 film production note look "Explore the One Line concept: give it the storyboard-to-render treatment" \
   --quote "also lets try exploring the one line concept - i kinda like it, give it the storyboard -> render etc treatment" \
   --at 2026-10-14T15:26:00-04:00
@@ -77,6 +78,10 @@ film production note righteousness-by-faith "Job's question is a full-screen car
   --quote "remember about the full screen cards with text" --at 2026-10-14T13:54:00-04:00
 film production note righteousness-by-faith "Try punchy subtitles, cut out over a full-screen card" \
   --quote "lets try rendering with punchy subtitles" --set rbf-rive-2026-10-14 --at 2026-10-14T14:08:00-04:00
+film production ask righteousness-by-faith "Which style holds the cold open?" \
+  --set rbf-rive-2026-10-14 --point render:cold --at 2026-10-14T14:30:00-04:00
+film production ask righteousness-by-faith "Punchy subtitles or the clean master?" \
+  --set rbf-rive-2026-10-14 --point render:subtitles --at 2026-10-14T14:45:00-04:00
 film production decide righteousness-by-faith "9005 over 9006" --quote "ok 9005 over 9006 for sure" \
   --set rbf-rive-2026-10-14 --point render:cold --variant 9005 --at 2026-10-14T15:10:00-04:00
 for set in rbf-concepts-2026-10-14 rbf-rive-2026-10-14; do

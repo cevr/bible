@@ -31,23 +31,27 @@ This plan gives the lab one more thing to read: a **production** and its **timel
 ![The front door, built: productions first](lab-timeline/slice-home.jpg)
 
 1. **Open the lab.** The front door lists the **productions** first: each card shows the newest set's
-   stills, the current version and its title, and in amber how many choices wait on the owner. Then the films
+   stills, the current version and its title, and in amber how many questions wait on the owner. Then the films
    (as before), then the **Sets** and **Renders** no production holds.
 2. **Open a production.** Its timeline (`/productions/<production>`) is one column: the current version open,
-   the ones before shut to one line each (number, title, dates, how many sets and words). Opening one shows
-   what happened in it; a link with `?v=<n>` opens that version for whoever follows it.
-3. **Read a version.** At its head, why it began (the decision that opened it). Under that, newest first:
-   - each **set** published into it: its stills, its title (a link to the set), and every choice in it with
-     the variant picked or "waiting";
+   the ones before shut to their head (number, title, dates, how many sets, and on a second line the decision
+   that opened it). Opening one shows what happened in it; a link with `?v=<n>` opens that version and scrolls
+   to it.
+3. **Read a version.** Newest first:
+   - each **set** published into it: a still a stack (its pick, else its last variant), its title (a link to
+     the set), and up to three of its choices that were picked, decided or wait on a question, then how many
+     more the set holds;
    - each **word** of the owner's given outside the lab: _Decided_ (green) or _Note_, said plainly, the owner's
-     own words quoted under it, and the set it is about;
+     own words quoted under it, and the set it is about; and each question an agent _Asked_ (amber);
    - each set the version holds that no review root has now, said **Missing** (moved, in the Trash, or on
      another machine), so the history never silently loses a step.
-4. **See what waits.** The current version says what waits on the owner: a choice with two or more variants,
-   none picked or approved, and no decision recorded on it. Each line links to the set (or to the choice when
-   a set has one).
+4. **See what waits.** The current version says what waits on the owner: each question an agent asked about a
+   set (`film production ask`) that no pick in its choice and no later decision on it has answered, whatever
+   version asked it. Each line is the question, linked to its choice (or its set). A set no one asked about
+   never waits: a montage of ten stacks is not ten chores.
 5. **Move forward.** The current version's one button, "Move forward to v6", opens a short form: _What did we
-   decide?_ and _What is v6 for?_ "Open v6" writes the ledger. Every set published from then on lands in v6. If
+   decide?_ (started from the owner's newest decision) and _What is v6 for?_, both needed; when questions are
+   open it says they stay open after the move. "Open v6" writes the ledger. Every set published from then on lands in v6. If
    someone moved the production forward meanwhile (an agent in a terminal, another tab), the move is refused in
    the receipt ("look is at v6 now, not v5") rather than written over.
 
@@ -62,8 +66,8 @@ lab's notes, written whole under a lock across processes like the notes):
 
 - `production`, `title`, optional `film` and `blurb`;
 - `versions`: each `{at, title, because?}` in order; the number is the place;
-- `said`: the owner's words given outside the lab, each `Decided` or `Noted`
-  `{at, text, quote?, set?, point?, variant?}`;
+- `said`: the owner's words given outside the lab, each `Decided` or `Noted`, and the questions asked of them,
+  `Asked`, all `{at, text, quote?, set?, point?, variant?}`;
 - `filed`: `{set, version}` for sets published before sets named their production.
 
 **New and additive in a set's `review.json`**: optional `production`, `version` and `published` (ms since the
@@ -91,13 +95,40 @@ bun run production list
 bun run production decide righteousness-by-faith "9005 over 9006" --quote "ok 9005 over 9006 for sure" \
   --set rbf-rive-2026-10-14 --point render:cold --variant 9005
 bun run production note look "Explore the One Line concept" --quote "also lets try exploring the one line concept"
+bun run production ask righteousness-by-faith "Punchy subtitles or the clean master?" \
+  --set rbf-rive-2026-10-14 --point render:subtitles
 bun run production forward look --after 5 --title "One Line" --because "9005 holds; try One Line"
 ```
 
 `film publish` stamps the set's `review.json` (every other field kept) and prints its `/sets/` link. A unit
 working in its own worktree needs no ledger to publish: the set names its production and lands by time. An
 agent that records the owner's word from chat uses `decide` or `note`, with the owner's verbatim words in
-`--quote`; `--at` back-dates a word recorded late.
+`--quote`; `--at` back-dates a word recorded late. An agent that hands over a set needing a pick asks on it
+(`ask`), so the timeline says it waits; the pick in the lab, or the owner's decision recorded on it, answers.
+
+## Seams for other callers (the lab's MCP)
+
+Nothing about the timeline lives in a page handler; the `labmcp` unit (and anything else) calls the same two
+seams the lab and the CLI do.
+
+- **Read** — `ProductionStore.list` / `read` (`packages/film/src/tools/production-store.ts`) give the
+  ledgers; `productionsOf(ledgers, folders)` (`core/production.ts`, pure) lays the review index's folders
+  (`Review`'s index, `GET /api/review/index`) into them and returns each `ProductionHistory`: versions newest
+  first, each with its entries (`Published`, `Missing`, `Said`) and, on the current one, `waiting` (the open
+  asks, each with its set and choice). `unfiledOf` gives the sets no production holds; `choiceStateOf` a
+  choice's state on the line (`Picked`, `Decided`, `Waiting`, `Quiet`). Over HTTP: `GET /api/productions`.
+- **Write** — `ProductionStore`'s verbs, each decided on the ledger as read under its cross-process lock:
+  `start` (refused `ProductionKept`), `forward` (refused `VersionMoved` when the caller saw an older
+  version), `say` (`Decided`, `Noted`, or `Asked`, which must name its set: `AskUnplaced`), `file` (refused
+  `VersionUnknown`), and `publish` (stamps a set's `review.json`; `FileInvalid` when it would be no
+  manifest). Over HTTP only `forward` is exposed (`POST /api/productions/<production>/versions`); the CLI
+  (`film production …`, `film publish`) is a thin shell over the same verbs.
+- **Events** — none pushed yet: a ledger is a file (`FILMS_LAB/productions/<production>.json`), so a watcher
+  on that folder sees every move, word and ask, whoever wrote it; the owner's picks and approvals that answer
+  an ask are the catalogue's and the sets' as today.
+
+A natural MCP surface: a resource per production (its `ProductionHistory`), and tools `production_forward`,
+`production_ask`, `production_decide`, `production_note`, `set_publish` mapping one to one onto the verbs.
 
 ## Migration
 
@@ -108,7 +139,8 @@ CLI, from the dated sets, the owner's picks and the units' journals:
   other styles (Oct 13 evening) → Concept art, then K1-minimal (Oct 14 09:09) → 9005: K1-minimal, plain ("i
   like 9005"). Twelve dated sets filed into them; the owner's words quoted.
 - **Righteousness by Faith**, two versions: Canvas cut (September) → Rive, in the new look (Oct 14 13:00),
-  with the concepts and the Rive cold open in v2 and "9005 over 9006" decided on its cold-open choice. v1's
+  with the concepts and the Rive cold open in v2, two questions asked on it (the cold open's style, answered by
+  "9005 over 9006"; punchy subtitles or the clean master, still open). v1's
   cut sits as loose `righteousness-by-faith-v1.mp4` files at the root of `out/` (no folder, no record), so it
   shows as Missing until its catalogue is restored or it gets a folder with a `review.json`.
 
@@ -119,18 +151,20 @@ Sets until the owner names their productions.
 
 ## Next (mocked, not built)
 
-**A version in stages.** Once the storyboard unit lands, a film's version reads its stages from what the
+**A version in stages.** A linked progress line under the version's head, not tabs. Once the storyboard unit lands, a film's version reads its stages from what the
 film already keeps: its board (`board.json`, panels and approvals), its catalogue (scene renders whose time
 falls in the version), its takes. The board is always the first stage.
 
 ![A version in stages, the board first](lab-timeline/mock-stages.jpg)
 
-**A scene across versions.** One scene in every version side by side, the decision that moved it under each;
-played, it is a set, so the pair and wipe views compare two versions' renders of the scene.
+**A scene across versions.** One scene in every version side by side, the decision that moved it under each.
+Built as a published set (one stack, a variant a version), not a new page: the pair and wipe views already
+compare two versions' renders of the scene.
 
 ![The cold open, version by version](lab-timeline/mock-across-versions.jpg)
 
-**Waiting on you.** One list across every production at the top of the front door, one line each.
+**Waiting on you.** One list across every production at the top of the front door, one line each. Built only
+once asks are in use: until then each card names its count.
 
 ![The front door with what waits on you first](lab-timeline/mock-waiting.jpg)
 

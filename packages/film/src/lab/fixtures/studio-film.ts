@@ -239,7 +239,7 @@ const indexOf = (versions: ReadonlyArray<string>): Json => ({
   ],
 });
 
-/** The toy's production: two versions, a decision, and a set filed by hand that no root holds now. */
+/** The toy's production: two versions, a decision, an open question, and a set filed by hand that no root holds now. */
 export const STUDIO_PRODUCTION = 'toy-cut';
 
 /** The toy production's ledger, as `GET /api/productions` sends it, with `later` versions after its two. */
@@ -252,7 +252,10 @@ export const productionLedgerWith = (later: ReadonlyArray<Json>): Json => ({
     { at: 1000, title: 'Second cut', because: 'The first cut holds: open is approved' },
     ...later,
   ],
-  said: [{ _tag: 'Decided', at: 1000, text: 'The first cut holds', quote: 'ship it' }],
+  said: [
+    { _tag: 'Decided', at: 1000, text: 'The first cut holds', quote: 'ship it' },
+    { _tag: 'Asked', at: 1500, text: 'Which cut of the open?', set: 'gone-2026-10-01' },
+  ],
   filed: [{ set: 'gone-2026-10-01', version: 1 }],
 });
 

@@ -8,7 +8,6 @@
 import { Clock, Effect } from 'effect';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
-import { moveForward } from '../core/production.ts';
 import { answered } from './api-server.ts';
 import { ProductionStore } from './production-store.ts';
 
@@ -26,9 +25,7 @@ export const productionsGroup = HttpApiBuilder.group(LabHttpApi, 'productions', 
       answered(
         Effect.gen(function* () {
           const at = yield* Clock.currentTimeMillis;
-          const file = yield* (yield* ProductionStore).modify(params.production, (current) =>
-            moveForward(current, payload, at),
-          );
+          const file = yield* (yield* ProductionStore).forward(params.production, payload, at);
           yield* Effect.logInfo(
             `production.forward production=${params.production} version=${file.versions.length}`,
           );

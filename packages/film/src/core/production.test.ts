@@ -6,6 +6,7 @@ import {
   type ProductionFile,
   ProductionFile as ProductionFileSchema,
   type Said,
+  choiceStateOf,
   currentOf,
   moveForward,
   newProduction,
@@ -191,28 +192,69 @@ describe('a production’s history', () => {
     ]);
   });
 
-  test('a choice waits on the owner until a variant is approved or a decision names it', () => {
+  test('an ask waits on the owner until a pick in its choice or a later decision answers it', () => {
     const open = choice('cold', [variant('9005'), variant('9006')]);
     const approved = choice('heads', [variant('a', true), variant('b')]);
-    const single = choice('one', [variant('only')]);
     const decided = choice('subtitles', [variant('clean'), variant('punchy')]);
+    const quiet = choice('one', [variant('only'), variant('other')]);
     const set = folder('rbf-rive', 25 * HOUR, {
       production: 'look',
-      sets: [open, approved, single, decided],
+      sets: [open, approved, decided, quiet],
     });
-    const file = withSaid(look(), {
-      _tag: 'Decided',
-      at: 26 * HOUR,
-      text: 'clean',
+    const word = (
+      tag: 'Asked' | 'Decided',
+      at: number,
+      text: string,
+      on: Option.Option<string>,
+    ): Said => ({
+      _tag: tag,
+      at,
+      text,
       quote: Option.none(),
       set: Option.some('rbf-rive'),
-      point: Option.some(decided.id),
-      variant: Option.some('clean'),
+      point: on,
+      variant: Option.none(),
     });
+    const words = [
+      // Asked in v2, still open: it waits on the version open now.
+      word('Asked', 15 * HOUR, 'Which cold open?', Option.some(open.id)),
+      word('Asked', 25 * HOUR, 'Which heads?', Option.some(approved.id)),
+      // A decision before the ask does not answer it; the one after does.
+      word('Decided', 24 * HOUR, 'punchy', Option.some(decided.id)),
+      word('Asked', 25 * HOUR, 'Which subtitles?', Option.some(decided.id)),
+      word('Decided', 26 * HOUR, 'clean', Option.some(decided.id)),
+    ];
+    const file = words.reduce(withSaid, look());
     const history = historyOf('look', Option.some(file), [set]);
-    expect(currentOf(history).waiting.map((w) => w.point.id)).toEqual([open.id]);
-    // Only the current version's choices wait.
+    const waiting = currentOf(history).waiting;
+    expect(waiting.map((w) => w.ask.text)).toEqual(['Which cold open?']);
+    expect(waiting.map((w) => Option.map(w.point, (p) => p.id))).toEqual([Option.some(open.id)]);
+    // Only the current version holds what waits.
     expect(history.versions.slice(1).every((v) => v.waiting.length === 0)).toBe(true);
+    const states = set.sets.map((p) => choiceStateOf(set, p, file.said, waiting)._tag);
+    expect(states).toEqual(['Waiting', 'Picked', 'Decided', 'Quiet']);
+  });
+
+  test('an ask on a set no root holds still waits, named by its words', () => {
+    const file = withSaid(look(), {
+      _tag: 'Asked',
+      at: 21 * HOUR,
+      text: 'Keep the subtitles?',
+      quote: Option.none(),
+      set: Option.some('gone'),
+      point: Option.none(),
+      variant: Option.none(),
+    });
+    const [ask] = currentOf(historyOf('look', Option.some(file), [])).waiting;
+    expect(ask?.ask.text).toBe('Keep the subtitles?');
+    expect(Option.isNone(ask?.folder ?? Option.some(folder('x', 0)))).toBe(true);
+  });
+
+  test('a set published after its version shut keeps a time inside that version', () => {
+    const file = withFiled(look(), { set: 'styles', version: 1 });
+    const history = historyOf('look', Option.some(file), [folder('styles', 50 * HOUR)]);
+    const v1 = history.versions.find((v) => v.n === 1);
+    expect(v1?.entries.map((e) => e.at)).toEqual([10 * HOUR]);
   });
 
   test('a production only its sets name has one version, open since the start', () => {

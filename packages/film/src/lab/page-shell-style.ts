@@ -153,8 +153,8 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 :where(.sh-seg > button + button) { border-left: var(--border); }
 :where(.sh-seg > button:hover) { color: var(--text-1); }
 :where(.sh-seg > button:is([aria-pressed="true"], [data-pressed])) { background: var(--surface-3); color: var(--text-1); }
-/* Field: a number (NumberField's input), and the platform's select, on the field's surface. */
-:where(.lab-num, select) { min-height: var(--hit); padding: 0 var(--s-1); background: var(--surface-2); color: var(--text-1);
+/* Field: a number (NumberField's input), the platform's select, a line of text (.sh-field), on the field's surface. */
+:where(.lab-num, select, .sh-field) { min-height: var(--hit); padding: 0 var(--s-1); background: var(--surface-2); color: var(--text-1);
   border: 1px solid var(--line-strong); border-radius: var(--r-1); font: inherit; }
 :where(.lab-num) { width: 80px; }
 /* Slider: the platform's range, its track and thumb the scrubber's (the track's surface, the playhead's accent). */

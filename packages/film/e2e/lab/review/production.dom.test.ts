@@ -1,10 +1,11 @@
 // A production's timeline (`/productions/<production>`), over the toy's
-// ledger (`productionLedgerWith`): the front door's card opens it; its current
-// version is open with its decision and its Move forward, the one before
-// shut to its head, a set filed there that no root holds said Missing; a
-// link's `?v=` opens a past version; Move forward posts the version the page
-// saw, and the answer's new version is current in place, or the ledger's
-// refusal is said in the receipt.
+// ledger (`productionLedgerWith`): the front door's card opens it and counts
+// the open question; its current version is open with its decision, the
+// question that waits, and its Move forward, the one before shut to its
+// head, a set filed there that no root holds said Missing; a link's `?v=`
+// opens a past version; Move forward starts from the newest decision, posts
+// the version the page saw, and the answer's new version is current in
+// place, or the ledger's refusal is said in the receipt.
 
 import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -44,12 +45,14 @@ describe("a production's timeline", () => {
         yield* textHas(page, '.rv-h', 'Productions');
         yield* textHas(page, '.pd-card', 'The toy, cut by cut');
         yield* textHas(page, '.pd-card', 'v2 · Second cut');
+        yield* textHas(page, '.pd-card', '1 question waits on you');
         yield* page.click('.pd-card');
         yield* waitFor(page, PRODUCTION_READY);
         yield* evaluates(page, 'location.pathname', pageHref.production(STUDIO_PRODUCTION));
         yield* textHas(page, `${CURRENT} .pd-v-head`, 'Second cut');
-        yield* textHas(page, `${CURRENT} .pd-because`, 'The first cut holds');
+        yield* textHas(page, `${CURRENT} .pd-v-why`, 'The first cut holds');
         yield* textHas(page, `${CURRENT} .pd-said[data-kind="Decided"]`, 'ship it');
+        yield* textHas(page, `${CURRENT} [data-role="waiting"]`, 'Which cut of the open?');
         // The first version is shut to its head; opened, its filed set no root holds is Missing.
         yield* evaluates(page, `document.querySelector('.pd-v[data-v="1"] details').open`, false);
         yield* page.click('.pd-v[data-v="1"] summary');
@@ -90,7 +93,7 @@ describe("a production's timeline", () => {
         yield* waitFor(page, PRODUCTION_READY);
         yield* page.click(PRODUCTION_READY);
         yield* waitFor(page, '[data-act="move-form"] input[name="title"]');
-        yield* page.fill('[data-act="move-form"] textarea[name="because"]', 'The second cut holds');
+        yield* page.fill('[data-act="move-form"] input[name="because"]', 'The second cut holds');
         yield* page.fill('[data-act="move-form"] input[name="title"]', 'Third cut');
         yield* page.click('[data-act="move-form"] button[type="submit"]');
         yield* textHas(page, `${CURRENT} .pd-v-head`, 'Third cut');
@@ -118,6 +121,13 @@ describe("a production's timeline", () => {
         });
         yield* waitFor(page, PRODUCTION_READY);
         yield* page.click(PRODUCTION_READY);
+        // The decision starts from the owner's newest, and the open question is said to stay open.
+        yield* evaluates(
+          page,
+          `document.querySelector('[data-act="move-form"] input[name="because"]').value`,
+          'The first cut holds',
+        );
+        yield* textHas(page, '[data-act="move-form"]', 'it stays open after the move');
         yield* page.fill('[data-act="move-form"] input[name="title"]', 'Third cut');
         yield* page.click('[data-act="move-form"] button[type="submit"]');
         yield* textHas(page, RECEIPT, 'is at v3 now');
