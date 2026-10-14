@@ -3,12 +3,6 @@ import Testing
 
 @testable import SelahCore
 
-private let kjv: Corpus = {
-  let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-    .appendingPathComponent("../../Sources/SelahApp/Resources/kjv.json").standardized
-  return Corpus(verses: try! JSONDecoder().decode([Verse].self, from: Data(contentsOf: url)))
-}()
-
 @Test func everyPromiseResolvesToRealKJVVersesSizedForMemorizing() {
   let categories = Promises.categories
   #expect(categories.count == 14)

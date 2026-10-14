@@ -3,12 +3,6 @@ import Testing
 
 @testable import SelahCore
 
-private let kjv: Corpus = {
-  let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-    .appendingPathComponent("../../Sources/SelahApp/Resources/kjv.json").standardized
-  return Corpus(verses: try! JSONDecoder().decode([Verse].self, from: Data(contentsOf: url)))
-}()
-
 @Test func italicAndRedLetterSegmentsCarryAcrossBoundariesAndAnchorToVisiblePhrase() {
   let verse = Verse(
     book: 40, bookName: "Matthew", chapter: 5, number: 3,
@@ -63,8 +57,9 @@ private let kjv: Corpus = {
 }
 
 @Test func renderedVersesHaveTheWordsTheComparisonCountsSoMarksLandOnTheRightWord() throws {
+  // The rendering the reader shows, made once per verse with the corpus.
   let mismatched = kjv.verses.filter { verse in
-    let rendered = Scripture(verse: verse).segments.filter { $0.noteIndex == nil }
+    let rendered = kjv.rendering(for: verse).segments.filter { $0.noteIndex == nil }
       .map(\.text).joined()
     return RecallComparison.wordCount(rendered) != RecallComparison.wordCount(verse.practiceText)
   }
