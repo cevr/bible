@@ -49,6 +49,8 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
 ::highlight(lab-live) { background-color: color-mix(in srgb, var(--state-live) 26%, transparent); color: var(--text-1); }
 ::highlight(lab-read) { background-color: color-mix(in srgb, var(--state-live) 11%, transparent); }
 ::highlight(lab-picked) { background-color: var(--accent-wash); color: var(--text-1); text-decoration: underline var(--accent); }
+/* A knob the frame read: read on every frame and never playing, so a dotted rule and no wash. */
+::highlight(lab-knob-read) { text-decoration: underline dotted 1px var(--line-strong); }
 .lab-source-held, .lab-source-meter { position: absolute; left: 0; pointer-events: none; }
 .lab-source-held { right: 0; top: 0; bottom: 0; background: var(--accent-wash); box-shadow: inset 2px 0 var(--accent); }
 .lab-source-meter { z-index: 2; bottom: 0; height: 2px; width: calc(var(--done) * 100%); background: var(--state-live); }

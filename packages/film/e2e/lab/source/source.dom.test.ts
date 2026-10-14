@@ -136,10 +136,11 @@ const into = (s: number) => s + 0.5 / probeFilm().fps;
 /** The names of the cue lanes lit on the strip. */
 const LANES = `[...document.querySelectorAll('.lab-cue[data-live]')].map((e) => e.dataset.cue).sort()`;
 
-/** The names of the cue literals the code view paints as playing: the highlight's ranges, read back as the text they cover. */
+/** What the code view paints as `name`: the highlight's ranges, read back as the text they cover. */
 const painted = (name: string) =>
   `(() => [...(CSS.highlights.get('${name}') ?? [])].map((r) => r.toString()).sort())()`;
-const PAINTED = `(() => [...(CSS.highlights.get('lab-live') ?? [])].map((r) => r.toString().split(':')[0]).sort())()`;
+/** The names of the cue literals the code view paints as playing: what plays, the reads firing with them (`f.at(…)`) left out. */
+const PAINTED = `${painted('lab-live')}.filter((r) => !r.startsWith('f.')).map((r) => r.split(':')[0])`;
 
 /** A screen of comment lines, to put a literal below a box's first screen. */
 const FILLER = Array.from({ length: 60 }, (_, i) => `// filler ${i + 1}`).join('\n');
@@ -767,7 +768,7 @@ describe('on a phone, the highlights stay with the one text that is shown', () =
         viewport: PHONE,
       });
       yield* page.waitFor('.lab-selection-sheet .lab-source-page');
-      const lit = `JSON.stringify([${painted('lab-live')}, ${painted('lab-read')}, ${painted('lab-picked')}].map((r) => r.length > 0))`;
+      const lit = `JSON.stringify([${painted('lab-live')}, ${painted('lab-knob-read')}, ${painted('lab-picked')}].map((r) => r.length > 0))`;
       yield* evaluates(page, lit, '[true,true,true]');
       yield* page.click('.lab-selection-sheet [data-act="sheet"]');
       yield* page.click('.lab-modes [data-mode-pick="note"]');
@@ -1377,17 +1378,18 @@ describe('what the selection and the frame’s reads light', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live('the knobs the frame read are lit as reads', () =>
+  it.live('the knobs the frame read are marked as read, and never in the ink of what plays', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([codeRoute], {
         href: labOne(middle('rise'), { code: 'follow' }),
       });
       yield* page.waitFor('.lab-source-col .lab-source-page');
-      yield* evaluates(
-        page,
-        `${painted('lab-read')}.includes('spot: [320, 200]') && ${painted('lab-read')}.includes("f.knob('spot')")`,
-        true,
-      );
+      yield* evaluates(page, painted('lab-knob-read'), ["f.knob('spot')", 'spot: [320, 200]']);
+      // What plays is rise's literal and its read, firing: the knob read on every frame is not among them.
+      yield* evaluates(page, painted('lab-live'), [
+        "f.at('rise')",
+        "rise: { mark: 'rise', dur: 0.6 }",
+      ]);
     }).pipe(Effect.scoped),
   );
 });
@@ -1397,8 +1399,8 @@ const glow = (n: number) =>
   `(() => { const row = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]'); return Math.round(Number(row.style.getPropertyValue('--glow') || 0) * 10) / 10; })()`;
 
 describe('the reads that fire, and the beat they are on', () => {
-  /** The reads of the clock lit as firing: the read highlight's ranges, the knobs' left out. */
-  const FIRING = `${painted('lab-read')}.filter((r) => r.startsWith('f.at('))`;
+  /** The reads of the clock lit as firing: what plays, the cues' literals left out. */
+  const FIRING = `${painted('lab-live')}.filter((r) => r.startsWith('f.at('))`;
 
   const frames = [
     ['while rise plays, its read fires and glows', middle('rise'), 1, ["f.at('rise')"]],
@@ -1457,8 +1459,8 @@ describe('the reads that fire, and the beat they are on', () => {
         href: pageHref.labScene(PROBE, 'three', { code: 'follow' }, Option.some(t)),
       });
       yield* page.waitFor('.lab-source-col .lab-source-page');
+      // What plays is the literal alone: the read the frame never made is not lit with it.
       yield* evaluates(page, painted('lab-live'), ["push: { mark: 'near', until: 'held' }"]);
-      yield* evaluates(page, painted('lab-read'), []);
       yield* evaluates(page, glow(text.split('\n').findIndex((l) => l.includes('f.at(')) + 1), 0);
       yield* textIs(page, '.lab-source-col [data-role="beat"]', 'three · {near}');
     }).pipe(Effect.scoped),

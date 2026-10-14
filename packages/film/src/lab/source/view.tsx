@@ -217,7 +217,9 @@ const Text = (props: {
     return scroller;
   };
 
-  // The ranges lit, painted on the rows' text; cleared when the view goes.
+  // The ranges lit, painted on the rows' text; cleared when the view goes. What plays now, a literal by the clock or
+  // a read firing, is one ink (`lab-live`); a knob the frame read is a quiet mark of its own (`lab-knob-read`), read
+  // on every frame, so it never wears what plays.
   const paint = (name: HighlightName, ranges: ReadonlyArray<CodeRange>) =>
     Option.map(page, (root) =>
       Effect.runSyncWith(meta.host)(Highlights.use((h) => h.paint(name, root, ranges))),
@@ -225,8 +227,8 @@ const Text = (props: {
   createEffect(
     () => lit(),
     (now) => {
-      paint('lab-live', now.literals);
-      paint('lab-read', [...now.reads, ...now.knobs]);
+      paint('lab-live', [...now.literals, ...now.reads]);
+      paint('lab-knob-read', now.knobs);
       paint('lab-picked', now.picked);
     },
   );
@@ -234,7 +236,7 @@ const Text = (props: {
     Effect.runSyncWith(meta.host)(
       Highlights.use((h) =>
         Effect.andThen(
-          Effect.andThen(h.clear('lab-live'), h.clear('lab-read')),
+          Effect.andThen(h.clear('lab-live'), h.clear('lab-knob-read')),
           h.clear('lab-picked'),
         ),
       ),

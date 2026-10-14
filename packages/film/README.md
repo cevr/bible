@@ -1942,9 +1942,10 @@ change with `git diff`.
 The Source view shows a scene's file (`GET /api/films/<film>/scenes/<scene>/code`)
 a row to a line, with the cues playing at the frame lit where the code writes
 them (by the clock alone, as the strip's lanes), each call that reads the
-clock by name lit while it fires, the cue or knob selected lit where it is
-written, the knobs the frame read lit (`player.knobReads()`), a meter on each
-playing literal's line, and a held line. A read fires while the frame read the
+clock by name lit in the same ink while it fires, the cue or knob selected lit
+where it is written, the knobs the frame read marked by a dotted rule and no
+wash (`player.knobReads()`: read on every frame, they never wear the ink of
+what plays), a meter on each playing literal's line, and a held line. A read fires while the frame read the
 name (`player.hearClock()`, heard only while the view is open; the pixels are
 the same either way) and the clock plays it: `f.at('lift')` while its cue
 plays, `f.mark('take')` on its word's frame, `f.spoken('take', 'held')` from
