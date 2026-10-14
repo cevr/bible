@@ -450,7 +450,8 @@ interface Reads {
  * (`RenderOptions.clock`), by scene id: what the lab's Source view fires a
  * read of the clock by, so a branch the frame did not take stays dark. A
  * name is recorded once however often the frame reads it, by the scene's
- * draw, its light or its card alike.
+ * draw, its light or its card alike; the engine's own reads (a card's flood)
+ * and a draw it lets go (`sheet`'s first guess) record none.
  */
 export interface ClockReads {
   /** Each cue read by name: `f.cue`, and `f.at`, `f.keys`, `f.stagger` and `f.staggerAt` through it. */
@@ -469,6 +470,26 @@ const hearsOf = (clock: ClockReads, id: string) => {
     return made;
   };
   return { cues: of(clock.cues), marks: of(clock.marks) };
+};
+
+/** `set` cut back to the first `size` names it took: a set keeps the order its names came in. */
+const trimTo = (set: Set<string>, size: number) => {
+  let kept = 0;
+  for (const name of set) if (kept++ >= size) set.delete(name);
+};
+
+/**
+ * Scene `id`'s clock reads in `clock` as they stand now, and how to let go of
+ * every name heard after: a frame drawn again keeps only the draw it shows.
+ */
+const heardSince = (clock: ClockReads | undefined, id: string): (() => void) => {
+  if (clock === undefined) return () => {};
+  const { cues, marks } = hearsOf(clock, id);
+  const had = { cues: cues.size, marks: marks.size };
+  return () => {
+    trimTo(cues, had.cues);
+    trimTo(marks, had.marks);
+  };
 };
 
 /**
@@ -1112,6 +1133,21 @@ export const createFilm = (spec: FilmSpec): Film => {
   /** No breath: a card holds still. */
   const still: BreathNow = { through: 0, drift: 0, outer: false, width, height };
 
+  /**
+   * Cue `name` of scene `p` as `edits` show it, read by the engine itself (a
+   * card's cue and its flood's): no frame's read, so the clock heard
+   * (`RenderOptions.clock`) holds only what the scene's own code reads.
+   */
+  const shownCue = (
+    p: Placed<SceneSpec>,
+    name: string,
+    edits: ReadonlyMap<string, ShownEdit> | undefined,
+  ) => {
+    const c = shownOf(p, edits).cues.get(name);
+    if (c === undefined) throw new Error(`scene ${p.spec.id} has no cue "${name}"`);
+    return c;
+  };
+
   /** Whether cue `name` of scene `p` (as `edits` show it) holds at film time `T`: from its start, up to its end. */
   const holds = (
     p: Placed<SceneSpec>,
@@ -1119,8 +1155,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     T: number,
     edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
-    const c = shownOf(p, edits).cues.get(name);
-    if (c === undefined) throw new Error(`scene ${p.spec.id} has no cue "${name}"`);
+    const c = shownCue(p, name, edits);
     const t = T - p.start;
     return t >= c.start && t < c.end;
   };
@@ -1221,7 +1256,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     // transform it drew under), so the clip is laid with none, whatever scale
     // the frame is drawn at, and the card drawn under the frame's.
     const frame = ctx.getTransform();
-    const at = f.at(flood.cue);
+    const at = cueProgress(shownCue(p, flood.cue, edits), T - p.start);
     const box = floodBox(from, ctx.canvas.width, ctx.canvas.height, at);
     const mask = flood.mask;
     if (mask !== undefined) {
@@ -1265,8 +1300,9 @@ export const createFilm = (spec: FilmSpec): Film => {
    * none. Which it is shows only once it has drawn, so the frame is drawn on
    * the scene's last answer and, where that was wrong (a scene that frames a
    * shot in one part and none in another, or a first frame), drawn again from
-   * the paper the other way, the knobs and probe of the first draw let go.
-   * The pixels are the right draw's alone, whatever was drawn before.
+   * the paper the other way, the knobs, clock reads and probe of the first
+   * draw let go. The pixels, and what the frame says it read, are the right
+   * draw's alone, whatever was drawn before.
    */
   const sheet = (
     ctx: CanvasRenderingContext2D,
@@ -1286,6 +1322,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     const sink = probe?.sink;
     markSink(sink);
     const read = reads?.list.length ?? 0;
+    const unhear = heardSince(hearing, id);
     ctx.drawImage(paper, 0, 0);
     let shot = false;
     probing(ctx, probe, () => {
@@ -1295,6 +1332,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     if (moving && shot === breath.outer) {
       rewindSink(sink);
       if (reads !== undefined) reads.list.length = read;
+      unhear();
       breath.outer = !shot;
       ctx.drawImage(paper, 0, 0);
       probing(ctx, probe, () => drawScene(ctx, p, T, boil, reads, edits));
