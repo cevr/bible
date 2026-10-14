@@ -478,12 +478,16 @@ const trimTo = (set: Set<string>, size: number) => {
   for (const name of set) if (kept++ >= size) set.delete(name);
 };
 
+/** Letting go of what a frame heard with no clock to hear it: nothing, made once for every draw. */
+const HEARD_NOTHING = (): void => {};
+
 /**
  * Scene `id`'s clock reads in `clock` as they stand now, and how to let go of
  * every name heard after: a frame drawn again keeps only the draw it shows.
+ * With no clock (no Source view hears) a draw makes nothing.
  */
 const heardSince = (clock: ClockReads | undefined, id: string): (() => void) => {
-  if (clock === undefined) return () => {};
+  if (clock === undefined) return HEARD_NOTHING;
   const { cues, marks } = hearsOf(clock, id);
   const had = { cues: cues.size, marks: marks.size };
   return () => {
