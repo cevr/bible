@@ -39,6 +39,7 @@ import {
   Stdio,
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
+import { FetchHttpClient } from 'effect/http';
 import type { ChildProcessSpawner } from 'effect/process';
 import { type AddressFlags, type Scope, addressOf, resolveAddress } from '../core/address.ts';
 import { type Placed, scenesOf } from '../core/layout.ts';
@@ -79,6 +80,8 @@ import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
 import { labAllowed, labLink } from './lab.ts';
+import { channel } from './lab-channel.ts';
+import { labMcpToken } from './lab-mcp.ts';
 import type { LabAt } from './api-server.ts';
 import { type LabPageSpec, PageBundler } from './lab-page.ts';
 import { PALETTE_FILE, paletteSwaps, wedgeServer } from './wedge.ts';
@@ -866,12 +869,15 @@ const lab = <E>(app: FilmApp<E>['lab'], films: string, footage: string) =>
       const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
       const known = yield* (yield* FilmFolder).names;
       // The server lives in the command's scope: Ctrl-C (or the unit stopping) stops it.
-      const url = yield* startLab(yield* app.at, allowed);
+      // The lab is also an MCP server for agents at `/mcp`, behind its token (`lab-mcp.ts`).
+      const mcp = yield* labMcpToken;
+      const url = yield* startLab(yield* app.at, allowed, Layer.empty, Option.some(mcp));
       const link = labLink(url, allowed);
       yield* Console.log(link);
       yield* Effect.log(
         `lab.ready link=${link} url=${url} films=${known.join(',')} roots=${roots.join(',')}`,
       );
+      yield* Effect.log(`lab.mcp url=${url}mcp token=${mcp.file}`);
       return yield* Effect.never;
     }, Effect.scoped),
   ).pipe(
@@ -995,6 +1001,7 @@ export const runFilmCli = <E>({
       chaptersCommand,
       doctor(previewServer),
       lab(labApp, films, footageAt),
+      channel.pipe(Command.provide(FetchHttpClient.layer)),
       look(films),
       journal,
       board,

@@ -708,6 +708,12 @@ const boundOf = (address: NetAddress.SocketAddress): LabBound => {
   return { hostname: address.address.toString(), port: address.port };
 };
 
+/** The URL the server (`labServer`) is bound at, before it serves. */
+export const boundUrl = Effect.map(
+  HttpServer.HttpServer,
+  (server) => `${NetAddress.formatUrlUnsafe(server.address)}/`,
+);
+
 /**
  * Every request the server (`HttpServer`, `labServer`) takes answered by
  * `handler`, the lab's (`labHandler`), until the scope closes; the server's

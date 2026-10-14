@@ -314,7 +314,6 @@ packages/film/src/tools/review.ts montageFolder
 packages/film/src/tools/review.ts namesInMontage
 packages/film/src/tools/review.ts namesInProject
 packages/film/src/tools/review.ts parseRoots
-packages/film/src/tools/review.ts pathOf
 packages/film/src/tools/review.ts projectFolder
 packages/film/src/tools/scene-source.ts unlocatable
 packages/film/src/tools/short-check.ts hookWord

@@ -1,0 +1,372 @@
+// The lab's change feed: what changed in the files the lab keeps (each
+// film's notes and board, each project folder's catalogue, each set's
+// `review.json`), read off the files themselves every few seconds, numbered
+// in the order the lab saw it, and kept (the newest `KEPT`) for a reader to
+// ask past a cursor or to wait on. The files are the record, so a change the
+// page makes, one a terminal's `film notes` or `film board` makes, and one
+// an agent makes through the lab's MCP are all seen alike, and nothing
+// writes twice: the feed only reads. What a change is, said from two reads
+// of a file, is `core/lab-events.ts`.
+//
+// The first read is the baseline: the feed tells only what changed after
+// the lab started. A cursor is `<epoch>.<seq>`; the epoch is this run's, so
+// a cursor from an earlier run is answered from the start of this one, said
+// as a `reset`.
+
+import {
+  Array as Arr,
+  Boolean as Bool,
+  Context,
+  DateTime,
+  Duration,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Random,
+  Ref,
+  Schedule,
+  Schema,
+  Semaphore,
+} from 'effect';
+import { CatalogueJson, emptyCatalogue, type Catalogue } from '../core/catalogue.ts';
+import { type BoardFile, emptyBoard } from '../core/board.ts';
+import {
+  LabChange,
+  type LabChangeDraft,
+  type SetSeen,
+  boardChanges,
+  catalogueChanges,
+  noteChanges,
+  setChanges,
+} from '../core/lab-events.ts';
+import { eventsSince } from '../core/notes.ts';
+import { ReviewManifestJson } from '../core/review.ts';
+import { BoardStore } from './board-store.ts';
+import { CATALOGUE_FILE } from './catalogue.ts';
+import { ContentStore } from './content-store.ts';
+import { sha256Hex } from './digest.ts';
+import { FilmFolder, filmNamed } from './film-repo.ts';
+import { NotesStore } from './notes-store.ts';
+import { Review, type ReviewRoot } from './review.ts';
+
+/** What a reader is answered: the changes past its cursor, in order, and the cursor to ask past next. */
+export const LabChanges = Schema.Struct({
+  cursor: Schema.String,
+  changes: Schema.Array(LabChange),
+  /**
+   * The cursor was not this run's (the lab restarted) or older than the
+   * oldest change kept: the changes are every one kept, and some may be lost.
+   */
+  reset: Schema.Boolean,
+});
+export type LabChanges = typeof LabChanges.Type;
+
+/** How many changes the feed keeps. */
+const KEPT = 1000;
+
+/** How often a wait asks the feed again. */
+const WAIT_POLL = Duration.millis(200);
+
+/** A set's manifest file in its folder. */
+const MANIFEST_FILE = 'review.json';
+
+/** A file's stamp: its mtime and size, when the file system says its mtime; none reads it every time. */
+type Stamp = Option.Option<string>;
+
+/** What the feed last read of each file it watches. */
+interface Seen {
+  readonly notes: Map<string, { readonly stamp: Stamp; readonly seq: number }>;
+  readonly boards: Map<string, { readonly stamp: Stamp; readonly board: BoardFile }>;
+  readonly catalogues: Map<string, { readonly stamp: Stamp; readonly catalogue: Catalogue }>;
+  sets: ReadonlyMap<string, SetSeen>;
+}
+
+interface Journal {
+  /** The last change's number: 0 before the first. */
+  readonly seq: number;
+  readonly kept: ReadonlyArray<LabChange>;
+}
+
+interface LabEventsService {
+  /** Read every watched file once and add what changed since the last read to the feed. */
+  readonly look: Effect.Effect<void>;
+  /** The changes past `cursor` (none: no changes, the cursor now). */
+  readonly since: (cursor: Option.Option<string>) => Effect.Effect<LabChanges>;
+  /** `since`, as soon as there is a change past `cursor`, or none once `timeout` passes. */
+  readonly wait: (
+    cursor: Option.Option<string>,
+    timeout: Duration.Input,
+  ) => Effect.Effect<LabChanges>;
+}
+
+/** What the feed needs: where its links point (the lab's address as a reader opens it). */
+interface FeedOptions {
+  readonly base: string;
+}
+
+/** `cursor` read: its epoch and number, when it is one. */
+const cursorOf = (cursor: string): Option.Option<{ epoch: string; seq: number }> =>
+  Option.map(Option.fromNullishOr(/^([0-9a-z]+)\.(\d+)$/.exec(cursor)), ([, epoch = '', seq]) => ({
+    epoch,
+    seq: Number(seq),
+  }));
+
+/** A folder one level under a review root: its ref (`<root label>/<name>`) and where it is. */
+interface ReviewFolderAt {
+  readonly ref: string;
+  readonly dir: string;
+}
+
+/**
+ * Every folder one level under `roots`, by its ref: where a set (a
+ * `review.json`) or a project folder (a `catalogue.json`) is published.
+ */
+export const reviewFolders = Effect.fn('LabEvents.reviewFolders')(function* (
+  roots: ReadonlyArray<ReviewRoot>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const listed = yield* Effect.forEach(roots, (root) =>
+    fs.readDirectory(root.path).pipe(
+      Effect.orElseSucceed(() => []),
+      Effect.map((names) =>
+        names
+          .filter((name) => !name.startsWith('.'))
+          .map((name): ReviewFolderAt => ({
+            ref: `${root.label}/${name}`,
+            dir: path.join(root.path, name),
+          })),
+      ),
+    ),
+  );
+  return Arr.flatten(listed);
+});
+
+export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
+  '@bible/film/tools/LabEvents',
+) {
+  /** The feed over the lab's stores, its baseline not yet read: `look` reads it. */
+  static readonly make = Effect.fn('LabEvents.make')(function* (options: FeedOptions) {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const notes = yield* NotesStore;
+    const boards = yield* BoardStore;
+    const folder = yield* FilmFolder;
+    const review = yield* Review;
+    const store = yield* ContentStore;
+    const films = yield* Effect.context<FilmFolder>();
+    const platform = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
+    const epoch = (yield* Random.nextIntBetween(0, 2 ** 31)).toString(36);
+    const journal = yield* Ref.make<Journal>({ seq: 0, kept: [] });
+    const seen: Seen = {
+      notes: new Map(),
+      boards: new Map(),
+      catalogues: new Map(),
+      sets: new Map(),
+    };
+    /** Whether the next read is the first: the baseline, which tells nothing. */
+    const first = yield* Ref.make(true);
+    const one = yield* Semaphore.make(1);
+
+    const linkOf = (at: string) => new URL(at, options.base).href;
+
+    /** A file's stamp, or none when it is not there (`absent`). */
+    const stampOf = (file: string) =>
+      fs.stat(file).pipe(
+        Effect.map((info) => ({
+          there: info.type === 'File',
+          stamp: Option.map(info.mtime, (m) => `${m.getTime()}:${info.size}`),
+        })),
+        Effect.orElseSucceed(() => ({ there: false, stamp: Option.none<string>() })),
+      );
+
+    /** Whether a read of a file stamped `now` would tell nothing new after one stamped `was`. */
+    const same = (was: Stamp, now: Stamp) =>
+      Option.isSome(was) && Option.isSome(now) && was.value === now.value;
+
+    /** Warn of a file that could not be read; the feed keeps what it last read of it. */
+    const unread = (file: string) => (error: { readonly message: string }) =>
+      Effect.as(
+        Effect.logWarning(`lab.events.unread file=${file} reason="${error.message}"`),
+        Arr.empty<LabChangeDraft>(),
+      );
+
+    const lookNotes = (name: string, baseline: boolean) =>
+      Effect.gen(function* () {
+        const film = yield* filmNamed(name).pipe(Effect.provideContext(films));
+        const file = notes.paths(film).notes.file;
+        const { stamp } = yield* stampOf(file);
+        const was = Option.fromUndefinedOr(seen.notes.get(name));
+        if (Option.exists(was, (w) => same(w.stamp, stamp))) return [];
+        const log = yield* notes.read(film);
+        // A film first seen after the baseline (made since) tells its whole log.
+        const since = Option.match(was, {
+          onNone: () => Bool.match(baseline, { onTrue: () => log.seq, onFalse: () => 0 }),
+          onSome: (w) => w.seq,
+        });
+        seen.notes.set(name, { stamp, seq: log.seq });
+        // A log reset below what was seen (restored, trashed) is a new baseline, not news.
+        if (log.seq < since) return [];
+        return noteChanges(eventsSince(log, since).events);
+      }).pipe(Effect.catch(unread(`notes of ${name}`)));
+
+    const lookBoard = (name: string, baseline: boolean) =>
+      Effect.gen(function* () {
+        const film = yield* filmNamed(name).pipe(Effect.provideContext(films));
+        const file = boards.paths(film).record.file;
+        const { stamp } = yield* stampOf(file);
+        const was = Option.fromUndefinedOr(seen.boards.get(name));
+        if (Option.exists(was, (w) => same(w.stamp, stamp))) return [];
+        const board = yield* boards.read(film);
+        seen.boards.set(name, { stamp, board });
+        return Option.match(was, {
+          onNone: () =>
+            Bool.match(baseline, {
+              onTrue: () => [],
+              onFalse: () => boardChanges(emptyBoard(board.film), board),
+            }),
+          onSome: (w) => boardChanges(w.board, board),
+        });
+      }).pipe(Effect.catch(unread(`board of ${name}`)));
+
+    const lookCatalogue = (ref: string, dir: string, baseline: boolean) =>
+      Effect.gen(function* () {
+        const file = path.join(dir, CATALOGUE_FILE);
+        const { there, stamp } = yield* stampOf(file);
+        const was = Option.fromUndefinedOr(seen.catalogues.get(ref));
+        if (!there) return [];
+        if (Option.exists(was, (w) => same(w.stamp, stamp))) return [];
+        const catalogue = yield* store.read({
+          file,
+          codec: CatalogueJson,
+          empty: emptyCatalogue(path.basename(dir)),
+        });
+        seen.catalogues.set(ref, { stamp, catalogue });
+        return Option.match(was, {
+          onNone: () =>
+            Bool.match(baseline, {
+              onTrue: () => [],
+              onFalse: () => catalogueChanges(ref, emptyCatalogue(catalogue.film), catalogue),
+            }),
+          onSome: (w) => catalogueChanges(ref, w.catalogue, catalogue),
+        });
+      }).pipe(Effect.catch(unread(path.join(dir, CATALOGUE_FILE))));
+
+    /** The set a folder's manifest makes, when it has one: its title and its bytes' digest. */
+    const setAt = (dir: string) =>
+      Effect.gen(function* () {
+        const file = path.join(dir, MANIFEST_FILE);
+        const { there } = yield* stampOf(file);
+        if (!there) return Option.none<SetSeen>();
+        const text = yield* fs.readFileString(file);
+        const title = Option.flatMap(Schema.decodeOption(ReviewManifestJson)(text), (m) => m.title);
+        return Option.some<SetSeen>({ title, stamp: sha256Hex(text) });
+      }).pipe(Effect.orElseSucceed(() => Option.none<SetSeen>()));
+
+    const read = Effect.gen(function* () {
+      const baseline = yield* Ref.getAndSet(first, false);
+      const names = yield* folder.names;
+      const filmChanges = yield* Effect.forEach(
+        names,
+        (name) =>
+          Effect.map(
+            Effect.all([lookNotes(name, baseline), lookBoard(name, baseline)]),
+            Arr.flatten,
+          ),
+        { concurrency: 4 },
+      );
+      const listed = yield* reviewFolders(review.roots).pipe(Effect.provideContext(platform));
+      const catalogued = yield* Effect.forEach(
+        listed,
+        (f) => lookCatalogue(f.ref, f.dir, baseline),
+        {
+          concurrency: 8,
+        },
+      );
+      const sets = new Map<string, SetSeen>();
+      yield* Effect.forEach(
+        listed,
+        (f) =>
+          Effect.map(setAt(f.dir), (set) => {
+            if (Option.isSome(set)) sets.set(f.ref, set.value);
+          }),
+        { concurrency: 8, discard: true },
+      );
+      const published = Bool.match(baseline, {
+        onTrue: () => [],
+        onFalse: () => setChanges(seen.sets, sets),
+      });
+      seen.sets = sets;
+      return [...Arr.flatten(filmChanges), ...Arr.flatten(catalogued), ...published];
+    });
+
+    const look = one.withPermits(1)(
+      Effect.gen(function* () {
+        const drafts = yield* read;
+        if (drafts.length === 0) return;
+        const at = DateTime.formatIso(yield* DateTime.now);
+        yield* Ref.update(journal, (j) => {
+          const made = drafts.map(({ path: place, ...draft }, i): LabChange => ({
+            ...draft,
+            seq: j.seq + i + 1,
+            at,
+            link: linkOf(place),
+          }));
+          return { seq: j.seq + made.length, kept: [...j.kept, ...made].slice(-KEPT) };
+        });
+        yield* Effect.log(`lab.events.seen count=${drafts.length}`);
+      }),
+    );
+
+    const since = (cursor: Option.Option<string>) =>
+      Effect.map(Ref.get(journal), (j): LabChanges => {
+        const now = `${epoch}.${j.seq}`;
+        if (Option.isNone(cursor)) return { cursor: now, changes: [], reset: false };
+        const asked = Option.filter(
+          cursorOf(cursor.value),
+          (c) => c.epoch === epoch && c.seq <= j.seq,
+        );
+        const oldest = Option.match(Arr.head(j.kept), {
+          onNone: () => j.seq + 1,
+          onSome: (c) => c.seq,
+        });
+        return Option.match(asked, {
+          onNone: () => ({ cursor: now, changes: j.kept, reset: true }),
+          onSome: (c) => ({
+            cursor: now,
+            changes: j.kept.filter((change) => change.seq > c.seq),
+            reset: c.seq + 1 < oldest,
+          }),
+        });
+      });
+
+    const wait = (cursor: Option.Option<string>, timeout: Duration.Input) =>
+      since(cursor).pipe(
+        Effect.repeat({
+          until: (answer) => answer.changes.length > 0 || answer.reset || Option.isNone(cursor),
+          schedule: Schedule.spaced(WAIT_POLL),
+        }),
+        Effect.timeoutOption(timeout),
+        Effect.flatMap(Option.match({ onNone: () => since(cursor), onSome: Effect.succeed })),
+      );
+
+    return LabEvents.of({ look, since, wait });
+  });
+
+  /**
+   * The feed, its baseline read when it is made, then a read every `every`
+   * for as long as the scope is open.
+   */
+  static readonly layer = (options: FeedOptions & { readonly every: Duration.Input }) =>
+    Layer.effect(
+      LabEvents,
+      Effect.gen(function* () {
+        const events = yield* LabEvents.make(options);
+        yield* events.look;
+        yield* Effect.forkScoped(Effect.repeat(events.look, Schedule.spaced(options.every)));
+        return events;
+      }),
+    );
+}
