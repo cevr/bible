@@ -2,6 +2,7 @@
 
 import { createFilm } from '@bible/film/canvas';
 import type { Narrated } from '@bible/film/player';
+import { CARD_STYLE, VERSE_STYLE } from './card.ts';
 import { fonts, palette } from './palette.ts';
 import { scenes } from './scenes/index.ts';
 import { TITLE } from './script.ts';
@@ -24,4 +25,5 @@ export const film = ({ timings, audio }: Narrated) =>
       hook: { font: `600 64px "${fonts.display}"`, color: palette.ink },
       caption: { font: `600 60px "${fonts.body}"`, color: palette.ink, highlight: palette.gold },
     },
+    card: { style: CARD_STYLE, verse: VERSE_STYLE },
   });

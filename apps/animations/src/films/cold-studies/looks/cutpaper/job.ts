@@ -1,50 +1,15 @@
 // The control's verse and card: Job 9:2 on a torn cream page laid on the
 // parchment, the phrase highlighted in the card's own ink so the flood is
-// the highlight grown; the card is the reference's (flush left, cream on
-// near-black, though cased as said), "just" in the colour script's gold for
-// the Word, underlined.
+// the highlight grown; the card is the film's own (`righteousness-by-faith/
+// card.ts`: flush left, cream on near-black, cased as said), "just" in the
+// colour script's gold for the Word, underlined.
 
-import {
-  type Box,
-  type CardStyle,
-  type CardWord,
-  type VerseStyle,
-  at,
-  fullCard,
-  rounded,
-  verse,
-  write,
-} from '@bible/film/canvas';
+import { type Box, type CardWord, at, fullCard, rounded, verse, write } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
+import { CARD_STYLE, VERSE_STYLE } from '../../../righteousness-by-faith/card.ts';
 import { C, F, piece } from '../../../righteousness-by-faith/kit.ts';
 import { VERSE } from '../../look.ts';
 import type { JobFrame } from '../../scenes/job.ts';
-
-/** The card's ground: the highlight's colour too. */
-const CARD = C.night;
-
-const VERSE_STYLE: VerseStyle = {
-  type: { family: F.display, size: 64, weight: 500, color: C.ink, leading: 1.45 },
-  width: 1180,
-  highlight: CARD,
-  lit: C.cream,
-};
-
-const CARD_STYLE: CardStyle = {
-  ground: CARD,
-  type: { family: F.display, size: 96, weight: 500, color: C.cream, leading: 1.2 },
-  payoffScale: 2.6,
-  payoffColor: C.gold,
-  payoffType: { weight: 700 },
-  // As said, not the reference's lower case: "God" keeps its capital.
-  case: 'said',
-  treatment: {
-    draw: (ctx, box) => {
-      ctx.fillStyle = C.gold;
-      ctx.fillRect(box.x, box.y + box.h * 0.9, box.w, box.h * 0.035);
-    },
-  },
-};
 
 /** The page: where it sits, centred, and its size. */
 const PAGE = { x: 960, y: 540, w: 1400, h: 520 } as const;
