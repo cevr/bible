@@ -75,6 +75,14 @@ bun cli.ts read cue <film> <scene> <cue> [--spans <json>] [--patch <json>]  # a 
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>
+bun run board <film> [--beat id,id] [--tries 2] [--lanes 3] [--dry-run]  # the storyboard: every panel the board lacks (a beat's picture's marks, at most 3; its start when none), 2 tries each on okra image's Codex route, into src/films/<film>/board/ + board.json
+bun run board style <film> --id <id> --name "…" --block-file f --ref img [--world-file f]  # the board's look: the style block every prompt opens with, its reference image, the film's world
+bun run board import <film> --panel <beat>.<at> <file…> [--keep n --why "…"] [--from "…"] [--prompt-file f]  # images made elsewhere as a panel's tries
+bun run board card|verse <film> --panel <beat>.<at> ...  # a panel the engine sets (card: --payoff word [--to mark]; verse: --ref --text --phrase): never an image
+bun run board pick <film> --panel <beat>.<at> --try n [--why "…"]  # keep one try (the Board page writes the same)
+bun run board approve|withdraw <film> --beat <id>  # a beat's board approved as it stands (a later pick leaves it stale)
+bun run board tweak <film> <note> [--tries 2]      # a panel note asking a tweak: new tries from the try, the note's sketched still and the style ref; the old tries stay
+bun run board list <film>                          # every panel: its tries, the one kept, the beat's approval
 ```
 
 Every command is the `film` CLI from `@bible/film/tools`, run by this app's

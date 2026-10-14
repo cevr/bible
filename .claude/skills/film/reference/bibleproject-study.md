@@ -487,7 +487,7 @@ Each direction gives the change for `SKILL.md` or the engine, the evidence, wher
 
 ### 1. Take the words off the picture
 
-- **Change**, in step 4 (Scenes):
+- **Change**, in step 5 (Scenes):
   - Narration is never typeset.
   - Allowed on screen:
     - the title;
@@ -603,7 +603,7 @@ Each direction gives the change for `SKILL.md` or the engine, the evidence, wher
 
 ### 10. Sound
 
-- **Change**, in step 6 (Sound):
+- **Change**, in step 7 (Sound):
   - Set the bed 17 to 20 dB under the voice wherever narration runs, gaps included. This replaces "about 7 dB under between lines".
   - Let the music rise only where no one speaks, to about 6 dB under the voice level:
     - an optional open of 5 to 7 s;

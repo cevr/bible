@@ -152,7 +152,7 @@ A paper theatre lit from behind.
 
 ## Shorts
 
-A short is a vertical cut of a finished film (`shorts.ts`, [SKILL.md](SKILL.md) step 8), never a new drawing. These rules come from a 2025–26 study of educational shorts, BibleProject's and Kurzgesagt's above all, fitted to one narrator. They add to rules 1–12; where one differs, the short's rule wins inside the short. `bun run check <film> --short <id>` enforces the rules marked **Checked**; the rest are read off the contact sheet and the script.
+A short is a vertical cut of a finished film (`shorts.ts`, [SKILL.md](SKILL.md) step 9), never a new drawing. These rules come from a 2025–26 study of educational shorts, BibleProject's and Kurzgesagt's above all, fitted to one narrator. They add to rules 1–12; where one differs, the short's rule wins inside the short. `bun run check <film> --short <id>` enforces the rules marked **Checked**; the rest are read off the contact sheet and the script.
 
 1. **One idea, standalone.** A short answers one viewer question and makes sense without the film. Cut a whole question-and-answer turn, never half an argument: a span starts and ends on a mark, a cue or a scene landmark, so it keeps a whole turn when the film is re-timed.
 2. **The hook is the narrator's own question, or a claim against expectation.** One voice: the narrator asks in the viewer's words ("Is God's verdict a cover-up?") or says the surprising thing ("A judge calls a guilty man righteous"). No second voice asks it. The first sound is that line or leads straight into it, and the picture already moves on frame 0: no title card, no logo, no page turn. For sound-off viewers the same line is typeset once above the picture for the first 2–3 s (the short's `hook`), the one exception to rule 1 in a short.
