@@ -17,7 +17,8 @@
 //   (`FOCUS_SITES`, by file and call, the lab's wrappers' callers too): a
 //   source scan fails on a call not named there, and each site's paths that
 //   no command reaches (a kind's tab, Back and Forward, a studio button or
-//   its prompter, a kept take's reload) run below it, by the keyboard and by
+//   its prompter, a kept take's reload), or that a page's walk reaches only
+//   once (the Script's note commands), run below it, by the keyboard and by
 //   the pointer, and a key pressed in the middle of a click.
 // `:focus-visible` matches only in the window that has the focus, so every
 // case runs alone, and a page without it answers so instead of passing.
@@ -40,7 +41,7 @@ import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
-import { WORK_ROUTES } from './studio-states.ts';
+import { WORK_ROUTES, scriptAt } from './studio-states.ts';
 import { onChoices } from './toy-choices.ts';
 
 const SLOW = 30_000;
@@ -333,7 +334,21 @@ const PAGES: ReadonlyArray<Opened> = [
  * `goToPoint`) are calls too, so each caller is a row of its own.
  */
 const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: string]> = [
-  ['notes/section.tsx', 'focusFor(el', "the Lab in Note's notes.frame, a text field"],
+  [
+    'notes/section.tsx',
+    'focusFor(el',
+    "the Lab in Note's notes.frame, and the Script's script.note below, a text field",
+  ],
+  [
+    'notes/section.tsx',
+    'focusFor(el',
+    "the Script's script.correct below, on the words to say instead, a text field",
+  ],
+  [
+    'notes/section.tsx',
+    'focusFor(field',
+    'a Save that found the words to say instead wanting, pressed and clicked below, a text field',
+  ],
   [
     'review/options/choice.tsx',
     'focusFor(Option.getOrElse',
@@ -443,6 +458,64 @@ for (const { command, open, key, field } of BY_THEIR_KEYS)
         ),
       );
       yield* holds(command, 'key', seen);
+      expect(page.errors).toEqual([]);
+    }),
+  );
+
+/**
+ * The Script's note commands, offered once words are selected and while no note is being
+ * made (so a page's walk runs only its first), with the field each opens the composer on:
+ * a correction's is the words to say instead.
+ */
+const SCRIPT_ASKS = [
+  { command: 'script.note', field: '.lab-compose textarea' },
+  { command: 'script.correct', field: '.lab-compose input.lab-instead' },
+] as const;
+
+for (const { command, field } of SCRIPT_ASKS)
+  for (const input of INPUTS)
+    alone(
+      `on the Script, words selected, ${command} ${ASKED[input]} in ⌘K puts the focus in its field, which rings as a text field does`,
+      Effect.gen(function* () {
+        const page = yield* scriptAt({ words: '4-7' })(DESK);
+        const [offered, seen] = yield* watchedThen(
+          page,
+          Effect.gen(function* () {
+            const ran = yield* runFromMenu(page, command, input);
+            if (ran) yield* until(page, `document.activeElement?.matches('${field}') === true`);
+            return ran;
+          }),
+        );
+        expect(offered).toBe(true);
+        yield* holds(`the Script's ${command}`, input, seen);
+        expect(page.errors).toEqual([]);
+      }),
+    );
+
+for (const input of INPUTS)
+  alone(
+    `on the Script, a correction's Save ${ASKED[input]} with its words unchanged puts the focus in the words to say instead, which rings as a text field does`,
+    Effect.gen(function* () {
+      const page = yield* scriptAt({ words: '4-7' })(DESK);
+      const compose = '[data-role="script-compose"]';
+      const save = `${compose} button[type="submit"]`;
+      yield* page.click('[data-act="note-words"]');
+      yield* waitFor(page, `${compose} .lab-compose:not([hidden])`);
+      yield* page.click(`${compose} [data-ask="correction"]`);
+      yield* waitFor(page, `${compose} .lab-instead`);
+      if (input === 'key') yield* page.focus(save);
+      const seen = yield* watched(
+        page,
+        Effect.gen(function* () {
+          if (input === 'key') yield* page.press('Enter');
+          else yield* page.click(save);
+          yield* until(
+            page,
+            `document.activeElement?.matches('${compose} .lab-instead[aria-invalid="true"]') === true`,
+          );
+        }),
+      );
+      yield* holds('a Save that found the words to say instead wanting', input, seen);
       expect(page.errors).toEqual([]);
     }),
   );

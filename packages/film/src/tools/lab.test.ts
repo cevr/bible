@@ -4,14 +4,14 @@
 // is sent compressed, a streamed one chunk by chunk. A client that leaves
 // mid-build or mid-render, on the real server, leaves the watches whole and
 // stops the render's reads; one that leaves mid-ask of a film's track
-// leaves its next mix heard. And the lab never imports a film: no module its
-// handler runs reaches a loader.
+// leaves its next mix heard. The Script page's read of a film's script is
+// run fresh once a stamp, and refused for a film the app has not. And the lab
+// never imports a film: no module its handler runs reaches a loader.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
-  ConfigProvider,
   Console,
   Context,
   Deferred,
@@ -44,10 +44,9 @@ import {
 } from 'effect/http';
 import { brotliDecompressSync } from 'node:zlib';
 import { parseSync } from 'oxc-parser';
-import { LabHttpApi, Places, Refusal, ToolFailure, labUrls } from '../core/api.ts';
+import { LabHttpApi, Places, Refusal, ScriptBeats, ToolFailure, labUrls } from '../core/api.ts';
 import { routesOf } from '../core/testing.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
-import { ContentStore } from './content-store.ts';
 import { labHandler, labLink } from './lab.ts';
 import {
   type BesideRoutes,
@@ -59,21 +58,9 @@ import {
   serveLab,
 } from './api-server.ts';
 import { STUDIO_IMPORT_WAIT_S, STUDIO_MAX_BODY } from '../core/studio.ts';
-import { FilmFolder } from './film-repo.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
-import { NotesStore } from './notes-store.ts';
 import { PageRenderer } from './page-render.ts';
-import {
-  echoPages,
-  freshFilm,
-  memoryFileSystem,
-  memoryLocks,
-  noReview,
-  noSource,
-  noStudio,
-  routePath,
-  text,
-} from './testing.ts';
+import { echoPages, freshFilm, labInMemory, memoryFileSystem, routePath, text } from './testing.ts';
 
 /** The films folder with one film, `f`: a folder with its scenes' index. */
 const files = () =>
@@ -217,26 +204,6 @@ const readTo = (
     },
   );
 };
-
-const labLayer = (store: Map<string, Uint8Array>, pages = echoPages) =>
-  Layer.mergeAll(
-    NotesStore.layer,
-    FilmFolder.layer('/films'),
-    noSource,
-    noStudio,
-    noReview,
-    pages,
-    freshFilm({}),
-    HttpPlatform.layer,
-  ).pipe(
-    Layer.provideMerge(ContentStore.layer),
-    Layer.provideMerge([
-      memoryFileSystem(store),
-      memoryLocks,
-      Path.layer,
-      ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_LAB: '/lab' })),
-    ]),
-  );
 
 const png = text('frame');
 
@@ -571,6 +538,10 @@ const heardOf = <E, R>(change: Effect.Effect<void, E, R>) =>
 
 const draft = `{"scene":"hand","T":230.38,"frame":6911,"cue":{"name":"topple","edge":"end"},"box":{"x":860,"y":640,"w":200,"h":120},"text":"too low","still":"${Base64.encode(png)}"}`;
 
+/** A note the lab's page posts with `asks` among its fields (its words, what it asks of them). */
+const noteAsking = (asks: string) =>
+  `{"scene":"hand","T":230.38,"frame":6911,${asks},"text":"too low","still":"${Base64.encode(png)}"}`;
+
 describe('the lab loads no film', () => {
   // The lab runs for days and Bun keeps a module as it first imported it: a
   // module the lab runs that imports a film reads it as it was at the lab's
@@ -597,7 +568,7 @@ describe('lab routes', () => {
         const page = yield* Effect.promise(() => lab(get('/'), bound).then((r) => r.text()));
         expect(page).toMatch(/^200 \{/);
         expect(page).toContain('"id":"n1"');
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), readingPages))),
+      }).pipe(Effect.scoped, Effect.provide(labInMemory(files(), readingPages))),
   );
 
   it.effect(
@@ -621,7 +592,7 @@ describe('lab routes', () => {
         expect(yield* Effect.promise(() => lab(get(read), bound).then((r) => r.text()))).toMatch(
           /^200 \{/,
         );
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), askedPages))),
+      }).pipe(Effect.scoped, Effect.provide(labInMemory(files(), askedPages))),
   );
 
   it.effect(
@@ -643,7 +614,7 @@ describe('lab routes', () => {
             sent,
           ]);
         }
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), askedPages))),
+      }).pipe(Effect.scoped, Effect.provide(labInMemory(files(), askedPages))),
   );
 
   it.live("a page's read its render gives up stops that read's request in the lab", () =>
@@ -654,7 +625,7 @@ describe('lab routes', () => {
       expect(page).toBe('gave up');
       const stopped = yield* Deferred.await(ended).pipe(Effect.timeoutOption('2 seconds'));
       expect(Option.isSome(stopped)).toBe(true);
-    }).pipe(Effect.scoped, Effect.provide(labLayer(files(), givingUpPages))),
+    }).pipe(Effect.scoped, Effect.provide(labInMemory(files(), givingUpPages))),
   );
 
   it.live(
@@ -696,7 +667,7 @@ describe('lab routes', () => {
           lab(get(labUrls.page.wait({ query: { since: 0, timeout: 1 } })), bound),
         );
         expect(ended.toSorted()).toEqual(['beside', 'wait']);
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), waiting)));
+      }).pipe(Effect.scoped, Effect.provide(labInMemory(files(), waiting)));
     },
   );
 
@@ -725,7 +696,7 @@ describe('lab routes', () => {
         lab(new Request(at(added), { method: 'HEAD' }), bound),
       );
       expect(refused.status).toBe(404);
-    }).pipe(Effect.scoped, Effect.provide(labLayer(files(), echoPages))),
+    }).pipe(Effect.scoped, Effect.provide(labInMemory(files(), echoPages))),
   );
 
   it.live(
@@ -762,7 +733,7 @@ describe('lab routes', () => {
         // oxlint-disable-next-line effect/noFixedWaitInTests -- an event that must not happen cannot be awaited; a rejection lands within a tick of the cancel
         yield* Effect.sleep('50 millis');
         expect(unhandled).toEqual([]);
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), echoPages))),
+      }).pipe(Effect.scoped, Effect.provide(labInMemory(files(), echoPages))),
   );
 
   it.live("a global middleware that needs a service runs on the caller's services", () => {
@@ -829,7 +800,7 @@ describe('lab routes', () => {
         const plain = yield* Effect.promise(() => lab(get('/'), bound));
         expect(plain.headers.get('content-encoding')).toBeNull();
         expect(yield* Effect.promise(() => plain.text())).toBe(SHELL + REST);
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), streamingPages(ended))));
+      }).pipe(Effect.scoped, Effect.provide(labInMemory(files(), streamingPages(ended))));
     },
   );
 
@@ -874,7 +845,7 @@ describe('lab routes', () => {
       const wait = yield* Schema.decodeUnknownEffect(NotesWait)(waited);
       expect(wait.events.map((e) => e._tag)).toEqual(['NoteAdded']);
       expect(wait.cursor).toBe(1);
-    }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+    }).pipe(Effect.scoped, Effect.provide(labInMemory(files()))),
   );
 
   it.effect('a user reply reopens the note; resolve closes it', () =>
@@ -899,7 +870,7 @@ describe('lab routes', () => {
         ),
       );
       expect(resolved).toMatchObject({ status: 'resolved' });
-    }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+    }).pipe(Effect.scoped, Effect.provide(labInMemory(files()))),
   );
 
   it.effect('a bad body is a 400, an unknown note a 404, a path for a still a 404', () =>
@@ -913,7 +884,46 @@ describe('lab routes', () => {
         yield* status(post(labUrls.notes.resolve({ params: { film: 'f', id: 'n9' } }), '{}')),
       ).toBe(404);
       expect(yield* status(get('/api/films/f/stills/..%2Fnotes.json'))).toBe(404);
-    }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+    }).pipe(Effect.scoped, Effect.provide(labInMemory(files()))),
+  );
+
+  it.effect(
+    "a note on a line's words keeps them, what it asks and a correction's words instead; one that asks what its words cannot is a 400, and nothing is kept",
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        const notes = labUrls.notes.add({ params: { film: 'f' } });
+        const status = (asks: string) =>
+          Effect.promise(() => lab(post(notes, noteAsking(asks)), bound).then((r) => r.status));
+        // What a note asks is of its words; only a correction says words instead, and other
+        // words than its own.
+        for (const asks of [
+          '"kind":"removal"',
+          '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"replace":"climbs"',
+          '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"kind":"removal","replace":"climbs"',
+          '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"kind":"correction"',
+          '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"kind":"correction","replace":" "',
+          '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"kind":"correction","replace":"rises slowly,"',
+        ])
+          expect([asks, yield* status(asks)]).toEqual([asks, 400]);
+        expect(
+          yield* status(
+            '"words":{"beat":"hand","from":2,"to":3,"text":"rises slowly,"},"kind":"correction","replace":"climbs slowly,"',
+          ),
+        ).toBe(200);
+        const listed = yield* Effect.promise(() =>
+          lab(get(labUrls.notes.list({ params: { film: 'f' } })), bound).then((r) => r.json()),
+        );
+        const file = yield* Schema.decodeUnknownEffect(NotesFile)(listed);
+        expect(file.notes.map((n) => [n.id, n.words, n.kind, n.replace])).toEqual([
+          [
+            'n1',
+            { beat: 'hand', from: 2, to: 3, text: 'rises slowly,' },
+            'correction',
+            'climbs slowly,',
+          ],
+        ]);
+      }).pipe(Effect.scoped, Effect.provide(labInMemory(files()))),
   );
 
   it.effect(
@@ -937,7 +947,7 @@ describe('lab routes', () => {
         });
         const bad = yield* Effect.promise(() => lab(post(url, '{"scene":"roof","at":[]}'), bound));
         expect(bad.status).toBe(400);
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+      }).pipe(Effect.scoped, Effect.provide(labInMemory(files()))),
   );
 
   it.effect(
@@ -980,7 +990,7 @@ describe('lab routes', () => {
           lab(get(labUrls.notes.list({ params: { film: 'f' } })), bound).then((r) => r.json()),
         );
         expect((yield* Schema.decodeUnknownEffect(NotesFile)(listed)).notes).toEqual([]);
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+      }).pipe(Effect.scoped, Effect.provide(labInMemory(files()))),
   );
 
   it.effect(
@@ -1164,7 +1174,7 @@ describe('lab routes', () => {
         expect(refusals.length).toBeGreaterThan(600);
         expect(Arr.sort(lines, Order.String)).toEqual(Arr.sort(refusals, Order.String));
         expect(eventLines(written.stdout, 'api.request.refused')).toEqual([]);
-      }).pipe(Effect.scoped, Effect.provide([labLayer(files()), loggingInto(written)]));
+      }).pipe(Effect.scoped, Effect.provide([labInMemory(files()), loggingInto(written)]));
     },
   );
 
@@ -1180,7 +1190,7 @@ describe('lab routes', () => {
         expect(
           eventLines(written.stderr, 'api.request.failed').map((line) => line.split(' reason=')[0]),
         ).toEqual([`api.request.failed method=GET path=${asked} status=404 tag=FilmUnknown`]);
-      }).pipe(Effect.scoped, Effect.provide([labLayer(files()), loggingInto(written)]));
+      }).pipe(Effect.scoped, Effect.provide([labInMemory(files()), loggingInto(written)]));
     },
   );
 
@@ -1208,7 +1218,7 @@ describe('lab routes', () => {
       expect(yield* status(labUrls.notes.list({ params: { film: 'f' } }), {})).toBe(200);
       // A take's import answers inside the studio's wait, which the server's idle limit outlasts.
       expect(LAB_IDLE_SECONDS).toBeGreaterThan(STUDIO_IMPORT_WAIT_S);
-    }).pipe(Effect.scoped, Effect.provide([labLayer(files()), FetchHttpClient.layer])),
+    }).pipe(Effect.scoped, Effect.provide([labInMemory(files()), FetchHttpClient.layer])),
   );
 
   it.effect(
@@ -1238,7 +1248,7 @@ describe('lab routes', () => {
         const [bunStatus, bunText] = yield* sent(MAX_REQUEST_BODY + 1);
         expect(bunStatus).toBe(413);
         expect(bunText).not.toContain('BodyTooLarge');
-      }).pipe(Effect.scoped, Effect.provide([labLayer(files()), FetchHttpClient.layer])),
+      }).pipe(Effect.scoped, Effect.provide([labInMemory(files()), FetchHttpClient.layer])),
   );
 
   it.effect('the link the lab hands out: its first host over HTTPS, else where it is bound', () =>
@@ -1337,7 +1347,7 @@ describe('a client that goes away', () => {
         expect(heard).toBeGreaterThan(since);
       }).pipe(
         Effect.scoped,
-        Effect.provide([labLayer(files(), building), building, FetchHttpClient.layer]),
+        Effect.provide([labInMemory(files(), building), building, FetchHttpClient.layer]),
       ),
   );
 
@@ -1369,7 +1379,7 @@ describe('a client that goes away', () => {
         expect(Option.isSome(stopped)).toBe(true);
       }).pipe(
         Effect.scoped,
-        Effect.provide([labLayer(files(), rendering), rendering, FetchHttpClient.layer]),
+        Effect.provide([labInMemory(files(), rendering), rendering, FetchHttpClient.layer]),
       ),
   );
 
@@ -1403,7 +1413,52 @@ describe('a client that goes away', () => {
         yield* Deferred.done(armed, Exit.void);
         const heard = yield* page.wait({ since, server: Option.none(), film: f }, '2 seconds');
         expect(heard.build).toBeGreaterThan(since);
-      }).pipe(Effect.scoped, Effect.provide([labLayer(disk, pages), pages, FetchHttpClient.layer]));
+      }).pipe(
+        Effect.scoped,
+        Effect.provide([labInMemory(disk, pages), pages, FetchHttpClient.layer]),
+      );
+    },
+  );
+});
+
+describe("the Script page's read", () => {
+  const BEATS = [
+    { id: 'cold', cite: [], picture: 'a hand on a `door`' },
+    { id: 'title', cite: ['Romans 1:17'] },
+  ];
+  const SCENES = '/films/f/scenes/index.ts';
+
+  /** The lab over film `f` (its files' mtimes `mtimes`), its `film read script` answering `BEATS`, each run pushed to `runs`. */
+  const scriptLab = (mtimes: ReadonlyMap<string, number>, runs: Array<string>) =>
+    labInMemory(files(), echoPages, {
+      film: freshFilm({ script: (film) => Effect.sync(() => (runs.push(film), BEATS)) }),
+      mtimes,
+    });
+
+  it.effect(
+    "answers each beat's picture and sources, read fresh again only once a file under the film changed",
+    () => {
+      const mtimes = new Map([[SCENES, 1_000]]);
+      const runs: Array<string> = [];
+      return Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        const read = (film: string) =>
+          Effect.promise(() => lab(get(labUrls.script.beats({ params: { film } })), bound));
+        const first = yield* read('f');
+        const body = yield* Effect.promise(() => first.json());
+        expect(yield* Schema.decodeUnknownEffect(ScriptBeats)(body)).toEqual({
+          film: 'f',
+          beats: BEATS,
+        });
+        yield* read('f');
+        expect(runs).toEqual(['f']);
+        mtimes.set(SCENES, 2_000);
+        yield* read('f');
+        expect(runs).toEqual(['f', 'f']);
+        // A film the app has not is refused before anything is read.
+        expect((yield* read('nope')).status).toBe(404);
+        expect(runs).toEqual(['f', 'f']);
+      }).pipe(Effect.scoped, Effect.provide(scriptLab(mtimes, runs)));
     },
   );
 });

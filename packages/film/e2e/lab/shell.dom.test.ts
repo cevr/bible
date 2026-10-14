@@ -88,6 +88,22 @@ const T = URL_T;
 const NO_SIDEWAYS = 'document.documentElement.scrollWidth <= document.documentElement.clientWidth';
 
 /**
+ * The phone's tab bar as a script reads it: how many tabs it shows, then
+ * each whose icon or label does not stand whole inside its tab (nor its tab
+ * inside the window), by its part.
+ */
+const TABS_WHOLE = `(() => {
+  const tabs = [...document.querySelectorAll('.sh-pagebar .sh-tab')].filter((t) => t.getClientRects().length > 0);
+  const inside = (inner, outer) => inner.left >= outer.left - 0.5 && inner.right <= outer.right + 0.5;
+  const view = { left: 0, right: innerWidth };
+  const cut = tabs.filter((t) => {
+    const r = t.getBoundingClientRect();
+    return !inside(r, view) || [...t.children].some((c) => !inside(c.getBoundingClientRect(), r) || c.scrollWidth > Math.ceil(c.getBoundingClientRect().width));
+  });
+  return [tabs.length, ...cut.map((t) => t.dataset.page)];
+})()`;
+
+/**
  * The Lab's transport as a script reads it: whether its row stands on the
  * tab bar as the page's dock, and whether play, the frame steps and the
  * scene's time lie in that order along one line.
@@ -526,6 +542,23 @@ describe('the lab shell', () => {
         yield* textHas(page, '[data-role="view-menu"]', 'Captions on or off');
         yield* page.click('[data-role="view-menu"] [data-command="app.keys"]');
         yield* page.waitFor('[data-role="keys-sheet"]');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "on a phone the tab bar holds the studio's six parts, each tab's icon and label whole, at 390, 360 and 320 wide",
+    () =>
+      Effect.gen(function* () {
+        // As it opens, 390 wide; then the narrower phones, one resize each.
+        const { page, errors } = yield* openLab([], { viewport: PHONE });
+        yield* evaluates(page, TABS_WHOLE, [6]);
+        yield* evaluates(page, NO_SIDEWAYS, true);
+        for (const width of [360, 320]) {
+          yield* resize(page, { width, height: PHONE.height });
+          yield* evaluates(page, TABS_WHOLE, [6]);
+          yield* evaluates(page, NO_SIDEWAYS, true);
+        }
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );

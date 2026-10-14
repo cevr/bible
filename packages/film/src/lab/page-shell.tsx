@@ -2,10 +2,10 @@
 // the Lab: the header (Films, the film switcher, the page bar, the
 // drill-down crumb, the page's own tools, the timecode, Go to… ⌘K, the
 // view menu ⋯) over
-// the page. The page bar is Films · Scenes · Lab · Choices · Project ·
-// Play, each a link printed by its place (`partHref`) and each on its key
-// (⇧1-⇧6, `partCommands`); from Scenes, the Lab or Play the others of
-// those three open at the header's playhead (`filmTimeOn`); on a phone its five film tabs are a tab bar along
+// the page. The page bar is Films · Scenes · Lab · Script · Choices ·
+// Project · Play, each a link printed by its place (`partHref`) and each on
+// its key (⇧1-⇧7, `partCommands`); from Scenes, the Lab, the Script or Play
+// the others of those four open at the header's playhead (`filmTimeOn`); on a phone its six film tabs are a tab bar along
 // the bottom (56 px over the safe area) and Films is the header's leading
 // square. Every move between parts is here, the switcher or a command that
 // lands on a part's tab: no page links to another part in its text. The
@@ -149,6 +149,12 @@ const ICON_STROKES: Readonly<Record<IconName, () => JSX.Element>> = {
       <circle cx="9" cy="17" r="2" />
     </>
   ),
+  script: () => (
+    <>
+      <path d="M5.5 3.5h9l4 4v13h-13z" />
+      <path d="M9 11h6M9 14.5h6M9 18h3.5" />
+    </>
+  ),
   choices: () => <path d="M4 6h16M4 12h16M4 18h8M15 17.5l2 2 3.5-4" />,
   project: () => (
     <>
@@ -206,8 +212,8 @@ export const HeaderTool = (props: {
   </button>
 );
 
-/** A timecode, `HH:MM:SS:FF`: separators dim, the frames field secondary. */
-const Timecode = (props: {
+/** A timecode, `HH:MM:SS:FF`: separators dim, the frames field secondary (the header's, and each beat's on the Script). */
+export const Timecode = (props: {
   readonly seconds: number;
   readonly fps?: number;
   readonly class?: string;

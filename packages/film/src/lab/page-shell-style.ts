@@ -78,7 +78,7 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 .sh-await { margin: 0; padding: var(--s-4) var(--gutter); color: var(--text-2); font-size: var(--fs-2); }
 body.lab .sh-await { grid-column: 1; grid-row: 2; }
 
-/* The phone: the five film tabs along the bottom, the transport docked above them. */
+/* The phone: the six film tabs along the bottom, the transport docked above them. */
 @media ${PHONE} {
   .sh[data-film="true"] { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
   .sh-pagebar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;

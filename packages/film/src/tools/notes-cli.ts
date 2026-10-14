@@ -134,7 +134,7 @@ export const notes = Command.make(
   }),
 ).pipe(
   Command.withDescription(
-    "List a film's open notes from the lab (id, scene, time, nearest cue, still, text), or --watch for new ones",
+    "List a film's open notes from the lab (id, scene, time, nearest cue, the words of a line and what it asks of them, still, text), or --watch for new ones",
   ),
   Command.withSubcommands([notesReply, notesResolve]),
 );

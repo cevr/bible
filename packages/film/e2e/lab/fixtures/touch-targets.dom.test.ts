@@ -5,7 +5,8 @@
 // hit-slops, a hit-slop over a neighbour's box fails (its last pixel row
 // too) and one the measure cannot place exactly fails as unanchored, a
 // backing input is left out only when nothing of it can be seen or
-// pressed, only a link on a line of text is inline, a link inside a label
+// pressed, only a link on a line of text is inline (a reader's focusable
+// box's words are text; a button's label is not), a link inside a label
 // is the link's area and never the label's field's, a target scrolling
 // cannot bring into the window fails, and a layer is measured within itself,
 // its menu items as targets.
@@ -150,6 +151,18 @@ describe('the touch-target measure', () => {
        <div style="position:absolute;top:300px;left:16px"><a href="#b">Versions</a><br>a later line of words</div>`,
       ['a "Versions" 64×16 □16'],
     ),
+  );
+
+  it.live(
+    "keeps a link in a sentence a reader's focusable box scrolls, and measures one beside a button's words alone",
+    () =>
+      offenders(
+        `<div tabindex="0" style="position:absolute;top:100px;left:16px;width:300px;height:120px;overflow:auto">
+           <p style="margin:0">Read the <a href="#a">docs</a> before you pick.</p>
+         </div>
+         <button class="at" style="left:16px;top:400px;width:200px;height:44px">Open <a href="#b">help</a></button>`,
+        ['a "help" 32×16 □16'],
+      ),
   );
 
   it.live(

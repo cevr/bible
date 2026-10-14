@@ -1,7 +1,8 @@
-// The Lab's page as the server and the browser both render it: the
-// lab's place as the URL holds it, the mode the panel shows, and the panel
-// itself, with the mode tray, each tool's section, and the film's notes
-// under the pen and the Note frame button (`notes/list.tsx`).
+// The Lab's pages, the Lab and the Script, as the server and the browser
+// both render them (`LabPage`): the place as the URL holds it, the mode the
+// Lab's panel shows, and the film's notes (`notes/list.tsx`); and on the Lab
+// its panel (`LabPanel`), with the mode tray, each tool's section, and the
+// notes under the pen and the Note frame button.
 // None of it reads the film's code, which the server never imports: the
 // tools' own controls (the cue inspector, the knobs, the findings, the
 // onion and the speed, the compare's modes, the recorder) need the staged
@@ -34,16 +35,18 @@ import { type LabClient, labApiLayer } from './api.ts';
 import { LAB_MODES, type LabMode, MODE_TITLE, citedMode, modeCommands, modeOf } from './mode.ts';
 import { labPlaceOf } from './place.ts';
 import { pressed } from './pressed.ts';
+import { PanelAside } from './selection-sheet.tsx';
+import { isLive } from './source/open.ts';
 import { PHONE, useMatches } from './viewport.ts';
 import { Frame, List, NotesFeed, Pen, type PageRuntime } from './notes/list.tsx';
 
-/** What the lab has picked, and how it compares with HEAD, as the URL at `href` holds it. */
+/** What the lab has picked, and how it compares with HEAD, as the URL at `href` holds it, and on which of its pages. */
 const pickOf = (href: string) => {
-  const { selection, note, beat, view, code, words, text } = labPlaceOf(href);
-  return { selection, note, beat, view, code, words, text };
+  const { root, selection, note, beat, view, code, words, mark, text } = labPlaceOf(href);
+  return { root, selection, note, beat, view, code, words, mark, text };
 };
 
-/** The lab's place: the cue or knob picked, the note, the studio's beat a link cites, the compare's view, the Source view, a talk's words and the Transcript view. */
+/** The lab's place: its page, the cue or knob picked, the note, the studio's beat a link cites, the compare's view, the Source view, the words and the mark selected, and the Transcript view. */
 type LabPick = ReturnType<typeof pickOf>;
 
 /** What an entry's link cites (`citedMode`): its note, its beat, and the cue or knob it landed on. */
@@ -66,6 +69,12 @@ interface LabPageValue {
   /** Show `mode` in the panel, and keep it for this viewer. */
   readonly showMode: (mode: LabMode) => void;
   /**
+   * Hear each mode shown (`showMode`: the tray, ⌘K, a note begun) until the
+   * returned function is called: Code mode, which sets the panel aside, is
+   * left for it (`source/context.tsx`).
+   */
+  readonly onModeShown: (heard: () => void) => () => void;
+  /**
    * The beats the film lists, as the studio read them (its one read): with
    * them a `?beat=` the film lists opens Record.
    */
@@ -75,8 +84,12 @@ interface LabPageValue {
   readonly setReloadWaiting: (waiting: string) => void;
   /** Say the film is staged, its tools in the panel, until the returned function is called. */
   readonly staged: () => () => void;
+  /** Whether the film is staged. */
+  readonly isStaged: Accessor<boolean>;
   /** Where `name`'s controls go, once the page is the browser's. */
   readonly slot: (name: SlotName) => Accessor<Option.Option<HTMLElement>>;
+  /** The panel's slot `name` made: the element `slot(name)` answers once the page has settled. */
+  readonly slotted: (name: SlotName) => (el: HTMLElement) => void;
 }
 
 const LabPageContext = createContext<LabPageValue>();
@@ -141,18 +154,17 @@ const Section = (
 );
 
 /**
- * The side panel: while a reload waits on the owner's unsaved work, what it
- * waits for; the header (the mode tray); each tool's section, filled by the
- * staged lab; the notes, under the pen and Note frame.
+ * The Lab's side panel: while a reload waits on the owner's unsaved work,
+ * what it waits for; the header (the mode tray); each tool's section, filled
+ * by the staged lab; the notes, under the pen and Note frame. The modes'
+ * commands are the panel's, for as long as it is mounted.
  */
-const Panel = (props: {
-  readonly slots: (name: SlotName) => (el: HTMLElement) => void;
-  readonly staged: Accessor<boolean>;
-}) => {
+export const LabPanel = () => {
   const page = useLabPage();
-  const at = (name: SlotName) => <div class="lab-slot" ref={props.slots(name)} />;
+  onCleanup(page.hub.commands.register(...modeCommands(page.mode, page.showMode)));
+  const at = (name: SlotName) => <div class="lab-slot" ref={page.slotted(name)} />;
   return (
-    <aside class="lab-panel" data-mode={page.mode()} data-staged={pressed(props.staged())}>
+    <aside class="lab-panel" data-mode={page.mode()} data-staged={pressed(page.isStaged())}>
       <Show when={page.reloadWaiting()}>
         {(waiting) => (
           <p class="lab-reload-waiting" role="status">
@@ -193,9 +205,10 @@ const Panel = (props: {
 };
 
 /**
- * The Lab's page for film `name`: its place, its mode and its panel, and
- * `children` (the staged lab, the browser's) inside them. Its reads go
- * through `client`, the page's one client of the lab's API.
+ * One of the Lab's pages for film `name`: its place, its mode and the
+ * film's notes, and `children` (the Lab's panel, and the staged lab, the
+ * browser's) inside them. Its reads go through `client`, the page's one
+ * client of the lab's API.
  */
 export const LabPage = (
   props: ParentProps<{
@@ -268,14 +281,18 @@ export const LabPage = (
       () => own,
     );
   });
+  /** What hears each mode shown (`onModeShown`). */
+  const modeHeard = new Set<() => void>();
   const showMode = (m: LabMode) => {
     setPicked(Option.some({ on: untrack(entry), mode: m }));
     keep(m);
+    for (const heard of modeHeard) heard();
   };
   const beatsListed = (beats: ReadonlyArray<string>) => {
     setListed(Option.some(beats));
   };
-  onCleanup(props.hub.commands.register(...modeCommands(mode, showMode)));
+  // Code mode (`?code=live`) sets the panel aside, its selection sheets with it (`PanelAside`).
+  const aside = createMemo(() => isLive(here().code));
   const [reloadWaiting, setReloadWaiting] = createSignal('', { ownedWrite: true });
   const [staged, setStaged] = createSignal(false, { ownedWrite: true });
   // The slots are the browser's elements: each lands once the page is
@@ -295,6 +312,12 @@ export const LabPage = (
     here,
     mode,
     showMode,
+    onModeShown: (heard) => {
+      modeHeard.add(heard);
+      return () => {
+        modeHeard.delete(heard);
+      };
+    },
     beatsListed,
     reloadWaiting,
     setReloadWaiting,
@@ -302,19 +325,19 @@ export const LabPage = (
       setStaged(true);
       return () => setStaged(false);
     },
+    isStaged: staged,
     slot: (name) => () => Option.fromUndefinedOr(slots().get(name)),
+    slotted: (name) => (el) => {
+      made.set(name, el);
+    },
   };
   return (
     <LabPageContext value={value}>
-      <NotesFeed film={props.name} runtime={runtime} hub={props.hub} note={() => here().note}>
-        <Panel
-          slots={(name) => (el) => {
-            made.set(name, el);
-          }}
-          staged={staged}
-        />
-        {props.children}
-      </NotesFeed>
+      <PanelAside value={aside}>
+        <NotesFeed film={props.name} runtime={runtime} hub={props.hub} note={() => here().note}>
+          {props.children}
+        </NotesFeed>
+      </PanelAside>
     </LabPageContext>
   );
 };

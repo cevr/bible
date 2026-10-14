@@ -1,13 +1,14 @@
-// The Transcript view's layout and lighting, pure: each word's offset in the
-// one text (stable whether cuts show or not), its start on the film's clock,
-// the word lit at a time, and the name Mark here gives a word.
+// The Transcript view's and the Script's layout and lighting, pure: each
+// word's offset in the one text (stable whether cuts show or not), its start
+// on the film's clock, the word lit at a time, and the name Mark here gives a
+// word.
 
 import { describe, expect, test } from 'bun:test';
 import { Option, Result, Schema } from 'effect';
 import type { TalkWords } from '../../core/api.ts';
 import { layout } from '../../core/layout.ts';
 import { MarkName } from '../../core/talk.ts';
-import { markName, rangesOf, rowsIn, rowsOf, wordAt } from './lit.ts';
+import { lineRows, markName, rangesOf, rowsIn, rowsOf, wordAt } from './lit.ts';
 
 /** Each section's voice starting a quarter second in, as a talk's lead-in puts it. */
 const LEAD = 0.25;
@@ -53,10 +54,22 @@ describe("the Transcript view's words", () => {
       ['law?', 7, Option.some(LEAD + 0.5)],
     ]);
     expect(answer?.rows.map((r) => [r.from, r.start])).toEqual([[12, Option.some(answerAt + 0.2)]]);
-    expect(rangesOf(rowsIn(rowsOf(TALK, placed), 'ask', 1, 2))).toEqual([
-      [4, 6],
-      [7, 11],
+    // Words next to each other in the one text are one range, the space between them in it.
+    expect(rangesOf(rowsIn(rowsOf(TALK, placed), 'ask', 1, 2))).toEqual([[4, 11]]);
+  });
+
+  test('words painted are one range for each run of them, in the text’s order, a word given twice once', () => {
+    const [ask, answer] = rowsOf(TALK, placed);
+    const [why, um, law] = ask?.rows ?? [];
+    const [to] = answer?.rows ?? [];
+    const rows = [law, to, why, law].flatMap((r) => Option.toArray(Option.fromUndefinedOr(r)));
+    // Why (0-3) and law? (7-11) have um between them; law? and To (12-14) are next to each other.
+    expect(rangesOf(rows)).toEqual([
+      [0, 3],
+      [7, 14],
     ]);
+    expect(rangesOf(Option.toArray(Option.fromUndefinedOr(um)))).toEqual([[4, 6]]);
+    expect(rangesOf([])).toEqual([]);
   });
 
   test('the word lit is the one playing, else the last said in its section; none before the first', () => {
@@ -93,5 +106,57 @@ describe("the Transcript view's words", () => {
     expect(markName('naïve', 6, { naive: 2 })).toBe('naive-2');
     for (const word of ['Café', 'Señor,', '日本', 'Law?', '—', "don't", 'ÆON'])
       expect(Schema.is(MarkName)(markName(word, 1, {}))).toBe(true);
+  });
+});
+
+describe("a narrated film's lines, as the Script lays them out", () => {
+  const said = Result.getOrThrow(
+    layout(
+      [
+        { id: 'call', say: 'Come {near}near, and {hear}hear.' },
+        { id: 'still', min: 2 },
+        { id: 'answer', say: 'We {come}come.' },
+      ],
+      { voice: '', scenes: {} },
+    ),
+  );
+  const call = said[0];
+  const answer = said[2];
+
+  test('each beat that says a line is a section: its words as said, their offsets running on, its marks by the word they stand before', () => {
+    const sections = lineRows(said);
+    expect(sections.map((s) => [s.id, s.take, s.marks])).toEqual([
+      ['call', '', { near: 1, hear: 3 }],
+      ['answer', '', { come: 1 }],
+    ]);
+    expect(sections[0]?.rows.map((r) => [r.index, r.text, r.from, r.struck])).toEqual([
+      [0, 'Come', 0, false],
+      [1, 'near,', 5, false],
+      [2, 'and', 11, false],
+      [3, 'hear.', 15, false],
+    ]);
+    // The next beat's words go on from the last: one text across the film.
+    expect(sections[1]?.rows.map((r) => [r.text, r.from])).toEqual([
+      ['We', 21],
+      ['come.', 24],
+    ]);
+  });
+
+  test('a word starts where its beat voices it: the beat, its lead, then the word in the take or the estimate', () => {
+    const [first, last] = lineRows(said);
+    const voiced = (p: typeof call, i: number) =>
+      (p?.start ?? Number.NaN) +
+      (p?.speechStart ?? Number.NaN) +
+      (p?.voice.words[i]?.voiced.start ?? Number.NaN);
+    expect(first?.rows.map((r) => r.start)).toEqual(
+      [0, 1, 2, 3].map((i) => Option.some(voiced(call, i))),
+    );
+    expect(last?.rows[1]?.start).toEqual(Option.some(voiced(answer, 1)));
+    // Lit as a talk's words are: the one playing, else the last said in its beat.
+    const sections = lineRows(said);
+    expect(wordAt(sections, said, voiced(call, 2) + 0.01)).toEqual(
+      Option.some({ section: 'call', index: 2 }),
+    );
+    expect(wordAt(sections, said, (said[1]?.start ?? 0) + 0.1)).toEqual(Option.none());
   });
 });

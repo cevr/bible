@@ -2,12 +2,18 @@
 // shell's runtime, over the page's notes (`list.tsx`: the feed, the page's
 // live connection to the notes on the server, the note selected, the pen,
 // the thread's writes), which it lends what needs the film (each note's
-// time, the seek to it, Note frame). The composer, the marks on the frame
-// and the pins on the timeline read this context and act through it; none
-// holds state of its own. A save that made a note selects it and reads the
-// notes at once; a reply or a resolve does too. ⇧N and ⌥⇧N step to the next
-// or previous open note by time (`command/walk.ts`), and each note is a
-// place ⌘K goes to by its id and words (`command/go.ts`).
+// time, the seek to it, Note frame). What a note is about beside its frame
+// (its scope) is what the page has selected: the cue, and what the page's
+// own tools lend (`Lent`): the Lab's in and out points and the line its
+// Source view holds (`LabProvider`, which adds Note this line), the
+// Script's words of a line. What a note on words asks of them (a note, a
+// correction, a removal) is the composer's, chosen as it is written. The
+// composer, the marks on the frame and the pins on the timeline read this
+// context and act through it; none holds state of its own. A save that made
+// a note selects it and reads the notes at once; a reply or a resolve does
+// too. ⇧N and ⌥⇧N step to the next or previous open note by time
+// (`command/walk.ts`), and each note is a place ⌘K goes to by its id and
+// words (`command/go.ts`).
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Effect, Match, Option } from 'effect';
@@ -29,7 +35,7 @@ import { registerWhile } from '../command/changes.ts';
 import type { Hub } from '../../command/hub.ts';
 import { type Context, selected as selectedOf } from '../../command/context.ts';
 import { noteT } from '../../core/notes.ts';
-import type { Note, Point } from '../../core/schema.ts';
+import type { Note, NoteKind, NoteSource, NoteWords, Point } from '../../core/schema.ts';
 import { Actor } from '../actor.tsx';
 import { useLab } from '../shell.tsx';
 import {
@@ -44,7 +50,16 @@ import {
   spawnComposer,
   unsaved,
 } from './composer.ts';
-import { NO_SCOPE, type Scope, draftOf, scopeText, whenText, whereText } from './draft.ts';
+import {
+  NO_SCOPE,
+  type Scope,
+  type WhereSaid,
+  draftOf,
+  scopeText,
+  whenText,
+  whereText,
+  wordsAt,
+} from './draft.ts';
 import { useMotion } from '../motion/context.tsx';
 import { useSource } from '../source/context.tsx';
 import { lineOpen } from '../source/open.ts';
@@ -72,21 +87,37 @@ interface NotesState {
   readonly timeOf: (note: Note) => number;
   /** Whether a drag on the frame draws ink rather than a box. */
   readonly pen: Accessor<boolean>;
-  /** Where the note being made sits: scene, time, frame, nearest cue edge and mark. */
+  /** The frame the note being made is of, in film seconds: none while none is being made. */
+  readonly at: Accessor<Option.Option<number>>;
+  /**
+   * Where the note being made sits, as the page says it (`WhereSaid`): the
+   * Lab's scene and time into it, the Script's film time; and the cue edge
+   * and the mark nearest it.
+   */
   readonly where: Accessor<string>;
   /**
    * The scope chip of the note being made (`scene · cue · 00:00:03:06–00:00:04:00`, in timecode): the
-   * cue selected, the in and out points marked and the line of the scene's
-   * file the Source view is held on (`scenes/robe.ts:118`), while it has them
-   * and its × has not cleared them.
+   * cue selected, the in and out points marked, the line of the scene's
+   * file the Source view is held on (`scenes/robe.ts:118`) and the words of
+   * its line selected, while it has them and its × has not cleared them.
    */
   readonly scope: Accessor<Option.Option<string>>;
+  /** The words of its scene's line the note being made is about, while its scope holds some. */
+  readonly words: Accessor<Option.Option<NoteWords>>;
+  /** What the note being made asks of its words: a note until the composer says otherwise. */
+  readonly asked: Accessor<NoteKind>;
   /** What the composer's status line says. */
   readonly status: Accessor<string>;
   /** What the notes say of the feed: nothing while it holds. */
   readonly feedStatus: Accessor<string>;
   /** What the last reply or resolve said, if it failed. */
   readonly threadStatus: Accessor<string>;
+}
+
+/** What the composer's writer wrote: the note's words, and a correction's words to say instead. */
+export interface Written {
+  readonly text: string;
+  readonly replace: string;
 }
 
 interface NotesActions {
@@ -96,11 +127,15 @@ interface NotesActions {
   readonly lift: (at: Point, far: boolean) => void;
   /** Note the frame shown, whole. */
   readonly noteFrame: () => void;
+  /** Note the frame at film second `T`, whole: it is shown, and the composer opens on it. */
+  readonly noteAt: (T: number) => void;
   readonly cancel: () => void;
   /** Write the note being made about its frame alone: its scope chip's ×. */
   readonly clearScope: () => void;
-  /** Save the note being made, saying `text`. */
-  readonly save: (text: string) => void;
+  /** Ask `kind` of the words the note being made is about. */
+  readonly ask: (kind: NoteKind) => void;
+  /** Save the note being made, as `written`. */
+  readonly save: (written: Written) => void;
   /** Select a note and show its frame. */
   readonly select: (note: Note) => void;
   readonly write: (write: ThreadWrite) => void;
@@ -113,8 +148,22 @@ interface NotesContextValue {
 
 const NotesContext = createContext<NotesContextValue>();
 
-/** The notes' context: only inside `<Notes.Provider>`. */
+/** The notes' context: only inside `<Notes.Provider>` (or the Lab's `<Notes.LabProvider>`). */
 export const useNotes = (): NotesContextValue => useContext(NotesContext);
+
+/**
+ * What a page's own tools lend a note's scope, beside the cue selected,
+ * which every page has: the Lab's in and out points (Motion) and the line
+ * its Source view holds; the Script's words of a line.
+ */
+export interface Lent {
+  /** The in and out points marked, in film seconds. */
+  readonly range: Accessor<Option.Option<{ readonly from: number; readonly to: number }>>;
+  /** The line of a scene's file the Source view is held on. */
+  readonly source: Accessor<Option.Option<{ readonly scene: string; readonly source: NoteSource }>>;
+  /** The words of a beat's line selected, as they read. */
+  readonly words: Accessor<Option.Option<NoteWords>>;
+}
 
 /** The T of the note being made, while one is. */
 const composingT = (state: ComposerState): Option.Option<number> =>
@@ -142,42 +191,19 @@ const walkCommand = (
 
 /**
  * The notes' verbs on the page's hub, for as long as the notes are mounted:
- * `n` notes the frame unless a field has the keys; Escape cancels the note
- * being made, wherever it is pressed; ⇧N and ⌥⇧N open the next or previous
- * open note in time (`n` alone stays Note this frame).
+ * Escape cancels the note being made, wherever it is pressed; ⇧N and ⌥⇧N
+ * open the next or previous open note in time (`n` alone stays Note this
+ * frame); a note a menu opened on opens.
  */
-/** The Line target `ctx` holds, when it is a line of the scene `sceneNow` names. */
-const lineHere = (ctx: Context, sceneNow: () => string) =>
-  Option.filter(selectedOf(ctx, 'Line'), (at) => at.scene === sceneNow());
-
 const useCommands = (
   hub: Hub,
   actions: NotesActions,
   composing: () => boolean,
   noteOf: (ctx: Context) => Option.Option<Note>,
   walk: (toward: Toward) => Option.Option<Note>,
-  hold: (line: number) => void,
-  sceneNow: () => string,
 ) =>
   onCleanup(
     hub.commands.register(
-      {
-        id: 'notes.line',
-        label: 'Note this line',
-        group: 'Notes',
-        about: ['Line'],
-        touch: 'long-press the line in the code, then Note this line',
-        // A note is about the frame shown, so only a line of the scene shown can be noted: a target
-        // the clock has since left (a menu open as playback crossed a scene) is refused, never
-        // read as the same-numbered line of the scene now playing.
-        when: (ctx) => Option.isSome(lineHere(ctx, sceneNow)),
-        run: quietly((ctx) =>
-          Option.map(lineHere(ctx, sceneNow), (at) => {
-            hold(at.line);
-            actions.noteFrame();
-          }),
-        ),
-      },
       walkCommand(actions, walk, 'next', 'Next open note', 'shift+n'),
       walkCommand(actions, walk, 'previous', 'Previous open note', 'alt+shift+n'),
       {
@@ -202,13 +228,22 @@ const useCommands = (
     ),
   );
 
-const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
+/** What a page gives its notes: what its tools lend a note's scope, and how it says where a note sits. */
+interface Given {
+  readonly lent: Lent;
+  readonly where: WhereSaid;
+}
+
+const Body = (props: ParentProps<Given & { readonly composer: ComposerActor }>) => {
   const { state: lab, actions: labActions, meta } = useLab();
   const { film, player } = meta;
   const feed = useNotesFeed();
   const composerAtom = ActorAtom.make(props.composer);
   const composer = useAtomValue(() => composerAtom);
   const sendComposer = useAtomSet(() => composerAtom);
+  // The page's, for the provider's life: plain values.
+  const lent = props.lent;
+  const whereSaid = props.where;
 
   // The note selected is the URL's (`?note=`, `LabState.note`), so a link,
   // a reload and Back all carry it.
@@ -246,53 +281,69 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
   });
 
   const timeOf = (note: Note) => noteT(film.placed, film.fps, note);
+  const at = createMemo(() => composingT(composer()));
 
   const where = createMemo(() =>
-    Option.match(composingT(composer()), {
+    Option.match(at(), {
       onNone: () => '',
-      onSome: (T) => whereText(film.placed, film.fps, T),
+      onSome: (T) => whereSaid(film.placed, film.fps, T),
     }),
   );
 
   // What the note being made is about beside its frame: the cue selected and
-  // the in and out points, until its chip's × clears them; each note starts scoped.
-  const motion = useMotion();
-  const source = useSource();
-  const [scoped, setScoped] = createSignal(true);
+  // what the page lends, until its chip's × clears them; and what it asks of
+  // its words, a note until the composer says otherwise. Each note starts
+  // scoped, asking nothing.
+  const [scoped, setScoped] = createSignal(true, { ownedWrite: true });
+  const [asked, setAsked] = createSignal<NoteKind>('note', { ownedWrite: true });
   createEffect(
     () => composerOpen(composer()),
     (shown) => {
-      if (!shown) setScoped(true);
+      if (shown) return;
+      setScoped(true);
+      setAsked('note');
     },
   );
   const scope = (): Scope =>
     Option.match(
       Option.liftPredicate(scoped(), (on) => on),
       {
-        onNone: () => NO_SCOPE,
+        onNone: (): Scope => NO_SCOPE,
         onSome: (): Scope => ({
-          cue: motion.state.cue(),
-          range: motion.state.inOut(),
-          source: source.heldSite(),
+          cue: Option.filter(lab.selection(), (s) => s._tag === 'Cue'),
+          range: lent.range(),
+          source: lent.source(),
+          words: lent.words(),
         }),
       },
     );
   const scopeChip = createMemo(() =>
-    Option.flatMap(composingT(composer()), (T) => scopeText(film.placed, scope(), film.fps, T)),
+    Option.flatMap(at(), (T) => scopeText(film.placed, scope(), film.fps, T)),
   );
+  const words = createMemo(() => Option.flatMap(at(), (T) => wordsAt(film.placed, scope(), T)));
 
   const actions: NotesActions = {
-    press: (at) => sendComposer(ComposerEvent.Press({ T: player.now(), at, pen: feed.pen() })),
-    drag: (at, far) => sendComposer(ComposerEvent.Drag({ at, far })),
-    lift: (at, far) => sendComposer(ComposerEvent.Lift({ at, far })),
+    press: (point) =>
+      sendComposer(ComposerEvent.Press({ T: player.now(), at: point, pen: feed.pen() })),
+    drag: (point, far) => sendComposer(ComposerEvent.Drag({ at: point, far })),
+    lift: (point, far) => sendComposer(ComposerEvent.Lift({ at: point, far })),
     noteFrame: () => sendComposer(ComposerEvent.Note({ T: player.now() })),
+    noteAt: (T) => {
+      player.seek(T);
+      sendComposer(ComposerEvent.Note({ T }));
+    },
     cancel: () => sendComposer(ComposerEvent.Cancel),
     clearScope: () => setScoped(false),
-    save: (text) => {
+    ask: (kind) => setAsked(kind),
+    save: (written) => {
       const s = composer();
       if (s._tag !== 'Open') return;
-      Option.map(draftOf(film.placed, film.fps, { ...s, text }, scope()), (draft) =>
-        sendComposer(ComposerEvent.Save({ draft })),
+      Option.map(
+        draftOf(film.placed, film.fps, { ...s, text: written.text }, scope(), {
+          kind: asked(),
+          replace: written.replace,
+        }),
+        (draft) => sendComposer(ComposerEvent.Save({ draft })),
       );
     },
     select: (note) => {
@@ -331,8 +382,6 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
         player.now(),
         toward,
       ),
-    (line) => labActions.showCode(Option.some(lineOpen(line))),
-    source.scene,
   );
   // Every note is a place ⌘K goes to by its id and its words.
   registerWhile(meta.hub, () =>
@@ -355,8 +404,11 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
       selected,
       timeOf,
       pen: feed.pen,
+      at,
       where,
       scope: scopeChip,
+      words,
+      asked,
       status: () => composerText(composer()),
       feedStatus: () => feedText(feed.state()),
       threadStatus: feed.threadStatus,
@@ -366,12 +418,76 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
   return <NotesContext value={value}>{props.children}</NotesContext>;
 };
 
-/** The notes' state and actions in the staged lab, for the composer, the marks and the pins. */
-export const Provider = (props: ParentProps) => {
+/**
+ * The notes' state and actions in the staged lab, for the composer, the
+ * marks and the pins, about what the page has selected: the cue, and what
+ * its tools `lent` (the Script's words; `LabProvider` lends the Lab's); the
+ * composer says where a note sits as the page's `where` does.
+ */
+export const Provider = (props: ParentProps<Given>) => {
   const { meta } = useLab();
+  // The page's, for the provider's life: plain values.
+  const lent = props.lent;
+  const where = props.where;
   return (
     <Actor runtime={meta.runtime} spawn={spawnComposer}>
-      {(composer) => <Body composer={composer}>{props.children}</Body>}
+      {(composer) => (
+        <Body composer={composer} lent={lent} where={where}>
+          {props.children}
+        </Body>
+      )}
     </Actor>
+  );
+};
+
+/** The Line target `ctx` holds, when it is a line of the scene `sceneNow` names. */
+const lineHere = (ctx: Context, sceneNow: () => string) =>
+  Option.filter(selectedOf(ctx, 'Line'), (at) => at.scene === sceneNow());
+
+/** Note this line: the Source view's line a menu opened on, held in the code while the frame is noted. */
+const LineNote = () => {
+  const { actions: labActions, meta } = useLab();
+  const { actions } = useNotes();
+  const source = useSource();
+  onCleanup(
+    meta.hub.commands.register({
+      id: 'notes.line',
+      label: 'Note this line',
+      group: 'Notes',
+      about: ['Line'],
+      touch: 'long-press the line in the code, then Note this line',
+      // A note is about the frame shown, so only a line of the scene shown can be noted: a target
+      // the clock has since left (a menu open as playback crossed a scene) is refused, never
+      // read as the same-numbered line of the scene now playing.
+      when: (ctx) => Option.isSome(lineHere(ctx, source.scene)),
+      run: quietly((ctx) =>
+        Option.map(lineHere(ctx, source.scene), (at) => {
+          labActions.showCode(Option.some(lineOpen(at.line)));
+          actions.noteFrame();
+        }),
+      ),
+    }),
+  );
+  return <></>;
+};
+
+/**
+ * The notes on the Lab: about the cue selected, the in and out points
+ * marked and the line the Source view holds, a note's place said by its
+ * scene and the time into it; and Note this line.
+ */
+export const LabProvider = (props: ParentProps) => {
+  const motion = useMotion();
+  const source = useSource();
+  const lent: Lent = {
+    range: motion.state.inOut,
+    source: source.heldSite,
+    words: () => Option.none(),
+  };
+  return (
+    <Provider lent={lent} where={whereText}>
+      <LineNote />
+      {props.children}
+    </Provider>
   );
 };

@@ -1,94 +1,252 @@
-// The notes' pieces the staged film has: the composer, in the notes' place
-// in the page's panel; the marks on the frame (a surface under every other
-// mark that takes a click, a drag or the pen, the draft's marks, and the
-// selected note's on its own frame); and the notes' pins on the timeline.
-// All read the notes' context. The list, the pen and Note frame are the
-// page's (`list.tsx`), rendered by the server as well.
+// The notes' pieces the staged film has: the composer (`Form`), in the
+// notes' place in the Lab's panel (`Section`) or under the Script's line it
+// is about; the marks on the frame (a surface under every other mark that
+// takes a click, a drag or the pen, the draft's marks, and the selected
+// note's on its own frame); and the notes' pins on the timeline. All read
+// the notes' context. The list, the pen and Note frame are the page's
+// (`list.tsx`), rendered by the server as well.
 
+import { Toggle } from '@bible/ui/toggle';
+import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, Portal, Show } from '@solidjs/web';
-import { Effect, Option } from 'effect';
-import { createEffect } from 'solid-js';
+import { Array as Arr, Effect, Option } from 'effect';
+import { createEffect, createSignal, createUniqueId, onCleanup, untrack } from 'solid-js';
 import { DRAG_PX, Pointer, Surface } from '../../browser/pointer.ts';
-import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
+import { quietly } from '../../command/command.ts';
+import type { InkStroke, Note, NoteBox, NoteKind, Point } from '../../core/schema.ts';
 import { focusFor } from '../focus.ts';
 import { useLabPage } from '../panel.tsx';
+import { pressed } from '../pressed.ts';
 import { Lab, useLab } from '../shell.tsx';
-import { useNotes } from './context.tsx';
-import { filmPixel } from './draft.ts';
+import { type Written, useNotes } from './context.tsx';
+import { type Unsaid, filmPixel, unsaid } from './draft.ts';
+
+/** What a note on words can ask of them, as the composer's segmented control names each. */
+const ASKS: ReadonlyArray<{ readonly kind: NoteKind; readonly label: string }> = [
+  { kind: 'note', label: 'Note' },
+  { kind: 'correction', label: 'Correct' },
+  { kind: 'removal', label: 'Remove' },
+];
+
+/** What Save says, for what the note asks. */
+const SAVE: Readonly<Record<NoteKind, string>> = {
+  note: 'Save note',
+  correction: 'Save correction',
+  removal: 'Save removal',
+};
+
+/** What the note's field asks for, on words, by what the note asks of them. */
+const ON_WORDS: Readonly<Record<NoteKind, string>> = {
+  note: 'What should change in these words?',
+  correction: 'Why say it so? (optional)',
+  removal: 'Why cut them? (optional)',
+};
 
 /**
- * The composer, in the notes' place in the page's panel, above the notes the
+ * The note being written: where it sits, what it is about beside its frame
+ * (its scope chip, whose × writes it about the frame alone), on words what
+ * it asks of them (Note, Correct with the words to say instead, under their
+ * label, Remove), its words, Save and Cancel, and why it did not save; ⌘↵
+ * in its fields saves. A Save that makes no note marks the field that says
+ * too little (invalid, described by the line saying why) and takes the keys
+ * there, until it is written in. A note saved or cancelled leaves it empty;
+ * one opened takes the keys in its field (a correction's: the words to say
+ * instead, selected to be written over), showing the ring whatever asked,
+ * as a click into a text field does (`focusFor`).
+ */
+export const Form = () => {
+  const { state, actions } = useNotes();
+  const { meta } = useLab();
+  let form = Option.none<HTMLFormElement>();
+  let area = Option.none<HTMLTextAreaElement>();
+  let instead = Option.none<HTMLInputElement>();
+  // The line that says why Save made no note: what describes the field that said too little.
+  const status = createUniqueId();
+  // ⌘↵ saves from the note's fields, as Save does.
+  onCleanup(
+    meta.hub.commands.register({
+      id: 'notes.save',
+      label: 'Save the note',
+      group: 'Notes',
+      keys: ['mod+enter'],
+      keysIn: ['field'],
+      touch: "the composer's Save button",
+      when: () => state.composerTyping(),
+      run: quietly(() => Option.map(form, (el) => el.requestSubmit())),
+    }),
+  );
+  // Why the last Save made no note, and of which field: until it is opened or closed again, or written in.
+  const [hint, setHint] = createSignal(Option.none<Unsaid>(), { ownedWrite: true });
+  const unhint = () => setHint(Option.none());
+  /** Whether the last Save found `field` saying too little. */
+  const wanting = (field: Unsaid['field']) => Option.exists(hint(), (h) => h.field === field);
+  /** The status line, for a field the last Save found saying too little. */
+  const describedBy = (field: Unsaid['field']) =>
+    Option.getOrUndefined(Option.as(Option.liftPredicate(field, wanting), status));
+  createEffect(
+    () => [state.composerOpen(), state.composerTyping()] as const,
+    ([shown, typing]) => {
+      setHint(Option.none());
+      Option.map(area, (el) => {
+        if (!shown) el.value = '';
+      });
+      if (!typing) return;
+      // A correction opens on the words to say instead, selected to be written over; any other note on its field.
+      Option.match(
+        Option.filter(instead, (el) => el.isConnected && untrack(state.asked) === 'correction'),
+        {
+          onSome: (el) => {
+            focusFor(el, meta.hub.input());
+            el.select();
+          },
+          onNone: () => Option.map(area, (el) => focusFor(el, meta.hub.input())),
+        },
+      );
+    },
+  );
+  const written = (text: string): Written => ({
+    text,
+    replace: Option.match(instead, { onNone: () => '', onSome: (el) => el.value }),
+  });
+  return (
+    <form
+      class="lab-compose"
+      hidden={!state.composerOpen()}
+      ref={(el: HTMLFormElement) => {
+        form = Option.some(el);
+      }}
+      onSubmit={(e) => {
+        e.preventDefault();
+        Option.map(area, (el) => {
+          const said = written(el.value);
+          Option.match(
+            unsaid(said.text, state.words(), { kind: state.asked(), replace: said.replace }),
+            {
+              onSome: (why) => {
+                setHint(Option.some(why));
+                // The keys go to the field that said too little, as a Save that found it wanting asked.
+                Option.map(
+                  Option.orElse(
+                    Option.filter(instead, (field) => why.field === 'instead' && field.isConnected),
+                    () => Option.some<HTMLElement>(el),
+                  ),
+                  (field) => focusFor(field, meta.hub.input()),
+                );
+              },
+              onNone: () => {
+                setHint(Option.none());
+                actions.save(said);
+              },
+            },
+          );
+        });
+      }}
+    >
+      <div class="lab-where">{state.where()}</div>
+      <Show when={Option.getOrUndefined(state.scope())}>
+        {(scope) => (
+          <span class="lab-scope" data-role="note-scope">
+            <span class="lab-scope-text">{scope()}</span>
+            <button
+              type="button"
+              data-act="clear-scope"
+              aria-label="Write it about this frame alone"
+              title="Write it about this frame alone"
+              onClick={actions.clearScope}
+            >
+              ×
+            </button>
+          </span>
+        )}
+      </Show>
+      <Show when={Option.getOrUndefined(state.words())}>
+        {(words) => (
+          <>
+            <ToggleGroup<NoteKind>
+              class="sh-seg lab-asks"
+              aria-label="What the note asks of the words"
+              value={[state.asked()]}
+              onValueChange={(pressed) => {
+                Option.map(Arr.head(pressed), actions.ask);
+              }}
+            >
+              <For each={ASKS}>
+                {(ask) => (
+                  <Toggle<NoteKind> value={ask.kind} data-ask={ask.kind}>
+                    {ask.label}
+                  </Toggle>
+                )}
+              </For>
+            </ToggleGroup>
+            <Show when={state.asked() === 'correction'}>
+              <label class="lab-instead-field">
+                <span class="lab-field-label">Say instead</span>
+                <input
+                  class="lab-instead"
+                  type="text"
+                  autocomplete="off"
+                  spellcheck={false}
+                  aria-invalid={pressed(wanting('instead'))}
+                  aria-describedby={describedBy('instead')}
+                  onInput={unhint}
+                  ref={(el: HTMLInputElement) => {
+                    // The words as they read, to be rewritten: set once, never under the writer's hand.
+                    el.value = untrack(words).text;
+                    instead = Option.some(el);
+                  }}
+                />
+              </label>
+            </Show>
+          </>
+        )}
+      </Show>
+      <textarea
+        rows="3"
+        aria-label="Note"
+        aria-invalid={pressed(wanting('note'))}
+        aria-describedby={describedBy('note')}
+        onInput={unhint}
+        placeholder={Option.match(state.words(), {
+          onNone: () => 'What should change on this frame?',
+          onSome: () => ON_WORDS[state.asked()],
+        })}
+        ref={(el: HTMLTextAreaElement) => {
+          area = Option.some(el);
+        }}
+      />
+      <div class="lab-actions">
+        <button type="submit" class="sh-btn" data-primary="">
+          {Option.match(state.words(), {
+            onNone: () => SAVE.note,
+            onSome: () => SAVE[state.asked()],
+          })}
+        </button>
+        <button type="button" class="sh-btn" data-act="cancel" onClick={actions.cancel}>
+          Cancel
+        </button>
+        <span class="lab-status" role="status" id={status}>
+          {Option.match(hint(), { onNone: () => state.status(), onSome: (h) => h.says })}
+        </span>
+      </div>
+    </form>
+  );
+};
+
+/**
+ * The composer, in the notes' place in the Lab's panel, above the notes the
  * page lists (`list.tsx`).
  */
 export const Section = () => {
-  const { state, actions } = useNotes();
-  const { meta } = useLab();
+  const { state } = useNotes();
   const page = useLabPage();
   // A note begun (Note frame, its key, a pin) shows the Note mode, where it is written: once
   // it waits for its words, so the strip folding in Note never moves the frame under a drag.
   createEffect(state.composerTyping, (typing) => {
     if (typing) page.showMode('note');
   });
-  let area = Option.none<HTMLTextAreaElement>();
-  const open = () => state.composerOpen();
-  // A note saved or cancelled leaves an empty composer; one opened takes the keys, its field
-  // showing the ring whatever asked, as a click into a text field does (`focusFor`).
-  createEffect(
-    () => [state.composerOpen(), state.composerTyping()] as const,
-    ([shown, typing]) => {
-      Option.map(area, (el) => {
-        if (!shown) el.value = '';
-        if (typing) focusFor(el, meta.hub.input());
-      });
-    },
-  );
   return (
     <Lab.Fill at="compose">
-      <form
-        class="lab-compose"
-        hidden={!open()}
-        onSubmit={(e) => {
-          e.preventDefault();
-          Option.map(area, (el) => actions.save(el.value));
-        }}
-      >
-        <div class="lab-where">{state.where()}</div>
-        <Show when={Option.getOrUndefined(state.scope())}>
-          {(scope) => (
-            <span class="lab-scope" data-role="note-scope">
-              <span class="lab-scope-text">{scope()}</span>
-              <button
-                type="button"
-                data-act="clear-scope"
-                aria-label="Write it about this frame alone"
-                title="Write it about this frame alone"
-                onClick={actions.clearScope}
-              >
-                ×
-              </button>
-            </span>
-          )}
-        </Show>
-        <textarea
-          rows="3"
-          aria-label="Note"
-          placeholder="What should change on this frame?"
-          ref={(el: HTMLTextAreaElement) => {
-            area = Option.some(el);
-          }}
-        />
-        <div class="lab-actions">
-          <button type="submit" class="sh-btn" data-primary="">
-            Save note
-          </button>
-          <button type="button" class="sh-btn" data-act="cancel" onClick={actions.cancel}>
-            Cancel
-          </button>
-          <span class="lab-status" role="status">
-            {state.status()}
-          </span>
-        </div>
-      </form>
+      <Form />
     </Lab.Fill>
   );
 };

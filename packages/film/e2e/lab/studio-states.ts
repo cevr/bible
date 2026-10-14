@@ -9,6 +9,7 @@ import type { LabMode } from '../../src/lab/mode.ts';
 import { menuEntry, openCommandMenu, rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
 import {
   type FakeRoute,
+  type Json,
   type Viewport,
   changeOf,
   json,
@@ -65,7 +66,9 @@ export const DEVICES: ReadonlyArray<Device> = [PHONE, LAPTOP];
  * UI-reduction sweep's `count.js` counts them; Progressive
  * disclosure: a thing earns a place at rest by being used in most visits).
  * A budget is raised only in the commit that adds the thing, saying why
- * most visits use it.
+ * most visits use it. A film's views count the page bar, a tab for each of
+ * the studio's parts (`PARTS`): the Script's tab raised each that had no
+ * room by one, as a part is how a visit goes from one to another.
  */
 export interface Budget {
   readonly phone: number;
@@ -75,7 +78,7 @@ export interface Budget {
 /** A view's budget: at most `phone` things on a phone, `laptop` on a laptop. */
 export const most = (phone: number, laptop: number): Budget => ({ phone, laptop });
 /** The Lab's Edit: its budget, which a planted button or a planted line of text passes (the budget's positive controls). */
-export const LAB_EDIT = most(50, 54);
+export const LAB_EDIT = most(51, 55);
 
 /** A page in one state: how it opens on a device, what discloses the state, and the layer measured. */
 export interface State {
@@ -415,8 +418,95 @@ export const LAB_MOVES: Exempt = {
   why: "a film's Lab moves to the scene under its playhead as it opens",
 };
 
+/** The probe film's Script, as its link opens it (`pageHref.script`): its beats read, its words laid out. */
+export const scriptOpen = (viewport: Viewport) =>
+  Effect.gen(function* () {
+    const { page } = yield* openLab([], { viewport, href: pageHref.script(PROBE) });
+    yield* waitFor(page, '.lab-script-picture');
+    return page;
+  });
+
+/** A note the lab lists on the probe film, made at `T` in `scene`: open, with no replies. */
+const listed = (
+  seq: number,
+  scene: string,
+  T: number,
+  fields: { readonly [key: string]: Json },
+) => ({
+  id: `n${seq}`,
+  film: PROBE,
+  scene,
+  T,
+  frame: Math.round(T * 30),
+  status: 'open',
+  still: `n${seq}.png`,
+  thread: [],
+  createdAt: '2026-10-13T00:00:00.000Z',
+  seq,
+  changed: seq,
+  ...fields,
+});
+
+/**
+ * The probe film's notes on its Script: on beat one's words a note, a
+ * correction and a removal, and a note on beat two's frame, whose marker is
+ * in its head, which the agent replied to.
+ */
+const SCRIPT_NOTES: ReadonlyArray<Json> = [
+  listed(1, 'one', 0.1, {
+    words: { beat: 'one', from: 0, to: 1, text: 'The ball' },
+    text: 'a bigger ball',
+  }),
+  listed(2, 'one', 0.4, {
+    words: { beat: 'one', from: 2, to: 3, text: 'rises slowly,' },
+    kind: 'correction',
+    replace: 'climbs slowly,',
+    text: 'say “climbs slowly,” for “rises slowly,”',
+  }),
+  listed(3, 'one', 1.6, {
+    words: { beat: 'one', from: 8, to: 9, text: 'down again.' },
+    kind: 'removal',
+    text: 'remove “down again.”',
+  }),
+  listed(4, 'two', 2.4, {
+    text: 'the second scene sits too still',
+    status: 'replied',
+    thread: [
+      { seq: 1, by: 'agent', text: 'it drifts now, a little', at: '2026-10-13T00:01:00.000Z' },
+    ],
+  }),
+];
+
+/** What the Script's link selects in a beat (`pageHref.scriptBeat`'s). */
+type ScriptPicked = NonNullable<Parameters<typeof pageHref.scriptBeat>[2]>;
+
+/** The probe film's Script at beat one with `picked` selected, over its notes (`SCRIPT_NOTES`). */
+export const scriptAt = (picked: ScriptPicked) => (viewport: Viewport) =>
+  Effect.gen(function* () {
+    const notes = route('GET', /^\/notes$/, () =>
+      json({ film: PROBE, seq: SCRIPT_NOTES.length, notes: SCRIPT_NOTES }),
+    );
+    const { page } = yield* openLab([notes], {
+      viewport,
+      href: pageHref.scriptBeat(PROBE, 'one', picked),
+    });
+    yield* waitFor(page, '.lab-script-picture');
+    yield* waitFor(page, '[data-scene="one"] .lab-script-noted[data-note="n3"]');
+    return page;
+  });
+
+/** The Script's composer: in a sheet on a phone, under the beat's line on a laptop. */
+export const SCRIPT_SHEET = '.lab-script-sheet';
+
+/** A film's Script link moves as its Lab's does: to the beat under the playhead, where the Script is measured. */
+export const SCRIPT_MOVES: Exempt = {
+  measuredAt: 'scriptBeat',
+  why: "a film's Script moves to the beat under its playhead as it opens",
+};
+
 export const STATES: ByPlace<State, AtRest> = {
   lab: LAB_MOVES,
+  script: SCRIPT_MOVES,
   home: [
     {
       name: 'Films',
@@ -432,9 +522,9 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(CHOICES, ...CHOICES_READY),
       disclose: AT_REST,
       // The kinds strip's four tabs are its index on a page this long.
-      budget: most(45, 33),
+      budget: most(46, 33),
       // Its levels, kinds and rows below the fold: a state word back on every row lands here.
-      page: most(99, 100),
+      page: most(100, 101),
     },
     {
       name: "Choices, a variant's inspector",
@@ -471,8 +561,8 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'Project, its panels, stills and dock, with comment counts',
       open: review(PROJECT, ...PROJECT_READY),
       disclose: AT_REST,
-      budget: most(38, 30),
-      page: most(39, 44),
+      budget: most(39, 31),
+      page: most(40, 45),
     },
     {
       name: "Project, a scene row's sheet",
@@ -495,7 +585,7 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'a Set, with a comment count',
       open: review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video', '[data-comments]'),
       disclose: AT_REST,
-      budget: most(27, 28),
+      budget: most(28, 29),
     },
     {
       name: "a Set, the transport's rate chip menu",
@@ -507,13 +597,13 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'a Set, its wipe (the grip a slider)',
       open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=wipe`, '.rv-wipe-grip'),
       disclose: AT_REST,
-      budget: most(33, 27),
+      budget: most(34, 28),
     },
     {
       name: 'a Set, its diff',
       open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=diff`, '.rv-diff'),
       disclose: AT_REST,
-      budget: most(32, 26),
+      budget: most(33, 27),
     },
   ],
   folder: [
@@ -522,8 +612,8 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name'),
       disclose: AT_REST,
       // A loose video is one card, its file in its menu.
-      budget: most(20, 18),
-      page: most(20, 18),
+      budget: most(21, 19),
+      page: most(21, 19),
     },
   ],
   labScene: [
@@ -533,7 +623,7 @@ export const STATES: ByPlace<State, AtRest> = {
       disclose: AT_REST,
       // A phone's peek counted: its grip, its line and its Close over the Edit's at rest, the
       // fields in the sheet below it. A laptop's panel shows the cue's fields, its eases and the knobs.
-      budget: most(40, 80),
+      budget: most(41, 80),
     },
     {
       // On a phone the opened sheet is a layer, as an inspector is: the Lab under it is the case
@@ -544,7 +634,7 @@ export const STATES: ByPlace<State, AtRest> = {
       layer: `:is(${SELECTION_SHEET}, :root:not(:has(${SELECTION_SHEET})))`,
     },
     { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST, budget: LAB_EDIT },
-    { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(39, 43) },
+    { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(40, 44) },
     {
       name: 'Lab, Note with a scoped composer',
       open: labNoteOnCue,
@@ -553,10 +643,10 @@ export const STATES: ByPlace<State, AtRest> = {
         '[data-role="note-scope"] [data-act="clear-scope"]',
       ),
     },
-    { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(42, 49) },
-    { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(40, 44) },
+    { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(43, 50) },
+    { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(41, 45) },
     // Its budget is the resting Record's, with no beats listed.
-    { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(36, 40) },
+    { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(37, 41) },
     { name: 'Lab, Record, its beats and the recorder', open: recording, disclose: AT_REST },
     {
       name: "Lab, the command menu's Go to",
@@ -593,12 +683,52 @@ export const STATES: ByPlace<State, AtRest> = {
       layer: RECEIPTS,
     },
   ],
+  scriptBeat: [
+    {
+      name: 'Script, the beats and their words',
+      open: scriptOpen,
+      disclose: AT_REST,
+      // Its words are what it is read for: each its own text leaf, as the Transcript's are, so a tap
+      // shows it (the probe's are 26 of the laptop's things, 17 of the phone's, where two of its
+      // three beats stand on the first screen). A beat's id and start are one press. How its cues
+      // are tied to its words is what the owner reads it for too: a chip for each mark and a link
+      // for each cue or mark its picture names (8 on the laptop, 4 on the phone). Notes are what
+      // the owner leaves on it: Note frame in its head is the one at rest (a note on words comes
+      // from their selection).
+      budget: most(51, 72),
+    },
+    {
+      // A mark picked: the cues tied to it under its beat's line, each a row that picks it.
+      name: 'Script, a mark and the cues tied to it',
+      open: scriptOpen,
+      disclose: opens('[data-scene="three"] .lab-script-mark[data-mark="near"]', '.lab-script-tie'),
+    },
+    {
+      // Words selected, then Note… and Correct: the composer on them, its field of the words to
+      // say instead. On a phone the sheet is a layer: the Script under it is the case below.
+      name: 'Script, the composer on the words selected, correcting them',
+      open: scriptAt({ words: '4-7' }),
+      disclose: (page) =>
+        Effect.gen(function* () {
+          yield* opens('[data-act="note-words"]', '.lab-compose:not([hidden])')(page);
+          yield* opens('.lab-compose [data-ask="correction"]', '.lab-compose .lab-instead')(page);
+        }),
+      layer: `:is(${SCRIPT_SHEET}, :root:not(:has(${SCRIPT_SHEET})))`,
+    },
+    {
+      // A note, a correction and a removal on beat one's words, each its marker after them, a
+      // frame note's in beat two's head; the correction selected opens under its line.
+      name: 'Script, notes on its words and one selected',
+      open: scriptAt({ note: 'n2' }),
+      disclose: (page) => waitFor(page, '.lab-script-shown[data-note="n2"] .lab-reply-input'),
+    },
+  ],
   scenes: [
     {
       name: 'Scenes',
       open: player(pageHref.scenes(PROBE), STILL),
       disclose: AT_REST,
-      budget: most(20, 21),
+      budget: most(21, 22),
     },
   ],
   scene: [
@@ -608,7 +738,7 @@ export const STATES: ByPlace<State, AtRest> = {
       open: player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
       disclose: AT_REST,
       // The tape under the sheet and the sheet's own fields, counted as the page shows them.
-      budget: most(27, 34),
+      budget: most(28, 35),
       layer: '[data-role="scene"]',
     },
   ],
@@ -617,7 +747,7 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'Play',
       open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
       disclose: AT_REST,
-      budget: most(18, 18),
+      budget: most(19, 19),
     },
     {
       name: 'Play, the view menu',

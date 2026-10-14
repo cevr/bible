@@ -36,6 +36,8 @@ const PLACES = {
   play: pageHref.play('f'),
   lab: pageHref.lab('f'),
   labScene: pageHref.labScene('f', 's'),
+  script: pageHref.script('f'),
+  scriptBeat: pageHref.scriptBeat('f', 's'),
 } satisfies Record<Exclude<keyof typeof Places, 'export'>, string>;
 
 /**

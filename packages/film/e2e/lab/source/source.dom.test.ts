@@ -8,7 +8,13 @@ import { Deferred, Effect, Exit, Option } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { HeadUnavailable } from '../../../src/core/refusals.ts';
-import { MENU_ITEMS, rightClick, touch as fingerDown } from '../../../src/lab/fixtures/gestures.ts';
+import {
+  MENU_ITEMS,
+  menuEntry,
+  openCommandMenu,
+  rightClick,
+  touch as fingerDown,
+} from '../../../src/lab/fixtures/gestures.ts';
 import {
   PHONE,
   json,
@@ -81,6 +87,7 @@ const CODE = {
     },
   ],
   knobs: [{ name: 'spot', at: range('spot: [320, 200]'), reads: [range("f.knob('spot')")] }],
+  marks: [],
   refused: [],
 };
 
@@ -97,6 +104,9 @@ const SPOT_LINE = lineOfText('spot: [320, 200]');
 const LONG_LINE = lineOfText('// a long line');
 /** The file's last line: the long comment, before the newline that ends the file. */
 const LAST_LINE = LONG_LINE;
+/** The draw's reads of each cue: the probe's draw reads both every frame, so each fires while its cue plays. */
+const RISE_READ_LINE = lineOfText("f.at('rise')");
+const FALL_READ_LINE = lineOfText("f.at('fall')");
 
 /** Scene one's small source answer, as the server gives it: each cue and knob with the line that writes it. */
 const sourceAnswer = () =>
@@ -118,14 +128,19 @@ const span = (name: string) => {
   return { start: start + (cue?.start ?? 0), end: start + (cue?.end ?? 0) };
 };
 const middle = (name: string) => (span(name).start + span(name).end) / 2;
+/** The film seconds in `#t=`. */
+const HASH_T = `Number(location.hash.slice('#t='.length))`;
+/** Half a frame into `s`: where a tap seeks for what starts at `s`, so the frame landed on plays it. */
+const into = (s: number) => s + 0.5 / probeFilm().fps;
 
 /** The names of the cue lanes lit on the strip. */
 const LANES = `[...document.querySelectorAll('.lab-cue[data-live]')].map((e) => e.dataset.cue).sort()`;
 
-/** The names of the cue literals the code view paints as playing: the highlight's ranges, read back as the text they cover. */
+/** What the code view paints as `name`: the highlight's ranges, read back as the text they cover. */
 const painted = (name: string) =>
   `(() => [...(CSS.highlights.get('${name}') ?? [])].map((r) => r.toString()).sort())()`;
-const PAINTED = `(() => [...(CSS.highlights.get('lab-live') ?? [])].map((r) => r.toString().split(':')[0]).sort())()`;
+/** The names of the cue literals the code view paints as playing: what plays, the reads firing with them (`f.at(…)`) left out. */
+const PAINTED = `${painted('lab-live')}.filter((r) => !r.startsWith('f.')).map((r) => r.split(':')[0])`;
 
 /** A screen of comment lines, to put a literal below a box's first screen. */
 const FILLER = Array.from({ length: 60 }, (_, i) => `// filler ${i + 1}`).join('\n');
@@ -151,6 +166,8 @@ const lineIn = (text: string, needle: string) =>
 /** `rise`'s literal near the end of the file, below its first screen. */
 const LONG_TEXT = `${FILLER}\n${TEXT}`;
 const LONG_RISE_LINE = lineIn(LONG_TEXT, "rise: { mark: 'rise'");
+/** The draw's read of `rise` in `LONG_TEXT`: what Follow shows while rise plays, as the frame reads it. */
+const LONG_READ_LINE = lineIn(LONG_TEXT, "f.at('rise')");
 const longRoute = route('GET', /^\/scenes\/one\/code$/, () => json(codeOf(LONG_TEXT)));
 /**
  * The timeline at the top, the knobs and the draw a screen below it, and a
@@ -168,6 +185,21 @@ const SPLIT_TEXT = [
 const splitRoute = route('GET', /^\/scenes\/one\/code$/, () => json(codeOf(SPLIT_TEXT)));
 const SPLIT_SPOT_LINE = lineIn(SPLIT_TEXT, 'spot: [320, 200]');
 const SPLIT_FALL_LINE = lineIn(SPLIT_TEXT, "fall: { mark: 'fall'");
+/**
+ * The timeline and the knobs at the top, and the draw that reads them a
+ * screen below: before any cue Follow looks at the knob the frame read, at
+ * the top, and a cue edge takes it down to the read that fires.
+ */
+const DRAW_AT = TEXT_LINES.findIndex((l) => l.includes('draw:'));
+const READ_TEXT = [
+  ...TEXT_LINES.slice(0, DRAW_AT),
+  FILLER,
+  ...TEXT_LINES.slice(DRAW_AT),
+  FILLER,
+].join('\n');
+const readRoute = route('GET', /^\/scenes\/one\/code$/, () => json(codeOf(READ_TEXT)));
+const READ_SPOT_LINE = lineIn(READ_TEXT, 'spot: [320, 200]');
+const READ_RISE_LINE = lineIn(READ_TEXT, "f.at('rise')");
 /** Whether line `n` of the code in the selection's sheet shows inside the box that scrolls it. */
 const inSheet = (n: number) => `(() => {
   const row = document.querySelector('.lab-selection-sheet .lab-source-line[data-line="${n}"]');
@@ -223,21 +255,38 @@ describe('what is lit', () => {
     );
 
   it.live(
-    'a frame inside rise lights rise’s literal, names it in the head and meters its line',
+    'a frame inside rise lights rise’s literal, names it in the band over the code and meters its line',
     () =>
       Effect.gen(function* () {
         const { page } = yield* openLab([codeRoute], {
           href: labOne(middle('rise'), { code: 'follow' }),
         });
         yield* page.waitFor('.lab-source-col .lab-source-page');
-        yield* textIs(page, '.lab-source-live', 'rise');
+        yield* textIs(page, '.lab-source-beat .lab-source-live', 'rise');
         yield* evaluates(page, PAINTED, ['rise']);
         yield* attributeIs(page, '.lab-source-meter', 'data-cue', 'rise');
+        // The meter runs under the line's text, never its number: from where the text starts, as far along it as
+        // the cue is done.
+        yield* evaluates(
+          page,
+          `(() => {
+            const row = document.querySelector('.lab-source-col .lab-source-line[data-line="${RISE_LINE}"]');
+            const meter = row.querySelector('.lab-source-meter');
+            const text = row.querySelector('.lab-source-t');
+            const box = text.getBoundingClientRect();
+            const from = box.left + parseFloat(getComputedStyle(text).paddingLeft);
+            const to = box.right - parseFloat(getComputedStyle(text).paddingRight);
+            const done = Number(meter.style.getPropertyValue('--done'));
+            const drawn = meter.getBoundingClientRect();
+            return done > 0 && Math.abs(drawn.left - from) < 1 && Math.abs(drawn.width - done * (to - from)) < 1;
+          })()`,
+          true,
+        );
       }).pipe(Effect.scoped),
   );
 
   it.live(
-    'a timeline the lab cannot locate says why in the head, where the strip lights a cue the code cannot',
+    'a timeline the lab cannot locate says why in the band, where the strip lights a cue the code cannot',
     () =>
       Effect.gen(function* () {
         const reason = 'it is `make()`, not an object literal';
@@ -249,7 +298,7 @@ describe('what is lit', () => {
         });
         yield* page.waitFor('.lab-source-col .lab-source-page');
         yield* evaluates(page, LANES, ['rise']);
-        yield* textIs(page, '.lab-source-live', `timeline not lit: ${reason}`);
+        yield* textIs(page, '.lab-source-beat .lab-source-live', `timeline not lit: ${reason}`);
       }).pipe(Effect.scoped),
   );
 });
@@ -736,7 +785,7 @@ describe('on a phone, the highlights stay with the one text that is shown', () =
         viewport: PHONE,
       });
       yield* page.waitFor('.lab-selection-sheet .lab-source-page');
-      const lit = `JSON.stringify([${painted('lab-live')}, ${painted('lab-read')}, ${painted('lab-picked')}].map((r) => r.length > 0))`;
+      const lit = `JSON.stringify([${painted('lab-live')}, ${painted('lab-knob-read')}, ${painted('lab-picked')}].map((r) => r.length > 0))`;
       yield* evaluates(page, lit, '[true,true,true]');
       yield* page.click('.lab-selection-sheet [data-act="sheet"]');
       yield* page.click('.lab-modes [data-mode-pick="note"]');
@@ -801,16 +850,18 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
     return r.top >= b.top && r.bottom <= b.bottom && r.bottom <= window.innerHeight;
   })()`;
 
-  it.live('?code=follow at a frame inside rise shows rise’s line, and Follow is pressed', () =>
-    Effect.gen(function* () {
-      const { page } = yield* openLab([longRoute], {
-        href: labOne(middle('rise'), { code: 'follow' }),
-        viewport: touch,
-      });
-      yield* page.waitFor('.lab-source-sheet .lab-source-page');
-      yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-      yield* evaluates(page, showing(LONG_RISE_LINE), true);
-    }).pipe(Effect.scoped),
+  it.live(
+    '?code=follow at a frame inside rise shows the line that reads it, and Follow is pressed',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([longRoute], {
+          href: labOne(middle('rise'), { code: 'follow' }),
+          viewport: touch,
+        });
+        yield* page.waitFor('.lab-source-sheet .lab-source-page');
+        yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
+        yield* evaluates(page, showing(LONG_READ_LINE), true);
+      }).pipe(Effect.scoped),
   );
 
   it.live('?code=<line> shows the held line', () =>
@@ -860,7 +911,7 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
         yield* page.evaluate(FRAMES);
         // The shorter box left the line below its edge: the view placed it again.
         yield* evaluates(page, `${BOX}.scrollTop !== window.__before`, true);
-        yield* evaluates(page, showing(LONG_RISE_LINE), true);
+        yield* evaluates(page, showing(LONG_READ_LINE), true);
         yield* page.evaluate(FRAMES);
         yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
       }).pipe(Effect.scoped),
@@ -896,7 +947,7 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
       });
       yield* page.waitFor('.lab-source-sheet .lab-source-page');
       yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-      yield* evaluates(page, showing(LONG_RISE_LINE), true);
+      yield* evaluates(page, showing(LONG_READ_LINE), true);
       yield* page.evaluate(`window.__before = ${BOX}.scrollTop`);
       yield* page.resize(390, 1400);
       yield* page.evaluate(FRAMES);
@@ -996,20 +1047,20 @@ describe('on a phone, the sheet’s code scrolls to its line', () => {
         });
         yield* page.waitFor('.lab-source-sheet .lab-source-page');
         yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-        yield* evaluates(page, showing(LONG_RISE_LINE), true);
+        yield* evaluates(page, showing(LONG_READ_LINE), true);
         yield* page.evaluate(
           `(() => { const box = document.querySelector('.lab-source-sheet .lab-source-scroll'); box.scrollTop = 0; })()`,
         );
         yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'false');
         yield* page.click(FOLLOW_SHEET);
         yield* attributeIs(page, FOLLOW_SHEET, 'aria-pressed', 'true');
-        yield* evaluates(page, showing(LONG_RISE_LINE), true);
+        yield* evaluates(page, showing(LONG_READ_LINE), true);
       }).pipe(Effect.scoped),
   );
 });
 
 describe('a line of the code', () => {
-  it.live('a tap holds it and selects the cue written there', () =>
+  it.live('a tap holds it, selects the cue written there and seeks to where it plays', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([codeRoute, sourceRoute], {
         href: labOne(1, { code: 'follow' }),
@@ -1019,10 +1070,29 @@ describe('a line of the code', () => {
       yield* attributeIs(page, '.lab-source-held', 'data-line', String(FALL_LINE));
       yield* evaluates(page, `location.search.includes('cue=fall')`, true);
       yield* evaluates(page, `location.search.includes('code=${FALL_LINE}')`, true);
+      yield* evaluates(page, `Math.abs(${HASH_T} - ${into(span('fall').start)}) < 0.002`, true);
     }).pipe(Effect.scoped),
   );
 
-  it.live('a tap on a line that writes nothing holds it and leaves the selection', () =>
+  it.live('a tap on a read seeks to where it next fires, as one step Back walks', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute, sourceRoute], {
+        href: labOne(0.05, { code: 'follow' }),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* page.click(`.lab-source-line[data-line="${RISE_READ_LINE}"]`);
+      yield* attributeIs(page, '.lab-source-held', 'data-line', String(RISE_READ_LINE));
+      // The read writes no cue: nothing is selected, and the frame is rise's first.
+      yield* evaluates(page, `location.search.includes('cue=')`, false);
+      yield* evaluates(page, `Math.abs(${HASH_T} - ${into(span('rise').start)}) < 0.002`, true);
+      yield* page.back;
+      yield* evaluates(page, `location.search.includes('code=follow')`, true);
+      yield* evaluates(page, `Math.abs(${HASH_T} - 0.05) < 0.002`, true);
+      yield* countIs(page, '.lab-source-held', 0);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a tap on a line that writes nothing holds it, leaves the selection and the frame', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([codeRoute, sourceRoute], {
         href: labOne(1, { code: 'follow' }),
@@ -1031,6 +1101,7 @@ describe('a line of the code', () => {
       yield* page.click('.lab-source-line[data-line="1"]');
       yield* attributeIs(page, '.lab-source-held', 'data-line', '1');
       yield* evaluates(page, `location.search.includes('cue=')`, false);
+      yield* evaluates(page, `Math.abs(${HASH_T} - 1) < 0.002`, true);
     }).pipe(Effect.scoped),
   );
 
@@ -1046,6 +1117,22 @@ describe('a line of the code', () => {
         page,
         `${MENU_ITEMS}.includes('notes.line') && ${MENU_ITEMS}.includes('link.copy')`,
         true,
+      );
+      // The row the menu is on, and it alone, is marked under it, as the kit's rows are: the
+      // page's one menu serves every row, and only the row that opened it is open.
+      yield* evaluates(
+        page,
+        `(() => {
+          const probe = document.createElement('i');
+          probe.style.background = 'var(--surface-3)';
+          document.body.append(probe);
+          const raised = getComputedStyle(probe).backgroundColor;
+          probe.remove();
+          return [...document.querySelectorAll('.lab-source-line')]
+            .filter((row) => getComputedStyle(row).backgroundColor === raised)
+            .map((row) => row.dataset.line);
+        })()`,
+        [String(RISE_LINE)],
       );
       yield* page.click('[data-role="context-menu"] [data-command="notes.line"]');
       yield* textIs(
@@ -1064,6 +1151,7 @@ describe('a line of the code', () => {
         text: ['// two', 'a', 'b', 'c', 'const d = 4;', 'e'].join('\n'),
         cues: [],
         knobs: [],
+        marks: [],
         refused: [],
       };
       const twoRoute = route('GET', /^\/scenes\/two\/code$/, () => json(TWO));
@@ -1166,6 +1254,11 @@ describe('Follow', () => {
   const FOLLOW_BUTTON = '.lab-source-col [data-act="follow-source"]';
   /** A scroll to the box's end that no event but the scroll announces: what find-in-page or assistive tech does. */
   const HAND = `(() => { const box = document.querySelector('.lab-source-col .lab-source-scroll'); box.scrollTop = box.scrollHeight; })()`;
+  /** The column's box the code scrolls in. */
+  const COL_BOX = `document.querySelector('.lab-source-col .lab-source-scroll')`;
+  /** Whether line `n` of the column's code shows whole inside its box. */
+  const inBox = (n: number) =>
+    `(() => { const r = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]').getBoundingClientRect(); const b = ${COL_BOX}.getBoundingClientRect(); return r.top >= b.top && r.bottom <= b.bottom; })()`;
 
   it.live('a hand on the scroll suspends it; Follow takes it back', () =>
     Effect.gen(function* () {
@@ -1200,39 +1293,60 @@ describe('Follow', () => {
   );
 
   it.live(
-    'a command key (the next cue edge) with the code focused scrolls it to the cue, and Follow stays pressed',
+    'a command key (the next cue edge) with the code focused scrolls it to the read that fires, and Follow stays pressed',
     () =>
       Effect.gen(function* () {
         // The column, not a phone's sheet: a sheet is a dialog, whose focus takes its own keys
         // (`command/context.ts` focusOf), so `.` seeks only with the column's code focused.
-        const COL_BOX = `document.querySelector('.lab-source-col .lab-source-scroll')`;
-        const inBox = (n: number) =>
-          `(() => { const r = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]').getBoundingClientRect(); const b = ${COL_BOX}.getBoundingClientRect(); return r.top >= b.top && r.bottom <= b.bottom; })()`;
-        const { page } = yield* openLab([splitRoute], {
+        const { page } = yield* openLab([readRoute], {
           href: labOne(0.05, { code: 'follow' }),
           viewport: short,
         });
         yield* page.waitFor('.lab-source-col .lab-source-page');
         yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
-        // Before any cue the view follows the knob the frame read, a screen down the file.
-        yield* evaluates(page, inBox(SPLIT_SPOT_LINE), true);
-        yield* evaluates(page, `${COL_BOX}.scrollTop > 0`, true);
+        // Before any cue the view follows the knob the frame read, written at the top.
+        yield* evaluates(page, inBox(READ_SPOT_LINE), true);
+        yield* evaluates(page, inBox(READ_RISE_LINE), false);
         yield* page.evaluate(`window.__before = ${COL_BOX}.scrollTop`);
         yield* page.focus('.lab-source-col .lab-source-page');
         yield* page.press('.');
-        // The edge plays a cue written at the top: the view scrolled there itself.
+        // The edge plays a cue the draw reads a screen down: the view scrolled there itself.
         yield* evaluates(
           page,
           `Math.abs(Number(location.hash.slice('#t='.length)) - ${span('rise').start}) < 0.02`,
           true,
         );
-        yield* evaluates(page, inBox(RISE_LINE), true);
-        yield* evaluates(page, `${COL_BOX}.scrollTop < window.__before`, true);
+        yield* evaluates(page, inBox(READ_RISE_LINE), true);
+        yield* evaluates(page, `${COL_BOX}.scrollTop > window.__before`, true);
         yield* page.evaluate(FRAMES);
         yield* page.evaluate(FRAMES);
         yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
       }).pipe(Effect.scoped),
   );
+
+  // A link, a pause or a step between the reads or after them stands where the playing frame stood: on the read that
+  // began last, a screen down, never the knob the frame reads at the top.
+  for (const [when, at, line] of [
+    ['between the reads', (span('rise').end + span('fall').start) / 2, READ_RISE_LINE],
+    [
+      'after them',
+      (span('fall').end + (one?.start ?? 0) + (one?.dur ?? 0)) / 2,
+      lineIn(READ_TEXT, "f.at('fall')"),
+    ],
+  ] as const) {
+    it.live(`a still frame ${when} stands on the read that began last, not the knobs`, () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([readRoute], {
+          href: labOne(at, { code: 'follow' }),
+          viewport: short,
+        });
+        yield* page.waitFor('.lab-source-col .lab-source-page');
+        yield* attributeIs(page, FOLLOW_BUTTON, 'aria-pressed', 'true');
+        yield* evaluates(page, inBox(line), true);
+        yield* evaluates(page, inBox(READ_SPOT_LINE), false);
+      }).pipe(Effect.scoped),
+    );
+  }
 
   it.live('a held line is not following; Follow lets go of it', () =>
     Effect.gen(function* () {
@@ -1323,18 +1437,357 @@ describe('what the selection and the frame’s reads light', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live('the knobs the frame read are lit as reads', () =>
+  it.live('the knobs the frame read are marked as read, and never in the ink of what plays', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([codeRoute], {
         href: labOne(middle('rise'), { code: 'follow' }),
       });
       yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* evaluates(page, painted('lab-knob-read'), ["f.knob('spot')", 'spot: [320, 200]']);
+      // What plays is rise's literal and its read, firing: the knob read on every frame is not among them.
+      yield* evaluates(page, painted('lab-live'), [
+        "f.at('rise')",
+        "rise: { mark: 'rise', dur: 0.6 }",
+      ]);
+    }).pipe(Effect.scoped),
+  );
+});
+
+/** How brightly line `n` of the column's code glows, to a tenth: 0 when nothing fires on it or has just fired. */
+const glow = (n: number) =>
+  `(() => { const row = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]'); return Math.round(Number(row.style.getPropertyValue('--glow') || 0) * 10) / 10; })()`;
+/** How strongly line `n`'s edge, at the row's left, is drawn, to a tenth: as its glow. */
+const edge = (n: number) =>
+  `(() => { const row = document.querySelector('.lab-source-col .lab-source-line[data-line="${n}"]'); return Math.round(Number(getComputedStyle(row, '::before').opacity) * 10) / 10; })()`;
+
+describe('the reads that fire, and the beat they are on', () => {
+  /** The reads of the clock lit as firing: what plays, the cues' literals left out. */
+  const FIRING = `${painted('lab-live')}.filter((r) => r.startsWith('f.at('))`;
+
+  const frames = [
+    ['while rise plays, its read fires and glows', middle('rise'), 1, ["f.at('rise')"]],
+    ['a moment after rise ends, its line still glows, fading', span('rise').end + 0.3, 0.5, []],
+    ['past the trail, its line is dark again', span('rise').end + 0.7, 0, []],
+  ] as const;
+  for (const [name, T, rise, firing] of frames)
+    it.live(name, () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([codeRoute], { href: labOne(T, { code: 'follow' }) });
+        yield* page.waitFor('.lab-source-col .lab-source-page');
+        yield* evaluates(page, glow(RISE_READ_LINE), rise);
+        // Its edge at the row's left fades with it, so a trail reads down one column.
+        yield* evaluates(page, edge(RISE_READ_LINE), rise);
+        // Fall has not begun: its read neither fires nor glows.
+        yield* evaluates(page, glow(FALL_READ_LINE), 0);
+        yield* evaluates(page, edge(FALL_READ_LINE), 0);
+        yield* evaluates(page, FIRING, firing);
+      }).pipe(Effect.scoped),
+    );
+
+  it.live('a read the frame did not make stays dark while its cue plays', () =>
+    Effect.gen(function* () {
+      // Scene three's draw reads its knobs and never its cue: the cue's literal lights by the clock, and a
+      // read of it the frame never made neither fires nor glows.
+      const text = [
+        'export const shot = drawing({',
+        "  timeline: { push: { mark: 'near', until: 'held' } },",
+        '  draw: (f) => {',
+        "    const lean = f.at('push');",
+        '  },',
+        '});',
+        '',
+      ].join('\n');
+      const at = (needle: string): readonly [number, number] => {
+        const from = text.indexOf(needle);
+        return [from, from + needle.length];
+      };
+      const three = route('GET', /^\/scenes\/three\/code$/, () =>
+        json({
+          scene: 'three',
+          file: 'scenes/three.ts',
+          text,
+          cues: [
+            {
+              name: 'push',
+              at: at("push: { mark: 'near', until: 'held' }"),
+              reads: [at("f.at('push')")],
+            },
+          ],
+          knobs: [],
+          marks: [],
+          refused: [],
+        }),
+      );
+      const push = probeFilm().placed[2]?.cues.get('push');
+      const t = ((push?.start ?? 0) + (push?.end ?? 0)) / 2;
+      const { page } = yield* openLab([three], {
+        href: pageHref.labScene(PROBE, 'three', { code: 'follow' }, Option.some(t)),
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      // What plays is the literal alone: the read the frame never made is not lit with it.
+      yield* evaluates(page, painted('lab-live'), ["push: { mark: 'near', until: 'held' }"]);
+      yield* evaluates(page, glow(text.split('\n').findIndex((l) => l.includes('f.at(')) + 1), 0);
+      yield* textIs(page, '.lab-source-col [data-role="beat"]', 'three · {near}');
+    }).pipe(Effect.scoped),
+  );
+
+  const beats = [
+    ['before its first mark, the band names the scene alone', 0.05, 'one'],
+    ['once its voice says a mark, the band names the mark too', middle('rise'), 'one · {rise}'],
+    ['the mark it names is the last one said', middle('fall'), 'one · {fall}'],
+  ] as const;
+  for (const [name, T, words] of beats)
+    it.live(name, () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([codeRoute], { href: labOne(T, { code: 'follow' }) });
+        yield* page.waitFor('.lab-source-col .lab-source-page');
+        yield* textIs(page, '.lab-source-col [data-role="beat"]', words);
+      }).pipe(Effect.scoped),
+    );
+});
+
+/** The code in Code mode: the column `?code=live` opens. */
+const LIVE_COL = '.lab-source-col[data-code="live"]';
+/**
+ * A lab opened in Code mode is ready once its code stands (`openLab`'s
+ * `ready`): the panel the harness waits on otherwise is set aside, and the
+ * column stands only on a staged film.
+ */
+const LIVE_READY = `${LIVE_COL} .lab-source-page`;
+/** The head's Code mode toggle. */
+const CODE_MODE = '.lab-source-col [data-act="code-mode"]';
+/** Whether the panel (the modes and their tools) shows. */
+const PANEL_SHOWN = `document.querySelector('.lab-panel').checkVisibility()`;
+/** Whether the strip shows its cue lanes, or has folded to its words. */
+const LANES_SHOWN = `[...document.querySelectorAll('.lab-strip-row')].some((r) => r.checkVisibility())`;
+/** How the view is open, as `?code=` says it. */
+const CODE_KEY = `new URLSearchParams(location.search).get('code')`;
+
+describe('Code mode', () => {
+  it.live('?code=live gives the code the picture’s other half, the panel set aside', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(middle('rise'), { code: 'live' }),
+        ready: LIVE_READY,
+      });
+      yield* evaluates(page, PANEL_SHOWN, false);
       yield* evaluates(
         page,
-        `${painted('lab-read')}.includes('spot: [320, 200]') && ${painted('lab-read')}.includes("f.knob('spot')")`,
+        `Math.abs(document.querySelector('.lab-source-col').getBoundingClientRect().width - document.querySelector('.stage').getBoundingClientRect().width) <= 1`,
         true,
       );
+      // The strip keeps Edit's lanes, the one playing lit under the picture beside the code: the picture's half has
+      // the room (a phone's strip folds to its words).
+      yield* evaluates(page, `${LANES_SHOWN} && ${LANES}.join() === 'rise'`, true);
+      yield* attributeIs(page, CODE_MODE, 'aria-pressed', 'true');
+      // It follows the frame, and lights what Follow lights.
+      yield* attributeIs(
+        page,
+        '.lab-source-col [data-act="follow-source"]',
+        'aria-pressed',
+        'true',
+      );
+      yield* evaluates(page, PAINTED, ['rise']);
+      yield* evaluates(page, glow(RISE_READ_LINE), 1);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'Code mode in the head enters it as a step Back walks, and pressed again leaves to following',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([codeRoute], { href: labOne(1, { code: 'follow' }) });
+        yield* page.waitFor('.lab-source-col .lab-source-page');
+        yield* attributeIs(page, CODE_MODE, 'aria-pressed', 'false');
+        yield* page.click(CODE_MODE);
+        yield* evaluates(page, CODE_KEY, 'live');
+        yield* attributeIs(page, CODE_MODE, 'aria-pressed', 'true');
+        yield* evaluates(page, PANEL_SHOWN, false);
+        yield* page.back;
+        yield* evaluates(page, CODE_KEY, 'follow');
+        yield* evaluates(page, PANEL_SHOWN, true);
+        yield* page.forward;
+        yield* attributeIs(page, CODE_MODE, 'aria-pressed', 'true');
+        yield* page.click(CODE_MODE);
+        yield* evaluates(page, CODE_KEY, 'follow');
+        yield* evaluates(page, PANEL_SHOWN, true);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('⌘K’s Code mode opens it from a shut view, and Leave code mode leaves to following', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], { href: labOne(1) });
+      yield* openCommandMenu(page, 'code mode');
+      yield* page.click(menuEntry('lab.source.live'));
+      yield* page.waitFor(LIVE_READY);
+      yield* evaluates(page, CODE_KEY, 'live');
+      yield* openCommandMenu(page, 'code mode');
+      yield* textHas(page, menuEntry('lab.source.live'), 'Leave code mode');
+      yield* page.click(menuEntry('lab.source.live'));
+      yield* evaluates(page, CODE_KEY, 'follow');
+      yield* evaluates(page, PANEL_SHOWN, true);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a tap on a playing literal seeks to its cue’s start, holding and selecting nothing',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([codeRoute, sourceRoute], {
+          href: labOne(middle('rise'), { code: 'live' }),
+          ready: LIVE_READY,
+        });
+        yield* page.click(`.lab-source-line[data-line="${RISE_LINE}"]`);
+        yield* evaluates(page, `Math.abs(${HASH_T} - ${into(span('rise').start)}) < 0.002`, true);
+        yield* countIs(page, '.lab-source-held', 0);
+        yield* evaluates(page, 'location.search', '?code=live');
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a line still glowing after its read seeks to where it fired; a dark line, a cue not playing among them, stays still',
+    () =>
+      Effect.gen(function* () {
+        const T = span('rise').end + 0.3;
+        const { page } = yield* openLab([codeRoute, sourceRoute], {
+          href: labOne(T, { code: 'live' }),
+          ready: LIVE_READY,
+        });
+        // The pointer says which lines answer: the glowing one, and neither the dark one nor the cue not playing.
+        const cursorOf = (line: number) =>
+          `getComputedStyle(document.querySelector('.lab-source-line[data-line="${line}"]')).cursor`;
+        yield* evaluates(
+          page,
+          `[${cursorOf(1)}, ${cursorOf(FALL_LINE)}, ${cursorOf(RISE_READ_LINE)}].join()`,
+          'default,default,pointer',
+        );
+        yield* attributeIs(
+          page,
+          `.lab-source-line[data-line="${RISE_READ_LINE}"]`,
+          'data-lit',
+          'true',
+        );
+        yield* page.click('.lab-source-line[data-line="1"]');
+        yield* page.click(`.lab-source-line[data-line="${FALL_LINE}"]`);
+        yield* page.evaluate(FRAMES);
+        yield* evaluates(page, `Math.abs(${HASH_T} - ${T}) < 0.002`, true);
+        yield* page.click(`.lab-source-line[data-line="${RISE_READ_LINE}"]`);
+        yield* evaluates(page, `Math.abs(${HASH_T} - ${into(span('rise').start)}) < 0.002`, true);
+        yield* countIs(page, '.lab-source-held', 0);
+        yield* evaluates(page, 'location.search', '?code=live');
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('a line’s menu still opens, and Note this line leaves Code mode to note it', () =>
+    Effect.gen(function* () {
+      // Noting from the Note mode, as the owner would: Code mode entered from it, and left by the note.
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(1, { code: 'follow' }),
+        mode: 'note',
+      });
+      yield* page.waitFor('.lab-source-col .lab-source-page');
+      yield* page.click(CODE_MODE);
+      yield* page.waitFor(LIVE_READY);
+      yield* rightClick(page, `.lab-source-line[data-line="${RISE_LINE}"]`);
+      yield* evaluates(
+        page,
+        `${MENU_ITEMS}.includes('notes.line') && ${MENU_ITEMS}.includes('link.copy')`,
+        true,
+      );
+      yield* page.click('[data-role="context-menu"] [data-command="notes.line"]');
+      yield* evaluates(page, CODE_KEY, `${RISE_LINE}`);
+      yield* textIs(
+        page,
+        '[data-role="note-scope"] .lab-scope-text',
+        `one · scenes/one.ts:${RISE_LINE}`,
+      );
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a note begun leaves Code mode for the panel it is written in, as a step', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([codeRoute], {
+        href: labOne(1, { code: 'live' }),
+        ready: LIVE_READY,
+      });
+      yield* page.press('n');
+      yield* evaluates(page, CODE_KEY, 'follow');
+      yield* evaluates(page, PANEL_SHOWN, true);
+      yield* attributeIs(page, '.lab-panel', 'data-mode', 'note');
+      yield* evaluates(page, `document.querySelector('.lab-compose').checkVisibility()`, true);
+      yield* page.back;
+      yield* evaluates(page, CODE_KEY, 'live');
+    }).pipe(Effect.scoped),
+  );
+});
+
+describe('Code mode on a phone', () => {
+  const touch = { ...PHONE, coarse: true };
+
+  it.live(
+    'the code takes the screen under the picture and over the dock, in no sheet; it fits the window and a finger',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([codeRoute], {
+          href: labOne(middle('rise'), { code: 'live' }),
+          viewport: touch,
+          ready: LIVE_READY,
+        });
+        yield* countIs(page, '.lab-source-sheet', 0);
+        yield* evaluates(page, PANEL_SHOWN, false);
+        yield* evaluates(
+          page,
+          `(() => {
+            const col = document.querySelector('.lab-source-col').getBoundingClientRect();
+            const dock = document.querySelector('.bar > .row').getBoundingClientRect();
+            return col.top >= document.querySelector('.stage').getBoundingClientRect().bottom && col.bottom <= dock.top + 1 && col.height > 200;
+          })()`,
+          true,
+        );
+        yield* fitsPhone(page);
+        yield* noSidewaysBox(page, '.lab-source-col .lab-source-scroll');
+        // What plays is named whole, in the band over the code: beside the head's buttons a phone had no room for it.
+        yield* textIs(page, '.lab-source-col .lab-source-beat .lab-source-live', 'rise');
+        yield* evaluates(
+          page,
+          `(() => { const live = document.querySelector('.lab-source-col .lab-source-live'); return live.scrollWidth <= live.clientWidth; })()`,
+          true,
+        );
+        const now = undersizedTargets(PHONE_HIT, '.lab-source-col');
+        yield* page.until(`${now}.length === 0`, {
+          now,
+          say: (found) => `under a finger: ${found}`,
+        });
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'with a cue selected, the code keeps the screen: no sheet rises, the pick lit in it',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([codeRoute, sourceRoute], {
+          href: labOne(middle('rise'), { cue: 'rise', code: 'live' }),
+          viewport: PHONE,
+          ready: LIVE_READY,
+        });
+        // The selection's sheet is the panel's, set aside with it: its inspector stays in its place, hidden with the
+        // panel, so one text owns the highlights; and the strip folds to its words, so its lanes leave the code its room.
+        yield* countIs(page, '.lab-selection-sheet', 0);
+        yield* countIs(page, '.lab-source-page', 1);
+        yield* evaluates(page, LANES_SHOWN, false);
+        yield* evaluates(
+          page,
+          `document.querySelector('.lab-source-col').getBoundingClientRect().height > 200`,
+          true,
+        );
+        yield* evaluates(page, painted('lab-picked'), ["rise: { mark: 'rise', dur: 0.6 }"]);
+        // Left, the panel stands again and the selection's sheet rises on its Source face, the code still open.
+        yield* page.click(CODE_MODE);
+        yield* evaluates(page, CODE_KEY, 'follow');
+        yield* page.waitFor('.lab-selection-sheet .lab-source-page');
+        yield* countIs(page, '.lab-source-col', 0);
+        yield* countIs(page, '.lab-source-page', 1);
+      }).pipe(Effect.scoped),
   );
 });
 

@@ -47,11 +47,15 @@ interface LiveCue {
   readonly progress: number;
 }
 
+/** Where `cue` stops playing, in a film at `fps`: its end, or for a cue with no length, the end of its one frame. */
+export const liveEnd = (cue: ResolvedCue, fps: number): number =>
+  cue.dur > 0 ? cue.end : cue.start + 1 / fps;
+
 /**
  * The cues playing at scene time `t`, in `cues`' order: one is live from its
  * start up to its end, and a cue with no length on its one frame (of a film
- * at `fps`). Pure in the time and the shown cues, so a link with `#t=` lights
- * what the sender saw; nothing is read from drawing.
+ * at `fps`, `liveEnd`). Pure in the time and the shown cues, so a link with
+ * `#t=` lights what the sender saw; nothing is read from drawing.
  */
 export const liveAt = (
   cues: ReadonlyMap<string, ResolvedCue>,
@@ -59,8 +63,7 @@ export const liveAt = (
   fps: number,
 ): ReadonlyArray<LiveCue> =>
   [...cues].flatMap(([name, cue]) => {
-    const end = cue.dur > 0 ? cue.end : cue.start + 1 / fps;
-    if (t < cue.start || t >= end) return [];
+    if (t < cue.start || t >= liveEnd(cue, fps)) return [];
     return [{ name, progress: cueProgress(cue, t) }];
   });
 

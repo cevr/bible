@@ -10,7 +10,7 @@ This study has three parts:
 
 The art behind each choice, source by source, is in [prior-art.md](prior-art.md). RimWorld's figure construction, line, colour and motion are in [rimworld-study.md](rimworld-study.md). The cast the kits are fitted to is in [ensemble.md](../../../../apps/animations/docs/ensemble.md).
 
-**OWNER QUESTION: which kit.** Until the owner picks, the papercut look keeps today's three marks, which are Kit A without its upgrades.
+**Answered (owner, 2026-10-13): Kit A, three marks.** The eye stays three marks: two eyes and a mouth, with brows. Kit A's lid cut and mood range are the upgrades to build on it.
 
 Evidence labels:
 

@@ -40,7 +40,9 @@
 //
 // Exceptions are WCAG 2.5.8's (target size, minimum), never by page:
 // - Inline: a link in running text, with words before or after it on its
-//   own line, so the line of text sets its size.
+//   own line, so the line of text sets its size. Words a control holds (a
+//   button's label) are no running text; words in a box focusable only to
+//   be scrolled (a reader's) are.
 // - Spacing: a target whose usable area holds a square of `SPACED_MIN`
 //   (24 px), and whose `hit`-wide circle, on the middle of that area, lands
 //   on no other target's usable area (hit-slops included), so a finger aimed
@@ -61,19 +63,17 @@ const SPACED_MIN = 24;
 /** The sampling grid's pitch, in CSS pixels. */
 const STEP = 2;
 
-/**
- * What a finger can operate: the elements, and the roles, a page's touch
- * targets are, as one selector. The touch-target check and the phone-fit
- * check ask the same one.
- */
-export const TARGETS = [
+/** A box focusable of its own (a reader that scrolls by the keyboard): a target, but no control's words. */
+const FOCUSABLE_BOX = '[tabindex]:not([tabindex="-1"])';
+
+/** The controls whose words are their own (a button's label, a link's text): every target but a focusable box. */
+const CONTROLS = [
   'button',
   'a[href]',
   'summary',
   'input:not([type=hidden])',
   'select',
   'textarea',
-  '[tabindex]:not([tabindex="-1"])',
   ...[
     'button',
     'link',
@@ -87,7 +87,21 @@ export const TARGETS = [
     'switch',
     'slider',
   ].map((role) => `[role=${role}]`),
-].join(', ');
+];
+
+/**
+ * What a finger can operate: the elements, and the roles, a page's touch
+ * targets are, as one selector. The touch-target check and the phone-fit
+ * check ask the same one.
+ */
+export const TARGETS = [...CONTROLS, FOCUSABLE_BOX].join(', ');
+
+/**
+ * What holds words as its own, so they are no running text around a link:
+ * a control. The words in a box focusable only to be scrolled (a reader's)
+ * are the page's text.
+ */
+const HOLDERS = CONTROLS.join(', ');
 
 /**
  * The page-side words every measure of the controls shares: `boxOf`;
@@ -201,7 +215,7 @@ export const firstScreenItems = (reach: 'screen' | 'page' = 'screen'): string =>
  */
 export const undersizedTargets = (hit: number, within = ':root'): string => `(() => {
   const HIT = ${hit}, SPACED_MIN = ${SPACED_MIN}, STEP = ${STEP}, MARGIN = ${Math.ceil(hit / 2)};
-  const TARGETS = ${jsonOf(TARGETS)}, WITHIN = ${jsonOf(within)};
+  const TARGETS = ${jsonOf(TARGETS)}, HOLDERS = ${jsonOf(HOLDERS)}, WITHIN = ${jsonOf(within)};
   ${SHOWN}
   // A field reached by its labels: every labelable one but a slider, whose track is what moves it.
   const setOf = (el) => {
@@ -209,7 +223,7 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
     return [el, ...labels.filter(shown)];
   };
   const inSet = (set, node) => node !== null && set.some((t) => t === node || t.contains(node));
-  // A link in running text: inline, with words (text no target holds) on one of its own lines.
+  // A link in running text: inline, with words (text no control holds) on one of its own lines.
   const inline = (el) => {
     if (el.tagName !== 'A' || getComputedStyle(el).display !== 'inline') return false;
     let block = el.parentElement;
@@ -219,7 +233,7 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
     const walk = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
     const range = document.createRange();
     for (let n = walk.nextNode(); n; n = walk.nextNode()) {
-      if (n.textContent.trim() === '' || el.contains(n) || (n.parentElement && n.parentElement.closest(TARGETS))) continue;
+      if (n.textContent.trim() === '' || el.contains(n) || (n.parentElement && n.parentElement.closest(HOLDERS))) continue;
       range.selectNodeContents(n);
       for (const w of range.getClientRects()) {
         if (w.width === 0) continue;

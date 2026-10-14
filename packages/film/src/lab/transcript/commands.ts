@@ -43,7 +43,7 @@ interface TranscriptVerbs {
 }
 
 /** Whether `inner` lies within `outer`: one section, and its words among outer's. */
-const within = (inner: WordsSelection, outer: WordsSelection): boolean =>
+export const within = (inner: WordsSelection, outer: WordsSelection): boolean =>
   inner.scene === outer.scene && inner.from >= outer.from && inner.to <= outer.to;
 
 /**
@@ -100,9 +100,10 @@ export const extendedTo = (
 /**
  * The words Select to here selects from a word the menu opened on (one
  * word): the selection in its section extended to it; none with no selection
- * there, or when it would select what is selected already.
+ * there, or when it would select what is selected already. The Script's
+ * Select to here is this one (`script/commands.ts`).
  */
-const selectedTo = (
+export const selectedTo = (
   ctx: Context,
   selection: Option.Option<WordsSelection>,
 ): Option.Option<WordsSelection> =>

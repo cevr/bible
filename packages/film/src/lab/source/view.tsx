@@ -1,34 +1,49 @@
 // The Source view (the studio's "the code is part of the studio"): the
 // scene's file as it stands, in the panel's monospace, a row to a line, with
 // the cues playing at the frame lit where the code writes them (their literal
-// in the `timeline`) and reads them (`f.at('lift')`), the cue or knob
-// selected lit where it is written, the knobs the frame read lit where they
-// are written and read, a meter on each playing literal's line, and the line
-// `?code=<n>` holds. It is lit by the clock (`liveAt`), never by what ran, so
-// a link with `#t=` lights what its sender saw. The text is painted through
-// the page's highlights (`browser/highlights.ts`), so it stays selectable and
-// copyable. A long line wraps under its number, on a phone and on a laptop
-// alike: one layout.
+// in the `timeline`, by the clock alone, as the strip's lanes), each call
+// that reads the clock lit while it fires (the frame read the name, heard
+// through `Player.hearClock`, and the clock plays it: `f.at('lift')` while
+// its cue plays, `f.mark('take')` on its word, `f.spoken('take')` as the
+// voice says it), the cue or knob selected lit where it is written, the
+// knobs the frame read marked where they are written and read, a meter on
+// each playing literal's line, and the line `?code=<n>` holds. Each is a pure
+// function of the frame (`lit.ts`), so a link with `#t=` lights what its
+// sender saw. The text is painted through the page's highlights
+// (`browser/highlights.ts`), so it stays selectable and copyable. A long line
+// wraps under its number, on a phone and on a laptop alike: one layout.
 //
-// Closed at rest; opened by `?code=follow` (the view scrolls to what plays
-// until a hand scrolls it; Play or Follow takes it back) or `?code=<line>`
-// (held there, until a hand scrolls it; holding a line takes it back), by the
-// lab's one Follow rule (`lab/follow.ts`). A tap on a line holds it and selects the cue or knob written
-// there; a long press or a right-click on it opens the page's context menu
-// (Note this line, Copy link). On a laptop it is a column beside the picture;
-// on a phone it is a face of the selection's sheet (Inspect · Source) in Edit,
-// held on the selection's line, or a sheet of its own in every other mode and while nothing is selected.
+// Closed at rest; opened by `?code=follow` (the view scrolls to the read the
+// frame made, or the cue's literal, that began last, so it moves only as
+// something begins, until a hand scrolls it; Play or Follow takes it back) or
+// `?code=<line>` (held there, until a hand
+// scrolls it; holding a line takes it back), by the lab's one Follow rule
+// (`lab/follow.ts`). A band over the code names the beat the frame is on and
+// the cues playing. A
+// tap on a line holds it, selects the cue or knob written there and seeks to
+// where the line next fires (`nextFiring`); a long press or a right-click on
+// it opens the page's context menu (Note this line, Copy link). On a laptop
+// it is a column beside the picture; on a phone it is a face of the
+// selection's sheet (Inspect · Source) in Edit, held on the selection's line,
+// or a sheet of its own in every other mode and while nothing is selected.
 
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, type JSX, Portal, Show } from '@solidjs/web';
 import { Array as Arr, Boolean as Bool, Effect, Equal, Option, Result } from 'effect';
-import { type Accessor, createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
+import {
+  type Accessor,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  onSettled,
+} from 'solid-js';
 import { Highlights, type HighlightName } from '../../browser/highlights.ts';
+import type { ClockReads } from '../../canvas/film.ts';
 import { type LabSelection, Selection } from '../../command/selection.ts';
-import { sceneOf } from '../../core/layout.ts';
+import { sceneClock, sceneOf } from '../../core/layout.ts';
 import type { CodeRange, SceneCode } from '../../core/schema.ts';
-import { liveAt } from '../../core/timeline.ts';
 import { Target } from '../command/context-menu.tsx';
 import { useLabPage } from '../panel.tsx';
 import { pressed } from '../pressed.ts';
@@ -40,15 +55,17 @@ import { CodeState, useSource } from './context.tsx';
 import {
   type Lit,
   type Picks,
+  beatWords,
   followLine,
   litNow,
   liveWords,
   metersOn,
+  nextFiring,
   rowsOf,
   selectionAt,
 } from './lit.ts';
 import { type Asked, FaceIntent, intentOf } from './intent.ts';
-import { FOLLOW, lineOpen } from './open.ts';
+import { FOLLOW, LIVE, codeText, followsFrame, inSheet, isLive, lineOpen } from './open.ts';
 
 /** The name of the selection when it is a `tag` of `scene`. */
 const pickedIn = (
@@ -61,17 +78,79 @@ const pickedIn = (
     (s) => s.name,
   );
 
-/** What `code` lights at the frame shown: its cues playing now by the clock, the selection, and the knobs the frame read. */
-const useLit = (code: () => SceneCode) => {
+/** The names scene `scene`'s frame read off its clock, of all `reads` heard (none for a scene the frame did not draw). */
+const heardIn = (reads: ClockReads, scene: string) => {
+  const of = (by: ReadonlyMap<string, ReadonlySet<string>>): ReadonlySet<string> =>
+    Option.getOrElse(Option.fromUndefinedOr(by.get(scene)), () => new Set<string>());
+  return { cues: of(reads.cues), marks: of(reads.marks) };
+};
+
+/**
+ * The names each frame drawn reads off its scenes' clocks, heard from the
+ * calling owner's first settle until it goes (`Player.hearClock`): nothing
+ * before.
+ */
+const useHeard = (): ((scene: string) => ReturnType<typeof heardIn>) => {
+  const { meta } = useLab();
+  let hearing = Option.none<{ readonly reads: () => ClockReads }>();
+  onSettled(() => {
+    const heard = meta.player.hearClock();
+    hearing = Option.some(heard);
+    return () => {
+      hearing = Option.none();
+      heard.stop();
+    };
+  });
+  return (scene) =>
+    Option.match(hearing, {
+      onNone: () => ({ cues: new Set<string>(), marks: new Set<string>() }),
+      onSome: (h) => heardIn(h.reads(), scene),
+    });
+};
+
+/** A scene the film does not have says nothing. */
+const SILENT = { marks: new Map<string, number>(), speechStart: 0, speechEnd: 0 };
+
+/**
+ * A scene at the frame shown: where the film places it (`start`, film
+ * seconds), and its clock then: the cues as the preview draws them, its
+ * voice, and the names the frame read off it (`heard`).
+ */
+const useClock = (heard: ReturnType<typeof useHeard>) => {
+  const { state, meta } = useLab();
+  return (scene: string) => {
+    const placed = Result.getSuccess(sceneOf(meta.film.placed, scene));
+    const start = Option.getOrElse(
+      Option.map(placed, (p) => p.start),
+      () => 0,
+    );
+    return {
+      start,
+      clock: {
+        t: state.T() - start,
+        fps: meta.film.fps,
+        cues: meta.stage.cuesOf(scene),
+        voice: Option.match(placed, { onNone: () => SILENT, onSome: sceneClock }),
+        heard: heard(scene),
+      },
+    };
+  };
+};
+
+/** A scene's clock at the frame shown (`useClock`). */
+type ClockOf = ReturnType<typeof useClock>;
+
+/**
+ * What `code` lights at the frame shown: its cues playing now by the clock,
+ * the reads of the clock firing and the lines they glow on, the selection,
+ * and the knobs the frame read.
+ */
+const useLit = (code: () => SceneCode, clockOf: ClockOf) => {
   const { state, meta } = useLab();
   return createMemo((): Lit => {
     const c = code();
     state.revision();
     state.drawn();
-    const start = Option.getOrElse(
-      Option.map(Result.getSuccess(sceneOf(meta.film.placed, c.scene)), (p) => p.start),
-      () => 0,
-    );
     const picks: Picks = {
       cue: pickedIn(state.selection(), 'Cue', c.scene),
       knob: pickedIn(state.selection(), 'Knob', c.scene),
@@ -80,8 +159,34 @@ const useLit = (code: () => SceneCode) => {
         .filter((r) => r.scene === c.scene)
         .map((r) => r.name),
     };
-    return litNow(c, liveAt(meta.stage.cuesOf(c.scene), state.T() - start, meta.film.fps), picks);
+    return litNow(c, clockOf(c.scene).clock, picks);
   });
+};
+
+/**
+ * The band over the code, the view's one line of now: the beat the frame is
+ * on and the mark its voice last said (`beatWords`) left, the cues playing in
+ * `code` right (`liveWords`).
+ */
+const Beat = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) => {
+  const { state, meta } = useLab();
+  const words = createMemo(() => {
+    const scene = state.scene();
+    return Option.match(Result.getSuccess(sceneOf(meta.film.placed, scene)), {
+      onNone: () => scene,
+      onSome: (p) => beatWords(scene, sceneClock(p), state.T() - p.start),
+    });
+  });
+  return (
+    <div class="lab-source-beat">
+      <span class="lab-source-beat-words" data-role="beat">
+        {words()}
+      </span>
+      <span class="lab-source-live" data-empty={pressed(props.lit().names.length === 0)}>
+        {liveWords(props.code, props.lit())}
+      </span>
+    </div>
+  );
 };
 
 /** The nearest ancestor of `el` that scrolls: the box a row moves in, in the column and in a sheet alike. */
@@ -94,11 +199,19 @@ const scrollContainerOf = (el: HTMLElement): Option.Option<HTMLElement> =>
     });
   });
 
-/** The file's text, a row to a line, with its lit spans, meters and held line. */
-const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) => {
+/** The file's text, a row to a line, under the beat it is on, with its lit spans, glowing lines, meters and held line. */
+const Text = (props: {
+  readonly code: SceneCode;
+  readonly lit: Accessor<Lit>;
+  readonly clockOf: ClockOf;
+}) => {
   const { actions, meta } = useLab();
   const source = useSource();
   const lit = props.lit;
+  /** How brightly line `n` glows now: none for a line nothing fires on, nor has just fired on. */
+  const glowOn = (n: number) => Option.getOrUndefined(Option.fromUndefinedOr(lit().glows.get(n)));
+  /** Whether line `n` is lit now: it glows, or writes a playing cue. In Code mode a tap answers on such a line alone. */
+  const litLine = (n: number) => lit().glows.has(n) || metersOn(lit().meters, n).length > 0;
   const rows = createMemo(() => rowsOf(props.code));
   const digits = createMemo(() => String(rows().length).length);
   let page = Option.none<HTMLElement>();
@@ -110,7 +223,9 @@ const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
     return scroller;
   };
 
-  // The ranges lit, painted on the rows' text; cleared when the view goes.
+  // The ranges lit, painted on the rows' text; cleared when the view goes. What plays now, a literal by the clock or
+  // a read firing, is one ink (`lab-live`); a knob the frame read is a quiet mark of its own (`lab-knob-read`), read
+  // on every frame, so it never wears what plays.
   const paint = (name: HighlightName, ranges: ReadonlyArray<CodeRange>) =>
     Option.map(page, (root) =>
       Effect.runSyncWith(meta.host)(Highlights.use((h) => h.paint(name, root, ranges))),
@@ -118,8 +233,8 @@ const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
   createEffect(
     () => lit(),
     (now) => {
-      paint('lab-live', now.literals);
-      paint('lab-read', now.reads);
+      paint('lab-live', [...now.literals, ...now.reads]);
+      paint('lab-knob-read', now.knobs);
       paint('lab-picked', now.picked);
     },
   );
@@ -127,15 +242,17 @@ const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
     Effect.runSyncWith(meta.host)(
       Highlights.use((h) =>
         Effect.andThen(
-          Effect.andThen(h.clear('lab-live'), h.clear('lab-read')),
+          Effect.andThen(h.clear('lab-live'), h.clear('lab-knob-read')),
           h.clear('lab-picked'),
         ),
       ),
     ),
   );
 
-  // The line the view looks at: the held line, else what plays while it follows. The projection is the line
-  // number as a key, so the memo settles on a still target (Option.some(n) is a new object every frame; n is not).
+  // The line the view looks at: the held line, else, while it follows, what began last by the frame (`followLine`),
+  // so it moves only as a read or a cue begins, and a pause, a step or a link stands where the playing frame stood.
+  // The projection is the line number as a key, so the memo settles on a still target (Option.some(n) is a new
+  // object every frame; n is not).
   const looking = createMemo(() =>
     Option.match(
       Option.orElse(source.held(), () =>
@@ -163,28 +280,43 @@ const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
         ),
         (row) => ({ first: row, last: row }),
       ),
-    // Two lines clear of each edge. A line's height is read off the page the rows inherit it from, so the row is
-    // the span's one element, asked once for its place.
+    // Two lines clear of each edge, and of the beat's band, a line tall, at the top. A line's height is read off the
+    // page the rows inherit it from, so the row is the span's one element, asked once for its place.
     clear: () => {
       const lh = Option.match(page, {
         onNone: () => 0,
         onSome: (root) => Number.parseFloat(getComputedStyle(root).lineHeight) || 0,
       });
-      return { top: 2 * lh, bottom: 2 * lh };
+      return { top: 3 * lh, bottom: 2 * lh };
     },
     placing: source.placing,
     reader: source.suspend,
     played: () => {
-      if (Option.exists(source.open(), (o) => o._tag === 'Follow')) source.resume();
+      if (Option.exists(source.open(), followsFrame)) source.resume();
     },
   });
   onCleanup(source.offerHand(handHas));
 
-  // A tap on a line, unless it ends a text selection, holds it: held again, the view places it again.
+  /** Seek to where line `n` next fires, when it reads or writes the clock. */
+  const seekTo = (n: number) => {
+    const { start, clock } = props.clockOf(props.code.scene);
+    Option.map(nextFiring(props.code, n, clock), (at) => meta.player.seek(start + at));
+  };
+  // A tap on a line, unless it ends a text selection, holds it (held again, the view places it again) and seeks to
+  // where it next fires: held first, so Back finds the frame the tap left. Code mode holds and selects nothing: a
+  // lit line (`litLine`) seeks to where it next fires, as a tap seeks everywhere in the lab (Play plays), and the view
+  // follows it there; any other line stays still, and says so to the pointer (`data-lit`).
   const tap = (n: number) => {
     if (!(window.getSelection()?.isCollapsed ?? true)) return;
+    if (source.live()) {
+      if (!litLine(n)) return;
+      source.resume();
+      seekTo(n);
+      return;
+    }
     source.resume();
     actions.holdLine(n, selectionAt(props.code, n));
+    seekTo(n);
   };
   return (
     <div class="lab-source-scroll">
@@ -202,12 +334,15 @@ const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
           page = Option.some(el);
         }}
       >
+        <Beat code={props.code} lit={lit} />
         <For each={rows()}>
           {(row) => (
             <Target
               of={Selection.cases.Line.make({ scene: props.code.scene, line: row.n })}
               class="lab-source-line"
               data-line={row.n}
+              data-lit={pressed(litLine(row.n))}
+              style={{ '--glow': glowOn(row.n) }}
               onClick={() => tap(row.n)}
             >
               <span class="lab-source-n" aria-hidden="true">
@@ -237,26 +372,23 @@ const Text = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) 
   );
 };
 
-/** The view's head: the file it shows, the cues playing in it, and Follow. */
-const Head = (props: {
-  readonly code: SceneCode;
-  readonly lit: Accessor<Lit>;
-  readonly close: boolean;
-}) => {
+/** The view's head: the file it shows, Follow, and Code mode (what plays is the band's, under it). */
+const Head = (props: { readonly code: SceneCode; readonly close: boolean }) => {
   const { actions } = useLab();
   const source = useSource();
-  const lit = props.lit;
   const follow = () => {
     source.resume();
     if (Option.exists(source.open(), (o) => o._tag === 'Line'))
       actions.showCode(Option.some(FOLLOW));
   };
+  // Code mode is a step Back walks (`?code=live`); pressed again it leaves to following.
+  const mode = () =>
+    actions.showCode(
+      Option.some(Bool.match(source.live(), { onTrue: () => FOLLOW, onFalse: () => LIVE })),
+    );
   return (
     <header class="lab-source-head">
       <span class="lab-source-file">{props.code.file}</span>
-      <span class="lab-source-live" data-empty={pressed(lit().names.length === 0)}>
-        {liveWords(props.code, lit())}
-      </span>
       <button
         type="button"
         class="sh-btn lab-source-follow"
@@ -266,6 +398,16 @@ const Head = (props: {
         onClick={follow}
       >
         Follow
+      </button>
+      <button
+        type="button"
+        class="sh-btn lab-source-mode"
+        data-act="code-mode"
+        aria-pressed={pressed(source.live())}
+        title="The code beside the picture, lit as it plays"
+        onClick={mode}
+      >
+        Code mode
       </button>
       <Show when={props.close}>
         <button
@@ -332,12 +474,13 @@ const Body = (props: { readonly close: boolean }) => {
         }
       >
         {(c) => {
-          // What the code lights, once per frame for the head and the text alike.
-          const lit = useLit(c);
+          // What the code lights, once per frame for the band and the rows alike, the frames heard while it stands.
+          const clockOf = useClock(useHeard());
+          const lit = useLit(c, clockOf);
           return (
             <>
-              <Head code={c()} lit={lit} close={props.close} />
-              <Text code={c()} lit={lit} />
+              <Head code={c()} close={props.close} />
+              <Text code={c()} lit={lit} clockOf={clockOf} />
             </>
           );
         }}
@@ -346,14 +489,19 @@ const Body = (props: { readonly close: boolean }) => {
   );
 };
 
-/** On a laptop, the open view as a column beside the picture, at the window's edge. */
+/**
+ * The open view as a column: on a laptop beside the picture, at the window's
+ * edge, or in Code mode half the window with the panel set aside; on a phone
+ * in Code mode only, under the picture and its strip, as the Script's reader
+ * stands (every other opening is a sheet's there).
+ */
 export const Column = () => {
   const { state, meta } = useLab();
   const phone = useMatches(meta.host, PHONE);
   return (
-    <Show when={!phone() && Option.isSome(state.code())}>
+    <Show when={Option.isSome(state.code()) && (!phone() || isLive(state.code()))}>
       <Portal mount={document.body}>
-        <aside class="lab-source-col" aria-label="Source">
+        <aside class="lab-source-col" aria-label="Source" data-code={codeText(state.code())}>
           <Body close />
         </aside>
       </Portal>
@@ -364,7 +512,8 @@ export const Column = () => {
 /**
  * On a phone, the open view in a sheet of its own: while nothing is selected,
  * and in every mode but Edit (the selection's sheet lives in Edit's section,
- * which the other modes hide; the view never goes with it).
+ * which the other modes hide; the view never goes with it). Never in Code
+ * mode, whose view is the column under the picture.
  */
 export const OwnSheet = () => {
   const { state, actions, meta } = useLab();
@@ -373,7 +522,7 @@ export const OwnSheet = () => {
   const { scene } = useSource();
   const faceOfSelection = () => Option.isSome(state.selection()) && page.mode() === 'edit';
   return (
-    <Show when={phone() && Option.isSome(state.code()) && !faceOfSelection()}>
+    <Show when={phone() && inSheet(state.code()) && !faceOfSelection()}>
       <Sheet
         host={meta.host}
         hub={meta.hub}
@@ -398,7 +547,8 @@ type Face = 'inspect' | 'source';
  * it opens held on the line that writes the cue or knob, as its `file:line`
  * does, and follows the frame only while that line is not known yet: once a
  * read names it, the view settles on it in place, unless the view or the
- * selection has moved on meanwhile.
+ * selection has moved on meanwhile. Code mode raises no selection sheet
+ * (`PanelAside`): its view is the column under the picture.
  */
 export const Faces = (props: { readonly children: JSX.Element }) => {
   const { state, actions } = useLab();

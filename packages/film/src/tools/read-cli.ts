@@ -9,6 +9,10 @@
 //   film read voice <film>
 //       what the studio reads: the voice, how speech-to-text writes the
 //       script's names, each beat's line, and the reading sheet
+//   film read script <film>
+//       what the Script page reads beside the staged film: each beat of
+//       `script.ts` in order, its picture's brief and its sources (none for a
+//       film that keeps no script)
 //   film read cue <film> <scene> <cue> [--spans <json>] [--patch <json>]
 //       the cue on its scene's clock, as the scene file now declares it (or
 //       with `spans` in place of its own: a write the lab has not made yet,
@@ -34,6 +38,7 @@ import {
   Schema,
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
+import type { ScriptBeat } from '../core/api.ts';
 import type { LineError, UnknownVoice } from '../core/errors.ts';
 import { type Placed, sceneClock, sceneOf } from '../core/layout.ts';
 import { FilmUnknown, SceneNotLocated, SourceShared } from '../core/refusals.ts';
@@ -54,6 +59,7 @@ import {
   CuePatchJson,
   CueRead,
   type SceneSite,
+  ScriptRead,
   SitesRead,
   TimelineJson,
   VoiceRead,
@@ -373,6 +379,32 @@ const voice = Command.make(
   ),
 );
 
+/** Each beat of a film's script as the Script page reads it: its id, its picture's brief, its sources. Pure. */
+const scriptBeatsOf = (
+  script: Option.Option<ReadonlyArray<ScriptLine & { readonly picture?: string }>>,
+): ReadonlyArray<ScriptBeat> =>
+  Option.getOrElse(script, () => []).map(({ id, cite, picture }): ScriptBeat => ({
+    id,
+    cite,
+    ...Option.match(Option.fromUndefinedOr(picture), {
+      onNone: () => ({}),
+      onSome: (brief) => ({ picture: brief }),
+    }),
+  }));
+
+const script = Command.make(
+  'script',
+  { film },
+  Effect.fn('film.read.script')(function* (input) {
+    const beats = scriptBeatsOf(yield* (yield* FilmRepo).script(input.film));
+    yield* printLine(ScriptRead.make({ beats }));
+  }, answering),
+).pipe(
+  Command.withDescription(
+    "What the lab's Script page reads of the film's script (each beat's picture and sources), as one line of JSON",
+  ),
+);
+
 const cue = Command.make(
   'cue',
   {
@@ -423,5 +455,5 @@ export const read = Command.make('read').pipe(
   Command.withDescription(
     'What the lab reads of a film, fresh from disk, as one line of JSON (the lab runs these)',
   ),
-  Command.withSubcommands([voice, cue, sites]),
+  Command.withSubcommands([voice, script, cue, sites]),
 );

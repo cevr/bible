@@ -38,7 +38,7 @@ import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled, served } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
 import type { LabSelection } from '../../command/selection.ts';
-import { labHref } from '../place.ts';
+import { labHref, labPlaceOf } from '../place.ts';
 import type { LabMode } from '../mode.ts';
 import { narrationUrls } from '../../player/narrated.ts';
 import { PROBE, probeFilm } from './probe-film.ts';
@@ -81,13 +81,13 @@ export const labAt = (T: number, pick: PickAsked = {}): string =>
 /**
  * The film seconds the page's URL names, as a page-side expression: its
  * path's scene's start (the probe film's) plus `#t=`, as `labOpensAt` reads
- * a lab link; a play page's `#t=` is film time. The one reader of the time
- * in the URL the browser tests poll.
+ * a Lab or a Script link; a play page's `#t=` is film time. The one reader
+ * of the time in the URL the browser tests poll.
  */
 export const URL_T = `(() => {
   const starts = ${jsonOf(Object.fromEntries(probePlaced.map((p) => [p.spec.id, p.start])))};
   const url = new URL(location.href);
-  const scene = /^\\/films\\/[^/]+\\/lab\\/([^/]+)$/.exec(url.pathname)?.[1] ?? '';
+  const scene = /^\\/films\\/[^/]+\\/(?:lab|script)\\/([^/]+)$/.exec(url.pathname)?.[1] ?? '';
   return (starts[decodeURIComponent(scene)] ?? 0) + Number(new URLSearchParams(url.hash.slice(1)).get('t'));
 })()`;
 
@@ -103,7 +103,11 @@ export interface Asked {
   readonly body: Option.Option<Json>;
 }
 
-/** How a fake route answers: JSON with a status, a refusal as the server answers it, or text. */
+/**
+ * How a fake route answers: JSON with a status, a refusal as the server
+ * answers it, text, or what an effect makes (the lab's own handler, run in
+ * the test).
+ */
 type Answer =
   | { readonly _tag: 'Json'; readonly status: number; readonly json: Json }
   | { readonly _tag: 'Refused'; readonly refusal: Refusal }
@@ -111,7 +115,8 @@ type Answer =
   | { readonly _tag: 'File'; readonly path: string }
   | { readonly _tag: 'Wav'; readonly bytes: Uint8Array }
   | { readonly _tag: 'Hold' }
-  | { readonly _tag: 'Later'; readonly gate: Deferred.Deferred<void>; readonly then: Answer };
+  | { readonly _tag: 'Later'; readonly gate: Deferred.Deferred<void>; readonly then: Answer }
+  | { readonly _tag: 'Made'; readonly made: Effect.Effect<Answer> };
 
 export const json = (value: Json, status = 200): Answer => ({
   _tag: 'Json',
@@ -135,6 +140,8 @@ export const later = (gate: Deferred.Deferred<void>, then: Answer): Answer => ({
 });
 /** A file on disk, its type read from its name (a fixture video). */
 export const file = (path: string): Answer => ({ _tag: 'File', path });
+/** What `made` answers once it has run: a route the lab's own handler answers, in the test. */
+export const madeBy = (made: Effect.Effect<Answer>): Answer => ({ _tag: 'Made', made });
 /**
  * Ten seconds of tone (`tone.ts`): the real media every fixture player plays
  * (its videos, its mixes), its time moving on the media's own clock.
@@ -199,6 +206,28 @@ const sourceThree = {
   refused: [],
 };
 
+/**
+ * The probe film's script as the lab reads it (`GET …/script`): each beat's
+ * picture, naming its cues in backticks as a script's brief does, and its
+ * sources; the second beat's picture says nothing of its cues, and cites none.
+ */
+const probeScript = {
+  film: PROBE,
+  beats: [
+    {
+      id: 'one',
+      picture: 'A ball on a line: it climbs on `rise` and drops back on `fall`.',
+      cite: ['Probe 1:1'],
+    },
+    { id: 'two', picture: 'The ball at rest.', cite: [] },
+    {
+      id: 'three',
+      picture: 'A face, pushed in on `push` from the word `near` names.',
+      cite: ['Probe 3:1', 'Probe 3:2'],
+    },
+  ],
+};
+
 /** The id the fake lab gives the change a write of `target` to `scene` makes (`HistoryStep.change`). */
 export const changeOf = (target: string, scene = 'one'): string => `${scene}:${target}`;
 
@@ -239,6 +268,7 @@ const defaults: ReadonlyArray<FakeRoute> = [
   }),
   route('GET', /^\/check$/, () => json({ findings: [] })),
   route('GET', /^\/studio\/beats$/, () => json({ film: PROBE, beats: [] })),
+  route('GET', /^\/script$/, () => json(probeScript)),
   route('POST', /^\/scenes\/\w+\/cues\//, () => json(wrote('cue'))),
   route('POST', /^\/scenes\/\w+\/knobs\//, () => json(wrote('knob'))),
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
@@ -363,10 +393,14 @@ const typeOfFile = (path: string) =>
     () => 'application/octet-stream',
   );
 
-/** `found` as the tab's server answers it: never, for a hold; after its gate, for a later one. */
+/**
+ * `found` as the tab's server answers it: never, for a hold; after its gate,
+ * for a later one; as what its effect makes, for a made one.
+ */
 const answer = (found: Answer): Effect.Effect<Option.Option<Response>> => {
   if (found._tag === 'Hold') return Effect.succeedNone;
   if (found._tag === 'Later') return Effect.andThen(Deferred.await(found.gate), answer(found.then));
+  if (found._tag === 'Made') return Effect.flatMap(found.made, answer);
   if (found._tag === 'File') return Effect.asSome(fileAnswer(found.path));
   if (found._tag === 'Wav') return Effect.succeedSome(respond(found.bytes, 'audio/wav'));
   if (found._tag === 'Text')
@@ -542,8 +576,19 @@ export const DESK: Viewport = { width: 1440, height: 900 };
 export const PHONE: Viewport = { width: 390, height: 844, coarse: true };
 
 /**
- * Open the lab at `href` (`pageHref.lab`, `pageHref.labScene`, `core/api.ts`;
- * the probe film's lab when none), served on every lab place as the server
+ * What each of the lab's pages shows once its film is staged: the Lab its
+ * panel with the film's tools in it, the Script its reader (which stands
+ * only on a staged film).
+ */
+const STAGED: Readonly<Record<ReturnType<typeof labPlaceOf>['root'], string>> = {
+  lab: '.lab-panel[data-staged="true"]',
+  script: '.lab-script',
+};
+
+/**
+ * Open the lab at `href` (`pageHref.lab`, `pageHref.labScene`,
+ * `pageHref.script`, `pageHref.scriptBeat`, `core/api.ts`; the probe film's
+ * lab when none), served on every lab place as the server
  * serves it, with `routes` answering the API before the defaults, and `mic`
  * as its microphone when given, in `mode` when given. The tab goes back to
  * the pool with the scope.
@@ -559,7 +604,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     readonly mode?: LabMode;
     /** The window, and its pointer; none: a desk's, 1400 × 900 with a mouse. */
     readonly viewport?: Viewport;
-    /** What the page is open at; none: its panel, the film staged in it. */
+    /** What the page is open at; none: the film staged on it (`STAGED`, by the page its link opens). */
     readonly ready?: string;
     /**
      * The probe film with a master to play (`narratedProbeFilm`), its file
@@ -600,9 +645,10 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
       asked,
     ),
   });
-  yield* page.goto(at.href ?? pageHref.lab(PROBE));
-  // The panel stands before the film is staged; its tools are in it once it is.
-  yield* page.waitFor(at.ready ?? '.lab-panel[data-staged="true"]');
+  const href = at.href ?? pageHref.lab(PROBE);
+  yield* page.goto(href);
+  // The Lab's panel stands before the film is staged, its tools in it once it is; the Script's reader once it is.
+  yield* page.waitFor(at.ready ?? STAGED[labPlaceOf(href).root]);
   for (const mode of Option.toArray(Option.fromUndefinedOr(at.mode))) {
     yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
     yield* page.waitFor(`.lab-panel[data-mode="${mode}"]`);

@@ -1,8 +1,9 @@
 // Lab notes as pure data: where a note sits on the film (its scene and the
-// nearest cue edge and mark), the changes a note log makes (add, reply,
-// resolve), and the changes past a cursor, which is what makes a watcher see
-// each one exactly once. The store (tools) does the I/O; the lab page and the
-// tools both read these. Pure and DOM-free.
+// nearest cue edge and mark), what a note on words asks of them, the changes
+// a note log makes (add, reply, resolve), and the changes past a cursor,
+// which is what makes a watcher see each one exactly once. The store (tools)
+// does the I/O; the lab page and the tools both read these. Pure and
+// DOM-free.
 
 import { Array as Arr, Option, Order } from 'effect';
 import { type Placed, sceneAt } from './layout.ts';
@@ -12,12 +13,17 @@ import type {
   NoteCue,
   NoteDraft,
   NoteEvent,
+  NoteKind,
   NotesFile,
   NoteStatus,
   NotesWait,
   Reply,
 } from './schema.ts';
 import { framesOf } from './time.ts';
+
+/** What a note asks of its words: one that does not say asks nothing of them, as a note. */
+export const kindOf = (note: Pick<NoteDraft, 'kind'>): NoteKind =>
+  Option.getOrElse(Option.fromUndefinedOr(note.kind), (): NoteKind => 'note');
 
 /** Where a time falls on the film: its scene, how far into it, and the cue edge and mark nearest it there. */
 interface Moment {

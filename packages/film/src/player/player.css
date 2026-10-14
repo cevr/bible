@@ -403,7 +403,12 @@ body.lab .stage {
   color: var(--text-1);
   font-size: var(--fs-2);
 }
-/* A note being written: the accent's box, the note's place, its words and its buttons (the kit's). */
+/*
+ * A note being written: the accent's box, the note's place, its words and
+ * its buttons (the kit's). While something in it has the keys, its focus
+ * ring is the one accent frame, and the box steps back to the strong line;
+ * with the keys elsewhere, its accent marks a draft still open.
+ */
 .lab-compose {
   display: grid;
   gap: var(--s-2);
@@ -411,14 +416,19 @@ body.lab .stage {
   border: 1px solid var(--accent);
   border-radius: var(--r-2);
 }
+.lab-compose:focus-within {
+  border-color: var(--line-strong);
+}
 .lab-compose[hidden] {
   display: none;
 }
 .lab-where {
-  color: var(--accent);
+  color: var(--text-2);
   font-size: var(--fs-3);
 }
 .lab-panel textarea,
+.lab-compose textarea,
+.lab-instead,
 .lab-reply-input {
   width: 100%;
   background: var(--surface-2);
@@ -428,6 +438,26 @@ body.lab .stage {
   padding: var(--s-1) var(--s-2);
   font: inherit;
   resize: vertical;
+}
+/* What a note on words asks of them: the kit's segmented control, one pressed. */
+.lab-asks {
+  justify-self: start;
+}
+/* A correction's words to say instead: its label over its field, one line, the pointer's target tall. */
+.lab-instead-field {
+  display: grid;
+  gap: var(--s-1);
+}
+.lab-field-label {
+  color: var(--text-2);
+  font-size: var(--fs-2);
+}
+.lab-instead {
+  min-height: var(--hit);
+}
+/* A field a Save found saying too little: edged in the refused ink, the status line saying why. */
+.lab-compose [aria-invalid='true'] {
+  border-color: var(--state-findings);
 }
 .lab-actions,
 .lab-reply-form {
@@ -472,6 +502,23 @@ body.lab .stage {
 .lab-note-text,
 .lab-reply-text {
   margin: 0;
+}
+/* What a note on words asks of them: its kind, the words (struck when it cuts or changes them), the words instead. */
+.lab-note-asks {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-2);
+}
+.lab-note-kind {
+  color: var(--state-note);
+}
+.lab-note-was {
+  color: var(--text-1);
+  text-decoration-color: var(--state-note);
+}
+.lab-note-instead {
+  color: var(--text-1);
+  text-decoration: none;
 }
 .lab-still {
   width: 100%;

@@ -5,7 +5,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
-import type { Drift } from './camera.ts';
+import { type Drift, camera } from './camera.ts';
 import { type CaptionStyle, type FilmSpec, type FinishStyle, createFilm, drawing } from './film.ts';
 import { recorder, withDom } from './fixtures/stand-in.ts';
 
@@ -125,6 +125,140 @@ describe('an edit is a value a frame draws with', () => {
     expect(Result.isFailure(missing) && missing.failure.message).toContain('has no mark {there}');
     const unknown = film.edit('nowhere', edit);
     expect(Result.isFailure(unknown) && unknown.failure._tag).toBe('UnknownScene');
+  });
+});
+
+describe('a frame hears the names it reads off its clock', () => {
+  /** A film whose one scene reads cue `go` every frame, the voice from `{word}` to `{end}` in its first second, and cue `later` after it. */
+  const branching = () =>
+    createFilm({
+      ...spec(),
+      scenes: [
+        {
+          id: 'a',
+          say: 'A {word}line, and {end}more.',
+          min: 4,
+          timeline: { go: { at: 'start', dur: 1 }, later: { at: 'start', dur: 2 } },
+          draw: (f) => {
+            f.ctx.fillRect(0, 0, 100 * f.at('go'), 10);
+            if (f.t < 1) f.ctx.fillRect(0, 20, 100 * f.spoken('word', 'end'), 10);
+            else f.ctx.fillRect(0, 40, 100 * f.at('later'), 10);
+          },
+        },
+      ],
+    });
+  const clock = () => ({
+    cues: new Map<string, Set<string>>(),
+    marks: new Map<string, Set<string>>(),
+  });
+  const names = (of: Map<string, Set<string>>) => [...(of.get('a') ?? [])].sort();
+
+  test('draws the same frame whether it is heard or not', () => {
+    const film = branching();
+    const [plain, heard] = withDom(() => {
+      // Once first, so neither compared frame is a scene's first guess at its breath.
+      film.render(recorder().ctx, 0.5);
+      const a = recorder();
+      film.render(a.ctx, 0.5);
+      const b = recorder();
+      film.render(b.ctx, 0.5, { clock: clock() });
+      return [a.ops, b.ops];
+    });
+    expect(plain.length).toBeGreaterThan(0);
+    expect(heard).toEqual(plain);
+  });
+
+  test('hears each name its draw read, both ends of the voice, and none of a branch it did not take', () => {
+    const film = branching();
+    const early = clock();
+    const late = clock();
+    withDom(
+      () => {
+        film.render(recorder().ctx, 0.5, { clock: early });
+        film.render(recorder().ctx, 1.5, { clock: late });
+      },
+      { record: false },
+    );
+    expect(names(early.cues)).toEqual(['go']);
+    expect(names(early.marks)).toEqual(['end', 'word']);
+    expect(names(late.cues)).toEqual(['go', 'later']);
+    expect(names(late.marks)).toEqual([]);
+  });
+
+  test('a frame not asked to hear adds nothing to the last one heard', () => {
+    const film = branching();
+    const heard = clock();
+    withDom(
+      () => {
+        film.render(recorder().ctx, 0.5, { clock: heard });
+        film.render(recorder().ctx, 1.5);
+      },
+      { record: false },
+    );
+    expect(names(heard.cues)).toEqual(['go']);
+  });
+
+  test('a frame drawn again the other way hears only the draw it keeps', () => {
+    // Past its second second the scene frames a shot of its own; before, none, and its draw reads `whole` under the
+    // breath drawn round it whole, `framed` without it: the two draws of one frame read apart.
+    const film = createFilm({
+      ...spec(),
+      scenes: [
+        {
+          id: 'a',
+          say: 'A line.',
+          min: 4,
+          timeline: { whole: { at: 'start', dur: 4 }, framed: { at: 'start', dur: 4 } },
+          draw: (f) => {
+            if (f.t > 2) camera(f.ctx, { x: 960, y: 540 }, f.w, f.h, () => undefined);
+            else f.at(f.ctx.getTransform().a === 1 ? 'framed' : 'whole');
+          },
+        },
+      ],
+    });
+    const after = clock();
+    const again = clock();
+    withDom(
+      () => {
+        // A shot framed, so the next frame's first guess is a shot's: at 1 s it frames none, and is drawn again whole.
+        film.render(recorder().ctx, 3);
+        film.render(recorder().ctx, 1, { clock: after });
+        // Guessed whole this time: drawn once.
+        film.render(recorder().ctx, 1, { clock: again });
+      },
+      { record: false },
+    );
+    expect(names(again.cues)).toEqual(['whole']);
+    expect(names(after.cues)).toEqual(names(again.cues));
+  });
+
+  test("hears the scene's own reads of its card's flood, not the engine's", () => {
+    // The card floods in over `flood` in the scene's first second; the draw reads `flood` only past its third.
+    const film = createFilm({
+      ...spec(),
+      scenes: [
+        {
+          id: 'a',
+          say: 'Job asked it: {job}How should man be just with God?',
+          min: 4,
+          timeline: { flood: { at: 'start', dur: 1 }, card: { at: 'start', offset: 2, dur: 1 } },
+          draw: (f) => {
+            if (f.t > 3) f.at('flood');
+            return { x: 0, y: 0, w: 10, h: 10 };
+          },
+          card: {
+            cue: 'card',
+            from: 'job',
+            payoff: 'just',
+            flood: { cue: 'flood' },
+            draw: () => undefined,
+          },
+        },
+      ],
+    });
+    const heard = clock();
+    withDom(() => film.render(recorder().ctx, 0.5, { clock: heard }), { record: false });
+    expect(names(heard.cues)).toEqual([]);
   });
 });
 

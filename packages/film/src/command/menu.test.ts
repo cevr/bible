@@ -122,7 +122,7 @@ describe('Go to (AA-2)', () => {
     expect(went).toEqual(['out/art']);
   });
 
-  test("the studio's parts are commands on ⇧1-⇧6; a short has only Films, Scenes and Play", () => {
+  test("the studio's parts are commands on ⇧1-⇧7; a short has only Films, Scenes and Play", () => {
     const went: Array<string> = [];
     const parts = (film: string) =>
       partCommands(
@@ -138,14 +138,16 @@ describe('Go to (AA-2)', () => {
       ['page.films', ['shift+1']],
       ['page.scenes', ['shift+2']],
       ['page.lab', ['shift+3']],
-      ['page.choices', ['shift+4']],
-      ['page.project', ['shift+5']],
-      ['page.play', ['shift+6']],
+      ['page.script', ['shift+4']],
+      ['page.choices', ['shift+5']],
+      ['page.project', ['shift+6']],
+      ['page.play', ['shift+7']],
     ]);
     // The part the page is on is no move.
     expect(open('roofs')).toEqual([
       'page.scenes',
       'page.lab',
+      'page.script',
       'page.choices',
       'page.project',
       'page.play',

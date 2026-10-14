@@ -834,6 +834,71 @@ export const NoteSource = Schema.Struct({
 });
 export type NoteSource = typeof NoteSource.Type;
 
+/**
+ * Words of a beat's line a note is about: the beat, its first and last word
+ * (from 0, as the line is said and the Script's `?words=` counts them) and
+ * the words as they stood, so a reader finds them after the line changes.
+ */
+export const NoteWords = Schema.Struct({
+  beat: Schema.String,
+  from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  to: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  text: Schema.String,
+}).check(Schema.makeFilter((w) => w.to >= w.from || 'the words end at or after they start'));
+export type NoteWords = typeof NoteWords.Type;
+
+/**
+ * What a note on a line's words asks of them: a note (they stand; it says
+ * something of them), a correction (say `replace` in their place) or a
+ * removal (cut them).
+ */
+export const NoteKind = Schema.Literals(['note', 'correction', 'removal']);
+export type NoteKind = typeof NoteKind.Type;
+
+/** What a note asks of a line's words: the words, what it asks of them, a correction's words instead. */
+interface Asking {
+  readonly words?: NoteWords;
+  readonly kind?: NoteKind;
+  readonly replace?: string;
+}
+
+/** Whether a correction says words of its own: some, and not the words it corrects. */
+const saysOtherWords = (n: Asking): boolean =>
+  Option.exists(
+    Option.fromUndefinedOr(n.replace),
+    (r) => r.trim() !== '' && r.trim() !== n.words?.text,
+  );
+
+/**
+ * What a note may ask of its words, by the composer's own rule (`unsaid`,
+ * `lab/notes/draft.ts`), checked wherever a note crosses a boundary (the
+ * lab's POST, `notes.json`): what it asks is of words, so a kind comes with
+ * them; only a correction says words instead, and other words than theirs.
+ */
+const ASKS_OF_WORDS = Schema.makeFilterGroup<Asking>([
+  Schema.makeFilter(
+    (n) =>
+      !('kind' in n) ||
+      'words' in n || { path: ['kind'], issue: 'a note asks something only of its words' },
+  ),
+  Schema.makeFilter(
+    (n) =>
+      !('replace' in n) ||
+      n.kind === 'correction' || {
+        path: ['replace'],
+        issue: 'only a correction says words instead',
+      },
+  ),
+  Schema.makeFilter(
+    (n) =>
+      n.kind !== 'correction' ||
+      saysOtherWords(n) || {
+        path: ['replace'],
+        issue: 'a correction says other words than its own',
+      },
+  ),
+]);
+
 /** What the lab sends for a new note: the frame, where it was marked, and what it says. */
 export const NoteDraft = Schema.Struct({
   scene: Schema.String,
@@ -858,10 +923,20 @@ export const NoteDraft = Schema.Struct({
   range: Schema.optionalKey(NoteRange),
   /** The line of its scene's file it is about (written with the Source view held on a line). Optional and additive. */
   source: Schema.optionalKey(NoteSource),
+  /**
+   * The words of its scene's line it is about (written with words of the
+   * line selected), its still the frame where they start. Optional and
+   * additive: a note without them is about its frame.
+   */
+  words: Schema.optionalKey(NoteWords),
+  /** What it asks of its `words` (written with them): absent, a note. Optional and additive. */
+  kind: Schema.optionalKey(NoteKind),
+  /** A correction's words to say in place of its `words`. Optional and additive. */
+  replace: Schema.optionalKey(Schema.String),
   box: Schema.optionalKey(NoteBox),
   ink: Schema.optionalKey(Schema.Array(InkStroke)),
   text: Schema.String.check(Schema.isNonEmpty()),
-});
+}).check(ASKS_OF_WORDS);
 export type NoteDraft = typeof NoteDraft.Type;
 
 export const Note = Schema.Struct({
@@ -879,7 +954,7 @@ export const Note = Schema.Struct({
   thread: Schema.Array(Reply),
   /** ISO time. */
   createdAt: Schema.String,
-});
+}).check(ASKS_OF_WORDS);
 export type Note = typeof Note.Type;
 
 /** `lab/<film>/notes.json`. `seq` is the last change's number: the cursor a watcher waits past. */
@@ -909,7 +984,7 @@ export type NotesWait = typeof NotesWait.Type;
 export const NotePost = Schema.Struct({
   ...NoteDraft.fields,
   still: Schema.Uint8ArrayFromBase64,
-});
+}).check(ASKS_OF_WORDS);
 
 /** The lab's `POST /api/films/:film/notes/:id/reply` body. */
 export const ReplyPost = Schema.Struct({ text: Schema.String.check(Schema.isNonEmpty()) });
@@ -1113,14 +1188,28 @@ const CodeSite = Schema.Struct({
 });
 
 /**
+ * A `{mark}` of the scene's narration its code reads by name: every call
+ * that reads it as an instant, and every one that reads the voice from it.
+ */
+const MarkSite = Schema.Struct({
+  name: Schema.String,
+  /** `f.mark('take')`: when its word is said. */
+  reads: Schema.Array(CodeRange),
+  /** `f.spoken('take')`, `f.spoken('take', 'held')`: the voice from it to the mark `to` names, else to the end of speech. */
+  speaks: Schema.Array(Schema.Struct({ at: CodeRange, to: Schema.optionalKey(Schema.String) })),
+});
+
+/**
  * `GET /api/films/<film>/scenes/<scene>/code`: the scene file as it stands, and
- * where in it each cue and knob is written and read, for the Source view to
- * light what plays. The ranges come from the parse the writes use
- * (`tools/scene-source.ts`). A read is matched by name: a call of a
- * frame's reader (`at`, `cue`, `keys`, `stagger`, `staggerAt`, `knob`)
- * whose first argument is a string naming a cue or knob the scene declares;
- * a wrong match lights the wrong span and writes nothing. A cue's or a
- * knob's literal the lab cannot locate is not listed, and `refused` says why.
+ * where in it each cue and knob is written and read, and each mark read, for
+ * the Source view to light what plays. The ranges come from the parse the
+ * writes use (`tools/scene-source.ts`). A read is matched by name: a call of
+ * a frame's reader (`at`, `cue`, `keys`, `stagger`, `staggerAt`, `knob`,
+ * `mark`, `spoken`) whose first argument is a string naming a cue or knob the
+ * scene declares, or any mark (the file holds no narration: the view lights
+ * the marks the staged scene says); a wrong match lights the wrong span and
+ * writes nothing. A cue's or a knob's literal the lab cannot locate is not
+ * listed, and `refused` says why.
  */
 export const SceneCode = Schema.Struct({
   scene: Schema.String,
@@ -1130,6 +1219,7 @@ export const SceneCode = Schema.Struct({
   text: Schema.String,
   cues: Schema.Array(CodeSite),
   knobs: Schema.Array(CodeSite),
+  marks: Schema.Array(MarkSite),
   /** Each field whose literal is not provable, and why: what the view's head says while nothing it lists is lit. */
   refused: Schema.Array(
     Schema.Struct({ field: Schema.Literals(['timeline', 'knobs']), reason: Schema.String }),

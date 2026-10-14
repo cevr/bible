@@ -6,72 +6,22 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import {
-  ConfigProvider,
-  Console,
-  Duration,
-  Effect,
-  Exit,
-  Layer,
-  Option,
-  Path,
-  Queue,
-  References,
-} from 'effect';
-import { Command } from 'effect/cli';
-import { ContentStore } from './content-store.ts';
-import { FilmFolder, FilmName } from './film-repo.ts';
-import { notes } from './notes-cli.ts';
+import { Duration, Effect, Layer, Option, Queue } from 'effect';
+import { FilmName } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
-import { memoryFileSystem, memoryLocks, text } from './testing.ts';
+import {
+  NOTES_LAB as LAB,
+  notesCli as cli,
+  notesInMemory,
+  notesPrinting,
+  text,
+} from './testing.ts';
 
 const film = FilmName.make('tiny');
-const LAB = '/lab';
 const png = text('png');
 
 /** One film, `tiny`, under `/films`; its notes under `/lab`, in memory. */
-const World = Layer.unwrap(
-  Effect.sync(() => {
-    const files = new Map<string, Uint8Array>([
-      ['/films/tiny/scenes/index.ts', text('export default []')],
-    ]);
-    return Layer.mergeAll(NotesStore.layer, FilmFolder.layer('/films')).pipe(
-      Layer.provide(ContentStore.layer),
-      Layer.provideMerge([
-        memoryFileSystem(files, new Set()),
-        memoryLocks,
-        Path.layer,
-        ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_LAB: LAB })),
-      ]),
-    );
-  }),
-);
-
-/** The console a run prints to: each line it logs, offered to `lines`. */
-const printingTo = (lines: Queue.Queue<string>): Console.Console => ({
-  ...globalThis.console,
-  log: (...args: ReadonlyArray<unknown>) => {
-    Queue.offerUnsafe(lines, args.map(String).join(' '));
-  },
-});
-
-/**
- * `film notes …args`, its printed lines offered to `lines`. Its log events
- * go to stderr in the CLI; here they are dropped, so `lines` is its stdout.
- */
-const notesPrinting = (lines: Queue.Queue<string>, args: ReadonlyArray<string>) =>
-  Command.runWith(notes, { version: '0' })(args).pipe(
-    Effect.provideService(Console.Console, printingTo(lines)),
-    Effect.provideService(References.MinimumLogLevel, 'None'),
-  );
-
-/** `film notes …args` run to its end: whether it succeeded, and the lines it printed. */
-const cli = (...args: ReadonlyArray<string>) =>
-  Effect.gen(function* () {
-    const lines = yield* Queue.unbounded<string>();
-    const exit = yield* Effect.exit(notesPrinting(lines, args));
-    return { ok: Exit.isSuccess(exit), lines: yield* Queue.clear(lines) };
-  });
+const World = notesInMemory('tiny');
 
 /**
  * `film notes tiny --watch …flags`, running until the test's scope ends:
@@ -184,6 +134,40 @@ describe('film notes, as an agent reads it', () => {
         `note id=n1 seq=1 status=open scene=turn T=5.35 frame=160 source=scenes/turn.ts:118 line="if (f.at(\\"push\\") > 0.5) {" replies=0 still=${LAB}/tiny/stills/n1.png text="this branch fires late"`,
       );
     }).pipe(Effect.provide(Fresh)),
+  );
+
+  it.live(
+    'prints the words of a line a note is about, as they read, what it asks of them and a correction’s words instead',
+    () =>
+      Effect.gen(function* () {
+        const store = yield* NotesStore;
+        const words = { beat: 'turn', from: 4, to: 6, text: 'the page "turns"' };
+        yield* store.add(
+          film,
+          {
+            scene: 'turn',
+            T: 5.35,
+            frame: 160,
+            words,
+            kind: 'correction',
+            replace: 'the page folds',
+            text: 'say “the page folds” for “the page "turns"”',
+          },
+          png,
+        );
+        yield* store.add(
+          film,
+          { scene: 'turn', T: 6, frame: 180, words, kind: 'removal', text: 'cut it' },
+          png,
+        );
+        const lines = (yield* cli('tiny')).lines;
+        expect(lines[0]).toBe(
+          `note id=n1 seq=1 status=open scene=turn T=5.35 frame=160 words=turn:4-6 said="the page \\"turns\\"" kind=correction replace="the page folds" replies=0 still=${LAB}/tiny/stills/n1.png text="say “the page folds” for “the page \\"turns\\"”"`,
+        );
+        expect(lines[1]).toBe(
+          `note id=n2 seq=2 status=open scene=turn T=6.00 frame=180 words=turn:4-6 said="the page \\"turns\\"" kind=removal replies=0 still=${LAB}/tiny/stills/n2.png text="cut it"`,
+        );
+      }).pipe(Effect.provide(Fresh)),
   );
 
   it.live(

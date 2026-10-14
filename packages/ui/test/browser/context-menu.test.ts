@@ -394,7 +394,10 @@ describe('ContextMenu.Root: one root, a page trigger around target triggers', ()
     expect(Math.round(box.y)).toBe(y - 5);
     expect(Math.round(box.x)).toBe(x + 2);
     expect(await logOf(page)).toEqual(['open true a']);
+    // Only the trigger that opened the menu says it is open: not its sibling, nor the page around it.
     await see(page.locator('#target-a')).toHaveAttribute('data-popup-open', '');
+    await see(page.locator('#target-b')).not.toHaveAttribute('data-popup-open');
+    await see(page.locator('#page')).not.toHaveAttribute('data-popup-open');
   });
 
   it('a right click on another target, or on no target, moves the menu and names it', async () => {
@@ -407,12 +410,17 @@ describe('ContextMenu.Root: one root, a page trigger around target triggers', ()
     await see
       .poll(async () => Math.round((await page.locator('#positioner').boundingBox())?.y ?? 0))
       .toBe(b.y - 5);
+    // The open state moves with the menu: the trigger that opened it last is the one open.
+    await see(page.locator('#target-b')).toHaveAttribute('data-popup-open', '');
+    await see(page.locator('#target-a')).not.toHaveAttribute('data-popup-open');
     const blank = await centreOf(page, '#blank');
     await page.mouse.click(blank.x, blank.y, { button: 'right' });
     await see
       .poll(async () => Math.round((await page.locator('#positioner').boundingBox())?.y ?? 0))
       .toBe(blank.y - 5);
     await see(page.locator('#popup')).toBeVisible();
+    await see(page.locator('#page')).toHaveAttribute('data-popup-open', '');
+    await see(page.locator('#target-b')).not.toHaveAttribute('data-popup-open');
     expect((await logOf(page)).filter((line) => line.startsWith('open true'))).toEqual([
       'open true a',
       'open true b',

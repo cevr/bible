@@ -19,16 +19,18 @@ import {
   createMemo,
   createSignal,
   onCleanup,
+  untrack,
   useContext,
 } from 'solid-js';
 import type { NoteSource, SceneCode } from '../../core/schema.ts';
 import { LabApi, reasonOf } from '../api.ts';
 import { useEditor } from '../editor/context.tsx';
 import { SourceKnown } from '../editor/grip.ts';
+import { useLabPage } from '../panel.tsx';
 import { useLab } from '../shell.tsx';
 import { lastLine, lineAt, lineSite } from './lit.ts';
 import { sourceCommands } from './commands.ts';
-import { type CodeOpen, codeText } from './open.ts';
+import { type CodeOpen, FOLLOW, codeText, followsFrame, isLive } from './open.ts';
 
 /** The code as the view knows it: not asked for, being read, read, or refused (with the server's words). */
 export type CodeState = Data.TaggedEnum<{
@@ -64,8 +66,10 @@ interface SourceContextValue {
   readonly held: Accessor<Option.Option<number>>;
   /** Whether the view places its scroll: no hand has scrolled it since it opened, was held on a line, or was taken back. */
   readonly placing: Accessor<boolean>;
-  /** Whether the view scrolls with the frame: it is open to follow and placing. */
+  /** Whether the view scrolls with the frame: it is open to follow (or in Code mode) and placing. */
   readonly following: Accessor<boolean>;
+  /** Whether the view is open in Code mode (`?code=live`): the code beside the picture, the panel set aside. */
+  readonly live: Accessor<boolean>;
   /** A hand scrolled the view: it stops placing until `resume`, or until a line is held. */
   readonly suspend: () => void;
   /** Place the view again: follow the frame, or show the held line. */
@@ -157,7 +161,8 @@ export const Provider = (props: ParentProps) => {
     },
   );
   const placing = () => !suspended();
-  const following = () => Option.exists(lab.code(), (o) => o._tag === 'Follow') && placing();
+  const following = () => Option.exists(lab.code(), followsFrame) && placing();
+  const live = () => isLive(lab.code());
   // The held line, clamped once against the code read: the view and the note read this one.
   const held = createMemo(() =>
     Option.flatMap(Option.all({ c: code(), o: lab.code() }), ({ c, o }) =>
@@ -210,11 +215,20 @@ export const Provider = (props: ParentProps) => {
     meta.hub.commands.register(
       ...sourceCommands({
         open: () => Option.isSome(lab.code()),
+        live,
         show: (to) => actions.showCode(Option.some(to)),
         hide: actions.dismissCode,
         lineOfCue,
       }),
     ),
+  );
+  // Code mode sets the panel aside: a mode shown in it (the tray, ⌘K, a note begun) is asked to be
+  // seen, so Code mode is left for it, the view following the frame, as a step Back walks. Heard
+  // from an effect's callback (a note begun) as well, where the place is read untracked.
+  onCleanup(
+    useLabPage().onModeShown(() => {
+      if (untrack(live)) actions.showCode(Option.some(FOLLOW));
+    }),
   );
   // The line the view is held on, as a note cites it: of the code read, once it is.
   const heldSite = () =>
@@ -230,6 +244,7 @@ export const Provider = (props: ParentProps) => {
     held,
     placing,
     following,
+    live,
     suspend: () => setSuspended(true),
     resume: () => setSuspended(false),
     handHas: () => askHand(),

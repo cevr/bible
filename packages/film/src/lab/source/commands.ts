@@ -1,23 +1,28 @@
 // The Source view as the page's commands: Show the code (⇧C, on the Lab's
 // context menu and ⌘K; the view follows the frame), Hide the code (the same
-// key while it is open), and on a cue's context menu Show the code for this
-// cue (the view held on the line that writes it). Nothing stands at rest for
-// them: a phone reaches each through the command menu, a cue's long-press or
-// its file line in the inspector.
+// key while it is open), Code mode (⌘K: the code beside the picture, lit as
+// it plays) and Leave code mode (back to following), and on a cue's context
+// menu Show the code for this cue (the view held on the line that writes
+// it). Nothing stands at rest for them: a phone reaches each through the
+// command menu, a cue's long-press, its file line in the inspector, or Code
+// mode in the view's head.
 
 import { Boolean as Bool, Option } from 'effect';
 import { type Command, quietly } from '../../command/command.ts';
 import { selected } from '../../command/context.ts';
-import { type CodeOpen, FOLLOW, lineOpen } from './open.ts';
+import { type CodeOpen, FOLLOW, LIVE, lineOpen } from './open.ts';
 
 /** The ids of the Source view's commands. */
 const SOURCE = 'lab.source';
+const SOURCE_LIVE = 'lab.source.live';
 const SOURCE_CUE = 'lab.source.cue';
 
 /** What the commands drive: the view as the URL holds it, and where a cue is written. */
 interface SourceVerbs {
   /** Whether the view is open. */
   readonly open: () => boolean;
+  /** Whether it is open in Code mode. */
+  readonly live: () => boolean;
   readonly show: (open: CodeOpen) => void;
   readonly hide: () => void;
   /** The line that writes cue `name` of `scene` in its file, once the file is read. */
@@ -41,6 +46,21 @@ export const sourceCommands = (verbs: SourceVerbs): ReadonlyArray<Command> => [
     when: () => true,
     run: quietly(() =>
       Bool.match(verbs.open(), { onTrue: verbs.hide, onFalse: () => verbs.show(FOLLOW) }),
+    ),
+  },
+  {
+    id: SOURCE_LIVE,
+    label: 'Code mode',
+    labelIn: () =>
+      Bool.match(verbs.live(), {
+        onTrue: () => 'Leave code mode',
+        onFalse: () => 'Code mode',
+      }),
+    group: 'Source',
+    touch: 'the command menu, then Code mode; or Code mode in the code’s head',
+    when: () => true,
+    run: quietly(() =>
+      verbs.show(Bool.match(verbs.live(), { onTrue: () => FOLLOW, onFalse: () => LIVE })),
     ),
   },
   {

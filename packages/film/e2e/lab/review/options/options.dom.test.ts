@@ -19,7 +19,7 @@
 
 import { Deferred, Effect, Exit, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
-import { pageHref } from '../../../../src/core/api.ts';
+import { PARTS, pageHref } from '../../../../src/core/api.ts';
 import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
 import {
   type FakeRoute,
@@ -438,13 +438,11 @@ describe("a film's choices", () => {
         yield* countIs(page, '.rv-film-card .rv-meta', 0);
         // A film card opens its choices from its context menu, which offers each of its parts.
         yield* rightClick(page, '.rv-film-card[data-film="toy"]');
-        yield* evaluates(page, `${MENU_ITEMS}.filter((id) => id.startsWith('film.'))`, [
-          'film.scenes',
-          'film.lab',
-          'film.choices',
-          'film.project',
-          'film.play',
-        ]);
+        yield* evaluates(
+          page,
+          `${MENU_ITEMS}.filter((id) => id.startsWith('film.'))`,
+          PARTS.filter((part) => part !== 'films').map((part) => `film.${part}`),
+        );
         yield* click(page, '[data-role="context-menu"] [data-command="film.choices"]');
         yield* until(page, `location.pathname === '${FILM}'`);
         yield* waitFor(page, '.rv-transport');

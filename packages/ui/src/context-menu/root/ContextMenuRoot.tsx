@@ -38,10 +38,15 @@ export function ContextMenuRoot(props: ContextMenuRootProps): JSX.Element {
   const [anchor, setAnchor] = createSignal<ContextMenuAnchor>(ORIGIN_ANCHOR, {
     ownedWrite: true,
   });
+  const [opener, setOpener] = createSignal<symbol | null>(null, { ownedWrite: true });
   const context: ContextMenuRootContextValue = {
     anchor,
     setAnchor(next) {
       setAnchor(() => next);
+    },
+    opener,
+    setOpener(trigger) {
+      setOpener(trigger);
     },
     internalBackdropRef: { current: null },
     allowMouseUpTriggerRef: { current: true },

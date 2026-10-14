@@ -579,6 +579,7 @@ const standsOn = (selector: string, below: string) =>
 const TABS = [
   ['scenes', pageHref.scenes('toy')],
   ['lab', pageHref.lab('toy')],
+  ['script', pageHref.script('toy')],
   ['choices', pageHref.choices('toy')],
   ['project', pageHref.project('toy')],
   ['play', pageHref.play('toy')],
@@ -618,7 +619,7 @@ describe("a film's project", () => {
         yield* attributeIs(page, '.sh-films', 'href', pageHref.home());
         // No text link between parts is left in the page.
         yield* countIs(page, `.sh-body a[href="${pageHref.lab('toy')}"]`, 0);
-        // On a phone the five tabs are a bar along the bottom, 56 px tall; Films the header's square.
+        // On a phone the six tabs are a bar along the bottom, 56 px tall; Films the header's square.
         yield* page.resize(390, 844);
         yield* until(
           page,
@@ -632,11 +633,11 @@ describe("a film's project", () => {
         const square = yield* page.box('.sh-films');
         expect(square.y + square.height).toBeLessThanOrEqual(header.y + 44 + 1);
         yield* evaluates(page, 'document.documentElement.scrollWidth <= innerWidth', true);
-        // A tab of another of the review's places moves there in the page; ⇧5 comes back to Project.
+        // A tab of another of the review's places moves there in the page; ⇧6 comes back to Project.
         yield* page.click('.sh-pagebar [data-page="choices"]');
         yield* until(page, `location.pathname === '${pageHref.choices('toy').split('?')[0]}'`);
         yield* attributesAre(page, '.sh-tab[data-active="true"]', 'data-page', ['choices']);
-        yield* page.press('Shift+5');
+        yield* page.press('Shift+6');
         yield* until(page, `location.pathname === '${PROJECT.split('?')[0]}'`);
         yield* attributesAre(page, '.sh-tab[data-active="true"]', 'data-page', ['project']);
         // ⇧1 goes to Films, where the tabs still lead into the film last opened.

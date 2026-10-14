@@ -271,7 +271,8 @@ for (const [name, viewport, where] of PLACES)
           viewport,
         });
         yield* page.waitFor(`${where} .lab-transcript-page`);
-        yield* evaluates(page, painted('lab-picked'), ['the', 'law']);
+        // Painted as one span, the space between the words with them.
+        yield* evaluates(page, painted('lab-picked'), ['the law']);
         yield* textHas(page, `${where} .lab-transcript-picked`, 'words 3–4 of ask');
       }).pipe(Effect.scoped),
     );
@@ -490,7 +491,7 @@ describe('selecting words', () => {
         yield* page.click('[data-role="context-menu"] [data-command="transcript.select-to"]');
         yield* page.clock.runFor(100);
         yield* page.until(`new URLSearchParams(location.search).get('words') === '3-4'`);
-        yield* evaluates(page, painted('lab-picked'), ['the', 'law']);
+        yield* evaluates(page, painted('lab-picked'), ['the law']);
         yield* page.click(`${sheet} [data-act="cut-words"]`);
         yield* textHas(page, said, `cut words 3–4 of ask in ${TALK_FILE}`);
         expect(posted(asked)).toEqual([

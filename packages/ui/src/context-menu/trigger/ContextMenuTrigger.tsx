@@ -20,7 +20,10 @@
 // browser's menu is suppressed only by the open that went ahead, and the
 // document listener covers the backdrop alone. Nor in upstream: the lift of
 // the touch that opened the menu is cancelled, so the browser's click after
-// it does not choose the item the menu opened under the finger.
+// it does not choose the item the menu opened under the finger. Nor in
+// upstream: one root may serve many triggers (the film lab's page trigger
+// around its targets), so a trigger says the menu is open (`data-popup-open`)
+// only while the menu is open from its own press (the root's `opener`).
 import type { JSX } from '@solidjs/web';
 import { omit, onCleanup, onSettled, untrack } from 'solid-js';
 
@@ -56,9 +59,10 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
 
   let triggerElement: HTMLElement | null = null;
   let touchPosition: { x: number; y: number } | null = null;
-  // The touch press's pointer, while one is down on the area, and who the long press claims it as.
+  // The touch press's pointer, while one is down on the area. `self` is this trigger: who the
+  // long press claims the press as, and the root's `opener` when its press opens the menu.
   let pressPointer: number | null = null;
-  const self = Symbol('context-menu long press');
+  const self = Symbol('context-menu trigger');
   const longPressTimeout = useTimeout();
   const allowMouseUpTimeout = useTimeout();
   let allowMouseUp = false;
@@ -86,6 +90,8 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     if (details.isCanceled) {
       return false;
     }
+    // The menu is open from this trigger now (an open declined leaves it with the last one).
+    contextMenu.setOpener(self);
     // The open menu holds the touch press, so no drag starts under it.
     if (pressPointer !== null) {
       claimPress(pressPointer, self, ownerDocument(triggerElement));
@@ -234,7 +240,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
 
   const state: ContextMenuTriggerState = {
     get open() {
-      return store.open();
+      return store.open() && contextMenu.opener() === self;
     },
   };
 

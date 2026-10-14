@@ -372,6 +372,31 @@ export const TalkMarkPost = Schema.Struct({
 });
 
 /**
+ * A beat of a film's script as the Script page reads it beside the staged
+ * film: what the film plays leaves it out (`scenesOf`), so it comes from the
+ * script as it stands: the picture's brief and the beat's sources.
+ */
+const ScriptBeat = Schema.Struct({
+  id: Schema.String,
+  /** What the picture does, as the script says it; none where it says nothing. */
+  picture: Schema.optionalKey(Schema.String),
+  /** The beat's sources, as the script cites them. */
+  cite: Schema.Array(Schema.String),
+});
+export type ScriptBeat = typeof ScriptBeat.Type;
+
+/**
+ * `GET /api/films/<film>/script`: each beat of the film's `script.ts` in its
+ * order, as the file stands now (`film read script`, run fresh); no beats for
+ * a film that keeps no script.
+ */
+export const ScriptBeats = Schema.Struct({
+  film: Schema.String,
+  beats: Schema.Array(ScriptBeat),
+});
+export type ScriptBeats = typeof ScriptBeats.Type;
+
+/**
  * What the owner says of a variant, a scene's render, an act or the film:
  * approve it as it is now, withdraw every approval of it, or comment on it.
  * A withdraw `given` an approve's op (its `Project.gave.op`) withdraws only
@@ -562,6 +587,15 @@ class TalkGroup extends HttpApiGroup.make('talk').add(
     params: film,
     payload: TalkMarkPost,
     success: LabWrite,
+    error: Refusals,
+  }),
+) {}
+
+/** The film's script as the Script page reads it beside the staged film: each beat's picture and sources. */
+class ScriptGroup extends HttpApiGroup.make('script').add(
+  HttpApiEndpoint.get('beats', `${FILM}/script`, {
+    params: film,
+    success: ScriptBeats,
     error: Refusals,
   }),
 ) {}
@@ -787,6 +821,7 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(ScenesGroup)
   .add(StepsGroup)
   .add(TalkGroup)
+  .add(ScriptGroup)
   .add(StudioGroup)
   .add(ReviewGroup)
   .add(ChoicesGroup)
@@ -960,8 +995,9 @@ const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off', h
 /**
  * The lab's selection keys: a cue or a knob of the path's scene, a note, and
  * the studio's beat (a scene's take; with none the studio is on the path's),
- * and the Source view open (`code`: `follow`, or a line of the scene's file;
- * `lab/source/open.ts`), shut with the key absent. A talk's section (a
+ * and the Source view open (`code`: `follow`; `live`, Code mode, the code
+ * beside the picture; or a line of the scene's file; `lab/source/open.ts`),
+ * shut with the key absent. A talk's section (a
  * scene of a talk) adds its words selected (`words`: `<a>-<b>`, take word
  * indices) and the Transcript view open (`text`: `follow`, or a word;
  * `lab/transcript/open.ts`); both absent, the lab is as it was.
@@ -975,6 +1011,18 @@ const LabSelection = Field.struct({
   code: cited,
   words: cited,
   text: cited,
+});
+
+/**
+ * What the Script page selects in a beat (the path's scene): one of a cue
+ * (`cue`), a mark of its line (`mark`) or its words (`words`: `<a>-<b>`,
+ * word indices of the line as it is said); and the note selected (`note`).
+ */
+const ScriptSelection = Field.struct({
+  cue: cited,
+  mark: cited,
+  words: cited,
+  note: cited,
 });
 
 /**
@@ -1012,7 +1060,10 @@ export const OWN_SOUND = 'own';
  * selected and `#t=` the playhead in film time on both, and its plain preview
  * `/films/<film>/play#t=`. Lab: a film
  * `/films/<film>/lab#t=` (film time) or one of its scenes
- * `/films/<film>/lab/<scene>?cue=#t=` (scene time), with the selection.
+ * `/films/<film>/lab/<scene>?cue=#t=` (scene time), with the selection; and
+ * its script, the lab's second page on the same staged film,
+ * `/films/<film>/script#t=` or a beat of it
+ * `/films/<film>/script/<scene>?mark=#t=`, with what is selected in the beat.
  * Render: a film's export page `/films/<film>/export`, the film staged with
  * no chrome and its handle on `window.__film` (`mountRender`), which the
  * easel opens on the lab (`film look`); no reviewer's view, so it holds no
@@ -1071,6 +1122,18 @@ export const Places = {
     query: LabSelection,
     hash: LabAt,
   }),
+  script: Place.make({
+    path: '/films/:film/script',
+    params: filmParams,
+    query: Field.struct({ note: cited }),
+    hash: LabAt,
+  }),
+  scriptBeat: Place.make({
+    path: '/films/:film/script/:scene',
+    params: { film: Codec.Segment, scene: Codec.Segment },
+    query: ScriptSelection,
+    hash: LabAt,
+  }),
   export: Place.make({ path: '/films/:film/export', params: filmParams }),
 };
 
@@ -1086,6 +1149,8 @@ const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, AppPage]> = [
   [Places.play, 'player'],
   [Places.lab, 'lab'],
   [Places.labScene, 'lab'],
+  [Places.script, 'lab'],
+  [Places.scriptBeat, 'lab'],
   [Places.export, 'render'],
 ];
 
@@ -1123,6 +1188,8 @@ const FILM_PLACES: ReadonlyArray<Place.Place<{ readonly path: { readonly film: s
   Places.play,
   Places.lab,
   Places.labScene,
+  Places.script,
+  Places.scriptBeat,
   Places.export,
 ];
 
@@ -1157,12 +1224,23 @@ interface LabPicked {
   readonly note?: string;
   readonly beat?: string;
   readonly view?: CompareView;
-  /** The Source view open (`?code=`): `follow` or a line. */
+  /** The Source view open (`?code=`): `follow`, `live` (Code mode) or a line. */
   readonly code?: string;
   /** A talk's words selected (`?words=`): `<a>-<b>`. */
   readonly words?: string;
   /** The Transcript view open (`?text=`): `follow` or a word. */
   readonly text?: string;
+}
+
+/** The Script page's selection keys, none set. */
+const NOTHING_SCRIPTED = { cue: '', mark: '', words: '', note: '' };
+
+/** What the Script page has selected in a beat: a cue, a mark or words (`<a>-<b>`), and the note. */
+interface ScriptPicked {
+  readonly cue?: string;
+  readonly mark?: string;
+  readonly words?: string;
+  readonly note?: string;
 }
 
 /** A time for the hash, when there is one. */
@@ -1233,14 +1311,34 @@ export const pageHref = {
       query: { ...NOTHING_SELECTED, ...picked },
       hash: { t, loop },
     }),
+  /** The Script on `film`, at film time `t`, with note `note` selected, looping `loop`. */
+  script: (
+    film: string,
+    t: Option.Option<number> = Option.none(),
+    note = '',
+    loop: Option.Option<Interval> = Option.none(),
+  ): string => Place.href(Places.script, { path: { film }, query: { note }, hash: { t, loop } }),
+  /** The Script on beat `scene` of `film`, at scene time `t`, with what is `picked` there, looping `loop`. */
+  scriptBeat: (
+    film: string,
+    scene: string,
+    picked: ScriptPicked = {},
+    t: Option.Option<number> = Option.none(),
+    loop: Option.Option<Interval> = Option.none(),
+  ): string =>
+    Place.href(Places.scriptBeat, {
+      path: { film, scene },
+      query: { ...NOTHING_SCRIPTED, ...picked },
+      hash: { t, loop },
+    }),
 };
 
 /**
  * The studio's parts, in the page bar's order: Films (the home, every
- * film's), then a film's Scenes, Lab, Choices, Project and Play. ⇧1-⇧6 go
- * to them in this order.
+ * film's), then a film's Scenes, Lab, Script, Choices, Project and Play.
+ * ⇧1-⇧7 go to them in this order.
  */
-export const PARTS = ['films', 'scenes', 'lab', 'choices', 'project', 'play'] as const;
+export const PARTS = ['films', 'scenes', 'lab', 'script', 'choices', 'project', 'play'] as const;
 export type Part = (typeof PARTS)[number];
 
 /** Each part's name, as the page bar prints it. */
@@ -1248,6 +1346,7 @@ export const PART_TITLE: Readonly<Record<Part, string>> = {
   films: 'Films',
   scenes: 'Scenes',
   lab: 'Lab',
+  script: 'Script',
   choices: 'Choices',
   project: 'Project',
   play: 'Play',
@@ -1255,13 +1354,13 @@ export const PART_TITLE: Readonly<Record<Part, string>> = {
 
 /**
  * Whether `film` has `part`: a film has every part; a short (`<film>/shorts/<id>`)
- * is only played and seen as scenes, with no lab, choices or project of its own.
+ * is only played and seen as scenes, with no lab, script, choices or project of its own.
  */
 export const hasPart = (film: string, part: Part): boolean =>
   !isShortKey(film) || part === 'films' || part === 'scenes' || part === 'play';
 
 /** The parts whose `#t=` is the film's time: a move between them keeps the frame. */
-const FILM_TIME_PARTS: ReadonlySet<Part> = new Set<Part>(['scenes', 'lab', 'play']);
+const FILM_TIME_PARTS: ReadonlySet<Part> = new Set<Part>(['scenes', 'lab', 'script', 'play']);
 
 /** The film time a page of `part` at `t` hands the page bar to keep: none from a part whose time is not the film's. */
 export const filmTimeOn = (part: Part, t: Option.Option<number>): Option.Option<number> =>
@@ -1269,8 +1368,8 @@ export const filmTimeOn = (part: Part, t: Option.Option<number>): Option.Option<
 
 /**
  * The page of `part` on `film`, at its defaults (Films names no film);
- * Scenes, the Lab and Play at film time `t`, the frame a move between them
- * keeps.
+ * Scenes, the Lab, the Script and Play at film time `t`, the frame a move
+ * between them keeps.
  */
 export const partHref = (
   part: Part,
@@ -1281,6 +1380,7 @@ export const partHref = (
     films: () => pageHref.home(),
     scenes: () => pageHref.scenes(film, t),
     lab: () => pageHref.lab(film, t),
+    script: () => pageHref.script(film, t),
     choices: () => pageHref.choices(film),
     project: () => pageHref.project(film),
     play: () => pageHref.play(film, t),

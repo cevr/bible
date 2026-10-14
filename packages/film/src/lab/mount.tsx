@@ -1,12 +1,14 @@
-// The lab page's browser entry: mount the studio's shell and the Lab's
-// panel (`film-page.tsx`, `panel.tsx`) as every studio page mounts
-// (`mountStudio`), hydrated over the markup the lab rendered them with on the
-// server (`film-server.tsx`) or rendered anew, then stage the film its path
-// names, mount the framework-free preview player (`mountPreview`) on the
-// lab's time in the URL (`lab/place.ts`), and put each tool's controls in
-// its section of the panel. The render page the renderer loads never
-// imports this.
+// The lab page's browser entry, the Lab's and the Script's: mount the
+// studio's shell and the Lab's panel (`film-page.tsx`, `panel.tsx`) as every
+// studio page mounts (`mountStudio`), hydrated over the markup the lab
+// rendered them with on the server (`film-server.tsx`) or rendered anew,
+// then stage the film its path names, mount the framework-free preview
+// player (`mountPreview`) on the lab's time in the URL (`lab/place.ts`), and
+// put the page's body around it: on the Lab each tool's controls in its
+// section of the panel, on the Script its reader. The render page the
+// renderer loads never imports this.
 
+import type { Component } from 'solid-js';
 import { Effect } from 'effect';
 import type { Film } from '../canvas/film.ts';
 import { type Host, addressOn } from '../browser/host.ts';
@@ -15,12 +17,20 @@ import { TIME_MOVE, type TimeInUrl } from '../player/t-in-url.ts';
 import { LabClient } from './api.ts';
 import { labHrefWith, labOpensAt } from './place.ts';
 import { ShellTools, usePlayerTime } from './page-shell.tsx';
-import { type FilmBody, LAB_PAGE, labOn, stagedBody } from './film-page.tsx';
+import {
+  type FilmBody,
+  LAB_PAGE,
+  type LabPart,
+  labOn,
+  labPartOf,
+  stagedBody,
+} from './film-page.tsx';
 import { mountStudio } from './page-client.tsx';
 import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
 import { Motion } from './motion/index.ts';
 import { Notes } from './notes/index.ts';
+import { Script } from './script/index.ts';
 import { Source } from './source/index.ts';
 import { Studio } from './studio/index.ts';
 import { Transcript } from './transcript/index.ts';
@@ -53,7 +63,7 @@ const LabBody = (props: { readonly player: Player }) => (
           </ShellTools>
           <Motion.Provider>
             <Compare.Provider>
-              <Notes.Provider>
+              <Notes.LabProvider>
                 <Motion.Onion />
                 <Compare.Layer />
                 <Lab.Overlay>
@@ -75,7 +85,7 @@ const LabBody = (props: { readonly player: Player }) => (
                 <Studio.Provider>
                   <Studio.Section />
                 </Studio.Provider>
-              </Notes.Provider>
+              </Notes.LabProvider>
             </Compare.Provider>
           </Motion.Provider>
         </Source.Provider>
@@ -83,6 +93,32 @@ const LabBody = (props: { readonly player: Player }) => (
     </Lab.Root>
   </>
 );
+
+/**
+ * The staged lab in the Script's page: the film's beats beside the staged
+ * film's player, read and lit on its clock, with the film's notes on their
+ * words and frames (and their pins on the timeline). It edits nothing, so it
+ * has no Undo and none of the Lab's tools.
+ */
+const ScriptBody = (props: { readonly player: Player }) => (
+  <>
+    <LabTime player={props.player} />
+    <Lab.Root player={props.player}>
+      <Script.Provider>
+        <Script.Notes>
+          <Notes.Pins />
+          <Script.Reader />
+        </Script.Notes>
+      </Script.Provider>
+    </Lab.Root>
+  </>
+);
+
+/** The body each of the lab's pages puts around the staged film's player. */
+const BODIES: Readonly<Record<LabPart, Component<{ readonly player: Player }>>> = {
+  lab: LabBody,
+  script: ScriptBody,
+};
 
 /**
  * The lab's time in the URL: an entry names the frame its place does
@@ -103,9 +139,10 @@ const labTime = (name: string, film: Film, host: Host): TimeInUrl => {
 
 /**
  * The lab's body for `films` over `host`: the film its path names staged,
- * its preview mounted on the page's commands, and the lab around it. A film
- * that does not start, or whose faces do not load, fails the page (`fail`:
- * its panel's notes feed and its keys end, and it says why in its place).
+ * its preview mounted on the page's commands, and the page its link opens
+ * around it (`BODIES`: the Lab or the Script). A film that does not start,
+ * or whose faces do not load, fails the page (`fail`: its notes feed and its
+ * keys end, and it says why in its place).
  */
 const labBody = (films: Films, host: Host, fail: (why: string) => Effect.Effect<void>): FilmBody =>
   stagedBody(
@@ -114,8 +151,10 @@ const labBody = (films: Films, host: Host, fail: (why: string) => Effect.Effect<
     fail,
     (staged, hub) => {
       const player = mountPreview(staged, host, labTime(staged.name, staged.film, host), hub, fail);
-      return Effect.as(Effect.logInfo(`lab.mounted film=${staged.name}`), () => (
-        <LabBody player={player} />
+      const part = labPartOf(addressOn(host).href());
+      const Body = BODIES[part];
+      return Effect.as(Effect.logInfo(`lab.mounted film=${staged.name} part=${part}`), () => (
+        <Body player={player} />
       ));
     },
   );
