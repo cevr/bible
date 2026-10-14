@@ -352,21 +352,28 @@ export const selectionAt = (code: SceneCode, line: number): Option.Option<LabSel
 /**
  * The line the view follows to: where the firing read that began last is
  * written (of two that began together, the one written first; a mark's
- * instant, one frame long, never moves the view); else where the first
- * playing cue is written; else, with nothing playing, where the selected cue
- * or knob is written; else where the first knob the frame read is written
- * (or read). None when the code lights nothing.
+ * instant, one frame long, never moves the view); else `stay`, the line a
+ * read last fired on while the film plays, so between two reads the view
+ * keeps to them and the trail fades in sight, never leaving for the
+ * `timeline` and back; else where the first playing cue is written; else,
+ * with nothing playing, where the selected cue or knob is written; else where
+ * the first knob the frame read is written (or read). None when the code
+ * lights nothing.
  */
-export const followLine = (code: SceneCode, lit: Lit): Option.Option<number> =>
-  Option.map(
-    Option.firstSomeOf([
-      lit.newest,
-      Arr.head(lit.literals),
-      Arr.head(lit.picked),
-      Arr.head(lit.knobs),
-    ]),
-    (range) => lineAt(code, range[0]),
-  );
+export const followLine = (
+  code: SceneCode,
+  lit: Lit,
+  stay: Option.Option<number> = Option.none(),
+): Option.Option<number> => {
+  const lineOfRange = (range: CodeRange) => lineAt(code, range[0]);
+  return Option.firstSomeOf([
+    Option.map(lit.newest, lineOfRange),
+    stay,
+    Option.map(Arr.head(lit.literals), lineOfRange),
+    Option.map(Arr.head(lit.picked), lineOfRange),
+    Option.map(Arr.head(lit.knobs), lineOfRange),
+  ]);
+};
 
 /**
  * Where a tap on `line` of `code` seeks, in scene seconds: into the next

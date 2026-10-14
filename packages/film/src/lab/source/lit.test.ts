@@ -135,6 +135,25 @@ describe('what is lit at a frame', () => {
     expect(followLine(withKnob, litNow(withKnob, clockAt(0.5), fall))).toEqual(Option.some(6));
   });
 
+  test('while the film plays, the line a read fired on last holds the view until another fires', () => {
+    const withKnob: SceneCode = {
+      ...code,
+      knobs: [{ name: 'lift', at: range('lift = 1'), reads: [] }],
+    };
+    const read = { cue: Option.some('fall'), knob: Option.none(), read: ['lift'] };
+    const unread = { cues: new Set<string>(), marks: new Set<string>() };
+    // Nothing fires: the line kept wins over the playing cue's literal, the selection and the knob read.
+    const quiet = litNow(withKnob, clockAt(1.5, cues, SILENT, unread), read);
+    expect(followLine(withKnob, quiet, Option.some(2))).toEqual(Option.some(2));
+    expect(followLine(withKnob, litNow(withKnob, clockAt(5), read), Option.some(2))).toEqual(
+      Option.some(2),
+    );
+    // A read firing wins over the line kept.
+    expect(followLine(withKnob, litNow(withKnob, clockAt(0.5), read), Option.some(2))).toEqual(
+      Option.some(6),
+    );
+  });
+
   test('the head names what plays; else why the code lights none; else that nothing plays', () => {
     expect(liveWords(code, litNow(code, clockAt(0.5)))).toBe('rise');
     expect(liveWords(code, litNow(code, clockAt(5)))).toBe('nothing playing');

@@ -55,6 +55,7 @@ import {
   type Picks,
   beatWords,
   followLine,
+  lineAt,
   litNow,
   liveWords,
   metersOn,
@@ -178,6 +179,12 @@ const Beat = () => {
   );
 };
 
+/** The line a read last fired on, in the code it is a line of: what the view keeps to while the film plays. */
+interface Kept {
+  readonly code: SceneCode;
+  readonly line: number;
+}
+
 /** The nearest ancestor of `el` that scrolls: the box a row moves in, in the column and in a sheet alike. */
 const scrollContainerOf = (el: HTMLElement): Option.Option<HTMLElement> =>
   Option.flatMap(Option.fromNullishOr(el.parentElement), (up) => {
@@ -234,6 +241,15 @@ const Text = (props: {
     ),
   );
 
+  // The line a read last fired on in this code while the film plays: the view keeps to it while nothing fires, so
+  // between two reads it never leaves them for the timeline and back, and the trail fades in sight. A frame drawn
+  // while the film stands still (a seek, a step, a link) lets it go: a still frame is placed on what it lights.
+  const kept = createMemo((was: Option.Option<Kept> = Option.none()): Option.Option<Kept> =>
+    Option.match(lit().newest, {
+      onSome: (range) => Option.some({ code: props.code, line: lineAt(props.code, range[0]) }),
+      onNone: () => Option.filter(was, (k) => k.code === props.code && meta.player.playing()),
+    }),
+  );
   // The line the view looks at: the held line, else what plays while it follows. The projection is the line
   // number as a key, so the memo settles on a still target (Option.some(n) is a new object every frame; n is not).
   const looking = createMemo(() =>
@@ -241,7 +257,12 @@ const Text = (props: {
       Option.orElse(source.held(), () =>
         Option.flatMap(
           Option.filter(Option.some(source.following()), (on) => on),
-          () => followLine(props.code, lit()),
+          () =>
+            followLine(
+              props.code,
+              lit(),
+              Option.map(kept(), (k) => k.line),
+            ),
         ),
       ),
       { onNone: () => '', onSome: String },
