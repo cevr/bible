@@ -8,7 +8,13 @@
 
 import { Match } from 'effect';
 import { getStroke } from 'perfect-freehand';
-import { type SketchInk, TEXT_SHARE, type SketchItem, type View } from '../core/sketch.ts';
+import {
+  type SketchInk,
+  TEXT_LINE,
+  TEXT_SHARE,
+  type SketchItem,
+  type View,
+} from '../core/sketch.ts';
 
 /** Each ink's colour: a drawing's ink, a correction's red, a gold for what works. */
 export const INK_COLOUR: Readonly<Record<SketchInk, string>> = {
@@ -129,9 +135,16 @@ export const paintSketch = (
     if (item._tag === 'Text') {
       ctx.fillStyle = colour;
       ctx.font = `600 ${textSize(view)}px system-ui, sans-serif`;
-      ctx.textBaseline = 'top';
+      // Each line set from its top, the font's ascent below the shape's y, as the surface's SVG sets it.
+      ctx.textBaseline = 'alphabetic';
       for (const [i, line] of item.text.split('\n').entries())
-        ctx.fillText(line, item.at.x * w, item.at.y * h + i * textSize(view) * 1.3);
+        ctx.fillText(
+          line,
+          item.at.x * w,
+          item.at.y * h +
+            i * textSize(view) * TEXT_LINE +
+            ctx.measureText(line).fontBoundingBoxAscent,
+        );
       continue;
     }
     const drawn = drawnOf(view, item);

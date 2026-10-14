@@ -9,7 +9,7 @@
 // on the picture always says what it shows: a panel and its try (a preview
 // named as one), the panel held to draw on, or the board beside the scene.
 
-import { Option } from 'effect';
+import { Option, Result } from 'effect';
 import { createEffect } from 'solid-js';
 import type { Shot } from './animatic.ts';
 import { type BoardBeat, type PickedPanel, useBoard } from './context.tsx';
@@ -120,10 +120,19 @@ export const Picture = () => {
     const boarded = (shot: Boarded, said: string) =>
       Option.match(Option.fromUndefinedOr(shot.panel.text), {
         onSome: (text) => {
-          Option.map(beatOf(shot.beat), (beat) =>
+          const kind = `${said} · ${text._tag.toLowerCase()}`;
+          const set = Option.map(beatOf(shot.beat), (beat) =>
             paintText(ctx, film, beat.placed, text, shot.panel.at, shot.at, T),
           );
-          tag(`${said} · ${text._tag.toLowerCase()}`, 'left');
+          // A card the engine cannot set says why on the tag, never a blank paper.
+          const unset = Option.flatMap(set, (r) => Result.getFailure(r));
+          tag(
+            Option.match(unset, {
+              onNone: () => kind,
+              onSome: (why) => `${kind} · not set: ${why}`,
+            }),
+            'left',
+          );
         },
         onNone: () =>
           Option.map(shownTry(picked, shot), (t) => {

@@ -55,7 +55,7 @@ import { useLab } from '../shell.tsx';
 import { type SketchEvent, type SketchState, sketchOf, step } from '../sketch/gesture.ts';
 import { type Shot, type TimedBeat, panelTime, shotAt, shotsOf } from './animatic.ts';
 import { type PanelAsking, panelNoteOf } from './note.ts';
-import { stillOf } from './still.ts';
+import { StillUnmade, stillOf } from './still.ts';
 import { Sketch } from '../sketch/surface.tsx';
 
 /** A request the Board cannot make as it stands: no panel picked, or a note with nothing to say. */
@@ -154,6 +154,8 @@ interface BoardContextValue {
     /** The sketch over the picked panel. */
     readonly sketch: Accessor<SketchState>;
     readonly asked: Accessor<Asked>;
+    /** The note being written on the picked panel: kept until its post lands. */
+    readonly draft: Accessor<string>;
     /** The notes on panel `id`, oldest first. */
     readonly notesOf: (id: string) => ReadonlyArray<Note>;
   };
@@ -174,8 +176,10 @@ interface BoardContextValue {
     readonly keep: (tried: number, why: string) => void;
     readonly approve: (beat: string) => void;
     readonly withdraw: (beat: string) => void;
-    /** Post a comment on the picked panel, or ask for a tweak of it, the sketch riding along. */
-    readonly post: (asking: PanelAsking, text: string) => void;
+    /** Write the note on the picked panel. */
+    readonly write: (text: string) => void;
+    /** Post the draft as a comment on the picked panel, or as a tweak asked of it, the sketch riding along. */
+    readonly post: (asking: PanelAsking) => void;
     /** One event for the sketch surface, shown at `view` (its size on screen). */
     readonly sketch: (event: SketchEvent, view: { readonly w: number; readonly h: number }) => void;
   };
@@ -310,11 +314,16 @@ export const Provider = (props: ParentProps) => {
     Option.match(picked(), { onNone: () => 'animatic', onSome: () => pick().view }),
   );
 
-  // The sketch over the picked panel: a fresh one for each panel picked.
+  // The sketch over the picked panel and the note being written on it: fresh for each panel picked, kept while
+  // the same panel stays picked (a view changed, the board read again) and until a post of them lands.
   const [sketch, setSketch] = createSignal<SketchState>(sketchOf(), { ownedWrite: true });
-  const sketchKey = createMemo(() => Option.map(picked(), (p) => p.panel.id));
+  const [draft, setDraft] = createSignal('', { ownedWrite: true });
+  const sketchKey = createMemo(() => Option.map(picked(), (p) => p.panel.id), {
+    equals: Equal.equals,
+  });
   createEffect(sketchKey, () => {
     setSketch(sketchOf());
+    setDraft('');
   });
 
   const go = (board: { readonly scene: string } & BoardPick, T: number) =>
@@ -336,6 +345,20 @@ export const Provider = (props: ParentProps) => {
         return Option.none<HTMLImageElement>();
       },
     });
+  /** The image of `file` once it has loaded and decoded, starting its load if none has; refused if it will not load. */
+  const loadedImage = (file: string) =>
+    Effect.suspend(() => {
+      image(file);
+      return Effect.fromOption(Option.fromUndefinedOr(images.get(file)));
+    }).pipe(
+      Effect.flatMap((img) =>
+        Effect.as(
+          Effect.tryPromise(() => img.decode()),
+          img,
+        ),
+      ),
+      Effect.mapError(() => StillUnmade.make({ reason: `the try's image ${file} did not load` })),
+    );
 
   // One write at a time, its answer the board as it stands after (the board read again), or the note it made.
   const [asked, setAsked] = createSignal<Asked>(Asked.Idle(), { ownedWrite: true });
@@ -383,6 +406,7 @@ export const Provider = (props: ParentProps) => {
           if (w._tag === 'Post') {
             feed.refresh();
             setSketch(sketchOf());
+            setDraft('');
           }
         }),
       ),
@@ -424,7 +448,7 @@ export const Provider = (props: ParentProps) => {
 
   /** The panel shown with `items` drawn on it, as a PNG's bytes: the note's still. */
   const panelStill = (p: PickedPanel, items: SketchState['items']) =>
-    Effect.suspend(() => stillOf(labMeta.film, p, items, image, lab.T()));
+    Effect.suspend(() => stillOf(labMeta.film, p, items, loadedImage, lab.T()));
 
   const value: BoardContextValue = {
     state: {
@@ -437,6 +461,7 @@ export const Provider = (props: ParentProps) => {
       view,
       sketch,
       asked,
+      draft,
       notesOf: (id) => feed.notes().filter((n) => n.panel?.id === id),
     },
     actions: {
@@ -482,7 +507,8 @@ export const Provider = (props: ParentProps) => {
         ),
       approve: (beat) => ask(BoardWrite.Approve({ beat })),
       withdraw: (beat) => ask(BoardWrite.Withdraw({ beat })),
-      post: (asking, text) => ask(BoardWrite.Post({ asking, text })),
+      write: setDraft,
+      post: (asking) => ask(BoardWrite.Post({ asking, text: untrack(draft) })),
       sketch: (event, at) => setSketch((s) => step(s, event, at)),
     },
     meta: { name, url, image, loaded },

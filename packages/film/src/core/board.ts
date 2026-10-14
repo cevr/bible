@@ -297,17 +297,20 @@ const keptNow = (board: BoardFile, beat: string) =>
     Option.toArray(Option.map(Option.fromUndefinedOr(p.kept), (n) => ({ panel: p.id, try: n }))),
   );
 
-/** `beat`'s approval state: approved while every panel keeps the try it kept when approved. */
+/**
+ * `beat`'s approval state: approved while its picture panels are the ones approved, each keeping the try it kept
+ * then; a panel added since (picked or not) or a pick changed makes it stale.
+ */
 export const approvalOf = (board: BoardFile, beat: string): BoardApprovalState =>
   Option.match(
     Arr.findFirst(board.approvals, (a) => a.beat === beat),
     {
       onNone: (): BoardApprovalState => 'none',
       onSome: (a) => {
-        const now = keptNow(board, beat);
+        const now = pictures(board, beat);
         const same =
           now.length === a.kept.length &&
-          now.every((k) => a.kept.some((was) => was.panel === k.panel && was.try === k.try));
+          now.every((p) => a.kept.some((was) => was.panel === p.id && was.try === p.kept));
         return Bool.match(same, {
           onTrue: (): BoardApprovalState => 'approved',
           onFalse: (): BoardApprovalState => 'stale',

@@ -54,7 +54,9 @@ export const BOARD_CSS = `${BOARD_TOKENS}
   -webkit-line-clamp: 2; overflow: clip; }
 .lab-board-beat:not([data-more='true']) .lab-board-line { display: none; }
 .lab-board-more { align-self: flex-start; min-height: var(--hit); }
-.lab-board-brief .lab-board-mark { vertical-align: baseline; }
+/* A mark named inside a sentence (a brief, the compare caption) sits on its line, flush with the words around it. */
+.lab-board-brief .lab-board-mark, .lab-board-beside .lab-board-mark { margin-inline-end: 0; padding: 0;
+  vertical-align: baseline; }
 .lab-board-line { margin: 0; font-size: var(--fs-read); line-height: var(--lh-read); color: var(--text-1); }
 /* A mark: a chip before the word it is said at, as the Script's (its panel is held from there). */
 .lab-board-mark { margin-inline-end: var(--s-1); padding: 0 var(--s-1); border-radius: var(--r-1);
@@ -95,7 +97,6 @@ export const BOARD_CSS = `${BOARD_TOKENS}
 .lab-board-views { grid-column: 1 / -1; }
 .lab-board-follow { flex: none; min-height: var(--hit); }
 .lab-board-close { grid-column: 2; grid-row: 1; min-height: var(--hit); }
-.lab-board-beside .lab-board-mark { margin-inline-end: 0; vertical-align: baseline; }
 .lab-board-beside, .lab-board-why, .lab-board-set, .lab-board-drawn, .lab-board-asked {
   margin: 0; color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
 .lab-board-asked:empty { display: none; }
@@ -146,7 +147,9 @@ body.lab:has(.lab-board) .bar > .row .say { visibility: hidden; }
 .lab-overlay .lab-sketch-item[data-selected='true'], .lab-overlay .lab-sketch-text[data-selected='true'] {
   filter: drop-shadow(0 0 3px var(--accent)); }
 .lab-overlay .lab-sketch-item[data-marked='true'], .lab-overlay .lab-sketch-text[data-marked='true'] { opacity: 0.35; }
-.lab-overlay .lab-sketch-text { font-family: var(--font); font-weight: var(--w-2); stroke: none; }
+/* Set from its top (the font's ascent at the shape's y), as canvas/sketch.ts paints it and core/sketch.ts boxes it. */
+.lab-overlay .lab-sketch-text { font-family: var(--font); font-weight: var(--w-2); stroke: none;
+  dominant-baseline: text-before-edge; }
 .lab-overlay .lab-sketch-brush { fill: var(--accent-wash); stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 6 4;
   vector-effect: non-scaling-stroke; }
 .lab-sketch-typing { margin: 0; }

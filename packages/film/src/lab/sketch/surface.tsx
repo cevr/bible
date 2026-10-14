@@ -37,7 +37,7 @@ import {
   shownOf,
 } from './gesture.ts';
 import { INK_COLOUR, drawnOf, lineWidth, textSize } from '../../canvas/sketch.ts';
-import type { SketchItem } from '../../core/sketch.ts';
+import { type SketchItem, TEXT_LINE } from '../../core/sketch.ts';
 
 /** The size the surface is shown at, in screen pixels: what the machine's distances are measured in. */
 type ScreenView = { readonly w: number; readonly h: number };
@@ -287,6 +287,7 @@ const Surface = (props: { readonly width: number; readonly height: number }) => 
               fallback={
                 <Show when={Option.getOrUndefined(textOf(item))}>
                   {(t) => (
+                    // Set from its top, a line a step below the last, as the canvas sets it and the box reads it.
                     <text
                       class="lab-sketch-text"
                       x={t().at.x * props.width}
@@ -296,7 +297,16 @@ const Surface = (props: { readonly width: number; readonly height: number }) => 
                       data-selected={pressed(sketch.state().selected.includes(t().id))}
                       data-marked={pressed(shown().marked.includes(t().id))}
                     >
-                      {t().text}
+                      <For each={t().text.split('\n')}>
+                        {(line, i) => (
+                          <tspan
+                            x={t().at.x * props.width}
+                            y={t().at.y * props.height + i() * textSize(view) * TEXT_LINE}
+                          >
+                            {line}
+                          </tspan>
+                        )}
+                      </For>
                     </text>
                   )}
                 </Show>

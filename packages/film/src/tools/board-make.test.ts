@@ -7,7 +7,19 @@
 
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { ConfigProvider, Effect, Layer, Option, Path, Result, Sink, Stream } from 'effect';
+import {
+  ConfigProvider,
+  Deferred,
+  Effect,
+  Exit,
+  Layer,
+  Option,
+  Path,
+  Ref,
+  Result,
+  Sink,
+  Stream,
+} from 'effect';
 import { ChildProcessSpawner } from 'effect/process';
 import type { BoardFile } from '../core/board.ts';
 import type { Act, Note } from '../core/schema.ts';
@@ -93,8 +105,9 @@ describe('a run of the board', () => {
           ['cold.righteous', [1, 2]],
           ['title.start', [1, 2]],
         ]);
-        // The beat's second panel carries its first panel's shown try as the second reference.
-        const second = calls.filter((c) => c.out.endsWith('cold.righteous.1.png'))[0];
+        // The beat's second panel (its tries the run's third and fourth calls) carries its first panel's shown try
+        // as the second reference.
+        const second = calls[2];
         expect(second?.refs).toEqual([
           '/films/f/board/style.9005.png',
           '/films/f/board/cold.room.1.png',
@@ -211,22 +224,24 @@ describe('a run of the board', () => {
 });
 
 describe("a beat's panels to draw", () => {
-  /** What a run of beat `cold` draws over `panels`: each panel's file, as the route was asked for it. */
-  const drawnOver = (panels: BoardFile['panels']) => {
-    const calls: Array<ImageRequest> = [];
-    return Effect.gen(function* () {
+  /** What a run of beat `cold`, `tries` tries a panel, draws over `panels`: the files of the tries it adds. */
+  const drawnOver = (panels: BoardFile['panels'], tries = 1) =>
+    Effect.gen(function* () {
       yield* styled;
-      yield* (yield* BoardStore).modify(film, (b) => Result.succeed({ ...b, panels }));
+      const store = yield* BoardStore;
+      yield* store.modify(film, (b) => Result.succeed({ ...b, panels }));
+      const had = new Set(panels.flatMap((p) => p.tries.map((t) => t.file)));
       yield* makeBoard(
         film,
         beats,
         acts,
-        { beats: ['cold'], tries: 1, lanes: 1, dryRun: false },
+        { beats: ['cold'], tries, lanes: 1, dryRun: false },
         quiet,
       );
-      return calls.map((c) => c.out.split('/').at(-1));
-    }).pipe(Effect.provide(boardOver(new Map(), calls)));
-  };
+      return (yield* store.read(film)).panels.flatMap((p) =>
+        p.tries.map((t) => t.file).filter((f) => !had.has(f)),
+      );
+    }).pipe(Effect.provide(boardOver(new Map(), [])));
   it.effect('a beat boarded by hand keeps its own panels', () =>
     Effect.gen(function* () {
       const drawn = yield* drawnOver([
@@ -254,6 +269,70 @@ describe("a beat's panels to draw", () => {
       expect(drawn).toEqual(['cold.room.1.png']);
     }),
   );
+  it.effect(
+    'a panel a stopped run began is finished; one kept, imported or tweaked is left as it is',
+    () =>
+      Effect.gen(function* () {
+        const tried = (n: number, made: 'generate' | 'import' | 'tweak') => ({
+          n,
+          file: `t${n}.png`,
+          sha256: 's',
+          made,
+          refs: [],
+          at: 'x',
+        });
+        const begun = yield* drawnOver(
+          [{ id: 'cold.room', beat: 'cold', at: 'room', tries: [tried(1, 'generate')] }],
+          2,
+        );
+        expect(begun).toEqual(['cold.room.2.png', 'cold.righteous.1.png', 'cold.righteous.2.png']);
+        const settled = yield* drawnOver(
+          [
+            { id: 'cold.room', beat: 'cold', at: 'room', tries: [tried(1, 'generate')], kept: 1 },
+            { id: 'cold.righteous', beat: 'cold', at: 'righteous', tries: [tried(1, 'tweak')] },
+          ],
+          2,
+        );
+        expect(settled).toEqual([]);
+      }),
+  );
+});
+
+describe('two runs at once', () => {
+  it.effect('drawing one panel, never share a number or an image', () => {
+    const files = new Map<string, Uint8Array>();
+    return Effect.gen(function* () {
+      yield* styled;
+      // Each draw waits until both have started, so both runs read the panel before either records a try.
+      const both = yield* Deferred.make<void>();
+      const started = yield* Ref.make(0);
+      const route = ImageRoute.of({
+        draw: (request) =>
+          Effect.gen(function* () {
+            const n = yield* Ref.updateAndGet(started, (k) => k + 1);
+            if (n === 2) yield* Deferred.done(both, Exit.void);
+            yield* Deferred.await(both);
+            files.set(request.out, text(`image ${n}`));
+          }),
+      });
+      const run = makeBoard(
+        film,
+        beats,
+        acts,
+        { beats: ['title'], tries: 1, lanes: 1, dryRun: false },
+        quiet,
+      ).pipe(Effect.provideService(ImageRoute, route));
+      yield* Effect.all([run, run], { concurrency: 2, discard: true });
+      const store = yield* BoardStore;
+      expect(
+        (yield* store.read(film)).panels.flatMap((p) => p.tries.map((t) => [t.n, t.file])),
+      ).toEqual([
+        [1, 'title.start.1.png'],
+        [2, 'title.start.2.png'],
+      ]);
+      expect(yield* store.problems(film)).toEqual([]);
+    }).pipe(Effect.provide(boardOver(files, [])));
+  });
 });
 
 describe('the scene prompt', () => {
@@ -386,14 +465,16 @@ describe('the image route', () => {
       }).pipe(Effect.provide(okraOver(commands)));
     },
   );
-  it.effect('the fake route refuses a personal prompt too, and draws nothing', () =>
-    Effect.gen(function* () {
-      const files = new Map<string, Uint8Array>();
+  it.effect('the fake route refuses a personal prompt too, and draws nothing', () => {
+    const files = new Map<string, Uint8Array>();
+    const calls: Array<ImageRequest> = [];
+    return Effect.gen(function* () {
       const failed = yield* Effect.flip(
         (yield* ImageRoute).draw({ prompt: 'ask a@b.co', refs: [], size: '1x1', out: '/o.png' }),
       );
       expect(failed._tag).toBe('PromptPersonal');
-      expect(files.size).toBe(0);
-    }).pipe(Effect.provide(boardOver(new Map(), []))),
-  );
+      expect(calls).toEqual([]);
+      expect(files.has('/o.png')).toBe(false);
+    }).pipe(Effect.provide(boardOver(files, calls)));
+  });
 });

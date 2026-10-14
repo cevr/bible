@@ -6,11 +6,11 @@
 // and a beat with no panel as a quiet storyboard card naming it. The
 // sketch's still (`stillOf`) is painted the same way, the sketch over it.
 
-import { Option, Predicate, Result } from 'effect';
+import { Boolean as Bool, Option, Predicate, Result } from 'effect';
 import { type CardWord, cardWords, fullCard, verse } from './card.ts';
 import type { Film } from './film.ts';
 import type { Hand } from './ink.ts';
-import type { PanelText } from '../core/board.ts';
+import { PANEL_START, type PanelText } from '../core/board.ts';
 import type { Placed } from '../core/layout.ts';
 
 /** A seed for a card's hands: the board's cards never boil, so one hand is all they need. */
@@ -54,9 +54,18 @@ export const paintText = (
   return Option.match(Option.fromUndefinedOr(film.look.card), {
     onNone: () => Result.fail(`${film.title} sets no card style (FilmSpec.card)`),
     onSome: (look) => {
+      // A panel held from the beat's start sets its card from the line's first word: `start` is the board's, not a mark
+      // the line says (a line that does mark a `{start}` keeps its own).
+      const voice = Bool.match(mark === PANEL_START && !p.voice.marks.has(PANEL_START), {
+        onTrue: () => ({
+          ...p.voice,
+          marks: new Map([...p.voice.marks, [PANEL_START, Number.NEGATIVE_INFINITY]]),
+        }),
+        onFalse: () => p.voice,
+      });
       if (text._tag === 'Card')
         return Result.map(
-          cardWords(p.spec.id, p.voice, p.speechStart, {
+          cardWords(p.spec.id, voice, p.speechStart, {
             from: mark,
             payoff: text.payoff,
             ...Option.match(Option.fromUndefinedOr(text.to), {

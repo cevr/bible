@@ -413,13 +413,10 @@ export const Tries = (props: { readonly picked: PickedPanel }) => {
 /** The composer: a comment, or a tweak an agent makes, the sketch riding along; where the last request stands. */
 const Composer = (props: { readonly picked: PickedPanel }) => {
   const board = useBoard();
-  const [text, setText] = createSignal('', { ownedWrite: true });
+  const text = board.state.draft;
   const drawn = () => board.state.sketch().items;
   const sending = () => board.state.asked()._tag === 'Sending';
-  const post = (asking: 'note' | 'tweak') => {
-    board.actions.post(asking, text());
-    setText('');
-  };
+  const post = (asking: 'note' | 'tweak') => board.actions.post(asking);
   return (
     <section class="lab-board-compose" aria-label="Note the panel">
       <textarea
@@ -431,7 +428,7 @@ const Composer = (props: { readonly picked: PickedPanel }) => {
         })}
         rows="3"
         value={text()}
-        onInput={(e) => setText(e.currentTarget.value)}
+        onInput={(e) => board.actions.write(e.currentTarget.value)}
       />
       <Show when={drawn().length > 0}>
         <p class="lab-board-drawn">{`Sketch: ${sketchSummary(drawn())}. It rides along with the note.`}</p>
@@ -754,11 +751,18 @@ export const Column = () => {
             (row) => ({ first: row, last: row }),
           ),
       ),
-    // Clear of the beat's head, which sticks to the column's top.
+    // Clear of the beat's head, which sticks to the column's top: the tallest, since a head with a long title wraps.
     clear: () => ({
-      top: Option.match(found('.lab-board-beat-head'), {
+      top: Option.match(beats, {
         onNone: () => 0,
-        onSome: (head) => head.offsetHeight,
+        onSome: (el) =>
+          Math.max(
+            0,
+            ...Array.from(
+              el.querySelectorAll<HTMLElement>('.lab-board-beat-head'),
+              (head) => head.offsetHeight,
+            ),
+          ),
       }),
       bottom: 0,
     }),

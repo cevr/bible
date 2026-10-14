@@ -92,8 +92,11 @@ const toPolyline = (p: Px, points: ReadonlyArray<Px>): number => {
   );
 };
 
+/** How tall a text's line is, in pixels per pixel of type: the box here, the canvas and the surface all step lines by it from the shape's top. */
+export const TEXT_LINE = 1.3;
+
 /** How wide a text's box runs per character and how tall a line is, in view pixels per pixel of type. */
-const TEXT_SIZE = { em: 0.6, line: 1.3 } as const;
+const TEXT_SIZE = { em: 0.6, line: TEXT_LINE } as const;
 
 /** The type size a text shape is drawn at, as a share of the view's height. */
 export const TEXT_SHARE = 0.045;

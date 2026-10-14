@@ -18,6 +18,7 @@ import {
   Option,
   Path,
   Predicate,
+  Random,
   Ref,
 } from 'effect';
 import type { Result } from 'effect';
@@ -25,7 +26,6 @@ import {
   type BoardFile,
   type BoardStyle,
   type BoardTry,
-  type Panel,
   filmOrder,
   nextTry,
   panelById,
@@ -33,10 +33,7 @@ import {
   panelsOf,
   plannedAts,
   shownTry,
-  tryFile,
   tryOf,
-  withPanel,
-  withTries,
 } from '../core/board.ts';
 import { BoardRefused } from '../core/refusals.ts';
 import type { Act, Note } from '../core/schema.ts';
@@ -70,7 +67,13 @@ type MakeLine =
       readonly seconds: number;
       readonly file: string;
     }
-  | { readonly _tag: 'Failed'; readonly panel: string; readonly n: number; readonly reason: string }
+  | {
+      readonly _tag: 'Failed';
+      readonly panel: string;
+      /** Which of the run's tries of the panel it was, from 1: a failed try takes no number. */
+      readonly attempt: number;
+      readonly reason: string;
+    }
   | {
       readonly _tag: 'Planned';
       readonly panel: string;
@@ -85,7 +88,7 @@ export const makeLine: (line: MakeLine) => string = Match.type<MakeLine>().pipe(
     Made: (line) =>
       `made ${line.panel} try=${line.n} secs=${line.seconds.toFixed(1)} file=${line.file}`,
     Failed: (line) =>
-      `failed ${line.panel} try=${line.n} reason="${line.reason.replace(/\s+/g, ' ')}"`,
+      `failed ${line.panel} attempt=${line.attempt} reason="${line.reason.replace(/\s+/g, ' ')}"`,
     Planned: (line) =>
       `plan ${line.panel} try=${line.n} refs=${line.refs.join(',')}\n${line.prompt}\n`,
   }),
@@ -103,26 +106,45 @@ const styleOf = (film: string, board: BoardFile) =>
     ),
   );
 
+/** A panel a run draws, and how many tries it still lacks. */
+interface ToDraw {
+  readonly at: string;
+  readonly count: number;
+}
+
 /**
- * A beat's panels to draw: each planned at (`plannedAts`) the board has no
- * panel for, or a picture panel with no try yet. A beat boarded by hand (a
- * picture panel held from a mark the plan does not pick, imported or set)
- * keeps its own panels: only those with no try yet are drawn.
+ * A beat's panels to draw, each with the tries it still lacks of `tries`: each
+ * planned at (`plannedAts`) the board has no panel for, or a picture panel a
+ * run started (its tries all generated, fewer than `tries`, none kept). A beat
+ * boarded by hand (a picture panel held from a mark the plan does not pick,
+ * imported or set) keeps its own panels: a run only finishes those it began.
+ * A panel with a kept try, an import, a tweak or a text the engine sets is
+ * left as it stands.
  */
-const toDraw = (board: BoardFile, beat: BoardBeat): ReadonlyArray<string> => {
+const toDraw = (board: BoardFile, beat: BoardBeat, tries: number): ReadonlyArray<ToDraw> => {
   const planned = plannedAts(beat.id, beat.say, beat.picture);
   const own = panelsOf(board, beat.id);
   const byHand = own.some((p) => Predicate.isUndefined(p.text) && !planned.includes(p.at));
-  if (byHand)
-    return own
-      .filter((p) => Predicate.isUndefined(p.text) && p.tries.length === 0)
-      .map((p) => p.at);
-  return planned.filter((at) =>
-    Option.match(panelById(board, panelId(beat.id, at)), {
-      onNone: () => true,
-      onSome: (p) => Predicate.isUndefined(p.text) && p.tries.length === 0,
-    }),
-  );
+  const ats = Bool.match(byHand, {
+    onTrue: () => own.filter((p) => Predicate.isUndefined(p.text)).map((p) => p.at),
+    onFalse: () => planned,
+  });
+  return ats.flatMap((at) => {
+    const count = Option.match(panelById(board, panelId(beat.id, at)), {
+      onNone: () => tries,
+      onSome: (p) => {
+        const settled =
+          Predicate.isNotUndefined(p.text) ||
+          Predicate.isNotUndefined(p.kept) ||
+          p.tries.some((t) => t.made !== 'generate');
+        return Bool.match(settled, {
+          onTrue: () => 0,
+          onFalse: () => Math.max(0, tries - p.tries.length),
+        });
+      },
+    });
+    return Arr.filter([{ at, count }], (d) => d.count > 0);
+  });
 };
 
 /** Everything one try needs from the film. */
@@ -133,12 +155,15 @@ interface TryContext {
   readonly beats: ReadonlyArray<BoardBeat>;
 }
 
-/** Try `n` of a panel drawn and recorded; how long it took. The route tried twice before it fails. */
+/**
+ * One try of a panel drawn and recorded; its number, file and how long it took. The image is drawn to a file of its
+ * own and numbered only as it is recorded, under the board's lock, so a run and a tweak drawing one panel at once never
+ * share a number or overwrite each other's image. The route tried twice before it fails.
+ */
 const drawTry = Effect.fn('Board.drawTry')(function* (
   ctx: TryContext,
   beat: string,
   at: string,
-  n: number,
   made: BoardTry['made'],
   prompt: string,
   refs: ReadonlyArray<string>,
@@ -148,58 +173,54 @@ const drawTry = Effect.fn('Board.drawTry')(function* (
   const fs = yield* FileSystem.FileSystem;
   const store = yield* BoardStore;
   const route = yield* ImageRoute;
-  const file = tryFile(beat, at, n);
-  const out = path.join(ctx.folder, file);
-  yield* fs.makeDirectory(ctx.folder, { recursive: true });
-  const started = yield* DateTime.now;
-  yield* route
-    .draw({ prompt, refs: refs.map((r) => path.join(ctx.folder, r)), size: PANEL_SIZE, out })
-    .pipe(Effect.retry({ times: 1, while: (e) => e._tag === 'ImageRouteFailed' }));
-  const bytes = yield* fs.readFile(out);
-  const sha256 = yield* store.put(ctx.film, file, bytes);
-  const ended = yield* DateTime.now;
-  const tried: BoardTry = {
-    n,
-    file,
-    sha256,
-    made,
-    prompt,
-    refs,
-    ...Option.match(note, { onNone: () => ({}), onSome: (id) => ({ note: id }) }),
-    at: DateTime.formatIso(ended),
-  };
-  yield* store.transact(ctx.film, (current) => {
-    const next = withPanel(
-      current,
-      withTries(
-        Option.getOrElse(panelById(current, panelId(beat, at)), (): Panel => ({
-          id: panelId(beat, at),
-          beat,
-          at,
-          tries: [],
-        })),
-        [tried],
-      ),
-      filmOrder(ctx.beats, [...current.panels.map((p) => p.id), panelId(beat, at)]),
-    );
-    return Effect.succeed([next, next] as const);
-  });
-  const seconds = DateTime.toEpochMillis(ended) / 1000 - DateTime.toEpochMillis(started) / 1000;
-  yield* Effect.log(
-    `board.try film=${ctx.film} panel=${panelId(beat, at)} n=${n} secs=${seconds.toFixed(1)} made=${made}`,
+  const id = panelId(beat, at);
+  const drawing = path.join(ctx.folder, '.drawing');
+  yield* fs.makeDirectory(drawing, { recursive: true });
+  const out = path.join(
+    drawing,
+    `${id}.${(yield* Random.nextIntBetween(0, 36 ** 6)).toString(36)}.png`,
   );
-  return { file, seconds };
+  const started = yield* DateTime.now;
+  const bytes = yield* route
+    .draw({ prompt, refs: refs.map((r) => path.join(ctx.folder, r)), size: PANEL_SIZE, out })
+    .pipe(
+      Effect.retry({ times: 1, while: (e) => e._tag === 'ImageRouteFailed' }),
+      Effect.andThen(fs.readFile(out)),
+      Effect.ensuring(fs.remove(out).pipe(Effect.ignore)),
+    );
+  const ended = yield* DateTime.now;
+  const recorded = yield* store.addTries(
+    ctx.film,
+    { id, beat, at },
+    (current) => filmOrder(ctx.beats, [...current.panels.map((p) => p.id), id]),
+    [
+      {
+        bytes,
+        ext: 'png',
+        made,
+        prompt,
+        refs,
+        ...Option.match(note, { onNone: () => ({}), onSome: (n) => ({ note: n }) }),
+        at: DateTime.formatIso(ended),
+      },
+    ],
+  );
+  const seconds = DateTime.toEpochMillis(ended) / 1000 - DateTime.toEpochMillis(started) / 1000;
+  for (const t of recorded)
+    yield* Effect.log(
+      `board.try film=${ctx.film} panel=${id} n=${t.n} secs=${seconds.toFixed(1)} made=${made}`,
+    );
+  return { tries: recorded, seconds };
 });
 
 /**
- * `count` tries of a panel, numbered on from `start` as each lands (a try
- * that draws nothing prints why and takes no number); the numbers made.
+ * `count` tries of a panel, each numbered as it lands (a try that draws
+ * nothing prints why, naming its attempt, and takes no number); the numbers made.
  */
 const drawTries = (
   ctx: TryContext,
   beat: string,
   at: string,
-  start: number,
   count: number,
   made: BoardTry['made'],
   prompt: string,
@@ -210,13 +231,24 @@ const drawTries = (
   Effect.reduce(
     Arr.range(1, count),
     (): ReadonlyArray<number> => [],
-    (done) => {
-      const n = start + done.length;
+    (done, attempt) => {
       const panel = panelId(beat, at);
-      return drawTry(ctx, beat, at, n, made, prompt, refs, note).pipe(
-        Effect.tap(({ file, seconds }) => emit({ _tag: 'Made', panel, n, seconds, file })),
-        Effect.as([...done, n]),
-        Effect.catch((e) => Effect.as(emit({ _tag: 'Failed', panel, n, reason: e.message }), done)),
+      return drawTry(ctx, beat, at, made, prompt, refs, note).pipe(
+        Effect.flatMap(({ tries, seconds }) =>
+          Effect.as(
+            Effect.forEach(
+              tries,
+              (t) => emit({ _tag: 'Made', panel, n: t.n, seconds, file: t.file }),
+              {
+                discard: true,
+              },
+            ),
+            [...done, ...tries.map((t) => t.n)],
+          ),
+        ),
+        Effect.catch((e) =>
+          Effect.as(emit({ _tag: 'Failed', panel, attempt, reason: e.message }), done),
+        ),
       );
     },
   );
@@ -251,7 +283,7 @@ export const makeBoard = Effect.fn('Board.make')(function* (
 
   const drawBeat = (beat: BoardBeat) =>
     Effect.gen(function* () {
-      for (const at of toDraw(board, beat)) {
+      for (const { at, count } of toDraw(board, beat, options.tries)) {
         if (yield* down()) return;
         // The first panel of the beat, once it has a try, rides along as the second reference.
         const now = yield* store.read(film);
@@ -274,7 +306,7 @@ export const makeBoard = Effect.fn('Board.make')(function* (
           onSome: nextTry,
         });
         if (options.dryRun) {
-          for (const n of Arr.range(start, start + options.tries - 1))
+          for (const n of Arr.range(start, start + count - 1))
             yield* emit({ _tag: 'Planned', panel: panelId(beat.id, at), n, prompt, refs });
           continue;
         }
@@ -282,8 +314,7 @@ export const makeBoard = Effect.fn('Board.make')(function* (
           ctx,
           beat.id,
           at,
-          start,
-          options.tries,
+          count,
           'generate',
           prompt,
           refs,
@@ -384,12 +415,10 @@ export const tweakPanel = Effect.fn('Board.tweak')(function* (
     shot: false,
     tweak: Option.some({ text: note.text, sketch: sketched }),
   });
-  const start = nextTry(panel);
   const made = yield* drawTries(
     ctx,
     panel.beat,
     panel.at,
-    start,
     tries,
     'tweak',
     prompt,

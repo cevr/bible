@@ -17,7 +17,19 @@ import {
   Path,
 } from 'effect';
 import type { Result } from 'effect';
-import { type BoardFile, BoardFileJson, type BoardRefusal, emptyBoard } from '../core/board.ts';
+import {
+  type BoardFile,
+  BoardFileJson,
+  type BoardRefusal,
+  type BoardTry,
+  type Panel,
+  emptyBoard,
+  nextTry,
+  panelById,
+  tryFile,
+  withPanel,
+  withTries,
+} from '../core/board.ts';
 import { BoardFileUnknown, BoardRefused } from '../core/refusals.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { sha256Hex } from './digest.ts';
@@ -44,6 +56,20 @@ interface BoardFileProblem {
   readonly problem: 'missing' | 'changed';
 }
 
+/** A try's image and what it was made from, before it has a number: `addTries` numbers and files it. */
+type NewTry = Omit<BoardTry, 'n' | 'file' | 'sha256'> & {
+  readonly bytes: Uint8Array;
+  /** The image's extension (`png`). */
+  readonly ext: string;
+};
+
+/** The panel tries are added to: made with no tries when the board has none yet. */
+interface PanelAt {
+  readonly id: string;
+  readonly beat: string;
+  readonly at: string;
+}
+
 interface BoardStoreService {
   readonly paths: (film: FilmName) => BoardPaths;
   /** The film's board; an empty one before its first panel. */
@@ -64,6 +90,17 @@ interface BoardStoreService {
     file: string,
     bytes: Uint8Array,
   ) => Effect.Effect<string, StoreError>;
+  /**
+   * Add `tries` to panel `panel`, numbered on from its last try, each image written under the board's lock beside
+   * its record, so two runs adding to one panel at once never share a number or a file. `order` places a new
+   * panel among the board's. The tries as recorded.
+   */
+  readonly addTries: (
+    film: FilmName,
+    panel: PanelAt,
+    order: (board: BoardFile) => ReadonlyArray<string>,
+    tries: ReadonlyArray<NewTry>,
+  ) => Effect.Effect<ReadonlyArray<BoardTry>, StoreError>;
   /** The path of an image the board names, its bytes checked against the record. */
   readonly image: (
     film: FilmName,
@@ -126,6 +163,36 @@ export class BoardStore extends Context.Service<BoardStore, BoardStoreService>()
         return sha256Hex(bytes);
       });
 
+      const addTries = Effect.fn('BoardStore.addTries')(function* (
+        film: FilmName,
+        panel: PanelAt,
+        order: (board: BoardFile) => ReadonlyArray<string>,
+        tries: ReadonlyArray<NewTry>,
+      ) {
+        return yield* transact(film, (current) =>
+          Effect.gen(function* () {
+            const was = Option.getOrElse(panelById(current, panel.id), (): Panel => ({
+              ...panel,
+              tries: [],
+            }));
+            const first = nextTry(was);
+            const made = yield* Effect.forEach(tries, ({ bytes, ext, ...rest }, i) =>
+              Effect.map(
+                put(film, tryFile(panel.beat, panel.at, first + i, ext), bytes),
+                (sha256): BoardTry => ({
+                  ...rest,
+                  n: first + i,
+                  file: tryFile(panel.beat, panel.at, first + i, ext),
+                  sha256,
+                }),
+              ),
+            );
+            const next = withPanel(current, withTries(was, made), order(current));
+            return [made, next] as const;
+          }),
+        );
+      });
+
       const image = Effect.fn('BoardStore.image')(function* (film: FilmName, file: string) {
         const named = Arr.findFirst(boardFiles(yield* read(film)), (f) => f.file === file);
         if (Option.isNone(named))
@@ -163,7 +230,7 @@ export class BoardStore extends Context.Service<BoardStore, BoardStoreService>()
         ).pipe(Effect.map(Arr.getSomes));
       });
 
-      return BoardStore.of({ paths, read, transact, modify, put, image, problems });
+      return BoardStore.of({ paths, read, transact, modify, put, addTries, image, problems });
     }),
   );
 }

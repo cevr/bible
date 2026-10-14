@@ -404,6 +404,7 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
       width: measure(fontOf(), text),
       actualBoundingBoxAscent: 8,
       actualBoundingBoxDescent: 2,
+      fontBoundingBoxAscent: 9,
     }),
     get fillStyle() {
       return state.style;

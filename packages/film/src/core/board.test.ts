@@ -132,6 +132,12 @@ describe("approving a beat's board", () => {
     expect(approvalOf(repicked, 'cold')).toBe('stale');
     expect(approvalOf(repicked, 'title')).toBe('none');
   });
+  test('is stale once a panel is added to the beat, picked or not', () => {
+    const b = Result.getOrThrow(approveBeat(board(panel('righteous', 2, 1)), 'cold', at));
+    const added = { ...b, panels: [...b.panels, panel('job', 1)] };
+    expect(approvalOf(added, 'cold')).toBe('stale');
+    expect(approvalOf({ ...b, panels: [...b.panels, panel('job', 1, 1)] }, 'cold')).toBe('stale');
+  });
   test('withdraws, and refuses a withdrawal of nothing', () => {
     const b = Result.getOrThrow(approveBeat(board(panel('righteous', 1, 1)), 'cold', at));
     const w = Result.getOrThrow(withdrawBeat(b, 'cold'));

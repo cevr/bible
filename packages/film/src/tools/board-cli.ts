@@ -33,19 +33,16 @@ import {
 import {
   type BoardFile,
   PANEL_START,
-  type Panel,
   type PanelText,
   approvalOf,
   approveBeat,
   cardLine,
   filmOrder,
-  nextTry,
   panelById,
   panelId,
   phraseIn,
   pickTry,
   withPanel,
-  withTries,
   withdrawBeat,
 } from '../core/board.ts';
 import { BoardRefused, NoteNotFound } from '../core/refusals.ts';
@@ -208,38 +205,37 @@ const importTries = Command.make(
       onSome: (f) => Effect.asSome(fs.readFileString(f)),
     });
     const stamp = DateTime.formatIso(yield* DateTime.now);
-    const board = yield* store.read(name);
-    const first = Option.match(panelById(board, id), { onNone: () => 1, onSome: nextTry });
-    const made = yield* Effect.forEach(input.files, (source, i) =>
-      Effect.gen(function* () {
-        const n = first + i;
-        const ext = path.extname(source).toLowerCase().replace(/^\./, '') || 'png';
-        const file = `${beat.id}.${at}.${n}.${ext}`;
-        const sha256 = yield* store.put(name, file, yield* fs.readFile(source));
-        return {
-          n,
-          file,
-          sha256,
-          made: 'import' as const,
-          ...Option.match(prompt, { onNone: () => ({}), onSome: (p) => ({ prompt: p }) }),
-          refs: [],
-          from: Option.getOrElse(input.from, () => path.basename(source)),
-          at: stamp,
-        };
-      }),
+    const sources = yield* Effect.forEach(input.files, (source) =>
+      Effect.map(fs.readFile(source), (bytes) => ({
+        bytes,
+        ext: path.extname(source).toLowerCase().replace(/^\./, '') || 'png',
+        made: 'import' as const,
+        ...Option.match(prompt, { onNone: () => ({}), onSome: (p) => ({ prompt: p }) }),
+        refs: [],
+        from: Option.getOrElse(input.from, () => path.basename(source)),
+        at: stamp,
+      })),
     );
-    yield* store.modify(name, (b) => {
-      const panel = Option.getOrElse(panelById(b, id), (): Panel => ({
-        id,
-        beat: beat.id,
-        at,
-        tries: [],
-      }));
-      const next = withPanel(b, withTries(panel, made), orderWith(beats, b, id));
-      return Option.match(input.keep, {
-        onNone: () => Result.succeed(next),
-        onSome: (k) => pickTry(next, id, first + k - 1, input.why),
-      });
+    const made = yield* store.addTries(
+      name,
+      { id, beat: beat.id, at },
+      (b) => orderWith(beats, b, id),
+      sources,
+    );
+    yield* Option.match(input.keep, {
+      onNone: () => Effect.void,
+      onSome: (k) =>
+        Effect.flatMap(
+          Effect.fromOption(Option.fromUndefinedOr(made[k - 1])).pipe(
+            Effect.mapError(() =>
+              BoardRefused.make({
+                film: name,
+                reason: `--keep ${k} names none of the ${made.length} images imported`,
+              }),
+            ),
+          ),
+          (t) => store.modify(name, (b) => pickTry(b, id, t.n, input.why)),
+        ),
     });
     for (const t of made) yield* Console.log(`imported ${id} try=${t.n} file=${t.file}`);
   }),
