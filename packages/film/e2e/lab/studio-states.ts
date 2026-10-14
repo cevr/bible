@@ -514,10 +514,11 @@ export const STATES: ByPlace<State, AtRest> = {
   home: [
     {
       name: 'Films',
-      // At rest once each card shows its film's state.
+      // At rest once each card shows its film's state. The productions come first: their
+      // heading and the toy's card.
       open: review(pageHref.home(), '.rv-film-card [data-role="counts"]'),
       disclose: AT_REST,
-      budget: most(8, 8),
+      budget: most(10, 10),
     },
   ],
   choices: [
