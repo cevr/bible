@@ -16,6 +16,7 @@ import { FilmModuleInvalid } from './errors.ts';
 import { FilmFolder, FilmRepo } from './film-repo.ts';
 import { labHandler } from './lab.ts';
 import { NotesStore } from './notes-store.ts';
+import { BoardStore } from './board-store.ts';
 import { collect } from './process.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
@@ -70,6 +71,7 @@ const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.lay
           Layer.provideMerge(Layer.merge(repo, fakeCheck.pipe(Layer.provide(repo)))),
         ),
         NotesStore.layer,
+        BoardStore.layer.pipe(Layer.provide(FilmFolder.layer(films))),
         noStudio,
         noReview,
         echoPages,

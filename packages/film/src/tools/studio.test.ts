@@ -23,6 +23,7 @@ import { labHandler } from './lab.ts';
 import { readingOf } from './read-cli.ts';
 import { NO_SCORES } from './media-store.ts';
 import { NotesStore } from './notes-store.ts';
+import { BoardStore } from './board-store.ts';
 import { SourceWriter } from './source-writer.ts';
 import { StudioReadings } from './studio.ts';
 import { Takes } from './takes.ts';
@@ -162,6 +163,7 @@ const setup = (
   // writes and the Choices view's are real.
   const layer = Layer.mergeAll(
     NotesStore.layer,
+    BoardStore.layer,
     noScenes,
     echoPages,
     StudioReadings.layer,

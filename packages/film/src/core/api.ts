@@ -44,6 +44,7 @@ import {
   HttpApiSchema,
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
+import { BoardFile } from './board.ts';
 import type { Interval } from './time.ts';
 import { isShortKey } from './shorts.ts';
 import { onChoicesTab } from './point.ts';
@@ -106,6 +107,8 @@ import {
   VariantUnknown,
   VerbRefused,
   VersionChanged,
+  BoardFileUnknown,
+  BoardRefused,
 } from './refusals.ts';
 import {
   ChangeId,
@@ -211,6 +214,7 @@ const Refusals = [
   ReviewFileUnknown.pipe(status(404)),
   PhoneCopyUnmade.pipe(status(404)),
   StillUnknown.pipe(status(404)),
+  BoardFileUnknown.pipe(status(404)),
   AttemptUnknown.pipe(status(404)),
   UnknownScene.pipe(status(404)),
   RouteUnknown.pipe(status(404)),
@@ -231,6 +235,7 @@ const Refusals = [
   WriteNotJson.pipe(status(415)),
   RecordingLossy.pipe(status(415)),
   SourceRefused.pipe(status(422)),
+  BoardRefused.pipe(status(422)),
   SourceShared.pipe(status(422)),
   TimelineUnresolved.pipe(status(422)),
   TakeMismatch.pipe(status(422)),
@@ -600,6 +605,52 @@ class ScriptGroup extends HttpApiGroup.make('script').add(
   }),
 ) {}
 
+/** A pick on a film's board: the panel, the try kept, and why. */
+const BoardPick = Schema.Struct({
+  panel: Schema.String,
+  try: Schema.Int,
+  why: Schema.OptionFromOptionalKey(Schema.String),
+});
+
+/** A beat's board approved or withdrawn. */
+const BoardBeatPost = Schema.Struct({ beat: Schema.String });
+
+/**
+ * The film's storyboard (`core/board.ts`, `film board`): the record, an
+ * image of it, a try kept, a beat's board approved or withdrawn. Notes on a
+ * panel go through the notes' routes, the panel on the note.
+ */
+class BoardGroup extends HttpApiGroup.make('board').add(
+  HttpApiEndpoint.get('read', `${FILM}/board`, {
+    params: film,
+    success: BoardFile,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.get('file', `${FILM}/board/files/:file`, {
+    params: { ...film, file: Schema.String },
+    success: FileBytes,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('pick', `${FILM}/board/pick`, {
+    params: film,
+    payload: BoardPick,
+    success: BoardFile,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('approve', `${FILM}/board/approve`, {
+    params: film,
+    payload: BoardBeatPost,
+    success: BoardFile,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('withdraw', `${FILM}/board/withdraw`, {
+    params: film,
+    payload: BoardBeatPost,
+    success: BoardFile,
+    error: Refusals,
+  }),
+) {}
+
 /** The studio: the film's voice recorded in the browser, beat by beat. */
 class StudioGroup extends HttpApiGroup.make('studio').add(
   HttpApiEndpoint.get('beats', `${FILM}/studio/beats`, {
@@ -822,6 +873,7 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(StepsGroup)
   .add(TalkGroup)
   .add(ScriptGroup)
+  .add(BoardGroup)
   .add(StudioGroup)
   .add(ReviewGroup)
   .add(ChoicesGroup)

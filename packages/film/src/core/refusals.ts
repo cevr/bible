@@ -410,3 +410,24 @@ export class HeadUnavailable extends Schema.TaggedError<HeadUnavailable>()('Head
     return `${this.file}: no version at the last commit to compare with: ${this.reason}`;
   }
 }
+
+/** A change to a film's storyboard it cannot make: a panel or try it lacks, a pick before approval, a card its line does not say. */
+export class BoardRefused extends Schema.TaggedError<BoardRefused>()('BoardRefused', {
+  film: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `film "${this.film}": ${this.reason}`;
+  }
+}
+
+/** A board image named that the film's board does not hold, or whose bytes are not the ones recorded. */
+export class BoardFileUnknown extends Schema.TaggedError<BoardFileUnknown>()('BoardFileUnknown', {
+  film: Schema.String,
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `film "${this.film}": board image ${this.file}: ${this.reason}`;
+  }
+}

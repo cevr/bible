@@ -35,3 +35,7 @@ src/films/*/sound/*
 **/footage/files/
 **/footage/**/*.partial
 **/footage/**/*.lock
+# A film's storyboard images (`film board`, `okra image`): big, and made again
+# only at a cost. Only the record, `board.json` (each image's sha256), is
+# committed; copy the folder between checkouts.
+src/films/*/board/

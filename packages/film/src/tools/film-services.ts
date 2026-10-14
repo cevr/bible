@@ -28,6 +28,7 @@ import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
 import { Narrator } from './narrator.ts';
 import { NotesStore } from './notes-store.ts';
+import { BoardStore } from './board-store.ts';
 import { PageRenderer } from './page-render.ts';
 import { PrivateStore } from './private-store.ts';
 import { scenesLocatedHere } from './read-cli.ts';
@@ -101,6 +102,8 @@ export const filmServices = (spec: FilmServicesSpec) => {
     Layer.provide([Repo, Platform]),
   );
   const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
+  // Each film's storyboard: its record beside the film, its images in the film's board folder.
+  const Board = BoardStore.layer.pipe(Layer.provide([Store, Repo, Platform]));
   // The lab checks each write, and the review reads a film's options, keeps its takes and
   // makes its mixes, through the app's CLI in a fresh process.
   const Fresh = FreshFilm.layer(spec.self).pipe(Layer.provide(Platform));
@@ -140,6 +143,7 @@ export const filmServices = (spec: FilmServicesSpec) => {
           Layer.mergeAll(
             Repo,
             Notes,
+            Board,
             Source,
             Library,
             Footage,

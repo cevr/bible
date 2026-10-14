@@ -1645,6 +1645,24 @@ once.
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/films/<film>/script` | `ScriptBeats`: each beat of `script.ts` in order, its `picture` (when it has one) and its `cite`; none for no script |
 
+### Board
+
+A film's storyboard (`core/board.ts`): the record, `src/films/<film>/board.json`
+(committed), and its images in `src/films/<film>/board/` (git-ignored, each
+recorded with its sha256). `film board` makes and keeps it from the terminal
+(`tools/board-cli.ts`); the Board page reads it and writes a pick, an
+approval or a withdrawal through the same store (`BoardStore`), so neither
+writes over the other. A note on a panel is a lab note (`POST
+/api/films/<film>/notes`) carrying its `panel` and its `sketch`.
+
+| Route                                      | What it does                                                                                        |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/board`              | `BoardFile`: the style, every panel in film order with its tries and the one kept, the approvals    |
+| `GET /api/films/<film>/board/files/<file>` | A board image the record names; 404 `BoardFileUnknown` for one it does not, or not in this checkout |
+| `POST /api/films/<film>/board/pick`        | `BoardPick` (panel, try, why): keep that try; 422 `BoardRefused` for a panel or try it lacks        |
+| `POST /api/films/<film>/board/approve`     | `{ beat }`: approve the beat's board as it stands; 422 while a picture panel keeps no try           |
+| `POST /api/films/<film>/board/withdraw`    | `{ beat }`: withdraw the beat's approval                                                            |
+
 ### Studio
 
 **The Studio** (`lab/studio/`, Solid 2 + effect-machine) is the lab's panel

@@ -9,5 +9,8 @@
   "bracketSpacing": true,
   "arrowParens": "always",
   "endOfLine": "lf",
-  "ignorePatterns": ["apps/selah/Sources/SelahApp/Resources/kjv.json"]
+  "ignorePatterns": [
+    "apps/selah/Sources/SelahApp/Resources/kjv.json",
+    "apps/animations/src/films/*/board.json"
+  ]
 }
