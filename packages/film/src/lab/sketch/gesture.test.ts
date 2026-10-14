@@ -15,7 +15,6 @@ import {
   type SketchTool,
   canRedo,
   canUndo,
-  isDot,
   shownOf,
   sketchOf,
   step,
@@ -88,7 +87,7 @@ describe('the pen', () => {
   });
   test('a tap with no move is a dot', () => {
     const s = run(using('pen'), down(0.4, 0.4), up);
-    expect(s.items.map(isDot)).toEqual([true]);
+    expect(s.items.map((i) => i._tag === 'Pen' && i.points.length)).toEqual([1]);
   });
   test('a point is kept only once the pointer is a pixel from the last', () => {
     const s = run(using('pen'), down(0.1, 0.1), to(0.1005, 0.1), to(0.102, 0.1), up);

@@ -3,7 +3,6 @@ import { Option, Schema } from 'effect';
 import {
   type SketchItem,
   SketchItem as Item,
-  hits,
   inside,
   moved,
   itemAt,
@@ -44,17 +43,17 @@ describe('a sketch item', () => {
     expect(() => Schema.decodeUnknownSync(Item)({ ...rect, ink: 'blue' })).toThrow();
   });
   test('a pen stroke is hit along its line, within the tolerance in view pixels', () => {
-    expect(hits(view, pen, { x: 200, y: 55 }, 6)).toBe(true);
-    expect(hits(view, pen, { x: 200, y: 62 }, 6)).toBe(false);
+    expect(Option.isSome(itemAt(view, [pen], { x: 200, y: 55 }, 6))).toBe(true);
+    expect(Option.isSome(itemAt(view, [pen], { x: 200, y: 62 }, 6))).toBe(false);
   });
   test('an outline is hit on its edge, not in its open middle', () => {
-    expect(hits(view, rect, { x: 500, y: 300 }, 4)).toBe(true);
-    expect(hits(view, rect, { x: 600, y: 300 }, 4)).toBe(false);
-    expect(hits(view, ellipse, { x: 100, y: 250 }, 4)).toBe(true);
-    expect(hits(view, ellipse, { x: 100, y: 350 }, 4)).toBe(false);
+    expect(Option.isSome(itemAt(view, [rect], { x: 500, y: 300 }, 4))).toBe(true);
+    expect(Option.isSome(itemAt(view, [rect], { x: 600, y: 300 }, 4))).toBe(false);
+    expect(Option.isSome(itemAt(view, [ellipse], { x: 100, y: 250 }, 4))).toBe(true);
+    expect(Option.isSome(itemAt(view, [ellipse], { x: 100, y: 350 }, 4))).toBe(false);
   });
   test('a text is hit anywhere in its box', () => {
-    expect(hits(view, text, { x: 810, y: 60 }, 0)).toBe(true);
+    expect(Option.isSome(itemAt(view, [text], { x: 810, y: 60 }, 0))).toBe(true);
   });
   test('the topmost item under a point is the one drawn last', () => {
     const over: SketchItem = { ...pen, id: 'e' };

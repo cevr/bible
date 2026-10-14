@@ -75,7 +75,3 @@ export const shotAt = (shots: ReadonlyArray<Shot>, T: number): Option.Option<Sho
     Arr.findLast(shots, (s) => s.from <= T),
     () => Arr.head(shots),
   );
-
-/** The shot of panel `id`, if the board has it on a beat the film plays. */
-export const shotOf = (shots: ReadonlyArray<Shot>, id: string): Option.Option<Shot> =>
-  Arr.findFirst(shots, (s) => s._tag === 'Boarded' && s.panel.id === id);

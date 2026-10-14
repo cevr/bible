@@ -5,7 +5,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import { type BoardFile, type Panel, emptyBoard } from '../../core/board.ts';
-import { Shot, type TimedBeat, shotAt, shotOf, shotsOf } from './animatic.ts';
+import { Shot, type TimedBeat, shotAt, shotsOf } from './animatic.ts';
 
 const marks = (start: number, at: Record<string, number>) => (name: string) =>
   Option.map(Option.fromUndefinedOr(at[name]), (t) => start + t);
@@ -53,11 +53,13 @@ describe('the animatic', () => {
     expect(at(-1)).toEqual(Option.some('cold.room@0'));
     expect(shotAt([], 3)).toEqual(Option.none());
   });
-  test('finds a panel by its id; a mark its line lacks holds from the beat start', () => {
-    const gone = shotOf(shots, 'word.gone');
-    expect(Option.map(gone, Shot.$match({ Boarded: (b) => b.at, Unboarded: () => -1 }))).toEqual(
-      Option.some(14),
-    );
-    expect(shotOf(shots, 'nope')).toEqual(Option.none());
+  test('a panel at a mark its line lacks holds from the beat start', () => {
+    const gone = shots.find((s) => s._tag === 'Boarded' && s.panel.id === 'word.gone');
+    expect(
+      Option.map(
+        Option.fromUndefinedOr(gone),
+        Shot.$match({ Boarded: (b) => b.at, Unboarded: () => -1 }),
+      ),
+    ).toEqual(Option.some(14));
   });
 });

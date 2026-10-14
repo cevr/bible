@@ -155,7 +155,7 @@ const toEllipse = (p: Px, b: { x: number; y: number; w: number; h: number }): nu
  * the shape: a press there goes through to what is under it), a text by its
  * box.
  */
-export const hits = (view: View, item: SketchItem, at: Px, tolerance: number): boolean =>
+const hits = (view: View, item: SketchItem, at: Px, tolerance: number): boolean =>
   Match.valueTags(item, {
     Pen: (s) =>
       toPolyline(

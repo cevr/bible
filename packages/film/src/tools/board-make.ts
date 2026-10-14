@@ -62,7 +62,7 @@ interface MakeOptions {
 }
 
 /** A line a run prints for each try: made, failed, or (dry) the prompt it would send. */
-export type MakeLine =
+type MakeLine =
   | {
       readonly _tag: 'Made';
       readonly panel: string;
@@ -109,7 +109,7 @@ const styleOf = (film: string, board: BoardFile) =>
  * picture panel held from a mark the plan does not pick, imported or set)
  * keeps its own panels: only those with no try yet are drawn.
  */
-export const toDraw = (board: BoardFile, beat: BoardBeat): ReadonlyArray<string> => {
+const toDraw = (board: BoardFile, beat: BoardBeat): ReadonlyArray<string> => {
   const planned = plannedAts(beat.id, beat.say, beat.picture);
   const own = panelsOf(board, beat.id);
   const byHand = own.some((p) => Predicate.isUndefined(p.text) && !planned.includes(p.at));

@@ -10,7 +10,7 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { collectWithin } from './process.ts';
 
 /** One image asked of the route: the prompt, its reference images (paths), its size, where it lands. */
-export interface ImageRequest {
+interface ImageRequest {
   readonly prompt: string;
   readonly refs: ReadonlyArray<string>;
   /** `1536x1024`. */
@@ -51,11 +51,11 @@ const PERSONAL: ReadonlyArray<readonly [string, RegExp]> = [
 ];
 
 /** What private thing `prompt` names, if any (what it is, never the thing itself). */
-export const personalIn = (prompt: string): Option.Option<string> =>
+const personalIn = (prompt: string): Option.Option<string> =>
   Option.fromUndefinedOr(PERSONAL.find(([, re]) => re.test(prompt))?.[0]);
 
 /** The arguments of one `okra image` call: never `--model`. */
-export const okraArgs = (request: ImageRequest): ReadonlyArray<string> => [
+const okraArgs = (request: ImageRequest): ReadonlyArray<string> => [
   'image',
   request.prompt,
   '--size',

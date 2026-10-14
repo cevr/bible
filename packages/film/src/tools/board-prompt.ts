@@ -21,7 +21,7 @@ const SHOT_REF =
  * Text on a panel (CRAFT rule 1): the narration's words appear only as the
  * film's full-screen card, which the engine sets, never in a picture.
  */
-export const TEXT_RULE =
+const TEXT_RULE =
   'TEXT: no captions, no subtitles, no narration, no titles, no speech bubbles, no signatures and no labels anywhere. Where the brief names a word card, a title, a question or a verse being written or shown, leave it out: the film sets every spoken word as a full-screen card of its own. The only letters allowed are one short word the brief puts on a prop in this moment (a stamp, a sign), spelled exactly; otherwise no letters or numbers at all, and any paper, book or tablet in the frame is blank or shows only soft unreadable lines.';
 
 /** The house rules every frame keeps. */
@@ -36,7 +36,7 @@ export interface BoardBeat {
 }
 
 /** The words a line says from each of its marks to the next (at most `most`), by mark. */
-export const markWords = (beat: BoardBeat, most = 6): ReadonlyMap<string, string> =>
+const markWords = (beat: BoardBeat, most = 6): ReadonlyMap<string, string> =>
   Option.match(beat.say, {
     onNone: () => new Map<string, string>(),
     onSome: (say) =>
@@ -61,7 +61,7 @@ export const markWords = (beat: BoardBeat, most = 6): ReadonlyMap<string, string
   });
 
 /** `picture` with each backticked mark read as the words said there (`«…»`), else its bare name. */
-export const briefOf = (picture: string, words: ReadonlyMap<string, string>): string =>
+const briefOf = (picture: string, words: ReadonlyMap<string, string>): string =>
   picture.replace(/`([A-Za-z0-9_-]+)`/g, (_, name: string) =>
     Option.match(Option.fromUndefinedOr(words.get(name)), {
       onNone: () => name,
@@ -70,7 +70,7 @@ export const briefOf = (picture: string, words: ReadonlyMap<string, string>): st
   );
 
 /** An act's light in words: how bright and how full its colour runs, from its measures. */
-export const lightOf = (act: Act): string => {
+const lightOf = (act: Act): string => {
   const mid = (r: readonly [number, number]) => (r[0] + r[1]) / 2;
   const key = Option.map(Option.fromUndefinedOr(act.luma), (r) => keyOf(mid(r)));
   const colour = Option.map(Option.fromUndefinedOr(act.saturation), (r) => colourOf(mid(r)));

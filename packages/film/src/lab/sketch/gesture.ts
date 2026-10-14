@@ -11,7 +11,7 @@
 // Pure and DOM-free: the surface (`surface.tsx`) feeds it pointer events in
 // fractions and the size the panel is shown at.
 
-import { Array as Arr, Data, Match, Option, Predicate } from 'effect';
+import { Array as Arr, Data, Match, Option } from 'effect';
 import {
   type SketchItem,
   type SketchPoint,
@@ -663,7 +663,3 @@ export const shownOf = (
 export const canUndo = (s: SketchState): boolean => s.past.length > 0 || s.gesture._tag !== 'Idle';
 export const canRedo = (s: SketchState): boolean =>
   s.future.length > 0 && s.gesture._tag === 'Idle';
-
-/** Whether a shape is a dot: a stroke of one point, drawn as a round dot. */
-export const isDot = (item: SketchItem): boolean =>
-  item._tag === 'Pen' && Predicate.isUndefined(item.points[1]);

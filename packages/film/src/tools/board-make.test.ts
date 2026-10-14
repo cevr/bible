@@ -7,24 +7,22 @@
 
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { ConfigProvider, Effect, Layer, Option, Path, Result } from 'effect';
-import { type BoardFile, emptyBoard } from '../core/board.ts';
+import { ConfigProvider, Effect, Layer, Option, Path, Result, Sink, Stream } from 'effect';
+import { ChildProcessSpawner } from 'effect/process';
+import type { BoardFile } from '../core/board.ts';
 import type { Act, Note } from '../core/schema.ts';
-import { type MakeLine, makeBoard, toDraw, tweakPanel } from './board-make.ts';
-import {
-  type BoardBeat,
-  TEXT_RULE,
-  actOf,
-  briefOf,
-  lightOf,
-  markWords,
-  panelPrompt,
-} from './board-prompt.ts';
+import { makeBoard, type makeLine, tweakPanel } from './board-make.ts';
+import { type BoardBeat, actOf, panelPrompt } from './board-prompt.ts';
 import { BoardStore } from './board-store.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmFolder, FilmName } from './film-repo.ts';
-import { type ImageRequest, ImageRoute, okraArgs, personalIn } from './image-route.ts';
+import { ImageRoute } from './image-route.ts';
 import { memoryFileSystem, memoryLocks, text } from './testing.ts';
+
+/** One image asked of the route. */
+type ImageRequest = Parameters<(typeof ImageRoute)['Service']['draw']>[0];
+/** A line a run prints. */
+type MakeLine = Parameters<typeof makeLine>[0];
 
 const film = FilmName.make('f');
 
@@ -213,23 +211,38 @@ describe('a run of the board', () => {
 });
 
 describe("a beat's panels to draw", () => {
-  const board = (b: Partial<BoardFile>): BoardFile => ({ ...emptyBoard('f'), ...b });
-  test('a beat boarded by hand keeps its own panels', () => {
-    const own = board({
-      panels: [
+  /** What a run of beat `cold` draws over `panels`: each panel's file, as the route was asked for it. */
+  const drawnOver = (panels: BoardFile['panels']) => {
+    const calls: Array<ImageRequest> = [];
+    return Effect.gen(function* () {
+      yield* styled;
+      yield* (yield* BoardStore).modify(film, (b) => Result.succeed({ ...b, panels }));
+      yield* makeBoard(
+        film,
+        beats,
+        acts,
+        { beats: ['cold'], tries: 1, lanes: 1, dryRun: false },
+        quiet,
+      );
+      return calls.map((c) => c.out.split('/').at(-1));
+    }).pipe(Effect.provide(boardOver(new Map(), calls)));
+  };
+  it.effect('a beat boarded by hand keeps its own panels', () =>
+    Effect.gen(function* () {
+      const drawn = yield* drawnOver([
         {
           id: 'cold.judge',
           beat: 'cold',
           at: 'judge',
           tries: [{ n: 1, file: 'a.png', sha256: 's', made: 'import', refs: [], at: 'x' }],
         },
-      ],
-    });
-    expect(toDraw(own, beats[0] as BoardBeat)).toEqual([]);
-  });
-  test('a card or a verse on a planned mark is not drawn', () => {
-    const carded = board({
-      panels: [
+      ]);
+      expect(drawn).toEqual([]);
+    }),
+  );
+  it.effect('a card or a verse on a planned mark is not drawn', () =>
+    Effect.gen(function* () {
+      const drawn = yield* drawnOver([
         {
           id: 'cold.righteous',
           beat: 'cold',
@@ -237,10 +250,10 @@ describe("a beat's panels to draw", () => {
           tries: [],
           text: { _tag: 'Card', payoff: 'righteous' },
         },
-      ],
-    });
-    expect(toDraw(carded, beats[0] as BoardBeat)).toEqual(['room']);
-  });
+      ]);
+      expect(drawn).toEqual(['cold.room.1.png']);
+    }),
+  );
 });
 
 describe('the scene prompt', () => {
@@ -259,49 +272,120 @@ describe('the scene prompt', () => {
     expect(prompt).toContain("THE FILM'S WORLD: A parchment world.");
     expect(prompt).toContain('THE ACT: "cold open": a bright, high-key frame');
   });
+  /** The prompt for `beat`'s first panel, in an act of the given measures. */
+  const promptOf = (beat: BoardBeat, act: Act) =>
+    panelPrompt({
+      style,
+      act: actOf([act], [beat.id], beat.id),
+      beat,
+      at: 'start',
+      shot: false,
+      tweak: Option.none(),
+    });
   test('keeps every spoken word off the picture: the film sets them as cards', () => {
-    expect(prompt).toContain(TEXT_RULE);
+    expect(prompt).toContain('TEXT: no captions, no subtitles, no narration');
+    expect(prompt).toContain('the film sets every spoken word as a full-screen card');
     expect(prompt).not.toContain('`');
   });
-  test('reads a mark as at most six words, up to the next mark', () => {
-    expect(markWords(beats[0] as BoardBeat).get('room')).toBe('court. The');
-    expect(briefOf('on `nope`', new Map())).toBe('on nope');
+  test('reads a mark as at most six words, up to the next mark, and a mark the line lacks as its name', () => {
+    expect(prompt).toContain('A court («court. The»)');
+    const lacking = {
+      id: 'x',
+      say: Option.some('Nothing marked.'),
+      picture: Option.some('on `nope`'),
+    };
+    expect(promptOf(lacking, { from: 'x', name: 'x' })).toContain('on nope');
   });
   test("says an act's light from its measures", () => {
-    expect(lightOf({ from: 'a', name: 'b', luma: [160, 170], saturation: [0.3, 0.4] })).toBe(
-      'a bright, high-key frame, with rich, warm colour',
-    );
+    const lit = { id: 'a', say: Option.none(), picture: Option.some('A field.') };
+    expect(
+      promptOf(lit, { from: 'a', name: 'b', luma: [160, 170], saturation: [0.3, 0.4] }),
+    ).toContain('a bright, high-key frame, with rich, warm colour');
   });
 });
 
 describe('the image route', () => {
-  test('calls okra image with the size, each reference and the output: never --model', () => {
-    const args = okraArgs({
-      prompt: 'p',
-      refs: ['/a.png', '/b.png'],
-      size: '1536x1024',
-      out: '/o.png',
+  /**
+   * `okra image` as the route runs it, over memory: each command it was given (program and arguments), each
+   * exiting 0 having drawn the output `/o.png`.
+   */
+  const okraOver = (commands: Array<ReadonlyArray<string>>) => {
+    const files = new Map<string, Uint8Array>([['/o.png', text('drawn')]]);
+    const spawner = ChildProcessSpawner.make((command) => {
+      if (command._tag === 'StandardCommand') commands.push([command.command, ...command.args]);
+      return Effect.succeed(
+        ChildProcessSpawner.makeHandle({
+          pid: ChildProcessSpawner.ProcessId(0),
+          exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(0)),
+          isRunning: Effect.succeed(false),
+          kill: () => Effect.void,
+          stdin: Sink.drain,
+          stdout: Stream.empty,
+          stderr: Stream.empty,
+          all: Stream.empty,
+          getInputFd: () => Sink.drain,
+          getOutputFd: () => Stream.empty,
+          unref: Effect.succeed(Effect.void),
+        }),
+      );
     });
-    expect(args).toEqual([
-      'image',
-      'p',
-      '--size',
-      '1536x1024',
-      '--ref',
-      '/a.png',
-      '--ref',
-      '/b.png',
-      '-o',
-      '/o.png',
-    ]);
-    expect(args).not.toContain('--model');
+    return ImageRoute.layer.pipe(
+      Layer.provide([
+        Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, spawner),
+        memoryFileSystem(files),
+      ]),
+    );
+  };
+  it.effect('calls okra image with the size, each reference and the output: never --model', () => {
+    const commands: Array<ReadonlyArray<string>> = [];
+    return Effect.gen(function* () {
+      yield* (yield* ImageRoute).draw({
+        prompt: 'p',
+        refs: ['/a.png', '/b.png'],
+        size: '1536x1024',
+        out: '/o.png',
+      });
+      expect(commands).toEqual([
+        [
+          'okra',
+          'image',
+          'p',
+          '--size',
+          '1536x1024',
+          '--ref',
+          '/a.png',
+          '--ref',
+          '/b.png',
+          '-o',
+          '/o.png',
+        ],
+      ]);
+    }).pipe(Effect.provide(okraOver(commands)));
   });
-  test('refuses a prompt naming a home path, an email or a key, saying only what kind', () => {
-    expect(personalIn('see /Users/someone/notes.txt')).toEqual(Option.some('a home path'));
-    expect(personalIn('mail a.b@example.com')).toEqual(Option.some('an email address'));
-    expect(personalIn('key sk-abcdefghijklmnop')).toEqual(Option.some('a key'));
-    expect(personalIn('A small grey figure stands before a tall bench.')).toEqual(Option.none());
-  });
+  it.effect(
+    'refuses a prompt naming a home path, an email or a key, saying only what kind, and sends nothing',
+    () => {
+      const commands: Array<ReadonlyArray<string>> = [];
+      return Effect.gen(function* () {
+        const route = yield* ImageRoute;
+        const found = (prompt: string) =>
+          route.draw({ prompt, refs: [], size: '1x1', out: '/o.png' }).pipe(
+            Effect.match({
+              onFailure: (e) => Option.some(e._tag === 'PromptPersonal' && e.found),
+              onSuccess: () => Option.none(),
+            }),
+          );
+        expect(yield* found('see /Users/someone/notes.txt')).toEqual(Option.some('a home path'));
+        expect(yield* found('mail a.b@example.com')).toEqual(Option.some('an email address'));
+        expect(yield* found('key sk-abcdefghijklmnop')).toEqual(Option.some('a key'));
+        expect(commands).toEqual([]);
+        expect(yield* found('A small grey figure stands before a tall bench.')).toEqual(
+          Option.none(),
+        );
+        expect(commands).toHaveLength(1);
+      }).pipe(Effect.provide(okraOver(commands)));
+    },
+  );
   it.effect('the fake route refuses a personal prompt too, and draws nothing', () =>
     Effect.gen(function* () {
       const files = new Map<string, Uint8Array>();
