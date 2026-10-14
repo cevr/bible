@@ -296,7 +296,7 @@ export const litNow = (code: SceneCode, clock: CodeClock, picks: Picks = NO_PICK
 };
 
 /**
- * What the view's head says plays in `code`: the playing cues' names; else,
+ * What the band over the code says plays in `code`: the playing cues' names; else,
  * where the code lists no literal for a field (`refused`), why it lights
  * none, so a strip lit beside an unlit view is never called "nothing
  * playing"; else that nothing plays.

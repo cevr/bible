@@ -1,8 +1,8 @@
 // The Source view's styles (`view.tsx`, design language §5 Source, §7 Lab):
 // the scene's code in the studio's monospace on the panel's surface, the
 // playing cues lit by `::highlight` and a meter on each playing literal's
-// line, a line a read fires on glowing (`--glow`), the beat's band held over
-// the code, the held line the accent's wash. On a laptop it is a column between
+// line, a line a read fires on glowing (`--glow`), the band held over the
+// code (the beat and the cues playing), the held line the accent's wash. On a laptop it is a column between
 // the picture and the inspector; on a phone it is a face of the selection's
 // sheet, or a sheet of its own (`lab-inspector-sheet`, the command styles'). In
 // Code mode it is the picture's other half on a laptop, and on a phone the
@@ -24,9 +24,7 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
 .lab-source { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; background: var(--surface-1); }
 .lab-source-head { display: flex; align-items: center; gap: var(--s-2); min-height: var(--panel-head-h);
   padding: 0 var(--gutter); border-bottom: var(--border); font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
-.lab-source-file { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lab-source-live { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; color: var(--state-live); }
-.lab-source-live[data-empty='true'] { color: var(--text-3); }
+.lab-source-file { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lab-source-head > .sh-btn { flex: none; min-height: var(--hit); }
 .lab-source-note { margin: 0; padding: var(--s-3) var(--gutter); color: var(--text-2); font-size: var(--fs-3); }
 .lab-source-follow { flex: none; }
@@ -34,10 +32,14 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
   overflow-anchor: none; /* the browser never moves the scroll by itself: the view places it, layout clamps it, a hand moves it */ }
 .lab-source-page { --source-lh: var(--body-lh); position: relative; font-size: var(--body-fs); line-height: var(--source-lh);
   tab-size: 2; color: var(--text-1); }
-/* The beat the frame is on, over the code as it scrolls: a line tall, from the gutter. */
-.lab-source-beat { position: sticky; top: 0; z-index: 3; height: var(--source-lh); padding: 0 var(--gutter);
-  overflow: hidden; white-space: nowrap; text-overflow: ellipsis; background: var(--surface-1);
+/* The view's one line of now, over the code as it scrolls: a line tall, from the gutter, the beat the frame is on left
+   and the cues playing right, each clipped by an ellipsis. */
+.lab-source-beat { position: sticky; top: 0; z-index: 3; display: flex; gap: var(--s-2); height: var(--source-lh);
+  padding: 0 var(--gutter); overflow: hidden; white-space: nowrap; background: var(--surface-1);
   border-bottom: var(--border); font-size: var(--fs-2); color: var(--text-2); user-select: none; }
+.lab-source-beat > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.lab-source-live { flex: 1 1 auto; text-align: right; color: var(--state-live); }
+.lab-source-live[data-empty='true'] { color: var(--text-3); }
 /* A row to a line: the number beside the text, a long line wrapping under its own number (one layout, phone and laptop).
    A line glows while a read on it fires and fades after (\`--glow\`, 1 to 0): a wash of what plays, its number inked. */
 .lab-source-line { position: relative; display: grid; min-height: var(--source-lh);

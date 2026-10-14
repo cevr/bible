@@ -1951,8 +1951,9 @@ the same either way) and the clock plays it: `f.at('lift')` while its cue
 plays, `f.mark('take')` on its word's frame, `f.spoken('take', 'held')` from
 its mark to the mark it names (or to the end of speech), so a branch the frame
 did not take stays dark. A line glows while a read on it fires and fades over
-0.6 s after, and a band over the code names the beat the frame is on
-(`cold · {job}`: the scene, and the mark its voice last said). A long line wraps under its own number, on a
+0.6 s after, and a band over the code, held at its top as it scrolls, names
+the beat the frame is on (`cold · {job}`: the scene, and the mark its voice
+last said) and, at its right, the cues playing. A long line wraps under its own number, on a
 phone and on a laptop alike (one layout; the view never scrolls sideways). It
 is closed at rest and reads nothing: `?code=follow` opens it following the
 playhead (to the read firing that began last, a mark's one-frame instant
@@ -1974,7 +1975,7 @@ rule (`lab/follow.ts`, which the cue strip's rows keep too): any scroll the
 view did not make and layout did not clamp (a wheel, a finger, keys, the
 scrollbar, find-in-page) lets go of it, following or held, and Play or
 pressing Follow takes it back (a held line, holding a line again). When the
-code lists no literal for its `timeline` (a computed one), the head says why
+code lists no literal for its `timeline` (a computed one), the band says why
 in place of "nothing playing". A read the server refuses says why, with
 Retry and Close. On a laptop it is a column beside the picture; on a phone it
 is the selection sheet's second face (Inspect · Source) in Edit, held on the

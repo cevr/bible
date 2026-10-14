@@ -255,21 +255,21 @@ describe('what is lit', () => {
     );
 
   it.live(
-    'a frame inside rise lights rise’s literal, names it in the head and meters its line',
+    'a frame inside rise lights rise’s literal, names it in the band over the code and meters its line',
     () =>
       Effect.gen(function* () {
         const { page } = yield* openLab([codeRoute], {
           href: labOne(middle('rise'), { code: 'follow' }),
         });
         yield* page.waitFor('.lab-source-col .lab-source-page');
-        yield* textIs(page, '.lab-source-live', 'rise');
+        yield* textIs(page, '.lab-source-beat .lab-source-live', 'rise');
         yield* evaluates(page, PAINTED, ['rise']);
         yield* attributeIs(page, '.lab-source-meter', 'data-cue', 'rise');
       }).pipe(Effect.scoped),
   );
 
   it.live(
-    'a timeline the lab cannot locate says why in the head, where the strip lights a cue the code cannot',
+    'a timeline the lab cannot locate says why in the band, where the strip lights a cue the code cannot',
     () =>
       Effect.gen(function* () {
         const reason = 'it is `make()`, not an object literal';
@@ -281,7 +281,7 @@ describe('what is lit', () => {
         });
         yield* page.waitFor('.lab-source-col .lab-source-page');
         yield* evaluates(page, LANES, ['rise']);
-        yield* textIs(page, '.lab-source-live', `timeline not lit: ${reason}`);
+        yield* textIs(page, '.lab-source-beat .lab-source-live', `timeline not lit: ${reason}`);
       }).pipe(Effect.scoped),
   );
 });
@@ -1665,6 +1665,13 @@ describe('Code mode on a phone', () => {
         );
         yield* fitsPhone(page);
         yield* noSidewaysBox(page, '.lab-source-col .lab-source-scroll');
+        // What plays is named whole, in the band over the code: beside the head's buttons a phone had no room for it.
+        yield* textIs(page, '.lab-source-col .lab-source-beat .lab-source-live', 'rise');
+        yield* evaluates(
+          page,
+          `(() => { const live = document.querySelector('.lab-source-col .lab-source-live'); return live.scrollWidth <= live.clientWidth; })()`,
+          true,
+        );
         const now = undersizedTargets(PHONE_HIT, '.lab-source-col');
         yield* page.until(`${now}.length === 0`, {
           now,

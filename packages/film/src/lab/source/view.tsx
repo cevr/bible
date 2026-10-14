@@ -6,8 +6,8 @@
 // through `Player.hearClock`, and the clock plays it: `f.at('lift')` while
 // its cue plays, `f.mark('take')` on its word, `f.spoken('take')` as the
 // voice says it), the cue or knob selected lit where it is written, the
-// knobs the frame read lit where they are written and read, a meter on each
-// playing literal's line, and the line `?code=<n>` holds. Each is a pure
+// knobs the frame read marked where they are written and read, a meter on
+// each playing literal's line, and the line `?code=<n>` holds. Each is a pure
 // function of the frame (`lit.ts`), so a link with `#t=` lights what its
 // sender saw. The text is painted through the page's highlights
 // (`browser/highlights.ts`), so it stays selectable and copyable. A long line
@@ -17,7 +17,8 @@
 // fires, the newest first, else to what plays, until a hand scrolls it; Play
 // or Follow takes it back) or `?code=<line>` (held there, until a hand
 // scrolls it; holding a line takes it back), by the lab's one Follow rule
-// (`lab/follow.ts`). A band over the code names the beat the frame is on. A
+// (`lab/follow.ts`). A band over the code names the beat the frame is on and
+// the cues playing. A
 // tap on a line holds it, selects the cue or knob written there and seeks to
 // where the line next fires (`nextFiring`); a long press or a right-click on
 // it opens the page's context menu (Note this line, Copy link). On a laptop
@@ -162,8 +163,12 @@ const useLit = (code: () => SceneCode, clockOf: ClockOf) => {
   });
 };
 
-/** The band over the code: the beat the frame is on, and the mark its voice last said (`beatWords`). */
-const Beat = () => {
+/**
+ * The band over the code, the view's one line of now: the beat the frame is
+ * on and the mark its voice last said (`beatWords`) left, the cues playing in
+ * `code` right (`liveWords`).
+ */
+const Beat = (props: { readonly code: SceneCode; readonly lit: Accessor<Lit> }) => {
   const { state, meta } = useLab();
   const words = createMemo(() => {
     const scene = state.scene();
@@ -173,8 +178,13 @@ const Beat = () => {
     });
   });
   return (
-    <div class="lab-source-beat" data-role="beat">
-      {words()}
+    <div class="lab-source-beat">
+      <span class="lab-source-beat-words" data-role="beat">
+        {words()}
+      </span>
+      <span class="lab-source-live" data-empty={pressed(props.lit().names.length === 0)}>
+        {liveWords(props.code, props.lit())}
+      </span>
     </div>
   );
 };
@@ -340,7 +350,7 @@ const Text = (props: {
           page = Option.some(el);
         }}
       >
-        <Beat />
+        <Beat code={props.code} lit={lit} />
         <For each={rows()}>
           {(row) => (
             <Target
@@ -377,15 +387,10 @@ const Text = (props: {
   );
 };
 
-/** The view's head: the file it shows, the cues playing in it, Follow, and Code mode. */
-const Head = (props: {
-  readonly code: SceneCode;
-  readonly lit: Accessor<Lit>;
-  readonly close: boolean;
-}) => {
+/** The view's head: the file it shows, Follow, and Code mode (what plays is the band's, under it). */
+const Head = (props: { readonly code: SceneCode; readonly close: boolean }) => {
   const { actions } = useLab();
   const source = useSource();
-  const lit = props.lit;
   const follow = () => {
     source.resume();
     if (Option.exists(source.open(), (o) => o._tag === 'Line'))
@@ -399,9 +404,6 @@ const Head = (props: {
   return (
     <header class="lab-source-head">
       <span class="lab-source-file">{props.code.file}</span>
-      <span class="lab-source-live" data-empty={pressed(lit().names.length === 0)}>
-        {liveWords(props.code, lit())}
-      </span>
       <button
         type="button"
         class="sh-btn lab-source-follow"
@@ -487,12 +489,12 @@ const Body = (props: { readonly close: boolean }) => {
         }
       >
         {(c) => {
-          // What the code lights, once per frame for the head and the text alike, the frames heard while it stands.
+          // What the code lights, once per frame for the band and the rows alike, the frames heard while it stands.
           const clockOf = useClock(useHeard());
           const lit = useLit(c, clockOf);
           return (
             <>
-              <Head code={c()} lit={lit} close={props.close} />
+              <Head code={c()} close={props.close} />
               <Text code={c()} lit={lit} clockOf={clockOf} />
             </>
           );
