@@ -114,11 +114,13 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 .lab-script-instead { padding: 0 var(--s-1); border-radius: var(--r-1); background: var(--note-wash);
   color: var(--text-1); text-decoration: none; user-select: none; -webkit-user-select: none; }
 /* A note's marker: a link holding the kit's badge in its status's colour, never in a text selection. In a line it is
-   a link in the text (inline), its badge raised to the cap height as a mark's chip; in a beat's head, a target of the
+   a link in the text, its badge inline too (a line may break either side of an inline-block, the space before it no
+   line breaks at notwithstanding) and raised to the cap height as a mark's chip; in a beat's head, a target of the
    pointer's size around its badge. The accent fill while its note is selected, as a selected mark's chip. */
 .lab-script-noted { text-decoration: none; user-select: none; -webkit-user-select: none; }
 .lab-script-line .lab-script-noted { margin-inline-end: var(--s-1); }
 .lab-script-noted > .sh-badge { vertical-align: text-top; }
+.lab-script-line .lab-script-noted > .sh-badge { display: inline; }
 .lab-script-beat-head > .lab-script-noted { display: inline-flex; align-items: center; justify-content: center;
   min-width: var(--hit); min-height: var(--hit); }
 .lab-script-noted[aria-current='true'] > .sh-badge { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }

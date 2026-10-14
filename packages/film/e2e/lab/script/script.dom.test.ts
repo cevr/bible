@@ -87,9 +87,29 @@ const SHORT_PHONE = { ...PHONE, height: 600 };
 const inSight = (selector: string) =>
   `((el, box) => el !== null && el.getBoundingClientRect().top >= box.getBoundingClientRect().top - 1 && el.getBoundingClientRect().bottom <= box.getBoundingClientRect().bottom + 1)(document.querySelector('${selector}'), document.querySelector('.lab-script-scroll'))`;
 
-/** An expression run in the page: whether `selector` matches, each after a space no line breaks at (so none starts a line). */
-const heldBefore = (selector: string) =>
-  `((all) => all.length > 0 && all.every((el) => el.previousSibling !== null && el.previousSibling.nodeType === Node.TEXT_NODE && el.previousSibling.textContent.endsWith('\\u00a0')))([...document.querySelectorAll('${selector}')])`;
+/**
+ * An expression run in the page: with the reader's page laid out at each
+ * width from 200 to 600 px, every note's marker and correction's words
+ * instead in a line that stands on a line below the words before them, as
+ * `<width> <its note or its words>`; none when each keeps to their line at
+ * every width. The page's own width is put back after.
+ */
+const AWAY_FROM_THEIR_WORDS = `(() => {
+  const page = document.querySelector('.lab-script-page');
+  const held = [...page.querySelectorAll('.lab-script-line :is(.lab-script-noted, .lab-script-instead)')];
+  const was = page.style.width;
+  const away = [];
+  for (let w = 200; w <= 600; w += 1) {
+    page.style.width = w + 'px';
+    for (const el of held) {
+      const before = el.previousElementSibling.getClientRects();
+      if (el.getClientRects()[0].top >= before[before.length - 1].bottom - 1)
+        away.push(w + ' ' + (el.dataset.note ?? el.textContent));
+    }
+  }
+  page.style.width = was;
+  return away;
+})()`;
 
 /** The lab's handler, as `film lab` serves it: what its notes routes answer. */
 type Lab = Effect.Success<ReturnType<typeof labHandler>>;
@@ -371,6 +391,22 @@ describe('the Script', () => {
   );
 
   it.live(
+    "a note's marker, and a correction's words instead, keep to the line of the words before them at every width the reader is laid out at",
+    () =>
+      Effect.gen(function* () {
+        const page = yield* scriptAt({})(PHONE);
+        // Beat one's note, correction and removal: three markers, and the correction's words instead.
+        yield* countIs(
+          page,
+          '[data-scene="one"] .lab-script-line :is(.lab-script-noted, .lab-script-instead)',
+          4,
+        );
+        yield* evaluates(page, AWAY_FROM_THEIR_WORDS, []);
+        expect(page.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     "a note the agent replied to says so past its colour: a reply's arrow after its marker's id, which an open note's lacks",
     () =>
       Effect.gen(function* () {
@@ -455,10 +491,6 @@ describe('the Script', () => {
           yield* until(page, `${selects('note')} === 'n1'`);
           yield* textIs(page, '[data-scene="one"] .lab-script-instead', 'climbs slowly,');
           yield* waitFor(page, '[data-scene="one"] .lab-script-noted[data-note="n1"]');
-          // The words instead and the marker are held to the words before them by spaces no line
-          // breaks at, so neither starts a line away from the words the note is on.
-          yield* evaluates(page, heldBefore('[data-scene="one"] .lab-script-instead'), true);
-          yield* evaluates(page, heldBefore('[data-scene="one"] .lab-script-noted'), true);
           const body = Option.getOrThrow(Option.flatten(Option.fromUndefinedOr(posted(asked)[0])));
           const post = yield* Schema.decodeUnknownEffect(NotePost)(body);
           expect(asks(post)).toEqual(CORRECTED);
