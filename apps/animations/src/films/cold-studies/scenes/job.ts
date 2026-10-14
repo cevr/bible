@@ -13,13 +13,13 @@ import { lookOf } from '../looks/index.ts';
 
 export const job = drawing({
   timeline: {
-    page: { at: 'start', dur: 0.4 },
-    sweep: { at: 'speech', until: { cue: 'flood', edge: 'start' } },
-    flood: { mark: 'job', dur: 0.45, ends: true },
-    card: { mark: 'job', until: { at: 'end' } },
+    page: { at: 'start', dur: 0.4, track: 'verse' },
+    sweep: { at: 'speech', until: { cue: 'flood', edge: 'start' }, track: 'verse' },
+    flood: { mark: 'job', dur: 0.45, ends: true, track: 'verse' },
+    card: { mark: 'job', until: { at: 'end' }, track: 'card' },
     // The payoff word said: a look that slams it reads this (it starts where the take's
     // timing starts "just"; the card sets the word at its voice, a breath later or none).
-    payoff: { mark: 'job', word: 'just', dur: 0.35 },
+    payoff: { mark: 'job', word: 'just', dur: 0.35, track: 'card' },
   },
   // Its type said, not inferred: a look's frame type is read off this draw (`JobFrame`).
   draw: (f): Box => lookOf().job(f),

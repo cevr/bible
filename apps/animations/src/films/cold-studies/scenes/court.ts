@@ -9,14 +9,14 @@ import { lookOf } from '../looks/index.ts';
 export const court = drawing({
   timeline: {
     // The first sentence, up to the evidence: a look that builds its room (or its tension) over it.
-    build: { at: 'speech', until: 'evidence' },
-    drop: { mark: 'evidence', dur: 1.4, ease: 'inCubic', stagger: 0.857 },
-    bow: { mark: 'did', dur: 0.35 },
+    build: { at: 'speech', until: 'evidence', track: 'room' },
+    drop: { mark: 'evidence', dur: 1.4, ease: 'inCubic', stagger: 0.857, track: 'evidence' },
+    bow: { mark: 'did', dur: 0.35, track: 'accused' },
     // The judge leans in, his hand going to the gavel.
-    lean: { mark: 'judge', dur: 0.4 },
-    gavel: { mark: 'righteous', offset: -0.37, dur: 0.59 },
-    stamp: { mark: 'righteous', offset: -0.03, dur: 0.2, ease: 'outBack' },
-    lift: { mark: 'righteous', offset: 0.1, dur: 0.37 },
+    lean: { mark: 'judge', dur: 0.4, track: 'judge' },
+    gavel: { mark: 'righteous', offset: -0.37, dur: 0.59, track: 'judge' },
+    stamp: { mark: 'righteous', offset: -0.03, dur: 0.2, ease: 'outBack', track: 'verdict' },
+    lift: { mark: 'righteous', offset: 0.1, dur: 0.37, track: 'accused' },
   },
   // The rigs the look in play draws: the film loads them before its first frame.
   rigs: lookOf().rigs,
