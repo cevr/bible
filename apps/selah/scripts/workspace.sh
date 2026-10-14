@@ -8,6 +8,7 @@ fi
 case "$1" in
   build) exec ./scripts/build-app.sh ;;
   gate) exec ./scripts/gate.sh ;;
-  typecheck) exec zsh -c 'source scripts/toolchain.sh; swift build "${SELAH_SWIFT_ARGS[@]}" -Xswiftc -warnings-as-errors' ;;
+  test) exec ./scripts/test.sh ;;
+  typecheck) exec zsh -c 'source scripts/toolchain.sh; swift build "${SELAH_SWIFT_ARGS[@]}" "${SELAH_TEST_ARGS[@]}" -Xswiftc -warnings-as-errors' ;;
   *) echo "Unknown Selah task: $1" >&2; exit 1 ;;
 esac
