@@ -200,7 +200,7 @@ describe('a run of the board', () => {
         '/films/f/board/title.start.2.png',
         '/films/f/board/title.start.n4.sketch.png',
       ]);
-      expect(calls.at(-1)?.prompt).toContain('THE TWEAK: move the figure left');
+      expect(calls.at(-1)?.prompt).toContain('fails it): move the figure left');
       const panel = (yield* (yield* BoardStore).read(film)).panels[0];
       expect(panel?.tries.map((t) => [t.n, t.made, Option.fromUndefinedOr(t.note)])).toEqual([
         [1, 'generate', Option.none()],

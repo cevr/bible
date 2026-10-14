@@ -42,7 +42,8 @@ const fields = (note: Note) => {
   // The storyboard panel it is about, the try shown, what it asks (a tweak is `film board tweak`'s), and its sketch.
   const panel = Option.map(
     Option.fromNullishOr(note.panel),
-    (p) => ` panel=${p.id} try=${p.try} ask=${p.ask ?? 'note'}`,
+    (p) =>
+      ` panel=${p.id}${Option.match(Option.fromUndefinedOr(p.try), { onNone: () => '', onSome: (n) => ` try=${n}` })} ask=${p.ask ?? 'note'}`,
   );
   const sketch = Option.map(
     Option.filter(Option.fromNullishOr(note.sketch), (s) => s.length > 0),

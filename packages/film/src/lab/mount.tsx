@@ -30,6 +30,7 @@ import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
 import { Motion } from './motion/index.ts';
 import { Notes } from './notes/index.ts';
+import { Board, Panel } from './board/index.ts';
 import { Script } from './script/index.ts';
 import { Source } from './source/index.ts';
 import { Studio } from './studio/index.ts';
@@ -114,8 +115,29 @@ const ScriptBody = (props: { readonly player: Player }) => (
   </>
 );
 
+/**
+ * The staged lab in the Board's page: the film's storyboard beside the staged
+ * film's player, its animatic painted over the film on the narration's clock,
+ * the panel picked drawn on (its sketch over the picture), commented on,
+ * tweaked, its tries picked and its beats approved. It edits no scene, so it
+ * has no Undo and none of the Lab's tools.
+ */
+const BoardBody = (props: { readonly player: Player }) => (
+  <>
+    <LabTime player={props.player} />
+    <Lab.Root player={props.player}>
+      <Board.Provider>
+        <Board.Picture />
+        <Panel.Canvas />
+        <Board.Column />
+      </Board.Provider>
+    </Lab.Root>
+  </>
+);
+
 /** The body each of the lab's pages puts around the staged film's player. */
 const BODIES: Readonly<Record<LabPart, Component<{ readonly player: Player }>>> = {
+  board: BoardBody,
   lab: LabBody,
   script: ScriptBody,
 };

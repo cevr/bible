@@ -38,6 +38,7 @@ import {
   TalkWordsPost,
   isRefusal,
 } from '../core/api.ts';
+import type { BoardFile } from '../core/board.ts';
 import type { PageRequest } from '../core/page-render.ts';
 import { newerFirst } from '../core/refusals.ts';
 import { uniqueId } from '../core/unique.ts';
@@ -221,6 +222,19 @@ export interface LabCalls {
   readonly writeTalk: (ask: TalkAsk) => Effect.Effect<LabWrite, LabFailure>;
   /** Each beat's picture and sources, as the film's `script.ts` says them now. */
   readonly scriptBeats: Effect.Effect<ScriptBeats, LabFailure>;
+  /** The film's storyboard, as its record (`board.json`) stands now: empty before its first panel. */
+  readonly board: Effect.Effect<BoardFile, LabFailure>;
+  /** Keep try `tried` of `panel`, and why: the board as it stands after. */
+  readonly boardPick: (
+    panel: string,
+    tried: number,
+    why: Option.Option<string>,
+  ) => Effect.Effect<BoardFile, LabFailure>;
+  /** Approve beat `beat`'s board on the tries it keeps, or withdraw its approval. */
+  readonly boardApproval: (
+    verb: 'approve' | 'withdraw',
+    beat: string,
+  ) => Effect.Effect<BoardFile, LabFailure>;
 }
 
 export class LabApi extends Context.Service<LabApi, LabCalls>()('@bible/film/lab/LabApi') {}
@@ -326,6 +340,11 @@ const makeLabApi = Effect.fn('lab.api.make')(function* (film: string) {
         ),
       ),
     scriptBeats: called(client.script.beats({ params: { film } })),
+    board: called(client.board.read({ params: { film } })),
+    boardPick: (panel, tried, why) =>
+      called(client.board.pick({ params: { film }, payload: { panel, try: tried, why } })),
+    boardApproval: (verb, beat) =>
+      called(client.board[verb]({ params: { film }, payload: { beat } })),
   };
   return api;
 });

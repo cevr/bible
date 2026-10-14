@@ -2,10 +2,10 @@
 // the Lab: the header (Films, the film switcher, the page bar, the
 // drill-down crumb, the page's own tools, the timecode, Go to… ⌘K, the
 // view menu ⋯) over
-// the page. The page bar is Films · Scenes · Lab · Script · Choices ·
+// the page. The page bar is Films · Board · Scenes · Lab · Script · Choices ·
 // Project · Play, each a link printed by its place (`partHref`) and each on
-// its key (⇧1-⇧7, `partCommands`); from Scenes, the Lab, the Script or Play
-// the others of those four open at the header's playhead (`filmTimeOn`); on a phone its six film tabs are a tab bar along
+// its key (⇧1-⇧8, `partCommands`); from the Board, Scenes, the Lab, the Script or Play
+// the others of those five open at the header's playhead (`filmTimeOn`); on a phone its seven film tabs are a tab bar along
 // the bottom (56 px over the safe area) and Films is the header's leading
 // square. Every move between parts is here, the switcher or a command that
 // lands on a part's tab: no page links to another part in its text. The
@@ -134,6 +134,13 @@ const ICON_STROKES: Readonly<Record<IconName, () => JSX.Element>> = {
       <rect x="13.5" y="3.5" width="7" height="7" />
       <rect x="3.5" y="13.5" width="7" height="7" />
       <rect x="13.5" y="13.5" width="7" height="7" />
+    </>
+  ),
+  board: () => (
+    <>
+      <rect x="3.5" y="4.5" width="7.5" height="6" />
+      <rect x="13" y="4.5" width="7.5" height="6" />
+      <path d="M3.5 14.5h7.5M13 14.5h7.5M3.5 18h4.5M13 18h4.5" />
     </>
   ),
   scenes: () => (

@@ -62,7 +62,7 @@ import { pressed } from '../pressed.ts';
 import { useSheetDismissal } from '../sheet.tsx';
 import { addressOn } from '../../browser/host.ts';
 import { StateBand } from '../scenes/card.tsx';
-import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
+import { allBoard, filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
@@ -71,7 +71,7 @@ import { setApproveUndo, setSaidText, undoApprove } from './options/receipt.ts';
 import { quiet, refused } from '../../command/command.ts';
 import { OpId, type Project, projectNow, versionState } from '../../core/catalogue.ts';
 import { uniqueId } from '../../core/unique.ts';
-import { Go, SetProvider, useProject, useReview, useSet } from './context.tsx';
+import { Go, type ProjectShown, SetProvider, useProject, useReview, useSet } from './context.tsx';
 import {
   agoText,
   approvalText,
@@ -209,8 +209,8 @@ const Section = (props: {
  * findings are Project's. Nothing while the project is read or when the
  * film has none.
  */
-const FilmState = (props: { readonly film: string }) => {
-  const read = untrack(() => useProject(props.film));
+const FilmState = (props: { readonly read: ProjectShown }) => {
+  const read = props.read;
   return (
     <Show when={Option.getOrUndefined(AsyncResult.value(read.view()))}>
       {(view: Accessor<ProjectView>) => (
@@ -252,35 +252,48 @@ const Films = (props: { readonly folders: ReadonlyArray<ReviewFolder> }) => {
   return (
     <Section title="Films" count={films().length}>
       <div class="rv-grid rv-films">
-        <For each={films()}>
-          {(film) => (
-            <Target
-              of={Selection.cases.Film.make({ film })}
-              class="rv-card rv-film-card"
-              data-film={film}
-              render={(p: TargetElementProps) => (
-                <a {...p} href={pageHref.scenes(film)}>
-                  <Show
-                    when={Option.getOrUndefined(
-                      Option.filter(
-                        Option.map(folderOf(film), posterRefs),
-                        (refs) => refs.length > 0,
-                      ),
-                    )}
-                  >
-                    {(refs) => <Strip refs={refs()} />}
-                  </Show>
-                  <div class="rv-body">
-                    <b>{film}</b>
-                    <FilmState film={film} />
-                  </div>
-                </a>
-              )}
-            />
-          )}
-        </For>
+        <For each={films()}>{(film) => <FilmCard film={film} folder={folderOf(film)} />}</For>
       </div>
     </Section>
+  );
+};
+
+/**
+ * A film's card: its Scenes, or its Board while every scene is still a
+ * storyboard card (`allBoard`: a new film starts on its board).
+ */
+const FilmCard = (props: {
+  readonly film: string;
+  readonly folder: Option.Option<ReviewFolder>;
+}) => {
+  const film = props.film;
+  const read = untrack(() => useProject(film));
+  const href = () =>
+    Option.match(
+      Option.filter(AsyncResult.value(read.view()), (view) => allBoard(view.project.scenes)),
+      { onNone: () => pageHref.scenes(film), onSome: () => pageHref.board(film) },
+    );
+  return (
+    <Target
+      of={Selection.cases.Film.make({ film })}
+      class="rv-card rv-film-card"
+      data-film={film}
+      render={(p: TargetElementProps) => (
+        <a {...p} href={href()}>
+          <Show
+            when={Option.getOrUndefined(
+              Option.filter(Option.map(props.folder, posterRefs), (refs) => refs.length > 0),
+            )}
+          >
+            {(refs) => <Strip refs={refs()} />}
+          </Show>
+          <div class="rv-body">
+            <b>{film}</b>
+            <FilmState read={read} />
+          </div>
+        </a>
+      )}
+    />
   );
 };
 

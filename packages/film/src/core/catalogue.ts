@@ -537,6 +537,8 @@ export const ProjectScene = Schema.Struct({
   render: maybe(Render),
   /** Where it sits in the film now (none from a project read before it said so). */
   span: maybe(SceneSpan),
+  /** Whether it is drawn, or still a storyboard card (none from a project read before it said so). */
+  drawn: maybe(Schema.Boolean),
   comments: Schema.Array(SaidComment),
 });
 export type ProjectScene = typeof ProjectScene.Type;
@@ -632,6 +634,8 @@ export interface SceneKey {
   readonly key: string;
   /** Where it sits in the film now, when the film was laid out. */
   readonly span?: SceneSpan;
+  /** Whether it is drawn, or still a storyboard card, when the film was laid out. */
+  readonly drawn?: boolean;
 }
 
 /** An act of the film: its scenes, with the key its sources have now. */
@@ -678,7 +682,7 @@ export const projectOf = (catalogue: Catalogue, keyed: Keyed, variant: string): 
     key: act.key,
     comments: saidOn(catalogue, partSubject({ _tag: 'Act', act: act.act }, variant, act.key)),
   })),
-  scenes: keyed.scenes.map(({ scene, key, span }): ProjectScene => {
+  scenes: keyed.scenes.map(({ scene, key, span, drawn }): ProjectScene => {
     const render = renderIn(catalogue, sceneSlot(scene, variant));
     return {
       scene,
@@ -690,6 +694,7 @@ export const projectOf = (catalogue: Catalogue, keyed: Keyed, variant: string): 
       }),
       render,
       span: Option.fromUndefinedOr(span),
+      drawn: Option.fromUndefinedOr(drawn),
       // A comment is on this render when it was said of the render shown.
       comments: saidOn(catalogue, {
         ...topicOf(sceneSlot(scene, variant)),

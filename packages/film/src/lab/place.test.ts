@@ -12,7 +12,15 @@ import { FOLLOW_TEXT, type TextOpen } from './transcript/open.ts';
 
 /** The Transcript view held on take word `word`. */
 const wordOpen = (word: number): TextOpen => ({ _tag: 'Word', word });
-import { beatAt, labHref, labHrefWith, labOpensAt, labPlaceOf, selectsCue } from './place.ts';
+import {
+  NO_BOARD_PICK,
+  beatAt,
+  labHref,
+  labHrefWith,
+  labOpensAt,
+  labPlaceOf,
+  selectsCue,
+} from './place.ts';
 
 const placed = Result.getOrThrow(
   layout(
@@ -45,6 +53,7 @@ describe("the lab's place", () => {
       words: Option.none(),
       mark: Option.none(),
       text: Option.none(),
+      board: NO_BOARD_PICK,
       t: Option.some(1.5),
       loop: Option.none(),
     });
@@ -233,6 +242,7 @@ describe("the Script's place", () => {
       words: Option.none(),
       mark: Option.none(),
       text: Option.none(),
+      board: NO_BOARD_PICK,
       t: Option.some(1.5),
       loop: Option.none(),
     });
@@ -340,5 +350,56 @@ describe("the Script's place", () => {
     expect(
       labHrefWith('f', placed, '/films/f/script/b?words=2-4#t=1', { mark: Option.some(inA) }, 1),
     ).toBe('/films/f/script/a?mark=rise#t=1');
+  });
+});
+
+describe("the Board's place", () => {
+  test('reads the beat, its panel, the try shown, the view and the note, on the Board', () => {
+    expect(labPlaceOf('/films/f/board/b?panel=fall&try=2&view=draw&note=n4#t=1.5')).toMatchObject({
+      root: 'board',
+      scene: Option.some('b'),
+      note: Option.some('n4'),
+      board: { panel: Option.some('fall'), tried: Option.some(2), view: 'draw' },
+      t: Option.some(1.5),
+    });
+    expect(labPlaceOf('/films/f/board#t=3')).toMatchObject({
+      root: 'board',
+      scene: Option.none(),
+      board: NO_BOARD_PICK,
+    });
+    // A try that is no try's number is none: the panel shows its kept try.
+    for (const bad of ['0', '-1', '1.5', 'x'])
+      expect(labPlaceOf(`/films/f/board/b?panel=fall&try=${bad}`).board.tried).toEqual(
+        Option.none(),
+      );
+  });
+
+  test('a panel keeps its beat in the path as the time moves on; with none the path follows the frame', () => {
+    const at = '/films/f/board/b?panel=fall&try=2&view=compare#t=1';
+    // The frame in the beat before still names the panel's beat: its time there is signed.
+    expect(labHrefWith('f', placed, at, {}, b + 0.5)).toBe(
+      '/films/f/board/b?panel=fall&try=2&view=compare#t=0.5',
+    );
+    expect(labHrefWith('f', placed, at, {}, 0)).toMatch(/^\/films\/f\/board\/b\?panel=fall/);
+    expect(labHrefWith('f', placed, '/films/f/board#t=0', {}, b + 1)).toBe('/films/f/board/b#t=1');
+    expect(
+      labHrefWith(
+        'f',
+        placed,
+        at,
+        {
+          board: {
+            scene: 'a',
+            panel: Option.some('start'),
+            tried: Option.none(),
+            view: 'animatic',
+          },
+        },
+        1,
+      ),
+    ).toBe('/films/f/board/a?panel=start#t=1');
+    expect(labHrefWith('f', placed, at, { board: { scene: 'b', ...NO_BOARD_PICK } }, b + 1)).toBe(
+      '/films/f/board/b#t=1',
+    );
   });
 });

@@ -115,7 +115,7 @@ export const panelPrompt = (p: PanelPrompt): string => {
     ],
     onSome: (t) => [
       STYLE_REF,
-      'The second reference image is this frame as it stands: keep everything in it and change only what THE TWEAK asks.',
+      'The second reference image is this frame as it stands: keep its paper, cast, setting and light, and make the change THE TWEAK asks plainly, so the new frame differs from it at a glance.',
       ...Bool.match(t.sketch, {
         onTrue: () => [
           'The third reference image is that same frame with the change drawn over it by hand (black ink for a drawing, red for a correction, gold for what works): follow what the marks mean, but draw none of the marks, arrows or handwriting into the new frame.',
@@ -151,7 +151,13 @@ export const panelPrompt = (p: PanelPrompt): string => {
       ),
     ),
     moment,
-    ...Option.toArray(Option.map(p.tweak, (t) => `THE TWEAK: ${t.text}`)),
+    ...Option.toArray(
+      Option.map(
+        p.tweak,
+        (t) =>
+          `THE TWEAK (the reason this frame is drawn again; a change too small to notice fails it): ${t.text}`,
+      ),
+    ),
     TEXT_RULE,
     RULES,
   ].join('\n\n');

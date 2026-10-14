@@ -3,7 +3,7 @@
 // film's choices or its project), as a command found only by typing in ⌘K
 // (`Command.typed`): `Go to scene cold`. A page lists its destinations as
 // they stand and registers them while they hold. The studio's parts are
-// commands too, each on its key (⇧1 Films … ⇧7 Play, Resolve's page keys):
+// commands too, each on its key (⇧1 Films … ⇧8 Play, Resolve's page keys):
 // the page bar's tabs, from the keyboard; and a film card's context menu
 // opens each part of its film (`filmCommands`). Pure.
 
@@ -47,10 +47,10 @@ const PAGES_GROUP = 'Pages';
 export const partCommandId = (part: Part): CommandId => `page.${part}`;
 
 /**
- * The command for each of the studio's parts (`page.<part>`, on ⇧1-⇧7 in
+ * The command for each of the studio's parts (`page.<part>`, on ⇧1-⇧8 in
  * the page bar's order): it goes to that part of `film` (the film the page
  * bar leads into), through `go`. A film's part waits for a film that has it
- * (a short has no lab, script, choices or project); the part the page is on
+ * (a short has no board, lab, script, choices or project); the part the page is on
  * is no move. A page at film time `at` (Scenes, the Lab, the Script, Play)
  * keeps it on the part it goes to that has it (`partHref`).
  */

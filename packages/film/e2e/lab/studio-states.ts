@@ -68,7 +68,8 @@ export const DEVICES: ReadonlyArray<Device> = [PHONE, LAPTOP];
  * A budget is raised only in the commit that adds the thing, saying why
  * most visits use it. A film's views count the page bar, a tab for each of
  * the studio's parts (`PARTS`): the Script's tab raised each that had no
- * room by one, as a part is how a visit goes from one to another.
+ * room by one, as a part is how a visit goes from one to another, and the
+ * Board's tab (a film starts on its board) raised each by one again.
  */
 export interface Budget {
   readonly phone: number;
@@ -78,7 +79,7 @@ export interface Budget {
 /** A view's budget: at most `phone` things on a phone, `laptop` on a laptop. */
 export const most = (phone: number, laptop: number): Budget => ({ phone, laptop });
 /** The Lab's Edit: its budget, which a planted button or a planted line of text passes (the budget's positive controls). */
-export const LAB_EDIT = most(51, 55);
+export const LAB_EDIT = most(52, 56);
 
 /** A page in one state: how it opens on a device, what discloses the state, and the layer measured. */
 export interface State {
@@ -477,6 +478,36 @@ const SCRIPT_NOTES: ReadonlyArray<Json> = [
   }),
 ];
 
+/**
+ * A film's Board link (`pageHref.board`) moves as its Lab's does: to the beat
+ * under the playhead (or the panel picked), where the Board is measured.
+ */
+export const BOARD_MOVES: Exempt = {
+  measuredAt: 'boardBeat',
+  why: "a film's Board moves to the beat under its playhead as it opens",
+};
+
+/** The probe film's Board, as its link opens it: its beats read, their panels laid out. */
+export const boardOpen = (viewport: Viewport) =>
+  Effect.gen(function* () {
+    const { page } = yield* openLab([], { viewport, href: pageHref.board(PROBE) });
+    yield* waitFor(page, '.lab-board .lab-board-panel[data-panel="one.start"]');
+    return page;
+  });
+
+/** The probe film's Board with beat one's panel `panel` picked, shown by `view`. */
+export const boardAt =
+  (panel: string, view: 'animatic' | 'compare' | 'draw' = 'animatic') =>
+  (viewport: Viewport) =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], {
+        viewport,
+        href: pageHref.boardBeat(PROBE, 'one', { panel, view }),
+      });
+      yield* waitFor(page, '.lab-board-open');
+      return page;
+    });
+
 /** What the Script's link selects in a beat (`pageHref.scriptBeat`'s). */
 type ScriptPicked = NonNullable<Parameters<typeof pageHref.scriptBeat>[2]>;
 
@@ -507,6 +538,28 @@ export const SCRIPT_MOVES: Exempt = {
 export const STATES: ByPlace<State, AtRest> = {
   lab: LAB_MOVES,
   script: SCRIPT_MOVES,
+  board: BOARD_MOVES,
+  boardBeat: [
+    {
+      name: 'Board, the beats and their panels',
+      open: boardOpen,
+      disclose: AT_REST,
+      // A beat's id and start, its approval and Approve, its brief, its line with a chip at each
+      // mark, and a thumb for each panel (its mark, its time, its tries, its kept try).
+      budget: most(33, 50),
+    },
+    {
+      name: 'Board, a panel picked: its tries, Keep and the composer',
+      open: boardAt('fall'),
+      disclose: AT_REST,
+    },
+    {
+      // The draw view: the sketch's toolbar in the panel's box, its surface over the picture.
+      name: 'Board, a panel drawn on',
+      open: boardAt('fall', 'draw'),
+      disclose: AT_REST,
+    },
+  ],
   home: [
     {
       name: 'Films',
@@ -522,9 +575,9 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(CHOICES, ...CHOICES_READY),
       disclose: AT_REST,
       // The kinds strip's four tabs are its index on a page this long.
-      budget: most(46, 33),
+      budget: most(47, 33),
       // Its levels, kinds and rows below the fold: a state word back on every row lands here.
-      page: most(100, 101),
+      page: most(101, 102),
     },
     {
       name: "Choices, a variant's inspector",
@@ -561,8 +614,8 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'Project, its panels, stills and dock, with comment counts',
       open: review(PROJECT, ...PROJECT_READY),
       disclose: AT_REST,
-      budget: most(39, 31),
-      page: most(40, 45),
+      budget: most(40, 32),
+      page: most(41, 46),
     },
     {
       name: "Project, a scene row's sheet",
@@ -585,7 +638,7 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'a Set, with a comment count',
       open: review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video', '[data-comments]'),
       disclose: AT_REST,
-      budget: most(28, 29),
+      budget: most(29, 30),
     },
     {
       name: "a Set, the transport's rate chip menu",
@@ -597,13 +650,13 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'a Set, its wipe (the grip a slider)',
       open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=wipe`, '.rv-wipe-grip'),
       disclose: AT_REST,
-      budget: most(34, 28),
+      budget: most(35, 29),
     },
     {
       name: 'a Set, its diff',
       open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=diff`, '.rv-diff'),
       disclose: AT_REST,
-      budget: most(33, 27),
+      budget: most(34, 28),
     },
   ],
   folder: [
@@ -612,8 +665,8 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name'),
       disclose: AT_REST,
       // A loose video is one card, its file in its menu.
-      budget: most(21, 19),
-      page: most(21, 19),
+      budget: most(22, 20),
+      page: most(22, 20),
     },
   ],
   labScene: [
@@ -623,7 +676,7 @@ export const STATES: ByPlace<State, AtRest> = {
       disclose: AT_REST,
       // A phone's peek counted: its grip, its line and its Close over the Edit's at rest, the
       // fields in the sheet below it. A laptop's panel shows the cue's fields, its eases and the knobs.
-      budget: most(41, 80),
+      budget: most(42, 80),
     },
     {
       // On a phone the opened sheet is a layer, as an inspector is: the Lab under it is the case
@@ -634,7 +687,7 @@ export const STATES: ByPlace<State, AtRest> = {
       layer: `:is(${SELECTION_SHEET}, :root:not(:has(${SELECTION_SHEET})))`,
     },
     { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST, budget: LAB_EDIT },
-    { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(40, 44) },
+    { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(41, 45) },
     {
       name: 'Lab, Note with a scoped composer',
       open: labNoteOnCue,
@@ -643,10 +696,10 @@ export const STATES: ByPlace<State, AtRest> = {
         '[data-role="note-scope"] [data-act="clear-scope"]',
       ),
     },
-    { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(43, 50) },
-    { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(41, 45) },
+    { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(44, 51) },
+    { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(42, 46) },
     // Its budget is the resting Record's, with no beats listed.
-    { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(37, 41) },
+    { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(38, 42) },
     { name: 'Lab, Record, its beats and the recorder', open: recording, disclose: AT_REST },
     {
       name: "Lab, the command menu's Go to",
@@ -695,7 +748,7 @@ export const STATES: ByPlace<State, AtRest> = {
       // for each cue or mark its picture names (8 on the laptop, 4 on the phone). Notes are what
       // the owner leaves on it: Note frame in its head is the one at rest (a note on words comes
       // from their selection).
-      budget: most(51, 72),
+      budget: most(52, 72),
     },
     {
       // A mark picked: the cues tied to it under its beat's line, each a row that picks it.
@@ -728,7 +781,7 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'Scenes',
       open: player(pageHref.scenes(PROBE), STILL),
       disclose: AT_REST,
-      budget: most(21, 22),
+      budget: most(22, 23),
     },
   ],
   scene: [
@@ -738,7 +791,7 @@ export const STATES: ByPlace<State, AtRest> = {
       open: player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
       disclose: AT_REST,
       // The tape under the sheet and the sheet's own fields, counted as the page shows them.
-      budget: most(28, 35),
+      budget: most(29, 36),
       layer: '[data-role="scene"]',
     },
   ],
@@ -747,7 +800,7 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'Play',
       open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
       disclose: AT_REST,
-      budget: most(19, 19),
+      budget: most(20, 20),
     },
     {
       name: 'Play, the view menu',

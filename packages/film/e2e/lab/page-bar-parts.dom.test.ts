@@ -405,6 +405,7 @@ describe("the shell guard's own probe", () => {
           'otherTab 3 backgroundColor',
           'otherTab 4 backgroundColor',
           'otherTab 5 backgroundColor',
+          'otherTab 6 backgroundColor',
         ]);
       }).pipe(Effect.scoped),
     SLOW,

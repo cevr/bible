@@ -7,7 +7,7 @@
 // Shift counts on a letter, a digit or a named key but not on a symbol (`?`
 // is already shifted), a letter held with Alt reads by its physical key (⌥O
 // types `ø`), and so does a digit held with Shift or Alt (⇧1 is `shift+1`
-// whatever the layout types: the pages' ⇧1-⇧7). A command marked `stepped` also answers its keys held with
+// whatever the layout types: the pages' ⇧1-⇧8). A command marked `stepped` also answers its keys held with
 // Shift (its coarse step, ×10) and with Alt (its fine step), unless that
 // chord is bound to something itself. Where focus is decides which commands'
 // keys are live (`Focus`, `context.ts`): the page's on the page, only those

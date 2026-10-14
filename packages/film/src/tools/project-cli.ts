@@ -232,6 +232,7 @@ const sceneKeys = (keys: SceneKeys, placed: ReadonlyArray<Placed>) =>
     scene,
     key: stamp.key,
     span: { start: p.start, dur: p.dur },
+    drawn: p.spec.storyboard !== true,
   }));
 
 /** What was said, a line each, marked when it was said of an earlier version. */

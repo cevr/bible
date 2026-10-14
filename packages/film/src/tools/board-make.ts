@@ -350,8 +350,11 @@ export const tweakPanel = Effect.fn('Board.tweak')(function* (
     return yield* refuse(
       `panel ${panel.id} is a ${text.value._tag.toLowerCase()} the engine sets: change it with \`film board ${text.value._tag.toLowerCase()}\``,
     );
-  const base = yield* Effect.fromOption(tryOf(panel, asked.try)).pipe(
-    Effect.mapError(() => refuse(`panel ${panel.id} has no try ${asked.try}`)),
+  const shown = yield* Effect.fromOption(Option.fromUndefinedOr(asked.try)).pipe(
+    Effect.mapError(() => refuse(`note ${note.id} names no try of panel ${panel.id}`)),
+  );
+  const base = yield* Effect.fromOption(tryOf(panel, shown)).pipe(
+    Effect.mapError(() => refuse(`panel ${panel.id} has no try ${shown}`)),
   );
   const beat = yield* Effect.fromOption(Arr.findFirst(beats, (b) => b.id === panel.beat)).pipe(
     Effect.mapError(() => refuse(`the script has no beat ${panel.beat}`)),

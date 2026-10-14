@@ -1078,6 +1078,27 @@ const ScriptSelection = Field.struct({
 });
 
 /**
+ * How the Board shows a panel (`?view=`): the animatic (each panel held from
+ * its mark on the narration's clock), the compare (the scene's own frame at
+ * the panel's mark, the panel beside it) or the draw (the sketch surface over
+ * the panel). Each is a step Back walks.
+ */
+export const BOARD_VIEWS = ['animatic', 'compare', 'draw'] as const;
+export type BoardView = (typeof BOARD_VIEWS)[number];
+
+/**
+ * What the Board picks in a beat (the path's scene): a panel by the mark it
+ * is held from (`panel`), the try shown in it (`try`; its kept try when
+ * none), how it is shown (`view`) and the note selected (`note`).
+ */
+const BoardSelection = Field.struct({
+  panel: cited,
+  try: cited,
+  view: Field.key(Codec.literals(BOARD_VIEWS), { default: 'animatic', history: 'push' }),
+  note: cited,
+});
+
+/**
  * A film's player on its choices and its project: the sound heard over the
  * picture (`?heard=<point>&variant=<id>` for a variant in place, `heard=own`
  * for the picture's own sound; none heard is the page's first) and the
@@ -1115,7 +1136,10 @@ export const OWN_SOUND = 'own';
  * `/films/<film>/lab/<scene>?cue=#t=` (scene time), with the selection; and
  * its script, the lab's second page on the same staged film,
  * `/films/<film>/script#t=` or a beat of it
- * `/films/<film>/script/<scene>?mark=#t=`, with what is selected in the beat.
+ * `/films/<film>/script/<scene>?mark=#t=`, with what is selected in the beat;
+ * and its board, the lab's third page on the staged film, where the film's
+ * work starts: `/films/<film>/board#t=` or a beat of it
+ * `/films/<film>/board/<scene>?panel=&try=&view=#t=`, with the panel picked.
  * Render: a film's export page `/films/<film>/export`, the film staged with
  * no chrome and its handle on `window.__film` (`mountRender`), which the
  * easel opens on the lab (`film look`); no reviewer's view, so it holds no
@@ -1186,6 +1210,18 @@ export const Places = {
     query: ScriptSelection,
     hash: LabAt,
   }),
+  board: Place.make({
+    path: '/films/:film/board',
+    params: filmParams,
+    query: Field.struct({ note: cited }),
+    hash: LabAt,
+  }),
+  boardBeat: Place.make({
+    path: '/films/:film/board/:scene',
+    params: { film: Codec.Segment, scene: Codec.Segment },
+    query: BoardSelection,
+    hash: LabAt,
+  }),
   export: Place.make({ path: '/films/:film/export', params: filmParams }),
 };
 
@@ -1203,6 +1239,8 @@ const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, AppPage]> = [
   [Places.labScene, 'lab'],
   [Places.script, 'lab'],
   [Places.scriptBeat, 'lab'],
+  [Places.board, 'lab'],
+  [Places.boardBeat, 'lab'],
   [Places.export, 'render'],
 ];
 
@@ -1242,6 +1280,8 @@ const FILM_PLACES: ReadonlyArray<Place.Place<{ readonly path: { readonly film: s
   Places.labScene,
   Places.script,
   Places.scriptBeat,
+  Places.board,
+  Places.boardBeat,
   Places.export,
 ];
 
@@ -1292,6 +1332,17 @@ interface ScriptPicked {
   readonly cue?: string;
   readonly mark?: string;
   readonly words?: string;
+  readonly note?: string;
+}
+
+/** The Board's selection keys, none set. */
+const NOTHING_BOARDED = { panel: '', try: '', view: 'animatic' as const, note: '' };
+
+/** What the Board has picked in a beat: a panel by its mark, the try shown, the view, and the note. */
+interface BoardPicked {
+  readonly panel?: string;
+  readonly try?: string;
+  readonly view?: BoardView;
   readonly note?: string;
 }
 
@@ -1383,19 +1434,50 @@ export const pageHref = {
       query: { ...NOTHING_SCRIPTED, ...picked },
       hash: { t, loop },
     }),
+  /** The Board on `film`, at film time `t`, with note `note` selected, looping `loop`. */
+  board: (
+    film: string,
+    t: Option.Option<number> = Option.none(),
+    note = '',
+    loop: Option.Option<Interval> = Option.none(),
+  ): string => Place.href(Places.board, { path: { film }, query: { note }, hash: { t, loop } }),
+  /** The Board on beat `scene` of `film`, at scene time `t`, with what is `picked` there, looping `loop`. */
+  boardBeat: (
+    film: string,
+    scene: string,
+    picked: BoardPicked = {},
+    t: Option.Option<number> = Option.none(),
+    loop: Option.Option<Interval> = Option.none(),
+  ): string =>
+    Place.href(Places.boardBeat, {
+      path: { film, scene },
+      query: { ...NOTHING_BOARDED, ...picked },
+      hash: { t, loop },
+    }),
 };
 
 /**
  * The studio's parts, in the page bar's order: Films (the home, every
- * film's), then a film's Scenes, Lab, Script, Choices, Project and Play.
- * ⇧1-⇧7 go to them in this order.
+ * film's), then a film's Board (where its work starts, as a studio's does),
+ * Scenes, Lab, Script, Choices, Project and Play. ⇧1-⇧8 go to them in this
+ * order.
  */
-export const PARTS = ['films', 'scenes', 'lab', 'script', 'choices', 'project', 'play'] as const;
+export const PARTS = [
+  'films',
+  'board',
+  'scenes',
+  'lab',
+  'script',
+  'choices',
+  'project',
+  'play',
+] as const;
 export type Part = (typeof PARTS)[number];
 
 /** Each part's name, as the page bar prints it. */
 export const PART_TITLE: Readonly<Record<Part, string>> = {
   films: 'Films',
+  board: 'Board',
   scenes: 'Scenes',
   lab: 'Lab',
   script: 'Script',
@@ -1406,13 +1488,19 @@ export const PART_TITLE: Readonly<Record<Part, string>> = {
 
 /**
  * Whether `film` has `part`: a film has every part; a short (`<film>/shorts/<id>`)
- * is only played and seen as scenes, with no lab, script, choices or project of its own.
+ * is only played and seen as scenes, with no board, lab, script, choices or project of its own.
  */
 export const hasPart = (film: string, part: Part): boolean =>
   !isShortKey(film) || part === 'films' || part === 'scenes' || part === 'play';
 
 /** The parts whose `#t=` is the film's time: a move between them keeps the frame. */
-const FILM_TIME_PARTS: ReadonlySet<Part> = new Set<Part>(['scenes', 'lab', 'script', 'play']);
+const FILM_TIME_PARTS: ReadonlySet<Part> = new Set<Part>([
+  'board',
+  'scenes',
+  'lab',
+  'script',
+  'play',
+]);
 
 /** The film time a page of `part` at `t` hands the page bar to keep: none from a part whose time is not the film's. */
 export const filmTimeOn = (part: Part, t: Option.Option<number>): Option.Option<number> =>
@@ -1420,8 +1508,8 @@ export const filmTimeOn = (part: Part, t: Option.Option<number>): Option.Option<
 
 /**
  * The page of `part` on `film`, at its defaults (Films names no film);
- * Scenes, the Lab, the Script and Play at film time `t`, the frame a move
- * between them keeps.
+ * the Board, Scenes, the Lab, the Script and Play at film time `t`, the frame
+ * a move between them keeps.
  */
 export const partHref = (
   part: Part,
@@ -1430,6 +1518,7 @@ export const partHref = (
 ): string =>
   ({
     films: () => pageHref.home(),
+    board: () => pageHref.board(film, t),
     scenes: () => pageHref.scenes(film, t),
     lab: () => pageHref.lab(film, t),
     script: () => pageHref.script(film, t),
@@ -1649,6 +1738,10 @@ export const legacyPlace = (href: string): Option.Option<string> => {
 
 /** Every route's URL, built from its declaration: the one way server, page and tests write a path. */
 export const labUrls = HttpApiClient.urlBuilder(LabHttpApi);
+
+/** An image of a film's board (a try, the style's reference), by its file name. */
+export const boardFileUrl = (film: string, file: string): string =>
+  labUrls.board.file({ params: { film, file } });
 
 /** A note's still. */
 export const stillUrl = (film: string, name: string): string =>

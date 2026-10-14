@@ -870,7 +870,8 @@ type PanelAsk = typeof PanelAsk.Type;
  */
 const NotePanel = Schema.Struct({
   id: Schema.String,
-  try: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+  /** The try shown: absent on a card or a verse panel, which the engine sets and which has none. */
+  try: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))),
   /** Absent: a note. */
   ask: Schema.optionalKey(PanelAsk),
 });
