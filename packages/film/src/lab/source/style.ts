@@ -51,6 +51,9 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
 .lab-source-line::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--state-live);
   opacity: var(--glow, 0); pointer-events: none; }
 .lab-source-line[data-popup-open] { background: var(--surface-3); }
+/* The line that writes the cue a mouse is over, here or on its bar in the strip: the accent's wash, its number lit. */
+.lab-source-line[data-pointed] { background: var(--accent-wash); }
+.lab-source-line[data-pointed] .lab-source-n { color: var(--accent); }
 .lab-source-n { padding: 0 var(--s-2) 0 var(--gutter); text-align: right; user-select: none;
   color: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 100%), var(--text-3)); }
 .lab-source-t { padding: 0 var(--gutter) 0 var(--s-2); white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -92,8 +95,9 @@ body.lab:has(.lab-source-col[data-code='live']) .lab-panel { display: none; }
   .lab-source-col { display: none; }
   /* The screen's height, as the Script's reader: the picture and its strip stay over the code, which scrolls under them. */
   body.lab:has(.lab-source-col[data-code='live']) { height: 100dvh; min-height: 0; grid-template-rows: auto auto auto minmax(0, 1fr); }
-  body.lab:has(.lab-source-col[data-code='live']) .lab-strip :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
+  body.lab:has(.lab-source-col[data-code='live']) .lab-strip :is(.lab-strip-row, .lab-strip-guide, .lab-strip-head > [data-act='snap']) {
     display: none; }
+  body.lab:has(.lab-source-col[data-code='live']) .lab-strip .lab-strip-words { --labels-h: 0px; }
   .lab-source-col[data-code='live'] { grid-column: 1; grid-row: 4; display: flex; flex-direction: column; min-height: 0;
     min-width: 0; overflow: hidden; background: var(--surface-1); border-top: var(--border); }
 }

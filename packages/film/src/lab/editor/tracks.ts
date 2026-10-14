@@ -1,0 +1,178 @@
+// The strip's tracks: a scene's cues by the actor or part each moves (its
+// span's `track`), as rows the strip draws. Tracks come in the order their
+// first cue is written; a cue that names no track is its own, named by the
+// cue, so a scene that names none draws one cue to a row. A track's cues are
+// packed into lanes by their place on the clock, so two moves of one actor
+// that overlap stack instead of hiding each other. A cue's words say what
+// it is (`bow 0.35 s`, `build until {evidence}`, `card · holds to end`), and
+// the scene's marks are the labels every track's cues are tied to. Pure.
+
+import { Array as Arr, Match, Option, Order, Predicate } from 'effect';
+import type { ResolvedCue, Span, Timeline, Until } from '../../core/schema.ts';
+import { CLOCK_EPSILON } from '../../core/time.ts';
+
+/** One cue as the strip draws it on its track. */
+export interface Block {
+  readonly name: string;
+  readonly cue: ResolvedCue;
+  /** What the cue is, in a few words. */
+  readonly words: string;
+  /** It runs `until` a point (a mark, a landmark or a cue's edge): its end is that point's, not a length. */
+  readonly until: boolean;
+}
+
+/** A track: the actor or part its cues move, and its cues in lanes, none overlapping another in its lane. */
+interface Track {
+  readonly name: string;
+  /** Named by its cues' `track`; else the one cue that names none, named by itself. */
+  readonly named: boolean;
+  readonly lanes: Arr.NonEmptyReadonlyArray<ReadonlyArray<Block>>;
+}
+
+/** A mark of the scene's narration, at its scene second. */
+export interface Label {
+  readonly name: string;
+  readonly t: number;
+}
+
+/** Seconds as the strip prints them: `0.35`, `1.40`. */
+const seconds = (s: number) => s.toFixed(2);
+
+/** What ends a span that runs `until` a point, in words. */
+const untilWords = (until: Until): string =>
+  Match.value(until).pipe(
+    Match.when(Predicate.isString, (mark) => `until {${mark}}`),
+    Match.when({ at: 'end' }, () => '· holds to end'),
+    Match.when({ at: Predicate.isString }, ({ at }) => `until ${at}`),
+    Match.orElse(({ cue, edge }) => `until ${cue}’s ${edge ?? 'end'}`),
+  );
+
+/** What a cue is: its name, then what ends it (a point it runs until, the scene's end) or its length. */
+export const blockWords = (name: string, span: Span, cue: ResolvedCue): string =>
+  Option.match(Option.fromUndefinedOr(span.until), {
+    onSome: (until) => `${name} ${untilWords(until)}`,
+    onNone: () =>
+      Option.match(
+        Option.liftPredicate(cue.dur, (d) => d > 0),
+        {
+          onSome: (d) => `${name} ${seconds(d)} s`,
+          onNone: () => name,
+        },
+      ),
+  });
+
+/** By where a cue starts, then where it ends. */
+const byStart: Order.Order<Block> = Order.combine(
+  Order.mapInput(Order.Number, (b: Block) => b.cue.start),
+  Order.mapInput(Order.Number, (b: Block) => b.cue.end),
+);
+
+/** A lane as it fills: where it is taken up to, whether an instant holds that end, and its blocks. */
+interface Filling {
+  end: number;
+  /** An instant ends the lane: a cue starting on it would hide it. */
+  closed: boolean;
+  readonly blocks: Array<Block>;
+}
+
+/** Whether `b` goes in `lane`: it starts at or after the lane's end, and not on an instant that ends it. */
+const fits = (lane: Filling, b: Block) => {
+  const touching = Math.abs(lane.end - b.cue.start) <= CLOCK_EPSILON;
+  return lane.end <= b.cue.start + CLOCK_EPSILON && !(touching && lane.closed);
+};
+
+/** `b` put at the end of `lane`. */
+const put = (lane: Filling, b: Block) => {
+  lane.end = b.cue.end;
+  lane.closed = b.cue.dur <= CLOCK_EPSILON;
+  lane.blocks.push(b);
+};
+
+/** `blocks` packed into lanes by their clock: each into the first lane it fits. */
+const pack = (
+  blocks: Arr.NonEmptyReadonlyArray<Block>,
+): Arr.NonEmptyReadonlyArray<ReadonlyArray<Block>> => {
+  const [first, ...rest] = Arr.sort(blocks, byStart);
+  const lanes: Arr.NonEmptyArray<Filling> = [{ end: 0, closed: false, blocks: [] }];
+  put(lanes[0], first);
+  for (const b of rest)
+    Option.match(
+      Arr.findFirst(lanes, (lane) => fits(lane, b)),
+      {
+        onSome: (lane) => put(lane, b),
+        onNone: () => {
+          const lane: Filling = { end: 0, closed: false, blocks: [] };
+          put(lane, b);
+          lanes.push(lane);
+        },
+      },
+    );
+  return Arr.map(lanes, (l) => l.blocks);
+};
+
+/** One cue of a timeline, resolved, with the track it is on. */
+interface Placed {
+  readonly track: string;
+  readonly named: boolean;
+  readonly block: Block;
+}
+
+/**
+ * The tracks of a scene's `timeline` (its cues in the order written) with its
+ * `cues` resolved on the clock: a cue the clock has not resolved is left out.
+ */
+export const tracksOf = (
+  timeline: Timeline,
+  cues: ReadonlyMap<string, ResolvedCue>,
+): ReadonlyArray<Track> => {
+  const placed = Arr.getSomes(
+    Object.entries(timeline).map(([name, span]) =>
+      Option.map(Option.fromUndefinedOr(cues.get(name)), (cue): Placed => ({
+        track: span.track ?? name,
+        named: Predicate.isNotUndefined(span.track),
+        block: { name, cue, words: blockWords(name, span, cue), until: 'until' in span },
+      })),
+    ),
+  );
+  // Grouped by name; a record's keys are not kept in the order written (`'2'` before `'b'`), so the order is its own.
+  const byTrack = Arr.groupBy(placed, (p) => p.track);
+  return Arr.getSomes(
+    Arr.dedupe(placed.map((p) => p.track)).map((track) =>
+      Option.map(Option.fromUndefinedOr(byTrack[track]), (mine): Track => ({
+        name: track,
+        named: mine[0].named,
+        lanes: pack(Arr.map(mine, (p) => p.block)),
+      })),
+    ),
+  );
+};
+
+/** The cue names of `tracks` in the strip's order: track by track, lane by lane, each lane by its clock. */
+export const stripOrder = (tracks: ReadonlyArray<Track>): ReadonlyArray<string> =>
+  tracks.flatMap((t) => t.lanes.flatMap((lane) => lane.map((b) => b.name)));
+
+/** The scene's marks as labels at their scene seconds (`marks` from the start of speech), in time order. */
+export const labelsOf = (
+  speechStart: number,
+  marks: ReadonlyMap<string, number>,
+): ReadonlyArray<Label> =>
+  Arr.sortWith(
+    Array.from(marks, ([name, m]): Label => ({ name, t: speechStart + m })),
+    (l) => l.t,
+    Order.Number,
+  );
+
+/** `count` of `word`, its plural for any count but one. */
+const counted = (count: number, word: string) =>
+  `${count} ${word}${Option.match(
+    Option.liftPredicate(count, (c) => c === 1),
+    { onSome: () => '', onNone: () => 's' },
+  )}`;
+
+/** The strip's count: `3 tracks · 6 marks · 7 cues`. */
+export const countText = (tracks: ReadonlyArray<Track>, labels: number): string =>
+  [
+    counted(tracks.length, 'track'),
+    counted(labels, 'mark'),
+    counted(stripOrder(tracks).length, 'cue'),
+  ].join(' · ');

@@ -21,7 +21,6 @@ import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { timecode } from '../../core/time.ts';
 import { endsLate, liveAt } from '../../core/timeline.ts';
-import type { ResolvedCue } from '../../core/schema.ts';
 import { cueOf } from '../../command/selection.ts';
 import { BY_BUTTON } from '../../command/command.ts';
 import { CANCEL_GRIP, SNAP, stripFollowCommand } from './commands.ts';
@@ -32,9 +31,10 @@ import { pressed } from '../pressed.ts';
 import { useLabPage } from '../panel.tsx';
 import { useFollow } from '../follow.ts';
 import { useLab } from '../shell.tsx';
-import { useEditor } from './context.tsx';
+import { pointsAt, useEditor } from './context.tsx';
 import { anchorText } from './format.ts';
 import { lanesKey, lanesOf } from './lanes.ts';
+import { type Block, type Label, countText, labelsOf, stripOrder, tracksOf } from './tracks.ts';
 import { SourceKnown, type StripWindow, dragModeAt, edgeFor, stripWindow } from './grip.ts';
 import { PHONE, useMatches } from '../viewport.ts';
 import { useMotion } from '../motion/context.tsx';
@@ -46,12 +46,33 @@ const pct = (w: StripWindow, t: number) => `${((t - w.from) / w.span) * 100}%`;
 /** How wide `d` seconds are on the strip showing `w`. */
 const len = (w: StripWindow, d: number) => `${(d / w.span) * 100}%`;
 
-/** The words and marks of the scene's narration, each word in the room its time gives it. */
+/** The words and marks of the scene's narration, each word in the room its time gives it, each mark named over them. */
 const Words = (props: {
   readonly placed: Placed<SceneSpec>;
+  readonly labels: ReadonlyArray<Label>;
   readonly window: () => StripWindow;
 }) => (
   <div class="lab-strip-words">
+    {/* Each mark's name and scene second, in the room up to the next mark: the labels every track is tied to. */}
+    <div class="lab-strip-labels">
+      <For each={props.labels} keyed={false}>
+        {(label, i) => (
+          <span
+            class="lab-strip-label"
+            data-mark={label().name}
+            style={{
+              left: pct(props.window(), label().t),
+              width: len(
+                props.window(),
+                (props.labels[i + 1]?.t ?? props.window().from + props.window().span) - label().t,
+              ),
+            }}
+          >
+            {`${label().name} ${label().t.toFixed(2)}`}
+          </span>
+        )}
+      </For>
+    </div>
     <For each={props.placed.voice.words}>
       {(w) => (
         <span
@@ -65,39 +86,40 @@ const Words = (props: {
         </span>
       )}
     </For>
-    <For each={[...props.placed.voice.marks]}>
-      {([name, m]) => (
+    <For each={props.labels}>
+      {(label) => (
         <i
           class="lab-strip-mark"
-          style={{ left: pct(props.window(), props.placed.speechStart + m) }}
-          title={`{${name}}`}
+          style={{ left: pct(props.window(), label.t) }}
+          title={`{${label.name}}`}
         />
       )}
     </For>
   </div>
 );
 
-interface CueRowProps {
+interface CueBarProps {
   readonly placed: Placed<SceneSpec>;
-  readonly name: string;
-  readonly cue: ResolvedCue;
+  readonly block: Block;
+  /** Its words written in the bar: on a named track, whose name stands at the row's left, not the cue's. */
+  readonly worded: boolean;
   /** The seconds of the scene the strip shows. */
   readonly window: () => StripWindow;
   /** The strip's rows, whose width is the window's length. */
   readonly rows: () => Option.Option<HTMLElement>;
-  /** A press on the lane beside the bar: a drag across it marks the in and out points. */
-  readonly lane: (e: PointerEvent) => void;
   /** Lit while the playhead is inside the cue (`liveAt`, counted once a frame by the strip): the Source view lights the same cues. */
   readonly live: () => boolean;
 }
 
-/** One cue's row: its name, and its bar where it plays. */
-const CueRow = (props: CueRowProps) => {
+/** One cue's bar where it plays: a press grabs it (the editor's machine takes it from there). */
+const CueBar = (props: CueBarProps) => {
   const { state: lab, meta } = useLab();
-  const { actions } = useEditor();
+  const { actions, state: editor } = useEditor();
   const scene = () => props.placed.spec.id;
+  const name = () => props.block.name;
+  const cue = () => props.block.cue;
   const title = () =>
-    Option.match(Option.fromUndefinedOr(meta.stage.timelineOf(scene())[props.name]), {
+    Option.match(Option.fromUndefinedOr(meta.stage.timelineOf(scene())[name()]), {
       onNone: () => '',
       onSome: anchorText,
     });
@@ -113,40 +135,93 @@ const CueRow = (props: CueRowProps) => {
     });
     actions.press({
       scene: scene(),
-      cue: props.name,
+      cue: name(),
       edge: dragModeAt(e.clientX - bar.left, bar.width, e.altKey, edgeFor(e.pointerType)),
       down: e,
       perSec: width / props.window().span,
     });
   };
   return (
-    <div class="lab-strip-row" onPointerDown={props.lane}>
-      <span class="lab-cue-label">{props.name}</span>
-      {/* The lane clips its bar to the window; the name stays beside it. */}
-      <div class="lab-cue-lane">
-        <Target
-          of={cueOf(scene(), props.name)}
-          class={[
-            'lab-cue',
-            {
-              selected: selectsCue(lab.selection(), scene(), props.name),
-              late: endsLate(props.cue, props.placed.dur),
-            },
-          ]}
-          data-cue={props.name}
-          data-scene={scene()}
-          data-live={Option.getOrUndefined(Option.liftPredicate('', props.live))}
-          style={{
-            left: pct(props.window(), props.cue.start),
-            width: len(props.window(), props.cue.dur),
-          }}
-          title={`${props.name}: ${title()} · ${timecode(props.cue.start, meta.film.fps)}–${timecode(props.cue.end, meta.film.fps)} · ${props.cue.ease}`}
-          onPointerDown={press}
-        />
-      </div>
-    </div>
+    <Target
+      of={cueOf(scene(), name())}
+      class={[
+        'lab-cue',
+        {
+          selected: selectsCue(lab.selection(), scene(), name()),
+          late: endsLate(cue(), props.placed.dur),
+        },
+      ]}
+      data-cue={name()}
+      data-scene={scene()}
+      data-live={Option.getOrUndefined(Option.liftPredicate('', props.live))}
+      data-until={Option.getOrUndefined(Option.liftPredicate('', () => props.block.until))}
+      data-pointed={Option.getOrUndefined(
+        Option.liftPredicate('', () => pointsAt(editor.pointed(), scene(), name())),
+      )}
+      onPointerEnter={(e: PointerEvent) => {
+        if (e.pointerType === 'mouse') actions.point(Option.some({ scene: scene(), cue: name() }));
+      }}
+      onPointerLeave={() => actions.point(Option.none())}
+      style={{
+        left: pct(props.window(), cue().start),
+        width: len(props.window(), cue().dur),
+      }}
+      title={`${name()}: ${title()} · ${timecode(cue().start, meta.film.fps)}–${timecode(cue().end, meta.film.fps)} · ${cue().ease}`}
+      onPointerDown={press}
+    >
+      {/* Its words where the bar has room for them, else its name (`player.css`, by the bar's width). */}
+      <Show when={props.worded}>
+        <span class="lab-cue-words" data-room="full">
+          {props.block.words}
+        </span>
+        <span class="lab-cue-words" data-room="short">
+          {props.block.name}
+        </span>
+      </Show>
+    </Target>
   );
 };
+
+interface TrackRowProps {
+  readonly placed: Placed<SceneSpec>;
+  /** The track's name: at the left of its first lane, none beside the lanes stacked under it. */
+  readonly label: string;
+  /** A named track (its cues name it), whose bars carry their words. */
+  readonly named: boolean;
+  readonly blocks: ReadonlyArray<Block>;
+  readonly window: () => StripWindow;
+  readonly rows: () => Option.Option<HTMLElement>;
+  /** A press on the lane beside the bars: a drag across it marks the in and out points. */
+  readonly lane: (e: PointerEvent) => void;
+  /** Whether the playhead is inside cue `name`. */
+  readonly live: (name: string) => boolean;
+}
+
+/** One lane of a track: its name (on its first), and its cues' bars where they play. */
+const TrackRow = (props: TrackRowProps) => (
+  <div
+    class="lab-strip-row"
+    data-named={Option.getOrUndefined(Option.liftPredicate('', () => props.named))}
+    onPointerDown={props.lane}
+  >
+    <span class="lab-cue-label">{props.label}</span>
+    {/* The lane clips its bars to the window; the name stays beside it. */}
+    <div class="lab-cue-lane">
+      <For each={props.blocks} keyed={(b) => b.name}>
+        {(block) => (
+          <CueBar
+            placed={props.placed}
+            block={block()}
+            worded={props.named}
+            window={props.window}
+            rows={props.rows}
+            live={() => props.live(block().name)}
+          />
+        )}
+      </For>
+    </div>
+  </div>
+);
 
 /** The strip for the scene under the playhead. */
 export const Strip = () => {
@@ -160,6 +235,12 @@ export const Strip = () => {
   const cues = createMemo(() => {
     lab.revision();
     return [...meta.stage.cuesOf(state.stripScene())];
+  });
+  // The cues by track, read again as they are: a drag moves a bar within its track, and may stack it.
+  const tracks = createMemo(() => {
+    lab.revision();
+    const scene = state.stripScene();
+    return tracksOf(meta.stage.timelineOf(scene), meta.stage.cuesOf(scene));
   });
   let rows = Option.none<HTMLElement>();
   let scroller = Option.none<HTMLElement>();
@@ -257,11 +338,21 @@ export const Strip = () => {
             new Set(liveAt(new Map(cues()), lab.T() - p().start, meta.film.fps).map((l) => l.name)),
         );
         // What the rows follow, as one key (`lanes.ts`): the scene and its live lanes in the strip's order.
-        const following = createMemo(() =>
-          lanesKey(
-            p().spec.id,
-            cues().map(([name]) => name),
-            live(),
+        const following = createMemo(() => lanesKey(p().spec.id, stripOrder(tracks()), live()));
+        // The scene's marks: the labels named over the words, ruled down through the tracks.
+        const labels = createMemo(() => labelsOf(p().speechStart, p().voice.marks));
+        // The strip's rows: each track's lanes, its name on the first.
+        const lanes = createMemo(() =>
+          tracks().flatMap((track) =>
+            track.lanes.map((blocks, i) => ({
+              key: `${track.name}\u0000${i}`,
+              label: Option.getOrElse(
+                Option.liftPredicate(track.name, () => i === 0),
+                () => '',
+              ),
+              named: track.named,
+              blocks,
+            })),
           ),
         );
         const laneRow = (scene: string, name: string) =>
@@ -323,7 +414,7 @@ export const Strip = () => {
           <div class="lab-strip" data-mode={page.mode()} onPointerDown={scrub}>
             <div class="lab-strip-head">
               <span class="lab-strip-name">
-                {`${p().spec.id} · ${timecode(p().dur, meta.film.fps)} · ${file()}`}
+                {`${p().spec.id} · ${timecode(p().dur, meta.film.fps)} · ${file()} · ${countText(tracks(), labels().length)}`}
               </span>
               {/* A finger has no Escape: while a grip is held, a tap here lets it go. */}
               <Show when={state.holding()}>
@@ -363,7 +454,7 @@ export const Strip = () => {
                   rows = Option.some(el);
                 }}
               >
-                <Words placed={p()} window={shown} />
+                <Words placed={p()} labels={labels()} window={shown} />
                 <Show when={Option.getOrUndefined(band())}>
                   {(b) => (
                     <div
@@ -376,16 +467,21 @@ export const Strip = () => {
                     />
                   )}
                 </Show>
-                <For each={cues()} keyed={([name]) => name}>
-                  {(entry) => (
-                    <CueRow
+                {/* Each mark's rule down through the tracks: a cue whose edge is on it reads as tied to it. */}
+                <For each={labels()}>
+                  {(label) => <i class="lab-strip-guide" style={{ left: pct(shown(), label.t) }} />}
+                </For>
+                <For each={lanes()} keyed={(l) => l.key}>
+                  {(row) => (
+                    <TrackRow
                       placed={p()}
-                      name={entry()[0]}
-                      cue={entry()[1]}
+                      label={row().label}
+                      named={row().named}
+                      blocks={row().blocks}
                       window={shown}
                       rows={() => rows}
                       lane={lane}
-                      live={() => live().has(entry()[0])}
+                      live={(name) => live().has(name)}
                     />
                   )}
                 </For>

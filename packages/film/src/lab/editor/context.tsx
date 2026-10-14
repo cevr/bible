@@ -86,6 +86,12 @@ interface EditorState {
   readonly stackCurrent: Accessor<boolean>;
   /** Whether a grip follows a press now (Pressed or Dragging): the strip offers Cancel while it does. */
   readonly holding: Accessor<boolean>;
+  /**
+   * The cue a mouse is over, on its bar in the strip or on the line that
+   * writes it in the Source view: each marks the other, a pick without a
+   * pick (no URL, no history). None when the mouse is over neither.
+   */
+  readonly pointed: Accessor<Option.Option<PointedCue>>;
   /** Whether a write is out (Writing or Checking): what asks to write waits for its answer. */
   readonly writing: Accessor<boolean>;
   /** The inspector's fields of a cue or knob, as the lab holds it now (`grip.ts`). */
@@ -93,6 +99,16 @@ interface EditorState {
   /** Whether a drag's edges snap (the viewer's Snap): Shift flips it for a move. */
   readonly snap: Accessor<boolean>;
 }
+
+/** A cue of a scene, as a mouse points at it. */
+interface PointedCue {
+  readonly scene: string;
+  readonly cue: string;
+}
+
+/** Whether `pointed` is cue `cue` of `scene`. */
+export const pointsAt = (pointed: Option.Option<PointedCue>, scene: string, cue: string): boolean =>
+  Option.exists(pointed, (p) => p.scene === scene && p.cue === cue);
 
 /** Where on a cue's bar a press landed, and the strip's scale. */
 interface Press {
@@ -134,6 +150,8 @@ interface EditorActions {
   readonly refuse: (message: string) => void;
   /** Write a talk's `talk.ts` as `ask` says (or say, in the editor's slot, why it is not written now). */
   readonly talk: (ask: TalkAsk) => void;
+  /** A mouse came over a cue's bar or its line (some), or left it (none). */
+  readonly point: (cue: Option.Option<PointedCue>) => void;
 }
 
 /** The viewer's Snap, kept in the browser: a convenience, safe to lose (on with nothing kept). */
@@ -377,6 +395,15 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     },
   );
 
+  // The cue a mouse is over, in the strip or the code: a leave and the next enter on the same cue change nothing.
+  const [pointed, setPointed] = createSignal(Option.none<PointedCue>(), {
+    equals: (a, b) =>
+      Option.match(b, {
+        onNone: () => Option.isNone(a),
+        onSome: (p) => pointsAt(a, p.scene, p.cue),
+      }),
+  });
+
   // The changes this page's writes and steps made, each with the count it landed at.
   const [made, setMade] = createSignal<ReadonlyMap<ChangeId, number>>(new Map());
   createEffect(
@@ -551,6 +578,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       report,
       stackCurrent,
       holding,
+      pointed,
       writing: out,
       fieldsOf: fieldsAt,
       snap,
@@ -561,6 +589,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       commit,
       refuse: (message) => send(EditEvent.Refuse({ message })),
       talk,
+      point: (cue) => setPointed(cue),
     },
   };
   return <EditorContext value={value}>{props.children}</EditorContext>;
