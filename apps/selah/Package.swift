@@ -11,8 +11,12 @@ let package = Package(
   ],
   targets: [
     .target(name: "SelahCore", dependencies: [.product(name: "FSRS", package: "swift-fsrs")]),
+    .target(name: "SelahSpeech", dependencies: ["SelahCore"]),
     .executableTarget(
-      name: "SelahApp", dependencies: ["SelahCore"], resources: [.process("Resources")]),
+      name: "SelahApp", dependencies: ["SelahCore", "SelahSpeech"],
+      resources: [.process("Resources")]),
+    .executableTarget(
+      name: "SelahTranscribe", dependencies: ["SelahCore", "SelahSpeech"], path: "Tools/Transcribe"),
     .executableTarget(name: "SelahBenchmark", dependencies: ["SelahCore"], path: "Benchmarks"),
     .testTarget(name: "SelahCoreTests", dependencies: ["SelahCore"], exclude: ["Fixtures"]),
   ]

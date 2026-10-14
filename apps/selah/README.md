@@ -37,7 +37,16 @@ When opening v1 progress, Selah first backs up the original JSON, replays review
 
 From **Passages → Read**, the reader's **⋯** menu offers **Rehearse [Book]** to start the entire book in canonical chapter order. Each chapter has its own study, recall, word comparison, and grade. Only chapters you actually grade acquire review events; ending early leaves the remaining chapters untouched. Chapter cards remain independent of verse cards.
 
-**Settings → Practice → Enable optional dictation** defaults off. During hidden recall, press **Dictate** to request microphone and speech permission and transcribe English on the device. Existing typed recall is retained as a prefix. Stop Dictation, revealing, advancing, ending practice, leaving practice, or switching apps stops capture. Speech recognition must support on-device English; there is no network fallback. Denied permissions and unavailable recognition show a message and leave typed recall usable. Transcription is optional and never assigns a grade. [Apple documents the on-device requirement](https://developer.apple.com/documentation/speech/sfspeechrecognitionrequest/requiresondevicerecognition).
+**Settings → Dictation → Dictate recall** defaults off. Choose a model there:
+
+- **Apple Speech** (`SpeechTranscriber`, the default) is Apple's long-form model. It keeps up with a whole chapter recited over several minutes.
+- **Apple Dictation** (`DictationTranscriber`) is the model macOS dictation uses. It is less accurate on the KJV's older words.
+
+macOS downloads, stores and updates both models and shares them with other apps; **Download** shows progress, and **Remove Apple Speech Models** releases Selah's claim on them. If the chosen model is not offered on this Mac, Selah falls back to the other one and then to the older on-device recognizer (`SFSpeechRecognizer` with `requiresOnDeviceRecognition`). Audio never leaves the Mac.
+
+During hidden recall, press **Dictate**, recite, and press **Stop** (or **Reveal**, which finishes the take first). The live transcript fills the recall field after any typed prefix, and the final transcript replaces it when the model finishes. Leaving practice discards a running take; switching apps finishes it. The passage's archaic words and names are given to the model as context. The comparison forgives spellings a listener would not hear (`ledeth`, `namesake`, `forever`, `oh`) but not a different short word. Transcription never assigns a grade.
+
+`swift run SelahTranscribe <kjv.json> <audio> <appleSpeech|appleDictation> <book> <chapter>` runs a recorded take through the same transcriber and comparison. On synthesized `say` takes, Apple Speech matched 118 of 122 words of Psalm 23, 32 of 33 of Psalm 117, and 692 of 706 of Psalm 37 (205 s of audio, transcribed in 4.8 s); Apple Dictation matched 102 of 122 on Psalm 23.
 
 ## Reading and margins
 
@@ -74,10 +83,10 @@ Corpus preparation, readiness calculation, comparisons, storage, and backups run
 
 These are core timings, not measured frame or end-to-end launch times. JSON saves rewrite the complete history; an incremental store remains a future scaling option.
 
-The full gate checks formatting, warning-free compilation, 27 behavior tests, and corpus integrity. Tests cover independent FSRS intervals, v1 migration, daily limits, relaunch, independent chapters, hint grading, concurrent storage transactions, corruption preservation, nested italics/red letters, margin anchors, recall alignment, overnight quiet hours, DST gaps, and immutable backup retention, successful saves when backup storage is unavailable, whole-chapter cues and scheduling, recall segments and slipped verses, decoding the real pre-whole-chapter progress file without loss, and promise references and turn-taking. Packaged app screens, native margin popovers, reader preview resizing, Cancel/Apply, and the Psalms book rehearsal entry were inspected live. No test grades were recorded in user progress.
+The full gate checks formatting, warning-free compilation, 28 behavior tests, and corpus integrity. Tests cover independent FSRS intervals, v1 migration, daily limits, relaunch, independent chapters, hint grading, concurrent storage transactions, corruption preservation, nested italics/red letters, margin anchors, recall alignment, overnight quiet hours, DST gaps, and immutable backup retention, successful saves when backup storage is unavailable, whole-chapter cues and scheduling, recall segments and slipped verses, decoding the real pre-whole-chapter progress file without loss, promise references and turn-taking, and spoken spellings in recall comparison. Packaged app screens, native margin popovers, reader preview resizing, Cancel/Apply, and the Psalms book rehearsal entry were inspected live. No test grades were recorded in user progress.
 
 ## Text provenance
 
 The bundled KJV was exported read-only from `bible-tools/packages/core/data/bible.db`: 31,102 unique verses across 66 books and 7,320 margin notes. Raw source text and Psalm superscriptions are retained; printed markup is interpreted for display. The source metadata notes the KJV's public-domain status in most jurisdictions and perpetual Crown copyright in the United Kingdom. See `Sources/SelahApp/Resources/KJV-NOTICE.txt`.
 
-This build is locally ad-hoc signed. Distribution signing, notarization, and cloud sync are not configured. Dictation has the required microphone and speech usage descriptions; actual microphone transcription has not been exercised during verification.
+This build is locally ad-hoc signed. Distribution signing, notarization, and cloud sync are not configured. Dictation has the required microphone and speech usage descriptions. Recorded takes were verified through `SelahTranscribe`; live microphone capture was not exercised during verification.

@@ -157,6 +157,20 @@ public enum Appearance: String, Codable, CaseIterable, Sendable {
   }
 }
 
+/// A speech model that turns a spoken recall into text on this Mac.
+public enum DictationModel: String, Codable, CaseIterable, Sendable {
+  /// Apple's long-form transcription model (SpeechTranscriber), installed by macOS.
+  case appleSpeech
+  /// Apple's dictation model (DictationTranscriber), the same one macOS dictation uses.
+  case appleDictation
+  public var title: String {
+    switch self {
+    case .appleSpeech: "Apple Speech"
+    case .appleDictation: "Apple Dictation"
+    }
+  }
+}
+
 public struct Preferences: Codable, Sendable {
   public var appearance = Appearance.system
   public var newPerDay = 3
@@ -165,13 +179,15 @@ public struct Preferences: Codable, Sendable {
   public var showMarginNotes = false
   public var reader = ReaderPreferences()
   public var dictationEnabled = false
+  public var dictationModel = DictationModel.appleSpeech
   public var backupsEnabled = true
   public var quietHoursEnabled = true
   public var quietStartMinutes = 22 * 60
   public var quietEndMinutes = 8 * 60
   public init() {}
   private enum CodingKeys: String, CodingKey {
-    case appearance, reader, dictationEnabled, newPerDay, reminderMinutes, remindersEnabled,
+    case appearance, reader, dictationEnabled, dictationModel, newPerDay, reminderMinutes,
+      remindersEnabled,
       showMarginNotes,
       backupsEnabled,
       quietHoursEnabled,
@@ -186,6 +202,9 @@ public struct Preferences: Codable, Sendable {
     reader =
       try values.decodeIfPresent(ReaderPreferences.self, forKey: .reader) ?? ReaderPreferences()
     dictationEnabled = try values.decodeIfPresent(Bool.self, forKey: .dictationEnabled) ?? false
+    // An unknown model (say, from a newer build) falls back to the default rather than failing the file.
+    dictationModel =
+      (try? values.decodeIfPresent(DictationModel.self, forKey: .dictationModel)) ?? .appleSpeech
     showMarginNotes = try values.decodeIfPresent(Bool.self, forKey: .showMarginNotes) ?? false
     backupsEnabled = try values.decodeIfPresent(Bool.self, forKey: .backupsEnabled) ?? true
     quietHoursEnabled = try values.decodeIfPresent(Bool.self, forKey: .quietHoursEnabled) ?? true

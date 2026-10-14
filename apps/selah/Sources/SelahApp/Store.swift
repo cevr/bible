@@ -1,6 +1,7 @@
 import AppKit
 import CoreServices
 import SelahCore
+import SelahSpeech
 import ServiceManagement
 import SwiftUI
 import UserNotifications
@@ -164,6 +165,38 @@ final class Store {
     sessionActive = true
     resetRecall()
   }
+  /// Where each speech model stands on this Mac, for Settings.
+  private(set) var modelStates: [DictationModel: ModelState] = [:]
+  func refreshModels() async {
+    for model in DictationModel.allCases {
+      if case .downloading = modelStates[model] { continue }
+      modelStates[model] = await AppleModels.state(of: model)
+    }
+  }
+  func install(_ model: DictationModel) async {
+    modelStates[model] = .downloading(0)
+    do {
+      try await AppleModels.install(model) { [weak self] fraction in
+        Task { @MainActor in
+          if case .downloading = self?.modelStates[model] {
+            self?.modelStates[model] = .downloading(fraction)
+          }
+        }
+      }
+      modelStates[model] = .installed
+    } catch {
+      modelStates[model] = await AppleModels.state(of: model)
+      modelError = "Could not download \(model.title): \(error.localizedDescription)"
+    }
+    await refreshModels()
+  }
+  func removeAppleModels() async {
+    dictation.stop()
+    await AppleModels.remove()
+    await refreshModels()
+  }
+  /// The last model download failure, shown under the models in Settings.
+  var modelError: String?
   func addPromises(_ category: PromiseCategory) async {
     guard !library.goals.contains(where: { $0.promises == category.id }) else { return }
     await add(Goal(title: category.title, promises: category.id))
@@ -207,13 +240,31 @@ final class Store {
     sessionActive = false
   }
   func startDictation() {
-    guard sessionActive, !revealed, library.preferences.dictationEnabled else { return }
+    guard sessionActive, !revealed, library.preferences.dictationEnabled, let current else {
+      return
+    }
     let prefix = typedRecall.trimmingCharacters(in: .whitespacesAndNewlines)
-    dictation.start { [weak self] text in
+    dictation.start(
+      model: library.preferences.dictationModel,
+      context: contextualWords(for: current.verses.map(\.practiceText))
+    ) { [weak self] text in
       self?.typedRecall = prefix.isEmpty ? text : prefix + " " + text
     }
   }
+  /// Reveals the passage. A running take finishes first so its last words count.
   func reveal() {
+    guard dictation.phase != .finishing else { return }
+    if dictation.active {
+      Task {
+        await dictation.finish()
+        revealNow()
+      }
+    } else {
+      revealNow()
+    }
+  }
+  private func revealNow() {
+    guard sessionActive, !revealed else { return }
     dictation.stop()
     revealed = true
     comparison = nil

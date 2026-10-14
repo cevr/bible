@@ -1,105 +1,129 @@
 @preconcurrency import AVFoundation
-@preconcurrency import Speech
+import SelahCore
+import SelahSpeech
 import SwiftUI
 
-// Audio tap callbacks run off the main actor. Speech accepts concurrent buffer appends.
-private final class AudioSink: @unchecked Sendable {
-  let request: SFSpeechAudioBufferRecognitionRequest
-  init(_ request: SFSpeechAudioBufferRecognitionRequest) { self.request = request }
-  func append(_ buffer: AVAudioPCMBuffer) { request.append(buffer) }
-}
-
+/// The microphone side of dictation: capture, hand buffers to the chosen model, and report
+/// the running transcript. Every model hears the same audio through `RecallTranscriber`.
 @MainActor @Observable
 final class Dictation {
-  private(set) var active = false
+  enum Phase: Equatable {
+    case idle, preparing, listening, finishing
+  }
+  private(set) var phase = Phase.idle
   private(set) var message: String?
+  /// When listening began, for the elapsed time shown while a long take runs.
+  private(set) var started: Date?
+  var active: Bool { phase != .idle }
   private var generation = UUID()
   private var engine: AVAudioEngine?
-  private var request: SFSpeechAudioBufferRecognitionRequest?
-  private var recognition: SFSpeechRecognitionTask?
-  private var permission: Task<Void, Never>?
+  private var transcriber: (any RecallTranscriber)?
+  private var preparing: Task<Void, Never>?
+  private var update: (@MainActor (String) -> Void)?
 
-  func start(update: @escaping @MainActor (String) -> Void) {
+  /// Starts a take. `context` lists words that help the model hear the passage as printed.
+  func start(
+    model: DictationModel, context: [String], update: @escaping @MainActor (String) -> Void
+  ) {
     stop()
     let token = generation
-    active = true
-    message = "Preparing dictation…"
-    permission = Task { [self] in
-      let speech = await withCheckedContinuation { continuation in
-        SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
-      }
-      guard generation == token, !Task.isCancelled else { return }
-      guard speech == .authorized else {
-        stop()
-        message = "Allow Speech Recognition for Selah in System Settings → Privacy & Security."
-        return
-      }
-      let microphone = await AVCaptureDevice.requestAccess(for: .audio)
-      guard generation == token, !Task.isCancelled else { return }
-      guard microphone else {
+    self.update = update
+    phase = .preparing
+    message = "Preparing \(model.title)…"
+    preparing = Task { [self] in
+      guard await AVCaptureDevice.requestAccess(for: .audio) else {
         stop()
         message = "Allow Microphone access for Selah in System Settings → Privacy & Security."
         return
       }
-      guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US")),
-        recognizer.isAvailable, recognizer.supportsOnDeviceRecognition
-      else {
-        stop()
-        message =
-          "On-device English dictation is unavailable on this Mac. You can still type your recall."
-        return
-      }
+      guard generation == token, !Task.isCancelled else { return }
       do {
+        let (transcriber, used) = try await startTranscriber(model: model, context: context) {
+          text in
+          Task { @MainActor [weak self] in
+            guard let self, self.generation == token, self.phase == .listening else { return }
+            self.update?(text)
+          }
+        }
+        guard generation == token, !Task.isCancelled else {
+          await transcriber.cancel()
+          return
+        }
         let engine = AVAudioEngine()
-        let request = SFSpeechAudioBufferRecognitionRequest()
-        request.requiresOnDeviceRecognition = true
-        request.shouldReportPartialResults = true
-        let sink = AudioSink(request)
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
         guard format.sampleRate > 0, format.channelCount > 0 else {
+          await transcriber.cancel()
           throw CocoaError(.featureUnsupported)
         }
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
-          sink.append(buffer)
-        }
-        self.engine = engine
-        self.request = request
-        recognition = recognizer.recognitionTask(with: request) { [weak self] result, error in
-          let text = result?.bestTranscription.formattedString
-          let finished = result?.isFinal == true
-          let failure = error?.localizedDescription
-          Task { @MainActor in
-            guard let self, self.generation == token else { return }
-            if let text { update(text) }
-            if finished || failure != nil {
-              self.stop()
-              self.message = failure.map { "Dictation stopped: \($0)" }
-            }
-          }
+        input.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in
+          transcriber.append(buffer)
         }
         engine.prepare()
         try engine.start()
-        message = "Listening on this Mac… Stop before checking your recall."
+        self.engine = engine
+        self.transcriber = transcriber
+        phase = .listening
+        started = Date()
+        message =
+          switch used {
+          case model: nil
+          case .some(let other):
+            "\(model.title) is not offered on this Mac; \(other.title) is listening."
+          case .none:
+            "Apple’s models are not offered on this Mac; on-device dictation is listening."
+          }
       } catch {
+        guard generation == token else { return }
         stop()
         message = "Could not start dictation: \(error.localizedDescription)"
       }
     }
   }
 
+  /// Ends the take and waits for the final transcript, which replaces the running one.
+  func finish() async {
+    guard phase == .listening, let transcriber else {
+      stop()
+      return
+    }
+    let token = generation
+    phase = .finishing
+    stopCapture()
+    do {
+      let text = try await transcriber.finish()
+      guard generation == token else { return }
+      update?(text)
+      reset()
+    } catch {
+      guard generation == token else { return }
+      reset()
+      message = "Dictation stopped: \(error.localizedDescription)"
+    }
+  }
+
+  /// Ends the take now and discards anything not yet transcribed.
   func stop() {
-    generation = UUID()
-    permission?.cancel()
-    permission = nil
+    let transcriber = self.transcriber
+    stopCapture()
+    reset()
+    if let transcriber { Task { await transcriber.cancel() } }
+  }
+
+  private func stopCapture() {
+    preparing?.cancel()
+    preparing = nil
     engine?.stop()
     engine?.inputNode.removeTap(onBus: 0)
     engine = nil
-    request?.endAudio()
-    recognition?.cancel()
-    recognition = nil
-    request = nil
-    active = false
+  }
+
+  private func reset() {
+    generation = UUID()
+    transcriber = nil
+    update = nil
+    phase = .idle
+    started = nil
     message = nil
   }
 }

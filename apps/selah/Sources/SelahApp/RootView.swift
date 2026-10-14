@@ -60,7 +60,7 @@ struct RootView: View {
     .onChange(of: store.section) { store.dictation.stop() }
     .onReceive(
       NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)
-    ) { _ in store.dictation.stop() }
+    ) { _ in Task { await store.dictation.finish() } }
     .onReceive(
       NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
     ) { _ in

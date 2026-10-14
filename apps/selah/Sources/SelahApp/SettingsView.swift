@@ -1,5 +1,6 @@
 import AppKit
 import SelahCore
+import SelahSpeech
 import ServiceManagement
 import SwiftUI
 
@@ -36,21 +37,42 @@ struct SettingsView: View {
             set: { value in
               Task { await store.change { $0.preferences.newPerDay = value } }
             }), in: 1...20)
+        LabeledContent("Scheduler", value: "FSRS 6 · 90% retention")
+        Text(
+          "Whole chapters are one card each; a new one starts when the last stands without cues. Verse-by-verse chapters join review after every verse is recalled twice."
+        ).font(.caption).foregroundStyle(.secondary)
+      }
+      Section {
         Toggle(
-          "Enable optional dictation",
+          "Dictate recall",
           isOn: Binding(
             get: { store.library.preferences.dictationEnabled },
             set: { value in
               store.dictation.stop()
               Task { await store.change { $0.preferences.dictationEnabled = value } }
             }))
-        Text(
-          "Dictation starts only when you press Dictate during recall. Speech stays on this Mac; on-device recognition must be available."
-        ).font(.caption).foregroundStyle(.secondary)
-        LabeledContent("Scheduler", value: "FSRS 6 · 90% retention")
-        Text(
-          "Whole chapters are one card each; a new one starts when the last stands without cues. Verse-by-verse chapters join review after every verse is recalled twice."
-        ).font(.caption).foregroundStyle(.secondary)
+        ForEach(DictationModel.allCases, id: \.self) { model in
+          ModelRow(store: store, model: model)
+        }
+        if let error = store.modelError {
+          Text(error).font(.caption).foregroundStyle(.secondary)
+        }
+      } header: {
+        Text("Dictation")
+      } footer: {
+        VStack(alignment: .leading, spacing: Space.xs) {
+          Text(
+            "Press Dictate during a recall and recite aloud; what the model hears fills your recall for comparison. Speech stays on this Mac. macOS stores Apple’s models and shares them with other apps."
+          )
+          if store.modelStates.values.contains(.installed) {
+            Button("Remove Apple Speech Models") { Task { await store.removeAppleModels() } }
+              .buttonStyle(.link)
+              .help(
+                "Release Selah’s claim on the English models. macOS deletes them later unless another app uses them."
+              )
+          }
+        }
+        .font(.caption).foregroundStyle(.secondary)
       }
       Section("Reading") {
         Picker(
@@ -173,9 +195,65 @@ struct SettingsView: View {
       }
     }
     .formStyle(.grouped)
+    .task { await store.refreshModels() }
     .scrollContentBackground(.hidden)
     .navigationTitle("Settings")
     .onAppear { store.refreshLoginStatus() }
     .sheet(isPresented: $readerSettings) { ReaderSettings(store: store) }
+  }
+}
+
+/// One speech model: choose it, see whether it is on this Mac, and download it.
+struct ModelRow: View {
+  @Bindable var store: Store
+  let model: DictationModel
+  private var selected: Bool { store.library.preferences.dictationModel == model }
+  private var state: ModelState? { store.modelStates[model] }
+  private var detail: String {
+    switch model {
+    case .appleSpeech: "Apple’s newest model, built for long recitations."
+    case .appleDictation: "The model macOS dictation uses. Less accurate on the KJV’s older words."
+    }
+  }
+  private var status: String {
+    switch state {
+    case .installed: "On this Mac"
+    case .available: "Not downloaded"
+    case .downloading(let fraction):
+      "Downloading \(fraction.formatted(.percent.precision(.fractionLength(0))))"
+    case .unsupported: "Not offered on this Mac"
+    case nil: "Checking…"
+    }
+  }
+  var body: some View {
+    HStack(spacing: Space.s) {
+      Button {
+        Task { await store.change { $0.preferences.dictationModel = model } }
+      } label: {
+        HStack(alignment: .firstTextBaseline, spacing: Space.s) {
+          Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(selected ? Color.accentColor : .secondary)
+            .accessibilityHidden(true)
+          VStack(alignment: .leading, spacing: Space.xxs) {
+            Text(model.title)
+            Text("\(status) · \(detail)").font(.caption).foregroundStyle(.secondary)
+          }
+          Spacer(minLength: 0)
+        }
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .disabled(state == .unsupported)
+      .accessibilityAddTraits(selected ? .isSelected : [])
+      .accessibilityHint(status)
+      switch state {
+      case .available:
+        Button("Download") { Task { await store.install(model) } }
+      case .downloading(let fraction):
+        ProgressView(value: fraction).frame(width: 72).accessibilityLabel(status)
+      default:
+        EmptyView()
+      }
+    }
   }
 }

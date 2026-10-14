@@ -134,15 +134,10 @@ struct ActionBar: View {
                 .help("Show each word’s first letter. Grades are limited to Again or Hard.")
             }
             if store.library.preferences.dictationEnabled {
-              Button(
-                store.dictation.active ? "Stop Dictation" : "Dictate",
-                systemImage: store.dictation.active ? "stop.fill" : "mic"
-              ) {
-                if store.dictation.active { store.dictation.stop() } else { store.startDictation() }
-              }
-              .buttonStyle(.glass)
+              DictateButton(store: store)
             }
             Button(unit.isChapter ? "Reveal Chapter" : "Reveal") { store.reveal() }
+              .disabled(store.dictation.phase == .finishing)
               .buttonStyle(.glassProminent).keyboardShortcut(.return, modifiers: [.command])
           }
         } else {
@@ -151,6 +146,29 @@ struct ActionBar: View {
         }
       }
       .controlSize(.large)
+    }
+  }
+}
+
+/// Starts a spoken take, stops it, or shows that the model is getting ready or finishing.
+struct DictateButton: View {
+  @Bindable var store: Store
+  var body: some View {
+    switch store.dictation.phase {
+    case .idle:
+      Button("Dictate", systemImage: "mic") { store.startDictation() }
+        .buttonStyle(.glass)
+        .help(
+          "Recite aloud. \(store.library.preferences.dictationModel.title) writes it down on this Mac."
+        )
+    case .preparing:
+      Button("Preparing…", systemImage: "mic") {}.buttonStyle(.glass).disabled(true)
+    case .listening:
+      Button("Stop", systemImage: "stop.fill") { Task { await store.dictation.finish() } }
+        .buttonStyle(.glass)
+        .help("Stop listening and keep what was heard")
+    case .finishing:
+      Button("Finishing…", systemImage: "waveform") {}.buttonStyle(.glass).disabled(true)
     }
   }
 }
@@ -168,6 +186,15 @@ struct RecallEditor: View {
         .accessibilityLabel("Your recall")
       Text("Type to compare word by word, or recite aloud and leave this empty.")
         .font(.callout).foregroundStyle(.secondary)
+      if store.dictation.phase == .listening, let started = store.dictation.started {
+        TimelineView(.periodic(from: started, by: 1)) { context in
+          Label(
+            "Listening · \(Duration.seconds(context.date.timeIntervalSince(started)).formatted(.time(pattern: .minuteSecond)))",
+            systemImage: "waveform"
+          )
+          .font(.callout).foregroundStyle(.secondary).monospacedDigit()
+        }
+      }
       if let message = store.dictation.message {
         Text(message).font(.callout).foregroundStyle(.secondary)
       }
