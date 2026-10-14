@@ -6,9 +6,13 @@
 // (`?cue=`, `?knob=`, `?note=`): Back closes it as it unpicks, and its
 // Close, Escape or a swipe unpicks by the sheets' one rule (`dismiss`). The
 // sheet has a second face, the scene's code (Inspect · Source, `?code=`).
+// While the panel stands aside (Code mode, `?code=live`) its inspector stays
+// in its place, hidden with the panel: no sheet rises over the code.
 
 import { type JSX, Show } from '@solidjs/web';
 import { Option } from 'effect';
+import type { Accessor } from 'solid-js';
+import { createContext, useContext } from 'solid-js';
 import type { Host } from '../browser/host.ts';
 import type { Hub } from '../command/hub.ts';
 import type { Selection } from '../command/selection.ts';
@@ -16,9 +20,16 @@ import { Sheet } from './sheet.tsx';
 import { PHONE, useMatches } from './viewport.ts';
 
 /**
+ * Whether the panel stands aside, Code mode holding the screen: the page's
+ * word for its selection sheets (`LabPage`); outside a page, never.
+ */
+export const PanelAside = createContext<Accessor<boolean>>(() => false);
+
+/**
  * `children`, the inspector of `of` (none: nothing selected): in place, or on
- * a phone while something is selected in the sheet, headed by its kind and
- * peeking `peek` (one line naming the selection and its values).
+ * a phone while something is selected and the panel stands where it is, in
+ * the sheet, headed by its kind and peeking `peek` (one line naming the
+ * selection and its values).
  */
 export const SelectionSheet = (props: {
   readonly host: Host;
@@ -33,9 +44,10 @@ export const SelectionSheet = (props: {
   readonly peeked?: boolean;
 }) => {
   const phone = useMatches(props.host, PHONE);
+  const aside = useContext(PanelAside);
   return (
     <Show
-      when={Option.getOrUndefined(Option.filter(props.of, () => phone()))}
+      when={Option.getOrUndefined(Option.filter(props.of, () => phone() && !aside()))}
       fallback={props.children}
     >
       {(of) => (

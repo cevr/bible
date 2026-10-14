@@ -995,8 +995,9 @@ const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off', h
 /**
  * The lab's selection keys: a cue or a knob of the path's scene, a note, and
  * the studio's beat (a scene's take; with none the studio is on the path's),
- * and the Source view open (`code`: `follow`, or a line of the scene's file;
- * `lab/source/open.ts`), shut with the key absent. A talk's section (a
+ * and the Source view open (`code`: `follow`; `live`, Code mode, the code
+ * beside the picture; or a line of the scene's file; `lab/source/open.ts`),
+ * shut with the key absent. A talk's section (a
  * scene of a talk) adds its words selected (`words`: `<a>-<b>`, take word
  * indices) and the Transcript view open (`text`: `follow`, or a word;
  * `lab/transcript/open.ts`); both absent, the lab is as it was.
@@ -1223,7 +1224,7 @@ interface LabPicked {
   readonly note?: string;
   readonly beat?: string;
   readonly view?: CompareView;
-  /** The Source view open (`?code=`): `follow` or a line. */
+  /** The Source view open (`?code=`): `follow`, `live` (Code mode) or a line. */
   readonly code?: string;
   /** A talk's words selected (`?words=`): `<a>-<b>`. */
   readonly words?: string;

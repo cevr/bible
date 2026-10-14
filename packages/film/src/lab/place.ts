@@ -1,7 +1,7 @@
 // The place in the URL of the Lab's pages, the Lab and the Script
 // (`Places.lab`, `Places.labScene`, `Places.script`, `Places.scriptBeat`,
 // core/api.ts):
-// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&beat=<id>&view=<compare>&code=follow|<line>&words=<a>-<b>&text=follow|<word>#t=<seconds>&loop=<a>,<b>`
+// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&beat=<id>&view=<compare>&code=follow|live|<line>&words=<a>-<b>&text=follow|<word>#t=<seconds>&loop=<a>,<b>`
 // and `/films/<film>/script/<beat>?cue=<name>|mark=<name>|words=<a>-<b>|note=<id>#t=<seconds>&loop=<a>,<b>`.
 // The path's scene is the selection's scene when something is selected (a
 // cue or knob, else a talk's words; on the Script a cue, a mark or words),

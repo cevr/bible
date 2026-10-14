@@ -7,7 +7,7 @@ import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
 import { Selection } from '../command/selection.ts';
-import { FOLLOW, lineOpen } from './source/open.ts';
+import { FOLLOW, LIVE, lineOpen } from './source/open.ts';
 import { FOLLOW_TEXT, type TextOpen } from './transcript/open.ts';
 
 /** The Transcript view held on take word `word`. */
@@ -107,11 +107,15 @@ describe("the lab's place", () => {
 
   test('the Source view rides in ?code=: read back, kept by every write, shut when the key is absent', () => {
     expect(labPlaceOf('/films/f/lab/b?code=follow#t=1').code).toEqual(Option.some(FOLLOW));
+    expect(labPlaceOf('/films/f/lab/b?code=live#t=1').code).toEqual(Option.some(LIVE));
     expect(labPlaceOf('/films/f/lab/b?code=12#t=1').code).toEqual(Option.some(lineOpen(12)));
     expect(labPlaceOf('/films/f/lab/b?code=0#t=1').code).toEqual(Option.none());
     expect(labPlaceOf('/films/f/lab/b#t=1').code).toEqual(Option.none());
     const open = { ...none, code: Option.some(FOLLOW) };
     expect(labHref('f', placed, open, 1)).toBe('/films/f/lab/a?code=follow#t=1');
+    expect(labHref('f', placed, { ...none, code: Option.some(LIVE) }, 1)).toBe(
+      '/films/f/lab/a?code=live#t=1',
+    );
     // Play crossing into b keeps it open; a write that says nothing of it leaves it as the URL holds it.
     const at = '/films/f/lab/a?code=7#t=1';
     expect(labHrefWith('f', placed, at, {}, b + 0.5)).toBe('/films/f/lab/b?code=7#t=0.5');

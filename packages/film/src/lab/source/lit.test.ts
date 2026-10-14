@@ -19,7 +19,16 @@ import {
   rowsOf,
   selectionAt,
 } from './lit.ts';
-import { FOLLOW, codeOpenOf, codeText, lineOpen } from './open.ts';
+import {
+  FOLLOW,
+  LIVE,
+  codeOpenOf,
+  codeText,
+  followsFrame,
+  inSheet,
+  isLive,
+  lineOpen,
+} from './open.ts';
 
 const TEXT = [
   'const lift = 1;', // 0..16
@@ -392,15 +401,27 @@ describe('a line a note cites', () => {
 });
 
 describe('?code=', () => {
-  test('follow and a line from 1 open the view; anything else leaves it shut', () => {
+  test('follow, live and a line from 1 open the view; anything else leaves it shut', () => {
     expect(codeOpenOf('follow')).toEqual(Option.some(FOLLOW));
+    expect(codeOpenOf('live')).toEqual(Option.some(LIVE));
     expect(codeOpenOf('12')).toEqual(Option.some(lineOpen(12)));
-    for (const text of ['', '0', '-3', '1.5', 'Follow', 'line', '12px'])
+    for (const text of ['', '0', '-3', '1.5', 'Follow', 'Live', 'line', '12px'])
       expect(codeOpenOf(text)).toEqual(Option.none());
   });
 
   test('each opening prints as it reads', () => {
-    for (const text of ['follow', '1', '240']) expect(codeText(codeOpenOf(text))).toBe(text);
+    for (const text of ['follow', 'live', '1', '240'])
+      expect(codeText(codeOpenOf(text))).toBe(text);
     expect(codeText(Option.none())).toBe('');
+  });
+
+  test('following and Code mode scroll with the frame; a held line does not', () => {
+    expect([FOLLOW, LIVE, lineOpen(3)].map(followsFrame)).toEqual([true, true, false]);
+  });
+
+  test('Code mode stands the view under the picture; every other opening is a phone’s sheet', () => {
+    const opens = [Option.some(LIVE), Option.some(FOLLOW), Option.some(lineOpen(3)), Option.none()];
+    expect(opens.map(isLive)).toEqual([true, false, false, false]);
+    expect(opens.map(inSheet)).toEqual([false, true, true, false]);
   });
 });

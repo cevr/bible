@@ -35,6 +35,8 @@ import { type LabClient, labApiLayer } from './api.ts';
 import { LAB_MODES, type LabMode, MODE_TITLE, citedMode, modeCommands, modeOf } from './mode.ts';
 import { labPlaceOf } from './place.ts';
 import { pressed } from './pressed.ts';
+import { PanelAside } from './selection-sheet.tsx';
+import { isLive } from './source/open.ts';
 import { PHONE, useMatches } from './viewport.ts';
 import { Frame, List, NotesFeed, Pen, type PageRuntime } from './notes/list.tsx';
 
@@ -66,6 +68,12 @@ interface LabPageValue {
   readonly mode: Accessor<LabMode>;
   /** Show `mode` in the panel, and keep it for this viewer. */
   readonly showMode: (mode: LabMode) => void;
+  /**
+   * Hear each mode shown (`showMode`: the tray, ⌘K, a note begun) until the
+   * returned function is called: Code mode, which sets the panel aside, is
+   * left for it (`source/context.tsx`).
+   */
+  readonly onModeShown: (heard: () => void) => () => void;
   /**
    * The beats the film lists, as the studio read them (its one read): with
    * them a `?beat=` the film lists opens Record.
@@ -273,13 +281,18 @@ export const LabPage = (
       () => own,
     );
   });
+  /** What hears each mode shown (`onModeShown`). */
+  const modeHeard = new Set<() => void>();
   const showMode = (m: LabMode) => {
     setPicked(Option.some({ on: untrack(entry), mode: m }));
     keep(m);
+    for (const heard of modeHeard) heard();
   };
   const beatsListed = (beats: ReadonlyArray<string>) => {
     setListed(Option.some(beats));
   };
+  // Code mode (`?code=live`) sets the panel aside, its selection sheets with it (`PanelAside`).
+  const aside = createMemo(() => isLive(here().code));
   const [reloadWaiting, setReloadWaiting] = createSignal('', { ownedWrite: true });
   const [staged, setStaged] = createSignal(false, { ownedWrite: true });
   // The slots are the browser's elements: each lands once the page is
@@ -299,6 +312,12 @@ export const LabPage = (
     here,
     mode,
     showMode,
+    onModeShown: (heard) => {
+      modeHeard.add(heard);
+      return () => {
+        modeHeard.delete(heard);
+      };
+    },
     beatsListed,
     reloadWaiting,
     setReloadWaiting,
@@ -314,9 +333,11 @@ export const LabPage = (
   };
   return (
     <LabPageContext value={value}>
-      <NotesFeed film={props.name} runtime={runtime} hub={props.hub} note={() => here().note}>
-        {props.children}
-      </NotesFeed>
+      <PanelAside value={aside}>
+        <NotesFeed film={props.name} runtime={runtime} hub={props.hub} note={() => here().note}>
+          {props.children}
+        </NotesFeed>
+      </PanelAside>
     </LabPageContext>
   );
 };

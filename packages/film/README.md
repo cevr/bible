@@ -932,7 +932,7 @@ Forward itself (`film/history-through-host`). The review pages also set a place'
 | `/films/<film>/scenes[/<scene>]` | player |                                                                                                                         | `t` (film time)                      |
 | `/films/<film>/play`             | player |                                                                                                                         | `t` (film time)                      |
 | `/films/<film>/lab`              | lab    | `note`, `view` (Compare's mode)                                                                                         | `t` (film time), `loop`              |
-| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`, `beat` (the studio's), `view`                                                   | `t` (from the scene's start), `loop` |
+| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`, `beat` (the studio's), `view`, `code` (the Source view)                         | `t` (from the scene's start), `loop` |
 | `/films/<film>/script`           | lab    | `note`                                                                                                                  | `t` (film time), `loop`              |
 | `/films/<film>/script/<beat>`    | lab    | `cue`, `mark` or `words` (of the beat), or `note`: one at a time                                                        | `t` (from the beat's start), `loop`  |
 | `/films/<film>/export`           | render |                                                                                                                         |                                      |
@@ -1980,6 +1980,23 @@ line is not known yet), or a sheet of its own while nothing is selected and in
 every other mode; closing the sheet closes the selection and the view in one
 history step. ⇧C and the command menu (⌘K, and a phone's menu button) open and
 close it; nothing stands for it at rest.
+
+Code mode (`?code=live`) shows the code as the film plays, line by line, the
+way a live-coding studio lights the line that makes the sound: the picture and
+its code and nothing else. On a laptop they share the window half and half; on
+a phone the code takes the screen under the picture and its strip. It follows
+the frame as Follow does. The panel stands aside until Code mode is left, its
+selection sheets with it (`PanelAside`: the inspector stays in its place,
+hidden; the selection stays lit in the code), and the strip folds to its words
+as it does outside Edit. A tap there holds and selects nothing: a lit line (one
+that glows, or writes a playing cue) plays again from where it next fires, and
+the view follows it there; any other line stays still. A line's menu still
+opens, and Note this line leaves Code mode for the line it notes. A mode shown
+in the panel (the command menu's Show, a note begun with `n` or Note frame)
+leaves it too, to following, so the panel it asks for is seen
+(`onModeShown`). The head's Code mode toggle and the command menu's Code mode
+enter it as a step Back walks, and leave it to following; no key stands for
+it.
 
 A talk's lab has a Transcript view (`lab/transcript/`): the paper edit in the
 lab. `?text=follow` opens it following the frame and `?text=<word>` held on

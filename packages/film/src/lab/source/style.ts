@@ -4,7 +4,9 @@
 // line, a line a read fires on glowing (`--glow`), the beat's band held over
 // the code, the held line the accent's wash. On a laptop it is a column between
 // the picture and the inspector; on a phone it is a face of the selection's
-// sheet, or a sheet of its own (`lab-inspector-sheet`, the command styles').
+// sheet, or a sheet of its own (`lab-inspector-sheet`, the command styles'). In
+// Code mode it is the picture's other half on a laptop, and on a phone the
+// screen's rest under the picture, the panel set aside at both.
 // Read only through the tokens (`player/tokens.css`, whose `--state-live`
 // lights what plays here and on the strip's lanes); what no token holds is
 // named in `SOURCE_TOKENS`.
@@ -55,13 +57,25 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
 .lab-source-at:hover { text-decoration: underline; }
 .lab-source-tabs { display: flex; width: 100%; margin-bottom: var(--s-2); }
 .lab-source-sheet .lab-source-scroll, .lab-selection-sheet .lab-source-scroll { max-height: 55dvh; }
+/* Code mode (\`?code=live\`): the picture and its code, and nothing else. The panel steps aside until it is left, its
+   sheets with it, and the strip folds to its words as it does outside Edit (\`player.css\`): the code is where the cues
+   are seen, and it keeps the screen's rest. */
+body.lab:has(.lab-source-col[data-code='live']) .lab-panel { display: none; }
+body.lab:has(.lab-source-col[data-code='live']) .lab-strip :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
+  display: none; }
 @media ${WIDE} {
   body.lab:has(.lab-source-col) { grid-template-columns: minmax(0, 1fr) var(--source-w) var(--inspector-w); }
   body.lab:has(.lab-source-col) .lab-panel { grid-column: 3; }
+  /* Half and half: the code as wide as the picture's column, the playhead's line in reach of the eye. */
+  body.lab:has(.lab-source-col[data-code='live']) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .lab-source-col { grid-column: 2; grid-row: 2 / span 2; display: flex; flex-direction: column; min-height: 0; min-width: 0;
     overflow: hidden; background: var(--surface-1); border-left: var(--border); }
 }
 @media ${PHONE} {
   .lab-source-col { display: none; }
+  /* The screen's height, as the Script's reader: the picture and its strip stay over the code, which scrolls under them. */
+  body.lab:has(.lab-source-col[data-code='live']) { height: 100dvh; min-height: 0; grid-template-rows: auto auto auto minmax(0, 1fr); }
+  .lab-source-col[data-code='live'] { grid-column: 1; grid-row: 4; display: flex; flex-direction: column; min-height: 0;
+    min-width: 0; overflow: hidden; background: var(--surface-1); border-top: var(--border); }
 }
 `;

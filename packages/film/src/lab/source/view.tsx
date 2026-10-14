@@ -63,7 +63,7 @@ import {
   selectionAt,
 } from './lit.ts';
 import { type Asked, FaceIntent, intentOf } from './intent.ts';
-import { FOLLOW, lineOpen } from './open.ts';
+import { FOLLOW, LIVE, codeText, followsFrame, inSheet, isLive, lineOpen } from './open.ts';
 
 /** The name of the selection when it is a `tag` of `scene`. */
 const pickedIn = (
@@ -275,19 +275,31 @@ const Text = (props: {
     placing: source.placing,
     reader: source.suspend,
     played: () => {
-      if (Option.exists(source.open(), (o) => o._tag === 'Follow')) source.resume();
+      if (Option.exists(source.open(), followsFrame)) source.resume();
     },
   });
   onCleanup(source.offerHand(handHas));
 
-  // A tap on a line, unless it ends a text selection, holds it (held again, the view places it again) and seeks to
-  // where it next fires, when it reads or writes the clock: held first, so Back finds the frame the tap left.
-  const tap = (n: number) => {
-    if (!(window.getSelection()?.isCollapsed ?? true)) return;
-    source.resume();
-    actions.holdLine(n, selectionAt(props.code, n));
+  /** Seek to where line `n` next fires, when it reads or writes the clock. */
+  const seekTo = (n: number) => {
     const { start, clock } = props.clockOf(props.code.scene);
     Option.map(nextFiring(props.code, n, clock), (at) => meta.player.seek(start + at));
+  };
+  // A tap on a line, unless it ends a text selection, holds it (held again, the view places it again) and seeks to
+  // where it next fires: held first, so Back finds the frame the tap left. Code mode holds and selects nothing: a
+  // lit line (one that glows, or writes a playing cue) plays again from where it next fires, and the view follows it
+  // there; any other line stays still.
+  const tap = (n: number) => {
+    if (!(window.getSelection()?.isCollapsed ?? true)) return;
+    if (source.live()) {
+      if (!lit().glows.has(n) && metersOn(lit().meters, n).length === 0) return;
+      source.resume();
+      seekTo(n);
+      return;
+    }
+    source.resume();
+    actions.holdLine(n, selectionAt(props.code, n));
+    seekTo(n);
   };
   return (
     <div class="lab-source-scroll">
@@ -342,7 +354,7 @@ const Text = (props: {
   );
 };
 
-/** The view's head: the file it shows, the cues playing in it, and Follow. */
+/** The view's head: the file it shows, the cues playing in it, Follow, and Code mode. */
 const Head = (props: {
   readonly code: SceneCode;
   readonly lit: Accessor<Lit>;
@@ -356,6 +368,11 @@ const Head = (props: {
     if (Option.exists(source.open(), (o) => o._tag === 'Line'))
       actions.showCode(Option.some(FOLLOW));
   };
+  // Code mode is a step Back walks (`?code=live`); pressed again it leaves to following.
+  const mode = () =>
+    actions.showCode(
+      Option.some(Bool.match(source.live(), { onTrue: () => FOLLOW, onFalse: () => LIVE })),
+    );
   return (
     <header class="lab-source-head">
       <span class="lab-source-file">{props.code.file}</span>
@@ -371,6 +388,16 @@ const Head = (props: {
         onClick={follow}
       >
         Follow
+      </button>
+      <button
+        type="button"
+        class="sh-btn lab-source-mode"
+        data-act="code-mode"
+        aria-pressed={pressed(source.live())}
+        title="The code beside the picture, lit as it plays"
+        onClick={mode}
+      >
+        Code mode
       </button>
       <Show when={props.close}>
         <button
@@ -452,14 +479,19 @@ const Body = (props: { readonly close: boolean }) => {
   );
 };
 
-/** On a laptop, the open view as a column beside the picture, at the window's edge. */
+/**
+ * The open view as a column: on a laptop beside the picture, at the window's
+ * edge, or in Code mode half the window with the panel set aside; on a phone
+ * in Code mode only, under the picture and its strip, as the Script's reader
+ * stands (every other opening is a sheet's there).
+ */
 export const Column = () => {
   const { state, meta } = useLab();
   const phone = useMatches(meta.host, PHONE);
   return (
-    <Show when={!phone() && Option.isSome(state.code())}>
+    <Show when={Option.isSome(state.code()) && (!phone() || isLive(state.code()))}>
       <Portal mount={document.body}>
-        <aside class="lab-source-col" aria-label="Source">
+        <aside class="lab-source-col" aria-label="Source" data-code={codeText(state.code())}>
           <Body close />
         </aside>
       </Portal>
@@ -470,7 +502,8 @@ export const Column = () => {
 /**
  * On a phone, the open view in a sheet of its own: while nothing is selected,
  * and in every mode but Edit (the selection's sheet lives in Edit's section,
- * which the other modes hide; the view never goes with it).
+ * which the other modes hide; the view never goes with it). Never in Code
+ * mode, whose view is the column under the picture.
  */
 export const OwnSheet = () => {
   const { state, actions, meta } = useLab();
@@ -479,7 +512,7 @@ export const OwnSheet = () => {
   const { scene } = useSource();
   const faceOfSelection = () => Option.isSome(state.selection()) && page.mode() === 'edit';
   return (
-    <Show when={phone() && Option.isSome(state.code()) && !faceOfSelection()}>
+    <Show when={phone() && inSheet(state.code()) && !faceOfSelection()}>
       <Sheet
         host={meta.host}
         hub={meta.hub}
@@ -504,7 +537,8 @@ type Face = 'inspect' | 'source';
  * it opens held on the line that writes the cue or knob, as its `file:line`
  * does, and follows the frame only while that line is not known yet: once a
  * read names it, the view settles on it in place, unless the view or the
- * selection has moved on meanwhile.
+ * selection has moved on meanwhile. Code mode raises no selection sheet
+ * (`PanelAside`): its view is the column under the picture.
  */
 export const Faces = (props: { readonly children: JSX.Element }) => {
   const { state, actions } = useLab();
