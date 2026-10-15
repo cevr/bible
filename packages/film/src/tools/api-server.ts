@@ -686,7 +686,7 @@ export interface LabAt {
  * words, which name every refused bind "Is port … in use?", an address on
  * no interface included, so the message says both.
  */
-export class LabUnbound extends Schema.TaggedError<LabUnbound>()('LabUnbound', {
+class LabUnbound extends Schema.TaggedError<LabUnbound>()('LabUnbound', {
   at: Schema.String,
   cause: Schema.String,
 }) {
