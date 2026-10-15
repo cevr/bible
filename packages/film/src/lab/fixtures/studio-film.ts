@@ -366,7 +366,7 @@ const guidedMachine: Json = {
       blocks: [
         { kind: 'video', ref: `${STUDIO_FOLDER}/take-1.mp4`, at: 2, caption: 'From the turn.' },
         { kind: 'audio', film: STUDIO_FILM, beat: 'open' },
-        { kind: 'document', ref: STUDIO_NOTES },
+        { kind: 'document', ref: STUDIO_NOTES, caption: 'The notes on the cut.' },
         keepIt('cut', 'Keep the cut?'),
         { kind: 'free_text', id: 'more', label: 'Anything else?' },
       ],

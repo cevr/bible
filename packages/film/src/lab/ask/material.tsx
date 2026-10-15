@@ -14,7 +14,7 @@
 
 import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Array as Arr, Match, Option } from 'effect';
+import { Array as Arr, Boolean as Bool, Match, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
@@ -23,6 +23,7 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  createUniqueId,
   untrack,
 } from 'solid-js';
 import { type AskBlock, scriptSource } from '../../core/ask.ts';
@@ -51,7 +52,8 @@ type BlockOf<K extends AskBlock['kind']> = Extract<AskBlock, { readonly kind: K 
 /**
  * The material's own look: a box the width of its section (its one column
  * never wider, so a video's own size cannot widen the page), its caption
- * under it; a long document clamped.
+ * under it; a long document clamped in its panel, whose edge stays sharp
+ * while only the words fade, its toggle inside it.
  */
 const MATERIAL_CSS = `
 .ak-mat{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-2);min-width:0;margin:0}
@@ -59,10 +61,13 @@ const MATERIAL_CSS = `
 .ak-mat-status{margin:0;color:var(--text-2)}
 .ak-mat-status[data-failed=true]{color:var(--state-warning)}
 .ak-mat-name{margin:0;color:var(--text-2);font-size:var(--fs-2);line-height:var(--lh-2)}
+.ak-doc{display:grid;min-width:0;background:var(--surface-1);
+  scroll-margin-top:calc(var(--header-h) + var(--hit) + var(--s-4))}
+.ak-doc:has(.ak-read-all){padding-bottom:var(--s-3)}
 .ak-clamp{min-width:0}
 .ak-clamp[data-open=false]{max-height:calc(12 * var(--lh-3));overflow:hidden}
 .ak-clamp[data-open=false][data-long=true]{mask-image:linear-gradient(to bottom,var(--surface-0) 70%,transparent)}
-.ak-read-all{justify-self:start;min-height:var(--hit)}
+.ak-read-all{justify-self:start;min-height:var(--hit);margin-inline:var(--s-4)}
 `;
 
 /** The Board's panels in an ask: a beat's panels in a row under its id, at the film's aspect; two to a row at least 240 px wide on a laptop. */
@@ -125,7 +130,8 @@ const Missing = (props: {
  * measured against the clamp itself (a box opened while it measures would
  * always fit its words); it watches their height (a document's text arrives
  * after it is drawn), and fades and offers Read all only once there is more
- * to read.
+ * to read. Read all is a toggle (Show less once open, `aria-expanded`) in
+ * the panel, under the words: it keeps the focus either way.
  */
 const Clamped = (props: ParentProps) => {
   const [open, setOpen] = createSignal(false, { ownedWrite: true });
@@ -150,10 +156,33 @@ const Clamped = (props: ParentProps) => {
   const measure = (inner: HTMLElement) => {
     words = Option.some(inner);
   };
+  const id = createUniqueId();
+  let panel = Option.none<HTMLElement>();
+  // Show less folds the words back under the button, which keeps the focus; the
+  // document's top comes back into view when it had scrolled past.
+  const toggle = () => {
+    const shutting = untrack(open);
+    setOpen(!shutting);
+    if (shutting)
+      Option.map(
+        Option.filter(
+          panel,
+          (p) =>
+            p.getBoundingClientRect().top < Number.parseFloat(getComputedStyle(p).scrollMarginTop),
+        ),
+        (p) => p.scrollIntoView({ block: 'start' }),
+      );
+  };
   return (
-    <>
+    <div
+      class="ak-doc"
+      ref={(el: HTMLElement) => {
+        panel = Option.some(el);
+      }}
+    >
       <div
         class="ak-clamp"
+        id={id}
         data-open={pressed(open())}
         data-long={pressed(long())}
         ref={(el: HTMLElement) => {
@@ -162,17 +191,19 @@ const Clamped = (props: ParentProps) => {
       >
         <div ref={measure}>{props.children}</div>
       </div>
-      <Show when={long() && !open()}>
+      <Show when={long()}>
         <button
           type="button"
           class="sh-btn ak-read-all"
           data-act="read-all"
-          onClick={() => setOpen(true)}
+          aria-expanded={pressed(open())}
+          aria-controls={id}
+          onClick={toggle}
         >
-          Read all
+          {Bool.match(open(), { onTrue: () => 'Show less', onFalse: () => 'Read all' })}
         </button>
       </Show>
-    </>
+    </div>
   );
 };
 

@@ -643,14 +643,52 @@ describe("an agent's ask on a phone", () => {
           `((c) => c.scrollHeight > c.clientHeight * 2 && c.clientHeight < innerHeight)(document.querySelector('${doc} .ak-clamp'))`,
           true,
         );
-        yield* page.click(`${doc} [data-act="read-all"]`);
+        // The caption sits under the panel, the toggle inside it under the words.
+        yield* textIs(page, `${doc} .ak-doc + .ak-mat-cap`, 'The notes on the cut.');
+        // Only the words fade: the panel's ground runs whole to its sharp edge, under the toggle.
+        yield* evaluates(
+          page,
+          `((d) => getComputedStyle(d).maskImage === 'none' && d.lastElementChild.matches('[data-act="read-all"]'))(document.querySelector('${doc} .ak-doc'))`,
+          true,
+        );
+        const toggle = `${doc} [data-act="read-all"]`;
+        yield* page.click(toggle);
         yield* waitFor(page, `${doc} .ak-clamp[data-open="true"]`);
-        yield* countIs(page, `${doc} [data-act="read-all"]`, 0);
+        yield* textIs(page, toggle, 'Show less');
+        yield* evaluates(
+          page,
+          `document.activeElement === document.querySelector('${toggle}')`,
+          true,
+        );
+        yield* evaluates(
+          page,
+          `document.querySelector('${toggle}').getAttribute('aria-expanded')`,
+          'true',
+        );
         yield* evaluates(
           page,
           `((c) => c.scrollHeight <= c.clientHeight + 1)(document.querySelector('${doc} .ak-clamp'))`,
           true,
         );
+        // Show less, from the document's end: folded back, its top in view, the focus kept.
+        yield* page.evaluate(
+          `document.querySelector('${toggle}').scrollIntoView({ block: 'center' })`,
+        );
+        yield* page.click(toggle);
+        yield* waitFor(page, `${doc} .ak-clamp[data-open="false"][data-long="true"]`);
+        yield* textIs(page, toggle, 'Read all');
+        yield* evaluates(
+          page,
+          `document.activeElement === document.querySelector('${toggle}')`,
+          true,
+        );
+        yield* evaluates(
+          page,
+          `((t) => t >= document.querySelector('.sh-header').getBoundingClientRect().bottom && t < innerHeight)(document.querySelector('${doc} .ak-doc').getBoundingClientRect().top)`,
+          true,
+        );
+        yield* page.click(toggle);
+        yield* waitFor(page, `${doc} .ak-clamp[data-open="true"]`);
         // A keystroke in the cut's words: the index's buttons are the ones drawn, the document still open.
         yield* page.evaluate(
           `(window.__indexGo = document.querySelector('.ak-index-go[data-step="cut"]'), true)`,
