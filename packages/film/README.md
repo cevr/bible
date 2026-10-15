@@ -1674,6 +1674,11 @@ voice the film reader's (`lab/script/voice.tsx`, `VoiceOver`).
 The fill voices every draft's spoken beats in the background, as it does
 every film's, so a draft opened has its takes ready.
 
+`film drafts` reads every draft as the reader does, through `SeriesDrafts`:
+each one's spoken beats, words, marks and time at 155 wpm, or why it does not
+read (`DraftsUnread` when any does not). The app's tests run it, so a draft
+that stresses a word the Markdown way fails before the lab says so.
+
 ### Board
 
 A film's storyboard (`core/board.ts`): the record, `src/films/<film>/board.json`

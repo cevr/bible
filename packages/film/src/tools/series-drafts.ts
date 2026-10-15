@@ -32,7 +32,7 @@ import {
 import type { PlatformError } from 'effect/PlatformError';
 import type { DraftRead, SeriesList } from '../core/api.ts';
 import type { Mark } from '../core/delivery.ts';
-import { type Draft, draftMarked, draftMissed, readDraft, unreadText } from '../core/draft.ts';
+import { type Draft, DraftMarkdown, draftMarked, draftMissed, unreadText } from '../core/draft.ts';
 import { DraftUnknown, DraftUnread, SourceChanged, SourceRefused } from '../core/refusals.ts';
 import type { HeardAs, Voice } from '../core/schema.ts';
 import { stagingVoice } from '../core/staging-voice.ts';
@@ -160,9 +160,10 @@ export class SeriesDrafts extends Context.Service<SeriesDrafts, SeriesDraftsServ
           return path.join(root.value, series, SCRIPTS, `${draft}.md`);
         });
 
+        /** A draft's Markdown decoded with the reader's codec, or why it does not read. */
         const readText = (series: string, draft: string, markdown: string) =>
-          Effect.mapError(Effect.fromResult(readDraft(markdown)), (u) =>
-            DraftUnread.make({ draft: draftKey(series, draft), reason: unreadText(u) }),
+          Effect.mapError(Schema.decodeEffect(DraftMarkdown)(markdown), (e) =>
+            DraftUnread.make({ draft: draftKey(series, draft), reason: e.message }),
           );
 
         const read = Effect.fn('SeriesDrafts.read')(function* (series: string, draft: string) {
@@ -188,37 +189,41 @@ export class SeriesDrafts extends Context.Service<SeriesDrafts, SeriesDraftsServ
           return { voice, heardAs: {}, beats } satisfies DraftReading;
         });
 
-        const mark = (series: string, draft: string, beat: string, marks: ReadonlyArray<Mark>) =>
-          writer.withPermits(1)(
-            Effect.gen(function* () {
-              const file = yield* fileOf(series, draft);
-              const shown = path.join(series, SCRIPTS, `${draft}.md`);
-              const target = `marks:${beat}`;
-              const before = yield* fs.readFileString(file);
-              const after = yield* Effect.mapError(
-                Effect.fromResult(draftMarked(before, beat, marks)),
-                (u) => SourceRefused.make({ file: shown, target, reason: unreadText(u) }),
-              );
-              const missed = draftMissed(after, before, beat, marks);
-              if (missed.length > 0)
-                return yield* WriteUnverified.make({
-                  file: shown,
-                  target,
-                  reason: missed.join(', '),
-                });
-              if (after !== before) {
-                // Only over the very text the edit was made from: a save in an editor since wins.
-                yield* store.modify({ file, codec: Schema.String, empty: '' }, (now) =>
-                  Bool.match(now === before, {
-                    onTrue: () => Result.succeed(after),
-                    onFalse: () => Result.fail(SourceChanged.make({ file: shown, target })),
-                  }),
+        const mark = Effect.fn('SeriesDrafts.mark')(
+          (series: string, draft: string, beat: string, marks: ReadonlyArray<Mark>) =>
+            writer.withPermits(1)(
+              Effect.gen(function* () {
+                const file = yield* fileOf(series, draft);
+                const shown = path.join(series, SCRIPTS, `${draft}.md`);
+                const target = `marks:${beat}`;
+                const before = yield* fs.readFileString(file);
+                const after = yield* Effect.mapError(
+                  Effect.fromResult(draftMarked(before, beat, marks)),
+                  (u) => SourceRefused.make({ file: shown, target, reason: unreadText(u) }),
                 );
-                yield* Effect.log(`lab.write draft=${draftKey(series, draft)} target="${target}"`);
-              }
-              return yield* readText(series, draft, after);
-            }),
-          );
+                const missed = draftMissed(after, before, beat, marks);
+                if (missed.length > 0)
+                  return yield* WriteUnverified.make({
+                    file: shown,
+                    target,
+                    reason: missed.join(', '),
+                  });
+                if (after !== before) {
+                  // Only over the very text the edit was made from: a save in an editor since wins.
+                  yield* store.modify({ file, codec: Schema.String, empty: '' }, (now) =>
+                    Bool.match(now === before, {
+                      onTrue: () => Result.succeed(after),
+                      onFalse: () => Result.fail(SourceChanged.make({ file: shown, target })),
+                    }),
+                  );
+                  yield* Effect.log(
+                    `lab.write draft=${draftKey(series, draft)} target="${target}"`,
+                  );
+                }
+                return yield* readText(series, draft, after);
+              }),
+            ),
+        );
 
         return SeriesDrafts.of({ list, keys, read, reading, mark });
       }),

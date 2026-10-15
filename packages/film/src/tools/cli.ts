@@ -9,6 +9,7 @@
 //   film footage …    (footage-cli.ts) the app's camera footage, its copies and a take's transcript
 //   film talk …       (talk-cli.ts)    a talk's edit, read as it plays (its words by index)
 //   film cues | check | doctor                                 read and check a film
+//   film drafts                                                read every series draft as the lab does
 //   film render | lookbook | chapters                          pictures and video
 //   film project …    (project-cli.ts) a film's scenes rendered, approved, commented
 //   film options …    (choices-cli.ts) a film's choice points, read fresh for the lab
@@ -30,6 +31,7 @@ import {
   FileSystem,
   Layer,
   Logger,
+  Match,
   Option,
   Path,
   Predicate,
@@ -71,6 +73,7 @@ import {
   type BrowserMissing,
   CheckFailed,
   CuesLate,
+  DraftsUnread,
   PreviewServerFailed,
   SoundMissing,
 } from './errors.ts';
@@ -87,6 +90,7 @@ import { PALETTE_FILE, paletteSwaps, wedgeServer } from './wedge.ts';
 import { levelsOf, wedgeVariant } from '../core/easel.ts';
 import { filmServices, labPages, startLab } from './film-services.ts';
 import { ScriptVoices, stagingFill } from './script-voice.ts';
+import { SeriesDrafts, draftKey } from './series-drafts.ts';
 import { look } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
 import { production, publish } from './production-cli.ts';
@@ -469,6 +473,55 @@ const script = Command.make(
 ).pipe(
   Command.withDescription(
     'Print the reading sheet: each beat with the file to save its take as, marks stripped, quotations set apart (--sheet writes it, with its sources, to out/<film>)',
+  ),
+);
+
+/** The pace a draft's spoken time is read at, as the staging voice reads (`series/README.md`). */
+const DRAFT_WPM = 155;
+
+/** `seconds` as `m:ss`. */
+const minutes = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`;
+
+const drafts = Command.make(
+  'drafts',
+  {},
+  Effect.fn('film.drafts')(function* () {
+    const series = yield* SeriesDrafts;
+    const unread = yield* Effect.forEach(yield* series.keys, ([name, draft]) =>
+      series.reading(name, draft).pipe(
+        Effect.flatMap(({ beats }) => {
+          const words = beats.reduce((n, b) => n + b.text.split(' ').filter(Boolean).length, 0);
+          const marks = beats.flatMap((b) => b.delivery);
+          const paused = marks.reduce(
+            (s, m) =>
+              s +
+              Match.value(m).pipe(
+                Match.tag('Breath', () => 0.3),
+                Match.tag('Hold', (h) => h.seconds),
+                Match.orElse(() => 0),
+              ),
+            0,
+          );
+          const time = minutes((words / DRAFT_WPM) * 60 + paused);
+          return Effect.as(
+            Console.log(
+              `ok ${draftKey(name, draft)}: ${beats.length} spoken beats, ${words} words, ${marks.length} marks, ${time} at ${DRAFT_WPM} wpm`,
+            ),
+            0,
+          );
+        }),
+        Effect.catch((e) =>
+          Effect.as(Console.log(`unread ${draftKey(name, draft)}: ${e.message}`), 1),
+        ),
+      ),
+    );
+    const count = unread.reduce((n, u) => n + u, 0);
+    if (count > 0) return yield* DraftsUnread.make({ count });
+  }),
+).pipe(
+  Command.withDescription(
+    "Read every series draft as the lab's Script reader does: its spoken beats, words, marks and time, or why it does not read",
   ),
 );
 
@@ -1003,6 +1056,7 @@ export const runFilmCli = <E>({
       options,
       read,
       cues(checkLayer),
+      drafts,
       check(checkLayer, labApp.pages.pages.render, films),
       render(renderLayer, labApp.pages.pages.render, films),
       project(renderLayer),

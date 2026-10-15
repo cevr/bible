@@ -188,8 +188,9 @@ describe('ScriptVoices', () => {
       expect(tags(before)).toEqual(['Unvoiced']);
       yield* Effect.forkScoped(service.fill);
       yield* Effect.yieldNow;
+      // Read until its take is kept: the sweep comes to drafts after the films.
       const voice = yield* service.draft('talks', '01-grace').pipe(
-        Effect.repeat({ until: (v) => !tags(v).includes('Voicing') }),
+        Effect.repeat({ until: (v) => tags(v).every((t) => t === 'Ready' || t === 'Refused') }),
         Effect.tap(() => Effect.yieldNow),
       );
       expect(tags(voice)).toEqual(['Ready']);

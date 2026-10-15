@@ -299,7 +299,7 @@ const twice = (beats: ReadonlyArray<DraftBeat>) =>
   Arr.findFirst(beats, (b, i) => beats.findIndex((o) => o.id === b.id) !== i);
 
 /** A draft read from its Markdown: its table's beats, else its beat list's; refused when it has neither. */
-export const readDraft = (markdown: string): Result.Result<Draft, Unread> => {
+const readDraft = (markdown: string): Result.Result<Draft, Unread> => {
   const rows = rowsOf(markdown);
   const beats = Option.getOrElse(tableBeats(rows), () => listBeats(rows));
   return Result.flatMap(beats, (found) => {
@@ -321,7 +321,7 @@ const inCell = (markdown: string, said: Said): boolean => {
 };
 
 /** A draft's Markdown with each beat's line written where it stands: the Markdown itself when none changed. */
-export const writeDraft = (draft: Draft): string =>
+const writeDraft = (draft: Draft): string =>
   draft.beats
     .flatMap((b) => Option.toArray(b.say))
     .toSorted((a, b) => b.start - a.start)

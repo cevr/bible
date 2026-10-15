@@ -1,13 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result, Schema } from 'effect';
-import {
-  DraftMarkdown,
-  draftMarked,
-  draftMissed,
-  readDraft,
-  unreadText,
-  writeDraft,
-} from './draft.ts';
+import { DraftMarkdown, draftMarked, draftMissed, unreadText } from './draft.ts';
 
 const TALK = [
   '# Daniel’s Education: script',
@@ -41,11 +34,13 @@ const FILM = [
   '',
 ].join('\n');
 
-const read = (markdown: string) => Result.getOrThrow(readDraft(markdown));
+const read = Schema.decodeSync(DraftMarkdown);
 const refusal = (markdown: string) =>
-  unreadText(Result.getOrThrow(Result.flip(readDraft(markdown))));
+  Result.getOrThrow(
+    Result.flip(Result.mapError(Schema.decodeResult(DraftMarkdown)(markdown), (e) => e.message)),
+  );
 
-describe('readDraft', () => {
+describe('reading a draft', () => {
   test('a talk’s table: a row a beat, its # its id and label, its line, brief and source', () => {
     const draft = read(TALK);
     expect(draft.title).toBe('Daniel’s Education: script');
@@ -111,7 +106,6 @@ describe('DraftMarkdown', () => {
     for (const markdown of [TALK, FILM]) {
       const draft = Schema.decodeSync(DraftMarkdown)(markdown);
       expect(Schema.encodeSync(DraftMarkdown)(draft)).toBe(markdown);
-      expect(writeDraft(draft)).toBe(markdown);
     }
   });
 

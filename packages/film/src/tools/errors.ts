@@ -294,6 +294,15 @@ export class CuesLate extends Schema.TaggedError<CuesLate>()('CuesLate', {
   }
 }
 
+/** Series drafts the Script reader cannot read (`film drafts`). */
+export class DraftsUnread extends Schema.TaggedError<DraftsUnread>()('DraftsUnread', {
+  count: Schema.Int,
+}) {
+  override get message() {
+    return `${this.count} series draft(s) do not read`;
+  }
+}
+
 /** No Chrome to render with: none where `BUN_CHROME_PATH` points, or none found (`chrome.ts`). */
 export class BrowserMissing extends Schema.TaggedError<BrowserMissing>()('BrowserMissing', {
   executable: Schema.String,
