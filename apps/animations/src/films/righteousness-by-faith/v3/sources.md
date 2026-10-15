@@ -1,10 +1,10 @@
 # Righteousness by Faith (v3): sources
 
-The film is made for every Christian (CRAFT rule 2): it quotes only Scripture, and it never quotes or names Ellen G. White or the pioneers in speech. Their thought is said in the narrator’s own words, and every paraphrase stays inside its source’s words; the credits name them. Each entry names the narrator’s line that carries it, in straight quotes exactly as the script says it: Quoted (the KJV, read as it reads), Told (a Bible scene told in his words), Paraphrased (a thought in his words) or Shown, not said (a picture’s detail). The Bible’s or a source’s own words are in curly quotes. The Ellen G. White and pioneer texts are records in `quotes.jsonl`, checked against the local corpus with `python3 .claude/skills/film/frame/verify-quotes.py apps/animations/src/films/righteousness-by-faith/v3/quotes.jsonl` (46 records, all EXACT, 2026-10-15). The KJV, the only words the film quotes, was checked with `bible verse`; its supplied-word brackets are dropped for speech.
+The film is made for every Christian (CRAFT rule 2): it quotes only Scripture, and it never quotes or names Ellen G. White or the pioneers in speech. Their thought is said in the narrator’s own words, and every paraphrase stays inside its source’s words; the credits name them. Each entry names the narrator’s line that carries it, in straight quotes exactly as the script says it: Quoted (the KJV, read as it reads), Told (a Bible scene told in his words), Paraphrased (a thought in his words) or Shown, not said (a picture’s detail). The Bible’s or a source’s own words are in curly quotes. The Ellen G. White and pioneer texts are records in `quotes.jsonl`, checked against the local corpus with `python3 .claude/skills/film/frame/verify-quotes.py apps/animations/src/films/righteousness-by-faith/v3/quotes.jsonl` (47 records, all EXACT, 2026-10-15). The KJV, the only words the film quotes, was checked with `bible verse`; its supplied-word brackets are dropped for speech.
 
-The narrator is the owner, so the words follow [his voice](../../../../../../.claude/skills/film/reference/owner-voice.md) and the series’ [Language](../../../../series/README.md), which wins where the two differ. The refrain is his as well, filed on the production: “hmm, lets keep the faith forgiveness power” (the owner, 2026-10-14). He counts the three gifts in the paralytic and the woman when he preaches them; here `spoke` names them, `roof` (Mark 2) and `woman` (John 8) count them, `look`, `grain` and `within` open one each, and `court` says them once more as the seed is held out to the viewer.
+The narrator is the owner, so the words follow [his voice](../../../../../../.claude/skills/film/reference/owner-voice.md), the series’ [Language](../../../../series/README.md), which wins where the two differ, and Ellen White’s [counsel on the voice](../../../../../../.claude/skills/film/reference/voice-counsel.md), which wins over his habit. The refrain is his as well, filed on the production: “hmm, lets keep the faith forgiveness power” (the owner, 2026-10-14). He counts the three gifts in the paralytic and the woman when he preaches them; here `spoke` names them, `roof` (Mark 2) and `woman` (John 8) say them back, each in a fresh form and never as numbered heads (the counsel’s 2SM 148.3: no “firstly,” “secondly,” and “thirdly”), `look`, `grain` and `within` open one each, and `court` says them once more as the seed is held out to the viewer, the one time they come as a bare list.
 
-Doctrine follows [the frame](../../../../../../.claude/skills/film/frame/righteousness-by-faith.md): justification first, then the walk; Christ now in the heavenly courts; Zechariah 3 with the accuser at the close of the great day of atonement, still in the court while the robe is given; the Sabbath as rest by faith; and the latter rain, with the blotting out of sins before it (CWCP 124.3). Two of the frame’s anchors are not cited, by the owner’s decisions (no Adventist history in the film; neither the 1889 Fundamental Principles nor Ms 24, 1888 in the credits). FP1889 150.6’s order, justified from past sins first and then grace to obey, is carried by Scripture’s own order in Zechariah 3:4 and 3:7, with Ms 46, 1891 (printed as 3SM 195.2). Lt 57, 1895, par. 44’s Christ “pleading for the church in the heavenly courts above” is carried by Hebrews 7:25 with GC 489.1, and by 5T 467.3 and 470.2.
+Doctrine follows [the frame](../../../../../../.claude/skills/film/frame/righteousness-by-faith.md): justification first, then the walk; Christ now in the heavenly courts; Zechariah 3 with the accuser at the close of the great day of atonement, still in the court while the robe is given; the Sabbath as rest by faith; and the latter rain, with the blotting out of sins before it (CWCP 124.3). Two of the frame’s anchors are not cited, by the owner’s decisions (no Adventist history in the film; neither the 1889 Fundamental Principles nor Ms 24, 1888 in the credits). FP1889 150.6’s order, justified from past sins first and then grace to obey, is carried by Scripture’s own order in Zechariah 3:4 and 3:7 (`robe`); Ms 46, 1891 (printed as 3SM 195.2) carries `court`’s moment of justification. Lt 57, 1895, par. 44’s Christ “pleading for the church in the heavenly courts above” is carried by Hebrews 7:25 with GC 489.1, and by 5T 467.3 and 470.2.
 
 The sanctuary follows [its frame](../../../../../../.claude/skills/film/frame/sanctuary-judgment.md): at the ascension Christ goes into the first room, before the veil (`priest`); the judgment is the close of the great Day of Atonement, God’s people judged and made clean (`accuser`), never only the world’s end; and forgiveness is never drawn as the record’s final erasure. Forgiven sins stay on the books until the blotting out, so the record goes white once, in `rain`’s glance ahead, and `court` never shows it.
 
@@ -62,7 +62,7 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
   > Now the parable is this: The seed is the word of God.
 
-- **COL 38.1** · Ellen G. White, _Christ’s Object Lessons_ (1900). Paraphrased: "The life of the whole plant is folded up inside." and "In the same way, every word God speaks carries His own life. Take in His word by faith, and you take in His life." That a seed “looks like nothing” is the narrator’s own.
+- **COL 38.1** · Ellen G. White, _Christ’s Object Lessons_ (1900). Paraphrased: "The life of the whole plant is folded up inside." and "In the same way, every word God speaks carries His own life. Take in His word by faith, and you take in His life." That "A seed looks like nothing." is the narrator’s own.
 
   > The word of God is the seed. Every seed has in itself a germinating principle. In it the life of the plant is enfolded. So there is life in God’s word. … In every command and in every promise of the word of God is the power, the very life of God, by which the command may be fulfilled and the promise realized. He who by faith receives the word is receiving the very life and character of God.
 
@@ -106,33 +106,33 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
   > Whether is it easier to say to the sick of the palsy, Thy sins be forgiven thee; or to say, Arise, and take up thy bed, and walk? But that ye may know that the Son of man hath power on earth to forgive sins, (he saith to the sick of the palsy,)
 
-- **DA 268.1** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "One: faith. He came believing."
+- **DA 268.1** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "He came believing: that's faith."
 
   > Jesus had watched the first glimmer of faith grow into a belief that He was the sinner’s only helper
 
-- **DA 268.3** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "Two: forgiveness." The guilty sinner pardoned, the peace of forgiveness on him.
+- **DA 268.3** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "Jesus pardoned him: that's forgiveness." The guilty sinner pardoned, the peace of forgiveness on him.
 
   > The burden of despair rolls from the sick man’s soul; the peace of forgiveness rests upon his spirit, and shines out upon his countenance. … The helpless paralytic is healed! the guilty sinner is pardoned!
 
-- **DA 270.1** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "Now count what he received." and "Three: power to walk." The healing of the soul, then of the body.
+- **DA 270.1** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "So what did he receive?" and "And he walked: that's power." The healing of the soul, then of the body.
 
   > The paralytic found in Christ healing for both the soul and the body. The spiritual healing was followed by physical restoration.
 
 ## `woman`
 
-- **John 8:2–11** (KJV). Told: "Early one morning, in the temple court, they drag in a woman caught in sin.", "They throw the law of Moses at Jesus: stone her." (Moses’ law, 8:5), the writing in the dust, "whoever is without sin, throw the first stone", the accusers leaving one by one from the eldest, and "No one, Lord." (the KJV’s “No man, Lord”).
+- **John 8:2–11** (KJV). Told: "In the temple court, they drag in a woman caught in sin.", "They throw the law of Moses at Jesus: stone her." (Moses’ law, 8:5), the writing in the dust, "whoever is without sin, throw the first stone", "One by one, they leave." (from the eldest, 8:9, as the picture shows), and "No one, Lord." (the KJV’s “No man, Lord”).
 
   > And early in the morning he came again into the temple, and all the people came unto him; and he sat down, and taught them. …
 
-- **John 8:11** (KJV). Quoted: "Neither do I condemn thee: go, and sin no more."; from its first half, "One: faith. She calls Him Lord."
+- **John 8:11** (KJV). Quoted: "Neither do I condemn thee: go, and sin no more."; from its first half, "She calls Him Lord."
 
   > She said, No man, Lord. And Jesus said unto her, Neither do I condemn thee: go, and sin no more.
 
-- **DA 462.2** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "Three: power. She walks out into a new life."
+- **DA 462.2** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "And she walks out into a new life."
 
   > This was to her the beginning of a new life, a life of purity and peace, devoted to the service of God.
 
-- **DA 462.3** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "Two: forgiveness. He doesn't condemn her." He does not make light of sin; He seeks not to condemn, but to save.
+- **DA 462.3** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "He doesn't condemn her." He does not make light of sin; He seeks not to condemn, but to save.
 
   > While He does not palliate sin, nor lessen the sense of guilt, He seeks not to condemn, but to save.
 
@@ -146,15 +146,15 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
 ## `look`
 
-- **Romans 10:17** (KJV). Paraphrased: "Where does it come from? From hearing the word."
+- **Romans 10:17** (KJV). Paraphrased: "So where does faith come from? From hearing the word."
 
   > So then faith cometh by hearing, and hearing by the word of God.
 
-- **BEST May 22, 1899, page 171.4** · A. T. Jones, _“Faith and the Word”, The Bible Echo 14, 14 (signed “A. T. Jones.”)_ (1899). Paraphrased: "Faith takes God at His word, and expects it to do what it says."
+- **BEST May 22, 1899, page 171.4** · A. T. Jones, _“Faith and the Word”, The Bible Echo 14, 14 (signed “A. T. Jones.”)_ (1899). Paraphrased: "Faith expects that word to do what it says."
 
   > faith is the expectation that the word of God will do what the word says; and that the depending upon that word to do what it says.
 
-- **DA 175.4** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "And faith earns nothing: it's just the hand that takes."
+- **DA 175.4** · Ellen G. White, _The Desire of Ages_ (1898). Paraphrased: "It earns nothing: it's just the hand that takes." Its own words: “It earns nothing.”
 
   > Through faith we receive the grace of God; but faith is not our Saviour. It earns nothing. It is the hand by which we lay hold upon Christ, and appropriate His merits, the remedy for sin.
 
@@ -172,7 +172,7 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
 ## `grain`
 
-- **Exodus 34:7** (KJV). Paraphrased: "Remember, God will not clear the guilty." The viewer’s question from `cold`.
+- **Exodus 34:7** (KJV). Paraphrased: "But how can God forgive? He will not clear the guilty." The viewer’s question from `cold`.
 
   > Keeping mercy for thousands, forgiving iniquity and transgression and sin, and that will by no means clear the guilty; visiting the iniquity of the fathers upon the children, and upon the children's children, unto the third and to the fourth generation.
 
@@ -204,7 +204,7 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
   > All we like sheep have gone astray; we have turned every one to his own way; and the LORD hath laid on him the iniquity of us all.
 
-- **Ephesians 5:2** (KJV). Paraphrased: "and He gave Himself for us, a sacrifice." and "Why? Because He loves us." Christ “hath loved us, and hath given himself for us an offering and a sacrifice to God”.
+- **Ephesians 5:2** (KJV). Paraphrased: "He gave Himself for us as a sacrifice." and "Why? Because He loves us." Christ “hath loved us, and hath given himself for us an offering and a sacrifice to God”.
 
   > And walk in love, as Christ also hath loved us, and hath given himself for us an offering and a sacrifice to God for a sweetsmelling savour.
 
@@ -256,7 +256,7 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
   > So in the great day of final atonement and investigative judgment the only cases considered are those of the professed people of God.
 
-- **5T 469.1** · Ellen G. White, _Testimonies for the Church, vol. 5, “Joshua and the Angel”_ (1889). Paraphrased: "But the Angel is Christ Himself, and He answers".
+- **5T 469.1** · Ellen G. White, _Testimonies for the Church, vol. 5, “Joshua and the Angel”_ (1889). Paraphrased: "But the Angel is Christ Himself."
 
   > Then the Angel, who is Christ Himself, the Saviour of sinners, puts to silence the accuser of His people
 
@@ -294,13 +294,9 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
   > God’s forgiveness is not merely a judicial act by which He sets us free from condemnation. It is not only forgiveness for sin, but reclaiming from sin. It is the outflow of redeeming love that transforms the heart.
 
-- **Zechariah 3:7** (KJV). Paraphrased: "And then He says, walk in my ways."
+- **Zechariah 3:7** (KJV). Paraphrased: "And then He says, walk in my ways." After 3:4’s pardon: the pardon first, then the walk, in Scripture’s own order.
 
   > Thus saith the LORD of hosts; If thou wilt walk in my ways, and if thou wilt keep my charge, then thou shalt also judge my house, and shalt also keep my courts, and I will give thee places to walk among these that stand by.
-
-- **7LtMs, Ms 46, 1891, par. 6** · Ellen G. White, _Manuscript 46, 1891 (printed as 3SM 195.2)_ (1891). Paraphrased: "The pardon comes first, and the walk follows." The faith that justifies produces first repentance, then good works.
-
-  > The faith that justifies always produces first true repentance, and then good works, which are the fruit of that faith. … The moment true faith in the merits of the costly atoning sacrifice is exercised, claiming Christ as a personal Saviour, that moment the sinner is justified before God, because he is pardoned.
 
 ## `within`
 
@@ -308,13 +304,17 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
   > She said, No man, Lord. And Jesus said unto her, Neither do I condemn thee: go, and sin no more.
 
-- **COL 38.1** · Ellen G. White, _Christ’s Object Lessons_ (1900). Paraphrased: "Every command He gives is a seed, and inside it is His own life." In every command is the very life of God, by which it may be kept.
+- **COL 38.1** · Ellen G. White, _Christ’s Object Lessons_ (1900). Paraphrased: "And for the walk, He gives power.", "Is He mocking her? No." and "Every command He gives is a seed, and inside it is His own life." In every command is the very life of God, by which it may be kept.
 
   > The word of God is the seed. Every seed has in itself a germinating principle. In it the life of the plant is enfolded. So there is life in God’s word. … In every command and in every promise of the word of God is the power, the very life of God, by which the command may be fulfilled and the promise realized. He who by faith receives the word is receiving the very life and character of God.
 
-- **Hebrews 8:10** (KJV). Quoted: "I will put my laws into their mind, and write them in their hearts."; paraphrased: "So His law moves in."
+- **Hebrews 8:10** (KJV). Quoted: "I will put my laws into their mind, and write them in their hearts."
 
   > For this is the covenant that I will make with the house of Israel after those days, saith the Lord; I will put my laws into their mind, and write them in their hearts: and I will be to them a God, and they shall be to me a people:
+
+- **SC 47.1** · Ellen G. White, _Steps to Christ, ch. 5 “Consecration”_ (1892). Paraphrased: "We can't stop sinning, however much we wish." The desire is there, but our resolutions are ropes of sand.
+
+  > You desire to give yourself to Him, but you are weak in moral power, in slavery to doubt, and controlled by the habits of your life of sin. Your promises and resolutions are like ropes of sand.
 
 - **SC 51.1** · Ellen G. White, _Steps to Christ_ (1892). Paraphrased: "We can't stop sinning, however much we wish." We cannot change our hearts and make ourselves holy; God does it as we believe His word. Steps to Christ draws the same likeness from the paralytic at Bethesda (John 5); the film keeps Mark 2’s man from `roof`.
 
@@ -342,9 +342,9 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
   > For the earth bringeth forth fruit of herself; first the blade, then the ear, after that the full corn in the ear.
 
-- **Ed 111.2** · Ellen G. White, _Education_ (1903). Paraphrased: "It's the same with us." The soil’s lessons: “so it must be in the spiritual sowing”.
+- **COL 65.2** · Ellen G. White, _Christ’s Object Lessons_ (1900). Paraphrased: "It's the same with us." The plant’s growth is a figure of Christian growth: “As in nature, so in grace”.
 
-  > From the tilling of the soil, lessons may constantly be learned. … So it must be in the spiritual sowing.
+  > The germination of the seed represents the beginning of spiritual life, and the development of the plant is a beautiful figure of Christian growth. As in nature, so in grace; there can be no life without growth.
 
 - **SC 47.1** · Ellen G. White, _Steps to Christ, ch. 5 “Consecration”_ (1892). Paraphrased: "we give God our will, and He does the growing." He then works in us to will and to do.
 
@@ -410,7 +410,7 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
 ## `court`
 
-- **Romans 8:33** (KJV). Quoted: "It is God that justifieth."; paraphrased: "Who can accuse him now?"
+- **Romans 8:33** (KJV). Quoted: "It is God that justifieth."; paraphrased: "Who can accuse him now? No one."
 
   > Who shall lay any thing to the charge of God's elect? It is God that justifieth.
 
@@ -422,11 +422,11 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
   > My little children, these things write I unto you, that ye sin not. And if any man sin, we have an advocate with the Father, Jesus Christ the righteous:
 
-- **7LtMs, Ms 46, 1891, par. 6** · Ellen G. White, _Manuscript 46, 1891 (printed as 3SM 195.2)_ (1891). Paraphrased: "and it makes a man righteous the moment he takes it." That moment, when true faith claims Christ, the sinner is justified.
+- **7LtMs, Ms 46, 1891, par. 6** · Ellen G. White, _Manuscript 46, 1891 (printed as 3SM 195.2)_ (1891). Paraphrased: "And it makes a man righteous the moment he takes it." That moment, when true faith claims Christ, the sinner is justified.
 
   > The faith that justifies always produces first true repentance, and then good works, which are the fruit of that faith. … The moment true faith in the merits of the costly atoning sacrifice is exercised, claiming Christ as a personal Saviour, that moment the sinner is justified before God, because he is pardoned.
 
-- **GTI 77.1** · E. J. Waggoner, _The Glad Tidings_ (1900). Paraphrased: "It was a seed, and it makes a man righteous". To be justified is to be made righteous.
+- **GTI 77.1** · E. J. Waggoner, _The Glad Tidings_ (1900). Paraphrased: "It was a seed." and "And it makes a man righteous". To be justified is to be made righteous.
 
   > The meaning of the word “justified” is “made righteous.” … But since all have sinned, there are none just or righteous before God; therefore they need to be justified, or made righteous, which God does.
 

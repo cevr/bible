@@ -10,9 +10,12 @@
 // `../script.ts`.
 //
 // One narrator reads it, the owner, so it is written in his voice
-// (`.claude/skills/film/reference/owner-voice.md`) and in the series'
-// Language (`apps/animations/series/README.md`), which wins where the two
-// differ: one question the film answers, the text read as it reads, asked and
+// (`.claude/skills/film/reference/owner-voice.md`), in the series' Language
+// (`apps/animations/series/README.md`), which wins where the two differ, and
+// to Ellen White's counsel on the voice
+// (`.claude/skills/film/reference/voice-counsel.md`), which wins over his
+// habit: no numbered heads, the refrain in a fresh form each time, one
+// question the film answers, the text read as it reads, asked and
 // answered short, one idea a sentence joined by "and", "so" and "but", the
 // stressed word last, the objection put fairly, sin in "we", the scene and
 // the choice in "you", and a landing on two ways with the promise in
@@ -33,17 +36,20 @@
 // outside; a seed carries its life folded inside it. God's word makes what it
 // says (`spoke`), so His "righteous" over a sinner is a seed, not a label,
 // and His word brings three things: faith, forgiveness and power (the
-// refrain). Scripture shows the three in that order, twice, told and then
-// counted "One… two… three…": the paralytic let down through the roof
-// (`roof`, Mark 2) and the woman brought to Jesus (`woman`, John 8). Each
-// gift then opens on its icon: "First, faith" (`look`: the hand that takes;
-// look and live), "Second, forgiveness" (`grain`: the Seed that fell into the
-// ground and gave Himself for us, because He loves us; then `priest`,
-// `accuser` and `robe`: Christ pleading now, and the robe given at the close
-// of the great Day of Atonement) and "Third, power" (`within`: every command
-// a seed with His own life inside it, the law written in the heart, and the
-// man on the bed who arose at His word; `garden`: our part is to give the
-// will, God grows the seed, and the seventh day's rest is faith too). The
+// refrain). Scripture shows the three in that order, twice, each story told
+// and then its gifts said back, never as numbered heads: the paralytic let
+// down through the roof (`roof`, Mark 2: "that's faith… that's
+// forgiveness… that's power") and the woman brought to Jesus (`woman`, John
+// 8: what she does first, the three names last). Each gift then opens on
+// its icon: faith on a question (`look`: "where does faith come from?"; the
+// hand that takes; look and live), forgiveness on the film's problem
+// (`grain`: "how can God forgive?"; the Seed that fell into the ground and
+// gave Himself for us, because He loves us; then `priest`, `accuser` and
+// `robe`: Christ pleading now, and the robe given at the close of the great
+// Day of Atonement) and power for the walk (`within`: every command a seed
+// with His own life inside it, the law written in the heart, and the man on
+// the bed who arose at His word; `garden`: our part is to give the will, God
+// grows the seed, and the seventh day's rest is faith too). The
 // rain ripens the harvest (`rain`, the one glance ahead): His word comes like
 // the rain, and the record of our sins is blotted out. The court comes back
 // changed (`court`): "It is God that justifieth." It was never a cover-up; it
@@ -73,7 +79,7 @@
 //   on the floor: keep the fig leaves, or take the seed and live.
 // - The count. Three icons, the answer's shape shown once in `spoke` (CRAFT
 //   rule 8): the open hand holding the gold seed (faith), the white cloth
-//   (forgiveness), the green blade (power). Lit one, two, three in `roof` and
+//   (forgiveness), the green blade (power). Lit one by one in `roof` and
 //   `woman`; each gift opens on its icon (`look`, `grain`, `within`). Paid off
 //   in `court`: all three in the picture itself, the seed in Max's hand, the
 //   robe on him, the blade at his feet, lit one by one as the refrain is said
@@ -99,7 +105,7 @@
 //    over the stain, the crack at his feet.
 // 2. The seed (`word`, `seed`, `spoke`): peach parchment. "Is God's
 //    verdict a cover-up?"
-// 3. One, two, three (`roof`, `woman`, `look`): peach afternoon. "What does
+// 3. The three gifts (`roof`, `woman`, `look`): peach afternoon. "What does
 //    that look like in a real person's life?" Pole `roof`: the four faces at
 //    the hole in the roof.
 // 4. The grain (`grain`): sunset down to the film's one black moment, the
@@ -150,7 +156,7 @@ export const script = defineScript([
   },
   {
     id: 'word',
-    say: "So is God's verdict a cover-up? First, what does the word mean? {right}Righteousness is right doing. {measure}Right by whose measure? {all}The psalm says, “All thy commandments are righteousness.” His law is a picture of His character. So how do we measure up? {short}We all come up short. {cover}And we do what Adam and Eve did: we cover up. {fig}Fig leaves, excuses, a nicer coat over the stain. {going}And how is that going?",
+    say: "So is God's verdict a cover-up? What does the word mean? {right}Righteousness is right doing. {measure}Right by whose measure? {all}The psalm says, “All thy commandments are righteousness.” His law is a picture of His character. So how do we measure up? {short}We all come up short. {cover}And we do what Adam and Eve did: we cover up. {fig}Fig leaves, excuses, a nicer coat over the stain. {going}And how is that going?",
     lead: 0.4,
     cite: [
       "Ellen G. White, Christ's Object Lessons, 312",
@@ -164,7 +170,7 @@ export const script = defineScript([
   },
   {
     id: 'seed',
-    say: "{label}But when God says righteous, it isn't a label on the outside. {seed}Jesus said, “The seed is the word of God.” {alive}A seed looks like nothing, but it's alive. {folded}The life of the whole plant is folded up inside. {life}In the same way, every word God speaks carries His own life. Take in His word by faith, and you take in His life.",
+    say: "{label}But when God says righteous, it isn't a label on the outside. {seed}Jesus said, “The seed is the word of God.” A seed looks like nothing. {alive}But it's alive. {folded}The life of the whole plant is folded up inside. {life}In the same way, every word God speaks carries His own life. Take in His word by faith, and you take in His life.",
     cite: ['Luke 8:11', "Ellen G. White, Christ's Object Lessons, 38"],
     picture: `IDEA: the dropped leaves blow aside and the camera pushes in on the gold seal on Max's jacket, in \`cold\`'s shape and scale (CRAFT rule 8). On \`label\` it lifts off, flat as a sticker, nothing behind it; the stain is still there under where it was. On \`seed\` the verse's full-screen card: "The seed is the word of God.", "seed" large in gold; hard cut back on its last word, and the seal turns over in the air and is a seed, small and plain, its gold unlit: it looks like nothing. On \`alive\` it opens along its seam in cross-section, and on \`folded\` the blade shows curled inside, green, its root and first two leaves folded tight. On \`life\` a warm light wakes in the seed's heart and its gold glows; Max, close, his face at a third of the frame, tips his head: interested, despite himself. ${CARDS}`,
   },
@@ -182,29 +188,32 @@ export const script = defineScript([
     picture: `IDEA, then STORY, then IDEA. On \`first\` the camera pushes into the seed's light, and the dip to black on \`dark\` opens Genesis 1 (STORY): an empty, dark paper world, no sky. On \`light\` one gold word of light arcs across the dark and bursts into a sun; the sky floods dawn to teal, and land and water tear in beneath it, flat paper shapes rising into place (\`itself\`). On \`calleth\` stars come out one by one across the new sky, each where nothing was. On \`verdict\` a white flash back to IDEA: the page, Max with the gold seed floating before him (not yet in his hand: \`look\` lays it there), his face at a third of the frame. On \`cover\` (the viewer's question) the seal's old outline traces itself round the seed for a breath and falls away. On \`seed\` the full-screen card "It's a seed.", "seed" large in gold; hard cut back. On \`faith\`, \`forgiveness\` and \`power\` the answer's shape, shown once (CRAFT rule 8): three icons come in left to right along the page, the open hand holding the gold seed (faith), the white cloth (forgiveness), the green blade (power), each lit as it is named; Max reads the row. ${CARDS}`,
   },
   {
-    // Mark 2:1–12 told, then counted: each number replays its moment in its
-    // own framing while its icon lights.
+    // Mark 2:1–12 told, then its gifts said back, each sentence ending on the
+    // gift's name: each replays its moment in its own framing while its icon
+    // lights.
     id: 'roof',
-    say: "{see}So what does that look like in a real person's life? {roof}In Capernaum the house is so packed that four friends open the roof. They lower a man who can't walk, bed and all, at the feet of Jesus. {saw}He sees their faith, and says, {son}“Son, thy sins be forgiven thee.” {easy}But who can see a sin forgiven? No one. {arise}So Jesus says, Arise, take up your bed, go home. {went}And the man walks out in front of them all. {count}Now count what he received. {one}One: faith. He came believing. {two}Two: forgiveness. {three}Three: power to walk. {proof}The walk proves the pardon.",
+    say: "{see}So what does that look like in a real person's life? {roof}In Capernaum the house is so packed that four friends open the roof. They lower a man who can't walk, bed and all, at the feet of Jesus. {saw}He sees their faith, and says, {son}“Son, thy sins be forgiven thee.” {easy}But who can see a sin forgiven? No one. {arise}So Jesus says, Arise, take up your bed, go home. {went}And the man walks out in front of them all. {count}So what did he receive? {one}He came believing: {hand}that's faith. {two}Jesus pardoned him: {cloth}that's forgiveness. {three}And he walked: {blade}that's power. {proof}The walk proves the pardon.",
     lead: 0.4,
     cite: ['Mark 2:1–12', 'Ellen G. White, The Desire of Ages, 268, 270'],
-    picture: `STORY: on \`see\` (the act's question) the camera pushes through the faith icon of \`spoke\`'s row into the scene. A paper house in Capernaum packed with figures (varied heights, headcloths and silhouettes, never cloned) under a peach afternoon sky, in 3–5 planes, the crowd near and the far wall far. Screen direction holds: the one receiving screen-left, Jesus screen-right. On \`roof\` four friends on the flat roof lift the tiles away and lower the man on his bed on ropes into the room, to the feet of Jesus. On \`saw\` Jesus (white robe, gold sash) looks up at the four faces in the hole, lit by the afternoon (the tent pole), each friend's face at a third of the frame in turn. On \`son\` close on the man's face as the scarlet specks lift off him, and the verse's full-screen card: "Son, thy sins be forgiven thee.", "forgiven" large in white; hard cut back. On \`easy\` the man still lies on his bed, and a plane slide racks past him to two teachers of the law on a bench at the far wall, brows down: nothing anyone can see has changed. On \`arise\` he stands and rolls up his bed; on \`went\` he carries it out through the parting crowd, faces amazed. On \`count\` the three icons from \`spoke\` slide up along the bottom of the frame, small, with no numerals, and each number replays its moment in the same framing, held for a breath while its icon lights: on \`one\` the man on his bed looking up at Jesus, under the four faces at the hole, and the open hand lights; on \`two\` the man's face as the specks lift, and the white cloth lights; on \`three\` the man walking out with his bed, and the green blade lights. On \`proof\` a thread of light runs back along the row from the blade to the cloth: the walk vouching for the pardon. No cast member stands in the crowd. ${CARDS}`,
+    picture: `STORY: on \`see\` (the act's question) the camera pushes through the faith icon of \`spoke\`'s row into the scene. A paper house in Capernaum packed with figures (varied heights, headcloths and silhouettes, never cloned) under a peach afternoon sky, in 3–5 planes, the crowd near and the far wall far. Screen direction holds: the one receiving screen-left, Jesus screen-right. On \`roof\` four friends on the flat roof lift the tiles away and lower the man on his bed on ropes into the room, to the feet of Jesus. On \`saw\` Jesus (white robe, gold sash) looks up at the four faces in the hole, lit by the afternoon (the tent pole), each friend's face at a third of the frame in turn. On \`son\` close on the man's face as the scarlet specks lift off him, and the verse's full-screen card: "Son, thy sins be forgiven thee.", "forgiven" large in white; hard cut back. On \`easy\` the man still lies on his bed, and a plane slide racks past him to two teachers of the law on a bench at the far wall, brows down: nothing anyone can see has changed. On \`arise\` he stands and rolls up his bed; on \`went\` he carries it out through the parting crowd, faces amazed. On \`count\` the three icons from \`spoke\` slide up along the bottom of the frame, small, with no numerals, and each gift replays its moment in the same framing, held for a breath while its icon lights: on \`one\` the man on his bed looking up at Jesus, under the four faces at the hole, and on \`hand\` the open hand lights; on \`two\` the man's face as the specks lift, and on \`cloth\` the white cloth lights; on \`three\` the man walking out with his bed, and on \`blade\` the green blade lights. On \`proof\` a thread of light runs back along the row from the blade to the cloth: the walk vouching for the pardon. No cast member stands in the crowd. ${CARDS}`,
   },
   {
-    // John 8:2–11 told, then counted again, quicker: the viewer counts along.
+    // John 8:2–11 told, then the three again in a fresh form, quicker: only
+    // what she does, while the icons light, so the viewer names them; the
+    // bare list of the three is the landing's alone.
     // The charge is Moses' scroll (John 8:5), never the tablets of `word`:
     // the accusers hold the law while they disregard it (DA 461.3).
     id: 'woman',
-    say: "{court}Early one morning, in the temple court, they drag in a woman caught in sin. {law}They throw the law of Moses at Jesus: stone her. {dust}He stoops and writes in the dust. {first}Then He stands: whoever is without sin, throw the first stone. {leave}One by one, from the eldest, they leave. {alone}Woman, has no one condemned you? {lord}No one, Lord. {told}And Jesus says, “Neither do I condemn thee: go, and sin no more.” {again}Count again. {one}One: faith. She calls Him Lord. {two}Two: forgiveness. He doesn't condemn her. {three}Three: power. She walks out into a new life. {order}Same three, same order.",
+    say: "{court}In the temple court, they drag in a woman caught in sin. {law}They throw the law of Moses at Jesus: stone her. {dust}He stoops and writes in the dust. {first}Then He stands: whoever is without sin, throw the first stone. {leave}One by one, they leave. {alone}Woman, has no one condemned you? {lord}No one, Lord. {told}And Jesus says, “Neither do I condemn thee: go, and sin no more.” {again}Do you see the three? {one}She calls Him Lord. {two}He doesn't condemn her. {three}And she walks out into a new life. {order}Same three, same order.",
     lead: 0.4,
-    cite: ['John 8:2–11', 'Ellen G. White, The Desire of Ages, 462'],
-    picture: `STORY: on \`court\` cut to a temple court in the same peach light, early morning. The woman stands in the middle in a scarlet-stained garment, head bowed, her accusers round her holding stones (varied silhouettes). On \`law\` one accuser holds up a scroll, Moses' law, as the charge (the stone tablets of \`word\` never come into the accusers' hands). On \`dust\` Jesus stoops and writes in the dust with one finger; nothing in the dust is readable. On \`first\` he straightens. On \`leave\` the stones drop into the dust one by one and the accusers go out of frame, the eldest first; on \`alone\` the wide shot holds only the two of them. On \`lord\` her face at a third of the frame, still bowed: she dares not lift her eyes as she answers. On \`told\` reverse to Jesus's face as he speaks the quotation (the speaker's close-up); she lifts her head, her stain washes out, and she turns and walks out of frame screen-left, upright. On \`again\` the icon row slides up, and each number replays its moment: on \`one\` her bowed answer, "Lord", and the open hand lights; on \`two\` Jesus speaking, and the white cloth lights; on \`three\` her walking out upright, and the green blade lights. On \`order\` pull back to IDEA: the three icons in \`spoke\`'s layout, all lit. ${CARDS}`,
+    cite: ['John 8:2–11', 'Ellen G. White, The Desire of Ages, 461–462'],
+    picture: `STORY: on \`court\` cut to a temple court in the same peach light, early morning. The woman stands in the middle in a scarlet-stained garment, head bowed, her accusers round her holding stones (varied silhouettes). On \`law\` one accuser holds up a scroll, Moses' law, as the charge (the stone tablets of \`word\` never come into the accusers' hands). On \`dust\` Jesus stoops and writes in the dust with one finger; nothing in the dust is readable. On \`first\` he straightens. On \`leave\` the stones drop into the dust one by one and the accusers go out of frame, the eldest first; on \`alone\` the wide shot holds only the two of them. On \`lord\` her face at a third of the frame, still bowed: she dares not lift her eyes as she answers. On \`told\` reverse to Jesus's face as he speaks the quotation (the speaker's close-up); she lifts her head, her stain washes out, and she turns and walks out of frame screen-left, upright. On \`again\` the icon row slides up, and each gift replays its moment: on \`one\` her bowed answer, "Lord", and the open hand lights; on \`two\` Jesus speaking, and the white cloth lights; on \`three\` her walking out upright, and the green blade lights. On \`order\` pull back to IDEA: the three icons in \`spoke\`'s layout, all lit. ${CARDS}`,
   },
   {
     // A pause after the key quotation (CRAFT rule 9), for the pull back to the
     // icons with faith lit.
     id: 'look',
-    say: "{faith}First, faith. {where}Where does it come from? From hearing the word. {expects}Faith takes God at His word, and expects it to do what it says. {hand}And faith earns nothing: it's just the hand that takes. {desert}In the desert the camp is full of snakes. Imagine you've been bitten. {pole}God has Moses set a bronze serpent on a pole, and whoever looks, lives. {harder}Now, we like to make it harder. {climb}But no one has to climb the pole. {look}Just look. {lifted}Jesus said of Himself, “As Moses lifted up the serpent in the wilderness, even so must the Son of man be lifted up.”",
+    say: "{faith}So where does faith come from? {where}From hearing the word. {expects}Faith expects that word to do what it says. {hand}It earns nothing: it's just the hand that takes. {desert}In the desert the camp is full of snakes. Imagine you've been bitten. {pole}God has Moses set a bronze serpent on a pole, and whoever looks, lives. {harder}Now, we like to make it harder. {climb}But no one has to climb the pole. {look}Just look. {lifted}Jesus said of Himself, “As Moses lifted up the serpent in the wilderness, even so must the Son of man be lifted up.”",
     tail: 1.6,
     cite: [
       'Romans 10:17',
@@ -214,15 +223,15 @@ export const script = defineScript([
       'Ellen G. White, Letter 85, 1891',
       'John 3:14',
     ],
-    picture: `IDEA, then STORY. The page opens on \`woman\`'s closing row; on \`faith\` the open hand pulses and the other two icons dim (gift one opens on its icon). On \`where\` push in to the hand: Max's own hand, palm up, and the gold seed is laid in it. On \`expects\` the seed in his palm puts out its first root, and Max's face, at a third of the frame, watches it. On \`hand\` a stack of coins, medals and certificates is held up toward the light and slides off the page; the plain open hand stays. On \`desert\` the push-through into STORY: a desert camp of paper tents under a peach sky, scarlet paper snakes in the sand. On \`pole\` the bronze serpent rises on its pole. On \`harder\` a man from the camp starts to climb the pole, straining, comic, and on \`climb\` he stops, slides down, turns and simply looks up. On \`look\` close on his face as colour comes back to it; the light line's full-screen card, "look" large in gold, may cut in here. On \`lifted\` the camera tilts up the pole against the sky; after the last word, pull back to the three icons, the open hand glowing. ${CARDS}`,
+    picture: `IDEA, then STORY. The page opens on \`woman\`'s closing row; on \`faith\` the open hand pulses and the other two icons dim (faith opens on its icon). On \`where\` push in to the hand: Max's own hand, palm up, and the gold seed is laid in it. On \`expects\` the seed in his palm puts out its first root, and Max's face, at a third of the frame, watches it. On \`hand\` a stack of coins, medals and certificates is held up toward the light and slides off the page; the plain open hand stays. On \`desert\` the push-through into STORY: a desert camp of paper tents under a peach sky, scarlet paper snakes in the sand. On \`pole\` the bronze serpent rises on its pole. On \`harder\` a man from the camp starts to climb the pole, straining, comic, and on \`climb\` he stops, slides down, turns and simply looks up. On \`look\` close on his face as colour comes back to it; the light line's full-screen card, "look" large in gold, may cut in here. On \`lifted\` the camera tilts up the pole against the sky; after the last word, pull back to the three icons, the open hand glowing. ${CARDS}`,
   },
   {
-    // Gift two opens on its icon. The cross is His sacrifice, never the
+    // Forgiveness opens on its icon, on the film's problem. The cross is His sacrifice, never the
     // atonement finished (the nature-of-christ frame); our sins are laid on
     // Him there, never a stain in Him. The tail is the film's one black
     // moment, a designed silence (CRAFT rules 10 and 11).
     id: 'grain',
-    say: '{second}Second, forgiveness. {guilt}But what about the guilt? Remember, God will not clear the guilty. {pays}So who pays? Jesus answers with a seed, a grain of wheat: {except}“Except a corn of wheat fall into the ground and die, it abideth alone: but if it die, it bringeth forth much fruit.” {fruit}He was that seed. {treated}He was treated as we deserve, so we could be treated as He deserves. {laid}He had no sin of His own, but ours were laid on Him, and He gave Himself for us, a sacrifice. {cross}Why? Because He loves us.',
+    say: '{forgive}But how can God forgive? {guilt}He will not clear the guilty. {pays}So who pays? Jesus answers with a seed, a grain of wheat: {except}“Except a corn of wheat fall into the ground and die, it abideth alone: but if it die, it bringeth forth much fruit.” {fruit}He was that seed. {treated}He was treated as we deserve, so we could be treated as He deserves. {laid}He had no sin of His own, but ours were laid on Him. He gave Himself for us as a sacrifice. {cross}Why? Because He loves us.',
     lead: 0.4,
     tail: 4.5,
     cite: [
@@ -235,7 +244,7 @@ export const script = defineScript([
       'Isaiah 53:6',
       'Ephesians 5:2',
     ],
-    picture: `STORY: the page opens on \`look\`'s closing row; on \`second\` the white cloth pulses and the other two icons dim (gift two opens on its icon). On \`guilt\` (the act's question) the camera pushes through the cloth into a hill at sunset (the valley's light). The cross stands on the hill where the pole stood in \`look\`'s last shot, in the same position and scale (CRAFT rule 8). On \`pays\` the camera drifts down the hill to a ploughed field below it, its furrows dark. On \`except\` the set piece, one shot held throughout (CRAFT rule 2): a single grain of wheat falls, slow, into a furrow, and the earth closes over it. On \`fruit\` the furrow's line runs on up the hill to the cross. On \`treated\` close on Jesus's face at a third of the frame, under the darkening sky. On \`laid\` scarlet cloths lift off a crowd of small figures at the hill's foot and are laid on His shoulders: on Him, never a stain in Him, His own figure unmarked under them. On \`cross\` the hill, the cross and the figures go to silhouette against the last red, and the love line is said over it; then to black, held through the tail (4–6 s), the film's one black moment. ${CARDS}`,
+    picture: `STORY: the page opens on \`look\`'s closing row; on \`forgive\` the white cloth pulses and the other two icons dim (forgiveness opens on its icon). On \`guilt\` (the act's question) the camera pushes through the cloth into a hill at sunset (the valley's light). The cross stands on the hill where the pole stood in \`look\`'s last shot, in the same position and scale (CRAFT rule 8). On \`pays\` the camera drifts down the hill to a ploughed field below it, its furrows dark. On \`except\` the set piece, one shot held throughout (CRAFT rule 2): a single grain of wheat falls, slow, into a furrow, and the earth closes over it. On \`fruit\` the furrow's line runs on up the hill to the cross. On \`treated\` close on Jesus's face at a third of the frame, under the darkening sky. On \`laid\` scarlet cloths lift off a crowd of small figures at the hill's foot and are laid on His shoulders: on Him, never a stain in Him, His own figure unmarked under them. On \`cross\` the hill, the cross and the figures go to silhouette against the last red, and the love line is said over it; then to black, held through the tail (4–6 s), the film's one black moment. ${CARDS}`,
   },
   {
     // The black moment ends at dawn: Christ's work does not end at the cross
@@ -255,7 +264,7 @@ export const script = defineScript([
   },
   {
     id: 'accuser',
-    say: "{zech}The prophet Zechariah saw His pleading in a vision: a courtroom. {joshua}Joshua the high priest stands for his people before the Angel of the LORD, {filthy}in filthy clothes. {satan}Satan stands at his right hand to accuse him. {points}And about the clothes, he isn't wrong. {day}The vision pictures the close of the great Day of Atonement. On that day God's people are judged, and made clean from all their sins. {angel}But the Angel is Christ Himself, and He answers: {silence}“The LORD rebuke thee, O Satan.”",
+    say: "{zech}The prophet Zechariah saw His pleading in a vision: a courtroom. {joshua}Joshua the high priest stands for his people before the Angel of the LORD, {filthy}in filthy clothes. {satan}Satan stands at his right hand to accuse him. {points}And about the clothes, he isn't wrong. {day}The vision pictures the close of the great Day of Atonement. On that day God's people are judged and made clean from all their sins. {angel}But the Angel is Christ Himself. And He answers: {silence}“The LORD rebuke thee, O Satan.”",
     lead: 0.4,
     cite: [
       'Zechariah 3:1–3',
@@ -271,7 +280,7 @@ export const script = defineScript([
     // The silenced accuser stays in the shadow at the court's edge throughout
     // (the frame: never the robe scene without the accuser).
     id: 'robe',
-    say: "{take}Then He has the filthy clothes taken off him, {pass}and says, “Behold, I have caused thine iniquity to pass from thee.” {loom}And He dresses him in a robe from heaven's loom, without one thread of his own. {nicer}Now, isn't that just a nicer coat over the stain? {cloak}No. He doesn't cover the stain. {away}He takes it away. {walk}And then He says, walk in my ways. The pardon comes first, and the walk follows.",
+    say: "{take}Then He has the filthy clothes taken off him, {pass}and says, “Behold, I have caused thine iniquity to pass from thee.” {loom}And He dresses him in a robe from heaven's loom, without one thread of his own. {nicer}Now, isn't that just a nicer coat over the stain? {cloak}No. He doesn't cover the stain. {away}He takes it away. {walk}And then He says, walk in my ways.",
     lead: 0.4,
     tail: 1.2,
     cite: [
@@ -281,24 +290,25 @@ export const script = defineScript([
       'E. J. Waggoner, Christ and His Righteousness, 64, 65',
       'Ellen G. White, Thoughts From the Mount of Blessing, 114',
       'Zechariah 3:7',
-      'Ellen G. White, Ms 46, 1891 (3SM 195)',
     ],
-    picture: `STORY: the same court, the silenced accuser in shadow at its edge from \`take\` to \`walk\`. On \`take\` those standing before Him lift the filthy garments off Joshua and carry them out of the frame; on \`pass\` the last scarlet speck lifts from him, and close on Joshua's face at a third of the frame, clean. On \`loom\` push in to a gold loom in the light: white threads cross and a robe weaves itself, no hand at the loom but light. The robe settles onto Joshua, and he looks down at it. On \`nicer\` the doubt from \`cold\`: the gold seal's old outline, a label, hovers over the robe for a breath. On \`cloak\` a cross-section: under the white robe the scarlet stain itself dissolves, not covered but gone, the reverse of \`cold\`'s seal over the stain; on \`away\` the full-screen card, "away" large in white. On \`walk\` Joshua takes his first step across the court's floor toward the Angel, upright: the walk follows the pardon. After the last word, pull back to the three icons, the white cloth glowing. ${CARDS}`,
+    picture: `STORY: the same court, the silenced accuser in shadow at its edge from \`take\` to \`walk\`. On \`take\` those standing before Him lift the filthy garments off Joshua and carry them out of the frame; on \`pass\` the last scarlet speck lifts from him, and close on Joshua's face at a third of the frame, clean. On \`loom\` push in to a gold loom in the light: white threads cross and a robe weaves itself, no hand at the loom but light. The robe settles onto Joshua, and he looks down at it. On \`nicer\` the doubt from \`cold\`: the gold seal's old outline, a label, hovers over the robe for a breath. On \`cloak\` a cross-section: under the white robe, clean cloth on clean skin, nothing left to cover, the reverse of \`cold\`'s seal over the stain; on \`away\` the full-screen card, "away" large in white. On \`walk\` Joshua takes his first step across the court's floor toward the Angel, upright: the walk follows the pardon. After the last word, pull back to the three icons, the white cloth glowing. ${CARDS}`,
   },
   {
-    // Gift three opens on its icon; the callbacks to `woman` and `roof` keep
-    // their layouts. The likeness at `bed` is the owner's own (owner-voice.md,
-    // section 9).
+    // Power opens on its icon, for the walk `robe` ends on, and the switch to
+    // IDEA comes with the owner's own objection, "Is He mocking her?"
+    // (owner-voice.md, section 2): no, the command carries the power to obey
+    // it. The callbacks to `woman` and `roof` keep their layouts. The likeness
+    // at `bed` is his too (section 9).
     id: 'within',
-    say: "{power}Third, power. {remember}Remember what He told the woman: go, and sin no more. {command}Every command He gives is a seed, and inside it is His own life. {moves}So His law moves in. {write}“I will put my laws into their mind, and write them in their hearts.” {bed}The man on the bed couldn't walk, however much he wished. {we}We can't stop sinning, however much we wish. {arose}But He said arise, and the man arose.",
+    say: "{power}And for the walk, He gives power. {remember}Remember what He told the woman: go, and sin no more. Is He mocking her? No. {command}Every command He gives is a seed, and inside it is His own life. {write}“I will put my laws into their mind, and write them in their hearts.” {bed}The man on the bed couldn't walk, however much he wished. {we}We can't stop sinning, however much we wish. {arose}But He said arise, and the man arose.",
     cite: [
       'John 8:11',
       "Ellen G. White, Christ's Object Lessons, 38",
       'Hebrews 8:10',
-      'Ellen G. White, Steps to Christ, 51',
+      'Ellen G. White, Steps to Christ, 47, 51',
       'Mark 2:11–12',
     ],
-    picture: `IDEA: the page opens on \`robe\`'s closing row; on \`power\` the green blade pulses and the other two icons dim (gift three opens on its icon). On \`remember\` a breath's callback to \`woman\` in its layout: she walks out of frame screen-left, upright, as she did on \`told\`; then Max on the page beside the two stone tablets from \`word\`. On \`command\` a gold seed drops from the tablets' glow and opens along its seam: a blade folded inside it, the life to keep the command inside the command. On \`moves\` the tablets shrink and settle into his chest with the seed, a warm light where his heart is; on \`write\` the ten gold lines glow through his jacket, and the verse's full-screen card may cut in on its phrase, "hearts" large in gold. On \`bed\` the callback to \`roof\` in its layout: the man lies on his bed among the crowd, his hands pressing at it, and he cannot rise. On \`we\` Max on the page in the same pose, straining, his feet held fast to the page. On \`arose\` the man rises with his bed and walks out through the crowd, as he did on \`went\`; then Max's feet come free and he takes a step, his face at a third of the frame, warmed. ${CARDS}`,
+    picture: `IDEA: the page opens on \`robe\`'s closing row; on \`power\` the green blade pulses and the other two icons dim (power opens on its icon). On \`remember\` a breath's callback to \`woman\` in its layout: she walks out of frame screen-left, upright, as she did on \`told\`; then Max on the page beside the two stone tablets from \`word\`. On \`command\` a gold seed drops from the tablets' glow and opens along its seam: a blade folded inside it, the life to keep the command inside the command. On \`write\` the tablets shrink and settle into his chest with the seed, a warm light where his heart is, and the ten gold lines glow through his jacket; the verse's full-screen card may cut in on its phrase, "hearts" large in gold. On \`bed\` the callback to \`roof\` in its layout: the man lies on his bed among the crowd, his hands pressing at it, and he cannot rise. On \`we\` Max on the page in the same pose, straining, his feet held fast to the page. On \`arose\` the man rises with his bed and walks out through the crowd, as he did on \`went\`; then Max's feet come free and he takes a step, his face at a third of the frame, warmed. ${CARDS}`,
   },
   {
     // The country link (owner: country living is part of righteousness by
@@ -307,10 +317,9 @@ export const script = defineScript([
     say: "{part}So what's our part? {picture}Picture a grandmother in her garden. {sow}She digs, she sows, she waters. {grow}But can she make one seed grow? No. {power}Every seed grows by the power of God. {blade}And it grows the way Jesus said: “First the blade, then the ear, after that the full corn in the ear.” {morning}It's the same with us. Each morning, {will}we give God our will, and He does the growing. {seventh}And on the seventh day {rest}she puts down her tools and rests. Even that rest is faith.",
     lead: 0.4,
     cite: [
-      "Ellen G. White, Christ's Object Lessons, 63",
+      "Ellen G. White, Christ's Object Lessons, 63, 65",
       '1 Corinthians 3:6',
       'Mark 4:28',
-      'Ellen G. White, Education, 111',
       'Ellen G. White, Steps to Christ, 47, 70',
       'E. J. Waggoner, General Conference Daily Bulletin, March 8, 1897, 303',
       'Hebrews 4:10',
@@ -344,7 +353,7 @@ export const script = defineScript([
     // ahead. The tail with `thesis`'s lead is the held pause of about 3 s
     // before the thesis line, a designed silence.
     id: 'court',
-    say: '{back}Back to the courtroom. {charge}Who can accuse him now? {justifieth}“It is God that justifieth.” {beside}Christ, who died for him, stands beside him. {seed}It was never a cover-up. It was a seed, {takes}and it makes a man righteous the moment he takes it. {you}Today He holds the same seed out to you: {faith}faith, {forgiveness}forgiveness, {power}power. {leaves}You can keep the fig leaves, or take the seed and live. {how}How should man be just with God?',
+    say: '{back}Back to the courtroom. {charge}Who can accuse him now? No one. {justifieth}“It is God that justifieth.” {beside}Christ, who died for him, stands beside him. {seed}It was never a cover-up. It was a seed. {takes}And it makes a man righteous the moment he takes it. {you}Today He holds the same seed out to you: {faith}faith, {forgiveness}forgiveness, {power}power. {leaves}You can keep the fig leaves, or take the seed and live. {how}How should man be just with God?',
     lead: 0.4,
     tail: 2,
     cite: [
