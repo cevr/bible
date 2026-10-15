@@ -7,21 +7,25 @@
 // beats as the Script reader reads them (`FreshFilm.script`); a draft's, as
 // its Markdown reads now (`SeriesDrafts.read`); a Board's panels are on the
 // film's board (`BoardStore.read`); a take is one of the beat's attempts
-// the studio lists (`Takes.attempts`), the one named or the one kept. A ref
+// the studio lists (`beatAttempts`, the studio's route's own read, which
+// refuses a beat the film does not have), the one named or the one kept. A ref
 // is a ref, never a path: the review finds it among the files it lists, or
 // it is not there.
 
-import { Array as Arr, Boolean as Bool, Context, Effect, Layer, Option } from 'effect';
+import { Boolean as Bool, Context, Effect, Layer, Option, Predicate } from 'effect';
 import { type Ask, type Material, materialsIn } from '../core/ask.ts';
 import { panelById } from '../core/board.ts';
 import { docAt, videoAt } from '../core/review.ts';
 import { BoardStore } from './board-store.ts';
-import { ContentStore } from './content-store.ts';
-import { FilmFolder, filmNamed } from './film-repo.ts';
+import type { ContentStore } from './content-store.ts';
+import type { FilmFolder } from './film-repo.ts';
+import { filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { Review } from './review.ts';
 import { SeriesDrafts } from './series-drafts.ts';
-import { Takes } from './takes.ts';
+import type { StudioReadings } from './studio.ts';
+import { beatAttempts } from './studio.ts';
+import type { Takes } from './takes.ts';
 
 interface AskMaterialsService {
   /** What `ask` names that the lab cannot show, each as the agent fixes it; none when all is there. */
@@ -52,10 +56,8 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
       const fresh = yield* FreshFilm;
       const drafts = yield* SeriesDrafts;
       const boards = yield* BoardStore;
-      const takes = yield* Takes;
-      const store = yield* ContentStore;
-      const folder = yield* FilmFolder;
       const films = yield* Effect.context<FilmFolder>();
+      const studio = yield* Effect.context<StudioReadings | Takes | ContentStore | FilmFolder>();
 
       /** Film `name`, when the lab has one so named; else the problem. */
       const film = (where: string, name: string) =>
@@ -142,32 +144,27 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
             });
           case 'audio':
             return Effect.gen(function* () {
-              const named = yield* film(where, block.film);
-              const paths = folder.paths(named);
-              const attempts = yield* takes
-                .attempts(paths, block.beat)
-                .pipe(Effect.mapError(unread(where, `the takes of ${block.film} ${block.beat}`)));
-              const files = attempts.map((a) => a.file);
-              return yield* Option.match(Option.fromUndefinedOr(block.attempt), {
+              yield* film(where, block.film);
+              // The studio's own read: a beat that is not one of the film's is refused before a file is read.
+              const read = yield* beatAttempts({ film: block.film, beat: block.beat }).pipe(
+                Effect.provideContext(studio),
+                Effect.mapError((error) =>
+                  Bool.match(Predicate.isTagged(error, 'UnknownScene'), {
+                    onTrue: () => `${where}: ${block.film} has no beat ${block.beat}`,
+                    onFalse: () => unread(where, `the takes of ${block.film} ${block.beat}`)(error),
+                  }),
+                ),
+              );
+              return Option.match(Option.fromUndefinedOr(block.attempt), {
                 onSome: (attempt) =>
-                  Effect.succeed(
-                    problemIf(
-                      !Arr.contains(files, attempt),
-                      `${where}: ${block.film} ${block.beat} has no take ${attempt}`,
-                    ),
+                  problemIf(
+                    !read.attempts.some((a) => a.file === attempt),
+                    `${where}: ${block.film} ${block.beat} has no take ${attempt}`,
                   ),
                 onNone: () =>
-                  Effect.map(
-                    store
-                      .read(paths.timings)
-                      .pipe(Effect.mapError(unread(where, `the timings of ${block.film}`))),
-                    (timings) =>
-                      problemIf(
-                        !Option.exists(Option.fromUndefinedOr(timings.scenes[block.beat]), (t) =>
-                          files.includes(t.file),
-                        ),
-                        `${where}: ${block.film} ${block.beat} has no kept take: name an attempt`,
-                      ),
+                  problemIf(
+                    !read.attempts.some((a) => a.kept),
+                    `${where}: ${block.film} ${block.beat} has no kept take: name an attempt`,
                   ),
               });
             });

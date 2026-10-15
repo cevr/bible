@@ -176,9 +176,10 @@ const setup = (
     noScenes,
     noStaging,
     echoPages,
-    StudioReadings.layer,
     Choices.layer,
   ).pipe(
+    // An ask's take is read as the studio reads it: the asks need the readings too.
+    Layer.provideMerge(StudioReadings.layer),
     Layer.provideMerge(Layer.mergeAll(SourceWriter.layer, RenderCatalogue.layer, noRenders)),
     Layer.provideMerge(Layer.mergeAll(folder, fresh)),
     Layer.provideMerge(Takes.layer),

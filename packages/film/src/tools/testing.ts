@@ -1781,8 +1781,16 @@ export const notesInMemory = (film: string) =>
 /** What else a lab in memory runs with: its films' fresh runs, and the mtimes its files keep. */
 interface LabInMemory {
   readonly film?: Layer.Layer<FreshFilm>;
-  /** What an ask's material is found through beside the board and the film: the review's files, the drafts, the takes. */
-  readonly asking?: Layer.Layer<Review | SeriesDrafts | Takes>;
+  /**
+   * What an ask's material is found through beside the board and the film:
+   * the review's files, the drafts, the studio's readings and takes (over
+   * the lab's files and store, when real).
+   */
+  readonly asking?: Layer.Layer<
+    Review | SeriesDrafts | StudioReadings | Takes,
+    never,
+    ContentStore | FileSystem.FileSystem | Path.Path
+  >;
   readonly mtimes?: ReadonlyMap<string, number>;
 }
 

@@ -1,28 +1,35 @@
 // The material an ask shows, found when the ask is made: a document and a
-// video only when the review lists them (a ref that climbs out of its root
-// or names another host never decodes; one the review does not list is
-// refused), a film's script and a draft's by the beats their reader reads,
-// a Board by its panels, a take by the beat's attempts (the one named, or
-// the one kept). Each refusal names what is missing.
+// video only when the review lists them (one the review does not list is
+// refused; the ref's own shape is `core/ask.test.ts`'s), a film's script and
+// a draft's by the beats their reader reads, a Board by its panels, a take
+// by the studio's own read of the beat's attempts (the one named, or the
+// one kept; a beat the film does not have is refused before a file is
+// read). Each refusal names what is missing.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Boolean as Bool, Effect, Exit, Layer, Option, Path, Schema } from 'effect';
-import { Ask, type AskBlock, oneQuestion } from '../core/ask.ts';
+import { Boolean as Bool, Effect, Layer, Option, Path, Schema } from 'effect';
+import { type Ask, type AskBlock, oneQuestion } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson } from '../core/board.ts';
 import { ReviewFileUnknown } from '../core/refusals.ts';
 import type { ReviewIndex } from '../core/review.ts';
 import { TimingsJson } from '../core/schema.ts';
+import { stagingVoice } from '../core/staging-voice.ts';
+import type { ReadBeat, StudioReading } from '../core/studio.ts';
 import { AskStore } from './ask-store.ts';
+import { FilmFolder } from './film-repo.ts';
 import { Review } from './review.ts';
 import { SeriesDrafts } from './series-drafts.ts';
-import { Takes } from './takes.ts';
+import { StudioReadings } from './studio.ts';
+import { Attempt, Takes } from './takes.ts';
 import {
   echoPages,
+  emptyCalls,
+  fakeElevenLabs,
+  fakeMedia,
   freshFilm,
   labInMemory,
   memoryFileSystem,
   noRenders,
-  noStudio,
   storeLayer,
   text,
 } from './testing.ts';
@@ -44,7 +51,7 @@ const board: BoardFile = {
 
 const listed = (ref: string, name: string) => ({ ref, name, size: 10, mtime: 1 });
 
-/** The review's one set: its script in Markdown and its cut. */
+/** The review's one set: its notes in Markdown and its cut. */
 const index: ReviewIndex = {
   folders: [
     {
@@ -55,7 +62,7 @@ const index: ReviewIndex = {
       sets: [],
       videos: [{ ...listed('p5/rbf/cut.mp4', 'cut.mp4'), phone: 'none' }],
       images: [],
-      docs: [listed('p5/rbf/script.md', 'script.md')],
+      docs: [listed('p5/rbf/notes.md', 'notes.md')],
     },
   ],
 };
@@ -78,28 +85,45 @@ const review = Layer.effect(
   ),
 ).pipe(Layer.provide(noRenders));
 
-const attempt = {
+const attempt: Attempt = {
   beat: 'cold',
   file: 'cold.abc.flac',
-  take: { hash: 'h', file: 'cold.abc.flac', duration: 2, words: [], source: 'recorded' as const },
+  take: { hash: 'h', file: 'cold.abc.flac', duration: 2, words: [], source: 'recorded' },
   heard: 'A judge sat.',
   wer: 0,
   at: 1,
 };
 
-/** The takes: beat `cold` has one attempt, every other beat none. */
-const takes = Layer.effect(
-  Takes,
-  Effect.map(Effect.service(Takes), (none) =>
-    Takes.of({
-      ...none,
-      attempts: (_film, beat) =>
-        Effect.succeed(Bool.match(beat === 'cold', { onTrue: () => [attempt], onFalse: () => [] })),
+/** A beat's attempts as the studio keeps them on disk. */
+const ledger = (attempts: ReadonlyArray<Attempt>) =>
+  text(
+    Schema.encodeSync(Schema.fromJsonString(Schema.Struct({ attempts: Schema.Array(Attempt) })))({
+      attempts,
     }),
-  ),
-).pipe(Layer.provide(noStudio));
+  );
 
-/** The lab's files: film `f`, its Board, its timings (cold's take kept, when `kept`), a series draft. */
+const beat = (id: string, said: string): ReadBeat => ({
+  id,
+  text: said,
+  script: said,
+  lines: [{ name: 'lead', voiceId: stagingVoice.voices[0].voiceId, text: said }],
+  delivery: [],
+});
+
+/** Film `f` as the studio reads it: one beat, `cold`. */
+const reading: StudioReading = {
+  voice: stagingVoice,
+  heardAs: {},
+  beats: [beat('cold', 'A judge sat.')],
+  sheet: [],
+};
+
+/**
+ * The lab's files: film `f`, its Board, its timings (cold's take kept, when
+ * `kept`), cold's attempts, a series draft; and, outside `f`, another
+ * folder's ledger that holds an attempt of the same name, which a beat that
+ * climbs out of `f`'s attempts would read.
+ */
 const seeded = (kept: boolean) =>
   new Map<string, Uint8Array>([
     ['/films/f/scenes/index.ts', text('export {};\n')],
@@ -113,22 +137,30 @@ const seeded = (kept: boolean) =>
         }),
       ),
     ],
+    ['/films/f/narration/attempts/cold/attempts.json', ledger([attempt])],
+    ['/films/g/narration/attempts/cold/attempts.json', ledger([attempt])],
     ['/series/talks/scripts/01-grace.md', text(TALK)],
   ]);
 
-/** The asks over the lab in memory, their material read through the fakes above and the draft. */
+/** The asks over the lab in memory, their material read through the review above, the studio's real reads and the draft. */
 const run = <A, E>(self: Effect.Effect<A, E, AskStore>, kept = true) => {
   const files = seeded(kept);
   const drafts = SeriesDrafts.layer(Option.some('/series')).pipe(
     Layer.provide([storeLayer(files), memoryFileSystem(files), Path.layer]),
   );
+  const film = freshFilm({
+    script: () => Effect.succeed([{ id: 'cold', say: 'A judge sat.', cite: [] }]),
+    reading: () => Effect.succeed(reading),
+  });
+  const studio = Layer.mergeAll(
+    StudioReadings.layer.pipe(Layer.provide([film, FilmFolder.layer('/films')])),
+    Takes.layer.pipe(Layer.provide([fakeElevenLabs(files, emptyCalls()), fakeMedia(files)])),
+  ).pipe(Layer.orDie);
   return self.pipe(
     Effect.provide(
       labInMemory(files, echoPages, {
-        film: freshFilm({
-          script: () => Effect.succeed([{ id: 'cold', say: 'A judge sat.', cite: [] }]),
-        }),
-        asking: Layer.mergeAll(review, takes, drafts),
+        film,
+        asking: Layer.mergeAll(review, studio, drafts),
       }),
     ),
   );
@@ -165,7 +197,7 @@ describe('the material an ask shows', () => {
     run(
       Effect.gen(function* () {
         const shown: ReadonlyArray<AskBlock> = [
-          { kind: 'document', ref: 'p5/rbf/script.md' },
+          { kind: 'document', ref: 'p5/rbf/notes.md' },
           { kind: 'video', ref: 'p5/rbf/cut.mp4', at: 4 },
           { kind: 'script', film: 'f', beats: ['cold'] },
           { kind: 'script', series: 'talks', draft: '01-grace', beats: ['1'] },
@@ -181,8 +213,8 @@ describe('the material an ask shows', () => {
   it.effect('refuses an ask whose material is not there, naming it', () =>
     run(
       Effect.gen(function* () {
-        expect(yield* refusal({ kind: 'document', ref: 'p5/rbf/notes.md' })).toContain(
-          'no document p5/rbf/notes.md is listed by the review',
+        expect(yield* refusal({ kind: 'document', ref: 'p5/rbf/other.md' })).toContain(
+          'no document p5/rbf/other.md is listed by the review',
         );
         expect(yield* refusal({ kind: 'video', ref: 'p5/rbf/other.mp4' })).toContain(
           'no video p5/rbf/other.mp4 is listed by the review',
@@ -198,13 +230,30 @@ describe('the material an ask shows', () => {
           'the Board of f has no panel cold.door',
         );
         expect(yield* refusal({ kind: 'audio', film: 'f', beat: 'warm' })).toContain(
-          'f warm has no kept take',
+          'f has no beat warm',
         );
         expect(
           yield* refusal({ kind: 'audio', film: 'f', beat: 'cold', attempt: 'cold.zzz.flac' }),
         ).toContain('f cold has no take cold.zzz.flac');
       }),
     ),
+  );
+
+  it.effect(
+    "refuses a take's beat that climbs out of the film's attempts, before reading there",
+    () =>
+      run(
+        Effect.gen(function* () {
+          expect(
+            yield* refusal({
+              kind: 'audio',
+              film: 'f',
+              beat: '../../../g/narration/attempts/cold',
+              attempt: 'cold.abc.flac',
+            }),
+          ).toContain('f has no beat ../../../g/narration/attempts/cold');
+        }),
+      ),
   );
 
   it.effect('refuses a take when none is kept and none is named', () =>
@@ -216,31 +265,5 @@ describe('the material an ask shows', () => {
       }),
       false,
     ),
-  );
-
-  it.effect('never decodes a ref that climbs out of its root or names another host', () =>
-    Effect.sync(() => {
-      const decodes = (ref: string) =>
-        Exit.isSuccess(
-          Schema.decodeExit(Ask)({
-            start: 's',
-            steps: {
-              s: { blocks: [{ kind: 'document', ref }], next: [{ to: 'e' }] },
-              e: { end: true },
-            },
-          }),
-        );
-      expect(decodes('p5/rbf/script.md')).toBe(true);
-      for (const ref of [
-        'p5/../secret.md',
-        '../p5/script.md',
-        '/etc/passwd.md',
-        'p5/./script.md',
-        'https://evil.example/a.md',
-        'p5\\..\\a.md',
-        'p5//a.md',
-      ])
-        expect(decodes(ref)).toBe(false);
-    }),
   );
 });
