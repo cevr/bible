@@ -450,6 +450,7 @@ export const VideoPart = (props: { readonly block: BlockOf<'video'> }) => {
                 video={v}
                 poster={reviewFrameUrl(v.ref, Option.none(), POSTER_W)}
                 at={props.block.at}
+                quiet
               />
             )}
           </Show>

@@ -248,6 +248,8 @@ const LONE = '.rv-tall';
 const LONE_ROW = `${LONE} .rv-alone-row`;
 const LONE_VIDEO = `document.querySelector('${LONE} video')`;
 const LONE_FAILED = `${LONE} [data-act="play-video"] [data-role="failed"]`;
+/** Its picture's sign at rest that it plays. */
+const LONE_REST = `${LONE} [data-act="play-video"] [data-role="at-rest"]`;
 
 /** What a lone video that cannot play says. */
 const CANNOT_PLAY = 'Can’t play this video · Try again';
@@ -411,10 +413,18 @@ describe('the review page', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: FOLDER });
         yield* waitFor(page, `${LONE} [data-act="play-video"]`);
-        // At rest its picture is the one control: no row.
+        // At rest its picture is the one control: no row, and the picture says it plays (▶ on a
+        // disc, and its length once measured).
         yield* countIs(page, LONE_ROW, 0);
+        yield* waitFor(page, `${LONE_REST} .rv-rest-play .sh-icon`);
+        yield* evaluates(
+          page,
+          `/^\\d+:\\d\\d$/.test(document.querySelector('${LONE_REST} .rv-rest-length')?.textContent ?? '')`,
+          true,
+        );
         yield* page.click(`${LONE} [data-act="play-video"]`);
         yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '❚❚');
+        yield* countIs(page, LONE_REST, 0);
         // Its time moves, and the row's clock says so.
         yield* until(page, `${LONE_VIDEO}.currentTime > 1.5`);
         yield* until(
@@ -435,6 +445,7 @@ describe('the review page', () => {
         yield* countIs(page, LONE_ROW, 1);
         yield* page.evaluate(scrub('change', 0));
         yield* countIs(page, LONE_ROW, 0);
+        yield* countIs(page, LONE_REST, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

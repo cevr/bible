@@ -23,7 +23,7 @@ import { rateCommands, rateId, rateText, rateTitle } from '../../player/transpor
 import { Actor } from '../actor.tsx';
 import { hubKeys } from '../command/changes.ts';
 import { CommandChip } from '../command/command-chip.tsx';
-import { HearIcon, useShellTime } from '../page-shell.tsx';
+import { HearIcon, PlayIcon, useShellTime } from '../page-shell.tsx';
 import { pressed } from '../pressed.ts';
 import { useClockRate, useReview } from './context.tsx';
 import {
@@ -32,6 +32,7 @@ import {
   type SyncState,
   atRest,
   clockParts,
+  lengthText,
   failureOf,
   reachOf,
   runningOf,
@@ -131,6 +132,8 @@ const TransportRow = (
     readonly title: string;
     /** Whether it plays one video on a clock of its own (`PlayedAlone`), not the page's. */
     readonly alone?: boolean;
+    /** Whether its play is quiet, not the view's one verb (`PlayedAlone`'s `quiet`). */
+    readonly quiet?: boolean;
   }>,
 ) => {
   // The clock as the server opened it: at its start, as a page whose link
@@ -150,7 +153,8 @@ const TransportRow = (
       <button
         type="button"
         class="sh-btn rv-big"
-        data-primary=""
+        data-primary={Option.getOrUndefined(Option.liftPredicate('', () => props.quiet !== true))}
+        data-tone={Option.getOrUndefined(Option.liftPredicate('quiet', () => props.quiet === true))}
         data-act="play"
         aria-label={Match.value(playing()).pipe(
           Match.when(true, () => 'Pause'),
@@ -256,6 +260,12 @@ export const PlayedAlone = (
     readonly video: Pick<ReviewFile, 'ref' | 'mtime'>;
     /** Where it stands as it opens, in seconds (its start, 0, when none). */
     readonly at?: number;
+    /**
+     * Whether its row's play is quiet: on a page whose verb is elsewhere (an
+     * ask's Send), the picture is the video's press and its row's play the
+     * kit's quiet button, at the pointer's size.
+     */
+    readonly quiet?: boolean;
   }>,
 ) => {
   const { meta } = useReview();
@@ -345,6 +355,17 @@ export const PlayedAlone = (
                   {CANNOT_PLAY}
                 </span>
               </Show>
+              {/* At rest the picture says it plays: ▶ on a disc, and its length once measured. */}
+              <Show when={atRest(sync()) && !failed()}>
+                <span class="rv-rest" data-role="at-rest" aria-hidden="true">
+                  <span class="rv-rest-play">
+                    <PlayIcon />
+                  </span>
+                  <Show when={Option.getOrUndefined(lengthText(sync()))}>
+                    {(length: Accessor<string>) => <span class="rv-rest-length">{length()}</span>}
+                  </Show>
+                </span>
+              </Show>
             </button>
             <Show when={!atRest(sync()) && !failed()}>
               <TransportRow
@@ -353,6 +374,7 @@ export const PlayedAlone = (
                 scrubs="Scrub the video"
                 title="Play / pause"
                 alone
+                quiet={props.quiet}
               />
             </Show>
           </>

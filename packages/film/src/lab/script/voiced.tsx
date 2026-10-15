@@ -17,6 +17,7 @@ import type { Accessor } from 'solid-js';
 import { Array as Arr, Match, Option } from 'effect';
 import type { StagingTake } from '../../core/api.ts';
 import { HOLD_DEFAULT, type Mark } from '../../core/delivery.ts';
+import { PlayIcon } from '../page-shell.tsx';
 import { pressed } from '../pressed.ts';
 import {
   type Gap,
@@ -50,7 +51,6 @@ const HEAR_TITLE = {
   true: 'Stop',
   false: 'Hear the staging take, and the beats ready after it',
 } as const;
-const HEAR_GLYPH = { true: '■', false: '▶' } as const;
 /** ▶'s name, for one who cannot see the glyph: which beat it plays. */
 const hearLabel = (hearing: boolean, beat: string): string => {
   if (hearing) return `Stop beat ${beat}`;
@@ -123,7 +123,7 @@ export const TakeState = (props: { readonly beat: string }) => {
                       else voice.hear(props.beat, Option.none(), true);
                     }}
                   >
-                    {HEAR_GLYPH[pressed(hearing())]}
+                    <PlayIcon playing={hearing()} />
                   </button>
                   {Option.toArray(paceOf(ready.words)).map((pace) => (
                     <span
