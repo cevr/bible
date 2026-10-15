@@ -22,6 +22,9 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
   - **One payoff word,** set two to three times larger, with one treatment drawn from the colour script (scarlet for sin, white for the robe, gold for the Word). The lead-in words stay small.
   - **Scripture on a card is KJV, verbatim.** A card may follow the verse on its page, the phrase highlighted, the highlight flooding into the card.
   - **A card earns its place:** a turn in the argument, a key line or a verse. How many a film carries is set by its look, studied side by side in the lab before a film adopts it.
+  - **The model card** is cold-studies' Job 9:2: the verse on its page, the phrase highlighted as it is said, the highlight flooding out into the full-screen card, "just" set large in gold, a hard cut out (`apps/animations/src/films/cold-studies/script.ts`; the engine sets every card, `canvas/card.ts`).
+- **Every brief says it.** A scene's, a concept's, a board panel's and a render's brief, and every image prompt, say that the narration's words appear only as full-screen cards, so the picture asks for no lettering (owner, 2026-10-14: "remember about the full screen cards with text"). A word the picture must carry is a card the engine sets, never a prompt ([reference/storyboard.md](reference/storyboard.md), "A panel").
+- **Punchy subtitles are an open choice** (owner, 2026-10-14: "lets try rendering with punchy subtitles, i think modern audiences like these as well", and "cut out the subtitles when its a full screen card"). The trial (branch `rbfscene`, not merged) burns the take's words into the picture one to three at a time as they are said, low in the frame with no plate, and never over a full-screen card. Until the owner picks on the production (asked there as "Punchy subtitles or the clean master?"), the master renders clean with `--no-captions` and the captions ship as the `.vtt`.
 - **`cite` feeds the credits and `sources.md`.** It is never an on-screen tag. The film's `credits.ts` builds the roll from the beats' `cite`s: grouped by author, each work once with its places merged ("Steps to Christ, 17, 18, 47, 70"), no locator left alone on a line.
 - **Check:** in a `--contact 6` sheet, text shows in about 8 tiles out of 58 or fewer, outside the title, the credits and the full-screen cards.
 
@@ -30,7 +33,7 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 - **At most one quotation per beat.** Quoted words make up 20% of the script or less; BibleProject's median is 13.5%, ours was 41%.
 - **A quotation over 25 words is a set piece.** It gets one picture per clause, in the order spoken, or one shot held throughout.
 - **Quote only Scripture.** A film speaks to every Christian: its doctrine and its message are the frame's, but its authority is the Bible's. A quotation spoken or shown is KJV, verbatim (supplied-word brackets dropped). Ellen White and the pioneers are never quoted and never named in speech: say their thought in the narrator's own words, inside their words, as a plain claim ("Faith is not our Saviour. It earns nothing."), never "Ellen White said…". Their works are credited in the roll (`cite`), so the sources stay one look away. Name Bible writers freely ("Paul goes further", "The psalm says").
-- **No denomination, no church history.** These films never mention Adventism: no church history (no 1888, no Minneapolis), no denomination's name, no pioneer drawn or named, in speech or in the picture. The doctrine stays; it is argued from Scripture. Adventist history and doctrine belong to their own series. Only the credits name the works a paraphrase came from.
+- **No denomination, no church history.** These films never mention Adventism: no church history (no 1888, no Minneapolis), no denomination's name, no pioneer drawn or named, in speech or in the picture. The doctrine stays; it is argued from Scripture. Adventist history and doctrine belong to their own series. Only the credits name the works a paraphrase came from, and even they carry no denomination's own document and no record of the 1888 conference (owner, 2026-10-13, on the recommendation to drop "Fundamental Principles of the Seventh-day Adventists" and Ms 24, 1888 from the roll: "lets go with your recs").
 - **Never speak chapter and verse.** The credits list the sources.
 - **Check:** divide the words inside quotation marks in `script.ts` by all its words.
 
@@ -120,12 +123,13 @@ The shape as a share of the runtime:
 
 ## 11. Tone
 
-BibleProject is informative, curious and hopeful. The weight sits on explanation, the problem comes in small doses, and the colours stay bright.
+BibleProject is informative, curious and hopeful (owner, 2026-09-27: "let's make a bit less sad - informative style, similar to bibleproject's tone and voice"). The weight sits on explanation, the problem comes in small doses, and the colours stay bright.
 
+- **Persuade, in the house voice.** Every film speaks to every Christian and the interested non-believer, by reason and Scripture first, then feeling and a speaker the viewer can trust; its language is charming, melodic, earnest and fervent; it follows Christ's method, meeting the viewer's need before it calls (owner, 2026-10-13). The rules in full, with "the Almighty" and fiction, are the series' Voice and audience ([series/README.md](../../../apps/animations/series/README.md)).
 - **Explain most:** the word, the story and the pattern take 40–60% of the speech. That is where the curiosity lives.
 - **Dose the problem:** 20% of the speech or less, in 2 to 4 doses of 5 to 40 s. Answer each within seconds, and give hope at least 1.5 times the problem's share.
 - **Name sin in "we", as a mechanism:** "So we do what Adam and Eve did. We sew fig leaves." Then take the weight off with a light line: "How is that going?"
-- **Say wonder out loud, once per act,** about the text: "Jones noticed something kind of amazing".
+- **Say wonder out loud, once per act,** about the text: "Paul does something kind of amazing here." The wonder is a Bible writer's or the text's, never a pioneer's (rule 2).
 - **Turn to hope on a "But"** that names a surprise, then a gift: "But the story does not end there."
 - **Keep the colour script bright, with one valley:**
   - a mean luma of 140–150, with 5% of frames or fewer darker than 60;
@@ -152,7 +156,7 @@ A paper theatre lit from behind.
 
 ## Shorts
 
-A short is a vertical cut of a finished film (`shorts.ts`, [SKILL.md](SKILL.md) step 9), never a new drawing. These rules come from a 2025–26 study of educational shorts, BibleProject's and Kurzgesagt's above all, fitted to one narrator. They add to rules 1–12; where one differs, the short's rule wins inside the short. `bun run check <film> --short <id>` enforces the rules marked **Checked**; the rest are read off the contact sheet and the script.
+A short is a vertical cut of a finished film (`shorts.ts`, [SKILL.md](SKILL.md) step 11), never a new drawing. These rules come from a 2025–26 study of educational shorts, BibleProject's and Kurzgesagt's above all, fitted to one narrator. They add to rules 1–12; where one differs, the short's rule wins inside the short. `bun run check <film> --short <id>` enforces the rules marked **Checked**; the rest are read off the contact sheet and the script.
 
 1. **One idea, standalone.** A short answers one viewer question and makes sense without the film. Cut a whole question-and-answer turn, never half an argument: a span starts and ends on a mark, a cue or a scene landmark, so it keeps a whole turn when the film is re-timed.
 2. **The hook is the narrator's own question, or a claim against expectation.** One voice: the narrator asks in the viewer's words ("Is God's verdict a cover-up?") or says the surprising thing ("A judge calls a guilty man righteous"). No second voice asks it. The first sound is that line or leads straight into it, and the picture already moves on frame 0: no title card, no logo, no page turn. For sound-off viewers the same line is typeset once above the picture for the first 2–3 s (the short's `hook`), the one exception to rule 1 in a short.
