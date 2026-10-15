@@ -72,9 +72,15 @@ const up = (file: string, n: number) => file.split('/').slice(0, -n).join('/');
  * reads the packet, its install and the user's keychains, where its sign-in
  * is kept; its temp files and its state go to `scratch`, the one folder it
  * writes. Nothing else of the home is readable: not `~/.claude`, not
- * `~/.claude.json`.
+ * `~/.claude.json`. With a `proxy`, it asks through it: the sign-in is then
+ * the proxy's.
  */
-const claudeRun = (claude: string, home: string, folders: RunFolders): SandboxedRun => ({
+const claudeRun = (
+  claude: string,
+  home: string,
+  proxy: Option.Option<string>,
+  folders: RunFolders,
+): SandboxedRun => ({
   plan: {
     reads: [folders.packet, up(claude, 2), `${home}/Library/Keychains`],
     writes: [folders.scratch],
@@ -93,6 +99,9 @@ const claudeRun = (claude: string, home: string, folders: RunFolders): Sandboxed
     DISABLE_AUTOUPDATER: '1',
     LANG: 'en_US.UTF-8',
     USER: home.split('/').at(-1) ?? '',
+    // The host's Claude proxy (the owner's teamclaude, rotating his accounts),
+    // so the counsel spends what the host's Claude spends, not one login.
+    ...Option.match(proxy, { onNone: () => ({}), onSome: (url) => ({ ANTHROPIC_BASE_URL: url }) }),
   },
   command: [
     claude,
@@ -217,7 +226,8 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
 
   /**
    * Headless Claude, Opus at max effort, in the sandbox (`claudeRun`), its
-   * program the one `program` finds and its home `HOME`.
+   * program the one `program` finds, its home `HOME`, and its route the
+   * host's `ANTHROPIC_BASE_URL` when it has one (the owner's teamclaude).
    */
   static readonly claudeAt = <R>(program: Effect.Effect<string, CounselFailed, R>) =>
     Counsel.sandboxed((folders) =>
@@ -226,7 +236,10 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
         const home = yield* Config.String('HOME').pipe(
           Effect.mapError((error) => CounselFailed.make({ reason: error.message })),
         );
-        return claudeRun(claude, home, folders);
+        const proxy = yield* Config.option(Config.String('ANTHROPIC_BASE_URL')).pipe(
+          Effect.mapError((error) => CounselFailed.make({ reason: error.message })),
+        );
+        return claudeRun(claude, home, proxy, folders);
       }),
     );
 

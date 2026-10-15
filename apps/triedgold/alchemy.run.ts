@@ -1,54 +1,34 @@
 /**
- * Tried Gold on Railway, declared as an Alchemy stack.
+ * Tried Gold, declared as an Alchemy stack: one Cloudflare Worker serving the
+ * React Router build (`src/worker/Site.ts`).
  *
- * - `prod` adopts and retains what `cevr/tried-gold` deployed: the `tried-gold`
- *   project, its `tried-gold` service, and the `triedgold.com` custom domain.
- *   The service's source moves from a GitHub/Nixpacks build to this app's
- *   bundle. Deploying prod is the owner's call (`bun run deploy`).
- * - `prod` also owns the hostnames (`infra/domains.ts`): the apex and `www`
- *   as Railway custom domains, in the Cloudflare zone it adopts and retains,
- *   with the DNS-only CNAME records Railway asks for.
- * - Every other stage (`test_$USER`, `agent-*`) is a throwaway: its own
- *   project and a generated `*.up.railway.app` URL, created and destroyed
- *   whole. It declares no zone, domain or DNS record.
+ * - `prod` is the Worker `triedgold` on `triedgold.com`, with
+ *   `www.triedgold.com` redirecting to the apex. Deploying it is the owner's
+ *   call (`bun run deploy`).
+ * - Every other stage (`test_$USER`, `agent-*`) is a throwaway copy on a
+ *   generated `workers.dev` URL with no domain, created with
+ *   `bunx alchemy deploy alchemy.run.ts --stage <name>` and destroyed with
+ *   `bunx alchemy destroy alchemy.run.ts --stage <name>`.
  *
  * Run it from this directory after `react-router build` (the package scripts
- * do both): the service ships `build/client` and bundles `build/server`.
+ * do both): the Worker serves `build/client` as its assets and bundles
+ * `build/server`. State lives in the Cloudflare state store, so every machine
+ * and CI see the same resources.
  */
 import * as Alchemy from 'alchemy';
 import * as Cloudflare from 'alchemy/Cloudflare';
-import { providers as railwayProviders } from 'alchemy/Railway/Providers';
-import { Effect, Layer } from 'effect';
+import { Effect } from 'effect';
 
-import { Domains } from './infra/domains.ts';
-import { TriedGold } from './infra/railway.ts';
-import Server from './src/deploy/Server.ts';
+import Site from './src/worker/Site.ts';
 
 /** The stack's providers, shared with the deploy test's harness. */
-export const providers = Cloudflare.providers().pipe(Layer.provideMerge(railwayProviders()));
+export const providers = Cloudflare.providers();
 
 export default Alchemy.Stack(
   'triedgold',
-  { providers, state: Alchemy.localState() },
+  { providers, state: Cloudflare.state() },
   Effect.gen(function* () {
-    const { stage } = yield* Alchemy.Stack;
-    yield* TriedGold;
-    const service = yield* Server.pipe(
-      Alchemy.AdoptPolicy.adopt(stage === 'prod'),
-      Alchemy.RemovalPolicy.retain(stage === 'prod'),
-    );
-
-    if (stage !== 'prod') {
-      return { url: service.url, serviceId: service.serviceId };
-    }
-
-    const { apex, www } = yield* Domains(service);
-
-    return {
-      url: apex.url,
-      serviceId: service.serviceId,
-      deploymentStatus: service.deploymentStatus,
-      certificateStatus: { apex: apex.certificateStatus, www: www.certificateStatus },
-    };
+    const site = yield* Site;
+    return { url: site.url };
   }),
 );

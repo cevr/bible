@@ -176,7 +176,7 @@ All 14 sweeps reported, plus the retro. The batches, what each owns and the merg
   - Reviewer: Codex (gpt-6.1-sol), 2 rounds. Round 1: 1 Blocker, 2 Major. Round 2: accepted.
   - Two implementors; the first compacted, and a restart cut off a third partway through.
   - Owner lab restarted on the new start command (fill on). Live check: local 200, phone 200, foreign Host 403, draft 08 200.
-  - Item 6 (the judge's answer) is provisional: the dry run hit the weekly limit. It reruns at 2:13am.
+  - Item 6 (the judge's answer): closed 2026-10-15. The dry run hit the weekly limit because the counsel skipped the owner's teamclaude proxy. p6-hostfix `2698034fe` (merged `cfe485ddf`) passes the host's `ANTHROPIC_BASE_URL` into the sandbox, as the owner asked. Dry run through it: `RANKING: B >> A`, `key.json` refused.
   - Carried, to p6-hostfix:
     - N1: a held loopback port exits with a bare `ServeError`.
     - N2: `reusePort: false`.
