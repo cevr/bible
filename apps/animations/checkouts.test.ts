@@ -44,4 +44,47 @@ describe('the checkouts', () => {
         expect(first?.path).toBe(path.join(rifts, 'oneline', 'apps', 'animations', 'out'));
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
+
+  it.effect(
+    'a git worktree’s lab leaves out the checkout it was made from, beside it or in a Rift',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const home = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+        const rifts = path.join(home, '.rifts', 'bible-tools');
+        /** `name`, a git worktree of the checkout `main`, as `git worktree add` lays one out. */
+        const worktree = (main: string, dir: string) =>
+          Effect.gen(function* () {
+            const admin = path.join(main, '.git', 'worktrees', path.basename(dir));
+            yield* checkout(dir, 'bible');
+            yield* fs.makeDirectory(admin, { recursive: true });
+            yield* fs.writeFileString(path.join(admin, 'commondir'), '../..\n');
+            yield* fs.writeFileString(path.join(dir, '.git'), `gitdir: ${admin}\n`);
+          });
+        const warm = path.join(home, 'bible-tools');
+        yield* checkout(warm, 'bible');
+        yield* fs.makeDirectory(path.join(warm, '.git'));
+        // A batch of the film-architecture loop, made by `git worktree add ../bible-tools-batch`.
+        yield* worktree(warm, path.join(home, 'bible-tools-batch'));
+        // A unit's worktree of the run's main, a Rift, beside it.
+        yield* checkout(path.join(rifts, 'p5'), 'bible');
+        yield* fs.makeDirectory(path.join(rifts, 'p5', '.git'));
+        yield* checkout(path.join(rifts, 'oneline'), 'bible');
+        yield* worktree(path.join(rifts, 'p5'), path.join(rifts, 'unit'));
+        const labels = (repo: string) =>
+          Effect.map(checkoutRootsOf(repo), (roots) => roots.map((root) => root.label));
+        expect(yield* labels(path.join(home, 'bible-tools-batch'))).toEqual(['bible-tools-batch']);
+        expect(yield* labels(path.join(rifts, 'unit'))).toEqual(['oneline', 'unit']);
+        // The checkouts they were made from still list them.
+        expect(yield* labels(warm)).toEqual([
+          'bible-tools',
+          'bible-tools-batch',
+          'oneline',
+          'p5',
+          'unit',
+        ]);
+        expect(yield* labels(path.join(rifts, 'p5'))).toEqual(['oneline', 'p5', 'unit']);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
 });

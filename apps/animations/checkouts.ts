@@ -3,8 +3,9 @@
 // root `package.json` names the same package as this one's: the folders
 // beside it (worktrees, or the Rifts beside a Rift), and, for the warm source
 // (`<p>/<repo>`), its Rifts (`<p>/.rifts/<repo>/<rift>`). A Rift's lab leaves
-// its warm source out: that is only read, and a say on a set writes its
-// catalogue. A folder's name says nothing.
+// its warm source out, and a git worktree's lab the checkout it was made from
+// (git's main worktree), in every layout: a source is only read, and a say
+// on a set writes its catalogue. A folder's name says nothing.
 
 import type { ReviewRoot } from '@bible/film/tools';
 import { Effect, FileSystem, Match, Option, Path, Schema } from 'effect';
@@ -31,9 +32,34 @@ const foldersIn = (dir: string) =>
   });
 
 /**
+ * The checkout `dir` was made from when it is a git worktree of another
+ * (`git worktree add`): git's main worktree, the folder holding the common
+ * git folder its `.git` file's `gitdir` names (by that folder's
+ * `commondir`), by its real path; none for a main worktree or a Rift,
+ * whose `.git` is a folder.
+ */
+const sourceOf = (dir: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const link = yield* fs.readFileString(path.join(dir, '.git'));
+    const admin = path.resolve(
+      dir,
+      yield* Effect.fromOption(Option.fromNullishOr(/^gitdir: (.+)$/m.exec(link)?.[1])),
+    );
+    const common = path.resolve(
+      admin,
+      (yield* fs.readFileString(path.join(admin, 'commondir'))).trim(),
+    );
+    return yield* fs.realPath(path.dirname(common));
+  }).pipe(Effect.option);
+
+/**
  * The renders (`apps/animations/out`) of every checkout of the repository at
  * `repo` that has some, this one's included, each labelled by its folder's
- * name, sorted by it.
+ * name, sorted by it. The checkout `repo` was made from (`sourceOf`) is left
+ * out: a say on a set writes its catalogue, and the source is never written
+ * from a worktree of it.
  */
 export const checkoutRootsOf = (repo: string) =>
   Effect.gen(function* () {
@@ -49,10 +75,16 @@ export const checkoutRootsOf = (repo: string) =>
       Match.orElse(() => foldersIn(path.join(parent, '.rifts', path.basename(repo)))),
     );
     const candidates = [...new Set([...(yield* foldersIn(parent)), ...elsewhere])];
+    const source = yield* sourceOf(repo);
+    const isSource = (dir: string) =>
+      Effect.map(fs.realPath(dir).pipe(Effect.option), (real) =>
+        Option.exists(source, (made) => Option.contains(real, made)),
+      );
     const checkouts = yield* Effect.filter(candidates, (dir) =>
-      Effect.map(
+      Effect.zipWith(
         packageName(dir),
-        Option.exists((named) => named === name.value),
+        isSource(dir),
+        (named, left) => !left && Option.exists(named, (n) => n === name.value),
       ),
     );
     const roots = checkouts
