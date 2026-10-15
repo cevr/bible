@@ -198,6 +198,9 @@
         "oxc-parser": "0.153.0",
         "pdf-parse": "^2.4.5",
       },
+      "devDependencies": {
+        "effect-bun-test": "catalog:",
+      },
     },
     "packages/ui": {
       "name": "@bible/ui",
