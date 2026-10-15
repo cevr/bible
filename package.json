@@ -32,6 +32,7 @@
     "dead-exports": "bun packages/scripts/src/dead-exports.ts",
     "ci": "bun packages/scripts/src/ci-verdict.ts",
     "merge-audit": "bun packages/scripts/src/merge-audit.ts",
+    "redfirst": "bun packages/scripts/src/redfirst.ts",
     "gate:fix": "bun run lint:fix && bun run fmt && bun run gate",
     "clean": "rm -rf .turbo */.turbo */*/.turbo",
     "prepare": "(test -d .git && lefthook install || true) && effect-tsgo patch --force"
