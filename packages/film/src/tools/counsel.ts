@@ -15,7 +15,7 @@
 // its stderr (`claude.err`), as each arrives. `Counsel.layerTest` answers
 // from a function of the prompt, written where the real one writes, so a
 // test runs the judge through the same files. The run is bounded: one past
-// `COUNSEL_LIMIT` is stopped and fails.
+// `COUNSEL_LIMIT` is stopped and fails, and killed if it ignores the stop.
 
 import { Config, Context, Duration, Effect, FileSystem, Layer, Option, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
@@ -57,32 +57,82 @@ const ANSWER = 'claude.md';
 /** The file the run's stderr is written to, in `dir`. */
 const ERRORS = 'claude.err';
 
+/**
+ * How long a run may take (`limit`), and how long one stopped at its limit
+ * has to exit before it is killed (`killAfter`).
+ */
+interface CounselBounds {
+  readonly limit: Duration.Duration;
+  readonly killAfter: Duration.Duration;
+}
+
 /** How long a counsel may take: Opus at max effort over a packet of stills. */
 const COUNSEL_LIMIT = Duration.minutes(30);
+
+/** The counsel's bounds: `COUNSEL_LIMIT`, then 10 s to exit once stopped. */
+const COUNSEL_BOUNDS: CounselBounds = { limit: COUNSEL_LIMIT, killAfter: Duration.seconds(10) };
+
+/** The schemes a proxy's route is logged by. */
+const WEB_SCHEMES: ReadonlySet<string> = new Set(['http:', 'https:']);
+
+/**
+ * The way a run's `env` sends it to Claude, safe to log: its proxy's
+ * (`ANTHROPIC_BASE_URL`) scheme and host alone, since a login, a path, a
+ * query or a fragment can carry a token; `proxy` for a value that is no
+ * `http` or `https` URL (with no scheme, a value's first word, which can be
+ * a login or a token, parses as one); `direct` with none.
+ */
+const routeOf = (env: Readonly<Record<string, string>>): string =>
+  Option.match(Option.fromNullishOr(env['ANTHROPIC_BASE_URL']), {
+    onNone: () => 'direct',
+    onSome: (url) =>
+      Option.match(
+        Option.filter(Option.fromNullishOr(URL.parse(url)), (parsed) =>
+          WEB_SCHEMES.has(parsed.protocol),
+        ),
+        { onNone: () => 'proxy', onSome: (parsed) => `${parsed.protocol}//${parsed.host}` },
+      ),
+  });
 
 /** The last lines `text` printed, for a failure's reason. */
 const tailOf = (text: string) => text.trim().split('\n').slice(-3).join(' | ');
 
-/** `file` less its last `n` parts: `up('/a/b/c', 2)` is `/a`. */
-const up = (file: string, n: number) => file.split('/').slice(0, -n).join('/');
+/**
+ * Claude's install, `claude` its program's real path: the folder of the
+ * native installer's versions (`<install>/versions/<version>`, the install
+ * a `…/claude` folder), which the sandbox opens to reading. Any other
+ * program (a wrapper script, another installer's layout) is refused, since
+ * the folder two up from it could be a whole home's.
+ */
+const installOf = (claude: string): Effect.Effect<string, CounselFailed> =>
+  Effect.fromOption(
+    Option.fromNullishOr(/^(\/.+\/claude)\/versions\/[^/]+$/.exec(claude)?.[1]),
+  ).pipe(
+    Effect.mapError(() =>
+      CounselFailed.make({
+        reason: `Claude's program is ${claude}, not a version under …/claude/versions/ (the native installer's): the sandbox opens its install's folder to reading, and this one's could hold anything`,
+      }),
+    ),
+  );
 
 /**
  * Headless Claude in the sandbox, `claude` its program's real path (a
- * version under `…/share/claude/versions/`) and `home` the host's home: it
- * reads the packet, its install and the user's keychains, where its sign-in
- * is kept; its temp files and its state go to `scratch`, the one folder it
+ * version in `install`, `installOf`) and `home` the host's home: it reads
+ * the packet, its install and the user's keychains, where its sign-in is
+ * kept; its temp files and its state go to `scratch`, the one folder it
  * writes. Nothing else of the home is readable: not `~/.claude`, not
  * `~/.claude.json`. With a `proxy`, it asks through it: the sign-in is then
  * the proxy's.
  */
 const claudeRun = (
   claude: string,
+  install: string,
   home: string,
   proxy: Option.Option<string>,
   folders: RunFolders,
 ): SandboxedRun => ({
   plan: {
-    reads: [folders.packet, up(claude, 2), `${home}/Library/Keychains`],
+    reads: [folders.packet, install, `${home}/Library/Keychains`],
     writes: [folders.scratch],
   },
   env: {
@@ -146,11 +196,15 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
    * (`tools/sandbox.ts`), from the prompt's folder, the prompt on its stdin:
    * its stdout is the answer, written to `claude.md` in `dir` and its stderr
    * to `claude.err` beside it, as each arrives. A failure names `dir` once
-   * the run has printed there. Only on macOS: the sandbox is its
+   * the run has printed there. A run past `bounds.limit` is stopped
+   * (SIGTERM to its process group) and fails; one still running
+   * `bounds.killAfter` later is killed (SIGKILL), so the failure never
+   * waits on a run that ignores the stop. Only on macOS: the sandbox is its
    * `sandbox-exec`.
    */
   static readonly sandboxed = <R>(
     run: (folders: RunFolders) => Effect.Effect<SandboxedRun, CounselFailed, R>,
+    bounds: CounselBounds = COUNSEL_BOUNDS,
   ) =>
     Layer.effect(
       Counsel,
@@ -184,7 +238,9 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
                 Effect.provideContext(context),
               );
               const [program = 'claude', ...args] = sandboxArgs(how.plan, how.command);
-              yield* Effect.log(`counsel.start prompt=${prompt} dir=${dir} sandbox=sandbox-exec`);
+              yield* Effect.log(
+                `counsel.start prompt=${prompt} dir=${dir} sandbox=sandbox-exec route=${routeOf(how.env)}`,
+              );
               return yield* runInto(
                 spawner,
                 'claude',
@@ -192,8 +248,9 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
                   cwd: asked.packet,
                   env: { ...how.env },
                   stdin: Stream.make(new TextEncoder().encode(asked.words)),
+                  forceKillAfter: bounds.killAfter,
                 }),
-                COUNSEL_LIMIT,
+                bounds.limit,
                 outputs,
               ).pipe(Effect.provideService(FileSystem.FileSystem, fs));
             }),
@@ -226,19 +283,21 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
   /**
    * Headless Claude, Opus at max effort, in the sandbox (`claudeRun`), its
    * program the one `program` finds, its home `HOME`, and its route the
-   * host's `ANTHROPIC_BASE_URL` when it has one (the owner's teamclaude).
+   * host's `ANTHROPIC_BASE_URL` when it has one (the owner's teamclaude),
+   * within `COUNSEL_BOUNDS`.
    */
   static readonly claudeAt = <R>(program: Effect.Effect<string, CounselFailed, R>) =>
     Counsel.sandboxed((folders) =>
       Effect.gen(function* () {
         const claude = yield* program;
+        const install = yield* installOf(claude);
         const home = yield* Config.String('HOME').pipe(
           Effect.mapError((error) => CounselFailed.make({ reason: error.message })),
         );
         const proxy = yield* Config.option(Config.String('ANTHROPIC_BASE_URL')).pipe(
           Effect.mapError((error) => CounselFailed.make({ reason: error.message })),
         );
-        return claudeRun(claude, home, proxy, folders);
+        return claudeRun(claude, install, home, proxy, folders);
       }),
     );
 

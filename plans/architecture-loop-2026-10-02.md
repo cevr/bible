@@ -175,6 +175,14 @@ All 14 sweeps reported, plus the retro. The batches, what each owns and the merg
   - The m2 "public" wording fixed in `a8bc3623d`.
   - First e2e on the merge not counted: 379 failed in the full run (263 "Failed to spawn Chrome"), the host's Chrome-profile defect that main fixed in `c569e830f`. After merging main again: gate 27/27, e2e check 1086/0 with no reruns. The last merge brought only egw-search, core, CLI and scripts commits (film and animations do not depend on `@bible/core`), so the gate ran again and the e2e did not.
   - Carried to p6-askfix: F1–F4, taste Minors 1–2 and Nits 1–7, round-3 open items 1 and 3, and `AskName` → `Segment` (p6-guards m5).
+- **p6-hostfix:** done `17ae19f9d..ca99cc686`, merged `3e0ec9ff5`. p6-host's carried findings (N1–N5, N7, m4 residual) and the route in the log.
+  - A loopback bind failure is `LabUnbound`, naming the address and Bun's cause; `reusePort: false`, so a second lab on a held port is refused (restart by NORTH_STAR's steps: wait for both ports to be free).
+  - The counsel refuses a Claude path not under `…/claude/versions/`; a finite `forceKillAfter` (a TERM-resistant run ends in 410 ms, not 3.2 s).
+  - A lab lists no warm source but its own, in every layout (a folder `<p>/<name>` with `<p>/.rifts/<name>` beside it, and never a folder inside `.rifts`); in a git worktree it leaves out the checkout it was made from.
+  - `counsel.start` logs `route=<scheme>://<host>` for an http(s) proxy, `route=proxy` for any other value, `route=direct` with none: no login, token, path, query or fragment reaches the log (18 probe values clean).
+  - Reviewer: counsel (Codex gpt-6.1-sol, max) over 2 rounds. Round 1: 1 Major (credentials in `route=`: 5 of 8 leaked), 2 Minor, 1 Optional. Round 2: 1 Major (a value with no web scheme still logged its first word), 2 Optional. Round 3 checked by the orchestrator with the reviewer's probe: 18/18 clean.
+  - Gate 27/27 at the merge; e2e check clear 1086/0 at `ca99cc686`.
+  - Carried: animations' tests at 10.6 s under a load of 15 (not measured by `test:budget`).
 - **p6-host:** done `199aadd86..810cd381f`, merged `42d570140`.
   - The lab listens on `FILM_LAB_PHONE_URL` itself behind `admit`; the forwarder is retired. A phone address it cannot bind leaves loopback serving.
   - Links are `{local, phone?}` on `localhost`, with no `public` or https.
