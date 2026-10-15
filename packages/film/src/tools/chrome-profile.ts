@@ -5,16 +5,11 @@
 
 // oxlint-disable-next-line effect/noNodeBuiltinImport -- the exit handler's delete: an exiting process runs no effect, only synchronous calls
 import { rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { Effect, FileSystem, Path } from 'effect';
 import { BrowserFailed } from './errors.ts';
 
-/**
- * Where every process's Chrome keeps its profile, a folder per process id.
- * `bun test` runs no exit handler (Bun 1.4.3), so the tests' preload
- * (`lab/fixtures/preload.ts`) removes a worker's folder after its last test.
- */
-export const PROFILE_ROOT = `${tmpdir()}/bible-film-chrome`;
+/** Where every process's Chrome keeps its profile, a folder per process id. */
+export const PROFILES = 'bible-film-chrome';
 
 /** Whether process `pid` still runs (`EPERM`: it runs, as another user). */
 const alive = (pid: number) =>
