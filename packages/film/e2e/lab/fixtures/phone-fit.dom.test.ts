@@ -2,7 +2,9 @@
 // each one way a page can fail a phone, which it must refuse, beside one
 // that fits: a block wider than the window scrolls sideways, a control the
 // page fixes past the window's side is outside, and a sticky header taller
-// than a quarter of the window is too much chrome. An open sheet is chrome
+// than a quarter of the window is too much chrome; a section's sticky head
+// is chrome only where it sticks, not while it is in the page's flow further
+// down. An open sheet is chrome
 // (the sheet, not the see-through frame it stands in; lowered, its peek)
 // unless named the page's layer, whose controls are still kept inside the
 // width. `fitsPhone`, the wait the
@@ -57,6 +59,11 @@ const WIDE = `<div style="width:600px;height:10px"></div>`;
 const FAR = `<button data-act="far" style="position:fixed;left:370px;top:400px">far</button>`;
 const TALL = `<header style="position:sticky;top:0;height:300px"></header><div class="page"></div>`;
 /**
+ * A slim header over sections, each headed by a head that sticks under it (an ask's
+ * `2 of 3 · The Board`): four heads show at once, but only the one stuck is chrome.
+ */
+const HEADS = `<header style="position:sticky;top:0;height:44px"></header>${'<section style="height:250px"><h2 style="position:sticky;top:44px;height:60px;margin:0"></h2></section>'.repeat(12)}`;
+/**
  * A sheet in frames over the whole window, as a sheet's overlay holds its scroll container: the
  * frames take no pointer, the sheet takes its own.
  */
@@ -95,6 +102,10 @@ describe('the phone-fit measure', () => {
 
   it.live('refuses a sticky header taller than a quarter of the window', () =>
     measured(TALL, false, 'chrome', 300 / 844),
+  );
+
+  it.live("counts a section's sticky head only where it sticks, not further down the page", () =>
+    measured(HEADS, true, 'chrome', 104 / 844),
   );
 
   it.live(
@@ -140,8 +151,8 @@ describe('fitsPhone', () => {
         expect(said).toContain('the page does not fit the window (chrome at most 0.25)');
         expect(said).toContain('"sideways":210');
         expect(said).toContain('far 370..414');
-        // Under the wide block's 10 px row.
-        expect(said).toContain('HEADER 10..310');
+        // Where it sticks: under the wide block's 10 px row it is still in the page's flow.
+        expect(said).toContain('HEADER 0..300');
       }).pipe(Effect.scoped),
     30_000,
   );
