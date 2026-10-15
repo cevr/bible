@@ -32,7 +32,7 @@ does, while the lab runs.
 ## Tools, resources, prompt
 
 Every tool reads or writes through the store the page and the CLI use (`NotesStore`, `BoardStore`,
-`RenderCatalogue`, `ContentStore`); none has a write path of its own. A refusal is an MCP tool error with the
+`RenderCatalogue`, `ContentStore`, `ProductionStore`); none has a write path of its own. A refusal is an MCP tool error with the
 reason in words (`LabRefused`). Links are absolute, at the address the owner opens (`labLink`: the first host
 when `FILM_LAB_HOSTS` names one).
 
@@ -53,12 +53,75 @@ when `FILM_LAB_HOSTS` names one).
 | `ask_read`      | an ask: where its run is, every answer so far (typed), each step answered, its links                                    |
 | `asks`          | every ask, newest first, narrowed by `status` (`asking`, `answered`, `closed`)                                          |
 | `close_ask`     | closes an ask with `why`; with a production, files `Decided` (answered) or `Noted` (withdrawn), once, by ask id         |
+| `decide`        | files on a production's timeline a decision the owner made in chat, his words verbatim as `quote`                       |
+| `note`          | files the owner's feedback from chat on a production's timeline the same way: it decides nothing                        |
+| `look`          | stills of a scene as its files stand, each an image after its line (see [The easel's tools](#the-easels-tools))         |
+| `cues`          | each scene's placement, marks and named cues, as `film cues` prints them; one scene's when named                        |
+| `check`         | the scenes named (or the film) checked as drawn, `film check --draw`, the findings a page at a time                     |
+| `journal`       | a film's journal: the newest entries (of one scene, when named) that fit, the rest counted with its file                |
+| `journal_note`  | one observation in a film's journal, of a scene or the whole film, at the time now                                      |
 
 Resources: `lab://overview`, `lab://changes` (the last 50), `lab://films/{film}/notes`, `lab://films/{film}/board`.
 Prompt: `inbox` (every waiting note across the films, and how to work them).
 
 `publish_set` merges at the JSON level, so keys it does not know (the timeline's `production`, `version`,
 `published`) stay as they were.
+
+## The easel's tools
+
+The owner (2026-10-14): "lets also remove .gent, make it something all agents can benefit from". The tools a
+painter works with were a gent extension (`.gent/extensions/film.ts`), which ran the film CLI for gent alone. They
+are the lab's now (`tools/easel-mcp.ts`), so every client that reaches the lab paints with them: Claude Code, Codex,
+gent, any MCP client. The painter is a brief every agent reads, `.claude/skills/film/reference/scene-painter.md`,
+and in Claude Code the `scene-painter` subagent (`.claude/agents/scene-painter.md`: the file tools and these five
+tools only, the film skill preloaded), started with the Agent tool. gent's `film.paint`, which started a painter,
+is the Agent tool's `subagent_type: scene-painter` now; the compactor that condensed a painter's window from the
+files with no model call is the brief's rule to read the state from the files again when its context is condensed.
+
+- **One owner each.** `look` is the lab's own easel (`Easel.look`, the warm export page `film look` asks over HTTP),
+  its stills answered as MCP images, each after its line (`lookLine`: file, scene, place, time, frame, size, build),
+  so the model reads the picture itself. `journal` and `journal_note` are `journal.ts`'s `read` and `note`. `cues`
+  and `check` read the film's modules, which the lab never imports (`lab.test.ts`), so they run the film CLI fresh
+  (`FreshFilm`), as the lab's after-write check does: `film read cues <film> [scene]` answers `film cues`' lines
+  (`sceneReport`) as one line of JSON, and `film check <film> --draw --scene … --allow-stale --json` answers its
+  findings. A scene named to `journal` or `journal_note` is found among the film's scenes as `film journal` knows
+  them (`film read scenes <film>`, no timeline resolved), so a scene whose marks do not resolve keeps its journal,
+  and one the film lacks is the film's own `UnknownScene`.
+- **`films`, the asker's checkout.** Each tool takes `films`, the asker's films folder, absolute
+  (`<repo>/apps/animations/src/films`). The lab on 8229 serves one checkout, and an agent in a rift that asked it
+  would look at, check and note in another checkout's film under the same name. A folder other than the lab's is
+  `LabElsewhere` (`elsewhereOf`, which `Easel.look` checks too), naming both, with the way to a lab of the asker's
+  own: `LAB_PORT=<port> bun cli.ts lab` in `apps/animations`, and its MCP at `http://127.0.0.1:<port>/mcp`. The
+  folders are compared as the file system resolves them, links followed, so a link to the lab's folder is that
+  folder. A relative folder, or one with a `..`, is the call's error: the lab would resolve a relative one in its
+  own checkout, and Node's `realpath` takes a `..` before the links it follows, so a link and then `..` would read
+  as the lab's folder while leading to another.
+- **Answers that fit.** A client cuts a long result (Claude Code warns past 10,000 tokens and cuts past 25,000), and
+  a toolkit sends each answer twice, as text and as `structuredContent`. So each answer encodes to at most 8,000
+  characters of JSON (`core/tool-pages.ts`) and says how to read on. `check` lists its findings errors first, a page
+  at a time; `next` is the `from`, the `report` and the `scenes` asked, to ask again with as it is (a check takes at
+  most 24 scenes, each id at most 64 characters, so a cursor that repeats them leaves room for a finding on every
+  page), and a page asked of a report whose findings changed since (some fixed, or new) starts again from the first
+  and says so (`restarted`), so none is skipped. `cues` answers whole lines; `next` is the line, the column and the
+  `scene` asked (a column past 1 goes on inside a line longer than one answer). `cues` times its speech, marks and
+  cue spans in seconds into the scene, as `look`'s `at` does; `start=` is the scene's first second in the film, and
+  `seam=` how long the pause to the next scene's voice lasts. `journal` answers the newest entries that fit, each
+  cut to 800 characters, and how many earlier ones its file holds.
+- **Images a model's request takes.** `look` takes 1 to 8 places and a `size` of at most 2,000 pixels (the
+  Claude API holds every image to 2,000 pixels a side once a request carries more than 20). A still past 3.75 MB
+  (5 MB in base64), or a look's stills past 15 MB together, is `LookTooLarge`, naming each still and its size:
+  they are written, and a smaller size, a crop or fewer places reads them. `look` is added to the server by hand
+  (`McpServer.addTool`), since a toolkit answers JSON alone; its arguments are decoded as a toolkit's are, and
+  ones that do not decode are the call's `InvalidParams`.
+- **Refusals in the film's words.** A tool's failure is a tool error: the film's tag, then its words
+  (`UnknownScene: the film has no scene "x"; its scenes are …`, `PagesBroken: …`, `FilmUnknown: …`). A fresh run's
+  failure keeps the tag it carried (`ServerFailed`'s); a check that cannot run is its one error finding.
+- **Long checks.** `check` without `scenes` draws every scene of the film, which takes minutes for a long one (its
+  fresh run is given 5). Name the scenes worked on. Codex stops a tool after 60 s unless the server's
+  `tool_timeout_sec` says more ([Registration](#registration-the-owner-runs-these)).
+
+`film look`, `film cues`, `film check` and `film journal` are unchanged: the tools are the same owners, reached
+through the lab.
 
 ## Events
 
@@ -119,6 +182,14 @@ server's own handler as a new request (`api-server.ts`), so a route's answer kee
 claude mcp add --transport http lab http://localhost:8229/mcp -s user
 # from another machine on the tailnet: http://100.92.183.50:8230/mcp
 
+# Codex, the same tools; then give a whole film's check time to draw, in
+# ~/.codex/config.toml under [mcp_servers.lab]: tool_timeout_sec = 360
+codex mcp add lab --url http://localhost:8229/mcp
+
+# a workspace's spare lab (LAB_PORT=<port> bun cli.ts lab, there), as `lab` for that
+# workspace alone: run in it; a local server overrides the user's, from the next session
+claude mcp add --transport http lab http://127.0.0.1:<port>/mcp -s local
+
 # optional: the owner's actions pushed into a main session
 claude mcp add lab-events -s user -e FILM_LAB_URL=http://127.0.0.1:8229/ \
   -- bun /Users/cvr/Developer/personal/bible-tools/apps/animations/cli.ts channel
@@ -136,7 +207,13 @@ terminal; learn of a pick when told. Now:
 4. `changes {since, wait: 60}` in a loop (a subagent can too), or the channel in the main session: the owner's
    note, pick or approval arrives with its film, panel or render, words and link.
 5. A decision that is the owner's ("Needs you"): `ask` it as a page (or, from a terminal, `bun run production ask`),
-   give the owner its link, hear the answers on `changes`, act, and `close_ask`.
+   give the owner its link, hear the answers on `changes`, act, and `close_ask`. What he has already decided in
+   chat is filed with `decide` (feedback, `note`), his words verbatim as `quote`: what is still his to choose is
+   an ask, never a `decide`.
+6. A scene painted, by the scene painter (`subagent_type: scene-painter`; any other agent reads
+   `.claude/skills/film/reference/scene-painter.md`): `journal` and `cues` first, then a passage at a time, `look`
+   at its marks and its cues' middles, `journal_note` what a look taught, and `check` the scenes touched before
+   stopping.
 
 ## Asks
 
@@ -329,6 +406,16 @@ record of versions and of what waits on the owner; asks file onto it rather than
   and phone links and the folder it waits at. With no lab answering it refuses (`LabUnanswered`) and asks
   nothing. Every question has a page: the ledger's `say`
   takes only the owner's words (`Decided`, `Noted`), and an `Asked` is filed only by an ask.
+- `decide` and `note` file what the owner said in chat, as `film production decide|note` does, through the same
+  `ProductionStore.say`, in the version open when filed. Owner, 2026-10-14: "yes build mcpdecide"; an agent's
+  write to a ledger file was refused, and the owner had to run the CLI himself. `quote`, his words verbatim, is
+  required and never blank: it is what shows he said it, and keeps an agent from filing a decision he did not
+  make. `by` names who filed it; every word keeps it (`by` on the ledger, optional; an ask's words carry the
+  asker), `film production show` prints it (`by=…`) and the timeline shows "filed by". The `set` is its ref as
+  `sets` lists it or its folder under its root, kept as the folder (`setNamed`, the CLI's `ask --set` reads
+  folders the same way); a folder two roots hold is refused here and for `ask` alike. A `point` needs its `set`,
+  a `variant` its `point`; the production must keep a ledger (`film production new`). Each call files once: a
+  word filed twice is two words. Moving a production forward has no tool: it stays the owner's, through an ask.
 - Not built: `publish_set` taking `production`/`version` (calling `ProductionStore.publish`), resources over the
   ledgers, and `production.*` feed kinds.
 

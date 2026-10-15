@@ -109,7 +109,8 @@ bun run production forward look --after 5 --title "One Line" --because "9005 hol
 `film publish` stamps the set's `review.json` (every other field kept) and prints its `/sets/` link. A unit
 working in its own worktree needs no ledger to publish: the set names its production and lands by time. An
 agent that records the owner's word from chat uses `decide` or `note`, with the owner's verbatim words in
-`--quote`; `--at` back-dates a word recorded late. An agent that hands over a set needing a pick asks on it
+`--quote` and its own name in `--by`; `--at` back-dates a word recorded late. Over the lab's MCP the same is
+the `decide` and `note` tools, which require the quote ([lab-mcp.md](lab-mcp.md), "Seams with the timeline"). An agent that hands over a set needing a pick asks on it
 (`ask`, which makes the running lab's own ask, a page the owner answers; its `--set` is the set's folder, as
 `decide` takes it, and the lab's sets say which one), so the timeline says it waits; the pick in the lab, the
 owner's decision recorded on it, or the ask closed answers.
@@ -127,7 +128,8 @@ seams the lab and the CLI do.
   choice's state on the line (`Picked`, `Decided`, `Waiting`, `Quiet`). Over HTTP: `GET /api/productions`.
 - **Write** — `ProductionStore`'s verbs, each decided on the ledger as read under its cross-process lock:
   `start` (refused `ProductionKept`), `forward` (refused `VersionMoved` when the caller saw an older
-  version), `say` (`Decided` or `Noted`, the owner's words; an `Asked` is filed only by a lab ask), `file` (refused
+  version), `say` (`Decided` or `Noted`, the owner's words, with who filed them; an `Asked` is filed only by a
+  lab ask; the lab MCP's `decide` and `note` call it too), `file` (refused
   `VersionUnknown`), and `publish` (stamps a set's `review.json`; `FileInvalid` when it would be no
   manifest). Over HTTP only `forward` is exposed (`POST /api/productions/<production>/versions`); the CLI
   (`film production …`, `film publish`) is a thin shell over the same verbs.
@@ -136,7 +138,9 @@ seams the lab and the CLI do.
   an ask are the catalogue's and the sets' as today.
 
 A natural MCP surface: a resource per production (its `ProductionHistory`), and tools `production_forward`,
-`production_ask`, `production_decide`, `production_note`, `set_publish` mapping one to one onto the verbs.
+`production_ask`, `production_decide`, `production_note`, `set_publish` mapping one to one onto the verbs. Built:
+`ask` (the lab's asks, filed on the ledger), `decide` and `note`. Moving forward stays the owner's (the
+timeline's Move forward, or the CLI on his word), so it has no tool.
 
 ## Migration
 

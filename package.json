@@ -25,7 +25,6 @@
     "test": "turbo run test",
     "test:e2e": "bun run --cwd packages/film test:e2e",
     "test:perf": "turbo run test:perf --concurrency=1",
-    "test:gent": "bun packages/scripts/src/test-gent.ts",
     "test:budget": "bun packages/scripts/src/test-budget.ts",
     "gate": "concurrently -n style,turbo -c yellow,cyan \"bun run guard\" \"turbo run gate\"",
     "guard": "bun run lint && bun run fmt:check && bun run dead-exports",

@@ -62,6 +62,7 @@ describe('ProductionStore', () => {
             point: Option.none(),
             variant: Option.none(),
             ask: Option.none(),
+            by: Option.none(),
           }),
         ),
       );
@@ -134,6 +135,7 @@ describe('the verbs', () => {
         point: Option.none(),
         variant: Option.none(),
         ask: Option.none(),
+        by: Option.none(),
       });
       expect(said.said.map((s) => s._tag)).toEqual(['Noted']);
       expect(Exit.isFailure(yield* Effect.exit(store.file('look', 'styles', 2)))).toBe(true);

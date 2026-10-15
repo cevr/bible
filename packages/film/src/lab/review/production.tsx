@@ -320,6 +320,10 @@ const SAID_KIND = { Decided: 'Decided', Noted: 'Note', Asked: 'Asked' } as const
   string
 >;
 
+/** Who filed a said entry, after its time: the agent that heard it, when the entry says. */
+const filedBy = (said: Said): string =>
+  Option.match(said.by, { onNone: () => '', onSome: (by) => ` · filed by ${by}` });
+
 /** The owner's word (a decision or a note) or a question asked of them: its own words quoted, the set it is about linked. */
 const SaidEntry = (props: { readonly said: Said }) => {
   const { meta } = useReview();
@@ -332,7 +336,10 @@ const SaidEntry = (props: { readonly said: Said }) => {
             {SAID_KIND[props.said._tag]}
           </span>
           <span class="pd-e-title">{props.said.text}</span>
-          <span class="rv-meta">{agoText(props.said.at, meta.now())}</span>
+          <span class="rv-meta">
+            {agoText(props.said.at, meta.now())}
+            {filedBy(props.said)}
+          </span>
         </div>
         <Show when={Option.getOrUndefined(props.said.quote)}>
           {(quote: Accessor<string>) => <q class="pd-quote">{quote()}</q>}
