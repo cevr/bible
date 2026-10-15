@@ -14,11 +14,18 @@
 
 import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Array as Arr, Option } from 'effect';
+import { Array as Arr, Match, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { type Accessor, type ParentProps, createMemo, createSignal, onCleanup } from 'solid-js';
-import type { AskBlock } from '../../core/ask.ts';
+import {
+  type Accessor,
+  type ParentProps,
+  createEffect,
+  createMemo,
+  createSignal,
+  untrack,
+} from 'solid-js';
+import { type AskBlock, scriptSource } from '../../core/ask.ts';
 import { type ScriptBeats, attemptUrl, boardFileUrl, reviewFrameUrl } from '../../core/api.ts';
 import { type BoardFile, type Panel, panelsOf, shownTry } from '../../core/board.ts';
 import { docAt, videoAt } from '../../core/review.ts';
@@ -118,12 +125,24 @@ const Clamped = (props: ParentProps) => {
   const [open, setOpen] = createSignal(false, { ownedWrite: true });
   const [long, setLong] = createSignal(false, { ownedWrite: true });
   let outer = Option.none<HTMLElement>();
+  let words = Option.none<HTMLElement>();
+  // Once laid out, and as the words grow (a document's text arrives after it is drawn).
+  createEffect(
+    () => true,
+    () =>
+      Option.match(words, {
+        onNone: () => () => {},
+        onSome: (inner) => {
+          const observer = new ResizeObserver(() =>
+            setLong(Option.exists(outer, (o) => inner.offsetHeight > o.clientHeight + 1)),
+          );
+          observer.observe(inner);
+          return () => observer.disconnect();
+        },
+      }),
+  );
   const measure = (inner: HTMLElement) => {
-    const observer = new ResizeObserver(() =>
-      setLong(Option.exists(outer, (o) => inner.offsetHeight > o.clientHeight + 1)),
-    );
-    observer.observe(inner);
-    onCleanup(() => observer.disconnect());
+    words = Option.some(inner);
   };
   return (
     <>
@@ -212,10 +231,16 @@ const DraftScript = (props: {
   );
 };
 
-/** A script in the Script reader: a film's, or a series draft's, every beat or those named. */
+/**
+ * A script in the Script reader: a film's, or a series draft's, every beat
+ * or those named. A block never changes once the ask is read, so its source
+ * is read once, as plain names: a reader keyed on a condition's value would
+ * read it untracked in its own effects.
+ */
 export const ScriptPart = (props: { readonly block: BlockOf<'script'> }) => {
   const selecting = useOwnSelecting();
   const only = Option.fromUndefinedOr(props.block.beats);
+  const source = untrack(() => scriptSource(props.block));
   return (
     <Framed
       kind="script"
@@ -224,26 +249,21 @@ export const ScriptPart = (props: { readonly block: BlockOf<'script'> }) => {
       `}
       caption={Option.none()}
     >
-      <Show
-        when={props.block.film}
-        fallback={
-          <DraftScript
-            series={Option.getOrElse(Option.fromUndefinedOr(props.block.series), () => '')}
-            draft={Option.getOrElse(Option.fromUndefinedOr(props.block.draft), () => '')}
-            only={only}
-            selecting={selecting}
-          />
-        }
-      >
-        {(film: Accessor<string>) => (
-          <>
-            <p class="ak-mat-name" data-role="script-name">
-              The script of {film()}
-            </p>
-            <FilmScriptReader film={film()} only={only} selecting={selecting} />
-          </>
-        )}
-      </Show>
+      {Match.value(source).pipe(
+        Match.tagsExhaustive({
+          Film: (s) => (
+            <>
+              <p class="ak-mat-name" data-role="script-name">
+                The script of {s.film}
+              </p>
+              <FilmScriptReader film={s.film} only={only} selecting={selecting} />
+            </>
+          ),
+          Draft: (s) => (
+            <DraftScript series={s.series} draft={s.draft} only={only} selecting={selecting} />
+          ),
+        }),
+      )}
     </Framed>
   );
 };
