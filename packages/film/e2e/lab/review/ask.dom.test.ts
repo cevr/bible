@@ -757,6 +757,16 @@ describe("an agent's ask on a phone", () => {
         for (const close of ['key', 'tap'] as const) {
           yield* page.click(thumb);
           yield* textIs(page, '.rv-lightbox .rv-lightbox-caption', 'open · breath');
+          // Its caption sits under the still, clear of the tab bar's labels under the scrim.
+          yield* until(
+            page,
+            `(() => {
+              const still = document.querySelector('.rv-lightbox img').getBoundingClientRect();
+              const caption = document.querySelector('.rv-lightbox-caption').getBoundingClientRect();
+              const bar = document.querySelector('.sh-pagebar').getBoundingClientRect();
+              return caption.top - still.bottom <= 12 && caption.bottom <= bar.top;
+            })()`,
+          );
           yield* until(page, "location.search === '?still=board-open.breath'");
           if (close === 'key') yield* page.press('Escape');
           else yield* page.click('.rv-lightbox');
