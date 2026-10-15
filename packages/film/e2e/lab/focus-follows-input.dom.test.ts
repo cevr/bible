@@ -13,19 +13,19 @@
 //   with the arrows and Enter) and by the pointer (the header's Go to…
 //   clicked, then the row clicked); a command a page names in its `moves`
 //   must also have moved the focus where it goes, by both;
-// - every call in the lab's sources that moves the focus from script
-//   (`FOCUS_SITES`, by file and call, the lab's wrappers' callers too): a
-//   source scan fails on a call not named there, and each site's paths that
-//   no command reaches (a kind's tab, Back and Forward, a studio button or
-//   its prompter, a kept take's reload), or that a page's walk reaches only
-//   once (the Script's note commands), run below it, by the keyboard and by
-//   the pointer, and a key pressed in the middle of a click.
+// - every place in the lab's sources that moves the focus from script
+//   (`FOCUS_SITES` in `src/lab/focus-sites.test.ts`, by file and call, the
+//   lab's wrappers' callers and the kit popups' `initialFocus` too): that
+//   unit test's source scan fails on a place not named there, and each site's
+//   paths that no command reaches (a kind's tab, Back and Forward, a studio
+//   button or its prompter, a kept take's reload), or that a page's walk
+//   reaches only once (the Script's note commands), run below, by the
+//   keyboard and by the pointer, and a key pressed in the middle of a click.
 // `:focus-visible` matches only in the window that has the focus, so every
 // case runs alone, and a page without it answers so instead of passing.
 
-import { BunServices } from '@effect/platform-bun';
-import { Effect, FileSystem, Path, type Scope } from 'effect';
-import { expect, it, test } from 'effect-bun-test';
+import { Effect, type Scope } from 'effect';
+import { expect, test } from 'effect-bun-test';
 import type { Input } from '../../src/browser/keys.ts';
 import { pageHref } from '../../src/core/api.ts';
 import {
@@ -38,6 +38,7 @@ import {
   route,
 } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
+import { runCase } from '../../src/lab/fixtures/run-case.ts';
 import { until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
@@ -327,107 +328,12 @@ const PAGES: ReadonlyArray<Opened> = [
 ];
 
 /**
- * Every call in the lab's sources that moves the focus from script, by its file and its
- * callee with its first argument (a file's two alike are two rows), with the paths that
- * reach it: a command's (run above, each named in its page's `moves`), or one of the cases
- * below. The lab's helpers that move it for a caller (`focusPoint`, `focusVariant`,
- * `goToPoint`) are calls too, so each caller is a row of its own.
- */
-const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: string]> = [
-  [
-    'notes/section.tsx',
-    'focusFor(el',
-    "the Lab in Note's notes.frame, and the Script's script.note below, a text field",
-  ],
-  [
-    'notes/section.tsx',
-    'focusFor(el',
-    "the Script's script.correct below, on the words to say instead, a text field",
-  ],
-  [
-    'notes/section.tsx',
-    'focusFor(field',
-    'a Save that found the words to say instead wanting, pressed and clicked below, a text field',
-  ],
-  [
-    'review/options/choice.tsx',
-    'focusFor(Option.getOrElse',
-    'focusPoint, for each of its callers below',
-  ],
-  ['review/options/context.tsx', 'focusFor(button', 'focusVariant, for the auditions'],
-  ['review/options/context.tsx', 'focusVariant(next', "Choices' review.audition-*, from ⌘K"],
-  [
-    'review/options/section.tsx',
-    'focusPoint(point',
-    'a page opened on a point; Back and Forward, by a key and by none',
-  ],
-  ['review/options/section.tsx', 'focusPoint(point', "goToPoint: Choices' go.choice.*"],
-  [
-    'review/options/section.tsx',
-    'goToPoint(point',
-    "a kind's tab, clicked, pressed, and clicked with a key down",
-  ],
-  [
-    'review/production.tsx',
-    'focusFor(field',
-    "a Production's Move forward, its form opened: its first field",
-  ],
-  ['scenes/view.tsx', 'focusFor(field', "Scenes' scenes.comment, a scene selected, a text field"],
-  [
-    'sketch/surface.tsx',
-    'focusFor(el',
-    "the Board's text tool: a text placed on the panel, its field",
-  ],
-  ['studio/section.tsx', 'focusFor(r', 'a studio control the keyboard pressed away'],
-  [
-    'studio/section.tsx',
-    'focusFor(r',
-    'a kept take’s reload, by the keyboard and the pointer; a reload after a click',
-  ],
-  [
-    'studio/section.tsx',
-    'focusFor(r',
-    'a studio button, and the prompter, pressed after the keyboard',
-  ],
-  ['studio/section.tsx', 'focusFor(r', 'Keep pressed, disabled under the focus'],
-];
-
-/** A call that moves the focus: `.focus(`, or the lab's helper or one of its wrappers, with its first argument. */
-const FOCUS_CALL = /(\.focus|\b(?:focusFor|focusPoint|focusVariant|goToPoint))\s*\(\s*([\w.]*)/g;
-
-/** Every call in the lab's sources (tests and fixtures aside) that moves the focus, as `file call`. */
-const focusCalls = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const root = path.join(import.meta.dir, '..', '..', 'src', 'lab');
-  const sources = (yield* fs.readDirectory(root, { recursive: true })).filter(
-    (f) => /\.tsx?$/.test(f) && f !== HELPER && !/(^|\/)fixtures\/|\.test\.tsx?$/.test(f),
-  );
-  const calls = yield* Effect.forEach(sources, (file) =>
-    Effect.map(fs.readFileString(path.join(root, file)), (source) =>
-      [...source.matchAll(FOCUS_CALL)].map(([, callee, first]) => `${file} ${callee}(${first}`),
-    ),
-  );
-  return calls.flat().toSorted();
-});
-
-/** The file that owns the lab's focus moves: it moves the focus for every site. */
-const HELPER = 'focus.ts';
-
-/**
- * A case that runs alone, its scope closed at its end: `:focus-visible` matches only in the
- * window that has the focus, and a sibling case opening its own tab at once takes it.
+ * A case that runs alone, its scope closed at its end, a timeout's included (`runCase`):
+ * `:focus-visible` matches only in the window that has the focus, and a sibling case opening
+ * its own tab at once takes it.
  */
 const alone = <A, E>(name: string, body: Effect.Effect<A, E, Scope.Scope>, timeout = SLOW) =>
-  test.serial(name, () => Effect.runPromise(Effect.scoped(body)), timeout);
-
-it.effect.layer(BunServices.layer)(
-  'every call in the lab that moves the focus is a named site, with its paths',
-  () =>
-    Effect.map(focusCalls, (calls) =>
-      expect(calls).toEqual(FOCUS_SITES.map(([file, call]) => `${file} ${call}`).toSorted()),
-    ),
-);
+  test.serial(name, () => runCase(Effect.scoped(body)), timeout);
 
 for (const opened of PAGES)
   alone(

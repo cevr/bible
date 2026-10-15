@@ -54,7 +54,7 @@ const commitDebt = (dir: string, lines: ReadonlyArray<string>, message: string) 
 /** A repository whose `main` holds the check and a debt of `a`; answers its directory. */
 const repo = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
-  const dir = yield* fs.makeTempDirectory({ prefix: 'dead-base-' });
+  const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'dead-base-' });
   yield* git(dir, 'init', '-q', '-b', 'main');
   yield* write(dir, FILES.check, '// the check\n');
   yield* commitDebt(dir, ['a'], 'one');
@@ -98,7 +98,7 @@ describe('the debt held against its base', () => {
     run(
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
-        const bare = yield* fs.makeTempDirectory({ prefix: 'dead-nogit-' });
+        const bare = yield* fs.makeTempDirectoryScoped({ prefix: 'dead-nogit-' });
         expect(yield* fails(grownOver(bare, FILES, none, []))).toBe(true);
         expect(yield* fails(grownOver(yield* repo, FILES, none, ['a']))).toBe(true);
       }),
@@ -137,7 +137,7 @@ describe('the debt held against its base', () => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const dir = yield* fs.makeTempDirectory({ prefix: 'dead-adopt-' });
+        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'dead-adopt-' });
         yield* git(dir, 'init', '-q', '-b', 'main');
         yield* write(dir, 'readme.txt', 'no check yet\n');
         const before = yield* commit(dir, 'before the check');

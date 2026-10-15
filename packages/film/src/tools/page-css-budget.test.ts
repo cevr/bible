@@ -49,16 +49,32 @@ const PLACES = {
 
 /**
  * The most a page's render-blocking CSS may weigh, in bytes, as built
- * (minified, before compression). The heaviest places, the review's and
- * Play, hold about 54 KB: the review's own styles (51 KB), its tokens
- * (2 KB) and the UI face's rule; Play's own (34 KB) and the tokens and the
- * player's (19 KB). The budget is that and a fifth more, rounded to 64 KiB:
- * room for the design language to grow a little, and a third of a second of
- * slow 4G (1.6 Mb/s) at most. A page that needs more trims its styles, or
- * moves what no first paint shows out of its head. Were the faces the films
- * draw in a linked stylesheet's, the bundler would inline them: 1.19 MB.
+ * (minified, before compression). Set at the heaviest place's 54 KB and a
+ * fifth more, rounded to 64 KiB: a third of a second of slow 4G (1.6 Mb/s)
+ * at most. A page that needs more trims its styles, or moves what no first
+ * paint shows out of its head. Were the faces the films draw in a linked
+ * stylesheet's, the bundler would inline them: 1.19 MB.
+ *
+ * On 2026-10-15 the heaviest places, Scenes, a scene and Play, held 64,673 B,
+ * 863 B under it: Play's own styles with the UI face's rule (39.9 KB) and the
+ * tokens and the player's (24.8 KB). The Lab's six places held 63,641 B; the
+ * review's 53,726 B, its own styles (49.9 KB) and its tokens (3.8 KB), plus a
+ * place's own (`PlaceStyle`: the draft's 5.8 KB, Project's 3.7 KB). Each
+ * pass prints every place's weight and margin (`page.css.weighed`).
  */
 const BUDGET = 64 * 1024;
+
+/**
+ * The places that carry their own styles (`PlaceStyle`): each holds them
+ * ahead of its reads, so they are weighed with none answered.
+ */
+const OWN_STYLES: ReadonlyArray<keyof typeof PLACES> = [
+  'production',
+  'ask',
+  'draft',
+  'draftBeat',
+  'project',
+];
 
 /** A tag's attribute, as the bundler writes it (quoted or not). */
 const attribute = (tag: string, name: string): string =>
@@ -85,6 +101,13 @@ const blockingCss = <R>(html: string, size: (href: string) => Effect.Effect<numb
     );
     return [...linked, ...held].reduce((sum, bytes) => sum + bytes, 0);
   });
+
+/** The bytes of a place's own styles in `html` (`PlaceStyle`). */
+const placeCss = (html: string): number =>
+  Array.from(
+    html.matchAll(/<style\b[^>]*\bdata-place-style\b[^>]*>([\s\S]*?)<\/style>/g),
+    (m) => new TextEncoder().encode(m[1] ?? '').byteLength,
+  ).reduce((sum, bytes) => sum + bytes, 0);
 
 /** The page's reads of the API as it renders: none answered, so it renders without them. */
 const NOTHING_READ = PageReads.of({
@@ -140,10 +163,18 @@ describe("a page's render-blocking CSS", () => {
             const { status, body } = yield* ask(PLACES[place]);
             // The server rendered it: its head holds the page's own styles.
             const rendered = status === 200 && body.includes('<style data-page-style');
-            return { place, rendered, bytes: yield* blockingCss(body, size) };
+            const bytes = yield* blockingCss(body, size);
+            const own = placeCss(body);
+            yield* Effect.logInfo(
+              `page.css.weighed place=${place} bytes=${bytes} own=${own} margin=${BUDGET - bytes}`,
+            );
+            return { place, rendered, bytes, own };
           }),
         );
         expect(weighed.filter(({ rendered, bytes }) => !rendered || bytes > BUDGET)).toEqual([]);
+        expect(weighed.filter(({ place, own }) => OWN_STYLES.includes(place) && own === 0)).toEqual(
+          [],
+        );
       }).pipe(
         Effect.scoped,
         Effect.provide(Layer.provideMerge(BunHttpPlatform.layer, BunServices.layer)),

@@ -5,7 +5,9 @@
 // else (TakeMismatch) saved an attempt, which Accept anyway keeps; any
 // earlier attempt can be kept too.
 //
-//   Idle | Review | Failed ─Arm→ CountIn(n) ─Tick (each second)→ CountIn(n−1)
+//   Idle | Review | Failed ─Arm→ Opening (the film paused, the microphone opening)
+//   Opening ─Opened→ CountIn(n) | ─Refused (denied, or the capture failed)→ Failed
+//   CountIn(n) ─Tick (each second)→ CountIn(n−1)
 //   CountIn(1) ─CountDone→ Recording ─Stop (or the take limit)→ Review ─Submit→ Importing
 //   Recording ─MicLost (the device went)→ Failed (what was kept, to review)
 //   Importing ─Imported→ Idle (kept; the page reloads when the track was
@@ -18,9 +20,13 @@
 //
 // The microphone is the capture's; the machine opens it on Arm, starts it
 // when the count-in ends, and closes it on every way out of the count-in and
-// the recording (Stop takes what was kept and closes it). Side work is the
-// machine's: the count-in is a state timeout, the import a state task, and
-// the recording watches for its microphone going away.
+// the recording (Stop takes what was kept and closes it). The browser opens
+// it in its own time (a permission prompt, a device waking), so Opening is a
+// state of its own, offering nothing: no Record a second time while the
+// first is answered. A beat chosen meanwhile waits for the open to end.
+// Side work is the machine's: the open and the import are state tasks, the
+// count-in a state timeout, and the recording watches for its microphone
+// going away.
 // Nothing here touches the DOM: the capture, the studio API and the stage
 // are services, faked in tests.
 
@@ -94,9 +100,17 @@ const Work = Schema.Union([
 ]);
 type Work = typeof Work.Type;
 
+/** A microphone: a device id, or the browser's default. */
+const Device = Schema.Option(Schema.String);
+
 export const RecorderState = State({
   /** At rest on a beat: `kept` is the take the last import kept, if it kept one. */
   Idle: { beat: Schema.String, kept: Schema.Option(Kept) },
+  /**
+   * The film paused, the browser opening `device`; `wav` is the recording the Arm left (the
+   * one under review, or kept by a refusal), for a failed open to keep.
+   */
+  Opening: { beat: Schema.String, device: Device, wav: Schema.Option(Wav) },
   /** The microphone is open; the recording starts `n` seconds from now. */
   CountIn: { beat: Schema.String, n: Schema.Int },
   /** Everything the microphone hears is kept, from `startedAt` (epoch ms). */
@@ -120,12 +134,11 @@ export const RecorderState = State({
 });
 export type RecorderState = typeof RecorderState.Type;
 
-/** A microphone: a device id, or the browser's default. */
-const Device = Schema.Option(Schema.String);
-
 export const RecorderEvent = Event({
   SelectBeat: { beat: Schema.String },
   Arm: { device: Device },
+  /** The browser opened the microphone. */
+  Opened: {},
   Tick: {},
   CountDone: {},
   Cancel: {},
@@ -164,17 +177,11 @@ const workWav = (work: Work): Option.Option<typeof Wav.Type> =>
     Match.tagsExhaustive({ Upload: (w) => Option.some(w.wav), Keep: (w) => w.wav }),
   );
 
-/** Pause the film and open the microphone: the count-in, or MicDenied. */
+/** Pause the film, then open the microphone (Opening's task). */
 const arm = (beat: string, device: Option.Option<string>, wav: Option.Option<typeof Wav.Type>) =>
   Effect.gen(function* () {
     yield* (yield* Stage).pause;
-    return yield* (yield* Capture).open(device).pipe(
-      Effect.as(RecorderState.CountIn({ beat, n: COUNT_IN })),
-      Effect.catchTags({
-        MicDenied: (e) => Effect.succeed(RecorderState.Failed({ beat, refusal: e, wav })),
-        CaptureFailed: (e) => Effect.succeed(RecorderState.Failed({ beat, refusal: e, wav })),
-      }),
-    );
+    return RecorderState.Opening({ beat, device, wav });
   });
 
 /** Close the microphone (if one is open) and rest on `beat`. */
@@ -311,6 +318,22 @@ export const recorderMachine = (beat: string) =>
       [RecorderState.Idle, RecorderState.Review, RecorderState.Failed],
       RecorderEvent.Arm,
       ({ state, event }) => arm(state.beat, event.device, heldWav(state)),
+    )
+    .task(
+      RecorderState.Opening,
+      ({ state }) => Capture.use((capture) => capture.open(state.device)),
+      {
+        onSuccess: () => RecorderEvent.Opened,
+        onFailure: (refusal) => RecorderEvent.Refused({ refusal }),
+      },
+    )
+    // The open is never cut short: a beat chosen meanwhile is chosen once it ends.
+    .postpone(RecorderState.Opening, RecorderEvent.SelectBeat)
+    .on(RecorderState.Opening, RecorderEvent.Opened, ({ state }) =>
+      RecorderState.CountIn({ beat: state.beat, n: COUNT_IN }),
+    )
+    .on(RecorderState.Opening, RecorderEvent.Refused, ({ state, event }) =>
+      RecorderState.Failed({ beat: state.beat, refusal: event.refusal, wav: state.wav }),
     )
     .timeout(RecorderState.CountIn, { duration: Duration.seconds(1), event: countStep })
     .reenter(RecorderState.CountIn, RecorderEvent.Tick, ({ state }) =>
