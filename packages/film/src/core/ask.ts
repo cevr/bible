@@ -332,7 +332,7 @@ const AskNext = Schema.Struct({
 /**
  * A section of the ask's one page: its blocks, and its ways on, the first
  * that holds taken (the last holds always). A `title` heads the section
- * (`2 · The Board`): a guided review gives each section one, its material
+ * (`2 of 3 · The Board`): a guided review gives each section one, its material
  * first, then its questions. The page shows every section the owner's
  * answers so far reach (`sectionsOf`), one Send under them all.
  */
