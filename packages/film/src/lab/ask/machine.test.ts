@@ -1,8 +1,9 @@
 // An ask's page machine, with no DOM, over a fake lab: it reads the ask and
-// opens on the step its run is on; a draft that does not fit is said, not
-// sent; a send lands on the next step; optional words left empty go unsent;
-// a refusal (the phone answered first) reads the ask again and says why; an
-// ask that cannot be read says so.
+// opens on its one page, from where its run is; a draft that does not fit is
+// said, not sent; a send carries every section the draft reaches, in order,
+// and lands on the end; optional words left empty go unsent; a refusal (the
+// phone answered first) reads the ask again and says why; an ask that cannot
+// be read says so.
 
 import { Effect, Layer, SubscriptionRef } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -52,13 +53,25 @@ const picked: AskRecord = {
   answered: [{ step: 'pick', values: { try: '7' }, at: '2026-10-14T00:01:00.000Z' }],
 };
 
+/** The ask once try 7 and its why, left empty, are answered: at its end. */
+const ended: AskRecord = {
+  ...picked,
+  state: AskState.Answered({
+    step: 'done',
+    answers: { ...picked.state.answers, why: { kind: 'skipped' } },
+  }),
+  answered: [...picked.answered, { step: 'why', values: {}, at: '2026-10-14T00:02:00.000Z' }],
+};
+
 const unused = () => Effect.die('not called by an ask page');
 
 /** The lab as the page calls it: `reads` answered in turn, each send told to `sent` and answered by `answer`. */
+type Sent = ReadonlyArray<{ readonly step: string; readonly values: StepValues }>;
+
 const fakeLab = (
   reads: Array<Effect.Effect<AskRecord, LabFailure>>,
-  answer: (values: StepValues) => Effect.Effect<AskRecord, LabFailure>,
-  sent: Array<StepValues>,
+  answer: () => Effect.Effect<AskRecord, LabFailure>,
+  sent: Array<Sent>,
 ) =>
   Layer.succeed(
     ReviewApi,
@@ -71,10 +84,14 @@ const fakeLab = (
       board: unused,
       forward: unused,
       ask: () => reads.shift() ?? Effect.die('read once too often'),
-      answer: (_id, _step, values) => {
-        sent.push(values);
-        return answer(values);
+      answer: (_id, sections) => {
+        sent.push(sections);
+        return answer();
       },
+      script: unused,
+      filmVoice: unused,
+      filmMarks: unused,
+      attempts: unused,
       series: unused(),
       draft: unused,
       draftVoice: unused,
@@ -86,52 +103,49 @@ const opened = (record: AskRecord, said = '') => AskPageState.Open({ record, dra
 
 describe("an ask's page", () => {
   it.effect(
-    'opens on its step, says a draft that does not fit, and lands a send on the next step',
+    'opens on its page, says a draft that does not fit, and sends every section the draft reaches',
     () => {
-      const sent: Array<StepValues> = [];
+      const sent: Array<Sent> = [];
       return Effect.gen(function* () {
         const actor = yield* spawnAskPage(asking.id);
         expect(yield* actor.waitFor(AskPageState.Open)).toEqual(opened(asking));
         yield* actor.send(AskPageEvent.Submit);
         const unfit = yield* actor.waitFor((s) => s._tag === 'Open' && s.said !== '');
         expect(unfit).toMatchObject({ _tag: 'Open', said: 'try is not answered' });
+        // Try 7 asks why: its section is on the page now, its words optional.
         yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
         yield* actor.send(AskPageEvent.Submit);
-        yield* actor.waitFor((s) => s._tag === 'Open' && s.record.answered.length === 1);
-        expect(yield* SubscriptionRef.get(actor.state)).toEqual(opened(picked));
-        expect(sent).toEqual([{ try: '7' }]);
+        yield* actor.waitFor((s) => s._tag === 'Open' && s.record.state._tag === 'Answered');
+        expect(sent).toEqual([
+          [
+            { step: 'pick', values: { try: '7' } },
+            { step: 'why', values: {} },
+          ],
+        ]);
       }).pipe(
         Effect.scoped,
-        Effect.provide(fakeLab([Effect.succeed(asking)], () => Effect.succeed(picked), sent)),
+        Effect.provide(fakeLab([Effect.succeed(asking)], () => Effect.succeed(ended), sent)),
       );
     },
   );
 
-  it.effect('sends a step whose optional words are left empty, and lands on its end', () => {
-    const sent: Array<StepValues> = [];
-    const skipped: AskRecord = {
-      ...picked,
-      state: AskState.Answered({
-        step: 'done',
-        answers: { ...picked.state.answers, why: { kind: 'skipped' } },
-      }),
-      answered: [...picked.answered, { step: 'why', values: {}, at: '2026-10-14T00:02:00.000Z' }],
-    };
+  it.effect('opens from where its run is, and sends optional words left empty as none', () => {
+    const sent: Array<Sent> = [];
     return Effect.gen(function* () {
       const actor = yield* spawnAskPage(asking.id);
       yield* actor.waitFor(AskPageState.Open);
       yield* actor.send(AskPageEvent.Set({ id: 'why', value: '  ' }));
       yield* actor.send(AskPageEvent.Submit);
       yield* actor.waitFor((s) => s._tag === 'Open' && s.record.state._tag === 'Answered');
-      expect(sent).toEqual([{}]);
+      expect(sent).toEqual([[{ step: 'why', values: {} }]]);
     }).pipe(
       Effect.scoped,
-      Effect.provide(fakeLab([Effect.succeed(picked)], () => Effect.succeed(skipped), sent)),
+      Effect.provide(fakeLab([Effect.succeed(picked)], () => Effect.succeed(ended), sent)),
     );
   });
 
   it.effect('a refused send reads the ask again and says why; an unreadable ask says so', () => {
-    const sent: Array<StepValues> = [];
+    const sent: Array<Sent> = [];
     const refused = AskRefused.make({ id: asking.id, reason: 'step pick is answered already' });
     return Effect.gen(function* () {
       const actor = yield* spawnAskPage(asking.id);

@@ -22,8 +22,9 @@
 //       ask the owner on a page of the running lab (`FILM_LAB_URL`, through
 //       `lab-client.ts`): the lab's own ask, filed on the production's
 //       timeline as the lab's MCP `ask` files it; prints its links. Two
-//       options or more are a choice with optional words beside it; none
-//       asks for words. The set is named as every production command and
+//       options or more are a choice with optional words beside it, the
+//       first given the recommendation (the page lists it first and marks
+//       it); none asks for words. The set is named as every production command and
 //       the ledger name it, by its folder under its review root: the lab's
 //       sets say which one it is, and a folder two roots hold is refused (a
 //       timeline could not tell them apart). No lab answering is
@@ -36,7 +37,18 @@
 //       one the lab reads (under a review root)
 
 import { Argument, Command, Flag } from 'effect/cli';
-import { Clock, Console, DateTime, Effect, Match, Option, Path, Result, Schema } from 'effect';
+import {
+  Boolean as Bool,
+  Clock,
+  Console,
+  DateTime,
+  Effect,
+  Match,
+  Option,
+  Path,
+  Result,
+  Schema,
+} from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import type { AskBlock } from '../core/ask.ts';
 import {
@@ -327,7 +339,7 @@ const say = (tag: OwnerWord['_tag']) =>
 
 /**
  * The page an ask from the terminal shows: two options or more are a choice
- * (the owner taps one) with words beside it the owner may leave empty; none
+ * (the owner taps one, the first given recommended) with words beside it the owner may leave empty; none
  * asks for words, which then must be written.
  */
 const askBlocks = (options: ReadonlyArray<string>) =>
@@ -347,7 +359,12 @@ const askBlocks = (options: ReadonlyArray<string>) =>
           kind: 'choose',
           id: 'pick',
           label: 'Pick one',
-          options: o.map((label, i) => ({ value: String(i + 1), label })),
+          // The first given is the recommendation: an ask made now names one.
+          options: o.map((label, i) => ({
+            value: String(i + 1),
+            label,
+            ...Bool.match(i === 0, { onFalse: () => ({}), onTrue: () => ({ recommended: true }) }),
+          })),
         },
         { kind: 'free_text', id: 'note', label: 'Anything else?' },
       ]),
@@ -415,7 +432,7 @@ const ask = Command.make(
     option: Flag.String('option').pipe(
       Flag.atLeast(0),
       Flag.withDescription(
-        'an answer the owner taps: give two or more (a choice, with optional words beside it), or none to ask for words',
+        'an answer the owner taps: give two or more (a choice, with optional words beside it), your recommendation first, or none to ask for words',
       ),
     ),
     set: Flag.String('set').pipe(

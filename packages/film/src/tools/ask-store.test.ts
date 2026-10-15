@@ -7,7 +7,7 @@
 // was answered and is answered as it is when said again.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Exit, Schema } from 'effect';
+import { Boolean as Bool, Effect, Exit, Schema } from 'effect';
 import { TestClock } from 'effect/testing';
 import { type Ask, AskState, oneQuestion } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson } from '../core/board.ts';
@@ -45,10 +45,11 @@ const proof = (tries: ReadonlyArray<number>): Ask => ({
           kind: 'choose',
           id: 'try',
           label: 'Which try do we keep?',
-          options: tries.map((n) => ({
+          options: tries.map((n, i) => ({
             value: String(n),
             label: `Try ${n}`,
             image: { board: { film: 'f', panel: 'word.church', try: n } },
+            ...Bool.match(i === 0, { onFalse: () => ({}), onTrue: () => ({ recommended: true }) }),
           })),
         },
       ],
@@ -149,7 +150,7 @@ describe('the asks on disk', () => {
                 id: 'keep',
                 label: 'Keep it?',
                 options: [
-                  { value: 'yes', label: 'Yes' },
+                  { value: 'yes', label: 'Yes', recommended: true },
                   { value: 'no', label: 'No' },
                 ],
               },

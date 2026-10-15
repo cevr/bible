@@ -5,7 +5,7 @@
 // skipped unless required; an answer that does not fit, or to a step the ask
 // has left, moves nothing; closing keeps what was answered.
 
-import { Effect, Option, Schema } from 'effect';
+import { Boolean as Bool, Effect, Option, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { Machine } from 'effect-machine';
 import {
@@ -20,7 +20,13 @@ import {
   askMachine,
   askProblems,
   askStart,
+  materialsIn,
   oneQuestion,
+  optionsShown,
+  pageRefusal,
+  sectionsOf,
+  titleOf,
+  unrecommended,
 } from './ask.ts';
 
 const tries = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
@@ -146,6 +152,188 @@ describe('the check before an ask renders', () => {
         oneQuestion([{ kind: 'free_text', id: 'name', label: 'Its name?', required: true }]),
       ),
     ).toEqual([]);
+  });
+
+  test('a guided review passes: one titled step per piece of material, a step that asks nothing goes on', () => {
+    const review: Ask = {
+      start: 'script',
+      steps: {
+        script: {
+          title: 'The script',
+          blocks: [{ kind: 'script', film: 'f' }],
+          next: [{ to: 'board' }],
+        },
+        board: {
+          title: 'The Board',
+          blocks: [
+            { kind: 'board', film: 'f', panels: ['word.church'] },
+            { kind: 'document', ref: 'p5/rbf-script/script.md' },
+            { kind: 'video', ref: 'out/f/f.mp4', at: 12.5 },
+            { kind: 'audio', film: 'f', beat: 'cold' },
+            { kind: 'script', series: 'theology', draft: '01-breath', beats: ['1'] },
+            {
+              kind: 'choose',
+              id: 'keep',
+              label: 'Keep the Board?',
+              options: [
+                { value: 'redo', label: 'Draw it again' },
+                { value: 'keep', label: 'Keep it', recommended: true },
+              ],
+            },
+          ],
+          next: [{ to: 'done' }],
+        },
+        done: { end: true },
+      },
+    };
+    expect(askProblems(review)).toEqual([]);
+    expect(materialsIn(review).map((m) => `${m.step}:${m.block.kind}`)).toEqual([
+      'script:script',
+      'board:board',
+      'board:document',
+      'board:video',
+      'board:audio',
+      'board:script',
+    ]);
+  });
+
+  test('a material block names its material once, by its kind: a script one source, a document Markdown, a video a video', () => {
+    const bad = oneQuestion([
+      { kind: 'script', film: 'f', series: 's', draft: 'd' },
+      { kind: 'script', series: 's' },
+      { kind: 'script', film: 'f', beats: [] },
+      { kind: 'board', film: 'f', panels: ['a.b', 'a.b'] },
+      { kind: 'document', ref: 'p5/set/shape.txt' },
+      { kind: 'video', ref: 'p5/set/still.png' },
+    ]);
+    expect(askProblems(bad)).toEqual([
+      'step ask: a script names a film, or a series and its draft, one of them',
+      'step ask: beats names none: leave it out for all',
+      'step ask: panels names one twice',
+      'step ask: document p5/set/shape.txt is not a Markdown file (.md)',
+      'step ask: video p5/set/still.png is not a video (.mp4, .webm, .mov, .m4v)',
+    ]);
+  });
+
+  test('a ref names a file under a review root, never a path on the box or another host', () => {
+    const decode = Schema.decodeUnknownExit(AskSchema);
+    const doc = (ref: string) => oneQuestion([{ kind: 'document', ref }]);
+    expect(decode(doc('p5/rbf-script-2026-10-14/script.md'))._tag).toBe('Success');
+    for (const ref of [
+      '/Users/cvr/notes.md',
+      '../secrets.md',
+      'p5/../../etc/passwd.md',
+      'p5/./x.md',
+      'p5//x.md',
+      'script.md',
+      'https://evil.example/x.md',
+      'p5\\x.md',
+    ])
+      expect(decode(doc(ref))._tag).toBe('Failure');
+    const film = (name: string) => oneQuestion([{ kind: 'board', film: name }]);
+    expect(decode(film('righteousness-by-faith'))._tag).toBe('Success');
+    expect(decode(film('../f'))._tag).toBe('Failure');
+    expect(decode(film('a/b'))._tag).toBe('Failure');
+  });
+
+  test('a stored ask from before material decodes and checks as it did', () => {
+    const encoded = Schema.encodeSync(AskRecordJson)({
+      id: 'a0123456789',
+      title: 'Which try?',
+      why: 'the beat waits',
+      by: 'agent',
+      created: '2026-10-14T00:00:00.000Z',
+      ask: proof,
+      state: askStart(proof),
+      answered: [],
+    });
+    const decoded = Schema.decodeSync(AskRecordJson)(encoded);
+    expect(decoded.ask).toEqual(proof);
+    expect(askProblems(decoded.ask)).toEqual([]);
+    expect(Option.isNone(titleOf(decoded.ask.steps['pick'] ?? { end: true }))).toBe(true);
+  });
+
+  test('a choice made now recommends one option, listed first; never two', () => {
+    const choice = (marks: ReadonlyArray<boolean>) =>
+      oneQuestion([
+        {
+          kind: 'choose',
+          id: 'keep',
+          label: 'Keep it?',
+          options: marks.map((recommended, i) => ({
+            value: `v${i}`,
+            label: `V${i}`,
+            ...Bool.match(recommended, { onFalse: () => ({}), onTrue: () => ({ recommended }) }),
+          })),
+        },
+      ]);
+    expect(unrecommended(choice([false, false]))).toEqual([
+      'step ask: keep recommends none of its options: mark one recommended: true',
+    ]);
+    expect(unrecommended(choice([false, true]))).toEqual([]);
+    expect(unrecommended(choice([false]))).toEqual([]);
+    expect(askProblems(choice([true, true]))).toEqual([
+      'keep recommends more than one option: recommend one',
+    ]);
+    expect(unrecommended(proof)).toHaveLength(1);
+    expect(
+      optionsShown([
+        { value: 'a', label: 'A' },
+        { value: 'b', label: 'B', recommended: true },
+        { value: 'c', label: 'C' },
+      ]).map((o) => o.value),
+    ).toEqual(['b', 'a', 'c']);
+  });
+
+  test('one page: every section the answers so far reach, a guarded one once its choice is made', () => {
+    const at = askStart(proof);
+    const names = (draft: Record<string, string>) =>
+      sectionsOf(proof, at, draft).map((s) => s.name);
+    expect(names({})).toEqual(['pick']);
+    expect(names({ try: '7' })).toEqual(['pick', 'why']);
+    expect(names({ try: '7', why: 'light' })).toEqual(['pick', 'why']);
+    expect(names({ try: '3', why: 'light' })).toEqual(['pick']);
+    expect(sectionsOf(proof, at, { try: '7', why: 'light' }).map((s) => s.values)).toEqual([
+      { try: '7' },
+      { why: 'light' },
+    ]);
+    // A run already on a later step shows from there; an ask at its end shows none.
+    expect(
+      sectionsOf(proof, AskState.Asking({ step: 'why', answers: {} }), {}).map((s) => s.name),
+    ).toEqual(['why']);
+    expect(sectionsOf(proof, AskState.Answered({ step: 'done', answers: {} }), {})).toEqual([]);
+  });
+
+  test("a page's answers are checked in order, the run moved by each, the refusal named by its section", () => {
+    const at = askStart(proof);
+    expect(Option.getOrUndefined(pageRefusal(proof, at, [{ step: 'pick', values: {} }]))).toBe(
+      'try is not answered',
+    );
+    expect(
+      pageRefusal(proof, at, [
+        { step: 'pick', values: { try: '7' } },
+        { step: 'why', values: {} },
+      ]),
+    ).toEqual(Option.none());
+    const titled: Ask = {
+      ...proof,
+      steps: {
+        ...proof.steps,
+        why: {
+          title: 'Why',
+          blocks: [{ kind: 'free_text', id: 'why', label: 'Why?', required: true }],
+          next: [{ to: 'done' }],
+        },
+      },
+    };
+    expect(
+      Option.getOrUndefined(
+        pageRefusal(titled, at, [
+          { step: 'pick', values: { try: '7' } },
+          { step: 'why', values: {} },
+        ]),
+      ),
+    ).toBe('Why: why is not answered');
   });
 
   test('an ask is bounded: at most twelve steps', () => {

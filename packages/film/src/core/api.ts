@@ -402,6 +402,8 @@ export const TalkMarkPost = Schema.Struct({
  */
 const ScriptBeat = Schema.Struct({
   id: Schema.String,
+  /** Its line as the script says it, marks and cues in braces; none for a beat that says nothing (left out by an older lab). */
+  say: Schema.optionalKey(Schema.String),
   /** What the picture does, as the script says it; none where it says nothing. */
   picture: Schema.optionalKey(Schema.String),
   /** The beat's sources, as the script cites them. */
@@ -874,13 +876,19 @@ class ReviewGroup extends HttpApiGroup.make('review').add(
   }),
 ) {}
 
-/** What a step's page sends: the step it answers and each answer's value by its name. */
-const AskAnswerPost = Schema.Struct({ step: Schema.String, values: StepValues });
+/**
+ * What an ask's page sends: each section it shows (`sectionsOf`), in order,
+ * by the step it answers and each answer's value by its name.
+ */
+const AskAnswerPost = Schema.Struct({
+  sections: Schema.Array(Schema.Struct({ step: Schema.String, values: StepValues })),
+});
 
 /**
  * The asks: an agent's decision pages (`core/ask.ts`), each read as its
- * record and answered a step at a time; the answer moves its machine and is
- * kept, so a reload or another device opens it where it was left.
+ * record and answered as one page, its sections in order; the answers move
+ * its machine and are kept, so a reload or another device opens it where it
+ * was left.
  */
 class AsksGroup extends HttpApiGroup.make('asks').add(
   HttpApiEndpoint.get('read', `${API}/asks/:ask`, {

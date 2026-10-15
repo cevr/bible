@@ -435,6 +435,7 @@ describe('asks through the MCP', () => {
                           value: '1',
                           label: 'Try 1',
                           image: { board: { film: 'f', panel: 'cold.judge', try: 1 } },
+                          recommended: true,
                         },
                         {
                           value: 'calm',
@@ -668,7 +669,7 @@ describe('film production ask', () => {
                 id: 'pick',
                 label: 'Pick one',
                 options: [
-                  { value: '1', label: 'Try 1' },
+                  { value: '1', label: 'Try 1', recommended: true },
                   { value: '2', label: 'Calmer' },
                 ],
               },
