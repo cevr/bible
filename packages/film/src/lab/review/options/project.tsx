@@ -50,6 +50,8 @@ import type { ReviewVideo } from '../../../core/review.ts';
 import { FILM_FPS, timecode } from '../../../core/time.ts';
 import { counted } from '../../../core/words.ts';
 import { SceneCard, SceneFindings, SceneState, StateBand } from '../../scenes/card.tsx';
+import { SCENE_CARD_STYLE } from '../../scenes/style.ts';
+import { PlaceStyle } from '../../place-style.tsx';
 import { filmCounts, filmSpan, marksOf, projectPlaced } from '../../scenes/marks.ts';
 import type { LabFailure } from '../../api.ts';
 import { plainClick } from '../../../browser/pointer.ts';
@@ -850,9 +852,10 @@ const Dock = () => (
   </section>
 );
 
-/** A film's project by its address tree, in the studio's shell. */
+/** A film's project by its address tree, in the studio's shell, with its scene cards' styles (no other place of the review draws them). */
 export const ProjectPage = (props: { readonly film: string }) => (
   <FilmProvider film={props.film}>
+    <PlaceStyle css={SCENE_CARD_STYLE} />
     <StepCommands />
     <Dock />
     <OnlyShown />

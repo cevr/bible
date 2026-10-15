@@ -31,7 +31,6 @@ import { COMMAND_CSS } from '../command/style.ts';
 import { StudioFrame, studioOn } from '../studio-frame.tsx';
 import { PageShell } from '../page-shell.tsx';
 import { SHELL_CSS } from '../page-shell-style.ts';
-import { SCENES_CSS } from '../scenes/style.ts';
 import type { LabClient } from '../api.ts';
 import type { DrawStills } from './options/stills.tsx';
 
@@ -223,7 +222,7 @@ const ReviewPage = (props: ReviewWith) => (
 export const REVIEW_PAGE = {
   bodyClass: 'rv',
   rootClass: 'rv-root',
-  style: `${SHELL_CSS}${REVIEW_CSS}${COMMENTS_CSS}${COMMAND_CSS}${SCENES_CSS}`,
+  style: `${SHELL_CSS}${REVIEW_CSS}${COMMENTS_CSS}${COMMAND_CSS}`,
 };
 
 /**

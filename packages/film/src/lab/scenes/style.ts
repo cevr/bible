@@ -7,11 +7,70 @@
 // in its sheet (the one sheet, `lab-inspector-sheet` in the command styles),
 // which on a phone peeks over the tab bar with the card in brief, and the
 // kit's comment section that sheet and the review's inspectors hold. The
-// player page and the review page each inject it with the shell's styles.
+// player page injects them whole with the shell's styles; the review's
+// Project carries only the card's (`SCENE_CARD_STYLE`).
 
 import { PHONE, WIDE } from '../viewport.ts';
 
-export const SCENES_CSS = `
+/** A scene's card (`card.tsx`): on the Scenes' sheet and the Project's tiles alike. */
+const SCENE_CARD_CSS = `
+.sc-card { display: grid; align-content: start; gap: var(--s-2); padding: 0 var(--gutter) var(--s-4); }
+.sc-card[data-size="tile"] { gap: var(--s-1); padding: 0 0 var(--s-2); overflow: hidden; background: var(--surface-2);
+  border: var(--border); border-radius: var(--r-2); }
+.sc-card[data-size="tile"][data-selected="true"] { border-color: var(--accent); }
+.sc-card[data-size="tile"] > :not(.sc-card-picture) { padding: 0 var(--s-2); }
+/*
+ * A card's picture is framed 16:9 and cropped: a still in its slot; a player
+ * (a picture with its own transport) in its first child, its row standing
+ * under it outside the clip, the slot no wider than the card.
+ */
+.sc-card-picture { position: relative; }
+.sc-card-picture[data-picture="player"] { min-width: 0; }
+.sc-card-picture[data-picture="still"],
+.sc-card-picture[data-picture="player"] > :first-child { aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-0); border-radius: var(--r-1); }
+.sc-card-picture img, .sc-card-picture video, .sc-card-picture > canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+.sc-live, .sc-live .stage { width: 100%; height: 100%; padding: 0; }
+.sc-card-length { position: absolute; right: var(--s-1); bottom: var(--s-1); padding: 0 var(--s-1); border-radius: var(--r-1);
+  background: var(--on-picture-shade); color: var(--on-picture); font-size: var(--fs-1); line-height: var(--lh-1); }
+.sc-card-head { display: flex; align-items: center; gap: var(--s-2); min-width: 0; font-size: var(--fs-4); font-weight: var(--w-3); }
+.sc-card-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* The name is a target of the pointer's size in itself: the card clips its overflow, so a hit-slop past it would not count. */
+.sc-card-name .lab-inspect { max-width: 100%; min-height: var(--hit); overflow: hidden; text-overflow: ellipsis; font: inherit;
+  color: inherit; }
+/* The card's verbs share its width, each the pointer's size. */
+.sc-card-verb > .sh-btn { flex: 1; min-height: var(--hit); white-space: nowrap; }
+.sc-hue { flex: none; width: 8px; height: 8px; border-radius: var(--r-1); }
+.sc-card-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-1) var(--s-3); margin: 0;
+  font-size: var(--fs-2); line-height: var(--lh-2); }
+.sc-card-facts dt { color: var(--text-2); }
+.sc-card-facts dd { margin: 0; color: var(--text-1); font-variant-numeric: tabular-nums; }
+.sc-chips { display: flex; flex-wrap: wrap; gap: var(--s-1); }
+.sc-chips:empty { display: none; }
+.sc-card-verb { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.sc-section > .sh-btn { min-height: var(--hit); }
+.sc-section { display: grid; gap: var(--s-2); padding-top: var(--s-3); border-top: var(--border); }
+.sc-section h3 { display: flex; justify-content: space-between; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-1); }
+.sc-section h3 span { color: var(--text-3); }
+.sc-finding { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); overflow-wrap: anywhere; }
+.sc-finding b { font-weight: var(--w-2); color: var(--state-findings); }
+.sc-finding[data-level="warning"] b { color: var(--state-warning); }
+`;
+
+/** The card on the phone: a tile is a row, its still beside its name and marks; its verb lives in the scene's sheet. */
+const SCENE_CARD_PHONE_CSS = `
+@media ${PHONE} {
+  /* A tile on the phone is a row (design language §7, Project): its still beside its name and marks;
+     its verb lives in the scene's sheet. */
+  .sc-card[data-size="tile"] { grid-template-columns: 7rem minmax(0, 1fr); column-gap: var(--s-3); align-items: center;
+    padding: var(--s-2); }
+  .sc-card[data-size="tile"] > :not(.sc-card-picture) { padding: 0; }
+  .sc-card[data-size="tile"] .sc-card-picture { grid-row: span 2; }
+  .sc-card[data-size="tile"] .sc-card-verb { display: none; }
+}
+`;
+
+/** The Scenes' own: the tape bar, the wrapped tape and the selected scene's sheet. */
+const SCENES_VIEW_CSS = `
 body.scenes { display: block; height: auto; }
 .sc { display: grid; grid-template-columns: minmax(0, 1fr); }
 .sc-main { min-width: 0; }
@@ -96,46 +155,9 @@ body.scenes { display: block; height: auto; }
 .sc-focus .lab-sheet-title > span { font-weight: var(--w-1); color: var(--text-3); }
 .sc-focus .lab-sheet-title > .sc-picked { color: var(--accent); }
 
-.sc-card { display: grid; align-content: start; gap: var(--s-2); padding: 0 var(--gutter) var(--s-4); }
-.sc-card[data-size="tile"] { gap: var(--s-1); padding: 0 0 var(--s-2); overflow: hidden; background: var(--surface-2);
-  border: var(--border); border-radius: var(--r-2); }
-.sc-card[data-size="tile"][data-selected="true"] { border-color: var(--accent); }
-.sc-card[data-size="tile"] > :not(.sc-card-picture) { padding: 0 var(--s-2); }
-/*
- * A card's picture is framed 16:9 and cropped: a still in its slot; a player
- * (a picture with its own transport) in its first child, its row standing
- * under it outside the clip, the slot no wider than the card.
- */
-.sc-card-picture { position: relative; }
-.sc-card-picture[data-picture="player"] { min-width: 0; }
-.sc-card-picture[data-picture="still"],
-.sc-card-picture[data-picture="player"] > :first-child { aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-0); border-radius: var(--r-1); }
-.sc-card-picture img, .sc-card-picture video, .sc-card-picture > canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
-.sc-live, .sc-live .stage { width: 100%; height: 100%; padding: 0; }
-.sc-card-length { position: absolute; right: var(--s-1); bottom: var(--s-1); padding: 0 var(--s-1); border-radius: var(--r-1);
-  background: var(--on-picture-shade); color: var(--on-picture); font-size: var(--fs-1); line-height: var(--lh-1); }
-.sc-card-head { display: flex; align-items: center; gap: var(--s-2); min-width: 0; font-size: var(--fs-4); font-weight: var(--w-3); }
-.sc-card-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-/* The name is a target of the pointer's size in itself: the card clips its overflow, so a hit-slop past it would not count. */
-.sc-card-name .lab-inspect { max-width: 100%; min-height: var(--hit); overflow: hidden; text-overflow: ellipsis; font: inherit;
-  color: inherit; }
-/* The card's verbs share its width, each the pointer's size. */
-.sc-card-verb > .sh-btn { flex: 1; min-height: var(--hit); white-space: nowrap; }
-.sc-hue { flex: none; width: 8px; height: 8px; border-radius: var(--r-1); }
-.sc-card-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-1) var(--s-3); margin: 0;
-  font-size: var(--fs-2); line-height: var(--lh-2); }
-.sc-card-facts dt { color: var(--text-2); }
-.sc-card-facts dd { margin: 0; color: var(--text-1); font-variant-numeric: tabular-nums; }
-.sc-chips { display: flex; flex-wrap: wrap; gap: var(--s-1); }
-.sc-chips:empty { display: none; }
-.sc-card-verb { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.sc-section > .sh-btn { min-height: var(--hit); }
-.sc-section { display: grid; gap: var(--s-2); padding-top: var(--s-3); border-top: var(--border); }
-.sc-section h3 { display: flex; justify-content: space-between; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-1); }
-.sc-section h3 span { color: var(--text-3); }
-.sc-finding { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); overflow-wrap: anywhere; }
-.sc-finding b { font-weight: var(--w-2); color: var(--state-findings); }
-.sc-finding[data-level="warning"] b { color: var(--state-warning); }
+`;
+
+const SCENES_VIEW_TAIL_CSS = `
 .sc-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: var(--s-3); }
 .sc-swatch { display: grid; gap: var(--s-1); font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
 .sc-swatch b { font-weight: var(--w-2); color: var(--text-1); }
@@ -152,12 +174,15 @@ body.scenes { display: block; height: auto; }
   .sc-focus[data-peek="true"] .sc-card-verb > .sh-btn:not([data-primary]) { display: none; }
   .sc-focus[data-peek="true"] .sc-card-verb { grid-column: 1 / -1; }
   .sc[data-selected="true"] .sc-tape { padding-bottom: 40dvh; }
-  /* A tile on the phone is a row (design language §7, Project): its still beside its name and marks;
-     its verb lives in the scene's sheet. */
-  .sc-card[data-size="tile"] { grid-template-columns: 7rem minmax(0, 1fr); column-gap: var(--s-3); align-items: center;
-    padding: var(--s-2); }
-  .sc-card[data-size="tile"] > :not(.sc-card-picture) { padding: 0; }
-  .sc-card[data-size="tile"] .sc-card-picture { grid-row: span 2; }
-  .sc-card[data-size="tile"] .sc-card-verb { display: none; }
 }
 `;
+
+/** The Scenes' styles whole, in the order they cascade: the tape's, the card's, the rest, the card on the phone. */
+export const SCENES_CSS = `${SCENES_VIEW_CSS}${SCENE_CARD_CSS}${SCENES_VIEW_TAIL_CSS}${SCENE_CARD_PHONE_CSS}`;
+
+/**
+ * The card alone, its rules and then the phone's: the review's Project
+ * carries it as its own place's styles (`PlaceStyle`), so no other place of
+ * the review weighs it.
+ */
+export const SCENE_CARD_STYLE = `${SCENE_CARD_CSS}${SCENE_CARD_PHONE_CSS}`;

@@ -637,7 +637,7 @@ const anchorDrift = (
 
 /**
  * Each anchor looked up under the doc's bases: the first base that has its
- * first directory reads it. Under none, it is another tree's path, unless the
+ * first directory (and it is not ignored output) reads it. Under none, it is another tree's path, unless the
  * doc is whole and it is neither a package's (`@bible/url-state`, an
  * installed `effect/Schema`) nor ignored output (`tmp/logs`).
  */
@@ -669,7 +669,10 @@ const findAnchors = Effect.fn('test.docs.findAnchors')(function* (root: string, 
         } satisfies Found;
       }
       const first = anchor.path.split('/')[0] ?? '';
-      const bases = yield* Effect.filter(doc.bases, (base) => isDirectory(path.join(base, first)));
+      // Ignored output (`tmp/`) is never read, whether or not a run has made it here.
+      const bases = yield* Effect.filter(doc.bases, (base) =>
+        Effect.map(isDirectory(path.join(base, first)), (there) => there && !ignored.has(first)),
+      );
       const under = yield* Effect.filter(bases, (base) =>
         fs.exists(path.join(root, base, anchor.path)),
       );
