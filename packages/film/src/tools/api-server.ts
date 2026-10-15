@@ -34,6 +34,7 @@ import {
   HttpPlatform,
   HttpRouter,
   HttpServer,
+  HttpServerError,
   HttpServerRequest,
   HttpServerResponse,
 } from 'effect/http';
@@ -683,16 +684,23 @@ export interface LabAt {
 /**
  * The lab's HTTP server on `at`: Effect's over `Bun.serve`, with no route or
  * development server of Bun's (each would answer before the gate), its idle
- * limit and its body limit. `serveLab` answers every request it takes.
+ * limit and its body limit. `serveLab` answers every request it takes. A
+ * bind this machine refuses (no interface has the address, or the port is
+ * held) fails as a `ServeError` whose cause is Bun's: Effect's adapter calls
+ * `Bun.serve` bare, so its throw would otherwise be a defect, though the
+ * layer is typed to fail with `ServeError`.
  */
 export const labServer = (at: LabAt) =>
-  BunHttpServer.layerServer({
-    hostname: at.hostname,
-    port: at.port,
-    development: false,
-    idleTimeout: LAB_IDLE_SECONDS,
-    maxRequestBodySize: MAX_REQUEST_BODY,
-  });
+  Layer.effect(
+    HttpServer.HttpServer,
+    BunHttpServer.make({
+      hostname: at.hostname,
+      port: at.port,
+      development: false,
+      idleTimeout: LAB_IDLE_SECONDS,
+      maxRequestBodySize: MAX_REQUEST_BODY,
+    }).pipe(Effect.catchDefect((cause) => Effect.fail(new HttpServerError.ServeError({ cause })))),
+  );
 
 /** The name and port a server is bound to; none for a socket file. */
 const boundOf = (address: NetAddress.SocketAddress): LabBound => {

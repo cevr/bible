@@ -53,6 +53,7 @@ import {
   LAB_IDLE_SECONDS,
   MAX_REQUEST_BODY,
   PageReads,
+  boundUrl,
   labServer,
   localLink,
   serveApi,
@@ -1260,7 +1261,7 @@ describe('lab routes', () => {
   );
 
   it.effect(
-    "the lab listens at the phone's address itself: its gate, compression and idle limit there too",
+    "the lab listens at the phone's address itself: a foreign Host refused there, and its answers compressed",
     () =>
       Effect.gen(function* () {
         const links = yield* startLab(
@@ -1284,18 +1285,52 @@ describe('lab routes', () => {
         expect(yield* answer({ host: 'evil.example' })).toEqual([403, 'plain']);
         // Its own name is the lab, compressed for a client that takes it.
         expect(yield* answer({ 'accept-encoding': 'br' })).toEqual([200, 'br']);
-        // A phone address the lab cannot serve is logged, and loopback serves alone.
-        const plain = yield* startLab(
-          { hostname: '127.0.0.1', port: 0 },
-          Option.some(new URL('https://[::1]:0/')),
-        );
-        expect(plain.phone).toBeUndefined();
       }).pipe(
         Effect.scoped,
         Effect.provide(RenderCatalogue.layer),
         Effect.provide([labInMemory(files()), FetchHttpClient.layer]),
       ),
   );
+
+  /** A port on loopback another server holds, as a forwarder still exiting holds 8230. */
+  const held = Layer.build(labServer({ hostname: '127.0.0.1', port: 0 })).pipe(
+    Effect.flatMap((server) => Effect.provideContext(boundUrl, server)),
+    Effect.map((url) => new URL(url)),
+    Effect.orDie,
+  );
+  const unservable: ReadonlyArray<readonly [string, Effect.Effect<URL, never, Scope.Scope>]> = [
+    // TEST-NET-1: on no interface of any machine, as the tailnet's address is when it is down.
+    ['an address on no interface of this machine', Effect.succeed(new URL('http://192.0.2.1:0/'))],
+    ['a port another server holds', held],
+    ['an https address (the lab serves plain http)', Effect.succeed(new URL('https://[::1]:0/'))],
+  ];
+  for (const [what, phoneAt] of unservable)
+    it.effect(`a phone address the lab cannot serve, ${what}: logged, and loopback serves`, () => {
+      const lines: Array<string> = [];
+      return Effect.gen(function* () {
+        const phone = yield* phoneAt;
+        const links = yield* startLab({ hostname: '127.0.0.1', port: 0 }, Option.some(phone));
+        expect(links.phone).toBeUndefined();
+        const client = yield* HttpClient.HttpClient;
+        const local = yield* Effect.orDie(client.get(links.local));
+        expect(local.status).toBe(200);
+        const unbound = lines.filter((line) => line.startsWith('lab.phone.unbound'));
+        expect(unbound).toHaveLength(1);
+        expect(unbound[0]).toContain(`url=${phone.href} reason=`);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(RenderCatalogue.layer),
+        Effect.provide([
+          labInMemory(files()),
+          FetchHttpClient.layer,
+          Logger.layer([
+            Logger.make(({ message }) => {
+              lines.push([message].flat().join(' '));
+            }),
+          ]),
+        ]),
+      );
+    });
 });
 
 // A browser that leaves (a closed tab, a reload) aborts its request, and Bun
