@@ -1040,6 +1040,217 @@ const rowToParagraph = (row: ParagraphRow) =>
       }),
   });
 
+/** The paragraph database's schema, created or migrated in place.
+ *
+ *  Idempotent, and run by every host that writes: the CLI, the sync and the
+ *  Bun server open a file that may be fresh or a version behind. A host that
+ *  only reads an installed corpus (the Worker over D1) skips it: the import
+ *  created the schema, and twenty DDL statements on every cold start are cost
+ *  with nothing to show for it. */
+const ensureParagraphSchema = (sql: SqlClient.SqlClient): Effect.Effect<void, SqlError> =>
+  Effect.gen(function* () {
+    // Schema version check via the per-service `schema_versions` registry
+    // (NOT the shared `PRAGMA user_version` — multiple services share this DB
+    // file and would clobber each other's version, forcing a drop+rebuild on
+    // every launch; see ../db/schema-version.ts). 0 = fresh / never-stamped;
+    // a non-zero mismatch means our tables' shape changed, so drop + recreate.
+    // Books/sync_status are preserved — they're stable across bumps and
+    // tossing them would force callers to re-add books before a re-sync.
+    yield* ensureSchemaVersionsTable(sql);
+    const currentVersion = yield* readSchemaVersion(sql, SCHEMA_NAME);
+    if (currentVersion !== 0 && currentVersion !== SCHEMA_VERSION) {
+      yield* sql.unsafe(`DROP TABLE IF EXISTS paragraphs_fts`);
+      yield* sql.unsafe(`DROP TABLE IF EXISTS paragraph_bible_refs`);
+      yield* sql.unsafe(`DROP TABLE IF EXISTS paragraphs`);
+      // Sync rows now point at non-existent paragraph data — mark all books
+      // as needing re-sync so the next sync repopulates the new schema.
+      yield* sql.unsafe(`UPDATE sync_status SET status = 'pending'`).pipe(
+        Effect.catch(() => Effect.void), // table may not exist yet on first init
+      );
+    }
+
+    yield* sql.unsafe(`
+      CREATE TABLE IF NOT EXISTS books (
+        book_id INTEGER PRIMARY KEY,
+        book_code TEXT NOT NULL,
+        book_title TEXT NOT NULL,
+        book_author TEXT NOT NULL,
+        paragraph_count INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    `);
+    // The EGW API's own classification of each book, carried alongside the
+    // fields the reader sees.
+    //
+    // Added by `ALTER TABLE` rather than by a `SCHEMA_VERSION` bump: a bump
+    // drops and rebuilds `paragraphs`, and this corpus holds 3,012,004 rows
+    // whose re-sync is hours of API traffic. These columns are additive and
+    // nullable, so an old file gains them without losing anything and a book
+    // whose metadata has not been backfilled reads as `NULL` — unclassified,
+    // which every query below treats as "do not filter it out".
+    //
+    // The same three-line `PRAGMA table_info` shape `sync_status` uses below,
+    // for the same reason.
+    const bookColumns = yield* sql<{ readonly name: string }>`PRAGMA table_info(books)`;
+    const bookColumnNames = new Set(bookColumns.map((column) => column.name));
+    if (!bookColumnNames.has('book_type'))
+      yield* sql.unsafe(`ALTER TABLE books ADD COLUMN book_type TEXT`);
+    if (!bookColumnNames.has('book_subtype'))
+      yield* sql.unsafe(`ALTER TABLE books ADD COLUMN book_subtype TEXT`);
+    if (!bookColumnNames.has('folder_id'))
+      yield* sql.unsafe(`ALTER TABLE books ADD COLUMN folder_id INTEGER`);
+    if (!bookColumnNames.has('section'))
+      yield* sql.unsafe(`ALTER TABLE books ADD COLUMN section TEXT`);
+
+    yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_books_author ON books(book_author)`);
+    yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_books_code ON books(book_code)`);
+    // The search filters below join `books` and narrow on these three, so
+    // they are indexed together rather than scanned per query.
+    yield* sql.unsafe(
+      `CREATE INDEX IF NOT EXISTS idx_books_classification ON books(section, book_type, book_subtype)`,
+    );
+
+    yield* sql.unsafe(`
+      CREATE TABLE IF NOT EXISTS paragraphs (
+        book_id INTEGER NOT NULL,
+        ref_code TEXT NOT NULL,
+        para_id TEXT,
+        refcode_short TEXT,
+        refcode_long TEXT,
+        nodes_json TEXT NOT NULL,
+        content_text TEXT NOT NULL,
+        puborder INTEGER NOT NULL,
+        element_type TEXT,
+        element_subtype TEXT,
+        page_number INTEGER,
+        paragraph_number INTEGER,
+        is_chapter_heading INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (book_id, ref_code),
+        FOREIGN KEY (book_id) REFERENCES books(book_id)
+      )
+    `);
+    yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_paragraphs_book_id ON paragraphs(book_id)`);
+    yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_paragraphs_ref_code ON paragraphs(ref_code)`);
+    yield* sql.unsafe(
+      `CREATE INDEX IF NOT EXISTS idx_paragraphs_puborder ON paragraphs(book_id, puborder)`,
+    );
+    // `para_id` is how a search hit is resolved back to its anchor before the
+    // surrounding paragraphs can be walked — `where para_id in (...)`, forty
+    // ids per page of results. Without this index that predicate is a full
+    // table scan: measured at 699.9 ms over 3,012,004 rows on the deployed
+    // corpus, against 0.03 ms with it, and it ran on *every* search. It is
+    // the single largest cost in a query.
+    //
+    // Not covered by `sqlite_autoindex_paragraphs_1`: that serves the primary
+    // key, and `para_id` is the library's own identifier rather than ours.
+    yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_paragraphs_para_id ON paragraphs(para_id)`);
+    // A refcode is how a citation is looked up across the whole corpus,
+    // periodicals and letters included — not only `CODE page.para` books.
+    // An expression index rather than a column so an existing 3M-row file
+    // gains it in place (a one-time build on first open) instead of a
+    // SCHEMA_VERSION bump that would drop and re-sync every paragraph.
+    yield* sql.unsafe(
+      `CREATE INDEX IF NOT EXISTS idx_paragraphs_refcode_key ON paragraphs(${REFCODE_KEY_SQL})`,
+    );
+    yield* sql.unsafe(
+      `CREATE INDEX IF NOT EXISTS idx_paragraphs_page ON paragraphs(book_id, page_number)`,
+    );
+    yield* sql.unsafe(
+      `CREATE INDEX IF NOT EXISTS idx_paragraphs_chapter ON paragraphs(book_id, is_chapter_heading) WHERE is_chapter_heading = 1`,
+    );
+
+    yield* sql.unsafe(`
+      CREATE TABLE IF NOT EXISTS paragraph_bible_refs (
+        para_book_id INTEGER NOT NULL,
+        para_ref_code TEXT NOT NULL,
+        bible_book INTEGER NOT NULL,
+        bible_chapter INTEGER NOT NULL,
+        bible_verse INTEGER,
+        PRIMARY KEY (para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse),
+        FOREIGN KEY (para_book_id, para_ref_code) REFERENCES paragraphs(book_id, ref_code)
+      )
+    `);
+    yield* sql.unsafe(
+      `CREATE INDEX IF NOT EXISTS idx_pbr_bible ON paragraph_bible_refs(bible_book, bible_chapter, bible_verse)`,
+    );
+
+    // FTS indexes the plain-text projection (content_text) since AST JSON
+    // would tokenize bracket/quote noise. paragraphs is still the contentless
+    // backing store — we keep external-content semantics so the FTS rowid
+    // stays linked to the paragraphs PK shape.
+    yield* sql.unsafe(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS paragraphs_fts USING fts5(
+        content_text,
+        refcode_short,
+        book_id UNINDEXED,
+        content=paragraphs,
+        content_rowid=rowid
+      )
+    `);
+    yield* sql.unsafe(`
+      CREATE TRIGGER IF NOT EXISTS paragraphs_fts_after_insert
+      AFTER INSERT ON paragraphs BEGIN
+        INSERT INTO paragraphs_fts(rowid, content_text, refcode_short, book_id)
+        VALUES (new.rowid, new.content_text, new.refcode_short, new.book_id);
+      END
+    `);
+    yield* sql.unsafe(`
+      CREATE TRIGGER IF NOT EXISTS paragraphs_fts_after_delete
+      AFTER DELETE ON paragraphs BEGIN
+        INSERT INTO paragraphs_fts(
+          paragraphs_fts, rowid, content_text, refcode_short, book_id
+        ) VALUES (
+          'delete', old.rowid, old.content_text, old.refcode_short, old.book_id
+        );
+      END
+    `);
+    yield* sql.unsafe(`
+      CREATE TRIGGER IF NOT EXISTS paragraphs_fts_after_update
+      AFTER UPDATE ON paragraphs BEGIN
+        INSERT INTO paragraphs_fts(
+          paragraphs_fts, rowid, content_text, refcode_short, book_id
+        ) VALUES (
+          'delete', old.rowid, old.content_text, old.refcode_short, old.book_id
+        );
+        INSERT INTO paragraphs_fts(rowid, content_text, refcode_short, book_id)
+        VALUES (new.rowid, new.content_text, new.refcode_short, new.book_id);
+      END
+    `);
+
+    yield* sql.unsafe(`
+      CREATE TABLE IF NOT EXISTS sync_status (
+        book_id INTEGER PRIMARY KEY,
+        book_code TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        error_message TEXT,
+        last_attempt TEXT NOT NULL,
+        paragraph_count INTEGER DEFAULT 0,
+        source TEXT,
+        revision TEXT,
+        digest TEXT
+      )
+    `);
+    const syncColumns = yield* sql<{ readonly name: string }>`PRAGMA table_info(sync_status)`;
+    const syncColumnNames = new Set(syncColumns.map((column) => column.name));
+    if (!syncColumnNames.has('source'))
+      yield* sql.unsafe(`ALTER TABLE sync_status ADD COLUMN source TEXT`);
+    if (!syncColumnNames.has('revision'))
+      yield* sql.unsafe(`ALTER TABLE sync_status ADD COLUMN revision TEXT`);
+    if (!syncColumnNames.has('digest'))
+      yield* sql.unsafe(`ALTER TABLE sync_status ADD COLUMN digest TEXT`);
+    yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_sync_status ON sync_status(status)`);
+
+    // Stamp our schema version; the next open sees the match and skips the
+    // drop/rebuild branch above.
+    yield* writeSchemaVersion(sql, SCHEMA_NAME, SCHEMA_VERSION);
+  });
+
+const layerParagraphSchema: Layer.Layer<never, SqlError, SqlClient.SqlClient> = Layer.effectDiscard(
+  SqlClient.SqlClient.pipe(Effect.flatMap(ensureParagraphSchema)),
+);
+
 // ============================================================================
 // Service Definition
 // ============================================================================
@@ -1049,228 +1260,30 @@ export class EGWParagraphDatabase extends Context.Service<
   EGWParagraphDatabaseService
 >()('@bible/core/egw-db/book-database/EGWParagraphDatabase') {
   /**
-   * Driver-agnostic layer: requires `SqlClient.SqlClient`. Initializes the
-   * schema (idempotent) and exposes all CRUD/query operations. Compose with
-   * a SQLite driver layer (sqlite-bun, sqlite-node) via `Layer.provide`.
+   * Driver-agnostic layer over a database whose schema is already in place:
+   * requires `SqlClient.SqlClient` and runs no DDL. For a host that only reads
+   * an installed corpus; every other host takes `layerCore`.
    */
-  static layerCore: Layer.Layer<EGWParagraphDatabase, SqlError, SqlClient.SqlClient> = Layer.effect(
-    EGWParagraphDatabase,
-    Effect.gen(function* () {
-      const sql = yield* SqlClient.SqlClient;
+  static layerExisting: Layer.Layer<EGWParagraphDatabase, never, SqlClient.SqlClient> =
+    Layer.effect(
+      EGWParagraphDatabase,
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
 
-      // Schema version check via the per-service `schema_versions` registry
-      // (NOT the shared `PRAGMA user_version` — multiple services share this DB
-      // file and would clobber each other's version, forcing a drop+rebuild on
-      // every launch; see ../db/schema-version.ts). 0 = fresh / never-stamped;
-      // a non-zero mismatch means our tables' shape changed, so drop + recreate.
-      // Books/sync_status are preserved — they're stable across bumps and
-      // tossing them would force callers to re-add books before a re-sync.
-      yield* ensureSchemaVersionsTable(sql);
-      const currentVersion = yield* readSchemaVersion(sql, SCHEMA_NAME);
-      if (currentVersion !== 0 && currentVersion !== SCHEMA_VERSION) {
-        yield* sql.unsafe(`DROP TABLE IF EXISTS paragraphs_fts`);
-        yield* sql.unsafe(`DROP TABLE IF EXISTS paragraph_bible_refs`);
-        yield* sql.unsafe(`DROP TABLE IF EXISTS paragraphs`);
-        // Sync rows now point at non-existent paragraph data — mark all books
-        // as needing re-sync so the next sync repopulates the new schema.
-        yield* sql.unsafe(`UPDATE sync_status SET status = 'pending'`).pipe(
-          Effect.catch(() => Effect.void), // table may not exist yet on first init
-        );
-      }
+        // ========== Book operations ==========
 
-      yield* sql.unsafe(`
-        CREATE TABLE IF NOT EXISTS books (
-          book_id INTEGER PRIMARY KEY,
-          book_code TEXT NOT NULL,
-          book_title TEXT NOT NULL,
-          book_author TEXT NOT NULL,
-          paragraph_count INTEGER DEFAULT 0,
-          created_at TEXT NOT NULL
-        )
-      `);
-      // The EGW API's own classification of each book, carried alongside the
-      // fields the reader sees.
-      //
-      // Added by `ALTER TABLE` rather than by a `SCHEMA_VERSION` bump: a bump
-      // drops and rebuilds `paragraphs`, and this corpus holds 3,012,004 rows
-      // whose re-sync is hours of API traffic. These columns are additive and
-      // nullable, so an old file gains them without losing anything and a book
-      // whose metadata has not been backfilled reads as `NULL` — unclassified,
-      // which every query below treats as "do not filter it out".
-      //
-      // The same three-line `PRAGMA table_info` shape `sync_status` uses below,
-      // for the same reason.
-      const bookColumns = yield* sql<{ readonly name: string }>`PRAGMA table_info(books)`;
-      const bookColumnNames = new Set(bookColumns.map((column) => column.name));
-      if (!bookColumnNames.has('book_type'))
-        yield* sql.unsafe(`ALTER TABLE books ADD COLUMN book_type TEXT`);
-      if (!bookColumnNames.has('book_subtype'))
-        yield* sql.unsafe(`ALTER TABLE books ADD COLUMN book_subtype TEXT`);
-      if (!bookColumnNames.has('folder_id'))
-        yield* sql.unsafe(`ALTER TABLE books ADD COLUMN folder_id INTEGER`);
-      if (!bookColumnNames.has('section'))
-        yield* sql.unsafe(`ALTER TABLE books ADD COLUMN section TEXT`);
-
-      yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_books_author ON books(book_author)`);
-      yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_books_code ON books(book_code)`);
-      // The search filters below join `books` and narrow on these three, so
-      // they are indexed together rather than scanned per query.
-      yield* sql.unsafe(
-        `CREATE INDEX IF NOT EXISTS idx_books_classification ON books(section, book_type, book_subtype)`,
-      );
-
-      yield* sql.unsafe(`
-        CREATE TABLE IF NOT EXISTS paragraphs (
-          book_id INTEGER NOT NULL,
-          ref_code TEXT NOT NULL,
-          para_id TEXT,
-          refcode_short TEXT,
-          refcode_long TEXT,
-          nodes_json TEXT NOT NULL,
-          content_text TEXT NOT NULL,
-          puborder INTEGER NOT NULL,
-          element_type TEXT,
-          element_subtype TEXT,
-          page_number INTEGER,
-          paragraph_number INTEGER,
-          is_chapter_heading INTEGER DEFAULT 0,
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          PRIMARY KEY (book_id, ref_code),
-          FOREIGN KEY (book_id) REFERENCES books(book_id)
-        )
-      `);
-      yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_paragraphs_book_id ON paragraphs(book_id)`);
-      yield* sql.unsafe(
-        `CREATE INDEX IF NOT EXISTS idx_paragraphs_ref_code ON paragraphs(ref_code)`,
-      );
-      yield* sql.unsafe(
-        `CREATE INDEX IF NOT EXISTS idx_paragraphs_puborder ON paragraphs(book_id, puborder)`,
-      );
-      // `para_id` is how a search hit is resolved back to its anchor before the
-      // surrounding paragraphs can be walked — `where para_id in (...)`, forty
-      // ids per page of results. Without this index that predicate is a full
-      // table scan: measured at 699.9 ms over 3,012,004 rows on the deployed
-      // corpus, against 0.03 ms with it, and it ran on *every* search. It is
-      // the single largest cost in a query.
-      //
-      // Not covered by `sqlite_autoindex_paragraphs_1`: that serves the primary
-      // key, and `para_id` is the library's own identifier rather than ours.
-      yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_paragraphs_para_id ON paragraphs(para_id)`);
-      // A refcode is how a citation is looked up across the whole corpus,
-      // periodicals and letters included — not only `CODE page.para` books.
-      // An expression index rather than a column so an existing 3M-row file
-      // gains it in place (a one-time build on first open) instead of a
-      // SCHEMA_VERSION bump that would drop and re-sync every paragraph.
-      yield* sql.unsafe(
-        `CREATE INDEX IF NOT EXISTS idx_paragraphs_refcode_key ON paragraphs(${REFCODE_KEY_SQL})`,
-      );
-      yield* sql.unsafe(
-        `CREATE INDEX IF NOT EXISTS idx_paragraphs_page ON paragraphs(book_id, page_number)`,
-      );
-      yield* sql.unsafe(
-        `CREATE INDEX IF NOT EXISTS idx_paragraphs_chapter ON paragraphs(book_id, is_chapter_heading) WHERE is_chapter_heading = 1`,
-      );
-
-      yield* sql.unsafe(`
-        CREATE TABLE IF NOT EXISTS paragraph_bible_refs (
-          para_book_id INTEGER NOT NULL,
-          para_ref_code TEXT NOT NULL,
-          bible_book INTEGER NOT NULL,
-          bible_chapter INTEGER NOT NULL,
-          bible_verse INTEGER,
-          PRIMARY KEY (para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse),
-          FOREIGN KEY (para_book_id, para_ref_code) REFERENCES paragraphs(book_id, ref_code)
-        )
-      `);
-      yield* sql.unsafe(
-        `CREATE INDEX IF NOT EXISTS idx_pbr_bible ON paragraph_bible_refs(bible_book, bible_chapter, bible_verse)`,
-      );
-
-      // FTS indexes the plain-text projection (content_text) since AST JSON
-      // would tokenize bracket/quote noise. paragraphs is still the contentless
-      // backing store — we keep external-content semantics so the FTS rowid
-      // stays linked to the paragraphs PK shape.
-      yield* sql.unsafe(`
-        CREATE VIRTUAL TABLE IF NOT EXISTS paragraphs_fts USING fts5(
-          content_text,
-          refcode_short,
-          book_id UNINDEXED,
-          content=paragraphs,
-          content_rowid=rowid
-        )
-      `);
-      yield* sql.unsafe(`
-        CREATE TRIGGER IF NOT EXISTS paragraphs_fts_after_insert
-        AFTER INSERT ON paragraphs BEGIN
-          INSERT INTO paragraphs_fts(rowid, content_text, refcode_short, book_id)
-          VALUES (new.rowid, new.content_text, new.refcode_short, new.book_id);
-        END
-      `);
-      yield* sql.unsafe(`
-        CREATE TRIGGER IF NOT EXISTS paragraphs_fts_after_delete
-        AFTER DELETE ON paragraphs BEGIN
-          INSERT INTO paragraphs_fts(
-            paragraphs_fts, rowid, content_text, refcode_short, book_id
-          ) VALUES (
-            'delete', old.rowid, old.content_text, old.refcode_short, old.book_id
-          );
-        END
-      `);
-      yield* sql.unsafe(`
-        CREATE TRIGGER IF NOT EXISTS paragraphs_fts_after_update
-        AFTER UPDATE ON paragraphs BEGIN
-          INSERT INTO paragraphs_fts(
-            paragraphs_fts, rowid, content_text, refcode_short, book_id
-          ) VALUES (
-            'delete', old.rowid, old.content_text, old.refcode_short, old.book_id
-          );
-          INSERT INTO paragraphs_fts(rowid, content_text, refcode_short, book_id)
-          VALUES (new.rowid, new.content_text, new.refcode_short, new.book_id);
-        END
-      `);
-
-      yield* sql.unsafe(`
-        CREATE TABLE IF NOT EXISTS sync_status (
-          book_id INTEGER PRIMARY KEY,
-          book_code TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'pending',
-          error_message TEXT,
-          last_attempt TEXT NOT NULL,
-          paragraph_count INTEGER DEFAULT 0,
-          source TEXT,
-          revision TEXT,
-          digest TEXT
-        )
-      `);
-      const syncColumns = yield* sql<{ readonly name: string }>`PRAGMA table_info(sync_status)`;
-      const syncColumnNames = new Set(syncColumns.map((column) => column.name));
-      if (!syncColumnNames.has('source'))
-        yield* sql.unsafe(`ALTER TABLE sync_status ADD COLUMN source TEXT`);
-      if (!syncColumnNames.has('revision'))
-        yield* sql.unsafe(`ALTER TABLE sync_status ADD COLUMN revision TEXT`);
-      if (!syncColumnNames.has('digest'))
-        yield* sql.unsafe(`ALTER TABLE sync_status ADD COLUMN digest TEXT`);
-      yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_sync_status ON sync_status(status)`);
-
-      // Stamp our schema version; the next open sees the match and skips the
-      // drop/rebuild branch above.
-      yield* writeSchemaVersion(sql, SCHEMA_NAME, SCHEMA_VERSION);
-
-      // ========== Book operations ==========
-
-      const storeBook = (book: EGWSchemas.Book) =>
-        Effect.gen(function* () {
-          const createdAt = DateTime.formatIso(yield* DateTime.now);
-          // The API's `subtype` carries `''` and `' '` as two spellings of
-          // absence; both become NULL here so a filter never has to know that.
-          const subtype = Option.getOrNull(
-            Option.filter(
-              Option.map(Option.fromNullishOr(book.subtype), (value) => value.trim()),
-              (value) => value !== '',
-            ),
-          );
-          yield* sql`
+        const storeBook = (book: EGWSchemas.Book) =>
+          Effect.gen(function* () {
+            const createdAt = DateTime.formatIso(yield* DateTime.now);
+            // The API's `subtype` carries `''` and `' '` as two spellings of
+            // absence; both become NULL here so a filter never has to know that.
+            const subtype = Option.getOrNull(
+              Option.filter(
+                Option.map(Option.fromNullishOr(book.subtype), (value) => value.trim()),
+                (value) => value !== '',
+              ),
+            );
+            yield* sql`
           INSERT INTO books (
             book_id, book_code, book_title, book_author, paragraph_count, created_at,
             book_type, book_subtype, folder_id
@@ -1287,53 +1300,53 @@ export class EGWParagraphDatabase extends Context.Service<
             book_subtype = excluded.book_subtype,
             folder_id = excluded.folder_id
         `;
-        });
+          });
 
-      /** Set a book's section, which the book DTO alone cannot supply.
-       *
-       *  `type` and `subtype` come down with the book; the section does not —
-       *  it is the name of the top-level folder the book's `folder_id` sits
-       *  under, which is only knowable by walking the folder tree. So it is
-       *  written separately, by whatever has the tree in hand, rather than
-       *  guessed from the book record. */
-      const setBookSection = (bookCode: string, section: string) =>
-        sql`UPDATE books SET section = ${section} WHERE book_code = ${bookCode} COLLATE NOCASE`.pipe(
-          Effect.asVoid,
+        /** Set a book's section, which the book DTO alone cannot supply.
+         *
+         *  `type` and `subtype` come down with the book; the section does not —
+         *  it is the name of the top-level folder the book's `folder_id` sits
+         *  under, which is only knowable by walking the folder tree. So it is
+         *  written separately, by whatever has the tree in hand, rather than
+         *  guessed from the book record. */
+        const setBookSection = (bookCode: string, section: string) =>
+          sql`UPDATE books SET section = ${section} WHERE book_code = ${bookCode} COLLATE NOCASE`.pipe(
+            Effect.asVoid,
+          );
+
+        const getBookById = (bookId: number) =>
+          sql<BookRow>`SELECT * FROM books WHERE book_id = ${bookId}`.pipe(
+            Effect.map((rows) => Option.fromNullishOr(rows[0])),
+          );
+
+        const getBookByCode = (bookCode: string) =>
+          sql<BookRow>`SELECT * FROM books WHERE book_code = ${bookCode} COLLATE NOCASE`.pipe(
+            Effect.map((rows) => Option.fromNullishOr(rows[0])),
+          );
+
+        const getBooksByCode = (bookCode: string) =>
+          sql<BookRow>`SELECT * FROM books WHERE book_code = ${bookCode} COLLATE NOCASE ORDER BY book_id`;
+
+        const getBooksByAuthor = (author: string) =>
+          Stream.fromIterableEffect(
+            sql<BookRow>`SELECT * FROM books WHERE book_author = ${author} ORDER BY book_id`,
+          );
+
+        const getAllBooks = Stream.fromIterableEffect(
+          sql<BookRow>`SELECT * FROM books ORDER BY book_author, book_title`,
         );
 
-      const getBookById = (bookId: number) =>
-        sql<BookRow>`SELECT * FROM books WHERE book_id = ${bookId}`.pipe(
-          Effect.map((rows) => Option.fromNullishOr(rows[0])),
-        );
-
-      const getBookByCode = (bookCode: string) =>
-        sql<BookRow>`SELECT * FROM books WHERE book_code = ${bookCode} COLLATE NOCASE`.pipe(
-          Effect.map((rows) => Option.fromNullishOr(rows[0])),
-        );
-
-      const getBooksByCode = (bookCode: string) =>
-        sql<BookRow>`SELECT * FROM books WHERE book_code = ${bookCode} COLLATE NOCASE ORDER BY book_id`;
-
-      const getBooksByAuthor = (author: string) =>
-        Stream.fromIterableEffect(
-          sql<BookRow>`SELECT * FROM books WHERE book_author = ${author} ORDER BY book_id`,
-        );
-
-      const getAllBooks = Stream.fromIterableEffect(
-        sql<BookRow>`SELECT * FROM books ORDER BY book_author, book_title`,
-      );
-
-      const updateBookCount = (bookId: number) =>
-        sql`
+        const updateBookCount = (bookId: number) =>
+          sql`
           UPDATE books SET paragraph_count = (
             SELECT COUNT(*) FROM paragraphs WHERE book_id = ${bookId}
           ) WHERE book_id = ${bookId}
         `.pipe(Effect.asVoid);
 
-      // ========== Paragraph operations ==========
+        // ========== Paragraph operations ==========
 
-      const insertParagraphRow = (row: ParagraphRow) =>
-        sql`
+        const insertParagraphRow = (row: ParagraphRow) =>
+          sql`
           INSERT INTO paragraphs (
             book_id, ref_code, para_id, refcode_short, refcode_long,
             nodes_json, content_text, puborder, element_type, element_subtype,
@@ -1360,8 +1373,9 @@ export class EGWParagraphDatabase extends Context.Service<
             updated_at = excluded.updated_at
         `.pipe(Effect.asVoid);
 
-      const installPublicationArchive = Effect.fn('EGWParagraphDatabase.installPublicationArchive')(
-        function* (archive: PublicationArchive, provenance?: CorpusProvenance) {
+        const installPublicationArchive = Effect.fn(
+          'EGWParagraphDatabase.installPublicationArchive',
+        )(function* (archive: PublicationArchive, provenance?: CorpusProvenance) {
           yield* validatePublicationArchive(archive);
 
           const publication = archive.publication;
@@ -1447,157 +1461,156 @@ export class EGWParagraphDatabase extends Context.Service<
               return installedCount;
             }),
           );
-        },
-      );
+        });
 
-      const storeParagraph = (paragraph: EGWSchemas.Paragraph, book: EGWSchemas.Book) =>
-        Effect.gen(function* () {
-          const now = DateTime.formatIso(yield* DateTime.now);
+        const storeParagraph = (paragraph: EGWSchemas.Paragraph, book: EGWSchemas.Book) =>
+          Effect.gen(function* () {
+            const now = DateTime.formatIso(yield* DateTime.now);
 
-          yield* storeBook(book);
+            yield* storeBook(book);
 
-          const refCode =
-            Option.getOrNull(paragraph.refcode_short) ??
-            paragraph.refcode_long ??
-            Option.getOrNull(paragraph.para_id) ??
-            `book-${book.book_id}-para-${paragraph.puborder}`;
+            const refCode =
+              Option.getOrNull(paragraph.refcode_short) ??
+              paragraph.refcode_long ??
+              Option.getOrNull(paragraph.para_id) ??
+              `book-${book.book_id}-para-${paragraph.puborder}`;
 
-          const existing = yield* sql<{ created_at: string }>`
+            const existing = yield* sql<{ created_at: string }>`
             SELECT created_at FROM paragraphs
             WHERE book_id = ${book.book_id} AND ref_code = ${refCode}
           `;
-          const createdAt = existing[0]?.created_at ?? now;
-          const row = paragraphToRow(paragraph, book.book_id, createdAt, now);
-          yield* insertParagraphRow(row);
-        });
+            const createdAt = existing[0]?.created_at ?? now;
+            const row = paragraphToRow(paragraph, book.book_id, createdAt, now);
+            yield* insertParagraphRow(row);
+          });
 
-      const storeParagraphsBatch = (
-        paragraphs: readonly EGWSchemas.Paragraph[],
-        book: EGWSchemas.Book,
-      ) =>
-        sql.withTransaction(
-          Effect.gen(function* () {
-            const now = DateTime.formatIso(yield* DateTime.now);
-            yield* storeBook(book);
-            for (const paragraph of paragraphs) {
-              const row = paragraphToRow(paragraph, book.book_id, now, now);
-              yield* insertParagraphRow(row);
-            }
-            return paragraphs.length;
-          }),
-        );
+        const storeParagraphsBatch = (
+          paragraphs: readonly EGWSchemas.Paragraph[],
+          book: EGWSchemas.Book,
+        ) =>
+          sql.withTransaction(
+            Effect.gen(function* () {
+              const now = DateTime.formatIso(yield* DateTime.now);
+              yield* storeBook(book);
+              for (const paragraph of paragraphs) {
+                const row = paragraphToRow(paragraph, book.book_id, now, now);
+                yield* insertParagraphRow(row);
+              }
+              return paragraphs.length;
+            }),
+          );
 
-      const getParagraph = (bookId: number, refCode: string) =>
-        sql<ParagraphRow>`
+        const getParagraph = (bookId: number, refCode: string) =>
+          sql<ParagraphRow>`
           SELECT * FROM paragraphs WHERE book_id = ${bookId} AND ref_code = ${refCode}
         `.pipe(
-          Effect.flatMap((rows) =>
-            Option.fromNullishOr(rows[0]).pipe(
-              Option.match({
-                onNone: () => Effect.succeed(Option.none<EGWSchemas.Paragraph>()),
-                onSome: (row) => rowToParagraph(row).pipe(Effect.asSome),
-              }),
+            Effect.flatMap((rows) =>
+              Option.fromNullishOr(rows[0]).pipe(
+                Option.match({
+                  onNone: () => Effect.succeed(Option.none<EGWSchemas.Paragraph>()),
+                  onSome: (row) => rowToParagraph(row).pipe(Effect.asSome),
+                }),
+              ),
             ),
-          ),
-        );
+          );
 
-      const toRefcodeRows = (rows: readonly ParagraphRow[]) =>
-        Effect.forEach(rows, (row) =>
-          rowToParagraph(row).pipe(
-            Effect.map((paragraph): RefcodeRow => ({ bookId: row.book_id, paragraph })),
-          ),
-        );
+        const toRefcodeRows = (rows: readonly ParagraphRow[]) =>
+          Effect.forEach(rows, (row) =>
+            rowToParagraph(row).pipe(
+              Effect.map((paragraph): RefcodeRow => ({ bookId: row.book_id, paragraph })),
+            ),
+          );
 
-      const refcodeKeyColumn = sql.literal(REFCODE_KEY_SQL);
-      const getParagraphsByRefcode = (refcode: string) =>
-        Effect.gen(function* () {
-          const key = refcodeKey(refcode);
-          if (key.length === 0) return [];
-          const [dot, comma] = REFCODE_CHILD_SEPARATORS.map((separator) => key + separator);
-          const rows = yield* sql<ParagraphRow>`
+        const refcodeKeyColumn = sql.literal(REFCODE_KEY_SQL);
+        const getParagraphsByRefcode = (refcode: string) =>
+          Effect.gen(function* () {
+            const key = refcodeKey(refcode);
+            if (key.length === 0) return [];
+            const [dot, comma] = REFCODE_CHILD_SEPARATORS.map((separator) => key + separator);
+            const rows = yield* sql<ParagraphRow>`
             SELECT * FROM paragraphs
             WHERE ${refcodeKeyColumn} = ${key}
                OR (${refcodeKeyColumn} >= ${dot} AND ${refcodeKeyColumn} < ${dot + REFCODE_KEY_END})
                OR (${refcodeKeyColumn} >= ${comma} AND ${refcodeKeyColumn} < ${comma + REFCODE_KEY_END})
             ORDER BY book_id, puborder
           `;
-          return yield* toRefcodeRows(rows);
-        });
+            return yield* toRefcodeRows(rows);
+          });
 
-      const getParagraphsByBook = (bookId: number) =>
-        Stream.fromIterableEffect(
-          sql<ParagraphRow>`
+        const getParagraphsByBook = (bookId: number) =>
+          Stream.fromIterableEffect(
+            sql<ParagraphRow>`
             SELECT * FROM paragraphs WHERE book_id = ${bookId} ORDER BY puborder
           `,
-        ).pipe(Stream.mapEffect(rowToParagraph));
+          ).pipe(Stream.mapEffect(rowToParagraph));
 
-      const getParagraphsByAuthor = (author: string) =>
-        Stream.fromIterableEffect(
-          sql<ParagraphRow>`
+        const getParagraphsByAuthor = (author: string) =>
+          Stream.fromIterableEffect(
+            sql<ParagraphRow>`
             SELECT p.* FROM paragraphs p
             JOIN books b ON p.book_id = b.book_id
             WHERE b.book_author = ${author}
             ORDER BY p.book_id, p.puborder
           `,
-        ).pipe(Stream.mapEffect(rowToParagraph));
+          ).pipe(Stream.mapEffect(rowToParagraph));
 
-      const getParagraphsByPage = (bookId: number, pageNumber: number) =>
-        sql<ParagraphRow>`
+        const getParagraphsByPage = (bookId: number, pageNumber: number) =>
+          sql<ParagraphRow>`
           SELECT * FROM paragraphs
           WHERE book_id = ${bookId} AND page_number = ${pageNumber}
           ORDER BY puborder
         `.pipe(Effect.flatMap((rows) => Effect.forEach(rows, rowToParagraph)));
 
-      const getChapterHeadings = (bookId: number) =>
-        sql<ParagraphRow>`
+        const getChapterHeadings = (bookId: number) =>
+          sql<ParagraphRow>`
           SELECT * FROM paragraphs
           WHERE book_id = ${bookId} AND is_chapter_heading = 1
           ORDER BY puborder
         `.pipe(Effect.flatMap((rows) => Effect.forEach(rows, rowToParagraph)));
 
-      /** Served by `idx_paragraphs_chapter`, the partial index over headings:
-       *  60 books' outlines read in ~8 ms against the 4.5 GB corpus. */
-      const getSectionHeadings = (publicationIds: readonly number[]) => {
-        if (publicationIds.length === 0) return Effect.succeed<readonly SectionHeading[]>([]);
-        return sql<{
-          readonly book_id: number;
-          readonly puborder: number;
-          readonly element_type: string;
-          readonly content_text: string;
-        }>`
+        /** Served by `idx_paragraphs_chapter`, the partial index over headings:
+         *  60 books' outlines read in ~8 ms against the 4.5 GB corpus. */
+        const getSectionHeadings = (publicationIds: readonly number[]) => {
+          if (publicationIds.length === 0) return Effect.succeed<readonly SectionHeading[]>([]);
+          return sql<{
+            readonly book_id: number;
+            readonly puborder: number;
+            readonly element_type: string;
+            readonly content_text: string;
+          }>`
           SELECT book_id, puborder, element_type, content_text FROM paragraphs
           WHERE book_id IN (SELECT value FROM json_each(${encodeIds(publicationIds)}))
             AND is_chapter_heading = 1
             AND element_type IN ('h1', 'h2', 'h3')
         `.pipe(
-          Effect.map((rows) =>
-            rows.map((row): SectionHeading => ({
-              publicationId: row.book_id,
-              puborder: row.puborder,
-              level: headingLevel(Option.some(row.element_type)),
-              title: row.content_text,
-            })),
-          ),
-        );
-      };
+            Effect.map((rows) =>
+              rows.map((row): SectionHeading => ({
+                publicationId: row.book_id,
+                puborder: row.puborder,
+                level: headingLevel(Option.some(row.element_type)),
+                title: row.content_text,
+              })),
+            ),
+          );
+        };
 
-      /** One backward seek per position on `idx_paragraphs_puborder`: 120
-       *  positions read in ~5 ms against the 4.5 GB corpus. The positions go
-       *  in as one JSON parameter rather than a `VALUES` list per call. */
-      const getNearestHeadings = (
-        positions: readonly { readonly publicationId: number; readonly puborder: number }[],
-      ) => {
-        if (positions.length === 0) return Effect.succeed<readonly NearestHeading[]>([]);
-        const encoded = encodePositions(
-          positions.map((position) => [position.publicationId, position.puborder] as const),
-        );
-        return sql<{
-          readonly book_id: number;
-          readonly puborder: number;
-          readonly heading_puborder: number;
-          readonly element_type: string;
-          readonly content_text: string;
-        }>`
+        /** One backward seek per position on `idx_paragraphs_puborder`: 120
+         *  positions read in ~5 ms against the 4.5 GB corpus. The positions go
+         *  in as one JSON parameter rather than a `VALUES` list per call. */
+        const getNearestHeadings = (
+          positions: readonly { readonly publicationId: number; readonly puborder: number }[],
+        ) => {
+          if (positions.length === 0) return Effect.succeed<readonly NearestHeading[]>([]);
+          const encoded = encodePositions(
+            positions.map((position) => [position.publicationId, position.puborder] as const),
+          );
+          return sql<{
+            readonly book_id: number;
+            readonly puborder: number;
+            readonly heading_puborder: number;
+            readonly element_type: string;
+            readonly content_text: string;
+          }>`
           WITH pos AS (
             SELECT json_extract(value, '$[0]') AS book_id, json_extract(value, '$[1]') AS puborder
             FROM json_each(${encoded})
@@ -1613,193 +1626,193 @@ export class EGWParagraphDatabase extends Context.Service<
             LIMIT 1
           )
         `.pipe(
-          Effect.map((rows) =>
-            rows.map((row): NearestHeading => ({
-              publicationId: row.book_id,
-              puborder: row.puborder,
-              heading: {
+            Effect.map((rows) =>
+              rows.map((row): NearestHeading => ({
                 publicationId: row.book_id,
-                puborder: row.heading_puborder,
-                level: headingLevel(Option.some(row.element_type)),
-                title: row.content_text,
-              },
-            })),
-          ),
-        );
-      };
+                puborder: row.puborder,
+                heading: {
+                  publicationId: row.book_id,
+                  puborder: row.heading_puborder,
+                  level: headingLevel(Option.some(row.element_type)),
+                  title: row.content_text,
+                },
+              })),
+            ),
+          );
+        };
 
-      /** One statement with a composed `WHERE`, rather than one hand-written
-       *  statement per combination of filters — three optional filters would
-       *  otherwise mean eight near-identical copies of the same join, and the
-       *  `ORDER BY rank` §6.4 adds would have to be right in all eight.
-       *
-       *  Both statements order by `bm25(paragraphs_fts)` rather than the bare
-       *  `rank`. The two are the *same ranking* — `rank` is defined as the
-       *  table's configured rank function, which here is default-weight bm25 —
-       *  but they take different code paths inside FTS5, and the difference is
-       *  worth about 14% of the lexical leg:
-       *
-       *  | `ORDER BY`            | plan                                  | `god`, 600 rows |
-       *  |-----------------------|---------------------------------------|-----------------|
-       *  | `fts.rank`            | `VIRTUAL TABLE INDEX 32:M3`           | 899 ms          |
-       *  | `bm25(paragraphs_fts)`| `INDEX 0:M3` + temp b-tree for ORDER  | **774 ms**      |
-       *
-       *  `INDEX 32:` is FTS5's internal rank-ordering path, which runs its own
-       *  sorted merge over the whole posting list. `INDEX 0:` is a plain scan
-       *  that hands ordering to SQLite, whose temp b-tree under a `LIMIT` is a
-       *  bounded top-N heap — cheaper than the merge it replaces. The scoring
-       *  itself (~692 ms of the 899 for `god`) is untouched and irreducible:
-       *  every document in the posting list must be scored before a top-N can
-       *  be known, which is why the `LIMIT` size does not affect cost at all
-       *  (10, 120 and 600 all measure the same).
-       *
-       *  Verified byte-identical, not assumed: ten queries spanning single
-       *  terms, `AND`, `OR`, a quoted phrase and a `sanct*` prefix, each at
-       *  `LIMIT 600` with the production scope and subtype filters and the full
-       *  `nodes_json` payload, compared with `cmp`.
-       *
-       *  **The ranking must stay in the joined statement.** Ranking rowids in a
-       *  subquery and joining after looks much faster (8 ms) and is wrong: the
-       *  `books` predicates cannot be pushed into an FTS-only subquery, so they
-       *  would apply *after* the cap and let scope-excluded rows consume result
-       *  slots. That shape returns 600 different rows.
-       *
-       *  Before §6.4 the `LIMIT` was applied with no ordering at all, which made
-       *  "FTS rank" in the §6.1 table a claim the query did not honor: SQLite
-       *  returned whichever rows the join reached first. Ordering *and* limiting
-       *  in the same statement is what makes the cap select the best N rather
-       *  than an arbitrary N. */
-      /** The `WHERE` both search statements share.
-       *
-       *  Factored out because the count and the rows have to agree exactly: a
-       *  `total` computed under a different predicate than the `items` it
-       *  accompanies is worse than no total at all, and the scope filter in
-       *  particular is two clauses that must stay in lockstep. */
-      /** Every predicate over `books` that a search applies, without the
-       *  `MATCH` clause.
-       *
-       *  Split out from `searchFilters` because two statements need it: the FTS
-       *  search, which adds the MATCH, and the by-identity lookup the vector
-       *  leg's candidates come back through, which has no query to match on but
-       *  must honour exactly the same scope and classification rules. They were
-       *  one function and the identity path simply had no filters, which made it
-       *  a hole every filter leaked through. */
-      const identityFilters = (options?: {
-        readonly bookCode?: string;
-        readonly scope?: CorpusScope;
-        readonly filter?: CorpusFilter;
-      }): (string | Statement.Fragment)[] => {
-        const bookCode = options?.bookCode;
-        const filters: (string | Statement.Fragment)[] = [];
-        if (Predicate.isNotUndefined(bookCode)) {
-          filters.push(sql`b.book_code = ${bookCode} COLLATE NOCASE`);
-        }
-        // The author partition is binary, so `pioneer` is expressed as the
-        // negation of the same list `egw` selects — one constant, no second
-        // enumeration that could drift out of agreement with the first.
-        if (options?.scope === 'egw') {
-          filters.push(sql.in('b.book_author', [...EGW_SCOPE_AUTHORS]));
-        }
-        if (options?.scope === 'pioneer') {
-          filters.push(sql`NOT ${sql.in('b.book_author', [...EGW_SCOPE_AUTHORS])}`);
-        }
+        /** One statement with a composed `WHERE`, rather than one hand-written
+         *  statement per combination of filters — three optional filters would
+         *  otherwise mean eight near-identical copies of the same join, and the
+         *  `ORDER BY rank` §6.4 adds would have to be right in all eight.
+         *
+         *  Both statements order by `bm25(paragraphs_fts)` rather than the bare
+         *  `rank`. The two are the *same ranking* — `rank` is defined as the
+         *  table's configured rank function, which here is default-weight bm25 —
+         *  but they take different code paths inside FTS5, and the difference is
+         *  worth about 14% of the lexical leg:
+         *
+         *  | `ORDER BY`            | plan                                  | `god`, 600 rows |
+         *  |-----------------------|---------------------------------------|-----------------|
+         *  | `fts.rank`            | `VIRTUAL TABLE INDEX 32:M3`           | 899 ms          |
+         *  | `bm25(paragraphs_fts)`| `INDEX 0:M3` + temp b-tree for ORDER  | **774 ms**      |
+         *
+         *  `INDEX 32:` is FTS5's internal rank-ordering path, which runs its own
+         *  sorted merge over the whole posting list. `INDEX 0:` is a plain scan
+         *  that hands ordering to SQLite, whose temp b-tree under a `LIMIT` is a
+         *  bounded top-N heap — cheaper than the merge it replaces. The scoring
+         *  itself (~692 ms of the 899 for `god`) is untouched and irreducible:
+         *  every document in the posting list must be scored before a top-N can
+         *  be known, which is why the `LIMIT` size does not affect cost at all
+         *  (10, 120 and 600 all measure the same).
+         *
+         *  Verified byte-identical, not assumed: ten queries spanning single
+         *  terms, `AND`, `OR`, a quoted phrase and a `sanct*` prefix, each at
+         *  `LIMIT 600` with the production scope and subtype filters and the full
+         *  `nodes_json` payload, compared with `cmp`.
+         *
+         *  **The ranking must stay in the joined statement.** Ranking rowids in a
+         *  subquery and joining after looks much faster (8 ms) and is wrong: the
+         *  `books` predicates cannot be pushed into an FTS-only subquery, so they
+         *  would apply *after* the cap and let scope-excluded rows consume result
+         *  slots. That shape returns 600 different rows.
+         *
+         *  Before §6.4 the `LIMIT` was applied with no ordering at all, which made
+         *  "FTS rank" in the §6.1 table a claim the query did not honor: SQLite
+         *  returned whichever rows the join reached first. Ordering *and* limiting
+         *  in the same statement is what makes the cap select the best N rather
+         *  than an arbitrary N. */
+        /** The `WHERE` both search statements share.
+         *
+         *  Factored out because the count and the rows have to agree exactly: a
+         *  `total` computed under a different predicate than the `items` it
+         *  accompanies is worse than no total at all, and the scope filter in
+         *  particular is two clauses that must stay in lockstep. */
+        /** Every predicate over `books` that a search applies, without the
+         *  `MATCH` clause.
+         *
+         *  Split out from `searchFilters` because two statements need it: the FTS
+         *  search, which adds the MATCH, and the by-identity lookup the vector
+         *  leg's candidates come back through, which has no query to match on but
+         *  must honour exactly the same scope and classification rules. They were
+         *  one function and the identity path simply had no filters, which made it
+         *  a hole every filter leaked through. */
+        const identityFilters = (options?: {
+          readonly bookCode?: string;
+          readonly scope?: CorpusScope;
+          readonly filter?: CorpusFilter;
+        }): (string | Statement.Fragment)[] => {
+          const bookCode = options?.bookCode;
+          const filters: (string | Statement.Fragment)[] = [];
+          if (Predicate.isNotUndefined(bookCode)) {
+            filters.push(sql`b.book_code = ${bookCode} COLLATE NOCASE`);
+          }
+          // The author partition is binary, so `pioneer` is expressed as the
+          // negation of the same list `egw` selects — one constant, no second
+          // enumeration that could drift out of agreement with the first.
+          if (options?.scope === 'egw') {
+            filters.push(sql.in('b.book_author', [...EGW_SCOPE_AUTHORS]));
+          }
+          if (options?.scope === 'pioneer') {
+            filters.push(sql`NOT ${sql.in('b.book_author', [...EGW_SCOPE_AUTHORS])}`);
+          }
 
-        // The corpus-level exclusion, applied to every query regardless of
-        // what the caller asked for. `ModernEnglish` is a paraphrase whose
-        // wording is an editor's, not Ellen White's, and a search hit is a
-        // citation — see `EXCLUDED_SUBTYPES`. NULL passes, as everywhere else
-        // here, because an unclassified book is not known to be a paraphrase.
-        filters.push(
-          sql`(b.book_subtype IS NULL OR NOT ${sql.in('b.book_subtype', [...EXCLUDED_SUBTYPES])})`,
-        );
+          // The corpus-level exclusion, applied to every query regardless of
+          // what the caller asked for. `ModernEnglish` is a paraphrase whose
+          // wording is an editor's, not Ellen White's, and a search hit is a
+          // citation — see `EXCLUDED_SUBTYPES`. NULL passes, as everywhere else
+          // here, because an unclassified book is not known to be a paraphrase.
+          filters.push(
+            sql`(b.book_subtype IS NULL OR NOT ${sql.in('b.book_subtype', [...EXCLUDED_SUBTYPES])})`,
+          );
 
-        // The library's own classification, backfilled onto `books`.
-        //
-        // A *positive* selection keeps only what it names, so an unclassified
-        // book does not satisfy it — `type=dictionary` returning a book nobody
-        // has classified is not an answer to the question asked. The apparatus
-        // *exclusion* below is the mirror image: there NULL passes, because a
-        // book not known to be apparatus is not what the reader excluded.
-        const filter = options?.filter;
-        if (Predicate.isNotUndefined(filter)) {
-          // One axis, both signs. `include` is a whitelist, so a NULL column
-          // fails it; `exclude` is a blacklist, so a NULL column passes it.
-          // See `Signed` for why that asymmetry is the meaning of the two
-          // words rather than a NULL special case.
+          // The library's own classification, backfilled onto `books`.
           //
-          // The include side takes the column as a string because `sql.in`
-          // does; the exclude side needs a template, and a template
-          // interpolation *binds* rather than concatenates, so the three
-          // clauses are written out rather than generated from a column name.
-          if (filter.section.include.length > 0) {
-            filters.push(sql.in('b.section', [...filter.section.include]));
-          }
-          if (filter.section.exclude.length > 0) {
-            filters.push(
-              sql`(b.section IS NULL OR NOT ${sql.in('b.section', [...filter.section.exclude])})`,
-            );
-          }
+          // A *positive* selection keeps only what it names, so an unclassified
+          // book does not satisfy it — `type=dictionary` returning a book nobody
+          // has classified is not an answer to the question asked. The apparatus
+          // *exclusion* below is the mirror image: there NULL passes, because a
+          // book not known to be apparatus is not what the reader excluded.
+          const filter = options?.filter;
+          if (Predicate.isNotUndefined(filter)) {
+            // One axis, both signs. `include` is a whitelist, so a NULL column
+            // fails it; `exclude` is a blacklist, so a NULL column passes it.
+            // See `Signed` for why that asymmetry is the meaning of the two
+            // words rather than a NULL special case.
+            //
+            // The include side takes the column as a string because `sql.in`
+            // does; the exclude side needs a template, and a template
+            // interpolation *binds* rather than concatenates, so the three
+            // clauses are written out rather than generated from a column name.
+            if (filter.section.include.length > 0) {
+              filters.push(sql.in('b.section', [...filter.section.include]));
+            }
+            if (filter.section.exclude.length > 0) {
+              filters.push(
+                sql`(b.section IS NULL OR NOT ${sql.in('b.section', [...filter.section.exclude])})`,
+              );
+            }
 
-          if (filter.type.include.length > 0) {
-            filters.push(sql.in('b.book_type', [...filter.type.include]));
-          }
-          if (filter.type.exclude.length > 0) {
-            filters.push(
-              sql`(b.book_type IS NULL OR NOT ${sql.in('b.book_type', [...filter.type.exclude])})`,
-            );
-          }
+            if (filter.type.include.length > 0) {
+              filters.push(sql.in('b.book_type', [...filter.type.include]));
+            }
+            if (filter.type.exclude.length > 0) {
+              filters.push(
+                sql`(b.book_type IS NULL OR NOT ${sql.in('b.book_type', [...filter.type.exclude])})`,
+              );
+            }
 
-          if (filter.subtype.include.length > 0) {
-            filters.push(sql.in('b.book_subtype', [...filter.subtype.include]));
-          }
-          if (filter.subtype.exclude.length > 0) {
-            filters.push(
-              sql`(b.book_subtype IS NULL OR NOT ${sql.in('b.book_subtype', [...filter.subtype.exclude])})`,
-            );
-          }
+            if (filter.subtype.include.length > 0) {
+              filters.push(sql.in('b.book_subtype', [...filter.subtype.include]));
+            }
+            if (filter.subtype.exclude.length > 0) {
+              filters.push(
+                sql`(b.book_subtype IS NULL OR NOT ${sql.in('b.book_subtype', [...filter.subtype.exclude])})`,
+              );
+            }
 
-          // Apparatus is its own toggle rather than three entries in
-          // `type.exclude`, but it is the same blacklist rule: an unclassified
-          // book is not known to be apparatus, so it stays.
-          if (filter.excludeApparatus) {
-            filters.push(
-              sql`(b.book_type IS NULL OR NOT ${sql.in('b.book_type', [...APPARATUS_TYPES])})`,
-            );
+            // Apparatus is its own toggle rather than three entries in
+            // `type.exclude`, but it is the same blacklist rule: an unclassified
+            // book is not known to be apparatus, so it stays.
+            if (filter.excludeApparatus) {
+              filters.push(
+                sql`(b.book_type IS NULL OR NOT ${sql.in('b.book_type', [...APPARATUS_TYPES])})`,
+              );
+            }
           }
-        }
-        return filters;
-      };
+          return filters;
+        };
 
-      /** The FTS search's predicates: the MATCH, plus everything above. */
-      const searchFilters = (
-        query: string,
-        options?: {
-          readonly bookCode?: string;
-          readonly scope?: CorpusScope;
-          readonly filter?: CorpusFilter;
-        },
-      ): (string | Statement.Fragment)[] => [
-        sql`paragraphs_fts MATCH ${query}`,
-        ...identityFilters(options),
-      ];
+        /** The FTS search's predicates: the MATCH, plus everything above. */
+        const searchFilters = (
+          query: string,
+          options?: {
+            readonly bookCode?: string;
+            readonly scope?: CorpusScope;
+            readonly filter?: CorpusFilter;
+          },
+        ): (string | Statement.Fragment)[] => [
+          sql`paragraphs_fts MATCH ${query}`,
+          ...identityFilters(options),
+        ];
 
-      /** The whole match count, which the row query's `LIMIT` cannot report.
-       *
-       *  `searchParagraphs` pushes the caller's cap into SQL, so its result
-       *  length saturates at the cap and a caller computing "how many matched"
-       *  from it can never see past the cap. §6.1's `total` means the pre-cap
-       *  count, so it needs its own statement — one that runs the same MATCH
-       *  and the same joins but selects a count and drops the `ORDER BY`, which
-       *  FTS5 does not need in order to count. */
-      const countSearchParagraphs = (
-        query: string,
-        options?: {
-          readonly bookCode?: string;
-          readonly scope?: CorpusScope;
-          readonly filter?: CorpusFilter;
-        },
-      ) =>
-        sql<{ readonly total: number }>`
+        /** The whole match count, which the row query's `LIMIT` cannot report.
+         *
+         *  `searchParagraphs` pushes the caller's cap into SQL, so its result
+         *  length saturates at the cap and a caller computing "how many matched"
+         *  from it can never see past the cap. §6.1's `total` means the pre-cap
+         *  count, so it needs its own statement — one that runs the same MATCH
+         *  and the same joins but selects a count and drops the `ORDER BY`, which
+         *  FTS5 does not need in order to count. */
+        const countSearchParagraphs = (
+          query: string,
+          options?: {
+            readonly bookCode?: string;
+            readonly scope?: CorpusScope;
+            readonly filter?: CorpusFilter;
+          },
+        ) =>
+          sql<{ readonly total: number }>`
               SELECT count(*) AS total
               FROM paragraphs p
               JOIN paragraphs_fts fts ON p.rowid = fts.rowid
@@ -1807,28 +1820,28 @@ export class EGWParagraphDatabase extends Context.Service<
               WHERE ${sql.and(searchFilters(query, options))}
             `.pipe(Effect.map((rows) => rows[0]?.total ?? 0));
 
-      /** The bare FTS count — see `estimateMatchCount` on the interface for why
-       *  this exists beside `countSearchParagraphs` rather than reusing it. No
-       *  `searchFilters`, because the joins those imply are the whole cost. */
-      const estimateMatchCount = (query: string) =>
-        sql<{ readonly total: number }>`
+        /** The bare FTS count — see `estimateMatchCount` on the interface for why
+         *  this exists beside `countSearchParagraphs` rather than reusing it. No
+         *  `searchFilters`, because the joins those imply are the whole cost. */
+        const estimateMatchCount = (query: string) =>
+          sql<{ readonly total: number }>`
               SELECT count(*) AS total
               FROM paragraphs_fts
               WHERE paragraphs_fts MATCH ${query}
             `.pipe(Effect.map((rows) => rows[0]?.total ?? 0));
 
-      const searchParagraphs = (
-        query: string,
-        options?: {
-          readonly limit?: number;
-          readonly bookCode?: string;
-          readonly scope?: CorpusScope;
-          readonly filter?: CorpusFilter;
-        },
-      ) => {
-        const limit = options?.limit ?? 50;
-        const filters = searchFilters(query, options);
-        return sql<FullParagraphRow>`
+        const searchParagraphs = (
+          query: string,
+          options?: {
+            readonly limit?: number;
+            readonly bookCode?: string;
+            readonly scope?: CorpusScope;
+            readonly filter?: CorpusFilter;
+          },
+        ) => {
+          const limit = options?.limit ?? 50;
+          const filters = searchFilters(query, options);
+          return sql<FullParagraphRow>`
               SELECT p.*, b.book_code, b.book_title, b.book_author
               FROM paragraphs p
               JOIN paragraphs_fts fts ON p.rowid = fts.rowid
@@ -1837,62 +1850,62 @@ export class EGWParagraphDatabase extends Context.Service<
               ORDER BY bm25(paragraphs_fts)
               LIMIT ${limit}
             `.pipe(
-          Effect.flatMap((rows) =>
-            Effect.forEach(rows, (row) =>
-              rowToParagraph(row).pipe(
-                Effect.map((paragraph) => ({
-                  ...paragraph,
-                  bookCode: row.book_code,
-                  bookTitle: row.book_title,
-                  bookId: row.book_id,
-                })),
+            Effect.flatMap((rows) =>
+              Effect.forEach(rows, (row) =>
+                rowToParagraph(row).pipe(
+                  Effect.map((paragraph) => ({
+                    ...paragraph,
+                    bookCode: row.book_code,
+                    bookTitle: row.book_title,
+                    bookId: row.book_id,
+                  })),
+                ),
               ),
             ),
-          ),
-        );
-      };
+          );
+        };
 
-      /** The same statement as `searchParagraphs`, selecting `fts.rank` and the
-       *  four columns §9 renders instead of the whole row.
-       *
-       *  It shares `searchFilters` with the other two statements for the reason
-       *  they share it with each other: three MATCH-and-scope predicates
-       *  written three times is three chances for the scope filter to mean
-       *  something slightly different, and a search whose scoring query and
-       *  whose counting query disagree about scope is a search whose
-       *  short-circuit fires on a hit the reader cannot be shown. */
-      const searchScoredParagraphs = (
-        query: string,
-        options?: {
-          readonly limit?: number;
-          readonly bookCode?: string;
-          readonly scope?: CorpusScope;
-          readonly filter?: CorpusFilter;
-        },
-      ) => {
-        const limit = options?.limit ?? 30;
-        const filters = searchFilters(query, options);
-        return sql<{
-          readonly book_code: string;
-          readonly book_title: string;
-          readonly book_author: string;
-          readonly ref_code: string;
-          // SQLite has no Option type, so a nullable column arrives as `null`
-          // and is translated at this boundary — the same convention
-          // `ParagraphRow` documents above for `refcode_short` and `para_id`.
-          // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
-          readonly refcode_short: string | null;
-          // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
-          readonly para_id: string | null;
-          readonly nodes_json: string;
-          readonly rank: number;
-          readonly book_id: number;
-          readonly puborder: number;
-          /** SQLite has no boolean; `is_chapter_heading` is the 0/1 integer the
-           *  ingest wrote from `isChapterHeading`. Translated at this boundary
-           *  like every other storage-shaped column here. */
-          readonly is_chapter_heading: number;
-        }>`
+        /** The same statement as `searchParagraphs`, selecting `fts.rank` and the
+         *  four columns §9 renders instead of the whole row.
+         *
+         *  It shares `searchFilters` with the other two statements for the reason
+         *  they share it with each other: three MATCH-and-scope predicates
+         *  written three times is three chances for the scope filter to mean
+         *  something slightly different, and a search whose scoring query and
+         *  whose counting query disagree about scope is a search whose
+         *  short-circuit fires on a hit the reader cannot be shown. */
+        const searchScoredParagraphs = (
+          query: string,
+          options?: {
+            readonly limit?: number;
+            readonly bookCode?: string;
+            readonly scope?: CorpusScope;
+            readonly filter?: CorpusFilter;
+          },
+        ) => {
+          const limit = options?.limit ?? 30;
+          const filters = searchFilters(query, options);
+          return sql<{
+            readonly book_code: string;
+            readonly book_title: string;
+            readonly book_author: string;
+            readonly ref_code: string;
+            // SQLite has no Option type, so a nullable column arrives as `null`
+            // and is translated at this boundary — the same convention
+            // `ParagraphRow` documents above for `refcode_short` and `para_id`.
+            // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
+            readonly refcode_short: string | null;
+            // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
+            readonly para_id: string | null;
+            readonly nodes_json: string;
+            readonly rank: number;
+            readonly book_id: number;
+            readonly puborder: number;
+            /** SQLite has no boolean; `is_chapter_heading` is the 0/1 integer the
+             *  ingest wrote from `isChapterHeading`. Translated at this boundary
+             *  like every other storage-shaped column here. */
+            readonly is_chapter_heading: number;
+          }>`
               SELECT b.book_id, b.book_code, b.book_title, b.book_author,
                      p.ref_code, p.refcode_short, p.para_id, p.nodes_json,
                      p.puborder, p.is_chapter_heading, fts.rank
@@ -1903,108 +1916,108 @@ export class EGWParagraphDatabase extends Context.Service<
               ORDER BY bm25(paragraphs_fts)
               LIMIT ${limit}
             `.pipe(
-          Effect.map((rows) =>
-            rows.map((row): ScoredParagraphRow => ({
-              bookCode: row.book_code,
-              bookTitle: row.book_title,
-              bookAuthor: row.book_author,
-              publicationId: row.book_id,
-              puborder: row.puborder,
-              rawParaId: Option.fromNullishOr(row.para_id),
-              para_id: paragraphIdentity(
-                row.book_code,
-                Option.fromNullishOr(row.para_id),
-                row.ref_code,
-              ),
-              ref_code: row.ref_code,
-              refcode_short: Option.fromNullishOr(row.refcode_short),
-              nodes: decodeNodes(row.nodes_json),
-              rank: row.rank,
-              isHeading: row.is_chapter_heading === 1,
-            })),
-          ),
-        );
-      };
+            Effect.map((rows) =>
+              rows.map((row): ScoredParagraphRow => ({
+                bookCode: row.book_code,
+                bookTitle: row.book_title,
+                bookAuthor: row.book_author,
+                publicationId: row.book_id,
+                puborder: row.puborder,
+                rawParaId: Option.fromNullishOr(row.para_id),
+                para_id: paragraphIdentity(
+                  row.book_code,
+                  Option.fromNullishOr(row.para_id),
+                  row.ref_code,
+                ),
+                ref_code: row.ref_code,
+                refcode_short: Option.fromNullishOr(row.refcode_short),
+                nodes: decodeNodes(row.nodes_json),
+                rank: row.rank,
+                isHeading: row.is_chapter_heading === 1,
+              })),
+            ),
+          );
+        };
 
-      /** The rows behind a set of identity keys, in one `IN (...)`.
-       *
-       *  Matched on `b.book_code || ':' || p.para_id`, which is exactly what
-       *  `paragraphIdentity` builds — the key is composed in SQL rather than
-       *  decomposed in TypeScript so the two spellings cannot drift, and so a
-       *  key this build did not produce simply matches nothing.
-       *
-       *  Rows whose `para_id` is NULL are unreachable by this lookup, which is
-       *  correct: `paragraphIdentity` gives them a `#`-prefixed key that no
-       *  concatenation of a NULL can equal, and SQLite's `||` yields NULL for
-       *  them anyway. */
-      const findParagraphsByIdentity = (
-        identities: readonly string[],
-        options?: {
-          readonly scope?: CorpusScope;
-          readonly filter?: CorpusFilter;
-        },
-      ) => {
-        if (identities.length === 0) {
-          return Effect.succeed<readonly ScoredParagraphRow[]>([]);
-        }
-        // The identity lookup carries the same author and classification
-        // predicates the MATCH path does. Without them this is a hole in every
-        // filter: the vector leg proposes ids from the whole index, so a book
-        // the reader excluded is re-admitted here after the lexical leg
-        // correctly dropped it. `identityFilters` is the shared builder, minus
-        // the MATCH clause this path has no query for.
-        const predicates = identityFilters(options);
-        // One seek per identity on `idx_paragraphs_para_id`: `wanted` splits
-        // each key at its first `:` and the join reaches `paragraphs` by the
-        // bare `para_id`, a column the index serves. The concatenation below is
-        // the same test it always was and still decides every row, so a key in
-        // the `${bookCode}:#${refCode}` form, or one this build did not produce,
-        // seeks a `para_id` nothing has and matches nothing — without widening
-        // the lookup for the rest of the batch. The keys travel as one JSON
-        // parameter (`encodeKeys`).
-        //
-        // `CROSS JOIN`, which in SQLite is not a different join — it is the one
-        // documented way to pin the join order, and it must stay.
-        //
-        // The seek above only helps if `wanted`, then `paragraphs`, drive the
-        // join and `books` is reached last by its key. Add
-        // a scope (`scope: 'egw'` is the *default* for search, so this is the
-        // common path, not an edge case) and `identityFilters` contributes
-        // `b.book_author IN (...)`. The planner then prefers to drive from
-        // `idx_books_author` and reach paragraphs by `idx_paragraphs_book_id` —
-        // which means visiting every paragraph of every Ellen White book and
-        // filtering afterwards, instead of 120 index seeks.
-        //
-        // Measured on the deployed corpus, one 120-identity batch under the
-        // default scope: 179 ms with a plain `JOIN`, 0.2 ms with this one, the
-        // same 118 rows. The plan goes from
-        //   SEARCH b USING INDEX idx_books_author
-        //   SEARCH p USING INDEX idx_paragraphs_book_id
-        // to
-        //   SEARCH p USING INDEX idx_paragraphs_para_id
-        //   SEARCH b USING INTEGER PRIMARY KEY
-        //
-        // `INDEXED BY idx_paragraphs_para_id` measures the same but names an
-        // index, so dropping or renaming one would turn a slow query into a
-        // failing one. This states the order and lets the planner choose.
-        //
-        // The symptom this fixes: `bodiesMs` was the largest leg of every
-        // semantic search (~180 ms in production, flat across queries, batch
-        // sizes and books) while the statement's own work measured ~1 ms.
-        return sql<{
-          readonly book_code: string;
-          readonly book_title: string;
-          readonly book_author: string;
-          readonly ref_code: string;
-          // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
-          readonly refcode_short: string | null;
-          // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
-          readonly para_id: string | null;
-          readonly nodes_json: string;
-          readonly book_id: number;
-          readonly puborder: number;
-          readonly is_chapter_heading: number;
-        }>`
+        /** The rows behind a set of identity keys, in one `IN (...)`.
+         *
+         *  Matched on `b.book_code || ':' || p.para_id`, which is exactly what
+         *  `paragraphIdentity` builds — the key is composed in SQL rather than
+         *  decomposed in TypeScript so the two spellings cannot drift, and so a
+         *  key this build did not produce simply matches nothing.
+         *
+         *  Rows whose `para_id` is NULL are unreachable by this lookup, which is
+         *  correct: `paragraphIdentity` gives them a `#`-prefixed key that no
+         *  concatenation of a NULL can equal, and SQLite's `||` yields NULL for
+         *  them anyway. */
+        const findParagraphsByIdentity = (
+          identities: readonly string[],
+          options?: {
+            readonly scope?: CorpusScope;
+            readonly filter?: CorpusFilter;
+          },
+        ) => {
+          if (identities.length === 0) {
+            return Effect.succeed<readonly ScoredParagraphRow[]>([]);
+          }
+          // The identity lookup carries the same author and classification
+          // predicates the MATCH path does. Without them this is a hole in every
+          // filter: the vector leg proposes ids from the whole index, so a book
+          // the reader excluded is re-admitted here after the lexical leg
+          // correctly dropped it. `identityFilters` is the shared builder, minus
+          // the MATCH clause this path has no query for.
+          const predicates = identityFilters(options);
+          // One seek per identity on `idx_paragraphs_para_id`: `wanted` splits
+          // each key at its first `:` and the join reaches `paragraphs` by the
+          // bare `para_id`, a column the index serves. The concatenation below is
+          // the same test it always was and still decides every row, so a key in
+          // the `${bookCode}:#${refCode}` form, or one this build did not produce,
+          // seeks a `para_id` nothing has and matches nothing — without widening
+          // the lookup for the rest of the batch. The keys travel as one JSON
+          // parameter (`encodeKeys`).
+          //
+          // `CROSS JOIN`, which in SQLite is not a different join — it is the one
+          // documented way to pin the join order, and it must stay.
+          //
+          // The seek above only helps if `wanted`, then `paragraphs`, drive the
+          // join and `books` is reached last by its key. Add
+          // a scope (`scope: 'egw'` is the *default* for search, so this is the
+          // common path, not an edge case) and `identityFilters` contributes
+          // `b.book_author IN (...)`. The planner then prefers to drive from
+          // `idx_books_author` and reach paragraphs by `idx_paragraphs_book_id` —
+          // which means visiting every paragraph of every Ellen White book and
+          // filtering afterwards, instead of 120 index seeks.
+          //
+          // Measured on the deployed corpus, one 120-identity batch under the
+          // default scope: 179 ms with a plain `JOIN`, 0.2 ms with this one, the
+          // same 118 rows. The plan goes from
+          //   SEARCH b USING INDEX idx_books_author
+          //   SEARCH p USING INDEX idx_paragraphs_book_id
+          // to
+          //   SEARCH p USING INDEX idx_paragraphs_para_id
+          //   SEARCH b USING INTEGER PRIMARY KEY
+          //
+          // `INDEXED BY idx_paragraphs_para_id` measures the same but names an
+          // index, so dropping or renaming one would turn a slow query into a
+          // failing one. This states the order and lets the planner choose.
+          //
+          // The symptom this fixes: `bodiesMs` was the largest leg of every
+          // semantic search (~180 ms in production, flat across queries, batch
+          // sizes and books) while the statement's own work measured ~1 ms.
+          return sql<{
+            readonly book_code: string;
+            readonly book_title: string;
+            readonly book_author: string;
+            readonly ref_code: string;
+            // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
+            readonly refcode_short: string | null;
+            // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
+            readonly para_id: string | null;
+            readonly nodes_json: string;
+            readonly book_id: number;
+            readonly puborder: number;
+            readonly is_chapter_heading: number;
+          }>`
               WITH wanted AS (
                 SELECT DISTINCT value AS identity,
                        substr(value, instr(value, ':') + 1) AS para_id
@@ -2019,66 +2032,66 @@ export class EGWParagraphDatabase extends Context.Service<
               WHERE b.book_code || ':' || p.para_id = w.identity
                 AND ${sql.and(predicates)}
             `.pipe(
-          Effect.map((rows) =>
-            rows.map((row): ScoredParagraphRow => ({
-              bookCode: row.book_code,
-              bookTitle: row.book_title,
-              bookAuthor: row.book_author,
-              publicationId: row.book_id,
-              puborder: row.puborder,
-              rawParaId: Option.fromNullishOr(row.para_id),
-              para_id: paragraphIdentity(
-                row.book_code,
-                Option.fromNullishOr(row.para_id),
-                row.ref_code,
-              ),
-              ref_code: row.ref_code,
-              refcode_short: Option.fromNullishOr(row.refcode_short),
-              nodes: decodeNodes(row.nodes_json),
-              // No FTS match produced this row, so it carries no BM25 evidence.
-              rank: 0,
-              isHeading: row.is_chapter_heading === 1,
-            })),
-          ),
-        );
-      };
+            Effect.map((rows) =>
+              rows.map((row): ScoredParagraphRow => ({
+                bookCode: row.book_code,
+                bookTitle: row.book_title,
+                bookAuthor: row.book_author,
+                publicationId: row.book_id,
+                puborder: row.puborder,
+                rawParaId: Option.fromNullishOr(row.para_id),
+                para_id: paragraphIdentity(
+                  row.book_code,
+                  Option.fromNullishOr(row.para_id),
+                  row.ref_code,
+                ),
+                ref_code: row.ref_code,
+                refcode_short: Option.fromNullishOr(row.refcode_short),
+                nodes: decodeNodes(row.nodes_json),
+                // No FTS match produced this row, so it carries no BM25 evidence.
+                rank: 0,
+                isHeading: row.is_chapter_heading === 1,
+              })),
+            ),
+          );
+        };
 
-      const getMaxPage = (bookId: number) =>
-        sql<MaxPageRow>`
+        const getMaxPage = (bookId: number) =>
+          sql<MaxPageRow>`
           SELECT MAX(page_number) as max_page FROM paragraphs WHERE book_id = ${bookId}
         `.pipe(Effect.map((rows) => rows[0]?.max_page ?? 1));
 
-      const getPageNumbers = (bookId: number) =>
-        sql<{ page_number: number }>`
+        const getPageNumbers = (bookId: number) =>
+          sql<{ page_number: number }>`
           SELECT DISTINCT page_number FROM paragraphs
           WHERE book_id = ${bookId} AND page_number IS NOT NULL
           ORDER BY page_number
         `.pipe(Effect.map((rows) => rows.map((row) => row.page_number)));
 
-      // The user types human refcodes ("DAR 62", "PP 351.1", "GC"); the index
-      // stores them in the EGW canonical form ("DAR1909 62", "PP 351.1"). We
-      // split on the first space: the head is matched as a book_code prefix
-      // (LIKE 'DAR%' covers DAR / DAR1909 / DAR-suffix editions) and the tail
-      // is matched against refcode_short as either an exact "<code> <tail>" or
-      // a prefix "<code> <tail>%" (so "DAR 62" sweeps every paragraph on
-      // chapter 62 in addition to the bare chapter heading).
-      const findByRefcodeShort = (refcodeShort: string, limit = 5) => {
-        const trimmed = refcodeShort.trim();
-        const spaceAt = trimmed.indexOf(' ');
-        let head = trimmed;
-        let tail = '';
-        if (spaceAt !== -1) {
-          head = trimmed.slice(0, spaceAt);
-          tail = trimmed.slice(spaceAt + 1).trim();
-        }
-        head = head.trim();
-        const codePrefix = `${head}%`;
-        // Tail variants: exact match ("DAR1909 62"), child-paragraph match
-        // ("DAR1909 62.X"), and bare-code fallback for tail === '' (any row
-        // under a matching book). LIKE patterns are case-insensitive in
-        // SQLite by default for ASCII, but COLLATE NOCASE keeps it explicit
-        // alongside the join on books.
-        return sql<FullParagraphRow>`
+        // The user types human refcodes ("DAR 62", "PP 351.1", "GC"); the index
+        // stores them in the EGW canonical form ("DAR1909 62", "PP 351.1"). We
+        // split on the first space: the head is matched as a book_code prefix
+        // (LIKE 'DAR%' covers DAR / DAR1909 / DAR-suffix editions) and the tail
+        // is matched against refcode_short as either an exact "<code> <tail>" or
+        // a prefix "<code> <tail>%" (so "DAR 62" sweeps every paragraph on
+        // chapter 62 in addition to the bare chapter heading).
+        const findByRefcodeShort = (refcodeShort: string, limit = 5) => {
+          const trimmed = refcodeShort.trim();
+          const spaceAt = trimmed.indexOf(' ');
+          let head = trimmed;
+          let tail = '';
+          if (spaceAt !== -1) {
+            head = trimmed.slice(0, spaceAt);
+            tail = trimmed.slice(spaceAt + 1).trim();
+          }
+          head = head.trim();
+          const codePrefix = `${head}%`;
+          // Tail variants: exact match ("DAR1909 62"), child-paragraph match
+          // ("DAR1909 62.X"), and bare-code fallback for tail === '' (any row
+          // under a matching book). LIKE patterns are case-insensitive in
+          // SQLite by default for ASCII, but COLLATE NOCASE keeps it explicit
+          // alongside the join on books.
+          return sql<FullParagraphRow>`
           SELECT p.*, b.book_code, b.book_title
           FROM paragraphs p
           JOIN books b ON p.book_id = b.book_id
@@ -2091,91 +2104,91 @@ export class EGWParagraphDatabase extends Context.Service<
           ORDER BY b.book_code, p.puborder
           LIMIT ${limit}
         `.pipe(
-          Effect.flatMap((rows) =>
-            Effect.forEach(rows, (row) =>
-              rowToParagraph(row).pipe(
-                Effect.map((paragraph) => ({
-                  ...paragraph,
-                  bookCode: row.book_code,
-                  bookTitle: row.book_title,
-                  bookId: row.book_id,
-                })),
+            Effect.flatMap((rows) =>
+              Effect.forEach(rows, (row) =>
+                rowToParagraph(row).pipe(
+                  Effect.map((paragraph) => ({
+                    ...paragraph,
+                    bookCode: row.book_code,
+                    bookTitle: row.book_title,
+                    bookId: row.book_id,
+                  })),
+                ),
               ),
             ),
-          ),
-        );
-      };
+          );
+        };
 
-      // ========== Bible reference operations ==========
+        // ========== Bible reference operations ==========
 
-      const storeBibleRef = (
-        bookId: number,
-        refCode: string,
-        bibleBook: number,
-        bibleChapter: number,
-        bibleVerse: Option.Option<number>,
-      ) =>
-        sql`
+        const storeBibleRef = (
+          bookId: number,
+          refCode: string,
+          bibleBook: number,
+          bibleChapter: number,
+          bibleVerse: Option.Option<number>,
+        ) =>
+          sql`
           INSERT OR IGNORE INTO paragraph_bible_refs
           (para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse)
           VALUES (${bookId}, ${refCode}, ${bibleBook}, ${bibleChapter}, ${Option.getOrNull(bibleVerse)})
         `.pipe(Effect.asVoid);
 
-      const storeBibleRefsBatch = (
-        refs: readonly {
-          bookId: number;
-          refCode: string;
-          bibleBook: number;
-          bibleChapter: number;
-          bibleVerse: Option.Option<number>;
-        }[],
-      ) => {
-        if (refs.length === 0) return Effect.succeed(0);
-        return sql.withTransaction(
-          Effect.gen(function* () {
-            for (const ref of refs) {
-              yield* storeBibleRef(
-                ref.bookId,
-                ref.refCode,
-                ref.bibleBook,
-                ref.bibleChapter,
-                ref.bibleVerse,
-              );
-            }
-            return refs.length;
-          }),
-        );
-      };
+        const storeBibleRefsBatch = (
+          refs: readonly {
+            bookId: number;
+            refCode: string;
+            bibleBook: number;
+            bibleChapter: number;
+            bibleVerse: Option.Option<number>;
+          }[],
+        ) => {
+          if (refs.length === 0) return Effect.succeed(0);
+          return sql.withTransaction(
+            Effect.gen(function* () {
+              for (const ref of refs) {
+                yield* storeBibleRef(
+                  ref.bookId,
+                  ref.refCode,
+                  ref.bibleBook,
+                  ref.bibleChapter,
+                  ref.bibleVerse,
+                );
+              }
+              return refs.length;
+            }),
+          );
+        };
 
-      const getBibleRefsByBook = (bookId: number) =>
-        sql<BibleRefRow>`
+        const getBibleRefsByBook = (bookId: number) =>
+          sql<BibleRefRow>`
           SELECT para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
           FROM paragraph_bible_refs WHERE para_book_id = ${bookId}
         `;
 
-      const getBibleVersesWithCommentary = (bibleBook: number, bibleChapter: number) =>
-        sql<CommentaryVerseRow>`
+        const getBibleVersesWithCommentary = (bibleBook: number, bibleChapter: number) =>
+          sql<CommentaryVerseRow>`
           SELECT DISTINCT bible_verse FROM paragraph_bible_refs
           WHERE bible_book = ${bibleBook}
             AND bible_chapter = ${bibleChapter}
             AND bible_verse IS NOT NULL
           ORDER BY bible_verse
         `.pipe(
-          Effect.map((rows) => {
-            const out: number[] = [];
-            for (const r of rows) {
-              if (Predicate.isNotNull(r.bible_verse)) out.push(r.bible_verse);
-            }
-            return out;
-          }),
-        );
+            Effect.map((rows) => {
+              const out: number[] = [];
+              for (const r of rows) {
+                if (Predicate.isNotNull(r.bible_verse)) out.push(r.bible_verse);
+              }
+              return out;
+            }),
+          );
 
-      const getParagraphsByBibleRef = (
-        bibleBook: number,
-        bibleChapter: number,
-        bibleVerse?: number,
-      ) => {
-        let query = sql<FullParagraphRow>`
+        const getParagraphsByBibleRef = (
+          bibleBook: number,
+          bibleChapter: number,
+          bibleVerse?: number,
+        ) => {
+          let query = sql<FullParagraphRow>`
                 SELECT p.*, b.book_code, b.book_title, b.book_author
                 FROM paragraphs p
                 JOIN paragraph_bible_refs pbr
@@ -2185,8 +2198,8 @@ export class EGWParagraphDatabase extends Context.Service<
                   AND pbr.bible_chapter = ${bibleChapter}
                 ORDER BY b.book_code, p.puborder
               `;
-        if (Predicate.isNotUndefined(bibleVerse)) {
-          query = sql<FullParagraphRow>`
+          if (Predicate.isNotUndefined(bibleVerse)) {
+            query = sql<FullParagraphRow>`
                 SELECT p.*, b.book_code, b.book_title, b.book_author
                 FROM paragraphs p
                 JOIN paragraph_bible_refs pbr
@@ -2197,39 +2210,39 @@ export class EGWParagraphDatabase extends Context.Service<
                   AND pbr.bible_verse = ${bibleVerse}
                 ORDER BY b.book_code, p.puborder
               `;
-        }
-        return query.pipe(
-          Effect.flatMap((rows) =>
-            Effect.forEach(rows, (row) =>
-              rowToParagraph(row).pipe(
-                Effect.map((paragraph) => ({
-                  ...paragraph,
-                  bookId: row.book_id,
-                  bookCode: row.book_code,
-                  bookTitle: row.book_title,
-                  // `FullParagraphRow` types the column optional because two
-                  // other statements omit it; this one selects it, so the
-                  // empty fallback is unreachable rather than a default.
-                  bookAuthor: Option.getOrElse(Option.fromNullishOr(row.book_author), () => ''),
-                })),
+          }
+          return query.pipe(
+            Effect.flatMap((rows) =>
+              Effect.forEach(rows, (row) =>
+                rowToParagraph(row).pipe(
+                  Effect.map((paragraph) => ({
+                    ...paragraph,
+                    bookId: row.book_id,
+                    bookCode: row.book_code,
+                    bookTitle: row.book_title,
+                    // `FullParagraphRow` types the column optional because two
+                    // other statements omit it; this one selects it, so the
+                    // empty fallback is unreachable rather than a default.
+                    bookAuthor: Option.getOrElse(Option.fromNullishOr(row.book_author), () => ''),
+                  })),
+                ),
               ),
             ),
-          ),
-        );
-      };
+          );
+        };
 
-      // ========== Sync status operations ==========
+        // ========== Sync status operations ==========
 
-      const setSyncStatus = (
-        bookId: number,
-        bookCode: string,
-        status: SyncStatus,
-        paragraphCount: number,
-        errorMessage?: string,
-      ) =>
-        Effect.gen(function* () {
-          const lastAttempt = DateTime.formatIso(yield* DateTime.now);
-          yield* sql`
+        const setSyncStatus = (
+          bookId: number,
+          bookCode: string,
+          status: SyncStatus,
+          paragraphCount: number,
+          errorMessage?: string,
+        ) =>
+          Effect.gen(function* () {
+            const lastAttempt = DateTime.formatIso(yield* DateTime.now);
+            yield* sql`
           INSERT INTO sync_status (book_id, book_code, status, error_message, last_attempt, paragraph_count)
           VALUES (${bookId}, ${bookCode}, ${status}, ${Option.getOrNull(Option.fromNullishOr(errorMessage))}, ${lastAttempt}, ${paragraphCount})
           ON CONFLICT(book_id) DO UPDATE SET
@@ -2238,116 +2251,124 @@ export class EGWParagraphDatabase extends Context.Service<
             last_attempt = excluded.last_attempt,
             paragraph_count = excluded.paragraph_count
         `;
-        });
+          });
 
-      const getSyncStatus = (bookId: number) =>
-        sql<SyncStatusRow>`SELECT * FROM sync_status WHERE book_id = ${bookId}`.pipe(
-          Effect.map((rows) => Option.fromNullishOr(rows[0])),
-        );
+        const getSyncStatus = (bookId: number) =>
+          sql<SyncStatusRow>`SELECT * FROM sync_status WHERE book_id = ${bookId}`.pipe(
+            Effect.map((rows) => Option.fromNullishOr(rows[0])),
+          );
 
-      const getBooksByStatus = (status: SyncStatus) =>
-        sql<SyncStatusRow>`SELECT * FROM sync_status WHERE status = ${status}`;
+        const getBooksByStatus = (status: SyncStatus) =>
+          sql<SyncStatusRow>`SELECT * FROM sync_status WHERE status = ${status}`;
 
-      const getAllSyncStatus = sql<SyncStatusRow>`SELECT * FROM sync_status ORDER BY book_code`;
+        const getAllSyncStatus = sql<SyncStatusRow>`SELECT * FROM sync_status ORDER BY book_code`;
 
-      const needsSync = (bookId: number, expected?: CorpusProvenance) =>
-        getSyncStatus(bookId).pipe(
-          Effect.map((optStatus) => {
-            if (Option.isNone(optStatus) || optStatus.value.status !== 'success') return true;
-            if (Predicate.isUndefined(expected)) return false;
-            const status = optStatus.value;
-            if (status.source !== expected.source || status.revision !== expected.revision)
-              return true;
-            if (Option.isNone(expected.digest)) return false;
-            return status.digest !== expected.digest.value;
-          }),
-        );
+        const needsSync = (bookId: number, expected?: CorpusProvenance) =>
+          getSyncStatus(bookId).pipe(
+            Effect.map((optStatus) => {
+              if (Option.isNone(optStatus) || optStatus.value.status !== 'success') return true;
+              if (Predicate.isUndefined(expected)) return false;
+              const status = optStatus.value;
+              if (status.source !== expected.source || status.revision !== expected.revision)
+                return true;
+              if (Option.isNone(expected.digest)) return false;
+              return status.digest !== expected.digest.value;
+            }),
+          );
 
-      const rebuildFtsIndex = sql
-        .unsafe(`INSERT INTO paragraphs_fts(paragraphs_fts) VALUES('rebuild')`)
-        .pipe(Effect.asVoid);
+        const rebuildFtsIndex = sql
+          .unsafe(`INSERT INTO paragraphs_fts(paragraphs_fts) VALUES('rebuild')`)
+          .pipe(Effect.asVoid);
 
-      const backfillBibleRefs = (
-        extract: (
-          paragraphs: readonly EGWSchemas.Paragraph[],
-          bookId: number,
-        ) => readonly {
-          bookId: number;
-          refCode: string;
-          bibleBook: number;
-          bibleChapter: number;
-          bibleVerse: Option.Option<number>;
-        }[],
-      ) =>
-        Effect.gen(function* () {
-          // Cheap gate: if anything's already in the table, assume incremental
-          // indexing is keeping up and we don't need to scan the whole corpus.
-          const existing = yield* sql<{ n: number }>`
+        const backfillBibleRefs = (
+          extract: (
+            paragraphs: readonly EGWSchemas.Paragraph[],
+            bookId: number,
+          ) => readonly {
+            bookId: number;
+            refCode: string;
+            bibleBook: number;
+            bibleChapter: number;
+            bibleVerse: Option.Option<number>;
+          }[],
+        ) =>
+          Effect.gen(function* () {
+            // Cheap gate: if anything's already in the table, assume incremental
+            // indexing is keeping up and we don't need to scan the whole corpus.
+            const existing = yield* sql<{ n: number }>`
             SELECT COUNT(*) AS n FROM paragraph_bible_refs LIMIT 1
           `;
-          if ((existing[0]?.n ?? 0) > 0) {
-            return { scanned: 0, inserted: 0 };
-          }
-
-          let scanned = 0;
-          let inserted = 0;
-          const books = yield* Stream.runCollect(getAllBooks);
-          for (const book of books) {
-            const paragraphs = yield* Stream.runCollect(getParagraphsByBook(book.book_id));
-            const arr = Array.from(paragraphs);
-            scanned += arr.length;
-            const refs = extract(arr, book.book_id);
-            if (refs.length > 0) {
-              const wrote = yield* storeBibleRefsBatch(refs);
-              inserted += wrote;
+            if ((existing[0]?.n ?? 0) > 0) {
+              return { scanned: 0, inserted: 0 };
             }
-          }
-          return { scanned, inserted };
-        });
 
-      return EGWParagraphDatabase.of({
-        installPublicationArchive,
-        storeBook,
-        setBookSection,
-        getBookById,
-        getBookByCode,
-        getBooksByCode,
-        getBooksByAuthor,
-        getAllBooks,
-        updateBookCount,
-        storeParagraph,
-        storeParagraphsBatch,
-        getParagraph,
-        getParagraphsByBook,
-        getParagraphsByRefcode,
-        getParagraphsByAuthor,
-        getParagraphsByPage,
-        getChapterHeadings,
-        getSectionHeadings,
-        getNearestHeadings,
-        searchParagraphs,
-        searchScoredParagraphs,
-        findParagraphsByIdentity,
-        countSearchParagraphs,
-        estimateMatchCount,
-        findByRefcodeShort,
-        getMaxPage,
-        getPageNumbers,
-        storeBibleRef,
-        storeBibleRefsBatch,
-        getBibleRefsByBook,
-        getParagraphsByBibleRef,
-        getBibleVersesWithCommentary,
-        setSyncStatus,
-        getSyncStatus,
-        getBooksByStatus,
-        getAllSyncStatus,
-        needsSync,
-        rebuildFtsIndex,
-        backfillBibleRefs,
-      });
-    }),
-  );
+            let scanned = 0;
+            let inserted = 0;
+            const books = yield* Stream.runCollect(getAllBooks);
+            for (const book of books) {
+              const paragraphs = yield* Stream.runCollect(getParagraphsByBook(book.book_id));
+              const arr = Array.from(paragraphs);
+              scanned += arr.length;
+              const refs = extract(arr, book.book_id);
+              if (refs.length > 0) {
+                const wrote = yield* storeBibleRefsBatch(refs);
+                inserted += wrote;
+              }
+            }
+            return { scanned, inserted };
+          });
+
+        return EGWParagraphDatabase.of({
+          installPublicationArchive,
+          storeBook,
+          setBookSection,
+          getBookById,
+          getBookByCode,
+          getBooksByCode,
+          getBooksByAuthor,
+          getAllBooks,
+          updateBookCount,
+          storeParagraph,
+          storeParagraphsBatch,
+          getParagraph,
+          getParagraphsByBook,
+          getParagraphsByRefcode,
+          getParagraphsByAuthor,
+          getParagraphsByPage,
+          getChapterHeadings,
+          getSectionHeadings,
+          getNearestHeadings,
+          searchParagraphs,
+          searchScoredParagraphs,
+          findParagraphsByIdentity,
+          countSearchParagraphs,
+          estimateMatchCount,
+          findByRefcodeShort,
+          getMaxPage,
+          getPageNumbers,
+          storeBibleRef,
+          storeBibleRefsBatch,
+          getBibleRefsByBook,
+          getParagraphsByBibleRef,
+          getBibleVersesWithCommentary,
+          setSyncStatus,
+          getSyncStatus,
+          getBooksByStatus,
+          getAllSyncStatus,
+          needsSync,
+          rebuildFtsIndex,
+          backfillBibleRefs,
+        });
+      }),
+    );
+
+  /**
+   * Driver-agnostic layer: requires `SqlClient.SqlClient`. Initializes the
+   * schema (idempotent) and exposes all CRUD/query operations. Compose with
+   * a SQLite driver layer (sqlite-bun, sqlite-node) via `Layer.provide`.
+   */
+  static layerCore: Layer.Layer<EGWParagraphDatabase, SqlError, SqlClient.SqlClient> =
+    EGWParagraphDatabase.layerExisting.pipe(Layer.provide(layerParagraphSchema));
 
   /**
    * Test implementation with in-memory data.
