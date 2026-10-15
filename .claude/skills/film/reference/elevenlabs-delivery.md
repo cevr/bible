@@ -12,7 +12,7 @@ How a line is said is written in it, beside its cues (`packages/film/src/core/de
 
 - A mark is in braces, so it is never spoken: a card, a caption, a word pin, the KJV check and the take's hash read the line without it. A brace that is no cue, turn or mark fails the line (`DeliveryInvalid`), so nothing unknown is ever read aloud.
 - A stress belongs to the word after it; a pause to the gap before the word after it, never the line's first or last gap (the beat's `lead` and `tail` are its silence there). One pause a gap, one stress a word.
-- In the lab's Script reader: tap a word to stress it or not, tap a gap to cycle nothing, breath, hold, and pick a hold's seconds from its choices. The edit is written back into `script.ts` (or the draft's cell), words unchanged.
+- In the lab's Script reader: tap a word (or select words), and the box under the line offers Stress, what stands in the gap before them (no pause, breath, hold) and a hold's seconds (0.4, 0.6, 1, 1.5, 2, 3). Each tap is written back into the beat's `say` in `script.ts`, words unchanged, and the beat is voiced again. Series drafts are read only: marks go in once a draft becomes a film's `script.ts`.
 - A new kind of mark is a case of `Mark`, its token (`markOfToken`, `tokenOf`) and a row in `MODEL_MARKS` and here.
 
 ## What each model is sent
@@ -41,7 +41,7 @@ and on every model the gap before "By" is then set to 1.5 s in the take.
 
 ## Staging takes, the cache and the day's cap
 
-- One staging voice for every film and draft: `stagingVoice` in `packages/film/src/core/staging-voice.ts`. A later voice (a clone) is that one line.
+- One staging voice for every film: `stagingVoice` in `packages/film/src/core/staging-voice.ts`. A later voice (a clone) is that one line.
 - A take is kept by the SHA-256 of its request (the words as sent, the model, the voices, the settings, the neighbours where sent) in `~/.cache/bible-film/staging` (`FILM_STAGING_DIR`), shared by every checkout. The same line, marks, voice and model never cost twice: the lab's reader and `film narrate` share the cache. A person's take is never in it and never replaced.
 - Every request is charged before it is sent against the day's cap, `FILM_STAGING_DAILY_CAP` (100,000 characters by default); past it the take is refused (`StagingCapReached`) and nothing is sent. The reader shows the day's spend in one line.
 - Tests and CI never call ElevenLabs: they run over the fakes in `packages/film/src/tools/testing.ts`.

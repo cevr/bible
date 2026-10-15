@@ -51,7 +51,7 @@ import {
 import { SCRIPT_CSS } from './style.ts';
 import { MarkChip, Picture, Ties } from './tied.tsx';
 import { gapBefore } from './delivery.ts';
-import { GapGlyph, HearAll, Spend, TakeState, stressAttr } from './voiced.tsx';
+import { GapGlyph, HearWords, Spend, TakeState, stressAttr } from './voiced.tsx';
 import { useVoice } from './voice.tsx';
 import { marksIn } from './ties.ts';
 
@@ -85,7 +85,6 @@ const Head = () => {
         ].join(' · ')}
       </span>
       <Frame hub={meta.hub} />
-      <HearAll />
       <button
         type="button"
         class="sh-btn lab-script-follow"
@@ -273,6 +272,7 @@ const Beat = (props: { readonly beat: BeatRow }) => {
       {/* While a note is being made, its composer is the one box open: its scope chip says the words. */}
       <Show when={Option.isNone(notes.composing())}>
         <Ties beat={beat.id}>
+          <HearWords beat={beat.id} />
           <NoteButton />
         </Ties>
       </Show>
@@ -433,6 +433,7 @@ const Beats = () => {
         }}
       >
         {/* The beats are the staged film's, laid out once: each a plain value, read where it is drawn. */}
+        <Spend />
         <For each={script.beats}>{(beat) => <Beat beat={beat} />}</For>
       </div>
     </div>
@@ -452,7 +453,6 @@ export const Reader = () => {
     <Portal mount={document.body}>
       <section class="lab-script" data-role="script" aria-label="Script">
         <Head />
-        <Spend />
         <Status />
         <Beats />
       </section>

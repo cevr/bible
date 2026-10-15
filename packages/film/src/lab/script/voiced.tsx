@@ -1,13 +1,14 @@
 // How the Script reader shows the staging voice (`voice.tsx`) and a line's
 // delivery marks (`delivery.ts`): in a line, a pause's glyph in its gap
-// (`/` a breath, `//` and its seconds a hold) and a stressed word set apart;
-// in a beat's head, its take (▶ and its pace once ready, else that it is
-// voicing, not voiced, or refused, and why); in the reader's head, Hear (the
-// script from the beat under the frame on) and the day's spend, one quiet
-// line; and in the box under the line while its words are selected, the
-// delivery of them: Stress, what stands in the gap before them (nothing, a
-// breath or a hold, its seconds picked from a few), and Hear them. Every
-// edit is a tap on a choice, written at once.
+// (`/` a breath, `//` and its seconds a hold) and a stressed word in a
+// heavier weight; in a beat's head, its take (▶, which plays it and the
+// ready beats after it, and its pace, named slow or fast outside the band;
+// else that it is voicing, or refused and why; a beat not voiced yet shows
+// nothing); the day's spend, one quiet line at the top of the page; and,
+// while words are selected, Hear them in the box's head and their delivery
+// under it: Stress and what stands in the gap before them (nothing, a breath
+// or a hold, its seconds picked from a few). Every edit is a tap on a
+// choice, written at once.
 
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
@@ -35,10 +36,21 @@ const BAND = '150–165 wpm';
 /** A hold's seconds as the reader writes them: `0.6 s`. */
 const secondsOf = (seconds: number): string => `${seconds} s`;
 
-/** What a press on Hear or ▶ says it does, by whether something is heard now. */
-const HEAR_TITLE = { true: 'Stop', false: 'Hear the staging take' } as const;
+/** A take's pace as its beat's head says it: the bare number in the band, named slow or fast outside it. */
+const paceText = (pace: {
+  readonly wpm: number;
+  readonly band: 'slow' | 'in' | 'fast';
+}): string => {
+  if (pace.band === 'in') return `${pace.wpm} wpm`;
+  return `${pace.wpm} wpm ${pace.band}`;
+};
+
+/** What a press on ▶ says it does, by whether its beat is heard now. */
+const HEAR_TITLE = {
+  true: 'Stop',
+  false: 'Hear the staging take, and the beats ready after it',
+} as const;
 const HEAR_GLYPH = { true: '■', false: '▶' } as const;
-const HEAR_ALL = { true: 'Stop', false: 'Hear' } as const;
 
 /** What a gap's choice puts in it: a hold starts at the default seconds. */
 const GAP_OF: Readonly<Record<Gap['_tag'], Gap>> = {
@@ -96,7 +108,7 @@ export const TakeState = (props: { readonly beat: string }) => {
                   title={HEAR_TITLE[pressed(hearing())]}
                   onClick={() => {
                     if (hearing()) voice.stop();
-                    else voice.hear(props.beat, Option.none(), false);
+                    else voice.hear(props.beat, Option.none(), true);
                   }}
                 >
                   {HEAR_GLYPH[pressed(hearing())]}
@@ -107,13 +119,14 @@ export const TakeState = (props: { readonly beat: string }) => {
                     data-band={pace.band}
                     title={`The take's pace; the band is ${BAND}`}
                   >
-                    {pace.wpm} wpm
+                    {paceText(pace)}
                   </span>
                 ))}
               </>
             ),
             Voicing: () => <span class="lab-script-voicing">voicing…</span>,
-            Unvoiced: () => <span class="lab-script-voicing">not voiced</span>,
+            // Nothing to do about a beat not voiced yet: its missing ▶ says it.
+            Unvoiced: () => <></>,
             Refused: (r) => (
               <span class="lab-script-voicing" data-refused="true" title={r.reason}>
                 not voiced: {r.reason}
@@ -126,34 +139,29 @@ export const TakeState = (props: { readonly beat: string }) => {
   );
 };
 
-/**
- * The reader's head: Hear the script from the first beat ready at or after
- * the one under the frame, or Stop; nothing while no take there is ready.
- */
-export const HearAll = () => {
+/** In the selection's box head, beside Note…: Hear the words selected in beat `beat`, once its take is ready. */
+export const HearWords = (props: { readonly beat: string }) => {
   const script = useScript();
   const voice = useVoice();
-  const on = () => Option.isSome(voice.hearing());
-  const first = () =>
-    Arr.findFirst(
-      Arr.dropWhile(script.beats, (b) => b.id !== script.live()),
-      (b) => Option.exists(voice.take(b.id), (t) => t._tag === 'Ready'),
+  const words = () =>
+    Option.filter(
+      script.selected(),
+      (w) =>
+        w.scene === props.beat && Option.exists(voice.take(props.beat), (t) => t._tag === 'Ready'),
     );
   return (
-    <Show when={on() || Option.isSome(first())}>
-      <button
-        type="button"
-        class="sh-btn lab-script-hear-all"
-        data-act="hear-script"
-        aria-pressed={pressed(on())}
-        title="Hear the staging voice from this beat on"
-        onClick={() => {
-          if (on()) voice.stop();
-          else Option.map(first(), (b) => voice.hear(b.id, Option.none(), true));
-        }}
-      >
-        {HEAR_ALL[pressed(on())]}
-      </button>
+    <Show when={Option.getOrUndefined(words())}>
+      {(w) => (
+        <button
+          type="button"
+          class="sh-btn"
+          data-act="hear-words"
+          title="Hear these words in the staging take"
+          onClick={() => voice.hear(props.beat, Option.some({ from: w().from, to: w().to }), false)}
+        >
+          Hear
+        </button>
+      )}
     </Show>
   );
 };
@@ -195,7 +203,7 @@ const markingNote = (m: Marking, beat: string): string => {
 /**
  * The delivery of the words selected in beat `beat`: Stress, the gap before
  * them (none for the line's first word, whose silence is the beat's lead),
- * a hold's seconds, and Hear them once the take is ready.
+ * and a hold's seconds.
  */
 export const Delivery = (props: { readonly beat: string }) => {
   const script = useScript();
@@ -221,7 +229,6 @@ export const Delivery = (props: { readonly beat: string }) => {
       {(w) => {
         const allStressed = () => Arr.range(w().from, w().to).every((i) => stressed(marks(), i));
         const gap = () => gapBefore(marks(), w().from);
-        const ready = () => Option.exists(voice.take(props.beat), (t) => t._tag === 'Ready');
         return (
           <div class="lab-script-delivery" role="group" aria-label="Delivery">
             <div class="lab-script-delivery-row">
@@ -256,19 +263,6 @@ export const Delivery = (props: { readonly beat: string }) => {
                     hold
                   </Toggle>
                 </ToggleGroup>
-              </Show>
-              <Show when={ready()}>
-                <button
-                  type="button"
-                  class="sh-btn"
-                  data-act="hear-words"
-                  title="Hear these words in the staging take"
-                  onClick={() =>
-                    voice.hear(props.beat, Option.some({ from: w().from, to: w().to }), false)
-                  }
-                >
-                  Hear
-                </button>
               </Show>
             </div>
             <Show when={Option.getOrUndefined(holdOf(gap()))}>
