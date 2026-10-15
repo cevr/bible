@@ -2602,7 +2602,7 @@ alone. The network is shared (the counsel needs the internet), so the
 lab's loopback port stays reachable, though nothing names it. Its stdout
 is the answer and its stderr the run's words, written as they arrive to
 `claude.md` and `claude.err` in `<run>/counsel/` (a non-zero exit, or a
-run past `COUNSEL_LIMIT`, 30 minutes, is `CounselFailed`, naming that
+run past `COUNSEL_LIMIT`, 30 minutes, stopped with SIGTERM and killed 10 s later if it still runs, `COUNSEL_BOUNDS`, is `CounselFailed`, naming that
 folder once the run printed there; off macOS the counsel fails so too); `Counsel.sandboxed` runs any command
 so (the tests probe the sandbox with one); `Counsel.layerTest` answers
 from a function of the packet. Its last `RANKING:` line is read (`rankingOf`: a
