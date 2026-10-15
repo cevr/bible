@@ -67,14 +67,18 @@ const SaidOn = {
 /** The lab ask a word files (`ask`, in the lab's asks): its question, or its answer or withdrawal. */
 const SaidAsk = { ask: maybe(Schema.String) };
 
+/** Who filed the word: the agent that heard it (`by`), or the ask's asker; none for a word that does not say. */
+const SaidBy = { by: maybe(Schema.String) };
+
 /**
  * The owner's word given outside the lab, as an agent recorded it: a
  * decision (a pick, a direction) or a note (feedback), and the question an
  * agent asks the owner about a set (`Asked`: it waits on the owner until a
  * decision on that set, or a pick in that choice, answers it). `quote` is
- * the owner's own words, verbatim; `text` says it plainly. A word an ask
- * files names it (`ask`): that ask's answer answers its question and no
- * other, and withdrawing the ask (a note naming it) closes its question.
+ * the owner's own words, verbatim; `text` says it plainly; `by` names who
+ * filed it. A word an ask files names it (`ask`): that ask's answer answers
+ * its question and no other, and withdrawing the ask (a note naming it)
+ * closes its question.
  */
 export const Said = Schema.Union([
   Schema.TaggedStruct('Decided', {
@@ -83,6 +87,7 @@ export const Said = Schema.Union([
     quote: maybe(Schema.String),
     ...SaidOn,
     ...SaidAsk,
+    ...SaidBy,
   }),
   Schema.TaggedStruct('Noted', {
     at: At,
@@ -90,6 +95,7 @@ export const Said = Schema.Union([
     quote: maybe(Schema.String),
     ...SaidOn,
     ...SaidAsk,
+    ...SaidBy,
   }),
   Schema.TaggedStruct('Asked', {
     at: At,
@@ -97,6 +103,7 @@ export const Said = Schema.Union([
     quote: maybe(Schema.String),
     ...SaidOn,
     ...SaidAsk,
+    ...SaidBy,
   }),
 ]).pipe(Schema.toTaggedUnion('_tag'));
 export type Said = typeof Said.Type;
@@ -236,6 +243,41 @@ export const withFiled = (file: ProductionFile, filed: Filed): ProductionFile =>
 
 /** A folder's path under its root: its ref without the root's label. */
 export const setPathOf = (ref: string): string => ref.split('/').slice(1).join('/');
+
+/** A set the lab lists, named for a timeline: the lab's ref, and the folder the ledger names it by. */
+interface NamedSet {
+  readonly ref: string;
+  readonly folder: string;
+}
+
+/** A folder more than one root holds, with each ref that holds it. */
+interface FolderInRoots {
+  readonly folder: string;
+  readonly refs: ReadonlyArray<string>;
+}
+
+/**
+ * The set `given` names among the refs the lab lists: by its folder under
+ * its root, as the ledger names a set, or else by its ref; none when it names
+ * no listed set. A folder more than one root holds is refused, since a
+ * timeline names a set by its folder alone and could not tell which.
+ */
+export const setNamed = (
+  listed: ReadonlyArray<string>,
+  given: string,
+): Result.Result<Option.Option<NamedSet>, FolderInRoots> => {
+  const holding = (folder: string) => listed.filter((ref) => setPathOf(ref) === folder);
+  const folder = Option.getOrElse(
+    Option.map(
+      Option.liftPredicate(given, (g) => holding(g).length === 0 && listed.includes(g)),
+      setPathOf,
+    ),
+    () => given,
+  );
+  const refs = holding(folder);
+  if (refs.length > 1) return Result.fail({ folder, refs });
+  return Result.succeed(Option.map(Arr.head(refs), (ref) => ({ ref, folder })));
+};
 
 /**
  * A question that waits on the owner: an ask no decision on its set, and no

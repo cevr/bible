@@ -12,6 +12,7 @@
 
 import { useAtomValue } from '@bible/atom-solid';
 import { unfiledOf } from '../../core/production.ts';
+import { counted } from '../../core/words.ts';
 import { Dialog } from '@bible/ui/dialog';
 import { Toggle } from '@bible/ui/toggle';
 import * as UrlAtom from '@bible/url-state/atom';
@@ -262,6 +263,49 @@ const Films = (props: {
   );
 };
 
+/**
+ * The app's series beside its films: each a card that opens to its drafts
+ * (at rest its title and how many), each draft a link into the Script
+ * reader, where it is read, heard and marked.
+ */
+const Series = () => {
+  const { state } = useReview();
+  const series = () =>
+    Option.getOrElse(
+      Option.map(AsyncResult.value(state.series()), (l) => l.series),
+      () => [],
+    );
+  return (
+    <Section title="Series" count={series().length}>
+      <div class="rv-grid">
+        <For each={series()}>
+          {(s) => (
+            <details class="rv-card rv-series" data-series={s.name}>
+              <summary>
+                <b>{s.title}</b>
+                <span class="rv-hint">{counted(s.drafts.length, 'draft')}</span>
+              </summary>
+              <ul class="rv-drafts">
+                <For each={s.drafts}>
+                  {(d) => (
+                    <li>
+                      <Go
+                        place={Place.Draft({ series: s.name, draft: d.name, beat: '', words: '' })}
+                      >
+                        {d.title}
+                      </Go>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </details>
+          )}
+        </For>
+      </div>
+    </Section>
+  );
+};
+
 /** The app's films, as the review last read them (none until it has); call it where the component is set up. */
 const useAppFilms = (): Accessor<ReadonlyArray<string>> => {
   const { state } = useReview();
@@ -337,16 +381,27 @@ const FilmCard = (props: {
 /**
  * The front door: the productions first (each a card that opens its
  * timeline, `production.tsx`, a film's production carrying the film's state
- * and ways in), then the films no production makes, then every folder no
+ * and ways in), then the films no production makes, then the series and
+ * their drafts, then every folder no
  * production holds: sets (stacks) first, then the rest (⌘K finds one by
  * name). Each film has one card.
  */
 export const Home = () => (
   <WithIndex>
     {(index) => {
+      const { state } = useReview();
       const histories = useHistories();
       const films = useAppFilms();
       const produced = createMemo(() => producedFilms(histories(), films()));
+      // Nothing to show: no production, film, series or folder.
+      const empty = () =>
+        index().folders.length === 0 &&
+        histories().length === 0 &&
+        films().length === 0 &&
+        Option.getOrElse(
+          Option.map(AsyncResult.value(state.series()), (l) => l.series.length === 0),
+          () => true,
+        );
       const unfiled = createMemo(() => unfiledOf(histories(), index().folders));
       const sets = createMemo(() => unfiled().filter((f) => f.sets.length > 0));
       const rest = createMemo(() => unfiled().filter((f) => f.sets.length === 0));
@@ -354,6 +409,7 @@ export const Home = () => (
         <>
           <ProductionCards histories={histories()} films={films()} filmPart={FilmOnProduction} />
           <Films folders={index().folders} produced={produced()} />
+          <Series />
           <Section title="Sets" count={sets().length}>
             <div class="rv-grid">
               <For each={sets()}>{(folder) => <FolderCard folder={folder} />}</For>
@@ -364,7 +420,7 @@ export const Home = () => (
               <For each={rest()}>{(folder) => <FolderCard folder={folder} />}</For>
             </div>
           </Section>
-          <Show when={index().folders.length === 0}>
+          <Show when={empty()}>
             <p class="empty">Nothing here yet.</p>
           </Show>
         </>

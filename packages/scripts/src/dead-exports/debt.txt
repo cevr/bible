@@ -251,11 +251,9 @@ packages/film/src/tools/counsel.ts SandboxedRun
 packages/film/src/tools/counsel.ts okraRun
 packages/film/src/tools/draw-check.ts impureAt
 packages/film/src/tools/draw-check.ts momentCounts
-packages/film/src/tools/elevenlabs.ts DialogueRequest
 packages/film/src/tools/elevenlabs.ts SoundEffectRequest
 packages/film/src/tools/elevenlabs.ts SttResponse
 packages/film/src/tools/elevenlabs.ts SttResponse
-packages/film/src/tools/elevenlabs.ts TtsRequest
 packages/film/src/tools/findings.ts CheckOptions
 packages/film/src/tools/findings.ts Reported
 packages/film/src/tools/findings.ts addressOf

@@ -25,6 +25,7 @@ import { ContentStore, Processes, writeWholeWith } from './content-store.ts';
 import { ManifestLock, type ManifestLockService } from './manifest-lock.ts';
 import { bunManifestLock } from './manifest-lock-bun.ts';
 import { ElevenLabs } from './elevenlabs.ts';
+import { StagingCache } from './staging.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import {
   type NarrateOptions,
@@ -78,11 +79,15 @@ const defaults: NarrateOptions = {
 
 const TIMINGS = '/films/test/narration/timings.json';
 
+/** Where the staging cache keeps its takes and the day's spend, beside the film. */
+const STAGING = '/staging';
+
 const setup = (timings: Timings, heard: ReadonlyMap<string, string> = new Map(), decoded?: Pcm) => {
   const files = new Map<string, Uint8Array>();
   files.set(TIMINGS, text(Schema.encodeSync(TimingsJson)(timings)));
   const calls = emptyCalls();
   const layer = Narrator.layer.pipe(
+    Layer.provide(StagingCache.layer(STAGING)),
     Layer.provideMerge(storeLayer(files)),
     Layer.provide([
       memoryFileSystem(files),
@@ -480,6 +485,7 @@ describe('Narrator', () => {
 
     const run = (files: Map<string, Uint8Array>, fs: Layer.Layer<FileSystem.FileSystem>) => {
       const layer = Narrator.layer.pipe(
+        Layer.provide(StagingCache.layer(STAGING)),
         Layer.provideMerge(
           ContentStore.layer.pipe(
             Layer.provide([fs, Path.layer, Layer.succeed(ManifestLock, memoryManifestLock())]),
@@ -529,6 +535,7 @@ describe('Narrator', () => {
         const unowned = `${TIMINGS}.partial`;
         files.set(unowned, text('{'));
         const layer = Narrator.layer.pipe(
+          Layer.provide(StagingCache.layer(STAGING)),
           Layer.provideMerge(storeLayer(files)),
           Layer.provide([
             memoryFileSystem(files),
@@ -662,6 +669,7 @@ describe('Narrator', () => {
       const disk = Layer.succeed(FileSystem.FileSystem, fs);
       return narrate(
         Narrator.layer.pipe(
+          Layer.provide(StagingCache.layer(STAGING)),
           Layer.provideMerge(ContentStore.layer.pipe(Layer.provide([disk, Path.layer]))),
           Layer.provide([disk, Path.layer, stt, fakeMedia(files)]),
         ),

@@ -367,6 +367,11 @@ const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: 
     'goToPoint(point',
     "a kind's tab, clicked, pressed, and clicked with a key down",
   ],
+  [
+    'review/production.tsx',
+    'focusFor(field',
+    "a Production's Move forward, its form opened: its first field",
+  ],
   ['scenes/view.tsx', 'focusFor(field', "Scenes' scenes.comment, a scene selected, a text field"],
   [
     'sketch/surface.tsx',

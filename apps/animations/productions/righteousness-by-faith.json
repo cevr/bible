@@ -2,7 +2,7 @@
   "production": "righteousness-by-faith",
   "title": "Righteousness by Faith",
   "film": "righteousness-by-faith",
-  "blurb": "The 1888 message in 20 scenes: the court, the robe, the exchange.",
+  "blurb": "A judge calls a guilty man righteous. Is it a cover-up? No: God's word is a seed, and it brings faith, forgiveness and power.",
   "versions": [
     {
       "at": 1790341200000,
@@ -167,6 +167,30 @@
       "text": "Keep the refrain of three, faith, forgiveness and power, counted in the paralytic (Mark 2) and the woman (John 8) as in his sermon of 2026-04-25; it lives inside the spine, the word is a seed",
       "quote": "hmm, lets keep the faith forgiveness power",
       "set": "rbf-script-2026-10-14"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792039739123,
+      "text": "Righteousness by Faith v3: keep the script? (ask ad1157de05b)",
+      "set": "rbf-script-2026-10-14",
+      "ask": "ad1157de05b",
+      "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792068509027,
+      "text": "Righteousness by Faith v3: read the script, then decide (ask ad3aebb0697)",
+      "set": "rbf-script-2026-10-14",
+      "ask": "ad3aebb0697",
+      "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792068523576,
+      "text": "Righteousness by Faith v3: keep the script? (ask ad1157de05b) withdrawn: Withdrawn, unanswered: replaced by ask ad3aebb0697, the same question as a guided review that shows the whole script on the ask itself (owner rule, 2026-10-15: an ask never sends him elsewhere to find it).",
+      "set": "rbf-script-2026-10-14",
+      "ask": "ad1157de05b",
+      "by": "rbfscript (p5)"
     }
   ],
   "filed": [

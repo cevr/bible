@@ -22,6 +22,14 @@
 //   film read sites <film>
 //       where each scene's drawing is declared, and what of it the lab may
 //       write (`locateHere`), or why a scene is not located
+//   film read cues <film> [scene]
+//       each scene's placement, marks and named cues, one line each as
+//       `film cues` prints them (`sceneReport`), or the one scene's, and how
+//       many cues end after their scene (the lab's `cues` tool)
+//   film read scenes <film>
+//       the film's scenes by id, in order, as `film journal` knows them: no
+//       timeline is resolved, so a scene that does not lay out still names
+//       its film's scenes (the lab's `journal` and `journal_note` tools)
 //
 // `locateHere` also serves the CLI's own commands (`scenesLocatedHere`):
 // each runs in a process of its own, which imports the film as it stands.
@@ -46,6 +54,7 @@ import type { CuePatch, Span } from '../core/schema.ts';
 import { type Quote, type ScriptLine, sheetBeats } from '../core/sheet.ts';
 import type { StudioReading } from '../core/studio.ts';
 import { patchSpan, resolveTimeline, writtenPatch } from '../core/timeline.ts';
+import { sceneReport } from './cues.ts';
 import { FilmModuleInvalid, type TalkUnvoiced } from './errors.ts';
 import {
   FilmFolder,
@@ -58,7 +67,9 @@ import {
 import {
   CuePatchJson,
   CueRead,
+  CuesRead,
   type SceneSite,
+  ScenesRead,
   ScriptRead,
   SitesRead,
   TimelineJson,
@@ -450,10 +461,43 @@ const sites = Command.make(
   ),
 );
 
+const cues = Command.make(
+  'cues',
+  {
+    film,
+    scene: Argument.String('scene').pipe(
+      Argument.optional,
+      Argument.withDescription('only this scene'),
+    ),
+  },
+  Effect.fn('film.read.cues')(function* (input) {
+    const placed = yield* placeFilm(yield* (yield* FilmRepo).load(input.film));
+    const report = yield* Effect.fromResult(sceneReport(placed, input.scene));
+    yield* printLine(CuesRead.make({ lines: report.lines, late: report.late }));
+  }, answering),
+).pipe(
+  Command.withDescription(
+    "Each scene's placement, marks and named cues as `film cues` prints them (or one scene's), and how many cues end after their scene, as one line of JSON",
+  ),
+);
+
+const scenes = Command.make(
+  'scenes',
+  { film },
+  Effect.fn('film.read.scenes')(function* (input) {
+    const loaded = yield* (yield* FilmRepo).load(input.film);
+    yield* printLine(ScenesRead.make({ scenes: loaded.scenes.map((scene) => scene.id) }));
+  }, answering),
+).pipe(
+  Command.withDescription(
+    "The film's scenes by id, in order, as `film journal` knows them (no timeline resolved), as one line of JSON",
+  ),
+);
+
 /** `film read`, run fresh by the lab. */
 export const read = Command.make('read').pipe(
   Command.withDescription(
     'What the lab reads of a film, fresh from disk, as one line of JSON (the lab runs these)',
   ),
-  Command.withSubcommands([voice, script, cue, sites]),
+  Command.withSubcommands([voice, script, cue, sites, cues, scenes]),
 );

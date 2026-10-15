@@ -183,6 +183,8 @@ const worldOf = (made: (folders: Folders) => void) =>
         roots: Effect.succeed([]),
         elevenLabs: fakeElevenLabs(new Map(), emptyCalls()),
         privateStore: Option.some(privateFolder(path.join(root, 'store'))),
+        staging: Option.some(path.join(root, 'staging')),
+        series: Option.none(),
       });
     }),
   ).pipe(Layer.provideMerge(BunServices.layer));

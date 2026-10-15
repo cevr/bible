@@ -7,7 +7,9 @@
 // open's render set and two loose videos (one with its phone proxy ready). What the disclosed states need is there too: two
 // pictures under the Choices transport, a comment on the film, the act, scene open and
 // the score's strings and the set's main version (their counts), and the check's two findings, one at a
-// time. Each route answers as the lab's server encodes it.
+// time. The app's series hold one draft of three beats, its first take
+// ready and its second voicing. Each route answers as the lab's server
+// encodes it.
 
 import { Option, Schema } from 'effect';
 import { sceneAddress } from '../../core/address.ts';
@@ -323,6 +325,60 @@ export const askRecordWith = (
 /** The ask at its first step. */
 const askRecord = askRecordWith();
 
+/** A series of the app's, listed beside the films, and its one draft. */
+export const STUDIO_SERIES = 'toy-talks';
+export const STUDIO_DRAFT = '01-first-breath';
+
+/** The draft as `GET /api/series/<series>/<draft>` sends it, its first beat's line said `say`. */
+export const draftRecordWith = (say = 'The first thing God {*}gave was breath.'): Json => ({
+  series: STUDIO_SERIES,
+  draft: STUDIO_DRAFT,
+  title: 'The first breath',
+  beats: [
+    {
+      id: '1',
+      label: 'Hook',
+      say,
+      brief: 'A figure of clay on a bench, still.',
+      cite: ['Gen 2:7'],
+    },
+    { id: '2', label: 'Turn', say: 'He spoke, {//1} and it was.', cite: ['Ps 33:9'] },
+    { id: '3', label: 'Card', brief: 'The title, on paper.', cite: [] },
+  ],
+});
+
+/** The draft as its Markdown reads now: its first beat's second word stressed. */
+const draftRecord = draftRecordWith();
+
+/** A take's word, `at` seconds in, heard for a third of a second. */
+const takeWord = (text: string, at: number): Json => ({
+  text,
+  start: at,
+  end: at + 0.3,
+  voiced: { start: at, end: at + 0.3 },
+});
+
+/** The draft's staging takes: the first beat's ready (seven words in 2.8 s: 150 wpm), the second voicing. */
+export const draftVoice: Json = {
+  film: `${STUDIO_SERIES}/${STUDIO_DRAFT}`,
+  spent: 1240,
+  cap: 20000,
+  beats: [
+    {
+      id: '1',
+      take: {
+        _tag: 'Ready',
+        file: 'k1.mp3',
+        duration: 2.8,
+        words: ['The', 'first', 'thing', 'God', 'gave', 'was', 'breath.'].map((w, i) =>
+          takeWord(w, i * 0.4),
+        ),
+      },
+    },
+    { id: '2', take: { _tag: 'Voicing' } },
+  ],
+};
+
 /** The review's routes over the film: its index, its films, its choices, its project and their checks. */
 export const studioRoutes: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/api\/review\/index/, () => json(indexOf(['main', 'warm']))),
@@ -358,6 +414,19 @@ export const studioRoutes: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/api\/films\/toy\/project$/, () => json(project)),
   route('GET', /^\/api\/productions$/, () => json({ productions: [productionLedger] })),
   route('GET', /^\/api\/asks\/a0123456789$/, () => json(askRecord)),
+  route('GET', /^\/api\/series$/, () =>
+    json({
+      series: [
+        {
+          name: STUDIO_SERIES,
+          title: 'Toy talks',
+          drafts: [{ name: STUDIO_DRAFT, title: 'The first breath' }],
+        },
+      ],
+    }),
+  ),
+  route('GET', /^\/api\/series\/toy-talks\/01-first-breath$/, () => json(draftRecord)),
+  route('GET', /^\/api\/series\/toy-talks\/01-first-breath\/voice$/, () => json(draftVoice)),
 ];
 
 /** The studio's routes with open's render set holding three versions: a pair leaves one out. */

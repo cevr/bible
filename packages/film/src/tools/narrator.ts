@@ -20,6 +20,7 @@
 
 import {
   Array as Arr,
+  Clock,
   Context,
   Effect,
   FileSystem,
@@ -32,8 +33,11 @@ import {
   String as Str,
 } from 'effect';
 import { Base64 } from 'effect/encoding';
+import { holdsIn, shiftedBy, spokenAlignment } from '../core/delivery.ts';
 import { type AlignmentMismatch, type LineError, type UnknownVoice } from '../core/errors.ts';
+import type { Pcm } from '../core/audio.ts';
 import {
+  deliveredAs,
   hashText,
   heldInside,
   linesOf,
@@ -44,14 +48,13 @@ import {
   voiceKey,
   wordsFromAlignment,
 } from '../core/narration.ts';
-import { trimTail } from '../core/recording.ts';
+import { trimTail, withGaps } from '../core/recording.ts';
 import {
   type HeardAs,
   TAKE_TOLERANCE,
   type Timings,
   type Voice,
   type VoiceTiming,
-  isCast,
 } from '../core/schema.ts';
 import { lineError } from '../core/spoken.ts';
 import type { ReadBeat } from '../core/studio.ts';
@@ -59,11 +62,25 @@ import { voicedWords } from '../core/voiced.ts';
 import { ContentStore, type StoreError, partialAbandoned } from './content-store.ts';
 import { sha256Hex } from './digest.ts';
 import { ElevenLabs } from './elevenlabs.ts';
-import { ElevenLabsFailed, type MediaFailed, TakeMismatch } from '../core/refusals.ts';
+import {
+  ElevenLabsFailed,
+  type MediaFailed,
+  type StagingCapReached,
+  TakeMismatch,
+} from '../core/refusals.ts';
 import { type FilmPaths, type LoadedFilm, readerOf } from './film-repo.ts';
 import type { TalkUnvoiced } from './errors.ts';
 import { Media } from './media.ts';
 import { settleAll } from './settle.ts';
+import {
+  type Made,
+  type StagedTake,
+  StagingCache,
+  audioName,
+  type StagingAsk,
+  type StagingRequest,
+  stagingRequest,
+} from './staging.ts';
 
 /** A take whose transcript is further than this from its script is a mismatch. */
 export const MAX_WORD_ERROR = 0.08;
@@ -126,7 +143,20 @@ export interface NarrationPlan {
   readonly reader: Voice;
 }
 
-type NarrateError = TakeMismatch | AlignmentMismatch | ElevenLabsFailed | MediaFailed | StoreError;
+type NarrateError =
+  | TakeMismatch
+  | AlignmentMismatch
+  | ElevenLabsFailed
+  | MediaFailed
+  | StagingCapReached
+  | StoreError;
+
+/** A staging take as `stage` answers it: the take, its audio, and whether the cache already kept it. */
+interface Staged {
+  readonly take: StagedTake;
+  readonly audio: Uint8Array;
+  readonly cached: boolean;
+}
 
 /**
  * Takes recorded under the current voice; a different voice leaves only the
@@ -137,20 +167,32 @@ const currentTakes = (timings: Timings, voice: string): Timings['scenes'] => {
   return Rec.filter(timings.scenes, (take) => take.source === 'recorded');
 };
 
+/**
+ * Beat `id`'s line `say` as a take is kept against it in `voice` (a film's
+ * scene, or a series draft's beat): its words, who reads them and how; or
+ * the voice a turn names that `voice` does not have.
+ */
+export const readBeat = (
+  voice: Voice,
+  id: string,
+  say: string,
+): Result.Result<ReadBeat, UnknownVoice | LineError> =>
+  Result.flatMap(parse(id, say), (parsed) =>
+    Result.map(linesOf(id, parsed, voice), (lines): ReadBeat => ({
+      id,
+      text: parsed.spoken,
+      script: takeScript(parsed),
+      lines,
+      delivery: parsed.delivery,
+    })),
+  );
+
 /** One beat's lines, or the voice a turn names that the film does not have. */
 const beatOf = (voice: Voice, scene: LoadedFilm['scenes'][number]) =>
-  Result.flatMap(
-    parse(
-      scene.id,
-      Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
-    ),
-    (parsed) =>
-      Result.map(linesOf(scene.id, parsed, voice), (lines): ReadBeat => ({
-        id: scene.id,
-        text: parsed.spoken,
-        script: takeScript(parsed),
-        lines,
-      })),
+  readBeat(
+    voice,
+    scene.id,
+    Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
   );
 
 /** Every beat's lines, in film order, or the voice a turn names that the film does not have. */
@@ -214,7 +256,7 @@ export const planNarration = (
       const spoken = beats.filter((b) => b.text.length > 0);
       const states = spoken.map((b) => ({
         id: b.id,
-        state: takeState(b.id, b.script, film.timings, voice),
+        state: takeState(b.id, b.script, film.timings, voice, b.delivery),
       }));
       const wanted = Arr.zip(spoken, states).filter(([, take]) => asked(options, take));
       const verdicts = wanted.map(([beat, take]) => ({ beat, kept: keptBy(options, take.state) }));
@@ -251,6 +293,25 @@ export const stateLine = (take: BeatTake): string =>
 /** A take's audio: a staging take is ElevenLabs' MP3, a person's a FLAC master. */
 const TAKE_EXTENSIONS = ['.mp3', '.flac'] as const;
 type TakeExtension = (typeof TAKE_EXTENSIONS)[number];
+
+/** A take file's extension, as its name has it: a FLAC, else ElevenLabs' MP3. */
+const takeExtensionOf = (file: string): TakeExtension => {
+  if (file.endsWith('.flac')) return '.flac';
+  return '.mp3';
+};
+
+/**
+ * A staging take as it is kept: each hold's gap set to its seconds
+ * (`withGaps`), then the silence after its last word trimmed (`trimTail`).
+ * None when neither changes it, and the take is kept as ElevenLabs sent it.
+ */
+const editedTake = (
+  sent: Pcm,
+  edits: ReadonlyArray<{ readonly at: number; readonly by: number }>,
+): Option.Option<Pcm> => {
+  const gapped = withGaps(sent, edits);
+  return Option.orElse(trimTail(Option.getOrElse(gapped, () => sent)), () => gapped);
+};
 
 /** Twelve hex digits of the SHA-256 of `bytes`: a file named by what it holds. */
 export const contentHash = (bytes: Uint8Array): string => sha256Hex(bytes).slice(0, 12);
@@ -444,6 +505,16 @@ interface NarratorService {
     plan: NarrationPlan,
     options: NarrateOptions,
   ) => Effect.Effect<void, NarrateError>;
+  /**
+   * The staging take for one beat, from the cache or made now (charged
+   * first, and kept): what the lab's reader plays. Never touches a film's
+   * narration or timings. `reuse` says which kept take will do.
+   */
+  readonly stage: (
+    ask: StagingAsk,
+    heardAs: HeardAs,
+    reuse?: (take: StagedTake) => boolean,
+  ) => Effect.Effect<Staged, Exclude<NarrateError, TakeMismatch>>;
 }
 
 export class Narrator extends Context.Service<Narrator, NarratorService>()(
@@ -457,67 +528,67 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
       const store = yield* ContentStore;
       const elevenLabs = yield* ElevenLabs;
       const media = yield* Media;
+      const cache = yield* StagingCache;
       /** What sweeping the narration needs (`sweepNarration`). */
       const io = yield* Effect.context<FileSystem.FileSystem | Path.Path | ContentStore>();
 
       /**
-       * The beat read aloud: one voice through text-to-speech, a cast as one
-       * dialogue. `breaks` is where each line starts in the alignment.
+       * The beat read aloud as its request says: one voice through
+       * text-to-speech, a cast as one dialogue. `breaks` is where each line
+       * starts in the alignment.
        */
-      const read = (plan: NarrationPlan, beat: ReadBeat) => {
-        const voice = plan.reader;
-        if (isCast(voice))
-          return Effect.map(elevenLabs.dialogue({ lines: beat.lines, cast: voice }), (reply) => ({
+      const read = (request: StagingRequest) => {
+        const { speech } = request;
+        if (speech._tag === 'Dialogue')
+          return Effect.map(elevenLabs.dialogue(speech.request), (reply) => ({
             ...reply,
             breaks: reply.voice_segments.map((s) => s.character_start_index),
           }));
-        const index = plan.beats.findIndex((b) => b.id === beat.id);
-        const neighbour = (at: number) =>
-          Option.getOrElse(
-            Option.map(Arr.get(plan.beats, at), (b) => b.text),
-            () => '',
-          );
-        return Effect.map(
-          elevenLabs.tts({
-            text: beat.text,
-            voice,
-            previousText: neighbour(index - 1),
-            nextText: neighbour(index + 1),
-          }),
-          (reply) => ({ ...reply, breaks: [] }),
-        );
+        return Effect.map(elevenLabs.tts(speech.request), (reply) => ({ ...reply, breaks: [] }));
       };
 
-      const recordBeat = Effect.fn('Narrator.recordBeat')(function* (
-        film: LoadedFilm,
-        plan: NarrationPlan,
-        options: NarrateOptions,
-        beat: ReadBeat,
+      /**
+       * A reading made for `ask`, as ElevenLabs sent it: read as its request
+       * says, transcribed back, and timed. Made in a folder of its own, gone
+       * with it however it ends.
+       */
+      const readAloud = Effect.fn('Narrator.readAloud')(function* (
+        ask: StagingAsk,
+        request: StagingRequest,
+        heardAs: HeardAs,
       ) {
-        const reply = yield* read(plan, beat);
-        const { alignment } = reply;
-        const words = yield* Effect.fromResult(
+        const { beat } = ask;
+        const reply = yield* read(request);
+        const aligned = spokenAlignment(
+          reply.alignment.characters,
+          reply.alignment.character_start_times_seconds,
+          reply.alignment.character_end_times_seconds,
+          reply.breaks,
+        );
+        const said = yield* Effect.fromResult(
           wordsFromAlignment(
             beat.text,
-            alignment.characters,
-            alignment.character_start_times_seconds,
-            alignment.character_end_times_seconds,
-            reply.breaks,
+            aligned.chars,
+            aligned.starts,
+            aligned.ends,
+            aligned.breaks,
           ),
         );
+        // A word is timed by what was sent (a stress in capitals) and named as the line writes it.
+        const written = beat.text.split(/\s+/).filter((w) => w.length > 0);
+        const words = said.map((w, i) => ({ ...w, text: written[i] ?? w.text }));
         const audio = yield* Effect.fromResult(Base64.decode(reply.audio_base64)).pipe(
           Effect.mapError((error) =>
-            ElevenLabsFailed.make({ op: 'tts', exitCode: 0, reason: error.message }),
+            ElevenLabsFailed.make({ op: request.speech._tag, exitCode: 0, reason: error.message }),
           ),
         );
-
-        // The take is made in this beat's own folder, out of every other
-        // run's sight, and gone with it however the beat ends.
-        const file = takeFile(beat.id, audio);
-        const take = path.join(yield* fs.makeTempDirectoryScoped({ prefix: 'narrate-' }), file);
+        const take = path.join(
+          yield* fs.makeTempDirectoryScoped({ prefix: 'narrate-' }),
+          takeFile(beat.id, audio),
+        );
         yield* fs.writeFile(take, audio);
         const heard = yield* elevenLabs.stt(take);
-        const wer = lineError(beat.text, heard.text, film.heardAs);
+        const wer = lineError(beat.text, heard.text, heardAs);
         const { seconds: duration } = yield* media.timing(take);
         const overrun = Math.max(0, ...words.map((w) => w.end)) - duration;
         if (overrun > TAKE_TOLERANCE)
@@ -525,48 +596,145 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
             `narrate.overrun id=${beat.id} secs=${overrun.toFixed(2)} (the alignment runs past the take; its words are held inside it)`,
           );
         yield* Effect.log(
-          `narrate.take id=${beat.id} words=${words.length} lines=${beat.lines.length} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}%`,
+          `narrate.take id=${beat.id} words=${words.length} lines=${beat.lines.length} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}% chars=${request.characters}`,
         );
-        if (wer > MAX_WORD_ERROR) {
+        const pcm = yield* media.decode(take);
+        return {
+          take: {
+            file: audioName(audio, '.mp3'),
+            duration,
+            words: voicedWords(heldInside(words, duration), pcm),
+            heard: heard.text,
+            wer,
+            characters: request.characters,
+            at: yield* Clock.currentTimeMillis,
+          },
+          audio,
+        } satisfies Made;
+      });
+
+      /**
+       * The take a reading makes: each hold's gap set to its seconds
+       * (`holdsIn`) and the silence after the last word trimmed (`trimTail`),
+       * here, with nothing sent. A take either changed is a FLAC of what
+       * ElevenLabs sent (never re-encoded lossy), else the reading itself.
+       */
+      const takeFrom = Effect.fn('Narrator.takeFrom')(function* (
+        ask: StagingAsk,
+        request: StagingRequest,
+        reading: Made,
+      ) {
+        const sent = yield* media.decode(cache.audioOf(reading.take));
+        const edits = holdsIn(reading.take.words, request.compiled.holds);
+        return yield* Option.match(editedTake(sent, edits), {
+          onNone: () => Effect.succeed(reading),
+          onSome: (pcm) =>
+            Effect.gen(function* () {
+              const secs = pcm.frames / pcm.rate;
+              yield* Effect.log(
+                `narrate.edited id=${ask.beat.id} holds=${edits.length} secs=${secs.toFixed(2)}`,
+              );
+              const audio = yield* media.encodeFlac(pcm);
+              const take: StagedTake = {
+                ...reading.take,
+                file: audioName(audio, '.flac'),
+                duration: secs,
+                // Where each word is heard, read from the take as it will be mixed.
+                words: voicedWords(heldInside(shiftedBy(reading.take.words, edits), secs), pcm),
+              };
+              return { take, audio } satisfies Made;
+            }),
+        });
+      });
+
+      /**
+       * The staging take for `ask`: the cache's, when it keeps one `reuse`
+       * accepts; else made from its reading, the cache's when it keeps one
+       * `reuse` accepts, else read now, the day charged for it first (past
+       * the cap it is refused and nothing is sent). Both are kept.
+       */
+      const stage = Effect.fn('Narrator.stage')(function* (
+        ask: StagingAsk,
+        heardAs: HeardAs,
+        reuse: (take: StagedTake) => boolean = () => true,
+      ) {
+        const request = stagingRequest(ask);
+        const kept = Option.filter(yield* cache.get(request.key), reuse);
+        if (Option.isSome(kept)) {
+          yield* Effect.log(`staging.cached id=${ask.beat.id} take=${request.key.slice(0, 12)}`);
+          return {
+            take: kept.value,
+            audio: yield* fs.readFile(cache.audioOf(kept.value)),
+            cached: true,
+          };
+        }
+        const reading = yield* cache.reading(
+          request.sent,
+          reuse,
+          Effect.andThen(
+            cache.charge(request.characters),
+            readAloud(ask, request, heardAs).pipe(Effect.scoped),
+          ),
+        );
+        const made = yield* takeFrom(ask, request, reading);
+        yield* cache.put(request.key, made.take, made.audio);
+        if (!reading.cached)
+          yield* Effect.log(
+            `staging.voiced id=${ask.beat.id} chars=${request.characters} take=${request.key.slice(0, 12)}`,
+          );
+        return { ...made, cached: reading.cached };
+      });
+
+      const recordBeat = Effect.fn('Narrator.recordBeat')(function* (
+        film: LoadedFilm,
+        plan: NarrationPlan,
+        options: NarrateOptions,
+        beat: ReadBeat,
+      ) {
+        const index = plan.beats.findIndex((b) => b.id === beat.id);
+        const neighbour = (at: number) =>
+          Option.getOrElse(
+            Option.map(Arr.get(plan.beats, at), (b) => b.text),
+            () => '',
+          );
+        const ask = {
+          beat,
+          voice: plan.reader,
+          previous: neighbour(index - 1),
+          next: neighbour(index + 1),
+        };
+        // A beat asked for by name or by force is read afresh; any other
+        // reuses a take the cache keeps that says its line.
+        const fresh = options.force || Option.isSome(options.only);
+        const staged = yield* stage(
+          ask,
+          film.heardAs,
+          (take) => !fresh && take.wer <= MAX_WORD_ERROR,
+        );
+        const { take } = staged;
+        if (take.wer > MAX_WORD_ERROR) {
           const mismatch = TakeMismatch.make({
             id: beat.id,
             script: beat.text,
-            heard: heard.text,
-            wer,
+            heard: take.heard,
+            wer: take.wer,
           });
           // Never made current, the take never reaches `narration/`.
           if (!options.acceptMismatch.has(beat.id)) return yield* mismatch;
           yield* Effect.logWarning(`narrate.mismatch accepted=true ${mismatch.message}`);
         }
-        // Seconds of silence after the last word are trimmed, as an import's
-        // are: the trimmed take is a FLAC of what ElevenLabs sent (never
-        // re-encoded lossy), kept in place of the MP3.
-        const sent = yield* media.decode(take);
-        const kept = yield* Option.match(trimTail(sent), {
-          onNone: () => Effect.succeed({ file, bytes: audio, duration, pcm: sent }),
-          onSome: (trimmed) =>
-            Effect.gen(function* () {
-              const flac = yield* media.encodeFlac(trimmed);
-              const trimmedFile = takeFile(beat.id, flac, '.flac');
-              const secs = trimmed.frames / trimmed.rate;
-              yield* Effect.log(
-                `narrate.trimmed id=${beat.id} tail=${(duration - secs).toFixed(2)} file=${trimmedFile}`,
-              );
-              return { file: trimmedFile, bytes: flac, duration: secs, pcm: trimmed };
-            }),
-        });
-        // Where each word is heard, read from the take as it will be mixed.
-        const voiced = voicedWords(heldInside(words, kept.duration), kept.pcm);
+        const file = takeFile(beat.id, staged.audio, takeExtensionOf(take.file));
         // The commit, under the timings' lock: the take placed beside the
         // current one, then timings.json replaced whole, naming it.
         yield* store.transact(film.paths.timings, (timings) =>
           Effect.gen(function* () {
-            yield* store.writeFile(path.join(film.paths.narration, kept.file), kept.bytes);
+            yield* store.writeFile(path.join(film.paths.narration, file), staged.audio);
             const named = withTake(plan.voice, beat.id, {
               hash: hashText(beat.script),
-              file: kept.file,
-              duration: kept.duration,
-              words: voiced,
+              file,
+              duration: take.duration,
+              words: take.words,
+              ...deliveredAs(beat.delivery),
               source: 'elevenlabs',
             })(timings);
             return [named, named] as const;
@@ -611,7 +779,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         );
       });
 
-      return Narrator.of({ record });
+      return Narrator.of({ record, stage });
     }),
   );
 }

@@ -19,6 +19,11 @@
 //   (`close_ask`), what closed it (answers, or withdrawn) filed on its
 //   production's timeline once by its id
 //   (`AskStore`, `ProductionStore`; `core/ask.ts`).
+// - The easel's tools (`easel-mcp.ts`): a scene looked at as its files
+//   stand, its stills answered as images (`look`), the film's clock
+//   (`cues`), scenes checked as drawn (`check`), and the film's journal read
+//   and noted (`journal`, `journal_note`), so any agent paints a scene
+//   through the lab.
 // - Resources (`lab://…`) say the same reads for a client that attaches
 //   them; the `inbox` prompt opens a session on what waits.
 //
@@ -58,7 +63,15 @@ import {
   givenAnswers,
   oneQuestion,
 } from '../core/ask.ts';
-import { type Said, setPathOf, withAskSaid } from '../core/production.ts';
+import {
+  type OwnerWord,
+  ProductionId,
+  Said,
+  setNamed,
+  setPathOf,
+  versionAt,
+  withAskSaid,
+} from '../core/production.ts';
 import { type BoardFile, BoardStyle, PANEL_START, Panel, panelById } from '../core/board.ts';
 import { Catalogue, Render } from '../core/catalogue.ts';
 import { boardPath, gist, notePath } from '../core/lab-events.ts';
@@ -69,7 +82,10 @@ import { AskStore } from './ask-store.ts';
 import { BoardStore } from './board-store.ts';
 import { CATALOGUE_FILE, RenderCatalogue } from './catalogue.ts';
 import { ContentStore, type Manifest, writeWholeWith } from './content-store.ts';
+import type { Easel } from './easel.ts';
+import { EASEL_INSTRUCTIONS, easelMcp } from './easel-mcp.ts';
 import { FilmFolder, type FilmName, filmNamed, filmsOut } from './film-repo.ts';
+import type { FreshFilm } from './fresh-film.ts';
 import { LabChanges, LabEvents, reviewFolders } from './lab-events.ts';
 import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
@@ -395,7 +411,7 @@ export const AskTool = Tool.make('ask', {
     by: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(80)),
     film: Schema.optionalKey(Schema.String),
     deadline: Schema.optionalKey(Schema.String),
-    production: Schema.optionalKey(Schema.String),
+    production: Schema.optionalKey(ProductionId),
     set: Schema.optionalKey(Schema.String),
     /** The choice in that set it is about (a point id): a pick there answers it too. */
     point: Schema.optionalKey(Schema.String),
@@ -437,6 +453,72 @@ const CloseAsk = Tool.make('close_ask', {
   failure: LabRefused,
 }).annotate(Tool.Idempotent, true);
 
+/**
+ * What the owner said in chat, as `decide` and `note` file it: plainly, in
+ * his own words (required, never blank: the words are what shows he said
+ * it), who heard it, and what it is about.
+ */
+const OwnerWordParams = Schema.Struct({
+  production: ProductionId.annotate({
+    description:
+      "The production, by name: a film's, or a track such as `look` (`film production list` names them). It must keep a ledger",
+  }),
+  text: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(2000)).annotate({
+    description: 'What the owner said, plainly, in a line',
+  }),
+  quote: Schema.String.check(
+    Schema.makeFilter(
+      (quote) =>
+        quote.trim().length > 0 ||
+        "the owner's own words, verbatim from the chat: a word filed without them is refused",
+    ),
+    Schema.isMaxLength(4000),
+  ).annotate({
+    description: "The owner's own words that said it, verbatim from the chat: required",
+  }),
+  by: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(80)).annotate({
+    description: 'Who files it: your name',
+  }),
+  set: Schema.optionalKey(
+    Schema.String.annotate({
+      description:
+        'The set it is about: its ref, as `sets` lists it, or its folder under its root, as the timeline names it',
+    }),
+  ),
+  point: Schema.optionalKey(
+    Schema.String.annotate({
+      description: 'The choice in that set it is about, by its id (e.g. render:cold)',
+    }),
+  ),
+  variant: Schema.optionalKey(
+    Schema.String.annotate({ description: 'The variant of that choice the owner chose' }),
+  ),
+});
+
+/** What `decide` and `note` answer: the word as filed, the version it landed in, and the timeline's link there. */
+const WordFiled = Schema.Struct({
+  production: Schema.String,
+  version: Schema.Int,
+  said: Said,
+  link: Schema.String,
+});
+
+const DecideTool = Tool.make('decide', {
+  description:
+    "File a decision the owner has already made in chat on a production's timeline, as `film production decide` does: `text` says it plainly, `quote` is his own words verbatim (required: never file a decision he did not make; what is still his to choose is an `ask`), `by` is who you are. With a `set` it is a decision on that set (with a `point`, on that choice; a `variant`, the one he chose), and it answers the questions waiting there. It lands in the version open now. Answers the word as filed and the timeline's link.",
+  parameters: OwnerWordParams,
+  success: WordFiled,
+  failure: LabRefused,
+});
+
+const NoteTool = Tool.make('note', {
+  description:
+    "File a note the owner gave in chat on a production's timeline, as `film production note` does: his feedback, which decides nothing and answers no question waiting there. `text`, `quote` (his own words verbatim, required) and `by` as for `decide`; a `set`, its `point` and a `variant` say what it is about. Answers the word as filed and the timeline's link.",
+  parameters: OwnerWordParams,
+  success: WordFiled,
+  failure: LabRefused,
+});
+
 const LabToolkit = Toolkit.make(
   Overview,
   Changes,
@@ -454,6 +536,8 @@ const LabToolkit = Toolkit.make(
   AskReadTool,
   AsksTool,
   CloseAsk,
+  DecideTool,
+  NoteTool,
 );
 
 // ---------------------------------------------------------------------------
@@ -893,6 +977,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
             point: Option.fromUndefinedOr(record.point),
             variant: Option.none<string>(),
             ask: Option.some(record.id),
+            by: Option.some(record.by),
           };
           const named = `${record.title} (ask ${record.id})`;
           const question = Arr.filter(
@@ -962,6 +1047,27 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
         }),
     });
 
+  /** The folder a timeline names the set `given` by (`setNamed`): by its ref or by its folder, held by one root. */
+  const folderNamed = Effect.fn('LabMcp.folderNamed')(function* (given: string) {
+    const named = setNamed(
+      (yield* sets).map((listed) => listed.set),
+      given,
+    );
+    if (Result.isFailure(named))
+      return yield* LabRefused.make({
+        reason: `${named.failure.folder} is a folder in more than one root (${named.failure.refs.join(', ')}), and a production's timeline names a set by its folder alone: rename one, or leave out \`set\``,
+      });
+    return yield* Option.match(named.success, {
+      onNone: () =>
+        Effect.fail(
+          LabRefused.make({
+            reason: `no set ${given}: \`sets\` lists them by ref (a folder under its root names one too)`,
+          }),
+        ),
+      onSome: (set) => Effect.succeed(set.folder),
+    });
+  });
+
   const ask = Effect.fn('LabMcp.ask')(function* (given: typeof AskTool.parametersSchema.Type) {
     const blocks = Option.fromUndefinedOr(given.blocks);
     const flow = Option.fromUndefinedOr(given.machine);
@@ -987,6 +1093,8 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
       });
     if (Option.isSome(set) && !(yield* sets).some((s) => s.set === set.value))
       return yield* LabRefused.make({ reason: `no set ${set.value}: \`sets\` lists them by ref` });
+    // Its timeline names the set by its folder: one two roots hold is refused.
+    if (Option.isSome(set)) yield* folderNamed(set.value);
     const record = yield* asks.make({ ...given, ask: machine.value }).pipe(
       Effect.mapError((e) =>
         LabRefused.make({
@@ -1018,11 +1126,62 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     return askRead(record);
   });
 
+  /**
+   * The owner's word from chat on its production's timeline, through the
+   * store's own `say` (as `film production decide|note`), in the version
+   * open now: its words, who filed it, and the set, choice and variant it
+   * is about.
+   */
+  const fileWord = Effect.fn('LabMcp.fileWord')(function* (
+    tag: OwnerWord['_tag'],
+    given: typeof OwnerWordParams.Type,
+  ) {
+    const production = given.production;
+    if (Option.isNone(yield* refused(productions.read(production))))
+      return yield* LabRefused.make({
+        reason: `no production ${production}: film production new ${production} --title "<title>"`,
+      });
+    const point = Option.fromUndefinedOr(given.point);
+    const variant = Option.fromUndefinedOr(given.variant);
+    const named = Option.fromUndefinedOr(given.set);
+    if (Option.isSome(point) && Option.isNone(named))
+      return yield* LabRefused.make({ reason: '`point` is a choice in a set: name the `set`' });
+    if (Option.isSome(variant) && Option.isNone(point))
+      return yield* LabRefused.make({
+        reason: "`variant` is one of a choice's: name the `point`",
+      });
+    const set = yield* Option.match(named, {
+      onNone: () => Effect.succeed(Option.none<string>()),
+      onSome: (ref) => Effect.asSome(folderNamed(ref)),
+    });
+    const at = yield* Clock.currentTimeMillis;
+    const said: OwnerWord = {
+      _tag: tag,
+      at,
+      text: given.text,
+      quote: Option.some(given.quote),
+      set,
+      point,
+      variant,
+      ask: Option.none(),
+      by: Option.some(given.by),
+    };
+    const file = yield* refused(productions.say(production, said));
+    const version = versionAt(file, at);
+    return {
+      production,
+      version,
+      said,
+      link: linkOf(pageHref.production(production, version)),
+    };
+  });
+
   return {
     ask,
     askOf,
     asksOf,
     closeAsk,
+    fileWord,
     overview,
     notesOf,
     boardOf,
@@ -1065,6 +1224,8 @@ const handlers = (options: LabMcpOptions) =>
         ask_read: ({ ask }) => lab.askOf(ask),
         asks: ({ status }) => lab.asksOf(Option.fromUndefinedOr(status)),
         close_ask: ({ ask, why }) => lab.closeAsk(ask, why),
+        decide: (given) => lab.fileWord('Decided', given),
+        note: (given) => lab.fileWord('Noted', given),
       }),
     ),
   );
@@ -1181,9 +1342,14 @@ const INSTRUCTIONS = [
   'Listen with `changes`: pass the cursor from `overview` as `since` and a `wait` in seconds; it answers as soon as the owner does something (a note, a reply, a kept try, an approval or withdrawal, a comment, a render or set, an answer to an ask), each change with its film, panel or render, its words and its lab link. Call it again with the cursor it answers.',
   'Hand the owner work as a set (`publish_set`) and its link, never a path; reply on the note that asked for it.',
   "When a decision is the owner's, ask it (`ask`): one page of blocks, or a short machine of pages, each question a `choose` where it can be (an optional `free_text` beside it for anything else; words are a burden to require); hand the owner its link, hear each answer on `changes` (`ask.step`, `ask.answered`), and `close_ask` once acted on.",
+  "When the owner has already decided in chat, file it on his production's timeline with `decide` (feedback that decides nothing, `note`), his own words verbatim as `quote`: never file a decision he did not make. What is still his to choose is an `ask`.",
+  EASEL_INSTRUCTIONS,
 ].join('\n\n');
 
-/** What the lab's MCP runs over beside its router: the lab's stores and its change feed. */
+/**
+ * What the lab's MCP runs over beside its router: the lab's stores, its
+ * change feed, its easel and its fresh runs of the film CLI.
+ */
 export type LabMcpNeeds =
   | AskStore
   | ProductionStore
@@ -1193,6 +1359,8 @@ export type LabMcpNeeds =
   | FilmFolder
   | Review
   | ContentStore
+  | Easel
+  | FreshFilm
   | FileSystem.FileSystem
   | Path.Path;
 
@@ -1205,6 +1373,7 @@ export type LabMcpNeeds =
 export const labMcp = (options: LabMcpOptions) =>
   Layer.mergeAll(
     McpServer.toolkit(LabToolkit).pipe(Layer.provideMerge(handlers(options))),
+    easelMcp,
     resources(options),
     inbox(options),
   ).pipe(

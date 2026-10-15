@@ -1,16 +1,30 @@
 // The easel over a fake browser: a look opens the film's export page on the
 // lab's own address once, draws each place's frame through the view and
-// writes it under the film's out folder; the same build keeps the page, a new
-// build reopens it, a failed build draws nothing and says why, a page that
-// failed a frame is not trusted with the next, and a lab serving another
-// checkout's films refuses. Live clock: the fake page sleeps a millisecond a frame.
+// writes it under the film's out folder; the same build keeps the page, a
+// new build reopens it, a failed build draws nothing and says why, a page
+// that failed a frame is not trusted with the next, and a lab serving
+// another checkout's films refuses, the folders compared as the disk
+// resolves them (a link to the lab's folder is it; a link then `..`, a
+// relative folder or one not there never are). Live clock: the fake page
+// sleeps a millisecond a frame.
 
+import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { ConfigProvider, Effect, Fiber, Layer, Option, Path, Ref, Schedule } from 'effect';
+import {
+  ConfigProvider,
+  Effect,
+  Fiber,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Ref,
+  Schedule,
+} from 'effect';
 import { filmOfPage, pageAt } from '../core/api.ts';
 import type { SceneTimes, StillView } from '../core/easel.ts';
 import { FrameFailed } from './errors.ts';
-import { Easel } from './easel.ts';
+import { Easel, elsewhereOf } from './easel.ts';
 import { FilmFolder, type FilmName } from './film-repo.ts';
 import { LabPage, type PagesNow } from './lab-page.ts';
 import { echoPages, emptyLedger, fakeRenderHost, memoryFileSystem } from './testing.ts';
@@ -223,7 +237,50 @@ describe('the easel', () => {
       });
       const same = yield* easel.look(film, { scene: 'roof', at: ['1'], view, from: '/films' });
       expect(same.looks).toHaveLength(1);
-    }).pipe(Effect.provide(easelLayer(new Map(), Ref.makeUnsafe(built(1))))),
+    }).pipe(
+      Effect.provide(
+        easelLayer(
+          new Map([['/films/f/scenes/index.ts', new Uint8Array()]]),
+          Ref.makeUnsafe(built(1)),
+        ),
+      ),
+    ),
+  );
+
+  it.live(
+    "the asker's folder is the lab's as the disk resolves it: through a link, yes; a link then .., a relative one or one not there, never",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const root = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+        for (const folder of ['a/films/f', 'b/stub', 'b/films/f'])
+          yield* fs.makeDirectory(path.join(root, folder), { recursive: true });
+        // a/link leads to b/stub, so a/link/.. is b on disk; alias leads to a.
+        yield* fs.symlink(path.join(root, 'b/stub'), path.join(root, 'a/link'));
+        yield* fs.symlink(path.join(root, 'a'), path.join(root, 'alias'));
+        const lab = path.join(root, 'a/films/f');
+        const here = (from: string) =>
+          Effect.map(
+            elsewhereOf(fs, path, lab, from, 'f'),
+            Option.map((refused) => refused.here),
+          );
+        expect(yield* here(path.join(root, 'a/films'))).toEqual(Option.none());
+        expect(yield* here(`${root}/a/films/`)).toEqual(Option.none());
+        expect(yield* here(`${root}//a/./films`)).toEqual(Option.none());
+        expect(yield* here(path.join(root, 'alias/films'))).toEqual(Option.none());
+        // Node's realpath would take this .. first and answer a/films: the lab's own.
+        expect(yield* here(`${root}/a/link/../films`)).toEqual(
+          Option.some(`${root}/a/link/../films/f`),
+        );
+        expect(yield* here(path.join(root, 'b/films'))).toEqual(
+          Option.some(path.join(root, 'b/films/f')),
+        );
+        expect(yield* here('a/films')).toEqual(Option.some('a/films/f'));
+        expect(yield* here(path.join(root, 'nowhere/films'))).toEqual(
+          Option.some(path.join(root, 'nowhere/films/f')),
+        );
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
   it.live(

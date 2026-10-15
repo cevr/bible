@@ -58,6 +58,8 @@ const world = Layer.unwrap(
       roots: Effect.succeed([]),
       elevenLabs: Layer.mock(ElevenLabs)({}),
       privateStore: Option.some(privateFolder(path.join(root, 'store'))),
+      staging: Option.some(path.join(root, 'staging')),
+      series: Option.none(),
     });
   }),
 ).pipe(Layer.provideMerge(BunServices.layer));

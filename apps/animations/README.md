@@ -412,62 +412,52 @@ prints the newest entries, oldest first, as `<time> scene=<id> <text>`,
 never more than 8,000 characters, with a first line saying how many earlier
 entries it left out.
 
-### A painter agent: the gent extension
+### A painter agent: the easel over MCP
 
-`.gent/extensions/film.ts`, at the repo root, is a project extension for
-[gent](https://github.com/cevr/gent). It gives gent the
-`scene-painter` agent and `film.paint`, which starts one. The agent holds
-these tools and no others (no bash, no cell):
+The lab's MCP (`/mcp`; [plans/lab-mcp.md](plans/lab-mcp.md)) serves the
+easel to every agent, Claude Code, Codex or any MCP client: `look`, `cues`,
+`check`, `journal` and `journal_note`
+(`packages/film/src/tools/easel-mcp.ts`). They are the commands' own owners.
+`look` is the lab's easel, its stills answered as images the model reads,
+each after its line. `journal` and `journal_note` are the journal's `read`
+and `note`. `cues` and `check` run the film CLI fresh, as the lab's
+after-write check does: `film read cues`, `film read scenes` (a scene named
+to the journal) and `film check --draw --scene … --allow-stale --json` (the
+static leg and each scene drawn by its own code, no browser). Each tool
+takes `films`, the asker's films folder, absolute and with no `..` (anything
+else is refused): a lab that serves another checkout, the folders compared
+as the disk resolves them, refuses (`LabElsewhere`) and names the way to a
+spare lab of the asker's own, its MCP at `http://127.0.0.1:<port>/mcp`.
+Every answer encodes to at most 8,000 characters of JSON and says how to
+read on: `check` and `cues` answer `next`, to ask again with as it is, and a
+check whose findings changed between pages lists them again from the first
+(`restarted`). A look takes 1 to 8 places and a long side of at most 2,000
+pixels; stills too large for a model's request are `LookTooLarge`. A refusal
+is a tool error: the film's tag, then its words.
 
-- `film.look`, `film.check`, `film.cues` and `film.journal` run this
-  checkout's own film CLI (`bun cli.ts …` in `apps/animations`). The stills
-  come back as images the model reads. A refusal (`UnknownScene`,
-  `PagesBroken`, `LabDown`, …) comes back as a failure whose fields are the
-  film's tag and words.
-- gent's own `read`, `grep`, `write` and `edit`, which the agent's `paths`
-  confine: `apps/animations/src/films` to write, `.claude/skills/film` (the
-  film skill's rules) to read. gent's paths are fixed folders, so the
-  definition cannot name one film; `film.paint` admits each painter session
-  with its film's folder alone as the `paths` override.
+The scene painter paints one scene with those tools and the file tools
+alone, a passage at a time: it reads the scene, its cues and its journal,
+paints a passage, looks, notes what a look taught, checks the scenes it
+touched, and reports. Its brief is one file for every agent,
+`.claude/skills/film/reference/scene-painter.md`. Claude Code runs it as the
+subagent `.claude/agents/scene-painter.md` (`Read`, `Grep`, `Glob`, `Edit`,
+`Write` and the five `mcp__lab__` tools, the film skill preloaded, effort
+max), started with the Agent tool: `subagent_type: scene-painter`, "paint the
+roof scene of <film>: …". Codex, or any other agent, is given the brief.
 
-`film.paint { film, scene, brief? }` checks the film and the scene as
-`film.cues` does, refuses an unknown one before any session is made, then
-starts a child session as `scene-painter` on that film and sends it the
-scene. It returns at admission with the session's id; `read_session` reads
-the painter's transcript. The painter does not hold `film.paint`.
+The owner registers the lab once
+([plans/lab-mcp.md](plans/lab-mcp.md), "Registration"):
 
-Every result fits whole in gent's 8,000-character tool result. A result that
-stops early says how to read on: `film.cues` gives the `next` line and column
-(inside a line, when one is longer than a result), `film.check` the `next`
-finding and the report it belongs to. When the findings change between
-pages, the check says `restarted` and lists them again from the first, so
-none is skipped. The journal names the file `read` takes for the lines it
-left out.
+```sh
+claude mcp add --transport http lab http://localhost:8229/mcp -s user
+# Codex; then tool_timeout_sec = 360 under [mcp_servers.lab] in ~/.codex/config.toml
+codex mcp add lab --url http://localhost:8229/mcp
+```
 
-The agent's brief, in the extension, has it work in passages: read the scene,
-its cues and its journal; paint one passage; look; note what it saw; and run
-the check before it stops. When a painter's context window fills, the agent
-condenses it from the files (the scene file, the newest journal entries for
-the scene, its cues and the last look's stills) and asks no model to do it.
-A later condensing carries the scene and the last look forward from gent's
-own handoff marker, never from a summary copied into a message.
-
-To run a painter:
-
-1. Trust the checkout once. Add its canonical root (`realpath .` at the repo
-   root) to `trustedProjects` in `~/.gent/config.json`. gent runs no project
-   code otherwise, and its extension status says "Project code is not
-   trusted".
-2. Start the server: `gent server start`.
-3. With the repo root as the working directory, run
-   `gent -H "film.paint the roof scene of <film>: …"`. Run as
-   `-a scene-painter` directly, a painter may write in every film.
-
-A look asks the lab named by `FILM_LAB_URL` in the gent server's environment,
-or the always-on lab on 8229 when that is unset. `bun run test:gent`
-typechecks and tests the extension against a local gent checkout:
-`~/Developer/personal/gent`, or the one named in `GENT_CHECKOUT`. It runs
-only on your machine, like `test:perf`, and the gate never runs it.
+A workspace paints with a spare lab of its own (`LAB_PORT=<port> bun cli.ts
+lab`, here), registered as `lab` for the workspace alone:
+`claude mcp add --transport http lab http://127.0.0.1:<port>/mcp -s local`,
+run there, overrides the user's `lab` from the next session.
 
 ### New art directions: the seeder
 

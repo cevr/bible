@@ -61,6 +61,9 @@ import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
 import { Stamps } from './stamp.ts';
 import { StudioReadings } from './studio.ts';
+import { ScriptVoices } from './script-voice.ts';
+import { SeriesDrafts } from './series-drafts.ts';
+import { StagingCache } from './staging.ts';
 import { Takes } from './takes.ts';
 
 /** What the film's services are built over: the app's folders, and how it reads a film fresh. */
@@ -100,6 +103,19 @@ interface FilmServicesSpec {
   readonly privateStore: Option.Option<
     Layer.Layer<PrivateStore, never, FileSystem.FileSystem | Path.Path>
   >;
+  /**
+   * The folder staging takes and the day's spend are kept in: none given,
+   * the one every checkout shares (`StagingCache.fromConfig`,
+   * `~/.cache/bible-film/staging`), so the daily cap holds across them; a
+   * test gives a folder of its own.
+   */
+  readonly staging: Option.Option<string>;
+  /**
+   * The app's series folder (`<series>/scripts/<draft>.md`), whose drafts the
+   * lab reads and marks beside its films (`SeriesDrafts`); none given, it
+   * lists no series.
+   */
+  readonly series: Option.Option<string>;
 }
 
 /**
@@ -128,6 +144,11 @@ export const filmServices = (spec: FilmServicesSpec) => {
     Layer.provideMerge(Media.layer),
     Layer.provide([Repo, Platform]),
   );
+  // Staging takes by what was asked for, and the day's characters against the cap.
+  const Staging = Option.match(spec.staging, {
+    onNone: () => StagingCache.fromConfig,
+    onSome: (dir) => StagingCache.layer(dir),
+  }).pipe(Layer.provide([Store, Platform]));
   const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
   // Each production's ledger, a small committed JSON file in the app's `productions/`.
   const Productions = ProductionStore.layer.pipe(Layer.provide([Store, Platform]));
@@ -165,7 +186,11 @@ export const filmServices = (spec: FilmServicesSpec) => {
     // set is written to its folder's catalogue.
     Layer.provide([Tools, Catalogue, Platform]),
   );
-  return Layer.mergeAll(Choices.layer, StudioReadings.layer).pipe(
+  // The series drafts the lab reads beside the films, a mark written into the draft's Markdown.
+  const Drafts = SeriesDrafts.layer(spec.series).pipe(Layer.provide([Store, Platform]));
+  // The Script reader's staging takes, over the studio's readings, the drafts and the narrator.
+  return ScriptVoices.layer.pipe(
+    Layer.provideMerge(Layer.mergeAll(Choices.layer, StudioReadings.layer, Drafts)),
     // The review hears each option in the mix, and writes a pick through the source writer;
     // the lab's studio reads the film's script and voice fresh.
     Layer.provideMerge(
@@ -182,6 +207,7 @@ export const filmServices = (spec: FilmServicesSpec) => {
             Footage,
             Private,
             Store,
+            Staging,
             Tools,
             Reviewed,
             Catalogue,

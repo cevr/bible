@@ -70,6 +70,10 @@ second development log directory or transport.
 
 <!-- effect-solutions:start -->
 
+## Web UI
+
+New web UI loads the `ui`, `composition-patterns`, `react` (read as Solid), `effect` and `graphical-ui` skills, is built with Solid 2 and effect-machine, and reuses `@bible/atom-solid`, `@bible/url-state` and `@bible/ui` as egw-search does.
+
 ## Effect Best Practices
 
 **Before implementing Effect features**, run `effect-solutions list` and read

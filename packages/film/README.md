@@ -1644,9 +1644,40 @@ fresh process (`film read script <film>`, `FreshFilm.script`) kept under the
 film's source stamp, so a brief fixed while the lab is open is read again
 once.
 
-| Route                          | What it does                                                                                                         |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/films/<film>/script` | `ScriptBeats`: each beat of `script.ts` in order, its `picture` (when it has one) and its `cite`; none for no script |
+| Route                                      | What it does                                                                                                                                                                            |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/script`             | `ScriptBeats`: each beat of `script.ts` in order, its `picture` (when it has one) and its `cite`; none for no script                                                                    |
+| `GET /api/films/<film>/script/voice`       | `ScriptVoice`: each spoken beat's staging take in the voice and marks it has now (`Ready` with its words' times, `Voicing`, `Unvoiced`, `Refused`), and the day's spend against its cap |
+| `GET /api/films/<film>/script/takes/:file` | a staging take's audio, by the name `Ready` gives it (immutable: named by its request's key); any other name a 404                                                                      |
+| `POST /api/films/<film>/script/marks`      | `MarksPost` (`{ beat, marks }`): the beat's delivery marks rewritten in its `say` as one write of `script.ts` (`LabWrite`), its words unchanged; a mark that does not fit them a 422    |
+
+Every spoken beat's staging take is kept ready (`tools/script-voice.ts`): `film lab` voices each beat the staging cache keeps no take for, the films a reader has open first, two at a time, each charged against the day's cap (`FILM_STAGING_DAILY_CAP`) before it is sent; `FILM_STAGING_FILL=false` turns that off, and a beat then reads `Unvoiced`. No film's timings or takes are written: `film narrate` makes a cached take the film's own at no cost.
+
+### Series drafts
+
+The app's series drafts (`series/<series>/scripts/<draft>.md`, the folder
+`FilmApp.series` names) are read in the same reader beside the films:
+`core/draft.ts` reads a draft's beats out of its Markdown (a talk's table, a
+film's beat list) and writes a mark back byte for byte, `tools/series-drafts.ts`
+(`SeriesDrafts`) lists, reads and marks them, and the review's
+`/series/<series>/<draft>` (`lab/review/draft.tsx`) shows one, its staging
+voice the film reader's (`lab/script/voice.tsx`, `VoiceOver`).
+
+| Route                                          | What it does                                                                                                                                                         |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/series`                              | `SeriesList`: every series by its folder and its plan's title, each draft by its file and its title; none for an app with no series                                  |
+| `GET /api/series/<series>/<draft>`             | `DraftRead`: the draft's beats as its Markdown reads now (each line with its marks and cues, its brief, its sources); 404 `DraftUnknown`, 422 `DraftUnread`          |
+| `GET /api/series/<series>/<draft>/voice`       | `ScriptVoice`: each spoken beat's staging take in the staging voice (`stagingVoice`) and the marks the draft has now, and the day's spend, as a film's               |
+| `GET /api/series/<series>/<draft>/takes/:file` | a staging take's audio, by the name `Ready` gives it; any other name a 404                                                                                           |
+| `POST /api/series/<series>/<draft>/marks`      | `MarksPost`: the beat's marks written into its line in the Markdown (that cell changed, not another byte; only over the text it was read from), answered `DraftRead` |
+
+The fill voices every draft's spoken beats in the background, as it does
+every film's, so a draft opened has its takes ready.
+
+`film drafts` reads every draft as the reader does, through `SeriesDrafts`:
+each one's spoken beats, words, marks and time at 155 wpm, or why it does not
+read (`DraftsUnread` when any does not). The app's tests run it, so a draft
+that stresses a word the Markdown way fails before the lab says so.
 
 ### Board
 

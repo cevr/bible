@@ -27,7 +27,9 @@ import {
   STUDIO_FILM,
   STUDIO_FOLDER,
   STUDIO_ASK,
+  STUDIO_DRAFT,
   STUDIO_PRODUCTION,
+  STUDIO_SERIES,
   STUDIO_SET,
   studioRoutes,
 } from '../../src/lab/fixtures/studio-film.ts';
@@ -540,6 +542,12 @@ export const SCRIPT_MOVES: Exempt = {
 /** An ask, read: its step's send. */
 export const ASK_READY = '.ak-step [data-act="send"]';
 
+/** A series draft, read: its first beat's take ready (its ▶). */
+export const DRAFT_READY = '.lab-script-beat[data-beat="1"] [data-act="hear-beat"]';
+
+/** A series draft's words selected, read: their delivery's Stress. */
+export const DELIVERY_READY = '.lab-script-delivery [data-act="stress-words"]';
+
 /** A production's timeline, read: its current version's Move forward. */
 export const PRODUCTION_READY = '.pd-v[data-current="true"] [data-act="move-forward"]';
 
@@ -572,10 +580,12 @@ export const STATES: ByPlace<State, AtRest> = {
     {
       name: 'Films',
       // At rest once each card shows its film's state. The productions come first: their
-      // heading and the toy's card.
+      // heading and the toy's card. The series follow the films, their heading and a card for
+      // each, shut (the owner reads and marks the scripts of every series planned there, so a
+      // visit opens one; its drafts are behind its head).
       open: review(pageHref.home(), '.rv-film-card [data-role="counts"]'),
       disclose: AT_REST,
-      budget: most(10, 10),
+      budget: most(12, 12),
     },
   ],
   choices: [
@@ -674,6 +684,26 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(pageHref.ask(STUDIO_ASK), ASK_READY),
       disclose: AT_REST,
       budget: most(17, 17),
+    },
+  ],
+  draft: [
+    {
+      // The words, their marks, a ready take and its pace: the shell's four and a ready take's ▶ the
+      // only controls; the rest is what is read (the toy's 15 words, each its own text leaf, a
+      // hold's glyph, each beat's number and label, its brief and its sources) and the day's spend.
+      name: 'a series draft in the Script reader, at rest',
+      open: review(pageHref.draft(STUDIO_SERIES, STUDIO_DRAFT), DRAFT_READY),
+      disclose: AT_REST,
+      budget: most(35, 35),
+    },
+  ],
+  draftBeat: [
+    {
+      name: "a series draft, a word selected: Hear, Clear and the word's delivery",
+      open: review(pageHref.draftBeat(STUDIO_SERIES, STUDIO_DRAFT, '1', '4-4'), DELIVERY_READY),
+      disclose: AT_REST,
+      // At rest's and the box a tap opened: the words quoted, Hear, Clear, Stress and the gap's three.
+      budget: most(42, 42),
     },
   ],
   production: [
@@ -782,8 +812,8 @@ export const STATES: ByPlace<State, AtRest> = {
       // are tied to its words is what the owner reads it for too: a chip for each mark and a link
       // for each cue or mark its picture names (8 on the laptop, 4 on the phone). Notes are what
       // the owner leaves on it: Note frame in its head is the one at rest (a note on words comes
-      // from their selection).
-      budget: most(52, 72),
+      // from their selection). The day's staging spend is one quiet line atop the beats.
+      budget: most(53, 73),
     },
     {
       // A mark picked: the cues tied to it under its beat's line, each a row that picks it.

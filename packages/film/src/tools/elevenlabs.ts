@@ -187,16 +187,20 @@ interface ElevenLabsService {
 }
 
 /**
- * v3 and v4 read each line alone (v4 stays out of the neighbouring text until a
- * take shows the stitching works on it); earlier models take it as context.
+ * Whether a model is sent the neighbouring lines: v3 and v4 read each line
+ * alone (v4 stays out of the neighbouring text until a take shows the
+ * stitching works on it); earlier models take it as context.
  */
+export const sendsNeighbours = (model: string): boolean =>
+  model !== 'eleven_v3' && model !== 'eleven_v4';
+
 const ttsBody = (request: TtsRequest) => {
   const body = {
     text: request.text,
     model_id: request.voice.model,
     voice_settings: request.voice.settings,
   };
-  if (request.voice.model === 'eleven_v3' || request.voice.model === 'eleven_v4') return body;
+  if (!sendsNeighbours(request.voice.model)) return body;
   return { ...body, previous_text: request.previousText, next_text: request.nextText };
 };
 

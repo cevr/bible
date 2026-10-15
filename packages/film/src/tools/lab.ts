@@ -32,8 +32,12 @@ import {
 } from 'effect';
 import type { HttpPlatform } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
-import { LabHttpApi, type TalkWordsPost } from '../core/api.ts';
-import { SourceRefused, StillUnknown } from '../core/refusals.ts';
+import { LabHttpApi, type MarksPost, type TalkWordsPost } from '../core/api.ts';
+import { SourceRefused, StagingTakeUnknown, StillUnknown } from '../core/refusals.ts';
+import { SCRIPT_FILE, editMarks, marksTarget, sayMissed } from './script-source.ts';
+import { ScriptVoices } from './script-voice.ts';
+import { SeriesDrafts, draftRead } from './series-drafts.ts';
+import { StagingCache } from './staging.ts';
 import { type Allowed, type BesideRoutes, answered, serveApi } from './api-server.ts';
 import { choicesGroup } from './choices-http.ts';
 import { Easel } from './easel.ts';
@@ -385,16 +389,111 @@ const scriptGroup = HttpApiBuilder.group(LabHttpApi, 'script', (handlers) =>
       capacity: SCRIPTS_KEPT,
       timeToLive: keptWhenMade,
     });
-    return handlers.handle('beats', ({ params }) =>
+    return handlers
+      .handle('beats', ({ params }) =>
+        answered(
+          Effect.gen(function* () {
+            const film = yield* filmNamed(params.film);
+            const stamp = yield* folder.stamp(film);
+            return { film, beats: yield* Cache.get(read, new Stamped({ film, stamp })) };
+          }),
+        ),
+      )
+      .handle('voice', ({ params }) =>
+        answered(
+          Effect.gen(function* () {
+            const film = yield* filmNamed(params.film);
+            return yield* (yield* ScriptVoices).voice(film);
+          }),
+        ),
+      )
+      .handle('take', ({ params, request }) =>
+        answered(
+          Effect.gen(function* () {
+            yield* filmNamed(params.film);
+            const found = yield* (yield* StagingCache).audioNamed(params.file);
+            if (Option.isNone(found)) return yield* StagingTakeUnknown.make({ file: params.file });
+            // Named by its request's key, a take's audio never changes.
+            return yield* serveFile(request, found.value, CACHE.hashed);
+          }),
+        ),
+      )
+      .handle('marks', ({ params, payload }) => marksWrite(params.film, payload));
+  }),
+);
+
+/**
+ * A beat's delivery marks written into the film's `script.ts`: one splice
+ * of its `say` literal, read back only when the line parses with the words
+ * it had and exactly the marks asked (`sayMissed`). Its staging take is
+ * voiced again by the fill, under its new key; no take of the film's is
+ * touched.
+ */
+const marksWrite = (name: string, payload: MarksPost) =>
+  answered(
+    Effect.gen(function* () {
+      const film = yield* filmNamed(name);
+      const path = yield* Path.Path;
+      const file = path.join((yield* FilmFolder).paths(film).dir, SCRIPT_FILE);
+      const target = marksTarget(payload.beat);
+      const [change] = yield* (yield* SourceWriter).write({
+        film,
+        scene: Option.some(payload.beat),
+        file,
+        target,
+        edit: (source) => editMarks(source, payload.beat, payload.marks),
+        verify: (after, before) => sayMissed(after, before, payload.beat, payload.marks),
+        check: () => Effect.void,
+      });
+      const wrote: Wrote = { scene: Option.some(payload.beat), file, target, change };
+      return yield* writeAnswer(film, wrote, Effect.succeed({}));
+    }),
+  );
+
+/**
+ * The app's series drafts beside its films: the list, a draft's beats, each
+ * spoken beat's staging take (voiced as a film's are, in the staging voice)
+ * and its audio, and a beat's delivery marks written into the draft's
+ * Markdown (`SeriesDrafts.mark`), answered with the draft as it now reads.
+ */
+const seriesGroup = HttpApiBuilder.group(LabHttpApi, 'series', (handlers) =>
+  handlers
+    .handle('list', () => answered(Effect.flatMap(SeriesDrafts, (d) => d.list)))
+    .handle('read', ({ params }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* filmNamed(params.film);
-          const stamp = yield* folder.stamp(film);
-          return { film, beats: yield* Cache.get(read, new Stamped({ film, stamp })) };
+          const read = yield* (yield* SeriesDrafts).read(params.series, params.draft);
+          return draftRead(params.series, params.draft, read);
         }),
       ),
-    );
-  }),
+    )
+    .handle('voice', ({ params }) =>
+      answered(Effect.flatMap(ScriptVoices, (v) => v.draft(params.series, params.draft))),
+    )
+    .handle('take', ({ params, request }) =>
+      answered(
+        Effect.gen(function* () {
+          yield* (yield* SeriesDrafts).read(params.series, params.draft);
+          const found = yield* (yield* StagingCache).audioNamed(params.file);
+          if (Option.isNone(found)) return yield* StagingTakeUnknown.make({ file: params.file });
+          // Named by its request's key, a take's audio never changes.
+          return yield* serveFile(request, found.value, CACHE.hashed);
+        }),
+      ),
+    )
+    .handle('marks', ({ params, payload }) =>
+      answered(
+        Effect.gen(function* () {
+          const read = yield* (yield* SeriesDrafts).mark(
+            params.series,
+            params.draft,
+            payload.beat,
+            payload.marks,
+          );
+          return draftRead(params.series, params.draft, read);
+        }),
+      ),
+    ),
 );
 
 /**
@@ -544,6 +643,9 @@ export type LabContext =
   | FreshFilm
   | Takes
   | StudioReadings
+  | ScriptVoices
+  | SeriesDrafts
+  | StagingCache
   | Review
   | Choices
   | LabPage
@@ -572,6 +674,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         stepsGroup,
         talkGroup,
         Layer.provide(scriptGroup, Layer.succeedContext(reads)),
+        seriesGroup,
         boardGroup,
         studioGroup,
         reviewGroup,

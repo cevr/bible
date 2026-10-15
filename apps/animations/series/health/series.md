@@ -1,4 +1,4 @@
-# Health talk series: plan
+# The True Remedies: plan
 
 Status: research and planning (2026-10-10). Nothing recorded. The owner chooses the name,
 the first subjects and the cadence (talk-shorts decisions, OWNER row 8).
@@ -6,9 +6,9 @@ the first subjects and the cadence (talk-shorts decisions, OWNER row 8).
 Kind: **talk** (the owner on camera, cut with B-roll), not a cut-paper film. Two formats,
 both from the start (talk-shorts `decisions.md`, S-fmt and OWNER 7):
 
-- **One Question** (Q): 45–65 s, about 170–200 words, speaker on screen 40–55%.
+- **One Question** (Q): 45–65 s, about 140–160 words at 155 wpm with its marked breaths and holds, speaker on screen 40–55%.
   Hook, then the common belief, then evidence in 2–3 beats, then a turn, then the payoff.
-- **Episode** (E): 2:15–2:50, about 450–550 words, speaker on screen 20–30%.
+- **Episode** (E): 2:15–2:50, about 330–410 words at 155 wpm with its marks, speaker on screen 20–30%.
   Hook, series line, story 1, turn, story 2 or a test, payoff.
 
 Pilot scripts are in `scripts/` (marked **pilot** below). The sources and searches are in

@@ -30,6 +30,8 @@ const PLACES = {
   home: pageHref.home(),
   production: pageHref.production('p'),
   ask: pageHref.ask('a0123456789'),
+  draft: pageHref.draft('s', 'd'),
+  draftBeat: pageHref.draftBeat('s', 'd', '1', '0-0'),
   folder: pageHref.folder('f'),
   set: pageHref.set('f', 'p'),
   choices: pageHref.choices('f'),

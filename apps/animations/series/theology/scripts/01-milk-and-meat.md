@@ -2,8 +2,8 @@
 
 Series: From Milk to Meat · Tier One (Milk) · opener
 Promise: by the end the viewer knows what the Bible means by milk and meat, why growing is normal and glad, and the path the series will walk.
-Length: about 6:15 (741 spoken words ≈ 4:50 at 155 wpm, plus title, held pauses, about 30 s of music alone and 28 s of credits).
-Status: draft for the owner. Nothing narrated. Every KJV line below was printed by `bible verse` on 2026-10-10 (supplied-word brackets dropped for speech); every paraphrase source was printed by the corpus search (sources.md).
+Length: about 6:50 (750 spoken words: 4:50 at 155 wpm, 5:18 with the marked breaths and holds, 5:00–5:27 at 165–150 wpm; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits).
+Status: draft for the owner. Nothing narrated. Every KJV line below was printed by `bible verse` on 2026-10-10 and checked again on 2026-10-15 (supplied-word brackets dropped for speech); every paraphrase source was printed by the corpus search (sources.md). Wording revised 2026-10-15 to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
 
 ## Header (the `script.ts` comment, house style)
 
@@ -26,13 +26,13 @@ Tent poles (CRAFT rule 11), with their act's light and the question that opens t
 
 Registers: IDEA (parchment, flat figures, one gold prop) for `milk`, `stones`, `math`, `path`; STORY (cardboard diorama, faces) for `cold`, `bottle` (Corinth), `grain` (a field), `eat` (Jeremiah), `name`. The black moment is not in this film; its valley is a short dusk in `bottle`.
 
-Quoted Scripture: 10 passages, 130 of 741 spoken words (17.5 %; counted by the verifier in sources.md). One quotation per beat.
+Quoted Scripture: 9 passages, 130 of 750 spoken words (17.3 %; recounted 2026-10-15 after the wording revision; sources.md's verifier table holds the earlier count). One quotation per beat. 2 Peter 3:18 (`thesis`) is quoted from "Grow", its opening "But" dropped.
 
 ## Beats
 
-### `cold` · STORY · ~30 s
+### `cold` · STORY · ~33 s
 
-**say:** {baby}A baby drinks milk. Nobody minds. {grown}But picture a grown man at a wedding feast, {bottle}still asking for his bottle. {funny}Funny, right? {letter}Now picture a letter, written to believers, that tells them almost exactly that. {quote}They “are become such as have need of milk, and not of strong meat.” {ouch}Ouch. {what}So what is milk? What is meat? {why}And why would the Bible care which one we are eating?
+**say:** {baby}A baby drinks milk, and nobody minds. {/} {grown}But picture a grown man at a wedding feast, {bottle}still asking for his {*}bottle. {/} {letter}Now picture a letter to believers that says nearly the {*}same. {/} {quote}They “are become such as have need of milk, and not of strong {*}meat.” {//} {ouch}And that letter is in our {*}Bible. {/} {what}So what is milk, and what is meat? {/} {why}And why would the Bible care which one we eat?
 **cite:** Hebrews 5:12
 **picture:** STORY: a cardboard courtyard at a village wedding, teal day, lanterns strung, a long table of bread, fruit and dishes. On `baby` a mother lifts a cup to a baby's lips, close on the baby's glad face. On `grown` the camera trucks down the table to a tall grey grown man in festive clothes; on `bottle` he holds up a baby's bottle, hopeful, and the guests either side turn and stare (a light moment). On `letter` a rolled scroll drops onto the table in front of him and unrolls; on `quote` its words are not shown (CRAFT rule 1), only the gold seal. On `ouch` he winces. On `what` the camera lifts to a cup of milk and a platter of bread side by side, the only props lit.
 **paraphrase sources (not spoken):** none; Scripture only.
@@ -41,9 +41,9 @@ Quoted Scripture: 10 passages, 130 of 741 spoken words (17.5 %; counted by the v
 
 **picture:** Title over the teal sky above the courtyard: From Milk to Meat. A small cup of milk at the left of the title and a loaf at its right, gold-edged.
 
-### `milk` · IDEA · ~32 s
+### `milk` · IDEA · ~30 s
 
-**say:** {start}Start with the milk. {peter}Peter writes, {newborn}“As newborn babes, desire the sincere milk of the word, that ye may grow thereby.” {sincere}Sincere here means pure, {mixed}nothing mixed in. {word}The milk is simply God's word, plain and unmixed. {good}And milk is good. {need}Babies cannot do without it. {began}Every one of us began there, {shame}and there is no shame in a cup of milk.
+**say:** {start}Start with the milk. {/} {peter}Peter writes, {newborn}“As newborn babes, desire the sincere milk of the word, that ye may {*}grow thereby.” {/} {sincere}Sincere here means pure, {mixed}with {*}nothing mixed in. {/} {word}So the milk is God's word, plain and unmixed. {/} {good}And milk is {*}good. {/} {need}A baby cannot do without it. {/} {began}Every one of us began there, {shame}and there is no shame in a cup of milk.
 **cite:** 1 Peter 2:2; E. J. Waggoner, The Present Truth, August 17, 1893, 315; E. J. Waggoner, The Medical Missionary, September 1904, 286
 **picture:** IDEA: the parchment page, matched from the title's cup. A grey figure holds a small cup; on `newborn` a book opens beside it and a ribbon of white pours from its pages into the cup (`word`). On `mixed` a dropper of dark ink hovers over the cup and is waved away. On `need` the cup passes to a row of small figures of every height, each drinking in turn; on `shame` the grey figure from `cold` takes a cup too and smiles.
 **paraphrase sources (not spoken):**
@@ -51,16 +51,16 @@ Quoted Scripture: 10 passages, 130 of 741 spoken words (17.5 %; counted by the v
 - PTUK August 17, 1893, page 315.16 (E. J. Waggoner) — "As newborn babes, desire the sincere [pure, unadulterated] milk of the word … We see, therefore, that the heavenly milk is the pure, unmixed word of God." → `sincere`, `word`
 - MEDM September 1904, page 286.4 (E. J. Waggoner) — "Milk is good and absolutely necessary for babes" → `good`, `need`
 
-### `stones` · IDEA · ~32 s
+### `stones` · IDEA · ~31 s
 
-**say:** {which}So which truths are the milk? {lists}Hebrews lists them, {foundation}and calls them a foundation. {repent}Repentance from dead works. {faith}Faith toward God. {bapt}Baptisms. {hands}The laying on of hands. {resur}The resurrection of the dead. {judg}And eternal judgment. {six}Six stones. {oracles}It calls them the first principles of the oracles of God, {spoken}the words God himself has spoken. {begins}That is where this series begins.
+**say:** {which}So which truths are the milk? {/} {lists}Hebrews lists them, {foundation}and calls them a {*}foundation. {/} {repent}Repentance from dead works. {/} {faith}Faith toward God. {/} {bapt}Baptisms. {/} {hands}The laying on of hands. {/} {resur}The resurrection of the dead. {/} {judg}And eternal judgment. {/} {six}Six stones. {/} {oracles}Hebrews calls them the first principles of the oracles of God. {/} {spoken}An oracle is a word God himself has spoken. {/} {begins}That is where this series {*}begins.
 **cite:** Hebrews 6:1–2; Hebrews 5:12
 **picture:** IDEA: the parchment. On `foundation` a level line is drawn and six paper stones drop onto it one per name, each carrying a small gold icon: a figure turning round (`repent`), an open hand (`faith`), a wave of water (`bapt`), two hands over a head (`hands`), an empty tomb (`resur`), a balance scale (`judg`). On `six` the camera pulls back: six stones, a foundation with nothing yet built on it. On `oracles` a gold speech-ribbon unrolls from the top of the page and settles under the stones as their bed. On `begins` a small grey figure steps onto the first stone.
 **paraphrase sources (not spoken):** none; Scripture only (the list is Hebrews' own, said as a list and not as a quotation).
 
-### `bottle` · STORY · ~36 s
+### `bottle` · STORY · ~37 s
 
-**say:** {but}But some never get past the bottle. {easy}They want it all so easy they can swallow it without chewing, {think}which means without thinking. {strong}So they never grow strong. {paul}Paul had a church like that, in Corinth. {fed}“I have fed you with milk, and not with meat: for hitherto ye were not able to bear it.” {slow}Why not? Were they slow? {quarrel}No. They were quarrelling. {more}Growing in God's word was never just knowing more. {like}It is growing more like Christ.
+**say:** {but}But some of us never get past the {*}bottle. {/} {easy}We want it all made so easy we can swallow it without {*}chewing. {/} {think}And chewing is {*}thinking. {/} {strong}So we never grow strong. {/} {paul}Paul had a church like that, in Corinth. {/} {fed}“I have fed you with milk, and not with meat: for hitherto ye were not able to bear it.” {/} {slow}Why not? {/} Were they {*}slow? {/} {quarrel}No. {/} They were {*}quarrelling. {/} {more}Growing in God's word is never only knowing {*}more. {/} {like}It is growing more like {*}Christ.
 **cite:** E. J. Waggoner, The Medical Missionary, September 1904, 286; 1 Corinthians 3:1–3; Ellen G. White, Medical Ministry, 124
 **picture:** STORY: on `easy` a quick comic beat on the parchment: the grey grown man from `cold` lifts a plate and tips the whole meal into his mouth unchewed. On `paul` push through into a Corinthian house at dusk (the film's short valley), a room of grey figures in two knots, arguing, fingers pointing. Paul (grey, travel cloak, a face at a third of the frame) sits writing by a lamp; on `fed` close on his face as he writes, tired and fond. On `quarrel` the two knots turn their backs on each other. On `like` the lamp's light warms and one figure from each knot turns back and offers the other a hand.
 **paraphrase sources (not spoken):**
@@ -68,37 +68,37 @@ Quoted Scripture: 10 passages, 130 of 741 spoken words (17.5 %; counted by the v
 - MEDM September 1904, page 286.4 (E. J. Waggoner) — "They want everything made so easy for them that they can swallow it without chewing, that is, without thought. For that reason they never grow strong." → `easy`, `think`, `strong`
 - MM 124.2 (Ellen G. White) — "desire the sincere milk of the word … in perception, in likeness to the character of Christ. Development of character, growth in knowledge and wisdom, will be the sure result of feeding on the word." → `more`, `like`
 
-### `teeth` · IDEA · ~22 s
+### `teeth` · IDEA · ~23 s
 
-**say:** {lovely}Here is something lovely. {milk}Babies who drink milk {teeth}grow teeth. {sign}And teeth are a sign. {time}It is time for solid food. {hebrews}Hebrews says strong meat belongs to those {use}who “by reason of use have their senses exercised to discern both good and evil.” {practice}Use. Practice. Chewing.
+**say:** {milk}Feed a baby on milk, and she grows {teeth}{*}teeth. {/} {sign}And teeth are a sign {time}that it is time for solid {*}food. {/} {hebrews}Hebrews says strong meat belongs to those {use}who “by reason of use have their senses exercised to discern both good and evil.” {/} {practice}Use. {/} Practice. {/} {*}Chewing.
 **cite:** E. J. Waggoner, The Medical Missionary, September 1904, 286; Hebrews 5:14
 **picture:** IDEA: the parchment. A baby figure grins on `teeth` and shows one small white tooth (a light, warm moment). On `sign` a little paper signpost springs up beside it pointing right, toward a loaf. On `use` the grown grey figure sits at a small table and chews, thinking, a tiny lamp lit over his head; on `practice` a bowl of grain, a loaf and a plate come in, one per word.
 **paraphrase sources (not spoken):**
 
 - MEDM September 1904, page 286.4 (E. J. Waggoner) — "By feeding on milk, babes develop teeth as they grow; and the appearance of teeth is an indication that now they must take solid food, instead of milk." → `teeth`, `sign`, `time`
 
-### `math` · IDEA · ~40 s
+### `math` · IDEA · ~38 s
 
-**say:** {leave}So do we leave the milk behind? {go}Hebrews does say, leaving the principles, let us go on. {but}But here is the surprise. {student}Think of a student of mathematics. {adds}First he learns to add and subtract and multiply. {stay}He must not stay there forever. {never}But he never stops using them, either. {hardest}His hardest problems are only those first steps, combined. {meat}So it is with meat. {nothing}Solid food leaves out nothing that was in the milk. {more}It has all of it, and more.
+**say:** {leave}So do we leave the milk {*}behind? {/} {go}Hebrews does say, leaving the principles, let us go on. {/} {but}But leaving them never means throwing them {*}away. {//} {student}Think of a student of mathematics. {/} {adds}First he learns to add and subtract and multiply. {/} {stay}He must not stay there forever. {/} {never}But he never stops {*}using them. {/} {hardest}His hardest problems are those first steps, {*}combined. {/} {meat}So it is with meat. {/} {nothing}Solid food leaves out nothing that was in the milk. {/} {more}It has all of it, and {*}more.
 **cite:** Hebrews 6:1; E. J. Waggoner, The Present Truth, January 31, 1895, 65; E. J. Waggoner, The Medical Missionary, September 1904, 286
 **picture:** IDEA: dawn begins to come into the parchment. A child-sized grey figure at a slate writes 1 + 1 on `adds`; the sums multiply across the slate. On `stay` the figure grows taller across three quick dissolves, the slate growing with it. On `hardest` one enormous sum fills the slate, and as the camera pushes in every term in it is one of the first small sums from `adds`, picked out in gold. On `meat` match cut: the slate's frame becomes the edge of a plate; on `nothing` the cup of milk from `milk` is set down on the plate beside the bread, not taken away; on `more` dishes fill in around it.
 **paraphrase sources (not spoken):**
 
-- PTUK January 31, 1895, page 65.4 (E. J. Waggoner) — "Leaving the principles does not mean repudiating them, but applying them in the higher branches. … no matter how great a mathematician he becomes, his success will depend wholly on the use of those rudiments." → `leave`, `never`
+- PTUK January 31, 1895, page 65.4 (E. J. Waggoner) — "Leaving the principles does not mean repudiating them, but applying them in the higher branches. … no matter how great a mathematician he becomes, his success will depend wholly on the use of those rudiments." → `leave`, `but`, `never`
 - MEDM September 1904, page 286.6 (E. J. Waggoner) — "The most profound problems consist only of simple principles in various combinations. … The man who eats hard food, instead of milk, does not reject any element that is in milk, but gets it all and more." → `hardest`, `nothing`, `more`
 
-### `priest` · IDEA → STORY · ~40 s
+### `priest` · IDEA → STORY · ~31 s
 
-**say:** {what}So what is the meat? {watch}Watch what Hebrews does. {right}Right after the milk, it serves the meat. {christ}Jesus, made “an high priest for ever after the order of Melchisedec.” {once}Not only what Christ did once, {now}but what he is doing now. {other}The meat is never something other than Christ. {him}It is more of him. {light}Every deeper truth in the Bible is read in the light that streams from his cross.
+**say:** {what}So what is the meat? {/} {right}Hebrews serves it right after the milk. {/} {christ}It is Jesus, made “an high {*}priest for ever after the order of Melchisedec.” {//} {once}Not only what Christ did {*}once, {now}but what he is doing {*}now. {/} {other}The meat is never something other than {*}Christ. {/} {him}It is {*}more of him. {/} {light}Every deeper truth is read by one light, and that light streams from his {*}cross.
 **cite:** Hebrews 5:10–11; Hebrews 6:19–20; Hebrews 8:1–2; Ellen G. White, Gospel Workers, 315
 **picture:** IDEA, then STORY. The parchment: the six stones from `stones`; on `right` a gold path runs on from the last stone up the page. On `christ` push through into STORY: a tall woven veil glowing gold from behind, and a figure in a priest's white robe and breastplate (Christ) seen from behind as he passes in through it (never a face of the Father, never a throne in this film). On `once` a small cardboard hill with an empty cross at dawn appears in a round panel; on `now` the panel slides to sit beside the veil, both lit. On `light` pull back to IDEA: a small gold cross at the centre of the page, its light widening in rings across the six stones and up the path.
 **paraphrase sources (not spoken):**
 
 - GW 315.2 (Ellen G. White) — "The sacrifice of Christ as an atonement for sin is the great truth around which all other truths cluster. … every truth in the word of God, from Genesis to Revelation, must be studied in the light that streams from the cross of Calvary." → `other`, `light`
 
-### `grain` · STORY · ~42 s
+### `grain` · STORY · ~46 s
 
-**say:** {how}So how does anyone grow? {jesus}Jesus said the kingdom grows like grain. {sow}A man sows seed, and sleeps, and gets up, {knoweth}and it grows, he knows not how. {first}“first the blade, then the ear, after that the full corn in the ear.” {watch}You cannot watch it happen. {quiet}It is quiet, and it never stops. {stage}At every stage the plant can be just what it should be, {still}and still keep growing. {isaiah}Isaiah says God teaches the same way, a line at a time, here a little and there a little. {simple}Simple truths, again and again, {bottom}and not one of them has a bottom.
+**say:** {how}So how does anyone grow? {/} {jesus}Jesus said the kingdom grows like {*}grain. {/} {sow}A man sows seed, {sleeps}and sleeps, and gets up, {knoweth}and it grows, he knows not {*}how. {/} {first}It comes up “first the blade, then the ear, after that the full corn in the ear.” {/} {watch}You cannot watch it happen. {/} {quiet}It is quiet, and it never {*}stops. {/} {stage}At every stage the plant can be all it should be. {/} {still}And still it keeps {*}growing. {/} {isaiah}Isaiah says God teaches the same way, a line at a time, here a little, and there a little. {/} {simple}Simple truths, again and again, {bottom}and not one of them has a {*}bottom.
 **cite:** Mark 4:26–28; Ellen G. White, Education, 105–106; Isaiah 28:9–10; E. J. Waggoner, The Present Truth, May 4, 1899, 277
 **picture:** STORY: a cardboard field on a hillside, peach morning, 3–5 planes (the far hills, the field, a low stone wall near). On `sow` a farmer (grey, a face at a third of the frame) scatters seed and walks off; quick sun arcs on `sleeps`/`knoweth` (day, night, day). On `first` a single blade tears up out of the soil, then the green ear, then the full gold ear, one per phrase, each a paper layer folding up. On `quiet` the camera holds low by the stalk while a snail crosses the wall: nothing seems to move, but the stalk is visibly taller at the end of the hold. On `isaiah` the field dissolves to the parchment: one line of gold writing drawn, then another under it; on `bottom` the camera drops through one line of the writing as if it were a well, and finds more light below.
 **paraphrase sources (not spoken):**
@@ -108,30 +108,30 @@ Quoted Scripture: 10 passages, 130 of 741 spoken words (17.5 %; counted by the v
 
 ### `eat` · STORY · ~26 s
 
-**say:** {food}One more thing about food. {nobody}Nobody can eat it for you. {jer}The prophet Jeremiah said, {found}“Thy words were found, and I did eat them; and thy word was unto me the joy and rejoicing of mine heart.” {joy}Joy. {body}As your body lives on the food you eat yourself, {soul}your soul lives on the word you take in yourself.
+**say:** {nobody}And nobody can eat your food for you. {/} {jer}The prophet Jeremiah said, {found}“Thy words were found, and I did eat them; and thy word was unto me the {joy}joy and rejoicing of mine heart.” {//} {body}Your body lives on the food you eat yourself. {/} {soul}And your soul lives on the {*}word you take in yourself.
 **cite:** Jeremiah 15:16; Ellen G. White, The Signs of the Times, June 25, 1902
 **picture:** STORY: a small cardboard room in Jerusalem, warm lamplight; Jeremiah (grey, a scroll on his knees, a face at a third of the frame) reads, and on `found` his face lifts and softens; on `joy` he laughs out loud, alone. On `body` cut to the parchment: two grey figures at one table, one eating, the other only watching; the eater glows faintly from the chest (`soul`), the watcher does not; the watcher picks up a spoon.
 **paraphrase sources (not spoken):**
 
 - ST June 25, 1902, par. 17 (Ellen G. White) — "As our physical life is sustained by food, so our spiritual life is sustained by the Word of God. And every soul is to receive life from God's Word for himself. As we must eat for ourselves in order to receive nourishment, so we must receive the Word for ourselves." → `nobody`, `body`, `soul`
 
-### `path` · IDEA · ~26 s
+### `path` · IDEA · ~22 s
 
-**say:** {path}So here is the path ahead. {stones}First, the six stones of the foundation. {then}Then the meat Hebrews was so eager to serve: {priest}a priest in heaven, {sanct}a sanctuary, {cov}a covenant, {rest}a rest. {last}And then the strongest meat, {come}the things to come. {one}All of it, one Christ.
+**say:** {path}Here is the path ahead. {/} {stones}First, the six stones of the foundation. {/} {then}Then the meat Hebrews was eager to serve: {priest}a priest in heaven, {sanct}a sanctuary, {cov}a covenant, {rest}and a rest. {/} {last}And last, the strongest meat, {come}the things to {*}come. {/} {one}And all of it is {*}Christ.
 **cite:** Hebrews 6:1–2; Hebrews 8:1–2, 6; Hebrews 4:9; 2 Peter 1:19
 **picture:** IDEA: the series map. The parchment widens into a long hill: the six stones at its foot (Tier One), the gold path climbing past a veil, a small tent sanctuary, two tablets in an ark and a resting figure under a tree (Tier Two), up to a city on the summit under a dawn sky (Tier Three). On `one` the gold cross's light from `priest` spreads until the whole hill lies inside it.
 **paraphrase sources (not spoken):** none; Scripture only.
 
-### `name` · STORY (landing; IDEA and STORY merge) · ~32 s
+### `name` · STORY (landing; IDEA and STORY merge) · ~30 s
 
-**say:** {back}Back to the feast. {sets}The grown man sets down his bottle. {bad}Not because milk was bad. {table}Because the table was set for him all along, {cup}and the milk is on it too. {taste}“O taste and see that the LORD is good.” {leaving}Milk to meat is never leaving Christ behind. {into}It is growing up into him.
+**say:** {back}Back to the feast. {/} {sets}The grown man sets down his bottle. {/} {bad}Not because milk was {*}bad. {/} {table}But because the table was set for him all along, {cup}and the milk is on it {*}still. {/} {taste}“O taste and see that the LORD is good.” {/} {leaving}Going from milk to meat never leaves Christ {*}behind. {/} {into}It is growing up {//3} into {*}him.
 **cite:** Psalm 34:8; Ephesians 4:13–15; E. J. Waggoner, The Medical Missionary, September 1904, 286
 **picture:** Landing: the wedding courtyard from `cold` in the same layout and framing, now under the teal-to-yellow landing sky. The grey grown man stands where he stood; on `sets` he sets the baby's bottle down. On `table` the host's hand (the host is Christ, white robe and gold sash, at the head of the table) gestures to the place set for him: bread from the field in `grain`, and on `cup` the cup of milk from `milk` beside the plate. On `taste` he tastes, close on his face, delight. On `leaving` the six stones show for a breath as the courtyard's paving under the table. On `into` he stands taller beside the host; the gold cross's light from `priest` warms the whole courtyard. The held pause comes after `into`.
 **paraphrase sources (not spoken):** MEDM September 1904, page 286.6 (as in `math`) → `cup`.
 
 ### `thesis` · ~30 s (music alone after the line)
 
-**say:** {grow}“Grow in grace, and in the knowledge of our Lord and Saviour Jesus Christ.”
+**say:** {grow}{*}“Grow in grace, and in the knowledge of our Lord and Saviour Jesus Christ.”
 **cite:** 2 Peter 3:18
 **picture:** The answer writes itself in the sky over the courtyard, the only text: GROW IN GRACE. The music rises alone for about thirty seconds while the camera eases back and lifts over the courtyard, the grown man still at the host's side at the set table. Past the courtyard wall, the field from `grain` moves in the wind, full corn, and the hill of `path` rises beyond it.
 

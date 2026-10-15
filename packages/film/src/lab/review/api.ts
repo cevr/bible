@@ -8,7 +8,16 @@
 
 import { Context, Effect, Layer } from 'effect';
 import { HttpClient, HttpClientResponse } from 'effect/http';
-import { Refusal, type SetSaid, type SetSayPost, reviewFileUrl } from '../../core/api.ts';
+import {
+  type DraftRead,
+  type MarksPost,
+  Refusal,
+  type ScriptVoice,
+  type SeriesList,
+  type SetSaid,
+  type SetSayPost,
+  reviewFileUrl,
+} from '../../core/api.ts';
 import type { BoardFile } from '../../core/board.ts';
 import type { MoveForward, ProductionFile, Productions } from '../../core/production.ts';
 import type { AskRecord, StepValues } from '../../core/ask.ts';
@@ -45,6 +54,18 @@ interface ReviewCalls {
     step: string,
     values: StepValues,
   ) => Effect.Effect<AskRecord, LabFailure>;
+  /** The app's series and their drafts. */
+  readonly series: Effect.Effect<SeriesList, LabFailure>;
+  /** Series draft `draft` of `series`, as its Markdown reads now. */
+  readonly draft: (series: string, draft: string) => Effect.Effect<DraftRead, LabFailure>;
+  /** Each spoken beat of a series draft as its staging take stands, and the day's spend. */
+  readonly draftVoice: (series: string, draft: string) => Effect.Effect<ScriptVoice, LabFailure>;
+  /** A beat's delivery marks written into a series draft: the draft as it leaves it. */
+  readonly draftMarks: (
+    series: string,
+    draft: string,
+    post: MarksPost,
+  ) => Effect.Effect<DraftRead, LabFailure>;
 }
 
 export class ReviewApi extends Context.Service<ReviewApi, ReviewCalls>()(
@@ -77,6 +98,11 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* () {
     ask: (id) => called(lab.asks.read({ params: { ask: id } })),
     answer: (id, step, values) =>
       called(lab.asks.answer({ params: { ask: id }, payload: { step, values } })),
+    series: called(lab.series.list()),
+    draft: (series, draft) => called(lab.series.read({ params: { series, draft } })),
+    draftVoice: (series, draft) => called(lab.series.voice({ params: { series, draft } })),
+    draftMarks: (series, draft, post) =>
+      called(lab.series.marks({ params: { series, draft }, payload: post })),
   };
   return api;
 });

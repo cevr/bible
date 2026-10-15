@@ -37,7 +37,73 @@ const SCRIPT_TOKENS = `
 }
 `;
 
-export const SCRIPT_CSS = `${SCRIPT_TOKENS}
+/**
+ * A script read aloud, wherever its beats come from (a film's reader here, a
+ * series draft's in the review, `review/draft.tsx`): each beat under its head
+ * line, its brief, its line at the reading size with its delivery marks, its
+ * staging take and its pace, the day's spend, the delivery of the words
+ * selected in a raised box under the line, and its sources.
+ */
+export const SCRIPT_READ_CSS = `
+.lab-script-beat { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3) var(--gutter) var(--s-4);
+  border-bottom: var(--border); }
+.lab-script-beat-head { display: flex; align-items: center; flex-wrap: wrap; gap: 0 var(--s-2);
+  font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-3); }
+.lab-script-picture { margin: 0; color: var(--text-2); }
+.lab-script-line { margin: 0; font-size: var(--fs-read); line-height: var(--lh-read); color: var(--text-1); }
+.lab-script-w { cursor: pointer; }
+/* How a line is said: a stressed word heavier in the line's own ink (an underline here is a link's, a note's or a
+   selection's); a pause a glyph in its gap in the secondary ink, a hold with its seconds, kept clear of a mark's chip
+   after it and never in a text selection (the words are what is copied). */
+.lab-script-w[data-stress='true'] { font-weight: var(--w-3); }
+.lab-script-gap { margin-inline-end: var(--s-2); color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2);
+  white-space: nowrap; user-select: none; -webkit-user-select: none; }
+/* A beat's staging take in its head: ▶ a press of the pointer's size, its pace quiet in the band and named slow or
+   fast in the warning's ink out of it; voicing or refused, quiet words. */
+.lab-script-hear { display: inline-flex; align-items: center; justify-content: center; min-width: var(--hit);
+  min-height: var(--hit); padding: 0; border: 0; background: none; font: inherit; color: var(--text-2); cursor: pointer; }
+.lab-script-hear[aria-pressed='true'] { color: var(--state-live); }
+@media (hover: hover) { .lab-script-hear:hover { color: var(--text-1); } }
+.lab-script-pace { color: var(--text-3); font-variant-numeric: tabular-nums; }
+.lab-script-pace:not([data-band='in']) { color: var(--state-warning); }
+.lab-script-voicing { color: var(--text-3); }
+.lab-script-voicing[data-refused='true'] { color: var(--state-warning); }
+/* The day's staging spend: one quiet line atop the beats, scrolled away with them. */
+.lab-script-spend { margin: 0; padding: var(--s-2) var(--gutter) 0; color: var(--text-3);
+  font-size: var(--fs-1); line-height: var(--lh-1); font-variant-numeric: tabular-nums; }
+/* The delivery of the words selected: rows of choices in the box under the line, each a press of the pointer's size. */
+.lab-script-delivery { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-2) var(--s-3); }
+.lab-script-delivery-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.lab-script-delivery .sh-btn, .lab-script-delivery .sh-seg > * { min-height: var(--hit); }
+.lab-script-holds { align-self: flex-start; }
+.lab-script-delivery-note { margin: 0; color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
+/* What the selection ties to: a raised box under the line, its head and a row to a cue. */
+.lab-script-ties { display: flex; flex-direction: column; border: var(--border); border-radius: var(--r-2); background: var(--surface-2); }
+.lab-script-ties-head { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-1) 0 var(--s-3); }
+.lab-script-ties-what { flex: 1; min-width: 0; color: var(--text-1); }
+.lab-script-ties-head > .sh-btn { flex: none; min-height: var(--hit); }
+.lab-script-cite { display: flex; flex-wrap: wrap; gap: 0 var(--s-3); margin: 0; padding: 0; list-style: none;
+  font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-3); }
+.lab-script-brief { display: flex; flex-direction: column; min-width: 0; }
+/* Under a brief its three lines clip on a phone: what opens it all, the size of a press, quiet as the brief. */
+.lab-script-more { align-self: flex-start; min-height: var(--hit); min-width: var(--hit); padding: 0; border: 0;
+  background: none; font: inherit; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2);
+  text-align: start; cursor: pointer; }
+@media (hover: hover) { .lab-script-more:hover { color: var(--text-1); } }
+@media ${PHONE} {
+  /* A brief shows three lines until More opens it: the reader opens on the words read aloud, not on what the picture does.
+     It clips the rest, never scrolls it: a key landing on a link it hides finds the link below its lines, and opens it
+     (a box that scrolls would scroll the link up into its three lines instead). The margin is the focus ring's. */
+  .lab-script-picture:not([data-open='true']) { display: -webkit-box; -webkit-box-orient: vertical;
+    -webkit-line-clamp: ${BRIEF_LINES}; line-clamp: ${BRIEF_LINES}; overflow: clip; overflow-clip-margin: 2px; }
+}
+@media ${WIDE} {
+  /* A laptop's column shows a brief whole: nothing for More to open. */
+  .lab-script-more { display: none; }
+}
+`;
+
+export const SCRIPT_CSS = `${SCRIPT_TOKENS}${SCRIPT_READ_CSS}
 .lab-script { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--surface-1); }
 .lab-script-head { display: flex; align-items: center; gap: var(--s-2); min-height: var(--panel-head-h);
   padding: 0 var(--gutter); border-bottom: var(--border); font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
@@ -52,12 +118,8 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 .lab-script-scroll:focus-visible { outline: none; box-shadow: var(--focus-ring-inset); }
 .lab-script-page { display: flex; flex-direction: column; padding-bottom: var(--s-8); overflow-wrap: anywhere;
   font-size: var(--body-fs); line-height: var(--body-lh); }
-.lab-script-beat { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3) var(--gutter) var(--s-4);
-  border-bottom: var(--border); }
 /* The beat under the frame: its edge in the playing ink, as a playing cue's lane is lit. */
 .lab-script-beat[data-live='true'] { box-shadow: inset 2px 0 var(--state-live); }
-.lab-script-beat-head { display: flex; align-items: center; flex-wrap: wrap; gap: 0 var(--s-2);
-  font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-3); }
 /* The id and the start are one press: the beat's first frame. */
 .lab-script-id { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--hit); padding: 0; border: 0;
   background: none; font: inherit; color: var(--text-2); cursor: pointer; }
@@ -66,13 +128,6 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 /* Where a beat starts, its frames in its seconds' ink: the kit's timecode lifts them, as only a running clock wants. */
 .lab-script-at { color: var(--text-3); }
 .sh-timecode.lab-script-at .sh-ff { color: inherit; }
-.lab-script-brief { display: flex; flex-direction: column; min-width: 0; }
-.lab-script-picture { margin: 0; color: var(--text-2); }
-/* Under a brief its three lines clip on a phone: what opens it all, the size of a press, quiet as the brief. */
-.lab-script-more { align-self: flex-start; min-height: var(--hit); min-width: var(--hit); padding: 0; border: 0;
-  background: none; font: inherit; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2);
-  text-align: start; cursor: pointer; }
-@media (hover: hover) { .lab-script-more:hover { color: var(--text-1); } }
 /* A cue, a mark or a beat the brief names: a link in the brief's running text, the accent while it is selected. */
 .lab-script-ref { color: var(--text-1); text-decoration: underline; text-decoration-color: var(--line-strong);
   text-underline-offset: 0.2em; }
@@ -80,8 +135,6 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 @media (hover: hover) { .lab-script-ref:hover { text-decoration-color: var(--text-1); } }
 /* A name the film does not have: the brief's own words, in its ink. */
 .lab-script-code { font: inherit; color: inherit; }
-.lab-script-line { margin: 0; font-size: var(--fs-read); line-height: var(--lh-read); color: var(--text-1); }
-.lab-script-w { cursor: pointer; }
 /* A mark: a chip before the word it stands before, raised to the line's cap height, never in a text selection. Quiet
    at rest, the faintest ink and no fill (a line has one every few words, and the words are what is read); the
    accent's fill while it is selected. */
@@ -90,11 +143,6 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
   vertical-align: text-top; user-select: none; -webkit-user-select: none; }
 .lab-script-mark[aria-current='true'] { background: var(--accent); color: var(--accent-ink); }
 @media (hover: hover) { .lab-script-mark:hover { color: var(--text-1); } .lab-script-mark[aria-current='true']:hover { color: var(--accent-ink); } }
-/* What the selection ties to: a raised box under the line, its head and a row to a cue. */
-.lab-script-ties { display: flex; flex-direction: column; border: var(--border); border-radius: var(--r-2); background: var(--surface-2); }
-.lab-script-ties-head { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-1) 0 var(--s-3); }
-.lab-script-ties-what { flex: 1; min-width: 0; color: var(--text-1); }
-.lab-script-ties-head > .sh-btn { flex: none; min-height: var(--hit); }
 .lab-script-ties-none { margin: 0; padding: 0 var(--s-3) var(--s-2); color: var(--text-3); }
 .lab-script-ties-list { margin: 0; padding: 0 0 var(--s-1); list-style: none; }
 .lab-script-tie { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; column-gap: var(--s-3);
@@ -105,8 +153,6 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 .lab-script-tie[aria-current='true'] .lab-script-tie-name { color: var(--accent); }
 /* A hover lifts a row at rest; the selected row keeps its wash under the pointer. */
 @media (hover: hover) { .lab-script-tie:hover:not([aria-current='true']) { background: var(--surface-3); } }
-.lab-script-cite { display: flex; flex-wrap: wrap; gap: 0 var(--s-3); margin: 0; padding: 0; list-style: none;
-  font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-3); }
 /* A note's words, in the note's ink: a note's underlined; a correction's or a removal's struck, as it would leave them. */
 ::highlight(lab-noted) { text-decoration: underline 2px var(--state-note); }
 ::highlight(lab-struck) { color: var(--text-3); text-decoration: line-through 2px var(--state-note); }
@@ -148,14 +194,5 @@ body.lab:has(.lab-script) .bar > .row .say { visibility: hidden; }
   /* The screen's height, not a page that scrolls: the picture and its track stay over the words. */
   body.lab:has(.lab-script) { height: 100dvh; min-height: 0; grid-template-rows: auto auto auto minmax(0, 1fr); }
   .lab-script { grid-column: 1; grid-row: 4; border-top: var(--border); }
-  /* A brief shows three lines until More opens it: the reader opens on the words read aloud, not on what the picture does.
-     It clips the rest, never scrolls it: a key landing on a link it hides finds the link below its lines, and opens it
-     (a box that scrolls would scroll the link up into its three lines instead). The margin is the focus ring's. */
-  .lab-script-picture:not([data-open='true']) { display: -webkit-box; -webkit-box-orient: vertical;
-    -webkit-line-clamp: ${BRIEF_LINES}; line-clamp: ${BRIEF_LINES}; overflow: clip; overflow-clip-margin: 2px; }
-}
-@media ${WIDE} {
-  /* A laptop's column shows a brief whole: nothing for More to open. */
-  .lab-script-more { display: none; }
 }
 `;

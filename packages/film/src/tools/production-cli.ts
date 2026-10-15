@@ -13,8 +13,9 @@
 //   film production forward <production> --after <n> --title "<title>" [--because "<decision>"] [--at <ISO>]
 //       move forward: version n+1 opens now (or at --at) (refused when the production is past n)
 //   film production decide|note <production> "<text>" [--quote "<owner's words>"]
-//       [--set <set>] [--point <id>] [--variant <id>] [--at <ISO time>]
-//       record the owner's decision or note given outside the lab
+//       [--set <set>] [--point <id>] [--variant <id>] [--by <who>] [--at <ISO time>]
+//       record the owner's decision or note given outside the lab (the lab's
+//       MCP `decide` and `note` record the same, through the same store)
 //   film production ask <production> "<question>" --why "<what it decides>"
 //       [--option "<answer>" --option "<answer>" ...] [--set <set> [--point <id>]]
 //       [--film <film>] [--deadline <ISO>] [--by <who>]
@@ -35,18 +36,7 @@
 //       one the lab reads (under a review root)
 
 import { Argument, Command, Flag } from 'effect/cli';
-import {
-  Array as Arr,
-  Clock,
-  Console,
-  DateTime,
-  Effect,
-  Match,
-  Option,
-  Path,
-  Result,
-  Schema,
-} from 'effect';
+import { Clock, Console, DateTime, Effect, Match, Option, Path, Result, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import type { AskBlock } from '../core/ask.ts';
 import {
@@ -55,6 +45,7 @@ import {
   ProductionId,
   type Said,
   currentVersion,
+  setNamed,
   setPathOf,
   versionAt,
 } from '../core/production.ts';
@@ -178,7 +169,7 @@ const ledgerLines = (file: ProductionFile): ReadonlyArray<string> => {
         ...Option.match(v.because, { onNone: () => [], onSome: (b) => [`  because: ${b}`] }),
         ...words.map(
           (s) =>
-            `  ${saidVerb[s._tag]} ${iso(s.at)}: ${s.text}${Option.match(s.quote, { onNone: () => '', onSome: (q) => ` — "${q}"` })}${Option.match(s.set, { onNone: () => '', onSome: (set) => `  set=${set}` })}`,
+            `  ${saidVerb[s._tag]} ${iso(s.at)}: ${s.text}${Option.match(s.quote, { onNone: () => '', onSome: (q) => ` — "${q}"` })}${Option.match(s.set, { onNone: () => '', onSome: (set) => `  set=${set}` })}${Option.match(s.by, { onNone: () => '', onSome: (by) => `  by=${by}` })}`,
         ),
         ...file.filed.filter((f) => f.version === n).map((f) => `  filed set=${f.set}`),
       ];
@@ -300,6 +291,10 @@ const say = (tag: OwnerWord['_tag']) =>
         Flag.optional,
         Flag.withDescription('the variant chosen'),
       ),
+      by: Flag.String('by').pipe(
+        Flag.optional,
+        Flag.withDescription('who files it, when an agent heard it: its name'),
+      ),
       at: atFlag('it was said'),
     },
     Effect.fn(`film.production.${tag}`)(function* (input) {
@@ -313,6 +308,7 @@ const say = (tag: OwnerWord['_tag']) =>
         point: input.point,
         variant: input.variant,
         ask: Option.none(),
+        by: input.by,
       };
       const said: OwnerWord = { _tag: tag, ...fields };
       yield* (yield* ProductionStore).say(id, said);
@@ -359,27 +355,29 @@ const askBlocks = (options: ReadonlyArray<string>) =>
   );
 
 /**
- * The lab's ref for the set `given` names, among the refs the lab lists: the
- * folder under its root, as the ledger and every production command name a
- * set, held by one root. A ref is refused, naming its folder; a folder more
- * than one root holds is refused, since the timeline could not tell which.
+ * The lab's ref for the set `given` names, among the refs the lab lists
+ * (`setNamed`): the folder under its root, as the ledger and every
+ * production command name a set, held by one root. A ref is refused, naming
+ * its folder; a folder more than one root holds is refused, since the
+ * timeline could not tell which.
  */
 const refFor = (
   listed: ReadonlyArray<string>,
   given: string,
   url: string,
-): Effect.Effect<string, SetUnlisted | SetInRoots | SetByRef> => {
-  const holding = (folder: string) => listed.filter((ref) => setPathOf(ref) === folder);
-  const byFolder = holding(given);
-  if (byFolder.length > 1) return Effect.fail(SetInRoots.make({ set: given, refs: byFolder }));
-  const one = Arr.head(byFolder);
-  if (Option.isSome(one)) return Effect.succeed(one.value);
-  if (!listed.includes(given)) return Effect.fail(SetUnlisted.make({ set: given, url }));
-  const folder = setPathOf(given);
-  const held = holding(folder);
-  if (held.length > 1) return Effect.fail(SetInRoots.make({ set: folder, refs: held }));
-  return Effect.fail(SetByRef.make({ ref: given, folder }));
-};
+): Effect.Effect<string, SetUnlisted | SetInRoots | SetByRef> =>
+  Result.match(setNamed(listed, given), {
+    onFailure: (held) => Effect.fail(SetInRoots.make({ set: held.folder, refs: held.refs })),
+    onSuccess: (named) =>
+      Option.match(named, {
+        onNone: () => Effect.fail(SetUnlisted.make({ set: given, url })),
+        onSome: ({ ref, folder }) =>
+          Match.value(ref === given).pipe(
+            Match.when(true, () => Effect.fail(SetByRef.make({ ref, folder }))),
+            Match.orElse(() => Effect.succeed(ref)),
+          ),
+      }),
+  });
 
 /** `ask` made in the lab, in a session of its own (ended once answered); its set, given by folder, named by the lab's ref. */
 const askInLab = Effect.fn('film.production.askInLab')(function* (

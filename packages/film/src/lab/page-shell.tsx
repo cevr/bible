@@ -255,6 +255,12 @@ interface PageShellProps {
   readonly crumb?: Accessor<Option.Option<string>>;
   /** What the page has selected (a scene), first in the tab's title; the page's body shows it, so the header does not. */
   readonly subject?: Accessor<Option.Option<string>>;
+  /**
+   * Whether the tabs lead into the film last opened when the page is of none
+   * (the default); a page that is no film's (a series draft) passes false, so
+   * its header names no film and offers no film's tabs.
+   */
+  readonly lastFilm?: boolean;
   readonly children: JSX.Element;
 }
 
@@ -279,8 +285,9 @@ export const PageShell = (props: PageShellProps) => {
   createEffect(props.film, (film) => {
     Option.map(film, keep);
   });
-  /** The film the tabs lead into: the page's, else the one last opened. */
-  const film = () => Option.orElse(props.film(), kept);
+  /** The film the tabs lead into: the page's, else the one last opened where the page takes it. */
+  const film = () =>
+    Option.orElse(props.film(), () => Option.filter(kept(), () => props.lastFilm !== false));
   // The tab's title is the shell's, printed once for the server's head and the browser's
   // (`useHead`): the served page is titled before it hydrates.
   useHead(() => ({

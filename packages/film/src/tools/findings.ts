@@ -7,6 +7,7 @@
 import { Array as Arr, Match, Option, Schema } from 'effect';
 import type {
   CueCycle,
+  DeliveryInvalid,
   DuplicateMark,
   DuplicateScene,
   PartOutOfOrder,
@@ -688,6 +689,7 @@ type PlaceFinding =
   | DuplicateScene
   | DuplicateMark
   | TurnInvalid
+  | DeliveryInvalid
   | CueCycle
   | UntilBeforeStart
   | ScenesApart
@@ -786,6 +788,7 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       DuplicateScene: error,
       DuplicateMark: error,
       TurnInvalid: error,
+      DeliveryInvalid: error,
       CueCycle: error,
       UntilBeforeStart: error,
       ScenesApart: error,
@@ -896,6 +899,7 @@ export const addressOf = (finding: Finding): FindingAddress => {
       DuplicateScene: scene,
       DuplicateMark: scene,
       TurnInvalid: scene,
+      DeliveryInvalid: scene,
       CueCycle: scene,
       UntilBeforeStart: scene,
       // The scenes it names are no one stretch: no one scene is the place.

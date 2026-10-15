@@ -91,6 +91,60 @@ export class ElevenLabsFailed extends Schema.TaggedError<ElevenLabsFailed>()('El
   }
 }
 
+/** A staging take's audio asked for by a name the staging cache keeps none under. */
+export class StagingTakeUnknown extends Schema.TaggedError<StagingTakeUnknown>()(
+  'StagingTakeUnknown',
+  { file: Schema.String },
+) {
+  override get message() {
+    return `the staging cache keeps no take ${this.file.slice(0, 12)}`;
+  }
+}
+
+/** A series draft asked for by a name the app's series keep none under: answered with the drafts there are. */
+export class DraftUnknown extends Schema.TaggedError<DraftUnknown>()('DraftUnknown', {
+  series: Schema.String,
+  draft: Schema.String,
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `no draft "${this.series}/${this.draft}" (the drafts: ${this.known.join(', ') || 'none'})`;
+  }
+}
+
+/**
+ * A series draft whose Markdown the Script reader cannot read (`core/draft.ts`):
+ * no beats, or a line it could not voice, named by its beat.
+ */
+export class DraftUnread extends Schema.TaggedError<DraftUnread>()('DraftUnread', {
+  draft: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.draft} does not read: ${this.reason}`;
+  }
+}
+
+/**
+ * A staging take refused before it is asked for: it would take the day's
+ * ElevenLabs characters past the cap (`FILM_STAGING_DAILY_CAP`). Nothing was
+ * sent; the take is made once the day turns or the cap is raised.
+ */
+export class StagingCapReached extends Schema.TaggedError<StagingCapReached>()(
+  'StagingCapReached',
+  {
+    /** The local day, `YYYY-MM-DD`. */
+    day: Schema.String,
+    spent: Schema.Int,
+    asked: Schema.Int,
+    cap: Schema.Int,
+  },
+) {
+  override get message() {
+    return `the staging voice has spent ${this.spent} of ${this.cap} characters today (${this.day}); this take asks ${this.asked} more`;
+  }
+}
+
 /** Speech-to-text heard words in a take but timed none of them: nothing to time the script by. */
 export class SttUntimed extends Schema.TaggedError<SttUntimed>()('SttUntimed', {
   file: Schema.String,
