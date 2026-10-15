@@ -15,8 +15,10 @@ import { CLOCK_EPSILON } from '../../core/time.ts';
 export interface Block {
   readonly name: string;
   readonly cue: ResolvedCue;
-  /** What the cue is, in a few words. */
+  /** What the cue is, in a few words: its name, then `more`. */
   readonly words: string;
+  /** What follows its name in its words (`0.35 s`, `until {evidence}`), none for an instant. */
+  readonly more: Option.Option<string>;
   /** It runs `until` a point (a mark, a landmark or a cue's edge): its end is that point's, not a length. */
   readonly until: boolean;
 }
@@ -73,17 +75,14 @@ const untilWords = (until: Until, offset: Option.Option<number>): string =>
     },
   );
 
-/** What a cue is: its name, then what ends it (a point it runs until, the scene's end) or its length. */
-const blockWords = (name: string, span: Span, cue: ResolvedCue): string =>
+/** What a cue is after its name: what ends it (a point it runs until, the scene's end) or its length; an instant, nothing. */
+const moreWords = (span: Span, cue: ResolvedCue): Option.Option<string> =>
   Option.match(Option.fromUndefinedOr(span.until), {
-    onSome: (until) => `${name} ${untilWords(until, Option.fromUndefinedOr(span.untilOffset))}`,
+    onSome: (until) => Option.some(untilWords(until, Option.fromUndefinedOr(span.untilOffset))),
     onNone: () =>
-      Option.match(
+      Option.map(
         Option.liftPredicate(cue.dur, (d) => d > 0),
-        {
-          onSome: (d) => `${name} ${seconds(d)} s`,
-          onNone: () => name,
-        },
+        (d) => `${seconds(d)} s`,
       ),
   });
 
@@ -147,7 +146,9 @@ interface Placed {
 
 /** A cue on the track its span names, or on its own, named by itself. */
 const placedOn = (name: string, span: Span, cue: ResolvedCue): Placed => {
-  const block = { name, cue, words: blockWords(name, span, cue), until: 'until' in span };
+  const more = moreWords(span, cue);
+  const words = Option.match(more, { onSome: (m) => `${name} ${m}`, onNone: () => name });
+  const block = { name, cue, words, more, until: 'until' in span };
   return Option.match(Option.fromUndefinedOr(span.track), {
     onSome: (track) => ({ key: `track:${track}`, track, named: true, block }),
     onNone: () => ({ key: `cue:${name}`, track: name, named: false, block }),

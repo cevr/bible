@@ -44,6 +44,7 @@ import {
   describedBy,
   evaluates,
   inkIs,
+  labelsClash,
   textHas,
   textIs,
   textsAre,
@@ -1642,6 +1643,8 @@ describe('a track’s cues on the strip', () => {
           '.lab-cue[data-cue="lead"] .lab-cue-words[data-room="full"]',
           'lead 0.60 s',
         );
+        // A name, in its bar or after it, stays on its lane, cut short whole and over no other.
+        yield* evaluates(page, labelsClash('.lab-cue-name', '.lab-cue-lane'), []);
         const lead = yield* page.box('.lab-cue[data-cue="lead"]');
         const echo = yield* page.box('.lab-cue[data-cue="echo"]');
         const x = echo.x + echo.width / 2;
@@ -1664,6 +1667,7 @@ describe('a track’s cues on the strip', () => {
         // Let go, the two overlap: they stack.
         yield* countIs(page, '.lab-strip-row', 2);
         yield* evaluates(page, ONE_LANE, false);
+        yield* evaluates(page, labelsClash('.lab-cue-name', '.lab-cue-lane'), []);
       }).pipe(Effect.scoped),
   );
 });

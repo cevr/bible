@@ -14,7 +14,7 @@
 // to its words (`player.css`, by the panel's mode on `data-mode`).
 
 import { For, Show } from '@solidjs/web';
-import { Effect, Option, Result } from 'effect';
+import { Array as Arr, Effect, Option, Result } from 'effect';
 import { createMemo, createSignal, onCleanup } from 'solid-js';
 import { DRAG_PX, Pointer, Surface } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
@@ -77,7 +77,9 @@ const Words = (props: {
               ),
             }}
           >
-            {`${label().name} ${label().t.toFixed(2)}`}
+            {/* The name first, the seconds dropped whole before it is cut. */}
+            <span class="lab-strip-label-name">{label().name}</span>{' '}
+            <span class="lab-strip-label-t">{label().t.toFixed(2)}</span>
           </span>
         )}
       </For>
@@ -118,6 +120,8 @@ interface CueBarProps {
   readonly rows: () => Option.Option<HTMLElement>;
   /** Lit while the playhead is inside the cue (`liveAt`, counted once a frame by the strip): the Source view lights the same cues. */
   readonly live: () => boolean;
+  /** Where the next bar on its lane starts, if one does: the room its name has after it. */
+  readonly next: () => Option.Option<number>;
 }
 
 /** One cue's bar where it plays: a press grabs it (the editor's machine takes it from there). */
@@ -132,6 +136,13 @@ const CueBar = (props: CueBarProps) => {
       onNone: () => '',
       onSome: anchorText,
     });
+  // The room after the bar, in bar lengths, up to the next bar on its lane or the window's end: a name written
+  // after a bar too short to hold it keeps to it (`player.css`).
+  const after = () => {
+    const w = props.window();
+    const free = Option.getOrElse(props.next(), () => w.from + w.span) - cue().end;
+    return String(Math.max(0, free) / Math.max(cue().dur, 0.01));
+  };
   // A bar gone from under the mouse (the scene changed, its lane stacked) gives up the point it held: no leave comes.
   onCleanup(() => {
     if (pointsAt(editor.pointed(), scene(), name())) actions.point(Option.none());
@@ -178,14 +189,24 @@ const CueBar = (props: CueBarProps) => {
       style={{
         left: pct(props.window(), cue().start),
         width: len(props.window(), cue().dur),
+        '--after': after(),
       }}
       title={`${name()}: ${title()} · ${timecode(cue().start, meta.film.fps)}–${timecode(cue().end, meta.film.fps)} · ${cue().ease}`}
       onPointerDown={press}
     >
       {/* Its words where the bar has room for them, else its name (`player.css`, by the bar's width). */}
       <Show when={props.worded}>
+        {/* What follows the name drops whole before the name is cut; its text still reads as the words. */}
         <span class="lab-cue-words" data-room="full">
-          {props.block.words}
+          <span class="lab-cue-name">{props.block.name}</span>
+          <Show when={Option.getOrUndefined(props.block.more)}>
+            {(more) => (
+              <>
+                {' '}
+                <span class="lab-cue-more">{more()}</span>
+              </>
+            )}
+          </Show>
         </span>
         <span class="lab-cue-words" data-room="short">
           {props.block.name}
@@ -201,6 +222,9 @@ interface TrackRowProps {
   readonly label: string;
   /** A named track (its cues name it), whose bars carry their words. */
   readonly named: boolean;
+  /** The first lane of its track: a rule parts it from the track above. */
+  readonly first: boolean;
+  /** Its cues, by their clock (`tracks.ts`). */
   readonly blocks: ReadonlyArray<Block>;
   readonly window: () => StripWindow;
   readonly rows: () => Option.Option<HTMLElement>;
@@ -215,6 +239,7 @@ const TrackRow = (props: TrackRowProps) => (
   <div
     class="lab-strip-row"
     data-named={Option.getOrUndefined(Option.liftPredicate('', () => props.named))}
+    data-first={Option.getOrUndefined(Option.liftPredicate('', () => props.first))}
     onPointerDown={props.lane}
   >
     <span class="lab-cue-label">{props.label}</span>
@@ -229,6 +254,15 @@ const TrackRow = (props: TrackRowProps) => (
             window={props.window}
             rows={props.rows}
             live={() => props.live(block().name)}
+            next={() =>
+              Option.map(
+                Option.flatMap(
+                  Arr.findFirstIndex(props.blocks, (b) => b.name === block().name),
+                  (i) => Arr.get(props.blocks, i + 1),
+                ),
+                (b) => b.cue.start,
+              )
+            }
           />
         )}
       </For>
@@ -369,6 +403,7 @@ export const Strip = () => {
                 () => '',
               ),
               named: track.named,
+              first: i === 0,
               blocks,
             })),
           ),
@@ -495,6 +530,7 @@ export const Strip = () => {
                       placed={p()}
                       label={row().label}
                       named={row().named}
+                      first={row().first}
                       blocks={row().blocks}
                       window={shown}
                       rows={() => rows}
