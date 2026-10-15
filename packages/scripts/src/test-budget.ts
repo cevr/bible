@@ -5,7 +5,7 @@
 // cached), times it, reads each workspace's time from turbo's run summary,
 // and fails when the run or any one workspace reaches the budget.
 //
-// Local only, like `test:perf` and `test:gent`: CI's runners are smaller
+// Local only, like `test:perf`: CI's runners are smaller
 // and shared, so a wall-clock budget there would fail on the runner, not on
 // the code. In CI the guard is each test's own timeout: bun's 5 s, or the
 // `--timeout` a workspace's `test` script names.

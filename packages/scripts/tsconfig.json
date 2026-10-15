@@ -7,7 +7,6 @@
     "src/checkpoint.ts",
     "src/ci-verdict.ts",
     "src/fetch-stills.ts",
-    "src/test-gent.ts",
     "src/ci-verdict/**/*.ts",
     "src/checkpoint/**/*.ts",
     "src/topics-compiler/**/*.ts"
