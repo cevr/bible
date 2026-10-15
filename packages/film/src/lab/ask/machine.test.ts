@@ -103,6 +103,13 @@ const fakeLab = (
     }),
   );
 
+/** Ask `id`'s page, opening on its first read through the fake lab (the review's `askRead`, there). */
+const pageOn = (id: string) =>
+  spawnAskPage(
+    id,
+    ReviewApi.use((api) => api.ask(id)),
+  );
+
 const opened = (record: AskRecord, said = '') =>
   AskPageState.Open({ page: { record, draft: {} }, said, missing: '' });
 
@@ -122,7 +129,7 @@ describe("an ask's page", () => {
     () => {
       const sent: Array<Sent> = [];
       return Effect.gen(function* () {
-        const actor = yield* spawnAskPage(asking.id);
+        const actor = yield* pageOn(asking.id);
         expect(yield* actor.waitFor(AskPageState.Open)).toEqual(opened(asking));
         yield* actor.send(AskPageEvent.Submit);
         const unfit = yield* actor.waitFor((s) => s._tag === 'Open' && s.said !== '');
@@ -151,7 +158,7 @@ describe("an ask's page", () => {
   it.effect('opens from where its run is, and sends optional words left empty as none', () => {
     const sent: Array<Sent> = [];
     return Effect.gen(function* () {
-      const actor = yield* spawnAskPage(asking.id);
+      const actor = yield* pageOn(asking.id);
       yield* actor.waitFor(AskPageState.Open);
       yield* actor.send(AskPageEvent.Set({ id: 'why', value: '  ' }));
       yield* actor.send(AskPageEvent.Submit);
@@ -167,7 +174,7 @@ describe("an ask's page", () => {
     const sent: Array<Sent> = [];
     const refused = AskRefused.make({ id: asking.id, reason: 'step pick is answered already' });
     return Effect.gen(function* () {
-      const actor = yield* spawnAskPage(asking.id);
+      const actor = yield* pageOn(asking.id);
       yield* actor.waitFor(AskPageState.Open);
       yield* actor.send(AskPageEvent.Set({ id: 'try', value: '1' }));
       yield* actor.send(AskPageEvent.Submit);
@@ -175,7 +182,7 @@ describe("an ask's page", () => {
       expect(yield* SubscriptionRef.get(actor.state)).toEqual(
         opened(picked, 'ask "a0123456789": step pick is answered already'),
       );
-      const lost = yield* spawnAskPage('a9999999999');
+      const lost = yield* pageOn('a9999999999');
       expect(yield* lost.waitFor(AskPageState.Unreadable)).toEqual(
         AskPageState.Unreadable({ why: 'the lab has no ask "a9999999999"' }),
       );
@@ -202,7 +209,7 @@ describe("an ask's page", () => {
       Effect.succeed(ended),
     ];
     return Effect.gen(function* () {
-      const actor = yield* spawnAskPage(asking.id);
+      const actor = yield* pageOn(asking.id);
       yield* actor.waitFor(AskPageState.Open);
       yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
       yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'the steadier voice' }));
@@ -238,7 +245,7 @@ describe("an ask's page", () => {
       const refused = AskRefused.make({ id: asking.id, reason: 'step pick is answered already' });
       const reread = Deferred.makeUnsafe<boolean>();
       return Effect.gen(function* () {
-        const actor = yield* spawnAskPage(asking.id);
+        const actor = yield* pageOn(asking.id);
         yield* actor.waitFor(AskPageState.Open);
         yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
         yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'the steadier voice' }));
@@ -278,7 +285,7 @@ describe("an ask's page", () => {
     const sent: Array<Sent> = [];
     const out = Deferred.makeUnsafe<boolean>();
     return Effect.gen(function* () {
-      const actor = yield* spawnAskPage(asking.id);
+      const actor = yield* pageOn(asking.id);
       yield* actor.waitFor(AskPageState.Open);
       yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
       yield* actor.send(AskPageEvent.Submit);
@@ -314,7 +321,7 @@ describe("an ask's page", () => {
   it.effect('a landed send names an edit made after Send that it did not carry', () => {
     const out = Deferred.makeUnsafe<boolean>();
     return Effect.gen(function* () {
-      const actor = yield* spawnAskPage(asking.id);
+      const actor = yield* pageOn(asking.id);
       yield* actor.waitFor(AskPageState.Open);
       yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
       yield* actor.send(AskPageEvent.Submit);
@@ -338,7 +345,7 @@ describe("an ask's page", () => {
   it.effect('a refused send whose re-read the store fails keeps the whole draft', () => {
     const refused = AskRefused.make({ id: asking.id, reason: 'step pick is answered already' });
     return Effect.gen(function* () {
-      const actor = yield* spawnAskPage(asking.id);
+      const actor = yield* pageOn(asking.id);
       yield* actor.waitFor(AskPageState.Open);
       yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
       yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'the steadier voice' }));
@@ -370,7 +377,7 @@ describe("an ask's page", () => {
     () => {
       const refused = AskRefused.make({ id: asking.id, reason: 'step pick is answered already' });
       return Effect.gen(function* () {
-        const actor = yield* spawnAskPage(asking.id);
+        const actor = yield* pageOn(asking.id);
         yield* actor.waitFor(AskPageState.Open);
         yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
         yield* actor.send(AskPageEvent.Submit);
@@ -392,7 +399,7 @@ describe("an ask's page", () => {
 
   it.effect('an ask that could not be read is read again on Retry', () =>
     Effect.gen(function* () {
-      const actor = yield* spawnAskPage(asking.id);
+      const actor = yield* pageOn(asking.id);
       expect(yield* actor.waitFor(AskPageState.Unreadable)).toEqual(
         AskPageState.Unreadable({ why: 'the lab did not answer' }),
       );

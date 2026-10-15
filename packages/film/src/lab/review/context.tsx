@@ -18,7 +18,18 @@ import {
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, isServer } from '@solidjs/web';
-import { Array as Arr, Clock, Effect, Equal, Exit, Function, Layer, Option, Schema } from 'effect';
+import {
+  Array as Arr,
+  Clock,
+  Effect,
+  Equal,
+  Exit,
+  Function,
+  Layer,
+  Match,
+  Option,
+  Schema,
+} from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -36,6 +47,7 @@ import {
   useContext,
 } from 'solid-js';
 import { type SeenPoint, seenVariants } from '../../core/choice.ts';
+import type { AskRecord } from '../../core/ask.ts';
 import type { BoardFile } from '../../core/board.ts';
 import { type ProductionFile, Productions } from '../../core/production.ts';
 import type { DrawStills } from './options/stills.tsx';
@@ -175,7 +187,7 @@ export interface AskShown {
 
 interface ReviewStateValue {
   readonly place: Accessor<ReviewPlace>;
-  /** The ask a page last read (`shown`): none until one has. */
+  /** The ask the place is (its first read, `askRead`): none until it is read, and on any other place. */
   readonly ask: Accessor<Option.Option<AskShown>>;
   /**
    * Every folder with something to review, as the newest ask answered it
@@ -219,8 +231,6 @@ interface ReviewActions {
   /** A production moved forward: its ledger as the move left it, shown in place of the one read. */
   readonly moved: (file: ProductionFile) => void;
   readonly quality: (quality: Quality) => void;
-  /** An ask's page read its ask: the shell names it (its one read is the page's, never a second). */
-  readonly asked: (ask: AskShown) => void;
 }
 
 /** A file as the index last saw it: its ref, and when it was written. */
@@ -264,6 +274,11 @@ interface ReviewMeta {
    * every reader of the film shares.
    */
   readonly script: (film: string) => Loaded<ScriptBeats>;
+  /**
+   * Ask `id` as its first read had it, the one read the shell names the ask
+   * by and its page opens on; read again once it failed (a Retry).
+   */
+  readonly askRead: (id: string) => Effect.Effect<AskRecord, LabFailure>;
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
   /** The page's one client of the lab's API: what a read of its own (a feed) goes through. */
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
@@ -405,7 +420,14 @@ export const Root = (
     .atom(ReviewApi.use((api) => api.productions))
     .pipe(served('review.productions', Productions));
   const movedAtom = Atom.make<ReadonlyArray<ProductionFile>>([]);
-  const askAtom = Atom.make(Option.none<AskShown>());
+  // An ask's first read, in the page alone: the shell names the ask by it and its page opens on it.
+  const askOf = Atom.family((id: string) =>
+    runtime
+      .atom(ReviewApi.use((api) => api.ask(id)))
+      .pipe(Atom.withServerValue(() => AsyncResult.initial<AskRecord, LabFailure>())),
+  );
+  // No ask on a place that is not one: nothing is read.
+  const noAsk = Atom.make(AsyncResult.initial<AskRecord, LabFailure>());
   // A first read takes the server's cache; a refresh asks it to walk its roots again.
   const firstIndexAtom = runtime
     .atom(ReviewApi.use((api) => api.index(false)))
@@ -512,8 +534,18 @@ export const Root = (
     );
     const refreshProductions = useAtomRefresh(() => productionsReadAtom);
     const setMoved = useAtomSet(() => movedAtom);
-    const ask = useAtomValue(() => askAtom);
-    const setAsk = useAtomSet(() => askAtom);
+    const askRead = useAtomValue(() =>
+      Match.value(place()).pipe(
+        Match.tag('Ask', (p) => askOf(p.ask)),
+        Match.orElse(() => noAsk),
+      ),
+    );
+    const ask = (): Option.Option<AskShown> =>
+      Option.map(AsyncResult.value(askRead()), (r) => ({
+        id: r.id,
+        title: r.title,
+        film: Option.fromUndefinedOr(r.film),
+      }));
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
     const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(PHONE)));
@@ -607,7 +639,6 @@ export const Root = (
             file,
           ]),
         quality: keepQuality,
-        asked: (shown) => setAsk(Option.some(shown)),
       },
       meta: {
         asks,
@@ -629,6 +660,11 @@ export const Root = (
           scriptsRead.add(film);
           return scriptOf(film);
         },
+        askRead: (id) =>
+          Effect.suspend(() => {
+            if (AsyncResult.isFailure(registry.get(askOf(id)))) registry.refresh(askOf(id));
+            return AtomRegistry.getResult(registry, askOf(id), { suspendOnWaiting: true });
+          }),
         runtime,
         client: props.client,
         host: props.host,

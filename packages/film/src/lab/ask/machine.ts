@@ -168,22 +168,26 @@ const unsent = (failure: LabFailure): AskPageEvent => {
   return AskPageEvent.Refused({ why: failureText(failure) });
 };
 
-/** The page's machine for ask `id`, reading it first. */
-const askPageMachine = (id: string) =>
+/** A read of the ask, as the page's events: read, or why not and whether the lab has no such ask. */
+const readEvents = {
+  onSuccess: (record: AskRecord) => AskPageEvent.Read({ record }),
+  onFailure: (failure: LabFailure) =>
+    AskPageEvent.Unread({ why: failureText(failure), gone: failure._tag === 'AskUnknown' }),
+};
+
+/**
+ * The page's machine for ask `id`, opening on `first` (the review's first
+ * read of it, which the shell names the ask by) and reading it afresh after
+ * a refused send.
+ */
+const askPageMachine = (id: string, first: Effect.Effect<AskRecord, LabFailure, ReviewApi>) =>
   Machine.make({
     state: AskPageState,
     event: AskPageEvent,
     initial: AskPageState.Reading({ said: '' }),
   })
-    .task(
-      [AskPageState.Reading, AskPageState.Rereading],
-      () => ReviewApi.use((api) => api.ask(id)),
-      {
-        onSuccess: (record) => AskPageEvent.Read({ record }),
-        onFailure: (failure) =>
-          AskPageEvent.Unread({ why: failureText(failure), gone: failure._tag === 'AskUnknown' }),
-      },
-    )
+    .task(AskPageState.Reading, () => first, readEvents)
+    .task(AskPageState.Rereading, () => ReviewApi.use((api) => api.ask(id)), readEvents)
     .on(AskPageState.Reading, AskPageEvent.Read, ({ state, event }) =>
       AskPageState.Open({
         page: { record: event.record, draft: {} },
@@ -260,8 +264,8 @@ const askPageMachine = (id: string) =>
       });
     });
 
-/** The page's actor for ask `id`, started: reading it. */
-export const spawnAskPage = (id: string) =>
-  Machine.spawn(askPageMachine(id)).pipe(Effect.tap((actor) => actor.start));
+/** The page's actor for ask `id`, started: opening on `first`. */
+export const spawnAskPage = (id: string, first: Effect.Effect<AskRecord, LabFailure, ReviewApi>) =>
+  Machine.spawn(askPageMachine(id, first)).pipe(Effect.tap((actor) => actor.start));
 
 export type AskPageActor = Effect.Success<ReturnType<typeof spawnAskPage>>;

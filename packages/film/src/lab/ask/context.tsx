@@ -8,7 +8,7 @@ import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Match, Option, Record } from 'effect';
 import * as ActorAtom from 'effect-machine/atom';
 import type { Accessor, ParentProps } from 'solid-js';
-import { createContext, createEffect, createMemo, untrack, useContext } from 'solid-js';
+import { createContext, createMemo, useContext } from 'solid-js';
 import { type AskRecord, type Question, questionsOf, type Section } from '../../core/ask.ts';
 import { Actor } from '../actor.tsx';
 import { useReview } from '../review/context.tsx';
@@ -81,22 +81,6 @@ const Body = (props: ParentProps<{ readonly actor: AskPageActor }>) => {
   const page = useAtomValue(() => stateAtom);
   const send = useAtomSet(() => stateAtom);
   const record = createMemo(() => Option.map(pageOf(page()), (p) => p.record));
-  const review = useReview();
-  // The shell names the ask by this read: its crumb and tab its title, its header its film.
-  // An ask's title and film never change: it is named once per ask read.
-  createEffect(
-    () =>
-      Option.getOrElse(
-        Option.map(record(), (r) => r.id),
-        () => '',
-      ),
-    () =>
-      Option.match(untrack(record), {
-        onNone: () => {},
-        onSome: (r) =>
-          review.actions.asked({ id: r.id, title: r.title, film: Option.fromUndefinedOr(r.film) }),
-      }),
-  );
   const sections = createMemo(() =>
     Option.match(record(), {
       onNone: () => [],
@@ -126,11 +110,14 @@ const Body = (props: ParentProps<{ readonly actor: AskPageActor }>) => {
   return <AskContext value={value}>{props.children}</AskContext>;
 };
 
-/** Ask `ask`'s state and actions, for its page's parts. */
+/**
+ * Ask `ask`'s state and actions, for its page's parts. The page opens on the
+ * review's first read of the ask, the one the shell names it by (`askRead`).
+ */
 export const Provider = (props: ParentProps<{ readonly ask: string }>) => {
   const { meta } = useReview();
   return (
-    <Actor runtime={meta.runtime} spawn={spawnAskPage(props.ask)}>
+    <Actor runtime={meta.runtime} spawn={spawnAskPage(props.ask, meta.askRead(props.ask))}>
       {(actor) => <Body actor={actor}>{props.children}</Body>}
     </Actor>
   );
