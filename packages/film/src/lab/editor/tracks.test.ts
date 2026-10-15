@@ -3,8 +3,14 @@
 // track stacked; each cue's words; the marks as labels in time order.
 
 import { describe, expect, test } from 'bun:test';
-import type { ResolvedCue, Timeline } from '../../core/schema.ts';
-import { blockWords, countText, heldLanes, labelsOf, stripOrder, tracksOf } from './tracks.ts';
+import type { ResolvedCue, Span, Timeline } from '../../core/schema.ts';
+import { countText, heldLanes, labelsOf, stripOrder, tracksOf } from './tracks.ts';
+
+/** The words the strip writes in the bar of cue `name`, its span `span` resolved as `cue`. */
+const blockWords = (name: string, span: Span, cue: ResolvedCue) =>
+  tracksOf({ [name]: span }, new Map([[name, cue]])).flatMap((t) =>
+    t.lanes.flatMap((l) => l.map((b) => b.words)),
+  )[0];
 
 const at = (start: number, dur: number): ResolvedCue => ({
   start,

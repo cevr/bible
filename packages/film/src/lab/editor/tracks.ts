@@ -74,7 +74,7 @@ const untilWords = (until: Until, offset: Option.Option<number>): string =>
   );
 
 /** What a cue is: its name, then what ends it (a point it runs until, the scene's end) or its length. */
-export const blockWords = (name: string, span: Span, cue: ResolvedCue): string =>
+const blockWords = (name: string, span: Span, cue: ResolvedCue): string =>
   Option.match(Option.fromUndefinedOr(span.until), {
     onSome: (until) => `${name} ${untilWords(until, Option.fromUndefinedOr(span.untilOffset))}`,
     onNone: () =>
