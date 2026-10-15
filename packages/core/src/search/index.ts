@@ -10,3 +10,4 @@ export * from './service.js';
 export * from './vector-artifact.js';
 export * from './vector-bytes-fs.js';
 export * from './vector-index.js';
+export * from './vector-neighbors.js';
