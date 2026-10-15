@@ -2,8 +2,9 @@
 # The browser E2E tests run their cases at once: each holds a view lent from the
 # worker's one Chrome, on an origin of its own (src/lab/fixtures/browsers.ts). The test script's
 # --max-concurrency=3 (bunfig has no key for it) holds a worker to three cases
-# at a time; the E2E script caps --parallel at eight workers (one per core
-# on smaller hosts), so at most 24 pages. Unbound,
+# at a time; the E2E script sizes --parallel by the host (src/lab/fixtures/workers.ts:
+# on CI at most eight, one per core on smaller hosts; on a shared machine the
+# cores free when it starts), so at most three pages a worker. Unbound,
 # every case in a file shares the cores with all its siblings and takes the
 # whole file's time: on a loaded 4-core runner a case that takes 0.5 s alone
 # took 13-15 s. A case waiting for its turn has not started, so its timeout

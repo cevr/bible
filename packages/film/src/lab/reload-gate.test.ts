@@ -107,6 +107,43 @@ describe('the reload gate', () => {
     },
   );
 
+  it.effect(
+    'a Retake keeps the hold while the microphone opens: the waiting reload never cuts it short',
+    () => {
+      const { page, gate, layer } = gated();
+      return Effect.gen(function* () {
+        yield* gate.hold('studio', unsubmitted(RecorderState.Review({ beat: 'a', wav })));
+        yield* simulate(editMachine, [
+          EditEvent.Step({
+            verb: 'undo',
+            request: RequestId.make('undo-1'),
+            change: Option.none(),
+          }),
+          EditEvent.Wrote({ result: undoneTake }),
+        ]);
+        // Retake: the browser opens the microphone, the take under review riding along.
+        yield* gate.hold(
+          'studio',
+          unsubmitted(
+            RecorderState.Opening({ beat: 'a', device: Option.none(), wav: Option.some(wav) }),
+          ),
+        );
+        expect(page.reloads).toBe(0);
+        expect(page.waiting).toBe(
+          'the page reloads with the change once you let the microphone open and finish the take',
+        );
+        // The count-in, then the new take discarded: only then does the page reload.
+        yield* gate.hold('studio', unsubmitted(RecorderState.CountIn({ beat: 'a', n: 3 })));
+        expect(page.reloads).toBe(0);
+        yield* gate.hold(
+          'studio',
+          unsubmitted(RecorderState.Idle({ beat: 'a', kept: Option.none() })),
+        );
+        expect(page.reloads).toBe(1);
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
   it.effect('a reload waits for every hold: a take under review and a note being written', () => {
     const { page, gate } = gated();
     return Effect.gen(function* () {

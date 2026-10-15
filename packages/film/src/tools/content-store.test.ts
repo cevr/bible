@@ -207,6 +207,39 @@ describe('ContentStore', () => {
     SPAWNS_MS,
   );
 
+  // Its parent gone however it went (a timeout, a signal to the test's process
+  // group but not the holder's, a SIGKILL), the holder's stdin ends: so it
+  // lets go, and no holder outlives its test. Real time, as its exit is.
+  it.live(
+    'a writer whose stdin ends, as when its parent is gone, exits and lets the lock go',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const dir = yield* fs.makeTempDirectoryScoped();
+        const file = `${dir}/assets.json`;
+        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+        const holder = yield* spawner.spawn(
+          ChildProcess.make('bun', [
+            path.join(import.meta.dir, 'fixtures', 'hold-manifest.ts'),
+            file,
+          ]),
+        );
+        yield* holder.stdout.pipe(
+          Stream.decodeText(),
+          Stream.takeUntil((chunk) => chunk.includes('held')),
+          Stream.runDrain,
+        );
+        yield* Stream.run(Stream.empty, holder.stdin);
+        const exited = yield* holder.exitCode.pipe(Effect.timeoutOption('5 seconds'));
+        expect(Option.isSome(exited)).toBe(true);
+        const taken = yield* bunManifestLock.take(file);
+        expect(Option.isSome(taken)).toBe(true);
+        yield* Effect.forEach(Option.toArray(taken), (release) => release);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    SPAWNS_MS,
+  );
+
   it.effect(
     'a holder in memory holds however long, and lets go when its change ends however it ends',
     () =>

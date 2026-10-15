@@ -10,18 +10,18 @@
 // the code. In CI the guard is each test's own timeout: bun's 5 s, or the
 // `--timeout` a workspace's `test` script names.
 //
-// A slow run on a busy machine says so: the load average before the run is
-// printed beside the times, and a run over budget under load is run again
-// when the machine is quiet.
+// The load average before the run and the core count are printed beside the
+// times. A machine busier than its cores measures nothing: the run prints
+// "not measured (load N on C cores)" and exits 0, so the merge step measures
+// again on a quiet machine; at or below the core count, over budget fails
+// (`test-budget/budget.ts`). A test that fails still fails, at any load.
 
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { Clock, Console, Effect, FileSystem, Path, Schema } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 import { availableParallelism, loadavg } from 'node:os';
-
-/** The budget, in milliseconds, for the whole run and for each workspace's `test`. */
-const BUDGET_MS = 10_000;
+import { judge } from './test-budget/budget.js';
 
 /** What this reads of turbo's run summary (`--summarize`): each task's span. */
 const RunSummary = Schema.Struct({
@@ -32,8 +32,6 @@ const RunSummary = Schema.Struct({
     }),
   ),
 });
-
-const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 
 const run = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
@@ -74,30 +72,18 @@ const run = Effect.gen(function* () {
     Schema.decodeUnknownEffect(Schema.fromJsonString(RunSummary)),
   );
   yield* fs.remove(summaryPath);
-  const tasks = summary.tasks
-    .map((task) => ({
+  const judged = judge({
+    tasks: summary.tasks.map((task) => ({
       name: task.taskId,
       ms: task.execution.endTime - task.execution.startTime,
-    }))
-    .toSorted((a, b) => b.ms - a.ms);
-  const over = [...tasks, { name: 'bun run test', ms: wall }].filter(
-    (task) => task.ms >= BUDGET_MS,
-  );
-  yield* Console.log(
-    [
-      '',
-      `test:budget: under ${seconds(BUDGET_MS)} each (load average ${load.toFixed(1)} before it, on ${availableParallelism()} cores)`,
-      ...tasks.map((task) => `  ${seconds(task.ms).padStart(7)}  ${task.name}`),
-      `  ${seconds(wall).padStart(7)}  bun run test`,
-    ].join('\n'),
-  );
-  if (over.length === 0) return 0;
-  yield* Console.error(
-    `test:budget: over budget: ${over.map((task) => `${task.name} ${seconds(task.ms)}`).join(', ')}.\n` +
-      'A test that waits on real time, a setup each test repeats, or one long file a worker runs alone is the usual cause;\n' +
-      'on a busy machine (a load average above its cores), run it again when the machine is quiet.',
-  );
-  return 1;
+    })),
+    wall,
+    load,
+    cores: availableParallelism(),
+  });
+  yield* Console.log(judged.report.join('\n'));
+  if (judged.failure.length > 0) yield* Console.error(judged.failure.join('\n'));
+  return judged.code;
 }).pipe(
   Effect.flatMap((code) =>
     Effect.sync(() => {

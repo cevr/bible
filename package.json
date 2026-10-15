@@ -24,6 +24,7 @@
     "fmt:check": "oxfmt --check",
     "test": "turbo run test",
     "test:e2e": "bun run --cwd packages/film test:e2e",
+    "test:e2e:check": "bun run --cwd packages/film test:e2e:check",
     "test:perf": "turbo run test:perf --concurrency=1",
     "test:budget": "bun packages/scripts/src/test-budget.ts",
     "gate": "concurrently -n style,turbo -c yellow,cyan \"bun run guard\" \"turbo run gate\"",

@@ -20,6 +20,7 @@ import {
   nearLimit,
   neighbour,
   reviewWav,
+  unsubmitted,
   type Keyed,
   statusOf as statusWith,
 } from './view.ts';
@@ -54,6 +55,33 @@ describe('atRest', () => {
     expect(atRest(failed(mismatch))).toBe(false);
     expect(atRest(RecorderState.CountIn({ beat: 'a', n: 2 }))).toBe(false);
     expect(atRest(RecorderState.Review({ beat: 'a', wav }))).toBe(false);
+  });
+});
+
+describe('unsubmitted', () => {
+  test('holds the page from the Record press until the take is kept or discarded, the open included', () => {
+    const opening = (held: Option.Option<Uint8Array>) =>
+      RecorderState.Opening({ beat: 'a', device: Option.none(), wav: held });
+    expect(unsubmitted(idle)).toEqual(Option.none());
+    // A Record press (or a Retake, the take under review riding along) waits on the browser.
+    expect(unsubmitted(opening(Option.none()))).toEqual(
+      Option.some('let the microphone open and finish the take'),
+    );
+    expect(unsubmitted(opening(Option.some(wav)))).toEqual(
+      Option.some('let the microphone open and finish the take'),
+    );
+    expect(unsubmitted(RecorderState.CountIn({ beat: 'a', n: 2 }))).toEqual(
+      Option.some('stop the take being recorded'),
+    );
+    expect(unsubmitted(RecorderState.Review({ beat: 'a', wav }))).toEqual(
+      Option.some('submit or discard the take under review'),
+    );
+    expect(unsubmitted(failed(mismatch))).toEqual(
+      Option.some('go Back to the refused take and submit or discard it'),
+    );
+    expect(
+      unsubmitted(RecorderState.Failed({ beat: 'a', refusal: mismatch, wav: Option.none() })),
+    ).toEqual(Option.none());
   });
 });
 
