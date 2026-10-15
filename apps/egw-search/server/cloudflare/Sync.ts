@@ -24,6 +24,9 @@
  * 5. `report` — what the run did (`reportEgwSync`). A run with an
  *    unexpected failure ends errored, after doing all the rest, so the
  *    dashboard shows it.
+ * 6. `mail` — the run's outcome, mailed to its owner (`./sync-mail.ts`):
+ *    what was installed, what failed, or where a run stopped. Only a stage
+ *    that names a sender and a recipient mails, which is `prod`.
  *
  * ## Only `prod` writes
  *
@@ -44,7 +47,18 @@ import { RuntimeContext } from 'alchemy';
 import * as Cloudflare from 'alchemy/Cloudflare';
 import { Stage } from 'alchemy/Stage';
 import * as D1Client from '@effect/sql-d1/D1Client';
-import { Config, ConfigProvider, Effect, Layer, Option, Redacted, Schema } from 'effect';
+import {
+  Cause,
+  Config,
+  ConfigProvider,
+  Effect,
+  Exit,
+  Layer,
+  Option,
+  Predicate,
+  Redacted,
+  Schema,
+} from 'effect';
 import { HttpServerResponse } from 'effect/http';
 import * as SqlClient from 'effect/sql/SqlClient';
 
@@ -67,6 +81,7 @@ import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { BOOK_VECTORS_PAGE, type BookVectorsFailed, bookVectorsPage } from './book-vectors.ts';
 import { D1Atomic } from './d1-atomic.ts';
 import { Corpus, Vectors } from './resources.ts';
+import { SyncOutcome, syncMail } from './sync-mail.ts';
 import { EMBEDDING_MODEL, workersAiDocuments } from './workers-ai.ts';
 
 /** The prod Worker. Not routed: nothing reaches it but its Workflow. */
@@ -79,6 +94,17 @@ export const SYNC_WORKFLOW_NAME = 'egw-corpus-sync';
  *  standard time. Cloudflare's cron runs in UTC only, and numbers the days
  *  1 (Sunday) to 7, so the day is named: a `0` there is refused. */
 export const SYNC_SCHEDULE = '0 9 * * SUN';
+
+/** Who the run's mail is from and to. The recipient is the cvr.im address
+ *  Email Routing forwards to the owner, so no personal address is in the
+ *  source. */
+const SYNC_MAIL = { from: 'egw-sync@cvr.im', to: 'hello@cvr.im' } as const;
+
+/** The `send_email` binding the run's mail goes through. */
+const SyncMailer = Cloudflare.Email.SendEmail('SyncMailer');
+
+/** The longest cause a stopped run's mail carries. */
+const MAIL_CAUSE_LIMIT = 4000;
 
 /** What an instance is asked to do. A scheduled instance carries nothing,
  *  which is a sync on `prod` and a plan anywhere else. `reembed` adds the
@@ -123,7 +149,11 @@ const props = Effect.gen(function* () {
     limits: { cpuMs: 300_000 },
   };
   if (!Option.contains(stage, 'prod')) return base;
-  return { ...base, name: SYNC_WORKER_NAME, env: { CORPUS_SYNC: 'write' } };
+  return {
+    ...base,
+    name: SYNC_WORKER_NAME,
+    env: { CORPUS_SYNC: 'write', SYNC_MAIL_FROM: SYNC_MAIL.from, SYNC_MAIL_TO: SYNC_MAIL.to },
+  };
 });
 
 /** The Workflow's props, by stage: the cron everywhere, the plain name on
@@ -141,6 +171,7 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
     const corpus = yield* Cloudflare.D1.QueryDatabase(yield* Corpus);
     const vectors = yield* Cloudflare.Vectorize.SearchIndex(yield* Vectors);
     const ai = yield* Cloudflare.Workers.AI();
+    const mailer = yield* Cloudflare.Email.Send(SyncMailer);
     const embed = workersAiDocuments((inputs) =>
       ai.run(EMBEDDING_MODEL, inputs).pipe(Effect.provide(RuntimeContext.phantom)),
     );
@@ -264,14 +295,29 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
             reportEgwSync(plan, failures).pipe(Effect.provide(readLayer), Effect.orDie),
           );
 
-        // A scheduled instance carries no payload at all, so the input is
-        // read as nothing until it decodes.
-        return Effect.fn('CorpusSync.run')(function* (payload: CorpusSyncInput) {
+        /** Mail the outcome, where this stage names a sender and a recipient.
+         *  A mail that cannot be sent is logged: the run's own result stands. */
+        const mailStep = Effect.fn('CorpusSync.mail')(function* (outcome: SyncOutcome) {
           const env = yield* Cloudflare.WorkerEnvironment;
-          const input = Option.getOrElse(
-            Option.flatMap(Option.fromNullishOr(payload), decodeInput),
-            () => NOTHING_ASKED,
+          const from: unknown = env['SYNC_MAIL_FROM'];
+          const to: unknown = env['SYNC_MAIL_TO'];
+          if (!Predicate.isString(from) || !Predicate.isString(to)) return;
+          const message = syncMail(outcome);
+          const sent = yield* Effect.exit(
+            Cloudflare.Workflows.task(
+              'mail',
+              mailer.send({ from, to, ...message }).pipe(Effect.as({ subject: message.subject })),
+              { retries: RETRIES },
+            ),
           );
+          if (Exit.isFailure(sent)) {
+            yield* Effect.logError('egw_sync_mail_failed', Cause.pretty(sent.cause));
+          }
+        });
+
+        /** The run up to its report: what happened, and what the run returns. */
+        const runOnce = Effect.fn('CorpusSync.runOnce')(function* (input: CorpusSyncInput) {
+          const env = yield* Cloudflare.WorkerEnvironment;
           const writes = env['CORPUS_SYNC'] === 'write' && input.mode !== 'plan';
 
           const plan = yield* planStep;
@@ -281,15 +327,15 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
               ` installed=${String(plan.installedBefore)} pending=${String(plan.pending.length)}`,
           );
           if (!writes) {
-            return {
-              mode: 'plan' as const,
+            return SyncOutcome.Planned({
               remote: plan.remote.length,
               installedBefore: plan.installedBefore,
-              pending: plan.pending.map((book) => book.code),
-            };
+              pending: plan.pending,
+            });
           }
 
           const failures: EgwSyncFailure[] = [];
+          const installed: EgwSyncBook[] = [];
           const vectorFailures: { readonly id: number; readonly reason: string }[] = [];
           const addVectors = (bookId: number) =>
             vectorsOf(bookId).pipe(
@@ -307,6 +353,7 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
               failures.push(failure.value);
               continue;
             }
+            installed.push(book);
             yield* addVectors(book.id);
           }
           for (const id of input.reembed ?? []) yield* addVectors(id);
@@ -319,6 +366,35 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
               ` unexpected=${String(report.unexpectedFailures)}` +
               ` vector_failures=${String(vectorFailures.length)}`,
           );
+          return SyncOutcome.Synced({ counts: report, installed, vectorFailures });
+        });
+
+        // A scheduled instance carries no payload at all, so the input is
+        // read as nothing until it decodes.
+        return Effect.fn('CorpusSync.run')(function* (payload: CorpusSyncInput) {
+          const input = Option.getOrElse(
+            Option.flatMap(Option.fromNullishOr(payload), decodeInput),
+            () => NOTHING_ASKED,
+          );
+          const exit = yield* Effect.exit(runOnce(input));
+          if (Exit.isFailure(exit)) {
+            // Mailed, then failed with the same cause, so the dashboard and
+            // the engine see the run exactly as it stopped.
+            const reason = Cause.pretty(exit.cause).slice(0, MAIL_CAUSE_LIMIT);
+            yield* mailStep(SyncOutcome.Stopped({ reason }));
+            return yield* Effect.failCause(exit.cause);
+          }
+          const outcome = exit.value;
+          yield* mailStep(outcome);
+          if (outcome._tag === 'Planned') {
+            return {
+              mode: 'plan' as const,
+              remote: outcome.remote,
+              installedBefore: outcome.installedBefore,
+              pending: outcome.pending.map((book) => book.code),
+            };
+          }
+          const { counts: report, vectorFailures } = outcome;
           if (report.unexpectedFailures > 0 || vectorFailures.length > 0) {
             return yield* CorpusSyncIncomplete.make({
               message:
@@ -341,6 +417,7 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
         Cloudflare.D1.QueryDatabaseBinding,
         Cloudflare.Vectorize.SearchIndexBinding,
         Cloudflare.Workers.AIBinding,
+        Cloudflare.Email.SendBinding,
       ),
     ),
   ),
