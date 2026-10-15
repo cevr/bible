@@ -12,9 +12,10 @@ does, while the lab runs.
   `McpServer.layerHttp` (effect 4.0.2, `effect/ai`) on the lab's router, beside the page and the API. The lab
   already holds every store; a second process would be a second writer. Protocols `2025-11-25`, `2025-06-18`,
   `2025-03-26` and `2026-07-28`.
-- Effect's HTTP transport is POST-only: no standalone GET stream, so the server cannot push a notification
-  outside a request, and it advertises no resource subscriptions over HTTP. Events therefore come two ways (see
-  [Events](#events)): a long-poll tool every session can use, and a stdio bridge for Claude Code's channels.
+- Effect's HTTP transport takes a `POST` for every message, and here a `DELETE` to end a session (below); it
+  has no standalone GET stream, so the server cannot push a notification outside a request, and it advertises
+  no resource subscriptions over HTTP. Events therefore come two ways (see [Events](#events)): a long-poll tool
+  every session can use, and a stdio bridge for Claude Code's channels.
 - **One client** of it in this checkout, `tools/lab-client.ts`, for the commands that work through the running
   lab (`film channel`'s feed, `film production ask`): a session (`initialize`, `notifications/initialized`, the
   id from `Mcp-Session-Id`), then `tools/call` typed by the lab's own tool (its parameters encode the arguments,
@@ -23,7 +24,8 @@ does, while the lab runs.
   is `LabToolRefused`, in the lab's words.
 - **Sessions end.** The transport keeps a session until a `DELETE` ends it (it has no expiry), so the lab allows
   one (`allowSessionTermination`) and the client's session lasts as long as its scope: `film production ask`
-  ends its own once answered, and the channel ends each on losing it and the last when it stops. The lab's gate
+  ends its own once answered, and the channel ends each on losing it and the last when it stops. The end is kept
+  the moment the lab names the session, so a handshake that fails after `initialize` ends it too. The lab's gate
   takes a `DELETE` only with `Content-Type: application/json`, as every write; a client that sends none gets
   415 and its session stays.
 
@@ -321,10 +323,11 @@ record of versions and of what waits on the owner; asks file onto it rather than
   tool), so it lands in the lab's own asks and ledger and is filed as above: two `--option`s or more are a
   `choose` (`pick`, values `1`, `2`, …) with an optional `free_text` (`note`, "Anything else?"); none asks for
   words (one `free_text`, `answer`, required). Its `--set` names the set as every production command and the
-  ledger do, by its folder under its root; the lab's `sets` say which ref that is (a folder two roots hold is
-  refused until named by its ref, and a ref whose folder alone would do is refused naming the folder, so
-  `decide --set` later says the same). It prints the ask's local and phone links and the folder it waits at. With
-  no lab answering it refuses (`LabUnanswered`) and asks nothing. Every question has a page: the ledger's `say`
+  ledger do, by its folder under its root; the lab's `sets` say which ref that is. A ref is refused, naming its
+  folder, so `decide --set` later says the same word; a folder two roots hold is refused, by its folder or a ref,
+  since a timeline names a set by its folder alone and could not tell the two apart. It prints the ask's local
+  and phone links and the folder it waits at. With no lab answering it refuses (`LabUnanswered`) and asks
+  nothing. Every question has a page: the ledger's `say`
   takes only the owner's words (`Decided`, `Noted`), and an `Asked` is filed only by an ask.
 - Not built: `publish_set` taking `production`/`version` (calling `ProductionStore.publish`), resources over the
   ledgers, and `production.*` feed kinds.

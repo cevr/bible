@@ -8,9 +8,9 @@
 // checked first), answered by the owner a step at a time through the page's
 // route and heard on `changes` with its answers typed, then closed and filed
 // on its production's timeline. `film production ask` makes the lab's own
-// ask, its set named by folder as the ledger names it (the lab's ref only
-// where two roots hold that folder); the lab client's session ends with its
-// scope, and the lab forgets it.
+// ask, its set named by folder as the ledger names it (a ref refused, and a
+// folder two roots hold); the lab client's session ends with its scope, a
+// handshake failed halfway too, and the lab forgets it.
 
 import { describe, expect, it } from 'effect-bun-test';
 import {
@@ -35,7 +35,13 @@ import {
 } from 'effect';
 import { BunTerminal } from '@effect/platform-bun';
 import { Command } from 'effect/cli';
-import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http';
+import {
+  FetchHttpClient,
+  HttpClient,
+  HttpClientError,
+  HttpClientRequest,
+  HttpClientResponse,
+} from 'effect/http';
 import { Base64 } from 'effect/encoding';
 import { labUrls } from '../core/api.ts';
 import { type BoardFile, BoardFileJson } from '../core/board.ts';
@@ -788,50 +794,49 @@ describe('film production ask', () => {
       ),
   );
 
-  it.effect('names a set two roots hold by its ref, its folder alone refused', () =>
-    providedWith(reviewAt([{ label: 'other', path: '/elsewhere' }]))(
-      Effect.gen(function* () {
-        const { lab } = yield* labWithMcp;
-        const { tool } = yield* session(lab);
-        yield* (yield* ProductionStore).start('f', {
-          title: 'F',
-          film: Option.some('f'),
-          blurb: Option.none(),
-          first: 'the board',
-          at: 1,
-        });
-        yield* tool('publish_set', {
-          name: 'judge-faces',
-          files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
-          manifest: { title: 'Judge faces', images: ['calmer.png'] },
-        });
-        const asking = (set: string) =>
-          productionCli(
-            (request) => lab(request, bound),
-            [
-              'ask',
-              'f',
-              'Which judge?',
-              '--why',
-              'w',
-              '--option',
-              'A',
-              '--option',
-              'B',
-              '--set',
-              set,
-            ],
-          );
-        expect((yield* asking('judge-faces')).failed).toBe(
-          'SetInRoots: judge-faces is a folder in more than one root (spare/judge-faces, other/judge-faces): name the one meant by its ref',
-        );
-        const named = yield* asking('other/judge-faces');
-        expect(named.failed).toBe('');
-        const [made] = (yield* tool('asks', {})).asks;
-        expect(made.set).toBe('other/judge-faces');
-        expect(named.lines[0]).toBe(`asked ${made.ask} on f: waits on its timeline at judge-faces`);
-      }),
-    ),
+  it.effect(
+    'refuses a set two roots hold, by its folder or its ref: its timeline could not tell',
+    () =>
+      providedWith(reviewAt([{ label: 'other', path: '/elsewhere' }]))(
+        Effect.gen(function* () {
+          const { lab } = yield* labWithMcp;
+          const { tool } = yield* session(lab);
+          yield* (yield* ProductionStore).start('f', {
+            title: 'F',
+            film: Option.some('f'),
+            blurb: Option.none(),
+            first: 'the board',
+            at: 1,
+          });
+          yield* tool('publish_set', {
+            name: 'judge-faces',
+            files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
+            manifest: { title: 'Judge faces', images: ['calmer.png'] },
+          });
+          const asking = (set: string) =>
+            productionCli(
+              (request) => lab(request, bound),
+              [
+                'ask',
+                'f',
+                'Which judge?',
+                '--why',
+                'w',
+                '--option',
+                'A',
+                '--option',
+                'B',
+                '--set',
+                set,
+              ],
+            );
+          const inRoots =
+            "SetInRoots: judge-faces is a folder in more than one root (spare/judge-faces, other/judge-faces), and a production's timeline names a set by its folder alone: rename one, or ask without --set";
+          expect((yield* asking('judge-faces')).failed).toBe(inRoots);
+          expect((yield* asking('other/judge-faces')).failed).toBe(inRoots);
+          expect((yield* tool('asks', {})).asks).toEqual([]);
+        }),
+      ),
   );
 
   it.effect(
@@ -926,6 +931,36 @@ describe('the lab client', () => {
         );
         const after = yield* Effect.flip(client.call(ended, Changes, { wait: 0 }));
         expect(after.message).toContain(`no lab answered at ${BASE} (it answered 404)`);
+      }),
+    ),
+  );
+
+  it.effect('ends a session whose handshake fails halfway', () =>
+    provided(
+      Effect.gen(function* () {
+        const { lab } = yield* labWithMcp;
+        const answered: Array<string> = [];
+        // The lab answers each request but `notifications/initialized`, lost on its way.
+        const losing = HttpClient.make((request) =>
+          Effect.gen(function* () {
+            const web = yield* Effect.orDie(HttpClientRequest.toWeb(request));
+            const body = yield* Effect.promise(() => web.clone().text());
+            if (body.includes('notifications/initialized'))
+              return yield* new HttpClientError.HttpClientError({
+                reason: new HttpClientError.TransportError({ request, description: 'lost' }),
+              });
+            const answer = yield* Effect.promise(() => lab(web, bound));
+            answered.push(`${web.method} ${answer.status}`);
+            return HttpClientResponse.fromWeb(request, answer);
+          }),
+        );
+        const client = yield* labClient(BASE).pipe(
+          Effect.provideService(HttpClient.HttpClient, losing),
+        );
+        const failed = yield* Effect.flip(Effect.scoped(client.session));
+        expect(failed.message).toContain(`no lab answered at ${BASE}`);
+        // The session the lab named is ended all the same.
+        expect(answered).toEqual(['POST 200', 'DELETE 204']);
       }),
     ),
   );

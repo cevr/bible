@@ -144,7 +144,8 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
   const send = (message: typeof Sent.Type, session: Option.Option<string>) =>
     Effect.flatMap(Effect.orDie(Schema.encodeEffect(Sent)(message)), (body) => post(body, session));
 
-  const start = Effect.gen(function* () {
+  /** The handshake's first half: `initialize`, answered with the session's id. */
+  const initialize = Effect.gen(function* () {
     const started = yield* send(
       {
         jsonrpc: '2.0',
@@ -158,15 +159,13 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
       },
       Option.none(),
     );
-    const session = yield* Effect.fromOption(
+    return yield* Effect.fromOption(
       Option.filter(
         Option.fromUndefinedOr(started.headers['mcp-session-id']),
         (id) => id.length > 0,
       ),
       () => unanswered(`it answered ${started.status} and no session`),
     );
-    yield* send({ jsonrpc: '2.0', method: 'notifications/initialized' }, Option.some(session));
-    return session;
   });
 
   /**
@@ -192,8 +191,16 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
         Effect.ignore,
       );
 
-  /** A session for as long as its scope: started now, ended when the scope closes. */
-  const session = Effect.acquireRelease(start, end);
+  /**
+   * A session for as long as its scope: started now, ended when the scope
+   * closes. Its end is kept the moment the lab names it, so a handshake
+   * that fails after that (`notifications/initialized` lost) ends it too.
+   */
+  const session = Effect.gen(function* () {
+    const id = yield* Effect.acquireRelease(initialize, end);
+    yield* send({ jsonrpc: '2.0', method: 'notifications/initialized' }, Option.some(id));
+    return id;
+  });
 
   const call = <P, PE, S, SE>(session: string, tool: LabTool<P, PE, S, SE>, params: P) =>
     Effect.gen(function* () {

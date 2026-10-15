@@ -8,11 +8,11 @@ This file is the sweep: every owner statement found about a film's production fl
 
 | Topic   | Statements | Captured | Restored | Fixed | Superseded | Open  | Lost  |
 | ------- | ---------- | -------- | -------- | ----- | ---------- | ----- | ----- |
-| Flow    | 32         | 17       | 12       | 1     | 4          | 2     |       |
+| Flow    | 32         | 18       | 12       | 1     | 4          | 1     |       |
 | Tone    | 36         | 25       | 13       | 1     |            | 2     | 1     |
 | Look    | 29         | 17       | 2        | 1     | 9          |       |       |
 | Review  | 19         | 11       | 4        | 4     | 3          | 1     |       |
-| **All** | **116**    | **70**   | **31**   | **7** | **16**     | **5** | **1** |
+| **All** | **116**    | **71**   | **31**   | **7** | **16**     | **4** | **1** |
 
 ## Sources
 
@@ -159,7 +159,7 @@ Status: **CAPTURED** was in the repo and still holds; **RESTORED** was lost or p
 | 110 | 10-15 | L·dc73 00:07  | "it would be concept, then storyboard, then animatronics [animatic] … into rendering with Rive. I think we should do that."                                                                     | Flow   | RESTORED `skill/SKILL.md:43`, `anim/README.md:500`                                                                                                                |
 | 111 | 10-15 | L·dc73 00:07  | "we also had conversations about how we want our tone and the way we want our scripts to be"                                                                                                    | Tone   | CAPTURED: this audit and its brief, below                                                                                                                         |
 | 112 | 10-15 | L·dc73 00:07  | "rewrite the righteousness by faith script from the start, like from scratch … test this flow with this new MCP kind of decision"                                                               | Flow   | RESTORED (filed here) `anim/productions/righteousness-by-faith.json:135`; follow-up `rbfscript`                                                                   |
-| 113 | 10-15 | L·dc73 00:09  | "You can also fold in the older, production as command"                                                                                                                                         | Flow   | OPEN `skill/SKILL.md:60`; the run's `labask` is building it (115)                                                                                                 |
+| 113 | 10-15 | L·dc73 00:09  | "You can also fold in the older, production as command"                                                                                                                                         | Flow   | CAPTURED with `labmcp`: `bun run production ask` makes the running lab's ask (6c048b393), `skill/SKILL.md:153`                                                    |
 | 114 | 10-15 | L·dc73 00:11  | "we can just keep using the tail scale. Let's drop the, um, the open tunnel. So we don't need really authorization"                                                                             | Review | FIXED (the skill gave a public HTTPS link) `skill/SKILL.md:126`; the lab MCP's token: 115                                                                         |
 | 115 | 10-15 | L·dc73 00:29  | "yes, drop the MCP token and build the lab client, also notes even when optional are required"                                                                                                  | Review | CAPTURED with `labmcp`: no token (53471986e), optional words (a8d71faf0), the lab client and the `production ask` fold (6c048b393)                                |
 | 116 | 10-15 | L·dc73 00:47  | "in general we should make textfields optional, required text fields usually are a burden, multiple choice etc is better"                                                                       | Review | CAPTURED in the flow's asks `skill/SKILL.md:58`, and on `labmcp` (a8d71faf0: the ask's words optional unless required)                                            |

@@ -22,10 +22,11 @@
 //       `lab-client.ts`): the lab's own ask, filed on the production's
 //       timeline as the lab's MCP `ask` files it; prints its links. Two
 //       options or more are a choice with optional words beside it; none
-//       asks for words. The set is named as every production command names
-//       it, by its folder under its review root (its ref, root/folder, only
-//       where two roots hold that folder): the lab's sets say which one it
-//       is. No lab answering is `LabUnanswered`: nothing is asked
+//       asks for words. The set is named as every production command and
+//       the ledger name it, by its folder under its review root: the lab's
+//       sets say which one it is, and a folder two roots hold is refused (a
+//       timeline could not tell them apart). No lab answering is
+//       `LabUnanswered`: nothing is asked
 //   film production file <production> <set> --version <n>
 //       file a set published before sets named their production
 //   film publish <folder> --production <production> [--version <n>]
@@ -100,17 +101,17 @@ class SetUnlisted extends Schema.TaggedError<SetUnlisted>()('SetUnlisted', {
   }
 }
 
-/** A folder more than one root holds: the lab lists a set in each. */
+/** A folder more than one root holds: the lab lists a set in each, and a timeline, naming a set by its folder alone, cannot tell them apart. */
 class SetInRoots extends Schema.TaggedError<SetInRoots>()('SetInRoots', {
   set: Schema.String,
   refs: Schema.Array(Schema.String),
 }) {
   override get message() {
-    return `${this.set} is a folder in more than one root (${this.refs.join(', ')}): name the one meant by its ref`;
+    return `${this.set} is a folder in more than one root (${this.refs.join(', ')}), and a production's timeline names a set by its folder alone: rename one, or ask without --set`;
   }
 }
 
-/** A set named by the lab's ref where its folder names it: the production commands name it by its folder. */
+/** A set named by the lab's ref: the production commands name it by its folder. */
 class SetByRef extends Schema.TaggedError<SetByRef>()('SetByRef', {
   ref: Schema.String,
   folder: Schema.String,
@@ -360,7 +361,8 @@ const askBlocks = (options: ReadonlyArray<string>) =>
 /**
  * The lab's ref for the set `given` names, among the refs the lab lists: the
  * folder under its root, as the ledger and every production command name a
- * set; the ref itself only where more than one root holds its folder.
+ * set, held by one root. A ref is refused, naming its folder; a folder more
+ * than one root holds is refused, since the timeline could not tell which.
  */
 const refFor = (
   listed: ReadonlyArray<string>,
@@ -374,8 +376,9 @@ const refFor = (
   if (Option.isSome(one)) return Effect.succeed(one.value);
   if (!listed.includes(given)) return Effect.fail(SetUnlisted.make({ set: given, url }));
   const folder = setPathOf(given);
-  if (holding(folder).length === 1) return Effect.fail(SetByRef.make({ ref: given, folder }));
-  return Effect.succeed(given);
+  const held = holding(folder);
+  if (held.length > 1) return Effect.fail(SetInRoots.make({ set: folder, refs: held }));
+  return Effect.fail(SetByRef.make({ ref: given, folder }));
 };
 
 /** `ask` made in the lab, in a session of its own (ended once answered); its set, given by folder, named by the lab's ref. */
@@ -420,7 +423,7 @@ const ask = Command.make(
     set: Flag.String('set').pipe(
       Flag.optional,
       Flag.withDescription(
-        'the set it is about: its folder under its review root, as `decide` and `note` take it (its ref, root/folder, only where two roots hold that folder); its timeline shows it waiting there',
+        'the set it is about: its folder under its review root, as `decide` and `note` take it; its timeline shows it waiting there',
       ),
     ),
     point: Flag.String('point').pipe(
