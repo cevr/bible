@@ -1,6 +1,6 @@
 # From Milk to Meat
 
-A playlist of narrated cut-paper explainer films (apps/animations, the house style of `righteousness-by-faith`) that walks every Christian from the first principles of the faith to its deepest truths, in the order the Bible itself serves them. Drafted 2026-10-10/11 for Cristian; 05 revised 2026-10-12. Nothing here is narrated, rendered or checked; scripts for 01–03 and 05 are in `scripts/`, the search record in `sources.md`.
+A playlist of narrated cut-paper explainer films (apps/animations, the house style of `righteousness-by-faith`) that walks every Christian from the first principles of the faith to its deepest truths, in the order the Bible itself serves them. Drafted 2026-10-10/11 for Cristian; 05 revised 2026-10-12. Nothing here is narrated, rendered or checked; scripts for 01–03, 05 and 08 are in `scripts/`, the search record in `sources.md`.
 
 ## The name
 
@@ -136,6 +136,7 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
 - **Core KJV, from its beats:** Job 9:2; Rom 4:5; Isa 64:6; Rom 3:23–25; Rom 10:17; Gen 1:2–3; Ps 33:9; 2 Cor 5:21; Zech 3:1–4; Heb 8:10; Jer 23:6.
 - **Sources (its credits):** Steps to Christ, Christ's Object Lessons, Desire of Ages, TM 91–92, Faith and Works (EGW); Christ and His Righteousness, The Glad Tidings, PTUK 1894–95, GCDB 1897 (E. J. Waggoner); Lessons on Faith, The Consecrated Way (A. T. Jones); Fundamental Principles (1889) XVIII.
 - **Builds on:** in this series, 03, 06 and 07. **History:** see Open questions; its last act already reaches Dan 8:14 and Rev 14.
+- **The rewrite (2026-10-15):** the film is being rewritten from scratch as v3, a script for now (`v3/script.ts` in the film's folder, unregistered). [`scripts/08-righteousness-by-faith.md`](scripts/08-righteousness-by-faith.md) is that script as the reader reads it. The entry above describes the film as made, until the owner keeps v3.
 
 **09 · Buried and Raised** (stone 3, "the doctrine of baptisms")
 
