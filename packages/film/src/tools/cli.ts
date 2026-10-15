@@ -82,14 +82,14 @@ import { Mixer } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
-import { labAllowed, labLink } from './lab.ts';
+import { labPhone } from './lab.ts';
 import { channel } from './lab-channel.ts';
 import type { LabAt } from './api-server.ts';
 import { type LabPageSpec, PageBundler } from './lab-page.ts';
 import { PALETTE_FILE, paletteSwaps, wedgeServer } from './wedge.ts';
 import { levelsOf, wedgeVariant } from '../core/easel.ts';
 import { filmServices, labPages, startLab } from './film-services.ts';
-import { ScriptVoices, stagingFill } from './script-voice.ts';
+import { fillBeside, ScriptVoices, stagingFill } from './script-voice.ts';
 import { SeriesDrafts, draftKey } from './series-drafts.ts';
 import { look } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
@@ -921,21 +921,23 @@ const lab = <E>(app: FilmApp<E>['lab'], films: string, footage: string) =>
     {},
     Effect.fn('film.lab')(function* () {
       // The lab's whole API, for every film: what tweaks it and what reviews it.
-      const allowed = yield* labAllowed;
       const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
       const known = yield* (yield* FilmFolder).names;
-      // The server lives in the command's scope: Ctrl-C (or the unit stopping) stops it.
+      // The server lives in the command's scope: Ctrl-C stops it. It listens on loopback and,
+      // with FILM_LAB_PHONE_URL, on the owner's phone address too, behind the same gate.
       // The lab is also an MCP server for agents at `/mcp` (`lab-mcp.ts`).
-      const url = yield* startLab(yield* app.at, allowed, Layer.empty, 'mcp');
-      const link = labLink(url, allowed);
-      yield* Console.log(link);
+      const links = yield* startLab(yield* app.at, yield* labPhone, Layer.empty, 'mcp');
+      const phone = Option.fromUndefinedOr(links.phone);
+      yield* Console.log(links.local);
+      for (const at of Option.toArray(phone)) yield* Console.log(at);
       yield* Effect.log(
-        `lab.ready link=${link} url=${url} films=${known.join(',')} roots=${roots.join(',')}`,
+        `lab.ready link=${links.local} phone=${Option.getOrElse(phone, () => 'none')} films=${known.join(',')} roots=${roots.join(',')}`,
       );
-      yield* Effect.log(`lab.mcp url=${url}mcp`);
-      // Every spoken beat's staging take kept ready for the Script reader, unless FILM_STAGING_FILL=false.
-      if (yield* stagingFill) return yield* (yield* ScriptVoices).fill;
-      yield* Effect.log('staging.fill off');
+      yield* Effect.log(`lab.mcp url=${links.local}mcp`);
+      // Every spoken beat's staging take kept ready for the Script reader when
+      // FILM_STAGING_FILL=true, beside the lab: a fill that dies leaves the lab up.
+      if (yield* stagingFill) yield* fillBeside((yield* ScriptVoices).fill);
+      else yield* Effect.log('staging.fill off');
       return yield* Effect.never;
     }, Effect.scoped),
   ).pipe(

@@ -4,8 +4,9 @@
 // (`bun cli.ts --help`). A server starts with its command and stops when it
 // ends, fails or is interrupted.
 
-import { PreviewServer, type ReviewRoot, runFilmCli } from '@bible/film/tools';
-import { Config, Effect, FileSystem, Layer, Path } from 'effect';
+import { PreviewServer, runFilmCli } from '@bible/film/tools';
+import { Config, Effect, Layer, Path } from 'effect';
+import { checkoutRootsOf } from './checkouts.ts';
 import { FILMS, LAB_PAGES, LAB_SERVERS, serve } from './server.ts';
 
 /** The app's sound library, shared by its films (`sounds/library.ts`). */
@@ -48,9 +49,9 @@ const player = (films: string) =>
   );
 
 /**
- * Where the lab listens: `LAB_PORT` (8229) on `LAB_HOST`. The host defaults
- * to loopback; the box's unit binds every interface (`0.0.0.0`), with the
- * names it is reached by in `FILM_LAB_HOSTS`.
+ * Where the lab listens: `LAB_PORT` (8229) on `LAB_HOST`, loopback by
+ * default. The phone's address is a second listener of its own
+ * (`FILM_LAB_PHONE_URL`, read by the lab).
  */
 const labAt = Effect.gen(function* () {
   const port = yield* Config.Int('LAB_PORT').pipe(Config.withDefault(8229));
@@ -60,27 +61,12 @@ const labAt = Effect.gen(function* () {
 
 /**
  * The lab's render roots when `FILM_REVIEW_ROOTS` names none: the renders of
- * every checkout of this repository beside this one (`bible-tools*`, a rift
- * or worktree each), labelled by the checkout.
+ * every checkout of this repository on this machine, labelled by the
+ * checkout (`checkouts.ts`).
  */
-const checkoutRoots = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const repo = path.resolve(import.meta.dir, '..', '..');
-  const siblings = path.dirname(repo);
-  const prefix = path.basename(repo).split('-')[0] ?? 'bible';
-  const names = yield* fs.readDirectory(siblings).pipe(Effect.orElseSucceed(() => []));
-  const roots = names
-    .filter((name) => name.startsWith(prefix))
-    .toSorted()
-    .map((name): ReviewRoot => ({
-      label: name,
-      path: path.join(siblings, name, 'apps', 'animations', 'out'),
-    }));
-  return yield* Effect.filter(roots, (root) =>
-    fs.exists(root.path).pipe(Effect.orElseSucceed(() => false)),
-  );
-});
+const checkoutRoots = Effect.flatMap(Path.Path, (path) =>
+  checkoutRootsOf(path.resolve(import.meta.dir, '..', '..')),
+);
 
 /**
  * The CLI over the films in `films` and the sound library in `sounds`, run by

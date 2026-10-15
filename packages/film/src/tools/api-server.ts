@@ -3,11 +3,11 @@
 // then its routes and the app's pages as one web handler.
 //
 // The gate is the only place a request is admitted (`admit`): the Host (or,
-// where no header is sent, the URL's host) must be the bound port on a
-// loopback name, or one the server is told (`FILM_LAB_HOSTS`); a
-// browser's `Sec-Fetch-Site` must be same-origin or none, except a link
-// opened on another site to one of the pages (`isNavigation`); a write must come from no
-// Origin (a tool, like curl) or one of those hosts', with a JSON body (a
+// where no header is sent, the URL's host) must be the port of the listener
+// it came on, at that listener's own name or a loopback name; a browser's
+// `Sec-Fetch-Site` must be same-origin or none, except a link opened on
+// another site to one of the pages (`isNavigation`); a write must come from
+// no Origin (a tool, like curl) or one of those hosts' `http://`, with a JSON body (a
 // cross-site form can post text/plain without a preflight; JSON cannot) of
 // at most `STUDIO_MAX_BODY` bytes, counted as it streams. A new route is
 // behind the gate by being a route.
@@ -34,6 +34,7 @@ import {
   HttpPlatform,
   HttpRouter,
   HttpServer,
+  HttpServerError,
   HttpServerRequest,
   HttpServerResponse,
 } from 'effect/http';
@@ -67,16 +68,6 @@ interface LabBound {
 
 /** A web handler as a Bun server takes it: the request and its server. */
 type LabHandler = (request: Request, server: LabBound) => Promise<Response>;
-
-/**
- * Hosts a server answers to beyond the bound port's loopback names: each an
- * exact Host value (`bite-cristian.exe.xyz:8229`), whose page may write from
- * `http://` or `https://` it (a TLS proxy in front): the lab's
- * `FILM_LAB_HOSTS`.
- */
-export interface Allowed {
-  readonly hosts: ReadonlyArray<string>;
-}
 
 /** The connection a request came on: the server's bound name and port. */
 interface ConnectionService {
@@ -137,26 +128,29 @@ const isNavigation = (request: HttpServerRequest.HttpServerRequest) =>
   Option.contains(header(request, 'sec-fetch-dest'), 'document') &&
   (Option.isSome(pageAt(urlPath(request.url))) || Option.isSome(legacyPlace(request.url)));
 
+/** A bound name as a Host header carries it: an IPv6 address in brackets. */
+const hostName = (name: string) =>
+  Option.match(Option.liftPredicate(name, Str.includes(':')), {
+    onNone: () => name,
+    onSome: (ipv6) => `[${ipv6}]`,
+  });
+
 /**
  * Whether the server answers `request` at all: `None` when it does, else the
- * refusal. Pure: see the gate above.
+ * refusal. Each listener (loopback, the owner's phone address) admits its own
+ * name and the loopback names at its own port. Pure: see the gate above.
  */
 const admit = (
   request: HttpServerRequest.HttpServerRequest,
   connection: ConnectionService,
-  allowed: Allowed,
 ): Option.Option<Refusal> =>
   Option.match(connection.port, {
     onNone: () => refused('the server has no port to check the Host against'),
     onSome: (port) => {
-      const local = Arr.dedupe([...Option.toArray(connection.hostname), ...LOOPBACK]).map(
-        (name) => `${name}:${port}`,
+      const hosts = Arr.dedupe([...Option.toArray(connection.hostname), ...LOOPBACK]).map(
+        (name) => `${hostName(name)}:${port}`,
       );
-      const hosts = [...local, ...allowed.hosts];
-      const origins = [
-        ...local.map((h) => `http://${h}`),
-        ...allowed.hosts.flatMap((h) => [`http://${h}`, `https://${h}`]),
-      ];
+      const origins = hosts.map((h) => `http://${h}`);
       const host = hostOf(request);
       if (!hosts.includes(host))
         return refused(`Host ${host} is not the server's (${hosts.join(', ')})`);
@@ -286,13 +280,13 @@ class BodyRead extends Context.Service<BodyRead, { readonly limit: number }>()(
  * request it was registered on, and only the handler that took that request
  * runs it.
  */
-const gate = (allowed: Allowed, self: Deferred.Deferred<OwnHandler>) =>
+const gate = (self: Deferred.Deferred<OwnHandler>) =>
   HttpRouter.middleware(
     (routes) =>
       Effect.gen(function* () {
         const request = yield* HttpServerRequest.HttpServerRequest;
         const connection = yield* Connection;
-        const refusal = admit(request, connection, allowed);
+        const refusal = admit(request, connection);
         if (Option.isSome(refusal)) return yield* answerRefused(request, refusal.value);
         if (
           SAFE_METHODS.includes(request.method) ||
@@ -585,7 +579,7 @@ type ServedBy = FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform;
 export type BesideRoutes = Layer.Layer<never, never, HttpRouter.HttpRouter>;
 
 /**
- * `api`'s routes served as one web handler: the gate with `allowed` in
+ * `api`'s routes served as one web handler: the gate in
  * front of every path, then the routes (and any `beside` them), then `page`
  * for the paths no route takes outside the API's own. Every request runs
  * on the caller's services (the router marks the ones `routes`' handlers
@@ -605,7 +599,6 @@ export const serveApi = <
   api: HttpApi.HttpApi<Id, Groups>,
   routes: Layer.Layer<never, never, HttpRouter.HttpRouter | Etag.Generator | ServedBy | Needs>,
   options: {
-    readonly allowed: Allowed;
     readonly page: PageAnswer;
     readonly beside: BesideRoutes;
   },
@@ -621,7 +614,7 @@ export const serveApi = <
     const app = Layer.mergeAll(
       routes,
       options.beside,
-      gate(options.allowed, self),
+      gate(self),
       pageRoute(options.page, prefixesOf(api), self),
     ).pipe(Layer.provide(Etag.layerWeak), Layer.provideMerge(Layer.succeedContext(services)));
     // What is left of `routes`' requirements is the router's markers; the
@@ -691,21 +684,43 @@ export interface LabAt {
 /**
  * The lab's HTTP server on `at`: Effect's over `Bun.serve`, with no route or
  * development server of Bun's (each would answer before the gate), its idle
- * limit and its body limit. `serveLab` answers every request it takes.
+ * limit and its body limit. `serveLab` answers every request it takes. A
+ * bind this machine refuses (no interface has the address, or the port is
+ * held) fails as a `ServeError` whose cause is Bun's: Effect's adapter calls
+ * `Bun.serve` bare, so its throw would otherwise be a defect, though the
+ * layer is typed to fail with `ServeError`.
  */
 export const labServer = (at: LabAt) =>
-  BunHttpServer.layerServer({
-    hostname: at.hostname,
-    port: at.port,
-    development: false,
-    idleTimeout: LAB_IDLE_SECONDS,
-    maxRequestBodySize: MAX_REQUEST_BODY,
-  });
+  Layer.effect(
+    HttpServer.HttpServer,
+    BunHttpServer.make({
+      hostname: at.hostname,
+      port: at.port,
+      development: false,
+      idleTimeout: LAB_IDLE_SECONDS,
+      maxRequestBodySize: MAX_REQUEST_BODY,
+    }).pipe(Effect.catchDefect((cause) => Effect.fail(new HttpServerError.ServeError({ cause })))),
+  );
 
 /** The name and port a server is bound to; none for a socket file. */
 const boundOf = (address: NetAddress.SocketAddress): LabBound => {
   if (address._tag === 'UnixPathAddress') return {};
   return { hostname: address.address.toString(), port: address.port };
+};
+
+/** Binds this machine opens as `localhost`: loopback, and every interface. */
+const LOCAL_BINDS: ReadonlyArray<string> = ['127.0.0.1', '[::1]', '0.0.0.0', '[::]'];
+
+/**
+ * `bound`, a URL the server is bound at, as this machine opens it: a
+ * loopback or every-interface bind at `localhost`, one origin for the
+ * owner's settings and his microphone's grant (the gate admits it at every
+ * bind: `LOOPBACK`). Pure.
+ */
+export const localLink = (bound: string): string => {
+  const url = new URL(bound);
+  if (LOCAL_BINDS.includes(url.hostname)) url.hostname = 'localhost';
+  return url.href;
 };
 
 /** The URL the server (`labServer`) is bound at, before it serves. */

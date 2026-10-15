@@ -120,7 +120,7 @@ const read = Effect.fn('test.read')(function* () {
 describe('lab source routes', () => {
   it.effect('the code route answers the file text and where each cue and knob is written', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler({ hosts: [] });
+      const lab = yield* labHandler();
       const res = yield* Effect.promise(() =>
         lab(new Request(at(labUrls.scenes.code({ params: { film: 'f', scene: 'hand' } }))), bound),
       );
@@ -144,7 +144,7 @@ describe('lab source routes', () => {
     'a cue write lands in the file and answers with the span, its timing and the check',
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler({ hosts: [] });
+        const lab = yield* labHandler();
         const before = yield* read();
         const source = yield* Effect.promise(() =>
           lab(
@@ -185,7 +185,7 @@ describe('lab source routes', () => {
 
   it.effect('a knob write answers with the knob; a computed value is a 422, file untouched', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler({ hosts: [] });
+      const lab = yield* labHandler();
       const palm = Effect.promise(() =>
         lab(
           post(
@@ -265,7 +265,7 @@ describe('lab source routes', () => {
 
   it.effect('undo and redo walk the writes back and forth; check answers the last of them', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler({ hosts: [] });
+      const lab = yield* labHandler();
       const json = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.json()));
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
       const before = yield* read();
@@ -312,7 +312,7 @@ describe('lab source routes', () => {
     'an undo or a redo asked for one change steps only that one: another standing on top is a 409, the file untouched',
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler({ hosts: [] });
+        const lab = yield* labHandler();
         const json = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.json()));
         const status = (req: Request) =>
           Effect.promise(() => lab(req, bound).then((r) => r.status));
@@ -364,7 +364,7 @@ describe('lab source routes', () => {
     "head answers HEAD's data, and says when the code changed since",
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler({ hosts: [] });
+        const lab = yield* labHandler();
         const fs = yield* FileSystem.FileSystem;
         const file = yield* HandFile;
         const dir = (yield* Path.Path).dirname(file);
@@ -429,7 +429,7 @@ describe('lab source routes', () => {
     'a cue that lands but does not resolve says why, instead of leaving it out silently',
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler({ hosts: [] });
+        const lab = yield* labHandler();
         const res = yield* Effect.promise(() =>
           lab(
             post(

@@ -105,14 +105,21 @@ const flushesLost = () => {
   );
 };
 
-/** Every microphone stream the page was given, to end its tracks. */
+/**
+ * Every microphone stream the page was given, to end its tracks. A page on
+ * plain http has no `mediaDevices` (a browser gives the microphone only to a
+ * secure page), so there is none to watch.
+ */
 const opened: Array<MediaStream> = [];
-const realGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-navigator.mediaDevices.getUserMedia = (constraints) =>
-  realGetUserMedia(constraints).then((stream) => {
-    opened.push(stream);
-    return stream;
-  });
+if (window.isSecureContext) {
+  const devices = navigator.mediaDevices;
+  const realGetUserMedia = devices.getUserMedia.bind(devices);
+  devices.getUserMedia = (constraints) =>
+    realGetUserMedia(constraints).then((stream) => {
+      opened.push(stream);
+      return stream;
+    });
+}
 
 /**
  * The rate the default microphone's track reports, opened as the capture

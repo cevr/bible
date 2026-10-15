@@ -3,7 +3,7 @@
 // film the app has, and its pages (`LabPage`). It tweaks a film (notes on
 // frames, the scene source the cues and knobs write back to, Undo and Redo,
 // the studio) and reviews it (the renders under the roots, the film's
-// choices and its project), and runs for days: `film lab`, the box's unit.
+// choices and its project), and runs for days: `film lab`.
 //
 // The notes read and write through NotesStore, so the page and `film notes`
 // see the same file. The scene source routes write through SceneWriter: each
@@ -11,13 +11,12 @@
 // fresh; Undo and Redo put the newest write back or make it again.
 //
 // The API rewrites source and is reached from a phone, so every request, the
-// pages included, passes the one gate (`api-server.ts`): the bound port's
-// loopback names and the hosts it is told (`FILM_LAB_HOSTS`), nothing else.
+// pages included, passes the one gate (`api-server.ts`): each listener's own
+// name (loopback, and the phone's address, `labPhone`) and port, nothing else.
 
 import type { AskStore } from './ask-store.ts';
 import { asksGroup } from './asks-http.ts';
 import {
-  Array as Arr,
   Cache,
   Config,
   DateTime,
@@ -30,7 +29,7 @@ import {
   Record as Rec,
   Result,
 } from 'effect';
-import type { HttpPlatform } from 'effect/http';
+import type { HttpPlatform, HttpServerRequest } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi, type MarksPost, type TalkWordsPost } from '../core/api.ts';
 import { SourceRefused, StagingTakeUnknown, StillUnknown } from '../core/refusals.ts';
@@ -38,7 +37,7 @@ import { SCRIPT_FILE, editMarks, marksTarget, sayMissed } from './script-source.
 import { ScriptVoices } from './script-voice.ts';
 import { SeriesDrafts, draftRead } from './series-drafts.ts';
 import { StagingCache } from './staging.ts';
-import { type Allowed, type BesideRoutes, answered, serveApi } from './api-server.ts';
+import { type BesideRoutes, answered, serveApi } from './api-server.ts';
 import { choicesGroup } from './choices-http.ts';
 import { Easel } from './easel.ts';
 import type { Choices } from './choices.ts';
@@ -376,6 +375,18 @@ const talkGroup = HttpApiBuilder.group(LabHttpApi, 'talk', (handlers) =>
 const SCRIPTS_KEPT = 8;
 
 /**
+ * A staging take's audio, `file` as the staging cache names it
+ * (`audioNamed`: a name, never a path), else StagingTakeUnknown. Named by
+ * its request's key, a take's audio never changes.
+ */
+const stagingTakeAnswer = (request: HttpServerRequest.HttpServerRequest, file: string) =>
+  Effect.gen(function* () {
+    const found = yield* (yield* StagingCache).audioNamed(file);
+    if (Option.isNone(found)) return yield* StagingTakeUnknown.make({ file });
+    return yield* serveFile(request, found.value, CACHE.hashed);
+  });
+
+/**
  * The film's script as the Script page reads it beside the staged film:
  * each beat's picture and sources, read fresh (`FreshFilm.script`) and kept
  * under the film's source stamp, so a brief fixed while the lab is open is
@@ -408,15 +419,7 @@ const scriptGroup = HttpApiBuilder.group(LabHttpApi, 'script', (handlers) =>
         ),
       )
       .handle('take', ({ params, request }) =>
-        answered(
-          Effect.gen(function* () {
-            yield* filmNamed(params.film);
-            const found = yield* (yield* StagingCache).audioNamed(params.file);
-            if (Option.isNone(found)) return yield* StagingTakeUnknown.make({ file: params.file });
-            // Named by its request's key, a take's audio never changes.
-            return yield* serveFile(request, found.value, CACHE.hashed);
-          }),
-        ),
+        answered(Effect.andThen(filmNamed(params.film), stagingTakeAnswer(request, params.file))),
       )
       .handle('marks', ({ params, payload }) => marksWrite(params.film, payload));
   }),
@@ -473,13 +476,10 @@ const seriesGroup = HttpApiBuilder.group(LabHttpApi, 'series', (handlers) =>
     )
     .handle('take', ({ params, request }) =>
       answered(
-        Effect.gen(function* () {
-          yield* (yield* SeriesDrafts).read(params.series, params.draft);
-          const found = yield* (yield* StagingCache).audioNamed(params.file);
-          if (Option.isNone(found)) return yield* StagingTakeUnknown.make({ file: params.file });
-          // Named by its request's key, a take's audio never changes.
-          return yield* serveFile(request, found.value, CACHE.hashed);
-        }),
+        Effect.andThen(
+          Effect.flatMap(SeriesDrafts, (drafts) => drafts.read(params.series, params.draft)),
+          stagingTakeAnswer(request, params.file),
+        ),
       ),
     )
     .handle('marks', ({ params, payload }) =>
@@ -586,29 +586,12 @@ const looksGroup = HttpApiBuilder.group(LabHttpApi, 'looks', (handlers) =>
 );
 
 /**
- * The hosts the lab answers to beside loopback: `FILM_LAB_HOSTS`,
- * comma-separated Host values (`bite-cristian.exe.xyz:8229`); a page served
- * through one may write from `http://` or `https://` it.
+ * Where the owner's phone opens the lab (`FILM_LAB_PHONE_URL`, this
+ * machine's tailnet address by its IP: `http://100.92.183.50:8230/`), when it
+ * is set: `film lab` listens there itself, behind the same gate, which admits
+ * the bound IP (a name the address resolves from is not).
  */
-export const labAllowed = Config.String('FILM_LAB_HOSTS').pipe(
-  Config.withDefault(''),
-  Config.map((text): Allowed => ({
-    hosts: text
-      .split(',')
-      .map((host) => host.trim())
-      .filter((host) => host.length > 0),
-  })),
-);
-
-/**
- * The lab's address as a reader opens it: the first host it is told, over
- * HTTPS (the box's proxy in front), else where it is bound (`bound`).
- */
-export const labLink = (bound: string, allowed: Allowed): string =>
-  Option.match(Arr.head(allowed.hosts), {
-    onNone: () => bound,
-    onSome: (host) => `https://${host}/`,
-  });
+export const labPhone = Config.option(Config.URL('FILM_LAB_PHONE_URL'));
 
 /**
  * What the lab's handlers run with: the notes store, the film's folder, its
@@ -649,14 +632,13 @@ export type LabContext =
 
 /**
  * The lab's whole server as one web handler over the services the caller
- * runs with (`LabContext`): every request passes the gate with `allowed`
- * first, the pages included, so a foreign Host reads nothing; then the API's
- * routes answer theirs, for any film the app has, and the pages the rest.
- * A fixture's own routes (`beside`, outside `/api/`) pass the same gate.
- * Closed when the scope closes.
+ * runs with (`LabContext`): every request passes the gate first, the pages
+ * included, so a foreign Host reads nothing; then the API's routes answer
+ * theirs, for any film the app has, and the pages the rest. A fixture's own
+ * routes (`beside`, outside `/api/`) pass the same gate. Every listener
+ * serves this one handler. Closed when the scope closes.
  */
 export const labHandler = Effect.fn('film.lab.handler')(function* (
-  allowed: Allowed,
   beside: BesideRoutes = Layer.empty,
 ) {
   // The script's reads are kept for the server's life: its group is built over the services
@@ -684,5 +666,5 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
     ),
   );
   const page = (yield* LabPage).answer;
-  return yield* serveApi(LabHttpApi, routes, { allowed, page, beside });
+  return yield* serveApi(LabHttpApi, routes, { page, beside });
 });

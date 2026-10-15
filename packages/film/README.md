@@ -876,9 +876,9 @@ same frames as a 16:9 render, measured against one contiguous range): the
 ## Lab
 
 `film lab` is the one place a film is tweaked and reviewed: one server for
-every film of the app, meant to run for days (the box's `film-lab` user unit
-on port 8229). It prints its link (the first `FILM_LAB_HOSTS` name over
-`https://`, else where it is bound; logged `lab.ready`) and runs until
+every film of the app, meant to run for days (on the laptop, port 8229). It
+prints its links (`LabLinks`: the local one, `localhost` where it is bound,
+and the phone's when it listens there; logged `lab.ready`) and runs until
 stopped, which stops the server and the routes with the command's scope. The
 server is Effect's over `Bun.serve` (`labServer` and `serveLab`,
 `tools/api-server.ts`): no route or development server of Bun's, so every
@@ -898,8 +898,10 @@ server entry, `LabPageSpec.servers`), as
 kept) answers a 302 to its place (`legacyPlace`, logged `lab.page.moved`), and the browser
 keeps its `#…` across. A path no place declares is a 404, never a page.
 `LAB_HOST` (loopback by default) and `LAB_PORT` (8229) say where it
-listens; a box binds `0.0.0.0` with the names it is reached by in
-`FILM_LAB_HOSTS`.
+listens; `FILM_LAB_PHONE_URL` (a plain `http://` address by its IP, the
+laptop's on the tailnet: the gate admits the bound IP, so a MagicDNS name
+typed by hand would be refused) is a second listener with the same handler (`startLab`), logged
+`lab.phone.unbound` and left out when it cannot bind.
 
 **Pages and links.** Every view a reviewer would talk about is a URL, so a
 pasted link opens what the sender saw and Back walks the views: the path
@@ -1573,9 +1575,9 @@ answer, or one that does not decode).
 
 **One gate.** `serveApi` (`tools/api-server.ts`) composes an API's routes
 behind one global middleware, the only place a request is admitted
-(`admit`): the Host must be the bound port on a loopback name or one the
-server is told (`FILM_LAB_HOSTS`), a browser's `Sec-Fetch-Site`
-same-origin or none, a write's Origin none (a tool) or one of those hosts', with a JSON body
+(`admit`): the Host must be the listener's own name or a loopback one at
+its port, a browser's `Sec-Fetch-Site`
+same-origin or none, a write's Origin none (a tool) or `http://` one of those hosts, with a JSON body
 (`WriteNotJson`, 415) of at most `STUDIO_MAX_BODY` bytes, counted as it
 streams (`BodyTooLarge`, 413). Anything else is a 403 `RequestRefused`,
 logged `api.request.refused`. A new route is behind the gate by being a
@@ -1651,7 +1653,7 @@ once.
 | `GET /api/films/<film>/script/takes/:file` | a staging take's audio, by the name `Ready` gives it (immutable: named by its request's key); any other name a 404                                                                                                                                                                                                                                                                                                          |
 | `POST /api/films/<film>/script/marks`      | `MarksPost` (`{ beat, marks, read: { spoken, marks } }`): the beat's delivery marks rewritten in its `say` as one write of `script.ts` (`LabWrite`), its words unchanged; `read` is the line as the page read it, words and marks, and a write whose line says other words or carries other marks now (marked elsewhere), a mark that does not fit, or a post with no `read` (a tab older than the lab: reload it) is a 422 |
 
-Every spoken beat's staging take is kept ready (`tools/script-voice.ts`): `film lab` voices each beat the staging cache keeps no take for, the films a reader has open first, two at a time, each charged against the day's cap (`FILM_STAGING_DAILY_CAP`) before it is sent; `FILM_STAGING_FILL=false` turns that off, and a beat then reads `Unvoiced`. No film's timings or takes are written: `film narrate` makes a cached take the film's own at no cost.
+Every spoken beat's staging take is kept ready (`tools/script-voice.ts`) in a lab started with `FILM_STAGING_FILL=true`, the owner's (off by default: the fill spends ElevenLabs characters, so a spare lab spends none). That lab voices each beat the staging cache keeps no take for, the films a reader has open first, two at a time, each charged against the day's cap (`FILM_STAGING_DAILY_CAP`) before it is sent; with the fill off a beat reads `Unvoiced`. A take that misread its line is read again only once the local day it was made (its record's `at`) has passed, so a restart or a second lab pays no more that day. A fill that dies is logged (`staging.fill.died`) and leaves the lab up. No film's timings or takes are written: `film narrate` makes a cached take the film's own at no cost.
 
 ### Series drafts
 
@@ -2574,23 +2576,28 @@ beat or for a register; a heading its file lacks is `JudgeRuleMissing`),
 the stills by label and moment (each by its path beside the packet), and
 the form of the answer; it names no place (a rule's file by its name
 alone). The counsel is a seam (`Counsel`, `tools/counsel.ts`) with two
-adapters. `Counsel.layer` runs `okra counsel --deep --from claude -f
-/judge/packet/packet.md -o /judge/answer` (Codex) in the counsel's sandbox
-(`tools/sandbox.ts`, bubblewrap): a mount namespace that starts empty and
-shows only `/usr` and its merged links, `/etc`, the resolver's folder, a
-fresh `/proc`, `/dev` and `/tmp`, the packet's folder read-only at
-`/judge/packet` (the working folder), a temp folder written at
-`/judge/answer` (okra's prompt copy and run folder land there, copied into
-`<run>/counsel/` once it is done), okra's program, Codex's package and
-Node under `/judge/tools`, and a home of its own holding only Codex's
-sign-in (written, so a refreshed token lands in place), its settings and
-model lists (`okraRun`). The environment is cleared but for `PATH`, `HOME`
-and `LANG`. So no earlier run's folder, no look file, no repo, no cache
-and no home is there to read. The network is shared (Codex needs the
-internet), so the lab's loopback port stays reachable, though nothing in
-the sandbox names it. It reads the `codex.md` or `claude.md` written,
-its sandbox paths said as the host's (a non-zero exit is
-`CounselFailed`, 124 its time out); `Counsel.sandboxed` runs any command
+adapters. `Counsel.layer` runs headless Claude Code (`claude -p --model
+opus --effort max --safe-mode --restricted --tools Read --strict-mcp-config
+--no-session-persistence`, `claudeRun`), the packet on its stdin, from the
+packet's folder, under macOS's sandbox (`tools/sandbox.ts`, `sandbox-exec`
+with a Seatbelt profile, `profileOf`): every home, the system's temp
+folders and other volumes are closed to reading, then an allow-list is
+opened: the packet's folder, Claude's install and the user's keychains (its
+sign-in) to read, and a scratch folder of the run's own to read and write,
+which holds Claude's temp files (`TMPDIR`, `CLAUDE_CODE_TMPDIR`) and a
+fresh state folder (`CLAUDE_CONFIG_DIR`; `CLAUDE_SECURESTORAGE_CONFIG_DIR`
+empty keeps the keychain item of the default one, so the sign-in is
+found). Nothing else is written, and none of `~/.claude` or
+`~/.claude.json` is readable: no earlier run's folder, no look file, no
+repo, no cache, no other session or transcript. What stays readable is the
+system's own files outside the homes and temp folders. The environment is
+`HOME`, `PATH`, those four and `DISABLE_AUTOUPDATER`, `LANG` and `USER`
+alone. The network is shared (the counsel needs the internet), so the
+lab's loopback port stays reachable, though nothing names it. Its stdout
+is the answer and its stderr the run's words, written as they arrive to
+`claude.md` and `claude.err` in `<run>/counsel/` (a non-zero exit, or a
+run past `COUNSEL_LIMIT`, 30 minutes, is `CounselFailed`, naming that
+folder once the run printed there; off macOS the counsel fails so too); `Counsel.sandboxed` runs any command
 so (the tests probe the sandbox with one); `Counsel.layerTest` answers
 from a function of the packet. Its last `RANKING:` line is read (`rankingOf`: a
 whole expression, every label once, `>` between tiers, `=` a tie, nothing
@@ -2888,22 +2895,22 @@ frames and phone copies are the Media service's (`duration`, `still`,
 `phoneCopy`), and a mix is written as an m4a by `writeAac`.
 
 **The remote surface.** The lab is served where the owner reaches it from
-a phone, so `LAB_HOST` defaults to loopback and a box's unit binds
-`0.0.0.0` with the names it is reached by in `FILM_LAB_HOSTS`
-(comma-separated Host values as the browser sends them, port included:
-`bite-cristian.exe.xyz:8229`). Every request passes the API's one gate (The
+a phone over the tailnet, so `LAB_HOST` defaults to loopback and the
+lab listens at `FILM_LAB_PHONE_URL` itself (the laptop's Tailscale address,
+`http://100.92.183.50:8230/`), the same handler on both. Every request passes the API's one gate (The
 HTTP API, above), the pages and their scripts included: the app's server has
 no route of its own, only `labHandler`, which admits first and then hands what
 is not `/api/*` to the pages (`LabPage`, above). A Host
-that is neither the server's own nor one of those is a 403 (DNS rebinding),
+that is not the listener's own is a 403 (DNS rebinding),
 and so is any request a browser marks cross-site (`Sec-Fetch-Site`), but a
 link opened on another site to one of the pages. A write
-must also carry an `Origin` of one of those hosts (`http://` or `https://`)
+must also carry an `Origin` of one of those hosts (`http://`)
 and a JSON body: another origin is a 403, a text/plain body a 415 (so a form
 on another site cannot post), a bad body a 400. The scene editor, the notes and the studio are behind the
-same gate: a write from a phone on one of those hosts is the lab's write. The
-studio's microphone needs a secure context (`https://` or `localhost`), so a
-recording is made on the box's own browser or through an HTTPS name.
+same gate: a write from the phone at its address is the lab's write. The
+studio's microphone needs a secure context, and the phone's plain `http://`
+link is not one, so a recording is made on the local link (`localhost`); on
+the phone the Record section says so (`MicDenied`).
 
 **The page** (`lab/review/`): `<Root>` holds the runtime (the review's
 routes and the options'), where the page is (its place, read from the URL

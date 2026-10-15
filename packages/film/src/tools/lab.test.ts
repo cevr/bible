@@ -42,21 +42,25 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from 'effect/http';
+import { type Server, createServer } from 'node:net';
 import { brotliDecompressSync } from 'node:zlib';
 import { parseSync } from 'oxc-parser';
 import { LabHttpApi, Places, Refusal, ScriptBeats, ToolFailure, labUrls } from '../core/api.ts';
 import { routesOf } from '../core/testing.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
-import { labHandler, labLink } from './lab.ts';
+import { labHandler } from './lab.ts';
 import {
   type BesideRoutes,
   LAB_IDLE_SECONDS,
   MAX_REQUEST_BODY,
   PageReads,
   labServer,
+  localLink,
   serveApi,
   serveLab,
 } from './api-server.ts';
+import { RenderCatalogue } from './catalogue.ts';
+import { startLab } from './film-services.ts';
 import { STUDIO_IMPORT_WAIT_S, STUDIO_MAX_BODY } from '../core/studio.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { PageRenderer } from './page-render.ts';
@@ -206,9 +210,6 @@ const readTo = (
 };
 
 const png = text('frame');
-
-/** The lab told no hosts: loopback alone. */
-const LOOPBACK = { hosts: [] };
 
 /** Where the lab server listens: the only host the routes answer to. */
 const bound = { hostname: '127.0.0.1', port: 4401 } as const;
@@ -561,7 +562,7 @@ describe('lab routes', () => {
     "a page's render reads the API through the lab's own gate and routes, at the page's Host",
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+        const lab = yield* labHandler();
         yield* Effect.promise(() =>
           lab(post(labUrls.notes.add({ params: { film: 'f' } }), draft), bound),
         );
@@ -575,7 +576,7 @@ describe('lab routes', () => {
     "a page's render reads the API alone: a page, a script or a file is a 404 RouteUnknown, never asked",
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+        const lab = yield* labHandler();
         for (const path of [
           '/films/f/play',
           '/chunk-a1.js',
@@ -599,7 +600,7 @@ describe('lab routes', () => {
     "a compressed page's Vary names its coding once, beside what it already varies by",
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+        const lab = yield* labHandler();
         for (const [vary, sent] of [
           ['accept-encoding', 'accept-encoding'],
           ['Origin', 'Origin, Accept-Encoding'],
@@ -620,7 +621,7 @@ describe('lab routes', () => {
   it.live("a page's read its render gives up stops that read's request in the lab", () =>
     Effect.gen(function* () {
       const ended = yield* Deferred.make<void>();
-      const lab = yield* labHandler(LOOPBACK, heldRoute(ended));
+      const lab = yield* labHandler(heldRoute(ended));
       const page = yield* Effect.promise(() => lab(get('/'), bound).then((r) => r.text()));
       expect(page).toBe('gave up');
       const stopped = yield* Deferred.await(ended).pipe(Effect.timeoutOption('2 seconds'));
@@ -661,7 +662,7 @@ describe('lab routes', () => {
           '/beside',
           Effect.andThen(finishing('beside'), Effect.succeed(HttpServerResponse.empty())),
         );
-        const lab = yield* labHandler(LOOPBACK, beside);
+        const lab = yield* labHandler(beside);
         yield* Effect.promise(() => lab(get('/beside'), bound));
         yield* Effect.promise(() =>
           lab(get(labUrls.page.wait({ query: { since: 0, timeout: 1 } })), bound),
@@ -673,7 +674,7 @@ describe('lab routes', () => {
 
   it.effect('a HEAD of a GET route answers as the GET does, without its body', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler(LOOPBACK);
+      const lab = yield* labHandler();
       const notes = labUrls.notes.list({ params: { film: 'f' } });
       const got = yield* Effect.promise(() => lab(get(notes), bound));
       const body = yield* Effect.promise(() => got.text());
@@ -725,7 +726,7 @@ describe('lab routes', () => {
             ),
           ),
         );
-        const lab = yield* labHandler(LOOPBACK, beside);
+        const lab = yield* labHandler(beside);
         const head = yield* Effect.promise(() =>
           lab(new Request(at('/api/beside-stream'), { method: 'HEAD' }), bound),
         );
@@ -747,7 +748,6 @@ describe('lab routes', () => {
       { global: true },
     ).pipe(Layer.build, Layer.effectDiscard);
     const served = serveApi(LabHttpApi, labelled, {
-      allowed: LOOPBACK,
       page: Effect.succeed(HttpServerResponse.text('page')),
       beside: Layer.empty,
     });
@@ -775,7 +775,7 @@ describe('lab routes', () => {
     () => {
       const ended = Deferred.makeUnsafe<void>();
       return Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+        const lab = yield* labHandler();
         const zipped = yield* Effect.promise(() =>
           lab(get('/', { 'accept-encoding': 'gzip' }), bound),
         );
@@ -806,7 +806,7 @@ describe('lab routes', () => {
 
   it.effect('a posted note is listed, its still served, and a wait returns it', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler(LOOPBACK);
+      const lab = yield* labHandler();
       const posted = yield* Effect.promise(() =>
         lab(post(labUrls.notes.add({ params: { film: 'f' } }), draft), bound),
       );
@@ -850,7 +850,7 @@ describe('lab routes', () => {
 
   it.effect('a user reply reopens the note; resolve closes it', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler(LOOPBACK);
+      const lab = yield* labHandler();
       yield* Effect.promise(() =>
         lab(post(labUrls.notes.add({ params: { film: 'f' } }), draft), bound),
       );
@@ -875,7 +875,7 @@ describe('lab routes', () => {
 
   it.effect('a bad body is a 400, an unknown note a 404, a path for a still a 404', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler(LOOPBACK);
+      const lab = yield* labHandler();
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
       expect(
         yield* status(post(labUrls.notes.add({ params: { film: 'f' } }), '{"scene":"hand"}')),
@@ -891,7 +891,7 @@ describe('lab routes', () => {
     "a note on a line's words keeps them, what it asks and a correction's words instead; one that asks what its words cannot is a 400, and nothing is kept",
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+        const lab = yield* labHandler();
         const notes = labUrls.notes.add({ params: { film: 'f' } });
         const status = (asks: string) =>
           Effect.promise(() => lab(post(notes, noteAsking(asks)), bound).then((r) => r.status));
@@ -930,7 +930,7 @@ describe('lab routes', () => {
     'a look reaches the easel: its failure answers with its status and tag, a bad body 400',
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+        const lab = yield* labHandler();
         const url = labUrls.looks.take({ params: { film: 'f' } });
         const look =
           '{"scene":"roof","at":["1"],"view":{"mode":"plain","captions":false,"format":"image/png"}}';
@@ -954,7 +954,7 @@ describe('lab routes', () => {
     'every route names its film: another film is a 404 FilmUnknown, none a 404; nothing is written',
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+        const lab = yield* labHandler();
         const answer = (req: Request) =>
           Effect.gen(function* () {
             const res = yield* Effect.promise(() => lab(req, bound));
@@ -998,7 +998,7 @@ describe('lab routes', () => {
     () => {
       const written: Written = { stderr: [], stdout: [] };
       return Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+        const lab = yield* labHandler();
         const answer = (request: Request) =>
           Effect.gen(function* () {
             const res = yield* Effect.promise(() => lab(request, bound));
@@ -1183,7 +1183,7 @@ describe('lab routes', () => {
     () => {
       const written: Written = { stderr: [], stdout: [] };
       return Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+        const lab = yield* labHandler();
         const asked = labUrls.notes.list({ params: { film: 'nope' } });
         const status = yield* Effect.promise(() => lab(get(asked), bound).then((r) => r.status));
         expect(status).toBe(404);
@@ -1196,7 +1196,7 @@ describe('lab routes', () => {
 
   it.effect('the real server answers only behind the gate: no route of Bun answers first', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler(LOOPBACK);
+      const lab = yield* labHandler();
       const server = yield* Layer.build(labServer({ hostname: '127.0.0.1', port: 0 }));
       const url = yield* serveLab(lab).pipe(Effect.provideContext(server));
       const client = yield* HttpClient.HttpClient;
@@ -1225,7 +1225,7 @@ describe('lab routes', () => {
     "a body over the gate's limit is the gate's 413; one over Bun's, Bun's own, before the gate",
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+        const lab = yield* labHandler();
         const server = yield* Layer.build(labServer({ hostname: '127.0.0.1', port: 0 }));
         const url = yield* serveLab(lab).pipe(Effect.provideContext(server));
         const client = yield* HttpClient.HttpClient;
@@ -1251,14 +1251,98 @@ describe('lab routes', () => {
       }).pipe(Effect.scoped, Effect.provide([labInMemory(files()), FetchHttpClient.layer])),
   );
 
-  it.effect('the link the lab hands out: its first host over HTTPS, else where it is bound', () =>
+  it.effect('the local link the lab hands out: a loopback or open bind at localhost', () =>
     Effect.sync(() => {
-      expect(labLink('http://0.0.0.0:8229/', { hosts: ['box.example:8229', 'other:8229'] })).toBe(
-        'https://box.example:8229/',
-      );
-      expect(labLink('http://127.0.0.1:8229/', { hosts: [] })).toBe('http://127.0.0.1:8229/');
+      expect(localLink('http://127.0.0.1:8229/')).toBe('http://localhost:8229/');
+      expect(localLink('http://0.0.0.0:8229/')).toBe('http://localhost:8229/');
+      expect(localLink('http://[::1]:8229/')).toBe('http://localhost:8229/');
+      expect(localLink('http://100.92.183.50:8230/')).toBe('http://100.92.183.50:8230/');
     }),
   );
+
+  it.effect(
+    "the lab listens at the phone's address itself: a foreign Host refused there, and its answers compressed",
+    () =>
+      Effect.gen(function* () {
+        const links = yield* startLab(
+          { hostname: '127.0.0.1', port: 0 },
+          Option.some(new URL('http://[::1]:0/')),
+        );
+        expect(links.local).toMatch(/^http:\/\/localhost:\d+\/$/);
+        const phone = links.phone ?? '';
+        expect(phone).toMatch(/^http:\/\/\[::1\]:\d+\/$/);
+        // As a browser gets it: its bytes as sent, not decompressed for the test. The
+        // test's page echoes its path, so a long one is past the floor compression keeps.
+        const page = new URL(`/${'p'.repeat(2048)}`, phone);
+        const asSent: BunFetchRequestInit = { decompress: false };
+        const client = yield* HttpClient.HttpClient;
+        const answer = (headers: Record<string, string>) =>
+          Effect.map(Effect.orDie(client.get(page, { headers })), (response) => [
+            response.status,
+            response.headers['content-encoding'] ?? 'plain',
+          ]).pipe(Effect.provideService(FetchHttpClient.RequestInit, asSent));
+        // A name the phone's listener is not is refused, as on loopback.
+        expect(yield* answer({ host: 'evil.example' })).toEqual([403, 'plain']);
+        // Its own name is the lab, compressed for a client that takes it.
+        expect(yield* answer({ 'accept-encoding': 'br' })).toEqual([200, 'br']);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(RenderCatalogue.layer),
+        Effect.provide([labInMemory(files()), FetchHttpClient.layer]),
+      ),
+  );
+
+  /**
+   * A port on loopback another server holds, as a forwarder still exiting
+   * holds 8230: a plain socket's, since a second `labServer` in one process
+   * binds a port the first holds (Bun's `development: false` shares it).
+   */
+  const held = Effect.acquireRelease(
+    Effect.callback<Server>((resume) => {
+      const server = createServer();
+      server.listen(0, '127.0.0.1', () => resume(Effect.succeed(server)));
+    }),
+    (server) => Effect.callback<void>((resume) => void server.close(() => resume(Effect.void))),
+  ).pipe(
+    Effect.flatMap((server) =>
+      Schema.decodeUnknownEffect(Schema.Struct({ port: Schema.Finite }))(server.address()),
+    ),
+    Effect.map(({ port }) => new URL(`http://127.0.0.1:${port}/`)),
+    Effect.orDie,
+  );
+  const unservable: ReadonlyArray<readonly [string, Effect.Effect<URL, never, Scope.Scope>]> = [
+    // TEST-NET-1: on no interface of any machine, as the tailnet's address is when it is down.
+    ['an address on no interface of this machine', Effect.succeed(new URL('http://192.0.2.1:0/'))],
+    ['a port another server holds', held],
+    ['an https address (the lab serves plain http)', Effect.succeed(new URL('https://[::1]:0/'))],
+  ];
+  for (const [what, phoneAt] of unservable)
+    it.effect(`a phone address the lab cannot serve, ${what}: logged, and loopback serves`, () => {
+      const lines: Array<string> = [];
+      return Effect.gen(function* () {
+        const phone = yield* phoneAt;
+        const links = yield* startLab({ hostname: '127.0.0.1', port: 0 }, Option.some(phone));
+        expect(links.phone).toBeUndefined();
+        const client = yield* HttpClient.HttpClient;
+        const local = yield* Effect.orDie(client.get(links.local));
+        expect(local.status).toBe(200);
+        const unbound = lines.filter((line) => line.startsWith('lab.phone.unbound'));
+        expect(unbound).toHaveLength(1);
+        expect(unbound[0]).toContain(`url=${phone.href} reason=`);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(RenderCatalogue.layer),
+        Effect.provide([
+          labInMemory(files()),
+          FetchHttpClient.layer,
+          Logger.layer([
+            Logger.make(({ message }) => {
+              lines.push([message].flat().join(' '));
+            }),
+          ]),
+        ]),
+      );
+    });
 });
 
 // A browser that leaves (a closed tab, a reload) aborts its request, and Bun
@@ -1273,7 +1357,7 @@ describe('a client that goes away', () => {
    */
   const served = (beside: BesideRoutes = Layer.empty) =>
     Effect.gen(function* () {
-      const lab = yield* labHandler(LOOPBACK, beside);
+      const lab = yield* labHandler(beside);
       const gone = yield* Deferred.make<void>();
       const server = yield* Layer.build(labServer({ hostname: '127.0.0.1', port: 0 }));
       const url = yield* serveLab((request, bound) => {
@@ -1441,7 +1525,7 @@ describe("the Script page's read", () => {
       const mtimes = new Map([[SCENES, 1_000]]);
       const runs: Array<string> = [];
       return Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+        const lab = yield* labHandler();
         const read = (film: string) =>
           Effect.promise(() => lab(get(labUrls.script.beats({ params: { film } })), bound));
         const first = yield* read('f');

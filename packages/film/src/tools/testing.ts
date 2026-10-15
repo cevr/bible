@@ -1838,8 +1838,8 @@ export const labInMemory = (
 // ---------------------------------------------------------------------------
 // The lab's MCP as a client calls it at `/mcp`
 
-/** The lab's address in an MCP test: where its links point. */
-export const MCP_BASE = 'http://127.0.0.1:4401/';
+/** The lab's address on this machine in an MCP test (`localhost`, as `localLink` names a loopback bind): where its local links point. */
+export const MCP_BASE = 'http://localhost:4401/';
 
 /** The lab's address on the owner's phone, in an MCP test. */
 export const MCP_PHONE = 'http://100.64.0.9:8230/';
@@ -1852,13 +1852,14 @@ export type LabFetch = (request: Request, server: typeof mcpBound) => Promise<Re
 
 /** The lab's handler with its MCP beside it, over a feed the test reads (`look`) when it says. */
 export const labWithMcp = Effect.gen(function* () {
-  const events = yield* LabEvents.make({ base: MCP_BASE });
+  const links = { local: MCP_BASE, phone: MCP_PHONE };
+  const events = yield* LabEvents.make({ links });
   yield* events.look;
   const services = yield* Effect.context<LabMcpNeeds>();
-  const mcp = labMcp({ base: MCP_BASE, phone: MCP_PHONE }).pipe(
+  const mcp = labMcp({ links }).pipe(
     Layer.provide(Layer.succeedContext(Context.add(services, LabEvents, events))),
   );
-  const lab = yield* labHandler({ hosts: [] }, mcp);
+  const lab = yield* labHandler(mcp);
   return { lab, events };
 });
 
@@ -2375,16 +2376,18 @@ export const reviewHttpFixtureLasting = (seconds: number, phoneCopies = false) =
 /** The review fixture, its videos 12.5 s long. */
 export const reviewHttpFixture = reviewHttpFixtureLasting(12.5);
 
-/** Where the lab listens: every interface, on 8229. */
-const reviewTestBound = { hostname: '0.0.0.0', port: 8229 } as const;
-const reviewTestAllowed = { hosts: ['box.example:8229'] };
+/** The listener a review test's request comes on: the owner's phone address (a tailnet one), on 8229. */
+const reviewTestBound = { hostname: '100.64.0.9', port: 8229 } as const;
+
+/** The Host a page served on that listener names. */
+export const REVIEW_TEST_HOST = '100.64.0.9:8229';
 
 export const reviewTestGet = (path: string, headers: Record<string, string> = {}) =>
   new Request(`http://127.0.0.1:8229${path}`, { method: 'GET', headers });
 
 export const reviewTestAsk = (request: Request) =>
   Effect.gen(function* () {
-    const review = yield* labHandler(reviewTestAllowed);
+    const review = yield* labHandler();
     return yield* Effect.promise(() => review(request, reviewTestBound));
   });
 
@@ -2401,8 +2404,8 @@ export const reviewTestPost = (
 ) =>
   new Request(`http://127.0.0.1:8229${route}`, {
     method: 'POST',
-    headers: { host: 'box.example:8229', origin, 'content-type': type },
+    headers: { host: REVIEW_TEST_HOST, origin, 'content-type': type },
     body,
   });
 
-export const REVIEW_TEST_HOME = 'https://box.example:8229';
+export const REVIEW_TEST_HOME = `http://${REVIEW_TEST_HOST}`;

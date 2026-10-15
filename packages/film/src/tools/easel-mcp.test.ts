@@ -13,7 +13,7 @@
 // and a scene the film lacks refused.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Layer, Option, type Schema } from 'effect';
+import { Effect, Layer, Logger, Option, type Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
 import { PagesBroken, type LookPost, type LookTaken } from '../core/easel.ts';
 import { UnknownScene } from '../core/errors.ts';
@@ -130,6 +130,15 @@ const scenesOfF = () => Effect.succeed(['roof', 'gate']);
 /** A tool's arguments, as a client sends them. */
 type Args = Readonly<Record<string, Schema.Json>>;
 
+/** A logger that keeps each `[mcp]` line logged into `lines`, its time cut. */
+const mcpLinesIn = (lines: Array<string>) =>
+  Logger.layer([
+    Logger.make(({ message }) => {
+      const line = [message].flat().join(' ');
+      if (line.startsWith('[mcp]')) lines.push(line.replace(/ ms=\d+$/, ''));
+    }),
+  ]);
+
 /** A look's answer whole, as the client reads it: its content, and whether it is an error. */
 const look = (call: (method: string, params: Schema.Json) => Effect.Effect<any>, args: Args) =>
   call('tools/call', { name: 'look', arguments: { films: FILMS, film: 'f', ...args } });
@@ -161,6 +170,7 @@ describe("the easel's tools on the MCP", () => {
   it.effect('a look answers each still as an image after its line, drawn as the tool asks', () => {
     const files = filmFiles();
     const asked: Array<Asked> = [];
+    const lines: Array<string> = [];
     return Effect.gen(function* () {
       const { lab } = yield* labWithMcp;
       const { call } = yield* mcpSession(lab);
@@ -208,12 +218,18 @@ describe("the easel's tools on the MCP", () => {
           },
         },
       ]);
-    }).pipe(Effect.scoped, Effect.provide(labOver(files, asked)));
+      // Each look is its one log line, as every tool call is.
+      expect(lines).toEqual([
+        '[mcp] tool=look film=f scene=roof outcome=ok',
+        '[mcp] tool=look film=f scene=roof outcome=ok',
+      ]);
+    }).pipe(Effect.scoped, Effect.provide(Layer.merge(labOver(files, asked), mcpLinesIn(lines))));
   });
 
   it.effect("a look is refused in the film's words, and bad arguments as the call's", () => {
     const files = filmFiles();
     const asked: Array<Asked> = [];
+    const lines: Array<string> = [];
     return Effect.gen(function* () {
       const { lab } = yield* labWithMcp;
       const { call } = yield* mcpSession(lab);
@@ -224,8 +240,10 @@ describe("the easel's tools on the MCP", () => {
         });
       // Another checkout's films: never answered with this lab's files.
       expect(yield* refused({ films: '/rift/films', scene: 'roof', at: ['1'] })).toBe(
-        'LabElsewhere: this lab serves /films/f, not /rift/films/f: start a lab from your checkout (LAB_PORT=<port> bun cli.ts lab, in apps/animations) and call its MCP at http://127.0.0.1:<port>/mcp',
+        'LabElsewhere: this lab serves /films/f, not /rift/films/f: start a lab from your checkout (LAB_PORT=<port> bun cli.ts lab, in apps/animations) and call its MCP at http://localhost:<port>/mcp',
       );
+      // A refusal is a failed call in the log, though the tool answers it.
+      expect(lines).toEqual(['[mcp] tool=look film=f scene=roof outcome=failed']);
       // A relative films folder: the lab would read it from its own checkout.
       expect(yield* refused({ films: 'src/films', scene: 'roof', at: ['1'] })).toContain(
         "your checkout's films folder, absolute",
@@ -256,7 +274,7 @@ describe("the easel's tools on the MCP", () => {
       ];
       for (const args of undecoded) expect(yield* refused(args)).toContain('-32602');
       expect(asked).toHaveLength(before);
-    }).pipe(Effect.scoped, Effect.provide(labOver(files, asked)));
+    }).pipe(Effect.scoped, Effect.provide(Layer.merge(labOver(files, asked), mcpLinesIn(lines))));
   });
 
   it.effect('a check draws the scenes named, its findings a page at a time', () => {

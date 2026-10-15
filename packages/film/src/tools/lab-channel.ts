@@ -7,7 +7,7 @@
 // stdout: it answers Claude Code's handshake, then asks the lab's MCP at
 // `FILM_LAB_URL` (through `lab-client.ts`, the one client of it) for
 // `changes`, waiting up to `WAIT_S` each time, and sends each change on as
-// one channel event: its summary and link as the text, what it is about as
+// one channel event: its summary and links as the text, what it is about as
 // attributes.
 // The lab stays the one record and the one feed; the bridge keeps nothing
 // but the cursor (`lab-relay.ts`), which outlives a session: a lab that
@@ -139,11 +139,14 @@ const metaOf = (change: LabChange): Record<string, string> => {
     ...Arr.getSomes(
       about.map(([key, value]) => Option.map(value, (v) => [key, String(v)] as const)),
     ),
-    ['link', change.link],
+    ['link', change.links.local],
+    ...Option.toArray(
+      Option.map(Option.fromUndefinedOr(change.links.phone), (phone) => ['phone', phone] as const),
+    ),
   ]);
 };
 
-/** One change as the channel event Claude Code reads: its summary, its words in full, its link. */
+/** One change as the channel event Claude Code reads: its summary, its words in full, its links (local, then the phone's). */
 const channelEvent = (change: LabChange): Schema.Json => ({
   jsonrpc: '2.0',
   method: CHANNEL_EVENT,
@@ -154,7 +157,8 @@ const channelEvent = (change: LabChange): Schema.Json => ({
         ...Option.toArray(
           Option.filter(Option.fromUndefinedOr(change.text), (t) => !change.summary.endsWith(t)),
         ),
-        change.link,
+        change.links.local,
+        ...Option.toArray(Option.fromUndefinedOr(change.links.phone)),
       ],
       '\n',
     ),

@@ -105,7 +105,6 @@ describe('lab pages', () => {
         const { ask, page, write } = yield* app;
         yield* write('src/lab.ts', `console.log('${'the lab '.repeat(400)}');\n`);
         const handler = yield* serveApi(LabHttpApi, Layer.empty, {
-          allowed: { hosts: [] },
           page: page.answer,
           beside: Layer.empty,
         });

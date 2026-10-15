@@ -27,7 +27,7 @@ const echo = HttpRouter.add(
 describe("the lab's gate", () => {
   it.effect("keeps what a route registers on its answer when it has read the route's body", () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler({ hosts: [] }, Layer.mergeAll(echo));
+      const lab = yield* labHandler(Layer.mergeAll(echo));
       const answer = yield* Effect.promise(() =>
         lab(
           new Request('http://127.0.0.1:4401/echo', {

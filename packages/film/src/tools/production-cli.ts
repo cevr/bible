@@ -489,8 +489,6 @@ const ask = Command.make(
         onSome: (phone) => `phone ${phone}`,
       }),
     );
-    for (const at of Option.toArray(Option.fromUndefinedOr(asked.links.public)))
-      yield* Console.log(`public ${at}`);
     yield* Console.log(
       `then: its answers with the lab's MCP (ask_read ${asked.ask}); close_ask it once acted on`,
     );

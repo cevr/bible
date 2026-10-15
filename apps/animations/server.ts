@@ -2,7 +2,7 @@
 // on loopback for as long as `render` or `check` runs (the film CLI's
 // PreviewServer, cli.ts, at `/?film=<name>&export`), and the pages the lab builds
 // (`LAB_PAGES`). The lab's own server is the framework's (`labServer`):
-// `bun run lab`, the box's unit.
+// `bun run lab`.
 
 import { CACHE, type FootageRoot, footageHandler, narrationFile } from '@bible/film/tools';
 import { BunServices } from '@effect/platform-bun';

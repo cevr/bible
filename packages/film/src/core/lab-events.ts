@@ -23,6 +23,26 @@ import type { Catalogue } from './catalogue.ts';
 import { type PointRef, pointIdOf } from './point.ts';
 import type { Note, NoteEvent } from './schema.ts';
 
+/**
+ * Where a place in the lab opens: on this machine (`local`, at `localhost`)
+ * and from the owner's phone (`phone`), when the lab listens on its address
+ * (`FILM_LAB_PHONE_URL`). Every link the lab hands out is these two.
+ */
+export const LabLinks = Schema.Struct({
+  local: Schema.String,
+  phone: Schema.optionalKey(Schema.String),
+});
+export type LabLinks = typeof LabLinks.Type;
+
+/** `at`, a lab path (`/films/f/board`), under each of the lab's own `links`. Pure. */
+export const linksAt = (links: LabLinks, at: string): LabLinks => ({
+  local: new URL(at, links.local).href,
+  ...Option.match(Option.fromUndefinedOr(links.phone), {
+    onNone: () => ({}),
+    onSome: (phone) => ({ phone: new URL(at, phone).href }),
+  }),
+});
+
 /** What happened. */
 const LabChangeKind = Schema.Literals([
   /** A note written on a frame, a line's words or a panel. */
@@ -99,13 +119,13 @@ export const LabChange = Schema.Struct({
   answers: Schema.optionalKey(Schema.Record(Schema.String, AskAnswer)),
   /** The whole change in one line. */
   summary: Schema.String,
-  /** The lab page it is on, absolute. */
-  link: Schema.String,
+  /** The lab page it is on, local and on the phone. */
+  links: LabLinks,
 });
 export type LabChange = typeof LabChange.Type;
 
-/** A change as it is read, before the feed numbers it, dates it and makes its link absolute. */
-export type LabChangeDraft = Omit<LabChange, 'seq' | 'at' | 'link'> & {
+/** A change as it is read, before the feed numbers it, dates it and makes its links. */
+export type LabChangeDraft = Omit<LabChange, 'seq' | 'at' | 'links'> & {
   /** The lab path it is on (`/films/f/board/cold?panel=judge`). */
   readonly path: string;
 };

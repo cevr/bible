@@ -69,13 +69,20 @@ export class JudgeRuleMissing extends Schema.TaggedError<JudgeRuleMissing>()('Ju
   }
 }
 
-/** The counsel run failed: its exit and its last words. */
+/**
+ * The counsel run failed: why, with its last words, and the folder that
+ * keeps what it printed (`dir`) when it printed anything.
+ */
 export class CounselFailed extends Schema.TaggedError<CounselFailed>()('CounselFailed', {
-  dir: Schema.String,
+  dir: Schema.optionalKey(Schema.String),
   reason: Schema.String,
 }) {
   override get message() {
-    return `the counsel run failed (${this.reason}); its files are under ${this.dir}`;
+    const kept = Option.match(Option.fromUndefinedOr(this.dir), {
+      onNone: () => '',
+      onSome: (dir) => `; what it printed is under ${dir}`,
+    });
+    return `the counsel run failed (${this.reason})${kept}`;
   }
 }
 
