@@ -6,6 +6,7 @@
 // diff changed), so both read a doc's anchors the same way.
 
 import { Boolean as Bool, Effect, FileSystem, Option, Path } from 'effect';
+import { Glob } from 'bun';
 
 /** A doc read against the code. */
 export interface Doc {
@@ -224,47 +225,54 @@ export const ANCHORED: ReadonlyArray<readonly [string, ReadonlyArray<string>]> =
   [DESIGN_LANGUAGE, ['', FILM_SRC]],
 ];
 
-/** `docs`, each read from `root`. */
-export const readEach = Effect.fn('docs.readEach')(function* (
-  root: string,
-  docs: ReadonlyArray<readonly [string, ReadonlyArray<string>]>,
-  whole: boolean,
-) {
+/** The skills that teach the framework: every `.md` under them is read in full against the code. */
+export const SKILL_DIRS = ['.claude/skills/film', '.claude/skills/film-architecture-loop'];
+
+/**
+ * A doc the docs test reads, before its text: `framework` (the film README
+ * and its skills, read in full against the code), `spanned` (it names the
+ * code in passing) or `anchored` (its anchors alone are read).
+ */
+export interface DocPlace extends Omit<Doc, 'text'> {
+  readonly role: 'framework' | 'spanned' | 'anchored';
+}
+
+/**
+ * Every doc the docs test reads, as the tree under `root` stands. Listed at
+ * once (a skill's docs by a synchronous glob), so the docs test declares a
+ * test for each doc as it loads.
+ */
+export const docPlaces = (root: string): ReadonlyArray<DocPlace> => [
+  {
+    path: 'packages/film/README.md',
+    bases: ['', 'packages/film', FILM_SRC],
+    whole: false,
+    role: 'framework',
+  },
+  ...SKILL_DIRS.flatMap((dir) =>
+    Array.from(new Glob('**/*.md').scanSync({ cwd: `${root}/${dir}` }))
+      .sort()
+      .map((file): DocPlace => ({
+        path: `${dir}/${file}`,
+        bases: ['', FILM_SRC],
+        whole: false,
+        role: 'framework',
+      })),
+  ),
+  ...SPANNED.map(([path, bases]): DocPlace => ({ path, bases, whole: false, role: 'spanned' })),
+  ...ANCHORED.map(([path, bases]): DocPlace => ({ path, bases, whole: true, role: 'anchored' })),
+];
+
+/** The doc at `place`, read from `root`. */
+export const readDoc = Effect.fn('docs.readDoc')(function* (root: string, place: DocPlace) {
   const fs = yield* FileSystem.FileSystem;
-  return yield* Effect.forEach(docs, ([file, bases]) =>
-    Effect.map(fs.readFileString(`${root}/${file}`), (text): Doc => ({
-      path: file,
-      text,
-      bases,
-      whole,
-    })),
-  );
+  const text = yield* fs.readFileString(`${root}/${place.path}`);
+  return { path: place.path, text, bases: place.bases, whole: place.whole } satisfies Doc;
 });
 
-/** The docs that teach the framework, read in full against the code: the film README and its skills. */
-export const readDocs = Effect.fn('docs.readDocs')(function* (root: string) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const skills = yield* Effect.forEach(
-    ['.claude/skills/film', '.claude/skills/film-architecture-loop'],
-    (dir) =>
-      Effect.map(fs.readDirectory(path.join(root, dir), { recursive: true }), (files) =>
-        files.filter((f) => f.endsWith('.md')).map((f) => [`${dir}/${f}`, ['', FILM_SRC]] as const),
-      ),
-  );
-  return yield* readEach(
-    root,
-    [['packages/film/README.md', ['', 'packages/film', FILM_SRC]], ...skills.flat()],
-    false,
-  );
-});
-
-/** Every doc whose anchors are read: the framework's, those that name it in passing, and those read for anchors alone. */
+/** Every doc whose anchors are read (`docPlaces`), each read from `root`. */
 export const readAllDocs = (root: string) =>
-  Effect.map(
-    Effect.all([readDocs(root), readEach(root, SPANNED, false), readEach(root, ANCHORED, true)]),
-    (each) => each.flat(),
-  );
+  Effect.forEach(docPlaces(root), (place) => readDoc(root, place), { concurrency: 8 });
 
 /** What follows a path written as a receipt: `at \`<commit>\`` or `deleted`. */
 const RECEIPT = /^(?:\s+`[^`\n]+`(?:,\s+`[^`\n]+`)*)?\s+(?:at\s+`[0-9a-f]{7,40}`|deleted\b)/;

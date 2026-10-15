@@ -70,31 +70,30 @@
 //
 // What a sentence claims about the code stays with the sweep's reading.
 
-import { BunServices } from '@effect/platform-bun';
+import { BunFileSystem, BunPath, BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
+import { Effect, FileSystem, Layer, Option, Path, Predicate, Schema } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { JSONC, TOML } from 'bun';
 import { type Node, type Program, Visitor, parseSync } from 'oxc-parser';
 import { LabHttpApi } from './core/api.ts';
 import { declares as declaresRoute, routesOf } from './core/testing.ts';
 import {
-  ANCHORED,
   ANOTHER_REPO,
   type Anchor,
   DESIGN_LANGUAGE,
   type Doc,
+  type DocPlace,
   FILM_SRC,
   type Line,
   type Markdown,
-  SPANNED,
   anchorsIn,
+  docPlaces,
   firstGroup,
   group,
   markdownOf,
   matches,
-  readDocs,
-  readEach,
+  readDoc,
 } from './fixtures/doc-anchors.ts';
 
 /** What the docs are read against. */
@@ -922,16 +921,26 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
   } satisfies Code;
 });
 
-/** What each doc's anchors name that the tree lacks, one line each: each file they name parsed once. */
-const anchorsDrift = (root: string, docs: ReadonlyArray<Doc>) => {
-  const sources = new Map<string, Source>();
-  const sourceAt = (file: string, text: string) =>
-    Option.getOrElse(Option.fromUndefinedOr(sources.get(file)), () => {
-      const source = sourceOf(text, file);
-      sources.set(file, source);
-      return source;
-    });
-  return Effect.map(
+/**
+ * Each file a doc's anchors name, parsed once for every doc's test: the text
+ * it was parsed from beside it, so a file read again with other text is
+ * parsed again.
+ */
+const parsed = new Map<string, { readonly text: string; readonly source: Source }>();
+
+const sourceAt = (file: string, text: string) =>
+  Option.getOrElse(
+    Option.filter(Option.fromUndefinedOr(parsed.get(file)), (held) => held.text === text),
+    () => {
+      const held = { text, source: sourceOf(text, file) };
+      parsed.set(file, held);
+      return held;
+    },
+  ).source;
+
+/** What each doc's anchors name that the tree lacks, one line each: each file they name parsed once (`parsed`). */
+const anchorsDrift = (root: string, docs: ReadonlyArray<Doc>) =>
+  Effect.map(
     Effect.forEach(docs, (doc) =>
       Effect.map(findAnchors(root, doc), (found) =>
         anchorDrift(found, sourceAt).map((what) => `${doc.path}: ${what}`),
@@ -939,9 +948,11 @@ const anchorsDrift = (root: string, docs: ReadonlyArray<Doc>) => {
     ),
     (each) => each.flat(),
   );
-};
 
 const ROOT = Effect.map(Path.Path, (path) => path.join(import.meta.dir, '..', '..', '..'));
+
+/** Every doc the test reads, listed as the file loads: a test each. */
+const PLACES = docPlaces(`${import.meta.dir}/../../..`);
 
 // The repo's code is read once, begun as the file loads: two tests check docs
 // against it, and a read walks every workspace's tree.
@@ -1206,25 +1217,25 @@ describe('the docs', () => {
       }),
   );
 
+  it.effect('read every doc the framework, the runbook and the packages keep', () =>
+    Effect.sync(() => {
+      expect(PLACES.filter((place) => place.role === 'framework').length).toBeGreaterThan(10);
+      expect(PLACES.filter((place) => place.role !== 'framework').length).toBe(9);
+    }),
+  );
+
   it.effect.layer(BunServices.layer)(
-    'name only routes, rules, scripts, paths, symbols, flags and findings the code has',
+    'document every declared route, and turn every registered rule on',
     () =>
       Effect.gen(function* () {
         const root = yield* ROOT;
-        const [code, docs, spanned, anchored] = yield* Effect.all([
+        const [code, docs] = yield* Effect.all([
           repoCode,
-          readDocs(root),
-          readEach(root, SPANNED, false),
-          readEach(root, ANCHORED, true),
-        ]);
-        expect(docs.flatMap((doc) => drift(doc, code))).toEqual([]);
-        // The owner's runbook, the prior arts and the app's README name routes too.
-        expect(
-          spanned.flatMap((doc) =>
-            spanDrift(markdownOf(doc.text), code).map((what) => `${doc.path}: ${what}`),
+          Effect.forEach(
+            PLACES.filter((place) => place.role === 'framework'),
+            (place) => readDoc(root, place),
           ),
-        ).toEqual([]);
-        expect(yield* anchorsDrift(root, [...docs, ...spanned, ...anchored])).toEqual([]);
+        ]);
         expect(undocumented(docs, code)).toEqual([]);
         // Each registered rule is on for the paths it guards.
         expect(Array.from(code.registered).filter((rule) => !code.enabled.has(rule))).toEqual([]);
@@ -1593,4 +1604,40 @@ describe('the docs', () => {
         expect(tokenBlock(doc).length).toBeGreaterThan(0);
       }),
   );
+});
+
+/**
+ * What a doc names that the code lacks, beyond its anchors, by its role: a
+ * framework doc's every name (`drift`), a passing doc's routes and spans
+ * (the owner's runbook, the prior arts and the app's README name routes
+ * too), an anchored doc's none.
+ */
+const NAMES_DRIFT: Record<DocPlace['role'], (doc: Doc, code: Code) => ReadonlyArray<string>> = {
+  framework: drift,
+  spanned: (doc, code) =>
+    spanDrift(markdownOf(doc.text), code).map((what) => `${doc.path}: ${what}`),
+  anchored: () => [],
+};
+
+// A test each doc, run together: the code is read once (`repoCode`) and each
+// file an anchor names is parsed once (`parsed`), whichever doc reads it first.
+// A doc's test reads files alone: the whole platform (its stdio's listeners on
+// stdin) built for each of the docs at once would be built and held for each.
+const DOC_SERVICES = Layer.merge(BunFileSystem.layer, BunPath.layer);
+
+describe.concurrent('each doc', () => {
+  for (const place of PLACES) {
+    it.effect.layer(DOC_SERVICES)(
+      `${place.path}: name only routes, rules, scripts, paths, symbols, flags and findings the code has`,
+      () =>
+        Effect.gen(function* () {
+          const root = yield* ROOT;
+          const [code, doc] = yield* Effect.all([repoCode, readDoc(root, place)]);
+          expect([
+            ...NAMES_DRIFT[place.role](doc, code),
+            ...(yield* anchorsDrift(root, [doc])),
+          ]).toEqual([]);
+        }),
+    );
+  }
 });
