@@ -112,7 +112,7 @@ const refusedAs = (error: Named): FilmRefused => {
   if (error._tag === 'LabElsewhere')
     return FilmRefused.make({
       tag: error._tag,
-      text: `${error.message.replace(/: start a lab .*$/, '')}: start a lab from your checkout (LAB_PORT=<port> bun cli.ts lab, in apps/animations) and call its MCP at http://127.0.0.1:<port>/mcp`,
+      text: `${error.message.replace(/: start a lab .*$/, '')}: start a lab from your checkout (LAB_PORT=<port> bun cli.ts lab, in apps/animations) and call its MCP at http://localhost:<port>/mcp`,
     });
   return FilmRefused.make({ tag: error._tag, text: clip(error.message, REFUSAL_CHARS) });
 };
@@ -410,6 +410,8 @@ const lookTool = Layer.effectDiscard(
   Effect.gen(function* () {
     const server = yield* McpServer.McpServer;
     const work = yield* easelWork;
+    // Logged before its refusal is answered, so a refusal logs as failed.
+    const look = logged('look', (params: LookParams) => work.look(params));
     const document = Schema.toJsonSchemaDocument(LookParams, { onExcessProperty: 'ignore' });
     const inputSchema = yield* Schema.decodeUnknownEffect(McpSchema.ToolJson)({
       ...document.schema,
@@ -433,7 +435,7 @@ const lookTool = Layer.effectDiscard(
         decodeLookParams(payload).pipe(
           Effect.mapError((error) => McpSchema.InvalidParams.make({ message: error.message })),
           Effect.flatMap((params) =>
-            work.look(params).pipe(
+            look(params, {}).pipe(
               Effect.map((content) => McpSchema.CallToolResult.make({ content })),
               Effect.catch((error) =>
                 Effect.succeed(

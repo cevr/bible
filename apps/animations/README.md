@@ -428,7 +428,7 @@ static leg and each scene drawn by its own code, no browser). Each tool
 takes `films`, the asker's films folder, absolute and with no `..` (anything
 else is refused): a lab that serves another checkout, the folders compared
 as the disk resolves them, refuses (`LabElsewhere`) and names the way to a
-spare lab of the asker's own, its MCP at `http://127.0.0.1:<port>/mcp`.
+spare lab of the asker's own, its MCP at `http://localhost:<port>/mcp`.
 Every answer encodes to at most 8,000 characters of JSON and says how to
 read on: `check` and `cues` answer `next`, to ask again with as it is, and a
 check whose findings changed between pages lists them again from the first
@@ -457,7 +457,7 @@ codex mcp add lab --url http://localhost:8229/mcp
 
 A workspace paints with a spare lab of its own (`LAB_PORT=<port> bun cli.ts
 lab`, here), registered as `lab` for the workspace alone:
-`claude mcp add --transport http lab http://127.0.0.1:<port>/mcp -s local`,
+`claude mcp add --transport http lab http://localhost:<port>/mcp -s local`,
 run there, overrides the user's `lab` from the next session.
 
 ### New art directions: the seeder
