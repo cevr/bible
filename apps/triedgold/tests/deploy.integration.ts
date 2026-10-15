@@ -1,42 +1,47 @@
 /**
- * The deploy, checked against real Railway: a throwaway `test_$USER` stage is
- * deployed, probed and destroyed in one scope, so a failure destroys it too.
+ * The deploy, checked against real Cloudflare: a throwaway `test_$USER` stage
+ * is deployed, probed and destroyed in one scope, so a failure destroys it too.
  *
  * Outside Bun's test pattern on purpose, so the gate never deploys. Run it with
  * `bun run test:deploy` (it builds first) before handing off a change to the
- * stack, the server, or the Alchemy or Effect versions. About a minute.
+ * stack, the Worker, or the Alchemy or Effect versions.
  */
 import { expect } from 'bun:test';
-import * as Alchemy from 'alchemy';
+import * as Cloudflare from 'alchemy/Cloudflare';
 import * as Test from 'alchemy/Test/Bun';
 import { Effect, Option, Schedule } from 'effect';
 import { HttpClient } from 'effect/http';
 
 import Stack, { providers } from '../alchemy.run.ts';
 
-const { test, deploy, destroy } = Test.make({ providers, state: Alchemy.localState() });
+const { test, deploy, destroy } = Test.make({ providers, state: Cloudflare.state() });
 
 const deployed = Effect.acquireRelease(deploy(Stack), () => destroy(Stack).pipe(Effect.orDie));
 
 test(
-  'the site serves its pages, assets and health check from Railway',
+  'the site serves its pages, assets and not-found page from Cloudflare',
   Effect.gen(function* () {
     const outputs = yield* deployed;
     const url = yield* Effect.fromOption(Option.fromNullishOr(outputs.url));
     const raw = yield* HttpClient.HttpClient;
     const client = raw.pipe(HttpClient.filterStatusOk);
-    // A fresh service answers 404 or 502 for a few seconds after it deploys.
+    // A fresh workers.dev host can answer 404 for a few seconds after deploy.
     const get = (path: string) =>
       client
         .get(`${url}${path}`)
         .pipe(Effect.retry({ schedule: Schedule.exponential('1 second'), times: 8 }));
 
-    const health = yield* get('/health');
-    expect(yield* health.text).toBe('ok');
-
     const home = yield* get('/');
     const html = yield* home.text;
     expect(html).toContain('Tried Gold');
+
+    for (const page of ['/about', '/contact', '/blog']) {
+      const response = yield* get(page);
+      expect([page, response.headers['content-type']]).toEqual([
+        page,
+        expect.stringContaining('text/html'),
+      ]);
+    }
 
     const post = yield* get('/blog/the-refining-process');
     expect(yield* post.text).toContain('The Refining Process');
@@ -48,6 +53,7 @@ test(
     for (const path of ['/nope', '/events']) {
       const missing = yield* raw.get(`${url}${path}`);
       expect([path, missing.status]).toEqual([path, 404]);
+      expect(yield* missing.text).toContain('could not be found');
     }
   }).pipe(Effect.scoped),
   { timeout: 600_000 },
