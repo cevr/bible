@@ -2,13 +2,15 @@
 // the renders of each (`checkoutRoots`, cli.ts). A checkout is a folder whose
 // root `package.json` names the same package as this one's: the folders
 // beside it (worktrees, or the Rifts beside a Rift), and, for the warm source
-// (`<p>/<repo>`), its Rifts (`<p>/.rifts/<repo>/<rift>`). A Rift's lab leaves
-// its warm source out, and a git worktree's lab the checkout it was made from
-// (git's main worktree), in every layout: a source is only read, and a say
-// on a set writes its catalogue. A folder's name says nothing.
+// (`<p>/<repo>`), its Rifts (`<p>/.rifts/<repo>/<rift>`). A say on a set
+// writes its catalogue, so two kinds of checkout are left out of a lab's
+// review: every warm source but the lab's own (a folder `<p>/<name>` with
+// `<p>/.rifts/<name>` beside it, kept clean for its Rifts), and, when the
+// lab's checkout is a git worktree, the checkout it was made from (git's main
+// worktree, another checkout's work). A folder's name says nothing.
 
 import type { ReviewRoot } from '@bible/film/tools';
-import { Effect, FileSystem, Match, Option, Path, Schema } from 'effect';
+import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 
 /** The one field of a root `package.json` a checkout is known by. */
 const RootPackage = Schema.fromJsonString(Schema.Struct({ name: Schema.String }));
@@ -57,9 +59,8 @@ const sourceOf = (dir: string) =>
 /**
  * The renders (`apps/animations/out`) of every checkout of the repository at
  * `repo` that has some, this one's included, each labelled by its folder's
- * name, sorted by it. The checkout `repo` was made from (`sourceOf`) is left
- * out: a say on a set writes its catalogue, and the source is never written
- * from a worktree of it.
+ * name, sorted by it, less every warm source but `repo` and the checkout
+ * `repo` was made from (`sourceOf`): a say on a set writes its catalogue.
  */
 export const checkoutRootsOf = (repo: string) =>
   Effect.gen(function* () {
@@ -68,22 +69,25 @@ export const checkoutRootsOf = (repo: string) =>
     const name = yield* packageName(repo);
     if (Option.isNone(name)) return [];
     const parent = path.dirname(repo);
-    const inRift = path.basename(path.dirname(parent)) === '.rifts';
-    const elsewhere = yield* Match.value(inRift).pipe(
-      // A Rift's warm source stays out: it is read, never written, and a say writes.
-      Match.when(true, () => Effect.succeed([])),
-      Match.orElse(() => foldersIn(path.join(parent, '.rifts', path.basename(repo)))),
-    );
+    // A warm source's Rifts; none for a Rift, which has no `.rifts` folder beside it.
+    const elsewhere = yield* foldersIn(path.join(parent, '.rifts', path.basename(repo)));
     const candidates = [...new Set([...(yield* foldersIn(parent)), ...elsewhere])];
     const source = yield* sourceOf(repo);
     const isSource = (dir: string) =>
       Effect.map(fs.realPath(dir).pipe(Effect.option), (real) =>
         Option.exists(source, (made) => Option.contains(real, made)),
       );
+    // A warm source: `<p>/<name>` with its Rifts' folder, `<p>/.rifts/<name>`, beside it.
+    const isWarm = (dir: string) =>
+      fs
+        .exists(path.join(path.dirname(dir), '.rifts', path.basename(dir)))
+        .pipe(Effect.orElseSucceed(() => false));
+    const leftOut = (dir: string) =>
+      Effect.zipWith(isSource(dir), isWarm(dir), (made, warm) => made || (warm && dir !== repo));
     const checkouts = yield* Effect.filter(candidates, (dir) =>
       Effect.zipWith(
         packageName(dir),
-        isSource(dir),
+        leftOut(dir),
         (named, left) => !left && Option.exists(named, (n) => n === name.value),
       ),
     );

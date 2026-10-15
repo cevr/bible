@@ -46,7 +46,7 @@ describe('the checkouts', () => {
   );
 
   it.effect(
-    'a git worktree’s lab leaves out the checkout it was made from, beside it or in a Rift',
+    'a lab leaves out the checkout its worktree was made from, and every warm source but its own',
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
@@ -72,18 +72,19 @@ describe('the checkouts', () => {
         yield* fs.makeDirectory(path.join(rifts, 'p5', '.git'));
         yield* checkout(path.join(rifts, 'oneline'), 'bible');
         yield* worktree(path.join(rifts, 'p5'), path.join(rifts, 'unit'));
+        // Beside the warm source: a worktree of the Rift p5, and a plain clone.
+        yield* worktree(path.join(rifts, 'p5'), path.join(home, 'bible-tools-of-p5'));
+        yield* checkout(path.join(home, 'bible-tools-clone'), 'bible');
+        yield* fs.makeDirectory(path.join(home, 'bible-tools-clone', '.git'));
         const labels = (repo: string) =>
           Effect.map(checkoutRootsOf(repo), (roots) => roots.map((root) => root.label));
-        expect(yield* labels(path.join(home, 'bible-tools-batch'))).toEqual(['bible-tools-batch']);
+        const beside = ['bible-tools-batch', 'bible-tools-clone', 'bible-tools-of-p5'];
+        // None beside the warm source lists it.
+        for (const one of beside)
+          expect([one, yield* labels(path.join(home, one))]).toEqual([one, beside]);
         expect(yield* labels(path.join(rifts, 'unit'))).toEqual(['oneline', 'unit']);
         // The checkouts they were made from still list them.
-        expect(yield* labels(warm)).toEqual([
-          'bible-tools',
-          'bible-tools-batch',
-          'oneline',
-          'p5',
-          'unit',
-        ]);
+        expect(yield* labels(warm)).toEqual(['bible-tools', ...beside, 'oneline', 'p5', 'unit']);
         expect(yield* labels(path.join(rifts, 'p5'))).toEqual(['oneline', 'p5', 'unit']);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
