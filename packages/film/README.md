@@ -3505,6 +3505,20 @@ only paths `LabHttpApi` declares (`declares`, `core/api.ts`): a fake matching
 any other path answers a 500 naming it, so no case passes over a route the
 real server does not serve.
 
+`bun run test:e2e:check [--base <log>] [--log <log>]` runs the same suite
+and says what the change under test caused. It holds the host's e2e lock for
+the whole run (`flock /tmp/bible-tools-e2e.lock` on the workbox, `lockf -k`
+on a Mac, which has no `flock`), so two workspaces on one machine queue. The
+suite's output prints as it runs and is kept in `<log>` (by default
+`tmp/e2e/<time>.log` at the repository root). Each failed case the base log
+does not name (a log of the suite on the change's base: an earlier local
+`<log>`, or CI's `gh run view <id> --log-failed`) reruns alone three times,
+its output in `<log>.alone.log`. `<log>.verdict.md` then classes each
+failure: **base** (the base log has it), **load-only** (green alone all three
+times) or **unit-caused** (red alone at least once). The check exits 1 on a
+unit-caused failure, or when the suite failed and named no case; otherwise 0.
+`src/lab/fixtures/e2e-verdict.ts` holds the reading and classing.
+
 ## Knobs
 
 A value a note might ask to tweak (where a hand rests, a tag's angle) is a
