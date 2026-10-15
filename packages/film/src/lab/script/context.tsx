@@ -28,6 +28,7 @@ import {
   markOf,
 } from '../../command/selection.ts';
 import type { ScriptBeat } from '../../core/api.ts';
+import type { Mark } from '../../core/delivery.ts';
 import type { NoteWords } from '../../core/schema.ts';
 import { LabApi, reasonOf } from '../api.ts';
 import { useLab } from '../shell.tsx';
@@ -42,6 +43,7 @@ import {
   wordAt,
 } from '../transcript/lit.ts';
 import { scriptCommands } from './commands.ts';
+import { deliveryOf } from './delivery.ts';
 import { type Tie, tiesOf, tiesOfCue, tiesOfMark, tiesOfWords } from './ties.ts';
 
 /** The script as the page knows it: being read, read (each beat as `script.ts` says it), or refused with the server's words. */
@@ -61,6 +63,8 @@ export interface BeatRow {
   readonly line: Option.Option<SectionRows>;
   /** Whether its line is timed by the estimate: no take voices it as it reads now. */
   readonly estimated: boolean;
+  /** How its line is said: its delivery marks, on its words by index (`core/delivery.ts`). */
+  readonly delivery: ReadonlyArray<Mark>;
   /** Its cues, each tied to the words its start and end land on, in play order. */
   readonly ties: ReadonlyArray<Tie>;
 }
@@ -143,6 +147,10 @@ export const Provider = (props: ParentProps) => {
       start: p.start,
       line,
       estimated: p.voice.duration > 0 && !p.voice.recorded,
+      delivery: deliveryOf(
+        p.spec.id,
+        Option.getOrElse(Option.fromUndefinedOr(p.spec.say), () => ''),
+      ),
       ties: tiesOf(p, line),
     };
   });

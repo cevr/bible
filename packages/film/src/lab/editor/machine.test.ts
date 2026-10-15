@@ -114,6 +114,8 @@ const fakes = (
     talkWords: Effect.die('not asked'),
     writeTalk: () => write,
     scriptBeats: Effect.die('not asked'),
+    scriptVoice: Effect.die('not asked'),
+    writeMarks: () => Effect.die('not asked'),
     board: Effect.die('not asked'),
     boardPick: () => Effect.die('not asked'),
     boardApproval: () => Effect.die('not asked'),

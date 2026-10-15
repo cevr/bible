@@ -19,6 +19,7 @@ import { useLab } from '../shell.tsx';
 import { useScript } from './context.tsx';
 import { BRIEF_LINES } from './style.ts';
 import { Brief, briefOf, tieTimes } from './ties.ts';
+import { Delivery } from './voiced.tsx';
 
 /** A link's plain click, picked in the page by `pick`; any other (a new tab, a download) is the link's own. */
 export const picking = (pick: () => void) => (e: MouseEvent) => {
@@ -252,6 +253,7 @@ export const Ties = (props: ParentProps<{ readonly beat: string }>) => {
               Clear
             </button>
           </header>
+          <Delivery beat={props.beat} />
           <Show
             when={tied().ties.length > 0}
             fallback={<p class="lab-script-ties-none">No cue is tied here.</p>}

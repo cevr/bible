@@ -99,6 +99,8 @@ import { FootageMedia } from './footage-media.ts';
 import { folderStore } from './media-store.ts';
 import { PrivateStore } from './private-store.ts';
 import { StudioReadings } from './studio.ts';
+import { ScriptVoices } from './script-voice.ts';
+import { StagingCache } from './staging.ts';
 import { PreviewServer } from './preview-server.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
@@ -736,6 +738,27 @@ const noSource = Layer.mergeAll(
   ),
 );
 
+const unstaged = Effect.die('the staging takes are not called here');
+
+/**
+ * The Script reader's staging takes where a test calls none of their routes:
+ * the lab's handler serves them too, so they only have to exist.
+ */
+export const noStaging = Layer.mergeAll(
+  Layer.succeed(ScriptVoices, ScriptVoices.of({ voice: () => unstaged, fill: unstaged })),
+  Layer.succeed(
+    StagingCache,
+    StagingCache.of({
+      get: () => unstaged,
+      put: () => unstaged,
+      audioOf: () => '',
+      audioNamed: () => unstaged,
+      charge: () => unstaged,
+      today: unstaged,
+    }),
+  ),
+);
+
 /**
  * The studio's services where a test calls none of its routes: the lab's
  * handler serves the studio too, so they only have to exist.
@@ -760,6 +783,7 @@ export const noStudio = Layer.mergeAll(
     StudioReadings,
     StudioReadings.of({ reading: () => Effect.die('the studio is not called here') }),
   ),
+  noStaging,
 );
 
 const unreviewed = (op: string) => Effect.die(`the review is not called here (${op})`);
@@ -907,6 +931,13 @@ const aligned = (characters: ReadonlyArray<string>) => ({
   character_end_times_seconds: characters.map((_, i) => i * 0.05 + 0.05),
 });
 
+/** What a fake voice says of a text sent it: its words, a direction (`[pause]`, `<break … />`) left unsaid. */
+const said = (sent: string): string =>
+  sent
+    .replace(/\[[^\]]*\]|<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 /** The beat a take file belongs to: its name up to the first dot. */
 const beatOfTake = (file: string) =>
   Option.getOrElse(Arr.head(file.slice(file.lastIndexOf('/') + 1).split('.')), () => '');
@@ -927,6 +958,8 @@ const heardAt = (said: string) =>
  * something else; a person's take (fake FLAC bytes, `fakeMedia.encodeFlac`)
  * says what `recorded` has for its beat. Every transcript's words are timed
  * by `heardAt`, unless `untimed`, when the reply carries its text and no words.
+ * A direction sent in the text (`[pause]`, `<break … />`) is aligned, as the
+ * API may align it, and never said.
  */
 export const fakeElevenLabs = (
   files: Map<string, Uint8Array>,
@@ -945,19 +978,19 @@ export const fakeElevenLabs = (
         Effect.sync(() => {
           calls.tts.push(request);
           return {
-            audio_base64: Base64.encode(request.text + ' '.repeat(calls.tts.length)),
+            audio_base64: Base64.encode(said(request.text) + ' '.repeat(calls.tts.length)),
             alignment: aligned([...request.text]),
           };
         }),
       dialogue: (request) =>
         Effect.sync(() => {
           calls.dialogue.push(request);
-          const said = request.lines.map((line) => line.text).join(' ');
+          const spoken = said(request.lines.map((line) => line.text).join(' '));
           const starts = request.lines.map((_, i) =>
             request.lines.slice(0, i).reduce((n, line) => n + [...line.text].length, 0),
           );
           return {
-            audio_base64: Base64.encode(said + ' '.repeat(calls.dialogue.length)),
+            audio_base64: Base64.encode(spoken + ' '.repeat(calls.dialogue.length)),
             alignment: aligned(request.lines.flatMap((line) => [...line.text])),
             voice_segments: request.lines.map((line, i) => ({
               character_start_index: starts[i] ?? 0,

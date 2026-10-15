@@ -1644,9 +1644,14 @@ fresh process (`film read script <film>`, `FreshFilm.script`) kept under the
 film's source stamp, so a brief fixed while the lab is open is read again
 once.
 
-| Route                          | What it does                                                                                                         |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/films/<film>/script` | `ScriptBeats`: each beat of `script.ts` in order, its `picture` (when it has one) and its `cite`; none for no script |
+| Route                                      | What it does                                                                                                                                                                            |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/script`             | `ScriptBeats`: each beat of `script.ts` in order, its `picture` (when it has one) and its `cite`; none for no script                                                                    |
+| `GET /api/films/<film>/script/voice`       | `ScriptVoice`: each spoken beat's staging take in the voice and marks it has now (`Ready` with its words' times, `Voicing`, `Unvoiced`, `Refused`), and the day's spend against its cap |
+| `GET /api/films/<film>/script/takes/:file` | a staging take's audio, by the name `Ready` gives it (immutable: named by its request's key); any other name a 404                                                                      |
+| `POST /api/films/<film>/script/marks`      | `MarksPost` (`{ beat, marks }`): the beat's delivery marks rewritten in its `say` as one write of `script.ts` (`LabWrite`), its words unchanged; a mark that does not fit them a 422    |
+
+Every spoken beat's staging take is kept ready (`tools/script-voice.ts`): `film lab` voices each beat the staging cache keeps no take for, the films a reader has open first, two at a time, each charged against the day's cap (`FILM_STAGING_DAILY_CAP`) before it is sent; `FILM_STAGING_FILL=false` turns that off, and a beat then reads `Unvoiced`. No film's timings or takes are written: `film narrate` makes a cached take the film's own at no cost.
 
 ### Board
 

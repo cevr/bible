@@ -202,8 +202,23 @@ export class TurnInvalid extends Schema.TaggedError<TurnInvalid>()('TurnInvalid'
   }
 }
 
+/**
+ * A scene's line holds a brace that is no cue, turn or delivery mark, or a
+ * delivery mark that does not fit its words (`core/delivery.ts`).
+ */
+export class DeliveryInvalid extends Schema.TaggedError<DeliveryInvalid>()('DeliveryInvalid', {
+  scene: Schema.String,
+  /** The token as written (`{//9}`), or the mark as the reader sent it. */
+  mark: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `scene "${this.scene}": ${this.mark} ${this.reason}`;
+  }
+}
+
 /** Why a scene's line does not parse. */
-export type LineError = DuplicateMark | TurnInvalid;
+export type LineError = DuplicateMark | TurnInvalid | DeliveryInvalid;
 
 /** A bed that ends where it starts, or before. */
 export class CueInvalid extends Schema.TaggedError<CueInvalid>()('CueInvalid', {

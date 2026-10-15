@@ -111,6 +111,12 @@ export const VoiceTiming = Schema.Struct({
   duration: Seconds,
   words: Schema.Array(TakeWord),
   /**
+   * A staging take's delivery marks as it read them (`deliveryKey`), absent
+   * for a line read with none and for a person's take: a staging take whose
+   * line's marks change is stale, a person's never.
+   */
+  delivered: Schema.optionalKey(Schema.String),
+  /**
    * A take stored with no source was staged: it reads as `elevenlabs`, and a
    * staged take is written with none, so the committed timings never churn.
    */

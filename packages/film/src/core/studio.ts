@@ -5,6 +5,7 @@
 // them.
 
 import { Schema } from 'effect';
+import { Mark } from './delivery.ts';
 import { Line, TakeStaleReason } from './narration.ts';
 import { HeardAs, TakeSource, Timings, Voice, VoiceTiming } from './schema.ts';
 import { SheetBeat } from './sheet.ts';
@@ -34,6 +35,8 @@ export const ReadBeat = Schema.Struct({
   script: Schema.String,
   /** Who reads what: the whole beat for a film with one voice, a line per turn for a cast. */
   lines: Schema.Array(Line),
+  /** How it is said (`delivery.ts`), in reading order. */
+  delivery: Schema.Array(Mark),
 });
 export type ReadBeat = typeof ReadBeat.Type;
 

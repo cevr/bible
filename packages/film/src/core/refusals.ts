@@ -91,6 +91,36 @@ export class ElevenLabsFailed extends Schema.TaggedError<ElevenLabsFailed>()('El
   }
 }
 
+/** A staging take's audio asked for by a name the staging cache keeps none under. */
+export class StagingTakeUnknown extends Schema.TaggedError<StagingTakeUnknown>()(
+  'StagingTakeUnknown',
+  { file: Schema.String },
+) {
+  override get message() {
+    return `the staging cache keeps no take ${this.file.slice(0, 12)}`;
+  }
+}
+
+/**
+ * A staging take refused before it is asked for: it would take the day's
+ * ElevenLabs characters past the cap (`FILM_STAGING_DAILY_CAP`). Nothing was
+ * sent; the take is made once the day turns or the cap is raised.
+ */
+export class StagingCapReached extends Schema.TaggedError<StagingCapReached>()(
+  'StagingCapReached',
+  {
+    /** The local day, `YYYY-MM-DD`. */
+    day: Schema.String,
+    spent: Schema.Int,
+    asked: Schema.Int,
+    cap: Schema.Int,
+  },
+) {
+  override get message() {
+    return `the staging voice has spent ${this.spent} of ${this.cap} characters today (${this.day}); this take asks ${this.asked} more`;
+  }
+}
+
 /** Speech-to-text heard words in a take but timed none of them: nothing to time the script by. */
 export class SttUntimed extends Schema.TaggedError<SttUntimed>()('SttUntimed', {
   file: Schema.String,

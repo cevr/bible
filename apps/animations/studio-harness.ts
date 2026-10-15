@@ -162,6 +162,10 @@ const Harness = Layer.unwrap(
           roots: Effect.succeed([]),
           elevenLabs: harnessElevenLabs(film, misheard),
           privateStore: Option.none(),
+          // Its fake takes kept beside the copy, never in the cache real takes share.
+          staging: Option.some(
+            yield* fs.makeTempDirectoryScoped({ directory: out, prefix: 'staging-' }),
+          ),
         }),
       ),
     );

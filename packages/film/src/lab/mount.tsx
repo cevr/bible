@@ -98,18 +98,21 @@ const LabBody = (props: { readonly player: Player }) => (
 /**
  * The staged lab in the Script's page: the film's beats beside the staged
  * film's player, read and lit on its clock, with the film's notes on their
- * words and frames (and their pins on the timeline). It edits nothing, so it
- * has no Undo and none of the Lab's tools.
+ * words and frames (and their pins on the timeline), each beat's staging take
+ * to hear, and its delivery marks to set. Of the film it writes only those
+ * marks (the rebuild reloads it), so it has no Undo and none of the Lab's tools.
  */
 const ScriptBody = (props: { readonly player: Player }) => (
   <>
     <LabTime player={props.player} />
     <Lab.Root player={props.player}>
       <Script.Provider>
-        <Script.Notes>
-          <Notes.Pins />
-          <Script.Reader />
-        </Script.Notes>
+        <Script.Voice>
+          <Script.Notes>
+            <Notes.Pins />
+            <Script.Reader />
+          </Script.Notes>
+        </Script.Voice>
       </Script.Provider>
     </Lab.Root>
   </>

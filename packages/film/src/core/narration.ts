@@ -9,11 +9,27 @@
 //
 //   "That's the law. {@ask}So where does that leave us? {@lead}Stuck."
 //
+// And how a line is said is marked in it too (`delivery.ts`): a stressed
+// word, a breath, a hold.
+//
+//   "Not by sewing a better garment. {//} By taking God at his {*}word."
+//
 // Pure: runs in the browser, in scripts, and in tests.
 
 import { Array as Arr, Option, Result, Schema } from 'effect';
 import {
+  DELIVERY,
+  type Mark,
+  inOrder,
+  isPause,
+  markAt,
+  markOfToken,
+  marksMisfit,
+  tokenOf,
+} from './delivery.ts';
+import {
   AlignmentMismatch,
+  DeliveryInvalid,
   DuplicateMark,
   type LineError,
   TurnInvalid,
@@ -26,6 +42,7 @@ import {
   type Timings,
   type Voice,
   VoiceKey,
+  type VoiceTiming,
   type Word,
   isCast,
 } from './schema.ts';
@@ -41,27 +58,34 @@ export interface Turn {
 }
 
 export interface Parsed {
-  /** Text as spoken, marks and turns removed. */
+  /** Text as spoken, marks, turns and delivery marks removed. */
   readonly spoken: string;
   /** Mark name → index of the word it precedes. */
   readonly marks: ReadonlyMap<string, number>;
   /** Where the line changes voice, in order. */
   readonly turns: ReadonlyArray<Turn>;
+  /** How the line is said (`delivery.ts`), in reading order. */
+  readonly delivery: ReadonlyArray<Mark>;
 }
 
 /** `{name}` is a mark, `{@name}` a turn. */
 const TOKEN = /\{(@?)([a-zA-Z0-9_-]+)\}/g;
 
 /**
- * Scene `scene`'s line `text` read: its spoken words, its marks and its
- * turns. A mark named twice or a turn with no word of its own fails naming
- * the scene.
+ * Scene `scene`'s line `text` read: its spoken words, its marks, its turns
+ * and its delivery marks. A mark named twice, a turn with no word of its own,
+ * a brace that is none of these, or a delivery mark that does not fit the
+ * words (`marksMisfit`) fails naming the scene.
  */
 export const parse = (scene: string, text: string): Result.Result<Parsed, LineError> => {
   const marks = new Map<string, number>();
   const turns: Turn[] = [];
   const words: string[] = [];
+  const delivery: Mark[] = [];
   for (const token of text.trim().split(/\s+/)) {
+    const said = deliveryIn(scene, token, words.length);
+    if (Result.isFailure(said)) return Result.fail(said.failure);
+    delivery.push(...said.success);
     for (const [, at, name] of token.matchAll(TOKEN)) {
       if (name === undefined) continue;
       if (at === '@') {
@@ -79,15 +103,122 @@ export const parse = (scene: string, text: string): Result.Result<Parsed, LineEr
       if (marks.has(name)) return Result.fail(DuplicateMark.make({ scene, mark: name }));
       marks.set(name, words.length);
     }
-    const rest = token.replace(TOKEN, '');
-    if (rest.length > 0) words.push(rest);
+    const word = wordOf(scene, token);
+    if (Result.isFailure(word)) return Result.fail(word.failure);
+    words.push(...word.success);
   }
-  const last = Arr.last(turns);
-  if (Option.isSome(last) && last.value.word >= words.length)
+  return finished(scene, { spoken: words.join(' '), marks, turns, delivery: inOrder(delivery) });
+};
+
+/** The delivery marks token `token` writes at word `at`, or the first that names no mark. */
+const deliveryIn = (
+  scene: string,
+  token: string,
+  at: number,
+): Result.Result<ReadonlyArray<Mark>, DeliveryInvalid> =>
+  Result.all(
+    [...token.matchAll(DELIVERY)].map(([raw, sigil = '', arg]) =>
+      Result.fromOption(markOfToken(sigil, Option.fromUndefinedOr(arg), at), () =>
+        DeliveryInvalid.make({ scene, mark: raw, reason: 'takes no seconds' }),
+      ),
+    ),
+  );
+
+/**
+ * The word a token says once its cues, turns and marks are out: none for a
+ * token of those alone. A brace left in it is a token no reader knows, and
+ * fails: it is never spoken.
+ */
+const wordOf = (
+  scene: string,
+  token: string,
+): Result.Result<ReadonlyArray<string>, DeliveryInvalid> => {
+  const rest = token.replace(TOKEN, '').replace(DELIVERY, '');
+  return Option.match(Option.fromNullishOr(/\{[^}]*\}?|\}/.exec(rest)), {
+    onNone: () => Result.succeed([rest].filter((word) => word.length > 0)),
+    onSome: (stray) =>
+      Result.fail(
+        DeliveryInvalid.make({ scene, mark: stray[0], reason: 'is no cue, turn or delivery mark' }),
+      ),
+  });
+};
+
+/** A line read whole, checked: its last turn has a word after it, and its marks fit its words. */
+const finished = (scene: string, parsed: Parsed): Result.Result<Parsed, LineError> => {
+  const words = parsed.spoken.split(' ').filter((w) => w.length > 0).length;
+  const last = Arr.last(parsed.turns);
+  if (Option.isSome(last) && last.value.word >= words)
     return Result.fail(
       TurnInvalid.make({ scene, voice: last.value.voice, reason: 'has no word after it' }),
     );
-  return Result.succeed({ spoken: words.join(' '), marks, turns });
+  return Option.match(marksMisfit(parsed.delivery, words), {
+    onNone: () => Result.succeed(parsed),
+    onSome: (misfit) =>
+      Result.fail(
+        DeliveryInvalid.make({
+          scene,
+          mark: `${tokenOf(misfit.mark)} at word ${markAt(misfit.mark)}`,
+          reason: misfit.reason,
+        }),
+      ),
+  });
+};
+
+/** Each chunk of `text` and the whitespace between, as `withDelivery` rewrites it: chunks at even indices. */
+const chunksOf = (text: string): ReadonlyArray<string> => text.trim().split(/(\s+)/);
+
+/**
+ * Line `text` with its delivery marks set to `marks` (placed on its spoken
+ * words by index, as `parse` reads them): every delivery token it had taken
+ * out, and each mark written back where it reads, a stress just before its
+ * word (`{cue}{*}word`), a pause as a token of its own after the word before
+ * its gap (`word, {/} next`). Everything else, its cues and turns, its words
+ * and the spaces between them, stays as written, so a line given the marks
+ * it has comes back as it was written canonically. The marks are not
+ * checked: `parse` the result.
+ */
+export const withDelivery = (text: string, marks: ReadonlyArray<Mark>): string => {
+  const chunks = chunksOf(text).map((chunk) => chunk.replace(DELIVERY, ''));
+  // The chunks that say a word, in order (spacing says none, nor a chunk of cues alone).
+  const saying = chunks.flatMap((chunk, i) => {
+    if (i % 2 === 1 || chunk.replace(TOKEN, '').length === 0) return [];
+    return [i];
+  });
+  const ordered = inOrder(marks);
+  const out = chunks.map((chunk, i) =>
+    Option.match(
+      Arr.findFirstIndex(saying, (c) => c === i),
+      {
+        onNone: () => chunk,
+        onSome: (word) => markedWord(chunk, word, ordered),
+      },
+    ),
+  );
+  // A chunk that held only delivery tokens is empty now: the spaces either side of it close into one.
+  return out
+    .join('')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+};
+
+/** The cues and turns a chunk opens with, before its word. */
+const LEADING_TOKENS = /^(?:\{@?[a-zA-Z0-9_-]+\})*/;
+
+/** Chunk `chunk`, which says word `word`, with its stress before the word and the pause after it written in. */
+const markedWord = (chunk: string, word: number, marks: ReadonlyArray<Mark>): string => {
+  const from = Option.getOrElse(
+    Option.map(Option.fromNullishOr(LEADING_TOKENS.exec(chunk)), (lead) => lead[0].length),
+    () => 0,
+  );
+  const stress = marks
+    .filter((m) => m._tag === 'Stress' && m.word === word)
+    .map(tokenOf)
+    .join('');
+  const pause = marks
+    .filter((m) => isPause(m) && m.before === word + 1)
+    .map((m) => ` ${tokenOf(m)}`)
+    .join('');
+  return `${chunk.slice(0, from)}${stress}${chunk.slice(from)}${pause}`;
 };
 
 /**
@@ -95,7 +226,7 @@ export const parse = (scene: string, text: string): Result.Result<Parsed, LineEr
  * `{@name}` before its first word. A take is kept under this text's hash, so
  * moving a turn re-records the take; with no turns it is the spoken text.
  */
-export const takeScript = (parsed: Parsed): string => {
+export const takeScript = (parsed: Pick<Parsed, 'spoken' | 'turns'>): string => {
   const turns = new Map(parsed.turns.map((t) => [t.word, t.voice]));
   if (turns.size === 0) return parsed.spoken;
   return parsed.spoken
@@ -123,7 +254,7 @@ export type Line = typeof Line.Type;
  */
 export const linesOf = (
   scene: string,
-  parsed: Parsed,
+  parsed: Pick<Parsed, 'spoken' | 'turns'>,
   voice: Voice,
 ): Result.Result<ReadonlyArray<Line>, UnknownVoice> => {
   if (parsed.spoken.length === 0) return Result.succeed([]);
@@ -186,12 +317,35 @@ export type TakeState =
   | { readonly _tag: 'Staging' }
   | { readonly _tag: 'Stale'; readonly reason: TakeStaleReason; readonly recorded: boolean };
 
-/** The state of the take `timings` keep for beat `id`, whose take script is `script`, under `voice` (`voiceKey`). */
+/**
+ * A line's delivery marks as a staging take keeps them (`VoiceTiming.delivered`):
+ * none for a line with none, so a take of an unmarked line is stored as before.
+ */
+const deliveryKey = (marks: ReadonlyArray<Mark>): Option.Option<string> =>
+  Option.map(
+    Option.liftPredicate(inOrder(marks), (m) => m.length > 0),
+    (m) => hashText(m.map((mark) => `${markAt(mark)}${tokenOf(mark)}`).join(' ')),
+  );
+
+/** A staging take's `delivered`, for a line marked `marks`: absent for a line with none. */
+export const deliveredAs = (marks: ReadonlyArray<Mark>): Pick<VoiceTiming, 'delivered'> =>
+  Option.match(deliveryKey(marks), {
+    onNone: () => ({}),
+    onSome: (delivered) => ({ delivered }),
+  });
+
+/**
+ * The state of the take `timings` keep for beat `id`, whose take script is
+ * `script` and whose line is marked `delivery`, under `voice` (`voiceKey`).
+ * A staging take read with other marks is stale (`text changed`: the marks
+ * are part of the line as written); a person's take is judged by its words.
+ */
 export const takeState = (
   id: string,
   script: string,
   timings: Timings,
   voice: string,
+  delivery: ReadonlyArray<Mark> = [],
 ): TakeState => {
   const take = timings.scenes[id];
   if (take === undefined) return { _tag: 'Stale', reason: 'missing', recorded: false };
@@ -200,6 +354,9 @@ export const takeState = (
     return { _tag: 'Stale', reason: 'voice changed', recorded };
   if (take.hash !== hashText(script)) return { _tag: 'Stale', reason: 'text changed', recorded };
   if (recorded) return { _tag: 'Recorded' };
+  const read = Option.getOrElse(Option.fromUndefinedOr(take.delivered), () => '');
+  if (read !== Option.getOrElse(deliveryKey(delivery), () => ''))
+    return { _tag: 'Stale', reason: 'text changed', recorded };
   return { _tag: 'Staging' };
 };
 
@@ -337,6 +494,8 @@ export interface SceneVoice {
   readonly marks: ReadonlyMap<string, number>;
   /** Where another voice takes the line. */
   readonly turns: ReadonlyArray<Turn>;
+  /** How the line is said (`delivery.ts`), in reading order. */
+  readonly delivery: ReadonlyArray<Mark>;
   /** Audio file, when a current recording exists. */
   readonly file: string | undefined;
   readonly recorded: boolean;
@@ -368,7 +527,7 @@ export const voiceFor = (
   timings: Timings | undefined,
 ): Result.Result<SceneVoice, LineError> =>
   Result.map(parse(id, text), (parsed): SceneVoice => {
-    const { spoken, marks, turns } = parsed;
+    const { spoken, marks, turns, delivery } = parsed;
     if (spoken.length === 0)
       return {
         spoken,
@@ -376,6 +535,7 @@ export const voiceFor = (
         duration: 0,
         marks: new Map(),
         turns: [],
+        delivery: [],
         file: undefined,
         recorded: false,
         source: undefined,
@@ -395,6 +555,7 @@ export const voiceFor = (
       duration,
       marks: times,
       turns,
+      delivery,
       file: recorded ? take.file : undefined,
       recorded,
       source: recorded ? take.source : undefined,

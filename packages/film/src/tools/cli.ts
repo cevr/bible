@@ -86,6 +86,7 @@ import { type LabPageSpec, PageBundler } from './lab-page.ts';
 import { PALETTE_FILE, paletteSwaps, wedgeServer } from './wedge.ts';
 import { levelsOf, wedgeVariant } from '../core/easel.ts';
 import { filmServices, labPages, startLab } from './film-services.ts';
+import { ScriptVoices, stagingFill } from './script-voice.ts';
 import { look } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
 import { production, publish } from './production-cli.ts';
@@ -877,6 +878,9 @@ const lab = <E>(app: FilmApp<E>['lab'], films: string, footage: string) =>
         `lab.ready link=${link} url=${url} films=${known.join(',')} roots=${roots.join(',')}`,
       );
       yield* Effect.log(`lab.mcp url=${url}mcp`);
+      // Every spoken beat's staging take kept ready for the Script reader, unless FILM_STAGING_FILL=false.
+      if (yield* stagingFill) return yield* (yield* ScriptVoices).fill;
+      yield* Effect.log('staging.fill off');
       return yield* Effect.never;
     }, Effect.scoped),
   ).pipe(
@@ -971,6 +975,7 @@ export const runFilmCli = <E>({
     roots: labApp.roots,
     elevenLabs: ElevenLabs.layer,
     privateStore: Option.none(),
+    staging: Option.none(),
   });
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Layer.mergeAll(Checker.layer, Looker.layer).pipe(

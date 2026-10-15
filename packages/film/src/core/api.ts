@@ -102,6 +102,8 @@ import {
   SourceRefused,
   SourceShared,
   StepNotNewest,
+  StagingCapReached,
+  StagingTakeUnknown,
   StillUnknown,
   SttUntimed,
   TakeMismatch,
@@ -132,8 +134,10 @@ import {
   RequestId,
   SceneCode,
   SceneSource,
+  TakeWord,
 } from './schema.ts';
 import { KeepPost, StudioAttempts, StudioBeats, StudioTake, TakePost } from './studio.ts';
+import { Mark } from './delivery.ts';
 
 // ---------------------------------------------------------------------------
 // The failures only the transport has.
@@ -204,8 +208,8 @@ const status = HttpApiSchema.status;
  * review does not have 404; a request that is not one 400; another site or
  * host 403; a write against a newer file, or a verb its variant's state
  * refuses, 409; a body over the limit 413; a body of the wrong type 415; an edit or a
- * take the lab will not make 422; a tool or a service that failed 502; the
- * rest 500.
+ * take the lab will not make 422; a staging take past the day's cap 429; a
+ * tool or a service that failed 502; the rest 500.
  */
 const Refusals = [
   NoteNotFound.pipe(status(404)),
@@ -227,6 +231,7 @@ const Refusals = [
   RouteUnknown.pipe(status(404)),
   LookPlaceUnknown.pipe(status(404)),
   LookLevelUnknown.pipe(status(404)),
+  StagingTakeUnknown.pipe(status(404)),
   AudioInvalid.pipe(status(400)),
   RequestInvalid.pipe(status(400)),
   LookInvalid.pipe(status(400)),
@@ -252,6 +257,7 @@ const Refusals = [
   UnknownVoice.pipe(status(422)),
   LookOutOfRange.pipe(status(422)),
   PagesBroken.pipe(status(422)),
+  StagingCapReached.pipe(status(429)),
   ReviewToolFailed.pipe(status(502)),
   MediaFailed.pipe(status(502)),
   FreshProcessFailed.pipe(status(502)),
@@ -409,6 +415,41 @@ export const ScriptBeats = Schema.Struct({
   beats: Schema.Array(ScriptBeat),
 });
 export type ScriptBeats = typeof ScriptBeats.Type;
+
+/**
+ * A beat's staging take as the Script reader shows it: ready (its audio,
+ * served by `GET …/script/takes/:file`, its length and where each word is
+ * heard in it), being voiced, not voiced (the lab keeps none ready:
+ * `FILM_STAGING_FILL` off), or refused (the day's cap, a failed request).
+ */
+export const StagingTake = Schema.Union([
+  Schema.TaggedStruct('Ready', {
+    file: Schema.String,
+    duration: Schema.Finite,
+    words: Schema.Array(TakeWord),
+  }),
+  Schema.TaggedStruct('Voicing', {}),
+  Schema.TaggedStruct('Unvoiced', {}),
+  Schema.TaggedStruct('Refused', { reason: Schema.String }),
+]).pipe(Schema.toTaggedUnion('_tag'));
+export type StagingTake = typeof StagingTake.Type;
+
+/**
+ * `GET /api/films/<film>/script/voice`: each spoken beat's staging take, in
+ * the voice and marks the script has now, and the day's staging spend in
+ * characters against its cap.
+ */
+export const ScriptVoice = Schema.Struct({
+  film: Schema.String,
+  spent: Schema.Int,
+  cap: Schema.Int,
+  beats: Schema.Array(Schema.Struct({ id: Schema.String, take: StagingTake })),
+});
+export type ScriptVoice = typeof ScriptVoice.Type;
+
+/** `POST /api/films/<film>/script/marks`: a beat's delivery marks as they should read, its words unchanged. */
+export const MarksPost = Schema.Struct({ beat: Schema.String, marks: Schema.Array(Mark) });
+export type MarksPost = typeof MarksPost.Type;
 
 /**
  * What the owner says of a variant, a scene's render, an act or the film:
@@ -605,11 +646,31 @@ class TalkGroup extends HttpApiGroup.make('talk').add(
   }),
 ) {}
 
-/** The film's script as the Script page reads it beside the staged film: each beat's picture and sources. */
+/**
+ * The film's script as the Script page reads it beside the staged film: each
+ * beat's picture and sources, each beat's staging take and its audio, and a
+ * beat's delivery marks written.
+ */
 class ScriptGroup extends HttpApiGroup.make('script').add(
   HttpApiEndpoint.get('beats', `${FILM}/script`, {
     params: film,
     success: ScriptBeats,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.get('voice', `${FILM}/script/voice`, {
+    params: film,
+    success: ScriptVoice,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.get('take', `${FILM}/script/takes/:file`, {
+    params: { ...film, file: Schema.String },
+    success: FileBytes,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('marks', `${FILM}/script/marks`, {
+    params: film,
+    payload: MarksPost,
+    success: LabWrite,
     error: Refusals,
   }),
 ) {}
@@ -1814,6 +1875,10 @@ export const stillUrl = (film: string, name: string): string =>
 /** A studio attempt's audio, to hear it again. */
 export const attemptUrl = (film: string, beat: string, file: string): string =>
   labUrls.studio.attempt({ params: { film, beat, file } });
+
+/** A beat's staging take's audio, by the name its `Ready` gives it. */
+export const stagingTakeUrl = (film: string, file: string): string =>
+  labUrls.script.take({ params: { film, file } });
 
 /** A ref as a URL path: each segment encoded, the slashes kept. */
 const refPath = (ref: string) =>

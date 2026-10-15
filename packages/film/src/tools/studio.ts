@@ -95,7 +95,7 @@ const beatRow = (
   sheet: Option.Option<SheetBeat>,
   attempts: number,
 ): StudioBeat => {
-  const state = takeState(beat.id, beat.script, timings, voiceKey(voice));
+  const state = takeState(beat.id, beat.script, timings, voiceKey(voice), beat.delivery);
   const timing = Option.fromNullishOr(timings.scenes[beat.id]);
   const take = Option.match(timing, {
     onNone: () => ({}),

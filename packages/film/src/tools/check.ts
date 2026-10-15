@@ -461,7 +461,7 @@ export const staleTakes = (
   const voice = Option.match(film.voice, { onNone: () => '', onSome: voiceKey });
   return placed.flatMap((p) => {
     if (p.voice.spoken.length === 0) return [];
-    const state = takeState(p.spec.id, takeScript(p.voice), film.timings, voice);
+    const state = takeState(p.spec.id, takeScript(p.voice), film.timings, voice, p.voice.delivery);
     if (state._tag !== 'Stale') return [];
     return [TakeStale.make({ scene: p.spec.id, reason: state.reason, recorded: state.recorded })];
   });

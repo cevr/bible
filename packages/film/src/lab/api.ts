@@ -32,7 +32,9 @@ import { type Bound, Unfit, boundChange } from '../command/command.ts';
 import {
   LabHttpApi,
   Refusal,
+  type MarksPost,
   type ScriptBeats,
+  type ScriptVoice,
   TalkMarkPost,
   type TalkWords,
   TalkWordsPost,
@@ -222,6 +224,10 @@ export interface LabCalls {
   readonly writeTalk: (ask: TalkAsk) => Effect.Effect<LabWrite, LabFailure>;
   /** Each beat's picture and sources, as the film's `script.ts` says them now. */
   readonly scriptBeats: Effect.Effect<ScriptBeats, LabFailure>;
+  /** Each spoken beat's staging take in the voice and marks the script has now, and the day's spend. */
+  readonly scriptVoice: Effect.Effect<ScriptVoice, LabFailure>;
+  /** A beat's delivery marks written into `script.ts`, its words unchanged. */
+  readonly writeMarks: (post: MarksPost) => Effect.Effect<LabWrite, LabFailure>;
   /** The film's storyboard, as its record (`board.json`) stands now: empty before its first panel. */
   readonly board: Effect.Effect<BoardFile, LabFailure>;
   /** Keep try `tried` of `panel`, and why: the board as it stands after. */
@@ -340,6 +346,8 @@ const makeLabApi = Effect.fn('lab.api.make')(function* (film: string) {
         ),
       ),
     scriptBeats: called(client.script.beats({ params: { film } })),
+    scriptVoice: called(client.script.voice({ params: { film } })),
+    writeMarks: (payload) => called(client.script.marks({ params: { film }, payload })),
     board: called(client.board.read({ params: { film } })),
     boardPick: (panel, tried, why) =>
       called(client.board.pick({ params: { film }, payload: { panel, try: tried, why } })),

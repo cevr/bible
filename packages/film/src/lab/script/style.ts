@@ -82,6 +82,32 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}
 .lab-script-code { font: inherit; color: inherit; }
 .lab-script-line { margin: 0; font-size: var(--fs-read); line-height: var(--lh-read); color: var(--text-1); }
 .lab-script-w { cursor: pointer; }
+/* How a line is said: a stressed word set apart in the line's own ink, heavier; a pause a glyph in its gap in the
+   faintest ink, a hold with its seconds, never in a text selection (the words are what is copied). */
+.lab-script-w[data-stress='true'] { font-weight: var(--w-3); text-decoration: underline 2px var(--line-strong);
+  text-underline-offset: 0.25em; }
+.lab-script-gap { color: var(--text-3); font-size: var(--fs-2); line-height: var(--lh-2); white-space: nowrap;
+  user-select: none; -webkit-user-select: none; }
+.lab-script-gap[data-gap='hold'] { color: var(--text-2); }
+/* A beat's staging take in its head: ▶ a press of the pointer's size, its pace quiet in the band and the warning's ink
+   out of it; voicing, not voiced or refused, quiet words. */
+.lab-script-hear { display: inline-flex; align-items: center; justify-content: center; min-width: var(--hit);
+  min-height: var(--hit); padding: 0; border: 0; background: none; font: inherit; color: var(--text-2); cursor: pointer; }
+.lab-script-hear[aria-pressed='true'] { color: var(--state-live); }
+@media (hover: hover) { .lab-script-hear:hover { color: var(--text-1); } }
+.lab-script-pace { color: var(--text-3); font-variant-numeric: tabular-nums; }
+.lab-script-pace:not([data-band='in']) { color: var(--state-warning); }
+.lab-script-voicing { color: var(--text-3); }
+.lab-script-voicing[data-refused='true'] { color: var(--state-warning); }
+/* The day's staging spend: one quiet line under the head. */
+.lab-script-spend { margin: 0; padding: var(--s-1) var(--gutter); border-bottom: var(--border); color: var(--text-3);
+  font-size: var(--fs-1); line-height: var(--lh-1); font-variant-numeric: tabular-nums; }
+/* The delivery of the words selected: rows of choices in the box under the line, each a press of the pointer's size. */
+.lab-script-delivery { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-2) var(--s-3); }
+.lab-script-delivery-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.lab-script-delivery .sh-btn, .lab-script-delivery .sh-seg > * { min-height: var(--hit); }
+.lab-script-holds { align-self: flex-start; }
+.lab-script-delivery-note { margin: 0; color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
 /* A mark: a chip before the word it stands before, raised to the line's cap height, never in a text selection. Quiet
    at rest, the faintest ink and no fill (a line has one every few words, and the words are what is read); the
    accent's fill while it is selected. */

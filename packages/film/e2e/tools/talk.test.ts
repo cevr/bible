@@ -84,6 +84,7 @@ const world = Layer.unwrap(
       roots: Effect.succeed([]),
       elevenLabs: fakeElevenLabs(new Map(), calls, { heard: new Map([['', SAID]]) }),
       privateStore: Option.some(privateFolder(path.join(root, 'store'))),
+      staging: Option.some(path.join(root, 'staging')),
     });
   }),
 ).pipe(Layer.provideMerge(BunServices.layer));

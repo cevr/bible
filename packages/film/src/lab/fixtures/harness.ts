@@ -326,6 +326,8 @@ const defaults: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/check$/, () => json({ findings: [] })),
   route('GET', /^\/studio\/beats$/, () => json({ film: PROBE, beats: [] })),
   route('GET', /^\/script$/, () => json(probeScript)),
+  // The staging voice: nothing voiced, nothing spent (a case that hears a take serves its own).
+  route('GET', /^\/script\/voice$/, () => json({ film: PROBE, spent: 0, cap: 100000, beats: [] })),
   route('GET', /^\/board$/, () => json(probeBoard)),
   route('POST', /^\/scenes\/\w+\/cues\//, () => json(wrote('cue'))),
   route('POST', /^\/scenes\/\w+\/knobs\//, () => json(wrote('knob'))),

@@ -50,6 +50,9 @@ import {
 } from './notes.tsx';
 import { SCRIPT_CSS } from './style.ts';
 import { MarkChip, Picture, Ties } from './tied.tsx';
+import { gapBefore } from './delivery.ts';
+import { GapGlyph, HearAll, Spend, TakeState, stressAttr } from './voiced.tsx';
+import { useVoice } from './voice.tsx';
 import { marksIn } from './ties.ts';
 
 /** What the reader follows, as Follow names it: the word playing (`w:<beat>:<index>`), else the beat under the frame (`b:<beat>`). */
@@ -82,6 +85,7 @@ const Head = () => {
         ].join(' · ')}
       </span>
       <Frame hub={meta.hub} />
+      <HearAll />
       <button
         type="button"
         class="sh-btn lab-script-follow"
@@ -136,11 +140,12 @@ const Status = () => {
  * the line's own, and its marks, each a chip before the word it stands
  * before (`MarkChip`; never painted or selected as a word is).
  */
-const Line = (props: { readonly line: SectionRows }) => {
+const Line = (props: { readonly line: SectionRows; readonly delivery: BeatRow['delivery'] }) => {
   const script = useScript();
   const notes = useScriptNotes();
   // The staged film's, laid out once: a plain value.
   const line = props.line;
+  const delivery = props.delivery;
   const marks = marksIn(line);
   const noted = createMemo(() => notedIn(notes.noted().filter((n) => n.words.beat === line.id)));
   // A press that ends a text selection across words selects them; a tap on one word shows it.
@@ -168,6 +173,7 @@ const Line = (props: { readonly line: SectionRows }) => {
       <For each={line.rows}>
         {(row) => (
           <>
+            <GapGlyph gap={gapBefore(delivery, row.index)} />
             <For each={marks.at(row.index)}>
               {(name) => <MarkChip beat={line.id} name={name} />}
             </For>
@@ -178,6 +184,7 @@ const Line = (props: { readonly line: SectionRows }) => {
               )}
               data-index={row.index}
               data-from={row.from}
+              data-stress={stressAttr(delivery, row.index)}
             >
               {row.text}
             </span>
@@ -239,6 +246,7 @@ const Beat = (props: { readonly beat: BeatRow }) => {
             estimated
           </span>
         </Show>
+        <TakeState beat={beat.id} />
         <BeatMarkers beat={beat.id} />
       </header>
       <ShownNote beat={beat.id} stands="head" />
@@ -260,7 +268,7 @@ const Beat = (props: { readonly beat: BeatRow }) => {
         )}
       </Show>
       {Option.toArray(beat.line).map((line) => (
-        <Line line={line} />
+        <Line line={line} delivery={beat.delivery} />
       ))}
       {/* While a note is being made, its composer is the one box open: its scope chip says the words. */}
       <Show when={Option.isNone(notes.composing())}>
@@ -292,6 +300,9 @@ const Beat = (props: { readonly beat: BeatRow }) => {
 const Beats = () => {
   const { meta } = useLab();
   const script = useScript();
+  const voice = useVoice();
+  // While the staging voice is heard, the word it says is the one lit and followed; else the film's.
+  const lit = () => Option.orElse(voice.heard(), script.lit);
   const notes = useScriptNotes();
   let page = Option.none<HTMLElement>();
   let scroller = Option.none<HTMLElement>();
@@ -302,7 +313,7 @@ const Beats = () => {
     meta.host,
     () => page,
     () => ({
-      'lab-live': rangesAt(script.lit()),
+      'lab-live': rangesAt(lit()),
       'lab-read': rangesOf([...script.read(), ...notes.shownRows()]),
       'lab-picked': rangesOf(script.picked()),
       ...notedPainted(notes.noted()),
@@ -311,7 +322,7 @@ const Beats = () => {
 
   // What the reader keeps in sight: the word playing, else the head of the beat under the frame.
   const looking = createMemo(() =>
-    Option.match(script.lit(), {
+    Option.match(lit(), {
       onSome: (w) => `w:${w.section}:${w.index}`,
       onNone: () => `b:${script.live()}`,
     }),
@@ -441,6 +452,7 @@ export const Reader = () => {
     <Portal mount={document.body}>
       <section class="lab-script" data-role="script" aria-label="Script">
         <Head />
+        <Spend />
         <Status />
         <Beats />
       </section>

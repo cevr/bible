@@ -158,6 +158,38 @@ export const trimTail = (take: Pcm): Option.Option<Pcm> =>
   });
 
 /**
+ * A take with each gap edit made (`core/delivery.ts` `holdsIn`): silence put
+ * in at the edit's second, or that much taken out around it, each side of a
+ * cut faded over `TAKE_FADE` so no click is left. The edits come latest
+ * first, so each second is where the take still has it. None when there is
+ * nothing to edit.
+ */
+export const withGaps = (
+  take: Pcm,
+  edits: ReadonlyArray<{ readonly at: number; readonly by: number }>,
+): Option.Option<Pcm> => {
+  if (edits.length === 0) return Option.none();
+  return Option.some(edits.reduce(withGap, take));
+};
+
+/** `pcm` with frames `[from, to)` replaced by `put` frames of silence, each side faded. */
+const spliced = (pcm: Pcm, from: number, to: number, put: number): Pcm =>
+  concat(pcm.rate, pcm.channels.length, [
+    fadeEdges(slice(pcm, 0, from), TAKE_FADE),
+    silence(pcm.rate, put, pcm.channels.length),
+    fadeEdges(slice(pcm, to, pcm.frames - to), TAKE_FADE),
+  ]);
+
+/** One gap edit made: silence put in at its second, or its length cut out around it. */
+const withGap = (pcm: Pcm, edit: { readonly at: number; readonly by: number }): Pcm => {
+  const at = Math.min(pcm.frames, Math.max(0, Math.round(edit.at * pcm.rate)));
+  const by = Math.round(Math.abs(edit.by) * pcm.rate);
+  if (edit.by > 0) return spliced(pcm, at, at, by);
+  const from = Math.max(0, at - Math.floor(by / 2));
+  return spliced(pcm, from, Math.min(pcm.frames, from + by), 0);
+};
+
+/**
  * The recording as a take: one channel at its own rate, from `TAKE_PAD.lead`
  * before the first speech to `TAKE_PAD.tail` after the last (a click or tap
  * outside the speech trimmed with the silence), faded over `TAKE_FADE` at
