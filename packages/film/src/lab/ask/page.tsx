@@ -18,7 +18,7 @@ import * as Ask from './parts.tsx';
  * spend line).
  */
 const ASK_CSS = `
-.ak{max-width:720px;margin:0 auto;padding:0 var(--gutter)}
+.ak{max-width:720px;margin:0 auto}
 .ak-head{display:grid;gap:var(--s-1);padding:var(--s-4) 0 var(--s-3)}
 .ak-head-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s-1) var(--s-2)}
 .ak-head h1{font-size:var(--fs-5);line-height:var(--lh-5);font-weight:var(--w-3);margin:0}
@@ -55,6 +55,7 @@ const ASK_CSS = `
 .ak-option{display:grid;justify-content:stretch;gap:var(--s-1);min-height:var(--hit);padding:var(--s-1) var(--s-2);text-align:left}
 .ak-text{width:100%;box-sizing:border-box;resize:vertical;font:inherit}
 .ak-mat[data-material=script]{margin-inline:calc(-1 * var(--gutter))}
+.ak-mat[data-material=script] .ak-mat-name{padding-inline:var(--gutter)}
 .ak-mat .lab-script-cost{display:none}
 .ak-mat .rv-note h1{font-size:var(--fs-4);line-height:var(--lh-4)}
 .ak-mat .rv-transport .sh-btn[data-primary]{background:var(--surface-2);border-color:var(--line-strong);color:var(--text-1)}
@@ -68,7 +69,6 @@ const ASK_CSS = `
 @media ${WIDE}{
   .ak-options[data-pictured=true]{grid-template-columns:repeat(4,minmax(0,1fr))}
   .ak-send{position:sticky;top:auto;bottom:0;border-top:var(--border);border-bottom:0}
-  .ak-board-panels{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 }
 `;
 

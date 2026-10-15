@@ -421,6 +421,13 @@ describe("an agent's ask on a phone", () => {
         );
         yield* page.focus('.ak-step[data-step="board"] .ak-option[data-value="keep"]');
         yield* evaluates(page, FOCUS_SHOWN, 'ring');
+        // The index jumps to a section's head, its material read from the top, under the header.
+        yield* page.click('.ak-index-go[data-step="board"]');
+        yield* evaluates(
+          page,
+          `document.activeElement === document.querySelector('.ak-step[data-step="board"] .ak-section-h') && Math.round(document.querySelector('.ak-step[data-step="board"]').getBoundingClientRect().top) === Math.round(document.querySelector('.sh-header').getBoundingClientRect().bottom)`,
+          true,
+        );
         // A 1280×720 take, its size known, and the page no wider than the phone.
         yield* evaluates(
           page,

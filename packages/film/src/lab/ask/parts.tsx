@@ -77,15 +77,20 @@ export const Head = () => {
 const fieldOf = (id: string): Option.Option<HTMLElement> =>
   Option.fromNullishOr(document.querySelector<HTMLElement>(`[data-answer="${CSS.escape(id)}"]`));
 
+/** What takes the focus in a question: its first control. */
+const ANSWERS_IN = 'button, textarea, input';
+/** What takes the focus in a section: its head, so its material is read from the top. */
+const HEAD_IN = '.ak-section-h';
+
 /**
- * Take the owner to `el` under the header and its section's head, and give
- * the focus to what answers there, as `input` asked (its ring iff a key did).
+ * Take the owner to `el` under the header (and its section's head), and give
+ * the focus to the first of `focus` in it, as `input` asked (its ring iff a
+ * key did).
  */
-const goTo = (el: HTMLElement, input: Input) => {
+const goTo = (el: HTMLElement, focus: string, input: Input) => {
   el.scrollIntoView({ block: 'start' });
-  Option.map(
-    Option.fromNullishOr(el.querySelector<HTMLElement>('button, textarea, input')),
-    (control) => focusFor(control, input, { preventScroll: true }),
+  Option.map(Option.fromNullishOr(el.querySelector<HTMLElement>(focus)), (target) =>
+    focusFor(target, input, { preventScroll: true }),
   );
 };
 
@@ -111,9 +116,9 @@ const indexTitle = (step: Section['step'], n: number): string =>
 
 /**
  * Where the page is going: each section the owner's answers reach, by its
- * place and title, a jump to its first question still open (to the section
- * when it asks nothing, or all is answered), ✓ once every question it asks
- * is answered. Nothing while the page has one section.
+ * place and title, a jump to its head (its material read from the top),
+ * ✓ once every question it asks is answered. Nothing while the page has
+ * one section.
  */
 export const Index = () => {
   const { state } = useAsk();
@@ -137,13 +142,7 @@ export const Index = () => {
                     data-step={s.name}
                     data-done={pressed(done())}
                     onClick={() =>
-                      Option.map(
-                        Option.orElse(
-                          Option.flatMap(Arr.head(openIn(s.name)), (q) => fieldOf(q.block.id)),
-                          () => stepOf(s.name),
-                        ),
-                        (el) => goTo(el, meta.hub.input()),
-                      )
+                      Option.map(stepOf(s.name), (el) => goTo(el, HEAD_IN, meta.hub.input()))
                     }
                   >
                     <span class="ak-index-title">{indexTitle(s.step, i() + 1)}</span>
@@ -340,7 +339,9 @@ export const Sections = () => {
         <section class="ak-step" data-step={name}>
           <Show when={Option.getOrUndefined(stepNamed(name))}>
             {(step: Accessor<Section['step']>) => (
-              <h2 class="ak-section-h">{sectionTitle(step(), i() + 1, names().length)}</h2>
+              <h2 class="ak-section-h" tabindex="-1">
+                {sectionTitle(step(), i() + 1, names().length)}
+              </h2>
             )}
           </Show>
           <For
@@ -374,7 +375,7 @@ export const Submit = () => {
   createEffect(
     () => state.missing(),
     (id) => {
-      if (id !== '') Option.map(fieldOf(id), (el) => goTo(el, meta.hub.input()));
+      if (id !== '') Option.map(fieldOf(id), (el) => goTo(el, ANSWERS_IN, meta.hub.input()));
     },
   );
   return (

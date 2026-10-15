@@ -33,6 +33,7 @@ import { PanelFigure, PanelThumb } from '../board/view.tsx';
 import { PANEL_THUMB_CSS } from '../board/style.ts';
 import { lineWords, panelWords } from '../board/words.ts';
 import { PlaceStyle } from '../place-style.tsx';
+import { WIDE } from '../viewport.ts';
 import { pressed } from '../pressed.ts';
 import { SCRIPT_READ_CSS } from '../script/style.ts';
 import { type LabFailure, reasonOf } from '../api.ts';
@@ -63,7 +64,7 @@ const MATERIAL_CSS = `
 .ak-read-all{justify-self:start;min-height:var(--hit)}
 `;
 
-/** The Board's panels in an ask: a beat's panels in a row under its id, at the film's aspect. */
+/** The Board's panels in an ask: a beat's panels in a row under its id, at the film's aspect; two to a row at least 240 px wide on a laptop. */
 const BOARD_MAT_CSS = `
 .ak-board{display:grid;gap:var(--s-3)}
 .ak-board-beat{display:grid;gap:var(--s-1)}
@@ -72,6 +73,7 @@ const BOARD_MAT_CSS = `
 .ak-board-panel{display:flex;flex-direction:column;gap:var(--s-1);margin:0;min-width:0;padding:var(--s-1);
   border:var(--border);border-radius:var(--r-2);background:var(--surface-2)}
 .ak-board-panel .rv-zoom img{border-radius:var(--r-1)}
+@media ${WIDE}{.ak-board-panels{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}}
 `;
 
 /** The take's player: the width of the section, its words under it. */
