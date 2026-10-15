@@ -318,5 +318,5 @@ record of versions and of what waits on the owner; asks file onto it rather than
 - Asks are acyclic and capped at 12 steps; a flow that needs to loop is asked again as a new ask.
 - An answered ask is filed on its production only when the agent closes it, not when the owner answers.
 - `FILM_LAB_PHONE_URL` is unset by default; with it unset an ask answers no phone link.
-- The review page's head CSS is 63.7 KB of the 64 KiB budget; the ask and production places are 65.4 KB and
-  65.5 KB with their own styles. The next rule added to the review's shared CSS needs a trim first.
+- The review page's head CSS is 52.8 KB of the 64 KiB budget (the Scenes' tape styles left it; Project carries
+  its scene cards' as its place's styles); the ask and production places are 54.5 KB and 54.6 KB with their own.
