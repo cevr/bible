@@ -61,6 +61,8 @@ const ANSWER = new RegExp(`^/api/asks/${STUDIO_ASK}/answer$`);
 const DRAFT_MARKS = new RegExp(`^/api/series/${STUDIO_SERIES}/${STUDIO_DRAFT}/marks$`);
 /** A real H.264 take at 1280×720: the size of a render's. */
 const HD_720 = new URL('../../../src/tools/fixtures/hd-720.mp4', import.meta.url).pathname;
+/** The section whose head holds the top under the header once the page is scrolled to its end. */
+const AT_THE_TOP_AT_THE_END = `(() => { scrollTo(0, document.documentElement.scrollHeight); const y = document.querySelector('.sh-header').getBoundingClientRect().bottom + 2; return document.elementFromPoint(innerWidth / 2, y)?.closest('.ak-step')?.dataset.step ?? ''; })()`;
 /** An ask whose one section is the toy's own script, by its film. */
 const SCRIPT_ASK = 'a0123456781';
 const slow = { kind: 'choose', value: 'slow', label: 'Slow' };
@@ -111,6 +113,8 @@ describe("an agent's ask on a phone", () => {
         yield* page.click('.ak-option[data-value="slow"]');
         yield* waitFor(page, '.ak-step[data-step="why"] textarea');
         yield* page.fill('.ak-step[data-step="why"] textarea', words);
+        // At the page's end its last section, short as it is, holds the top: the head before it is gone.
+        yield* evaluates(page, AT_THE_TOP_AT_THE_END, 'why');
         yield* page.click(ASK_READY);
         yield* textHas(page, '.ak-outcome [data-answer="why"]', words);
         yield* textHas(page, '.ak-outcome [data-answer="take"]', 'Slow');
@@ -206,11 +210,9 @@ describe("an agent's ask on a phone", () => {
         yield* textHas(page, '.ak-send [data-role="answered"]', '0 of 1 answered');
         yield* page.click(ASK_READY);
         yield* waitFor(page, '.ak-field[data-answer="take"][data-invalid="true"]');
-        yield* textHas(
-          page,
-          '.ak-field[data-answer="take"] .ak-unanswered',
-          'Which take? needs a choice',
-        );
+        // The field's line says what it needs under its own label; the dock, far from it, names it.
+        yield* textIs(page, '.ak-field[data-answer="take"] .ak-unanswered', 'Needs a choice');
+        yield* textHas(page, '.ak-send [data-role="answered"]', 'Which take? needs a choice');
         yield* evaluates(
           page,
           `document.querySelector('.ak-field[data-answer="take"]').contains(document.activeElement)`,
@@ -453,6 +455,15 @@ describe("an agent's ask on a phone", () => {
         );
         yield* evaluates(page, 'document.documentElement.scrollWidth === innerWidth', true);
         yield* fitsPhone(page);
+        // At the page's end the last section's head holds the top, not the Board's over its question.
+        yield* evaluates(page, AT_THE_TOP_AT_THE_END, 'cut');
+        // The cut opens where the agent pointed (`at`), its row shown; the row's play is quiet, at the hit.
+        const cut = '.ak-step[data-step="cut"] [data-material="video"]';
+        yield* evaluates(
+          page,
+          `((b) => b !== null && !b.hasAttribute('data-primary') && b.getBoundingClientRect().height >= 44)(document.querySelector('${cut} .rv-big'))`,
+          true,
+        );
         for (const step of ['script', 'board', 'cut'])
           yield* page.click(`.ak-step[data-step="${step}"] .ak-option[data-value="keep"]`);
         yield* textHas(page, '.ak-send [data-role="answered"]', '3 of 3 answered');

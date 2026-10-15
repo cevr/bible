@@ -21,11 +21,13 @@ import {
   type AskBlock,
   type AskImage,
   type AskRecord,
+  type Asking,
   type Section,
   askStatus,
   askedIn,
   blocksOf,
   endText,
+  neededText,
   optionsShown,
   requiredOf,
   titleOf,
@@ -88,6 +90,14 @@ const HEAD_IN = '.ak-section-h';
  * key did).
  */
 const goTo = (el: HTMLElement, focus: string, input: Input) => {
+  // A question sits under its section's held head however many lines the head wraps to.
+  if (!el.matches('.ak-step'))
+    Option.map(
+      Option.fromNullishOr(el.closest('.ak-step')?.querySelector<HTMLElement>(HEAD_IN)),
+      (head) => {
+        el.style.scrollMarginTop = `calc(var(--header-h) + ${head.offsetHeight}px + var(--s-2))`;
+      },
+    );
   el.scrollIntoView({ block: 'start' });
   Option.map(Option.fromNullishOr(el.querySelector<HTMLElement>(focus)), (target) =>
     focusFor(target, input, { preventScroll: true }),
@@ -100,12 +110,25 @@ const stepOf = (name: string): Option.Option<HTMLElement> =>
     document.querySelector<HTMLElement>(`.ak-step[data-step="${CSS.escape(name)}"]`),
   );
 
-/** A section's title on the page: its step's, or its place when it has none. */
-const sectionTitle = (step: Section['step'], n: number, of: number): string =>
-  Option.match(titleOf(step), {
-    onNone: () => `${n} of ${of}`,
-    onSome: (title) => `${n} of ${of} · ${title}`,
-  });
+/**
+ * A section's title on the page: its place, quiet, so the title carries,
+ * then its step's title when it has one.
+ */
+const SectionTitle = (props: {
+  readonly step: Section['step'];
+  readonly n: number;
+  readonly of: number;
+}) => (
+  <>
+    <span class="ak-count">
+      {Option.match(titleOf(props.step), {
+        onNone: () => `${props.n} of ${props.of}`,
+        onSome: () => `${props.n} of ${props.of} · `,
+      })}
+    </span>
+    {Option.getOrElse(titleOf(props.step), () => '')}
+  </>
+);
 
 /** A section in the index: its place, and its title when it has one. */
 const indexTitle = (step: Section['step'], n: number): string =>
@@ -123,29 +146,35 @@ const indexTitle = (step: Section['step'], n: number): string =>
 export const Index = () => {
   const { state } = useAsk();
   const { meta } = useReview();
-  const sections = () => state.sections();
+  // Each entry is drawn once by its section's name, as the sections are: a keystroke redraws none.
+  const names = createMemo(() => state.sections().map((s) => s.name));
+  const titleOfStep = (name: string, n: number) =>
+    Option.match(
+      Arr.findFirst(state.sections(), (s) => s.name === name),
+      { onNone: () => `${n}`, onSome: (s) => indexTitle(s.step, n) },
+    );
   const openIn = (name: string) => state.questions().filter((q) => q.step === name && !q.answered);
   const asks = (name: string) => state.questions().some((q) => q.step === name);
   return (
-    <Show when={sections().length > 1}>
+    <Show when={names().length > 1}>
       <nav class="ak-index" aria-label="This ask's sections">
         <ol>
-          <For each={sections()}>
-            {(s, i) => {
-              const done = () => asks(s.name) && openIn(s.name).length === 0;
+          <For each={names()}>
+            {(name, i) => {
+              const done = () => asks(name) && openIn(name).length === 0;
               return (
                 <li>
                   <button
                     type="button"
-                    class="ak-index-go"
+                    class="sh-btn ak-index-go"
                     data-act="go-section"
-                    data-step={s.name}
+                    data-step={name}
                     data-done={pressed(done())}
                     onClick={() =>
-                      Option.map(stepOf(s.name), (el) => goTo(el, HEAD_IN, meta.hub.input()))
+                      Option.map(stepOf(name), (el) => goTo(el, HEAD_IN, meta.hub.input()))
                     }
                   >
-                    <span class="ak-index-title">{indexTitle(s.step, i() + 1)}</span>
+                    <span class="ak-index-title">{titleOfStep(name, i() + 1)}</span>
                     <Show when={done()}>
                       <span class="ak-index-done" aria-label="answered">
                         ✓
@@ -255,7 +284,7 @@ export const ChooseOne = (props: { readonly block: BlockOf<'choose'> }) => {
           </Show>
         )}
       </For>
-      <Unanswered id={props.block.id} />
+      <Unanswered block={props.block} />
     </fieldset>
   );
 };
@@ -263,13 +292,16 @@ export const ChooseOne = (props: { readonly block: BlockOf<'choose'> }) => {
 /** The id of the words that say question `id` is still open. */
 const saidId = (id: string): string => `ak-said-${id}`;
 
-/** Under question `id`, once a Send was refused for it: what it needs, by its label. */
-const Unanswered = (props: { readonly id: string }) => {
+/**
+ * Under question `block`, once a Send was refused for it: what it needs,
+ * its label in sight above it (the send's dock, far from it, names it).
+ */
+const Unanswered = (props: { readonly block: Asking }) => {
   const { state } = useAsk();
   return (
-    <Show when={state.missing() === props.id}>
-      <p class="ak-unanswered" id={saidId(props.id)}>
-        {state.said()}
+    <Show when={state.missing() === props.block.id}>
+      <p class="ak-unanswered" id={saidId(props.block.id)}>
+        {neededText(props.block)}
       </p>
     </Show>
   );
@@ -299,7 +331,7 @@ export const FreeText = (props: { readonly block: BlockOf<'free_text'> }) => {
         )}
         onInput={(e) => actions.set(props.block.id, e.currentTarget.value)}
       />
-      <Unanswered id={props.block.id} />
+      <Unanswered block={props.block} />
     </label>
   );
 };
@@ -340,7 +372,7 @@ export const Sections = () => {
           <Show when={Option.getOrUndefined(stepNamed(name))}>
             {(step: Accessor<Section['step']>) => (
               <h2 class="ak-section-h" tabindex="-1">
-                {sectionTitle(step(), i() + 1, names().length)}
+                <SectionTitle step={step()} n={i() + 1} of={names().length} />
               </h2>
             )}
           </Show>

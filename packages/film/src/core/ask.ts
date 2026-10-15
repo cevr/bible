@@ -312,7 +312,7 @@ export const materialsIn = (
   );
 
 /** A block the owner answers. */
-type Asking = Extract<AskBlock, { readonly id: string }>;
+export type Asking = Extract<AskBlock, { readonly id: string }>;
 
 /** Whether the owner must answer `block` before the step goes: a choice always, words only when asked to. */
 export const requiredOf = (block: Asking): boolean =>
@@ -691,11 +691,16 @@ export type AskEvent = typeof AskEvent.Type;
 export const askStart = (ask: Ask): AskState => AskState.Asking({ step: ask.start, answers: {} });
 
 /** What the owner is told of a question he must answer and has not: by its label, never its id. */
-export const unansweredText = (b: Asking): string =>
+export const unansweredText = (b: Asking): string => `${b.label} needs ${neededOf(b)}`;
+
+/** What an open question needs, said by its field, where its label is in sight. */
+export const neededText = (b: Asking): string => `Needs ${neededOf(b)}`;
+
+const neededOf = (b: Asking): string =>
   Match.value(b).pipe(
     Match.discriminatorsExhaustive('kind')({
-      choose: (c) => `${c.label} needs a choice`,
-      free_text: (t) => `${t.label} needs your words`,
+      choose: () => 'a choice',
+      free_text: () => 'your words',
     }),
   );
 
