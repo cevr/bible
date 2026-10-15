@@ -15,6 +15,7 @@ import { Array as Arr, Match, Option, Result } from 'effect';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
 import { sceneAt } from '../../core/layout.ts';
+import { clock } from '../../core/time.ts';
 import type { CheckLine } from '../../core/schema.ts';
 import { counted } from '../../core/words.ts';
 import { APPROVAL_TEXT, stateText } from '../review/format.ts';
@@ -224,10 +225,7 @@ export const filmSpan = (scenes: ReadonlyArray<ProjectScene>): Option.Option<num
  * whose scenes says where it sits is its scenes alone.
  */
 export const filmLength = (scenes: ReadonlyArray<ProjectScene>): string => {
-  const length = Option.map(filmSpan(scenes), (end) => {
-    const seconds = Math.round(end);
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-  });
+  const length = Option.map(filmSpan(scenes), clock);
   return [...Option.toArray(length), counted(scenes.length, 'scene')].join(' · ');
 };
 

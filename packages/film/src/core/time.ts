@@ -74,6 +74,21 @@ export const timecode = (seconds: number, fps: number = FILM_FPS): string => {
   return `${sign}${p.hh}:${p.mm}:${p.ss}:${p.ff}`;
 };
 
+/**
+ * Seconds as a length is said to the owner, to the nearest second: `m:ss`
+ * (`8:46`), and `h:mm:ss` past an hour (`1:02:05`). A film's card, a video
+ * at rest and a draft's spoken time all say it so; the studio's own clocks
+ * say `timecode`.
+ */
+export const clock = (seconds: number): string => {
+  const whole = Math.max(0, Math.round(seconds));
+  const h = Math.floor(whole / 3600);
+  const m = Math.floor((whole % 3600) / 60);
+  const ss = String(whole % 60).padStart(2, '0');
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${ss}`;
+  return `${m}:${ss}`;
+};
+
 /** A stretch of time, `from` to `to`, in seconds on whatever clock it is read against. */
 export interface Interval {
   readonly from: number;

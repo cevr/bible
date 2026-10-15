@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   DEFAULT_EASE,
   clamp,
+  clock,
   ease,
   invLerp,
   frameAtOrAfter,
@@ -69,6 +70,14 @@ describe('the time grid', () => {
 });
 
 describe('time', () => {
+  test('a length reads to the nearest second as m:ss, and h:mm:ss past an hour', () => {
+    expect(clock(0)).toBe('0:00');
+    expect(clock(26.5)).toBe('0:27');
+    expect(clock(525.9)).toBe('8:46');
+    expect(clock(3599.4)).toBe('59:59');
+    expect(clock(3725)).toBe('1:02:05');
+  });
+
   test('a time reads as the timecode of its nearest frame: HH:MM:SS:FF', () => {
     expect(timecode(0)).toBe('00:00:00:00');
     expect(timecode(65.4)).toBe('00:01:05:12');

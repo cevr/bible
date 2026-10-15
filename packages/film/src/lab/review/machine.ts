@@ -34,7 +34,7 @@
 import { Effect, Match, Option, Predicate, Schema } from 'effect';
 import { Event, Machine, State, simulate } from 'effect-machine';
 import type { SET_VIEWS } from '../../core/api.ts';
-import { FILM_FPS, frameRead, timecode } from '../../core/time.ts';
+import { FILM_FPS, clock, frameRead, timecode } from '../../core/time.ts';
 
 /** An end not known yet: the clock's video's metadata has not loaded. */
 export const UNKNOWN_END = Number.MAX_SAFE_INTEGER;
@@ -294,18 +294,23 @@ export const failureOf = (state: SyncState): Option.Option<string> =>
 /**
  * What the transport says of the clock, in two parts: where it is
  * (`00:00:12:09`), and the rest (` / 00:00:25:00`, and ` · waiting` while it
- * waits on a video), which a phone's one-row transport leaves out.
+ * waits on a video), which a phone's one-row transport leaves out. `say`
+ * reads a time: the frame's `timecode`, as a review compares frames, or a
+ * lone video's `clock` (`0:12 / 0:25`), as its length says it at rest.
  */
-export const clockParts = (state: SyncState) => {
+export const clockParts = (
+  state: SyncState,
+  say: (seconds: number, fps: number) => string = timecode,
+) => {
   const end = Match.value(state.end >= UNKNOWN_END).pipe(
     Match.when(true, () => '…'),
-    Match.orElse(() => timecode(state.end, state.fps)),
+    Match.orElse(() => say(state.end, state.fps)),
   );
   const waiting = Match.value(state._tag).pipe(
     Match.when('Buffering', () => ' · waiting'),
     Match.orElse(() => ''),
   );
-  return { at: timecode(Math.max(0, state.t), state.fps), rest: ` / ${end}${waiting}` };
+  return { at: say(Math.max(0, state.t), state.fps), rest: ` / ${end}${waiting}` };
 };
 
 /**
@@ -315,14 +320,7 @@ export const clockParts = (state: SyncState) => {
 export const lengthText = (state: SyncState): Option.Option<string> =>
   Option.map(
     Option.liftPredicate(state.end, (end) => end < UNKNOWN_END),
-    (end) => {
-      const s = Math.round(end);
-      const h = Math.floor(s / 3600);
-      const m = Math.floor((s % 3600) / 60);
-      const ss = String(s % 60).padStart(2, '0');
-      if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${ss}`;
-      return `${m}:${ss}`;
-    },
+    clock,
   );
 
 /** The scrub bar's reach: the clock's video's end once known, else where the clock is. */

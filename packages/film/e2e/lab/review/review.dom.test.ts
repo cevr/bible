@@ -445,11 +445,11 @@ describe('the review page', () => {
         yield* page.click(`${LONE} [data-act="play-video"]`);
         yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '❚❚');
         yield* countIs(page, LONE_REST, 0);
-        // Its time moves, and the row's clock says so.
+        // Its time moves, and the row's clock says so, as its length did at rest (m:ss).
         yield* until(page, `${LONE_VIDEO}.currentTime > 1.5`);
         yield* until(
           page,
-          `document.querySelector('${LONE_ROW} .rv-time-at').textContent !== '00:00:00:00'`,
+          `((at) => /^\\d+:\\d\\d$/.test(at) && at !== '0:00')(document.querySelector('${LONE_ROW} .rv-time-at').textContent)`,
         );
         // Scrubbed back to the start, the row stays for the whole scrub; let go, it plays on.
         yield* page.evaluate(scrub('input', 0));

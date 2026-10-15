@@ -46,6 +46,7 @@ import type { ChildProcessSpawner } from 'effect/process';
 import { type AddressFlags, type Scope, addressOf, resolveAddress } from '../core/address.ts';
 import { type Placed, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
+import { clock } from '../core/time.ts';
 import type { Short } from '../core/schema.ts';
 import { SAFE_ZONE_NAMES, SHORT_RULES, type SafeZoneName } from '../core/shorts.ts';
 import { acceptedBeats, atTheCommandLine, bareAcceptMismatch } from './accept.ts';
@@ -479,12 +480,6 @@ const script = Command.make(
 /** The pace a draft's spoken time is read at, as the staging voice reads (`series/README.md`). */
 const DRAFT_WPM = 155;
 
-/** `seconds` as `m:ss`. */
-const minutes = (seconds: number) => {
-  const whole = Math.round(seconds);
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
-};
-
 const drafts = Command.make(
   'drafts',
   {},
@@ -505,7 +500,7 @@ const drafts = Command.make(
               ),
             0,
           );
-          const time = minutes((words / DRAFT_WPM) * 60 + paused);
+          const time = clock((words / DRAFT_WPM) * 60 + paused);
           return Effect.as(
             Console.log(
               `ok ${draftKey(name, draft)}: ${beats.length} spoken beats, ${words} words, ${marks.length} marks, ${time} at ${DRAFT_WPM} wpm`,

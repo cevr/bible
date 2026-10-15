@@ -18,6 +18,7 @@ import {
   untrack,
 } from 'solid-js';
 import type { ReviewFile } from '../../core/review.ts';
+import { clock, timecode } from '../../core/time.ts';
 import { type Playable, playableOf } from '../../browser/media.ts';
 import { rateCommands, rateId, rateText, rateTitle } from '../../player/transport.ts';
 import { Actor } from '../actor.tsx';
@@ -148,6 +149,12 @@ const TransportRow = (
   const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
   const failure = () => failureOf(sync());
+  // A lone video says its time as its length says it at rest; a review's clock, by the frame.
+  const say = Match.value(props.alone === true).pipe(
+    Match.when(true, () => clock),
+    Match.orElse(() => timecode),
+  );
+  const time = () => clockParts(sync(), say);
   return (
     <section class={['rv-transport', { 'rv-alone-row': props.alone === true }]}>
       <button
@@ -174,9 +181,9 @@ const TransportRow = (
       </button>
       <span class="rv-time" data-state={sync()._tag}>
         {/* The time: a laptop's header shows the docked one's already (`useShellTime`), so its row leaves it out. */}
-        <span class="rv-time-at">{clockParts(sync()).at}</span>
+        <span class="rv-time-at">{time().at}</span>
         {/* The end, and a wait: a phone's row leaves them out (the scrub shows the end). */}
-        <span class="rv-time-rest">{clockParts(sync()).rest}</span>
+        <span class="rv-time-rest">{time().rest}</span>
       </span>
       <Show
         when={Option.getOrUndefined(failure())}
