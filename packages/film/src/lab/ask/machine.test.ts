@@ -5,11 +5,11 @@
 // phone answered first) reads the ask again and says why; an ask that cannot
 // be read says so.
 
-import { Effect, Layer, SubscriptionRef } from 'effect';
+import { Deferred, Effect, Layer, SubscriptionRef } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { type AskRecord, AskState, type StepValues } from '../../core/ask.ts';
 import { AskRefused, AskUnknown } from '../../core/refusals.ts';
-import type { LabFailure } from '../api.ts';
+import { type LabFailure, LabUnreachable } from '../api.ts';
 import { ReviewApi } from '../review/api.ts';
 import { AskPageEvent, AskPageState, spawnAskPage } from './machine.ts';
 
@@ -99,7 +99,8 @@ const fakeLab = (
     }),
   );
 
-const opened = (record: AskRecord, said = '') => AskPageState.Open({ record, draft: {}, said });
+const opened = (record: AskRecord, said = '') =>
+  AskPageState.Open({ record, draft: {}, said, missing: '' });
 
 describe("an ask's page", () => {
   it.effect(
@@ -111,7 +112,11 @@ describe("an ask's page", () => {
         expect(yield* actor.waitFor(AskPageState.Open)).toEqual(opened(asking));
         yield* actor.send(AskPageEvent.Submit);
         const unfit = yield* actor.waitFor((s) => s._tag === 'Open' && s.said !== '');
-        expect(unfit).toMatchObject({ _tag: 'Open', said: 'Which? needs a choice' });
+        expect(unfit).toMatchObject({
+          _tag: 'Open',
+          said: 'Which? needs a choice',
+          missing: 'try',
+        });
         // Try 7 asks why: its section is on the page now, its words optional.
         yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
         yield* actor.send(AskPageEvent.Submit);
@@ -175,4 +180,108 @@ describe("an ask's page", () => {
       ),
     );
   });
+
+  it.effect('a send that does not reach the lab keeps the page as drafted, to send again', () => {
+    const sent: Array<Sent> = [];
+    const answers: Array<Effect.Effect<AskRecord, LabFailure>> = [
+      Effect.fail(LabUnreachable.make({ message: 'the lab did not answer' })),
+      Effect.succeed(ended),
+    ];
+    return Effect.gen(function* () {
+      const actor = yield* spawnAskPage(asking.id);
+      yield* actor.waitFor(AskPageState.Open);
+      yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
+      yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'the steadier voice' }));
+      yield* actor.send(AskPageEvent.Submit);
+      const kept = yield* actor.waitFor((s) => s._tag === 'Open' && s.said !== '');
+      expect(kept).toEqual(
+        AskPageState.Open({
+          record: asking,
+          draft: { try: '7', why: 'the steadier voice' },
+          said: 'Not sent: the lab did not answer. Your answers are kept: send again.',
+          missing: '',
+        }),
+      );
+      yield* actor.send(AskPageEvent.Submit);
+      yield* actor.waitFor((s) => s._tag === 'Open' && s.record.state._tag === 'Answered');
+      expect(sent).toHaveLength(2);
+      expect(sent[1]).toEqual(sent[0]);
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        fakeLab(
+          [Effect.succeed(asking)],
+          () => answers.shift() ?? Effect.die('sent too often'),
+          sent,
+        ),
+      ),
+    );
+  });
+
+  it.effect(
+    'a refusal reads the ask again with the page still showing, and keeps the words for steps still open',
+    () => {
+      const sent: Array<Sent> = [];
+      const refused = AskRefused.make({ id: asking.id, reason: 'step pick is answered already' });
+      const reread = Deferred.makeUnsafe<boolean>();
+      return Effect.gen(function* () {
+        const actor = yield* spawnAskPage(asking.id);
+        yield* actor.waitFor(AskPageState.Open);
+        yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
+        yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'the steadier voice' }));
+        yield* actor.send(AskPageEvent.Submit);
+        // While the ask is read again, the page keeps its record and draft: its sections stay.
+        expect(yield* actor.waitFor(AskPageState.Rereading)).toEqual(
+          AskPageState.Rereading({
+            record: asking,
+            draft: { try: '7', why: 'the steadier voice' },
+            said: 'ask "a0123456789": step pick is answered already',
+          }),
+        );
+        yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'lost' }));
+        yield* Deferred.succeed(reread, true);
+        // The phone picked try 7: the why step is still open, its words kept.
+        expect(yield* actor.waitFor(AskPageState.Open)).toEqual(
+          AskPageState.Open({
+            record: picked,
+            draft: { why: 'the steadier voice' },
+            said: 'ask "a0123456789": step pick is answered already',
+            missing: '',
+          }),
+        );
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(
+          fakeLab(
+            [Effect.succeed(asking), Deferred.await(reread).pipe(Effect.as(picked))],
+            () => Effect.fail(refused),
+            sent,
+          ),
+        ),
+      );
+    },
+  );
+
+  it.effect('an ask that could not be read is read again on Retry', () =>
+    Effect.gen(function* () {
+      const actor = yield* spawnAskPage(asking.id);
+      expect(yield* actor.waitFor(AskPageState.Unreadable)).toEqual(
+        AskPageState.Unreadable({ why: 'the lab did not answer' }),
+      );
+      yield* actor.send(AskPageEvent.Retry);
+      expect(yield* actor.waitFor(AskPageState.Open)).toEqual(opened(asking));
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        fakeLab(
+          [
+            Effect.fail(LabUnreachable.make({ message: 'the lab did not answer' })),
+            Effect.succeed(asking),
+          ],
+          () => Effect.die('not sent'),
+          [],
+        ),
+      ),
+    ),
+  );
 });

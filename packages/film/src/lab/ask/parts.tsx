@@ -230,7 +230,7 @@ export const Sections = () => {
 /** The send: the page's answers to the lab, every section's, and what the last send said. */
 export const Submit = () => {
   const { state, actions } = useAsk();
-  const sending = () => state.phase() === 'Sending';
+  const sending = () => state.phase() === 'Sending' || state.phase() === 'Rereading';
   return (
     <Show when={state.sections().length > 0}>
       <div class="ak-send">
@@ -314,16 +314,24 @@ export const Outcome = () => {
   );
 };
 
-/** While the ask is read, or why it cannot be. */
+/** While the ask is read, or why it cannot be, with a way to read it again. */
 export const Status = () => {
-  const { state } = useAsk();
+  const { state, actions } = useAsk();
   return (
-    <p class="rv-hint" role="status" aria-live="polite">
-      {Match.value(state.phase()).pipe(
-        Match.when('Reading', () => 'Reading the ask…'),
-        Match.when('Unreadable', () => `This ask cannot be read: ${state.said()}`),
-        Match.orElse(() => ''),
-      )}
-    </p>
+    <div class="ak-status">
+      <p class="rv-hint" role="status" aria-live="polite">
+        {Match.value(state.phase()).pipe(
+          Match.when('Reading', () => 'Reading the ask…'),
+          Match.when('Rereading', () => 'Reading the ask again…'),
+          Match.when('Unreadable', () => `This ask cannot be read: ${state.said()}`),
+          Match.orElse(() => ''),
+        )}
+      </p>
+      <Show when={state.phase() === 'Unreadable'}>
+        <button type="button" class="sh-btn" data-act="retry" onClick={() => actions.retry()}>
+          Read again
+        </button>
+      </Show>
+    </div>
   );
 };

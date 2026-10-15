@@ -9,7 +9,7 @@ import { Match, Option, Record } from 'effect';
 import * as ActorAtom from 'effect-machine/atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createMemo, useContext } from 'solid-js';
-import type { AskRecord, Section } from '../../core/ask.ts';
+import { type AskRecord, type Question, questionsOf, type Section } from '../../core/ask.ts';
 import { Actor } from '../actor.tsx';
 import { useReview } from '../review/context.tsx';
 import {
@@ -31,8 +31,12 @@ interface AskStateValue {
   readonly sections: Accessor<ReadonlyArray<Section>>;
   /** The owner's answer `id` as drafted ('' when not). */
   readonly drafted: (id: string) => string;
+  /** The questions the page waits on, in page order, and whether each is answered. */
+  readonly questions: Accessor<ReadonlyArray<Question>>;
   /** What the last send or read said: why it was refused, or why the ask cannot be read. */
   readonly said: Accessor<string>;
+  /** The question the last Send was refused for: the first left open ('' when none). */
+  readonly missing: Accessor<string>;
 }
 
 interface AskActions {
@@ -40,6 +44,8 @@ interface AskActions {
   readonly set: (id: string, value: string) => void;
   /** Send the page's answers. */
   readonly submit: () => void;
+  /** Read the ask again, once it could not be read. */
+  readonly retry: () => void;
 }
 
 interface AskContextValue {
@@ -54,19 +60,19 @@ export const useAsk = (): AskContextValue => useContext(AskContext);
 
 const recordOf = (s: AskPageState): Option.Option<AskRecord> =>
   Match.value(s).pipe(
-    Match.tag('Open', 'Sending', (o) => Option.some(o.record)),
+    Match.tag('Open', 'Sending', 'Rereading', (o) => Option.some(o.record)),
     Match.orElse(() => Option.none<AskRecord>()),
   );
 
 const draftOf = (s: AskPageState): Readonly<Record<string, string>> =>
   Match.value(s).pipe(
-    Match.tag('Open', 'Sending', (o) => o.draft),
+    Match.tag('Open', 'Sending', 'Rereading', (o) => o.draft),
     Match.orElse(() => ({})),
   );
 
 const saidOf = (s: AskPageState): string =>
   Match.value(s).pipe(
-    Match.tag('Open', 'Reading', (o) => o.said),
+    Match.tag('Open', 'Reading', 'Rereading', (o) => o.said),
     Match.tag('Unreadable', (u) => u.why),
     Match.orElse(() => ''),
   );
@@ -76,22 +82,30 @@ const Body = (props: ParentProps<{ readonly actor: AskPageActor }>) => {
   const page = useAtomValue(() => stateAtom);
   const send = useAtomSet(() => stateAtom);
   const record = createMemo(() => recordOf(page()));
+  const sections = createMemo(() =>
+    Option.match(record(), {
+      onNone: () => [],
+      onSome: (r) => pageSections(r, draftOf(page())),
+    }),
+  );
   const value: AskContextValue = {
     state: {
       phase: () => page()._tag,
       record,
-      sections: createMemo(() =>
-        Option.match(record(), {
-          onNone: () => [],
-          onSome: (r) => pageSections(r, draftOf(page())),
-        }),
-      ),
+      sections,
       drafted: (id) => Option.getOrElse(Record.get(draftOf(page()), id), () => ''),
+      questions: createMemo(() => questionsOf(sections())),
       said: () => saidOf(page()),
+      missing: () =>
+        Match.value(page()).pipe(
+          Match.tag('Open', (o) => o.missing),
+          Match.orElse(() => ''),
+        ),
     },
     actions: {
       set: (id, v) => send(AskPageEvent.Set({ id, value: v })),
       submit: () => send(AskPageEvent.Submit),
+      retry: () => send(AskPageEvent.Retry),
     },
   };
   return <AskContext value={value}>{props.children}</AskContext>;

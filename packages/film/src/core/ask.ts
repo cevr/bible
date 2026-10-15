@@ -691,7 +691,7 @@ export type AskEvent = typeof AskEvent.Type;
 export const askStart = (ask: Ask): AskState => AskState.Asking({ step: ask.start, answers: {} });
 
 /** What the owner is told of a question he must answer and has not: by its label, never its id. */
-const unansweredText = (b: Asking): string =>
+export const unansweredText = (b: Asking): string =>
   Match.value(b).pipe(
     Match.discriminatorsExhaustive('kind')({
       choose: (c) => `${c.label} needs a choice`,
@@ -884,7 +884,7 @@ export const sectionsOf = (
 };
 
 /** A question the page asks the owner to answer, by its section, and whether the draft answers it. */
-interface Question {
+export interface Question {
   readonly step: string;
   readonly block: Asking;
   readonly answered: boolean;
