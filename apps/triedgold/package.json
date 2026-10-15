@@ -15,7 +15,6 @@
   "scripts": {
     "dev": "react-router dev",
     "build": "react-router build",
-    "start": "NODE_ENV=production bun server.ts",
     "typecheck": "react-router typegen && tsc --noEmit",
     "test": "bun test tests/",
     "plan": "react-router build && alchemy plan alchemy.run.ts --stage prod",
@@ -23,7 +22,6 @@
     "test:deploy": "react-router build && bun test ./tests/deploy.integration.ts"
   },
   "dependencies": {
-    "@react-router/node": "8.4.0",
     "effect": "catalog:",
     "isbot": "5.2.2",
     "lucide-react": "1.55.0",
@@ -32,8 +30,6 @@
     "react-router": "8.4.0"
   },
   "devDependencies": {
-    "@distilled.cloud/core": "1.0.0-rc.15",
-    "@distilled.cloud/railway": "1.0.0-rc.15",
     "@effect/platform-bun": "catalog:",
     "@effect/platform-node": "catalog:",
     "@react-router/dev": "8.4.0",
