@@ -126,32 +126,35 @@ export const TakeState = (props: { readonly beat: string }) => {
   );
 };
 
-/** The reader's head: Hear the script from the beat under the frame on, or Stop. */
+/**
+ * The reader's head: Hear the script from the first beat ready at or after
+ * the one under the frame, or Stop; nothing while no take there is ready.
+ */
 export const HearAll = () => {
   const script = useScript();
   const voice = useVoice();
   const on = () => Option.isSome(voice.hearing());
+  const first = () =>
+    Arr.findFirst(
+      Arr.dropWhile(script.beats, (b) => b.id !== script.live()),
+      (b) => Option.exists(voice.take(b.id), (t) => t._tag === 'Ready'),
+    );
   return (
-    <button
-      type="button"
-      class="sh-btn lab-script-hear-all"
-      data-act="hear-script"
-      aria-pressed={pressed(on())}
-      title="Hear the staging voice from this beat on"
-      onClick={() => {
-        if (on()) voice.stop();
-        else
-          Option.map(
-            Arr.findFirst(
-              Arr.dropWhile(script.beats, (b) => b.id !== script.live()),
-              (b) => Option.exists(voice.take(b.id), (t) => t._tag === 'Ready'),
-            ),
-            (b) => voice.hear(b.id, Option.none(), true),
-          );
-      }}
-    >
-      {HEAR_ALL[pressed(on())]}
-    </button>
+    <Show when={on() || Option.isSome(first())}>
+      <button
+        type="button"
+        class="sh-btn lab-script-hear-all"
+        data-act="hear-script"
+        aria-pressed={pressed(on())}
+        title="Hear the staging voice from this beat on"
+        onClick={() => {
+          if (on()) voice.stop();
+          else Option.map(first(), (b) => voice.hear(b.id, Option.none(), true));
+        }}
+      >
+        {HEAR_ALL[pressed(on())]}
+      </button>
+    </Show>
   );
 };
 

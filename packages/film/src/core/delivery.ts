@@ -24,6 +24,7 @@
 // model times a pause to the tenth. Pure.
 
 import { Array as Arr, Match, Option, Schema } from 'effect';
+import { toMs } from './time.ts';
 
 /** A hold's seconds when its mark names none (`{//}`). */
 export const HOLD_DEFAULT = 0.6;
@@ -409,5 +410,5 @@ export const shiftedBy = <W extends Span>(
 ): ReadonlyArray<W> =>
   words.map((w) => {
     const by = edits.filter((e) => e.at <= w.start).reduce((sum, e) => sum + e.by, 0);
-    return { ...w, start: w.start + by, end: w.end + by };
+    return { ...w, start: toMs(w.start + by), end: toMs(w.end + by) };
   });
