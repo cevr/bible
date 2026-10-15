@@ -51,6 +51,7 @@ import {
   finishedIn,
   heldByAncestor,
   loadWords,
+  lockedBy,
   recordOf,
   runOf,
   verdictMarkdown,
@@ -130,6 +131,26 @@ const outputOf = (command: string, args: ReadonlyArray<string>) =>
 
 /** The host's processes, as `ps` lists them: `pid ppid command` a line. */
 const processes = outputOf('ps', ['-A', '-o', 'pid=', '-o', 'ppid=', '-o', 'command=']);
+
+/**
+ * Whether an ancestor of this process is a `flock`/`lockf` holding LOCK
+ * itself: the lock file and each file an ancestor locks compared as the file
+ * system resolves them (a path that does not resolve, as written).
+ */
+const heldOutside = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const commands = ancestorsIn(yield* processes, process.pid);
+  const paths = [LOCK, ...commands.flatMap((command) => Option.toArray(lockedBy(command)))];
+  const resolved = new Map(
+    yield* Effect.forEach(paths, (path) =>
+      Effect.map(
+        Effect.orElseSucceed(fs.realPath(path), () => path),
+        (real) => [path, real] as const,
+      ),
+    ),
+  );
+  return heldByAncestor(commands, LOCK, (path) => resolved.get(path) ?? path);
+});
 
 /** Run this check again under the host's lock, `flock` if the machine has it, else `lockf -k`. */
 const underLock = (args: ReadonlyArray<string>) =>
@@ -317,7 +338,7 @@ const main = Effect.gen(function* () {
   // A refused flag is said before the lock is waited for.
   const flags = yield* flagsOf(args);
   if (Option.isSome(yield* Config.option(Config.String(HELD)))) return yield* check(flags);
-  if (heldByAncestor(ancestorsIn(yield* processes, process.pid), LOCK)) {
+  if (yield* heldOutside) {
     yield* Console.log(
       `test:e2e:check: an outer flock/lockf already holds ${LOCK}: running in its hold (the check takes the lock itself, so it need not be wrapped)`,
     );

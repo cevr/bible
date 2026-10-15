@@ -14,6 +14,7 @@ import {
   finishedIn,
   ancestorsIn,
   heldByAncestor,
+  lockedBy,
   loadWords,
   recordOf,
   runOf,
@@ -243,6 +244,9 @@ describe('what blocks', () => {
 
   test('a check inside an outer lock on the same file runs in its hold', () => {
     const lock = '/tmp/bible-tools-e2e.lock';
+    // macOS: /tmp is a link to /private/tmp, as `realpath` resolves it.
+    const real = (path: string) => path.replace(/^\/tmp\//, '/private/tmp/');
+    const held = (commands: ReadonlyArray<string>) => heldByAncestor(commands, lock, real);
     const outer = 'lockf -k /tmp/bible-tools-e2e.lock bun run test:e2e:check';
     // `ps -A -o pid= -o ppid= -o command=`: the check (40) under bun run (30) under the lock (20).
     const ps = [
@@ -253,18 +257,41 @@ describe('what blocks', () => {
       '   50     1 lockf -k /tmp/bible-tools-e2e.lock bun run test:e2e',
     ].join('\n');
     expect(ancestorsIn(ps, 40)).toEqual(['bun run test:e2e:check', outer, '/sbin/launchd']);
-    expect(heldByAncestor(ancestorsIn(ps, 40), lock)).toBe(true);
+    expect(held(ancestorsIn(ps, 40))).toBe(true);
     // Another workspace's lock is a wait, not this run's hold.
-    expect(heldByAncestor(ancestorsIn(`${ps}\n   60     1 bun e2e-check.ts`, 60), lock)).toBe(
+    expect(held(ancestorsIn(`${ps}\n   60     1 bun e2e-check.ts`, 60))).toBe(false);
+    expect(held(['bun e2e-check.ts', outer])).toBe(true);
+    expect(held(['/usr/bin/flock /private/tmp/bible-tools-e2e.lock bun x'])).toBe(true);
+    expect(held(['flock -w 30 /tmp/bible-tools-e2e.lock bun x'])).toBe(true);
+    expect(held(['lockf -k -t 60 /tmp/bible-tools-e2e.lock bun x'])).toBe(true);
+    expect(held(['lockf -k /tmp/bible-tools-gate.lock bun run gate', '-zsh'])).toBe(false);
+  });
+
+  test('only the locker holds the lock, and only on that very file', () => {
+    const lock = '/tmp/bible-tools-e2e.lock';
+    const real = (path: string) => path.replace(/^\/tmp\//, '/private/tmp/');
+    const held = (commands: ReadonlyArray<string>) => heldByAncestor(commands, lock, real);
+    // A shell whose script names the lock is not the lock: the lockf it starts would be an ancestor of its own.
+    expect(
+      held([
+        "zsh -c 'cd packages/film && lockf -k /tmp/bible-tools-e2e.lock bun run test:e2e:check'",
+      ]),
+    ).toBe(false);
+    expect(held(['bun run notes lockf /tmp/bible-tools-e2e.lock'])).toBe(false);
+    // A lock of the same name elsewhere is another lock.
+    expect(held(['lockf -k /Users/cvr/tmp/bible-tools-e2e.lock bun run test:e2e:check'])).toBe(
       false,
     );
-    expect(heldByAncestor(['bun e2e-check.ts', outer], lock)).toBe(true);
-    expect(heldByAncestor(['/usr/bin/flock /private/tmp/bible-tools-e2e.lock bun x'], lock)).toBe(
-      true,
+    expect(held(['flock /tmp/bible-tools-e2e.lock.old bun x'])).toBe(false);
+    expect(lockedBy('/usr/bin/lockf -k -t 5 /tmp/x.lock bun x')).toEqual(
+      Option.some('/tmp/x.lock'),
     );
-    expect(heldByAncestor(['lockf -k /tmp/bible-tools-gate.lock bun run gate', '-zsh'], lock)).toBe(
-      false,
+    expect(lockedBy('flock --wait=5 /tmp/x.lock bun x')).toEqual(Option.some('/tmp/x.lock'));
+    expect(lockedBy('flock --timeout 5 -E 3 /tmp/x.lock bun x')).toEqual(
+      Option.some('/tmp/x.lock'),
     );
+    expect(lockedBy('lockf')).toEqual(Option.none());
+    expect(lockedBy('blockfoo /tmp/x.lock')).toEqual(Option.none());
   });
 });
 

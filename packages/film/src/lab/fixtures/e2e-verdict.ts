@@ -294,15 +294,43 @@ export const ancestorsIn = (ps: string, pid: number): ReadonlyArray<string> => {
   return commands;
 };
 
+/** A locker's options that take a value as the next word: `flock -w 5`, `flock -E 3`, `lockf -t 5`. */
+const VALUED = new Set(['-w', '--wait', '--timeout', '-E', '--conflict-exit-code', '-t']);
+
+/** A locker's first word past its options. */
+const operandOf = (args: ReadonlyArray<string>): Option.Option<string> =>
+  Option.flatMap(Arr.head(args), (head) => {
+    if (!head.startsWith('-')) return Option.some(head);
+    if (VALUED.has(head)) return operandOf(args.slice(2));
+    return operandOf(args.slice(1));
+  });
+
+/**
+ * The file a command holds locked, when the command is a locker: its program
+ * `flock` or `lockf` (by any path), its first word past its options. A
+ * shell whose script names a locker is not one: the locker it starts is a
+ * process, and an ancestor, of its own.
+ */
+export const lockedBy = (command: string): Option.Option<string> => {
+  const [program = '', ...args] = command.trim().split(/\s+/);
+  if (!/^(?:\S*\/)?(?:flock|lockf)$/.test(program)) return Option.none();
+  return operandOf(args);
+};
+
 /**
  * Whether one of `commands` (this process's ancestors' command lines) holds
- * `lock` already: a `flock` or `lockf` on a file of its name. A check run
+ * `lock` already: a `flock` or `lockf` on that very file, the two paths
+ * compared by `realPath` (macOS's `/tmp` is `/private/tmp`). A check run
  * inside one runs in that hold, rather than wait on itself.
  */
-export const heldByAncestor = (commands: ReadonlyArray<string>, lock: string): boolean => {
-  const name = lock.split('/').at(-1) ?? lock;
-  return commands.some(
-    (command) => /(?:^|[\s/])(?:flock|lockf)\s/.test(command) && command.includes(name),
+export const heldByAncestor = (
+  commands: ReadonlyArray<string>,
+  lock: string,
+  realPath: (path: string) => string,
+): boolean => {
+  const held = realPath(lock);
+  return commands.some((command) =>
+    Option.exists(lockedBy(command), (file) => realPath(file) === held),
   );
 };
 
