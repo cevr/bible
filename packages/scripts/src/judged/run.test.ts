@@ -116,6 +116,19 @@ describe('a judged rule', () => {
     }).pipe(Effect.provide(model.layer), withFs);
   });
 
+  it.effect('reports at p 0.9 exactly, and not just under it', () => {
+    const at = new Map([
+      ['At the threshold.', 0.9],
+      ['Just under it.', 0.8999],
+    ]);
+    const model = countingModel((text) => at.get(text) ?? 0);
+    return Effect.gen(function* () {
+      const items = [...at.keys()].map((text, i) => ({ file: 'src/t.ts', line: i + 1, text }));
+      const outcome = yield* judge(historyComment, items, yield* judging);
+      expect(outcome.findings).toEqual([{ file: 'src/t.ts', line: 1, p: 0.9 }]);
+    }).pipe(Effect.provide(model.layer), withFs);
+  });
+
   it.effect('asks once for a text two items share', () => {
     const model = countingModel(() => 0.95);
     return Effect.gen(function* () {

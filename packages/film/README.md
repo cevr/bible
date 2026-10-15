@@ -3433,7 +3433,7 @@ that the working tree adds or changes against the merge base with
 origin/main (`--base` names another), and asks TypeSafe's model about all of
 them in one request, split only past 200 items or about 60,000 input tokens
 (the model refused a request near 65,536). They never block a push: no key
-(`TYPESAFE_API_KEY`, else the keychain item `typesafe-api-key`), a timeout, a
+(`TYPESAFE_API_KEY`, else the keychain item `typesafe-api-key` within 2 s), a timeout, a
 rate limit, an HTTP error or an answer that misses items passes, and prints
 `[judged] skipped rule=<rule> reason=<reason> items=<n>`; any other failure
 (git, the lint config, a defect) is `reason=error` with `detail=<tag>`, and

@@ -17,7 +17,13 @@ export const modelName = Config.String('JUDGED_MODEL').pipe(Config.withDefault('
 
 export const cacheModel = (model: string) => `typesafe/${model}`;
 
-/** The keychain's TypeSafe key: `security` prints it, or nothing when the item or the tool is missing. */
+/** How long the keychain may take: a locked one waits on its unlock dialog, and the push with it. */
+const KEYCHAIN_DEADLINE = '2 seconds';
+
+/**
+ * The keychain's TypeSafe key: `security` prints it, or nothing when the item
+ * or the tool is missing; none past `KEYCHAIN_DEADLINE`.
+ */
 const keychainKey = Effect.flatMap(ChildProcessSpawner, (spawner) =>
   spawner.string(
     ChildProcess.make('security', [
@@ -30,7 +36,8 @@ const keychainKey = Effect.flatMap(ChildProcessSpawner, (spawner) =>
     ]),
   ),
 ).pipe(
-  Effect.map((out) => Option.liftPredicate(out.trim(), (key) => key !== '')),
+  Effect.timeoutOption(KEYCHAIN_DEADLINE),
+  Effect.map(Option.flatMap((out) => Option.liftPredicate(out.trim(), (key) => key !== ''))),
   Effect.orElseSucceed(() => Option.none<string>()),
 );
 
