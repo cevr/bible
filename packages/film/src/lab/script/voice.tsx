@@ -29,8 +29,8 @@ import type { WordAt } from '../transcript/lit.ts';
 import { useScript } from './context.tsx';
 import { heardAt, spanOf } from './delivery.ts';
 
-/** How often the takes are asked for again while one is still voicing. */
-const ASKED_AGAIN = '4 seconds';
+/** How often the takes are asked for again: often while one is still voicing, else now and then (a new day, another film's spend, a take another process made). */
+const ASKED_AGAIN = { voicing: '4 seconds', resting: '1 minute' } as const;
 
 /** A take ready to play: its file and its words, on the take's clock. */
 type Ready = Extract<StagingTake, { readonly _tag: 'Ready' }>;
@@ -90,15 +90,25 @@ export const useVoice = (): VoiceContextValue => useContext(VoiceContext);
 /** Whether any beat of `voice` is still voicing. */
 const voicing = (voice: ScriptVoice): boolean => voice.beats.some((b) => b.take._tag === 'Voicing');
 
+/** How often to ask again after `voice`. */
+const voicingOrResting = (voice: ScriptVoice): keyof typeof ASKED_AGAIN => {
+  if (voicing(voice)) return 'voicing';
+  return 'resting';
+};
+
 export const VoiceProvider = (props: ParentProps) => {
   const { meta } = useLab();
   const beats = useScript().beats.map((b) => b.id);
-  // Read once, then again every few seconds until nothing voices.
+  // Read once, then again every few seconds while a beat voices, and every minute after.
   const reading = meta.runtime.atom(
     Stream.fromEffectSchedule(
       LabApi.use((api) => api.scriptVoice),
-      Schedule.spaced(ASKED_AGAIN),
-    ).pipe(Stream.takeUntil((v) => !voicing(v))),
+      Schedule.forever.pipe(
+        Schedule.modifyDelay(({ input }: Schedule.InputMetadata<ScriptVoice>) =>
+          Effect.succeed(ASKED_AGAIN[voicingOrResting(input)]),
+        ),
+      ),
+    ),
   );
   const result = useAtomValue(() => reading);
   const voice = createMemo(() => AsyncResult.value(result()));

@@ -42,7 +42,8 @@ and on every model the gap before "By" is then set to 1.5 s in the take.
 ## Staging takes, the cache and the day's cap
 
 - One staging voice for every film: `stagingVoice` in `packages/film/src/core/staging-voice.ts`. A later voice (a clone) is that one line.
-- A take is kept by the SHA-256 of its request (the words as sent, the model, the voices, the settings, the neighbours where sent) in `~/.cache/bible-film/staging` (`FILM_STAGING_DIR`), shared by every checkout. The same line, marks, voice and model never cost twice: the lab's reader and `film narrate` share the cache. A person's take is never in it and never replaced.
+- What ElevenLabs sent (the reading) is kept by the SHA-256 of the request (the words as sent, the model, the voices, the settings, the neighbours where sent), and the take (that reading with each hold set in it) by the SHA-256 of the reading and its holds, in `~/.cache/bible-film/staging` (`FILM_STAGING_DIR`), shared by every checkout. The same line, marks, voice and model never cost twice, and a hold's seconds changed costs nothing (v4 is sent the same `[pause]`; the gap is set again here). The lab's reader and `film narrate` share the cache; two asking for one reading at once make it once. Audio is named by the SHA-256 of its bytes, so a name never comes to hold other audio. A person's take is never in it and never replaced.
+- A take whose transcript is more than 8% from its line is kept but never Ready: the reader shows it refused, with what was heard, and does not ask again. `film narrate` reads it afresh (`--accept-mismatch` keeps it).
 - Every request is charged before it is sent against the day's cap, `FILM_STAGING_DAILY_CAP` (100,000 characters by default); past it the take is refused (`StagingCapReached`) and nothing is sent. The reader shows the day's spend in one line.
 - Tests and CI never call ElevenLabs: they run over the fakes in `packages/film/src/tools/testing.ts`.
 

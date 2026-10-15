@@ -1,6 +1,6 @@
 // The Script reader's staging takes with fakes: unvoiced until the fill
-// runs, voiced once it does (the reader's film first), and refused past the
-// day's cap. No network, no media files.
+// runs, voiced once it does (the reader's film first), refused past the
+// day's cap or when it misread its line. No network, no media files.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Path } from 'effect';
@@ -41,7 +41,7 @@ const reading: StudioReading = {
 const film = 'rbf' as FilmName;
 
 /** The service over memory, one film read as `reading`, the day capped at `cap`. */
-const voices = (cap: number) => {
+const voices = (cap: number, heard: ReadonlyMap<string, string> = new Map()) => {
   const files = new Map<string, Uint8Array>();
   const calls: ElevenLabsCalls = emptyCalls();
   const folder = Layer.succeed(
@@ -64,7 +64,7 @@ const voices = (cap: number) => {
       Layer.succeed(StudioReadings, StudioReadings.of({ reading: () => Effect.succeed(reading) })),
       memoryFileSystem(files),
       Path.layer,
-      fakeElevenLabs(files, calls),
+      fakeElevenLabs(files, calls, { heard }),
       fakeMedia(files, silence(MIX_RATE, 2 * MIX_RATE, 1)),
     ]),
   );
@@ -123,4 +123,23 @@ describe('ScriptVoices', () => {
       expect(refused?._tag === 'Refused' && refused.reason).toContain('characters today');
     }).pipe(Effect.scoped, Effect.provide(layer));
   });
+
+  it.effect(
+    'a take that misread its line is refused, saying what was heard, and not asked for again',
+    () => {
+      const { calls, layer } = voices(1000, new Map([['By faith.', 'Buy fate.']]));
+      return Effect.gen(function* () {
+        yield* Effect.forkScoped((yield* ScriptVoices).fill);
+        yield* Effect.yieldNow;
+        const voice = yield* settledVoice;
+        expect(tags(voice)).toEqual(['Ready', 'Refused']);
+        const refused = voice.beats[1]?.take;
+        expect(refused?._tag === 'Refused' && refused.reason).toContain('heard "Buy fate."');
+        // Kept, so asked again it costs nothing more.
+        yield* (yield* ScriptVoices).voice(film);
+        yield* Effect.yieldNow;
+        expect(calls.dialogue).toHaveLength(2);
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
 });

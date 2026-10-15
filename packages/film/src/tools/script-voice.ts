@@ -35,8 +35,8 @@ import type { ReadBeat } from '../core/studio.ts';
 import type { StoreError } from './content-store.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import type { FreshError } from './fresh-film.ts';
-import { Narrator } from './narrator.ts';
-import { type StagingAsk, StagingCache, stagingRequest } from './staging.ts';
+import { MAX_WORD_ERROR, Narrator } from './narrator.ts';
+import { type StagedTake, type StagingAsk, StagingCache, stagingRequest } from './staging.ts';
 import { StudioReadings } from './studio.ts';
 
 /** How many takes are voiced at once. */
@@ -44,6 +44,21 @@ const VOICING_AT_ONCE = 2;
 
 /** How often the fill looks for beats no take is kept for, in every film. */
 const SWEEP_EVERY = Duration.minutes(1);
+
+/**
+ * A kept take as the reader has it: ready to hear, or refused when what
+ * speech-to-text heard is further from its line than narrate allows
+ * (`MAX_WORD_ERROR`). A take that misread is kept, so it is not asked for
+ * again; `film narrate` reads it afresh (and `--accept-mismatch` keeps it).
+ */
+const readyOrMisread = (take: StagedTake): StagingTake => {
+  if (take.wer > MAX_WORD_ERROR)
+    return {
+      _tag: 'Refused',
+      reason: `misread ${Math.round(take.wer * 100)}% of its words, heard "${take.heard}"`,
+    };
+  return { _tag: 'Ready', file: take.file, duration: take.duration, words: take.words };
+};
 
 /** A beat to voice: its request's key, what to ask, and how speech-to-text spells the film's names. */
 interface Job {
@@ -216,16 +231,7 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
           cap: spent.cap,
           beats: beats.map((b) => ({
             id: b.job.ask.beat.id,
-            take: takeOf(
-              fill,
-              b.job.key,
-              Option.map(b.kept, (t): StagingTake => ({
-                _tag: 'Ready',
-                file: t.file,
-                duration: t.duration,
-                words: t.words,
-              })),
-            ),
+            take: takeOf(fill, b.job.key, Option.map(b.kept, readyOrMisread)),
           })),
         } satisfies ScriptVoice;
       });
