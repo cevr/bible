@@ -28,6 +28,15 @@
 // words (sources.md, quotes.jsonl), and the credits name them. No
 // denomination and no church history.
 //
+// Each line is marked for delivery, as the counsel's "In the scripts" asks,
+// in the marks `.claude/skills/film/reference/elevenlabs-delivery.md` gives:
+// `{*}` before the word that carries the sense (a contrast, a turn, an
+// answer; never a word just said), `{/}` a breath at nearly every sentence,
+// and `{//}` a hold (0.6 s, or the seconds it names) at an act's question,
+// after a key quotation and at a register switch. The landing's held beat
+// is the seam between `court` and `thesis` (`court`'s tail and the thesis's
+// lead, 3 s; CRAFT rule 7), so no line holds it.
+//
 // The argument. A judge calls a guilty man righteous (`cold`): a cover-up?
 // The Bible says God will not clear the guilty, and yet that He justifies the
 // ungodly, and we all need the answer. Righteousness is right doing, by God's
@@ -146,7 +155,7 @@ const CARDS =
 export const script = defineScript([
   {
     id: 'cold',
-    say: "Picture a young man in a courtroom. {evidence}Every piece of evidence says one thing: {did}he did it. {judge}And the judge says one word. {righteous}Righteous. {seal}Righteous? {cover}That's not justice, that's a cover-up. {bible}Now, the Bible agrees: God will not clear the guilty. And yet it says He justifies the ungodly. {which}So the question is, how can God call a guilty man righteous? And we all need the answer. {asked}Job asked long ago: {job}“How should man be just with God?”",
+    say: "Picture a young man in a courtroom. {/} {evidence}Every piece of evidence says one thing: {/} {did}he {*}did it. {/} {judge}And the judge says one word. {//} {righteous}{*}Righteous. {/} {seal}Righteous? {/} {cover}That's not justice, that's a {*}cover-up. {/} {bible}Now, the Bible agrees: God will {*}not clear the guilty. {/} And yet it says He {*}justifies the ungodly. {//} {which}So the question is, how can God call a guilty man righteous? {/} And we all need the answer. {/} {asked}Job asked long ago: {/} {job}“How should man be {*}just with God?”",
     cite: ['Exodus 23:7', 'Exodus 34:7', 'Romans 4:5', 'Job 9:2'],
     picture: `IDEA: the court as a paper diorama on the parchment page, lit by a cool, even teal day from one high window (the act's light). Screen direction holds for the film: the accused screen-left, the bench screen-right. Max, the ensemble's neighbour across the landing (sage hooded jacket, hood down), stands in the dock with a scarlet stain on the jacket's front; a thin crack runs across the floor at his feet (paid off in \`court\`). On \`evidence\` sheets stack up on the prosecutor's table, each one scribbled over in scarlet, with no letters or numbers (the record, paid off in \`rain\`). On \`did\` Max's head drops: his face at a third of the frame, caught. On \`judge\` the judge leans over the bench. On \`righteous\` the gavel falls, and the picture hard-cuts to the full-screen card "Righteous.", the word large in gold, and cuts back on its last word. On \`seal\` a gold seal floats down and pins itself over the stain on Max's jacket, on the outside, like a label, the stain's edge still showing round it (the seed motif's start). On \`cover\` the prosecutor throws up his hands, and Max's brow goes up, his head tipped back (his habit): he is as surprised as anyone. On \`bible\` the camera eases in on the seal over the stain, the scarlet edge still showing round it. On \`which\` the gavel hangs in the air above its block. On \`asked\` the page turns to Job 9:2 on its page, its phrase highlighted as it is said, and on \`job\` the highlight floods out into the full-screen card (cold-studies' model card), the words landing as they are spoken, "just" large in gold; hard cut out. ${CARDS}`,
   },
@@ -156,7 +165,7 @@ export const script = defineScript([
   },
   {
     id: 'word',
-    say: "So is God's verdict a cover-up? What does the word mean? {right}Righteousness is right doing. {measure}Right by whose measure? {all}The psalm says, “All thy commandments are righteousness.” His law is a picture of His character. So how do we measure up? {short}We all come up short. {cover}And we do what Adam and Eve did: we cover up. {fig}Fig leaves, excuses, a nicer coat over the stain. {going}And how is that going?",
+    say: "So is God's verdict a cover-up? {//} What does the word mean? {/} {right}Righteousness is right {*}doing. {/} {measure}Right by {*}whose measure? {/} {all}The psalm says, “All thy {*}commandments are righteousness.” {/} His law is a picture of His {*}character. {/} So how do we measure up? {/} {short}We {*}all come up short. {/} {cover}And we do what Adam and Eve did: {/} we cover up. {/} {fig}Fig leaves, excuses, a nicer coat over the stain. {/} {going}And how is that going?",
     lead: 0.4,
     cite: [
       "Ellen G. White, Christ's Object Lessons, 312",
@@ -170,13 +179,13 @@ export const script = defineScript([
   },
   {
     id: 'seed',
-    say: "{label}But when God says righteous, it isn't a label on the outside. {seed}Jesus said, “The seed is the word of God.” A seed looks like nothing. {alive}But it's alive. {folded}The life of the whole plant is folded up inside. {life}In the same way, every word God speaks carries His own life. Take in His word by faith, and you take in His life.",
+    say: "{label}But when God says righteous, it isn't a {*}label on the outside. {/} {seed}Jesus said, “The seed is the {*}word of God.” {//1} A seed looks like {*}nothing. {/} {alive}But it's {*}alive. {/} {folded}The life of the whole plant is folded up inside. {/} {life}In the same way, every word God speaks carries His {*}own life. {/} Take in His word by faith, {/} and you take in His life.",
     cite: ['Luke 8:11', "Ellen G. White, Christ's Object Lessons, 38"],
     picture: `IDEA: the dropped leaves blow aside and the camera pushes in on the gold seal on Max's jacket, in \`cold\`'s shape and scale (CRAFT rule 8). On \`label\` it lifts off, flat as a sticker, nothing behind it; the stain is still there under where it was. On \`seed\` the verse's full-screen card: "The seed is the word of God.", "seed" large in gold; hard cut back on its last word, and the seal turns over in the air and is a seed, small and plain, its gold unlit: it looks like nothing. On \`alive\` it opens along its seam in cross-section, and on \`folded\` the blade shows curled inside, green, its root and first two leaves folded tight. On \`life\` a warm light wakes in the seed's heart and its gold glows; Max, close, his face at a third of the frame, tips his head: interested, despite himself. ${CARDS}`,
   },
   {
     id: 'spoke',
-    say: "{first}How can a word do that? {dark}On the Bible's first page, the world is dark. {light}God says, Let there be light, and there is light. {itself}No tools, just His word. {calleth}Paul says He “calleth those things which be not as though they were.” When He calls them, they are. {verdict}So is His verdict {cover}a cover-up? {seed}No. It's a seed, and His word makes it true. And His word brings three things. {faith}It brings faith. {forgiveness}It brings forgiveness. {power}It brings power.",
+    say: "{first}How can a {*}word do that? {//} {dark}On the Bible's first page, the world is dark. {/} {light}God says, Let there be light, and there {*}is light. {/} {itself}No tools, just His {*}word. {/} {calleth}Paul says He “calleth those things which be {*}not as though they were.” {/} When He calls them, they {*}are. {//} {verdict}So is His verdict {cover}a cover-up? {/} {seed}No. {/} It's a {*}seed, and His word makes it {*}true. {/} And His word brings three things. {/} {faith}It brings faith. {/} {forgiveness}It brings forgiveness. {/} {power}It brings power.",
     lead: 0.4,
     cite: [
       'Genesis 1:2–3',
@@ -192,7 +201,7 @@ export const script = defineScript([
     // gift's name: each replays its moment in its own framing while its icon
     // lights.
     id: 'roof',
-    say: "{see}So what does that look like in a real person's life? {roof}In Capernaum the house is so packed that four friends open the roof. They lower a man who can't walk, bed and all, at the feet of Jesus. {saw}He sees their faith, and says, {son}“Son, thy sins be forgiven thee.” {easy}But who can see a sin forgiven? No one. {arise}So Jesus says, Arise, take up your bed, go home. {went}And the man walks out in front of them all. {count}So what did he receive? {one}He came believing: {hand}that's faith. {two}Jesus pardoned him: {cloth}that's forgiveness. {three}And he walked: {blade}that's power. {proof}The walk proves the pardon.",
+    say: "{see}So what does that look like in a {*}real person's life? {//} {roof}In Capernaum the house is so packed that four friends open the roof. {/} They lower a man who can't walk, bed and all, at the feet of Jesus. {/} {saw}He sees their faith, and says, {son}“Son, thy sins be {*}forgiven thee.” {//} {easy}But who can {*}see a sin forgiven? {/} No one. {/} {arise}So Jesus says, Arise, take up your bed, go home. {/} {went}And the man {*}walks out in front of them all. {//} {count}So what did he receive? {/} {one}He came believing: {hand}that's {*}faith. {/} {two}Jesus pardoned him: {cloth}that's {*}forgiveness. {/} {three}And he walked: {blade}that's {*}power. {/} {proof}The walk proves the pardon.",
     lead: 0.4,
     cite: ['Mark 2:1–12', 'Ellen G. White, The Desire of Ages, 268, 270'],
     picture: `STORY: on \`see\` (the act's question) the camera pushes through the faith icon of \`spoke\`'s row into the scene. A paper house in Capernaum packed with figures (varied heights, headcloths and silhouettes, never cloned) under a peach afternoon sky, in 3–5 planes, the crowd near and the far wall far. Screen direction holds: the one receiving screen-left, Jesus screen-right. On \`roof\` four friends on the flat roof lift the tiles away and lower the man on his bed on ropes into the room, to the feet of Jesus. On \`saw\` Jesus (white robe, gold sash) looks up at the four faces in the hole, lit by the afternoon (the tent pole), each friend's face at a third of the frame in turn. On \`son\` close on the man's face as the scarlet specks lift off him, and the verse's full-screen card: "Son, thy sins be forgiven thee.", "forgiven" large in white; hard cut back. On \`easy\` the man still lies on his bed, and a plane slide racks past him to two teachers of the law on a bench at the far wall, brows down: nothing anyone can see has changed. On \`arise\` he stands and rolls up his bed; on \`went\` he carries it out through the parting crowd, faces amazed. On \`count\` the three icons from \`spoke\` slide up along the bottom of the frame, small, with no numerals, and each gift replays its moment in the same framing, held for a breath while its icon lights: on \`one\` the man on his bed looking up at Jesus, under the four faces at the hole, and on \`hand\` the open hand lights; on \`two\` the man's face as the specks lift, and on \`cloth\` the white cloth lights; on \`three\` the man walking out with his bed, and on \`blade\` the green blade lights. On \`proof\` a thread of light runs back along the row from the blade to the cloth: the walk vouching for the pardon. No cast member stands in the crowd. ${CARDS}`,
@@ -204,7 +213,7 @@ export const script = defineScript([
     // The charge is Moses' scroll (John 8:5), never the tablets of `word`:
     // the accusers hold the law while they disregard it (DA 461.3).
     id: 'woman',
-    say: "{court}In the temple court, they drag in a woman caught in sin. {law}They throw the law of Moses at Jesus: stone her. {dust}He stoops and writes in the dust. {first}Then He stands: whoever is without sin, throw the first stone. {leave}One by one, they leave. {alone}Woman, has no one condemned you? {lord}No one, Lord. {told}And Jesus says, “Neither do I condemn thee: go, and sin no more.” {again}Do you see the three? {one}She calls Him Lord. {two}He doesn't condemn her. {three}And she walks out into a new life. {order}Same three, same order.",
+    say: "{court}In the temple court, they drag in a woman caught in sin. {/} {law}They throw the law of Moses at Jesus: {/} stone her. {/} {dust}He stoops and writes in the dust. {/} {first}Then He stands: whoever is {*}without sin, throw the first stone. {//} {leave}One by one, they leave. {/} {alone}Woman, has no one condemned you? {/} {lord}No one, Lord. {/} {told}And Jesus says, {*}“Neither do I condemn thee: {/} go, and sin no more.” {//} {again}Do you see the three? {/} {one}She calls Him {*}Lord. {/} {two}He {*}doesn't condemn her. {/} {three}And she walks out into a {*}new life. {/} {order}Same three, same {*}order.",
     lead: 0.4,
     cite: ['John 8:2–11', 'Ellen G. White, The Desire of Ages, 461–462'],
     picture: `STORY: on \`court\` cut to a temple court in the same peach light, early morning. The woman stands in the middle in a scarlet-stained garment, head bowed, her accusers round her holding stones (varied silhouettes). On \`law\` one accuser holds up a scroll, Moses' law, as the charge (the stone tablets of \`word\` never come into the accusers' hands). On \`dust\` Jesus stoops and writes in the dust with one finger; nothing in the dust is readable. On \`first\` he straightens. On \`leave\` the stones drop into the dust one by one and the accusers go out of frame, the eldest first; on \`alone\` the wide shot holds only the two of them. On \`lord\` her face at a third of the frame, still bowed: she dares not lift her eyes as she answers. On \`told\` reverse to Jesus's face as he speaks the quotation (the speaker's close-up); she lifts her head, her stain washes out, and she turns and walks out of frame screen-left, upright. On \`again\` the icon row slides up, and each gift replays its moment: on \`one\` her bowed answer, "Lord", and the open hand lights; on \`two\` Jesus speaking, and the white cloth lights; on \`three\` her walking out upright, and the green blade lights. On \`order\` pull back to IDEA: the three icons in \`spoke\`'s layout, all lit. ${CARDS}`,
@@ -213,7 +222,7 @@ export const script = defineScript([
     // A pause after the key quotation (CRAFT rule 9), for the pull back to the
     // icons with faith lit.
     id: 'look',
-    say: "{faith}So where does faith come from? {where}From hearing the word. {expects}Faith expects that word to do what it says. {hand}It earns nothing: it's just the hand that takes. {desert}In the desert the camp is full of snakes. Imagine you've been bitten. {pole}God has Moses set a bronze serpent on a pole, and whoever looks, lives. {harder}Now, we like to make it harder. {climb}But no one has to climb the pole. {look}Just look. {lifted}Jesus said of Himself, “As Moses lifted up the serpent in the wilderness, even so must the Son of man be lifted up.”",
+    say: "{faith}So where does faith come from? {/} {where}From {*}hearing the word. {/} {expects}Faith expects that word to do what it says. {/} {hand}It earns nothing: it's just the hand that {*}takes. {//1} {desert}In the desert the camp is full of snakes. {/} Imagine you've been bitten. {/} {pole}God has Moses set a bronze serpent on a pole, and whoever looks, {*}lives. {/} {harder}Now, we like to make it harder. {/} {climb}But no one has to {*}climb the pole. {/} {look}Just {*}look. {//} {lifted}Jesus said of Himself, “As Moses lifted up the serpent in the wilderness, even so must the {*}Son of man be lifted up.”",
     tail: 1.6,
     cite: [
       'Romans 10:17',
@@ -231,7 +240,7 @@ export const script = defineScript([
     // Him there, never a stain in Him. The tail is the film's one black
     // moment, a designed silence (CRAFT rules 10 and 11).
     id: 'grain',
-    say: '{forgive}But how can God forgive? {guilt}He will not clear the guilty. {pays}So who pays? Jesus answers with a seed, a grain of wheat: {except}“Except a corn of wheat fall into the ground and die, it abideth alone: but if it die, it bringeth forth much fruit.” {fruit}He was that seed. {treated}He was treated as we deserve, so we could be treated as He deserves. {laid}He had no sin of His own, but ours were laid on Him. He gave Himself for us as a sacrifice. {cross}Why? Because He loves us.',
+    say: '{forgive}But how can God forgive? {//} {guilt}He will not clear the guilty. {/} {pays}So {*}who pays? {//} Jesus answers with a seed, a grain of wheat: {/} {except}“Except a corn of wheat fall into the ground and {*}die, it abideth alone: {/} but if it die, it bringeth forth much fruit.” {//1} {fruit}He was that seed. {/} {treated}He was treated as {*}we deserve, {/} so we could be treated as {*}He deserves. {/} {laid}He had no sin of His own, {/} but {*}ours were laid on Him. {/} He gave Himself for us as a sacrifice. {//} {cross}Why? {/} Because He {*}loves us.',
     lead: 0.4,
     tail: 4.5,
     cite: [
@@ -252,7 +261,7 @@ export const script = defineScript([
     // before the veil, never into the second at the ascension (the
     // sanctuary-judgment frame).
     id: 'priest',
-    say: "But does His work end at the cross? {ground}No. A seed doesn't stay in the ground. {rose}He rose. {up}He went up as our High Priest, to stand before God for us. {now}“He ever liveth to make intercession.” His pleading for us now is as needed as His dying for us then.",
+    say: "But does His work end at the cross? {//} {ground}No. {/} A seed doesn't {*}stay in the ground. {/} {rose}He rose. {/} {up}He went up as our High Priest, to stand before God for us. {/} {now}“He {*}ever liveth to make intercession.” {/} His pleading for us {*}now is as needed as His dying for us {*}then.",
     lead: 0.4,
     cite: [
       'Hebrews 8:1–2',
@@ -264,7 +273,7 @@ export const script = defineScript([
   },
   {
     id: 'accuser',
-    say: "{zech}The prophet Zechariah saw His pleading in a vision: a courtroom. {joshua}Joshua the high priest stands for his people before the Angel of the LORD, {filthy}in filthy clothes. {satan}Satan stands at his right hand to accuse him. {points}And about the clothes, he isn't wrong. {day}The vision pictures the close of the great Day of Atonement. On that day God's people are judged and made clean from all their sins. {angel}But the Angel is Christ Himself. And He answers: {silence}“The LORD rebuke thee, O Satan.”",
+    say: "{zech}The prophet Zechariah saw His pleading in a vision: {/} a {*}courtroom. {/} {joshua}Joshua the high priest stands for his people before the Angel of the LORD, {filthy}in {*}filthy clothes. {/} {satan}Satan stands at his right hand to accuse him. {/} {points}And about the clothes, he isn't {*}wrong. {//} {day}The vision pictures the close of the great Day of Atonement. {/} On that day God's people are judged and made {*}clean from all their sins. {//} {angel}But the Angel is {*}Christ Himself. {/} And He answers: {/} {silence}“The LORD {*}rebuke thee, O Satan.”",
     lead: 0.4,
     cite: [
       'Zechariah 3:1–3',
@@ -280,7 +289,7 @@ export const script = defineScript([
     // The silenced accuser stays in the shadow at the court's edge throughout
     // (the frame: never the robe scene without the accuser).
     id: 'robe',
-    say: "{take}Then He has the filthy clothes taken off him, {pass}and says, “Behold, I have caused thine iniquity to pass from thee.” {loom}And He dresses him in a robe from heaven's loom, without one thread of his own. {nicer}Now, isn't that just a nicer coat over the stain? {cloak}No. He doesn't cover the stain. {away}He takes it away. {walk}And then He says, walk in my ways.",
+    say: "{take}Then He has the filthy clothes taken off him, {/} {pass}and says, “Behold, I have caused thine iniquity to {*}pass from thee.” {//} {loom}And He dresses him in a robe from heaven's loom, without one thread of his own. {/} {nicer}Now, isn't that just a nicer coat over the stain? {/} {cloak}No. {/} He doesn't {*}cover the stain. {/} {away}He takes it {*}away. {//} {walk}And then He says, {*}walk in my ways.",
     lead: 0.4,
     tail: 1.2,
     cite: [
@@ -300,7 +309,7 @@ export const script = defineScript([
     // it. The callbacks to `woman` and `roof` keep their layouts. The likeness
     // at `bed` is his too (section 9).
     id: 'within',
-    say: "{power}And for the walk, He gives power. {remember}Remember what He told the woman: go, and sin no more. Is He mocking her? No. {command}Every command He gives is a seed, and inside it is His own life. {write}“I will put my laws into their mind, and write them in their hearts.” {bed}The man on the bed couldn't walk, however much he wished. {we}We can't stop sinning, however much we wish. {arose}But He said arise, and the man arose.",
+    say: "{power}And for the walk, He gives {*}power. {/} {remember}Remember what He told the woman: {/} go, and sin no more. {/} Is He {*}mocking her? {/} No. {/} {command}Every command He gives is a {*}seed, {/} and inside it is His own life. {/} {write}“I will put my laws into their mind, and write them in their {*}hearts.” {//} {bed}The man on the bed couldn't walk, however much he wished. {/} {we}We can't stop sinning, however much we wish. {/} {arose}But He said arise, {/} and the man {*}arose.",
     cite: [
       'John 8:11',
       "Ellen G. White, Christ's Object Lessons, 38",
@@ -314,7 +323,7 @@ export const script = defineScript([
     // The country link (owner: country living is part of righteousness by
     // faith): faith's life, never merit; the Sabbath as rest by faith.
     id: 'garden',
-    say: "{part}So what's our part? {picture}Picture a grandmother in her garden. {sow}She digs, she sows, she waters. {grow}But can she make one seed grow? No. {power}Every seed grows by the power of God. {blade}And it grows the way Jesus said: “First the blade, then the ear, after that the full corn in the ear.” {morning}It's the same with us. Each morning, {will}we give God our will, and He does the growing. {seventh}And on the seventh day {rest}she puts down her tools and rests. Even that rest is faith.",
+    say: "{part}So what's our part? {//} {picture}Picture a grandmother in her garden. {/} {sow}She digs, she sows, she waters. {/} {grow}But can she make {*}one seed grow? {/} No. {/} {power}Every seed grows by the power of {*}God. {/} {blade}And it grows the way Jesus said: {/} “First the blade, then the ear, after that the full corn in the ear.” {//} {morning}It's the same with us. {/} Each morning, {will}we give God our {*}will, {/} and He does the {*}growing. {//} {seventh}And on the seventh day {rest}she puts down her tools and rests. {/} Even that rest is {*}faith.",
     lead: 0.4,
     cite: [
       "Ellen G. White, Christ's Object Lessons, 63, 65",
@@ -332,7 +341,7 @@ export const script = defineScript([
     // (CWCP 124.3), so the record goes white under the bench's light, never
     // under the rain.
     id: 'rain',
-    say: "{heading}So where is all this heading? {harvest}To a harvest. In Israel the latter rain, the last rain of spring, ripened the grain. {like}And God's word comes down like the rain. {rain}Seek the LORD, the prophet says, “till he come and rain righteousness upon you.” {blot}Even the record of our sins will be blotted out. {ripe}And sin in our lives will end.",
+    say: "{heading}So where is all this heading? {//} {harvest}To a {*}harvest. {/} In Israel the latter rain, the last rain of spring, ripened the grain. {/} {like}And God's {*}word comes down like the rain. {/} {rain}Seek the LORD, the prophet says, {/} “till he come and rain {*}righteousness upon you.” {//} {blot}Even the {*}record of our sins will be blotted out. {/} {ripe}And sin in our lives will {*}end.",
     lead: 0.4,
     cite: [
       'James 5:7',
@@ -353,7 +362,7 @@ export const script = defineScript([
     // ahead. The tail with `thesis`'s lead is the held pause of about 3 s
     // before the thesis line, a designed silence.
     id: 'court',
-    say: '{back}Back to the courtroom. {charge}Who can accuse him now? No one. {justifieth}“It is God that justifieth.” {beside}Christ, who died for him, stands beside him. {seed}It was never a cover-up. It was a seed. {takes}And it makes a man righteous the moment he takes it. {you}Today He holds the same seed out to you: {faith}faith, {forgiveness}forgiveness, {power}power. {leaves}You can keep the fig leaves, or take the seed and live. {how}How should man be just with God?',
+    say: '{back}Back to the courtroom. {/} {charge}Who can accuse him {*}now? {/} No one. {/} {justifieth}“It is {*}God that justifieth.” {//} {beside}Christ, who died for him, stands beside him. {/} {seed}It was never a cover-up. {/} It was a {*}seed. {/} {takes}And it makes a man righteous the moment he {*}takes it. {/} {you}Today He holds the {*}same seed out to you: {/} {faith}faith, {/} {forgiveness}forgiveness, {/} {power}power. {/} {leaves}You can keep the fig leaves, or take the seed and {*}live. {//} {how}How should man be {*}just with God?',
     lead: 0.4,
     tail: 2,
     cite: [
@@ -369,7 +378,7 @@ export const script = defineScript([
     // The landing's last words; the music rises alone for about 28 s after
     // them (CRAFT rules 7 and 10).
     id: 'thesis',
-    say: '“The just shall live by faith.”',
+    say: '“The just shall live by {*}faith.”',
     lead: 1,
     min: 30,
     cite: ['Habakkuk 2:4', 'Romans 1:17'],
