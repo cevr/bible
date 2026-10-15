@@ -8,6 +8,8 @@ import {
   assetSourceId,
   corpusRevision,
   type WritingsTarget,
+  installEgwBook,
+  planEgwSync,
   syncEgwCorpus,
 } from '@bible/core/corpus-supply';
 import { publicationId } from '@bible/core/writings';
@@ -183,6 +185,26 @@ describe('EGW corpus sync', () => {
       expect(Option.fromNullishOr(report.failures[0]).pipe(Option.map((item) => item.id))).toEqual(
         Option.some(3),
       );
+    }).pipe(Effect.provide(layer)),
+  );
+
+  /** The parts a durable host runs as separate steps: the plan is plain data,
+   *  and a book's failure is an outcome to persist rather than an error. */
+  it.effect('plans every remote book on refresh and returns a failed install as an outcome', () =>
+    Effect.gen(function* () {
+      const plan = yield* planEgwSync({ lang: 'en', refresh: true });
+      expect(plan.pending.map((item) => item.id)).toEqual([1, 2, 3, 4, 5]);
+
+      const outcome = yield* installEgwBook(
+        { id: 4, code: 'FOUR', title: 'Book FOUR' },
+        {
+          refresh: true,
+        },
+      );
+      expect(outcome).toMatchObject({
+        _tag: 'Failed',
+        failure: { id: 4, expected: false },
+      });
     }).pipe(Effect.provide(layer)),
   );
 });
