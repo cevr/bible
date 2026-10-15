@@ -38,6 +38,7 @@ import {
   Delivery,
   GapGlyph,
   HearWords,
+  HearIt,
   Spend,
   TakeState,
   type Words,
@@ -60,6 +61,10 @@ export const READER_CSS = `
 /* A cue's name in a brief, set apart from its prose; sources in the brief's ink, not the head's quieter one. */
 .rd .lab-script-code { font: inherit; color: var(--text-1); }
 .rd .lab-script-cite { color: var(--text-2); }
+/* The script's one labelled press for its sound, at its head, the pointer's size. */
+.rd-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--gutter) 0; }
+.rd-head .lab-script-spend { padding: 0; }
+.lab-script-hear-all { min-height: var(--hit); }
 ::highlight(lab-live) { background-color: color-mix(in srgb, var(--state-live) 26%, transparent); color: var(--text-1); }
 ::highlight(lab-picked) { background-color: var(--accent-wash); color: var(--text-1); text-decoration: underline var(--accent); }
 `;
@@ -423,7 +428,10 @@ export const ScriptReader = (props: {
   };
   return (
     <VoiceOver source={voice}>
-      <Spend />
+      <div class="rd-head">
+        <HearIt beats={beats().map((b) => b.read.id)} />
+        <Spend />
+      </div>
       <Beats beats={beats} selecting={props.selecting} />
     </VoiceOver>
   );
