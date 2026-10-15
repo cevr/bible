@@ -15,11 +15,12 @@ description: >
 
 # Film
 
-A film lives in `apps/animations/src/films/<film>/`. The engine is the `@bible/film` package (`packages/film`). Its API, the film folder layout and every command are in `apps/animations/README.md`: read it before the first edit. This skill is the workflow and the gotchas the README cannot show. Three references sit beside it:
+A film lives in `apps/animations/src/films/<film>/`. The engine is the `@bible/film` package (`packages/film`). Its API, the film folder layout and every command are in `apps/animations/README.md`: read it before the first edit. This skill is the workflow and the gotchas the README cannot show. Four references sit beside it:
 
 - **[frame/README.md](frame/README.md)** is the doctrine: the 1889 Fundamental Principles verbatim, and a source-checked topic file for each doctrine, with what a film must show and must not say or show. A film's doctrine comes from these texts, never from memory.
 - **[CRAFT.md](CRAFT.md)** is how a film carries its argument: text on screen, quoting, the STORY and IDEA registers, human scale, the shape in time, pauses, sound and the look. It was measured from BibleProject films, and it sets the tone too: informative, curious, hopeful.
 - **DIRECTION: [reference/director-vision.md](reference/director-vision.md)** is how a film looks, moves and sounds (a paper theatre lit from behind), with the reasons and numbers behind CRAFT's look, camera and sound rules. Read it before a film's colour script, its first scene, or any change to the paper look.
+- **VOICE: [reference/owner-voice.md](reference/owner-voice.md)** is how the owner preaches, measured on nine of his sermons: his openings, how he builds a case and lands it, his tone, cadence and words, and the film form of each church habit. He records every film's voice: read it before writing or revising a script's spoken lines.
 
 Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (the CLI's login sits in the Keychain on macOS; the renderer opens Chrome through Bun.WebView, using `BUN_CHROME_PATH` or the Chrome Bun finds, with a cached Chromium fallback).
 
