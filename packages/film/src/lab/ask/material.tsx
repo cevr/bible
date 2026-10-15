@@ -1,44 +1,59 @@
 // The material an ask's section shows, in place, each through the part its
 // own view draws it with, over the same reads: a set's document as the set's
-// page reads it (`Markdown`), a script in the Script reader (a film's or a
-// series draft's, its staging takes played and its delivery marks written
-// as on the Script and draft pages), the Board's panels as the Board shows
-// them (`PanelThumb`, `PanelSaid`), a video in the review's player
-// (`PlayedAlone`), a take as the studio plays it. Each part carries its own
-// look (`PlaceStyle`), so it rides only on a page that shows it. Nothing
-// here is a copy of a view: a fix to the view is a fix here.
+// page reads it (`Markdown`, a long one clamped with Read all, so the
+// question stays near it), a script in the Script reader (a film's or a
+// series draft's, named as its page names it, its staging takes played and
+// its delivery marks written as on the Script and draft pages), the Board's
+// panels as the Board shows them (`PanelFigure`: each thumb, the words it
+// holds over and its mark; a still opens large), a video in the review's
+// player (`PlayedAlone`), a take as the studio plays it. Each part says
+// where its material stands while it is not shown: read under way, could
+// not be read (and why), or no longer there. Each part carries its own look
+// (`PlaceStyle`), so it rides only on a page that shows it. Nothing here is
+// a copy of a view: a fix to the view is a fix here.
 
 import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
 import { Array as Arr, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { type Accessor, createMemo, createSignal } from 'solid-js';
+import { type Accessor, type ParentProps, createMemo, createSignal, onCleanup } from 'solid-js';
 import type { AskBlock } from '../../core/ask.ts';
-import { attemptUrl, boardFileUrl, reviewFrameUrl } from '../../core/api.ts';
-import { type BoardFile, type Panel, shownTry } from '../../core/board.ts';
+import { type ScriptBeats, attemptUrl, boardFileUrl, reviewFrameUrl } from '../../core/api.ts';
+import { type BoardFile, type Panel, panelsOf, shownTry } from '../../core/board.ts';
 import { docAt, videoAt } from '../../core/review.ts';
-import { PanelSaid, PanelThumb } from '../board/view.tsx';
+import { PanelFigure, PanelThumb } from '../board/view.tsx';
 import { PANEL_THUMB_CSS } from '../board/style.ts';
+import { lineWords, panelWords } from '../board/words.ts';
 import { PlaceStyle } from '../place-style.tsx';
+import { pressed } from '../pressed.ts';
 import { SCRIPT_READ_CSS } from '../script/style.ts';
-import { reasonOf } from '../api.ts';
+import { type LabFailure, reasonOf } from '../api.ts';
 import { ReviewApi } from '../review/api.ts';
 import { useReview } from '../review/context.tsx';
-import { DraftReader } from '../review/draft.tsx';
+import { DraftReader, useDraftTitles } from '../review/draft.tsx';
 import { FilmScriptReader } from '../review/film-script.tsx';
 import { POSTER_W, videoSource } from '../review/format.ts';
 import { PlayedAlone } from '../review/player.tsx';
 import { READER_CSS, type Selecting, type WordsAt } from '../review/reader.tsx';
-import { Markdown, ProxyPending } from '../review/section.tsx';
+import { Markdown, ProxyPending, Zoom } from '../review/section.tsx';
 
 type BlockOf<K extends AskBlock['kind']> = Extract<AskBlock, { readonly kind: K }>;
 
-/** The material's own look: a box on the section's surface, its caption under it. */
+/**
+ * The material's own look: a box the width of its section (its one column
+ * never wider, so a video's own size cannot widen the page), its caption
+ * under it; a long document clamped.
+ */
 const MATERIAL_CSS = `
-.ak-mat{display:grid;gap:var(--s-2);min-width:0;margin:0}
+.ak-mat{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-2);min-width:0;margin:0}
 .ak-mat-cap{margin:0;color:var(--text-2);font-size:var(--fs-2);line-height:var(--lh-2)}
 .ak-mat-status{margin:0;color:var(--text-2)}
+.ak-mat-status[data-failed=true]{color:var(--state-warning)}
+.ak-mat-name{margin:0;color:var(--text-2);font-size:var(--fs-2);line-height:var(--lh-2)}
+.ak-clamp{min-width:0}
+.ak-clamp[data-open=false]{max-height:calc(12 * var(--lh-3));overflow:hidden;mask-image:linear-gradient(to bottom,var(--surface-0) 70%,transparent)}
+.ak-read-all{justify-self:start;min-height:var(--hit)}
 `;
 
 /** The Board's panels in an ask: a beat's panels in a row under its id, at the film's aspect. */
@@ -47,7 +62,9 @@ const BOARD_MAT_CSS = `
 .ak-board-beat{display:grid;gap:var(--s-1)}
 .ak-board-id{margin:0;color:var(--text-2);font-size:var(--fs-2);line-height:var(--lh-2);font-weight:var(--w-2)}
 .ak-board-panels{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(160px,100%),1fr));gap:var(--s-2)}
-.ak-board-panel{display:grid;gap:var(--s-1);margin:0;min-width:0}
+.ak-board-panel{display:flex;flex-direction:column;gap:var(--s-1);margin:0;min-width:0;padding:var(--s-1);
+  border:var(--border);border-radius:var(--r-2);background:var(--surface-2)}
+.ak-board-panel .rv-zoom img{border-radius:var(--r-1)}
 `;
 
 /** The take's player: the width of the section, its words under it. */
@@ -76,14 +93,64 @@ const Framed = (props: {
   </figure>
 );
 
-/** Why the material is not shown yet: read under way, or not found. */
-const Missing = (props: { readonly text: string }) => (
-  <p class="ak-mat-status" role="status">
-    {props.text}
+/** Why the material is not shown: its read under way, failed (and why), or the material gone from it. */
+const Missing = (props: {
+  readonly read: AsyncResult.AsyncResult<unknown, LabFailure>;
+  readonly what: string;
+  readonly gone: string;
+}) => (
+  <p class="ak-mat-status" role="status" data-failed={pressed(!AsyncResult.isInitial(props.read))}>
+    {AsyncResult.match(props.read, {
+      onInitial: () => `Reading ${props.what}…`,
+      onFailure: (f) => `Could not read ${props.what}: ${reasonOf(f.cause)}`,
+      onSuccess: () => props.gone,
+    })}
   </p>
 );
 
-/** A set's Markdown, as the set's page reads it. */
+/**
+ * `children` clamped to about twelve lines, with Read all, once they run
+ * longer: the question under a long document stays a short scroll away. The
+ * box watches its words' height (a document's text arrives after it is
+ * drawn), so Read all shows only once there is more to read.
+ */
+const Clamped = (props: ParentProps) => {
+  const [open, setOpen] = createSignal(false, { ownedWrite: true });
+  const [long, setLong] = createSignal(false, { ownedWrite: true });
+  let outer = Option.none<HTMLElement>();
+  const measure = (inner: HTMLElement) => {
+    const observer = new ResizeObserver(() =>
+      setLong(Option.exists(outer, (o) => inner.offsetHeight > o.clientHeight + 1)),
+    );
+    observer.observe(inner);
+    onCleanup(() => observer.disconnect());
+  };
+  return (
+    <>
+      <div
+        class="ak-clamp"
+        data-open={pressed(open() || !long())}
+        ref={(el: HTMLElement) => {
+          outer = Option.some(el);
+        }}
+      >
+        <div ref={measure}>{props.children}</div>
+      </div>
+      <Show when={long() && !open()}>
+        <button
+          type="button"
+          class="sh-btn ak-read-all"
+          data-act="read-all"
+          onClick={() => setOpen(true)}
+        >
+          Read all
+        </button>
+      </Show>
+    </>
+  );
+};
+
+/** A set's Markdown, as the set's page reads it, clamped while it is long. */
 export const DocumentPart = (props: { readonly block: BlockOf<'document'> }) => {
   const { state } = useReview();
   const file = createMemo(() =>
@@ -94,9 +161,19 @@ export const DocumentPart = (props: { readonly block: BlockOf<'document'> }) => 
       <Show
         when={Option.getOrUndefined(file())}
         keyed
-        fallback={<Missing text={`Reading ${props.block.ref}…`} />}
+        fallback={
+          <Missing
+            read={state.index()}
+            what={props.block.ref}
+            gone={`${props.block.ref} is no longer in the review`}
+          />
+        }
       >
-        {(f) => <Markdown file={f} />}
+        {(f) => (
+          <Clamped>
+            <Markdown file={f} />
+          </Clamped>
+        )}
       </Show>
     </Framed>
   );
@@ -110,6 +187,29 @@ const useOwnSelecting = (): Selecting => {
     select: (beat, w) => setSelected(Option.some({ beat, from: w.from, to: w.to })),
     clear: () => setSelected(Option.none()),
   };
+};
+
+/** A series draft in the reader, named as its page names it: its series, then its title. */
+const DraftScript = (props: {
+  readonly series: string;
+  readonly draft: string;
+  readonly only: Option.Option<ReadonlyArray<string>>;
+  readonly selecting: Selecting;
+}) => {
+  const titles = useDraftTitles(props.series, props.draft);
+  return (
+    <>
+      <p class="ak-mat-name" data-role="script-name">
+        {titles.series()} · {titles.draft()}
+      </p>
+      <DraftReader
+        series={props.series}
+        draft={props.draft}
+        only={props.only}
+        selecting={props.selecting}
+      />
+    </>
+  );
 };
 
 /** A script in the Script reader: a film's, or a series draft's, every beat or those named. */
@@ -127,7 +227,7 @@ export const ScriptPart = (props: { readonly block: BlockOf<'script'> }) => {
       <Show
         when={props.block.film}
         fallback={
-          <DraftReader
+          <DraftScript
             series={Option.getOrElse(Option.fromUndefinedOr(props.block.series), () => '')}
             draft={Option.getOrElse(Option.fromUndefinedOr(props.block.draft), () => '')}
             only={only}
@@ -136,31 +236,106 @@ export const ScriptPart = (props: { readonly block: BlockOf<'script'> }) => {
         }
       >
         {(film: Accessor<string>) => (
-          <FilmScriptReader film={film()} only={only} selecting={selecting} />
+          <>
+            <p class="ak-mat-name" data-role="script-name">
+              The script of {film()}
+            </p>
+            <FilmScriptReader film={film()} only={only} selecting={selecting} />
+          </>
         )}
       </Show>
     </Framed>
   );
 };
 
-/** The panels `block` names of `board`, by beat in the board's order (every panel, when it names none). */
-const panelsShown = (board: BoardFile, block: BlockOf<'board'>) => {
+/** A panel of an ask's Board, and the words its beat's line says while it holds. */
+interface PanelShown {
+  readonly panel: Panel;
+  readonly words: string;
+}
+
+/** A beat of an ask's Board: its id, and its panels the ask names. */
+interface BeatShown {
+  readonly beat: string;
+  readonly panels: ReadonlyArray<PanelShown>;
+}
+
+/**
+ * The panels `block` names of `board`, by beat in the board's order (every
+ * panel, when it names none), each with the words its beat's line says
+ * while it holds (from its mark to the next panel's of its beat, named or
+ * not), its line as `script` reads it (none until it is read).
+ */
+const panelsShown = (
+  board: BoardFile,
+  block: BlockOf<'board'>,
+  script: Option.Option<ScriptBeats>,
+): ReadonlyArray<BeatShown> => {
   const named = Option.fromUndefinedOr(block.panels);
-  const panels = board.panels.filter((p) =>
+  const shown = board.panels.filter((p) =>
     Option.match(named, { onNone: () => true, onSome: (ids) => ids.includes(p.id) }),
   );
-  return Arr.dedupe(panels.map((p) => p.beat)).map((beat) => ({
-    beat,
-    panels: panels.filter((p) => p.beat === beat),
-  }));
+  const lineOf = (beat: string) =>
+    Option.getOrElse(
+      Option.flatMap(script, (s) =>
+        Option.map(
+          Option.flatMap(
+            Arr.findFirst(s.beats, (b) => b.id === beat),
+            (b) => Option.fromUndefinedOr(b.say),
+          ),
+          (say) => lineWords(beat, say),
+        ),
+      ),
+      () => [],
+    );
+  return Arr.dedupe(shown.map((p) => p.beat)).map((beat): BeatShown => {
+    const all = panelsOf(board, beat);
+    const line = lineOf(beat);
+    return {
+      beat,
+      panels: shown
+        .filter((p) => p.beat === beat)
+        .map((panel): PanelShown => {
+          const at = all.findIndex((p) => p.id === panel.id);
+          const until = Option.map(Arr.get(all, at + 1), (next) => next.at);
+          return { panel, words: panelWords(line, panel.at, until) };
+        }),
+    };
+  });
+};
+
+/** A panel's thumb in an ask: its still opens large (`?still=`); a card's words, and a panel with no try, stand as they are. */
+const AskPanelThumb = (props: { readonly film: string; readonly panel: Panel }) => {
+  const src = () => Option.map(shownTry(props.panel), (t) => boardFileUrl(props.film, t.file));
+  const still = () => Option.filter(src(), () => !props.panel.text);
+  return (
+    <Show
+      when={Option.getOrUndefined(still())}
+      fallback={<PanelThumb panel={props.panel} src={src()} />}
+    >
+      {(at: Accessor<string>) => (
+        <Zoom
+          still={at()}
+          alt=""
+          name={`board-${props.panel.id}`}
+          shown={{ src: at(), caption: `${props.panel.beat} · ${props.panel.at}` }}
+        />
+      )}
+    </Show>
+  );
 };
 
 /** A film's Board: the panels named, each as the Board shows it, by beat. */
 export const BoardPart = (props: { readonly block: BlockOf<'board'> }) => {
   const { meta } = useReview();
   const read = useAtomValue(() => meta.board(props.block.film));
-  const src = (panel: Panel) =>
-    Option.map(shownTry(panel), (t) => boardFileUrl(props.block.film, t.file));
+  // The words each panel holds over are the script's: read as every reader of the film reads it.
+  const script = useAtomValue(() => meta.script(props.block.film));
+  const beats = createMemo(() =>
+    Option.map(AsyncResult.value(read()), (board) =>
+      panelsShown(board, props.block, AsyncResult.value(script())),
+    ),
+  );
   return (
     <Framed
       kind="board"
@@ -170,30 +345,48 @@ export const BoardPart = (props: { readonly block: BlockOf<'board'> }) => {
       caption={Option.none()}
     >
       <Show
-        when={Option.getOrUndefined(AsyncResult.value(read()))}
-        keyed
-        fallback={<Missing text={`Reading the Board of ${props.block.film}…`} />}
+        when={Option.getOrUndefined(beats())}
+        fallback={
+          <Missing
+            read={read()}
+            what={`the Board of ${props.block.film}`}
+            gone={`${props.block.film} has no Board`}
+          />
+        }
       >
-        {(board: BoardFile) => (
-          <div class="ak-board">
-            <For each={panelsShown(board, props.block)}>
-              {(beat) => (
-                <section class="ak-board-beat" data-beat={beat.beat}>
-                  <p class="ak-board-id">{beat.beat}</p>
-                  <div class="ak-board-panels">
-                    <For each={beat.panels}>
-                      {(panel) => (
-                        <figure class="ak-board-panel" data-panel={panel.id}>
-                          <PanelThumb panel={panel} src={src(panel)} />
-                          <PanelSaid panel={panel} notes={0} />
-                        </figure>
-                      )}
-                    </For>
-                  </div>
-                </section>
-              )}
-            </For>
-          </div>
+        {(shown: Accessor<ReadonlyArray<BeatShown>>) => (
+          <Show
+            when={shown().length > 0}
+            fallback={
+              <p class="ak-mat-status" role="status" data-failed="true">
+                The Board of {props.block.film} no longer has these panels
+              </p>
+            }
+          >
+            <div class="ak-board">
+              <For each={shown()}>
+                {(beat) => (
+                  <section class="ak-board-beat" data-beat={beat.beat}>
+                    <p class="ak-board-id">{beat.beat}</p>
+                    <div class="ak-board-panels">
+                      <For each={beat.panels}>
+                        {(p) => (
+                          <figure class="ak-board-panel" data-panel={p.panel.id}>
+                            <PanelFigure
+                              panel={p.panel}
+                              thumb={<AskPanelThumb film={props.block.film} panel={p.panel} />}
+                              words={p.words}
+                              notes={0}
+                            />
+                          </figure>
+                        )}
+                      </For>
+                    </div>
+                  </section>
+                )}
+              </For>
+            </div>
+          </Show>
         )}
       </Show>
     </Framed>
@@ -211,7 +404,13 @@ export const VideoPart = (props: { readonly block: BlockOf<'video'> }) => {
       <Show
         when={Option.getOrUndefined(video())}
         keyed
-        fallback={<Missing text={`Reading ${props.block.ref}…`} />}
+        fallback={
+          <Missing
+            read={state.index()}
+            what={props.block.ref}
+            gone={`${props.block.ref} is no longer in the review`}
+          />
+        }
       >
         {(v) => (
           <Show
@@ -256,13 +455,7 @@ export const AudioPart = (props: { readonly block: BlockOf<'audio'> }) => {
         when={Option.getOrUndefined(take())}
         keyed
         fallback={
-          <Missing
-            text={AsyncResult.match(read(), {
-              onInitial: () => 'Reading the take…',
-              onFailure: (f) => `Could not read the take: ${reasonOf(f.cause)}`,
-              onSuccess: () => `No take of ${props.block.beat} to play`,
-            })}
-          />
+          <Missing read={read()} what="the take" gone={`No take of ${props.block.beat} to play`} />
         }
       >
         {(t) => (

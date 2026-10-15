@@ -135,22 +135,45 @@ const useUrlSelecting = (series: string, draft: string): Selecting => {
   };
 };
 
+/** A draft's names, as `useDraftTitles` reads them. */
+interface DraftTitles {
+  readonly series: () => string;
+  readonly draft: () => string;
+}
+
+/**
+ * Series draft `draft` of `series` by its names as the owner knows them:
+ * its series' title, once the series are read, and its own, once it is
+ * (each its file's name until then). The draft page's head and an ask's
+ * script, alike.
+ */
+export const useDraftTitles = (series: string, draft: string): DraftTitles => {
+  const { meta, state } = useReview();
+  const read = useAtomValue(() => meta.draft(series, draft));
+  return {
+    series: () =>
+      Option.getOrElse(
+        Option.flatMap(AsyncResult.value(state.series()), (l) =>
+          Option.map(
+            Option.fromUndefinedOr(l.series.find((s) => s.name === series)),
+            (s) => s.title,
+          ),
+        ),
+        () => series,
+      ),
+    draft: () =>
+      Option.getOrElse(
+        Option.map(AsyncResult.value(read()), (d) => d.title),
+        () => draft,
+      ),
+  };
+};
+
 /** Series draft `draft` of `series`: its head, then its beats, or why it cannot be read. */
 export const DraftPage = (props: { readonly series: string; readonly draft: string }) => {
-  const { meta, state } = useReview();
-  const read = useAtomValue(() => meta.draft(props.series, props.draft));
   // Made once, in the page's body: a prop's getter would make it at each read, outside its owner.
   const selecting = useUrlSelecting(props.series, props.draft);
-  const seriesTitle = () =>
-    Option.getOrElse(
-      Option.flatMap(AsyncResult.value(state.series()), (l) =>
-        Option.map(
-          Option.fromUndefinedOr(l.series.find((s) => s.name === props.series)),
-          (s) => s.title,
-        ),
-      ),
-      () => props.series,
-    );
+  const titles = useDraftTitles(props.series, props.draft);
   return (
     <>
       <PlaceStyle
@@ -160,13 +183,8 @@ export const DraftPage = (props: { readonly series: string; readonly draft: stri
       />
       <article class="dr" data-draft={`${props.series}/${props.draft}`}>
         <header class="dr-head">
-          <p class="dr-series">{seriesTitle()}</p>
-          <h1>
-            {Option.getOrElse(
-              Option.map(AsyncResult.value(read()), (d) => d.title),
-              () => props.draft,
-            )}
-          </h1>
+          <p class="dr-series">{titles.series()}</p>
+          <h1>{titles.draft()}</h1>
         </header>
         <DraftReader
           series={props.series}

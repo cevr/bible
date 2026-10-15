@@ -1,23 +1,27 @@
 // An ask's page, in parts the page composes: its head (what is asked, why,
-// by whom, by when), its sections on one page (each a step the owner's
-// answers reach, headed `2 · The Board` when titled: its blocks, each
-// primitive its own part: a heading, prose, a picture, a choice, a free
-// text, and the material it is about, `material.tsx`), the one send under
-// them, and the ask once answered (every answer, typed) or closed. Each part
-// reads the ask's provider (`context.tsx`) and nothing else, so a page is
-// only which parts it shows and where; no part takes a flag that changes
-// what it is.
+// by when), the index of its sections (each a jump to it, ✓ once its
+// questions are answered), its sections on one page (each a step the
+// owner's answers reach, headed `2 of 3 · The Board` and held at the top
+// while it is read: its blocks, each primitive its own part: a heading,
+// prose, a picture, a choice, a free text, and the material it is about,
+// `material.tsx`), the one send held in reach (how many questions are
+// answered; a Send with one open goes to it, marks it and names it), and
+// the ask once answered (every answer, typed) or closed. Each part reads
+// the ask's provider (`context.tsx`) and nothing else, so a page is only
+// which parts it shows and where; no part takes a flag that changes what it
+// is.
 
 import { For, type JSX, Show } from '@solidjs/web';
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import { Array as Arr, Match, Option, Predicate, Record } from 'effect';
-import { type Accessor, createMemo } from 'solid-js';
+import { type Accessor, createEffect, createMemo } from 'solid-js';
 import {
   type AskAnswer,
   type AskBlock,
   type AskImage,
   type AskRecord,
+  type Section,
   askStatus,
   askedIn,
   blocksOf,
@@ -26,7 +30,10 @@ import {
   requiredOf,
   titleOf,
 } from '../../core/ask.ts';
+import type { Input } from '../../browser/keys.ts';
+import { focusFor } from '../focus.ts';
 import { pressed } from '../pressed.ts';
+import { useReview } from '../review/context.tsx';
 import { useAsk } from './context.tsx';
 import { AudioPart, BoardPart, DocumentPart, ScriptPart, VideoPart } from './material.tsx';
 
@@ -38,7 +45,7 @@ type BlockOf<K extends AskBlock['kind']> = Extract<AskBlock, { readonly kind: K 
 const STATUS_TEXT = { asking: 'waits on you', answered: 'answered', closed: 'closed' } as const;
 const STATUS_STATE = { asking: 'warning', answered: 'approved', closed: 'stale' } as const;
 
-/** The ask's head: its title, its state, why it is asked, who asked and by when. */
+/** The ask's head: its title, its state, why it is asked, and by when when it must be. */
 export const Head = () => {
   const { state } = useAsk();
   return (
@@ -47,23 +54,111 @@ export const Head = () => {
         const status = () => askStatus(record().state);
         return (
           <header class="ak-head">
-            <div class="rv-row">
+            <div class="ak-head-row">
               <h1>{record().title}</h1>
               <span class="sh-badge" data-state={STATUS_STATE[status()]} data-role="status">
                 {STATUS_TEXT[status()]}
               </span>
             </div>
             <p class="ak-why">{record().why}</p>
-            <p class="rv-meta">
-              asked by {record().by}
-              {Option.match(Option.fromUndefinedOr(record().deadline), {
-                onNone: () => '',
-                onSome: (d) => ` · by ${d.slice(0, 16).replace('T', ' ')}`,
-              })}
-            </p>
+            <Show when={record().deadline}>
+              {(d: Accessor<string>) => (
+                <p class="ak-by">by {d().slice(0, 16).replace('T', ' ')}</p>
+              )}
+            </Show>
           </header>
         );
       }}
+    </Show>
+  );
+};
+
+/** The block a question of the page is answered in, by its answer's id. */
+const fieldOf = (id: string): Option.Option<HTMLElement> =>
+  Option.fromNullishOr(document.querySelector<HTMLElement>(`[data-answer="${CSS.escape(id)}"]`));
+
+/**
+ * Take the owner to `el` under the header and its section's head, and give
+ * the focus to what answers there, as `input` asked (its ring iff a key did).
+ */
+const goTo = (el: HTMLElement, input: Input) => {
+  el.scrollIntoView({ block: 'start' });
+  Option.map(
+    Option.fromNullishOr(el.querySelector<HTMLElement>('button, textarea, input')),
+    (control) => focusFor(control, input, { preventScroll: true }),
+  );
+};
+
+/** Section `name` of the page, by its step. */
+const stepOf = (name: string): Option.Option<HTMLElement> =>
+  Option.fromNullishOr(
+    document.querySelector<HTMLElement>(`.ak-step[data-step="${CSS.escape(name)}"]`),
+  );
+
+/** A section's title on the page: its step's, or its place when it has none. */
+const sectionTitle = (step: Section['step'], n: number, of: number): string =>
+  Option.match(titleOf(step), {
+    onNone: () => `${n} of ${of}`,
+    onSome: (title) => `${n} of ${of} · ${title}`,
+  });
+
+/** A section in the index: its place, and its title when it has one. */
+const indexTitle = (step: Section['step'], n: number): string =>
+  Option.match(titleOf(step), {
+    onNone: () => `${n}`,
+    onSome: (title) => `${n} · ${title}`,
+  });
+
+/**
+ * Where the page is going: each section the owner's answers reach, by its
+ * place and title, a jump to its first question still open (to the section
+ * when it asks nothing, or all is answered), ✓ once every question it asks
+ * is answered. Nothing while the page has one section.
+ */
+export const Index = () => {
+  const { state } = useAsk();
+  const { meta } = useReview();
+  const sections = () => state.sections();
+  const openIn = (name: string) => state.questions().filter((q) => q.step === name && !q.answered);
+  const asks = (name: string) => state.questions().some((q) => q.step === name);
+  return (
+    <Show when={sections().length > 1}>
+      <nav class="ak-index" aria-label="This ask's sections">
+        <ol>
+          <For each={sections()}>
+            {(s, i) => {
+              const done = () => asks(s.name) && openIn(s.name).length === 0;
+              return (
+                <li>
+                  <button
+                    type="button"
+                    class="ak-index-go"
+                    data-act="go-section"
+                    data-step={s.name}
+                    data-done={pressed(done())}
+                    onClick={() =>
+                      Option.map(
+                        Option.orElse(
+                          Option.flatMap(Arr.head(openIn(s.name)), (q) => fieldOf(q.block.id)),
+                          () => stepOf(s.name),
+                        ),
+                        (el) => goTo(el, meta.hub.input()),
+                      )
+                    }
+                  >
+                    <span class="ak-index-title">{indexTitle(s.step, i() + 1)}</span>
+                    <Show when={done()}>
+                      <span class="ak-index-done" aria-label="answered">
+                        ✓
+                      </span>
+                    </Show>
+                  </button>
+                </li>
+              );
+            }}
+          </For>
+        </ol>
+      </nav>
     </Show>
   );
 };
@@ -106,8 +201,16 @@ export const Picture = (props: { readonly block: BlockOf<'image'> }) => (
 export const ChooseOne = (props: { readonly block: BlockOf<'choose'> }) => {
   const { state, actions } = useAsk();
   const pictured = () => props.block.options.some((o) => Predicate.isNotUndefined(o.image));
+  const missing = () => state.missing() === props.block.id;
   return (
-    <fieldset class="ak-field" data-answer={props.block.id}>
+    <fieldset
+      class="ak-field"
+      data-answer={props.block.id}
+      data-invalid={pressed(missing())}
+      aria-describedby={Option.getOrUndefined(
+        Option.liftPredicate(saidId(props.block.id), () => missing()),
+      )}
+    >
       <legend>{props.block.label}</legend>
       <ToggleGroup<string>
         class="ak-options"
@@ -146,15 +249,39 @@ export const ChooseOne = (props: { readonly block: BlockOf<'choose'> }) => {
           )}
         </For>
       </ToggleGroup>
+      <For each={props.block.options.filter((o) => o.recommended === true)}>
+        {(option) => (
+          <Show when={option.why}>
+            {(why: Accessor<string>) => <p class="ak-rec-why">Recommended: {why()}</p>}
+          </Show>
+        )}
+      </For>
+      <Unanswered id={props.block.id} />
     </fieldset>
+  );
+};
+
+/** The id of the words that say question `id` is still open. */
+const saidId = (id: string): string => `ak-said-${id}`;
+
+/** Under question `id`, once a Send was refused for it: what it needs, by its label. */
+const Unanswered = (props: { readonly id: string }) => {
+  const { state } = useAsk();
+  return (
+    <Show when={state.missing() === props.id}>
+      <p class="ak-unanswered" id={saidId(props.id)}>
+        {state.said()}
+      </p>
+    </Show>
   );
 };
 
 /** Free text: the owner's words, marked optional unless the agent requires them (`required`). */
 export const FreeText = (props: { readonly block: BlockOf<'free_text'> }) => {
   const { state, actions } = useAsk();
+  const missing = () => state.missing() === props.block.id;
   return (
-    <label class="ak-field" data-answer={props.block.id}>
+    <label class="ak-field" data-answer={props.block.id} data-invalid={pressed(missing())}>
       <span class="ak-legend">
         {props.block.label}
         <Show when={!requiredOf(props.block)}>
@@ -167,8 +294,13 @@ export const FreeText = (props: { readonly block: BlockOf<'free_text'> }) => {
         rows={4}
         placeholder={Option.getOrElse(Option.fromUndefinedOr(props.block.placeholder), () => '')}
         value={state.drafted(props.block.id)}
+        aria-invalid={pressed(missing())}
+        aria-describedby={Option.getOrUndefined(
+          Option.liftPredicate(saidId(props.block.id), () => missing()),
+        )}
         onInput={(e) => actions.set(props.block.id, e.currentTarget.value)}
       />
+      <Unanswered id={props.block.id} />
     </label>
   );
 };
@@ -200,21 +332,19 @@ export const Block = (props: { readonly block: AskBlock }): JSX.Element =>
 export const Sections = () => {
   const { state } = useAsk();
   const names = createMemo(() => state.sections().map((s) => s.name));
-  const stepOf = (name: string) =>
+  const stepNamed = (name: string) =>
     Arr.findFirst(state.sections(), (s) => s.name === name).pipe(Option.map((s) => s.step));
   return (
     <For each={names()}>
       {(name, i) => (
         <section class="ak-step" data-step={name}>
-          <Show when={Option.getOrUndefined(Option.flatMap(stepOf(name), titleOf))}>
-            {(title: Accessor<string>) => (
-              <h2 class="ak-section-h">
-                {i() + 1} · {title()}
-              </h2>
+          <Show when={Option.getOrUndefined(stepNamed(name))}>
+            {(step: Accessor<Section['step']>) => (
+              <h2 class="ak-section-h">{sectionTitle(step(), i() + 1, names().length)}</h2>
             )}
           </Show>
           <For
-            each={Option.match(stepOf(name), {
+            each={Option.match(stepNamed(name), {
               onNone: (): ReadonlyArray<AskBlock> => [],
               onSome: blocksOf,
             })}
@@ -227,13 +357,35 @@ export const Sections = () => {
   );
 };
 
-/** The send: the page's answers to the lab, every section's, and what the last send said. */
+/** How far the page is answered, as the send says it while nothing else is to be said. */
+const answeredText = (questions: ReadonlyArray<{ readonly answered: boolean }>): string =>
+  `${questions.filter((q) => q.answered).length} of ${questions.length} answered`;
+
+/**
+ * The send, held in reach at the foot of the page: how many of the page's
+ * questions are answered, or what the last send said, over the one Send. A
+ * Send with a question open takes the owner to it, its words saying what it
+ * needs.
+ */
 export const Submit = () => {
   const { state, actions } = useAsk();
+  const { meta } = useReview();
   const sending = () => state.phase() === 'Sending' || state.phase() === 'Rereading';
+  createEffect(
+    () => state.missing(),
+    (id) => {
+      if (id !== '') Option.map(fieldOf(id), (el) => goTo(el, meta.hub.input()));
+    },
+  );
   return (
     <Show when={state.sections().length > 0}>
-      <div class="ak-send">
+      <div class="sh-dock ak-send">
+        <span class="rv-hint" data-role="answered" role="status" aria-live="polite">
+          {Option.getOrElse(
+            Option.liftPredicate(state.said(), (said) => said !== ''),
+            () => answeredText(state.questions()),
+          )}
+        </span>
         <button
           type="button"
           class="sh-btn"
@@ -245,9 +397,6 @@ export const Submit = () => {
         >
           Send
         </button>
-        <span class="rv-hint" role="status" aria-live="polite">
-          {state.said()}
-        </span>
       </div>
     </Show>
   );

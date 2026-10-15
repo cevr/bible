@@ -24,12 +24,14 @@ const BOARD_TOKENS = `
 `;
 
 /**
- * A panel's thumb and the line under it (`PanelThumb`, `PanelSaid`): the
- * Board's, and an ask's Board, alike.
+ * A panel as the Board shows it (`PanelFigure`: its thumb, its words, its
+ * mark and the line under them): the Board's, and an ask's Board, alike. A
+ * card's thumb is its words in a padded box the width of the panel, its
+ * padding inside that width.
  */
 export const PANEL_THUMB_CSS = `
-.lab-board-thumb { display: flex; align-items: center; justify-content: center; width: 100%; height: auto;
-  aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); background: var(--surface-3);
+.lab-board-thumb { display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%;
+  height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); background: var(--surface-3);
   outline: 1px solid var(--line); outline-offset: -1px; }
 .lab-board-thumb-empty, .lab-board-thumb-card { padding: var(--s-2); color: var(--text-3); font-size: var(--fs-2);
   line-height: var(--lh-2); text-align: center; }
@@ -37,6 +39,12 @@ export const PANEL_THUMB_CSS = `
 .lab-board-thumb-card { background: var(--surface-1); color: var(--text-1); font-weight: var(--w-2); }
 .lab-board-panel-meta { display: flex; flex-wrap: wrap; gap: var(--s-1); font-size: var(--fs-1); line-height: var(--lh-1);
   color: var(--text-3); }
+/* A panel's words: what the narrator says while it holds, from its mark to the next panel's. */
+.lab-board-panel-words { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: clip;
+  color: var(--text-1); font-size: var(--fs-2); line-height: var(--lh-2); }
+.lab-board-panel-label { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
+  font-size: var(--fs-1); line-height: var(--lh-1); }
+.lab-board-panel-at { color: var(--text-1); font-weight: var(--w-2); }
 `;
 
 export const BOARD_CSS = `${BOARD_TOKENS}
@@ -88,14 +96,8 @@ export const BOARD_CSS = `${BOARD_TOKENS}
 .lab-board-panel[aria-current='true'] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 /* The panel under the frame: its edge in the playing ink, as its beat's. */
 .lab-board-panel[data-live='true']:not([aria-current='true']) { box-shadow: inset 0 0 0 2px var(--state-live); }
-/* A panel's words: what the narrator says while it holds, from its mark to the next panel's. */
-.lab-board-panel-words { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: clip;
-  color: var(--text-1); font-size: var(--fs-2); line-height: var(--lh-2); }
 @media (hover: hover) { .lab-board-panel:not([aria-current='true']):hover { background: var(--surface-3); } }
 ${PANEL_THUMB_CSS}
-.lab-board-panel-label { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
-  font-size: var(--fs-1); line-height: var(--lh-1); }
-.lab-board-panel-at { color: var(--text-1); font-weight: var(--w-2); }
 .lab-board-panel-time { color: var(--text-3); }
 /* The panel picked, open under its beat: a raised box, as the Script's ties. */
 .lab-board-open { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-2) var(--s-3) var(--s-3);

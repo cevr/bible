@@ -485,7 +485,7 @@ interface Shown {
  * still, and Escape or a tap anywhere closes it, by the sheets' one rule
  * (`useSheetDismissal`), adding no entry.
  */
-const Zoom = (props: {
+export const Zoom = (props: {
   readonly still: string;
   readonly alt: string;
   readonly shown: Shown;
