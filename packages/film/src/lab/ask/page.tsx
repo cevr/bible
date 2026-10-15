@@ -12,10 +12,12 @@ import * as Ask from './parts.tsx';
 
 /**
  * An ask's look, read only through the studio's tokens: its own place's, so
- * it rides with the page (`PlaceStyle`). Its rules name the ask's own parts
- * alone: the material it shows keeps the look it has everywhere, but for
- * what an ask's column asks of it (a smaller title, no spend line; its
- * video's quiet play is the player's own, `PlayedAlone`'s `quiet`).
+ * it rides with the page (`PlaceStyle`). Its rules name the ask's own parts,
+ * and the material it shows keeps the look it has everywhere: two rules under
+ * `.ak-mat` set only the layout and size an ask's column asks of it (a
+ * pending row's inset, a note's smaller title). What else differs is the
+ * parts' own: the reader leaves out the day's spend by its `cost` prop, and
+ * a video's quiet play is the player's (`PlayedAlone`'s `quiet`).
  */
 const ASK_CSS = `
 .ak{max-width:720px;margin:0 auto}

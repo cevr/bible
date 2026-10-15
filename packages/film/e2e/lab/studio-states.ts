@@ -684,7 +684,7 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(pageHref.ask(STUDIO_ASK), ASK_READY),
       disclose: AT_REST,
       // An ask that names a film is a film's view: its switcher names the film and its seven
-      // tabs are the way to the Board or the Script the ask is about (taste-2 T2, where am I).
+      // tabs are the way to the Board or the Script the ask is about (taste-1 T2, where am I).
       // A page of one section has no "1 of 1" head.
       budget: most(24, 24),
     },
@@ -692,7 +692,7 @@ export const STATES: ByPlace<State, AtRest> = {
   draft: [
     {
       // The words, their marks, a ready take and its pace: the shell's four, Hear it (the draft
-      // heard whole from its first ready take, what a visit to a draft is for: taste-2 T5) and a
+      // heard whole from its first ready take, what a visit to a draft is for: taste-1 T5) and a
       // ready take's ▶ the only controls; the rest is what is read (the toy's 15 words, each its
       // own text leaf, a hold's glyph, each beat's number and label, its brief and its sources)
       // and the day's spend, one line.

@@ -7,7 +7,9 @@
 // refuses (the laptop answered first) reads the ask again, where it now is,
 // and says why; a Send with a question open sends nothing, goes to it, marks
 // it and says what it needs (by the field; the dock names it). At the page's
-// end its last section's head holds the top. A guided review shows each section's material
+// end its last section's head holds the top, with a film's tab bar under the
+// page or none. Answers not sent come back after a reload, and a send that
+// lands leaves none to bring back. A guided review shows each section's material
 // in place (the draft's script, named, with its takes and its marks, Stress
 // written into the draft; the Board's panels; a real 1280×720 cut in the
 // review's player, its play quiet at the hit, the page no wider for it; the
@@ -15,7 +17,8 @@
 // headed `n of N · Title` and indexed, the recommended option first and
 // marked, the send counting what is answered, the kit's primary Send, one
 // focus ring on an option, and fits a phone. A film's script under review is
-// its Script reader too: Stress writes `script.ts`, which is read again. A
+// its Script reader too: Stress writes `script.ts`, which is read again, and
+// a second mark before the lab's line has caught up stands on the first. A
 // long document is held at its clamp with Read all, which opens it whole; a
 // Board still opens full size (`?still=`), and Escape or a tap closes it.
 
