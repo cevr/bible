@@ -2575,23 +2575,23 @@ beat or for a register; a heading its file lacks is `JudgeRuleMissing`),
 the stills by label and moment (each by its path beside the packet), and
 the form of the answer; it names no place (a rule's file by its name
 alone). The counsel is a seam (`Counsel`, `tools/counsel.ts`) with two
-adapters. `Counsel.layer` runs `okra counsel --deep --from claude -f
-/judge/packet/packet.md -o /judge/answer` (Codex) in the counsel's sandbox
-(`tools/sandbox.ts`, bubblewrap): a mount namespace that starts empty and
-shows only `/usr` and its merged links, `/etc`, the resolver's folder, a
-fresh `/proc`, `/dev` and `/tmp`, the packet's folder read-only at
-`/judge/packet` (the working folder), a temp folder written at
-`/judge/answer` (okra's prompt copy and run folder land there, copied into
-`<run>/counsel/` once it is done), okra's program, Codex's package and
-Node under `/judge/tools`, and a home of its own holding only Codex's
-sign-in (written, so a refreshed token lands in place), its settings and
-model lists (`okraRun`). The environment is cleared but for `PATH`, `HOME`
-and `LANG`. So no earlier run's folder, no look file, no repo, no cache
-and no home is there to read. The network is shared (Codex needs the
-internet), so the lab's loopback port stays reachable, though nothing in
-the sandbox names it. It reads the `codex.md` or `claude.md` written,
-its sandbox paths said as the host's (a non-zero exit is
-`CounselFailed`, 124 its time out); `Counsel.sandboxed` runs any command
+adapters. `Counsel.layer` runs headless Claude Code (`claude -p --model
+opus --effort max --safe-mode --tools Read --strict-mcp-config
+--no-session-persistence`, `claudeRun`), the packet on its stdin, from the
+packet's folder, under macOS's sandbox (`tools/sandbox.ts`, `sandbox-exec`
+with a Seatbelt profile, `profileOf`): every home, the system's temp
+folders and other volumes are closed to reading, then the packet's folder,
+Claude's install and the user's keychains (its sign-in) are opened to
+read, and the answer's folder, a scratch folder (its `TMPDIR`), `~/.claude`
+and `~/.claude.json` to write; Claude's other sessions, history, plans and
+todos under `~/.claude` stay hidden, and nothing else is written. So no
+earlier run's folder, no look file, no repo, no cache and no other session
+is there to read. The environment is `HOME`, `PATH`, `TMPDIR`, `LANG` and
+`USER` alone. The network is shared (the counsel needs the internet), so
+the lab's loopback port stays reachable, though nothing names it. Its
+stdout is the answer, written to `claude.md` and copied into
+`<run>/counsel/` (a non-zero exit, or a run past `COUNSEL_LIMIT`, 30
+minutes, is `CounselFailed`; off macOS the counsel fails so too); `Counsel.sandboxed` runs any command
 so (the tests probe the sandbox with one); `Counsel.layerTest` answers
 from a function of the packet. Its last `RANKING:` line is read (`rankingOf`: a
 whole expression, every label once, `>` between tiers, `=` a tie, nothing

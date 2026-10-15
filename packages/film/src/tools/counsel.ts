@@ -1,24 +1,24 @@
-// The counsel: another model family's answer to a prompt file, for the judge
-// (`tools/judge.ts`). One seam, two adapters. `Counsel.layer` runs
-// `okra counsel --deep --from claude` (Codex at its deeper profile,
-// read-only) in the counsel's sandbox (`tools/sandbox.ts`): it can read the
-// prompt's folder (the packet and its stills, nothing else) and what okra
-// and Codex need to run (their programs, Node, Codex's sign-in and
-// settings), and writes into a folder of its own, under the system's temp
-// folder, copied into `dir` once it is done; okra's copy of the prompt and
-// its run folder land there too (`-o` is the sandbox's answer folder), never
-// in a project path. Every other file on the machine (the repo, the films'
-// out folders with an earlier judge's key, the caches, the real `/tmp`) is
-// absent there. `Counsel.layerTest` answers from a function of the prompt,
-// written where the real one writes, so a test runs the judge through the
-// same files. No time limit of its own: okra bounds the run and exits 124
-// when it times out.
+// The counsel: a fresh model's answer to a prompt file, for the judge
+// (`tools/judge.ts`). One seam, two adapters. `Counsel.layer` runs headless
+// Claude Code (`claude -p`, Opus at max effort, its customizations off, its
+// one tool Read, no session kept) in the counsel's sandbox
+// (`tools/sandbox.ts`, macOS's `sandbox-exec`): it reads the prompt's folder
+// (the packet and its stills, its working folder) and what Claude needs to
+// run (its program, its settings and sign-in), and writes its own state and
+// a scratch folder of its own; the repo, the films' out folders with an
+// earlier judge's key, the owner's sessions and history and every other
+// file in a home are unreadable there. The prompt goes in on stdin and the
+// answer comes back on stdout, written to `claude.md` in a folder of its
+// own, copied into `dir` once it is done. `Counsel.layerTest` answers from a
+// function of the prompt, written where the real one writes, so a test runs
+// the judge through the same files. The run is bounded: one past
+// `COUNSEL_LIMIT` is stopped and fails.
 
-import { Array as Arr, Config, Context, Effect, FileSystem, Layer, Option, Path } from 'effect';
+import { Config, Context, Duration, Effect, FileSystem, Layer, Option, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { CounselFailed } from '../core/judge.ts';
-import { collect } from './process.ts';
-import { type Mount, SEEN, sandboxArgs } from './sandbox.ts';
+import { collectWithin } from './process.ts';
+import { type SandboxPlan, sandboxArgs } from './sandbox.ts';
 
 /** What a counsel answered: the file it wrote, and its words. */
 interface CounselAnswer {
@@ -35,25 +35,25 @@ interface CounselService {
   readonly ask: (prompt: string, dir: string) => Effect.Effect<CounselAnswer, CounselFailed>;
 }
 
-/** What runs in the sandbox: what it needs mounted, its environment, its argv for a prompt as seen there. */
+/** Where one run reads and writes: the packet's folder, its answer's, its scratch folder. */
+interface RunFolders {
+  readonly packet: string;
+  readonly answer: string;
+  readonly scratch: string;
+}
+
+/** What runs in the sandbox: what it may touch, its environment, its argv, run from the packet. */
 export interface SandboxedRun {
-  readonly mounts: ReadonlyArray<Mount>;
+  readonly plan: SandboxPlan;
   readonly env: Readonly<Record<string, string>>;
-  readonly command: (prompt: string) => ReadonlyArray<string>;
+  readonly command: ReadonlyArray<string>;
 }
 
-/** The programs okra's counsel runs, by their real paths on the host. */
-interface CounselTools {
-  /** okra's program (one file). */
-  readonly okra: string;
-  /** Codex's entry (`…/node_modules/@openai/codex/bin/codex.js`). */
-  readonly codex: string;
-  /** Node, which runs Codex's entry (`…/bin/node`). */
-  readonly node: string;
-}
+/** The file the answer is written to, in the answer's folder. */
+const ANSWER = 'claude.md';
 
-/** The files an okra counsel run answers in, by the agent that answered. */
-const ANSWERS = ['codex.md', 'claude.md'];
+/** How long a counsel may take: Opus at max effort over a packet of stills. */
+const COUNSEL_LIMIT = Duration.minutes(30);
 
 /** The last lines `text` printed, for a failure's reason. */
 const tailOf = (text: string) => text.trim().split('\n').slice(-3).join(' | ');
@@ -62,110 +62,105 @@ const tailOf = (text: string) => text.trim().split('\n').slice(-3).join(' | ');
 const up = (file: string, n: number) => file.split('/').slice(0, -n).join('/');
 
 /**
- * What okra's counsel needs in the sandbox, `home` the host's home: okra's
- * program; Codex's package beside its platform package (their `@openai`
- * folder) and Node, each under `SEEN.tools` and linked into `SEEN.bin`; a
- * home of its own holding only Codex's sign-in (written: a refreshed token
- * lands in place), its settings and model list, and okra's model list
- * (read). Codex's history, memories and sessions stay out.
+ * Claude Code's state under `home` it keeps of other sessions: transcripts,
+ * history, plans, todos, snapshots. Hidden from the counsel, so no earlier
+ * run's words (a verdict, a key) reach it.
  */
-export const okraRun = (tools: CounselTools, home: string): SandboxedRun => {
-  const scope = up(tools.codex, 3);
-  const seenScope = `${SEEN.tools}/node_modules/${scope.split('/').at(-1) ?? '@openai'}`;
-  const nodeRoot = up(tools.node, 2);
-  const codexHome = `${SEEN.home}/.codex`;
-  return {
-    mounts: [
-      { _tag: 'Read', from: tools.okra, to: `${SEEN.bin}/okra`, optional: false },
-      { _tag: 'Read', from: scope, to: seenScope, optional: false },
-      {
-        _tag: 'Link',
-        target: `${seenScope}/${tools.codex.slice(scope.length + 1)}`,
-        to: `${SEEN.bin}/codex`,
-      },
-      { _tag: 'Read', from: nodeRoot, to: `${SEEN.tools}/node`, optional: false },
-      {
-        _tag: 'Link',
-        target: `${SEEN.tools}/node/${tools.node.slice(nodeRoot.length + 1)}`,
-        to: `${SEEN.bin}/node`,
-      },
-      { _tag: 'Empty', to: SEEN.home },
-      { _tag: 'Write', from: `${home}/.codex/auth.json`, to: `${codexHome}/auth.json` },
-      {
-        _tag: 'Read',
-        from: `${home}/.codex/config.toml`,
-        to: `${codexHome}/config.toml`,
-        optional: true,
-      },
-      {
-        _tag: 'Read',
-        from: `${home}/.codex/models_cache.json`,
-        to: `${codexHome}/models_cache.json`,
-        optional: true,
-      },
-      {
-        _tag: 'Read',
-        from: `${home}/.okra/models.json`,
-        to: `${SEEN.home}/.okra/models.json`,
-        optional: true,
-      },
-    ],
-    env: { PATH: `${SEEN.bin}:/usr/bin:/bin`, HOME: SEEN.home, LANG: 'C.UTF-8' },
-    // Codex always: the sandbox carries Codex's runtime, not Claude's.
-    command: (prompt) => [
-      'okra',
-      'counsel',
-      '--deep',
-      '--from',
-      'claude',
-      '-f',
-      prompt,
-      '-o',
-      SEEN.answer,
-    ],
-  };
-};
+const SESSIONS = [
+  'projects',
+  'history.jsonl',
+  'file-history',
+  'todos',
+  'plans',
+  'tasks',
+  'teams',
+  'shell-snapshots',
+  'session-env',
+  'sessions',
+  'paste-cache',
+  'debug',
+];
 
-/** The programs okra's counsel runs, found on this process's PATH, by their real paths. */
-const counselTools = Effect.gen(function* () {
+/**
+ * Headless Claude in the sandbox, `claude` its program's real path (a
+ * version under `…/share/claude/versions/`) and `home` the host's home: it
+ * reads the packet and its install; it reads and writes `~/.claude` (its
+ * settings, sign-in and caches; other sessions hidden) and `~/.claude.json`
+ * (with the files it writes beside it), and reads the user's keychains, where
+ * its sign-in is kept; its temp files go to `scratch`. Nothing else of the
+ * home is readable.
+ */
+export const claudeRun = (claude: string, home: string, folders: RunFolders): SandboxedRun => ({
+  plan: {
+    reads: [
+      { _tag: 'Tree', path: folders.packet },
+      { _tag: 'Tree', path: up(claude, 2) },
+      { _tag: 'Tree', path: `${home}/Library/Keychains` },
+    ],
+    writes: [
+      { _tag: 'Tree', path: folders.answer },
+      { _tag: 'Tree', path: folders.scratch },
+      { _tag: 'Tree', path: `${home}/.claude` },
+      { _tag: 'Prefix', path: `${home}/.claude.json` },
+    ],
+    hidden: SESSIONS.map((name) => ({ _tag: 'Tree', path: `${home}/.claude/${name}` })),
+  },
+  env: {
+    HOME: home,
+    PATH: '/usr/bin:/bin',
+    TMPDIR: folders.scratch,
+    LANG: 'en_US.UTF-8',
+    USER: home.split('/').at(-1) ?? '',
+  },
+  command: [
+    claude,
+    '-p',
+    '--model',
+    'opus',
+    '--effort',
+    'max',
+    '--safe-mode',
+    '--tools',
+    'Read',
+    '--allowedTools',
+    'Read',
+    '--strict-mcp-config',
+    '--no-session-persistence',
+    '--output-format',
+    'text',
+  ],
+});
+
+/** `failed`'s words, as the run in `dir` failing. */
+const failedIn = (dir: string) => (error: { readonly message: string }) =>
+  CounselFailed.make({ dir, reason: error.message });
+
+/** Claude's program, found on this process's PATH, by its real path. */
+const claudeProgram = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
-  const find = (name: string) =>
-    Effect.gen(function* () {
-      const found = yield* Effect.fromOption(Option.fromNullishOr(Bun.which(name))).pipe(
-        Effect.mapError(() =>
-          CounselFailed.make({
-            dir: SEEN.answer,
-            reason: `the counsel's sandbox runs ${name}, and it is not on PATH`,
-          }),
-        ),
-      );
-      return yield* fs
-        .realPath(found)
-        .pipe(
-          Effect.mapError((error) =>
-            CounselFailed.make({ dir: SEEN.answer, reason: error.message }),
-          ),
-        );
-    });
-  return {
-    okra: yield* find('okra'),
-    codex: yield* find('codex'),
-    node: yield* find('node'),
-  } satisfies CounselTools;
+  const found = yield* Effect.fromOption(Option.fromNullishOr(Bun.which('claude'))).pipe(
+    Effect.mapError(() =>
+      CounselFailed.make({
+        dir: '',
+        reason: "the counsel runs Claude Code's `claude`, and it is not on PATH",
+      }),
+    ),
+  );
+  return yield* fs.realPath(found).pipe(Effect.mapError(failedIn('')));
 });
 
 export class Counsel extends Context.Service<Counsel, CounselService>()(
   '@bible/film/tools/Counsel',
 ) {
   /**
-   * The counsel `run` in the sandbox (`tools/sandbox.ts`), handed the
-   * prompt's folder and a folder of its own under the system's temp folder,
-   * copied into `dir` once it is done, answered or not; its answer is the
-   * `codex.md` or `claude.md` it wrote, its paths as seen there said as the
-   * host's.
+   * The counsel `run` (its folders given) in the sandbox
+   * (`tools/sandbox.ts`), from the prompt's folder, the prompt on its stdin:
+   * its stdout is the answer, written to `claude.md` in a folder of its own
+   * under the system's temp folder and copied into `dir` once it is done.
+   * Only on macOS: the sandbox is its `sandbox-exec`.
    */
   static readonly sandboxed = <E extends { readonly message: string }, R>(
-    run: Effect.Effect<SandboxedRun, E, R>,
+    run: (folders: RunFolders) => Effect.Effect<SandboxedRun, E, R>,
   ) =>
     Layer.effect(
       Counsel,
@@ -174,44 +169,51 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const context = yield* Effect.context<R>();
-        const failed = (dir: string) => (error: { readonly message: string }) =>
-          CounselFailed.make({ dir, reason: error.message });
 
         const ask = Effect.fn('Counsel.ask')(function* (prompt: string, dir: string) {
-          const packet = path.dirname(prompt);
-          const how = yield* run.pipe(Effect.provideContext(context), Effect.mapError(failed(dir)));
-          yield* fs.makeDirectory(dir, { recursive: true }).pipe(Effect.mapError(failed(dir)));
+          if (process.platform !== 'darwin')
+            return yield* CounselFailed.make({
+              dir,
+              reason: `the counsel's sandbox is macOS's sandbox-exec, and this is ${process.platform}`,
+            });
+          const failed = failedIn(dir);
+          const packet = yield* fs.realPath(path.dirname(prompt)).pipe(Effect.mapError(failed));
+          const words = yield* fs.readFileString(prompt).pipe(Effect.mapError(failed));
+          yield* fs.makeDirectory(dir, { recursive: true }).pipe(Effect.mapError(failed));
           const done = yield* Effect.scoped(
             Effect.gen(function* () {
-              const answer = yield* fs.makeTempDirectoryScoped();
-              const argv = sandboxArgs(
-                { packet, answer, mounts: how.mounts, env: how.env },
-                how.command(`${SEEN.packet}/${path.basename(prompt)}`),
+              const answer = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+              const scratch = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+              const how = yield* run({ packet, answer, scratch }).pipe(
+                Effect.provideContext(context),
               );
-              yield* Effect.log(`counsel.start prompt=${prompt} dir=${dir} sandbox=bwrap`);
-              const finished = yield* collect(spawner, ChildProcess.make('bwrap', [...argv]));
+              const [program = 'claude', ...args] = sandboxArgs(how.plan, how.command);
+              yield* Effect.log(`counsel.start prompt=${prompt} dir=${dir} sandbox=sandbox-exec`);
+              const finished = yield* collectWithin(
+                spawner,
+                'claude',
+                ChildProcess.make(program, args, {
+                  cwd: packet,
+                  env: { ...how.env },
+                  stdin: Stream.make(new TextEncoder().encode(words)),
+                }),
+                COUNSEL_LIMIT,
+              );
+              yield* fs.writeFileString(path.join(answer, ANSWER), finished.stdout);
               yield* fs.copy(answer, dir);
               return finished;
             }),
-          ).pipe(Effect.mapError(failed(dir)));
+          ).pipe(Effect.mapError(failed));
           if (done.exitCode !== 0)
             return yield* CounselFailed.make({
               dir,
-              reason: `the counsel exited ${done.exitCode}${Arr.filter([' (timed out)'], () => done.exitCode === 124).join('')}: ${tailOf(done.stderr) || tailOf(done.stdout)}`,
+              reason: `the counsel exited ${done.exitCode}: ${tailOf(done.stderr) || tailOf(done.stdout)}`,
             });
-          const found = (yield* fs
-            .readDirectory(dir, { recursive: true })
-            .pipe(Effect.mapError(failed(dir))))
-            .filter((name) => ANSWERS.includes(path.basename(name)))
-            .map((name) => path.join(dir, name));
-          const file = yield* Effect.fromOption(Arr.head(found)).pipe(
-            Effect.mapError(() =>
-              CounselFailed.make({ dir, reason: `no ${ANSWERS.join(' or ')} under ${dir}` }),
-            ),
-          );
-          const said = yield* fs.readFileString(file).pipe(Effect.mapError(failed(dir)));
-          // Paths as the sandbox showed them, said as the host's.
-          const text = said.replaceAll(SEEN.packet, packet).replaceAll(SEEN.answer, dir);
+          const file = path.join(dir, ANSWER);
+          // Paths as the sandbox resolved them (the temp folder's real one), said as the asker's.
+          const text = done.stdout.replaceAll(packet, path.dirname(prompt));
+          if (text.trim() === '')
+            return yield* CounselFailed.make({ dir, reason: `it answered nothing in ${file}` });
           yield* Effect.log(`counsel.answered file=${file} chars=${text.length}`);
           return { file, text } satisfies CounselAnswer;
         });
@@ -220,18 +222,18 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
       }),
     );
 
-  /** `okra counsel --deep --from claude` in the sandbox (`okraRun`), its programs found on PATH. */
-  static readonly layer = Counsel.sandboxed(
+  /** Headless Claude, Opus at max effort, in the sandbox (`claudeRun`), its program found on PATH. */
+  static readonly layer = Counsel.sandboxed((folders) =>
     Effect.gen(function* () {
-      const tools = yield* counselTools;
+      const claude = yield* claudeProgram;
       const home = yield* Config.String('HOME');
-      return okraRun(tools, home);
+      return claudeRun(claude, home, folders);
     }),
   );
 
   /**
    * A counsel for tests: `answer` of the prompt's words, written as the real
-   * run writes it (`<dir>/run/codex.md`); each prompt it was asked lands in
+   * run writes it (`<dir>/claude.md`); each prompt it was asked lands in
    * `asked`, so a test reads what the judge sent.
    */
   static readonly layerTest = (answer: (prompt: string) => string, asked: Array<string> = []) =>
@@ -245,8 +247,8 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
             Effect.gen(function* () {
               const words = yield* fs.readFileString(prompt);
               asked.push(words);
-              const file = path.join(dir, 'run', 'codex.md');
-              yield* fs.makeDirectory(path.dirname(file), { recursive: true });
+              const file = path.join(dir, ANSWER);
+              yield* fs.makeDirectory(dir, { recursive: true });
               const text = answer(words);
               yield* fs.writeFileString(file, text);
               return { file, text } satisfies CounselAnswer;

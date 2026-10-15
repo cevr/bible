@@ -1,104 +1,156 @@
-// The counsel's sandbox as bwrap's argv: it mounts the system, the packet's
-// folder read-only as the working folder, the answer's folder, and exactly
-// what okra's counsel needs (its program, Codex's package, Node, Codex's
-// sign-in, settings and model lists); never a home, the repo, a cache or the
-// host's /tmp. Its environment is cleared but for its own PATH and HOME, and
-// it runs okra with the prompt and the output folder as the sandbox shows them.
+// The counsel's sandbox as a Seatbelt profile: it closes every home, the temp
+// folders and other volumes to reading, opens the packet, Claude's install
+// and keychains to read and its answer, scratch and own state to write, and
+// hides Claude's other sessions and history even inside its state. On macOS
+// the profile is run: a program in it reads the packet and nothing beside it.
 
-import { describe, expect, it } from 'bun:test';
-import { okraRun } from './counsel.ts';
-import { SEEN, sandboxArgs } from './sandbox.ts';
+import { test } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
+import { BunServices } from '@effect/platform-bun';
+import { Effect, FileSystem, Path } from 'effect';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import { claudeRun } from './counsel.ts';
+import { collect } from './process.ts';
+import { CLOSED, profileOf, sandboxArgs } from './sandbox.ts';
 
-const home = '/home/someone';
-const tools = {
-  okra: `${home}/src/okra/bin/okra`,
-  codex: `${home}/.bun/install/global/node_modules/@openai/codex/bin/codex.js`,
-  node: `${home}/.local/share/node/v24.11.1/bin/node`,
+const home = '/Users/someone';
+const claude = `${home}/.local/share/claude/versions/2.1.300`;
+const folders = {
+  packet: '/private/var/folders/xy/T/judge-x1',
+  answer: '/private/var/folders/xy/T/answer-y2',
+  scratch: '/private/var/folders/xy/T/scratch-z3',
 };
-const run = okraRun(tools, home);
-const argv = sandboxArgs(
-  { packet: '/tmp/judge-x1', answer: '/tmp/answer-y2', mounts: run.mounts, env: run.env },
-  run.command(`${SEEN.packet}/packet.md`),
-);
-
-/** Each `flag`'s two words after it, as `[from, to]`. */
-const pairsAfter = (flags: ReadonlyArray<string>) =>
-  argv.flatMap((word, i) => {
-    if (!flags.includes(word)) return [];
-    return [[argv[i + 1] ?? '', argv[i + 2] ?? '']];
-  });
+const run = claudeRun(claude, home, folders);
+const profile = profileOf(run.plan);
+const lines = profile.split('\n');
 
 describe("the counsel's sandbox", () => {
-  it('reads the system, the packet, the answer folder and what okra and Codex need, and nothing else', () => {
-    expect(pairsAfter(['--ro-bind', '--ro-bind-try'])).toEqual([
-      ['/usr', '/usr'],
-      ['/bin', '/bin'],
-      ['/sbin', '/sbin'],
-      ['/lib', '/lib'],
-      ['/lib64', '/lib64'],
-      ['/etc', '/etc'],
-      ['/run/systemd/resolve', '/run/systemd/resolve'],
-      ['/tmp/judge-x1', '/judge/packet'],
-      [tools.okra, '/judge/bin/okra'],
-      [`${home}/.bun/install/global/node_modules/@openai`, '/judge/tools/node_modules/@openai'],
-      [`${home}/.local/share/node/v24.11.1`, '/judge/tools/node'],
-      [`${home}/.codex/config.toml`, '/judge/home/.codex/config.toml'],
-      [`${home}/.codex/models_cache.json`, '/judge/home/.codex/models_cache.json'],
-      [`${home}/.okra/models.json`, '/judge/home/.okra/models.json'],
+  test('closes every home and temp folder, then opens the packet, the install and its own state', () => {
+    expect(lines.slice(0, 4)).toEqual([
+      '(version 1)',
+      '(allow default)',
+      '(deny file-write*)',
+      '(allow file-write* (subpath "/dev"))',
     ]);
-    // Written: its answer folder, and Codex's sign-in, so a refreshed token lands in place.
-    expect(pairsAfter(['--bind'])).toEqual([
-      ['/tmp/answer-y2', '/judge/answer'],
-      [`${home}/.codex/auth.json`, '/judge/home/.codex/auth.json'],
-    ]);
-    expect(pairsAfter(['--symlink'])).toEqual([
-      ['/judge/tools/node_modules/@openai/codex/bin/codex.js', '/judge/bin/codex'],
-      ['/judge/tools/node/bin/node', '/judge/bin/node'],
-    ]);
-    // A fresh /proc, /dev and /tmp, and an empty home: nothing of the host's there.
-    for (const [flag, at] of [
-      ['--proc', '/proc'],
-      ['--dev', '/dev'],
-      ['--tmpfs', '/tmp'],
-      ['--tmpfs', SEEN.home],
-    ])
-      expect(argv.some((word, i) => word === flag && argv[i + 1] === at)).toBe(true);
+    expect(lines[4]).toBe(
+      `(deny file-read-data ${CLOSED.map((place) => `(subpath "${place.path}")`).join(' ')})`,
+    );
+    expect(lines[5]).toBe(
+      [
+        '(allow file-read-data',
+        `(subpath "${folders.packet}")`,
+        `(subpath "${home}/.local/share/claude")`,
+        `(subpath "${home}/Library/Keychains")`,
+        `(subpath "${folders.answer}")`,
+        `(subpath "${folders.scratch}")`,
+        `(subpath "${home}/.claude")`,
+        `(regex "^\\\\/Users\\\\/someone\\\\/\\\\.claude\\\\.json"))`,
+      ].join(' '),
+    );
+    expect(lines[6]).toBe(
+      [
+        '(allow file-write*',
+        `(subpath "${folders.answer}")`,
+        `(subpath "${folders.scratch}")`,
+        `(subpath "${home}/.claude")`,
+        `(regex "^\\\\/Users\\\\/someone\\\\/\\\\.claude\\\\.json"))`,
+      ].join(' '),
+    );
+    // Last, so it wins: other sessions' transcripts and history, inside its own state.
+    expect(lines[7]).toContain('(deny file-read-data file-write*');
+    for (const kept of ['projects', 'history.jsonl', 'file-history', 'todos', 'plans', 'sessions'])
+      expect(lines[7]).toContain(`(subpath "${home}/.claude/${kept}")`);
+    expect(lines).toHaveLength(8);
   });
 
-  it('mounts no home, repo, cache or host /tmp whole', () => {
-    const sources = pairsAfter(['--ro-bind', '--ro-bind-try', '--bind']).map(([from]) => from);
+  test('opens no home, repo or temp folder whole', () => {
+    const opened = [...run.plan.reads, ...run.plan.writes].map((place) => place.path);
     for (const whole of [
       '/',
-      '/home',
+      '/Users',
       home,
-      `${home}/.codex`,
-      `${home}/.cache`,
       `${home}/Developer`,
-      '/workspaces',
-      '/tmp',
+      `${home}/Library`,
+      '/private/tmp',
+      '/private/var/folders',
     ])
-      expect([whole, sources.includes(whole)]).toEqual([whole, false]);
+      expect([whole, opened.includes(whole)]).toEqual([whole, false]);
   });
 
-  it('runs okra with a cleared environment, from the packet, its prompt and output as it sees them', () => {
-    for (const flag of ['--unshare-all', '--share-net', '--die-with-parent', '--clearenv'])
-      expect(argv).toContain(flag);
-    expect(pairsAfter(['--setenv'])).toEqual([
-      ['PATH', '/judge/bin:/usr/bin:/bin'],
-      ['HOME', '/judge/home'],
-      ['LANG', 'C.UTF-8'],
+  test('runs headless Claude on Opus at max effort, Read its one tool, no session kept, in a plain environment', () => {
+    const argv = sandboxArgs(run.plan, run.command);
+    expect(argv.slice(0, 3)).toEqual(['sandbox-exec', '-p', profile]);
+    expect(argv.slice(3)).toEqual([
+      claude,
+      '-p',
+      '--model',
+      'opus',
+      '--effort',
+      'max',
+      '--safe-mode',
+      '--tools',
+      'Read',
+      '--allowedTools',
+      'Read',
+      '--strict-mcp-config',
+      '--no-session-persistence',
+      '--output-format',
+      'text',
     ]);
-    expect(pairsAfter(['--chdir'])[0]?.[0]).toBe('/judge/packet');
-    expect(argv.slice(argv.indexOf('--') + 1)).toEqual([
-      'okra',
-      'counsel',
-      '--deep',
-      '--from',
-      'claude',
-      '-f',
-      '/judge/packet/packet.md',
-      '-o',
-      '/judge/answer',
-    ]);
+    expect(run.env).toEqual({
+      HOME: home,
+      PATH: '/usr/bin:/bin',
+      TMPDIR: folders.scratch,
+      LANG: 'en_US.UTF-8',
+      USER: 'someone',
+    });
   });
+
+  it.effect(
+    'on macOS a program in it reads the packet, and not a file beside it or in the home',
+    () =>
+      Effect.gen(function* () {
+        if (process.platform !== 'darwin') return;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+        const root = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+        const packet = path.join(root, 'packet');
+        const answer = path.join(root, 'answer');
+        yield* fs.makeDirectory(packet);
+        yield* fs.makeDirectory(answer);
+        yield* fs.writeFileString(path.join(packet, 'packet.md'), 'the packet');
+        yield* fs.writeFileString(path.join(root, 'key.json'), 'the key');
+        const plan = {
+          reads: [{ _tag: 'Tree' as const, path: packet }],
+          writes: [{ _tag: 'Tree' as const, path: answer }],
+          hidden: [],
+        };
+        const cat = (file: string) =>
+          Effect.flatMap(
+            Effect.sync(() => sandboxArgs(plan, ['/bin/cat', file])),
+            ([program = '', ...args]) => collect(spawner, ChildProcess.make(program, args)),
+          );
+        const read = yield* cat(path.join(packet, 'packet.md'));
+        expect([read.exitCode, read.stdout]).toEqual([0, 'the packet']);
+        const key = yield* cat(path.join(root, 'key.json'));
+        expect([key.exitCode, key.stderr]).toEqual([1, expect.stringContaining('not permitted')]);
+        const repo = yield* cat(path.join(import.meta.dir, 'sandbox.ts'));
+        expect(repo.exitCode).toBe(1);
+        const written = yield* collect(
+          spawner,
+          ChildProcess.make('sandbox-exec', [
+            '-p',
+            profileOf(plan),
+            '/usr/bin/touch',
+            path.join(root, 'beside'),
+            path.join(answer, 'kept'),
+          ]),
+        );
+        expect(written.exitCode).toBe(1);
+        expect(yield* fs.exists(path.join(answer, 'kept'))).toBe(true);
+        expect(yield* fs.exists(path.join(root, 'beside'))).toBe(false);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    5_000,
+  );
 });

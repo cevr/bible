@@ -1,103 +1,83 @@
-// The counsel's sandbox: a program run where it can read only what it is
-// handed, by bubblewrap (`bwrap`, a mount namespace an unprivileged user may
-// make). The sandbox starts empty: nothing of the machine is there unless a
-// mount puts it there, so the repo, the films' out folders (an earlier
-// judge's key among them), the caches, the real `/tmp` and every home are
-// simply absent, not hidden by a rule a program could get round. What is
-// there: the system a program runs on (`/usr` and its merged links, `/etc`
-// for names and TLS, the resolver's stub folder), a fresh `/proc`, `/dev`
-// and `/tmp`, the packet's folder read-only at `SEEN.packet` (the working
-// folder), a folder the program writes at `SEEN.answer`, and the mounts
-// the program itself needs (`SandboxPlan.mounts`). The network is shared:
-// the counsel needs the internet, so a service on this machine's loopback
-// (the lab at :8229) stays reachable, though nothing in the sandbox says it
-// is there. The environment is cleared but for what the plan sets. Pure:
-// `sandboxArgs` is bwrap's argv, tested for what it mounts.
+// The counsel's sandbox: a program run under macOS's sandbox (`sandbox-exec`,
+// a Seatbelt profile the kernel enforces on it and on every process it
+// starts), where it reads only what it is handed. The profile allows the
+// system a program runs on and the network (the counsel needs the internet),
+// and closes every user's home, the system's temp folders and every other
+// volume to reading: the repo, the films' out folders (an earlier judge's key
+// among them), the caches and the owner's sessions are unreadable there, not
+// merely unlisted. Inside the closed folders it opens what the plan names: the
+// packet's folder and the program's own files to read, its answer's folder
+// and its own state to write. It writes nowhere else (but `/dev`). What the
+// plan hides stays unreadable even inside a folder it opens. A path's
+// metadata (that it exists, its size) stays visible, so a program can resolve
+// the paths it is handed; a file's bytes and a folder's listing do not. Pure:
+// `profileOf` is the profile, tested for what it opens.
 
-/** Where the sandbox shows what it is handed. */
-export const SEEN = {
-  /** The packet's folder, read-only: the program's working folder. */
-  packet: '/judge/packet',
-  /** The folder the program writes its answer in. */
-  answer: '/judge/answer',
-  /** The program's home: empty but for what a plan mounts in it. */
-  home: '/judge/home',
-  /** The program's PATH folder: the commands a plan links there. */
-  bin: '/judge/bin',
-  /** Where a plan mounts the programs it runs. */
-  tools: '/judge/tools',
-} as const;
+import { Array as Arr } from 'effect';
 
-/** One mount: a host path read-only (or there only if it exists), one written, a link, an empty folder. */
-export type Mount =
-  | {
-      readonly _tag: 'Read';
-      readonly from: string;
-      readonly to: string;
-      readonly optional: boolean;
-    }
-  | { readonly _tag: 'Write'; readonly from: string; readonly to: string }
-  | { readonly _tag: 'Link'; readonly target: string; readonly to: string }
-  | { readonly _tag: 'Empty'; readonly to: string };
+/** One rule's paths: a folder and everything under it, or every path that starts so. */
+type Place =
+  | { readonly _tag: 'Tree'; readonly path: string }
+  | { readonly _tag: 'Prefix'; readonly path: string };
 
-/** What a sandboxed run is handed: its packet's folder, its answer's folder, its own mounts and environment. */
-interface SandboxPlan {
-  readonly packet: string;
-  readonly answer: string;
-  readonly mounts: ReadonlyArray<Mount>;
-  readonly env: Readonly<Record<string, string>>;
+/** What a sandboxed run may touch inside the closed folders. */
+export interface SandboxPlan {
+  /** Opened to read: the packet's folder, the program and what it reads to run. */
+  readonly reads: ReadonlyArray<Place>;
+  /** Opened to read and write: the answer's folder, the program's own state. */
+  readonly writes: ReadonlyArray<Place>;
+  /** Unreadable and unwritten even inside an opened place: other sessions, history. */
+  readonly hidden: ReadonlyArray<Place>;
 }
 
-/** The system a program runs on, and nothing of anyone's. */
-const SYSTEM: ReadonlyArray<Mount> = [
-  { _tag: 'Read', from: '/usr', to: '/usr', optional: false },
-  // Links into /usr on a merged system, folders of their own on another.
-  ...['/bin', '/sbin', '/lib', '/lib64'].map((dir): Mount => ({
-    _tag: 'Read',
-    from: dir,
-    to: dir,
-    optional: true,
-  })),
-  // Names, TLS roots and users; `/etc/resolv.conf` may link into the resolver's folder.
-  { _tag: 'Read', from: '/etc', to: '/etc', optional: false },
-  { _tag: 'Read', from: '/run/systemd/resolve', to: '/run/systemd/resolve', optional: true },
+/** What is closed to reading but where a plan opens it: every home, the temp folders, other volumes. */
+export const CLOSED: ReadonlyArray<Place> = [
+  { _tag: 'Tree', path: '/Users' },
+  { _tag: 'Tree', path: '/Volumes' },
+  { _tag: 'Tree', path: '/private/tmp' },
+  { _tag: 'Tree', path: '/private/var/folders' },
+  { _tag: 'Tree', path: '/private/var/tmp' },
 ];
 
-/** `mount` as bwrap's words. */
-const mountArgs = (mount: Mount): ReadonlyArray<string> => {
-  if (mount._tag === 'Read') {
-    if (mount.optional) return ['--ro-bind-try', mount.from, mount.to];
-    return ['--ro-bind', mount.from, mount.to];
-  }
-  if (mount._tag === 'Write') return ['--bind', mount.from, mount.to];
-  if (mount._tag === 'Link') return ['--symlink', mount.target, mount.to];
-  return ['--tmpfs', mount.to];
+/** `text` as an SBPL string's body: its backslashes and quotes escaped. */
+const quoted = (text: string) => `"${text.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
+
+/** `text` as a regex matching it literally, for a `Prefix`. */
+const literally = (text: string) => text.replaceAll(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+
+/** `place` as an SBPL filter. */
+const filterOf = (place: Place): string => {
+  if (place._tag === 'Tree') return `(subpath ${quoted(place.path)})`;
+  return `(regex ${quoted(`^${literally(place.path)}`)})`;
 };
 
-/** bwrap's argv that runs `command` in `plan`'s sandbox, from `SEEN.packet`. */
+/** One rule over `places`; none when there are none. */
+const rule = (verdict: 'allow' | 'deny', ops: string, places: ReadonlyArray<Place>) =>
+  Arr.match(places, {
+    onEmpty: () => [],
+    onNonEmpty: (some) => [`(${verdict} ${ops} ${some.map(filterOf).join(' ')})`],
+  });
+
+/**
+ * The Seatbelt profile that runs a program in `plan`'s sandbox. A later rule
+ * wins over an earlier one it overlaps, so the order is the policy: allow
+ * all, then write nowhere but `/dev`, read nothing closed, open the plan's
+ * reads and writes, and hide what it hides.
+ */
+export const profileOf = (plan: SandboxPlan): string =>
+  [
+    '(version 1)',
+    '(allow default)',
+    '(deny file-write*)',
+    '(allow file-write* (subpath "/dev"))',
+    ...rule('deny', 'file-read-data', CLOSED),
+    ...rule('allow', 'file-read-data', [...plan.reads, ...plan.writes]),
+    ...rule('allow', 'file-write*', plan.writes),
+    ...rule('deny', 'file-read-data file-write*', plan.hidden),
+  ].join('\n');
+
+/** The argv that runs `command` in `plan`'s sandbox. */
 export const sandboxArgs = (
   plan: SandboxPlan,
   command: ReadonlyArray<string>,
-): ReadonlyArray<string> => [
-  // Its own namespaces but the network; gone with its parent; no way back to the terminal.
-  '--unshare-all',
-  '--share-net',
-  '--die-with-parent',
-  '--new-session',
-  ...SYSTEM.flatMap(mountArgs),
-  '--proc',
-  '/proc',
-  '--dev',
-  '/dev',
-  '--tmpfs',
-  '/tmp',
-  ...mountArgs({ _tag: 'Read', from: plan.packet, to: SEEN.packet, optional: false }),
-  ...mountArgs({ _tag: 'Write', from: plan.answer, to: SEEN.answer }),
-  ...plan.mounts.flatMap(mountArgs),
-  '--clearenv',
-  ...Object.entries(plan.env).flatMap(([name, value]) => ['--setenv', name, value]),
-  '--chdir',
-  SEEN.packet,
-  '--',
-  ...command,
-];
+): ReadonlyArray<string> => ['sandbox-exec', '-p', profileOf(plan), ...command];

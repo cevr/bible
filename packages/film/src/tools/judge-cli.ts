@@ -1,7 +1,8 @@
 // `film judge`: a blind second opinion on one picture choice at one scene
 // (`tools/judge.ts`). It draws each version's stills (a look's levels through
 // the lab's easel at FILM_LAB_URL, a render set's variants from their
-// videos), sends the packet to `okra counsel --deep`, and prints a few short
+// videos), sends the packet to a fresh Opus (`Counsel`, headless Claude in
+// macOS's sandbox), and prints a few short
 // lines: the verdict's path, the ranking in real names beside the owner's
 // pick, and the counsel's answer's path; or one JSON line (`--json`). The
 // packet never comes back in what it prints. It writes no choice.
@@ -89,6 +90,6 @@ export const judge = (films: string, rules: ReadonlyArray<JudgeRule>) =>
   ).pipe(
     Command.provide(Layer.mergeAll(FetchHttpClient.layer, Counsel.layer)),
     Command.withDescription(
-      "A blind second opinion on one picture choice at a scene: each version's stills at the same moments (a look's levels drawn through the lab's easel, a render set's variants from their videos), labelled at random, ranked against the film's rules by okra counsel --deep in a sandbox that reads only the packet; prints the verdict's path and the ranking. Writes no choice",
+      "A blind second opinion on one picture choice at a scene: each version's stills at the same moments (a look's levels drawn through the lab's easel, a render set's variants from their videos), labelled at random, ranked against the film's rules by a fresh Opus at max effort (headless Claude) in a macOS sandbox that reads only the packet; prints the verdict's path and the ranking. Writes no choice",
     ),
   );

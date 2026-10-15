@@ -57,7 +57,7 @@ bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.j
 bun run look <film> --scene <id> --at <place> [--at …]  # stills of the scene as its sources stand, from the running lab's warm page in about a second (no render): out/<film>/look/<scene>/…, one line per still; a place is seconds into the scene, mark:<name> or cue:<name>[@0..1] (FILM_LAB_URL, else :8229)
 bun run look <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer, or its failure as the route answers it (`ToolFailure`), as one line
 bun run look <film> ... --level <look>=<level>  # a wedge: that look (palette.ts's looks) drawn at that level instead of the one it plays, the pick left unwritten
-bun run judge <film> --scene <id> [--point look:<name>|render:<address>] [--captions] [--json]  # a blind second opinion on one picture choice: every version's stills at the scene's marks and cue middles, labelled at random, ranked against CRAFT and the director's vision by okra counsel --deep in a bwrap sandbox that reads only the packet; prints the verdict's path (out/<film>/judge/<scene>-<stamp>-<draw>/verdict.md) and the ranking; writes no choice
+bun run judge <film> --scene <id> [--point look:<name>|render:<address>] [--captions] [--json]  # a blind second opinion on one picture choice: every version's stills at the scene's marks and cue middles, labelled at random, ranked against CRAFT and the director's vision by a fresh Opus at max effort (headless Claude) in a macOS sandbox that reads only the packet; prints the verdict's path (out/<film>/judge/<scene>-<stamp>-<draw>/verdict.md) and the ranking; writes no choice
 bun run journal <film> note "text" [--scene <id>]   # append an observation to src/films/<film>/journal.md (committed), dated and placed; an empty note is refused
 bun run journal <film> read [--scene <id>] [--last N]  # the newest N entries (20), oldest first, one line each, under 8,000 characters
 bun run project <film> [--variant v] [--json]  # every scene: its render current, stale, stale:sound or missing, approved or not, its comments
@@ -377,14 +377,15 @@ the colour script, the paper and what we never do for every beat; human
 scale, figures and staging for a STORY beat; words off the picture,
 repetition and type for an IDEA beat). It never says which version is
 newer, which is picked or who made it, nor where anything lives (each still
-is named by its path beside the packet). The counsel reads it in a sandbox
-(bubblewrap, `bwrap`, which must be installed) that shows it the packet's
-folder (the packet and the stills, under the system's temp folder) and what
-okra and Codex need to run, and no other file: no earlier judge's folder,
-no look file, no repo, no cache. The network is shared, since Codex needs
-the internet, so the lab stays reachable on this machine's loopback, though
-nothing in the sandbox says it is there. The key stays in the judge's
-memory until the counsel has answered. `okra counsel --deep` (Codex)
+is named by its path beside the packet). The counsel, a fresh Opus at max effort
+(headless Claude Code, its customizations off and Read its one tool), reads
+it under macOS's sandbox (`sandbox-exec`) that opens it the packet's folder
+(the packet and the stills, under the system's temp folder) and what Claude
+needs to run, and no other file: no earlier judge's folder, no look file,
+no repo, no cache, none of the owner's other sessions. The network is
+shared, since the counsel needs the internet, so the lab stays reachable on
+this machine's loopback, though nothing in the sandbox says it is there.
+The key stays in the judge's memory until the counsel has answered. It
 answers with a ranking (one
 whole line: labels and `>` or `=`, or exactly `no preference`) and, for
 each version, the still and the rule that decide it. The judge unblinds
