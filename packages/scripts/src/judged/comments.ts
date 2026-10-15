@@ -6,7 +6,7 @@
 // as one item, with its file and its first line.
 
 import { Glob, JSONC } from 'bun';
-import { Effect, FileSystem, Path, Schema, Stream } from 'effect';
+import { Effect, FileSystem, Option, Path, Schema, Stream } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 import { parseSync } from 'oxc-parser';
@@ -27,18 +27,62 @@ interface Block {
 
 const HUNK = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
 
-/** The new-side lines each file's hunks add or change, read from `git diff --unified=0`. */
+/** The byte each of git's C escapes stands for (`\t`, `\"`); an octal escape is its own. */
+const ESCAPED = new Map([
+  ['a', 7],
+  ['b', 8],
+  ['t', 9],
+  ['n', 10],
+  ['v', 11],
+  ['f', 12],
+  ['r', 13],
+  ['"', 34],
+  ['\\', 92],
+]);
+
+/** The bytes one escape (`\303`, `\"`) of a quoted name stands for. */
+const escapedByte = (escape: string) => {
+  if (/^[0-7]{3}$/.test(escape)) return parseInt(escape, 8);
+  return Option.getOrElse(Option.fromUndefinedOr(ESCAPED.get(escape)), () => escape.charCodeAt(0));
+};
+
+/** A name as git writes it in a header: C-quoted (`"b/say \"hi\".ts"`, octal for bytes) when it must be. */
+const unquoted = (name: string) => {
+  if (!name.startsWith('"') || !name.endsWith('"')) return name;
+  const encoder = new TextEncoder();
+  const bytes = [...name.slice(1, -1).matchAll(/\\([0-7]{3}|.)|([^\\]+)/gsu)].flatMap((match) =>
+    Option.match(Option.fromUndefinedOr(match[2]), {
+      onSome: (run) => [...encoder.encode(run)],
+      onNone: () => [escapedByte(match[1] ?? '')],
+    }),
+  );
+  return new TextDecoder().decode(new Uint8Array(bytes));
+};
+
+/**
+ * The new-side lines each file's hunks add or change, read from `git diff
+ * --unified=0 --dst-prefix=b/`. A file's `+++` header is read only between
+ * its `diff --git` row and its first hunk, so an added line that starts `++`
+ * is code; the name loses the TAB git ends a name with a space by.
+ */
 const changedLines = (diff: string): ReadonlyMap<string, ReadonlySet<number>> => {
   const changed = new Map<string, Set<number>>();
   let lines = new Set<number>();
+  let header = false;
   for (const row of diff.split('\n')) {
-    if (row.startsWith('+++ ')) {
+    if (row.startsWith('diff --git ')) {
+      header = true;
       lines = new Set<number>();
-      if (row.startsWith('+++ b/')) changed.set(row.slice('+++ b/'.length), lines);
+      continue;
+    }
+    if (header && row.startsWith('+++ ')) {
+      const name = unquoted(row.slice('+++ '.length).replace(/\t$/, ''));
+      if (name.startsWith('b/')) changed.set(name.slice('b/'.length), lines);
       continue;
     }
     const hunk = HUNK.exec(row);
     if (!hunk) continue;
+    header = false;
     const start = Number(hunk[1]);
     const count = Number(hunk[2] ?? '1');
     for (let line = start; line < start + count; line++) lines.add(line);
@@ -187,8 +231,15 @@ export const changedComments = Effect.fn('judged.changedComments')(function* (
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const mergeBase = (yield* git(root, ['merge-base', base, 'HEAD'])).trim();
+  // The prefixes and quotePath are set here, over whatever the repo's or the
+  // user's git config says of them (diff.noprefix, diff.mnemonicPrefix).
   const diff = yield* git(root, [
+    '-c',
+    'core.quotePath=false',
     'diff',
+    '--src-prefix=a/',
+    '--dst-prefix=b/',
+    '--no-relative',
     '--unified=0',
     '--no-color',
     '--no-ext-diff',

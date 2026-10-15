@@ -149,6 +149,55 @@ describe('the changed-comments selector', () => {
       ),
   );
 
+  it.live('reads a file whose name has a space, a letter past ASCII, or a quote', () =>
+    withFs(
+      Effect.gen(function* () {
+        const comment = ['// a comment'];
+        const dir = yield* repo(
+          {},
+          { 'src/a b.ts': comment, 'src/café.ts': comment, 'src/say "hi".ts': comment },
+          {},
+        );
+        expect((yield* changedComments(dir, 'main')).map((item) => item.file).sort()).toEqual([
+          'src/a b.ts',
+          'src/café.ts',
+          'src/say "hi".ts',
+        ]);
+      }),
+    ),
+  );
+
+  it.live("reads the diff whatever the repo's git config says of its prefixes", () =>
+    withFs(
+      Effect.gen(function* () {
+        for (const setting of ['diff.noprefix', 'diff.mnemonicPrefix']) {
+          const dir = yield* repo({}, { 'src/a.ts': ['// a comment'] }, {});
+          yield* git(dir, 'config', setting, 'true');
+          expect(yield* changedComments(dir, 'main')).toEqual([
+            { file: 'src/a.ts', line: 1, text: 'a comment' },
+          ]);
+        }
+      }),
+    ),
+  );
+
+  it.live('reads an added line that starts with ++ as code, not a file header', () =>
+    withFs(
+      Effect.gen(function* () {
+        // Two hunks: the added `++ x;` (git's row `+++ x;`), then a changed comment.
+        const base = ['let x = 0;', 'const a = 1;', '// old words', 'const y = 1;'];
+        const dir = yield* repo(
+          { 'src/a.ts': base },
+          { 'src/a.ts': ['let x = 0;', '++ x;', 'const a = 1;', '// new words', 'const y = 1;'] },
+          {},
+        );
+        expect(yield* changedComments(dir, 'main')).toEqual([
+          { file: 'src/a.ts', line: 4, text: 'new words' },
+        ]);
+      }),
+    ),
+  );
+
   it.live('fails, tagged, when git fails or the lint config does not read', () =>
     withFs(
       Effect.gen(function* () {
