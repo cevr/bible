@@ -1651,7 +1651,7 @@ once.
 | `GET /api/films/<film>/script/takes/:file` | a staging take's audio, by the name `Ready` gives it (immutable: named by its request's key); any other name a 404                                                                      |
 | `POST /api/films/<film>/script/marks`      | `MarksPost` (`{ beat, marks }`): the beat's delivery marks rewritten in its `say` as one write of `script.ts` (`LabWrite`), its words unchanged; a mark that does not fit them a 422    |
 
-Every spoken beat's staging take is kept ready (`tools/script-voice.ts`): `film lab` voices each beat the staging cache keeps no take for, the films a reader has open first, two at a time, each charged against the day's cap (`FILM_STAGING_DAILY_CAP`) before it is sent; `FILM_STAGING_FILL=false` turns that off, and a beat then reads `Unvoiced`. No film's timings or takes are written: `film narrate` makes a cached take the film's own at no cost.
+Every spoken beat's staging take is kept ready (`tools/script-voice.ts`) in a lab started with `FILM_STAGING_FILL=true`, the owner's (off by default: the fill spends ElevenLabs characters, so a spare lab spends none). That lab voices each beat the staging cache keeps no take for, the films a reader has open first, two at a time, each charged against the day's cap (`FILM_STAGING_DAILY_CAP`) before it is sent; with the fill off a beat reads `Unvoiced`. A take that misread its line is read again only once the local day it was made (its record's `at`) has passed, so a restart or a second lab pays no more that day. A fill that dies is logged (`staging.fill.died`) and leaves the lab up. No film's timings or takes are written: `film narrate` makes a cached take the film's own at no cost.
 
 ### Series drafts
 

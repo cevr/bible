@@ -8,22 +8,21 @@
 // cost). A series draft (`series-drafts.ts`) is voiced the same way, in the
 // staging voice, its takes kept by the same keys.
 //
-// With the fill on (`FILM_STAGING_FILL`, on in `film lab`), a beat the
-// cache keeps no take for is queued: the films a reader has open first, every
-// other film's and every draft's in the background as the sweep finds them, a
-// few at a time. Each is charged against the day's cap before it is sent;
-// past the cap it is refused, said in the reader, and asked again the next
-// day. A beat is asked
-// for once a session: a refusal stands until the day turns. A take that
-// misread its line is kept but never ready, and read again at most once a
-// day (`Fill.reread`).
+// With the fill on (`FILM_STAGING_FILL=true`, which only the owner's lab
+// sets: a fill spends), a beat the cache keeps no take for is queued: the
+// films a reader has open first, every other film's and every draft's in the
+// background as the sweep finds them, a few at a time. Each is charged
+// against the day's cap before it is sent; past the cap it is refused, said
+// in the reader, and asked again the next day. A beat is asked for once a
+// session: a refusal stands until the day turns. A take that misread its
+// line is kept but never ready, and read again only once the local day it
+// was made (its record's `at`) has passed: at most once a day, by any lab.
 
 import {
   Array as Arr,
   Clock,
   Config,
   Context,
-  DateTime,
   Duration,
   Effect,
   Layer,
@@ -42,7 +41,13 @@ import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import type { FreshError } from './fresh-film.ts';
 import { MAX_WORD_ERROR, Narrator } from './narrator.ts';
 import { draftKey, SeriesDrafts } from './series-drafts.ts';
-import { type StagedTake, type StagingAsk, StagingCache, stagingRequest } from './staging.ts';
+import {
+  dayOf,
+  type StagedTake,
+  type StagingAsk,
+  StagingCache,
+  stagingRequest,
+} from './staging.ts';
 import { StudioReadings } from './studio.ts';
 
 /** How many takes are voiced at once. */
@@ -56,9 +61,9 @@ const saysLine = (take: StagedTake): boolean => take.wer <= MAX_WORD_ERROR;
 
 /**
  * A kept take as the reader has it: ready to hear, or refused, saying what
- * was heard, when it misread its line. A misread is read again once more the
- * day it is found and once each day after (`Fill.reread`), never more: a
- * misread costs a bounded few readings, and a fluke heals by itself.
+ * was heard, when it misread its line. A misread is read again once the day
+ * it was made has passed (`rereadDue`), never sooner: a misread costs a
+ * reading a day at most, and a fluke heals by itself the next day.
  */
 const readyOrMisread = (take: StagedTake): StagingTake => {
   if (!saysLine(take))
@@ -74,9 +79,17 @@ interface Job {
   readonly key: string;
   readonly ask: StagingAsk;
   readonly heardAs: HeardAs;
-  /** Whether the cache keeps a take for it that misread its line: asked again at most once a day. */
-  readonly misread: boolean;
+  /** Whether the cache keeps a take for it that misread its line on an earlier day than today (`rereadDue`). */
+  readonly reread: boolean;
 }
+
+/**
+ * Whether a kept take is read again `today`: it misread its line, and the
+ * local day it was made (its record's `at`) is before today. Read from the
+ * take's own record, so a restart or a second lab asks no more than one.
+ */
+const rereadDue = (take: StagedTake, today: string): boolean =>
+  !saysLine(take) && dayOf(take.at) < today;
 
 /** What the fill has asked for this session: queued (the readers' first), and refused, with why, by key. */
 interface Fill {
@@ -87,9 +100,7 @@ interface Fill {
   /** Being voiced now. */
   readonly voicing: ReadonlySet<string>;
   readonly refused: ReadonlyMap<string, string>;
-  /** The misread takes asked again today: none is asked twice in a day. */
-  readonly reread: ReadonlySet<string>;
-  /** The local day the refusals and rereads are of: a new day asks again. */
+  /** The local day the refusals are of: a new day asks again. */
   readonly day: string;
 }
 
@@ -99,7 +110,6 @@ const NO_FILL: Fill = {
   background: [],
   voicing: new Set(),
   refused: new Map(),
-  reread: new Set(),
   day: '',
 };
 
@@ -119,26 +129,15 @@ const asksOf = (voice: Voice, beats: ReadonlyArray<ReadBeat>): ReadonlyArray<Sta
   );
 };
 
-/** Whether a beat is to be voiced: no take is kept for it, or the one kept misread its line. */
+/** Whether a beat is to be voiced: no take is kept for it, or the one kept misread its line before today. */
 const wanted = (beat: { readonly job: Job; readonly kept: Option.Option<StagedTake> }): boolean =>
-  Option.isNone(beat.kept) || beat.job.misread;
+  Option.isNone(beat.kept) || beat.job.reread;
 
-/**
- * `jobs` queued in `fill`: none twice, none refused, no misread asked again
- * today already; each misread queued is marked asked again today.
- */
+/** `jobs` queued in `fill`: none twice, none refused. */
 const queued = (fill: Fill, jobs: ReadonlyArray<Job>, urgent: boolean): Fill => {
   if (!fill.running) return fill;
-  const fresh = jobs.filter(
-    (j) =>
-      !fill.refused.has(j.key) &&
-      !fill.voicing.has(j.key) &&
-      !(j.misread && fill.reread.has(j.key)),
-  );
-  return {
-    ...queuedIn(fill, fresh, urgent),
-    reread: new Set([...fill.reread, ...fresh.filter((j) => j.misread).map((j) => j.key)]),
-  };
+  const fresh = jobs.filter((j) => !fill.refused.has(j.key) && !fill.voicing.has(j.key));
+  return queuedIn(fill, fresh, urgent);
 };
 
 /** `fresh` jobs placed in `fill`'s queues: urgent ones first, moved up when already queued behind. */
@@ -226,17 +225,20 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
         readonly heardAs: HeardAs;
         readonly beats: ReadonlyArray<ReadBeat>;
       }) =>
-        Effect.forEach(asksOf(reading.voice, reading.beats), (ask) => {
-          const key = stagingRequest(ask).key;
-          return Effect.map(cache.get(key), (kept) => ({
-            job: {
-              key,
-              ask,
-              heardAs: reading.heardAs,
-              misread: Option.exists(kept, (t) => !saysLine(t)),
-            } satisfies Job,
-            kept,
-          }));
+        Effect.gen(function* () {
+          const today = dayOf(yield* Clock.currentTimeMillis);
+          return yield* Effect.forEach(asksOf(reading.voice, reading.beats), (ask) => {
+            const key = stagingRequest(ask).key;
+            return Effect.map(cache.get(key), (kept) => ({
+              job: {
+                key,
+                ask,
+                heardAs: reading.heardAs,
+                reread: Option.exists(kept, (t) => rereadDue(t, today)),
+              } satisfies Job,
+              kept,
+            }));
+          });
         });
 
       /** Each spoken beat of `film`, its job, and its take as the cache keeps it. */
@@ -269,7 +271,13 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
       /** A beat's take as the reader shows it: ready, else voicing, else refused (past the cap, or misread), else unvoiced. */
       const takeOf = (fill: Fill, key: string, kept: Option.Option<StagedTake>): StagingTake => {
         const ready = Option.filter(kept, saysLine);
-        if (Option.isSome(ready)) return readyOrMisread(ready.value);
+        if (Option.isSome(ready))
+          return {
+            _tag: 'Ready',
+            file: ready.value.file,
+            duration: ready.value.duration,
+            words: ready.value.words,
+          };
         if (asked(fill, key)) return { _tag: 'Voicing' };
         const refused = Option.fromNullishOr(fill.refused.get(key));
         if (Option.isSome(refused)) return { _tag: 'Refused', reason: refused.value };
@@ -312,19 +320,10 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
 
       /** A new day asks again what the last refused. */
       const newDay = Effect.gen(function* () {
-        const today = DateTime.formatIsoDate(
-          DateTime.makeZonedUnsafe(yield* Clock.currentTimeMillis, {
-            timeZone: DateTime.zoneMakeLocal(),
-          }),
-        );
+        const today = dayOf(yield* Clock.currentTimeMillis);
         yield* Ref.update(state, (fill) => {
           if (fill.day === today) return fill;
-          return {
-            ...fill,
-            day: today,
-            refused: new Map<string, string>(),
-            reread: new Set<string>(),
-          };
+          return { ...fill, day: today, refused: new Map<string, string>() };
         });
       });
 
@@ -417,5 +416,21 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
   );
 }
 
-/** Whether `film lab` keeps every beat's staging take ready (`FILM_STAGING_FILL`): on unless it is `false`. */
-export const stagingFill = Config.Boolean('FILM_STAGING_FILL').pipe(Config.withDefault(true));
+/**
+ * `fill` run beside the lab, in the caller's scope: a defect in it (a
+ * voicer's die) ends the fill, logged as `staging.fill.died`, never the
+ * lab. Interrupted with the scope.
+ */
+export const fillBeside = (fill: Effect.Effect<never>) =>
+  Effect.forkScoped(
+    Effect.catchDefect(fill, (defect) =>
+      Effect.logError(`staging.fill.died cause="${String(defect)}"`),
+    ),
+  );
+
+/**
+ * Whether `film lab` keeps every beat's staging take ready
+ * (`FILM_STAGING_FILL`): off unless it is `true`, since the fill spends
+ * ElevenLabs characters, and only the owner's lab start says so.
+ */
+export const stagingFill = Config.Boolean('FILM_STAGING_FILL').pipe(Config.withDefault(false));
