@@ -653,7 +653,9 @@ export const makeTab = (
      * speed, and so whether it flings, from its moves' times: a gesture's later moves and a
      * drag's lift are `paced`, a frame after the last, so the speed is the case's and not
      * the load on the machine sending them; any other report is stamped `now`, never before
-     * the last.
+     * the last. So a gesture sent faster than a frame a move is stamped ahead of the wall
+     * clock, and the next `now` report follows it there. Chrome takes such stamps; the
+     * `@bible/ui` browser tests instead keep theirs never behind the wall clock.
      */
     let stamped = 0;
     const stamp = (pace: Pace) =>

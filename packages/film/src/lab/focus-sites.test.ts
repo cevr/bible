@@ -8,7 +8,9 @@
 // of it that moves the focus for its caller: `focusPoint`, `focusVariant`,
 // `goToPoint`), or a kit popup's `initialFocus` or `finalFocus`, which the
 // kit focuses when the popup opens or closes. A popup's `() => false` moves
-// nothing (the kit leaves the focus where it is) and is no site.
+// nothing (the kit leaves the focus where it is) and is no site. A popup with
+// neither prop takes the kit's default, which focuses it on open; the scan
+// cannot see that default, so those popups are the e2e walk's alone.
 
 import { BunServices } from '@effect/platform-bun';
 import { Effect, FileSystem, Path } from 'effect';
