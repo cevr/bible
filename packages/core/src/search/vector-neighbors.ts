@@ -51,7 +51,7 @@ type VectorNeighborsState =
  *
  *  A typed failure the vector leg degrades on, the same way it degrades on an
  *  embedder that declines: the lexical leg's answer still stands. */
-class VectorNeighborsUnavailable extends Schema.TaggedError<VectorNeighborsUnavailable>()(
+export class VectorNeighborsUnavailable extends Schema.TaggedError<VectorNeighborsUnavailable>()(
   'Search/VectorNeighborsUnavailable',
   {
     engine: Schema.String,
