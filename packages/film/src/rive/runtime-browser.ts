@@ -11,6 +11,7 @@ import { Effect, Layer, Option } from 'effect';
 import { HttpClient } from 'effect/http';
 import type { RiveEngine } from '../canvas/rive.ts';
 import { RigUnloadable } from '../core/errors.ts';
+import { onceScoped } from '../core/once.ts';
 import { RiveRuntime } from './runtime.ts';
 
 /** Each engine's module, loaded with the first rig it draws. */
@@ -59,8 +60,8 @@ export const RiveRuntimeBrowser = Layer.effect(
   RiveRuntime,
   Effect.gen(function* () {
     const http = yield* HttpClient.HttpClient;
-    const canvas = yield* Effect.cached(ENGINES.canvas);
-    const webgl2 = yield* Effect.cached(ENGINES.webgl2);
+    const canvas = yield* onceScoped(ENGINES.canvas);
+    const webgl2 = yield* onceScoped(ENGINES.webgl2);
     const runtimes = { canvas, webgl2 } satisfies Record<
       RiveEngine,
       Effect.Effect<RiveCanvas, RigUnloadable>

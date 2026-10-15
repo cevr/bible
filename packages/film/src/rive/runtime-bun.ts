@@ -11,6 +11,7 @@ import { BunFileSystem } from '@effect/platform-bun';
 import { Effect, FileSystem, Layer } from 'effect';
 import { standInDom } from '../canvas/fixtures/stand-in.ts';
 import { RigUnloadable } from '../core/errors.ts';
+import { onceScoped } from '../core/once.ts';
 import { RiveRuntime } from './runtime.ts';
 
 /** The WebGL 2 runtime's module, loaded with the first rig. */
@@ -42,7 +43,7 @@ export const RiveRuntimeBun = Layer.effect(
   RiveRuntime,
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const runtime = yield* Effect.cached(
+    const runtime = yield* onceScoped(
       fs.readFile(glWasm).pipe(
         Effect.mapError((error) => unstarted(error.message)),
         Effect.flatMap(started),

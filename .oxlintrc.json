@@ -72,6 +72,12 @@
     "effect/noUnsafeDictionaryType": "error",
     "effect/noWidenThenAssert": "error",
     "effect/preferEffectFn": "error",
+    // Off: effect 4.0.2's Effect.cached runs in a fiber of its own and never
+    // keeps an interruption (a run every caller has left is given up and run
+    // again), so the rule's premise does not hold here. A run nothing stops
+    // once begun, where a second run beside it costs a resource, is made once
+    // by `onceScoped` (packages/film/src/core/once.ts: the Rive engines).
+    "effect/noInterruptibleMemo": "off",
     // A test waits on the event it asserts (a Deferred, a Latch, a condition
     // wait), never a fixed time: under load the fixed wait guesses wrong.
     "effect/noFixedWaitInTests": "error"
