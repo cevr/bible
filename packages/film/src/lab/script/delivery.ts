@@ -3,7 +3,8 @@
 // pause in the gap before it, the marks a tap on Stress or a gap's choice
 // leaves, the take's pace against the band the delivery rules time a line
 // at, the word heard at a moment of the take, and the stretch of the take
-// that says words `from`–`to`. Pure, so the reader and its tests share it.
+// that says words `from`–`to`, and whether a poll of the takes shows a
+// line changed under the reader. Pure, so the reader and its tests share it.
 
 import { Array as Arr, Option, Result } from 'effect';
 import {
@@ -15,6 +16,7 @@ import {
   wordsAMinute,
 } from '../../core/delivery.ts';
 import { parse } from '../../core/narration.ts';
+import type { StagingTake } from '../../core/api.ts';
 import type { TakeWord } from '../../core/schema.ts';
 
 /** The seconds a hold is picked from: no text box, a tap on one. */
@@ -105,3 +107,22 @@ export const spanOf = (
     start: first.start,
     end: last.end,
   }));
+
+/**
+ * Whether the takes `now` show a line changed since `before`: a beat whose
+ * take was ready is now another file, or none ready. A take is keyed by its
+ * line's words and marks, so its file changes only when the line does (or
+ * the film's voice); a take first made (still voicing, then ready) is not a
+ * change.
+ */
+export const retaken = (
+  before: ReadonlyMap<string, StagingTake>,
+  now: ReadonlyMap<string, StagingTake>,
+): boolean =>
+  Arr.some([...before], ([beat, was]) => {
+    if (was._tag !== 'Ready') return false;
+    return Option.exists(
+      Option.fromUndefinedOr(now.get(beat)),
+      (is) => is._tag !== 'Ready' || is.file !== was.file,
+    );
+  });

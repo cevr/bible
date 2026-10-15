@@ -113,6 +113,7 @@ export const DraftReader = (props: {
           },
           takeUrl: (file) => draftTakeUrl(props.series, props.draft, file),
           written: 'marked in the draft',
+          reread: again,
         }}
       />
     </Show>

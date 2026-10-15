@@ -448,6 +448,46 @@ describe("an agent's ask on a phone", () => {
   );
 
   it.live(
+    "a line changed under the reader is read again once the voice's poll sees its take change",
+    () =>
+      Effect.gen(function* () {
+        // Someone else marks the line: the lab's next voice read has a new take for it (a take's
+        // file is keyed by its words and marks), and the script, read again, the new marks.
+        let polls = 0;
+        const routes: ReadonlyArray<FakeRoute> = [
+          route('GET', new RegExp(`^/api/asks/${SCRIPT_ASK}$`), () => json(scriptAsk)),
+          route('GET', /^\/api\/films\/toy\/script$/, () => {
+            if (polls > 1) return json(said('The first thing {*}God gave was breath.'));
+            return json(said('The first thing God {*}gave was breath.'));
+          }),
+          route('GET', /^\/api\/films\/toy\/script\/voice$/, () => {
+            polls += 1;
+            if (polls === 1) return json(draftVoice);
+            const [first, ...rest] = (draftVoice as { beats: ReadonlyArray<Json> }).beats;
+            const take = (first as { take: Record<string, Json> }).take;
+            return json({
+              ...(draftVoice as Record<string, Json>),
+              beats: [{ id: '1', take: { ...take, file: 'k1-marked.mp3' } }, ...rest],
+            });
+          }),
+          ...studioRoutes,
+        ];
+        const { page, errors } = yield* openReview(routes, {
+          href: pageHref.ask(SCRIPT_ASK),
+          viewport: PHONE,
+        });
+        yield* waitFor(page, ASK_READY);
+        const word = (i: number) =>
+          `.lab-script-beat[data-beat="1"] .lab-script-w[data-index="${i}"]`;
+        yield* waitFor(page, `${word(4)}[data-stress="true"]`);
+        yield* waitFor(page, `${word(3)}[data-stress="true"]`);
+        yield* countIs(page, `${word(4)}[data-stress="true"]`, 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'a guided review: each section its material in place, then its question; the recommendation first; it fits a phone',
     () =>
       Effect.gen(function* () {

@@ -81,6 +81,7 @@ export const FilmScriptReader = (props: {
             ),
           takeUrl: (file) => stagingTakeUrl(props.film, file),
           written: 'marked in the script',
+          reread: again,
         }}
       />
     </Show>

@@ -413,6 +413,8 @@ interface ScriptSource {
   readonly takeUrl: (file: string) => string;
   /** What a beat's head says once its marks are written. */
   readonly written: string;
+  /** Reads the script again: a line changed under the reader. */
+  readonly reread: () => void;
 }
 
 /**
@@ -439,6 +441,7 @@ export const ScriptReader = (props: {
     host: meta.host,
     player: Option.none(),
     written: props.source.written,
+    reread: Option.some(() => props.source.reread()),
   };
   return (
     <VoiceOver source={voice}>

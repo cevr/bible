@@ -10,6 +10,7 @@ import {
   gapSet,
   heardAt,
   paceOf,
+  retaken,
   spanOf,
   stressToggled,
 } from './delivery.ts';
@@ -69,5 +70,20 @@ describe('a staging take as the reader plays it', () => {
     expect(heardAt(words, 0.7)).toEqual(Option.some(1));
     expect(spanOf(words, 1, 2)).toEqual(Option.some({ start: 0.6, end: 1.6 }));
     expect(spanOf(words, 1, 9)).toEqual(Option.none());
+  });
+});
+
+describe('retaken', () => {
+  const ready = (file: string) => ({ _tag: 'Ready', file, duration: 1, words: [] }) as const;
+  const voicing = { _tag: 'Voicing' } as const;
+  test('a ready take that is now another file, or voicing again, is a line changed', () => {
+    expect(retaken(new Map([['1', ready('a')]]), new Map([['1', ready('b')]]))).toBe(true);
+    expect(retaken(new Map([['1', ready('a')]]), new Map([['1', voicing]]))).toBe(true);
+  });
+  test('the same take, a take first made, or a beat no longer read is no change', () => {
+    expect(retaken(new Map([['1', ready('a')]]), new Map([['1', ready('a')]]))).toBe(false);
+    expect(retaken(new Map([['1', voicing]]), new Map([['1', ready('a')]]))).toBe(false);
+    expect(retaken(new Map([['1', ready('a')]]), new Map())).toBe(false);
+    expect(retaken(new Map(), new Map([['1', ready('a')]]))).toBe(false);
   });
 });

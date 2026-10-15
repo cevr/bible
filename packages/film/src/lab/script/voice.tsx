@@ -16,7 +16,15 @@ import { Array as Arr, Data, Effect, Exit, Fiber, Option, Schedule, Stream } fro
 import type * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { Accessor, ParentProps } from 'solid-js';
-import { createContext, createMemo, createSignal, onCleanup, untrack, useContext } from 'solid-js';
+import {
+  createContext,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  untrack,
+  useContext,
+} from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
 import type { Host } from '../../browser/host.ts';
 import {
@@ -31,7 +39,7 @@ import { LabApi, type LabFailure, reasonOf } from '../api.ts';
 import { useLab } from '../shell.tsx';
 import type { WordAt } from '../transcript/lit.ts';
 import { useScript } from './context.tsx';
-import { heardAt, spanOf } from './delivery.ts';
+import { heardAt, retaken, spanOf } from './delivery.ts';
 
 /** How often the takes are asked for again: often while one is still voicing, else now and then (a new day, another film's spend, a take another process made). */
 const ASKED_AGAIN = { voicing: '4 seconds', resting: '1 minute' } as const;
@@ -156,6 +164,12 @@ export interface VoiceSource {
   readonly player: Option.Option<Gives>;
   /** What a beat's head says once its marks are written. */
   readonly written: string;
+  /**
+   * Reads the script again, once a poll shows a line changed under the
+   * reader (`retaken`): none where a change to the script reloads the page
+   * (a film's Script page, rebuilt).
+   */
+  readonly reread: Option.Option<() => void>;
 }
 
 /** The staging voice over `source`, for the reader inside it (`useVoice`). */
@@ -173,6 +187,13 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
         ),
       ),
   );
+  // A line changed under the reader (another hand's marks, its takes keyed anew) is read again.
+  let seen: ReadonlyMap<string, StagingTake> = new Map();
+  createEffect(takes, (now) => {
+    const before = seen;
+    seen = now;
+    if (retaken(before, now)) Option.map(source.reread, (reread) => reread());
+  });
   const take = (id: string) => Option.fromUndefinedOr(takes().get(id));
   const readyOf = (id: string): Option.Option<Ready> =>
     Option.filter(take(id), (t): t is Ready => t._tag === 'Ready');
@@ -356,6 +377,8 @@ export const VoiceProvider = (props: ParentProps) => {
     host: meta.host,
     player: Option.some(meta.player),
     written: 'marked; the page reloads with it',
+    // A change to the script rebuilds the film, and the page reloads with it.
+    reread: Option.none(),
   };
   return <VoiceOver source={source}>{props.children}</VoiceOver>;
 };
