@@ -23,7 +23,12 @@ hash, each a record of keys to lists of values:
 One schema inside the package (`src/url-parts.ts`) runs between an href and
 its parts (`{ path, query, hash }`), and is the only code that reads or prints
 URL syntax. Path segments are percent-decoded, and printing keeps `:`, `@` and
-`,` readable.
+`,` readable. Its decoder of one component is exported, `decodeComponent`:
+a `Result` whose failure holds the text as written when an escape in it is
+broken (`%`, `%E0%A4%A`), so a caller that reads a component the schema does
+not (a legacy anchor, a file ref) names nothing for a bad one instead of
+throwing. No other code in `packages/*/src` calls `decodeURIComponent` or
+`decodeURI` (lint).
 The query prints the way `URLSearchParams` does (so `:` is `%3A` there); the
 hash prints as `k=v&…` and keeps `, : / @` readable.
 

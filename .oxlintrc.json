@@ -1417,6 +1417,37 @@
           }
         ]
       }
+    },
+    {
+      // A URL's escapes are decoded in one place, @bible/url-state's
+      // `decodeComponent` (packages/url-state/src/url-parts.ts), as a Result: a
+      // broken escape (`%`, `%E0%A4%A`) names nothing instead of throwing in a
+      // page. Tests and fixtures may decode by hand.
+      "files": ["**/packages/*/src/**/*.ts", "**/packages/*/src/**/*.tsx"],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "decodeURIComponent",
+            "message": "Decode through @bible/url-state's decodeComponent (a Result)."
+          },
+          {
+            "name": "decodeURI",
+            "message": "Decode through @bible/url-state's decodeComponent (a Result)."
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "**/packages/url-state/src/url-parts.ts",
+        "**/packages/*/src/**/*.test.ts",
+        "**/packages/*/src/**/*.test.tsx",
+        "**/packages/*/src/**/fixtures/**"
+      ],
+      "rules": {
+        "no-restricted-globals": "off"
+      }
     }
   ]
 }

@@ -300,6 +300,9 @@ describe('old links', () => {
     '/?film=.&export',
     '/?project=..',
     '/?folder=..',
+    // A card's anchor whose escape is broken names no card, and throws nothing.
+    '/films/rbf/project#point-%',
+    '/films/rbf/project#point-%E0%A4%A',
   ])('%s is not old', (href) => {
     expect(legacyPlace(href)).toEqual(Option.none());
   });

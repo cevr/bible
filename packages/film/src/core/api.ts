@@ -25,13 +25,14 @@
 // in the group's `HttpApiBuilder.group` in tools, and call it on the page
 // through the derived client. packages/film/README.md has the steps.
 
-import { Codec, Field, Place, parseHref } from '@bible/url-state';
+import { Codec, Field, Place, decodeComponent, parseHref } from '@bible/url-state';
 import {
   Array as Arr,
   Duration,
   Effect,
   Match,
   Option,
+  Result,
   Schema,
   SchemaAST,
   SchemaIssue,
@@ -1893,11 +1894,11 @@ const withFilmTime = (href: string, t: number): string => {
   );
 };
 
-/** The card an old project anchor (`#point-<id>`) names. */
+/** The card an old project anchor (`#point-<id>`) names: none when its escape is broken. */
 const cardAnchor = (hash: string): Option.Option<string> =>
-  Option.map(
+  Option.flatMap(
     Option.liftPredicate(hash, (h) => h.startsWith('#point-') && h.length > '#point-'.length),
-    (h) => decodeURIComponent(h.slice('#point-'.length)),
+    (h) => Result.getSuccess(decodeComponent(h.slice('#point-'.length))),
   );
 
 /** `href`, when it is a project, with the card of `point` in focus. */
