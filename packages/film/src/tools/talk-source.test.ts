@@ -886,6 +886,7 @@ const formatted = (texts: ReadonlyArray<string>) =>
       ChildProcess.make('bunx', ['oxfmt', `--stdin-filepath=${REPO}/packages/film/talk.ts`], {
         cwd: REPO,
         stdin: Stream.make(new TextEncoder().encode(joined)),
+        forceKillAfter: '5 seconds',
       }),
     );
     expect([done.exitCode, done.stderr]).toEqual([0, '']);

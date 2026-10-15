@@ -85,7 +85,7 @@ export class ImageRoute extends Context.Service<ImageRoute, ImageRouteService>()
         const done = yield* collectWithin(
           spawner,
           'okra image',
-          ChildProcess.make('okra', [...okraArgs(request)]),
+          ChildProcess.make('okra', [...okraArgs(request)], { forceKillAfter: '5 seconds' }),
           IMAGE_LIMIT,
         ).pipe(Effect.mapError((e) => ImageRouteFailed.make({ reason: e.message })));
         const made = yield* fs.exists(request.out).pipe(Effect.orElseSucceed(() => false));

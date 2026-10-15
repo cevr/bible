@@ -183,6 +183,7 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
                   cwd: asked.packet,
                   env: { ...how.env },
                   stdin: Stream.make(new TextEncoder().encode(asked.words)),
+                  forceKillAfter: '5 seconds',
                 }),
                 COUNSEL_LIMIT,
                 outputs,

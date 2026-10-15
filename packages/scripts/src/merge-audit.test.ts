@@ -29,7 +29,7 @@ const fixture = (dir: string) => {
   /** A command's stdout in the fixture, whatever its exit code (the merge of main conflicts). */
   const sh = (command: string, args: ReadonlyArray<string>) =>
     Effect.flatMap(ChildProcessSpawner, (spawner) =>
-      spawner.string(ChildProcess.make(command, args, { cwd: dir })),
+      spawner.string(ChildProcess.make(command, args, { cwd: dir, forceKillAfter: '5 seconds' })),
     ).pipe(Effect.map((out) => out.trim()));
   const git = (...args: ReadonlyArray<string>) => sh('git', [...GIT, ...args]);
   const commitNotes = (lines: ReadonlyArray<string>, message: string) =>

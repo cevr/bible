@@ -298,7 +298,10 @@ const lint = Effect.fn('test.lintConfig.lint')(function* (
       yield* fs.writeFileString(path.join(cwd, 'probe.ts'), source);
       yield* fs.writeFileString(path.join(cwd, 'oxlint.json'), config);
       const handle = yield* spawner.spawn(
-        ChildProcess.make(oxlint, ['-c', 'oxlint.json', '--format', 'unix', 'probe.ts'], { cwd }),
+        ChildProcess.make(oxlint, ['-c', 'oxlint.json', '--format', 'unix', 'probe.ts'], {
+          cwd,
+          forceKillAfter: '5 seconds',
+        }),
       );
       const [stdout, stderr] = yield* Effect.all(
         [

@@ -360,7 +360,10 @@ describe('lab source routes', () => {
         const dir = (yield* Path.Path).dirname(file);
         const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
         const git = (...args: ReadonlyArray<string>) =>
-          collect(spawner, ChildProcess.make('git', [...args], { cwd: dir }));
+          collect(
+            spawner,
+            ChildProcess.make('git', [...args], { cwd: dir, forceKillAfter: '5 seconds' }),
+          );
         const request = () =>
           Effect.promise(() =>
             lab(

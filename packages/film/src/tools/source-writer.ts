@@ -398,6 +398,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
           ChildProcess.make('bunx', ['oxfmt', `--stdin-filepath=${file}`], {
             cwd: path.dirname(file),
             stdin: Stream.make(new TextEncoder().encode(text)),
+            forceKillAfter: '5 seconds',
           }),
           FORMAT_LIMIT,
         ).pipe(

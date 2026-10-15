@@ -137,7 +137,10 @@ const lintFixtures = Effect.fn('test.lintFixtures')(function* () {
   return yield* Effect.scoped(
     Effect.gen(function* () {
       const handle = yield* spawner.spawn(
-        ChildProcess.make(oxlint, ['-c', 'oxlint.json', '--format', 'unix', '.'], { cwd }),
+        ChildProcess.make(oxlint, ['-c', 'oxlint.json', '--format', 'unix', '.'], {
+          cwd,
+          forceKillAfter: '5 seconds',
+        }),
       );
       const [stdout, stderr, exitCode] = yield* Effect.all(
         [text(handle.stdout), text(handle.stderr), handle.exitCode],

@@ -42,6 +42,7 @@
     "effect/noSharedTestHome": "error",
     "effect/noEagerAcquire": "error",
     "effect/noReduceAccumulatorCopy": "error",
+    "effect/requireForceKillAfter": "error",
     "effect/preferMatchTagsExhaustive": "error",
     "effect/preferPredicateIsTagged": "error",
     "effect/preferServiceOf": "error",

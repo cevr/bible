@@ -143,7 +143,11 @@ const read = Effect.fn('test.read')(function* () {
 const oxfmtCheck = Effect.fn('test.oxfmtCheck')(function* () {
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   return Number(
-    yield* spawner.exitCode(ChildProcess.make('bunx', ['oxfmt', '--check', yield* HandFile])),
+    yield* spawner.exitCode(
+      ChildProcess.make('bunx', ['oxfmt', '--check', yield* HandFile], {
+        forceKillAfter: '5 seconds',
+      }),
+    ),
   );
 });
 
@@ -156,7 +160,10 @@ describe.concurrent('scene writer', () => {
         const dir = (yield* Path.Path).dirname(yield* HandFile);
         const ran = yield* collect(
           spawner,
-          ChildProcess.make('bunx', ['oxfmt', '--version'], { cwd: dir }),
+          ChildProcess.make('bunx', ['oxfmt', '--version'], {
+            cwd: dir,
+            forceKillAfter: '5 seconds',
+          }),
         );
         expect([ran.exitCode, ran.stderr]).toEqual([0, '']);
       }).pipe(Effect.provide(fixture)),
@@ -476,7 +483,7 @@ describe.concurrent('scene writer', () => {
               // The editor saves what it had (the file before any write) and oxfmt then fails.
               const buffer = now.replace('palm: [1, 2]', 'palm: [960, 800]');
               yield* Effect.orDie(fs.writeFileString(file, `${buffer}${EDITOR_LINE}`));
-              return ChildProcess.make('sh', ['-c', 'exit 3']);
+              return ChildProcess.make('sh', ['-c', 'exit 3'], { forceKillAfter: '5 seconds' });
             }),
           ),
         ),
@@ -509,7 +516,7 @@ describe.concurrent('scene writer', () => {
             Effect.gen(function* () {
               if (!isOxfmt(command)) return command;
               yield* Deferred.succeed(hung, true);
-              return ChildProcess.make('sleep', ['30']);
+              return ChildProcess.make('sleep', ['30'], { forceKillAfter: '5 seconds' });
             }),
           ),
         ),

@@ -36,7 +36,7 @@ import {
 /** A command's stdout, whatever its exit code (a test run exits 1 on a red case). */
 const run = (command: string, args: ReadonlyArray<string>, cwd: string) =>
   Effect.flatMap(ChildProcessSpawner, (spawner) =>
-    spawner.string(ChildProcess.make(command, args, { cwd })),
+    spawner.string(ChildProcess.make(command, args, { cwd, forceKillAfter: '5 seconds' })),
   );
 
 const lines = (out: string) => out.split('\n').filter((line) => line !== '');

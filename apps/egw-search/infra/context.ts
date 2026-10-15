@@ -42,7 +42,7 @@ export const makeContext = Effect.gen(function* () {
         ChildProcess.make(
           'bun',
           ['x', 'turbo', 'prune', '@bible/egw-search', '--docker', '--out-dir', context],
-          { cwd: root, stdout: 'ignore', stderr: 'inherit' },
+          { cwd: root, stdout: 'ignore', stderr: 'inherit', forceKillAfter: '5 seconds' },
         ),
       ),
       (handle) => handle.exitCode,

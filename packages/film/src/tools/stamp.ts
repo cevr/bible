@@ -257,7 +257,10 @@ export class Stamps extends Context.Service<Stamps, StampsService>()('@bible/fil
         collectWithin(
           spawner,
           'git rev-parse',
-          ChildProcess.make('git', ['rev-parse', 'HEAD'], { cwd: dir }),
+          ChildProcess.make('git', ['rev-parse', 'HEAD'], {
+            cwd: dir,
+            forceKillAfter: '5 seconds',
+          }),
           GIT_LIMIT,
         ).pipe(
           Effect.map((done) =>

@@ -114,7 +114,9 @@ class GuardRed extends Schema.TaggedError<GuardRed>()('GuardRed', {
 const outcome = (command: string, args: ReadonlyArray<string>, cwd: string) =>
   Effect.gen(function* () {
     const spawner = yield* ChildProcessSpawner;
-    const child = yield* spawner.spawn(ChildProcess.make(command, args, { cwd }));
+    const child = yield* spawner.spawn(
+      ChildProcess.make(command, args, { cwd, forceKillAfter: '5 seconds' }),
+    );
     const [output, code] = yield* Effect.all(
       [Stream.mkString(Stream.decodeText(child.all)), child.exitCode],
       { concurrency: 2 },

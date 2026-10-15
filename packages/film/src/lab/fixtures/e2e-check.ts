@@ -123,7 +123,9 @@ const outputOf = (command: string, args: ReadonlyArray<string>) =>
   Effect.scoped(
     Effect.gen(function* () {
       const spawner = yield* ChildProcessSpawner;
-      const child = yield* spawner.spawn(ChildProcess.make(command, args, { stderr: 'ignore' }));
+      const child = yield* spawner.spawn(
+        ChildProcess.make(command, args, { stderr: 'ignore', forceKillAfter: '5 seconds' }),
+      );
       return yield* child.stdout.pipe(Stream.decodeText(), Stream.mkString);
     }),
   );
@@ -235,7 +237,11 @@ const check = (flags: Effect.Success<ReturnType<typeof flagsOf>>) =>
       Effect.gen(function* () {
         const file = yield* fs.open(log, { flag: 'w' });
         const child = yield* spawner.spawn(
-          ChildProcess.make('bun', ['run', 'test:e2e'], { cwd: pkg, stdin: 'inherit' }),
+          ChildProcess.make('bun', ['run', 'test:e2e'], {
+            cwd: pkg,
+            stdin: 'inherit',
+            forceKillAfter: '5 seconds',
+          }),
         );
         yield* child.all.pipe(
           Stream.tap((chunk) => file.writeAll(chunk)),
@@ -256,7 +262,9 @@ const check = (flags: Effect.Success<ReturnType<typeof flagsOf>>) =>
         Effect.gen(function* () {
           yield* Console.log(`test:e2e:check: alone ${k}/${ALONE}: ${failure.name}`);
           const [command = 'bun', ...rest] = aloneArgs(suite, failure);
-          const child = yield* spawner.spawn(ChildProcess.make(command, rest, { cwd: pkg }));
+          const child = yield* spawner.spawn(
+            ChildProcess.make(command, rest, { cwd: pkg, forceKillAfter: '5 seconds' }),
+          );
           const out = yield* child.all.pipe(Stream.decodeText(), Stream.mkString);
           yield* fs.writeFileString(
             aloneLog,
