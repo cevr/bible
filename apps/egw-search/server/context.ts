@@ -21,7 +21,7 @@
  * `idx_paragraphs_puborder (book_id, puborder)` serves exactly this shape.
  */
 
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { SqlClient } from 'effect/sql';
 
 import { readerUrl, type ContextParagraph } from './api.js';
@@ -42,6 +42,11 @@ interface WindowRow {
 }
 
 const EMPTY: Surrounding = { before: [], after: [] };
+
+/** The anchors as one JSON parameter, read back with `json_each`. A batch merges
+ *  up to eight panes' anchors, and D1 refuses a statement that binds more than
+ *  100 values; one array is one value however many anchors it holds. */
+const encodeKeys = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.String)));
 
 /** The accumulator's shape while rows are being grouped. `Surrounding` is
  *  readonly, which is what callers get; this is the same record before it is
@@ -89,7 +94,7 @@ export const surroundingParagraphs = (
       with anchors as (
         select para_id as anchor_para_id, book_id, puborder
         from paragraphs
-        where para_id in ${sql.in(paraIds)}
+        where para_id in (select value from json_each(${encodeKeys(paraIds)}))
       )
       select
         a.anchor_para_id,

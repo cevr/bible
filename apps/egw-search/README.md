@@ -12,6 +12,25 @@ beside `/api/search`, `/api/search/batch` and `/health`. For development,
 `bun run --cwd apps/egw-search dev` runs Vite on port 5273 with `/api`
 proxied to the server on port 3101.
 
+## Deploy
+
+Production is a Cloudflare Worker (`server/cloudflare/Search.ts`) declared in
+`alchemy.run.ts`. It answers the same `SearchApi` as `server/main.ts`, with the
+corpus in D1, the vectors in Vectorize and the query embedder on Workers AI
+(the table in `Search.ts` maps each one). `.github/workflows/deploy-egw-search.yml`
+deploys `prod` from `main` and a `pr-<n>` preview per pull request. For local
+work, deploy a throwaway stage and check it:
+
+```sh
+bun run --cwd apps/egw-search test:deploy
+```
+
+Every stage reads one shared corpus and index (`server/cloudflare/resources.ts`),
+adopted and retained, so a teardown removes only its Worker. They were loaded
+once from `egw-paragraphs.db` and `vectors.bvi`; the weekly sync still runs only
+in the Bun server. `alchemy.railway.ts` is the Railway deployment the Worker
+replaces, kept until the cutover holds.
+
 The URL is the search state. `src/url-state.ts` declares the workspace as a
 `@bible/url-state` place — each pane's keys, their defaults, and which changes
 push a history entry (a new query, a pane added or closed) or replace it (a

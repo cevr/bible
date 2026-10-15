@@ -3,6 +3,7 @@
 // a ten-paragraph fixture corpus through the same barrel it reaches
 // `SearchService` through — the seam `wiki/index.ts` draws for the same reason.
 export * from './embedder.js';
+export * from './embedding.js';
 export * from './fusion.js';
 export * from './model.js';
 export * from './router.js';
@@ -10,3 +11,4 @@ export * from './service.js';
 export * from './vector-artifact.js';
 export * from './vector-bytes-fs.js';
 export * from './vector-index.js';
+export * from './vector-neighbors.js';

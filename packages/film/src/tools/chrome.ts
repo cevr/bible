@@ -111,7 +111,11 @@ const spawnView = (
 /** The process's first view: Chrome spawned from the first executable found. */
 const firstView = (argv: ReadonlyArray<string>, options: ViewOptions) =>
   Effect.gen(function* () {
-    const profile = yield* profileFolder(PROFILE_ROOT);
+    const root = yield* Config.String('FILM_CHROME_PROFILES').pipe(
+      Config.withDefault(PROFILE_ROOT),
+      Effect.orDie,
+    );
+    const profile = yield* profileFolder(root);
     const named = yield* Config.option(Config.String('BUN_CHROME_PATH')).pipe(Effect.orDie);
     if (Option.isSome(named))
       return yield* Effect.flatMap(spawnView(named, argv, profile, options), (view) =>

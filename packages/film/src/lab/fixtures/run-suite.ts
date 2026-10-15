@@ -1,5 +1,7 @@
 // One invocation owns the fixture bundles and the child test process. Its
-// temporary files are released only after the workers have exited. A
+// temporary files, the workers' Chrome profiles among them (`bun test` runs
+// no exit handler to remove its own), are released only after the workers
+// have exited. A
 // `--parallel` run takes as many workers as `workersFor` gives the host.
 
 import { availableParallelism, loadavg } from 'node:os';
@@ -40,7 +42,7 @@ const run = Effect.gen(function* () {
         }),
       ],
       {
-        env: { FILM_TEST_BUNDLES: dir },
+        env: { FILM_TEST_BUNDLES: dir, FILM_CHROME_PROFILES: `${dir}/chrome` },
         extendEnv: true,
         stdin: 'inherit',
         stdout: 'inherit',
