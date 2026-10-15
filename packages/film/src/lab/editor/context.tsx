@@ -396,7 +396,9 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   );
 
   // The cue a mouse is over, in the strip or the code: a leave and the next enter on the same cue change nothing.
+  // A bar or a line gone from under the mouse gives its point up as it is disposed, a write inside its owner.
   const [pointed, setPointed] = createSignal(Option.none<PointedCue>(), {
+    ownedWrite: true,
     equals: (a, b) =>
       Option.match(b, {
         onNone: () => Option.isNone(a),

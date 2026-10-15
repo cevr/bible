@@ -18,6 +18,7 @@ import { pageHref } from '../../../src/core/api.ts';
 import { DEFAULT_EASE } from '../../../src/core/time.ts';
 import { SourceRefused, StepNotNewest } from '../../../src/core/refusals.ts';
 import { LONG, LONG_SCENE } from '../../../src/lab/fixtures/long-film.ts';
+import { TRACKED, TRACKED_SCENE } from '../../../src/lab/fixtures/tracked-film.ts';
 import { MENU_ITEMS, menuOffers, rightClick } from '../../../src/lab/fixtures/gestures.ts';
 import { probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
@@ -1586,6 +1587,83 @@ describe('the inspector', () => {
           Option.some({ request: expect.any(String), change: 'k1' }),
           Option.some({ request: expect.any(String) }),
         ]);
+      }).pipe(Effect.scoped),
+  );
+});
+
+describe('a track’s cues on the strip', () => {
+  const API = `/api/films/${TRACKED}`;
+  const SCENE_FILE = `scenes/${TRACKED_SCENE}.ts`;
+  const cueSource = (name: string) => ({
+    name,
+    offset: 'literal',
+    dur: 'literal',
+    until: 'literal',
+    ease: 'literal',
+    stagger: 'literal',
+  });
+  const trackedRoutes = [
+    route('GET', new RegExp(`^${API}/scenes/${TRACKED_SCENE}/source$`), () =>
+      json({
+        scene: TRACKED_SCENE,
+        file: SCENE_FILE,
+        cues: [cueSource('lead'), cueSource('echo')],
+        knobs: [],
+        refused: [],
+      }),
+    ),
+    route('POST', new RegExp(`^${API}/scenes/${TRACKED_SCENE}/cues/`), () =>
+      json({
+        scene: TRACKED_SCENE,
+        file: SCENE_FILE,
+        target: 'cue',
+        change: changeOf('cue', TRACKED_SCENE),
+        findings: [],
+      }),
+    ),
+  ];
+  /** Whether the two cues' bars stand on one lane. */
+  const ONE_LANE = `document.querySelector('.lab-cue[data-cue="echo"]').closest('.lab-strip-row') === document.querySelector('.lab-cue[data-cue="lead"]').closest('.lab-strip-row')`;
+
+  it.live(
+    'a bar dragged over another of its track keeps its lane while held, writes once on release, and then stacks',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab(trackedRoutes, {
+          href: pageHref.labScene(TRACKED, TRACKED_SCENE, {}, Option.some(0)),
+        });
+        yield* page.waitFor('.lab-cue[data-cue="echo"]');
+        yield* textHas(page, '.lab-strip-head', SCENE_FILE);
+        // One track, its name once, its cues apart on one lane, each saying what it is.
+        yield* textsAre(page, '.lab-cue-label', ['pair']);
+        yield* evaluates(page, ONE_LANE, true);
+        yield* textIs(
+          page,
+          '.lab-cue[data-cue="lead"] .lab-cue-words[data-room="full"]',
+          'lead 0.60 s',
+        );
+        const lead = yield* page.box('.lab-cue[data-cue="lead"]');
+        const echo = yield* page.box('.lab-cue[data-cue="echo"]');
+        const x = echo.x + echo.width / 2;
+        const y = echo.y + echo.height / 2;
+        const dx = lead.x + lead.width / 2 - echo.x;
+        yield* page.mouse.move(x, y);
+        yield* page.mouse.down;
+        for (const step of [1, 2, 3, 4]) yield* page.mouse.move(x + (dx * step) / 4, y);
+        // Over the lead now, and still on its lane: the bar that holds the pointer was not made again.
+        yield* until(
+          page,
+          `document.querySelector('.lab-cue[data-cue="echo"]').getBoundingClientRect().left < ${lead.x + lead.width}`,
+        );
+        yield* evaluates(page, ONE_LANE, true);
+        yield* page.mouse.up;
+        yield* statusSays(page, 'cue echo offset 0 → ');
+        expect(posted(asked).map((w) => w.path)).toEqual([
+          `${API}/scenes/${TRACKED_SCENE}/cues/echo`,
+        ]);
+        // Let go, the two overlap: they stack.
+        yield* countIs(page, '.lab-strip-row', 2);
+        yield* evaluates(page, ONE_LANE, false);
       }).pipe(Effect.scoped),
   );
 });

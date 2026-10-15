@@ -77,9 +77,12 @@ camera), and a misspelt track shows at once as its own row. `patchSpan` keeps it
   does not overlap, by its resolved start and end), so two moves of one actor that overlap stack and never hide
   each other. A lane is a strip row (`.lab-strip-row`), so the lab's one Follow rule (`lab/follow.ts`), the grips,
   the in/out range drag and every existing test keep working unchanged.
-- **A block's words:** its name and length (`bow 0.35 s`), its `until` (`build until {evidence}`), "holds to end"
-  for a span `until` the scene's end, written inside its bar on a track of more than one cue. A track of one cue
-  is named by that cue at the left, as today.
+- **A block's words:** its name and length (`bow 0.35 s`), its `until` (`build until {evidence}`), an end off its
+  point by how much (`near until {held} +0.20 s`), "holds to end" for a span `until` the scene's end, written inside
+  its bar on a named track (one its spans name, however many cues it has). A cue that names no track is its own
+  row, named by the cue at the left with no words in its bar, as today.
+- **While a cue is held** its bar keeps its lane (`heldLanes`): the bar holds the pointer's capture, so remounting
+  it on another lane would cancel the grip. It stacks once let go.
 - **Labels:** each `{mark}` of the scene's voice as a flag on a ruler over the words, with its scene time
   (`evidence 1.62`), and a faint rule down through every row, so a block's edge on a mark reads as tied to it. In
   Code mode only: there the strip is the code's timeline, as scripter's is. Edit, Note, Motion, Compare and Record
