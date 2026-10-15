@@ -994,7 +994,7 @@ the entry before it is exactly where the Close would write (a scene's tap moves
 the playhead, so Close keeps that time), else the entry is rewritten to the tape. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
 say; M puts the cursor in the selected scene's comment box (an unsent comment is kept per scene); an approve's receipt offers Undo (`project.undo-approve`), as
 Project's does. A say may go out while another is in flight: the project
-shows the newest asked of the answers (`lab/review/asked.ts`, the first read
+shows the newest asked of the answers (`core/asked.ts`, the first read
 its first ask), so an older approve's answer landing last never hides a newer
 one, and an answer a later ask overtook reads the project again. The palette and the film's counts are in
 the view menu (⋯). A short's Open goes to its play page, as the lab opens
@@ -3074,7 +3074,7 @@ film while it does). The page shows the film's one project owner
 (`FilmProject`), which a Set and a Films card read too, so it opens on the
 project as the review last knew it, unread again. The
 answers land in any order, so the page shows the newest asked
-(`lab/review/asked.ts`): a read asked before a say and answered after it is
+(`core/asked.ts`): a read asked before a say and answered after it is
 dropped, a say answered after a read asked later reads the project again, and
 so does an approve refused (`VerbRefused`) because a scene went stale since
 the page read it. The choices page keeps its choices the same way. Each control writes on a
@@ -3784,7 +3784,7 @@ black. The player's `renderShown` (the frame the lab's still, onion and
 compare read) resolves only once that frame is painted, so nothing reads
 the canvas before its footage is on it. The preview and the HEAD layer ask
 for frames faster than they may decode; each paints a frame only while it
-is the newest it asked for (`newestAsks`, `paintedIfNewest`), so a decode
+is the newest it asked for (an `Ask` of `newestAsked`, `paintedIfNewest`), so a decode
 that lands late neither paints over a newer frame nor says it failed. An
 onion ghost that will not decode takes the onion off its layer, and
 Motion's status says why (`onion off: …`) until one paints. A drawn film has no

@@ -10,7 +10,7 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { Accessor } from 'solid-js';
 import { createMemo, createSignal, untrack } from 'solid-js';
 import type { ReviewFolder, ReviewIndex } from '../../core/review.ts';
-import { type Asks, newestAsked } from './asked.ts';
+import { type Asks, newestAsked } from '../../core/asked.ts';
 
 /** The review's index as the newest ask answered it. */
 interface IndexOwner<E> {

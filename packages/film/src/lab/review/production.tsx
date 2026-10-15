@@ -40,7 +40,7 @@ import {
 import type { ReviewFolder } from '../../core/review.ts';
 import { counted } from '../../core/words.ts';
 import { ReviewApi } from './api.ts';
-import { newestAsked } from './asked.ts';
+import { newestAsked } from '../../core/asked.ts';
 import { Go, useReview } from './context.tsx';
 import { agoText, folderTitle } from './format.ts';
 import { Loaded, useWrite, writeStatus } from './loaded.tsx';

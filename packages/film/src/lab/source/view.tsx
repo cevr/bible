@@ -38,6 +38,7 @@ import {
   createSignal,
   onCleanup,
   onSettled,
+  untrack,
 } from 'solid-js';
 import { Highlights, type HighlightName } from '../../browser/highlights.ts';
 import type { ClockReads } from '../../canvas/film.ts';
@@ -610,7 +611,7 @@ export const Faces = (props: { readonly children: JSX.Element }) => {
     setAsked(
       Option.map(
         Option.filter(selection, () => Option.isNone(line)),
-        (s) => ({ selection: s, seen: false }),
+        (s) => ({ selection: s, seen: false, ask: source.askPlace() }),
       ),
     );
   };
@@ -624,7 +625,9 @@ export const Faces = (props: { readonly children: JSX.Element }) => {
       }),
     { equals: Equal.equals },
   );
-  createEffect(intent, (now) =>
+  createEffect(intent, (now) => {
+    // The intent's own ask, read before the match clears it: the settle shows only through its answer.
+    const ask = Option.map(untrack(asked), (a) => a.ask);
     FaceIntent.$match(now, {
       Idle: () => {},
       Opening: () => {},
@@ -636,12 +639,13 @@ export const Faces = (props: { readonly children: JSX.Element }) => {
       },
       Ready: ({ line }) => {
         setAsked(Option.none());
-        // A hand whose scroll is not heard yet has taken the view all the same: it moved on, as if heard.
+        // A hand whose scroll is not heard yet has taken the view all the same: asked now, its scroll is heard
+        // (`handHas` tells the view), an ask of the view's place after this one, and shown, so this one shows nothing.
         if (source.handHas()) return;
-        actions.settleCode(lineOpen(line));
+        if (Option.isSome(ask)) ask.value.answer(() => actions.settleCode(lineOpen(line)));
       },
-    }),
-  );
+    });
+  });
   const face = (): Face =>
     Bool.match(Option.isSome(state.code()), {
       onTrue: (): Face => 'source',

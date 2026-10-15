@@ -20,7 +20,7 @@ import type { Accessor } from 'solid-js';
 import { busy, refused, said } from '../../command/command.ts';
 import type { LabFailure } from '../api.ts';
 import type { ReviewApi } from './api.ts';
-import { type Asks, type Landed, newestAsked, sending } from './asked.ts';
+import { type Asks, type Landed, newestAsked, sending } from '../../core/asked.ts';
 import { useReview } from './context.tsx';
 import { type Words, failedText } from './format.ts';
 import type { OptionsApi } from './options/api.ts';

@@ -11,7 +11,7 @@ import { Exit, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createEffect, createRoot } from 'solid-js';
 import type { ReviewFolder, ReviewIndex } from '../../core/review.ts';
-import { type Ask } from '../review/asked.ts';
+import { type Ask } from '../../core/asked.ts';
 import { useIndexOwner } from '../review/index-owner.ts';
 
 declare global {
