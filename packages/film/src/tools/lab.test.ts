@@ -42,6 +42,7 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from 'effect/http';
+import { type Server, createServer } from 'node:net';
 import { brotliDecompressSync } from 'node:zlib';
 import { parseSync } from 'oxc-parser';
 import { LabHttpApi, Places, Refusal, ScriptBeats, ToolFailure, labUrls } from '../core/api.ts';
@@ -53,7 +54,6 @@ import {
   LAB_IDLE_SECONDS,
   MAX_REQUEST_BODY,
   PageReads,
-  boundUrl,
   labServer,
   localLink,
   serveApi,
@@ -1292,10 +1292,22 @@ describe('lab routes', () => {
       ),
   );
 
-  /** A port on loopback another server holds, as a forwarder still exiting holds 8230. */
-  const held = Layer.build(labServer({ hostname: '127.0.0.1', port: 0 })).pipe(
-    Effect.flatMap((server) => Effect.provideContext(boundUrl, server)),
-    Effect.map((url) => new URL(url)),
+  /**
+   * A port on loopback another server holds, as a forwarder still exiting
+   * holds 8230: a plain socket's, since a second `labServer` in one process
+   * binds a port the first holds (Bun's `development: false` shares it).
+   */
+  const held = Effect.acquireRelease(
+    Effect.callback<Server>((resume) => {
+      const server = createServer();
+      server.listen(0, '127.0.0.1', () => resume(Effect.succeed(server)));
+    }),
+    (server) => Effect.callback<void>((resume) => void server.close(() => resume(Effect.void))),
+  ).pipe(
+    Effect.flatMap((server) =>
+      Schema.decodeUnknownEffect(Schema.Struct({ port: Schema.Finite }))(server.address()),
+    ),
+    Effect.map(({ port }) => new URL(`http://127.0.0.1:${port}/`)),
     Effect.orDie,
   );
   const unservable: ReadonlyArray<readonly [string, Effect.Effect<URL, never, Scope.Scope>]> = [
