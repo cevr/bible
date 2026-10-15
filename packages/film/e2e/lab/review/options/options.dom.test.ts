@@ -1775,6 +1775,18 @@ describe("a film's choices", () => {
         yield* waitFor(page, '.rv-picture [data-proxy="pending"]');
         yield* textHas(page, '.rv-picture [data-proxy="pending"]', 'Phone copy on its way');
         yield* countIs(page, '.rv-picture video', 0);
+        // The words are in the picture's box, so the box says so before its poster has come.
+        yield* evaluates(
+          page,
+          `(() => {
+            const box = document.querySelector('.rv-picture [data-proxy="pending"] .rv-media').getBoundingClientRect();
+            const words = [...document.querySelectorAll('.rv-picture [data-proxy="pending"] *')]
+              .find((e) => e.children.length === 0 && e.textContent === 'Phone copy on its way')
+              .getBoundingClientRect();
+            return words.top >= box.top && words.bottom <= box.bottom && words.left >= box.left && words.right <= box.right;
+          })()`,
+          true,
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

@@ -705,7 +705,8 @@ export const FolderPage = (props: { readonly folder: string }) => (
 
 /**
  * In a video's place while its phone copy is still being made, on Proxy:
- * its still, what is happening, and the way to play the Original instead.
+ * its still with what is happening across its foot (so the box says so
+ * before the still has come), and the way to play the Original instead.
  * The original is never streamed in its place unasked. While it shows, the
  * page asks every few seconds whether the copy is made; once it is, the
  * page reads the index again and the video plays in its place (on a Set,
@@ -722,14 +723,16 @@ export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
   );
   return (
     <div class="rv-pending" data-proxy="pending">
-      <img
-        class="rv-media"
-        loading="lazy"
-        alt=""
-        src={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
-      />
+      <div class="rv-pending-picture">
+        <img
+          class="rv-media"
+          loading="lazy"
+          alt=""
+          src={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
+        />
+        <span class="rv-pending-hint">Phone copy on its way</span>
+      </div>
       <p class="rv-row">
-        <span class="rv-hint">Phone copy on its way</span>
         <button type="button" class="sh-btn" onClick={() => actions.quality('full')}>
           Play the original ({sizeText(props.video.size)})
         </button>
