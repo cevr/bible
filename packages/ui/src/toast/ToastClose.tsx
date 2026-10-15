@@ -23,7 +23,7 @@ export function ToastClose(props: ToastCloseProps): JSX.Element {
   const { store } = useToastProviderContext();
   const { toast } = useToastRootContext();
 
-  const { getButtonProps } = useButton();
+  const button = useButton();
 
   const state: ToastCloseState = {
     get type() {
@@ -34,13 +34,13 @@ export function ToastClose(props: ToastCloseProps): JSX.Element {
   return useRenderElement('button', props, {
     state,
     props: [
+      button,
       {
         onClick() {
           store.closeToast(untrack(toast).id);
         },
       },
       omit(props, 'class', 'style', 'render'),
-      getButtonProps,
     ],
   });
 }

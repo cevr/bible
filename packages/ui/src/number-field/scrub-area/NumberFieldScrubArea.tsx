@@ -15,6 +15,7 @@ import { createGenericEventDetails } from '../../internals/createBaseUIEventDeta
 import { REASONS } from '../../internals/reasons.ts';
 import type { BaseUIComponentProps, HTMLProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
+import { listen } from '../../mix/mix.ts';
 import {
   addEventListener,
   getTarget,
@@ -183,26 +184,6 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
   // Unmounted mid-scrub.
   onCleanup(() => cancelScrub(true));
 
-  // A one-finger scrub must not scroll the page; pinch-zoom still may.
-  createEffect(
-    () => [scrubAreaElement(), state.disabled] as const,
-    ([element, disabled]) => {
-      if (!element || disabled) {
-        return undefined;
-      }
-      return addEventListener<TouchEvent>(
-        element,
-        'touchstart',
-        (event) => {
-          if (event.touches.length === 1) {
-            event.preventDefault();
-          }
-        },
-        { passive: false },
-      );
-    },
-  );
-
   // The request belongs to the scrub that made it. A scrub ended or canceled before the
   // request runs makes none; one ended while the lock was pending releases what it gets.
   // A denied lock leaves the scrub going without it.
@@ -230,7 +211,20 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
   const defaultProps: HTMLProps = {
     role: 'presentation',
     style: SCRUB_AREA_STYLE,
-    ref: (element: HTMLSpanElement) => setScrubAreaElement(element),
+    ref: [
+      (element: HTMLSpanElement) => setScrubAreaElement(element),
+      // A one-finger scrub must not scroll the page; pinch-zoom still may.
+      listen(
+        'element',
+        'touchstart',
+        (event) => {
+          if (event.touches.length === 1 && !untrack(() => state.disabled)) {
+            event.preventDefault();
+          }
+        },
+        { passive: false },
+      ),
+    ],
     onPointerDown(event: PointerEvent) {
       untrack(() => {
         if (event.defaultPrevented || event.button || state.disabled) {
