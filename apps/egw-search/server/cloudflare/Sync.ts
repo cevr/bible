@@ -28,9 +28,11 @@
  * ## Only `prod` writes
  *
  * Every stage shares one corpus (`./resources.ts`), so a preview that synced
- * would write production. Only `prod` sets `CORPUS_SYNC=write` and the cron;
- * any other stage's Workflow runs the `plan` step alone, which reads the
- * library and D1 and writes nothing. That is what the deploy test runs.
+ * would write production. Only `prod` sets `CORPUS_SYNC=write`; any other
+ * stage's Workflow runs the `plan` step alone, which reads the library and D1
+ * and writes nothing. That is what the deploy test runs. Every stage carries
+ * the cron, so a preview deploy proves the schedule Cloudflare accepts before
+ * `prod` meets it.
  *
  * ## Why a Worker of its own
  *
@@ -74,8 +76,9 @@ export const SYNC_WORKER_NAME = 'egw-sync';
 export const SYNC_WORKFLOW_NAME = 'egw-corpus-sync';
 
 /** Sundays at 09:00 UTC: 05:00 in Toronto under daylight time, 04:00 under
- *  standard time. Cloudflare's cron runs in UTC only. */
-export const SYNC_SCHEDULE = '0 9 * * 0';
+ *  standard time. Cloudflare's cron runs in UTC only, and numbers the days
+ *  1 (Sunday) to 7, so the day is named: a `0` there is refused. */
+export const SYNC_SCHEDULE = '0 9 * * SUN';
 
 /** What an instance is asked to do. A scheduled instance carries nothing,
  *  which is a sync on `prod` and a plan anywhere else. `reembed` adds the
@@ -123,10 +126,12 @@ const props = Effect.gen(function* () {
   return { ...base, name: SYNC_WORKER_NAME, env: { CORPUS_SYNC: 'write' } };
 });
 
-/** The Workflow's props, by stage: the cron and the plain name on `prod`. */
+/** The Workflow's props, by stage: the cron everywhere, the plain name on
+ *  `prod`. */
 const workflowProps = Effect.map(Effect.serviceOption(Stage), (stage) => {
-  if (!Option.contains(stage, 'prod')) return {};
-  return { workflowName: SYNC_WORKFLOW_NAME, schedules: [SYNC_SCHEDULE] };
+  const schedules = [SYNC_SCHEDULE];
+  if (!Option.contains(stage, 'prod')) return { schedules };
+  return { workflowName: SYNC_WORKFLOW_NAME, schedules };
 });
 
 export default class Sync extends Cloudflare.Worker<Sync>()(
