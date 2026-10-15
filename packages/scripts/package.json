@@ -17,6 +17,7 @@
   "dependencies": {
     "@bible/core": "workspace:*",
     "@bible/film": "workspace:*",
+    "@effect/ai-typesafe": "catalog:",
     "@effect/platform-bun": "catalog:",
     "effect": "catalog:",
     "oxc-parser": "0.153.0",
