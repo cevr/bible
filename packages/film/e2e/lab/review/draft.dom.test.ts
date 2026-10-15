@@ -69,7 +69,11 @@ describe('a series draft in the Script reader, on a phone', () => {
         yield* textHas(page, '.lab-script-beat[data-beat="2"] .lab-script-gap', '// 1 s');
         yield* textHas(page, '.lab-script-beat[data-beat="1"] .lab-script-pace', '156 wpm');
         yield* textHas(page, '.lab-script-beat[data-beat="2"] .lab-script-voicing', 'voicing');
-        yield* textHas(page, '.lab-script-spend', '1,240 of 20,000');
+        yield* textHas(
+          page,
+          '.lab-script-spend',
+          '1 of 2 takes ready · 1 voicing · 1,240 of 20,000',
+        );
         // At rest no box of choices is open.
         yield* evaluates(page, `document.querySelectorAll('.lab-script-delivery').length`, 0);
 

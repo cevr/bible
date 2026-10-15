@@ -176,19 +176,48 @@ export const HearWords = (props: {
   );
 };
 
-/** The day's staging spend, one quiet line: what the voice has cost today against its cap. */
+/** How many of `takes` stand as `tag`. */
+const counted = (takes: ReadonlyArray<StagingTake>, tag: StagingTake['_tag']) =>
+  takes.filter((t) => t._tag === tag).length;
+
+/**
+ * The takes' state, one quiet line: how many are ready of how many, what is
+ * being voiced or was refused, and what the voice has cost today against its
+ * cap; or that the lab makes none (its fill off), so a beat with no ▶ is said.
+ */
+const takesLine = (
+  takes: ReadonlyArray<StagingTake>,
+  spend: { readonly spent: number; readonly cap: number },
+): string => {
+  if (takes.length > 0 && counted(takes, 'Unvoiced') === takes.length)
+    return 'staging voice off in this lab: no takes are made';
+  const parts = [
+    `${counted(takes, 'Ready')} of ${takes.length} takes ready`,
+    ...Option.toArray(
+      Option.map(
+        Option.liftPredicate(counted(takes, 'Voicing'), (n) => n > 0),
+        (n) => `${n} voicing`,
+      ),
+    ),
+    ...Option.toArray(
+      Option.map(
+        Option.liftPredicate(counted(takes, 'Refused'), (n) => n > 0),
+        (n) => `${n} refused`,
+      ),
+    ),
+    `${spend.spent.toLocaleString('en-US')} of ${spend.cap.toLocaleString('en-US')} characters today`,
+  ];
+  return parts.join(' · ');
+};
+
+/** The takes' state and the day's staging spend, one quiet line (`takesLine`). */
 export const Spend = () => {
   const voice = useVoice();
   const line = () =>
     Option.getOrElse(
       Option.orElse(
         Option.map(voice.unread(), (why) => `staging voice unread: ${why}`),
-        () =>
-          Option.map(
-            voice.spend(),
-            (s) =>
-              `staging voice: ${s.spent.toLocaleString('en-US')} of ${s.cap.toLocaleString('en-US')} characters today`,
-          ),
+        () => Option.map(voice.spend(), (s) => takesLine(voice.takes(), s)),
       ),
       () => '',
     );

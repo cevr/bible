@@ -64,6 +64,8 @@ export const Marking = Data.taggedEnum<Marking>();
 interface VoiceContextValue {
   /** Beat `id`'s staging take: none until the takes are read, or for a beat that says nothing. */
   readonly take: (id: string) => Option.Option<StagingTake>;
+  /** Every spoken beat's staging take, in the reader's order: none until read. */
+  readonly takes: Accessor<ReadonlyArray<StagingTake>>;
   /** The day's staging spend, in characters, and its cap: none until read. */
   readonly spend: Accessor<Option.Option<{ readonly spent: number; readonly cap: number }>>;
   /** Why the takes could not be read: none while they are, or are being. */
@@ -281,6 +283,7 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
 
   const value: VoiceContextValue = {
     take,
+    takes: () => [...takes().values()],
     spend: () => Option.map(voice(), (v) => ({ spent: v.spent, cap: v.cap })),
     unread: () =>
       AsyncResult.match(result(), {
