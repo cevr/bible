@@ -14,7 +14,7 @@
 import { Option, Schema } from 'effect';
 import { sceneAddress } from '../../core/address.ts';
 import { Render } from '../../core/catalogue.ts';
-import { type FakeRoute, type Json, json, route, text as textAnswer } from './harness.ts';
+import { type FakeRoute, type Json, file, json, route, text as textAnswer } from './harness.ts';
 
 /** The film's name. */
 export const STUDIO_FILM = 'toy';
@@ -389,7 +389,10 @@ const guidedRecord: Json = {
   answered: [],
 };
 
-/** The toy's Board: open's card and a picture panel with no try yet. */
+/** The still a Board panel's try shows: a real image the guided review's board route serves. */
+const STILL = new URL('../../tools/fixtures/still.svg', import.meta.url).pathname;
+
+/** The toy's Board: open's card, a picture panel with no try yet, and one with a try kept, its still a tap from full size. */
 const guidedBoard: Json = {
   film: STUDIO_FILM,
   panels: [
@@ -401,6 +404,22 @@ const guidedBoard: Json = {
       text: { _tag: 'Card', payoff: 'breath' },
     },
     { id: 'open.field', beat: 'open', at: 'field', tries: [] },
+    {
+      id: 'open.breath',
+      beat: 'open',
+      at: 'breath',
+      tries: [
+        {
+          n: 1,
+          file: 'open.breath.1.png',
+          sha256: 'openbreath1',
+          made: 'generate',
+          refs: [],
+          at: '2026-10-15T00:00:00.000Z',
+        },
+      ],
+      kept: 1,
+    },
   ],
   approvals: [],
 };
@@ -415,6 +434,7 @@ export const guidedRoutes: ReadonlyArray<FakeRoute> = [
     textAnswer('# Notes\n\nThe turn lands **after** the breath.\n', 200),
   ),
   route('GET', /^\/api\/films\/toy\/board$/, () => json(guidedBoard)),
+  route('GET', /^\/api\/films\/toy\/board\/files\/open\.breath\.1\.png$/, () => file(STILL)),
   route('GET', /^\/api\/films\/toy\/studio\/takes\/open\/attempts$/, () =>
     json({
       beat: 'open',

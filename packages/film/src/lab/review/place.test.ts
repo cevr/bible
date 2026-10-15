@@ -179,7 +179,13 @@ describe('the place in the URL', () => {
     expect(placeOf(version)).toEqual(placeOf(set));
     expect(withStill(version, '')).toEqual(Option.some(set));
     expect(pageMove(folder, sheet)).toBe('push');
-    // Only a folder or a set keeps one.
+    // An ask keeps one too: its Board's stills open full size, the ask's place unchanged.
+    const ask = Option.getOrThrow(withStill('/asks/a0123456780', 'board-open.breath'));
+    expect(ask).toBe('/asks/a0123456780?still=board-open.breath');
+    expect(stillIn(ask)).toEqual(Option.some('board-open.breath'));
+    expect(placeOf(ask)).toEqual(placeOf('/asks/a0123456780'));
+    expect(withStill(ask, '')).toEqual(Option.some('/asks/a0123456780'));
+    // Only a folder, a set or an ask keeps one.
     expect(withStill('/films/f/choices', 'x')).toEqual(Option.none());
     expect(stillIn('/films/f/choices?still=x')).toEqual(Option.none());
   });

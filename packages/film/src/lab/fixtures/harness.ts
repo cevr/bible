@@ -443,11 +443,12 @@ const fileAnswer = (path: string) =>
     Effect.provide(BunServices.layer),
   );
 
-/** The media types of the files the tests answer with (a tone, as a fixture video's sound; a face; a real video). */
+/** The media types of the files the tests answer with (a tone, as a fixture video's sound; a face; a real video; a still). */
 const TYPES = new Map([
   ['.wav', 'audio/wav'],
   ['.woff2', 'font/woff2'],
   ['.mp4', 'video/mp4'],
+  ['.svg', 'image/svg+xml'],
 ]);
 
 const typeOfFile = (path: string) =>

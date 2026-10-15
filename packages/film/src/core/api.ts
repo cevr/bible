@@ -1461,8 +1461,12 @@ export const Places = {
     params: { series: Codec.Segment, draft: Codec.Segment, beat: Codec.Segment },
     query: Field.struct({ words: cited }),
   }),
-  /** An agent's ask: its decision page (`core/ask.ts`), at the step its run is on. */
-  ask: Place.make({ path: '/asks/:ask', params: { ask: Codec.Segment } }),
+  /** An agent's ask: its decision page (`core/ask.ts`), at the step its run is on; a Board still open full size. */
+  ask: Place.make({
+    path: '/asks/:ask',
+    params: { ask: Codec.Segment },
+    query: Field.struct({ still }),
+  }),
 };
 
 /** The page each place is served by, the first that holds a path winning. */
@@ -1603,7 +1607,8 @@ export const pageHref = {
   production: (production: string, v = 0): string =>
     Place.href(Places.production, { path: { production }, query: { v }, hash: {} }),
   /** An agent's ask, at the step its run is on. */
-  ask: (ask: string): string => Place.href(Places.ask, { path: { ask }, query: {}, hash: {} }),
+  ask: (ask: string): string =>
+    Place.href(Places.ask, { path: { ask }, query: { still: '' }, hash: {} }),
   /** A series draft in the Script reader. */
   draft: (series: string, draft: string): string =>
     Place.href(Places.draft, { path: { series, draft }, query: {}, hash: {} }),
