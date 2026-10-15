@@ -10,10 +10,14 @@
 //   bun run --filter @bible/scripts judged:measure --repeat 3     # the corpus three times over, one request
 //
 // Prints one line, `historyComment model=<m> as=<line|block> bound=<n>
-// requests=<n> n=<n> right=<n> wrong=<n> unanswered=<n> hand-right=<n>/6
-// reported=<n> history=<n> (the cases at or over the rule's threshold, and how
-// many of them are history: the precision a gate would need)
-// wall=<ms> in=<tokens> out=<tokens>`, then each wrong case.
+// requests=<n> cases=<n> n=<n> conflicts=<n> sent=<n> right=<n> wrong=<n>
+// unanswered=<n> hand-right=<n>/6 reported=<n> history=<n>
+// wall=<ms> in=<tokens> out=<tokens>`, then each wrong case. `n` is the
+// distinct texts of the `cases`, each scored once (the model answers a text
+// once); `conflicts` the texts whose cases disagree on a label; `sent` the
+// texts asked about (`n` times `--repeat`); `reported` the scored texts at or
+// over the rule's threshold and `history` how many of them are history, the
+// precision a gate would need.
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
@@ -46,7 +50,15 @@ const measure = Effect.fn('judged.measure')(function* (
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const file = path.join(import.meta.dir, 'fixtures', 'history-comment.json');
-  const { cases } = yield* Schema.decodeEffect(Corpus)(yield* fs.readFileString(file));
+  const corpus = yield* Schema.decodeEffect(Corpus)(yield* fs.readFileString(file));
+  // One case a text: the model answers a text once, so a text the corpus
+  // holds twice is scored once, and two cases of one text must agree.
+  const byText = new Map<string, Array<(typeof corpus.cases)[number]>>();
+  for (const c of corpus.cases) byText.set(c[as], [...(byText.get(c[as]) ?? []), c]);
+  const conflicts = [...byText.values()].filter((group) =>
+    group.some((c) => c.label !== group[0]?.label),
+  ).length;
+  const cases = [...byText.values()].flatMap((group) => group.slice(0, 1));
   const texts = Array.from({ length: repeat }, () => cases.map((c) => c[as])).flat();
   const limit = Option.getOrElse(bound, () => LIMITS.bound);
   const started = yield* Clock.currentTimeMillis;
@@ -71,7 +83,8 @@ const measure = Effect.fn('judged.measure')(function* (
   yield* Console.log(
     [
       `historyComment model=${yield* modelName} as=${as} bound=${limit}`,
-      `requests=${partsOf(historyComment, texts, { ...LIMITS, bound: limit }).length} n=${texts.length}`,
+      `requests=${partsOf(historyComment, texts, { ...LIMITS, bound: limit }).length}`,
+      `cases=${corpus.cases.length} n=${cases.length} conflicts=${conflicts} sent=${texts.length}`,
       `right=${judged.length - wrong.length} wrong=${wrong.length}`,
       `unanswered=${cases.length - judged.length}${Option.match(asked.reason, { onNone: () => '', onSome: (r) => ` reason=${r}` })}`,
       `hand-right=${handRight}/6`,
