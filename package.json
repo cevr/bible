@@ -61,6 +61,7 @@
     "@effect/platform-bun": "4.0.2",
     "@effect/platform-node": "4.0.2",
     "@effect/platform-node-shared": "4.0.2",
+    "@effect/sql-d1": "4.0.2",
     "@effect/sql-sqlite-bun": "4.0.2",
     "@effect/vitest": "4.0.2",
     "@solidjs/compiler": "2.0.0-rc.15",
