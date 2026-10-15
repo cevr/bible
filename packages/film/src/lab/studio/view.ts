@@ -199,19 +199,25 @@ export const reviewWav = (state: RecorderState): Option.Option<Uint8Array> =>
 
 /**
  * What the owner does before the page may reload (`ReloadGate`), while the
- * recorder holds a recording only this page has: one being made, one under
- * review or refused with it kept to retry, or one on its way to the lab
- * (a refusal brings it back to retry). None at rest.
+ * recorder holds a recording only this page has, or is making one: the
+ * microphone opening for a Record press (a Retake's take under review riding
+ * along), one being made, one under review or refused with it kept to retry,
+ * or one on its way to the lab (a refusal brings it back to retry). None at
+ * rest. Every state answers here, so a new one is held or released on purpose.
  */
 export const unsubmitted = (state: RecorderState): Option.Option<string> =>
   Match.value(state).pipe(
-    Match.tag('CountIn', 'Recording', () => Option.some('stop the take being recorded')),
-    Match.tag('Review', () => Option.some('submit or discard the take under review')),
-    Match.tag('Importing', 'Checking', () => Option.some('let the take being kept land')),
-    Match.tag('Failed', (s) =>
-      Option.map(s.wav, () => 'go Back to the refused take and submit or discard it'),
-    ),
-    Match.orElse(() => Option.none()),
+    Match.tagsExhaustive({
+      Idle: () => Option.none(),
+      Opening: () => Option.some('let the microphone open and finish the take'),
+      CountIn: () => Option.some('stop the take being recorded'),
+      Recording: () => Option.some('stop the take being recorded'),
+      Review: () => Option.some('submit or discard the take under review'),
+      Importing: () => Option.some('let the take being kept land'),
+      Checking: () => Option.some('let the take being kept land'),
+      Failed: (s) =>
+        Option.map(s.wav, () => 'go Back to the refused take and submit or discard it'),
+    }),
   );
 
 /**

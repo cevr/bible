@@ -276,6 +276,31 @@ describe('the microphone opening, through an actor', () => {
     }).pipe(Effect.scoped, Effect.provide(layer));
   });
 
+  it.effect(
+    'a Retake whose microphone is refused keeps the take under review, to go back to',
+    () => {
+      const { layer } = fakes();
+      return Effect.gen(function* () {
+        const actor = yield* Machine.spawn(machine);
+        yield* actor.start;
+        yield* sendAll(actor, recorded);
+        yield* actor.waitFor(Predicate.isTagged('Review'));
+        yield* actor.send(RecorderEvent.Arm({ device: Option.some('denied') }));
+        expect(yield* actor.waitFor(Predicate.isTagged('Failed'))).toEqual(
+          RecorderState.Failed({
+            beat: 'a',
+            refusal: MicDenied.make({ reason: 'NotAllowedError' }),
+            wav: Option.some(wav),
+          }),
+        );
+        yield* actor.send(RecorderEvent.Retry);
+        expect(yield* actor.waitFor(Predicate.isTagged('Review'))).toEqual(
+          RecorderState.Review({ beat: 'a', wav }),
+        );
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
   it.effect('a beat chosen while it opens waits for it, then rests and closes it', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
