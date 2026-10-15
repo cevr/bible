@@ -400,12 +400,17 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
       const fill = Effect.gen(function* () {
         yield* Ref.update(state, (f) => ({ ...f, running: true }));
         yield* Effect.log(`staging.fill on at_once=${VOICING_AT_ONCE}`);
-        yield* Effect.forkScoped(Effect.repeat(sweep, Schedule.spaced(SWEEP_EVERY)));
-        return yield* Effect.forEach(
+        const voicers = Effect.forEach(
           Arr.range(1, VOICING_AT_ONCE),
           () => Effect.forever(voiceNext),
           { concurrency: VOICING_AT_ONCE },
-        ).pipe(Effect.andThen(Effect.never));
+        );
+        // The sweep and the voicers end together: a sweep that dies ends the
+        // fill (`fillBeside` logs it), never leaving voicers on a queue nothing feeds.
+        return yield* Effect.all([Effect.repeat(sweep, Schedule.spaced(SWEEP_EVERY)), voicers], {
+          concurrency: 'unbounded',
+          discard: true,
+        }).pipe(Effect.andThen(Effect.never));
       }).pipe(
         Effect.ensuring(Ref.update(state, (f) => ({ ...NO_FILL, refused: f.refused, day: f.day }))),
         Effect.scoped,

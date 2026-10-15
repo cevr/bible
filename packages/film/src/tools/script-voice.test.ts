@@ -4,7 +4,7 @@
 // is. No network, no media files.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { ConfigProvider, Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
+import { ConfigProvider, Effect, Exit, Fiber, Layer, Logger, Option, Path } from 'effect';
 import { TestClock } from 'effect/testing';
 import { silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
@@ -57,13 +57,14 @@ const DRAFT = [
 /**
  * The service over memory (`files`, shared by two labs), one film read as
  * `reading`, the series folder holding `drafts` (path under it → Markdown),
- * the day capped at `cap`.
+ * the day capped at `cap`, the films listed as `names` lists them.
  */
 const voices = (
   cap: number,
   heard: ReadonlyMap<string, string> = new Map(),
   drafts: ReadonlyMap<string, string> = new Map(),
   files = new Map<string, Uint8Array>(),
+  names: Effect.Effect<ReadonlyArray<string>> = Effect.succeed([film]),
 ) => {
   for (const [at, text] of drafts) files.set(`/series/${at}`, new TextEncoder().encode(text));
   const calls: ElevenLabsCalls = emptyCalls();
@@ -72,7 +73,7 @@ const voices = (
     FilmFolder.of({
       // The fill writes nothing of a film's: its paths are never read.
       paths: () => testFilm([], { voice: '', scenes: {} }).paths,
-      names: Effect.succeed([film]),
+      names,
       sounds: Option.none(),
       footage: Option.none(),
       stamp: () => Effect.succeed(0),
@@ -206,6 +207,37 @@ describe('ScriptVoices', () => {
       expect(Exit.isSuccess(yield* Fiber.await(fiber))).toBe(true);
     }).pipe(Effect.scoped),
   );
+
+  it.live('a sweep that dies ends the fill, logged, rather than leaving its voicers idle', () => {
+    const lines: Array<string> = [];
+    const { layer } = voices(
+      1000,
+      new Map(),
+      new Map(),
+      new Map(),
+      Effect.die(new Error('the films folder went away')),
+    );
+    return Effect.gen(function* () {
+      const fiber = yield* fillBeside((yield* ScriptVoices).fill);
+      const ended = yield* Fiber.await(fiber).pipe(Effect.timeoutOption('2 seconds'));
+      expect(Option.isSome(ended)).toBe(true);
+      expect(lines.filter((line) => line.startsWith('staging.fill.died'))).toEqual([
+        'staging.fill.died cause="Error: the films folder went away"',
+      ]);
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        Layer.merge(
+          layer,
+          Logger.layer([
+            Logger.make(({ message }) => {
+              lines.push([message].flat().join(' '));
+            }),
+          ]),
+        ),
+      ),
+    );
+  });
 
   it.effect('a series draft is voiced as a film is, in the staging voice, by the sweep', () => {
     const { calls, layer } = voices(
