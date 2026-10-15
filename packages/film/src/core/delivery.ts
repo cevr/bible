@@ -132,7 +132,8 @@ export const marksMisfit = (marks: ReadonlyArray<Mark>, words: number): Option.O
 export const LineRead = Schema.Struct({ spoken: Schema.String, marks: Schema.Array(Mark) });
 export type LineRead = typeof LineRead.Type;
 
-const sameMarks = Schema.toEquivalence(Schema.Array(Mark));
+/** Whether two lines' marks are the same marks, in the same order. */
+export const sameMarks = Schema.toEquivalence(Schema.Array(Mark));
 
 /**
  * Why `marks`, made on the line a page read as `read`, cannot be written on

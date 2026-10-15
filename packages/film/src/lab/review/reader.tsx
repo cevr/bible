@@ -123,44 +123,53 @@ const Line = (props: {
   readonly line: SectionRows;
   readonly marks: ReadonlyArray<Mark>;
   readonly released: (event: MouseEvent) => void;
-}) => (
-  // A word held (or right-clicked) opens its menu: Select to here, a phone's range.
-  <Target
-    of={Selection.cases.Words.make({
-      scene: props.line.id,
-      from: Option.getOrElse(
-        Option.map(Arr.head(props.line.rows), (r) => r.index),
-        () => 0,
-      ),
-      to: Option.getOrElse(
-        Option.map(Arr.last(props.line.rows), (r) => r.index),
-        () => 0,
-      ),
-    })}
-    class="lab-script-line"
-    data-scene={props.line.id}
-    onClick={props.released}
-  >
-    <For each={props.line.rows}>
-      {(row) => (
-        <>
-          <GapGlyph gap={gapBefore(props.marks, row.index)} />
-          <span
-            class="lab-script-w"
-            data-target={targetAttr(
-              Selection.cases.Words.make({ scene: props.line.id, from: row.index, to: row.index }),
-            )}
-            data-index={row.index}
-            data-from={row.from}
-            data-stress={stressAttr(props.marks, row.index)}
-          >
-            {row.text}
-          </span>{' '}
-        </>
-      )}
-    </For>
-  </Target>
-);
+}) => {
+  const voice = useVoice();
+  // As the page has them: after its own write, the marks that write left, until the line is read again.
+  const marks = () => voice.marksOf(props.line.id, props.marks);
+  return (
+    // A word held (or right-clicked) opens its menu: Select to here, a phone's range.
+    <Target
+      of={Selection.cases.Words.make({
+        scene: props.line.id,
+        from: Option.getOrElse(
+          Option.map(Arr.head(props.line.rows), (r) => r.index),
+          () => 0,
+        ),
+        to: Option.getOrElse(
+          Option.map(Arr.last(props.line.rows), (r) => r.index),
+          () => 0,
+        ),
+      })}
+      class="lab-script-line"
+      data-scene={props.line.id}
+      onClick={props.released}
+    >
+      <For each={props.line.rows}>
+        {(row) => (
+          <>
+            <GapGlyph gap={gapBefore(marks(), row.index)} />
+            <span
+              class="lab-script-w"
+              data-target={targetAttr(
+                Selection.cases.Words.make({
+                  scene: props.line.id,
+                  from: row.index,
+                  to: row.index,
+                }),
+              )}
+              data-index={row.index}
+              data-from={row.from}
+              data-stress={stressAttr(marks(), row.index)}
+            >
+              {row.text}
+            </span>{' '}
+          </>
+        )}
+      </For>
+    </Target>
+  );
+};
 
 /** Under a beat's line while words of it are selected: what they say, Hear, Clear, and their delivery. */
 const Selected = (props: {

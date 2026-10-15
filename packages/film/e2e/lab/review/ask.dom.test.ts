@@ -92,6 +92,44 @@ const done = askRecordWith(
     { step: 'why', values: { why: words }, at: '2026-10-14T00:02:00.000Z' },
   ],
 );
+/** An ask of one section, the toy's own script by its film, and whether to keep it. */
+const scriptAsk: Json = {
+  id: SCRIPT_ASK,
+  title: 'Hear the toy',
+  why: 'The script goes to the Board once kept.',
+  by: 'toy-agent',
+  film: STUDIO_FILM,
+  created: '2026-10-15T00:00:00.000Z',
+  ask: {
+    start: 'script',
+    steps: {
+      script: {
+        title: 'The script',
+        blocks: [
+          { kind: 'script', film: STUDIO_FILM },
+          {
+            kind: 'choose',
+            id: 'script',
+            label: 'Keep the script?',
+            options: [
+              { value: 'keep', label: 'Keep it', recommended: true, why: 'It is 156 wpm.' },
+              { value: 'redo', label: 'Again' },
+            ],
+          },
+        ],
+        next: [{ to: 'done' }],
+      },
+      done: { end: true },
+    },
+  },
+  state: { _tag: 'Asking', step: 'script', answers: {} },
+  answered: [],
+};
+/** The toy's script as the lab reads it: one beat saying `say`. */
+const said = (say: string) => ({
+  film: STUDIO_FILM,
+  beats: [{ id: '1', say, cite: ['Gen 2:7'] }],
+});
 
 describe("an agent's ask on a phone", () => {
   it.live(
@@ -301,42 +339,6 @@ describe("an agent's ask on a phone", () => {
     () =>
       Effect.gen(function* () {
         const marked: Array<Asked> = [];
-        const scriptAsk: Json = {
-          id: SCRIPT_ASK,
-          title: 'Hear the toy',
-          why: 'The script goes to the Board once kept.',
-          by: 'toy-agent',
-          film: STUDIO_FILM,
-          created: '2026-10-15T00:00:00.000Z',
-          ask: {
-            start: 'script',
-            steps: {
-              script: {
-                title: 'The script',
-                blocks: [
-                  { kind: 'script', film: STUDIO_FILM },
-                  {
-                    kind: 'choose',
-                    id: 'script',
-                    label: 'Keep the script?',
-                    options: [
-                      { value: 'keep', label: 'Keep it', recommended: true, why: 'It is 156 wpm.' },
-                      { value: 'redo', label: 'Again' },
-                    ],
-                  },
-                ],
-                next: [{ to: 'done' }],
-              },
-              done: { end: true },
-            },
-          },
-          state: { _tag: 'Asking', step: 'script', answers: {} },
-          answered: [],
-        };
-        const said = (say: string) => ({
-          film: STUDIO_FILM,
-          beats: [{ id: '1', say, cite: ['Gen 2:7'] }],
-        });
         let reads = 0;
         const routes: ReadonlyArray<FakeRoute> = [
           route('GET', new RegExp(`^/api/asks/${SCRIPT_ASK}$`), () => json(scriptAsk)),
@@ -390,6 +392,52 @@ describe("an agent's ask on a phone", () => {
         ]);
         expect(reads).toBeGreaterThan(1);
         yield* fitsPhone(page);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a second mark made before the line is read again stands on the first: the page carries the line as its own write left it',
+    () =>
+      Effect.gen(function* () {
+        const marked: Array<Asked> = [];
+        const routes: ReadonlyArray<FakeRoute> = [
+          route('GET', new RegExp(`^/api/asks/${SCRIPT_ASK}$`), () => json(scriptAsk)),
+          // The lab has not caught up with the write: each read still has the line as it was.
+          route('GET', /^\/api\/films\/toy\/script$/, () =>
+            json(said('The first thing God {*}gave was breath.')),
+          ),
+          route('GET', /^\/api\/films\/toy\/script\/voice$/, () => json(draftVoice)),
+          route('POST', /^\/api\/films\/toy\/script\/marks$/, (asked) => {
+            marked.push(asked);
+            return json({ file: 'script.ts', target: 'marks of 1', findings: [] });
+          }),
+          ...studioRoutes,
+        ];
+        const { page, errors } = yield* openReview(routes, {
+          href: pageHref.ask(SCRIPT_ASK),
+          viewport: PHONE,
+        });
+        yield* waitFor(page, ASK_READY);
+        const word = (i: number) =>
+          `.lab-script-beat[data-beat="1"] .lab-script-w[data-index="${i}"]`;
+        yield* page.click(word(3));
+        yield* page.click('.lab-script-delivery [data-act="stress-words"]');
+        yield* waitFor(page, `${word(3)}[data-stress="true"]`);
+        yield* page.click(word(6));
+        yield* page.click('.lab-script-delivery [data-act="stress-words"]');
+        yield* waitFor(page, `${word(6)}[data-stress="true"]`);
+        const spoken = 'The first thing God gave was breath.';
+        const stress = (w: number) => ({ _tag: 'Stress', word: w });
+        expect(marked.map((p) => Option.getOrNull(p.body))).toEqual([
+          { beat: '1', read: { spoken, marks: [stress(4)] }, marks: [stress(3), stress(4)] },
+          {
+            beat: '1',
+            read: { spoken, marks: [stress(3), stress(4)] },
+            marks: [stress(3), stress(4), stress(6)],
+          },
+        ]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

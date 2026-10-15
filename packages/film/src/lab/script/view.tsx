@@ -144,7 +144,9 @@ const Line = (props: { readonly line: SectionRows; readonly delivery: BeatRow['d
   const notes = useScriptNotes();
   // The staged film's, laid out once: a plain value.
   const line = props.line;
-  const delivery = props.delivery;
+  const voice = useVoice();
+  // As the page has them: after its own write, the marks that write left, until the page reloads.
+  const delivery = () => voice.marksOf(line.id, props.delivery);
   const marks = marksIn(line);
   const noted = createMemo(() => notedIn(notes.noted().filter((n) => n.words.beat === line.id)));
   // A press that ends a text selection across words selects them; a tap on one word shows it.
@@ -172,7 +174,7 @@ const Line = (props: { readonly line: SectionRows; readonly delivery: BeatRow['d
       <For each={line.rows}>
         {(row) => (
           <>
-            <GapGlyph gap={gapBefore(delivery, row.index)} />
+            <GapGlyph gap={gapBefore(delivery(), row.index)} />
             <For each={marks.at(row.index)}>
               {(name) => <MarkChip beat={line.id} name={name} />}
             </For>
@@ -183,7 +185,7 @@ const Line = (props: { readonly line: SectionRows; readonly delivery: BeatRow['d
               )}
               data-index={row.index}
               data-from={row.from}
-              data-stress={stressAttr(delivery, row.index)}
+              data-stress={stressAttr(delivery(), row.index)}
             >
               {row.text}
             </span>

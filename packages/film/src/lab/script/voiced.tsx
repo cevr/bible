@@ -310,7 +310,8 @@ export const Delivery = (props: {
   readonly selected: Option.Option<Words>;
 }) => {
   const voice = useVoice();
-  const marks = () => props.marks;
+  // As the page has them: after its own write, the marks that write left, until the line is read again.
+  const marks = () => voice.marksOf(props.beat, props.marks);
   const words = () => props.spoken.split(' ').filter((w) => w !== '').length;
   const selected = () => props.selected;
   const write = (next: ReadonlyArray<Mark>) =>
