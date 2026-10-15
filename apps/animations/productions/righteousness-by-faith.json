@@ -175,6 +175,22 @@
       "set": "rbf-script-2026-10-14",
       "ask": "ad1157de05b",
       "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792068509027,
+      "text": "Righteousness by Faith v3: read the script, then decide (ask ad3aebb0697)",
+      "set": "rbf-script-2026-10-14",
+      "ask": "ad3aebb0697",
+      "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792068523576,
+      "text": "Righteousness by Faith v3: keep the script? (ask ad1157de05b) withdrawn: Withdrawn, unanswered: replaced by ask ad3aebb0697, the same question as a guided review that shows the whole script on the ask itself (owner rule, 2026-10-15: an ask never sends him elsewhere to find it).",
+      "set": "rbf-script-2026-10-14",
+      "ask": "ad1157de05b",
+      "by": "rbfscript (p5)"
     }
   ],
   "filed": [
