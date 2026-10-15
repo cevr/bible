@@ -433,7 +433,8 @@ export const PageShell = (props: PageShellProps) => {
               {(text) => (
                 <span class="sh-crumb" data-role="crumb">
                   <i>›</i>
-                  {text()}
+                  {/* Its words in a box of their own: a flex item's text takes the ellipsis, the row does not. */}
+                  <span class="sh-crumb-text">{text()}</span>
                 </span>
               )}
             </Show>

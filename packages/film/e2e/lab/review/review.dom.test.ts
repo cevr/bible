@@ -347,6 +347,13 @@ describe('the review page', () => {
           `document.querySelector('.sh-header [data-role="crumb"]').checkVisibility()`,
           true,
         );
+        // Its words are a box of their own, so a name too long for the phone ends in an ellipsis,
+        // never cut mid-letter (a flex row's own text takes no ellipsis).
+        yield* evaluates(
+          page,
+          `((t) => t !== null && t.textContent === 'Roofs at dusk' && getComputedStyle(t).textOverflow === 'ellipsis' && getComputedStyle(t).overflow === 'hidden')(document.querySelector('.sh-header [data-role="crumb"] .sh-crumb-text'))`,
+          true,
+        );
         yield* page.resize(1440, 900);
         yield* textsAre(page, '[data-review-blurb] li', [
           'Cold opening',
