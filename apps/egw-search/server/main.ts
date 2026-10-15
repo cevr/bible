@@ -53,7 +53,6 @@ import { layerBunEmbedder } from '@bible/core/search/bun';
 
 import { SearchApi } from './api.js';
 import { SearchGroupLive } from './search-api.js';
-import { EgwSyncLive } from './sync.js';
 import { teardown } from './teardown.js';
 import { lateVectorIndex } from './vector-index.js';
 import type { WarmRequest, WarmResult } from './warm-corpus.worker.js';
@@ -366,12 +365,6 @@ const HttpLive = Layer.unwrap(
   ),
 );
 
-/** The weekly corpus sync, over the *same* `TunedSqlLive` the handlers read
- *  through. Merged into the launch rather than into `RouterLive` because it
- *  serves no route: it is a background fiber that happens to need the same
- *  database connection. See `./sync.ts` for why it must not open its own. */
-const SyncLive = EgwSyncLive.pipe(Layer.provide(TunedSqlLive));
-
 /** Export spans over OTLP, when the deployment says where to.
  *
  *  `layerFromConfig` reads the standard OpenTelemetry environment —
@@ -393,7 +386,6 @@ const TracingLive = OtlpTracer.layerFromConfig({
 }).pipe(Layer.provide(OtlpSerialization.layerJson), Layer.provide(FetchHttpClient.layer));
 
 const PlatformLive = Layer.mergeAll(
-  SyncLive,
   TracingLive,
   Etag.layer,
   HttpPlatform.layer.pipe(Layer.provide(BunServices.layer)),
