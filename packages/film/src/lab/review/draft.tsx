@@ -41,13 +41,15 @@ const DRAFT_CSS = `
  * Series draft `draft` of `series` in the reader, as its Markdown reads now:
  * its beats (only those `only` names, when it names some), or why it cannot
  * be read; a mark write's answer, the draft as the write left it, stands
- * over the read it was sent over until the draft is read again.
+ * over the read it was sent over until the draft is read again. With
+ * `cost`, its head says the day's staging spend.
  */
 export const DraftReader = (props: {
   readonly series: string;
   readonly draft: string;
   readonly only: Option.Option<ReadonlyArray<string>>;
   readonly selecting: Selecting;
+  readonly cost: boolean;
 }) => {
   const { meta } = useReview();
   const read = useAtomValue(() => meta.draft(props.series, props.draft));
@@ -95,6 +97,7 @@ export const DraftReader = (props: {
       <ScriptReader
         beats={beats}
         selecting={props.selecting}
+        cost={props.cost}
         source={{
           voice: ReviewApi.use((api) => api.draftVoice(props.series, props.draft)),
           // The answer is bound to the read the write was sent over: a refresh since outranks it.
@@ -191,6 +194,7 @@ export const DraftPage = (props: { readonly series: string; readonly draft: stri
           draft={props.draft}
           only={Option.none()}
           selecting={selecting}
+          cost
         />
       </article>
     </>

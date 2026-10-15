@@ -70,6 +70,8 @@ export const FilmScriptReader = (props: {
       <ScriptReader
         beats={beats}
         selecting={props.selecting}
+        // Its one page is an ask's, which leaves the day's spend to the Script.
+        cost={false}
         source={{
           voice: ReviewApi.use((api) => api.filmVoice(props.film)),
           // Landed in `script.ts` or refused: the script is read again, its words and marks as they are.

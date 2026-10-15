@@ -233,6 +233,7 @@ const DraftScript = (props: {
         draft={props.draft}
         only={props.only}
         selecting={props.selecting}
+        cost={false}
       />
     </>
   );

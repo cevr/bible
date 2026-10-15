@@ -112,8 +112,15 @@ describe("an agent's ask on a phone", () => {
         });
         yield* waitFor(page, ASK_READY);
         yield* evaluates(page, `document.querySelectorAll('.ak-step').length`, 1);
+        // One section, untitled: no "1 of 1" head; a second brings each its place.
+        yield* countIs(page, '.ak-section-h', 0);
         yield* page.click('.ak-option[data-value="slow"]');
         yield* waitFor(page, '.ak-step[data-step="why"] textarea');
+        yield* evaluates(
+          page,
+          `[...document.querySelectorAll('.ak-section-h .ak-count')].map((c) => c.textContent.trim())`,
+          ['1 of 2', '2 of 2'],
+        );
         yield* page.fill('.ak-step[data-step="why"] textarea', words);
         // At the page's end its last section, short as it is, holds the top: the head before it is gone.
         yield* evaluates(page, AT_THE_TOP_AT_THE_END, 'why');
@@ -382,6 +389,24 @@ describe("an agent's ask on a phone", () => {
           '.ak-step[data-step="script"] .lab-script-beat[data-beat="1"] .lab-script-w',
         );
         yield* textHas(page, '.ak-step[data-step="script"] .lab-script-pace', '156 wpm');
+        // A section's question reads at its head's size.
+        yield* evaluates(
+          page,
+          `getComputedStyle(document.querySelector('.ak-step[data-step="board"] legend')).fontSize === getComputedStyle(document.querySelector('.ak-step[data-step="board"] .ak-section-h')).fontSize`,
+          true,
+        );
+        // A ready take's ▶ is the shell's line icon; the takes are said, the day's spend is the Script's.
+        yield* evaluates(
+          page,
+          `document.querySelector('.ak-step[data-step="script"] .lab-script-hear .sh-icon') !== null`,
+          true,
+        );
+        yield* textHas(page, '.ak-step[data-step="script"] .lab-script-spend', 'takes ready');
+        yield* evaluates(
+          page,
+          `document.querySelector('.ak-step[data-step="script"] .lab-script-spend').textContent.includes('characters today')`,
+          false,
+        );
         // A word tapped opens its delivery in place: Stress writes the draft's marks.
         yield* page.click(
           '.ak-step[data-step="script"] .lab-script-beat[data-beat="1"] .lab-script-w[data-index="3"]',
@@ -486,7 +511,7 @@ describe("an agent's ask on a phone", () => {
   );
 
   it.live(
-    'a long document is clamped near its question, and Read all opens it whole',
+    'a long document is clamped near its question, Read all opens it whole, and words typed leave it and the index as they are',
     () =>
       Effect.gen(function* () {
         const long = Array.from(
@@ -520,6 +545,18 @@ describe("an agent's ask on a phone", () => {
           `((c) => c.scrollHeight <= c.clientHeight + 1)(document.querySelector('${doc} .ak-clamp'))`,
           true,
         );
+        // A keystroke in the cut's words: the index's buttons are the ones drawn, the document still open.
+        yield* page.evaluate(
+          `(window.__indexGo = document.querySelector('.ak-index-go[data-step="cut"]'), true)`,
+        );
+        yield* page.fill('.ak-step[data-step="cut"] textarea', 'a');
+        yield* page.fill('.ak-step[data-step="cut"] textarea', 'ab');
+        yield* evaluates(
+          page,
+          `window.__indexGo !== null && window.__indexGo === document.querySelector('.ak-index-go[data-step="cut"]')`,
+          true,
+        );
+        yield* waitFor(page, `${doc} .ak-clamp[data-open="true"]`);
         yield* fitsPhone(page);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

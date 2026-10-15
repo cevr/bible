@@ -406,11 +406,16 @@ interface ScriptSource {
   readonly written: string;
 }
 
-/** The beats `beats` read through `source`, laid out under its staging voice, their words selected as `selecting` keeps them. */
+/**
+ * The beats `beats` read through `source`, laid out under its staging voice,
+ * their words selected as `selecting` keeps them; with `cost`, its head says
+ * the day's staging spend (an ask's leaves it out).
+ */
 export const ScriptReader = (props: {
   readonly beats: Accessor<ReadonlyArray<DraftBeatRead>>;
   readonly source: ScriptSource;
   readonly selecting: Selecting;
+  readonly cost: boolean;
 }) => {
   const { meta } = useReview();
   const beats = createMemo(() => laidOut(props.beats()));
@@ -430,7 +435,7 @@ export const ScriptReader = (props: {
     <VoiceOver source={voice}>
       <div class="rd-head">
         <HearIt beats={beats().map((b) => b.read.id)} />
-        <Spend />
+        <Spend cost={props.cost} />
       </div>
       <Beats beats={beats} selecting={props.selecting} />
     </VoiceOver>

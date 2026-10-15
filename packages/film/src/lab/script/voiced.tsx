@@ -197,8 +197,8 @@ interface TakesLine {
 
 /**
  * The takes' state, one quiet line: how many are ready of how many, what is
- * being voiced or was refused, and (`cost`, its own span, which an ask's
- * page leaves out) what the voice has cost today against its cap; or that
+ * being voiced or was refused, and (`cost`, which an ask's reader leaves
+ * out) what the voice has cost today against its cap; or that
  * the lab makes none (its fill off), so a beat with no ▶ is said.
  */
 const takesLine = (
@@ -230,8 +230,11 @@ const takesLine = (
   };
 };
 
-/** The takes' state and the day's staging spend, one quiet line (`takesLine`). */
-export const Spend = () => {
+/**
+ * The takes' state and, with `cost`, the day's staging spend: one quiet line
+ * (`takesLine`), its words one run of text.
+ */
+export const Spend = (props: { readonly cost: boolean }) => {
   const voice = useVoice();
   const line = () =>
     Option.orElse(
@@ -245,10 +248,7 @@ export const Spend = () => {
     <Show when={Option.getOrUndefined(line())}>
       {(l) => (
         <p class="lab-script-spend">
-          {l().takes}
-          <Show when={Option.getOrUndefined(l().cost)}>
-            {(cost: Accessor<string>) => <span class="lab-script-cost"> · {cost()}</span>}
-          </Show>
+          {[l().takes, ...Option.toArray(Option.filter(l().cost, () => props.cost))].join(' · ')}
         </p>
       )}
     </Show>

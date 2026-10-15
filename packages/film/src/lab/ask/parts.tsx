@@ -111,8 +111,9 @@ const stepOf = (name: string): Option.Option<HTMLElement> =>
   );
 
 /**
- * A section's title on the page: its place, quiet, so the title carries,
- * then its step's title when it has one.
+ * A section's title on the page: its place among two or more, quiet, so the
+ * title carries, then its step's title when it has one. A page of one
+ * section has no place to say (`headed`).
  */
 const SectionTitle = (props: {
   readonly step: Section['step'];
@@ -120,15 +121,21 @@ const SectionTitle = (props: {
   readonly of: number;
 }) => (
   <>
-    <span class="ak-count">
-      {Option.match(titleOf(props.step), {
-        onNone: () => `${props.n} of ${props.of}`,
-        onSome: () => `${props.n} of ${props.of} · `,
-      })}
-    </span>
+    <Show when={props.of > 1}>
+      <span class="ak-count">
+        {Option.match(titleOf(props.step), {
+          onNone: () => `${props.n} of ${props.of}`,
+          onSome: () => `${props.n} of ${props.of} · `,
+        })}
+      </span>
+    </Show>
     {Option.getOrElse(titleOf(props.step), () => '')}
   </>
 );
+
+/** Whether a section of `of` has a head: a title, or a place among others to say. */
+const headed = (step: Section['step'], of: number): boolean =>
+  Option.isSome(titleOf(step)) || of > 1;
 
 /** A section in the index: its place, and its title when it has one. */
 const indexTitle = (step: Section['step'], n: number): string =>
@@ -369,7 +376,11 @@ export const Sections = () => {
     <For each={names()}>
       {(name, i) => (
         <section class="ak-step" data-step={name}>
-          <Show when={Option.getOrUndefined(stepNamed(name))}>
+          <Show
+            when={Option.getOrUndefined(
+              Option.filter(stepNamed(name), (step) => headed(step, names().length)),
+            )}
+          >
             {(step: Accessor<Section['step']>) => (
               <h2 class="ak-section-h" tabindex="-1">
                 <SectionTitle step={step()} n={i() + 1} of={names().length} />

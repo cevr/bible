@@ -55,7 +55,6 @@ const ASK_CSS = `
 .ak-options[data-pictured=true]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 .ak-option{display:grid;justify-content:stretch;gap:var(--s-1);min-height:var(--hit);padding:var(--s-1) var(--s-2);text-align:left}
 .ak-text{width:100%;box-sizing:border-box;resize:vertical;font:inherit}
-.ak-mat .lab-script-cost{display:none}
 .ak-mat .rv-pending .rv-row{padding-inline:0}
 .ak-mat .rv-note h1{font-size:var(--fs-4);line-height:var(--lh-4)}
 .ak-send{justify-content:space-between;margin-top:var(--s-4)}

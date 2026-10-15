@@ -436,7 +436,7 @@ const Beats = () => {
         }}
       >
         {/* The beats are the staged film's, laid out once: each a plain value, read where it is drawn. */}
-        <Spend />
+        <Spend cost />
         <For each={script.beats}>{(beat) => <Beat beat={beat} />}</For>
       </div>
     </div>
