@@ -33,6 +33,7 @@
     "solid-js": "catalog:"
   },
   "devDependencies": {
+    "@distilled.cloud/cloudflare": "1.0.0-rc.15",
     "@playwright/test": "1.64.0",
     "alchemy": "2.0.0-beta.83",
     "concurrently": "^10.0.6",

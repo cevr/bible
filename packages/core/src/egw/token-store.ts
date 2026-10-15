@@ -89,8 +89,10 @@ export class EGWTokenStore extends Context.Service<EGWTokenStore, EGWTokenStoreS
       }),
     );
 
-  /** In-memory test layer. */
-  static layerTest = (initial: Option.Option<AccessToken> = Option.none()) =>
+  /** Held in memory for the life of the layer: for a host with no disk to
+   *  keep a token on (a Worker), and for tests. A client-credentials token
+   *  is cheap to fetch again, so losing it with the layer costs one request. */
+  static layerMemory = (initial: Option.Option<AccessToken> = Option.none()) =>
     Layer.effect(
       EGWTokenStore,
       Effect.gen(function* () {
@@ -101,4 +103,7 @@ export class EGWTokenStore extends Context.Service<EGWTokenStore, EGWTokenStoreS
         });
       }),
     );
+
+  /** In-memory test layer. */
+  static layerTest = EGWTokenStore.layerMemory;
 }

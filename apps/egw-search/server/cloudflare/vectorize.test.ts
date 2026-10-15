@@ -6,6 +6,8 @@ import { NO_FILTER, NO_SELECTION } from '@bible/core/writings';
 
 import {
   MAX_TOP_K,
+  UNCLASSIFIED,
+  vectorMetadata,
   vectorizeFilter,
   vectorizeNeighbors,
   type VectorizeQuery,
@@ -106,4 +108,25 @@ describe('vectorizeNeighbors', () => {
         expect(failure.engine).toBe('vectorize');
       }),
     ));
+});
+
+describe('vectorMetadata', () => {
+  test('carries a known classification and marks the rest unclassified', () => {
+    expect(
+      vectorMetadata({
+        code: 'PP',
+        section: Option.some('egw-writings'),
+        type: Option.some('book'),
+        subtype: Option.some('no pagebreaks'),
+      }),
+    ).toEqual({ book: 'PP', section: 'egw-writings', type: 'book', subtype: UNCLASSIFIED });
+    expect(
+      vectorMetadata({
+        code: 'X',
+        section: Option.none(),
+        type: Option.none(),
+        subtype: Option.none(),
+      }),
+    ).toEqual({ book: 'X', section: UNCLASSIFIED, type: UNCLASSIFIED, subtype: UNCLASSIFIED });
+  });
 });

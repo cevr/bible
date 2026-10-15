@@ -65,6 +65,10 @@ jobs:
       - run: bun run build
       - run: bunx alchemy provider check-env --provider Cloudflare
       - run: bunx alchemy deploy alchemy.run.ts --stage "$STAGE" --yes
+        env:
+          # Bound to the sync's Worker as secrets (`server/cloudflare/Sync.ts`).
+          EGW_CLIENT_ID: ${{ secrets.EGW_CLIENT_ID }}
+          EGW_CLIENT_SECRET: ${{ secrets.EGW_CLIENT_SECRET }}
 
   cleanup:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -81,3 +85,7 @@ jobs:
           case "$STAGE" in pr-*) ;; *) echo "refusing to destroy $STAGE"; exit 1 ;; esac
           bun run build
           bunx alchemy destroy alchemy.run.ts --stage "$STAGE" --yes
+        env:
+          # The stack reads them while it plans, destroy included.
+          EGW_CLIENT_ID: ${{ secrets.EGW_CLIENT_ID }}
+          EGW_CLIENT_SECRET: ${{ secrets.EGW_CLIENT_SECRET }}
