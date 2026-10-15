@@ -25,7 +25,7 @@
 // around its targets), so a trigger says the menu is open (`data-popup-open`)
 // only while the menu is open from its own press (the root's `opener`).
 import type { JSX } from '@solidjs/web';
-import { omit, onCleanup, onSettled, untrack } from 'solid-js';
+import { omit, onCleanup, untrack } from 'solid-js';
 
 import { stopEvent } from '../../floating-ui-solid/utils/event.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
@@ -34,7 +34,8 @@ import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { useMenuRootContext } from '../../menu/root/MenuRootContext.ts';
 import { findRootOwnerId } from '../../menu/utils/isKeyboardOpen.ts';
-import { addEventListener, contains, getTarget, ownerDocument } from '../../utils/dom.ts';
+import { listen } from '../../mix/mix.ts';
+import { contains, getTarget, ownerDocument } from '../../utils/dom.ts';
 import { pressableTriggerOpenStateMapping } from '../../utils/popupStateMapping.ts';
 import {
   LONG_PRESS_DELAY,
@@ -227,17 +228,6 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     mouseUpAbortController?.abort();
   });
 
-  // The browser's context menu stays closed over the menu's backdrop (over the area, the open
-  // that went ahead closes it).
-  onSettled(() =>
-    addEventListener(ownerDocument(triggerElement), 'contextmenu', (event) => {
-      const target = getTarget(event) as HTMLElement | null;
-      if (contains(contextMenu.internalBackdropRef.current, target)) {
-        event.preventDefault();
-      }
-    }),
-  );
-
   const state: ContextMenuTriggerState = {
     get open() {
       return store.open() && contextMenu.opener() === self;
@@ -246,9 +236,19 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
 
   return useRenderElement('div', componentProps, {
     state,
-    ref: (el: HTMLElement) => {
-      triggerElement = el;
-    },
+    ref: [
+      (el: HTMLElement) => {
+        triggerElement = el;
+      },
+      // The browser's context menu stays closed over the menu's backdrop (over the area, the open
+      // that went ahead closes it).
+      listen('document', 'contextmenu', (event) => {
+        const target = getTarget(event) as HTMLElement | null;
+        if (contains(contextMenu.internalBackdropRef.current, target)) {
+          event.preventDefault();
+        }
+      }),
+    ],
     stateAttributesMapping: pressableTriggerOpenStateMapping,
     props: [
       {

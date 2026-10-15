@@ -38,7 +38,7 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
     ownedWrite: true,
   });
 
-  const { getButtonProps } = useButton();
+  const button = useButton();
 
   createEffect(store.open, (opened) => {
     if (!opened) {
@@ -94,6 +94,7 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
       setTriggerElement(el);
     },
     props: [
+      button,
       click.reference,
       rootTriggerProps,
       {
@@ -115,7 +116,6 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
         },
       },
       elementProps,
-      getButtonProps,
     ],
   });
 

@@ -8,6 +8,7 @@
     "./menu": "./src/menu/index.ts",
     "./context-menu": "./src/context-menu/index.ts",
     "./press": "./src/press/index.ts",
+    "./mix": "./src/mix/mix.ts",
     "./dialog": "./src/dialog/index.ts",
     "./sheet": "./src/sheet/index.ts",
     "./toast": "./src/toast/index.ts",

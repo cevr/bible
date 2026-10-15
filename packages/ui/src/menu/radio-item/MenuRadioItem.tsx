@@ -85,6 +85,7 @@ export function MenuRadioItem(componentProps: MenuRadioItemProps): JSX.Element {
       state,
       stateAttributesMapping: checkedMapping,
       props: [
+        item.button,
         {
           role: 'menuitemradio',
           get 'aria-checked'() {
@@ -99,7 +100,6 @@ export function MenuRadioItem(componentProps: MenuRadioItemProps): JSX.Element {
         },
         ...item.props,
         elementProps,
-        item.buttonProps,
       ],
       ref: item.ref,
     });
