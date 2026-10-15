@@ -1,10 +1,12 @@
 // An ask's page, in parts the page composes: its head (what is asked, why,
-// by whom, by when), the step the run is on (its blocks, each primitive its
-// own part: a heading, prose, a picture, a choice, a free text), the send,
-// and the ask once answered (every answer, typed) or closed. Each part reads
-// the ask's provider (`context.tsx`) and nothing else, so a page is only
-// which parts it shows and where; no part takes a flag that changes what it
-// is.
+// by whom, by when), its sections on one page (each a step the owner's
+// answers reach, headed `2 · The Board` when titled: its blocks, each
+// primitive its own part: a heading, prose, a picture, a choice, a free
+// text, and the material it is about, `material.tsx`), the one send under
+// them, and the ask once answered (every answer, typed) or closed. Each part
+// reads the ask's provider (`context.tsx`) and nothing else, so a page is
+// only which parts it shows and where; no part takes a flag that changes
+// what it is.
 
 import { For, type JSX, Show } from '@solidjs/web';
 import { Toggle } from '@bible/ui/toggle';
@@ -20,10 +22,13 @@ import {
   askedIn,
   blocksOf,
   endText,
+  optionsShown,
   requiredOf,
+  titleOf,
 } from '../../core/ask.ts';
 import { pressed } from '../pressed.ts';
 import { useAsk } from './context.tsx';
+import { AudioPart, BoardPart, DocumentPart, ScriptPart, VideoPart } from './material.tsx';
 
 export { Provider } from './context.tsx';
 
@@ -94,7 +99,10 @@ export const Picture = (props: { readonly block: BlockOf<'image'> }) => (
   />
 );
 
-/** Choose one: each option a toggle, its picture over its label; pressing one again takes it back. */
+/**
+ * Choose one: each option a toggle, its picture over its label, the one the
+ * agent recommends first and marked so; pressing one again takes it back.
+ */
 export const ChooseOne = (props: { readonly block: BlockOf<'choose'> }) => {
   const { state, actions } = useAsk();
   const pictured = () => props.block.options.some((o) => Predicate.isNotUndefined(o.image));
@@ -113,14 +121,27 @@ export const ChooseOne = (props: { readonly block: BlockOf<'choose'> }) => {
           )
         }
       >
-        <For each={props.block.options}>
+        <For each={optionsShown(props.block.options)}>
           {(option) => (
-            <Toggle<string> class="ak-option" value={option.value} data-value={option.value}>
+            <Toggle<string>
+              class="sh-btn ak-option"
+              value={option.value}
+              data-value={option.value}
+              data-recommended={pressed(option.recommended === true)}
+            >
               {Option.match(Option.fromUndefinedOr(option.image), {
                 onNone: () => '',
                 onSome: (image) => <Img image={image} alt={option.label} />,
               })}
-              <span class="ak-label">{option.label}</span>
+              <span class="ak-label">
+                {option.label}
+                <Show when={option.recommended === true}>
+                  {' '}
+                  <span class="sh-badge" data-state="agent">
+                    recommended
+                  </span>
+                </Show>
+              </span>
             </Toggle>
           )}
         </For>
@@ -161,55 +182,74 @@ export const Block = (props: { readonly block: AskBlock }): JSX.Element =>
       image: (b) => <Picture block={b} />,
       choose: (b) => <ChooseOne block={b} />,
       free_text: (b) => <FreeText block={b} />,
+      document: (b) => <DocumentPart block={b} />,
+      script: (b) => <ScriptPart block={b} />,
+      board: (b) => <BoardPart block={b} />,
+      video: (b) => <VideoPart block={b} />,
+      audio: (b) => <AudioPart block={b} />,
     }),
   );
 
 /**
- * The step the ask's run is on: its blocks, then `children` (its send). It
- * is drawn again only when the run moves to another step, by its name: a
- * draft's every keystroke leaves its fields, and the focus, where they are.
+ * The ask's sections, on one page: each step the owner's answers reach,
+ * headed with its place and its title when it has one, then its blocks. A
+ * section is drawn once by its name: a draft's every keystroke leaves its
+ * fields, and the focus, where they are, and a section a choice leads to
+ * appears under it, or goes, as the choice changes.
  */
-export const Step = (props: { readonly children?: JSX.Element }) => {
+export const Sections = () => {
   const { state } = useAsk();
-  const name = createMemo(() => Option.getOrUndefined(Option.map(state.step(), (s) => s.name)));
-  const blocks = () =>
-    Option.match(state.step(), {
-      onNone: (): ReadonlyArray<AskBlock> => [],
-      onSome: (s) => blocksOf(s.step),
-    });
+  const names = createMemo(() => state.sections().map((s) => s.name));
+  const stepOf = (name: string) =>
+    Arr.findFirst(state.sections(), (s) => s.name === name).pipe(Option.map((s) => s.step));
   return (
-    <Show when={name()} keyed>
-      {(at: string) => (
-        <section class="ak-step" data-step={at}>
-          <For each={blocks()}>{(block) => <Block block={block} />}</For>
-          {props.children}
+    <For each={names()}>
+      {(name, i) => (
+        <section class="ak-step" data-step={name}>
+          <Show when={Option.getOrUndefined(Option.flatMap(stepOf(name), titleOf))}>
+            {(title: Accessor<string>) => (
+              <h2 class="ak-section-h">
+                {i() + 1} · {title()}
+              </h2>
+            )}
+          </Show>
+          <For
+            each={Option.match(stepOf(name), {
+              onNone: (): ReadonlyArray<AskBlock> => [],
+              onSome: blocksOf,
+            })}
+          >
+            {(block) => <Block block={block} />}
+          </For>
         </section>
       )}
-    </Show>
+    </For>
   );
 };
 
-/** The send: the step's answers to the lab, and what the last send said. */
+/** The send: the page's answers to the lab, every section's, and what the last send said. */
 export const Submit = () => {
   const { state, actions } = useAsk();
   const sending = () => state.phase() === 'Sending';
   return (
-    <div class="ak-send">
-      <button
-        type="button"
-        class="sh-btn"
-        data-variant="primary"
-        data-act="send"
-        disabled={sending()}
-        aria-busy={pressed(sending())}
-        onClick={() => actions.submit()}
-      >
-        Send
-      </button>
-      <span class="rv-hint" role="status" aria-live="polite">
-        {state.said()}
-      </span>
-    </div>
+    <Show when={state.sections().length > 0}>
+      <div class="ak-send">
+        <button
+          type="button"
+          class="sh-btn"
+          data-primary
+          data-act="send"
+          disabled={sending()}
+          aria-busy={pressed(sending())}
+          onClick={() => actions.submit()}
+        >
+          Send
+        </button>
+        <span class="rv-hint" role="status" aria-live="polite">
+          {state.said()}
+        </span>
+      </div>
+    </Show>
   );
 };
 

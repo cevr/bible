@@ -1,11 +1,12 @@
 // An ask's page, as one machine: it reads the ask (its record: the agent's
-// machine and where its run is), keeps the owner's draft of the step the run
-// is on, and sends it as the state's task, so one answer is out at a time.
-// The draft is checked as the lab will check it (`answerRefusal`) before it
-// goes; the lab's answer is the ask as it leaves it, the next step's page or
-// its end, and a fresh draft. A refusal (the phone answered first, the ask
-// was closed) reads the ask again and says why. Where the run is lives in
-// the lab, not here: a reload or another device opens it where it was left.
+// machine and where its run is), keeps the owner's draft of every answer on
+// its one page (each section the draft reaches, `sectionsOf`), and sends
+// them all as the state's task, so one send is out at a time. The draft is
+// checked as the lab will check it (`pageRefusal`) before it goes; the
+// lab's answer is the ask as it leaves it, its end, and a fresh draft. A
+// refusal (the phone answered first, the ask was closed) reads the ask
+// again and says why. Where the run is lives in the lab, not here: a reload
+// or another device opens it where it was left.
 //
 //   Reading ─Read→ Open ─Set→ Open ─Submit→ Sending ─Landed→ Open
 //   Reading ─Unread→ Unreadable        Sending ─Refused→ Reading
@@ -13,9 +14,9 @@
 // Nothing here touches the DOM: the lab's routes are the review's API,
 // faked in tests.
 
-import { Effect, Match, Option, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
-import { AskRecord, answerRefusal, filled } from '../../core/ask.ts';
+import { AskRecord, filled, pageRefusal, sectionsOf } from '../../core/ask.ts';
 import { ReviewApi } from '../review/api.ts';
 import { failureText } from '../review/format.ts';
 
@@ -44,18 +45,17 @@ export const AskPageEvent = Event({
 });
 export type AskPageEvent = typeof AskPageEvent.Type;
 
-/** The step the ask's run is on, when it is asking. */
-export const stepOf = (record: AskRecord): Option.Option<string> =>
-  Match.value(record.state).pipe(
-    Match.tag('Asking', (s) => Option.some(s.step)),
-    Match.orElse(() => Option.none<string>()),
-  );
+/** The sections `record`'s page shows with `draft`: from where its run is, as far as the draft reaches. */
+export const pageSections = (record: AskRecord, draft: typeof Draft.Type) =>
+  sectionsOf(record.ask, record.state, draft);
 
-/** Why `draft` cannot go yet for `record`'s step, or none when it can (an optional field may be empty). */
+/** What the page sends with `draft`: each section's step and its answers, empty fields left out. */
+const sent = (record: AskRecord, draft: typeof Draft.Type) =>
+  pageSections(record, draft).map((s) => ({ step: s.name, values: filled(s.values) }));
+
+/** Why `draft` cannot go yet for `record`'s page, or none when it can (an optional field may be empty). */
 const draftRefusal = (record: AskRecord, draft: typeof Draft.Type): Option.Option<string> =>
-  Option.flatMap(stepOf(record), (step) =>
-    answerRefusal(record.ask, record.state, step, filled(draft)),
-  );
+  pageRefusal(record.ask, record.state, sent(record, draft));
 
 /** The page's machine for ask `id`, reading it first. */
 const askPageMachine = (id: string) =>
@@ -90,14 +90,7 @@ const askPageMachine = (id: string) =>
     )
     .task(
       AskPageState.Sending,
-      ({ state }) =>
-        ReviewApi.use((api) =>
-          api.answer(
-            id,
-            Option.getOrElse(stepOf(state.record), () => ''),
-            filled(state.draft),
-          ),
-        ),
+      ({ state }) => ReviewApi.use((api) => api.answer(id, sent(state.record, state.draft))),
       {
         onSuccess: (record) => AskPageEvent.Landed({ record }),
         onFailure: (failure) => AskPageEvent.Refused({ why: failureText(failure) }),
