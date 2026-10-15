@@ -197,7 +197,7 @@ describe("the counsel's sandbox", () => {
   // The host's route (`ANTHROPIC_BASE_URL`; unset or empty, direct), which the counsel's
   // run is given as it is, and the route its start line names: the proxy's scheme and
   // host alone (no login, path, query or fragment, where a token can sit), `proxy` for
-  // a value that is no URL, `direct` with none.
+  // a value that is no `http` or `https` URL, `direct` with none.
   const routes: ReadonlyArray<readonly [string, Record<string, string>, string]> = [
     ['no proxy', {}, 'route=direct'],
     ['an empty one', { ANTHROPIC_BASE_URL: '' }, 'route=direct'],
@@ -218,6 +218,11 @@ describe("the counsel's sandbox", () => {
       ],
       ['a token after #', 'http://localhost:3456#sk-secret', 'route=http://localhost:3456'],
       ['a value that is no URL', 'http://me:se/cret@localhost:3456', 'route=proxy'],
+      // Each parses with a scheme that is no web one: its first word, a login or a token.
+      ['a login with no scheme', 'me:secret@localhost:3456', 'route=proxy'],
+      ['a token with no scheme', 'sk-secret:x@localhost:3456', 'route=proxy'],
+      ['a host with no scheme', 'localhost:3456', 'route=proxy'],
+      ['a scheme that is no web one', 'foo://me:secret@host/secret', 'route=proxy'],
     ].map(
       ([what = '', url = '', route = '']) => [what, { ANTHROPIC_BASE_URL: url }, route] as const,
     ),

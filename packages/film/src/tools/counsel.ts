@@ -72,20 +72,26 @@ const COUNSEL_LIMIT = Duration.minutes(30);
 /** The counsel's bounds: `COUNSEL_LIMIT`, then 10 s to exit once stopped. */
 const COUNSEL_BOUNDS: CounselBounds = { limit: COUNSEL_LIMIT, killAfter: Duration.seconds(10) };
 
+/** The schemes a proxy's route is logged by. */
+const WEB_SCHEMES: ReadonlySet<string> = new Set(['http:', 'https:']);
+
 /**
  * The way a run's `env` sends it to Claude, safe to log: its proxy's
  * (`ANTHROPIC_BASE_URL`) scheme and host alone, since a login, a path, a
  * query or a fragment can carry a token; `proxy` for a value that is no
- * URL; `direct` with none.
+ * `http` or `https` URL (with no scheme, a value's first word, which can be
+ * a login or a token, parses as one); `direct` with none.
  */
 const routeOf = (env: Readonly<Record<string, string>>): string =>
   Option.match(Option.fromNullishOr(env['ANTHROPIC_BASE_URL']), {
     onNone: () => 'direct',
     onSome: (url) =>
-      Option.match(Option.fromNullishOr(URL.parse(url)), {
-        onNone: () => 'proxy',
-        onSome: (parsed) => `${parsed.protocol}//${parsed.host}`,
-      }),
+      Option.match(
+        Option.filter(Option.fromNullishOr(URL.parse(url)), (parsed) =>
+          WEB_SCHEMES.has(parsed.protocol),
+        ),
+        { onNone: () => 'proxy', onSome: (parsed) => `${parsed.protocol}//${parsed.host}` },
+      ),
   });
 
 /** The last lines `text` printed, for a failure's reason. */
