@@ -88,4 +88,28 @@ describe('the checkouts', () => {
         expect(yield* labels(path.join(rifts, 'p5'))).toEqual(['oneline', 'p5', 'unit']);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
+
+  it.effect('a Rift made from a Rift leaves its source a Rift, never a warm source', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const home = yield* fs.makeTempDirectoryScoped();
+      const rifts = path.join(home, '.rifts', 'bible-tools');
+      yield* checkout(path.join(home, 'bible-tools'), 'bible');
+      yield* checkout(path.join(rifts, 'p5'), 'bible');
+      yield* checkout(path.join(rifts, 'rbfscene'), 'bible');
+      // `rift create` run from each Rift, so each has a Rifts' folder beside it.
+      yield* checkout(path.join(rifts, '.rifts', 'p5', 'n2'), 'bible');
+      yield* checkout(path.join(rifts, '.rifts', 'rbfscene', 'n1'), 'bible');
+      const labels = (repo: string) =>
+        Effect.map(checkoutRootsOf(repo), (roots) => roots.map((root) => root.label));
+      expect(yield* labels(path.join(rifts, 'p5'))).toEqual(['n2', 'p5', 'rbfscene']);
+      expect(yield* labels(path.join(rifts, 'rbfscene'))).toEqual(['n1', 'p5', 'rbfscene']);
+      expect(yield* labels(path.join(home, 'bible-tools'))).toEqual([
+        'bible-tools',
+        'p5',
+        'rbfscene',
+      ]);
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
 });
