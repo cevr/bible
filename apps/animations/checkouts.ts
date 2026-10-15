@@ -1,9 +1,10 @@
 // The checkouts of this repository on this machine, so the lab's review sees
 // the renders of each (`checkoutRoots`, cli.ts). A checkout is a folder whose
 // root `package.json` names the same package as this one's: the folders
-// beside it (worktrees, or the Rifts beside a Rift), and, for a Rift
-// (`<p>/.rifts/<repo>/<rift>`), its warm source (`<p>/<repo>`), or for the
-// warm source, its Rifts. A folder's name says nothing.
+// beside it (worktrees, or the Rifts beside a Rift), and, for the warm source
+// (`<p>/<repo>`), its Rifts (`<p>/.rifts/<repo>/<rift>`). A Rift's lab leaves
+// its warm source out: that is only read, and a say on a set writes its
+// catalogue. A folder's name says nothing.
 
 import type { ReviewRoot } from '@bible/film/tools';
 import { Effect, FileSystem, Match, Option, Path, Schema } from 'effect';
@@ -43,9 +44,8 @@ export const checkoutRootsOf = (repo: string) =>
     const parent = path.dirname(repo);
     const inRift = path.basename(path.dirname(parent)) === '.rifts';
     const elsewhere = yield* Match.value(inRift).pipe(
-      Match.when(true, () =>
-        Effect.succeed([path.join(path.dirname(path.dirname(parent)), path.basename(parent))]),
-      ),
+      // A Rift's warm source stays out: it is read, never written, and a say writes.
+      Match.when(true, () => Effect.succeed([])),
       Match.orElse(() => foldersIn(path.join(parent, '.rifts', path.basename(repo)))),
     );
     const candidates = [...new Set([...(yield* foldersIn(parent)), ...elsewhere])];

@@ -18,7 +18,7 @@ const checkout = (dir: string, name: string, made = 'out') =>
 
 describe('the checkouts', () => {
   it.effect(
-    'are the folders whose root package is this one, a Rift’s warm source and siblings included',
+    'are the folders whose root package is this one: a Rift’s siblings, never its warm source',
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
@@ -35,11 +35,13 @@ describe('the checkouts', () => {
         yield* fs.writeFileString(path.join(rifts, 'not-json', 'package.json'), '{');
         const labels = (repo: string) =>
           Effect.map(checkoutRootsOf(repo), (roots) => roots.map((root) => root.label));
-        const all = ['bible-tools', 'oneline', 'p5', 'rbfscene', 'rimproto', 'seedanim'];
-        expect(yield* labels(path.join(rifts, 'p5'))).toEqual(all);
-        expect(yield* labels(path.join(home, 'bible-tools'))).toEqual(all);
+        const rifted = ['oneline', 'p5', 'rbfscene', 'rimproto', 'seedanim'];
+        // A lab in a Rift reads and writes (a say writes a catalogue) the Rifts alone: the
+        // warm source is only ever read, by git, never written.
+        expect(yield* labels(path.join(rifts, 'p5'))).toEqual(rifted);
+        expect(yield* labels(path.join(home, 'bible-tools'))).toEqual(['bible-tools', ...rifted]);
         const [first] = yield* checkoutRootsOf(path.join(rifts, 'p5'));
-        expect(first?.path).toBe(path.join(home, 'bible-tools', 'apps', 'animations', 'out'));
+        expect(first?.path).toBe(path.join(rifts, 'oneline', 'apps', 'animations', 'out'));
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 });
