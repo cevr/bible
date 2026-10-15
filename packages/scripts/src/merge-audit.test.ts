@@ -7,7 +7,7 @@
 
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { describe, expect, test } from 'bun:test';
-import { Effect, FileSystem, Path } from 'effect';
+import { Effect, FileSystem, Path, Stream } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
@@ -100,6 +100,39 @@ const runEach = Effect.gen(function* () {
   return { commits, lines: out.split('\n').filter((line) => line.startsWith('merge-audit ')) };
 }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
+// `--each` where a checkout fails: the guard leaves an untracked file that the
+// next commit tracks, so git refuses to check that commit out over it.
+const runEachCheckoutFails = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'merge-audit-each-' });
+  const { git } = fixture(dir);
+  const write = (file: string, text: string) => fs.writeFileString(path.join(dir, file), text);
+  const commitAll = (message: string) =>
+    Effect.andThen(git('add', '-A'), git('commit', '-q', '-m', message));
+  yield* git('init', '-q', '-b', 'main');
+  yield* write('package.json', '{ "scripts": { "guard": "echo left > left.txt" } }\n');
+  yield* commitAll('base');
+  const base = yield* git('rev-parse', 'HEAD');
+  yield* write('a.txt', 'a\n');
+  yield* commitAll('green');
+  yield* write('left.txt', 'tracked\n');
+  yield* commitAll('tracks the file the guard leaves');
+  const blocked = yield* git('rev-parse', 'HEAD');
+  const spawner = yield* ChildProcessSpawner;
+  const child = yield* spawner.spawn(
+    ChildProcess.make('bun', [path.join(import.meta.dir, 'merge-audit.ts'), '--each', base], {
+      cwd: dir,
+      forceKillAfter: '5 seconds',
+    }),
+  );
+  const [out, code] = yield* Effect.all(
+    [Stream.mkString(Stream.decodeText(child.all)), child.exitCode],
+    { concurrency: 2 },
+  );
+  return { blocked, out, code: Number(code) };
+}).pipe(Effect.scoped, Effect.provide(BunServices.layer));
+
 describe('merge audit, each commit', () => {
   test(
     'names the commit red on its own though the tip is green',
@@ -112,6 +145,19 @@ describe('merge audit, each commit', () => {
             ),
           ),
         ),
+      ),
+    30_000,
+  );
+
+  test(
+    'fails when a commit cannot be checked out, and never reports the tree before it as that commit',
+    () =>
+      Effect.runPromise(
+        Effect.map(runEachCheckoutFails, ({ blocked, out, code }) => {
+          expect(code).not.toBe(0);
+          expect(out).not.toContain(`merge-audit ${blocked.slice(0, 8)} guard ok`);
+          expect(out).toContain(blocked.slice(0, 8));
+        }),
       ),
     30_000,
   );

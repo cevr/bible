@@ -17,7 +17,8 @@
 // way under `merge-audit <sha> inside <merge> conflicted=<n> …`. The loop
 // pastes the output onto the batch's ledger row, each lost line with why.
 // Exits non-zero only when the commit is not a merge or git fails; a commit
-// that is not a merge prints its refusal alone.
+// that is not a merge prints its refusal alone. `--each` exits non-zero on a
+// red commit, and on a checkout or an install that fails.
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
@@ -136,11 +137,31 @@ const outcome = (command: string, args: ReadonlyArray<string>, cwd: string) =>
     return { output, ok: code === 0 };
   }).pipe(Effect.scoped);
 
+/** A step of `--each` that failed at `commit` (a checkout, an install): the command and git's or bun's words. */
+class StepFailed extends Schema.TaggedError<StepFailed>()('StepFailed', {
+  commit: Schema.String,
+  command: Schema.String,
+  output: Schema.String,
+}) {
+  override get message() {
+    return `merge-audit ${this.commit.slice(0, 8)} \`${this.command}\` failed: ${this.output.trim()}`;
+  }
+  override readonly [Runtime.errorReported] = false;
+}
+
+/** A setup step at `commit`, or StepFailed when it exits non-zero. */
+const step = (commit: string, command: string, args: ReadonlyArray<string>, cwd: string) =>
+  Effect.flatMap(outcome(command, args, cwd), ({ ok, output }) => {
+    if (ok) return Effect.void;
+    return Effect.fail(StepFailed.make({ commit, command: [command, ...args].join(' '), output }));
+  });
+
 /**
  * `--each <base>`: `bun run guard` (lint, format, dead exports) on each commit
  * of `base..HEAD`, oldest first, in a scratch worktree, so a commit red on its
  * own shows before the fast-forward lands it. Dependencies are installed from
- * the first commit's lock, and again where a commit changes it.
+ * the first commit's lock, and again where a commit changes it. A checkout or
+ * an install that fails ends the run non-zero, naming the commit.
  */
 const each = Effect.fn('mergeAudit.each')(function* (base: string) {
   const fs = yield* FileSystem.FileSystem;
@@ -159,10 +180,11 @@ const each = Effect.fn('mergeAudit.each')(function* (base: string) {
   let lock = '';
   const red: Array<string> = [];
   for (const commit of commits) {
-    yield* outcome('git', ['checkout', '-q', '--detach', commit], dir);
+    // A step that fails ends the run: the guard would read the tree before it.
+    yield* step(commit, 'git', ['checkout', '-q', '--detach', commit], dir);
     const lockNow = yield* textAt(commit, 'bun.lock');
     if (lockNow !== lock && lockNow !== '')
-      yield* outcome('bun', ['install', '--frozen-lockfile', '--ignore-scripts'], dir);
+      yield* step(commit, 'bun', ['install', '--frozen-lockfile', '--ignore-scripts'], dir);
     lock = lockNow;
     const guard = yield* outcome('bun', ['run', 'guard'], dir);
     if (!guard.ok) red.push(commit);
@@ -190,6 +212,7 @@ const command = Command.make(
       onSome: (from) =>
         Effect.scoped(each(from)).pipe(
           Effect.tapErrorTag('GuardRed', (error) => Console.error(error.message)),
+          Effect.tapErrorTag('StepFailed', (error) => Console.error(error.message)),
         ),
       onNone: () =>
         audit(Option.getOrElse(merge, () => 'HEAD')).pipe(

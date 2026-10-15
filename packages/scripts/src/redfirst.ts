@@ -14,30 +14,68 @@
 // <name>`, and a count line ends the report. Browser-tier files
 // (`*.dom.test.ts`, `*.pixel.test.ts`) are named, not run. Slow (an install
 // and two runs), so never a hook: its output rides in a unit's review
-// request. Exits non-zero only when git, the install or a run cannot start.
+// request. A renamed test file runs at its new path, its base cases read at
+// its old one; a changed test file it does not run (a browser tier, a
+// deleted file) is named with why. Exits non-zero when git or the install
+// exits non-zero, or a test run writes no junit report: a report printed
+// is one every step of which ran.
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Console, Effect, FileSystem, Path } from 'effect';
+import { Console, Effect, FileSystem, Option, Path, Runtime, Schema, Stream } from 'effect';
 import { Argument, Command } from 'effect/cli';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
 import {
-  addedLines,
   caseKey,
   caseSpans,
   casesOf,
+  changesOf,
+  diffLines,
   newOrChanged,
   reportLines,
   unloaded,
 } from './redfirst/report.js';
 
-/** A command's stdout, whatever its exit code (a test run exits 1 on a red case). */
+/** A step that did not do its work: the command, its exit code and what it printed. */
+class StepFailed extends Schema.TaggedError<StepFailed>()('StepFailed', {
+  command: Schema.String,
+  code: Schema.Number,
+  output: Schema.String,
+}) {
+  override get message() {
+    return `redfirst: \`${this.command}\` exited ${this.code}: ${this.output.trim()}`;
+  }
+  override readonly [Runtime.errorReported] = false;
+}
+
+const text = (stream: Stream.Stream<Uint8Array, unknown>) =>
+  Stream.mkString(Stream.decodeText(stream));
+
+/** A command's stdout, its stderr and its exit code. */
+const exec = (command: string, args: ReadonlyArray<string>, cwd: string) =>
+  Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner;
+    const child = yield* spawner.spawn(
+      ChildProcess.make(command, args, { cwd, forceKillAfter: '5 seconds' }),
+    );
+    const [stdout, stderr, code] = yield* Effect.all(
+      [text(child.stdout), text(child.stderr), child.exitCode],
+      { concurrency: 3 },
+    );
+    return { stdout, stderr, code: Number(code) };
+  }).pipe(Effect.scoped);
+
+const failed = (command: string, args: ReadonlyArray<string>, code: number, output: string) =>
+  StepFailed.make({ command: [command, ...args].join(' '), code, output });
+
+/** A command's stdout, or StepFailed when it exits non-zero. */
 const run = (command: string, args: ReadonlyArray<string>, cwd: string) =>
-  Effect.flatMap(ChildProcessSpawner, (spawner) =>
-    spawner.string(ChildProcess.make(command, args, { cwd, forceKillAfter: '5 seconds' })),
-  );
+  Effect.flatMap(exec(command, args, cwd), ({ stdout, stderr, code }) => {
+    if (code === 0) return Effect.succeed(stdout);
+    return Effect.fail(failed(command, args, code, `${stderr}${stdout}`));
+  });
 
 const lines = (out: string) => out.split('\n').filter((line) => line !== '');
 
@@ -85,13 +123,20 @@ const casesIn = Effect.fn('redfirst.casesIn')(function* (
   const path = yield* Path.Path;
   const report = path.join(yield* fs.makeTempDirectoryScoped({ prefix: 'redfirst-' }), 'junit.xml');
   const relative = files.map((file) => file.slice(prefix.length));
-  yield* run(
-    'bun',
-    ['test', '--timeout', '30000', '--reporter=junit', `--reporter-outfile=${report}`, ...relative],
-    path.join(tree, prefix),
-  );
-  const junit = yield* fs.readFileString(report).pipe(Effect.orElseSucceed(() => ''));
-  return casesOf(junit, prefix);
+  const args = [
+    'test',
+    '--timeout',
+    '30000',
+    '--reporter=junit',
+    `--reporter-outfile=${report}`,
+    ...relative,
+  ];
+  const ran = yield* exec('bun', args, path.join(tree, prefix));
+  // A run exits 1 on a red case; it ran only if it wrote its report.
+  const junit = yield* Effect.option(fs.readFileString(report));
+  if (ran.code > 1 || Option.isNone(junit))
+    return yield* failed('bun', args, ran.code, `${ran.stderr}${ran.stdout}`.slice(-4000));
+  return casesOf(junit.value, prefix);
 });
 
 /** Every case of `files` run in `tree`, package by package. */
@@ -117,11 +162,22 @@ const redfirst = Effect.fn('redfirst')(function* (baseRef: string) {
   const root = (yield* run('git', ['rev-parse', '--show-toplevel'], '.')).trim();
   const base = (yield* run('git', ['rev-parse', '--verify', `${baseRef}^{commit}`], root)).trim();
   const head = (yield* run('git', ['rev-parse', 'HEAD'], root)).trim();
-  const changed = lines(
-    yield* run('git', ['diff', '--name-only', '--diff-filter=AM', base, head], root),
-  );
+  const statuses = changesOf(yield* run('git', ['diff', '--name-status', '-M', base, head], root));
+  const kept = statuses.filter((c) => ['A', 'M', 'R'].includes(c.status));
+  const changed = kept.map((c) => c.file);
   const tests = changed.filter((file) => isTest(file) && !isBrowserTier(file));
-  const skipped = changed.filter(isBrowserTier);
+  /** A test file's path at the base: its old one when the branch renamed it. */
+  const fromOf = new Map(kept.map((c) => [c.file, c.from]));
+  const toOf = new Map(kept.map((c) => [c.from, c.file]));
+  const skipped = statuses
+    .filter((c) => isTest(c.file))
+    .flatMap((c) => {
+      if (c.status === 'D') return [{ file: c.file, why: 'deleted: its cases are gone' }];
+      if (!['A', 'M', 'R'].includes(c.status))
+        return [{ file: c.file, why: `git status ${c.status}: not read` }];
+      if (isBrowserTier(c.file)) return [{ file: c.file, why: 'a browser tier: run it by hand' }];
+      return [];
+    });
   const range = `${base.slice(0, 9)}..${head.slice(0, 9)}`;
   if (tests.length === 0) {
     yield* Effect.forEach(reportLines(range, [], { skipped, unloaded: [] }), (line) =>
@@ -131,11 +187,26 @@ const redfirst = Effect.fn('redfirst')(function* (baseRef: string) {
   }
   const tree = yield* worktree(root, base);
   yield* run('bun', ['install', '--frozen-lockfile', '--ignore-scripts'], tree);
-  // The base's own cases, from its own version of each file it had.
+  // The base's own cases, from its own version of each file it had (a renamed
+  // file's at its old path, keyed by its new one).
   const existed = lines(
-    yield* run('git', ['ls-tree', '-r', '--name-only', base, '--', ...tests], root),
+    yield* run(
+      'git',
+      [
+        'ls-tree',
+        '-r',
+        '--name-only',
+        base,
+        '--',
+        ...tests.map((file) => fromOf.get(file) ?? file),
+      ],
+      root,
+    ),
   );
-  const baseCases = yield* casesOfFiles(root, tree, existed);
+  const baseCases = (yield* casesOfFiles(root, tree, existed)).map((c) => ({
+    ...c,
+    file: toOf.get(c.file) ?? c.file,
+  }));
   // HEAD's test code over the base's sources.
   yield* Effect.forEach(
     changed.filter(isTestCode),
@@ -152,12 +223,11 @@ const redfirst = Effect.fn('redfirst')(function* (baseRef: string) {
   const changes = new Map(
     yield* Effect.forEach(tests, (file) =>
       Effect.all([
-        run('git', ['diff', '-U0', base, head, '--', file], root),
+        run('git', ['diff', '-U0', '-M', base, head, '--', fromOf.get(file) ?? file, file], root),
         run('git', ['show', `${head}:${file}`], root),
       ]).pipe(
         Effect.map(
-          ([diff, text]) =>
-            [file, { added: addedLines(diff), spans: caseSpans(file, text) }] as const,
+          ([diff, text]) => [file, { ...diffLines(diff), spans: caseSpans(file, text) }] as const,
         ),
       ),
     ),
@@ -168,7 +238,9 @@ const redfirst = Effect.fn('redfirst')(function* (baseRef: string) {
 });
 
 const command = Command.make('redfirst', { base: Argument.String('base') }, ({ base }) =>
-  Effect.scoped(redfirst(base)),
+  Effect.scoped(redfirst(base)).pipe(
+    Effect.tapErrorTag('StepFailed', (error) => Console.error(error.message)),
+  ),
 ).pipe(
   Command.withDescription(
     "Name every new or changed test case that passes against the base's product sources",

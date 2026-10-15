@@ -43,24 +43,60 @@ export const casesOf = (junit: string, prefix: string): ReadonlyArray<Case> =>
     };
   });
 
-/** The lines (1-based, in the new file) a unified diff of one file added. */
-export const addedLines = (diff: string): ReadonlySet<number> => {
+/**
+ * What a unified diff of one file changed, numbered in the new file: the
+ * lines it added, and the gaps it removed lines from (`g` is the gap between
+ * new lines `g` and `g + 1`; a hunk that adds none starts at the line before).
+ */
+/** The lines a diff added and the gaps it removed lines from, numbered in the new file. */
+interface DiffLines {
+  readonly added: ReadonlySet<number>;
+  readonly gaps: ReadonlySet<number>;
+}
+
+export const diffLines = (diff: string): DiffLines => {
   const added = new Set<number>();
+  const gaps = new Set<number>();
   let at = 0;
   for (const line of diff.split('\n')) {
-    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line);
+    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(line);
     if (hunk) {
+      // A hunk that adds no line names the line before its gap.
       at = Number(hunk[1]);
+      if (hunk[2] === '0') at += 1;
       continue;
     }
     if (line.startsWith('+++') || line.startsWith('---')) continue;
     if (line.startsWith('+')) {
       added.add(at);
       at += 1;
-    } else if (!line.startsWith('-') && !line.startsWith('\\')) at += 1;
+    } else if (line.startsWith('-')) gaps.add(at - 1);
+    else if (!line.startsWith('\\')) at += 1;
   }
-  return added;
+  return { added, gaps };
 };
+
+/** One file a branch changed: git's status letter, its path at HEAD, and its path at the base. */
+interface Change {
+  readonly status: string;
+  readonly file: string;
+  readonly from: string;
+}
+
+/**
+ * The files of `git diff --name-status -M <base> <head>`: a rename (`R087`)
+ * is the status `R`, its path at HEAD and its path at the base; any other
+ * change keeps one path for both.
+ */
+export const changesOf = (nameStatus: string): ReadonlyArray<Change> =>
+  nameStatus
+    .split('\n')
+    .filter((line) => line !== '')
+    .map((line) => {
+      const [code = '', first = '', second] = line.split('\t');
+      const status = code.slice(0, 1);
+      return { status, file: second ?? first, from: first };
+    });
 
 /** The lines (1-based, both ends in) of one case's own code: its title and its body. */
 interface Span {
@@ -98,26 +134,32 @@ export const caseSpans = (file: string, text: string): ReadonlyArray<Span> => {
   return spans;
 };
 
+/** What the diff did to one test file: the lines it added, the gaps it removed lines from, and the spans of its cases at HEAD. */
+interface FileChange {
+  readonly added: ReadonlySet<number>;
+  readonly gaps: ReadonlySet<number>;
+  readonly spans: ReadonlyArray<Span>;
+}
+
 /**
- * Whether the diff touched a case: an added line in the smallest span holding
- * the line the run names for it (a `test.each`'s cases share one), or on that
- * line when no span holds it.
+ * Whether the diff touched a case, in the smallest span holding the line the
+ * run names for it (a `test.each`'s cases share one), or that line alone when
+ * no span holds it: a line added in it, or lines removed from inside it (both
+ * sides of the gap in the span, so a whole case removed between two others
+ * touches neither).
  */
-const touched = (c: Case, spans: ReadonlyArray<Span>, added: ReadonlySet<number>): boolean => {
-  const holding = spans
+const touched = (c: Case, change: FileChange): boolean => {
+  const holding = change.spans
     .filter((span) => span.from <= c.line && c.line <= span.to)
     .toSorted((a, b) => a.to - a.from - (b.to - b.from))[0] ?? { from: c.line, to: c.line };
-  return [...added].some((line) => holding.from <= line && line <= holding.to);
+  return (
+    [...change.added].some((line) => holding.from <= line && line <= holding.to) ||
+    [...change.gaps].some((gap) => holding.from <= gap && gap + 1 <= holding.to)
+  );
 };
 
 /** A case's key across the two runs: its file and full name. */
 export const caseKey = (c: Case): string => `${c.file}\u0000${c.name}`;
-
-/** What the diff did to one test file: the lines it added and the spans of its cases at HEAD. */
-interface FileChange {
-  readonly added: ReadonlySet<number>;
-  readonly spans: ReadonlyArray<Span>;
-}
 
 /**
  * The new or changed cases of `head` (the head's tests run against the base's
@@ -132,7 +174,7 @@ export const newOrChanged = (
   head.filter((c) => {
     if (!baseKeys.has(caseKey(c))) return true;
     return Option.exists(Option.fromUndefinedOr(changes.get(c.file)), (change) =>
-      touched(c, change.spans, change.added),
+      touched(c, change),
     );
   });
 
@@ -143,17 +185,20 @@ export const unloaded = (
 ): ReadonlyArray<string> => files.filter((file) => !cases.some((c) => c.file === file));
 
 /**
- * The report: each browser-tier file not run, each file red whole, every new
+ * The report: each changed test file not run and why, each file red whole, every new
  * or changed case that passed on the base, then a count line.
  */
 export const reportLines = (
   range: string,
   cases: ReadonlyArray<Case>,
-  files: { readonly skipped: ReadonlyArray<string>; readonly unloaded: ReadonlyArray<string> },
+  files: {
+    readonly skipped: ReadonlyArray<{ readonly file: string; readonly why: string }>;
+    readonly unloaded: ReadonlyArray<string>;
+  },
 ): ReadonlyArray<string> => {
   const green = cases.filter((c) => c.passed);
   return [
-    ...files.skipped.map((file) => `redfirst ${file} not run (a browser tier: run it by hand)`),
+    ...files.skipped.map(({ file, why }) => `redfirst ${file} not run (${why})`),
     ...files.unloaded.map((file) => `redfirst ${file} red whole: no case ran on the base`),
     ...green.map((c) => `redfirst green on base: ${c.file}:${c.line} ${c.name}`),
     `redfirst ${range} cases=${cases.length} red=${cases.length - green.length} green=${green.length}`,
