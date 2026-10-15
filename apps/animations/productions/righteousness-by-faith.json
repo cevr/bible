@@ -223,6 +223,14 @@
       "set": "rbf-script-2026-10-14",
       "ask": "a086603ff6a",
       "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792108653446,
+      "text": "RBF v3: the concept frames (ask aa28806e8a9)",
+      "set": "rbf-v3-concepts-2026-10-15",
+      "ask": "aa28806e8a9",
+      "by": "rbfconcepts (p5)"
     }
   ],
   "filed": [
