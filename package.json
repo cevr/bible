@@ -48,7 +48,6 @@
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
     "oxlint-plugin-effect": "0.28.1",
-    "railway": "^3.13.1",
     "turbo": "^2.11.7",
     "typescript": "^7.0.2"
   },
