@@ -116,6 +116,8 @@ const MESSAGES = {
     'a nudge written beside a time: put the time on its grid through packages/film/src/core/time.ts (frameAtOrAfter, frameAtOrBefore, onTheMs, offTheMs, heardAtOrAfter, justBefore), or judge two times one with CLOCK_EPSILON, so one owner rounds every time.',
   'lock-through-sqlite.ts:11 film/lock-through-sqlite':
     "a manifest's lock file named outside its lock: SQLite alone opens it (packages/film/src/tools/manifest-lock-bun.ts), since closing any other handle on it lets go of the process's lock.",
+  'media-through-player.tsx:7 film/media-through-player':
+    "a media element made by hand: play sound and pictures through the player's media module (packages/film/src/browser/media.ts), which owns what an element does a page cannot see.",
   'one-breakpoint.ts:8 film/one-breakpoint':
     "a breakpoint written out: ask the studio's one breakpoint through PHONE or WIDE (packages/film/src/lab/viewport.ts), so the width is declared once.",
   'framing-is-a-knob.ts:10 film/framing-is-a-knob':

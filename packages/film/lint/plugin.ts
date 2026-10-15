@@ -13,6 +13,7 @@ import { hostEventsThroughAdapter } from './host-events-through-adapter.ts';
 import { keysNamedAsBound } from './keys-named-as-bound.ts';
 import { keysThroughKeymap } from './keys-through-keymap.ts';
 import { lockThroughSqlite } from './lock-through-sqlite.ts';
+import { mediaThroughPlayer } from './media-through-player.ts';
 import { noCueRemap } from './no-cue-remap.ts';
 import { noEaseOnCue } from './no-ease-on-cue.ts';
 import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
@@ -40,6 +41,7 @@ export default Plugin.define({
     'keys-named-as-bound': keysNamedAsBound,
     'keys-through-keymap': keysThroughKeymap,
     'lock-through-sqlite': lockThroughSqlite,
+    'media-through-player': mediaThroughPlayer,
     'no-cue-remap': noCueRemap,
     'no-ease-on-cue': noEaseOnCue,
     'no-hand-timed-seconds': noHandTimedSeconds,
