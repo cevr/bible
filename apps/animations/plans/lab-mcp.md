@@ -224,15 +224,32 @@ answers it on the laptop or the phone, and each answer reaches the agent as a ty
 
 ### What an agent writes
 
-An ask is data, never code: a small machine of steps, each step a page of blocks or an end.
+An ask is data, never code: a small machine of steps, each step a section of blocks (its `title` heading it,
+`2 · The Board`) or an end. The owner sees it as **one scrolling page** (owner, 2026-10-15: "lets always make it
+one page no need for multiple pages"): every section his answers so far reach, in order, one Send under them all.
+A guard (`next[].when`) makes a section appear once its choice is made, and go when the choice changes; the run
+moves only on Send, every section's answers kept in one write. A guided review has one section per piece of
+material in the flow's order (script → concept → Board → voice → animatic → Rive scenes → sound → render →
+shorts): the material itself first, then its questions, never prose that points elsewhere.
 
-| Block       | Is                                                                                       |
-| ----------- | ---------------------------------------------------------------------------------------- |
-| `heading`   | a title over what follows                                                                |
-| `prose`     | the context the owner decides in                                                         |
-| `image`     | a still: `{src}` (a lab path, `/api/…`) or `{board: {film, panel, try}}`, plus a caption |
-| `choose`    | choose one of 2–12 options by `id`, always answered; an option may carry an image        |
-| `free_text` | the owner's words by `id`, with a placeholder: optional unless `required: true`          |
+| Block       | Is                                                                                                                                 |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `heading`   | a title over what follows                                                                                                          |
+| `prose`     | the context the owner decides in                                                                                                   |
+| `image`     | a still: `{src}` (a lab path, `/api/…`) or `{board: {film, panel, try}}`, plus a caption                                           |
+| `choose`    | choose one of 2–12 options by `id`, always answered; an option may carry an image, and one is `recommended` (listed first, marked) |
+| `free_text` | the owner's words by `id`, with a placeholder: optional unless `required: true`                                                    |
+| `script`    | the Script reader in place: `{film}` or `{series, draft}`, `beats?`; takes play, marks write back                                  |
+| `board`     | the Board's panels in place: `{film, panels?}`, each with its kept try                                                             |
+| `video`     | a set's or a render's video in the review's player: `{ref, at?}`                                                                   |
+| `audio`     | a recorded take: `{film, beat, attempt?}`, the kept one unless named                                                               |
+| `document`  | a set's Markdown, as the set's page reads it: `{ref}`                                                                              |
+
+The material blocks name what they show as the lab lists it (a film, a series' draft, a review ref
+`<root>/<folder>/<file>`, never a path on the box), and the lab finds each when the ask is made, through the read
+its own view makes (`tools/ask-materials.ts`): one it cannot show is refused, named. A choice made now marks one
+option `recommended: true` (two or more options with none is refused when the ask is made; a stored ask is never
+checked again).
 
 A choice is the cheap answer; words are a burden to require (owner, 2026-10-14: "in general we should make
 textfields optional, required text fields usually are a burden, multiple choice etc is better"). So an agent asks
