@@ -270,6 +270,13 @@ export const PlayedAlone = (
 ) => {
   const { meta } = useReview();
   const [retried, setRetried] = createSignal<Option.Option<Try>>(Option.none());
+  // The length at rest is the browser's measure, which the server's render has not: a video
+  // whose metadata came before the page's script would draw it during hydration, over markup
+  // that has none. It shows once the page has settled.
+  const [settled, setSettled] = createSignal(false, { ownedWrite: true });
+  onSettled(() => {
+    setSettled(true);
+  });
   // The play a press on a failed picture asked for: the retry's element's alone, taken once
   // as that element starts (a source switched away and back is a new try, which plays only
   // if the clock plays).
@@ -361,7 +368,9 @@ export const PlayedAlone = (
                   <span class="rv-rest-play">
                     <PlayIcon />
                   </span>
-                  <Show when={Option.getOrUndefined(lengthText(sync()))}>
+                  <Show
+                    when={Option.getOrUndefined(Option.filter(lengthText(sync()), () => settled()))}
+                  >
                     {(length: Accessor<string>) => <span class="rv-rest-length">{length()}</span>}
                   </Show>
                 </span>
