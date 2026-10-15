@@ -27,9 +27,13 @@ bun run --cwd apps/egw-search test:deploy
 
 Every stage reads one shared corpus and index (`server/cloudflare/resources.ts`),
 adopted and retained, so a teardown removes only its Worker. They were loaded
-once from `egw-paragraphs.db` and `vectors.bvi`; the weekly sync still runs only
-in the Bun server. `alchemy.railway.ts` is the Railway deployment the Worker
-replaces, kept until the cutover holds.
+once from `egw-paragraphs.db` and `vectors.bvi`. Every Sunday at 09:00 UTC the
+`egw-corpus-sync` Workflow (`server/cloudflare/Sync.ts`) installs the books the
+library has added into D1 and their vectors into Vectorize. Only `prod` writes;
+any other stage's Workflow plans and stops. A deploy reads `EGW_CLIENT_ID` and
+`EGW_CLIENT_SECRET` from the environment (CI takes them from the environment's
+secrets). To add vectors for books already installed, start an instance with
+`{"mode":"sync","reembed":[<book id>, ...]}`.
 
 The URL is the search state. `src/url-state.ts` declares the workspace as a
 `@bible/url-state` place — each pane's keys, their defaults, and which changes

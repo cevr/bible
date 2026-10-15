@@ -12,6 +12,7 @@
  *  index would simply contain paragraphs the scope filter never asks about.
  */
 
+import { vectorDocument } from '@bible/core/search';
 import { EGW_SCOPE_AUTHORS } from '@bible/core/writings';
 import { Database } from 'bun:sqlite';
 
@@ -105,26 +106,19 @@ export const readVectorSource = (input: {
             }),
           ),
         );
-        return decoded.flatMap((row): readonly VectorSourceRow[] => {
-          const paraId = row.para_id ?? '';
-          // No identity, no vector. A row the index could name only ambiguously
-          // is a row the fusion could not join back, so it is left out rather
-          // than written under a key that collides.
-          if (paraId.length === 0) return [];
-          const refcode = row.refcode_short ?? row.ref_code;
-          if (refcode.length === 0) return [];
-          const text = row.content_text.trim();
-          // `content_text` is the corpus's own flattened text, which is what
-          // `paragraphs_fts` indexes — so the lexical leg and the vector leg
-          // see the same words, and neither is matching against markup the
-          // other cannot.
-          //
-          // A paragraph with no text is a structural row — a heading anchor, a
-          // page marker — and embedding it would put a vector with no meaning
-          // into the index for the scan to rank.
-          if (text.length === 0) return [];
-          return [{ bookCode: row.book_code, paraId, refcode, text }];
-        });
+        // Which rows the index holds is one rule, shared with the Worker's
+        // sync that adds a new book's vectors (`vectorDocument`).
+        return decoded.flatMap((row): readonly VectorSourceRow[] =>
+          Option.toArray(
+            vectorDocument({
+              bookCode: row.book_code,
+              refCode: row.ref_code,
+              paraId: Option.fromNullishOr(row.para_id),
+              refcodeShort: Option.fromNullishOr(row.refcode_short),
+              contentText: row.content_text,
+            }),
+          ),
+        );
       }),
     (database) => Effect.sync(() => database.close()),
   );

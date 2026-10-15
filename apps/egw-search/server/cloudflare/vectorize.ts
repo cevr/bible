@@ -22,13 +22,38 @@ import {
   type VectorNeighborsApi,
   VectorNeighborsUnavailable,
 } from '@bible/core/search';
-import { APPARATUS_TYPES, EXCLUDED_SUBTYPES } from '@bible/core/writings';
+import {
+  APPARATUS_TYPES,
+  EXCLUDED_SUBTYPES,
+  isBookSubtype,
+  isBookType,
+  isCorpusSection,
+} from '@bible/core/writings';
 
 /** The metadata value a vector carries where its book has no classification,
  *  or one outside the search's vocabulary (`no pagebreaks`). An include
  *  never names it and an exclude never removes it, which is how the SQL treats
  *  an unclassified book. */
 export const UNCLASSIFIED = 'none';
+
+/** A book's classification as the metadata its vectors carry: the four
+ *  properties the filter reads (`FILTERED_PROPERTIES` in `./resources.ts`),
+ *  each `UNCLASSIFIED` where the book has none the search knows. */
+export const vectorMetadata = (book: {
+  readonly code: string;
+  readonly section: Option.Option<string>;
+  readonly type: Option.Option<string>;
+  readonly subtype: Option.Option<string>;
+}) => {
+  const known = (value: Option.Option<string>, is: (value: string) => boolean) =>
+    Option.getOrElse(Option.filter(value, is), () => UNCLASSIFIED);
+  return {
+    book: book.code,
+    section: known(book.section, isCorpusSection),
+    type: known(book.type, isBookType),
+    subtype: known(book.subtype, isBookSubtype),
+  };
+};
 
 /** The most neighbors Vectorize returns for a query that asks for values.
  *

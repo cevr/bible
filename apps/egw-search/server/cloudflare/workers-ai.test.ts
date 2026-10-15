@@ -10,7 +10,7 @@ import {
   truncateToMrl,
 } from '@bible/core/search';
 
-import { workersAiEmbedder } from './workers-ai.ts';
+import { EMBEDDING_BATCH, workersAiDocuments, workersAiEmbedder } from './workers-ai.ts';
 
 /** A 768-d answer whose first 256 components are not already unit length. */
 const full = Array.from({ length: 768 }, (_, i) => Math.sin(i + 1));
@@ -49,6 +49,33 @@ describe('workersAiEmbedder', () => {
           expect(failure._tag).toBe('Search/QueryEmbedderUnavailable');
           expect(failure.adapter).toBe('workers-ai');
         }
+      }),
+    ));
+});
+
+describe('workersAiDocuments', () => {
+  test('embeds documents under the document prefix, a batch to a call, in order', () =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const asked: string[][] = [];
+        const texts = Array.from({ length: EMBEDDING_BATCH + 1 }, (_, i) => `p${String(i)}`);
+        const vectors = yield* workersAiDocuments((inputs) => {
+          asked.push(inputs.text);
+          return Effect.succeed({ data: inputs.text.map(() => full) });
+        })(texts);
+        expect(asked.map((batch) => batch.length)).toEqual([EMBEDDING_BATCH, 1]);
+        expect(asked[1]).toEqual([`${DOCUMENT_PREFIX}p${String(EMBEDDING_BATCH)}`]);
+        expect(vectors).toHaveLength(EMBEDDING_BATCH + 1);
+      }),
+    ));
+
+  test('an answer with fewer embeddings than texts is unavailable', () =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const failure = yield* Effect.flip(
+          workersAiDocuments(() => Effect.succeed({ data: [full] }))(['a', 'b']),
+        );
+        expect(failure._tag).toBe('Search/QueryEmbedderUnavailable');
       }),
     ));
 });
