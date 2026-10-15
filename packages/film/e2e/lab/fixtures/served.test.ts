@@ -17,7 +17,6 @@ const rendered = (render: PageRender) =>
         url: 'http://probe.test/',
         mac: false,
         signal: new AbortController().signal,
-        // oxlint-disable-next-line effect/noGlobals -- the server's side: a render's context hands it the host's fetch, as the lab's server does
         fetch: globalThis.fetch,
       },
       {

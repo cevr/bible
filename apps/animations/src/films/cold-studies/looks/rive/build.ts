@@ -57,7 +57,9 @@ export const rive = (step: string, args: ReadonlyArray<string>) =>
   Effect.gen(function* () {
     const bin = yield* Config.String('RIVE').pipe(Config.withDefault('rive'));
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-    const handle = yield* spawner.spawn(ChildProcess.make(bin, args));
+    const handle = yield* spawner.spawn(
+      ChildProcess.make(bin, args, { forceKillAfter: '5 seconds' }),
+    );
     const [stdout, stderr, code] = yield* Effect.all(
       [
         Stream.mkString(Stream.decodeText(handle.stdout)),

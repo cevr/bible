@@ -45,7 +45,9 @@ class NotAMerge extends Schema.TaggedError<NotAMerge>()('NotAMerge', {
 
 /** A git command's stdout, whatever its exit code (merge-tree exits 1 on a conflict). */
 const git = (args: ReadonlyArray<string>) =>
-  Effect.flatMap(ChildProcessSpawner, (spawner) => spawner.string(ChildProcess.make('git', args)));
+  Effect.flatMap(ChildProcessSpawner, (spawner) =>
+    spawner.string(ChildProcess.make('git', args, { forceKillAfter: '5 seconds' })),
+  );
 
 /** A commit's full sha, or none when `ref` names no commit. */
 const shaOf = (ref: string) =>

@@ -49,7 +49,7 @@ const FINISH = 150;
 
 const run = (command: string, args: ReadonlyArray<string>) =>
   Effect.flatMap(ChildProcessSpawner, (spawner) =>
-    spawner.string(ChildProcess.make(command, args)),
+    spawner.string(ChildProcess.make(command, args, { forceKillAfter: '5 seconds' })),
   );
 
 const gh = (args: ReadonlyArray<string>) => run('gh', args);
