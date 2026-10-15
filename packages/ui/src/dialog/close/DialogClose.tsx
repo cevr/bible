@@ -23,10 +23,11 @@ export function DialogClose(componentProps: DialogCloseProps): JSX.Element {
   const { store } = useDialogRootContext();
   const elementProps = omit(componentProps, 'class', 'style', 'render');
 
-  const { getButtonProps } = useButton();
+  const button = useButton();
 
   return useRenderElement('button', componentProps, {
     props: [
+      button,
       {
         onClick(event: MouseEvent) {
           if (untrack(store.open)) {
@@ -35,7 +36,6 @@ export function DialogClose(componentProps: DialogCloseProps): JSX.Element {
         },
       },
       elementProps,
-      getButtonProps,
     ],
   });
 }

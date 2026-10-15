@@ -219,6 +219,54 @@ Upstream's uncontrolled mode (`defaultValue`), `multiple`, `disabled`, `orientat
 | ----------- | ------------------ | ---------------------------------- |
 | `Separator` | `data-orientation` | always: `horizontal` or `vertical` |
 
+## Composing behaviour
+
+`import { listen, mix, onElement, type Mixin, type RefFactory } from '@bible/ui/mix'`
+
+Solid 2 has no `mix` prop (Remix 3's `mix={[...]}`), so a behaviour comes in two halves:
+
+- A **prop mixin** (`Mixin<T>`) is a props bag for an element of type `T`, with getters for its live values: its `role`, ARIA, `tabindex`, `data-*` state, `class` and `style`, and its `onX` handlers. Spread onto an element or a part, its attributes are in the server's markup, and its handlers are delegated and merged with the others. `T` types the attributes (a `Mixin<HTMLButtonElement>` takes `type`) and the handlers' `currentTarget`; a `data-*` key is allowed in an object literal.
+- A **ref factory** does the work only the DOM can do: listener options, listeners on the document or the window, observers, focus, measuring. `onElement(setup)` runs `setup` on the element once the render has settled (connected, its attributes set) and runs what `setup` returns when the owner is disposed. `listen(target, type, handler, options)` adds a native listener on the element, its `document` or its `window` (`'element' | 'document' | 'window'`) while the owner lives. A prop mixin may carry ref factories under `ref`.
+
+`mix(...mixins)` merges mixins left to right by `mergeProps`'s rules and leaves out a falsy entry, so `cond && mixin()` composes. The parts' button behaviour (`src/internals/useButton.ts`) is a mixin built this way; the scrub area's, the toast's and the context menu trigger's native listeners are `listen`, and the sheet's panel follows its layout through `onElement`.
+
+| Rule                                                                                                                                                                                     | Reason                                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Build a mixin in the component's body and spread the result. Never write `{...mix(a(), b())}` in JSX.                                                                                    | The compiler wraps a call in a spread in a computation that runs again whenever a getter it read changes; each run builds the mixins again, and their signals start over.                                                                                                                        |
+| Make a ref factory in the component's body, under its element's owner (inside a `<Show>` around the element, not above it). Inline in `ref={[...]}` only on an element without a spread. | It registers its work with `onSettled`, which runs once: made before its element exists, it finds none. The server never evaluates the `ref` of an element with a spread (solidjs/solid#4081), so a factory made there is made only in the browser, and the hydration ids of what follows shift. |
+| Keep a ref factory's DOM work in `onElement`'s setup; the callback Solid calls only keeps the element.                                                                                   | Solid calls a ref callback before the element is connected and before its dynamic attributes (`title={x()}`) are set (solidjs/solid#4080), and never on the server.                                                                                                                              |
+| Put the mixins first and the caller's props last.                                                                                                                                        | The rightmost attribute wins. Handlers run rightmost first (as Base UI's), so the caller's run before a mixin's, and `event.preventBaseUIHandler()` stops the ones to its left. Every `class` is kept, `style` objects merge, and every ref is called.                                           |
+| Expect a `listen` listener to run before every `onX` handler, a child's too.                                                                                                             | Solid delegates `onX` to the document; a native listener on the element runs first (solidjs/solid#4083), and its `stopPropagation()` keeps the event from them.                                                                                                                                  |
+
+```tsx
+function pressable(onPress: () => void): Mixin<HTMLDivElement> {
+  const [pressed, setPressed] = createSignal(false);
+  return {
+    role: 'button',
+    tabindex: 0,
+    get 'data-pressed'() {
+      return pressed() ? '' : undefined;
+    },
+    onPointerDown: () => setPressed(true),
+    onClick: () => onPress(),
+    // A press ends wherever the pointer lifts.
+    ref: listen('document', 'pointerup', () => setPressed(false)),
+  };
+}
+
+function Card(props: { onOpen: () => void; class?: string }) {
+  const behaviour = mix<HTMLDivElement>(
+    pressable(() => props.onOpen()),
+    {
+      get class() {
+        return props.class;
+      },
+    },
+  );
+  return <div {...behaviour} ref={onElement((el) => el.scrollIntoView({ block: 'nearest' }))} />;
+}
+```
+
 ## Styling contract
 
 The studio styles these parts through its tokens (`packages/film/src/player/tokens.css`), in rules that select on the `data-*` attributes above and on its own class names. The menus, dialogs, sheets and toasts are styled in `packages/film/src/lab/command/style.ts`; the toggle group (`.sh-seg`, its toggles' `data-pressed`) and the number field's input (`.lab-num`) in `packages/film/src/lab/page-shell-style.ts`. No part writes a colour, a size or a font family; the only inline styles a part sets are mechanics (position, `pointer-events`, `user-select`, `touch-action`, a transition turned off for a frame or during a drag, an opacity held at 0 until the first position, `will-change: transform` at a device pixel ratio of 1.5 or more; the sheet's overlay, scroll container, stage and snap markers, their snapping and scroll-driven motion) and the CSS variables listed above. A part that needs a visual state exposes it as a `data-*` attribute rather than styling it.

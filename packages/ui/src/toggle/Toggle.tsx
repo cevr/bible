@@ -34,7 +34,7 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
   const group = useToggleGroupContext();
   const pressed = () => group.value.includes(props.value);
 
-  const { getButtonProps } = useButton({ composite: true });
+  const button = useButton({ composite: true });
 
   const state: ToggleState = {
     get pressed() {
@@ -82,7 +82,7 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
       class={props.class}
       style={props.style}
       state={state}
-      props={[ownProps, elementProps, getButtonProps]}
+      props={[button, ownProps, elementProps]}
     />
   );
 }

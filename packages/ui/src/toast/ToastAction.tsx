@@ -25,7 +25,7 @@ export function ToastAction(props: ToastActionProps): JSX.Element {
   const content = children(() => toast().actionProps?.children ?? props.children);
   const shouldRender = createMemo(() => isRenderableNode(content()));
 
-  const { getButtonProps } = useButton();
+  const button = useButton();
 
   const state: ToastActionState = {
     get type() {
@@ -42,9 +42,9 @@ export function ToastAction(props: ToastActionProps): JSX.Element {
     return useRenderElement('button', props, {
       state,
       props: [
+        button,
         omit(props, 'class', 'style', 'render', 'children'),
         actionProps,
-        getButtonProps,
         {
           get children() {
             return content();

@@ -14,6 +14,7 @@ import type { JSX } from '@solidjs/web';
 import { createUniqueId, omit, untrack } from 'solid-js';
 
 import type { PropsInput } from '../../merge-props/mergeProps.ts';
+import type { Mixin } from '../../mix/mix.ts';
 import { useCompositeListItem } from '../../internals/composite/CompositeList.tsx';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
@@ -45,8 +46,8 @@ interface MenuItemBehaviour {
   readonly highlighted: () => boolean;
   /** The item's own props (its id, its tab stop, its presses) and the root's item props. */
   readonly props: ReadonlyArray<PropsInput>;
-  /** The button behaviour, merged last, over the user's props. */
-  readonly buttonProps: (externalProps?: HTMLProps) => HTMLProps;
+  /** The button behaviour, merged first, under the item's role and the user's props. */
+  readonly button: Mixin<HTMLButtonElement>;
   readonly ref: (el: HTMLElement) => void;
 }
 
@@ -65,7 +66,7 @@ export function useMenuItem(params: MenuItemParams): MenuItemBehaviour {
   const highlighted = () => store.isActive(listItem.index());
   let itemElement: HTMLElement | null = null;
 
-  const { getButtonProps } = useButton({ native: false, composite: true });
+  const button = useButton({ native: false, composite: true });
 
   const ownProps: HTMLProps = {
     id,
@@ -114,7 +115,7 @@ export function useMenuItem(params: MenuItemParams): MenuItemBehaviour {
   return {
     highlighted,
     props: [ownProps, itemProps],
-    buttonProps: getButtonProps,
+    button,
     ref: (el: HTMLElement) => {
       itemElement = el;
       listItem.ref(el);
@@ -138,7 +139,7 @@ export function MenuItem(componentProps: MenuItemProps): JSX.Element {
 
   return useRenderElement('div', componentProps, {
     state,
-    props: [{ role: 'menuitem' }, ...item.props, elementProps, item.buttonProps],
+    props: [item.button, { role: 'menuitem' }, ...item.props, elementProps],
     ref: item.ref,
   });
 }

@@ -30,6 +30,7 @@ import { createEffect, createSignal, For, omit, Show, untrack } from 'solid-js';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext.ts';
+import { onElement, type RefFactory } from '../../mix/mix.ts';
 import { onClientCleanup } from '../../utils/onClientCleanup.ts';
 import { useSheetOverlayContext } from '../overlay/SheetOverlay.tsx';
 import { useSheetRootContext } from '../root/SheetRootContext.ts';
@@ -155,6 +156,17 @@ function useSnapPointTravel(
 /** Whether `element` has a layout (nothing round it is `display: none`). */
 const laidOut = (element: HTMLElement) => element.getClientRects().length > 0;
 
+/** Reports whether the element has a layout, and again whenever that changes, while it is mounted. */
+function followLayout(report: (laidOut: boolean) => void): RefFactory<HTMLElement> {
+  return onElement((element) => {
+    const read = () => report(laidOut(element));
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(element);
+    return () => observer.disconnect();
+  });
+}
+
 /**
  * The `clip-path` that leaves of `scroller` what of it takes presses, from the boxes drawn now
  * (the panel's transforms with them) and where the sheet rests (`rest`): none while either has
@@ -267,19 +279,7 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
 
   // Whether the panel has a layout (nothing round it `display: none`), as it changes.
   const [panelLaidOut, setPanelLaidOut] = createSignal(false, owned);
-  createEffect(
-    () => panel(),
-    (panelElement) => {
-      if (!panelElement) {
-        return undefined;
-      }
-      const read = () => setPanelLaidOut(laidOut(panelElement));
-      read();
-      const observer = new ResizeObserver(read);
-      observer.observe(panelElement);
-      return () => observer.disconnect();
-    },
-  );
+  const followPanelLayout = followLayout(setPanelLaidOut);
 
   // A sheet that is not modal takes presses over its panel alone, and the page takes them
   // everywhere else. Once it has scrolled in, the container that scrolls takes them itself, so
@@ -502,7 +502,7 @@ export function SheetPopup(componentProps: SheetPopupProps): JSX.Element {
 
   const element = useRenderElement('div', componentProps, {
     state: sheet.state,
-    ref: (el: HTMLElement) => setPanel(el),
+    ref: [(el: HTMLElement) => setPanel(el), followPanelLayout],
     stateAttributesMapping: sheetStateAttributesMapping,
     props: [
       {
