@@ -198,17 +198,34 @@ describe("the counsel's sandbox", () => {
     },
   );
 
-  // The host's route (`ANTHROPIC_BASE_URL`, unset: direct), which the counsel's run is
-  // given as it is, and the route its start line names (a login in the URL left out).
-  const routes = [
+  // The host's route (`ANTHROPIC_BASE_URL`; unset or empty, direct), which the counsel's
+  // run is given as it is, and the route its start line names: the proxy's scheme and
+  // host alone (no login, path, query or fragment, where a token can sit), `proxy` for
+  // a value that is no URL, `direct` with none.
+  const routes: ReadonlyArray<readonly [string, Record<string, string>, string]> = [
     ['no proxy', {}, 'route=direct'],
+    ['an empty one', { ANTHROPIC_BASE_URL: '' }, 'route=direct'],
     ['a proxy', { ANTHROPIC_BASE_URL: 'http://localhost:3456' }, 'route=http://localhost:3456'],
-    [
-      'a proxy with a login',
-      { ANTHROPIC_BASE_URL: 'http://me:secret@localhost:3456' },
-      'route=http://localhost:3456',
-    ],
-  ] as const;
+    ...[
+      ['a login', 'http://me:secret@localhost:3456', 'route=http://localhost:3456'],
+      ['a raw @ in the password', 'http://me:p@ss@localhost:3456', 'route=http://localhost:3456'],
+      ['a token as the user', 'http://sk-secret@localhost:3456', 'route=http://localhost:3456'],
+      [
+        'a token in the query',
+        'http://localhost:3456/?api_key=sk-secret',
+        'route=http://localhost:3456',
+      ],
+      [
+        'a token in the path',
+        'https://gateway.example/sk-secret/anthropic',
+        'route=https://gateway.example',
+      ],
+      ['a token after #', 'http://localhost:3456#sk-secret', 'route=http://localhost:3456'],
+      ['a value that is no URL', 'http://me:se/cret@localhost:3456', 'route=proxy'],
+    ].map(
+      ([what = '', url = '', route = '']) => [what, { ANTHROPIC_BASE_URL: url }, route] as const,
+    ),
+  ];
   for (const [what, host, route] of routes)
     it.effect(
       `asks through the host's Claude proxy when it has one, and says its route: ${what}`,
@@ -227,12 +244,13 @@ describe("the counsel's sandbox", () => {
           const proxied = spawned.map((one) =>
             Object.entries(one.env).filter(([name]) => name === 'ANTHROPIC_BASE_URL'),
           );
-          expect(proxied).toEqual([Object.entries(host)]);
+          expect(proxied).toEqual([Object.entries(host).filter(([, url]) => url !== '')]);
           const started = lines.filter((line) => line.startsWith('counsel.start '));
           expect(
             started.map((line) => line.split(' ').filter((word) => word.startsWith('route='))),
           ).toEqual([[route]]);
-          expect(started.join('\n')).not.toContain('secret');
+          for (const secret of ['secret', 'cret', 'p@ss', 'p%40ss', 'me:'])
+            expect([secret, started.join('\n').includes(secret)]).toEqual([secret, false]);
         }).pipe(
           Effect.scoped,
           Effect.provide(

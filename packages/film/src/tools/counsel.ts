@@ -73,13 +73,19 @@ const COUNSEL_LIMIT = Duration.minutes(30);
 const COUNSEL_BOUNDS: CounselBounds = { limit: COUNSEL_LIMIT, killAfter: Duration.seconds(10) };
 
 /**
- * The way a run's `env` sends it to Claude: its proxy (`ANTHROPIC_BASE_URL`,
- * any login in the URL left out), or `direct`.
+ * The way a run's `env` sends it to Claude, safe to log: its proxy's
+ * (`ANTHROPIC_BASE_URL`) scheme and host alone, since a login, a path, a
+ * query or a fragment can carry a token; `proxy` for a value that is no
+ * URL; `direct` with none.
  */
 const routeOf = (env: Readonly<Record<string, string>>): string =>
   Option.match(Option.fromNullishOr(env['ANTHROPIC_BASE_URL']), {
     onNone: () => 'direct',
-    onSome: (url) => url.replace(/\/\/[^/@]*@/, '//'),
+    onSome: (url) =>
+      Option.match(Option.fromNullishOr(URL.parse(url)), {
+        onNone: () => 'proxy',
+        onSome: (parsed) => `${parsed.protocol}//${parsed.host}`,
+      }),
   });
 
 /** The last lines `text` printed, for a failure's reason. */

@@ -2600,8 +2600,10 @@ system's own files outside the homes and temp folders. The environment is
 `HOME`, `PATH`, those four and `DISABLE_AUTOUPDATER`, `LANG` and `USER`
 alone, and the host's `ANTHROPIC_BASE_URL` when it has one (the owner's
 teamclaude proxy), so the counsel asks the way the host's Claude does; its
-`counsel.start` line names that route (`route=<url>`, any login in it left
-out, or `route=direct`), so a lab started without the proxy says so. The network is shared (the counsel needs the internet), so the
+`counsel.start` line names that route by the proxy's scheme and host alone
+(`route=http://localhost:3456`; never its login, path, query or fragment,
+where a token can sit), `route=proxy` for a value that is no URL, or
+`route=direct` with none, so a lab started without the proxy says so. The network is shared (the counsel needs the internet), so the
 lab's loopback port stays reachable, though nothing names it. Its stdout
 is the answer and its stderr the run's words, written as they arrive to
 `claude.md` and `claude.err` in `<run>/counsel/` (a non-zero exit, or a
