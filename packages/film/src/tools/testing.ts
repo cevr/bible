@@ -166,7 +166,33 @@ const treeOn = (files: Map<string, Uint8Array>, folders: Set<string>) => {
     if (held === 'file') return Option.some(refusal('BadResource', method, path, 'ENOTDIR'));
     return Option.none();
   };
-  return { holds, unplaceable };
+  /**
+   * Where `path` leads, as Node's `realpath` resolves it in a tree with no
+   * links: its `.`, `..` and empty segments first, as `path.resolve` takes
+   * them (so `nope/../a` is `a`, whether `nope` is there or not), then each
+   * folder down to it. Refused as Node refuses it: a step through a file
+   * (ENOTDIR), or one that is not there (ENOENT), a relative path among them.
+   */
+  const realOf = (
+    method: string,
+    path: string,
+  ): Effect.Effect<string, PlatformError.PlatformError> => {
+    if (!path.startsWith('/')) return Effect.fail(notFound(method, path));
+    const segments = path.split('/').reduce<ReadonlyArray<string>>((kept, segment) => {
+      if (segment === '..') return kept.slice(0, -1);
+      if (segment === '' || segment === '.') return kept;
+      return [...kept, segment];
+    }, []);
+    const steps = segments.map((_, i) => `/${segments.slice(0, i + 1).join('/')}`);
+    const through = Arr.findFirst(steps.slice(0, -1), (step) => holds(step) !== 'folder');
+    if (Option.isSome(through) && holds(through.value) === 'file')
+      return Effect.fail(refusal('BadResource', method, path, 'ENOTDIR'));
+    const end = Option.getOrElse(Arr.last(steps), () => '/');
+    if (Option.isSome(through) || (end !== '/' && holds(end) === 'nothing'))
+      return Effect.fail(notFound(method, path));
+    return Effect.succeed(end);
+  };
+  return { holds, unplaceable, realOf };
 };
 
 /** `use` given `path` as the tree keys it: with no trailing slash. */
@@ -359,6 +385,8 @@ const memoryOps = (
         if (below) return Effect.fail(refusal('BadResource', 'exists', key, 'ENOTDIR'));
         return Effect.succeed(false);
       }),
+    // The path as the tree resolves it (it holds no links), or Node's refusal.
+    realPath: (path) => keyed(path, (key) => tree.realOf('realPath', key)),
     readFile: (path) => bytesAt('readFile', path),
     readFileString: (path) =>
       Effect.map(bytesAt('readFileString', path), (bytes) => new TextDecoder().decode(bytes)),

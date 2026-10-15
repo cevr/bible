@@ -15,14 +15,16 @@
 // The lab imports no film module (`lab.test.ts`), so whatever reads a film's
 // modules (its clock, its check, its scene ids) runs the film CLI fresh
 // (`FreshFilm`), as the lab's own after-write check does. Every tool takes
-// `films`, the asker's films folder, absolute: a lab that serves another
-// checkout refuses (`LabElsewhere`) rather than answer with that checkout's
-// files, and a relative folder is refused, since the lab would read it from
-// its own. Each answer fits a client's result whole (`core/tool-pages.ts`):
-// one that stops early answers `next`, which repeats what was asked of the
-// film (`scenes`, `scene`), so asking again with it reads on in the same
-// answer; a refusal is a tool error in the film's own words, its tag first
-// (`FilmRefused`).
+// `films`, the asker's films folder, absolute and with no `..`: a lab that
+// serves another checkout refuses (`LabElsewhere`, the folders compared as
+// the file system resolves them) rather than answer with that checkout's
+// files, and a relative folder, or one with a `..`, is refused
+// (`plainAbsolute`): the lab would resolve the one in its own checkout, and
+// Node's `realpath` takes the other before the links it follows. Each answer
+// fits a client's result whole (`core/tool-pages.ts`): one that stops early
+// answers `next`, which repeats what was asked of the film (`scenes`,
+// `scene`), so asking again with it reads on in the same answer; a refusal
+// is a tool error in the film's own words, its tag first (`FilmRefused`).
 
 import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { McpSchema, McpServer, Tool, Toolkit } from 'effect/ai';
@@ -30,16 +32,18 @@ import { PartId } from '../core/address-schema.ts';
 import { ServerFailed } from '../core/api.ts';
 import { type Look, LookMode, type LookPost, formatFor, lookLine } from '../core/easel.ts';
 import {
+  CHECK_MAX_SCENES,
   CheckPage,
   CuesPage,
   JournalPage,
+  SCENE_ID_CHARS,
   checkPage,
   clip,
   cuesPage,
   journalPage,
 } from '../core/tool-pages.ts';
 import { UnknownScene } from '../core/errors.ts';
-import { Easel, elsewhereOf } from './easel.ts';
+import { Easel, elsewhereOf, plainAbsolute } from './easel.ts';
 import { CuesLate } from './errors.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
@@ -118,19 +122,21 @@ const refusedAs = (error: Named): FilmRefused => {
 const Films = Schema.String.check(
   Schema.makeFilter(
     (films) =>
-      films.startsWith('/') ||
-      "your checkout's films folder, absolute (<repo>/apps/animations/src/films): the lab would read a relative one from its own",
+      plainAbsolute(films) ||
+      "your checkout's films folder, absolute and with no .. (<repo>/apps/animations/src/films): the lab would resolve a relative one in its own checkout, and Node takes a .. before the links it follows",
   ),
 ).annotate({
   description:
-    "Your checkout's films folder, absolute (<repo>/apps/animations/src/films): a lab that serves another checkout's refuses (LabElsewhere)",
+    "Your checkout's films folder, absolute and with no .. (<repo>/apps/animations/src/films): a lab that serves another checkout's refuses (LabElsewhere)",
 });
 
 const FilmParam = Schema.String.annotate({
   description: 'The film, by name: a folder in the films folder',
 });
 
-const SceneParam = PartId.annotate({ description: "A scene, by its id (the script's beat id)" });
+const SceneParam = PartId.check(Schema.isMaxLength(SCENE_ID_CHARS)).annotate({
+  description: "A scene, by its id (the script's beat id)",
+});
 
 const LookParams = Schema.Struct({
   films: Films,
@@ -180,7 +186,11 @@ const CheckTool = Tool.make('check', {
     films: Films,
     film: FilmParam,
     scenes: Schema.optionalKey(
-      Schema.NonEmptyArray(SceneParam).annotate({ description: 'The scenes to check' }),
+      Schema.NonEmptyArray(SceneParam)
+        .check(Schema.isMaxLength(CHECK_MAX_SCENES))
+        .annotate({
+          description: `The scenes to check, at most ${CHECK_MAX_SCENES} (check more in turn, or the whole film)`,
+        }),
     ),
     from: Schema.optionalKey(
       Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)).annotate({
@@ -199,7 +209,7 @@ const CheckTool = Tool.make('check', {
 
 const CuesTool = Tool.make('cues', {
   description:
-    "A film's clock as its files stand (film cues): a line per scene with its start= (its first second in the film) and dur=, then in seconds into the scene its speech= and seam= to the next voice, each mark@second, and `| cues:` each named cue's span; `scene`'s line alone when given. `late` says a cue ends after its scene. Lines come whole: when the answer has `next`, ask again with `next` as it is (its `from` and `column`, and the `scene` asked; a column past 1 goes on inside a line).",
+    "A film's clock as its files stand (film cues): a line per scene with its start= (its first second in the film) and dur=, its speech= span in seconds into the scene, seam= (how long the pause to the next scene's voice lasts), each mark@second into the scene, and `| cues:` each named cue's span in seconds into the scene; `scene`'s line alone when given. `late` says a cue ends after its scene. Lines come whole: when the answer has `next`, ask again with `next` as it is (its `from` and `column`, and the `scene` asked; a column past 1 goes on inside a line).",
   parameters: Schema.Struct({
     films: Films,
     film: FilmParam,
@@ -266,7 +276,7 @@ const easelWork = Effect.gen(function* () {
 
   /** `film` as one the lab serves from the asker's films folder `from`: another checkout's is `LabElsewhere`. */
   const served = Effect.fn('EaselMcp.served')(function* (from: string, film: string) {
-    const elsewhere = elsewhereOf(path, folder.paths(film).dir, from, film);
+    const elsewhere = yield* elsewhereOf(fs, path, folder.paths(film).dir, from, film);
     if (Option.isSome(elsewhere)) return yield* elsewhere.value;
     return yield* filmNamed(film).pipe(Effect.provideContext(films));
   });

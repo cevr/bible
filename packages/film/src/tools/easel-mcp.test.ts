@@ -3,13 +3,14 @@
 // its view as the tool asks it (no captions; a crop a PNG at 1:1, a frame a
 // JPEG), and refused in the film's words: another checkout's films
 // (`LabElsewhere`, with how to reach a lab of its own), a films folder that
-// is not absolute, a film the lab lacks, the easel's refusal, stills too
-// large for a model's request, arguments that do not decode; a check of the
-// scenes named, drawn, a page at a time, its cursor checking the same scenes
-// (another scope starts again); a film's cue lines, `late` said, a scene it
-// lacks refused; the journal noted and read back with no timeline resolved,
-// its oldest entries counted with its file, an empty note and a scene the
-// film lacks refused.
+// is not absolute or has a `..`, a film the lab lacks, the easel's refusal,
+// stills too large for a model's request, arguments that do not decode; a
+// check of the scenes named, drawn, a page at a time, its cursor checking
+// the same scenes (another scope starts again), and more scenes, or a longer
+// id, than a cursor leaves room for refused; a film's cue lines, `late`
+// said, a scene it lacks refused; the journal noted and read back with no
+// timeline resolved, its oldest entries counted with its file, an empty note
+// and a scene the film lacks refused.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, type Schema } from 'effect';
@@ -229,6 +230,10 @@ describe("the easel's tools on the MCP", () => {
       expect(yield* refused({ films: 'src/films', scene: 'roof', at: ['1'] })).toContain(
         "your checkout's films folder, absolute",
       );
+      // A .. in it: Node resolves it before the links it follows, so it may lead elsewhere.
+      expect(yield* refused({ films: '/films/../films', scene: 'roof', at: ['1'] })).toContain(
+        'absolute and with no ..',
+      );
       expect(yield* refused({ film: 'nope', scene: 'roof', at: ['1'] })).toMatch(/^FilmUnknown: /);
       expect(asked).toEqual([]);
       expect(yield* refused({ scene: 'broken', at: ['1'] })).toBe(
@@ -295,6 +300,11 @@ describe("the easel's tools on the MCP", () => {
       const whole = yield* tool('check', { films: FILMS, film: 'f', ...wider });
       expect([whole.from, whole.findings[0].tag, whole.warnings]).toEqual([0, 'Finding0', 1]);
       expect(whole.restarted).toContain('listed again from the first');
+      // More scenes, or a longer id, than a cursor that repeats them leaves room for: the call's error.
+      for (const scenes of [Array.from({ length: 25 }, () => 'roof'), ['r'.repeat(65)]])
+        expect((yield* tool('check', { films: FILMS, film: 'f', scenes })).refused).toContain(
+          "Invalid parameters for tool 'check'",
+        );
       expect(checked).toEqual([
         ['f', 'draw', ['roof', 'gate']],
         ['f', 'draw', ['roof', 'gate']],

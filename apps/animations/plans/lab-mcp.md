@@ -91,18 +91,22 @@ files with no model call is the brief's rule to read the state from the files ag
   (`<repo>/apps/animations/src/films`). The lab on 8229 serves one checkout, and an agent in a rift that asked it
   would look at, check and note in another checkout's film under the same name. A folder other than the lab's is
   `LabElsewhere` (`elsewhereOf`, which `Easel.look` checks too), naming both, with the way to a lab of the asker's
-  own: `LAB_PORT=<port> bun cli.ts lab` in `apps/animations`, and its MCP at `http://127.0.0.1:<port>/mcp`. A
-  relative folder is the call's error: the lab would resolve it in its own checkout.
+  own: `LAB_PORT=<port> bun cli.ts lab` in `apps/animations`, and its MCP at `http://127.0.0.1:<port>/mcp`. The
+  folders are compared as the file system resolves them, links followed, so a link to the lab's folder is that
+  folder. A relative folder, or one with a `..`, is the call's error: the lab would resolve a relative one in its
+  own checkout, and Node's `realpath` takes a `..` before the links it follows, so a link and then `..` would read
+  as the lab's folder while leading to another.
 - **Answers that fit.** A client cuts a long result (Claude Code warns past 10,000 tokens and cuts past 25,000), and
   a toolkit sends each answer twice, as text and as `structuredContent`. So each answer encodes to at most 8,000
   characters of JSON (`core/tool-pages.ts`) and says how to read on. `check` lists its findings errors first, a page
-  at a time; `next` is the `from`, the `report` and the `scenes` asked, to ask again with as it is, and a page asked
-  of a report whose findings changed since (some fixed, or new) starts again from the first and says so
-  (`restarted`), so none is skipped. `cues` answers whole lines; `next` is the line, the column and the `scene`
-  asked (a column past 1 goes on inside a line longer than one answer). `cues` times its marks, speech, seam and cue
-  spans in seconds into the scene, as `look`'s `at` does; `start=` is the scene's first second in the film.
-  `journal` answers the newest entries that fit, each cut to 800 characters, and how many earlier ones its file
-  holds.
+  at a time; `next` is the `from`, the `report` and the `scenes` asked, to ask again with as it is (a check takes at
+  most 24 scenes, each id at most 64 characters, so a cursor that repeats them leaves room for a finding on every
+  page), and a page asked of a report whose findings changed since (some fixed, or new) starts again from the first
+  and says so (`restarted`), so none is skipped. `cues` answers whole lines; `next` is the line, the column and the
+  `scene` asked (a column past 1 goes on inside a line longer than one answer). `cues` times its speech, marks and
+  cue spans in seconds into the scene, as `look`'s `at` does; `start=` is the scene's first second in the film, and
+  `seam=` how long the pause to the next scene's voice lasts. `journal` answers the newest entries that fit, each
+  cut to 800 characters, and how many earlier ones its file holds.
 - **Images a model's request takes.** `look` takes 1 to 8 places and a `size` of at most 2,000 pixels (the
   Claude API holds every image to 2,000 pixels a side once a request carries more than 20). A still past 3.75 MB
   (5 MB in base64), or a look's stills past 15 MB together, is `LookTooLarge`, naming each still and its size:

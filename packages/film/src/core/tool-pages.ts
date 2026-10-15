@@ -25,6 +25,16 @@ const CHECK_MAX_FINDINGS = 24;
 /** The most characters of one finding's message, or of its place, a check answer keeps. */
 const FINDING_CHARS = 400;
 
+/**
+ * The most scenes a check is asked of at once, and the most characters of a
+ * scene's id a tool takes. A page's cursor repeats the scenes asked, so these
+ * keep it small enough that every page still lists a finding, however its
+ * words escape: 24 ids of 64 characters are 1,610 of the 8,000, and the
+ * longest finding about 5,200.
+ */
+export const CHECK_MAX_SCENES = 24;
+export const SCENE_ID_CHARS = 64;
+
 /** The most characters of one journal entry an answer keeps: the file holds it whole. */
 const ENTRY_CHARS = 800;
 

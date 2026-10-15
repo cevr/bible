@@ -191,6 +191,31 @@ const CASES: ReadonlyArray<readonly [string, Operation]> = [
     'makes a file for a scope, in a folder not there',
     (fs, at) => Effect.scoped(fs.makeTempFileScoped({ directory: at('nope'), prefix: 'p-' })),
   ],
+  // A path as the disk resolves it, told by whether it is where the plain path leads
+  // (Bun's temporary folder may itself sit behind a link). Node takes `..` as
+  // `path.resolve` does, before it walks the folders.
+  [
+    'resolves a path through ..',
+    (fs, at) =>
+      Effect.zipWith(fs.realPath(at('sub/../a.txt')), fs.realPath(at('a.txt')), (a, b) => a === b),
+  ],
+  [
+    'resolves a path through .. from a folder not there',
+    (fs, at) =>
+      Effect.zipWith(fs.realPath(at('nope/../a.txt')), fs.realPath(at('a.txt')), (a, b) => a === b),
+  ],
+  [
+    'resolves a path through .. from a file',
+    (fs, at) => Effect.zipWith(fs.realPath(at('a.txt/..')), fs.realPath(at('')), (a, b) => a === b),
+  ],
+  [
+    'resolves a folder named with a trailing slash',
+    (fs, at) =>
+      Effect.zipWith(fs.realPath(`${at('sub')}/`), fs.realPath(at('sub')), (a, b) => a === b),
+  ],
+  ['resolves a path not there', (fs, at) => fs.realPath(at('nope'))],
+  ['resolves a path below a folder not there', (fs, at) => fs.realPath(at('nope/a.txt'))],
+  ['resolves a path below a file', (fs, at) => fs.realPath(at('a.txt/b'))],
   ['tells a file', (fs, at) => Effect.map(fs.stat(at('a.txt')), (info) => info.type)],
   ['tells a folder', (fs, at) => Effect.map(fs.stat(at('sub')), (info) => info.type)],
   ['tells a path not there', (fs, at) => Effect.map(fs.stat(at('nope')), (info) => info.type)],

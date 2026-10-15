@@ -105,24 +105,48 @@ const failedLook = (error: { readonly message: string }) =>
   LookFailed.make({ reason: error.message });
 
 /**
+ * Whether `folder` is absolute and has no `..` in it: how an asker names its
+ * checkout's films folder to the lab (`elsewhereOf`, the MCP's `films`). The
+ * lab runs where paths are POSIX.
+ */
+export const plainAbsolute = (folder: string): boolean =>
+  folder.startsWith('/') && !folder.split('/').includes('..');
+
+/**
  * The refusal when the asker's films folder (`from`) is not the one the lab
  * serves `film` from (`dir`, the film's folder there), naming both: a lab
  * answers for its own checkout's files only, never another's under the same
- * film's name. None when they are the one folder.
+ * film's name. The folders are compared as the file system resolves them,
+ * links followed, so a link to the lab's own folder is that folder. Never the
+ * lab's: a relative `from` (the lab would resolve it in its own checkout), one
+ * with a `..` (Node's `realpath` takes `..` before it follows links, so a
+ * link and then `..` would read as the lab's folder while leading to another),
+ * and one that is not there. None when they are the one folder.
  */
 export const elsewhereOf = (
+  fs: FileSystem.FileSystem,
   path: Path.Path,
   dir: string,
   from: string,
   film: string,
-): Option.Option<LabElsewhere> =>
-  Option.map(
-    Option.liftPredicate(
-      { lab: path.resolve(dir), here: path.resolve(from, film) },
-      (where) => where.here !== where.lab,
-    ),
-    (where) => LabElsewhere.make(where),
-  );
+): Effect.Effect<Option.Option<LabElsewhere>> =>
+  Effect.gen(function* () {
+    const real = (folder: string) => Effect.option(fs.realPath(folder));
+    const lab = path.resolve(dir);
+    const served = yield* real(path.dirname(lab));
+    const asked = yield* Option.match(Option.liftPredicate(from, plainAbsolute), {
+      onNone: () => Effect.succeedNone,
+      onSome: real,
+    });
+    if (Option.isSome(served) && Option.isSome(asked) && served.value === asked.value)
+      return Option.none();
+    // Named as it resolves, or (not there) as it was given.
+    const here = Option.match(asked, {
+      onNone: () => `${from.replace(/\/+$/u, '')}/${film}`,
+      onSome: (folder) => path.join(folder, film),
+    });
+    return Option.some(LabElsewhere.make({ lab, here }));
+  });
 
 export class Easel extends Context.Service<Easel, EaselService>()('@bible/film/tools/Easel') {
   /** Pages in this process's Chrome, held until the layer's scope closes. */
@@ -204,9 +228,10 @@ export class Easel extends Context.Service<Easel, EaselService>()('@bible/film/t
       const look = Effect.fn('Easel.look')(function* (film: FilmName, post: LookPost) {
         const started = yield* Clock.currentTimeMillis;
         const paths = folder.paths(film);
-        const elsewhere = Option.flatMap(Option.fromUndefinedOr(post.from), (from) =>
-          elsewhereOf(path, paths.dir, from, film),
-        );
+        const elsewhere = yield* Option.match(Option.fromUndefinedOr(post.from), {
+          onNone: () => Effect.succeedNone,
+          onSome: (from) => elsewhereOf(fs, path, paths.dir, from, film),
+        });
         if (Option.isSome(elsewhere)) return yield* elsewhere.value;
         const levels = Option.getOrElse(Option.fromUndefinedOr(post.levels), () => ({}));
         const wedge = wedgeName(levels);

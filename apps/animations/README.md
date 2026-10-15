@@ -424,16 +424,16 @@ and `note`. `cues` and `check` run the film CLI fresh, as the lab's
 after-write check does: `film read cues`, `film read scenes` (a scene named
 to the journal) and `film check --draw --scene … --allow-stale --json` (the
 static leg and each scene drawn by its own code, no browser). Each tool
-takes `films`, the asker's films folder, absolute (a relative one is
-refused): a lab that serves another checkout refuses (`LabElsewhere`) and
-names the way to a spare lab of the asker's own, its MCP at
-`http://127.0.0.1:<port>/mcp`. Every answer encodes to at most 8,000
-characters of JSON and says how to read on: `check` and `cues` answer
-`next`, to ask again with as it is, and a check whose findings changed
-between pages lists them again from the first (`restarted`). A look takes 1
-to 8 places and a long side of at most 2,000 pixels; stills too large for a
-model's request are `LookTooLarge`. A refusal is a tool error: the film's
-tag, then its words.
+takes `films`, the asker's films folder, absolute and with no `..` (anything
+else is refused): a lab that serves another checkout, the folders compared
+as the disk resolves them, refuses (`LabElsewhere`) and names the way to a
+spare lab of the asker's own, its MCP at `http://127.0.0.1:<port>/mcp`.
+Every answer encodes to at most 8,000 characters of JSON and says how to
+read on: `check` and `cues` answer `next`, to ask again with as it is, and a
+check whose findings changed between pages lists them again from the first
+(`restarted`). A look takes 1 to 8 places and a long side of at most 2,000
+pixels; stills too large for a model's request are `LookTooLarge`. A refusal
+is a tool error: the film's tag, then its words.
 
 The scene painter paints one scene with those tools and the file tools
 alone, a passage at a time: it reads the scene, its cues and its journal,

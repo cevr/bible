@@ -8,9 +8,11 @@ import { describe, expect, test } from 'bun:test';
 import { Option, Schema } from 'effect';
 import type { CheckLine } from './schema.ts';
 import {
+  CHECK_MAX_SCENES,
   CheckPage,
   CuesPage,
   JournalPage,
+  SCENE_ID_CHARS,
   checkPage,
   cuesPage,
   journalPage,
@@ -100,6 +102,32 @@ describe('checkPage', () => {
 
     // A later page asked with no report could skip findings: it starts again.
     expect(checkPage(before, { from: count }).restarted).toContain('changed');
+  });
+
+  test('the most scenes, each the longest id, still leave room for a finding on every page, however its words escape', () => {
+    const id = (index: number) => `s${index}`.padEnd(SCENE_ID_CHARS, 'x');
+    const scenes: readonly [string, ...Array<string>] = [
+      id(0),
+      ...Array.from({ length: CHECK_MAX_SCENES - 1 }, (_, index) => id(index + 1)),
+    ];
+    // Control characters, each six in JSON, in a message and a place both past the cut.
+    const lines = Array.from({ length: 6 }, (_, index) => ({
+      ...finding(index, 'error', '\u0001'.repeat(1_000)),
+      address: { part: { _tag: 'Scenes' as const, ids: scenes } },
+    }));
+    const tags: Array<string> = [];
+    let at: CheckAt = { scenes };
+    for (let page = 0; page < 10; page += 1) {
+      const answer = checkPage(lines, at);
+      expect(checkJson(answer).length).toBeLessThanOrEqual(8_000);
+      expect(answer.findings.length).toBeGreaterThan(0);
+      tags.push(...answer.findings.map((found) => found.tag));
+      const next = Option.fromUndefinedOr(answer.next);
+      if (Option.isNone(next)) break;
+      expect(next.value.scenes).toEqual(scenes);
+      at = next.value;
+    }
+    expect(tags).toEqual(lines.map((line) => line.tag));
   });
 
   test("a finding's words and place are cut to 400 characters, saying so; one with no address is the film's", () => {
