@@ -70,14 +70,14 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
 - **Promise:** The Bible is God speaking, and it explains itself. Anyone who compares scripture with scripture can understand it, without an expert in between.
 - **Core KJV:** Acts 17:11; Rom 3:2; 2 Pet 1:21; Isa 8:20; Isa 28:10; John 1:29; Luke 24:27; Ps 119:130, 105; John 17:17.
 - **Sources:** Rules of interpretation, MWV1 20.2, 20.6, 20.8, 22.3, 22.8, and HST May 15, 1840, 25.42 (William Miller); RCASDA 75.4 (Uriah Smith, frame); FP1889 148.1 (frame); 4SP 413.2 = GC 595.1 (frame); GC 598.3; Ed 190.2; AA 231.2 (EGW).
-- **Builds on:** 01. **Length:** about 6:10 (659 words, 4:37 spoken at 155 wpm with its marks). **History:** OK. The credits name Miller only as the author of the rules; nothing about his movement is said or shown.
+- **Builds on:** 01. **Length:** about 6:10 (665 words, 4:39 spoken at 155 wpm with its marks). **History:** OK. The credits name Miller only as the author of the rules; nothing about his movement is said or shown.
 
 **03 · God Is Love** (script: `scripts/03-god-is-love.md`)
 
 - **Promise:** Everything God has made and said shows one character, love. The cross shows it most clearly of all, answering the old lie that God is harsh.
 - **Core KJV:** Gen 3:9–10; Ps 145:9; Ex 34:6–7; John 14:9; Luke 15:20; John 3:16; 1 John 4:8.
 - **Sources:** SC 9.3, 10.1, 10.2, 10.3, 11.1, 12.1, 13.2; COL 203.1 (EGW); PTUK September 27, 1888, 292.5; SITI December 7, 1888, 742.6 (Waggoner).
-- **Builds on:** 01, 02. **Length:** about 5:30 (603 words, 4:16 spoken at 155 wpm with its marks). **History:** OK.
+- **Builds on:** 01, 02. **Length:** about 5:30 (602 words, 4:15 spoken at 155 wpm with its marks). **History:** OK.
 
 **04 · The Serpent's Question**
 
@@ -99,7 +99,7 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
   - `one`: the one dose of the problem, "two Gods?". One God, the Father, and one Lord Jesus Christ; honour the Son as the Father.
   - `laid` (the deepest turn): He did not hold on. He set down robe, crown and sceptre and took the form of a servant.
   - `storm`: asleep in the boat, resting not in almighty power but in His Father's care. "What manner of man is this?" (Mark 4:41)
-  - `manger`: the same One the seraphim worshipped; "let all the angels of God worship him".
+  - `manger`: the same One who sat on Isaiah's throne; "let all the angels of God worship him".
   - `with`: Immanuel, the face that shows God.
   - The landing, back at Isaiah's throne: home again, worshipped with His Father.
 - **Sources:**
@@ -110,7 +110,7 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
   - FP1889 147.3 (frame).
   - EGW: PP 34.1 (frame), 36.2; DA 19.1, 19.2, 21.2, 23.3, 24.3, 336.1; YI December 16, 1897, par. 5; YI May 27, 1897, par. 3; ST August 29, 1900, par. 13; ST May 10, 1899, par. 17; RH September 18, 1894, par. 3.
   - Found and verified but not voiced: DA 530.3 (frame); CHR 9.1, 22.1; AERS 152.1, 155.1; RH April 5, 1906, par. 6–7; PP 311.4; ST May 3, 1899, par. 18; ST November 15, 1899, par. 2.
-- **Builds on:** 02, 03, 04. **Length:** about 6:00 (677 words, 4:42 spoken at 155 wpm with its marks). **History:** OK.
+- **Builds on:** 02, 03, 04. **Length:** about 6:00 (671 words, 4:40 spoken at 155 wpm with its marks). **History:** OK.
 - **Note on the frame:** the god-christ frame governs. Use no Trinity words or emblems, do not settle the Son's origin, and show the Father only as veiled radiance.
   - OWNER RULE (2026-10-13): do not call Jesus "the Almighty" or "Lord God Almighty", except where it clarifies how an Old Testament reference reads in the New (the LORD Isaiah saw is the One John names, Isa 6:1 with John 12:41; the "I AM" of the bush, Ex 3:14 with John 8:58 and DA 24.3). Then say it once, tied to the two texts, never as a title of address. Otherwise no line calls Jesus "the Almighty", and Rev 1:8 and 4:8 are not used. The sources differ there: EGW, 1895 and 1908, gives the title to Christ, and Ms 140, 1903 says "The man Christ Jesus was not the Lord God Almighty"; Amadon 1861, the Review in 1862 and Smith in DAR give "the Almighty" to the Father.
   - Isaiah 6 is quoted only at verse 1, with John 12:41, because J. H. Waggoner keeps verse 3's "LORD of hosts" for the Father (AERS 170.1).

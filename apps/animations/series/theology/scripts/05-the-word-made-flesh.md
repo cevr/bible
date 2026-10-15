@@ -3,7 +3,7 @@
 Series: From Milk to Meat · Tier One (Milk) · 5 of 13
 Promise: the viewer meets the One Isaiah saw on the throne and learns that He is Jesus. He is the divine Son, with God before the world and bearing His Father's name. He laid His glory down to become one of us, so that God would be "with us" and we could see what God is like.
 Prerequisites: 02 (Scripture explains itself; here John explains Isaiah), 03 (to see Jesus is to see the Father), 04 (a world lost, which is why He came).
-Length: about 6:00 (677 spoken words: 4:22 at 155 wpm, 4:42 with the 20 s of marked breaths and holds; plus the title, about 1 s between beats, about 30 s of music alone and 28 s of credits).
+Length: about 6:00 (671 spoken words: 4:20 at 155 wpm, 4:40 with the 20 s of marked breaths and holds; plus the title, about 1 s between beats, about 30 s of music alone and 28 s of credits).
 Status: draft for the owner. Nothing narrated. Revised 2026-10-15 to the voice counsel and marked for delivery (`{*}` stress, `{/}` breath, `{//}` hold). Every KJV line was printed by `bible verse` on 2026-10-12 and again on 2026-10-15 (supplied-word brackets dropped for speech). Every paraphrase source was printed by `bible egw lookup` on 2026-10-12 (`asitreads-jesus-lord-god-almighty.md`, sources.md). Frame: god-christ.md (Principles I–II).
 
 ## Header
@@ -17,8 +17,8 @@ The order:
 - the name (`name`: the I AM of the bush, "Before Abraham was, I am"; a son carries his father's name);
 - the one dose of the problem (`one`: does that make two Gods? one God, the Father, and one Lord Jesus Christ);
 - the deepest turn (`laid`: He did not hold on; He gave the sceptre back and emptied Himself);
-- the man asleep in the storm (`storm`: the Creator resting in His Father's care; "What manner of man is this!");
-- the manger (`manger`: the same One the seraphim worshipped; "let all the angels of God worship him");
+- the man asleep in the storm (`storm`: the Creator resting in His Father's care; "What manner of man is this?");
+- the manger (`manger`: the same One who sat on Isaiah's throne; "let all the angels of God worship him");
 - God with us (`with`: the face that shows God);
 - the landing back at the throne (`return`: home again, worshipped with His Father).
 
@@ -31,7 +31,7 @@ Motifs:
 
 Tent poles, act light, chapter question:
 
-- `cold`: the temple at dusk, the roof opening into gold, Isaiah on his knees, cool teal to gold. "Who was on that throne?"
+- `cold`: the temple at dusk, the roof opening into gold, Isaiah's hand over his mouth, cool teal to gold. "Who was on that throne?"
 - `beginning`: the throne before the world, two figures in one light, dawn gold. "Who is He?"
 - `laid`: the Son standing, crown and sceptre in His hands, peach to dusk. "Why would He leave?"
 - `manger`: a hillside at night and a stable lamp, deep blue with gold. "Is this baby the same One?"
@@ -50,20 +50,20 @@ Frame (god-christ.md):
 - The Son's beginning is not narrated or animated.
 - No narration or on-screen line calls Jesus "the Almighty" or "Lord God Almighty", because the sources differ (Notes).
 
-Quoted Scripture: 11 passages, 132 of 677 spoken words (19.5 %). One quotation per beat.
+Quoted Scripture: 11 passages, 132 of 671 spoken words (19.7 %). One quotation per beat.
 
 ## Beats
 
 ### `cold` · STORY · ~28 s
 
-**say:** {year}In the year a king died, {young}a young man named Isaiah went up to the {*}temple. {/} {saw}And he saw something he never {*}forgot. {/} {quote}“I saw also the Lord sitting upon a throne, high and lifted {*}up.” {//} {burning}Burning creatures stood above the throne, {wings}and they covered their faces with their {*}wings. {/} {knees}Isaiah cried out, sure that he would {*}die. {/} {who}So who was on that {*}throne?
+**say:** {year}In the year a king died, {young}a young man named Isaiah went up to the temple. {/} {saw}And he saw something he never {*}forgot. {/} {quote}“I saw also the Lord sitting upon a throne, high and lifted up.” {//} {burning}Burning creatures stood above the throne, {wings}and they covered their faces with their wings. {/} {knees}Isaiah cried out, sure that he would {*}die. {/} {who}So who was on that throne?
 **cite:** Isaiah 6:1–5
 **picture:**
 
 - STORY: Jerusalem at dusk in cool teal, the temple court in cardboard planes (pillars, steps, the far city). Isaiah is young, grey, with a face at a third of the frame (`young`).
 - On `saw` the temple roof lifts away like a paper lid into gold. On `quote` a throne rises far up, high and lifted up, its train pouring down the steps like cloth of light and filling the court. The One on the throne is only brightness here, kept back for the landing.
 - On `burning` the seraphim: six-winged, flame-red and gold paper. On `wings` two wings fold over each face. Their mouths move and the music swells, but no words are narrated (see Notes).
-- On `knees` Isaiah drops, his hand over his mouth. On `who` the light holds.
+- On `knees` Isaiah's hand goes over his mouth. On `who` the light holds.
 
 **paraphrase sources (not spoken):**
 
@@ -75,7 +75,7 @@ Quoted Scripture: 11 passages, 132 of 677 spoken words (19.5 %). One quotation p
 
 ### `john` · STORY · ~24 s
 
-**say:** {centuries}Centuries later, {fisherman}a fisherman walked with Jesus, {wrote}and he wrote the answer {*}down. {/} {quoted}He quoted Isaiah's words about the people who would not {*}believe. {/} {then}And then he said, {esaias}“These things said Esaias, when he saw his glory, and spake of {*}him.” {//} {him}Of {*}him. {/} {jesus}Of {*}Jesus. {/} {same}The One on Isaiah's throne {roads}walked the roads of {*}Galilee.
+**say:** {centuries}Centuries later, {fisherman}a fisherman walked with Jesus, {wrote}and he wrote the answer down. {/} {quoted}He quoted Isaiah's words about the people who would not believe. {/} {then}And then he said, {esaias}“These things said Esaias, when he saw his glory, and spake of him.” {//} {him}Of him. {/} {jesus}Of {*}Jesus. {/} {same}The One on Isaiah's throne {roads}walked the roads of {*}Galilee.
 **cite:** John 12:37–41; Isaiah 6:9–10
 **picture:**
 
@@ -89,7 +89,7 @@ Quoted Scripture: 11 passages, 132 of 677 spoken words (19.5 %). One quotation p
 
 ### `beginning` · IDEA · ~30 s
 
-**say:** {further}John goes back further still, to before there was any {*}world. {/} {word}“In the beginning was the Word, and the Word was with God, and the Word was {*}God.” {//} {slow}Read it {*}slowly. {/} {with}The Word was with God, {two}so there are {*}two. {/} {was}And the Word was God, {one}one with the Father in nature, in character, in {*}purpose. {/} {made}Everything that was made, {through}God made through {*}him. {/} {thought}He is God's thought, spoken {*}aloud.
+**say:** {further}John goes back further still, to before there was any world. {/} {word}“In the beginning was the Word, and the Word was with God, and the Word was God.” {//} {with}The Word was with God, {two}so there are {*}two. {/} {was}And the Word was God, {one}one with the Father in nature, in character, in purpose. {/} {made}Everything that was made, {through}God made through him. {/} {thought}He is God's thought, spoken {*}aloud.
 **cite:** John 1:1–3; 1 Corinthians 8:6; Hebrews 1:2
 **picture:**
 
@@ -108,7 +108,7 @@ Quoted Scripture: 11 passages, 132 of 677 spoken words (19.5 %). One quotation p
 
 ### `name` · STORY · ~26 s
 
-**say:** {bush}Long before Bethlehem, a voice spoke to Moses out of a burning bush, {gave}and it gave him God's name, I {*}AM. {/} {later}Centuries later, Jesus stood in the temple courts, {said}and he said, {abraham}“Before Abraham was, I {*}am.” {//} {stones}They picked up {*}stones. {/} {knew}They knew what he was {*}claiming. {/} {son}A son carries his father's {*}name, {inherit}and this Son carries it by {*}inheritance.
+**say:** {bush}Long before Bethlehem, a voice spoke to Moses out of a burning bush, {gave}and it gave him God's name, I AM. {/} {later}Centuries later, Jesus stood in the temple courts, {said}and he said, {abraham}“Before Abraham was, I {*}am.” {//} {stones}They picked up stones. {/} {knew}They knew what he was {*}claiming. {/} {son}A son carries his father's name, {inherit}and this Son carries it by {*}inheritance.
 **cite:** Exodus 3:2–14; John 8:56–59; Hebrews 1:4
 **picture:**
 
@@ -127,7 +127,7 @@ Quoted Scripture: 11 passages, 132 of 677 spoken words (19.5 %). One quotation p
 
 ### `one` · IDEA · ~36 s
 
-**say:** {but}But {two}doesn't that make two {*}Gods? {/} {greater}Jesus himself said that his Father is the {*}greater. {/} {paul}Paul holds both together: {quote}“to us there is but one God, the Father, of whom are all things, and we in him; and one Lord Jesus {*}Christ.” {/} {source}The Father is the {*}source. {/} {flows}Through the Son, the Father's life flows out to {*}everything. {/} {alike}They are two, {almost}and yet almost {*}identical. {/} {heart}They are one in heart and in {*}character. {/} {honour}So we honour the Son, just as we honour the {*}Father.
+**say:** {but}But {two}doesn't that make two {*}Gods? {/} {greater}Jesus himself said that his Father is the {*}greater. {/} {paul}Paul holds both together: {quote}“to us there is but one God, the Father, of whom are all things, and we in him; and one Lord Jesus Christ.” {/} {source}The Father is the {*}source. {/} {flows}Through the Son, the Father's life flows out to everything. {/} {alike}They are two, {almost}and yet almost {*}identical. {/} {heart}They are one in heart and in character. {/} {honour}So we honour the {*}Son, just as we honour the Father.
 **cite:** John 14:28; 1 Corinthians 8:6; John 5:23
 **picture:**
 
@@ -145,7 +145,7 @@ Quoted Scripture: 11 passages, 132 of 677 spoken words (19.5 %). One quotation p
 
 ### `laid` · IDEA → STORY · ~32 s
 
-**say:** {picture}So picture him there, {beside}beside his Father on the throne, {angels}honoured by every {*}angel. {/} {lost}And then a world is {*}lost. {//} {could}He could have held on to his equal place with {*}God. {/} {instead}Instead, he {phil}“made himself of no reputation, and took upon him the form of a {*}servant.” {/} {robe}He laid down his royal robe and his {*}crown. {/} {sceptre}He handed the sceptre back to his {*}Father. {/} {glory}He could not enjoy his glory while we were {*}lost.
+**say:** {picture}So picture him there, {beside}beside his Father on the throne, {angels}honoured by every angel. {/} {lost}And then a world is {*}lost. {//} {could}He could have held on to his equal place with God. {/} {instead}Instead, he {phil}“made himself of no reputation, and took upon him the form of a {*}servant.” {/} {robe}He laid down his royal robe and his crown. {/} {sceptre}He handed the sceptre back to his Father. {/} {glory}He could not enjoy his glory while we were {*}lost.
 **cite:** Philippians 2:5–7; John 17:5
 **picture:**
 
@@ -165,7 +165,7 @@ Quoted Scripture: 11 passages, 132 of 677 spoken words (19.5 %). One quotation p
 
 ### `storm` · STORY · ~38 s
 
-**say:** {asleep}So here he is, a carpenter asleep in the back of a fishing boat, {storm}while a storm tries to {*}sink it. {/} {shake}His friends shake him {*}awake. {/} {resting}He had been resting, but not as the master of the {*}sea. {/} {down}That power he had laid {*}down. {/} {trusted}He rested because he trusted his {*}Father. {/} {stood}He stood, and spoke, and the sea went {*}flat. {/} {whisper}And they were afraid, and they said to one another, {manner}“What manner of man is this, that even the wind and the sea obey {*}him?” {/} {question}It is Isaiah's question {*}again.
+**say:** {asleep}So here he is, a carpenter asleep in the back of a fishing boat, {storm}while a storm tries to sink it. {/} {shake}His friends shake him awake. {/} {resting}He had been resting, but not as the master of the {*}sea. {/} {down}He had laid that power {*}down. {/} {trusted}He rested because he trusted his {*}Father. {/} {stood}He stood, and spoke, and the sea went {*}flat. {/} {whisper}And they were afraid, and they said to one another, {manner}“What manner of man is this, that even the wind and the sea obey him?” {/} {question}It is Isaiah's question {*}again.
 **cite:** Mark 4:37–41; Luke 8:24–25; John 5:30
 **picture:**
 
@@ -180,7 +180,7 @@ Quoted Scripture: 11 passages, 132 of 677 spoken words (19.5 %). One quotation p
 
 ### `manger` · STORY · ~24 s
 
-**say:** {night}A night outside {*}Bethlehem. {/} {baby}A baby asleep in a feeding {*}trough. {/} {same}He is the same One who sat on Isaiah's {*}throne. {/} {small}And becoming small did not take away his right to be {*}worshipped. {/} {sky}So the sky over the shepherds fills with {*}angels, {order}because God had given the order: {worship}“let all the angels of God worship {*}him.”
+**say:** {night}A night outside Bethlehem. {/} {baby}A baby asleep in a feeding {*}trough. {/} {same}He is the same One who sat on Isaiah's {*}throne. {/} {small}And becoming small did not take away his right to be {*}worshipped. {/} {sky}So the sky over the shepherds fills with {*}angels. {/} {order}God had given the order, {worship}“let all the angels of God worship {*}him.”
 **cite:** Luke 2:7–14; Hebrews 1:6
 **picture:**
 
@@ -197,7 +197,7 @@ Quoted Scripture: 11 passages, 132 of 677 spoken words (19.5 %). One quotation p
 
 ### `with` · STORY → IDEA · ~23 s
 
-**say:** {why}Why come so {*}low? {/} {show}To show us what God is like, close enough to {*}touch. {/} {name}His name says it, {immanuel}“God with {*}us.” {/} {tent}He pitched his tent beside {*}ours. {/} {face}Whatever we long to know about God, {see}we can see in his {*}face. {/} {love}And above all, that face shows a love that gives itself {*}away.
+**say:** {why}Why come so {*}low? {/} {show}To show us what God is like, close enough to touch. {/} {name}His name says it, {immanuel}“God {*}with us.” {/} {tent}He pitched his tent beside ours. {/} {face}Whatever we long to know about God, {see}we can see in his {*}face. {/} {love}And above all, that face shows a love that gives itself {*}away.
 **cite:** Matthew 1:23; John 1:14, 18; John 14:9
 **picture:**
 
@@ -214,7 +214,7 @@ Quoted Scripture: 11 passages, 132 of 677 spoken words (19.5 %). One quotation p
 
 ### `return` · STORY (landing) · ~30 s
 
-**say:** {back}Back to Isaiah's {*}throne. {/} {after}The cross is the next part of the {*}story. {/} {home}After it, he went home, {again}to the glory he had with his Father before the world {*}was. {/} {all}And all of heaven sang to them both, {song}“unto him that sitteth upon the throne, and unto the {*}Lamb.” {/} {who}So who did Isaiah {*}see? {//3} {down}The One who came down to be {*}with us.
+**say:** {back}Back to Isaiah's throne. {/} {after}He went to the cross, {/} {home}and after it he went home, {again}to the glory he had with his Father before the world {*}was. {/} {all}And all of heaven gave glory to them both, {song}“unto him that sitteth upon the throne, and unto the Lamb.” {/} {who}So who did Isaiah {*}see? {//3} {down}The One who came down to be {*}with us.
 **cite:** John 17:5; Revelation 5:11–13; Isaiah 6:1
 **picture:**
 
@@ -271,4 +271,4 @@ Quoted Scripture: 11 passages, 132 of 677 spoken words (19.5 %). One quotation p
   - Creation is the Father working through the Son (`beginning`).
   - They are two, one in purpose (`one`, landing).
   - No Trinity words or emblem. The Son is never shown or said to be created. The Father is never formless energy: the light sits, receives the sceptre and is worshipped.
-- **Quoted share.** 132 of 677 words (19.5 %), counted by script over the `say` lines' “…” spans. Supplied-word brackets are dropped. Mid-verse quotations run on continuous words only: 1 Cor 8:6 from "to us" (opening "But" dropped) to "one Lord Jesus Christ" (the verse runs on); Phil 2:7 and Heb 1:6 with their opening "But" and "And" dropped; Mark 4:41 from "What manner" (used for its question mark, where Luke 8:25 and Matthew 8:27 end on "!").
+- **Quoted share.** 132 of 671 words (19.7 %), counted by script over the `say` lines' “…” spans. Supplied-word brackets are dropped. Mid-verse quotations run on continuous words only: 1 Cor 8:6 from "to us" (opening "But" dropped) to "one Lord Jesus Christ" (the verse runs on); Phil 2:7 and Heb 1:6 with their opening "But" and "And" dropped; Mark 4:41 from "What manner" (used for its question mark, where Luke 8:25 and Matthew 8:27 end on "!").
