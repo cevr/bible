@@ -901,7 +901,9 @@ keeps its `#…` across. A path no place declares is a 404, never a page.
 listens; `FILM_LAB_PHONE_URL` (a plain `http://` address by its IP, the
 laptop's on the tailnet: the gate admits the bound IP, so a MagicDNS name
 typed by hand would be refused) is a second listener with the same handler (`startLab`), logged
-`lab.phone.unbound` and left out when it cannot bind.
+`lab.phone.unbound` and left out when it cannot bind. A loopback address it
+cannot bind ends `film lab` with `LabUnbound`, whose message names the
+address and Bun's words.
 
 **Pages and links.** Every view a reviewer would talk about is a URL, so a
 pasted link opens what the sender saw and Back walks the views: the path

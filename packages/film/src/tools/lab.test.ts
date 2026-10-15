@@ -1343,6 +1343,21 @@ describe('lab routes', () => {
         ]),
       );
     });
+
+  it.effect(
+    "a loopback port another server holds fails the lab's start, naming it and Bun's words",
+    () =>
+      Effect.gen(function* () {
+        const port = Number((yield* held).port);
+        const failure = yield* Effect.flip(startLab({ hostname: '127.0.0.1', port }));
+        expect(failure.message).toContain(`127.0.0.1:${port}`);
+        expect(failure.message).toContain(`Is port ${port} in use?`);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(RenderCatalogue.layer),
+        Effect.provide([labInMemory(files()), FetchHttpClient.layer]),
+      ),
+  );
 });
 
 // A browser that leaves (a closed tab, a reload) aborts its request, and Bun

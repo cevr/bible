@@ -271,13 +271,7 @@ const phoneListener = Effect.fn('film.lab.phone')(function* (phone: Option.Optio
         Option.some({ server, link }),
       ),
     ),
-    // Bun names every refused bind "Is port … in use?", an address on no
-    // interface (the tailnet down) included: say both.
-    Effect.catch((error) =>
-      unbound(
-        `could not bind ${at.hostname}:${at.port}, no interface here has the address or the port is held: ${String(error.cause)}`,
-      ),
-    ),
+    Effect.catch((error) => unbound(error.message)),
   );
 });
 
