@@ -40,6 +40,7 @@ import {
   Match,
   Option,
   Path,
+  Record,
   Result,
   Schema,
   Struct,
@@ -54,6 +55,7 @@ import {
   answeredToEnd,
   answersLine,
   askStatus,
+  givenAnswers,
   oneQuestion,
 } from '../core/ask.ts';
 import { type Said, setPathOf, withAskSaid } from '../core/production.ts';
@@ -382,6 +384,7 @@ const RecordRender = Tool.make('record_render', {
 const AskTool = Tool.make('ask', {
   description: [
     "Ask the owner to decide something, on a page made for this one question: answered on the laptop or the phone, the answers typed. Give `blocks` for one page (a heading, prose, an image, a choose, a free_text; each question block names its answer by `id`), or `machine` for a short flow: `{start, steps}`, each step a page (`blocks`, then `next`: `[{to, when?: {answer, is: [values]}}, …, {to}]`, the first whose `when` holds, the last unguarded) or an end (`{end: true, text?}`). An image is `{src}` (a lab URL, `/api/…`) or `{board: {film, panel, try}}`, a board try found for you; a choose's options may carry one. The machine is checked before anything is kept (every step reachable, no loops, guards on the step's own choices), and a refusal lists every problem.",
+    'Prefer a `choose` (the cheap answer: the owner taps one) with an optional `free_text` for anything else to asking for words. A choose is always answered. A free_text is optional: the page marks it so (write no "(optional)" in its label), and left empty it is answered `{kind: \'skipped\'}`; `required: true` makes the owner write, and only a step with no choose may ask it.',
     'Say `why` (what the answer decides) and `by` (who you are); a `deadline` (ISO time) after which it takes no answer; `production` (and the `set` ref it is about) to file it on that timeline: it waits there until closed.',
     'Answers its links (`local`, `phone`, `public`): hand the owner one. Each step the owner sends is an `ask.step` change on `changes` (its answers typed), and `ask.answered` once the end is reached; read it with `ask_read`, and `close_ask` it once acted on.',
   ].join(' '),
@@ -404,7 +407,7 @@ const AskTool = Tool.make('ask', {
 
 const AskReadTool = Tool.make('ask_read', {
   description:
-    "An ask: where its run is, every answer so far (typed: a choose's value and label, a free_text's words), each step answered, and its links.",
+    "An ask: where its run is, every answer so far (typed: a choose's value and label, a free_text's words, `skipped` for an optional one left empty), each step answered, and its links.",
   parameters: Schema.Struct({ ask: Schema.String }),
   success: AskRead,
   failure: LabRefused,
@@ -916,19 +919,29 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
                     ...on,
                   },
                 ];
-              const words = Object.values(closed.answers).flatMap((a) =>
+              // The owner's decision: what they gave, an optional field left empty left out.
+              const given = givenAnswers(closed.answers);
+              const words = Object.values(given).flatMap((a) =>
                 Match.value(a).pipe(
                   Match.discriminatorsExhaustive('kind')({
                     choose: (): ReadonlyArray<string> => [],
                     free_text: (t) => [t.text],
+                    skipped: (): ReadonlyArray<string> => [],
                   }),
+                ),
+              );
+              // Every answer skipped still reads as answered: the line then names them all.
+              const line = answersLine(
+                Option.getOrElse(
+                  Option.liftPredicate(given, (g) => !Record.isEmptyRecord(g)),
+                  () => closed.answers,
                 ),
               );
               return [
                 {
                   _tag: 'Decided',
                   at: now,
-                  text: `${named}: ${answersLine(closed.answers)}`,
+                  text: `${named}: ${line}`,
                   quote: Option.liftPredicate(words.join(' / '), (w) => w.length > 0),
                   ...on,
                 },
@@ -965,7 +978,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
       Option.isNone(yield* refused(productions.read(production.value)))
     )
       return yield* LabRefused.make({
-        reason: `no production ${production.value}: film production start ${production.value}`,
+        reason: `no production ${production.value}: film production new ${production.value} --title "<title>"`,
       });
     if (Option.isSome(set) && !(yield* sets).some((s) => s.set === set.value))
       return yield* LabRefused.make({ reason: `no set ${set.value}: \`sets\` lists them by ref` });
@@ -1162,7 +1175,7 @@ const INSTRUCTIONS = [
   'The film lab, where the owner reviews the films: notes on frames and board panels, tries kept, beats and renders approved, sets of renders compared. Read with `overview`, `notes`, `board`, `catalogue`, `sets`, `set`; act with `reply`, `resolve`, `request_tweak`, `publish_set`, `record_render`.',
   'Listen with `changes`: pass the cursor from `overview` as `since` and a `wait` in seconds; it answers as soon as the owner does something (a note, a reply, a kept try, an approval or withdrawal, a comment, a render or set, an answer to an ask), each change with its film, panel or render, its words and its lab link. Call it again with the cursor it answers.',
   'Hand the owner work as a set (`publish_set`) and its link, never a path; reply on the note that asked for it.',
-  "When a decision is the owner's, ask it (`ask`): one page of blocks, or a short machine of pages; hand the owner its link, hear each answer on `changes` (`ask.step`, `ask.answered`), and `close_ask` once acted on.",
+  "When a decision is the owner's, ask it (`ask`): one page of blocks, or a short machine of pages, each question a `choose` where it can be (an optional `free_text` beside it for anything else; words are a burden to require); hand the owner its link, hear each answer on `changes` (`ask.step`, `ask.answered`), and `close_ask` once acted on.",
 ].join('\n\n');
 
 /** What the lab's MCP runs over beside its router: the lab's stores and its change feed. */

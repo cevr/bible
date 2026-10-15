@@ -37,6 +37,7 @@ import {
   askMachine,
   askProblems,
   askStart,
+  filled,
   imagesIn,
   mapImages,
 } from '../core/ask.ts';
@@ -270,10 +271,12 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
       const answer = Effect.fn('AskStore.answer')(function* (
         id: string,
         step: string,
-        values: StepValues,
+        sent: StepValues,
       ) {
         const at = yield* known(id);
         const when = yield* now;
+        // A field left empty is kept as not sent, so a retry that sends it blank is the same answer.
+        const values = filled(sent);
         const record = yield* store.transact(at, (current) =>
           Effect.gen(function* () {
             const refuse = (reason: string) => AskRefused.make({ id, reason });

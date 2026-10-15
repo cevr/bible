@@ -21,6 +21,7 @@ const ASK_CSS = `
 .ak-img figcaption{color:var(--text-2);font-size:var(--fs-2);line-height:var(--lh-2)}
 .ak-field{display:grid;gap:var(--s-2);border:0;margin:0;padding:0;min-width:0}
 .ak-field legend,.ak-legend{font-weight:var(--w-2);padding:0;margin-bottom:var(--s-2)}
+.ak-optional{color:var(--text-2);font-weight:var(--w-1)}
 .ak-options{display:flex;flex-wrap:wrap;gap:var(--s-2)}
 .ak-options[data-pictured=true]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 .ak-option{display:grid;gap:var(--s-1);min-height:var(--hit);padding:var(--s-1) var(--s-2);background:var(--surface-2);color:var(--text-1);border:2px solid transparent;font:inherit;text-align:left;cursor:pointer}

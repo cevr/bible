@@ -405,6 +405,22 @@ describe('asks through the MCP', () => {
         expect(looped.refused).toContain('the ask may not render');
         expect(looped.refused).toContain('step a goes on to itself');
         expect((yield* tool('ask', who)).refused).toContain('give `blocks`');
+        const wordsBesideChoice = yield* tool('ask', {
+          ...who,
+          blocks: [
+            {
+              kind: 'choose',
+              id: 'keep',
+              label: 'Keep it?',
+              options: [
+                { value: 'yes', label: 'Yes' },
+                { value: 'no', label: 'No' },
+              ],
+            },
+            { kind: 'free_text', id: 'more', label: 'Why?', required: true },
+          ],
+        });
+        expect(wordsBesideChoice.refused).toContain('more is required beside a choice');
         expect((yield* tool('ask', { ...who, blocks: [], set: 'spare/x' })).refused).toContain(
           'name it',
         );
@@ -479,7 +495,10 @@ describe('asks through the MCP', () => {
                   next: [{ to: 'why', when: { answer: 'try', is: ['calm'] } }, { to: 'done' }],
                 },
                 why: {
-                  blocks: [{ kind: 'free_text', id: 'why', label: 'Why the calmer one?' }],
+                  blocks: [
+                    { kind: 'free_text', id: 'why', label: 'Why the calmer one?', required: true },
+                    { kind: 'free_text', id: 'more', label: 'Anything else?' },
+                  ],
                   next: [{ to: 'done' }],
                 },
                 done: { end: true, text: 'Thank you.' },
@@ -522,9 +541,11 @@ describe('asks through the MCP', () => {
             'ask.step',
             'ask.answered',
           ]);
+          // The optional field left empty is told, typed; the timeline's decision leaves it out.
           const answers = {
             try: { kind: 'choose', value: 'calm', label: 'Calmer' },
             why: { kind: 'free_text', text: 'he listens' },
+            more: { kind: 'skipped' },
           };
           expect(ended.changes[1].answers).toEqual(answers);
           expect(yield* tool('ask_read', { ask: made.ask })).toMatchObject({

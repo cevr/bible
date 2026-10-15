@@ -210,6 +210,31 @@ describe('askChanges', () => {
     expect(askChanges(Option.some(done), done)).toEqual([]);
   });
 
+  it('says an optional answer left empty, typed, in its step and at the end', () => {
+    const skipped: AskRecord = {
+      ...picked,
+      state: AskState.Answered({
+        step: 'done',
+        answers: { ...picked.state.answers, why: { kind: 'skipped' } },
+      }),
+      answered: [...picked.answered, { step: 'why', values: {}, at: '2026-10-14T00:02:00.000Z' }],
+    };
+    expect(
+      askChanges(Option.some(picked), skipped).map((c) => [c.kind, c.answers, c.summary]),
+    ).toEqual([
+      [
+        'ask.step',
+        { why: { kind: 'skipped' } },
+        'ask a0123456789 (Keep a try) step why answered: why: (skipped)',
+      ],
+      [
+        'ask.answered',
+        { try: { kind: 'choose', value: '7', label: 'Try 7' }, why: { kind: 'skipped' } },
+        'ask a0123456789 (Keep a try) answered: try: Try 7 · why: (skipped)',
+      ],
+    ]);
+  });
+
   it('tells a step and the end seen in one read, and a close with why', () => {
     expect(askChanges(Option.some(asking), done).map((c) => c.kind)).toEqual([
       'ask.step',

@@ -7,11 +7,22 @@
 // choice the step asks), then interprets it as an effect-machine machine
 // (`askMachine`): the state is the step the owner is on and the answers so
 // far, the event is a step's answers, and the end hands back every answer,
-// typed by the block that asked it. Nothing an agent writes runs: the
-// machine is data, its guards the one form `when: { answer, is }`. Pure and
-// DOM-free.
+// typed by the block that asked it. A choice is always answered; words are
+// optional unless asked for (`required`, on a step with no choice), and an
+// optional field left empty is answered `skipped`. Nothing an agent writes
+// runs: the machine is data, its guards the one form `when: { answer, is }`.
+// Pure and DOM-free.
 
-import { Array as Arr, Match, Option, Predicate, Record, Result, Schema } from 'effect';
+import {
+  Array as Arr,
+  Boolean as Bool,
+  Match,
+  Option,
+  Predicate,
+  Record,
+  Result,
+  Schema,
+} from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { repoJson } from './schema.ts';
 
@@ -78,12 +89,22 @@ const Choose = Schema.Struct({
   label: Text(300),
   options: Schema.Array(AskOption),
 });
-/** Free text; its answer is the words. */
+/**
+ * Free text; its answer is the words. The owner may leave it empty (its
+ * answer `skipped`) unless it is `required`, which only a step with no
+ * choice may ask: a choice is the cheap answer, words beside it are extra.
+ */
 const FreeText = Schema.Struct({
   kind: Schema.Literal('free_text'),
   id: AskName,
   label: Text(300),
   placeholder: Schema.optionalKey(Text(200)),
+  required: Schema.optionalKey(
+    Schema.Boolean.annotate({
+      description:
+        'true: the owner must write something before Send (refused on a step with a choose). Left out, the field is optional and the page says so.',
+    }),
+  ),
 });
 
 /** One of the primitives a step is built of. */
@@ -92,6 +113,15 @@ export type AskBlock = typeof AskBlock.Type;
 
 /** A block the owner answers. */
 type Asking = Extract<AskBlock, { readonly id: string }>;
+
+/** Whether the owner must answer `block` before the step goes: a choice always, words only when asked to. */
+export const requiredOf = (block: Asking): boolean =>
+  Match.value(block).pipe(
+    Match.discriminatorsExhaustive('kind')({
+      choose: () => true,
+      free_text: (t) => t.required === true,
+    }),
+  );
 
 /** A way on from a step: to `to`, when the choice `answer` is one of `is` (none: always). */
 const AskNext = Schema.Struct({
@@ -276,6 +306,7 @@ const pageProblems = (name: string, page: PageStep, ids: ReadonlyMap<string, num
       },
     });
   });
+  const chooses = page.blocks.some((b) => b.kind === 'choose');
   page.blocks.forEach((b) =>
     Match.value(b).pipe(
       Match.discriminatorsExhaustive('kind')({
@@ -283,6 +314,10 @@ const pageProblems = (name: string, page: PageStep, ids: ReadonlyMap<string, num
         prose: () => {},
         free_text: (t) => {
           if (timesAsked(ids, t.id) > 1) problems.push(`the answer ${t.id} is asked twice`);
+          if (requiredOf(t) && chooses)
+            problems.push(
+              `step ${name}: ${t.id} is required beside a choice: leave it optional (drop required), or ask it on a step of its own`,
+            );
         },
         image: (p) => problems.push(...imageProblems(`step ${name}'s image`, p.image)),
         choose: (c) => {
@@ -359,15 +394,24 @@ export const askProblems = (ask: Ask): ReadonlyArray<string> => {
 // ---------------------------------------------------------------------------
 // The machine the lab runs an ask by
 
-/** An answer, typed by the block that asked it. */
+/**
+ * An answer, typed by the block that asked it: a choice's option, the words,
+ * or `skipped`, an optional question the owner saw and left empty (one on a
+ * step the run never reached has no answer at all).
+ */
 export const AskAnswer = Schema.Union([
   Schema.Struct({ kind: Schema.Literal('choose'), value: Schema.String, label: Schema.String }),
   Schema.Struct({ kind: Schema.Literal('free_text'), text: Schema.String }),
+  Schema.Struct({ kind: Schema.Literal('skipped') }),
 ]);
 export type AskAnswer = typeof AskAnswer.Type;
 
 const Answers = Schema.Record(Schema.String, AskAnswer);
 export type AskAnswers = typeof Answers.Type;
+
+/** The answers the owner gave: every one but those skipped. */
+export const givenAnswers = (answers: AskAnswers): AskAnswers =>
+  Record.filter(answers, (a) => a.kind !== 'skipped');
 
 /** What a step's page sends: each answer's raw value (a choice's option value, the words) by its name. */
 export const StepValues = Schema.Record(
@@ -375,6 +419,10 @@ export const StepValues = Schema.Record(
   Schema.String.check(Schema.isMaxLength(4000)),
 );
 export type StepValues = typeof StepValues.Type;
+
+/** `values` with the blank ones left out: a field left empty is not answered, wherever it was sent from. */
+export const filled = (values: StepValues): StepValues =>
+  Record.filter(values, (v) => v.trim() !== '');
 
 /** Where an ask is: at a step, answered (at its end), or closed by the agent. */
 export const AskState = State({
@@ -395,13 +443,17 @@ export type AskEvent = typeof AskEvent.Type;
 /** An ask's first state: at its start, nothing answered. */
 export const askStart = (ask: Ask): AskState => AskState.Asking({ step: ask.start, answers: {} });
 
-/** One asked block's answer from `value`, or why it has none. */
+/** One asked block's answer from `value` (none: left empty), or why it has none. */
 const answerOf = (b: Asking, value: Option.Option<string>): Result.Result<AskAnswer, string> =>
   Match.value(b).pipe(
     Match.discriminatorsExhaustive('kind')({
       free_text: (t): Result.Result<AskAnswer, string> =>
         Option.match(value, {
-          onNone: () => Result.fail(`${t.id} is not answered`),
+          onNone: () =>
+            Bool.match(requiredOf(t), {
+              onTrue: () => Result.fail(`${t.id} is not answered`),
+              onFalse: () => Result.succeed({ kind: 'skipped' }),
+            }),
           onSome: (text) => Result.succeed({ kind: 'free_text', text: text.trim() }),
         }),
       choose: (c): Result.Result<AskAnswer, string> =>
@@ -428,14 +480,9 @@ const typedIn = (
   const unknown = Record.keys(values)
     .filter((k) => !asked.some((b) => b.id === k))
     .map((k) => `this step asks no ${k}`);
+  const given = filled(values);
   const typed = asked.map((b) =>
-    Result.map(
-      answerOf(
-        b,
-        Option.filter(Record.get(values, b.id), (v) => v.trim() !== ''),
-      ),
-      (a) => [b.id, a] as const,
-    ),
+    Result.map(answerOf(b, Record.get(given, b.id)), (a) => [b.id, a] as const),
   );
   const problems = [
     ...unknown,
@@ -598,7 +645,7 @@ export type AskRecord = typeof AskRecord.Type;
 
 export const AskRecordJson = repoJson(AskRecord);
 
-/** Answers in one line, each by its name: `try: Try 7 · why: the light`. */
+/** Answers in one line, each by its name: `try: Try 7 · why: the light · more: (skipped)`. */
 export const answersLine = (answers: AskAnswers): string =>
   Record.toEntries(answers)
     .map(([id, a]) =>
@@ -606,6 +653,7 @@ export const answersLine = (answers: AskAnswers): string =>
         Match.discriminatorsExhaustive('kind')({
           choose: (c) => `${id}: ${c.label}`,
           free_text: (t) => `${id}: ${t.text}`,
+          skipped: () => `${id}: (skipped)`,
         }),
       ),
     )
