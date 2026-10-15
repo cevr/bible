@@ -862,7 +862,7 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
 });
 
 /** A page the tests serve rendered on the server. */
-type ServedName = 'review' | 'lab' | 'player';
+export type ServedName = 'review' | 'lab' | 'player';
 
 /**
  * A page as the tests serve it rendered: its server entry, bundled as the
@@ -990,6 +990,34 @@ interface Written {
 }
 
 /**
+ * A render's fetch over `read`: a GET of the URL asked, as the lab answers a
+ * render's reads (the render's client asks at the page's origin, so every
+ * read's URL is whole); a held read never resolves.
+ */
+const readsOf =
+  (read: (request: Request) => Effect.Effect<Option.Option<Response>>) =>
+  (input: RequestInfo | URL) =>
+    Effect.runPromise(
+      read({ method: 'GET', url: new URL(new globalThis.Request(input).url), body: '' }).pipe(
+        Effect.flatMap(Option.match({ onNone: () => Effect.never, onSome: Effect.succeed })),
+        Effect.map(fetched),
+      ),
+    );
+
+/**
+ * The fetch a server render of page `name` reads its film with, answered as
+ * `openServed` answers it: by `routes`, then the page's defaults, each read
+ * kept in `read` (its path past the page's API prefix); a read no route
+ * answers is a 404.
+ */
+export const servedReads = (
+  name: ServedName,
+  routes: ReadonlyArray<FakeRoute>,
+  read: Array<Asked>,
+): ((input: RequestInfo | URL) => Promise<globalThis.Response>) =>
+  readsOf(apiAnswer(SERVED[name].prefix, [...routes, ...SERVED[name].defaults], read));
+
+/**
  * `render` of the page at `url` for a browser that keys as a Mac or not
  * (`mac`), to its end, what it writes kept in `written` as it is written.
  */
@@ -1001,20 +1029,12 @@ const rendering = (
   written: Written,
 ): Effect.Effect<void> =>
   Effect.callback<void>((resume, signal) => {
-    // The render's client asks at the page's origin, so every read's URL is whole.
-    const readOf = (input: RequestInfo | URL) =>
-      Effect.runPromise(
-        read({ method: 'GET', url: new URL(new globalThis.Request(input).url), body: '' }).pipe(
-          Effect.flatMap(Option.match({ onNone: () => Effect.never, onSome: Effect.succeed })),
-          Effect.map(fetched),
-        ),
-      );
     render.render(
       {
         url: `${url.origin}${url.pathname}${url.search}`,
         mac,
         signal,
-        fetch: Object.assign(readOf, { preconnect: globalThis.fetch.preconnect }),
+        fetch: Object.assign(readsOf(read), { preconnect: globalThis.fetch.preconnect }),
       },
       {
         head: (html) => {

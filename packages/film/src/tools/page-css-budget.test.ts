@@ -21,9 +21,6 @@ import { LabPage, PageBundler } from './lab-page.ts';
 import { PageReads } from './api-server.ts';
 import { PageRenderer } from './page-render.ts';
 
-/** Every place a studio page is at, by a link the lab serves it at (`fixtures/places.ts`): each is weighed. */
-const PLACES = PLACE_HREFS;
-
 /**
  * The most a page's render-blocking CSS may weigh, in bytes, as built
  * (minified, before compression). Set at the heaviest place's 54 KB and a
@@ -45,7 +42,7 @@ const BUDGET = 64 * 1024;
  * The places that carry their own styles (`PlaceStyle`): each holds them
  * ahead of its reads, so they are weighed with none answered.
  */
-const OWN_STYLES: ReadonlyArray<keyof typeof PLACES> = [
+const OWN_STYLES: ReadonlyArray<keyof typeof PLACE_HREFS> = [
   'production',
   'ask',
   'draft',
@@ -131,13 +128,13 @@ describe("a page's render-blocking CSS", () => {
           });
         // Each link is at the place it is keyed by.
         expect(
-          Struct.keys(PLACES).filter((place) =>
-            Option.isNone(Place.decode(Places[place], PLACES[place])),
+          Struct.keys(PLACE_HREFS).filter((place) =>
+            Option.isNone(Place.decode(Places[place], PLACE_HREFS[place])),
           ),
         ).toEqual([]);
-        const weighed = yield* Effect.forEach(Struct.keys(PLACES), (place) =>
+        const weighed = yield* Effect.forEach(Struct.keys(PLACE_HREFS), (place) =>
           Effect.gen(function* () {
-            const { status, body } = yield* ask(PLACES[place]);
+            const { status, body } = yield* ask(PLACE_HREFS[place]);
             // The server rendered it: its head holds the page's own styles.
             const rendered = status === 200 && body.includes('<style data-page-style');
             const bytes = yield* blockingCss(body, size);

@@ -2,50 +2,90 @@
 // server entry (`LAB_SERVERS`) bundled as the lab bundles it and held pure
 // (`servedFile`, `bundles.ts`): a render that writes state (Solid's
 // `SERVER_WRITE`, which the owner's lab logged at its start) or throws fails
-// here, naming the place. Its reads are answered as a lab with no film
-// answers them (a 404), but for the draft its reader is read over (`READS`).
+// here, naming the place. Each place is opened over a fixture film, its reads
+// answered as `openServed` answers them (`servedReads`): the review's places
+// over the studio film (`studio-film.ts`), the lab's and the player's over
+// the probe film. A read the fixture film does not answer fails the place
+// too, so each place renders past its fallback, with a film's data, as the
+// owner's lab renders a real film.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Option, Result, Struct } from 'effect';
 import { LAB_SERVERS } from '../../../../apps/animations/server.ts';
-import { type DraftRead, pageAt } from '../../src/core/api.ts';
+import { type AppPage, pageAt, pageHref } from '../../src/core/api.ts';
 import type { PageRender, PageSink } from '../../src/core/page-render.ts';
 import { servedFile } from '../../src/lab/fixtures/bundles.ts';
-import { PLACE_HREFS } from '../../src/lab/fixtures/places.ts';
+import { type Asked, type ServedName, servedReads } from '../../src/lab/fixtures/harness.ts';
+import type { PLACE_HREFS } from '../../src/lab/fixtures/places.ts';
+import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
+import {
+  STUDIO_ASK,
+  STUDIO_DRAFT,
+  STUDIO_FILM,
+  STUDIO_FOLDER,
+  STUDIO_PRODUCTION,
+  STUDIO_SERIES,
+  STUDIO_SET,
+  studioRoutes,
+} from '../../src/lab/fixtures/studio-film.ts';
 
-/** The draft `PLACE_HREFS.draft` opens, read: one beat that says a line. */
-const DRAFT: DraftRead = {
-  series: 's',
-  draft: 'd',
-  title: 'A draft',
-  beats: [{ id: '1', label: 'The first', say: 'In the beginning {was} the Word.', cite: [] }],
-};
+/** Every place (`PLACE_HREFS`), at a link of a fixture film's. */
+const FILM_HREFS = {
+  home: pageHref.home(),
+  production: pageHref.production(STUDIO_PRODUCTION),
+  ask: pageHref.ask(STUDIO_ASK),
+  draft: pageHref.draft(STUDIO_SERIES, STUDIO_DRAFT),
+  draftBeat: pageHref.draftBeat(STUDIO_SERIES, STUDIO_DRAFT, '1', '0-0'),
+  folder: pageHref.folder(STUDIO_FOLDER),
+  set: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+  choices: pageHref.choices(STUDIO_FILM),
+  project: pageHref.project(STUDIO_FILM),
+  scenes: pageHref.scenes(PROBE),
+  scene: pageHref.scene(PROBE, 'one'),
+  play: pageHref.play(PROBE),
+  lab: pageHref.lab(PROBE),
+  labScene: pageHref.labScene(PROBE, 'one'),
+  script: pageHref.script(PROBE),
+  scriptBeat: pageHref.scriptBeat(PROBE, 'one'),
+  board: pageHref.board(PROBE),
+  boardBeat: pageHref.boardBeat(PROBE, 'one'),
+} satisfies Record<keyof typeof PLACE_HREFS, string>;
+
+/** Whether a page is one the server renders: the export page is drawn in the browser alone. */
+const isServed = (page: AppPage): page is ServedName => page !== 'render';
+
+/** A read a render made and the status it was answered with. */
+interface Answered {
+  readonly path: string;
+  readonly status: number;
+}
 
 /**
- * The reads answered, by path: what a place renders past its fallback with
- * (the draft reader mounts its beats only once its draft is read). Every
- * other read is a 404, as a lab with no film answers it.
+ * The fetch of a render of page `name`: its reads answered by the fixture
+ * film, each kept in `answered` with its status.
  */
-const READS: ReadonlyMap<string, DraftRead> = new Map([
-  [`/api/series/${DRAFT.series}/${DRAFT.draft}`, DRAFT],
-]);
-
-/** A read of the render's: its answer from `READS`, else a 404. */
-const readOf = (input: RequestInfo | URL) =>
-  Effect.runPromise(
-    Effect.sync(() =>
-      Option.match(
-        Option.fromUndefinedOr(READS.get(new URL(new globalThis.Request(input).url).pathname)),
-        {
-          onNone: () => new Response('{}', { status: 404 }),
-          onSome: (body) => Response.json(body),
-        },
+const readsOf = (name: ServedName, answered: Array<Answered>) => {
+  const read: Array<Asked> = [];
+  const reads = servedReads(name, studioRoutes, read);
+  return (input: RequestInfo | URL) =>
+    Effect.runPromise(
+      Effect.tap(
+        Effect.promise(() => reads(input)),
+        (response) =>
+          Effect.sync(() => {
+            const path = new URL(new globalThis.Request(input).url).pathname;
+            answered.push({ path, status: response.status });
+          }),
       ),
-    ),
-  );
+    );
+};
 
 /** `render` of the page at `href` to its end: its markup, or the reason it failed (a throw is one). */
-const rendered = (render: PageRender, href: string) =>
+const rendered = (
+  render: PageRender,
+  href: string,
+  fetch: (input: RequestInfo | URL) => Promise<Response>,
+) =>
   Effect.callback<string, string>((resume) => {
     const body: Array<string> = [];
     const sink: PageSink = {
@@ -62,7 +102,7 @@ const rendered = (render: PageRender, href: string) =>
           url: `http://127.0.0.1:8229${href}`,
           mac: false,
           signal: new AbortController().signal,
-          fetch: Object.assign(readOf, { preconnect: globalThis.fetch.preconnect }),
+          fetch: Object.assign(fetch, { preconnect: globalThis.fetch.preconnect }),
         },
         sink,
       ),
@@ -85,18 +125,27 @@ describe("every place's server render", () => {
           { concurrency: 3 },
         );
         const byPage = new Map(renders);
-        const failed = yield* Effect.forEach(Struct.keys(PLACE_HREFS), (place) => {
-          const href = PLACE_HREFS[place];
-          const render = Option.flatMap(pageAt(new URL(href, 'http://lab').pathname), (page) =>
-            Option.fromUndefinedOr(byPage.get(page)),
+        const failed = yield* Effect.forEach(Struct.keys(FILM_HREFS), (place) => {
+          const href = FILM_HREFS[place];
+          const render = Option.flatMap(
+            Option.filter(pageAt(new URL(href, 'http://lab').pathname), isServed),
+            (page) =>
+              Option.map(Option.fromUndefinedOr(byPage.get(page)), (r) => [page, r] as const),
           );
           return Option.match(render, {
             onNone: () => Effect.succeed([`${place}: no server render serves ${href}`]),
-            onSome: (r) =>
-              rendered(r, href).pipe(
-                Effect.as([]),
+            onSome: ([page, r]) => {
+              const answered: Array<Answered> = [];
+              return rendered(r, href, readsOf(page, answered)).pipe(
+                // Read once the render has ended: every read it made is in.
+                Effect.map(() =>
+                  answered
+                    .filter((a) => a.status >= 400)
+                    .map((a) => `${place} (${href}): its read ${a.path} answered ${a.status}`),
+                ),
                 Effect.catch((reason) => Effect.succeed([`${place} (${href}): ${reason}`])),
-              ),
+              );
+            },
           });
         });
         expect(failed.flat()).toEqual([]);
