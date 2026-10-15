@@ -49,6 +49,7 @@ A taste review and a doctrine and source check read the drafts after the voice r
 | theology 02  | 665 (652)       | 37, 55, 5.4 s            | 4:39 (4:12)             |
 | theology 03  | 602 (582)       | 41, 51, 6.8 s            | 4:15 (3:45)             |
 | theology 05  | 671 (667)       | 35, 48, 6.0 s            | 4:40 (4:18)             |
+| theology 08  | 1,181 (1,181)   | 85, 126, 19.2 s          | 8:34 (7:37)             |
 | country 01   | 589 (615)       | 31, 54, 5.8 s            | 4:10 (3:58)             |
 | education 01 | 158 (198)       | 13, 6, 1.5 s             | 1:04 (1:17)             |
 | education 17 | 156 (178)       | 13, 11, 1.5 s            | 1:05 (1:09)             |
@@ -60,6 +61,8 @@ A taste review and a doctrine and source check read the drafts after the voice r
 | health 20    | 149 (194)       | 11, 9, 1.5 s             | 1:02 (1:15)             |
 | health 33    | 370 (418)       | 27, 26, 2.1 s            | 2:33 (2:42)             |
 | health 50    | 142 (188)       | 14, 9, 1.5 s             | 0:59 (1:13)             |
+
+Theology 08, Righteousness by Faith, joined the drafts on 2026-10-15. It is the film's v3 rewrite, marked to the same counsel by its own unit, not by this audit. Its words did not change when it was marked. Its landing's 3 s held beat is the seam between its last two beats (`court`'s tail and the thesis's lead), so no line holds it.
 
 The marks follow the counsel: a breath at the end of most sentences, a hold after a quotation that needs room, and the held beat before a landing's last words, at a phrase boundary and never after a function word (3 s in a film, CRAFT rule 7; 1.5 to 2 s in a talk, whose cut is shorter). A stress goes on the word that carries the sense: a contrast, the turn, the landing; not a pronoun, a word just said, or the end of a list that falls there anyway. Each draft's Length line and beat timings are retimed to these. The talk plans' word ranges assumed about 190 words a minute; `education/series.md` and `health/series.md` now give them at 155 (about 140–160 for One Question, 330–410 for an Episode).
 
