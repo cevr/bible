@@ -149,3 +149,17 @@ All 14 sweeps reported, plus the retro. The batches, what each owns and the merg
 - **Then:** p6-mcp → p6-waiting; p6-board; p6-tweak (after p6-mcp); p6-readers (after guidedask); p6-guards (after truegate); p6-css; p6-docsplit.
 - **Owner questions:** 3, all answered yes (owner 2026-10-15). New batch p6-pages takes the check's findings off his screens and merges Project into Scenes with five phone tabs (after p6-waiting); p6-tweak also removes the Lab's compare against HEAD.
 - **Carried:** the compare row is closed (the lab's compare plays no media); the RBF catalogue record and the stills timing stay open.
+
+### Batches (pass 6)
+
+- **p6-truegate:** done `ad2a3500b..c9e49414c`, merged `3ea084847`.
+  - Three CI flakes fixed at their cause: the pool's `/hold` waits for the server's hold; Record offers no control while the mic opens (a product defect, `Opening` state, which also holds a waiting reload); touch moves are paced at 16 ms.
+  - Also: `test:e2e:check` reruns every failure alone ×3 and counts unhandled errors and unfinished suites; the focus-site scan runs in the unit tier; dead-exports temp dirs are scoped; `test:budget` reports a loaded run as not measured; the CSS budget prints each page's margin; the e2e lock-holder exits when its stdin closes; local e2e workers are sized by free capacity.
+  - Gate green at the merge; e2e check 1072/0 against the quiet base.
+  - Reviewer: Codex (gpt-6.1-sol) over 2 rounds (round 1: 4 Major; round 2: the bible-tools branch has no blocker).
+  - Two implementors; the first compacted. Decided by reversible-first: the branch stays on effect-bun-test 0.4.0.
+  - Carried: flakes (c) G10, (d) Follow and (f) review doc, not reproduced.
+- **p6-ebt (new, after p6-truegate):** effect-bun-test 0.5.0 interrupts a timed-out test, concurrent ones included.
+  - Round 2's B1: `onTestFinished` is refused inside concurrent tests, so 0.5.0 as written would fail 58 concurrent e2e files.
+  - The release waits for this unit's acceptance; the owner authorized publishing it.
+  - Also m5/m6, and 32 hand-run `test.serial` sites moved to the runner.
