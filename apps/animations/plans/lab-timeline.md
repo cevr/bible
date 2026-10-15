@@ -51,8 +51,8 @@ This plan gives the lab one more thing to read: a **production** and its **timel
    - each set the version holds that no review root has now, said **Missing** (moved, in the Trash, or on
      another machine), so the history never silently loses a step.
 4. **See what waits.** The current version says what waits on the owner: each question an agent asked about a
-   set (`film production ask`) that no pick in its choice and no later decision on it has answered, whatever
-   version asked it. Each line is the question, linked to its choice (or its set). A set no one asked about
+   set (a lab ask, made by `film production ask` or the lab's MCP `ask`) that no pick in its choice, no later
+   decision on it and no close of the ask has answered, whatever version asked it. Each line is the question, linked to its choice (or its set). A set no one asked about
    never waits: a montage of ten stacks is not ten chores.
 5. **Move forward.** The current version's one button, "Move forward to v6", opens a short form: _What did we
    decide?_ (started from the owner's newest decision) and _What is v6 for?_, both needed; when questions are
@@ -101,7 +101,8 @@ bun run production decide righteousness-by-faith "9005 over 9006" --quote "ok 90
   --set rbf-rive-2026-10-14 --point render:cold --variant 9005
 bun run production note look "Explore the One Line concept" --quote "also lets try exploring the one line concept"
 bun run production ask righteousness-by-faith "Punchy subtitles or the clean master?" \
-  --set rbf-rive-2026-10-14 --point render:subtitles
+  --why "the master's subtitles" --option "Punchy" --option "Clean master" \
+  --set p5/rbf-rive-2026-10-14 --point render:subtitles   # a page on the running lab: prints its links
 bun run production forward look --after 5 --title "One Line" --because "9005 holds; try One Line"
 ```
 
@@ -109,7 +110,8 @@ bun run production forward look --after 5 --title "One Line" --because "9005 hol
 working in its own worktree needs no ledger to publish: the set names its production and lands by time. An
 agent that records the owner's word from chat uses `decide` or `note`, with the owner's verbatim words in
 `--quote`; `--at` back-dates a word recorded late. An agent that hands over a set needing a pick asks on it
-(`ask`), so the timeline says it waits; the pick in the lab, or the owner's decision recorded on it, answers.
+(`ask`, which makes the running lab's own ask, a page the owner answers: its `--set` is the set's ref), so the
+timeline says it waits; the pick in the lab, the owner's decision recorded on it, or the ask closed answers.
 
 ## Seams for other callers (the lab's MCP)
 
@@ -124,7 +126,7 @@ seams the lab and the CLI do.
   choice's state on the line (`Picked`, `Decided`, `Waiting`, `Quiet`). Over HTTP: `GET /api/productions`.
 - **Write** — `ProductionStore`'s verbs, each decided on the ledger as read under its cross-process lock:
   `start` (refused `ProductionKept`), `forward` (refused `VersionMoved` when the caller saw an older
-  version), `say` (`Decided`, `Noted`, or `Asked`, which must name its set: `AskUnplaced`), `file` (refused
+  version), `say` (`Decided` or `Noted`, the owner's words; an `Asked` is filed only by a lab ask), `file` (refused
   `VersionUnknown`), and `publish` (stamps a set's `review.json`; `FileInvalid` when it would be no
   manifest). Over HTTP only `forward` is exposed (`POST /api/productions/<production>/versions`); the CLI
   (`film production …`, `film publish`) is a thin shell over the same verbs.

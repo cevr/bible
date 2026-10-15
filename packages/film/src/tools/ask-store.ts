@@ -56,6 +56,7 @@ interface AskDraft {
   readonly film?: string;
   readonly production?: string;
   readonly set?: string;
+  readonly point?: string;
   readonly deadline?: string;
   readonly ask: Ask;
 }
@@ -222,6 +223,10 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
           ...Option.match(Option.fromUndefinedOr(draft.set), {
             onNone: () => ({}),
             onSome: (set) => ({ set }),
+          }),
+          ...Option.match(Option.fromUndefinedOr(draft.point), {
+            onNone: () => ({}),
+            onSome: (point) => ({ point }),
           }),
           created: yield* now,
           ...Option.match(Option.flatten(deadline), {

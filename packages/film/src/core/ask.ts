@@ -633,6 +633,8 @@ export const AskRecord = Schema.Struct({
   /** The production its answer is filed on, and the set (a ref) it is about: the timeline's seam. */
   production: Schema.optionalKey(Schema.String),
   set: Schema.optionalKey(Schema.String),
+  /** The choice in that set it is about: a pick there answers it on the timeline too. */
+  point: Schema.optionalKey(Schema.String),
   /** ISO time it was made. */
   created: Schema.String,
   /** ISO time after which it takes no answer. */

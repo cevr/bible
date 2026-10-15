@@ -1711,7 +1711,7 @@ export const labInMemory = (
   );
 
 /** The console a run prints to: each line it logs, offered to `lines`. */
-const printingTo = (lines: Queue.Queue<string>): Console.Console => ({
+export const printingTo = (lines: Queue.Queue<string>): Console.Console => ({
   ...globalThis.console,
   log: (...args: ReadonlyArray<unknown>) => {
     Queue.offerUnsafe(lines, args.map(String).join(' '));

@@ -15,6 +15,12 @@ does, while the lab runs.
 - Effect's HTTP transport is POST-only: no standalone GET stream, so the server cannot push a notification
   outside a request, and it advertises no resource subscriptions over HTTP. Events therefore come two ways (see
   [Events](#events)): a long-poll tool every session can use, and a stdio bridge for Claude Code's channels.
+- **One client** of it in this checkout, `tools/lab-client.ts`, for the commands that work through the running
+  lab (`film channel`'s feed, `film production ask`): a session (`initialize`, `notifications/initialized`, the
+  id from `Mcp-Session-Id`), then `tools/call` typed by the lab's own tool (its parameters encode the arguments,
+  its success decodes `structuredContent`), at `FILM_LAB_URL` (else 8229). No lab answering, or one answering in a
+  shape this checkout does not read (an older lab), is `LabUnanswered`, which says to start one; a tool's refusal
+  is `LabToolRefused`, in the lab's words.
 
 ## Tools, resources, prompt
 
@@ -122,8 +128,8 @@ terminal; learn of a pick when told. Now:
 3. `reply` on the note that asked for it, `resolve` once made; a board tweak is asked with `request_tweak`.
 4. `changes {since, wait: 60}` in a loop (a subagent can too), or the channel in the main session: the owner's
    note, pick or approval arrives with its film, panel or render, words and link.
-5. A decision that is the owner's ("Needs you"): `ask` it as a page, give the owner its link, hear the answers on
-   `changes`, act, and `close_ask`.
+5. A decision that is the owner's ("Needs you"): `ask` it as a page (or, from a terminal, `bun run production ask`),
+   give the owner its link, hear the answers on `changes`, act, and `close_ask`.
 
 ## Asks
 
@@ -297,16 +303,21 @@ Left, and why:
 The timeline (`ProductionStore`, ledgers in `apps/animations/productions/`, read via `FILMS_PRODUCTIONS`) is the
 record of versions and of what waits on the owner; asks file onto it rather than keep a rival model:
 
-- An ask with `production` and `set` is filed as `Asked` when made, and what closed it (`Decided` with its answers,
-  or `Noted` withdrawn) when the agent closes it. The ledger's words carry an optional `ask` id (old ledgers read
+- An ask with `production` and `set` is filed as `Asked` when made (with its `point`, the choice in that set, when
+  it names one: a pick there answers it on the timeline too), and what closed it (`Decided` with its answers, or
+  `Noted` withdrawn) when the agent closes it. The ledger's words carry an optional `ask` id (old ledgers read
   as before; a question filed before the field is known by the `(ask a…)` its text names): a word naming an ask
   answers that ask's question only, and is not a decision on its set, so one
   ask answered on a set leaves another asked on the same set waiting. A bare decision on the set (`film production
   decide`) still answers every question on it.
 - The `Asked` text names the ask (`(ask a…)`). The timeline does not yet link to the ask's page; a waiting entry
   that is an ask could open it.
-- `film production ask` in a terminal still files a bare `Asked` (a question with no page). The next step is for
-  it to make an ask (one `free_text`, or a `choose` over the set's options) so every question has a page.
+- `film production ask` in a terminal makes the same ask through the running lab (`lab-client.ts`, the `ask`
+  tool), so it lands in the lab's own asks and ledger and is filed as above: two `--option`s or more are a
+  `choose` (`pick`, values `1`, `2`, …) with an optional `free_text` (`note`, "Anything else?"); none asks for
+  words (one `free_text`, `answer`, required). It prints the ask's local and phone links. With no lab answering it
+  refuses (`LabUnanswered`) and asks nothing. Every question has a page: the ledger's `say` takes only the owner's
+  words (`Decided`, `Noted`), and an `Asked` is filed only by an ask.
 - Not built: `publish_set` taking `production`/`version` (calling `ProductionStore.publish`), resources over the
   ledgers, and `production.*` feed kinds.
 

@@ -254,6 +254,7 @@ const AskRead = Schema.Struct({
   deadline: Schema.optionalKey(Schema.String),
   production: Schema.optionalKey(Schema.String),
   set: Schema.optionalKey(Schema.String),
+  point: Schema.optionalKey(Schema.String),
   links: AskLinks,
 });
 
@@ -270,7 +271,7 @@ const Overview = Tool.make('overview', {
   failure: LabRefused,
 }).annotate(Tool.Readonly, true);
 
-const Changes = Tool.make('changes', {
+export const Changes = Tool.make('changes', {
   description: `What changed in the lab past \`since\` (a cursor from \`overview\` or an earlier \`changes\`): notes, replies and notes done, tweaks asked, tries kept and beats approved or withdrawn on a board, comments, approvals and withdrawals on renders, renders recorded, sets published or updated, and each step of an ask answered (\`ask.step\`, its answers typed), an ask answered to its end (\`ask.answered\`) or closed. Each change names its film, panel, render or set, its words, and its lab link. With \`wait\` (seconds, at most ${MAX_WAIT_S}) it answers as soon as there is one, else with none when the time is up: call it again with the cursor it answers to keep listening. With no \`since\`, it answers no changes and the cursor now. \`reset\` means the cursor was from an earlier run of the lab: the changes are all this run kept.`,
   parameters: Schema.Struct({
     since: Schema.optionalKey(Schema.String),
@@ -381,11 +382,11 @@ const RecordRender = Tool.make('record_render', {
   failure: LabRefused,
 });
 
-const AskTool = Tool.make('ask', {
+export const AskTool = Tool.make('ask', {
   description: [
     "Ask the owner to decide something, on a page made for this one question: answered on the laptop or the phone, the answers typed. Give `blocks` for one page (a heading, prose, an image, a choose, a free_text; each question block names its answer by `id`), or `machine` for a short flow: `{start, steps}`, each step a page (`blocks`, then `next`: `[{to, when?: {answer, is: [values]}}, …, {to}]`, the first whose `when` holds, the last unguarded) or an end (`{end: true, text?}`). An image is `{src}` (a lab URL, `/api/…`) or `{board: {film, panel, try}}`, a board try found for you; a choose's options may carry one. The machine is checked before anything is kept (every step reachable, no loops, guards on the step's own choices), and a refusal lists every problem.",
     'Prefer a `choose` (the cheap answer: the owner taps one) with an optional `free_text` for anything else to asking for words. A choose is always answered. A free_text is optional: the page marks it so (write no "(optional)" in its label), and left empty it is answered `{kind: \'skipped\'}`; `required: true` makes the owner write, and only a step with no choose may ask it.',
-    'Say `why` (what the answer decides) and `by` (who you are); a `deadline` (ISO time) after which it takes no answer; `production` (and the `set` ref it is about) to file it on that timeline: it waits there until closed.',
+    'Say `why` (what the answer decides) and `by` (who you are); a `deadline` (ISO time) after which it takes no answer; `production` (and the `set` ref it is about, and the `point`, its choice) to file it on that timeline: it waits there until closed (or, with a `point`, a pick there).',
     'Answers its links (`local`, `phone`, `public`): hand the owner one. Each step the owner sends is an `ask.step` change on `changes` (its answers typed), and `ask.answered` once the end is reached; read it with `ask_read`, and `close_ask` it once acted on.',
   ].join(' '),
   parameters: Schema.Struct({
@@ -396,6 +397,8 @@ const AskTool = Tool.make('ask', {
     deadline: Schema.optionalKey(Schema.String),
     production: Schema.optionalKey(Schema.String),
     set: Schema.optionalKey(Schema.String),
+    /** The choice in that set it is about (a point id): a pick there answers it too. */
+    point: Schema.optionalKey(Schema.String),
     blocks: Schema.optionalKey(Schema.Array(AskBlock)),
     /** The words the one page ends on, for `blocks`. */
     thanks: Schema.optionalKey(Schema.String),
@@ -867,7 +870,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
       Match.tag('Closed', (s) => ({ closed: s.why })),
       Match.orElse(() => ({})),
     ),
-    ...Struct.pick(record, ['deadline', 'production', 'set']),
+    ...Struct.pick(record, ['deadline', 'production', 'set', 'point']),
     links: askLinks(record.id),
   });
 
@@ -887,7 +890,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
           const set = Option.map(Option.fromUndefinedOr(record.set), setPathOf);
           const on = {
             set,
-            point: Option.none<string>(),
+            point: Option.fromUndefinedOr(record.point),
             variant: Option.none<string>(),
             ask: Option.some(record.id),
           };
@@ -973,6 +976,8 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     const set = Option.fromUndefinedOr(given.set);
     if (Option.isSome(set) && Option.isNone(production))
       return yield* LabRefused.make({ reason: '`set` files the ask on a production: name it' });
+    if (Option.isSome(Option.fromUndefinedOr(given.point)) && Option.isNone(set))
+      return yield* LabRefused.make({ reason: '`point` is a choice in a set: name the `set`' });
     if (
       Option.isSome(production) &&
       Option.isNone(yield* refused(productions.read(production.value)))

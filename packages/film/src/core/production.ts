@@ -101,6 +101,9 @@ export const Said = Schema.Union([
 ]).pipe(Schema.toTaggedUnion('_tag'));
 export type Said = typeof Said.Type;
 
+/** The owner's word as an agent records it from chat: a decision or a note. A question is a lab ask's, filed by the ask. */
+export type OwnerWord = Extract<Said, { readonly _tag: 'Decided' | 'Noted' }>;
+
 /** A set published before sets named their production, filed in a version by hand. */
 const Filed = Schema.Struct({ set: Schema.String, version: VersionNumber });
 type Filed = typeof Filed.Type;

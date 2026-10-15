@@ -15,7 +15,7 @@
 // film plays, its pick unwritten (`tools/easel.ts`).
 
 import { Argument, Command, Flag } from 'effect/cli';
-import { Array as Arr, Config, Console, Effect, Option, Path, Result, Schema } from 'effect';
+import { Array as Arr, Console, Effect, Option, Path, Result, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
 import { LabHttpApi, ToolFailure } from '../core/api.ts';
@@ -33,11 +33,7 @@ import {
   levelsOf,
   lookLine,
 } from '../core/easel.ts';
-
-/** The lab a look asks: the always-on one unless `FILM_LAB_URL` names another (a spare lab's port). */
-export const labUrl = Config.String('FILM_LAB_URL').pipe(
-  Config.withDefault('http://127.0.0.1:8229/'),
-);
+import { labUrl } from './lab-client.ts';
 
 const FORMATS = { png: 'image/png', jpeg: 'image/jpeg' } as const;
 

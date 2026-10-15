@@ -12,8 +12,9 @@
 import { describe, expect, it } from 'effect-bun-test';
 import {
   Boolean as Bool,
-  type Cause,
+  Cause,
   ConfigProvider,
+  Console,
   Context,
   Deferred,
   Effect,
@@ -23,6 +24,7 @@ import {
   Option,
   Path,
   Queue,
+  References,
   Schema,
   Sink,
   Stdio,
@@ -30,18 +32,20 @@ import {
 } from 'effect';
 import { BunTerminal } from '@effect/platform-bun';
 import { Command } from 'effect/cli';
-import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http';
+import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http';
 import { Base64 } from 'effect/encoding';
 import { labUrls } from '../core/api.ts';
 import { type BoardFile, BoardFileJson } from '../core/board.ts';
+import { AskStore } from './ask-store.ts';
 import { RenderCatalogue } from './catalogue.ts';
+import { production } from './production-cli.ts';
 import { ProductionStore } from './production-store.ts';
 import { labHandler } from './lab.ts';
 import { channel } from './lab-channel.ts';
 import { LabEvents } from './lab-events.ts';
 import { type LabMcpNeeds, MCP_PATH, labMcp } from './lab-mcp.ts';
 import { Review } from './review.ts';
-import { formatAsIs, labInMemory, noRenders, text } from './testing.ts';
+import { formatAsIs, labInMemory, noRenders, printingTo, text } from './testing.ts';
 
 const STRANGER = 'x.example.net';
 const BASE = 'http://127.0.0.1:4401/';
@@ -424,6 +428,9 @@ describe('asks through the MCP', () => {
         expect((yield* tool('ask', { ...who, blocks: [], set: 'spare/x' })).refused).toContain(
           'name it',
         );
+        expect((yield* tool('ask', { ...who, blocks: [], point: 'render:cold' })).refused).toBe(
+          '`point` is a choice in a set: name the `set`',
+        );
         const one = yield* tool('ask', {
           ...who,
           blocks: [{ kind: 'free_text', id: 'name', label: 'What do we call it?' }],
@@ -596,6 +603,216 @@ describe('asks through the MCP', () => {
               Option.some(other.ask),
             ],
           ]);
+        }),
+      ),
+  );
+});
+
+/**
+ * `film production …args` run to its end against the lab at `BASE`, its
+ * requests answered by `fetch` (the lab's handler, or no lab at all): whether
+ * it succeeded, its printed lines, and its failure's words.
+ */
+const productionCli = (
+  fetch: (request: Request) => Promise<Response>,
+  args: ReadonlyArray<string>,
+) =>
+  Effect.gen(function* () {
+    const lines = yield* Queue.unbounded<string>();
+    const exit = yield* Effect.exit(
+      Command.runWith(production, { version: '0' })(args).pipe(
+        Effect.provideService(Console.Console, printingTo(lines)),
+        Effect.provideService(References.MinimumLogLevel, 'None'),
+        Effect.provideService(
+          FetchHttpClient.Fetch,
+          Object.assign(
+            (input: RequestInfo | URL, init?: RequestInit) => fetch(new Request(input, init)),
+            {
+              preconnect: globalThis.fetch.preconnect,
+            },
+          ),
+        ),
+        // oxlint-disable-next-line effect/noInlineProvide -- the command's own terminal, and the lab it asks
+        Effect.provide(
+          Layer.mergeAll(
+            Stdio.layerTest({}),
+            formatAsIs,
+            BunTerminal.layer,
+            ConfigProvider.layer(ConfigProvider.fromUnknown({ FILM_LAB_URL: BASE })),
+          ),
+        ),
+      ),
+    );
+    return {
+      ok: Exit.isSuccess(exit),
+      lines: yield* Queue.clear(lines),
+      failed: Exit.match(exit, {
+        onSuccess: () => '',
+        onFailure: (cause) =>
+          Option.match(Cause.findErrorOption(cause), {
+            onNone: () => Cause.pretty(cause),
+            onSome: (error) => String(error),
+          }),
+      }),
+    };
+  });
+
+describe('film production ask', () => {
+  it.effect(
+    "makes the lab's own ask, filed on the timeline with its choice, and prints its links",
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab } = yield* labWithMcp;
+          const { tool } = yield* session(lab);
+          const productions = yield* ProductionStore;
+          yield* productions.start('f', {
+            title: 'F',
+            film: Option.some('f'),
+            blurb: Option.none(),
+            first: 'the board',
+            at: 1,
+          });
+          yield* tool('publish_set', {
+            name: 'judge-faces',
+            files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
+            manifest: { title: 'Judge faces', images: ['calmer.png'] },
+          });
+          const asked = yield* productionCli(
+            (request) => lab(request, bound),
+            [
+              'ask',
+              'f',
+              'Which judge?',
+              '--why',
+              'the cold open keeps one',
+              '--option',
+              'Try 1',
+              '--option',
+              'Calmer',
+              '--set',
+              'spare/judge-faces',
+              '--point',
+              'render:cold',
+              '--film',
+              'f',
+            ],
+          );
+          expect(asked.failed).toBe('');
+          const [made] = (yield* tool('asks', {})).asks;
+          expect(made).toMatchObject({
+            title: 'Which judge?',
+            by: 'agent',
+            status: 'asking',
+            production: 'f',
+            set: 'spare/judge-faces',
+            point: 'render:cold',
+          });
+          expect(asked.lines).toEqual([
+            `asked ${made.ask} on f: waits on its timeline at spare/judge-faces, render:cold`,
+            `local ${BASE}asks/${made.ask}`,
+            `phone ${PHONE}asks/${made.ask}`,
+            `then: its answers with the lab's MCP (ask_read ${made.ask}); close_ask it once acted on`,
+          ]);
+          // The page: a choice, and words beside it the owner may leave out.
+          const record = yield* (yield* AskStore).read(made.ask);
+          expect(record.ask.steps['ask']).toEqual({
+            blocks: [
+              {
+                kind: 'choose',
+                id: 'pick',
+                label: 'Pick one',
+                options: [
+                  { value: '1', label: 'Try 1' },
+                  { value: '2', label: 'Calmer' },
+                ],
+              },
+              { kind: 'free_text', id: 'note', label: 'Anything else?' },
+            ],
+            next: [{ to: 'done' }],
+          });
+          // Filed the way the MCP files it: the lab's own ledger, its choice carried.
+          const said = Option.getOrThrow(yield* productions.read('f')).said;
+          expect(said.map((w) => [w._tag, w.text, w.set, w.point, w.ask])).toEqual([
+            [
+              'Asked',
+              `Which judge? (ask ${made.ask})`,
+              Option.some('judge-faces'),
+              Option.some('render:cold'),
+              Option.some(made.ask),
+            ],
+          ]);
+          // The owner taps a choice and sends, the words left empty.
+          expect((yield* ownerAnswers(lab, made.ask, 'ask', { pick: '2' })).status).toBe(200);
+          expect(yield* tool('ask_read', { ask: made.ask })).toMatchObject({
+            status: 'answered',
+            answers: {
+              pick: { kind: 'choose', value: '2', label: 'Calmer' },
+              note: { kind: 'skipped' },
+            },
+          });
+        }),
+      ),
+  );
+
+  it.effect(
+    'asks for words with no options; refuses one option, and says when no lab answers',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab } = yield* labWithMcp;
+          const { tool } = yield* session(lab);
+          const productions = yield* ProductionStore;
+          yield* productions.start('f', {
+            title: 'F',
+            film: Option.some('f'),
+            blurb: Option.none(),
+            first: 'the board',
+            at: 1,
+          });
+          const atLab = (request: Request) => lab(request, bound);
+          const words = yield* productionCli(atLab, [
+            'ask',
+            'f',
+            'What do we call him?',
+            '--why',
+            'the credits',
+          ]);
+          expect(words.failed).toBe('');
+          expect(words.lines[0]).toMatch(
+            /^asked a[0-9a-f]{10} on f: filed on its timeline once closed$/,
+          );
+          const id = words.lines[0]?.split(' ')[1] ?? '';
+          expect((yield* (yield* AskStore).read(id)).ask.steps['ask']).toMatchObject({
+            blocks: [{ kind: 'free_text', id: 'answer', label: 'Your answer', required: true }],
+          });
+          // Nothing waits on the timeline for an ask that names no set, until it is closed.
+          expect(Option.getOrThrow(yield* productions.read('f')).said).toEqual([]);
+          const one = yield* productionCli(atLab, [
+            'ask',
+            'f',
+            'Q?',
+            '--why',
+            'w',
+            '--option',
+            'Yes',
+          ]);
+          expect(one.failed).toContain('one --option ("Yes") is no choice');
+          // Refused before the lab is asked: the one ask is the one for words.
+          expect((yield* tool('asks', {})).asks.map((a: { ask: string }) => a.ask)).toEqual([id]);
+          const elsewhere = yield* productionCli(atLab, ['ask', 'nope', 'Q?', '--why', 'w']);
+          expect(elsewhere.failed).toBe(
+            'LabToolRefused: the lab refused ask: no production nope: film production new nope --title "<title>"',
+          );
+          const down = yield* productionCli(
+            // oxlint-disable-next-line effect/noNewPromise, effect/noNewError -- fetch's own contract: a closed port rejects with a TypeError
+            () => Promise.reject(new TypeError('Unable to connect')),
+            ['ask', 'f', 'Q?', '--why', 'w'],
+          );
+          expect(down.ok).toBe(false);
+          expect(down.failed).toMatch(
+            /^LabUnanswered: no lab answered at http:\/\/127\.0\.0\.1:4401\/ \(.*\): start one \(from apps\/animations: bun run lab, or LAB_PORT=<port> bun cli\.ts lab\) and point FILM_LAB_URL at it$/,
+          );
         }),
       ),
   );
