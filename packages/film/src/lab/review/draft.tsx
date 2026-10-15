@@ -187,6 +187,23 @@ const Selected = (props: {
   </Show>
 );
 
+/** The inline Markdown a brief or a source writes: `**bold**` and `` `code` ``, the rest as written. */
+const INLINE = /(\*\*[^*]+\*\*|`[^`]+`)/;
+
+/** A piece of a brief or source: its bold or code drawn as such, its markers dropped. */
+const piece = (text: string) => {
+  if (text.startsWith('**') && text.endsWith('**') && text.length > 4) {
+    return <strong>{text.slice(2, -2)}</strong>;
+  }
+  if (text.startsWith('`') && text.endsWith('`') && text.length > 2) {
+    return <code>{text.slice(1, -1)}</code>;
+  }
+  return text;
+};
+
+/** A brief's or a source's text with its inline Markdown drawn, not shown as asterisks. */
+const Inline = (props: { readonly text: string }) => <>{props.text.split(INLINE).map(piece)}</>;
+
 /** A beat: its number and label with its take, its brief, its line, the box over what is selected in it, and its sources. */
 const Beat = (props: {
   readonly beat: DraftBeat;
@@ -203,7 +220,11 @@ const Beat = (props: {
       <TakeState beat={props.beat.read.id} />
     </header>
     <Show when={props.beat.read.brief}>
-      {(brief) => <p class="lab-script-picture">{brief()}</p>}
+      {(brief) => (
+        <p class="lab-script-picture">
+          <Inline text={brief()} />
+        </p>
+      )}
     </Show>
     {Option.toArray(props.beat.line).map((line) => (
       <Line line={line} marks={props.beat.marks} released={props.released} />
@@ -211,7 +232,13 @@ const Beat = (props: {
     <Selected beat={props.beat} words={props.words} clear={props.clear} />
     <Show when={props.beat.read.cite.length > 0}>
       <ul class="lab-script-cite" aria-label="Sources">
-        <For each={props.beat.read.cite}>{(source) => <li>{source}</li>}</For>
+        <For each={props.beat.read.cite}>
+          {(source) => (
+            <li>
+              <Inline text={source} />
+            </li>
+          )}
+        </For>
       </ul>
     </Show>
   </section>
