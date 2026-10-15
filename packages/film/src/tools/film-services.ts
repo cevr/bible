@@ -16,6 +16,7 @@ import {
   Effect,
   type FileSystem,
   Layer,
+  Match,
   Option,
   type Path,
 } from 'effect';
@@ -41,7 +42,7 @@ import { FootageMedia } from './footage-media.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { labHandler, labLink } from './lab.ts';
 import { LabEvents } from './lab-events.ts';
-import { type LabMcpNeeds, type McpAccess, labMcp } from './lab-mcp.ts';
+import { type LabMcpNeeds, labMcp } from './lab-mcp.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { SoundLibrary } from './library.ts';
 import { Media } from './media.ts';
@@ -209,40 +210,48 @@ export const labPages = (spec: LabPageSpec) =>
 const FEED_EVERY = Duration.seconds(2);
 
 /**
+ * The lab's routes with its MCP beside `beside`: links at `base` (and the
+ * owner's phone, `FILM_LAB_PHONE_URL`), over a change feed kept while the
+ * scope is open.
+ */
+const mcpRoutes = Effect.fn('film.lab.mcp')(function* (
+  base: string,
+  local: string,
+  beside: BesideRoutes,
+) {
+  // The lab from the owner's phone (the tailnet's address), for an ask's links.
+  const phone = yield* Config.option(Config.String('FILM_LAB_PHONE_URL'));
+  const events = yield* Layer.build(LabEvents.layer({ base, every: FEED_EVERY }));
+  const services = yield* Effect.context<LabMcpNeeds>();
+  return Layer.merge(
+    beside,
+    labMcp({
+      base,
+      local,
+      ...Option.match(phone, { onNone: () => ({}), onSome: (p) => ({ phone: p }) }),
+    }).pipe(Layer.provide(Layer.succeedContext(Context.merge(services, events)))),
+  );
+});
+
+/**
  * The lab served at `at` until the scope closes: its handler behind the gate
  * with `allowed` (a fixture's own routes, `beside`, behind it too), then the
  * easel's pages, which are the lab's own, served where it is bound. With
- * `mcp`, the lab is also an MCP server at `/mcp` for agents holding its
- * token, over a change feed the lab keeps while it runs (`lab-mcp.ts`). The
- * address it is bound at.
+ * `mcp`, the lab is also an MCP server at `/mcp` for agents, over a change
+ * feed the lab keeps while it runs (`lab-mcp.ts`). The address it is bound at.
  */
 export const startLab = Effect.fn('film.lab.start')(function* (
   at: LabAt,
   allowed: Allowed,
   beside: BesideRoutes = Layer.empty,
-  mcp: Option.Option<McpAccess> = Option.none(),
+  mcp: 'mcp' | 'no mcp' = 'no mcp',
 ) {
   const server = yield* Layer.build(labServer(at));
   const bound = yield* boundUrl.pipe(Effect.provideContext(server));
-  const routes = yield* Option.match(mcp, {
-    onNone: () => Effect.succeed(beside),
-    onSome: (access) =>
-      Effect.gen(function* () {
-        const base = labLink(bound, allowed);
-        // The lab from the owner's phone (the tailnet's address), for an ask's links.
-        const phone = yield* Config.option(Config.String('FILM_LAB_PHONE_URL'));
-        const events = yield* Layer.build(LabEvents.layer({ base, every: FEED_EVERY }));
-        const services = yield* Effect.context<LabMcpNeeds>();
-        return Layer.merge(
-          beside,
-          labMcp(access, {
-            base,
-            local: bound,
-            ...Option.match(phone, { onNone: () => ({}), onSome: (p) => ({ phone: p }) }),
-          }).pipe(Layer.provide(Layer.succeedContext(Context.merge(services, events)))),
-        );
-      }),
-  });
+  const routes = yield* Match.value(mcp).pipe(
+    Match.when('no mcp', () => Effect.succeed(beside)),
+    Match.orElse(() => mcpRoutes(labLink(bound, allowed), bound, beside)),
+  );
   const handler = yield* labHandler(allowed, routes);
   const url = yield* serveLab(handler).pipe(Effect.provideContext(server));
   yield* (yield* Easel).serve(url);

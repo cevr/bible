@@ -4,10 +4,11 @@
 // method `notifications/claude/channel`; the lab is an HTTP server many
 // sessions share, and Effect's stdio server sends neither that capability nor
 // that method. So the bridge is its own small JSON-RPC loop over stdin and
-// stdout: it answers Claude Code's handshake, then asks the lab's MCP
-// (`lab-mcp.ts`, at `FILM_LAB_URL`, with the lab's token) for `changes`,
-// waiting up to `WAIT_S` each time, and sends each change on as one channel
-// event: its summary and link as the text, what it is about as attributes.
+// stdout: it answers Claude Code's handshake, then asks the lab's MCP at
+// `FILM_LAB_URL` (through `lab-client.ts`, the one client of it) for
+// `changes`, waiting up to `WAIT_S` each time, and sends each change on as
+// one channel event: its summary and link as the text, what it is about as
+// attributes.
 // The lab stays the one record and the one feed; the bridge keeps nothing
 // but the cursor (`lab-relay.ts`), which outlives a session: a lab that
 // stops answering is asked again every `RETRY` and read on from it.
@@ -18,24 +19,18 @@
 import {
   Array as Arr,
   Boolean as Bool,
-  Config,
-  Console,
   Duration,
   Effect,
-  FileSystem,
   Option,
-  Path,
   Queue,
   Schema,
   Stdio,
   Stream,
 } from 'effect';
 import { Command } from 'effect/cli';
-import { HttpClient, HttpClientRequest } from 'effect/http';
 import type { LabChange } from '../core/lab-events.ts';
-import { labUrl } from './easel-cli.ts';
-import { LabChanges } from './lab-events.ts';
-import { MCP_PATH } from './lab-mcp.ts';
+import { labClient, labUrl } from './lab-client.ts';
+import { Changes } from './lab-mcp.ts';
 import { relayFeed } from './lab-relay.ts';
 
 /** The capability Claude Code reads a channel by. */
@@ -187,142 +182,26 @@ const caughtUp = (changes: ReadonlyArray<LabChange>): ReadonlyArray<Schema.Json>
   });
 };
 
-/** A tool's answer as the lab sends it: one JSON body, or server-sent events with the answer among them. */
-const messagesOf = (contentType: Option.Option<string>, body: string): ReadonlyArray<string> =>
-  Bool.match(
-    Option.exists(contentType, (t) => t.startsWith('text/event-stream')),
-    {
-      onTrue: () =>
-        body
-          .split('\n')
-          .filter((line) => line.startsWith('data:'))
-          .map((line) => line.slice('data:'.length)),
-      onFalse: () => [body],
-    },
-  );
-
-/** The answer to a `changes` call, as the lab's MCP sends it. */
-const ChangesAnswer = Schema.Struct({
-  id: Schema.optionalKey(Schema.Union([Schema.String, Schema.Finite])),
-  result: Schema.optionalKey(
-    Schema.Struct({
-      isError: Schema.optionalKey(Schema.Boolean),
-      structuredContent: Schema.optionalKey(LabChanges),
-    }),
-  ),
-});
-const readAnswer = Schema.decodeUnknownOption(Schema.fromJsonString(ChangesAnswer));
-
-class LabUnanswered extends Schema.TaggedError<LabUnanswered>()('LabUnanswered', {
-  reason: Schema.String,
-}) {}
-
-/**
- * A client of the lab's MCP for its change feed: a session started with the
- * token, then `changes` past a cursor (none: the cursor now). A session the
- * lab no longer knows (it restarted) is `LabUnanswered`, so the caller
- * starts another.
- */
-const labFeed = (url: string, token: string) =>
-  Effect.gen(function* () {
-    const http = yield* HttpClient.HttpClient;
-    const endpoint = new URL(MCP_PATH, url).href;
-    const post = (body: Schema.Json, session: Option.Option<string>) =>
-      http
-        .execute(
-          HttpClientRequest.post(endpoint).pipe(
-            HttpClientRequest.setHeaders({
-              'content-type': 'application/json',
-              accept: 'application/json, text/event-stream',
-              authorization: `Bearer ${token}`,
-              ...Option.match(session, {
-                onNone: () => ({}),
-                onSome: (id) => ({ 'mcp-session-id': id, 'mcp-protocol-version': '2025-06-18' }),
-              }),
-            }),
-            HttpClientRequest.bodyText(writeJson(body), 'application/json'),
-          ),
-        )
-        .pipe(Effect.mapError((error) => LabUnanswered.make({ reason: error.message })));
-
-    const start = Effect.gen(function* () {
-      const started = yield* post(
-        {
-          jsonrpc: '2.0',
-          id: 0,
-          method: 'initialize',
-          params: {
-            protocolVersion: '2025-06-18',
-            capabilities: {},
-            clientInfo: { name: 'lab-events', version: '0.1.0' },
-          },
-        },
-        Option.none(),
-      );
-      const session = yield* Effect.fromOption(
-        Option.filter(
-          Option.fromUndefinedOr(started.headers['mcp-session-id']),
-          (id) => id.length > 0,
-        ),
-        () => LabUnanswered.make({ reason: `the lab answered ${started.status} and no session` }),
-      );
-      yield* post({ jsonrpc: '2.0', method: 'notifications/initialized' }, Option.some(session));
-      return session;
-    });
-
-    const changes = (session: string, since: Option.Option<string>, wait: number) =>
-      Effect.gen(function* () {
-        const answered = yield* post(
-          {
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'tools/call',
-            params: {
-              name: 'changes',
-              arguments: {
-                ...Option.match(since, {
-                  onNone: () => ({}),
-                  onSome: (cursor) => ({ since: cursor }),
-                }),
-                wait,
-              },
-            },
-          },
-          Option.some(session),
-        );
-        if (answered.status !== 200)
-          return yield* LabUnanswered.make({ reason: `the lab answered ${answered.status}` });
-        const body = yield* answered.text.pipe(
-          Effect.mapError((error) => LabUnanswered.make({ reason: error.message })),
-        );
-        const found = Arr.findFirst(
-          Arr.getSomes(
-            messagesOf(Option.fromUndefinedOr(answered.headers['content-type']), body).map((m) =>
-              readAnswer(m),
-            ),
-          ),
-          (m) => m.id === 1,
-        );
-        return yield* Effect.fromOption(
-          Option.flatMap(found, (m) => Option.fromUndefinedOr(m.result?.structuredContent)),
-          () => LabUnanswered.make({ reason: 'the lab answered no changes' }),
-        );
-      });
-
-    return { start, changes };
-  });
-
 /**
  * The bridge: Claude Code's handshake answered from stdin, then the lab's
  * changes sent as channel events on stdout, one JSON message a line, until
  * stdin ends (Claude Code stopped it).
  */
-const runChannel = (url: string, token: string) =>
+const runChannel = (url: string) =>
   Effect.gen(function* () {
     const stdio = yield* Stdio.Stdio;
     const outgoing = yield* Queue.unbounded<string>();
     const send = (message: Schema.Json) => Queue.offer(outgoing, `${writeJson(message)}\n`);
-    const feed = yield* labFeed(url, token);
+    const client = yield* labClient(url);
+    /** The lab's feed: a session (ended with its connection), then `changes` past a cursor (none: the cursor now). */
+    const feed = {
+      session: client.session,
+      changes: (session: string, since: Option.Option<string>, wait: number) =>
+        client.call(session, Changes, {
+          ...Option.match(since, { onNone: () => ({}), onSome: (cursor) => ({ since: cursor }) }),
+          wait,
+        }),
+    };
 
     /** The lab's changes, relayed for as long as the bridge runs: a lost session is started again. */
     const relay = relayFeed(
@@ -359,20 +238,6 @@ const runChannel = (url: string, token: string) =>
     yield* answering;
   }).pipe(Effect.scoped);
 
-/** The lab's token as the bridge reads it: the file the lab made (`labMcpToken`), never made here. */
-const tokenRead = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const home = yield* Config.String('HOME');
-  const file = yield* Config.String('FILM_LAB_MCP_TOKEN_FILE').pipe(
-    Config.withDefault(path.join(home, '.config', 'film-lab', 'mcp-token')),
-  );
-  const token = (yield* fs.readFileString(file).pipe(Effect.orElseSucceed(() => ''))).trim();
-  if (token.length === 0)
-    yield* Console.error(`lab-events: no lab token at ${file}; start the lab (film lab) first`);
-  return token;
-});
-
 /**
  * `film channel`: the bridge, for Claude Code to spawn (`claude mcp add
  * lab-events -- … channel`), over the HTTP client its root gives it.
@@ -380,8 +245,7 @@ const tokenRead = Effect.gen(function* () {
 export const channel = Command.make('channel', {}, () =>
   Effect.gen(function* () {
     const url = yield* labUrl;
-    const token = yield* tokenRead;
-    yield* runChannel(url, token);
+    yield* runChannel(url);
   }),
 ).pipe(
   Command.withDescription(

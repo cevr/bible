@@ -13,9 +13,9 @@
 // Nothing here touches the DOM: the lab's routes are the review's API,
 // faked in tests.
 
-import { Effect, Match, Option, Record, Schema } from 'effect';
+import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
-import { AskRecord, answerRefusal } from '../../core/ask.ts';
+import { AskRecord, answerRefusal, filled } from '../../core/ask.ts';
 import { ReviewApi } from '../review/api.ts';
 import { failureText } from '../review/format.ts';
 
@@ -51,15 +51,10 @@ export const stepOf = (record: AskRecord): Option.Option<string> =>
     Match.orElse(() => Option.none<string>()),
   );
 
-/** Why `draft` cannot go yet for `record`'s step, or none when it can. */
+/** Why `draft` cannot go yet for `record`'s step, or none when it can (an optional field may be empty). */
 const draftRefusal = (record: AskRecord, draft: typeof Draft.Type): Option.Option<string> =>
   Option.flatMap(stepOf(record), (step) =>
-    answerRefusal(
-      record.ask,
-      record.state,
-      step,
-      Record.filter(draft, (v) => v.trim() !== ''),
-    ),
+    answerRefusal(record.ask, record.state, step, filled(draft)),
   );
 
 /** The page's machine for ask `id`, reading it first. */
@@ -100,7 +95,7 @@ const askPageMachine = (id: string) =>
           api.answer(
             id,
             Option.getOrElse(stepOf(state.record), () => ''),
-            Record.filter(state.draft, (v) => v.trim() !== ''),
+            filled(state.draft),
           ),
         ),
       {

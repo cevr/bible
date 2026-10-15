@@ -28,9 +28,9 @@ import {
 } from 'effect';
 import {
   type MoveForward,
+  type OwnerWord,
   type ProductionFile,
   type ProductionId,
-  type Said,
   currentVersion,
   moveForward,
   newProduction,
@@ -52,15 +52,6 @@ class ProductionKept extends Schema.TaggedError<ProductionKept>()('ProductionKep
 }) {
   override get message() {
     return `${this.production} already has a ledger: film production show ${this.production}`;
-  }
-}
-
-/** A question asked of the owner that names no set: nothing could ever answer it. */
-class AskUnplaced extends Schema.TaggedError<AskUnplaced>()('AskUnplaced', {
-  text: Schema.String,
-}) {
-  override get message() {
-    return `"${this.text}" names no set: give --set <folder> (and --point <id> for one choice)`;
   }
 }
 
@@ -112,11 +103,11 @@ interface ProductionStoreService {
     move: MoveForward,
     at: number,
   ) => Effect.Effect<ProductionFile, VersionMoved | StoreError>;
-  /** Record the owner's word, or a question asked of them (which must name its set). */
+  /** Record the owner's word given outside the lab (a question asked of them is a lab ask's, filed by it). */
   readonly say: (
     production: ProductionId,
-    said: Said,
-  ) => Effect.Effect<ProductionFile, AskUnplaced | StoreError>;
+    said: OwnerWord,
+  ) => Effect.Effect<ProductionFile, StoreError>;
   /** File a set published before sets named their production in version `version`. */
   readonly file: (
     production: ProductionId,
@@ -206,11 +197,7 @@ export class ProductionStore extends Context.Service<ProductionStore, Production
         forward: (production, move, at) =>
           modify(production, (current) => moveForward(current, move, at)),
         say: (production, said) =>
-          Effect.gen(function* () {
-            if (said._tag === 'Asked' && Option.isNone(said.set))
-              return yield* AskUnplaced.make({ text: said.text });
-            return yield* modify(production, (current) => Result.succeed(withSaid(current, said)));
-          }),
+          modify(production, (current) => Result.succeed(withSaid(current, said))),
         file: (production, set, version) =>
           modify(production, (current) => {
             const n = currentVersion(current);

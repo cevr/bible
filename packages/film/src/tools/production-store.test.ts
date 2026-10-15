@@ -2,8 +2,8 @@
 // change and lists by name; two moves forward from the same version, at
 // once, land one and refuse the other with the version now; a ledger that
 // does not decode is left out of the list and never rewritten; the verbs
-// refuse a second start, an ask with no set and a filing in a version the
-// ledger lacks; a set's review.json is stamped with its production, version
+// refuse a second start and a filing in a version the ledger lacks; a
+// set's review.json is stamped with its production, version
 // and time, every other field as written, and a stamp that would make it no
 // manifest is refused.
 
@@ -122,22 +122,20 @@ describe('the verbs', () => {
     }).pipe(Effect.provide(storeOver(new Map()))),
   );
 
-  it.effect('an ask must name its set; a filing must name a version the ledger has', () =>
+  it.effect('a filing must name a version the ledger has', () =>
     Effect.gen(function* () {
       const store = yield* ProductionStore;
-      const ask = {
-        _tag: 'Asked' as const,
+      const said = yield* store.say('look', {
+        _tag: 'Noted',
         at: HOUR,
-        text: 'Which cold open?',
+        text: 'Warmer paper',
         quote: Option.none(),
         set: Option.none(),
         point: Option.none(),
         variant: Option.none(),
         ask: Option.none(),
-      };
-      expect(Exit.isFailure(yield* Effect.exit(store.say('look', ask)))).toBe(true);
-      const said = yield* store.say('look', { ...ask, set: Option.some('rbf-rive') });
-      expect(said.said.map((s) => s._tag)).toEqual(['Asked']);
+      });
+      expect(said.said.map((s) => s._tag)).toEqual(['Noted']);
       expect(Exit.isFailure(yield* Effect.exit(store.file('look', 'styles', 2)))).toBe(true);
       expect((yield* store.file('look', 'styles', 1)).filed).toEqual([
         { set: 'styles', version: 1 },

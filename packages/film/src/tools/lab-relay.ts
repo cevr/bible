@@ -5,14 +5,15 @@
 // what changed while it was away is told (or, when the lab no longer knows
 // that cursor, its `reset` answer says some may be lost). Only the first
 // session of the relay takes the cursor now, so nothing from before the
-// bridge started is told.
+// bridge started is told. Each session lasts as long as its connection: one
+// lost, or the relay stopped, ends it.
 
-import { type Duration, Effect, Option, Ref, Schedule } from 'effect';
+import { type Duration, Effect, Option, Ref, Schedule, type Scope } from 'effect';
 import type { LabChanges } from './lab-events.ts';
 
-/** The lab's feed as the relay reads it: a session, then `changes` past a cursor (none: the cursor now). */
+/** The lab's feed as the relay reads it: a session (ended with its scope), then `changes` past a cursor (none: the cursor now). */
 interface LabFeed<S, E> {
-  readonly start: Effect.Effect<S, E>;
+  readonly session: Effect.Effect<S, E, Scope.Scope>;
   readonly changes: (
     session: S,
     since: Option.Option<string>,
@@ -40,7 +41,7 @@ export const relayFeed = <S, E>(
   Effect.gen(function* () {
     const cursor = yield* Ref.make(Option.none<string>());
     const connected = Effect.gen(function* () {
-      const session = yield* feed.start;
+      const session = yield* feed.session;
       if (Option.isNone(yield* Ref.get(cursor)))
         yield* Ref.set(
           cursor,
@@ -53,7 +54,7 @@ export const relayFeed = <S, E>(
         yield* deliver(answer);
       }
     });
-    return yield* connected.pipe(
+    return yield* Effect.scoped(connected).pipe(
       Effect.tapError(lost),
       // oxlint-disable-next-line effect/noUnboundedRetry -- the bridge lives as long as its session: a lab restarted or stopped is asked again until it answers
       Effect.retry(Schedule.spaced(pace.retry)),

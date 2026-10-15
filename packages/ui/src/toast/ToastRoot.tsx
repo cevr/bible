@@ -23,14 +23,8 @@ import {
 } from '../internals/transitions.ts';
 import type { BaseUIComponentProps, HTMLProps } from '../internals/types.ts';
 import { useRenderElement } from '../internals/useRenderElement.tsx';
-import {
-  activeElement,
-  addEventListener,
-  closest,
-  contains,
-  getTarget,
-  ownerDocument,
-} from '../utils/dom.ts';
+import { listen } from '../mix/mix.ts';
+import { activeElement, closest, contains, getTarget, ownerDocument } from '../utils/dom.ts';
 import {
   applyDirectionalDamping,
   getDisplacement,
@@ -423,29 +417,6 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     store.closeToast(untrack(toastId));
   }
 
-  // A non-passive touchmove listener blocks native scrolling while dragging
-  // on iOS, where preventing pointermove is not enough.
-  createEffect(
-    () => [swipeEnabled(), rootElement()] as const,
-    ([enabled, element]) => {
-      if (!enabled || !element) {
-        return undefined;
-      }
-
-      return addEventListener<TouchEvent>(
-        element,
-        'touchmove',
-        (event) => {
-          if (activePointerId === null || !contains(element, getTarget(event) as Element | null)) {
-            return;
-          }
-          event.preventDefault();
-        },
-        { passive: false },
-      );
-    },
-  );
-
   const defaultProps: HTMLProps = {
     role: 'dialog',
     tabindex: 0,
@@ -458,6 +429,23 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     onPointerUp: handleSwipeEnd,
     onPointerCancel: handleSwipeEnd,
     onKeyDown: handleKeyDown,
+    // A non-passive touchmove listener blocks native scrolling while dragging
+    // on iOS, where preventing pointermove is not enough.
+    ref: listen(
+      'element',
+      'touchmove',
+      (event) => {
+        if (
+          !untrack(swipeEnabled) ||
+          activePointerId === null ||
+          !contains(event.currentTarget as Element, getTarget(event) as Element | null)
+        ) {
+          return;
+        }
+        event.preventDefault();
+      },
+      { passive: false },
+    ),
     get inert() {
       return toast().limited ? true : undefined;
     },

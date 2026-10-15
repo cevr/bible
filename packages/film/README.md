@@ -2599,9 +2599,10 @@ own names, and the stored and wire words stay as they are.
   it is for and the decision that opened it, and in each, newest first, the
   sets published into it, the owner's words given outside the lab, and the
   sets filed there that no root holds now. The current version is open, says
-  what waits on the owner (each question asked of them about a set,
-  `film production ask`, that no pick in its choice and no later decision on
-  it has answered; an open one stays open across a move), and holds the
+  what waits on the owner (each question asked of them about a set, a lab
+  ask made by `film production ask` or the lab's MCP, that no pick in its
+  choice, no later decision on it and no close of the ask has answered; an
+  open one stays open across a move), and holds the
   page's one verb, Move forward: the decision in a line and what the next
   version is for. Only the versions, the owner's words and the questions are
   kept (`ProductionStore`: a ledger a production,

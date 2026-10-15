@@ -2,13 +2,14 @@
 // said, a board try not on its board named), a board try is found for its
 // picture; the owner answers the proof (try 7, so why, then done), a retry
 // of the same answer is answered as it was and a different one refused; an
-// ask past its deadline takes no answer; a close keeps what was answered and
-// is answered as it is when said again.
+// optional field left empty is answered skipped, and sent blank again is the
+// same answer; an ask past its deadline takes no answer; a close keeps what
+// was answered and is answered as it is when said again.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Exit, Schema } from 'effect';
 import { TestClock } from 'effect/testing';
-import { type Ask, AskState } from '../core/ask.ts';
+import { type Ask, AskState, oneQuestion } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson } from '../core/board.ts';
 import { AskStore } from './ask-store.ts';
 import { labInMemory, text } from './testing.ts';
@@ -54,7 +55,7 @@ const proof = (tries: ReadonlyArray<number>): Ask => ({
       next: [{ to: 'why', when: { answer: 'try', is: ['7'] } }, { to: 'done' }],
     },
     why: {
-      blocks: [{ kind: 'free_text', id: 'why', label: 'Why that one?' }],
+      blocks: [{ kind: 'free_text', id: 'why', label: 'Why that one?', required: true }],
       next: [{ to: 'done' }],
     },
     done: { end: true, text: 'Thank you.' },
@@ -132,6 +133,42 @@ describe('the asks on disk', () => {
         expect((yield* Effect.flip(asks.close(id, 'another'))).message).toContain('closed already');
         const after = yield* Effect.flip(asks.answer(id, 'why', { why: 'again' }));
         expect(after._tag).toBe('AskRefused');
+      }),
+    ),
+  );
+
+  it.effect('an optional field left empty is answered skipped; sent blank again, the same', () =>
+    run(
+      Effect.gen(function* () {
+        const asks = yield* AskStore;
+        const { id } = yield* asks.make(
+          draft(
+            oneQuestion([
+              {
+                kind: 'choose',
+                id: 'keep',
+                label: 'Keep it?',
+                options: [
+                  { value: 'yes', label: 'Yes' },
+                  { value: 'no', label: 'No' },
+                ],
+              },
+              { kind: 'free_text', id: 'more', label: 'Anything else?' },
+            ]),
+          ),
+        );
+        const done = yield* asks.answer(id, 'ask', { keep: 'yes', more: '' });
+        expect(done.state).toEqual(
+          AskState.Answered({
+            step: 'done',
+            answers: {
+              keep: { kind: 'choose', value: 'yes', label: 'Yes' },
+              more: { kind: 'skipped' },
+            },
+          }),
+        );
+        expect(done.answered.map((a) => a.values)).toEqual([{ keep: 'yes' }]);
+        expect(yield* asks.answer(id, 'ask', { keep: 'yes', more: '  ' })).toEqual(done);
       }),
     ),
   );

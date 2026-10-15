@@ -22,19 +22,16 @@
 // - Resources (`lab://…`) say the same reads for a client that attaches
 //   them; the `inbox` prompt opens a session on what waits.
 //
-// The lab is reached through a public tunnel that forwards the visitor's
-// Host from 127.0.0.1, so neither the Host nor the peer tells a local agent
-// from the internet: `/mcp` answers only a request with the lab's token
-// (`Authorization: Bearer …`, `labMcpToken`), with a loopback Host, that no
-// proxy forwarded. The lab's gate (`api-server.ts`) runs first, as for any
-// path. Effect's server refuses a request with a foreign `Origin`.
+// The lab is reached on loopback and from the owner's phone over the
+// tailnet (a forwarder that names the loopback Host), and nowhere else, so
+// `/mcp` asks no token (owner, 2026-10-14: secure by obscurity). The lab's
+// gate (`api-server.ts`) runs first, as for any path, and Effect's server
+// refuses a request with a foreign `Origin`.
 
 import {
   Array as Arr,
   Boolean as Bool,
   Clock,
-  Config,
-  Crypto,
   DateTime,
   Duration,
   Effect,
@@ -43,12 +40,12 @@ import {
   Match,
   Option,
   Path,
+  Record,
   Result,
   Schema,
   Struct,
 } from 'effect';
 import { McpProtocol, McpSchema, McpServer, Tool, Toolkit } from 'effect/ai';
-import { Headers, HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { pageHref } from '../core/api.ts';
 import {
   Ask,
@@ -58,6 +55,7 @@ import {
   answeredToEnd,
   answersLine,
   askStatus,
+  givenAnswers,
   oneQuestion,
 } from '../core/ask.ts';
 import { type Said, setPathOf, withAskSaid } from '../core/production.ts';
@@ -71,7 +69,6 @@ import { AskStore } from './ask-store.ts';
 import { BoardStore } from './board-store.ts';
 import { CATALOGUE_FILE, RenderCatalogue } from './catalogue.ts';
 import { ContentStore, type Manifest, writeWholeWith } from './content-store.ts';
-import { sha256Hex } from './digest.ts';
 import { FilmFolder, type FilmName, filmNamed, filmsOut } from './film-repo.ts';
 import { LabChanges, LabEvents, reviewFolders } from './lab-events.ts';
 import { NotesStore } from './notes-store.ts';
@@ -257,6 +254,7 @@ const AskRead = Schema.Struct({
   deadline: Schema.optionalKey(Schema.String),
   production: Schema.optionalKey(Schema.String),
   set: Schema.optionalKey(Schema.String),
+  point: Schema.optionalKey(Schema.String),
   links: AskLinks,
 });
 
@@ -273,7 +271,7 @@ const Overview = Tool.make('overview', {
   failure: LabRefused,
 }).annotate(Tool.Readonly, true);
 
-const Changes = Tool.make('changes', {
+export const Changes = Tool.make('changes', {
   description: `What changed in the lab past \`since\` (a cursor from \`overview\` or an earlier \`changes\`): notes, replies and notes done, tweaks asked, tries kept and beats approved or withdrawn on a board, comments, approvals and withdrawals on renders, renders recorded, sets published or updated, and each step of an ask answered (\`ask.step\`, its answers typed), an ask answered to its end (\`ask.answered\`) or closed. Each change names its film, panel, render or set, its words, and its lab link. With \`wait\` (seconds, at most ${MAX_WAIT_S}) it answers as soon as there is one, else with none when the time is up: call it again with the cursor it answers to keep listening. With no \`since\`, it answers no changes and the cursor now. \`reset\` means the cursor was from an earlier run of the lab: the changes are all this run kept.`,
   parameters: Schema.Struct({
     since: Schema.optionalKey(Schema.String),
@@ -315,7 +313,7 @@ const CatalogueTool = Tool.make('catalogue', {
   failure: LabRefused,
 }).annotate(Tool.Readonly, true);
 
-const Sets = Tool.make('sets', {
+export const Sets = Tool.make('sets', {
   description:
     'Every set the lab lists, by ref: montages (a `review.json`) and project folders (a `catalogue.json`), each with its title, lab link and folder.',
   success: Schema.Struct({ sets: Schema.Array(SetRead) }),
@@ -384,10 +382,11 @@ const RecordRender = Tool.make('record_render', {
   failure: LabRefused,
 });
 
-const AskTool = Tool.make('ask', {
+export const AskTool = Tool.make('ask', {
   description: [
     "Ask the owner to decide something, on a page made for this one question: answered on the laptop or the phone, the answers typed. Give `blocks` for one page (a heading, prose, an image, a choose, a free_text; each question block names its answer by `id`), or `machine` for a short flow: `{start, steps}`, each step a page (`blocks`, then `next`: `[{to, when?: {answer, is: [values]}}, …, {to}]`, the first whose `when` holds, the last unguarded) or an end (`{end: true, text?}`). An image is `{src}` (a lab URL, `/api/…`) or `{board: {film, panel, try}}`, a board try found for you; a choose's options may carry one. The machine is checked before anything is kept (every step reachable, no loops, guards on the step's own choices), and a refusal lists every problem.",
-    'Say `why` (what the answer decides) and `by` (who you are); a `deadline` (ISO time) after which it takes no answer; `production` (and the `set` ref it is about) to file it on that timeline: it waits there until closed.',
+    'Prefer a `choose` (the cheap answer: the owner taps one) with an optional `free_text` for anything else to asking for words. A choose is always answered. A free_text is optional: the page marks it so (write no "(optional)" in its label), and left empty it is answered `{kind: \'skipped\'}`; `required: true` makes the owner write, and only a step with no choose may ask it.',
+    'Say `why` (what the answer decides) and `by` (who you are); a `deadline` (ISO time) after which it takes no answer; `production` (and the `set` ref it is about, and the `point`, its choice) to file it on that timeline: it waits there until closed (or, with a `point`, a pick there).',
     'Answers its links (`local`, `phone`, `public`): hand the owner one. Each step the owner sends is an `ask.step` change on `changes` (its answers typed), and `ask.answered` once the end is reached; read it with `ask_read`, and `close_ask` it once acted on.',
   ].join(' '),
   parameters: Schema.Struct({
@@ -398,6 +397,8 @@ const AskTool = Tool.make('ask', {
     deadline: Schema.optionalKey(Schema.String),
     production: Schema.optionalKey(Schema.String),
     set: Schema.optionalKey(Schema.String),
+    /** The choice in that set it is about (a point id): a pick there answers it too. */
+    point: Schema.optionalKey(Schema.String),
     blocks: Schema.optionalKey(Schema.Array(AskBlock)),
     /** The words the one page ends on, for `blocks`. */
     thanks: Schema.optionalKey(Schema.String),
@@ -409,7 +410,7 @@ const AskTool = Tool.make('ask', {
 
 const AskReadTool = Tool.make('ask_read', {
   description:
-    "An ask: where its run is, every answer so far (typed: a choose's value and label, a free_text's words), each step answered, and its links.",
+    "An ask: where its run is, every answer so far (typed: a choose's value and label, a free_text's words, `skipped` for an optional one left empty), each step answered, and its links.",
   parameters: Schema.Struct({ ask: Schema.String }),
   success: AskRead,
   failure: LabRefused,
@@ -869,7 +870,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
       Match.tag('Closed', (s) => ({ closed: s.why })),
       Match.orElse(() => ({})),
     ),
-    ...Struct.pick(record, ['deadline', 'production', 'set']),
+    ...Struct.pick(record, ['deadline', 'production', 'set', 'point']),
     links: askLinks(record.id),
   });
 
@@ -889,7 +890,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
           const set = Option.map(Option.fromUndefinedOr(record.set), setPathOf);
           const on = {
             set,
-            point: Option.none<string>(),
+            point: Option.fromUndefinedOr(record.point),
             variant: Option.none<string>(),
             ask: Option.some(record.id),
           };
@@ -921,19 +922,29 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
                     ...on,
                   },
                 ];
-              const words = Object.values(closed.answers).flatMap((a) =>
+              // The owner's decision: what they gave, an optional field left empty left out.
+              const given = givenAnswers(closed.answers);
+              const words = Object.values(given).flatMap((a) =>
                 Match.value(a).pipe(
                   Match.discriminatorsExhaustive('kind')({
                     choose: (): ReadonlyArray<string> => [],
                     free_text: (t) => [t.text],
+                    skipped: (): ReadonlyArray<string> => [],
                   }),
+                ),
+              );
+              // Every answer skipped still reads as answered: the line then names them all.
+              const line = answersLine(
+                Option.getOrElse(
+                  Option.liftPredicate(given, (g) => !Record.isEmptyRecord(g)),
+                  () => closed.answers,
                 ),
               );
               return [
                 {
                   _tag: 'Decided',
                   at: now,
-                  text: `${named}: ${answersLine(closed.answers)}`,
+                  text: `${named}: ${line}`,
                   quote: Option.liftPredicate(words.join(' / '), (w) => w.length > 0),
                   ...on,
                 },
@@ -965,12 +976,14 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     const set = Option.fromUndefinedOr(given.set);
     if (Option.isSome(set) && Option.isNone(production))
       return yield* LabRefused.make({ reason: '`set` files the ask on a production: name it' });
+    if (Option.isSome(Option.fromUndefinedOr(given.point)) && Option.isNone(set))
+      return yield* LabRefused.make({ reason: '`point` is a choice in a set: name the `set`' });
     if (
       Option.isSome(production) &&
       Option.isNone(yield* refused(productions.read(production.value)))
     )
       return yield* LabRefused.make({
-        reason: `no production ${production.value}: film production start ${production.value}`,
+        reason: `no production ${production.value}: film production new ${production.value} --title "<title>"`,
       });
     if (Option.isSome(set) && !(yield* sets).some((s) => s.set === set.value))
       return yield* LabRefused.make({ reason: `no set ${set.value}: \`sets\` lists them by ref` });
@@ -1161,91 +1174,13 @@ const inbox = (options: LabMcpOptions) =>
   });
 
 // ---------------------------------------------------------------------------
-// Access, and the server
-
-/** The names a loopback Host has. */
-const LOOPBACK_NAMES: ReadonlyArray<string> = ['localhost', '127.0.0.1', '[::1]'];
-
-/** Headers a proxy in front adds: a request that carries one came through it (the tunnel). */
-const FORWARDED: ReadonlyArray<string> = [
-  'forwarded',
-  'x-forwarded-for',
-  'x-forwarded-host',
-  'x-real-ip',
-];
-
-/** Why `request` may not use the MCP, or none: a loopback Host, nothing forwarded, the token. */
-const mcpRefusal = (
-  headers: Headers.Headers,
-  token: string,
-): Option.Option<{ readonly status: number; readonly reason: string }> => {
-  const host = Option.getOrElse(Headers.get(headers, 'host'), () => '');
-  const name = host.replace(/:\d+$/, '');
-  if (!LOOPBACK_NAMES.includes(name))
-    return Option.some({ status: 403, reason: `the MCP answers on loopback only, not ${host}` });
-  const forwarded = FORWARDED.filter((h) => Option.isSome(Headers.get(headers, h)));
-  if (forwarded.length > 0)
-    return Option.some({
-      status: 403,
-      reason: `the MCP is not served through a proxy (${forwarded.join(', ')})`,
-    });
-  const given = Option.flatMap(Headers.get(headers, 'authorization'), (auth) =>
-    Option.flatMap(Option.fromNullishOr(/^Bearer\s+(\S+)$/i.exec(auth)), ([, bearer]) =>
-      Option.fromUndefinedOr(bearer),
-    ),
-  );
-  // Compared by digest: equal lengths, and nothing of the token leaks by how long a compare takes.
-  if (!Option.exists(given, (g) => sha256Hex(g) === sha256Hex(token)))
-    return Option.some({
-      status: 401,
-      reason: 'the MCP needs the lab token: Authorization: Bearer <token>',
-    });
-  return Option.none();
-};
-
-/**
- * The check on the MCP's own routes: it runs on whatever the router matched
- * them by (any spelling of the path the router takes for `/mcp`), never by a
- * path compare of its own.
- */
-const access = (token: string) =>
-  HttpRouter.middleware((route) =>
-    Effect.gen(function* () {
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      // A request made in process (a test's) names its Host in its URL only.
-      const host = Option.getOrElse(
-        Option.orElse(Option.fromUndefinedOr(request.headers['host']), () =>
-          Option.map(HttpServerRequest.toURL(request), (url) => url.host),
-        ),
-        () => '',
-      );
-      return yield* Option.match(mcpRefusal(Headers.set(request.headers, 'host', host), token), {
-        onNone: () => route,
-        onSome: (refusal) =>
-          Effect.as(
-            Effect.logWarning(
-              `lab.mcp.refused method=${request.method} status=${refusal.status} reason="${refusal.reason}"`,
-            ),
-            HttpServerResponse.jsonUnsafe(
-              { error: 'McpRefused', reason: refusal.reason },
-              {
-                status: refusal.status,
-                headers: Bool.match(refusal.status === 401, {
-                  onTrue: () => ({ 'www-authenticate': 'Bearer' }),
-                  onFalse: () => ({}),
-                }),
-              },
-            ),
-          ),
-      });
-    }),
-  );
+// The server
 
 const INSTRUCTIONS = [
   'The film lab, where the owner reviews the films: notes on frames and board panels, tries kept, beats and renders approved, sets of renders compared. Read with `overview`, `notes`, `board`, `catalogue`, `sets`, `set`; act with `reply`, `resolve`, `request_tweak`, `publish_set`, `record_render`.',
   'Listen with `changes`: pass the cursor from `overview` as `since` and a `wait` in seconds; it answers as soon as the owner does something (a note, a reply, a kept try, an approval or withdrawal, a comment, a render or set, an answer to an ask), each change with its film, panel or render, its words and its lab link. Call it again with the cursor it answers.',
   'Hand the owner work as a set (`publish_set`) and its link, never a path; reply on the note that asked for it.',
-  "When a decision is the owner's, ask it (`ask`): one page of blocks, or a short machine of pages; hand the owner its link, hear each answer on `changes` (`ask.step`, `ask.answered`), and `close_ask` once acted on.",
+  "When a decision is the owner's, ask it (`ask`): one page of blocks, or a short machine of pages, each question a `choose` where it can be (an optional `free_text` beside it for anything else; words are a burden to require); hand the owner its link, hear each answer on `changes` (`ask.step`, `ask.answered`), and `close_ask` once acted on.",
 ].join('\n\n');
 
 /** What the lab's MCP runs over beside its router: the lab's stores and its change feed. */
@@ -1261,17 +1196,13 @@ export type LabMcpNeeds =
   | FileSystem.FileSystem
   | Path.Path;
 
-/** How the lab is reached as an MCP server: its token and the address its links use. */
-export interface McpAccess {
-  readonly token: string;
-}
-
 /**
  * The lab's MCP at `/mcp` on the lab's router, over its stores and its change
- * feed, behind `access`. The routes it adds are the lab's own: the gate
- * (`api-server.ts`) runs first, as for every path.
+ * feed. The routes it adds are the lab's own: the gate (`api-server.ts`)
+ * runs first, as for every path. A client ends its session with a DELETE
+ * (the transport keeps a session until then: it has no expiry).
  */
-export const labMcp = (access_: McpAccess, options: LabMcpOptions) =>
+export const labMcp = (options: LabMcpOptions) =>
   Layer.mergeAll(
     McpServer.toolkit(LabToolkit).pipe(Layer.provideMerge(handlers(options))),
     resources(options),
@@ -1289,40 +1220,8 @@ export const labMcp = (access_: McpAccess, options: LabMcpOptions) =>
           McpProtocol.v2025_03_26,
           McpProtocol.v2026_07_28,
         ],
-        // Every route it adds is behind `access`.
-      }).pipe(Layer.provide(access(access_.token).layer)),
+        allowSessionTermination: true,
+      }),
     ),
     Layer.orDie,
   );
-
-// ---------------------------------------------------------------------------
-// The token
-
-/** A new token: 32 random bytes, hex. */
-const newToken = Effect.map(
-  Crypto.Crypto.use((crypto) => crypto.randomBytes(32)),
-  (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(''),
-);
-
-/**
- * The lab's MCP token: the file `FILM_LAB_MCP_TOKEN_FILE` names
- * (`~/.config/film-lab/mcp-token`), made on the first start, readable by its
- * owner only; the same token every start after, so a registered client
- * keeps working. Its file, beside it, for the line the lab logs.
- */
-export const labMcpToken = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const home = yield* Config.String('HOME');
-  const file = yield* Config.String('FILM_LAB_MCP_TOKEN_FILE').pipe(
-    Config.withDefault(path.join(home, '.config', 'film-lab', 'mcp-token')),
-  );
-  const kept = (yield* fs.readFileString(file).pipe(Effect.orElseSucceed(() => ''))).trim();
-  if (kept.length > 0) return { token: kept, file };
-  const token = yield* newToken;
-  yield* fs.makeDirectory(path.dirname(file), { recursive: true, mode: 0o700 });
-  yield* fs.writeFileString(file, `${token}\n`, { mode: 0o600 });
-  yield* fs.chmod(file, 0o600);
-  yield* Effect.log(`lab.mcp.token made file=${file}`);
-  return { token, file };
-});

@@ -57,7 +57,7 @@ function resolveSources(inputs: ReadonlyArray<PropsInput>): Array<HTMLProps> {
 }
 
 /** Marks `event` so a handler may stop the ones merged before it. */
-export function makeEventPreventable<E extends Event>(event: E): BaseUIEvent<E> {
+function makeEventPreventable<E extends Event>(event: E): BaseUIEvent<E> {
   const preventable = event as BaseUIEvent<E> & { baseUIHandlerPrevented?: boolean };
   preventable.preventBaseUIHandler = () => {
     preventable.baseUIHandlerPrevented = true;

@@ -12,15 +12,28 @@ does, while the lab runs.
   `McpServer.layerHttp` (effect 4.0.2, `effect/ai`) on the lab's router, beside the page and the API. The lab
   already holds every store; a second process would be a second writer. Protocols `2025-11-25`, `2025-06-18`,
   `2025-03-26` and `2026-07-28`.
-- Effect's HTTP transport is POST-only: no standalone GET stream, so the server cannot push a notification
-  outside a request, and it advertises no resource subscriptions over HTTP. Events therefore come two ways (see
-  [Events](#events)): a long-poll tool every session can use, and a stdio bridge for Claude Code's channels.
+- Effect's HTTP transport takes a `POST` for every message, and here a `DELETE` to end a session (below); it
+  has no standalone GET stream, so the server cannot push a notification outside a request, and it advertises
+  no resource subscriptions over HTTP. Events therefore come two ways (see [Events](#events)): a long-poll tool
+  every session can use, and a stdio bridge for Claude Code's channels.
+- **One client** of it in this checkout, `tools/lab-client.ts`, for the commands that work through the running
+  lab (`film channel`'s feed, `film production ask`): a session (`initialize`, `notifications/initialized`, the
+  id from `Mcp-Session-Id`), then `tools/call` typed by the lab's own tool (its parameters encode the arguments,
+  its success decodes `structuredContent`), at `FILM_LAB_URL` (else 8229). No lab answering, or one answering in a
+  shape this checkout does not read (an older lab), is `LabUnanswered`, which says to start one; a tool's refusal
+  is `LabToolRefused`, in the lab's words.
+- **Sessions end.** The transport keeps a session until a `DELETE` ends it (it has no expiry), so the lab allows
+  one (`allowSessionTermination`) and the client's session lasts as long as its scope: `film production ask`
+  ends its own once answered, and the channel ends each on losing it and the last when it stops. The end is kept
+  the moment the lab names the session, so a handshake that fails after `initialize` ends it too. The lab's gate
+  takes a `DELETE` only with `Content-Type: application/json`, as every write; a client that sends none gets
+  415 and its session stays.
 
 ## Tools, resources, prompt
 
 Every tool reads or writes through the store the page and the CLI use (`NotesStore`, `BoardStore`,
 `RenderCatalogue`, `ContentStore`); none has a write path of its own. A refusal is an MCP tool error with the
-reason in words (`LabRefused`). Links are absolute, at the address the owner opens (`labLink`: the tunnel's host
+reason in words (`LabRefused`). Links are absolute, at the address the owner opens (`labLink`: the first host
 when `FILM_LAB_HOSTS` names one).
 
 | Tool            | Does                                                                                                                    |
@@ -89,20 +102,11 @@ lab does not rely on them.
 
 ## Who may use it
 
-The lab is also reachable through the OpenTunnel public URL, and the tunnel forwards the visitor's Host and
-connects from 127.0.0.1 (the `labtunnel` unit proved a Host bypass), so neither the Host nor the peer address tells
-a local agent from the internet. `/mcp` answers only a request that:
-
-- carries `Authorization: Bearer <token>`: the token is 32 random bytes in `~/.config/film-lab/mcp-token`
-  (`FILM_LAB_MCP_TOKEN_FILE`), made 0600 in a 0700 folder on the lab's first start and kept across restarts,
-  compared by digest;
-- names a loopback Host (`127.0.0.1`, `localhost`, `[::1]`), and carries no `Forwarded`, `X-Forwarded-For`,
-  `X-Forwarded-Host` or `X-Real-IP`;
-- passes the lab's own gate first (its Host list, Sec-Fetch-Site, Origin, JSON body, body limit), and Effect's
-  own Origin check.
-
-Without the token it is 401 (`WWW-Authenticate: Bearer`); through the tunnel, 403. The page and the API are
-unchanged.
+The lab is reached on this machine's loopback, and from the owner's phone over the tailnet through a forwarder
+(`http://100.92.183.50:8230/` → `127.0.0.1:8229`) that names the loopback Host and Origin. The public tunnel is
+gone (owner, 2026-10-14: "keep using the tail scale … drop the open tunnel … we don't need really authorization,
+will just be secure by obscurity"). So `/mcp` asks no token: it answers whatever passes the lab's own gate (its
+Host list, Sec-Fetch-Site, Origin, JSON body, body limit) and Effect's own Origin check, as the page and the API do.
 
 The gate used to swap the request under the routes when it read a write's body, which dropped every
 pre-response handler a route set (MCP's `Mcp-Session-Id` among them). A read body is now answered by the
@@ -111,9 +115,9 @@ server's own handler as a new request (`api-server.ts`), so a route's answer kee
 ## Registration (the owner runs these)
 
 ```sh
-# the lab's tools, in every session (user scope); after the lab has started once
-claude mcp add --transport http lab http://localhost:8229/mcp \
-  --header "Authorization: Bearer $(cat ~/.config/film-lab/mcp-token)" -s user
+# the lab's tools, in every session (user scope)
+claude mcp add --transport http lab http://localhost:8229/mcp -s user
+# from another machine on the tailnet: http://100.92.183.50:8230/mcp
 
 # optional: the owner's actions pushed into a main session
 claude mcp add lab-events -s user -e FILM_LAB_URL=http://127.0.0.1:8229/ \
@@ -131,8 +135,8 @@ terminal; learn of a pick when told. Now:
 3. `reply` on the note that asked for it, `resolve` once made; a board tweak is asked with `request_tweak`.
 4. `changes {since, wait: 60}` in a loop (a subagent can too), or the channel in the main session: the owner's
    note, pick or approval arrives with its film, panel or render, words and link.
-5. A decision that is the owner's ("Needs you"): `ask` it as a page, give the owner its link, hear the answers on
-   `changes`, act, and `close_ask`.
+5. A decision that is the owner's ("Needs you"): `ask` it as a page (or, from a terminal, `bun run production ask`),
+   give the owner its link, hear the answers on `changes`, act, and `close_ask`.
 
 ## Asks
 
@@ -145,13 +149,21 @@ answers it on the laptop or the phone, and each answer reaches the agent as a ty
 
 An ask is data, never code: a small machine of steps, each step a page of blocks or an end.
 
-| Block       | Is                                                                                         |
-| ----------- | ------------------------------------------------------------------------------------------ |
-| `heading`   | a title over what follows                                                                  |
-| `prose`     | the context the owner decides in                                                           |
-| `image`     | a still: `{src}` (a lab path, `/api/…`) or `{board: {film, panel, try}}`, plus a caption   |
-| `choose`    | choose one of 2–12 options by `id`; an option may carry an image (a board try, a set file) |
-| `free_text` | the owner's words by `id`, with a placeholder                                              |
+| Block       | Is                                                                                       |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| `heading`   | a title over what follows                                                                |
+| `prose`     | the context the owner decides in                                                         |
+| `image`     | a still: `{src}` (a lab path, `/api/…`) or `{board: {film, panel, try}}`, plus a caption |
+| `choose`    | choose one of 2–12 options by `id`, always answered; an option may carry an image        |
+| `free_text` | the owner's words by `id`, with a placeholder: optional unless `required: true`          |
+
+A choice is the cheap answer; words are a burden to require (owner, 2026-10-14: "in general we should make
+textfields optional, required text fields usually are a burden, multiple choice etc is better"). So an agent asks
+each question as a `choose` where it can, with an optional `free_text` beside it for anything else. A `free_text`
+is optional unless it says `required: true`, which only a step with no `choose` may ask (a name, say). The page
+marks an optional field "(optional)" from the flag, never from its label, so a label carries no "(optional)" of
+its own. A `choose` has no flag: "no preference" is one of its options. An ask kept before the flag read its words
+as required; it reads them as optional now.
 
 ```jsonc
 {
@@ -184,12 +196,13 @@ Beside the machine the ask records `title`, `why` (what the answer decides), `by
 
 `ask` runs two checks, and keeps nothing unless both pass; a refusal lists every problem at once:
 
-1. **The machine** (`askProblems`, pure): at most 12 steps, 12 blocks a step, 12 ways on and 12 options; `start`
-   is a step; every `to` is a step and not the step itself; the last way on is unguarded and only it; a guard
-   names a `choose` of its own step, and only that choose's values; answer ids are unique across the ask; a
-   choose has at least two options, each value once; an image has `src` or `board`; some step ends; every step
-   is reached from `start`; the steps never loop (so every run ends, in at most 12 pages). A `src` must be a lab
-   path (`/api/…`), so an ask never loads an outside URL. The Schema decode before it refuses an unknown block.
+1. **The machine** (`askProblems`, pure): at most 12 steps, 12 blocks a step, 12 ways on and 12 options; `start` is
+   a step; every `to` is a step and not the step itself; the last way on is unguarded and only it; a guard names a
+   `choose` of its own step, and only that choose's values; answer ids are unique across the ask; a choose has at
+   least two options, each value once; a `required` free_text is on a step with no choose; an image has `src` or
+   `board`; some step ends; every step is reached from `start`; the steps never loop (so every run ends, in at most
+   12 pages). A `src` must be a lab path (`/api/…`), so an ask never loads an outside URL. The Schema decode before
+   it refuses an unknown block.
 2. **The board** (`AskStore.make`): every `{board: …}` image is found on its film's board and given its `src`
    (`boardFileUrl`) before the record is written; a try not on its board is a problem like any other.
 
@@ -206,7 +219,9 @@ an end (`thanks`, if given). So the one-question ask is
   "title": "A name for the set",
   "why": "…",
   "by": "agent",
-  "blocks": [{ "kind": "free_text", "id": "name", "label": "What do we call it?" }],
+  "blocks": [
+    { "kind": "free_text", "id": "name", "label": "What do we call it?", "required": true },
+  ],
 }
 ```
 
@@ -214,25 +229,28 @@ an end (`thanks`, if given). So the one-question ask is
 
 - **Made** (`ask`): checked, resolved, written to `FILMS_LAB/asks/<id>.json` (`a` + 10 hex). Answers its links:
   `local` (where the lab is bound), `phone` (`FILM_LAB_PHONE_URL`, the tailnet address, when set) and `public`
-  (the tunnel's host, when `FILM_LAB_HOSTS` names one). With `production` and `set`, an `Asked` entry naming the
+  (the first host `FILM_LAB_HOSTS` names, over HTTPS, when it names one). With `production` and `set`, an `Asked` entry naming the
   ask (`ask: a…`) is filed on that production's ledger, so the timeline shows it waiting on the owner.
 - **Answered** a step at a time, from any device: the page posts `{step, values}` (`POST /api/asks/<id>/answer`);
-  the lab moves the machine (`Machine.replay` from the kept state) and appends the step to the record's
-  `answered` log. The same answer again (a retry, a second tab) is answered as it is; a different one to a step
-  already answered, one to a step the run has left, one past the deadline and one to a closed ask are refused
-  (409), and the page reads the ask again and says why. The state lives in the lab's file, not the page, so a
-  reload or a switch from laptop to phone opens the ask where it was left.
-- **Heard**: the feed reads `FILMS_LAB/asks/` like every other record. `ask.step` carries the step's answers,
-  typed (`{kind: 'choose', value, label}` or `{kind: 'free_text', text}`, by block id); `ask.answered` carries all
-  of them when the run reaches its end. Both arrive through `changes` (a waiting call wakes) and the channel.
-  "Reached its end" is read from the `answered` log, not the state's tag, so an answer and a close seen in one
-  look of the feed still tell `ask.answered`, then `ask.closed`.
+  the lab moves the machine (`Machine.replay` from the kept state) and appends the step to the record's `answered`
+  log. The same answer again (a retry, a second tab) is answered as it is; a different one to a step already
+  answered, one to a step the run has left, one past the deadline and one to a closed ask are refused (409), and the
+  page reads the ask again and says why. A field left empty is not an answer: the page and the lab drop blank values
+  (`filled`) before the check and the log, so an optional field left empty and a retry that sends it blank are the
+  same answer. The state lives in the lab's file, not the page, so a reload or a switch from laptop to phone opens
+  the ask where it was left.
+- **Heard**: the feed reads `FILMS_LAB/asks/` like every other record. `ask.step` carries the step's answers, typed
+  (`{kind: 'choose', value, label}`, `{kind: 'free_text', text}`, or `{kind: 'skipped'}` for an optional field the
+  owner saw and left empty, by block id; a question on a step never reached has no answer); `ask.answered` carries
+  all of them when the run reaches its end. Both arrive through `changes` (a waiting call wakes) and the channel.
+  "Reached its end" is read from the `answered` log, not the state's tag, so an answer and a close seen in one look
+  of the feed still tell `ask.answered`, then `ask.closed`.
 - **Closed** (`close_ask {ask, why}`): it takes no more answers and keeps what it has. An ask with a production
-  files what closed it, naming the ask: answered to its end, a `Decided` (text: the answers in a line; quote: the
-  owner's free text, verbatim); withdrawn before, a `Noted` ("withdrawn: why"). Either answers that ask's `Asked`
-  entry and no other, so it stops waiting on the timeline. Each word is filed once by the ask's id under the
-  ledger's lock: closing again with the same `why` answers the ask as it is and files only what a failed filing
-  left out (the `Asked` among it), and two closes at once file one word.
+  files what closed it, naming the ask: answered to its end, a `Decided` (text: the answers in a line, a skipped one
+  left out; quote: the owner's free text, verbatim); withdrawn before, a `Noted` ("withdrawn: why"). Either answers
+  that ask's `Asked` entry and no other, so it stops waiting on the timeline. Each word is filed once by the ask's
+  id under the ledger's lock: closing again with the same `why` answers the ask as it is and files only what a
+  failed filing left out (the `Asked` among it), and two closes at once file one word.
 
 ### The page
 
@@ -244,9 +262,9 @@ an end (`thanks`, if given). So the one-question ask is
 - `lab/ask/context.tsx`, the provider: the only place that knows the machine. Parts read `state` (phase, record,
   step, drafted, said) and call `actions` (set, submit).
 - `lab/ask/parts.tsx`, compound parts: `Head`, `Step`, `Submit`, `Outcome`, `Status`, and one part per primitive
-  (`Heading`, `Prose`, `Picture`, `ChooseOne` over `@bible/ui`'s ToggleGroup, `FreeText`), dispatched by
-  `Block` on the block's kind. No part takes a flag that changes what it is; a new primitive is a new block kind
-  and a new part.
+  (`Heading`, `Prose`, `Picture`, `ChooseOne` over `@bible/ui`'s ToggleGroup, `FreeText`, marked "(optional)" unless
+  required), dispatched by `Block` on the block's kind. No part takes a flag that changes what it is; a new
+  primitive is a new block kind and a new part.
 - Its CSS rides with the place (`PlaceStyle`), so it never weighs on another place's first paint; the CSS budget
   now weighs a place's own styles too.
 
@@ -279,7 +297,7 @@ Taken:
 Left, and why:
 
 - **Running agent code** (the cell's Bun process): the lab is a long-lived process on the owner's machine, reached
-  from a phone and a tunnel; it runs no agent's code. Data in, a fixed interpreter, nothing to sandbox.
+  from a phone over the tailnet; it runs no agent's code. Data in, a fixed interpreter, nothing to sandbox.
 - **Thread, run and permit states**: an ask has one reader and one writer at a time; `ContentStore`'s lock is the
   permit.
 - **The outbox and activation seam**: the lab is one process and its files are the record; the change feed
@@ -292,22 +310,31 @@ Left, and why:
 The timeline (`ProductionStore`, ledgers in `apps/animations/productions/`, read via `FILMS_PRODUCTIONS`) is the
 record of versions and of what waits on the owner; asks file onto it rather than keep a rival model:
 
-- An ask with `production` and `set` is filed as `Asked` when made, and what closed it (`Decided` with its answers,
-  or `Noted` withdrawn) when the agent closes it. The ledger's words carry an optional `ask` id (old ledgers read
+- An ask with `production` and `set` is filed as `Asked` when made (with its `point`, the choice in that set, when
+  it names one: a pick there answers it on the timeline too), and what closed it (`Decided` with its answers, or
+  `Noted` withdrawn) when the agent closes it. The ledger's words carry an optional `ask` id (old ledgers read
   as before; a question filed before the field is known by the `(ask a…)` its text names): a word naming an ask
   answers that ask's question only, and is not a decision on its set, so one
   ask answered on a set leaves another asked on the same set waiting. A bare decision on the set (`film production
   decide`) still answers every question on it.
 - The `Asked` text names the ask (`(ask a…)`). The timeline does not yet link to the ask's page; a waiting entry
   that is an ask could open it.
-- `film production ask` in a terminal still files a bare `Asked` (a question with no page). The next step is for
-  it to make an ask (one `free_text`, or a `choose` over the set's options) so every question has a page.
+- `film production ask` in a terminal makes the same ask through the running lab (`lab-client.ts`, the `ask`
+  tool), so it lands in the lab's own asks and ledger and is filed as above: two `--option`s or more are a
+  `choose` (`pick`, values `1`, `2`, …) with an optional `free_text` (`note`, "Anything else?"); none asks for
+  words (one `free_text`, `answer`, required). Its `--set` names the set as every production command and the
+  ledger do, by its folder under its root; the lab's `sets` say which ref that is. A ref is refused, naming its
+  folder, so `decide --set` later says the same word; a folder two roots hold is refused, by its folder or a ref,
+  since a timeline names a set by its folder alone and could not tell the two apart. It prints the ask's local
+  and phone links and the folder it waits at. With no lab answering it refuses (`LabUnanswered`) and asks
+  nothing. Every question has a page: the ledger's `say`
+  takes only the owner's words (`Decided`, `Noted`), and an `Asked` is filed only by an ask.
 - Not built: `publish_set` taking `production`/`version` (calling `ProductionStore.publish`), resources over the
   ledgers, and `production.*` feed kinds.
 
 ## Choices the owner may want to change
 
-- A token rather than an open loopback endpoint (the tunnel makes loopback unprovable).
+- No token: the lab answers loopback and the tailnet forwarder only, and the owner prefers obscurity to a key.
 - Events by long-poll plus the channel bridge, not resource subscriptions (Effect's HTTP transport has no push,
   and Claude Code does not show `resources/updated` to the model).
 - The feed reads every 2 s; an event takes up to 2 s to arrive.
@@ -316,6 +343,8 @@ record of versions and of what waits on the owner; asks file onto it rather than
 - Sound and look picks (the choices) are not in the feed yet: they live in the films' sources.
 - Sets are watched one folder under each review root.
 - Asks are acyclic and capped at 12 steps; a flow that needs to loop is asked again as a new ask.
+- Words are optional unless an agent requires them, and only on a step with no choice; a choice is always
+  answered, so "no preference" is an option the agent offers.
 - An answered ask is filed on its production only when the agent closes it, not when the owner answers.
 - `FILM_LAB_PHONE_URL` is unset by default; with it unset an ask answers no phone link.
 - The review page's head CSS is 52.8 KB of the 64 KiB budget (the Scenes' tape styles left it; Project carries

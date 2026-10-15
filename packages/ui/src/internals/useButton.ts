@@ -2,17 +2,17 @@
 // packages/react/src/utils/useFocusableWhenDisabled.ts,
 // packages/react/src/utils/dispatchClickWithModifiers.ts
 //
-// Button behaviour for a part's element: a native `<button type="button">`,
-// or a `role="button"` element that Enter activates. Inside a composite
-// widget (a toggle group, a menu) the element takes its tab stop from the
-// composite and Space activates on keydown. Upstream's disabled state
-// (`focusableWhenDisabled`, `aria-disabled`) and its link arm are left out:
-// no part is disabled through the button, and none renders a link.
+// Button behaviour for a part's element, as a mixin (`../mix/mix.ts`): a
+// native `<button type="button">`, or a `role="button"` element that Enter
+// activates. Inside a composite widget (a toggle group, a menu) the element
+// takes its tab stop from the composite and Space activates on keydown.
+// Upstream's disabled state (`focusableWhenDisabled`, `aria-disabled`) and its
+// link arm are left out: no part is disabled through the button, and none
+// renders a link.
 import { isHTMLElement } from '@floating-ui/utils/dom';
 
-import { makeEventPreventable, mergeProps } from '../merge-props/mergeProps.ts';
+import { mix, type Mixin } from '../mix/mix.ts';
 import { ownerWindow } from '../utils/dom.ts';
-import type { BaseUIEvent, HTMLProps } from './types.ts';
 
 interface ModifierState {
   shiftKey: boolean;
@@ -52,48 +52,41 @@ interface UseButtonParameters {
   composite?: boolean | undefined;
 }
 
-interface UseButtonReturnValue {
-  /** The button's props merged under `externalProps`, whose key handlers it wraps. */
-  getButtonProps: (externalProps?: HTMLProps) => HTMLProps;
-}
-
 function isButtonElement(elem: Element | null): elem is HTMLButtonElement {
   return isHTMLElement(elem) && elem.tagName === 'BUTTON';
 }
 
-type Handler<E extends Event> = ((event: E) => void) | undefined;
-
-/** The handlers `getButtonProps` wraps, so the external ones reach the element only through it. */
-const WRAPPED_HANDLERS: ReadonlySet<PropertyKey> = new Set(['onKeyDown', 'onKeyUp']);
-
-export function useButton(params: UseButtonParameters = {}): UseButtonReturnValue {
-  const isNativeButton = () => params.native ?? true;
-  const isCompositeItem = () => params.composite ?? false;
-
-  const getButtonProps = (externalProps: HTMLProps = {}): HTMLProps => {
-    const external = <E extends Event>(key: string) => externalProps[key] as Handler<E>;
-    const internal: HTMLProps = {
-      onKeyDown(rawEvent: KeyboardEvent) {
-        const event: BaseUIEvent<KeyboardEvent> = makeEventPreventable(rawEvent);
-        external<KeyboardEvent>('onKeyDown')?.(event);
-        if (event.baseUIHandlerPrevented || event.target !== event.currentTarget) {
+/**
+ * The button's behaviour as a mixin. A part puts it first among its props, so
+ * their key handlers run before its own and may stop them with
+ * `event.preventBaseUIHandler()`, and their attributes win over its. Typed
+ * for a `<button>`; with `native: false` it reads only what every element has.
+ */
+export function useButton(params: UseButtonParameters = {}): Mixin<HTMLButtonElement> {
+  const native = params.native ?? true;
+  const composite = params.composite ?? false;
+  return mix<HTMLButtonElement>(
+    native ? { type: 'button' } : { role: 'button' },
+    // The composite owns its items' tab stops: the key is left out, so the item's stands.
+    !composite && { tabindex: 0 },
+    {
+      onKeyDown(event) {
+        if (event.target !== event.currentTarget) {
           return;
         }
-        const native = isNativeButton();
-        const currentTarget = event.currentTarget as Element;
+        const currentTarget = event.currentTarget;
         const isButton = isButtonElement(currentTarget);
         const role = currentTarget.getAttribute('role');
         const isTextNavigationRole =
           role?.startsWith('menuitem') || role === 'option' || role === 'gridcell';
 
-        if (isCompositeItem() && event.key === ' ') {
+        if (composite && event.key === ' ') {
           if (event.defaultPrevented && isTextNavigationRole) {
             return;
           }
           event.preventDefault();
           // Only a native-mode item that is not a real <button> is left out.
           if (!native || isButton) {
-            event.preventBaseUIHandler();
             dispatchClickWithModifiers(currentTarget, event);
           }
           return;
@@ -105,43 +98,20 @@ export function useButton(params: UseButtonParameters = {}): UseButtonReturnValu
           return;
         }
         event.preventDefault();
-        event.preventBaseUIHandler();
         dispatchClickWithModifiers(currentTarget, event);
       },
-      onKeyUp(rawEvent: KeyboardEvent) {
+      onKeyUp(event) {
         // A prevented keyup on a <button> stops Space from clicking it.
-        const event: BaseUIEvent<KeyboardEvent> = makeEventPreventable(rawEvent);
-        external<KeyboardEvent>('onKeyUp')?.(event);
         if (
           event.target === event.currentTarget &&
-          isNativeButton() &&
-          isCompositeItem() &&
-          isButtonElement(event.currentTarget as HTMLElement) &&
+          native &&
+          composite &&
+          isButtonElement(event.currentTarget) &&
           event.key === ' '
         ) {
           event.preventDefault();
         }
       },
-    };
-    const kind: HTMLProps = {
-      get type() {
-        return isNativeButton() ? 'button' : undefined;
-      },
-      get role() {
-        return isNativeButton() ? undefined : 'button';
-      },
-      // The composite owns its items' tab stops.
-      get tabindex() {
-        return isCompositeItem() ? undefined : 0;
-      },
-    };
-    const rest = new Proxy(externalProps, {
-      get: (target, key) => (WRAPPED_HANDLERS.has(key) ? undefined : Reflect.get(target, key)),
-      has: (target, key) => !WRAPPED_HANDLERS.has(key) && Reflect.has(target, key),
-      ownKeys: (target) => Reflect.ownKeys(target).filter((key) => !WRAPPED_HANDLERS.has(key)),
-    });
-    return mergeProps(internal, kind, rest);
-  };
-
-  return { getButtonProps };
+    },
+  );
 }

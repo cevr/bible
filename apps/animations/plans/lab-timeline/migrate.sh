@@ -6,7 +6,9 @@
 # run again). Run from apps/animations; FILMS_PRODUCTIONS moves the folder. A
 # decision that closed a version is dated a minute before the move it made,
 # so it sits in the version it closed. Each `new` refuses a ledger that is
-# already there, so a second run stops at the first line.
+# already there, so a second run stops at the first line. Its `production
+# ask` lines are the bare question that command filed then; it makes a lab
+# ask now (2026-10-14), with no `--at`.
 set -eu
 film() { bun cli.ts "$@"; }
 

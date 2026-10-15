@@ -1,8 +1,9 @@
 // An ask's machine, with no lab: the check that runs before it renders
 // (bounded, every step reached, no loop, every guard on a choice of its own
-// step), and the run: a pick of try 7 or 8 asks why, any other ends it; an
-// answer that does not fit, or to a step the ask has left, moves nothing;
-// closing keeps what was answered.
+// step, words required only where nothing is chosen), and the run: a pick
+// of try 7 or 8 asks why, any other ends it; words left empty are answered
+// skipped unless required; an answer that does not fit, or to a step the ask
+// has left, moves nothing; closing keeps what was answered.
 
 import { Effect, Option, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
@@ -10,10 +11,12 @@ import { Machine } from 'effect-machine';
 import {
   type Ask,
   AskEvent,
+  AskRecordJson,
   Ask as AskSchema,
   AskState,
   answerRefusal,
   answeredToEnd,
+  answersLine,
   askMachine,
   askProblems,
   askStart,
@@ -123,6 +126,28 @@ describe('the check before an ask renders', () => {
     expect(String(decode(choice('1', ' \n ')))).toContain('not blank');
   });
 
+  test('words are required only on a step that asks no choice', () => {
+    const keep = {
+      kind: 'choose' as const,
+      id: 'keep',
+      label: 'Keep it?',
+      options: [
+        { value: 'yes', label: 'Yes' },
+        { value: 'no', label: 'No' },
+      ],
+    };
+    const more = { kind: 'free_text' as const, id: 'more', label: 'Anything else?' };
+    expect(askProblems(oneQuestion([keep, more]))).toEqual([]);
+    expect(askProblems(oneQuestion([keep, { ...more, required: true }]))).toEqual([
+      'step ask: more is required beside a choice: leave it optional (drop required), or ask it on a step of its own',
+    ]);
+    expect(
+      askProblems(
+        oneQuestion([{ kind: 'free_text', id: 'name', label: 'Its name?', required: true }]),
+      ),
+    ).toEqual([]);
+  });
+
   test('an ask is bounded: at most twelve steps', () => {
     const steps = Object.fromEntries(
       Array.from({ length: 13 }, (_, i) => [
@@ -164,6 +189,46 @@ describe('the run', () => {
       );
     }),
   );
+
+  it.effect('words left empty are answered skipped, unless required', () =>
+    Effect.gen(function* () {
+      const asked = yield* run([AskEvent.Answer({ step: 'pick', values: { try: '7' } })]);
+      // The proof's why carries no flag, as no ask made before the flag does: optional.
+      const done = yield* run([AskEvent.Answer({ step: 'why', values: { why: ' \n ' } })], asked);
+      const answers = {
+        try: { kind: 'choose', value: '7', label: 'Try 7' },
+        why: { kind: 'skipped' },
+      } as const;
+      expect(done).toEqual(AskState.Answered({ step: 'done', answers }));
+      expect(answersLine(answers)).toBe('try: Try 7 · why: (skipped)');
+      const wordsRequired: Ask = {
+        ...proof,
+        steps: {
+          ...proof.steps,
+          why: {
+            blocks: [{ kind: 'free_text', id: 'why', label: 'Why?', required: true }],
+            next: [{ to: 'done' }],
+          },
+        },
+      };
+      expect(answerRefusal(wordsRequired, asked, 'why', {})).toEqual(
+        Option.some('why is not answered'),
+      );
+      expect(answerRefusal(proof, asked, 'why', {})).toEqual(Option.none());
+    }),
+  );
+
+  test('an ask kept before the flag reads as it did, its words now optional', () => {
+    // The bytes as an ask kept on 2026-10-15 holds them: a free text with no flag.
+    const kept =
+      '{"id":"a0123456789","title":"Two calls","why":"the build waits","by":"main",' +
+      '"created":"2026-10-15T00:27:56.767Z","ask":{"start":"ask","steps":{"ask":{"blocks":' +
+      '[{"kind":"free_text","id":"notes","label":"Anything else (optional)"}],' +
+      '"next":[{"to":"done"}]},"done":{"end":true}}},' +
+      '"state":{"_tag":"Asking","step":"ask","answers":{}},"answered":[]}';
+    const record = Schema.decodeSync(AskRecordJson)(kept);
+    expect(answerRefusal(record.ask, record.state, 'ask', {})).toEqual(Option.none());
+  });
 
   it.effect('try 3 ends the ask at once', () =>
     Effect.gen(function* () {

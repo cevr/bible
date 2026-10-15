@@ -20,6 +20,7 @@ import {
   askedIn,
   blocksOf,
   endText,
+  requiredOf,
 } from '../../core/ask.ts';
 import { pressed } from '../pressed.ts';
 import { useAsk } from './context.tsx';
@@ -128,12 +129,17 @@ export const ChooseOne = (props: { readonly block: BlockOf<'choose'> }) => {
   );
 };
 
-/** Free text: the owner's words. */
+/** Free text: the owner's words, marked optional unless the agent requires them (`required`). */
 export const FreeText = (props: { readonly block: BlockOf<'free_text'> }) => {
   const { state, actions } = useAsk();
   return (
     <label class="ak-field" data-answer={props.block.id}>
-      <span class="ak-legend">{props.block.label}</span>
+      <span class="ak-legend">
+        {props.block.label}
+        <Show when={!requiredOf(props.block)}>
+          <span class="ak-optional"> (optional)</span>
+        </Show>
+      </span>
       <textarea
         class="sh-field ak-text"
         name={props.block.id}
@@ -207,12 +213,13 @@ export const Submit = () => {
   );
 };
 
-/** An answer in words: a choice by its label, the words as they are. */
+/** An answer in words: a choice by its label, the words as they are, or that it was left empty. */
 const answerText = (answer: AskAnswer): string =>
   Match.value(answer).pipe(
     Match.discriminatorsExhaustive('kind')({
       choose: (a) => a.label,
       free_text: (a) => a.text,
+      skipped: () => 'Skipped',
     }),
   );
 

@@ -37,6 +37,7 @@ import {
   askMachine,
   askProblems,
   askStart,
+  filled,
   imagesIn,
   mapImages,
 } from '../core/ask.ts';
@@ -55,6 +56,7 @@ interface AskDraft {
   readonly film?: string;
   readonly production?: string;
   readonly set?: string;
+  readonly point?: string;
   readonly deadline?: string;
   readonly ask: Ask;
 }
@@ -222,6 +224,10 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
             onNone: () => ({}),
             onSome: (set) => ({ set }),
           }),
+          ...Option.match(Option.fromUndefinedOr(draft.point), {
+            onNone: () => ({}),
+            onSome: (point) => ({ point }),
+          }),
           created: yield* now,
           ...Option.match(Option.flatten(deadline), {
             onNone: () => ({}),
@@ -270,10 +276,12 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
       const answer = Effect.fn('AskStore.answer')(function* (
         id: string,
         step: string,
-        values: StepValues,
+        sent: StepValues,
       ) {
         const at = yield* known(id);
         const when = yield* now;
+        // A field left empty is kept as not sent, so a retry that sends it blank is the same answer.
+        const values = filled(sent);
         const record = yield* store.transact(at, (current) =>
           Effect.gen(function* () {
             const refuse = (reason: string) => AskRefused.make({ id, reason });

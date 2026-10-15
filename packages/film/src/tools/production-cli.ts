@@ -15,6 +15,18 @@
 //   film production decide|note <production> "<text>" [--quote "<owner's words>"]
 //       [--set <set>] [--point <id>] [--variant <id>] [--at <ISO time>]
 //       record the owner's decision or note given outside the lab
+//   film production ask <production> "<question>" --why "<what it decides>"
+//       [--option "<answer>" --option "<answer>" ...] [--set <set> [--point <id>]]
+//       [--film <film>] [--deadline <ISO>] [--by <who>]
+//       ask the owner on a page of the running lab (`FILM_LAB_URL`, through
+//       `lab-client.ts`): the lab's own ask, filed on the production's
+//       timeline as the lab's MCP `ask` files it; prints its links. Two
+//       options or more are a choice with optional words beside it; none
+//       asks for words. The set is named as every production command and
+//       the ledger name it, by its folder under its review root: the lab's
+//       sets say which one it is, and a folder two roots hold is refused (a
+//       timeline could not tell them apart). No lab answering is
+//       `LabUnanswered`: nothing is asked
 //   film production file <production> <set> --version <n>
 //       file a set published before sets named their production
 //   film publish <folder> --production <production> [--version <n>]
@@ -23,14 +35,31 @@
 //       one the lab reads (under a review root)
 
 import { Argument, Command, Flag } from 'effect/cli';
-import { Clock, Console, DateTime, Effect, Match, Option, Path, Result, Schema } from 'effect';
 import {
+  Array as Arr,
+  Clock,
+  Console,
+  DateTime,
+  Effect,
+  Match,
+  Option,
+  Path,
+  Result,
+  Schema,
+} from 'effect';
+import { FetchHttpClient } from 'effect/http';
+import type { AskBlock } from '../core/ask.ts';
+import {
+  type OwnerWord,
   type ProductionFile,
   ProductionId,
   type Said,
   currentVersion,
+  setPathOf,
   versionAt,
 } from '../core/production.ts';
+import { type LabClient, labClient, labUrl } from './lab-client.ts';
+import { AskTool, Sets } from './lab-mcp.ts';
 import { ProductionStore } from './production-store.ts';
 import { Review, refOf } from './review.ts';
 
@@ -50,6 +79,45 @@ class TimeInvalid extends Schema.TaggedError<TimeInvalid>()('TimeInvalid', {
 }) {
   override get message() {
     return `"${this.text}" is not a time: give an ISO time, e.g. 2026-10-14T15:10:00-04:00`;
+  }
+}
+
+/** One option is no choice. */
+class OneOption extends Schema.TaggedError<OneOption>()('OneOption', {
+  option: Schema.String,
+}) {
+  override get message() {
+    return `one --option ("${this.option}") is no choice: give two or more, or none to ask for words`;
+  }
+}
+
+/** A set the lab does not list. */
+class SetUnlisted extends Schema.TaggedError<SetUnlisted>()('SetUnlisted', {
+  set: Schema.String,
+  url: Schema.String,
+}) {
+  override get message() {
+    return `the lab at ${this.url} lists no set ${this.set}: name a set by its folder under its review root, as \`film production show\` prints it (set=…)`;
+  }
+}
+
+/** A folder more than one root holds: the lab lists a set in each, and a timeline, naming a set by its folder alone, cannot tell them apart. */
+class SetInRoots extends Schema.TaggedError<SetInRoots>()('SetInRoots', {
+  set: Schema.String,
+  refs: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `${this.set} is a folder in more than one root (${this.refs.join(', ')}), and a production's timeline names a set by its folder alone: rename one, or ask without --set`;
+  }
+}
+
+/** A set named by the lab's ref: the production commands name it by its folder. */
+class SetByRef extends Schema.TaggedError<SetByRef>()('SetByRef', {
+  ref: Schema.String,
+  folder: Schema.String,
+}) {
+  override get message() {
+    return `${this.ref} is the lab's ref for it: the production commands name a set by its folder under its root, --set ${this.folder}`;
   }
 }
 
@@ -210,9 +278,9 @@ const forward = Command.make(
   ),
 );
 
-const say = (tag: Said['_tag']) =>
+const say = (tag: OwnerWord['_tag']) =>
   Command.make(
-    ({ Decided: 'decide', Noted: 'note', Asked: 'ask' } as const)[tag],
+    ({ Decided: 'decide', Noted: 'note' } as const)[tag],
     {
       production: name,
       text: Argument.String('text').pipe(Argument.withDescription('what was said, plainly')),
@@ -246,7 +314,7 @@ const say = (tag: Said['_tag']) =>
         variant: input.variant,
         ask: Option.none(),
       };
-      const said: Said = { _tag: tag, ...fields };
+      const said: OwnerWord = { _tag: tag, ...fields };
       yield* (yield* ProductionStore).say(id, said);
       yield* Console.log(`${saidVerb[tag]} ${id} at=${iso(at)}`);
     }),
@@ -256,12 +324,168 @@ const say = (tag: Said['_tag']) =>
         {
           Decided: "Record the owner's decision given outside the lab (a pick, a direction)",
           Noted: "Record the owner's note given outside the lab (feedback)",
-          Asked:
-            'Ask the owner about a set (--set, --point for one choice): it waits on them until a pick there or a decision on it answers',
         } as const
       )[tag],
     ),
   );
+
+/**
+ * The page an ask from the terminal shows: two options or more are a choice
+ * (the owner taps one) with words beside it the owner may leave empty; none
+ * asks for words, which then must be written.
+ */
+const askBlocks = (options: ReadonlyArray<string>) =>
+  Match.value(options).pipe(
+    Match.when(
+      (o) => o.length === 0,
+      (): Effect.Effect<ReadonlyArray<AskBlock>> =>
+        Effect.succeed([{ kind: 'free_text', id: 'answer', label: 'Your answer', required: true }]),
+    ),
+    Match.when(
+      (o) => o.length === 1,
+      (o) => Effect.fail(OneOption.make({ option: o[0] ?? '' })),
+    ),
+    Match.orElse((o): Effect.Effect<ReadonlyArray<AskBlock>> =>
+      Effect.succeed([
+        {
+          kind: 'choose',
+          id: 'pick',
+          label: 'Pick one',
+          options: o.map((label, i) => ({ value: String(i + 1), label })),
+        },
+        { kind: 'free_text', id: 'note', label: 'Anything else?' },
+      ]),
+    ),
+  );
+
+/**
+ * The lab's ref for the set `given` names, among the refs the lab lists: the
+ * folder under its root, as the ledger and every production command name a
+ * set, held by one root. A ref is refused, naming its folder; a folder more
+ * than one root holds is refused, since the timeline could not tell which.
+ */
+const refFor = (
+  listed: ReadonlyArray<string>,
+  given: string,
+  url: string,
+): Effect.Effect<string, SetUnlisted | SetInRoots | SetByRef> => {
+  const holding = (folder: string) => listed.filter((ref) => setPathOf(ref) === folder);
+  const byFolder = holding(given);
+  if (byFolder.length > 1) return Effect.fail(SetInRoots.make({ set: given, refs: byFolder }));
+  const one = Arr.head(byFolder);
+  if (Option.isSome(one)) return Effect.succeed(one.value);
+  if (!listed.includes(given)) return Effect.fail(SetUnlisted.make({ set: given, url }));
+  const folder = setPathOf(given);
+  const held = holding(folder);
+  if (held.length > 1) return Effect.fail(SetInRoots.make({ set: folder, refs: held }));
+  return Effect.fail(SetByRef.make({ ref: given, folder }));
+};
+
+/** `ask` made in the lab, in a session of its own (ended once answered); its set, given by folder, named by the lab's ref. */
+const askInLab = Effect.fn('film.production.askInLab')(function* (
+  client: LabClient,
+  ask: typeof AskTool.parametersSchema.Type,
+) {
+  const session = yield* client.session;
+  const set = yield* Option.match(Option.fromUndefinedOr(ask.set), {
+    onNone: () => Effect.succeed({}),
+    onSome: (given) =>
+      client.call(session, Sets, {}).pipe(
+        Effect.flatMap(({ sets }) =>
+          refFor(
+            sets.map((listed) => listed.set),
+            given,
+            client.url,
+          ),
+        ),
+        Effect.map((ref) => ({ set: ref })),
+      ),
+  });
+  return yield* client.call(session, AskTool, { ...ask, ...set });
+}, Effect.scoped);
+
+const ask = Command.make(
+  'ask',
+  {
+    production: name,
+    question: Argument.String('question').pipe(
+      Argument.withDescription('the question, plainly: the title of its page'),
+    ),
+    why: Flag.String('why').pipe(
+      Flag.withDescription('what the answer decides, said under the question'),
+    ),
+    option: Flag.String('option').pipe(
+      Flag.atLeast(0),
+      Flag.withDescription(
+        'an answer the owner taps: give two or more (a choice, with optional words beside it), or none to ask for words',
+      ),
+    ),
+    set: Flag.String('set').pipe(
+      Flag.optional,
+      Flag.withDescription(
+        'the set it is about: its folder under its review root, as `decide` and `note` take it; its timeline shows it waiting there',
+      ),
+    ),
+    point: Flag.String('point').pipe(
+      Flag.optional,
+      Flag.withDescription(
+        'the choice in that set it is about (e.g. render:cold): a pick there answers it too',
+      ),
+    ),
+    film: Flag.String('film').pipe(Flag.optional, Flag.withDescription('the film it is about')),
+    deadline: Flag.String('deadline').pipe(
+      Flag.optional,
+      Flag.withDescription('an ISO time after which it takes no answer'),
+    ),
+    by: Flag.String('by').pipe(Flag.withDefault('agent'), Flag.withDescription('who asks')),
+  },
+  Effect.fn('film.production.ask')(function* (input) {
+    const id = yield* productionNamed(input.production);
+    const blocks = yield* askBlocks(input.option);
+    const client = yield* labClient(yield* labUrl);
+    const asked = yield* askInLab(client, {
+      title: input.question,
+      why: input.why,
+      by: input.by,
+      production: id,
+      blocks,
+      ...Option.match(input.set, { onNone: () => ({}), onSome: (set) => ({ set }) }),
+      ...Option.match(input.point, { onNone: () => ({}), onSome: (point) => ({ point }) }),
+      ...Option.match(input.film, { onNone: () => ({}), onSome: (film) => ({ film }) }),
+      ...Option.match(input.deadline, { onNone: () => ({}), onSome: (deadline) => ({ deadline }) }),
+    });
+    yield* Console.log(
+      `asked ${asked.ask} on ${id}: ${Option.match(Option.fromUndefinedOr(asked.set), {
+        onNone: () => 'filed on its timeline once closed',
+        onSome: (set) =>
+          `waits on its timeline at ${setPathOf(set)}${Option.match(
+            Option.fromUndefinedOr(asked.point),
+            {
+              onNone: () => '',
+              onSome: (point) => `, ${point}`,
+            },
+          )}`,
+      })}`,
+    );
+    yield* Console.log(`local ${asked.links.local}`);
+    yield* Console.log(
+      Option.match(Option.fromUndefinedOr(asked.links.phone), {
+        onNone: () => 'phone none: the lab has no FILM_LAB_PHONE_URL',
+        onSome: (phone) => `phone ${phone}`,
+      }),
+    );
+    for (const at of Option.toArray(Option.fromUndefinedOr(asked.links.public)))
+      yield* Console.log(`public ${at}`);
+    yield* Console.log(
+      `then: its answers with the lab's MCP (ask_read ${asked.ask}); close_ask it once acted on`,
+    );
+  }),
+).pipe(
+  Command.provide(FetchHttpClient.layer),
+  Command.withDescription(
+    "Ask the owner on a page of the running lab (FILM_LAB_URL), filed on the production's timeline; prints its links",
+  ),
+);
 
 const file = Command.make(
   'file',
@@ -285,16 +509,7 @@ export const production = Command.make('production').pipe(
   Command.withDescription(
     "A production's timeline (a film, or a track such as the look): its versions, the owner's words, moving forward",
   ),
-  Command.withSubcommands([
-    list,
-    show,
-    create,
-    forward,
-    say('Decided'),
-    say('Noted'),
-    say('Asked'),
-    file,
-  ]),
+  Command.withSubcommands([list, show, create, forward, say('Decided'), say('Noted'), ask, file]),
 );
 
 export const publish = Command.make(
