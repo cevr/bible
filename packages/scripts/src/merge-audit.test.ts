@@ -2,8 +2,8 @@
 // itself and resolves the conflict by keeping its own file whole, then main
 // merges the branch with no conflict left. The outer merge has nothing to
 // say; the edit main lost lives in the branch's own merge, which the audit
-// reads too (pass 7 and 8: 05aa2bec printed `conflicted=0` over an inner
-// 59a8b2ca that had dropped lines).
+// reads too: an outer merge with `conflicted=0` can sit over an inner merge
+// that dropped lines.
 
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { describe, expect, test } from 'bun:test';
