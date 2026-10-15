@@ -189,6 +189,7 @@ describe('a production’s history', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.none(),
+      by: Option.none(),
     };
     const history = historyOf('look', Option.some(withSaid(look(), said)), []);
     expect(history.versions.find((v) => v.n === 2)?.entries).toEqual([
@@ -219,6 +220,7 @@ describe('a production’s history', () => {
       point: on,
       variant: Option.none(),
       ask: Option.none(),
+      by: Option.none(),
     });
     const words = [
       // Asked in v2, still open: it waits on the version open now.
@@ -250,6 +252,7 @@ describe('a production’s history', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.some(ask),
+      by: Option.none(),
     });
     const asked = [word('Asked', 20 * HOUR, 'a1'), word('Asked', 21 * HOUR, 'a2')].reduce(
       withAskSaid,
@@ -280,6 +283,7 @@ describe('a production’s history', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.none(),
+      by: Option.none(),
     });
     const on = {
       quote: Option.none(),
@@ -287,6 +291,7 @@ describe('a production’s history', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.some('a0123456789'),
+      by: Option.none(),
     };
     const closed = [
       { _tag: 'Asked' as const, at: 20 * HOUR, text: 'Which judge? (ask a0123456789)', ...on },
@@ -306,6 +311,7 @@ describe('a production’s history', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.none(),
+      by: Option.none(),
     });
     const [ask] = currentOf(historyOf('look', Option.some(file), [])).waiting;
     expect(ask?.ask.text).toBe('Keep the subtitles?');

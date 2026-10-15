@@ -32,7 +32,7 @@ does, while the lab runs.
 ## Tools, resources, prompt
 
 Every tool reads or writes through the store the page and the CLI use (`NotesStore`, `BoardStore`,
-`RenderCatalogue`, `ContentStore`); none has a write path of its own. A refusal is an MCP tool error with the
+`RenderCatalogue`, `ContentStore`, `ProductionStore`); none has a write path of its own. A refusal is an MCP tool error with the
 reason in words (`LabRefused`). Links are absolute, at the address the owner opens (`labLink`: the first host
 when `FILM_LAB_HOSTS` names one).
 
@@ -53,6 +53,8 @@ when `FILM_LAB_HOSTS` names one).
 | `ask_read`      | an ask: where its run is, every answer so far (typed), each step answered, its links                                    |
 | `asks`          | every ask, newest first, narrowed by `status` (`asking`, `answered`, `closed`)                                          |
 | `close_ask`     | closes an ask with `why`; with a production, files `Decided` (answered) or `Noted` (withdrawn), once, by ask id         |
+| `decide`        | files on a production's timeline a decision the owner made in chat, his words verbatim as `quote`                       |
+| `note`          | files the owner's feedback from chat on a production's timeline the same way: it decides nothing                        |
 | `look`          | stills of a scene as its files stand, each an image after its line (see [The easel's tools](#the-easels-tools))         |
 | `cues`          | each scene's placement, marks and named cues, as `film cues` prints them; one scene's when named                        |
 | `check`         | the scenes named (or the film) checked as drawn, `film check --draw`, the findings a page at a time                     |
@@ -197,7 +199,9 @@ terminal; learn of a pick when told. Now:
 4. `changes {since, wait: 60}` in a loop (a subagent can too), or the channel in the main session: the owner's
    note, pick or approval arrives with its film, panel or render, words and link.
 5. A decision that is the owner's ("Needs you"): `ask` it as a page (or, from a terminal, `bun run production ask`),
-   give the owner its link, hear the answers on `changes`, act, and `close_ask`.
+   give the owner its link, hear the answers on `changes`, act, and `close_ask`. What he has already decided in
+   chat is filed with `decide` (feedback, `note`), his words verbatim as `quote`: what is still his to choose is
+   an ask, never a `decide`.
 6. A scene painted, by the scene painter (`subagent_type: scene-painter`; any other agent reads
    `.claude/skills/film/reference/scene-painter.md`): `journal` and `cues` first, then a passage at a time, `look`
    at its marks and its cues' middles, `journal_note` what a look taught, and `check` the scenes touched before
@@ -394,6 +398,16 @@ record of versions and of what waits on the owner; asks file onto it rather than
   and phone links and the folder it waits at. With no lab answering it refuses (`LabUnanswered`) and asks
   nothing. Every question has a page: the ledger's `say`
   takes only the owner's words (`Decided`, `Noted`), and an `Asked` is filed only by an ask.
+- `decide` and `note` file what the owner said in chat, as `film production decide|note` does, through the same
+  `ProductionStore.say`, in the version open when filed. Owner, 2026-10-14: "yes build mcpdecide"; an agent's
+  write to a ledger file was refused, and the owner had to run the CLI himself. `quote`, his words verbatim, is
+  required and never blank: it is what shows he said it, and keeps an agent from filing a decision he did not
+  make. `by` names who filed it; every word keeps it (`by` on the ledger, optional; an ask's words carry the
+  asker), `film production show` prints it (`by=…`) and the timeline shows "filed by". The `set` is its ref as
+  `sets` lists it or its folder under its root, kept as the folder (`setNamed`, the CLI's `ask --set` reads
+  folders the same way); a folder two roots hold is refused here and for `ask` alike. A `point` needs its `set`,
+  a `variant` its `point`; the production must keep a ledger (`film production new`). Each call files once: a
+  word filed twice is two words. Moving a production forward has no tool: it stays the owner's, through an ask.
 - Not built: `publish_set` taking `production`/`version` (calling `ProductionStore.publish`), resources over the
   ledgers, and `production.*` feed kinds.
 

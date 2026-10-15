@@ -9,8 +9,12 @@
 // route and heard on `changes` with its answers typed, then closed and filed
 // on its production's timeline. `film production ask` makes the lab's own
 // ask, its set named by folder as the ledger names it (a ref refused, and a
-// folder two roots hold); the lab client's session ends with its scope, a
-// handshake failed halfway too, and the lab forgets it.
+// folder two roots hold). What the owner said in chat is filed by `decide`
+// and `note` on his timeline, his own words required and who filed it kept,
+// its set by ref or folder (one two roots hold refused, for an ask too): a
+// note leaves a question waiting, a decision on its set answers it, and each
+// lands in the version open when it is filed. The lab client's session ends
+// with its scope, a handshake failed halfway too, and the lab forgets it.
 
 import { describe, expect, it } from 'effect-bun-test';
 import {
@@ -41,8 +45,10 @@ import {
   HttpClientResponse,
 } from 'effect/http';
 import { Base64 } from 'effect/encoding';
+import { TestClock } from 'effect/testing';
 import { labUrls } from '../core/api.ts';
 import { type BoardFile, BoardFileJson } from '../core/board.ts';
+import { currentOf, moveForward, productionsOf } from '../core/production.ts';
 import { AskStore } from './ask-store.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { production } from './production-cli.ts';
@@ -203,6 +209,8 @@ describe('the lab as an MCP server', () => {
             'ask_read',
             'asks',
             'close_ask',
+            'decide',
+            'note',
             'check',
             'cues',
             'journal',
@@ -812,6 +820,236 @@ describe('film production ask', () => {
           );
         }),
       ),
+  );
+});
+
+/** The questions waiting on production `f`'s current version, by their words. */
+const waitingOnF = Effect.gen(function* () {
+  const ledger = Option.getOrThrow(yield* (yield* ProductionStore).read('f'));
+  return productionsOf([ledger], []).flatMap((h) => currentOf(h).waiting.map((w) => w.ask.text));
+});
+
+/** Production `f`, with the set `judge-faces` published into the lab's out/. */
+const productionWithSet = Effect.fn('productionWithSet')(function* (
+  tool: (name: string, args?: Schema.Json) => Effect.Effect<any>,
+) {
+  yield* (yield* ProductionStore).start('f', {
+    title: 'F',
+    film: Option.some('f'),
+    blurb: Option.none(),
+    first: 'the board',
+    at: 1,
+  });
+  yield* tool('publish_set', {
+    name: 'judge-faces',
+    files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
+    manifest: { title: 'Judge faces', images: ['calmer.png'] },
+  });
+});
+
+describe("the owner's word through the MCP", () => {
+  it.effect(
+    'files what he said in chat on his timeline, in his words: a note leaves the question, a decision answers it',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab, events } = yield* labWithMcp;
+          const { tool } = yield* mcpSession(lab);
+          const productions = yield* ProductionStore;
+          yield* productionWithSet(tool);
+          yield* events.look;
+          const asked = yield* tool('ask', {
+            title: 'Which judge?',
+            why: 'the cold open keeps one',
+            by: 'agent',
+            production: 'f',
+            set: 'spare/judge-faces',
+            blocks: [{ kind: 'free_text', id: 'which', label: 'Which judge?' }],
+          });
+          const question = `Which judge? (ask ${asked.ask})`;
+          expect(yield* waitingOnF).toEqual([question]);
+          // A note decides nothing: the question still waits. Its set named by its folder.
+          const noted = yield* tool('note', {
+            production: 'f',
+            text: 'The paper reads cold',
+            quote: 'the paper is too cold, warm it up',
+            by: 'painter',
+            set: 'judge-faces',
+          });
+          expect(noted).toEqual({
+            production: 'f',
+            version: 1,
+            said: {
+              _tag: 'Noted',
+              at: 0,
+              text: 'The paper reads cold',
+              quote: 'the paper is too cold, warm it up',
+              set: 'judge-faces',
+              by: 'painter',
+            },
+            link: `${MCP_BASE}productions/f?v=1`,
+          });
+          expect(yield* waitingOnF).toEqual([question]);
+          // A decision on the set, named by its ref as `sets` lists it, answers it.
+          const decided = yield* tool('decide', {
+            production: 'f',
+            text: 'The calmer judge',
+            quote: 'go with the calmer one',
+            by: 'painter',
+            set: 'spare/judge-faces',
+            point: 'render:cold',
+            variant: 'calm',
+          });
+          expect(decided.said).toEqual({
+            _tag: 'Decided',
+            at: 0,
+            text: 'The calmer judge',
+            quote: 'go with the calmer one',
+            set: 'judge-faces',
+            point: 'render:cold',
+            variant: 'calm',
+            by: 'painter',
+          });
+          // On a choice, it answers a question on that choice only: this one is on the set.
+          expect(yield* waitingOnF).toEqual([question]);
+          yield* tool('decide', {
+            production: 'f',
+            text: 'The calmer judge, all of it',
+            quote: 'the calmer one everywhere',
+            by: 'painter',
+            set: 'judge-faces',
+          });
+          expect(yield* waitingOnF).toEqual([]);
+          // Moved forward, the next word lands in the version open now.
+          yield* productions.modify('f', (current) =>
+            moveForward(current, { after: 1, title: 'v2', because: Option.none() }, 60_000),
+          );
+          yield* TestClock.adjust('2 minutes');
+          const later = yield* tool('note', {
+            production: 'f',
+            text: 'Slower',
+            quote: 'slow it all down',
+            by: 'painter',
+          });
+          expect(later).toEqual({
+            production: 'f',
+            version: 2,
+            said: {
+              _tag: 'Noted',
+              at: 120_000,
+              text: 'Slower',
+              quote: 'slow it all down',
+              by: 'painter',
+            },
+            link: `${MCP_BASE}productions/f?v=2`,
+          });
+          const said = Option.getOrThrow(yield* productions.read('f')).said;
+          expect(said.map((w) => [w._tag, w.quote, w.set, w.by])).toEqual([
+            ['Asked', Option.none(), Option.some('judge-faces'), Option.some('agent')],
+            [
+              'Noted',
+              Option.some('the paper is too cold, warm it up'),
+              Option.some('judge-faces'),
+              Option.some('painter'),
+            ],
+            [
+              'Decided',
+              Option.some('go with the calmer one'),
+              Option.some('judge-faces'),
+              Option.some('painter'),
+            ],
+            [
+              'Decided',
+              Option.some('the calmer one everywhere'),
+              Option.some('judge-faces'),
+              Option.some('painter'),
+            ],
+            ['Noted', Option.some('slow it all down'), Option.none(), Option.some('painter')],
+          ]);
+          // `film production note --by` files the same word; the ledger prints who filed each.
+          const cli = (args: ReadonlyArray<string>) =>
+            productionCli((request) => lab(request, mcpBound), args);
+          yield* cli(['note', 'f', 'Warmer', '--quote', 'warmer still', '--by', 'coordinator']);
+          expect((yield* cli(['show', 'f'])).lines).toEqual(
+            expect.arrayContaining([
+              '  noted 1970-01-01T00:02:00.000Z: Slower — "slow it all down"  by=painter',
+              '  noted 1970-01-01T00:02:00.000Z: Warmer — "warmer still"  by=coordinator',
+            ]),
+          );
+        }),
+      ),
+  );
+
+  it.effect(
+    'refuses a word without his own words, or on a production, set or choice it cannot name',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab, events } = yield* labWithMcp;
+          const { tool } = yield* mcpSession(lab);
+          yield* productionWithSet(tool);
+          yield* events.look;
+          const word = { production: 'f', text: 'The calmer judge', by: 'painter' };
+          const quoted = { ...word, quote: 'go with the calmer one' };
+          expect((yield* tool('decide', word)).refused).toContain(
+            "Invalid parameters for tool 'decide': Missing key",
+          );
+          expect((yield* tool('decide', { ...word, quote: '  \n ' })).refused).toContain(
+            "the owner's own words, verbatim from the chat: a word filed without them is refused",
+          );
+          expect((yield* tool('note', { ...quoted, by: '' })).refused).toContain(
+            "Invalid parameters for tool 'note': Expected a value with a length of at least 1",
+          );
+          expect((yield* tool('decide', { ...quoted, production: '../f' })).refused).toContain(
+            "Invalid parameters for tool 'decide': Expected a string matching the RegExp",
+          );
+          expect((yield* tool('decide', { ...quoted, production: 'nope' })).refused).toBe(
+            'no production nope: film production new nope --title "<title>"',
+          );
+          expect((yield* tool('decide', { ...quoted, set: 'nowhere' })).refused).toBe(
+            'no set nowhere: `sets` lists them by ref (a folder under its root names one too)',
+          );
+          expect((yield* tool('decide', { ...quoted, point: 'render:cold' })).refused).toBe(
+            '`point` is a choice in a set: name the `set`',
+          );
+          expect(
+            (yield* tool('decide', { ...quoted, set: 'judge-faces', variant: 'calm' })).refused,
+          ).toBe("`variant` is one of a choice's: name the `point`");
+          expect(Option.getOrThrow(yield* (yield* ProductionStore).read('f')).said).toEqual([]);
+        }),
+      ),
+  );
+
+  it.effect('refuses a set two roots hold, by its folder or its ref, for an ask too', () =>
+    providedWith(reviewAt([{ label: 'other', path: '/elsewhere' }]))(
+      Effect.gen(function* () {
+        const { lab, events } = yield* labWithMcp;
+        const { tool } = yield* mcpSession(lab);
+        yield* productionWithSet(tool);
+        yield* events.look;
+        const word = {
+          production: 'f',
+          text: 'The calmer judge',
+          quote: 'go with the calmer one',
+          by: 'painter',
+        };
+        const inRoots =
+          "judge-faces is a folder in more than one root (spare/judge-faces, other/judge-faces), and a production's timeline names a set by its folder alone: rename one, or leave out `set`";
+        expect((yield* tool('decide', { ...word, set: 'judge-faces' })).refused).toBe(inRoots);
+        expect((yield* tool('note', { ...word, set: 'other/judge-faces' })).refused).toBe(inRoots);
+        const asked = yield* tool('ask', {
+          title: 'Which judge?',
+          why: 'the cold open keeps one',
+          by: 'agent',
+          production: 'f',
+          set: 'spare/judge-faces',
+          blocks: [{ kind: 'free_text', id: 'which', label: 'Which judge?' }],
+        });
+        expect(asked.refused).toBe(inRoots);
+        expect(Option.getOrThrow(yield* (yield* ProductionStore).read('f')).said).toEqual([]);
+        expect((yield* tool('asks', {})).asks).toEqual([]);
+      }),
+    ),
   );
 });
 
