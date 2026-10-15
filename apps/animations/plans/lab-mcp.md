@@ -70,7 +70,11 @@ Prompt: `inbox` (every waiting note across the films, and how to work them).
 The owner (2026-10-14): "lets also remove .gent, make it something all agents can benefit from". The tools a
 painter works with were a gent extension (`.gent/extensions/film.ts`), which ran the film CLI for gent alone. They
 are the lab's now (`tools/easel-mcp.ts`), so every client that reaches the lab paints with them: Claude Code, Codex,
-gent, any MCP client.
+gent, any MCP client. The painter is a brief every agent reads, `.claude/skills/film/reference/scene-painter.md`,
+and in Claude Code the `scene-painter` subagent (`.claude/agents/scene-painter.md`: the file tools and these five
+tools only, the film skill preloaded), started with the Agent tool. gent's `film.paint`, which started a painter,
+is the Agent tool's `subagent_type: scene-painter` now; the compactor that condensed a painter's window from the
+files with no model call is the brief's rule to read the state from the files again when its context is condensed.
 
 - **One owner each.** `look` is the lab's own easel (`Easel.look`, the warm export page `film look` asks over
   HTTP), its stills answered as MCP images, each after its line (`lookLine`: file, scene, place, time, frame,
@@ -172,6 +176,10 @@ claude mcp add --transport http lab http://localhost:8229/mcp -s user
 # ~/.codex/config.toml under [mcp_servers.lab]: tool_timeout_sec = 360
 codex mcp add lab --url http://localhost:8229/mcp
 
+# a workspace's spare lab (LAB_PORT=<port> bun cli.ts lab, there), as `lab` for that
+# workspace alone: run in it; a local server overrides the user's, from the next session
+claude mcp add --transport http lab http://127.0.0.1:<port>/mcp -s local
+
 # optional: the owner's actions pushed into a main session
 claude mcp add lab-events -s user -e FILM_LAB_URL=http://127.0.0.1:8229/ \
   -- bun /Users/cvr/Developer/personal/bible-tools/apps/animations/cli.ts channel
@@ -190,8 +198,10 @@ terminal; learn of a pick when told. Now:
    note, pick or approval arrives with its film, panel or render, words and link.
 5. A decision that is the owner's ("Needs you"): `ask` it as a page (or, from a terminal, `bun run production ask`),
    give the owner its link, hear the answers on `changes`, act, and `close_ask`.
-6. A scene painted: `journal` and `cues` first, then a passage at a time, `look` at its marks and its cues'
-   middles, `journal_note` what a look taught, and `check` the scenes touched before stopping.
+6. A scene painted, by the scene painter (`subagent_type: scene-painter`; any other agent reads
+   `.claude/skills/film/reference/scene-painter.md`): `journal` and `cues` first, then a passage at a time, `look`
+   at its marks and its cues' middles, `journal_note` what a look taught, and `check` the scenes touched before
+   stopping.
 
 ## Asks
 

@@ -419,7 +419,7 @@ const lookTool = Layer.effectDiscard(
 
 /** What the lab's MCP says of the easel's tools, beside its own instructions. */
 export const EASEL_INSTRUCTIONS =
-  "Paint and review a film's scenes with the easel's tools: `look` (stills of a scene as its files stand, as images), `cues` (each scene's marks and named cues), `check` (scenes checked as drawn), `journal` and `journal_note` (the film's observations, read and noted). Each takes `films`, your checkout's films folder: a lab that serves another checkout's refuses (`LabElsewhere`).";
+  "Paint and review a film's scenes with the easel's tools: `look` (stills of a scene as its files stand, as images), `cues` (each scene's marks and named cues), `check` (scenes checked as drawn), `journal` and `journal_note` (the film's observations, read and noted). Each takes `films`, your checkout's films folder: a lab that serves another checkout's refuses (`LabElsewhere`). How a scene is painted with them, a passage at a time: .claude/skills/film/reference/scene-painter.md in the repository.";
 
 /** The easel's tools on the lab's MCP, over the lab's easel, its fresh runs and its films. */
 export const easelMcp = Layer.mergeAll(
