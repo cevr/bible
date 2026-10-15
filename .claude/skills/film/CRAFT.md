@@ -129,9 +129,9 @@ BibleProject is informative, curious and hopeful (owner, 2026-09-27: "let's make
 - **Sound like the owner,** who narrates every film: a question the film answers, the text read as it reads, a likeness, a refrain of three, and a choice to land on, in his plain words. These rules set the doses; the words are his, measured on nine of his sermons in [reference/owner-voice.md](reference/owner-voice.md).
 - **Explain most:** the word, the story and the pattern take 40–60% of the speech. That is where the curiosity lives.
 - **Dose the problem:** 20% of the speech or less, in 2 to 4 doses of 5 to 40 s. Answer each within seconds, and give hope at least 1.5 times the problem's share.
-- **Name sin in "we", as a mechanism:** "So we do what Adam and Eve did. We sew fig leaves." Then take the weight off with a light line: "How is that going?"
-- **Say wonder out loud, once per act,** about the text: "Paul does something kind of amazing here." The wonder is a Bible writer's or the text's, never a pioneer's (rule 2).
-- **Turn to hope on a "But"** that names a surprise, then a gift: "But the story does not end there."
+- **Name sin in "we", as a mechanism:** "So we do what Adam and Eve did. We sew fig leaves." Then take the weight off with a light line at our own habits, never at the text: "How is that going?"
+- **Say wonder out loud, once per act,** about the text, as a plain fact held a moment, never an adjective: "He did not stop at forgiving. He gave the power to walk." The owner never says amazing, awesome or wonderful ([reference/owner-voice.md](reference/owner-voice.md), section 4). The wonder is a Bible writer's or the text's, never a pioneer's (rule 2).
+- **Turn to hope on a "But"** that names a surprise, then a gift: "But God is not finished with us."
 - **Keep the colour script bright, with one valley:**
   - a mean luma of 140–150, with 5% of frames or fewer darker than 60;
   - one act, the answer's valley, may fall to 90–110;
