@@ -1773,7 +1773,7 @@ describe("a film's choices", () => {
           viewport: { width: 390, height: 844 },
         });
         yield* waitFor(page, '.rv-picture [data-proxy="pending"]');
-        yield* textHas(page, '.rv-picture [data-proxy="pending"]', 'Proxy being made');
+        yield* textHas(page, '.rv-picture [data-proxy="pending"]', 'Phone copy on its way');
         yield* countIs(page, '.rv-picture video', 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

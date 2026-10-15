@@ -116,12 +116,13 @@ const LOOKS = `(() => {
 /**
  * A part a page's own state leaves out, and what that state is: a page with no
  * film hides the page bar and its tabs, and Films, the page it links to, is
- * the current one there.
+ * the current one there; a page at none of its film's parts (an ask that
+ * names a film, under Films) shows the film's tabs with none current.
  */
 const LEFT_OUT = {
   films: '.sh-films[data-active="true"]',
   pagebar: '.sh[data-film="false"]',
-  currentTab: '.sh[data-film="false"]',
+  currentTab: '.sh[data-film="false"], .sh[data-part="films"]',
   otherTab: '.sh[data-film="false"]',
 };
 
