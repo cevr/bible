@@ -5,8 +5,12 @@
  *
  * The corpus is a mirror of a library that keeps publishing. Without this, the
  * search answers from the last snapshot and silently drifts: new books never
- * appear. Each Sunday the Workflow installs the books the corpus lacks into D1
- * and adds their vectors to Vectorize, so both legs of the search find them.
+ * appear, and revised ones keep their old text. Each Sunday the Workflow
+ * installs the books the corpus lacks into D1 and adds their vectors to
+ * Vectorize, so both legs of the search find them. It also rechecks books
+ * whose revision moved (`egwBookRevision`): each is downloaded again, the
+ * install records the paragraphs it changed, and only those are embedded
+ * again.
  *
  * ## Steps
  *
@@ -14,19 +18,26 @@
  * own, and a run that is evicted resumes at the step it reached.
  *
  * 1. `plan` — the remote catalog against D1 (`planEgwSync`).
- * 2. `install <id>` per pending book — download and swap it into D1
- *    (`installEgwBook`). A book the library is known to withhold fails once,
- *    as expected; any other failure is retried, then recorded.
- * 3. `vectors <id> <row>` per page of an installed book — embed its
- *    paragraphs with Workers AI under the index's fingerprint and upsert
- *    them into Vectorize (`./book-vectors.ts`).
+ * 2. `install <id>` per book to add or recheck — download and swap it into
+ *    D1 (`installEgwBook`). A book the library is known to withhold fails
+ *    once, as expected; any other failure is retried, then recorded.
+ *    Rechecks are capped (`RECHECK_LIMIT`): the books whose content hash
+ *    moved first, then the books installed before revisions were hashes.
+ * 3. `vectors <id> <row>` per page of an added book, `changed vectors <id>
+ *    <row>` per page of what a recheck added or edited — embed paragraphs
+ *    with Workers AI under the index's fingerprint and upsert them into
+ *    Vectorize (`./book-vectors.ts`); `unindex <id>` deletes the vectors of
+ *    paragraphs a recheck removed.
  * 4. `optimize` — `PRAGMA optimize`, so D1's planner sees the new rows.
  * 5. `report` — what the run did (`reportEgwSync`). A run with an
  *    unexpected failure ends errored, after doing all the rest, so the
  *    dashboard shows it.
- * 6. `mail` — the run's outcome, mailed to its owner (`./sync-mail.ts`):
- *    what was installed, what failed, or where a run stopped. Only a stage
- *    that names a sender and a recipient mails, which is `prod`.
+ * 6. `publish report` — the full report in Markdown, into R2
+ *    (`./sync-report.ts`), served at `egw.cvr.im/sync/<name>`.
+ * 7. `mail` — the run's outcome, mailed to its owner (`./sync-mail.ts`):
+ *    what was added, what the library updated with its first changes, what
+ *    failed, and the report's link; or where a run stopped. Only `prod`
+ *    publishes a report and mails.
  *
  * ## Only `prod` writes
  *
@@ -51,6 +62,7 @@ import {
   Cause,
   Config,
   ConfigProvider,
+  DateTime,
   Effect,
   Exit,
   Layer,
@@ -69,6 +81,7 @@ import {
   type EgwSyncFailure,
   type EgwSyncPlan,
   failureOf,
+  latestParagraphChanges,
   installEgwBook,
   isKnownUnavailable,
   layerEgwWritingsAssetSource,
@@ -78,10 +91,26 @@ import {
 import { EGWApiClient, EGWAuth, EGWTokenStore } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 
-import { BOOK_VECTORS_PAGE, type BookVectorsFailed, bookVectorsPage } from './book-vectors.ts';
+import {
+  BOOK_VECTORS_PAGE,
+  BookVectorsFailed,
+  bookVectorsPage,
+  type BookVectorsScope,
+  removedVectorIds,
+} from './book-vectors.ts';
 import { D1Atomic } from './d1-atomic.ts';
-import { Corpus, Vectors } from './resources.ts';
-import { SyncOutcome, syncMail } from './sync-mail.ts';
+import { Corpus, SyncReports, Vectors } from './resources.ts';
+import { DOMAIN } from './site.ts';
+import { reportKey } from './sync-pages.ts';
+import { MAIL_LIMIT, SyncOutcome, syncMail } from './sync-mail.ts';
+import {
+  type ChangesByBook,
+  changeCount,
+  type RecheckedBook,
+  syncReport,
+  type SyncRun,
+  updateChanges,
+} from './sync-report.ts';
 import { EMBEDDING_MODEL, workersAiDocuments } from './workers-ai.ts';
 
 /** The prod Worker. Not routed: nothing reaches it but its Workflow. */
@@ -105,6 +134,18 @@ const SyncMailer = Cloudflare.Email.SendEmail('SyncMailer');
 
 /** The longest cause a stopped run's mail carries. */
 const MAIL_CAUSE_LIMIT = 4000;
+
+/** Installed books a run downloads again, at most. A recheck is about three
+ *  steps (install, changed vectors, unindex), well inside a Workflow's
+ *  10,000; the 1,480 books installed before revisions were content hashes
+ *  take six runs. */
+const RECHECK_LIMIT = 250;
+
+/** Where a published report is read: the search's own page for it. */
+const REPORT_PAGE = `https://${DOMAIN}/sync/`;
+
+/** A report's name: its run's time, sortable, so the newest lists last. */
+const reportName = (at: string) => at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
 
 /** What an instance is asked to do. A scheduled instance carries nothing,
  *  which is a sync on `prod` and a plan anywhere else. `reembed` adds the
@@ -152,7 +193,12 @@ const props = Effect.gen(function* () {
   return {
     ...base,
     name: SYNC_WORKER_NAME,
-    env: { CORPUS_SYNC: 'write', SYNC_MAIL_FROM: SYNC_MAIL.from, SYNC_MAIL_TO: SYNC_MAIL.to },
+    env: {
+      CORPUS_SYNC: 'write',
+      SYNC_REPORTS: 'publish',
+      SYNC_MAIL_FROM: SYNC_MAIL.from,
+      SYNC_MAIL_TO: SYNC_MAIL.to,
+    },
   };
 });
 
@@ -172,6 +218,7 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
     const vectors = yield* Cloudflare.Vectorize.SearchIndex(yield* Vectors);
     const ai = yield* Cloudflare.Workers.AI();
     const mailer = yield* Cloudflare.Email.Send(SyncMailer);
+    const reports = yield* Cloudflare.R2.WriteBucket(yield* SyncReports);
     const embed = workersAiDocuments((inputs) =>
       ai.run(EMBEDDING_MODEL, inputs).pipe(Effect.provide(RuntimeContext.phantom)),
     );
@@ -262,16 +309,21 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
             }),
           );
 
-        /** Every page of a book's vectors, a step each. */
-        const vectorsOf = Effect.fn('CorpusSync.vectors')(function* (bookId: number) {
+        /** Every page of a book's vectors in a scope, a step each. */
+        const vectorsOf = Effect.fn('CorpusSync.vectors')(function* (
+          bookId: number,
+          scope: BookVectorsScope,
+        ) {
           let after = 0;
           let upserted = 0;
+          let name = 'vectors';
+          if (scope === 'changed') name = 'changed vectors';
           while (true) {
             const page = yield* Cloudflare.Workflows.task(
-              `vectors ${String(bookId)} ${String(after)}`,
+              `${name} ${String(bookId)} ${String(after)}`,
               Effect.gen(function* () {
                 const index = yield* vectors.raw;
-                return yield* bookVectorsPage({ bookId, after }, embed, index);
+                return yield* bookVectorsPage({ bookId, after, scope }, embed, index);
               }).pipe(Effect.provide(readLayer)),
               { retries: RETRIES, timeout: '10 minutes' },
             );
@@ -281,7 +333,32 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
           }
         });
 
-        const planned = planEgwSync({ lang: 'en', refresh: false }).pipe(Effect.provide(planLayer));
+        /** Forget the vectors of the paragraphs a recheck removed. */
+        const unindex = (bookId: number) =>
+          Cloudflare.Workflows.task(
+            `unindex ${String(bookId)}`,
+            Effect.gen(function* () {
+              const ids = yield* removedVectorIds(bookId);
+              const index = yield* vectors.raw;
+              // Vectorize deletes at most a thousand ids a call.
+              for (let at = 0; at < ids.length; at += 1000) {
+                const chunk = ids.slice(at, at + 1000);
+                yield* Effect.tryPromise({
+                  try: () => index.deleteByIds(chunk),
+                  catch: (cause) =>
+                    BookVectorsFailed.make({ bookId, reason: `delete: ${String(cause)}` }),
+                });
+              }
+              return ids.length;
+            }).pipe(Effect.provide(readLayer)),
+            { retries: RETRIES },
+          );
+
+        const planned = planEgwSync({
+          lang: 'en',
+          refresh: false,
+          recheckLimit: RECHECK_LIMIT,
+        }).pipe(Effect.provide(planLayer));
         const planStep = Cloudflare.Workflows.task('plan', planned, { retries: RETRIES });
         const optimized = Effect.flatMap(SqlClient.SqlClient, (sql) => sql`PRAGMA optimize`).pipe(
           Effect.asVoid,
@@ -315,6 +392,50 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
           }
         });
 
+        /** The full report into R2: what the mail links to, and the first
+         *  of the library's changes for the mail itself. */
+        const publishStep = (run: SyncRun) =>
+          Cloudflare.Workflows.task(
+            'publish report',
+            Effect.gen(function* () {
+              const rechecked = [...run.updated, ...run.verified].filter(
+                ({ changes }) => changeCount(changes) > 0,
+              );
+              const changes: ChangesByBook = new Map(
+                yield* Effect.forEach(rechecked, ({ book }) =>
+                  Effect.map(latestParagraphChanges(book.id), (rows) => [book.id, rows] as const),
+                ),
+              );
+              const at = DateTime.formatIso(yield* DateTime.now);
+              const name = reportName(at);
+              yield* reports.put(reportKey(name), syncReport(run, changes, at), {
+                httpMetadata: { contentType: 'text/markdown; charset=utf-8' },
+              });
+              const all = updateChanges(run, changes);
+              return {
+                url: `${REPORT_PAGE}${name}`,
+                excerpt: all.slice(0, MAIL_LIMIT),
+                total: all.length,
+              };
+            }).pipe(Effect.provide(readLayer)),
+            { retries: RETRIES },
+          );
+
+        /** The report, where this stage publishes one. A report that cannot
+         *  be written is logged: the mail goes without its link. */
+        const reportOf = Effect.fn('CorpusSync.reportOf')(function* (run: SyncRun) {
+          const env = yield* Cloudflare.WorkerEnvironment;
+          const nothing = { excerpt: [], updateChanges: 0, report: Option.none<string>() };
+          if (env['SYNC_REPORTS'] !== 'publish') return nothing;
+          const published = yield* Effect.exit(publishStep(run));
+          if (Exit.isFailure(published)) {
+            yield* Effect.logError('egw_sync_report_failed', Cause.pretty(published.cause));
+            return nothing;
+          }
+          const { url, excerpt, total } = published.value;
+          return { excerpt, updateChanges: total, report: Option.some(url) };
+        });
+
         /** The run up to its report: what happened, and what the run returns. */
         const runOnce = Effect.fn('CorpusSync.runOnce')(function* (input: CorpusSyncInput) {
           const env = yield* Cloudflare.WorkerEnvironment;
@@ -324,39 +445,66 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
           yield* Effect.log(
             'egw_sync_plan',
             `writes=${String(writes)} remote=${String(plan.remote.length)}` +
-              ` installed=${String(plan.installedBefore)} pending=${String(plan.pending.length)}`,
+              ` installed=${String(plan.installedBefore)} pending=${String(plan.pending.length)}` +
+              ` changed=${String(plan.changed.length)} verify=${String(plan.verify.length)}` +
+              ` recheck_left=${String(plan.recheckLeft)}`,
           );
           if (!writes) {
             return SyncOutcome.Planned({
               remote: plan.remote.length,
               installedBefore: plan.installedBefore,
               pending: plan.pending,
+              changed: plan.changed,
+              verify: plan.verify.length,
+              recheckLeft: plan.recheckLeft,
             });
           }
 
           const failures: EgwSyncFailure[] = [];
-          const installed: EgwSyncBook[] = [];
+          const added: EgwSyncBook[] = [];
           const vectorFailures: { readonly id: number; readonly reason: string }[] = [];
-          const addVectors = (bookId: number) =>
-            vectorsOf(bookId).pipe(
-              Effect.catchTag('BookVectorsFailed', (failed: BookVectorsFailed) =>
-                Effect.sync(() => {
-                  vectorFailures.push({ id: failed.bookId, reason: failed.reason });
-                  return 0;
-                }),
-              ),
-            );
+          const keepVectorFailure = (failed: BookVectorsFailed) =>
+            Effect.sync(() => {
+              vectorFailures.push({ id: failed.bookId, reason: failed.reason });
+              return 0;
+            });
+          const addVectors = (bookId: number, scope: BookVectorsScope) =>
+            vectorsOf(bookId, scope).pipe(Effect.catchTag('BookVectorsFailed', keepVectorFailure));
           for (const book of plan.pending) {
             const outcome = yield* install(book);
-            const failure = failureOf(outcome);
-            if (Option.isSome(failure)) {
-              failures.push(failure.value);
+            if (outcome._tag === 'Failed') {
+              failures.push(outcome.failure);
               continue;
             }
-            installed.push(book);
-            yield* addVectors(book.id);
+            added.push(book);
+            yield* addVectors(book.id, 'book');
           }
-          for (const id of input.reembed ?? []) yield* addVectors(id);
+          /** Install the books of a recheck, and bring their vectors along. */
+          const recheck = Effect.fn('CorpusSync.recheck')(function* (
+            books: readonly EgwSyncBook[],
+          ) {
+            const done: RecheckedBook[] = [];
+            for (const book of books) {
+              const outcome = yield* install(book);
+              if (outcome._tag === 'Failed') {
+                failures.push(outcome.failure);
+                continue;
+              }
+              done.push({ book, changes: outcome.changes });
+              if (outcome.changes.added + outcome.changes.edited > 0) {
+                yield* addVectors(book.id, 'changed');
+              }
+              if (outcome.changes.removed > 0) {
+                yield* unindex(book.id).pipe(
+                  Effect.catchTag('BookVectorsFailed', keepVectorFailure),
+                );
+              }
+            }
+            return done;
+          });
+          const updated = yield* recheck(plan.changed);
+          const verified = yield* recheck(plan.verify);
+          for (const id of input.reembed ?? []) yield* addVectors(id, 'book');
 
           yield* optimizeStep;
           const report = yield* reportStep(plan, failures);
@@ -364,9 +512,18 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
             'egw_sync_done',
             `installed=${String(report.installed)} failed=${String(report.failed)}` +
               ` unexpected=${String(report.unexpectedFailures)}` +
+              ` updated=${String(updated.length)} verified=${String(verified.length)}` +
               ` vector_failures=${String(vectorFailures.length)}`,
           );
-          return SyncOutcome.Synced({ counts: report, installed, vectorFailures });
+          const run: SyncRun = {
+            counts: report,
+            added,
+            updated,
+            verified,
+            recheckLeft: plan.recheckLeft,
+            vectorFailures,
+          };
+          return SyncOutcome.Synced({ run, ...(yield* reportOf(run)) });
         });
 
         // A scheduled instance carries no payload at all, so the input is
@@ -392,9 +549,12 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
               remote: outcome.remote,
               installedBefore: outcome.installedBefore,
               pending: outcome.pending.map((book) => book.code),
+              changed: outcome.changed.map((book) => book.code),
+              verify: outcome.verify,
+              recheckLeft: outcome.recheckLeft,
             };
           }
-          const { counts: report, vectorFailures } = outcome;
+          const { counts: report, vectorFailures } = outcome.run;
           if (report.unexpectedFailures > 0 || vectorFailures.length > 0) {
             return yield* CorpusSyncIncomplete.make({
               message:
@@ -405,7 +565,11 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
                 `vector failures: ${vectorFailures.map((failed) => `${String(failed.id)} (${failed.reason})`).join(', ')}`,
             });
           }
-          return { mode: 'sync' as const, report };
+          return {
+            mode: 'sync' as const,
+            report,
+            published: Option.getOrUndefined(outcome.report),
+          };
         });
       }),
     );
@@ -418,6 +582,7 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
         Cloudflare.Vectorize.SearchIndexBinding,
         Cloudflare.Workers.AIBinding,
         Cloudflare.Email.SendBinding,
+        Cloudflare.R2.WriteBucketBinding,
       ),
     ),
   ),
