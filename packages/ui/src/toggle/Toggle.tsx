@@ -6,7 +6,11 @@
 // (upstream focuses the toggle): focus goes where the platform sends it for
 // a press on content that takes none, the group's nearest focusable ancestor
 // (a sheet's popup) or else nowhere, and the press still moves the group's
-// tab stop to the toggle.
+// tab stop to the toggle. Its index is guessed from render order, and
+// before the group settles its tab stop from the DOM, the toggle holding
+// the group's value holds it (the first toggle when the value is empty;
+// none when the value names no toggle), so the server's markup has the tab
+// stop the browser keeps (upstream's has none).
 // Upstream's lone toggle (`pressed`, `defaultPressed`,
 // `onPressedChange`) and `disabled` are left out.
 import type { JSX } from '@solidjs/web';
@@ -35,6 +39,10 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
   const pressed = () => group.value.includes(props.value);
 
   const button = useButton({ composite: true });
+
+  // The rule the group's `initialIndex` reads from the DOM once settled: the pressed toggle, else the first.
+  const initialTabStop = (index: number) =>
+    group.value.length > 0 ? group.value[0] === props.value : index === 0;
 
   const state: ToggleState = {
     get pressed() {
@@ -78,6 +86,8 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
   return (
     <CompositeItem<ToggleState>
       tag="button"
+      guess
+      initialTabStop={initialTabStop}
       render={props.render}
       class={props.class}
       style={props.style}

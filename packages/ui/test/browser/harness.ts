@@ -4,6 +4,11 @@
 // in Playwright's Chromium. A case opens a fixture by name; the page mounts
 // it into `#root` and records what the fixture logs in `window.__log`.
 //
+// A test file opened with `hydrate` serves each page as its fixture's server
+// render instead (`server.ts`: Solid's server build, run in the test's
+// process per page, with the script hydration needs), and the page
+// hydrates the browser's build over it; both builds are hydratable.
+//
 // Real Chromium, not a fake DOM: focus, pointer and touch events, layout and
 // `:focus-visible` are what the parts are about, and a fake DOM gets them
 // wrong. Run with `bun run test:browser` (it needs Playwright's Chromium:
@@ -14,10 +19,14 @@
 // view never takes the pointer lock (`requestPointerLock` rejects with
 // WrongDocumentError), so a scrub's lock was never tested there.
 import { afterAll, afterEach, beforeAll } from 'bun:test';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 
 import { transform } from '@solidjs/compiler';
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import type { BunPlugin } from 'bun';
+
+import type * as ServerEntry from './server.ts';
 
 /**
  * The flags every Chromium here launches with, as the film's `chromeArgs`:
@@ -31,16 +40,29 @@ const SILENT = [
   '--pull-to-refresh=0',
 ];
 
-/** Solid's DOM compiler, with `fixtures/index.ts` resolved to `fixtureFile`. */
-const solid = (fixtureFile: string): BunPlugin => ({
-  name: 'solid-dom',
+interface SolidOptions {
+  /** `dom` for the browser, `ssr` for the server's render. */
+  readonly generate: 'dom' | 'ssr';
+  /** Whether the output hydrates (`dom`) or renders markup to hydrate (`ssr`). */
+  readonly hydratable: boolean;
+  /** The fixture file `fixtures/index.ts` resolves to, if any. */
+  readonly fixtureFile?: string | undefined;
+}
+
+/** Solid's compiler, with `fixtures/index.ts` resolved to the fixture file. */
+const solid = (options: SolidOptions): BunPlugin => ({
+  name: `solid-${options.generate}`,
   setup(build) {
-    build.onResolve({ filter: /fixtures\/index\.ts$/ }, () => ({ path: fixtureFile }));
+    const { fixtureFile } = options;
+    if (fixtureFile !== undefined) {
+      build.onResolve({ filter: /fixtures\/index\.ts$/ }, () => ({ path: fixtureFile }));
+    }
     build.onLoad({ filter: /\.tsx$/ }, async (args) => {
       const code = await Bun.file(args.path).text();
       const out = transform(code, {
         filename: args.path,
-        generate: 'dom',
+        generate: options.generate,
+        hydratable: options.hydratable,
         moduleName: '@solidjs/web',
       });
       return { contents: out.code, loader: 'ts' };
@@ -49,10 +71,10 @@ const solid = (fixtureFile: string): BunPlugin => ({
 });
 
 /** The page script serving one fixture file's fixtures, built in memory (nothing is written to disk). */
-const bundle = async (fixtureFile: string): Promise<string> => {
+const bundle = async (fixtureFile: string, hydratable: boolean): Promise<string> => {
   const output = await Bun.build({
     entrypoints: [`${import.meta.dir}/client.tsx`],
-    plugins: [solid(fixtureFile)],
+    plugins: [solid({ generate: 'dom', hydratable, fixtureFile })],
     target: 'browser',
     conditions: ['browser', 'development'],
   });
@@ -63,7 +85,41 @@ const bundle = async (fixtureFile: string): Promise<string> => {
   return script.text();
 };
 
-const PAGE = `<!doctype html>
+/** A server build of `entry` (Solid's `ssr` output, hydratable), loaded in this process. */
+export interface ServerBuild<Module> {
+  readonly module: Module;
+  /** Removes the build's files. */
+  readonly dispose: () => Promise<void>;
+}
+
+/**
+ * Builds `entry` for the server, with `fixtures/index.ts` resolved to
+ * `fixtureFile` when given, and imports it. The bundle holds its own copy of
+ * Solid's server runtime, so whatever renders must be in `entry`.
+ */
+export const buildServer = async <Module>(
+  entry: string,
+  fixtureFile?: string,
+): Promise<ServerBuild<Module>> => {
+  const outdir = await mkdtemp(`${tmpdir()}/ui-server-`);
+  const dispose = () => rm(outdir, { recursive: true, force: true });
+  const output = await Bun.build({
+    entrypoints: [entry],
+    plugins: [solid({ generate: 'ssr', hydratable: true, fixtureFile })],
+    target: 'bun',
+    outdir,
+  });
+  const [built] = output.outputs;
+  if (!output.success || !built) {
+    await dispose();
+    throw new Error(output.logs.map(String).join('\n'));
+  }
+  const module: Module = await import(built.path);
+  return { module, dispose };
+};
+
+/** The page: `head` in its head, and `#root` empty or holding the server's markup to hydrate. */
+const page = (head: string, served: string | undefined): string => `<!doctype html>
 <html><head><meta charset="utf-8"><title>ui</title>
 <style>
   body { margin: 0; font: 14px sans-serif; }
@@ -71,8 +127,16 @@ const PAGE = `<!doctype html>
      a test; a finger that drags past a hidden sheet reaches the document. */
   html { overscroll-behavior: none; }
   [hidden] { display: none !important; }
-</style></head>
-<body><div id="root"></div><script type="module" src="/client.js"></script></body></html>`;
+</style>${head}</head>
+<body>${served === undefined ? '<div id="root"></div>' : `<div id="root" data-served>${served}</div>`}<script type="module" src="/client.js"></script></body></html>`;
+
+export interface HarnessOptions {
+  /**
+   * Each page is its fixture's server render, which the browser hydrates
+   * (`hydrate()`), instead of an empty root the browser renders into.
+   */
+  readonly hydrate?: boolean;
+}
 
 export interface Harness {
   /** Opens `fixture` in a fresh page; `query` reaches the fixture as URL params. */
@@ -119,8 +183,10 @@ export interface OpenOptions {
  * at any time, during mount or after. Each case's pages close when it ends,
  * so nothing a page does later lands on the next case.
  */
-export const harness = (fixtureFile: string): Harness => {
+export const harness = (fixtureFile: string, options: HarnessOptions = {}): Harness => {
+  const hydrate = options.hydrate ?? false;
   let server: ReturnType<typeof Bun.serve> | undefined;
+  let serverBuild: ServerBuild<typeof ServerEntry> | undefined;
   let browser: Browser | undefined;
   // Launched for the first page that asks for scrollbars that take room.
   let scrollbarBrowser: Promise<Browser> | undefined;
@@ -128,7 +194,12 @@ export const harness = (fixtureFile: string): Harness => {
   let problems: Array<string> = [];
 
   beforeAll(async () => {
-    const script = await bundle(`${import.meta.dir}/fixtures/${fixtureFile}`);
+    const fixturePath = `${import.meta.dir}/fixtures/${fixtureFile}`;
+    const script = await bundle(fixturePath, hydrate);
+    if (hydrate) {
+      serverBuild = await buildServer(`${import.meta.dir}/server.ts`, fixturePath);
+    }
+    const render = serverBuild?.module.render;
     server = Bun.serve({
       port: 0,
       fetch(request) {
@@ -136,7 +207,10 @@ export const harness = (fixtureFile: string): Harness => {
         if (url.pathname === '/client.js') {
           return new Response(script, { headers: { 'content-type': 'text/javascript' } });
         }
-        return new Response(PAGE, { headers: { 'content-type': 'text/html;charset=utf-8' } });
+        const rendered = render?.(url.searchParams.get('fixture') ?? '');
+        return new Response(page(rendered?.head ?? '', rendered?.html), {
+          headers: { 'content-type': 'text/html;charset=utf-8' },
+        });
       },
     });
     browser = await chromium.launch({ channel: 'chromium', args: SILENT });
@@ -157,6 +231,7 @@ export const harness = (fixtureFile: string): Harness => {
     await browser?.close();
     await (await scrollbarBrowser)?.close();
     await server?.stop(true);
+    await serverBuild?.dispose();
   });
 
   return {
@@ -227,6 +302,10 @@ export const harness = (fixtureFile: string): Harness => {
 /** What the fixture logged (`log(...)` in the page), in order. */
 export const logOf = (page: Page): Promise<Array<string>> =>
   page.evaluate(() => (window as unknown as { __log: Array<string> }).__log);
+
+/** The markup the server rendered into `#root`, as the page received it (a hydrating harness's page). */
+export const servedOf = (page: Page): Promise<string> =>
+  page.evaluate(() => (window as unknown as { __served: string }).__served);
 
 /** The `id` of the focused element, or the tag name when it has none. */
 export const focused = (page: Page): Promise<string> =>

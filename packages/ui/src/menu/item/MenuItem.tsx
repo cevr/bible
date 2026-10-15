@@ -9,7 +9,8 @@
 // mouse on it after pressing the trigger (press, drag, release) activates
 // it. In a context menu, the release of the right-click that opened the menu
 // does not activate the item under the pointer. `useMenuItem` is that
-// behaviour, which the radio item (`Menu.RadioItem`) shares.
+// behaviour, which the radio item (`Menu.RadioItem`) shares. As upstream,
+// an item guesses its index from render order until its element registers.
 import type { JSX } from '@solidjs/web';
 import { createUniqueId, omit, untrack } from 'solid-js';
 
@@ -58,6 +59,7 @@ export function useMenuItem(params: MenuItemParams): MenuItemBehaviour {
   // context menu's trigger is a plain one.
   const contextMenu = parent.type === 'context-menu' ? parent.context : null;
   const listItem = useCompositeListItem({
+    guess: true,
     get label() {
       return params.label();
     },

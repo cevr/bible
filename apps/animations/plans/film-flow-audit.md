@@ -6,13 +6,13 @@ This file is the sweep: every owner statement found about a film's production fl
 
 **116 owner statements** were found and placed. A statement with two parts (a rule kept, a tool still to build) counts under each of its statuses, so a row's statuses can add up to more than its statements.
 
-| Topic   | Statements | Captured | Restored | Fixed | Superseded | Open  | Lost  |
-| ------- | ---------- | -------- | -------- | ----- | ---------- | ----- | ----- |
-| Flow    | 32         | 18       | 12       | 1     | 4          | 1     |       |
-| Tone    | 36         | 25       | 13       | 1     |            | 2     | 1     |
-| Look    | 29         | 17       | 2        | 1     | 9          |       |       |
-| Review  | 19         | 11       | 4        | 4     | 3          | 1     |       |
-| **All** | **116**    | **71**   | **31**   | **7** | **16**     | **4** | **1** |
+| Topic   | Statements | Captured | Restored | Fixed | Superseded | Open  | Lost |
+| ------- | ---------- | -------- | -------- | ----- | ---------- | ----- | ---- |
+| Flow    | 32         | 18       | 12       | 1     | 4          | 1     |      |
+| Tone    | 36         | 26       | 13       | 1     |            | 2     |      |
+| Look    | 29         | 17       | 2        | 1     | 9          |       |      |
+| Review  | 19         | 11       | 4        | 4     | 3          | 1     |      |
+| **All** | **116**    | **72**   | **31**   | **7** | **16**     | **4** |      |
 
 ## Sources
 
@@ -89,7 +89,7 @@ Status: **CAPTURED** was in the repo and still holds; **RESTORED** was lost or p
 | 40  | 10-09 | W·2c22 14:49  | "we dont need to encode these rules in codes or tests or lints, just for the skill guidance is enough" and "code checks is for UI and framework, not for actual content"                        | Tone   | RESTORED (lost) `skill/SKILL.md:190`                                                                                                                              |
 | 41  | 10-10 | W2·078f 23:14 | "see what topics we can cover with films on theology. from milk to meat … education and health will follow kind of the talking instead of film"                                                 | Tone   | CAPTURED `anim/series/README.md:7`                                                                                                                                |
 | 42  | 10-11 | W2·078f 01:58 | "the audience is all christians and even interested non believers, we want to appeal to reason, bible verses, and logic. persuasive tones"                                                      | Tone   | RESTORED (the non-believer was missing) `anim/series/README.md:14`, `skill/CRAFT.md:128`                                                                          |
-| 43  | 10-11 | W2·078f 01:58 | "i need to grab a bunch of how i talk so you can see my tones and pathos"                                                                                                                       | Tone   | LOST: no samples were gathered; follow-up `ownervoice`                                                                                                            |
+| 43  | 10-11 | W2·078f 01:58 | "i need to grab a bunch of how i talk so you can see my tones and pathos"                                                                                                                       | Tone   | CAPTURED `skill/reference/owner-voice.md:1` (nine sermons)                                                                                                        |
 | 44  | 10-11 | W2·078f 01:58 | "we're fully historicist pioneer adventists, but want to avoid the prejudice"                                                                                                                   | Tone   | CAPTURED `skill/frame/README.md:3`, `anim/series/README.md:18`                                                                                                    |
 | 45  | 10-11 | W2·078f 13:43 | "how immediately it enters into the story … the punchy, um, full screen text … a modern editing style"                                                                                          | Tone   | CAPTURED `skill/CRAFT.md:19`                                                                                                                                      |
 | 46  | 10-11 | W2·078f 15:17 | "Maybe change the rule one, so I can repeat the variation, but it can't just be like any small card, I'm taking full screen"                                                                    | Tone   | CAPTURED `skill/CRAFT.md:19`                                                                                                                                      |
@@ -227,7 +227,7 @@ Branches with film-skill or series changes that never reached p5-main, and why e
 - **`animatic`**: export the animatic with the staged voice as an MP4 to watch whole, and an accept of its own on the production.
 - **`judgeopus`**: `bun run judge` asks a fresh Opus at max effort, never `okra counsel` (75).
 - **`subtitles`**: the owner answers the open ask `a49cc614a25` on the laptop's lab (which subtitle try to keep, and whether a subtitle hides when the picture shows the word), filed on RBF's production (99); then the `rbfscene` trial merges or is dropped.
-- **`ownervoice`**: gather recordings of how the owner talks (43), kept in git-ignored `tmp/`, and write the voice they show into the series' Voice and audience. It needs his material.
+- **`ownervoice`**: gather recordings of how the owner talks (43), kept in git-ignored `tmp/`, and write the voice they show into the series' Voice and audience. Done: nine sermons measured into `skill/reference/owner-voice.md`, pointed to from the series' Voice and audience, the skill's references and CRAFT rule 11.
 - **Landed with `labmcp`**: the MCP's token is gone (53471986e) and an ask's words are optional (a8d71faf0), on the owner's word (115, 116); `bun run production ask` makes the running lab's own ask through the one lab client (6c048b393; 113), and the film skill's "bare question" lines are gone.
 - **`hostfacts`**, the rest: the film skill's lab-address lines are done here (`anim/plans/p5-run.md:146`); `anim/README.md` (Record, the box's HTTPS address) and `packages/film/README.md` (the remote surface) still name the Workbox host.
 
@@ -270,3 +270,4 @@ Every rule a script writer must hold, with where it lives. Read the paths, not t
 23. Content rules are held by hand: never a lint, test or `check` finding for a content rule. `skill/SKILL.md:190`
 24. Go through the flow and ask, don't chat: lead each ask with a choice, words optional; the script is kept by an ask before concepts are painted; each stage ends on his word, filed on the production. `skill/SKILL.md:58`
 25. Open choices to ask, not assume: punchy subtitles or the clean master (99), the everyman recast as Max, the country-living link (61), the eyes against the kept concept (101). `skill/CRAFT.md:27`
+26. Sound like the owner, who narrates: a question the film answers, the text read as it reads, a likeness, a refrain of three, a choice to land on; his plain words (no amazing, wonderful, journey), the confession in "we", no "I" line he has not confirmed; each church habit's film form. `skill/reference/owner-voice.md:1`
