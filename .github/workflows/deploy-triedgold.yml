@@ -8,10 +8,12 @@ name: deploy-triedgold
 on:
   push:
     branches: [main]
-    paths: ['apps/triedgold/**', 'bun.lock', 'package.json', '.github/workflows/deploy-triedgold.yml']
+    paths:
+      ['apps/triedgold/**', 'bun.lock', 'package.json', '.github/workflows/deploy-triedgold.yml']
   pull_request:
     types: [opened, synchronize, reopened, closed]
-    paths: ['apps/triedgold/**', 'bun.lock', 'package.json', '.github/workflows/deploy-triedgold.yml']
+    paths:
+      ['apps/triedgold/**', 'bun.lock', 'package.json', '.github/workflows/deploy-triedgold.yml']
 
 concurrency:
   group: deploy-triedgold-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'prod' }}
