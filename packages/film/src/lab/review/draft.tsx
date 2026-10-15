@@ -136,6 +136,8 @@ const useUrlSelecting = (series: string, draft: string): Selecting => {
 export const DraftPage = (props: { readonly series: string; readonly draft: string }) => {
   const { meta, state } = useReview();
   const read = useAtomValue(() => meta.draft(props.series, props.draft));
+  // Made once, in the page's body: a prop's getter would make it at each read, outside its owner.
+  const selecting = useUrlSelecting(props.series, props.draft);
   const seriesTitle = () =>
     Option.getOrElse(
       Option.flatMap(AsyncResult.value(state.series()), (l) =>
@@ -167,7 +169,7 @@ export const DraftPage = (props: { readonly series: string; readonly draft: stri
           series={props.series}
           draft={props.draft}
           only={Option.none()}
-          selecting={useUrlSelecting(props.series, props.draft)}
+          selecting={selecting}
         />
       </article>
     </>

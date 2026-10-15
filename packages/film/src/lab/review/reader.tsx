@@ -21,13 +21,17 @@ import { Array as Arr, Effect, Option, Result } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { Accessor } from 'solid-js';
-import { createEffect, createMemo } from 'solid-js';
+import { createEffect, createMemo, onCleanup } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
+import { Selection } from '../../command/selection.ts';
+import { targetAttr } from '../../command/target.ts';
 import type { DraftBeatRead, MarksPost, ScriptVoice } from '../../core/api.ts';
 import type { Mark } from '../../core/delivery.ts';
 import { parse } from '../../core/narration.ts';
 import type { LabFailure } from '../api.ts';
+import { Target } from '../command/context-menu.tsx';
 import { BriefBox } from '../script/brief.tsx';
+import { scriptCommands } from '../script/commands.ts';
 import { gapBefore } from '../script/delivery.ts';
 import { VoiceOver, type VoiceSource, polled, useVoice } from '../script/voice.tsx';
 import {
@@ -115,14 +119,32 @@ const Line = (props: {
   readonly marks: ReadonlyArray<Mark>;
   readonly released: (event: MouseEvent) => void;
 }) => (
-  // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- the words are text, painted and selectable as the film reader's are (`transcript/words.ts`): a press released on them reads what it selected, and no word is a control of its own
-  <p class="lab-script-line" data-scene={props.line.id} onClick={props.released}>
+  // A word held (or right-clicked) opens its menu: Select to here, a phone's range.
+  <Target
+    of={Selection.cases.Words.make({
+      scene: props.line.id,
+      from: Option.getOrElse(
+        Option.map(Arr.head(props.line.rows), (r) => r.index),
+        () => 0,
+      ),
+      to: Option.getOrElse(
+        Option.map(Arr.last(props.line.rows), (r) => r.index),
+        () => 0,
+      ),
+    })}
+    class="lab-script-line"
+    data-scene={props.line.id}
+    onClick={props.released}
+  >
     <For each={props.line.rows}>
       {(row) => (
         <>
           <GapGlyph gap={gapBefore(props.marks, row.index)} />
           <span
             class="lab-script-w"
+            data-target={targetAttr(
+              Selection.cases.Words.make({ scene: props.line.id, from: row.index, to: row.index }),
+            )}
             data-index={row.index}
             data-from={row.from}
             data-stress={stressAttr(props.marks, row.index)}
@@ -132,7 +154,7 @@ const Line = (props: {
         </>
       )}
     </For>
-  </p>
+  </Target>
 );
 
 /** Under a beat's line while words of it are selected: what they say, Hear, Clear, and their delivery. */
@@ -279,6 +301,18 @@ const Beats = (props: {
         ),
       ),
   });
+  // A phone has no Shift: tap the first word, hold the last, Select to here, as on the Script page.
+  onCleanup(
+    meta.hub.commands.register(
+      ...scriptCommands({
+        selection: () =>
+          Option.map(props.selecting.selected(), (w) =>
+            Selection.cases.Words.make({ scene: w.beat, from: w.from, to: w.to }),
+          ),
+        select: (w) => props.selecting.select(w.scene, { from: w.from, to: w.to }),
+      }),
+    ),
+  );
   let page = Option.none<HTMLElement>();
   usePainted(
     meta.host,
@@ -356,7 +390,7 @@ const Beats = (props: {
  * answer the source's own (a draft's read as the write leaves it, a film's
  * script read again).
  */
-export interface ScriptSource {
+interface ScriptSource {
   readonly voice: Effect.Effect<ScriptVoice, LabFailure, ReviewApi>;
   readonly mark: (post: MarksPost) => Effect.Effect<unknown, LabFailure, ReviewApi>;
   /** A take's audio, by the name its `Ready` gives it. */
