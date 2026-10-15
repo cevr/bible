@@ -11,6 +11,7 @@
     "src/**/*.ts",
     "infra/**/*.ts",
     "art/**/*.ts",
+    "series/**/*.ts",
     "server.ts",
     "cli.ts",
     "studio-harness.ts",

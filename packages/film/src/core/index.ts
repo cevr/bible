@@ -2,7 +2,7 @@
 // sound cues, scene layout, the mix and the procedural synth. Nothing here
 // touches the DOM at runtime, so the Bun scripts and tests import it
 // directly. The entry names what films, their kits, the app's sound library
-// and tests import from `@bible/film/core` (guarded by exports.test.ts); the
+// and tests (the app's drafts among them) import from `@bible/film/core` (guarded by exports.test.ts); the
 // framework's own code reads each module by its path.
 
 export { type Key, clamp, ease, gait, keys, lerp, staggered } from './time.ts';
@@ -12,3 +12,4 @@ export { membersOf } from './acts.ts';
 export { defineLibrary } from './sfx.ts';
 export { defineStore } from './store.ts';
 export { stagingVoice } from './staging-voice.ts';
+export { readDraft, unreadText } from './draft.ts';
