@@ -14,11 +14,9 @@
     "app/**/*.ts",
     "app/**/*.tsx",
     "src/**/*.ts",
-    "infra/**/*.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx",
     ".react-router/types/**/*",
-    "server.ts",
     "alchemy.run.ts",
     "react-router.config.ts",
     "vite.config.ts"
