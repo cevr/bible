@@ -23,7 +23,8 @@ import {
 } from './e2e-verdict.ts';
 
 /** The suite's script, as `packages/film/package.json` names it. */
-const SUITE = 'bun src/lab/fixtures/run-suite.ts --parallel --no-isolate --max-concurrency=3 e2e';
+const SUITE =
+  'bun src/lab/fixtures/run-suite.ts --parallel --no-isolate --max-concurrency=3 --timeout 20000 e2e';
 
 /** A local run's output, as `bun test` prints it to a file. */
 const LOCAL = [
@@ -137,12 +138,14 @@ describe('reading a log', () => {
 describe('rerunning a failure alone', () => {
   test("a case reruns through the suite's own runner and flags in one worker, at the suite's own concurrency; a file's failure, the file whole", () => {
     const args = failuresIn(CI).map((failure) => aloneArgs(SUITE, failure));
-    expect(args.map((a) => a.slice(0, 6))).toEqual([
+    expect(args.map((a) => a.slice(0, 8))).toEqual([
       [
         'bun',
         'src/lab/fixtures/run-suite.ts',
         '--no-isolate',
         '--max-concurrency=3',
+        '--timeout',
+        '20000',
         'e2e/lab/fixtures/browsers.dom.test.ts',
         '-t',
       ],
@@ -151,6 +154,8 @@ describe('rerunning a failure alone', () => {
         'src/lab/fixtures/run-suite.ts',
         '--no-isolate',
         '--max-concurrency=3',
+        '--timeout',
+        '20000',
         'e2e/player/player.dom.test.ts',
       ],
     ]);
