@@ -15,37 +15,14 @@ import { Context, Effect, FileSystem, Layer, Option, Struct } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { Place } from '@bible/url-state';
 import { LAB_PAGES, LAB_SERVERS } from '../../../../apps/animations/server.ts';
-import { Places, pageHref } from '../core/api.ts';
+import { Places } from '../core/api.ts';
+import { PLACE_HREFS } from '../lab/fixtures/places.ts';
 import { LabPage, PageBundler } from './lab-page.ts';
 import { PageReads } from './api-server.ts';
 import { PageRenderer } from './page-render.ts';
 
-/**
- * Every place a studio page is at (`Places`, `core/api.ts`), by a link the
- * lab serves it at: a place added there is weighed here, or this fails to
- * typecheck. A film's export page is no phone's: the renderer's and the
- * easel's, drawn in the browser alone.
- */
-const PLACES = {
-  home: pageHref.home(),
-  production: pageHref.production('p'),
-  ask: pageHref.ask('a0123456789'),
-  draft: pageHref.draft('s', 'd'),
-  draftBeat: pageHref.draftBeat('s', 'd', '1', '0-0'),
-  folder: pageHref.folder('f'),
-  set: pageHref.set('f', 'p'),
-  choices: pageHref.choices('f'),
-  project: pageHref.project('f'),
-  scenes: pageHref.scenes('f'),
-  scene: pageHref.scene('f', 's'),
-  play: pageHref.play('f'),
-  lab: pageHref.lab('f'),
-  labScene: pageHref.labScene('f', 's'),
-  script: pageHref.script('f'),
-  scriptBeat: pageHref.scriptBeat('f', 's'),
-  board: pageHref.board('f'),
-  boardBeat: pageHref.boardBeat('f', 's'),
-} satisfies Record<Exclude<keyof typeof Places, 'export'>, string>;
+/** Every place a studio page is at, by a link the lab serves it at (`fixtures/places.ts`): each is weighed. */
+const PLACES = PLACE_HREFS;
 
 /**
  * The most a page's render-blocking CSS may weigh, in bytes, as built
