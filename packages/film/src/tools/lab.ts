@@ -441,7 +441,8 @@ const marksWrite = (name: string, payload: MarksPost) =>
         scene: Option.some(payload.beat),
         file,
         target,
-        edit: (source) => editMarks(source, payload.beat, payload.marks, payload.spoken),
+        edit: (source) =>
+          editMarks(source, payload.beat, payload.marks, Option.fromUndefinedOr(payload.read)),
         verify: (after, before) => sayMissed(after, before, payload.beat, payload.marks),
         check: () => Effect.void,
       });

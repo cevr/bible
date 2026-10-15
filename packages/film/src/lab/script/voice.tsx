@@ -25,7 +25,7 @@ import {
   type StagingTake,
   stagingTakeUrl,
 } from '../../core/api.ts';
-import type { Mark } from '../../core/delivery.ts';
+import type { LineRead, Mark } from '../../core/delivery.ts';
 import type { TakeWord } from '../../core/schema.ts';
 import { LabApi, type LabFailure, reasonOf } from '../api.ts';
 import { useLab } from '../shell.tsx';
@@ -84,8 +84,8 @@ interface VoiceContextValue {
   readonly stop: () => void;
   /** Where the reader's write of marks stands. */
   readonly marking: Accessor<Marking>;
-  /** Write beat `beat`'s marks as `marks`, made on its line as `spoken` (nothing while a write is out). */
-  readonly mark: (beat: string, marks: ReadonlyArray<Mark>, spoken: string) => void;
+  /** Write beat `beat`'s marks as `marks`, made on its line as the page read it (`read`; nothing while a write is out). */
+  readonly mark: (beat: string, marks: ReadonlyArray<Mark>, read: LineRead) => void;
   /** What a beat's head says once its marks are written. */
   readonly written: string;
 }
@@ -268,10 +268,10 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
   // One write out at a time; once it lands the takes are read again, the beat's new key queued first.
   const [marking, setMarking] = createSignal<Marking>(Marking.Idle(), { ownedWrite: true });
   const send = useAtomSet(() => source.write, { mode: 'promiseExit' });
-  const mark = (beat: string, marks: ReadonlyArray<Mark>, spoken: string) => {
+  const mark = (beat: string, marks: ReadonlyArray<Mark>, read: LineRead) => {
     if (untrack(marking)._tag === 'Writing') return;
     setMarking(Marking.Writing({ beat }));
-    void send({ beat, marks, spoken }).then((exit) => {
+    void send({ beat, marks, read }).then((exit) => {
       if (Exit.isSuccess(exit)) {
         setMarking(Marking.Written({ beat }));
         readAgain();

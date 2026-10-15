@@ -139,7 +139,7 @@ import {
   TakeWord,
 } from './schema.ts';
 import { KeepPost, StudioAttempts, StudioBeats, StudioTake, TakePost } from './studio.ts';
-import { Mark } from './delivery.ts';
+import { LineRead, Mark } from './delivery.ts';
 
 // ---------------------------------------------------------------------------
 // The failures only the transport has.
@@ -455,15 +455,19 @@ export type ScriptVoice = typeof ScriptVoice.Type;
 
 /**
  * `POST /api/films/<film>/script/marks` (and a draft's): a beat's delivery
- * marks as they should read, its words unchanged, and the words the page
- * read when it made them (`spoken`: the line as the voice says it). A mark
- * is on a word by its index, so a write is refused once the line says other
- * words: the page reads it again rather than mark the wrong one.
+ * marks as they should read, its words unchanged, and the line the page
+ * read when it made them (`read`: its words as the voice says them and
+ * their marks). A write replaces the line's every mark, and a mark is on a
+ * word by its index, so a write is refused once the line says other words
+ * or carries other marks: the page reads it again rather than mark the
+ * wrong word or write over marks made elsewhere. `read` is optional only so
+ * a tab older than the lab (which sent none) is refused with words that
+ * say to reload, not a payload that does not decode; it never writes.
  */
 export const MarksPost = Schema.Struct({
   beat: Schema.String,
   marks: Schema.Array(Mark),
-  spoken: Schema.String,
+  read: Schema.optionalKey(LineRead),
 });
 export type MarksPost = typeof MarksPost.Type;
 

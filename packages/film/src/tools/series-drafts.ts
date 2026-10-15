@@ -211,7 +211,7 @@ export class SeriesDrafts extends Context.Service<SeriesDrafts, SeriesDraftsServ
         });
 
         const mark = Effect.fn('SeriesDrafts.mark')(
-          (series: string, draft: string, { beat, marks, spoken }: MarksPost) =>
+          (series: string, draft: string, { beat, marks, read }: MarksPost) =>
             writer.withPermits(1)(
               Effect.gen(function* () {
                 const file = yield* fileOf(series, draft);
@@ -219,7 +219,7 @@ export class SeriesDrafts extends Context.Service<SeriesDrafts, SeriesDraftsServ
                 const target = `marks:${beat}`;
                 const before = yield* fs.readFileString(file);
                 const after = yield* Effect.mapError(
-                  Effect.fromResult(draftMarked(before, beat, marks, spoken)),
+                  Effect.fromResult(draftMarked(before, beat, marks, Option.fromUndefinedOr(read))),
                   (u) => SourceRefused.make({ file: shown, target, reason: unreadText(u) }),
                 );
                 const missed = draftMissed(after, before, beat, marks);

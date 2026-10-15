@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result, Schema } from 'effect';
+import type { LineRead } from './delivery.ts';
 import { DraftMarkdown, draftMarked, draftMissed, unreadText } from './draft.ts';
 
 const TALK = [
@@ -34,10 +35,30 @@ const FILM = [
   '',
 ].join('\n');
 
-/** The lines' words as a page reads them: the words a mark write is made on. */
-const DANIEL = 'Daniel was taken. He was young.';
-const MILK = 'A baby drinks milk. Nobody minds.';
-const PIPE = 'A pipe | in a cell, and a turn.';
+/** The lines as a page reads them, their words and their marks: the line a mark write is made on. */
+const DANIEL = Option.some<LineRead>({
+  spoken: 'Daniel was taken. He was young.',
+  marks: [
+    { _tag: 'Stress', word: 2 },
+    { _tag: 'Breath', before: 3 },
+    { _tag: 'Stress', word: 5 },
+  ],
+});
+const MILK = Option.some<LineRead>({
+  spoken: 'A baby drinks milk. Nobody minds.',
+  marks: [
+    { _tag: 'Stress', word: 3 },
+    { _tag: 'Breath', before: 4 },
+    { _tag: 'Stress', word: 5 },
+  ],
+});
+const PIPE = Option.some<LineRead>({
+  spoken: 'A pipe | in a cell, and a turn.',
+  marks: [
+    { _tag: 'Hold', before: 7, seconds: 1.5 },
+    { _tag: 'Stress', word: 8 },
+  ],
+});
 
 const read = Schema.decodeSync(DraftMarkdown);
 const refusal = (markdown: string) =>
@@ -188,6 +209,19 @@ describe('draftMarked', () => {
     const stale = draftMarked(reworded, '1', [{ _tag: 'Stress', word: 2 }], DANIEL);
     expect(unreadText(Result.getOrThrow(Result.flip(stale)))).toBe(
       'beat 1: its words changed since the page read them (it says "Daniel was carried away. He was young." now): read it again and mark it there',
+    );
+  });
+
+  test('refuses marks made on a line marked since, and a page older than the lab', () => {
+    // Marked elsewhere since the page read it: "young" is no longer stressed.
+    const remarked = TALK.replace('He was {*}young.', 'He was young.');
+    const stale = draftMarked(remarked, '1', [{ _tag: 'Stress', word: 0 }], DANIEL);
+    expect(unreadText(Result.getOrThrow(Result.flip(stale)))).toBe(
+      'beat 1: its marks changed since the page read them (marked elsewhere): read it again and mark it there',
+    );
+    const older = draftMarked(TALK, '1', [], Option.none());
+    expect(unreadText(Result.getOrThrow(Result.flip(older)))).toBe(
+      'beat 1: this page is older than the lab: reload it, then mark again',
     );
   });
 });

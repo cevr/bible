@@ -312,7 +312,10 @@ describe("an agent's ask on a phone", () => {
         expect(marked.map((p) => Option.getOrNull(p.body))).toEqual([
           {
             beat: '1',
-            spoken: 'The first thing God gave was breath.',
+            read: {
+              spoken: 'The first thing God gave was breath.',
+              marks: [{ _tag: 'Stress', word: 4 }],
+            },
             marks: [
               { _tag: 'Stress', word: 3 },
               { _tag: 'Stress', word: 4 },
@@ -390,7 +393,10 @@ describe("an agent's ask on a phone", () => {
         expect(marked.map((p) => Option.getOrNull(p.body))).toEqual([
           {
             beat: '1',
-            spoken: 'The first thing God gave was breath.',
+            read: {
+              spoken: 'The first thing God gave was breath.',
+              marks: [{ _tag: 'Stress', word: 4 }],
+            },
             marks: [
               { _tag: 'Stress', word: 3 },
               { _tag: 'Stress', word: 4 },
