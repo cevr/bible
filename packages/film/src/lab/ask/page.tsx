@@ -7,7 +7,7 @@
 // (`parts.tsx`, `material.tsx`).
 
 import { PlaceStyle } from '../place-style.tsx';
-import { PHONE, WIDE } from '../viewport.ts';
+import { WIDE } from '../viewport.ts';
 import * as Ask from './parts.tsx';
 
 /**
@@ -15,7 +15,9 @@ import * as Ask from './parts.tsx';
  * it rides with the page (`PlaceStyle`). Its rules name the ask's own parts,
  * and the material it shows keeps the look it has everywhere: two rules under
  * `.ak-mat` set only the layout and size an ask's column asks of it (a
- * pending row's inset, a note's smaller title). What else differs is the
+ * pending row's inset, a note's smaller title). One rule reaches past the
+ * ask, on the laptop: the main column keeps no bottom room, and the dock no
+ * margin, while the ask's Send is held at its floor. What else differs is the
  * parts' own: the reader leaves out the day's spend by its `cost` prop, and
  * a video's quiet play is the player's (`PlayedAlone`'s `quiet`).
  */
@@ -68,14 +70,16 @@ const ASK_CSS = `
 .ak-answers dt{color:var(--text-2);font-size:var(--fs-2);line-height:var(--lh-2)}
 .ak-answers dd{margin:0}
 .ak-outcome p{margin:0}
-@media ${PHONE}{
-  /* On the phone the script runs to the screen's edges, and the held heads with it. */
-  .ak-mat[data-material=script],.ak-section-h{margin-inline:calc(-1 * var(--gutter))}
-  .ak-mat[data-material=script] .ak-mat-name,.ak-section-h{padding-inline:var(--gutter)}
-}
+/* The script's reader is inset by the gutter, so it runs out over the gutter, and the held heads
+   with it: its words then start on the column's edge, on the phone and the laptop alike. */
+.ak-mat[data-material=script],.ak-section-h{margin-inline:calc(-1 * var(--gutter))}
+.ak-mat[data-material=script] .ak-mat-name,.ak-section-h{padding-inline:var(--gutter)}
 @media ${WIDE}{
   .ak-options[data-pictured=true]{grid-template-columns:repeat(4,minmax(0,1fr))}
   .ak-send{position:sticky;top:auto;bottom:0;border-top:var(--border);border-bottom:0}
+  /* The held Send is the page's floor: the main column keeps no room under it, nor the dock a margin. */
+  .rv-main:has(.ak-send){padding-bottom:0}
+  .rv-main .sh-dock.ak-send:not(.pj-dock){margin-bottom:0}
 }
 `;
 

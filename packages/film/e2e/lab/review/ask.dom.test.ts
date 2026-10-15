@@ -28,6 +28,7 @@ import { pageHref } from '../../../src/core/api.ts';
 import { AskRefused } from '../../../src/core/refusals.ts';
 import {
   type Asked,
+  DESK,
   type FakeRoute,
   type Json,
   PHONE,
@@ -611,6 +612,42 @@ describe("an agent's ask on a phone", () => {
             ],
           },
         ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "on a laptop the script's words start on the column's edge with the band's, and the dock ends on the window's bottom",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview([...guidedRoutes, ...studioRoutes], {
+          href: pageHref.ask(STUDIO_GUIDED),
+          viewport: DESK,
+        });
+        yield* waitFor(page, ASK_READY);
+        yield* waitFor(page, '.ak-step[data-step="script"] .lab-script-beat');
+        // The band's words, the draft's name, a beat's line and the Board start at one x; the
+        // band and the script's dividers span one width.
+        const left = (selector: string) =>
+          `Math.round(document.querySelector('${selector}').getBoundingClientRect().left)`;
+        const textLeft = (selector: string) =>
+          `((el) => Math.round(el.getBoundingClientRect().left + parseFloat(getComputedStyle(el).paddingLeft)))(document.querySelector('${selector}'))`;
+        yield* evaluates(
+          page,
+          `[${textLeft('.ak-step[data-step="script"] .ak-section-h')}, ${textLeft('.ak-step[data-step="script"] .ak-mat-name')}, ${textLeft('.ak-step[data-step="script"] .lab-script-beat')}, ${left('.ak-step[data-step="board"] .ak-board')}].every((x, _, all) => x === all[0])`,
+          true,
+        );
+        yield* evaluates(
+          page,
+          `Math.round(document.querySelector('.ak-step[data-step="script"] .ak-section-h').getBoundingClientRect().width) === Math.round(document.querySelector('.ak-step[data-step="script"] .lab-script-beat').getBoundingClientRect().width)`,
+          true,
+        );
+        yield* evaluates(
+          page,
+          `(scrollTo(0, document.documentElement.scrollHeight), Math.round(innerHeight - document.querySelector('.ak-send').getBoundingClientRect().bottom))`,
+          0,
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
