@@ -166,6 +166,8 @@ const Harness = Layer.unwrap(
           staging: Option.some(
             yield* fs.makeTempDirectoryScoped({ directory: out, prefix: 'staging-' }),
           ),
+          // A film's harness: the app's series drafts are not its to mark.
+          series: Option.none(),
         }),
       ),
     );

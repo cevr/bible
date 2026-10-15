@@ -906,6 +906,8 @@ interface FilmApp<E> {
   readonly sounds: string;
   /** The app's footage library folder (its lock, `transcripts/`, `files/`), shared by its talks. */
   readonly footage: string;
+  /** The app's series folder (`<series>/scripts/<draft>.md`): the drafts the lab reads and marks beside the films. */
+  readonly series: string;
   /**
    * The app's own folders for what a run makes: `out`, its renders, sheets and
    * project folders (`FILMS_OUT`); `lab`, the lab's notes (`FILMS_LAB`); and
@@ -957,6 +959,7 @@ export const runFilmCli = <E>({
   films,
   sounds,
   footage: footageAt,
+  series,
   folders,
   previewServer,
   lab: labApp,
@@ -976,6 +979,7 @@ export const runFilmCli = <E>({
     elevenLabs: ElevenLabs.layer,
     privateStore: Option.none(),
     staging: Option.none(),
+    series: Option.some(series),
   });
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Layer.mergeAll(Checker.layer, Looker.layer).pipe(

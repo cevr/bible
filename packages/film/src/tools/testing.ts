@@ -103,6 +103,7 @@ import { folderStore } from './media-store.ts';
 import { PrivateStore } from './private-store.ts';
 import { StudioReadings } from './studio.ts';
 import { ScriptVoices } from './script-voice.ts';
+import { SeriesDrafts } from './series-drafts.ts';
 import { StagingCache } from './staging.ts';
 import { PreviewServer } from './preview-server.ts';
 import { SceneHead } from './scene-head.ts';
@@ -798,11 +799,25 @@ const noSource = Layer.mergeAll(
 const unstaged = Effect.die('the staging takes are not called here');
 
 /**
- * The Script reader's staging takes where a test calls none of their routes:
- * the lab's handler serves them too, so they only have to exist.
+ * The Script reader's staging takes, and an app with no series drafts, where
+ * a test calls none of their routes: the lab's handler serves them too, so
+ * they only have to exist.
  */
 export const noStaging = Layer.mergeAll(
-  Layer.succeed(ScriptVoices, ScriptVoices.of({ voice: () => unstaged, fill: unstaged })),
+  Layer.succeed(
+    ScriptVoices,
+    ScriptVoices.of({ voice: () => unstaged, draft: () => unstaged, fill: unstaged }),
+  ),
+  Layer.succeed(
+    SeriesDrafts,
+    SeriesDrafts.of({
+      list: Effect.succeed({ series: [] }),
+      keys: Effect.succeed([]),
+      read: () => unstaged,
+      reading: () => unstaged,
+      mark: () => unstaged,
+    }),
+  ),
   Layer.succeed(
     StagingCache,
     StagingCache.of({

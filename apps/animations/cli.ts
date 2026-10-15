@@ -14,6 +14,9 @@ export const SOUNDS = `${import.meta.dir}/sounds`;
 /** The app's footage library, shared by its talks (`footage/library.lock.json`). */
 export const FOOTAGE = `${import.meta.dir}/footage`;
 
+/** The app's planned series, their drafts under `<series>/scripts/` (`series/README.md`). */
+const SERIES = `${import.meta.dir}/series`;
+
 /**
  * Where the app's runs put what they make (`out`: renders, sheets, project
  * folders), the lab's notes (`lab`) and the productions' ledgers
@@ -91,6 +94,7 @@ export const appCli = (films: string, sounds: string, self: string): void =>
     films,
     sounds,
     footage: FOOTAGE,
+    series: SERIES,
     folders: FOLDERS,
     previewServer: player(films),
     lab: {

@@ -167,21 +167,32 @@ const currentTakes = (timings: Timings, voice: string): Timings['scenes'] => {
   return Rec.filter(timings.scenes, (take) => take.source === 'recorded');
 };
 
+/**
+ * Beat `id`'s line `say` as a take is kept against it in `voice` (a film's
+ * scene, or a series draft's beat): its words, who reads them and how; or
+ * the voice a turn names that `voice` does not have.
+ */
+export const readBeat = (
+  voice: Voice,
+  id: string,
+  say: string,
+): Result.Result<ReadBeat, UnknownVoice | LineError> =>
+  Result.flatMap(parse(id, say), (parsed) =>
+    Result.map(linesOf(id, parsed, voice), (lines): ReadBeat => ({
+      id,
+      text: parsed.spoken,
+      script: takeScript(parsed),
+      lines,
+      delivery: parsed.delivery,
+    })),
+  );
+
 /** One beat's lines, or the voice a turn names that the film does not have. */
 const beatOf = (voice: Voice, scene: LoadedFilm['scenes'][number]) =>
-  Result.flatMap(
-    parse(
-      scene.id,
-      Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
-    ),
-    (parsed) =>
-      Result.map(linesOf(scene.id, parsed, voice), (lines): ReadBeat => ({
-        id: scene.id,
-        text: parsed.spoken,
-        script: takeScript(parsed),
-        lines,
-        delivery: parsed.delivery,
-      })),
+  readBeat(
+    voice,
+    scene.id,
+    Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
   );
 
 /** Every beat's lines, in film order, or the voice a turn names that the film does not have. */

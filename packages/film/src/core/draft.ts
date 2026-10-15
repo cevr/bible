@@ -51,7 +51,7 @@ const Said = Schema.Struct({
 type Said = typeof Said.Type;
 
 /** A beat of a draft. */
-export const DraftBeat = Schema.Struct({
+const DraftBeat = Schema.Struct({
   /** The row's number in a table, the beat's id in a beat list. */
   id: Schema.String,
   /** What the draft calls the beat besides its id (`Hook`, `STORY · ~30 s`); empty where it says nothing. */
@@ -63,7 +63,7 @@ export const DraftBeat = Schema.Struct({
   /** Its sources. */
   cite: Schema.Array(Schema.String),
 });
-export type DraftBeat = typeof DraftBeat.Type;
+type DraftBeat = typeof DraftBeat.Type;
 
 /** A draft as decoded: its Markdown whole, its title and its beats in order. */
 export const Draft = Schema.Struct({

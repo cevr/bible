@@ -62,6 +62,7 @@ import { SourceWriter } from './source-writer.ts';
 import { Stamps } from './stamp.ts';
 import { StudioReadings } from './studio.ts';
 import { ScriptVoices } from './script-voice.ts';
+import { SeriesDrafts } from './series-drafts.ts';
 import { StagingCache } from './staging.ts';
 import { Takes } from './takes.ts';
 
@@ -109,6 +110,12 @@ interface FilmServicesSpec {
    * test gives a folder of its own.
    */
   readonly staging: Option.Option<string>;
+  /**
+   * The app's series folder (`<series>/scripts/<draft>.md`), whose drafts the
+   * lab reads and marks beside its films (`SeriesDrafts`); none given, it
+   * lists no series.
+   */
+  readonly series: Option.Option<string>;
 }
 
 /**
@@ -179,9 +186,11 @@ export const filmServices = (spec: FilmServicesSpec) => {
     // set is written to its folder's catalogue.
     Layer.provide([Tools, Catalogue, Platform]),
   );
-  // The Script reader's staging takes, over the studio's readings and the narrator.
+  // The series drafts the lab reads beside the films, a mark written into the draft's Markdown.
+  const Drafts = SeriesDrafts.layer(spec.series).pipe(Layer.provide([Store, Platform]));
+  // The Script reader's staging takes, over the studio's readings, the drafts and the narrator.
   return ScriptVoices.layer.pipe(
-    Layer.provideMerge(Layer.mergeAll(Choices.layer, StudioReadings.layer)),
+    Layer.provideMerge(Layer.mergeAll(Choices.layer, StudioReadings.layer, Drafts)),
     // The review hears each option in the mix, and writes a pick through the source writer;
     // the lab's studio reads the film's script and voice fresh.
     Layer.provideMerge(

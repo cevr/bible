@@ -12,7 +12,7 @@ How a line is said is written in it, beside its cues (`packages/film/src/core/de
 
 - A mark is in braces, so it is never spoken: a card, a caption, a word pin, the KJV check and the take's hash read the line without it. A brace that is no cue, turn or mark fails the line (`DeliveryInvalid`), so nothing unknown is ever read aloud.
 - A stress belongs to the word after it; a pause to the gap before the word after it, never the line's first or last gap (the beat's `lead` and `tail` are its silence there). One pause a gap, one stress a word.
-- In the lab's Script reader: tap a word (or select words), and the box under the line offers Stress, what stands in the gap before them (no pause, breath, hold) and a hold's seconds (0.4, 0.6, 1, 1.5, 2, 3). Each tap is written back into the beat's `say` in `script.ts`, words unchanged, and the beat is voiced again. Series drafts are read only: marks go in once a draft becomes a film's `script.ts`.
+- In the lab's Script reader: tap a word (or select words), and the box under the line offers Stress, what stands in the gap before them (no pause, breath, hold) and a hold's seconds (0.4, 0.6, 1, 1.5, 2, 3). Each tap is written back into the beat's `say` in `script.ts`, words unchanged, and the beat is voiced again. A series draft reads the same way under the review's Series (`/series/<series>/<draft>`): its marks are written into the draft's Markdown (`apps/animations/series/<series>/scripts/<draft>.md`), the beat's row or line, words unchanged, and its staging take is voiced again; the draft is the source of truth until it becomes a film's `script.ts`.
 - A new kind of mark is a case of `Mark`, its token (`markOfToken`, `tokenOf`) and a row in `MODEL_MARKS` and here.
 
 ## What each model is sent

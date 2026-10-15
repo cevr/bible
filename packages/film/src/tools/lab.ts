@@ -36,6 +36,7 @@ import { LabHttpApi, type MarksPost, type TalkWordsPost } from '../core/api.ts';
 import { SourceRefused, StagingTakeUnknown, StillUnknown } from '../core/refusals.ts';
 import { SCRIPT_FILE, editMarks, marksTarget, sayMissed } from './script-source.ts';
 import { ScriptVoices } from './script-voice.ts';
+import { SeriesDrafts, draftRead } from './series-drafts.ts';
 import { StagingCache } from './staging.ts';
 import { type Allowed, type BesideRoutes, answered, serveApi } from './api-server.ts';
 import { choicesGroup } from './choices-http.ts';
@@ -450,6 +451,52 @@ const marksWrite = (name: string, payload: MarksPost) =>
   );
 
 /**
+ * The app's series drafts beside its films: the list, a draft's beats, each
+ * spoken beat's staging take (voiced as a film's are, in the staging voice)
+ * and its audio, and a beat's delivery marks written into the draft's
+ * Markdown (`SeriesDrafts.mark`), answered with the draft as it now reads.
+ */
+const seriesGroup = HttpApiBuilder.group(LabHttpApi, 'series', (handlers) =>
+  handlers
+    .handle('list', () => Effect.flatMap(SeriesDrafts, (d) => d.list))
+    .handle('read', ({ params }) =>
+      answered(
+        Effect.gen(function* () {
+          const read = yield* (yield* SeriesDrafts).read(params.series, params.draft);
+          return draftRead(params.series, params.draft, read);
+        }),
+      ),
+    )
+    .handle('voice', ({ params }) =>
+      answered(Effect.flatMap(ScriptVoices, (v) => v.draft(params.series, params.draft))),
+    )
+    .handle('take', ({ params, request }) =>
+      answered(
+        Effect.gen(function* () {
+          yield* (yield* SeriesDrafts).read(params.series, params.draft);
+          const found = yield* (yield* StagingCache).audioNamed(params.file);
+          if (Option.isNone(found)) return yield* StagingTakeUnknown.make({ file: params.file });
+          // Named by its request's key, a take's audio never changes.
+          return yield* serveFile(request, found.value, CACHE.hashed);
+        }),
+      ),
+    )
+    .handle('marks', ({ params, payload }) =>
+      answered(
+        Effect.gen(function* () {
+          const read = yield* (yield* SeriesDrafts).mark(
+            params.series,
+            params.draft,
+            payload.beat,
+            payload.marks,
+          );
+          return draftRead(params.series, params.draft, read);
+        }),
+      ),
+    ),
+);
+
+/**
  * The film's storyboard: its record, its images (named by panel and try,
  * written once), and a pick, an approval or a withdrawal written through
  * the board store, so the CLI and the lab never write over each other.
@@ -597,6 +644,7 @@ export type LabContext =
   | Takes
   | StudioReadings
   | ScriptVoices
+  | SeriesDrafts
   | StagingCache
   | Review
   | Choices
@@ -626,6 +674,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         stepsGroup,
         talkGroup,
         Layer.provide(scriptGroup, Layer.succeedContext(reads)),
+        seriesGroup,
         boardGroup,
         studioGroup,
         reviewGroup,

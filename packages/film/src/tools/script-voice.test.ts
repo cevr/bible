@@ -1,6 +1,7 @@
 // The Script reader's staging takes with fakes: unvoiced until the fill
 // runs, voiced once it does (the reader's film first), refused past the
-// day's cap or when it misread its line. No network, no media files.
+// day's cap or when it misread its line; a series draft voiced as a film
+// is. No network, no media files.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Path } from 'effect';
@@ -12,6 +13,7 @@ import type { ReadBeat, StudioReading } from '../core/studio.ts';
 import { FilmFolder, type FilmName } from './film-repo.ts';
 import { Narrator } from './narrator.ts';
 import { ScriptVoices } from './script-voice.ts';
+import { SeriesDrafts } from './series-drafts.ts';
 import { StagingCache } from './staging.ts';
 import { StudioReadings } from './studio.ts';
 import {
@@ -41,9 +43,29 @@ const reading: StudioReading = {
 
 const film = 'rbf' as FilmName;
 
-/** The service over memory, one film read as `reading`, the day capped at `cap`. */
-const voices = (cap: number, heard: ReadonlyMap<string, string> = new Map()) => {
-  const files = new Map<string, Uint8Array>();
+/** A talk's draft, one spoken beat marked and one that says nothing. */
+const DRAFT = [
+  '# By Grace',
+  '',
+  '| #         | Say                   | Picture |',
+  '| --------- | --------------------- | ------- |',
+  '| 1 · Hook  | By {*}grace. {/} Now. | A card. |',
+  '| 2 · Title |                       | Title.  |',
+  '',
+].join('\n');
+
+/**
+ * The service over memory, one film read as `reading`, the series folder
+ * holding `drafts` (path under it → Markdown), the day capped at `cap`.
+ */
+const voices = (
+  cap: number,
+  heard: ReadonlyMap<string, string> = new Map(),
+  drafts: ReadonlyMap<string, string> = new Map(),
+) => {
+  const files = new Map<string, Uint8Array>(
+    [...drafts].map(([at, text]) => [`/series/${at}`, new TextEncoder().encode(text)]),
+  );
   const calls: ElevenLabsCalls = emptyCalls();
   const folder = Layer.succeed(
     FilmFolder,
@@ -57,6 +79,7 @@ const voices = (cap: number, heard: ReadonlyMap<string, string> = new Map()) => 
     }),
   );
   const layer = ScriptVoices.layer.pipe(
+    Layer.provideMerge(SeriesDrafts.layer(Option.some('/series'))),
     Layer.provideMerge(Narrator.layer),
     Layer.provideMerge(StagingCache.layer('/staging', cap)),
     Layer.provideMerge(storeLayer(files)),
@@ -150,4 +173,30 @@ describe('ScriptVoices', () => {
       }).pipe(Effect.scoped, Effect.provide(layer));
     },
   );
+
+  it.effect('a series draft is voiced as a film is, in the staging voice, by the sweep', () => {
+    const { calls, layer } = voices(
+      1000,
+      new Map(),
+      new Map([['talks/scripts/01-grace.md', DRAFT]]),
+    );
+    return Effect.gen(function* () {
+      const service = yield* ScriptVoices;
+      const before = yield* service.draft('talks', '01-grace');
+      expect(before.film).toBe('talks/01-grace');
+      expect(before.beats.map((b) => b.id)).toEqual(['1']);
+      expect(tags(before)).toEqual(['Unvoiced']);
+      yield* Effect.forkScoped(service.fill);
+      yield* Effect.yieldNow;
+      const voice = yield* service.draft('talks', '01-grace').pipe(
+        Effect.repeat({ until: (v) => !tags(v).includes('Voicing') }),
+        Effect.tap(() => Effect.yieldNow),
+      );
+      expect(tags(voice)).toEqual(['Ready']);
+      // The film's two beats and the draft's one, each asked for once.
+      expect(calls.dialogue).toHaveLength(3);
+      const unknown = yield* Effect.flip(service.draft('talks', '../../etc'));
+      expect(unknown._tag).toBe('DraftUnknown');
+    }).pipe(Effect.scoped, Effect.provide(layer));
+  });
 });

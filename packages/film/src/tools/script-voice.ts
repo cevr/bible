@@ -5,13 +5,15 @@
 // a beat whose words, marks or voice changed has a new key, and is voiced
 // again. Nothing here writes a film: its timings and its recorded takes are
 // never touched (`film narrate` makes a cached take a film's own, at no
-// cost).
+// cost). A series draft (`series-drafts.ts`) is voiced the same way, in the
+// staging voice, its takes kept by the same keys.
 //
 // With the fill on (`FILM_STAGING_FILL`, on in `film lab`), a beat the
 // cache keeps no take for is queued: the films a reader has open first, every
-// other film's in the background as the sweep finds them, a few at a time.
-// Each is charged against the day's cap before it is sent; past the cap it is
-// refused, said in the reader, and asked again the next day. A beat is asked
+// other film's and every draft's in the background as the sweep finds them, a
+// few at a time. Each is charged against the day's cap before it is sent;
+// past the cap it is refused, said in the reader, and asked again the next
+// day. A beat is asked
 // for once a session: a refusal stands until the day turns. A take that
 // misread its line is kept but never ready, and read again at most once a
 // day (`Fill.reread`).
@@ -32,12 +34,14 @@ import {
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import type { ScriptVoice, StagingTake } from '../core/api.ts';
+import type { DraftUnknown, DraftUnread } from '../core/refusals.ts';
 import type { HeardAs, Voice } from '../core/schema.ts';
 import type { ReadBeat } from '../core/studio.ts';
 import type { StoreError } from './content-store.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import type { FreshError } from './fresh-film.ts';
 import { MAX_WORD_ERROR, Narrator } from './narrator.ts';
+import { draftKey, SeriesDrafts } from './series-drafts.ts';
 import { type StagedTake, type StagingAsk, StagingCache, stagingRequest } from './staging.ts';
 import { StudioReadings } from './studio.ts';
 
@@ -187,6 +191,11 @@ interface ScriptVoicesService {
   readonly voice: (
     film: FilmName,
   ) => Effect.Effect<ScriptVoice, FreshError | PlatformError | StoreError>;
+  /** Each spoken beat of series draft `draft` as its staging take stands, as `voice` has a film's. */
+  readonly draft: (
+    series: string,
+    draft: string,
+  ) => Effect.Effect<ScriptVoice, DraftUnknown | DraftUnread | PlatformError | StoreError>;
   /**
    * Keep every film's takes ready until interrupted: the sweep and the
    * voicing. Until it runs, nothing is queued, and a beat with no take kept
@@ -206,14 +215,18 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
       const cache = yield* StagingCache;
       const narrator = yield* Narrator;
       const folder = yield* FilmFolder;
+      const drafts = yield* SeriesDrafts;
       const state = yield* Ref.make(NO_FILL);
       // One signal per job queued: a voicer waits on it, then takes the readers' first.
       const signals = yield* Queue.unbounded<void>();
 
-      /** Each spoken beat of `film`, its job, and its take as the cache keeps it. */
-      const beatsOf = Effect.fn('ScriptVoices.beatsOf')(function* (film: FilmName) {
-        const reading = yield* readings.reading(film);
-        return yield* Effect.forEach(asksOf(reading.voice, reading.beats), (ask) => {
+      /** Each spoken beat of `reading`, its job, and its take as the cache keeps it. */
+      const beatsIn = (reading: {
+        readonly voice: Voice;
+        readonly heardAs: HeardAs;
+        readonly beats: ReadonlyArray<ReadBeat>;
+      }) =>
+        Effect.forEach(asksOf(reading.voice, reading.beats), (ask) => {
           const key = stagingRequest(ask).key;
           return Effect.map(cache.get(key), (kept) => ({
             job: {
@@ -225,6 +238,18 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
             kept,
           }));
         });
+
+      /** Each spoken beat of `film`, its job, and its take as the cache keeps it. */
+      const beatsOf = Effect.fn('ScriptVoices.beatsOf')(function* (film: FilmName) {
+        return yield* beatsIn(yield* readings.reading(film));
+      });
+
+      /** Each spoken beat of a series draft, in the staging voice. */
+      const draftBeatsOf = Effect.fn('ScriptVoices.draftBeatsOf')(function* (
+        series: string,
+        draft: string,
+      ) {
+        return yield* beatsIn(yield* drafts.reading(series, draft));
       });
 
       /** `jobs` queued, a signal for each one new. */
@@ -254,23 +279,35 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
         });
       };
 
+      /** `beats` queued ahead of the background, and each one's take as it stands. */
+      const voiced = (
+        name: string,
+        beats: ReadonlyArray<{ readonly job: Job; readonly kept: Option.Option<StagedTake> }>,
+      ) =>
+        Effect.gen(function* () {
+          yield* enqueue(
+            beats.filter(wanted).map((b) => b.job),
+            true,
+          );
+          const fill = yield* Ref.get(state);
+          const spent = yield* cache.today;
+          return {
+            film: name,
+            spent: spent.spent,
+            cap: spent.cap,
+            beats: beats.map((b) => ({
+              id: b.job.ask.beat.id,
+              take: takeOf(fill, b.job.key, b.kept),
+            })),
+          } satisfies ScriptVoice;
+        });
+
       const voice = Effect.fn('ScriptVoices.voice')(function* (film: FilmName) {
-        const beats = yield* beatsOf(film);
-        yield* enqueue(
-          beats.filter(wanted).map((b) => b.job),
-          true,
-        );
-        const fill = yield* Ref.get(state);
-        const spent = yield* cache.today;
-        return {
-          film,
-          spent: spent.spent,
-          cap: spent.cap,
-          beats: beats.map((b) => ({
-            id: b.job.ask.beat.id,
-            take: takeOf(fill, b.job.key, b.kept),
-          })),
-        } satisfies ScriptVoice;
+        return yield* voiced(film, yield* beatsOf(film));
+      });
+
+      const draft = Effect.fn('ScriptVoices.draft')(function* (series: string, name: string) {
+        return yield* voiced(draftKey(series, name), yield* draftBeatsOf(series, name));
       });
 
       /** A new day asks again what the last refused. */
@@ -314,6 +351,25 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
             ),
           { discard: true },
         );
+        yield* Effect.forEach(
+          yield* drafts.keys,
+          ([series, name]) =>
+            draftBeatsOf(series, name).pipe(
+              Effect.flatMap((beats) =>
+                enqueue(
+                  beats.filter(wanted).map((b) => b.job),
+                  false,
+                ),
+              ),
+              // A draft the reader cannot read is said where it is opened, not voiced.
+              Effect.catch((error) =>
+                Effect.logDebug(
+                  `staging.fill.skip draft=${draftKey(series, name)} reason=${error._tag}`,
+                ),
+              ),
+            ),
+          { discard: true },
+        );
       });
 
       /** Voice the next job: its take kept, or its refusal said in the reader. */
@@ -350,7 +406,7 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
         Effect.scoped,
       );
 
-      return ScriptVoices.of({ voice, fill });
+      return ScriptVoices.of({ voice, draft, fill });
     }),
   );
 }

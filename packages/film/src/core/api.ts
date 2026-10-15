@@ -82,6 +82,8 @@ import {
   BodyTooLarge,
   CatalogueInvalid,
   ChoiceUnknown,
+  DraftUnknown,
+  DraftUnread,
   ElevenLabsFailed,
   FilmUnknown,
   FreshProcessFailed,
@@ -232,6 +234,7 @@ const Refusals = [
   LookPlaceUnknown.pipe(status(404)),
   LookLevelUnknown.pipe(status(404)),
   StagingTakeUnknown.pipe(status(404)),
+  DraftUnknown.pipe(status(404)),
   AudioInvalid.pipe(status(400)),
   RequestInvalid.pipe(status(400)),
   LookInvalid.pipe(status(400)),
@@ -249,6 +252,7 @@ const Refusals = [
   WriteNotJson.pipe(status(415)),
   RecordingLossy.pipe(status(415)),
   SourceRefused.pipe(status(422)),
+  DraftUnread.pipe(status(422)),
   BoardRefused.pipe(status(422)),
   SourceShared.pipe(status(422)),
   TimelineUnresolved.pipe(status(422)),
@@ -450,6 +454,49 @@ export type ScriptVoice = typeof ScriptVoice.Type;
 /** `POST /api/films/<film>/script/marks`: a beat's delivery marks as they should read, its words unchanged. */
 export const MarksPost = Schema.Struct({ beat: Schema.String, marks: Schema.Array(Mark) });
 export type MarksPost = typeof MarksPost.Type;
+
+/**
+ * `GET /api/series`: the app's series and their drafts, as the lab lists them
+ * beside the films: each series by its folder's name and its plan's title,
+ * each draft by its file's name and its own title.
+ */
+export const SeriesList = Schema.Struct({
+  series: Schema.Array(
+    Schema.Struct({
+      name: Schema.String,
+      title: Schema.String,
+      drafts: Schema.Array(Schema.Struct({ name: Schema.String, title: Schema.String })),
+    }),
+  ),
+});
+export type SeriesList = typeof SeriesList.Type;
+
+/**
+ * A beat of a series draft as the Script reader reads it (`core/draft.ts`):
+ * its id (a talk's row number, a film's beat id), its label, its line with
+ * its marks, what its picture does and its sources.
+ */
+const DraftBeatRead = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
+  /** Its line, marks and cues in braces; none for a beat that says nothing. */
+  say: Schema.optionalKey(Schema.String),
+  brief: Schema.optionalKey(Schema.String),
+  cite: Schema.Array(Schema.String),
+});
+export type DraftBeatRead = typeof DraftBeatRead.Type;
+
+/**
+ * `GET /api/series/<series>/<draft>`: the draft's beats as its Markdown
+ * stands now; and what a mark write answers, the draft as it leaves it.
+ */
+export const DraftRead = Schema.Struct({
+  series: Schema.String,
+  draft: Schema.String,
+  title: Schema.String,
+  beats: Schema.Array(DraftBeatRead),
+});
+export type DraftRead = typeof DraftRead.Type;
 
 /**
  * What the owner says of a variant, a scene's render, an act or the film:
@@ -671,6 +718,37 @@ class ScriptGroup extends HttpApiGroup.make('script').add(
     params: film,
     payload: MarksPost,
     success: LabWrite,
+    error: Refusals,
+  }),
+) {}
+
+/** One series draft's routes. */
+const DRAFT = `${API}/series/:series/:draft`;
+const draftParams = { series: Schema.String, draft: Schema.String };
+
+/**
+ * The series drafts as the Script reader reads them beside the films: every
+ * series and its drafts, a draft's beats, each spoken beat's staging take
+ * and its audio (the films' staging voice and cache), and a beat's delivery
+ * marks written into the draft's Markdown.
+ */
+class SeriesGroup extends HttpApiGroup.make('series').add(
+  HttpApiEndpoint.get('list', `${API}/series`, { success: SeriesList, error: Refusals }),
+  HttpApiEndpoint.get('read', DRAFT, { params: draftParams, success: DraftRead, error: Refusals }),
+  HttpApiEndpoint.get('voice', `${DRAFT}/voice`, {
+    params: draftParams,
+    success: ScriptVoice,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.get('take', `${DRAFT}/takes/:file`, {
+    params: { ...draftParams, file: Schema.String },
+    success: FileBytes,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('marks', `${DRAFT}/marks`, {
+    params: draftParams,
+    payload: MarksPost,
+    success: DraftRead,
     error: Refusals,
   }),
 ) {}
@@ -981,6 +1059,7 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(StepsGroup)
   .add(TalkGroup)
   .add(ScriptGroup)
+  .add(SeriesGroup)
   .add(BoardGroup)
   .add(StudioGroup)
   .add(ReviewGroup)
@@ -1339,6 +1418,17 @@ export const Places = {
     hash: LabAt,
   }),
   export: Place.make({ path: '/films/:film/export', params: filmParams }),
+  /** A series draft in the Script reader. */
+  draft: Place.make({
+    path: '/series/:series/:draft',
+    params: { series: Codec.Segment, draft: Codec.Segment },
+  }),
+  /** A beat of a series draft in the Script reader, with its words selected (`?words=<a>-<b>`). */
+  draftBeat: Place.make({
+    path: '/series/:series/:draft/:beat',
+    params: { series: Codec.Segment, draft: Codec.Segment, beat: Codec.Segment },
+    query: Field.struct({ words: cited }),
+  }),
   /** An agent's ask: its decision page (`core/ask.ts`), at the step its run is on. */
   ask: Place.make({ path: '/asks/:ask', params: { ask: Codec.Segment } }),
 };
@@ -1362,6 +1452,8 @@ const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, AppPage]> = [
   [Places.boardBeat, 'lab'],
   [Places.export, 'render'],
   [Places.ask, 'review'],
+  [Places.draft, 'review'],
+  [Places.draftBeat, 'review'],
 ];
 
 /** The page `pathname` serves, if any: a path no place declares (a chunk, a typo, an old `/lab`) serves none. */
@@ -1480,6 +1572,12 @@ export const pageHref = {
     Place.href(Places.production, { path: { production }, query: { v }, hash: {} }),
   /** An agent's ask, at the step its run is on. */
   ask: (ask: string): string => Place.href(Places.ask, { path: { ask }, query: {}, hash: {} }),
+  /** A series draft in the Script reader. */
+  draft: (series: string, draft: string): string =>
+    Place.href(Places.draft, { path: { series, draft }, query: {}, hash: {} }),
+  /** A beat of a series draft, with its words `words` (`<a>-<b>`) selected. */
+  draftBeat: (series: string, draft: string, beat: string, words = ''): string =>
+    Place.href(Places.draftBeat, { path: { series, draft, beat }, query: { words }, hash: {} }),
   folder: (folder: string): string =>
     Place.href(Places.folder, { path: { folder }, query: { still: '' }, hash: {} }),
   /** A comparison set, with the sheet of its version `inspect` open. */
@@ -1879,6 +1977,10 @@ export const attemptUrl = (film: string, beat: string, file: string): string =>
 /** A beat's staging take's audio, by the name its `Ready` gives it. */
 export const stagingTakeUrl = (film: string, file: string): string =>
   labUrls.script.take({ params: { film, file } });
+
+/** A series draft's beat's staging take's audio, by the name its `Ready` gives it. */
+export const draftTakeUrl = (series: string, draft: string, file: string): string =>
+  labUrls.series.take({ params: { series, draft, file } });
 
 /** A ref as a URL path: each segment encoded, the slashes kept. */
 const refPath = (ref: string) =>
