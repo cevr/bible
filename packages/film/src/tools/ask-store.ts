@@ -2,14 +2,14 @@
 // `ContentStore` manifest: written whole, one writer at a time across
 // processes). An agent makes one (`make`: its machine checked and its board
 // tries and its material found first, so nothing that may not render is
-// kept; a choice it makes now recommends one option), the owner
-// answers it a step at a time from any device (`answer`: the run moved by
-// its machine, `askMachine`, and the step kept), and the agent closes it.
-// An answer is kept by its step, so the same answer sent again (a retry, a
-// second tab) is answered as it was, and a different one to a step already
-// answered is refused, as is one to a step the ask has left, as gent's
-// machine answers are. The page, the MCP and the change feed all read and
-// write through here.
+// kept; a choice it makes now recommends one option), the owner answers
+// its page from any device (`answerPage`: each section's step in order, the
+// run moved by its machine, `askMachine`, and every section kept or none),
+// and the agent closes it. An answer is kept by its step, so the same
+// answer sent again (a retry, a second tab) is answered as it was; a
+// different one to a step already answered is refused, as is one to a step
+// the ask has left, as its machine has it, and one past the deadline. The
+// page, the MCP and the change feed all read and write through here.
 
 import {
   Array as Arr,
