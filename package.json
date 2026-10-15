@@ -17,6 +17,7 @@
     "typecheck": "turbo run typecheck",
     "lint": "oxlint --report-unused-disable-directives-severity=error",
     "lint:fix": "oxlint --fix",
+    "lint:judged": "bun packages/scripts/src/lint-judged.ts",
     "logs": "agent-tail tail --log-dir tmp/logs -n 200",
     "logs:errors": "rg -n -i '\\[console\\.(error|warn)\\]|\\b(ERROR|WARN)\\b|\\[[^]]+\\] [^ ]*(failed|failure)\\b|uncaught|unhandled|defect' tmp/logs/latest/combined.log || true",
     "logs:follow": "agent-tail tail --log-dir tmp/logs -f",

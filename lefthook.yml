@@ -1,3 +1,12 @@
+pre-push:
+  jobs:
+    # The judged lint (packages/scripts/src/lint-judged.ts): the comments the
+    # push adds or changes, judged by a model. It warns and always passes: no
+    # key, a timeout or a rate limit prints a skip line instead. CI has no
+    # key, so it runs here, never in the gate.
+    - name: judged
+      run: bun run lint:judged
+
 pre-commit:
   jobs:
     # Budget: under 5 s. Only the staged files are linted (with fixes) and
