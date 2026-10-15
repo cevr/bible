@@ -685,8 +685,9 @@ export const STATES: ByPlace<State, AtRest> = {
       disclose: AT_REST,
       // An ask that names a film is a film's view: its switcher names the film and its seven
       // tabs are the way to the Board or the Script the ask is about (taste-1 T2, where am I).
-      // A page of one section has no "1 of 1" head.
-      budget: most(24, 24),
+      // A page of one section has no "1 of 1" head, and an ask that waits wears no chip (the
+      // dock's count says what is left).
+      budget: most(23, 23),
     },
   ],
   draft: [

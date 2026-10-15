@@ -43,9 +43,16 @@ export { Provider } from './context.tsx';
 
 type BlockOf<K extends AskBlock['kind']> = Extract<AskBlock, { readonly kind: K }>;
 
-/** What an ask is in a word, on its chip. */
-const STATUS_TEXT = { asking: 'waits on you', answered: 'answered', closed: 'closed' } as const;
-const STATUS_STATE = { asking: 'warning', answered: 'approved', closed: 'stale' } as const;
+/**
+ * What a settled ask is in a word, on its chip, and the chip's state. One that waits wears none:
+ * the dock's count (`2 of 3 answered`) already says what is left, and one gold on the page is
+ * the Send's.
+ */
+const SETTLED = {
+  answered: { text: 'answered', state: 'approved' },
+  closed: { text: 'closed', state: 'stale' },
+} as const;
+type Settled = (typeof SETTLED)[keyof typeof SETTLED];
 
 /** The ask's head: its title, its state, why it is asked, and by when when it must be. */
 export const Head = () => {
@@ -53,14 +60,22 @@ export const Head = () => {
   return (
     <Show when={Option.getOrUndefined(state.record())}>
       {(record: Accessor<AskRecord>) => {
-        const status = () => askStatus(record().state);
+        const settled = () =>
+          Match.value(askStatus(record().state)).pipe(
+            Match.when('asking', () => Option.none<Settled>()),
+            Match.orElse((status) => Option.some<Settled>(SETTLED[status])),
+          );
         return (
           <header class="ak-head">
             <div class="ak-head-row">
               <h1>{record().title}</h1>
-              <span class="sh-badge" data-state={STATUS_STATE[status()]} data-role="status">
-                {STATUS_TEXT[status()]}
-              </span>
+              <Show when={Option.getOrUndefined(settled())}>
+                {(chip: Accessor<Settled>) => (
+                  <span class="sh-badge" data-state={chip().state} data-role="status">
+                    {chip().text}
+                  </span>
+                )}
+              </Show>
             </div>
             <p class="ak-why">{record().why}</p>
             <Show when={record().deadline}>

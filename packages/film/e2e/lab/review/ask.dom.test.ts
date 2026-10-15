@@ -539,6 +539,8 @@ describe("an agent's ask on a phone", () => {
             ],
           },
         ]);
+        // While it waits its head wears no chip: the dock's count says what is left.
+        yield* countIs(page, '.ak-head [data-role="status"]', 0);
         // The Board's panels as the Board shows them: the card's words, the picture's want of a try.
         yield* textHas(page, '.ak-step[data-step="board"] [data-panel="open.title"]', 'breath');
         yield* textHas(page, '.ak-step[data-step="board"] [data-panel="open.field"]', 'no try yet');
@@ -603,6 +605,8 @@ describe("an agent's ask on a phone", () => {
         yield* textHas(page, '.ak-send [data-role="answered"]', '3 of 3 answered');
         yield* page.click(ASK_READY);
         yield* waitFor(page, '.ak-outcome');
+        // Answered, its head says so.
+        yield* textIs(page, '.ak-head [data-role="status"]', 'answered');
         expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
           {
             sections: [
