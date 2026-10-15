@@ -106,8 +106,6 @@ const MESSAGES = {
     'a JSX handler hears keydown on its own: declare a command with its keys (packages/film/src/command/command.ts), registered with the page hub.',
   'keys-through-keymap.tsx:18 film/keys-through-keymap':
     'addEventListener hears contextmenu on its own: open a context menu through @bible/ui ContextMenu over the selection’s commands (packages/film/src/lab/command/).',
-  'no-host-alias.ts:6 film/no-host-alias':
-    'a host global held under a name of the page\'s own: the host bans read it only under its name, so reach it as itself, or through its adapter (packages/film/README.md, "The purity rule": The host).',
   'focus-through-focus-for.ts:10 film/focus-through-focus-for':
     'a focus moved from script past focusFor: call focusFor(el, input) (packages/film/src/lab/focus.ts) with the input that asked, so the ring shows iff a key did.',
   'booleans-through-pressed.tsx:28 film/booleans-through-pressed':

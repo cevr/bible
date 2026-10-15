@@ -24,7 +24,7 @@ const soundContext = () => {
         Option.fromNullishOr(Reflect.get(navigator, 'audioSession')),
         (session) => Reflect.set(session, 'type', 'playback'),
       );
-      // oxlint-disable-next-line no-restricted-globals -- Media's live adapter: the page's one sound context
+      // oxlint-disable-next-line effect/noGlobals -- Media's live adapter: the page's one sound context
       made = Option.some(new AudioContext());
     }
     // A context the browser held suspended (no press yet) is woken by this one.
@@ -38,7 +38,7 @@ const soundContext = () => {
 
 /** The audio at `src`, as the page makes it: an `Audio` element. */
 const pageAudio = (src: string): Playable =>
-  // oxlint-disable-next-line no-restricted-globals -- Media's live adapter: the audio the page makes
+  // oxlint-disable-next-line effect/noGlobals -- Media's live adapter: the audio the page makes
   playableOf(new Audio(src));
 
 /** The page's one sound context: what its compare's panes play through. */

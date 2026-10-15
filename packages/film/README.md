@@ -3434,13 +3434,6 @@ the lab's components: a boolean a control shows (`aria-pressed`,
 `pressed(on)` (`lab/pressed.ts`), never by hand as `String(x)`,
 `x.toString()`, `JSON.stringify(x)` or `` `${x}` ``. The player, which may
 not import the lab, is outside its reach.
-`film/no-host-alias` (`lint/no-host-alias.ts`) holds the pages that reach the
-host through its adapters: a host global (`window`, `document`, `navigator`,
-`performance`, `location`, `history`, `globalThis`, `self`) is never held
-under a name or a place of the page's own (`const perf = performance`,
-`{ w: window }`, `(w = window) =>`, `[document]`, `() => performance`), since
-the host bans of **The purity rule** read it only under its own name. Handing
-it to a call builds an adapter, and passes.
 `film/one-clock-epsilon` (`lint/one-clock-epsilon.ts`) holds the code that
 computes times to one owner of the grid, `core/time.ts`: a nudge written
 beside a time (`Math.ceil(t * fps - 1e-6)`, `m - 1e-3`, a const holding one)
@@ -3824,12 +3817,16 @@ from its voice); `src/tools/talk.test.ts` runs it with none, in the
 framework suite.
 
 The lint holds the host to its adapters in the lab, the player, `browser/`,
-`command/` and the app's page entries (`.oxlintrc.json`): `no-restricted-globals` and
-`no-restricted-properties` refuse the host's storage, frames, requests,
-media and recording, media queries (`Viewport`), timers, clock and URL, bare or through `window`/`globalThis`/`self`,
-each naming the service that owns it, and every chain of the global object
-to itself (`globalThis.window`, `window.top`, `parent`, `document.defaultView`),
-so no chain reaches a name past its ban; `effect/noReflectGet` refuses
+`command/` and the app's page entries (`.oxlintrc.json`): `effect/noGlobals`'
+`members` list refuses the host's storage, frames, requests,
+media and recording, media queries (`Viewport`), timers, clock and URL,
+each naming the service that owns it, however a page reaches it: bare,
+through any name of the global object and any chain of them
+(`window.`, `globalThis.window.`, `top.`, `parent.`, `document.defaultView.`),
+an alias or a destructure (`const perf = performance; perf.now()`); and a host
+global held where the rule cannot follow it (`{ w: window }`, `[document]`,
+`() => performance`) is refused too, while handing it to a call builds an
+adapter and passes; `effect/noReflectGet` refuses
 `Reflect.get(window, …)`; `film/host-events-through-adapter`
 (`lint/`) refuses a window or document listener for a navigation, key or
 drag event however it is spelled (an event named by a const or a loop, an
