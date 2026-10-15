@@ -876,13 +876,27 @@ class ReviewGroup extends HttpApiGroup.make('review').add(
   }),
 ) {}
 
+/** One section of an ask's page as sent: the step it answers and each answer's value by its name. */
+const AskSectionPost = Schema.Struct({ step: Schema.String, values: StepValues });
+type AskSectionPost = typeof AskSectionPost.Type;
+
 /**
  * What an ask's page sends: each section it shows (`sectionsOf`), in order,
- * by the step it answers and each answer's value by its name.
+ * at least one. A page opened before the one-page ask (2026-10-15) sends
+ * one step as it did (`{step, values}`), taken as one section, so a tab
+ * left open across the change still sends.
  */
-const AskAnswerPost = Schema.Struct({
-  sections: Schema.Array(Schema.Struct({ step: Schema.String, values: StepValues })),
-});
+const AskAnswerPost = Schema.Union([
+  Schema.Struct({ sections: Schema.Array(AskSectionPost).check(Schema.isMinLength(1)) }),
+  AskSectionPost,
+]);
+type AskAnswerPost = typeof AskAnswerPost.Type;
+
+/** The sections an answer post carries: its own, or the one step an older page sends. */
+export const sectionsPosted = (post: AskAnswerPost): ReadonlyArray<AskSectionPost> => {
+  if ('sections' in post) return post.sections;
+  return [post];
+};
 
 /**
  * The asks: an agent's decision pages (`core/ask.ts`), each read as its

@@ -24,6 +24,7 @@ import {
   oneQuestion,
   optionsShown,
   pageRefusal,
+  questionsOf,
   sectionsOf,
   titleOf,
   unrecommended,
@@ -167,17 +168,16 @@ describe('the check before an ask renders', () => {
           title: 'The Board',
           blocks: [
             { kind: 'board', film: 'f', panels: ['word.church'] },
-            { kind: 'document', ref: 'p5/rbf-script/script.md' },
+            { kind: 'document', ref: 'p5/rbf-cut/notes.md' },
             { kind: 'video', ref: 'out/f/f.mp4', at: 12.5 },
             { kind: 'audio', film: 'f', beat: 'cold' },
-            { kind: 'script', series: 'theology', draft: '01-breath', beats: ['1'] },
             {
               kind: 'choose',
               id: 'keep',
               label: 'Keep the Board?',
               options: [
                 { value: 'redo', label: 'Draw it again' },
-                { value: 'keep', label: 'Keep it', recommended: true },
+                { value: 'keep', label: 'Keep it', recommended: true, why: 'it reads at a glance' },
               ],
             },
           ],
@@ -193,21 +193,68 @@ describe('the check before an ask renders', () => {
       'board:document',
       'board:video',
       'board:audio',
-      'board:script',
     ]);
   });
 
-  test('a material block names its material once, by its kind: a script one source, a document Markdown, a video a video', () => {
-    const bad = oneQuestion([
+  test("one script per ask: a second is refused, naming both steps (each reader owns the page's word commands)", () => {
+    const two: Ask = {
+      start: 'one',
+      steps: {
+        one: { blocks: [{ kind: 'script', film: 'f' }], next: [{ to: 'two' }] },
+        two: {
+          blocks: [{ kind: 'script', series: 'theology', draft: '08-rbf' }],
+          next: [{ to: 'done' }],
+        },
+        done: { end: true },
+      },
+    };
+    expect(askProblems(two)).toEqual([
+      'the ask shows 2 scripts (steps one, two): one script per ask; ask about the next in an ask of its own',
+    ]);
+  });
+
+  test("a script names a film or a series' draft, never both nor half a draft", () => {
+    const decode = Schema.decodeUnknownExit(AskSchema);
+    const script = (block: Readonly<Record<string, string>>) => ({
+      start: 'ask',
+      steps: { ask: { blocks: [block], next: [{ to: 'done' }] }, done: { end: true } },
+    });
+    expect(decode(script({ kind: 'script', film: 'f' }))._tag).toBe('Success');
+    expect(decode(script({ kind: 'script', series: 's', draft: 'd' }))._tag).toBe('Success');
+    for (const block of <ReadonlyArray<Readonly<Record<string, string>>>>[
       { kind: 'script', film: 'f', series: 's', draft: 'd' },
+      { kind: 'script', film: 'f', draft: 'd' },
       { kind: 'script', series: 's' },
+      { kind: 'script' },
+    ])
+      expect(decode(script(block))._tag).toBe('Failure');
+  });
+
+  test('only the recommended option says why', () => {
+    const said = oneQuestion([
+      {
+        kind: 'choose',
+        id: 'keep',
+        label: 'Keep it?',
+        options: [
+          { value: 'yes', label: 'Yes', recommended: true },
+          { value: 'no', label: 'No', why: 'it is late' },
+        ],
+      },
+    ]);
+    expect(askProblems(said)).toEqual([
+      "keep's option no says why but is not recommended: why goes on the recommended option",
+    ]);
+  });
+
+  test('a material block names its material once, by its kind: a document Markdown, a video a video', () => {
+    const bad = oneQuestion([
       { kind: 'script', film: 'f', beats: [] },
       { kind: 'board', film: 'f', panels: ['a.b', 'a.b'] },
       { kind: 'document', ref: 'p5/set/shape.txt' },
       { kind: 'video', ref: 'p5/set/still.png' },
     ]);
     expect(askProblems(bad)).toEqual([
-      'step ask: a script names a film, or a series and its draft, one of them',
       'step ask: beats names none: leave it out for all',
       'step ask: panels names one twice',
       'step ask: document p5/set/shape.txt is not a Markdown file (.md)',
@@ -234,23 +281,6 @@ describe('the check before an ask renders', () => {
     expect(decode(film('righteousness-by-faith'))._tag).toBe('Success');
     expect(decode(film('../f'))._tag).toBe('Failure');
     expect(decode(film('a/b'))._tag).toBe('Failure');
-  });
-
-  test('a stored ask from before material decodes and checks as it did', () => {
-    const encoded = Schema.encodeSync(AskRecordJson)({
-      id: 'a0123456789',
-      title: 'Which try?',
-      why: 'the beat waits',
-      by: 'agent',
-      created: '2026-10-14T00:00:00.000Z',
-      ask: proof,
-      state: askStart(proof),
-      answered: [],
-    });
-    const decoded = Schema.decodeSync(AskRecordJson)(encoded);
-    expect(decoded.ask).toEqual(proof);
-    expect(askProblems(decoded.ask)).toEqual([]);
-    expect(Option.isNone(titleOf(decoded.ask.steps['pick'] ?? { end: true }))).toBe(true);
   });
 
   test('a choice made now recommends one option, listed first; never two', () => {
@@ -307,7 +337,7 @@ describe('the check before an ask renders', () => {
   test("a page's answers are checked in order, the run moved by each, the refusal named by its section", () => {
     const at = askStart(proof);
     expect(Option.getOrUndefined(pageRefusal(proof, at, [{ step: 'pick', values: {} }]))).toBe(
-      'try is not answered',
+      'Which try do we keep? needs a choice',
     );
     expect(
       pageRefusal(proof, at, [
@@ -333,7 +363,30 @@ describe('the check before an ask renders', () => {
           { step: 'why', values: {} },
         ]),
       ),
-    ).toBe('Why: why is not answered');
+    ).toBe('Why: Why? needs your words');
+  });
+
+  test("a page's questions: every choice and required words, in page order, each answered or not", () => {
+    const titled: Ask = {
+      ...proof,
+      steps: {
+        ...proof.steps,
+        why: {
+          blocks: [{ kind: 'free_text', id: 'why', label: 'Why?', required: true }],
+          next: [{ to: 'done' }],
+        },
+      },
+    };
+    const asked = (draft: Record<string, string>) =>
+      questionsOf(sectionsOf(titled, askStart(titled), draft)).map(
+        (q) => `${q.step}:${q.block.id}:${q.answered}`,
+      );
+    expect(asked({})).toEqual(['pick:try:false']);
+    expect(asked({ try: '7' })).toEqual(['pick:try:true', 'why:why:false']);
+    expect(asked({ try: '7', why: '  ' })).toEqual(['pick:try:true', 'why:why:false']);
+    expect(asked({ try: '7', why: 'light' })).toEqual(['pick:try:true', 'why:why:true']);
+    // Optional words are no question the page waits on.
+    expect(questionsOf(sectionsOf(proof, askStart(proof), { try: '7' })).length).toBe(1);
   });
 
   test('an ask is bounded: at most twelve steps', () => {
@@ -400,22 +453,28 @@ describe('the run', () => {
         },
       };
       expect(answerRefusal(wordsRequired, asked, 'why', {})).toEqual(
-        Option.some('why is not answered'),
+        Option.some('Why? needs your words'),
       );
       expect(answerRefusal(proof, asked, 'why', {})).toEqual(Option.none());
     }),
   );
 
-  test('an ask kept before the flag reads as it did, its words now optional', () => {
-    // The bytes as an ask kept on 2026-10-15 holds them: a free text with no flag.
+  test('an ask kept before the flag and before material reads as it did, its words now optional', () => {
+    // The bytes as an ask kept on 2026-10-15 holds them: a picture, a choice
+    // that recommends nothing, a free text with no flag; no title, no material.
     const kept =
       '{"id":"a0123456789","title":"Two calls","why":"the build waits","by":"main",' +
       '"created":"2026-10-15T00:27:56.767Z","ask":{"start":"ask","steps":{"ask":{"blocks":' +
-      '[{"kind":"free_text","id":"notes","label":"Anything else (optional)"}],' +
+      '[{"kind":"image","image":{"src":"/api/films/f/board/files/a.png"}},' +
+      '{"kind":"choose","id":"pick","label":"Which?","options":' +
+      '[{"value":"a","label":"A"},{"value":"b","label":"B"}]},' +
+      '{"kind":"free_text","id":"notes","label":"Anything else (optional)"}],' +
       '"next":[{"to":"done"}]},"done":{"end":true}}},' +
       '"state":{"_tag":"Asking","step":"ask","answers":{}},"answered":[]}';
     const record = Schema.decodeSync(AskRecordJson)(kept);
-    expect(answerRefusal(record.ask, record.state, 'ask', {})).toEqual(Option.none());
+    expect(askProblems(record.ask)).toEqual([]);
+    expect(Option.isNone(titleOf(record.ask.steps['ask'] ?? { end: true }))).toBe(true);
+    expect(answerRefusal(record.ask, record.state, 'ask', { pick: 'a' })).toEqual(Option.none());
   });
 
   it.effect('try 3 ends the ask at once', () =>
@@ -431,7 +490,9 @@ describe('the run', () => {
       expect(answerRefusal(proof, start, 'pick', { try: '9' })).toEqual(
         Option.some('9 is not an option of try'),
       );
-      expect(answerRefusal(proof, start, 'pick', {})).toEqual(Option.some('try is not answered'));
+      expect(answerRefusal(proof, start, 'pick', {})).toEqual(
+        Option.some('Which try do we keep? needs a choice'),
+      );
       expect(answerRefusal(proof, start, 'why', { why: 'x' })).toEqual(
         Option.some('the ask is at step pick, not why'),
       );

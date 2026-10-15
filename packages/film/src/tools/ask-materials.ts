@@ -13,7 +13,7 @@
 // it is not there.
 
 import { Boolean as Bool, Context, Effect, Layer, Option, Predicate } from 'effect';
-import { type Ask, type Material, materialsIn } from '../core/ask.ts';
+import { type Ask, type Material, materialsIn, scriptSource } from '../core/ask.ts';
 import { panelById } from '../core/board.ts';
 import { docAt, videoAt } from '../core/review.ts';
 import { BoardStore } from './board-store.ts';
@@ -99,33 +99,30 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
               yield* review.resolve(block.ref).pipe(Effect.mapError(unread(where, block.ref)));
               return [];
             });
-          case 'script':
-            return Option.match(Option.fromUndefinedOr(block.film), {
-              onSome: (name) =>
-                Effect.gen(function* () {
-                  const named = yield* film(where, name);
-                  const beats = yield* fresh
-                    .script(named)
-                    .pipe(Effect.mapError(unread(where, `the script of ${name}`)));
-                  return unknownOf(
-                    Option.fromUndefinedOr(block.beats),
-                    beats.map((b) => b.id),
-                  ).map((id) => `${where}: the script of ${name} has no beat ${id}`);
-                }),
-              onNone: () => {
-                const series = Option.getOrElse(Option.fromUndefinedOr(block.series), () => '');
-                const draft = Option.getOrElse(Option.fromUndefinedOr(block.draft), () => '');
-                return Effect.gen(function* () {
-                  const read = yield* drafts
-                    .read(series, draft)
-                    .pipe(Effect.mapError(unread(where, `draft ${series}/${draft}`)));
-                  return unknownOf(
-                    Option.fromUndefinedOr(block.beats),
-                    read.beats.map((b) => b.id),
-                  ).map((id) => `${where}: draft ${series}/${draft} has no beat ${id}`);
-                });
-              },
+          case 'script': {
+            const named = Option.fromUndefinedOr(block.beats);
+            const source = scriptSource(block);
+            if (source._tag === 'Film')
+              return Effect.gen(function* () {
+                const read = yield* fresh
+                  .script(yield* film(where, source.film))
+                  .pipe(Effect.mapError(unread(where, `the script of ${source.film}`)));
+                return unknownOf(
+                  named,
+                  read.map((b) => b.id),
+                ).map((id) => `${where}: the script of ${source.film} has no beat ${id}`);
+              });
+            const { series, draft } = source;
+            return Effect.gen(function* () {
+              const read = yield* drafts
+                .read(series, draft)
+                .pipe(Effect.mapError(unread(where, `draft ${series}/${draft}`)));
+              return unknownOf(
+                named,
+                read.beats.map((b) => b.id),
+              ).map((id) => `${where}: draft ${series}/${draft} has no beat ${id}`);
             });
+          }
           case 'board':
             return Effect.gen(function* () {
               const named = yield* film(where, block.film);

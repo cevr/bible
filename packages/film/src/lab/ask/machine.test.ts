@@ -111,7 +111,7 @@ describe("an ask's page", () => {
         expect(yield* actor.waitFor(AskPageState.Open)).toEqual(opened(asking));
         yield* actor.send(AskPageEvent.Submit);
         const unfit = yield* actor.waitFor((s) => s._tag === 'Open' && s.said !== '');
-        expect(unfit).toMatchObject({ _tag: 'Open', said: 'try is not answered' });
+        expect(unfit).toMatchObject({ _tag: 'Open', said: 'Which? needs a choice' });
         // Try 7 asks why: its section is on the page now, its words optional.
         yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
         yield* actor.send(AskPageEvent.Submit);

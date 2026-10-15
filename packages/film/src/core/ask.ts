@@ -75,13 +75,20 @@ export type AskImage = typeof AskImage.Type;
 /**
  * One option of a choice: the value its answer carries, its label, its
  * picture, and whether it is the asker's recommendation (`recommended`, at
- * most one per choice: the page lists it first and marks it).
+ * most one per choice: the page lists it first and marks it), with the
+ * reason for it (`why`, said under the options; only the recommended one).
  */
 const AskOption = Schema.Struct({
   value: Text(80),
   label: Text(200),
   image: Schema.optionalKey(AskImage),
   recommended: Schema.optionalKey(Schema.Boolean),
+  why: Schema.optionalKey(
+    Text(200).annotate({
+      description:
+        'Why the asker recommends this option, in one line: only on the recommended one.',
+    }),
+  ),
 });
 type AskOption = typeof AskOption.Type;
 
@@ -158,18 +165,47 @@ const Document = Schema.Struct({
   ref: ReviewRef,
   caption: Schema.optionalKey(Text(300)),
 });
+/** A key the other variant of a block names, which this one never does. */
+const none = Schema.optionalKey(Schema.Never);
+
 /**
  * A script, in the Script reader: a film's (`film`) or a series draft's
- * (`series` and `draft`), every beat or the `beats` named, each with its
- * staging take where one is ready and its delivery marks, written in place.
+ * (`series` and `draft`), never both, every beat or the `beats` named, each
+ * with its staging take where one is ready and its delivery marks, written
+ * in place. A script under review is always this block, never a `document`;
+ * one per ask.
  */
-const ScriptBlock = Schema.Struct({
+const FilmScript = Schema.Struct({
   kind: Schema.Literal('script'),
-  film: Schema.optionalKey(LabName),
-  series: Schema.optionalKey(LabName),
-  draft: Schema.optionalKey(LabName),
+  film: LabName,
+  series: none,
+  draft: none,
   beats: Schema.optionalKey(Schema.Array(BeatId)),
 });
+const DraftScript = Schema.Struct({
+  kind: Schema.Literal('script'),
+  series: LabName,
+  draft: LabName,
+  film: none,
+  beats: Schema.optionalKey(Schema.Array(BeatId)),
+});
+const ScriptBlock = Schema.Union([FilmScript, DraftScript]);
+/** A script block: a film's, or a series draft's. */
+type ScriptBlock = typeof ScriptBlock.Type;
+
+/** A script block's source: the film's name, or the series and its draft. */
+type ScriptSource =
+  | { readonly _tag: 'Film'; readonly film: string }
+  | { readonly _tag: 'Draft'; readonly series: string; readonly draft: string };
+
+const isFilmScript = (block: ScriptBlock): block is typeof FilmScript.Type =>
+  Predicate.isNotUndefined(block.film);
+
+/** Where `block`'s script is read from: a film, or a series draft. */
+export const scriptSource = (block: ScriptBlock): ScriptSource => {
+  if (isFilmScript(block)) return { _tag: 'Film', film: block.film };
+  return { _tag: 'Draft', series: block.series, draft: block.draft };
+};
 /** A film's Board: every panel, or the `panels` named (`<beat>.<mark>`), each as the Board shows it. */
 const BoardBlock = Schema.Struct({
   kind: Schema.Literal('board'),
@@ -240,19 +276,7 @@ const materialProblems = (where: string, block: Material): ReadonlyArray<string>
           !d.ref.endsWith('.md'),
           `${where}: document ${d.ref} is not a Markdown file (.md)`,
         ),
-      script: (s) => {
-        const film = Predicate.isNotUndefined(s.film);
-        const series = Predicate.isNotUndefined(s.series);
-        const draft = Predicate.isNotUndefined(s.draft);
-        // A film alone, or a series and its draft together: never both, never neither, never half a draft.
-        return [
-          ...problemIf(
-            film === (series || draft) || series !== draft,
-            `${where}: a script names a film, or a series and its draft, one of them`,
-          ),
-          ...namedProblems(where, 'beats', Option.fromUndefinedOr(s.beats)),
-        ];
-      },
+      script: (s) => namedProblems(where, 'beats', Option.fromUndefinedOr(s.beats)),
       board: (b) => namedProblems(where, 'panels', Option.fromUndefinedOr(b.panels)),
       video: (v) =>
         problemIf(
@@ -525,6 +549,13 @@ const pageProblems = (name: string, page: PageStep, ids: ReadonlyMap<string, num
             problems.push(`${c.id} offers one value twice`);
           if (c.options.filter((o) => o.recommended === true).length > 1)
             problems.push(`${c.id} recommends more than one option: recommend one`);
+          c.options
+            .filter((o) => Predicate.isNotUndefined(o.why) && o.recommended !== true)
+            .forEach((o) =>
+              problems.push(
+                `${c.id}'s option ${o.value} says why but is not recommended: why goes on the recommended option`,
+              ),
+            );
           c.options.forEach((o) =>
             Option.map(Option.fromUndefinedOr(o.image), (image) =>
               problems.push(...imageProblems(`${c.id}'s option ${o.value}`, image)),
@@ -577,6 +608,12 @@ export const askProblems = (ask: Ask): ReadonlyArray<string> => {
   );
   if (!names.some((name) => Option.isNone(Option.flatMap(Record.get(ask.steps, name), pageOf))))
     problems.push('no step ends the ask: add one with end: true');
+  // Each Script reader owns the page's word commands and highlights: two on one page would cross.
+  const scripts = materialsIn(ask).filter((m) => m.block.kind === 'script');
+  if (scripts.length > 1)
+    problems.push(
+      `the ask shows ${scripts.length} scripts (steps ${scripts.map((s) => s.step).join(', ')}): one script per ask; ask about the next in an ask of its own`,
+    );
   const seen = reached(ask);
   names
     .filter((name) => !seen.has(name))
@@ -653,6 +690,15 @@ export type AskEvent = typeof AskEvent.Type;
 /** An ask's first state: at its start, nothing answered. */
 export const askStart = (ask: Ask): AskState => AskState.Asking({ step: ask.start, answers: {} });
 
+/** What the owner is told of a question he must answer and has not: by its label, never its id. */
+const unansweredText = (b: Asking): string =>
+  Match.value(b).pipe(
+    Match.discriminatorsExhaustive('kind')({
+      choose: (c) => `${c.label} needs a choice`,
+      free_text: (t) => `${t.label} needs your words`,
+    }),
+  );
+
 /** One asked block's answer from `value` (none: left empty), or why it has none. */
 const answerOf = (b: Asking, value: Option.Option<string>): Result.Result<AskAnswer, string> =>
   Match.value(b).pipe(
@@ -661,14 +707,14 @@ const answerOf = (b: Asking, value: Option.Option<string>): Result.Result<AskAns
         Option.match(value, {
           onNone: () =>
             Bool.match(requiredOf(t), {
-              onTrue: () => Result.fail(`${t.id} is not answered`),
+              onTrue: () => Result.fail(unansweredText(t)),
               onFalse: () => Result.succeed({ kind: 'skipped' }),
             }),
           onSome: (text) => Result.succeed({ kind: 'free_text', text: text.trim() }),
         }),
       choose: (c): Result.Result<AskAnswer, string> =>
         Option.match(value, {
-          onNone: () => Result.fail(`${c.id} is not answered`),
+          onNone: () => Result.fail(unansweredText(c)),
           onSome: (v) =>
             Option.match(
               Arr.findFirst(c.options, (o) => o.value === v),
@@ -836,6 +882,29 @@ export const sectionsOf = (
   }
   return sections;
 };
+
+/** A question the page asks the owner to answer, by its section, and whether the draft answers it. */
+interface Question {
+  readonly step: string;
+  readonly block: Asking;
+  readonly answered: boolean;
+}
+
+/**
+ * The questions `sections` must have answered before Send, in page order:
+ * every choice, and words only where they are required. What the page
+ * counts ("2 of 3 answered") and where a Send with one open takes the owner.
+ */
+export const questionsOf = (sections: ReadonlyArray<Section>): ReadonlyArray<Question> =>
+  sections.flatMap((s) =>
+    askedIn(s.step)
+      .filter(requiredOf)
+      .map((block) => ({
+        step: s.name,
+        block,
+        answered: Option.isSome(Record.get(filled(s.values), block.id)),
+      })),
+  );
 
 /**
  * Why the page cannot go as drafted, or none when it can: each section's

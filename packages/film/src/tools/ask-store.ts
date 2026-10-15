@@ -75,18 +75,14 @@ interface AskStoreService {
   /** Every ask, the newest first. */
   readonly list: Effect.Effect<ReadonlyArray<AskRecord>, StoreError>;
   /**
-   * The owner's answers to the ask's page, each section's in order (each
-   * step's as `answer` takes it, all kept or none): the ask as they leave it.
+   * The owner's answers to the ask's page, each section's in order, all
+   * kept or none: a step answered already takes the same answer again and
+   * refuses another; past the deadline, or not fitting its step, refused.
+   * The ask as they leave it.
    */
   readonly answerPage: (
     id: string,
     sections: ReadonlyArray<{ readonly step: string; readonly values: StepValues }>,
-  ) => Effect.Effect<AskRecord, AskUnknown | AskRefused | StoreError>;
-  /** The owner's answers to step `step`: the ask as it leaves it. */
-  readonly answer: (
-    id: string,
-    step: string,
-    values: StepValues,
   ) => Effect.Effect<AskRecord, AskUnknown | AskRefused | StoreError>;
   /** The ask closed, `why` (withdrawn, or filed once answered): what was answered is kept. */
   readonly close: (
@@ -337,9 +333,6 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         return record;
       });
 
-      const answer = (id: string, step: string, values: StepValues) =>
-        answerPage(id, [{ step, values }]);
-
       const close = Effect.fn('AskStore.close')(function* (id: string, why: string) {
         const at = yield* known(id);
         const record = yield* store.transact(at, (current) =>
@@ -360,7 +353,7 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         return record;
       });
 
-      return AskStore.of({ dir, file, make, read, list, answer, answerPage, close });
+      return AskStore.of({ dir, file, make, read, list, answerPage, close });
     }),
   );
 }
