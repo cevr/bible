@@ -3495,8 +3495,11 @@ Run `bun run test:e2e` from the repository root or this package to exercise
 the real browser workflows and canvas pixel checks. The E2E script uses
 `src/lab/fixtures/run-suite.ts` to compile fresh browser bundles and run
 `bun test --parallel --no-isolate --max-concurrency=3 --timeout 20000 e2e`.
-The runner caps workers at eight, or the host's core count when smaller;
-each keeps its module registry and Chrome across files. Test files restore
+On CI the runner takes eight workers, or the host's core count when smaller;
+on a shared machine (the laptop, the workbox) it takes the cores free when it
+starts, the core count less the one-minute load, at least two and at most the
+cores (`src/lab/fixtures/workers.ts`), and prints the count it took. Each
+worker keeps its module registry and Chrome across files. Test files restore
 the global state they change. E2E cases retain native input, actual browser
 recording and pixel assertions. The gate does not run it; CI runs it in its
 own `e2e` job beside the gate (`.github/workflows/gate.yml`), over the
@@ -3506,18 +3509,50 @@ any other path answers a 500 naming it, so no case passes over a route the
 real server does not serve.
 
 `bun run test:e2e:check [--base <log>] [--log <log>]` runs the same suite
-and says what the change under test caused. It holds the host's e2e lock for
-the whole run (`flock /tmp/bible-tools-e2e.lock` on the workbox, `lockf -k`
-on a Mac, which has no `flock`), so two workspaces on one machine queue. The
-suite's output prints as it runs and is kept in `<log>` (by default
-`tmp/e2e/<time>.log` at the repository root). Each failed case the base log
-does not name (a log of the suite on the change's base: an earlier local
-`<log>`, or CI's `gh run view <id> --log-failed`) reruns alone three times,
-its output in `<log>.alone.log`. `<log>.verdict.md` then classes each
-failure: **base** (the base log has it), **load-only** (green alone all three
-times) or **unit-caused** (red alone at least once). The check exits 1 on a
-unit-caused failure, or when the suite failed and named no case; otherwise 0.
-`src/lab/fixtures/e2e-verdict.ts` holds the reading and classing.
+and says what the change under test caused. It takes the host's e2e lock
+itself for the whole run (`flock /tmp/bible-tools-e2e.lock` on the workbox,
+`lockf -k` on a Mac, which has no `flock`), so two workspaces on one machine
+queue; it says so before it waits. Do not wrap it in `flock` or `lockf`: run
+inside an outer lock on that file, it sees the lock in its ancestors and runs
+in that hold rather than wait on itself. Holding the lock, it waits for the
+host's one-minute load to fall to its core count, at most twenty minutes,
+saying each minute how long it has waited; then it runs, and the verdict
+records the load it started at and the wait.
+
+The suite's output prints as it runs and is kept in `<log>` (by default
+`tmp/e2e/<time>.log` at the repository root). The check reads three kinds of
+failure from it: a failed case, a worker that crashed with its file, and an
+error bun caught between tests, under the file printed above it (bun's
+` N error` count beside them: an error the log does not place is a failure
+of its own). It also reads whether the suite finished, by bun's
+`Ran N tests across M files` line. Every failure reruns alone three times
+(a case by its name, a file's failure as the whole file), its output in
+`<log>.alone.log`.
+
+`<log>.verdict.md` then classes each failure:
+
+- **green-alone**: green in all three reruns. The suite failed it only beside
+  the rest of the suite. That is load, or order (a case another case left
+  running, since `--no-isolate` shares a worker); the reruns do not tell which,
+  and do not rule out a slowdown the change caused that shows only under load.
+- **base**: red alone, and the base's own check saw the same failure (same
+  file, same name) red alone too.
+- **unit-caused**: red alone, where the base passed it: the base's suite
+  finished without failing it, or its check saw it green alone.
+- **unresolved**: anything else. It was red alone with no base given, or the
+  base's log failed it with no rerun to say why (a loaded base proves nothing),
+  or a rerun ran no test (its filter matched none), or the log placed it in no
+  file.
+
+The base (`--base`) is a log of the suite on the change's base: an earlier
+check's `<log>`, a plain `bun run test:e2e` log, or CI's
+`gh run view <id> --log-failed`. A check also writes `<log>.verdict.json`,
+its reruns as data, and a later check given that `<log>` as its base reads it
+from beside the log. So to resolve a failure red alone at the head, run the
+check at the base and pass its log. The check exits 1 when a failure is
+unit-caused or unresolved, when the suite never finished, or when it failed and
+named no failure; otherwise 0. `src/lab/fixtures/e2e-verdict.ts` holds the
+reading and classing.
 
 ## Knobs
 
