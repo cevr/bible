@@ -134,6 +134,27 @@
       "at": 1792022870000,
       "text": "Rewrite the script from scratch and make the film through the flow (script, concept, storyboard, animatic, Rive render), its decisions asked in the lab",
       "quote": "it would be concept, it would be concept, then storyboard, then animatronics, I don't know how to pronounce it.  into rendering with Rive.  I think we should do that. … And then I want us to rewrite the righteousness by faith script from the start, like from scratch.  And, uh, that way we can test this flow with this new MCP kind of decision and all that."
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792029327372,
+      "text": "Righteousness by Faith rewrite: the shape (ask a5d4e2f6b76)",
+      "set": "rbf-script-2026-10-14",
+      "ask": "a5d4e2f6b76"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792029650692,
+      "text": "Two open calls for Righteousness by Faith (ask a49cc614a25): church: Try 1 · subtitles: Yes, hide it · notes: nope",
+      "quote": "nope",
+      "ask": "a49cc614a25"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792029652031,
+      "text": "Righteousness by Faith rewrite: the shape (ask a5d4e2f6b76): spine: B · The word is a seed (recommended): it answers \"cover-up?\" with a picture, and makes country living part of the answer · thesis: \"The just shall live by faith.\" (Hab 2:4; Rom 1:17): it answers Job's \"just\" and lands on \"faith\" (recommended) · opening: The verdict first: a guilty man hears \"righteous\", then the verses that seem to clash, then Job's question (recommended) · accused: Max, told as a parable (\"Picture a young man…\"), no name in speech (recommended) · length: About 7 minutes of speech, like the old film, with the time moved to the two stories (recommended) · reach: One short glance ahead: the latter rain, and sins blotted out (Acts 3:19) (recommended) · version: Yes, v3, written from scratch; the new script sits beside the old one until you keep it (recommended) · more: No, go write it",
+      "set": "rbf-script-2026-10-14",
+      "ask": "a5d4e2f6b76"
     }
   ],
   "filed": [
