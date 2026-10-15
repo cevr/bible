@@ -38,10 +38,7 @@ packages/core/src/egw-db/book-database.ts BibleRefRow
 packages/core/src/egw-db/book-database.ts BibleRefRow
 packages/core/src/egw-db/book-database.ts TestParagraph
 packages/core/src/search/back-matter.ts isBackMatterTitle
-packages/core/src/search/embedder-transformers.ts DOCUMENT_PREFIX
-packages/core/src/search/embedder-transformers.ts QUERY_PREFIX
 packages/core/src/search/embedder-transformers.ts memoizeOnSuccess
-packages/core/src/search/embedder-transformers.ts truncateToMrl
 packages/core/src/search/fusion.ts NEAR_TOP_RANK_BONUS
 packages/core/src/search/fusion.ts RRF_K
 packages/core/src/search/fusion.ts TOP_RANK_BONUS
