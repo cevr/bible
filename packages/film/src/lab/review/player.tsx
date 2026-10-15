@@ -249,7 +249,8 @@ export const useClockMedia = (
  * never the browser's controls: at rest (`atRest`) its picture is the one
  * control, a press plays or pauses it; once it has moved (playing, scrubbed,
  * paused past its start) the review's transport row shows under it (play,
- * the clock, a scrub), for the whole of a scrub. A failure is its media's:
+ * the clock, a scrub), for the whole of a scrub; until then its room stands
+ * empty under the picture, so the row's coming moves nothing. A failure is its media's:
  * each try at a source (a new source, or a retry of a failed one) is a fresh
  * element on the same clock, so a new source stands where the last stood,
  * playing if it played, and nothing of a failed try outlives it. Once its
@@ -383,7 +384,11 @@ export const PlayedAlone = (
                 </span>
               </Show>
             </button>
-            <Show when={!atRest(sync()) && !failed()}>
+            {/* At rest (or failed) its row's room is kept, empty, so the first play pushes nothing down. */}
+            <Show
+              when={!atRest(sync()) && !failed()}
+              fallback={<div class="rv-alone-room" aria-hidden="true" />}
+            >
               <TransportRow
                 sync={sync}
                 send={send}

@@ -442,9 +442,13 @@ describe('the review page', () => {
           `/^\\d+:\\d\\d$/.test(document.querySelector('${LONE_REST} .rv-rest-length')?.textContent ?? '')`,
           true,
         );
+        // The row's room is kept at rest, so the first play pushes nothing down.
+        const tall = `Math.round(document.querySelector('${LONE}').getBoundingClientRect().height)`;
+        const rest = (yield* page.evaluate(tall)) as number;
         yield* page.click(`${LONE} [data-act="play-video"]`);
         yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '❚❚');
         yield* countIs(page, LONE_REST, 0);
+        yield* evaluates(page, tall, rest);
         // Its time moves, and the row's clock says so, as its length did at rest (m:ss).
         yield* until(page, `${LONE_VIDEO}.currentTime > 1.5`);
         yield* until(
