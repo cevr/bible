@@ -10,7 +10,7 @@
 
 export type ServedFrom = 'workers.dev' | 'custom-domain';
 
-export const SERVED_FROM: ServedFrom = 'workers.dev';
+export const SERVED_FROM: ServedFrom = 'custom-domain';
 
 /** The hostname readers use. */
 export const DOMAIN = 'egw.cvr.im';

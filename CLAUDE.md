@@ -9,7 +9,7 @@ explainer films.
 bible/
 ├── apps/
 │   ├── animations/     # Narrated cut-paper explainer films (@bible/animations, built on @bible/film)
-│   ├── egw-search/     # EGW search: Solid 2 page over an Effect HttpApi server (@bible/egw-search; Railway, egw.cvr.im)
+│   ├── egw-search/     # EGW search: Solid 2 page over an Effect HttpApi server (@bible/egw-search; Alchemy → Cloudflare, egw.cvr.im)
 │   ├── firsttheblade/  # The First the Blade site: Solid 2 prerender behind an Effect Worker (@bible/firsttheblade; Alchemy → Cloudflare)
 │   ├── selah/          # Native macOS Scripture memorization (@bible/selah; SwiftUI, FSRS)
 │   └── triedgold/      # triedgold.com (@bible/triedgold, React Router 8 SSR on a Worker; brand tokens in src/brand.ts; Alchemy → Cloudflare)
