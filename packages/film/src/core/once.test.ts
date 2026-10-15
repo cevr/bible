@@ -1,5 +1,5 @@
 import { describe, expect, it, yieldFibers } from 'effect-bun-test';
-import { Deferred, Effect, Exit, Fiber, Scope } from 'effect';
+import { Deferred, Effect, Exit, Fiber, Option, Scheduler, Scope } from 'effect';
 import { onceScoped } from './once.ts';
 
 /**
@@ -22,6 +22,37 @@ const gate = () => {
   return { opened: promise, open: Effect.sync(() => resolve()) };
 };
 
+/**
+ * A scheduler that makes `caller` yield once, at its first step after it has
+ * queued a task (the fork of the run): the moment between the fork and the
+ * record of it that an interruption must not split.
+ */
+const yieldAfterFork = (caller: { fiber: Option.Option<Fiber.Fiber<unknown, unknown>> }) => {
+  const mixed = new Scheduler.MixedScheduler();
+  const state = { armed: false, yielded: false };
+  const isCaller = (fiber: Fiber.Fiber<unknown, unknown>) =>
+    Option.exists(caller.fiber, (held) => held === fiber);
+  const scheduler: Scheduler.Scheduler = {
+    executionMode: mixed.executionMode,
+    shouldYield: (fiber) => {
+      if (!isCaller(fiber) || !state.armed || state.yielded) return mixed.shouldYield(fiber);
+      state.yielded = true;
+      return true;
+    },
+    makeDispatcher: () => {
+      const dispatcher = mixed.makeDispatcher();
+      return {
+        scheduleTask: (task, priority) => {
+          if (Option.isSome(caller.fiber)) state.armed = true;
+          dispatcher.scheduleTask(task, priority);
+        },
+        flush: () => dispatcher.flush(),
+      };
+    },
+  };
+  return { scheduler, state };
+};
+
 describe('onceScoped', () => {
   it.effect(
     'starts a run once, though the caller that started it is interrupted while it waits',
@@ -39,6 +70,43 @@ describe('onceScoped', () => {
         expect(yield* Fiber.join(later)).toBe(1);
         expect(runs.count).toBe(1);
         yield* Scope.close(scope, Exit.void);
+      }),
+  );
+
+  it.effect(
+    'starts a run once, though its first caller is interrupted between the fork and the record of it',
+    () =>
+      Effect.suspend(() => {
+        const caller = { fiber: Option.none<Fiber.Fiber<unknown, unknown>>() };
+        const { scheduler, state } = yieldAfterFork(caller);
+        const runs = { count: 0 };
+        return Effect.scoped(
+          Effect.gen(function* () {
+            const finish = yield* Deferred.make<void>();
+            const run = yield* onceScoped(
+              Effect.gen(function* () {
+                runs.count += 1;
+                // The run interrupts its first caller as it starts, while that caller yields.
+                if (runs.count === 1)
+                  Option.map(caller.fiber, (fiber) => fiber.interruptUnsafe(fiber.id));
+                return yield* Deferred.await(finish);
+              }),
+            );
+            const first = yield* Effect.forkChild(
+              Effect.withFiber((fiber) => {
+                caller.fiber = Option.some(fiber);
+                return run;
+              }),
+            );
+            yield* Fiber.await(first);
+            const second = yield* Effect.forkChild(run);
+            yield* yieldFibers;
+            yield* Deferred.done(finish, Exit.void);
+            yield* Fiber.join(second);
+            expect(state.yielded).toBe(true);
+            expect(runs.count).toBe(1);
+          }),
+        ).pipe(Effect.provideService(Scheduler.Scheduler, scheduler));
       }),
   );
 

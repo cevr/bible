@@ -1,7 +1,9 @@
 // One run of an effect, shared by every caller, owned by the scope that made
 // it. The first caller starts the run in a fiber of the scope's; each caller
 // joins it, so a caller interrupted while it waits leaves the run going for the
-// next, and the run ends only with its scope.
+// next, and the run ends only with its scope. The fork and the record of it
+// are one uninterruptible step, so an interruption cannot leave a run that no
+// caller finds.
 //
 // `Effect.cached` (effect 4.0.2) gives up a run once every caller has left and
 // starts it again for the next one. That is safe for a run an interruption
@@ -19,15 +21,20 @@ export const onceScoped = <A, E, R>(
     Effect.all([Effect.scope, SynchronizedRef.make(Option.none<Fiber.Fiber<A, E>>())]),
     ([scope, started]) =>
       Effect.flatMap(
-        SynchronizedRef.modifyEffect(started, (current) =>
-          Option.match(current, {
-            onSome: (fiber) => Effect.succeed([fiber, current] as const),
-            onNone: () =>
-              Effect.map(
-                Effect.forkIn(self, scope),
-                (fiber) => [fiber, Option.some(fiber)] as const,
-              ),
-          }),
+        // The fork and its record are one step no interruption splits: a caller
+        // interrupted between them would leave a run going that no later caller
+        // finds. The wait for the run stays interruptible.
+        Effect.uninterruptible(
+          SynchronizedRef.modifyEffect(started, (current) =>
+            Option.match(current, {
+              onSome: (fiber) => Effect.succeed([fiber, current] as const),
+              onNone: () =>
+                Effect.map(
+                  Effect.forkIn(self, scope),
+                  (fiber) => [fiber, Option.some(fiber)] as const,
+                ),
+            }),
+          ),
         ),
         Fiber.join,
       ),
