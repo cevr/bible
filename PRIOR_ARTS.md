@@ -72,5 +72,6 @@ Remotion's renderer, Theatre.js, pmndrs, leva) is in
 
 ## To survey
 
-| Source | Question |
-| ------ | -------- |
+| Source                                                                                                                                                                                                  | Question                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent-work review surfaces: GitHub's Copilot coding agent (the PR timeline and session log), Linear's agent sessions, Devin's session view, Sideshow (`~/Developer/personal/sideshow`, the owner's own) | For the Agent-led harness (2026-10-14): how does each show, at rest, what the agent did, what it is doing, and what waits on the human, with the evidence for each decision beside it? Which elements does each leave out that a studio would keep? |
