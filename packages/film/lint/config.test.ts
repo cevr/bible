@@ -150,28 +150,6 @@ const ProbeConfig = Schema.fromJsonString(
   }),
 );
 
-/** `effect/noHistoryComment`'s options: where history lives, and the loop's own forms of it. */
-const HistoryForms = Schema.Struct({
-  history: Schema.optionalKey(Schema.String),
-  patterns: Schema.optionalKey(
-    Schema.Array(
-      Schema.Struct({
-        what: Schema.String,
-        pattern: Schema.String,
-        flags: Schema.optionalKey(Schema.String),
-      }),
-    ),
-  ),
-});
-
-/** The config oxlint reads a comment with: the history rule and its options alone. */
-const HistoryConfig = Schema.fromJsonString(
-  Schema.Struct({
-    jsPlugins: Schema.Array(Schema.String),
-    rules: Schema.Struct({ 'effect/noHistoryComment': withOptions(HistoryForms) }),
-  }),
-);
-
 /** The rule `key`'s value in `o`. */
 const ruleIn = (o: Override, key: string) =>
   Option.flatMap(Option.fromUndefinedOr(o.rules), (rules) => Option.fromUndefinedOr(rules[key]));
@@ -533,37 +511,5 @@ describe('the lint config', () => {
         );
         expect(missing).toEqual([]);
       }),
-  );
-
-  it.effect.layer(BunServices.layer)(
-    "refuses the loop's own forms of history in every block that holds comments",
-    () =>
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const path = yield* Path.Path;
-        const config = yield* readJson('.oxlintrc.json', Config);
-        const forms = config.overrides
-          .filter((o) => Option.isSome(ruleIn(o, 'effect/noHistoryComment')))
-          .map((o) => optionsIn(o, 'effect/noHistoryComment', HistoryForms));
-        expect(forms.length).toBeGreaterThan(0);
-        // Every block that holds comments holds them to the same forms.
-        for (const held of forms) expect(held).toEqual(forms[0] ?? []);
-        const source = yield* fs.readFileString(
-          path.join(import.meta.dir, 'fixtures', 'history-forms.ts'),
-        );
-        const marked = source
-          .split('\n')
-          .map((text, i) => ({ text, line: i + 1 }))
-          .filter(({ text }) => text.includes('// RED effect/noHistoryComment'))
-          .map(({ line }) => line);
-        const lintConfig = yield* Schema.encodeEffect(HistoryConfig)({
-          jsPlugins: [yield* PLUGIN],
-          rules: { 'effect/noHistoryComment': ['error', ...(forms[0] ?? [])] },
-        });
-        const reported = reportedLines(yield* oxlintOver(lintConfig, source), ['noHistoryComment']);
-        expect(marked.length).toBeGreaterThan(0);
-        expect([...reported].sort((a, b) => a - b)).toEqual(marked);
-      }),
-    SPAWNS_MS,
   );
 });

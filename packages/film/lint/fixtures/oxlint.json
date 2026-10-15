@@ -24,7 +24,8 @@
     "film/booleans-through-pressed": "error",
     "film/no-test-seam": "error",
     "film/focus-through-focus-for": "error",
-    "film/pages-in-case-scope": "error"
+    "film/pages-in-case-scope": "error",
+    "film/no-history-comment": "error"
   },
   "overrides": [
     {

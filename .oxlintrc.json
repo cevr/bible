@@ -394,24 +394,10 @@
       ],
       "rules": {
         "effect/noPointFreeLog": "error",
-        // A comment says today's behaviour and its reason, never how the code
-        // got here: a commit hash, "used to", and the loop's own forms (a pass
-        // number, a batch id, a ledger id). Every block that turns the rule on
-        // carries these same options (packages/film/lint/config.test.ts).
-        "effect/noHistoryComment": [
-          "error",
-          {
-            "history": "the ledger and git log",
-            "patterns": [
-              { "what": "a pass number", "pattern": "\\bpass(?:es)?[ -]\\d+\\b", "flags": "i" },
-              { "what": "a batch id", "pattern": "\\bp\\d+-[a-z][a-z0-9]*\\b" },
-              {
-                "what": "a ledger id",
-                "pattern": "\\b(?:GR|G|UR[23]?|DL3?|RS3?|SU3?|ST3?|US[23]?|SV[23]?|PSH?3?|ET3?|HC|H|PA|AA|UI3?|LS|PL|EA|NS|MC|OG3?|T|R[123](?:-[a-z]+)*)-\\d+[a-z]?\\b|\\bG\\d{1,2}\\b"
-              }
-            ]
-          }
-        ]
+        // A comment says what the code does now and why, never how it got
+        // here: a pass number, a batch id, a ledger id or a commit hash
+        // (film/no-history-comment).
+        "film/no-history-comment": "error"
       }
     },
     {
@@ -425,20 +411,7 @@
         "**/packages/atom-solid/**/*.tsx"
       ],
       "rules": {
-        "effect/noHistoryComment": [
-          "error",
-          {
-            "history": "the ledger and git log",
-            "patterns": [
-              { "what": "a pass number", "pattern": "\\bpass(?:es)?[ -]\\d+\\b", "flags": "i" },
-              { "what": "a batch id", "pattern": "\\bp\\d+-[a-z][a-z0-9]*\\b" },
-              {
-                "what": "a ledger id",
-                "pattern": "\\b(?:GR|G|UR[23]?|DL3?|RS3?|SU3?|ST3?|US[23]?|SV[23]?|PSH?3?|ET3?|HC|H|PA|AA|UI3?|LS|PL|EA|NS|MC|OG3?|T|R[123](?:-[a-z]+)*)-\\d+[a-z]?\\b|\\bG\\d{1,2}\\b"
-              }
-            ]
-          }
-        ]
+        "film/no-history-comment": "error"
       }
     },
     {

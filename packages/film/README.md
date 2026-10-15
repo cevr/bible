@@ -3414,13 +3414,14 @@ A spawn inside a service the test provides is not seen.
 body, since while one tab's touches are under way Chrome drops, or lands as a
 bare click, the touches a file's other cases send their own tabs at the same
 time.
-`effect/noHistoryComment` (from `oxlint-plugin-effect`) holds every comment
-in `packages/film` and `apps/animations`, with the loop's own forms as its
-`patterns` in `.oxlintrc.json` (held by `lint/config.test.ts`): a comment says what the code does
-today and why, and how it got here lives in the ledger and `git log`. It
-refuses the forms history takes on its face: a loop pass by number, a batch
-id, a ledger id, a commit hash, and "used to" said of what the code did (not "is used
-to"). History told in other words is the sweep's to find.
+`film/no-history-comment` (`lint/no-history-comment.ts`) holds every comment
+in `packages/film`, `apps/animations`, `packages/ui`, `packages/url-state`
+and `packages/atom-solid`: a comment says what the code does now and why, and
+how it got here lives in the ledger and `git log`. It refuses only the forms
+history takes on its face: a loop pass by number, a batch id, a ledger id and
+a commit hash, each outside a quoted literal and a URL. History told in words
+(what the code used to do, which pass changed it) is a review finding
+(`CLAUDE.md`, **Comments**), since no pattern can read it.
 `film/drawing-literal` and `film/no-unprobed-ink` hold a film's scenes to
 what the lab can locate and what `film check` can probe; the films' README
 (`apps/animations/README.md`, **Lint**) says what each refuses.

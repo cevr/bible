@@ -17,6 +17,7 @@ import { mediaThroughPlayer } from './media-through-player.ts';
 import { noCueRemap } from './no-cue-remap.ts';
 import { noEaseOnCue } from './no-ease-on-cue.ts';
 import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
+import { noHistoryComment } from './no-history-comment.ts';
 import { noReadOnce } from './no-read-once.ts';
 import { noTestSeam } from './no-test-seam.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
@@ -42,6 +43,7 @@ export default Plugin.define({
     'no-cue-remap': noCueRemap,
     'no-ease-on-cue': noEaseOnCue,
     'no-hand-timed-seconds': noHandTimedSeconds,
+    'no-history-comment': noHistoryComment,
     'no-read-once': noReadOnce,
     'no-test-seam': noTestSeam,
     'no-unprobed-ink': noUnprobedInk,

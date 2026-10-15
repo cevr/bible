@@ -50,6 +50,10 @@ const marked = (file: string, source: string): ReadonlyArray<string> =>
 
 /** Corrective advice users receive for each rule, including the two timing repairs. */
 const MESSAGES = {
+  'no-history-comment.ts:4 film/no-history-comment':
+    'a pass number in a comment tells history: say what the code does today and why; how it got here lives in the ledger and git log.',
+  'no-history-comment.ts:21 film/no-history-comment':
+    'a ledger id in a comment tells history: say what the code does today and why; how it got here lives in the ledger and git log.',
   'no-unprobed-ink.ts:11 film/no-unprobed-ink':
     "ctx.stroke bypasses the probe, so film check cannot see it cross text. Draw it with the kit's stroke/write, or wrap it in the kit's unprobed(ctx, () => …) to say it is texture.",
   'span-ends-on-anchor.ts:10 film/span-ends-on-anchor':
