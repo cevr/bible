@@ -11,7 +11,7 @@
         "agent-tail-core": "^0.4.0",
         "concurrently": "^10.0.6",
         "effect": "catalog:",
-        "effect-bun-test": "file:/Users/cvr/Developer/personal/.rifts/bible-tools/p5/tmp/orchestrate/p5/p6-ebt/effect-bun-test-37b66fe.tgz",
+        "effect-bun-test": "file:/Users/cvr/Developer/personal/.rifts/bible-tools/p5/tmp/orchestrate/p5/p6-ebt/effect-bun-test-a1bc2d1.tgz",
         "lefthook": "^2.2.1",
         "oxfmt": "^0.72.0",
         "oxlint": "^1.87.0",
@@ -234,7 +234,7 @@
     "@solidjs/compiler": "2.0.0-rc.15",
     "@solidjs/web": "2.0.0-rc.15",
     "effect": "4.0.2",
-    "effect-bun-test": "file:/Users/cvr/Developer/personal/.rifts/bible-tools/p5/tmp/orchestrate/p5/p6-ebt/effect-bun-test-37b66fe.tgz",
+    "effect-bun-test": "file:/Users/cvr/Developer/personal/.rifts/bible-tools/p5/tmp/orchestrate/p5/p6-ebt/effect-bun-test-a1bc2d1.tgz",
     "effect-machine": "0.29.0",
     "solid-js": "2.0.0-rc.15",
     "vite-plugin-solid": "3.0.0-next.27",
@@ -1218,7 +1218,7 @@
 
     "effect": ["effect@4.0.2", "", {}, "sha512-YeYnLqSFrL4+tCOXRrfNP03w8FILoF/wDl+ukraJAGzXrjcS383W7LAAvGBbLatEyktmLxRq+9xJinx7QzXW5A=="],
 
-    "effect-bun-test": ["effect-bun-test@/Users/cvr/Developer/personal/.rifts/bible-tools/p5/tmp/orchestrate/p5/p6-ebt/effect-bun-test-37b66fe.tgz", { "peerDependencies": { "bun": ">=1.3.2", "effect": "^3.19.0 || ^4.0.0" } }, "sha512-/LnR+0BjZHYiMyplfbCkG6ppFdJlxZVSRAbUa7NOIrsY71QBrujOHkopDWoYwNbDDLyCE0dNjON+7VXDBzldTQ=="],
+    "effect-bun-test": ["effect-bun-test@/Users/cvr/Developer/personal/.rifts/bible-tools/p5/tmp/orchestrate/p5/p6-ebt/effect-bun-test-a1bc2d1.tgz", { "peerDependencies": { "bun": ">=1.3.2", "effect": "^3.19.0 || ^4.0.0" } }, "sha512-TojABnWe9/EFBpjo6Jj+PM/D6RyG7iPE0jlxbp93ZLf8l2JmwXmsYJAB5/LFIYqVXUbkeogwegcjj+ArRdFF2g=="],
 
     "effect-machine": ["effect-machine@0.29.0", "", { "peerDependencies": { "effect": ">=4.0.0 <5" } }, "sha512-51NNHQmgY4t90kaJqOkLANpIopWI41gYxvOsx0ugLA+cXZyoSQzWQhmRg3oZd8UjI7xr4dotze3aZyswbA1v/w=="],
 
