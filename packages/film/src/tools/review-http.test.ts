@@ -1,7 +1,7 @@
 // The lab's review routes as a phone calls them: the index, a file answered
 // in ranges (206, and 416 past its end), a frame, a length, a ref that leaves
-// its root refused as unknown; and the hosts the lab answers to, the
-// allowlist's beside loopback, a write from anywhere else refused.
+// its root refused as unknown; and the hosts the lab answers to, its
+// listener's own name beside loopback's, a write from anywhere else refused.
 
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
@@ -230,7 +230,7 @@ describe('review routes', () => {
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );
 
-  it.effect('answers the allowlist and loopback, and no other host or site', () =>
+  it.effect("answers its listener's own name and loopback's, and no other host or site", () =>
     Effect.gen(function* () {
       const through = yield* reviewTestAsk(
         reviewTestGet(labUrls.review.index({ query: {} }), { host: REVIEW_TEST_HOST }),
