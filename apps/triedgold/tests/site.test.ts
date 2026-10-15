@@ -3,13 +3,13 @@
 // `build`).
 //
 // Cloudflare serves the Worker assets-first, so `served` does too: a path that
-// names a file in the client build is that file, with the headers
-// `_headers` gives it; any other path is the Worker's `fetch`, which hands it
-// to React Router (`src/server/render.ts`). `bun run test:deploy` checks the
+// names a file in the client build, or a page the build prerendered, is that
+// file, with the headers `_headers` gives it; any other path is the Worker's
+// `fetch`, which hands it to React Router (`src/server/render.ts`). `bun run test:deploy` checks the
 // same answers on Cloudflare itself.
 
 import { BunServices } from '@effect/platform-bun';
-import { Effect, FileSystem, Path } from 'effect';
+import { Effect, FileSystem, Option, Path } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { describe, expect, it } from 'effect-bun-test';
 import { createRequestHandler } from 'react-router';
@@ -53,17 +53,29 @@ const matches = (rule: Rule, path: string) => {
   return path === rule.path;
 };
 
+/** The file the asset layer serves for a path (`drop-trailing-slash` HTML handling). */
+const assetFile = Effect.fn('test.assetFile')(function* (path: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const paths = yield* Path.Path;
+  const base = paths.join(CLIENT, path);
+  for (const candidate of [base, `${base}.html`, paths.join(base, 'index.html')]) {
+    const info = yield* fs.stat(candidate).pipe(Effect.option);
+    if (Option.exists(info, (found) => found.type === 'File')) return Option.some(candidate);
+  }
+  return Option.none<string>();
+});
+
 /** What a reader gets for one path, assets first. */
 const served = Effect.fn('test.served')(function* (path: string) {
   const fs = yield* FileSystem.FileSystem;
-  const paths = yield* Path.Path;
-  const file = paths.join(CLIENT, path);
-  if (path !== '/' && (yield* fs.exists(file))) {
+  const file = yield* assetFile(path);
+  if (Option.isSome(file)) {
     const headers: Record<string, string> = {};
+    if (file.value.endsWith('.html')) headers['content-type'] = 'text/html; charset=utf-8';
     for (const rule of yield* rules()) {
       if (matches(rule, path)) Object.assign(headers, rule.headers);
     }
-    return { from: 'asset', status: 200, headers, body: yield* fs.readFileString(file) };
+    return { from: 'asset', status: 200, headers, body: yield* fs.readFileString(file.value) };
   }
   const rendered = yield* respond(
     handle,
@@ -86,11 +98,11 @@ const targets = (html: string): ReadonlyArray<string> =>
   [...html.matchAll(/(?:href|src)="(\/[^"#]*)"/g)].flatMap((match) => match.slice(1, 2));
 
 describe('triedgold', () => {
-  it.live('every page of the old site renders', () =>
+  it.live('every page of the old site is prerendered', () =>
     Effect.gen(function* () {
       for (const page of pages) {
         const response = yield* served(page);
-        expect([page, response.from, response.status]).toEqual([page, 'worker', 200]);
+        expect([page, response.from, response.status]).toEqual([page, 'asset', 200]);
         expect(response.headers['content-type']).toContain('text/html');
         expect(response.body).toContain('Tried Gold');
       }

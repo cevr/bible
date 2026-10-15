@@ -3,10 +3,10 @@
  * assets.
  *
  * Requests are served assets-first: a path that names a file in the client
- * build (a hashed asset, the favicon) never invokes the Worker, and
- * `public/_headers` sets its caching. Everything else reaches `fetch`, which
- * hands it to React Router (`../server/render.ts`): the pages, and the 404
- * page for a path no route matches.
+ * build (a prerendered page, a hashed asset, the favicon) never invokes the
+ * Worker, and `public/_headers` sets its caching. Everything else reaches
+ * `fetch`, which hands it to React Router (`../server/render.ts`): in
+ * practice the 404 page for a path no route matches.
  *
  * `prod` takes the Worker name `triedgold`, the `triedgold.com` custom domain
  * with `www.triedgold.com` redirecting to it, and turns its `workers.dev` host

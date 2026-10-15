@@ -1,10 +1,10 @@
 /**
  * A request the static files do not answer, rendered by React Router.
  *
- * Cloudflare's asset layer answers the hashed assets and the public files
- * before the Worker runs (`public/_headers` sets their caching). The Worker
- * sees the rest: the pages, and any unknown path, which React Router answers
- * with the not-found page and a 404.
+ * Cloudflare's asset layer answers the prerendered pages, the hashed assets
+ * and the public files before the Worker runs (`public/_headers` sets their
+ * caching). The Worker sees the rest: any unknown path, which React Router
+ * answers with the not-found page and a 404.
  */
 import { Effect } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
