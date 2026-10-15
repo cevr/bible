@@ -9,7 +9,7 @@
 import { Array as Arr, Match, Option } from 'effect';
 
 /** A failed case: its file, when the log names it, and its name as bun prints it (`describe > case`). */
-export interface Failure {
+interface Failure {
   readonly file: Option.Option<string>;
   readonly name: string;
 }
@@ -83,7 +83,7 @@ export const aloneArgs = (suite: string, failure: Failure): ReadonlyArray<string
 ];
 
 /** What a failure is, by the reruns alone. */
-export type Verdict = 'unit-caused' | 'load-only' | 'base';
+type Verdict = 'unit-caused' | 'load-only' | 'base';
 
 const VERDICTS: ReadonlyArray<Verdict> = ['unit-caused', 'load-only', 'base'];
 
