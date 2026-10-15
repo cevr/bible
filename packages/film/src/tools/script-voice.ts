@@ -12,7 +12,9 @@
 // other film's in the background as the sweep finds them, a few at a time.
 // Each is charged against the day's cap before it is sent; past the cap it is
 // refused, said in the reader, and asked again the next day. A beat is asked
-// for once a session: a refusal stands until the day turns.
+// for once a session: a refusal stands until the day turns. A take that
+// misread its line is kept but never ready, and read again at most once a
+// day (`Fill.reread`).
 
 import {
   Array as Arr,
@@ -45,14 +47,17 @@ const VOICING_AT_ONCE = 2;
 /** How often the fill looks for beats no take is kept for, in every film. */
 const SWEEP_EVERY = Duration.minutes(1);
 
+/** Whether what speech-to-text heard of a take is near enough its line (`MAX_WORD_ERROR`), as narrate judges it. */
+const saysLine = (take: StagedTake): boolean => take.wer <= MAX_WORD_ERROR;
+
 /**
- * A kept take as the reader has it: ready to hear, or refused when what
- * speech-to-text heard is further from its line than narrate allows
- * (`MAX_WORD_ERROR`). A take that misread is kept, so it is not asked for
- * again; `film narrate` reads it afresh (and `--accept-mismatch` keeps it).
+ * A kept take as the reader has it: ready to hear, or refused, saying what
+ * was heard, when it misread its line. A misread is read again once more the
+ * day it is found and once each day after (`Fill.reread`), never more: a
+ * misread costs a bounded few readings, and a fluke heals by itself.
  */
 const readyOrMisread = (take: StagedTake): StagingTake => {
-  if (take.wer > MAX_WORD_ERROR)
+  if (!saysLine(take))
     return {
       _tag: 'Refused',
       reason: `misread ${Math.round(take.wer * 100)}% of its words, heard "${take.heard}"`,
@@ -65,6 +70,8 @@ interface Job {
   readonly key: string;
   readonly ask: StagingAsk;
   readonly heardAs: HeardAs;
+  /** Whether the cache keeps a take for it that misread its line: asked again at most once a day. */
+  readonly misread: boolean;
 }
 
 /** What the fill has asked for this session: queued (the readers' first), and refused, with why, by key. */
@@ -76,7 +83,9 @@ interface Fill {
   /** Being voiced now. */
   readonly voicing: ReadonlySet<string>;
   readonly refused: ReadonlyMap<string, string>;
-  /** The local day the refusals are of: a new day asks again. */
+  /** The misread takes asked again today: none is asked twice in a day. */
+  readonly reread: ReadonlySet<string>;
+  /** The local day the refusals and rereads are of: a new day asks again. */
   readonly day: string;
 }
 
@@ -86,6 +95,7 @@ const NO_FILL: Fill = {
   background: [],
   voicing: new Set(),
   refused: new Map(),
+  reread: new Set(),
   day: '',
 };
 
@@ -105,10 +115,30 @@ const asksOf = (voice: Voice, beats: ReadonlyArray<ReadBeat>): ReadonlyArray<Sta
   );
 };
 
-/** `jobs` queued in `fill`: urgent ones first (moved up when already queued behind), none twice, none refused. */
+/** Whether a beat is to be voiced: no take is kept for it, or the one kept misread its line. */
+const wanted = (beat: { readonly job: Job; readonly kept: Option.Option<StagedTake> }): boolean =>
+  Option.isNone(beat.kept) || beat.job.misread;
+
+/**
+ * `jobs` queued in `fill`: none twice, none refused, no misread asked again
+ * today already; each misread queued is marked asked again today.
+ */
 const queued = (fill: Fill, jobs: ReadonlyArray<Job>, urgent: boolean): Fill => {
   if (!fill.running) return fill;
-  const fresh = jobs.filter((j) => !fill.refused.has(j.key) && !fill.voicing.has(j.key));
+  const fresh = jobs.filter(
+    (j) =>
+      !fill.refused.has(j.key) &&
+      !fill.voicing.has(j.key) &&
+      !(j.misread && fill.reread.has(j.key)),
+  );
+  return {
+    ...queuedIn(fill, fresh, urgent),
+    reread: new Set([...fill.reread, ...fresh.filter((j) => j.misread).map((j) => j.key)]),
+  };
+};
+
+/** `fresh` jobs placed in `fill`'s queues: urgent ones first, moved up when already queued behind. */
+const queuedIn = (fill: Fill, fresh: ReadonlyArray<Job>, urgent: boolean): Fill => {
   if (urgent) {
     const keys = new Set(fresh.map((j) => j.key));
     return {
@@ -186,7 +216,12 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
         return yield* Effect.forEach(asksOf(reading.voice, reading.beats), (ask) => {
           const key = stagingRequest(ask).key;
           return Effect.map(cache.get(key), (kept) => ({
-            job: { key, ask, heardAs: reading.heardAs } satisfies Job,
+            job: {
+              key,
+              ask,
+              heardAs: reading.heardAs,
+              misread: Option.exists(kept, (t) => !saysLine(t)),
+            } satisfies Job,
             kept,
           }));
         });
@@ -206,21 +241,23 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
           );
         });
 
-      const takeOf = (fill: Fill, key: string, kept: Option.Option<StagingTake>): StagingTake =>
-        Option.getOrElse(kept, () =>
-          Option.match(Option.fromNullishOr(fill.refused.get(key)), {
-            onSome: (reason): StagingTake => ({ _tag: 'Refused', reason }),
-            onNone: (): StagingTake => {
-              if (asked(fill, key)) return { _tag: 'Voicing' };
-              return { _tag: 'Unvoiced' };
-            },
-          }),
-        );
+      /** A beat's take as the reader shows it: ready, else voicing, else refused (past the cap, or misread), else unvoiced. */
+      const takeOf = (fill: Fill, key: string, kept: Option.Option<StagedTake>): StagingTake => {
+        const ready = Option.filter(kept, saysLine);
+        if (Option.isSome(ready)) return readyOrMisread(ready.value);
+        if (asked(fill, key)) return { _tag: 'Voicing' };
+        const refused = Option.fromNullishOr(fill.refused.get(key));
+        if (Option.isSome(refused)) return { _tag: 'Refused', reason: refused.value };
+        return Option.match(kept, {
+          onSome: readyOrMisread,
+          onNone: (): StagingTake => ({ _tag: 'Unvoiced' }),
+        });
+      };
 
       const voice = Effect.fn('ScriptVoices.voice')(function* (film: FilmName) {
         const beats = yield* beatsOf(film);
         yield* enqueue(
-          beats.filter((b) => Option.isNone(b.kept)).map((b) => b.job),
+          beats.filter(wanted).map((b) => b.job),
           true,
         );
         const fill = yield* Ref.get(state);
@@ -231,7 +268,7 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
           cap: spent.cap,
           beats: beats.map((b) => ({
             id: b.job.ask.beat.id,
-            take: takeOf(fill, b.job.key, Option.map(b.kept, readyOrMisread)),
+            take: takeOf(fill, b.job.key, b.kept),
           })),
         } satisfies ScriptVoice;
       });
@@ -245,7 +282,12 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
         );
         yield* Ref.update(state, (fill) => {
           if (fill.day === today) return fill;
-          return { ...fill, day: today, refused: new Map() };
+          return {
+            ...fill,
+            day: today,
+            refused: new Map<string, string>(),
+            reread: new Set<string>(),
+          };
         });
       });
 
@@ -261,7 +303,7 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
             ).pipe(
               Effect.flatMap((beats) =>
                 enqueue(
-                  beats.filter((b) => Option.isNone(b.kept)).map((b) => b.job),
+                  beats.filter(wanted).map((b) => b.job),
                   false,
                 ),
               ),
@@ -280,7 +322,7 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
         const job = yield* Ref.modify(state, next);
         if (Option.isNone(job)) return;
         const { key, ask, heardAs } = job.value;
-        const why = yield* narrator.stage(ask, heardAs).pipe(
+        const why = yield* narrator.stage(ask, heardAs, saysLine).pipe(
           Effect.as(Option.none<string>()),
           Effect.catch((error) =>
             Effect.as(

@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Path } from 'effect';
+import { TestClock } from 'effect/testing';
 import { silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
 import { stagingVoice } from '../core/staging-voice.ts';
@@ -125,9 +126,10 @@ describe('ScriptVoices', () => {
   });
 
   it.effect(
-    'a take that misread its line is refused, saying what was heard, and not asked for again',
+    'a misread take is refused, saying what was heard; read again once that day, and healed the next',
     () => {
-      const { calls, layer } = voices(1000, new Map([['By faith.', 'Buy fate.']]));
+      const heard = new Map([['By faith.', 'Buy fate.']]);
+      const { calls, layer } = voices(1000, heard);
       return Effect.gen(function* () {
         yield* Effect.forkScoped((yield* ScriptVoices).fill);
         yield* Effect.yieldNow;
@@ -135,10 +137,16 @@ describe('ScriptVoices', () => {
         expect(tags(voice)).toEqual(['Ready', 'Refused']);
         const refused = voice.beats[1]?.take;
         expect(refused?._tag === 'Refused' && refused.reason).toContain('heard "Buy fate."');
-        // Kept, so asked again it costs nothing more.
+        // Read once, then once more that day: no more.
+        expect(calls.dialogue).toHaveLength(3);
         yield* (yield* ScriptVoices).voice(film);
         yield* Effect.yieldNow;
-        expect(calls.dialogue).toHaveLength(2);
+        expect(calls.dialogue).toHaveLength(3);
+        // The next day it is asked again, and reads its line.
+        heard.clear();
+        yield* TestClock.adjust('1 day');
+        expect(tags(yield* settledVoice)).toEqual(['Ready', 'Ready']);
+        expect(calls.dialogue).toHaveLength(4);
       }).pipe(Effect.scoped, Effect.provide(layer));
     },
   );
