@@ -36,8 +36,10 @@ const ASK_CSS = `
   background:var(--surface-1);border-bottom:var(--border);
   font-size:var(--fs-5);line-height:var(--lh-5);font-weight:var(--w-3)}
 .ak-count{color:var(--text-2)}
-/* The last section is the reading window tall, so the head before it scrolls away; its rows keep their height. */
-.ak-step:last-child{align-content:start;min-height:calc(100dvh - var(--header-h) - var(--dock-h) - var(--s-4))}
+/* The last section is the reading window tall (the window less the header, the dock and the
+   shell's chrome under the page), so the head before it scrolls away; its rows keep their height. */
+.ak-step:last-child{align-content:start;
+  min-height:calc(100dvh - var(--header-h) - var(--dock-h) - var(--shell-floor) - var(--s-4))}
 .ak-h{font-size:var(--fs-3);line-height:var(--lh-3);font-weight:var(--w-2);margin:0}
 .ak-prose{margin:0;white-space:pre-line}
 .ak-img{margin:0;display:grid;gap:var(--s-1)}
@@ -68,8 +70,6 @@ const ASK_CSS = `
   /* On the phone the script runs to the screen's edges, and the held heads with it. */
   .ak-mat[data-material=script],.ak-section-h{margin-inline:calc(-1 * var(--gutter))}
   .ak-mat[data-material=script] .ak-mat-name,.ak-section-h{padding-inline:var(--gutter)}
-  .ak-step:last-child{min-height:calc(100dvh - var(--header-h) - var(--dock-h) - var(--tabbar-h)
-    - env(safe-area-inset-bottom) - var(--s-4))}
 }
 @media ${WIDE}{
   .ak-options[data-pictured=true]{grid-template-columns:repeat(4,minmax(0,1fr))}

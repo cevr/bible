@@ -134,6 +134,27 @@ describe("an agent's ask on a phone", () => {
   );
 
   it.live(
+    'an ask that names no film has no tab bar under it: at its end its last section still holds the top',
+    () =>
+      Effect.gen(function* () {
+        const { film: _film, ...noFilm } = askRecordWith() as Record<string, Json>;
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', new RegExp(`^/api/asks/${STUDIO_ASK}$`), () => json(noFilm)),
+            ...studioRoutes,
+          ],
+          { href: pageHref.ask(STUDIO_ASK), viewport: PHONE },
+        );
+        yield* waitFor(page, `.sh[data-film="false"] ${ASK_READY}`);
+        yield* page.click('.ak-option[data-value="slow"]');
+        yield* waitFor(page, '.ak-step[data-step="why"] textarea');
+        yield* evaluates(page, AT_THE_TOP_AT_THE_END, 'why');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'answers not sent come back after a reload; a send that lands leaves the tab nothing to bring back',
     () =>
       Effect.gen(function* () {

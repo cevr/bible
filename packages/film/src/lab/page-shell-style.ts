@@ -2,7 +2,8 @@
 // through the tokens (`player/tokens.css`): the header on `--surface-1`, the
 // page bar's text tabs with the accent underline on the laptop, the tab bar
 // of line icons along the bottom on the phone (`--tabbar-h` over the safe
-// area), and the dock a page's transport takes above it (`.sh-dock`); and
+// area; `--shell-floor` is what the chrome holds under the page), and the
+// dock a page's transport takes above it (`.sh-dock`); and
 // the kit (§5), each control styled once: the quiet and primary buttons
 // (`.sh-btn`), the icon button (`.sh-tool`), the segmented control
 // (`.sh-seg`), the field (`.lab-num`, a `select`), the slider, the badge
@@ -21,6 +22,9 @@ import { PHONE, WIDE } from './viewport.ts';
 export const SHELL_CSS = `
 html, body { margin: 0; }
 body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+/* The shell's chrome under the page (\`--shell-floor\`), what a page's last row and a dock stand on:
+   the safe area alone, and on the phone the tab bar over it whenever a film's tabs show. */
+body { --shell-floor: env(safe-area-inset-bottom); }
 .sh { min-height: 100dvh; display: flex; flex-direction: column; }
 .sh-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6;
   stroke-linecap: round; stroke-linejoin: round; }
@@ -81,7 +85,9 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 
 /* The phone: the six film tabs along the bottom, the transport docked above them. */
 @media ${PHONE} {
-  .sh[data-film="true"] { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
+  body { --shell-floor: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
+  body:has(.sh[data-film="false"]) { --shell-floor: env(safe-area-inset-bottom); }
+  .sh[data-film="true"] { padding-bottom: var(--shell-floor); }
   .sh-pagebar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
     height: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
     background: var(--surface-2); border-top: var(--border); }
@@ -94,9 +100,8 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
   .sh-crumb { flex: 0 1 auto; font-size: var(--fs-1); }
   /* The phone's dock, the one docked row: a page's (\`.sh-dock\`) and the Lab's transport row (\`player.css\`). */
   .sh-dock, body.lab .bar > .row { position: fixed; left: 0; right: 0; z-index: 25; height: var(--dock-h);
-    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); border-top: var(--border);
+    bottom: var(--shell-floor); border-top: var(--border);
     padding: 0 var(--gutter); background: var(--surface-1); }
-  .sh[data-film="false"] .sh-dock { bottom: env(safe-area-inset-bottom); }
   .sh-body:has(.sh-dock) { padding-bottom: calc(var(--dock-h) + var(--s-3)); }
 }
 /* The dock: one line, the page's width, on the header's surface (on a laptop, held under the header). */

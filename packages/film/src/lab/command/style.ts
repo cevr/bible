@@ -27,8 +27,9 @@
 // the page, not over it: the page makes room while an inspector is open. On a
 // phone (the shell's width) the sheet rises from the bottom (design language
 // §7): the screen's width, standing on what `--cmd-sheet-floor` says (the
-// film's tab bar, and the shell's dock or the Lab's transport row docked over
-// it), so both stay in reach; at most three quarters of the screen tall. Its
+// shell's floor, `--shell-floor`: a film's tab bar when its tabs show; and
+// the shell's dock or the Lab's transport row docked over it), so both stay
+// in reach; at most three quarters of the screen tall. Its
 // head is its grip (a bar drawn at its top): a tap lowers it to a peek, its
 // head alone, and raises it again. The head's Close stands over the grip, a
 // whole target of its own: the grip round it leaves it no spacing. While it
@@ -66,7 +67,7 @@ body {
   --cmd-top: 12vh;
   --cmd-layer: 40;
   --cmd-sheet-height: 75dvh;
-  --cmd-sheet-floor: env(safe-area-inset-bottom);
+  --cmd-sheet-floor: var(--shell-floor);
   --cmd-grip-height: 4px;
   --cmd-peek-h: calc(var(--hit) + 1px);
 }
@@ -212,11 +213,7 @@ const COMMAND_RULES = `
 @media ${WIDE} { body:has(.lab-inspector-sheet) { padding-right: var(--inspector-w); } }
 .lab-inspector-grip { display: none; }
 @media ${PHONE} {
-  body:has(.sh[data-film="true"]) { --cmd-sheet-floor: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
-  body:has(.sh[data-film="true"] .sh-dock), body.lab:has(.bar > .row) {
-    --cmd-sheet-floor: calc(var(--tabbar-h) + var(--dock-h) + env(safe-area-inset-bottom));
-  }
-  body:has(.sh[data-film="false"] .sh-dock) { --cmd-sheet-floor: calc(var(--dock-h) + env(safe-area-inset-bottom)); }
+  body:has(.sh-dock), body.lab:has(.bar > .row) { --cmd-sheet-floor: calc(var(--shell-floor) + var(--dock-h)); }
   .lab-inspector-panel { right: auto; bottom: var(--cmd-sheet-floor); align-self: flex-start; width: var(--visual-viewport-width, 100%); height: auto; }
   .lab-inspector-sheet {
     max-height: var(--cmd-sheet-height);
