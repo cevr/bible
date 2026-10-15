@@ -31,7 +31,7 @@ export interface SandboxPlan {
 }
 
 /** What is closed to reading but where a plan opens it: every home, the temp folders, other volumes. */
-export const CLOSED: ReadonlyArray<Place> = [
+const CLOSED: ReadonlyArray<Place> = [
   { _tag: 'Tree', path: '/Users' },
   { _tag: 'Tree', path: '/Volumes' },
   { _tag: 'Tree', path: '/private/tmp' },
@@ -64,7 +64,7 @@ const rule = (verdict: 'allow' | 'deny', ops: string, places: ReadonlyArray<Plac
  * all, then write nowhere but `/dev`, read nothing closed, open the plan's
  * reads and writes, and hide what it hides.
  */
-export const profileOf = (plan: SandboxPlan): string =>
+const profileOf = (plan: SandboxPlan): string =>
   [
     '(version 1)',
     '(allow default)',

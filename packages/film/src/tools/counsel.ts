@@ -90,7 +90,7 @@ const SESSIONS = [
  * its sign-in is kept; its temp files go to `scratch`. Nothing else of the
  * home is readable.
  */
-export const claudeRun = (claude: string, home: string, folders: RunFolders): SandboxedRun => ({
+const claudeRun = (claude: string, home: string, folders: RunFolders): SandboxedRun => ({
   plan: {
     reads: [
       { _tag: 'Tree', path: folders.packet },
@@ -222,14 +222,21 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
       }),
     );
 
-  /** Headless Claude, Opus at max effort, in the sandbox (`claudeRun`), its program found on PATH. */
-  static readonly layer = Counsel.sandboxed((folders) =>
-    Effect.gen(function* () {
-      const claude = yield* claudeProgram;
-      const home = yield* Config.String('HOME');
-      return claudeRun(claude, home, folders);
-    }),
-  );
+  /**
+   * Headless Claude, Opus at max effort, in the sandbox (`claudeRun`), its
+   * program the one `program` finds and its home `HOME`.
+   */
+  static readonly claudeAt = <R>(program: Effect.Effect<string, CounselFailed, R>) =>
+    Counsel.sandboxed((folders) =>
+      Effect.gen(function* () {
+        const claude = yield* program;
+        const home = yield* Config.String('HOME');
+        return claudeRun(claude, home, folders);
+      }),
+    );
+
+  /** Headless Claude in the sandbox (`claudeAt`), its program found on PATH. */
+  static readonly layer = Counsel.claudeAt(claudeProgram);
 
   /**
    * A counsel for tests: `answer` of the prompt's words, written as the real
