@@ -27,11 +27,27 @@ const TABLE_RULE = /^\s*\|[\s:|-]+\|\s*$/;
 const LIST_ITEM = /^(\s*)(?:[-*]|\d+\.) (.*)$/;
 const HEADING = /^(#{1,4}) (.*)$/;
 
-/** Markdown as HTML (escaped throughout). */
-export const markdownHtml = (text: string): string => {
+const tableRow = (line: string): string =>
+  `<tr>${line
+    .trim()
+    .replace(/^\||\|$/g, '')
+    .split('|')
+    .map((cell) => `<td>${inline(cell.trim())}</td>`)
+    .join('')}</tr>`;
+
+/** The HTML being written: the lists and the table open, and the paragraph
+ *  or list item still taking lines, its words gathered. */
+const writer = () => {
   const out: Array<string> = [];
   let depth = 0;
   let table = false;
+  let tag: 'p' | 'li' | 'none' = 'none';
+  let words: Array<string> = [];
+  const flush = () => {
+    if (tag !== 'none') out.push(`<${tag}>${inline(words.join(' '))}</${tag}>`);
+    tag = 'none';
+    words = [];
+  };
   const closeLists = (to: number) => {
     while (depth > to) {
       out.push('</ul>');
@@ -39,46 +55,71 @@ export const markdownHtml = (text: string): string => {
     }
   };
   const closeTable = () => {
-    if (!table) return;
-    out.push('</table>');
+    if (table) out.push('</table>');
     table = false;
   };
-  for (const line of text.split('\n')) {
-    if (TABLE_ROW.test(line)) {
-      if (TABLE_RULE.test(line)) continue;
-      closeLists(0);
+  /** Ends the block open, and the lists past `to` deep. */
+  const end = (to: number) => {
+    flush();
+    closeLists(to);
+  };
+  return {
+    row: (line: string) => {
+      end(0);
       if (!table) out.push('<table>');
       table = true;
-      const cells = line
-        .trim()
-        .replace(/^\||\|$/g, '')
-        .split('|')
-        .map((cell) => `<td>${inline(cell.trim())}</td>`);
-      out.push(`<tr>${cells.join('')}</tr>`);
-      continue;
-    }
-    closeTable();
-    const item = Option.fromNullishOr(LIST_ITEM.exec(line));
-    if (Option.isSome(item)) {
-      const want = Math.floor(String(item.value[1]).length / 2) + 1;
-      while (depth < want) {
-        out.push('<ul>');
-        depth += 1;
-      }
+      out.push(tableRow(line));
+    },
+    item: (indent: string, text: string) => {
+      closeTable();
+      flush();
+      const want = Math.floor(indent.length / 2) + 1;
+      for (; depth < want; depth += 1) out.push('<ul>');
       closeLists(want);
-      out.push(`<li>${inline(String(item.value[2]))}</li>`);
+      tag = 'li';
+      words = [text];
+    },
+    heading: (level: number, text: string) => {
+      closeTable();
+      end(0);
+      out.push(`<h${level}>${inline(text)}</h${level}>`);
+    },
+    blank: () => {
+      closeTable();
+      end(0);
+    },
+    /** A line of words: it goes on in the paragraph or item open, else opens one. */
+    words: (line: string) => {
+      closeTable();
+      if (tag === 'none') tag = 'p';
+      words.push(line.trim());
+    },
+    done: () => {
+      end(0);
+      closeTable();
+      return out.join('');
+    },
+  };
+};
+
+/** Markdown as HTML (escaped throughout). Lines that follow one another make
+ *  one paragraph, and a line under a list item (indented or not) goes on in
+ *  that item, as Markdown reads them: a blank line, a heading, a list item or
+ *  a table row ends either. */
+export const markdownHtml = (text: string): string => {
+  const html = writer();
+  for (const line of text.split('\n')) {
+    if (TABLE_ROW.test(line)) {
+      if (!TABLE_RULE.test(line)) html.row(line);
       continue;
     }
-    closeLists(0);
+    const item = Option.fromNullishOr(LIST_ITEM.exec(line));
     const heading = Option.fromNullishOr(HEADING.exec(line));
-    if (Option.isSome(heading)) {
-      const level = String(heading.value[1]).length;
-      out.push(`<h${level}>${inline(String(heading.value[2]))}</h${level}>`);
-      continue;
-    }
-    if (line.trim() !== '') out.push(`<p>${inline(line)}</p>`);
+    if (Option.isSome(item)) html.item(String(item.value[1]), String(item.value[2]));
+    else if (Option.isSome(heading))
+      html.heading(String(heading.value[1]).length, String(heading.value[2]));
+    else if (line.trim() === '') html.blank();
+    else html.words(line);
   }
-  closeLists(0);
-  closeTable();
-  return out.join('');
+  return html.done();
 };

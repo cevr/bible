@@ -26,6 +26,39 @@ describe('markdown', () => {
     );
   });
 
+  test('a soft-wrapped paragraph is one paragraph, and a wrapped bullet stays in its item', () => {
+    expect(
+      markdownHtml(
+        [
+          'A sentence wrapped at the',
+          'source width, still one paragraph.',
+          '',
+          'A second paragraph.',
+          '- one bullet whose words',
+          '  wrap onto a second line',
+          '- two',
+          '  - under two, wrapped',
+          '    onto its own next line',
+          '',
+          'After the list.',
+        ].join('\n'),
+      ),
+    ).toBe(
+      '<p>A sentence wrapped at the source width, still one paragraph.</p>' +
+        '<p>A second paragraph.</p>' +
+        '<ul><li>one bullet whose words wrap onto a second line</li><li>two</li>' +
+        '<ul><li>under two, wrapped onto its own next line</li></ul></ul>' +
+        '<p>After the list.</p>',
+    );
+  });
+
+  test('a heading, a list item or a table row ends a paragraph', () => {
+    expect(markdownHtml(['words', '# Head', 'more', '- item', 'last', '| a |'].join('\n'))).toBe(
+      '<p>words</p><h1>Head</h1><p>more</p><ul><li>item last</li></ul>' +
+        '<table><tr><td>a</td></tr></table>',
+    );
+  });
+
   test('escapes every character a doc could use to put its own HTML in the page', () => {
     expect(markdownHtml('<script>alert(1)</script>')).toBe(
       '<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>',
