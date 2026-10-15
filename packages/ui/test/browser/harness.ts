@@ -237,3 +237,34 @@ export const focused = (page: Page): Promise<string> =>
     }
     return el.id || el.getAttribute('data-testid') || el.tagName.toLowerCase();
   });
+
+/**
+ * Logs each CSS transition the page creates from here on, as
+ * `transition <id> <property>` (the element's `id`, or its `data-testid`).
+ * `transitionrun` fires when the browser creates a transition, so a popup
+ * whose starting style the browser never computed logs none.
+ */
+export const recordTransitions = (page: Page): Promise<void> =>
+  page.evaluate(() => {
+    document.addEventListener(
+      'transitionrun',
+      (event) => {
+        const target = event.target as Element;
+        const name = target.id || target.getAttribute('data-testid') || target.tagName;
+        (window as unknown as { __log: Array<string> }).__log.push(
+          `transition ${name} ${event.propertyName}`,
+        );
+      },
+      true,
+    );
+  });
+
+/**
+ * Clicks `selector` from a script a task later, as a page's own code opens a
+ * popup (a timer, a response): no pointer input, so the browser does not
+ * update hover state after it, which reads the page's style.
+ */
+export const scriptClick = (page: Page, selector: string): Promise<void> =>
+  page.evaluate((target) => {
+    setTimeout(() => (document.querySelector(target) as HTMLElement).click());
+  }, selector);

@@ -5,10 +5,13 @@
 // Positions a menu's popup under its anchor (the trigger, or a context menu's
 // point) with Floating UI: an alignment with offsets, the dropdown's
 // collision avoidance (flip to the top, or to the other alignment, and shift
-// along the edge; never to a left or right side). Upstream's `--available-*`,
-// `--anchor-*` and `--transform-origin` variables are left out: no stylesheet
-// reads them. It re-positions while the anchor scrolls or resizes. Until the first position is computed the popup is invisible and
-// fixed at 0,0, so focusing into it cannot scroll the page.
+// along the edge; never to a left or right side). It sets upstream's CSS
+// variables on the positioner: `--available-width` and `--available-height`
+// (the room between the anchor and the boundary), `--anchor-width` and
+// `--anchor-height`, and `--transform-origin` (the point the popup grows
+// from). It re-positions while the anchor scrolls or resizes. Until the first
+// position is computed the popup is invisible and fixed at 0,0, so focusing
+// into it cannot scroll the page.
 import {
   autoUpdate,
   computePosition,
@@ -19,15 +22,16 @@ import {
   offset,
   type Placement,
   shift as floatingShift,
+  size,
   type VirtualElement,
 } from '@floating-ui/dom';
-import { getAlignment, getSide } from '@floating-ui/utils';
+import { getAlignment, getSide, getSideAxis } from '@floating-ui/utils';
 import type { JSX } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
 
 import type { FloatingRootContext } from '../floating-ui-solid/FloatingRootContext.ts';
-import { hide } from '../floating-ui-solid/middleware.ts';
-import { ownerWindow } from '../utils/dom.ts';
+import { arrow, hide } from '../floating-ui-solid/middleware.ts';
+import { ownerDocument, ownerWindow } from '../utils/dom.ts';
 
 /** The side the popup renders on: under its anchor, or over it after a flip. */
 export type Side = 'top' | 'bottom';
@@ -35,6 +39,20 @@ export type Align = 'start' | 'center' | 'end';
 
 /** The space kept between the popup and the edges it must stay inside. */
 const COLLISION_PADDING = 5;
+
+/** The positioner's CSS variables (upstream's `MenuPositionerCssVars`). */
+const PositionerCssVars = {
+  /** The available width between the anchor and the edge of the boundary. */
+  availableWidth: '--available-width',
+  /** The available height between the anchor and the edge of the boundary. */
+  availableHeight: '--available-height',
+  /** The anchor's width. */
+  anchorWidth: '--anchor-width',
+  /** The anchor's height. */
+  anchorHeight: '--anchor-height',
+  /** The coordinates the popup is anchored to, for its animations and transitions. */
+  transformOrigin: '--transform-origin',
+} as const;
 
 interface UseAnchorPositioningParameters {
   floatingRootContext: FloatingRootContext;
@@ -132,6 +150,79 @@ export function useAnchorPositioning(
     return [
       offset({ mainAxis: sideOffset, crossAxis: alignOffset, alignmentAxis: alignOffset }),
       ...avoidance,
+      size({
+        ...common,
+        apply({ elements: { floating }, availableWidth, availableHeight, rects }) {
+          if (!untrack(() => params.mounted)) {
+            return;
+          }
+          const floatingStyle = floating.style;
+          floatingStyle.setProperty(PositionerCssVars.availableWidth, `${availableWidth}px`);
+          floatingStyle.setProperty(PositionerCssVars.availableHeight, `${availableHeight}px`);
+
+          // Snapped to device pixels, so a popup sized to its anchor matches it on screen.
+          const dpr = ownerWindow(floating).devicePixelRatio || 1;
+          const { x, y, width, height } = rects.reference;
+          const anchorWidth = (Math.round((x + width) * dpr) - Math.round(x * dpr)) / dpr;
+          const anchorHeight = (Math.round((y + height) * dpr) - Math.round(y * dpr)) / dpr;
+          floatingStyle.setProperty(PositionerCssVars.anchorWidth, `${anchorWidth}px`);
+          floatingStyle.setProperty(PositionerCssVars.anchorHeight, `${anchorHeight}px`);
+        },
+      }),
+      // The `--transform-origin` below reads where the anchor's centre falls along the popup.
+      // With no arrow part, a detached stand-in (no padding: it would displace aligned popups
+      // on narrow anchors).
+      arrow((state) => ({ element: ownerDocument(state.elements.floating).createElement('div') })),
+      {
+        name: 'transformOrigin',
+        fn(state) {
+          const {
+            elements: { floating },
+            middlewareData,
+            placement: rendered,
+            platform,
+            rects,
+            y,
+          } = state;
+          const renderedSide = getSide(rendered);
+          const renderedAlign = getAlignment(rendered);
+          const isVertical = getSideAxis(renderedSide) === 'y';
+
+          // An aligned popup grows from its aligned edge, until a shift (beyond subpixel)
+          // breaks its alignment with the anchor; otherwise from the anchor's centre.
+          let crossOrigin: string;
+          if (
+            renderedAlign &&
+            Math.abs(isVertical ? middlewareData.shift?.x || 0 : middlewareData.shift?.y || 0) <= 1
+          ) {
+            // The platform's direction: it must match what Floating UI placed with.
+            crossOrigin =
+              (renderedAlign === 'start') === (isVertical && platform.isRTL?.(floating) === true)
+                ? '100%'
+                : '0%';
+          } else {
+            const arrowOffset = isVertical
+              ? middlewareData.arrow?.x || 0
+              : middlewareData.arrow?.y || 0;
+            crossOrigin = `${arrowOffset}px`;
+          }
+
+          // Side axis: the anchor-facing edge, or the anchor's centre when the popup overlaps it.
+          let sideOrigin =
+            renderedSide === 'top' || renderedSide === 'left'
+              ? `calc(100% + ${sideOffset}px)`
+              : `${-sideOffset}px`;
+          if (shiftCrossAxis && isVertical && Math.abs(middlewareData.shift?.y || 0) > sideOffset) {
+            sideOrigin = `${rects.reference.y + rects.reference.height / 2 - y}px`;
+          }
+
+          floating.style.setProperty(
+            PositionerCssVars.transformOrigin,
+            isVertical ? `${crossOrigin} ${sideOrigin}` : `${sideOrigin} ${crossOrigin}`,
+          );
+          return {};
+        },
+      },
       hide,
     ];
   };
@@ -195,6 +286,11 @@ export function useAnchorPositioning(
       position: positioned ? strategy() : 'fixed',
       top: '0px',
       left: '0px',
+      // Seeded so a `max-height: min(x, var(--available-height))` rule resolves on the first
+      // positioning pass, before `size()` writes the real values. Constant, so the style diff
+      // never rewrites them over `size()`'s.
+      [PositionerCssVars.availableWidth]: '100vw',
+      [PositionerCssVars.availableHeight]: '100vh',
     };
     if (positioned) {
       const floating = untrack(rootContext.floatingElement);

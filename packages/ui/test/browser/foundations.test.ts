@@ -8,7 +8,7 @@ import { describe, expect, it } from 'bun:test';
 
 import { expect as see } from '@playwright/test';
 
-import { harness, logOf } from './harness.ts';
+import { harness, logOf, recordTransitions, scriptClick } from './harness.ts';
 
 const h = harness('foundations.tsx');
 
@@ -94,5 +94,29 @@ describe('mergeProps', () => {
     await see(page.locator('#late')).toHaveText('');
     await page.click('#add');
     await see(page.locator('#late')).toHaveText('added');
+  });
+});
+
+describe('createUnmountAfterClose', () => {
+  // Nothing measures, focuses or reads the element, and a script's open has no
+  // pointer input after which the browser updates hover state (reading the
+  // page's style), so only the transition status can make the browser see the
+  // starting style.
+  it('runs the enter transition from the starting style when a script opens it', async () => {
+    const page = await h.open('transition');
+    await recordTransitions(page);
+    await scriptClick(page, '#toggle');
+    await see.poll(() => logOf(page), { timeout: 1000 }).toContain('transition box opacity');
+    await see(page.locator('#box')).not.toHaveAttribute('data-starting-style');
+  });
+
+  it('keeps the element through the exit transition, then unmounts it', async () => {
+    const page = await h.open('transition');
+    await page.click('#toggle');
+    await see(page.locator('#box')).toBeVisible();
+    await page.click('#toggle');
+    await see(page.locator('#box')).toHaveAttribute('data-ending-style', '');
+    await see(page.locator('#box')).toHaveCount(0);
+    expect(await logOf(page)).toEqual(['unmounted']);
   });
 });

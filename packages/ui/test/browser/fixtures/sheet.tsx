@@ -16,7 +16,8 @@
 // body does), `timeline=none` for a browser without scroll-driven animations
 // (Firefox today), `overscroll=true` for the panel's `overscrollPadding`,
 // `range=true` for swipe animations limited to the first snap point (the
-// panel's up to it, the backdrop's from it). `async-owner` is the lab's shape: an `open` that stays
+// panel's up to it, the backdrop's from it), `enter=fade` for content that fades in from its
+// `data-starting-style`. `async-owner` is the lab's shape: an `open` that stays
 // true, under a page that drops the sheet later (100 ms, or `drop` ms). `stack` opens a second
 // sheet from inside the first. The sheet stands in `#section`, which a test
 // hides with `display: none` as the lab hides a mode's section.
@@ -55,6 +56,12 @@ const STYLES = `
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
   @keyframes rise { from { opacity: 0.5; } to { opacity: 1; } }
   @keyframes recede { to { filter: brightness(0.9); } }
+`;
+
+/** Content that fades in from its starting style (`enter=fade`). */
+const ENTER_FADE = `
+  #popup { transition: opacity 200ms; }
+  #popup[data-starting-style] { opacity: 0; }
 `;
 
 const POSITIONS: ReadonlySet<string> = new Set(['bottom', 'top', 'left', 'right', 'center']);
@@ -156,6 +163,7 @@ function BasicSheet(): JSX.Element {
   return (
     <div>
       <style>{STYLES}</style>
+      {param('enter') === 'fade' ? <style>{ENTER_FADE}</style> : null}
       <button type="button" id="outside">
         outside
       </button>

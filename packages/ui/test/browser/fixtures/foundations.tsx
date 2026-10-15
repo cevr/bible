@@ -1,8 +1,14 @@
 // Fixtures for the foundations: `useRenderElement` (state attributes, the
-// render prop, refs, live params) and a late `children` key.
+// render prop, refs, live params), a late `children` key, and the transition
+// status (`transition`: a bare element nothing measures or focuses, fading in
+// from its `data-starting-style` and out to its `data-ending-style`).
 import type { JSX } from '@solidjs/web';
-import { createSignal, createStore, omit } from 'solid-js';
+import { createSignal, createStore, omit, Show } from 'solid-js';
 
+import {
+  createUnmountAfterClose,
+  transitionStatusMapping,
+} from '../../../src/internals/transitions.ts';
 import type { BaseUIEvent, HTMLProps } from '../../../src/internals/types.ts';
 import { useRenderElement } from '../../../src/internals/useRenderElement.tsx';
 import { mergeProps } from '../../../src/merge-props/mergeProps.ts';
@@ -185,10 +191,48 @@ function LateChildren() {
   );
 }
 
+function Transition() {
+  const [open, setOpen] = createSignal(false);
+  const [element, setElement] = createSignal<HTMLElement | null>(null);
+  const status = createUnmountAfterClose({
+    open,
+    element,
+    onUnmount: () => log('unmounted'),
+  });
+  return (
+    <>
+      <style>{`
+        #box { transition: opacity 200ms; }
+        #box[data-starting-style], #box[data-ending-style] { opacity: 0; }
+      `}</style>
+      <button type="button" id="toggle" onClick={() => setOpen((value) => !value)}>
+        toggle
+      </button>
+      <Show when={status.mounted()}>
+        {useRenderElement(
+          'div',
+          {},
+          {
+            state: {
+              get transitionStatus() {
+                return status.transitionStatus();
+              },
+            },
+            ref: setElement,
+            stateAttributesMapping: transitionStatusMapping,
+            props: { id: 'box', children: 'box' },
+          },
+        )}
+      </Show>
+    </>
+  );
+}
+
 export const fixtures: Record<string, () => JSX.Element> = {
   'state-attributes': () => <StateAttributes />,
   'class-style': () => <ClassStyle />,
   refs: () => <Refs />,
   'live-params': () => <LiveParams />,
   'late-children': () => <LateChildren />,
+  transition: () => <Transition />,
 };

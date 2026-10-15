@@ -16,7 +16,7 @@ import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf, recordTransitions, scriptClick } from './harness.ts';
 
 const h = harness('toast.tsx');
 
@@ -91,6 +91,15 @@ describe('createToastManager', () => {
     await see(roots(page).first().getByTestId('title')).toHaveText('Deleted note 2');
     await see(roots(page).nth(1).getByTestId('content')).toHaveAttribute('data-behind', '');
     await see(roots(page).first().getByTestId('content')).not.toHaveAttribute('data-behind', '');
+  });
+});
+
+describe('Toast.Root', () => {
+  it('runs the enter transition from its starting style when a script raises it', async () => {
+    const page = await h.open('receipt', { query: { enter: 'fade' } });
+    await recordTransitions(page);
+    await scriptClick(page, '#raise');
+    await see.poll(() => logOf(page), { timeout: 1000 }).toContain('transition root opacity');
   });
 });
 

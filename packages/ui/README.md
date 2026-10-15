@@ -44,7 +44,17 @@ Upstream's hover opening, submenus, arrow (and `arrowPadding`), backdrop, link a
 
 `Group`, `GroupLabel` and `RadioGroup` set none; `Separator` sets its own (see Separator).
 
-Upstream's positioner CSS variables (`--anchor-width`, `--anchor-height`, `--available-width`, `--available-height` and `--transform-origin`) are left out: no stylesheet reads them. A variable returns with its first stylesheet reader.
+CSS variables on `Positioner`, set each time it is positioned:
+
+| Variable             | Value                                                                                                                                                                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--anchor-width`     | the anchor's width (the trigger's, or the context menu's point), snapped to device pixels                                                                                                                                                        |
+| `--anchor-height`    | the anchor's height, snapped to device pixels                                                                                                                                                                                                    |
+| `--available-width`  | the width the popup has between the anchor and the edge of the viewport (less 5 px of collision padding); `100vw` until first positioned                                                                                                         |
+| `--available-height` | the height it has between the anchor and the edge of the viewport (less 5 px); `100vh` until first positioned                                                                                                                                    |
+| `--transform-origin` | the point the popup grows from: across, its aligned edge (`0%` for `start`, `100%` for `end`) or, centred or shifted, the anchor's centre; along the side, the anchor's edge (`-4px` under it, `calc(100% + 4px)` over it, for `sideOffset={4}`) |
+
+Upstream's `--positioner-width` and `--positioner-height` belong to its popup auto-resize, which is left out.
 
 ### Context menu
 

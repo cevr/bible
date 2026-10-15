@@ -17,6 +17,7 @@ import { createEffect, createMemo, createSignal, omit, onCleanup, untrack } from
 import type { StateAttributesMapping } from '../internals/getStateAttributesProps.ts';
 import {
   type TransitionStatus,
+  computeStartingStyle,
   transitionStatusMapping,
   useOpenChangeComplete,
 } from '../internals/transitions.ts';
@@ -164,12 +165,15 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     },
   });
 
-  // Hands the toast's element to the store and ends its `starting` status. The
-  // store ignores this write while the toast is transitioning out.
+  // Hands the toast's element to the store and ends its `starting` status,
+  // once the browser has computed the starting style (upstream's height
+  // measurement does that). The store ignores this write while the toast is
+  // transitioning out.
   function settle() {
     if (!rootRef.current) {
       return;
     }
+    computeStartingStyle(rootRef.current);
     store.updateToastInternal(untrack(toastId), {
       ref: rootRef,
       transitionStatus: undefined,

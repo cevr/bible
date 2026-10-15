@@ -14,7 +14,7 @@ import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf, recordTransitions, scriptClick } from './harness.ts';
 
 const h = harness('dialog.tsx');
 
@@ -83,6 +83,13 @@ describe('Dialog.Root', () => {
     await see.poll(() => logOf(page)).toContain('complete true');
     await page.click('#close');
     await see.poll(() => logOf(page)).toContain('complete false');
+  });
+
+  it('runs the enter transition from its starting style when a script opens it', async () => {
+    const page = await h.open('animated');
+    await recordTransitions(page);
+    await scriptClick(page, '#open');
+    await see.poll(() => logOf(page), { timeout: 1000 }).toContain('transition popup opacity');
   });
 
   it('waits for the exit transition before unmounting', async () => {

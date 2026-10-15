@@ -5,7 +5,7 @@
 // `owner=keep` for an owner that keeps `open` true through a close request,
 // `tall=true` for a page that scrolls, `titles=two` for a second title
 // after the first, which `window.__dropTitle()` unmounts, `portal=inline`
-// for a portal rendered in place.
+// for a portal rendered in place. `animated` fades in and out over 200 ms.
 import type { JSX } from '@solidjs/web';
 import { createSignal, Show } from 'solid-js';
 
@@ -105,7 +105,7 @@ function Animated(): JSX.Element {
     <div>
       <style>{`
         #popup { transition: opacity 200ms; }
-        #popup[data-ending-style] { opacity: 0; }
+        #popup[data-starting-style], #popup[data-ending-style] { opacity: 0; }
       `}</style>
       <owner.Opener>Open</owner.Opener>
       <Dialog.Root
