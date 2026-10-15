@@ -3,7 +3,8 @@
 // byte, and no path outside the folder's own drafts.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Layer, Option, Path } from 'effect';
+import { Effect, FileSystem, Layer, Option, Path } from 'effect';
+import * as PlatformError from 'effect/PlatformError';
 import { SeriesDrafts } from './series-drafts.ts';
 import { memoryFileSystem, storeLayer } from './testing.ts';
 
@@ -40,7 +41,28 @@ const seeded = () =>
     ['/series/talks/scripts/notes.txt', text('not a draft')],
     ['/series/films/scripts/01-milk.md', text(FILM)],
     ['/series/plans/series.md', text('# No drafts yet\n')],
+    ['/series/README.md', text('# Series\n')],
   ]);
+
+/** `files` in memory, but a folder the box may not read: `readDirectory` refused. */
+const unreadable = (files: Map<string, Uint8Array>) =>
+  Layer.effect(
+    FileSystem.FileSystem,
+    Effect.map(FileSystem.FileSystem, (fs) =>
+      FileSystem.FileSystem.of({
+        ...fs,
+        readDirectory: (dir) =>
+          Effect.fail(
+            PlatformError.systemError({
+              _tag: 'PermissionDenied',
+              module: 'FileSystem',
+              method: 'readDirectory',
+              pathOrDescriptor: dir,
+            }),
+          ),
+      }),
+    ),
+  ).pipe(Layer.provide(memoryFileSystem(files)));
 
 describe('SeriesDrafts', () => {
   it.effect('lists each series with drafts by its plan’s title, each draft by its own', () => {
@@ -99,5 +121,18 @@ describe('SeriesDrafts', () => {
         written,
       );
     }).pipe(Effect.provide(drafts(files)));
+  });
+  it.effect('a folder the box may not read is said, never listed as no series', () => {
+    const files = seeded();
+    return Effect.gen(function* () {
+      const error = yield* Effect.flip((yield* SeriesDrafts).list);
+      expect(error.reason._tag).toBe('PermissionDenied');
+    }).pipe(
+      Effect.provide(
+        SeriesDrafts.layer(Option.some('/series')).pipe(
+          Layer.provide([storeLayer(files), unreadable(files), Path.layer]),
+        ),
+      ),
+    );
   });
 });

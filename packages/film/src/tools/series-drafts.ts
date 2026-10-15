@@ -18,6 +18,7 @@
 // series do not hold. An app with no series folder lists none.
 
 import {
+  Array as Arr,
   Boolean as Bool,
   Context,
   Effect,
@@ -85,9 +86,9 @@ type DraftError = DraftUnknown | DraftUnread | PlatformError;
 
 interface SeriesDraftsService {
   /** Every series with drafts, and its drafts, in name order. */
-  readonly list: Effect.Effect<SeriesList>;
+  readonly list: Effect.Effect<SeriesList, PlatformError>;
   /** Every draft's key (`draftKey`), in the list's order. */
-  readonly keys: Effect.Effect<ReadonlyArray<readonly [string, string]>>;
+  readonly keys: Effect.Effect<ReadonlyArray<readonly [string, string]>, PlatformError>;
   /** Draft `draft` of `series`, read as its Markdown stands now. */
   readonly read: (series: string, draft: string) => Effect.Effect<Draft, DraftError>;
   /** Draft `draft` of `series` as a take is kept against it. */
@@ -117,17 +118,32 @@ export class SeriesDrafts extends Context.Service<SeriesDrafts, SeriesDraftsServ
         const store = yield* ContentStore;
         const writer = yield* Semaphore.make(1);
 
+        // Only absence reads as nothing: a folder or plan the box cannot read is said, not hidden.
         const entries = (dir: string) =>
-          fs.readDirectory(dir).pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
-        const text = (file: string) => fs.readFileString(file).pipe(Effect.orElseSucceed(() => ''));
+          Effect.flatMap(fs.exists(dir), (there) =>
+            Bool.match(there, {
+              onTrue: () => fs.readDirectory(dir),
+              onFalse: () => Effect.succeed<ReadonlyArray<string>>([]),
+            }),
+          );
+        const text = (file: string) =>
+          Effect.flatMap(fs.exists(file), (there) =>
+            Bool.match(there, {
+              onTrue: () => fs.readFileString(file),
+              onFalse: () => Effect.succeed(''),
+            }),
+          );
 
-        const list: Effect.Effect<SeriesList> = Effect.gen(function* () {
+        const list: Effect.Effect<SeriesList, PlatformError> = Effect.gen(function* () {
           if (Option.isNone(root)) return { series: [] };
           const dir = root.value;
           const series = yield* Effect.forEach(
             (yield* entries(dir)).toSorted(),
             Effect.fn('SeriesDrafts.series')(function* (name) {
               const scripts = path.join(dir, name, SCRIPTS);
+              // A file beside the series (`README.md`, `delivery.md`) is no series.
+              const folder = yield* Effect.map(fs.stat(path.join(dir, name)), (info) => info.type);
+              if (folder !== 'Directory') return Option.none();
               const drafts = yield* Effect.forEach(
                 (yield* entries(scripts)).filter((f) => f.endsWith('.md')).toSorted(),
                 (file) =>
@@ -137,10 +153,10 @@ export class SeriesDrafts extends Context.Service<SeriesDrafts, SeriesDraftsServ
                   }),
               );
               const title = titleOf(yield* text(path.join(dir, name, PLAN)), name);
-              return { name, title, drafts };
+              return Option.some({ name, title, drafts });
             }),
           );
-          return { series: series.filter((s) => s.drafts.length > 0) };
+          return { series: Arr.getSomes(series).filter((s) => s.drafts.length > 0) };
         });
 
         const keys = Effect.map(list, (l) =>

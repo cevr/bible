@@ -458,7 +458,7 @@ const marksWrite = (name: string, payload: MarksPost) =>
  */
 const seriesGroup = HttpApiBuilder.group(LabHttpApi, 'series', (handlers) =>
   handlers
-    .handle('list', () => Effect.flatMap(SeriesDrafts, (d) => d.list))
+    .handle('list', () => answered(Effect.flatMap(SeriesDrafts, (d) => d.list)))
     .handle('read', ({ params }) =>
       answered(
         Effect.gen(function* () {

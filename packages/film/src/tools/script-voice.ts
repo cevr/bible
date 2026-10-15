@@ -351,8 +351,14 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
             ),
           { discard: true },
         );
+        // A series folder the box cannot read is said in the log; the films are voiced all the same.
+        const keys = yield* drafts.keys.pipe(
+          Effect.catch((error) =>
+            Effect.as(Effect.logWarning(`staging.fill.series.unread reason=${error.message}`), []),
+          ),
+        );
         yield* Effect.forEach(
-          yield* drafts.keys,
+          keys,
           ([series, name]) =>
             draftBeatsOf(series, name).pipe(
               Effect.flatMap((beats) =>
