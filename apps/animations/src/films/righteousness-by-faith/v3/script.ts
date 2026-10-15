@@ -109,7 +109,7 @@
 //    that look like in a real person's life?" Pole `roof`: the four faces at
 //    the hole in the roof.
 // 4. The grain (`grain`): sunset down to the film's one black moment, the
-//    valley (luma 90–110; black held 4–6 s). "Who pays for the guilt?" Pole
+//    valley (luma 90–110; black held 4–6 s). "How can God forgive?" Pole
 //    `grain`: the cross on the hill against the last red, the grain falling
 //    into the furrow below it.
 // 5. He is still at work (`priest`, `accuser`, `robe`, `within`, `garden`):
@@ -244,7 +244,7 @@ export const script = defineScript([
       'Isaiah 53:6',
       'Ephesians 5:2',
     ],
-    picture: `STORY: the page opens on \`look\`'s closing row; on \`forgive\` the white cloth pulses and the other two icons dim (forgiveness opens on its icon). On \`guilt\` (the act's question) the camera pushes through the cloth into a hill at sunset (the valley's light). The cross stands on the hill where the pole stood in \`look\`'s last shot, in the same position and scale (CRAFT rule 8). On \`pays\` the camera drifts down the hill to a ploughed field below it, its furrows dark. On \`except\` the set piece, one shot held throughout (CRAFT rule 2): a single grain of wheat falls, slow, into a furrow, and the earth closes over it. On \`fruit\` the furrow's line runs on up the hill to the cross. On \`treated\` close on Jesus's face at a third of the frame, under the darkening sky. On \`laid\` scarlet cloths lift off a crowd of small figures at the hill's foot and are laid on His shoulders: on Him, never a stain in Him, His own figure unmarked under them. On \`cross\` the hill, the cross and the figures go to silhouette against the last red, and the love line is said over it; then to black, held through the tail (4–6 s), the film's one black moment. ${CARDS}`,
+    picture: `STORY: the page opens on \`look\`'s closing row; on \`forgive\` (the act's question) the white cloth pulses and the other two icons dim (forgiveness opens on its icon). On \`guilt\` the camera pushes through the cloth into a hill at sunset (the valley's light). The cross stands on the hill where the pole stood in \`look\`'s last shot, in the same position and scale (CRAFT rule 8). On \`pays\` the camera drifts down the hill to a ploughed field below it, its furrows dark. On \`except\` the set piece, one shot held throughout (CRAFT rule 2): a single grain of wheat falls, slow, into a furrow, and the earth closes over it. On \`fruit\` the furrow's line runs on up the hill to the cross. On \`treated\` close on Jesus's face at a third of the frame, under the darkening sky. On \`laid\` scarlet cloths lift off a crowd of small figures at the hill's foot and are laid on His shoulders: on Him, never a stain in Him, His own figure unmarked under them. On \`cross\` the hill, the cross and the figures go to silhouette against the last red, and the love line is said over it; then to black, held through the tail (4–6 s), the film's one black moment. ${CARDS}`,
   },
   {
     // The black moment ends at dawn: Christ's work does not end at the cross
