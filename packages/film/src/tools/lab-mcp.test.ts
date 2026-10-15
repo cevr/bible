@@ -1,6 +1,6 @@
 // The lab as an MCP server, through the lab's own handler as a client calls
-// it at `/mcp`: refused without the token, behind a proxy or on a foreign
-// Host; a session started (its header kept, so the write gate's read body
+// it at `/mcp`: answered with no token, refused by the lab's gate on a Host
+// or Origin not its own; a session started (its header kept, so the write gate's read body
 // keeps what MCP answers with); every tool listed; the owner's note seen
 // in the change feed with its link; an agent's reply and done landing in the
 // note's thread; a tweak asked of a board panel; a set published into the
@@ -19,7 +19,6 @@ import {
   Effect,
   Exit,
   Fiber,
-  FileSystem,
   Layer,
   Option,
   Path,
@@ -44,8 +43,7 @@ import { type LabMcpNeeds, MCP_PATH, labMcp } from './lab-mcp.ts';
 import { Review } from './review.ts';
 import { formatAsIs, labInMemory, noRenders, text } from './testing.ts';
 
-const TOKEN = 'a'.repeat(64);
-const TUNNEL = 'x.opentunnel.xyz';
+const STRANGER = 'x.example.net';
 const BASE = 'http://127.0.0.1:4401/';
 const PHONE = 'http://100.64.0.9:8230/';
 const bound = { hostname: '127.0.0.1', port: 4401 } as const;
@@ -96,11 +94,10 @@ const labWithMcp = Effect.gen(function* () {
   const events = yield* LabEvents.make({ base: BASE });
   yield* events.look;
   const services = yield* Effect.context<LabMcpNeeds>();
-  const mcp = labMcp({ token: TOKEN }, { base: BASE, phone: PHONE }).pipe(
+  const mcp = labMcp({ base: BASE, phone: PHONE }).pipe(
     Layer.provide(Layer.succeedContext(Context.add(services, LabEvents, events))),
   );
-  // The tunnel's name is one the lab's gate admits (as `FILM_LAB_HOSTS` makes it): the MCP still refuses it.
-  const lab = yield* labHandler({ hosts: [TUNNEL] }, mcp);
+  const lab = yield* labHandler({ hosts: [] }, mcp);
   return { lab, events };
 });
 
@@ -129,7 +126,6 @@ const ask = (lab: Lab, body: Schema.Json, headers: Readonly<Record<string, strin
         headers: {
           'content-type': 'application/json',
           accept: 'application/json, text/event-stream',
-          authorization: `Bearer ${TOKEN}`,
           ...headers,
         },
         body: writeJson(body),
@@ -227,58 +223,19 @@ const ownerNote = (lab: Lab, words: string) =>
 
 describe('who may use the MCP', () => {
   it.effect(
-    'the token, a loopback Host and nothing forwarded; the tunnel refused though the gate admits it',
+    'anyone the lab answers, with no token; the gate refuses a Host or Origin not its own',
     () =>
       provided(
         Effect.gen(function* () {
           const { lab } = yield* labWithMcp;
           const status = (headers: Readonly<Record<string, string>>) =>
-            Effect.map(ask(lab, { jsonrpc: '2.0', id: 1, method: 'ping' }, headers), (r) => [
-              r.status,
-              Option.fromNullishOr(r.headers.get('www-authenticate')),
-            ]);
-          expect(yield* status({ authorization: '' })).toEqual([401, Option.some('Bearer')]);
-          expect(yield* status({ authorization: 'Bearer nope' })).toEqual([
-            401,
-            Option.some('Bearer'),
-          ]);
-          expect(yield* status({ host: TUNNEL })).toEqual([403, Option.none()]);
-          expect(yield* status({ 'x-forwarded-for': '203.0.113.9' })).toEqual([403, Option.none()]);
-          // Every spelling the router takes for the MCP's path is behind the same check.
-          const aliased = (at: string) =>
-            Effect.promise(() =>
-              lab(
-                new Request(`${BASE.slice(0, -1)}${at}`, {
-                  method: 'POST',
-                  headers: {
-                    host: TUNNEL,
-                    'content-type': 'application/json',
-                    accept: 'application/json, text/event-stream',
-                  },
-                  body: writeJson({
-                    jsonrpc: '2.0',
-                    id: 0,
-                    method: 'initialize',
-                    params: {
-                      protocolVersion: '2025-06-18',
-                      capabilities: {},
-                      clientInfo: { name: 't', version: '0' },
-                    },
-                  }),
-                }),
-                bound,
-              ),
-            ).pipe(Effect.map((r) => [at, r.status < 300]));
-          const spellings = ['/mcp', '/MCP', '/m%63p', '//mcp', '/mcp;', '/mcp/'];
-          expect(yield* Effect.forEach(spellings, aliased)).toEqual(
-            spellings.map((at) => [at, false]),
-          );
-          // The page through the tunnel stays as it was.
-          const page = yield* Effect.promise(() =>
-            lab(new Request(`${BASE}films/f/board`, { headers: { host: TUNNEL } }), bound),
-          );
-          expect(page.status).toBe(200);
-          // A loopback name with the token starts a session (`session` checks its header).
+            Effect.map(
+              ask(lab, { jsonrpc: '2.0', id: 1, method: 'ping' }, headers),
+              (r) => r.status,
+            );
+          expect(yield* status({ host: STRANGER })).toBe(403);
+          expect(yield* status({ origin: `http://${STRANGER}` })).toBe(403);
+          // No Authorization header: a session starts (`session` checks its header).
           yield* session(lab);
         }),
       ),
@@ -643,9 +600,6 @@ describe('film channel', () => {
     provided(
       Effect.gen(function* () {
         const { lab, events } = yield* labWithMcp;
-        const fs = yield* FileSystem.FileSystem;
-        yield* fs.makeDirectory('/home/.config/film-lab', { recursive: true });
-        yield* fs.writeFileString('/home/.config/film-lab/mcp-token', `${TOKEN}\n`);
         const stdin = yield* Queue.unbounded<Uint8Array, Cause.Done>();
         const stdout = yield* Queue.unbounded<string>();
         const polling = yield* Deferred.make<void>();

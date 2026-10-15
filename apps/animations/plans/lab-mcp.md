@@ -20,7 +20,7 @@ does, while the lab runs.
 
 Every tool reads or writes through the store the page and the CLI use (`NotesStore`, `BoardStore`,
 `RenderCatalogue`, `ContentStore`); none has a write path of its own. A refusal is an MCP tool error with the
-reason in words (`LabRefused`). Links are absolute, at the address the owner opens (`labLink`: the tunnel's host
+reason in words (`LabRefused`). Links are absolute, at the address the owner opens (`labLink`: the first host
 when `FILM_LAB_HOSTS` names one).
 
 | Tool            | Does                                                                                                                    |
@@ -89,20 +89,11 @@ lab does not rely on them.
 
 ## Who may use it
 
-The lab is also reachable through the OpenTunnel public URL, and the tunnel forwards the visitor's Host and
-connects from 127.0.0.1 (the `labtunnel` unit proved a Host bypass), so neither the Host nor the peer address tells
-a local agent from the internet. `/mcp` answers only a request that:
-
-- carries `Authorization: Bearer <token>`: the token is 32 random bytes in `~/.config/film-lab/mcp-token`
-  (`FILM_LAB_MCP_TOKEN_FILE`), made 0600 in a 0700 folder on the lab's first start and kept across restarts,
-  compared by digest;
-- names a loopback Host (`127.0.0.1`, `localhost`, `[::1]`), and carries no `Forwarded`, `X-Forwarded-For`,
-  `X-Forwarded-Host` or `X-Real-IP`;
-- passes the lab's own gate first (its Host list, Sec-Fetch-Site, Origin, JSON body, body limit), and Effect's
-  own Origin check.
-
-Without the token it is 401 (`WWW-Authenticate: Bearer`); through the tunnel, 403. The page and the API are
-unchanged.
+The lab is reached on this machine's loopback, and from the owner's phone over the tailnet through a forwarder
+(`http://100.92.183.50:8230/` → `127.0.0.1:8229`) that names the loopback Host and Origin. The public tunnel is
+gone (owner, 2026-10-14: "keep using the tail scale … drop the open tunnel … we don't need really authorization,
+will just be secure by obscurity"). So `/mcp` asks no token: it answers whatever passes the lab's own gate (its
+Host list, Sec-Fetch-Site, Origin, JSON body, body limit) and Effect's own Origin check, as the page and the API do.
 
 The gate used to swap the request under the routes when it read a write's body, which dropped every
 pre-response handler a route set (MCP's `Mcp-Session-Id` among them). A read body is now answered by the
@@ -111,9 +102,9 @@ server's own handler as a new request (`api-server.ts`), so a route's answer kee
 ## Registration (the owner runs these)
 
 ```sh
-# the lab's tools, in every session (user scope); after the lab has started once
-claude mcp add --transport http lab http://localhost:8229/mcp \
-  --header "Authorization: Bearer $(cat ~/.config/film-lab/mcp-token)" -s user
+# the lab's tools, in every session (user scope)
+claude mcp add --transport http lab http://localhost:8229/mcp -s user
+# from another machine on the tailnet: http://100.92.183.50:8230/mcp
 
 # optional: the owner's actions pushed into a main session
 claude mcp add lab-events -s user -e FILM_LAB_URL=http://127.0.0.1:8229/ \
@@ -214,7 +205,7 @@ an end (`thanks`, if given). So the one-question ask is
 
 - **Made** (`ask`): checked, resolved, written to `FILMS_LAB/asks/<id>.json` (`a` + 10 hex). Answers its links:
   `local` (where the lab is bound), `phone` (`FILM_LAB_PHONE_URL`, the tailnet address, when set) and `public`
-  (the tunnel's host, when `FILM_LAB_HOSTS` names one). With `production` and `set`, an `Asked` entry naming the
+  (the first host `FILM_LAB_HOSTS` names, over HTTPS, when it names one). With `production` and `set`, an `Asked` entry naming the
   ask (`ask: a…`) is filed on that production's ledger, so the timeline shows it waiting on the owner.
 - **Answered** a step at a time, from any device: the page posts `{step, values}` (`POST /api/asks/<id>/answer`);
   the lab moves the machine (`Machine.replay` from the kept state) and appends the step to the record's
@@ -279,7 +270,7 @@ Taken:
 Left, and why:
 
 - **Running agent code** (the cell's Bun process): the lab is a long-lived process on the owner's machine, reached
-  from a phone and a tunnel; it runs no agent's code. Data in, a fixed interpreter, nothing to sandbox.
+  from a phone over the tailnet; it runs no agent's code. Data in, a fixed interpreter, nothing to sandbox.
 - **Thread, run and permit states**: an ask has one reader and one writer at a time; `ContentStore`'s lock is the
   permit.
 - **The outbox and activation seam**: the lab is one process and its files are the record; the change feed
@@ -307,7 +298,7 @@ record of versions and of what waits on the owner; asks file onto it rather than
 
 ## Choices the owner may want to change
 
-- A token rather than an open loopback endpoint (the tunnel makes loopback unprovable).
+- No token: the lab answers loopback and the tailnet forwarder only, and the owner prefers obscurity to a key.
 - Events by long-poll plus the channel bridge, not resource subscriptions (Effect's HTTP transport has no push,
   and Claude Code does not show `resources/updated` to the model).
 - The feed reads every 2 s; an event takes up to 2 s to arrive.

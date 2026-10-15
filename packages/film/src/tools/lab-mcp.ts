@@ -22,19 +22,16 @@
 // - Resources (`lab://…`) say the same reads for a client that attaches
 //   them; the `inbox` prompt opens a session on what waits.
 //
-// The lab is reached through a public tunnel that forwards the visitor's
-// Host from 127.0.0.1, so neither the Host nor the peer tells a local agent
-// from the internet: `/mcp` answers only a request with the lab's token
-// (`Authorization: Bearer …`, `labMcpToken`), with a loopback Host, that no
-// proxy forwarded. The lab's gate (`api-server.ts`) runs first, as for any
-// path. Effect's server refuses a request with a foreign `Origin`.
+// The lab is reached on loopback and from the owner's phone over the
+// tailnet (a forwarder that names the loopback Host), and nowhere else, so
+// `/mcp` asks no token (owner, 2026-10-14: secure by obscurity). The lab's
+// gate (`api-server.ts`) runs first, as for any path, and Effect's server
+// refuses a request with a foreign `Origin`.
 
 import {
   Array as Arr,
   Boolean as Bool,
   Clock,
-  Config,
-  Crypto,
   DateTime,
   Duration,
   Effect,
@@ -48,7 +45,6 @@ import {
   Struct,
 } from 'effect';
 import { McpProtocol, McpSchema, McpServer, Tool, Toolkit } from 'effect/ai';
-import { Headers, HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { pageHref } from '../core/api.ts';
 import {
   Ask,
@@ -71,7 +67,6 @@ import { AskStore } from './ask-store.ts';
 import { BoardStore } from './board-store.ts';
 import { CATALOGUE_FILE, RenderCatalogue } from './catalogue.ts';
 import { ContentStore, type Manifest, writeWholeWith } from './content-store.ts';
-import { sha256Hex } from './digest.ts';
 import { FilmFolder, type FilmName, filmNamed, filmsOut } from './film-repo.ts';
 import { LabChanges, LabEvents, reviewFolders } from './lab-events.ts';
 import { NotesStore } from './notes-store.ts';
@@ -1161,85 +1156,7 @@ const inbox = (options: LabMcpOptions) =>
   });
 
 // ---------------------------------------------------------------------------
-// Access, and the server
-
-/** The names a loopback Host has. */
-const LOOPBACK_NAMES: ReadonlyArray<string> = ['localhost', '127.0.0.1', '[::1]'];
-
-/** Headers a proxy in front adds: a request that carries one came through it (the tunnel). */
-const FORWARDED: ReadonlyArray<string> = [
-  'forwarded',
-  'x-forwarded-for',
-  'x-forwarded-host',
-  'x-real-ip',
-];
-
-/** Why `request` may not use the MCP, or none: a loopback Host, nothing forwarded, the token. */
-const mcpRefusal = (
-  headers: Headers.Headers,
-  token: string,
-): Option.Option<{ readonly status: number; readonly reason: string }> => {
-  const host = Option.getOrElse(Headers.get(headers, 'host'), () => '');
-  const name = host.replace(/:\d+$/, '');
-  if (!LOOPBACK_NAMES.includes(name))
-    return Option.some({ status: 403, reason: `the MCP answers on loopback only, not ${host}` });
-  const forwarded = FORWARDED.filter((h) => Option.isSome(Headers.get(headers, h)));
-  if (forwarded.length > 0)
-    return Option.some({
-      status: 403,
-      reason: `the MCP is not served through a proxy (${forwarded.join(', ')})`,
-    });
-  const given = Option.flatMap(Headers.get(headers, 'authorization'), (auth) =>
-    Option.flatMap(Option.fromNullishOr(/^Bearer\s+(\S+)$/i.exec(auth)), ([, bearer]) =>
-      Option.fromUndefinedOr(bearer),
-    ),
-  );
-  // Compared by digest: equal lengths, and nothing of the token leaks by how long a compare takes.
-  if (!Option.exists(given, (g) => sha256Hex(g) === sha256Hex(token)))
-    return Option.some({
-      status: 401,
-      reason: 'the MCP needs the lab token: Authorization: Bearer <token>',
-    });
-  return Option.none();
-};
-
-/**
- * The check on the MCP's own routes: it runs on whatever the router matched
- * them by (any spelling of the path the router takes for `/mcp`), never by a
- * path compare of its own.
- */
-const access = (token: string) =>
-  HttpRouter.middleware((route) =>
-    Effect.gen(function* () {
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      // A request made in process (a test's) names its Host in its URL only.
-      const host = Option.getOrElse(
-        Option.orElse(Option.fromUndefinedOr(request.headers['host']), () =>
-          Option.map(HttpServerRequest.toURL(request), (url) => url.host),
-        ),
-        () => '',
-      );
-      return yield* Option.match(mcpRefusal(Headers.set(request.headers, 'host', host), token), {
-        onNone: () => route,
-        onSome: (refusal) =>
-          Effect.as(
-            Effect.logWarning(
-              `lab.mcp.refused method=${request.method} status=${refusal.status} reason="${refusal.reason}"`,
-            ),
-            HttpServerResponse.jsonUnsafe(
-              { error: 'McpRefused', reason: refusal.reason },
-              {
-                status: refusal.status,
-                headers: Bool.match(refusal.status === 401, {
-                  onTrue: () => ({ 'www-authenticate': 'Bearer' }),
-                  onFalse: () => ({}),
-                }),
-              },
-            ),
-          ),
-      });
-    }),
-  );
+// The server
 
 const INSTRUCTIONS = [
   'The film lab, where the owner reviews the films: notes on frames and board panels, tries kept, beats and renders approved, sets of renders compared. Read with `overview`, `notes`, `board`, `catalogue`, `sets`, `set`; act with `reply`, `resolve`, `request_tweak`, `publish_set`, `record_render`.',
@@ -1261,17 +1178,12 @@ export type LabMcpNeeds =
   | FileSystem.FileSystem
   | Path.Path;
 
-/** How the lab is reached as an MCP server: its token and the address its links use. */
-export interface McpAccess {
-  readonly token: string;
-}
-
 /**
  * The lab's MCP at `/mcp` on the lab's router, over its stores and its change
- * feed, behind `access`. The routes it adds are the lab's own: the gate
- * (`api-server.ts`) runs first, as for every path.
+ * feed. The routes it adds are the lab's own: the gate (`api-server.ts`)
+ * runs first, as for every path.
  */
-export const labMcp = (access_: McpAccess, options: LabMcpOptions) =>
+export const labMcp = (options: LabMcpOptions) =>
   Layer.mergeAll(
     McpServer.toolkit(LabToolkit).pipe(Layer.provideMerge(handlers(options))),
     resources(options),
@@ -1289,40 +1201,7 @@ export const labMcp = (access_: McpAccess, options: LabMcpOptions) =>
           McpProtocol.v2025_03_26,
           McpProtocol.v2026_07_28,
         ],
-        // Every route it adds is behind `access`.
-      }).pipe(Layer.provide(access(access_.token).layer)),
+      }),
     ),
     Layer.orDie,
   );
-
-// ---------------------------------------------------------------------------
-// The token
-
-/** A new token: 32 random bytes, hex. */
-const newToken = Effect.map(
-  Crypto.Crypto.use((crypto) => crypto.randomBytes(32)),
-  (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(''),
-);
-
-/**
- * The lab's MCP token: the file `FILM_LAB_MCP_TOKEN_FILE` names
- * (`~/.config/film-lab/mcp-token`), made on the first start, readable by its
- * owner only; the same token every start after, so a registered client
- * keeps working. Its file, beside it, for the line the lab logs.
- */
-export const labMcpToken = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const home = yield* Config.String('HOME');
-  const file = yield* Config.String('FILM_LAB_MCP_TOKEN_FILE').pipe(
-    Config.withDefault(path.join(home, '.config', 'film-lab', 'mcp-token')),
-  );
-  const kept = (yield* fs.readFileString(file).pipe(Effect.orElseSucceed(() => ''))).trim();
-  if (kept.length > 0) return { token: kept, file };
-  const token = yield* newToken;
-  yield* fs.makeDirectory(path.dirname(file), { recursive: true, mode: 0o700 });
-  yield* fs.writeFileString(file, `${token}\n`, { mode: 0o600 });
-  yield* fs.chmod(file, 0o600);
-  yield* Effect.log(`lab.mcp.token made file=${file}`);
-  return { token, file };
-});
