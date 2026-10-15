@@ -24,6 +24,7 @@ import * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, createSignal } from 'solid-js';
+import { Frames } from '../../browser/frames.ts';
 import { addressOn } from '../../browser/host.ts';
 import { wordsIn, wordsText } from '../../command/selection.ts';
 import {
@@ -318,7 +319,14 @@ const Beats = (props: {
           Option.flatMap(key, () => page),
           (el) => Option.fromNullishOr(el.querySelector('.lab-script-ties')),
         ),
-        (box) => box.scrollIntoView({ block: 'nearest' }),
+        // Once laid out (its choices drawn, the page's type set): the whole box, not its top.
+        (box) =>
+          Effect.runForkWith(meta.host)(
+            Effect.promise(() => document.fonts.ready).pipe(
+              Effect.andThen(Frames.use((f) => f.next)),
+              Effect.andThen(Effect.sync(() => box.scrollIntoView({ block: 'nearest' }))),
+            ),
+          ),
       );
     },
   );
