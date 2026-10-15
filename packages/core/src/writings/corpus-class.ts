@@ -103,6 +103,36 @@ export const SECTION_BY_ROOT_FOLDER = {
   Bible: 'bible',
 } satisfies Record<string, CorpusSection>;
 
+/** A node of the library's folder tree, as much of it as a section needs. */
+interface FolderNode {
+  readonly folder_id: number;
+  readonly name: string;
+  readonly children?: readonly FolderNode[];
+}
+
+const isRootFolder = (name: string): name is keyof typeof SECTION_BY_ROOT_FOLDER =>
+  Object.hasOwn(SECTION_BY_ROOT_FOLDER, name);
+
+/** Every folder under a known root, mapped to that root's section.
+ *
+ *  A book record names its folder and nothing above it, so the section is
+ *  carried down the tree from the root rather than looked up from the book.
+ *  A folder under a root that is not a section is absent: its books are
+ *  unclassified by section, which every filter treats as such. */
+export const sectionsByFolder = (
+  roots: readonly FolderNode[],
+): ReadonlyMap<number, CorpusSection> => {
+  const sections = new Map<number, CorpusSection>();
+  const visit = (node: FolderNode, section: CorpusSection): void => {
+    sections.set(node.folder_id, section);
+    for (const child of node.children ?? []) visit(child, section);
+  };
+  for (const root of roots) {
+    if (isRootFolder(root.name)) visit(root, SECTION_BY_ROOT_FOLDER[root.name]);
+  }
+  return sections;
+};
+
 /** The types that are lookup apparatus rather than something anyone reads
  *  through.
  *

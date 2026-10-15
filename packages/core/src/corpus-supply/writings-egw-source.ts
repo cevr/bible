@@ -15,9 +15,11 @@ import {
   ArchivedParagraph,
   PublicationArchive,
 } from '../writings/archive.js';
+import { sectionsByFolder, type CorpusSection } from '../writings/corpus-class.js';
 import {
   Paragraph,
   Publication,
+  PublicationClassification,
   Reference,
   pageNumber,
   publicationCode,
@@ -96,17 +98,46 @@ const downloadedParagraphFiles = (
     );
   });
 
-const publicationFromBook = (book: EGWSchemas.Book) =>
+/** The book's classification, when its record carries a type.
+ *
+ *  The API spells an absent subtype as `''` or `' '`; both are absence here. */
+const classificationOf = (
+  book: EGWSchemas.Book,
+  sections: ReadonlyMap<number, CorpusSection>,
+): Option.Option<PublicationClassification> => {
+  const type = book.type.trim();
+  if (type.length === 0) return Option.none();
+  return Option.some(
+    PublicationClassification.make({
+      section: Option.fromUndefinedOr(sections.get(book.folder_id)),
+      type,
+      subtype: Option.fromNullishOr(book.subtype).pipe(
+        Option.map((value) => value.trim()),
+        Option.filter((value) => value.length > 0),
+      ),
+      folderId: book.folder_id,
+    }),
+  );
+};
+
+const publicationFromBook = (
+  book: EGWSchemas.Book,
+  classification: Option.Option<PublicationClassification> = Option.none(),
+) =>
   Effect.try({
     try: () => {
       let author = book.author.trim();
       if (author.length === 0) author = 'Unknown author';
-      return Publication.make({
+      const fields = {
         id: publicationId(book.book_id),
         code: publicationCode(book.code),
         title: book.title,
         author,
         paragraphCount: Option.some(book.nelements),
+      };
+      return Option.match(classification, {
+        onNone: () => Publication.make(fields),
+        onSome: (value) => Publication.make({ ...fields, classification: value }),
       });
     },
     catch: sourceUnavailable('coerce-writings-catalog'),
@@ -116,10 +147,11 @@ const archiveFromBook = (
   book: EGWSchemas.Book,
   paragraphs: readonly EGWSchemas.Paragraph[],
   requestedId: EGWSchemas.Book['book_id'],
+  sections: ReadonlyMap<number, CorpusSection>,
 ): Effect.Effect<PublicationArchive, CorpusContributionRejectedError> =>
   Effect.gen(function* () {
     const canonicalRequestedId = publicationId(requestedId);
-    const publication = yield* publicationFromBook(book).pipe(
+    const publication = yield* publicationFromBook(book, classificationOf(book, sections)).pipe(
       Effect.mapError((cause) =>
         CorpusContributionRejectedError.make({
           publication: canonicalRequestedId,
@@ -205,8 +237,18 @@ export const layerEgwWritingsAssetSource: Layer.Layer<
   Effect.gen(function* () {
     const api = yield* EGWApiClient;
     const crypto = yield* Crypto.Crypto;
+    // The folder tree, read once per source: every book's section comes from
+    // it, and it changes far more rarely than a sync runs.
+    const sections = yield* Effect.cached(
+      api
+        .getFoldersByLanguage('en')
+        .pipe(
+          Effect.map(sectionsByFolder),
+          Effect.mapError(sourceUnavailable('read-writings-folders')),
+        ),
+    );
     const catalog = api.getBooks({ lang: 'en' }).pipe(
-      Stream.mapEffect(publicationFromBook),
+      Stream.mapEffect((book) => publicationFromBook(book)),
       Stream.runCollect,
       Effect.map((items) => [...items]),
       Effect.mapError(sourceUnavailable('read-writings-catalog')),
@@ -262,7 +304,7 @@ export const layerEgwWritingsAssetSource: Layer.Layer<
           cause: 'Publication has no paragraphs',
         });
       }
-      const archive = yield* archiveFromBook(book, paragraphs, requestedId);
+      const archive = yield* archiveFromBook(book, paragraphs, requestedId, yield* sections);
       let revision = book.pub_year;
       if (Predicate.isNotNullish(book.last_modified)) {
         revision = book.last_modified;

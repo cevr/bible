@@ -43,6 +43,7 @@ import {
 import { SearchApi } from '../api.js';
 import { SearchGroupLive } from '../search-api.js';
 import { VectorIndexLoad } from '../vector-index.js';
+import { D1Atomic } from './d1-atomic.ts';
 import { Corpus, Vectors } from './resources.ts';
 import { DOMAIN, SERVED_FROM, type ServedFrom, WORKER_NAME } from './site.ts';
 import { vectorizeNeighbors, type VectorizeQuery } from './vectorize.ts';
@@ -84,7 +85,7 @@ const searchLayer = (bindings: Bindings) => {
       const paragraphs = yield* EGWParagraphDatabase;
       return SearchCorpusSources.of({ _tag: 'wired', sources: { paragraphs } });
     }),
-  ).pipe(Layer.provide(EGWParagraphDatabase.layerExisting));
+  ).pipe(Layer.provide(EGWParagraphDatabase.layerExisting), Layer.provide(D1Atomic));
   const neighbors = Layer.succeed(
     VectorNeighbors,
     VectorNeighbors.of(vectorizeNeighbors(bindings.vectors, MODEL_FINGERPRINT)),
