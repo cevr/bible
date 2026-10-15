@@ -30,9 +30,15 @@ import { APPARATUS_TYPES, EXCLUDED_SUBTYPES } from '@bible/core/writings';
  *  an unclassified book. */
 export const UNCLASSIFIED = 'none';
 
-/** The most neighbors Vectorize returns for a query that asks for neither
- *  values nor metadata. */
-export const MAX_TOP_K = 100;
+/** The most neighbors Vectorize returns for a query that asks for values.
+ *
+ *  Asking for values is what makes Vectorize score its candidates exactly.
+ *  Without them it ranks by approximate scores, and against the flat scan's
+ *  exact neighbors that ordering held 1 to 6 of the true top 10 over six
+ *  measured queries; rescored, it held 7 to 10. The fusion weighs a
+ *  neighbor by its rank, so a precise top 50 is worth more than an
+ *  approximate top 100 (the cap without values). */
+export const MAX_TOP_K = 50;
 
 /** A value no vector carries: what an include list emptied by its own
  *  excludes matches, which is nothing. */
@@ -85,7 +91,7 @@ export interface VectorizeQuery {
     options: {
       topK: number;
       filter: MetadataFilter;
-      returnValues: false;
+      returnValues: true;
       returnMetadata: 'none';
     },
   ) => Promise<{ readonly matches: ReadonlyArray<{ readonly id: string }> }>;
@@ -97,9 +103,10 @@ export interface VectorizeQuery {
  *  index holds no record of it, so the deploy states it, and the search
  *  compares it with the embedder's as it does for a `.bvi` file.
  *
- *  The query vector goes up as its int8 components. Cosine ignores scale, and
- *  the stored vectors are int8 components too, so Vectorize ranks exactly as
- *  the flat scan's int8 dot product does. */
+ *  The query vector goes up as its int8 components, as the stored vectors
+ *  did. Cosine ignores the query's scale, so the rescored order differs from
+ *  the flat scan's int8 dot product only by the small spread in the stored
+ *  vectors' lengths, and by the candidates the approximate search missed. */
 export const vectorizeNeighbors = (
   index: VectorizeQuery,
   fingerprint: string,
@@ -111,7 +118,7 @@ export const vectorizeNeighbors = (
         index.query(Array.from(vector), {
           topK: Math.min(scope.topK, MAX_TOP_K),
           filter: vectorizeFilter(scope),
-          returnValues: false,
+          returnValues: true,
           returnMetadata: 'none',
         }),
       catch: (cause) =>
