@@ -38,7 +38,7 @@ import {
 } from './machine.ts';
 
 /** Where the tab keeps ask `ask`'s draft, unsent. */
-export const keptDraftKey = (ask: string) => `film-review.ask-draft:${ask}`;
+const keptDraftKey = (ask: string) => `film-review.ask-draft:${ask}`;
 
 /** Where the page is: reading the ask, open on it, sending its answers, or unable to read it. */
 type AskPhase = AskPageState['_tag'];

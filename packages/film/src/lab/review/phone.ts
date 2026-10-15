@@ -6,7 +6,7 @@ import { Duration, Effect, Schedule, Stream } from 'effect';
 import type { PhoneCopy } from '../../core/served.ts';
 
 /** How often a page waiting on a video's phone copy asks whether it is made. */
-export const PHONE_ASKED_EVERY = Duration.seconds(3);
+const PHONE_ASKED_EVERY = Duration.seconds(3);
 
 /**
  * `ask`'s answers, asked now and every `PHONE_ASKED_EVERY` after while the
