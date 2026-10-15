@@ -6,7 +6,7 @@
 // the server's own failure; a request that never arrived says so
 // (`LabFailure`, as every lab call fails).
 
-import { Context, Effect, Layer } from 'effect';
+import { Context, Effect, Layer, Match } from 'effect';
 import { HttpClient, HttpClientResponse } from 'effect/http';
 import {
   type DraftRead,
@@ -26,6 +26,7 @@ import type { AskRecord, StepValues } from '../../core/ask.ts';
 import type { LabWrite } from '../../core/schema.ts';
 import type { StudioAttempts } from '../../core/studio.ts';
 import type { ReviewDuration, ReviewIndex } from '../../core/review.ts';
+import type { PhoneCopy } from '../../core/served.ts';
 import { LabClient, type LabFailure, called } from '../api.ts';
 
 interface ReviewCalls {
@@ -35,8 +36,12 @@ interface ReviewCalls {
   readonly duration: (ref: string) => Effect.Effect<ReviewDuration, LabFailure>;
   /** A doc's text (a variant's notes, a folder's markdown). */
   readonly text: (ref: string) => Effect.Effect<string, LabFailure>;
-  /** Whether a video's phone copy is made: its URL asked for its head alone, none of its bytes. */
-  readonly phoneMade: (ref: string) => Effect.Effect<boolean, LabFailure>;
+  /**
+   * Where a video's phone copy stands: its URL asked for its head alone, none
+   * of its bytes; made (200), failed (422, \`PhoneCopyFailed\`), else still
+   * being made.
+   */
+  readonly phoneCopy: (ref: string) => Effect.Effect<PhoneCopy, LabFailure>;
   /** A say on a version of the set `point` in `folder`: the folder as it leaves it, what it gave or took. */
   readonly say: (
     folder: string,
@@ -103,8 +108,16 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* () {
     },
     duration: (ref) => called(client.duration({ query: { ref } })),
     text: (ref) => called(Effect.flatMap(http.get(reviewFileUrl(ref)), fileText)),
-    phoneMade: (ref) =>
-      called(Effect.map(http.head(reviewPhoneUrl(ref)), (res) => res.status === 200)),
+    phoneCopy: (ref) =>
+      called(
+        Effect.map(http.head(reviewPhoneUrl(ref)), (res) =>
+          Match.value(res.status).pipe(
+            Match.when(200, (): PhoneCopy => 'ready'),
+            Match.when(422, (): PhoneCopy => 'failed'),
+            Match.orElse((): PhoneCopy => 'pending'),
+          ),
+        ),
+      ),
     say: (folder, point, said) => called(client.say({ params: { folder, point }, payload: said })),
     productions: called(lab.productions.list()),
     board: (film) => called(lab.board.read({ params: { film } })),

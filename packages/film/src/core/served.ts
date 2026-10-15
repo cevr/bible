@@ -19,10 +19,15 @@ export type ReviewFile = typeof ReviewFile.Type;
 
 /**
  * A video, and its 720p phone copy's state: only a big video gets one (a
- * phone streams it in place of the master), made in the background.
+ * phone streams it in place of the master), made in the background; one the
+ * lab could not make is `failed` (its log says why) until the video is
+ * written again or the lab starts again, either of which asks for it anew.
  */
 export const ReviewVideo = Schema.Struct({
   ...ReviewFile.fields,
-  phone: Schema.Literals(['none', 'pending', 'ready']),
+  phone: Schema.Literals(['none', 'pending', 'ready', 'failed']),
 });
 export type ReviewVideo = typeof ReviewVideo.Type;
+
+/** A video's phone copy as a page waiting on it asks after it: still being made, made, or failed. */
+export type PhoneCopy = Exclude<ReviewVideo['phone'], 'none'>;

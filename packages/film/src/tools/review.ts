@@ -86,6 +86,7 @@ import { ReviewManifestJson } from '../core/review.ts';
 import {
   ChoiceUnknown,
   type MediaFailed,
+  PhoneCopyFailed,
   ReviewFileUnknown,
   ReviewToolFailed,
   VariantUnknown,
@@ -600,8 +601,10 @@ interface ReviewService {
     at: Option.Option<number>,
     width: number,
   ) => Effect.Effect<string, ReviewFileUnknown | ReviewToolFailed | MediaFailed>;
-  /** The video's phone copy, when it is made. */
-  readonly phone: (ref: string) => Effect.Effect<Option.Option<string>, ReviewFileUnknown>;
+  /** The video's phone copy, when it is made; refused once the lab tried and could not make it. */
+  readonly phone: (
+    ref: string,
+  ) => Effect.Effect<Option.Option<string>, ReviewFileUnknown | PhoneCopyFailed>;
   /**
    * A derived file in the cache at `name` (`mix/<key>.m4a`): there already, or
    * made by `make` into the partial path it is given (`writeWhole`: its name
@@ -792,8 +795,14 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
 
         const isFile = (file: string) => fs.exists(file).pipe(Effect.orElseSucceed(() => false));
 
+        // The phone copies this run tried to make and could not, by the copy's path: keyed by the
+        // video's mtime and the encode, so a video written again is asked for anew, as is every
+        // copy once the lab starts again.
+        const unmade = new Set<string>();
+
         const phone = Effect.fn('Review.phone')(function* (ref: string) {
           const out = yield* phonePath(yield* resolve(ref));
+          if (unmade.has(out)) return yield* PhoneCopyFailed.make({ ref });
           const there = yield* isFile(out);
           return Option.liftPredicate(out, () => there);
         });
@@ -815,8 +824,9 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
 
         const phoneState = Effect.fn('Review.phoneState')(function* (video: Found) {
           if (!(yield* copied(video))) return 'none' satisfies PhoneState;
-          const there = yield* isFile(yield* phonePath(video.path));
-          if (there) return 'ready' satisfies PhoneState;
+          const out = yield* phonePath(video.path);
+          if (yield* isFile(out)) return 'ready' satisfies PhoneState;
+          if (unmade.has(out)) return 'failed' satisfies PhoneState;
           return 'pending' satisfies PhoneState;
         });
 
@@ -833,24 +843,29 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         // Phone copies: one at a time, newest first, in the background, x264 on two
         // threads (`x264.ts`) so the review answers while one encodes. A copy made
         // changes what the index says of its video (`phone`), so it drops the
-        // index's last read: the next read, a page's that saw it ready, says so.
+        // index's last read: the next read, a page's that saw it ready, says so. One that cannot
+        // be made is kept as failed (\`unmade\`) and drops it too, so the next read says so.
         const queue = yield* Queue.unbounded<Found>();
         const queued = new Set<string>();
-        const makePhone = Effect.fn('Review.makePhone')(
-          function* (video: Found) {
-            const out = yield* phonePath(video.path);
-            const name = path.relative(config.cache, out);
-            yield* derive(name, (temporary) => media.phoneCopy(video.path, temporary));
-            yield* drop;
-            yield* Effect.log(`review.phone.made ref=${video.ref}`);
-          },
-          Effect.catchTags({
-            ReviewToolFailed: (error) =>
-              Effect.logWarning(`review.phone.failed reason="${error.message}"`),
-            MediaFailed: (error) =>
-              Effect.logWarning(`review.phone.failed reason="${error.message}"`),
-          }),
-        );
+        const makePhone = Effect.fn('Review.makePhone')(function* (video: Found) {
+          const out = yield* phonePath(video.path);
+          const name = path.relative(config.cache, out);
+          const failed = (reason: string) =>
+            Effect.sync(() => unmade.add(out)).pipe(
+              Effect.andThen(drop),
+              Effect.andThen(
+                Effect.logWarning(`review.phone.failed ref=${video.ref} reason="${reason}"`),
+              ),
+            );
+          yield* derive(name, (temporary) => media.phoneCopy(video.path, temporary)).pipe(
+            Effect.andThen(drop),
+            Effect.andThen(Effect.log(`review.phone.made ref=${video.ref}`)),
+            Effect.catchTags({
+              ReviewToolFailed: (error) => failed(error.message),
+              MediaFailed: (error) => failed(error.message),
+            }),
+          );
+        });
         const drain = Effect.forever(
           Effect.flatMap(Queue.take(queue), (video) =>
             makePhone(video).pipe(Effect.ensuring(Effect.sync(() => queued.delete(video.path)))),

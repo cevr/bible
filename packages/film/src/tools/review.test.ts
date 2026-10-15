@@ -480,13 +480,18 @@ const projectCatalogue = [
  * and the project each render's captions. The review reads the files
  * through `files` (the file system as is, by default), and copies a video
  * over 100 bytes or over `phoneRate` bits a second (the review's own by
- * default); the media cannot read the length of a file named `unreadable`.
+ * default); the media cannot read the length of a file named `unreadable`,
+ * nor make a phone copy of one named `uncopyable`.
  */
 const fixture = (
   phoneCopies: boolean,
   fps: Option.Option<number> = Option.none(),
   files: (fs: FileSystem.FileSystem) => FileSystem.FileSystem = Function.identity,
-  tune: { readonly phoneRate?: number; readonly unreadable?: string } = {},
+  tune: {
+    readonly phoneRate?: number;
+    readonly unreadable?: string;
+    readonly uncopyable?: string;
+  } = {},
 ) =>
   Layer.unwrap(
     Effect.gen(function* () {
@@ -538,6 +543,14 @@ const fixture = (
                   ),
                   timing,
                 ),
+              ),
+            phoneCopy: (video, out) =>
+              Effect.andThen(
+                Effect.when(
+                  Effect.fail(MediaFailed.make({ op: 'encode', file: video, reason: 'no encode' })),
+                  Effect.succeed(path.basename(video) === tune.uncopyable),
+                ),
+                standIn.phoneCopy(video, out),
               ),
           });
         }),
@@ -977,6 +990,35 @@ describe('the review service', () => {
       );
       expect(phone).toBe('ready');
     }).pipe(Effect.provide(fixture(true))),
+  );
+
+  it.live(
+    'a phone copy that cannot be made is failed: the index says so, and its copy is refused',
+    () =>
+      Effect.gen(function* () {
+        const review = yield* Review;
+        const first = yield* review.index(true);
+        const big = first.folders.flatMap((f) => f.videos).find((v) => v.name === 'big.mp4');
+        expect(big?.phone).toBe('pending');
+        // The copy fails in the background: the index, read from its cache, says so once it has.
+        const phone = yield* review.index(false).pipe(
+          Effect.map((again) =>
+            again.folders
+              .flatMap((f) => f.videos)
+              .filter((v) => v.name === 'big.mp4')
+              .map((v) => v.phone)
+              .join(),
+          ),
+          Effect.filterOrFail((p) => p === 'failed'),
+          Effect.retry({ schedule: Schedule.spaced('20 millis'), times: 50 }),
+          Effect.orElseSucceed(() => 'not failed'),
+        );
+        expect(phone).toBe('failed');
+        const asked = yield* Effect.flip(review.phone('out/art/big.mp4'));
+        expect(asked._tag).toBe('PhoneCopyFailed');
+      }).pipe(
+        Effect.provide(fixture(true, Option.none(), Function.identity, { uncopyable: 'big.mp4' })),
+      ),
   );
 
   it.effect(

@@ -11,6 +11,7 @@
 // and the comment box, said over the set's route.
 
 import { useAtomValue } from '@bible/atom-solid';
+import type { PhoneCopy } from '../../core/served.ts';
 import { unfiledOf } from '../../core/production.ts';
 import { counted } from '../../core/words.ts';
 import { Dialog } from '@bible/ui/dialog';
@@ -703,26 +704,35 @@ export const FolderPage = (props: { readonly folder: string }) => (
 // ---------------------------------------------------------------------------
 // A set
 
+/** What a video with no phone copy to play says across its picture: on its way, or failed. */
+const COPY_SAID = {
+  pending: 'Phone copy on its way',
+  ready: 'Phone copy on its way',
+  failed: 'The phone copy could not be made',
+} as const;
+
+/** What a video with no phone copy to play says across its picture, as its copy stands (`copy`). */
+const CopySaid = (props: { readonly copy: PhoneCopy }) => (
+  <span class="rv-pending-hint" data-copy={props.copy}>
+    {COPY_SAID[props.copy]}
+  </span>
+);
+
 /**
- * In a video's place while its phone copy is still being made, on Proxy:
- * its still with what is happening across its foot (so the box says so
- * before the still has come), and the way to play the Original instead.
- * The original is never streamed in its place unasked. While it shows, the
- * page asks every few seconds whether the copy is made; once it is, the
- * page reads the index again and the video plays in its place (on a Set,
- * Choices and an ask alike).
+ * In a video's place while it has no phone copy to play, on Proxy: its
+ * still with what is happening across its foot (so the box says so before
+ * the still has come), on its way or failed, and the way to play the
+ * Original instead. The original is never streamed in its place unasked.
+ * While the index has the copy on its way the page asks after it every few
+ * seconds (`CopyAwaited`) and says what it hears; once the copy is made or
+ * has failed, the page reads the index again, and the video plays in its
+ * place, or says it failed (on a Set, Choices and an ask alike).
  */
 export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
-  const { actions, meta } = useReview();
-  const made = useAtomValue(() => meta.phoneMade(props.video.ref));
-  createEffect(
-    () => Option.getOrElse(AsyncResult.value(made()), () => false),
-    (copied) => {
-      if (copied) actions.indexChanged();
-    },
-  );
+  const { actions } = useReview();
+  const failed = () => props.video.phone === 'failed';
   return (
-    <div class="rv-pending" data-proxy="pending">
+    <div class="rv-pending" data-proxy={STATE_PROXY[`${failed()}`]}>
       <div class="rv-pending-picture">
         <img
           class="rv-media"
@@ -730,7 +740,9 @@ export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
           alt=""
           src={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
         />
-        <span class="rv-pending-hint">Phone copy on its way</span>
+        <Show when={!failed()} fallback={<CopySaid copy="failed" />}>
+          <CopyAwaited video={props.video} />
+        </Show>
       </div>
       <p class="rv-row">
         <button type="button" class="sh-btn" onClick={() => actions.quality('full')}>
@@ -739,6 +751,24 @@ export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
       </p>
     </div>
   );
+};
+
+/** A video's `data-proxy`, by whether its phone copy failed. */
+const STATE_PROXY = { true: 'failed', false: 'pending' } as const;
+
+/**
+ * Asks after video `video`'s phone copy while it is on its way, and says
+ * what it hears; once the copy is made or has failed, the index is read
+ * again (it says so too, or the video plays).
+ */
+const CopyAwaited = (props: { readonly video: ReviewVideo }) => {
+  const { actions, meta } = useReview();
+  const asked = useAtomValue(() => meta.phoneCopy(props.video.ref));
+  const copy = () => Option.getOrElse(AsyncResult.value(asked()), (): PhoneCopy => 'pending');
+  createEffect(copy, (now) => {
+    if (now !== 'pending') actions.indexChanged();
+  });
+  return <CopySaid copy={copy()} />;
 };
 
 const MODE_TITLES = {

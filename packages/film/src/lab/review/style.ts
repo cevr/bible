@@ -224,12 +224,13 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-picture { margin-bottom: var(--s-3); }
 .rv-picture video { max-height: 62vh; }
 .rv-pending .rv-row { padding: var(--s-2) var(--s-3); }
-/* The phone copy on its way: said across the foot of the still's box, as a failure is. */
+/* The phone copy on its way, or failed: said across the foot of the still's box, as a failure to play is. */
 .rv-pending-picture { position: relative; }
 .rv-pending-hint {
   position: absolute; left: 0; right: 0; bottom: 0; padding: var(--s-2) var(--s-3);
   background: var(--backdrop-deep); color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2);
 }
+.rv-pending-hint[data-copy="failed"] { color: var(--state-warning); }
 .rv-option .rv-body { display: flex; flex-direction: column; gap: var(--s-2); }
 .rv-take { border-top: var(--border); padding-top: var(--s-2); display: flex; flex-direction: column; gap: var(--s-2); }
 /* The row whose inspector is open (design language §5, List row): its left edge in the

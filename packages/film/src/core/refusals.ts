@@ -269,6 +269,15 @@ export class PhoneCopyUnmade extends Schema.TaggedError<PhoneCopyUnmade>()('Phon
   }
 }
 
+/** A video's 720p phone copy the lab tried to make and could not (its log says why): it plays as made. */
+export class PhoneCopyFailed extends Schema.TaggedError<PhoneCopyFailed>()('PhoneCopyFailed', {
+  ref: Schema.String,
+}) {
+  override get message() {
+    return `the phone copy of ${this.ref} could not be made`;
+  }
+}
+
 /** A note's still named that the film's notes do not hold. */
 export class StillUnknown extends Schema.TaggedError<StillUnknown>()('StillUnknown', {
   film: Schema.String,

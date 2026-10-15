@@ -34,6 +34,7 @@ import {
   text,
 } from '../../../../src/lab/fixtures/harness.ts';
 import {
+  PhoneCopyFailed,
   SourceRefused,
   StepNotNewest,
   TakeMismatch,
@@ -1788,6 +1789,49 @@ describe("a film's choices", () => {
           true,
         );
         expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'on a phone, a picture whose phone copy failed says so in its box, and the page stops asking after it',
+    () =>
+      Effect.gen(function* () {
+        const pictureOf = (phone: string) =>
+          route('GET', /^\/api\/films\/toy\/choices$/, () =>
+            json({
+              ...(choices(freshToy()) as Record<string, Json>),
+              pictures: [
+                { ref: 'out/toy/toy.mp4', name: 'toy.mp4', size: 900_000_000, mtime: 0, phone },
+              ],
+            }),
+          );
+        const hint = '.rv-picture [data-proxy] .rv-pending-hint';
+        // The copy fails while the page waits on it: its ask hears so (that it asks no more is
+        // \`copyAwaited\`'s, on a test clock: \`phone.test.ts\`).
+        let asked = 0;
+        const failing = route('GET', /^\/api\/review\/phone\//, () => {
+          asked += 1;
+          return refused(PhoneCopyFailed.make({ ref: 'out/toy/toy.mp4' }));
+        });
+        const waiting = yield* openReview([failing, pictureOf('pending'), ...fakeFilm()], {
+          href: FILM,
+          viewport: { width: 390, height: 844 },
+        });
+        yield* textIs(waiting.page, hint, 'The phone copy could not be made');
+        yield* countIs(waiting.page, '.rv-picture video', 0);
+        expect(waiting.errors).toEqual([]);
+        // The index already says it failed: the box says so, and nothing is asked.
+        asked = 0;
+        const failed = yield* openReview([failing, pictureOf('failed'), ...fakeFilm()], {
+          href: FILM,
+          viewport: { width: 390, height: 844 },
+        });
+        yield* waitFor(failed.page, '.rv-picture [data-proxy="failed"]');
+        yield* textIs(failed.page, hint, 'The phone copy could not be made');
+        yield* textHas(failed.page, '.rv-picture [data-proxy="failed"]', 'Play the original');
+        expect(asked).toBe(0);
+        expect(failed.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );
