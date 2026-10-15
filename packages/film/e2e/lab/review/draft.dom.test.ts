@@ -5,11 +5,14 @@
 // and opens its delivery, whose Stress writes the beat's marks (the draft's
 // answer shown, the takes read again); a gap's choice writes a breath; a
 // write the lab refuses says why under the words; a refresh reads the draft
-// again, outranking a write's answer sent over the older read; and the
+// again, outranking a write's answer sent over the older read; a phone
+// selects a range as the Script page's does (tap the first word, hold the
+// last, Select to here) and marks it; and the
 // review's home lists the series, each opening to its drafts' links.
 
 import { Boolean as Bool, Effect, Option, Schedule } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
+import { touch as fingerDown } from '../../../src/lab/fixtures/gestures.ts';
 import { pageHref } from '../../../src/core/api.ts';
 import { SourceChanged } from '../../../src/core/refusals.ts';
 import {
@@ -93,6 +96,10 @@ describe('a series draft in the Script reader, on a phone', () => {
         expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
           {
             beat: '1',
+            read: {
+              spoken: 'The first thing God gave was breath.',
+              marks: [{ _tag: 'Stress', word: 4 }],
+            },
             marks: [
               { _tag: 'Stress', word: 3 },
               { _tag: 'Stress', word: 4 },
@@ -135,6 +142,10 @@ describe('a series draft in the Script reader, on a phone', () => {
         expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
           {
             beat: '1',
+            read: {
+              spoken: 'The first thing God gave was breath.',
+              marks: [{ _tag: 'Stress', word: 4 }],
+            },
             marks: [
               { _tag: 'Stress', word: 4 },
               { _tag: 'Breath', before: 5 },
@@ -245,5 +256,55 @@ describe('a series draft in the Script reader, on a phone', () => {
         yield* textHas(page, '.dr-head h1', 'The first breath');
       }).pipe(Effect.scoped),
     SLOW,
+  );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
+    'a word tapped and another held then Select to here selects the words between, and Stress marks them',
+    () =>
+      Effect.gen(function* () {
+        const posted: Array<Asked> = [];
+        const routes: ReadonlyArray<FakeRoute> = [
+          route('POST', MARKS, (asked) => {
+            posted.push(asked);
+            return json(draftRecordWith('The first {*}thing {*}God {*}gave was breath.'));
+          }),
+          ...studioRoutes,
+        ];
+        const { page, errors } = yield* openReview(routes, {
+          href: pageHref.draft(STUDIO_SERIES, STUDIO_DRAFT),
+          viewport: PHONE,
+        });
+        yield* waitFor(page, DRAFT_READY);
+        yield* page.click(word(2));
+        yield* evaluates(page, placed, pageHref.draftBeat(STUDIO_SERIES, STUDIO_DRAFT, '1', '2-2'));
+        // A phone has no Shift: a touch held still on the last word opens its menu.
+        yield* page.clock.hold;
+        yield* fingerDown(page, word(3), 0);
+        yield* page.clock.runFor(700);
+        yield* page.waitFor('[data-role="context-menu"] [data-command="script.select-to"]');
+        yield* page.finger.up;
+        yield* page.click('[data-role="context-menu"] [data-command="script.select-to"]');
+        yield* page.clock.runFor(100);
+        yield* evaluates(page, placed, pageHref.draftBeat(STUDIO_SERIES, STUDIO_DRAFT, '1', '2-3'));
+        yield* textHas(page, '.lab-script-ties-what', '“thing God”');
+        yield* page.click(DELIVERY_READY);
+        yield* textHas(page, '.lab-script-delivery-note', 'marked in the draft');
+        expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
+          {
+            beat: '1',
+            read: {
+              spoken: 'The first thing God gave was breath.',
+              marks: [{ _tag: 'Stress', word: 4 }],
+            },
+            marks: [
+              { _tag: 'Stress', word: 2 },
+              { _tag: 'Stress', word: 3 },
+              { _tag: 'Stress', word: 4 },
+            ],
+          },
+        ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.runPromise),
   );
 });

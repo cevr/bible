@@ -12,9 +12,9 @@
 // threads). On a laptop it is a column beside the picture; on a phone it
 // scrolls under the picture and its track.
 
-import { For, Portal, Show, useHead } from '@solidjs/web';
+import { For, type JSX, Portal, Show, useHead } from '@solidjs/web';
 import { Array as Arr, Boolean as Bool, Option, Order, Predicate } from 'effect';
-import { createMemo, createSignal } from 'solid-js';
+import { type ParentProps, createMemo, createSignal } from 'solid-js';
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import { useFollow } from '../follow.ts';
@@ -38,6 +38,7 @@ import { panelTime } from './animatic.ts';
 import { Asked, type BoardBeat, BoardRead, type PickedPanel, useBoard } from './context.tsx';
 import { type PanelAsking, tweakCommand } from './note.ts';
 import { BOARD_CSS } from './style.ts';
+import { panelWords } from './words.ts';
 
 /** Each view's name, as the column offers it. */
 const VIEW_NAME: Readonly<Record<BoardView, string>> = {
@@ -100,26 +101,6 @@ const Brief = (props: { readonly text: string }) => (
     </For>
   </p>
 );
-
-/** The words beat `beat` says while panel `at` holds: from its mark to the mark of the panel after (`until`). */
-const wordsFrom = (beat: BoardBeat, at: string, until: Option.Option<string>): string => {
-  const index = (mark: string): number => {
-    if (mark === 'start') return 0;
-    return Option.getOrElse(
-      Option.liftPredicate(
-        beat.line.findIndex((w) => w.marks.includes(mark)),
-        (i) => i >= 0,
-      ),
-      () => beat.line.length,
-    );
-  };
-  const from = index(at);
-  const to = Option.match(until, { onNone: () => beat.line.length, onSome: index });
-  return beat.line
-    .slice(from, Math.max(from, to))
-    .map((w) => w.text)
-    .join(' ');
-};
 
 /** The board as read, when it is. */
 const useRead = () => {
@@ -201,38 +182,81 @@ const Line = (props: { readonly beat: BoardBeat }) => (
   </p>
 );
 
-/** What a panel shows as its thumb: its try's image, or what a card or a verse says. */
-const Thumb = (props: { readonly panel: BoardPanel; readonly file: Option.Option<string> }) => {
-  const board = useBoard();
-  return (
-    <Show
-      when={props.panel.text}
-      fallback={
-        <Show
-          when={Option.getOrUndefined(props.file)}
-          fallback={<span class="lab-board-thumb lab-board-thumb-empty">no try yet</span>}
-        >
-          {(file) => (
-            <img
-              class="lab-board-thumb"
-              src={board.meta.url(file())}
-              alt=""
-              loading="lazy"
-              width="160"
-              height="90"
-            />
-          )}
-        </Show>
-      }
-    >
-      {(text) => (
-        <span class="lab-board-thumb lab-board-thumb-card" data-kind={text()._tag}>
-          {thumbSaid(text())}
-        </span>
-      )}
+/**
+ * What a panel shows as its thumb: its try's image (`src`, the board file's
+ * URL), or what a card or a verse says. The Board's and an ask's, alike.
+ */
+export const PanelThumb = (props: {
+  readonly panel: BoardPanel;
+  readonly src: Option.Option<string>;
+}) => (
+  <Show
+    when={props.panel.text}
+    fallback={
+      <Show
+        when={Option.getOrUndefined(props.src)}
+        fallback={<span class="lab-board-thumb lab-board-thumb-empty">no try yet</span>}
+      >
+        {(src) => (
+          <img class="lab-board-thumb" src={src()} alt="" loading="lazy" width="160" height="90" />
+        )}
+      </Show>
+    }
+  >
+    {(text) => (
+      <span class="lab-board-thumb lab-board-thumb-card" data-kind={text()._tag}>
+        {thumbSaid(text())}
+      </span>
+    )}
+  </Show>
+);
+
+/** A panel's tries and the one kept, and its open notes when it has some: the line under its thumb. */
+const PanelSaid = (props: { readonly panel: BoardPanel; readonly notes: number }) => (
+  <span class="lab-board-panel-meta">
+    <Show when={!props.panel.text}>
+      <span>{triesSaid(props.panel.tries.length)}</span>
     </Show>
-  );
-};
+    <Show when={Predicate.isNotUndefined(props.panel.kept)}>
+      <span class="sh-badge" data-state="approved">
+        try {props.panel.kept} kept
+      </span>
+    </Show>
+    <Show when={props.notes > 0}>
+      <span class="sh-badge" data-state="note">
+        {counted(props.notes, 'note')}
+      </span>
+    </Show>
+  </span>
+);
+
+/**
+ * A panel as the Board shows it, wherever it is shown: its thumb (`thumb`,
+ * the place's own: a press on the Board, a still that opens large in an
+ * ask), the words said while it holds, its mark (with what the place adds
+ * beside it, `children`: the Board's time), and its tries, the one kept and
+ * its open notes. The Board's chip and an ask's Board, alike.
+ */
+export const PanelFigure = (
+  props: ParentProps<{
+    readonly panel: BoardPanel;
+    readonly thumb: JSX.Element;
+    readonly words: string;
+    readonly notes: number;
+  }>,
+) => (
+  <>
+    {props.thumb}
+    <Show when={props.words !== ''}>
+      <span class="lab-board-panel-words">{props.words}</span>
+    </Show>
+    <span class="lab-board-panel-label">
+      <span class="lab-board-panel-at">{props.panel.at}</span>
+      {props.children}
+    </span>
+    <PanelSaid panel={props.panel} notes={props.notes} />
+  </>
+);
 
 /** One of a beat's panels, as a press that picks it. */
 export const PanelChip = (props: {
@@ -243,7 +267,7 @@ export const PanelChip = (props: {
 }) => {
   const board = useBoard();
   const { state: lab } = useLab();
-  const words = () => wordsFrom(props.beat, props.panel.at, props.until);
+  const words = () => panelWords(props.beat.line, props.panel.at, props.until);
   const live = () =>
     Option.exists(
       board.state.shot(),
@@ -267,33 +291,23 @@ export const PanelChip = (props: {
         )
       }
     >
-      <Thumb panel={props.panel} file={Option.map(shownTry(props.panel), (t) => t.file)} />
-      <Show when={words() !== ''}>
-        <span class="lab-board-panel-words">{words()}</span>
-      </Show>
-      <span class="lab-board-panel-label">
-        <span class="lab-board-panel-at">{props.panel.at}</span>
+      <PanelFigure
+        panel={props.panel}
+        thumb={
+          <PanelThumb
+            panel={props.panel}
+            src={Option.map(shownTry(props.panel), (t) => board.meta.url(t.file))}
+          />
+        }
+        words={words()}
+        notes={notes().length}
+      >
         <Timecode
           class="lab-board-panel-time"
           seconds={panelTime(props.beat, props.panel)}
           fps={useLab().meta.film.fps}
         />
-      </span>
-      <span class="lab-board-panel-meta">
-        <Show when={!props.panel.text}>
-          <span>{triesSaid(props.panel.tries.length)}</span>
-        </Show>
-        <Show when={Predicate.isNotUndefined(props.panel.kept)}>
-          <span class="sh-badge" data-state="approved">
-            try {props.panel.kept} kept
-          </span>
-        </Show>
-        <Show when={notes().length > 0}>
-          <span class="sh-badge" data-state="note">
-            {counted(notes().length, 'note')}
-          </span>
-        </Show>
-      </span>
+      </PanelFigure>
     </button>
   );
 };

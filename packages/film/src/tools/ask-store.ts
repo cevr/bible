@@ -1,14 +1,15 @@
 // The asks on disk: one record each, `FILMS_LAB/asks/<id>.json` (a
 // `ContentStore` manifest: written whole, one writer at a time across
 // processes). An agent makes one (`make`: its machine checked and its board
-// tries found first, so nothing that may not render is kept), the owner
-// answers it a step at a time from any device (`answer`: the run moved by
-// its machine, `askMachine`, and the step kept), and the agent closes it.
-// An answer is kept by its step, so the same answer sent again (a retry, a
-// second tab) is answered as it was, and a different one to a step already
-// answered is refused, as is one to a step the ask has left, as gent's
-// machine answers are. The page, the MCP and the change feed all read and
-// write through here.
+// tries and its material found first, so nothing that may not render is
+// kept; a choice it makes now recommends one option), the owner answers
+// its page from any device (`answerPage`: each section's step in order, the
+// run moved by its machine, `askMachine`, and every section kept or none),
+// and the agent closes it. An answer is kept by its step, so the same
+// answer sent again (a retry, a second tab) is answered as it was; a
+// different one to a step already answered is refused, as is one to a step
+// the ask has left, as its machine has it, and one past the deadline. The
+// page, the MCP and the change feed all read and write through here.
 
 import {
   Array as Arr,
@@ -40,10 +41,12 @@ import {
   filled,
   imagesIn,
   mapImages,
+  unrecommended,
 } from '../core/ask.ts';
 import { boardFileUrl } from '../core/api.ts';
 import { panelById, tryOf } from '../core/board.ts';
 import { AskInvalid, AskRefused, AskUnknown } from '../core/refusals.ts';
+import { AskMaterials } from './ask-materials.ts';
 import { BoardStore } from './board-store.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { type FilmFolder, filmNamed } from './film-repo.ts';
@@ -71,11 +74,15 @@ interface AskStoreService {
   readonly read: (id: string) => Effect.Effect<AskRecord, AskUnknown | StoreError>;
   /** Every ask, the newest first. */
   readonly list: Effect.Effect<ReadonlyArray<AskRecord>, StoreError>;
-  /** The owner's answers to step `step`: the ask as it leaves it. */
-  readonly answer: (
+  /**
+   * The owner's answers to the ask's page, each section's in order, all
+   * kept or none: a step answered already takes the same answer again and
+   * refuses another; past the deadline, or not fitting its step, refused.
+   * The ask as they leave it.
+   */
+  readonly answerPage: (
     id: string,
-    step: string,
-    values: StepValues,
+    sections: ReadonlyArray<{ readonly step: string; readonly values: StepValues }>,
   ) => Effect.Effect<AskRecord, AskUnknown | AskRefused | StoreError>;
   /** The ask closed, `why` (withdrawn, or filed once answered): what was answered is kept. */
   readonly close: (
@@ -115,6 +122,7 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
       const path = yield* Path.Path;
       const store = yield* ContentStore;
       const boards = yield* BoardStore;
+      const materials = yield* AskMaterials;
       const films = yield* Effect.context<FilmFolder>();
       const root = yield* Config.String('FILMS_LAB').pipe(Config.withDefault(path.resolve('lab')));
       const dir = path.join(root, 'asks');
@@ -192,6 +200,7 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         );
         const problems = [
           ...askProblems(draft.ask),
+          ...unrecommended(draft.ask),
           ...Option.match(deadline, {
             onNone: () => [],
             onSome: (d) =>
@@ -204,8 +213,10 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
           }),
         ];
         if (problems.length > 0) return yield* AskInvalid.make({ problems });
+        // What it shows is found as its views find it: nothing kept may fail to render.
         const { ask, missing } = yield* located(draft.ask);
-        if (missing.length > 0) return yield* AskInvalid.make({ problems: missing });
+        const absent = [...(yield* materials.problems(draft.ask)), ...missing];
+        if (absent.length > 0) return yield* AskInvalid.make({ problems: absent });
         const id = yield* newId;
         const record: AskRecord = {
           id,
@@ -273,41 +284,52 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
       const moved = (ask: Ask, state: AskState, event: AskEvent) =>
         Machine.replay(askMachine(ask, state), [event], { from: state });
 
-      const answer = Effect.fn('AskStore.answer')(function* (
+      /**
+       * `current` moved by the owner's `values` for step `step`, sent at
+       * `when`: the same answer to a step answered already is answered as it
+       * was; a different one, one past the deadline, or one that does not
+       * fit (`answerRefusal`) is refused.
+       */
+      const stepped = (current: AskRecord, step: string, values: StepValues, when: string) =>
+        Effect.gen(function* () {
+          const refuse = (reason: string) => AskRefused.make({ id: current.id, reason });
+          const before = Arr.findFirst(current.answered, (a) => a.step === step);
+          if (Option.isSome(before)) {
+            if (sameValues(before.value.values, values)) return current;
+            return yield* refuse(`step ${step} is answered already`);
+          }
+          const past = Option.filter(Option.fromUndefinedOr(current.deadline), (d) => d < when);
+          if (Option.isSome(past)) return yield* refuse(`it was due by ${past.value}`);
+          const why = answerRefusal(current.ask, current.state, step, values);
+          if (Option.isSome(why)) return yield* refuse(why.value);
+          const state = yield* moved(current.ask, current.state, AskEvent.Answer({ step, values }));
+          return {
+            ...current,
+            state,
+            answered: [...current.answered, { step, values, at: when }],
+          } satisfies AskRecord;
+        });
+
+      const answerPage = Effect.fn('AskStore.answerPage')(function* (
         id: string,
-        step: string,
-        sent: StepValues,
+        sections: ReadonlyArray<{ readonly step: string; readonly values: StepValues }>,
       ) {
         const at = yield* known(id);
         const when = yield* now;
         // A field left empty is kept as not sent, so a retry that sends it blank is the same answer.
-        const values = filled(sent);
         const record = yield* store.transact(at, (current) =>
-          Effect.gen(function* () {
-            const refuse = (reason: string) => AskRefused.make({ id, reason });
-            const before = Arr.findFirst(current.answered, (a) => a.step === step);
-            if (Option.isSome(before)) {
-              if (sameValues(before.value.values, values)) return [current, current] as const;
-              return yield* refuse(`step ${step} is answered already`);
-            }
-            const past = Option.filter(Option.fromUndefinedOr(current.deadline), (d) => d < when);
-            if (Option.isSome(past)) return yield* refuse(`it was due by ${past.value}`);
-            const why = answerRefusal(current.ask, current.state, step, values);
-            if (Option.isSome(why)) return yield* refuse(why.value);
-            const state = yield* moved(
-              current.ask,
-              current.state,
-              AskEvent.Answer({ step, values }),
-            );
-            const next: AskRecord = {
-              ...current,
-              state,
-              answered: [...current.answered, { step, values, at: when }],
-            };
-            return [next, next] as const;
-          }),
+          Effect.map(
+            Effect.reduce(
+              sections,
+              () => current,
+              (run: AskRecord, s) => stepped(run, s.step, filled(s.values), when),
+            ),
+            (next) => [next, next] as const,
+          ),
         );
-        yield* Effect.log(`asks.answer id=${id} step=${step} state=${record.state._tag}`);
+        yield* Effect.log(
+          `asks.answer id=${id} steps=${sections.map((s) => s.step).join(',')} state=${record.state._tag}`,
+        );
         return record;
       });
 
@@ -331,7 +353,7 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         return record;
       });
 
-      return AskStore.of({ dir, file, make, read, list, answer, close });
+      return AskStore.of({ dir, file, make, read, list, answerPage, close });
     }),
   );
 }

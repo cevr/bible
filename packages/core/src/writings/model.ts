@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import { Node } from '../egw/ast.js';
+import { CorpusSection } from './corpus-class.js';
 
 const NonNegativeInteger = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
@@ -30,12 +31,32 @@ type PublicationOrder = typeof PublicationOrder.Type;
 const ParagraphId = Schema.NonEmptyString.pipe(Schema.brand('Writings/ParagraphId'));
 type ParagraphId = typeof ParagraphId.Type;
 
+/** Where the library files a publication, as its own catalog says.
+ *
+ *  `type` and `subtype` are the library's words, kept as it spells them, so a
+ *  value outside the search's vocabulary is stored rather than lost. `section`
+ *  is the top-level folder the book sits under, which only the folder tree
+ *  knows (`sectionsByFolder`); `None` when that folder is not one of the
+ *  corpus's sections. */
+export class PublicationClassification extends Schema.Class<PublicationClassification>(
+  'Writings/PublicationClassification',
+)({
+  section: Schema.Option(CorpusSection),
+  type: Schema.NonEmptyString,
+  subtype: Schema.Option(Schema.NonEmptyString),
+  folderId: NonNegativeInteger,
+}) {}
+
 export class Publication extends Schema.Class<Publication>('Writings/Publication')({
   id: PublicationId,
   code: PublicationCode,
   title: Schema.NonEmptyString,
   author: Schema.NonEmptyString,
   paragraphCount: Schema.Option(NonNegativeInteger),
+  /** Absent for a publication whose source does not say, such as a packaged
+   *  archive written before classifications were carried. An absent key
+   *  encodes to nothing, so those archives keep their digests. */
+  classification: Schema.optionalKey(PublicationClassification),
 }) {}
 
 export class PublicationReference extends Schema.TaggedClass<PublicationReference>(

@@ -224,15 +224,32 @@ answers it on the laptop or the phone, and each answer reaches the agent as a ty
 
 ### What an agent writes
 
-An ask is data, never code: a small machine of steps, each step a page of blocks or an end.
+An ask is data, never code: a small machine of steps, each step a section of blocks (its `title` heading it,
+`2 of 3 · The Board`) or an end. The owner sees it as **one scrolling page** (owner, 2026-10-15: "lets always make it
+one page no need for multiple pages"): every section his answers so far reach, in order, one Send under them all.
+A guard (`next[].when`) makes a section appear once its choice is made, and go when the choice changes; the run
+moves only on Send, every section's answers kept in one write. A guided review has one section per piece of
+material in the flow's order (script → concept → Board → voice → animatic → Rive scenes → sound → render →
+shorts): the material itself first, then its questions, never prose that points elsewhere.
 
-| Block       | Is                                                                                       |
-| ----------- | ---------------------------------------------------------------------------------------- |
-| `heading`   | a title over what follows                                                                |
-| `prose`     | the context the owner decides in                                                         |
-| `image`     | a still: `{src}` (a lab path, `/api/…`) or `{board: {film, panel, try}}`, plus a caption |
-| `choose`    | choose one of 2–12 options by `id`, always answered; an option may carry an image        |
-| `free_text` | the owner's words by `id`, with a placeholder: optional unless `required: true`          |
+| Block       | Is                                                                                                                                 |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `heading`   | a title over what follows                                                                                                          |
+| `prose`     | the context the owner decides in                                                                                                   |
+| `image`     | a still: `{src}` (a lab path, `/api/…`) or `{board: {film, panel, try}}`, plus a caption                                           |
+| `choose`    | choose one of 2–12 options by `id`, always answered; an option may carry an image, and one is `recommended` (listed first, marked) |
+| `free_text` | the owner's words by `id`, with a placeholder: optional unless `required: true`                                                    |
+| `script`    | the Script reader in place: `{film}` or `{series, draft}`, `beats?`; takes play, marks write back                                  |
+| `board`     | the Board's panels in place: `{film, panels?}`, each with its kept try                                                             |
+| `video`     | a set's or a render's video in the review's player: `{ref, at?}`                                                                   |
+| `audio`     | a recorded take: `{film, beat, attempt?}`, the kept one unless named                                                               |
+| `document`  | a set's Markdown, as the set's page reads it: `{ref}`                                                                              |
+
+The material blocks name what they show as the lab lists it (a film, a series' draft, a review ref
+`<root>/<folder>/<file>`, never a path on the box), and the lab finds each when the ask is made, through the read
+its own view makes (`tools/ask-materials.ts`): one it cannot show is refused, named. A choice made now marks one
+option `recommended: true` (two or more options with none is refused when the ask is made; a stored ask is never
+checked again).
 
 A choice is the cheap answer; words are a burden to require (owner, 2026-10-14: "in general we should make
 textfields optional, required text fields usually are a burden, multiple choice etc is better"). So an agent asks
@@ -276,12 +293,18 @@ Beside the machine the ask records `title`, `why` (what the answer decides), `by
 1. **The machine** (`askProblems`, pure): at most 12 steps, 12 blocks a step, 12 ways on and 12 options; `start` is
    a step; every `to` is a step and not the step itself; the last way on is unguarded and only it; a guard names a
    `choose` of its own step, and only that choose's values; answer ids are unique across the ask; a choose has at
-   least two options, each value once; a `required` free_text is on a step with no choose; an image has `src` or
-   `board`; some step ends; every step is reached from `start`; the steps never loop (so every run ends, in at most
-   12 pages). A `src` must be a lab path (`/api/…`), so an ask never loads an outside URL. The Schema decode before
-   it refuses an unknown block.
-2. **The board** (`AskStore.make`): every `{board: …}` image is found on its film's board and given its `src`
-   (`boardFileUrl`) before the record is written; a try not on its board is a problem like any other.
+   least two options, each value once, and recommends at most one, which alone may say `why` (shown under the
+   options); a `required` free_text is on a step with no choose; an image has `src` or `board`; the ask shows at
+   most one `script` (each Script reader owns the page's word commands: ask about the next script in an ask of its
+   own); some step ends; every step is reached from `start`; the steps never loop (so every run ends, in at most 12
+   pages). A `src` must be a lab path (`/api/…`), so an ask never loads an outside URL. The Schema decode before it
+   refuses an unknown block. A script under review is a `script` block (the Script reader, its takes and marks),
+   never a `document` of its Markdown.
+2. **The material** (`AskStore.make`, `AskMaterials`): every `{board: …}` image is found on its film's board and
+   given its `src` (`boardFileUrl`), and every material block is found through the read its own view makes (a
+   document or a video among the files the review lists, a film's script or a draft as the Script reader reads it,
+   a Board's panels on its board, a take among the beat's attempts) before the record is written; one the lab
+   cannot show is a problem like any other, named.
 
 The record keeps the machine as made, its images resolved, so later board edits never change a page the owner
 is answering.
@@ -308,11 +331,15 @@ an end (`thanks`, if given). So the one-question ask is
   `local` (where the lab is bound), `phone` (`FILM_LAB_PHONE_URL`, the tailnet address, when set) and `public`
   (the first host `FILM_LAB_HOSTS` names, over HTTPS, when it names one). With `production` and `set`, an `Asked` entry naming the
   ask (`ask: a…`) is filed on that production's ledger, so the timeline shows it waiting on the owner.
-- **Answered** a step at a time, from any device: the page posts `{step, values}` (`POST /api/asks/<id>/answer`);
-  the lab moves the machine (`Machine.replay` from the kept state) and appends the step to the record's `answered`
-  log. The same answer again (a retry, a second tab) is answered as it is; a different one to a step already
-  answered, one to a step the run has left, one past the deadline and one to a closed ask are refused (409), and the
-  page reads the ask again and says why. A field left empty is not an answer: the page and the lab drop blank values
+- **Answered** one page at a time, from any device: the page posts every section it shows, in order,
+  `{sections: [{step, values}, …]}` (`POST /api/asks/<id>/answer`, `AskStore.answerPage`), kept all or none; a
+  page opened before the one-page ask sends one `{step, values}`, taken as one section, and an empty `sections` is
+  refused (400). The lab moves the machine (`Machine.replay` from the kept state) section by section and appends
+  each step to the record's `answered` log. The same answer again (a retry, a second tab) is answered as it is; a
+  different one to a step already answered, one to a step the run has left, one past the deadline and one to a
+  closed ask are refused (409), and the page reads the ask again, keeps the words of every section still open,
+  and says why. A Send the lab never reached keeps the page's answers to send again; one with a question open
+  sends nothing, and the page goes to the question and names what it needs. A field left empty is not an answer: the page and the lab drop blank values
   (`filled`) before the check and the log, so an optional field left empty and a retry that sends it blank are the
   same answer. The state lives in the lab's file, not the page, so a reload or a switch from laptop to phone opens
   the ask where it was left.

@@ -539,8 +539,8 @@ export const SCRIPT_MOVES: Exempt = {
   why: "a film's Script moves to the beat under its playhead as it opens",
 };
 
-/** An ask, read: its step's send. */
-export const ASK_READY = '.ak-step [data-act="send"]';
+/** An ask, read: its page's send, under its sections. */
+export const ASK_READY = '.ak-sections:has(.ak-step) ~ .ak-send [data-act="send"]';
 
 /** A series draft, read: its first beat's take ready (its ▶). */
 export const DRAFT_READY = '.lab-script-beat[data-beat="1"] [data-act="hear-beat"]';
@@ -683,18 +683,23 @@ export const STATES: ByPlace<State, AtRest> = {
       name: "an agent's ask, at its first step: a choice of three",
       open: review(pageHref.ask(STUDIO_ASK), ASK_READY),
       disclose: AT_REST,
-      budget: most(17, 17),
+      // An ask that names a film is a film's view: its switcher names the film and its seven
+      // tabs are the way to the Board or the Script the ask is about (taste-2 T2, where am I).
+      // A page of one section has no "1 of 1" head.
+      budget: most(24, 24),
     },
   ],
   draft: [
     {
-      // The words, their marks, a ready take and its pace: the shell's four and a ready take's ▶ the
-      // only controls; the rest is what is read (the toy's 15 words, each its own text leaf, a
-      // hold's glyph, each beat's number and label, its brief and its sources) and the day's spend.
+      // The words, their marks, a ready take and its pace: the shell's four, Hear it (the draft
+      // heard whole from its first ready take, what a visit to a draft is for: taste-2 T5) and a
+      // ready take's ▶ the only controls; the rest is what is read (the toy's 15 words, each its
+      // own text leaf, a hold's glyph, each beat's number and label, its brief and its sources)
+      // and the day's spend, one line.
       name: 'a series draft in the Script reader, at rest',
       open: review(pageHref.draft(STUDIO_SERIES, STUDIO_DRAFT), DRAFT_READY),
       disclose: AT_REST,
-      budget: most(35, 35),
+      budget: most(36, 36),
     },
   ],
   draftBeat: [
@@ -703,7 +708,7 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(pageHref.draftBeat(STUDIO_SERIES, STUDIO_DRAFT, '1', '4-4'), DELIVERY_READY),
       disclose: AT_REST,
       // At rest's and the box a tap opened: the words quoted, Hear, Clear, Stress and the gap's three.
-      budget: most(42, 42),
+      budget: most(43, 43),
     },
   ],
   production: [

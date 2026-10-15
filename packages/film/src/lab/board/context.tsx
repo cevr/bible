@@ -14,17 +14,7 @@
 
 import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
-import {
-  Array as Arr,
-  Data,
-  Effect,
-  Equal,
-  Match,
-  Option,
-  Predicate,
-  Result,
-  Schema,
-} from 'effect';
+import { Array as Arr, Data, Effect, Equal, Match, Option, Predicate, Schema } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
@@ -45,7 +35,7 @@ import {
   tryOf,
 } from '../../core/board.ts';
 import type { Placed } from '../../core/layout.ts';
-import { parse } from '../../core/narration.ts';
+import { type LineWord, lineWords } from './words.ts';
 import type { Note } from '../../core/schema.ts';
 import { addressOn } from '../../browser/host.ts';
 import { LabApi, NotesApi, reasonOf } from '../api.ts';
@@ -82,12 +72,6 @@ export type Asked = Data.TaggedEnum<{
   Failed: { readonly what: string; readonly reason: string };
 }>;
 export const Asked = Data.taggedEnum<Asked>();
-
-/** A word of a beat's line as the column sets it: the marks said before it, then the word. */
-interface LineWord {
-  readonly marks: ReadonlyArray<string>;
-  readonly text: string;
-}
 
 /** A beat as the Board shows it: as the staged film plays it, beside what its script says of its picture. */
 export interface BoardBeat extends TimedBeat {
@@ -203,19 +187,12 @@ const BoardContext = createContext<BoardContextValue>();
 /** The Board's context: only inside `<Board.Provider>`. */
 export const useBoard = (): BoardContextValue => useContext(BoardContext);
 
-/** Beat `p`'s line's words, each after the marks said before it. */
+/** Beat `p`'s line's words, each after the marks said before it (`lineWords`). */
 const lineOf = (p: Placed): ReadonlyArray<LineWord> =>
-  Result.match(parse(p.spec.id, p.spec.say ?? ''), {
-    onFailure: () => [],
-    onSuccess: (parsed) => {
-      const words = parsed.spoken.split(/\s+/).filter((w) => w.length > 0);
-      const at = [...parsed.marks];
-      return words.map((text, i) => ({
-        marks: at.filter(([, index]) => index === i).map(([name]) => name),
-        text,
-      }));
-    },
-  });
+  lineWords(
+    p.spec.id,
+    Option.getOrElse(Option.fromUndefinedOr(p.spec.say), () => ''),
+  );
 
 export const Provider = (props: ParentProps) => {
   const { state: lab, meta: labMeta } = useLab();

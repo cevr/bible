@@ -1,7 +1,8 @@
 /**
- * EGW Search on Cloudflare, declared as an Alchemy stack: one Worker
+ * EGW Search on Cloudflare, declared as an Alchemy stack: the search Worker
  * (`server/cloudflare/Search.ts`) over the corpus in D1 and the vectors in
- * Vectorize (`server/cloudflare/resources.ts`).
+ * Vectorize (`server/cloudflare/resources.ts`), and the Worker that hosts the
+ * weekly corpus sync, a Workflow on a cron (`server/cloudflare/Sync.ts`).
  *
  * - `prod` is the Worker `egw-search`, served from where `SERVED_FROM`
  *   (`server/cloudflare/site.ts`) says. CI deploys it from `main`.
@@ -13,14 +14,15 @@
  * State lives in the Cloudflare state store, so every machine and CI see the
  * same resources.
  *
- * The Railway deployment it replaces is `./alchemy.railway.ts`, kept until
- * the cutover has held.
+ * Deploying reads `EGW_CLIENT_ID` and `EGW_CLIENT_SECRET` from the
+ * environment and binds them to the sync's Worker as secrets.
  */
 import * as Alchemy from 'alchemy';
 import * as Cloudflare from 'alchemy/Cloudflare';
 import { Effect } from 'effect';
 
 import Search from './server/cloudflare/Search.ts';
+import Sync from './server/cloudflare/Sync.ts';
 import { VectorFilters } from './server/cloudflare/resources.ts';
 
 /** The stack's providers, shared with the deploy test's harness. */
@@ -32,6 +34,7 @@ export default Alchemy.Stack(
   Effect.gen(function* () {
     yield* VectorFilters;
     const search = yield* Search;
-    return { url: search.url };
+    const sync = yield* Sync;
+    return { url: search.url, syncWorker: sync.workerName };
   }),
 );

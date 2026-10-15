@@ -4,6 +4,7 @@
 // a knob write answers with the knob; a computed value is a 422 with the file
 // untouched; undo puts the file back byte for byte, and a second undo is a 409.
 
+import { AskMaterials } from './ask-materials.ts';
 import { AskStore } from './ask-store.ts';
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -24,7 +25,15 @@ import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
-import { echoPages, freshHere, noReview, noStudio, sceneFixture } from './testing.ts';
+import {
+  echoPages,
+  freshFilm,
+  freshHere,
+  noRenders,
+  noReview,
+  noStudio,
+  sceneFixture,
+} from './testing.ts';
 
 /** The timeout of a test here that spawns (git): a cold start's time is the machine's (film/spawn-budget). */
 const SPAWNS_MS = 30_000;
@@ -76,7 +85,8 @@ const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.lay
         ProductionStore.layer,
         BoardStore.layer.pipe(Layer.provide(FilmFolder.layer(films))),
         AskStore.layer.pipe(
-          Layer.provide(BoardStore.layer),
+          Layer.provide(AskMaterials.layer),
+          Layer.provide([BoardStore.layer, noStudio, noRenders, freshFilm({})]),
           Layer.provide(FilmFolder.layer(films)),
         ),
         noStudio,

@@ -7,6 +7,7 @@
 // something else unless it is passed `--accept-mismatch`.
 
 import { test } from 'bun:test';
+import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Schema, Sink, Stream } from 'effect';
 import { ChildProcessSpawner } from 'effect/process';
@@ -36,6 +37,9 @@ const error = {
 } as const;
 
 const encode = Schema.encodeSync(CheckLineJson);
+
+/** The timeout of a test here that runs the read in a fresh process: a cold start's time is the machine's. */
+const SPAWNS_MS = 30_000;
 
 describe('check lines', () => {
   it.effect('each line is one finding, as the CLI encodes it, its address when it has one', () =>
@@ -213,5 +217,37 @@ describe("the easel tools' runs", () => {
         ]);
       }).pipe(Effect.provide(FreshFilm.layer(['bun', 'cli.ts']).pipe(Layer.provide(cli))));
     },
+  );
+});
+
+// `film read script` run fresh, as the lab runs it, over a synthetic film on
+// disk (`fixtures/films/sample`): each beat's line arrives as the script says
+// it, marks in braces, since the Script reader and an ask's script mark its
+// words by that line and refuse a mark once it says other words.
+const SAMPLE = Schema.decodeSync(FilmName)('sample');
+
+describe('film read script, run fresh', () => {
+  it.effect.layer(
+    FreshFilm.layer([
+      'bun',
+      `${import.meta.dir}/fixtures/read-cli.ts`,
+      `${import.meta.dir}/fixtures/films`,
+    ]).pipe(Layer.provideMerge(BunServices.layer)),
+  )(
+    "answers each beat's line as the script says it, its picture and its sources",
+    () =>
+      Effect.gen(function* () {
+        const beats = yield* (yield* FreshFilm).script(SAMPLE);
+        expect(beats).toEqual([
+          {
+            id: 'open',
+            say: 'A question, {ask}and its answer.',
+            picture: 'IDEA: a page, and a question on it.',
+            cite: ['Job 9:2', 'Romans 4:5'],
+          },
+          { id: 'title', picture: 'The title.', cite: [] },
+        ]);
+      }),
+    SPAWNS_MS,
   );
 });

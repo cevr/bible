@@ -12,7 +12,6 @@
     "server/**/*.ts",
     "test/**/*.ts",
     "tests/**/*.ts",
-    "infra/**/*.ts",
     "alchemy.*.ts",
     "vite.config.ts"
   ],

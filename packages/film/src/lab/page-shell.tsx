@@ -120,7 +120,7 @@ export const ShellTools = (props: ParentProps) => {
 };
 
 /** The shell's icons, by name. */
-type IconName = Part | 'search' | 'chevron' | 'undo' | 'redo' | 'hear';
+type IconName = Part | 'search' | 'chevron' | 'undo' | 'redo' | 'hear' | 'stop';
 
 /**
  * Each icon's strokes, drawn only for the icon shown: an element made is a
@@ -182,6 +182,7 @@ const ICON_STROKES: Readonly<Record<IconName, () => JSX.Element>> = {
   hear: () => (
     <path d="M4 9.5h3.5l4.5-4v13l-4.5-4H4zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
   ),
+  stop: () => <rect x="6" y="6" width="12" height="12" />,
 };
 
 /** A line icon of the shell's, 20 px in the tab bar and 16 px in the header. */
@@ -193,6 +194,14 @@ const Icon = (props: { readonly of: IconName }) => (
 
 /** The speaker a hear button holds: the shell's line icon, so the kit's pressed colour reaches it. */
 export const HearIcon = () => <Icon of="hear" />;
+
+/** A press that plays, by whether it plays now: stop while it does. */
+const PLAY_ICON = { true: 'stop', false: 'play' } as const;
+
+/** Play, or stop while it plays: the shell's line icons, for a press that plays a take or a video. */
+export const PlayIcon = (props: { readonly playing?: boolean }) => (
+  <Icon of={PLAY_ICON[pressed(props.playing === true)]} />
+);
 
 /**
  * One of a page's own tools in the header (`ShellTools`, the Lab's Undo and
@@ -424,7 +433,8 @@ export const PageShell = (props: PageShellProps) => {
               {(text) => (
                 <span class="sh-crumb" data-role="crumb">
                   <i>›</i>
-                  {text()}
+                  {/* Its words in a box of their own: a flex item's text takes the ellipsis, the row does not. */}
+                  <span class="sh-crumb-text">{text()}</span>
                 </span>
               )}
             </Show>

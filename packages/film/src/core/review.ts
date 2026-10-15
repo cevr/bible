@@ -4,7 +4,7 @@
 // review's server and its page share them.
 
 import { Array as Arr, Effect, Option, Schema } from 'effect';
-import { ChoicePoint } from './choice.ts';
+import { ChoicePoint, seenVariants } from './choice.ts';
 import { Clip } from './point.ts';
 import { ProductionId, VersionNumber } from './production.ts';
 import { Seconds, maybe } from './schema.ts';
@@ -123,6 +123,23 @@ export type ReviewFolder = typeof ReviewFolder.Type;
 /** `GET /api/review/index`: every folder under the roots with something to review, newest first. */
 export const ReviewIndex = Schema.Struct({ folders: Schema.Array(ReviewFolder) });
 export type ReviewIndex = typeof ReviewIndex.Type;
+
+/** The document `ref` names, among the index's folders' documents (an ask's document is found as the set's page finds it). */
+export const docAt = (index: ReviewIndex, ref: string): Option.Option<ReviewFile> =>
+  Arr.findFirst(
+    index.folders.flatMap((f) => f.docs),
+    (d) => d.ref === ref,
+  );
+
+/** The video `ref` names, among the index's folders' loose videos and their sets' seen ones. */
+export const videoAt = (index: ReviewIndex, ref: string): Option.Option<ReviewVideo> =>
+  Arr.findFirst(
+    index.folders.flatMap((f) => [
+      ...f.videos,
+      ...f.sets.flatMap((point) => seenVariants(point).map((v) => v.video)),
+    ]),
+    (v) => v.ref === ref,
+  );
 
 /**
  * `GET /api/review/duration`: a video's length, and its frames a second as

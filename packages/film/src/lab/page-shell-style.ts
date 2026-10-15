@@ -53,6 +53,7 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 .sh-crumb { display: inline-flex; align-items: center; gap: var(--s-2); min-width: 0; color: var(--text-2);
   font-size: var(--fs-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sh-crumb i { font-style: normal; color: var(--text-3); }
+.sh-crumb-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sh-spacer { flex: 1; min-width: 0; align-self: stretch; }
 .sh-tc { display: none; border: 0; background: none; color: var(--text-1); cursor: pointer; padding: 0 var(--s-2);
   font-size: var(--fs-5); line-height: var(--lh-5); font-weight: var(--w-2); white-space: nowrap; border-radius: var(--r-2); }

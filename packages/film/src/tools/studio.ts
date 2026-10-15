@@ -37,6 +37,7 @@ import { type TakeState, hashText, takeState, voiceKey } from '../core/narration
 import { type Timings, type Voice, type VoiceTiming } from '../core/schema.ts';
 import {
   type ReadBeat,
+  type StudioAttempts,
   type StudioBeat,
   type StudioReading,
   type StudioTake,
@@ -185,6 +186,36 @@ const filmBeat = Effect.fn('studio.filmBeat')(function* (params: {
   return { film, beat: params.beat };
 });
 
+/**
+ * A film's beat's attempts as the studio lists them, newest first, each
+ * kept or not and in its line as it stands or not: refused UnknownScene
+ * unless `beat` is one of the film's beats (`filmBeat`), before a file is
+ * read. The one read of a beat's takes: the studio's route answers it, and
+ * an ask's take is checked by it when the ask is made (`AskMaterials`).
+ */
+export const beatAttempts = Effect.fn('studio.beatAttempts')(function* (params: {
+  readonly film: string;
+  readonly beat: string;
+}) {
+  const { film, beat } = yield* filmBeat(params);
+  const timing = Option.fromNullishOr((yield* timingsOf(film)).scenes[beat]);
+  const script = Arr.findFirst((yield* reading(film)).beats, (b) => b.id === beat);
+  const attempts = yield* (yield* Takes).attempts(yield* pathsOf(film), beat);
+  const read: StudioAttempts = {
+    beat,
+    attempts: attempts.map((a) => ({
+      file: a.file,
+      transcript: a.heard,
+      wer: a.wer,
+      at: a.at,
+      duration: a.take.duration,
+      kept: Option.exists(timing, (t) => t.file === a.file),
+      current: Option.exists(script, (b) => a.take.hash === hashText(b.script)),
+    })),
+  };
+  return read;
+});
+
 /** A take refused for what it says, naming its attempt, which "accept anyway" keeps. */
 const mismatch = Effect.fn('studio.mismatch')(function* (error: TakeMismatch, attempt: string) {
   yield* Effect.logWarning(`studio.mismatch beat=${error.id} wer=${(error.wer * 100).toFixed(1)}%`);
@@ -296,28 +327,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
         }),
       ),
     )
-    .handle('attempts', ({ params }) =>
-      answered(
-        Effect.gen(function* () {
-          const { film, beat } = yield* filmBeat(params);
-          const timing = Option.fromNullishOr((yield* timingsOf(film)).scenes[beat]);
-          const script = Arr.findFirst((yield* reading(film)).beats, (b) => b.id === beat);
-          const attempts = yield* (yield* Takes).attempts(yield* pathsOf(film), beat);
-          return {
-            beat,
-            attempts: attempts.map((a) => ({
-              file: a.file,
-              transcript: a.heard,
-              wer: a.wer,
-              at: a.at,
-              duration: a.take.duration,
-              kept: Option.exists(timing, (t) => t.file === a.file),
-              current: Option.exists(script, (b) => a.take.hash === hashText(b.script)),
-            })),
-          };
-        }),
-      ),
-    )
+    .handle('attempts', ({ params }) => answered(beatAttempts(params)))
     .handle('attempt', ({ params, request }) =>
       answered(
         Effect.gen(function* () {

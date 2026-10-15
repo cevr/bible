@@ -6,6 +6,7 @@
 // layers itself would drift from the lab it means to be
 // (`film-services.test.ts` names the two and sweeps for a third).
 
+import { AskMaterials } from './ask-materials.ts';
 import { AskStore } from './ask-store.ts';
 import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import {
@@ -154,8 +155,6 @@ export const filmServices = (spec: FilmServicesSpec) => {
   const Productions = ProductionStore.layer.pipe(Layer.provide([Store, Platform]));
   // Each film's storyboard: its record beside the film, its images in the film's board folder.
   const Board = BoardStore.layer.pipe(Layer.provide([Store, Repo, Platform]));
-  // The agents' asks: a decision page each, kept under the lab's folder; a board try one shows is found on its board.
-  const Asks = AskStore.layer.pipe(Layer.provide([Board, Store, Repo, Platform]));
   // The lab checks each write, and the review reads a film's options, keeps its takes and
   // makes its mixes, through the app's CLI in a fresh process.
   const Fresh = FreshFilm.layer(spec.self).pipe(Layer.provide(Platform));
@@ -188,8 +187,11 @@ export const filmServices = (spec: FilmServicesSpec) => {
   );
   // The series drafts the lab reads beside the films, a mark written into the draft's Markdown.
   const Drafts = SeriesDrafts.layer(spec.series).pipe(Layer.provide([Store, Platform]));
+  // The agents' asks: a decision page each, kept under the lab's folder; a board try one shows
+  // is found on its board, and the material it shows through the reads its views make.
+  const Asks = AskStore.layer.pipe(Layer.provide(AskMaterials.layer));
   // The Script reader's staging takes, over the studio's readings, the drafts and the narrator.
-  return ScriptVoices.layer.pipe(
+  return Layer.mergeAll(ScriptVoices.layer, Asks).pipe(
     Layer.provideMerge(Layer.mergeAll(Choices.layer, StudioReadings.layer, Drafts)),
     // The review hears each option in the mix, and writes a pick through the source writer;
     // the lab's studio reads the film's script and voice fresh.
@@ -201,7 +203,6 @@ export const filmServices = (spec: FilmServicesSpec) => {
             Notes,
             Productions,
             Board,
-            Asks,
             Source,
             Library,
             Footage,

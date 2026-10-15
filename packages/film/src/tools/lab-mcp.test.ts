@@ -325,21 +325,25 @@ describe('the lab as an MCP server', () => {
   );
 });
 
-/** The owner's answers to a step of an ask, as its page posts them. */
-const ownerAnswers = (lab: LabFetch, ask: string, step: string, values: Record<string, string>) =>
+/** `body` posted to an ask's answer route, as a page posts it: its status and what it answered. */
+const answerPosted = (lab: LabFetch, ask: string, body: Schema.Json) =>
   Effect.flatMap(
     Effect.promise(() =>
       lab(
         new Request(`${MCP_BASE.slice(0, -1)}${labUrls.asks.answer({ params: { ask } })}`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: writeJson({ step, values }),
+          body: writeJson(body),
         }),
         mcpBound,
       ),
     ),
-    (r) => Effect.promise(() => r.json().then((body) => ({ status: r.status, body }))),
+    (r) => Effect.promise(() => r.json().then((answer) => ({ status: r.status, body: answer }))),
   );
+
+/** The owner's answers to a step of an ask, as its page posts them: one section. */
+const ownerAnswers = (lab: LabFetch, ask: string, step: string, values: Record<string, string>) =>
+  answerPosted(lab, ask, { sections: [{ step, values }] });
 
 describe('asks through the MCP', () => {
   it.effect('refuses an ask that may not render, and makes a one-line one with its links', () =>
@@ -441,6 +445,7 @@ describe('asks through the MCP', () => {
                           value: '1',
                           label: 'Try 1',
                           image: { board: { film: 'f', panel: 'cold.judge', try: 1 } },
+                          recommended: true,
                         },
                         {
                           value: 'calm',
@@ -492,7 +497,24 @@ describe('asks through the MCP', () => {
               `${MCP_BASE}asks/${made.ask}`,
             ],
           ]);
-          yield* ownerAnswers(lab, made.ask, 'why', { why: 'he listens' });
+          // A page with no sections is no answer; a tab opened before the one-page ask sends one
+          // step as it did, and it is taken.
+          expect((yield* answerPosted(lab, made.ask, { sections: [] })).status).toBe(400);
+          // A body is one form or the other: sections beside a step are refused, whatever they are,
+          // never read as the old form with the sections dropped.
+          for (const sections of [[], 'bad'])
+            expect(
+              (yield* answerPosted(lab, made.ask, {
+                sections,
+                step: 'why',
+                values: { why: 'he listens' },
+              })).status,
+            ).toBe(400);
+          const old = yield* answerPosted(lab, made.ask, {
+            step: 'why',
+            values: { why: 'he listens' },
+          });
+          expect(old.status).toBe(200);
           yield* events.look;
           const ended = yield* tool('changes', { since: heard.cursor });
           expect(ended.changes.map((c: { kind: string }) => c.kind)).toEqual([
@@ -674,7 +696,7 @@ describe('film production ask', () => {
                 id: 'pick',
                 label: 'Pick one',
                 options: [
-                  { value: '1', label: 'Try 1' },
+                  { value: '1', label: 'Try 1', recommended: true },
                   { value: '2', label: 'Calmer' },
                 ],
               },

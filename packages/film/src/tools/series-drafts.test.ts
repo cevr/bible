@@ -140,12 +140,26 @@ describe('SeriesDrafts', () => {
         { _tag: 'Stress', word: 1 },
         { _tag: 'Hold', before: 2, seconds: 1.5 },
       ] as const;
-      const read = yield* service.mark('talks', '01-grace', '1', marks);
+      const read = yield* service.mark('talks', '01-grace', {
+        beat: '1',
+        marks,
+        read: {
+          spoken: 'By grace. Now.',
+          marks: [
+            { _tag: 'Stress', word: 1 },
+            { _tag: 'Breath', before: 2 },
+          ],
+        },
+      });
       const written = new TextDecoder().decode(files.get('/series/talks/scripts/01-grace.md'));
       expect(written).toBe(TALK.replace('By {*}grace. {/} Now.', 'By {*}grace. {//1.5} Now.'));
       expect(read.markdown).toBe(written);
       const misfit = yield* Effect.flip(
-        service.mark('talks', '01-grace', '1', [{ _tag: 'Stress', word: 9 }]),
+        service.mark('talks', '01-grace', {
+          beat: '1',
+          marks: [{ _tag: 'Stress', word: 9 }],
+          read: { spoken: 'By grace. Now.', marks },
+        }),
       );
       expect(misfit._tag).toBe('SourceRefused');
       expect(new TextDecoder().decode(files.get('/series/talks/scripts/01-grace.md'))).toBe(

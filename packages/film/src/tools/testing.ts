@@ -3,6 +3,7 @@
 // film's notes in memory, and `film notes` run over them; the lab's MCP, and
 // a client of it as one calls `/mcp`. No network, no Chromium, no credits.
 
+import { AskMaterials } from './ask-materials.ts';
 import { AskStore } from './ask-store.ts';
 import {
   Array as Arr,
@@ -1780,6 +1781,16 @@ export const notesInMemory = (film: string) =>
 /** What else a lab in memory runs with: its films' fresh runs, and the mtimes its files keep. */
 interface LabInMemory {
   readonly film?: Layer.Layer<FreshFilm>;
+  /**
+   * What an ask's material is found through beside the board and the film:
+   * the review's files, the drafts, the studio's readings and takes (over
+   * the lab's files and store, when real).
+   */
+  readonly asking?: Layer.Layer<
+    Review | SeriesDrafts | StudioReadings | Takes,
+    never,
+    ContentStore | FileSystem.FileSystem | Path.Path
+  >;
   readonly mtimes?: ReadonlyMap<string, number>;
 }
 
@@ -1792,13 +1803,21 @@ interface LabInMemory {
 export const labInMemory = (
   files: Map<string, Uint8Array>,
   pages = echoPages,
-  { film = freshFilm({}), mtimes = new Map() }: LabInMemory = {},
+  {
+    film = freshFilm({}),
+    mtimes = new Map(),
+    asking = Layer.mergeAll(noStudio, noRenders),
+  }: LabInMemory = {},
 ) =>
   Layer.mergeAll(
     NotesStore.layer,
     ProductionStore.layer,
     BoardStore.layer.pipe(Layer.provide(FilmFolder.layer('/films'))),
-    AskStore.layer.pipe(Layer.provide(BoardStore.layer), Layer.provide(FilmFolder.layer('/films'))),
+    AskStore.layer.pipe(
+      Layer.provide(AskMaterials.layer),
+      Layer.provide([BoardStore.layer, asking, film]),
+      Layer.provide(FilmFolder.layer('/films')),
+    ),
     FilmFolder.layer('/films'),
     noSource,
     noStudio,
@@ -2331,7 +2350,8 @@ export const reviewHttpFixtureLasting = (seconds: number, phoneCopies = false) =
               ProductionStore.layer,
               BoardStore.layer.pipe(Layer.provide(FilmFolder.layer(films))),
               AskStore.layer.pipe(
-                Layer.provide(BoardStore.layer),
+                Layer.provide(AskMaterials.layer),
+                Layer.provide([BoardStore.layer, noStudio, noRenders, freshFilm({})]),
                 Layer.provide(FilmFolder.layer(films)),
               ),
             ).pipe(

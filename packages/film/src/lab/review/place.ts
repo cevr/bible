@@ -9,7 +9,7 @@
 // (`/series/<series>/<draft>`, the words selected in a beat
 // `/series/<series>/<draft>/<beat>?words=<a>-<b>`). Each of those is also a place ⌘K goes to by
 // its name (`destinationsOf`). A folder or a set keeps the still open full
-// size (`?still=`: `stillIn`, `withStill`).
+// size (`?still=`: `stillIn`, `withStill`), and so does an ask (its Board).
 
 import { Place } from '@bible/url-state';
 import { Data, Match, Option } from 'effect';
@@ -70,26 +70,41 @@ export const placeOf = (href: string): ReviewPlace =>
     Option.map(Place.decode(Places.project, href), (v) => ReviewPlace.Project(v.path)),
   ]).pipe(Option.getOrElse(() => ReviewPlace.Home()));
 
-/** The still `href` opens full size (`?still=`) on a folder or a set: its key, or none. */
-export const stillIn = (href: string): Option.Option<string> =>
-  Option.filter(
-    Option.firstSomeOf([
-      Option.map(Place.decode(Places.folder, href), (v) => v.query.still),
-      Option.map(Place.decode(Places.set, href), (v) => v.query.still),
-    ]),
-    (still) => still !== '',
-  );
+/** A place that keeps a still open full size: reads its `?still=` from an href, and writes it. */
+interface Stilled {
+  readonly read: (href: string) => Option.Option<string>;
+  readonly write: (href: string, still: string) => Option.Option<string>;
+}
 
-/** `href` with the still `still` open full size ('' for none), on a folder or a set; none elsewhere. */
+/** `place`'s still, for any place whose query keeps one. */
+const stilled = <A extends { readonly query: { readonly still: string } }>(
+  place: Place.Place<A>,
+): Stilled => ({
+  read: (href) => Option.map(Place.decode(place, href), (v) => v.query.still),
+  write: (href, still) =>
+    Option.map(Place.decode(place, href), (v) =>
+      Place.href(place, { ...v, query: { ...v.query, still } }),
+    ),
+});
+
+/**
+ * Every page a still opens full size on (`Zoom`): a folder, a set, an ask.
+ * A page that shows a `Zoom` keeps `?still=` in its place and is listed
+ * here; the type admits only a place whose query has one.
+ */
+const STILLED: ReadonlyArray<Stilled> = [
+  stilled(Places.folder),
+  stilled(Places.set),
+  stilled(Places.ask),
+];
+
+/** The still `href` opens full size (`?still=`): its key, or none. */
+export const stillIn = (href: string): Option.Option<string> =>
+  Option.filter(Option.firstSomeOf(STILLED.map((s) => s.read(href))), (still) => still !== '');
+
+/** `href` with the still `still` open full size ('' for none), on a page that keeps one; none elsewhere. */
 export const withStill = (href: string, still: string): Option.Option<string> =>
-  Option.firstSomeOf([
-    Option.map(Place.decode(Places.folder, href), (v) =>
-      Place.href(Places.folder, { ...v, query: { ...v.query, still } }),
-    ),
-    Option.map(Place.decode(Places.set, href), (v) =>
-      Place.href(Places.set, { ...v, query: { ...v.query, still } }),
-    ),
-  ]);
+  Option.firstSomeOf(STILLED.map((s) => s.write(href, still)));
 
 /** The link that opens `place`, its view and selections at their defaults. */
 export const hrefOf = (place: ReviewPlace): string =>
