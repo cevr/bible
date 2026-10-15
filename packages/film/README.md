@@ -903,7 +903,8 @@ laptop's on the tailnet: the gate admits the bound IP, so a MagicDNS name
 typed by hand would be refused) is a second listener with the same handler (`startLab`), logged
 `lab.phone.unbound` and left out when it cannot bind. A loopback address it
 cannot bind ends `film lab` with `LabUnbound`, whose message names the
-address and Bun's words.
+address and Bun's words. A port is one lab's (`reusePort: false`): a second
+lab started on a port another holds is refused, never served beside it.
 
 **Pages and links.** Every view a reviewer would talk about is a URL, so a
 pasted link opens what the sender saw and Back walks the views: the path

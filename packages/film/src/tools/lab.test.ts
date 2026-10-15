@@ -42,7 +42,6 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from 'effect/http';
-import { type Server, createServer } from 'node:net';
 import { brotliDecompressSync } from 'node:zlib';
 import { parseSync } from 'oxc-parser';
 import { LabHttpApi, Places, Refusal, ScriptBeats, ToolFailure, labUrls } from '../core/api.ts';
@@ -54,6 +53,7 @@ import {
   LAB_IDLE_SECONDS,
   MAX_REQUEST_BODY,
   PageReads,
+  boundUrl,
   labServer,
   localLink,
   serveApi,
@@ -1221,6 +1221,19 @@ describe('lab routes', () => {
     }).pipe(Effect.scoped, Effect.provide([labInMemory(files()), FetchHttpClient.layer])),
   );
 
+  it.effect('a second lab on a port a lab holds is refused, and the first serves on', () =>
+    Effect.gen(function* () {
+      const lab = yield* labHandler();
+      const first = yield* Layer.build(labServer({ hostname: '127.0.0.1', port: 0 }));
+      const url = new URL(yield* serveLab(lab).pipe(Effect.provideContext(first)));
+      const port = Number(url.port);
+      const second = yield* Effect.flip(Layer.build(labServer({ hostname: '127.0.0.1', port })));
+      expect(second.message).toContain(`127.0.0.1:${port}`);
+      const client = yield* HttpClient.HttpClient;
+      expect((yield* Effect.orDie(client.get(url))).status).toBe(200);
+    }).pipe(Effect.scoped, Effect.provide([labInMemory(files()), FetchHttpClient.layer])),
+  );
+
   it.effect(
     "a body over the gate's limit is the gate's 413; one over Bun's, Bun's own, before the gate",
     () =>
@@ -1293,21 +1306,12 @@ describe('lab routes', () => {
   );
 
   /**
-   * A port on loopback another server holds, as a forwarder still exiting
-   * holds 8230: a plain socket's, since a second `labServer` in one process
-   * binds a port the first holds (Bun's `development: false` shares it).
+   * A port on loopback another lab holds while the scope is open, as a lab
+   * a restart did not stop holds 8229 and 8230.
    */
-  const held = Effect.acquireRelease(
-    Effect.callback<Server>((resume) => {
-      const server = createServer();
-      server.listen(0, '127.0.0.1', () => resume(Effect.succeed(server)));
-    }),
-    (server) => Effect.callback<void>((resume) => void server.close(() => resume(Effect.void))),
-  ).pipe(
-    Effect.flatMap((server) =>
-      Schema.decodeUnknownEffect(Schema.Struct({ port: Schema.Finite }))(server.address()),
-    ),
-    Effect.map(({ port }) => new URL(`http://127.0.0.1:${port}/`)),
+  const held = Layer.build(labServer({ hostname: '127.0.0.1', port: 0 })).pipe(
+    Effect.flatMap((server) => boundUrl.pipe(Effect.provideContext(server))),
+    Effect.map((url) => new URL(url)),
     Effect.orDie,
   );
   const unservable: ReadonlyArray<readonly [string, Effect.Effect<URL, never, Scope.Scope>]> = [

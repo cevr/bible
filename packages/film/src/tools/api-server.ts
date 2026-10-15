@@ -698,10 +698,13 @@ export class LabUnbound extends Schema.TaggedError<LabUnbound>()('LabUnbound', {
 /**
  * The lab's HTTP server on `at`: Effect's over `Bun.serve`, with no route or
  * development server of Bun's (each would answer before the gate), its idle
- * limit and its body limit. `serveLab` answers every request it takes. A
- * bind this machine refuses fails as `LabUnbound`, naming the address and
- * Bun's words: Effect's adapter calls `Bun.serve` bare, so its throw would
- * otherwise be a defect, and its own `ServeError` has no message.
+ * limit and its body limit. `serveLab` answers every request it takes. The
+ * port is its own: a second lab on a port one holds is refused, never
+ * shares it (Bun, with `development` off, would bind it beside the first,
+ * the newer taking every connection). A bind this machine refuses fails as
+ * `LabUnbound`, naming the address and Bun's words: Effect's adapter calls
+ * `Bun.serve` bare, so its throw would otherwise be a defect, and its own
+ * `ServeError` has no message.
  */
 export const labServer = (at: LabAt) =>
   Layer.effect(
@@ -710,6 +713,7 @@ export const labServer = (at: LabAt) =>
       hostname: at.hostname,
       port: at.port,
       development: false,
+      reusePort: false,
       idleTimeout: LAB_IDLE_SECONDS,
       maxRequestBodySize: MAX_REQUEST_BODY,
     }).pipe(
