@@ -646,13 +646,14 @@ describe('timeline', () => {
     expect(pin('fiction', 'faith')).toBeInstanceOf(WordMissing);
   });
 
-  test('patchSpan writes only the fields the span or the patch has: the result decodes, and keeps a silence', () => {
+  test('patchSpan writes only the fields the span or the patch has: the result decodes, and keeps a silence and a track', () => {
     const spans: ReadonlyArray<Span> = [
       { mark: 'fiction', dur: 0.6 },
       { after: 'slam', until: 'as' },
       { after: 'slam', until: 'as', untilOffset: -0.2 },
       { with: 'slam', offset: 0.2, dur: 1, ends: true, silence: true },
       { at: 'speechEnd', ease: 'linear', stagger: 0.4 },
+      { mark: 'did', dur: 0.35, track: 'accused' },
     ];
     const patches = [
       { offset: 0.1 },
@@ -669,6 +670,7 @@ describe('timeline', () => {
         expect(Schema.decodeExit(SpanSchema)(patched)._tag).toBe('Success');
         expect(Schema.decodeExit(TimelineSchema)({ cue: patched })._tag).toBe('Success');
         expect(patched.silence).toBe(span.silence);
+        expect(patched.track).toBe(span.track);
       }
   });
 

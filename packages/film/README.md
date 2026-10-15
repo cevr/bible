@@ -2233,7 +2233,22 @@ otherwise (a line that does not decode, a crash, 30 s gone) is itself one
 error finding, `FreshProcessFailed`, in its words.
 
 **The editor** (`lab/editor/`, Solid 2): a strip under the timeline shows the
-current scene zoomed, its words and marks, and one row per cue. On a phone a
+current scene zoomed, its words and marks (in Code mode each mark also named
+with its second over the words, a hairline down every row), and one row per
+track: the actor or part a cue moves, named by its span's `track` (`{ mark:
+'turn', dur: 0.6, track: 'accused' }`), in the order its first cue is written,
+a cue that names none its own track named by itself (never merged with a
+track of its name), so a scene that names none draws a row per cue as before
+(`tracksOf`, `lab/editor/tracks.ts`). A track's cues share its row, stacked in
+lanes only where they overlap on the clock (each lane its own
+`.lab-strip-row`; while a cue is held its bar keeps its lane, `heldLanes`, and
+stacks once let go); a cue's bar on a named track says what it is (`bow 0.35
+s`, `build until {evidence}`, `near until {held} +0.20 s`, `card · holds to
+end`, hatched while it runs `until` a point), its name beside it when the bar
+is too narrow to hold it. A mouse over a bar
+lights the line in the Source view that writes it, and a mouse over that line
+lights the bar (`pointed`, the editor's), so the picture, the strip and the
+code read as one; a pick marks both already. On a phone a
 scene longer than 8 s shows the 8 s around the playhead, held inside the scene
 (`stripWindow`, `lab/editor/grip.ts`), so a cue is a finger wide; a scrub keeps
 the window it began in, and a cue's bar is clipped to it. The rows scroll in

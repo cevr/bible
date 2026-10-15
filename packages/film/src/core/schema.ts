@@ -339,6 +339,13 @@ const spanTiming = {
    * (after the key quotation, the black moment, the beat before the last word).
    */
   silence: Schema.optionalKey(Schema.Literal(true)),
+  /**
+   * The track the cue moves: the actor or part it is an act of (`accused`,
+   * `judge`, `room`). The lab's strip draws a track's cues on one row, in the
+   * order its first cue is written; a cue with none is its own track, named by
+   * the cue. Read by the lab only: no frame, sound or layout reads it.
+   */
+  track: Schema.optionalKey(Schema.NonEmptyString),
 };
 
 /** A span that lasts its length: from its anchor, or up to it. */

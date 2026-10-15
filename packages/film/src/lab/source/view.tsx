@@ -51,12 +51,14 @@ import { useFollow } from '../follow.ts';
 import { useLab } from '../shell.tsx';
 import { Sheet } from '../sheet.tsx';
 import { PHONE, useMatches } from '../viewport.ts';
+import { useEditor } from '../editor/context.tsx';
 import { CodeState, useSource } from './context.tsx';
 import {
   type Lit,
   type Picks,
   beatWords,
   followLine,
+  lineAt,
   litNow,
   liveWords,
   metersOn,
@@ -214,6 +216,39 @@ const Text = (props: {
   const litLine = (n: number) => lit().glows.has(n) || metersOn(lit().meters, n).length > 0;
   const rows = createMemo(() => rowsOf(props.code));
   const digits = createMemo(() => String(rows().length).length);
+  // The strip's bar and the line that writes its cue mark each other while a mouse is over either.
+  const editor = useEditor();
+  const pointedLine = createMemo(() =>
+    Option.getOrUndefined(
+      Option.flatMap(
+        Option.filter(editor.state.pointed(), (p) => p.scene === props.code.scene),
+        (p) =>
+          Option.map(
+            Arr.findFirst(props.code.cues, (c) => c.name === p.cue),
+            (c) => lineAt(props.code, c.at[0]),
+          ),
+      ),
+    ),
+  );
+  // Whether the point is this view's, set by a mouse over one of its lines: gone from under it, the view gives it up.
+  let pointing = false;
+  const pointAt = (e: PointerEvent, n: number) => {
+    if (e.pointerType !== 'mouse') return;
+    pointing = true;
+    editor.actions.point(
+      Option.map(
+        Option.filter(selectionAt(props.code, n), (s) => s._tag === 'Cue'),
+        (s) => ({ scene: s.scene, cue: s.name }),
+      ),
+    );
+  };
+  const pointOff = () => {
+    pointing = false;
+    editor.actions.point(Option.none());
+  };
+  onCleanup(() => {
+    if (pointing) pointOff();
+  });
   let page = Option.none<HTMLElement>();
   // The box the rows scroll in: found from the rows (`scrollContainerOf`), once they stand, so the column and the
   // sheet scroll by one rule.
@@ -342,8 +377,13 @@ const Text = (props: {
               class="lab-source-line"
               data-line={row.n}
               data-lit={pressed(litLine(row.n))}
+              data-pointed={Option.getOrUndefined(
+                Option.liftPredicate('', () => pointedLine() === row.n),
+              )}
               style={{ '--glow': glowOn(row.n) }}
               onClick={() => tap(row.n)}
+              onPointerEnter={(e: PointerEvent) => pointAt(e, row.n)}
+              onPointerLeave={pointOff}
             >
               <span class="lab-source-n" aria-hidden="true">
                 {row.n}

@@ -657,20 +657,73 @@ body.lab .stage {
 }
 /* The words stay at the top of the strip while its cues scroll under them; those outside its window are clipped. */
 .lab-strip-words {
+  /* The marks' names over the words: a row of its own in Code mode only (`lab/source/style.ts`), none elsewhere. */
+  --labels-h: 0px;
   position: sticky;
   top: 0;
   z-index: 1;
   overflow: hidden;
-  height: 18px;
+  height: calc(18px + var(--labels-h));
   background: var(--surface-2);
   border-bottom: 1px solid var(--line);
+}
+/*
+ * The marks' names over the words, and their rules down through the tracks:
+ * Code mode's, where the strip reads beside the code (`lab/source/style.ts`).
+ * Elsewhere the marks are the ticks on the words, so a mode at rest shows no
+ * more than it did.
+ */
+.lab-strip-labels {
+  display: none;
+  position: relative;
+  height: var(--labels-h);
+  overflow: hidden;
+}
+/*
+ * A mark's name and scene second, in the room up to the next mark, from its
+ * rule: the seconds drop whole onto a hidden second line before the name is
+ * cut, so a number is never cut short.
+ */
+.lab-strip-label {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 1ch;
+  box-sizing: border-box;
+  height: var(--labels-h);
+  padding-left: var(--s-1);
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: var(--fs-1);
+  line-height: var(--lh-1);
+}
+.lab-strip-label-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-1);
+}
+.lab-strip-label-t {
+  flex: none;
+  color: var(--text-2);
+}
+/* Each mark's rule down through the tracks, under the bars: a hairline, so the playhead stays the one accent line. */
+.lab-strip-guide {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line-strong);
+  pointer-events: none;
 }
 /* A word's room is the time it is spoken; the word keeps to it, shortened
    with an ellipsis, and in a room too narrow to keep a letter and the
    ellipsis it drops, leaving the room's mark. */
 .lab-word-room {
   position: absolute;
-  top: 2px;
+  top: calc(2px + var(--labels-h));
   height: 14px;
   font-size: var(--fs-1);
   background: var(--surface-3);
@@ -703,6 +756,10 @@ body.lab .stage {
   /* Inside the rows' scroll box: a sideways finger marks a range, an upright one scrolls (the browser took both). */
   touch-action: pan-y;
 }
+/* A named track's lane: its bars tall enough to carry their words. */
+.lab-strip-row[data-named] {
+  height: 20px;
+}
 /*
  * The cue lanes and their Snap are Edit's (and Motion's on a laptop, where a
  * range across a lane sets the loop): in Note, Compare and Record, and on a
@@ -728,6 +785,10 @@ body.lab .stage {
   white-space: nowrap;
   line-height: var(--lh-2);
 }
+.lab-strip-row[data-named] .lab-cue-label {
+  line-height: 20px;
+  color: var(--text-1);
+}
 /* A cue's lane: its bar, clipped to the strip's window (on a phone, 8 s of a long scene). */
 .lab-cue-lane {
   position: absolute;
@@ -749,20 +810,99 @@ body.lab .stage {
   /* Inside the rows' scroll box: a sideways finger drags the cue, an upright one scrolls. */
   touch-action: pan-y;
 }
+/*
+ * On a named track: a bar the lane's height, thin grips (a drag still takes
+ * `EDGE_PX` at either end, `dragModeAt`), its words inside: all of
+ * them where they fit, else its name, cut short with an ellipsis.
+ */
+.lab-strip-row[data-named] .lab-cue {
+  --cue-grip: 3px;
+  top: 2px;
+  height: 16px;
+  container-type: inline-size;
+}
+/*
+ * A bar too short for its words has its name after it, on the lane, in the
+ * room up to the next bar or the window's end (`--after`, in bar lengths; the
+ * percentage is of the bar inside its grips): cut short with an ellipsis, and
+ * dropped where not a letter and the ellipsis fit (its tooltip keeps it).
+ */
+.lab-cue-words[data-room='short'] {
+  --room: calc(var(--after, 99) * (100% + 2 * var(--cue-grip)) + var(--cue-grip) - var(--s-1));
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: var(--s-1);
+  padding-inline: 0;
+  max-width: clamp(0px, (var(--room) - 2ch) * 1000, var(--room));
+  text-overflow: ellipsis;
+  color: var(--text-1);
+}
+@container (width < 3.5em) {
+  .lab-cue-words[data-room='full'] {
+    display: none;
+  }
+  .lab-cue-words[data-room='short'] {
+    display: flex;
+  }
+}
+/* A bar's words: its name, and what follows it dropped whole onto a hidden second line before the name is cut. */
+.lab-cue-words {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 1ch;
+  height: var(--lh-2);
+  padding-inline: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: var(--fs-1);
+  line-height: var(--lh-2);
+  color: var(--accent-ink);
+  pointer-events: none;
+}
+.lab-cue-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lab-cue-more {
+  flex: none;
+}
+/* A cue that runs until a point (a mark, a landmark, a cue's edge): its end hatched, that point's, in the bar's ink. */
+.lab-cue[data-until] {
+  background-image: repeating-linear-gradient(135deg, transparent 0 3px, var(--accent-ink) 3px 4px);
+  background-size: var(--s-3) 100%;
+  background-position: right;
+  background-repeat: no-repeat;
+}
 .lab-cue.selected {
-  background: var(--accent);
+  background-color: var(--accent);
   border-color: var(--accent);
 }
 .lab-cue.late {
   outline: 1px solid var(--state-findings);
 }
+/* The cue a mouse is over, on its bar or on the line that writes it in the Source view: ringed, a name after it amber. */
+.lab-cue[data-pointed] {
+  box-shadow:
+    0 0 0 1px var(--surface-2),
+    0 0 0 2px var(--accent);
+}
+.lab-cue[data-pointed] .lab-cue-words[data-room='short'] {
+  color: var(--accent);
+}
 /* A cue the playhead is inside: the same cues the Source view lights in the code. */
 .lab-cue[data-live] {
-  background: var(--state-live);
+  background-color: var(--state-live);
 }
 .lab-cue.selected[data-live] {
-  background: var(--accent);
+  background-color: var(--accent);
   box-shadow: 0 0 0 1px var(--state-live);
+}
+/* A rule between named tracks, none between one track's lanes. */
+.lab-strip-row[data-named][data-first] ~ .lab-strip-row[data-named][data-first] {
+  box-shadow: inset 0 1px var(--line);
 }
 .lab-strip-playhead {
   position: absolute;
