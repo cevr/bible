@@ -62,7 +62,7 @@ The voice (step 5) is staged once the board holds, so the animatic plays on its 
 
 ## Steps
 
-0. **Tools.** `bun run doctor` (with `dangerouslyDisableSandbox: true`) says whether headless Chrome through Bun.WebView (and the H.264 encoder a render gets) and the logged-in `elevenlabs` CLI are there (media needs no ffmpeg: takes, shares, stills and phone copies are made in-process), and how to fix each that is not. `narrate` and `score` check the `elevenlabs` login before spending a credit.
+0. **Tools.** `bun run doctor` (with `dangerouslyDisableSandbox: true`) says whether headless Chrome through Bun.WebView (and the H.264 encoder a render gets) and the logged-in `elevenlabs` CLI are there (media needs no ffmpeg: takes, shares, stills and phone copies are made in-process), and how to fix each that is not. `narrate` and `score` check the `elevenlabs` login before spending a credit. Voice through that signed-in CLI (a request body on stdin with `--json -`); never read a key from the Keychain or an `.env`, since the Keychain entry is empty and reading it is refused.
 
 1. **Frame and sources.**
    - Find the film's topic in [frame/README.md](frame/README.md). Read its 1889 principle and the topic file whole.
