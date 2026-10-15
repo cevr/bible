@@ -5,7 +5,7 @@
 // the field; a finger on a slider drags it from the top edge of its box.
 
 import { Effect, Schedule } from 'effect';
-import { describe, expect, it, test } from 'effect-bun-test';
+import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { openReview } from '../../src/lab/fixtures/harness.ts';
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
@@ -192,7 +192,7 @@ describe("a note's scope × on a phone", () => {
   const SCOPE_X = '[data-role="note-scope"] [data-act="clear-scope"]';
   const FIELD = '.lab-compose textarea';
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.scopedLive.serial(
     "a finger on the note's field, just under the ×, writes in the field and keeps the scope",
     () =>
       Effect.gen(function* () {
@@ -208,14 +208,14 @@ describe("a note's scope × on a phone", () => {
         yield* page.finger.up;
         yield* page.until(`document.activeElement === document.querySelector('${FIELD}')`);
         yield* evaluates(page, `document.querySelector('${SCOPE_X}') !== null`, true);
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
     SLOW,
   );
 });
 
 describe('a finger on a slider', () => {
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.scopedLive.serial(
     "drags a level from the top edge of its box, where a finger meets it, not only on the track's line",
     () =>
       Effect.gen(function* () {
@@ -241,7 +241,7 @@ describe('a finger on a slider', () => {
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
           Effect.timeout('10 seconds'),
         );
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
     SLOW,
   );
 });

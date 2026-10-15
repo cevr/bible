@@ -11,7 +11,7 @@
         "agent-tail-core": "^0.4.0",
         "concurrently": "^10.0.6",
         "effect": "catalog:",
-        "effect-bun-test": "0.4.0",
+        "effect-bun-test": "0.5.0",
         "lefthook": "^2.2.1",
         "oxfmt": "^0.72.0",
         "oxlint": "^1.87.0",
@@ -84,7 +84,6 @@
       "name": "@bible/triedgold",
       "version": "0.1.0",
       "dependencies": {
-        "@react-router/node": "8.4.0",
         "effect": "catalog:",
         "isbot": "5.2.2",
         "lucide-react": "1.55.0",
@@ -93,8 +92,6 @@
         "react-router": "8.4.0",
       },
       "devDependencies": {
-        "@distilled.cloud/core": "1.0.0-rc.15",
-        "@distilled.cloud/railway": "1.0.0-rc.15",
         "@effect/platform-bun": "catalog:",
         "@effect/platform-node": "catalog:",
         "@react-router/dev": "8.4.0",
@@ -234,7 +231,7 @@
     "@solidjs/compiler": "2.0.0-rc.15",
     "@solidjs/web": "2.0.0-rc.15",
     "effect": "4.0.2",
-    "effect-bun-test": "0.4.0",
+    "effect-bun-test": "0.5.0",
     "effect-machine": "0.29.0",
     "solid-js": "2.0.0-rc.15",
     "vite-plugin-solid": "3.0.0-next.27",
@@ -1218,7 +1215,7 @@
 
     "effect": ["effect@4.0.2", "", {}, "sha512-YeYnLqSFrL4+tCOXRrfNP03w8FILoF/wDl+ukraJAGzXrjcS383W7LAAvGBbLatEyktmLxRq+9xJinx7QzXW5A=="],
 
-    "effect-bun-test": ["effect-bun-test@0.4.0", "", { "peerDependencies": { "bun": "*", "effect": "^3.19.0 || ^4.0.0" } }, "sha512-tz6OJSn8ezsvUEuT3orLEHMED0sKYJMt46giA2C5sIYgH6H7dWzLGGYSp29WRTGfrg+vi+WDR0h4fzBWZoMnuw=="],
+    "effect-bun-test": ["effect-bun-test@0.5.0", "", { "peerDependencies": { "bun": ">=1.3.2", "effect": "^3.19.0 || ^4.0.0" } }, "sha512-VQ00Bg7wavtQ7dv3cKIb2IytM2+16n5gc9ZqK2T9zyBugGUOoW1MfyS2U/voUNhOlUfIdivPqqmwGLfbGnYBIA=="],
 
     "effect-machine": ["effect-machine@0.29.0", "", { "peerDependencies": { "effect": ">=4.0.0 <5" } }, "sha512-51NNHQmgY4t90kaJqOkLANpIopWI41gYxvOsx0ugLA+cXZyoSQzWQhmRg3oZd8UjI7xr4dotze3aZyswbA1v/w=="],
 

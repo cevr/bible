@@ -21,7 +21,8 @@
 // one inside any other test, or outside every test and declaration (a loop
 // over a table that touches), is reported where it is. A test is a call of
 // the runner's `it` or `test` (`bun:test`'s, `effect-bun-test`'s or bun's
-// global, by its binding), and `test.serial` is the runner's `test`'s.
+// global, by its binding); `test.serial` is the runner's `test`'s, and a
+// runner's `.serial` form (`it.live.serial`) registers its case with it.
 
 import { Effect, Option } from 'effect';
 import {
@@ -47,12 +48,18 @@ const rootOf = (n: ESTree.Node): Option.Option<ESTree.Node> => {
 const isFunction = (n: ESTree.Node) =>
   n.type === 'ArrowFunctionExpression' || n.type === 'FunctionExpression';
 
-/** A call of the runner's `test.serial(…)`. */
-const isSerialTest = (b: Bindings, n: ESTree.Node) =>
-  n.type === 'CallExpression' &&
-  n.callee.type === 'MemberExpression' &&
-  Option.contains(memberName(n.callee), 'serial') &&
-  b.isRunner(n.callee.object, 'test');
+/**
+ * A call of the runner's `test.serial(…)`, or of an effect-bun-test runner's
+ * `.serial` form (`it.live.serial(…)`), which registers its case with
+ * `test.serial`.
+ */
+const isSerialTest = (b: Bindings, n: ESTree.Node) => {
+  if (n.type !== 'CallExpression' || n.callee.type !== 'MemberExpression') return false;
+  if (!Option.contains(memberName(n.callee), 'serial')) return false;
+  const on = n.callee.object;
+  if (b.isRunner(on, 'test')) return true;
+  return on.type === 'MemberExpression' && !on.computed && b.isRunner(on.object, 'it');
+};
 
 /** A test: the runner's `it…(name, body, …)` or `test…(name, body, …)`. */
 const isTest = (b: Bindings, n: ESTree.Node) =>
@@ -198,7 +205,7 @@ const touchingBindings = (all: ReadonlyArray<Seen>) => {
 };
 
 const MESSAGE =
-  "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case as test.serial.";
+  "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case alone: test.serial, or a runner's .serial form (it.live.serial).";
 
 export const touchesSerial = Rule.define({
   name: 'touches-serial',

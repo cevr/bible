@@ -184,6 +184,44 @@ describe("the counsel's sandbox", () => {
     },
   );
 
+  it.effect("routes through the host's Claude proxy (`ANTHROPIC_BASE_URL`) when it has one", () => {
+    const spawned: Array<Spawned> = [];
+    return Effect.gen(function* () {
+      if (process.platform !== 'darwin') return;
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const counsel = yield* Counsel;
+      const packet = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+      yield* fs.writeFileString(path.join(packet, 'packet.md'), 'rank A and B');
+      const run = path.join(yield* fs.makeTempDirectoryScoped(), 'counsel');
+      yield* counsel.ask(path.join(packet, 'packet.md'), run);
+      expect(spawned.map((one) => one.env['ANTHROPIC_BASE_URL'])).toEqual([
+        'http://localhost:3456',
+      ]);
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        Counsel.claudeAt(Effect.succeed(claude)).pipe(
+          Layer.provide(
+            Layer.succeed(
+              ChildProcessSpawner.ChildProcessSpawner,
+              answering('RANKING: B > A', spawned),
+            ),
+          ),
+          Layer.provide(
+            ConfigProvider.layer(
+              ConfigProvider.fromUnknown({
+                HOME: home,
+                ANTHROPIC_BASE_URL: 'http://localhost:3456',
+              }),
+            ),
+          ),
+          Layer.provideMerge(BunServices.layer),
+        ),
+      ),
+    );
+  });
+
   it.effect(
     "on macOS Claude's run reads none of the home's Claude state, and writes only its own",
     () =>

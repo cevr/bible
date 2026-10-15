@@ -11,7 +11,7 @@
 // filter (`?only=`) or a pair leaves its card out.
 
 import { Effect } from 'effect';
-import { describe, expect, it, test } from 'effect-bun-test';
+import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { PHONE, openReview } from '../../../src/lab/fixtures/harness.ts';
 import {
@@ -162,7 +162,7 @@ for (const p of PAGES) {
     );
 
     // Serial: a finger's touches (`film/touches-serial`).
-    test.serial(
+    it.scopedLive.serial(
       'on a phone a swipe down dismisses it as Close does, going Back over the tap',
       () =>
         Effect.gen(function* () {
@@ -188,7 +188,7 @@ for (const p of PAGES) {
             '',
           ]);
           expect(errors).toEqual([]);
-        }).pipe(Effect.scoped, Effect.runPromise),
+        }),
       SLOW,
     );
 

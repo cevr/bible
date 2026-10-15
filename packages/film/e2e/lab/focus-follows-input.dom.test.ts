@@ -26,7 +26,7 @@
 // case runs alone, and a page without it answers so instead of passing.
 
 import { Effect, type Scope } from 'effect';
-import { expect, test } from 'effect-bun-test';
+import { expect, it } from 'effect-bun-test';
 import type { Input } from '../../src/browser/keys.ts';
 import { pageHref } from '../../src/core/api.ts';
 import {
@@ -46,7 +46,6 @@ import {
   guidedRoutes,
   studioRoutes,
 } from '../../src/lab/fixtures/studio-film.ts';
-import { runCase } from '../../src/lab/fixtures/run-case.ts';
 import { until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
@@ -336,12 +335,12 @@ const PAGES: ReadonlyArray<Opened> = [
 ];
 
 /**
- * A case that runs alone, its scope closed at its end, a timeout's included (`runCase`):
+ * A case that runs alone, its scope closed at its end, a timeout's included (`it.scopedLive.serial`):
  * `:focus-visible` matches only in the window that has the focus, and a sibling case opening
  * its own tab at once takes it.
  */
 const alone = <A, E>(name: string, body: Effect.Effect<A, E, Scope.Scope>, timeout = SLOW) =>
-  test.serial(name, () => runCase(Effect.scoped(body)), timeout);
+  it.scopedLive.serial(name, () => Effect.asVoid(body), timeout);
 
 for (const opened of PAGES)
   alone(

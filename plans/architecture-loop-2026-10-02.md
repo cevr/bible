@@ -159,10 +159,14 @@ All 14 sweeps reported, plus the retro. The batches, what each owns and the merg
   - Reviewer: Codex (gpt-6.1-sol) over 2 rounds (round 1: 4 Major; round 2: the bible-tools branch has no blocker).
   - Two implementors; the first compacted. Decided by reversible-first: the branch stays on effect-bun-test 0.4.0.
   - Carried: flakes (c) G10, (d) Follow and (f) review doc, not reproduced.
-- **p6-ebt (new, after p6-truegate):** effect-bun-test 0.5.0 interrupts a timed-out test, concurrent ones included.
-  - Round 2's B1: `onTestFinished` is refused inside concurrent tests, so 0.5.0 as written would fail 58 concurrent e2e files.
-  - The release waits for this unit's acceptance; the owner authorized publishing it.
-  - Also m5/m6, and 32 hand-run `test.serial` sites moved to the runner.
+- **p6-ebt:** done `ab79b0f06..e7d7a54ef`, merged `ad0c891ae`. effect-bun-test 0.5.0 published (owner-authorized).
+  - 0.5.0 interrupts a timed-out test. A serial test's finalizers run before the next test starts (bun waits on `onTestFinished`, bounded by the test's own timeout). A concurrent test is interrupted at bun's own deadline, read as bun reads it and counted from entry; bun does not wait for its finalizers. Out-of-range or sub-millisecond timeouts run as on 0.4.0.
+  - Film keeps `--timeout 20000` beside the preload: bun resets `setDefaultTimeout` per file. A unit test ties the scripts to `TEST_TIMEOUT_MS`.
+  - Also m5/m6, and 32 hand-run `test.serial` sites moved to the runners' `.serial`.
+  - Reviewer: Codex (gpt-6.1-sol) + Claude, 2 rounds. Round 1: 1 Blocker (timer range), 2 Major (per-file default, late clock). Round 2: accepted, 1 Minor (K1, a thunk's throw named the library's line), fixed before the publish (ebt PR #6).
+  - Main's CI then failed once on a fixture timing (the cases after a timed-out one had `--timeout 30`); fixed in ebt PR #8, CI green, then the Version PR.
+  - bible-tools pins `effect-bun-test` `0.5.0` (exact, as the repo pins). Gate 27/27; e2e check clear 1074/0 on the npm build.
+  - Carried: o2 (film open-tab counter drops last), o3 (lock-check residuals), o5 (`.layer` has no `.serial`).
 - **p6-host:** done `199aadd86..810cd381f`, merged `42d570140`.
   - The lab listens on `FILM_LAB_PHONE_URL` itself behind `admit`; the forwarder is retired. A phone address it cannot bind leaves loopback serving.
   - Links are `{local, phone?}` on `localhost`, with no `public` or https.
@@ -176,7 +180,7 @@ All 14 sweeps reported, plus the retro. The batches, what each owns and the merg
   - Reviewer: Codex (gpt-6.1-sol), 2 rounds. Round 1: 1 Blocker, 2 Major. Round 2: accepted.
   - Two implementors; the first compacted, and a restart cut off a third partway through.
   - Owner lab restarted on the new start command (fill on). Live check: local 200, phone 200, foreign Host 403, draft 08 200.
-  - Item 6 (the judge's answer) is provisional: the dry run hit the weekly limit. It reruns at 2:13am.
+  - Item 6 (the judge's answer): closed 2026-10-15. The dry run hit the weekly limit because the counsel skipped the owner's teamclaude proxy. p6-hostfix `2698034fe` (merged `cfe485ddf`) passes the host's `ANTHROPIC_BASE_URL` into the sandbox, as the owner asked. Dry run through it: `RANKING: B >> A`, `key.json` refused.
   - Carried, to p6-hostfix:
     - N1: a held loopback port exits with a bare `ServeError`.
     - N2: `reusePort: false`.

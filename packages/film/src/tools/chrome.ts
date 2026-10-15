@@ -13,8 +13,12 @@
 // Every Chrome is silent (`chromeArgs`): no page a tool or test opens is
 // listened to (a render mixes and encodes its sound offline), and a headless
 // Chrome otherwise plays its pages' sound out of the host's speakers.
+//
+// Every Chrome keeps its profile in a folder of its own, removed when its
+// process exits (`chrome-profile.ts`).
 
 import { Config, Effect, FileSystem, Option, Order, Path, Schema, type Scope } from 'effect';
+import { PROFILE_ROOT, profileFolder } from './chrome-profile.ts';
 import { BrowserFailed, BrowserMissing } from './errors.ts';
 
 /**
@@ -71,10 +75,11 @@ const playwrightChromium = Effect.gen(function* () {
   );
 }).pipe(Effect.orElseSucceed(() => Option.none<string>()));
 
-/** A view with `argv` of Chrome at `path` (where Bun looks, when none); `None` when no Chrome was there. */
+/** A view with `argv` of Chrome at `path` (where Bun looks, when none), its profile in `profile`; `None` when no Chrome was there. */
 const spawnView = (
   path: Option.Option<string>,
   argv: ReadonlyArray<string>,
+  profile: string,
   options: ViewOptions,
 ) =>
   Effect.try({
@@ -82,6 +87,7 @@ const spawnView = (
       Option.some(
         new Bun.WebView({
           ...options,
+          dataStore: { directory: profile },
           backend: {
             type: 'chrome',
             // Never a Chrome someone left running with remote debugging: always one of ours.
@@ -105,17 +111,18 @@ const spawnView = (
 /** The process's first view: Chrome spawned from the first executable found. */
 const firstView = (argv: ReadonlyArray<string>, options: ViewOptions) =>
   Effect.gen(function* () {
+    const profile = yield* profileFolder(PROFILE_ROOT);
     const named = yield* Config.option(Config.String('BUN_CHROME_PATH')).pipe(Effect.orDie);
     if (Option.isSome(named))
-      return yield* Effect.flatMap(spawnView(named, argv, options), (view) =>
+      return yield* Effect.flatMap(spawnView(named, argv, profile, options), (view) =>
         Effect.fromOption(view, () => BrowserMissing.make({ executable: named.value })),
       );
-    const found = yield* spawnView(Option.none(), argv, options);
+    const found = yield* spawnView(Option.none(), argv, profile, options);
     if (Option.isSome(found)) return found.value;
     const cached = yield* playwrightChromium;
     const view = yield* Option.match(cached, {
       onNone: () => Effect.succeed(Option.none<Bun.WebView>()),
-      onSome: (file) => spawnView(Option.some(file), argv, options),
+      onSome: (file) => spawnView(Option.some(file), argv, profile, options),
     });
     return yield* Effect.fromOption(view, () =>
       BrowserMissing.make({ executable: Option.getOrElse(cached, () => 'Chrome or Chromium') }),
