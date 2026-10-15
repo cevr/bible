@@ -189,13 +189,9 @@ packages/core/dist-native/*
 !packages/core/dist-native/vector-scan-x86_64-linux-gnu.so
 
 # Alchemy local state (apps/egw-search/.alchemy). It holds adopted resource ids
-# and, in plain text, the egw-celld bucket keys and any EGW secret a deploy was
-# given. Never commit it.
+# and, in plain text, any secret a deploy was given. Never commit it.
 .alchemy/
 
-# The EGW Search build context (apps/egw-search/.deploy), written by
-# apps/egw-search/infra/context.ts before every plan and deploy.
-apps/egw-search/.deploy/
 
 # The film lab's notes and stills (apps/animations/lab/<film>/), written by `bun run lab`
 # and `bun run notes`: review state, not source.
