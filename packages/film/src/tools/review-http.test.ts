@@ -19,6 +19,7 @@ import {
   reviewTestPost,
   reviewTestRefusalOf,
   REVIEW_TEST_HOME,
+  REVIEW_TEST_HOST,
 } from './testing.ts';
 
 describe('review routes', () => {
@@ -232,7 +233,7 @@ describe('review routes', () => {
   it.effect('answers the allowlist and loopback, and no other host or site', () =>
     Effect.gen(function* () {
       const through = yield* reviewTestAsk(
-        reviewTestGet(labUrls.review.index({ query: {} }), { host: 'box.example:8229' }),
+        reviewTestGet(labUrls.review.index({ query: {} }), { host: REVIEW_TEST_HOST }),
       );
       expect(through.status).toBe(200);
       const local = yield* reviewTestAsk(
@@ -245,7 +246,7 @@ describe('review routes', () => {
       expect(rebound.status).toBe(403);
       const cross = yield* reviewTestAsk(
         reviewTestGet(labUrls.review.index({ query: {} }), {
-          host: 'box.example:8229',
+          host: REVIEW_TEST_HOST,
           'sec-fetch-site': 'cross-site',
         }),
       );
@@ -253,10 +254,12 @@ describe('review routes', () => {
       const write = (origin: string) =>
         new Request(`http://127.0.0.1:8229${labUrls.review.index({ query: {} })}`, {
           method: 'POST',
-          headers: { host: 'box.example:8229', origin, 'content-type': 'application/json' },
+          headers: { host: REVIEW_TEST_HOST, origin, 'content-type': 'application/json' },
           body: '{}',
         });
-      expect((yield* reviewTestAsk(write('https://box.example:8229'))).status).toBe(404);
+      expect((yield* reviewTestAsk(write(REVIEW_TEST_HOME))).status).toBe(404);
+      // A listener is plain http: an https Origin is none of its own.
+      expect((yield* reviewTestAsk(write('https://100.64.0.9:8229'))).status).toBe(403);
       expect((yield* reviewTestAsk(write('https://evil.example'))).status).toBe(403);
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );
@@ -264,7 +267,7 @@ describe('review routes', () => {
   it.effect("passes the app's page the rest, behind the same hosts", () =>
     Effect.gen(function* () {
       for (const path of ['/', '/chunk-a1.js', '/films/tiny/narration/s1.mp3']) {
-        const own = yield* reviewTestAsk(reviewTestGet(path, { host: 'box.example:8229' }));
+        const own = yield* reviewTestAsk(reviewTestGet(path, { host: REVIEW_TEST_HOST }));
         expect([path, own.status, yield* reviewTestBody(own)]).toEqual([path, 200, `page ${path}`]);
         const rebound = yield* reviewTestAsk(reviewTestGet(path, { host: 'evil.example:8229' }));
         expect([path, rebound.status]).toEqual([path, 403]);

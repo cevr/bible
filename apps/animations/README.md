@@ -8,7 +8,7 @@ scrubbable preview and a frame-exact MP4 export.
 ## Commands
 
 ```sh
-bun run lab                                    # the lab at http://127.0.0.1:8229/: the review at /, a film's lab at /films/<film>/lab, its Scenes (the whole film as stills) at /films/<film>/scenes (LAB_HOST, LAB_PORT, FILM_LAB_HOSTS)
+bun run lab                                    # the lab at http://localhost:8229/: the review at /, a film's lab at /films/<film>/lab, its Scenes (the whole film as stills) at /films/<film>/scenes (LAB_HOST, LAB_PORT, FILM_LAB_PHONE_URL, FILM_STAGING_FILL)
 bun run narrate <film>                         # stage stale beats with ElevenLabs, verify, remix full.wav
 bun run script <film> [--sheet]                # the reading sheet; --sheet writes out/<film>/script-sheet.md + .html to print
 bun run takes import <film> <folder|file>      # the owner's recordings as takes (trimmed, levelled, timed), remix full.wav
@@ -89,7 +89,8 @@ Every command is the `film` CLI from `@bible/film/tools`, run by this app's
 `cli.ts` (`bun cli.ts --help`), which hands it the player server that `render`
 and `check` load (`index.html`, on a free loopback port; the render's server never serves
 Solid) and, for `lab`, the lab: one server for every film, meant to stay up
-(on the box, the `film-lab` user unit on port 8229). The lab builds its pages
+(on the laptop, port 8229, and the phone's address on the tailnet when
+`FILM_LAB_PHONE_URL` gives one). The lab builds its pages
 from this app's source in its own process when they are asked for, and again
 after a file they were built from changes: the review (`review.html`) at `/`,
 `/sets/<folder>[/<point>]` and a film's `/films/<film>/choices` and
@@ -243,10 +244,9 @@ attempts play again and Keep makes one the take; a keep, like every lab write,
 is undone by Undo (⌘Z) and redone by Redo: the track remixes and the lab reloads, the take it replaced playing again (the editor waits as long as for a keep, then asks the lab whether the step landed). A reload never takes a take being recorded or under review, nor a note being written: it waits until you submit, discard or save it, and the panel says what it waits for. A kept take reloads the lab
 at the same time, on the same beat, playing the new take (`/films/*` is served
 uncached for that). Use Chrome or Firefox on a computer (every iPhone and
-iPad browser is Safari underneath) and allow the microphone for the lab's origin; a browser gives the microphone only to `https://` or
-`localhost`, so record on the box's own browser or through the box's HTTPS
-address (`https://bite-cristian.exe.xyz:8229/…`, the exe proxy in front of
-8229); pick the interface in Record's mic list
+iPad browser is Safari underneath) and allow the microphone for the lab's origin; a browser gives the microphone only to a secure page,
+and the phone's plain `http://` link is not one, so record on the local link
+(`http://localhost:8229/…`; on the phone's, Record says so); pick the interface in Record's mic list
 (it is remembered in the browser). The capture is raw PCM (no echo cancelling,
 noise suppression or gain control) posted as a 24-bit WAV at the microphone's
 own rate. `bun studio-harness.ts` runs the same lab over a temp
@@ -287,8 +287,8 @@ sources or its sound, missing with the command that renders it), approval
 and comments; a tap opens its sheet (`?point=`), with Approve, Unapprove, a
 comment, Open in Lab and the choices that play in it, each a link to its
 card on Choices. An act's and the film's approvals and comments are in
-their inspectors, context menus and ⌘K, with "Approve all current". The lab answers loopback, and the names in
-`FILM_LAB_HOSTS` when `LAB_HOST=0.0.0.0`, on every path (the pages too: built
+their inspectors, context menus and ⌘K, with "Approve all current". The lab answers each of its listeners' own names
+(loopback, and the phone's address at `FILM_LAB_PHONE_URL`), on every path (the pages too: built
 in process and served behind the check); every request passes one gate
 (`admit`), and writes are JSON, from the lab's own origin or from a tool's
 (no Origin). The

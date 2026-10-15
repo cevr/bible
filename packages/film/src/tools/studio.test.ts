@@ -209,7 +209,7 @@ const said = new Map([
 
 const call = (request: Request) =>
   Effect.gen(function* () {
-    const studio = yield* labHandler({ hosts: [] });
+    const studio = yield* labHandler();
     const res = yield* Effect.promise(() => studio(request, bound));
     const type = res.headers.get('content-type');
     const raw = yield* Effect.promise(() => res.text());
@@ -504,7 +504,7 @@ describe('studio routes', () => {
     );
     return Effect.gen(function* () {
       // One studio, as the lab runs it, taking two posts at once.
-      const studio = yield* labHandler({ hosts: [] });
+      const studio = yield* labHandler();
       const answers = yield* Effect.forEach(
         [
           post(
@@ -644,7 +644,7 @@ describe('studio routes', () => {
         const start = files.get(film.paths.timings.file);
         marks.length = 0;
         // The owner keeps a1 in the Studio while a Choices tab picks b1.
-        const studio = yield* labHandler({ hosts: [] });
+        const studio = yield* labHandler();
         const point = pointIdOf({ _tag: 'Voice', beat: 'b' });
         yield* Effect.all(
           [

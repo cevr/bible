@@ -10,6 +10,7 @@ import { ChoiceWrite, FilmChoices, SoundCheck } from '../core/choice.ts';
 import {
   REVIEW_CHOICES,
   REVIEW_TEST_HOME,
+  REVIEW_TEST_HOST,
   ReviewTestRoot,
   reviewHttpFixture,
   reviewTestAsk,
@@ -68,7 +69,7 @@ describe("a film's choices", () => {
       const undo = yield* reviewTestAsk(
         new Request('http://127.0.0.1:8229/api/films/..%2Fbeside/undo', {
           method: 'POST',
-          headers: { host: 'box.example:8229', 'content-type': 'application/json' },
+          headers: { host: REVIEW_TEST_HOST, 'content-type': 'application/json' },
           body: '{}',
         }),
       );
@@ -94,7 +95,7 @@ describe("a film's choices", () => {
         `http://127.0.0.1:8229${labUrls.steps.undo({ params: { film: 'f' } })}`,
         {
           method: 'POST',
-          headers: { host: 'box.example:8229', 'content-type': 'application/json' },
+          headers: { host: REVIEW_TEST_HOST, 'content-type': 'application/json' },
           body: '{}',
         },
       );

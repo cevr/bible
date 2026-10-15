@@ -46,7 +46,7 @@ describe('the change feed', () => {
       const film = yield* filmNamed('f');
       const draft = { scene: 'cold', T: 1, frame: 30 };
       yield* notes.add(film, { ...draft, text: 'before the lab' }, text('png'));
-      const events = yield* LabEvents.make({ base: 'http://127.0.0.1:8229/' });
+      const events = yield* LabEvents.make({ links: { local: 'http://localhost:8229/' } });
       yield* events.look;
       const { cursor } = yield* events.since(Option.none());
       expect((yield* events.since(Option.some(cursor))).changes).toEqual([]);
@@ -59,7 +59,9 @@ describe('the change feed', () => {
         [1, 'note.added', 'after it'],
         [2, 'board.tried', 1],
       ]);
-      expect(seen.changes[0]?.link).toBe('http://127.0.0.1:8229/films/f/lab/cold?note=n2');
+      expect(seen.changes[0]?.links).toEqual({
+        local: 'http://localhost:8229/films/f/lab/cold?note=n2',
+      });
       expect(seen.reset).toBe(false);
       // Read again with nothing new: nothing said twice.
       yield* events.look;

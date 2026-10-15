@@ -176,8 +176,10 @@ const Harness = Layer.unwrap(
       Effect.gen(function* () {
         yield* (yield* FilmRepo).load(film);
         const at = { hostname: '127.0.0.1', port };
-        const url = yield* startLab(at, { hosts: [] }, control(misheard, root));
-        yield* Effect.log(`harness.ready url=${new URL(pageHref.lab(film), url)} root=${root}`);
+        const links = yield* startLab(at, Option.none(), control(misheard, root));
+        yield* Effect.log(
+          `harness.ready url=${new URL(pageHref.lab(film), links.local)} root=${root}`,
+        );
       }),
     );
     return Server.pipe(Layer.provide(Services));

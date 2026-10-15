@@ -18,7 +18,7 @@ import {
   Boolean as Bool,
   Context,
   DateTime,
-  Duration,
+  type Duration,
   Effect,
   FileSystem,
   Layer,
@@ -26,6 +26,8 @@ import {
   Path,
   Random,
   Ref,
+  Stream,
+  SubscriptionRef,
   Schedule,
   Schema,
   Semaphore,
@@ -34,6 +36,8 @@ import { CatalogueJson, emptyCatalogue, type Catalogue } from '../core/catalogue
 import { type BoardFile, emptyBoard } from '../core/board.ts';
 import {
   LabChange,
+  type LabLinks,
+  linksAt,
   type LabChangeDraft,
   type SetSeen,
   askChanges,
@@ -69,9 +73,6 @@ export type LabChanges = typeof LabChanges.Type;
 /** How many changes the feed keeps. */
 const KEPT = 1000;
 
-/** How often a wait asks the feed again. */
-const WAIT_POLL = Duration.millis(200);
-
 /** A set's manifest file in its folder. */
 const MANIFEST_FILE = 'review.json';
 
@@ -105,9 +106,9 @@ interface LabEventsService {
   ) => Effect.Effect<LabChanges>;
 }
 
-/** What the feed needs: where its links point (the lab's address as a reader opens it). */
+/** What the feed needs: where its links point (the lab's own links, local and the phone's). */
 interface FeedOptions {
-  readonly base: string;
+  readonly links: LabLinks;
 }
 
 /** `cursor` read: its epoch and number, when it is one. */
@@ -164,7 +165,8 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
     const films = yield* Effect.context<FilmFolder>();
     const platform = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
     const epoch = (yield* Random.nextIntBetween(0, 2 ** 31)).toString(36);
-    const journal = yield* Ref.make<Journal>({ seq: 0, kept: [] });
+    // A wait wakes on each change of it (`wait`), never on a timer.
+    const journal = yield* SubscriptionRef.make<Journal>({ seq: 0, kept: [] });
     const seen: Seen = {
       notes: new Map(),
       boards: new Map(),
@@ -175,8 +177,6 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
     /** Whether the next read is the first: the baseline, which tells nothing. */
     const first = yield* Ref.make(true);
     const one = yield* Semaphore.make(1);
-
-    const linkOf = (at: string) => new URL(at, options.base).href;
 
     /** A file's stamp, or none when it is not there (`absent`). */
     const stampOf = (file: string) =>
@@ -341,12 +341,12 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
         const drafts = yield* read;
         if (drafts.length === 0) return;
         const at = DateTime.formatIso(yield* DateTime.now);
-        yield* Ref.update(journal, (j) => {
+        yield* SubscriptionRef.update(journal, (j) => {
           const made = drafts.map(({ path: place, ...draft }, i): LabChange => ({
             ...draft,
             seq: j.seq + i + 1,
             at,
-            link: linkOf(place),
+            links: linksAt(options.links, place),
           }));
           return { seq: j.seq + made.length, kept: [...j.kept, ...made].slice(-KEPT) };
         });
@@ -354,8 +354,10 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
       }),
     );
 
-    const since = (cursor: Option.Option<string>) =>
-      Effect.map(Ref.get(journal), (j): LabChanges => {
+    /** What a reader past `cursor` is answered from journal `j`. Pure. */
+    const answerOf =
+      (cursor: Option.Option<string>) =>
+      (j: Journal): LabChanges => {
         const now = `${epoch}.${j.seq}`;
         if (Option.isNone(cursor)) return { cursor: now, changes: [], reset: false };
         const asked = Option.filter(
@@ -374,16 +376,26 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
             reset: c.seq + 1 < oldest,
           }),
         });
-      });
+      };
 
+    const since = (cursor: Option.Option<string>) =>
+      Effect.map(SubscriptionRef.get(journal), answerOf(cursor));
+
+    // The journal as it stands, then each change to it: the first answer with news ends the wait.
     const wait = (cursor: Option.Option<string>, timeout: Duration.Input) =>
-      since(cursor).pipe(
-        Effect.repeat({
-          until: (answer) => answer.changes.length > 0 || answer.reset || Option.isNone(cursor),
-          schedule: Schedule.spaced(WAIT_POLL),
-        }),
+      SubscriptionRef.changes(journal).pipe(
+        Stream.map(answerOf(cursor)),
+        Stream.filter(
+          (answer) => answer.changes.length > 0 || answer.reset || Option.isNone(cursor),
+        ),
+        Stream.runHead,
         Effect.timeoutOption(timeout),
-        Effect.flatMap(Option.match({ onNone: () => since(cursor), onSome: Effect.succeed })),
+        Effect.flatMap((heard) =>
+          Option.match(Option.flatten(heard), {
+            onNone: () => since(cursor),
+            onSome: Effect.succeed,
+          }),
+        ),
       );
 
     return LabEvents.of({ look, since, wait });

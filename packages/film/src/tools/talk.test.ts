@@ -511,7 +511,7 @@ describe("a talk's writes in the lab", () => {
   /** The lab's answer to `request`: its status, and its body as JSON. */
   const ask = (request: Request) =>
     Effect.gen(function* () {
-      const handler = yield* labHandler({ hosts: [] });
+      const handler = yield* labHandler();
       const response = yield* Effect.promise(() => handler(request, bound));
       const body: { readonly _tag?: string; readonly reason?: string } = yield* Effect.promise(() =>
         response.json(),

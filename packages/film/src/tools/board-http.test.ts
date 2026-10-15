@@ -53,7 +53,7 @@ const get = (path: string) => new Request(at(path), { method: 'GET' });
 describe('the board routes', () => {
   it.effect('read the record, serve an image it names and refuse one it does not', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler({ hosts: [] });
+      const lab = yield* labHandler();
       const read = yield* Effect.promise(() =>
         lab(get(labUrls.board.read({ params: { film: 'f' } })), bound),
       );
@@ -78,7 +78,7 @@ describe('the board routes', () => {
 
   it.effect('keep a try with why, approve the beat, withdraw it; refuse what the board lacks', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler({ hosts: [] });
+      const lab = yield* labHandler();
       const ask = (path: string, body: typeof Body.Type) =>
         Effect.gen(function* () {
           const r = yield* Effect.promise(() => lab(post(path, body), bound));

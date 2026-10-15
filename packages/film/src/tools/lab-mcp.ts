@@ -28,7 +28,7 @@
 //   them; the `inbox` prompt opens a session on what waits.
 //
 // The lab is reached on loopback and from the owner's phone over the
-// tailnet (a forwarder that names the loopback Host), and nowhere else, so
+// tailnet (the lab listens on that address itself), and nowhere else, so
 // `/mcp` asks no token (owner, 2026-10-14: secure by obscurity). The lab's
 // gate (`api-server.ts`) runs first, as for any path, and Effect's server
 // refuses a request with a foreign `Origin`.
@@ -74,7 +74,7 @@ import {
 } from '../core/production.ts';
 import { type BoardFile, BoardStyle, PANEL_START, Panel, panelById } from '../core/board.ts';
 import { Catalogue, Render } from '../core/catalogue.ts';
-import { boardPath, gist, notePath } from '../core/lab-events.ts';
+import { LabLinks, boardPath, gist, linksAt, notePath } from '../core/lab-events.ts';
 import { unresolved } from '../core/notes.ts';
 import { ReviewManifest, ReviewManifestJson } from '../core/review.ts';
 import { Note, type NoteDraft, NoteStatus, repoJson } from '../core/schema.ts';
@@ -121,7 +121,7 @@ const FilmParam = Schema.Struct({
 const NoteRead = Schema.Struct({
   ...Note.fields,
   /** The lab page it is on. */
-  link: Schema.String,
+  links: LabLinks,
   /** Its still, a PNG on this machine. */
   stillFile: Schema.String,
 });
@@ -146,7 +146,7 @@ const TryRead = Schema.Struct({
 const PanelRead = Schema.Struct({
   ...Struct.omit(Panel.fields, ['tries']),
   tries: Schema.Array(TryRead),
-  link: Schema.String,
+  links: LabLinks,
 });
 
 const BoardRead = Schema.Struct({
@@ -167,14 +167,14 @@ const SetRead = Schema.Struct({
   set: Schema.String,
   kind: Schema.Literals(['montage', 'project']),
   title: Schema.optionalKey(Schema.String),
-  link: Schema.String,
+  links: LabLinks,
   /** Where it is on this machine. */
   dir: Schema.String,
 });
 
 const FilmRead = Schema.Struct({
   film: Schema.String,
-  link: Schema.String,
+  links: LabLinks,
   notes: Schema.Struct({ open: Schema.Int, replied: Schema.Int, tweaks: Schema.Int }),
   board: Schema.Struct({
     panels: Schema.Int,
@@ -185,7 +185,7 @@ const FilmRead = Schema.Struct({
 
 const OverviewRead = Schema.Struct({
   /** The lab's address as the owner opens it. */
-  lab: Schema.String,
+  lab: LabLinks,
   /** The change feed's cursor now: hand it to `changes`. */
   cursor: Schema.String,
   films: Schema.Array(FilmRead),
@@ -194,13 +194,13 @@ const OverviewRead = Schema.Struct({
 
 const CatalogueRead = Schema.Struct({
   set: Schema.String,
-  link: Schema.String,
+  links: LabLinks,
   catalogue: Catalogue,
 });
 
 const SetManifestRead = Schema.Struct({
   set: Schema.String,
-  link: Schema.String,
+  links: LabLinks,
   dir: Schema.String,
   manifest: ReviewManifest,
 });
@@ -246,13 +246,6 @@ const SetName = Schema.String.check(
   }),
 );
 
-/** Where an ask is answered: on this machine, on the phone (over the tailnet), from anywhere (the tunnel). */
-const AskLinks = Schema.Struct({
-  local: Schema.String,
-  phone: Schema.optionalKey(Schema.String),
-  public: Schema.optionalKey(Schema.String),
-});
-
 /** An ask as an agent reads it: where its run is and what the owner answered, typed. */
 const AskRead = Schema.Struct({
   ask: Schema.String,
@@ -271,7 +264,7 @@ const AskRead = Schema.Struct({
   production: Schema.optionalKey(Schema.String),
   set: Schema.optionalKey(Schema.String),
   point: Schema.optionalKey(Schema.String),
-  links: AskLinks,
+  links: LabLinks,
 });
 
 /** The files a set may carry: what the review shows (images, videos, docs, captions) or offers to download. */
@@ -394,7 +387,7 @@ const RecordRender = Tool.make('record_render', {
     film: Schema.String,
     render: Schema.Struct(Struct.omit(Render.fields, ['at'])),
   }),
-  success: Schema.Struct({ set: Schema.String, link: Schema.String }),
+  success: Schema.Struct({ set: Schema.String, links: LabLinks }),
   failure: LabRefused,
 });
 
@@ -500,7 +493,7 @@ const WordFiled = Schema.Struct({
   production: Schema.String,
   version: Schema.Int,
   said: Said,
-  link: Schema.String,
+  links: LabLinks,
 });
 
 const DecideTool = Tool.make('decide', {
@@ -545,12 +538,8 @@ const LabToolkit = Toolkit.make(
 
 /** Where the tools' links point and how a set's kind is told. */
 interface LabMcpOptions {
-  /** The lab's address as the owner opens it (`labLink`). */
-  readonly base: string;
-  /** Where the lab is bound on this machine, when it is not `base`. */
-  readonly local?: string;
-  /** The lab's address from the owner's phone (`FILM_LAB_PHONE_URL`), when it has one. */
-  readonly phone?: string;
+  /** The lab's own links: on this machine, and from the owner's phone when it listens there. */
+  readonly links: LabLinks;
 }
 
 /** A path under `root` that stays under it: `rel` relative, with no `..` out of it. */
@@ -577,12 +566,12 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
   const asks = yield* AskStore;
   const productions = yield* ProductionStore;
 
-  const linkOf = (at: string) => new URL(at, options.base).href;
+  const linksOf = (at: string) => linksAt(options.links, at);
   const named = (film: string) => refused(filmNamed(film).pipe(Effect.provideContext(films)));
 
   const noteRead = (film: FilmName, note: Note): typeof NoteRead.Type => ({
     ...note,
-    link: linkOf(notePath(note)),
+    links: linksOf(notePath(note)),
     stillFile: path.join(notes.paths(film).stills, note.still),
   });
 
@@ -605,7 +594,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
               set: f.ref,
               kind: 'montage',
               ...Option.match(title, { onNone: () => ({}), onSome: (t) => ({ title: t }) }),
-              link: linkOf(pageHref.folder(f.ref)),
+              links: linksOf(pageHref.folder(f.ref)),
               dir: f.dir,
             });
           }
@@ -617,7 +606,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
             return Option.some<typeof SetRead.Type>({
               set: f.ref,
               kind: 'project',
-              link: linkOf(pageHref.folder(f.ref)),
+              links: linksOf(pageHref.folder(f.ref)),
               dir: f.dir,
             });
           return Option.none<typeof SetRead.Type>();
@@ -637,7 +626,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
         const waiting = unresolved(log);
         return {
           film,
-          link: linkOf(pageHref.board(film)),
+          links: linksOf(pageHref.board(film)),
           notes: {
             open: waiting.filter((n) => n.status === 'open').length,
             replied: waiting.filter((n) => n.status === 'replied').length,
@@ -652,7 +641,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
       }),
     );
     return {
-      lab: options.base,
+      lab: options.links,
       cursor: (yield* events.since(Option.none())).cursor,
       films: filmsRead,
       sets: yield* sets,
@@ -701,7 +690,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
             }),
             at: t.at,
           })),
-          link: linkOf(boardPath(film, panel.beat, Option.some(panel.at))),
+          links: linksOf(boardPath(film, panel.beat, Option.some(panel.at))),
         })),
       approvals: board.approvals.filter((a) =>
         Option.match(beat, { onNone: () => true, onSome: (b) => a.beat === b }),
@@ -737,7 +726,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
   ) {
     const at = yield* folderOf(film, set);
     const catalogue = yield* refused(catalogues.read({ name: at.name, out: at.dir }));
-    return { set: at.ref, link: linkOf(pageHref.folder(at.ref)), catalogue };
+    return { set: at.ref, links: linksOf(pageHref.folder(at.ref)), catalogue };
   });
 
   /** A montage's manifest file, as the publish writes it. */
@@ -757,7 +746,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     const manifest = yield* refused(
       store.read({ file, codec: ReviewManifestJson, empty: emptyManifest }),
     );
-    return { set: ref, link: linkOf(pageHref.folder(ref)), dir: at.dir, manifest };
+    return { set: ref, links: linksOf(pageHref.folder(ref)), dir: at.dir, manifest };
   });
 
   const reply = Effect.fn('LabMcp.reply')(function* (name: string, id: string, text: string) {
@@ -890,7 +879,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
       ),
     );
     yield* Effect.log(`lab.mcp.publish set=${ref} files=${copies.length}`);
-    return { set: ref, link: linkOf(pageHref.folder(ref)), dir, manifest: written };
+    return { set: ref, links: linksOf(pageHref.folder(ref)), dir, manifest: written };
   });
 
   const recordRender = Effect.fn('LabMcp.recordRender')(function* (
@@ -918,26 +907,8 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
       });
     const render: Render = { ...given, at: yield* Clock.currentTimeMillis };
     yield* refused(catalogues.record({ name: at.name, out: at.dir }, render));
-    return { set: at.ref, link: linkOf(pageHref.folder(at.ref)) };
+    return { set: at.ref, links: linksOf(pageHref.folder(at.ref)) };
   });
-
-  /** An ask's links: the bound address, the phone's, and the public one when the lab has one. */
-  const askLinks = (id: string): typeof AskLinks.Type => {
-    const at = pageHref.ask(id);
-    const local = Option.getOrElse(Option.fromUndefinedOr(options.local), () => options.base);
-    const phone = Option.fromUndefinedOr(options.phone);
-    return {
-      local: new URL(at, local).href,
-      ...Option.match(phone, {
-        onNone: () => ({}),
-        onSome: (p) => ({ phone: new URL(at, p).href }),
-      }),
-      ...Bool.match(local === options.base, {
-        onTrue: () => ({}),
-        onFalse: () => ({ public: linkOf(at) }),
-      }),
-    };
-  };
 
   const askRead = (record: AskRecord): typeof AskRead.Type => ({
     ask: record.id,
@@ -955,7 +926,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
       Match.orElse(() => ({})),
     ),
     ...Struct.pick(record, ['deadline', 'production', 'set', 'point']),
-    links: askLinks(record.id),
+    links: linksOf(pageHref.ask(record.id)),
   });
 
   /**
@@ -1172,7 +1143,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
       production,
       version,
       said,
-      link: linkOf(pageHref.production(production, version)),
+      links: linksOf(pageHref.production(production, version)),
     };
   });
 
@@ -1305,7 +1276,7 @@ const noteLine = (note: typeof NoteRead.Type) => {
     onNone: () => `scene ${note.scene}`,
     onSome: (p) => `panel ${p.id}`,
   });
-  return `- ${note.film} ${note.id} [${asks}] ${about}: ${gist(note.text, 400)}\n  ${note.link}`;
+  return `- ${note.film} ${note.id} [${asks}] ${about}: ${gist(note.text, 400)}\n  ${[note.links.local, ...Option.toArray(Option.fromUndefinedOr(note.links.phone))].join(' · ')}`;
 };
 
 const inbox = (options: LabMcpOptions) =>

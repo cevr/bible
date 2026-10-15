@@ -876,9 +876,9 @@ same frames as a 16:9 render, measured against one contiguous range): the
 ## Lab
 
 `film lab` is the one place a film is tweaked and reviewed: one server for
-every film of the app, meant to run for days (the box's `film-lab` user unit
-on port 8229). It prints its link (the first `FILM_LAB_HOSTS` name over
-`https://`, else where it is bound; logged `lab.ready`) and runs until
+every film of the app, meant to run for days (on the laptop, port 8229). It
+prints its links (`LabLinks`: the local one, `localhost` where it is bound,
+and the phone's when it listens there; logged `lab.ready`) and runs until
 stopped, which stops the server and the routes with the command's scope. The
 server is Effect's over `Bun.serve` (`labServer` and `serveLab`,
 `tools/api-server.ts`): no route or development server of Bun's, so every
@@ -898,8 +898,9 @@ server entry, `LabPageSpec.servers`), as
 kept) answers a 302 to its place (`legacyPlace`, logged `lab.page.moved`), and the browser
 keeps its `#…` across. A path no place declares is a 404, never a page.
 `LAB_HOST` (loopback by default) and `LAB_PORT` (8229) say where it
-listens; a box binds `0.0.0.0` with the names it is reached by in
-`FILM_LAB_HOSTS`.
+listens; `FILM_LAB_PHONE_URL` (a plain `http://` address, the laptop's on
+the tailnet) is a second listener with the same handler (`startLab`), logged
+`lab.phone.unbound` and left out when it cannot bind.
 
 **Pages and links.** Every view a reviewer would talk about is a URL, so a
 pasted link opens what the sender saw and Back walks the views: the path
@@ -1573,9 +1574,9 @@ answer, or one that does not decode).
 
 **One gate.** `serveApi` (`tools/api-server.ts`) composes an API's routes
 behind one global middleware, the only place a request is admitted
-(`admit`): the Host must be the bound port on a loopback name or one the
-server is told (`FILM_LAB_HOSTS`), a browser's `Sec-Fetch-Site`
-same-origin or none, a write's Origin none (a tool) or one of those hosts', with a JSON body
+(`admit`): the Host must be the listener's own name or a loopback one at
+its port, a browser's `Sec-Fetch-Site`
+same-origin or none, a write's Origin none (a tool) or `http://` one of those hosts, with a JSON body
 (`WriteNotJson`, 415) of at most `STUDIO_MAX_BODY` bytes, counted as it
 streams (`BodyTooLarge`, 413). Anything else is a 403 `RequestRefused`,
 logged `api.request.refused`. A new route is behind the gate by being a
@@ -2888,22 +2889,22 @@ frames and phone copies are the Media service's (`duration`, `still`,
 `phoneCopy`), and a mix is written as an m4a by `writeAac`.
 
 **The remote surface.** The lab is served where the owner reaches it from
-a phone, so `LAB_HOST` defaults to loopback and a box's unit binds
-`0.0.0.0` with the names it is reached by in `FILM_LAB_HOSTS`
-(comma-separated Host values as the browser sends them, port included:
-`bite-cristian.exe.xyz:8229`). Every request passes the API's one gate (The
+a phone over the tailnet, so `LAB_HOST` defaults to loopback and the
+lab listens at `FILM_LAB_PHONE_URL` itself (the laptop's Tailscale address,
+`http://100.92.183.50:8230/`), the same handler on both. Every request passes the API's one gate (The
 HTTP API, above), the pages and their scripts included: the app's server has
 no route of its own, only `labHandler`, which admits first and then hands what
 is not `/api/*` to the pages (`LabPage`, above). A Host
-that is neither the server's own nor one of those is a 403 (DNS rebinding),
+that is not the listener's own is a 403 (DNS rebinding),
 and so is any request a browser marks cross-site (`Sec-Fetch-Site`), but a
 link opened on another site to one of the pages. A write
-must also carry an `Origin` of one of those hosts (`http://` or `https://`)
+must also carry an `Origin` of one of those hosts (`http://`)
 and a JSON body: another origin is a 403, a text/plain body a 415 (so a form
 on another site cannot post), a bad body a 400. The scene editor, the notes and the studio are behind the
-same gate: a write from a phone on one of those hosts is the lab's write. The
-studio's microphone needs a secure context (`https://` or `localhost`), so a
-recording is made on the box's own browser or through an HTTPS name.
+same gate: a write from the phone at its address is the lab's write. The
+studio's microphone needs a secure context, and the phone's plain `http://`
+link is not one, so a recording is made on the local link (`localhost`); on
+the phone the Record section says so (`MicDenied`).
 
 **The page** (`lab/review/`): `<Root>` holds the runtime (the review's
 routes and the options'), where the page is (its place, read from the URL

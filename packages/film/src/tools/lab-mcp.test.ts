@@ -235,7 +235,10 @@ describe('the lab as an MCP server', () => {
             ],
           ),
         ).toEqual([['note.added', 'f', 'n1', 'owner', 'the judge looks away too soon']]);
-        expect(heard.changes[0].link).toBe(`${MCP_BASE}films/f/lab/cold?note=n1`);
+        expect(heard.changes[0].links).toEqual({
+          local: `${MCP_BASE}films/f/lab/cold?note=n1`,
+          phone: `${MCP_PHONE}films/f/lab/cold?note=n1`,
+        });
         const replied = yield* tool('reply', {
           film: 'f',
           note: 'n1',
@@ -280,7 +283,7 @@ describe('the lab as an MCP server', () => {
           text: 'softer eyes',
         });
         expect(tweak.note.panel).toEqual({ id: 'cold.judge', try: 1, ask: 'tweak' });
-        expect(tweak.note.link).toBe(`${MCP_BASE}films/f/board/cold?panel=judge&note=n1`);
+        expect(tweak.note.links.local).toBe(`${MCP_BASE}films/f/board/cold?panel=judge&note=n1`);
         expect(
           (yield* tool('request_tweak', { film: 'f', panel: 'cold.x', text: 'x' })).refused,
         ).toContain('no panel cold.x');
@@ -289,9 +292,12 @@ describe('the lab as an MCP server', () => {
           files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
           manifest: { title: 'Judge faces', images: ['calmer.png'] },
         });
-        expect([published.set, published.link]).toEqual([
+        expect([published.set, published.links]).toEqual([
           'spare/judge-faces',
-          `${MCP_BASE}sets/spare%2Fjudge-faces`,
+          {
+            local: `${MCP_BASE}sets/spare%2Fjudge-faces`,
+            phone: `${MCP_PHONE}sets/spare%2Fjudge-faces`,
+          },
         ]);
         expect(
           (yield* tool('publish_set', {
@@ -469,13 +475,13 @@ describe('asks through the MCP', () => {
           const heard = yield* tool('changes', { since: cursor });
           expect(
             heard.changes.map(
-              (c: { kind: string; ask: string; step: string; answers: unknown; link: string }) => [
-                c.kind,
-                c.ask,
-                c.step,
-                c.answers,
-                c.link,
-              ],
+              (c: {
+                kind: string;
+                ask: string;
+                step: string;
+                answers: unknown;
+                links: { local: string };
+              }) => [c.kind, c.ask, c.step, c.answers, c.links.local],
             ),
           ).toEqual([
             [
@@ -816,7 +822,7 @@ describe('film production ask', () => {
           );
           expect(down.ok).toBe(false);
           expect(down.failed).toMatch(
-            /^LabUnanswered: no lab answered at http:\/\/127\.0\.0\.1:4401\/ \(.*\): start one \(from apps\/animations: bun run lab, or LAB_PORT=<port> bun cli\.ts lab\) and point FILM_LAB_URL at it$/,
+            /^LabUnanswered: no lab answered at http:\/\/localhost:4401\/ \(.*\): start one \(from apps\/animations: bun run lab, or LAB_PORT=<port> bun cli\.ts lab\) and point FILM_LAB_URL at it$/,
           );
         }),
       ),
@@ -887,7 +893,10 @@ describe("the owner's word through the MCP", () => {
               set: 'judge-faces',
               by: 'painter',
             },
-            link: `${MCP_BASE}productions/f?v=1`,
+            links: {
+              local: `${MCP_BASE}productions/f?v=1`,
+              phone: `${MCP_PHONE}productions/f?v=1`,
+            },
           });
           expect(yield* waitingOnF).toEqual([question]);
           // A decision on the set, named by its ref as `sets` lists it, answers it.
@@ -941,7 +950,10 @@ describe("the owner's word through the MCP", () => {
               quote: 'slow it all down',
               by: 'painter',
             },
-            link: `${MCP_BASE}productions/f?v=2`,
+            links: {
+              local: `${MCP_BASE}productions/f?v=2`,
+              phone: `${MCP_PHONE}productions/f?v=2`,
+            },
           });
           const said = Option.getOrThrow(yield* productions.read('f')).said;
           expect(said.map((w) => [w._tag, w.quote, w.set, w.by])).toEqual([
@@ -1182,7 +1194,7 @@ describe('film channel', () => {
         expect(yield* heard).toMatchObject({
           method: 'notifications/claude/channel',
           params: {
-            content: `f n1: note on scene cold: the light comes up too fast\n${MCP_BASE}films/f/lab/cold?note=n1`,
+            content: `f n1: note on scene cold: the light comes up too fast\n${MCP_BASE}films/f/lab/cold?note=n1\n${MCP_PHONE}films/f/lab/cold?note=n1`,
             meta: { kind: 'note.added', film: 'f', note: 'n1', by: 'owner', seq: '1' },
           },
         });
