@@ -372,6 +372,8 @@ export const Submit = () => {
   const { state, actions } = useAsk();
   const { meta } = useReview();
   const sending = () => state.phase() === 'Sending' || state.phase() === 'Rereading';
+  // Only an open page sends: one send is out at a time, and a gone ask takes none.
+  const shut = () => state.phase() !== 'Open';
   createEffect(
     () => state.missing(),
     (id) => {
@@ -392,7 +394,7 @@ export const Submit = () => {
           class="sh-btn"
           data-primary
           data-act="send"
-          disabled={sending()}
+          disabled={shut()}
           aria-busy={pressed(sending())}
           onClick={() => actions.submit()}
         >
@@ -474,6 +476,10 @@ export const Status = () => {
           Match.when('Reading', () => 'Reading the ask…'),
           Match.when('Rereading', () => 'Reading the ask again…'),
           Match.when('Unreadable', () => `This ask cannot be read: ${state.said()}`),
+          Match.when(
+            'Gone',
+            () => `This ask is gone from the lab: ${state.said()}. Your answers stay here to copy.`,
+          ),
           Match.orElse(() => ''),
         )}
       </p>

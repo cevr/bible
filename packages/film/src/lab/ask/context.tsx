@@ -16,6 +16,7 @@ import {
   type AskPageActor,
   AskPageEvent,
   type AskPageState,
+  type Page,
   pageSections,
   spawnAskPage,
 } from './machine.ts';
@@ -58,22 +59,20 @@ const AskContext = createContext<AskContextValue>();
 /** The ask's context: only inside `<Ask.Provider>`. */
 export const useAsk = (): AskContextValue => useContext(AskContext);
 
-const recordOf = (s: AskPageState): Option.Option<AskRecord> =>
+/** The page, once the ask is read: every state past the first read holds it. */
+const pageOf = (s: AskPageState): Option.Option<Page> =>
   Match.value(s).pipe(
-    Match.tag('Open', 'Sending', 'Rereading', (o) => Option.some(o.record)),
-    Match.orElse(() => Option.none<AskRecord>()),
+    Match.tag('Open', 'Sending', 'Rereading', 'Gone', (o) => Option.some(o.page)),
+    Match.orElse(() => Option.none<Page>()),
   );
 
 const draftOf = (s: AskPageState): Readonly<Record<string, string>> =>
-  Match.value(s).pipe(
-    Match.tag('Open', 'Sending', 'Rereading', (o) => o.draft),
-    Match.orElse(() => ({})),
-  );
+  Option.match(pageOf(s), { onNone: () => ({}), onSome: (p) => p.draft });
 
 const saidOf = (s: AskPageState): string =>
   Match.value(s).pipe(
     Match.tag('Open', 'Reading', 'Rereading', (o) => o.said),
-    Match.tag('Unreadable', (u) => u.why),
+    Match.tag('Unreadable', 'Gone', (u) => u.why),
     Match.orElse(() => ''),
   );
 
@@ -81,7 +80,7 @@ const Body = (props: ParentProps<{ readonly actor: AskPageActor }>) => {
   const stateAtom = ActorAtom.make(props.actor);
   const page = useAtomValue(() => stateAtom);
   const send = useAtomSet(() => stateAtom);
-  const record = createMemo(() => recordOf(page()));
+  const record = createMemo(() => Option.map(pageOf(page()), (p) => p.record));
   const review = useReview();
   // The shell names the ask by this read: its crumb and tab its title, its header its film.
   // An ask's title and film never change: it is named once per ask read.

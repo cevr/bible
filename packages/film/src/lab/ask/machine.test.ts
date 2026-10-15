@@ -3,11 +3,15 @@
 // said, not sent; a send carries every section the draft reaches, in order,
 // and lands on the end; optional words left empty go unsent; a refusal (the
 // phone answered first) reads the ask again and says why; an ask that cannot
-// be read says so.
+// be read says so. The owner's draft survives every outcome: an edit made
+// while a send or a re-read is out is kept, a re-read the store fails keeps
+// the page, an ask gone from the lab still shows the draft, and an edit the
+// landed send did not carry is named.
 
-import { Deferred, Effect, Layer, SubscriptionRef } from 'effect';
+import { Deferred, Effect, Layer, Match, Predicate, SubscriptionRef } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { type AskRecord, AskState, type StepValues } from '../../core/ask.ts';
+import { ServerFailed } from '../../core/api.ts';
 import { AskRefused, AskUnknown } from '../../core/refusals.ts';
 import { type LabFailure, LabUnreachable } from '../api.ts';
 import { ReviewApi } from '../review/api.ts';
@@ -100,7 +104,17 @@ const fakeLab = (
   );
 
 const opened = (record: AskRecord, said = '') =>
-  AskPageState.Open({ record, draft: {}, said, missing: '' });
+  AskPageState.Open({ page: { record, draft: {} }, said, missing: '' });
+
+/** The draft a state shows: none before the ask is read. */
+const draftIn = (s: AskPageState): StepValues =>
+  Match.value(s).pipe(
+    Match.tag('Open', 'Sending', 'Rereading', 'Gone', (p) => p.page.draft),
+    Match.orElse(() => ({})),
+  );
+
+/** Where a re-read leaves the page: gone, or never read. */
+const shutOut = Predicate.or(Predicate.isTagged('Gone'), Predicate.isTagged('Unreadable'));
 
 describe("an ask's page", () => {
   it.effect(
@@ -120,7 +134,7 @@ describe("an ask's page", () => {
         // Try 7 asks why: its section is on the page now, its words optional.
         yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
         yield* actor.send(AskPageEvent.Submit);
-        yield* actor.waitFor((s) => s._tag === 'Open' && s.record.state._tag === 'Answered');
+        yield* actor.waitFor((s) => s._tag === 'Open' && s.page.record.state._tag === 'Answered');
         expect(sent).toEqual([
           [
             { step: 'pick', values: { try: '7' } },
@@ -141,7 +155,7 @@ describe("an ask's page", () => {
       yield* actor.waitFor(AskPageState.Open);
       yield* actor.send(AskPageEvent.Set({ id: 'why', value: '  ' }));
       yield* actor.send(AskPageEvent.Submit);
-      yield* actor.waitFor((s) => s._tag === 'Open' && s.record.state._tag === 'Answered');
+      yield* actor.waitFor((s) => s._tag === 'Open' && s.page.record.state._tag === 'Answered');
       expect(sent).toEqual([[{ step: 'why', values: {} }]]);
     }).pipe(
       Effect.scoped,
@@ -157,7 +171,7 @@ describe("an ask's page", () => {
       yield* actor.waitFor(AskPageState.Open);
       yield* actor.send(AskPageEvent.Set({ id: 'try', value: '1' }));
       yield* actor.send(AskPageEvent.Submit);
-      yield* actor.waitFor((s) => s._tag === 'Open' && s.record.answered.length === 1);
+      yield* actor.waitFor((s) => s._tag === 'Open' && s.page.record.answered.length === 1);
       expect(yield* SubscriptionRef.get(actor.state)).toEqual(
         opened(picked, 'ask "a0123456789": step pick is answered already'),
       );
@@ -196,14 +210,13 @@ describe("an ask's page", () => {
       const kept = yield* actor.waitFor((s) => s._tag === 'Open' && s.said !== '');
       expect(kept).toEqual(
         AskPageState.Open({
-          record: asking,
-          draft: { try: '7', why: 'the steadier voice' },
+          page: { record: asking, draft: { try: '7', why: 'the steadier voice' } },
           said: 'Not sent: the lab did not answer. Your answers are kept: send again.',
           missing: '',
         }),
       );
       yield* actor.send(AskPageEvent.Submit);
-      yield* actor.waitFor((s) => s._tag === 'Open' && s.record.state._tag === 'Answered');
+      yield* actor.waitFor((s) => s._tag === 'Open' && s.page.record.state._tag === 'Answered');
       expect(sent).toHaveLength(2);
       expect(sent[1]).toEqual(sent[0]);
     }).pipe(
@@ -233,18 +246,17 @@ describe("an ask's page", () => {
         // While the ask is read again, the page keeps its record and draft: its sections stay.
         expect(yield* actor.waitFor(AskPageState.Rereading)).toEqual(
           AskPageState.Rereading({
-            record: asking,
-            draft: { try: '7', why: 'the steadier voice' },
+            page: { record: asking, draft: { try: '7', why: 'the steadier voice' } },
             said: 'ask "a0123456789": step pick is answered already',
           }),
         );
-        yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'lost' }));
+        // An edit while the ask is read again is the owner's: it is kept.
+        yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'the steadier voice, and slower' }));
         yield* Deferred.succeed(reread, true);
-        // The phone picked try 7: the why step is still open, its words kept.
+        // The phone picked try 7: the why step is still open, its words as last typed.
         expect(yield* actor.waitFor(AskPageState.Open)).toEqual(
           AskPageState.Open({
-            record: picked,
-            draft: { why: 'the steadier voice' },
+            page: { record: picked, draft: { why: 'the steadier voice, and slower' } },
             said: 'ask "a0123456789": step pick is answered already',
             missing: '',
           }),
@@ -256,6 +268,122 @@ describe("an ask's page", () => {
             [Effect.succeed(asking), Deferred.await(reread).pipe(Effect.as(picked))],
             () => Effect.fail(refused),
             sent,
+          ),
+        ),
+      );
+    },
+  );
+
+  it.effect('an edit made while a send is out is kept when the send does not arrive', () => {
+    const sent: Array<Sent> = [];
+    const out = Deferred.makeUnsafe<boolean>();
+    return Effect.gen(function* () {
+      const actor = yield* spawnAskPage(asking.id);
+      yield* actor.waitFor(AskPageState.Open);
+      yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
+      yield* actor.send(AskPageEvent.Submit);
+      yield* actor.waitFor(AskPageState.Sending);
+      yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'typed while it was out' }));
+      yield* Deferred.succeed(out, true);
+      const back = yield* actor.waitFor((s) => s._tag === 'Open' && s.said !== '');
+      expect(draftIn(back)).toEqual({ try: '7', why: 'typed while it was out' });
+      // The send carried the draft as it was at Send.
+      expect(sent).toEqual([
+        [
+          { step: 'pick', values: { try: '7' } },
+          { step: 'why', values: {} },
+        ],
+      ]);
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        fakeLab(
+          [Effect.succeed(asking)],
+          () =>
+            Deferred.await(out).pipe(
+              Effect.andThen(
+                Effect.fail(LabUnreachable.make({ message: 'the lab did not answer' })),
+              ),
+            ),
+          sent,
+        ),
+      ),
+    );
+  });
+
+  it.effect('a landed send names an edit made after Send that it did not carry', () => {
+    const out = Deferred.makeUnsafe<boolean>();
+    return Effect.gen(function* () {
+      const actor = yield* spawnAskPage(asking.id);
+      yield* actor.waitFor(AskPageState.Open);
+      yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
+      yield* actor.send(AskPageEvent.Submit);
+      yield* actor.waitFor(AskPageState.Sending);
+      yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'too late' }));
+      yield* Deferred.succeed(out, true);
+      const landed = yield* actor.waitFor(
+        (s) => s._tag === 'Open' && s.page.record.state._tag === 'Answered',
+      );
+      expect(landed).toMatchObject({
+        said: 'Sent before your change to “Why?”: the lab has the answer as it was at Send.',
+      });
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        fakeLab([Effect.succeed(asking)], () => Deferred.await(out).pipe(Effect.as(ended)), []),
+      ),
+    );
+  });
+
+  it.effect('a refused send whose re-read the store fails keeps the whole draft', () => {
+    const refused = AskRefused.make({ id: asking.id, reason: 'step pick is answered already' });
+    return Effect.gen(function* () {
+      const actor = yield* spawnAskPage(asking.id);
+      yield* actor.waitFor(AskPageState.Open);
+      yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
+      yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'the steadier voice' }));
+      yield* actor.send(AskPageEvent.Submit);
+      const after = yield* actor.waitFor(
+        (s) =>
+          (s._tag === 'Open' && s.said.includes('could not be read again')) ||
+          s._tag === 'Unreadable',
+      );
+      expect(after._tag).toBe('Open');
+      expect(draftIn(after)).toEqual({ try: '7', why: 'the steadier voice' });
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        fakeLab(
+          [
+            Effect.succeed(asking),
+            Effect.fail(ServerFailed.make({ tag: 'StoreError', reason: 'the store is busy' })),
+          ],
+          () => Effect.fail(refused),
+          [],
+        ),
+      ),
+    );
+  });
+
+  it.effect(
+    'an ask gone from the lab on the re-read still shows the draft, and sends nothing',
+    () => {
+      const refused = AskRefused.make({ id: asking.id, reason: 'step pick is answered already' });
+      return Effect.gen(function* () {
+        const actor = yield* spawnAskPage(asking.id);
+        yield* actor.waitFor(AskPageState.Open);
+        yield* actor.send(AskPageEvent.Set({ id: 'try', value: '7' }));
+        yield* actor.send(AskPageEvent.Submit);
+        const gone = yield* actor.waitFor(shutOut);
+        expect(gone._tag).toBe('Gone');
+        expect(draftIn(gone)).toEqual({ try: '7' });
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(
+          fakeLab(
+            [Effect.succeed(asking), Effect.fail(AskUnknown.make({ id: asking.id }))],
+            () => Effect.fail(refused),
+            [],
           ),
         ),
       );
