@@ -142,7 +142,14 @@ export class SeriesDrafts extends Context.Service<SeriesDrafts, SeriesDraftsServ
             Effect.fn('SeriesDrafts.series')(function* (name) {
               const scripts = path.join(dir, name, SCRIPTS);
               // A file beside the series (`README.md`, `delivery.md`) is no series.
-              const folder = yield* Effect.map(fs.stat(path.join(dir, name)), (info) => info.type);
+              // A link to nothing is no series either; a folder the box may not read is said.
+              const folder = yield* fs.stat(path.join(dir, name)).pipe(
+                Effect.map((info): string => info.type),
+                Effect.catchIf(
+                  (e) => e.reason._tag === 'NotFound',
+                  () => Effect.succeed('Missing'),
+                ),
+              );
               if (folder !== 'Directory') return Option.none();
               const drafts = yield* Effect.forEach(
                 (yield* entries(scripts)).filter((f) => f.endsWith('.md')).toSorted(),

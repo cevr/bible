@@ -3,7 +3,7 @@
 // byte, and no path outside the folder's own drafts.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Layer, Option, Path } from 'effect';
+import { Boolean as Bool, Effect, FileSystem, Layer, Option, Path } from 'effect';
 import * as PlatformError from 'effect/PlatformError';
 import { SeriesDrafts } from './series-drafts.ts';
 import { memoryFileSystem, storeLayer } from './testing.ts';
@@ -43,6 +43,37 @@ const seeded = () =>
     ['/series/plans/series.md', text('# No drafts yet\n')],
     ['/series/README.md', text('# Series\n')],
   ]);
+
+/** `files` in memory, and beside the series a link to nothing: listed, its `stat` not found. */
+const dangling = (files: Map<string, Uint8Array>) =>
+  Layer.effect(
+    FileSystem.FileSystem,
+    Effect.map(FileSystem.FileSystem, (fs) =>
+      FileSystem.FileSystem.of({
+        ...fs,
+        readDirectory: (dir, options) =>
+          Effect.map(fs.readDirectory(dir, options), (names) =>
+            Bool.match(dir === '/series', {
+              onTrue: () => [...names, 'gone'],
+              onFalse: () => names,
+            }),
+          ),
+        stat: (at) =>
+          Bool.match(at === '/series/gone', {
+            onTrue: () =>
+              Effect.fail(
+                PlatformError.systemError({
+                  _tag: 'NotFound',
+                  module: 'FileSystem',
+                  method: 'stat',
+                  pathOrDescriptor: at,
+                }),
+              ),
+            onFalse: () => fs.stat(at),
+          }),
+      }),
+    ),
+  ).pipe(Layer.provide(memoryFileSystem(files)));
 
 /** `files` in memory, but a folder the box may not read: `readDirectory` refused. */
 const unreadable = (files: Map<string, Uint8Array>) =>
@@ -131,6 +162,19 @@ describe('SeriesDrafts', () => {
       Effect.provide(
         SeriesDrafts.layer(Option.some('/series')).pipe(
           Layer.provide([storeLayer(files), unreadable(files), Path.layer]),
+        ),
+      ),
+    );
+  });
+  it.effect('a link to nothing beside the series is no series, and the rest read', () => {
+    const files = seeded();
+    return Effect.gen(function* () {
+      const list = yield* (yield* SeriesDrafts).list;
+      expect(list.series.map((s) => s.name)).toEqual(['films', 'talks']);
+    }).pipe(
+      Effect.provide(
+        SeriesDrafts.layer(Option.some('/series')).pipe(
+          Layer.provide([storeLayer(files), dangling(files), Path.layer]),
         ),
       ),
     );

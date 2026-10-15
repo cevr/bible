@@ -23,7 +23,7 @@ import { Array as Arr, Effect, Option, Result } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { Accessor } from 'solid-js';
-import { createEffect, createMemo, createSignal } from 'solid-js';
+import { createEffect, createMemo, createSignal, untrack } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
 import { addressOn } from '../../browser/host.ts';
 import { wordsIn, wordsText } from '../../command/selection.ts';
@@ -314,20 +314,24 @@ const Beats = (props: {
   createEffect(
     () => Option.map(selected(), (w) => `${w.section}:${w.from}-${w.to}`),
     (key) => {
-      Option.map(
+      // Moved on (another selection, or the page gone) before it lands, the scroll is not made.
+      const stop = Option.map(
         Option.flatMap(
           Option.flatMap(key, () => page),
           (el) => Option.fromNullishOr(el.querySelector('.lab-script-ties')),
         ),
         // Once laid out (its choices drawn, the page's type set): the whole box, not its top.
         (box) =>
-          Effect.runForkWith(meta.host)(
+          Effect.runCallbackWith(meta.host)(
             Effect.promise(() => document.fonts.ready).pipe(
               Effect.andThen(Frames.use((f) => f.next)),
               Effect.andThen(Effect.sync(() => box.scrollIntoView({ block: 'nearest' }))),
             ),
           ),
       );
+      return () => {
+        Option.map(stop, (interrupt) => interrupt());
+      };
     },
   );
   const wordsOf = (beat: string): Option.Option<Words> =>
@@ -355,7 +359,10 @@ const Reader = (props: {
   readonly series: string;
   readonly draft: string;
   readonly shown: Accessor<DraftRead>;
-  readonly answer: (read: DraftRead) => void;
+  /** The read a write is made over, as the write is sent. */
+  readonly made: () => Option.Option<DraftRead>;
+  /** A write's answer, with the read it was made over. */
+  readonly answer: (read: DraftRead, over: Option.Option<DraftRead>) => void;
 }) => {
   const { meta } = useReview();
   const beats = createMemo(() => laidOut(props.shown()));
@@ -364,10 +371,14 @@ const Reader = (props: {
     reading: meta.runtime
       .atom(polled(ReviewApi.use((api) => api.draftVoice(props.series, props.draft))))
       .pipe(Atom.withServerValue(() => AsyncResult.initial())),
+    // The answer is bound to the read the write was sent over: a refresh since outranks it.
     write: meta.runtime.fn((post: MarksPost) =>
-      ReviewApi.use((api) => api.draftMarks(props.series, props.draft, post)).pipe(
-        Effect.tap((read) => Effect.sync(() => props.answer(read))),
-      ),
+      Effect.suspend(() => {
+        const over = props.made();
+        return ReviewApi.use((api) => api.draftMarks(props.series, props.draft, post)).pipe(
+          Effect.tap((read) => Effect.sync(() => props.answer(read, over))),
+        );
+      }),
     ),
     takeUrl: (file) => draftTakeUrl(props.series, props.draft, file),
     beats: () => beats().map((b) => b.read.id),
@@ -387,8 +398,9 @@ const Reader = (props: {
 export const DraftPage = (props: { readonly series: string; readonly draft: string }) => {
   const { meta, state } = useReview();
   const read = useAtomValue(() => meta.draft(props.series, props.draft));
-  // A mark write's answer stands over the read it was made on, the draft as the write left it,
-  // until the draft is read again (a refresh): then the read is the draft as it stands.
+  // A mark write's answer stands over the read it was sent over, the draft as the write left it,
+  // until the draft is read again (a refresh): then the read is the draft as it stands, and an
+  // answer sent over an older read never stands over it.
   const [answered, setAnswered] = createSignal(
     Option.none<{ readonly read: DraftRead; readonly over: Option.Option<DraftRead> }>(),
     { ownedWrite: true },
@@ -450,9 +462,8 @@ export const DraftPage = (props: { readonly series: string; readonly draft: stri
               series={props.series}
               draft={props.draft}
               shown={d}
-              answer={(next) =>
-                setAnswered(Option.some({ read: next, over: AsyncResult.value(read()) }))
-              }
+              made={() => untrack(() => AsyncResult.value(read()))}
+              answer={(next, over) => setAnswered(Option.some({ read: next, over }))}
             />
           )}
         </Show>

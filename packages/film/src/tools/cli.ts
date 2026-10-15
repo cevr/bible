@@ -480,8 +480,10 @@ const script = Command.make(
 const DRAFT_WPM = 155;
 
 /** `seconds` as `m:ss`. */
-const minutes = (seconds: number) =>
-  `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`;
+const minutes = (seconds: number) => {
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+};
 
 const drafts = Command.make(
   'drafts',

@@ -4,10 +4,11 @@
 // the ready take and its pace show; a tap on a word selects it in the URL
 // and opens its delivery, whose Stress writes the beat's marks (the draft's
 // answer shown, the takes read again); a gap's choice writes a breath; a
-// write the lab refuses says why under the words; and the review's home
-// lists the series, each opening to its drafts' links.
+// write the lab refuses says why under the words; a refresh reads the draft
+// again, outranking a write's answer sent over the older read; and the
+// review's home lists the series, each opening to its drafts' links.
 
-import { Effect, Option, Schedule } from 'effect';
+import { Boolean as Bool, Effect, Option, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { SourceChanged } from '../../../src/core/refusals.ts';
@@ -175,6 +176,52 @@ describe('a series draft in the Script reader, on a phone', () => {
           `document.querySelector('${word(3)}').dataset.stress ?? 'none'`,
           'none',
         );
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a refresh reads the draft again, and a mark answered over the older read never stands over it',
+    () =>
+      Effect.gen(function* () {
+        let saved = false;
+        const routes: ReadonlyArray<FakeRoute> = [
+          // The write's answer is held: an editor's save and a refresh land before it does.
+          route(
+            'POST',
+            MARKS,
+            () => json(draftRecordWith('The first thing {*}God {*}gave was breath.')),
+            '1500 millis',
+          ),
+          route('GET', new RegExp(`${DRAFT}$`), () =>
+            json(
+              Bool.match(saved, {
+                onTrue: () => draftRecordWith('The first thing God gave was {*}breath.'),
+                onFalse: () => draftRecordWith(),
+              }),
+            ),
+          ),
+          ...studioRoutes,
+        ];
+        const { page, errors } = yield* openReview(routes, {
+          href: pageHref.draftBeat(STUDIO_SERIES, STUDIO_DRAFT, '1', '3-3'),
+          viewport: PHONE,
+        });
+        yield* waitFor(page, DELIVERY_READY);
+        yield* page.click(DELIVERY_READY);
+        saved = true;
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
+        yield* evaluates(page, `document.querySelector('${word(6)}').dataset.stress`, 'true');
+        // The held answer lands, and is set aside: the draft as it now reads stands.
+        yield* textHas(page, '.lab-script-delivery-note', 'marked in the draft');
+        yield* evaluates(page, `document.querySelector('${word(6)}').dataset.stress`, 'true');
+        yield* evaluates(
+          page,
+          `document.querySelector('${word(3)}').dataset.stress ?? 'none'`,
+          'none',
+        );
+        expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );
