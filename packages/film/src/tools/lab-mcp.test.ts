@@ -7,7 +7,10 @@
 // lab's out/ and listed, and seen as published; an ask made (its machine
 // checked first), answered by the owner a step at a time through the page's
 // route and heard on `changes` with its answers typed, then closed and filed
-// on its production's timeline.
+// on its production's timeline. `film production ask` makes the lab's own
+// ask, its set named by folder as the ledger names it (the lab's ref only
+// where two roots hold that folder); the lab client's session ends with its
+// scope, and the lab forgets it.
 
 import { describe, expect, it } from 'effect-bun-test';
 import {
@@ -43,7 +46,8 @@ import { ProductionStore } from './production-store.ts';
 import { labHandler } from './lab.ts';
 import { channel } from './lab-channel.ts';
 import { LabEvents } from './lab-events.ts';
-import { type LabMcpNeeds, MCP_PATH, labMcp } from './lab-mcp.ts';
+import { labClient } from './lab-client.ts';
+import { Changes, type LabMcpNeeds, MCP_PATH, labMcp } from './lab-mcp.ts';
 import { Review } from './review.ts';
 import { formatAsIs, labInMemory, noRenders, printingTo, text } from './testing.ts';
 
@@ -81,17 +85,28 @@ const files = () =>
     ['/films/f/board.json', text(Schema.encodeSync(BoardFileJson)(board))],
     ['/films/f/board/cold.judge.1.png', text('the judge')],
     ['/work/judge-calmer.png', text('a calmer judge')],
+    // A set of the same folder's name in another root (`reviewAt` names it).
+    [
+      '/elsewhere/judge-faces/review.json',
+      text('{"title":"Judge faces elsewhere","images":["calm.png"]}'),
+    ],
+    ['/elsewhere/judge-faces/calm.png', text('a calm judge')],
   ]);
 
-/** The review rooted at the lab's own out/ (`FILMS_OUT`, here its default under the working folder). */
-const reviewAtOut = Layer.effect(
-  Review,
-  Effect.gen(function* () {
-    const review = yield* Review;
-    const path = yield* Path.Path;
-    return Review.of({ ...review, roots: [{ label: 'spare', path: path.resolve('out') }] });
-  }),
-).pipe(Layer.provide([noRenders, Path.layer]));
+/** The review rooted at the lab's own out/ (`FILMS_OUT`, here its default under the working folder), then `others`. */
+const reviewAt = (others: ReadonlyArray<{ readonly label: string; readonly path: string }>) =>
+  Layer.effect(
+    Review,
+    Effect.gen(function* () {
+      const review = yield* Review;
+      const path = yield* Path.Path;
+      return Review.of({
+        ...review,
+        roots: [{ label: 'spare', path: path.resolve('out') }, ...others],
+      });
+    }),
+  ).pipe(Layer.provide([noRenders, Path.layer]));
+const reviewAtOut = reviewAt([]);
 
 /** The lab's handler with its MCP beside it, over a feed the test reads (`look`) when it says. */
 const labWithMcp = Effect.gen(function* () {
@@ -105,15 +120,18 @@ const labWithMcp = Effect.gen(function* () {
   return { lab, events };
 });
 
-const provided = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-  self.pipe(
-    Effect.scoped,
-    Effect.provide(
-      Layer.mergeAll(RenderCatalogue.layer, reviewAtOut).pipe(
-        Layer.provideMerge(labInMemory(files())),
+const providedWith =
+  (review: typeof reviewAtOut) =>
+  <A, E, R>(self: Effect.Effect<A, E, R>) =>
+    self.pipe(
+      Effect.scoped,
+      Effect.provide(
+        Layer.mergeAll(RenderCatalogue.layer, review).pipe(
+          Layer.provideMerge(labInMemory(files())),
+        ),
       ),
-    ),
-  );
+    );
+const provided = providedWith(reviewAtOut);
 
 type Lab = (request: Request, server: typeof bound) => Promise<Response>;
 
@@ -691,7 +709,7 @@ describe('film production ask', () => {
               '--option',
               'Calmer',
               '--set',
-              'spare/judge-faces',
+              'judge-faces',
               '--point',
               'render:cold',
               '--film',
@@ -709,7 +727,7 @@ describe('film production ask', () => {
             point: 'render:cold',
           });
           expect(asked.lines).toEqual([
-            `asked ${made.ask} on f: waits on its timeline at spare/judge-faces, render:cold`,
+            `asked ${made.ask} on f: waits on its timeline at judge-faces, render:cold`,
             `local ${BASE}asks/${made.ask}`,
             `phone ${PHONE}asks/${made.ask}`,
             `then: its answers with the lab's MCP (ask_read ${made.ask}); close_ask it once acted on`,
@@ -751,8 +769,69 @@ describe('film production ask', () => {
               note: { kind: 'skipped' },
             },
           });
+          // The set named by the lab's ref, or by a folder the lab lists not: refused, nothing asked.
+          const again = (set: string) =>
+            productionCli(
+              (request) => lab(request, bound),
+              ['ask', 'f', 'Q?', '--why', 'w', '--option', 'A', '--option', 'B', '--set', set],
+            );
+          expect((yield* again('spare/judge-faces')).failed).toBe(
+            "SetByRef: spare/judge-faces is the lab's ref for it: the production commands name a set by its folder under its root, --set judge-faces",
+          );
+          expect((yield* again('nowhere')).failed).toBe(
+            `SetUnlisted: the lab at ${BASE} lists no set nowhere: name a set by its folder under its review root, as \`film production show\` prints it (set=…)`,
+          );
+          expect((yield* tool('asks', {})).asks.map((a: { ask: string }) => a.ask)).toEqual([
+            made.ask,
+          ]);
         }),
       ),
+  );
+
+  it.effect('names a set two roots hold by its ref, its folder alone refused', () =>
+    providedWith(reviewAt([{ label: 'other', path: '/elsewhere' }]))(
+      Effect.gen(function* () {
+        const { lab } = yield* labWithMcp;
+        const { tool } = yield* session(lab);
+        yield* (yield* ProductionStore).start('f', {
+          title: 'F',
+          film: Option.some('f'),
+          blurb: Option.none(),
+          first: 'the board',
+          at: 1,
+        });
+        yield* tool('publish_set', {
+          name: 'judge-faces',
+          files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
+          manifest: { title: 'Judge faces', images: ['calmer.png'] },
+        });
+        const asking = (set: string) =>
+          productionCli(
+            (request) => lab(request, bound),
+            [
+              'ask',
+              'f',
+              'Which judge?',
+              '--why',
+              'w',
+              '--option',
+              'A',
+              '--option',
+              'B',
+              '--set',
+              set,
+            ],
+          );
+        expect((yield* asking('judge-faces')).failed).toBe(
+          'SetInRoots: judge-faces is a folder in more than one root (spare/judge-faces, other/judge-faces): name the one meant by its ref',
+        );
+        const named = yield* asking('other/judge-faces');
+        expect(named.failed).toBe('');
+        const [made] = (yield* tool('asks', {})).asks;
+        expect(made.set).toBe('other/judge-faces');
+        expect(named.lines[0]).toBe(`asked ${made.ask} on f: waits on its timeline at judge-faces`);
+      }),
+    ),
   );
 
   it.effect(
@@ -819,19 +898,38 @@ describe('film production ask', () => {
 });
 
 /** The lab's handler as an HTTP client sees it; `polling` is told once a client waits on `changes`. */
+const httpOf = (lab: Lab, polling: Deferred.Deferred<void>) =>
+  HttpClient.make((request) =>
+    Effect.gen(function* () {
+      const web = yield* Effect.orDie(HttpClientRequest.toWeb(request));
+      const body = yield* Effect.promise(() => web.clone().text());
+      if (body.includes('"wait":50')) yield* Deferred.done(polling, Exit.void);
+      const answer = yield* Effect.promise(() => lab(web, bound));
+      return HttpClientResponse.fromWeb(request, answer);
+    }),
+  );
+
 const clientOf = (lab: Lab, polling: Deferred.Deferred<void>) =>
-  Layer.succeed(
-    HttpClient.HttpClient,
-    HttpClient.make((request) =>
+  Layer.succeed(HttpClient.HttpClient, httpOf(lab, polling));
+
+describe('the lab client', () => {
+  it.effect('ends its session when its scope closes, and the lab forgets it', () =>
+    provided(
       Effect.gen(function* () {
-        const web = yield* Effect.orDie(HttpClientRequest.toWeb(request));
-        const body = yield* Effect.promise(() => web.clone().text());
-        if (body.includes('"wait":50')) yield* Deferred.done(polling, Exit.void);
-        const answer = yield* Effect.promise(() => lab(web, bound));
-        return HttpClientResponse.fromWeb(request, answer);
+        const { lab } = yield* labWithMcp;
+        const polling = yield* Deferred.make<void>();
+        const client = yield* labClient(BASE).pipe(
+          Effect.provideService(HttpClient.HttpClient, httpOf(lab, polling)),
+        );
+        const ended = yield* Effect.scoped(
+          Effect.tap(client.session, (session) => client.call(session, Changes, { wait: 0 })),
+        );
+        const after = yield* Effect.flip(client.call(ended, Changes, { wait: 0 }));
+        expect(after.message).toContain(`no lab answered at ${BASE} (it answered 404)`);
       }),
     ),
   );
+});
 
 describe('film channel', () => {
   it.effect("answers the handshake, then sends the owner's note on as a channel event", () =>

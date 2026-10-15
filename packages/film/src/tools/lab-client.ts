@@ -1,14 +1,15 @@
 // The lab's MCP as a command calls it: one small client of the running lab
 // at `FILM_LAB_URL` (the always-on lab, http://127.0.0.1:8229/, unless set),
 // for each command that works through the lab's tools (`film channel`'s
-// change feed, `film production ask`). A session is started (`initialize`,
-// then `notifications/initialized`; the lab says the session's id in
-// `Mcp-Session-Id`), then each `tools/call` is typed by the lab's own tool
-// (`lab-mcp.ts`): its arguments encoded by the tool's parameters, its
-// structured answer decoded by the tool's success. The lab answers loopback
-// with no token. No lab answering, or one answering in a shape this
-// checkout does not read, is `LabUnanswered`; a tool's refusal is
-// `LabToolRefused`, in the lab's words.
+// change feed, `film production ask`). A session lasts as long as its scope:
+// started (`initialize`, then `notifications/initialized`; the lab says the
+// session's id in `Mcp-Session-Id`), and ended (`DELETE`) when the scope
+// closes, so the lab keeps no session a command has left. Each `tools/call`
+// is typed by the lab's own tool (`lab-mcp.ts`): its arguments encoded by
+// the tool's parameters, its structured answer decoded by the tool's
+// success. The lab answers loopback with no token. No lab answering, or one
+// answering in a shape this checkout does not read, is `LabUnanswered`; a
+// tool's refusal is `LabToolRefused`, in the lab's words.
 
 import { Array as Arr, Boolean as Bool, Config, Effect, Option, Ref, Schema } from 'effect';
 import { HttpClient, HttpClientRequest } from 'effect/http';
@@ -113,10 +114,10 @@ const messagesOf = (contentType: Option.Option<string>, body: string): ReadonlyA
   );
 
 /**
- * A client of the lab's MCP at `url`: `start` begins a session and answers
- * its id; `call` calls one of the lab's tools in it, typed by the tool. A
- * session the lab no longer knows (it restarted) answers 404, so
- * `LabUnanswered`: the caller starts another.
+ * A client of the lab's MCP at `url`: `session` begins a session, answers
+ * its id and ends it when its scope closes; `call` calls one of the lab's
+ * tools in it, typed by the tool. A session the lab no longer knows (it
+ * restarted) answers 404, so `LabUnanswered`: the caller starts another.
  */
 export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
   const http = yield* HttpClient.HttpClient;
@@ -168,6 +169,32 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
     return session;
   });
 
+  /**
+   * `session` ended in the lab. The lab's gate takes a write only as JSON, a
+   * body-less one too. A lab that already forgot it (it restarted) or has
+   * gone is left as it is: the session went with it.
+   */
+  const end = (session: string) =>
+    http
+      .execute(
+        HttpClientRequest.delete(endpoint).pipe(
+          HttpClientRequest.setHeaders({
+            'content-type': 'application/json',
+            'mcp-session-id': session,
+            'mcp-protocol-version': PROTOCOL,
+          }),
+        ),
+      )
+      .pipe(
+        Effect.tap((ended) =>
+          Effect.logDebug(`lab.client.ended url=${url} status=${ended.status}`),
+        ),
+        Effect.ignore,
+      );
+
+  /** A session for as long as its scope: started now, ended when the scope closes. */
+  const session = Effect.acquireRelease(start, end);
+
   const call = <P, PE, S, SE>(session: string, tool: LabTool<P, PE, S, SE>, params: P) =>
     Effect.gen(function* () {
       const id = yield* Ref.updateAndGet(ids, (n) => n + 1);
@@ -215,5 +242,8 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
       );
     });
 
-  return { url, start, call };
+  return { url, session, call };
 });
+
+/** A client of the lab's MCP, as `labClient` makes it. */
+export type LabClient = Effect.Success<ReturnType<typeof labClient>>;

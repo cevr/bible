@@ -193,9 +193,9 @@ const runChannel = (url: string) =>
     const outgoing = yield* Queue.unbounded<string>();
     const send = (message: Schema.Json) => Queue.offer(outgoing, `${writeJson(message)}\n`);
     const client = yield* labClient(url);
-    /** The lab's feed: a session, then `changes` past a cursor (none: the cursor now). */
+    /** The lab's feed: a session (ended with its connection), then `changes` past a cursor (none: the cursor now). */
     const feed = {
-      start: client.start,
+      session: client.session,
       changes: (session: string, since: Option.Option<string>, wait: number) =>
         client.call(session, Changes, {
           ...Option.match(since, { onNone: () => ({}), onSome: (cursor) => ({ since: cursor }) }),

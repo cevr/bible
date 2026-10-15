@@ -16,13 +16,16 @@
 //       [--set <set>] [--point <id>] [--variant <id>] [--at <ISO time>]
 //       record the owner's decision or note given outside the lab
 //   film production ask <production> "<question>" --why "<what it decides>"
-//       [--option "<answer>" --option "<answer>" ...] [--set <ref> [--point <id>]]
+//       [--option "<answer>" --option "<answer>" ...] [--set <set> [--point <id>]]
 //       [--film <film>] [--deadline <ISO>] [--by <who>]
 //       ask the owner on a page of the running lab (`FILM_LAB_URL`, through
 //       `lab-client.ts`): the lab's own ask, filed on the production's
 //       timeline as the lab's MCP `ask` files it; prints its links. Two
 //       options or more are a choice with optional words beside it; none
-//       asks for words. No lab answering is `LabUnanswered`: nothing is asked
+//       asks for words. The set is named as every production command names
+//       it, by its folder under its review root (its ref, root/folder, only
+//       where two roots hold that folder): the lab's sets say which one it
+//       is. No lab answering is `LabUnanswered`: nothing is asked
 //   film production file <production> <set> --version <n>
 //       file a set published before sets named their production
 //   film publish <folder> --production <production> [--version <n>]
@@ -31,7 +34,18 @@
 //       one the lab reads (under a review root)
 
 import { Argument, Command, Flag } from 'effect/cli';
-import { Clock, Console, DateTime, Effect, Match, Option, Path, Result, Schema } from 'effect';
+import {
+  Array as Arr,
+  Clock,
+  Console,
+  DateTime,
+  Effect,
+  Match,
+  Option,
+  Path,
+  Result,
+  Schema,
+} from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import type { AskBlock } from '../core/ask.ts';
 import {
@@ -40,10 +54,11 @@ import {
   ProductionId,
   type Said,
   currentVersion,
+  setPathOf,
   versionAt,
 } from '../core/production.ts';
-import { labClient, labUrl } from './lab-client.ts';
-import { AskTool } from './lab-mcp.ts';
+import { type LabClient, labClient, labUrl } from './lab-client.ts';
+import { AskTool, Sets } from './lab-mcp.ts';
 import { ProductionStore } from './production-store.ts';
 import { Review, refOf } from './review.ts';
 
@@ -72,6 +87,36 @@ class OneOption extends Schema.TaggedError<OneOption>()('OneOption', {
 }) {
   override get message() {
     return `one --option ("${this.option}") is no choice: give two or more, or none to ask for words`;
+  }
+}
+
+/** A set the lab does not list. */
+class SetUnlisted extends Schema.TaggedError<SetUnlisted>()('SetUnlisted', {
+  set: Schema.String,
+  url: Schema.String,
+}) {
+  override get message() {
+    return `the lab at ${this.url} lists no set ${this.set}: name a set by its folder under its review root, as \`film production show\` prints it (set=…)`;
+  }
+}
+
+/** A folder more than one root holds: the lab lists a set in each. */
+class SetInRoots extends Schema.TaggedError<SetInRoots>()('SetInRoots', {
+  set: Schema.String,
+  refs: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `${this.set} is a folder in more than one root (${this.refs.join(', ')}): name the one meant by its ref`;
+  }
+}
+
+/** A set named by the lab's ref where its folder names it: the production commands name it by its folder. */
+class SetByRef extends Schema.TaggedError<SetByRef>()('SetByRef', {
+  ref: Schema.String,
+  folder: Schema.String,
+}) {
+  override get message() {
+    return `${this.ref} is the lab's ref for it: the production commands name a set by its folder under its root, --set ${this.folder}`;
   }
 }
 
@@ -312,6 +357,50 @@ const askBlocks = (options: ReadonlyArray<string>) =>
     ),
   );
 
+/**
+ * The lab's ref for the set `given` names, among the refs the lab lists: the
+ * folder under its root, as the ledger and every production command name a
+ * set; the ref itself only where more than one root holds its folder.
+ */
+const refFor = (
+  listed: ReadonlyArray<string>,
+  given: string,
+  url: string,
+): Effect.Effect<string, SetUnlisted | SetInRoots | SetByRef> => {
+  const holding = (folder: string) => listed.filter((ref) => setPathOf(ref) === folder);
+  const byFolder = holding(given);
+  if (byFolder.length > 1) return Effect.fail(SetInRoots.make({ set: given, refs: byFolder }));
+  const one = Arr.head(byFolder);
+  if (Option.isSome(one)) return Effect.succeed(one.value);
+  if (!listed.includes(given)) return Effect.fail(SetUnlisted.make({ set: given, url }));
+  const folder = setPathOf(given);
+  if (holding(folder).length === 1) return Effect.fail(SetByRef.make({ ref: given, folder }));
+  return Effect.succeed(given);
+};
+
+/** `ask` made in the lab, in a session of its own (ended once answered); its set, given by folder, named by the lab's ref. */
+const askInLab = Effect.fn('film.production.askInLab')(function* (
+  client: LabClient,
+  ask: typeof AskTool.parametersSchema.Type,
+) {
+  const session = yield* client.session;
+  const set = yield* Option.match(Option.fromUndefinedOr(ask.set), {
+    onNone: () => Effect.succeed({}),
+    onSome: (given) =>
+      client.call(session, Sets, {}).pipe(
+        Effect.flatMap(({ sets }) =>
+          refFor(
+            sets.map((listed) => listed.set),
+            given,
+            client.url,
+          ),
+        ),
+        Effect.map((ref) => ({ set: ref })),
+      ),
+  });
+  return yield* client.call(session, AskTool, { ...ask, ...set });
+}, Effect.scoped);
+
 const ask = Command.make(
   'ask',
   {
@@ -331,7 +420,7 @@ const ask = Command.make(
     set: Flag.String('set').pipe(
       Flag.optional,
       Flag.withDescription(
-        'the set it is about, by its ref (as `film publish` printed it, e.g. spare/judge-faces): its timeline shows it waiting there',
+        'the set it is about: its folder under its review root, as `decide` and `note` take it (its ref, root/folder, only where two roots hold that folder); its timeline shows it waiting there',
       ),
     ),
     point: Flag.String('point').pipe(
@@ -351,7 +440,7 @@ const ask = Command.make(
     const id = yield* productionNamed(input.production);
     const blocks = yield* askBlocks(input.option);
     const client = yield* labClient(yield* labUrl);
-    const asked = yield* client.call(yield* client.start, AskTool, {
+    const asked = yield* askInLab(client, {
       title: input.question,
       why: input.why,
       by: input.by,
@@ -366,10 +455,13 @@ const ask = Command.make(
       `asked ${asked.ask} on ${id}: ${Option.match(Option.fromUndefinedOr(asked.set), {
         onNone: () => 'filed on its timeline once closed',
         onSome: (set) =>
-          `waits on its timeline at ${set}${Option.match(Option.fromUndefinedOr(asked.point), {
-            onNone: () => '',
-            onSome: (point) => `, ${point}`,
-          })}`,
+          `waits on its timeline at ${setPathOf(set)}${Option.match(
+            Option.fromUndefinedOr(asked.point),
+            {
+              onNone: () => '',
+              onSome: (point) => `, ${point}`,
+            },
+          )}`,
       })}`,
     );
     yield* Console.log(`local ${asked.links.local}`);

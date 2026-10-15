@@ -313,7 +313,7 @@ const CatalogueTool = Tool.make('catalogue', {
   failure: LabRefused,
 }).annotate(Tool.Readonly, true);
 
-const Sets = Tool.make('sets', {
+export const Sets = Tool.make('sets', {
   description:
     'Every set the lab lists, by ref: montages (a `review.json`) and project folders (a `catalogue.json`), each with its title, lab link and folder.',
   success: Schema.Struct({ sets: Schema.Array(SetRead) }),
@@ -1199,7 +1199,8 @@ export type LabMcpNeeds =
 /**
  * The lab's MCP at `/mcp` on the lab's router, over its stores and its change
  * feed. The routes it adds are the lab's own: the gate (`api-server.ts`)
- * runs first, as for every path.
+ * runs first, as for every path. A client ends its session with a DELETE
+ * (the transport keeps a session until then: it has no expiry).
  */
 export const labMcp = (options: LabMcpOptions) =>
   Layer.mergeAll(
@@ -1219,6 +1220,7 @@ export const labMcp = (options: LabMcpOptions) =>
           McpProtocol.v2025_03_26,
           McpProtocol.v2026_07_28,
         ],
+        allowSessionTermination: true,
       }),
     ),
     Layer.orDie,

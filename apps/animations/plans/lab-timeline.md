@@ -102,7 +102,7 @@ bun run production decide righteousness-by-faith "9005 over 9006" --quote "ok 90
 bun run production note look "Explore the One Line concept" --quote "also lets try exploring the one line concept"
 bun run production ask righteousness-by-faith "Punchy subtitles or the clean master?" \
   --why "the master's subtitles" --option "Punchy" --option "Clean master" \
-  --set p5/rbf-rive-2026-10-14 --point render:subtitles   # a page on the running lab: prints its links
+  --set rbf-rive-2026-10-14 --point render:subtitles   # a page on the running lab: prints its links
 bun run production forward look --after 5 --title "One Line" --because "9005 holds; try One Line"
 ```
 
@@ -110,8 +110,9 @@ bun run production forward look --after 5 --title "One Line" --because "9005 hol
 working in its own worktree needs no ledger to publish: the set names its production and lands by time. An
 agent that records the owner's word from chat uses `decide` or `note`, with the owner's verbatim words in
 `--quote`; `--at` back-dates a word recorded late. An agent that hands over a set needing a pick asks on it
-(`ask`, which makes the running lab's own ask, a page the owner answers: its `--set` is the set's ref), so the
-timeline says it waits; the pick in the lab, the owner's decision recorded on it, or the ask closed answers.
+(`ask`, which makes the running lab's own ask, a page the owner answers; its `--set` is the set's folder, as
+`decide` takes it, and the lab's sets say which one), so the timeline says it waits; the pick in the lab, the
+owner's decision recorded on it, or the ask closed answers.
 
 ## Seams for other callers (the lab's MCP)
 
