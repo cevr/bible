@@ -21,7 +21,7 @@ import {
   Schedule,
   Schema,
 } from 'effect';
-import { describe, expect, it, test } from 'effect-bun-test';
+import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode, onTheMs } from '../../src/core/time.ts';
 import { HUD_IDLE_MS } from '../../src/player/hud.ts';
@@ -542,7 +542,7 @@ describe('the player', () => {
   );
 
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.scopedLive.serial(
     "Play's HUD on a phone: a tap on the picture while it plays hides the controls and shows them; at rest a tap plays",
     () =>
       Effect.gen(function* () {
@@ -580,11 +580,11 @@ describe('the player', () => {
         yield* attributeIs(page, '.bar [data-act="play"]', 'aria-label', 'Play');
         yield* evaluates(page, controls(true), true);
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
   );
 
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.scopedLive.serial(
     "Play's HUD on a phone, played from ▶: once faded, the first tap on the picture brings the controls back, wherever the focus was",
     () =>
       Effect.gen(function* () {
@@ -605,7 +605,7 @@ describe('the player', () => {
         yield* evaluates(page, controls(true), true);
         yield* textIs(page, '.bar [data-act="play"]', '❚❚');
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
   );
 
   it.live(
@@ -631,44 +631,42 @@ describe('the player', () => {
 
   // Serial: while two fingers are down on one tab, Chrome drops the touches the file's other
   // cases send their own tabs at the same time (a tick's held name never shows).
-  test.serial(
+  it.live.serial(
     "a second finger on the track while the first drags it is not the track's: it neither scrubs nor jumps, and enters nothing in history",
     () =>
-      Effect.runPromise(
-        Effect.gen(function* () {
-          const { page, errors } = yield* openPlayer(
-            { href: pageHref.play(PROBE), viewport: PHONE },
-            BAR_READY,
-          );
-          const track = yield* page.box('.bar .track');
-          const y = track.y + track.height / 2;
-          const before = yield* page.evaluate('history.length');
-          // The first finger drags from a fifth along to a third, and the URL follows it there.
-          const third = (2 * HALF) / 3;
-          const atThird = `Math.abs(${URL_T} - ${third}) < ${HALF / 20}`;
-          // Every press the track is given, counted, so a second finger refused is one it was
-          // given; and every finger lifted, so the case ends once the page has both lifts.
-          yield* page.evaluate(
-            `(window.pressed = 0, window.lifted = 0, document.querySelector('.bar .track').addEventListener('pointerdown', () => window.pressed++, true), addEventListener('touchend', () => window.lifted++, true), 0)`,
-          );
-          yield* page.finger.down(track.x + track.width / 5, y);
-          yield* page.finger.move(track.x + track.width / 3, y, 15);
-          yield* evaluates(page, atThird, true);
-          // A second finger lands near the end and slides on while the first holds: its own
-          // press would scrub there, and, lifted, jump there.
-          yield* page.finger.second.down(track.x + track.width * 0.8, y);
-          yield* page.finger.second.move(track.x + track.width * 0.95, y, 15);
-          yield* evaluates(page, 'window.pressed', 2);
-          yield* evaluates(page, atThird, true);
-          // Both lift. (Chrome lifts a finger only as the touch ends: the two lift together.)
-          yield* page.finger.second.up;
-          yield* page.finger.up;
-          yield* evaluates(page, 'window.lifted', 2);
-          yield* evaluates(page, atThird, true);
-          yield* evaluates(page, 'String(history.length)', String(before));
-          expect(errors).toEqual([]);
-        }).pipe(Effect.scoped),
-      ),
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: PHONE },
+          BAR_READY,
+        );
+        const track = yield* page.box('.bar .track');
+        const y = track.y + track.height / 2;
+        const before = yield* page.evaluate('history.length');
+        // The first finger drags from a fifth along to a third, and the URL follows it there.
+        const third = (2 * HALF) / 3;
+        const atThird = `Math.abs(${URL_T} - ${third}) < ${HALF / 20}`;
+        // Every press the track is given, counted, so a second finger refused is one it was
+        // given; and every finger lifted, so the case ends once the page has both lifts.
+        yield* page.evaluate(
+          `(window.pressed = 0, window.lifted = 0, document.querySelector('.bar .track').addEventListener('pointerdown', () => window.pressed++, true), addEventListener('touchend', () => window.lifted++, true), 0)`,
+        );
+        yield* page.finger.down(track.x + track.width / 5, y);
+        yield* page.finger.move(track.x + track.width / 3, y, 15);
+        yield* evaluates(page, atThird, true);
+        // A second finger lands near the end and slides on while the first holds: its own
+        // press would scrub there, and, lifted, jump there.
+        yield* page.finger.second.down(track.x + track.width * 0.8, y);
+        yield* page.finger.second.move(track.x + track.width * 0.95, y, 15);
+        yield* evaluates(page, 'window.pressed', 2);
+        yield* evaluates(page, atThird, true);
+        // Both lift. (Chrome lifts a finger only as the touch ends: the two lift together.)
+        yield* page.finger.second.up;
+        yield* page.finger.up;
+        yield* evaluates(page, 'window.lifted', 2);
+        yield* evaluates(page, atThird, true);
+        yield* evaluates(page, 'String(history.length)', String(before));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live(
@@ -692,7 +690,7 @@ describe('the player', () => {
   );
 
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.scopedLive.serial(
     'a tick held by a finger says its name, which stays a moment once it lifts (UR-115)',
     () =>
       Effect.gen(function* () {
@@ -709,48 +707,50 @@ describe('the player', () => {
         yield* page.finger.up;
         yield* evaluates(page, "document.querySelector('.bar .tip').hidden", false);
         yield* evaluates(page, "document.querySelector('.bar .tip').hidden", true);
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
   );
 
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial("a name still held stays: the last tick's lingering name never hides the next", () =>
-    Effect.gen(function* () {
-      const { page } = yield* openPlayer(
-        { href: pageHref.play(PROBE), viewport: PHONE },
-        BAR_READY,
-      );
-      yield* ticksOn(page);
-      // A cue's tick and a mark's: two names, apart along the track.
-      const middle = (box: { x: number; y: number; width: number; height: number }) => ({
-        x: box.x + box.width / 2,
-        y: box.y + box.height / 2,
-      });
-      const a = middle(yield* page.box('.bar .track .tick.cue'));
-      const b = middle(yield* page.box('.bar .track .tick.mark'));
-      const nameAt = (p: { x: number; y: number }) =>
-        `document.elementFromPoint(${p.x}, ${p.y}).dataset.name`;
-      yield* evaluates(page, `${nameAt(a)} !== ${nameAt(b)}`, true);
-      // Whether the tip shows the name under `p`.
-      const tipNames = (p: { x: number; y: number }) =>
-        `!document.querySelector('.bar .tip').hidden && document.querySelector('.bar .tip').textContent === ${nameAt(p)}`;
-      yield* page.clock.hold;
-      // A is held to its name, then lifted: its name lingers 1.5 s, to 2000.
-      yield* page.finger.down(a.x, a.y);
-      yield* page.clock.runFor(500);
-      yield* evaluates(page, tipNames(a), true);
-      yield* page.finger.up;
-      // B is held at 1400: named at 1900, and still held past 2000.
-      yield* page.clock.runFor(900);
-      yield* page.finger.down(b.x, b.y);
-      yield* page.clock.runFor(500);
-      yield* evaluates(page, tipNames(b), true);
-      yield* page.clock.runFor(300);
-      yield* evaluates(page, tipNames(b), true);
-      // Lifted, B's own name lingers its 1.5 s, then goes.
-      yield* page.finger.up;
-      yield* page.clock.runFor(1600);
-      yield* evaluates(page, "document.querySelector('.bar .tip').hidden", true);
-    }).pipe(Effect.scoped, Effect.runPromise),
+  it.scopedLive.serial(
+    "a name still held stays: the last tick's lingering name never hides the next",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: PHONE },
+          BAR_READY,
+        );
+        yield* ticksOn(page);
+        // A cue's tick and a mark's: two names, apart along the track.
+        const middle = (box: { x: number; y: number; width: number; height: number }) => ({
+          x: box.x + box.width / 2,
+          y: box.y + box.height / 2,
+        });
+        const a = middle(yield* page.box('.bar .track .tick.cue'));
+        const b = middle(yield* page.box('.bar .track .tick.mark'));
+        const nameAt = (p: { x: number; y: number }) =>
+          `document.elementFromPoint(${p.x}, ${p.y}).dataset.name`;
+        yield* evaluates(page, `${nameAt(a)} !== ${nameAt(b)}`, true);
+        // Whether the tip shows the name under `p`.
+        const tipNames = (p: { x: number; y: number }) =>
+          `!document.querySelector('.bar .tip').hidden && document.querySelector('.bar .tip').textContent === ${nameAt(p)}`;
+        yield* page.clock.hold;
+        // A is held to its name, then lifted: its name lingers 1.5 s, to 2000.
+        yield* page.finger.down(a.x, a.y);
+        yield* page.clock.runFor(500);
+        yield* evaluates(page, tipNames(a), true);
+        yield* page.finger.up;
+        // B is held at 1400: named at 1900, and still held past 2000.
+        yield* page.clock.runFor(900);
+        yield* page.finger.down(b.x, b.y);
+        yield* page.clock.runFor(500);
+        yield* evaluates(page, tipNames(b), true);
+        yield* page.clock.runFor(300);
+        yield* evaluates(page, tipNames(b), true);
+        // Lifted, B's own name lingers its 1.5 s, then goes.
+        yield* page.finger.up;
+        yield* page.clock.runFor(1600);
+        yield* evaluates(page, "document.querySelector('.bar .tip').hidden", true);
+      }),
   );
 
   it.live(
@@ -1351,7 +1351,7 @@ describe('the player', () => {
   );
 
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.scopedLive.serial(
     "a finger held on the play page's film lists its frame and scene steps (AA-8), and ×10 steps ten frames: Shift's step by touch",
     () =>
       Effect.gen(function* () {
@@ -1381,11 +1381,11 @@ describe('the player', () => {
         // Frame 15 (0.5 s at 30 fps), ten on: frame 25, kept to the millisecond rounded up.
         yield* evaluates(page, 'location.hash', `#t=${Math.ceil((25 / 30) * 1000) / 1000}`);
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
   );
 
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.scopedLive.serial(
     "a finger clears the Scenes' selection, as Escape does (G8): a still's menu lists it",
     () =>
       Effect.gen(function* () {
@@ -1406,6 +1406,6 @@ describe('the player', () => {
         yield* countIs(page, '.sc-focus', 0);
         yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
   );
 });
