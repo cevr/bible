@@ -5,11 +5,17 @@
 
 // oxlint-disable-next-line effect/noNodeBuiltinImport -- the exit handler's delete: an exiting process runs no effect, only synchronous calls
 import { rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { Effect, FileSystem, Path } from 'effect';
 import { BrowserFailed } from './errors.ts';
 
-/** Where every process's Chrome keeps its profile, a folder per process id. */
-export const PROFILES = 'bible-film-chrome';
+/**
+ * Where every process's Chrome keeps its profile, a folder per process id,
+ * unless `FILM_CHROME_PROFILES` names another. `bun test` runs no exit
+ * handler (Bun 1.4.3), so the e2e runner (`lab/fixtures/run-suite.ts`) names
+ * a folder of its run's own, released once its workers have exited.
+ */
+export const PROFILE_ROOT = `${tmpdir()}/bible-film-chrome`;
 
 /** Whether process `pid` still runs (`EPERM`: it runs, as another user). */
 const alive = (pid: number) =>
@@ -18,13 +24,8 @@ const alive = (pid: number) =>
     Effect.catch((error) => Effect.succeed(Reflect.get(Object(error.cause), 'code') === 'EPERM')),
   );
 
-/**
- * This process's Chrome profile, `<root>/<pid>`, removed when the process
- * exits (after its Chrome is killed). A process killed before its exit
- * handler runs leaves its folder, so the folders of processes no longer
- * running are removed first.
- */
-export const profileFolder = (root: string) =>
+/** Removes the profiles under `root` whose processes no longer run. */
+const removeOrphans = (root: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
@@ -38,6 +39,19 @@ export const profileFolder = (root: string) =>
       (name) => Effect.ignore(fs.remove(path.join(root, name), { recursive: true })),
       { discard: true },
     );
+  });
+
+/**
+ * This process's Chrome profile, `<root>/<pid>`, removed when the process
+ * exits (after its Chrome is killed). A process that runs no exit handler
+ * (one killed, or a `bun test` worker) leaves its folder, so the orphans are
+ * removed first.
+ */
+export const profileFolder = (root: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    yield* removeOrphans(root);
     const folder = path.join(root, String(process.pid));
     yield* fs.makeDirectory(folder, { recursive: true });
     process.once('exit', () => {
