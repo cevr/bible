@@ -240,22 +240,23 @@ const markingNote = (m: Marking, beat: string, written: string): string => {
 };
 
 /**
- * The delivery of `selected`, words of beat `beat` (its line `words` long,
- * said with `marks`): Stress, the gap before them (none for the line's first
- * word, whose silence is the beat's lead), and a hold's seconds. Nothing
- * while no word of it is selected.
+ * The delivery of `selected`, words of beat `beat` (its line `spoken`, as the
+ * page read it, said with `marks`): Stress, the gap before them (none for the
+ * line's first word, whose silence is the beat's lead), and a hold's seconds.
+ * A write carries the words it was made on, so it lands on these or not at
+ * all. Nothing while no word of it is selected.
  */
 export const Delivery = (props: {
   readonly beat: string;
   readonly marks: ReadonlyArray<Mark>;
-  readonly words: number;
+  readonly spoken: string;
   readonly selected: Option.Option<Words>;
 }) => {
   const voice = useVoice();
   const marks = () => props.marks;
-  const words = () => props.words;
+  const words = () => props.spoken.split(' ').filter((w) => w !== '').length;
   const selected = () => props.selected;
-  const write = (next: ReadonlyArray<Mark>) => voice.mark(props.beat, next);
+  const write = (next: ReadonlyArray<Mark>) => voice.mark(props.beat, next, props.spoken);
   return (
     <Show when={Option.getOrUndefined(selected())}>
       {(w) => {

@@ -183,12 +183,12 @@ export const Ties = (props: ParentProps<{ readonly beat: string }>) => {
     Option.map(beat, (b) => b.delivery),
     () => [],
   );
-  const words = Option.getOrElse(
+  const spoken = Option.getOrElse(
     Option.map(
       Option.flatMap(beat, (b) => b.line),
-      (l) => l.rows.length,
+      (l) => l.rows.map((r) => r.text).join(' '),
     ),
-    () => 0,
+    () => '',
   );
   return (
     <Show when={Option.getOrUndefined(Option.filter(script.tied(), (t) => t.beat === props.beat))}>
@@ -210,7 +210,7 @@ export const Ties = (props: ParentProps<{ readonly beat: string }>) => {
           <Delivery
             beat={props.beat}
             marks={marks}
-            words={words}
+            spoken={spoken}
             selected={Option.filter(script.selected(), (w) => w.scene === props.beat)}
           />
           <Show

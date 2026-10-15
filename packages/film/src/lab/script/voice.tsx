@@ -84,8 +84,8 @@ interface VoiceContextValue {
   readonly stop: () => void;
   /** Where the reader's write of marks stands. */
   readonly marking: Accessor<Marking>;
-  /** Write beat `beat`'s marks as `marks` (nothing while a write is out). */
-  readonly mark: (beat: string, marks: ReadonlyArray<Mark>) => void;
+  /** Write beat `beat`'s marks as `marks`, made on its line as `spoken` (nothing while a write is out). */
+  readonly mark: (beat: string, marks: ReadonlyArray<Mark>, spoken: string) => void;
   /** What a beat's head says once its marks are written. */
   readonly written: string;
 }
@@ -268,10 +268,10 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
   // One write out at a time; once it lands the takes are read again, the beat's new key queued first.
   const [marking, setMarking] = createSignal<Marking>(Marking.Idle(), { ownedWrite: true });
   const send = useAtomSet(() => source.write, { mode: 'promiseExit' });
-  const mark = (beat: string, marks: ReadonlyArray<Mark>) => {
+  const mark = (beat: string, marks: ReadonlyArray<Mark>, spoken: string) => {
     if (untrack(marking)._tag === 'Writing') return;
     setMarking(Marking.Writing({ beat }));
-    void send({ beat, marks }).then((exit) => {
+    void send({ beat, marks, spoken }).then((exit) => {
       if (Exit.isSuccess(exit)) {
         setMarking(Marking.Written({ beat }));
         readAgain();

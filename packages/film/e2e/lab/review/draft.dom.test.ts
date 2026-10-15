@@ -96,6 +96,7 @@ describe('a series draft in the Script reader, on a phone', () => {
         expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
           {
             beat: '1',
+            spoken: 'The first thing God gave was breath.',
             marks: [
               { _tag: 'Stress', word: 3 },
               { _tag: 'Stress', word: 4 },
@@ -138,6 +139,7 @@ describe('a series draft in the Script reader, on a phone', () => {
         expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
           {
             beat: '1',
+            spoken: 'The first thing God gave was breath.',
             marks: [
               { _tag: 'Stress', word: 4 },
               { _tag: 'Breath', before: 5 },
@@ -285,6 +287,7 @@ describe('a series draft in the Script reader, on a phone', () => {
         expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
           {
             beat: '1',
+            spoken: 'The first thing God gave was breath.',
             marks: [
               { _tag: 'Stress', word: 2 },
               { _tag: 'Stress', word: 3 },

@@ -124,6 +124,25 @@ export const marksMisfit = (marks: ReadonlyArray<Mark>, words: number): Option.O
     Option.map(misfit(mark, marks.slice(0, i), words), (reason) => ({ mark, reason })),
   );
 
+/**
+ * Why `marks`, made on the line a page read as `read`, cannot be written on
+ * the line that now says `spoken`: its words changed since (a mark is on a
+ * word by its index, so it would land on another), or a mark does not fit
+ * them (`marksMisfit`). What a film's mark write and a draft's both check.
+ */
+export const marksRefusal = (
+  marks: ReadonlyArray<Mark>,
+  spoken: string,
+  read: string,
+): Option.Option<string> => {
+  if (spoken !== read)
+    return Option.some(
+      `its words changed since the page read them (it says "${spoken}" now): read it again and mark it there`,
+    );
+  const words = spoken.split(' ').filter((w) => w !== '').length;
+  return Option.map(marksMisfit(marks, words), (m) => m.reason);
+};
+
 /** Why a stress at word `at` does not fit, after the marks `before` it. */
 const stressMisfit = (at: number, before: ReadonlyArray<Mark>, words: number) => {
   if (at < 0 || at >= words) return Option.some('stresses no word');

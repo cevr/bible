@@ -71,6 +71,7 @@ import { type Quality, fileInfoText, videoSource } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
 import {
   DraftRead,
+  type ScriptBeats,
   Places,
   ProjectView,
   SeriesList,
@@ -189,8 +190,8 @@ interface ReviewActions {
   readonly go: (place: ReviewPlace) => void;
   /**
    * Walk the roots again now (an ask of the index, `asks`), read the films
-   * and the series again, and read every film's project the page has read again
-   * (`FilmProject.changed`).
+   * and the series again, every draft, board and script the page has read,
+   * and every film's project it has read (`FilmProject.changed`).
    */
   readonly refresh: () => void;
   /**
@@ -242,10 +243,16 @@ interface ReviewMeta {
    * when it was written): a doc written again since is read afresh.
    */
   readonly text: (file: Written) => Loaded<string>;
-  /** A film's storyboard, read in the page alone (the server's render never waits on it). */
+  /** A film's storyboard, read in the page alone (the server's render never waits on it), and again on a Refresh. */
   readonly board: (film: string) => Loaded<BoardFile>;
   /** A series draft as its Markdown read when the page did: read by the server where it renders the draft. */
   readonly draft: (series: string, draft: string) => Loaded<DraftRead>;
+  /**
+   * A film's script as the lab reads its `script.ts` now, read in the page
+   * alone, and again on a Refresh or once a mark write lands: one read
+   * every reader of the film shares.
+   */
+  readonly script: (film: string) => Loaded<ScriptBeats>;
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
   /** The page's one client of the lab's API: what a read of its own (a feed) goes through. */
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
@@ -432,6 +439,12 @@ export const Root = (
       .atom(ReviewApi.use((api) => api.board(film)))
       .pipe(Atom.withServerValue(() => AsyncResult.initial<BoardFile, LabFailure>())),
   );
+  // The page's alone: the server's render never waits on a fresh read of a film's script.
+  const scriptOf = Atom.family((film: string) =>
+    runtime
+      .atom(ReviewApi.use((api) => api.script(film)))
+      .pipe(Atom.withServerValue(() => AsyncResult.initial<ScriptBeats, LabFailure>())),
+  );
   const seriesAtom = runtime
     .atom(ReviewApi.use((api) => api.series))
     .pipe(served('review.series', SeriesList));
@@ -502,6 +515,9 @@ export const Root = (
     const projects = new Map<string, FilmProject>();
     // Every series draft the page has read, read again on a refresh (`series/draft`).
     const draftsRead = new Set<string>();
+    // And every film's board and script it has read.
+    const boardsRead = new Set<string>();
+    const scriptsRead = new Set<string>();
     const projectOf = (film: string): FilmProject => {
       const first = projectFirstOf(film);
       const again = projectAgainOf(film);
@@ -561,6 +577,8 @@ export const Root = (
           refreshFilms();
           refreshSeries();
           for (const key of draftsRead) registry.refresh(draftOf(key));
+          for (const film of boardsRead) registry.refresh(board(film));
+          for (const film of scriptsRead) registry.refresh(scriptOf(film));
           setMoved([]);
           refreshProductions();
           indexOwner.again();
@@ -583,11 +601,18 @@ export const Root = (
         films: filmsAtom,
         project,
         text,
-        board,
+        board: (film) => {
+          boardsRead.add(film);
+          return board(film);
+        },
         draft: (series, draft) => {
           const key = `${series}/${draft}`;
           draftsRead.add(key);
           return draftOf(key);
+        },
+        script: (film) => {
+          scriptsRead.add(film);
+          return scriptOf(film);
         },
         runtime,
         client: props.client,

@@ -3,14 +3,16 @@
 // …/script`, read fresh by the lab, each beat's line, picture and
 // sources), its staging takes (`GET …/script/voice`: read, never voiced
 // here), and its delivery marks written into `script.ts` (`POST
-// …/script/marks`, the Script page's own write), the script read again once
-// a write lands. A review page never loads a film's code, so the words come
-// from the lab's read, not the film's player.
+// …/script/marks`, the Script page's own write). The script is the review's
+// one read of the film's (`meta.script`), read again on a Refresh and once a
+// write answers, landed or refused: a write carries the words it was made on,
+// so one refused because the line changed shows the line as it is now. A
+// review page never loads a film's code, so the words come from the lab's
+// read, not the film's player.
 
 import { useAtomRefresh, useAtomValue } from '@bible/atom-solid';
 import { Show } from '@solidjs/web';
 import { Effect, Option } from 'effect';
-import * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { type DraftBeatRead, type ScriptBeats, stagingTakeUrl } from '../../core/api.ts';
 import { reasonOf } from '../api.ts';
@@ -40,12 +42,8 @@ export const FilmScriptReader = (props: {
   readonly selecting: Selecting;
 }) => {
   const { meta } = useReview();
-  // The page's alone: the server's render never waits on a fresh read of the film.
-  const script = meta.runtime
-    .atom(ReviewApi.use((api) => api.script(props.film)))
-    .pipe(Atom.withServerValue(() => AsyncResult.initial()));
-  const read = useAtomValue(() => script);
-  const again = useAtomRefresh(() => script);
+  const read = useAtomValue(() => meta.script(props.film));
+  const again = useAtomRefresh(() => meta.script(props.film));
   const beats = () =>
     Option.match(AsyncResult.value(read()), {
       onNone: () => [],
@@ -74,10 +72,10 @@ export const FilmScriptReader = (props: {
         selecting={props.selecting}
         source={{
           voice: ReviewApi.use((api) => api.filmVoice(props.film)),
-          // The write lands in `script.ts`: the script is read again, its marks as written.
+          // Landed in `script.ts` or refused: the script is read again, its words and marks as they are.
           mark: (post) =>
             ReviewApi.use((api) => api.filmMarks(props.film, post)).pipe(
-              Effect.tap(() => Effect.sync(again)),
+              Effect.ensuring(Effect.sync(again)),
             ),
           takeUrl: (file) => stagingTakeUrl(props.film, file),
           written: 'marked in the script',

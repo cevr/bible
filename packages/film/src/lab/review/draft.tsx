@@ -10,7 +10,7 @@
 // (`/series/<series>/<draft>/<beat>?words=<a>-<b>`); an ask that shows the
 // draft keeps its own (`DraftReader`, whose `selecting` the page gives).
 
-import { useAtomValue } from '@bible/atom-solid';
+import { useAtomRefresh, useAtomValue } from '@bible/atom-solid';
 import { Show } from '@solidjs/web';
 import { Effect, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -51,6 +51,7 @@ export const DraftReader = (props: {
 }) => {
   const { meta } = useReview();
   const read = useAtomValue(() => meta.draft(props.series, props.draft));
+  const again = useAtomRefresh(() => meta.draft(props.series, props.draft));
   // A refresh since outranks an answer sent over an older read.
   const [answered, setAnswered] = createSignal(
     Option.none<{ readonly read: DraftRead; readonly over: Option.Option<DraftRead> }>(),
@@ -97,12 +98,14 @@ export const DraftReader = (props: {
         source={{
           voice: ReviewApi.use((api) => api.draftVoice(props.series, props.draft)),
           // The answer is bound to the read the write was sent over: a refresh since outranks it.
+          // A refusal (the words changed since) reads the draft again, its words as they are.
           mark: (post) => {
             const over = untrack(() => AsyncResult.value(read()));
             return ReviewApi.use((api) => api.draftMarks(props.series, props.draft, post)).pipe(
               Effect.tap((next) =>
                 Effect.sync(() => setAnswered(Option.some({ read: next, over }))),
               ),
+              Effect.tapError(() => Effect.sync(again)),
             );
           },
           takeUrl: (file) => draftTakeUrl(props.series, props.draft, file),

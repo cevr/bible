@@ -186,7 +186,9 @@ const Selected = (props: {
         <Delivery
           beat={props.beat.read.id}
           marks={props.beat.marks}
-          words={s().line.rows.length}
+          spoken={s()
+            .line.rows.map((r) => r.text)
+            .join(' ')}
           selected={props.words}
         />
       </section>

@@ -441,7 +441,7 @@ const marksWrite = (name: string, payload: MarksPost) =>
         scene: Option.some(payload.beat),
         file,
         target,
-        edit: (source) => editMarks(source, payload.beat, payload.marks),
+        edit: (source) => editMarks(source, payload.beat, payload.marks, payload.spoken),
         verify: (after, before) => sayMissed(after, before, payload.beat, payload.marks),
         check: () => Effect.void,
       });
@@ -484,12 +484,7 @@ const seriesGroup = HttpApiBuilder.group(LabHttpApi, 'series', (handlers) =>
     .handle('marks', ({ params, payload }) =>
       answered(
         Effect.gen(function* () {
-          const read = yield* (yield* SeriesDrafts).mark(
-            params.series,
-            params.draft,
-            payload.beat,
-            payload.marks,
-          );
+          const read = yield* (yield* SeriesDrafts).mark(params.series, params.draft, payload);
           return draftRead(params.series, params.draft, read);
         }),
       ),

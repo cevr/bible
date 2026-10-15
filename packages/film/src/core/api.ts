@@ -453,8 +453,18 @@ export const ScriptVoice = Schema.Struct({
 });
 export type ScriptVoice = typeof ScriptVoice.Type;
 
-/** `POST /api/films/<film>/script/marks`: a beat's delivery marks as they should read, its words unchanged. */
-export const MarksPost = Schema.Struct({ beat: Schema.String, marks: Schema.Array(Mark) });
+/**
+ * `POST /api/films/<film>/script/marks` (and a draft's): a beat's delivery
+ * marks as they should read, its words unchanged, and the words the page
+ * read when it made them (`spoken`: the line as the voice says it). A mark
+ * is on a word by its index, so a write is refused once the line says other
+ * words: the page reads it again rather than mark the wrong one.
+ */
+export const MarksPost = Schema.Struct({
+  beat: Schema.String,
+  marks: Schema.Array(Mark),
+  spoken: Schema.String,
+});
 export type MarksPost = typeof MarksPost.Type;
 
 /**

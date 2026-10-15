@@ -31,8 +31,7 @@ import {
   Semaphore,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import type { DraftRead, SeriesList } from '../core/api.ts';
-import type { Mark } from '../core/delivery.ts';
+import type { DraftRead, MarksPost, SeriesList } from '../core/api.ts';
 import { type Draft, DraftMarkdown, draftMarked, draftMissed, unreadText } from '../core/draft.ts';
 import { DraftUnknown, DraftUnread, SourceChanged, SourceRefused } from '../core/refusals.ts';
 import type { HeardAs, Voice } from '../core/schema.ts';
@@ -93,12 +92,11 @@ interface SeriesDraftsService {
   readonly read: (series: string, draft: string) => Effect.Effect<Draft, DraftError>;
   /** Draft `draft` of `series` as a take is kept against it. */
   readonly reading: (series: string, draft: string) => Effect.Effect<DraftReading, DraftError>;
-  /** Beat `beat` of the draft marked `marks`, its words unchanged: the draft as the write leaves it. */
+  /** The marks `post` asks for written on its beat, made on the words it read: the draft as the write leaves it. */
   readonly mark: (
     series: string,
     draft: string,
-    beat: string,
-    marks: ReadonlyArray<Mark>,
+    post: MarksPost,
   ) => Effect.Effect<
     Draft,
     DraftError | SourceRefused | WriteUnverified | SourceChanged | StoreError
@@ -213,7 +211,7 @@ export class SeriesDrafts extends Context.Service<SeriesDrafts, SeriesDraftsServ
         });
 
         const mark = Effect.fn('SeriesDrafts.mark')(
-          (series: string, draft: string, beat: string, marks: ReadonlyArray<Mark>) =>
+          (series: string, draft: string, { beat, marks, spoken }: MarksPost) =>
             writer.withPermits(1)(
               Effect.gen(function* () {
                 const file = yield* fileOf(series, draft);
@@ -221,7 +219,7 @@ export class SeriesDrafts extends Context.Service<SeriesDrafts, SeriesDraftsServ
                 const target = `marks:${beat}`;
                 const before = yield* fs.readFileString(file);
                 const after = yield* Effect.mapError(
-                  Effect.fromResult(draftMarked(before, beat, marks)),
+                  Effect.fromResult(draftMarked(before, beat, marks, spoken)),
                   (u) => SourceRefused.make({ file: shown, target, reason: unreadText(u) }),
                 );
                 const missed = draftMissed(after, before, beat, marks);

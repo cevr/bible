@@ -38,7 +38,7 @@ import {
   SchemaIssue,
   SchemaTransformation,
 } from 'effect';
-import { type Mark, marksMisfit } from './delivery.ts';
+import { type Mark, marksRefusal } from './delivery.ts';
 import { parse, withDelivery } from './narration.ts';
 
 /** Where a beat's line stands in the Markdown, by character: its text from `start` to `end`. */
@@ -426,13 +426,15 @@ export const draftMissed = (
 
 /**
  * Draft `markdown` with beat `beat`'s line marked `marks` and nothing else
- * changed: refused when the draft does not read, the beat says nothing, or a
- * mark does not fit its words (`marksMisfit`, as a film's mark write is).
+ * changed: refused when the draft does not read, the beat says nothing, its
+ * words are no longer `read` (the words the marks were made on), or a mark
+ * does not fit them (`marksRefusal`, as a film's mark write is).
  */
 export const draftMarked = (
   markdown: string,
   beat: string,
   marks: ReadonlyArray<Mark>,
+  read: string,
 ): Result.Result<string, Unread> =>
   Result.flatMap(readDraft(markdown), (draft) => {
     const found = Arr.findFirst(draft.beats, (b) => b.id === beat);
@@ -441,12 +443,12 @@ export const draftMarked = (
     if (Option.isNone(found.value.say))
       return Result.fail(unread('says nothing to mark', Option.some(beat)));
     const said = found.value.say.value;
-    const words = Option.getOrElse(
-      Option.map(lineIn(draft, beat), (l) => l.spoken.split(' ').length),
-      () => 0,
+    const spoken = Option.getOrElse(
+      Option.map(lineIn(draft, beat), (l) => l.spoken),
+      () => '',
     );
-    const misfit = marksMisfit(marks, words);
-    if (Option.isSome(misfit)) return Result.fail(unread(misfit.value.reason, Option.some(beat)));
+    const refused = marksRefusal(marks, spoken, read);
+    if (Option.isSome(refused)) return Result.fail(unread(refused.value, Option.some(beat)));
     const remarked = Option.some({ ...said, text: withDelivery(said.text, marks) });
     const marked: Draft = {
       ...draft,
