@@ -6,10 +6,12 @@
 // with nothing in it and the end says it was skipped; an answer the lab
 // refuses (the laptop answered first) reads the ask again, where it now is,
 // and says why; a Send with a question open sends nothing, goes to it, marks
-// it and says what it needs. A guided review shows each section's material
+// it and says what it needs (by the field; the dock names it). At the page's
+// end its last section's head holds the top. A guided review shows each section's material
 // in place (the draft's script, named, with its takes and its marks, Stress
 // written into the draft; the Board's panels; a real 1280×720 cut in the
-// review's player, the page no wider for it; the take; the set's notes),
+// review's player, its play quiet at the hit, the page no wider for it; the
+// take; the set's notes),
 // headed `n of N · Title` and indexed, the recommended option first and
 // marked, the send counting what is answered, the kit's primary Send, one
 // focus ring on an option, and fits a phone. A film's script under review is

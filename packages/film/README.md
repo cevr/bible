@@ -1665,6 +1665,11 @@ film's beat list) and writes a mark back byte for byte, `tools/series-drafts.ts`
 `/series/<series>/<draft>` (`lab/review/draft.tsx`) shows one, its staging
 voice the film reader's (`lab/script/voice.tsx`, `VoiceOver`).
 
+A new script that is no film's yet goes into an ask the same way: write it
+as a series draft first (a Markdown file in the series' `scripts/` folder),
+then name it in the ask's `script` block (`{kind: 'script', series, draft}`),
+never a `document` of its Markdown nor a set.
+
 | Route                                          | What it does                                                                                                                                                                                                                                          |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/series`                              | `SeriesList`: every series by its folder and its plan's title, each draft by its file and its title; none for an app with no series                                                                                                                   |
