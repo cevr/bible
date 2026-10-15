@@ -16,9 +16,13 @@
 // that the send did not carry is named when the send lands. A lab out of
 // reach, a refusal, a re-read that fails and an ask that is gone each keep
 // the page as drafted. Where the run is lives in the lab, not here: a
-// reload or another device opens it where it was left.
+// reload or another device opens it where it was left. The tab keeps the
+// draft unsent (the provider, `context.tsx`), and a reload's page takes it
+// back once open (`Restored`), under anything set since, as far as the steps
+// the lab still asks.
 //
 //   Reading ─Read→ Open ─Set→ Open ─Submit→ Sending ─Landed→ Open
+//   Open ─Restored→ Open (the tab's kept draft under the page's)
 //   Reading ─Unread→ Unreadable ─Retry→ Reading     (no draft yet)
 //   Sending ─Unreachable→ Open
 //   Sending ─Refused→ Rereading ─Read→ Open (the draft of open steps)
@@ -43,8 +47,9 @@ import type { LabFailure } from '../api.ts';
 import { ReviewApi } from '../review/api.ts';
 import { failureText } from '../review/format.ts';
 
-const Draft = Schema.Record(Schema.String, Schema.String);
-type Draft = typeof Draft.Type;
+/** The owner's answers on the page, by question id, as he typed or chose them. */
+export const Draft = Schema.Record(Schema.String, Schema.String);
+export type Draft = typeof Draft.Type;
 
 /** The page as the owner has it: the ask as last read, and his draft of every answer on it. */
 export const Page = Schema.Struct({ record: AskRecord, draft: Draft });
@@ -77,6 +82,8 @@ export const AskPageEvent = Event({
   Retry: {},
   /** The owner's answer `id` set to `value` ('' takes it back). */
   Set: { id: Schema.String, value: Schema.String },
+  /** The draft the tab kept of this ask before it reloaded, read once the page is open. */
+  Restored: { draft: Draft },
   Submit: {},
   Landed: { record: AskRecord },
   /** The lab refused the draft: `why`. */
@@ -102,6 +109,15 @@ const stillOpen = (record: AskRecord, draft: Draft): Draft =>
 const reread = (page: Page, record: AskRecord): Page => ({
   record,
   draft: stillOpen(record, page.draft),
+});
+
+/**
+ * `page` with the draft the tab kept (`kept`) under what the owner has set
+ * since it opened, as far as the steps it still asks.
+ */
+const restored = (page: Page, kept: Draft): Page => ({
+  ...page,
+  draft: stillOpen(page.record, { ...kept, ...page.draft }),
 });
 
 /** `page` with answer `id` set to `value`. */
@@ -206,6 +222,9 @@ const askPageMachine = (id: string, first: Effect.Effect<AskRecord, LabFailure, 
         said: '',
         missing: '',
       }),
+    )
+    .on(AskPageState.Open, AskPageEvent.Restored, ({ state, event }) =>
+      AskPageState.Open({ ...state, page: restored(state.page, event.draft) }),
     )
     .on(AskPageState.Sending, AskPageEvent.Set, ({ state, event }) =>
       AskPageState.Sending({ ...state, page: drafted(state.page, event.id, event.value) }),

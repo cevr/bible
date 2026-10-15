@@ -134,6 +134,40 @@ describe("an agent's ask on a phone", () => {
   );
 
   it.live(
+    'answers not sent come back after a reload; a send that lands leaves the tab nothing to bring back',
+    () =>
+      Effect.gen(function* () {
+        const routes: ReadonlyArray<FakeRoute> = [
+          route('POST', ANSWER, () => json(done)),
+          ...studioRoutes,
+        ];
+        const { page, errors } = yield* openReview(routes, {
+          href: pageHref.ask(STUDIO_ASK),
+          viewport: PHONE,
+        });
+        yield* waitFor(page, ASK_READY);
+        yield* page.click('.ak-option[data-value="slow"]');
+        yield* page.fill('.ak-step[data-step="why"] textarea', words);
+        yield* page.reload;
+        yield* waitFor(page, '.ak-option[data-value="slow"][aria-pressed="true"]');
+        yield* evaluates(
+          page,
+          `document.querySelector('.ak-step[data-step="why"] textarea')?.value`,
+          words,
+        );
+        yield* page.click(ASK_READY);
+        yield* textHas(page, '.ak-outcome [data-answer="why"]', words);
+        // The lab here answers the ask afresh on a read: the tab brings back no answer.
+        yield* page.reload;
+        yield* waitFor(page, ASK_READY);
+        yield* textHas(page, '.ak-send [data-role="answered"]', '0 of 1 answered');
+        yield* countIs(page, '.ak-option[aria-pressed="true"]', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'the words, optional, go with nothing in them; the field says so and the end says skipped',
     () =>
       Effect.gen(function* () {

@@ -30,7 +30,7 @@ export const storeOver = (storage: () => Storage): StoreRuntime =>
   );
 
 /** A value kept as JSON: read once, kept in memory, written through on each `set`. */
-interface KeptJson<A> {
+export interface KeptJson<A> {
   readonly get: () => A;
   readonly set: (value: A) => void;
 }

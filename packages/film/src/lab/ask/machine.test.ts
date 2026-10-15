@@ -398,6 +398,23 @@ describe("an ask's page", () => {
     },
   );
 
+  it.effect(
+    "takes back the tab's kept draft under what is set since, as far as the steps still asked",
+    () =>
+      Effect.gen(function* () {
+        const actor = yield* pageOn(asking.id);
+        yield* actor.waitFor(AskPageState.Open);
+        yield* actor.send(AskPageEvent.Set({ id: 'why', value: 'typed since' }));
+        // Try 7 brings why onto the page; a stale id of no question on it is dropped.
+        yield* actor.send(AskPageEvent.Restored({ draft: { try: '7', why: 'kept', gone: 'x' } }));
+        const back = yield* actor.waitFor((s) => draftIn(s)['try'] === '7');
+        expect(draftIn(back)).toEqual({ try: '7', why: 'typed since' });
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(fakeLab([Effect.succeed(asking)], () => Effect.die('not sent'), [])),
+      ),
+  );
+
   it.effect('an ask that could not be read is read again on Retry', () =>
     Effect.gen(function* () {
       const actor = yield* pageOn(asking.id);
