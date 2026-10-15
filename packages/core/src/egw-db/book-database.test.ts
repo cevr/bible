@@ -5,6 +5,7 @@
  */
 
 import { BunServices } from '@effect/platform-bun';
+import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { Database } from 'bun:sqlite';
 import { describe, expect, it } from 'effect-bun-test';
 import {
@@ -952,6 +953,56 @@ describe('EGWParagraphDatabase', () => {
           if (Option.isSome(retrieved)) {
             expect(retrieved.value.book_code).toBe('BYID');
           }
+        }),
+      ));
+  });
+
+  /** The read layer a Worker takes over D1: it reads what the writer built,
+   *  and never creates or migrates anything itself. */
+  describe('layerExisting', () => {
+    const tableNames = (dbPath: string) => {
+      const db = new Database(dbPath);
+      const names = db
+        .query<{ readonly name: string }, []>(`SELECT name FROM sqlite_master WHERE type = 'table'`)
+        .all()
+        .map((row) => row.name);
+      db.close();
+      return names;
+    };
+    const readAt = <A, E, R>(
+      dbPath: string,
+      effect: Effect.Effect<A, E, EGWParagraphDatabase | R>,
+    ) =>
+      effect.pipe(
+        Effect.provide(
+          Layer.fresh(EGWParagraphDatabase.layerExisting).pipe(
+            Layer.provide(SqliteBun.layer({ filename: dbPath })),
+          ),
+        ),
+      );
+
+    test('runs no DDL on a database it opens', () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'egw-database-' });
+        const dbPath = `${directory}/egw.db`;
+        yield* readAt(dbPath, Effect.service(EGWParagraphDatabase));
+        expect(tableNames(dbPath)).toEqual([]);
+      }));
+
+    test('reads a database the writing layer built', () =>
+      runTestWithPath((dbPath) =>
+        Effect.gen(function* () {
+          const writer = yield* EGWParagraphDatabase;
+          yield* writer.storeBook(mockBook(300, 'READ'));
+          const read = yield* readAt(
+            dbPath,
+            Effect.gen(function* () {
+              const reader = yield* EGWParagraphDatabase;
+              return yield* reader.getBookByCode('READ');
+            }),
+          );
+          expect(Option.map(read, (book) => book.book_id)).toEqual(Option.some(300));
         }),
       ));
   });
