@@ -35,7 +35,11 @@
 // and `{//}` a hold (0.6 s, or the seconds it names) at an act's question,
 // after a key quotation and at a register switch. The landing's held beat
 // is the seam between `court` and `thesis` (`court`'s tail and the thesis's
-// lead, 3 s; CRAFT rule 7), so no line holds it.
+// lead, 3 s; CRAFT rule 7), so no line holds it. `court` is marked lighter
+// than the rest, to keep the landing near CRAFT rule 7's 35 s: the hold
+// after "It is God that justifieth.", the refrain's two breaths and a breath
+// before Job's question, no other breath (the owner's option B, 2026-10-15;
+// 36.25 s at 155 wpm, 34.35 s at 165, measured again from his take).
 //
 // The argument. A judge calls a guilty man righteous (`cold`): a cover-up?
 // The Bible says God will not clear the guilty, and yet that He justifies the
@@ -362,7 +366,7 @@ export const script = defineScript([
     // ahead. The tail with `thesis`'s lead is the held pause of about 3 s
     // before the thesis line, a designed silence.
     id: 'court',
-    say: '{back}Back to the courtroom. {/} {charge}Who can accuse him {*}now? {/} No one. {/} {justifieth}“It is {*}God that justifieth.” {//} {beside}Christ, who died for him, stands beside him. {/} {seed}It was never a cover-up. {/} It was a {*}seed. {/} {takes}And it makes a man righteous the moment he {*}takes it. {/} {you}Today He holds the {*}same seed out to you: {/} {faith}faith, {/} {forgiveness}forgiveness, {/} {power}power. {/} {leaves}You can keep the fig leaves, or take the seed and {*}live. {//} {how}How should man be {*}just with God?',
+    say: '{back}Back to the courtroom. {charge}Who can accuse him {*}now? No one. {justifieth}“It is {*}God that justifieth.” {//} {beside}Christ, who died for him, stands beside him. {seed}It was never a cover-up. It was a {*}seed. {takes}And it makes a man righteous the moment he {*}takes it. {you}Today He holds the {*}same seed out to you: {faith}faith, {/} {forgiveness}forgiveness, {/} {power}power. {leaves}You can keep the fig leaves, or take the seed and {*}live. {/} {how}How should man be {*}just with God?',
     lead: 0.4,
     tail: 2,
     cite: [

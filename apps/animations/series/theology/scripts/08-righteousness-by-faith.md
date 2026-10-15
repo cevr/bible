@@ -2,7 +2,7 @@
 
 Series: From Milk to Meat · Tier One (Milk) · 8 of 13 · stone 2, "faith toward God"
 Promise: the viewer knows how God can call a guilty man righteous without a cover-up: His word is a seed, and it brings faith, forgiveness and power.
-Length: about 9:50 (1,181 spoken words: 7:37 at 155 wpm, 8:34 with the marked breaths and holds; plus the title, beat leads and tails, about 27 s of music alone after the thesis and 28 s of credits). The keep ask counted 157 wpm with no pauses: 7:31 of speech, 8:47 as a film.
+Length: about 9:47 (1,181 spoken words: 7:37 at 155 wpm, 8:31 with the marked breaths and holds; plus the title, beat leads and tails, about 27 s of music alone after the thesis and 28 s of credits). The keep ask counted 157 wpm with no pauses: 7:31 of speech, 8:47 as a film. The landing (`court` and `thesis`, from its start to the last word) runs 36.25 s at 155 wpm, 34.35 s at 165: the owner kept its core marks and dropped nine breaths (2026-10-15, option B); it is measured again from his take.
 Status: the v3 rewrite of the made film, at the script stage: nothing narrated, no concepts and no Board yet. Its source is `apps/animations/src/films/righteousness-by-faith/v3/script.ts`, which keeps every picture brief in full (this draft gives each picture's first sentence), with sources.md and quotes.jsonl beside it: every KJV line printed by `bible verse`, every paraphrase source by the corpus search, all EXACT. Thesis: “The just shall live by faith.” Refrain: faith, forgiveness, power. 13.2 % of the words are Scripture read aloud. Marked for delivery 2026-10-15: `{*}` stress, `{/}` breath, `{//}` hold. A mark written in the reader lands in this file; when v3 moves into the film, its script.ts takes the marks from here.
 
 Each beat gives its register (STORY is the Bible scene, IDEA the parchment page), where it starts (at the marked pace), its line, its picture in one line and its sources. In a line, braces are never spoken: a name in braces is where the picture changes, `{*}` stresses the word after it, `{/}` is a breath, and `{//}` a hold of 0.6 s, or of the seconds it names. Words in “quotation marks” are the KJV, read as it reads.
@@ -149,13 +149,13 @@ _Where is all this heading?_ · teal day, the most saturated
 
 ### `court` · STORY · at 8:16 (84 %) · 75 words
 
-**say:** {back}Back to the courtroom. {/} {charge}Who can accuse him {*}now? {/} No one. {/} {justifieth}“It is {*}God that justifieth.” {//} {beside}Christ, who died for him, stands beside him. {/} {seed}It was never a cover-up. {/} It was a {*}seed. {/} {takes}And it makes a man righteous the moment he {*}takes it. {/} {you}Today He holds the {*}same seed out to you: {/} {faith}faith, {/} {forgiveness}forgiveness, {/} {power}power. {/} {leaves}You can keep the fig leaves, or take the seed and {*}live. {//} {how}How should man be {*}just with God?
+**say:** {back}Back to the courtroom. {charge}Who can accuse him {*}now? No one. {justifieth}“It is {*}God that justifieth.” {//} {beside}Christ, who died for him, stands beside him. {seed}It was never a cover-up. It was a {*}seed. {takes}And it makes a man righteous the moment he {*}takes it. {you}Today He holds the {*}same seed out to you: {faith}faith, {/} {forgiveness}forgiveness, {/} {power}power. {leaves}You can keep the fig leaves, or take the seed and {*}live. {/} {how}How should man be {*}just with God?
 
 **picture:** STORY: the landing merges the registers: the cold open's courtroom (the same bench, the same positions, the same framing) now stands in the paper world under the landing's teal, the film's most saturated light.
 
 **cite:** Romans 8:33–34; 1 John 2:1; Ellen G. White, Ms 46, 1891 (3SM 195); E. J. Waggoner, The Glad Tidings, 77; Job 9:2
 
-### `thesis` · IDEA · at 8:52 (90 %) · 6 words
+### `thesis` · IDEA · at 8:49 (90 %) · 6 words
 
 **say:** “The just shall live by {*}faith.”
 
@@ -163,6 +163,6 @@ _Where is all this heading?_ · teal day, the most saturated
 
 **cite:** Habakkuk 2:4; Romans 1:17
 
-### `end` · STORY · at 9:22 (95 %)
+### `end` · STORY · at 9:19 (95 %)
 
 **picture:** STORY: the credits over the coda: the camera eases back from the court through the high window into the teal sky, while the film's name and its sources roll up a torn paper strip at the left for about 22 s; then the strip goes and the sky holds clear for the end screens.

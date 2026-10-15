@@ -207,6 +207,22 @@
       "set": "rbf-script-2026-10-14",
       "ask": "ad3aebb0697",
       "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792104249367,
+      "text": "RBF landing: under 35 s costs its marks (ask a75f3ab3fb6): trim: B: keep the core marks, drop 9 breaths. 36.25 s at 155 wpm, 34.35 s at 165. Measure again from your take. · note: <10 minutes is fine",
+      "quote": "<10 minutes is fine",
+      "ask": "a75f3ab3fb6",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792104249377,
+      "text": "Righteousness by Faith v3: the script, its length (ask a086603ff6a): verdict: Keep it: go on to the concept frames · length: Keep the length; trim the landing to under 35 s",
+      "set": "rbf-script-2026-10-14",
+      "ask": "a086603ff6a",
+      "by": "rbfscript (p5)"
     }
   ],
   "filed": [
