@@ -3,7 +3,8 @@
 // (`mix.tsx`, fixture `parity`). It reads no browser global, so the server
 // can load it. Prop mixins carry every attribute (`role`, ARIA, `tabindex`,
 // `data-*`, `class`, `style`), one entry is falsy, and a toggle group's
-// toggles carry the button mixin. The element has a spread, so its ref
+// toggles carry the button mixin and the group's tab stop, on the pressed
+// toggle. The element has a spread, so its ref
 // factories are made in the body: `report` hears each made (on both sides),
 // and each ref callback and `onElement` setup (in the browser alone).
 import type { JSX } from '@solidjs/web';
