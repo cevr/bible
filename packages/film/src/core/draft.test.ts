@@ -96,6 +96,31 @@ describe('reading a draft', () => {
     );
   });
 
+  test('refuses what it would read only in part: a say on two lines, two script tables, a column twice', () => {
+    expect(refusal(FILM.replace('Nobody {*}minds.', 'Nobody\n{*}minds.'))).toBe(
+      'beat cold: its say runs onto a second line: keep the line on one',
+    );
+    const table = TALK.split('After the table.')[0] ?? '';
+    expect(refusal(`${TALK}\n${table}`)).toBe('it has 2 script tables: keep the beats in one');
+    expect(refusal(TALK.replace('| On screen      |', '| Say again      |'))).toBe(
+      'its table names its say column twice: keep one',
+    );
+  });
+
+  test('reads a CRLF draft as its LF twin, and marks it without touching its line ends', () => {
+    const crlf = FILM.replaceAll('\n', '\r\n');
+    expect(read(crlf).beats.map((b) => [b.id, b.label])).toEqual(
+      read(FILM).beats.map((b) => [b.id, b.label]),
+    );
+    const marked = Result.getOrThrow(draftMarked(crlf, 'cold', [{ _tag: 'Stress', word: 3 }]));
+    expect(marked).toBe(
+      crlf.replace(
+        'A baby drinks {*}milk. {/} Nobody {*}minds.',
+        'A baby drinks {*}milk. Nobody minds.',
+      ),
+    );
+  });
+
   test('refuses a line the reader cannot voice, naming its beat', () => {
     expect(refusal(TALK.replace('{/} He', '{//9} He'))).toMatch(/^beat 1: /);
   });

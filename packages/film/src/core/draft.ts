@@ -97,12 +97,14 @@ interface Row {
 }
 
 const rowsOf = (markdown: string): ReadonlyArray<Row> =>
-  markdown
-    .split('\n')
-    .reduce<{ readonly rows: ReadonlyArray<Row>; readonly at: number }>(
-      (acc, text) => ({ rows: [...acc.rows, { text, at: acc.at }], at: acc.at + text.length + 1 }),
-      { rows: [], at: 0 },
-    ).rows;
+  markdown.split('\n').reduce<{ readonly rows: ReadonlyArray<Row>; readonly at: number }>(
+    // A CRLF line is read without its carriage return; the offsets stay the file's.
+    (acc, line) => ({
+      rows: [...acc.rows, { text: line.replace(/\r$/, ''), at: acc.at }],
+      at: acc.at + line.length + 1,
+    }),
+    { rows: [], at: 0 },
+  ).rows;
 
 /** The draft's title: its first `# ` heading. */
 const titleOf = (rows: ReadonlyArray<Row>): string =>
@@ -167,7 +169,7 @@ const cellAt = (cells: ReadonlyArray<Cell>, column: Option.Option<number>) =>
     (c) => c.text.length > 0,
   );
 
-/** A talk's table: the beats of the first table whose header has `#` and Say (or Spoken). */
+/** A talk's table: the beats of the one table whose header has `#` and Say (or Spoken); refused when two do, or its header names a column twice. */
 const tableBeats = (
   rows: ReadonlyArray<Row>,
 ): Option.Option<Result.Result<ReadonlyArray<DraftBeat>, Unread>> =>
@@ -175,6 +177,15 @@ const tableBeats = (
     Arr.findFirstIndex(rows, (r) => isTableRow(r) && scriptHeader(cellsOf(r))),
     (head) => {
       const header = Option.match(Arr.get(rows, head), { onNone: () => [], onSome: cellsOf });
+      const headers = rows.filter((r) => isTableRow(r) && scriptHeader(cellsOf(r))).length;
+      if (headers > 1)
+        return Result.fail(unread(`it has ${headers} script tables: keep the beats in one`));
+      const named = Arr.findFirst(
+        Object.entries(COLUMNS),
+        ([, pattern]) => header.filter((c) => pattern.test(c.text)).length > 1,
+      );
+      if (Option.isSome(named))
+        return Result.fail(unread(`its table names its ${named.value[0]} column twice: keep one`));
       const column = {
         id: columnOf(header, COLUMNS.id),
         say: columnOf(header, COLUMNS.say),
@@ -243,6 +254,18 @@ const listBeats = (rows: ReadonlyArray<Row>): Result.Result<ReadonlyArray<DraftB
             const text = r.text.slice(lead).trimEnd();
             return { text, start: r.at + lead, end: r.at + lead + text.length };
           },
+        );
+      // A line is one line: words carried onto the next are refused, never dropped.
+      const sayAt = Arr.findFirstIndex(lines, (r) => r.text.startsWith('**say:** '));
+      const carried = Option.flatMap(sayAt, (i) =>
+        Option.filter(
+          Arr.get(lines, i + 1),
+          (next) => next.text.trim().length > 0 && !/^\*\*[^*]+:\*\*/.test(next.text),
+        ),
+      );
+      if (Option.isSome(carried))
+        return Result.fail(
+          unread('its say runs onto a second line: keep the line on one', Option.some(head.id)),
         );
       return Result.map(lineOf(head.id, field('say')), (say): DraftBeat => ({
         id: head.id,
