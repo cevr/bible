@@ -60,7 +60,8 @@ const MATERIAL_CSS = `
 .ak-mat-status[data-failed=true]{color:var(--state-warning)}
 .ak-mat-name{margin:0;color:var(--text-2);font-size:var(--fs-2);line-height:var(--lh-2)}
 .ak-clamp{min-width:0}
-.ak-clamp[data-open=false]{max-height:calc(12 * var(--lh-3));overflow:hidden;mask-image:linear-gradient(to bottom,var(--surface-0) 70%,transparent)}
+.ak-clamp[data-open=false]{max-height:calc(12 * var(--lh-3));overflow:hidden}
+.ak-clamp[data-open=false][data-long=true]{mask-image:linear-gradient(to bottom,var(--surface-0) 70%,transparent)}
 .ak-read-all{justify-self:start;min-height:var(--hit)}
 `;
 
@@ -120,8 +121,11 @@ const Missing = (props: {
 /**
  * `children` clamped to about twelve lines, with Read all, once they run
  * longer: the question under a long document stays a short scroll away. The
- * box watches its words' height (a document's text arrives after it is
- * drawn), so Read all shows only once there is more to read.
+ * box is held at the clamp until Read all opens it, so its words are
+ * measured against the clamp itself (a box opened while it measures would
+ * always fit its words); it watches their height (a document's text arrives
+ * after it is drawn), and fades and offers Read all only once there is more
+ * to read.
  */
 const Clamped = (props: ParentProps) => {
   const [open, setOpen] = createSignal(false, { ownedWrite: true });
@@ -150,7 +154,8 @@ const Clamped = (props: ParentProps) => {
     <>
       <div
         class="ak-clamp"
-        data-open={pressed(open() || !long())}
+        data-open={pressed(open())}
+        data-long={pressed(long())}
         ref={(el: HTMLElement) => {
           outer = Option.some(el);
         }}
