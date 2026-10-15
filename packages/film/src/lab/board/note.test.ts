@@ -5,21 +5,31 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Option, Schema } from 'effect';
-import type { Panel } from '../../core/board.ts';
+import { BoardName, PANEL_START, type Panel } from '../../core/board.ts';
 import { NoteDraft } from '../../core/schema.ts';
+import { Segment } from '../../core/segment.ts';
 import type { SketchItem } from '../../core/sketch.ts';
 import { panelNoteOf, tweakCommand } from './note.ts';
 
 const judge: Panel = {
   id: 'cold.judge',
-  beat: 'cold',
-  at: 'judge',
-  tries: [{ n: 1, file: 'cold.judge.1.png', sha256: 's', made: 'generate', refs: [], at: 'x' }],
+  beat: BoardName.make('cold'),
+  at: BoardName.make('judge'),
+  tries: [
+    {
+      n: 1,
+      file: Segment.make('cold.judge.1.png'),
+      sha256: 's',
+      made: 'generate',
+      refs: [],
+      at: 'x',
+    },
+  ],
 };
 const card: Panel = {
   ...judge,
   id: 'cold.job',
-  at: 'job',
+  at: BoardName.make('job'),
   tries: [],
   text: { _tag: 'Card', payoff: 'just' },
 };
@@ -72,7 +82,7 @@ describe("a panel's note", () => {
     expect(Option.map(comment, (d) => d.panel)).toEqual(Option.some({ id: 'cold.job' }));
   });
   test('a start panel names no mark', () => {
-    const start = panelNoteOf({ ...base, panel: { ...judge, id: 'cold.start', at: 'start' } });
+    const start = panelNoteOf({ ...base, panel: { ...judge, id: 'cold.start', at: PANEL_START } });
     expect(Option.map(start, (d) => Option.fromUndefinedOr(d.mark))).toEqual(
       Option.some(Option.none()),
     );

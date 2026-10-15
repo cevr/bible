@@ -5,7 +5,8 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, FileSystem, Option, Schema } from 'effect';
-import { type BoardFile, BoardFileJson } from '../core/board.ts';
+import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
+import { Segment } from '../core/segment.ts';
 import { LabEvents } from './lab-events.ts';
 import { NotesStore } from './notes-store.ts';
 import { BoardStore } from './board-store.ts';
@@ -17,12 +18,12 @@ const board: BoardFile = {
   panels: [
     {
       id: 'cold.judge',
-      beat: 'cold',
-      at: 'judge',
+      beat: BoardName.make('cold'),
+      at: BoardName.make('judge'),
       tries: [
         {
           n: 1,
-          file: 'cold.judge.1.png',
+          file: Segment.make('cold.judge.1.png'),
           sha256: 's1',
           made: 'import',
           refs: [],

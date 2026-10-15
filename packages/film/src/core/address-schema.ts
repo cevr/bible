@@ -6,6 +6,7 @@
 // with no import cycle. `address.ts` re-exports it as the address's one face.
 
 import { Array as Arr, Match, Option, Schema } from 'effect';
+import { Segment } from './segment.ts';
 
 const PART_ID = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -27,11 +28,15 @@ export const PartId = Schema.String.check(
 );
 
 /** An act's name (`cold open`): never empty, and never starting with the `-` of a flag. */
-export const ActName = Schema.String.check(
+export const ActName = Segment.check(
   Schema.isPattern(/^[^-]/, {
     message: 'an act is named by a word, never empty nor starting with "-"',
   }),
 );
+export type ActName = typeof ActName.Type;
+
+/** `name` as an act's name, when it is one. */
+const actNamed = Schema.decodeOption(ActName);
 
 const FilmPart = Schema.TaggedStruct('Film', {});
 const ActPart = Schema.TaggedStruct('Act', { act: ActName });
@@ -67,8 +72,9 @@ export const addressKey = (address: Address): string =>
 
 /**
  * `addressKey`'s inverse: the address `key` is written as, when its shape is
- * one (`film`, `act:…`, `scenes:…`, `short:…`, with a non-empty name). The
- * names are read as they stand; a caller that needs a valid address judges
+ * one (`film`, `act:…`, `scenes:…`, `short:…`, with a non-empty name). An
+ * act's name is decoded (it names files); the others are read as they
+ * stand: a caller that needs a valid address judges
  * the result by `Address` (a choice point's id does, and checks the round
  * trip).
  */
@@ -77,7 +83,7 @@ export const addressOfKey = (key: string): Option.Option<Address> => {
   const [kind = '', ...rest] = key.split(':');
   const name = rest.join(':');
   if (name === '') return Option.none();
-  if (kind === 'act') return Option.some({ _tag: 'Act', act: name });
+  if (kind === 'act') return Option.map(actNamed(name), (act): Address => ({ _tag: 'Act', act }));
   if (kind === 'short') return Option.some({ _tag: 'Short', id: name });
   if (kind !== 'scenes') return Option.none();
   const ids = name.split(',');

@@ -5,6 +5,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import { busy, refused, said } from '../../command/command.ts';
+import { ActName } from '../../core/address-schema.ts';
 import { sceneAt } from '../../core/layout.ts';
 import {
   ChangeId,
@@ -104,7 +105,9 @@ describe('findingTime (F/⇧F)', () => {
 
   test('none for the whole film, an act, or no address', () => {
     expect(findingTime(at({ part: { _tag: 'Film' } }), placed)).toEqual(Option.none());
-    expect(findingTime(at({ part: { _tag: 'Act', act: 'a' } }), placed)).toEqual(Option.none());
+    expect(findingTime(at({ part: { _tag: 'Act', act: ActName.make('a') } }), placed)).toEqual(
+      Option.none(),
+    );
     expect(findingTime(late, placed)).toEqual(Option.none());
   });
 });

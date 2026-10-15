@@ -141,7 +141,8 @@ const decode = (id: string): Option.Option<PointRef> =>
 /** A choice point's id on the wire and on disk, decoded to the point it names. */
 export const PointId = Schema.String.pipe(
   Schema.decodeTo(
-    PointRef,
+    // Read by `read` and judged by `PointRef` (`decode`): already the point, names decoded.
+    Schema.toType(PointRef),
     SchemaTransformation.transformEffect({
       decode: (id: string) =>
         Effect.fromOption(decode(id)).pipe(

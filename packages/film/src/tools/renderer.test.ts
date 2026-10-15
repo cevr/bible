@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Exit, Fiber, Layer, Option, Path, Result, Schema } from 'effect';
+import { MAIN_VARIANT, RenderVariantName } from '../core/catalogue.ts';
 import type { ExportInfo } from '../core/export-handle.ts';
 import { MediaFailed } from '../core/refusals.ts';
 import { PageCrashed, PageError } from './errors.ts';
@@ -40,10 +41,12 @@ const mixed = (files: Map<string, Uint8Array>, rendered: LoadedFilm = film) =>
     files.set(stampFile(rendered.paths), text(stamp));
   });
 
+const G = RenderVariantName.make('g');
+
 /** The whole 20 s test film on four pages: 600 frames in 16 chunks. */
 const video = RenderJob.Video({
   address: { _tag: 'Film' },
-  variant: 'main',
+  variant: MAIN_VARIANT,
   captions: true,
   workers: Option.some(4),
   from: Option.none(),
@@ -209,7 +212,11 @@ describe.concurrent('Renderer', () => {
     () =>
       Effect.gen(function* () {
         const bare = setup();
-        const output = yield* bare.render({ ...video, variant: 'trial', share: true });
+        const output = yield* bare.render({
+          ...video,
+          variant: RenderVariantName.make('trial'),
+          share: true,
+        });
         // The joins land the clip and its share copy; the renderer writes the captions itself.
         expect(bare.ledger.joins.map((j) => j.out)).toEqual([
           '/out/test/film/trial.mp4',
@@ -232,7 +239,7 @@ describe.concurrent('Renderer', () => {
 
         const files = new Map([['/out/test/film/look/stills/t0001.00.png', text('png')]]);
         const kept = setup({}, files);
-        yield* kept.render({ ...video, variant: 'look' });
+        yield* kept.render({ ...video, variant: RenderVariantName.make('look') });
         expect([...kept.files.keys()].filter((f) => f.startsWith('/out/test/film/look/'))).toEqual([
           '/out/test/film/look/stills/t0001.00.png',
         ]);
@@ -252,7 +259,7 @@ describe.concurrent('Renderer', () => {
       const scenes = [0, 2, 4].map((from): RenderJob => ({
         ...video,
         address: { _tag: 'Scenes', ids: ['a'] },
-        variant: `v${from}`,
+        variant: RenderVariantName.make(`v${from}`),
         from: Option.some(from),
         to: Option.some(from + 2),
       }));
@@ -456,7 +463,7 @@ describe.concurrent('Renderer', () => {
       yield* render(
         RenderJob.Stills({
           address: { _tag: 'Film' },
-          variant: 'g',
+          variant: G,
           captions: true,
           server: Option.none(),
           workers: 4,
@@ -478,7 +485,7 @@ describe.concurrent('Renderer', () => {
       yield* render(
         RenderJob.Contact({
           address: { _tag: 'Film' },
-          variant: 'g',
+          variant: G,
           captions: false,
           server: Option.none(),
           every: 5,
@@ -500,7 +507,7 @@ describe.concurrent('Renderer', () => {
         render(
           RenderJob.Contact({
             address: { _tag: 'Film' },
-            variant: 'g',
+            variant: G,
             captions: false,
             server: Option.none(),
             every: 1,
@@ -532,7 +539,7 @@ describe.concurrent('Renderer', () => {
       yield* render(
         RenderJob.LookBook({
           address: { _tag: 'Film' },
-          variant: 'main',
+          variant: MAIN_VARIANT,
           captions: false,
           server: Option.none(),
         }),
@@ -771,7 +778,7 @@ describe.concurrent('Renderer', () => {
         yield* render(
           RenderJob.Stills({
             address: { _tag: 'Short', id: 'cut' },
-            variant: 'g',
+            variant: G,
             captions: true,
             server: Option.none(),
             workers: 1,

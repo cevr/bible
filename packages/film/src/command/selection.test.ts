@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
+import { ActName } from '../core/address-schema.ts';
 import { Places, pageHref } from '../core/api.ts';
 import { Place } from '@bible/url-state';
 import {
@@ -11,6 +12,8 @@ import {
   selectionOf,
   selectionText,
 } from './selection.ts';
+
+const OPENING = ActName.make('opening');
 
 const {
   Cue,
@@ -209,7 +212,7 @@ describe("a selection in the pages' URLs", () => {
 
   test("reads the project's `?point=` as the page does: an act's sheet, the film's, a scene's render (H-10)", () => {
     expect(selectionOf('/films/f/project?point=render%3Aact%3Aopening')).toEqual(
-      Option.some(Act.make({ film: 'f', act: 'opening' })),
+      Option.some(Act.make({ film: 'f', act: OPENING })),
     );
     expect(selectionOf('/films/f/project?point=render%3Afilm')).toEqual(
       Option.some(Film.make({ film: 'f' })),
@@ -241,12 +244,12 @@ describe("a selection in the pages' URLs", () => {
     expect(
       citeOf(Variant.make({ film: 'f', point: 'render:scenes:roof', variant: 'main' }), here),
     ).toBe('/films/f/project?point=render%3Ascenes%3Aroof');
-    expect(citeOf(Act.make({ film: 'f', act: 'opening' }), here)).toBe(
+    expect(citeOf(Act.make({ film: 'f', act: OPENING }), here)).toBe(
       '/films/f/project?point=render%3Aact%3Aopening',
     );
     expect(citeOf(Film.make({ film: 'f' }), here)).toBe('/films/f/project?point=render%3Afilm');
     for (const s of [
-      Act.make({ film: 'f', act: 'opening' }),
+      Act.make({ film: 'f', act: OPENING }),
       Film.make({ film: 'f' }),
       Point.make({ film: 'f', point: 'score' }),
       Point.make({ film: 'f', point: 'render:scenes:roof' }),
@@ -271,7 +274,7 @@ describe("a selection in the pages' URLs", () => {
       '/films/f/choices?point=score&heard=score&variant=ensemble#t=3',
     );
     const project = '/films/f/project?point=render%3Afilm&picture=p2#t=4';
-    expect(citeOf(Act.make({ film: 'f', act: 'opening' }), project)).toBe(
+    expect(citeOf(Act.make({ film: 'f', act: OPENING }), project)).toBe(
       '/films/f/project?point=render%3Aact%3Aopening&picture=p2#t=4',
     );
   });

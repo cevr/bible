@@ -29,6 +29,7 @@ import type {
   WordMissing,
 } from '../core/errors.ts';
 import { type Address, sceneAddress } from '../core/address.ts';
+import { ActName } from '../core/address-schema.ts';
 import { TakeStaleReason } from '../core/narration.ts';
 import type { CheckLine, FindingAddress } from '../core/schema.ts';
 import { SHORT_RULES } from '../core/shorts.ts';
@@ -284,7 +285,7 @@ const shownMeasure = {
 
 /** An act of the declared colour script (`look.acts`) measures outside its target. */
 export class ColourScript extends Schema.TaggedError<ColourScript>()('ColourScript', {
-  act: Schema.String,
+  act: ActName,
   measure: Schema.Literals(['luma', 'saturation', 'dark']),
   value: Schema.Finite,
   low: Schema.Finite,

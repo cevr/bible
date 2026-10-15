@@ -67,7 +67,7 @@ export const look = {
       saturation: range({ now: [0.3, 0.4], light: [0.2, 0.3], lighter: [0.17, 0.27] }),
     },
   ],
-} as const satisfies Look;
+} as const satisfies typeof Look.Encoded;
 
 /** One of the film's acts, by name. */
 export type ActName = (typeof look.acts)[number]['name'];

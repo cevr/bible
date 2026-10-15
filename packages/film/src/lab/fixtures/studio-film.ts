@@ -13,7 +13,7 @@
 
 import { Option, Schema } from 'effect';
 import { sceneAddress } from '../../core/address.ts';
-import { Render } from '../../core/catalogue.ts';
+import { Render, RenderVariantName } from '../../core/catalogue.ts';
 import { type FakeRoute, type Json, json, route } from './harness.ts';
 
 /** The film's name. */
@@ -132,7 +132,7 @@ const choices: Json = {
 const renderOf = (id: string): Json =>
   Schema.encodeSync(Schema.toCodecJson(Render))({
     address: sceneAddress(id),
-    variant: 'main',
+    variant: RenderVariantName.make('main'),
     kind: 'video',
     settings: { scale: 1, captions: false },
     stamp: { commit: Option.none(), key: 'k' },
@@ -178,7 +178,7 @@ const scene = (id: string, state: string) => ({
 const project: Json = {
   project: {
     film: STUDIO_FILM,
-    variant: 'main',
+    variant: RenderVariantName.make('main'),
     key: 'fk',
     comments: [said(FILM_AT, 'the flow holds')],
     acts: [

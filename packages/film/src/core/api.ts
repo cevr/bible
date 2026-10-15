@@ -46,7 +46,7 @@ import {
   HttpApiSchema,
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
-import { BoardFile } from './board.ts';
+import { BoardFile, BoardName } from './board.ts';
 import { AskRecord, StepValues } from './ask.ts';
 import type { Interval } from './time.ts';
 import { isShortKey } from './shorts.ts';
@@ -762,7 +762,7 @@ const BoardPick = Schema.Struct({
 });
 
 /** A beat's board approved or withdrawn. */
-const BoardBeatPost = Schema.Struct({ beat: Schema.String });
+const BoardBeatPost = Schema.Struct({ beat: BoardName });
 
 /**
  * The film's storyboard (`core/board.ts`, `film board`): the record, an

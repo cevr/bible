@@ -28,6 +28,7 @@ import {
   CatalogueJson,
   OpId,
   type Render,
+  RenderVariantName,
   approve,
   comment,
   emptyCatalogue,
@@ -104,7 +105,7 @@ const videoRender = (
   from = 0,
 ): Render => ({
   address,
-  variant,
+  variant: RenderVariantName.make(variant),
   kind: 'video',
   settings: { scale: 0.5, captions: true },
   stamp: { commit: Option.some('0123456789abcdef'), key },
@@ -344,7 +345,7 @@ describe('a project folder', () => {
   const stills: Render = {
     ...film,
     kind: 'stills',
-    variant: 'g',
+    variant: RenderVariantName.make('g'),
     files: {
       clip: Option.none(),
       share: Option.none(),

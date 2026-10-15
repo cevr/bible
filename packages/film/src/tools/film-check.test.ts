@@ -17,6 +17,7 @@ import {
   Result,
   Schema,
 } from 'effect';
+import { ActName } from '../core/address-schema.ts';
 import { filmEnd, layout } from '../core/layout.ts';
 import { mixKey } from '../core/mix.ts';
 import { voiceKey } from '../core/narration.ts';
@@ -134,7 +135,7 @@ describe('a film that does not lay out', () => {
   });
 
   test('a part the film lacks is a finding too, and the film lays out otherwise', () => {
-    const lost = laidOut(film, { _tag: 'Act', act: 'nowhere' });
+    const lost = laidOut(film, { _tag: 'Act', act: ActName.make('nowhere') });
     expect(Result.getFailure(lost).pipe(Option.map((e) => e._tag))).toEqual(
       Option.some('UnknownAct'),
     );

@@ -7,7 +7,7 @@
 // has. Pure: it reads only the placed film and its declarations.
 
 import { Array as Arr, Match, Option, Order, Result } from 'effect';
-import type { Address } from './address-schema.ts';
+import type { ActName, Address } from './address-schema.ts';
 import { type PartError, type Stretch, stretchesOf } from './acts.ts';
 import {
   AddressConflict,
@@ -26,7 +26,7 @@ export { Address, PartAddress, addressKey, addressOfKey, sceneAddress } from './
 
 /** What a command was given to name its part: `--act`, `--scene a,b`, `--short`. */
 export interface AddressFlags {
-  readonly act: Option.Option<string>;
+  readonly act: Option.Option<ActName>;
   readonly scene: Option.Option<ReadonlyArray<string>>;
   readonly short: Option.Option<string>;
 }

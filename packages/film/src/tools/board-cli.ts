@@ -29,11 +29,16 @@ import {
   Path,
   Predicate,
   Result,
+  Schema,
 } from 'effect';
 import {
   type BoardFile,
+  BoardName,
+  boardNamed,
   PANEL_START,
   type PanelText,
+  TryExt,
+  styleFile,
   approvalOf,
   approveBeat,
   cardLine,
@@ -60,7 +65,10 @@ const film = Argument.String('film').pipe(
 const panelFlag = Flag.String('panel').pipe(
   Flag.withDescription('the panel, <beat>.<at>: its beat and the mark it is held from (or start)'),
 );
-const beatFlag = Flag.String('beat').pipe(Flag.withDescription('the beat, by its id'));
+const beatFlag = Flag.String('beat').pipe(
+  Flag.withSchema(BoardName),
+  Flag.withDescription('the beat, by its id'),
+);
 
 /** The film's beats as the board reads them, from its script. */
 const beatsOf = Effect.fn('Board.beats')(function* (name: FilmName) {
@@ -69,12 +77,22 @@ const beatsOf = Effect.fn('Board.beats')(function* (name: FilmName) {
     onNone: () =>
       Effect.fail(BoardRefused.make({ film: name, reason: 'the film has no script.ts to board' })),
     onSome: (beats) =>
-      Effect.succeed(
-        beats.map((b): BoardBeat => ({
-          id: b.id,
-          say: Option.fromUndefinedOr(b.say),
-          picture: Option.fromUndefinedOr(b.picture),
-        })),
+      Effect.forEach(beats, (b) =>
+        Option.match(boardNamed(b.id), {
+          onNone: () =>
+            Effect.fail(
+              BoardRefused.make({
+                film: name,
+                reason: `beat ${b.id} names no board panel: letters, digits, _ and -`,
+              }),
+            ),
+          onSome: (id) =>
+            Effect.succeed<BoardBeat>({
+              id,
+              say: Option.fromUndefinedOr(b.say),
+              picture: Option.fromUndefinedOr(b.picture),
+            }),
+        }),
       ),
   });
 });
@@ -84,6 +102,23 @@ const actsOf = Effect.fn('Board.acts')(function* (name: FilmName) {
   const loaded = yield* (yield* FilmRepo).load(name);
   return Option.match(loaded.look, { onNone: () => [], onSome: (look) => look.acts });
 });
+
+const tryExtNamed = Schema.decodeUnknownOption(TryExt);
+
+/** The extension of an image brought in as a try (`png` when it has none), or the refusal naming the file. */
+const tryExtOf = (film: FilmName, source: string) =>
+  Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const ext = path.extname(source).toLowerCase().replace(/^\./, '') || 'png';
+    return yield* Effect.fromOption(tryExtNamed(ext)).pipe(
+      Effect.mapError(() =>
+        BoardRefused.make({
+          film,
+          reason: `${source} is no board image: a try is png, jpg, jpeg or webp`,
+        }),
+      ),
+    );
+  });
 
 /** `<beat>.<at>` read against the script: a beat it has, and a mark of its line (or `start`). */
 const panelIn = (name: FilmName, beats: ReadonlyArray<BoardBeat>, id: string) =>
@@ -107,7 +142,14 @@ const panelIn = (name: FilmName, beats: ReadonlyArray<BoardBeat>, id: string) =>
         film: name,
         reason: `beat ${beat} has no mark {${at}} (it has start, ${marks.join(', ')})`,
       });
-    return { beat: found.value, at };
+    // Both name the panel's files and link: decoded, never written as they came.
+    const names = Option.all({ beatId: boardNamed(found.value.id), mark: boardNamed(at) });
+    if (Option.isNone(names))
+      return yield* BoardRefused.make({
+        film: name,
+        reason: `"${id}" names no board panel: a beat and a mark are letters, digits, _ and -`,
+      });
+    return { beat: found.value, beatId: names.value.beatId, at: names.value.mark };
   });
 
 /** Where `board` places panels: the film's order, every panel it holds and `id`. */
@@ -122,6 +164,7 @@ const style = Command.make(
   {
     film,
     id: Flag.String('id').pipe(
+      Flag.withSchema(BoardName),
       Flag.withDescription("the style's id, as the looks study names it (9005)"),
     ),
     name: Flag.String('name').pipe(Flag.withDescription("the style's name")),
@@ -138,7 +181,6 @@ const style = Command.make(
   },
   Effect.fn('film.board.style')(function* (input) {
     const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
     const store = yield* BoardStore;
     const name = yield* filmNamed(input.film);
     const block = (yield* fs.readFileString(input.blockFile)).trim();
@@ -147,7 +189,7 @@ const style = Command.make(
       onSome: (f) => Effect.asSome(Effect.map(fs.readFileString(f), (s) => s.trim())),
     });
     const bytes = yield* fs.readFile(input.ref);
-    const file = `style.${input.id}${path.extname(input.ref).toLowerCase() || '.png'}`;
+    const file = styleFile(input.id, yield* tryExtOf(name, input.ref));
     const sha256 = yield* store.put(name, file, bytes);
     yield* store.modify(name, (b) =>
       Result.succeed({
@@ -198,17 +240,17 @@ const importTries = Command.make(
     const store = yield* BoardStore;
     const name = yield* filmNamed(input.film);
     const beats = yield* beatsOf(name);
-    const { beat, at } = yield* panelIn(name, beats, input.panel);
-    const id = panelId(beat.id, at);
+    const { beatId, at } = yield* panelIn(name, beats, input.panel);
+    const id = panelId(beatId, at);
     const prompt = yield* Option.match(input.promptFile, {
       onNone: () => Effect.succeedNone,
       onSome: (f) => Effect.asSome(fs.readFileString(f)),
     });
     const stamp = DateTime.formatIso(yield* DateTime.now);
     const sources = yield* Effect.forEach(input.files, (source) =>
-      Effect.map(fs.readFile(source), (bytes) => ({
+      Effect.zipWith(fs.readFile(source), tryExtOf(name, source), (bytes, ext) => ({
         bytes,
-        ext: path.extname(source).toLowerCase().replace(/^\./, '') || 'png',
+        ext,
         made: 'import' as const,
         ...Option.match(prompt, { onNone: () => ({}), onSome: (p) => ({ prompt: p }) }),
         refs: [],
@@ -234,7 +276,7 @@ const importTries = Command.make(
     });
     const made = yield* store.addTries(
       name,
-      { id, beat: beat.id, at },
+      { id, beat: beatId, at },
       (b) => orderWith(beats, b, id),
       sources,
     );
@@ -252,14 +294,14 @@ const importTries = Command.make(
 /** A text panel set: a card or a verse page, in place of a picture. */
 const setText = (
   input: { film: string; panel: string },
-  text: (beat: BoardBeat, at: string) => Effect.Effect<PanelText, BoardRefused>,
+  text: (beat: BoardBeat, at: BoardName) => Effect.Effect<PanelText, BoardRefused>,
 ) =>
   Effect.gen(function* () {
     const store = yield* BoardStore;
     const name = yield* filmNamed(input.film);
     const beats = yield* beatsOf(name);
-    const { beat, at } = yield* panelIn(name, beats, input.panel);
-    const id = panelId(beat.id, at);
+    const { beat, beatId, at } = yield* panelIn(name, beats, input.panel);
+    const id = panelId(beatId, at);
     const set = yield* text(beat, at);
     yield* store.modify(name, (b) => {
       const was = panelById(b, id);
@@ -268,7 +310,7 @@ const setText = (
           reason: `panel ${id} has drawn tries: a card or a verse sits on a panel of its own`,
         });
       return Result.succeed(
-        withPanel(b, { id, beat: beat.id, at, tries: [], text: set }, orderWith(beats, b, id)),
+        withPanel(b, { id, beat: beatId, at, tries: [], text: set }, orderWith(beats, b, id)),
       );
     });
     yield* Console.log(`${set._tag.toLowerCase()} ${id}`);
@@ -281,6 +323,7 @@ const card = Command.make(
     panel: panelFlag,
     payoff: Flag.String('payoff').pipe(Flag.withDescription('the payoff word, set large')),
     to: Flag.String('to').pipe(
+      Flag.withSchema(BoardName),
       Flag.optional,
       Flag.withDescription('the mark its words end before (the end of the line when none)'),
     ),

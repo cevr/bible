@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import { type Addressable, addressKey, addressOf, resolveAddress } from './address.ts';
+import { ActName } from './address-schema.ts';
 import { layout } from './layout.ts';
+
+const OPEN = ActName.make('open');
+const CLOSE = ActName.make('close');
 
 const none = { act: Option.none(), scene: Option.none(), short: Option.none() };
 
@@ -21,8 +25,8 @@ const film: Addressable = {
   ),
   look: Option.some({
     acts: [
-      { from: 'a', name: 'open' },
-      { from: 'c', name: 'close' },
+      { from: 'a', name: OPEN },
+      { from: 'c', name: CLOSE },
     ],
   }),
   shorts: [
@@ -40,9 +44,9 @@ const failure = <A, E extends { readonly _tag: string }>(r: Result.Result<A, E>)
 describe('addressOf', () => {
   test('no flag names the film; one names its scope', () => {
     expect(Result.getOrThrow(addressOf(none))).toEqual({ _tag: 'Film' });
-    expect(Result.getOrThrow(addressOf({ ...none, act: Option.some('open') }))).toEqual({
+    expect(Result.getOrThrow(addressOf({ ...none, act: Option.some(OPEN) }))).toEqual({
       _tag: 'Act',
-      act: 'open',
+      act: OPEN,
     });
     expect(Result.getOrThrow(addressOf({ ...none, scene: Option.some(['b', 'a']) }))).toEqual({
       _tag: 'Scenes',
@@ -68,7 +72,7 @@ describe('resolveAddress', () => {
     const whole = Result.getOrThrow(resolveAddress(film, { _tag: 'Film' }));
     expect(whole.scenes.map((p) => p.spec.id)).toEqual(['a', 'b', 'c', 'd']);
     expect(whole.span).toEqual(Option.none());
-    expect(whole.acts.map((s) => s.part.name)).toEqual(['open', 'close']);
+    expect(whole.acts.map((s) => s.part.name)).toEqual([OPEN, CLOSE]);
   });
 
   test('a film that declares no look has no acts to judge', () => {
@@ -79,10 +83,10 @@ describe('resolveAddress', () => {
   });
 
   test('an act spans its scenes and is judged whole', () => {
-    const close = Result.getOrThrow(resolveAddress(film, { _tag: 'Act', act: 'close' }));
+    const close = Result.getOrThrow(resolveAddress(film, { _tag: 'Act', act: CLOSE }));
     expect(close.scenes.map((p) => p.spec.id)).toEqual(['c', 'd']);
     expect(close.span).toEqual(Option.some({ from: c?.start ?? 0, to: end }));
-    expect(close.acts.map((s) => s.part.name)).toEqual(['close']);
+    expect(close.acts.map((s) => s.part.name)).toEqual([CLOSE]);
   });
 
   test('scenes span from the first to start to the last to end, in film order; no act is judged', () => {
@@ -118,7 +122,7 @@ describe('resolveAddress', () => {
   });
 
   test('a name the film lacks fails once, here, with what it has', () => {
-    expect(failure(resolveAddress(film, { _tag: 'Act', act: 'middle' }))).toEqual(
+    expect(failure(resolveAddress(film, { _tag: 'Act', act: ActName.make('middle') }))).toEqual(
       Option.some('UnknownAct'),
     );
     expect(failure(resolveAddress(film, { _tag: 'Scenes', ids: ['b', 'z'] }))).toEqual(
@@ -141,7 +145,7 @@ describe('resolveAddress', () => {
       Option.some('UnknownMark'),
     );
     expect(
-      failure(resolveAddress({ ...film, look: Option.none() }, { _tag: 'Act', act: 'open' })),
+      failure(resolveAddress({ ...film, look: Option.none() }, { _tag: 'Act', act: OPEN })),
     ).toEqual(Option.some('UnknownAct'));
   });
 });

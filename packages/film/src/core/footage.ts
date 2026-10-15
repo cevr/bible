@@ -21,6 +21,7 @@
 import { Option, Schema } from 'effect';
 import { type Pcm, toMono } from './audio.ts';
 import { Seconds, TakeWord, repoJson } from './schema.ts';
+import { Segment } from './segment.ts';
 
 /** Every copy a source has. */
 export const FOOTAGE_COPIES = ['mezzanine', 'proxy'] as const;
@@ -45,7 +46,7 @@ const FOOTAGE_NAME_RULE =
  * `<out>/footage/<name>/`, and the footage route (`/footage/<name>/…`)
  * serves them. No separator, no capital, nothing starting with a dot.
  */
-export const FootageName = Schema.String.check(
+export const FootageName = Segment.check(
   Schema.isPattern(FOOTAGE_NAME, { message: FOOTAGE_NAME_RULE }),
 );
 

@@ -24,6 +24,7 @@ import {
 import type { Result } from 'effect';
 import {
   type BoardFile,
+  type BoardName,
   type BoardStyle,
   type BoardTry,
   filmOrder,
@@ -108,7 +109,7 @@ const styleOf = (film: string, board: BoardFile) =>
 
 /** A panel a run draws, and how many tries it still lacks. */
 interface ToDraw {
-  readonly at: string;
+  readonly at: BoardName;
   readonly count: number;
 }
 
@@ -162,8 +163,8 @@ interface TryContext {
  */
 const drawTry = Effect.fn('Board.drawTry')(function* (
   ctx: TryContext,
-  beat: string,
-  at: string,
+  beat: BoardName,
+  at: BoardName,
   made: BoardTry['made'],
   prompt: string,
   refs: ReadonlyArray<string>,
@@ -219,8 +220,8 @@ const drawTry = Effect.fn('Board.drawTry')(function* (
  */
 const drawTries = (
   ctx: TryContext,
-  beat: string,
-  at: string,
+  beat: BoardName,
+  at: BoardName,
   count: number,
   made: BoardTry['made'],
   prompt: string,

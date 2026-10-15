@@ -47,7 +47,8 @@ import {
 import { Base64 } from 'effect/encoding';
 import { TestClock } from 'effect/testing';
 import { labUrls } from '../core/api.ts';
-import { type BoardFile, BoardFileJson } from '../core/board.ts';
+import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
+import { Segment } from '../core/segment.ts';
 import { currentOf, moveForward, productionsOf } from '../core/production.ts';
 import { AskStore } from './ask-store.ts';
 import { RenderCatalogue } from './catalogue.ts';
@@ -79,12 +80,12 @@ const board: BoardFile = {
   panels: [
     {
       id: 'cold.judge',
-      beat: 'cold',
-      at: 'judge',
+      beat: BoardName.make('cold'),
+      at: BoardName.make('judge'),
       tries: [
         {
           n: 1,
-          file: 'cold.judge.1.png',
+          file: Segment.make('cold.judge.1.png'),
           sha256: 's1',
           made: 'import',
           refs: [],
