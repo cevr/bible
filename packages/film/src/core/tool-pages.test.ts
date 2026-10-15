@@ -117,18 +117,22 @@ describe('checkPage', () => {
   });
 });
 
-/** A scene's line as `film cues` prints it: its placement, then each mark at its film second. */
+/** A scene's line as `film cues` prints it: its placement, then each mark at its second into the scene. */
 const sceneLine = (id: string, marks: number) =>
   `${id.padEnd(11)} start=   0.00 dur=  9.00 speech=0.00–8.00 ${Array.from(
     { length: marks },
     (_, index) => `mark${index}@${(index / 100).toFixed(2)}`,
   ).join(' ')}`;
 
-/** Every page of `lines` read on from the first, as an agent reads them, joined back into lines. */
-const readAll = (lines: ReadonlyArray<string>) => {
+/**
+ * Every page of `lines` read on from the first, asked with `scope`, as an
+ * agent reads them: joined back into lines, with each answer's `next`.
+ */
+const readAll = (lines: ReadonlyArray<string>, scope: CuesAt = {}) => {
   const read: Array<string> = [];
   const rests: Array<string> = [];
-  let at: CuesAt = {};
+  const cursors: Array<CuesAt> = [];
+  let at: CuesAt = scope;
   for (let call = 0; call < 20; call += 1) {
     const answer = cuesPage(lines, Option.none(), at);
     expect(cuesJson(answer).length).toBeLessThanOrEqual(8_000);
@@ -138,10 +142,11 @@ const readAll = (lines: ReadonlyArray<string>) => {
     if (answer.column > 1) read.push(`${read.pop() ?? ''}${first}`, ...after);
     else read.push(first, ...after);
     const next = Option.fromUndefinedOr(answer.next);
-    if (Option.isNone(next)) return { read, rests };
+    if (Option.isNone(next)) return { read, rests, cursors };
+    cursors.push(next.value);
     at = next.value;
   }
-  return { read, rests };
+  return { read, rests, cursors };
 };
 
 describe('cuesPage', () => {
@@ -157,6 +162,14 @@ describe('cuesPage', () => {
     const { read, rests } = readAll(lines);
     expect(read).toEqual(lines);
     expect(rests.some((rest) => rest.includes('line 2 goes on past this answer'))).toBe(true);
+  });
+
+  test("one scene's line read on: each cursor names the scene asked, so reading on stays in its line", () => {
+    const roof = sceneLine('roof', 900);
+    const { read, cursors } = readAll([roof], { scene: 'roof' });
+    expect(read).toEqual([roof]);
+    expect(cursors.length).toBeGreaterThan(0);
+    expect(cursors.map((cursor) => cursor.scene)).toEqual(cursors.map(() => 'roof'));
   });
 
   test('never cuts between the two halves of one character', () => {

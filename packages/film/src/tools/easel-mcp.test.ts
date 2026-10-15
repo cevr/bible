@@ -2,12 +2,14 @@
 // listed, the reads read-only; a look answered as images after their lines,
 // its view as the tool asks it (no captions; a crop a PNG at 1:1, a frame a
 // JPEG), and refused in the film's words: another checkout's films
-// (`LabElsewhere`, with how to reach a lab of its own), a film the lab lacks,
-// the easel's refusal, stills too large for a model's request, arguments
-// that do not decode; a check of the scenes named, drawn, a page at a time;
-// a film's cue lines, `late` said, a scene it lacks refused; the journal
-// noted and read back, its oldest entries counted with its file, an empty
-// note and a scene the film lacks refused.
+// (`LabElsewhere`, with how to reach a lab of its own), a films folder that
+// is not absolute, a film the lab lacks, the easel's refusal, stills too
+// large for a model's request, arguments that do not decode; a check of the
+// scenes named, drawn, a page at a time, its cursor checking the same scenes
+// (another scope starts again); a film's cue lines, `late` said, a scene it
+// lacks refused; the journal noted and read back with no timeline resolved,
+// its oldest entries counted with its file, an empty note and a scene the
+// film lacks refused.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, type Schema } from 'effect';
@@ -121,6 +123,9 @@ const cuesOfF = (_film: string, scene: Option.Option<string>) =>
     },
   );
 
+/** What a fresh `film read scenes` of film `f` answers: roof and gate, no timeline resolved. */
+const scenesOfF = () => Effect.succeed(['roof', 'gate']);
+
 /** A tool's arguments, as a client sends them. */
 type Args = Readonly<Record<string, Schema.Json>>;
 
@@ -220,6 +225,10 @@ describe("the easel's tools on the MCP", () => {
       expect(yield* refused({ films: '/rift/films', scene: 'roof', at: ['1'] })).toBe(
         'LabElsewhere: this lab serves /films/f, not /rift/films/f: start a lab from your checkout (LAB_PORT=<port> bun cli.ts lab, in apps/animations) and call its MCP at http://127.0.0.1:<port>/mcp',
       );
+      // A relative films folder: the lab would read it from its own checkout.
+      expect(yield* refused({ films: 'src/films', scene: 'roof', at: ['1'] })).toContain(
+        "your checkout's films folder, absolute",
+      );
       expect(yield* refused({ film: 'nope', scene: 'roof', at: ['1'] })).toMatch(/^FilmUnknown: /);
       expect(asked).toEqual([]);
       expect(yield* refused({ scene: 'broken', at: ['1'] })).toBe(
@@ -254,9 +263,12 @@ describe("the easel's tools on the MCP", () => {
       message: 'm'.repeat(370),
       address: { part: { _tag: 'Scenes', ids: ['roof'] }, time: index },
     }));
+    // The whole film has a finding more than the two scenes named.
     const check: FreshFilmService['check'] = (film, leg, scenes = []) =>
       Effect.sync(() => {
         checked.push([film, leg, scenes]);
+        if (scenes.length === 0)
+          return [...findings, { level: 'warning', tag: 'Elsewhere', message: 'w' }];
         return findings;
       });
     return Effect.gen(function* () {
@@ -272,11 +284,19 @@ describe("the easel's tools on the MCP", () => {
         message: 'm'.repeat(370),
       });
       expect(first.next.from).toBe(first.findings.length);
+      expect(first.next.scenes).toEqual(['roof', 'gate']);
+      // Asked again with the cursor as it is: the same scenes, read on.
       const rest = yield* tool('check', { films: FILMS, film: 'f', ...first.next });
       expect(rest.restarted).toBeUndefined();
       expect(rest.findings[0].tag).toBe(`Finding${first.findings.length}`);
       expect(first.findings.length + rest.findings.length).toBe(30);
+      // Its place in another scope (the whole film, here) starts again from the first.
+      const { scenes: _named, ...wider } = first.next;
+      const whole = yield* tool('check', { films: FILMS, film: 'f', ...wider });
+      expect([whole.from, whole.findings[0].tag, whole.warnings]).toEqual([0, 'Finding0', 1]);
+      expect(whole.restarted).toContain('listed again from the first');
       expect(checked).toEqual([
+        ['f', 'draw', ['roof', 'gate']],
         ['f', 'draw', ['roof', 'gate']],
         ['f', 'draw', []],
       ]);
@@ -308,12 +328,17 @@ describe("the easel's tools on the MCP", () => {
   );
 
   it.effect(
-    'the journal: a note read back, the oldest counted with its file; empty words and a scene the film lacks refused',
+    'the journal: a note read back, the oldest counted with its file; a relative folder, empty words and a scene the film lacks refused',
     () => {
       const files = filmFiles();
       return Effect.gen(function* () {
         const { lab } = yield* labWithMcp;
         const { tool } = yield* mcpSession(lab);
+        // A relative films folder is refused before anything is written: the
+        // lab would write into its own checkout. The read below has one entry.
+        expect(
+          (yield* tool('journal_note', { films: 'src/films', film: 'f', text: 'x' })).refused,
+        ).toContain("your checkout's films folder, absolute");
         const noted = yield* tool('journal_note', {
           films: FILMS,
           film: 'f',
@@ -336,7 +361,9 @@ describe("the easel's tools on the MCP", () => {
           tool('journal_note', { films: FILMS, film: 'f', scene: 'nope', text: 'x' }),
           tool('journal', { films: FILMS, film: 'f', scene: 'nope' }),
         ])
-          expect((yield* asked).refused).toMatch(/^UnknownScene: the film has no scene "nope"/);
+          expect((yield* asked).refused).toBe(
+            'UnknownScene: the film has no scene "nope"; its scenes are roof, gate',
+          );
         // Many long entries: the newest that fit, the rest counted.
         for (let n = 0; n < 24; n += 1)
           yield* tool('journal_note', { films: FILMS, film: 'f', text: `${n} ${'w'.repeat(500)}` });
@@ -346,7 +373,8 @@ describe("the easel's tools on the MCP", () => {
         expect(read.earlier).toBe(
           `${25 - read.lines.length} earlier entries not shown: /films/f/journal.md holds them all`,
         );
-      }).pipe(Effect.scoped, Effect.provide(labOver(files, [], { cues: cuesOfF })));
+        // Its scenes are read with no timeline resolved: no `film read cues` was run.
+      }).pipe(Effect.scoped, Effect.provide(labOver(files, [], { scenes: scenesOfF })));
     },
   );
 });

@@ -574,6 +574,7 @@ export const freshFilm = (given: Partial<FreshFilmService>) => {
       cue: unused('read cue'),
       sites: unused('read sites'),
       cues: unused('read cues'),
+      scenes: unused('read scenes'),
       remix: unused('mix'),
       project: unused('project'),
       check: unused('check'),

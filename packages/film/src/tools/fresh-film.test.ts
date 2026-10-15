@@ -18,6 +18,7 @@ import {
   CuesRead,
   FreshFilm,
   OptionsKept,
+  ScenesRead,
   checkLines,
   failedCheck,
 } from './fresh-film.ts';
@@ -168,12 +169,18 @@ describe('keep-voice', () => {
 
 describe("the easel tools' runs", () => {
   it.effect(
-    "a check of scenes draws them alone; a cues read answers the CLI's lines, or the film's refusal",
+    "a check of scenes draws them alone; a cues read answers the CLI's lines, or the film's refusal; a scenes read names them",
     () => {
       const runs: Array<ReadonlyArray<string>> = [];
       const film = Schema.decodeSync(FilmName)('test');
       const cli = cliAnswering(runs, (args) => {
         if (args[1] === 'check') return { line: encode(error), exit: 1 };
+        if (args[2] === 'scenes')
+          return {
+            line: Schema.encodeSync(Schema.fromJsonString(ScenesRead))(
+              ScenesRead.make({ scenes: ['hand', 'roof'] }),
+            ),
+          };
         if (args[4] === 'nope')
           return {
             line: Schema.encodeSync(Schema.fromJsonString(UnknownScene))(
@@ -196,11 +203,13 @@ describe("the easel tools' runs", () => {
         );
         const refused = yield* Effect.flip(fresh.cues(film, Option.some('nope')));
         expect(refused).toEqual(UnknownScene.make({ scene: 'nope', known: ['hand'] }));
+        expect(yield* fresh.scenes(film)).toEqual(['hand', 'roof']);
         expect(runs).toEqual([
           ['cli.ts', 'check', 'test', '--draw', '--scene', 'hand,roof', '--allow-stale', '--json'],
           ['cli.ts', 'check', 'test', '--draw', '--allow-stale', '--json'],
           ['cli.ts', 'read', 'cues', 'test', 'hand'],
           ['cli.ts', 'read', 'cues', 'test', 'nope'],
+          ['cli.ts', 'read', 'scenes', 'test'],
         ]);
       }).pipe(Effect.provide(FreshFilm.layer(['bun', 'cli.ts']).pipe(Layer.provide(cli))));
     },

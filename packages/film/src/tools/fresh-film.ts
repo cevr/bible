@@ -155,6 +155,11 @@ export class CuesRead extends Schema.TaggedClass<CuesRead>()('CuesRead', {
   late: Schema.Int,
 }) {}
 
+/** `film read scenes`'s answer: the film's scenes by id, in order, no timeline resolved. */
+export class ScenesRead extends Schema.TaggedClass<ScenesRead>()('ScenesRead', {
+  scenes: Schema.Array(Schema.String),
+}) {}
+
 /**
  * What a fresh run refuses with: the film, choice, variant, scene or act it
  * could not find, or the take it would not keep (one that says something
@@ -188,6 +193,7 @@ const FreshLine = Schema.Union([
   CueRead,
   SitesRead,
   CuesRead,
+  ScenesRead,
   FreshRefusal,
   ServerFailed,
 ]);
@@ -364,6 +370,12 @@ export interface FreshFilmService {
     film: FilmName,
     scene: Option.Option<string>,
   ) => Effect.Effect<CuesRead, FreshError>;
+  /**
+   * The film's scenes by id, in order, as its files now stand (`film read
+   * scenes`): read without resolving a timeline, so a film one of whose
+   * scenes does not lay out still names them.
+   */
+  readonly scenes: (film: FilmName) => Effect.Effect<ReadonlyArray<string>, FreshError>;
   /** `film mix <film>`: the track rebuilt from the takes and the sources as they stand. */
   readonly remix: (film: FilmName) => Effect.Effect<void, FreshProcessFailed>;
   /** `film project <args>` (its `--json` among them): the project as the run leaves it. */
@@ -544,6 +556,10 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           return yield* ask(['read', 'cues', film, ...Option.toArray(scene)], READ_LIMIT, CuesRead);
         });
 
+        const sceneIds = Effect.fn('FreshFilm.scenes')(function* (film: FilmName) {
+          return (yield* ask(['read', 'scenes', film], READ_LIMIT, ScenesRead)).scenes;
+        });
+
         const remix = Effect.fn('FreshFilm.remix')(function* (film: FilmName) {
           const done = yield* run('film mix', ['mix', film], MIX_LIMIT);
           if (done.exitCode !== 0)
@@ -604,6 +620,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           cue,
           sites,
           cues,
+          scenes: sceneIds,
           remix,
           project,
           check,

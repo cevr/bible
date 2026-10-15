@@ -70,8 +70,16 @@ const CheckFinding = Schema.Struct({
 });
 type CheckFinding = typeof CheckFinding.Type;
 
-/** Where a check's next page starts: its first finding's place, and the report it is a place in. */
-const CheckCursor = Schema.Struct({ from: Schema.Int, report: Schema.String });
+/**
+ * Where a check's next page starts: its first finding's place, the report it
+ * is a place in, and the scenes the check was asked of, when it named some,
+ * so asking again with the cursor as it is checks the same scenes.
+ */
+const CheckCursor = Schema.Struct({
+  from: Schema.Int,
+  report: Schema.String,
+  scenes: Schema.optionalKey(Schema.Array(Schema.String)),
+});
 
 export const CheckPage = Schema.Struct({
   errors: Schema.Int,
@@ -81,17 +89,18 @@ export const CheckPage = Schema.Struct({
   findings: Schema.Array(CheckFinding),
   /** Present when the page asked for was in a report whose findings have changed: this one starts again from the first. */
   restarted: Schema.optionalKey(Schema.String),
-  /** Present when findings remain past this page: the `from` and `report` that list them. */
+  /** Present when findings remain past this page: the `from`, `report` and `scenes` that list them. */
   next: Schema.optionalKey(CheckCursor),
 });
 type CheckPage = typeof CheckPage.Type;
 const checkFits = fitsUnder(CheckPage);
 const encodeFinding = Schema.encodeSync(Schema.fromJsonString(CheckFinding));
 
-/** A check page asked for: the place to start at and the report it is in, both from an answer's `next`. */
+/** A check page asked for: the place to start at and the report it is in, both from an answer's `next`, and the scenes checked. */
 interface CheckAt {
   readonly from?: number;
   readonly report?: string;
+  readonly scenes?: ReadonlyArray<string>;
 }
 
 /** A finding as a page lists it. */
@@ -158,18 +167,30 @@ export const checkPage = (lines: ReadonlyArray<CheckLine>, at: CheckAt): CheckPa
     findings: findings.slice(start, start + count),
     ...restarted,
   });
+  const scope = Option.match(Option.fromUndefinedOr(at.scenes), {
+    onNone: () => ({}),
+    onSome: (scenes) => ({ scenes }),
+  });
   const count = largestFitting(Math.min(CHECK_MAX_FINDINGS, findings.length - start), (size) =>
-    checkFits({ ...page(size), next: { from: FAR, report } }),
+    checkFits({ ...page(size), next: { from: FAR, report, ...scope } }),
   );
   if (start + count >= findings.length) return page(count);
-  return { ...page(count), next: { from: start + count, report } };
+  return { ...page(count), next: { from: start + count, report, ...scope } };
 };
 
 // ---------------------------------------------------------------------------
 // A film's cue lines
 
-/** Where a cues answer goes on: a line, and a character in it (both from 1). */
-const CuesCursor = Schema.Struct({ from: Schema.Int, column: Schema.Int });
+/**
+ * Where a cues answer goes on: a line, and a character in it (both from 1),
+ * and the scene asked, when one was, so asking again with the cursor as it
+ * is reads on in the same lines.
+ */
+const CuesCursor = Schema.Struct({
+  from: Schema.Int,
+  column: Schema.Int,
+  scene: Schema.optionalKey(Schema.String),
+});
 
 export const CuesPage = Schema.Struct({
   /** Where `lines` starts: the line and the character in it. A column past 1 goes on inside the line the last answer stopped in. */
@@ -183,16 +204,17 @@ export const CuesPage = Schema.Struct({
   late: Schema.optionalKey(Schema.String),
   /** Present with `next`: what was left out to fit, and how to read it. */
   rest: Schema.optionalKey(Schema.String),
-  /** Present when the lines go on: the `from` and `column` that read the rest. */
+  /** Present when the lines go on: the `from`, `column` and `scene` that read the rest. */
   next: Schema.optionalKey(CuesCursor),
 });
 type CuesPage = typeof CuesPage.Type;
 const cuesFits = fitsUnder(CuesPage);
 
-/** A cues page asked for: the line and the character to start at, both from an answer's `next`. */
+/** A cues page asked for: the line and the character to start at, both from an answer's `next`, and the scene read. */
 interface CuesAt {
   readonly from?: number;
   readonly column?: number;
+  readonly scene?: string;
 }
 
 /**
@@ -221,14 +243,18 @@ export const cuesPage = (
       onSome: (text) => ({ late: clip(text, FINDING_CHARS) }),
     }),
   };
+  const scope = Option.match(Option.fromUndefinedOr(at.scene), {
+    onNone: () => ({}),
+    onSome: (scene) => ({ scene }),
+  });
   const restOf = (left: number) =>
-    `${left} more lines left out to fit: call cues again with next.from and next.column`;
+    `${left} more lines left out to fit: call cues again with next as it is`;
   const count = largestFitting(lines.length, (size) =>
     cuesFits({
       ...base,
       lines: lines.slice(0, size),
       rest: restOf(FAR),
-      next: { from: FAR, column: 1 },
+      next: { from: FAR, column: 1, ...scope },
     }),
   );
   if (count === lines.length) return { ...base, lines };
@@ -237,18 +263,28 @@ export const cuesPage = (
       ...base,
       lines: lines.slice(0, count),
       rest: restOf(lines.length - count),
-      next: { from: from + count, column: 1 },
+      next: { from: from + count, column: 1, ...scope },
     };
   // The first line alone is longer than an answer: as much of it as fits.
   const first = lines[0] ?? '';
-  const rest = `line ${from} goes on past this answer: call cues again with next.from and next.column`;
+  const rest = `line ${from} goes on past this answer: call cues again with next as it is`;
   let size = largestFitting(first.length, (chars) =>
-    cuesFits({ ...base, lines: [first.slice(0, chars)], rest, next: { from: FAR, column: FAR } }),
+    cuesFits({
+      ...base,
+      lines: [first.slice(0, chars)],
+      rest,
+      next: { from: FAR, column: FAR, ...scope },
+    }),
   );
   // Never between the two halves of one character.
   if (size > 1 && isHighSurrogate(first.charCodeAt(size - 1))) size -= 1;
   size = Math.max(1, size);
-  return { ...base, lines: [first.slice(0, size)], rest, next: { from, column: column + size } };
+  return {
+    ...base,
+    lines: [first.slice(0, size)],
+    rest,
+    next: { from, column: column + size, ...scope },
+  };
 };
 
 // ---------------------------------------------------------------------------

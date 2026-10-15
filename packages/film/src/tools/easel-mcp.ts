@@ -8,15 +8,21 @@
 // - `cues`: each scene's placement, marks and named cues (`film read cues`).
 // - `check`: scenes checked as drawn (`film check --draw`).
 // - `journal`, `journal_note`: the film's journal read, and an observation
-//   noted (`journal.ts`), a named scene first found in the film.
+//   noted (`journal.ts`), a named scene first found among the film's
+//   (`film read scenes`, which resolves no timeline: a scene that does not
+//   lay out never keeps a painter from its journal).
 //
 // The lab imports no film module (`lab.test.ts`), so whatever reads a film's
 // modules (its clock, its check, its scene ids) runs the film CLI fresh
 // (`FreshFilm`), as the lab's own after-write check does. Every tool takes
-// `films`, the asker's films folder: a lab that serves another checkout
-// refuses (`LabElsewhere`) rather than answer with that checkout's files.
-// Each answer fits a client's result whole (`core/tool-pages.ts`); a refusal
-// is a tool error in the film's own words, its tag first (`FilmRefused`).
+// `films`, the asker's films folder, absolute: a lab that serves another
+// checkout refuses (`LabElsewhere`) rather than answer with that checkout's
+// files, and a relative folder is refused, since the lab would read it from
+// its own. Each answer fits a client's result whole (`core/tool-pages.ts`):
+// one that stops early answers `next`, which repeats what was asked of the
+// film (`scenes`, `scene`), so asking again with it reads on in the same
+// answer; a refusal is a tool error in the film's own words, its tag first
+// (`FilmRefused`).
 
 import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { McpSchema, McpServer, Tool, Toolkit } from 'effect/ai';
@@ -32,6 +38,7 @@ import {
   cuesPage,
   journalPage,
 } from '../core/tool-pages.ts';
+import { UnknownScene } from '../core/errors.ts';
 import { Easel, elsewhereOf } from './easel.ts';
 import { CuesLate } from './errors.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
@@ -108,7 +115,13 @@ const refusedAs = (error: Named): FilmRefused => {
 // ---------------------------------------------------------------------------
 // What the tools take
 
-const Films = Schema.String.annotate({
+const Films = Schema.String.check(
+  Schema.makeFilter(
+    (films) =>
+      films.startsWith('/') ||
+      "your checkout's films folder, absolute (<repo>/apps/animations/src/films): the lab would read a relative one from its own",
+  ),
+).annotate({
   description:
     "Your checkout's films folder, absolute (<repo>/apps/animations/src/films): a lab that serves another checkout's refuses (LabElsewhere)",
 });
@@ -162,7 +175,7 @@ const JournalNoted = Schema.Struct({
 
 const CheckTool = Tool.make('check', {
   description:
-    "Check a film's scenes as their files stand (film check --draw): the static leg (cues, sounds) and each scene drawn by its own code in the check's process, no browser (a throw, a frame that is not pure, ink over a face). Stale takes count as warnings: a painter never narrates. `scenes` checks those (adjacent ones play one after another); without it, the whole film, which takes minutes for a long one. The findings come a page at a time, errors first: when the answer has `next`, check again with its `from` and `report` for the rest; findings that changed in between are listed again from the first (`restarted`). A check that cannot run (an unknown scene, a film that does not lay out) is its one error finding.",
+    "Check a film's scenes as their files stand (film check --draw): the static leg (cues, sounds) and each scene drawn by its own code in the check's process, no browser (a throw, a frame that is not pure, ink over a face). Stale takes count as warnings: a painter never narrates. `scenes` checks those (adjacent ones play one after another); without it, the whole film, which takes minutes for a long one. The findings come a page at a time, errors first: when the answer has `next`, check again with `next` as it is (its `from`, its `report`, and the `scenes` asked) for the rest; findings that changed in between are listed again from the first (`restarted`). A check that cannot run (an unknown scene, a film that does not lay out) is its one error finding.",
   parameters: Schema.Struct({
     films: Films,
     film: FilmParam,
@@ -186,7 +199,7 @@ const CheckTool = Tool.make('check', {
 
 const CuesTool = Tool.make('cues', {
   description:
-    "A film's clock as its files stand (film cues): a line per scene with its start=, dur=, speech= and seam= to the next voice, each {mark} at its film second, then `| cues:` each named cue's span; `scene`'s line alone when given. `late` says a cue ends after its scene. Lines come whole: when the answer has `next`, ask again with its `from` and `column` (a column past 1 goes on inside a line).",
+    "A film's clock as its files stand (film cues): a line per scene with its start= (its first second in the film) and dur=, then in seconds into the scene its speech= and seam= to the next voice, each mark@second, and `| cues:` each named cue's span; `scene`'s line alone when given. `late` says a cue ends after its scene. Lines come whole: when the answer has `next`, ask again with `next` as it is (its `from` and `column`, and the `scene` asked; a column past 1 goes on inside a line).",
   parameters: Schema.Struct({
     films: Films,
     film: FilmParam,
@@ -258,12 +271,19 @@ const easelWork = Effect.gen(function* () {
     return yield* filmNamed(film).pipe(Effect.provideContext(films));
   });
 
-  /** `scene` as one of `film`'s, when it names one: the film's own refusal (`UnknownScene`) when not. */
-  const sceneOf = (film: FilmName, scene: Option.Option<string>) =>
-    Option.match(scene, {
-      onNone: () => Effect.void,
-      onSome: () => Effect.asVoid(fresh.cues(film, scene)),
-    });
+  /**
+   * `scene` as one of `film`'s, when it names one, as `film journal` finds it
+   * (no timeline resolved): `UnknownScene`, naming the film's, when not.
+   */
+  const sceneOf = Effect.fn('EaselMcp.sceneOf')(function* (
+    film: FilmName,
+    scene: Option.Option<string>,
+  ) {
+    if (Option.isNone(scene)) return;
+    const known = yield* fresh.scenes(film);
+    if (!known.includes(scene.value))
+      return yield* UnknownScene.make({ scene: scene.value, known });
+  });
 
   const check = Effect.fn('EaselMcp.check')(function* (
     params: typeof CheckTool.parametersSchema.Type,
