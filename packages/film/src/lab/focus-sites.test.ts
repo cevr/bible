@@ -25,6 +25,11 @@ import { expect, it } from 'effect-bun-test';
  */
 const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: string]> = [
   [
+    'ask/parts.tsx',
+    'focusFor(target',
+    "an ask's goTo: its index's entry and its Send with a question open, pressed and clicked below",
+  ],
+  [
     'notes/section.tsx',
     'focusFor(el',
     "the Lab in Note's notes.frame, and the Script's script.note below, a text field",

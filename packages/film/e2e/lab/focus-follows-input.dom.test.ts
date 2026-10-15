@@ -18,7 +18,8 @@
 //   lab's wrappers' callers and the kit popups' `initialFocus` too): that
 //   unit test's source scan fails on a place not named there, and each site's
 //   paths that no command reaches (a kind's tab, Back and Forward, a studio
-//   button or its prompter, a kept take's reload), or that a page's walk
+//   button or its prompter, a kept take's reload, an ask's index entry and
+//   its Send with a question open), or that a page's walk
 //   reaches only once (the Script's note commands), run below, by the
 //   keyboard and by the pointer, and a key pressed in the middle of a click.
 // `:focus-visible` matches only in the window that has the focus, so every
@@ -35,14 +36,21 @@ import {
   labAt,
   openLab,
   openPlayer,
+  openReview,
   route,
 } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
+import {
+  STUDIO_ASK,
+  STUDIO_GUIDED,
+  guidedRoutes,
+  studioRoutes,
+} from '../../src/lab/fixtures/studio-film.ts';
 import { runCase } from '../../src/lab/fixtures/run-case.ts';
 import { until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
-import { WORK_ROUTES, scriptAt } from './studio-states.ts';
+import { ASK_READY, WORK_ROUTES, scriptAt } from './studio-states.ts';
 import { onChoices } from './toy-choices.ts';
 
 const SLOW = 30_000;
@@ -636,3 +644,45 @@ alone(
     expect(errors).toEqual([]);
   }),
 );
+
+/**
+ * An ask's goTo (`ask/parts.tsx`): its index's entry takes the owner to a section's head, and
+ * a Send with a question open to the question's first control, each ringed iff the keyboard asked.
+ */
+const ASK_GOES = [
+  {
+    path: "an ask's index entry",
+    ask: STUDIO_GUIDED,
+    routes: guidedRoutes,
+    press: '.ak-index li:last-child [data-act="go-section"]',
+    lands: '.ak-step:last-child .ak-section-h',
+  },
+  {
+    path: "an ask's Send with a question open",
+    ask: STUDIO_ASK,
+    routes: studioRoutes,
+    press: ASK_READY,
+    lands: '.ak-field[data-answer="take"] button',
+  },
+] as const;
+
+for (const { path, ask, routes, press, lands } of ASK_GOES)
+  for (const input of INPUTS)
+    alone(
+      `on an ask, ${path} ${ASKED[input]} moves the focus where it goes, which rings iff the keyboard asked`,
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: pageHref.ask(ask) });
+        yield* waitFor(page, press);
+        if (input === 'key') yield* page.focus(press);
+        const seen = yield* watched(
+          page,
+          Effect.gen(function* () {
+            if (input === 'key') yield* page.press('Enter');
+            else yield* page.click(press);
+            yield* until(page, `document.activeElement?.matches('${lands}') === true`);
+          }),
+        );
+        yield* holds(path, input, seen);
+        expect(errors).toEqual([]);
+      }),
+    );
