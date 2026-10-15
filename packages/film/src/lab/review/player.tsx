@@ -324,6 +324,7 @@ export const PlayedAlone = (
                   if (takeAsked(at)) onSettled(() => send(SyncEvent.Toggled));
                   return (
                     <video
+                      class="rv-media"
                       preload="metadata"
                       playsinline
                       poster={props.poster}

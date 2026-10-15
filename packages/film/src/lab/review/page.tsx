@@ -13,7 +13,7 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createMemo } from 'solid-js';
 import type { ProductionHistory } from '../../core/production.ts';
 import type { ReviewIndex } from '../../core/review.ts';
-import { Root, useReview } from './context.tsx';
+import { type AskShown, Root, useReview } from './context.tsx';
 import { Inspecting } from './inspector.tsx';
 import { folderTitle, isFilmsFolder } from './format.ts';
 import { ReviewPlace, placeOf } from './place.ts';
@@ -78,17 +78,22 @@ const historyNamed = (
 ): Option.Option<ProductionHistory> =>
   Option.fromUndefinedOr(histories.find((h) => h.production === production));
 
-/** The film a place is about: a film's choices or project, or a set in that film's folder. */
+/** The ask `shown`, when it is ask `id`: one read before another ask's page is not this one's. */
+const shownAsk = (shown: Option.Option<AskShown>, id: string): Option.Option<AskShown> =>
+  Option.filter(shown, (a) => a.id === id);
+
+/** The film a place is about: a film's choices or project, a set in that film's folder, or the ask shown's. */
 const filmOf = (
   place: ReviewPlace,
   films: ReadonlyArray<string>,
   histories: ReadonlyArray<ProductionHistory>,
+  ask: Option.Option<AskShown>,
 ): Option.Option<string> =>
   Match.value(place).pipe(
     Match.tagsExhaustive({
       Home: () => Option.none<string>(),
       Production: (p) => Option.flatMap(historyNamed(histories, p.production), (h) => h.film),
-      Ask: () => Option.none<string>(),
+      Ask: (p) => Option.flatMap(shownAsk(ask, p.ask), (a) => a.film),
       Draft: () => Option.none<string>(),
       Folder: (p) => filmOfFolder(p.folder, films),
       Set: (p) => filmOfFolder(p.folder, films),
@@ -128,6 +133,7 @@ const depthOf = (
   index: Option.Option<ReviewIndex>,
   histories: ReadonlyArray<ProductionHistory>,
   series: Option.Option<SeriesList>,
+  ask: Option.Option<AskShown>,
 ): Option.Option<string> =>
   Match.value(place).pipe(
     Match.tags({
@@ -138,7 +144,10 @@ const depthOf = (
             onSome: (h) => `${h.title} · timeline`,
           }),
         ),
-      Ask: () => Option.some('ask'),
+      Ask: (p) =>
+        Option.some(
+          Option.match(shownAsk(ask, p.ask), { onNone: () => 'ask', onSome: (a) => a.title }),
+        ),
       Draft: (p) => Option.some(draftName(series, p.series, p.draft)),
       Folder: (p) => Option.some(folderName(index, p.folder)),
       Set: (p) => Option.some(`${setName(index, p.folder, p.point)} · stack`),
@@ -160,14 +169,14 @@ const Shell = (props: { readonly children: JSX.Element }) => {
     );
   const index = () => AsyncResult.value(state.index());
   const histories = useHistories();
-  const film = () => filmOf(state.place(), films(), histories());
+  const film = () => filmOf(state.place(), films(), histories(), state.ask());
   const depth = () =>
-    depthOf(state.place(), index(), histories(), AsyncResult.value(state.series()));
+    depthOf(state.place(), index(), histories(), AsyncResult.value(state.series()), state.ask());
   return (
     <PageShell
       part={() => partOf(state.place(), films())}
       film={film}
-      lastFilm={state.place()._tag !== 'Draft'}
+      lastFilm={state.place()._tag !== 'Draft' && state.place()._tag !== 'Ask'}
       crumb={depth}
       films={films}
       hub={meta.hub}

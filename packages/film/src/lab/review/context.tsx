@@ -166,8 +166,17 @@ const shownProject = <E,>(
     onSome: (view) => AsyncResult.success<ProjectView, E>(view),
   });
 
+/** An ask as its page read it, for the shell: its crumb and tab say its title, its film is the header's. */
+export interface AskShown {
+  readonly id: string;
+  readonly title: string;
+  readonly film: Option.Option<string>;
+}
+
 interface ReviewStateValue {
   readonly place: Accessor<ReviewPlace>;
+  /** The ask a page last read (`shown`): none until one has. */
+  readonly ask: Accessor<Option.Option<AskShown>>;
   /**
    * Every folder with something to review, as the newest ask answered it
    * (`asked.ts`): the first read, a Refresh, or a say's answer for its folder.
@@ -210,6 +219,8 @@ interface ReviewActions {
   /** A production moved forward: its ledger as the move left it, shown in place of the one read. */
   readonly moved: (file: ProductionFile) => void;
   readonly quality: (quality: Quality) => void;
+  /** An ask's page read its ask: the shell names it (its one read is the page's, never a second). */
+  readonly asked: (ask: AskShown) => void;
 }
 
 /** A file as the index last saw it: its ref, and when it was written. */
@@ -394,6 +405,7 @@ export const Root = (
     .atom(ReviewApi.use((api) => api.productions))
     .pipe(served('review.productions', Productions));
   const movedAtom = Atom.make<ReadonlyArray<ProductionFile>>([]);
+  const askAtom = Atom.make(Option.none<AskShown>());
   // A first read takes the server's cache; a refresh asks it to walk its roots again.
   const firstIndexAtom = runtime
     .atom(ReviewApi.use((api) => api.index(false)))
@@ -500,6 +512,8 @@ export const Root = (
     );
     const refreshProductions = useAtomRefresh(() => productionsReadAtom);
     const setMoved = useAtomSet(() => movedAtom);
+    const ask = useAtomValue(() => askAtom);
+    const setAsk = useAtomSet(() => askAtom);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
     const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(PHONE)));
@@ -567,7 +581,7 @@ export const Root = (
         return made;
       });
     const value: ReviewContextValue = {
-      state: { place, index, films, series, productions, quality },
+      state: { place, ask, index, films, series, productions, quality },
       actions: {
         go: (next) => {
           address.go(hrefOf(next));
@@ -593,6 +607,7 @@ export const Root = (
             file,
           ]),
         quality: keepQuality,
+        asked: (shown) => setAsk(Option.some(shown)),
       },
       meta: {
         asks,
