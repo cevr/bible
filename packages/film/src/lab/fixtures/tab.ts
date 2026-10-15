@@ -8,9 +8,15 @@
 // saying what it waited for. Closed, the tab takes its scripts for new pages
 // off the view, which goes on to another case.
 
-import { Effect, FiberSet, Option, Predicate, Schema, type Scope } from 'effect';
+import { Clock, Effect, FiberSet, Match, Option, Predicate, Schema, type Scope } from 'effect';
 import { BrowserFailed } from '../../tools/errors.ts';
 import { CLOCK, REAL_TIMERS } from './clock.ts';
+
+/** How a touch report is stamped: now, or a frame after the last (a gesture under way). */
+type Pace = 'now' | 'paced';
+
+/** A frame at 60 Hz, in ms: how far apart a gesture's touch moves are stamped. */
+const FRAME_MS = 16;
 
 /** How long a wait or an action waits for the page before it fails. */
 export const WAIT_MS = 15_000;
@@ -642,18 +648,37 @@ export const makeTab = (
 
     /** The fingers down now, by touch id (1, the first; 2, a second), where each is. */
     const fingers = new Map<number, Point>();
-    /** Every finger down, as the touch device reports them: Chrome makes each change since the last report its own event. */
-    const report = (type: string) =>
-      call('Input.dispatchTouchEvent', {
-        type,
-        touchPoints: [...fingers].map(([id, p]) => ({
-          x: p.x,
-          y: p.y,
-          id,
-          radiusX: 1,
-          radiusY: 1,
-        })),
+    /**
+     * The time (epoch ms) the touch device's last report carried. Chrome reads a swipe's
+     * speed, and so whether it flings, from its moves' times: a gesture's later moves and a
+     * drag's lift are `paced`, a frame after the last, so the speed is the case's and not
+     * the load on the machine sending them; any other report is stamped `now`, never before
+     * the last.
+     */
+    let stamped = 0;
+    const stamp = (pace: Pace) =>
+      Effect.map(Clock.currentTimeMillis, (now) => {
+        stamped = Match.value(pace).pipe(
+          Match.when('paced', () => stamped + FRAME_MS),
+          Match.orElse(() => Math.max(now, stamped + 1)),
+        );
+        return stamped;
       });
+    /** Every finger down, as the touch device reports them: Chrome makes each change since the last report its own event. */
+    const report = (type: string, pace: Pace = 'now') =>
+      Effect.flatMap(stamp(pace), (at) =>
+        call('Input.dispatchTouchEvent', {
+          type,
+          timestamp: at / 1000,
+          touchPoints: [...fingers].map(([id, p]) => ({
+            x: p.x,
+            y: p.y,
+            id,
+            radiusX: 1,
+            radiusY: 1,
+          })),
+        }),
+      );
     // The view outlives the case: a finger the case left down is lifted, so the next case's press is its own.
     yield* Effect.addFinalizer(() =>
       Effect.when(
@@ -691,23 +716,31 @@ export const makeTab = (
               x: from.x + ((x - from.x) * i) / steps,
               y: from.y + ((y - from.y) * i) / steps,
             });
-            yield* report('touchMove');
+            yield* report(
+              'touchMove',
+              Match.value(i).pipe(
+                Match.when(1, () => 'now' as const),
+                Match.orElse(() => 'paced' as const),
+              ),
+            );
           }
         }),
-      // A lift with another finger still down reports the rest, which lifts this one alone.
-      up: Effect.suspend(() => {
-        fingers.delete(id);
-        if (fingers.size > 0) return report('touchMove');
-        return report('touchEnd');
-      }),
+      up: lift(id, 'now'),
     });
+    /** Lift the finger `id`: with another still down it reports the rest, which lifts this one alone. */
+    const lift = (id: number, pace: Pace) =>
+      Effect.suspend(() => {
+        fingers.delete(id);
+        if (fingers.size > 0) return report('touchMove', pace);
+        return report('touchEnd', pace);
+      });
     const first = fingerOf(1);
     const finger: Tab['finger'] = {
       ...first,
       drag: (from, to, steps = 12) =>
         first
           .down(from.x, from.y)
-          .pipe(Effect.andThen(first.move(to.x, to.y, steps)), Effect.andThen(first.up)),
+          .pipe(Effect.andThen(first.move(to.x, to.y, steps)), Effect.andThen(lift(1, 'paced'))),
       second: fingerOf(2),
     };
 
