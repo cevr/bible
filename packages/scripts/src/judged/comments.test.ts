@@ -184,15 +184,17 @@ describe('the changed-comments selector', () => {
   it.live('reads an added line that starts with ++ as code, not a file header', () =>
     withFs(
       Effect.gen(function* () {
-        // Two hunks: the added `++ x;` (git's row `+++ x;`), then a changed comment.
-        const base = ['let x = 0;', 'const a = 1;', '// old words', 'const y = 1;'];
+        // Two hunks: the added `++ b/x.ts` (git's row `+++ b/x.ts`, a
+        // header's shape), then a changed comment.
+        const head = ['let b = 0;', 'const x = { ts: 1 };'];
+        const tail = ['const a = 1;'];
         const dir = yield* repo(
-          { 'src/a.ts': base },
-          { 'src/a.ts': ['let x = 0;', '++ x;', 'const a = 1;', '// new words', 'const y = 1;'] },
+          { 'src/a.ts': [...head, ...tail, '// old words', 'const y = 1;'] },
+          { 'src/a.ts': [...head, '++ b/x.ts', ...tail, '// new words', 'const y = 1;'] },
           {},
         );
         expect(yield* changedComments(dir, 'main')).toEqual([
-          { file: 'src/a.ts', line: 4, text: 'new words' },
+          { file: 'src/a.ts', line: 5, text: 'new words' },
         ]);
       }),
     ),
