@@ -147,5 +147,5 @@ All 14 sweeps reported, plus the retro. The batches, what each owns and the merg
 - **Running:** p6-truegate (CI flakes, e2echeck, the focus scan moved to the unit tier, temp dirs, test:budget under load); guidedask (the owner's one-page guided ask).
 - **Next:** p6-host (the lab listens on the phone's address, roots found by package name, the fill off by default, links, Workbox docs, judge on Opus).
 - **Then:** p6-mcp → p6-waiting; p6-board; p6-tweak (after p6-mcp); p6-readers (after guidedask); p6-guards (after truegate); p6-css; p6-docsplit.
-- **Owner questions:** 3 (above).
+- **Owner questions:** 3, all answered yes (owner 2026-10-15). New batch p6-pages takes the check's findings off his screens and merges Project into Scenes with five phone tabs (after p6-waiting); p6-tweak also removes the Lab's compare against HEAD.
 - **Carried:** the compare row is closed (the lab's compare plays no media); the RBF catalogue record and the stills timing stay open.
