@@ -191,6 +191,22 @@
       "set": "rbf-script-2026-10-14",
       "ask": "ad1157de05b",
       "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792102818659,
+      "text": "Righteousness by Faith v3: the script, its length (ask a086603ff6a)",
+      "set": "rbf-script-2026-10-14",
+      "ask": "a086603ff6a",
+      "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792102877183,
+      "text": "Righteousness by Faith v3: read the script, then decide (ask ad3aebb0697) withdrawn: Withdrawn: superseded by ask a086603ff6a, the same decision recomposed as one guided page (the draft in the Script reader, then the verdict, the length with the landing's figures, and the per-act step). Nothing was answered here.",
+      "set": "rbf-script-2026-10-14",
+      "ask": "ad3aebb0697",
+      "by": "rbfscript (p5)"
     }
   ],
   "filed": [
