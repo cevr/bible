@@ -8,7 +8,7 @@ platform_title: 'The first thing God gave a human went in through the nose'
 hook_card: "Why is air on God's list of remedies?"
 ---
 
-# The Breath He Gave (Pure air, One Question)
+# 06 · The Breath He Gave
 
 **Question.** Why would God put something as ordinary as air on a list of remedies?
 

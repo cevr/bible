@@ -8,7 +8,7 @@ platform_title: 'God promised a dying king 15 more years. Then He prescribed fig
 hook_card: 'Is taking medicine a lack of faith?'
 ---
 
-# Figs for a King (Medicine, One Question)
+# 50 · Figs for a King
 
 **Question.** If I really trust God to heal, is using a remedy, or seeing a doctor, a lack of faith?
 

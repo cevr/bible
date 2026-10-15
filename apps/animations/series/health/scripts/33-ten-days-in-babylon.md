@@ -8,7 +8,7 @@ platform_title: 'Four captives risked their necks on a ten-day diet. It worked.'
 hook_card: 'Does what you eat change how you think?'
 ---
 
-# Ten Days in Babylon (Proper diet, Episode)
+# 33 · Ten Days in Babylon
 
 **Promise.** The Bible's one controlled diet trial: who ran it, what was on the
 plate, what it proved, and what it did not.

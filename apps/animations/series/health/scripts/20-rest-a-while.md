@@ -8,7 +8,7 @@ platform_title: 'The crowds were still coming. Jesus told His team to stop.'
 hook_card: 'Is resting a lack of commitment?'
 ---
 
-# Rest a While (Rest, One Question)
+# 20 · Rest a While
 
 **Question.** When there is always more to do, especially good work for God, is stopping to rest a lack of commitment?
 

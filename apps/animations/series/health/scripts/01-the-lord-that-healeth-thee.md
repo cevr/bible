@@ -9,7 +9,7 @@ platform_title: "God's first promise of health has no medicine in it"
 hook_card: "What are God's eight remedies?" # typed question, top of frame, 0–3 s
 ---
 
-# 01 · The Lord That Healeth Thee (series opener, Episode)
+# 01 · The Lord That Healeth Thee
 
 **Promise.** In under three minutes: where the Bible's healing promise starts,
 how Jesus healed, and the eight remedies the series will walk through one at a time.
