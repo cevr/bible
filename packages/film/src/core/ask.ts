@@ -222,7 +222,7 @@ const MATERIAL: ReadonlySet<AskBlock['kind']> = new Set([
 ]);
 
 /** Whether `block` shows material by reference. */
-export const isMaterial = (block: AskBlock): block is Material => MATERIAL.has(block.kind);
+const isMaterial = (block: AskBlock): block is Material => MATERIAL.has(block.kind);
 
 /** The video files the review plays. */
 const VIDEO_FILE = /\.(mp4|webm|mov|m4v)$/i;
@@ -320,8 +320,8 @@ const PageStep = Schema.Struct({
 /** The end: the ask is answered; `text` thanks or says what happens next. */
 const EndStep = Schema.Struct({ end: Schema.Literal(true), text: Schema.optionalKey(Text(400)) });
 
-export const AskStep = Schema.Union([PageStep, EndStep]);
-export type AskStep = typeof AskStep.Type;
+const AskStep = Schema.Union([PageStep, EndStep]);
+type AskStep = typeof AskStep.Type;
 type PageStep = typeof PageStep.Type;
 
 /** An ask's machine: where it starts, and its steps by name. */

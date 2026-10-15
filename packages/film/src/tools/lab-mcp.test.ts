@@ -327,7 +327,7 @@ const ownerAnswers = (lab: LabFetch, ask: string, step: string, values: Record<s
         new Request(`${MCP_BASE.slice(0, -1)}${labUrls.asks.answer({ params: { ask } })}`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: writeJson({ step, values }),
+          body: writeJson({ sections: [{ step, values }] }),
         }),
         mcpBound,
       ),

@@ -36,7 +36,7 @@ type BlockOf<K extends AskBlock['kind']> = Extract<AskBlock, { readonly kind: K 
 
 /** The material's own look: a box on the section's surface, its caption under it. */
 const MATERIAL_CSS = `
-.ak-mat{display:grid;gap:var(--s-2);min-width:0}
+.ak-mat{display:grid;gap:var(--s-2);min-width:0;margin:0}
 .ak-mat-cap{margin:0;color:var(--text-2);font-size:var(--fs-2);line-height:var(--lh-2)}
 .ak-mat-status{margin:0;color:var(--text-2)}
 `;
@@ -124,23 +124,21 @@ export const ScriptPart = (props: { readonly block: BlockOf<'script'> }) => {
       `}
       caption={Option.none()}
     >
-      <div class="rd">
-        <Show
-          when={props.block.film}
-          fallback={
-            <DraftReader
-              series={Option.getOrElse(Option.fromUndefinedOr(props.block.series), () => '')}
-              draft={Option.getOrElse(Option.fromUndefinedOr(props.block.draft), () => '')}
-              only={only}
-              selecting={selecting}
-            />
-          }
-        >
-          {(film: Accessor<string>) => (
-            <FilmScriptReader film={film()} only={only} selecting={selecting} />
-          )}
-        </Show>
-      </div>
+      <Show
+        when={props.block.film}
+        fallback={
+          <DraftReader
+            series={Option.getOrElse(Option.fromUndefinedOr(props.block.series), () => '')}
+            draft={Option.getOrElse(Option.fromUndefinedOr(props.block.draft), () => '')}
+            only={only}
+            selecting={selecting}
+          />
+        }
+      >
+        {(film: Accessor<string>) => (
+          <FilmScriptReader film={film()} only={only} selecting={selecting} />
+        )}
+      </Show>
     </Framed>
   );
 };
