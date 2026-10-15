@@ -27,6 +27,7 @@ import {
   corpusRevision,
   CorpusProvenance,
 } from '../corpus-supply/model.js';
+import { nodesToText } from '../egw/ast.js';
 import type { Book, Paragraph } from '../egw/schemas.js';
 import {
   ArchivedBibleReference,
@@ -36,11 +37,13 @@ import {
 import {
   Paragraph as WritingsParagraph,
   Publication,
+  PublicationClassification,
   Reference as WritingsReference,
   publicationCode,
   publicationId,
   publicationOrder,
 } from '../writings/model.js';
+import { SqlAtomic } from '../db/atomic.js';
 import { EGWParagraphDatabase, ftsTermQuery, paragraphIdentity } from './book-database.js';
 import * as EGWDbBun from './book-database-bun.js';
 
@@ -281,6 +284,100 @@ describe('EGWParagraphDatabase', () => {
           const paragraphs = yield* Stream.runCollect(db.getParagraphsByBook(9001));
           expect(paragraphs).toHaveLength(1);
           expect(Option.getOrThrow(paragraphs[0]!.refcode_short)).toBe('TEST 1.1');
+        }),
+      ));
+
+    test('writes a carried classification and keeps it when an archive carries none', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          const plain = mockArchive(['TEST 1.1']);
+          yield* db.installPublicationArchive(
+            PublicationArchive.make({
+              ...plain,
+              publication: Publication.make({
+                ...plain.publication,
+                classification: PublicationClassification.make({
+                  section: Option.some('egw-writings'),
+                  type: 'book',
+                  subtype: Option.some('bio'),
+                  folderId: 12,
+                }),
+              }),
+            }),
+          );
+          const classified = Option.getOrThrow(yield* db.getBookByCode('TEST'));
+          expect(classified).toMatchObject({
+            section: 'egw-writings',
+            book_type: 'book',
+            book_subtype: 'bio',
+            folder_id: 12,
+          });
+
+          // A packaged archive says nothing about the library's folders.
+          yield* db.installPublicationArchive(plain);
+          const kept = Option.getOrThrow(yield* db.getBookByCode('TEST'));
+          expect(kept).toMatchObject({ section: 'egw-writings', book_type: 'book' });
+        }),
+      ));
+
+    test('stages a publication larger than one statement in several chunks', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          // Three paragraphs whose JSON is over 600 KB each: no two fit one chunk.
+          const long = 'x'.repeat(300_000);
+          const plain = mockArchive(['TEST 1.1', 'TEST 1.2', 'TEST 1.3']);
+          const installed = yield* db.installPublicationArchive(
+            PublicationArchive.make({
+              ...plain,
+              paragraphs: plain.paragraphs.map((archived) =>
+                ArchivedParagraph.make({
+                  ...archived,
+                  paragraph: WritingsParagraph.make({
+                    ...archived.paragraph,
+                    nodes: [{ _tag: 'Text', text: long }],
+                  }),
+                }),
+              ),
+            }),
+          );
+
+          expect(installed).toBe(3);
+          const paragraphs = yield* Stream.runCollect(db.getParagraphsByBook(9001));
+          expect(paragraphs.map((paragraph) => nodesToText(paragraph.nodes).length)).toEqual([
+            300_000, 300_000, 300_000,
+          ]);
+        }),
+      ));
+
+    test('clears what a failed attempt left staged before it installs again', () =>
+      runTestWithPath((dbPath) =>
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          yield* db.installPublicationArchive(mockArchive(['TEST 1.1']));
+
+          // A crash between the stage and the swap leaves rows behind.
+          const raw = new Database(dbPath);
+          raw.run(
+            `INSERT INTO paragraphs_incoming (
+              book_id, ref_code, nodes_json, content_text, puborder, created_at, updated_at
+            ) VALUES (9001, 'stale', '[]', 'stale', 99, 'then', 'then')`,
+          );
+
+          yield* db.installPublicationArchive(mockArchive(['TEST 2.1']));
+
+          const paragraphs = yield* Stream.runCollect(db.getParagraphsByBook(9001));
+          expect(paragraphs.map((paragraph) => Option.getOrNull(paragraph.refcode_short))).toEqual([
+            'TEST 2.1',
+          ]);
+          const staged = raw
+            .query<{ readonly count: number }, []>(
+              `SELECT COUNT(*) AS count FROM paragraphs_incoming`,
+            )
+            .get();
+          raw.close();
+          expect(staged?.count).toBe(0);
         }),
       ));
   });
@@ -976,6 +1073,7 @@ describe('EGWParagraphDatabase', () => {
       effect.pipe(
         Effect.provide(
           Layer.fresh(EGWParagraphDatabase.layerExisting).pipe(
+            Layer.provide(SqlAtomic.layerTransaction),
             Layer.provide(SqliteBun.layer({ filename: dbPath })),
           ),
         ),

@@ -971,13 +971,14 @@
       // The media module itself, the tests and fixtures; and the sites that
       // hold an element today, each moved onto the media module by the
       // readers' batch (NEW6-8): the voice's take, the studio's takes, the
-      // review's player, compare and mix.
+      // review's player, compare and mix, and an ask's take.
       "files": [
         "**/packages/film/src/browser/media*.ts",
         "**/packages/film/src/**/fixtures/**",
         "**/packages/film/src/**/*.test.ts",
         "**/packages/film/src/**/*.test.tsx",
         "**/packages/film/src/lab/script/voice.tsx",
+        "**/packages/film/src/lab/ask/material.tsx",
         "**/packages/film/src/lab/studio/section.tsx",
         "**/packages/film/src/lab/review/player.tsx",
         "**/packages/film/src/lab/review/section.tsx",

@@ -148,6 +148,8 @@ interface Changed {
   readonly warmAt?: number;
   readonly cold?: string;
   readonly roof?: ReadonlyArray<string>;
+  /** The sky's phone copy: still being made, or made since. */
+  readonly sky?: 'pending' | 'ready';
 }
 
 /** The roof's video of version `id`, written at `mtime`. */
@@ -165,7 +167,14 @@ const roofVideo = (id: string, mtime: number): Json => ({
 /** The index, its loose video `walk`, as first read or as `changed` since. */
 const indexOf = (
   walk: Json,
-  { blurb = BLURB, whyAt = 0, warmAt = 0, cold = 'Cold', roof = ['A', 'B', 'C'] }: Changed = {},
+  {
+    blurb = BLURB,
+    whyAt = 0,
+    warmAt = 0,
+    cold = 'Cold',
+    roof = ['A', 'B', 'C'],
+    sky = 'pending',
+  }: Changed = {},
 ): Json => ({
   folders: [
     {
@@ -199,7 +208,11 @@ const indexOf = (
           start: 0,
           marks: [],
           // One version, big enough for a proxy that is still being made.
-          variants: [variant('D', 'Dusk', { media: { _tag: 'Seen', video: pendingSky } })],
+          variants: [
+            variant('D', 'Dusk', {
+              media: { _tag: 'Seen', video: { ...pendingSky, phone: sky } },
+            }),
+          ],
         },
       ],
       videos: [walk],
@@ -248,6 +261,8 @@ const LONE = '.rv-tall';
 const LONE_ROW = `${LONE} .rv-alone-row`;
 const LONE_VIDEO = `document.querySelector('${LONE} video')`;
 const LONE_FAILED = `${LONE} [data-act="play-video"] [data-role="failed"]`;
+/** Its picture's sign at rest that it plays. */
+const LONE_REST = `${LONE} [data-act="play-video"] [data-role="at-rest"]`;
 
 /** What a lone video that cannot play says. */
 const CANNOT_PLAY = 'Can’t play this video · Try again';
@@ -332,6 +347,13 @@ describe('the review page', () => {
           `document.querySelector('.sh-header [data-role="crumb"]').checkVisibility()`,
           true,
         );
+        // Its words are a box of their own, so a name too long for the phone ends in an ellipsis,
+        // never cut mid-letter (a flex row's own text takes no ellipsis).
+        yield* evaluates(
+          page,
+          `((t) => t !== null && t.textContent === 'Roofs at dusk' && getComputedStyle(t).textOverflow === 'ellipsis' && getComputedStyle(t).overflow === 'hidden')(document.querySelector('.sh-header [data-role="crumb"] .sh-crumb-text'))`,
+          true,
+        );
         yield* page.resize(1440, 900);
         yield* textsAre(page, '[data-review-blurb] li', [
           'Cold opening',
@@ -411,10 +433,18 @@ describe('the review page', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: FOLDER });
         yield* waitFor(page, `${LONE} [data-act="play-video"]`);
-        // At rest its picture is the one control: no row.
+        // At rest its picture is the one control: no row, and the picture says it plays (▶ on a
+        // disc, and its length once measured).
         yield* countIs(page, LONE_ROW, 0);
+        yield* waitFor(page, `${LONE_REST} .rv-rest-play .sh-icon`);
+        yield* evaluates(
+          page,
+          `/^\\d+:\\d\\d$/.test(document.querySelector('${LONE_REST} .rv-rest-length')?.textContent ?? '')`,
+          true,
+        );
         yield* page.click(`${LONE} [data-act="play-video"]`);
         yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '❚❚');
+        yield* countIs(page, LONE_REST, 0);
         // Its time moves, and the row's clock says so.
         yield* until(page, `${LONE_VIDEO}.currentTime > 1.5`);
         yield* until(
@@ -435,6 +465,7 @@ describe('the review page', () => {
         yield* countIs(page, LONE_ROW, 1);
         yield* page.evaluate(scrub('change', 0));
         yield* countIs(page, LONE_ROW, 0);
+        yield* countIs(page, LONE_REST, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -1927,7 +1958,11 @@ describe('the review page', () => {
         yield* page.goto(SKY);
         yield* waitFor(page, '.rv-card[data-id="D"] [data-proxy="pending"]');
         yield* countIs(page, '.rv-card[data-id="D"] video', 0);
-        yield* textHas(page, '.rv-card[data-id="D"] [data-proxy="pending"]', 'Proxy being made');
+        yield* textHas(
+          page,
+          '.rv-card[data-id="D"] [data-proxy="pending"]',
+          'Phone copy on its way',
+        );
         // Its touch path: play the original instead.
         yield* page.click('.rv-card[data-id="D"] [data-proxy="pending"] button');
         yield* attributeIs(
@@ -1940,6 +1975,44 @@ describe('the review page', () => {
         yield* openCommandMenu(page, 'play the');
         yield* textHas(page, menuEntry('review.quality'), 'Play the proxies');
         yield* closeCommandMenu(page);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a phone copy made while the page waits on it plays in its place: the page asks after it and reads the index again',
+    () =>
+      Effect.gen(function* () {
+        const made = { now: false };
+        const sky = (): 'pending' | 'ready' => {
+          if (made.now) return 'ready';
+          return 'pending';
+        };
+        const madeRoutes: ReadonlyArray<FakeRoute> = [
+          route('GET', /^\/api\/review\/index/, () =>
+            json(indexOf(walkOf('none'), { sky: sky() })),
+          ),
+          // The copy's head: not there until it is made.
+          route('GET', /^\/api\/review\/phone\/out\/art\/sky\.D\.mp4$/, () => {
+            if (made.now) return text('', 200);
+            return text('not made', 404);
+          }),
+          ...routes,
+        ];
+        const { page, errors } = yield* openReview(madeRoutes, {
+          href: SKY,
+          viewport: { width: 390, height: 844 },
+        });
+        yield* waitFor(page, '.rv-card[data-id="D"] [data-proxy="pending"]');
+        made.now = true;
+        yield* waitFor(page, '.rv-card[data-id="D"] video');
+        yield* evaluates(
+          page,
+          `document.querySelector('.rv-card[data-id="D"] video').getAttribute('src')`,
+          '/api/review/phone/out/art/sky.D.mp4',
+        );
+        yield* countIs(page, '[data-proxy="pending"]', 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

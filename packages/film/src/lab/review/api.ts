@@ -12,15 +12,19 @@ import {
   type DraftRead,
   type MarksPost,
   Refusal,
+  type ScriptBeats,
   type ScriptVoice,
   type SeriesList,
   type SetSaid,
   type SetSayPost,
   reviewFileUrl,
+  reviewPhoneUrl,
 } from '../../core/api.ts';
 import type { BoardFile } from '../../core/board.ts';
 import type { MoveForward, ProductionFile, Productions } from '../../core/production.ts';
 import type { AskRecord, StepValues } from '../../core/ask.ts';
+import type { LabWrite } from '../../core/schema.ts';
+import type { StudioAttempts } from '../../core/studio.ts';
 import type { ReviewDuration, ReviewIndex } from '../../core/review.ts';
 import { LabClient, type LabFailure, called } from '../api.ts';
 
@@ -31,6 +35,8 @@ interface ReviewCalls {
   readonly duration: (ref: string) => Effect.Effect<ReviewDuration, LabFailure>;
   /** A doc's text (a variant's notes, a folder's markdown). */
   readonly text: (ref: string) => Effect.Effect<string, LabFailure>;
+  /** Whether a video's phone copy is made: its URL asked for its head alone, none of its bytes. */
+  readonly phoneMade: (ref: string) => Effect.Effect<boolean, LabFailure>;
   /** A say on a version of the set `point` in `folder`: the folder as it leaves it, what it gave or took. */
   readonly say: (
     folder: string,
@@ -48,12 +54,19 @@ interface ReviewCalls {
   ) => Effect.Effect<ProductionFile, LabFailure>;
   /** An agent's ask, as the lab keeps it (`core/ask.ts`). */
   readonly ask: (id: string) => Effect.Effect<AskRecord, LabFailure>;
-  /** The owner's answers to step `step` of ask `id`: the ask as they leave it. */
+  /** The owner's answers to ask `id`'s page, each section's in order: the ask as they leave it. */
   readonly answer: (
     id: string,
-    step: string,
-    values: StepValues,
+    sections: ReadonlyArray<{ readonly step: string; readonly values: StepValues }>,
   ) => Effect.Effect<AskRecord, LabFailure>;
+  /** A film's script as its `script.ts` reads now: each beat's line, picture and sources. */
+  readonly script: (film: string) => Effect.Effect<ScriptBeats, LabFailure>;
+  /** Each spoken beat of a film's script as its staging take stands, and the day's spend. */
+  readonly filmVoice: (film: string) => Effect.Effect<ScriptVoice, LabFailure>;
+  /** A beat's delivery marks written into a film's `script.ts`. */
+  readonly filmMarks: (film: string, post: MarksPost) => Effect.Effect<LabWrite, LabFailure>;
+  /** A film's recorded takes of beat `beat`, newest first, the kept one among them. */
+  readonly attempts: (film: string, beat: string) => Effect.Effect<StudioAttempts, LabFailure>;
   /** The app's series and their drafts. */
   readonly series: Effect.Effect<SeriesList, LabFailure>;
   /** Series draft `draft` of `series`, as its Markdown reads now. */
@@ -90,14 +103,20 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* () {
     },
     duration: (ref) => called(client.duration({ query: { ref } })),
     text: (ref) => called(Effect.flatMap(http.get(reviewFileUrl(ref)), fileText)),
+    phoneMade: (ref) =>
+      called(Effect.map(http.head(reviewPhoneUrl(ref)), (res) => res.status === 200)),
     say: (folder, point, said) => called(client.say({ params: { folder, point }, payload: said })),
     productions: called(lab.productions.list()),
     board: (film) => called(lab.board.read({ params: { film } })),
     forward: (production, move) =>
       called(lab.productions.forward({ params: { production }, payload: move })),
     ask: (id) => called(lab.asks.read({ params: { ask: id } })),
-    answer: (id, step, values) =>
-      called(lab.asks.answer({ params: { ask: id }, payload: { step, values } })),
+    answer: (id, sections) =>
+      called(lab.asks.answer({ params: { ask: id }, payload: { sections } })),
+    script: (film) => called(lab.script.beats({ params: { film } })),
+    filmVoice: (film) => called(lab.script.voice({ params: { film } })),
+    filmMarks: (film, post) => called(lab.script.marks({ params: { film }, payload: post })),
+    attempts: (film, beat) => called(lab.studio.attempts({ params: { film, beat } })),
     series: called(lab.series.list()),
     draft: (series, draft) => called(lab.series.read({ params: { series, draft } })),
     draftVoice: (series, draft) => called(lab.series.voice({ params: { series, draft } })),

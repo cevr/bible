@@ -140,7 +140,7 @@ import {
   TakeWord,
 } from './schema.ts';
 import { KeepPost, StudioAttempts, StudioBeats, StudioTake, TakePost } from './studio.ts';
-import { Mark } from './delivery.ts';
+import { LineRead, Mark } from './delivery.ts';
 
 // ---------------------------------------------------------------------------
 // The failures only the transport has.
@@ -403,6 +403,8 @@ export const TalkMarkPost = Schema.Struct({
  */
 const ScriptBeat = Schema.Struct({
   id: Schema.String,
+  /** Its line as the script says it, marks and cues in braces; none for a beat that says nothing (left out by an older lab). */
+  say: Schema.optionalKey(Schema.String),
   /** What the picture does, as the script says it; none where it says nothing. */
   picture: Schema.optionalKey(Schema.String),
   /** The beat's sources, as the script cites them. */
@@ -452,8 +454,22 @@ export const ScriptVoice = Schema.Struct({
 });
 export type ScriptVoice = typeof ScriptVoice.Type;
 
-/** `POST /api/films/<film>/script/marks`: a beat's delivery marks as they should read, its words unchanged. */
-export const MarksPost = Schema.Struct({ beat: Schema.String, marks: Schema.Array(Mark) });
+/**
+ * `POST /api/films/<film>/script/marks` (and a draft's): a beat's delivery
+ * marks as they should read, its words unchanged, and the line the page
+ * read when it made them (`read`: its words as the voice says them and
+ * their marks). A write replaces the line's every mark, and a mark is on a
+ * word by its index, so a write is refused once the line says other words
+ * or carries other marks: the page reads it again rather than mark the
+ * wrong word or write over marks made elsewhere. `read` is optional only so
+ * a tab older than the lab (which sent none) is refused with words that
+ * say to reload, not a payload that does not decode; it never writes.
+ */
+export const MarksPost = Schema.Struct({
+  beat: Schema.String,
+  marks: Schema.Array(Mark),
+  read: Schema.optionalKey(LineRead),
+});
 export type MarksPost = typeof MarksPost.Type;
 
 /**
@@ -875,13 +891,35 @@ class ReviewGroup extends HttpApiGroup.make('review').add(
   }),
 ) {}
 
-/** What a step's page sends: the step it answers and each answer's value by its name. */
-const AskAnswerPost = Schema.Struct({ step: Schema.String, values: StepValues });
+/** One section of an ask's page as sent: the step it answers and each answer's value by its name. */
+const AskSectionPost = Schema.Struct({ step: Schema.String, values: StepValues });
+type AskSectionPost = typeof AskSectionPost.Type;
+
+/**
+ * What an ask's page sends: each section it shows (`sectionsOf`), in order,
+ * at least one. A page opened before the one-page ask (2026-10-15) sends
+ * one step as it did (`{step, values}`), taken as one section, so a tab
+ * left open across the change still sends. The forms are disjoint: the old
+ * one carries no `sections`, so a body with sections that do not decode is
+ * refused, never read as the old form with its sections dropped.
+ */
+const AskAnswerPost = Schema.Union([
+  Schema.Struct({ sections: Schema.Array(AskSectionPost).check(Schema.isMinLength(1)) }),
+  Schema.Struct({ ...AskSectionPost.fields, sections: Schema.optionalKey(Schema.Never) }),
+]);
+type AskAnswerPost = typeof AskAnswerPost.Type;
+
+/** The sections an answer post carries: its own, or the one step an older page sends. */
+export const sectionsPosted = (post: AskAnswerPost): ReadonlyArray<AskSectionPost> => {
+  if ('step' in post) return [{ step: post.step, values: post.values }];
+  return post.sections;
+};
 
 /**
  * The asks: an agent's decision pages (`core/ask.ts`), each read as its
- * record and answered a step at a time; the answer moves its machine and is
- * kept, so a reload or another device opens it where it was left.
+ * record and answered as one page, its sections in order; the answers move
+ * its machine and are kept, so a reload or another device opens it where it
+ * was left.
  */
 class AsksGroup extends HttpApiGroup.make('asks').add(
   HttpApiEndpoint.get('read', `${API}/asks/:ask`, {
@@ -1430,8 +1468,12 @@ export const Places = {
     params: { series: Codec.Segment, draft: Codec.Segment, beat: Codec.Segment },
     query: Field.struct({ words: cited }),
   }),
-  /** An agent's ask: its decision page (`core/ask.ts`), at the step its run is on. */
-  ask: Place.make({ path: '/asks/:ask', params: { ask: Codec.Segment } }),
+  /** An agent's ask: its decision page (`core/ask.ts`), at the step its run is on; a Board still open full size. */
+  ask: Place.make({
+    path: '/asks/:ask',
+    params: { ask: Codec.Segment },
+    query: Field.struct({ still }),
+  }),
 };
 
 /** The page each place is served by, the first that holds a path winning. */
@@ -1572,7 +1614,8 @@ export const pageHref = {
   production: (production: string, v = 0): string =>
     Place.href(Places.production, { path: { production }, query: { v }, hash: {} }),
   /** An agent's ask, at the step its run is on. */
-  ask: (ask: string): string => Place.href(Places.ask, { path: { ask }, query: {}, hash: {} }),
+  ask: (ask: string): string =>
+    Place.href(Places.ask, { path: { ask }, query: { still: '' }, hash: {} }),
   /** A series draft in the Script reader. */
   draft: (series: string, draft: string): string =>
     Place.href(Places.draft, { path: { series, draft }, query: {}, hash: {} }),

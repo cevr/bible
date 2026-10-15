@@ -7,7 +7,7 @@
 // was answered and is answered as it is when said again.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Exit, Schema } from 'effect';
+import { Boolean as Bool, Effect, Exit, Schema } from 'effect';
 import { TestClock } from 'effect/testing';
 import { type Ask, AskState, oneQuestion } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
@@ -53,10 +53,11 @@ const proof = (tries: ReadonlyArray<number>): Ask => ({
           kind: 'choose',
           id: 'try',
           label: 'Which try do we keep?',
-          options: tries.map((n) => ({
+          options: tries.map((n, i) => ({
             value: String(n),
             label: `Try ${n}`,
             image: { board: { film: 'f', panel: 'word.church', try: n } },
+            ...Bool.match(i === 0, { onFalse: () => ({}), onTrue: () => ({ recommended: true }) }),
           })),
         },
       ],
@@ -115,15 +116,21 @@ describe('the asks on disk', () => {
       Effect.gen(function* () {
         const asks = yield* AskStore;
         const { id } = yield* asks.make(draft(proof([1, 7])));
-        const picked = yield* asks.answer(id, 'pick', { try: '7' });
+        const picked = yield* asks.answerPage(id, [{ step: 'pick', values: { try: '7' } }]);
         expect(picked.state).toMatchObject({ _tag: 'Asking', step: 'why' });
         // The phone sends the same pick again: the ask as it is.
-        expect(yield* asks.answer(id, 'pick', { try: '7' })).toEqual(picked);
-        const other = yield* Effect.flip(asks.answer(id, 'pick', { try: '1' }));
+        expect(yield* asks.answerPage(id, [{ step: 'pick', values: { try: '7' } }])).toEqual(
+          picked,
+        );
+        const other = yield* Effect.flip(
+          asks.answerPage(id, [{ step: 'pick', values: { try: '1' } }]),
+        );
         expect(other.message).toContain('step pick is answered already');
-        const empty = yield* Effect.flip(asks.answer(id, 'why', {}));
+        const empty = yield* Effect.flip(asks.answerPage(id, [{ step: 'why', values: {} }]));
         expect(empty._tag).toBe('AskRefused');
-        const done = yield* asks.answer(id, 'why', { why: 'the light falls on the pulpit' });
+        const done = yield* asks.answerPage(id, [
+          { step: 'why', values: { why: 'the light falls on the pulpit' } },
+        ]);
         expect(done.state).toEqual(
           AskState.Answered({
             step: 'done',
@@ -139,7 +146,9 @@ describe('the asks on disk', () => {
         expect(closed.state.answers).toEqual(done.state.answers);
         expect(yield* asks.close(id, 'kept try 7')).toEqual(closed);
         expect((yield* Effect.flip(asks.close(id, 'another'))).message).toContain('closed already');
-        const after = yield* Effect.flip(asks.answer(id, 'why', { why: 'again' }));
+        const after = yield* Effect.flip(
+          asks.answerPage(id, [{ step: 'why', values: { why: 'again' } }]),
+        );
         expect(after._tag).toBe('AskRefused');
       }),
     ),
@@ -157,7 +166,7 @@ describe('the asks on disk', () => {
                 id: 'keep',
                 label: 'Keep it?',
                 options: [
-                  { value: 'yes', label: 'Yes' },
+                  { value: 'yes', label: 'Yes', recommended: true },
                   { value: 'no', label: 'No' },
                 ],
               },
@@ -165,7 +174,9 @@ describe('the asks on disk', () => {
             ]),
           ),
         );
-        const done = yield* asks.answer(id, 'ask', { keep: 'yes', more: '' });
+        const done = yield* asks.answerPage(id, [
+          { step: 'ask', values: { keep: 'yes', more: '' } },
+        ]);
         expect(done.state).toEqual(
           AskState.Answered({
             step: 'done',
@@ -176,7 +187,9 @@ describe('the asks on disk', () => {
           }),
         );
         expect(done.answered.map((a) => a.values)).toEqual([{ keep: 'yes' }]);
-        expect(yield* asks.answer(id, 'ask', { keep: 'yes', more: '  ' })).toEqual(done);
+        expect(
+          yield* asks.answerPage(id, [{ step: 'ask', values: { keep: 'yes', more: '  ' } }]),
+        ).toEqual(done);
       }),
     ),
   );
@@ -191,7 +204,9 @@ describe('the asks on disk', () => {
           deadline: '2026-10-14T13:00:00+02:00',
         });
         expect(deadline).toBe('2026-10-14T11:00:00.000Z');
-        const exit = yield* Effect.exit(asks.answer(id, 'pick', { try: '1' }));
+        const exit = yield* Effect.exit(
+          asks.answerPage(id, [{ step: 'pick', values: { try: '1' } }]),
+        );
         expect(Exit.isFailure(exit)).toBe(true);
         expect(String(exit)).toContain('it was due by 2026-10-14T11:00:00.000Z');
       }),

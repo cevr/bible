@@ -13,9 +13,11 @@
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, Show } from '@solidjs/web';
+import type { Accessor } from 'solid-js';
 import { Array as Arr, Match, Option } from 'effect';
 import type { StagingTake } from '../../core/api.ts';
 import { HOLD_DEFAULT, type Mark } from '../../core/delivery.ts';
+import { PlayIcon } from '../page-shell.tsx';
 import { pressed } from '../pressed.ts';
 import {
   type Gap,
@@ -49,7 +51,13 @@ const HEAR_TITLE = {
   true: 'Stop',
   false: 'Hear the staging take, and the beats ready after it',
 } as const;
-const HEAR_GLYPH = { true: '■', false: '▶' } as const;
+/** ▶'s name, for one who cannot see the glyph: which beat it plays. */
+const hearLabel = (hearing: boolean, beat: string): string => {
+  if (hearing) return `Stop beat ${beat}`;
+  return `Hear beat ${beat}`;
+};
+/** What the reader's head press says, by whether the script is heard now. */
+const HEAR_ALL = { true: '■ Stop', false: '▶ Hear it' } as const;
 
 /** What a gap's choice puts in it: a hold starts at the default seconds. */
 const GAP_OF: Readonly<Record<Gap['_tag'], Gap>> = {
@@ -108,13 +116,14 @@ export const TakeState = (props: { readonly beat: string }) => {
                     class="lab-script-hear"
                     data-act="hear-beat"
                     aria-pressed={pressed(hearing())}
+                    aria-label={hearLabel(hearing(), props.beat)}
                     title={HEAR_TITLE[pressed(hearing())]}
                     onClick={() => {
                       if (hearing()) voice.stop();
                       else voice.hear(props.beat, Option.none(), true);
                     }}
                   >
-                    {HEAR_GLYPH[pressed(hearing())]}
+                    <PlayIcon playing={hearing()} />
                   </button>
                   {Option.toArray(paceOf(ready.words)).map((pace) => (
                     <span
@@ -180,17 +189,24 @@ export const HearWords = (props: {
 const counted = (takes: ReadonlyArray<StagingTake>, tag: StagingTake['_tag']) =>
   takes.filter((t) => t._tag === tag).length;
 
+/** The takes' line: their state, and what the voice cost today (none when the lab makes none). */
+interface TakesLine {
+  readonly takes: string;
+  readonly cost: Option.Option<string>;
+}
+
 /**
  * The takes' state, one quiet line: how many are ready of how many, what is
- * being voiced or was refused, and what the voice has cost today against its
- * cap; or that the lab makes none (its fill off), so a beat with no ▶ is said.
+ * being voiced or was refused, and (`cost`, which an ask's reader leaves
+ * out) what the voice has cost today against its cap; or that
+ * the lab makes none (its fill off), so a beat with no ▶ is said.
  */
 const takesLine = (
   takes: ReadonlyArray<StagingTake>,
   spend: { readonly spent: number; readonly cap: number },
-): string => {
+): TakesLine => {
   if (takes.length > 0 && counted(takes, 'Unvoiced') === takes.length)
-    return 'staging voice off in this lab: no takes are made';
+    return { takes: 'staging voice off in this lab: no takes are made', cost: Option.none() };
   const parts = [
     `${counted(takes, 'Ready')} of ${takes.length} takes ready`,
     ...Option.toArray(
@@ -205,25 +221,66 @@ const takesLine = (
         (n) => `${n} refused`,
       ),
     ),
-    `${spend.spent.toLocaleString('en-US')} of ${spend.cap.toLocaleString('en-US')} characters today`,
   ];
-  return parts.join(' · ');
+  return {
+    takes: parts.join(' · '),
+    cost: Option.some(
+      `${spend.spent.toLocaleString('en-US')} of ${spend.cap.toLocaleString('en-US')} characters today`,
+    ),
+  };
 };
 
-/** The takes' state and the day's staging spend, one quiet line (`takesLine`). */
-export const Spend = () => {
+/**
+ * The takes' state and, with `cost`, the day's staging spend: one quiet line
+ * (`takesLine`), its words one run of text.
+ */
+export const Spend = (props: { readonly cost: boolean }) => {
   const voice = useVoice();
   const line = () =>
-    Option.getOrElse(
-      Option.orElse(
-        Option.map(voice.unread(), (why) => `staging voice unread: ${why}`),
-        () => Option.map(voice.spend(), (s) => takesLine(voice.takes(), s)),
-      ),
-      () => '',
+    Option.orElse(
+      Option.map(voice.unread(), (why) => ({
+        takes: `staging voice unread: ${why}`,
+        cost: Option.none<string>(),
+      })),
+      () => Option.map(voice.spend(), (s) => takesLine(voice.takes(), s)),
     );
   return (
-    <Show when={line() !== ''}>
-      <p class="lab-script-spend">{line()}</p>
+    <Show when={Option.getOrUndefined(line())}>
+      {(l) => (
+        <p class="lab-script-spend">
+          {[l().takes, ...Option.toArray(Option.filter(l().cost, () => props.cost))].join(' · ')}
+        </p>
+      )}
+    </Show>
+  );
+};
+
+/**
+ * Hear the script from its first beat with a take ready, on through the
+ * ready beats after it (■ Stop while it plays): the reader's one labelled
+ * press for its sound, at its head. Nothing until a take is ready.
+ */
+export const HearIt = (props: { readonly beats: ReadonlyArray<string> }) => {
+  const voice = useVoice();
+  const first = () =>
+    Arr.findFirst(props.beats, (id) => Option.exists(voice.take(id), (t) => t._tag === 'Ready'));
+  const hearing = () => Option.isSome(voice.hearing());
+  return (
+    <Show when={Option.getOrUndefined(first())}>
+      {(beat: Accessor<string>) => (
+        <button
+          type="button"
+          class="sh-btn lab-script-hear-all"
+          data-act="hear-script"
+          aria-pressed={pressed(hearing())}
+          onClick={() => {
+            if (hearing()) voice.stop();
+            else voice.hear(beat(), Option.none(), true);
+          }}
+        >
+          {HEAR_ALL[pressed(hearing())]}
+        </button>
+      )}
     </Show>
   );
 };
@@ -240,22 +297,24 @@ const markingNote = (m: Marking, beat: string, written: string): string => {
 };
 
 /**
- * The delivery of `selected`, words of beat `beat` (its line `words` long,
- * said with `marks`): Stress, the gap before them (none for the line's first
- * word, whose silence is the beat's lead), and a hold's seconds. Nothing
- * while no word of it is selected.
+ * The delivery of `selected`, words of beat `beat` (its line `spoken`, as the
+ * page read it, said with `marks`): Stress, the gap before them (none for the
+ * line's first word, whose silence is the beat's lead), and a hold's seconds.
+ * A write carries the line it was made on (its words and marks), so it lands on these or not at
+ * all. Nothing while no word of it is selected.
  */
 export const Delivery = (props: {
   readonly beat: string;
   readonly marks: ReadonlyArray<Mark>;
-  readonly words: number;
+  readonly spoken: string;
   readonly selected: Option.Option<Words>;
 }) => {
   const voice = useVoice();
   const marks = () => props.marks;
-  const words = () => props.words;
+  const words = () => props.spoken.split(' ').filter((w) => w !== '').length;
   const selected = () => props.selected;
-  const write = (next: ReadonlyArray<Mark>) => voice.mark(props.beat, next);
+  const write = (next: ReadonlyArray<Mark>) =>
+    voice.mark(props.beat, next, { spoken: props.spoken, marks: props.marks });
   return (
     <Show when={Option.getOrUndefined(selected())}>
       {(w) => {

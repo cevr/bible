@@ -40,6 +40,7 @@ import {
   type CorpusFilter,
 } from '../writings/corpus-class.js';
 
+import { SqlAtomic } from '../db/atomic.js';
 import {
   ensureSchemaVersionsTable,
   readSchemaVersion,
@@ -914,6 +915,100 @@ const encodePositions = Schema.encodeSync(
 const encodeKeys = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.String)));
 const encodeIds = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.Finite)));
 
+/** A staged chunk of rows as one JSON parameter, unpacked with `json_each`. */
+const encodeIncomingParagraphs = Schema.encodeSync(
+  Schema.fromJsonString(Schema.Array(ParagraphRow)),
+);
+const IncomingBibleRef = Schema.Struct({
+  para_ref_code: Schema.String,
+  bible_book: Schema.Finite,
+  bible_chapter: Schema.Finite,
+  bible_verse: Schema.NullOr(Schema.Finite),
+});
+type IncomingBibleRef = typeof IncomingBibleRef.Type;
+const encodeIncomingBibleRefs = Schema.encodeSync(
+  Schema.fromJsonString(Schema.Array(IncomingBibleRef)),
+);
+
+/** How many bytes of JSON one staged chunk carries.
+ *
+ *  D1 caps a bound value at 2 MB, and the chunk is one bound value. Half
+ *  of that leaves room for whatever the measure below misses, and a chunk
+ *  that size inserts in well under D1's 30 s per query. */
+const INCOMING_CHUNK_BYTES = 1_000_000;
+
+/** `items` in order, cut into runs whose summed `size` stays within `budget`
+ *  (a single item larger than the budget is a run of its own). */
+const chunkBySize = <A>(
+  items: readonly A[],
+  size: (item: A) => number,
+  budget: number,
+): readonly (readonly A[])[] => {
+  const chunks: A[][] = [];
+  let current: A[] = [];
+  let used = 0;
+  for (const item of items) {
+    const cost = size(item);
+    if (current.length > 0 && used + cost > budget) {
+      chunks.push(current);
+      current = [];
+      used = 0;
+    }
+    current.push(item);
+    used += cost;
+  }
+  if (current.length > 0) chunks.push(current);
+  return chunks;
+};
+
+const utf8 = new TextEncoder();
+
+/** A row's size in its chunk: its JSON, escapes and all, in UTF-8 bytes,
+ *  plus the comma that separates it from the next. */
+const incomingRowBytes = (row: ParagraphRow): number =>
+  utf8.encode(encodeIncomingParagraphs([row])).length - 1;
+
+/** The tables an install stages a publication in before it swaps it in.
+ *
+ *  Shaped like `paragraphs` and `paragraph_bible_refs`, with the same keys
+ *  and no full-text index: a staged row is invisible to every reader until
+ *  the swap copies it across. Created on first install rather than by
+ *  `ensureParagraphSchema`, so a host that only reads (the Worker over D1)
+ *  never pays for them and a host that writes always has them. */
+const ensureIncomingTables = (sql: SqlClient.SqlClient): Effect.Effect<void, SqlError> =>
+  Effect.gen(function* () {
+    yield* sql.unsafe(`
+      CREATE TABLE IF NOT EXISTS paragraphs_incoming (
+        book_id INTEGER NOT NULL,
+        ref_code TEXT NOT NULL,
+        para_id TEXT,
+        refcode_short TEXT,
+        refcode_long TEXT,
+        nodes_json TEXT NOT NULL,
+        content_text TEXT NOT NULL,
+        puborder INTEGER NOT NULL,
+        element_type TEXT,
+        element_subtype TEXT,
+        page_number INTEGER,
+        paragraph_number INTEGER,
+        is_chapter_heading INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (book_id, ref_code)
+      )
+    `);
+    yield* sql.unsafe(`
+      CREATE TABLE IF NOT EXISTS paragraph_bible_refs_incoming (
+        para_book_id INTEGER NOT NULL,
+        para_ref_code TEXT NOT NULL,
+        bible_book INTEGER NOT NULL,
+        bible_chapter INTEGER NOT NULL,
+        bible_verse INTEGER,
+        PRIMARY KEY (para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse)
+      )
+    `);
+  });
+
 const paragraphToRow = (
   paragraph: EGWSchemas.Paragraph,
   bookId: number,
@@ -1261,14 +1356,18 @@ export class EGWParagraphDatabase extends Context.Service<
 >()('@bible/core/egw-db/book-database/EGWParagraphDatabase') {
   /**
    * Driver-agnostic layer over a database whose schema is already in place:
-   * requires `SqlClient.SqlClient` and runs no DDL. For a host that only reads
-   * an installed corpus; every other host takes `layerCore`.
+   * requires `SqlClient.SqlClient` and `SqlAtomic`, and runs no DDL until a
+   * publication is installed. For a host whose driver has no interactive
+   * transactions (the Worker over D1, which supplies `SqlAtomic` as a batch);
+   * every SQLite host takes `layerCore`.
    */
-  static layerExisting: Layer.Layer<EGWParagraphDatabase, never, SqlClient.SqlClient> =
+  static layerExisting: Layer.Layer<EGWParagraphDatabase, never, SqlClient.SqlClient | SqlAtomic> =
     Layer.effect(
       EGWParagraphDatabase,
       Effect.gen(function* () {
         const sql = yield* SqlClient.SqlClient;
+        const atomic = yield* SqlAtomic;
+        const incomingTables = yield* Effect.cached(ensureIncomingTables(sql));
 
         // ========== Book operations ==========
 
@@ -1373,10 +1472,74 @@ export class EGWParagraphDatabase extends Context.Service<
             updated_at = excluded.updated_at
         `.pipe(Effect.asVoid);
 
+        /** The publication's `books` row. A classification the archive
+         *  carries replaces the row's; an archive with none (a packaged one)
+         *  leaves the row's classification as it was, so installing it
+         *  never erases what a backfill or an earlier sync wrote. */
+        const upsertPublicationBook = (
+          publication: PublicationArchive['publication'],
+          paragraphCount: number,
+          now: string,
+        ) =>
+          Option.match(Option.fromUndefinedOr(publication.classification), {
+            onNone: () => sql`
+              INSERT INTO books (
+                book_id, book_code, book_title, book_author, paragraph_count, created_at
+              ) VALUES (
+                ${publication.id}, ${publication.code}, ${publication.title},
+                ${publication.author}, ${paragraphCount}, ${now}
+              )
+              ON CONFLICT(book_id) DO UPDATE SET
+                book_code = excluded.book_code,
+                book_title = excluded.book_title,
+                book_author = excluded.book_author,
+                paragraph_count = excluded.paragraph_count
+            `,
+            onSome: (classification) => sql`
+              INSERT INTO books (
+                book_id, book_code, book_title, book_author, paragraph_count, created_at,
+                book_type, book_subtype, folder_id, section
+              ) VALUES (
+                ${publication.id}, ${publication.code}, ${publication.title},
+                ${publication.author}, ${paragraphCount}, ${now},
+                ${classification.type}, ${Option.getOrNull(classification.subtype)},
+                ${classification.folderId}, ${Option.getOrNull(classification.section)}
+              )
+              ON CONFLICT(book_id) DO UPDATE SET
+                book_code = excluded.book_code,
+                book_title = excluded.book_title,
+                book_author = excluded.book_author,
+                paragraph_count = excluded.paragraph_count,
+                book_type = excluded.book_type,
+                book_subtype = excluded.book_subtype,
+                folder_id = excluded.folder_id,
+                section = excluded.section
+            `,
+          });
+
+        /** Replace one publication with its archive, in two phases.
+         *
+         *  **Stage.** The rows go into `paragraphs_incoming` and
+         *  `paragraph_bible_refs_incoming` in chunks, each one statement with
+         *  its rows as one JSON parameter. Whatever an earlier attempt staged
+         *  for this publication is cleared first, so a retry after a crash
+         *  starts clean. Nothing a reader sees has changed yet.
+         *
+         *  **Swap.** One atomic group (`SqlAtomic`) deletes the publication's
+         *  live rows, copies the staged ones across, writes its `books` and
+         *  `sync_status` rows and clears the stage. The full-text triggers fire
+         *  on the copy, so `paragraphs_fts` moves with it. A reader sees the
+         *  old publication or the new one, never a mix.
+         *
+         *  The swap is a fixed list of statements because D1 runs a group as a
+         *  batch, which cannot branch on a result. So the count is checked on
+         *  the stage, before the swap: the copy is `INSERT ... SELECT` from the
+         *  stage under the same key, so it lands exactly the rows counted. */
         const installPublicationArchive = Effect.fn(
           'EGWParagraphDatabase.installPublicationArchive',
         )(function* (archive: PublicationArchive, provenance?: CorpusProvenance) {
           yield* validatePublicationArchive(archive);
+          yield* incomingTables;
 
           const publication = archive.publication;
           const publicationId = publication.id;
@@ -1384,50 +1547,105 @@ export class EGWParagraphDatabase extends Context.Service<
           const rows = archive.paragraphs.map((paragraph) =>
             archivedParagraphToRow(paragraph, publicationId, now),
           );
+          const references = archive.bibleReferences.map((reference): IncomingBibleRef => {
+            let verse = Option.none<number>();
+            if (reference.scripture._tag === 'verse')
+              verse = Option.some(reference.scripture.verse);
+            return {
+              para_ref_code: reference.paragraphRefcode,
+              bible_book: reference.scripture.book,
+              bible_chapter: reference.scripture.chapter,
+              bible_verse: Option.getOrNull(verse),
+            };
+          });
 
-          return yield* sql.withTransaction(
-            Effect.gen(function* () {
-              yield* sql`
-              DELETE FROM paragraph_bible_refs WHERE para_book_id = ${publicationId}
-            `;
-              yield* sql`DELETE FROM paragraphs WHERE book_id = ${publicationId}`;
-              yield* sql`
-              INSERT INTO books (
-                book_id, book_code, book_title, book_author, paragraph_count, created_at
-              ) VALUES (
-                ${publicationId}, ${publication.code}, ${publication.title},
-                ${publication.author}, ${rows.length}, ${now}
+          yield* sql`DELETE FROM paragraphs_incoming WHERE book_id = ${publicationId}`;
+          yield* sql`DELETE FROM paragraph_bible_refs_incoming WHERE para_book_id = ${publicationId}`;
+          for (const chunk of chunkBySize(rows, incomingRowBytes, INCOMING_CHUNK_BYTES)) {
+            yield* sql`
+              INSERT INTO paragraphs_incoming (
+                book_id, ref_code, para_id, refcode_short, refcode_long,
+                nodes_json, content_text, puborder, element_type, element_subtype,
+                page_number, paragraph_number, is_chapter_heading,
+                created_at, updated_at
               )
-              ON CONFLICT(book_id) DO UPDATE SET
-                book_code = excluded.book_code,
-                book_title = excluded.book_title,
-                book_author = excluded.book_author,
-                paragraph_count = excluded.paragraph_count
+              SELECT
+                ${publicationId},
+                json_extract(value, '$.ref_code'),
+                json_extract(value, '$.para_id'),
+                json_extract(value, '$.refcode_short'),
+                json_extract(value, '$.refcode_long'),
+                json_extract(value, '$.nodes_json'),
+                json_extract(value, '$.content_text'),
+                json_extract(value, '$.puborder'),
+                json_extract(value, '$.element_type'),
+                json_extract(value, '$.element_subtype'),
+                json_extract(value, '$.page_number'),
+                json_extract(value, '$.paragraph_number'),
+                json_extract(value, '$.is_chapter_heading'),
+                json_extract(value, '$.created_at'),
+                json_extract(value, '$.updated_at')
+              FROM json_each(${encodeIncomingParagraphs(chunk)})
             `;
+          }
+          // A reference is under a hundred bytes of JSON: five thousand of
+          // them stay far inside the paragraphs' budget.
+          for (const chunk of Arr.chunksOf(references, 5_000)) {
+            yield* sql`
+              INSERT INTO paragraph_bible_refs_incoming (
+                para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
+              )
+              SELECT
+                ${publicationId},
+                json_extract(value, '$.para_ref_code'),
+                json_extract(value, '$.bible_book'),
+                json_extract(value, '$.bible_chapter'),
+                json_extract(value, '$.bible_verse')
+              FROM json_each(${encodeIncomingBibleRefs(chunk)})
+            `;
+          }
 
-              for (const row of rows) {
-                yield* insertParagraphRow(row);
-              }
-              for (const reference of archive.bibleReferences) {
-                let verse = Option.none<number>();
-                if (reference.scripture._tag === 'verse')
-                  verse = Option.some(reference.scripture.verse);
-                yield* sql`
-                INSERT INTO paragraph_bible_refs (
-                  para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
-                ) VALUES (
-                  ${publicationId}, ${reference.paragraphRefcode}, ${reference.scripture.book},
-                  ${reference.scripture.chapter}, ${Option.getOrNull(verse)}
-                )
-              `;
-              }
+          const staged = yield* sql<{ readonly count: number }>`
+            SELECT COUNT(*) AS count FROM paragraphs_incoming WHERE book_id = ${publicationId}
+          `;
+          const stagedCount = staged[0]?.count ?? -1;
+          if (stagedCount !== rows.length) {
+            return yield* ParagraphDataIntegrityError.make({
+              cause: { expected: rows.length, actual: stagedCount },
+              location: `publication(${String(publicationId)}).staged-count`,
+            });
+          }
 
-              const provenanceOption = Option.fromNullishOr(provenance);
-              const provenanceDigest = Option.getOrNull(
-                Option.flatMap(provenanceOption, (value) => value.digest),
-              );
-
-              yield* sql`
+          const provenanceOption = Option.fromNullishOr(provenance);
+          yield* atomic.run([
+            sql`DELETE FROM paragraph_bible_refs WHERE para_book_id = ${publicationId}`,
+            sql`DELETE FROM paragraphs WHERE book_id = ${publicationId}`,
+            upsertPublicationBook(publication, rows.length, now),
+            sql`
+              INSERT INTO paragraphs (
+                book_id, ref_code, para_id, refcode_short, refcode_long,
+                nodes_json, content_text, puborder, element_type, element_subtype,
+                page_number, paragraph_number, is_chapter_heading,
+                created_at, updated_at
+              )
+              SELECT
+                book_id, ref_code, para_id, refcode_short, refcode_long,
+                nodes_json, content_text, puborder, element_type, element_subtype,
+                page_number, paragraph_number, is_chapter_heading,
+                created_at, updated_at
+              FROM paragraphs_incoming
+              WHERE book_id = ${publicationId}
+              ORDER BY puborder
+            `,
+            sql`
+              INSERT INTO paragraph_bible_refs (
+                para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
+              )
+              SELECT para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
+              FROM paragraph_bible_refs_incoming
+              WHERE para_book_id = ${publicationId}
+            `,
+            sql`
               INSERT INTO sync_status (
                 book_id, book_code, status, error_message, last_attempt, paragraph_count,
                 source, revision, digest
@@ -1435,7 +1653,7 @@ export class EGWParagraphDatabase extends Context.Service<
                 ${publicationId}, ${publication.code}, 'success', NULL, ${now}, ${rows.length},
                 ${Option.getOrNull(Option.map(provenanceOption, (value) => value.source))},
                 ${Option.getOrNull(Option.map(provenanceOption, (value) => value.revision))},
-                ${provenanceDigest}
+                ${Option.getOrNull(Option.flatMap(provenanceOption, (value) => value.digest))}
               )
               ON CONFLICT(book_id) DO UPDATE SET
                 book_code = excluded.book_code,
@@ -1446,21 +1664,11 @@ export class EGWParagraphDatabase extends Context.Service<
                 source = excluded.source,
                 revision = excluded.revision,
                 digest = excluded.digest
-            `;
-
-              const installed = yield* sql<{ count: number }>`
-              SELECT COUNT(*) AS count FROM paragraphs WHERE book_id = ${publicationId}
-            `;
-              const installedCount = installed[0]?.count ?? -1;
-              if (installedCount !== rows.length) {
-                return yield* ParagraphDataIntegrityError.make({
-                  cause: { expected: rows.length, actual: installedCount },
-                  location: `publication(${String(publicationId)}).installed-count`,
-                });
-              }
-              return installedCount;
-            }),
-          );
+            `,
+            sql`DELETE FROM paragraphs_incoming WHERE book_id = ${publicationId}`,
+            sql`DELETE FROM paragraph_bible_refs_incoming WHERE para_book_id = ${publicationId}`,
+          ]);
+          return rows.length;
         });
 
         const storeParagraph = (paragraph: EGWSchemas.Paragraph, book: EGWSchemas.Book) =>
@@ -2368,7 +2576,9 @@ export class EGWParagraphDatabase extends Context.Service<
    * a SQLite driver layer (sqlite-bun, sqlite-node) via `Layer.provide`.
    */
   static layerCore: Layer.Layer<EGWParagraphDatabase, SqlError, SqlClient.SqlClient> =
-    EGWParagraphDatabase.layerExisting.pipe(Layer.provide(layerParagraphSchema));
+    EGWParagraphDatabase.layerExisting.pipe(
+      Layer.provide(Layer.merge(layerParagraphSchema, SqlAtomic.layerTransaction)),
+    );
 
   /**
    * Test implementation with in-memory data.

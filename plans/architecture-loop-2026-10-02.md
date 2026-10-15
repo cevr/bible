@@ -168,6 +168,13 @@ All 14 sweeps reported, plus the retro. The batches, what each owns and the merg
   - Main's CI then failed once on a fixture timing (the cases after a timed-out one had `--timeout 30`); fixed in ebt PR #8, CI green, then the Version PR.
   - bible-tools pins `effect-bun-test` `0.5.0` (exact, as the repo pins). Gate 27/27; e2e check clear 1074/0 on the npm build.
   - Carried: o2 (film open-tab counter drops last), o3 (lock-check residuals), o5 (`.layer` has no `.serial`).
+- **guidedask:** done `fbeefe131..bb02515a6`, merged `1a6c698b1`. An ask is one scrolling guided page: its material drawn by reference with the views' own parts (the Script reader, the Board's panels, the player), then its questions with a recommended option, then one Send.
+  - Closes HARNESS6-15; REV6-8 and DL6-7 in part.
+  - The CSS budgets rose, ask 17→24 and draft 35/42→36/43; verify-3 checked each rise against what it bought.
+  - Reviewers: taste by a fresh Opus (max), verify by Claude (max), 3 rounds (the cap). Round 3: taste ACCEPT; verify FIXUPS, Minor only (F1–F4).
+  - The m2 "public" wording fixed in `a8bc3623d`.
+  - First e2e on the merge not counted: 379 failed in the full run (263 "Failed to spawn Chrome"), the host's Chrome-profile defect that main fixed in `c569e830f`. After merging main again: gate 27/27, e2e check 1086/0 with no reruns. The last merge brought only egw-search, core, CLI and scripts commits (film and animations do not depend on `@bible/core`), so the gate ran again and the e2e did not.
+  - Carried to p6-askfix: F1–F4, taste Minors 1–2 and Nits 1–7, round-3 open items 1 and 3, and `AskName` → `Segment` (p6-guards m5).
 - **p6-host:** done `199aadd86..810cd381f`, merged `42d570140`.
   - The lab listens on `FILM_LAB_PHONE_URL` itself behind `admit`; the forwarder is retired. A phone address it cannot bind leaves loopback serving.
   - Links are `{local, phone?}` on `localhost`, with no `public` or https.

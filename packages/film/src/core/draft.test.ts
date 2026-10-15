@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result, Schema } from 'effect';
+import type { LineRead } from './delivery.ts';
 import { DraftMarkdown, draftMarked, draftMissed, unreadText } from './draft.ts';
 
 const TALK = [
@@ -33,6 +34,31 @@ const FILM = [
   '**picture:** The title card.',
   '',
 ].join('\n');
+
+/** The lines as a page reads them, their words and their marks: the line a mark write is made on. */
+const DANIEL = Option.some<LineRead>({
+  spoken: 'Daniel was taken. He was young.',
+  marks: [
+    { _tag: 'Stress', word: 2 },
+    { _tag: 'Breath', before: 3 },
+    { _tag: 'Stress', word: 5 },
+  ],
+});
+const MILK = Option.some<LineRead>({
+  spoken: 'A baby drinks milk. Nobody minds.',
+  marks: [
+    { _tag: 'Stress', word: 3 },
+    { _tag: 'Breath', before: 4 },
+    { _tag: 'Stress', word: 5 },
+  ],
+});
+const PIPE = Option.some<LineRead>({
+  spoken: 'A pipe | in a cell, and a turn.',
+  marks: [
+    { _tag: 'Hold', before: 7, seconds: 1.5 },
+    { _tag: 'Stress', word: 8 },
+  ],
+});
 
 const read = Schema.decodeSync(DraftMarkdown);
 const refusal = (markdown: string) =>
@@ -112,7 +138,9 @@ describe('reading a draft', () => {
     expect(read(crlf).beats.map((b) => [b.id, b.label])).toEqual(
       read(FILM).beats.map((b) => [b.id, b.label]),
     );
-    const marked = Result.getOrThrow(draftMarked(crlf, 'cold', [{ _tag: 'Stress', word: 3 }]));
+    const marked = Result.getOrThrow(
+      draftMarked(crlf, 'cold', [{ _tag: 'Stress', word: 3 }], MILK),
+    );
     expect(marked).toBe(
       crlf.replace(
         'A baby drinks {*}milk. {/} Nobody {*}minds.',
@@ -145,7 +173,7 @@ describe('draftMarked', () => {
       { _tag: 'Stress', word: 2 },
       { _tag: 'Hold', before: 3, seconds: 1 },
     ] as const;
-    const after = Result.getOrThrow(draftMarked(TALK, '1', marks));
+    const after = Result.getOrThrow(draftMarked(TALK, '1', marks, DANIEL));
     expect(after).toBe(
       TALK.replace(
         'Daniel was {*}taken. {/} He was {*}young.',
@@ -156,9 +184,9 @@ describe('draftMarked', () => {
   });
 
   test('keeps a table cell’s pipe escaped, and a film line as it stands', () => {
-    const turn = Result.getOrThrow(draftMarked(TALK, '3', [{ _tag: 'Stress', word: 1 }]));
+    const turn = Result.getOrThrow(draftMarked(TALK, '3', [{ _tag: 'Stress', word: 1 }], PIPE));
     expect(turn).toContain('| 3 · Turn | A {*}pipe \\| in a cell, and a turn. |');
-    const cold = Result.getOrThrow(draftMarked(FILM, 'cold', [{ _tag: 'Stress', word: 3 }]));
+    const cold = Result.getOrThrow(draftMarked(FILM, 'cold', [{ _tag: 'Stress', word: 3 }], MILK));
     expect(cold).toBe(
       FILM.replace(
         'A baby drinks {*}milk. {/} Nobody {*}minds.',
@@ -169,10 +197,32 @@ describe('draftMarked', () => {
 
   test('refuses a beat it lacks, a beat that says nothing, and a mark that does not fit', () => {
     const unread = (beat: string, marks: Parameters<typeof draftMarked>[2]) =>
-      unreadText(Result.getOrThrow(Result.flip(draftMarked(TALK, beat, marks))));
+      unreadText(Result.getOrThrow(Result.flip(draftMarked(TALK, beat, marks, DANIEL))));
     expect(unread('9', [])).toBe('beat 9: the draft has no such beat');
     expect(unread('2', [])).toBe('beat 2: says nothing to mark');
     expect(unread('1', [{ _tag: 'Stress', word: 40 }])).toMatch(/^beat 1: /);
+  });
+
+  test('refuses marks made on words the line no longer says', () => {
+    // The page read beat 1 before "taken" became "carried away": word 2 is another word now.
+    const reworded = TALK.replace('Daniel was {*}taken.', 'Daniel was {*}carried away.');
+    const stale = draftMarked(reworded, '1', [{ _tag: 'Stress', word: 2 }], DANIEL);
+    expect(unreadText(Result.getOrThrow(Result.flip(stale)))).toBe(
+      'beat 1: its words changed since the page read them (it says "Daniel was carried away. He was young." now): read it again and mark it there',
+    );
+  });
+
+  test('refuses marks made on a line marked since, and a page older than the lab', () => {
+    // Marked elsewhere since the page read it: "young" is no longer stressed.
+    const remarked = TALK.replace('He was {*}young.', 'He was young.');
+    const stale = draftMarked(remarked, '1', [{ _tag: 'Stress', word: 0 }], DANIEL);
+    expect(unreadText(Result.getOrThrow(Result.flip(stale)))).toBe(
+      'beat 1: its marks changed since the page read them (marked elsewhere): read it again and mark it there',
+    );
+    const older = draftMarked(TALK, '1', [], Option.none());
+    expect(unreadText(Result.getOrThrow(Result.flip(older)))).toBe(
+      'beat 1: this page is older than the lab: reload it, then mark again',
+    );
   });
 });
 

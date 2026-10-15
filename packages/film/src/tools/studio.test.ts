@@ -4,6 +4,7 @@
 // with the attempt it saved, then kept on "accept anyway"; the attempts
 // listed and played back. No network, no ffmpeg.
 
+import { AskMaterials } from './ask-materials.ts';
 import { AskStore } from './ask-store.ts';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, type FileSystem, Layer, Option, Path, Schema } from 'effect';
@@ -168,13 +169,17 @@ const setup = (
     NotesStore.layer,
     ProductionStore.layer,
     BoardStore.layer,
-    AskStore.layer.pipe(Layer.provide(BoardStore.layer)),
+    AskStore.layer.pipe(
+      Layer.provide(AskMaterials.layer),
+      Layer.provide([BoardStore.layer, noStaging]),
+    ),
     noScenes,
     noStaging,
     echoPages,
-    StudioReadings.layer,
     Choices.layer,
   ).pipe(
+    // An ask's take is read as the studio reads it: the asks need the readings too.
+    Layer.provideMerge(StudioReadings.layer),
     Layer.provideMerge(Layer.mergeAll(SourceWriter.layer, RenderCatalogue.layer, noRenders)),
     Layer.provideMerge(Layer.mergeAll(folder, fresh)),
     Layer.provideMerge(Takes.layer),

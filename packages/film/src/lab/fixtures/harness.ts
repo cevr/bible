@@ -443,10 +443,12 @@ const fileAnswer = (path: string) =>
     Effect.provide(BunServices.layer),
   );
 
-/** The media types of the files the tests answer with (a tone, as a fixture video's sound; a face). */
+/** The media types of the files the tests answer with (a tone, as a fixture video's sound; a face; a real video; a still). */
 const TYPES = new Map([
   ['.wav', 'audio/wav'],
   ['.woff2', 'font/woff2'],
+  ['.mp4', 'video/mp4'],
+  ['.svg', 'image/svg+xml'],
 ]);
 
 const typeOfFile = (path: string) =>
@@ -479,6 +481,12 @@ const answer = (found: Answer): Effect.Effect<Option.Option<Response>> => {
 /** Whether the lab's API declares a route a request reaches (`declares`, `core/api.ts`). */
 const declared = declares(LabHttpApi);
 
+/** The method a fake route answers a request by: a HEAD's is its GET's. */
+const asGet = (method: string): string => {
+  if (method === 'HEAD') return 'GET';
+  return method;
+};
+
 /**
  * A request to the API: kept in `asked` (its path past `prefix`) and
  * answered by the first of `routes` that matches it, or a 404. A fake that
@@ -499,11 +507,13 @@ const apiAnswer =
       body: bodyOf(request),
     };
     asked.push(made);
-    const found = routes.find((f) => f.method === made.method && f.path.test(made.path));
+    // A HEAD is its GET's answer, as the lab's server answers it (the browser drops the body).
+    const method = asGet(request.method);
+    const found = routes.find((f) => f.method === method && f.path.test(made.path));
     return Option.match(Option.fromUndefinedOr(found), {
       onNone: () => Effect.succeedSome(respond('no fake route', 'text/plain', 404)),
       onSome: (f) => {
-        if (!declared(request.method, request.url.pathname))
+        if (!declared(method, request.url.pathname))
           return Effect.succeedSome(
             respond(
               `a fake route answers ${request.method} ${request.url.pathname}, which the lab's API does not declare`,

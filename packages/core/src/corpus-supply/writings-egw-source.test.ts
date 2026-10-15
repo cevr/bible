@@ -5,9 +5,14 @@ import { strToU8, zipSync } from 'fflate';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { EGWApiClient } from '../egw/client.js';
-import type { Book, Paragraph, TocItem } from '../egw/schemas.js';
+import type { Book, Folder, Paragraph, TocItem } from '../egw/schemas.js';
 import { PublicationArchive } from '../writings/archive.js';
-import { Publication, publicationCode, publicationId } from '../writings/model.js';
+import {
+  Publication,
+  PublicationClassification,
+  publicationCode,
+  publicationId,
+} from '../writings/model.js';
 import { provenanceForArchive, Target } from './model.js';
 import { CorpusSupply } from './service.js';
 import { layerEgwWritingsAssetSource } from './writings-egw-source.js';
@@ -166,6 +171,52 @@ describe('direct EGW Writings asset source', () => {
         chapter: 1,
         verse: 1,
       });
+    }),
+  );
+
+  it.effect('classifies a publication from its record and the folder tree', () =>
+    Effect.gen(function* () {
+      const installed: PublicationArchive[] = [];
+      const database = EGWParagraphDatabase.Test({
+        needsSync: () => true,
+        installPublicationArchive: (archive) => {
+          installed.push(archive);
+          return archive.paragraphs.length;
+        },
+      });
+      const folder = (folder_id: number, name: string, children: readonly Folder[] = []) => ({
+        folder_id,
+        name,
+        add_class: '',
+        nbooks: 0,
+        naudiobooks: 0,
+        children,
+      });
+      const source = layerEgwWritingsAssetSource.pipe(
+        Layer.provide(
+          Layer.succeed(
+            EGWApiClient,
+            EGWApiClient.of({
+              ...api,
+              getFoldersByLanguage: () =>
+                Effect.succeed([folder(2, 'EGW Writings', [folder(1, 'Books')])]),
+              getBook: () => Effect.succeed({ ...book, subtype: ' ' }),
+            }),
+          ),
+        ),
+      );
+      const layer = CorpusSupply.layer.pipe(Layer.provide(source), Layer.provide(database));
+
+      yield* ensureWritings(layer);
+
+      expect(installed[0]?.publication.classification).toEqual(
+        PublicationClassification.make({
+          section: Option.some('egw-writings'),
+          type: 'book',
+          subtype: Option.none(),
+          folderId: 1,
+        }),
+      );
     }),
   );
 

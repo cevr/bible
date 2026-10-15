@@ -820,8 +820,20 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           return 'pending' satisfies PhoneState;
         });
 
+        // The index's last read and when it began, and how many times a write
+        // has dropped it: a read keeps its answer only when no write dropped the
+        // cache while it read, so a walk that began before a write never
+        // stands in for the walk after it.
+        const cached = yield* Ref.make({
+          drops: 0,
+          last: Option.none<{ readonly at: number; readonly read: Read }>(),
+        });
+        const drop = Ref.update(cached, (c) => ({ drops: c.drops + 1, last: Option.none() }));
+
         // Phone copies: one at a time, newest first, in the background, x264 on two
-        // threads (`x264.ts`) so the review answers while one encodes.
+        // threads (`x264.ts`) so the review answers while one encodes. A copy made
+        // changes what the index says of its video (`phone`), so it drops the
+        // index's last read: the next read, a page's that saw it ready, says so.
         const queue = yield* Queue.unbounded<Found>();
         const queued = new Set<string>();
         const makePhone = Effect.fn('Review.makePhone')(
@@ -829,6 +841,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             const out = yield* phonePath(video.path);
             const name = path.relative(config.cache, out);
             yield* derive(name, (temporary) => media.phoneCopy(video.path, temporary));
+            yield* drop;
             yield* Effect.log(`review.phone.made ref=${video.ref}`);
           },
           Effect.catchTags({
@@ -1002,16 +1015,6 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           yield* Effect.logDebug(`review.index.read folders=${folders.length}`);
           return { index: { folders }, pictures } satisfies Read;
         });
-
-        // The last read and when it began, and how many times a write has
-        // dropped it: a read keeps its answer only when no write dropped the
-        // cache while it read, so a walk that began before a write never
-        // stands in for the walk after it.
-        const cached = yield* Ref.make({
-          drops: 0,
-          last: Option.none<{ readonly at: number; readonly read: Read }>(),
-        });
-        const drop = Ref.update(cached, (c) => ({ drops: c.drops + 1, last: Option.none() }));
 
         const current = Effect.fn('Review.current')(function* (fresh: boolean) {
           const now = yield* Clock.currentTimeMillis;

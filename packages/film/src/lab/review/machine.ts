@@ -308,6 +308,23 @@ export const clockParts = (state: SyncState) => {
   return { at: timecode(Math.max(0, state.t), state.fps), rest: ` / ${end}${waiting}` };
 };
 
+/**
+ * A video's length as its picture says it at rest (`0:36`, `1:02:05`):
+ * none until it is measured.
+ */
+export const lengthText = (state: SyncState): Option.Option<string> =>
+  Option.map(
+    Option.liftPredicate(state.end, (end) => end < UNKNOWN_END),
+    (end) => {
+      const s = Math.round(end);
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const ss = String(s % 60).padStart(2, '0');
+      if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${ss}`;
+      return `${m}:${ss}`;
+    },
+  );
+
 /** The scrub bar's reach: the clock's video's end once known, else where the clock is. */
 export const reachOf = (state: SyncState): number => {
   if (state.end >= UNKNOWN_END) return Math.max(state.t, state.start);

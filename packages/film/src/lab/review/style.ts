@@ -163,6 +163,17 @@ a.rv-card:hover { background: var(--surface-2); }
   font-size: var(--fs-2); line-height: var(--lh-2); text-align: left;
 }
 .rv-alone-row { padding: var(--s-2) var(--s-3); }
+/* At rest its picture says it plays: the kit's ▶ on a disc at its middle, and its length in a corner. */
+.rv-rest { position: absolute; inset: 0; pointer-events: none; }
+.rv-rest-play { position: absolute; left: 50%; top: 50%; translate: -50% -50%; display: grid; place-items: center;
+  width: calc(2 * var(--hit)); height: calc(2 * var(--hit)); border-radius: 50%;
+  background: var(--backdrop); color: var(--text-1); }
+.rv-rest-play .sh-icon { width: 24px; height: 24px; translate: 2px 0; fill: currentColor; }
+.rv-rest-length { position: absolute; right: var(--s-2); bottom: var(--s-2); padding: 0 var(--s-1);
+  border-radius: var(--r-1); background: var(--backdrop-deep); color: var(--text-1);
+  font-size: var(--fs-2); line-height: var(--lh-2); font-variant-numeric: tabular-nums; }
+/* Play, quiet (\`PlayedAlone\`'s \`quiet\`): the kit's quiet button, at the pointer's size. */
+.rv-big[data-tone="quiet"] { width: var(--hit); min-height: var(--hit); }
 /*
  * In a scene's card (Project's sheet; the card's player picture frames the
  * picture and stands the row under it) the row is a phone's at any width

@@ -10,7 +10,7 @@
 
 import { Array as Arr, Option, Predicate, Result } from 'effect';
 import type { ArrayExpression, Expression, ObjectExpression, StringLiteral } from 'oxc-parser';
-import { type Mark, marksMisfit } from '../core/delivery.ts';
+import { type LineRead, type Mark, marksRefusal } from '../core/delivery.ts';
 import { parse, withDelivery } from '../core/narration.ts';
 import { SourceRefused } from '../core/refusals.ts';
 import { objectOf, parseModule, propertyOf, refuse, spliced, stringText } from './scene-source.ts';
@@ -105,12 +105,15 @@ const sayIn = (source: string, beat: string, target: string) =>
 
 /**
  * `source` with beat `beat`'s line marked `marks` and nothing else changed:
- * refused when the line does not parse, or a mark does not fit its words.
+ * refused when the line does not parse, it is no longer `read` (the words
+ * and marks the new marks were made on; none from a page older than the
+ * lab), or a mark does not fit its words (`marksRefusal`).
  */
 export const editMarks = (
   source: string,
   beat: string,
   marks: ReadonlyArray<Mark>,
+  read: Option.Option<LineRead>,
 ): Result.Result<string, SourceRefused> => {
   const target = marksTarget(beat);
   return Result.flatMap(sayIn(source, beat, target), ({ literal, text }) =>
@@ -119,8 +122,8 @@ export const editMarks = (
         SourceRefused.make({ file: SCRIPT_FILE, target, reason: e.message }),
       ),
       (line) =>
-        Option.match(marksMisfit(marks, line.spoken.split(' ').length), {
-          onSome: (misfit) => refuse<string>(SCRIPT_FILE, target, misfit.reason),
+        Option.match(marksRefusal(marks, { spoken: line.spoken, marks: line.delivery }, read), {
+          onSome: (why) => refuse<string>(SCRIPT_FILE, target, why),
           onNone: () =>
             spliced(SCRIPT_FILE, source, [
               {

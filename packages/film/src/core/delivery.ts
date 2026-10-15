@@ -124,6 +124,43 @@ export const marksMisfit = (marks: ReadonlyArray<Mark>, words: number): Option.O
     Option.map(misfit(mark, marks.slice(0, i), words), (reason) => ({ mark, reason })),
   );
 
+/**
+ * A beat's line as a page read it: its words as the voice says them, and
+ * the marks on them in reading order. A mark write carries the line it was
+ * made on, since it replaces the line's every mark.
+ */
+export const LineRead = Schema.Struct({ spoken: Schema.String, marks: Schema.Array(Mark) });
+export type LineRead = typeof LineRead.Type;
+
+const sameMarks = Schema.toEquivalence(Schema.Array(Mark));
+
+/**
+ * Why `marks`, made on the line a page read as `read`, cannot be written on
+ * the line as it is `now`: the page is older than the lab and sent no read
+ * line; its words changed since (a mark is on a word by its index, so it
+ * would land on another); its marks changed since (made elsewhere, they
+ * would be written over); or a mark does not fit the words
+ * (`marksMisfit`). What a film's mark write and a draft's both check.
+ */
+export const marksRefusal = (
+  marks: ReadonlyArray<Mark>,
+  now: LineRead,
+  read: Option.Option<LineRead>,
+): Option.Option<string> => {
+  if (Option.isNone(read))
+    return Option.some('this page is older than the lab: reload it, then mark again');
+  if (now.spoken !== read.value.spoken)
+    return Option.some(
+      `its words changed since the page read them (it says "${now.spoken}" now): read it again and mark it there`,
+    );
+  if (!sameMarks(now.marks, read.value.marks))
+    return Option.some(
+      'its marks changed since the page read them (marked elsewhere): read it again and mark it there',
+    );
+  const words = now.spoken.split(' ').filter((w) => w !== '').length;
+  return Option.map(marksMisfit(marks, words), (m) => m.reason);
+};
+
 /** Why a stress at word `at` does not fit, after the marks `before` it. */
 const stressMisfit = (at: number, before: ReadonlyArray<Mark>, words: number) => {
   if (at < 0 || at >= words) return Option.some('stresses no word');

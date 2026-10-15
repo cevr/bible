@@ -1,8 +1,11 @@
-// An ask: a decision page an agent composes for the owner, as data. The
+// An ask: a guided review an agent composes for the owner, as data. The
 // agent writes a small state machine (`Ask`): each step a page built only of
-// the lab's primitives (a heading, prose, an image, a choice, a free text),
-// and where the owner's answer takes the ask next, by a guard on a choice;
-// an end step closes it. The lab checks the machine before it renders
+// the lab's primitives (a heading, prose, an image, a choice, a free text)
+// and the material it is about, shown in place by reference (a set's
+// document, a film's or a draft's script, the Board, a video, a take), and
+// where the owner's answer takes the ask next, by a guard on a choice; a
+// guided review walks the flow's order, one titled step per piece of
+// material, its questions under it. An end step closes it. The lab checks the machine before it renders
 // (`askProblems`: bounded, every step reached, no loop, every guard on a
 // choice the step asks), then interprets it as an effect-machine machine
 // (`askMachine`): the state is the step the owner is on and the answers so
@@ -69,12 +72,31 @@ export const AskImage = Schema.Struct({
 });
 export type AskImage = typeof AskImage.Type;
 
-/** One option of a choice: the value its answer carries, its label, and its picture. */
+/**
+ * One option of a choice: the value its answer carries, its label, its
+ * picture, and whether it is the asker's recommendation (`recommended`, at
+ * most one per choice: the page lists it first and marks it), with the
+ * reason for it (`why`, said under the options; only the recommended one).
+ */
 const AskOption = Schema.Struct({
   value: Text(80),
   label: Text(200),
   image: Schema.optionalKey(AskImage),
+  recommended: Schema.optionalKey(Schema.Boolean),
+  why: Schema.optionalKey(
+    Text(200).annotate({
+      description:
+        'Why the asker recommends this option, in one line: only on the recommended one.',
+    }),
+  ),
 });
+type AskOption = typeof AskOption.Type;
+
+/** A choice's options as the page lists them: the recommended one first, the rest as written. */
+export const optionsShown = (options: ReadonlyArray<AskOption>): ReadonlyArray<AskOption> => [
+  ...options.filter((o) => o.recommended === true),
+  ...options.filter((o) => o.recommended !== true),
+];
 
 /** A title over what follows. */
 const Heading = Schema.Struct({ kind: Schema.Literal('heading'), text: Text(200) });
@@ -107,12 +129,190 @@ const FreeText = Schema.Struct({
   ),
 });
 
+// ---------------------------------------------------------------------------
+// Material: what a step shows the owner, in place, by reference. Each names
+// its material as the lab names it (a film, a series' draft, a review ref, a
+// panel's id), never a path on the box; the lab finds it through the read its
+// own view makes (`tools/ask-materials.ts` when the ask is made, the view's
+// parts when it is shown).
+
+/** A film's, a series' or a draft's name: a folder's name, never a path. */
+const LabName = Schema.String.check(
+  Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/, {
+    message: 'a name as the lab lists it (letters, digits, - _ .), never a path',
+  }),
+);
+
+/**
+ * A file the review serves, by its ref: its root's label, then its path
+ * under the root (`p5/rbf-script-2026-10-14/script.md`). Every segment
+ * starts with a letter, a digit or `_`, so no `.`, `..`, empty or absolute
+ * segment, and no other host.
+ */
+const ReviewRef = Schema.String.check(
+  Schema.isPattern(/^[A-Za-z0-9_][^/\\\0?#]*(\/[A-Za-z0-9_][^/\\\0?#]*)+$/, {
+    message:
+      'a review ref: its root, then its path under the root (`p5/<folder>/<file>`), as `sets` and the review list them',
+  }),
+);
+
+/** A beat's id, or a panel's (`<beat>.<mark>`). */
+const BeatId = Text(80);
+
+/** A Markdown file a set holds (`<set ref>/<file>.md`), read in place as the set's page reads it. */
+const Document = Schema.Struct({
+  kind: Schema.Literal('document'),
+  ref: ReviewRef,
+  caption: Schema.optionalKey(Text(300)),
+});
+/** A key the other variant of a block names, which this one never does. */
+const none = Schema.optionalKey(Schema.Never);
+
+/**
+ * A script, in the Script reader: a film's (`film`) or a series draft's
+ * (`series` and `draft`), never both, every beat or the `beats` named, each
+ * with its staging take where one is ready and its delivery marks, written
+ * in place. A script under review is always this block, never a `document`;
+ * one per ask.
+ */
+const FilmScript = Schema.Struct({
+  kind: Schema.Literal('script'),
+  film: LabName,
+  series: none,
+  draft: none,
+  beats: Schema.optionalKey(Schema.Array(BeatId)),
+});
+const DraftScript = Schema.Struct({
+  kind: Schema.Literal('script'),
+  series: LabName,
+  draft: LabName,
+  film: none,
+  beats: Schema.optionalKey(Schema.Array(BeatId)),
+});
+const ScriptBlock = Schema.Union([FilmScript, DraftScript]);
+/** A script block: a film's, or a series draft's. */
+type ScriptBlock = typeof ScriptBlock.Type;
+
+/** A script block's source: the film's name, or the series and its draft. */
+type ScriptSource =
+  | { readonly _tag: 'Film'; readonly film: string }
+  | { readonly _tag: 'Draft'; readonly series: string; readonly draft: string };
+
+const isFilmScript = (block: ScriptBlock): block is typeof FilmScript.Type =>
+  Predicate.isNotUndefined(block.film);
+
+/** Where `block`'s script is read from: a film, or a series draft. */
+export const scriptSource = (block: ScriptBlock): ScriptSource => {
+  if (isFilmScript(block)) return { _tag: 'Film', film: block.film };
+  return { _tag: 'Draft', series: block.series, draft: block.draft };
+};
+/** A film's Board: every panel, or the `panels` named (`<beat>.<mark>`), each as the Board shows it. */
+const BoardBlock = Schema.Struct({
+  kind: Schema.Literal('board'),
+  film: LabName,
+  panels: Schema.optionalKey(Schema.Array(BeatId)),
+});
+/** A video the review serves (a render, a set's video), in the review's player, from `at` seconds. */
+const Video = Schema.Struct({
+  kind: Schema.Literal('video'),
+  ref: ReviewRef,
+  at: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+  caption: Schema.optionalKey(Text(300)),
+});
+/** A recorded take of a film's beat: its kept take, or the attempt named (`attempt`, its file). */
+const Audio = Schema.Struct({
+  kind: Schema.Literal('audio'),
+  film: LabName,
+  beat: BeatId,
+  attempt: Schema.optionalKey(Text(200)),
+  caption: Schema.optionalKey(Text(300)),
+});
+
 /** One of the primitives a step is built of. */
-export const AskBlock = Schema.Union([Heading, Prose, Picture, Choose, FreeText]);
+export const AskBlock = Schema.Union([
+  Heading,
+  Prose,
+  Picture,
+  Choose,
+  FreeText,
+  Document,
+  ScriptBlock,
+  BoardBlock,
+  Video,
+  Audio,
+]);
 export type AskBlock = typeof AskBlock.Type;
 
+/** A block that shows material by reference. */
+export type Material = Extract<
+  AskBlock,
+  { readonly kind: 'document' | 'script' | 'board' | 'video' | 'audio' }
+>;
+
+const MATERIAL: ReadonlySet<AskBlock['kind']> = new Set([
+  'document',
+  'script',
+  'board',
+  'video',
+  'audio',
+]);
+
+/** Whether `block` shows material by reference. */
+const isMaterial = (block: AskBlock): block is Material => MATERIAL.has(block.kind);
+
+/** The video files the review plays. */
+const VIDEO_FILE = /\.(mp4|webm|mov|m4v)$/i;
+
+/** `problem` when `wrong` holds, else nothing. */
+const problemIf = (wrong: boolean, problem: string): ReadonlyArray<string> =>
+  Bool.match(wrong, { onFalse: () => [], onTrue: () => [problem] });
+
+/** What is wrong with a material block's shape, before the lab looks for it. */
+const materialProblems = (where: string, block: Material): ReadonlyArray<string> =>
+  Match.value(block).pipe(
+    Match.discriminatorsExhaustive('kind')({
+      document: (d) =>
+        problemIf(
+          !d.ref.endsWith('.md'),
+          `${where}: document ${d.ref} is not a Markdown file (.md)`,
+        ),
+      script: (s) => namedProblems(where, 'beats', Option.fromUndefinedOr(s.beats)),
+      board: (b) => namedProblems(where, 'panels', Option.fromUndefinedOr(b.panels)),
+      video: (v) =>
+        problemIf(
+          !VIDEO_FILE.test(v.ref),
+          `${where}: video ${v.ref} is not a video (.mp4, .webm, .mov, .m4v)`,
+        ),
+      audio: () => [],
+    }),
+  );
+
+/** What is wrong with a list of beats or panels named: none named, or one named twice. */
+const namedProblems = (
+  where: string,
+  what: string,
+  named: Option.Option<ReadonlyArray<string>>,
+): ReadonlyArray<string> =>
+  Option.match(named, {
+    onNone: () => [],
+    onSome: (list) => [
+      ...problemIf(list.length === 0, `${where}: ${what} names none: leave it out for all`),
+      ...problemIf(new Set(list).size !== list.length, `${where}: ${what} names one twice`),
+    ],
+  });
+
+/** Every material block in `ask`, by the step that shows it. */
+export const materialsIn = (
+  ask: Ask,
+): ReadonlyArray<{ readonly step: string; readonly block: Material }> =>
+  Record.toEntries(ask.steps).flatMap(([step, s]) =>
+    blocksOf(s)
+      .filter(isMaterial)
+      .map((block) => ({ step, block })),
+  );
+
 /** A block the owner answers. */
-type Asking = Extract<AskBlock, { readonly id: string }>;
+export type Asking = Extract<AskBlock, { readonly id: string }>;
 
 /** Whether the owner must answer `block` before the step goes: a choice always, words only when asked to. */
 export const requiredOf = (block: Asking): boolean =>
@@ -129,16 +329,23 @@ const AskNext = Schema.Struct({
   when: Schema.optionalKey(Schema.Struct({ answer: AskName, is: Schema.Array(Text(80)) })),
 });
 
-/** A page of blocks, and its ways on, the first that holds taken (the last holds always). */
+/**
+ * A section of the ask's one page: its blocks, and its ways on, the first
+ * that holds taken (the last holds always). A `title` heads the section
+ * (`2 of 3 · The Board`): a guided review gives each section one, its material
+ * first, then its questions. The page shows every section the owner's
+ * answers so far reach (`sectionsOf`), one Send under them all.
+ */
 const PageStep = Schema.Struct({
+  title: Schema.optionalKey(Text(80)),
   blocks: Schema.Array(AskBlock),
   next: Schema.Array(AskNext),
 });
 /** The end: the ask is answered; `text` thanks or says what happens next. */
 const EndStep = Schema.Struct({ end: Schema.Literal(true), text: Schema.optionalKey(Text(400)) });
 
-export const AskStep = Schema.Union([PageStep, EndStep]);
-export type AskStep = typeof AskStep.Type;
+const AskStep = Schema.Union([PageStep, EndStep]);
+type AskStep = typeof AskStep.Type;
 type PageStep = typeof PageStep.Type;
 
 /** An ask's machine: where it starts, and its steps by name. */
@@ -155,6 +362,10 @@ const pageOf = (step: AskStep): Option.Option<PageStep> =>
 /** The blocks a step shows: a page's, none at an end. */
 export const blocksOf = (step: AskStep): ReadonlyArray<AskBlock> =>
   Option.match(pageOf(step), { onNone: () => [], onSome: (page) => page.blocks });
+
+/** A step's title, heading its section of the page, when it has one. */
+export const titleOf = (step: AskStep): Option.Option<string> =>
+  Option.flatMap(pageOf(step), (page) => Option.fromUndefinedOr(page.title));
 
 /** What an end step says, when it says something. */
 export const endText = (step: AskStep): Option.Option<string> =>
@@ -312,6 +523,11 @@ const pageProblems = (name: string, page: PageStep, ids: ReadonlyMap<string, num
       Match.discriminatorsExhaustive('kind')({
         heading: () => {},
         prose: () => {},
+        document: (m) => problems.push(...materialProblems(`step ${name}`, m)),
+        script: (m) => problems.push(...materialProblems(`step ${name}`, m)),
+        board: (m) => problems.push(...materialProblems(`step ${name}`, m)),
+        video: (m) => problems.push(...materialProblems(`step ${name}`, m)),
+        audio: (m) => problems.push(...materialProblems(`step ${name}`, m)),
         free_text: (t) => {
           if (timesAsked(ids, t.id) > 1) problems.push(`the answer ${t.id} is asked twice`);
           if (requiredOf(t) && chooses)
@@ -331,6 +547,15 @@ const pageProblems = (name: string, page: PageStep, ids: ReadonlyMap<string, num
           const values = c.options.map((o) => o.value);
           if (new Set(values).size !== values.length)
             problems.push(`${c.id} offers one value twice`);
+          if (c.options.filter((o) => o.recommended === true).length > 1)
+            problems.push(`${c.id} recommends more than one option: recommend one`);
+          c.options
+            .filter((o) => Predicate.isNotUndefined(o.why) && o.recommended !== true)
+            .forEach((o) =>
+              problems.push(
+                `${c.id}'s option ${o.value} says why but is not recommended: why goes on the recommended option`,
+              ),
+            );
           c.options.forEach((o) =>
             Option.map(Option.fromUndefinedOr(o.image), (image) =>
               problems.push(...imageProblems(`${c.id}'s option ${o.value}`, image)),
@@ -383,6 +608,12 @@ export const askProblems = (ask: Ask): ReadonlyArray<string> => {
   );
   if (!names.some((name) => Option.isNone(Option.flatMap(Record.get(ask.steps, name), pageOf))))
     problems.push('no step ends the ask: add one with end: true');
+  // Each Script reader owns the page's word commands and highlights: two on one page would cross.
+  const scripts = materialsIn(ask).filter((m) => m.block.kind === 'script');
+  if (scripts.length > 1)
+    problems.push(
+      `the ask shows ${scripts.length} scripts (steps ${scripts.map((s) => s.step).join(', ')}): one script per ask; ask about the next in an ask of its own`,
+    );
   const seen = reached(ask);
   names
     .filter((name) => !seen.has(name))
@@ -390,6 +621,22 @@ export const askProblems = (ask: Ask): ReadonlyArray<string> => {
   Option.map(loopIn(ask), (path) => problems.push(`the steps loop: ${path.join(' → ')}`));
   return [...new Set(problems)];
 };
+
+/**
+ * Each choice in `ask` that recommends none of its options, as the problem
+ * an agent fixes it by: the owner rule (choices first, with a
+ * recommendation) for an ask an agent makes now. A stored ask is never
+ * checked again, so one made before keeps reading.
+ */
+export const unrecommended = (ask: Ask): ReadonlyArray<string> =>
+  Record.toEntries(ask.steps).flatMap(([name, step]) =>
+    askedIn(step)
+      .filter((b): b is typeof Choose.Type => b.kind === 'choose' && b.options.length >= 2)
+      .filter((c) => !c.options.some((o) => o.recommended === true))
+      .map(
+        (c) => `step ${name}: ${c.id} recommends none of its options: mark one recommended: true`,
+      ),
+  );
 
 // ---------------------------------------------------------------------------
 // The machine the lab runs an ask by
@@ -443,6 +690,20 @@ export type AskEvent = typeof AskEvent.Type;
 /** An ask's first state: at its start, nothing answered. */
 export const askStart = (ask: Ask): AskState => AskState.Asking({ step: ask.start, answers: {} });
 
+/** What the owner is told of a question he must answer and has not: by its label, never its id. */
+export const unansweredText = (b: Asking): string => `${b.label} needs ${neededOf(b)}`;
+
+/** What an open question needs, said by its field, where its label is in sight. */
+export const neededText = (b: Asking): string => `Needs ${neededOf(b)}`;
+
+const neededOf = (b: Asking): string =>
+  Match.value(b).pipe(
+    Match.discriminatorsExhaustive('kind')({
+      choose: () => 'a choice',
+      free_text: () => 'your words',
+    }),
+  );
+
 /** One asked block's answer from `value` (none: left empty), or why it has none. */
 const answerOf = (b: Asking, value: Option.Option<string>): Result.Result<AskAnswer, string> =>
   Match.value(b).pipe(
@@ -451,14 +712,14 @@ const answerOf = (b: Asking, value: Option.Option<string>): Result.Result<AskAns
         Option.match(value, {
           onNone: () =>
             Bool.match(requiredOf(t), {
-              onTrue: () => Result.fail(`${t.id} is not answered`),
+              onTrue: () => Result.fail(unansweredText(t)),
               onFalse: () => Result.succeed({ kind: 'skipped' }),
             }),
           onSome: (text) => Result.succeed({ kind: 'free_text', text: text.trim() }),
         }),
       choose: (c): Result.Result<AskAnswer, string> =>
         Option.match(value, {
-          onNone: () => Result.fail(`${c.id} is not answered`),
+          onNone: () => Result.fail(unansweredText(c)),
           onSome: (v) =>
             Option.match(
               Arr.findFirst(c.options, (o) => o.value === v),
@@ -563,6 +824,117 @@ const answered = (
     onNone: () => AskState.Answered({ step: to, answers }),
     onSome: () => AskState.Asking({ step: to, answers }),
   });
+};
+
+/** One section of an ask's page: a step the owner's answers reach, and the owner's draft of its answers. */
+export interface Section {
+  readonly name: string;
+  readonly step: AskStep;
+  readonly values: StepValues;
+}
+
+/** The choices `draft` makes in `step` that are its options, as the answers a guard reads. */
+const chosenIn = (step: AskStep, draft: StepValues): AskAnswers =>
+  Record.fromEntries(
+    askedIn(step).flatMap((b) =>
+      Match.value(b).pipe(
+        Match.discriminatorsExhaustive('kind')({
+          choose: (c): ReadonlyArray<readonly [string, AskAnswer]> =>
+            Option.toArray(
+              Option.flatMap(Record.get(draft, c.id), (v) =>
+                Option.map(
+                  Arr.findFirst(c.options, (o) => o.value === v),
+                  (o) => [c.id, { kind: 'choose', value: o.value, label: o.label }] as const,
+                ),
+              ),
+            ),
+          free_text: () => [],
+        }),
+      ),
+    ),
+  );
+
+/**
+ * The ask's one page, from where its run is: each section the owner's
+ * `draft` (every answer drafted, by its id) reaches, in order, to the end.
+ * A section a guard leads to appears once its choice is made, and goes
+ * again when the choice changes; the run itself moves only on Send. None
+ * when the ask is answered or closed.
+ */
+export const sectionsOf = (
+  ask: Ask,
+  state: AskState,
+  draft: StepValues,
+): ReadonlyArray<Section> => {
+  const sections: Array<Section> = [];
+  let at = Match.value(state).pipe(
+    Match.tag('Asking', (s) => Option.some({ step: s.step, answers: s.answers })),
+    Match.orElse(() => Option.none<{ readonly step: string; readonly answers: AskAnswers }>()),
+  );
+  // Bounded by the steps: a checked ask has no loop, a stored one is never trusted to.
+  while (Option.isSome(at) && sections.length < Record.size(ask.steps)) {
+    const { step: name, answers } = at.value;
+    const page = Option.flatMap(stepOf(ask, name), pageOf);
+    if (Option.isNone(page)) break;
+    const values = Record.filter(draft, (_, id) => askedIn(page.value).some((b) => b.id === id));
+    sections.push({ name, step: page.value, values });
+    const reached = { ...answers, ...chosenIn(page.value, draft) };
+    const to = wayOn(page.value, reached);
+    at = Option.map(
+      Option.filter(Option.some(to), () => !sections.some((s) => s.name === to)),
+      (step) => ({ step, answers: reached }),
+    );
+  }
+  return sections;
+};
+
+/** A question the page asks the owner to answer, by its section, and whether the draft answers it. */
+export interface Question {
+  readonly step: string;
+  readonly block: Asking;
+  readonly answered: boolean;
+}
+
+/**
+ * The questions `sections` must have answered before Send, in page order:
+ * every choice, and words only where they are required. What the page
+ * counts ("2 of 3 answered") and where a Send with one open takes the owner.
+ */
+export const questionsOf = (sections: ReadonlyArray<Section>): ReadonlyArray<Question> =>
+  sections.flatMap((s) =>
+    askedIn(s.step)
+      .filter(requiredOf)
+      .map((block) => ({
+        step: s.name,
+        block,
+        answered: Option.isSome(Record.get(filled(s.values), block.id)),
+      })),
+  );
+
+/**
+ * Why the page cannot go as drafted, or none when it can: each section's
+ * answers checked as the lab will check them (`answerRefusal`), in order,
+ * the run moved by each before the next, the section named by its title.
+ */
+export const pageRefusal = (
+  ask: Ask,
+  state: AskState,
+  sections: ReadonlyArray<{ readonly step: string; readonly values: StepValues }>,
+): Option.Option<string> => {
+  let run = state;
+  for (const section of sections) {
+    const why = answerRefusal(ask, run, section.step, filled(section.values));
+    if (Option.isSome(why))
+      return Option.some(
+        Option.match(Option.flatMap(stepOf(ask, section.step), titleOf), {
+          onNone: () => why.value,
+          onSome: (title) => `${title}: ${why.value}`,
+        }),
+      );
+    if (run._tag !== 'Asking') return Option.none();
+    run = answered(ask, run, filled(section.values));
+  }
+  return Option.none();
 };
 
 /**

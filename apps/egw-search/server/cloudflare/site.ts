@@ -1,11 +1,10 @@
 /**
  * Where the search is served from on Cloudflare.
  *
- * The switch is `SERVED_FROM`. While Railway still serves egw.cvr.im, `prod`
- * runs on its `workers.dev` host, so it can be compared with the live site
- * before anything moves. The cutover deletes the Railway records for
- * `egw.cvr.im`, sets `SERVED_FROM = 'custom-domain'` and deploys: the Worker
- * takes the hostname and its `workers.dev` host is switched off.
+ * The switch is `SERVED_FROM`. `'custom-domain'` binds `egw.cvr.im` to the
+ * Worker and switches its `workers.dev` host off. `'workers.dev'` serves `prod`
+ * from its `workers.dev` host alone, for a deploy that must not take the
+ * hostname.
  */
 
 export type ServedFrom = 'workers.dev' | 'custom-domain';

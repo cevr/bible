@@ -11,7 +11,9 @@
 // (hidden, clip) leaves nothing of is "cut off": no scrolling reaches it. The chrome is measured where it holds most: at the
 // page's top, its middle and its end, each the union of the rows its fixed
 // and stuck (sticky, with an edge set, to the window rather than to a box
-// that scrolls on its own) elements cover in the window, each cut by the
+// that scrolls on its own, and held at that edge there: a section's sticky
+// head further down scrolls with the page until it reaches it) elements
+// cover in the window, each cut by the
 // window; a see-through frame (over the whole window, taking no pointer) is
 // what it holds, down through the frames in it (a sheet's overlay holds its
 // scroll container, which holds its stage, which holds its panel: a sheet
@@ -86,10 +88,17 @@ export const phoneFit = (layer?: string) => `(() => {
       if (clipping(a)) return true;
     return false;
   };
+  // Stuck: at its edge's offset now (a head below it is still in the page's flow).
+  const atEdge = (el, s) => {
+    const r = el.getBoundingClientRect();
+    const top = s.top !== 'auto' && Math.abs(r.top - parseFloat(s.top)) < 1;
+    const bottom = s.bottom !== 'auto' && Math.abs(innerHeight - r.bottom - parseFloat(s.bottom)) < 1;
+    return top || bottom;
+  };
   const stays = (el) => {
     const s = getComputedStyle(el);
     if (s.position === 'fixed') return true;
-    return s.position === 'sticky' && (s.top !== 'auto' || s.bottom !== 'auto') && !inScroller(el);
+    return s.position === 'sticky' && (s.top !== 'auto' || s.bottom !== 'auto') && !inScroller(el) && atEdge(el, s);
   };
   // A frame that holds pieces in the window (a sheet's overlay, its scroll container and its
   // stage) draws nothing, and takes no pointer, or takes it only inside a clip ('clipped': the

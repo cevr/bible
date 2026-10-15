@@ -18,7 +18,21 @@ import {
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, isServer } from '@solidjs/web';
-import { Array as Arr, Clock, Effect, Equal, Exit, Function, Layer, Option, Schema } from 'effect';
+import {
+  Array as Arr,
+  Clock,
+  Duration,
+  Effect,
+  Equal,
+  Exit,
+  Function,
+  Layer,
+  Match,
+  Option,
+  Schedule,
+  Schema,
+  Stream,
+} from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -36,6 +50,7 @@ import {
   useContext,
 } from 'solid-js';
 import { type SeenPoint, seenVariants } from '../../core/choice.ts';
+import type { AskRecord } from '../../core/ask.ts';
 import type { BoardFile } from '../../core/board.ts';
 import { type ProductionFile, Productions } from '../../core/production.ts';
 import type { DrawStills } from './options/stills.tsx';
@@ -71,6 +86,7 @@ import { type Quality, fileInfoText, videoSource } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
 import {
   DraftRead,
+  type ScriptBeats,
   Places,
   ProjectView,
   SeriesList,
@@ -165,8 +181,17 @@ const shownProject = <E,>(
     onSome: (view) => AsyncResult.success<ProjectView, E>(view),
   });
 
+/** An ask as its page read it, for the shell: its crumb and tab say its title, its film is the header's. */
+export interface AskShown {
+  readonly id: string;
+  readonly title: string;
+  readonly film: Option.Option<string>;
+}
+
 interface ReviewStateValue {
   readonly place: Accessor<ReviewPlace>;
+  /** The ask the place is (its first read, `askRead`): none until it is read, and on any other place. */
+  readonly ask: Accessor<Option.Option<AskShown>>;
   /**
    * Every folder with something to review, as the newest ask answered it
    * (`asked.ts`): the first read, a Refresh, or a say's answer for its folder.
@@ -189,8 +214,8 @@ interface ReviewActions {
   readonly go: (place: ReviewPlace) => void;
   /**
    * Walk the roots again now (an ask of the index, `asks`), read the films
-   * and the series again, and read every film's project the page has read again
-   * (`FilmProject.changed`).
+   * and the series again, every draft, board and script the page has read,
+   * and every film's project it has read (`FilmProject.changed`).
    */
   readonly refresh: () => void;
   /**
@@ -242,10 +267,26 @@ interface ReviewMeta {
    * when it was written): a doc written again since is read afresh.
    */
   readonly text: (file: Written) => Loaded<string>;
-  /** A film's storyboard, read in the page alone (the server's render never waits on it). */
+  /** A film's storyboard, read in the page alone (the server's render never waits on it), and again on a Refresh. */
   readonly board: (film: string) => Loaded<BoardFile>;
   /** A series draft as its Markdown read when the page did: read by the server where it renders the draft. */
   readonly draft: (series: string, draft: string) => Loaded<DraftRead>;
+  /**
+   * A film's script as the lab reads its `script.ts` now, read in the page
+   * alone, and again on a Refresh or once a mark write lands: one read
+   * every reader of the film shares.
+   */
+  readonly script: (film: string) => Loaded<ScriptBeats>;
+  /**
+   * Ask `id` as its first read had it, the one read the shell names the ask
+   * by and its page opens on; read again once it failed (a Retry).
+   */
+  readonly askRead: (id: string) => Effect.Effect<AskRecord, LabFailure>;
+  /**
+   * Whether video `ref`'s phone copy is made, asked after every few seconds
+   * while it is read (a page shows the video waiting on it) and until it is.
+   */
+  readonly phoneMade: (ref: string) => Atom.Atom<AsyncResult.AsyncResult<boolean, unknown>>;
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
   /** The page's one client of the lab's API: what a read of its own (a feed) goes through. */
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
@@ -356,6 +397,9 @@ const SERVED_QUALITY: Quality = 'phone';
 /** The time a page was rendered at, by the server, sent with it: what its cards' ages are counted from while it hydrates. */
 const SERVED_AT = 'review.served-at';
 
+/** How often a page waiting on a video's phone copy asks whether it is made. */
+const PHONE_ASKED_EVERY = Duration.seconds(3);
+
 /** The review page: its runtime, place, index and choices, around `children`. */
 export const Root = (
   props: ParentProps<{
@@ -387,6 +431,26 @@ export const Root = (
     .atom(ReviewApi.use((api) => api.productions))
     .pipe(served('review.productions', Productions));
   const movedAtom = Atom.make<ReadonlyArray<ProductionFile>>([]);
+  // An ask's first read, in the page alone: the shell names the ask by it and its page opens on it.
+  const askOf = Atom.family((id: string) =>
+    runtime
+      .atom(ReviewApi.use((api) => api.ask(id)))
+      .pipe(Atom.withServerValue(() => AsyncResult.initial<AskRecord, LabFailure>())),
+  );
+  // No ask on a place that is not one: nothing is read.
+  const noAsk = Atom.make(AsyncResult.initial<AskRecord, LabFailure>());
+  // A video's phone copy, asked after every few seconds while a page waits on it, until it is
+  // made: a lost ask is asked again. Read only while something shows it waiting.
+  const phoneOf = Atom.family((ref: string) =>
+    runtime
+      .atom(
+        Stream.fromEffectSchedule(
+          ReviewApi.use((api) => api.phoneMade(ref)).pipe(Effect.orElseSucceed(() => false)),
+          Schedule.spaced(PHONE_ASKED_EVERY),
+        ).pipe(Stream.takeUntil(Function.identity)),
+      )
+      .pipe(Atom.withServerValue(() => AsyncResult.initial<boolean, never>())),
+  );
   // A first read takes the server's cache; a refresh asks it to walk its roots again.
   const firstIndexAtom = runtime
     .atom(ReviewApi.use((api) => api.index(false)))
@@ -431,6 +495,12 @@ export const Root = (
     runtime
       .atom(ReviewApi.use((api) => api.board(film)))
       .pipe(Atom.withServerValue(() => AsyncResult.initial<BoardFile, LabFailure>())),
+  );
+  // The page's alone: the server's render never waits on a fresh read of a film's script.
+  const scriptOf = Atom.family((film: string) =>
+    runtime
+      .atom(ReviewApi.use((api) => api.script(film)))
+      .pipe(Atom.withServerValue(() => AsyncResult.initial<ScriptBeats, LabFailure>())),
   );
   const seriesAtom = runtime
     .atom(ReviewApi.use((api) => api.series))
@@ -487,6 +557,18 @@ export const Root = (
     );
     const refreshProductions = useAtomRefresh(() => productionsReadAtom);
     const setMoved = useAtomSet(() => movedAtom);
+    const askRead = useAtomValue(() =>
+      Match.value(place()).pipe(
+        Match.tag('Ask', (p) => askOf(p.ask)),
+        Match.orElse(() => noAsk),
+      ),
+    );
+    const ask = (): Option.Option<AskShown> =>
+      Option.map(AsyncResult.value(askRead()), (r) => ({
+        id: r.id,
+        title: r.title,
+        film: Option.fromUndefinedOr(r.film),
+      }));
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
     const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(PHONE)));
@@ -502,6 +584,9 @@ export const Root = (
     const projects = new Map<string, FilmProject>();
     // Every series draft the page has read, read again on a refresh (`series/draft`).
     const draftsRead = new Set<string>();
+    // And every film's board and script it has read.
+    const boardsRead = new Set<string>();
+    const scriptsRead = new Set<string>();
     const projectOf = (film: string): FilmProject => {
       const first = projectFirstOf(film);
       const again = projectAgainOf(film);
@@ -551,7 +636,7 @@ export const Root = (
         return made;
       });
     const value: ReviewContextValue = {
-      state: { place, index, films, series, productions, quality },
+      state: { place, ask, index, films, series, productions, quality },
       actions: {
         go: (next) => {
           address.go(hrefOf(next));
@@ -561,6 +646,8 @@ export const Root = (
           refreshFilms();
           refreshSeries();
           for (const key of draftsRead) registry.refresh(draftOf(key));
+          for (const film of boardsRead) registry.refresh(board(film));
+          for (const film of scriptsRead) registry.refresh(scriptOf(film));
           setMoved([]);
           refreshProductions();
           indexOwner.again();
@@ -583,12 +670,25 @@ export const Root = (
         films: filmsAtom,
         project,
         text,
-        board,
+        board: (film) => {
+          boardsRead.add(film);
+          return board(film);
+        },
         draft: (series, draft) => {
           const key = `${series}/${draft}`;
           draftsRead.add(key);
           return draftOf(key);
         },
+        script: (film) => {
+          scriptsRead.add(film);
+          return scriptOf(film);
+        },
+        askRead: (id) =>
+          Effect.suspend(() => {
+            if (AsyncResult.isFailure(registry.get(askOf(id)))) registry.refresh(askOf(id));
+            return AtomRegistry.getResult(registry, askOf(id), { suspendOnWaiting: true });
+          }),
+        phoneMade: phoneOf,
         runtime,
         client: props.client,
         host: props.host,

@@ -963,9 +963,20 @@ describe('the review service', () => {
         );
       expect(yield* (yield* FileSystem.FileSystem).readFileString(copy)).toBe('x'.repeat(200));
       expect((yield* Spawned).some((c) => c.startsWith('phone '))).toBe(true);
-      const again = yield* review.index(true);
-      const ready = again.folders.flatMap((f) => f.videos).find((v) => v.name === 'big.mp4');
-      expect(ready?.phone).toBe('ready');
+      // The copy made drops the index's last read: a read that takes the cache says it is ready.
+      const phone = yield* review.index(false).pipe(
+        Effect.map((again) =>
+          again.folders
+            .flatMap((f) => f.videos)
+            .filter((v) => v.name === 'big.mp4')
+            .map((v) => v.phone)
+            .join(),
+        ),
+        Effect.filterOrFail((p) => p === 'ready'),
+        Effect.retry({ schedule: Schedule.spaced('20 millis'), times: 50 }),
+        Effect.orElseSucceed(() => 'not ready'),
+      );
+      expect(phone).toBe('ready');
     }).pipe(Effect.provide(fixture(true))),
   );
 

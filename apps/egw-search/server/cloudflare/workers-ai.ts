@@ -11,7 +11,9 @@
  * embedded here under `DOCUMENT_PREFIX` came back identical to their stored
  * `vectors.bvi` rows: cosine 1.00000, no int8 component off by one. So this
  * adapter declares `MODEL_FINGERPRINT`, the fingerprint the index was built
- * under, and the search's fingerprint check holds.
+ * under, and the search's fingerprint check holds — and the weekly sync
+ * embeds a new book's paragraphs here (`workersAiDocuments`), into the same
+ * index, under the same fingerprint.
  */
 
 import { Array as Arr, Effect, Option, Schema } from 'effect';
@@ -38,23 +40,49 @@ const EmbeddingOutput = Schema.Struct({
 
 const unavailable = (reason: string) => QueryEmbedderUnavailable.make({ adapter: ADAPTER, reason });
 
-/** Embeds through `run`, the Workers AI binding's call for `EMBEDDING_MODEL`. */
-export const workersAiEmbedder = <E>(
-  run: (inputs: { readonly text: string[] }) => Effect.Effect<unknown, E>,
-): QueryEmbedderApi => {
-  const embed = (prefix: string) => (text: string) =>
-    run({ text: [`${prefix}${text}`] }).pipe(
+/** The most texts the model takes in one call (its input schema's
+ *  `maxItems`). */
+export const EMBEDDING_BATCH = 100;
+
+/** The binding's call for `EMBEDDING_MODEL`. */
+type Run<E> = (inputs: { readonly text: string[] }) => Effect.Effect<unknown, E>;
+
+/** The index's vectors for `texts`, already prefixed, in one call. */
+const embedBatch =
+  <E>(run: Run<E>) =>
+  (texts: readonly string[]) =>
+    run({ text: [...texts] }).pipe(
       Effect.mapError((cause) => unavailable(String(cause))),
       Effect.flatMap((output) =>
         Schema.decodeUnknownEffect(EmbeddingOutput)(output).pipe(
           Effect.mapError((issue) => unavailable(`unexpected output: ${String(issue)}`)),
         ),
       ),
-      Effect.flatMap((output) =>
-        Option.match(Option.flatMap(Arr.head(output.data), truncateToMrl), {
-          onNone: () => Effect.fail(unavailable('no usable 256-d embedding in the output')),
-          onSome: (values) => Effect.succeed(quantize(values)),
-        }),
+      Effect.flatMap((output) => {
+        if (output.data.length !== texts.length) {
+          return Effect.fail(
+            unavailable(
+              `asked for ${String(texts.length)} embeddings, got ${String(output.data.length)}`,
+            ),
+          );
+        }
+        return Effect.forEach(output.data, (values) =>
+          Option.match(truncateToMrl(values), {
+            onNone: () => Effect.fail(unavailable('no usable 256-d embedding in the output')),
+            onSome: (truncated) => Effect.succeed(quantize(truncated)),
+          }),
+        );
+      }),
+    );
+
+/** Embeds through `run`, the Workers AI binding's call for `EMBEDDING_MODEL`. */
+export const workersAiEmbedder = <E>(run: Run<E>): QueryEmbedderApi => {
+  const embed = (prefix: string) => (text: string) =>
+    embedBatch(run)([`${prefix}${text}`]).pipe(
+      Effect.flatMap((vectors) =>
+        Effect.fromOption(Arr.head(vectors)).pipe(
+          Effect.mapError(() => unavailable('no usable 256-d embedding in the output')),
+        ),
       ),
     );
   return {
@@ -63,3 +91,12 @@ export const workersAiEmbedder = <E>(
     embedDocument: embed(DOCUMENT_PREFIX),
   };
 };
+
+/** Documents' vectors through `run`, in order: each text under the document
+ *  prefix, `EMBEDDING_BATCH` to a call. */
+export const workersAiDocuments =
+  <E>(run: Run<E>) =>
+  (texts: readonly string[]): Effect.Effect<readonly Int8Array[], QueryEmbedderUnavailable> =>
+    Effect.forEach(Arr.chunksOf(texts, EMBEDDING_BATCH), (batch) =>
+      embedBatch(run)(batch.map((text) => `${DOCUMENT_PREFIX}${text}`)),
+    ).pipe(Effect.map(Arr.flatten));
