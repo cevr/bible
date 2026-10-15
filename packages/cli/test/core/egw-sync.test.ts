@@ -164,6 +164,7 @@ describe('EGW corpus sync', () => {
         lang: 'en',
         concurrency: 2,
         refresh: false,
+        recheckLimit: 0,
         onProgress: () => Effect.void,
       });
 
@@ -178,8 +179,8 @@ describe('EGW corpus sync', () => {
         localOnly: 1,
       });
       expect(report.missing).toEqual([
-        { id: 3, code: 'THREE', title: 'Book THREE' },
-        { id: 4, code: 'FOUR', title: 'Book FOUR' },
+        { id: 3, code: 'THREE', title: 'Book THREE', revision: '1900' },
+        { id: 4, code: 'FOUR', title: 'Book FOUR', revision: '1900' },
       ]);
       expect(local.some((item) => item.book_id === 90)).toBe(true);
       expect(Option.fromNullishOr(report.failures[0]).pipe(Option.map((item) => item.id))).toEqual(
@@ -192,11 +193,11 @@ describe('EGW corpus sync', () => {
    *  and a book's failure is an outcome to persist rather than an error. */
   it.effect('plans every remote book on refresh and returns a failed install as an outcome', () =>
     Effect.gen(function* () {
-      const plan = yield* planEgwSync({ lang: 'en', refresh: true });
+      const plan = yield* planEgwSync({ lang: 'en', refresh: true, recheckLimit: 0 });
       expect(plan.pending.map((item) => item.id)).toEqual([1, 2, 3, 4, 5]);
 
       const outcome = yield* installEgwBook(
-        { id: 4, code: 'FOUR', title: 'Book FOUR' },
+        { id: 4, code: 'FOUR', title: 'Book FOUR', revision: '1900' },
         {
           refresh: true,
         },
@@ -207,4 +208,101 @@ describe('EGW corpus sync', () => {
       });
     }).pipe(Effect.provide(layer)),
   );
+
+  /** A book whose recorded revision is not the catalog's is downloaded again:
+   *  a moved content hash first, then a book recorded before revisions were
+   *  hashes, up to the run's limit. */
+  it.effect('rechecks installed books whose revision moved, content hashes first', () => {
+    const withDownload = (bookId: number, code: string, hash: string): EGWSchemas.Book => ({
+      ...book(bookId, code),
+      download: `/content/books/${String(bookId)}/download#hash=${hash}&size=10`,
+    });
+    const installedRow = (bookId: number, code: string): BookRow => ({
+      book_id: bookId,
+      book_code: code,
+      book_title: `Book ${code}`,
+      book_author: 'Test Author',
+      paragraph_count: 3,
+      created_at: '2026-08-15T00:00:00.000Z',
+    });
+    const status = (bookId: number, code: string, revision: string) => ({
+      book_id: bookId,
+      book_code: code,
+      status: 'success' as const,
+      error_message: wireNull,
+      last_attempt: '2026-08-15T00:00:00.000Z',
+      paragraph_count: 3,
+      revision,
+    });
+    const catalog = [
+      withDownload(1, 'SAME', 'aaa'),
+      withDownload(2, 'DATED', 'bbb'),
+      withDownload(3, 'MOVED', 'ccc'),
+      withDownload(4, 'NEW', 'ddd'),
+    ];
+    const library = Layer.mergeAll(
+      Layer.succeed(EGWApiClient, EGWApiClient.of(api(catalog))),
+      EGWParagraphDatabase.Test({
+        books: [installedRow(1, 'SAME'), installedRow(2, 'DATED'), installedRow(3, 'MOVED')],
+        syncStatuses: [
+          status(1, 'SAME', 'zip:aaa'),
+          status(2, 'DATED', '2026-07-31T12:10:59.015777Z'),
+          status(3, 'MOVED', 'zip:old'),
+        ],
+      }),
+    );
+    return Effect.gen(function* () {
+      const plan = yield* planEgwSync({ lang: 'en', refresh: false, recheckLimit: 1 });
+      expect(plan.pending.map((item) => item.code)).toEqual(['NEW']);
+      expect(plan.verify).toEqual([]);
+      expect(plan.changed).toEqual([
+        { id: 3, code: 'MOVED', title: 'Book MOVED', revision: 'zip:ccc' },
+      ]);
+      expect(plan.recheckLeft).toBe(1);
+    }).pipe(Effect.provide(library));
+  });
+
+  it.effect("counts the paragraphs an install changed, by the book's recorded revision", () => {
+    const change = (refCode: string, kind: 'added' | 'removed' | 'edited') => ({
+      book_id: 1,
+      ref_code: refCode,
+      para_id: wireNull,
+      refcode_short: wireNull,
+      kind,
+      before_text: wireNull,
+      after_text: wireNull,
+      puborder: 1,
+      from_revision: 'zip:old',
+      to_revision: 'zip:new',
+      recorded_at: '2026-10-18T09:00:00.000Z',
+    });
+    const corpus = EGWParagraphDatabase.Test({
+      syncStatuses: [
+        {
+          book_id: 1,
+          book_code: 'ONE',
+          status: 'success',
+          error_message: wireNull,
+          last_attempt: '2026-10-18T09:00:00.000Z',
+          paragraph_count: 3,
+          revision: 'zip:new',
+        },
+      ],
+      paragraphChanges: [
+        change('ONE 1.1', 'edited'),
+        change('ONE 1.2', 'edited'),
+        change('ONE 2.1', 'removed'),
+      ],
+    });
+    return Effect.gen(function* () {
+      const outcome = yield* installEgwBook(
+        { id: 1, code: 'ONE', title: 'Book ONE', revision: 'zip:new' },
+        { refresh: false },
+      );
+      expect(outcome).toMatchObject({
+        _tag: 'Installed',
+        changes: { added: 0, removed: 1, edited: 2 },
+      });
+    }).pipe(Effect.provide(Layer.mergeAll(corpus, supply)));
+  });
 });
