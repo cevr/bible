@@ -898,18 +898,20 @@ type AskSectionPost = typeof AskSectionPost.Type;
  * What an ask's page sends: each section it shows (`sectionsOf`), in order,
  * at least one. A page opened before the one-page ask (2026-10-15) sends
  * one step as it did (`{step, values}`), taken as one section, so a tab
- * left open across the change still sends.
+ * left open across the change still sends. The forms are disjoint: the old
+ * one carries no `sections`, so a body with sections that do not decode is
+ * refused, never read as the old form with its sections dropped.
  */
 const AskAnswerPost = Schema.Union([
   Schema.Struct({ sections: Schema.Array(AskSectionPost).check(Schema.isMinLength(1)) }),
-  AskSectionPost,
+  Schema.Struct({ ...AskSectionPost.fields, sections: Schema.optionalKey(Schema.Never) }),
 ]);
 type AskAnswerPost = typeof AskAnswerPost.Type;
 
 /** The sections an answer post carries: its own, or the one step an older page sends. */
 export const sectionsPosted = (post: AskAnswerPost): ReadonlyArray<AskSectionPost> => {
-  if ('sections' in post) return post.sections;
-  return [post];
+  if ('step' in post) return [{ step: post.step, values: post.values }];
+  return post.sections;
 };
 
 /**

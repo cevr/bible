@@ -494,6 +494,16 @@ describe('asks through the MCP', () => {
           // A page with no sections is no answer; a tab opened before the one-page ask sends one
           // step as it did, and it is taken.
           expect((yield* answerPosted(lab, made.ask, { sections: [] })).status).toBe(400);
+          // A body is one form or the other: sections beside a step are refused, whatever they are,
+          // never read as the old form with the sections dropped.
+          for (const sections of [[], 'bad'])
+            expect(
+              (yield* answerPosted(lab, made.ask, {
+                sections,
+                step: 'why',
+                values: { why: 'he listens' },
+              })).status,
+            ).toBe(400);
           const old = yield* answerPosted(lab, made.ask, {
             step: 'why',
             values: { why: 'he listens' },
