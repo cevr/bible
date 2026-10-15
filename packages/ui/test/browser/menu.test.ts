@@ -17,6 +17,22 @@ import { focused, harness, logOf, recordTransitions } from './harness.ts';
 
 const h = harness('menu.tsx');
 
+/** The positioner's CSS variables, by name. */
+const positionerVars = (page: Page) =>
+  page
+    .locator('#positioner')
+    .evaluate((el: HTMLElement) =>
+      Object.fromEntries(
+        [
+          '--anchor-width',
+          '--anchor-height',
+          '--available-width',
+          '--available-height',
+          '--transform-origin',
+        ].map((name) => [name, el.style.getPropertyValue(name)]),
+      ),
+    ) as Promise<Record<string, string | undefined>>;
+
 describe('Menu.Trigger', () => {
   it('carries the button ARIA and toggles the menu on click', async () => {
     const page = await h.open('menu');
@@ -308,6 +324,37 @@ describe('Menu.Positioner', () => {
     const positioner = (await page.locator('#positioner').boundingBox())!;
     expect(Math.round(positioner.y)).toBe(Math.round(trigger.y + trigger.height + 4));
     expect(Math.round(positioner.x)).toBe(Math.round(trigger.x));
+  });
+
+  it('sets the anchor and available sizes on the positioner', async () => {
+    const page = await h.open('menu');
+    await page.click('#trigger');
+    await see(page.locator('#positioner')).not.toHaveCSS('opacity', '0');
+    const vars = await positionerVars(page);
+    const trigger = (await page.locator('#trigger').boundingBox())!;
+    expect(vars['--anchor-width']).toMatch(/^[\d.]+px$/);
+    expect(Math.abs(parseFloat(vars['--anchor-width']!) - trigger.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(parseFloat(vars['--anchor-height']!) - trigger.height)).toBeLessThanOrEqual(1);
+    // Under the trigger (4px away), down to the page's bottom less the 5px collision padding.
+    const room = 600 - 5 - (trigger.y + trigger.height + 4);
+    expect(vars['--available-height']).toMatch(/^[\d.]+px$/);
+    expect(Math.abs(parseFloat(vars['--available-height']!) - room)).toBeLessThanOrEqual(1);
+    expect(vars['--available-width']).toMatch(/^[\d.]+px$/);
+    expect(parseFloat(vars['--available-width']!)).toBeGreaterThan(0);
+  });
+
+  it("sets the transform origin at the trigger's edge, following the side", async () => {
+    const below = await h.open('menu');
+    await below.click('#trigger');
+    await see(below.locator('#positioner')).toHaveAttribute('data-side', 'bottom');
+    await see.poll(async () => (await positionerVars(below))['--transform-origin']).toBe('0% -4px');
+
+    const above = await h.open('menu', { query: { place: 'bottom' } });
+    await above.click('#trigger');
+    await see(above.locator('#positioner')).toHaveAttribute('data-side', 'top');
+    await see
+      .poll(async () => (await positionerVars(above))['--transform-origin'])
+      .toBe('0% calc(100% + 4px)');
   });
 });
 
