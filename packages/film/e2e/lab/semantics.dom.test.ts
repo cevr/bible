@@ -27,6 +27,7 @@ import {
   route,
 } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
+import { runCase } from '../../src/lab/fixtures/run-case.ts';
 import { TALK, TALK_EDIT, TALK_TAKE } from '../../src/lab/fixtures/talk-film.ts';
 import { TALK_FILE, talkWords } from '../../src/tools/talk-source.ts';
 import { rightClick } from '../../src/lab/fixtures/gestures.ts';
@@ -338,11 +339,12 @@ describe('a floating root shows the ring over its own shadow, exactly, on every 
 });
 
 /**
- * A case that runs alone, its scope closed at its end: `:focus-visible` matches only in the
- * window that has the focus, and a sibling case opening its own tab at once takes it.
+ * A case that runs alone, its scope closed at its end, a timeout's included (`runCase`):
+ * `:focus-visible` matches only in the window that has the focus, and a sibling case opening
+ * its own tab at once takes it.
  */
 const alone = <A, E>(name: string, body: Effect.Effect<A, E, Scope.Scope>, timeout = SLOW) =>
-  test.serial(name, () => Effect.runPromise(Effect.scoped(body)), timeout);
+  test.serial(name, () => runCase(Effect.scoped(body)), timeout);
 
 describe('a mouse path that moves the focus from script shows no ring', () => {
   alone(

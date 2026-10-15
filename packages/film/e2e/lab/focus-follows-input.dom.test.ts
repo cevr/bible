@@ -38,6 +38,7 @@ import {
   route,
 } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
+import { runCase } from '../../src/lab/fixtures/run-case.ts';
 import { until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
@@ -327,11 +328,12 @@ const PAGES: ReadonlyArray<Opened> = [
 ];
 
 /**
- * A case that runs alone, its scope closed at its end: `:focus-visible` matches only in the
- * window that has the focus, and a sibling case opening its own tab at once takes it.
+ * A case that runs alone, its scope closed at its end, a timeout's included (`runCase`):
+ * `:focus-visible` matches only in the window that has the focus, and a sibling case opening
+ * its own tab at once takes it.
  */
 const alone = <A, E>(name: string, body: Effect.Effect<A, E, Scope.Scope>, timeout = SLOW) =>
-  test.serial(name, () => Effect.runPromise(Effect.scoped(body)), timeout);
+  test.serial(name, () => runCase(Effect.scoped(body)), timeout);
 
 for (const opened of PAGES)
   alone(
