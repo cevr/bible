@@ -45,6 +45,28 @@ const centerOf = async (page: Page, testId: string) => {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 };
 
+/**
+ * Records, from here on, whether the page prevents each key's default. What
+ * the browser does with a key it is left (move the caret, scroll) is the
+ * OS's: macOS sends Home as "scroll to the top", not "caret to the start". So
+ * a test reads the field's decision, not the caret. Read in the capture
+ * phase, so a key the field stops is still seen.
+ */
+const recordKeyDefaults = (page: Page) =>
+  page.evaluate(() => {
+    const seen: Array<KeyboardEvent> = [];
+    (window as unknown as { __keys: Array<KeyboardEvent> }).__keys = seen;
+    window.addEventListener('keydown', (event) => seen.push(event), true);
+  });
+
+/** Each recorded key and whether its default was prevented. */
+const keyDefaultsOf = (page: Page) =>
+  page.evaluate(() =>
+    (window as unknown as { __keys: Array<KeyboardEvent> }).__keys.map(
+      (event) => `${event.key} ${event.defaultPrevented ? 'prevented' : 'default'}`,
+    ),
+  );
+
 /** Makes pointer lock requests fail, as a browser that refuses them does. */
 const refusePointerLock = (page: Page) =>
   page.evaluate(() => {
@@ -202,20 +224,29 @@ describe('NumberField.Input: keyboard', () => {
   it('jumps to min and max with Home and End', async () => {
     const page = await open('field', { value: '50', min: '0', max: '100' });
     await input(page).focus();
+    await recordKeyDefaults(page);
     await page.keyboard.press('Home');
     await see(input(page)).toHaveValue('0');
     await page.keyboard.press('End');
     await see(input(page)).toHaveValue('100');
+    expect(await keyDefaultsOf(page)).toEqual(['Home prevented', 'End prevented']);
     expect(await logOf(page)).toEqual(['commit 0 keyboard', 'commit 100 keyboard']);
   });
 
   it('leaves Home, End, PageUp and PageDown to the browser without bounds', async () => {
     const page = await open('field', { value: '50' });
     await input(page).focus();
+    await recordKeyDefaults(page);
     await page.keyboard.press('Home');
-    expect(await input(page).evaluate((el: HTMLInputElement) => el.selectionStart)).toBe(0);
+    await page.keyboard.press('End');
     await page.keyboard.press('PageUp');
     await page.keyboard.press('PageDown');
+    expect(await keyDefaultsOf(page)).toEqual([
+      'Home default',
+      'End default',
+      'PageUp default',
+      'PageDown default',
+    ]);
     await see(input(page)).toHaveValue('50');
     expect(await logOf(page)).toEqual([]);
   });

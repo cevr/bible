@@ -11,7 +11,7 @@ import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf, recordTransitions, scriptClick } from './harness.ts';
 
 const h = harness('sheet.tsx');
 
@@ -926,6 +926,13 @@ describe('its layout changing under it (hidden with what holds it, a window resi
 });
 
 describe('Sheet.Root', () => {
+  it("runs the content's enter transition from its starting style when a script opens it", async () => {
+    const page = await h.open('sheet', { query: { enter: 'fade' } });
+    await recordTransitions(page);
+    await scriptClick(page, '#open');
+    await see.poll(() => logOf(page), { timeout: 1000 }).toContain('transition popup opacity');
+  });
+
   it('opens as a dialog named by its title that focuses itself once in', async () => {
     const page = await h.open('sheet');
     await openSheet(page);

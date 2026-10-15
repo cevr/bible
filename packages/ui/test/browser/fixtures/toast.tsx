@@ -1,6 +1,7 @@
 // Fixtures for Toast: receipts raised through a manager created outside the
 // component tree (the Undo action in its action slot), and listed through
-// `useToastManager`. URL params: `timeout` (each receipt's) and `limit`.
+// `useToastManager`. URL params: `timeout` (each receipt's), `limit`, and
+// `enter=fade` for roots that fade in from their `data-starting-style`.
 import type { JSX } from '@solidjs/web';
 import { For } from 'solid-js';
 
@@ -84,6 +85,12 @@ function ReceiptFixture(): JSX.Element {
   const limit = Number(param('limit') ?? '3');
   return (
     <>
+      {param('enter') === 'fade' ? (
+        <style>{`
+          [data-testid="root"] { transition: opacity 200ms; }
+          [data-testid="root"][data-starting-style] { opacity: 0; }
+        `}</style>
+      ) : null}
       <button id="raise" onClick={() => raiseReceipt('Deleted note')}>
         raise
       </button>

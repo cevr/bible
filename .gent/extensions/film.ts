@@ -929,7 +929,7 @@ export const PAINTER_BRIEF = [
   '4. Note what a look taught in the journal (film.journal op=note, with the scene): what is, never what to do. A decision lands in the source; a request for the owner is not a journal entry.',
   '5. Before you finish, film.check the scenes you touched. Fix each finding in the scene, or say why it stands.',
   '',
-  'The rules live in files, never in your memory. read them: .claude/skills/film/SKILL.md (step 4, Scenes, and the Easel section), .claude/skills/film/CRAFT.md and .claude/skills/film/reference/director-vision.md. What a picture teaches comes from the film folder (script.ts, sources.md, quotes.jsonl), never from what you remember of the subject.',
+  'The rules live in files, never in your memory. read them: .claude/skills/film/SKILL.md (step 7, Scenes, and the Easel section), .claude/skills/film/CRAFT.md and .claude/skills/film/reference/director-vision.md. What a picture teaches comes from the film folder (script.ts, sources.md, quotes.jsonl), never from what you remember of the subject.',
 ].join('\n');
 
 /**

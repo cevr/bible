@@ -91,6 +91,12 @@
       "at": 1792005960000,
       "text": "Explore the One Line concept: give it the storyboard-to-render treatment",
       "quote": "also lets try exploring the one line concept - i kinda like it, give it the storyboard -> render etc treatment"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792015665000,
+      "text": "K1 stays, as the Board draws it (9005, K1-minimal); the style trials stop",
+      "quote": "ok i think my favourite is still k1 - i like the storyboard i see in http://localhost:8241/sets/p5%2Fstoryboard-2026-10-14 lets stop all rendering work and go with that"
     }
   ],
   "filed": [

@@ -10,19 +10,22 @@ This doc is internal, so it cites Ellen White and the pioneers by name. On scree
 
 ## The look these rules assume (K1)
 
-The owner picked **K1** for the paper-cut look (2026-10-13, [p5-run.md](../../../../apps/animations/plans/p5-run.md), Owner questions). It is no longer provisional.
+The owner picked **K1** for the paper-cut look (2026-10-13, [p5-run.md](../../../../apps/animations/plans/p5-run.md), Owner questions), and kept it after the style trials (2026-10-14: "ok i think my favourite is still k1"). It is no longer provisional.
 
-| Axis    | K1                                                                                                                          |
-| ------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Outline | thick, with a light inner edge, so the cut still reads as paper                                                             |
-| Ink     | warm ink `#2b2622`; black is allowed for lines, never for shading                                                           |
-| Colour  | a hue per garment, every garment at HSV saturation 0.20–0.35; scarlet is the only saturated garment colour                  |
-| Head    | about ⅓ of an adult's height; a child's head is a larger share                                                              |
-| Hands   | plain circles of the figure's paper, no thumb, no fingers, no arm, ever (owner, 2026-10-12)                                 |
-| Faces   | a few marks, minimal and expressive; a face study is under way (2.1)                                                        |
-| Shading | toward the key light's complement, as saturated or more; never black, grey or alpha-black ([CRAFT.md](../CRAFT.md) rule 12) |
+| Axis    | K1                                                                                                                                |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Outline | thick, with a light inner edge, so the cut still reads as paper                                                                   |
+| Ink     | warm ink `#2b2622`; black is allowed for lines, never for shading                                                                 |
+| Colour  | a hue per garment, every garment at HSV saturation 0.20–0.35; scarlet is the only saturated garment colour                        |
+| Head    | about ⅓ of an adult's height; a child's head is a larger share                                                                    |
+| Hands   | plain circles of the figure's paper, no thumb, no fingers, no arm, ever (owner, 2026-10-12)                                       |
+| Faces   | three marks: two eyes and a mouth, with brows (Kit A, owner, 2026-10-13; [face-study.md](face-study.md))                          |
+| Detail  | minimal: the head one shape, hair and beard flat inside it; no ornaments; plain garments but for a mark that tells who someone is |
+| Shading | toward the key light's complement, as saturated or more; never black, grey or alpha-black ([CRAFT.md](../CRAFT.md) rule 12)       |
 
-Still open in the p5 plan: one shared figure paper or several skin papers ([ensemble.md](../../../../apps/animations/docs/ensemble.md), open choice 2), and the robe's shade (navy applied, slate and violet as options).
+**K1 is drawn minimal** (owner, 2026-10-14: "my main gripe with k1 was hair and ornaments"; "i dont mind clothes not having details either, other than distinguishing ones"; "for k1 at least"). The Board's style, 9005 "K1-minimal, plain", is the reference: one-shape heads with the inner edge, a flat beard, no pockets, buttons or stitching, the crease, the grain and the cast shadows. A garment keeps only the mark that tells who someone is (Rosa's shawl, Max's hood: [ensemble.md](../../../../apps/animations/docs/ensemble.md)). A film built from its board draws its figures as the engine's K1 rigs, and its backgrounds, light and glow as the kept panel has them (owner, 2026-10-14: "matched to these panels").
+
+Still open in the p5 plan: the robe's shade (navy applied, slate and violet as options). Settled: the one shared figure paper, not several skin papers ([ensemble.md](../../../../apps/animations/docs/ensemble.md), open choice 2).
 
 ---
 

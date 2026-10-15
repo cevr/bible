@@ -16,6 +16,54 @@
   ],
   "said": [
     {
+      "_tag": "Decided",
+      "at": 1790469281000,
+      "text": "Lighter: informative and hopeful, in BibleProject's tone and voice",
+      "quote": "let's make a bit less sad - informative style, similar to bibleproject's tone and voice"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1790572507000,
+      "text": "One narrator: the owner records the voiceover; ElevenLabs only stages it",
+      "quote": "lets change the script so its a single person - my goal is to do the voiceover, but we can use elevenlabs as a staging. i dont mind rerecording"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1790626616000,
+      "text": "Faith, forgiveness and power are each introduced with the verses that show them: the paralytic (Mark 2) and the woman taken in adultery (John 8; he said John 10)",
+      "quote": "when we introduce these things, we should have Bible verses that explain this as well, one thing I like is Mark chapter 2 and John chapter 10, I believe, where the woman caught in adultery"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1790626987000,
+      "text": "Later callbacks are good",
+      "quote": "later callbacks are good"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1790699447000,
+      "text": "More time on Mark 2 and John 8, counted one, two, three (faith, forgiveness, power); the beats follow the count; the serpent on the pole comes after faith is introduced in detail; no odd pauses at the end",
+      "quote": "i want to adapt the script so it spends more time on the mark 2 and john 8. we need to explain how faith, foriveness, power is shown in these scenes. like a 1,2,3 kind of thing"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1791554067000,
+      "text": "No Adventist history in the film (no 1888); Adventism has its own series",
+      "quote": "while righteousness by faith film doesnt directly mention it still mentions adventist history like 1888, lets remove that"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1791905822000,
+      "text": "Close in the courtroom the film opens in (bookend the setting)",
+      "quote": "opening and closing contexts should be the same -> eg open in a courtroom, close in said courtroom etc"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1791916584000,
+      "text": "Drop 'Fundamental Principles of the Seventh-day Adventists' and Ms 24, 1888 from the credits roll",
+      "quote": "lets go with your recs"
+    },
+    {
       "_tag": "Noted",
       "at": 1791997200000,
       "text": "Draw the cold open (the court, then Job's question) as concept art in every chosen style",
@@ -68,6 +116,24 @@
       "set": "rbf-rive-2026-10-14",
       "point": "render:cold",
       "variant": "9005"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792015665000,
+      "text": "Go forward from the Board, drawn in K1 (9005, K1-minimal); every rendering trial stops",
+      "quote": "ok i think my favourite is still k1 - i like the storyboard i see in http://localhost:8241/sets/p5%2Fstoryboard-2026-10-14 lets stop all rendering work and go with that"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792015770000,
+      "text": "Built from the Board: the engine draws the figures in K1; each scene's backgrounds, skies, light and glow follow its kept panel",
+      "quote": "matched to these panels"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792022870000,
+      "text": "Rewrite the script from scratch and make the film through the flow (script, concept, storyboard, animatic, Rive render), its decisions asked in the lab",
+      "quote": "it would be concept, it would be concept, then storyboard, then animatronics, I don't know how to pronounce it.  into rendering with Rive.  I think we should do that. … And then I want us to rewrite the righteousness by faith script from the start, like from scratch.  And, uh, that way we can test this flow with this new MCP kind of decision and all that."
     }
   ],
   "filed": [

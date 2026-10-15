@@ -499,6 +499,13 @@ command.
 
 ## How a film is built
 
+A film goes through a studio's stages: the script, concept art, the
+storyboard (the Board), the animatic, the scenes in Rive, and the render.
+Each stage starts from what the owner kept at the one before. What each
+stage makes, where it is made today and how the owner decides it are in
+the film skill's flow ([`SKILL.md`](../../.claude/skills/film/SKILL.md),
+"The flow"); the files a film is made of:
+
 ```
 src/films/<film>/
   script.ts        the screenplay: ordered beats — narration, citations, picture brief

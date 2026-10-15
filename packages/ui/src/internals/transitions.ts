@@ -10,6 +10,13 @@
 // `data-starting-style` for one frame (so a CSS transition has a start);
 // closing keeps it mounted with `data-ending-style` until its CSS
 // animations and transitions finish, then unmounts it.
+//
+// A CSS transition runs from the style the browser last computed, so the
+// browser has to compute the starting style before it is removed. Upstream
+// gets that from React: the removal commits after the frame that rendered the
+// starting style (`useTransitionStatus`), or after a measurement that computed
+// it (a toast's height). Solid applies the removal in the same frame, before
+// the browser computes any style, so `computeStartingStyle` asks for it.
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
 
 import { NOOP } from '../utils/dom.ts';
@@ -22,6 +29,21 @@ const TransitionStatusDataAttributes = {
   startingStyle: 'data-starting-style',
   endingStyle: 'data-ending-style',
 } as const;
+
+/**
+ * Has the browser compute the page's style now, while `element` still has
+ * `data-starting-style`, so removing it next is a style change that runs the
+ * element's CSS transitions from the starting style. Without it the browser
+ * first computes the element's style after the removal (unless something
+ * else happened to read layout or style: a measurement, a focus, a pointer's
+ * hover update) and the element appears without its enter transition.
+ */
+export function computeStartingStyle(element: Element | null | undefined): void {
+  if (element?.isConnected) {
+    // Reading a computed value flushes pending style; the value is unused.
+    void getComputedStyle(element).transitionProperty;
+  }
+}
 
 const STARTING_HOOK = { [TransitionStatusDataAttributes.startingStyle]: '' };
 const ENDING_HOOK = { [TransitionStatusDataAttributes.endingStyle]: '' };
@@ -50,10 +72,13 @@ interface TransitionStatusReturn {
 /**
  * Mounting and the transition status for an `open` flag: mounted while open
  * and until `unmount()` after it closes; `starting` for the first frame
- * after opening, `ending` while closed but mounted. A popup open from the
- * start shows no starting frame.
+ * after opening (`element`'s style computed before it ends), `ending` while
+ * closed but mounted. A popup open from the start shows no starting frame.
  */
-function createTransitionStatus(open: Accessor<boolean>): TransitionStatusReturn {
+function createTransitionStatus(
+  open: Accessor<boolean>,
+  element: Accessor<HTMLElement | null | undefined>,
+): TransitionStatusReturn {
   const initiallyOpen = untrack(open);
   const [kept, setKept] = createSignal(initiallyOpen);
   const [started, setStarted] = createSignal(initiallyOpen);
@@ -71,7 +96,10 @@ function createTransitionStatus(open: Accessor<boolean>): TransitionStatusReturn
     frame.cancel();
     if (isOpen) {
       setKept(true);
-      frame.request(() => setStarted(true));
+      frame.request(() => {
+        computeStartingStyle(untrack(element));
+        setStarted(true);
+      });
     } else {
       setStarted(false);
     }
@@ -190,7 +218,7 @@ interface UnmountAfterCloseParameters {
 /** `createTransitionStatus`, unmounting once the exit animations finish. */
 export function createUnmountAfterClose(parameters: UnmountAfterCloseParameters) {
   const { open, element, onUnmount } = parameters;
-  const status = createTransitionStatus(open);
+  const status = createTransitionStatus(open, element);
 
   useOpenChangeComplete({
     enabled: () => status.mounted() && !open(),
