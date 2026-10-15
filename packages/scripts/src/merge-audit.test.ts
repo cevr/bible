@@ -74,6 +74,49 @@ const run = Effect.gen(function* () {
   return { inner, outer, lines: out.split('\n') };
 }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
+// `--each`: a unit whose second commit is red on its own and whose third
+// fixes it; the tip is green, so only a run per commit sees the second
+// (deps r1 m1: the oxfmt bump commit red on `fmt:check` by itself).
+const runEach = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'merge-audit-each-' });
+  const { sh, git } = fixture(dir);
+  const write = (file: string, text: string) => fs.writeFileString(path.join(dir, file), text);
+  const commitAll = (message: string) =>
+    Effect.andThen(git('add', '-A'), git('commit', '-q', '-m', message));
+  yield* git('init', '-q', '-b', 'main');
+  yield* write('package.json', '{ "scripts": { "guard": "test ! -f red" } }\n');
+  yield* commitAll('base');
+  const base = yield* git('rev-parse', 'HEAD');
+  yield* write('a.txt', 'a\n');
+  yield* commitAll('green');
+  yield* write('red', 'red\n');
+  yield* commitAll('red on its own');
+  yield* fs.remove(path.join(dir, 'red'));
+  yield* commitAll('the fix');
+  const commits = (yield* git('rev-list', '--reverse', `${base}..HEAD`)).split('\n');
+  const out = yield* sh('bun', [path.join(import.meta.dir, 'merge-audit.ts'), '--each', base]);
+  return { commits, lines: out.split('\n').filter((line) => line.startsWith('merge-audit ')) };
+}).pipe(Effect.scoped, Effect.provide(BunServices.layer));
+
+describe('merge audit, each commit', () => {
+  test(
+    'names the commit red on its own though the tip is green',
+    () =>
+      Effect.runPromise(
+        Effect.map(runEach, ({ commits, lines }) =>
+          expect(lines.slice(0, 3)).toEqual(
+            commits.map((commit, i) =>
+              [`merge-audit ${commit.slice(0, 8)} guard`, ['ok', 'red', 'ok'][i]].join(' '),
+            ),
+          ),
+        ),
+      ),
+    30_000,
+  );
+});
+
 describe('merge audit, run', () => {
   test(
     "names the edits a branch's own merge of main lost, under the merge of the branch",

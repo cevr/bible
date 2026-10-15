@@ -21,12 +21,18 @@
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Console, Effect, Option, Runtime, Schema } from 'effect';
-import { Argument, Command } from 'effect/cli';
+import { Console, Effect, FileSystem, Option, Path, Runtime, Schema, Stream } from 'effect';
+import { Argument, Command, Flag } from 'effect/cli';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
-import { conflictedPaths, fileLines, headLine, lostEdits } from './merge-audit/audit.js';
+import {
+  conflictedPaths,
+  fileLines,
+  guardLines,
+  headLine,
+  lostEdits,
+} from './merge-audit/audit.js';
 
 class NotAMerge extends Schema.TaggedError<NotAMerge>()('NotAMerge', {
   commit: Schema.String,
@@ -95,13 +101,82 @@ const audit = Effect.fn('mergeAudit')(function* (ref: string) {
   );
 });
 
+class GuardRed extends Schema.TaggedError<GuardRed>()('GuardRed', {
+  commits: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `bun run guard is red on ${this.commits.map((c) => c.slice(0, 8)).join(', ')}`;
+  }
+  override readonly [Runtime.errorReported] = false;
+}
+
+/** A command's output (stdout and stderr) and whether it exited 0. */
+const outcome = (command: string, args: ReadonlyArray<string>, cwd: string) =>
+  Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner;
+    const child = yield* spawner.spawn(ChildProcess.make(command, args, { cwd }));
+    const [output, code] = yield* Effect.all(
+      [Stream.mkString(Stream.decodeText(child.all)), child.exitCode],
+      { concurrency: 2 },
+    );
+    return { output, ok: code === 0 };
+  }).pipe(Effect.scoped);
+
+/**
+ * `--each <base>`: `bun run guard` (lint, format, dead exports) on each commit
+ * of `base..HEAD`, oldest first, in a scratch worktree, so a commit red on its
+ * own shows before the fast-forward lands it. Dependencies are installed from
+ * the first commit's lock, and again where a commit changes it.
+ */
+const each = Effect.fn('mergeAudit.each')(function* (base: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const root = (yield* git(['rev-parse', '--show-toplevel'])).trim();
+  const commits = lines(yield* git(['rev-list', '--reverse', `${base}..HEAD`]));
+  const dir = path.join(yield* fs.makeTempDirectoryScoped({ prefix: 'merge-audit-each-' }), 'tree');
+  yield* Effect.acquireRelease(git(['worktree', 'add', '--detach', dir, `${base}^{commit}`]), () =>
+    Effect.ignore(git(['worktree', 'remove', '--force', dir])),
+  );
+  let lock = '';
+  const red: Array<string> = [];
+  for (const commit of commits) {
+    yield* outcome('git', ['checkout', '-q', '--detach', commit], dir);
+    const lockNow = yield* textAt(commit, 'bun.lock');
+    if (lockNow !== lock && lockNow !== '')
+      yield* outcome('bun', ['install', '--frozen-lockfile', '--ignore-scripts'], dir);
+    lock = lockNow;
+    const guard = yield* outcome('bun', ['run', 'guard'], dir);
+    if (!guard.ok) red.push(commit);
+    yield* Effect.forEach(guardLines(commit, guard.ok, guard.output), (line) => Console.log(line));
+  }
+  yield* Console.log(
+    `merge-audit ${base}..HEAD in ${root}: ${commits.length - red.length}/${commits.length} guard ok`,
+  );
+  if (red.length > 0) return yield* GuardRed.make({ commits: red });
+});
+
 const command = Command.make(
   'merge-audit',
-  { merge: Argument.String('merge').pipe(Argument.optional) },
-  ({ merge }) =>
-    audit(Option.getOrElse(merge, () => 'HEAD')).pipe(
-      Effect.tapErrorTag('NotAMerge', (error) => Console.error(error.message)),
+  {
+    merge: Argument.String('merge').pipe(Argument.optional),
+    each: Flag.String('each').pipe(
+      Flag.optional,
+      Flag.withDescription(
+        'run `bun run guard` on each commit of <base>..HEAD instead, in a scratch worktree',
+      ),
     ),
+  },
+  ({ merge, each: base }) =>
+    Option.match(base, {
+      onSome: (from) =>
+        Effect.scoped(each(from)).pipe(
+          Effect.tapErrorTag('GuardRed', (error) => Console.error(error.message)),
+        ),
+      onNone: () =>
+        audit(Option.getOrElse(merge, () => 'HEAD')).pipe(
+          Effect.tapErrorTag('NotAMerge', (error) => Console.error(error.message)),
+        ),
+    }),
 ).pipe(
   Command.withDescription(
     "Print, for each file a merge resolved by hand, the lines of either parent's edits it lost",
