@@ -1,6 +1,6 @@
 // Fixtures for the menu: one menu with plain items, a separator and a group
-// with a label. URL param: `animated=true` for a popup that fades out over
-// 300 ms. `sorted` is a menu of keyed rows that reverse while it is open.
+// with a label. URL param: `animated=true` for a popup that fades in and out
+// over 300 ms. `sorted` is a menu of keyed rows that reverse while it is open.
 // `in-context-menu` is the full menu inside a context menu's page trigger.
 import type { JSX } from '@solidjs/web';
 import { createSignal, For, Show } from 'solid-js';
@@ -15,7 +15,7 @@ function FullMenu(): JSX.Element {
       <Show when={param('animated') === 'true'}>
         <style>{`
           #popup { transition: opacity 300ms; }
-          #popup[data-ending-style] { opacity: 0; }
+          #popup[data-starting-style], #popup[data-ending-style] { opacity: 0; }
         `}</style>
       </Show>
       <button type="button" id="before">

@@ -13,7 +13,7 @@ import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf, recordTransitions } from './harness.ts';
 
 const h = harness('menu.tsx');
 
@@ -93,6 +93,14 @@ describe('Menu.Root', () => {
 });
 
 describe('Menu.Popup', () => {
+  it('runs the enter transition from its starting style when opened from the keyboard', async () => {
+    const page = await h.open('menu', { query: { animated: 'true' } });
+    await page.focus('#trigger');
+    await recordTransitions(page);
+    await page.keyboard.press('Enter');
+    await see.poll(() => logOf(page), { timeout: 1000 }).toContain('transition popup opacity');
+  });
+
   it('renders role=menu labelled by the trigger, items role=menuitem', async () => {
     const page = await h.open('menu');
     await page.click('#trigger');
