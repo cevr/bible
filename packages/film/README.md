@@ -3534,8 +3534,8 @@ error bun caught between tests, under the file printed above it (bun's
 ` N error` count beside them: an error the log does not place is a failure
 of its own). It also reads whether the suite finished, by bun's
 `Ran N tests across M files` line. Every failure reruns alone three times
-(a case by its name, a file's failure as the whole file), its output in
-`<log>.alone.log`.
+(a case by its name, a file's failure as the whole file) in one worker, at
+the suite's own `--max-concurrency`, its output in `<log>.alone.log`.
 
 `<log>.verdict.md` then classes each failure:
 

@@ -134,21 +134,42 @@ describe('reading a log', () => {
 });
 
 describe('rerunning a failure alone', () => {
-  test("a case reruns through the suite's own runner and flags, sized to one; a file's failure, the file whole", () => {
+  test("a case reruns through the suite's own runner and flags in one worker, at the suite's own concurrency; a file's failure, the file whole", () => {
     const args = failuresIn(CI).map((failure) => aloneArgs(SUITE, failure));
-    expect(args.map((a) => a.slice(0, 5))).toEqual([
+    expect(args.map((a) => a.slice(0, 6))).toEqual([
       [
         'bun',
         'src/lab/fixtures/run-suite.ts',
         '--no-isolate',
+        '--max-concurrency=3',
         'e2e/lab/fixtures/browsers.dom.test.ts',
         '-t',
       ],
-      ['bun', 'src/lab/fixtures/run-suite.ts', '--no-isolate', 'e2e/player/player.dom.test.ts'],
+      [
+        'bun',
+        'src/lab/fixtures/run-suite.ts',
+        '--no-isolate',
+        '--max-concurrency=3',
+        'e2e/player/player.dom.test.ts',
+      ],
     ]);
+    // A file rerun whole runs its cases no more at once than the suite did: bun's own default is 20.
     expect(
-      aloneArgs('bun r.ts --parallel=4 --max-concurrency 3 --timeout 20000 e2e', back).slice(0, 5),
-    ).toEqual(['bun', 'r.ts', '--timeout', '20000', 'e2e/lab/shell.dom.test.ts']);
+      aloneArgs('bun r.ts --parallel=4 --max-concurrency 3 --timeout 20000 e2e', back).slice(0, 7),
+    ).toEqual([
+      'bun',
+      'r.ts',
+      '--max-concurrency',
+      '3',
+      '--timeout',
+      '20000',
+      'e2e/lab/shell.dom.test.ts',
+    ]);
+    expect(aloneArgs('bun r.ts --parallel 4 e2e', back).slice(0, 3)).toEqual([
+      'bun',
+      'r.ts',
+      'e2e/lab/shell.dom.test.ts',
+    ]);
   });
 
   test("a case's pattern matches its describe and name joined by a space, its punctuation literal", () => {
