@@ -159,6 +159,7 @@ All 14 sweeps reported, plus the retro. The batches, what each owns and the merg
   - Reviewer: Codex (gpt-6.1-sol) over 2 rounds (round 1: 4 Major; round 2: the bible-tools branch has no blocker).
   - Two implementors; the first compacted. Decided by reversible-first: the branch stays on effect-bun-test 0.4.0.
   - Carried: flakes (c) G10, (d) Follow and (f) review doc, not reproduced.
+- **Retro topic, judged lint (owner 2026-10-15):** a class of lint rules a model decides (`effect/ai` Decision over free Jev on OpenCode Zen), which passes when the call fails, judges changed lines only, caches answers and reports only when confident. Spike: 159/176 of the regex's false reports judged right; the free tier rate-limits after about 360 calls. Write-up: `pass6/retro-judged-lint.md`. Taken up at the pass-6 retro.
 - **p6-ebt:** done `ab79b0f06..e7d7a54ef`, merged `ad0c891ae`. effect-bun-test 0.5.0 published (owner-authorized).
   - 0.5.0 interrupts a timed-out test. A serial test's finalizers run before the next test starts (bun waits on `onTestFinished`, bounded by the test's own timeout). A concurrent test is interrupted at bun's own deadline, read as bun reads it and counted from entry; bun does not wait for its finalizers. Out-of-range or sub-millisecond timeouts run as on 0.4.0.
   - Film keeps `--timeout 20000` beside the preload: bun resets `setDefaultTimeout` per file. A unit test ties the scripts to `TEST_TIMEOUT_MS`.
