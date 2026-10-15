@@ -539,8 +539,8 @@ export const SCRIPT_MOVES: Exempt = {
   why: "a film's Script moves to the beat under its playhead as it opens",
 };
 
-/** An ask, read: its step's send. */
-export const ASK_READY = '.ak-step [data-act="send"]';
+/** An ask, read: its page's send, under its sections. */
+export const ASK_READY = '.ak-sections:has(.ak-step) ~ .ak-send [data-act="send"]';
 
 /** A series draft, read: its first beat's take ready (its ▶). */
 export const DRAFT_READY = '.lab-script-beat[data-beat="1"] [data-act="hear-beat"]';

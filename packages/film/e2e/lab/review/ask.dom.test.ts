@@ -1,10 +1,15 @@
-// An agent's ask (`/asks/<id>`) on a phone, over the toy's ask (a choice of
-// three takes; the slow one asks why): the step's choice sends its answer,
-// the next step's free text keeps every keystroke and sends its words, and
-// the end shows every answer; the free text, optional (its flag, not its
-// label, says so), sends with nothing in it and the end says it was
-// skipped; an answer the lab refuses (the laptop answered first) reads the
-// ask again, where it now is, and says why.
+// An agent's ask (`/asks/<id>`) on a phone, one page, over the toy's ask (a
+// choice of three takes; the slow one asks why): the choice of the slow one
+// brings its why section onto the same page, whose free text keeps every
+// keystroke, and one Send sends both sections, the end showing every
+// answer; the free text, optional (its flag, not its label, says so), sends
+// with nothing in it and the end says it was skipped; an answer the lab
+// refuses (the laptop answered first) reads the ask again, where it now is,
+// and says why. A guided review shows each section's material in place (the
+// draft's script with its takes and its marks, the Board's panels, the cut
+// in the review's player, the take, the set's notes), numbered and titled,
+// the recommended option first and marked, the kit's primary Send, one
+// focus ring on an option, and fits a phone.
 
 import { Boolean as Bool, Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -19,8 +24,15 @@ import {
   refused,
   route,
 } from '../../../src/lab/fixtures/harness.ts';
-import { textHas, waitFor } from '../../../src/lab/fixtures/settled.ts';
-import { STUDIO_ASK, askRecordWith, studioRoutes } from '../../../src/lab/fixtures/studio-film.ts';
+import { fitsPhone } from '../../../src/lab/fixtures/phone-fit.ts';
+import { FOCUS_SHOWN, evaluates, textHas, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import {
+  STUDIO_ASK,
+  STUDIO_GUIDED,
+  askRecordWith,
+  guidedRoutes,
+  studioRoutes,
+} from '../../../src/lab/fixtures/studio-film.ts';
 import { ASK_READY, SLOW } from '../studio-states.ts';
 
 const ANSWER = new RegExp(`^/api/asks/${STUDIO_ASK}/answer$`);
@@ -28,6 +40,12 @@ const slow = { kind: 'choose', value: 'slow', label: 'Slow' };
 const words = 'It breathes before the cut, so the turn lands.';
 const pick = { step: 'pick', values: { take: 'slow' }, at: '2026-10-14T00:01:00.000Z' };
 const atWhy = askRecordWith({ _tag: 'Asking', step: 'why', answers: { take: slow } }, [pick]);
+const sections = (why: Record<string, string>) => ({
+  sections: [
+    { step: 'pick', values: { take: 'slow' } },
+    { step: 'why', values: why },
+  ],
+});
 const skipped = askRecordWith(
   { _tag: 'Answered', step: 'done', answers: { take: slow, why: { kind: 'skipped' } } },
   [pick, { step: 'why', values: {}, at: '2026-10-14T00:02:00.000Z' }],
@@ -46,16 +64,14 @@ const done = askRecordWith(
 
 describe("an agent's ask on a phone", () => {
   it.live(
-    'a choice, then the words it asks for, each step sent; the end shows every answer',
+    'a choice brings the words it asks for onto the page; one Send sends both; the end shows every answer',
     () =>
       Effect.gen(function* () {
         const posted: Array<Asked> = [];
         const routes: ReadonlyArray<FakeRoute> = [
           route('POST', ANSWER, (asked) => {
             posted.push(asked);
-            return json(
-              Bool.match(posted.length === 1, { onTrue: () => atWhy, onFalse: () => done }),
-            );
+            return json(done);
           }),
           ...studioRoutes,
         ];
@@ -64,17 +80,14 @@ describe("an agent's ask on a phone", () => {
           viewport: PHONE,
         });
         yield* waitFor(page, ASK_READY);
+        yield* evaluates(page, `document.querySelectorAll('.ak-step').length`, 1);
         yield* page.click('.ak-option[data-value="slow"]');
-        yield* page.click(ASK_READY);
         yield* waitFor(page, '.ak-step[data-step="why"] textarea');
         yield* page.fill('.ak-step[data-step="why"] textarea', words);
         yield* page.click(ASK_READY);
         yield* textHas(page, '.ak-outcome [data-answer="why"]', words);
         yield* textHas(page, '.ak-outcome [data-answer="take"]', 'Slow');
-        expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
-          { step: 'pick', values: { take: 'slow' } },
-          { step: 'why', values: { why: words } },
-        ]);
+        expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([sections({ why: words })]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -88,9 +101,7 @@ describe("an agent's ask on a phone", () => {
         const routes: ReadonlyArray<FakeRoute> = [
           route('POST', ANSWER, (asked) => {
             posted.push(asked);
-            return json(
-              Bool.match(posted.length === 1, { onTrue: () => atWhy, onFalse: () => skipped }),
-            );
+            return json(skipped);
           }),
           ...studioRoutes,
         ];
@@ -100,18 +111,19 @@ describe("an agent's ask on a phone", () => {
         });
         yield* waitFor(page, ASK_READY);
         yield* page.click('.ak-option[data-value="slow"]');
-        yield* page.click(ASK_READY);
         yield* textHas(
           page,
           '.ak-step[data-step="why"] .ak-legend',
           'Why the slow one? (optional)',
         );
+        // Another choice takes the why section off the page again; the slow one brings it back.
+        yield* page.click('.ak-option[data-value="warm"]');
+        yield* evaluates(page, `document.querySelectorAll('.ak-step[data-step="why"]').length`, 0);
+        yield* page.click('.ak-option[data-value="slow"]');
+        yield* waitFor(page, '.ak-step[data-step="why"] textarea');
         yield* page.click(ASK_READY);
         yield* textHas(page, '.ak-outcome [data-answer="why"]', 'Skipped');
-        expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
-          { step: 'pick', values: { take: 'slow' } },
-          { step: 'why', values: {} },
-        ]);
+        expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([sections({})]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -143,6 +155,97 @@ describe("an agent's ask on a phone", () => {
         yield* page.click(ASK_READY);
         yield* waitFor(page, '.ak-step[data-step="why"]');
         yield* textHas(page, '.ak-send', 'step pick is answered already');
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a guided review: each section its material in place, then its question; the recommendation first; it fits a phone',
+    () =>
+      Effect.gen(function* () {
+        const posted: Array<Asked> = [];
+        const routes: ReadonlyArray<FakeRoute> = [
+          route('POST', new RegExp(`^/api/asks/${STUDIO_GUIDED}/answer$`), (asked) => {
+            posted.push(asked);
+            return json(askRecordWith({ _tag: 'Answered', step: 'done', answers: {} }));
+          }),
+          ...guidedRoutes,
+          ...studioRoutes,
+        ];
+        const { page, errors } = yield* openReview(routes, {
+          href: pageHref.ask(STUDIO_GUIDED),
+          viewport: PHONE,
+        });
+        yield* waitFor(page, ASK_READY);
+        yield* evaluates(
+          page,
+          `[...document.querySelectorAll('.ak-section-h')].map((h) => h.textContent)`,
+          ['1 · The script', '2 · The Board', '3 · The cut'],
+        );
+        // The script is the Script reader: the draft's words, its ready take and its pace.
+        yield* waitFor(
+          page,
+          '.ak-step[data-step="script"] .lab-script-beat[data-beat="1"] .lab-script-w',
+        );
+        yield* textHas(page, '.ak-step[data-step="script"] .lab-script-pace', '156 wpm');
+        // A word tapped opens its delivery in place: Stress writes the draft's marks.
+        yield* page.click(
+          '.ak-step[data-step="script"] .lab-script-beat[data-beat="1"] .lab-script-w[data-index="3"]',
+        );
+        yield* waitFor(
+          page,
+          '.ak-step[data-step="script"] .lab-script-delivery [data-act="stress-words"]',
+        );
+        // The Board's panels as the Board shows them: the card's words, the picture's want of a try.
+        yield* textHas(page, '.ak-step[data-step="board"] [data-panel="open.title"]', 'breath');
+        yield* textHas(page, '.ak-step[data-step="board"] [data-panel="open.field"]', 'no try yet');
+        // The cut in the review's player, the take, the set's notes.
+        yield* waitFor(page, '.ak-step[data-step="cut"] [data-material="video"] video');
+        yield* textHas(
+          page,
+          '.ak-step[data-step="cut"] [data-material="video"] figcaption',
+          'From the turn.',
+        );
+        yield* waitFor(page, '.ak-step[data-step="cut"] [data-material="audio"] audio');
+        yield* textHas(page, '.ak-step[data-step="cut"] .ak-heard', 'The first thing God gave');
+        yield* textHas(
+          page,
+          '.ak-step[data-step="cut"] [data-material="document"]',
+          'The turn lands',
+        );
+        // The recommendation first and marked; the kit's primary Send; one ring on a focused option.
+        yield* evaluates(
+          page,
+          `[...document.querySelectorAll('.ak-step[data-step="board"] .ak-option')].map((o) => o.dataset.value)`,
+          ['keep', 'redo'],
+        );
+        yield* textHas(
+          page,
+          '.ak-step[data-step="board"] .ak-option[data-value="keep"] .sh-badge',
+          'recommended',
+        );
+        yield* evaluates(
+          page,
+          `document.querySelector('${ASK_READY}').hasAttribute('data-primary')`,
+          true,
+        );
+        yield* page.focus('.ak-step[data-step="board"] .ak-option[data-value="keep"]');
+        yield* evaluates(page, FOCUS_SHOWN, 'ring');
+        yield* fitsPhone(page);
+        for (const step of ['script', 'board', 'cut'])
+          yield* page.click(`.ak-step[data-step="${step}"] .ak-option[data-value="keep"]`);
+        yield* page.click(ASK_READY);
+        yield* waitFor(page, '.ak-outcome');
+        expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
+          {
+            sections: [
+              { step: 'script', values: { script: 'keep' } },
+              { step: 'board', values: { board: 'keep' } },
+              { step: 'cut', values: { cut: 'keep' } },
+            ],
+          },
+        ]);
+        expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );

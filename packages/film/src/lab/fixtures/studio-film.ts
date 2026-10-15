@@ -14,7 +14,7 @@
 import { Option, Schema } from 'effect';
 import { sceneAddress } from '../../core/address.ts';
 import { Render } from '../../core/catalogue.ts';
-import { type FakeRoute, type Json, json, route } from './harness.ts';
+import { type FakeRoute, type Json, json, route, text as textAnswer } from './harness.ts';
 
 /** The film's name. */
 export const STUDIO_FILM = 'toy';
@@ -226,8 +226,8 @@ const renderSetOf = (versions: ReadonlyArray<string>): Json => ({
   })),
 });
 
-/** The review's index: the film's folder, open's render set of `versions`, two loose videos. */
-const indexOf = (versions: ReadonlyArray<string>): Json => ({
+/** The review's index: the film's folder, open's render set of `versions`, two loose videos, and `docs`. */
+const indexOf = (versions: ReadonlyArray<string>, docs: ReadonlyArray<Json> = []): Json => ({
   folders: [
     {
       ref: STUDIO_FOLDER,
@@ -236,7 +236,7 @@ const indexOf = (versions: ReadonlyArray<string>): Json => ({
       sets: [renderSetOf(versions)],
       videos: [looseOf('take-1.mp4', 'ready'), looseOf('take-2.mp4', 'pending')],
       images: [],
-      docs: [],
+      docs: [...docs],
     },
   ],
 });
@@ -324,6 +324,114 @@ export const askRecordWith = (
 
 /** The ask at its first step. */
 const askRecord = askRecordWith();
+
+/**
+ * A guided review on the toy, one page of sections, each its material in
+ * place, then its question: the draft's script (its takes and marks), the
+ * Board's panels, the cut, the open's take and the set's notes.
+ */
+export const STUDIO_GUIDED = 'a0123456780';
+
+/** The set's notes the guided review shows: a Markdown file the review lists. */
+const STUDIO_NOTES = `${STUDIO_FOLDER}/notes.md`;
+
+const keepIt = (id: string, label: string): Json => ({
+  kind: 'choose',
+  id,
+  label,
+  options: [
+    { value: 'redo', label: 'Again' },
+    { value: 'keep', label: 'Keep it', recommended: true },
+  ],
+});
+
+const guidedMachine: Json = {
+  start: 'script',
+  steps: {
+    script: {
+      title: 'The script',
+      blocks: [
+        { kind: 'script', series: 'toy-talks', draft: '01-first-breath' },
+        keepIt('script', 'Keep the script?'),
+      ],
+      next: [{ to: 'board' }],
+    },
+    board: {
+      title: 'The Board',
+      blocks: [{ kind: 'board', film: STUDIO_FILM }, keepIt('board', 'Keep the Board?')],
+      next: [{ to: 'cut' }],
+    },
+    cut: {
+      title: 'The cut',
+      blocks: [
+        { kind: 'video', ref: `${STUDIO_FOLDER}/take-1.mp4`, at: 2, caption: 'From the turn.' },
+        { kind: 'audio', film: STUDIO_FILM, beat: 'open' },
+        { kind: 'document', ref: STUDIO_NOTES },
+        keepIt('cut', 'Keep the cut?'),
+        { kind: 'free_text', id: 'more', label: 'Anything else?' },
+      ],
+      next: [{ to: 'done' }],
+    },
+    done: { end: true, text: 'Thank you.' },
+  },
+};
+
+/** The guided review as `GET /api/asks/<id>` sends it, at its start. */
+const guidedRecord: Json = {
+  id: STUDIO_GUIDED,
+  title: 'Review the toy',
+  why: 'Each part goes on to the next stage once kept.',
+  by: 'toy-agent',
+  film: STUDIO_FILM,
+  created: '2026-10-15T00:00:00.000Z',
+  ask: guidedMachine,
+  state: { _tag: 'Asking', step: 'script', answers: {} },
+  answered: [],
+};
+
+/** The toy's Board: open's card and a picture panel with no try yet. */
+const guidedBoard: Json = {
+  film: STUDIO_FILM,
+  panels: [
+    {
+      id: 'open.title',
+      beat: 'open',
+      at: 'title',
+      tries: [],
+      text: { _tag: 'Card', payoff: 'breath' },
+    },
+    { id: 'open.field', beat: 'open', at: 'field', tries: [] },
+  ],
+  approvals: [],
+};
+
+/** The routes the guided review reads beside the studio's: its record, the index with the notes, the Board, the take. */
+export const guidedRoutes: ReadonlyArray<FakeRoute> = [
+  route('GET', new RegExp(`^/api/asks/${STUDIO_GUIDED}$`), () => json(guidedRecord)),
+  route('GET', /^\/api\/review\/index/, () =>
+    json(indexOf(['main', 'warm'], [{ ref: STUDIO_NOTES, name: 'notes.md', size: 64, mtime: 0 }])),
+  ),
+  route('GET', /^\/api\/review\/files\/out\/toy\/notes\.md/, () =>
+    textAnswer('# Notes\n\nThe turn lands **after** the breath.\n', 200),
+  ),
+  route('GET', /^\/api\/films\/toy\/board$/, () => json(guidedBoard)),
+  route('GET', /^\/api\/films\/toy\/studio\/takes\/open\/attempts$/, () =>
+    json({
+      beat: 'open',
+      attempts: [
+        {
+          file: 'open.abc.flac',
+          transcript: 'The first thing God gave was breath.',
+          wer: 0,
+          at: 0,
+          duration: 2,
+          kept: true,
+          current: true,
+        },
+      ],
+    }),
+  ),
+];
 
 /** A series of the app's, listed beside the films, and its one draft. */
 export const STUDIO_SERIES = 'toy-talks';
