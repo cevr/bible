@@ -10,7 +10,7 @@
 // view of its own. And the Chrome the tabs run in is silent, as its own
 // command line shows (`tools/chrome.ts` adds the flags to every launch).
 
-import { Effect, Option, Schedule } from 'effect';
+import { Deferred, Effect, Exit, Option, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import {
   asset,
@@ -23,7 +23,10 @@ import {
 import { evaluates } from '../../../src/lab/fixtures/settled.ts';
 import { type Request, type Tab, jsonOf } from '../../../src/lab/fixtures/tab.ts';
 
-/** A page whose script answers `window.served` from its server's `/probe`. */
+/**
+ * A page whose script answers `window.served` from its server's `/probe`; its server holds
+ * `/hold` unanswered, and `held` is done once it has.
+ */
 const page = (word: string) => {
   const script = asset(
     'probe.js',
@@ -32,14 +35,18 @@ const page = (word: string) => {
       'text/javascript',
     ),
   );
+  const held = Deferred.makeUnsafe<void>();
   return {
     script,
+    held,
     serve: (asked: Array<string>) => (request: Request) =>
-      Effect.sync(() => {
+      Effect.suspend(() => {
         asked.push(request.url.pathname);
-        if (request.url.pathname === '/hold') return Option.none();
-        if (request.url.pathname === '/probe') return Option.some(respond(word, 'text/plain'));
-        return Option.some(
+        if (request.url.pathname === '/hold')
+          return Effect.as(Deferred.done(held, Exit.void), Option.none());
+        if (request.url.pathname === '/probe')
+          return Effect.succeedSome(respond(word, 'text/plain'));
+        return Effect.succeedSome(
           respond(`<!doctype html><html><body>${scriptOf(script)}</body></html>`, 'text/html'),
         );
       }),
@@ -59,7 +66,7 @@ const STATE = `JSON.stringify({
   served: globalThis.served ?? 'none',
 })`;
 
-const dirty = (tab: Tab) =>
+const dirty = (tab: Tab, held: Deferred.Deferred<void>) =>
   Effect.gen(function* () {
     yield* tab.goto('/');
     yield* evaluates(tab, "globalThis.served ?? 'none'", 'one');
@@ -76,6 +83,9 @@ const dirty = (tab: Tab) =>
         throw new Error('leaked throw');
       });
       true`);
+    // The request is held once the server has it, not once the page asked: the view is
+    // given back with it in flight.
+    yield* Deferred.await(held);
     yield* tab.mouse.move(20, 20);
     yield* tab.mouse.down;
   });
@@ -95,7 +105,7 @@ describe('the pool of views', () => {
             assets: [first.script],
             serve: first.serve(firstAsked),
           });
-          yield* dirty(tab);
+          yield* dirty(tab, first.held);
           yield* evaluates(tab, 'location.hash', '#dirty');
           return viewsMade();
         }),
