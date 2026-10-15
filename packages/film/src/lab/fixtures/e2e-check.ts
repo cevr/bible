@@ -206,6 +206,7 @@ const check = (flags: Effect.Success<ReturnType<typeof flagsOf>>) =>
     )).scripts['test:e2e'];
     const stamp = DateTime.formatIso(yield* DateTime.now).replace(/[:.]/g, '-');
     const log = path.resolve(
+      // oxlint-disable-next-line effect/noRepoTempDirectory -- the check's log and verdict are its output, kept under tmp/e2e for the reader (CLAUDE.md), never a test's scratch
       Option.getOrElse(flags.log, () => path.join(root, 'tmp', 'e2e', `${stamp}.log`)),
     );
     yield* fs.makeDirectory(path.dirname(log), { recursive: true });
