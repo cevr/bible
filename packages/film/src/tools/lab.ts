@@ -591,8 +591,9 @@ const looksGroup = HttpApiBuilder.group(LabHttpApi, 'looks', (handlers) =>
 
 /**
  * Where the owner's phone opens the lab (`FILM_LAB_PHONE_URL`, this
- * machine's tailnet address: `http://100.92.183.50:8230/`), when it is set:
- * `film lab` listens there itself, behind the same gate.
+ * machine's tailnet address by its IP: `http://100.92.183.50:8230/`), when it
+ * is set: `film lab` listens there itself, behind the same gate, which admits
+ * the bound IP (a name the address resolves from is not).
  */
 export const labPhone = Config.option(Config.URL('FILM_LAB_PHONE_URL'));
 
