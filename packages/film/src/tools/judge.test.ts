@@ -183,14 +183,7 @@ const PROBE = [
 const probing = (paths: Ref.Ref<ReadonlyArray<string>>) =>
   Counsel.sandboxed((folders) =>
     Effect.map(Ref.get(paths), (tried): SandboxedRun => ({
-      plan: {
-        reads: [{ _tag: 'Tree', path: folders.packet }],
-        writes: [
-          { _tag: 'Tree', path: folders.answer },
-          { _tag: 'Tree', path: folders.scratch },
-        ],
-        hidden: [],
-      },
+      plan: { reads: [folders.packet], writes: [folders.scratch] },
       env: { PATH: '/usr/bin:/bin' },
       command: ['/bin/sh', '-c', PROBE, 'probe', ...tried],
     })),
@@ -201,9 +194,7 @@ const sandboxHere = Effect.scoped(
   Effect.gen(function* () {
     if (process.platform !== 'darwin') return false;
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-    const [program = '', ...args] = sandboxArgs({ reads: [], writes: [], hidden: [] }, [
-      '/usr/bin/true',
-    ]);
+    const [program = '', ...args] = sandboxArgs({ reads: [], writes: [] }, ['/usr/bin/true']);
     return yield* collect(spawner, ChildProcess.make(program, args)).pipe(
       Effect.map((done) => done.exitCode === 0),
     );

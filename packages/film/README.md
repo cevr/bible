@@ -2576,22 +2576,27 @@ the stills by label and moment (each by its path beside the packet), and
 the form of the answer; it names no place (a rule's file by its name
 alone). The counsel is a seam (`Counsel`, `tools/counsel.ts`) with two
 adapters. `Counsel.layer` runs headless Claude Code (`claude -p --model
-opus --effort max --safe-mode --tools Read --strict-mcp-config
+opus --effort max --safe-mode --restricted --tools Read --strict-mcp-config
 --no-session-persistence`, `claudeRun`), the packet on its stdin, from the
 packet's folder, under macOS's sandbox (`tools/sandbox.ts`, `sandbox-exec`
 with a Seatbelt profile, `profileOf`): every home, the system's temp
-folders and other volumes are closed to reading, then the packet's folder,
-Claude's install and the user's keychains (its sign-in) are opened to
-read, and the answer's folder, a scratch folder (its `TMPDIR`), `~/.claude`
-and `~/.claude.json` to write; Claude's other sessions, history, plans and
-todos under `~/.claude` stay hidden, and nothing else is written. So no
-earlier run's folder, no look file, no repo, no cache and no other session
-is there to read. The environment is `HOME`, `PATH`, `TMPDIR`, `LANG` and
-`USER` alone. The network is shared (the counsel needs the internet), so
-the lab's loopback port stays reachable, though nothing names it. Its
-stdout is the answer, written to `claude.md` and copied into
-`<run>/counsel/` (a non-zero exit, or a run past `COUNSEL_LIMIT`, 30
-minutes, is `CounselFailed`; off macOS the counsel fails so too); `Counsel.sandboxed` runs any command
+folders and other volumes are closed to reading, then an allow-list is
+opened: the packet's folder, Claude's install and the user's keychains (its
+sign-in) to read, and a scratch folder of the run's own to read and write,
+which holds Claude's temp files (`TMPDIR`, `CLAUDE_CODE_TMPDIR`) and a
+fresh state folder (`CLAUDE_CONFIG_DIR`; `CLAUDE_SECURESTORAGE_CONFIG_DIR`
+empty keeps the keychain item of the default one, so the sign-in is
+found). Nothing else is written, and none of `~/.claude` or
+`~/.claude.json` is readable: no earlier run's folder, no look file, no
+repo, no cache, no other session or transcript. What stays readable is the
+system's own files outside the homes and temp folders. The environment is
+`HOME`, `PATH`, those four and `DISABLE_AUTOUPDATER`, `LANG` and `USER`
+alone. The network is shared (the counsel needs the internet), so the
+lab's loopback port stays reachable, though nothing names it. Its stdout
+is the answer and its stderr the run's words, written as they arrive to
+`claude.md` and `claude.err` in `<run>/counsel/` (a non-zero exit, or a
+run past `COUNSEL_LIMIT`, 30 minutes, is `CounselFailed`, naming that
+folder once the run printed there; off macOS the counsel fails so too); `Counsel.sandboxed` runs any command
 so (the tests probe the sandbox with one); `Counsel.layerTest` answers
 from a function of the packet. Its last `RANKING:` line is read (`rankingOf`: a
 whole expression, every label once, `>` between tiers, `=` a tie, nothing
