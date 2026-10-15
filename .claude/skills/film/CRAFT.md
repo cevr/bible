@@ -126,11 +126,12 @@ The shape as a share of the runtime:
 BibleProject is informative, curious and hopeful (owner, 2026-09-27: "let's make a bit less sad - informative style, similar to bibleproject's tone and voice"). The weight sits on explanation, the problem comes in small doses, and the colours stay bright.
 
 - **Persuade, in the house voice.** Every film speaks to every Christian and the interested non-believer, by reason and Scripture first, then feeling and a speaker the viewer can trust; its language is charming, melodic, earnest and fervent; it follows Christ's method, meeting the viewer's need before it calls (owner, 2026-10-13). The rules in full, with "the Almighty" and fiction, are the series' Voice and audience ([series/README.md](../../../apps/animations/series/README.md)).
+- **Sound like the owner,** who narrates every film: a question the film answers, the text read as it reads, a likeness, a refrain of three, and a choice to land on, in his plain words. These rules set the doses; the words are his, measured on nine of his sermons in [reference/owner-voice.md](reference/owner-voice.md). Where his habit and Ellen White's counsel on the voice differ, the counsel wins: [reference/voice-counsel.md](reference/voice-counsel.md) (owner, 2026-10-14: "id like to change my own manner of speakign to more closely resemble that").
 - **Explain most:** the word, the story and the pattern take 40–60% of the speech. That is where the curiosity lives.
 - **Dose the problem:** 20% of the speech or less, in 2 to 4 doses of 5 to 40 s. Answer each within seconds, and give hope at least 1.5 times the problem's share.
-- **Name sin in "we", as a mechanism:** "So we do what Adam and Eve did. We sew fig leaves." Then take the weight off with a light line: "How is that going?"
-- **Say wonder out loud, once per act,** about the text: "Paul does something kind of amazing here." The wonder is a Bible writer's or the text's, never a pioneer's (rule 2).
-- **Turn to hope on a "But"** that names a surprise, then a gift: "But the story does not end there."
+- **Name sin in "we", as a mechanism:** "So we do what Adam and Eve did. We sew fig leaves." Then take the weight off with a light line at our own habits, never at the text: "How is that going?"
+- **Say wonder out loud, once per act,** about the text, as a plain fact held a moment, never an adjective: "He did not stop at forgiving. He gave the power to walk." The owner never says amazing, awesome or wonderful ([reference/owner-voice.md](reference/owner-voice.md), section 4). The wonder is a Bible writer's or the text's, never a pioneer's (rule 2).
+- **Turn to hope on a "But"** that names a surprise, then a gift: "But God is not finished with us."
 - **Keep the colour script bright, with one valley:**
   - a mean luma of 140–150, with 5% of frames or fewer darker than 60;
   - one act, the answer's valley, may fall to 90–110;

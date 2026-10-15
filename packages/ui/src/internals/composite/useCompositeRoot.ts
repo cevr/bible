@@ -5,8 +5,12 @@
 // End, move it and focus the new item, and the keydown stops there.
 // Disabled items (by the DOM) are skipped, and a key held with a modifier is
 // left alone. The tab stop starts on the item `initialIndex` names, else on
-// the first enabled one. When the items change, the tab stop follows its
-// item, or falls back to an enabled one when its item is gone.
+// the first enabled one, once the items' elements have registered; the list
+// is `settled` from then on. Until then (the server's render, which
+// registers none, and the browser's first) the items say which holds the tab
+// stop without the DOM (see `useCompositeItem`). When the items change, the
+// tab stop follows its item, or falls back to an enabled one when its item
+// is gone. Upstream has no `settled`: its server markup has no tab stop.
 import { createSignal, untrack } from 'solid-js';
 
 import {
@@ -28,6 +32,8 @@ interface UseCompositeRootReturnValue {
   /** The root element's props: its ref and keydown handling. */
   props: HTMLProps;
   highlightedIndex: () => number;
+  /** Whether the tab stop's first index has been set from the registered items. */
+  settled: () => boolean;
   onHighlightedIndexChange: (index: number, shouldScrollIntoView?: boolean) => void;
   /** The items' elements by index, kept by the `CompositeList` the root renders. */
   elementsRef: { current: Array<HTMLElement | null> };
@@ -45,8 +51,10 @@ export function useCompositeRoot(
 ): UseCompositeRootReturnValue {
   const [highlightedIndex, setHighlightedIndex] = createSignal(0, { ownedWrite: true });
   const elementsRef: { current: Array<HTMLElement | null> } = { current: [] };
-  let rootElement: HTMLElement | null = null;
+  // `settled` for the items to read; the flag for the flushes that follow, before Solid's own.
+  const [settled, setSettled] = createSignal(false, { ownedWrite: true });
   let hasSetDefaultIndex = false;
+  let rootElement: HTMLElement | null = null;
   let highlightedElement: HTMLElement | null = null;
 
   const onHighlightedIndexChange = (index: number, shouldScrollIntoView = false) => {
@@ -84,6 +92,7 @@ export function useCompositeRoot(
       }
 
       hasSetDefaultIndex = true;
+      setSettled(true);
       const sortedElements = Array.from(map.keys()) as Array<HTMLElement | null>;
       const initial = params.initialIndex?.(sortedElements) ?? -1;
       if (
@@ -142,6 +151,7 @@ export function useCompositeRoot(
   return {
     props,
     highlightedIndex,
+    settled,
     onHighlightedIndexChange,
     elementsRef,
     onMapChange,

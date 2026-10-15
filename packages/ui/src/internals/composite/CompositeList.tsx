@@ -7,7 +7,13 @@
 // connected items in document order. The list
 // keeps `elementsRef` (for list navigation) and `labelsRef` (for typeahead)
 // in index order. Registrations made in one tick are applied together on
-// the next microtask; a move of items in the DOM re-sorts them.
+// the next microtask; a move of items in the DOM re-sorts them. An item
+// that asks to `guess` starts at its place in render order (the list counts
+// the items made since its last flush, after the registered ones), so a flat
+// list has its indices before its elements exist: in the server's render,
+// which never registers, and in the browser's first; registration corrects
+// a wrong guess. Upstream guesses to spare a flat list its re-render after
+// mount; here the guess is also the index the server renders with.
 import type { JSX } from '@solidjs/web';
 import { type Accessor, createContext, createSignal, onCleanup, useContext } from 'solid-js';
 
@@ -22,12 +28,15 @@ interface CompositeListContextValue {
   register: (node: Element, registration: CompositeListRegistration) => void;
   unregister: (node: Element) => void;
   subscribeMapChange: (fn: (map: CompositeIndexMap) => void) => () => void;
+  /** The next item's index in render order: upstream's `nextIndexRef`. */
+  guessIndex: () => number;
 }
 
 const CompositeListContext = createContext<CompositeListContextValue>({
   register: () => {},
   unregister: () => {},
   subscribeMapChange: () => () => {},
+  guessIndex: () => -1,
 });
 
 interface CompositeListItemEntry {
@@ -97,6 +106,8 @@ export function CompositeList(props: CompositeListProps): JSX.Element {
   let disposed = false;
   let previousItems: readonly CompositeListItemEntry[] | null = null;
   let mutationObserver: MutationObserver | null = null;
+  // Items made after a flush come after the ones it registered.
+  let nextIndex = 0;
 
   const syncRefs = (items: readonly CompositeListItemEntry[]) => {
     const nextMap: CompositeIndexMap = new Map();
@@ -114,6 +125,7 @@ export function CompositeList(props: CompositeListProps): JSX.Element {
             : item.element.textContent;
       }
     }
+    nextIndex = props.elementsRef.current.length;
     return nextMap;
   };
 
@@ -208,6 +220,11 @@ export function CompositeList(props: CompositeListProps): JSX.Element {
       listeners.add(fn);
       return () => listeners.delete(fn);
     },
+    guessIndex() {
+      const index = nextIndex;
+      nextIndex += 1;
+      return index;
+    },
   };
 
   return <CompositeListContext value={value}>{props.children}</CompositeListContext>;
@@ -216,6 +233,12 @@ export function CompositeList(props: CompositeListProps): JSX.Element {
 interface UseCompositeListItemParameters {
   /** The typeahead label; the element's text when not given. */
   label?: string | null | undefined;
+  /**
+   * Whether the index starts at the item's place in render order, before its
+   * element registers (-1 otherwise): right for a flat list rendered in
+   * document order, which the server then renders with its indices.
+   */
+  guess?: boolean | undefined;
 }
 
 interface UseCompositeListItemReturnValue {
@@ -224,12 +247,17 @@ interface UseCompositeListItemReturnValue {
   index: Accessor<number>;
 }
 
-/** Registers an item in the enclosing `CompositeList`; its index follows its document position. */
+/**
+ * Registers an item in the enclosing `CompositeList`; its index follows its
+ * document position, from its render order's guess until then with `guess`.
+ */
 export function useCompositeListItem(
   params: UseCompositeListItemParameters = {},
 ): UseCompositeListItemReturnValue {
-  const { register, unregister, subscribeMapChange } = useContext(CompositeListContext);
-  const [internalIndex, setInternalIndex] = createSignal(-1, { ownedWrite: true });
+  const { register, unregister, subscribeMapChange, guessIndex } = useContext(CompositeListContext);
+  const [internalIndex, setInternalIndex] = createSignal(params.guess ? guessIndex() : -1, {
+    ownedWrite: true,
+  });
   let node: Element | null = null;
 
   const unsubscribe = subscribeMapChange((map) => {

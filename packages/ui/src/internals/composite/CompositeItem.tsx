@@ -2,15 +2,17 @@
 //
 // Renders an item of a composite widget (`useCompositeItem`) with a part's
 // tag, state and props: the roving `tabindex` first, the part's props after.
+// It passes on `useCompositeItem`'s `guess` and `initialTabStop`, which
+// upstream lacks.
 import type { JSX } from '@solidjs/web';
 import { untrack } from 'solid-js';
 
 import type { PropsInput } from '../../merge-props/mergeProps.ts';
 import type { ClassProp, ComponentRenderFn, HTMLProps, StyleProp } from '../types.ts';
 import { type IntrinsicTagName, useRenderElement } from '../useRenderElement.tsx';
-import { useCompositeItem } from './useCompositeItem.ts';
+import { type UseCompositeItemParameters, useCompositeItem } from './useCompositeItem.ts';
 
-interface CompositeItemProps<State extends object> {
+interface CompositeItemProps<State extends object> extends UseCompositeItemParameters {
   class?: ClassProp<State> | undefined;
   style?: StyleProp<State> | undefined;
   render?: ComponentRenderFn<HTMLProps, State> | undefined;
@@ -22,7 +24,9 @@ interface CompositeItemProps<State extends object> {
 }
 
 export function CompositeItem<State extends object>(props: CompositeItemProps<State>): JSX.Element {
-  const item = useCompositeItem();
+  const item = useCompositeItem(
+    untrack(() => ({ guess: props.guess, initialTabStop: props.initialTabStop })),
+  );
   return useRenderElement(untrack(() => props.tag) ?? 'div', props, {
     get state() {
       return props.state;
