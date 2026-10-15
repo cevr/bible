@@ -100,3 +100,16 @@ Pass 5 grew by 18,379 lines. Most of it was owner-asked features run beside the 
 ### Coverage (pass 6)
 
 Unswept, so they go first: `lab/ask` (4), `lab/board` (8), `lab/script` (13), `lab/sketch` (2), `lab/transcript` (8), and `tools/lab-mcp.ts` with the newer `tools/lab-*` files. Every other directory was swept in an earlier pass (passes 1–5 reports).
+
+### Sweeps (pass 6)
+
+Launched 2026-10-15 from the brief `pass6/sweep-brief.md`, 14 read-only agents in one message at a load of 9 on 12 cores. Two of them drive browsers: harness and url state.
+
+- harness, the lead sweep, which also fills the studio ui matrix (HARNESS6, STUDIO6).
+- url state (URL6) and one gate (GATE6).
+- design language, drift since pass 5 and the CSS budget (DL6).
+- ui guidance (UIG6) and guardrails (GUARDS6).
+- Architecture areas: new, the unswept dirs plus lab-mcp.ts (NEW6); review (REV6); edit (EDIT6); server (SRV6).
+- Package review: client (R6-client) and server (R6-server).
+- Prior art: agent-work surfaces (PA6).
+- Pass 5's final retro, written to `pass5/retro-final.md`.
