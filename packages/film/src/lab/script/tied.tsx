@@ -9,7 +9,7 @@
 // lights the words it lands on.
 
 import { For, Show } from '@solidjs/web';
-import { Boolean as Bool, Option } from 'effect';
+import { Array as Arr, Boolean as Bool, Option } from 'effect';
 import type { ParentProps } from 'solid-js';
 import { createEffect, createMemo, createSignal, createUniqueId } from 'solid-js';
 import { plainClick } from '../../browser/pointer.ts';
@@ -236,6 +236,19 @@ export const Picture = (props: {
 export const Ties = (props: ParentProps<{ readonly beat: string }>) => {
   const { meta } = useLab();
   const script = useScript();
+  // The staged film's, laid out once: a plain value.
+  const beat = Arr.findFirst(script.beats, (b) => b.id === props.beat);
+  const marks = Option.getOrElse(
+    Option.map(beat, (b) => b.delivery),
+    () => [],
+  );
+  const words = Option.getOrElse(
+    Option.map(
+      Option.flatMap(beat, (b) => b.line),
+      (l) => l.rows.length,
+    ),
+    () => 0,
+  );
   return (
     <Show when={Option.getOrUndefined(Option.filter(script.tied(), (t) => t.beat === props.beat))}>
       {(tied) => (
@@ -253,7 +266,12 @@ export const Ties = (props: ParentProps<{ readonly beat: string }>) => {
               Clear
             </button>
           </header>
-          <Delivery beat={props.beat} />
+          <Delivery
+            beat={props.beat}
+            marks={marks}
+            words={words}
+            selected={Option.filter(script.selected(), (w) => w.scene === props.beat)}
+          />
           <Show
             when={tied().ties.length > 0}
             fallback={<p class="lab-script-ties-none">No cue is tied here.</p>}

@@ -1,20 +1,24 @@
-// The Script reader's staging voice: each spoken beat's staging take as the
-// lab has it now (`GET …/script/voice`: ready, still voicing, not voiced, or
-// refused with why), asked again every few seconds while any is voicing, and
-// the day's staging spend; Hear, which plays a beat's take, the words
-// selected in it, or the script from a beat on, through the reader's own
-// audio (never the film's: the film's track and timings stay as they are),
-// with the word heard lit; and the one write the reader makes, a beat's
-// delivery marks (`POST …/script/marks`), one at a time. The marks written,
-// the lab rebuilds and the page reloads with them, and the fill voices the
-// beat again first.
+// The staging voice over a script, wherever its beats come from (`VoiceOver`):
+// each spoken beat's staging take as the lab has it now (ready, still voicing,
+// not voiced, or refused with why), asked again every few seconds while any
+// is voicing (`polled`), and the day's staging spend; Hear, which plays a
+// beat's take, the words selected in it, or the script from a beat on,
+// through the reader's own audio (never a film's: its track and timings
+// stay as they are), with the word heard lit; and the one write a reader
+// makes, a beat's delivery marks, one at a time, the takes read again once
+// it lands. A film's Script reader (`VoiceProvider`) reads its film's
+// (`GET …/script/voice`, `POST …/script/marks`: the lab rebuilds and the
+// page reloads with the marks); a series draft's reader its draft's
+// (`review/draft.tsx`). Either way the fill voices the beat again first.
 
-import { useAtomSet, useAtomValue } from '@bible/atom-solid';
-import { Array as Arr, Data, Effect, Fiber, Option, Schedule, Stream } from 'effect';
+import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { Array as Arr, Data, Effect, Exit, Fiber, Option, Schedule, Stream } from 'effect';
+import type * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createMemo, createSignal, onCleanup, untrack, useContext } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
+import type { Host } from '../../browser/host.ts';
 import {
   type MarksPost,
   type ScriptVoice,
@@ -23,7 +27,7 @@ import {
 } from '../../core/api.ts';
 import type { Mark } from '../../core/delivery.ts';
 import type { TakeWord } from '../../core/schema.ts';
-import { LabApi, reasonOf } from '../api.ts';
+import { LabApi, type LabFailure, reasonOf } from '../api.ts';
 import { useLab } from '../shell.tsx';
 import type { WordAt } from '../transcript/lit.ts';
 import { useScript } from './context.tsx';
@@ -80,11 +84,13 @@ interface VoiceContextValue {
   readonly marking: Accessor<Marking>;
   /** Write beat `beat`'s marks as `marks` (nothing while a write is out). */
   readonly mark: (beat: string, marks: ReadonlyArray<Mark>) => void;
+  /** What a beat's head says once its marks are written. */
+  readonly written: string;
 }
 
 const VoiceContext = createContext<VoiceContextValue>();
 
-/** The staging voice: only inside `<Script.Voice>`. */
+/** The staging voice: only inside `<VoiceOver>` (a film's `<Script.Voice>`, a draft's reader). */
 export const useVoice = (): VoiceContextValue => useContext(VoiceContext);
 
 /** Whether any beat of `voice` is still voicing. */
@@ -96,21 +102,49 @@ const voicingOrResting = (voice: ScriptVoice): keyof typeof ASKED_AGAIN => {
   return 'resting';
 };
 
-export const VoiceProvider = (props: ParentProps) => {
-  const { meta } = useLab();
-  const beats = useScript().beats.map((b) => b.id);
-  // Read once, then again every few seconds while a beat voices, and every minute after.
-  const reading = meta.runtime.atom(
-    Stream.fromEffectSchedule(
-      LabApi.use((api) => api.scriptVoice),
-      Schedule.forever.pipe(
-        Schedule.modifyDelay(({ input }: Schedule.InputMetadata<ScriptVoice>) =>
-          Effect.succeed(ASKED_AGAIN[voicingOrResting(input)]),
-        ),
+/**
+ * `read` asked once, then again every few seconds while a beat voices, and
+ * every minute after: what a reader's takes are read through.
+ */
+export const polled = <R,>(read: Effect.Effect<ScriptVoice, LabFailure, R>) =>
+  Stream.fromEffectSchedule(
+    read,
+    Schedule.forever.pipe(
+      Schedule.modifyDelay(({ input }: Schedule.InputMetadata<ScriptVoice>) =>
+        Effect.succeed(ASKED_AGAIN[voicingOrResting(input)]),
       ),
     ),
   );
-  const result = useAtomValue(() => reading);
+
+/** A player a reader's Hear pauses and gives way to: a film's. */
+interface Gives {
+  readonly pause: () => void;
+  readonly playing: () => boolean;
+}
+
+/** What a reader's staging voice is over: where its takes and its write go, and its beats. */
+export interface VoiceSource {
+  /** The takes, as `polled` reads them on the page's runtime (a stream's atom: it may also fail empty). */
+  readonly reading: Atom.Atom<AsyncResult.AsyncResult<ScriptVoice, unknown>>;
+  /** The marks written: its answer is the source's own (a film reloads, a draft shows it). */
+  readonly write: Atom.AtomResultFn<MarksPost, unknown, LabFailure>;
+  /** A take's audio, by the name its `Ready` gives it. */
+  readonly takeUrl: (file: string) => string;
+  /** The script's beats, in reading order: what Hear goes on through. */
+  readonly beats: Accessor<ReadonlyArray<string>>;
+  /** The page's host: the frames Hear lights the word heard on. */
+  readonly host: Host;
+  /** The player Hear pauses, and gives way to once it plays: none where the page has none. */
+  readonly player: Option.Option<Gives>;
+  /** What a beat's head says once its marks are written. */
+  readonly written: string;
+}
+
+/** The staging voice over `source`, for the reader inside it (`useVoice`). */
+export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) => {
+  const source = props.source;
+  const result = useAtomValue(() => source.reading);
+  const readAgain = useAtomRefresh(() => source.reading);
   const voice = createMemo(() => AsyncResult.value(result()));
   const takes = createMemo(
     (): ReadonlyMap<string, StagingTake> =>
@@ -159,17 +193,17 @@ export const VoiceProvider = (props: ParentProps) => {
     stopLoop();
     const el = audioEl();
     const n = ++plays;
-    el.src = stagingTakeUrl(meta.name, take.file);
+    el.src = source.takeUrl(take.file);
     el.currentTime = start;
     setHeard(Heard.Hearing({ beat, words: take.words, end, next, index: Option.none() }));
-    meta.player.pause();
+    Option.map(source.player, (p) => p.pause());
     el.play().catch(() => {
       if (n === plays) stop();
     });
     // The frames run until the stretch ends (on to the next beat) or Play takes over (quiet); then what follows.
     let then = stop;
     loop = Option.some(
-      Effect.runForkWith(meta.host)(
+      Effect.runForkWith(source.host)(
         Frames.use((f) =>
           f.loop(() =>
             Option.match(step(el), {
@@ -202,7 +236,8 @@ export const VoiceProvider = (props: ParentProps) => {
    */
   const step = (el: HTMLAudioElement): Option.Option<() => void> => {
     const now = untrack(heard);
-    if (now._tag !== 'Hearing' || meta.player.playing()) return Option.some(stop);
+    if (now._tag !== 'Hearing' || Option.exists(source.player, (p) => p.playing()))
+      return Option.some(stop);
     const t = el.currentTime;
     if (el.ended || t >= now.end) return Option.some(() => playNext(now.next));
     const index = heardAt(now.words, t);
@@ -218,7 +253,7 @@ export const VoiceProvider = (props: ParentProps) => {
         Option.flatMap(words, (w) => spanOf(t.words, w.from, w.to)),
         () => ({ start: 0, end: t.duration }),
       );
-      const after = Arr.dropWhile(beats, (b) => b !== id).slice(1);
+      const after = Arr.dropWhile(source.beats(), (b) => b !== id).slice(1);
       play(
         id,
         t,
@@ -228,21 +263,20 @@ export const VoiceProvider = (props: ParentProps) => {
       );
     });
 
-  // One write out at a time; its answer is the rebuild, which reloads the page with the marks.
+  // One write out at a time; once it lands the takes are read again, the beat's new key queued first.
   const [marking, setMarking] = createSignal<Marking>(Marking.Idle(), { ownedWrite: true });
-  const write = meta.runtime.fn((post: MarksPost) =>
-    LabApi.use((api) => api.writeMarks(post)).pipe(
-      Effect.tap(() => Effect.sync(() => setMarking(Marking.Written({ beat: post.beat })))),
-      Effect.tapError((e) =>
-        Effect.sync(() => setMarking(Marking.Failed({ beat: post.beat, reason: e.message }))),
-      ),
-    ),
-  );
-  const send = useAtomSet(() => write);
+  const send = useAtomSet(() => source.write, { mode: 'promiseExit' });
   const mark = (beat: string, marks: ReadonlyArray<Mark>) => {
     if (untrack(marking)._tag === 'Writing') return;
     setMarking(Marking.Writing({ beat }));
-    send({ beat, marks });
+    void send({ beat, marks }).then((exit) => {
+      if (Exit.isSuccess(exit)) {
+        setMarking(Marking.Written({ beat }));
+        readAgain();
+        return;
+      }
+      setMarking(Marking.Failed({ beat, reason: reasonOf(exit.cause) }));
+    });
   };
 
   const value: VoiceContextValue = {
@@ -268,6 +302,24 @@ export const VoiceProvider = (props: ParentProps) => {
     stop,
     marking,
     mark,
+    written: source.written,
   };
   return <VoiceContext value={value}>{props.children}</VoiceContext>;
+};
+
+/** A film's Script reader's staging voice: its film's takes and marks, the lab's player given way to. */
+export const VoiceProvider = (props: ParentProps) => {
+  const { meta } = useLab();
+  const beats = useScript().beats.map((b) => b.id);
+  const source: VoiceSource = {
+    reading: meta.runtime.atom(polled(LabApi.use((api) => api.scriptVoice))),
+    // Its answer is the rebuild, which reloads the page with the marks.
+    write: meta.runtime.fn((post: MarksPost) => LabApi.use((api) => api.writeMarks(post))),
+    takeUrl: (file) => stagingTakeUrl(meta.name, file),
+    beats: () => beats,
+    host: meta.host,
+    player: Option.some(meta.player),
+    written: 'marked; the page reloads with it',
+  };
+  return <VoiceOver source={source}>{props.children}</VoiceOver>;
 };

@@ -272,7 +272,10 @@ const Beat = (props: { readonly beat: BeatRow }) => {
       {/* While a note is being made, its composer is the one box open: its scope chip says the words. */}
       <Show when={Option.isNone(notes.composing())}>
         <Ties beat={beat.id}>
-          <HearWords beat={beat.id} />
+          <HearWords
+            beat={beat.id}
+            words={Option.filter(script.selected(), (w) => w.scene === beat.id)}
+          />
           <NoteButton />
         </Ties>
       </Show>

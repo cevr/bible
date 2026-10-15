@@ -17,7 +17,6 @@ import { Array as Arr, Match, Option } from 'effect';
 import type { StagingTake } from '../../core/api.ts';
 import { HOLD_DEFAULT, type Mark } from '../../core/delivery.ts';
 import { pressed } from '../pressed.ts';
-import { useScript } from './context.tsx';
 import {
   type Gap,
   HOLD_CHOICES,
@@ -66,23 +65,26 @@ const holdOf = (gap: Gap): Option.Option<number> =>
     Match.orElse(() => Option.none<number>()),
   );
 
-/** The pause in the gap before a word, as a glyph in the line: none for an empty gap. */
-export const GapGlyph = (props: { readonly gap: Gap }) =>
-  Match.value(props.gap).pipe(
-    Match.tagsExhaustive({
-      None: () => <></>,
-      Breath: () => (
-        <span class="lab-script-gap" data-gap="breath" title="A breath">
-          /{' '}
-        </span>
-      ),
-      Hold: (h) => (
-        <span class="lab-script-gap" data-gap="hold" title={`A hold of ${secondsOf(h.seconds)}`}>
-          {`// ${secondsOf(h.seconds)}`}{' '}
-        </span>
-      ),
-    }),
-  );
+/** The pause in the gap before a word, as a glyph in the line: none for an empty gap (read in the JSX: it follows the marks). */
+export const GapGlyph = (props: { readonly gap: Gap }) => (
+  <>
+    {Match.value(props.gap).pipe(
+      Match.tagsExhaustive({
+        None: () => <></>,
+        Breath: () => (
+          <span class="lab-script-gap" data-gap="breath" title="A breath">
+            /{' '}
+          </span>
+        ),
+        Hold: (h) => (
+          <span class="lab-script-gap" data-gap="hold" title={`A hold of ${secondsOf(h.seconds)}`}>
+            {`// ${secondsOf(h.seconds)}`}{' '}
+          </span>
+        ),
+      }),
+    )}
+  </>
+);
 
 /** Whether word `at` of `marks` is stressed, as the word's attribute says it. */
 export const stressAttr = (marks: ReadonlyArray<Mark>, at: number) =>
@@ -95,59 +97,67 @@ export const TakeState = (props: { readonly beat: string }) => {
   const hearing = () => Option.contains(voice.hearing(), props.beat);
   return (
     <Show when={Option.getOrUndefined(take())}>
-      {(t) =>
-        Match.value<StagingTake>(t()).pipe(
-          Match.tagsExhaustive({
-            Ready: (ready) => (
-              <>
-                <button
-                  type="button"
-                  class="lab-script-hear"
-                  data-act="hear-beat"
-                  aria-pressed={pressed(hearing())}
-                  title={HEAR_TITLE[pressed(hearing())]}
-                  onClick={() => {
-                    if (hearing()) voice.stop();
-                    else voice.hear(props.beat, Option.none(), true);
-                  }}
-                >
-                  {HEAR_GLYPH[pressed(hearing())]}
-                </button>
-                {Option.toArray(paceOf(ready.words)).map((pace) => (
-                  <span
-                    class="lab-script-pace"
-                    data-band={pace.band}
-                    title={`The take's pace; the band is ${BAND}`}
+      {(t) => (
+        <>
+          {Match.value<StagingTake>(t()).pipe(
+            Match.tagsExhaustive({
+              Ready: (ready) => (
+                <>
+                  <button
+                    type="button"
+                    class="lab-script-hear"
+                    data-act="hear-beat"
+                    aria-pressed={pressed(hearing())}
+                    title={HEAR_TITLE[pressed(hearing())]}
+                    onClick={() => {
+                      if (hearing()) voice.stop();
+                      else voice.hear(props.beat, Option.none(), true);
+                    }}
                   >
-                    {paceText(pace)}
-                  </span>
-                ))}
-              </>
-            ),
-            Voicing: () => <span class="lab-script-voicing">voicing…</span>,
-            // Nothing to do about a beat not voiced yet: its missing ▶ says it.
-            Unvoiced: () => <></>,
-            Refused: (r) => (
-              <span class="lab-script-voicing" data-refused="true" title={r.reason}>
-                not voiced: {r.reason}
-              </span>
-            ),
-          }),
-        )
-      }
+                    {HEAR_GLYPH[pressed(hearing())]}
+                  </button>
+                  {Option.toArray(paceOf(ready.words)).map((pace) => (
+                    <span
+                      class="lab-script-pace"
+                      data-band={pace.band}
+                      title={`The take's pace; the band is ${BAND}`}
+                    >
+                      {paceText(pace)}
+                    </span>
+                  ))}
+                </>
+              ),
+              Voicing: () => <span class="lab-script-voicing">voicing…</span>,
+              // Nothing to do about a beat not voiced yet: its missing ▶ says it.
+              Unvoiced: () => <></>,
+              Refused: (r) => (
+                <span class="lab-script-voicing" data-refused="true" title={r.reason}>
+                  not voiced: {r.reason}
+                </span>
+              ),
+            }),
+          )}
+        </>
+      )}
     </Show>
   );
 };
 
-/** In the selection's box head, beside Note…: Hear the words selected in beat `beat`, once its take is ready. */
-export const HearWords = (props: { readonly beat: string }) => {
-  const script = useScript();
+/** The words selected in a beat, as a reader's delivery reads them: word `from` to word `to`. */
+export interface Words {
+  readonly from: number;
+  readonly to: number;
+}
+
+/** In the selection's box head: Hear `words` of beat `beat` (none selected: nothing), once its take is ready. */
+export const HearWords = (props: {
+  readonly beat: string;
+  readonly words: Option.Option<Words>;
+}) => {
   const voice = useVoice();
   const words = () =>
-    Option.filter(
-      script.selected(),
-      (w) =>
-        w.scene === props.beat && Option.exists(voice.take(props.beat), (t) => t._tag === 'Ready'),
+    Option.filter(props.words, () =>
+      Option.exists(voice.take(props.beat), (t) => t._tag === 'Ready'),
     );
   return (
     <Show when={Option.getOrUndefined(words())}>
@@ -190,39 +200,32 @@ export const Spend = () => {
 };
 
 /** What the reader's write of marks says while it is out or once it failed: nothing at rest. */
-const markingNote = (m: Marking, beat: string): string => {
+const markingNote = (m: Marking, beat: string, written: string): string => {
   if (m._tag === 'Idle' || m.beat !== beat) return '';
   return Marking.$match(m, {
     Idle: () => '',
     Writing: () => 'marking…',
-    Written: () => 'marked; the page reloads with it',
+    Written: () => written,
     Failed: (f) => `not marked: ${f.reason}`,
   });
 };
 
 /**
- * The delivery of the words selected in beat `beat`: Stress, the gap before
- * them (none for the line's first word, whose silence is the beat's lead),
- * and a hold's seconds.
+ * The delivery of `selected`, words of beat `beat` (its line `words` long,
+ * said with `marks`): Stress, the gap before them (none for the line's first
+ * word, whose silence is the beat's lead), and a hold's seconds. Nothing
+ * while no word of it is selected.
  */
-export const Delivery = (props: { readonly beat: string }) => {
-  const script = useScript();
+export const Delivery = (props: {
+  readonly beat: string;
+  readonly marks: ReadonlyArray<Mark>;
+  readonly words: number;
+  readonly selected: Option.Option<Words>;
+}) => {
   const voice = useVoice();
-  const beat = Arr.findFirst(script.beats, (b) => b.id === props.beat);
-  const marks = () =>
-    Option.getOrElse(
-      Option.map(beat, (b) => b.delivery),
-      () => [],
-    );
-  const words = () =>
-    Option.getOrElse(
-      Option.map(
-        Option.flatMap(beat, (b) => b.line),
-        (l) => l.rows.length,
-      ),
-      () => 0,
-    );
-  const selected = () => Option.filter(script.selected(), (w) => w.scene === props.beat);
+  const marks = () => props.marks;
+  const words = () => props.words;
+  const selected = () => props.selected;
   const write = (next: ReadonlyArray<Mark>) => voice.mark(props.beat, next);
   return (
     <Show when={Option.getOrUndefined(selected())}>
@@ -287,9 +290,9 @@ export const Delivery = (props: { readonly beat: string }) => {
                 </ToggleGroup>
               )}
             </Show>
-            <Show when={markingNote(voice.marking(), props.beat) !== ''}>
+            <Show when={markingNote(voice.marking(), props.beat, voice.written) !== ''}>
               <p class="lab-script-delivery-note" role="status">
-                {markingNote(voice.marking(), props.beat)}
+                {markingNote(voice.marking(), props.beat, voice.written)}
               </p>
             </Show>
           </div>
