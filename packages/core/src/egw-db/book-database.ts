@@ -476,29 +476,6 @@ export const paragraphIdentity = (
     },
   );
 
-/** The `para_id`s a batch of identities can be *sought* on, if all of them can.
- *
- *  `findParagraphsByIdentity` decides rows on `book_code || ':' || para_id`,
- *  which is a computed expression no index can serve. Seeking on the bare
- *  `para_id` first gives the planner a column, and the concatenation then runs
- *  over the few rows that survive instead of all three million.
- *
- *  `None` means "do not narrow": an identity in the `${bookCode}:#${refCode}`
- *  form has no `para_id` to seek on (see `paragraphIdentity`), so including it
- *  would exclude the rows its *neighbours* in the batch wanted. Widening for
- *  the whole batch is slow; narrowing wrongly is incorrect. */
-const seekableParaIds = (identities: readonly string[]): Option.Option<readonly string[]> => {
-  const paraIds: string[] = [];
-  for (const identity of identities) {
-    const separator = identity.indexOf(':');
-    if (separator === -1) return Option.none();
-    const part = identity.slice(separator + 1);
-    if (part.startsWith('#')) return Option.none();
-    paraIds.push(part);
-  }
-  return Option.some(paraIds);
-};
-
 /** One scored FTS hit: the paragraph's identity, its text, and SQLite's own
  *  relevance value.
  *
@@ -929,6 +906,13 @@ const encodeNodes = Schema.encodeSync(NodesJson);
 const encodePositions = Schema.encodeSync(
   Schema.fromJsonString(Schema.Array(Schema.Tuple([Schema.Finite, Schema.Finite]))),
 );
+/** A list of keys as one JSON parameter, read back with `json_each`.
+ *
+ *  One bound value however long the list is. An `IN (?, ?, ...)` binds one
+ *  parameter per key, and D1 refuses a statement with more than 100 — a
+ *  600-candidate identity lookup binds each key twice. */
+const encodeKeys = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.String)));
+const encodeIds = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.Finite)));
 
 const paragraphToRow = (
   paragraph: EGWSchemas.Paragraph,
@@ -1582,7 +1566,7 @@ export class EGWParagraphDatabase extends Context.Service<
           readonly content_text: string;
         }>`
           SELECT book_id, puborder, element_type, content_text FROM paragraphs
-          WHERE book_id IN ${sql.in([...publicationIds])}
+          WHERE book_id IN (SELECT value FROM json_each(${encodeIds(publicationIds)}))
             AND is_chapter_heading = 1
             AND element_type IN ('h1', 'h2', 'h3')
         `.pipe(
@@ -1970,21 +1954,20 @@ export class EGWParagraphDatabase extends Context.Service<
         // correctly dropped it. `identityFilters` is the shared builder, minus
         // the MATCH clause this path has no query for.
         const predicates = identityFilters(options);
-        // An indexable seek ahead of the concatenation, which no index can
-        // serve. `EXPLAIN QUERY PLAN` goes from `SCAN p` over all 3,012,004
-        // rows to `SEARCH p USING INDEX idx_paragraphs_para_id`; measured on
-        // the deployed corpus with a 30-identity batch, 730 ms to under 10 ms,
-        // returning the same rows. See `seekableParaIds` for why a batch can
-        // decline to narrow. The concatenation below is unchanged and still
-        // decides every row, so this can only ever cost time, never rows.
-        const prefilter = Option.match(seekableParaIds(identities), {
-          onNone: () => sql`1 = 1`,
-          onSome: (paraIds) => sql`p.para_id IN ${sql.in(paraIds)}`,
-        });
+        // One seek per identity on `idx_paragraphs_para_id`: `wanted` splits
+        // each key at its first `:` and the join reaches `paragraphs` by the
+        // bare `para_id`, a column the index serves. The concatenation below is
+        // the same test it always was and still decides every row, so a key in
+        // the `${bookCode}:#${refCode}` form, or one this build did not produce,
+        // seeks a `para_id` nothing has and matches nothing — without widening
+        // the lookup for the rest of the batch. The keys travel as one JSON
+        // parameter (`encodeKeys`).
+        //
         // `CROSS JOIN`, which in SQLite is not a different join — it is the one
         // documented way to pin the join order, and it must stay.
         //
-        // The prefilter above only helps if `paragraphs` is the outer table. Add
+        // The seek above only helps if `wanted`, then `paragraphs`, drive the
+        // join and `books` is reached last by its key. Add
         // a scope (`scope: 'egw'` is the *default* for search, so this is the
         // common path, not an edge case) and `identityFilters` contributes
         // `b.book_author IN (...)`. The planner then prefers to drive from
@@ -2022,13 +2005,18 @@ export class EGWParagraphDatabase extends Context.Service<
           readonly puborder: number;
           readonly is_chapter_heading: number;
         }>`
+              WITH wanted AS (
+                SELECT DISTINCT value AS identity,
+                       substr(value, instr(value, ':') + 1) AS para_id
+                FROM json_each(${encodeKeys(identities)})
+              )
               SELECT b.book_id, b.book_code, b.book_title, b.book_author,
                      p.ref_code, p.refcode_short, p.para_id, p.nodes_json,
                      p.puborder, p.is_chapter_heading
-              FROM paragraphs p
+              FROM wanted w
+              CROSS JOIN paragraphs p ON p.para_id = w.para_id
               CROSS JOIN books b ON p.book_id = b.book_id
-              WHERE ${prefilter}
-                AND b.book_code || ':' || p.para_id IN ${sql.in([...identities])}
+              WHERE b.book_code || ':' || p.para_id = w.identity
                 AND ${sql.and(predicates)}
             `.pipe(
           Effect.map((rows) =>
