@@ -23,7 +23,7 @@ import {
   type Keyed,
   statusOf as statusWith,
 } from './view.ts';
-import { MicLost } from './capture.ts';
+import { MicLost, insecureMic } from './capture.ts';
 import { encodeWav } from './wav.ts';
 
 /** The controls' default keys, as a PC writes them. */
@@ -123,6 +123,21 @@ describe('statusOf', () => {
     );
     const lost = SttUntimed.make({ file: 'a.wav', heard: 2 });
     expect(statusOf(failed(lost), Option.none())).toBe(lost.message);
+  });
+
+  test('on the phone’s plain http link, Record says the microphone is on the local link', () => {
+    expect(insecureMic('http://localhost:8229/films/f/lab/cold', true)).toEqual(Option.none());
+    const denied = Option.getOrThrow(
+      insecureMic('http://100.92.183.50:8230/films/f/lab/cold?cue=a', false),
+    );
+    const status = statusOf(
+      RecorderState.Failed({ beat: 'a', refusal: denied, wav: Option.none() }),
+      Option.none(),
+    );
+    expect(status.split('\n')[0]).toBe(
+      "no microphone: this page is plain http (the phone's link), and a browser gives the microphone only to a secure page: record on the laptop, on the lab's local link to this page (localhost, /films/f/lab/cold?cue=a)",
+    );
+    expect(status).not.toContain('TypeError');
   });
 
   test('a refusal names each control by its key as bound: a rebound key reads as rebound', () => {
