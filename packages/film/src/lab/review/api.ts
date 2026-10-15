@@ -18,6 +18,7 @@ import {
   type SetSaid,
   type SetSayPost,
   reviewFileUrl,
+  reviewPhoneUrl,
 } from '../../core/api.ts';
 import type { BoardFile } from '../../core/board.ts';
 import type { MoveForward, ProductionFile, Productions } from '../../core/production.ts';
@@ -34,6 +35,8 @@ interface ReviewCalls {
   readonly duration: (ref: string) => Effect.Effect<ReviewDuration, LabFailure>;
   /** A doc's text (a variant's notes, a folder's markdown). */
   readonly text: (ref: string) => Effect.Effect<string, LabFailure>;
+  /** Whether a video's phone copy is made: its URL asked for its head alone, none of its bytes. */
+  readonly phoneMade: (ref: string) => Effect.Effect<boolean, LabFailure>;
   /** A say on a version of the set `point` in `folder`: the folder as it leaves it, what it gave or took. */
   readonly say: (
     folder: string,
@@ -100,6 +103,8 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* () {
     },
     duration: (ref) => called(client.duration({ query: { ref } })),
     text: (ref) => called(Effect.flatMap(http.get(reviewFileUrl(ref)), fileText)),
+    phoneMade: (ref) =>
+      called(Effect.map(http.head(reviewPhoneUrl(ref)), (res) => res.status === 200)),
     say: (folder, point, said) => called(client.say({ params: { folder, point }, payload: said })),
     productions: called(lab.productions.list()),
     board: (film) => called(lab.board.read({ params: { film } })),

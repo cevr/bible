@@ -21,6 +21,7 @@ import { type JSX, isServer } from '@solidjs/web';
 import {
   Array as Arr,
   Clock,
+  Duration,
   Effect,
   Equal,
   Exit,
@@ -28,7 +29,9 @@ import {
   Layer,
   Match,
   Option,
+  Schedule,
   Schema,
+  Stream,
 } from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as ActorAtom from 'effect-machine/atom';
@@ -279,6 +282,11 @@ interface ReviewMeta {
    * by and its page opens on; read again once it failed (a Retry).
    */
   readonly askRead: (id: string) => Effect.Effect<AskRecord, LabFailure>;
+  /**
+   * Whether video `ref`'s phone copy is made, asked after every few seconds
+   * while it is read (a page shows the video waiting on it) and until it is.
+   */
+  readonly phoneMade: (ref: string) => Atom.Atom<AsyncResult.AsyncResult<boolean, unknown>>;
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
   /** The page's one client of the lab's API: what a read of its own (a feed) goes through. */
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
@@ -389,6 +397,9 @@ const SERVED_QUALITY: Quality = 'phone';
 /** The time a page was rendered at, by the server, sent with it: what its cards' ages are counted from while it hydrates. */
 const SERVED_AT = 'review.served-at';
 
+/** How often a page waiting on a video's phone copy asks whether it is made. */
+const PHONE_ASKED_EVERY = Duration.seconds(3);
+
 /** The review page: its runtime, place, index and choices, around `children`. */
 export const Root = (
   props: ParentProps<{
@@ -428,6 +439,18 @@ export const Root = (
   );
   // No ask on a place that is not one: nothing is read.
   const noAsk = Atom.make(AsyncResult.initial<AskRecord, LabFailure>());
+  // A video's phone copy, asked after every few seconds while a page waits on it, until it is
+  // made: a lost ask is asked again. Read only while something shows it waiting.
+  const phoneOf = Atom.family((ref: string) =>
+    runtime
+      .atom(
+        Stream.fromEffectSchedule(
+          ReviewApi.use((api) => api.phoneMade(ref)).pipe(Effect.orElseSucceed(() => false)),
+          Schedule.spaced(PHONE_ASKED_EVERY),
+        ).pipe(Stream.takeUntil(Function.identity)),
+      )
+      .pipe(Atom.withServerValue(() => AsyncResult.initial<boolean, never>())),
+  );
   // A first read takes the server's cache; a refresh asks it to walk its roots again.
   const firstIndexAtom = runtime
     .atom(ReviewApi.use((api) => api.index(false)))
@@ -665,6 +688,7 @@ export const Root = (
             if (AsyncResult.isFailure(registry.get(askOf(id)))) registry.refresh(askOf(id));
             return AtomRegistry.getResult(registry, askOf(id), { suspendOnWaiting: true });
           }),
+        phoneMade: phoneOf,
         runtime,
         client: props.client,
         host: props.host,

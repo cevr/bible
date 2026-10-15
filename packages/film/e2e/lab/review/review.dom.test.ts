@@ -148,6 +148,8 @@ interface Changed {
   readonly warmAt?: number;
   readonly cold?: string;
   readonly roof?: ReadonlyArray<string>;
+  /** The sky's phone copy: still being made, or made since. */
+  readonly sky?: 'pending' | 'ready';
 }
 
 /** The roof's video of version `id`, written at `mtime`. */
@@ -165,7 +167,14 @@ const roofVideo = (id: string, mtime: number): Json => ({
 /** The index, its loose video `walk`, as first read or as `changed` since. */
 const indexOf = (
   walk: Json,
-  { blurb = BLURB, whyAt = 0, warmAt = 0, cold = 'Cold', roof = ['A', 'B', 'C'] }: Changed = {},
+  {
+    blurb = BLURB,
+    whyAt = 0,
+    warmAt = 0,
+    cold = 'Cold',
+    roof = ['A', 'B', 'C'],
+    sky = 'pending',
+  }: Changed = {},
 ): Json => ({
   folders: [
     {
@@ -199,7 +208,11 @@ const indexOf = (
           start: 0,
           marks: [],
           // One version, big enough for a proxy that is still being made.
-          variants: [variant('D', 'Dusk', { media: { _tag: 'Seen', video: pendingSky } })],
+          variants: [
+            variant('D', 'Dusk', {
+              media: { _tag: 'Seen', video: { ...pendingSky, phone: sky } },
+            }),
+          ],
         },
       ],
       videos: [walk],
@@ -1938,7 +1951,11 @@ describe('the review page', () => {
         yield* page.goto(SKY);
         yield* waitFor(page, '.rv-card[data-id="D"] [data-proxy="pending"]');
         yield* countIs(page, '.rv-card[data-id="D"] video', 0);
-        yield* textHas(page, '.rv-card[data-id="D"] [data-proxy="pending"]', 'Proxy being made');
+        yield* textHas(
+          page,
+          '.rv-card[data-id="D"] [data-proxy="pending"]',
+          'Phone copy on its way',
+        );
         // Its touch path: play the original instead.
         yield* page.click('.rv-card[data-id="D"] [data-proxy="pending"] button');
         yield* attributeIs(
@@ -1951,6 +1968,44 @@ describe('the review page', () => {
         yield* openCommandMenu(page, 'play the');
         yield* textHas(page, menuEntry('review.quality'), 'Play the proxies');
         yield* closeCommandMenu(page);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a phone copy made while the page waits on it plays in its place: the page asks after it and reads the index again',
+    () =>
+      Effect.gen(function* () {
+        const made = { now: false };
+        const sky = (): 'pending' | 'ready' => {
+          if (made.now) return 'ready';
+          return 'pending';
+        };
+        const madeRoutes: ReadonlyArray<FakeRoute> = [
+          route('GET', /^\/api\/review\/index/, () =>
+            json(indexOf(walkOf('none'), { sky: sky() })),
+          ),
+          // The copy's head: not there until it is made.
+          route('GET', /^\/api\/review\/phone\/out\/art\/sky\.D\.mp4$/, () => {
+            if (made.now) return text('', 200);
+            return text('not made', 404);
+          }),
+          ...routes,
+        ];
+        const { page, errors } = yield* openReview(madeRoutes, {
+          href: SKY,
+          viewport: { width: 390, height: 844 },
+        });
+        yield* waitFor(page, '.rv-card[data-id="D"] [data-proxy="pending"]');
+        made.now = true;
+        yield* waitFor(page, '.rv-card[data-id="D"] video');
+        yield* evaluates(
+          page,
+          `document.querySelector('.rv-card[data-id="D"] video').getAttribute('src')`,
+          '/api/review/phone/out/art/sky.D.mp4',
+        );
+        yield* countIs(page, '[data-proxy="pending"]', 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

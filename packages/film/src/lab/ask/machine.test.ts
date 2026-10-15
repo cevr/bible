@@ -83,6 +83,7 @@ const fakeLab = (
       index: unused,
       duration: unused,
       text: unused,
+      phoneMade: unused,
       say: unused,
       productions: unused(),
       board: unused,

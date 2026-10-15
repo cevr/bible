@@ -704,12 +704,22 @@ export const FolderPage = (props: { readonly folder: string }) => (
 // A set
 
 /**
- * In a video's place while its proxy is still being made, on Proxy: its
- * still, what is happening, and the way to play the Original instead. The
- * original is never streamed in its place unasked.
+ * In a video's place while its phone copy is still being made, on Proxy:
+ * its still, what is happening, and the way to play the Original instead.
+ * The original is never streamed in its place unasked. While it shows, the
+ * page asks every few seconds whether the copy is made; once it is, the
+ * page reads the index again and the video plays in its place (on a Set,
+ * Choices and an ask alike).
  */
 export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
-  const { actions } = useReview();
+  const { actions, meta } = useReview();
+  const made = useAtomValue(() => meta.phoneMade(props.video.ref));
+  createEffect(
+    () => Option.getOrElse(AsyncResult.value(made()), () => false),
+    (copied) => {
+      if (copied) actions.indexChanged();
+    },
+  );
   return (
     <div class="rv-pending" data-proxy="pending">
       <img
@@ -719,9 +729,9 @@ export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
         src={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
       />
       <p class="rv-row">
-        <span class="rv-hint">Proxy being made ({sizeText(props.video.size)} original)</span>
+        <span class="rv-hint">Phone copy on its way</span>
         <button type="button" class="sh-btn" onClick={() => actions.quality('full')}>
-          Play the original
+          Play the original ({sizeText(props.video.size)})
         </button>
       </p>
     </div>
