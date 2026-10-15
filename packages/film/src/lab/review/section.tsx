@@ -389,9 +389,19 @@ const FilmCard = (props: {
 export const Home = () => (
   <WithIndex>
     {(index) => {
+      const { state } = useReview();
       const histories = useHistories();
       const films = useAppFilms();
       const produced = createMemo(() => producedFilms(histories(), films()));
+      // Nothing to show: no production, film, series or folder.
+      const empty = () =>
+        index().folders.length === 0 &&
+        histories().length === 0 &&
+        films().length === 0 &&
+        Option.getOrElse(
+          Option.map(AsyncResult.value(state.series()), (l) => l.series.length === 0),
+          () => true,
+        );
       const unfiled = createMemo(() => unfiledOf(histories(), index().folders));
       const sets = createMemo(() => unfiled().filter((f) => f.sets.length > 0));
       const rest = createMemo(() => unfiled().filter((f) => f.sets.length === 0));
@@ -410,7 +420,7 @@ export const Home = () => (
               <For each={rest()}>{(folder) => <FolderCard folder={folder} />}</For>
             </div>
           </Section>
-          <Show when={index().folders.length === 0}>
+          <Show when={empty()}>
             <p class="empty">Nothing here yet.</p>
           </Show>
         </>

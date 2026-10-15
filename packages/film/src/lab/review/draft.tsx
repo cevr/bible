@@ -23,7 +23,7 @@ import { Array as Arr, Effect, Option, Result } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { Accessor } from 'solid-js';
-import { createMemo, createSignal } from 'solid-js';
+import { createEffect, createMemo, createSignal } from 'solid-js';
 import { addressOn } from '../../browser/host.ts';
 import { wordsIn, wordsText } from '../../command/selection.ts';
 import {
@@ -37,6 +37,7 @@ import type { Mark } from '../../core/delivery.ts';
 import { parse } from '../../core/narration.ts';
 import { reasonOf } from '../api.ts';
 import { PlaceStyle } from '../place-style.tsx';
+import { BriefBox } from '../script/brief.tsx';
 import { SCRIPT_READ_CSS } from '../script/style.ts';
 import { gapBefore } from '../script/delivery.ts';
 import { VoiceOver, type VoiceSource, polled, useVoice } from '../script/voice.tsx';
@@ -65,7 +66,11 @@ const DRAFT_CSS = `
 .dr-head h1 { margin: 0; font-size: var(--fs-5); line-height: var(--lh-5); font-weight: var(--w-3); }
 .dr-series { margin: 0; color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
 .dr-label { color: var(--text-2); }
-.dr .lab-script-picture { font-size: var(--fs-2); line-height: var(--lh-2); }
+/* A head keeps the height of its ▶ before a take lands, so the page does not shift as takes arrive. */
+.dr .lab-script-beat-head { min-height: var(--hit); }
+/* A cue's name in a brief, set apart from its prose; sources in the brief's ink, not the head's quieter one. */
+.dr .lab-script-code { font: inherit; color: var(--text-1); }
+.dr .lab-script-cite { color: var(--text-2); }
 .dr-status { margin: 0; padding: var(--s-3) var(--gutter); color: var(--text-2); }
 ::highlight(lab-live) { background-color: color-mix(in srgb, var(--state-live) 26%, transparent); color: var(--text-1); }
 ::highlight(lab-picked) { background-color: var(--accent-wash); color: var(--text-1); text-decoration: underline var(--accent); }
@@ -196,7 +201,7 @@ const piece = (text: string) => {
     return <strong>{text.slice(2, -2)}</strong>;
   }
   if (text.startsWith('`') && text.endsWith('`') && text.length > 2) {
-    return <code>{text.slice(1, -1)}</code>;
+    return <code class="lab-script-code">{text.slice(1, -1)}</code>;
   }
   return text;
 };
@@ -221,9 +226,9 @@ const Beat = (props: {
     </header>
     <Show when={props.beat.read.brief}>
       {(brief) => (
-        <p class="lab-script-picture">
+        <BriefBox>
           <Inline text={brief()} />
-        </p>
+        </BriefBox>
       )}
     </Show>
     {Option.toArray(props.beat.line).map((line) => (
@@ -303,6 +308,20 @@ const Beats = (props: {
       ),
     }),
   );
+  // The box over a selection is brought into sight as it opens, a link pasted with one
+  // included: its choices are on the screen with its words.
+  createEffect(
+    () => Option.map(selected(), (w) => `${w.section}:${w.from}-${w.to}`),
+    (key) => {
+      Option.map(
+        Option.flatMap(
+          Option.flatMap(key, () => page),
+          (el) => Option.fromNullishOr(el.querySelector('.lab-script-ties')),
+        ),
+        (box) => box.scrollIntoView({ block: 'nearest' }),
+      );
+    },
+  );
   const wordsOf = (beat: string): Option.Option<Words> =>
     Option.map(
       Option.filter(selected(), (w) => w.section === beat),
@@ -360,9 +379,25 @@ const Reader = (props: {
 export const DraftPage = (props: { readonly series: string; readonly draft: string }) => {
   const { meta, state } = useReview();
   const read = useAtomValue(() => meta.draft(props.series, props.draft));
-  // A mark write's answer stands over the first read: the draft as the write left it.
-  const [answered, setAnswered] = createSignal(Option.none<DraftRead>(), { ownedWrite: true });
-  const shown = createMemo(() => Option.orElse(answered(), () => AsyncResult.value(read())));
+  // A mark write's answer stands over the read it was made on, the draft as the write left it,
+  // until the draft is read again (a refresh): then the read is the draft as it stands.
+  const [answered, setAnswered] = createSignal(
+    Option.none<{ readonly read: DraftRead; readonly over: Option.Option<DraftRead> }>(),
+    { ownedWrite: true },
+  );
+  const shown = createMemo(() => {
+    const now = AsyncResult.value(read());
+    return Option.getOrElse(
+      Option.map(
+        Option.filter(
+          answered(),
+          (a) => Option.getOrUndefined(a.over) === Option.getOrUndefined(now),
+        ),
+        (a) => Option.some(a.read),
+      ),
+      () => now,
+    );
+  });
   const seriesTitle = () =>
     Option.getOrElse(
       Option.flatMap(AsyncResult.value(state.series()), (l) =>
@@ -407,7 +442,9 @@ export const DraftPage = (props: { readonly series: string; readonly draft: stri
               series={props.series}
               draft={props.draft}
               shown={d}
-              answer={(next) => setAnswered(Option.some(next))}
+              answer={(next) =>
+                setAnswered(Option.some({ read: next, over: AsyncResult.value(read()) }))
+              }
             />
           )}
         </Show>

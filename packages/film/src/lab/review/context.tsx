@@ -500,6 +500,8 @@ export const Root = (
     // Each film's project, made the first time a page asks for it, kept for the page's life.
     const registry = useRegistry();
     const projects = new Map<string, FilmProject>();
+    // Every series draft the page has read, read again on a refresh (`series/draft`).
+    const draftsRead = new Set<string>();
     const projectOf = (film: string): FilmProject => {
       const first = projectFirstOf(film);
       const again = projectAgainOf(film);
@@ -558,6 +560,7 @@ export const Root = (
         refresh: () => {
           refreshFilms();
           refreshSeries();
+          for (const key of draftsRead) registry.refresh(draftOf(key));
           setMoved([]);
           refreshProductions();
           indexOwner.again();
@@ -581,7 +584,11 @@ export const Root = (
         project,
         text,
         board,
-        draft: (series, draft) => draftOf(`${series}/${draft}`),
+        draft: (series, draft) => {
+          const key = `${series}/${draft}`;
+          draftsRead.add(key);
+          return draftOf(key);
+        },
         runtime,
         client: props.client,
         host: props.host,

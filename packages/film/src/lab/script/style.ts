@@ -84,6 +84,23 @@ export const SCRIPT_READ_CSS = `
 .lab-script-ties-head > .sh-btn { flex: none; min-height: var(--hit); }
 .lab-script-cite { display: flex; flex-wrap: wrap; gap: 0 var(--s-3); margin: 0; padding: 0; list-style: none;
   font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-3); }
+.lab-script-brief { display: flex; flex-direction: column; min-width: 0; }
+/* Under a brief its three lines clip on a phone: what opens it all, the size of a press, quiet as the brief. */
+.lab-script-more { align-self: flex-start; min-height: var(--hit); min-width: var(--hit); padding: 0; border: 0;
+  background: none; font: inherit; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2);
+  text-align: start; cursor: pointer; }
+@media (hover: hover) { .lab-script-more:hover { color: var(--text-1); } }
+@media ${PHONE} {
+  /* A brief shows three lines until More opens it: the reader opens on the words read aloud, not on what the picture does.
+     It clips the rest, never scrolls it: a key landing on a link it hides finds the link below its lines, and opens it
+     (a box that scrolls would scroll the link up into its three lines instead). The margin is the focus ring's. */
+  .lab-script-picture:not([data-open='true']) { display: -webkit-box; -webkit-box-orient: vertical;
+    -webkit-line-clamp: ${BRIEF_LINES}; line-clamp: ${BRIEF_LINES}; overflow: clip; overflow-clip-margin: 2px; }
+}
+@media ${WIDE} {
+  /* A laptop's column shows a brief whole: nothing for More to open. */
+  .lab-script-more { display: none; }
+}
 `;
 
 export const SCRIPT_CSS = `${SCRIPT_TOKENS}${SCRIPT_READ_CSS}
@@ -111,12 +128,6 @@ export const SCRIPT_CSS = `${SCRIPT_TOKENS}${SCRIPT_READ_CSS}
 /* Where a beat starts, its frames in its seconds' ink: the kit's timecode lifts them, as only a running clock wants. */
 .lab-script-at { color: var(--text-3); }
 .sh-timecode.lab-script-at .sh-ff { color: inherit; }
-.lab-script-brief { display: flex; flex-direction: column; min-width: 0; }
-/* Under a brief its three lines clip on a phone: what opens it all, the size of a press, quiet as the brief. */
-.lab-script-more { align-self: flex-start; min-height: var(--hit); min-width: var(--hit); padding: 0; border: 0;
-  background: none; font: inherit; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2);
-  text-align: start; cursor: pointer; }
-@media (hover: hover) { .lab-script-more:hover { color: var(--text-1); } }
 /* A cue, a mark or a beat the brief names: a link in the brief's running text, the accent while it is selected. */
 .lab-script-ref { color: var(--text-1); text-decoration: underline; text-decoration-color: var(--line-strong);
   text-underline-offset: 0.2em; }
@@ -183,14 +194,5 @@ body.lab:has(.lab-script) .bar > .row .say { visibility: hidden; }
   /* The screen's height, not a page that scrolls: the picture and its track stay over the words. */
   body.lab:has(.lab-script) { height: 100dvh; min-height: 0; grid-template-rows: auto auto auto minmax(0, 1fr); }
   .lab-script { grid-column: 1; grid-row: 4; border-top: var(--border); }
-  /* A brief shows three lines until More opens it: the reader opens on the words read aloud, not on what the picture does.
-     It clips the rest, never scrolls it: a key landing on a link it hides finds the link below its lines, and opens it
-     (a box that scrolls would scroll the link up into its three lines instead). The margin is the focus ring's. */
-  .lab-script-picture:not([data-open='true']) { display: -webkit-box; -webkit-box-orient: vertical;
-    -webkit-line-clamp: ${BRIEF_LINES}; line-clamp: ${BRIEF_LINES}; overflow: clip; overflow-clip-margin: 2px; }
-}
-@media ${WIDE} {
-  /* A laptop's column shows a brief whole: nothing for More to open. */
-  .lab-script-more { display: none; }
 }
 `;

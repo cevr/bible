@@ -104,9 +104,15 @@ a.rv-card:hover { background: var(--surface-2); }
 }
 .rv-body { padding: var(--s-2) var(--s-3); }
 /* A series: a card whose head opens its drafts, each a link of the pointer's size into the Script reader. */
+/* A series opens apart from its neighbours: a card shut keeps its own height beside one open. */
+.rv-series { align-self: start; }
 .rv-series summary { display: flex; align-items: baseline; gap: var(--s-2); min-height: var(--hit); padding: var(--s-2) var(--s-3); cursor: pointer; }
+/* Shut or open, said as the production's folds say it. */
+.rv-series summary::before { content: '›'; }
+.rv-series[open] > summary::before { rotate: 90deg; }
 .rv-drafts { margin: 0; padding: 0 var(--s-3) var(--s-2); list-style: none; }
-.rv-drafts a { display: flex; align-items: center; min-height: var(--hit); text-decoration: none; }
+.rv-drafts li + li { border-top: var(--border); }
+.rv-drafts a { display: flex; align-items: center; min-height: var(--hit); padding-block: var(--s-1); text-decoration: none; }
 @media (hover: hover) { .rv-drafts a:hover { text-decoration: underline; } }
 .rv-strip { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 1px; background: var(--surface-0); }
 .rv-strip img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }

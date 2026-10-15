@@ -167,6 +167,7 @@ const Shell = (props: { readonly children: JSX.Element }) => {
     <PageShell
       part={() => partOf(state.place(), films())}
       film={film}
+      lastFilm={state.place()._tag !== 'Draft'}
       crumb={depth}
       films={films}
       hub={meta.hub}
