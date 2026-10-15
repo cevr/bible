@@ -793,10 +793,65 @@ const wordsOf = (file: string, text: string): ReadonlyArray<string> => {
 };
 
 /**
+ * Where `writtenIn` keeps the names each file writes between runs, from the
+ * repo's root: under the film package's installed packages, never in the tree.
+ */
+const WRITTEN_CACHE = 'packages/film/node_modules/.cache/film-docs/written.json';
+
+/** How many of the tree's entries `writtenIn` stats or reads at once: the file system's waits overlap. */
+const WALK = 32;
+
+/**
+ * The names each file wrote when last read, by its path and the hash of its
+ * text, and the hash of what read them (`reader`): this file's text and the
+ * lock, so a change to how names are read reads every file anew.
+ */
+const WrittenCache = Schema.fromJsonString(
+  Schema.Struct({
+    reader: Schema.String,
+    files: Schema.Record(
+      Schema.String,
+      Schema.Struct({ hash: Schema.String, words: Schema.Array(Schema.String) }),
+    ),
+  }),
+);
+
+/** The names kept at `cache` by the same `reader`; none when there are none, they do not decode, or another reader kept them. */
+const keptWords = (cache: string, reader: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const held = yield* Effect.option(
+      Effect.flatMap(fs.readFileString(cache), Schema.decodeUnknownEffect(WrittenCache)),
+    );
+    return new Map(
+      Option.match(
+        Option.filter(held, (h) => h.reader === reader),
+        {
+          onNone: () => [],
+          onSome: (h) => Object.entries(h.files),
+        },
+      ),
+    );
+  });
+
+/** Keep `written` at `cache`, whole or not at all: written beside it, then moved over it. */
+const keepWords = (cache: string, written: typeof WrittenCache.Type) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    yield* fs.makeDirectory(path.dirname(cache), { recursive: true });
+    const beside = `${cache}.${process.pid}`;
+    yield* fs.writeFileString(beside, yield* Schema.encodeEffect(WrittenCache)(written));
+    yield* fs.rename(beside, cache);
+  });
+
+/**
  * The names the repo's code writes (`Code.written`, `wordsOf`): the root's
  * own code and config, and each workspace's config and the code of its
  * tree, past installed packages and the directories the root's
- * `.gitignore` names.
+ * `.gitignore` names. Each file's names are kept between runs
+ * (`WRITTEN_CACHE`) by the hash of its text, so a file read before and
+ * unchanged since is not parsed again.
  */
 const writtenIn = Effect.fn('test.docs.writtenIn')(function* (
   root: string,
@@ -832,6 +887,7 @@ const writtenIn = Effect.fn('test.docs.writtenIn')(function* (
                 () => Effect.succeed([]),
               ),
             ),
+          { concurrency: WALK },
         ),
         (each) => each.flat(),
       ),
@@ -840,10 +896,31 @@ const writtenIn = Effect.fn('test.docs.writtenIn')(function* (
     ...(yield* filesIn('', true, false)),
     ...(yield* Effect.forEach(workspaces, (dir) => filesIn(dir, true, true))).flat(),
   ];
-  const words = yield* Effect.forEach(files, (file) =>
-    Effect.map(fs.readFileString(path.join(root, file)), (text) => wordsOf(file, text)),
+  const cache = path.join(root, WRITTEN_CACHE);
+  // How names are read: this file's text and the lock (the parser's version).
+  const reader = Bun.hash(
+    `${yield* fs.readFileString(import.meta.path)}${yield* fs.readFileString(path.join(root, 'bun.lock'))}`,
+  ).toString(36);
+  const kept = yield* keptWords(cache, reader);
+  const read = yield* Effect.forEach(
+    files,
+    (file) =>
+      Effect.map(fs.readFileString(path.join(root, file)), (text) => {
+        const hash = Bun.hash(text).toString(36);
+        return Option.getOrElse(
+          Option.filter(Option.fromUndefinedOr(kept.get(file)), (held) => held.hash === hash),
+          () => ({ hash, words: [...new Set(wordsOf(file, text))] }),
+        );
+      }),
+    { concurrency: WALK },
   );
-  return new Set(words.flat());
+  const fresh = read.some((each, i) => kept.get(files[i] ?? '') !== each);
+  if (fresh || kept.size !== files.length)
+    yield* keepWords(cache, {
+      reader,
+      files: Object.fromEntries(files.map((file, i) => [file, read[i] ?? { hash: '', words: [] }])),
+    });
+  return new Set(read.flatMap((each) => each.words));
 });
 
 /** The repo's code as the docs name it. */
@@ -1588,6 +1665,41 @@ describe('the docs', () => {
         ),
       ).toEqual([]);
     }),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    'keep the names of a file read before and unchanged since, and read a changed file anew',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: 'docs-written-' });
+        const write = (file: string, text: string) =>
+          fs.writeFileString(path.join(root, file), text);
+        yield* write('.gitignore', '');
+        yield* write('bun.lock', '{}');
+        yield* write('kept.ts', 'export const keptName = 1;\n');
+        yield* write('changed.ts', 'export const nameBefore = 1;\n');
+        expect([...(yield* writtenIn(root, []))]).toEqual(
+          expect.arrayContaining(['keptName', 'nameBefore']),
+        );
+        // A name kept for kept.ts, its text unchanged: read from what was kept, never parsed.
+        const cache = path.join(root, WRITTEN_CACHE);
+        const held = yield* Effect.flatMap(
+          fs.readFileString(cache),
+          Schema.decodeUnknownEffect(WrittenCache),
+        );
+        const kept = held.files['kept.ts'] ?? { hash: '', words: [] };
+        yield* keepWords(cache, {
+          ...held,
+          files: { ...held.files, 'kept.ts': { ...kept, words: ['plantedName'] } },
+        });
+        yield* write('changed.ts', 'export const nameAfter = 1;\n');
+        const again = [...(yield* writtenIn(root, []))];
+        expect(again).toEqual(expect.arrayContaining(['plantedName', 'nameAfter']));
+        expect(again).not.toContain('nameBefore');
+        expect(again).not.toContain('keptName');
+      }).pipe(Effect.scoped),
   );
 
   it.effect.layer(BunServices.layer)(
