@@ -3379,7 +3379,7 @@ ARK_IN, …)`, a camera spread from another with a field blended over it,
 `shotPath` of them, a held push `pushOn` with a number knob. The unmoved
 frame (`UNMOVED`, `canvas/camera.ts`, whose numbers the rule reads) and a framing derived from the scene's geometry (a point that is not
 two numbers) pass; one shared across scenes lives in a set file.
-`film/no-point-free-log` (`lint/no-point-free-log.ts`) holds the tools too,
+`effect/noPointFreeLog` (from `oxlint-plugin-effect`) holds the tools too,
 over all of `packages/film` and `apps/animations`: a variadic logger
 (`Console.*`, `console.*`, `Effect.log*`) handed point-free to a callback that
 is passed an index (`Effect.forEach(lines, Console.log)`, `xs.map(console.log)`)
@@ -3400,12 +3400,13 @@ literal that holds it and a value computed from it, as `after - before`)
 takes whatever the page had drawn at that instant, and
 is refused. An `evaluate` run for what it does is an action, and so is one
 whose kept answer only a wait reads (a baseline the page keeps).
-`film/spawn-budget` (`lint/spawn-budget.ts`) holds every test of
+`effect/requireSpawnBudget` (from `oxlint-plugin-effect`) holds every test of
 `packages/film`: a test whose body spawns a process (effect's
 `ChildProcess.make`, the global `Bun`'s `spawn` or `spawnSync`, `spawn`
-imported from `bun`, or a function of the same file that does) gives
-its timeout in milliseconds as its last argument: a cold start's time is the
-machine's, and bun's default 5 s fails a loaded one.
+imported from `bun`, `node:child_process`, or a function of the same file
+that does) gives its timeout in milliseconds as its last argument, at least
+the package's 20 s run default (its `minimum`): a cold start's time is the
+machine's, and a shorter budget fails a loaded one sooner than none.
 A spawn inside a service the test provides is not seen.
 `film/touches-serial` (`lint/touches-serial.ts`) holds the browser tests
 (`e2e/`): a finger (`page.finger`, one or two) is read, and the touch gesture
@@ -3413,11 +3414,12 @@ A spawn inside a service the test provides is not seen.
 body, since while one tab's touches are under way Chrome drops, or lands as a
 bare click, the touches a file's other cases send their own tabs at the same
 time.
-`film/no-history-comment` (`lint/no-history-comment.ts`) holds every comment
-in `packages/film` and `apps/animations`: a comment says what the code does
+`effect/noHistoryComment` (from `oxlint-plugin-effect`) holds every comment
+in `packages/film` and `apps/animations`, with the loop's own forms as its
+`patterns` in `.oxlintrc.json` (held by `lint/config.test.ts`): a comment says what the code does
 today and why, and how it got here lives in the ledger and `git log`. It
 refuses the forms history takes on its face: a loop pass by number, a batch
-id, a commit hash, and "used to" said of what the code did (not "is used
+id, a ledger id, a commit hash, and "used to" said of what the code did (not "is used
 to"). History told in other words is the sweep's to find.
 `film/drawing-literal` and `film/no-unprobed-ink` hold a film's scenes to
 what the lab can locate and what `film check` can probe; the films' README

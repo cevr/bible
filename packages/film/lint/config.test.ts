@@ -22,7 +22,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
-/** The timeout of a test here that spawns (oxlint): a cold start's time is the machine's (film/spawn-budget). */
+/** The timeout of a test here that spawns (oxlint): a cold start's time is the machine's (effect/requireSpawnBudget). */
 const SPAWNS_MS = 30_000;
 
 /** The names a host name is reached through: the global object's, and chains of them. */
@@ -150,6 +150,28 @@ const ProbeConfig = Schema.fromJsonString(
   }),
 );
 
+/** `effect/noHistoryComment`'s options: where history lives, and the loop's own forms of it. */
+const HistoryForms = Schema.Struct({
+  history: Schema.optionalKey(Schema.String),
+  patterns: Schema.optionalKey(
+    Schema.Array(
+      Schema.Struct({
+        what: Schema.String,
+        pattern: Schema.String,
+        flags: Schema.optionalKey(Schema.String),
+      }),
+    ),
+  ),
+});
+
+/** The config oxlint reads a comment with: the history rule and its options alone. */
+const HistoryConfig = Schema.fromJsonString(
+  Schema.Struct({
+    jsPlugins: Schema.Array(Schema.String),
+    rules: Schema.Struct({ 'effect/noHistoryComment': withOptions(HistoryForms) }),
+  }),
+);
+
 /** The rule `key`'s value in `o`. */
 const ruleIn = (o: Override, key: string) =>
   Option.flatMap(Option.fromUndefinedOr(o.rules), (rules) => Option.fromUndefinedOr(rules[key]));
@@ -257,41 +279,40 @@ const brandsUnbanned = (o: Override): ReadonlyArray<string> => {
   return BRANDS.filter((brand) => !held.includes(brand));
 };
 
-/** The 1-based lines oxlint reported a host ban or a brand on, in `--format unix`. */
-const reportedLines = (out: string): ReadonlySet<number> =>
+/** The 1-based lines oxlint reported one of `rules` on (by the name it prints, `noGlobals`), in `--format unix`. */
+const reportedLines = (
+  out: string,
+  rules: ReadonlyArray<string> = ['noGlobals', 'no-restricted-properties'],
+): ReadonlySet<number> =>
   new Set(
     out
       .split('\n')
       .flatMap((line) =>
         Option.toArray(
           Option.map(
-            Option.fromNullishOr(
-              /probe\.ts:(\d+):\d+: .*\((?:noGlobals|no-restricted-properties)\)\]$/.exec(line),
-            ),
-            (m) => Number(m[1]),
+            Option.fromNullishOr(/probe\.ts:(\d+):\d+: .*\(([\w-]+)\)\]$/.exec(line)),
+            (m) => ({ line: Number(m[1]), rule: m[2] ?? '' }),
           ),
         ),
-      ),
+      )
+      .filter((report) => rules.includes(report.rule))
+      .map((report) => report.line),
   );
 
-/** oxlint over `source` with only the host bans `options` and the brands `properties` on: what it reported. */
-const lint = Effect.fn('test.lintConfig.lint')(function* (
-  options: NoGlobals,
-  properties: ReadonlyArray<Property>,
+/** The plugin's build as the repo installs it. */
+const PLUGIN = Effect.map(Effect.all([Path.Path, ROOT]), ([path, root]) =>
+  path.join(root, 'node_modules', 'oxlint-plugin-effect', 'dist', 'plugin.js'),
+);
+
+/** oxlint over `source` as `probe.ts` with the oxlint.json `config`: what it reported. */
+const oxlintOver = Effect.fn('test.lintConfig.oxlintOver')(function* (
+  config: string,
   source: string,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-  const root = yield* ROOT;
-  const oxlint = path.join(root, 'node_modules', '.bin', 'oxlint');
-  const config = yield* Schema.encodeEffect(ProbeConfig)({
-    jsPlugins: [path.join(root, 'node_modules', 'oxlint-plugin-effect', 'dist', 'plugin.js')],
-    rules: {
-      'effect/noGlobals': ['error', options],
-      'no-restricted-properties': ['error', ...properties],
-    },
-  });
+  const oxlint = path.join(yield* ROOT, 'node_modules', '.bin', 'oxlint');
   return yield* Effect.scoped(
     Effect.gen(function* () {
       const cwd = yield* fs.makeTempDirectoryScoped();
@@ -314,6 +335,22 @@ const lint = Effect.fn('test.lintConfig.lint')(function* (
       return `${stdout}${stderr}`;
     }),
   );
+});
+
+/** oxlint over `source` with only the host bans `options` and the brands `properties` on: what it reported. */
+const lint = Effect.fn('test.lintConfig.lint')(function* (
+  options: NoGlobals,
+  properties: ReadonlyArray<Property>,
+  source: string,
+) {
+  const config = yield* Schema.encodeEffect(ProbeConfig)({
+    jsPlugins: [yield* PLUGIN],
+    rules: {
+      'effect/noGlobals': ['error', options],
+      'no-restricted-properties': ['error', ...properties],
+    },
+  });
+  return yield* oxlintOver(config, source);
 });
 
 /** The probe's lines oxlint left unreported. */
@@ -496,5 +533,37 @@ describe('the lint config', () => {
         );
         expect(missing).toEqual([]);
       }),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    "refuses the loop's own forms of history in every block that holds comments",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const config = yield* readJson('.oxlintrc.json', Config);
+        const forms = config.overrides
+          .filter((o) => Option.isSome(ruleIn(o, 'effect/noHistoryComment')))
+          .map((o) => optionsIn(o, 'effect/noHistoryComment', HistoryForms));
+        expect(forms.length).toBeGreaterThan(0);
+        // Every block that holds comments holds them to the same forms.
+        for (const held of forms) expect(held).toEqual(forms[0] ?? []);
+        const source = yield* fs.readFileString(
+          path.join(import.meta.dir, 'fixtures', 'history-forms.ts'),
+        );
+        const marked = source
+          .split('\n')
+          .map((text, i) => ({ text, line: i + 1 }))
+          .filter(({ text }) => text.includes('// RED effect/noHistoryComment'))
+          .map(({ line }) => line);
+        const lintConfig = yield* Schema.encodeEffect(HistoryConfig)({
+          jsPlugins: [yield* PLUGIN],
+          rules: { 'effect/noHistoryComment': ['error', ...(forms[0] ?? [])] },
+        });
+        const reported = reportedLines(yield* oxlintOver(lintConfig, source), ['noHistoryComment']);
+        expect(marked.length).toBeGreaterThan(0);
+        expect([...reported].sort((a, b) => a - b)).toEqual(marked);
+      }),
+    SPAWNS_MS,
   );
 });

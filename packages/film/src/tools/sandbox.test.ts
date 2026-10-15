@@ -314,6 +314,6 @@ describe("the counsel's sandbox", () => {
         expect(yield* fs.exists(path.join(answer, 'kept'))).toBe(true);
         expect(yield* fs.exists(path.join(root, 'beside'))).toBe(false);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
-    5_000,
+    20_000,
   );
 });

@@ -30,7 +30,7 @@ import { SceneWriter } from './scene-writer.ts';
 import { FORMAT_LIMIT, SourceWriter } from './source-writer.ts';
 import { freshHere, sceneFixture } from './testing.ts';
 
-/** The timeout of a test here that spawns (bunx oxfmt, sh, sleep): a cold start's time is the machine's (film/spawn-budget). */
+/** The timeout of a test here that spawns (bunx oxfmt, sh, sleep): a cold start's time is the machine's (effect/requireSpawnBudget). */
 const SPAWNS_MS = 30_000;
 
 /** The fixture's film, by name. */

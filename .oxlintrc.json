@@ -379,7 +379,7 @@
     {
       // Over all of packages/film and apps/animations: a variadic logger handed
       // point-free to a callback passed an index prints the index after each
-      // line (packages/film/lint/no-point-free-log.ts).
+      // line (effect/noPointFreeLog).
       "files": [
         "**/packages/film/**/*.ts",
         "**/packages/film/**/*.tsx",
@@ -387,10 +387,25 @@
         "**/apps/animations/**/*.tsx"
       ],
       "rules": {
-        "film/no-point-free-log": "error",
+        "effect/noPointFreeLog": "error",
         // A comment says today's behaviour and its reason, never how the code
-        // got here (packages/film/lint/no-history-comment.ts).
-        "film/no-history-comment": "error"
+        // got here: a commit hash, "used to", and the loop's own forms (a pass
+        // number, a batch id, a ledger id). Every block that turns the rule on
+        // carries these same options (packages/film/lint/config.test.ts).
+        "effect/noHistoryComment": [
+          "error",
+          {
+            "history": "the ledger and git log",
+            "patterns": [
+              { "what": "a pass number", "pattern": "\\bpass(?:es)?[ -]\\d+\\b", "flags": "i" },
+              { "what": "a batch id", "pattern": "\\bp\\d+-[a-z][a-z0-9]*\\b" },
+              {
+                "what": "a ledger id",
+                "pattern": "\\b(?:GR|G|UR[23]?|DL3?|RS3?|SU3?|ST3?|US[23]?|SV[23]?|PSH?3?|ET3?|HC|H|PA|AA|UI3?|LS|PL|EA|NS|MC|OG3?|T|R[123](?:-[a-z]+)*)-\\d+[a-z]?\\b|\\bG\\d{1,2}\\b"
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -404,7 +419,20 @@
         "**/packages/atom-solid/**/*.tsx"
       ],
       "rules": {
-        "film/no-history-comment": "error"
+        "effect/noHistoryComment": [
+          "error",
+          {
+            "history": "the ledger and git log",
+            "patterns": [
+              { "what": "a pass number", "pattern": "\\bpass(?:es)?[ -]\\d+\\b", "flags": "i" },
+              { "what": "a batch id", "pattern": "\\bp\\d+-[a-z][a-z0-9]*\\b" },
+              {
+                "what": "a ledger id",
+                "pattern": "\\b(?:GR|G|UR[23]?|DL3?|RS3?|SU3?|ST3?|US[23]?|SV[23]?|PSH?3?|ET3?|HC|H|PA|AA|UI3?|LS|PL|EA|NS|MC|OG3?|T|R[123](?:-[a-z]+)*)-\\d+[a-z]?\\b|\\bG\\d{1,2}\\b"
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -1084,10 +1112,12 @@
       }
     },
     {
-      // A test that spawns a process declares its timeout (packages/film/lint/spawn-budget.ts).
+      // A test that spawns a process declares its timeout, at least the package's
+      // run default (`--timeout 20000`): a shorter one fails sooner than none
+      // (effect/requireSpawnBudget).
       "files": ["**/packages/film/**/*.test.ts"],
       "rules": {
-        "film/spawn-budget": "error"
+        "effect/requireSpawnBudget": ["error", { "minimum": 20000 }]
       }
     },
     {

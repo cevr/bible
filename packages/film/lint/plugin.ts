@@ -17,8 +17,6 @@ import { mediaThroughPlayer } from './media-through-player.ts';
 import { noCueRemap } from './no-cue-remap.ts';
 import { noEaseOnCue } from './no-ease-on-cue.ts';
 import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
-import { noHistoryComment } from './no-history-comment.ts';
-import { noPointFreeLog } from './no-point-free-log.ts';
 import { noReadOnce } from './no-read-once.ts';
 import { noTestSeam } from './no-test-seam.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
@@ -26,7 +24,6 @@ import { oneBreakpoint } from './one-breakpoint.ts';
 import { oneClockEpsilon } from './one-clock-epsilon.ts';
 import { pagesInCaseScope } from './pages-in-case-scope.ts';
 import { spanEndsOnAnchor } from './span-ends-on-anchor.ts';
-import { spawnBudget } from './spawn-budget.ts';
 import { touchesSerial } from './touches-serial.ts';
 
 export default Plugin.define({
@@ -45,8 +42,6 @@ export default Plugin.define({
     'no-cue-remap': noCueRemap,
     'no-ease-on-cue': noEaseOnCue,
     'no-hand-timed-seconds': noHandTimedSeconds,
-    'no-history-comment': noHistoryComment,
-    'no-point-free-log': noPointFreeLog,
     'no-read-once': noReadOnce,
     'no-test-seam': noTestSeam,
     'no-unprobed-ink': noUnprobedInk,
@@ -54,7 +49,6 @@ export default Plugin.define({
     'one-clock-epsilon': oneClockEpsilon,
     'pages-in-case-scope': pagesInCaseScope,
     'span-ends-on-anchor': spanEndsOnAnchor,
-    'spawn-budget': spawnBudget,
     'touches-serial': touchesSerial,
   },
 });

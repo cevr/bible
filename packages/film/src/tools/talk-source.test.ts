@@ -14,7 +14,7 @@ import { Talk } from '../core/talk.ts';
 import { collect } from './process.ts';
 import { commentsMoved, editMark, editStrikes, markMissed } from './talk-source.ts';
 
-/** The timeout of a test here that spawns (bunx oxfmt): a cold start's time is the machine's (film/spawn-budget). */
+/** The timeout of a test here that spawns (bunx oxfmt): a cold start's time is the machine's (effect/requireSpawnBudget). */
 const SPAWNS_MS = 30_000;
 
 /** The repo's root: oxfmt run from it formats with the repo's config, as a film's file is formatted. */

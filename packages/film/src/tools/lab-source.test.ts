@@ -26,7 +26,7 @@ import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
 import { echoPages, freshHere, noReview, noStudio, sceneFixture } from './testing.ts';
 
-/** The timeout of a test here that spawns (git): a cold start's time is the machine's (film/spawn-budget). */
+/** The timeout of a test here that spawns (git): a cold start's time is the machine's (effect/requireSpawnBudget). */
 const SPAWNS_MS = 30_000;
 
 /** The fixture's hand scene file. */
