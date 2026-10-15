@@ -110,6 +110,16 @@ class GuardRed extends Schema.TaggedError<GuardRed>()('GuardRed', {
   override readonly [Runtime.errorReported] = false;
 }
 
+/** The scratch worktree could not be made (a full disk, a base that is no commit): git's own words. */
+class NoTree extends Schema.TaggedError<NoTree>()('NoTree', {
+  base: Schema.String,
+  output: Schema.String,
+}) {
+  override get message() {
+    return `no scratch worktree of ${this.base}: ${this.output.trim()}`;
+  }
+}
+
 /** A command's output (stdout and stderr) and whether it exited 0. */
 const outcome = (command: string, args: ReadonlyArray<string>, cwd: string) =>
   Effect.gen(function* () {
@@ -136,8 +146,13 @@ const each = Effect.fn('mergeAudit.each')(function* (base: string) {
   const root = (yield* git(['rev-parse', '--show-toplevel'])).trim();
   const commits = lines(yield* git(['rev-list', '--reverse', `${base}..HEAD`]));
   const dir = path.join(yield* fs.makeTempDirectoryScoped({ prefix: 'merge-audit-each-' }), 'tree');
-  yield* Effect.acquireRelease(git(['worktree', 'add', '--detach', dir, `${base}^{commit}`]), () =>
-    Effect.ignore(git(['worktree', 'remove', '--force', dir])),
+  yield* Effect.acquireRelease(
+    Effect.flatMap(
+      outcome('git', ['worktree', 'add', '--detach', dir, `${base}^{commit}`], root),
+      ({ ok, output }) =>
+        Effect.when(Effect.fail(new NoTree({ base, output })), Effect.succeed(!ok)),
+    ),
+    () => Effect.ignore(git(['worktree', 'remove', '--force', dir])),
   );
   let lock = '';
   const red: Array<string> = [];
