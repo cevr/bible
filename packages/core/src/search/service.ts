@@ -58,6 +58,11 @@ import {
 } from './vector-artifact.js';
 import { primeVectorAccel, readyVectorAccel } from './vector-accel.js';
 import { scanVectorIndex, type VectorIndex } from './vector-index.js';
+import {
+  VectorNeighbors,
+  type NeighborScope,
+  type VectorNeighborsApi,
+} from './vector-neighbors.js';
 
 interface SearchServiceApi {
   /** One query, answered whole (§9). Never fails: every source degrades, and
@@ -426,28 +431,13 @@ const lexicalLeg = (
     ),
   );
 
-/** The scan options for one query: how many neighbors, and over which books.
- *
- *  No `allow` at all means the whole index. A book filter narrows to one code;
- *  the `egw` scope needs no filter, because §9.2 pins the index to exactly the
- *  EGW/White-Estate partition — every vector in it is already in scope. A
- *  `pioneer` scope has no vectors by construction and never reaches here.
- */
-const scanScope = (
-  allow: Option.Option<ReadonlySet<string>>,
-  candidates: number,
-): { readonly topK: number; readonly allow?: ReadonlySet<string> } =>
-  Option.match(allow, {
-    onNone: () => ({ topK: candidates }),
-    onSome: (codes) => ({ topK: candidates, allow: codes }),
-  });
-
 /** The vector leg, and every reason it might not run (§9.6).
  *
  *  The gates are in the order that costs least: the route and the wordiness
- *  check are free, the index read is a file read, and the embed is the ~100-400
- *  ms §9.5 measures. A query that fails an earlier gate never pays a later one —
- *  which is the whole point of §9.3's short-circuit sitting where it does.
+ *  check are free, the source's state was decided when it was built, and the
+ *  embed is the ~100-400 ms §9.5 measures. A query that fails an earlier gate
+ *  never pays a later one — which is the whole point of §9.3's short-circuit
+ *  sitting where it does.
  */
 const vectorLeg = (
   deps: SearchDeps,
@@ -457,7 +447,6 @@ const vectorLeg = (
   bookCode: Option.Option<string>,
   filter: CorpusFilter,
   candidates: number,
-  sources: SearchSources,
 ): Effect.Effect<{ readonly ids: readonly string[]; readonly status: VectorLegStatus }> =>
   Effect.gen(function* () {
     // §9.3: quoted and refcode routes are lexical-only. A reader who quoted a
@@ -468,44 +457,107 @@ const vectorLeg = (
     }
     if (!routed.wordy) return { ids: [], status: vectorUnavailable('route') };
     // §9.2 pins the index to the EGW/White-Estate partition, so a pioneer-scoped
-    // query has no vectors to scan. `absent` rather than a fifth reason: for
+    // query has no vectors to search. `absent` rather than a fifth reason: for
     // this query, in this scope, there is no index.
     if (scope === 'pioneer') return { ids: [], status: vectorUnavailable('absent') };
     // §9.3's short-circuit: a confident lexical top hit skips the embed
-    // entirely. Before the index read, because a precise query should never
-    // pay for the vector path at all.
+    // entirely, because a precise query should never pay for the vector path.
     if (isStrongLexicalHit(lexical.map((row) => row.score))) {
       return { ids: [], status: vectorUnavailable('short-circuit') };
     }
 
-    // Resolved once when the layer was built, not per query. Reading and
-    // parsing here meant every wordy query re-read the 246 MB artifact from
-    // disk and copied its vector region twice — the file adapter into a fresh
-    // `ArrayBuffer`, then the parser into a fresh `Int8Array`.
-    const loaded = deps.index;
-    if (loaded._tag === 'unavailable') return { ids: [], status: loaded.absence };
+    // Decided when the source was built, not per query: a host with no index,
+    // or one this build may not read, says so once.
+    const state = deps.neighbors.state;
+    if (state._tag === 'unavailable') return { ids: [], status: state.absence };
 
     const embedder = deps.embedder;
     if (Option.isNone(embedder)) return { ids: [], status: vectorUnavailable('embedder') };
     // §10: "a model-fingerprint mismatch invalidates the vector leg rather than
-    // returning wrong neighbors." The index and the embedder are installed and
+    // returning wrong neighbors." The vectors and the embedder are installed and
     // wired independently, so this is where they are made to agree.
-    if (embedder.value.fingerprint !== loaded.index.fingerprint) {
+    if (embedder.value.fingerprint !== state.fingerprint) {
       return { ids: [], status: vectorUnavailable('fingerprint') };
     }
 
-    // Which books the filter admits, resolved before the scan rather than
-    // after it. See `allowedBookCodes`.
-    const allow = yield* allowedBookCodes(sources, filter, bookCode);
-
-    return yield* scanWith(embedder.value, loaded.index, routed.text, allow, candidates);
+    return yield* nearestWith(embedder.value, deps.neighbors, routed.text, {
+      topK: candidates,
+      bookCode,
+      filter,
+    });
   });
+
+const nearestWith = (
+  embedder: QueryEmbedderApi,
+  neighbors: VectorNeighborsApi,
+  text: string,
+  scope: NeighborScope,
+): Effect.Effect<{ readonly ids: readonly string[]; readonly status: VectorLegStatus }> =>
+  Effect.gen(function* () {
+    // The two halves of `vectorMs`, separated. In production the leg swung
+    // between 167 ms and 1034 ms with no way to tell which half moved: the
+    // embed is a model forward pass and the search is a walk over an index,
+    // and they answer to completely different fixes. Logged rather than
+    // spanned because the deployed host has no OTLP collector wired yet, so a
+    // span would go nowhere.
+    const embedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+    const vector = yield* embedder.embedQuery(text);
+    const nearestAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+    const found = yield* neighbors.nearest(vector, scope);
+    const doneAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+    yield* Effect.logInfo('search.vector.timing').pipe(
+      Effect.annotateLogs({
+        embedMs: nearestAt - embedAt,
+        scanMs: doneAt - nearestAt,
+        scanned: found.scanned,
+        // Which engine answered, so a deployment that silently lost its
+        // accelerator is visible in the same line as the time it cost.
+        accel: found.engine,
+      }),
+    );
+    return {
+      ids: found.ids,
+      status: VectorLegRan.make({
+        fingerprint: embedder.fingerprint,
+        // What the source actually considered, not the size of the index it
+        // considered part of. A book-narrowed query touches one range, and
+        // reporting the index's count for it told the reader the whole corpus
+        // had been considered — see `VectorScan`.
+        scanned: found.scanned,
+      }) satisfies VectorLegStatus,
+    };
+  }).pipe(
+    Effect.catchTags({
+      // An adapter that declines at embed time — model file gone — is §9.6's
+      // `embedder` absence, the same value a host with no adapter reports. One
+      // reason for one reader-visible state.
+      'Search/QueryEmbedderUnavailable': () =>
+        Effect.succeed({
+          ids: [],
+          status: vectorUnavailable('embedder') satisfies VectorLegStatus,
+        }),
+      // A source that cannot answer this query is an index that, for this
+      // query, is not there. The lexical leg's answer stands.
+      'Search/VectorNeighborsUnavailable': (error) =>
+        Effect.logWarning('search.vector.degraded').pipe(
+          Effect.annotateLogs({ engine: error.engine, reason: error.reason }),
+          Effect.as({
+            ids: [],
+            status: vectorUnavailable('absent') satisfies VectorLegStatus,
+          }),
+        ),
+    }),
+  );
+
+// ---------------------------------------------------------------------------
+// The flat index as a `VectorNeighbors`
+// ---------------------------------------------------------------------------
 
 /** The book codes a filter admits, as an `allow` set for the scan.
  *
  *  The lexical leg pushes its filter into a `WHERE` and never sees an excluded
- *  row. The vector leg had no equivalent: it scanned the whole flat buffer and
- *  the *next* step (`vectorOnlyBodies`) dropped the rows the reader had filtered
+ *  row. The flat scan had no equivalent: it scanned the whole buffer and the
+ *  *next* step (`vectorOnlyBodies`) dropped the rows the reader had filtered
  *  out — so on the deployed corpus every wordy query scored 367,726 vectors
  *  whose results were then discarded. Measured on that corpus, resolving the
  *  set first takes the scan from 1078 ms to 523 ms.
@@ -518,18 +570,18 @@ const vectorLeg = (
  *  widen the scan, never silently narrow it. The post-scan filter in
  *  `vectorOnlyBodies` still holds, so correctness never depends on this. */
 const allowedBookCodes = (
-  sources: SearchSources,
-  filter: CorpusFilter,
-  bookCode: Option.Option<string>,
+  sourcing: SearchSourcing,
+  scope: NeighborScope,
 ): Effect.Effect<Option.Option<ReadonlySet<string>>> => {
-  if (Option.isSome(bookCode)) {
-    return Effect.succeedSome(new Set([bookCode.value]));
+  if (Option.isSome(scope.bookCode)) {
+    return Effect.succeedSome(new Set([scope.bookCode.value]));
   }
+  if (sourcing._tag === 'not-wired') return Effect.succeedNone;
   return Stream.runFold(
-    sources.paragraphs.getAllBooks,
+    sourcing.sources.paragraphs.getAllBooks,
     () => new Set<string>(),
     (codes: Set<string>, book) => {
-      if (bookMatchesFilter(book, filter)) codes.add(book.book_code);
+      if (bookMatchesFilter(book, scope.filter)) codes.add(book.book_code);
       return codes;
     },
   ).pipe(
@@ -543,66 +595,65 @@ const allowedBookCodes = (
   );
 };
 
-const scanWith = (
-  embedder: QueryEmbedderApi,
-  index: VectorIndex,
-  text: string,
+/** The scan options for one query: how many neighbors, and over which books.
+ *
+ *  No `allow` at all means the whole index. A book filter narrows to one code;
+ *  the `egw` scope needs no filter, because §9.2 pins the index to exactly the
+ *  EGW/White-Estate partition — every vector in it is already in scope. A
+ *  `pioneer` scope has no vectors by construction and never reaches here.
+ */
+const scanScope = (
   allow: Option.Option<ReadonlySet<string>>,
-  candidates: number,
-): Effect.Effect<{ readonly ids: readonly string[]; readonly status: VectorLegStatus }> =>
-  Effect.gen(function* () {
-    // The two halves of `vectorMs`, separated. In production the leg swung
-    // between 167 ms and 1034 ms with no way to tell which half moved: the
-    // embed is a model forward pass and the scan is a linear walk over the
-    // index, and they answer to completely different fixes. Logged rather than
-    // spanned because the deployed host has no OTLP collector wired yet, so a
-    // span would go nowhere.
-    const embedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
-    const vector = yield* embedder.embedQuery(text);
-    const scanAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
-    // Whatever tier has finished loading by now; `None` until then.
-    const accel = readyVectorAccel(index);
-    const scan = scanVectorIndex(index, vector, {
-      ...scanScope(allow, candidates),
-      ...Option.match(accel, {
-        onNone: () => ({}),
-        onSome: (ready) => ({ scoreRange: ready.scoreRange }),
-      }),
-    });
-    const doneAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
-    yield* Effect.logInfo('search.vector.timing').pipe(
-      Effect.annotateLogs({
-        embedMs: scanAt - embedAt,
-        scanMs: doneAt - scanAt,
-        scanned: scan.scanned,
-        // Which tier answered, so a deployment that silently lost its
-        // accelerator is visible in the same line as the time it cost.
-        accel: Option.match(accel, {
-          onNone: () => 'js',
-          onSome: (ready) => ready.kind,
-        }),
-      }),
-    );
+  topK: number,
+): { readonly topK: number; readonly allow?: ReadonlySet<string> } =>
+  Option.match(allow, {
+    onNone: () => ({ topK }),
+    onSome: (codes) => ({ topK, allow: codes }),
+  });
+
+/** A parsed `.bvi` index, scanned in memory, as the vector leg's source.
+ *
+ *  The index is *parsed* rather than a byte source: §9.5 budgets the vector leg
+ *  at ~100-400 ms for the embed, and re-reading and re-parsing a 246 MB
+ *  artifact inside that budget is not a cost the design ever intended. The
+ *  caller resolves it once and every query scans the same `Int8Array`. */
+const flatVectorNeighbors = (
+  index: LoadedVectorIndex,
+  sourcing: SearchSourcing,
+): VectorNeighborsApi => {
+  if (index._tag === 'unavailable') {
     return {
-      ids: scan.neighbors.map((neighbor) => neighbor.paragraphId),
-      status: VectorLegRan.make({
-        fingerprint: index.fingerprint,
-        // What the scan actually looked at, not the size of the index it
-        // looked at part of. A book-narrowed query touches one range, and
-        // reporting `index.count` for it told the reader the whole corpus had
-        // been considered — see `VectorScan`.
-        scanned: scan.scanned,
-      }) satisfies VectorLegStatus,
+      state: { _tag: 'unavailable', absence: index.absence },
+      nearest: () => Effect.succeed({ ids: [], scanned: 0, engine: 'none' }),
     };
-  }).pipe(
-    // An adapter that declines at embed time — model file gone —
-    // is §9.6's `embedder` absence, the same value a host with no adapter
-    // reports. One reason for one reader-visible state.
-    Effect.orElseSucceed(() => ({
-      ids: [],
-      status: vectorUnavailable('embedder') satisfies VectorLegStatus,
-    })),
-  );
+  }
+  const flat: VectorIndex = index.index;
+  return {
+    state: { _tag: 'ready', fingerprint: flat.fingerprint },
+    nearest: (vector, scope) =>
+      allowedBookCodes(sourcing, scope).pipe(
+        Effect.map((allow) => {
+          // Whatever tier has finished loading by now; `None` until then.
+          const accel = readyVectorAccel(flat);
+          const scan = scanVectorIndex(flat, vector, {
+            ...scanScope(allow, scope.topK),
+            ...Option.match(accel, {
+              onNone: () => ({}),
+              onSome: (ready) => ({ scoreRange: ready.scoreRange }),
+            }),
+          });
+          return {
+            ids: scan.neighbors.map((neighbor) => neighbor.paragraphId),
+            scanned: scan.scanned,
+            engine: Option.match(accel, {
+              onNone: () => 'js',
+              onSome: (ready) => ready.kind,
+            }),
+          };
+        }),
+      ),
+  };
+};
 
 /** §9.3's locate-jump: where a refcode query lands, when it lands anywhere.
  *
@@ -899,16 +950,10 @@ const primeAccel = (index: LoadedVectorIndex): void => {
   primeVectorAccel(index.index);
 };
 
-/** Everything one search reads, resolved.
- *
- *  `index` is the *parsed* index rather than the byte source: §9.5 budgets the
- *  vector leg at ~100-400 ms for the embed, and re-reading and re-parsing a
- *  246 MB artifact inside that budget is not a cost the design ever intended.
- *  The layer resolves it once and every query scans the same `Int8Array`.
- */
+/** Everything one search reads, resolved. */
 interface SearchDeps {
   readonly sourcing: SearchSourcing;
-  readonly index: LoadedVectorIndex;
+  readonly neighbors: VectorNeighborsApi;
   readonly embedder: Option.Option<QueryEmbedderApi>;
 }
 
@@ -966,7 +1011,6 @@ const makeQuery =
         input.bookCode,
         filter,
         candidates,
-        sources,
       ).pipe(Effect.withSpan('search.vector'));
       const vectorAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
 
@@ -1040,76 +1084,88 @@ const makeQuery =
       });
     });
 
+/** The flat `.bvi` index as this process's `VectorNeighbors`.
+ *
+ *  **Read and parsed exactly once per process.** §9.5's latency budget is for
+ *  the embed; re-reading a 246 MB file per query is two orders of magnitude
+ *  more work than the leg it feeds, and it scaled with query volume rather than
+ *  with corpus size. The layer is where a resource whose lifetime is the
+ *  runtime's belongs.
+ *
+ *  A host that already resolved the index hands it over through
+ *  `ResolvedVectorIndex` rather than making this layer re-read it. That is the
+ *  CLI's case: `search-layer.ts` has to parse the file to decide whether it is
+ *  one this build may scan, and before this seam existed it then passed the
+ *  *byte source* down and paid for a second full read and parse at startup
+ *  (round-2 F8). Absent means no host pre-resolved anything, and the bytes are
+ *  read here.
+ *
+ *  It cannot fail: `loadVectorIndex` maps every fault onto §9.6's typed
+ *  absence, so a host whose index is missing, truncated or foreign still builds
+ *  a working lexical-only search.
+ */
+const layerFlatVectorNeighbors: Layer.Layer<
+  VectorNeighbors,
+  never,
+  SearchCorpusSources | VectorIndexBytes
+> = Layer.effect(
+  VectorNeighbors,
+  Effect.gen(function* () {
+    const sourcing = yield* SearchCorpusSources;
+    const bytes = yield* VectorIndexBytes;
+    const resolved = yield* Effect.serviceOption(ResolvedVectorIndex);
+    const index = yield* Option.match(resolved, {
+      onSome: (value) => Effect.succeed(value),
+      onNone: () => loadVectorIndex.pipe(Effect.provideService(VectorIndexBytes, bytes)),
+    });
+    yield* Effect.logInfo('search.vectorIndex.resolved').pipe(
+      Effect.annotateLogs(vectorIndexLogFields(index)),
+    );
+    // Start resolving the SIMD tier, and do not wait for it.
+    //
+    // Loading it is asynchronous host work — a `dlopen` or a
+    // `WebAssembly.instantiate` — and `query` has to stay runnable with
+    // `Effect.runSync`: hosts do that, and so does the golden-route suite.
+    // Yielding here would make the whole layer asynchronous and break them. The
+    // first queries answer from the TypeScript loop; every one after the tier
+    // lands is accelerated.
+    primeAccel(index);
+    return VectorNeighbors.of(flatVectorNeighbors(index, sourcing));
+  }),
+);
+
 export class SearchService extends Context.Service<SearchService, SearchServiceApi>()(
   '@bible/core/search/SearchService',
 ) {
-  /** Backed by the two corpora §9 reads and the optional index bytes.
+  /** Backed by the two corpora §9 reads and whatever answers the vector leg.
    *
    *  `QueryEmbedder` is deliberately *not* in the requirements: it is read with
    *  `Effect.serviceOption`, because §9.5 makes a host with no embedder a legal
-   *  client rather than a broken composition.
-   *  `VectorIndexBytes` *is* required, and `VectorIndexBytes.None` is how a host
-   *  says it ships no index. Absence-by-decision and absence-by-omission again.
+   *  client rather than a broken composition. `VectorNeighbors` *is* required,
+   *  and a source whose state is `unavailable` is how a host says it has no
+   *  vectors. Absence-by-decision and absence-by-omission again.
    */
-  static Live: Layer.Layer<SearchService, never, SearchCorpusSources | VectorIndexBytes> =
+  static layer: Layer.Layer<SearchService, never, SearchCorpusSources | VectorNeighbors> =
     Layer.effect(
       SearchService,
       Effect.gen(function* () {
-        const sourcing = yield* SearchCorpusSources;
-        const bytes = yield* VectorIndexBytes;
-        // **Read and parsed exactly once per process.** §9.5's latency budget is
-        // for the embed; re-reading a 246 MB file per query is two orders of
-        // magnitude more work than the leg it feeds, and it scaled with query
-        // volume rather than with corpus size. The layer is where a resource
-        // whose lifetime is the runtime's belongs.
-        //
-        // A host that already resolved the index hands it over through
-        // `ResolvedVectorIndex` rather than making this layer re-read it. That
-        // is the CLI's case: `search-layer.ts` has to parse the file to decide
-        // whether it is one this build may scan, and before this seam existed it
-        // then passed the *byte source* down and paid for a second full read and
-        // parse at startup (round-2 F8). Absent means no host pre-resolved
-        // anything, and the bytes are read here.
-        //
-        // It cannot fail: `loadVectorIndex` maps every fault onto §9.6's typed
-        // absence, so a host whose index is missing, truncated or foreign still
-        // builds a working lexical-only `SearchService`.
-        const resolved = yield* Effect.serviceOption(ResolvedVectorIndex);
-        const index = yield* Option.match(resolved, {
-          onSome: (value) => Effect.succeed(value),
-          onNone: () => loadVectorIndex.pipe(Effect.provideService(VectorIndexBytes, bytes)),
-        });
-        yield* Effect.logInfo('search.vectorIndex.resolved').pipe(
-          Effect.annotateLogs(vectorIndexLogFields(index)),
-        );
         // Everything resolved while the layer builds, and passed as values
         // rather than read from context inside `query`.
         // `SearchServiceApi.query` returns an `Effect` with no requirements, so
         // everything the pipeline needs has to be closed over here.
-        //
-        // The embedder is an *option*, because §9.5 makes a host with no
-        // adapter a legal client rather than a broken composition.
-        // `Effect.serviceOption` is how that stays expressible without putting
-        // `QueryEmbedder` in the layer's requirements, where it would make
-        // every host wire one.
+        const sourcing = yield* SearchCorpusSources;
+        const neighbors = yield* VectorNeighbors;
         const embedder = yield* Effect.serviceOption(QueryEmbedder);
-        // The SIMD dot product, resolved here for the same reason the index is:
-        // loading it is host work — a `dlopen` or a `WebAssembly.instantiate` —
-        // and doing it inside `query` made the whole search path asynchronous.
-        // That is not merely slower; it broke every caller that runs a search
-        // with `Effect.runSync`, which the golden-route suite does.
-        // Start resolving the SIMD tier, and do not wait for it.
-        //
-        // Loading it is asynchronous host work, and `query` has to stay
-        // runnable with `Effect.runSync` — hosts do that, and so does the
-        // golden-route suite. Yielding here would make the whole layer
-        // asynchronous and break them. The first queries answer from the
-        // TypeScript loop; every one after the tier lands is accelerated.
-        primeAccel(index);
-        const run = makeQuery({ sourcing, index, embedder });
+        const run = makeQuery({ sourcing, neighbors, embedder });
         return SearchService.of({
           query: Effect.fn('SearchService.query')(run),
         });
       }),
     );
+
+  /** `layer` over the flat `.bvi` index, read from `VectorIndexBytes` (or a
+   *  `ResolvedVectorIndex` a host already parsed). `VectorIndexBytes.None` is
+   *  how a host says it ships no index. */
+  static Live: Layer.Layer<SearchService, never, SearchCorpusSources | VectorIndexBytes> =
+    SearchService.layer.pipe(Layer.provide(layerFlatVectorNeighbors));
 }
