@@ -30,7 +30,7 @@ import {
   Record as Rec,
   Result,
 } from 'effect';
-import type { HttpPlatform } from 'effect/http';
+import type { HttpPlatform, HttpServerRequest } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi, type MarksPost, type TalkWordsPost } from '../core/api.ts';
 import { SourceRefused, StagingTakeUnknown, StillUnknown } from '../core/refusals.ts';
@@ -376,6 +376,18 @@ const talkGroup = HttpApiBuilder.group(LabHttpApi, 'talk', (handlers) =>
 const SCRIPTS_KEPT = 8;
 
 /**
+ * A staging take's audio, `file` as the staging cache names it
+ * (`audioNamed`: a name, never a path), else StagingTakeUnknown. Named by
+ * its request's key, a take's audio never changes.
+ */
+const stagingTakeAnswer = (request: HttpServerRequest.HttpServerRequest, file: string) =>
+  Effect.gen(function* () {
+    const found = yield* (yield* StagingCache).audioNamed(file);
+    if (Option.isNone(found)) return yield* StagingTakeUnknown.make({ file });
+    return yield* serveFile(request, found.value, CACHE.hashed);
+  });
+
+/**
  * The film's script as the Script page reads it beside the staged film:
  * each beat's picture and sources, read fresh (`FreshFilm.script`) and kept
  * under the film's source stamp, so a brief fixed while the lab is open is
@@ -408,15 +420,7 @@ const scriptGroup = HttpApiBuilder.group(LabHttpApi, 'script', (handlers) =>
         ),
       )
       .handle('take', ({ params, request }) =>
-        answered(
-          Effect.gen(function* () {
-            yield* filmNamed(params.film);
-            const found = yield* (yield* StagingCache).audioNamed(params.file);
-            if (Option.isNone(found)) return yield* StagingTakeUnknown.make({ file: params.file });
-            // Named by its request's key, a take's audio never changes.
-            return yield* serveFile(request, found.value, CACHE.hashed);
-          }),
-        ),
+        answered(Effect.andThen(filmNamed(params.film), stagingTakeAnswer(request, params.file))),
       )
       .handle('marks', ({ params, payload }) => marksWrite(params.film, payload));
   }),
@@ -472,13 +476,10 @@ const seriesGroup = HttpApiBuilder.group(LabHttpApi, 'series', (handlers) =>
     )
     .handle('take', ({ params, request }) =>
       answered(
-        Effect.gen(function* () {
-          yield* (yield* SeriesDrafts).read(params.series, params.draft);
-          const found = yield* (yield* StagingCache).audioNamed(params.file);
-          if (Option.isNone(found)) return yield* StagingTakeUnknown.make({ file: params.file });
-          // Named by its request's key, a take's audio never changes.
-          return yield* serveFile(request, found.value, CACHE.hashed);
-        }),
+        Effect.andThen(
+          Effect.flatMap(SeriesDrafts, (drafts) => drafts.read(params.series, params.draft)),
+          stagingTakeAnswer(request, params.file),
+        ),
       ),
     )
     .handle('marks', ({ params, payload }) =>
