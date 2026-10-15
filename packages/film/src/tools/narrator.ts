@@ -73,8 +73,10 @@ import type { TalkUnvoiced } from './errors.ts';
 import { Media } from './media.ts';
 import { settleAll } from './settle.ts';
 import {
+  type Made,
   type StagedTake,
   StagingCache,
+  audioName,
   type StagingAsk,
   type StagingRequest,
   stagingRequest,
@@ -535,13 +537,11 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
       };
 
       /**
-       * A staging take made for `ask`: read as its request says, transcribed
-       * back, each hold's gap set to its seconds (`holdsIn`) and the silence
-       * after the last word trimmed (`trimTail`). A take either changed is a
-       * FLAC of what ElevenLabs sent (never re-encoded lossy), else its MP3.
-       * Made in a folder of its own, gone with it however it ends.
+       * A reading made for `ask`, as ElevenLabs sent it: read as its request
+       * says, transcribed back, and timed. Made in a folder of its own, gone
+       * with it however it ends.
        */
-      const make = Effect.fn('Narrator.make')(function* (
+      const readAloud = Effect.fn('Narrator.readAloud')(function* (
         ask: StagingAsk,
         request: StagingRequest,
         heardAs: HeardAs,
@@ -587,40 +587,60 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         yield* Effect.log(
           `narrate.take id=${beat.id} words=${words.length} lines=${beat.lines.length} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}% chars=${request.characters}`,
         );
-        const sent = yield* media.decode(take);
-        const inside = heldInside(words, duration);
-        const edits = holdsIn(inside, request.compiled.holds);
-        const kept = yield* Option.match(editedTake(sent, edits), {
-          onNone: () => Effect.succeed({ bytes: audio, ext: '.mp3', secs: duration, pcm: sent }),
+        const pcm = yield* media.decode(take);
+        return {
+          take: {
+            file: audioName(audio, '.mp3'),
+            duration,
+            words: voicedWords(heldInside(words, duration), pcm),
+            heard: heard.text,
+            wer,
+            characters: request.characters,
+            at: yield* Clock.currentTimeMillis,
+          },
+          audio,
+        } satisfies Made;
+      });
+
+      /**
+       * The take a reading makes: each hold's gap set to its seconds
+       * (`holdsIn`) and the silence after the last word trimmed (`trimTail`),
+       * here, with nothing sent. A take either changed is a FLAC of what
+       * ElevenLabs sent (never re-encoded lossy), else the reading itself.
+       */
+      const takeFrom = Effect.fn('Narrator.takeFrom')(function* (
+        ask: StagingAsk,
+        request: StagingRequest,
+        reading: Made,
+      ) {
+        const sent = yield* media.decode(cache.audioOf(reading.take));
+        const edits = holdsIn(reading.take.words, request.compiled.holds);
+        return yield* Option.match(editedTake(sent, edits), {
+          onNone: () => Effect.succeed(reading),
           onSome: (pcm) =>
             Effect.gen(function* () {
               const secs = pcm.frames / pcm.rate;
               yield* Effect.log(
-                `narrate.edited id=${beat.id} holds=${edits.length} secs=${secs.toFixed(2)}`,
+                `narrate.edited id=${ask.beat.id} holds=${edits.length} secs=${secs.toFixed(2)}`,
               );
-              return { bytes: yield* media.encodeFlac(pcm), ext: '.flac', secs, pcm };
+              const audio = yield* media.encodeFlac(pcm);
+              const take: StagedTake = {
+                ...reading.take,
+                file: audioName(audio, '.flac'),
+                duration: secs,
+                // Where each word is heard, read from the take as it will be mixed.
+                words: voicedWords(heldInside(shiftedBy(reading.take.words, edits), secs), pcm),
+              };
+              return { take, audio } satisfies Made;
             }),
         });
-        const at = yield* Clock.currentTimeMillis;
-        return {
-          take: {
-            file: `${request.key}${kept.ext}`,
-            duration: kept.secs,
-            // Where each word is heard, read from the take as it will be mixed.
-            words: voicedWords(heldInside(shiftedBy(inside, edits), kept.secs), kept.pcm),
-            heard: heard.text,
-            wer,
-            characters: request.characters,
-            at,
-          },
-          audio: kept.bytes,
-        };
       });
 
       /**
        * The staging take for `ask`: the cache's, when it keeps one `reuse`
-       * accepts, else made now, the day charged for it first (past the cap it
-       * is refused and nothing is sent) and kept in the cache.
+       * accepts; else made from its reading, the cache's when it keeps one
+       * `reuse` accepts, else read now, the day charged for it first (past
+       * the cap it is refused and nothing is sent). Both are kept.
        */
       const stage = Effect.fn('Narrator.stage')(function* (
         ask: StagingAsk,
@@ -637,13 +657,21 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
             cached: true,
           };
         }
-        yield* cache.charge(request.characters);
-        const made = yield* make(ask, request, heardAs).pipe(Effect.scoped);
-        yield* cache.put(request.key, made.take, made.audio);
-        yield* Effect.log(
-          `staging.voiced id=${ask.beat.id} chars=${request.characters} take=${request.key.slice(0, 12)}`,
+        const reading = yield* cache.reading(
+          request.sent,
+          reuse,
+          Effect.andThen(
+            cache.charge(request.characters),
+            readAloud(ask, request, heardAs).pipe(Effect.scoped),
+          ),
         );
-        return { ...made, cached: false };
+        const made = yield* takeFrom(ask, request, reading);
+        yield* cache.put(request.key, made.take, made.audio);
+        if (!reading.cached)
+          yield* Effect.log(
+            `staging.voiced id=${ask.beat.id} chars=${request.characters} take=${request.key.slice(0, 12)}`,
+          );
+        return { ...made, cached: reading.cached };
       });
 
       const recordBeat = Effect.fn('Narrator.recordBeat')(function* (

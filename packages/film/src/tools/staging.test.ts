@@ -14,7 +14,7 @@ import type { Cast, Reader } from '../core/schema.ts';
 import { stagingVoice } from '../core/staging-voice.ts';
 import type { ReadBeat } from '../core/studio.ts';
 import { Narrator } from './narrator.ts';
-import { StagingCache, stagingRequest } from './staging.ts';
+import { StagingCache, audioName, stagingRequest } from './staging.ts';
 import {
   type ElevenLabsCalls,
   emptyCalls,
@@ -103,6 +103,20 @@ describe('stagingRequest', () => {
     expect(request.speech.request.text).toBe('Not by works. <break time="1.5s" /> By faith.');
     expect(request.speech.request.previousText).toBe('Before.');
     expect(request.key).not.toBe(stagingRequest({ ...ask, next: 'Else.' }).key);
+  });
+
+  test('a hold’s seconds change the take’s key, not the reading’s: v4 is sent the same', () => {
+    const base = { beat: marked, voice: stagingVoice, previous: '', next: '' };
+    const longer = stagingRequest({
+      ...base,
+      beat: beat(marked.text, [
+        { _tag: 'Hold', before: 3, seconds: 2 },
+        { _tag: 'Stress', word: 4 },
+      ]),
+    });
+    const first = stagingRequest(base);
+    expect(longer.sent).toBe(first.sent);
+    expect(longer.key).not.toBe(first.key);
   });
 });
 
@@ -210,6 +224,64 @@ describe('Narrator.stage', () => {
       yield* TestClock.adjust('1 day');
       const next = yield* narrator.stage(other, {});
       expect(next.cached).toBe(false);
+    }).pipe(Effect.provide(layer));
+  });
+
+  it.effect(
+    'a hold’s seconds changed sets them again in the same reading, sending and charging nothing',
+    () => {
+      const { calls, layer } = staging(1000);
+      return Effect.gen(function* () {
+        const narrator = yield* Narrator;
+        const first = yield* narrator.stage(ask, {});
+        const longer = yield* narrator.stage(
+          {
+            ...ask,
+            beat: beat(marked.text, [
+              { _tag: 'Hold', before: 3, seconds: 2.5 },
+              { _tag: 'Stress', word: 4 },
+            ]),
+          },
+          {},
+        );
+        expect(longer.cached).toBe(true);
+        expect(calls.dialogue).toHaveLength(1);
+        expect((yield* (yield* StagingCache).today).spent).toBe(first.take.characters);
+        const [, , works, by] = longer.take.words;
+        expect((by?.start ?? 0) - (works?.end ?? 0)).toBeCloseTo(2.5);
+        expect(longer.take.file).not.toBe(first.take.file);
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    'a take’s audio is named by its bytes: a reading made afresh is a new name, the old one kept',
+    () => {
+      const { files, layer } = staging(1000);
+      return Effect.gen(function* () {
+        const narrator = yield* Narrator;
+        const plain = { ...ask, beat: beat('Not by works.') };
+        const first = yield* narrator.stage(plain, {});
+        const again = yield* narrator.stage(plain, {}, () => false);
+        expect(again.cached).toBe(false);
+        expect(first.take.file).toBe(audioName(first.audio, '.mp3'));
+        expect(again.take.file).toBe(audioName(again.audio, '.mp3'));
+        expect(again.take.file).not.toBe(first.take.file);
+        expect(files.get(`/staging/takes/${first.take.file}`)).toEqual(first.audio);
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
+  it.effect('two asking for one reading at once make it once, and are charged once', () => {
+    const { calls, layer } = staging(1000);
+    return Effect.gen(function* () {
+      const narrator = yield* Narrator;
+      const [a, b] = yield* Effect.all([narrator.stage(ask, {}), narrator.stage(ask, {})], {
+        concurrency: 2,
+      });
+      expect(calls.dialogue).toHaveLength(1);
+      expect([a?.take.file, a?.cached || b?.cached]).toEqual([b?.take.file, true]);
+      expect((yield* (yield* StagingCache).today).spent).toBe(a?.take.characters);
     }).pipe(Effect.provide(layer));
   });
 });

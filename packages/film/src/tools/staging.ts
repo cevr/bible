@@ -1,10 +1,14 @@
 // Staging takes, kept by what was asked for: a beat's line compiled with its
 // delivery marks for its voice and model (`core/delivery.ts`) is one request,
-// and the take that request made is kept in a cache outside every film's
-// narration, under the SHA-256 of the request. The same words, marks, voice
-// and model never cost a second time, whoever asks (the lab's reader keeping
-// a take ready, or `film narrate` making a film's take current), and a
-// person's take is never touched: the cache holds staging takes only.
+// and what it made is kept in a cache outside every film's narration, twice:
+// the reading, as ElevenLabs sent it, under the SHA-256 of what was sent, and
+// the take, that reading with each hold set in it, under the SHA-256 of both.
+// The same words, marks, voice and model never cost a second time, whoever
+// asks (the lab's reader keeping a take ready, or `film narrate` making a
+// film's take current), nor does a hold's seconds changed, and two asking at
+// once make one reading. Audio is kept under the SHA-256 of its bytes, so a
+// name never comes to hold other audio. A person's take is never touched:
+// the cache holds staging takes only.
 //
 // Every request is charged before it is sent, against a cap on the day's
 // characters (`FILM_STAGING_DAILY_CAP`, 100,000 by default): past it a take
@@ -18,12 +22,15 @@ import {
   Config,
   Context,
   DateTime,
+  Duration,
   Effect,
   FileSystem,
   Layer,
   Option,
   Path,
+  Predicate,
   Result,
+  Schedule,
   Schema,
 } from 'effect';
 import { type Compiled, compileDelivery, sentText } from '../core/delivery.ts';
@@ -36,8 +43,16 @@ import { ContentStore, type Manifest, type StoreError } from './content-store.ts
 import { sha256Hex } from './digest.ts';
 import { type DialogueRequest, type TtsRequest, sendsNeighbours } from './elevenlabs.ts';
 
-/** A kept take's audio, as the cache names it: its request's key and its kind. */
+/** A kept take's audio, as the cache names it: the SHA-256 of its bytes and its kind. */
 const TAKE_AUDIO = /^[0-9a-f]{64}\.(?:mp3|flac)$/;
+
+/**
+ * The name a take's audio is kept under: the SHA-256 of its bytes, so a
+ * name always holds the same audio (the lab serves it as immutable) and a
+ * reading made afresh is a new name, never the old one overwritten.
+ */
+export const audioName = (audio: Uint8Array, ext: '.mp3' | '.flac'): string =>
+  `${sha256Hex(audio)}${ext}`;
 
 /** The characters a day may spend on staging takes when `FILM_STAGING_DAILY_CAP` names none. */
 const STAGING_DAILY_CAP = 100_000;
@@ -64,7 +79,9 @@ export interface StagingRequest {
   readonly compiled: Compiled;
   /** The characters ElevenLabs counts: every character of the text sent. */
   readonly characters: number;
-  /** The SHA-256 of everything the take depends on: the cache's key. */
+  /** The SHA-256 of what is sent: the reading ElevenLabs makes, and what it costs, kept under it. */
+  readonly sent: string;
+  /** The SHA-256 of everything the take depends on (what is sent, and each hold set in it after): the take's key. */
   readonly key: string;
 }
 
@@ -110,7 +127,7 @@ const dialogueRequest = (
     speech: { _tag: 'Dialogue', request: { lines, cast } },
     compiled,
     characters: lines.reduce((sum, l) => sum + l.text.length, 0),
-    key: keyOf({
+    ...keysOf(compiled, {
       op: 'dialogue',
       model: cast.model,
       settings: settingsKey(cast.settings),
@@ -150,7 +167,7 @@ const speechRequest = (
     },
     compiled,
     characters: text.length,
-    key: keyOf({
+    ...keysOf(compiled, {
       op: 'tts',
       model: reader.model,
       settings: settingsKey(settings),
@@ -184,13 +201,27 @@ const RequestKey = Schema.fromJsonString(
 const settingsKey = (settings: Readonly<Record<string, number>>) =>
   Object.entries(settings).toSorted(([a], [b]) => a.localeCompare(b));
 
-/** The key of a request: the SHA-256 of its fields, under the cache's version. */
-const keyOf = (request: typeof RequestKey.Type): string =>
-  sha256Hex(`staging/1 ${Schema.encodeSync(RequestKey)(request)}`);
+/** The holds set in a take, as its key has them: each gap's word and seconds, in order. */
+const HoldsKey = Schema.fromJsonString(Schema.Array(Schema.Tuple([Schema.Int, Schema.Finite])));
+
+/**
+ * A request's two keys, under the cache's version: `sent`, the SHA-256 of
+ * what is sent (the reading), and `key`, of the reading with each hold set
+ * in it after (the take). Holds stand apart because v4 and v3 are sent one
+ * `[pause]` for every pause: a hold's seconds changed is the same reading,
+ * set again, at no cost.
+ */
+const keysOf = (compiled: Compiled, request: typeof RequestKey.Type) => {
+  const sent = sha256Hex(`staging/2 sent ${Schema.encodeSync(RequestKey)(request)}`);
+  const holds = compiled.holds
+    .map((h) => [h.before, h.seconds] as const)
+    .toSorted(([a], [b]) => a - b);
+  return { sent, key: sha256Hex(`staging/2 take ${sent} ${Schema.encodeSync(HoldsKey)(holds)}`) };
+};
 
 /** A staging take as the cache keeps it: the take narrate would keep, ready to hear or make current. */
 export const StagedTake = Schema.Struct({
-  /** Its audio's name in the cache: `<key>.mp3`, or `.flac` once a hold or the tail was set in it. */
+  /** Its audio's name in the cache (`audioName`): an `.mp3` as sent, or a `.flac` once a hold or the tail was set in it. */
   file: Schema.String,
   duration: Seconds,
   words: Schema.Array(TakeWord),
@@ -241,6 +272,18 @@ const charged = (
   return Result.succeed({ days: { ...Object.fromEntries(kept), [day]: spent + characters } });
 };
 
+/** A take and its audio, as made. */
+export interface Made {
+  readonly take: StagedTake;
+  readonly audio: Uint8Array;
+}
+
+/** A take and its audio, and whether the cache kept it already. */
+type Reading = Made & { readonly cached: boolean };
+
+/** How long a reading's second asker waits for the first's: a reading takes seconds, its lock's tries a few. */
+const READING_WAIT = { times: 60, every: Duration.seconds(1) } as const;
+
 interface StagingCacheService {
   /** The take a request made, when the cache holds it and its audio. */
   readonly get: (key: string) => Effect.Effect<Option.Option<StagedTake>, StoreError>;
@@ -250,6 +293,17 @@ interface StagingCacheService {
     take: StagedTake,
     audio: Uint8Array,
   ) => Effect.Effect<void, StoreError>;
+  /**
+   * The reading `sent` names (a take as ElevenLabs sent it): the cache's,
+   * when it keeps one `reuse` accepts, else `make`'s, kept. One maker at a
+   * time for a reading, across processes: whoever asks second waits its
+   * turn, then finds the first's and makes nothing, spends nothing.
+   */
+  readonly reading: <E, R>(
+    sent: string,
+    reuse: (take: StagedTake) => boolean,
+    make: Effect.Effect<Made, E, R>,
+  ) => Effect.Effect<Reading, E | StoreError, R>;
   /** Where a kept take's audio is. */
   readonly audioOf: (take: StagedTake) => string;
   /** Where the audio a take names as `file` is, when the cache keeps it: none for any other name. */
@@ -312,6 +366,37 @@ export class StagingCache extends Context.Service<StagingCache, StagingCacheServ
           yield* store.update(record(key), () => Option.some(take));
         });
 
+        const reading = <E, R>(
+          sent: string,
+          reuse: (take: StagedTake) => boolean,
+          make: Effect.Effect<Made, E, R>,
+        ) =>
+          store
+            .transact(record(sent), (current) =>
+              Effect.gen(function* () {
+                // Read under the reading's lock: one made while this one waited is found.
+                const kept = Option.filter(current, reuse);
+                if (Option.isSome(kept) && (yield* fs.exists(audioOf(kept.value)))) {
+                  const audio = yield* fs.readFile(audioOf(kept.value));
+                  const found: Reading = { take: kept.value, audio, cached: true };
+                  return [found, current] as const;
+                }
+                const made = yield* make;
+                yield* fs.makeDirectory(takes, { recursive: true });
+                yield* store.writeFile(audioOf(made.take), made.audio);
+                const read: Reading = { ...made, cached: false };
+                return [read, Option.some(made.take)] as const;
+              }),
+            )
+            .pipe(
+              Effect.retry({
+                while: (error) => Predicate.isTagged(error, 'StoreLocked'),
+                times: READING_WAIT.times,
+                schedule: Schedule.spaced(READING_WAIT.every),
+              }),
+              Effect.withSpan('StagingCache.reading'),
+            );
+
         const charge = Effect.fn('StagingCache.charge')(function* (characters: number) {
           const today = yield* day;
           yield* fs.makeDirectory(dir, { recursive: true });
@@ -331,7 +416,7 @@ export class StagingCache extends Context.Service<StagingCache, StagingCacheServ
           return { day: d, spent: spend.days[d] ?? 0, cap };
         });
 
-        return StagingCache.of({ get, put, audioOf, audioNamed, charge, today });
+        return StagingCache.of({ get, put, reading, audioOf, audioNamed, charge, today });
       }),
     );
 

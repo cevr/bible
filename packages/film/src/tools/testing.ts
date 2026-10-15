@@ -808,6 +808,7 @@ export const noStaging = Layer.mergeAll(
     StagingCache.of({
       get: () => unstaged,
       put: () => unstaged,
+      reading: () => unstaged,
       audioOf: () => '',
       audioNamed: () => unstaged,
       charge: () => unstaged,
