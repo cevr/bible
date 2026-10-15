@@ -1,6 +1,8 @@
 // What a fixture reports to its test: lines pushed to `window.__log`, read by
 // the harness's `logOf`, and the URL params the test opened the page with.
-const store = window as unknown as { __log: Array<string> };
+// It loads on the server too (a hydrated fixture's server render), where it
+// keeps the lines on `globalThis` and reads no params.
+const store = globalThis as unknown as { __log: Array<string> };
 store.__log = [];
 
 export const log = (line: string): void => {

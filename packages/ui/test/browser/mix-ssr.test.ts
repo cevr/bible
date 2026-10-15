@@ -2,58 +2,29 @@
 // `mix-ssr-parity.test.tsx`): the attributes prop mixins give an element are
 // the same in the server's markup as in the browser's DOM; the ref factories,
 // made in the body, are made on both sides, and the server calls no ref
-// callback and runs no `onElement` setup. The server half is
-// compiled by Solid's compiler for its server build (`fixtures/mix-server.tsx`);
-// the browser half is the `parity` fixture. Both are read by the same parser:
-// the server's markup is parsed in the page.
+// callback and runs no `onElement` setup. The server half is compiled by
+// Solid's compiler for its server build (`fixtures/mix-server.tsx`, built by
+// the harness's `buildServer`); the browser half is the `parity` fixture.
+// Both are read by the same parser: the server's markup is parsed in the page.
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 
-import { transform } from '@solidjs/compiler';
 import type { Page } from '@playwright/test';
-import type { BunPlugin } from 'bun';
 
 import type * as ServerEntry from './fixtures/mix-server.tsx';
-import { harness, logOf } from './harness.ts';
+import { buildServer, harness, logOf, type ServerBuild } from './harness.ts';
 
 const h = harness('mix.tsx');
 
-const solidServer: BunPlugin = {
-  name: 'solid-ssr',
-  setup(build) {
-    build.onLoad({ filter: /\.tsx$/ }, async (args) => {
-      const code = await Bun.file(args.path).text();
-      const out = transform(code, {
-        filename: args.path,
-        generate: 'ssr',
-        moduleName: '@solidjs/web',
-      });
-      return { contents: out.code, loader: 'ts' };
-    });
-  },
-};
-
-let outdir: string;
+let build: ServerBuild<typeof ServerEntry>;
 let server: typeof ServerEntry;
 
 beforeAll(async () => {
-  outdir = await mkdtemp(`${tmpdir()}/ui-mix-ssr-`);
-  const output = await Bun.build({
-    entrypoints: [`${import.meta.dir}/fixtures/mix-server.tsx`],
-    plugins: [solidServer],
-    target: 'bun',
-    outdir,
-  });
-  if (!output.success) {
-    throw new Error(output.logs.map(String).join('\n'));
-  }
-  const built: typeof ServerEntry = await import(`${outdir}/mix-server.js`);
-  server = built;
+  build = await buildServer(`${import.meta.dir}/fixtures/mix-server.tsx`);
+  server = build.module;
 });
 
 afterAll(async () => {
-  await rm(outdir, { recursive: true, force: true });
+  await build.dispose();
 });
 
 /** The markers Solid's server build adds for hydration: not attributes a mixin gives. */
