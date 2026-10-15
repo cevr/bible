@@ -1,6 +1,7 @@
 // Server-render parity of the behaviour mixins (after Remix's
 // `mix-ssr-parity.test.tsx`): the attributes prop mixins give an element are
-// the same in the server's markup as in the browser's DOM; the ref factories,
+// the same in the server's markup as in the browser's DOM, and so are a
+// toggle group's toggles', its tab stop on the pressed one; the ref factories,
 // made in the body, are made on both sides, and the server calls no ref
 // callback and runs no `onElement` setup. The server half is compiled by
 // Solid's compiler for its server build (`fixtures/mix-server.tsx`, built by
@@ -61,13 +62,6 @@ const attributesIn = (
     [html, ids, HYDRATION_MARKERS] as const,
   );
 
-/** The attributes the button mixin gives a toggle (its `tabindex` is the toggle group's). */
-const buttonAttributes = (attributes: Record<string, string> | undefined) => ({
-  type: attributes?.['type'],
-  role: attributes?.['role'],
-  'aria-pressed': attributes?.['aria-pressed'],
-});
-
 describe('mix server-render parity', () => {
   it("renders a prop mixin's attributes the same on the server as in the browser", async () => {
     const page = await h.open('parity');
@@ -88,12 +82,21 @@ describe('mix server-render parity', () => {
       style: 'color: red; margin: 1px;',
     });
     for (const id of ['one', 'two']) {
-      expect(buttonAttributes(served[id])).toEqual(buttonAttributes(client[id]));
+      expect(served[id]).toEqual(client[id]);
     }
-    expect(buttonAttributes(client['two'])).toEqual({
+    expect(client['one']).toEqual({
+      id: 'one',
       type: 'button',
-      role: undefined,
+      'aria-pressed': 'false',
+      tabindex: '-1',
+    });
+    // The pressed toggle holds the group's tab stop, in the server's markup too.
+    expect(client['two']).toEqual({
+      id: 'two',
+      type: 'button',
       'aria-pressed': 'true',
+      'data-pressed': '',
+      tabindex: '0',
     });
   });
 

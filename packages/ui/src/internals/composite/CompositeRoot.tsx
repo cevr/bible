@@ -30,6 +30,7 @@ export function CompositeRoot<State extends object>(props: CompositeRootProps<St
 
   const context: CompositeRootContextValue = {
     highlightedIndex: root.highlightedIndex,
+    settled: root.settled,
     onHighlightedIndexChange: root.onHighlightedIndexChange,
   };
 

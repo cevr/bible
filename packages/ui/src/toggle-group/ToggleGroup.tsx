@@ -5,7 +5,9 @@
 // offers `[]`, and the toggles show what the owner keeps. It is a composite
 // with one tab stop (the left and right arrows, wrapping at the ends; Home
 // and End), which starts on the toggle drawn pressed (`aria-pressed`; the
-// first when none is). A mouse press from outside the group takes no focus:
+// first when none is). The server's markup and the browser's first render
+// put it there too, from `value` (see Toggle); a `value` naming no toggle
+// gives none there, and the first once the browser settles. A mouse press from outside the group takes no focus:
 // focus goes where the platform sends it for a press on content that takes
 // none, the nearest focusable ancestor (a sheet's popup) or else nowhere;
 // the pressed toggle takes the tab stop either way (see Toggle).
