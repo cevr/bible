@@ -13,8 +13,10 @@ import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { evaluates, waitFor } from '../../src/lab/fixtures/settled.ts';
 import {
   STUDIO_ASK,
+  STUDIO_DRAFT,
   STUDIO_FOLDER,
   STUDIO_PRODUCTION,
+  STUDIO_SERIES,
   STUDIO_SET,
   studioRoutes,
 } from '../../src/lab/fixtures/studio-film.ts';
@@ -36,6 +38,8 @@ import {
   PROJECT_READY,
   PRODUCTION_READY,
   ASK_READY,
+  DELIVERY_READY,
+  DRAFT_READY,
   STILL,
   CHOICES_READY,
   SELECTION_SHEET,
@@ -106,6 +110,13 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
       ['a Production', review(pageHref.production(STUDIO_PRODUCTION), PRODUCTION_READY)],
     ],
     ask: [['an ask', review(pageHref.ask(STUDIO_ASK), ASK_READY)]],
+    draft: [['a series draft', review(pageHref.draft(STUDIO_SERIES, STUDIO_DRAFT), DRAFT_READY)]],
+    draftBeat: [
+      [
+        'a series draft, a word selected',
+        review(pageHref.draftBeat(STUDIO_SERIES, STUDIO_DRAFT, '1', '4-4'), DELIVERY_READY),
+      ],
+    ],
     scenes: [
       ['Scenes', player(pageHref.scenes(PROBE), STILL)],
       [

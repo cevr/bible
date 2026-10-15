@@ -69,7 +69,15 @@ import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
 import { type Quality, fileInfoText, videoSource } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
-import { Places, ProjectView, legacyPlace, pageHref, reviewFileUrl } from '../../core/api.ts';
+import {
+  DraftRead,
+  Places,
+  ProjectView,
+  SeriesList,
+  legacyPlace,
+  pageHref,
+  reviewFileUrl,
+} from '../../core/api.ts';
 import { FILM_FPS } from '../../core/time.ts';
 import { onChoicesTab } from '../../core/point.ts';
 import {
@@ -166,6 +174,8 @@ interface ReviewStateValue {
   readonly index: Accessor<AsyncResult.AsyncResult<ReviewIndex, LabFailure>>;
   /** The app's films, each with options to pick from. */
   readonly films: Accessor<AsyncResult.AsyncResult<ReviewFilms, LabFailure>>;
+  /** The app's series and their drafts, listed beside the films. */
+  readonly series: Accessor<AsyncResult.AsyncResult<SeriesList, LabFailure>>;
   /**
    * Every production's ledger (`core/production.ts`), as last read or as a
    * move forward left it: the page lays the index's folders into each.
@@ -179,7 +189,7 @@ interface ReviewActions {
   readonly go: (place: ReviewPlace) => void;
   /**
    * Walk the roots again now (an ask of the index, `asks`), read the films
-   * again, and read every film's project the page has read again
+   * and the series again, and read every film's project the page has read again
    * (`FilmProject.changed`).
    */
   readonly refresh: () => void;
@@ -234,6 +244,8 @@ interface ReviewMeta {
   readonly text: (file: Written) => Loaded<string>;
   /** A film's storyboard, read in the page alone (the server's render never waits on it). */
   readonly board: (film: string) => Loaded<BoardFile>;
+  /** A series draft as its Markdown read when the page did: read by the server where it renders the draft. */
+  readonly draft: (series: string, draft: string) => Loaded<DraftRead>;
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
   /** The page's one client of the lab's API: what a read of its own (a feed) goes through. */
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
@@ -420,6 +432,15 @@ export const Root = (
       .atom(ReviewApi.use((api) => api.board(film)))
       .pipe(Atom.withServerValue(() => AsyncResult.initial<BoardFile, LabFailure>())),
   );
+  const seriesAtom = runtime
+    .atom(ReviewApi.use((api) => api.series))
+    .pipe(served('review.series', SeriesList));
+  const draftOf = Atom.family((key: string) => {
+    const [series = '', draft = ''] = key.split('/');
+    return runtime
+      .atom(ReviewApi.use((api) => api.draft(series, draft)))
+      .pipe(served(`review.draft:${key}`, DraftRead));
+  });
   const servedAtAtom = Atom.make(Clock.currentTimeMillis).pipe(served(SERVED_AT, Schema.Finite));
 
   const address = addressOn(props.host);
@@ -449,6 +470,8 @@ export const Root = (
     const indexOwner = useIndexOwner(firstIndex, () => askAgain());
     const { index, asks } = indexOwner;
     const films = useAtomValue(() => filmsAtom);
+    const series = useAtomValue(() => seriesAtom);
+    const refreshSeries = useAtomRefresh(() => seriesAtom);
     // A Refresh reads the films again too: a film added since is one from then on.
     const refreshFilms = useAtomRefresh(() => filmsAtom);
     // Read through the served atom itself, so the client adopts the server's answer as it
@@ -526,7 +549,7 @@ export const Root = (
         return made;
       });
     const value: ReviewContextValue = {
-      state: { place, index, films, productions, quality },
+      state: { place, index, films, series, productions, quality },
       actions: {
         go: (next) => {
           address.go(hrefOf(next));
@@ -534,6 +557,7 @@ export const Root = (
         },
         refresh: () => {
           refreshFilms();
+          refreshSeries();
           setMoved([]);
           refreshProductions();
           indexOwner.again();
@@ -557,6 +581,7 @@ export const Root = (
         project,
         text,
         board,
+        draft: (series, draft) => draftOf(`${series}/${draft}`),
         runtime,
         client: props.client,
         host: props.host,

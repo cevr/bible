@@ -4,8 +4,10 @@
 // (`/productions/<production>`, the version in focus in `?v=`), one folder (`/sets/<folder>`), one comparison
 // set in it (`/sets/<folder>/<point>`, its view in the query:
 // `?view=pair|wipe&other=<id>`, `?view=moments&m=<n>`, `?view=diff&other=<id>&m=<n>`), one film's choices
-// (`/films/<film>/choices`), or one film's project by its address tree
-// (`/films/<film>/project`). Each of those is also a place ⌘K goes to by
+// (`/films/<film>/choices`), one film's project by its address tree
+// (`/films/<film>/project`), or a series draft in the Script reader
+// (`/series/<series>/<draft>`, the words selected in a beat
+// `/series/<series>/<draft>/<beat>?words=<a>-<b>`). Each of those is also a place ⌘K goes to by
 // its name (`destinationsOf`). A folder or a set keeps the still open full
 // size (`?still=`: `stillIn`, `withStill`).
 
@@ -24,6 +26,16 @@ export type ReviewPlace = Data.TaggedEnum<{
   Production: { readonly production: string; readonly v: number };
   /** An agent's ask: its decision page, at the step its run is on. */
   Ask: { readonly ask: string };
+  /**
+   * A series draft in the Script reader: words `words` (`<a>-<b>`, '' for
+   * none) selected in beat `beat` ('' for none).
+   */
+  Draft: {
+    readonly series: string;
+    readonly draft: string;
+    readonly beat: string;
+    readonly words: string;
+  };
   Folder: { readonly folder: string };
   /** A render choice point of the folder, by its id. */
   Set: { readonly folder: string; readonly point: string };
@@ -44,6 +56,12 @@ export const placeOf = (href: string): ReviewPlace =>
       ReviewPlace.Production({ production: p.path.production, v: p.query.v }),
     ),
     Option.map(Place.decode(Places.ask, href), (v) => ReviewPlace.Ask(v.path)),
+    Option.map(Place.decode(Places.draft, href), (v) =>
+      ReviewPlace.Draft({ ...v.path, beat: '', words: '' }),
+    ),
+    Option.map(Place.decode(Places.draftBeat, href), (v) =>
+      ReviewPlace.Draft({ ...v.path, words: v.query.words }),
+    ),
     Option.map(Place.decode(Places.folder, href), (v) => ReviewPlace.Folder(v.path)),
     Option.map(Place.decode(Places.set, href), (v) => ReviewPlace.Set(v.path)),
     Option.map(Place.decode(Places.choices, href), (v) =>
@@ -80,6 +98,10 @@ export const hrefOf = (place: ReviewPlace): string =>
       Home: () => pageHref.home(),
       Production: (p) => pageHref.production(p.production, p.v),
       Ask: (p) => pageHref.ask(p.ask),
+      Draft: (p) => {
+        if (p.beat === '') return pageHref.draft(p.series, p.draft);
+        return pageHref.draftBeat(p.series, p.draft, p.beat, p.words);
+      },
       Folder: (p) => pageHref.folder(p.folder),
       Set: (p) => pageHref.set(p.folder, p.point),
       Film: (p) => pageHref.choices(p.film, p.point),

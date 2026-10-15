@@ -75,6 +75,10 @@ const fakeLab = (
         sent.push(values);
         return answer(values);
       },
+      series: unused(),
+      draft: unused,
+      draftVoice: unused,
+      draftMarks: unused,
     }),
   );
 

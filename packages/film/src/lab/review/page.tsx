@@ -22,9 +22,10 @@ import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, SetPage } from './section.tsx';
 import { ProductionPage, useHistories } from './production.tsx';
 import { AskPage } from '../ask/page.tsx';
+import { DraftPage } from './draft.tsx';
 import { COMMENTS_CSS } from './comments-style.ts';
 import { REVIEW_CSS } from './style.ts';
-import { type Part, pageAt } from '../../core/api.ts';
+import { type Part, type SeriesList, pageAt } from '../../core/api.ts';
 import type { Host } from '../../browser/host.ts';
 import type { Hub } from '../../command/hub.ts';
 import { COMMAND_CSS } from '../command/style.ts';
@@ -42,6 +43,17 @@ const folderName = (index: Option.Option<ReviewIndex>, ref: string): string =>
       folderTitle,
     ),
     () => ref,
+  );
+
+/** A series draft's title from the series once read, else its file's name. */
+const draftName = (list: Option.Option<SeriesList>, series: string, draft: string): string =>
+  Option.getOrElse(
+    Option.flatMap(list, (l) =>
+      Option.flatMap(Option.fromUndefinedOr(l.series.find((s) => s.name === series)), (s) =>
+        Option.map(Option.fromUndefinedOr(s.drafts.find((d) => d.name === draft)), (d) => d.title),
+      ),
+    ),
+    () => draft,
   );
 
 /** A set's title from the index once read, else its point's id. */
@@ -77,6 +89,7 @@ const filmOf = (
       Home: () => Option.none<string>(),
       Production: (p) => Option.flatMap(historyNamed(histories, p.production), (h) => h.film),
       Ask: () => Option.none<string>(),
+      Draft: () => Option.none<string>(),
       Folder: (p) => filmOfFolder(p.folder, films),
       Set: (p) => filmOfFolder(p.folder, films),
       Film: (p) => Option.some(p.film),
@@ -101,6 +114,7 @@ const partOf = (place: ReviewPlace, films: ReadonlyArray<string>): Part =>
       Home: (): Part => 'films',
       Production: (): Part => 'films',
       Ask: (): Part => 'films',
+      Draft: (): Part => 'films',
       Folder: (p) => folderPart(p.folder, films),
       Set: (p) => folderPart(p.folder, films),
       Film: (): Part => 'choices',
@@ -113,6 +127,7 @@ const depthOf = (
   place: ReviewPlace,
   index: Option.Option<ReviewIndex>,
   histories: ReadonlyArray<ProductionHistory>,
+  series: Option.Option<SeriesList>,
 ): Option.Option<string> =>
   Match.value(place).pipe(
     Match.tags({
@@ -124,6 +139,7 @@ const depthOf = (
           }),
         ),
       Ask: () => Option.some('ask'),
+      Draft: (p) => Option.some(draftName(series, p.series, p.draft)),
       Folder: (p) => Option.some(folderName(index, p.folder)),
       Set: (p) => Option.some(`${setName(index, p.folder, p.point)} · stack`),
     }),
@@ -145,7 +161,8 @@ const Shell = (props: { readonly children: JSX.Element }) => {
   const index = () => AsyncResult.value(state.index());
   const histories = useHistories();
   const film = () => filmOf(state.place(), films(), histories());
-  const depth = () => depthOf(state.place(), index(), histories());
+  const depth = () =>
+    depthOf(state.place(), index(), histories(), AsyncResult.value(state.series()));
   return (
     <PageShell
       part={() => partOf(state.place(), films())}
@@ -166,14 +183,17 @@ const Shell = (props: { readonly children: JSX.Element }) => {
 };
 
 /**
- * The page `place` is on: Choices' card in focus (`?point=`) is that page's
- * own state, read from the URL by the page, so a tap, a Back or a Forward
- * moving it keeps the page (its player, its open sheet) instead of drawing
- * it again.
+ * The page `place` is on: Choices' card in focus (`?point=`) and a draft's
+ * words selected are that page's own state, read from the URL by the page,
+ * so a tap, a Back or a Forward moving them keeps the page (its player, its
+ * open sheet, its take heard) instead of drawing it again.
  */
 const pageOf = (place: ReviewPlace): ReviewPlace =>
   Match.value(place).pipe(
     Match.tag('Film', (p) => ReviewPlace.Film({ film: p.film, point: '' })),
+    Match.tag('Draft', (p) =>
+      ReviewPlace.Draft({ series: p.series, draft: p.draft, beat: '', words: '' }),
+    ),
     Match.orElse(() => place),
   );
 
@@ -187,6 +207,7 @@ const Page = () => {
           Home: () => <Home />,
           Production: (p) => <ProductionPage production={p.production} v={p.v} />,
           Ask: (p) => <AskPage ask={p.ask} />,
+          Draft: (p) => <DraftPage series={p.series} draft={p.draft} />,
           Folder: (p) => <FolderPage folder={p.folder} />,
           Set: (p) => <SetPage folder={p.folder} point={p.point} />,
           Film: (p) => <FilmPage film={p.film} />,
