@@ -10,3 +10,7 @@
 # took 13-15 s. A case waiting for its turn has not started, so its timeout
 # counts its own work only.
 concurrentTestGlob = ["**/*.dom.test.ts", "**/*.pixel.test.ts"]
+# The tests' time limit, set through effect-bun-test so that its runners
+# interrupt a concurrent case at it (src/lab/fixtures/test-timeout.ts); the
+# scripts pass no --timeout, which a test cannot read.
+preload = ["./src/lab/fixtures/preload.ts"]

@@ -3494,8 +3494,16 @@ those paths do not discover or execute them. Their source remains linted and typ
 Run `bun run test:e2e` from the repository root or this package to exercise
 the real browser workflows and canvas pixel checks. The E2E script uses
 `src/lab/fixtures/run-suite.ts` to compile fresh browser bundles and run
-`bun test --parallel --no-isolate --max-concurrency=3 --timeout 20000 e2e`.
-On CI the runner takes eight workers, or the host's core count when smaller;
+`bun test --parallel --no-isolate --max-concurrency=3 e2e`.
+Every film test that sets no timeout of its own has 20 s
+(`src/lab/fixtures/test-timeout.ts`), set by the preload `bunfig.toml` names
+through effect-bun-test's `setDefaultTimeout`, not by `--timeout`: a test
+cannot read `--timeout`, and effect-bun-test's runners interrupt a
+concurrent case only at a deadline they hold. So a case that times out has
+its scope closed, its tabs and its lab, at its limit, where before its fiber
+ran on beside the cases after it. A `--timeout` on the command line changes
+nothing, since bun ranks `setDefaultTimeout` above it: give the case a
+timeout of its own instead. On CI the runner takes eight workers, or the host's core count when smaller;
 on a shared machine (the laptop, the workbox) it takes the cores free when it
 starts, the core count less the one-minute load, at least two and at most the
 cores (`src/lab/fixtures/workers.ts`), and prints the count it took. Each

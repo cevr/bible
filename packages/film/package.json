@@ -23,8 +23,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test --parallel --no-isolate --max-concurrency=3 --timeout 20000 --timings=node_modules/.cache/bun-test/timings.json --update-timings src lint",
-    "test:e2e": "bun src/lab/fixtures/run-suite.ts --parallel --no-isolate --max-concurrency=3 --timeout 20000 e2e",
+    "test": "bun test --parallel --no-isolate --max-concurrency=3 --timings=node_modules/.cache/bun-test/timings.json --update-timings src lint",
+    "test:e2e": "bun src/lab/fixtures/run-suite.ts --parallel --no-isolate --max-concurrency=3 e2e",
     "test:e2e:check": "bun src/lab/fixtures/e2e-check.ts"
   },
   "dependencies": {
